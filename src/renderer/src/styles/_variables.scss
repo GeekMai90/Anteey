@@ -1,0 +1,221 @@
+// 颜色变量
+//
+// 这个文件包含了整个项目中使用的所有颜色变量。
+// 使用这些变量可以确保整个项目的颜色一致性。
+//
+// 如何使用：
+// 1. 在你的 SCSS 文件中导入这个文件：@import 'path/to/variables';
+// 2. 使用变量：background-color: $primary-color;
+
+// 主题颜色
+$primary-color: #00c8a8;
+$secondary-color: #6c757d;
+$accent-color: #28a745;
+
+// 状态颜色
+$success-color: #28a745;
+$info-color: #17a2b8;
+$warning-color: #ffc107;
+$danger-color: #dc3545;
+
+// 中性色
+$white: #ffffff;
+$black: #000000;
+$gray-100: #f8f9fb;
+$gray-200: #eff1f5;
+$gray-300: #dee2e6;
+$gray-400: #ced4da;
+$gray-500: #adb5bd;
+$gray-600: #6c757d;
+$gray-700: #495057;
+$gray-800: #343a40;
+$gray-900: #212529;
+$gray-1000: #242424;
+// $gray-1100: #EFF1F5;
+
+// 文本颜色
+$light-text-color: #262628;
+$dark-text-color: #f4f4f4;
+$text-muted: $gray-600;
+$link-color: $primary-color;
+$link-hover-color: darken($link-color, 15%);
+
+// 字体
+$font-family-sans-serif: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+$font-family-monospace: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+$font-family-base: $font-family-sans-serif;
+
+$font-size-base: 1rem;
+$font-size-lg: 1.25rem;
+$font-size-sm: 0.875rem;
+
+$font-weight-light: 300;
+$font-weight-normal: 400;
+$font-weight-bold: 700;
+
+$line-height-base: 22px;
+$line-height-sm: 1.25;
+$line-height-lg: 2;
+
+// 背景颜色
+$body-bg: $white;
+$background-light: $gray-100;
+$background-dark: $gray-800;
+
+// 边框颜色
+$border-color: $gray-300;
+$border-color-light: $gray-200;
+$border-color-dark: $gray-400;
+
+// 表单和输入框颜色
+$input-border-color: $gray-400;
+$input-focus-border-color: lighten($primary-color, 25%);
+$input-placeholder-color: $gray-500;
+
+// 按钮颜色
+$btn-primary-bg: $primary-color;
+$btn-primary-border: $primary-color;
+$btn-secondary-bg: $secondary-color;
+$btn-secondary-border: $secondary-color;
+
+// 阴影颜色
+$box-shadow-color: rgba(0, 0, 0, 0.1);
+$border-radius: 0.25rem;
+$border-radius-lg: 0.3rem;
+$border-radius-sm: 0.2rem;
+$box-shadow-sm: 0 0.125rem 0.25rem rgba($black, 0.075);
+$box-shadow: 0 0.5rem 1rem rgba($black, 0.15);
+$box-shadow-lg: 0 1rem 3rem rgba($black, 0.175);
+
+// 覆盖层颜色
+$overlay-bg: rgba(0, 0, 0, 0.5);
+
+// 特定组件颜色
+$header-bg: $primary-color;
+$footer-bg: $gray-200;
+// $sidebar-bg: $gray-100;
+
+// Z-index
+$zindex-dropdown: 1000;
+$zindex-sticky: 1020;
+$zindex-fixed: 1030;
+$zindex-modal-backdrop: 1040;
+$zindex-modal: 1050;
+$zindex-popover: 1060;
+$zindex-tooltip: 1070;
+
+// 亮暗模式颜色
+$light-mode-bg: $white;
+$dark-mode-bg: $gray-900;
+$light-mode-text: $gray-900;
+$dark-mode-text: $gray-100;
+
+:root {
+  --color-primary: #00c8a8;
+  --color-yellow: #ff9f1c;
+  --color-blue: #4361ee;
+  --color-pink: #f72585;
+  --color-text-primary: #252525;
+  --color-text-secondary: #949494;
+  --color-text-tertiary: #bfbfbf;
+  --color-text-inversion: #fff;
+  --color-text-placeholder: #999;
+  --color-shape-primary: #e3e3e3;
+  --color-shape-secondary: #ebebeb;
+  --color-shape-tertiary: #f2f2f2;
+  --color-bg-primary: #fff;
+  --color-link: #4361ee;
+  --color-link-hover: #4361ee;
+  --color-text-danger: #ff4d4f;
+  --color-system-selection: rgba(24, 163, 241, 0.15);
+  --color-scrollbar-track-bg: #f0f0f0;
+  --color-scrollbar-thumb-bg: #888;
+  --color-scrollbar-thumb-hover-bg: #555;
+  --color-focus: #4361ee;
+  --color-icon-default: #b6b6b6;
+  --color-border: #e7eaee;
+  --color-border-sidebar: #e1e1e1;
+  --font-weight-title: 700;
+  --color-hover-bg: #{$gray-200};
+  --color-hover-sidebar: #e0e0e07f;
+  --color-menu-active-bg: #{rgba($primary-color, 0.05)};
+  --color-sidebar-active-bg: #{rgba($primary-color, 0.09)};
+  --shadow-primary: 0 3px 6px -4px rgb(0 0 0 / 12%), 0 6px 16px 0 rgb(0 0 0 / 8%), 0 9px 28px 8px rgb(0 0 0 / 5%);
+  --color-scroll-track: rgba(0, 0, 0, 0.05);
+  --color-scroll-thumb: rgba(0, 0, 0, 0.2);
+  --color-scroll-thumb-hover: rgba(0, 0, 0, 0.3);
+
+  // --light-gray-color: rgba(0, 0, 0, 0.5);
+  --sidebar-bg: #{$gray-100};
+  --sidebar-hover-bg: #{$gray-200};
+  --left-nav-tab-active-bg: #{rgba($primary-color, 0.05)};
+  // --menu-active-bg: #{rgba($primary-color, 0.05)};
+  // --menu-bg: #{$body-bg};
+  // --icon-default-color: #{$gray-100};
+  --time-card-border-color: rgba(173, 181, 188, 0.3);
+  // --timestamp-color: #999;
+  // --error-color: #{$danger-color};
+  // --card-shadow: 0px 2px 6px rgb(0 0 0 / 12%);
+  // --border-color: #e7eaee;
+  // --timeline-card-bg: #{$white};
+  // --card-timestamp-color: #999;
+}
+
+.theme-dark {
+  --primary-color: #{$primary-color};
+  --body-bg: #{$dark-mode-bg};
+  --default-text-color: #{$dark-text-color};
+  --sidebar-bg: #{$gray-1000};
+  --sidebar-hover-bg: #{$gray-1000};
+  --left-nav-tab-active-bg: #{rgba($primary-color, 0.05)};
+  --menu-active-bg: #{rgba($primary-color, 0.05)};
+  --icon-default-color: #{$gray-100};
+  --time-card-border-color: rgba(173, 181, 188, 0.12);
+  --main-card-color: #00c8a8;
+  --bib-card-color: #ffb740;
+  --index-card-color: #6c8eff;
+  --hoplink-card-color: #ff5fa2;
+  --timestamp-color: #999;
+  --error-color: #{$danger-color};
+  --card-shadow: 0px 2px 6px rgb(0 0 0 / 12%);
+  --border-color: #e7eaee;
+  --timeline-card-bg: #{$white};
+  --card-timestamp-color: #999;
+  --color-scroll-track: rgba(255, 255, 255, 0.05);
+  --color-scroll-thumb: rgba(255, 255, 255, 0.2);
+  --color-scroll-thumb-hover: rgba(255, 255, 255, 0.3);
+}
+// 颜色函数
+// @function lighten-color($color, $percentage) {
+//   @return lighten($color, $percentage);
+// }
+
+// @function darken-color($color, $percentage) {
+//   @return darken($color, $percentage);
+// }
+
+// // 颜色变体示例
+// $primary-light: lighten-color($primary-color, 10%);
+// $primary-dark: darken-color($primary-color, 10%);
+
+// @function theme-color($key, $theme: "light") {
+//   @return map-get(map-get($themes, $theme), $key);
+// }
+// @mixin themed() {
+//   @each $theme, $map in $themes {
+//     .theme-#{$theme} & {
+//       $theme-map: () !global;
+//       @each $key, $submap in $map {
+//         $value: map-get(map-get($themes, $theme), "#{$key}");
+//         $theme-map: map-merge(
+//           $theme-map,
+//           (
+//             $key: $value
+//           )
+//         ) !global;
+//       }
+//       @content;
+//       $theme-map: null !global;
+//     }
+//   }
+// }

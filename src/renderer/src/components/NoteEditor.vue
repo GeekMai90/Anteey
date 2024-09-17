@@ -1,0 +1,687 @@
+<!-- src/components/NoteEditor.vue -->
+<!-- src/components/NoteEditor.vue -->
+<template>
+  <div class="note-editor">
+    <!-- 顶部工具栏 -->
+    <div class="toolbar">
+      <button class="expand-btn" @click="handleExpand">
+        <ExpandTextInput theme="outline" size="16" fill="#b6b6b6" />
+      </button>
+      <div class="toolbar-right">
+        <button class="install-btn" @click="toggleCardBoxMenu">
+          <Install theme="outline" size="18" fill="#b6b6b6" />
+        </button>
+        <!-- 添加卡片盒下拉菜单 -->
+        <CardboxDropdownMenu
+          :isOpen="showCardBoxMenu"
+          :cardBoxes="cardBoxes"
+          :selectedCardBox="selectedCardBox"
+          @update:selectedCardBox="selectCardBox"
+          @close="showCardBoxMenu = false"
+        />
+        <button class="more-btn" @click="handleToggleOptions">
+          <More theme="outline" size="18" fill="#b6b6b6" />
+        </button>
+      </div>
+    </div>
+    <!-- 编辑器内容 -->
+    <div class="editor-content">
+      <div class="address-input">
+        <div
+          ref="indicatorButton"
+          class="note-indicator"
+          :class="cardTypeClass"
+          @click.stop="toggleCardTypeMenu"
+        ></div>
+        <input
+          ref="addressInput"
+          v-model="editedNote.address"
+          type="text"
+          placeholder="输入编码地址"
+          @keyup.enter="focusEditor"
+        />
+      </div>
+      <div class="content-area">
+        <div class="content-wrapper">
+          <TipTapEditor
+            ref="tiptapEditor"
+            :content="editedNote.content || {}"
+            :editable="true"
+            :enableDragHandle="true"
+            @update:content="updateContent"
+          />
+        </div>
+      </div>
+    </div>
+    <!-- 卡片类型选择菜单 -->
+    <div v-if="showCardTypeMenu" class="card-type-menu" :style="menuStyle" @click.stop>
+      <div
+        v-for="type in cardTypes"
+        :key="type"
+        :class="{ active: editedNote.cardType === type }"
+        class="card-type-item"
+        @click="selectCardType(type)"
+      >
+        <div class="icon">
+          <component :is="getIcon(type)" theme="outline" size="16" fill="#b6b6b6" />
+        </div>
+        <div class="name">{{ getTypeLabel(type) }}</div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import {
+  computed,
+  inject,
+  nextTick,
+  onBeforeUnmount,
+  onMounted,
+  onUnmounted,
+  ref,
+  watch
+} from 'vue'
+import { Note, CardType, CardBox } from '../types/Note'
+import { useNoteStore } from '../stores/noteStores'
+import TipTapEditor from '../components/TipTapEditor.vue'
+import { useRouter } from 'vue-router'
+import {
+  Notes,
+  BookOpen,
+  ViewList,
+  Link,
+  ExpandTextInput,
+  Install,
+  More
+} from '@icon-park/vue-next'
+import { useDebounceFn, useThrottleFn } from '@vueuse/core'
+import CardboxDropdownMenu from './CardboxDropdownMenu.vue'
+
+const props = defineProps<{
+  noteId?: string
+}>()
+
+const router = useRouter()
+const addressInput = ref<HTMLInputElement | null>(null)
+const tiptapEditor = ref<InstanceType<any> | null>(null)
+const emit = defineEmits(['close', 'save', 'expand', 'toggleOptions'])
+const noteStore = useNoteStore()
+const isExpandingToExpandEditor = ref(false)
+const showCardBoxMenu = ref(false)
+const selectedCardBox = ref<CardBox | null>(null)
+const showMoreActions = ref<string | null>(null)
+
+// 被编辑的笔记，初始化时为空
+const editedNote = ref<Partial<Note>>({})
+const isNewNote = ref(false)
+
+// 初始化笔记，如果 noteId 存在，则从服务器获取笔记，否则创建新笔记
+// 初始化笔记
+const initializeNote = async () => {
+  if (props.noteId) {
+    const existingNote = await noteStore.getNoteById(props.noteId)
+    if (existingNote) {
+      editedNote.value = { ...existingNote, content: existingNote.content || {} }
+    } else {
+      console.error(`Note with id ${props.noteId} not found`)
+      // 如果找不到指定 ID 的笔记，创建一个新的
+      editedNote.value = await noteStore.createNewNote()
+    }
+  } else {
+    // 如果没有提供 noteId，直接创建一个新的笔记
+    editedNote.value = await noteStore.createNewNote()
+  }
+}
+
+// 在组件挂载时初始化笔记
+onMounted(async () => {
+  await initializeNote()
+})
+
+// 监听 noteId 的变化，初始化或更新编辑的笔记
+watch(
+  () => props.noteId,
+  async () => {
+    await initializeNote()
+  },
+  { immediate: true }
+)
+
+onMounted(async () => {
+  await initializeNote()
+})
+
+// 保存笔记
+const saveNote = async () => {
+  console.log('Saving note:', JSON.stringify(editedNote.value))
+  if (!editedNote.value.id) {
+    console.error('Cannot save note: Missing note id')
+    return
+  }
+
+  try {
+    const noteToSave: Partial<Note> = {
+      id: editedNote.value.id,
+      address: editedNote.value.address,
+      cardType: editedNote.value.cardType,
+      content: JSON.parse(JSON.stringify(editedNote.value.content)), // 确保内容是可序列化的
+      tags: editedNote.value.tags,
+      cardBoxId: editedNote.value.cardBoxId,
+      isDeleted: editedNote.value.isDeleted,
+      isStarred: editedNote.value.isStarred
+    }
+
+    const savedNote = await noteStore.updateNote(editedNote.value.id, noteToSave)
+
+    if (savedNote) {
+      editedNote.value = savedNote
+      console.log('Note updated successfully:', JSON.stringify(savedNote))
+    } else {
+      console.error('Failed to update note: No note returned from store')
+    }
+  } catch (error) {
+    console.error('Error updating note:', error)
+  }
+}
+
+// 监听笔记变化
+watch(
+  () => editedNote.value,
+  (newValue, oldValue) => {
+    if (JSON.stringify(newValue) !== JSON.stringify(oldValue)) {
+      console.log('Note changed, triggering save')
+      debouncedSave()
+    }
+  },
+  { deep: true }
+)
+
+// 组件卸载前保存笔记
+onBeforeUnmount(() => {
+  saveNote()
+})
+
+// 使用防抖和节流函数来保存笔记
+const debouncedSave = useDebounceFn(saveNote, 2000)
+const throttledContentSave = useThrottleFn(saveNote, 5000)
+
+// 更新内容
+const updateContent = (newContent: any) => {
+  if (editedNote.value) {
+    editedNote.value.content = newContent
+    throttledContentSave()
+  }
+}
+
+// 监听笔记变化
+watch(
+  () => editedNote.value,
+  (newValue, oldValue) => {
+    console.log('editedNote changed')
+    console.log('Old value:', JSON.stringify(oldValue))
+    console.log('New value:', JSON.stringify(newValue))
+    if (JSON.stringify(newValue) !== JSON.stringify(oldValue)) {
+      console.log('Calling saveNote due to change')
+      debouncedSave()
+    }
+  },
+  { deep: true }
+)
+
+// 当模态窗被关闭时，保存笔记
+const handleAutoSave = () => {
+  if (editedNote.value?.address || editedNote.value?.content || editedNote.value?.cardType) {
+    saveNote()
+  } else {
+    emit('close')
+  }
+}
+
+onBeforeUnmount(() => {
+  saveNote()
+})
+
+// 卡片盒列表
+const cardBoxes = computed(() => {
+  return [...noteStore.cardBoxes].sort((a, b) => a.name.localeCompare(b.name, 'zh-CN'))
+})
+
+const toggleCardBoxMenu = () => {
+  showCardBoxMenu.value = !showCardBoxMenu.value
+}
+
+// 选择卡片盒
+const selectCardBox = async (box: CardBox) => {
+  if (!editedNote.value?.id) {
+    console.error('编辑的笔记为空')
+    return
+  }
+  try {
+    selectedCardBox.value = box
+    editedNote.value.cardBoxId = box.id !== '0000' ? box.id : undefined
+    await noteStore.updateNoteCardBox(editedNote.value.id, editedNote.value.cardBoxId || null)
+    await saveNote()
+    console.log('卡片盒更新成功:', box.name)
+  } catch (error) {
+    console.error('更新卡片盒失败:', error)
+  }
+}
+
+// 全局点击事件，关闭下拉菜单
+const handleGlobalClick = (event: MouseEvent) => {
+  if (
+    showCardBoxMenu.value &&
+    event.target instanceof Element &&
+    !event.target.closest('.install-btn') &&
+    !event.target.closest('.dropdown-menu')
+  ) {
+    showCardBoxMenu.value = false
+  }
+  showMoreActions.value = null
+  if (
+    showCardTypeMenu.value &&
+    event.target instanceof Element &&
+    !event.target.closest('.note-indicator') &&
+    !event.target.closest('.card-type-menu')
+  ) {
+    showCardTypeMenu.value = false
+  }
+}
+
+onMounted(() => {
+  document.addEventListener('click', handleGlobalClick)
+  if (editedNote.value.cardBoxId) {
+    const currentCardBox = cardBoxes.value.find((box) => box.id === editedNote.value.cardBoxId)
+    if (currentCardBox) {
+      selectedCardBox.value = currentCardBox
+    }
+  }
+})
+
+onUnmounted(() => {
+  document.removeEventListener('click', handleGlobalClick)
+})
+
+// 卡片类型选择菜单处理
+const indicatorButton = ref<HTMLButtonElement | null>(null)
+const showCardTypeMenu = ref(false)
+const cardTypes: CardType[] = ['Maincard', 'Bibcard', 'Indexcard', 'Hoplinkcard']
+const menuStyle = ref({})
+
+const cardTypeClass = computed(() => ({
+  maincard: editedNote.value?.cardType === 'Maincard',
+  bibcard: editedNote.value?.cardType === 'Bibcard',
+  indexcard: editedNote.value?.cardType === 'Indexcard',
+  hoplinkcard: editedNote.value?.cardType === 'Hoplinkcard'
+}))
+
+const getIcon = (type: CardType) => {
+  switch (type) {
+    case 'Maincard':
+      return Notes
+    case 'Bibcard':
+      return BookOpen
+    case 'Indexcard':
+      return ViewList
+    case 'Hoplinkcard':
+      return Link
+  }
+}
+
+const getTypeLabel = (type: CardType) => {
+  switch (type) {
+    case 'Maincard':
+      return '主要卡'
+    case 'Bibcard':
+      return '书目卡'
+    case 'Indexcard':
+      return '索引卡'
+    case 'Hoplinkcard':
+      return '跳转卡'
+  }
+}
+
+const toggleCardTypeMenu = (event: MouseEvent) => {
+  event.stopPropagation()
+  showCardTypeMenu.value = !showCardTypeMenu.value
+  if (showCardTypeMenu.value) {
+    nextTick(() => {
+      const button = indicatorButton.value
+      if (button) {
+        const rect = button.getBoundingClientRect()
+        menuStyle.value = {
+          top: `${rect.bottom + window.scrollY + 10}px`,
+          left: `${rect.left + window.scrollX}px`
+        }
+      }
+    })
+  }
+}
+
+const selectCardType = (type: CardType) => {
+  if (editedNote.value) {
+    editedNote.value.cardType = type
+    showCardTypeMenu.value = false
+    saveNote()
+  }
+}
+
+// 聚焦地址输入框
+const focusAddressInput = () => {
+  nextTick(() => {
+    addressInput.value?.focus()
+  })
+}
+
+const focusEditor = () => {
+  nextTick(() => {
+    tiptapEditor.value?.focus()
+  })
+}
+
+// 在组件挂载后聚焦
+onMounted(() => {
+  focusAddressInput()
+})
+
+// 当 noteId 改变时聚焦（用于编辑现有笔记）
+watch(
+  () => props.noteId,
+  () => {
+    focusAddressInput()
+  }
+)
+
+// 展开编辑器
+const handleExpand = async () => {
+  await saveNote()
+  isExpandingToExpandEditor.value = true
+  if (editedNote.value?.id) {
+    router.push({ name: 'NoteExpandEditor', params: { id: editedNote.value.id } })
+  }
+  noteStore.closeNoteEditor()
+}
+
+// 打开选项菜单
+const openOptionsMenu = inject('openOptionsMenu') as (event: MouseEvent, noteId: string) => void
+
+const handleToggleOptions = (event: MouseEvent) => {
+  if (props.noteId) {
+    openOptionsMenu(event, props.noteId)
+  }
+}
+
+defineExpose({ handleAutoSave, focusAddressInput })
+</script>
+
+<style lang="scss" scoped>
+.note-editor {
+  background-color: var(--color-bg-primary);
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  height: 600px;
+  max-height: 600px;
+  width: 640px;
+  max-width: 100%;
+  position: relative;
+
+  // 顶部工具栏
+  .toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 20px;
+    position: relative;
+
+    .expand-btn,
+    .install-btn,
+    .more-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 6px;
+      transition: background-color 0.2s;
+      padding: 0;
+      margin-right: 5px;
+
+      &:hover:not(:disabled) {
+        background-color: var(--color-hover-bg);
+      }
+
+      &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      // 新增以下样式来处理 i-icon 类
+      :deep(.i-icon) {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        height: 100%;
+      }
+
+      :deep(svg) {
+        width: 18px; // 或者您想要的大小
+        height: 18px; // 或者您想要的大小
+      }
+    }
+
+    .toolbar-right {
+      display: flex;
+      // gap: 10px;
+    }
+  }
+
+  .editor-content {
+    display: flex;
+    flex-direction: column;
+    // flex-grow: 1;
+    flex: 1;
+    min-height: 0;
+    // padding: 0 10px 0 20px;
+    width: 100%;
+    // padding: 0 10px;
+    overflow: hidden; // 防止双重滚动条
+
+    .address-input {
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding-left: 43px;
+
+      input {
+        width: 100%;
+        padding: 8px 0;
+        /* 移除左右内边距，保留上下内边距 */
+        border: none;
+        /* 移除所有边框 */
+        outline: none;
+        /* 移除聚焦时的轮廓 */
+        font-size: 1.3rem;
+        font-weight: bold;
+        background-color: transparent;
+        /* 确保背景透明 */
+
+        &::placeholder {
+          display: flex;
+          color: var(--color-text-placeholder); // 使用变量或直接指定颜色
+          font-size: 1rem; // 调整字体大小
+          font-weight: normal; // 调整字体粗细
+          // font-style: italic; // 可选：使用斜体
+          opacity: 0.7; // 调整透明度
+          position: absolute;
+          top: 50%;
+          transform: translateY(-50%);
+          left: 0;
+        }
+
+        &:focus::placeholder {
+          opacity: 0.5; // 当输入框获得焦点时，可以改变 placeholder 的样式
+        }
+      }
+
+      .note-indicator {
+        width: 4px;
+        height: 15px;
+        border-radius: 2px;
+        margin-right: 10px;
+        display: block;
+        flex-shrink: 0;
+        cursor: pointer;
+        border: none;
+        outline: none;
+        transition: all 0.3s ease;
+
+        &.maincard {
+          background-color: var(--color-primary);
+        }
+
+        &.bibcard {
+          background-color: var(--color-yellow);
+        }
+
+        &.indexcard {
+          background-color: var(--color-blue);
+        }
+
+        &.hoplinkcard {
+          background-color: var(--color-pink);
+        }
+
+        &:hover {
+          width: 6px;
+          height: 15px;
+        }
+      }
+    }
+
+    .content-area {
+      flex-grow: 1;
+      display: flex;
+      overflow-y: auto;
+      min-height: 0;
+      width: 100%;
+      height: 100%;
+      // max-width: 640px;
+      // margin: 0 auto;
+
+      .content-wrapper {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        min-height: 100%;
+        padding-bottom: 50px; // 添加底部填充
+        width: 100%;
+      }
+    }
+
+    :deep(.tiptap-container) {
+      width: 100%;
+      height: 100%;
+      overflow-y: auto;
+      padding: 0 10px;
+      position: relative;
+    }
+
+    :deep(.tiptap) {
+      // min-width: calc(640px - 64px);
+      min-width: calc(100% - 40px);
+      // width: 100%;
+      min-height: 100%;
+      overflow-y: auto;
+      // overflow: hidden;
+      padding-bottom: 60px;
+    }
+  }
+
+  .card-type-menu {
+    position: fixed;
+    background-color: var(--color-bg-primary);
+    border-radius: 8px;
+    box-shadow: var(--shadow-primary);
+    z-index: 1000;
+    padding: 8px 0;
+    width: auto;
+    align-items: center;
+
+    .card-type-item {
+      display: flex;
+      align-items: center;
+      width: 150px;
+      padding: 2px 8px;
+      border: none;
+      background: none;
+      cursor: pointer;
+      transition: background-color 0.2s;
+      border-radius: 8px;
+      margin: 2px 8px;
+
+      .icon {
+        background: none;
+        border: none;
+        cursor: pointer;
+        width: 28px;
+        height: 28px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 6px;
+        transition: background-color 0.2s;
+        padding: 0;
+        margin-right: 5px;
+
+        &:hover:not(:disabled) {
+          background-color: var(--color-hover-bg);
+        }
+
+        &:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+
+        // 新增以下样式来处理 i-icon 类
+        :deep(.i-icon) {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 100%;
+          height: 100%;
+        }
+
+        :deep(svg) {
+          width: 16px; // 或者您想要的大小
+          height: 16px; // 或者您想要的大小
+        }
+      }
+
+      .name {
+        flex-grow: 0;
+        text-align: left;
+        color: var(--color-text-primary);
+        font-size: 14px;
+        white-space: nowrap; // 防止文字换行
+        writing-mode: horizontal-tb; // 确保文字是水平排列的
+      }
+
+      &:hover {
+        background-color: var(--color-hover-bg);
+      }
+
+      &.active {
+        background-color: var(--color-menu-active-bg);
+        // border: 1px solid var(--color-primary);
+      }
+    }
+  }
+}
+</style>

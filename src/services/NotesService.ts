@@ -1,0 +1,307 @@
+import { DataSource, Repository } from 'typeorm'
+import { Note } from '../entities/Note'
+import { CardBox } from '../entities/CardBox'
+import { v4 as uuidv4 } from 'uuid'
+
+export class NotesService {
+  private notesRepository: Repository<Note>
+  private _cardBoxRepository: Repository<CardBox>
+  private dataSource: DataSource
+
+  constructor(dataSource: DataSource) {
+    this.dataSource = dataSource
+    this.notesRepository = dataSource.getRepository(Note)
+    this._cardBoxRepository = dataSource.getRepository(CardBox)
+  }
+
+  async findAll(includeDeleted: boolean = false): Promise<Note[]> {
+    return this.notesRepository.find({
+      where: includeDeleted ? {} : { isDeleted: false }
+    })
+  }
+
+  async findOne(id: string): Promise<Note> {
+    const note = await this.notesRepository.findOne({
+      where: { id },
+      relations: ['linkedTo', 'linkedFrom']
+    })
+    if (!note) {
+      throw new Error(`Note with ID "${id}" not found`)
+    }
+    return note
+  }
+
+  async create(createNoteDto: Partial<Note>): Promise<Note> {
+    const note = this.notesRepository.create({
+      ...createNoteDto,
+      id: uuidv4(),
+      createdAt: new Date(),
+      updatedAt: new Date()
+    })
+    return this.notesRepository.save(note)
+  }
+
+  async createNewNote(): Promise<Note> {
+    const now = new Date()
+    const newNote: Partial<Note> = {
+      id: uuidv4(),
+      address: '',
+      cardType: 'Maincard',
+      content: {
+        type: 'doc',
+        content: [{ type: 'paragraph' }]
+      },
+      createdAt: now,
+      updatedAt: now,
+      tags: [],
+      linkedTo: [],
+      linkedFrom: [],
+      cardBoxId: null,
+      isDeleted: false,
+      isStarred: false
+    }
+    return this.create(newNote)
+  }
+
+  // async update(id: string, updateNoteDto: Partial<Note>): Promise<Note> {
+  //   const note = await this.findOne(id)
+
+  //   // 只更新提供的字段
+  //   Object.keys(updateNoteDto).forEach((key) => {
+  //     if (key in note) {
+  //       ;(note as any)[key] = (updateNoteDto as any)[key]
+  //     }
+  //   })
+
+  //   note.updatedAt = new Date()
+
+  //   const savedNote = await this.notesRepository.save(note)
+  //   console.log('Updated note:', JSON.stringify(savedNote))
+
+  //   return savedNote
+  // }
+
+  // async update(id: string, noteData: Partial<Note>): Promise<Note> {
+  //   console.log('Updating note with ID:', id)
+  //   console.log('Update data:', JSON.stringify(noteData))
+
+  //   const existingNote = await this.findOne(id)
+
+  //   // 创建一个新的对象，只包含需要更新的字段
+  //   const updatedFields: Partial<Note> = {}
+
+  //   // 只包含已更改的字段
+  //   if ('address' in noteData && noteData.address !== existingNote.address) {
+  //     updatedFields.address = noteData.address
+  //   }
+  //   if (
+  //     'content' in noteData &&
+  //     JSON.stringify(noteData.content) !== JSON.stringify(existingNote.content)
+  //   ) {
+  //     updatedFields.content = noteData.content
+  //   }
+  //   if ('cardType' in noteData && noteData.cardType !== existingNote.cardType) {
+  //     updatedFields.cardType = noteData.cardType
+  //   }
+  //   if ('tags' in noteData && JSON.stringify(noteData.tags) !== JSON.stringify(existingNote.tags)) {
+  //     updatedFields.tags = noteData.tags
+  //   }
+  //   if ('cardBoxId' in noteData && noteData.cardBoxId !== existingNote.cardBoxId) {
+  //     updatedFields.cardBoxId = noteData.cardBoxId
+  //   }
+
+  //   console.log('Fields to update:', JSON.stringify(updatedFields))
+
+  //   if (Object.keys(updatedFields).length === 0) {
+  //     console.log('No changes to update')
+  //     return existingNote
+  //   }
+
+  //   // 更新字段
+  //   Object.assign(existingNote, updatedFields)
+  //   existingNote.updatedAt = new Date()
+
+  //   // 保存到数据库
+  //   const savedNote = await this.notesRepository.save(existingNote)
+  //   console.log('Note updated successfully:', JSON.stringify(savedNote))
+  //   return savedNote
+  // }
+  async update(id: string, updateNoteDto: Partial<Note>): Promise<Note> {
+    console.log('Updating note with ID:', id)
+    console.log('Update data:', JSON.stringify(updateNoteDto))
+
+    const note = await this.findOne(id)
+
+    // 更新提供的字段
+    if (updateNoteDto.address !== undefined) note.address = updateNoteDto.address
+    if (updateNoteDto.cardType !== undefined) note.cardType = updateNoteDto.cardType
+    if (updateNoteDto.content !== undefined) {
+      // 确保内容是可序列化的
+      note.content = JSON.parse(JSON.stringify(updateNoteDto.content))
+    }
+    if (updateNoteDto.tags !== undefined) note.tags = updateNoteDto.tags
+    if (updateNoteDto.cardBoxId !== undefined) note.cardBoxId = updateNoteDto.cardBoxId
+    if (updateNoteDto.isDeleted !== undefined) note.isDeleted = updateNoteDto.isDeleted
+    if (updateNoteDto.isStarred !== undefined) note.isStarred = updateNoteDto.isStarred
+
+    note.updatedAt = new Date()
+
+    const savedNote = await this.notesRepository.save(note)
+    console.log('Updated note:', JSON.stringify(savedNote))
+
+    return savedNote
+  }
+
+  async remove(id: string): Promise<void> {
+    const note = await this.notesRepository.findOne({
+      where: { id },
+      relations: ['linkedTo', 'linkedFrom']
+    })
+    if (!note) {
+      throw new Error('Note not found')
+    }
+    await this.notesRepository.remove(note)
+  }
+
+  async addLink(sourceNoteId: string, targetNoteId: string): Promise<void> {
+    const sourceNote = await this.notesRepository.findOne({
+      where: { id: sourceNoteId },
+      relations: ['linkedTo']
+    })
+    const targetNote = await this.notesRepository.findOne({
+      where: { id: targetNoteId }
+    })
+
+    if (!sourceNote || !targetNote) {
+      throw new Error('One or both notes not found')
+    }
+
+    if (!sourceNote.linkedTo.some((note) => note.id === targetNoteId)) {
+      sourceNote.linkedTo.push(targetNote)
+      await this.notesRepository.save(sourceNote)
+    }
+  }
+
+  async removeLink(sourceNoteId: string, targetNoteId: string): Promise<void> {
+    const sourceNote = await this.notesRepository.findOne({
+      where: { id: sourceNoteId },
+      relations: ['linkedTo']
+    })
+
+    if (!sourceNote) {
+      throw new Error('Source note not found')
+    }
+
+    sourceNote.linkedTo = sourceNote.linkedTo.filter((note) => note.id !== targetNoteId)
+    await this.notesRepository.save(sourceNote)
+  }
+
+  async getLinkedNotes(noteId: string): Promise<Note[]> {
+    const note = await this.notesRepository.findOne({
+      where: { id: noteId },
+      relations: ['linkedTo']
+    })
+
+    if (!note) {
+      throw new Error('Note not found')
+    }
+
+    return note.linkedTo
+  }
+
+  async getBacklinks(noteId: string): Promise<Note[]> {
+    const note = await this.notesRepository.findOne({
+      where: { id: noteId },
+      relations: ['linkedFrom']
+    })
+
+    if (!note) {
+      throw new Error('Note not found')
+    }
+
+    return note.linkedFrom
+  }
+
+  async updateNoteCardBox(noteId: string, newCardBoxId: string | null): Promise<Note> {
+    return this.dataSource.transaction(async (manager) => {
+      const note = await manager.findOne(Note, { where: { id: noteId } })
+      if (!note) {
+        throw new Error('笔记未找到')
+      }
+
+      const oldCardBoxId = note.cardBoxId
+      if (oldCardBoxId) {
+        const oldCardBox = await manager.findOne(CardBox, {
+          where: { id: oldCardBoxId }
+        })
+        if (oldCardBox) {
+          oldCardBox.noteIds = oldCardBox.noteIds.filter((id) => id !== noteId)
+          await manager.save(CardBox, oldCardBox)
+        }
+      }
+
+      note.cardBoxId = newCardBoxId
+      await manager.save(Note, note)
+
+      if (newCardBoxId) {
+        const newCardBox = await manager.findOne(CardBox, {
+          where: { id: newCardBoxId }
+        })
+        if (newCardBox) {
+          if (!newCardBox.noteIds.includes(noteId)) {
+            newCardBox.noteIds.push(noteId)
+            await manager.save(CardBox, newCardBox)
+          }
+        } else {
+          throw new Error('新的卡片盒未找到')
+        }
+      }
+
+      return note
+    })
+  }
+
+  async toggleDeletedStatus(id: string): Promise<Note> {
+    const note = await this.findOne(id)
+    note.isDeleted = !note.isDeleted
+    return this.notesRepository.save(note)
+  }
+
+  async toggleStarredStatus(id: string): Promise<Note> {
+    const note = await this.findOne(id)
+    note.isStarred = !note.isStarred
+    return this.notesRepository.save(note)
+  }
+
+  async findStarred(): Promise<Note[]> {
+    return this.notesRepository.find({
+      where: { isStarred: true, isDeleted: false }
+    })
+  }
+
+  async moveToTrash(id: string): Promise<Note> {
+    const note = await this.findOne(id)
+    note.isDeleted = true
+    return this.notesRepository.save(note)
+  }
+
+  async restoreFromTrash(id: string): Promise<Note> {
+    const note = await this.findOne(id)
+    note.isDeleted = false
+    return this.notesRepository.save(note)
+  }
+
+  async permanentlyDelete(id: string): Promise<void> {
+    const result = await this.notesRepository.delete(id)
+    if (result.affected === 0) {
+      throw new Error('Note not found')
+    }
+  }
+
+  async findDeleted(): Promise<Note[]> {
+    return this.notesRepository.find({
+      where: { isDeleted: true },
+      order: { updatedAt: 'DESC' }
+    })
+  }
+}
