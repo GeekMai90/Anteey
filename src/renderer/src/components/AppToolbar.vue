@@ -1,7 +1,7 @@
 // src/components/AppToolbar.vue
 
 <template>
-  <div class="app-toolbar">
+  <div class="app-toolbar" :style="toolbarStyle">
     <div class="toolbar-section left">
       <div
         v-tooltip.bottom="{ content: 'Cmd + \\', delay: { show: 1000 } }"
@@ -48,7 +48,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { Left, Right, ExpandLeft, ExpandRight } from '@icon-park/vue-next'
 import { useNoteStore } from '@renderer/stores/noteStores'
@@ -56,7 +56,13 @@ import { useNoteStore } from '@renderer/stores/noteStores'
 const noteStore = useNoteStore()
 const router = useRouter()
 
-const props = defineProps({
+const toolbarStyle = computed(() => {
+  return {
+    paddingLeft: noteStore.isSidebarCollapsed ? '76px' : '16px' // Adjust these values as needed
+  }
+})
+
+defineProps({
   showBackButton: { type: Boolean, default: true },
   showForwardButton: { type: Boolean, default: true },
   showRefreshButton: { type: Boolean, default: true }
@@ -92,11 +98,13 @@ onUnmounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0 16px;
+  // padding: 0 16px;
+  padding-right: 16px;
   background-color: var(--color-bg-primary);
   width: 100%;
   box-sizing: border-box;
   height: 40px;
+  -webkit-app-region: drag; /* 使区域可拖动 */
 }
 
 .toolbar-section {
@@ -133,6 +141,7 @@ onUnmounted(() => {
   border-radius: 6px;
   padding: 4px 4px;
   margin: 2px;
+  -webkit-app-region: no-drag; /* 使按钮不可拖动，从而可以点击 */
 
   .icon {
     background: none;

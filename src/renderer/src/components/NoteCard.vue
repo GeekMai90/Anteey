@@ -6,29 +6,38 @@
       <h3 class="note-title">{{ note.address }}</h3>
 
       <div class="note-buttons">
-        <button class="note-button" @click.stop="expandNote">
-          <ExpandTextInput theme="outline" size="20" fill="#b6b6b6" />
-        </button>
-        <button class="note-button" @click.stop="toggleOptionsMenu">
-          <!--  -->
-          <More theme="outline" size="20" fill="#b6b6b6" />
-        </button>
-      </div>
-      <div v-if="isOptionsMenuVisible" v-click-outside="closeOptionsMenu">
-        <NoteOptionsMenu
-          @share="handleShare"
-          @star="handleStar"
-          @show-sidebar="handleShowSidebar"
-          @copy="handleCopy"
-          @show-history="handleShowHistory"
-          @delete="handleDelete"
-          @close="closeOptionsMenu"
-        />
+        <div class="note-button" @click.stop="expandNote">
+          <div class="icon">
+            <ExpandTextInput theme="outline" size="20" fill="#b6b6b6" />
+          </div>
+        </div>
+        <div class="note-button" @click.stop="toggleOptionsMenu">
+          <div class="icon">
+            <More theme="outline" size="20" fill="#b6b6b6" />
+          </div>
+        </div>
+
+        <div
+          v-if="isOptionsMenuVisible"
+          v-click-outside="closeOptionsMenu"
+          class="note-options-menu"
+        >
+          <NoteOptionsMenu
+            :noteId="note.id"
+            @close="closeOptionsMenu"
+            @note-deleted="handleNoteDeleted"
+            @share="handleShare"
+            @star="handleStar"
+            @show-sidebar="handleShowSidebar"
+            @copy="handleCopy"
+            @show-history="handleShowHistory"
+          />
+        </div>
       </div>
     </div>
-    <div class="note-content marked-content" ref="noteContent">
+    <div ref="noteContent" class="note-content">
       <TipTapEditor
-        v-model:content="props.note.content"
+        v-model:content="localNote.content"
         :editable="false"
         :enable-drag-handle="isDragHandleEnabled"
       />
@@ -44,7 +53,7 @@
 import { Note } from '@renderer/types/Note'
 import { formatDate } from '@renderer/utils/noteHelpers'
 import { More, ExpandTextInput } from '@icon-park/vue-next'
-import { computed, onMounted, onUpdated, ref, watch } from 'vue'
+import { computed, onMounted, onUpdated, ref, watch, toRef } from 'vue'
 import NoteOptionsMenu from '@renderer/components/NoteOptionsMenu.vue'
 import { useNoteOptions } from '@renderer/composable/useNoteOptions'
 import { useRouter } from 'vue-router'
@@ -55,8 +64,9 @@ const props = defineProps<{
   note: Note
 }>()
 
-const emit = defineEmits(['edit'])
+// const emit = defineEmits(['edit'])
 const isDragHandleEnabled = ref(false)
+const noteStore = useNoteStore()
 
 const {
   isOptionsMenuVisible,
@@ -66,9 +76,17 @@ const {
   handleStar,
   handleShowSidebar,
   handleCopy,
-  handleShowHistory,
-  handleDelete
+  handleShowHistory
 } = useNoteOptions(props.note.id)
+
+const localNote = toRef(props, 'note')
+
+const handleNoteDeleted = () => {
+  // 处理笔记删除后的逻辑
+  noteStore.closeNoteEditor()
+  // 可能还需要其他操作，如更新UI等
+  closeOptionsMenu() // 只在笔记真正被删除后关闭菜单
+}
 
 // 处理内容超高时底部出现模糊效果
 const noteContent = ref<HTMLDivElement | null>(null)
@@ -128,94 +146,175 @@ watch(
   flex-direction: column;
   justify-content: space-between;
   position: relative;
-}
+  .note-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+    position: relative;
+    // margin-left: 2rem;
+    // padding-left: 2rem;
+    padding: 0 15px 0 30px; // 调整左右内边距
+    height: 30px;
 
-.note-header {
-  display: flex;
-  align-items: center;
-  margin-bottom: 10px;
-  position: relative;
-  margin-left: 2rem;
-}
+    .note-indicator {
+      position: absolute;
+      left: 17px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 4px;
+      height: 13px;
+      border-radius: 2px;
+      margin-right: 10px;
 
-.note-indicator {
-  width: 4px;
-  height: 13px;
-  border-radius: 2px;
-  margin-right: 10px;
+      &.maincard {
+        background-color: var(--color-primary);
+      }
 
-  &.maincard {
-    background-color: var(--color-primary);
-  }
+      &.bibcard {
+        background-color: var(--color-yellow);
+      }
 
-  &.bibcard {
-    background-color: var(--color-yellow);
-  }
+      &.indexcard {
+        background-color: var(--color-blue);
+      }
 
-  &.indexcard {
-    background-color: var(--color-blue);
-  }
-
-  &.hoplinkcard {
-    background-color: var(--color-pink);
-  }
-}
-
-@media (prefers-color-scheme: dark) {
-  .note-indicator {
-    &.maincard {
-      background-color: var(--color-primary);
+      &.hoplinkcard {
+        background-color: var(--color-pink);
+      }
     }
+    @media (prefers-color-scheme: dark) {
+      .note-indicator {
+        &.maincard {
+          background-color: var(--color-primary);
+        }
 
-    // 稍微亮一点的绿色
-    &.bibcard {
-      background-color: var(--color-yellow);
+        // 稍微亮一点的绿色
+        &.bibcard {
+          background-color: var(--color-yellow);
+        }
+
+        // 稍微亮一点的橙色
+        &.indexcard {
+          background-color: var(--color-blue);
+        }
+
+        // 稍微亮一点的蓝色
+        &.hoplinkcard {
+          background-color: var(--color-pink);
+        }
+        // 稍微亮一点的粉红色
+      }
     }
-
-    // 稍微亮一点的橙色
-    &.indexcard {
-      background-color: var(--color-blue);
+    .note-title {
+      margin: 0;
+      font-size: 1.3rem;
+      font-weight: bold;
+      color: var(--color-text-primary);
     }
+    .note-buttons {
+      position: absolute;
+      top: 0;
+      right: 0;
+      display: flex;
+      // gap: 3px;
+      opacity: 0; // 使用 opacity 代替 visibility
+      transition: opacity 0.2s ease; // 添加过渡效果
+      margin-right: 10px;
+      .note-options-menu {
+        :deep(.note-options-menu) {
+          transform: translateX(-68%); // 居中对齐
+        }
+      }
+      .note-button {
+        position: relative;
+        display: flex;
+        align-items: center;
+        border: none;
+        background: none;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        border-radius: 6px;
+        padding: 4px 4px;
+        margin: 2px;
 
-    // 稍微亮一点的蓝色
-    &.hoplinkcard {
-      background-color: var(--color-pink);
+        .icon {
+          background: none;
+          border: none;
+          cursor: pointer;
+          width: 20px;
+          height: 20px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: all 0.2s ease;
+          padding: 0;
+
+          &:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+          }
+
+          :deep(.i-icon) {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
+          }
+
+          :deep(svg) {
+            width: 16px;
+            height: 16px;
+          }
+        }
+
+        .name {
+          flex-grow: 0;
+          text-align: left;
+          color: var(--default-text-color);
+          font-size: 13px;
+          font-weight: 400;
+          margin-left: 6px;
+          white-space: nowrap;
+          writing-mode: horizontal-tb;
+        }
+
+        &:hover {
+          background-color: var(--color-hover-button);
+        }
+
+        &:active {
+          background-color: rgba(0, 0, 0, 0.1);
+        }
+
+        &.delete {
+          color: #ff4d4f;
+        }
+      }
     }
-
-    // 稍微亮一点的粉红色
   }
-}
+  // 新增：确保菜单始终可见
+  .note-options-menu {
+    opacity: 1 !important;
+    visibility: visible !important;
+  }
 
-.note-title {
-  margin: 0;
-  font-size: 1.3rem;
-  font-weight: bold;
-  color: var(--color-text-primary);
-}
-
-.note-buttons {
-  position: absolute;
-  top: 0;
-  right: 0;
-  display: flex;
-  gap: 3px;
-  visibility: hidden;
+  .note-content {
+    flex-grow: 1;
+    color: var(--color-text-primary);
+    text-align: left;
+    margin-bottom: 10px;
+    min-height: 60px;
+    max-height: 300px;
+    overflow: hidden;
+    position: relative;
+    font-size: 15px;
+  }
 }
 
 .note-card:hover .note-buttons {
-  visibility: visible;
-}
-
-.note-content {
-  flex-grow: 1;
-  color: var(--color-text-primary);
-  text-align: left;
-  margin-bottom: 10px;
-  min-height: 60px;
-  max-height: 300px;
-  overflow: hidden;
-  position: relative;
-  font-size: 15px;
+  opacity: 1;
 }
 
 .fade-out {
@@ -231,48 +330,14 @@ watch(
   /* 确保不影响交互 */
 }
 
-.note-button {
-  background: none;
-  border: none;
-  cursor: pointer;
-  width: 24px;
-  height: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 6px;
-  transition: background-color 0.2s;
-  padding: 0;
-  margin-right: 10px;
-
-  &:hover:not(:disabled) {
-    background-color: var(--color-hover-bg);
-  }
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-
-  // 新增以下样式来处理 i-icon 类
-  :deep(.i-icon) {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 100%;
-    height: 100%;
-  }
-
-  :deep(svg) {
-    width: 16px; // 或者您想要的大小
-    height: 16px; // 或者您想要的大小
-  }
-}
-
 .note-timestamp {
   font-size: 0.8em;
   color: var(--color-text-secondary);
   align-self: flex-end;
   margin-right: 2rem;
+}
+
+:deep(.tiptap) {
+  margin-left: 0;
 }
 </style>

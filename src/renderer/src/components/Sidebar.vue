@@ -1,6 +1,7 @@
 <template>
   <div class="sidebar" :style="{ width: `${sidebarWidth}px` }">
     <div class="sidebar-header">
+      <div class="sidebar-titlebar"></div>
       <button class="antinet-button">
         <img src="@resources/icon.png" alt="Antinet" class="antinet-icon" />
         <div class="antinet-text">Antinet</div>
@@ -142,7 +143,6 @@ const openHelp = () => {
 
 <style lang="scss">
 .sidebar {
-  padding: 12px 0px 0px 0px;
   height: 100%;
   position: relative;
   overflow: hidden;
@@ -152,9 +152,14 @@ const openHelp = () => {
   transition: width 0.3s ease;
   z-index: 5000;
 
+  .sidebar-titlebar {
+    height: 40px;
+    -webkit-app-region: drag; /* 使区域可拖动 */
+  }
+
   .sidebar-header {
     width: 100%; // 确保宽度为100%
-    padding: 20px 0 6px 0; // 移除左右内边距
+    padding: 0px 0 6px 0; // 移除左右内边距
 
     .antinet-button {
       display: flex;

@@ -143,7 +143,6 @@
         </div>
       </div>
     </div>
-
     <div class="cardbox-view-container">
       <div class="card-grid-container">
         <div class="card-grid">
@@ -208,7 +207,7 @@ const showSortMenu = ref(false)
 const currentSort = ref('name')
 const sortDirection = ref('asc')
 
-// 排序选项
+// 排序选项功能
 const sortOptions = [
   { value: 'name', label: '按名称排序' },
   { value: 'createdAt', label: '按创建时间排序' },
@@ -232,13 +231,15 @@ const selectSortOption = (option: { value: string; label: string }) => {
 
 let deleteTimeout: ReturnType<typeof setTimeout> | null = null
 
-// 收件箱
+// 收件箱功能
+// 筛选出所有没有加入卡片盒的笔记
 const isInboxSelected = ref(false)
 
 const toggleInbox = () => {
   isInboxSelected.value = !isInboxSelected.value
+  // 如果切换收件箱的状态，将卡片盒的状态设置为卡片柜，即显示全部卡片
   if (isInboxSelected.value) {
-    selectedCardBox.value = null
+    selectedCardBox.value = cardBoxes.value[0]
   }
 }
 
@@ -265,23 +266,35 @@ const selectedCardBoxName = computed(() => {
   return selectedCardBox.value ? selectedCardBox.value.name : '卡片柜'
 })
 
+// 选择卡片盒进行筛选
+const selectCardBox = (box: CardBox | null) => {
+  selectedCardBox.value = box
+  showCardBoxMenu.value = false
+  // 如果选择了卡片盒，取消收件箱的选择状态
+  if (box !== null) {
+    isInboxSelected.value = false
+  }
+}
+
 const filteredNotes = computed(() => {
   console.log('原始笔记数量:', noteStore.notes.length)
   let notes = noteStore.notes
 
   // 根据选中的卡片盒进行筛选
   if (isInboxSelected.value) {
-    // 筛选出没有加入卡片盒的笔记
+    // 筛选出没有加入卡片盒的笔记，筛选出那些没有cardBoxId的笔记
     notes = notes.filter((note) => !note.cardBoxId)
   } else if (selectedCardBox.value && selectedCardBox.value.id !== '0000') {
-    notes = noteStore.getNotesInCardBox(selectedCardBox.value.id)
+    // 如果选择了卡片盒，筛选出那些cardBoxId等于selectedCardBox.value?.id的笔记
+    notes = noteStore.notes.filter((note) => note.cardBoxId === selectedCardBox.value?.id)
   }
 
   // 根据选中的卡片类型进行筛选
   if (selectedCardTypes.value.length > 0) {
     notes = notes.filter((note) => selectedCardTypes.value.includes(note.cardType))
   }
-  // return notes;
+
+  // 排序逻辑
   return notes.sort((a, b) => {
     let comparison = 0
     if (currentSort.value === 'name') {
@@ -295,6 +308,7 @@ const filteredNotes = computed(() => {
   })
 })
 
+// 卡片盒下拉项中的更多操作
 const toggleMoreActions = (id: string, event: MouseEvent) => {
   event.stopPropagation()
   if (showMoreActions.value === id) {
@@ -313,11 +327,13 @@ const toggleMoreActions = (id: string, event: MouseEvent) => {
   }
 }
 
+// 获取卡片盒
 const getCardBoxById = (id: string | null) => {
   if (id === null) return null
   return cardBoxes.value.find((box) => box.id === id)
 }
 
+// 编辑卡片盒
 const editCardBox = (box: CardBox | null | undefined) => {
   if (box) {
     openCardBoxModal(box)
@@ -326,6 +342,7 @@ const editCardBox = (box: CardBox | null | undefined) => {
   }
 }
 
+// 删除卡片盒
 const deleteCardBox = async (id: string | null) => {
   if (id === null) return
 
@@ -338,9 +355,18 @@ const deleteCardBox = async (id: string | null) => {
   } else {
     try {
       await noteStore.deleteCardBox(id)
+
+      // 重新获取卡片盒数据
+      await noteStore.fetchCardBoxes()
+
+      // 重新获取笔记数据
+      await noteStore.fetchNotes()
+
+      // 如果删除的是当前选中的卡片盒，重置选择
       if (selectedCardBox.value?.id === id) {
         selectCardBox(cardBoxes.value[0])
       }
+
       showMoreActions.value = null
     } catch (error) {
       console.error('删除卡片盒失败:', error)
@@ -354,15 +380,11 @@ const deleteCardBox = async (id: string | null) => {
   }
 }
 
+// 打开卡片盒下拉菜单
 const toggleCardBoxMenu = (event: MouseEvent) => {
   event.stopPropagation()
   showCardBoxMenu.value = !showCardBoxMenu.value
   showCardTypeMenu.value = false // 关闭另一个菜单
-}
-
-const selectCardBox = (box: CardBox | null) => {
-  selectedCardBox.value = box
-  showCardBoxMenu.value = false
 }
 
 // 全局点击事件，关闭下拉菜单
@@ -922,30 +944,6 @@ onUnmounted(() => {
       // height: 100%;
       overflow-y: auto; // 允许卡片网格容器滚动
       // padding: 0 16px 16px 16px;
-
-      // 自定义滚动条样式
-      &::-webkit-scrollbar {
-        width: 8px;
-      }
-
-      &::-webkit-scrollbar-track {
-        background: #f1f1f1;
-        border-radius: 4px;
-      }
-
-      &::-webkit-scrollbar-thumb {
-        background: #c1c1c1;
-        border-radius: 4px;
-        transition: background 0.3s ease;
-      }
-
-      &::-webkit-scrollbar-thumb:hover {
-        background: #a8a8a8;
-      }
-
-      // Firefox 滚动条样式
-      scrollbar-width: thin;
-      scrollbar-color: #c1c1c1 #f1f1f1;
     }
 
     .card-grid {
@@ -968,30 +966,6 @@ onUnmounted(() => {
 
       // 设置容器的最小高度，确保即使卡片数量不足也能填满屏幕
       // min-height: calc(100vh - 93px); // 假设顶部工具栏高度为100px，请根据实际情况调整
-
-      // 自定义滚动条样式
-      &::-webkit-scrollbar {
-        width: 8px;
-      }
-
-      &::-webkit-scrollbar-track {
-        background: #f1f1f1;
-        border-radius: 4px;
-      }
-
-      &::-webkit-scrollbar-thumb {
-        background: #c1c1c1;
-        border-radius: 4px;
-        transition: background 0.3s ease;
-      }
-
-      &::-webkit-scrollbar-thumb:hover {
-        background: #a8a8a8;
-      }
-
-      // Firefox 滚动条样式
-      scrollbar-width: thin;
-      scrollbar-color: #c1c1c1 #f1f1f1;
     }
 
     .modal-overlay {

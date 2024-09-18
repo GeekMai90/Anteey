@@ -189,26 +189,6 @@ watch(
   },
   { deep: true }
 )
-
-// watch(() => props.highlightText, (newHighlightText) => {
-//   if (editor.value) {
-//     // Assuming SearchHighlight extension provides these methods
-//     // editor.value.commands.unsetSearchHighlight?.()
-//     if (newHighlightText) {
-//       const regex = new RegExp(newHighlightText.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), 'gi')
-//       editor.value.state.doc.descendants((node, pos) => {
-//         if (node.isText && node.text) {
-//           const matches = Array.from(node.text.matchAll(regex))
-//           matches.forEach(match => {
-//             if (match.index !== undefined) {
-//               editor.value!.chain().setTextSelection({ from: pos + match.index, to: pos + match.index + match[0].length }).setSearchHighlight?.().run()
-//             }
-//           })
-//         }
-//       })
-//     }
-//   }
-// })
 </script>
 
 <style lang="scss">

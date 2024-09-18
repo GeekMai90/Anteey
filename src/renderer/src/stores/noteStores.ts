@@ -12,7 +12,7 @@ import {
 // import electronAPI from '../axiosConfig'
 import { NotesAPI } from '../../../preload'
 import { CardBoxAPI } from '../../../preload'
-import { isEqual } from 'lodash'
+// import { isEqual } from 'lodash'
 // 在文件顶部添加类型声明（如果还没有的话）
 declare global {
   interface Window {
@@ -88,16 +88,6 @@ export const useNoteStore = defineStore('note', {
     },
 
     // 获取所有笔记
-    // async fetchNotes() {
-    //   try {
-    //     const response = await electronAPI.get("/notes");
-    //     this.notes = response.data.map(parseNoteContent);
-    //   } catch (error) {
-    //     console.error("Error fetching notes:", error);
-    //     throw error;
-    //   }
-    // },
-    // 获取所有笔记
     async fetchNotes(includeDeleted: boolean = false) {
       try {
         const notes = await window.notesAPI.getNotes(includeDeleted)
@@ -127,49 +117,6 @@ export const useNoteStore = defineStore('note', {
         throw error
       }
     },
-
-    // 创建一个新的空笔记
-    // createNewNote(noteData: Partial<CreateNoteDto> = {}): Note {
-    //   const newNote: Note = {
-    //     id: '', // 可能需要生成一个临时 ID
-    //     address: noteData.address || '',
-    //     cardType: noteData.cardType || 'Maincard',
-    //     content: {
-    //       type: 'doc',
-    //       content: [{ type: 'paragraph' }]
-    //     },
-    //     createdAt: new Date(),
-    //     updatedAt: new Date(),
-    //     tags: noteData.tags || [],
-    //     linkedTo: [],
-    //     linkedFrom: []
-    //   }
-    //   console.log('创建一个空笔记：', newNote)
-    //   return newNote
-    // },
-
-    // 添加笔记
-    // async addNote(noteData: Note) {
-    //   try {
-    //     console.log('向服务器发送笔记:', noteData) // 添加这行来记录发送的数据
-    //     const response = await window.notesAPI.updateNote('/notes', noteData)
-    //     const savedNote = parseNoteContent(response)
-    //     this.notes.push(savedNote)
-    //     return savedNote
-    //   } catch (error) {
-    //     console.error('Error adding note:', error)
-    //     throw error
-    //   }
-    // },
-
-    // 创建并打开新笔记
-    // async createAndOpenNewNote() {
-    //   const newNote = this.createNewNote()
-    //   const savedNote = await this.addNote(newNote)
-    //   console.log('服务器返回的新笔记：', savedNote)
-    //   this.openNoteEditor(savedNote.id)
-    //   return savedNote
-    // },
 
     async createNewNote() {
       try {
@@ -245,69 +192,6 @@ export const useNoteStore = defineStore('note', {
     },
 
     // 更新笔记
-    // async updateNote(id: string, updatedNote: Partial<Omit<Note, 'id'>>) {
-    //   const existingNote = this.notes.find((note) => note.id === id)
-    //   if (!existingNote) {
-    //     // console.error("更新笔记时出错: 笔记不存在");
-    //     await this.fetchNotes()
-    //     return
-    //   }
-    //   try {
-    //     const response = await window.notesAPI.updateNote(`/notes/${id}`, updatedNote as Note)
-    //     const serverUpdatedNote = parseNoteContent(response)
-
-    //     const index = this.notes.findIndex((note) => note.id === id)
-    //     if (index !== -1) {
-    //       const oldNote = this.notes[index]
-    //       const newNote = { ...oldNote, ...serverUpdatedNote }
-    //       this.notes[index] = newNote
-    //       return newNote
-    //     }
-    //     return null
-    //   } catch (error) {
-    //     console.error('更新笔记时出错:', error)
-    //     throw error
-    //   }
-    // },
-    // async updateNote(id: string, updatedNote: Partial<Note>) {
-    //   console.log('updateNote called with id:', id)
-    //   console.log('updatedNote:', JSON.stringify(updatedNote))
-
-    //   try {
-    //     // 创建一个新对象，只包含需要更新的字段
-    //     const noteToUpdate: Partial<Note> = {
-    //       address: updatedNote.address,
-    //       cardType: updatedNote.cardType,
-    //       content: updatedNote.content,
-    //       tags: updatedNote.tags,
-    //       cardBoxId: updatedNote.cardBoxId,
-    //       isDeleted: updatedNote.isDeleted,
-    //       isStarred: updatedNote.isStarred
-    //     }
-
-    //     // 移除未定义的字段
-    //     Object.keys(noteToUpdate).forEach(
-    //       (key) => noteToUpdate[key] === undefined && delete noteToUpdate[key]
-    //     )
-
-    //     console.log('Sending note update:', JSON.stringify(noteToUpdate))
-
-    //     const response = await window.notesAPI.updateNote(id, noteToUpdate)
-    //     console.log('Server response:', JSON.stringify(response))
-
-    //     // 更新本地存储中的笔记
-    //     const index = this.notes.findIndex((note) => note.id === id)
-    //     if (index !== -1) {
-    //       this.notes[index] = { ...this.notes[index], ...response, updatedAt: new Date() }
-    //       return this.notes[index]
-    //     }
-
-    //     return null
-    //   } catch (error) {
-    //     console.error('更新笔记时出错:', error)
-    //     throw error
-    //   }
-    // },
     async updateNote(id: string, noteData: Partial<Note>): Promise<Note> {
       try {
         // 确保只发送可序列化的数据
@@ -391,8 +275,13 @@ export const useNoteStore = defineStore('note', {
     // 删除卡片盒
     async deleteCardBox(id: string) {
       try {
-        await window.cardBoxAPI.remove(id)
-        this.cardBoxes = this.cardBoxes.filter((box) => box.id !== id)
+        const result = await window.cardBoxAPI.remove(id)
+        if (result.success) {
+          this.cardBoxes = this.cardBoxes.filter((box) => box.id !== id)
+          await this.fetchCardBoxes()
+        } else {
+          console.error('删除卡片盒失败:', result)
+        }
       } catch (error) {
         console.error('删除卡片盒时出错:', error)
         throw error
@@ -465,7 +354,7 @@ export const useNoteStore = defineStore('note', {
             console.error(`Note ${noteId} not found in local store`)
           }
         } else {
-          console.error(`Failed to update note ${noteId} in the backend:`, response.error)
+          console.error(`Failed to update note ${noteId} in the backend:`, response)
         }
         return null
       } catch (error) {

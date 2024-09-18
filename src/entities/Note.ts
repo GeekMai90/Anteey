@@ -43,7 +43,7 @@ export class Note {
   @Column({ type: 'uuid', nullable: true })
   cardBoxId: string | null
 
-  @ManyToOne(() => CardBox, (cardBox) => cardBox.noteIds)
+  @ManyToOne(() => CardBox, (cardBox) => cardBox.notes)
   cardBox: CardBox
 
   @Column({ type: 'boolean', default: false })

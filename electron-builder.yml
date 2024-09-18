@@ -1,5 +1,5 @@
-appId: com.electron.app
-productName: antinet-app
+appId: com.antinet.app
+productName: Antinet
 directories:
   buildResources: build
 files:

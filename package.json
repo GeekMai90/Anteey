@@ -1,7 +1,7 @@
 {
-  "name": "antinet-app",
+  "name": "antinet",
   "version": "1.0.0",
-  "description": "An Electron application with Vue and TypeScript",
+  "description": "Antinet",
   "main": "./out/main/index.js",
   "author": "example.com",
   "homepage": "https://electron-vite.org",
@@ -118,5 +118,15 @@
     "vite": "^5.4.6",
     "vue": "^3.5.6",
     "vue-tsc": "^2.1.6"
+  },
+  "build": {
+    "appId": "com.yourcompany.antinet",
+    "productName": "Antinet",
+    "mac": {
+      "extendInfo": {
+        "CFBundleName": "Antinet",
+        "CFBundleDisplayName": "Antinet"
+      }
+    }
   }
 }

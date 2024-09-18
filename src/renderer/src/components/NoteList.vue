@@ -72,7 +72,7 @@ const handleMore = (noteId: string) => {
 
     &-icon {
       font-size: 4rem;
-      margin-bottom: 1rem;
+      margin-bottom: 3rem;
     }
 
     &-title {

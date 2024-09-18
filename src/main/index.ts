@@ -1,16 +1,18 @@
 import 'reflect-metadata'
-import { app, shell, BrowserWindow, ipcMain } from 'electron'
+import { app, shell, BrowserWindow, ipcMain, Menu, MenuItemConstructorOptions } from 'electron'
 import { join } from 'path'
 import path from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import { AppDataSource } from '../database'
 import { NotesService } from '../services/NotesService'
 import { CardBoxService } from '../services/CardboxService'
-import { Note } from '../entities/Note'
 import { CardBox } from '../entities/CardBox'
 
 let notesService: NotesService
 let cardBoxService: CardBoxService
+
+// 设置应用名称
+app.name = 'Antinet'
 
 AppDataSource.initialize()
   .then(() => {
@@ -22,12 +24,98 @@ AppDataSource.initialize()
     console.error('数据源初始化过程中出错', err)
   })
 
+function createCustomMenu() {
+  const template = [
+    {
+      label: 'Antinet',
+      submenu: [
+        { role: 'about' },
+        { type: 'separator' },
+        { role: 'services' },
+        { type: 'separator' },
+        { role: 'hide' },
+        { role: 'hideOthers' },
+        { role: 'unhide' },
+        { type: 'separator' },
+        { role: 'quit' }
+      ]
+    },
+    {
+      label: 'File',
+      submenu: [
+        {
+          label: 'New Note',
+          click: () => {
+            /* 实现新建笔记的逻辑 */
+          }
+        },
+        { type: 'separator' },
+        { role: 'close' }
+      ]
+    },
+    {
+      label: 'Edit',
+      submenu: [
+        { role: 'undo' },
+        { role: 'redo' },
+        { type: 'separator' },
+        { role: 'cut' },
+        { role: 'copy' },
+        { role: 'paste' },
+        { role: 'delete' },
+        { role: 'selectAll' }
+      ]
+    },
+    {
+      label: 'View',
+      submenu: [
+        { role: 'reload' },
+        { role: 'forceReload' },
+        { role: 'toggleDevTools' },
+        { type: 'separator' },
+        { role: 'resetZoom' },
+        { role: 'zoomIn' },
+        { role: 'zoomOut' },
+        { type: 'separator' },
+        { role: 'togglefullscreen' }
+      ]
+    },
+    {
+      label: 'Window',
+      submenu: [
+        { role: 'minimize' },
+        { role: 'zoom' },
+        { type: 'separator' },
+        { role: 'front' },
+        { type: 'separator' },
+        { role: 'window' }
+      ]
+    },
+    {
+      role: 'help',
+      submenu: [
+        {
+          label: 'Learn More',
+          click: async () => {
+            await shell.openExternal('https://your-website.com')
+          }
+        }
+      ]
+    }
+  ] as MenuItemConstructorOptions[]
+
+  const menu = Menu.buildFromTemplate(template)
+  Menu.setApplicationMenu(menu)
+}
+
 function createWindow(): void {
   const mainWindow = new BrowserWindow({
     width: 900,
     height: 670,
     show: false,
     autoHideMenuBar: true,
+    titleBarStyle: 'hiddenInset', // 使用 hiddenInset 来保留控制按钮但隐藏标题栏
+    trafficLightPosition: { x: 12, y: 12 }, // 可选：调整控制按钮的位置
     ...(process.platform === 'linux' ? {} : {}),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
@@ -36,6 +124,7 @@ function createWindow(): void {
       nodeIntegration: false
     }
   })
+  mainWindow.maximize()
 
   mainWindow.on('ready-to-show', () => {
     mainWindow.show()
@@ -291,32 +380,32 @@ app.whenReady().then(() => {
     }
   })
 
-  ipcMain.handle('cardbox:addNote', async (_, cardBoxId: string, noteId: string) => {
-    try {
-      return await cardBoxService.addNoteToCardBox(cardBoxId, noteId)
-    } catch (error) {
-      console.error('向卡片盒添加笔记时出错:', error)
-      throw error
-    }
-  })
+  // ipcMain.handle('cardbox:addNote', async (_, cardBoxId: string, noteId: string) => {
+  //   try {
+  //     return await cardBoxService.addNoteToCardBox(cardBoxId, noteId)
+  //   } catch (error) {
+  //     console.error('向卡片盒添加笔记时出错:', error)
+  //     throw error
+  //   }
+  // })
 
-  ipcMain.handle('cardbox:removeNote', async (_, cardBoxId: string, noteId: string) => {
-    try {
-      return await cardBoxService.removeNoteFromCardBox(cardBoxId, noteId)
-    } catch (error) {
-      console.error('从卡片盒移除笔记时出错:', error)
-      throw error
-    }
-  })
+  // ipcMain.handle('cardbox:removeNote', async (_, cardBoxId: string, noteId: string) => {
+  //   try {
+  //     return await cardBoxService.removeNoteFromCardBox(cardBoxId, noteId)
+  //   } catch (error) {
+  //     console.error('从卡片盒移除笔记时出错:', error)
+  //     throw error
+  //   }
+  // })
 
-  ipcMain.handle('cardbox:getNotes', async (_, cardBoxId: string) => {
-    try {
-      return await cardBoxService.getNotesInCardBox(cardBoxId)
-    } catch (error) {
-      console.error('获取卡片盒中的笔记时出错:', error)
-      throw error
-    }
-  })
+  // ipcMain.handle('cardbox:getNotes', async (_, cardBoxId: string) => {
+  //   try {
+  //     return await cardBoxService.getNotesInCardBox(cardBoxId)
+  //   } catch (error) {
+  //     console.error('获取卡片盒中的笔记时出错:', error)
+  //     throw error
+  //   }
+  // })
 
   ipcMain.on('window-click', (event) => {
     // 将点击事件广播到所有窗口
@@ -326,6 +415,9 @@ app.whenReady().then(() => {
       }
     })
   })
+
+  // 创建自定义菜单
+  createCustomMenu()
 
   createWindow()
 

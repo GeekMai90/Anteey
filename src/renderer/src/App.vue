@@ -1,6 +1,13 @@
 <template>
   <Suspense>
     <div class="app-container" :class="{ 'theme-dark': isDarkTheme }">
+      <div class="custom-titlebar">
+        <div class="fake-traffic-lights">
+          <div class="fake-button close"></div>
+          <div class="fake-button minimize"></div>
+          <div class="fake-button maximize"></div>
+        </div>
+      </div>
       <div class="hover-zone" @mouseenter="showSidebar" @mouseleave="scheduleHideSidebar"></div>
       <div class="content-wrapper">
         <Sidebar
@@ -181,6 +188,48 @@ useGlobalHotkeys()
   width: 100vw;
   overflow: hidden;
   position: relative;
+}
+
+.custom-titlebar {
+  position: fixed;
+  top: 2px;
+  left: 1px;
+  width: 70px;
+  height: 28px;
+  -webkit-app-region: drag;
+  z-index: 9999;
+}
+
+.fake-traffic-lights {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  display: flex;
+  gap: 8px;
+}
+
+.fake-button {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  opacity: 0.5;
+}
+
+.close {
+  background-color: #ff5f56;
+}
+.minimize {
+  background-color: #ffbd2e;
+}
+.maximize {
+  background-color: #27c93f;
+}
+
+/* 当真实按钮可见时，隐藏假按钮 */
+@media (display-mode: window-controls-overlay) {
+  .fake-traffic-lights {
+    display: none;
+  }
 }
 
 .content-wrapper {

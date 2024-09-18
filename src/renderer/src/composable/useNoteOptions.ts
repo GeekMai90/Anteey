@@ -2,7 +2,7 @@
 import { ref } from 'vue'
 import { useNoteStore } from '@renderer/stores/noteStores'
 
-export function useNoteOptions(noteId: string, onDeleteSuccess?: () => void) {
+export function useNoteOptions(noteId: string) {
   const noteStore = useNoteStore()
 
   const isOptionsMenuVisible = ref(false)
@@ -41,28 +41,10 @@ export function useNoteOptions(noteId: string, onDeleteSuccess?: () => void) {
     closeOptionsMenu()
   }
 
-  // const handleDelete = async () => {
-  //   try {
-  //     await noteStore.deleteNote(noteId);
-  //     console.log("删除成功");
-  //     if (onDeleteSuccess) {
-  //       onDeleteSuccess();
-  //     }
-  //     closeOptionsMenu();
-  //     noteStore.closeNoteEditor();
-  //     await noteStore.fetchNotes();
-  //   } catch (error) {
-  //     console.error("删除失败", error);
-  //   }
-  // };
-  const handleDelete = async () => {
+  const moveToTrash = async () => {
     try {
       await noteStore.moveToTrash(noteId)
       console.log('笔记已移动到回收站')
-      if (onDeleteSuccess) {
-        onDeleteSuccess()
-      }
-      closeOptionsMenu()
       noteStore.closeNoteEditor()
       await noteStore.fetchNotes()
     } catch (error) {
@@ -79,6 +61,7 @@ export function useNoteOptions(noteId: string, onDeleteSuccess?: () => void) {
     handleShowSidebar,
     handleCopy,
     handleShowHistory,
-    handleDelete
+    // handleDelete,
+    moveToTrash
   }
 }

@@ -31,11 +31,19 @@
       </div>
       <div class="name">历史版本</div>
     </div>
-    <div class="note-options-menu-item delete" @click="deleteNote">
+    <div
+      class="note-options-menu-item"
+      :class="{ delete: isConfirmingDelete }"
+      @click="handleDeleteClick"
+    >
       <div class="icon">
-        <delete-one theme="outline" size="18" :fill="isConfirmingDelete ? '#ff4d4f' : '#b6b6b6'" />
+        <delete-one
+          theme="outline"
+          size="18"
+          :fill="isConfirmingDelete ? '#ff4d4f' : 'var(--color-icon-default)'"
+        />
       </div>
-      <div class="name delete">
+      <div class="name" :class="{ delete: isConfirmingDelete }">
         {{ isConfirmingDelete ? '确认删除' : '删除' }}
       </div>
     </div>
@@ -44,30 +52,75 @@
 
 <script setup lang="ts">
 import { Info, Star, Copy, History, DeleteOne, RightBar } from '@icon-park/vue-next'
-import { ref } from 'vue'
+import { useNoteOptions } from '@renderer/composable/useNoteOptions'
+// import { useNoteStore } from '@renderer/stores/noteStores'
+import { onUnmounted, ref } from 'vue'
+
+const props = defineProps<{
+  noteId: string
+}>()
+
+// const noteStore = useNoteStore()
+const { moveToTrash } = useNoteOptions(props.noteId)
 
 const emit = defineEmits(['share', 'star', 'showSidebar', 'copy', 'showHistory', 'delete', 'close'])
 
 const isConfirmingDelete = ref(false)
 let deleteTimeout: ReturnType<typeof setTimeout> | null = null
 
-const deleteNote = () => {
+const handleDeleteClick = async (event: Event) => {
+  event.stopPropagation() // 阻止事件冒泡
   if (!isConfirmingDelete.value) {
     isConfirmingDelete.value = true
     deleteTimeout = setTimeout(() => {
       isConfirmingDelete.value = false
-      emit('close')
     }, 3000)
   } else {
-    emit('delete')
-    emit('close')
-    isConfirmingDelete.value = false
-    if (deleteTimeout) {
-      clearTimeout(deleteTimeout)
-      deleteTimeout = null
+    try {
+      await moveToTrash()
+      emit('delete') // 发出删除成功的事件
+      emit('close') // 删除成功后关闭菜单
+    } catch (error) {
+      console.error('Failed to move note to trash:', error)
+      // 可以在这里添加错误处理逻辑，比如显示一个错误提示
     }
   }
 }
+// 清理定时器
+onUnmounted(() => {
+  if (deleteTimeout) {
+    clearTimeout(deleteTimeout)
+  }
+})
+
+// 添加一个方法来重置确认状态
+const resetDeleteConfirmation = () => {
+  isConfirmingDelete.value = false
+  if (deleteTimeout) {
+    clearTimeout(deleteTimeout)
+  }
+}
+
+// 暴露这个方法，以便父组件可以调用
+defineExpose({ resetDeleteConfirmation })
+
+// const deleteNote = () => {
+//   if (!isConfirmingDelete.value) {
+//     isConfirmingDelete.value = true
+//     deleteTimeout = setTimeout(() => {
+//       isConfirmingDelete.value = false
+//       emit('close')
+//     }, 3000)
+//   } else {
+//     emit('delete')
+//     emit('close')
+//     isConfirmingDelete.value = false
+//     if (deleteTimeout) {
+//       clearTimeout(deleteTimeout)
+//       deleteTimeout = null
+//     }
+//   }
+// }
 
 const shareNote = () => {
   emit('share')
@@ -98,64 +151,55 @@ const showHistory = () => {
 <style scoped lang="scss">
 .note-options-menu {
   position: absolute;
-  right: 0;
-  top: 100%;
-  background-color: #fff;
+  top: calc(100% + 5px);
+  left: 50%;
+  transform: translateX(-50%); // 居中对齐
+  background-color: var(--color-bg-primary);
   border-radius: 8px;
-  // box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  z-index: var(--z-index-hightest);
-  // width: 160px;
-  width: auto;
+  box-shadow: var(--shadow-primary);
+  z-index: 1000;
+  // width: 150px;
+  // min-width: 200px;
+  width: max-content; // 使用 max-content 确保菜单宽度适应内容
+  // max-width: 300px; // 设置最大宽度，避免过宽
   overflow-y: auto;
   padding: 6px 12px;
   white-space: nowrap;
-  margin-top: 0px;
-  background-clip: padding-box;
-  box-shadow:
-    0 3px 6px -4px rgb(0 0 0 / 12%),
-    0 6px 16px 0 rgb(0 0 0 / 8%),
-    0 9px 28px 8px rgb(0 0 0 / 5%);
-  // margin-right: 10px;
 }
-
 .note-options-menu-item {
   position: relative;
   display: flex;
   align-items: center;
-  // width: 200px;
-  padding: 6px 18px 6px 12px;
   border: none;
   background: none;
   cursor: pointer;
-  transition: background-color 0.2s;
-  border-radius: 8px;
-  // margin: 0 auto;
+  transition: all 0.2s ease;
+  border-radius: 6px;
+  padding: 4px 8px 4px 4px;
+  margin: 2px;
 
   .icon {
     background: none;
     border: none;
     cursor: pointer;
-    width: 28px;
-    height: 28px;
+    width: 24px;
+    height: 24px;
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 6px;
-    transition: background-color 0.2s;
+    transition: all 0.2s ease;
     padding: 0;
-    margin-right: 3px;
 
-    &:hover:not(:disabled) {
-      background-color: var(--color-hover-bg);
-    }
+    // &:hover:not(:disabled) {
+    //   background-color: rgba(0, 0, 0, 0.05);
+    // }
 
     &:disabled {
       opacity: 0.5;
       cursor: not-allowed;
     }
 
-    // 新增以下样式来处理 i-icon 类
-    .i-icon {
+    :deep(.i-icon) {
       display: flex;
       align-items: center;
       justify-content: center;
@@ -163,9 +207,9 @@ const showHistory = () => {
       height: 100%;
     }
 
-    svg {
-      width: 18px; // 或者您想要的大小
-      height: 18px; // 或者您想要的大小
+    :deep(svg) {
+      width: 16px;
+      height: 16px;
     }
   }
 
@@ -173,22 +217,19 @@ const showHistory = () => {
     flex-grow: 0;
     text-align: left;
     color: var(--default-text-color);
-    font-size: 15px;
-    white-space: nowrap; // 防止文字换行
-    writing-mode: horizontal-tb; // 确保文字是水平排列的
+    font-size: 13px;
+    font-weight: 400;
+    margin-left: 6px;
+    white-space: nowrap;
+    writing-mode: horizontal-tb;
   }
 
   &:hover {
-    background-color: var(--color-hover-bg);
+    background-color: var(--color-hover-button);
   }
 
-  &.active {
-    background-color: var(--color-menu-active-bg);
-    // border: 1px solid var(--color-primary);
-  }
-
-  &:hover {
-    background-color: #f6f7f9;
+  &:active {
+    background-color: rgba(0, 0, 0, 0.1);
   }
 
   &.delete {

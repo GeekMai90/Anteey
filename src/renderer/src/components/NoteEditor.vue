@@ -4,40 +4,46 @@
     <!-- 顶部工具栏 -->
     <div class="toolbar">
       <!-- 展开编辑器 -->
-      <div v-tooltip.bottom="'展开编辑器'" class="expand-btn" @click="handleExpand">
+      <div
+        v-tooltip.bottom="{ content: '展开编辑器', delay: { show: 1000 } }"
+        class="expand-btn"
+        @click="handleExpand"
+      >
         <div class="icon">
           <ExpandTextInput theme="outline" size="16" fill="#b6b6b6" />
         </div>
       </div>
       <div class="toolbar-right">
         <div class="install-btn" @click="toggleCardBoxMenu">
-          <div class="icon">
+          <div v-tooltip.bottom="{ content: '设置卡片盒', delay: { show: 1000 } }" class="icon">
             <Install theme="outline" size="16" fill="#b6b6b6" />
           </div>
+          <!-- 添加卡片盒下拉菜单 -->
+          <CardboxDropdownMenu
+            :isOpen="showCardBoxMenu"
+            :cardBoxes="cardBoxes"
+            :selectedCardBox="selectedCardBox"
+            @update:selectedCardBox="selectCardBox"
+            @close="showCardBoxMenu = false"
+          />
         </div>
-        <!-- 添加卡片盒下拉菜单 -->
-        <CardboxDropdownMenu
-          :isOpen="showCardBoxMenu"
-          :cardBoxes="cardBoxes"
-          :selectedCardBox="selectedCardBox"
-          @update:selectedCardBox="selectCardBox"
-          @close="showCardBoxMenu = false"
-        />
+
         <div class="more-btn" @click.stop="toggleOptionsMenu">
-          <div class="icon">
+          <div v-tooltip.bottom="{ content: '更多', delay: { show: 1000 } }" class="icon">
             <More theme="outline" size="16" fill="#b6b6b6" />
           </div>
-        </div>
-        <div v-if="isOptionsMenuVisible" v-click-outside="closeOptionsMenu">
-          <NoteOptionsMenu
-            @share="handleShare"
-            @star="handleStar"
-            @show-sidebar="handleShowSidebar"
-            @copy="handleCopy"
-            @show-history="handleShowHistory"
-            @delete="handleDelete"
-            @close="closeOptionsMenu"
-          />
+          <div v-if="isOptionsMenuVisible" v-click-outside="closeOptionsMenu">
+            <NoteOptionsMenu
+              :noteId="noteId"
+              @close="closeOptionsMenu"
+              @note-deleted="handleNoteDeleted"
+              @share="handleShare"
+              @star="handleStar"
+              @show-sidebar="handleShowSidebar"
+              @copy="handleCopy"
+              @show-history="handleShowHistory"
+            />
+          </div>
         </div>
       </div>
     </div>
@@ -121,8 +127,7 @@ const {
   handleStar,
   handleShowSidebar,
   handleCopy,
-  handleShowHistory,
-  handleDelete
+  handleShowHistory
 } = useNoteOptions(props.noteId)
 
 const router = useRouter()
@@ -134,6 +139,13 @@ const isExpandingToExpandEditor = ref(false)
 const showCardBoxMenu = ref(false)
 const selectedCardBox = ref<CardBox | null>(null)
 const showMoreActions = ref<string | null>(null)
+
+const handleNoteDeleted = () => {
+  // 处理笔记删除后的逻辑
+  noteStore.closeNoteEditor()
+  // 可能还需要其他操作，如更新UI等
+  closeOptionsMenu() // 只在笔记真正被删除后关闭菜单
+}
 
 // 被编辑的笔记，初始化时为空
 // const editedNote = ref<Partial<Note>>({})
@@ -572,6 +584,10 @@ defineExpose({ handleAutoSave, focusAddressInput })
       padding: 4px 4px;
       margin: 2px;
 
+      :deep(.dropdown-menu) {
+        transform: translateX(-70%);
+      }
+
       .icon {
         background: none;
         border: none;
@@ -638,6 +654,10 @@ defineExpose({ handleAutoSave, focusAddressInput })
       border-radius: 6px;
       padding: 4px 4px;
       margin: 2px;
+
+      :deep(.note-options-menu) {
+        transform: translateX(-80%);
+      }
 
       .icon {
         background: none;
