@@ -90,6 +90,7 @@
     "unplugin-auto-import": "^0.18.2",
     "unplugin-vue-components": "^0.27.4",
     "uuid": "^10.0.0",
+    "v-click-outside": "^3.2.0",
     "vue-router": "4",
     "vue-shortkey": "^3.1.7"
   },
@@ -99,6 +100,7 @@
     "@electron-toolkit/tsconfig": "^1.0.1",
     "@rushstack/eslint-patch": "^1.10.3",
     "@types/jest": "^29.5.13",
+    "@types/lodash-es": "^4.17.12",
     "@types/node": "^22.5.5",
     "@types/uuid": "^10.0.0",
     "@vitejs/plugin-vue": "^5.1.3",

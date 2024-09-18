@@ -46,11 +46,11 @@ function createWindow(): void {
     return { action: 'deny' }
   })
 
-  mainWindow.webContents.on('did-finish-load', () => {
-    mainWindow.webContents.on('click', (event) => {
-      mainWindow.webContents.send('global-click', event)
-    })
-  })
+  // mainWindow.webContents.on('did-finish-load', () => {
+  //   mainWindow.webContents.on('click', (event) => {
+  //     mainWindow.webContents.send('global-click', event)
+  //   })
+  // })
 
   if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
     mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL'])
@@ -98,64 +98,6 @@ app.whenReady().then(() => {
     }
   })
 
-  // ipcMain.handle('update-note', async (_, id: string, noteData: Partial<Note>) => {
-  //   try {
-  //     console.log('Updating note with ID:', id)
-  //     console.log('Update data:', JSON.stringify(noteData))
-
-  //     // 获取现有的笔记
-  //     const existingNote = await notesService.findOne(id)
-
-  //     // 创建一个新的对象，只包含需要更新的字段
-  //     const updatedFields: Partial<Note> = {}
-
-  //     // 只包含已更改的字段
-  //     if ('address' in noteData && noteData.address !== existingNote.address) {
-  //       updatedFields.address = noteData.address
-  //     }
-  //     if (
-  //       'content' in noteData &&
-  //       JSON.stringify(noteData.content) !== JSON.stringify(existingNote.content)
-  //     ) {
-  //       updatedFields.content = noteData.content
-  //     }
-  //     if ('cardType' in noteData && noteData.cardType !== existingNote.cardType) {
-  //       updatedFields.cardType = noteData.cardType
-  //     }
-  //     if (
-  //       'tags' in noteData &&
-  //       JSON.stringify(noteData.tags) !== JSON.stringify(existingNote.tags)
-  //     ) {
-  //       updatedFields.tags = noteData.tags
-  //     }
-  //     if ('cardBoxId' in noteData && noteData.cardBoxId !== existingNote.cardBoxId) {
-  //       updatedFields.cardBoxId = noteData.cardBoxId
-  //     }
-
-  //     console.log('Fields to update:', JSON.stringify(updatedFields))
-
-  //     if (Object.keys(updatedFields).length === 0) {
-  //       console.log('No changes to update')
-  //       return existingNote
-  //     }
-
-  //     const updatedNote = await notesService.update(id, updatedFields)
-  //     console.log('Note updated successfully')
-  //     return updatedNote
-  //   } catch (error) {
-  //     console.error('Error in update-note:', error)
-  //     throw error
-  //   }
-  // })
-
-  // ipcMain.handle('update-note', async (_, id: string, noteData: Partial<Note>) => {
-  //   try {
-  //     return await notesService.update(id, noteData)
-  //   } catch (error) {
-  //     console.error('Error in update-note:', error)
-  //     throw error
-  //   }
-  // })
   ipcMain.handle('update-note', async (event, id, noteData) => {
     console.log('Main process: update-note called with:', id, JSON.stringify(noteData))
     try {
@@ -218,11 +160,21 @@ app.whenReady().then(() => {
     }
   })
 
-  ipcMain.handle('update-note-card-box', async (_, noteId: string, newCardBoxId: string | null) => {
+  ipcMain.handle('update-note-card-box', async (event, noteId, newCardBoxId) => {
     try {
-      return await notesService.updateNoteCardBox(noteId, newCardBoxId)
+      const updatedNote = await notesService.updateNoteCardBox(noteId, newCardBoxId)
+      return { success: true, note: updatedNote }
     } catch (error) {
-      console.error('Error in update-note-card-box:', error)
+      console.error('Error updating note card box:', error)
+      return { success: false, error: error }
+    }
+  })
+  ipcMain.handle('get-notes-in-card-box', async (event, cardBoxId: string) => {
+    try {
+      const notes = await notesService.getNotesInCardBox(cardBoxId)
+      return notes
+    } catch (error) {
+      console.error('Error getting notes in card box:', error)
       throw error
     }
   })
@@ -364,6 +316,15 @@ app.whenReady().then(() => {
       console.error('获取卡片盒中的笔记时出错:', error)
       throw error
     }
+  })
+
+  ipcMain.on('window-click', (event) => {
+    // 将点击事件广播到所有窗口
+    BrowserWindow.getAllWindows().forEach((win) => {
+      if (win.webContents !== event.sender) {
+        win.webContents.send('global-click')
+      }
+    })
   })
 
   createWindow()

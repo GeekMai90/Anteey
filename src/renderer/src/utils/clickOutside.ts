@@ -1,44 +1,25 @@
-// src/clickOutside.ts
-// import { Directive } from 'vue'
+// clickOutside.ts
+import { Directive } from 'vue'
+import { ipcRenderer } from 'electron'
 
-// const clickOutside: Directive = {
-//   mounted(el, binding) {
-//     el.clickOutsideEvent = (event: Event) => {
-//       if (!(el === event.target || el.contains(event.target as Node))) {
-//         binding.value(event)
-//       }
-//     }
-//     document.addEventListener('click', el.clickOutsideEvent)
-//   },
-//   unmounted(el) {
-//     document.removeEventListener('click', el.clickOutsideEvent)
-//   }
-// }
+export const clickOutside: Directive = {
+  mounted(el, binding) {
+    el.clickOutsideEvent = (event: Event) => {
+      if (!(el === event.target || el.contains(event.target as Node))) {
+        binding.value(event)
+      }
+    }
 
-// export default clickOutside
-// import { Directive, DirectiveBinding } from 'vue'
+    // 添加到当前窗口
+    window.addEventListener('click', el.clickOutsideEvent)
 
-// interface ClickOutsideElement extends HTMLElement {
-//   clickOutsideEvent?: (event: MouseEvent) => void
-// }
-
-// const clickOutside: Directive = {
-//   mounted(el: ClickOutsideElement, binding: DirectiveBinding) {
-//     el.clickOutsideEvent = (event: MouseEvent) => {
-//       // 检查事件是否来自主进程
-//       if (event.isTrusted) {
-//         if (!(el === event.target || el.contains(event.target as Node))) {
-//           binding.value(event)
-//         }
-//       }
-//     }
-//     window.addEventListener('click', el.clickOutsideEvent)
-//   },
-//   unmounted(el: ClickOutsideElement) {
-//     if (el.clickOutsideEvent) {
-//       window.removeEventListener('click', el.clickOutsideEvent)
-//     }
-//   }
-// }
+    // 监听来自其他窗口的点击事件
+    ipcRenderer.on('global-click', el.clickOutsideEvent)
+  },
+  unmounted(el) {
+    window.removeEventListener('click', el.clickOutsideEvent)
+    ipcRenderer.removeListener('global-click', el.clickOutsideEvent)
+  }
+}
 
 // export default clickOutside

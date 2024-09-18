@@ -38,6 +38,7 @@ export interface NotesAPI {
   restoreFromTrash: (id: string) => Promise<{ success: boolean }>
   permanentlyDelete: (id: string) => Promise<{ success: boolean }>
   getDeletedNotes: () => Promise<Note[]>
+  getNotesInCardBox: (cardBoxId: string) => Promise<Note[]>
 }
 
 // 实现 API
@@ -59,15 +60,19 @@ const notesAPI: NotesAPI = {
     ipcRenderer.invoke('remove-link', sourceNoteId, targetNoteId),
   getLinkedNotes: (noteId) => ipcRenderer.invoke('get-linked-notes', noteId),
   getBacklinks: (noteId) => ipcRenderer.invoke('get-backlinks', noteId),
-  updateNoteCardBox: (noteId, newCardBoxId) =>
+  // updateNoteCardBox: (noteId, newCardBoxId) =>
+  //   ipcRenderer.invoke('update-note-card-box', noteId, newCardBoxId),
+  updateNoteCardBox: (noteId: string, newCardBoxId: string | null) =>
     ipcRenderer.invoke('update-note-card-box', noteId, newCardBoxId),
+
   toggleDeletedStatus: (id) => ipcRenderer.invoke('toggle-deleted-status', id),
   toggleStarredStatus: (id) => ipcRenderer.invoke('toggle-starred-status', id),
   getStarredNotes: () => ipcRenderer.invoke('get-starred-notes'),
   moveToTrash: (id) => ipcRenderer.invoke('move-to-trash', id),
   restoreFromTrash: (id) => ipcRenderer.invoke('restore-from-trash', id),
   permanentlyDelete: (id) => ipcRenderer.invoke('permanently-delete', id),
-  getDeletedNotes: () => ipcRenderer.invoke('get-deleted-notes')
+  getDeletedNotes: () => ipcRenderer.invoke('get-deleted-notes'),
+  getNotesInCardBox: (cardBoxId: string) => ipcRenderer.invoke('get-notes-in-card-box', cardBoxId)
 }
 
 // 定义 CardBox 类型

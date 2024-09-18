@@ -51,6 +51,7 @@ export class NotesService {
         type: 'doc',
         content: [{ type: 'paragraph' }]
       },
+      // content: {},
       createdAt: now,
       updatedAt: now,
       tags: [],
@@ -63,69 +64,6 @@ export class NotesService {
     return this.create(newNote)
   }
 
-  // async update(id: string, updateNoteDto: Partial<Note>): Promise<Note> {
-  //   const note = await this.findOne(id)
-
-  //   // 只更新提供的字段
-  //   Object.keys(updateNoteDto).forEach((key) => {
-  //     if (key in note) {
-  //       ;(note as any)[key] = (updateNoteDto as any)[key]
-  //     }
-  //   })
-
-  //   note.updatedAt = new Date()
-
-  //   const savedNote = await this.notesRepository.save(note)
-  //   console.log('Updated note:', JSON.stringify(savedNote))
-
-  //   return savedNote
-  // }
-
-  // async update(id: string, noteData: Partial<Note>): Promise<Note> {
-  //   console.log('Updating note with ID:', id)
-  //   console.log('Update data:', JSON.stringify(noteData))
-
-  //   const existingNote = await this.findOne(id)
-
-  //   // 创建一个新的对象，只包含需要更新的字段
-  //   const updatedFields: Partial<Note> = {}
-
-  //   // 只包含已更改的字段
-  //   if ('address' in noteData && noteData.address !== existingNote.address) {
-  //     updatedFields.address = noteData.address
-  //   }
-  //   if (
-  //     'content' in noteData &&
-  //     JSON.stringify(noteData.content) !== JSON.stringify(existingNote.content)
-  //   ) {
-  //     updatedFields.content = noteData.content
-  //   }
-  //   if ('cardType' in noteData && noteData.cardType !== existingNote.cardType) {
-  //     updatedFields.cardType = noteData.cardType
-  //   }
-  //   if ('tags' in noteData && JSON.stringify(noteData.tags) !== JSON.stringify(existingNote.tags)) {
-  //     updatedFields.tags = noteData.tags
-  //   }
-  //   if ('cardBoxId' in noteData && noteData.cardBoxId !== existingNote.cardBoxId) {
-  //     updatedFields.cardBoxId = noteData.cardBoxId
-  //   }
-
-  //   console.log('Fields to update:', JSON.stringify(updatedFields))
-
-  //   if (Object.keys(updatedFields).length === 0) {
-  //     console.log('No changes to update')
-  //     return existingNote
-  //   }
-
-  //   // 更新字段
-  //   Object.assign(existingNote, updatedFields)
-  //   existingNote.updatedAt = new Date()
-
-  //   // 保存到数据库
-  //   const savedNote = await this.notesRepository.save(existingNote)
-  //   console.log('Note updated successfully:', JSON.stringify(savedNote))
-  //   return savedNote
-  // }
   async update(id: string, updateNoteDto: Partial<Note>): Promise<Note> {
     console.log('Updating note with ID:', id)
     console.log('Update data:', JSON.stringify(updateNoteDto))
@@ -229,35 +167,17 @@ export class NotesService {
         throw new Error('笔记未找到')
       }
 
-      const oldCardBoxId = note.cardBoxId
-      if (oldCardBoxId) {
-        const oldCardBox = await manager.findOne(CardBox, {
-          where: { id: oldCardBoxId }
-        })
-        if (oldCardBox) {
-          oldCardBox.noteIds = oldCardBox.noteIds.filter((id) => id !== noteId)
-          await manager.save(CardBox, oldCardBox)
-        }
-      }
-
       note.cardBoxId = newCardBoxId
       await manager.save(Note, note)
 
-      if (newCardBoxId) {
-        const newCardBox = await manager.findOne(CardBox, {
-          where: { id: newCardBoxId }
-        })
-        if (newCardBox) {
-          if (!newCardBox.noteIds.includes(noteId)) {
-            newCardBox.noteIds.push(noteId)
-            await manager.save(CardBox, newCardBox)
-          }
-        } else {
-          throw new Error('新的卡片盒未找到')
-        }
-      }
-
       return note
+    })
+  }
+
+  async getNotesInCardBox(cardBoxId: string): Promise<Note[]> {
+    return this.notesRepository.find({
+      where: { cardBoxId: cardBoxId },
+      order: { updatedAt: 'DESC' }
     })
   }
 

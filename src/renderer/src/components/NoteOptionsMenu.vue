@@ -103,7 +103,7 @@ const showHistory = () => {
   background-color: #fff;
   border-radius: 8px;
   // box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  z-index: 1000;
+  z-index: var(--z-index-hightest);
   // width: 160px;
   width: auto;
   overflow-y: auto;

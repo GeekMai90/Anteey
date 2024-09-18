@@ -3,7 +3,6 @@ import App from './App.vue'
 import router from './router'
 import { createPinia } from 'pinia'
 import './styles/main.scss'
-// import clickOutside from './utils/clickOutside'
 import piniaPluginPersistedstate from 'pinia-plugin-persistedstate'
 import FloatingVue from 'floating-vue'
 import 'floating-vue/dist/style.css'
@@ -15,8 +14,21 @@ pinia.use(piniaPluginPersistedstate)
 
 app.use(pinia)
 app.use(router)
-// app.directive('click-outside', clickOutside)
-// app.use(FloatingVue);
+app.directive('click-outside', {
+  mounted(el, binding) {
+    el.clickOutsideEvent = (event: Event) => {
+      if (!(el === event.target || el.contains(event.target as Node))) {
+        binding.value(event)
+      }
+    }
+    document.addEventListener('click', el.clickOutsideEvent)
+  },
+  unmounted(el) {
+    document.removeEventListener('click', el.clickOutsideEvent)
+  }
+})
+
+app.use(FloatingVue)
 app.use(FloatingVue, {
   delay: {
     show: 10000, // 显示延迟 500 毫秒

@@ -37,7 +37,7 @@ const handleOverlayClick = (event: MouseEvent) => {
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 9999;
+  z-index: var(--z-index-primary);
   /* box-shadow: var(--card-shadow); */
 }
 

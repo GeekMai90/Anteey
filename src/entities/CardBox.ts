@@ -25,6 +25,6 @@ export class CardBox {
   @UpdateDateColumn()
   updatedAt: Date
 
-  @OneToMany(() => Note, (note) => note.cardBoxId)
-  noteIds: string[]
+  @OneToMany(() => Note, (note) => note.cardBox)
+  notes: Note[]
 }

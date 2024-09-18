@@ -337,20 +337,6 @@ export const useNoteStore = defineStore('note', {
       }
     },
 
-    // 删除笔记
-    // async deleteNote(id: string) {
-    //   try {
-    //     await window.notesAPI.(`/notes/${id}`)
-    //     this.notes = this.notes.filter((note) => note.id !== id)
-    //     // 如果当前编辑的笔记被删除，关闭编辑器
-    //     if (this.currentNoteId === id) {
-    //       this.closeNoteEditor()
-    //     }
-    //   } catch (error) {
-    //     console.error('Error deleting note:', error)
-    //     throw error
-    //   }
-    // },
     // 初始化卡片盒数据
     async initializeCardBoxes() {
       await this.fetchCardBoxes()
@@ -439,51 +425,54 @@ export const useNoteStore = defineStore('note', {
         throw error
       }
     },
-
-    // 更新笔记的卡片盒
-    async updateNoteCardBox(noteId: string, newCardBoxId: string | null) {
+    // 获取卡片盒中的所有笔记
+    async getNotesInCardBox(cardBoxId: string): Promise<Note[]> {
       try {
-        const response = await window.notesAPI.updateNoteCardBox(noteId, newCardBoxId)
-        const updatedNote = this.notes.find((note) => note.id === noteId)
-        if (response && updatedNote) {
-          updatedNote.cardBoxId = newCardBoxId ?? undefined
-        }
-
-        // 更新卡片盒数据
-        this.updateCardBoxesAfterNoteUpdate(noteId, newCardBoxId, updatedNote?.cardBoxId ?? null)
-
-        return updatedNote
+        const notes = await window.notesAPI.getNotesInCardBox(cardBoxId)
+        // 更新本地存储中的笔记
+        notes.forEach((note) => {
+          const index = this.notes.findIndex((n) => n.id === note.id)
+          if (index !== -1) {
+            this.notes[index] = note
+          } else {
+            this.notes.push(note)
+          }
+        })
+        return notes
       } catch (error) {
-        console.error('更新笔记的卡片盒时出错:', error)
+        console.error('获取卡片盒中的笔记失败:', error)
         throw error
       }
     },
 
-    // 辅助方法：更新卡片盒数据
-    updateCardBoxesAfterNoteUpdate(
-      noteId: string,
-      newCardBoxId: string | null,
-      oldCardBoxId: string | null
-    ) {
-      // 从旧卡片盒中移除笔记
-      if (oldCardBoxId) {
-        const oldCardBox = this.cardBoxes.find((box) => box.id === oldCardBoxId)
-        if (oldCardBox) {
-          oldCardBox.noteIds = oldCardBox.noteIds.filter((id) => id !== noteId)
-        }
-      }
+    // 更新笔记所属卡片盒
+    async updateNoteCardBox(noteId: string, newCardBoxId: string | null): Promise<Note | null> {
+      console.log(`Updating note ${noteId} to card box ${newCardBoxId}`)
+      try {
+        const response = await window.notesAPI.updateNoteCardBox(noteId, newCardBoxId)
 
-      // 添加笔记到新卡片盒
-      if (newCardBoxId) {
-        const newCardBox = this.cardBoxes.find((box) => box.id === newCardBoxId)
-        if (newCardBox) {
-          if (!newCardBox.noteIds.includes(noteId)) {
-            newCardBox.noteIds.push(noteId)
+        if (response.success) {
+          // 更新本地存储中的笔记
+          const noteIndex = this.notes.findIndex((note) => note.id === noteId)
+          if (noteIndex !== -1) {
+            this.notes[noteIndex] = {
+              ...this.notes[noteIndex],
+              cardBoxId: newCardBoxId ?? undefined
+            }
+            console.log(`Note ${noteId} updated successfully in local store`)
+            return this.notes[noteIndex]
+          } else {
+            console.error(`Note ${noteId} not found in local store`)
           }
+        } else {
+          console.error(`Failed to update note ${noteId} in the backend:`, response.error)
         }
+        return null
+      } catch (error) {
+        console.error('Error in updateNoteCardBox:', error)
+        throw error
       }
     },
-
     // 移动到回收站
     async moveToTrash(id: string) {
       try {
@@ -571,16 +560,16 @@ export const useNoteStore = defineStore('note', {
     },
 
     // 获取卡片盒中的所有笔记
-    getNotesInCardBox: (state) => {
-      return (cardBoxId: string) => {
-        const cardBox = state.cardBoxes.find((box) => box.id === cardBoxId)
-        return cardBox
-          ? (cardBox.noteIds
-              .map((id) => state.notes.find((note) => note.id === id))
-              .filter(Boolean) as Note[])
-          : []
-      }
-    },
+    // getNotesInCardBox: (state) => {
+    //   return (cardBoxId: string) => {
+    //     const cardBox = state.cardBoxes.find((box) => box.id === cardBoxId)
+    //     return cardBox
+    //       ? (cardBox.noteIds
+    //           .map((id) => state.notes.find((note) => note.id === id))
+    //           .filter(Boolean) as Note[])
+    //       : []
+    //   }
+    // },
     getLinkedNotes: (state) => {
       return (noteId: string) => {
         const note = state.notes.find((n) => n.id === noteId)

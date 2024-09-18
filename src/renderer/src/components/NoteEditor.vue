@@ -1,16 +1,20 @@
 <!-- src/components/NoteEditor.vue -->
-<!-- src/components/NoteEditor.vue -->
 <template>
   <div class="note-editor">
     <!-- 顶部工具栏 -->
     <div class="toolbar">
-      <button class="expand-btn" @click="handleExpand">
-        <ExpandTextInput theme="outline" size="16" fill="#b6b6b6" />
-      </button>
+      <!-- 展开编辑器 -->
+      <div v-tooltip.bottom="'展开编辑器'" class="expand-btn" @click="handleExpand">
+        <div class="icon">
+          <ExpandTextInput theme="outline" size="16" fill="#b6b6b6" />
+        </div>
+      </div>
       <div class="toolbar-right">
-        <button class="install-btn" @click="toggleCardBoxMenu">
-          <Install theme="outline" size="18" fill="#b6b6b6" />
-        </button>
+        <div class="install-btn" @click="toggleCardBoxMenu">
+          <div class="icon">
+            <Install theme="outline" size="16" fill="#b6b6b6" />
+          </div>
+        </div>
         <!-- 添加卡片盒下拉菜单 -->
         <CardboxDropdownMenu
           :isOpen="showCardBoxMenu"
@@ -19,9 +23,22 @@
           @update:selectedCardBox="selectCardBox"
           @close="showCardBoxMenu = false"
         />
-        <button class="more-btn" @click="handleToggleOptions">
-          <More theme="outline" size="18" fill="#b6b6b6" />
-        </button>
+        <div class="more-btn" @click.stop="toggleOptionsMenu">
+          <div class="icon">
+            <More theme="outline" size="16" fill="#b6b6b6" />
+          </div>
+        </div>
+        <div v-if="isOptionsMenuVisible" v-click-outside="closeOptionsMenu">
+          <NoteOptionsMenu
+            @share="handleShare"
+            @star="handleStar"
+            @show-sidebar="handleShowSidebar"
+            @copy="handleCopy"
+            @show-history="handleShowHistory"
+            @delete="handleDelete"
+            @close="closeOptionsMenu"
+          />
+        </div>
       </div>
     </div>
     <!-- 编辑器内容 -->
@@ -72,16 +89,7 @@
 </template>
 
 <script setup lang="ts">
-import {
-  computed,
-  inject,
-  nextTick,
-  onBeforeUnmount,
-  onMounted,
-  onUnmounted,
-  ref,
-  watch
-} from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, onUnmounted, ref, watch } from 'vue'
 import { Note, CardType, CardBox } from '../types/Note'
 import { useNoteStore } from '../stores/noteStores'
 import TipTapEditor from '../components/TipTapEditor.vue'
@@ -97,10 +105,25 @@ import {
 } from '@icon-park/vue-next'
 import { useDebounceFn, useThrottleFn } from '@vueuse/core'
 import CardboxDropdownMenu from './CardboxDropdownMenu.vue'
+import { isEqual } from 'lodash-es'
+import { useNoteOptions } from '@renderer/composable/useNoteOptions'
+import NoteOptionsMenu from '@renderer/components/NoteOptionsMenu.vue'
 
 const props = defineProps<{
-  noteId?: string
+  noteId: string
 }>()
+
+const {
+  isOptionsMenuVisible,
+  toggleOptionsMenu,
+  closeOptionsMenu,
+  handleShare,
+  handleStar,
+  handleShowSidebar,
+  handleCopy,
+  handleShowHistory,
+  handleDelete
+} = useNoteOptions(props.noteId)
 
 const router = useRouter()
 const addressInput = ref<HTMLInputElement | null>(null)
@@ -113,25 +136,30 @@ const selectedCardBox = ref<CardBox | null>(null)
 const showMoreActions = ref<string | null>(null)
 
 // 被编辑的笔记，初始化时为空
-const editedNote = ref<Partial<Note>>({})
-const isNewNote = ref(false)
+// const editedNote = ref<Partial<Note>>({})
+const editedNote = ref<Note>({
+  id: '',
+  address: '',
+  cardType: 'Maincard',
+  content: {
+    type: 'doc',
+    content: [{ type: 'paragraph' }]
+  },
+  tags: [],
+  cardBoxId: undefined,
+  isDeleted: false,
+  isStarred: false,
+  createdAt: new Date(),
+  updatedAt: new Date(),
+  linkedTo: [],
+  linkedFrom: []
+})
 
-// 初始化笔记，如果 noteId 存在，则从服务器获取笔记，否则创建新笔记
 // 初始化笔记
 const initializeNote = async () => {
-  if (props.noteId) {
-    const existingNote = await noteStore.getNoteById(props.noteId)
-    if (existingNote) {
-      editedNote.value = { ...existingNote, content: existingNote.content || {} }
-    } else {
-      console.error(`Note with id ${props.noteId} not found`)
-      // 如果找不到指定 ID 的笔记，创建一个新的
-      editedNote.value = await noteStore.createNewNote()
-    }
-  } else {
-    // 如果没有提供 noteId，直接创建一个新的笔记
-    editedNote.value = await noteStore.createNewNote()
-  }
+  console.log('NoteEditor 的初始笔记数据是：', editedNote.value)
+  editedNote.value = (await noteStore.getNoteById(props.noteId)) as Note
+  console.log('NoteEditor 挂载笔记是：', editedNote.value)
 }
 
 // 在组件挂载时初始化笔记
@@ -147,10 +175,6 @@ watch(
   },
   { immediate: true }
 )
-
-onMounted(async () => {
-  await initializeNote()
-})
 
 // 保存笔记
 const saveNote = async () => {
@@ -186,12 +210,42 @@ const saveNote = async () => {
 }
 
 // 监听笔记变化
+// 分别监听不同的属性
 watch(
-  () => editedNote.value,
+  () => editedNote.value.address,
   (newValue, oldValue) => {
-    if (JSON.stringify(newValue) !== JSON.stringify(oldValue)) {
-      console.log('Note changed, triggering save')
+    if (newValue !== oldValue) {
+      console.log('Address changed, triggering save')
       debouncedSave()
+    }
+  }
+)
+
+watch(
+  () => editedNote.value.cardType,
+  (newValue, oldValue) => {
+    if (newValue !== oldValue) {
+      console.log('Card type changed, triggering save')
+      debouncedSave()
+    }
+  }
+)
+watch(
+  () => editedNote.value.cardBoxId,
+  (newValue, oldValue) => {
+    if (newValue !== oldValue) {
+      console.log('cardBoxId changed, triggering save')
+      debouncedSave()
+    }
+  }
+)
+// 对于内容，使用节流函数而不是防抖
+watch(
+  () => editedNote.value.content,
+  (newValue, oldValue) => {
+    if (!isEqual(newValue, oldValue)) {
+      console.log('Content changed, triggering throttled save')
+      throttledContentSave()
     }
   },
   { deep: true }
@@ -214,21 +268,6 @@ const updateContent = (newContent: any) => {
   }
 }
 
-// 监听笔记变化
-watch(
-  () => editedNote.value,
-  (newValue, oldValue) => {
-    console.log('editedNote changed')
-    console.log('Old value:', JSON.stringify(oldValue))
-    console.log('New value:', JSON.stringify(newValue))
-    if (JSON.stringify(newValue) !== JSON.stringify(oldValue)) {
-      console.log('Calling saveNote due to change')
-      debouncedSave()
-    }
-  },
-  { deep: true }
-)
-
 // 当模态窗被关闭时，保存笔记
 const handleAutoSave = () => {
   if (editedNote.value?.address || editedNote.value?.content || editedNote.value?.cardType) {
@@ -237,10 +276,6 @@ const handleAutoSave = () => {
     emit('close')
   }
 }
-
-onBeforeUnmount(() => {
-  saveNote()
-})
 
 // 卡片盒列表
 const cardBoxes = computed(() => {
@@ -252,6 +287,21 @@ const toggleCardBoxMenu = () => {
 }
 
 // 选择卡片盒
+// const selectCardBox = async (box: CardBox) => {
+//   if (!editedNote.value?.id) {
+//     console.error('编辑的笔记为空')
+//     return
+//   }
+//   try {
+//     selectedCardBox.value = box
+//     editedNote.value.cardBoxId = box.id !== '0000' ? box.id : undefined
+//     await noteStore.updateNoteCardBox(editedNote.value.id, editedNote.value.cardBoxId || null)
+//     await saveNote()
+//     console.log('卡片盒更新成功:', box.name)
+//   } catch (error) {
+//     console.error('更新卡片盒失败:', error)
+//   }
+// }
 const selectCardBox = async (box: CardBox) => {
   if (!editedNote.value?.id) {
     console.error('编辑的笔记为空')
@@ -260,9 +310,17 @@ const selectCardBox = async (box: CardBox) => {
   try {
     selectedCardBox.value = box
     editedNote.value.cardBoxId = box.id !== '0000' ? box.id : undefined
-    await noteStore.updateNoteCardBox(editedNote.value.id, editedNote.value.cardBoxId || null)
-    await saveNote()
-    console.log('卡片盒更新成功:', box.name)
+    const updatedNote = await noteStore.updateNoteCardBox(
+      editedNote.value.id,
+      editedNote.value.cardBoxId || null
+    )
+    if (updatedNote) {
+      editedNote.value = updatedNote
+      await saveNote()
+      console.log('卡片盒更新成功:', box.name)
+    } else {
+      console.error('更新卡片盒失败: 未能获取更新后的笔记')
+    }
   } catch (error) {
     console.error('更新卡片盒失败:', error)
   }
@@ -404,13 +462,13 @@ const handleExpand = async () => {
 }
 
 // 打开选项菜单
-const openOptionsMenu = inject('openOptionsMenu') as (event: MouseEvent, noteId: string) => void
+// const openOptionsMenu = inject('openOptionsMenu') as (event: MouseEvent, noteId: string) => void
 
-const handleToggleOptions = (event: MouseEvent) => {
-  if (props.noteId) {
-    openOptionsMenu(event, props.noteId)
-  }
-}
+// const handleToggleOptions = (event: MouseEvent) => {
+//   if (props.noteId) {
+//     openOptionsMenu(event, props.noteId)
+//   }
+// }
 
 defineExpose({ handleAutoSave, focusAddressInput })
 </script>
@@ -435,43 +493,204 @@ defineExpose({ handleAutoSave, focusAddressInput })
     padding: 10px 20px;
     position: relative;
 
-    .expand-btn,
-    .install-btn,
-    .more-btn {
-      background: none;
-      border: none;
-      cursor: pointer;
-      width: 24px;
-      height: 24px;
+    .expand-btn {
+      position: relative;
       display: flex;
       align-items: center;
-      justify-content: center;
+      border: none;
+      background: none;
+      cursor: pointer;
+      transition: all 0.2s ease;
       border-radius: 6px;
-      transition: background-color 0.2s;
-      padding: 0;
-      margin-right: 5px;
+      padding: 4px 4px;
+      margin: 2px;
 
-      &:hover:not(:disabled) {
-        background-color: var(--color-hover-bg);
-      }
-
-      &:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-      }
-
-      // 新增以下样式来处理 i-icon 类
-      :deep(.i-icon) {
+      .icon {
+        background: none;
+        border: none;
+        cursor: pointer;
+        width: 24px;
+        height: 24px;
         display: flex;
         align-items: center;
         justify-content: center;
-        width: 100%;
-        height: 100%;
+        transition: all 0.2s ease;
+        padding: 0;
+
+        // &:hover:not(:disabled) {
+        //   background-color: rgba(0, 0, 0, 0.05);
+        // }
+
+        &:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+
+        :deep(.i-icon) {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 100%;
+          height: 100%;
+        }
+
+        :deep(svg) {
+          width: 16px;
+          height: 16px;
+        }
       }
 
-      :deep(svg) {
-        width: 18px; // 或者您想要的大小
-        height: 18px; // 或者您想要的大小
+      .name {
+        flex-grow: 0;
+        text-align: left;
+        color: var(--default-text-color);
+        font-size: 13px;
+        font-weight: 400;
+        margin-left: 6px;
+        white-space: nowrap;
+        writing-mode: horizontal-tb;
+      }
+
+      &:hover {
+        background-color: var(--color-hover-button);
+      }
+
+      &:active {
+        background-color: rgba(0, 0, 0, 0.1);
+      }
+    }
+
+    .install-btn {
+      position: relative;
+      display: flex;
+      align-items: center;
+      border: none;
+      background: none;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      border-radius: 6px;
+      padding: 4px 4px;
+      margin: 2px;
+
+      .icon {
+        background: none;
+        border: none;
+        cursor: pointer;
+        width: 24px;
+        height: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s ease;
+        padding: 0;
+
+        // &:hover:not(:disabled) {
+        //   background-color: rgba(0, 0, 0, 0.05);
+        // }
+
+        &:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+
+        :deep(.i-icon) {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 100%;
+          height: 100%;
+        }
+
+        :deep(svg) {
+          width: 16px;
+          height: 16px;
+        }
+      }
+
+      .name {
+        flex-grow: 0;
+        text-align: left;
+        color: var(--default-text-color);
+        font-size: 13px;
+        font-weight: 400;
+        margin-left: 6px;
+        white-space: nowrap;
+        writing-mode: horizontal-tb;
+      }
+
+      &:hover {
+        background-color: var(--color-hover-button);
+      }
+
+      &:active {
+        background-color: rgba(0, 0, 0, 0.1);
+      }
+    }
+
+    .more-btn {
+      position: relative;
+      display: flex;
+      align-items: center;
+      border: none;
+      background: none;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      border-radius: 6px;
+      padding: 4px 4px;
+      margin: 2px;
+
+      .icon {
+        background: none;
+        border: none;
+        cursor: pointer;
+        width: 24px;
+        height: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s ease;
+        padding: 0;
+
+        // &:hover:not(:disabled) {
+        //   background-color: rgba(0, 0, 0, 0.05);
+        // }
+
+        &:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+
+        :deep(.i-icon) {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 100%;
+          height: 100%;
+        }
+
+        :deep(svg) {
+          width: 16px;
+          height: 16px;
+        }
+      }
+
+      .name {
+        flex-grow: 0;
+        text-align: left;
+        color: var(--default-text-color);
+        font-size: 13px;
+        font-weight: 400;
+        margin-left: 6px;
+        white-space: nowrap;
+        writing-mode: horizontal-tb;
+      }
+
+      &:hover {
+        background-color: var(--color-hover-button);
+      }
+
+      &:active {
+        background-color: rgba(0, 0, 0, 0.1);
       }
     }
 

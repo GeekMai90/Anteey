@@ -95,13 +95,12 @@ import { CardType, Note, CardBox } from '../types/Note'
 import { formatDate } from '../utils/noteHelpers'
 import { useNoteOptions } from '../composable/useNoteOptions'
 import NoteOptionsMenu from '../components/NoteOptionsMenu.vue'
-// import { More } from '@icon-park/vue-next';
 import { Notes, BookOpen, ViewList, Link, More, Install } from '@icon-park/vue-next'
-
 import { useDebounceFn, useThrottleFn } from '@vueuse/core'
 import TipTapEditor from '../components/TipTapEditor.vue'
 import CardboxDropdownMenu from '../components/CardboxDropdownMenu.vue'
-// import { storeToRefs } from 'pinia';
+import AppToolbar from '../components/AppToolbar.vue'
+import { isEqual } from 'lodash-es'
 
 const tiptapEditor = ref<any>(null)
 const route = useRoute()
@@ -110,11 +109,11 @@ const noteStore = useNoteStore()
 const noteId = route.params.id as string
 const addressInput = ref<HTMLInputElement | null>(null)
 // const editedNote = ref(noteStore.getNoteById(noteId))
-const editedNote = ref<Note>(
-  noteId
-    ? noteStore.getNoteById(noteId) || (noteStore.createNewNote() as Note)
-    : (noteStore.createNewNote() as Note)
-)
+// const editedNote = ref<Note>(
+//   noteId
+//     ? noteStore.getNoteById(noteId) || (noteStore.createNewNote() as Note)
+//     : (noteStore.createNewNote() as Note)
+// )
 
 const {
   isOptionsMenuVisible,
@@ -127,6 +126,131 @@ const {
   handleShowHistory,
   handleDelete
 } = useNoteOptions(noteId, () => router.back())
+
+// 被编辑的笔记，初始化时为空
+// const editedNote = ref<Partial<Note>>({})
+const editedNote = ref<Note>({
+  id: '',
+  address: '',
+  cardType: 'Maincard',
+  content: {
+    type: 'doc',
+    content: [{ type: 'paragraph' }]
+  },
+  tags: [],
+  cardBoxId: undefined,
+  isDeleted: false,
+  isStarred: false,
+  createdAt: new Date(),
+  updatedAt: new Date(),
+  linkedTo: [],
+  linkedFrom: []
+})
+
+// 初始化笔记
+const initializeNote = async () => {
+  console.log('NoteEditor 的初始笔记数据是：', editedNote.value)
+  editedNote.value = (await noteStore.getNoteById(noteId)) as Note
+  console.log('NoteEditor 挂载笔记是：', editedNote.value)
+}
+
+// 在组件挂载时初始化笔记
+onMounted(async () => {
+  await initializeNote()
+})
+
+// 监听 noteId 的变化，初始化或更新编辑的笔记
+watch(
+  () => noteId,
+  async () => {
+    await initializeNote()
+  },
+  { immediate: true }
+)
+// 保存笔记
+// 保存笔记
+const saveNote = async () => {
+  console.log('Saving note:', JSON.stringify(editedNote.value))
+  if (!editedNote.value.id) {
+    console.error('Cannot save note: Missing note id')
+    return
+  }
+
+  try {
+    const noteToSave: Partial<Note> = {
+      id: editedNote.value.id,
+      address: editedNote.value.address,
+      cardType: editedNote.value.cardType,
+      content: JSON.parse(JSON.stringify(editedNote.value.content)), // 确保内容是可序列化的
+      tags: editedNote.value.tags,
+      cardBoxId: editedNote.value.cardBoxId,
+      isDeleted: editedNote.value.isDeleted,
+      isStarred: editedNote.value.isStarred
+    }
+
+    const savedNote = await noteStore.updateNote(editedNote.value.id, noteToSave)
+
+    if (savedNote) {
+      editedNote.value = savedNote
+      console.log('Note updated successfully:', JSON.stringify(savedNote))
+    } else {
+      console.error('Failed to update note: No note returned from store')
+    }
+  } catch (error) {
+    console.error('Error updating note:', error)
+  }
+}
+
+// 监听笔记变化
+// 分别监听不同的属性
+watch(
+  () => editedNote.value.address,
+  (newValue, oldValue) => {
+    if (newValue !== oldValue) {
+      console.log('Address changed, triggering save')
+      debouncedSave()
+    }
+  }
+)
+
+watch(
+  () => editedNote.value.cardType,
+  (newValue, oldValue) => {
+    if (newValue !== oldValue) {
+      console.log('Card type changed, triggering save')
+      debouncedSave()
+    }
+  }
+)
+watch(
+  () => editedNote.value.cardBoxId,
+  (newValue, oldValue) => {
+    if (newValue !== oldValue) {
+      console.log('cardBoxId changed, triggering save')
+      debouncedSave()
+    }
+  }
+)
+// 对于内容，使用节流函数而不是防抖
+watch(
+  () => editedNote.value.content,
+  (newValue, oldValue) => {
+    if (!isEqual(newValue, oldValue)) {
+      console.log('Content changed, triggering throttled save')
+      throttledContentSave()
+    }
+  },
+  { deep: true }
+)
+
+// 组件卸载前保存笔记
+onBeforeUnmount(() => {
+  saveNote()
+})
+
+// 使用防抖和节流函数来保存笔记
+const debouncedSave = useDebounceFn(saveNote, 2000)
+const throttledContentSave = useThrottleFn(saveNote, 5000)
 
 // 卡片盒下拉菜单
 const showCardBoxMenu = ref(false)
@@ -185,7 +309,8 @@ onUnmounted(() => {
 })
 
 // 初始化卡片盒
-onMounted(() => {
+onMounted(async () => {
+  await noteStore.fetchCardBoxes()
   if (editedNote.value.cardBoxId) {
     const currentCardBox = cardBoxes.value.find((box) => box.id === editedNote.value.cardBoxId)
     if (currentCardBox) {
@@ -194,57 +319,20 @@ onMounted(() => {
   }
 })
 
-// 保存笔记
-
-const saveNote = async () => {
-  if (editedNote.value?.id) {
-    try {
-      const savedNote = await noteStore.updateNote(editedNote.value.id, editedNote.value)
-      editedNote.value = savedNote as Note
-      console.log('笔记已更新')
-    } catch (error) {
-      console.error('Error updating note:', error)
-    }
-  } else {
-    console.error('Cannot update note: Missing note id')
-  }
-}
-// 使用防抖和节流函数来保存笔记
-const debouncedSave = useDebounceFn(saveNote, 2000)
-const throttledContentSave = useThrottleFn(saveNote, 5000)
-
-// 监听内容变化，使用节流函数来保存笔记
-watch(
-  () => editedNote.value.content,
-  () => {
-    throttledContentSave()
-  }
-)
-
-watch(
-  () => editedNote.value,
-  (newValue, oldValue) => {
-    if (newValue.address !== oldValue.address || newValue.cardType !== oldValue.cardType) {
-      debouncedSave()
-    }
-  },
-  { deep: true }
-)
-
 // 在组件卸载前保存笔记或删除空笔记
-onBeforeUnmount(async () => {
-  // if (!isExpandingToExpandEditor.value) {
-  if (
-    !editedNote.value.address &&
-    (!editedNote.value.content || Object.keys(editedNote.value.content).length === 0)
-  ) {
-    await noteStore.deleteNote(editedNote.value.id)
-    console.log('清除空笔记')
-  } else {
-    await saveNote()
-  }
-  // }
-})
+// onBeforeUnmount(async () => {
+//   // if (!isExpandingToExpandEditor.value) {
+//   if (
+//     !editedNote.value.address &&
+//     (!editedNote.value.content || Object.keys(editedNote.value.content).length === 0)
+//   ) {
+//     await noteStore.deleteNote(editedNote.value.id)
+//     console.log('清除空笔记')
+//   } else {
+//     await saveNote()
+//   }
+//   // }
+// })
 
 // 卡片类型选择菜单处理
 const indicatorButton = ref<HTMLButtonElement | null>(null)
@@ -549,50 +637,117 @@ onMounted(() => {
 
 .toolbar-right {
   display: flex;
-  gap: 10px;
+  // gap: 10px;
   position: relative;
   // margin-right: 10px;
 }
 
+// .info-btn,
+// .more-btn {
+//   // position: relative;
+//   display: flex;
+//   align-items: center;
+//   // width: 200px;
+//   // padding: 8px 12px;
+//   border: none;
+//   background: none;
+//   cursor: pointer;
+//   transition: background-color 0.2s;
+//   border-radius: 8px;
+//   // margin: 2px 8px;
+
+//   .icon {
+//     background: none;
+//     border: none;
+//     cursor: pointer;
+//     width: 28px;
+//     height: 28px;
+//     display: flex;
+//     align-items: center;
+//     justify-content: center;
+//     border-radius: 6px;
+//     transition: background-color 0.2s;
+//     padding: 0;
+//     // margin-right: 3px;
+
+//     &:hover:not(:disabled) {
+//       background-color: var(--color-hover-bg);
+//     }
+
+//     &:disabled {
+//       opacity: 0.5;
+//       cursor: not-allowed;
+//     }
+
+//     // 新增以下样式来处理 i-icon 类
+//     .i-icon {
+//       display: flex;
+//       align-items: center;
+//       justify-content: center;
+//       width: 100%;
+//       height: 100%;
+//     }
+
+//     svg {
+//       width: 18px; // 或者您想要的大小
+//       height: 18px; // 或者您想要的大小
+//     }
+//   }
+
+//   .name {
+//     flex-grow: 0;
+//     text-align: left;
+//     color: var(--default-text-color);
+//     font-size: 15px;
+//     white-space: nowrap; // 防止文字换行
+//     writing-mode: horizontal-tb; // 确保文字是水平排列的
+//   }
+
+//   &:hover {
+//     background-color: var(--color-hover-bg);
+//   }
+
+//   &.active {
+//     background-color: var(--color-menu-active-bg);
+//     // border: 1px solid var(--color-primary);
+//   }
+// }
+
 .info-btn,
 .more-btn {
-  // position: relative;
+  position: relative;
   display: flex;
   align-items: center;
-  // width: 200px;
-  // padding: 8px 12px;
   border: none;
   background: none;
   cursor: pointer;
-  transition: background-color 0.2s;
-  border-radius: 8px;
-  // margin: 2px 8px;
+  transition: all 0.2s ease;
+  border-radius: 6px;
+  padding: 4px 4px;
+  margin: 2px;
 
   .icon {
     background: none;
     border: none;
     cursor: pointer;
-    width: 28px;
-    height: 28px;
+    width: 24px;
+    height: 24px;
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 6px;
-    transition: background-color 0.2s;
+    transition: all 0.2s ease;
     padding: 0;
-    // margin-right: 3px;
 
-    &:hover:not(:disabled) {
-      background-color: var(--color-hover-bg);
-    }
+    // &:hover:not(:disabled) {
+    //   background-color: rgba(0, 0, 0, 0.05);
+    // }
 
     &:disabled {
       opacity: 0.5;
       cursor: not-allowed;
     }
 
-    // 新增以下样式来处理 i-icon 类
-    .i-icon {
+    :deep(.i-icon) {
       display: flex;
       align-items: center;
       justify-content: center;
@@ -600,9 +755,9 @@ onMounted(() => {
       height: 100%;
     }
 
-    svg {
-      width: 18px; // 或者您想要的大小
-      height: 18px; // 或者您想要的大小
+    :deep(svg) {
+      width: 16px;
+      height: 16px;
     }
   }
 
@@ -610,18 +765,19 @@ onMounted(() => {
     flex-grow: 0;
     text-align: left;
     color: var(--default-text-color);
-    font-size: 15px;
-    white-space: nowrap; // 防止文字换行
-    writing-mode: horizontal-tb; // 确保文字是水平排列的
+    font-size: 13px;
+    font-weight: 400;
+    margin-left: 6px;
+    white-space: nowrap;
+    writing-mode: horizontal-tb;
   }
 
   &:hover {
-    background-color: var(--color-hover-bg);
+    background-color: var(--color-hover-button);
   }
 
-  &.active {
-    background-color: var(--color-menu-active-bg);
-    // border: 1px solid var(--color-primary);
+  &:active {
+    background-color: rgba(0, 0, 0, 0.1);
   }
 }
 
