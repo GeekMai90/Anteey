@@ -1,7 +1,11 @@
 <template>
   <div class="sidebar" :style="{ width: `${sidebarWidth}px` }">
     <div class="sidebar-header">
-      <div class="sidebar-titlebar"></div>
+      <div class="sidebar-titlebar">
+        <!-- <div class="save-status-container">
+          <div class="save-status-indicator" :class="saveStatusClass"></div>
+        </div> -->
+      </div>
       <button class="antinet-button">
         <img src="@resources/icon.png" alt="Antinet" class="antinet-icon" />
         <div class="antinet-text">Antinet</div>
@@ -76,9 +80,19 @@ import { onMounted, ref, watch } from 'vue'
 import { ListView, Box, Workbench, DocAdd, Search, Help } from '@icon-park/vue-next'
 import { useNoteStore } from '../stores/noteStores'
 
-// const props = defineProps({
-//   isTemporaryVisible: Boolean,
-// });
+// 计算保存状态的 CSS 类
+// const saveStatusClass = computed(() => {
+//   switch (noteStore.currentNoteSaveStatus) {
+//     case 'saving':
+//       return 'status-saving'
+//     case 'saved':
+//       return 'status-saved'
+//     case 'error':
+//       return 'status-error'
+//     default:
+//       return 'status-idle'
+//   }
+// })
 
 const imageSrc = ref('')
 
@@ -399,5 +413,35 @@ const openHelp = () => {
     min-width: 200px;
     overflow: hidden;
   }
+}
+
+.save-status-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  padding: 10px;
+}
+
+.save-status-indicator {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.status-idle {
+  background-color: #ccc;
+}
+
+.status-saving {
+  background-color: #ffd700; /* 黄色 */
+}
+
+.status-saved {
+  background-color: #4caf50; /* 绿色 */
+}
+
+.status-error {
+  background-color: #f44336; /* 红色 */
 }
 </style>

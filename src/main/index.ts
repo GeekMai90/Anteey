@@ -187,17 +187,40 @@ app.whenReady().then(() => {
     }
   })
 
-  ipcMain.handle('update-note', async (event, id, noteData) => {
-    console.log('Main process: update-note called with:', id, JSON.stringify(noteData))
+  // ipcMain.handle('update-note', async (event, id, noteData) => {
+  //   console.log('Main process: update-note called with:', id, JSON.stringify(noteData))
+  //   try {
+  //     // 确保 noteData 是一个普通对象
+  //     const sanitizedNoteData = JSON.parse(JSON.stringify(noteData))
+  //     const updatedNote = await notesService.update(id, sanitizedNoteData)
+  //     console.log('Note updated:', JSON.stringify(updatedNote))
+  //     return updatedNote
+  //   } catch (error) {
+  //     console.error('Error updating note in main process:', error)
+  //     throw error
+  //   }
+  // })
+  ipcMain.handle('update-note', async (event, { id, updateData }) => {
+    console.log('主进程 → 收到更新笔记请求:', { id, updateData })
+
     try {
-      // 确保 noteData 是一个普通对象
-      const sanitizedNoteData = JSON.parse(JSON.stringify(noteData))
-      const updatedNote = await notesService.update(id, sanitizedNoteData)
-      console.log('Note updated:', JSON.stringify(updatedNote))
-      return updatedNote
+      // 数据验证
+      if (!id || typeof id !== 'string') {
+        throw new Error('Invalid note ID')
+      }
+
+      if (!updateData || typeof updateData !== 'object') {
+        throw new Error('Invalid update data')
+      }
+
+      // 调用服务方法更新笔记
+      const updatedNote = await notesService.update(id, updateData)
+
+      console.log('主进程 → 笔记更新成功:', updatedNote)
+      return { success: true, note: updatedNote }
     } catch (error) {
-      console.error('Error updating note in main process:', error)
-      throw error
+      console.error('主进程 → 更新笔记时出错:', error)
+      return { success: false, error: error }
     }
   })
 

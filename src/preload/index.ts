@@ -48,9 +48,16 @@ const notesAPI: NotesAPI = {
   // createNote: (noteData) => ipcRenderer.invoke('create-note', noteData),
   createNote: () => ipcRenderer.invoke('create-note'),
   // updateNote: (id, noteData) => ipcRenderer.invoke('update-note', id, noteData),
-  updateNote: (id: string, noteData: Partial<Note>) => {
-    console.log('IPC updateNote called with:', id, JSON.stringify(noteData))
-    return ipcRenderer.invoke('update-note', id, noteData)
+  // updateNote: (id: string, noteData: Partial<Note>) => {
+  //   console.log('IPC updateNote called with:', id, JSON.stringify(noteData))
+  //   return ipcRenderer.invoke('update-note', id, noteData)
+  // },
+  updateNote: async (id: string, updateData: Partial<Note>) => {
+    const result = await ipcRenderer.invoke('update-note', { id, updateData })
+    if (!result.success) {
+      throw new Error(result.error)
+    }
+    return result.note
   },
 
   removeNote: (id) => ipcRenderer.invoke('remove-note', id),

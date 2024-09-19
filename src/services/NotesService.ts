@@ -65,29 +65,75 @@ export class NotesService {
   }
 
   async update(id: string, updateNoteDto: Partial<Note>): Promise<Note> {
-    console.log('Updating note with ID:', id)
-    console.log('Update data:', JSON.stringify(updateNoteDto))
+    console.log(`NotesService → 开始更新笔记，ID: ${id}`)
+    console.log('NotesService → 更新数据:', JSON.stringify(updateNoteDto))
 
-    const note = await this.findOne(id)
+    return this.dataSource
+      .transaction(async (transactionalEntityManager) => {
+        // 1. 查找笔记
+        const note = await transactionalEntityManager.findOne(Note, {
+          where: { id },
+          relations: ['linkedTo', 'linkedFrom'] // 加载关联数据
+        })
 
-    // 更新提供的字段
-    if (updateNoteDto.address !== undefined) note.address = updateNoteDto.address
-    if (updateNoteDto.cardType !== undefined) note.cardType = updateNoteDto.cardType
-    if (updateNoteDto.content !== undefined) {
-      // 确保内容是可序列化的
-      note.content = JSON.parse(JSON.stringify(updateNoteDto.content))
-    }
-    if (updateNoteDto.tags !== undefined) note.tags = updateNoteDto.tags
-    if (updateNoteDto.cardBoxId !== undefined) note.cardBoxId = updateNoteDto.cardBoxId
-    if (updateNoteDto.isDeleted !== undefined) note.isDeleted = updateNoteDto.isDeleted
-    if (updateNoteDto.isStarred !== undefined) note.isStarred = updateNoteDto.isStarred
+        if (!note) {
+          console.error(`NotesService → 未找到ID为 ${id} 的笔记`)
+          throw new Error(`Note with ID "${id}" not found`)
+        }
 
-    note.updatedAt = new Date()
+        console.log('NotesService → 找到的原始笔记:', JSON.stringify(note))
 
-    const savedNote = await this.notesRepository.save(note)
-    console.log('Updated note:', JSON.stringify(savedNote))
+        // 2. 更新字段
+        if (updateNoteDto.address !== undefined) {
+          note.address = updateNoteDto.address
+        }
+        if (updateNoteDto.cardType !== undefined) {
+          note.cardType = updateNoteDto.cardType
+        }
+        if (updateNoteDto.content !== undefined) {
+          try {
+            // 确保内容是有效的JSON
+            note.content =
+              typeof updateNoteDto.content === 'string'
+                ? JSON.parse(updateNoteDto.content)
+                : updateNoteDto.content
+            console.log('NotesService → 更新内容:', JSON.stringify(note.content))
+          } catch (error) {
+            console.error('NotesService → 解析内容时出错:', error)
+            throw new Error('Invalid content format')
+          }
+        }
+        if (updateNoteDto.tags !== undefined) {
+          note.tags = Array.isArray(updateNoteDto.tags) ? updateNoteDto.tags : []
+        }
+        if (updateNoteDto.cardBoxId !== undefined) {
+          note.cardBoxId = updateNoteDto.cardBoxId
+        }
+        if (updateNoteDto.isDeleted !== undefined) {
+          note.isDeleted = updateNoteDto.isDeleted
+        }
+        if (updateNoteDto.isStarred !== undefined) {
+          note.isStarred = updateNoteDto.isStarred
+        }
 
-    return savedNote
+        // 3. 更新时间戳
+        note.updatedAt = new Date()
+
+        // 4. 保存更新
+        console.log('NotesService → 更新后的笔记（保存前）:', JSON.stringify(note))
+        try {
+          const savedNote = await transactionalEntityManager.save(Note, note)
+          console.log('NotesService → 保存后的笔记:', JSON.stringify(savedNote))
+          return savedNote
+        } catch (error) {
+          console.error('NotesService → 保存笔记时出错:', error)
+          throw new Error('Failed to save the updated note')
+        }
+      })
+      .catch((error) => {
+        console.error('NotesService → 更新笔记事务失败:', error)
+        throw error
+      })
   }
 
   async remove(id: string): Promise<void> {

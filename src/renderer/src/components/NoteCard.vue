@@ -17,21 +17,11 @@
           </div>
         </div>
 
-        <div
-          v-if="isOptionsMenuVisible"
-          v-click-outside="closeOptionsMenu"
-          class="note-options-menu"
-        >
+        <div v-if="isOptionsMenuVisible" v-click-outside="closeOptionsMenu">
           <NoteOptionsMenu
             ref="noteOptionsMenu"
-            :noteId="note.id"
+            :noteId="props.note.id"
             @close="closeOptionsMenu"
-            @note-deleted="handleNoteDeleted"
-            @share="handleShare"
-            @star="handleStar"
-            @show-sidebar="handleShowSidebar"
-            @copy="handleCopy"
-            @show-history="handleShowHistory"
           />
         </div>
       </div>
@@ -56,7 +46,6 @@ import { formatDate } from '@renderer/utils/noteHelpers'
 import { More, ExpandTextInput } from '@icon-park/vue-next'
 import { computed, onMounted, onUpdated, ref, watch, toRef } from 'vue'
 import NoteOptionsMenu from '@renderer/components/NoteOptionsMenu.vue'
-import { useNoteOptions } from '@renderer/composable/useNoteOptions'
 import { useRouter } from 'vue-router'
 import TipTapEditor from '@renderer/components/TipTapEditor.vue'
 import { useNoteStore } from '@renderer/stores/noteStores'
@@ -67,35 +56,35 @@ const props = defineProps<{
 
 // const emit = defineEmits(['edit'])
 const isDragHandleEnabled = ref(false)
-const noteStore = useNoteStore()
-
-const {
-  isOptionsMenuVisible,
-  toggleOptionsMenu,
-  // closeOptionsMenu,
-  handleShare,
-  handleStar,
-  handleShowSidebar,
-  handleCopy,
-  handleShowHistory
-} = useNoteOptions(props.note.id)
+// const noteStore = useNoteStore()
 
 const localNote = toRef(props, 'note')
 
+// 笔记选项菜单
+const isOptionsMenuVisible = ref(false)
 const noteOptionsMenu = ref<InstanceType<typeof NoteOptionsMenu> | null>(null)
+
+const toggleOptionsMenu = () => {
+  isOptionsMenuVisible.value = !isOptionsMenuVisible.value
+}
 
 const closeOptionsMenu = () => {
   isOptionsMenuVisible.value = false
   noteOptionsMenu.value?.resetState()
 }
 
-const handleNoteDeleted = async () => {
-  console.log('Note deleted, updating UI')
-  await noteStore.fetchNotes() // 重新获取笔记列表
-  noteStore.closeNoteEditor()
-  closeOptionsMenu()
-  console.log('UI updated after note deletion')
-}
+// const closeOptionsMenu = () => {
+//   isOptionsMenuVisible.value = false
+//   noteOptionsMenu.value?.resetState()
+// }
+
+// const handleNoteDeleted = async () => {
+//   console.log('Note deleted, updating UI')
+//   await noteStore.fetchNotes() // 重新获取笔记列表
+//   noteStore.closeNoteEditor()
+//   closeOptionsMenu()
+//   console.log('UI updated after note deletion')
+// }
 
 // 处理内容超高时底部出现模糊效果
 const noteContent = ref<HTMLDivElement | null>(null)
@@ -317,6 +306,9 @@ watch(
   .note-options-menu {
     opacity: 1 !important;
     visibility: visible !important;
+  }
+  :deep(.note-options-menu) {
+    transform: translateX(-66%);
   }
 
   .note-content {

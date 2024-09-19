@@ -30,7 +30,7 @@
 
         <div class="more-btn" @click.stop="toggleOptionsMenu">
           <div v-tooltip.bottom="{ content: '更多', delay: { show: 1000 } }" class="icon">
-            <More theme="outline" size="16" fill="#b6b6b6" />
+            <More theme="outline" size="16" fill="var(--color-icon-default)" />
           </div>
           <div v-if="isOptionsMenuVisible" v-click-outside="closeOptionsMenu">
             <NoteOptionsMenu ref="noteOptionsMenu" :noteId="noteId" @close="closeOptionsMenu" />
@@ -59,7 +59,7 @@
         <div class="content-wrapper">
           <TipTapEditor
             ref="tiptapEditor"
-            :content="editedNote.content || {}"
+            :content="editedNote.content"
             :editable="true"
             :enableDragHandle="true"
             @update:content="updateContent"
@@ -100,10 +100,11 @@ import {
   Install,
   More
 } from '@icon-park/vue-next'
-import { useDebounceFn, useThrottleFn } from '@vueuse/core'
+// import { useDebounceFn, useThrottleFn } from '@vueuse/core'
 import CardboxDropdownMenu from './CardboxDropdownMenu.vue'
-import { isEqual } from 'lodash-es'
+// import { isEqual } from 'lodash-es'
 import NoteOptionsMenu from '@renderer/components/NoteOptionsMenu.vue'
+import { debounce } from 'lodash-es'
 
 const props = defineProps<{
   noteId: string
@@ -132,177 +133,155 @@ const closeOptionsMenu = () => {
   noteOptionsMenu.value?.resetState()
 }
 
-// 被编辑的笔记，初始化时为空
-// const editedNote = ref<Partial<Note>>({})
-const editedNote = ref<Note>({
+// 笔记的保存功能
+
+const emptyNote: Note = {
   id: '',
   address: '',
-  cardType: 'Maincard',
   content: {
     type: 'doc',
     content: [{ type: 'paragraph' }]
   },
-  tags: [],
-  cardBoxId: undefined,
-  isDeleted: false,
-  isStarred: false,
+  cardType: 'Maincard', // 或其他默认类型
   createdAt: new Date(),
   updatedAt: new Date(),
+  tags: [],
   linkedTo: [],
-  linkedFrom: []
-})
-
-// 初始化笔记
-const initializeNote = async () => {
-  // 比较传入的 id 和编辑的笔记的 id 是否相同，如果相同就跳过
-  if (editedNote.value.id === props.noteId) {
-    console.log('NoteEditor → 笔记已经初始化，跳过！')
-    return
-  }
-  // 重置 editedNote 为初始状态
-  editedNote.value = {
-    id: '',
-    address: '',
-    cardType: 'Maincard',
-    content: {
-      type: 'doc',
-      content: [{ type: 'paragraph' }]
-    },
-    tags: [],
-    cardBoxId: undefined,
-    isDeleted: false,
-    isStarred: false,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    linkedTo: [],
-    linkedFrom: []
-  }
-  console.log('NoteEditor→ 初始笔记数据是：', editedNote.value)
-
-  // 获取新的笔记数据
-  const newNote = (await noteStore.getNoteById(props.noteId)) as Note
-  if (newNote) {
-    editedNote.value = newNote
-    console.log('NoteEditor → 挂载的笔记是：', editedNote.value)
-  } else {
-    console.error('NoteEditor → 获取笔记失败 id 是：', props.noteId)
-  }
+  linkedFrom: [],
+  cardBoxId: undefined,
+  isDeleted: false,
+  isStarred: false
 }
 
-// 监听 noteId 的变化，初始化或更新编辑的笔记
-watch(
-  () => props.noteId,
-  async (newNoteId, oldNoteId) => {
-    if (newNoteId !== oldNoteId) {
-      await initializeNote()
-    }
-  },
-  { immediate: true }
-)
+const editedNote = ref<Note>({ ...emptyNote })
+const saveStatus = ref<'idle' | 'saving' | 'saved' | 'error'>('idle')
 
-// 保存笔记
-const saveNote = async () => {
-  if (!editedNote.value.id) {
-    console.error('NoteEditor → 无法保存笔记：缺少笔记 id')
-    return
-  }
-
+// 加载笔记
+const loadNote = async () => {
   try {
-    // 首先获取服务器上最新的笔记数据
-    const latestNote = await noteStore.getNoteById(editedNote.value.id)
-
-    // 创建一个只包含已修改字段的对象
-    const changedFields: Partial<Note> = {}
-    if (latestNote) {
-      // 比较并只包含已更改的字段
-      if (editedNote.value.address !== latestNote.address)
-        changedFields.address = editedNote.value.address
-      if (editedNote.value.cardType !== latestNote.cardType)
-        changedFields.cardType = editedNote.value.cardType
-      if (!isEqual(editedNote.value.content, latestNote.content))
-        changedFields.content = editedNote.value.content
-      if (!isEqual(editedNote.value.tags, latestNote.tags))
-        changedFields.tags = editedNote.value.tags
-      if (editedNote.value.cardBoxId !== latestNote.cardBoxId)
-        changedFields.cardBoxId = editedNote.value.cardBoxId
-      // 不包括 isDeleted 和 isStarred，因为这些通常由特定的操作处理
-
-      // 只有在有更改时才发送更新请求
-      if (Object.keys(changedFields).length > 0) {
-        const savedNote = await noteStore.updateNote(editedNote.value.id, changedFields)
-        if (savedNote) {
-          editedNote.value = savedNote
-          console.log('NoteEditor → 笔记更新成功:', JSON.stringify(savedNote))
-        } else {
-          console.error('NoteEditor → 无法更新笔记：没有返回笔记')
-        }
-      } else {
-        console.log('NoteEditor → 没有检测到更改，跳过更新')
-      }
-    }
+    editedNote.value = await noteStore.fetchNoteById(props.noteId)
   } catch (error) {
-    console.error('NoteEditor → 更新笔记时出错:', error)
+    console.error('Failed to load note:', error)
   }
 }
-// 使用防抖和节流函数来保存笔记
-const debouncedSave = useDebounceFn(saveNote, 2000)
-const throttledContentSave = useThrottleFn(saveNote, 5000)
+// 自动保存
+// 用于判断内容是否更新的函数
+function isContentChanged(oldNote: Note, newNote: Note): boolean {
+  return (
+    JSON.stringify(oldNote.content) !== JSON.stringify(newNote.content) ||
+    oldNote.address !== newNote.address ||
+    oldNote.cardType !== newNote.cardType ||
+    // 添加其他需要比较的字段
+    JSON.stringify(oldNote.tags) !== JSON.stringify(newNote.tags)
+  )
+}
 
-// 监听笔记变化
-// 分别监听不同的属性
-watch(
-  () => editedNote.value.address,
-  (newValue, oldValue) => {
-    if (newValue !== oldValue) {
-      console.log('NoteEditor → 地址变化，触发保存')
-      debouncedSave()
+// 上一次保存的笔记内容
+let lastSavedNote = JSON.parse(JSON.stringify(editedNote.value))
+// 自动保存
+const autoSave = debounce(async () => {
+  if (editedNote.value && editedNote.value.id) {
+    // 比较内容是否真的改变
+    if (!isContentChanged(lastSavedNote, editedNote.value)) {
+      console.log('Content not changed, skipping save')
+      return
     }
-  }
-)
 
-watch(
-  () => editedNote.value.cardType,
-  (newValue, oldValue) => {
-    if (newValue !== oldValue) {
-      console.log('NoteEditor → 卡片类型变化，触发保存')
-      debouncedSave()
+    try {
+      // noteStore.updateNoteSaveStatus(editedNote.value.id, 'saving')
+      noteStore.updateCurrentNoteSaveStatus('saving')
+      const updatedNote = await noteStore.updateNote(editedNote.value.id, editedNote.value)
+
+      // noteStore.updateNoteSaveStatus(editedNote.value.id, 'saved')
+      noteStore.updateCurrentNoteSaveStatus('saved')
+      console.log('Note auto-saved successfully')
+
+      // 更新最后保存的内容
+      lastSavedNote = JSON.parse(JSON.stringify(updatedNote))
+
+      // 更新编辑中的笔记
+      editedNote.value = updatedNote
+    } catch (error) {
+      console.error('Auto-save failed:', error)
+      // noteStore.updateNoteSaveStatus(editedNote.value.id, 'error')
+      noteStore.updateCurrentNoteSaveStatus('error')
     }
   }
-)
+}, 2000)
+
+// 监听笔记内容的变化
 watch(
-  () => editedNote.value.cardBoxId,
-  (newValue, oldValue) => {
-    if (newValue !== oldValue) {
-      console.log('NoteEditor → 卡片盒变化，触发保存')
-      debouncedSave()
-    }
-  }
-)
-// 对于内容，使用节流函数而不是防抖
-watch(
-  () => editedNote.value.content,
-  (newValue, oldValue) => {
-    if (!isEqual(newValue, oldValue)) {
-      console.log('NoteEditor → 内容变化，触发节流保存')
-      throttledContentSave()
+  () => [
+    editedNote.value.content,
+    editedNote.value.address,
+    editedNote.value.cardType,
+    editedNote.value.tags
+  ],
+  () => {
+    if (isContentChanged(lastSavedNote, editedNote.value)) {
+      autoSave()
     }
   },
   { deep: true }
 )
 
-// 组件卸载前保存笔记
-onBeforeUnmount(() => {
-  console.log('NoteEditor → 组件卸载前保存笔记')
-  saveNote()
+// 监听笔记变化
+// watch(
+//   () => editedNote.value,
+//   () => {
+//     if (editedNote.value) {
+//       autoSave()
+//     }
+//   },
+//   { deep: true }
+// )
+
+// 定期保存
+const autoSaveInterval = setInterval(() => {
+  if (editedNote.value) {
+    autoSave()
+  }
+}, 30000)
+
+onMounted(loadNote)
+
+onUnmounted(() => {
+  clearInterval(autoSaveInterval)
+  autoSave.cancel()
+  noteStore.updateCurrentNoteSaveStatus('saved')
+})
+
+onBeforeUnmount(async () => {
+  await saveNote()
 })
 
 // 更新内容
 const updateContent = (newContent: any) => {
   if (editedNote.value) {
     editedNote.value.content = newContent
-    throttledContentSave()
   }
 }
+// 手动保存（如果需要）
+const saveNote = async () => {
+  if (editedNote.value) {
+    try {
+      saveStatus.value = 'saving'
+      await noteStore.updateNote(editedNote.value.id, editedNote.value)
+      saveStatus.value = 'saved'
+    } catch (error) {
+      console.error('Manual save failed:', error)
+      saveStatus.value = 'error'
+    }
+  }
+}
+
+// 更新内容
+// const updateContent = (newContent: any) => {
+//   if (editedNote.value) {
+//     editedNote.value.content = newContent
+//     // saveNote()
+//   }
+// }
 
 // 当模态窗被关闭时，保存笔记
 // const handleAutoSave = () => {
