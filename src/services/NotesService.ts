@@ -199,10 +199,30 @@ export class NotesService {
     })
   }
 
-  async moveToTrash(id: string): Promise<Note> {
-    const note = await this.findOne(id)
-    note.isDeleted = true
-    return this.notesRepository.save(note)
+  async moveToTrash(id: string): Promise<{ success: boolean; note: Note }> {
+    return this.dataSource.transaction(async (transactionalEntityManager) => {
+      const note = await transactionalEntityManager.findOne(Note, {
+        where: { id }
+      })
+
+      if (!note) {
+        console.error(`NotesService→ 尝试将不存在的笔记移至垃圾箱: ${id}`)
+        throw new Error(`Note with ID "${id}" not found`)
+      }
+
+      if (note.isDeleted) {
+        console.warn(`NotesService→ 尝试将已经在回收站的笔记移至垃圾箱:${id}`)
+        throw new Error(`Note with ID "${id}" is already in trash`)
+      }
+
+      note.isDeleted = true
+      note.updatedAt = new Date()
+
+      const updatedNote = await transactionalEntityManager.save(Note, note)
+      console.log(`NotesService→ 笔记成功移至垃圾箱:${id}`)
+
+      return { success: true, note: updatedNote }
+    })
   }
 
   async restoreFromTrash(id: string): Promise<Note> {

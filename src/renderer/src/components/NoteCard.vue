@@ -23,6 +23,7 @@
           class="note-options-menu"
         >
           <NoteOptionsMenu
+            ref="noteOptionsMenu"
             :noteId="note.id"
             @close="closeOptionsMenu"
             @note-deleted="handleNoteDeleted"
@@ -71,7 +72,7 @@ const noteStore = useNoteStore()
 const {
   isOptionsMenuVisible,
   toggleOptionsMenu,
-  closeOptionsMenu,
+  // closeOptionsMenu,
   handleShare,
   handleStar,
   handleShowSidebar,
@@ -81,11 +82,19 @@ const {
 
 const localNote = toRef(props, 'note')
 
-const handleNoteDeleted = () => {
-  // 处理笔记删除后的逻辑
+const noteOptionsMenu = ref<InstanceType<typeof NoteOptionsMenu> | null>(null)
+
+const closeOptionsMenu = () => {
+  isOptionsMenuVisible.value = false
+  noteOptionsMenu.value?.resetState()
+}
+
+const handleNoteDeleted = async () => {
+  console.log('Note deleted, updating UI')
+  await noteStore.fetchNotes() // 重新获取笔记列表
   noteStore.closeNoteEditor()
-  // 可能还需要其他操作，如更新UI等
-  closeOptionsMenu() // 只在笔记真正被删除后关闭菜单
+  closeOptionsMenu()
+  console.log('UI updated after note deletion')
 }
 
 // 处理内容超高时底部出现模糊效果
@@ -132,6 +141,16 @@ watch(
   () => {
     checkOverflow()
   }
+)
+watch(
+  () => props.note,
+  (newNote, oldNote) => {
+    if (newNote.id !== oldNote.id || newNote.isDeleted !== oldNote.isDeleted) {
+      console.log('Note changed, updating local note')
+      localNote.value = newNote
+    }
+  },
+  { deep: true }
 )
 </script>
 

@@ -295,12 +295,21 @@ app.whenReady().then(() => {
     }
   })
 
+  // ipcMain.handle('move-to-trash', async (_, id: string) => {
+  //   try {
+  //     return await notesService.moveToTrash(id)
+  //   } catch (error) {
+  //     console.error('Error in move-to-trash:', error)
+  //     throw error
+  //   }
+  // })
   ipcMain.handle('move-to-trash', async (_, id: string) => {
     try {
-      return await notesService.moveToTrash(id)
+      const result = await notesService.moveToTrash(id)
+      return { success: true, note: result.note }
     } catch (error) {
-      console.error('Error in move-to-trash:', error)
-      throw error
+      console.error('Main process→ move-to-trash 出错:', error)
+      return { success: false, error: error }
     }
   })
 

@@ -28,7 +28,7 @@ app.directive('click-outside', {
   }
 })
 
-app.use(FloatingVue)
+// app.use(FloatingVue)
 app.use(FloatingVue, {
   delay: {
     show: 10000, // 显示延迟 500 毫秒

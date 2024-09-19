@@ -12,6 +12,8 @@ import {
 // import electronAPI from '../axiosConfig'
 import { NotesAPI } from '../../../preload'
 import { CardBoxAPI } from '../../../preload'
+import { Notes, Table, TransactionOrder, Deeplink } from '@icon-park/vue-next'
+import { ref } from 'vue'
 // import { isEqual } from 'lodash'
 // 在文件顶部添加类型声明（如果还没有的话）
 declare global {
@@ -30,6 +32,13 @@ interface CardBox {
   noteIds: string[] // 添加这一行
 }
 
+const cardTypes = [
+  { value: 'Maincard', label: '主要卡', icon: Notes },
+  { value: 'Bibcard', label: '书目卡', icon: Table },
+  { value: 'Indexcard', label: '索引卡', icon: TransactionOrder },
+  { value: 'Hoplinkcard', label: '跳转卡', icon: Deeplink }
+]
+
 export const useNoteStore = defineStore('note', {
   state: () => ({
     notes: [] as Note[],
@@ -42,7 +51,8 @@ export const useNoteStore = defineStore('note', {
     isSearchModalOpen: false,
     isSidebarCollapsed: false,
     isRightSidebarOpen: false,
-    rightSidebarNotes: [] as Note[]
+    rightSidebarNotes: [] as Note[],
+    selectedCardTypes: ref<string[]>(cardTypes.map((type) => type.value))
   }),
 
   actions: {
@@ -88,10 +98,19 @@ export const useNoteStore = defineStore('note', {
     },
 
     // 获取所有笔记
+    // async fetchNotes(includeDeleted: boolean = false) {
+    //   try {
+    //     const notes = await window.notesAPI.getNotes(includeDeleted)
+    //     this.notes = notes
+    //   } catch (error) {
+    //     console.error('获取笔记列表失败:', error)
+    //     throw error
+    //   }
+    // },
     async fetchNotes(includeDeleted: boolean = false) {
       try {
         const notes = await window.notesAPI.getNotes(includeDeleted)
-        this.notes = notes
+        this.notes = includeDeleted ? notes : notes.filter((note) => !note.isDeleted)
       } catch (error) {
         console.error('获取笔记列表失败:', error)
         throw error
@@ -363,22 +382,73 @@ export const useNoteStore = defineStore('note', {
       }
     },
     // 移动到回收站
+    // async moveToTrash(id: string) {
+    //   try {
+    //     await window.notesAPI.moveToTrash(id)
+    //     const index = this.notes.findIndex((note) => note.id === id)
+    //     if (index !== -1) {
+    //       this.notes[index].isDeleted = true
+    //     }
+    //     this.notes = this.notes.filter((note) => note.id !== id)
+    //     // 如果当前编辑的笔记被移动到回收站，关闭编辑器
+    //     if (this.currentNoteId === id) {
+    //       this.closeNoteEditor()
+    //     }
+    //   } catch (error) {
+    //     console.error('移动笔记到回收站失败:', error)
+    //     throw error
+    //   }
+    // },
+    // async moveToTrash(id: string) {
+    //   try {
+    //     await window.notesAPI.moveToTrash(id)
+    //     const index = this.notes.findIndex((note) => note.id === id)
+    //     if (index !== -1) {
+    //       this.notes[index] = { ...this.notes[index], isDeleted: true }
+    //     }
+    //     // 如果当前编辑的笔记被移动到回收站，关闭编辑器
+    //     if (this.currentNoteId === id) {
+    //       this.closeNoteEditor()
+    //     }
+    //     // 触发状态更新
+    //     this.notes = [...this.notes]
+    //   } catch (error) {
+    //     console.error('移动笔记到回收站失败:', error)
+    //     throw error
+    //   }
+    // },
     async moveToTrash(id: string) {
+      console.log('noteStore→ 开始执行moveToTrash')
       try {
-        await window.notesAPI.moveToTrash(id)
-        const index = this.notes.findIndex((note) => note.id === id)
-        if (index !== -1) {
-          this.notes[index].isDeleted = true
-        }
-        // 如果当前编辑的笔记被移动到回收站，关闭编辑器
-        if (this.currentNoteId === id) {
-          this.closeNoteEditor()
+        const result = await window.notesAPI.moveToTrash(id)
+        console.log('noteStore→ moveToTrash API 调用结果:', result)
+
+        if (result.success) {
+          console.log('noteStore→ 移动笔记到回收站成功')
+          const noteIndex = this.notes.findIndex((note) => note.id === id)
+          if (noteIndex !== -1) {
+            this.notes[noteIndex] = result.note
+            console.log('noteStore→ 更新笔记状态成功')
+          } else {
+            console.warn('noteStore→ 未找到要更新的笔记，添加到列表:', id)
+            this.notes.push(result.note)
+          }
+
+          if (this.currentNoteId === id) {
+            this.closeNoteEditor()
+            console.log('noteStore→ 关闭笔记编辑器')
+          }
+          return true
+        } else {
+          console.error('noteStore→ 移动笔记到回收站失败:', result)
+          return false
         }
       } catch (error) {
-        console.error('移动笔记到回收站失败:', error)
-        throw error
+        console.error('noteStore→ 移动笔记到回收站时发生错误:', error)
+        return false
       }
     },
+
     // 从回收站恢复
     async restoreFromTrash(id: string) {
       try {
@@ -431,6 +501,15 @@ export const useNoteStore = defineStore('note', {
       this.rightSidebarNotes = this.rightSidebarNotes.filter((n) => n.id !== noteId)
       if (this.rightSidebarNotes.length === 0) {
         this.closeRightSidebar()
+      }
+    },
+
+    toggleCardType(type: string) {
+      const index = this.selectedCardTypes.indexOf(type)
+      if (index === -1) {
+        this.selectedCardTypes.push(type)
+      } else {
+        this.selectedCardTypes.splice(index, 1)
       }
     }
   },

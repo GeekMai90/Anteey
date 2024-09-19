@@ -34,7 +34,7 @@ export interface NotesAPI {
   toggleDeletedStatus: (id: string) => Promise<{ success: boolean }>
   toggleStarredStatus: (id: string) => Promise<{ success: boolean }>
   getStarredNotes: () => Promise<Note[]>
-  moveToTrash: (id: string) => Promise<{ success: boolean }>
+  moveToTrash: (id: string) => Promise<{ success: boolean; note: Note }>
   restoreFromTrash: (id: string) => Promise<{ success: boolean }>
   permanentlyDelete: (id: string) => Promise<{ success: boolean }>
   getDeletedNotes: () => Promise<Note[]>

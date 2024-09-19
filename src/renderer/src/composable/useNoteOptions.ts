@@ -42,13 +42,23 @@ export function useNoteOptions(noteId: string) {
   }
 
   const moveToTrash = async () => {
+    console.log('useNoteOptions→ moveToTrash function called')
     try {
-      await noteStore.moveToTrash(noteId)
-      console.log('笔记已移动到回收站')
-      noteStore.closeNoteEditor()
-      await noteStore.fetchNotes()
+      const success = await noteStore.moveToTrash(noteId)
+      if (success) {
+        console.log('useNoteOptions→ Note moved to trash successfully')
+        noteStore.closeNoteEditor()
+        // 可以在这里添加一个成功的通知
+        return true
+      } else {
+        console.error('useNoteOptions→ Failed to move note to trash')
+        // 可以在这里添加一个失败的通知
+        return false
+      }
     } catch (error) {
-      console.error('移动到回收站失败', error)
+      console.error('useNoteOptions→ Error in moveToTrash:', error)
+      // 可以在这里添加一个错误的通知
+      return false
     }
   }
 

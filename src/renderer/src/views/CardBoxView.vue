@@ -109,6 +109,7 @@
                     :checked="selectedCardTypes.includes(type.value)"
                     @change="toggleCardType(type.value)"
                   />
+
                   <span class="slider round"></span>
                 </label>
               </div>
@@ -173,7 +174,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useNoteStore } from '../stores/noteStores'
 import AppToolbar from '../components/AppToolbar.vue'
 import {
@@ -193,8 +194,11 @@ import {
 } from '@icon-park/vue-next'
 import { CardBox } from '../types/Note'
 import CardBoxNoteCard from '../components/CardboxNoteCard.vue'
+import { storeToRefs } from 'pinia'
 
 const noteStore = useNoteStore()
+const { notes, selectedCardTypes } = storeToRefs(noteStore)
+
 const showCardBoxMenu = ref(false)
 const selectedCardBox = ref<CardBox | null>(null)
 const showMoreActions = ref<string | null>(null)
@@ -277,36 +281,48 @@ const selectCardBox = (box: CardBox | null) => {
 }
 
 const filteredNotes = computed(() => {
-  console.log('原始笔记数量:', noteStore.notes.length)
-  let notes = noteStore.notes
+  console.log('原始笔记数量:', notes.value.length)
 
-  // 根据选中的卡片盒进行筛选
-  if (isInboxSelected.value) {
-    // 筛选出没有加入卡片盒的笔记，筛选出那些没有cardBoxId的笔记
-    notes = notes.filter((note) => !note.cardBoxId)
-  } else if (selectedCardBox.value && selectedCardBox.value.id !== '0000') {
-    // 如果选择了卡片盒，筛选出那些cardBoxId等于selectedCardBox.value?.id的笔记
-    notes = noteStore.notes.filter((note) => note.cardBoxId === selectedCardBox.value?.id)
-  }
-
-  // 根据选中的卡片类型进行筛选
-  if (selectedCardTypes.value.length > 0) {
-    notes = notes.filter((note) => selectedCardTypes.value.includes(note.cardType))
-  }
-
-  // 排序逻辑
-  return notes.sort((a, b) => {
-    let comparison = 0
-    if (currentSort.value === 'name') {
-      comparison = a.address.localeCompare(b.address, 'zh-CN')
-    } else if (currentSort.value === 'createdAt') {
-      comparison = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-    } else if (currentSort.value === 'updatedAt') {
-      comparison = new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime()
-    }
-    return sortDirection.value === 'asc' ? comparison : -comparison
-  })
+  return notes.value
+    .filter((note) => {
+      // 根据选中的卡片盒进行筛选
+      if (isInboxSelected.value) {
+        return !note.cardBoxId
+      } else if (selectedCardBox.value && selectedCardBox.value.id !== '0000') {
+        return note.cardBoxId === selectedCardBox.value.id
+      }
+      return true
+    })
+    .filter((note) => {
+      // 根据选中的卡片类型进行筛选
+      return selectedCardTypes.value.length === 0 || selectedCardTypes.value.includes(note.cardType)
+    })
+    .sort((a, b) => {
+      let comparison = 0
+      switch (currentSort.value) {
+        case 'name':
+          comparison = a.address.localeCompare(b.address, 'zh-CN')
+          break
+        case 'createdAt':
+          comparison = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+          break
+        case 'updatedAt':
+          comparison = new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime()
+          break
+      }
+      return sortDirection.value === 'asc' ? comparison : -comparison
+    })
 })
+
+// 监听可能影响过滤结果的变量
+watch(
+  [isInboxSelected, selectedCardBox, selectedCardTypes, currentSort, sortDirection],
+  () => {
+    // 触发 filteredNotes 的重新计算
+    filteredNotes.value
+  },
+  { deep: true }
+)
 
 // 卡片盒下拉项中的更多操作
 const toggleMoreActions = (id: string, event: MouseEvent) => {
@@ -458,8 +474,6 @@ const cardTypes = [
   { value: 'Hoplinkcard', label: '跳转卡', icon: Deeplink }
 ]
 const showCardTypeMenu = ref(false)
-// const selectedCardTypes = ref<string[]>([]);
-const selectedCardTypes = ref<string[]>(cardTypes.map((type) => type.value))
 
 const toggleCardTypeMenu = (event: MouseEvent) => {
   event.stopPropagation()
@@ -468,12 +482,7 @@ const toggleCardTypeMenu = (event: MouseEvent) => {
 }
 
 const toggleCardType = (type: string) => {
-  const index = selectedCardTypes.value.indexOf(type)
-  if (index === -1) {
-    selectedCardTypes.value.push(type)
-  } else {
-    selectedCardTypes.value.splice(index, 1)
-  }
+  noteStore.toggleCardType(type)
 }
 
 onMounted(async () => {
