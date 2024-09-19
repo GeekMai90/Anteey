@@ -5,13 +5,13 @@ import { v4 as uuidv4 } from 'uuid'
 
 export class CardBoxService {
   private cardBoxRepository: Repository<CardBox>
-  private noteRepository: Repository<Note>
+  // private noteRepository: Repository<Note>
   private dataSource: DataSource
 
   constructor(dataSource: DataSource) {
     this.dataSource = dataSource
     this.cardBoxRepository = dataSource.getRepository(CardBox)
-    this.noteRepository = dataSource.getRepository(Note)
+    // this.noteRepository = dataSource.getRepository(Note)
   }
 
   async findAll(): Promise<CardBox[]> {

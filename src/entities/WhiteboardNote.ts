@@ -5,31 +5,31 @@ import { Note } from './Note'
 @Entity()
 export class WhiteboardNote {
   @PrimaryGeneratedColumn('uuid')
-  id!: string
+  id: string
 
   @ManyToOne(() => Whiteboard, (whiteboard) => whiteboard.notes, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'whiteboardId' })
-  whiteboard!: Whiteboard
+  whiteboard: Whiteboard | null
 
   @Column('uuid')
-  whiteboardId!: string
+  whiteboardId: string
 
   @ManyToOne(() => Note, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'noteId' })
-  note!: Note
+  note: Note | null
 
   @Column('uuid')
-  noteId!: string
+  noteId: string
 
   @Column('float')
-  positionX!: number
+  positionX: number
 
   @Column('float')
-  positionY!: number
+  positionY: number
 
   @Column('float', { default: 1 })
-  scale!: number
+  scale: number
 
   @Column('float', { default: 0 })
-  rotation!: number
+  rotation: number
 }

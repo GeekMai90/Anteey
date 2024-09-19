@@ -1,6 +1,6 @@
 // src/composables/useNoteOptions.ts
 import { ref } from 'vue'
-import { useNoteStore } from '@renderer/stores/noteStores'
+import { useNoteStore } from '../stores/noteStores'
 
 export function useNoteOptions(noteId: string) {
   const noteStore = useNoteStore()

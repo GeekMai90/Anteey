@@ -11,23 +11,23 @@ import { WhiteboardNote } from './WhiteboardNote'
 @Entity()
 export class Whiteboard {
   @PrimaryGeneratedColumn('uuid')
-  id!: string
+  id: string
 
   @Column({ type: 'varchar', length: 255 })
-  name!: string
+  name: string
 
   @Column({ type: 'text', nullable: true })
-  description!: string | null
+  description: string | null
 
   @CreateDateColumn()
-  createdAt!: Date
+  createdAt: Date
 
   @UpdateDateColumn()
-  updatedAt!: Date
+  updatedAt: Date
 
   @OneToMany(() => WhiteboardNote, (whiteboardNote) => whiteboardNote.whiteboard)
-  notes!: WhiteboardNote[]
+  notes: WhiteboardNote[]
 
   @Column('simple-json')
-  connections!: object[]
+  connections: object[]
 }

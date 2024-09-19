@@ -1,17 +1,17 @@
 import { DataSource, Repository } from 'typeorm'
 import { Note } from '../entities/Note'
-import { CardBox } from '../entities/CardBox'
+// import { CardBox } from '../entities/CardBox'
 import { v4 as uuidv4 } from 'uuid'
 
 export class NotesService {
   private notesRepository: Repository<Note>
-  private _cardBoxRepository: Repository<CardBox>
+  // private _cardBoxRepository: Repository<CardBox>
   private dataSource: DataSource
 
   constructor(dataSource: DataSource) {
     this.dataSource = dataSource
     this.notesRepository = dataSource.getRepository(Note)
-    this._cardBoxRepository = dataSource.getRepository(CardBox)
+    // this._cardBoxRepository = dataSource.getRepository(CardBox)
   }
 
   async findAll(includeDeleted: boolean = false): Promise<Note[]> {

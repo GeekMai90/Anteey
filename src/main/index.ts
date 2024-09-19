@@ -155,7 +155,7 @@ app.whenReady().then(() => {
     optimizer.watchWindowShortcuts(window)
   })
 
-  ipcMain.handle('get-resource-path', (event, filename) => {
+  ipcMain.handle('get-resource-path', (_event, filename) => {
     return path.join(app.getAppPath(), 'resources', filename)
   })
 
@@ -200,7 +200,7 @@ app.whenReady().then(() => {
   //     throw error
   //   }
   // })
-  ipcMain.handle('update-note', async (event, { id, updateData }) => {
+  ipcMain.handle('update-note', async (_event, { id, updateData }) => {
     console.log('主进程 → 收到更新笔记请求:', { id, updateData })
 
     try {
@@ -272,7 +272,7 @@ app.whenReady().then(() => {
     }
   })
 
-  ipcMain.handle('update-note-card-box', async (event, noteId, newCardBoxId) => {
+  ipcMain.handle('update-note-card-box', async (_event, noteId, newCardBoxId) => {
     try {
       const updatedNote = await notesService.updateNoteCardBox(noteId, newCardBoxId)
       return { success: true, note: updatedNote }
@@ -281,7 +281,7 @@ app.whenReady().then(() => {
       return { success: false, error: error }
     }
   })
-  ipcMain.handle('get-notes-in-card-box', async (event, cardBoxId: string) => {
+  ipcMain.handle('get-notes-in-card-box', async (_event, cardBoxId: string) => {
     try {
       const notes = await notesService.getNotesInCardBox(cardBoxId)
       return notes

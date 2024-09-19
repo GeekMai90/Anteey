@@ -13,42 +13,42 @@ import { CardBox } from './CardBox'
 @Entity()
 export class Note {
   @PrimaryGeneratedColumn('uuid')
-  id!: string
+  id: string
 
   @Column({ type: 'varchar', length: 255, nullable: true })
-  address!: string | null
+  address: string | null
 
   @Column({ type: 'varchar', length: 255 })
-  cardType!: string
+  cardType: string
 
   @Column('simple-json')
-  content!: object
+  content: object
 
   @CreateDateColumn()
-  createdAt!: Date
+  createdAt: Date
 
   @UpdateDateColumn()
-  updatedAt!: Date
+  updatedAt: Date
 
   @Column('simple-array')
-  tags!: string[]
+  tags: string[]
 
   @ManyToMany(() => Note, (note) => note.linkedFrom)
   @JoinTable()
-  linkedTo!: Note[]
+  linkedTo: Note[]
 
   @ManyToMany(() => Note, (note) => note.linkedTo)
-  linkedFrom!: Note[]
+  linkedFrom: Note[]
 
   @Column({ type: 'uuid', nullable: true })
   cardBoxId: string | null
 
   @ManyToOne(() => CardBox, (cardBox) => cardBox.notes)
-  cardBox: CardBox
+  cardBox: CardBox | null
 
   @Column({ type: 'boolean', default: false })
-  isDeleted!: boolean
+  isDeleted: boolean
 
   @Column({ type: 'boolean', default: false })
-  isStarred!: boolean
+  isStarred: boolean
 }

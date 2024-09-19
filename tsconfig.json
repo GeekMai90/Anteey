@@ -2,12 +2,12 @@
   "compilerOptions": {
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
+    "strict": true,
     "strictPropertyInitialization": false,
     "target": "ES2018",
     "module": "commonjs",
     "moduleResolution": "node",
     "esModuleInterop": true,
-    "strict": true,
     "sourceMap": true,
     "outDir": "./dist",
     "baseUrl": ".",
