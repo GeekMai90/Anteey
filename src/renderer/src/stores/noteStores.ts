@@ -45,7 +45,8 @@ export const useNoteStore = defineStore('note', {
     rightSidebarNotes: [] as Note[],
     selectedCardTypes: ref<string[]>(cardTypes.map((type) => type.value)),
     noteSaveStatus: {} as Record<string, 'idle' | 'saving' | 'saved' | 'error'>,
-    currentNoteSaveStatus: 'idle' as 'idle' | 'saving' | 'saved' | 'error'
+    currentNoteSaveStatus: 'idle' as 'idle' | 'saving' | 'saved' | 'error',
+    isSettingDropdownOpen: false
   }),
 
   actions: {
@@ -76,6 +77,12 @@ export const useNoteStore = defineStore('note', {
     },
     updateCurrentNoteSaveStatus(status: 'idle' | 'saving' | 'saved' | 'error') {
       this.currentNoteSaveStatus = status
+    },
+    toggleSettingDropdown() {
+      this.isSettingDropdownOpen = !this.isSettingDropdownOpen
+    },
+    closeSettingDropdown() {
+      this.isSettingDropdownOpen = false
     },
 
     // 初始化

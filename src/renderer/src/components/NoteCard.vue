@@ -154,6 +154,7 @@ watch(
   flex-direction: column;
   justify-content: space-between;
   position: relative;
+  box-shadow: var(--shadow-card);
   .note-header {
     display: flex;
     align-items: center;

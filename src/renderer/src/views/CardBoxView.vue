@@ -959,7 +959,7 @@ onUnmounted(() => {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
       gap: 16px;
-      padding: 16px;
+      padding: 16px 30px;
       align-content: start; // 让内容从顶部开始排列
       justify-content: center; // 水平居中对齐
 

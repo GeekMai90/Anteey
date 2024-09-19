@@ -6,7 +6,7 @@
           <div class="save-status-indicator" :class="saveStatusClass"></div>
         </div> -->
       </div>
-      <button class="antinet-button">
+      <button class="antinet-button" @click.stop="noteStore.toggleSettingDropdown">
         <img src="@resources/icon.png" alt="Antinet" class="antinet-icon" />
         <div class="antinet-text">Antinet</div>
         <svg
@@ -25,6 +25,7 @@
             stroke-linejoin="round"
           />
         </svg>
+        <SettingDropdownMenu />
       </button>
     </div>
 
@@ -43,6 +44,7 @@
       </nav>
     </div>
     <div class="sidebar-header-divider"></div>
+    <div>{{ noteStore.isSettingDropdownOpen }}</div>
     <div class="resize-handle" @mousedown="startResize"></div>
     <div class="sidebar-footer">
       <div class="new-card-wrapper">
@@ -79,6 +81,7 @@
 import { onMounted, ref, watch } from 'vue'
 import { ListView, Box, Workbench, DocAdd, Search, Help } from '@icon-park/vue-next'
 import { useNoteStore } from '../stores/noteStores'
+import SettingDropdownMenu from './SettingDropdownMenu.vue'
 
 // 计算保存状态的 CSS 类
 // const saveStatusClass = computed(() => {
@@ -184,7 +187,7 @@ const openHelp = () => {
       background-color: transparent;
       border: none;
       cursor: pointer;
-
+      position: relative;
       .antinet-icon {
         width: 30px;
         height: 30px;
@@ -406,7 +409,7 @@ const openHelp = () => {
     top: 30px;
     bottom: 30px;
     left: 0;
-    z-index: 9999;
+    z-index: 9000;
     background-color: var(--color-shape-tertiary);
     padding: 12px 12px 10px 12px;
     width: 200px;

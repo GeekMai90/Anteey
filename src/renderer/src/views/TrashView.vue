@@ -271,7 +271,7 @@ const handleCancelEmptyTrash = () => {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 10px 20px;
+      padding: 10px 30px;
       background-color: var(--body-bg);
 
       h2 {
@@ -359,7 +359,7 @@ const handleCancelEmptyTrash = () => {
           padding: 8px 12px;
           border: none;
           border-radius: 5px;
-          background-color: var(--error-color);
+          background-color: var(--color-text-danger);
           color: white;
           font-size: 14px;
           cursor: pointer;
@@ -383,7 +383,7 @@ const handleCancelEmptyTrash = () => {
     .card-grid-container {
       width: 100%;
       height: 100%;
-      padding: 16px;
+      padding: 16px 30px;
       // display: flex;
       // align-items: center;
       // justify-content: center;

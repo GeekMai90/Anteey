@@ -149,7 +149,7 @@ watch(
   width: 100%; // 使用 100% 宽度
   height: var(--card-height);
   overflow: hidden; // 防止内容溢出
-  box-shadow: var(--shadow-primary);
+  box-shadow: var(--shadow-card);
   .note-header {
     display: flex;
     align-items: center;
