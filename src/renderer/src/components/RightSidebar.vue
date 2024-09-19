@@ -2,30 +2,23 @@
   <div class="right-sidebar" :style="{ width: `${sidebarWidth}px` }">
     <div class="resize-handle" @mousedown="startResize"></div>
     <div class="sidebar-header">
-      <h3>右侧边栏</h3>
-      <button @click="closeSidebar">关闭</button>
-    </div>
-    <div class="search-bar">
-      <input type="text" placeholder="搜索、添加卡片或粘贴网页链接" />
+      <div class="toolbar-section left"></div>
+      <div class="toolbar-section right">
+        <div class="clear-button" @click="clearSidebarNotes">
+          <div class="icon">
+            <Clear theme="outline" size="20" fill="#b6b6b6" />
+          </div>
+        </div>
+      </div>
     </div>
     <div class="sidebar-content">
       <div v-for="note in sidebarNotes" :key="note.id" class="sidebar-note">
-        <div class="note-header">
-          <span class="collapse-icon">▼</span>
-          <span class="note-id">{{ note.address }}</span>
-        </div>
         <div class="note-content">
-          <h4>{{ note.address }}</h4>
-          <TipTapEditor
-            v-model:content="note.content"
-            :editable="true"
-            :enable-drag-handle="false"
-            @update:content="updateNote(note.id, $event)"
+          <RightSidebarNoteEditor
+            ref="noteEditorRef"
+            :noteId="note.id"
+            @close="noteStore.closeNoteEditor"
           />
-          <div class="note-footer">
-            <span class="info-icon">ℹ Info</span>
-            <button class="show-button">Show</button>
-          </div>
         </div>
       </div>
     </div>
@@ -35,7 +28,8 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import { useNoteStore } from '@renderer/stores/noteStores'
-import TipTapEditor from '@renderer/components/TipTapEditor.vue'
+import RightSidebarNoteEditor from './RightSidebarNoteEditor.vue'
+import { Clear } from '@icon-park/vue-next'
 
 const props = defineProps<{
   initialWidth?: number
@@ -48,12 +42,16 @@ const noteStore = useNoteStore()
 const sidebarWidth = ref(props.initialWidth || 400)
 const sidebarNotes = computed(() => noteStore.rightSidebarNotes)
 
-const closeSidebar = () => {
-  noteStore.closeRightSidebar()
-}
+// const closeSidebar = () => {
+//   noteStore.closeRightSidebar()
+// }
 
-const updateNote = (noteId: string, content: any) => {
-  noteStore.updateNote(noteId, { content })
+// const updateNote = (noteId: string, content: any) => {
+//   noteStore.updateNote(noteId, { content })
+// }
+
+const clearSidebarNotes = () => {
+  noteStore.clearRightSidebarNotes()
 }
 
 // const removeNoteFromSidebar = (noteId: string) => {
@@ -88,9 +86,8 @@ watch(sidebarWidth, (newWidth) => {
 
 <style scoped lang="scss">
 .right-sidebar {
-  height: 100%;
-  background-color: var(--color-bg-primary);
-  box-shadow: -2px 0 5px rgba(0, 0, 0, 0.1);
+  height: 100vh;
+  background-color: var(--color-shape-tertiary);
   display: flex;
   flex-direction: column;
   transition: width 0.3s ease;
@@ -107,29 +104,78 @@ watch(sidebarWidth, (newWidth) => {
   }
 
   .sidebar-header {
-    padding: 10px;
+    padding: 0 10px; // 使用padding来控制高度，而不是固定高度
     display: flex;
     justify-content: space-between;
     align-items: center;
-    border-bottom: 1px solid var(--color-border);
-
-    h3 {
-      margin: 0;
-      font-size: 18px;
-      color: var(--color-text-primary);
-    }
-
-    button {
-      padding: 5px 10px;
-      background-color: var(--color-bg-secondary);
+    min-height: 40px; // 使用最小高度而不是固定高度
+    box-sizing: border-box;
+    .toolbar-section {
+      display: flex;
+      align-items: center;
+      position: relative;
+      display: flex;
+      align-items: center;
       border: none;
-      border-radius: 4px;
+      background: none;
       cursor: pointer;
-      color: var(--color-text-primary);
-      transition: background-color 0.2s ease;
+      transition: all 0.2s ease;
+      border-radius: 6px;
+      padding: 4px 4px;
+      margin: 2px;
+
+      .icon {
+        background: none;
+        border: none;
+        cursor: pointer;
+        width: 24px;
+        height: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s ease;
+        padding: 0;
+
+        // &:hover:not(:disabled) {
+        //   background-color: rgba(0, 0, 0, 0.05);
+        // }
+
+        &:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+
+        :deep(.i-icon) {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 100%;
+          height: 100%;
+        }
+
+        :deep(svg) {
+          width: 18px;
+          height: 18px;
+        }
+      }
+
+      .name {
+        flex-grow: 0;
+        text-align: left;
+        color: var(--default-text-color);
+        font-size: 13px;
+        font-weight: 400;
+        margin-left: 6px;
+        white-space: nowrap;
+        writing-mode: horizontal-tb;
+      }
 
       &:hover {
-        background-color: var(--color-bg-hover);
+        background-color: var(--color-hover-button);
+      }
+
+      &:active {
+        background-color: rgba(0, 0, 0, 0.1);
       }
     }
   }
@@ -159,58 +205,13 @@ watch(sidebarWidth, (newWidth) => {
   .sidebar-content {
     flex-grow: 1;
     overflow-y: auto;
-    padding: 10px;
-
-    &::-webkit-scrollbar {
-      width: 8px;
-    }
-
-    &::-webkit-scrollbar-track {
-      background: var(--color-bg-secondary);
-    }
-
-    &::-webkit-scrollbar-thumb {
-      background-color: var(--color-scrollbar);
-      border-radius: 4px;
-    }
+    padding: 10px 15px;
   }
 
   .sidebar-note {
     margin-bottom: 10px;
-    border: 1px solid var(--color-border);
     border-radius: 4px;
     overflow: hidden;
-
-    .note-header {
-      padding: 10px;
-      background-color: var(--color-bg-secondary);
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-
-      .collapse-icon {
-        margin-right: 5px;
-        transition: transform 0.2s ease;
-      }
-
-      .note-id {
-        font-weight: 500;
-        color: var(--color-text-primary);
-      }
-
-      &:hover {
-        background-color: var(--color-bg-hover);
-      }
-    }
-
-    .note-content {
-      padding: 10px;
-
-      h4 {
-        margin-top: 0;
-        color: var(--color-text-primary);
-      }
-    }
 
     .note-footer {
       display: flex;

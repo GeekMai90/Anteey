@@ -148,13 +148,13 @@ watch(
   background-color: var(--body-bg);
   border: 1px solid var(--time-card-border-color);
   border-radius: 8px;
-  padding: 15px 0px 15px 0;
+  padding: 15px 0px 10px 0;
   margin-bottom: 15px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   position: relative;
-  box-shadow: var(--shadow-card);
+  // box-shadow: var(--shadow-card);
   .note-header {
     display: flex;
     align-items: center;
@@ -163,12 +163,12 @@ watch(
     position: relative;
     // margin-left: 2rem;
     // padding-left: 2rem;
-    padding: 0 15px 0 30px; // 调整左右内边距
+    padding: 0 15px 0 24px; // 调整左右内边距
     height: 30px;
 
     .note-indicator {
       position: absolute;
-      left: 17px;
+      left: 14px;
       top: 50%;
       transform: translateY(-50%);
       width: 4px;
@@ -323,6 +323,13 @@ watch(
     position: relative;
     font-size: 15px;
   }
+
+  :deep(.tiptap) {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    padding-left: 1.5rem !important;
+    padding-right: 1.5rem !important;
+  }
 }
 
 .note-card:hover .note-buttons {
@@ -346,10 +353,10 @@ watch(
   font-size: 0.8em;
   color: var(--color-text-secondary);
   align-self: flex-end;
-  margin-right: 2rem;
+  margin-right: 15px;
 }
 
-:deep(.tiptap) {
-  margin-left: 0;
-}
+// :deep(.tiptap) {
+//   margin-left: 0;
+// }
 </style>

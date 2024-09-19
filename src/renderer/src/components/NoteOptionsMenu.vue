@@ -47,6 +47,7 @@ const handleShare = () => {
 }
 
 const handleStar = () => {
+  noteStore.toggleStarredStatus(props.noteId)
   console.log('Starring note', props.noteId)
   // 实现收藏逻辑
   emit('close')

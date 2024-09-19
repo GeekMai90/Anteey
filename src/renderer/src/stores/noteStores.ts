@@ -452,6 +452,10 @@ export const useNoteStore = defineStore('note', {
         this.closeRightSidebar()
       }
     },
+    clearRightSidebarNotes() {
+      this.rightSidebarNotes = []
+      this.closeRightSidebar()
+    },
 
     toggleCardType(type: string) {
       const index = this.selectedCardTypes.indexOf(type)
@@ -459,6 +463,31 @@ export const useNoteStore = defineStore('note', {
         this.selectedCardTypes.push(type)
       } else {
         this.selectedCardTypes.splice(index, 1)
+      }
+    },
+    async toggleStarredStatus(id: string) {
+      try {
+        const updatedNote = await window.notesAPI.toggleStarredStatus(id)
+        const index = this.notes.findIndex((note) => note.id === id)
+        if (index !== -1) {
+          this.notes[index] = this.parseNoteContent(updatedNote)
+        }
+        console.log(`Toggled star status for note: ${id}`)
+        return updatedNote
+      } catch (error) {
+        console.error(`Failed to toggle star status for note ${id}:`, error)
+        throw error
+      }
+    },
+
+    async fetchStarredNotes() {
+      try {
+        const starredNotes = await window.notesAPI.getStarredNotes()
+        console.log(`Fetched ${starredNotes.length} starred notes`)
+        return starredNotes.map((note) => this.parseNoteContent(note))
+      } catch (error) {
+        console.error('Failed to fetch starred notes:', error)
+        throw error
       }
     }
   },

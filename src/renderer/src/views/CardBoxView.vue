@@ -716,7 +716,7 @@ onUnmounted(() => {
               }
 
               &.active {
-                background-color: var(--color-menu-active-bg);
+                background-color: var(--color-button-active-bg);
               }
 
               .dropdown-item-content {

@@ -1,11 +1,7 @@
 <template>
   <div class="sidebar" :style="{ width: `${sidebarWidth}px` }">
     <div class="sidebar-header">
-      <div class="sidebar-titlebar">
-        <!-- <div class="save-status-container">
-          <div class="save-status-indicator" :class="saveStatusClass"></div>
-        </div> -->
-      </div>
+      <div class="sidebar-titlebar"></div>
       <button class="antinet-button" @click.stop="noteStore.toggleSettingDropdown">
         <img src="@resources/icon.png" alt="Antinet" class="antinet-icon" />
         <div class="antinet-text">Antinet</div>
@@ -44,7 +40,6 @@
       </nav>
     </div>
     <div class="sidebar-header-divider"></div>
-    <div>{{ noteStore.isSettingDropdownOpen }}</div>
     <div class="resize-handle" @mousedown="startResize"></div>
     <div class="sidebar-footer">
       <div class="new-card-wrapper">

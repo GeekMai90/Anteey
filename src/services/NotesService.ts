@@ -233,6 +233,7 @@ export class NotesService {
     return this.notesRepository.save(note)
   }
 
+  // 星标收藏
   async toggleStarredStatus(id: string): Promise<Note> {
     const note = await this.findOne(id)
     note.isStarred = !note.isStarred

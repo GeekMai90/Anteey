@@ -1,16 +1,17 @@
-<!-- src/components/NoteEditor.vue -->
+<!-- src/components/RightSidebarNoteEditor.vue -->
 <template>
-  <div class="note-editor">
+  <div class="right-sidebar-note-editor" :class="{ 'is-collapsed': isCollapsed }">
     <!-- 顶部工具栏 -->
     <div class="toolbar">
       <!-- 展开编辑器 -->
       <div
-        v-tooltip.bottom="{ content: '展开编辑器', delay: { show: 1000 } }"
+        v-tooltip.bottom="{ content: '折叠展开卡片', delay: { show: 1000 } }"
         class="expand-btn"
         @click="handleExpand"
       >
         <div class="icon">
-          <ExpandTextInput theme="outline" size="16" fill="#b6b6b6" />
+          <Right v-if="isCollapsed" theme="outline" size="16" fill="#b6b6b6" />
+          <Down v-else theme="outline" size="16" fill="#b6b6b6" />
         </div>
       </div>
       <div class="toolbar-right">
@@ -36,6 +37,11 @@
             <NoteOptionsMenu ref="noteOptionsMenu" :noteId="noteId" @close="closeOptionsMenu" />
           </div>
         </div>
+        <div class="remove-btn" @click.stop="handleRemoveNoteFromRightSidebar">
+          <div v-tooltip.bottom="{ content: '更多', delay: { show: 1000 } }" class="icon">
+            <CloseOne theme="outline" size="16" fill="var(--color-icon-default)" />
+          </div>
+        </div>
       </div>
     </div>
     <!-- 编辑器内容 -->
@@ -47,6 +53,21 @@
           :class="cardTypeClass"
           @click.stop="toggleCardTypeMenu"
         ></div>
+        <!-- 卡片类型选择菜单 -->
+        <div v-if="showCardTypeMenu" class="card-type-menu" :style="menuStyle" @click.stop>
+          <div
+            v-for="type in cardTypes"
+            :key="type"
+            :class="{ active: editedNote.cardType === type }"
+            class="card-type-item"
+            @click="selectCardType(type)"
+          >
+            <div class="icon">
+              <component :is="getIcon(type)" theme="outline" size="16" fill="#b6b6b6" />
+            </div>
+            <div class="name">{{ getTypeLabel(type) }}</div>
+          </div>
+        </div>
         <input
           ref="addressInput"
           v-model="editedNote.address"
@@ -67,21 +88,6 @@
         </div>
       </div>
     </div>
-    <!-- 卡片类型选择菜单 -->
-    <div v-if="showCardTypeMenu" class="card-type-menu" :style="menuStyle" @click.stop>
-      <div
-        v-for="type in cardTypes"
-        :key="type"
-        :class="{ active: editedNote.cardType === type }"
-        class="card-type-item"
-        @click="selectCardType(type)"
-      >
-        <div class="icon">
-          <component :is="getIcon(type)" theme="outline" size="16" fill="#b6b6b6" />
-        </div>
-        <div class="name">{{ getTypeLabel(type) }}</div>
-      </div>
-    </div>
   </div>
 </template>
 
@@ -90,15 +96,16 @@ import { computed, nextTick, onBeforeUnmount, onMounted, onUnmounted, ref, watch
 import { Note, CardType, CardBox } from '../types/Note'
 import { useNoteStore } from '../stores/noteStores'
 import TipTapEditor from '../components/TipTapEditor.vue'
-import { useRouter } from 'vue-router'
 import {
   Notes,
   BookOpen,
   ViewList,
   Link,
-  ExpandTextInput,
-  Install,
-  More
+  Right,
+  Down,
+  More,
+  CloseOne,
+  Install
 } from '@icon-park/vue-next'
 // import { useDebounceFn, useThrottleFn } from '@vueuse/core'
 import CardboxDropdownMenu from './CardboxDropdownMenu.vue'
@@ -110,12 +117,12 @@ const props = defineProps<{
   noteId: string
 }>()
 
-const router = useRouter()
+// const router = useRouter()
 const addressInput = ref<HTMLInputElement | null>(null)
 const tiptapEditor = ref<InstanceType<any> | null>(null)
 // const emit = defineEmits(['close', 'save', 'expand', 'toggleOptions'])
 const noteStore = useNoteStore()
-const isExpandingToExpandEditor = ref(false)
+// const isExpandingToExpandEditor = ref(false)
 const showCardBoxMenu = ref(false)
 const selectedCardBox = ref<CardBox | null>(null)
 const showMoreActions = ref<string | null>(null)
@@ -275,23 +282,6 @@ const saveNote = async () => {
   }
 }
 
-// 更新内容
-// const updateContent = (newContent: any) => {
-//   if (editedNote.value) {
-//     editedNote.value.content = newContent
-//     // saveNote()
-//   }
-// }
-
-// 当模态窗被关闭时，保存笔记
-// const handleAutoSave = () => {
-//   if (editedNote.value?.address || editedNote.value?.content || editedNote.value?.cardType) {
-//     saveNote()
-//   } else {
-//     emit('close')
-//   }
-// }
-
 // 卡片盒列表
 const cardBoxes = computed(() => {
   return [...noteStore.cardBoxes].sort((a, b) => a.name.localeCompare(b.name, 'zh-CN'))
@@ -347,6 +337,10 @@ const handleGlobalClick = (event: MouseEvent) => {
   }
 }
 
+const handleRemoveNoteFromRightSidebar = () => {
+  noteStore.removeNoteFromRightSidebar(props.noteId)
+}
+
 onMounted(() => {
   document.addEventListener('click', handleGlobalClick)
   if (editedNote.value.cardBoxId) {
@@ -400,18 +394,65 @@ const getTypeLabel = (type: CardType) => {
   }
 }
 
+// const toggleCardTypeMenu = (event: MouseEvent) => {
+//   console.log('toggleCardTypeMenu called') // 添加这行
+//   event.stopPropagation()
+//   showCardTypeMenu.value = !showCardTypeMenu.value
+//   console.log('showCardTypeMenu:', showCardTypeMenu.value) // 添加这行
+//   if (showCardTypeMenu.value) {
+//     nextTick(() => {
+//       const button = indicatorButton.value
+//       if (button) {
+//         const rect = button.getBoundingClientRect()
+//         menuStyle.value = {
+//           top: `${rect.bottom + window.scrollY + 10}px`,
+//           left: `${rect.left + window.scrollX}px`
+//         }
+//         console.log('menuStyle:', menuStyle.value) // 添加这行
+//       }
+//     })
+//   }
+// }
 const toggleCardTypeMenu = (event: MouseEvent) => {
+  console.log('toggleCardTypeMenu called')
   event.stopPropagation()
   showCardTypeMenu.value = !showCardTypeMenu.value
+  console.log('showCardTypeMenu:', showCardTypeMenu.value)
+
   if (showCardTypeMenu.value) {
     nextTick(() => {
       const button = indicatorButton.value
       if (button) {
         const rect = button.getBoundingClientRect()
-        menuStyle.value = {
-          top: `${rect.bottom + window.scrollY + 10}px`,
-          left: `${rect.left + window.scrollX}px`
+        const parentRect = button.offsetParent?.getBoundingClientRect() || { top: 0, left: 0 }
+
+        // 计算相对于父容器的位置
+        let top = rect.bottom - parentRect.top + 10
+        let left = rect.left - parentRect.left
+
+        // 获取视窗信息
+        const viewportWidth = window.visualViewport?.width || window.innerWidth
+        const viewportHeight = window.visualViewport?.height || window.innerHeight
+
+        // 检查并调整以确保菜单在视窗内
+        const menuWidth = 200 // 假设菜单宽度为200px，根据实际情况调整
+        const menuHeight = 300 // 假设菜单高度为300px，根据实际情况调整
+
+        if (left + menuWidth > viewportWidth) {
+          left = viewportWidth - menuWidth - 10
         }
+
+        if (top + menuHeight > viewportHeight) {
+          top = rect.top - parentRect.top - menuHeight - 10
+        }
+
+        menuStyle.value = {
+          top: `${top}px`,
+          left: `${left}px`,
+          position: 'absolute' // 使用绝对定位
+        }
+
+        console.log('menuStyle:', menuStyle.value)
       }
     })
   }
@@ -452,14 +493,14 @@ watch(
 )
 
 // 展开编辑器
-const handleExpand = async () => {
-  await saveNote()
-  isExpandingToExpandEditor.value = true
-  if (editedNote.value?.id) {
-    router.push({ name: 'NoteExpandEditor', params: { id: editedNote.value.id } })
-  }
-  noteStore.closeNoteEditor()
-}
+// const handleExpand = async () => {
+//   await saveNote()
+//   isExpandingToExpandEditor.value = true
+//   if (editedNote.value?.id) {
+//     router.push({ name: 'NoteExpandEditor', params: { id: editedNote.value.id } })
+//   }
+//   noteStore.closeNoteEditor()
+// }
 
 // 打开选项菜单
 // const openOptionsMenu = inject('openOptionsMenu') as (event: MouseEvent, noteId: string) => void
@@ -472,10 +513,17 @@ const handleExpand = async () => {
 
 // defineExpose({ handleAutoSave, focusAddressInput })
 defineExpose({ focusAddressInput })
+
+// 折叠展开卡片笔记
+const isCollapsed = ref(false)
+
+const handleExpand = () => {
+  isCollapsed.value = !isCollapsed.value
+}
 </script>
 
 <style lang="scss" scoped>
-.note-editor {
+.right-sidebar-note-editor {
   background-color: var(--color-bg-primary);
   border-radius: 12px;
   display: flex;
@@ -485,13 +533,24 @@ defineExpose({ focusAddressInput })
   width: 640px;
   max-width: 100%;
   position: relative;
+  transition: height 0.3s ease;
+  // 默认状态（展开）
+  height: auto;
+  max-height: calc(100vh - 100px); // 设置一个最大高度，防止内容过多时超出屏幕
+  overflow-y: auto;
+
+  // 折叠状态
+  &.is-collapsed {
+    height: 160px; // 或者您想要的折叠高度
+    overflow: hidden;
+  }
 
   // 顶部工具栏
   .toolbar {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 10px 20px;
+    padding: 10px 20px 0px 20px;
     position: relative;
 
     .expand-btn {
@@ -702,6 +761,76 @@ defineExpose({ focusAddressInput })
         background-color: rgba(0, 0, 0, 0.1);
       }
     }
+    .remove-btn {
+      position: relative;
+      display: flex;
+      align-items: center;
+      border: none;
+      background: none;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      border-radius: 6px;
+      padding: 4px 4px;
+      margin: 2px;
+
+      :deep(.note-options-menu) {
+        transform: translateX(-80%);
+      }
+
+      .icon {
+        background: none;
+        border: none;
+        cursor: pointer;
+        width: 24px;
+        height: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s ease;
+        padding: 0;
+
+        // &:hover:not(:disabled) {
+        //   background-color: rgba(0, 0, 0, 0.05);
+        // }
+
+        &:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+
+        :deep(.i-icon) {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 100%;
+          height: 100%;
+        }
+
+        :deep(svg) {
+          width: 16px;
+          height: 16px;
+        }
+      }
+
+      .name {
+        flex-grow: 0;
+        text-align: left;
+        color: var(--default-text-color);
+        font-size: 13px;
+        font-weight: 400;
+        margin-left: 6px;
+        white-space: nowrap;
+        writing-mode: horizontal-tb;
+      }
+
+      &:hover {
+        background-color: var(--color-hover-button);
+      }
+
+      &:active {
+        background-color: rgba(0, 0, 0, 0.1);
+      }
+    }
 
     .toolbar-right {
       display: flex;
@@ -725,11 +854,12 @@ defineExpose({ focusAddressInput })
       display: flex;
       align-items: center;
       justify-content: center;
-      padding-left: 27px;
+      padding-left: 20px;
+      position: relative;
 
       input {
         width: 100%;
-        padding: 8px 0;
+        padding: 4px 0;
         /* 移除左右内边距，保留上下内边距 */
         border: none;
         /* 移除所有边框 */
@@ -808,7 +938,7 @@ defineExpose({ focusAddressInput })
         display: flex;
         flex-direction: column;
         min-height: 100%;
-        padding-bottom: 50px; // 添加底部填充
+        padding-bottom: 20px; // 添加底部填充
         width: 100%;
       }
     }
@@ -910,6 +1040,12 @@ defineExpose({ focusAddressInput })
         // border: 1px solid var(--color-primary);
       }
     }
+  }
+  :deep(.tiptap) {
+    margin-left: 0 !important ;
+    margin-right: 0 !important;
+    padding-left: 1.5rem !important;
+    padding-right: 1.5rem !important;
   }
 }
 </style>

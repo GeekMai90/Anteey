@@ -107,7 +107,7 @@ const handleDelete = async (noteId: string) => {
     .header-content {
       width: 100%;
       max-width: 900px;
-      padding: 0 20px;
+      padding: 0 80px;
       box-sizing: border-box;
 
       .timeline-header {
@@ -165,29 +165,11 @@ const handleDelete = async (noteId: string) => {
     .note-list-container {
       flex-grow: 1;
       overflow-y: auto; // 允许笔记列表滚动
-      padding: 0 20px;
+      padding: 0 80px;
       box-sizing: border-box;
       width: 100%;
       max-width: 900px;
       margin: 0 auto;
-
-      // 自定义滚动条样式
-      &::-webkit-scrollbar {
-        width: 8px;
-      }
-
-      &::-webkit-scrollbar-track {
-        background: #f1f1f1;
-      }
-
-      &::-webkit-scrollbar-thumb {
-        background: #888;
-        border-radius: 4px;
-      }
-
-      &::-webkit-scrollbar-thumb:hover {
-        background: #555;
-      }
     }
   }
 }
