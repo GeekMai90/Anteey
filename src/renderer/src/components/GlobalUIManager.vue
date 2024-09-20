@@ -3,14 +3,9 @@
   <Teleport to="body">
     <div v-if="noteOptions.isOptionsMenuVisible" class="global-overlay" @click="handleOverlayClick">
       <NoteOptionsMenu
-        :style="optionsMenuStyle"
-        @share="noteOptions.handleShare"
-        @star="noteOptions.handleStar"
-        @show-sidebar="noteOptions.handleShowSidebar"
-        @copy="noteOptions.handleCopy"
-        @show-history="noteOptions.handleShowHistory"
-        @delete="noteOptions.handleDelete"
-        @close="noteOptions.closeOptionsMenu"
+        ref="noteOptionsMenu"
+        :noteId="currentNoteId ?? ''"
+        @close="closeOptionsMenu"
       />
     </div>
   </Teleport>
@@ -52,6 +47,22 @@ const handleKeyDown = (event: KeyboardEvent) => {
   if (event.key === 'Escape' && noteOptions.isOptionsMenuVisible) {
     noteOptions.closeOptionsMenu()
   }
+}
+// const closeOptionsMenu = () => {
+//   isOptionsMenuVisible.value = false
+//   noteOptionsMenu.value?.resetState()
+// }
+// 笔记选项菜单
+const isOptionsMenuVisible = ref(false)
+const noteOptionsMenu = ref<InstanceType<typeof NoteOptionsMenu> | null>(null)
+
+// const toggleOptionsMenu = () => {
+//   isOptionsMenuVisible.value = !isOptionsMenuVisible.value
+// }
+
+const closeOptionsMenu = () => {
+  isOptionsMenuVisible.value = false
+  noteOptionsMenu.value?.resetState()
 }
 
 onMounted(() => {

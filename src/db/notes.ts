@@ -1,0 +1,223 @@
+import { db } from './config'
+import { Note } from '../renderer/src/types/Note'
+import { v4 as uuidv4 } from 'uuid'
+
+// 创建笔记
+export async function createNote(): Promise<Note> {
+  const id = uuidv4()
+  const now = new Date()
+
+  const newNote: Note = {
+    id,
+    type: 'note',
+    address: '',
+    cardType: 'Maincard',
+    content: {
+      type: 'doc',
+      content: [{ type: 'paragraph' }]
+    },
+    createdAt: now,
+    updatedAt: now,
+    tags: [],
+    linkedTo: [],
+    linkedFrom: [],
+    cardBoxId: '',
+    parentId: '',
+    isDeleted: false,
+    isStarred: false
+  }
+
+  try {
+    await db('notes').insert({
+      ...newNote,
+      content: JSON.stringify(newNote.content),
+      tags: JSON.stringify(newNote.tags),
+      linkedTo: JSON.stringify(newNote.linkedTo),
+      linkedFrom: JSON.stringify(newNote.linkedFrom)
+    })
+    return newNote
+  } catch (error) {
+    console.error('后端→ 创建笔记失败:', error)
+    throw error
+  }
+}
+
+// 获取单条笔记
+export async function getNoteById(id: string): Promise<Note | null> {
+  try {
+    const noteRecord = await db('notes').where('id', id).first()
+    return noteRecord ? convertToNote(noteRecord) : null
+  } catch (error) {
+    console.error('后端→ 获取单条笔记失败 by ID:', error)
+    throw new Error('后端→ 获取单条笔记失败')
+  }
+}
+
+// 获取所有笔记
+export async function getAllNotes(includeDeleted: boolean = false): Promise<Note[]> {
+  try {
+    let query = db('notes')
+    if (!includeDeleted) {
+      query = query.where('isDeleted', false)
+    }
+    const noteRecords = await query.orderBy('updatedAt', 'desc')
+    return noteRecords.map(convertToNote)
+  } catch (error) {
+    console.error('后端→ 获取所有笔记失败:', error)
+    throw new Error('后端→ 获取所有笔记失败')
+  }
+}
+
+//更新笔记
+export async function updateNote(id: string, updateNoteDto: Partial<Note>): Promise<Note> {
+  console.log(`NotesService → 开始更新笔记，ID: ${id}`)
+  console.log('NotesService → 更新数据:', JSON.stringify(updateNoteDto))
+
+  return db.transaction(async (trx) => {
+    try {
+      // 1. 查找笔记
+      const note = await trx('notes').where({ id }).first()
+
+      if (!note) {
+        console.error(`NotesService → 未找到ID为 ${id} 的笔记`)
+        throw new Error(`Note with ID "${id}" not found`)
+      }
+
+      console.log('NotesService → 找到的原始笔记:', JSON.stringify(note))
+
+      // 2. 准备更新数据
+      const updateData: Partial<Note> = {}
+
+      const fields = [
+        'address',
+        'cardType',
+        'tags',
+        'linkedTo',
+        'linkedFrom',
+        'cardBoxId',
+        'parentId',
+        'isDeleted',
+        'isStarred'
+      ]
+      fields.forEach((field) => {
+        if (updateNoteDto[field] !== undefined) {
+          updateData[field] = updateNoteDto[field]
+        }
+      })
+
+      if (updateNoteDto.content !== undefined) {
+        try {
+          updateData.content =
+            typeof updateNoteDto.content === 'string'
+              ? JSON.parse(updateNoteDto.content)
+              : updateNoteDto.content
+          console.log('NotesService → 更新内容:', JSON.stringify(updateData.content))
+        } catch (error) {
+          console.error('NotesService → 解析内容时出错:', error)
+          throw new Error('Invalid content format')
+        }
+      }
+
+      // 3. 更新时间戳
+      updateData.updatedAt = new Date()
+
+      // 4. 保存更新
+      console.log(
+        'NotesService → 更新后的笔记（保存前）:',
+        JSON.stringify({ ...note, ...updateData })
+      )
+
+      // 确保 content 字段在存储到数据库之前被转换为 JSON 字符串
+      if (updateData.content) {
+        updateData.content = JSON.stringify(updateData.content) as any
+      }
+
+      // 处理数组字段
+      ;['tags', 'linkedTo', 'linkedFrom'].forEach((field) => {
+        if (Array.isArray(updateData[field])) {
+          updateData[field] = JSON.stringify(updateData[field])
+        }
+      })
+
+      const [updatedNote] = await trx('notes').where({ id }).update(updateData).returning('*')
+
+      // 解析返回的数据
+      if (typeof updatedNote.content === 'string') {
+        updatedNote.content = JSON.parse(updatedNote.content)
+      }
+
+      // 解析数组字段
+      ;['tags', 'linkedTo', 'linkedFrom'].forEach((field) => {
+        if (typeof updatedNote[field] === 'string') {
+          updatedNote[field] = JSON.parse(updatedNote[field])
+        }
+      })
+
+      console.log('NotesService → 保存后的笔记:', JSON.stringify(updatedNote))
+      return updatedNote
+    } catch (error) {
+      console.error('NotesService → 更新笔记事务失败:', error)
+      throw error
+    }
+  })
+}
+
+// 软删除笔记
+export async function softDeleteNote(id: string): Promise<void> {
+  try {
+    await db('notes').where('id', id).update('isDeleted', true)
+  } catch (error) {
+    console.error(`Failed to soft delete note with id ${id}:`, error)
+    throw error
+  }
+}
+
+// 永久删除笔记
+export async function permanentDeleteNote(id: string): Promise<void> {
+  try {
+    await db('notes').where('id', id).delete()
+  } catch (error) {
+    console.error(`Failed to permanently delete note with id ${id}:`, error)
+    throw error
+  }
+}
+
+// 恢复已删除的笔记
+export async function restoreNote(id: string): Promise<void> {
+  try {
+    await db('notes').where('id', id).update('isDeleted', false)
+  } catch (error) {
+    console.error(`Failed to restore note with id ${id}:`, error)
+    throw error
+  }
+}
+
+// 辅助函数：将数据库记录转换为 Note 对象
+function convertToNote(record: any): Note {
+  return {
+    id: record.id,
+    type: 'note',
+    address: record.address,
+    cardType: record.cardType,
+    content: JSON.parse(record.content),
+    createdAt: new Date(record.createdAt),
+    updatedAt: new Date(record.updatedAt),
+    tags: JSON.parse(record.tags),
+    linkedTo: JSON.parse(record.linkedTo),
+    linkedFrom: JSON.parse(record.linkedFrom),
+    cardBoxId: record.cardBoxId || undefined,
+    parentId: record.parentId || undefined,
+    isDeleted: record.isDeleted,
+    isStarred: record.isStarred
+  }
+}
+
+// 辅助函数，用于准备要插入数据库的数据
+function prepareNoteForDB(note: Partial<Note>): any {
+  const preparedNote: any = { ...note }
+  if (note.content) preparedNote.content = JSON.stringify(note.content)
+  if (note.tags) preparedNote.tags = JSON.stringify(note.tags)
+  if (note.linkedTo) preparedNote.linkedTo = JSON.stringify(note.linkedTo)
+  if (note.linkedFrom) preparedNote.linkedFrom = JSON.stringify(note.linkedFrom)
+  return preparedNote
+}

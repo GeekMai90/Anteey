@@ -1,18 +1,17 @@
 // src/stores/noteStores.ts
 
 import { defineStore } from 'pinia'
-import { Note, Whiteboard, Connection, parseNoteContent } from '../types/Note'
-import { NotesAPI } from '../../../preload'
-import { CardBoxAPI } from '../../../preload'
+import { Note, Whiteboard, Connection } from '../types/Note'
 import { Notes, Table, TransactionOrder, Deeplink } from '@icon-park/vue-next'
 import { ref } from 'vue'
+import { cloneDeep } from 'lodash-es'
 
-declare global {
-  interface Window {
-    notesAPI: NotesAPI
-    cardBoxAPI: CardBoxAPI
-  }
-}
+// declare global {
+//   interface Window {
+//     notesAPI: NotesAPI
+//     cardBoxAPI: CardBoxAPI
+//   }
+// }
 
 interface CardBox {
   id: string
@@ -87,64 +86,77 @@ export const useNoteStore = defineStore('note', {
 
     // 初始化
     async initializeStore() {
-      await this.fetchNotes()
+      await this.fetchAllNotes()
       await this.initializeCardBoxes()
     },
 
-    // 笔记操作
-    async fetchNotes(includeDeleted: boolean = false) {
+    // 获取所有笔记
+    async fetchAllNotes(includeDeleted: boolean = false) {
       try {
-        const notes = await window.notesAPI.getNotes(includeDeleted)
-        this.notes = includeDeleted ? notes : notes.filter((note) => !note.isDeleted)
-        console.log(`Fetched ${this.notes.length} notes`)
+        const notes = await window.electronAPI.getAllNotes(includeDeleted)
+        this.notes = notes
       } catch (error) {
-        console.error('Failed to fetch notes:', error)
+        console.error('noteStores.ts→ 获取所有笔记失败:', error)
         throw error
       }
     },
-
-    async fetchNoteById(id: string) {
+    // 获取单个笔记
+    async fetchNoteById(id: string): Promise<Note> {
       try {
-        const note = await window.notesAPI.getNote(id)
-        const fetchedNote = parseNoteContent(note)
+        const note = await window.electronAPI.getNote(id)
+
+        if (!note) {
+          throw new Error(`Note with id ${id} not found`)
+        }
+
+        // 更新 notes 数组
         const index = this.notes.findIndex((n) => n.id === id)
         if (index !== -1) {
-          this.notes[index] = fetchedNote
+          this.notes[index] = note
         } else {
-          this.notes.push(fetchedNote)
+          this.notes.push(note)
         }
-        this.setCurrentNote(fetchedNote)
-        console.log(`Fetched note: ${id}`)
-        return fetchedNote
+
+        // 设置当前笔记
+        this.setCurrentNote(note)
+
+        console.log('noteStores.ts→ 获取笔记', note)
+        return note
       } catch (error) {
         console.error(`Failed to fetch note ${id}:`, error)
-        throw error
+        if (error instanceof Error) {
+          throw new Error(`Failed to fetch note: ${error.message}`)
+        } else {
+          throw new Error('An unknown error occurred while fetching the note')
+        }
       }
     },
 
-    async createNewNote() {
+    // 创建新笔记
+    async createNote() {
+      console.log('noteStores.ts→ 创建新笔记')
       try {
-        const response = await window.notesAPI.createNote()
-        console.log('Created new note:', response)
-        this.notes.push(response)
-        this.setCurrentNote(response)
-        return response
+        const newNote = await window.electronAPI.createNote()
+        this.notes.push(newNote)
+        this.setCurrentNote(newNote)
+        return newNote
       } catch (error) {
-        console.error('Failed to create new note:', error)
+        console.error('noteStores.ts→ 创建新笔记失败:', error)
         throw error
       }
     },
 
+    // 创建并打开新笔记
     async createAndOpenNewNote() {
-      console.log('Creating and opening new note')
-      const newNote = await this.createNewNote()
+      console.log('noteStores.ts→ 创建并打开新笔记')
+      const newNote = await this.createNote()
       this.openNoteEditor(newNote.id)
     },
 
     async updateNote(id: string, noteData: Partial<Note>): Promise<Note> {
       try {
         const serializableNoteData = JSON.parse(JSON.stringify(noteData))
-        const response = await window.notesAPI.updateNote(id, serializableNoteData)
+        const response = await window.electronAPI.updateNote(id, serializableNoteData)
         const updatedNote = this.parseNoteContent(response)
         const index = this.notes.findIndex((note) => note.id === id)
         if (index !== -1) {
@@ -159,6 +171,76 @@ export const useNoteStore = defineStore('note', {
         throw error
       }
     },
+    // 更新笔记
+    // async updateNote(id: string, updatedNote: Partial<Note>) {
+    //   try {
+    //     console.log('Store: 开始更新笔记', id)
+    //     const updated = await window.electronAPI.updateNote(id, updatedNote)
+
+    //     // 更新 notes 数组中的笔记
+    //     const index = this.notes.findIndex((note) => note.id === id)
+    //     if (index !== -1) {
+    //       this.notes[index] = updated
+    //     }
+
+    //     // 如果更新的是当前笔记，也更新 currentNote
+    //     if (this.currentNote && this.currentNote.id === id) {
+    //       this.currentNote = updated
+    //     }
+
+    //     console.log('Store: 笔记更新成功', id)
+    //     return updated
+    //   } catch (err) {
+    //     console.error('Store: 更新笔记失败:', err)
+    //     throw err
+    //   }
+    // },
+    // async updateNote(id: string, changes: Partial<Note>) {
+    //   this.currentNoteSaveStatus = 'saving'
+    //   try {
+    //     const safeChanges = this.createSafeChangesObject(changes)
+    //     const updatedNote = await window.electronAPI.updateNote(id, safeChanges)
+
+    //     const index = this.notes.findIndex((n) => n.id === id)
+    //     if (index !== -1) {
+    //       this.notes[index] = updatedNote
+    //     }
+    //     if (this.currentNote && this.currentNote.id === id) {
+    //       this.currentNote = updatedNote
+    //     }
+
+    //     this.currentNoteSaveStatus = 'saved'
+    //     return updatedNote
+    //   } catch (error) {
+    //     console.error('Failed to update note:', error)
+    //     this.currentNoteSaveStatus = 'error'
+    //     throw error
+    //   }
+    // },
+
+    // createSafeChangesObject(changes: Partial<Note>): Partial<Note> {
+    //   const safeChanges: Partial<Note> = {}
+
+    //   if (changes.id) safeChanges.id = changes.id
+    //   if (changes.type) safeChanges.type = changes.type
+    //   if (changes.address) safeChanges.address = changes.address
+    //   if (changes.cardType) safeChanges.cardType = changes.cardType
+    //   if (changes.createdAt) safeChanges.createdAt = new Date(changes.createdAt)
+    //   if (changes.updatedAt) safeChanges.updatedAt = new Date(changes.updatedAt)
+    //   if (changes.tags) safeChanges.tags = [...changes.tags]
+    //   if (changes.linkedTo) safeChanges.linkedTo = [...changes.linkedTo]
+    //   if (changes.linkedFrom) safeChanges.linkedFrom = [...changes.linkedFrom]
+    //   if (changes.cardBoxId) safeChanges.cardBoxId = changes.cardBoxId
+    //   if (changes.parentId) safeChanges.parentId = changes.parentId
+    //   if (changes.isDeleted !== undefined) safeChanges.isDeleted = changes.isDeleted
+    //   if (changes.isStarred !== undefined) safeChanges.isStarred = changes.isStarred
+
+    //   if (changes.content) {
+    //     safeChanges.content = JSON.parse(JSON.stringify(changes.content))
+    //   }
+
+    //   return safeChanges
+    // },
 
     async moveToTrash(id: string) {
       console.log('Moving note to trash:', id)

@@ -14,11 +14,20 @@ export default defineConfig({
     resolve: {
       alias: {
         '@renderer': resolve('src/renderer/src'),
-        // '@renderer': path.resolve(__dirname, './src/renderer'),
-        // '@renderer': resolve('src/renderer'),
         '@resources': path.resolve(__dirname, 'resources')
       }
     },
-    plugins: [vue()]
+    plugins: [vue()],
+    build: {
+      rollupOptions: {
+        input: {
+          index: resolve(__dirname, 'src/renderer/index.html')
+        },
+        external: ['src/entities/**/*']
+      },
+      commonjsOptions: {
+        exclude: ['src/entities/**/*']
+      }
+    }
   }
 })

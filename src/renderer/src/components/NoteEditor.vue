@@ -137,18 +137,20 @@ const closeOptionsMenu = () => {
 
 const emptyNote: Note = {
   id: '',
+  type: 'note',
   address: '',
+  cardType: 'Maincard',
   content: {
     type: 'doc',
     content: [{ type: 'paragraph' }]
   },
-  cardType: 'Maincard', // 或其他默认类型
   createdAt: new Date(),
   updatedAt: new Date(),
   tags: [],
   linkedTo: [],
   linkedFrom: [],
-  cardBoxId: undefined,
+  cardBoxId: '',
+  parentId: '',
   isDeleted: false,
   isStarred: false
 }
@@ -160,10 +162,12 @@ const saveStatus = ref<'idle' | 'saving' | 'saved' | 'error'>('idle')
 const loadNote = async () => {
   try {
     editedNote.value = await noteStore.fetchNoteById(props.noteId)
+    console.log('NoteEditor.vue → 编辑的笔记:', editedNote.value)
   } catch (error) {
     console.error('Failed to load note:', error)
   }
 }
+
 // 自动保存
 // 用于判断内容是否更新的函数
 function isContentChanged(oldNote: Note, newNote: Note): boolean {
@@ -189,12 +193,13 @@ const autoSave = debounce(async () => {
 
     try {
       // noteStore.updateNoteSaveStatus(editedNote.value.id, 'saving')
+      console.log('NoteEditor.vue → 正在保存笔记:', editedNote.value)
       noteStore.updateCurrentNoteSaveStatus('saving')
       const updatedNote = await noteStore.updateNote(editedNote.value.id, editedNote.value)
 
       // noteStore.updateNoteSaveStatus(editedNote.value.id, 'saved')
       noteStore.updateCurrentNoteSaveStatus('saved')
-      console.log('Note auto-saved successfully')
+      console.log('NoteEditor.vue → 自动保存成功')
 
       // 更新最后保存的内容
       lastSavedNote = JSON.parse(JSON.stringify(updatedNote))
@@ -202,7 +207,7 @@ const autoSave = debounce(async () => {
       // 更新编辑中的笔记
       editedNote.value = updatedNote
     } catch (error) {
-      console.error('Auto-save failed:', error)
+      console.error('NoteEditor.vue → 自动保存失败:', error)
       // noteStore.updateNoteSaveStatus(editedNote.value.id, 'error')
       noteStore.updateCurrentNoteSaveStatus('error')
     }

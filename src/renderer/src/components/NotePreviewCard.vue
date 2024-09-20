@@ -5,7 +5,11 @@
       <h3 class="note-title">{{ note.address }}</h3>
     </div>
     <div ref="noteContent" class="note-content marked-content">
-      <TipTapEditor v-model:content="note.content" :editable="false" :enable-drag-handle="false" />
+      <TipTapEditor
+        v-model:content="localNote.content"
+        :editable="false"
+        :enable-drag-handle="false"
+      />
       <!-- <div v-if="isOverflowing" class="fade-out"></div> -->
     </div>
     <div class="note-timestamp">
@@ -24,6 +28,7 @@ const props = defineProps<{
   note: Note
 }>()
 
+const localNote = ref<Note>(props.note)
 const noteContent = ref<HTMLDivElement | null>(null)
 // const isOverflowing = ref(false);
 
