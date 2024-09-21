@@ -14,6 +14,8 @@ export interface ElectronAPI {
   getAllCardBoxes: () => Promise<CardBox[]>
   updateCardBox: (id: string, name: string) => Promise<CardBox | undefined>
   deleteCardBox: (id: string) => Promise<void>
+  // addNoteToCardBox: (cardBoxId: string, noteId: string) => Promise<void>
+  updateNoteCardBox: (noteId: string, cardBoxId: string) => Promise<void>
 }
 
 declare global {

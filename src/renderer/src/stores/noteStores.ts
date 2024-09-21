@@ -4,7 +4,6 @@ import { defineStore } from 'pinia'
 import { Note, Whiteboard, Connection, CardBox } from '../types/Note'
 import { Notes, Table, TransactionOrder, Deeplink } from '@icon-park/vue-next'
 import { ref } from 'vue'
-import { cloneDeep } from 'lodash-es'
 
 // declare global {
 //   interface Window {
@@ -311,94 +310,100 @@ export const useNoteStore = defineStore('note', {
         throw error
       }
     },
-    // async deleteCardBox(id: string) {
+    // 添加笔记到卡片盒
+    // async addNoteToCardBox(cardBoxId: string, noteId: string) {
     //   try {
-    //     const result = await window.cardBoxAPI.remove(id)
-    //     if (result.success) {
-    //       this.cardBoxes = this.cardBoxes.filter((box) => box.id !== id)
-    //       await this.fetchCardBoxes()
-    //       console.log(`Deleted card box: ${id}`)
-    //     } else {
-    //       console.error(`Failed to delete card box ${id}:`, result)
-    //     }
+    //     await window.electronAPI.addNoteToCardBox(cardBoxId, noteId)
+    //     console.log(`noteStores.ts→ 添加笔记到卡片盒: ${noteId}`)
     //   } catch (error) {
-    //     console.error(`Error deleting card box ${id}:`, error)
+    //     console.error(`noteStores.ts→ 添加笔记到卡片盒失败: ${noteId}`, error)
+    //     throw error
+    //   }
+    // },
+    // async addNoteToCardBox(cardBoxId: string, noteId: string) {
+    //   try {
+    //     await window.cardBoxAPI.addNote(cardBoxId, noteId)
+    //     const cardBox = this.cardBoxes.find((box) => box.id === cardBoxId)
+    //     if (cardBox && !cardBox.noteIds.includes(noteId)) {
+    //       cardBox.noteIds.push(noteId)
+    //     }
+    //     console.log(`Added note ${noteId} to card box ${cardBoxId}`)
+    //   } catch (error) {
+    //     console.error(`Failed to add note ${noteId} to card box ${cardBoxId}:`, error)
     //     throw error
     //   }
     // },
 
-    async addNoteToCardBox(cardBoxId: string, noteId: string) {
-      try {
-        await window.cardBoxAPI.addNote(cardBoxId, noteId)
-        const cardBox = this.cardBoxes.find((box) => box.id === cardBoxId)
-        if (cardBox && !cardBox.noteIds.includes(noteId)) {
-          cardBox.noteIds.push(noteId)
-        }
-        console.log(`Added note ${noteId} to card box ${cardBoxId}`)
-      } catch (error) {
-        console.error(`Failed to add note ${noteId} to card box ${cardBoxId}:`, error)
-        throw error
-      }
-    },
+    // async removeNoteFromCardBox(cardBoxId: string, noteId: string) {
+    //   try {
+    //     await window.cardBoxAPI.removeNote(cardBoxId, noteId)
+    //     const cardBox = this.cardBoxes.find((box) => box.id === cardBoxId)
+    //     if (cardBox) {
+    //       cardBox.noteIds = cardBox.noteIds.filter((id) => id !== noteId)
+    //     }
+    //     console.log(`Removed note ${noteId} from card box ${cardBoxId}`)
+    //   } catch (error) {
+    //     console.error(`Failed to remove note ${noteId} from card box ${cardBoxId}:`, error)
+    //     throw error
+    //   }
+    // },
 
-    async removeNoteFromCardBox(cardBoxId: string, noteId: string) {
-      try {
-        await window.cardBoxAPI.removeNote(cardBoxId, noteId)
-        const cardBox = this.cardBoxes.find((box) => box.id === cardBoxId)
-        if (cardBox) {
-          cardBox.noteIds = cardBox.noteIds.filter((id) => id !== noteId)
-        }
-        console.log(`Removed note ${noteId} from card box ${cardBoxId}`)
-      } catch (error) {
-        console.error(`Failed to remove note ${noteId} from card box ${cardBoxId}:`, error)
-        throw error
-      }
-    },
+    // async getNotesInCardBox(cardBoxId: string): Promise<Note[]> {
+    //   try {
+    //     const notes = await window.notesAPI.getNotesInCardBox(cardBoxId)
+    //     notes.forEach((note) => {
+    //       const index = this.notes.findIndex((n) => n.id === note.id)
+    //       if (index !== -1) {
+    //         this.notes[index] = note
+    //       } else {
+    //         this.notes.push(note)
+    //       }
+    //     })
+    //     console.log(`Fetched ${notes.length} notes from card box ${cardBoxId}`)
+    //     return notes
+    //   } catch (error) {
+    //     console.error(`Failed to get notes in card box ${cardBoxId}:`, error)
+    //     throw error
+    //   }
+    // },
 
-    async getNotesInCardBox(cardBoxId: string): Promise<Note[]> {
-      try {
-        const notes = await window.notesAPI.getNotesInCardBox(cardBoxId)
-        notes.forEach((note) => {
-          const index = this.notes.findIndex((n) => n.id === note.id)
-          if (index !== -1) {
-            this.notes[index] = note
-          } else {
-            this.notes.push(note)
-          }
-        })
-        console.log(`Fetched ${notes.length} notes from card box ${cardBoxId}`)
-        return notes
-      } catch (error) {
-        console.error(`Failed to get notes in card box ${cardBoxId}:`, error)
-        throw error
-      }
-    },
-
-    async updateNoteCardBox(noteId: string, newCardBoxId: string | null): Promise<Note | null> {
+    // 更新笔记的卡片盒
+    async updateNoteCardBox(noteId: string, newCardBoxId: string): Promise<Note | null> {
       console.log(`Updating note ${noteId} to card box ${newCardBoxId}`)
       try {
-        const response = await window.notesAPI.updateNoteCardBox(noteId, newCardBoxId)
-        if (response.success) {
-          const noteIndex = this.notes.findIndex((note) => note.id === noteId)
-          if (noteIndex !== -1) {
-            this.notes[noteIndex] = {
-              ...this.notes[noteIndex],
-              cardBoxId: newCardBoxId ?? undefined
-            }
-            console.log(`Note ${noteId} updated successfully in local store`)
-            return this.notes[noteIndex]
-          } else {
-            console.error(`Note ${noteId} not found in local store`)
-          }
-        } else {
-          console.error(`Failed to update note ${noteId} in the backend:`, response)
-        }
-        return null
+        await window.electronAPI.updateNoteCardBox(noteId, newCardBoxId)
+        console.log(`noteStores.ts→ Note ${noteId} updated successfully in local store`)
+        return this.notes.find((note) => note.id === noteId) as Note | null
       } catch (error) {
-        console.error('Error in updateNoteCardBox:', error)
+        console.error('noteStores.ts→ Error in updateNoteCardBox:', error)
         throw error
       }
     },
+
+    // 辅助方法
+    //   try {
+    //     const response = await window.notesAPI.updateNoteCardBox(noteId, newCardBoxId)
+    //     if (response.success) {
+    //       const noteIndex = this.notes.findIndex((note) => note.id === noteId)
+    //       if (noteIndex !== -1) {
+    //         this.notes[noteIndex] = {
+    //           ...this.notes[noteIndex],
+    //           cardBoxId: newCardBoxId ?? undefined
+    //         }
+    //         console.log(`Note ${noteId} updated successfully in local store`)
+    //         return this.notes[noteIndex]
+    //       } else {
+    //         console.error(`Note ${noteId} not found in local store`)
+    //       }
+    //     } else {
+    //       console.error(`Failed to update note ${noteId} in the backend:`, response)
+    //     }
+    //     return null
+    //   } catch (error) {
+    //     console.error('Error in updateNoteCardBox:', error)
+    //     throw error
+    //   }
+    // },
 
     // 辅助方法
     parseNoteContent(note: any): Note {
@@ -572,21 +577,21 @@ export const useNoteStore = defineStore('note', {
       }
     },
 
-    getNotesOnWhiteboard: (state) => {
-      return (whiteboardId: string) => {
-        const whiteboard = state.whiteboards.find((board) => board.id === whiteboardId)
-        return whiteboard
-          ? (whiteboard.notes
-              .map((wbNote) => ({
-                ...state.notes.find((note) => note.id === wbNote.noteId),
-                position: wbNote.position
-              }))
-              .filter(Boolean) as (Note & {
-              position: { x: number; y: number }
-            })[])
-          : []
-      }
-    },
+    // getNotesOnWhiteboard: (state) => {
+    //   return (whiteboardId: string) => {
+    //     const whiteboard = state.whiteboards.find((board) => board.id === whiteboardId)
+    //     return whiteboard
+    //       ? (whiteboard.notes
+    //           .map((wbNote) => ({
+    //             ...state.notes.find((note) => note.id === wbNote.noteId),
+    //             position: wbNote.position
+    //           }))
+    //           .filter(Boolean) as (Note & {
+    //           position: { x: number; y: number }
+    //         })[])
+    //       : []
+    //   }
+    // },
 
     getConnectionsOnWhiteboard: (state) => {
       return (whiteboardId: string) =>

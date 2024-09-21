@@ -12,7 +12,8 @@ import {
   softDeleteNote,
   restoreNote,
   getDeletedNotes,
-  permanentDeleteNote
+  permanentDeleteNote,
+  updateNoteCardBox
 } from '../db/notes'
 import { createCardBox, getAllCardBoxes, updateCardBox, deleteCardBox } from '../db/cardBoxes'
 import { db } from '../db/config'
@@ -258,6 +259,28 @@ function setupIpcHandlers() {
       console.log('主进程 → 删除卡片盒成功', id)
     } catch (error) {
       console.error('主进程 → 删除卡片盒时出错:', error)
+      return { success: false, error: error }
+    }
+  })
+
+  // // 添加笔记到卡片盒
+  // ipcMain.handle('add-note-to-card-box', async (_event, { cardBoxId, noteId }) => {
+  //   try {
+  //     await addNoteToCardBox(cardBoxId, noteId)
+  //     return { success: true }
+  //   } catch (error) {
+  //     console.error('主进程 → 添加笔记到卡片盒时出错:', error)
+  //     return { success: false, error: error }
+  //   }
+  // })
+
+  // 更新笔记的卡片盒
+  ipcMain.handle('update-note-card-box', async (_event, { noteId, cardBoxId }) => {
+    try {
+      await updateNoteCardBox(noteId, cardBoxId)
+      return { success: true }
+    } catch (error) {
+      console.error('主进程 → 更新笔记的卡片盒时出错:', error)
       return { success: false, error: error }
     }
   })

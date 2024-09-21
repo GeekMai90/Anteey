@@ -24,8 +24,9 @@
                 :key="box.id"
                 class="dropdown-item"
                 :class="{ active: selectedCardBox && selectedCardBox.id === box.id }"
+                @click.stop="selectCardBox(box)"
               >
-                <div class="dropdown-item-content" @click.stop="selectCardBox(box)">
+                <div class="dropdown-item-content">
                   <div class="icon">
                     <component
                       :is="box.id === '0000' ? FileCabinet : Box"
@@ -277,6 +278,7 @@ const selectedCardBoxName = computed(() => {
 
 // 选择卡片盒进行筛选
 const selectCardBox = (box: CardBox | null) => {
+  console.log('选择卡片盒:', box?.name)
   selectedCardBox.value = box
   showCardBoxMenu.value = false
   // 如果选择了卡片盒，取消收件箱的选择状态
@@ -284,13 +286,14 @@ const selectCardBox = (box: CardBox | null) => {
     isInboxSelected.value = false
   }
 }
-
 const filteredNotes = computed(() => {
+  console.log('重新计算 filteredNotes')
   console.log('原始笔记数量:', notes.value.length)
+  console.log('当前选中的卡片盒:', selectedCardBox.value?.name)
+  console.log('是否选中收件箱:', isInboxSelected.value)
 
   return notes.value
     .filter((note) => {
-      // 根据选中的卡片盒进行筛选
       if (isInboxSelected.value) {
         return !note.cardBoxId
       } else if (selectedCardBox.value && selectedCardBox.value.id !== '0000') {
@@ -299,7 +302,6 @@ const filteredNotes = computed(() => {
       return true
     })
     .filter((note) => {
-      // 根据选中的卡片类型进行筛选
       return selectedCardTypes.value.length === 0 || selectedCardTypes.value.includes(note.cardType)
     })
     .sort((a, b) => {
@@ -323,11 +325,59 @@ const filteredNotes = computed(() => {
 watch(
   [isInboxSelected, selectedCardBox, selectedCardTypes, currentSort, sortDirection],
   () => {
-    // 触发 filteredNotes 的重新计算
-    filteredNotes.value
+    console.log('筛选条件发生变化')
+    console.log('选中的卡片盒:', selectedCardBox.value?.name)
+    console.log('是否选中收件箱:', isInboxSelected.value)
+    console.log('选中的卡片类型:', selectedCardTypes.value)
+    console.log('当前排序:', currentSort.value)
+    console.log('排序方向:', sortDirection.value)
   },
   { deep: true }
 )
+
+// const filteredNotes = computed(() => {
+//   console.log('原始笔记数量:', notes.value.length)
+
+//   return notes.value
+//     .filter((note) => {
+//       // 根据选中的卡片盒进行筛选
+//       if (isInboxSelected.value) {
+//         return !note.cardBoxId
+//       } else if (selectedCardBox.value && selectedCardBox.value.id !== '0000') {
+//         return note.cardBoxId === selectedCardBox.value.id
+//       }
+//       return true
+//     })
+//     .filter((note) => {
+//       // 根据选中的卡片类型进行筛选
+//       return selectedCardTypes.value.length === 0 || selectedCardTypes.value.includes(note.cardType)
+//     })
+//     .sort((a, b) => {
+//       let comparison = 0
+//       switch (currentSort.value) {
+//         case 'name':
+//           comparison = a.address.localeCompare(b.address, 'zh-CN')
+//           break
+//         case 'createdAt':
+//           comparison = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+//           break
+//         case 'updatedAt':
+//           comparison = new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime()
+//           break
+//       }
+//       return sortDirection.value === 'asc' ? comparison : -comparison
+//     })
+// })
+
+// // 监听可能影响过滤结果的变量
+// watch(
+//   [isInboxSelected, selectedCardBox, selectedCardTypes, currentSort, sortDirection],
+//   () => {
+//     // 触发 filteredNotes 的重新计算
+//     filteredNotes.value
+//   },
+//   { deep: true }
+// )
 
 // 卡片盒下拉项中的更多操作
 const toggleMoreActions = (id: string, event: MouseEvent) => {

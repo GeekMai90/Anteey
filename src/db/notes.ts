@@ -88,17 +88,7 @@ export async function updateNote(id: string, updateNoteDto: Partial<Note>): Prom
       // 2. 准备更新数据
       const updateData: Partial<Note> = {}
 
-      const fields = [
-        'address',
-        'cardType',
-        'tags',
-        'linkedTo',
-        'linkedFrom',
-        'cardBoxId',
-        'parentId',
-        'isDeleted',
-        'isStarred'
-      ]
+      const fields = ['address', 'cardType', 'tags', 'linkedTo', 'linkedFrom', 'parentId']
       fields.forEach((field) => {
         if (updateNoteDto[field as keyof Partial<Note>] !== undefined) {
           ;(updateData as any)[field] = updateNoteDto[field as keyof Partial<Note>]
@@ -201,6 +191,35 @@ export async function permanentDeleteNote(id: string): Promise<void> {
     console.log(`后端→ 永久删除笔记: ${id}`)
   } catch (error) {
     console.error(`后端→ 永久删除笔记失败: ${id}:`, error)
+    throw error
+  }
+}
+
+// //添加笔记到卡片盒
+// export async function addNoteToCardBox(cardBoxId: string, noteId: string): Promise<void> {
+//   try {
+//     await db('notes').where('id', noteId).update({ cardBoxId: cardBoxId })
+//     console.log(`后端→ 添加笔记到卡片盒: ${noteId}`)
+//   } catch (error) {
+//     console.error(`后端→ 添加笔记到卡片盒失败: ${noteId}:`, error)
+//     throw error
+//   }
+// }
+
+// 更新笔记的卡片盒
+export async function updateNoteCardBox(noteId: string, cardBoxId: string): Promise<void> {
+  try {
+    // 更新卡片盒前的笔记
+    const note = await getNoteById(noteId)
+    console.log('后端→ 更新卡片盒的笔记是:', note)
+    // 更新卡片盒
+    await db('notes').where('id', noteId).update({ cardBoxId: cardBoxId })
+    // 更新卡片盒后的笔记
+    const updatedNote = await getNoteById(noteId)
+    console.log('后端→ 更新卡片盒后的笔记是:', updatedNote)
+    // console.log(`后端→ 更新笔记的卡片盒: ${noteId}`)
+  } catch (error) {
+    console.error(`后端→ 更新笔记的卡片盒失败: ${noteId}:`, error)
     throw error
   }
 }

@@ -99,5 +99,21 @@ contextBridge.exposeInMainWorld('electronAPI', {
       console.error('Preload: 删除卡片盒时出错:', error)
       throw error
     }
+  },
+  // addNoteToCardBox: async (cardBoxId: string, noteId: string): Promise<void> => {
+  //   try {
+  //     return (await ipcRenderer.invoke('add-note-to-card-box', { cardBoxId, noteId })) as void
+  //   } catch (error) {
+  //     console.error('Preload: 添加笔记到卡片盒时出错:', error)
+  //     throw error
+  //   }
+  // }
+  updateNoteCardBox: async (noteId: string, cardBoxId: string): Promise<void> => {
+    try {
+      return (await ipcRenderer.invoke('update-note-card-box', { noteId, cardBoxId })) as void
+    } catch (error) {
+      console.error('Preload: 更新笔记的卡片盒时出错:', error)
+      throw error
+    }
   }
 })
