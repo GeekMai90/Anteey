@@ -35,5 +35,11 @@ app.use(FloatingVue, {
     hide: 0 // 隐藏无延迟
   }
 })
+// 添加这部分代码
+router.isReady().then(() => {
+  if (router.currentRoute.value.path === '/') {
+    router.push('/home')
+  }
+})
 
 app.mount('#app')

@@ -2,8 +2,12 @@ import { createRouter, createWebHistory } from 'vue-router'
 
 const routes = [
   {
-    name: 'timeline',
     path: '/',
+    redirect: '/home'
+  },
+  {
+    name: 'timeline',
+    path: '/home',
     component: () => import('../views/TimelineView.vue')
   },
   {

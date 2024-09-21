@@ -1,8 +1,7 @@
-// src/db/config.ts
-
 import knex, { Knex } from 'knex'
 import path from 'path'
 import { app } from 'electron'
+import fs from 'fs'
 
 // 检查是否为开发环境
 const isDev = process.env.NODE_ENV === 'development'
@@ -12,9 +11,22 @@ let db: Knex
 
 export function initializeDb() {
   // 设置数据库路径
-  dbPath = isDev
-    ? path.join(__dirname, 'dev_database.sqlite')
-    : path.join(app.getPath('userData'), 'antinet.sqlite')
+  if (isDev) {
+    // 在开发模式下，将数据库文件放在项目根目录的 .dev 文件夹中
+    const projectRoot = path.resolve(__dirname, '..', '..')
+    const devDbDir = path.join(projectRoot, '.dev')
+
+    // 确保 .dev 目录存在
+    if (!fs.existsSync(devDbDir)) {
+      fs.mkdirSync(devDbDir, { recursive: true })
+    }
+
+    dbPath = path.join(devDbDir, 'dev_database.sqlite')
+  } else {
+    dbPath = path.join(app.getPath('userData'), 'antinet.sqlite')
+  }
+
+  console.log('数据库路径:', dbPath)
 
   const config = {
     client: 'better-sqlite3',
@@ -26,6 +38,7 @@ export function initializeDb() {
 
   db = knex(config)
 }
+
 initializeDb()
 
 export { db, dbPath }

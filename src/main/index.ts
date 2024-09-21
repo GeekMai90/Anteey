@@ -37,21 +37,6 @@ process.on('unhandledRejection', (reason, promise) => {
   log.error('Unhandled Rejection at:', promise, 'reason:', reason)
 })
 
-// 资源路径
-// const resourcePath = app.isPackaged
-//   ? path.join(process.resourcesPath, 'resources')
-//   : path.join(__dirname, '../../resources')
-
-// 数据库路径
-// const dbPath = app.isPackaged
-//   ? path.join(app.getPath('userData'), 'database.sqlite')
-//   : path.join(__dirname, 'database.sqlite')
-
-// 预加载脚本路径
-// const preloadPath = app.isPackaged
-//   ? path.join(__dirname, 'preload.js')
-//   : path.join(__dirname, '../preload/index.js')
-
 function createCustomMenu() {
   const template = [
     {
@@ -372,11 +357,20 @@ function createWindow(): void {
     return { action: 'deny' }
   })
 
+  // 在加载 URL 之前就创建并显示窗口
+  mainWindow.show()
+
   if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
     mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL'])
   } else {
     mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
   }
+
+  // 添加这部分代码
+  mainWindow.webContents.on('did-finish-load', () => {
+    mainWindow.webContents.executeJavaScript('window.location.hash = "/home"')
+  })
+
   log.info('Main window created and loaded')
 }
 
@@ -388,6 +382,11 @@ app.whenReady().then(async () => {
     log.info(`Electron 版本: ${process.versions.electron}`)
     log.info(`Node.js 版本: ${process.versions.node}`)
     log.info(`Chrome 版本: ${process.versions.chrome}`)
+
+    // 设置 macOS Dock 图标
+    // if (process.platform === 'darwin') {
+    //   app.dock.setIcon(join(__dirname, '../../build/icon.icns'))
+    // }
 
     // 初始化数据库
     await initDatabase(db)
