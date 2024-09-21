@@ -18,10 +18,39 @@ import {
   getStarredNotes
 } from '../db/notes'
 import { createCardBox, getAllCardBoxes, updateCardBox, deleteCardBox } from '../db/cardBoxes'
-import { db } from '../db/config'
+import { db, dbPath } from '../db/config'
+import log from 'electron-log'
 // import { CardBox } from '@renderer/types/Note'
 // 设置应用名称
 app.name = 'Antinet'
+
+// 设置日志
+log.transports.file.level = 'info'
+log.info('应用启动')
+
+// 错误处理
+process.on('uncaughtException', (error) => {
+  log.error('Uncaught Exception:', error)
+})
+
+process.on('unhandledRejection', (reason, promise) => {
+  log.error('Unhandled Rejection at:', promise, 'reason:', reason)
+})
+
+// 资源路径
+// const resourcePath = app.isPackaged
+//   ? path.join(process.resourcesPath, 'resources')
+//   : path.join(__dirname, '../../resources')
+
+// 数据库路径
+// const dbPath = app.isPackaged
+//   ? path.join(app.getPath('userData'), 'database.sqlite')
+//   : path.join(__dirname, 'database.sqlite')
+
+// 预加载脚本路径
+// const preloadPath = app.isPackaged
+//   ? path.join(__dirname, 'preload.js')
+//   : path.join(__dirname, '../preload/index.js')
 
 function createCustomMenu() {
   const template = [
@@ -311,6 +340,7 @@ function setupIpcHandlers() {
 }
 
 function createWindow(): void {
+  log.info('Creating main window')
   const mainWindow = new BrowserWindow({
     width: 900,
     height: 670,
@@ -327,10 +357,14 @@ function createWindow(): void {
     }
   })
   mainWindow.maximize()
-  mainWindow.webContents.openDevTools()
+
+  if (!app.isPackaged) {
+    mainWindow.webContents.openDevTools()
+  }
 
   mainWindow.on('ready-to-show', () => {
     mainWindow.show()
+    log.info('Main window shown')
   })
 
   mainWindow.webContents.setWindowOpenHandler((details) => {
@@ -343,6 +377,7 @@ function createWindow(): void {
   } else {
     mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
   }
+  log.info('Main window created and loaded')
 }
 
 app.whenReady().then(async () => {
@@ -350,14 +385,21 @@ app.whenReady().then(async () => {
     console.log(`Electron 版本: ${process.versions.electron}`)
     console.log(`Node.js 版本: ${process.versions.node}`)
     console.log(`Chrome 版本: ${process.versions.chrome}`)
+    log.info(`Electron 版本: ${process.versions.electron}`)
+    log.info(`Node.js 版本: ${process.versions.node}`)
+    log.info(`Chrome 版本: ${process.versions.chrome}`)
+
     // 初始化数据库
     await initDatabase(db)
     console.log('主进程→ 数据库初始化成功')
     console.log('数据库路径:', db.client.connectionSettings.filename)
+    log.info('主进程→ 数据库初始化成功')
+    log.info('数据库路径:', dbPath)
 
     // 验证表是否创建成功
     const hasNotesTable = await db.schema.hasTable('notes')
     console.log('notes 表是否存在:', hasNotesTable)
+    log.info('notes 表是否存在:', hasNotesTable)
 
     electronApp.setAppUserModelId('com.electron')
 
@@ -370,10 +412,6 @@ app.whenReady().then(async () => {
 
     app.on('browser-window-created', (_, window) => {
       optimizer.watchWindowShortcuts(window)
-    })
-
-    ipcMain.handle('get-resource-path', (_event, filename) => {
-      return path.join(app.getAppPath(), 'resources', filename)
     })
 
     ipcMain.on('window-click', (event) => {
@@ -393,8 +431,10 @@ app.whenReady().then(async () => {
     app.on('activate', function () {
       if (BrowserWindow.getAllWindows().length === 0) createWindow()
     })
+    log.info('应用初始化完成')
   } catch (error) {
     console.error('主进程→ 应用初始化失败:', error)
+    log.error('主进程→ 应用初始化失败:', error)
   }
 })
 

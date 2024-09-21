@@ -9,8 +9,18 @@ files:
   - '!{.eslintignore,.eslintrc.cjs,.prettierignore,.prettierrc.yaml,dev-app-update.yml,CHANGELOG.md,README.md}'
   - '!{.env,.env.*,.npmrc,pnpm-lock.yaml}'
   - '!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}'
+  - '!**/*.sqlite'
+  - '!**/*.sqlite-journal'
 asarUnpack:
   - resources/**
+  - node_modules/sqlite3/**/*
+  - node_modules/better-sqlite3/**/*
+extraResources:
+  - from: node_modules/better-sqlite3/build/Release
+    to: better-sqlite3
+    filter:
+      - '**/*'
+afterSign: electron-builder-notarize
 win:
   executableName: antinet-app
 nsis:
@@ -25,7 +35,12 @@ mac:
     - NSMicrophoneUsageDescription: Application requests access to the device's microphone.
     - NSDocumentsFolderUsageDescription: Application requests access to the user's Documents folder.
     - NSDownloadsFolderUsageDescription: Application requests access to the user's Downloads folder.
-  notarize: false
+  notarize: true
+  hardenedRuntime: true
+  gatekeeperAssess: false
+  entitlements: build/entitlements.mac.plist
+  entitlementsInherit: build/entitlements.mac.plist
+  notarize: false  # 仅用于测试，不要在生产环境中使用
 dmg:
   artifactName: ${name}-${version}.${ext}
 linux:
@@ -37,7 +52,7 @@ linux:
   category: Utility
 appImage:
   artifactName: ${name}-${version}.${ext}
-npmRebuild: false
+npmRebuild: true
 publish:
   provider: generic
   url: https://example.com/auto-updates
