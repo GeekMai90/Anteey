@@ -37,7 +37,9 @@ app.use(FloatingVue, {
 })
 // 添加这部分代码
 router.isReady().then(() => {
-  if (router.currentRoute.value.path === '/') {
+  console.log('Router is ready, current path:', router.currentRoute.value.path)
+  if (router.currentRoute.value.path === '/' || router.currentRoute.value.path === '') {
+    console.log('Redirecting to /home')
     router.push('/home')
   }
 })

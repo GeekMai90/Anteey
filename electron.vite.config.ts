@@ -1,4 +1,3 @@
-import { resolve } from 'path'
 import { defineConfig, externalizeDepsPlugin } from 'electron-vite'
 import vue from '@vitejs/plugin-vue'
 import path from 'path'
@@ -13,7 +12,7 @@ export default defineConfig({
   renderer: {
     resolve: {
       alias: {
-        '@renderer': resolve('src/renderer/src'),
+        '@renderer': path.resolve(__dirname, 'src/renderer/src'),
         '@resources': path.resolve(__dirname, 'resources')
       }
     },
@@ -21,12 +20,8 @@ export default defineConfig({
     build: {
       rollupOptions: {
         input: {
-          index: resolve(__dirname, 'src/renderer/index.html')
-        },
-        external: ['src/entities/**/*']
-      },
-      commonjsOptions: {
-        exclude: ['src/entities/**/*']
+          index: path.resolve(__dirname, 'src/renderer/index.html')
+        }
       }
     }
   }

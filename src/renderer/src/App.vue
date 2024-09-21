@@ -40,7 +40,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, provide, onErrorCaptured } from 'vue'
 import { useTransition } from '@vueuse/core'
-import { RouterView } from 'vue-router'
+import { RouterView, useRouter } from 'vue-router'
 import Sidebar from './components/Sidebar.vue'
 import RightSidebar from './components/RightSidebar.vue'
 import NoteEditorModal from './components/NoteEditorModal.vue'
@@ -51,6 +51,7 @@ import { useGlobalHotkeys } from './composable/useGlobalHotkeys'
 
 const noteStore = useNoteStore()
 const isDarkTheme = ref(false)
+const router = useRouter()
 
 // 侧边栏相关
 const isTemporaryVisible = ref(false)
@@ -166,6 +167,12 @@ onMounted(async () => {
   await noteStore.initializeStore()
   checkWindowSize()
   window.addEventListener('resize', checkWindowSize)
+  console.log('App mounted')
+  console.log('Current route:', router.currentRoute.value)
+  if (router.currentRoute.value.path === '/') {
+    console.log('Redirecting to /home')
+    router.push('/home')
+  }
 })
 
 onUnmounted(() => {

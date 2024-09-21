@@ -1,4 +1,4 @@
-import { createRouter, createWebHistory } from 'vue-router'
+import { createRouter, createWebHashHistory } from 'vue-router'
 
 const routes = [
   {
@@ -6,7 +6,7 @@ const routes = [
     redirect: '/home'
   },
   {
-    name: 'timeline',
+    name: 'home',
     path: '/home',
     component: () => import('../views/TimelineView.vue')
   },
@@ -33,7 +33,7 @@ const routes = [
 ]
 
 const router = createRouter({
-  history: createWebHistory(),
+  history: createWebHashHistory(),
   routes
 })
 

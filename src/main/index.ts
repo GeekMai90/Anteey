@@ -343,6 +343,53 @@ function createWindow(): void {
   })
   mainWindow.maximize()
 
+  if (app.isPackaged) {
+    mainWindow.loadFile(path.join(__dirname, '../renderer/index.html'))
+  } else {
+    // 开发环境下的加载逻辑
+    const devServerUrl = process.env.VITE_DEV_SERVER_URL
+    if (devServerUrl) {
+      mainWindow.loadURL(devServerUrl)
+    } else {
+      console.error('VITE_DEV_SERVER_URL 未定义')
+      log.error('VITE_DEV_SERVER_URL 未定义')
+      // 可以加载一个默认页面或执行其他逻辑
+      mainWindow.loadFile(path.join(__dirname, '../renderer/index.html'))
+    }
+  }
+
+  // 添加这个事件监听器
+  mainWindow.webContents.on('did-finish-load', () => {
+    mainWindow.webContents.executeJavaScript(`
+      if (window.location.hash === '' || window.location.hash === '#/') {
+        window.location.hash = '#/home';
+      }
+    `)
+  })
+
+  // 处理 HTML5 History 模式的路由
+  // mainWindow.webContents.on('will-navigate', (event, url) => {
+  //   if (!url.startsWith('http://localhost') && !url.startsWith('https://localhost')) {
+  //     event.preventDefault()
+  //     mainWindow.loadURL(`http://localhost:${process.env.PORT}${url}`)
+  //   }
+  // })
+
+  // 在加载 URL 之前就创建并显示窗口
+  mainWindow.webContents.on('did-finish-load', () => {
+    log.info('Window did-finish-load event triggered')
+    mainWindow.webContents.executeJavaScript(`
+      console.log('Current pathname:', window.location.pathname);
+      if (window.location.pathname === '/' || window.location.pathname === '') {
+        console.log('Redirecting to /home');
+        window.history.pushState(null, '', '/home');
+        if (window.dispatchEvent) {
+          window.dispatchEvent(new Event('popstate'));
+        }
+      }
+    `)
+  })
+
   if (!app.isPackaged) {
     mainWindow.webContents.openDevTools()
   }
@@ -366,10 +413,10 @@ function createWindow(): void {
     mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
   }
 
-  // 添加这部分代码
-  mainWindow.webContents.on('did-finish-load', () => {
-    mainWindow.webContents.executeJavaScript('window.location.hash = "/home"')
-  })
+  // // 添加这部分代码
+  // mainWindow.webContents.on('did-finish-load', () => {
+  //   mainWindow.webContents.executeJavaScript('window.location.hash = "/home"')
+  // })
 
   log.info('Main window created and loaded')
 }
