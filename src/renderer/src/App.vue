@@ -20,7 +20,7 @@
           @resize="updateLeftSidebarWidth"
         />
         <main class="main-content" :style="mainContentStyle">
-          <router-view></router-view>
+          <router-view :key="$route.fullPath"></router-view>
         </main>
         <RightSidebar
           v-show="noteStore.isRightSidebarOpen"

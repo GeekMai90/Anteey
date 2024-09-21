@@ -98,7 +98,7 @@
 
 <script setup lang="ts">
 import { ref, watch, onBeforeUnmount, onMounted, computed, nextTick, onUnmounted } from 'vue'
-import { useRoute } from 'vue-router'
+import { onBeforeRouteUpdate, useRoute } from 'vue-router'
 import { useNoteStore } from '../stores/noteStores'
 import { CardType, Note, CardBox } from '../types/Note'
 import { formatDate } from '../utils/noteHelpers'
@@ -119,12 +119,6 @@ const route = useRoute()
 const noteStore = useNoteStore()
 const noteId = route.params.id as string
 const addressInput = ref<HTMLInputElement | null>(null)
-// const editedNote = ref(noteStore.getNoteById(noteId))
-// const editedNote = ref<Note>(
-//   noteId
-//     ? noteStore.getNoteById(noteId) || (noteStore.createNewNote() as Note)
-//     : (noteStore.createNewNote() as Note)
-// )
 
 // 笔记选项菜单
 const isOptionsMenuVisible = ref(false)
@@ -232,17 +226,6 @@ watch(
   },
   { deep: true }
 )
-
-// 监听笔记变化
-// watch(
-//   () => editedNote.value,
-//   () => {
-//     if (editedNote.value) {
-//       autoSave()
-//     }
-//   },
-//   { deep: true }
-// )
 
 // 定期保存
 const autoSaveInterval = setInterval(() => {
@@ -439,6 +422,25 @@ watch(
     focusAddressInput()
   }
 )
+onBeforeRouteUpdate((to, from, next) => {
+  // 重新加载笔记数据
+  loadNote()
+  next()
+})
+
+watch(
+  () => route.fullPath,
+  (newPath) => {
+    console.log('Current route:', newPath)
+  }
+)
+// watch(
+//   () => route.params.id,
+//   () => {
+//     // 重新加载笔记数据
+//     loadNote()
+//   }
+// )
 
 // 展开编辑器
 // const handleExpand = async () => {

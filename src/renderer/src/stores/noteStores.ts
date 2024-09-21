@@ -548,6 +548,10 @@ export const useNoteStore = defineStore('note', {
   },
 
   getters: {
+    starredNotes: (state) => {
+      return state.notes.filter((note) => note.isStarred)
+    },
+
     getNoteById: (state) => {
       return (id: string) => state.notes.find((note) => note.id === id)
     },

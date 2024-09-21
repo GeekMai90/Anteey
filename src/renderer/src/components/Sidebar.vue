@@ -1,3 +1,4 @@
+<!-- src/renderer/src/components/Sidebar.vue -->
 <template>
   <div class="sidebar" :style="{ width: `${sidebarWidth}px` }">
     <div class="sidebar-header">
@@ -40,6 +41,7 @@
       </nav>
     </div>
     <div class="sidebar-header-divider"></div>
+    <StarredNotes />
     <div class="resize-handle" @mousedown="startResize"></div>
     <div class="sidebar-footer">
       <div class="new-card-wrapper">
@@ -77,21 +79,7 @@ import { onMounted, ref, watch } from 'vue'
 import { ListView, Box, Workbench, DocAdd, Search, Help } from '@icon-park/vue-next'
 import { useNoteStore } from '../stores/noteStores'
 import SettingDropdownMenu from './SettingDropdownMenu.vue'
-
-// 计算保存状态的 CSS 类
-// const saveStatusClass = computed(() => {
-//   switch (noteStore.currentNoteSaveStatus) {
-//     case 'saving':
-//       return 'status-saving'
-//     case 'saved':
-//       return 'status-saved'
-//     case 'error':
-//       return 'status-error'
-//     default:
-//       return 'status-idle'
-//   }
-// })
-
+import StarredNotes from './StarredNotes.vue'
 const imageSrc = ref('')
 
 onMounted(async () => {
@@ -271,7 +259,7 @@ const openHelp = () => {
             flex-grow: 0;
             text-align: left;
             color: var(--default-text-color);
-            font-size: 15px;
+            font-size: 14px;
             white-space: nowrap; // 防止文字换行
             writing-mode: horizontal-tb; // 确保文字是水平排列的
             font-weight: 400;
