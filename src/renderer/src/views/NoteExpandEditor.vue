@@ -143,18 +143,20 @@ const closeOptionsMenu = () => {
 
 const emptyNote: Note = {
   id: '',
+  type: 'note',
+  cardType: 'Maincard', // 或其他默认类型
   address: '',
   content: {
     type: 'doc',
     content: [{ type: 'paragraph' }]
   },
-  cardType: 'Maincard', // 或其他默认类型
   createdAt: new Date(),
   updatedAt: new Date(),
   tags: [],
   linkedTo: [],
   linkedFrom: [],
   cardBoxId: undefined,
+  parentId: '',
   isDeleted: false,
   isStarred: false
 }
@@ -295,25 +297,21 @@ const toggleCardBoxMenu = () => {
 // 选择卡片盒
 const selectCardBox = async (box: CardBox) => {
   if (!editedNote.value?.id) {
-    console.error('编辑的笔记为空')
+    console.error('NoteEditor.vue → 编辑的笔记为空')
     return
   }
   try {
     selectedCardBox.value = box
-    editedNote.value.cardBoxId = box.id !== '0000' ? box.id : undefined
-    const updatedNote = await noteStore.updateNoteCardBox(
-      editedNote.value.id,
-      editedNote.value.cardBoxId || null
-    )
+    const newCardBoxId = box.id
+    const updatedNote = await noteStore.updateNoteCardBox(editedNote.value.id, newCardBoxId)
     if (updatedNote) {
       editedNote.value = updatedNote
-      await saveNote()
-      console.log('卡片盒更新成功:', box.name)
+      console.log('NoteEditor.vue → 卡片盒更新成功:', box.name)
     } else {
-      console.error('更新卡片盒失败: 未能获取更新后的笔记')
+      console.error('NoteEditor.vue → 更新卡片盒失败: 未能获取更新后的笔记')
     }
   } catch (error) {
-    console.error('更新卡片盒失败:', error)
+    console.error('NoteEditor.vue → 更新卡片盒失败:', error)
   }
 }
 

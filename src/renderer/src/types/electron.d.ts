@@ -16,6 +16,9 @@ export interface ElectronAPI {
   deleteCardBox: (id: string) => Promise<void>
   // addNoteToCardBox: (cardBoxId: string, noteId: string) => Promise<void>
   updateNoteCardBox: (noteId: string, cardBoxId: string) => Promise<void>
+  toggleStarredStatus: (id: string) => Promise<{ success: boolean; note: Note | null }>
+  getStarredNotes: () => Promise<Note[]>
+  getResourcePath: (filename: string) => Promise<string>
 }
 
 declare global {

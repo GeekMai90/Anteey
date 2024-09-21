@@ -13,7 +13,9 @@ import {
   restoreNote,
   getDeletedNotes,
   permanentDeleteNote,
-  updateNoteCardBox
+  updateNoteCardBox,
+  toggleStarredStatus,
+  getStarredNotes
 } from '../db/notes'
 import { createCardBox, getAllCardBoxes, updateCardBox, deleteCardBox } from '../db/cardBoxes'
 import { db } from '../db/config'
@@ -135,7 +137,7 @@ function setupIpcHandlers() {
     }
   })
   // 获取所有笔记
-  ipcMain.handle('get-all-notes', async (event, includeDeleted: boolean) => {
+  ipcMain.handle('get-all-notes', async (_event, includeDeleted: boolean) => {
     try {
       const notes = await getAllNotes(includeDeleted)
       return notes
@@ -284,6 +286,28 @@ function setupIpcHandlers() {
       return { success: false, error: error }
     }
   })
+
+  // 更新笔记的收藏状态
+  ipcMain.handle('toggle-starred-status', async (_event, id: string) => {
+    try {
+      const updatedNote = await toggleStarredStatus(id)
+      return { success: true, note: updatedNote }
+    } catch (error) {
+      console.error('主进程 → 更新笔记的收藏状态时出错:', error)
+      return { success: false, error: error }
+    }
+  })
+
+  // 获取收藏的笔记
+  ipcMain.handle('get-starred-notes', async () => {
+    try {
+      const starredNotes = await getStarredNotes()
+      return starredNotes
+    } catch (error) {
+      console.error('主进程 → 获取收藏的笔记时出错:', error)
+      return { success: false, error: error }
+    }
+  })
 }
 
 function createWindow(): void {
@@ -323,6 +347,9 @@ function createWindow(): void {
 
 app.whenReady().then(async () => {
   try {
+    console.log(`Electron 版本: ${process.versions.electron}`)
+    console.log(`Node.js 版本: ${process.versions.node}`)
+    console.log(`Chrome 版本: ${process.versions.chrome}`)
     // 初始化数据库
     await initDatabase(db)
     console.log('主进程→ 数据库初始化成功')
@@ -333,6 +360,10 @@ app.whenReady().then(async () => {
     console.log('notes 表是否存在:', hasNotesTable)
 
     electronApp.setAppUserModelId('com.electron')
+
+    ipcMain.handle('get-resource-path', (_event, filename) => {
+      return path.join(app.getAppPath(), 'resources', filename)
+    })
 
     // 设置 IPC 处理程序
     setupIpcHandlers()

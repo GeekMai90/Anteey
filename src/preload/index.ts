@@ -2,6 +2,14 @@ import { contextBridge, ipcRenderer } from 'electron'
 import { Note, CardBox } from '../renderer/src/types/Note'
 
 contextBridge.exposeInMainWorld('electronAPI', {
+  getResourcePath: async (filename: string): Promise<string> => {
+    try {
+      return (await ipcRenderer.invoke('get-resource-path', filename)) as string
+    } catch (error) {
+      console.error('Preload: Failed to get resource path:', error)
+      throw error
+    }
+  },
   createNote: async (): Promise<Note> => {
     try {
       return (await ipcRenderer.invoke('create-note')) as Note
@@ -113,6 +121,22 @@ contextBridge.exposeInMainWorld('electronAPI', {
       return (await ipcRenderer.invoke('update-note-card-box', { noteId, cardBoxId })) as void
     } catch (error) {
       console.error('Preload: 更新笔记的卡片盒时出错:', error)
+      throw error
+    }
+  },
+  toggleStarredStatus: async (id: string): Promise<Note | null> => {
+    try {
+      return (await ipcRenderer.invoke('toggle-starred-status', id)) as Note | null
+    } catch (error) {
+      console.error('Preload: 更新笔记的收藏状态时出错:', error)
+      throw error
+    }
+  },
+  getStarredNotes: async (): Promise<Note[]> => {
+    try {
+      return (await ipcRenderer.invoke('get-starred-notes')) as Note[]
+    } catch (error) {
+      console.error('Preload: 获取收藏的笔记时出错:', error)
       throw error
     }
   }

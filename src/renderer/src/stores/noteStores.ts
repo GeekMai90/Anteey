@@ -502,31 +502,49 @@ export const useNoteStore = defineStore('note', {
         this.selectedCardTypes.splice(index, 1)
       }
     },
+
+    // 收藏功能
     async toggleStarredStatus(id: string) {
       try {
-        const updatedNote = await window.notesAPI.toggleStarredStatus(id)
-        const index = this.notes.findIndex((note) => note.id === id)
-        if (index !== -1) {
-          this.notes[index] = this.parseNoteContent(updatedNote)
+        const result = await window.electronAPI.toggleStarredStatus(id)
+        if (result.success) {
+          const index = this.notes.findIndex((note) => note.id === id)
+          if (index !== -1) {
+            this.notes[index] = result.note as Note
+          }
+          console.log(`Toggled star status for note: ${id}`)
+          return result.note
+        } else {
+          console.error(`Failed to toggle star status for note ${id}:`, result)
+          throw new Error(`Failed to toggle star status for note ${id}: ${result}`)
         }
-        console.log(`Toggled star status for note: ${id}`)
-        return updatedNote
       } catch (error) {
         console.error(`Failed to toggle star status for note ${id}:`, error)
         throw error
       }
     },
-
+    // 获取收藏的笔记
     async fetchStarredNotes() {
       try {
-        const starredNotes = await window.notesAPI.getStarredNotes()
-        console.log(`Fetched ${starredNotes.length} starred notes`)
-        return starredNotes.map((note) => this.parseNoteContent(note))
+        const starredNotes = await window.electronAPI.getStarredNotes()
+        console.log(`noteStores.ts→ 获取收藏的笔记`, starredNotes)
+        return starredNotes
       } catch (error) {
-        console.error('Failed to fetch starred notes:', error)
+        console.error('noteStores.ts→ 获取收藏的笔记失败:', error)
         throw error
       }
     }
+
+    // async fetchStarredNotes() {
+    //   try {
+    //     const starredNotes = await window.notesAPI.getStarredNotes()
+    //     console.log(`Fetched ${starredNotes.length} starred notes`)
+    //     return starredNotes.map((note) => this.parseNoteContent(note))
+    //   } catch (error) {
+    //     console.error('Failed to fetch starred notes:', error)
+    //     throw error
+    //   }
+    // }
   },
 
   getters: {

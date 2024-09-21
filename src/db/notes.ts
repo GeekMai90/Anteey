@@ -224,6 +224,61 @@ export async function updateNoteCardBox(noteId: string, cardBoxId: string): Prom
   }
 }
 
+// 切换笔记的收藏状态
+// 返回 success 和更新后的笔记
+// export async function toggleStarredStatus(id: string): Promise<Note | null> {
+//   try {
+//     const note = await getNoteById(id)
+//     if (!note) {
+//       console.error(`后端→ 未找到ID为 ${id} 的笔记`)
+//       throw new Error(`Note with ID "${id}" not found`)
+//     }
+//     const updatedNote = await db('notes')
+//       .where('id', id)
+//       .update('isStarred', (isStarred: boolean) => !isStarred)
+//       .returning('*')
+//     console.log(`后端→ 更新笔记的收藏状态: ${id}`)
+//     return updatedNote[0]
+//   } catch (error) {
+//     console.error(`后端→ 更新笔记的收藏状态失败: ${id}:`, error)
+//     throw error
+//   }
+// }
+// 切换笔记的收藏状态
+export async function toggleStarredStatus(id: string): Promise<Note | null> {
+  try {
+    const [updatedNote] = await db('notes')
+      .where('id', id)
+      .update({
+        isStarred: db.raw('NOT ??', ['isStarred'])
+        // updatedAt: new Date()
+      })
+      .returning('*')
+
+    if (!updatedNote) {
+      console.error(`后端→ 未找到ID为 ${id} 的笔记`)
+      return null
+    }
+
+    console.log(`后端→ 更新笔记的收藏状态: ${id}`)
+    return convertToNote(updatedNote)
+  } catch (error) {
+    console.error(`后端→ 更新笔记的收藏状态失败: ${id}:`, error)
+    throw error
+  }
+}
+
+// 获取收藏的笔记
+export async function getStarredNotes(): Promise<Note[]> {
+  try {
+    const notes = await db('notes').where('isStarred', true).orderBy('updatedAt', 'desc')
+    return notes.map(convertToNote)
+  } catch (error) {
+    console.error('后端→ 获取收藏的笔记失败:', error)
+    throw error
+  }
+}
+
 // 辅助函数：将数据库记录转换为 Note 对象
 function convertToNote(record: any): Note {
   return {
