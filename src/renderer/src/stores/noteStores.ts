@@ -204,10 +204,11 @@ export const useNoteStore = defineStore('note', {
         return false
       }
     },
-
+    // 从回收站恢复
     async restoreFromTrash(id: string) {
       try {
-        await window.notesAPI.restoreFromTrash(id)
+        const result = await window.electronAPI.restoreNote(id)
+        console.log('noteStores.ts→ 从回收站恢复笔记:', result)
         const index = this.notes.findIndex((note) => note.id === id)
         if (index !== -1) {
           this.notes[index].isDeleted = false
@@ -215,6 +216,17 @@ export const useNoteStore = defineStore('note', {
         console.log(`Restored note from trash: ${id}`)
       } catch (error) {
         console.error(`Failed to restore note ${id} from trash:`, error)
+        throw error
+      }
+    },
+    async fetchDeletedNotes(): Promise<Note[]> {
+      try {
+        const deletedNotes = await window.electronAPI.getDeletedNotes()
+        this.notes = deletedNotes
+        console.log(`noteStores.ts→ 获取已删除的笔记`, deletedNotes)
+        return deletedNotes
+      } catch (error) {
+        console.error('noteStores.ts→ 获取已删除的笔记失败:', error)
         throw error
       }
     },
@@ -226,18 +238,6 @@ export const useNoteStore = defineStore('note', {
         console.log(`Permanently deleted note: ${id}`)
       } catch (error) {
         console.error(`Failed to permanently delete note ${id}:`, error)
-        throw error
-      }
-    },
-
-    async fetchDeletedNotes(): Promise<Note[]> {
-      try {
-        const deletedNotes = await window.notesAPI.getDeletedNotes()
-        this.notes = deletedNotes
-        console.log(`Fetched ${deletedNotes.length} deleted notes`)
-        return deletedNotes
-      } catch (error) {
-        console.error('Failed to fetch deleted notes:', error)
         throw error
       }
     },

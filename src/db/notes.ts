@@ -173,22 +173,33 @@ export async function softDeleteNote(id: string): Promise<Note | null> {
   }
 }
 
-// 永久删除笔记
-export async function permanentDeleteNote(id: string): Promise<void> {
-  try {
-    await db('notes').where('id', id).delete()
-  } catch (error) {
-    console.error(`Failed to permanently delete note with id ${id}:`, error)
-    throw error
-  }
-}
-
 // 恢复已删除的笔记
 export async function restoreNote(id: string): Promise<void> {
   try {
     await db('notes').where('id', id).update('isDeleted', false)
   } catch (error) {
     console.error(`Failed to restore note with id ${id}:`, error)
+    throw error
+  }
+}
+
+// 获取所有已删除的笔记
+export async function getDeletedNotes(): Promise<Note[]> {
+  try {
+    const notes = await db('notes').where('isDeleted', true).orderBy('updatedAt', 'desc')
+    return notes.map(convertToNote)
+  } catch (error) {
+    console.error('Failed to get deleted notes:', error)
+    throw error
+  }
+}
+
+// 永久删除笔记
+export async function permanentDeleteNote(id: string): Promise<void> {
+  try {
+    await db('notes').where('id', id).delete()
+  } catch (error) {
+    console.error(`Failed to permanently delete note with id ${id}:`, error)
     throw error
   }
 }

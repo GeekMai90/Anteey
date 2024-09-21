@@ -4,7 +4,15 @@ import { join } from 'path'
 import path from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import { initDatabase } from '../db/init'
-import { createNote, getNoteById, updateNote, getAllNotes, softDeleteNote } from '../db/notes'
+import {
+  createNote,
+  getNoteById,
+  updateNote,
+  getAllNotes,
+  softDeleteNote,
+  restoreNote,
+  getDeletedNotes
+} from '../db/notes'
 import { db } from '../db/config'
 // 设置应用名称
 app.name = 'Antinet'
@@ -166,6 +174,29 @@ function setupIpcHandlers() {
       return { success: true, note: updatedNote }
     } catch (error) {
       console.error('主进程 → 软删除笔记时出错:', error)
+      return { success: false, error: error }
+    }
+  })
+
+  // 恢复已删除的笔记
+  ipcMain.handle('restore-note', async (_event, id: string) => {
+    try {
+      await restoreNote(id)
+      return { success: true }
+      console.log('主进程 → 恢复已删除的笔记成功')
+    } catch (error) {
+      console.error('主进程 → 恢复已删除的笔记时出错:', error)
+      return { success: false, error: error }
+    }
+  })
+
+  // 获取所有已删除的笔记
+  ipcMain.handle('get-deleted-notes', async () => {
+    try {
+      const deletedNotes = await getDeletedNotes()
+      return deletedNotes
+    } catch (error) {
+      console.error('主进程 → 获取已删除的笔记时出错:', error)
       return { success: false, error: error }
     }
   })

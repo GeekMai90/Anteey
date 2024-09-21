@@ -58,7 +58,7 @@ onMounted(async () => {
 })
 
 const fetchNotes = async () => {
-  await noteStore.fetchNotes()
+  await noteStore.fetchAllNotes()
 }
 
 // 展开笔记（这里可以实现查看完整笔记内容的逻辑）
