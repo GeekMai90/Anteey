@@ -4,8 +4,7 @@ import { join } from 'path'
 import path from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import { initDatabase } from '../db/init'
-import { Note } from '../renderer/src/types/Note'
-import { createNote, getNoteById, updateNote, getAllNotes } from '../db/notes'
+import { createNote, getNoteById, updateNote, getAllNotes, softDeleteNote } from '../db/notes'
 import { db } from '../db/config'
 // 设置应用名称
 app.name = 'Antinet'
@@ -135,49 +134,6 @@ function setupIpcHandlers() {
   })
 
   // 更新笔记
-  // ipcMain.handle('update-note', async (_, id: string, updatedNote: Partial<Note>) => {
-  //   try {
-  //     console.log('主进程→ 开始更新笔记:', id)
-  //     const result = await updateNote(id, updatedNote)
-  //     console.log('主进程→ 笔记更新成功:', id)
-  //     return result
-  //   } catch (error) {
-  //     console.error('主进程→ 更新笔记失败:', error)
-  //     if (error instanceof Error) {
-  //       throw new Error(`Failed to update note: ${error.message}`)
-  //     } else {
-  //       throw new Error('Failed to update note: Unknown error')
-  //     }
-  //   }
-  // })
-  // ipcMain.handle('update-note', async (event, id: string, changes: Partial<Note>) => {
-  //   try {
-  //     const now = new Date()
-  //     const noteToUpdate: any = {
-  //       ...changes,
-  //       updatedAt: now
-  //     }
-
-  //     // 序列化 content 字段
-  //     if (changes.content) {
-  //       noteToUpdate.content = JSON.stringify(changes.content)
-  //     }
-
-  //     await db('notes').where('id', id).update(noteToUpdate)
-
-  //     // 获取更新后的笔记
-  //     const updatedNoteFromDB = await db('notes').where('id', id).first()
-
-  //     // 反序列化 content 字段
-  //     return {
-  //       ...updatedNoteFromDB,
-  //       content: JSON.parse(updatedNoteFromDB.content)
-  //     }
-  //   } catch (error) {
-  //     console.error('Failed to update note:', error)
-  //     throw error
-  //   }
-  // })
   ipcMain.handle('update-note', async (_event, { id, updateData }) => {
     console.log('主进程 → 收到更新笔记请求:', { id, updateData })
 
@@ -201,6 +157,18 @@ function setupIpcHandlers() {
       return { success: false, error: error }
     }
   })
+
+  // 软删除笔记
+  ipcMain.handle('soft-delete-note', async (_event, id: string) => {
+    try {
+      const updatedNote = await softDeleteNote(id)
+      console.log('主进程 → 软删除笔记更新后的笔记:', JSON.stringify(updatedNote))
+      return { success: true, note: updatedNote }
+    } catch (error) {
+      console.error('主进程 → 软删除笔记时出错:', error)
+      return { success: false, error: error }
+    }
+  })
 }
 
 function createWindow(): void {
@@ -220,6 +188,7 @@ function createWindow(): void {
     }
   })
   mainWindow.maximize()
+  mainWindow.webContents.openDevTools()
 
   mainWindow.on('ready-to-show', () => {
     mainWindow.show()

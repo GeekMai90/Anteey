@@ -35,7 +35,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
     console.log('Preload: 更新笔记成功:', result.note)
     return result.note
   },
-
+  softDeleteNote: async (id: string): Promise<Note | null> => {
+    try {
+      return (await ipcRenderer.invoke('soft-delete-note', id)) as Note | null
+    } catch (error) {
+      console.error(`Preload: Failed to soft delete note with id ${id}:`, error)
+      throw error
+    }
+  },
   deleteNote: async (id: string): Promise<boolean> => {
     try {
       return (await ipcRenderer.invoke('delete-note', id)) as boolean

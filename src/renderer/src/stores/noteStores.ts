@@ -153,120 +153,54 @@ export const useNoteStore = defineStore('note', {
       this.openNoteEditor(newNote.id)
     },
 
+    // 更新笔记
     async updateNote(id: string, noteData: Partial<Note>): Promise<Note> {
       try {
+        console.log('noteStores.ts→ 更新笔记', id, noteData)
         const serializableNoteData = JSON.parse(JSON.stringify(noteData))
         const response = await window.electronAPI.updateNote(id, serializableNoteData)
         const updatedNote = this.parseNoteContent(response)
+        console.log('noteStores.ts→ 更新后的笔记', updatedNote)
         const index = this.notes.findIndex((note) => note.id === id)
         if (index !== -1) {
           this.notes[index] = updatedNote
         } else {
           this.notes.push(updatedNote)
         }
-        console.log(`Updated note: ${id}`)
+        console.log(`noteStores.ts→ 更新笔记成功 ${id}`)
         return updatedNote
       } catch (error) {
-        console.error(`Failed to update note ${id}:`, error)
+        console.error(`noteStores.ts→ 更新笔记失败 ${id}:`, error)
         throw error
       }
     },
-    // 更新笔记
-    // async updateNote(id: string, updatedNote: Partial<Note>) {
-    //   try {
-    //     console.log('Store: 开始更新笔记', id)
-    //     const updated = await window.electronAPI.updateNote(id, updatedNote)
 
-    //     // 更新 notes 数组中的笔记
-    //     const index = this.notes.findIndex((note) => note.id === id)
-    //     if (index !== -1) {
-    //       this.notes[index] = updated
-    //     }
-
-    //     // 如果更新的是当前笔记，也更新 currentNote
-    //     if (this.currentNote && this.currentNote.id === id) {
-    //       this.currentNote = updated
-    //     }
-
-    //     console.log('Store: 笔记更新成功', id)
-    //     return updated
-    //   } catch (err) {
-    //     console.error('Store: 更新笔记失败:', err)
-    //     throw err
-    //   }
-    // },
-    // async updateNote(id: string, changes: Partial<Note>) {
-    //   this.currentNoteSaveStatus = 'saving'
-    //   try {
-    //     const safeChanges = this.createSafeChangesObject(changes)
-    //     const updatedNote = await window.electronAPI.updateNote(id, safeChanges)
-
-    //     const index = this.notes.findIndex((n) => n.id === id)
-    //     if (index !== -1) {
-    //       this.notes[index] = updatedNote
-    //     }
-    //     if (this.currentNote && this.currentNote.id === id) {
-    //       this.currentNote = updatedNote
-    //     }
-
-    //     this.currentNoteSaveStatus = 'saved'
-    //     return updatedNote
-    //   } catch (error) {
-    //     console.error('Failed to update note:', error)
-    //     this.currentNoteSaveStatus = 'error'
-    //     throw error
-    //   }
-    // },
-
-    // createSafeChangesObject(changes: Partial<Note>): Partial<Note> {
-    //   const safeChanges: Partial<Note> = {}
-
-    //   if (changes.id) safeChanges.id = changes.id
-    //   if (changes.type) safeChanges.type = changes.type
-    //   if (changes.address) safeChanges.address = changes.address
-    //   if (changes.cardType) safeChanges.cardType = changes.cardType
-    //   if (changes.createdAt) safeChanges.createdAt = new Date(changes.createdAt)
-    //   if (changes.updatedAt) safeChanges.updatedAt = new Date(changes.updatedAt)
-    //   if (changes.tags) safeChanges.tags = [...changes.tags]
-    //   if (changes.linkedTo) safeChanges.linkedTo = [...changes.linkedTo]
-    //   if (changes.linkedFrom) safeChanges.linkedFrom = [...changes.linkedFrom]
-    //   if (changes.cardBoxId) safeChanges.cardBoxId = changes.cardBoxId
-    //   if (changes.parentId) safeChanges.parentId = changes.parentId
-    //   if (changes.isDeleted !== undefined) safeChanges.isDeleted = changes.isDeleted
-    //   if (changes.isStarred !== undefined) safeChanges.isStarred = changes.isStarred
-
-    //   if (changes.content) {
-    //     safeChanges.content = JSON.parse(JSON.stringify(changes.content))
-    //   }
-
-    //   return safeChanges
-    // },
-
+    // 移动到回收站
     async moveToTrash(id: string) {
-      console.log('Moving note to trash:', id)
+      console.log('noteStores.ts→ 移动到回收站:', id)
       try {
-        const result = await window.notesAPI.moveToTrash(id)
-        console.log('Move to trash result:', result)
-        if (result.success) {
+        const result = await window.electronAPI.softDeleteNote(id)
+        console.log('noteStores.ts→ 移动到回收站结果:', result)
+        if (result) {
           const noteIndex = this.notes.findIndex((note) => note.id === id)
           if (noteIndex !== -1) {
-            this.notes[noteIndex] = result.note
-            console.log('Updated note status successfully')
+            this.notes[noteIndex] = result.note as Note
+            console.log('noteStores.ts→ 更新笔记状态成功')
           } else {
-            console.warn('Note not found in local store, adding:', id)
-            this.notes.push(result.note)
+            console.warn('noteStores.ts→ 笔记未找到，添加:', id)
+            this.notes.push(result.note as Note)
           }
           if (this.currentNoteId === id) {
             this.closeNoteEditor()
-            console.log('Closed note editor')
+            console.log('noteStores.ts→ 关闭笔记编辑器')
           }
           return true
         } else {
-          console.error('Failed to move note to trash:', result)
+          console.error('noteStores.ts→ 移动笔记到回收站失败:', result)
           return false
         }
       } catch (error) {
-        console.error('Error moving note to trash:', error)
+        console.error('noteStores.ts→ 移动笔记到回收站失败:', error)
         return false
       }
     },

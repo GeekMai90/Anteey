@@ -70,8 +70,8 @@ export async function getAllNotes(includeDeleted: boolean = false): Promise<Note
 
 //更新笔记
 export async function updateNote(id: string, updateNoteDto: Partial<Note>): Promise<Note> {
-  console.log(`NotesService → 开始更新笔记，ID: ${id}`)
-  console.log('NotesService → 更新数据:', JSON.stringify(updateNoteDto))
+  console.log(`后端→ 开始更新笔记 ID: ${id}`)
+  console.log('后端→ 更新数据:', JSON.stringify(updateNoteDto))
 
   return db.transaction(async (trx) => {
     try {
@@ -79,11 +79,11 @@ export async function updateNote(id: string, updateNoteDto: Partial<Note>): Prom
       const note = await trx('notes').where({ id }).first()
 
       if (!note) {
-        console.error(`NotesService → 未找到ID为 ${id} 的笔记`)
+        console.error(`后端→ 未找到ID为 ${id} 的笔记`)
         throw new Error(`Note with ID "${id}" not found`)
       }
 
-      console.log('NotesService → 找到的原始笔记:', JSON.stringify(note))
+      console.log('后端→ 找到的原始笔记:', JSON.stringify(note))
 
       // 2. 准备更新数据
       const updateData: Partial<Note> = {}
@@ -100,8 +100,8 @@ export async function updateNote(id: string, updateNoteDto: Partial<Note>): Prom
         'isStarred'
       ]
       fields.forEach((field) => {
-        if (updateNoteDto[field] !== undefined) {
-          updateData[field] = updateNoteDto[field]
+        if (updateNoteDto[field as keyof Partial<Note>] !== undefined) {
+          ;(updateData as any)[field] = updateNoteDto[field as keyof Partial<Note>]
         }
       })
 
@@ -111,9 +111,9 @@ export async function updateNote(id: string, updateNoteDto: Partial<Note>): Prom
             typeof updateNoteDto.content === 'string'
               ? JSON.parse(updateNoteDto.content)
               : updateNoteDto.content
-          console.log('NotesService → 更新内容:', JSON.stringify(updateData.content))
+          console.log('后端→ 更新内容:', JSON.stringify(updateData.content))
         } catch (error) {
-          console.error('NotesService → 解析内容时出错:', error)
+          console.error('后端→ 解析内容时出错:', error)
           throw new Error('Invalid content format')
         }
       }
@@ -122,10 +122,7 @@ export async function updateNote(id: string, updateNoteDto: Partial<Note>): Prom
       updateData.updatedAt = new Date()
 
       // 4. 保存更新
-      console.log(
-        'NotesService → 更新后的笔记（保存前）:',
-        JSON.stringify({ ...note, ...updateData })
-      )
+      console.log('后端→ 更新后的笔记（保存前）:', JSON.stringify({ ...note, ...updateData }))
 
       // 确保 content 字段在存储到数据库之前被转换为 JSON 字符串
       if (updateData.content) {
@@ -134,8 +131,8 @@ export async function updateNote(id: string, updateNoteDto: Partial<Note>): Prom
 
       // 处理数组字段
       ;['tags', 'linkedTo', 'linkedFrom'].forEach((field) => {
-        if (Array.isArray(updateData[field])) {
-          updateData[field] = JSON.stringify(updateData[field])
+        if (Array.isArray(updateData[field as keyof Partial<Note>])) {
+          ;(updateData as any)[field] = JSON.stringify(updateData[field as keyof Partial<Note>])
         }
       })
 
@@ -153,21 +150,25 @@ export async function updateNote(id: string, updateNoteDto: Partial<Note>): Prom
         }
       })
 
-      console.log('NotesService → 保存后的笔记:', JSON.stringify(updatedNote))
+      console.log('后端→ 保存后的笔记:', JSON.stringify(updatedNote))
       return updatedNote
     } catch (error) {
-      console.error('NotesService → 更新笔记事务失败:', error)
+      console.error('后端→ 更新笔记事务失败:', error)
       throw error
     }
   })
 }
 
 // 软删除笔记
-export async function softDeleteNote(id: string): Promise<void> {
+export async function softDeleteNote(id: string): Promise<Note | null> {
   try {
-    await db('notes').where('id', id).update('isDeleted', true)
+    // 软删除后返回更新后的笔记
+    const result = await db('notes').where('id', id).update('isDeleted', true).returning('*')
+    const updatedNote = result[0] ? convertToNote(result[0]) : null
+    console.log('后端→ 软删除笔记更新后的笔记:', JSON.stringify(updatedNote))
+    return updatedNote
   } catch (error) {
-    console.error(`Failed to soft delete note with id ${id}:`, error)
+    console.error(`后端→ Failed to soft delete note with id ${id}:`, error)
     throw error
   }
 }
