@@ -168,7 +168,7 @@ export async function softDeleteNote(id: string): Promise<Note | null> {
     console.log('后端→ 软删除笔记更新后的笔记:', JSON.stringify(updatedNote))
     return updatedNote
   } catch (error) {
-    console.error(`后端→ Failed to soft delete note with id ${id}:`, error)
+    console.error(`后端→ 软删除笔记失败: ${id}:`, error)
     throw error
   }
 }
@@ -178,7 +178,7 @@ export async function restoreNote(id: string): Promise<void> {
   try {
     await db('notes').where('id', id).update('isDeleted', false)
   } catch (error) {
-    console.error(`Failed to restore note with id ${id}:`, error)
+    console.error(`后端→ 恢复已删除的笔记失败: ${id}:`, error)
     throw error
   }
 }
@@ -189,7 +189,7 @@ export async function getDeletedNotes(): Promise<Note[]> {
     const notes = await db('notes').where('isDeleted', true).orderBy('updatedAt', 'desc')
     return notes.map(convertToNote)
   } catch (error) {
-    console.error('Failed to get deleted notes:', error)
+    console.error('后端→ 获取已删除的笔记失败:', error)
     throw error
   }
 }
@@ -198,8 +198,9 @@ export async function getDeletedNotes(): Promise<Note[]> {
 export async function permanentDeleteNote(id: string): Promise<void> {
   try {
     await db('notes').where('id', id).delete()
+    console.log(`后端→ 永久删除笔记: ${id}`)
   } catch (error) {
-    console.error(`Failed to permanently delete note with id ${id}:`, error)
+    console.error(`后端→ 永久删除笔记失败: ${id}:`, error)
     throw error
   }
 }
@@ -225,11 +226,11 @@ function convertToNote(record: any): Note {
 }
 
 // 辅助函数，用于准备要插入数据库的数据
-function prepareNoteForDB(note: Partial<Note>): any {
-  const preparedNote: any = { ...note }
-  if (note.content) preparedNote.content = JSON.stringify(note.content)
-  if (note.tags) preparedNote.tags = JSON.stringify(note.tags)
-  if (note.linkedTo) preparedNote.linkedTo = JSON.stringify(note.linkedTo)
-  if (note.linkedFrom) preparedNote.linkedFrom = JSON.stringify(note.linkedFrom)
-  return preparedNote
-}
+// function prepareNoteForDB(note: Partial<Note>): any {
+//   const preparedNote: any = { ...note }
+//   if (note.content) preparedNote.content = JSON.stringify(note.content)
+//   if (note.tags) preparedNote.tags = JSON.stringify(note.tags)
+//   if (note.linkedTo) preparedNote.linkedTo = JSON.stringify(note.linkedTo)
+//   if (note.linkedFrom) preparedNote.linkedFrom = JSON.stringify(note.linkedFrom)
+//   return preparedNote
+// }

@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import { Note } from '../renderer/src/types/Note'
+import { Note, CardBox } from '../renderer/src/types/Note'
 
 contextBridge.exposeInMainWorld('electronAPI', {
   createNote: async (): Promise<Note> => {
@@ -59,11 +59,44 @@ contextBridge.exposeInMainWorld('electronAPI', {
       throw error
     }
   },
-  deleteNote: async (id: string): Promise<boolean> => {
+  permanentDeleteNote: async (id: string): Promise<boolean> => {
     try {
-      return (await ipcRenderer.invoke('delete-note', id)) as boolean
+      return (await ipcRenderer.invoke('permanent-delete-note', id)) as boolean
+      console.log('Preload: 永久删除笔记成功:', id)
     } catch (error) {
-      console.error(`Preload: Failed to delete note with id ${id}:`, error)
+      console.error(`Preload: 永久删除笔记失败: ${id}:`, error)
+      throw error
+    }
+  },
+  createCardBox: async (name: string): Promise<CardBox> => {
+    try {
+      return (await ipcRenderer.invoke('create-card-box', name)) as CardBox
+    } catch (error) {
+      console.error('Preload: 创建卡片盒时出错:', error)
+      throw error
+    }
+  },
+  getAllCardBoxes: async (): Promise<CardBox[]> => {
+    try {
+      return (await ipcRenderer.invoke('get-all-card-boxes')) as CardBox[]
+    } catch (error) {
+      console.error('Preload: 获取所有卡片盒时出错:', error)
+      throw error
+    }
+  },
+  updateCardBox: async (id: string, name: string): Promise<CardBox | undefined> => {
+    try {
+      return (await ipcRenderer.invoke('update-card-box', { id, name })) as CardBox | undefined
+    } catch (error) {
+      console.error('Preload: 更新卡片盒时出错:', error)
+      throw error
+    }
+  },
+  deleteCardBox: async (id: string): Promise<void> => {
+    try {
+      return (await ipcRenderer.invoke('delete-card-box', id)) as void
+    } catch (error) {
+      console.error('Preload: 删除卡片盒时出错:', error)
       throw error
     }
   }

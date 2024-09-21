@@ -252,15 +252,20 @@ const cardBoxes = computed(() => {
   const allCardsOption: CardBox = {
     id: '0000',
     name: '卡片柜',
+    type: 'cardbox',
     description: '卡片柜',
     createdAt: new Date('2023-01-15T09:00:00Z'),
     updatedAt: new Date('2023-06-20T14:30:00Z'),
-    noteIds: []
+    noteIds: [],
+    parentId: ''
   }
-  // 对 noteStore.cardBoxes 进行排序
-  const sortedCardBoxes = [...noteStore.cardBoxes].sort((a, b) =>
-    a.name.localeCompare(b.name, 'zh-CN')
+
+  // 确保 noteStore.cardBoxes 是一个数组，并且每个元素都有 name 属性
+  const validCardBoxes = (noteStore.cardBoxes || []).filter(
+    (box) => box && typeof box.name === 'string'
   )
+  // 对 noteStore.cardBoxes 进行排序
+  const sortedCardBoxes = [...validCardBoxes].sort((a, b) => a.name.localeCompare(b.name, 'zh-CN'))
 
   // 将 "全部卡片" 选项放在最前面，然后是排序后的其他卡片盒
   return [allCardsOption, ...sortedCardBoxes]
@@ -373,15 +378,17 @@ const deleteCardBox = async (id: string | null) => {
       await noteStore.deleteCardBox(id)
 
       // 重新获取卡片盒数据
-      await noteStore.fetchCardBoxes()
+      // await noteStore.fetchCardBoxes()
 
       // 重新获取笔记数据
-      await noteStore.fetchNotes()
+      await noteStore.fetchAllNotes()
 
       // 如果删除的是当前选中的卡片盒，重置选择
       if (selectedCardBox.value?.id === id) {
         selectCardBox(cardBoxes.value[0])
       }
+
+      console.log('删除卡片盒成功:', id)
 
       showMoreActions.value = null
     } catch (error) {
@@ -448,15 +455,11 @@ const saveCardBox = async () => {
   if (editingCardBox.value.name && editingCardBox.value.name.trim()) {
     try {
       if (isEditing.value && editingCardBox.value.id) {
-        await noteStore.updateCardBox(editingCardBox.value.id, {
-          name: editingCardBox.value.name.trim()
-        })
+        await noteStore.updateCardBox(editingCardBox.value.id, editingCardBox.value.name.trim())
       } else {
-        await noteStore.createCardBox({
-          name: editingCardBox.value.name.trim(),
-          noteIds: []
-        })
+        await noteStore.createCardBox(editingCardBox.value.name.trim())
       }
+      await noteStore.fetchCardBoxes()
       closeCardBoxModal()
     } catch (error) {
       console.error(isEditing.value ? '更新卡片盒失败:' : '创建卡片盒失败:', error)

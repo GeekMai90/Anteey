@@ -1,7 +1,7 @@
 // src/stores/noteStores.ts
 
 import { defineStore } from 'pinia'
-import { Note, Whiteboard, Connection } from '../types/Note'
+import { Note, Whiteboard, Connection, CardBox } from '../types/Note'
 import { Notes, Table, TransactionOrder, Deeplink } from '@icon-park/vue-next'
 import { ref } from 'vue'
 import { cloneDeep } from 'lodash-es'
@@ -13,14 +13,14 @@ import { cloneDeep } from 'lodash-es'
 //   }
 // }
 
-interface CardBox {
-  id: string
-  name: string
-  description?: string
-  createdAt: Date
-  updatedAt: Date
-  noteIds: string[]
-}
+// interface CardBox {
+//   id: string
+//   name: string
+//   description?: string
+//   createdAt: Date
+//   updatedAt: Date
+//   noteIds: string[]
+// }
 
 const cardTypes = [
   { value: 'Maincard', label: '主要卡', icon: Notes },
@@ -219,6 +219,7 @@ export const useNoteStore = defineStore('note', {
         throw error
       }
     },
+    // 获取已删除的笔记
     async fetchDeletedNotes(): Promise<Note[]> {
       try {
         const deletedNotes = await window.electronAPI.getDeletedNotes()
@@ -230,14 +231,14 @@ export const useNoteStore = defineStore('note', {
         throw error
       }
     },
-
+    // 永久删除
     async permanentlyDelete(id: string) {
       try {
-        await window.notesAPI.permanentlyDelete(id)
+        await window.electronAPI.permanentDeleteNote(id)
         this.notes = this.notes.filter((note) => note.id !== id)
-        console.log(`Permanently deleted note: ${id}`)
+        console.log(`noteStores.ts→ 永久删除笔记: ${id}`)
       } catch (error) {
-        console.error(`Failed to permanently delete note ${id}:`, error)
+        console.error(`noteStores.ts→ 永久删除笔记失败: ${id}:`, error)
         throw error
       }
     },
@@ -246,70 +247,85 @@ export const useNoteStore = defineStore('note', {
     async initializeCardBoxes() {
       await this.fetchCardBoxes()
     },
-
+    // 获取卡片盒
     async fetchCardBoxes() {
       try {
-        const cardBoxes = await window.cardBoxAPI.findAll()
+        const cardBoxes = await window.electronAPI.getAllCardBoxes()
         this.cardBoxes = cardBoxes.map((box) => ({
           ...box,
           noteIds: box.noteIds || []
         }))
-        console.log(`Fetched ${this.cardBoxes.length} card boxes`)
+        console.log(`noteStores.ts→ 获取卡片盒`, this.cardBoxes)
       } catch (error) {
-        console.error('Failed to fetch card boxes:', error)
+        console.error('noteStores.ts→ 获取卡片盒失败:', error)
         throw error
       }
     },
 
-    async createCardBox(cardBoxData: Partial<CardBox>) {
+    // 创建卡片盒
+    async createCardBox(name: string) {
       try {
-        const newCardBox = await window.cardBoxAPI.create(cardBoxData)
+        const newCardBox = await window.electronAPI.createCardBox(name)
+        console.log('noteStores.ts→ 创建卡片盒', newCardBox)
         this.cardBoxes.push({
           ...newCardBox,
           noteIds: []
         })
-        console.log(`Created new card box: ${newCardBox.id}`)
+        console.log(`noteStores.ts→ 创建卡片盒成功: ${newCardBox.id}`)
         return newCardBox
       } catch (error) {
-        console.error('Failed to create card box:', error)
+        console.error('noteStores.ts→ 创建卡片盒失败:', error)
         throw error
       }
     },
-
-    async updateCardBox(id: string, updatedData: Partial<CardBox>) {
+    // 更新卡片盒
+    async updateCardBox(id: string, name: string) {
       try {
-        const updatedCardBox = await window.cardBoxAPI.update(id, updatedData as any)
-        const index = this.cardBoxes.findIndex((box) => box.id === id)
-        if (index !== -1) {
-          this.cardBoxes[index] = {
-            ...this.cardBoxes[index],
-            ...updatedCardBox,
-            noteIds: updatedCardBox.noteIds || []
+        const updatedCardBox = await window.electronAPI.updateCardBox(id, name)
+        if (updatedCardBox) {
+          const index = this.cardBoxes.findIndex((box) => box.id === id)
+          if (index !== -1) {
+            this.cardBoxes[index] = updatedCardBox
           }
+          console.log(`noteStores.ts→ 更新卡片盒: ${id}`)
+          return updatedCardBox
+        } else {
+          console.error(`noteStores.ts→ 更新卡片盒失败: ${id}`, updatedCardBox)
+          return null
         }
-        console.log(`Updated card box: ${id}`)
-        return updatedCardBox
       } catch (error) {
-        console.error(`Failed to update card box ${id}:`, error)
+        console.error(`noteStores.ts→ 更新卡片盒失败: ${id}`, error)
         throw error
       }
     },
 
+    // 删除卡片盒
     async deleteCardBox(id: string) {
       try {
-        const result = await window.cardBoxAPI.remove(id)
-        if (result.success) {
-          this.cardBoxes = this.cardBoxes.filter((box) => box.id !== id)
-          await this.fetchCardBoxes()
-          console.log(`Deleted card box: ${id}`)
-        } else {
-          console.error(`Failed to delete card box ${id}:`, result)
-        }
+        await window.electronAPI.deleteCardBox(id)
+        this.cardBoxes = this.cardBoxes.filter((box) => box.id !== id)
+        console.log(`noteStores.ts→ 删除卡片盒: ${id}`)
+        await this.fetchCardBoxes()
       } catch (error) {
-        console.error(`Error deleting card box ${id}:`, error)
+        console.error(`noteStores.ts→ 删除卡片盒失败: ${id}`, error)
         throw error
       }
     },
+    // async deleteCardBox(id: string) {
+    //   try {
+    //     const result = await window.cardBoxAPI.remove(id)
+    //     if (result.success) {
+    //       this.cardBoxes = this.cardBoxes.filter((box) => box.id !== id)
+    //       await this.fetchCardBoxes()
+    //       console.log(`Deleted card box: ${id}`)
+    //     } else {
+    //       console.error(`Failed to delete card box ${id}:`, result)
+    //     }
+    //   } catch (error) {
+    //     console.error(`Error deleting card box ${id}:`, error)
+    //     throw error
+    //   }
+    // },
 
     async addNoteToCardBox(cardBoxId: string, noteId: string) {
       try {
