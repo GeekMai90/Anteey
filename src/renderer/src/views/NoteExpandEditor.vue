@@ -432,7 +432,6 @@ watch(
 onBeforeRouteUpdate(() => {
   // 重新加载笔记数据
   loadNote()
-  next()
 })
 
 watch(
