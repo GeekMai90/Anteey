@@ -424,7 +424,12 @@ watch(
     focusAddressInput()
   }
 )
-onBeforeRouteUpdate((to, from, next) => {
+// onBeforeRouteUpdate((to, from, next) => {
+//   // 重新加载笔记数据
+//   loadNote()
+//   next()
+// })
+onBeforeRouteUpdate(() => {
   // 重新加载笔记数据
   loadNote()
   next()
