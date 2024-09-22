@@ -394,25 +394,6 @@ const getTypeLabel = (type: CardType) => {
   }
 }
 
-// const toggleCardTypeMenu = (event: MouseEvent) => {
-//   console.log('toggleCardTypeMenu called') // 添加这行
-//   event.stopPropagation()
-//   showCardTypeMenu.value = !showCardTypeMenu.value
-//   console.log('showCardTypeMenu:', showCardTypeMenu.value) // 添加这行
-//   if (showCardTypeMenu.value) {
-//     nextTick(() => {
-//       const button = indicatorButton.value
-//       if (button) {
-//         const rect = button.getBoundingClientRect()
-//         menuStyle.value = {
-//           top: `${rect.bottom + window.scrollY + 10}px`,
-//           left: `${rect.left + window.scrollX}px`
-//         }
-//         console.log('menuStyle:', menuStyle.value) // 添加这行
-//       }
-//     })
-//   }
-// }
 const toggleCardTypeMenu = (event: MouseEvent) => {
   console.log('toggleCardTypeMenu called')
   event.stopPropagation()
@@ -480,17 +461,17 @@ const focusEditor = () => {
 }
 
 // 在组件挂载后聚焦
-onMounted(() => {
-  focusAddressInput()
-})
+// onMounted(() => {
+//   focusAddressInput()
+// })
 
 // 当 noteId 改变时聚焦（用于编辑现有笔记）
-watch(
-  () => props.noteId,
-  () => {
-    focusAddressInput()
-  }
-)
+// watch(
+//   () => props.noteId,
+//   () => {
+//     focusAddressInput()
+//   }
+// )
 
 // 展开编辑器
 // const handleExpand = async () => {

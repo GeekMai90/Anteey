@@ -33,6 +33,7 @@
       <NoteEditorModal />
       <GlobalUIManager ref="globalUIManager" />
       <SearchModal ref="searchModal" />
+      <ContextMenu />
     </div>
   </Suspense>
 </template>
@@ -48,6 +49,7 @@ import GlobalUIManager from './components/GlobalUIManager.vue'
 import SearchModal from './components/SearchModal.vue'
 import { useNoteStore } from './stores/noteStores'
 import { useGlobalHotkeys } from './composable/useGlobalHotkeys'
+import ContextMenu from './components/ContexMenu.vue'
 
 const noteStore = useNoteStore()
 const isDarkTheme = ref(false)

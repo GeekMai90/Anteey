@@ -41,22 +41,9 @@ const noteStore = useNoteStore()
 
 const sidebarWidth = ref(props.initialWidth || 400)
 const sidebarNotes = computed(() => noteStore.rightSidebarNotes)
-
-// const closeSidebar = () => {
-//   noteStore.closeRightSidebar()
-// }
-
-// const updateNote = (noteId: string, content: any) => {
-//   noteStore.updateNote(noteId, { content })
-// }
-
 const clearSidebarNotes = () => {
   noteStore.clearRightSidebarNotes()
 }
-
-// const removeNoteFromSidebar = (noteId: string) => {
-//   noteStore.removeNoteFromRightSidebar(noteId)
-// }
 
 const startResize = (e: MouseEvent) => {
   e.preventDefault()

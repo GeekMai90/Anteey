@@ -294,62 +294,6 @@ export const useNoteStore = defineStore('note', {
         throw error
       }
     },
-    // 添加笔记到卡片盒
-    // async addNoteToCardBox(cardBoxId: string, noteId: string) {
-    //   try {
-    //     await window.electronAPI.addNoteToCardBox(cardBoxId, noteId)
-    //     console.log(`noteStores.ts→ 添加笔记到卡片盒: ${noteId}`)
-    //   } catch (error) {
-    //     console.error(`noteStores.ts→ 添加笔记到卡片盒失败: ${noteId}`, error)
-    //     throw error
-    //   }
-    // },
-    // async addNoteToCardBox(cardBoxId: string, noteId: string) {
-    //   try {
-    //     await window.cardBoxAPI.addNote(cardBoxId, noteId)
-    //     const cardBox = this.cardBoxes.find((box) => box.id === cardBoxId)
-    //     if (cardBox && !cardBox.noteIds.includes(noteId)) {
-    //       cardBox.noteIds.push(noteId)
-    //     }
-    //     console.log(`Added note ${noteId} to card box ${cardBoxId}`)
-    //   } catch (error) {
-    //     console.error(`Failed to add note ${noteId} to card box ${cardBoxId}:`, error)
-    //     throw error
-    //   }
-    // },
-
-    // async removeNoteFromCardBox(cardBoxId: string, noteId: string) {
-    //   try {
-    //     await window.cardBoxAPI.removeNote(cardBoxId, noteId)
-    //     const cardBox = this.cardBoxes.find((box) => box.id === cardBoxId)
-    //     if (cardBox) {
-    //       cardBox.noteIds = cardBox.noteIds.filter((id) => id !== noteId)
-    //     }
-    //     console.log(`Removed note ${noteId} from card box ${cardBoxId}`)
-    //   } catch (error) {
-    //     console.error(`Failed to remove note ${noteId} from card box ${cardBoxId}:`, error)
-    //     throw error
-    //   }
-    // },
-
-    // async getNotesInCardBox(cardBoxId: string): Promise<Note[]> {
-    //   try {
-    //     const notes = await window.notesAPI.getNotesInCardBox(cardBoxId)
-    //     notes.forEach((note) => {
-    //       const index = this.notes.findIndex((n) => n.id === note.id)
-    //       if (index !== -1) {
-    //         this.notes[index] = note
-    //       } else {
-    //         this.notes.push(note)
-    //       }
-    //     })
-    //     console.log(`Fetched ${notes.length} notes from card box ${cardBoxId}`)
-    //     return notes
-    //   } catch (error) {
-    //     console.error(`Failed to get notes in card box ${cardBoxId}:`, error)
-    //     throw error
-    //   }
-    // },
 
     // 更新笔记的卡片盒
     async updateNoteCardBox(noteId: string, newCardBoxId: string): Promise<Note | null> {
@@ -363,31 +307,6 @@ export const useNoteStore = defineStore('note', {
         throw error
       }
     },
-
-    // 辅助方法
-    //   try {
-    //     const response = await window.notesAPI.updateNoteCardBox(noteId, newCardBoxId)
-    //     if (response.success) {
-    //       const noteIndex = this.notes.findIndex((note) => note.id === noteId)
-    //       if (noteIndex !== -1) {
-    //         this.notes[noteIndex] = {
-    //           ...this.notes[noteIndex],
-    //           cardBoxId: newCardBoxId ?? undefined
-    //         }
-    //         console.log(`Note ${noteId} updated successfully in local store`)
-    //         return this.notes[noteIndex]
-    //       } else {
-    //         console.error(`Note ${noteId} not found in local store`)
-    //       }
-    //     } else {
-    //       console.error(`Failed to update note ${noteId} in the backend:`, response)
-    //     }
-    //     return null
-    //   } catch (error) {
-    //     console.error('Error in updateNoteCardBox:', error)
-    //     throw error
-    //   }
-    // },
 
     // 辅助方法
     parseNoteContent(note: any): Note {
@@ -487,28 +406,6 @@ export const useNoteStore = defineStore('note', {
       }
     },
 
-    // 收藏功能
-    // async toggleStarredStatus(noteId: string) {
-    //   try {
-    //     const result = await window.electronAPI.toggleStarredStatus(noteId)
-    //     if (result.success) {
-    //       const updatedNote = result.note
-
-    //       // 更新 notes 数组中的笔记
-    //       const noteIndex = this.notes.findIndex((note) => note.id === noteId)
-    //       if (noteIndex !== -1) {
-    //         this.notes[noteIndex] = updatedNote as Note
-    //       }
-
-    //       console.log('Star toggled successfully:', updatedNote)
-    //     } else {
-    //       console.error('Failed to toggle star:', result)
-    //     }
-    //   } catch (error) {
-    //     console.error('Error toggling star status:', error)
-    //   }
-    // },
-
     // 添加星标收藏
     async addStarToNote(id: string) {
       try {
@@ -557,6 +454,7 @@ export const useNoteStore = defineStore('note', {
       }
     },
 
+    // 更新收藏笔记顺序
     async updateStarredNotesOrder(orders: { id: string; starredOrder: number }[]) {
       try {
         console.log('noteStores.ts→ 开始更新收藏笔记顺序', orders)
@@ -603,12 +501,12 @@ export const useNoteStore = defineStore('note', {
         this.notes = this.notes.map((note) => updatedNotesMap.get(note.id) || note)
 
         // 确保星标笔记保持正确的顺序
-        this.notes.sort((a, b) => {
-          if (a.isStarred && b.isStarred) {
-            return (a.starredOrder ?? 0) - (b.starredOrder ?? 0)
-          }
-          return 0 // 保持非星标笔记的原有顺序
-        })
+        // this.notes.sort((a, b) => {
+        //   if (a.isStarred && b.isStarred) {
+        //     return (a.starredOrder ?? 0) - (b.starredOrder ?? 0)
+        //   }
+        //   return 0 // 保持非星标笔记的原有顺序
+        // })
 
         console.log('noteStores.ts→ 更新收藏笔记顺序成功', this.starredNotes)
       } catch (error) {

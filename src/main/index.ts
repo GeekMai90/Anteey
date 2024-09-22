@@ -22,10 +22,13 @@ import {
 import { createCardBox, getAllCardBoxes, updateCardBox, deleteCardBox } from '../db/cardBoxes'
 import { db, dbPath } from '../db/config'
 import log from 'electron-log'
-import { runMigrations } from '../db/migrations/migrations'
+// import { runMigrations } from '../db/migrations/migrations'
+import * as dotenv from 'dotenv'
 // import { CardBox } from '@renderer/types/Note'
 // 设置应用名称
 app.name = 'Antinet'
+// 加载 .env 文件
+dotenv.config({ path: path.join(__dirname, '../../.env') })
 
 // 设置日志
 log.transports.file.level = 'info'
@@ -331,7 +334,7 @@ function setupIpcHandlers() {
   // 更新收藏笔记的顺序
   ipcMain.handle(
     'update-starred-notes-order',
-    async (event, orders: { id: string; starredOrder: number }[]) => {
+    async (_event, orders: { id: string; starredOrder: number }[]) => {
       try {
         console.log('主进程 → 更新收藏笔记顺序，原来的:', orders)
         const updatedNotes = await updateStarredNotesOrder(orders)
@@ -455,7 +458,7 @@ app.whenReady().then(async () => {
     // if (process.platform === 'darwin') {
     //   app.dock.setIcon(join(__dirname, '../../build/icon.icns'))
     // }
-    await runMigrations()
+    // await runMigrations()
 
     // 初始化数据库
     await initDatabase(db)

@@ -11,6 +11,7 @@
       </div>
     </div>
     <draggable
+      v-if="isExpanded"
       v-model="localStarredNotes"
       class="starred-notes-container"
       item-key="id"
@@ -19,7 +20,7 @@
       @end="onDragEnd"
     >
       <template #item="{ element }">
-        <div class="starred-note-card">
+        <div class="starred-note-card" @contextmenu.prevent="openContextMenu($event, element)">
           <div class="starred-note-content">
             <StarredNotesCard :note="element" @click.stop="openNote(element)" />
           </div>
@@ -30,14 +31,15 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
-import { Right, Down } from '@icon-park/vue-next'
+import { computed, markRaw, ref, watch } from 'vue'
+import { Right, Down, Star } from '@icon-park/vue-next'
 import { useNoteStore } from '../stores/noteStores'
 import { Note } from '@renderer/types/Note'
 import { useRouter } from 'vue-router'
 import StarredNotesCard from './StarredNotesCard.vue'
 // import { VueDraggableNext } from 'vue-draggable-next'
 import draggable from 'vuedraggable'
+import { useContextMenuStore } from '../stores/contextMenuStore'
 
 const noteStore = useNoteStore()
 const router = useRouter()
@@ -46,6 +48,22 @@ const isExpanded = ref(true)
 const starredNotes = computed(() => noteStore.starredNotes)
 
 const localStarredNotes = ref<Note[]>([])
+
+const contextMenuStore = useContextMenuStore()
+const openContextMenu = (event: MouseEvent, note: Note) => {
+  const menuItems = [
+    {
+      label: '取消收藏',
+      action: () => {
+        noteStore.removeStarFromNote(note.id)
+        contextMenuStore.closeMenu()
+      },
+      icon: markRaw(Star) // 使用 markRaw 包装图标组件
+    }
+  ]
+
+  contextMenuStore.showMenu(event.clientX, event.clientY, menuItems)
+}
 
 // 监听 starredNotes 的变化，更新本地列表
 watch(

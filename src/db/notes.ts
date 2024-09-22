@@ -226,97 +226,6 @@ export async function updateNoteCardBox(noteId: string, cardBoxId: string): Prom
   }
 }
 
-// 切换笔记的收藏状态
-// 返回 success 和更新后的笔记
-// export async function toggleStarredStatus(id: string): Promise<Note | null> {
-//   try {
-//     const note = await getNoteById(id)
-//     if (!note) {
-//       console.error(`后端→ 未找到ID为 ${id} 的笔记`)
-//       throw new Error(`Note with ID "${id}" not found`)
-//     }
-//     const updatedNote = await db('notes')
-//       .where('id', id)
-//       .update('isStarred', (isStarred: boolean) => !isStarred)
-//       .returning('*')
-//     console.log(`后端→ 更新笔记的收藏状态: ${id}`)
-//     return updatedNote[0]
-//   } catch (error) {
-//     console.error(`后端→ 更新笔记的收藏状态失败: ${id}:`, error)
-//     throw error
-//   }
-// }
-// 切换笔记的收藏状态
-// export async function toggleStarredStatus(id: string): Promise<Note | null> {
-//   try {
-//     const [updatedNote] = await db('notes')
-//       .where('id', id)
-//       .update({
-//         isStarred: db.raw('NOT ??', ['isStarred'])
-//         // updatedAt: new Date()
-//       })
-//       .returning('*')
-
-//     if (!updatedNote) {
-//       console.error(`后端→ 未找到ID为 ${id} 的笔记`)
-//       return null
-//     }
-
-//     console.log(`后端→ 更新笔记的收藏状态: ${id}`)
-//     return convertToNote(updatedNote)
-//   } catch (error) {
-//     console.error(`后端→ 更新笔记的收藏状态失败: ${id}:`, error)
-//     throw error
-//   }
-// }
-// export async function toggleStarredStatus(id: string): Promise<Note | null> {
-//   try {
-//     const updatedNote = await db.transaction(async (trx) => {
-//       console.log(`后端→ 开始切换笔记 ${id} 的星标状态`)
-
-//       const note = await trx('notes').where('id', id).first()
-//       if (!note) {
-//         throw new Error(`后端→ 未找到ID为 ${id} 的笔记`)
-//       }
-
-//       const newIsStarred = !note.isStarred
-//       let newStarredOrder = note.starredOrder
-
-//       if (newIsStarred && note.starredOrder === 0) {
-//         const maxOrderResult = await trx('notes').max('starredOrder as maxOrder').first()
-//         const maxStarredOrder = maxOrderResult?.maxOrder || 0
-//         newStarredOrder = maxStarredOrder + 1
-//       } else if (!newIsStarred) {
-//         newStarredOrder = 0
-//       }
-
-//       const [updated] = await trx('notes')
-//         .where('id', id)
-//         .update({
-//           isStarred: newIsStarred,
-//           starredOrder: newStarredOrder,
-//           updatedAt: new Date()
-//         })
-//         .returning('*')
-
-//       console.log(`后端→ 笔记 ${id} 的星标状态已更新`)
-//       return updated
-//     })
-
-//     if (!updatedNote) {
-//       throw new Error(`后端→ 更新笔记 ${id} 的星标状态后未返回更新的笔记`)
-//     }
-
-//     console.log(
-//       `后端→ 更新笔记的收藏状态: ${id}, isStarred: ${updatedNote.isStarred}, starredOrder: ${updatedNote.starredOrder}`
-//     )
-//     return convertToNote(updatedNote)
-//   } catch (error) {
-//     console.error(`后端→ 更新笔记的收藏状态失败: ${id}:`, error)
-//     throw error
-//   }
-// }
-
 // 添加星标收藏
 export async function addStarToNote(id: string): Promise<Note> {
   return db.transaction(async (trx) => {
@@ -374,8 +283,7 @@ export async function removeStarFromNote(
         .where('id', id)
         .update({
           isStarred: false,
-          starredOrder: 0,
-          updatedAt: new Date()
+          starredOrder: 0
         })
         .returning('*')
 
@@ -395,8 +303,7 @@ export async function removeStarFromNote(
           const [updated] = await trx('notes')
             .where('id', note.id)
             .update({
-              starredOrder: note.starredOrder - 1,
-              updatedAt: new Date()
+              starredOrder: note.starredOrder - 1
             })
             .returning('*')
           return updated
@@ -446,8 +353,7 @@ export async function updateStarredNotesOrder(
       // 批量更新
       await trx('notes')
         .update({
-          starredOrder: trx.raw(`CASE id ${cases} ELSE starredOrder END`),
-          updatedAt: new Date()
+          starredOrder: trx.raw(`CASE id ${cases} ELSE starredOrder END`)
         })
         .whereIn(
           'id',
@@ -496,13 +402,3 @@ function convertToNote(record: any): Note {
     rightBarOrder: record.rightBarOrder
   }
 }
-
-// 辅助函数，用于准备要插入数据库的数据
-// function prepareNoteForDB(note: Partial<Note>): any {
-//   const preparedNote: any = { ...note }
-//   if (note.content) preparedNote.content = JSON.stringify(note.content)
-//   if (note.tags) preparedNote.tags = JSON.stringify(note.tags)
-//   if (note.linkedTo) preparedNote.linkedTo = JSON.stringify(note.linkedTo)
-//   if (note.linkedFrom) preparedNote.linkedFrom = JSON.stringify(note.linkedFrom)
-//   return preparedNote
-// }
