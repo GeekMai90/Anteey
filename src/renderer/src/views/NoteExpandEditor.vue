@@ -152,7 +152,9 @@ const emptyNote: Note = {
   cardBoxId: undefined,
   parentId: '',
   isDeleted: false,
-  isStarred: false
+  isStarred: false,
+  starredOrder: 0,
+  rightBarOrder: 0
 }
 
 const editedNote = ref<Note>({ ...emptyNote })

@@ -209,12 +209,18 @@ importers:
       v-click-outside:
         specifier: ^3.2.0
         version: 3.2.0
+      vue-draggable-next:
+        specifier: ^2.2.1
+        version: 2.2.1(sortablejs@1.15.3)(vue@3.5.6(typescript@5.6.2))
       vue-router:
         specifier: ^4.4.5
         version: 4.4.5(vue@3.5.6(typescript@5.6.2))
       vue-shortkey:
         specifier: ^3.1.7
         version: 3.1.7
+      vuedraggable:
+        specifier: ^4.1.0
+        version: 4.1.0(vue@3.5.6(typescript@5.6.2))
     devDependencies:
       '@electron-toolkit/eslint-config':
         specifier: ^1.0.2
@@ -269,13 +275,16 @@ importers:
         version: 9.28.0(eslint@8.57.1)
       jest:
         specifier: ^29.7.0
-        version: 29.7.0(@types/node@22.5.5)
+        version: 29.7.0(@types/node@22.5.5)(ts-node@10.9.2(@types/node@22.5.5)(typescript@5.6.2))
       prettier:
         specifier: ^3.3.2
         version: 3.3.3
       ts-jest:
         specifier: ^29.2.5
-        version: 29.2.5(@babel/core@7.25.2)(@jest/transform@29.7.0)(@jest/types@29.6.3)(babel-jest@29.7.0(@babel/core@7.25.2))(jest@29.7.0(@types/node@22.5.5))(typescript@5.6.2)
+        version: 29.2.5(@babel/core@7.25.2)(@jest/transform@29.7.0)(@jest/types@29.6.3)(babel-jest@29.7.0(@babel/core@7.25.2))(jest@29.7.0(@types/node@22.5.5)(ts-node@10.9.2(@types/node@22.5.5)(typescript@5.6.2)))(typescript@5.6.2)
+      ts-node:
+        specifier: ^10.9.2
+        version: 10.9.2(@types/node@22.5.5)(typescript@5.6.2)
       typescript:
         specifier: ^5.6.2
         version: 5.6.2
@@ -574,6 +583,10 @@ packages:
 
   '@codemirror/view@6.33.0':
     resolution: {integrity: sha512-AroaR3BvnjRW8fiZBalAaK+ZzB5usGgI014YKElYZvQdNH5ZIidHlO+cyf/2rWzyBFRkvG6VhiXeAEbC53P2YQ==, tarball: https://registry.npmjs.org/@codemirror/view/-/view-6.33.0.tgz}
+
+  '@cspotcode/source-map-support@0.8.1':
+    resolution: {integrity: sha512-IchNf6dN4tHoMFIn/7OE8LWZ19Y6q/67Bmf6vnGREv8RSbBVb9LPJxEcnwrcwX6ixSvaiGoomAUvu4YSxXrVgw==, tarball: https://registry.npmjs.org/@cspotcode/source-map-support/-/source-map-support-0.8.1.tgz}
+    engines: {node: '>=12'}
 
   '@develar/schema-utils@2.6.5':
     resolution: {integrity: sha512-0cp4PsWQ/9avqTVMCtZ+GirikIA36ikvjtHweU4/j8yLtgObI0+JUPhYFScgwlteveGB1rt3Cm8UhN04XayDig==, tarball: https://registry.npmjs.org/@develar/schema-utils/-/schema-utils-2.6.5.tgz}
@@ -917,6 +930,9 @@ packages:
 
   '@jridgewell/trace-mapping@0.3.25':
     resolution: {integrity: sha512-vNk6aEwybGtawWmy/PzwnGDOjCkLWSD2wqvjGGAgOAwCGWySYXfYoxt00IJkTF+8Lb57DwOb3Aa0o9CApepiYQ==, tarball: https://registry.npmjs.org/@jridgewell/trace-mapping/-/trace-mapping-0.3.25.tgz}
+
+  '@jridgewell/trace-mapping@0.3.9':
+    resolution: {integrity: sha512-3Belt6tdc8bPgAtbcmdtNJlirVoTmEb5e2gC94PnkwEW9jI6CAHUeoG85tjWP5WquqfavoMtMwiG4P926ZKKuQ==, tarball: https://registry.npmjs.org/@jridgewell/trace-mapping/-/trace-mapping-0.3.9.tgz}
 
   '@lezer/common@1.2.1':
     resolution: {integrity: sha512-yemX0ZD2xS/73llMZIK6KplkjIjf2EvAHcinDi/TfJ9hS25G0388+ClHt6/3but0oOxinTcQHJLDXh6w1crzFQ==, tarball: https://registry.npmjs.org/@lezer/common/-/common-1.2.1.tgz}
@@ -1432,6 +1448,18 @@ packages:
     resolution: {integrity: sha512-XCuKFP5PS55gnMVu3dty8KPatLqUoy/ZYzDzAGCQ8JNFCkLXzmI7vNHCR+XpbZaMWQK/vQubr7PkYq8g470J/A==, tarball: https://registry.npmjs.org/@tootallnate/once/-/once-2.0.0.tgz}
     engines: {node: '>= 10'}
 
+  '@tsconfig/node10@1.0.11':
+    resolution: {integrity: sha512-DcRjDCujK/kCk/cUe8Xz8ZSpm8mS3mNNpta+jGCA6USEDfktlNvm1+IuZ9eTcDbNk41BHwpHHeW+N1lKCz4zOw==, tarball: https://registry.npmjs.org/@tsconfig/node10/-/node10-1.0.11.tgz}
+
+  '@tsconfig/node12@1.0.11':
+    resolution: {integrity: sha512-cqefuRsh12pWyGsIoBKJA9luFu3mRxCA+ORZvA4ktLSzIuCUtWVxGIuXigEwO5/ywWFMZ2QEGKWvkZG1zDMTag==, tarball: https://registry.npmjs.org/@tsconfig/node12/-/node12-1.0.11.tgz}
+
+  '@tsconfig/node14@1.0.3':
+    resolution: {integrity: sha512-ysT8mhdixWK6Hw3i1V2AeRqZ5WfXg1G43mqoYlM2nc6388Fq5jcXyr5mRsqViLx/GJYdoL0bfXD8nmF+Zn/Iow==, tarball: https://registry.npmjs.org/@tsconfig/node14/-/node14-1.0.3.tgz}
+
+  '@tsconfig/node16@1.0.4':
+    resolution: {integrity: sha512-vxhUy4J8lyeyinH7Azl1pdd43GJhZH/tP2weN8TntQblOY+A0XbT8DJk1/oCPuOOyg/Ja757rG0CgHcWC8OfMA==, tarball: https://registry.npmjs.org/@tsconfig/node16/-/node16-1.0.4.tgz}
+
   '@types/babel__core@7.20.5':
     resolution: {integrity: sha512-qoQprZvz5wQFJwMDqeseRXWv3rqMvhgpbXFfVyWhbx9X47POIA6i/+dXefEmZKoAgOaTdaIgNSMqMIU61yRyzA==, tarball: https://registry.npmjs.org/@types/babel__core/-/babel__core-7.20.5.tgz}
 
@@ -1704,6 +1732,10 @@ packages:
     peerDependencies:
       acorn: ^6.0.0 || ^7.0.0 || ^8.0.0
 
+  acorn-walk@8.3.4:
+    resolution: {integrity: sha512-ueEepnujpqee2o5aIYnvHU6C0A42MNdsIDeqy5BydrkuC5R1ZuUFnm27EeFJGoEHJQgn3uleRvmTXaJgfXbt4g==, tarball: https://registry.npmjs.org/acorn-walk/-/acorn-walk-8.3.4.tgz}
+    engines: {node: '>=0.4.0'}
+
   acorn@8.12.1:
     resolution: {integrity: sha512-tcpGyI9zbizT9JbV6oYE477V6mTlXvvi0T0G3SNIYE2apm/G5huBa1+K89VGeovbg+jycCrfhl3ADxErOuO6Jg==, tarball: https://registry.npmjs.org/acorn/-/acorn-8.12.1.tgz}
     engines: {node: '>=0.4.0'}
@@ -1790,6 +1822,9 @@ packages:
     resolution: {integrity: sha512-QZW4EDmGwlYur0Yyf/b2uGucHQMa8aFUP7eu9ddR73vvhFyt4V0Vl3QHPcTNJ8l6qYOBdxgXdnBXQrHilfRQBg==, tarball: https://registry.npmjs.org/are-we-there-yet/-/are-we-there-yet-3.0.1.tgz}
     engines: {node: ^12.13.0 || ^14.15.0 || >=16.0.0}
     deprecated: This package is no longer supported.
+
+  arg@4.1.3:
+    resolution: {integrity: sha512-58S9QDqG0Xx27YwPSt9fJxivjYl432YCwfDMfZ+71RAqUrZef7LrKQZ3LHLOwCS4FLNBplP533Zx895SeOCHvA==, tarball: https://registry.npmjs.org/arg/-/arg-4.1.3.tgz}
 
   argparse@1.0.10:
     resolution: {integrity: sha512-o5Roy6tNG4SL/FOkCAN6RzjiakZS25RLYFrcMttJqbdd8BWrnA+fGz57iN5Pb06pvBGvl5gQ0B48dJlslXvoTg==, tarball: https://registry.npmjs.org/argparse/-/argparse-1.0.10.tgz}
@@ -2153,6 +2188,9 @@ packages:
     engines: {node: ^14.15.0 || ^16.10.0 || >=18.0.0}
     hasBin: true
 
+  create-require@1.1.1:
+    resolution: {integrity: sha512-dcKFX3jn0MpIaXjisoRvexIJVEKzaq7z2rZKxf+MSr9TkdmHmsU4m2lcLojrj/FHl8mk5VxMmYA+ftRkP/3oKQ==, tarball: https://registry.npmjs.org/create-require/-/create-require-1.1.1.tgz}
+
   crelt@1.0.6:
     resolution: {integrity: sha512-VQ2MBenTq1fWZUH9DJNGti7kKv6EeAuYr3cLwxUWhIu1baTaXh4Ib5W2CqHVqib4/MqbYGJqiL3Zb8GJZr3l4g==, tarball: https://registry.npmjs.org/crelt/-/crelt-1.0.6.tgz}
 
@@ -2273,6 +2311,10 @@ packages:
   diff-sequences@29.6.3:
     resolution: {integrity: sha512-EjePK1srD3P08o2j4f0ExnylqRs5B9tJjcp9t1krH2qRi8CCdsYfwe9JgSLurFBWwq4uOlipzfk5fHNvwFKr8Q==, tarball: https://registry.npmjs.org/diff-sequences/-/diff-sequences-29.6.3.tgz}
     engines: {node: ^14.15.0 || ^16.10.0 || >=18.0.0}
+
+  diff@4.0.2:
+    resolution: {integrity: sha512-58lmxKSA4BNyLz+HHMUzlOEpg09FV+ev6ZMe3vJihgdxzgcwZ8VoEEPmALCZG9LmqfVoNMMKpttIYTVG6uDY7A==, tarball: https://registry.npmjs.org/diff/-/diff-4.0.2.tgz}
+    engines: {node: '>=0.3.1'}
 
   dir-compare@3.3.0:
     resolution: {integrity: sha512-J7/et3WlGUCxjdnD3HAAzQ6nsnc0WL6DD7WcwJb7c39iH1+AWfg+9OqzJNaI6PkBwBvm1mhZNL9iY/nRiZXlPg==, tarball: https://registry.npmjs.org/dir-compare/-/dir-compare-3.3.0.tgz}
@@ -4426,6 +4468,12 @@ packages:
     resolution: {integrity: sha512-WTECP0nYNWO1n2g5bpsV0yZN9cBmZsF8ThHFbOqVN0HBFRoaQZLLEMvMmJlKHNPYQeVngeI5+jJzIfFqOIo1OA==, tarball: https://registry.npmjs.org/sort-on/-/sort-on-6.1.0.tgz}
     engines: {node: '>=18'}
 
+  sortablejs@1.14.0:
+    resolution: {integrity: sha512-pBXvQCs5/33fdN1/39pPL0NZF20LeRbLQ5jtnheIPN9JQAaufGjKdWduZn4U7wCtVuzKhmRkI0DFYHYRbB2H1w==, tarball: https://registry.npmjs.org/sortablejs/-/sortablejs-1.14.0.tgz}
+
+  sortablejs@1.15.3:
+    resolution: {integrity: sha512-zdK3/kwwAK1cJgy1rwl1YtNTbRmc8qW/+vgXf75A7NHag5of4pyI6uK86ktmQETyWRH7IGaE73uZOOBcGxgqZg==, tarball: https://registry.npmjs.org/sortablejs/-/sortablejs-1.15.3.tgz}
+
   source-map-js@1.2.1:
     resolution: {integrity: sha512-UXWMKhLOwVKb728IUtQPXxfYU+usdybtUrK/8uGE8CQMvrhOpwvzDBwj0QhSL7MQc7vIsISBG8VQ8+IDQxpfQA==, tarball: https://registry.npmjs.org/source-map-js/-/source-map-js-1.2.1.tgz}
     engines: {node: '>=0.10.0'}
@@ -4640,6 +4688,20 @@ packages:
       esbuild:
         optional: true
 
+  ts-node@10.9.2:
+    resolution: {integrity: sha512-f0FFpIdcHgn8zcPSbf1dRevwt047YMnaiJM3u2w2RewrB+fob/zePZcrOyQoLMMO7aBIddLcQIEK5dYjkLnGrQ==, tarball: https://registry.npmjs.org/ts-node/-/ts-node-10.9.2.tgz}
+    hasBin: true
+    peerDependencies:
+      '@swc/core': '>=1.2.50'
+      '@swc/wasm': '>=1.2.50'
+      '@types/node': '*'
+      typescript: '>=2.7'
+    peerDependenciesMeta:
+      '@swc/core':
+        optional: true
+      '@swc/wasm':
+        optional: true
+
   tslib@2.7.0:
     resolution: {integrity: sha512-gLXCKdN1/j47AiHiOkJN69hJmcbGTHI0ImLmbYLHykhgeN0jVGola9yVjFgzCUklsZQMW55o+dW7IXv3RCXDzA==, tarball: https://registry.npmjs.org/tslib/-/tslib-2.7.0.tgz}
 
@@ -4789,6 +4851,9 @@ packages:
     resolution: {integrity: sha512-QD0bDy38SHJXQBjgnllmkI/rbdiwmq9RC+/+pvrFjYJKTn8dtp7Penf9q1lLBta280fYG2q53mgLhQ+3l3z74w==, tarball: https://registry.npmjs.org/v-click-outside/-/v-click-outside-3.2.0.tgz}
     engines: {node: '>=6'}
 
+  v8-compile-cache-lib@3.0.1:
+    resolution: {integrity: sha512-wa7YjyUGfNZngI/vtK0UHAN+lgDCxBPCylVXGp0zu59Fz5aiGtNXaq3DhIov063MorB+VfufLh3JlF2KdTK3xg==, tarball: https://registry.npmjs.org/v8-compile-cache-lib/-/v8-compile-cache-lib-3.0.1.tgz}
+
   v8-to-istanbul@9.3.0:
     resolution: {integrity: sha512-kiGUalWN+rgBJ/1OHZsBtU4rXZOfj/7rKQxULKlIzwzQSvMJUUNgPwJEEh7gU6xEVxC0ahoOBvN2YI8GH6FNgA==, tarball: https://registry.npmjs.org/v8-to-istanbul/-/v8-to-istanbul-9.3.0.tgz}
     engines: {node: '>=10.12.0'}
@@ -4851,6 +4916,12 @@ packages:
       '@vue/composition-api':
         optional: true
 
+  vue-draggable-next@2.2.1:
+    resolution: {integrity: sha512-EAMS1IRHF0kZO0o5PMOinsQsXIqsrKT1hKmbICxG3UEtn7zLFkLxlAtajcCcUTisNvQ6TtCB5COjD9a1raNADw==, tarball: https://registry.npmjs.org/vue-draggable-next/-/vue-draggable-next-2.2.1.tgz}
+    peerDependencies:
+      sortablejs: ^1.14.0
+      vue: ^3.2.2
+
   vue-eslint-parser@9.4.3:
     resolution: {integrity: sha512-2rYRLWlIpaiN8xbPiDyXZXRgLGOtWxERV7ND5fFAv5qo1D2N9Fu9MNajBNc6o13lZ+24DAWCkQCvj4klgmcITg==, tarball: https://registry.npmjs.org/vue-eslint-parser/-/vue-eslint-parser-9.4.3.tgz}
     engines: {node: ^14.17.0 || >=16.0.0}
@@ -4883,6 +4954,11 @@ packages:
     peerDependenciesMeta:
       typescript:
         optional: true
+
+  vuedraggable@4.1.0:
+    resolution: {integrity: sha512-FU5HCWBmsf20GpP3eudURW3WdWTKIbEIQxh9/8GE806hydR9qZqRRxRE3RjqX7PkuLuMQG/A7n3cfj9rCEchww==, tarball: https://registry.npmjs.org/vuedraggable/-/vuedraggable-4.1.0.tgz}
+    peerDependencies:
+      vue: ^3.0.1
 
   w3c-keyname@2.2.8:
     resolution: {integrity: sha512-dpojBhNsCNN7T82Tm7k26A6G9ML3NkhDsnw9n/eoxSRlVBB4CEtIQ/KTCLI2Fwf3ataSXRhYFkQi3SlnFwPvPQ==, tarball: https://registry.npmjs.org/w3c-keyname/-/w3c-keyname-2.2.8.tgz}
@@ -4976,6 +5052,10 @@ packages:
   yjs@13.6.19:
     resolution: {integrity: sha512-GNKw4mEUn5yWU2QPHRx8jppxmCm9KzbBhB4qJLUJFiiYD0g/tDVgXQ7aPkyh01YO28kbs2J/BEbWBagjuWyejw==, tarball: https://registry.npmjs.org/yjs/-/yjs-13.6.19.tgz}
     engines: {node: '>=16.0.0', npm: '>=8.0.0'}
+
+  yn@3.1.1:
+    resolution: {integrity: sha512-Ux4ygGWsu2c7isFWe8Yu1YluJmqVhxqK2cLXNQA5AcC3QfbGNpM7fu0Y8b/z16pXLnFxZYvWhd3fhBY9DLmC6Q==, tarball: https://registry.npmjs.org/yn/-/yn-3.1.1.tgz}
+    engines: {node: '>=6'}
 
   yocto-queue@0.1.0:
     resolution: {integrity: sha512-rVksvsnNCdJ/ohGc6xgPwyN8eheCxsiLM8mxuE/t/mOVqJewPuO1miLpTHQiRgTKCLexL4MeAFVagts7HmNZ2Q==, tarball: https://registry.npmjs.org/yocto-queue/-/yocto-queue-0.1.0.tgz}
@@ -5460,6 +5540,10 @@ snapshots:
       style-mod: 4.1.2
       w3c-keyname: 2.2.8
 
+  '@cspotcode/source-map-support@0.8.1':
+    dependencies:
+      '@jridgewell/trace-mapping': 0.3.9
+
   '@develar/schema-utils@2.6.5':
     dependencies:
       ajv: 6.12.6
@@ -5711,7 +5795,7 @@ snapshots:
       jest-util: 29.7.0
       slash: 3.0.0
 
-  '@jest/core@29.7.0':
+  '@jest/core@29.7.0(ts-node@10.9.2(@types/node@22.5.5)(typescript@5.6.2))':
     dependencies:
       '@jest/console': 29.7.0
       '@jest/reporters': 29.7.0
@@ -5725,7 +5809,7 @@ snapshots:
       exit: 0.1.2
       graceful-fs: 4.2.11
       jest-changed-files: 29.7.0
-      jest-config: 29.7.0(@types/node@22.5.5)
+      jest-config: 29.7.0(@types/node@22.5.5)(ts-node@10.9.2(@types/node@22.5.5)(typescript@5.6.2))
       jest-haste-map: 29.7.0
       jest-message-util: 29.7.0
       jest-regex-util: 29.6.3
@@ -5877,6 +5961,11 @@ snapshots:
   '@jridgewell/sourcemap-codec@1.5.0': {}
 
   '@jridgewell/trace-mapping@0.3.25':
+    dependencies:
+      '@jridgewell/resolve-uri': 3.1.2
+      '@jridgewell/sourcemap-codec': 1.5.0
+
+  '@jridgewell/trace-mapping@0.3.9':
     dependencies:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.0
@@ -6454,6 +6543,14 @@ snapshots:
 
   '@tootallnate/once@2.0.0': {}
 
+  '@tsconfig/node10@1.0.11': {}
+
+  '@tsconfig/node12@1.0.11': {}
+
+  '@tsconfig/node14@1.0.3': {}
+
+  '@tsconfig/node16@1.0.4': {}
+
   '@types/babel__core@7.20.5':
     dependencies:
       '@babel/parser': 7.25.6
@@ -6813,6 +6910,10 @@ snapshots:
     dependencies:
       acorn: 8.12.1
 
+  acorn-walk@8.3.4:
+    dependencies:
+      acorn: 8.12.1
+
   acorn@8.12.1: {}
 
   agent-base@6.0.2:
@@ -6944,6 +7045,8 @@ snapshots:
     dependencies:
       delegates: 1.0.0
       readable-stream: 3.6.2
+
+  arg@4.1.3: {}
 
   argparse@1.0.10:
     dependencies:
@@ -7366,13 +7469,13 @@ snapshots:
       buffer: 5.7.1
     optional: true
 
-  create-jest@29.7.0(@types/node@22.5.5):
+  create-jest@29.7.0(@types/node@22.5.5)(ts-node@10.9.2(@types/node@22.5.5)(typescript@5.6.2)):
     dependencies:
       '@jest/types': 29.6.3
       chalk: 4.1.2
       exit: 0.1.2
       graceful-fs: 4.2.11
-      jest-config: 29.7.0(@types/node@22.5.5)
+      jest-config: 29.7.0(@types/node@22.5.5)(ts-node@10.9.2(@types/node@22.5.5)(typescript@5.6.2))
       jest-util: 29.7.0
       prompts: 2.4.2
     transitivePeerDependencies:
@@ -7380,6 +7483,8 @@ snapshots:
       - babel-plugin-macros
       - supports-color
       - ts-node
+
+  create-require@1.1.1: {}
 
   crelt@1.0.6: {}
 
@@ -7467,6 +7572,8 @@ snapshots:
       dequal: 2.0.3
 
   diff-sequences@29.6.3: {}
+
+  diff@4.0.2: {}
 
   dir-compare@3.3.0:
     dependencies:
@@ -8370,16 +8477,16 @@ snapshots:
       - babel-plugin-macros
       - supports-color
 
-  jest-cli@29.7.0(@types/node@22.5.5):
+  jest-cli@29.7.0(@types/node@22.5.5)(ts-node@10.9.2(@types/node@22.5.5)(typescript@5.6.2)):
     dependencies:
-      '@jest/core': 29.7.0
+      '@jest/core': 29.7.0(ts-node@10.9.2(@types/node@22.5.5)(typescript@5.6.2))
       '@jest/test-result': 29.7.0
       '@jest/types': 29.6.3
       chalk: 4.1.2
-      create-jest: 29.7.0(@types/node@22.5.5)
+      create-jest: 29.7.0(@types/node@22.5.5)(ts-node@10.9.2(@types/node@22.5.5)(typescript@5.6.2))
       exit: 0.1.2
       import-local: 3.2.0
-      jest-config: 29.7.0(@types/node@22.5.5)
+      jest-config: 29.7.0(@types/node@22.5.5)(ts-node@10.9.2(@types/node@22.5.5)(typescript@5.6.2))
       jest-util: 29.7.0
       jest-validate: 29.7.0
       yargs: 17.7.2
@@ -8389,7 +8496,7 @@ snapshots:
       - supports-color
       - ts-node
 
-  jest-config@29.7.0(@types/node@22.5.5):
+  jest-config@29.7.0(@types/node@22.5.5)(ts-node@10.9.2(@types/node@22.5.5)(typescript@5.6.2)):
     dependencies:
       '@babel/core': 7.25.2
       '@jest/test-sequencer': 29.7.0
@@ -8415,6 +8522,7 @@ snapshots:
       strip-json-comments: 3.1.1
     optionalDependencies:
       '@types/node': 22.5.5
+      ts-node: 10.9.2(@types/node@22.5.5)(typescript@5.6.2)
     transitivePeerDependencies:
       - babel-plugin-macros
       - supports-color
@@ -8634,12 +8742,12 @@ snapshots:
       merge-stream: 2.0.0
       supports-color: 8.1.1
 
-  jest@29.7.0(@types/node@22.5.5):
+  jest@29.7.0(@types/node@22.5.5)(ts-node@10.9.2(@types/node@22.5.5)(typescript@5.6.2)):
     dependencies:
-      '@jest/core': 29.7.0
+      '@jest/core': 29.7.0(ts-node@10.9.2(@types/node@22.5.5)(typescript@5.6.2))
       '@jest/types': 29.6.3
       import-local: 3.2.0
-      jest-cli: 29.7.0(@types/node@22.5.5)
+      jest-cli: 29.7.0(@types/node@22.5.5)(ts-node@10.9.2(@types/node@22.5.5)(typescript@5.6.2))
     transitivePeerDependencies:
       - '@types/node'
       - babel-plugin-macros
@@ -10124,6 +10232,10 @@ snapshots:
     dependencies:
       dot-prop: 9.0.0
 
+  sortablejs@1.14.0: {}
+
+  sortablejs@1.15.3: {}
+
   source-map-js@1.2.1: {}
 
   source-map-support@0.5.13:
@@ -10307,12 +10419,12 @@ snapshots:
     dependencies:
       typescript: 5.6.2
 
-  ts-jest@29.2.5(@babel/core@7.25.2)(@jest/transform@29.7.0)(@jest/types@29.6.3)(babel-jest@29.7.0(@babel/core@7.25.2))(jest@29.7.0(@types/node@22.5.5))(typescript@5.6.2):
+  ts-jest@29.2.5(@babel/core@7.25.2)(@jest/transform@29.7.0)(@jest/types@29.6.3)(babel-jest@29.7.0(@babel/core@7.25.2))(jest@29.7.0(@types/node@22.5.5)(ts-node@10.9.2(@types/node@22.5.5)(typescript@5.6.2)))(typescript@5.6.2):
     dependencies:
       bs-logger: 0.2.6
       ejs: 3.1.10
       fast-json-stable-stringify: 2.1.0
-      jest: 29.7.0(@types/node@22.5.5)
+      jest: 29.7.0(@types/node@22.5.5)(ts-node@10.9.2(@types/node@22.5.5)(typescript@5.6.2))
       jest-util: 29.7.0
       json5: 2.2.3
       lodash.memoize: 4.1.2
@@ -10325,6 +10437,24 @@ snapshots:
       '@jest/transform': 29.7.0
       '@jest/types': 29.6.3
       babel-jest: 29.7.0(@babel/core@7.25.2)
+
+  ts-node@10.9.2(@types/node@22.5.5)(typescript@5.6.2):
+    dependencies:
+      '@cspotcode/source-map-support': 0.8.1
+      '@tsconfig/node10': 1.0.11
+      '@tsconfig/node12': 1.0.11
+      '@tsconfig/node14': 1.0.3
+      '@tsconfig/node16': 1.0.4
+      '@types/node': 22.5.5
+      acorn: 8.12.1
+      acorn-walk: 8.3.4
+      arg: 4.1.3
+      create-require: 1.1.1
+      diff: 4.0.2
+      make-error: 1.3.6
+      typescript: 5.6.2
+      v8-compile-cache-lib: 3.0.1
+      yn: 3.1.1
 
   tslib@2.7.0: {}
 
@@ -10501,6 +10631,8 @@ snapshots:
 
   v-click-outside@3.2.0: {}
 
+  v8-compile-cache-lib@3.0.1: {}
+
   v8-to-istanbul@9.3.0:
     dependencies:
       '@jridgewell/trace-mapping': 0.3.25
@@ -10541,6 +10673,11 @@ snapshots:
 
   vue-demi@0.14.10(vue@3.5.6(typescript@5.6.2)):
     dependencies:
+      vue: 3.5.6(typescript@5.6.2)
+
+  vue-draggable-next@2.2.1(sortablejs@1.15.3)(vue@3.5.6(typescript@5.6.2)):
+    dependencies:
+      sortablejs: 1.15.3
       vue: 3.5.6(typescript@5.6.2)
 
   vue-eslint-parser@9.4.3(eslint@8.57.1):
@@ -10586,6 +10723,11 @@ snapshots:
       '@vue/shared': 3.5.6
     optionalDependencies:
       typescript: 5.6.2
+
+  vuedraggable@4.1.0(vue@3.5.6(typescript@5.6.2)):
+    dependencies:
+      sortablejs: 1.14.0
+      vue: 3.5.6(typescript@5.6.2)
 
   w3c-keyname@2.2.8: {}
 
@@ -10677,6 +10819,8 @@ snapshots:
   yjs@13.6.19:
     dependencies:
       lib0: 0.2.97
+
+  yn@3.1.1: {}
 
   yocto-queue@0.1.0: {}
 

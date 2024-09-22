@@ -5,22 +5,6 @@ import { Note, Whiteboard, Connection, CardBox } from '../types/Note'
 import { Notes, Table, TransactionOrder, Deeplink } from '@icon-park/vue-next'
 import { ref } from 'vue'
 
-// declare global {
-//   interface Window {
-//     notesAPI: NotesAPI
-//     cardBoxAPI: CardBoxAPI
-//   }
-// }
-
-// interface CardBox {
-//   id: string
-//   name: string
-//   description?: string
-//   createdAt: Date
-//   updatedAt: Date
-//   noteIds: string[]
-// }
-
 const cardTypes = [
   { value: 'Maincard', label: '主要卡', icon: Notes },
   { value: 'Bibcard', label: '书目卡', icon: Table },
@@ -504,25 +488,63 @@ export const useNoteStore = defineStore('note', {
     },
 
     // 收藏功能
-    async toggleStarredStatus(id: string) {
+    // async toggleStarredStatus(noteId: string) {
+    //   try {
+    //     const result = await window.electronAPI.toggleStarredStatus(noteId)
+    //     if (result.success) {
+    //       const updatedNote = result.note
+
+    //       // 更新 notes 数组中的笔记
+    //       const noteIndex = this.notes.findIndex((note) => note.id === noteId)
+    //       if (noteIndex !== -1) {
+    //         this.notes[noteIndex] = updatedNote as Note
+    //       }
+
+    //       console.log('Star toggled successfully:', updatedNote)
+    //     } else {
+    //       console.error('Failed to toggle star:', result)
+    //     }
+    //   } catch (error) {
+    //     console.error('Error toggling star status:', error)
+    //   }
+    // },
+
+    // 添加星标收藏
+    async addStarToNote(id: string) {
       try {
-        const result = await window.electronAPI.toggleStarredStatus(id)
-        if (result.success) {
-          const index = this.notes.findIndex((note) => note.id === id)
-          if (index !== -1) {
-            this.notes[index] = result.note as Note
-          }
-          console.log(`Toggled star status for note: ${id}`)
-          return result.note
-        } else {
-          console.error(`Failed to toggle star status for note ${id}:`, result)
-          throw new Error(`Failed to toggle star status for note ${id}: ${result}`)
-        }
+        const updatedNote = await window.electronAPI.addStarToNote(id)
+        this.notes = this.notes.map((note) => (note.id === updatedNote.id ? updatedNote : note))
+        console.log('noteStores.ts→ 添加星标收藏成功:', updatedNote)
+        return updatedNote
       } catch (error) {
-        console.error(`Failed to toggle star status for note ${id}:`, error)
+        console.error('noteStores.ts→ 添加星标收藏时出错:', error)
         throw error
       }
     },
+
+    // 移除星标收藏
+    async removeStarFromNote(id: string) {
+      try {
+        const result = await window.electronAPI.removeStarFromNote(id)
+
+        // 创建一个 Map 来存储更新后的笔记
+        const updatedNotesMap = new Map(
+          [result.updatedNote, ...result.reorderedNotes].map((note) => [note.id, note])
+        )
+
+        // 一次性更新所有笔记
+        this.notes = this.notes.map((note) =>
+          updatedNotesMap.has(note.id) ? updatedNotesMap.get(note.id)! : note
+        )
+
+        console.log('noteStores.ts→ 移除星标收藏成功:', result)
+        return result
+      } catch (error) {
+        console.error('noteStores.ts→ 移除星标收藏时出错:', error)
+        throw error
+      }
+    },
+
     // 获取收藏的笔记
     async fetchStarredNotes() {
       try {
@@ -533,25 +555,93 @@ export const useNoteStore = defineStore('note', {
         console.error('noteStores.ts→ 获取收藏的笔记失败:', error)
         throw error
       }
-    }
+    },
 
-    // async fetchStarredNotes() {
-    //   try {
-    //     const starredNotes = await window.notesAPI.getStarredNotes()
-    //     console.log(`Fetched ${starredNotes.length} starred notes`)
-    //     return starredNotes.map((note) => this.parseNoteContent(note))
-    //   } catch (error) {
-    //     console.error('Failed to fetch starred notes:', error)
-    //     throw error
-    //   }
-    // }
+    async updateStarredNotesOrder(orders: { id: string; starredOrder: number }[]) {
+      try {
+        console.log('noteStores.ts→ 开始更新收藏笔记顺序', orders)
+
+        // 乐观更新
+        const optimisticUpdate = new Map(orders.map((order) => [order.id, order.starredOrder]))
+        this.notes = this.notes.map((note) =>
+          optimisticUpdate.has(note.id)
+            ? { ...note, starredOrder: optimisticUpdate.get(note.id)! }
+            : note
+        )
+
+        // 调用后端 API 更新顺序
+        const result = await window.electronAPI.updateStarredNotesOrder(orders)
+
+        console.log('noteStores.ts→ 收到后端返回的结果:', result)
+
+        // 检查返回的结果是否为数组
+        if (!Array.isArray(result)) {
+          console.error('noteStores.ts→ 后端返回的数据格式不正确，预期是数组', result)
+          this.rollbackOptimisticUpdate()
+          return
+        }
+
+        // 如果是空数组，可能意味着没有笔记需要更新
+        if (result.length === 0) {
+          console.log('noteStores.ts→ 后端返回空数组，可能没有笔记需要更新')
+          return
+        }
+
+        // 验证返回的数组是否包含有效的 Note 对象
+        if (!this.isValidNoteArray(result)) {
+          console.error('noteStores.ts→ 后端返回的数组包含无效的 Note 对象', result)
+          this.rollbackOptimisticUpdate()
+          return
+        }
+
+        const updatedNotes = result as Note[]
+
+        // 创建一个 Map 来快速查找更新后的笔记
+        const updatedNotesMap = new Map(updatedNotes.map((note) => [note.id, note]))
+
+        // 更新本地状态
+        this.notes = this.notes.map((note) => updatedNotesMap.get(note.id) || note)
+
+        // 确保星标笔记保持正确的顺序
+        this.notes.sort((a, b) => {
+          if (a.isStarred && b.isStarred) {
+            return (a.starredOrder ?? 0) - (b.starredOrder ?? 0)
+          }
+          return 0 // 保持非星标笔记的原有顺序
+        })
+
+        console.log('noteStores.ts→ 更新收藏笔记顺序成功', this.starredNotes)
+      } catch (error) {
+        console.error('noteStores.ts→ 更新收藏笔记顺序失败:', error)
+        this.rollbackOptimisticUpdate()
+        throw error
+      }
+    },
+
+    // 辅助方法：检查是否为有效的 Note 数组
+    isValidNoteArray(arr: any[]): boolean {
+      return arr.every(
+        (item) =>
+          typeof item === 'object' &&
+          item !== null &&
+          'id' in item &&
+          'starredOrder' in item &&
+          'isStarred' in item
+      )
+    },
+
+    // 辅助方法：回滚乐观更新
+    rollbackOptimisticUpdate() {
+      this.notes = this.notes.map((note) => ({ ...note, starredOrder: note.starredOrder }))
+    }
   },
 
   getters: {
-    starredNotes: (state) => {
-      return state.notes.filter((note) => note.isStarred)
-    },
-
+    // 获取收藏的笔记
+    starredNotes: (state) =>
+      state.notes
+        .filter((note) => note.isStarred)
+        .sort((a, b) => (a.starredOrder ?? 0) - (b.starredOrder ?? 0)),
     getNoteById: (state) => {
       return (id: string) => state.notes.find((note) => note.id === id)
     },

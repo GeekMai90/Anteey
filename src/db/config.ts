@@ -1,3 +1,4 @@
+//src/db/config.ts
 import knex, { Knex } from 'knex'
 import path from 'path'
 import { app } from 'electron'
@@ -14,7 +15,7 @@ export function initializeDb() {
   if (isDev) {
     // 在开发模式下，将数据库文件放在项目根目录的 .dev 文件夹中
     const projectRoot = path.resolve(__dirname, '..', '..')
-    const devDbDir = path.join(projectRoot, '.dev')
+    const devDbDir = path.join(projectRoot, 'devDb')
 
     // 确保 .dev 目录存在
     if (!fs.existsSync(devDbDir)) {

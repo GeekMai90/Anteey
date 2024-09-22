@@ -22,6 +22,8 @@ export interface Note {
   parentId?: string // 父笔记的ID，支持笔记的层级结构
   isDeleted?: boolean
   isStarred?: boolean
+  starredOrder?: number
+  rightBarOrder?: number
 }
 
 // 卡片盒（文件夹）

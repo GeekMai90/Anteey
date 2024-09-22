@@ -47,9 +47,13 @@ const handleShare = () => {
 }
 
 const handleStar = () => {
-  noteStore.toggleStarredStatus(props.noteId)
-  console.log('Starring note', props.noteId)
-  // 实现收藏逻辑
+  if (!noteStore.notes.find((note) => note.id === props.noteId)?.isStarred) {
+    console.log('添加星标收藏')
+    noteStore.addStarToNote(props.noteId)
+  } else {
+    console.log('移除星标收藏')
+    noteStore.removeStarFromNote(props.noteId)
+  }
   emit('close')
 }
 

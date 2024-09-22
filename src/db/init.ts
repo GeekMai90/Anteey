@@ -18,6 +18,8 @@ export async function initDatabase(db: Knex): Promise<void> {
       table.string('parentId').nullable()
       table.boolean('isDeleted').notNullable().defaultTo(false)
       table.boolean('isStarred').notNullable().defaultTo(false)
+      table.integer('starredOrder').nullable()
+      table.integer('rightBarOrder').nullable()
     })
     console.log('notes 表创建成功')
   }

@@ -108,14 +108,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
       throw error
     }
   },
-  // addNoteToCardBox: async (cardBoxId: string, noteId: string): Promise<void> => {
-  //   try {
-  //     return (await ipcRenderer.invoke('add-note-to-card-box', { cardBoxId, noteId })) as void
-  //   } catch (error) {
-  //     console.error('Preload: 添加笔记到卡片盒时出错:', error)
-  //     throw error
-  //   }
-  // }
+
   updateNoteCardBox: async (noteId: string, cardBoxId: string): Promise<void> => {
     try {
       return (await ipcRenderer.invoke('update-note-card-box', { noteId, cardBoxId })) as void
@@ -124,19 +117,44 @@ contextBridge.exposeInMainWorld('electronAPI', {
       throw error
     }
   },
-  toggleStarredStatus: async (id: string): Promise<Note | null> => {
-    try {
-      return (await ipcRenderer.invoke('toggle-starred-status', id)) as Note | null
-    } catch (error) {
-      console.error('Preload: 更新笔记的收藏状态时出错:', error)
-      throw error
-    }
-  },
   getStarredNotes: async (): Promise<Note[]> => {
     try {
       return (await ipcRenderer.invoke('get-starred-notes')) as Note[]
     } catch (error) {
       console.error('Preload: 获取收藏的笔记时出错:', error)
+      throw error
+    }
+  },
+  addStarToNote: async (id: string): Promise<Note> => {
+    try {
+      return (await ipcRenderer.invoke('add-star-to-note', id)) as Note
+      console.log('Preload: 添加星标收藏成功:', id)
+    } catch (error) {
+      console.error('Preload: 添加星标收藏时出错:', error)
+      throw error
+    }
+  },
+  removeStarFromNote: async (
+    id: string
+  ): Promise<{ updatedNote: Note; reorderedNotes: Note[] }> => {
+    try {
+      return (await ipcRenderer.invoke('remove-star-from-note', id)) as {
+        updatedNote: Note
+        reorderedNotes: Note[]
+      }
+      console.log('Preload: 移除星标收藏成功:', id)
+    } catch (error) {
+      console.error('Preload: 移除星标收藏时出错:', error)
+      throw error
+    }
+  },
+  updateStarredNotesOrder: async (
+    orders: { id: string; starredOrder: number }[]
+  ): Promise<Note[]> => {
+    try {
+      return (await ipcRenderer.invoke('update-starred-notes-order', orders)) as Note[]
+    } catch (error) {
+      console.error('Preload: 更新收藏笔记顺序时出错:', error)
       throw error
     }
   }

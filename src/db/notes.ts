@@ -24,7 +24,9 @@ export async function createNote(): Promise<Note> {
     cardBoxId: '',
     parentId: '',
     isDeleted: false,
-    isStarred: false
+    isStarred: false,
+    starredOrder: 0,
+    rightBarOrder: 0
   }
 
   try {
@@ -245,27 +247,174 @@ export async function updateNoteCardBox(noteId: string, cardBoxId: string): Prom
 //   }
 // }
 // 切换笔记的收藏状态
-export async function toggleStarredStatus(id: string): Promise<Note | null> {
-  try {
-    const [updatedNote] = await db('notes')
+// export async function toggleStarredStatus(id: string): Promise<Note | null> {
+//   try {
+//     const [updatedNote] = await db('notes')
+//       .where('id', id)
+//       .update({
+//         isStarred: db.raw('NOT ??', ['isStarred'])
+//         // updatedAt: new Date()
+//       })
+//       .returning('*')
+
+//     if (!updatedNote) {
+//       console.error(`后端→ 未找到ID为 ${id} 的笔记`)
+//       return null
+//     }
+
+//     console.log(`后端→ 更新笔记的收藏状态: ${id}`)
+//     return convertToNote(updatedNote)
+//   } catch (error) {
+//     console.error(`后端→ 更新笔记的收藏状态失败: ${id}:`, error)
+//     throw error
+//   }
+// }
+// export async function toggleStarredStatus(id: string): Promise<Note | null> {
+//   try {
+//     const updatedNote = await db.transaction(async (trx) => {
+//       console.log(`后端→ 开始切换笔记 ${id} 的星标状态`)
+
+//       const note = await trx('notes').where('id', id).first()
+//       if (!note) {
+//         throw new Error(`后端→ 未找到ID为 ${id} 的笔记`)
+//       }
+
+//       const newIsStarred = !note.isStarred
+//       let newStarredOrder = note.starredOrder
+
+//       if (newIsStarred && note.starredOrder === 0) {
+//         const maxOrderResult = await trx('notes').max('starredOrder as maxOrder').first()
+//         const maxStarredOrder = maxOrderResult?.maxOrder || 0
+//         newStarredOrder = maxStarredOrder + 1
+//       } else if (!newIsStarred) {
+//         newStarredOrder = 0
+//       }
+
+//       const [updated] = await trx('notes')
+//         .where('id', id)
+//         .update({
+//           isStarred: newIsStarred,
+//           starredOrder: newStarredOrder,
+//           updatedAt: new Date()
+//         })
+//         .returning('*')
+
+//       console.log(`后端→ 笔记 ${id} 的星标状态已更新`)
+//       return updated
+//     })
+
+//     if (!updatedNote) {
+//       throw new Error(`后端→ 更新笔记 ${id} 的星标状态后未返回更新的笔记`)
+//     }
+
+//     console.log(
+//       `后端→ 更新笔记的收藏状态: ${id}, isStarred: ${updatedNote.isStarred}, starredOrder: ${updatedNote.starredOrder}`
+//     )
+//     return convertToNote(updatedNote)
+//   } catch (error) {
+//     console.error(`后端→ 更新笔记的收藏状态失败: ${id}:`, error)
+//     throw error
+//   }
+// }
+
+// 添加星标收藏
+export async function addStarToNote(id: string): Promise<Note> {
+  return db.transaction(async (trx) => {
+    const note = await trx('notes').where('id', id).first()
+    if (!note) {
+      throw new Error(`笔记 ${id} 不存在`)
+    }
+
+    if (note.isStarred) {
+      return convertToNote(note) // 如果已经是星标，直接返回
+    }
+
+    const maxOrderResult = await trx('notes')
+      .max('starredOrder as maxOrder')
+      .where('isStarred', true)
+      .first()
+    const newStarredOrder = (maxOrderResult?.maxOrder || 0) + 1
+
+    const [updatedNote] = await trx('notes')
       .where('id', id)
       .update({
-        isStarred: db.raw('NOT ??', ['isStarred'])
-        // updatedAt: new Date()
+        isStarred: true,
+        starredOrder: newStarredOrder
       })
       .returning('*')
 
-    if (!updatedNote) {
-      console.error(`后端→ 未找到ID为 ${id} 的笔记`)
-      return null
-    }
-
-    console.log(`后端→ 更新笔记的收藏状态: ${id}`)
     return convertToNote(updatedNote)
-  } catch (error) {
-    console.error(`后端→ 更新笔记的收藏状态失败: ${id}:`, error)
-    throw error
-  }
+  })
+}
+
+// 移除星标收藏
+export async function removeStarFromNote(
+  id: string
+): Promise<{ updatedNote: Note; reorderedNotes: Note[] }> {
+  console.log(`开始取消笔记 ${id} 的星标状态`)
+
+  return db
+    .transaction(async (trx) => {
+      // 1. 查找并检查笔记
+      const note = await trx('notes').where('id', id).first()
+      if (!note) {
+        console.error(`笔记 ${id} 不存在`)
+        throw new Error(`笔记 ${id} 不存在`)
+      }
+      if (!note.isStarred) {
+        console.log(`笔记 ${id} 未被星标，无需操作`)
+        return { updatedNote: convertToNote(note), reorderedNotes: [] }
+      }
+
+      const removedOrder = note.starredOrder
+      console.log(`笔记 ${id} 当前的星标顺序为 ${removedOrder}`)
+
+      // 2. 更新当前笔记
+      const [updatedNote] = await trx('notes')
+        .where('id', id)
+        .update({
+          isStarred: false,
+          starredOrder: 0,
+          updatedAt: new Date()
+        })
+        .returning('*')
+
+      console.log(`已更新笔记 ${id} 的星标状态`)
+
+      // 3. 获取需要更新的笔记
+      const notesToUpdate = await trx('notes')
+        .where('isStarred', true)
+        .andWhere('starredOrder', '>', removedOrder)
+        .orderBy('starredOrder', 'asc')
+
+      console.log(`需要更新顺序的笔记数量: ${notesToUpdate.length}`)
+
+      // 4. 更新其他笔记的顺序
+      const reorderedNotes = await Promise.all(
+        notesToUpdate.map(async (note) => {
+          const [updated] = await trx('notes')
+            .where('id', note.id)
+            .update({
+              starredOrder: note.starredOrder - 1,
+              updatedAt: new Date()
+            })
+            .returning('*')
+          return updated
+        })
+      )
+
+      console.log(`已更新 ${reorderedNotes.length} 个笔记的顺序`)
+
+      // 5. 转换并返回结果
+      return {
+        updatedNote: convertToNote(updatedNote),
+        reorderedNotes: reorderedNotes.map(convertToNote)
+      }
+    })
+    .catch((error) => {
+      console.error(`取消笔记 ${id} 的星标状态时发生错误:`, error)
+      throw error
+    })
 }
 
 // 获取收藏的笔记
@@ -275,6 +424,53 @@ export async function getStarredNotes(): Promise<Note[]> {
     return notes.map(convertToNote)
   } catch (error) {
     console.error('后端→ 获取收藏的笔记失败:', error)
+    throw error
+  }
+}
+
+// 更新收藏笔记的顺序
+export async function updateStarredNotesOrder(
+  orders: { id: string; starredOrder: number }[]
+): Promise<Note[]> {
+  try {
+    console.log('后端→ 开始更新星标笔记顺序', orders)
+
+    if (!orders || orders.length === 0) {
+      throw new Error('后端→ 更新星标笔记顺序：无效的输入数据')
+    }
+
+    const updatedNotes = await db.transaction(async (trx) => {
+      // 创建一个 case 语句来更新 starredOrder
+      const cases = orders.map((order) => `WHEN '${order.id}' THEN ${order.starredOrder}`).join(' ')
+
+      // 批量更新
+      await trx('notes')
+        .update({
+          starredOrder: trx.raw(`CASE id ${cases} ELSE starredOrder END`),
+          updatedAt: new Date()
+        })
+        .whereIn(
+          'id',
+          orders.map((o) => o.id)
+        )
+        .where('isStarred', true)
+
+      // 获取更新后的笔记
+      return await trx('notes')
+        .whereIn(
+          'id',
+          orders.map((o) => o.id)
+        )
+        .where('isStarred', true)
+        .orderBy('starredOrder', 'asc')
+        .select('*')
+    })
+
+    console.log(`后端→ 更新星标笔记顺序成功，共更新 ${updatedNotes.length} 条笔记`)
+
+    return updatedNotes.map(convertToNote)
+  } catch (error) {
+    console.error('后端→ 更新星标笔记顺序失败:', error)
     throw error
   }
 }
@@ -295,7 +491,9 @@ function convertToNote(record: any): Note {
     cardBoxId: record.cardBoxId || undefined,
     parentId: record.parentId || undefined,
     isDeleted: record.isDeleted,
-    isStarred: record.isStarred
+    isStarred: record.isStarred,
+    starredOrder: record.starredOrder,
+    rightBarOrder: record.rightBarOrder
   }
 }
 

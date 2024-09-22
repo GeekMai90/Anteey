@@ -2,9 +2,6 @@
 <template>
   <div class="starred-notes">
     <div class="starred-header" @click="toggleStarredNotes">
-      <!-- <div class="icon">
-        <Star theme="filled" size="16" :fill="isExpanded ? '#FFD700' : '#808080'" />
-      </div> -->
       <span>星标</span>
       <div class="toggle-icon">
         <div class="icon">
@@ -13,46 +10,94 @@
         </div>
       </div>
     </div>
-    <!-- <transition name="fade"> -->
-    <div v-if="isExpanded" class="starred-notes-container">
-      <div v-for="note in starredNotes" :key="note.id" class="starred-note-card">
-        <div class="starred-note-content">
-          <StarredNotesCard :note="note" @click.stop="openNote(note)" />
+    <draggable
+      v-model="localStarredNotes"
+      class="starred-notes-container"
+      item-key="id"
+      :animation="200"
+      ghost-class="ghost-class"
+      @end="onDragEnd"
+    >
+      <template #item="{ element }">
+        <div class="starred-note-card">
+          <div class="starred-note-content">
+            <StarredNotesCard :note="element" @click.stop="openNote(element)" />
+          </div>
         </div>
-      </div>
-    </div>
-    <!-- </transition> -->
+      </template>
+    </draggable>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { Right, Down } from '@icon-park/vue-next'
 import { useNoteStore } from '../stores/noteStores'
 import { Note } from '@renderer/types/Note'
 import { useRouter } from 'vue-router'
 import StarredNotesCard from './StarredNotesCard.vue'
+// import { VueDraggableNext } from 'vue-draggable-next'
+import draggable from 'vuedraggable'
 
 const noteStore = useNoteStore()
-const isExpanded = ref(true)
-const starredNotes = computed(() => noteStore.starredNotes)
 const router = useRouter()
+const isExpanded = ref(true)
 
-// onMounted(async () => {
-//   await fetchStarredNotes()
-// })
+const starredNotes = computed(() => noteStore.starredNotes)
+
+const localStarredNotes = ref<Note[]>([])
+
+// 监听 starredNotes 的变化，更新本地列表
+watch(
+  starredNotes,
+  (newStarredNotes) => {
+    localStarredNotes.value = [...newStarredNotes].sort(
+      (a, b) => (a.starredOrder ?? 0) - (b.starredOrder ?? 0)
+    )
+  },
+  { immediate: true, deep: true }
+)
 
 const toggleStarredNotes = () => {
   isExpanded.value = !isExpanded.value
 }
 
-// const fetchStarredNotes = async () => {
-//   starredNotes.value = await noteStore.fetchStarredNotes()
+// const onDragEnd = () => {
+//   console.log('Drag ended, updating order')
+//   const orders = localStarredNotes.value.map((note, index) => ({
+//     id: note.id,
+//     starredOrder: localStarredNotes.value.length - index
+//   }))
+//   noteStore.updateStarredNotesOrder(orders)
 // }
+const onDragEnd = () => {
+  console.log('Drag ended, updating order')
+  const newOrders = localStarredNotes.value.map((note, index) => ({
+    id: note.id,
+    starredOrder: index + 1
+  }))
+  console.log('newOrders', newOrders)
+
+  // 获取原始顺序
+  const originalOrders = starredNotes.value.map((note) => ({
+    id: note.id,
+    starredOrder: note.starredOrder
+  }))
+
+  // 检查顺序是否真的改变了
+  const orderChanged = newOrders.some((newOrder) => {
+    const originalOrder = originalOrders.find((o) => o.id === newOrder.id)
+    return newOrder.starredOrder !== originalOrder?.starredOrder
+  })
+
+  console.log('orderChanged', orderChanged)
+  if (orderChanged) {
+    noteStore.updateStarredNotesOrder(newOrders)
+  }
+}
 
 const openNote = (note: Note) => {
   console.log('Clicked note:', note)
-  console.log('Current starredNotes:', starredNotes.value)
   router.push({ name: 'NoteExpandEditor', params: { id: note.id.toString() } })
 }
 </script>
@@ -124,10 +169,20 @@ const openNote = (note: Note) => {
   gap: 5px;
   padding-left: 10px;
   .starred-note-content {
-    cursor: pointer;
+    cursor: move;
     &:hover {
       background-color: var(--color-hover-sidebar);
     }
+  }
+}
+.ghost-class {
+  opacity: 0.5;
+  background: #c8ebfb;
+}
+
+.starred-notes-container {
+  .starred-note-card {
+    transition: all 0.3s;
   }
 }
 </style>

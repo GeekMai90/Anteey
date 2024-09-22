@@ -14,12 +14,15 @@ import {
   getDeletedNotes,
   permanentDeleteNote,
   updateNoteCardBox,
-  toggleStarredStatus,
-  getStarredNotes
+  getStarredNotes,
+  addStarToNote,
+  updateStarredNotesOrder,
+  removeStarFromNote
 } from '../db/notes'
 import { createCardBox, getAllCardBoxes, updateCardBox, deleteCardBox } from '../db/cardBoxes'
 import { db, dbPath } from '../db/config'
 import log from 'electron-log'
+import { runMigrations } from '../db/migrations/migrations'
 // import { CardBox } from '@renderer/types/Note'
 // 设置应用名称
 app.name = 'Antinet'
@@ -279,17 +282,6 @@ function setupIpcHandlers() {
     }
   })
 
-  // // 添加笔记到卡片盒
-  // ipcMain.handle('add-note-to-card-box', async (_event, { cardBoxId, noteId }) => {
-  //   try {
-  //     await addNoteToCardBox(cardBoxId, noteId)
-  //     return { success: true }
-  //   } catch (error) {
-  //     console.error('主进程 → 添加笔记到卡片盒时出错:', error)
-  //     return { success: false, error: error }
-  //   }
-  // })
-
   // 更新笔记的卡片盒
   ipcMain.handle('update-note-card-box', async (_event, { noteId, cardBoxId }) => {
     try {
@@ -301,13 +293,26 @@ function setupIpcHandlers() {
     }
   })
 
-  // 更新笔记的收藏状态
-  ipcMain.handle('toggle-starred-status', async (_event, id: string) => {
+  // 添加星标收藏
+  ipcMain.handle('add-star-to-note', async (_event, id: string) => {
     try {
-      const updatedNote = await toggleStarredStatus(id)
-      return { success: true, note: updatedNote }
+      const updatedNote = await addStarToNote(id)
+      console.log('主进程 → 添加星标收藏成功:', updatedNote)
+      return updatedNote
     } catch (error) {
-      console.error('主进程 → 更新笔记的收藏状态时出错:', error)
+      console.error('主进程 → 添加星标收藏时出错:', error)
+      return { success: false, error: error }
+    }
+  })
+
+  // 移除星标收藏
+  ipcMain.handle('remove-star-from-note', async (_event, id: string) => {
+    try {
+      const result = await removeStarFromNote(id)
+      console.log('主进程 → 移除星标收藏成功:', result)
+      return result
+    } catch (error) {
+      console.error('主进程 → 移除星标收藏时出错:', error)
       return { success: false, error: error }
     }
   })
@@ -322,6 +327,22 @@ function setupIpcHandlers() {
       return { success: false, error: error }
     }
   })
+
+  // 更新收藏笔记的顺序
+  ipcMain.handle(
+    'update-starred-notes-order',
+    async (event, orders: { id: string; starredOrder: number }[]) => {
+      try {
+        console.log('主进程 → 更新收藏笔记顺序，原来的:', orders)
+        const updatedNotes = await updateStarredNotesOrder(orders)
+        console.log('主进程 → 更新收藏笔记顺序，更新后的:', updatedNotes)
+        return updatedNotes
+      } catch (error) {
+        console.error('主进程 → 更新收藏笔记顺序时出错:', error)
+        return { success: false, error: error }
+      }
+    }
+  )
 }
 
 function createWindow(): void {
@@ -434,6 +455,7 @@ app.whenReady().then(async () => {
     // if (process.platform === 'darwin') {
     //   app.dock.setIcon(join(__dirname, '../../build/icon.icns'))
     // }
+    await runMigrations()
 
     // 初始化数据库
     await initDatabase(db)
