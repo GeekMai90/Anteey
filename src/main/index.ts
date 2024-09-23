@@ -24,6 +24,7 @@ import { db, dbPath } from '../db/config'
 import log from 'electron-log'
 // import { runMigrations } from '../db/migrations/migrations'
 import * as dotenv from 'dotenv'
+import { default as installExtension, VUEJS3_DEVTOOLS } from 'electron-devtools-installer'
 // import { CardBox } from '@renderer/types/Note'
 // 设置应用名称
 app.name = 'Antinet'
@@ -362,7 +363,8 @@ function createWindow(): void {
       preload: join(__dirname, '../preload/index.js'),
       sandbox: false,
       contextIsolation: true,
-      nodeIntegration: false
+      nodeIntegration: false,
+      devTools: true // 确保开发工具可用
     }
   })
   mainWindow.maximize()
@@ -454,11 +456,10 @@ app.whenReady().then(async () => {
     log.info(`Node.js 版本: ${process.versions.node}`)
     log.info(`Chrome 版本: ${process.versions.chrome}`)
 
-    // 设置 macOS Dock 图标
-    // if (process.platform === 'darwin') {
-    //   app.dock.setIcon(join(__dirname, '../../build/icon.icns'))
-    // }
-    // await runMigrations()
+    // 安装 Vue 3 Devtools
+    installExtension(VUEJS3_DEVTOOLS)
+      .then((name) => console.log(`Added Extension:  ${name}`))
+      .catch((err) => console.log('An error occurred: ', err))
 
     // 初始化数据库
     await initDatabase(db)

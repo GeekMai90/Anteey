@@ -14,8 +14,8 @@ export async function initDatabase(db: Knex): Promise<void> {
       table.json('tags').notNullable()
       table.json('linkedTo').notNullable()
       table.json('linkedFrom').notNullable()
-      table.string('cardBoxId').nullable()
-      table.string('parentId').nullable()
+      table.string('cardBoxId').nullable().index()
+      table.string('parentId').nullable().index()
       table.boolean('isDeleted').notNullable().defaultTo(false)
       table.boolean('isStarred').notNullable().defaultTo(false)
       table.integer('starredOrder').nullable()
@@ -34,7 +34,7 @@ export async function initDatabase(db: Knex): Promise<void> {
       table.datetime('createdAt').notNullable()
       table.datetime('updatedAt').notNullable()
       table.json('noteIds').notNullable()
-      table.string('parentId').nullable()
+      table.string('parentId').nullable().index()
     })
     console.log('cardboxes 表创建成功')
   }
@@ -54,15 +54,37 @@ export async function initDatabase(db: Knex): Promise<void> {
   if (!(await db.schema.hasTable('whiteboards'))) {
     await db.schema.createTable('whiteboards', (table) => {
       table.string('id').primary()
-      table.string('type').notNullable().defaultTo('whiteboard')
       table.string('name').notNullable()
       table.text('description').nullable()
       table.datetime('createdAt').notNullable()
       table.datetime('updatedAt').notNullable()
       table.json('items').notNullable()
+      table.json('position').nullable()
+      table.json('size').nullable()
       table.string('parentId').nullable()
+      table.boolean('isRoot').notNullable().defaultTo(false)
+      table.boolean('isStarred').notNullable().defaultTo(false)
+      table.integer('starredOrder').nullable()
     })
     console.log('whiteboards 表创建成功')
+  }
+
+  // 创建 whiteboard_items 表
+  if (!(await db.schema.hasTable('whiteboard_items'))) {
+    await db.schema.createTable('whiteboard_items', (table) => {
+      table.string('id').primary()
+      table.string('type').notNullable() // 'note', 'subboard', 'group'
+      table.string('whiteboardId').notNullable().index()
+      table.string('noteId').nullable() // 仅对 'note' 类型有效
+      table.string('name').nullable() // 仅对 'group' 类型有效
+      table.json('itemIds').nullable() // 仅对 'group' 类型有效
+      table.json('position').notNullable()
+      table.json('size').notNullable()
+      table.integer('zIndex').notNullable()
+      table.integer('rotation').nullable() // 仅对 'note' 类型有效
+      table.json('style').nullable() // 仅对 'group' 类型有效
+    })
+    console.log('whiteboard_items 表创建成功')
   }
 
   // 创建 connections 表
@@ -70,14 +92,17 @@ export async function initDatabase(db: Knex): Promise<void> {
     await db.schema.createTable('connections', (table) => {
       table.string('id').primary()
       table.string('type').notNullable().defaultTo('connection')
-      table.string('whiteboardId').notNullable()
-      table.string('sourceId').notNullable()
-      table.string('targetId').notNullable()
-      table.string('sourceType').notNullable()
-      table.string('targetType').notNullable()
+      table.string('startItemId').notNullable()
+      table.string('endItemId').notNullable()
+      table.string('startEdge').notNullable()
+      table.string('endEdge').notNullable()
+      table.string('color').nullable()
+      table.integer('thickness').nullable()
       table.string('label').nullable()
-      table.string('lineType').notNullable()
-      table.json('style').notNullable()
+      table.string('lineStyle').notNullable().defaultTo('solid')
+      table.boolean('startArrow').notNullable().defaultTo(false)
+      table.boolean('endArrow').notNullable().defaultTo(true)
+      table.string('lineShape').notNullable().defaultTo('straight')
     })
     console.log('connections 表创建成功')
   }
@@ -87,6 +112,7 @@ export async function initDatabase(db: Knex): Promise<void> {
 
 export async function down(db: Knex): Promise<void> {
   await db.schema.dropTableIfExists('connections')
+  await db.schema.dropTableIfExists('whiteboard_items')
   await db.schema.dropTableIfExists('whiteboards')
   await db.schema.dropTableIfExists('tags')
   await db.schema.dropTableIfExists('cardboxes')

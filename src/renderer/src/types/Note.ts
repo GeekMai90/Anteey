@@ -3,9 +3,6 @@
 // 定义卡片类型
 export type CardType = 'Maincard' | 'Bibcard' | 'Indexcard' | 'Hoplinkcard'
 
-// 定义可以放在白板上的项目类型
-export type WhiteboardItemType = 'note' | 'whiteboard' | 'group'
-
 // 卡片笔记
 export interface Note {
   id: string
@@ -46,233 +43,75 @@ export interface Tag {
   color: string
 }
 
-// 白板项目（包括笔记、白板和组）
-export interface WhiteboardItem {
-  id: string
-  type: WhiteboardItemType
-  position: { x: number; y: number }
-  size: { width: number; height: number }
-  zIndex: number
-  rotation: number
-  isMinimized: boolean
-  groupId?: string // 如果这个项目属于某个组，这里存储组的 ID
-  // 组特定的属性
-  name?: string
-  items?: string[] // 仅对 type === 'group' 有效
-  isCollapsed?: boolean // 仅对 type === 'group' 有效
-  style?: {
-    backgroundColor?: string
-    borderColor?: string
-    // 可以添加更多样式属性
-  }
-}
+// 白板项目
+export type WhiteboardItem = WhiteboardNote | WhiteboardSubboard | WhiteboardGroup | Connection
 
 // 白板
 export interface Whiteboard {
   id: string
-  type: 'whiteboard'
   name: string
   description?: string
   createdAt: Date
   updatedAt: Date
-  items: WhiteboardItem[] // 包括所有类型的项目，包括组
-  parentId?: string // 父白板的ID，如果是顶级白板则为undefined
+  items: WhiteboardItem[] // 包含卡片笔记、子白板、分组和连接
+  position?: { x: number; y: number } // 在父白板中的位置（如果是子白板）
+  size?: { width: number; height: number } // 在父白板中的大小（如果是子白板）
+  parentId?: string // 父白板的ID（如果是子白板）
+  isRoot: boolean // 是否为顶层白板
+  isStarred?: boolean // 是否被标星
+  starredOrder?: number // 标星顺序
 }
 
-// 连线
-export interface Connection {
+// 白板上的笔记引用
+export interface WhiteboardNote {
   id: string
-  type: 'connection'
-  whiteboardId: string
-  sourceId: string // 可以是笔记、白板或组的ID
-  targetId: string // 可以是笔记、白板或组的ID
-  sourceType: WhiteboardItemType // 源项目的类型
-  targetType: WhiteboardItemType // 目标项目的类型
-  label?: string
-  lineType: 'arrow' | 'line' | 'curve'
-  style: {
-    color: string
-    thickness: number
-    dashed: boolean
+  type: 'note'
+  noteId: string // 引用实际卡片笔记的ID
+  position: { x: number; y: number }
+  size: { width: number; height: number }
+  zIndex: number
+  rotation: number
+}
+
+// 白板上的白板引用
+export interface WhiteboardSubboard {
+  id: string
+  type: 'subboard'
+  whiteboardId: string // 引用实际白板的ID
+  position: { x: number; y: number }
+  size: { width: number; height: number }
+  zIndex: number
+}
+
+// 白板上的分组
+export interface WhiteboardGroup {
+  id: string
+  type: 'group'
+  name: string
+  itemIds: string[] // 组内项目的ID列表
+  position: { x: number; y: number }
+  size: { width: number; height: number }
+  zIndex: number
+  style?: {
+    backgroundColor?: string
+    borderColor?: string
+    borderStyle?: string
   }
 }
 
-// // 辅助函数
-
-// function generateUniqueId(): string {
-//   return Date.now().toString(36) + Math.random().toString(36).substr(2)
-// }
-
-// export function createNewNote(partialNote: Partial<Note>): Note {
-//   return {
-//     id: generateUniqueId(),
-//     type: 'note',
-//     address: partialNote.address || generateUniqueId(),
-//     cardType: partialNote.cardType || 'Maincard',
-//     content: partialNote.content || {},
-//     createdAt: new Date(),
-//     updatedAt: new Date(),
-//     tags: partialNote.tags || [],
-//     linkedTo: partialNote.linkedTo || [],
-//     linkedFrom: partialNote.linkedFrom || [],
-//     isDeleted: false,
-//     isStarred: partialNote.isStarred || false,
-//     ...partialNote
-//   }
-// }
-
-// export function createNewWhiteboard(
-//   name: string,
-//   description?: string,
-//   parentId?: string
-// ): Whiteboard {
-//   return {
-//     id: generateUniqueId(),
-//     type: 'whiteboard',
-//     name,
-//     description,
-//     createdAt: new Date(),
-//     updatedAt: new Date(),
-//     items: [],
-//     parentId
-//   }
-// }
-
-// export function createWhiteboardItem(
-//   type: WhiteboardItemType,
-//   position: { x: number; y: number },
-//   size?: { width: number; height: number },
-//   additionalProps?: Partial<WhiteboardItem>
-// ): WhiteboardItem {
-//   return {
-//     id: generateUniqueId(),
-//     type,
-//     position,
-//     size: size || { width: 200, height: 150 },
-//     zIndex: 0,
-//     rotation: 0,
-//     isMinimized: false,
-//     ...additionalProps
-//   }
-// }
-
-// export function createGroup(
-//   name: string,
-//   position: { x: number; y: number },
-//   size?: { width: number; height: number }
-// ): WhiteboardItem {
-//   return createWhiteboardItem('group', position, size, {
-//     name,
-//     items: [],
-//     isCollapsed: false
-//   })
-// }
-
-// export function addItemToWhiteboard(whiteboard: Whiteboard, item: WhiteboardItem): Whiteboard {
-//   return {
-//     ...whiteboard,
-//     items: [...whiteboard.items, item],
-//     updatedAt: new Date()
-//   }
-// }
-
-// export function addItemToGroup(
-//   whiteboard: Whiteboard,
-//   itemId: string,
-//   groupId: string
-// ): Whiteboard {
-//   const updatedItems = whiteboard.items.map((item) => {
-//     if (item.id === itemId) {
-//       return { ...item, groupId }
-//     }
-//     if (item.id === groupId && item.type === 'group') {
-//       return { ...item, items: [...(item.items || []), itemId] }
-//     }
-//     return item
-//   })
-
-//   return {
-//     ...whiteboard,
-//     items: updatedItems,
-//     updatedAt: new Date()
-//   }
-// }
-
-// // export function removeItemFromGroup(whiteboard: Whiteboard, itemId: string): Whiteboard {
-// //   const updatedItems = whiteboard.items.map((item) => {
-// //     if (item.id === itemId) {
-// //       const { groupId: _, ...rest } = item
-// //       return rest
-// //     }
-// //     if (item.type === 'group' && item.items?.includes(itemId)) {
-// //       return { ...item, items: item.items.filter((id) => id !== itemId) }
-// //     }
-// //     return item
-// //   })
-
-// //   return {
-// //     ...whiteboard,
-// //     items: updatedItems,
-// //     updatedAt: new Date()
-// //   }
-// // }
-
-// export function createConnection(
-//   whiteboardId: string,
-//   sourceId: string,
-//   targetId: string,
-//   sourceType: WhiteboardItemType,
-//   targetType: WhiteboardItemType,
-//   lineType: 'arrow' | 'line' | 'curve' = 'line'
-// ): Connection {
-//   return {
-//     id: generateUniqueId(),
-//     type: 'connection',
-//     whiteboardId,
-//     sourceId,
-//     targetId,
-//     sourceType,
-//     targetType,
-//     lineType,
-//     style: {
-//       color: '#000000',
-//       thickness: 1,
-//       dashed: false
-//     }
-//   }
-// }
-
-// export function updateWhiteboardItem(
-//   whiteboard: Whiteboard,
-//   updatedItem: WhiteboardItem
-// ): Whiteboard {
-//   const updatedItems = whiteboard.items.map((item) =>
-//     item.id === updatedItem.id ? updatedItem : item
-//   )
-
-//   return {
-//     ...whiteboard,
-//     items: updatedItems,
-//     updatedAt: new Date()
-//   }
-// }
-
-// export function deleteWhiteboardItem(whiteboard: Whiteboard, itemId: string): Whiteboard {
-//   const updatedItems = whiteboard.items.filter((item) => item.id !== itemId)
-
-//   // 如果删除的是组，还需要更新所有属于该组的项目
-//   const deletedGroup = whiteboard.items.find((item) => item.id === itemId && item.type === 'group')
-//   if (deletedGroup && deletedGroup.items) {
-//     updatedItems.forEach((item) => {
-//       if (deletedGroup.items?.includes(item.id)) {
-//         delete item.groupId
-//       }
-//     })
-//   }
-
-//   return {
-//     ...whiteboard,
-//     items: updatedItems,
-//     updatedAt: new Date()
-//   }
-// }
+// 白板上的连线
+export interface Connection {
+  id: string
+  type: 'connection'
+  startItemId: string // 起点项目的ID
+  endItemId: string // 终点项目的ID
+  startEdge: 'top' | 'right' | 'bottom' | 'left' // 起点边
+  endEdge: 'top' | 'right' | 'bottom' | 'left' // 终点边
+  color?: string // 连线颜色
+  thickness?: number // 连线粗细
+  label?: string // 连线中的文字内容
+  lineStyle?: 'solid' | 'dashed' // 连线样式
+  startArrow?: boolean // 起点是否有箭头，默认false
+  endArrow?: boolean // 终点是否有箭头，默认true
+  lineShape?: 'straight' | 'curved' | 'angled' // 连线形状
+}

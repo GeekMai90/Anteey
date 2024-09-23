@@ -16,9 +16,14 @@ const routes = [
     component: () => import('../views/CardBoxView.vue')
   },
   {
-    name: 'mindboard',
-    path: '/mindboard',
-    component: () => import('../views/MindboardView.vue')
+    name: 'whiteboard',
+    path: '/whiteboard',
+    component: () => import('../views/WhiteboardView.vue')
+  },
+  {
+    name: 'whiteboardDetail',
+    path: '/whiteboarddetail/:id',
+    component: () => import('../components/WhiteboardDetail.vue')
   },
   {
     name: 'NoteExpandEditor',

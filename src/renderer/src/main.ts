@@ -35,6 +35,9 @@ app.use(FloatingVue, {
     hide: 0 // 隐藏无延迟
   }
 })
+if (process.env.NODE_ENV === 'development') {
+  ;(app.config as any).devtools = true
+}
 // 添加这部分代码
 router.isReady().then(() => {
   console.log('Router is ready, current path:', router.currentRoute.value.path)

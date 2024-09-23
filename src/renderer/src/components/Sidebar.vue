@@ -88,7 +88,7 @@ onMounted(async () => {
 const menuItems = [
   { name: '时间线', path: '/home', icon: ListView, color: '#4CAF50' },
   { name: '卡片盒', path: '/cardbox', icon: Box, color: '#2196F3' },
-  { name: '思维板', path: '/mindboard', icon: Workbench, color: '#9C27B0' }
+  { name: '思维板', path: '/whiteboard', icon: Workbench, color: '#9C27B0' }
 ]
 
 const noteStore = useNoteStore()

@@ -2,13 +2,33 @@
 
 import { db } from './config'
 import { Whiteboard, WhiteboardItem } from '../renderer/src/types/Note'
+import { v4 as uuidv4 } from 'uuid'
 
-export async function createWhiteboard(whiteboard: Whiteboard): Promise<string> {
-  await db('whiteboards').insert({
-    ...whiteboard,
-    items: JSON.stringify(whiteboard.items)
-  })
-  return whiteboard.id
+export async function createWhiteboard(): Promise<Whiteboard> {
+  const id = uuidv4()
+  const now = new Date()
+
+  const newWhiteboard: Whiteboard = {
+    id,
+    type: 'whiteboard',
+    name: '新白板',
+    description: '',
+    createdAt: now,
+    updatedAt: now,
+    items: [],
+    parentId: undefined
+  }
+
+  try {
+    await db('whiteboards').insert({
+      ...newWhiteboard,
+      items: JSON.stringify(newWhiteboard.items)
+    })
+    return newWhiteboard
+  } catch (error) {
+    console.error('后端→ 创建白板失败:', error)
+    throw error
+  }
 }
 
 export async function getWhiteboardById(id: string): Promise<Whiteboard | undefined> {
