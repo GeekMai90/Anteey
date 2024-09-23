@@ -1,67 +1,36 @@
-// src/db/whiteboards.ts
-
-import { db } from './config'
-import { Whiteboard, WhiteboardItem } from '../renderer/src/types/Note'
 import { v4 as uuidv4 } from 'uuid'
+import { db } from './config' // 假设你有一个 db 模块来处理数据库连接
+import type { CreateWhiteboardInput, Whiteboard } from '../renderer/src/types/Note'
 
-export async function createWhiteboard(): Promise<Whiteboard> {
+export async function createWhiteboard(input: CreateWhiteboardInput): Promise<Whiteboard> {
   const id = uuidv4()
-  const now = new Date()
+  const now = new Date().toISOString() // 确保日期格式正确
 
   const newWhiteboard: Whiteboard = {
     id,
-    type: 'whiteboard',
-    name: '新白板',
-    description: '',
-    createdAt: now,
-    updatedAt: now,
+    name: input.name || '新白板',
+    description: input.description || '',
+    createdAt: new Date(now),
+    updatedAt: new Date(now),
     items: [],
-    parentId: undefined
+    position: input.position,
+    size: input.size,
+    parentId: input.parentId ?? undefined, // 确保 parentId 是 null 而不是 undefined
+    isRoot: input.isRoot,
+    isStarred: input.isStarred || false,
+    starredOrder: input.starredOrder || undefined // 确保 starredOrder 是 null 而不是 undefined
   }
 
   try {
     await db('whiteboards').insert({
       ...newWhiteboard,
-      items: JSON.stringify(newWhiteboard.items)
+      items: JSON.stringify(newWhiteboard.items), // 确保 items 字段是一个 JSON 字符串
+      position: JSON.stringify(newWhiteboard.position), // 确保 position 字段是一个 JSON 字符串
+      size: newWhiteboard.size ? JSON.stringify(newWhiteboard.size) : null // 确保 size 字段是一个 JSON 字符串或 null
     })
     return newWhiteboard
   } catch (error) {
     console.error('后端→ 创建白板失败:', error)
     throw error
   }
-}
-
-export async function getWhiteboardById(id: string): Promise<Whiteboard | undefined> {
-  const whiteboard = await db('whiteboards').where('id', id).first()
-  if (!whiteboard) return undefined
-
-  return {
-    ...whiteboard,
-    items: JSON.parse(whiteboard.items)
-  }
-}
-
-export async function updateWhiteboard(whiteboard: Whiteboard): Promise<void> {
-  await db('whiteboards')
-    .where('id', whiteboard.id)
-    .update({
-      ...whiteboard,
-      items: JSON.stringify(whiteboard.items),
-      updatedAt: new Date()
-    })
-}
-
-export async function deleteWhiteboard(id: string): Promise<void> {
-  await db('whiteboards').where('id', id).delete()
-}
-
-export async function addItemToWhiteboard(
-  whiteboardId: string,
-  item: WhiteboardItem
-): Promise<void> {
-  const whiteboard = await getWhiteboardById(whiteboardId)
-  if (!whiteboard) throw new Error('Whiteboard not found')
-
-  whiteboard.items.push(item)
-  await updateWhiteboard(whiteboard)
 }

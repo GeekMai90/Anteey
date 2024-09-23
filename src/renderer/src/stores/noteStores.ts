@@ -585,7 +585,7 @@ export const useNoteStore = defineStore('note', {
           backlinks
         }
       }
-    },
+    }
 
     // getNotesOnWhiteboard: (state) => {
     //   return (whiteboardId: string) => {
@@ -603,10 +603,10 @@ export const useNoteStore = defineStore('note', {
     //   }
     // },
 
-    getConnectionsOnWhiteboard: (state) => {
-      return (whiteboardId: string) =>
-        state.connections.filter((conn) => conn.whiteboardId === whiteboardId)
-    }
+    // getConnectionsOnWhiteboard: (state) => {
+    //   return (whiteboardId: string) =>
+    //     state.connections.filter((conn) => conn.whiteboardId === whiteboardId)
+    // }
   },
   persist: true
 })

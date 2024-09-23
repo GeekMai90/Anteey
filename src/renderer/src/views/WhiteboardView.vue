@@ -23,15 +23,16 @@ import AppToolbar from '@renderer/components/AppToolbar.vue'
 import { useRouter } from 'vue-router'
 import WhiteboardThumbnail from '@renderer/components/WhiteboardThumbnail.vue'
 import { useWhiteboardStore } from '@renderer/stores/whiteboardStores'
-import type { WhiteboardItem } from '@renderer/types/Note'
+import type { CreateWhiteboardInput, Whiteboard } from '@renderer/types/Note'
 
 const router = useRouter()
 const whiteboardStore = useWhiteboardStore()
-const whiteboards = ref<WhiteboardItem[]>([])
+const whiteboards = ref<Whiteboard[]>([])
 const containerRef = ref<HTMLElement | null>(null)
 
 onMounted(async () => {
-  whiteboards.value = await whiteboardStore.whiteboardItems
+  whiteboards.value = await whiteboardStore.whiteboards
+  console.log('whiteboards', whiteboards.value)
 })
 
 const openWhiteboard = (id: string) => {
@@ -39,8 +40,20 @@ const openWhiteboard = (id: string) => {
 }
 
 const createNewWhiteboard = async () => {
-  const newWhiteboard = await whiteboardStore.createWhiteboard()
-  whiteboards.value.push(newWhiteboard)
+  const input: CreateWhiteboardInput = {
+    name: '新白板',
+    isRoot: true,
+    position: { x: 0, y: 0 }
+  }
+  try {
+    const newWhiteboard = await whiteboardStore.createWhiteboard(input)
+    // if (newWhiteboard) {
+    //   whiteboards.value.push(newWhiteboard)
+    // }
+    return newWhiteboard
+  } catch (error) {
+    console.error('Failed to create whiteboard:', error)
+  }
 }
 
 const updateWhiteboardPosition = (id: string, x: number, y: number) => {

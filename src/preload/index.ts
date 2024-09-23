@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import { Note, CardBox } from '../renderer/src/types/Note'
+import { Note, CardBox, Whiteboard, CreateWhiteboardInput } from '../renderer/src/types/Note'
 
 contextBridge.exposeInMainWorld('electronAPI', {
   getResourcePath: async (filename: string): Promise<string> => {
@@ -155,6 +155,15 @@ contextBridge.exposeInMainWorld('electronAPI', {
       return (await ipcRenderer.invoke('update-starred-notes-order', orders)) as Note[]
     } catch (error) {
       console.error('Preload: 更新收藏笔记顺序时出错:', error)
+      throw error
+    }
+  },
+  createWhiteboard: async (input: CreateWhiteboardInput): Promise<Whiteboard> => {
+    try {
+      console.log('Preload: 正在创建白板:', input)
+      return (await ipcRenderer.invoke('create-whiteboard', input)) as Whiteboard
+    } catch (error) {
+      console.error('Preload: 创建白板时出错:', error)
       throw error
     }
   }

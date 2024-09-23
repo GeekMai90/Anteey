@@ -20,6 +20,8 @@ import {
   removeStarFromNote
 } from '../db/notes'
 import { createCardBox, getAllCardBoxes, updateCardBox, deleteCardBox } from '../db/cardBoxes'
+import { createWhiteboard } from '../db/whiteboards'
+import { CreateWhiteboardInput } from '../renderer/src/types/Note'
 import { db, dbPath } from '../db/config'
 import log from 'electron-log'
 // import { runMigrations } from '../db/migrations/migrations'
@@ -129,6 +131,19 @@ function createCustomMenu() {
 }
 
 function setupIpcHandlers() {
+  // 创建白板
+  ipcMain.handle('create-whiteboard', async (_, input: CreateWhiteboardInput) => {
+    try {
+      console.log('主进程 → 创建白板:', input)
+      const newWhiteboard = await createWhiteboard(input)
+      console.log('主进程 → 创建白板成功:', newWhiteboard)
+      return newWhiteboard
+    } catch (error) {
+      console.error('主进程 → 创建白板时出错:', error)
+      return { success: false, error: error }
+    }
+  })
+
   // 创建笔记
   ipcMain.handle('create-note', async () => {
     try {

@@ -46,6 +46,16 @@ export interface Tag {
 // 白板项目
 export type WhiteboardItem = WhiteboardNote | WhiteboardSubboard | WhiteboardGroup | Connection
 
+export interface CreateWhiteboardInput {
+  isRoot: boolean
+  position: { x: number; y: number }
+  name?: string
+  description?: string
+  size?: { width: number; height: number }
+  parentId?: string
+  isStarred?: boolean
+  starredOrder?: number
+}
 // 白板
 export interface Whiteboard {
   id: string

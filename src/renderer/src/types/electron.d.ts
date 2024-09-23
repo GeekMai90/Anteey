@@ -1,4 +1,4 @@
-import { Note, CardBox } from './Note'
+import { Note, CardBox, Whiteboard, CreateWhiteboardInput } from './Note'
 
 export interface ElectronAPI {
   createNote: () => Promise<Note>
@@ -21,6 +21,7 @@ export interface ElectronAPI {
   updateStarredNotesOrder: (orders: { id: string; starredOrder: number }[]) => Promise<Note[]>
   addStarToNote: (id: string) => Promise<Note>
   removeStarFromNote: (id: string) => Promise<{ updatedNote: Note; reorderedNotes: Note[] }>
+  createWhiteboard: (input: CreateWhiteboardInput) => Promise<Whiteboard>
 }
 
 declare global {
