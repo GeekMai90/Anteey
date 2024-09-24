@@ -166,5 +166,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
       console.error('Preload: 创建白板时出错:', error)
       throw error
     }
+  },
+  getTopLevelWhiteboards: async (): Promise<Whiteboard[]> => {
+    try {
+      console.log('Preload: 正在获取顶层白板')
+      return (await ipcRenderer.invoke('get-top-level-whiteboards')) as Whiteboard[]
+    } catch (error) {
+      console.error('Preload: 获取顶层白板时出错:', error)
+      throw error
+    }
   }
 })

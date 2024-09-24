@@ -21,6 +21,13 @@ export const useWhiteboardStore = defineStore('whiteboard', {
       } else {
         console.error('whiteboardStore→ 创建白板失败')
       }
+    },
+    async getTopLevelWhiteboards() {
+      console.log('whiteboardStore→ 开始获取顶层白板')
+      const whiteboards = await window.electronAPI.getTopLevelWhiteboards()
+      console.log('whiteboardStore→ 获取顶层白板成功', whiteboards)
+      this.whiteboards = whiteboards
+      return whiteboards
     }
   },
   persist: true

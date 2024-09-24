@@ -4,7 +4,7 @@
     <div class="fixed-header">
       <AppToolbar />
     </div>
-    <div class="whiteboard-container" ref="containerRef">
+    <div ref="containerRef" class="whiteboard-container">
       <WhiteboardThumbnail
         v-for="whiteboard in whiteboards"
         :key="whiteboard.id"
@@ -30,8 +30,10 @@ const whiteboardStore = useWhiteboardStore()
 const whiteboards = ref<Whiteboard[]>([])
 const containerRef = ref<HTMLElement | null>(null)
 
+// 获取顶层白板
 onMounted(async () => {
-  whiteboards.value = await whiteboardStore.whiteboards
+  await whiteboardStore.getTopLevelWhiteboards()
+  whiteboards.value = whiteboardStore.whiteboards
   console.log('whiteboards', whiteboards.value)
 })
 

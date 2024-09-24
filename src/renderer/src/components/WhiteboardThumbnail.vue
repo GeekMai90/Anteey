@@ -9,9 +9,9 @@
     <h3>{{ whiteboard.name }}</h3>
     <div class="thumbnail-preview">
       <!-- Display up to 6 card previews -->
-      <div v-for="card in previewCards" :key="card.id" class="card-preview">
+      <!-- <div v-for="card in previewCards" :key="card.id" class="card-preview">
         {{ card.content.substring(0, 20) }}...
-      </div>
+      </div> -->
     </div>
   </div>
 </template>
@@ -31,11 +31,19 @@ const emit = defineEmits<{
 
 const position = ref(props.whiteboard.position || { x: 0, y: 0 })
 
-const thumbnailStyle = computed(() => ({
-  transform: `translate(${position.value.x}px, ${position.value.y}px)`,
-  position: 'absolute',
-  cursor: 'move'
-}))
+// const thumbnailStyle = computed(() => ({
+//   transform: `translate(${position.value.x}px, ${position.value.y}px)`,
+//   position: 'absolute',
+//   cursor: 'move'
+// }))
+const thumbnailStyle = computed(
+  () =>
+    ({
+      transform: `translate(${position.value.x}px, ${position.value.y}px)`,
+      position: 'absolute',
+      cursor: 'pointer'
+    }) as const
+)
 
 let isDragging = false
 let startX = 0

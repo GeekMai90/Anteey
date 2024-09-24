@@ -34,3 +34,26 @@ export async function createWhiteboard(input: CreateWhiteboardInput): Promise<Wh
     throw error
   }
 }
+
+// 获取所有顶层白板
+// 顶层白板是指没有父白板的白板，isRoot 为 true
+export async function getTopLevelWhiteboards(): Promise<Whiteboard[]> {
+  try {
+    console.log('开始获取顶层白板')
+    const whiteboards = await db('whiteboards').where({ isRoot: true })
+
+    // 处理返回的数据
+    const processedWhiteboards = whiteboards.map((whiteboard: any) => ({
+      ...whiteboard,
+      position: JSON.parse(whiteboard.position),
+      items: JSON.parse(whiteboard.items),
+      size: whiteboard.size ? JSON.parse(whiteboard.size) : null
+    }))
+
+    console.log('获取顶层白板成功', processedWhiteboards)
+    return processedWhiteboards
+  } catch (error) {
+    console.error('后端→ 获取顶层白板失败:', error)
+    throw error
+  }
+}
