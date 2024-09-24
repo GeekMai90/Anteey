@@ -21,6 +21,39 @@ export const useWhiteboardStore = defineStore('whiteboard', {
     error: null as string | null
   }),
   actions: {
+    // 获取根白板的视图状态
+    async getRootWhiteboardViewState() {
+      console.log('whiteboardStore→ 开始获取根白板的视图状态')
+      const viewState = await window.electronAPI.getRootWhiteboardViewState()
+      console.log('whiteboardStore→ 获取根白板的视图状态成功', viewState)
+      return viewState
+    },
+
+    // 保存视图状态到根白板
+    async saveViewStateToRootWhiteboard(scale: number, translateX: number, translateY: number) {
+      console.log('whiteboardStore→ 开始保存视图状态到根白板', { scale, translateX, translateY })
+      const result = await window.electronAPI.saveViewStateToRootWhiteboard(
+        scale,
+        translateX,
+        translateY
+      )
+      console.log('whiteboardStore→ 保存视图状态到根白板成功', result)
+      return result
+    },
+    // 获取根白板
+    async getRootWhiteboard() {
+      console.log('whiteboardStore→ 开始获取根白板')
+      const rootWhiteboard = await window.electronAPI.getRootWhiteboard()
+      console.log('whiteboardStore→ 获取根白板成功', rootWhiteboard)
+      return rootWhiteboard
+    },
+    // 创建根白板
+    async createRootWhiteboard() {
+      console.log('whiteboardStore→ 开始创建根白板')
+      const newRootWhiteboard = await window.electronAPI.createRootWhiteboard()
+      console.log('whiteboardStore→ 创建根白板成功', newRootWhiteboard)
+      return newRootWhiteboard
+    },
     async createWhiteboard(input: CreateWhiteboardInput) {
       console.log('whiteboardStore→ 开始创建白板', input)
       const newWhiteboard = await window.electronAPI.createWhiteboard(input)

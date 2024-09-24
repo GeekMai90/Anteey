@@ -8,7 +8,7 @@
     <div
       ref="containerRef"
       class="whiteboard-container"
-      @dblclick.stop="handleContainerDoubleClick"
+      @dblclick="handleContainerDoubleClick"
       @contextmenu.prevent
       @wheel="handleWheel"
       @mousedown="handleMouseDown"
@@ -76,11 +76,20 @@ let lastPinchDistance = 0
 
 // 组件挂载时获取顶层白板
 onMounted(async () => {
+  await checkAndCreateRootWhiteboard()
   await whiteboardStore.getTopLevelWhiteboards()
   whiteboards.value = whiteboardStore.whiteboards
   loadViewState()
   console.log('whiteboards', whiteboards.value)
 })
+// 检查并创建根白板
+const checkAndCreateRootWhiteboard = async () => {
+  const rootWhiteboard = await whiteboardStore.getRootWhiteboard()
+  if (rootWhiteboard) {
+    return
+  }
+  await whiteboardStore.createRootWhiteboard()
+}
 
 // 打开白板详情
 const openWhiteboard = (id: string) => {
@@ -105,12 +114,15 @@ const createNewWhiteboard = async (x: number, y: number) => {
 
 // 处理容器双击事件
 const handleContainerDoubleClick = (event: MouseEvent) => {
+  console.log('handleContainerDoubleClick', event)
   event.preventDefault()
   event.stopPropagation()
-  if (event.target === containerRef.value) {
+  console.log('containerRef.value', containerRef.value)
+  if (event.target === contentRef.value) {
     const rect = containerRef.value!.getBoundingClientRect()
     const x = (event.clientX - rect.left) / scale.value - translateX.value
     const y = (event.clientY - rect.top) / scale.value - translateY.value
+    console.log('x', x)
 
     contextMenuStore.showMenu(event.clientX, event.clientY, [
       {
@@ -129,6 +141,7 @@ const updateWhiteboardPosition = (id: string, x: number, y: number) => {
 
 // 处理鼠标按下事件
 const handleMouseDown = (event: MouseEvent) => {
+  event.preventDefault()
   if (event.button === 2) {
     // 右键
     event.preventDefault()
@@ -282,23 +295,22 @@ const fitView = () => {
 }
 
 // 保存视图状态
-const saveViewState = () => {
-  const viewState = {
-    scale: scale.value,
-    translateX: translateX.value,
-    translateY: translateY.value
-  }
-  localStorage.setItem('whiteboardViewState', JSON.stringify(viewState))
+const saveViewState = async () => {
+  await whiteboardStore.saveViewStateToRootWhiteboard(
+    scale.value,
+    translateX.value,
+    translateY.value
+  )
 }
 
 // 加载视图状态
-const loadViewState = () => {
-  const savedState = localStorage.getItem('whiteboardViewState')
+const loadViewState = async () => {
+  const savedState = await whiteboardStore.getRootWhiteboardViewState()
+  console.log('savedState', savedState)
   if (savedState) {
-    const viewState = JSON.parse(savedState)
-    scale.value = viewState.scale
-    translateX.value = viewState.translateX
-    translateY.value = viewState.translateY
+    scale.value = savedState.scale
+    translateX.value = savedState.translateX
+    translateY.value = savedState.translateY
   }
 }
 
@@ -335,12 +347,14 @@ onUnmounted(() => {
   background-color: var(--color-bg-primary);
   overflow: hidden;
   cursor: default;
+  // z-index: 1;
 }
 
 .whiteboard-content {
   position: absolute;
   width: 100%;
   height: 100%;
+  // pointer-events: none; // 添加这行
 }
 
 .whiteboard-container:active {

@@ -26,7 +26,11 @@ import {
   updateWhiteboardPosition,
   createWhiteboardNote,
   getWhiteboardItems,
-  updateWhiteboardItemPosition
+  updateWhiteboardItemPosition,
+  createRootWhiteboard,
+  getRootWhiteboard,
+  saveViewStateToRootWhiteboard,
+  getRootWhiteboardViewState
 } from '../db/whiteboards'
 import { CreateWhiteboardInput, CreateWhiteboardNoteInput } from '../renderer/src/types/Note'
 import { db, dbPath } from '../db/config'
@@ -138,6 +142,60 @@ function createCustomMenu() {
 }
 
 function setupIpcHandlers() {
+  // 获取根白板的视图状态
+  ipcMain.handle('get-root-whiteboard-view-state', async () => {
+    try {
+      console.log('主进程 → 获取根白板的视图状态')
+      const viewState = await getRootWhiteboardViewState()
+      console.log('主进程 → 获取根白板的视图状态成功:', viewState)
+      return viewState
+    } catch (error) {
+      console.error('主进程 → 获取根白板的视图状态时出错:', error)
+      return { success: false, error: error }
+    }
+  })
+
+  // 保存视图状态到根白板
+  ipcMain.handle(
+    'save-view-state-to-root-whiteboard',
+    async (_, { scale, translateX, translateY }) => {
+      try {
+        console.log('主进程 → 保存视图状态到根白板:', { scale, translateX, translateY })
+        const result = await saveViewStateToRootWhiteboard(scale, translateX, translateY)
+        console.log('主进程 → 保存视图状态到根白板成功:', result)
+        return result
+      } catch (error) {
+        console.error('主进程 → 保存视图状态到根白板时出错:', error)
+        return { success: false, error: error }
+      }
+    }
+  )
+
+  // 获取根白板
+  ipcMain.handle('get-root-whiteboard', async () => {
+    try {
+      console.log('主进程 → 获取根白板')
+      const rootWhiteboard = await getRootWhiteboard()
+      console.log('主进程 → 获取根白板成功:', rootWhiteboard)
+      return rootWhiteboard
+    } catch (error) {
+      console.error('主进程 → 获取根白板时出错:', error)
+      return { success: false, error: error }
+    }
+  })
+
+  // 创建根白板
+  ipcMain.handle('create-root-whiteboard', async () => {
+    try {
+      console.log('主进程 → 创建根白板')
+      const newRootWhiteboard = await createRootWhiteboard()
+      console.log('主进程 → 创建根白板成功:', newRootWhiteboard)
+      return newRootWhiteboard
+    } catch (error) {
+      console.error('主进程 → 创建根白板时出错:', error)
+      return { success: false, error: error }
+    }
+  })
   // 更新白板项位置
   ipcMain.handle('update-whiteboard-item-position', async (_, { id, x, y }) => {
     try {

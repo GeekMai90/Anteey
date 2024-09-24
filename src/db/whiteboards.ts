@@ -5,10 +5,94 @@ import type {
   CreateWhiteboardNoteInput,
   Whiteboard,
   WhiteboardItem,
-  WhiteboardNote
+  WhiteboardNote,
+  RootWhiteboard
 } from '../renderer/src/types/Note'
 import { createNote } from './notes'
 
+//创建根白板
+export async function createRootWhiteboard(): Promise<RootWhiteboard> {
+  const id = uuidv4()
+  const now = new Date()
+
+  const newRootWhiteboard: RootWhiteboard = {
+    id,
+    createdAt: now,
+    updatedAt: now,
+    items: [],
+    scale: 1,
+    translateX: 0,
+    translateY: 0
+  }
+
+  try {
+    await db('root_whiteboards').insert({
+      ...newRootWhiteboard,
+      items: JSON.stringify(newRootWhiteboard.items)
+    })
+    return newRootWhiteboard
+  } catch (error) {
+    console.error('后端→ 创建根白板失败:', error)
+    throw error
+  }
+}
+
+// 获取根白板
+export async function getRootWhiteboard(): Promise<RootWhiteboard> {
+  try {
+    const rootWhiteboard = await db('root_whiteboards').select('*').first()
+    return rootWhiteboard
+      ? {
+          ...rootWhiteboard,
+          items: JSON.parse(rootWhiteboard.items)
+        }
+      : null
+  } catch (error) {
+    console.error('后端→ 获取根白板失败:', error)
+    throw error
+  }
+}
+
+//将视图状态保存到根白板
+export async function saveViewStateToRootWhiteboard(
+  scale: number,
+  translateX: number,
+  translateY: number
+) {
+  try {
+    await db('root_whiteboards')
+      .update({
+        scale,
+        translateX,
+        translateY
+      })
+      .returning('*')
+
+    return true
+  } catch (error) {
+    console.error('后端→ 保存视图状态到根白板失败:', error)
+    throw error
+  }
+}
+
+// 获取根白板的视图状态
+export async function getRootWhiteboardViewState(): Promise<{
+  scale: number
+  translateX: number
+  translateY: number
+}> {
+  try {
+    const rootWhiteboard = await db('root_whiteboards').select('*').first()
+    return {
+      scale: rootWhiteboard.scale as number,
+      translateX: rootWhiteboard.translateX as number,
+      translateY: rootWhiteboard.translateY as number
+    }
+  } catch (error) {
+    console.error('后端→ 获取根白板的视图状态失败:', error)
+    throw error
+  }
+}
 // 辅助函数：处理白板数据
 function processWhiteboardData(whiteboard: any): Whiteboard {
   return {

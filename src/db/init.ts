@@ -65,8 +65,26 @@ export async function initDatabase(db: Knex): Promise<void> {
       table.boolean('isRoot').notNullable().defaultTo(false)
       table.boolean('isStarred').notNullable().defaultTo(false)
       table.integer('starredOrder').nullable()
+      table.float('scale').nullable() // 新增：缩放比例
+      table.float('translateX').nullable() // 新增：平移X
+      table.float('translateY').nullable() // 新增：平移Y
     })
     console.log('whiteboards 表创建成功')
+  }
+
+  // 创建 root_whiteboards 表
+  if (!(await db.schema.hasTable('root_whiteboards'))) {
+    await db.schema.createTable('root_whiteboards', (table) => {
+      table.string('id').primary()
+      table.datetime('createdAt').notNullable()
+      table.datetime('updatedAt').notNullable()
+      table.json('items').notNullable() // 包含子白板
+      table.float('scale').nullable() // 新增：缩放比例
+      table.float('translateX').nullable() // 新增：平移X
+      table.float('translateY').nullable() // 新增：平移Y
+      table.unique(['id']) // 确保只有一个根白板
+    })
+    console.log('root_whiteboards 表创建成功')
   }
 
   // 创建 whiteboard_items 表
@@ -103,6 +121,10 @@ export async function initDatabase(db: Knex): Promise<void> {
       table.boolean('startArrow').notNullable().defaultTo(false)
       table.boolean('endArrow').notNullable().defaultTo(true)
       table.string('lineShape').notNullable().defaultTo('straight')
+      table.json('labelPosition').nullable() // 新增：标签位置
+      table.json('position').nullable() // 新增：连线的位置
+      table.json('controlPoints').nullable() // 新增：控制点
+      table.integer('zIndex').nullable() // 新增：连线的层级
     })
     console.log('connections 表创建成功')
   }
@@ -113,6 +135,7 @@ export async function initDatabase(db: Knex): Promise<void> {
 export async function down(db: Knex): Promise<void> {
   await db.schema.dropTableIfExists('connections')
   await db.schema.dropTableIfExists('whiteboard_items')
+  await db.schema.dropTableIfExists('root_whiteboards') // 新增：删除根白板表
   await db.schema.dropTableIfExists('whiteboards')
   await db.schema.dropTableIfExists('tags')
   await db.schema.dropTableIfExists('cardboxes')

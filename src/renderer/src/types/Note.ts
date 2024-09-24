@@ -56,6 +56,20 @@ export interface CreateWhiteboardInput {
   isStarred?: boolean
   starredOrder?: number
 }
+
+// 根白板
+export interface RootWhiteboard {
+  id: string
+  createdAt: Date
+  updatedAt: Date
+  items: Whiteboard[] // 包含子白板
+  zoomLevel?: number // 缩放级别
+  scrollPosition?: { x: number; y: number } // 滚动位置
+  scale?: number // 缩放比例
+  translateX?: number // 平移X
+  translateY?: number // 平移Y
+}
+
 // 白板
 export interface Whiteboard {
   id: string
@@ -70,6 +84,11 @@ export interface Whiteboard {
   isRoot: boolean // 是否为顶层白板
   isStarred?: boolean // 是否被标星
   starredOrder?: number // 标星顺序
+  zoomLevel?: number // 缩放级别
+  scrollPosition?: { x: number; y: number } // 滚动位置
+  scale?: number // 缩放比例
+  translateX?: number // 平移X
+  translateY?: number // 平移Y
 }
 
 // 创建白板笔记的输入
@@ -130,8 +149,12 @@ export interface Connection {
   color?: string // 连线颜色
   thickness?: number // 连线粗细
   label?: string // 连线中的文字内容
+  labelPosition?: { x: number; y: number } // 新增：标签位置
   lineStyle?: 'solid' | 'dashed' // 连线样式
   startArrow?: boolean // 起点是否有箭头，默认false
   endArrow?: boolean // 终点是否有箭头，默认true
   lineShape?: 'straight' | 'curved' | 'angled' // 连线形状
+  position?: { x: number; y: number } // 新增：连线的位置
+  controlPoints?: { x: number; y: number }[] // 新增：控制点，用于调整连线形状
+  zIndex?: number // 新增：用于控制连线的层级
 }

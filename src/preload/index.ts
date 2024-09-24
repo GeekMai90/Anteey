@@ -6,7 +6,8 @@ import {
   CreateWhiteboardInput,
   CreateWhiteboardNoteInput,
   WhiteboardNote,
-  WhiteboardItem
+  WhiteboardItem,
+  RootWhiteboard
 } from '../renderer/src/types/Note'
 
 contextBridge.exposeInMainWorld('electronAPI', {
@@ -226,6 +227,53 @@ contextBridge.exposeInMainWorld('electronAPI', {
       })) as WhiteboardItem
     } catch (error) {
       console.error('Preload: 更新白板项位置时出错:', error)
+      throw error
+    }
+  },
+  createRootWhiteboard: async (): Promise<RootWhiteboard> => {
+    try {
+      console.log('Preload: 正在创建根白板')
+      return (await ipcRenderer.invoke('create-root-whiteboard')) as RootWhiteboard
+    } catch (error) {
+      console.error('Preload: 创建根白板时出错:', error)
+      throw error
+    }
+  },
+  getRootWhiteboard: async (): Promise<RootWhiteboard> => {
+    try {
+      console.log('Preload: 正在获取根白板')
+      return (await ipcRenderer.invoke('get-root-whiteboard')) as RootWhiteboard
+    } catch (error) {
+      console.error('Preload: 获取根白板时出错:', error)
+      throw error
+    }
+  },
+  saveViewStateToRootWhiteboard: async (scale: number, translateX: number, translateY: number) => {
+    try {
+      console.log('Preload: 正在保存视图状态到根白板:', { scale, translateX, translateY })
+      return (await ipcRenderer.invoke('save-view-state-to-root-whiteboard', {
+        scale,
+        translateX,
+        translateY
+      })) as boolean
+    } catch (error) {
+      console.error('Preload: 保存视图状态到根白板时出错:', error)
+      throw error
+    }
+  },
+  getRootWhiteboardViewState: async (): Promise<{
+    scale: number
+    translateX: number
+    translateY: number
+  }> => {
+    try {
+      return (await ipcRenderer.invoke('get-root-whiteboard-view-state')) as {
+        scale: number
+        translateX: number
+        translateY: number
+      }
+    } catch (error) {
+      console.error('Preload: 获取根白板的视图状态时出错:', error)
       throw error
     }
   }

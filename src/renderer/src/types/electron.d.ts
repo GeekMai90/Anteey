@@ -5,7 +5,8 @@ import {
   CreateWhiteboardInput,
   CreateWhiteboardNoteInput,
   WhiteboardNote,
-  WhiteboardItem
+  WhiteboardItem,
+  RootWhiteboard
 } from './Note'
 
 export interface ElectronAPI {
@@ -35,6 +36,18 @@ export interface ElectronAPI {
   createWhiteboardNote: (input: CreateWhiteboardNoteInput) => Promise<WhiteboardNote>
   getWhiteboardItems: (whiteboardId: string) => Promise<WhiteboardItem[]>
   updateWhiteboardItemPosition: (id: string, x: number, y: number) => Promise<WhiteboardItem>
+  createRootWhiteboard: () => Promise<RootWhiteboard>
+  getRootWhiteboard: () => Promise<RootWhiteboard>
+  saveViewStateToRootWhiteboard: (
+    scale: number,
+    translateX: number,
+    translateY: number
+  ) => Promise<boolean>
+  getRootWhiteboardViewState: () => Promise<{
+    scale: number
+    translateX: number
+    translateY: number
+  }>
 }
 
 declare global {
