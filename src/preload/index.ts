@@ -175,5 +175,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
       console.error('Preload: 获取顶层白板时出错:', error)
       throw error
     }
+  },
+  updateWhiteboardPosition: async (id: string, x: number, y: number): Promise<Whiteboard> => {
+    try {
+      console.log('Preload: 正在更新白板位置:', { id, x, y })
+      return (await ipcRenderer.invoke('update-whiteboard-position', { id, x, y })) as Whiteboard
+    } catch (error) {
+      console.error('Preload: 更新白板位置时出错:', error)
+      throw error
+    }
   }
 })

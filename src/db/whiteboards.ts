@@ -2,6 +2,18 @@ import { v4 as uuidv4 } from 'uuid'
 import { db } from './config' // 假设你有一个 db 模块来处理数据库连接
 import type { CreateWhiteboardInput, Whiteboard } from '../renderer/src/types/Note'
 
+// 辅助函数：处理白板数据
+function processWhiteboardData(whiteboard: any): Whiteboard {
+  return {
+    ...whiteboard,
+    position: JSON.parse(whiteboard.position),
+    items: JSON.parse(whiteboard.items),
+    size: whiteboard.size ? JSON.parse(whiteboard.size) : null,
+    createdAt: new Date(whiteboard.createdAt),
+    updatedAt: new Date(whiteboard.updatedAt)
+  }
+}
+
 export async function createWhiteboard(input: CreateWhiteboardInput): Promise<Whiteboard> {
   const id = uuidv4()
   const now = new Date().toISOString() // 确保日期格式正确
@@ -15,10 +27,10 @@ export async function createWhiteboard(input: CreateWhiteboardInput): Promise<Wh
     items: [],
     position: input.position,
     size: input.size,
-    parentId: input.parentId ?? undefined, // 确保 parentId 是 null 而不是 undefined
+    parentId: input.parentId ?? undefined, // 确保 parentId 是 undefined
     isRoot: input.isRoot,
     isStarred: input.isStarred || false,
-    starredOrder: input.starredOrder || undefined // 确保 starredOrder 是 null 而不是 undefined
+    starredOrder: input.starredOrder || undefined // 确保 starredOrder 是undefined
   }
 
   try {
@@ -43,17 +55,39 @@ export async function getTopLevelWhiteboards(): Promise<Whiteboard[]> {
     const whiteboards = await db('whiteboards').where({ isRoot: true })
 
     // 处理返回的数据
-    const processedWhiteboards = whiteboards.map((whiteboard: any) => ({
-      ...whiteboard,
-      position: JSON.parse(whiteboard.position),
-      items: JSON.parse(whiteboard.items),
-      size: whiteboard.size ? JSON.parse(whiteboard.size) : null
-    }))
+    // const processedWhiteboards = whiteboards.map((whiteboard: any) => ({
+    //   ...whiteboard,
+    //   position: JSON.parse(whiteboard.position),
+    //   items: JSON.parse(whiteboard.items),
+    //   size: whiteboard.size ? JSON.parse(whiteboard.size) : null
+    // }))
+    const processedWhiteboards = whiteboards.map(processWhiteboardData)
 
     console.log('获取顶层白板成功', processedWhiteboards)
     return processedWhiteboards
   } catch (error) {
     console.error('后端→ 获取顶层白板失败:', error)
+    throw error
+  }
+}
+
+// 更新白板位置
+export async function updateWhiteboardPosition(
+  id: string,
+  x: number,
+  y: number
+): Promise<Whiteboard> {
+  try {
+    const updatedWhiteboard = await db('whiteboards')
+      .where({ id })
+      .update({
+        position: JSON.stringify({ x, y })
+      })
+      .returning('*')
+
+    return processWhiteboardData(updatedWhiteboard[0])
+  } catch (error) {
+    console.error('后端→ 更新白板位置失败:', error)
     throw error
   }
 }

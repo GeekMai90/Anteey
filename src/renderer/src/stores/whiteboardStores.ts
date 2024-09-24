@@ -18,6 +18,7 @@ export const useWhiteboardStore = defineStore('whiteboard', {
         this.whiteboards.push(newWhiteboard)
         console.log('whiteboardStore→ 创建白板成功', this.whiteboards)
         return newWhiteboard
+        await this.getTopLevelWhiteboards()
       } else {
         console.error('whiteboardStore→ 创建白板失败')
       }
@@ -28,6 +29,15 @@ export const useWhiteboardStore = defineStore('whiteboard', {
       console.log('whiteboardStore→ 获取顶层白板成功', whiteboards)
       this.whiteboards = whiteboards
       return whiteboards
+    },
+    async updateWhiteboardPosition(id: string, x: number, y: number) {
+      console.log('whiteboardStore→ 开始更新白板位置', { id, x, y })
+      const updatedWhiteboard = await window.electronAPI.updateWhiteboardPosition(id, x, y)
+      console.log('whiteboardStore→ 更新白板位置成功', updatedWhiteboard)
+      this.whiteboards = this.whiteboards.map((whiteboard) =>
+        whiteboard.id === updatedWhiteboard.id ? updatedWhiteboard : whiteboard
+      )
+      return updatedWhiteboard
     }
   },
   persist: true

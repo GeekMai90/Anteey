@@ -20,7 +20,11 @@ import {
   removeStarFromNote
 } from '../db/notes'
 import { createCardBox, getAllCardBoxes, updateCardBox, deleteCardBox } from '../db/cardBoxes'
-import { createWhiteboard, getTopLevelWhiteboards } from '../db/whiteboards'
+import {
+  createWhiteboard,
+  getTopLevelWhiteboards,
+  updateWhiteboardPosition
+} from '../db/whiteboards'
 import { CreateWhiteboardInput } from '../renderer/src/types/Note'
 import { db, dbPath } from '../db/config'
 import log from 'electron-log'
@@ -131,6 +135,19 @@ function createCustomMenu() {
 }
 
 function setupIpcHandlers() {
+  // 更新白板位置
+  ipcMain.handle('update-whiteboard-position', async (_, { id, x, y }) => {
+    try {
+      console.log('主进程 → 更新白板位置:', { id, x, y })
+      const updatedWhiteboard = await updateWhiteboardPosition(id, x, y)
+      console.log('主进程 → 更新白板位置成功:', updatedWhiteboard)
+      return updatedWhiteboard
+    } catch (error) {
+      console.error('主进程 → 更新白板位置时出错:', error)
+      return { success: false, error: error }
+    }
+  })
+
   // 获取所有顶层白板
   ipcMain.handle('get-top-level-whiteboards', async () => {
     try {

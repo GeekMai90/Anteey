@@ -4,7 +4,11 @@
     <div class="fixed-header">
       <AppToolbar />
     </div>
-    <div ref="containerRef" class="whiteboard-container">
+    <div
+      ref="containerRef"
+      class="whiteboard-container"
+      @dblclick.stop="handleContainerDoubleClick"
+    >
       <WhiteboardThumbnail
         v-for="whiteboard in whiteboards"
         :key="whiteboard.id"
@@ -12,7 +16,6 @@
         @click="openWhiteboard(whiteboard.id)"
         @update-position="updateWhiteboardPosition"
       />
-      <button class="add-board-btn" @click="createNewWhiteboard">新建画布</button>
     </div>
   </div>
 </template>
@@ -41,20 +44,26 @@ const openWhiteboard = (id: string) => {
   router.push({ name: 'whiteboardDetail', params: { id } })
 }
 
-const createNewWhiteboard = async () => {
-  const input: CreateWhiteboardInput = {
-    name: '新白板',
-    isRoot: true,
-    position: { x: 0, y: 0 }
-  }
-  try {
-    const newWhiteboard = await whiteboardStore.createWhiteboard(input)
-    // if (newWhiteboard) {
-    //   whiteboards.value.push(newWhiteboard)
-    // }
-    return newWhiteboard
-  } catch (error) {
-    console.error('Failed to create whiteboard:', error)
+// 双击空白处创建顶级新白板
+const handleContainerDoubleClick = async (event: MouseEvent) => {
+  //阻止默认行为和冒泡
+  event.preventDefault()
+  event.stopPropagation()
+  if (event.target === containerRef.value) {
+    const rect = containerRef.value!.getBoundingClientRect()
+    const x = event.clientX - rect.left
+    const y = event.clientY - rect.top
+    const input: CreateWhiteboardInput = {
+      name: '新白板',
+      isRoot: true,
+      position: { x, y }
+    }
+    try {
+      const newWhiteboard = await whiteboardStore.createWhiteboard(input)
+      return newWhiteboard
+    } catch (error) {
+      console.error('Failed to create whiteboard:', error)
+    }
   }
 }
 
@@ -64,7 +73,7 @@ const updateWhiteboardPosition = (id: string, x: number, y: number) => {
   if (whiteboard) {
     whiteboard.position = { x, y }
     // 这里可以调用 store 方法来持久化位置更改
-    // whiteboardStore.updateWhiteboardPosition(id, x, y)
+    whiteboardStore.updateWhiteboardPosition(id, x, y)
   }
 }
 </script>

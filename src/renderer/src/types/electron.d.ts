@@ -23,6 +23,7 @@ export interface ElectronAPI {
   removeStarFromNote: (id: string) => Promise<{ updatedNote: Note; reorderedNotes: Note[] }>
   createWhiteboard: (input: CreateWhiteboardInput) => Promise<Whiteboard>
   getTopLevelWhiteboards: () => Promise<Whiteboard[]>
+  updateWhiteboardPosition: (id: string, x: number, y: number) => Promise<Whiteboard>
 }
 
 declare global {
