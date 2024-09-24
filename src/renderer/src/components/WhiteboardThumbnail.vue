@@ -31,11 +31,6 @@ const emit = defineEmits<{
 
 const position = ref(props.whiteboard.position || { x: 0, y: 0 })
 
-// const thumbnailStyle = computed(() => ({
-//   transform: `translate(${position.value.x}px, ${position.value.y}px)`,
-//   position: 'absolute',
-//   cursor: 'move'
-// }))
 const thumbnailStyle = computed(
   () =>
     ({

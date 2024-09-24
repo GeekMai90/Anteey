@@ -1,5 +1,12 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import { Note, CardBox, Whiteboard, CreateWhiteboardInput } from '../renderer/src/types/Note'
+import {
+  Note,
+  CardBox,
+  Whiteboard,
+  CreateWhiteboardInput,
+  CreateWhiteboardNoteInput,
+  WhiteboardNote
+} from '../renderer/src/types/Note'
 
 contextBridge.exposeInMainWorld('electronAPI', {
   getResourcePath: async (filename: string): Promise<string> => {
@@ -182,6 +189,15 @@ contextBridge.exposeInMainWorld('electronAPI', {
       return (await ipcRenderer.invoke('update-whiteboard-position', { id, x, y })) as Whiteboard
     } catch (error) {
       console.error('Preload: 更新白板位置时出错:', error)
+      throw error
+    }
+  },
+  createWhiteboardNote: async (input: CreateWhiteboardNoteInput): Promise<WhiteboardNote> => {
+    try {
+      console.log('Preload: 正在创建白板笔记:', input)
+      return (await ipcRenderer.invoke('create-whiteboard-note', input)) as WhiteboardNote
+    } catch (error) {
+      console.error('Preload: 创建白板笔记时出错:', error)
       throw error
     }
   }

@@ -1,6 +1,11 @@
 // stores/whiteboard.ts
 import { defineStore } from 'pinia'
-import { Whiteboard, Connection, CreateWhiteboardInput } from '../types/Note'
+import {
+  Whiteboard,
+  Connection,
+  CreateWhiteboardInput,
+  CreateWhiteboardNoteInput
+} from '../types/Note'
 
 export const useWhiteboardStore = defineStore('whiteboard', {
   state: () => ({
@@ -38,6 +43,12 @@ export const useWhiteboardStore = defineStore('whiteboard', {
         whiteboard.id === updatedWhiteboard.id ? updatedWhiteboard : whiteboard
       )
       return updatedWhiteboard
+    },
+    async createWhiteboardNote(input: CreateWhiteboardNoteInput) {
+      console.log('whiteboardStore→ 开始创建白板笔记', input)
+      const newWhiteboardNote = await window.electronAPI.createWhiteboardNote(input)
+      console.log('whiteboardStore→ 创建白板笔记成功', newWhiteboardNote)
+      return newWhiteboardNote
     }
   },
   persist: true

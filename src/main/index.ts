@@ -23,9 +23,10 @@ import { createCardBox, getAllCardBoxes, updateCardBox, deleteCardBox } from '..
 import {
   createWhiteboard,
   getTopLevelWhiteboards,
-  updateWhiteboardPosition
+  updateWhiteboardPosition,
+  createWhiteboardNote
 } from '../db/whiteboards'
-import { CreateWhiteboardInput } from '../renderer/src/types/Note'
+import { CreateWhiteboardInput, CreateWhiteboardNoteInput } from '../renderer/src/types/Note'
 import { db, dbPath } from '../db/config'
 import log from 'electron-log'
 // import { runMigrations } from '../db/migrations/migrations'
@@ -135,6 +136,19 @@ function createCustomMenu() {
 }
 
 function setupIpcHandlers() {
+  // 创建白板笔记
+  ipcMain.handle('create-whiteboard-note', async (_, input: CreateWhiteboardNoteInput) => {
+    try {
+      console.log('主进程 → 创建白板笔记:', input)
+      const newWhiteboardNote = await createWhiteboardNote(input)
+      console.log('主进程 → 创建白板笔记成功:', newWhiteboardNote)
+      return newWhiteboardNote
+    } catch (error) {
+      console.error('主进程 → 创建白板笔记时出错:', error)
+      return { success: false, error: error }
+    }
+  })
+
   // 更新白板位置
   ipcMain.handle('update-whiteboard-position', async (_, { id, x, y }) => {
     try {

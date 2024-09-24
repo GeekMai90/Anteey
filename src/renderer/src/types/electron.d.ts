@@ -1,4 +1,11 @@
-import { Note, CardBox, Whiteboard, CreateWhiteboardInput } from './Note'
+import {
+  Note,
+  CardBox,
+  Whiteboard,
+  CreateWhiteboardInput,
+  CreateWhiteboardNoteInput,
+  WhiteboardNote
+} from './Note'
 
 export interface ElectronAPI {
   createNote: () => Promise<Note>
@@ -24,6 +31,7 @@ export interface ElectronAPI {
   createWhiteboard: (input: CreateWhiteboardInput) => Promise<Whiteboard>
   getTopLevelWhiteboards: () => Promise<Whiteboard[]>
   updateWhiteboardPosition: (id: string, x: number, y: number) => Promise<Whiteboard>
+  createWhiteboardNote: (input: CreateWhiteboardNoteInput) => Promise<WhiteboardNote>
 }
 
 declare global {

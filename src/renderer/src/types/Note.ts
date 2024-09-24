@@ -72,6 +72,16 @@ export interface Whiteboard {
   starredOrder?: number // 标星顺序
 }
 
+// 创建白板笔记的输入
+export interface CreateWhiteboardNoteInput {
+  whiteboardId: string
+  noteId: string
+  position: { x: number; y: number }
+  size: { width: number; height: number }
+  zIndex: number
+  rotation: number
+}
+
 // 白板上的笔记引用
 export interface WhiteboardNote {
   id: string

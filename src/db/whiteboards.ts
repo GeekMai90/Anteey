@@ -1,6 +1,13 @@
 import { v4 as uuidv4 } from 'uuid'
 import { db } from './config' // 假设你有一个 db 模块来处理数据库连接
-import type { CreateWhiteboardInput, Whiteboard } from '../renderer/src/types/Note'
+import type {
+  CreateWhiteboardInput,
+  CreateWhiteboardNoteInput,
+  Whiteboard,
+  WhiteboardItem,
+  WhiteboardNote
+} from '../renderer/src/types/Note'
+import { createNote } from './notes'
 
 // 辅助函数：处理白板数据
 function processWhiteboardData(whiteboard: any): Whiteboard {
@@ -89,5 +96,63 @@ export async function updateWhiteboardPosition(
   } catch (error) {
     console.error('后端→ 更新白板位置失败:', error)
     throw error
+  }
+}
+
+// 获取白板内的所有内容
+// 通过白板ID获取白板内容，返回白板内容的数组
+export async function getWhiteboardItems(id: string): Promise<WhiteboardItem[]> {
+  try {
+    const whiteboard = await db('whiteboards').where({ id }).first()
+    return whiteboard ? JSON.parse(whiteboard.items) : []
+  } catch (error) {
+    console.error('后端→ 获取白板内容失败:', error)
+    throw error
+  }
+}
+
+// 白板上的笔记
+// export interface WhiteboardNote {
+//   id: string
+//   type: 'note'
+//   noteId: string // 引用实际卡片笔记的ID
+//   position: { x: number; y: number }
+//   size: { width: number; height: number }
+//   zIndex: number
+//   rotation: number
+// }
+
+// 创建白板笔记
+// 分成两个步骤，首先是创建一个卡片笔记，得到这个卡片笔记的 id
+// 然后，将这个卡片笔记的 id 作为参数，创建一个白板笔记
+export async function createWhiteboardNote(
+  input: CreateWhiteboardNoteInput
+): Promise<WhiteboardNote> {
+  const note = await createNote()
+  const newWhiteboardNote: WhiteboardNote = {
+    id: uuidv4(),
+    type: 'note',
+    noteId: note.id,
+    position: input.position,
+    size: input.size,
+    zIndex: input.zIndex,
+    rotation: input.rotation
+  }
+  await db('whiteboard_items').insert({
+    ...newWhiteboardNote,
+    position: JSON.stringify(newWhiteboardNote.position),
+    size: JSON.stringify(newWhiteboardNote.size),
+    whiteboardId: input.whiteboardId
+  })
+  // 从数据库中获取刚插入的记录
+  const [insertedNote] = await db('whiteboard_items')
+    .where({ id: newWhiteboardNote.id })
+    .select('*')
+
+  // 将 JSON 字符串转换回对象
+  return {
+    ...insertedNote,
+    position: JSON.parse(insertedNote.position),
+    size: JSON.parse(insertedNote.size)
   }
 }
