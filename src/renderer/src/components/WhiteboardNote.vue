@@ -1,19 +1,29 @@
 <template>
   <div class="whiteboard-note">
-    <div class="note-header">
-      <div class="note-title">{{ note.title }}</div>
-      <div class="note-actions">
-        <button @click="editNote">编辑</button>
-        <button @click="deleteNote">删除</button>
-      </div>
+    <div class="whiteboard-note-content">
+      <NoteCard :note="props.note" />
     </div>
   </div>
 </template>
 
-<script>
-export default {
-  name: 'WhiteboardNote'
-}
+<script setup>
+import { defineProps } from 'vue'
+import NoteCard from './NoteCard.vue'
+
+const props = defineProps({
+  note: {
+    type: Object,
+    required: true
+  }
+})
 </script>
 
-<style lang="scss" scoped></style>
+<style lang="scss" scoped>
+.whiteboard-note {
+  background-color: var(--color-bg-primary);
+}
+
+.note-content {
+  margin-top: 5px;
+}
+</style>

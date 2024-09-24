@@ -5,7 +5,8 @@ import {
   Whiteboard,
   CreateWhiteboardInput,
   CreateWhiteboardNoteInput,
-  WhiteboardNote
+  WhiteboardNote,
+  WhiteboardItem
 } from '../renderer/src/types/Note'
 
 contextBridge.exposeInMainWorld('electronAPI', {
@@ -198,6 +199,33 @@ contextBridge.exposeInMainWorld('electronAPI', {
       return (await ipcRenderer.invoke('create-whiteboard-note', input)) as WhiteboardNote
     } catch (error) {
       console.error('Preload: 创建白板笔记时出错:', error)
+      throw error
+    }
+  },
+  getWhiteboardItems: async (whiteboardId: string): Promise<WhiteboardItem[]> => {
+    try {
+      console.log('Preload: 正在获取白板内容:', whiteboardId)
+      return (await ipcRenderer.invoke('get-whiteboard-items', whiteboardId)) as WhiteboardItem[]
+    } catch (error) {
+      console.error('Preload: 获取白板内容时出错:', error)
+      throw error
+    }
+  },
+  // 更新白板项位置
+  updateWhiteboardItemPosition: async (
+    id: string,
+    x: number,
+    y: number
+  ): Promise<WhiteboardItem> => {
+    try {
+      console.log('Preload: 正在更新白板项位置:', { id, x, y })
+      return (await ipcRenderer.invoke('update-whiteboard-item-position', {
+        id,
+        x,
+        y
+      })) as WhiteboardItem
+    } catch (error) {
+      console.error('Preload: 更新白板项位置时出错:', error)
       throw error
     }
   }

@@ -115,6 +115,14 @@ export const useNoteStore = defineStore('note', {
       }
     },
 
+    // 获取一些笔记
+    async getNotesByIds(ids: string[]) {
+      await this.fetchAllNotes()
+      const notes = this.notes.filter((note) => ids.includes(note.id))
+      console.log('noteStores.ts→ 获取笔记成功', notes)
+      return notes
+    },
+
     // 创建新笔记
     async createNote() {
       console.log('noteStores.ts→ 创建新笔记')

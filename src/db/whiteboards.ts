@@ -99,28 +99,61 @@ export async function updateWhiteboardPosition(
   }
 }
 
-// 获取白板内的所有内容
-// 通过白板ID获取白板内容，返回白板内容的数组
-export async function getWhiteboardItems(id: string): Promise<WhiteboardItem[]> {
+// 更新白板项位置
+export async function updateWhiteboardItemPosition(
+  id: string,
+  x: number,
+  y: number
+): Promise<WhiteboardItem> {
   try {
-    const whiteboard = await db('whiteboards').where({ id }).first()
-    return whiteboard ? JSON.parse(whiteboard.items) : []
+    const updatedItem = await db('whiteboard_items')
+      .where({ id })
+      .update({
+        position: JSON.stringify({ x, y })
+      })
+      .returning('*')
+
+    return processWhiteboardItemData(updatedItem[0])
   } catch (error) {
-    console.error('后端→ 获取白板内容失败:', error)
+    console.error('后端→ 更新白板项位置失败:', error)
     throw error
   }
 }
 
-// 白板上的笔记
-// export interface WhiteboardNote {
-//   id: string
-//   type: 'note'
-//   noteId: string // 引用实际卡片笔记的ID
-//   position: { x: number; y: number }
-//   size: { width: number; height: number }
-//   zIndex: number
-//   rotation: number
-// }
+// 辅助函数：处理不同类型的 WhiteboardItem
+function processWhiteboardItemData(item: any): WhiteboardItem {
+  switch (item.type) {
+    case 'note':
+      return {
+        ...item,
+        position: JSON.parse(item.position),
+        size: JSON.parse(item.size)
+        // 其他 note 类型特有的处理
+      }
+    case 'subboard':
+      return {
+        ...item,
+        position: JSON.parse(item.position),
+        size: JSON.parse(item.size)
+        // 其他 subboard 类型特有的处理
+      }
+    case 'group':
+      return {
+        ...item,
+        position: JSON.parse(item.position),
+        size: JSON.parse(item.size)
+        // 其他 group 类型特有的处理
+      }
+    case 'connection':
+      return {
+        ...item,
+        position: JSON.parse(item.position)
+        // 其他 connection 类型特有的处理
+      }
+    default:
+      throw new Error(`未知的 WhiteboardItem 类型: ${item.type}`)
+  }
+}
 
 // 创建白板笔记
 // 分成两个步骤，首先是创建一个卡片笔记，得到这个卡片笔记的 id
@@ -154,5 +187,24 @@ export async function createWhiteboardNote(
     ...insertedNote,
     position: JSON.parse(insertedNote.position),
     size: JSON.parse(insertedNote.size)
+  }
+}
+
+// 获取白板上的所有白板项
+// 通过白板ID获取白板内容，返回白板内容的数组
+
+// 获取白板上的所有白板项
+export async function getWhiteboardItems(whiteboardId: string): Promise<WhiteboardItem[]> {
+  try {
+    const items = await db('whiteboard_items').where({ whiteboardId }).select('*')
+
+    return items.map((item) => ({
+      ...item,
+      position: JSON.parse(item.position),
+      size: JSON.parse(item.size)
+    })) as WhiteboardItem[]
+  } catch (error) {
+    console.error('后端→ 获取白板内容失败:', error)
+    throw error
   }
 }

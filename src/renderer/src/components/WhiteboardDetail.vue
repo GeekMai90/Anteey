@@ -24,21 +24,13 @@
           :key="item.id"
           :class="['whiteboard-item', item.type]"
           :style="getItemStyle(item)"
-          @mousedown="onItemMouseDown(item)"
+          @mousedown="onItemMouseDown(item, $event)"
         >
           <component
             :is="getItemComponent(item)"
-            :item="item"
-            @update-position="updateWhiteboardPosition"
+            :note="item.type === 'note' ? whiteboardStore.getReferenceNotes(item.noteId) : null"
           />
         </div>
-        <!-- <WhiteboardThumbnail
-          v-for="whiteboard in whiteboards"
-          :key="whiteboard.id"
-          :whiteboard="whiteboard"
-          @click="openWhiteboard(whiteboard.id)"
-          @update-position="updateWhiteboardPosition"
-        /> -->
       </div>
     </div>
     <!-- 适应视图按钮 -->
@@ -60,15 +52,15 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, markRaw, onUnmounted, computed } from 'vue'
+import { ref, onMounted, markRaw, onUnmounted, computed, watch } from 'vue'
 import AppToolbar from '@renderer/components/AppToolbar.vue'
-import { useRouter } from 'vue-router'
-import WhiteboardThumbnail from '@renderer/components/WhiteboardThumbnail.vue'
+// import { useRouter } from 'vue-router'
+// import WhiteboardThumbnail from '@renderer/components/WhiteboardThumbnail.vue'
 import { useWhiteboardStore } from '@renderer/stores/whiteboardStores'
 import type {
   CreateWhiteboardInput,
-  Whiteboard,
   WhiteboardItem,
+  Whiteboard,
   CreateWhiteboardNoteInput
 } from '@renderer/types/Note'
 import WhiteboardNote from '@renderer/components/WhiteboardNote.vue'
@@ -80,7 +72,7 @@ import { useContextMenuStore } from '@renderer/stores/contextMenuStore'
 import { Add, Aiming } from '@icon-park/vue-next'
 import { useRoute } from 'vue-router'
 
-const router = useRouter()
+// const router = useRouter()
 const route = useRoute()
 const whiteboardStore = useWhiteboardStore()
 const contextMenuStore = useContextMenuStore()
@@ -88,25 +80,36 @@ const whiteboardId = route.params.id as string
 const whiteboardItems = ref<WhiteboardItem[] | null>([])
 const containerRef = ref<HTMLElement | null>(null)
 const contentRef = ref<HTMLElement | null>(null)
+const whiteboards = ref<Whiteboard[] | null>([])
 
-// 新增：创建白板笔记的函数
-const createWhiteboardNote = async () => {
-  const input: CreateWhiteboardNoteInput = {
-    whiteboardId: whiteboardId,
-    noteId: '',
-    position: { x: 100, y: 100 }, // 默认位置，你可以根据需要调整
-    size: { width: 200, height: 150 }, // 默认大小，你可以根据需要调整
-    zIndex: 1,
-    rotation: 0
-  }
-
-  try {
-    const newNote = await whiteboardStore.createWhiteboardNote(input)
-    whiteboardItems.value?.push(newNote)
-  } catch (error) {
-    console.error('Failed to create whiteboard note:', error)
+// 封装获取白板内容的函数
+const fetchWhiteboardItems = async () => {
+  if (whiteboardId) {
+    whiteboardItems.value = await whiteboardStore.getWhiteboardItems(whiteboardId)
+    console.log('whiteboardItems', whiteboardItems.value)
   }
 }
+
+// 组件挂载时获取白板内容
+onMounted(fetchWhiteboardItems)
+
+// 监听 whiteboardItems 的变化并重新获取白板内容
+// watch(
+//   whiteboardItems,
+//   async () => {
+//     whiteboardItems.value = await whiteboardStore.getWhiteboardItems(whiteboardId)
+//     console.log('whiteboardItems', whiteboardItems.value)
+//   },
+//   { immediate: true }
+// )
+// 监听 whiteboardId 的变化并重新获取白板内容
+watch(
+  () => whiteboardId,
+  async () => {
+    fetchWhiteboardItems()
+  },
+  { immediate: true }
+)
 
 const getItemComponent = (item: WhiteboardItem) => {
   switch (item.type) {
@@ -134,13 +137,73 @@ const getItemStyle = (item: WhiteboardItem) => {
   }
 }
 
-const onItemMouseDown = (item: WhiteboardItem) => {
-  // 处理项目的拖拽和编辑逻辑
+// const onItemMouseDown = (item: WhiteboardItem, event: MouseEvent) => {
+//   event.preventDefault()
+//   const startX = event.clientX
+//   const startY = event.clientY
+//   const initialX = 'position' in item ? item.position.x : 0
+//   const initialY = 'position' in item ? item.position.y : 0
+
+//   const onMouseMove = (moveEvent: MouseEvent) => {
+//     const deltaX = moveEvent.clientX - startX
+//     const deltaY = moveEvent.clientY - startY
+//     const newX = initialX + deltaX
+//     const newY = initialY + deltaY
+
+//     if ('position' in item) {
+//       item.position.x = newX
+//       item.position.y = newY
+//     }
+//   }
+
+//   const onMouseUp = () => {
+//     window.removeEventListener('mousemove', onMouseMove)
+//     window.removeEventListener('mouseup', onMouseUp)
+//   }
+
+//   window.addEventListener('mousemove', onMouseMove)
+//   window.addEventListener('mouseup', onMouseUp)
+// }
+const onItemMouseDown = (item: WhiteboardItem, event: MouseEvent) => {
+  event.preventDefault()
+  const startX = event.clientX
+  const startY = event.clientY
+  const initialX = 'position' in item ? item.position.x : 0
+  const initialY = 'position' in item ? item.position.y : 0
+
+  const onMouseMove = (moveEvent: MouseEvent) => {
+    const deltaX = moveEvent.clientX - startX
+    const deltaY = moveEvent.clientY - startY
+    const newX = initialX + deltaX
+    const newY = initialY + deltaY
+
+    if ('position' in item) {
+      item.position.x = newX
+      item.position.y = newY
+    }
+  }
+
+  const onMouseUp = () => {
+    window.removeEventListener('mousemove', onMouseMove)
+    window.removeEventListener('mouseup', onMouseUp)
+    // 更新白板项位置
+    if ('position' in item) {
+      updateWhiteboardItemPosition(item.id, item.position.x, item.position.y)
+    }
+  }
+
+  window.addEventListener('mousemove', onMouseMove)
+  window.addEventListener('mouseup', onMouseUp)
 }
 
-const addItem = () => {
-  // 添加新项目的逻辑
+// 更新白板项位置
+const updateWhiteboardItemPosition = (id: string, x: number, y: number) => {
+  whiteboardStore.updateWhiteboardItemPosition(id, x, y)
 }
+
+// const addItem = () => {
+//   // 添加新项目的逻辑
+// }
 
 // 缩放和平移状态
 const scale = ref(1)
@@ -205,11 +268,6 @@ const handleContainerDoubleClick = (event: MouseEvent) => {
       }
     ])
   }
-}
-
-// 更新白板位置
-const updateWhiteboardPosition = (id: string, x: number, y: number) => {
-  whiteboardStore.updateWhiteboardPosition(id, x, y)
 }
 
 // 处理鼠标按下事件
@@ -333,18 +391,24 @@ const handleTouchEnd = () => {
 
 // 适应视图
 const fitView = () => {
-  if (!containerRef.value || !contentRef.value || whiteboards.value.length === 0) return
+  if (
+    !containerRef.value ||
+    !contentRef.value ||
+    !whiteboardItems.value ||
+    !whiteboardItems.value.length === 0
+  )
+    return
 
   const containerRect = containerRef.value.getBoundingClientRect()
 
   // 计算所有白板的边界
-  const bounds = whiteboards.value.reduce(
-    (acc, wb) => {
-      if (wb.position) {
-        acc.left = Math.min(acc.left, wb.position.x)
-        acc.top = Math.min(acc.top, wb.position.y)
-        acc.right = Math.max(acc.right, wb.position.x + (wb.size?.width || 200))
-        acc.bottom = Math.max(acc.bottom, wb.position.y + (wb.size?.height || 150))
+  const bounds = whiteboardItems.value.reduce(
+    (acc, item) => {
+      if ('position' in item) {
+        acc.left = Math.min(acc.left, item.position.x)
+        acc.top = Math.min(acc.top, item.position.y)
+        acc.right = Math.max(acc.right, item.position.x + (item.size?.width || 200))
+        acc.bottom = Math.max(acc.bottom, item.position.y + (item.size?.height || 150))
       }
       return acc
     },
@@ -387,11 +451,32 @@ const loadViewState = () => {
   }
 }
 
+// onMounted(loadViewState)
+
 // 组件卸载时移除事件监听器
 onUnmounted(() => {
   window.removeEventListener('mousemove', handleMouseMove)
   window.removeEventListener('mouseup', handleMouseUp)
 })
+
+// 新增：创建白板笔记的函数
+const createWhiteboardNote = async () => {
+  const input: CreateWhiteboardNoteInput = {
+    whiteboardId: whiteboardId,
+    noteId: '',
+    position: { x: 100, y: 100 }, // 默认位置，你可以根据需要调整
+    size: { width: 200, height: 150 }, // 默认大小，你可以根据需要调整
+    zIndex: 1,
+    rotation: 0
+  }
+
+  try {
+    const newNote = await whiteboardStore.createWhiteboardNote(input)
+    whiteboardItems.value?.push(newNote)
+  } catch (error) {
+    console.error('Failed to create whiteboard note:', error)
+  }
+}
 </script>
 
 <style scoped lang="scss">
@@ -426,6 +511,10 @@ onUnmounted(() => {
   position: absolute;
   width: 100%;
   height: 100%;
+}
+
+.whiteboard-item {
+  position: absolute; /* 确保项目是绝对定位的 */
 }
 
 .whiteboard-container:active {

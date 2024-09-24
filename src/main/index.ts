@@ -24,7 +24,9 @@ import {
   createWhiteboard,
   getTopLevelWhiteboards,
   updateWhiteboardPosition,
-  createWhiteboardNote
+  createWhiteboardNote,
+  getWhiteboardItems,
+  updateWhiteboardItemPosition
 } from '../db/whiteboards'
 import { CreateWhiteboardInput, CreateWhiteboardNoteInput } from '../renderer/src/types/Note'
 import { db, dbPath } from '../db/config'
@@ -136,6 +138,32 @@ function createCustomMenu() {
 }
 
 function setupIpcHandlers() {
+  // 更新白板项位置
+  ipcMain.handle('update-whiteboard-item-position', async (_, { id, x, y }) => {
+    try {
+      console.log('主进程 → 更新白板项位置:', { id, x, y })
+      const updatedItem = await updateWhiteboardItemPosition(id, x, y)
+      console.log('主进程 → 更新白板项位置成功:', updatedItem)
+      return updatedItem
+    } catch (error) {
+      console.error('主进程 → 更新白板项位置时出错:', error)
+      return { success: false, error: error }
+    }
+  })
+
+  // 获取白板上的所有白板项
+  ipcMain.handle('get-whiteboard-items', async (_, whiteboardId: string) => {
+    try {
+      console.log('主进程 → 获取白板内容:', whiteboardId)
+      const items = await getWhiteboardItems(whiteboardId)
+      console.log('主进程 → 获取白板内容成功:', items)
+      return items
+    } catch (error) {
+      console.error('主进程 → 获取白板内容时出错:', error)
+      return { success: false, error: error }
+    }
+  })
+
   // 创建白板笔记
   ipcMain.handle('create-whiteboard-note', async (_, input: CreateWhiteboardNoteInput) => {
     try {
