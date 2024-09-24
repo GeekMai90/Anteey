@@ -17,21 +17,26 @@
         @update-position="updateWhiteboardPosition"
       />
     </div>
+    <ContexMenu />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, markRaw } from 'vue'
 import AppToolbar from '@renderer/components/AppToolbar.vue'
 import { useRouter } from 'vue-router'
 import WhiteboardThumbnail from '@renderer/components/WhiteboardThumbnail.vue'
 import { useWhiteboardStore } from '@renderer/stores/whiteboardStores'
 import type { CreateWhiteboardInput, Whiteboard } from '@renderer/types/Note'
+import ContexMenu from '@renderer/components/ContexMenu.vue'
+import { useContextMenuStore } from '@renderer/stores/contextMenuStore'
+import { Add } from '@icon-park/vue-next'
 
 const router = useRouter()
 const whiteboardStore = useWhiteboardStore()
 const whiteboards = ref<Whiteboard[]>([])
 const containerRef = ref<HTMLElement | null>(null)
+const contextMenuStore = useContextMenuStore()
 
 // 获取顶层白板
 onMounted(async () => {
@@ -44,26 +49,40 @@ const openWhiteboard = (id: string) => {
   router.push({ name: 'whiteboardDetail', params: { id } })
 }
 
+// 创建新白板
+const createNewWhiteboard = async (x: number, y: number) => {
+  const input: CreateWhiteboardInput = {
+    name: '新白板',
+    isRoot: true,
+    position: { x, y }
+  }
+  try {
+    await whiteboardStore.createWhiteboard(input)
+    // 直接使用 store 中的数据，而不是手动添加到本地数组
+    whiteboards.value = whiteboardStore.whiteboards
+    contextMenuStore.closeMenu()
+  } catch (error) {
+    console.error('Failed to create whiteboard:', error)
+  }
+}
+
 // 双击空白处创建顶级新白板
-const handleContainerDoubleClick = async (event: MouseEvent) => {
-  //阻止默认行为和冒泡
+// 处理双击事件
+const handleContainerDoubleClick = (event: MouseEvent) => {
   event.preventDefault()
   event.stopPropagation()
   if (event.target === containerRef.value) {
     const rect = containerRef.value!.getBoundingClientRect()
     const x = event.clientX - rect.left
     const y = event.clientY - rect.top
-    const input: CreateWhiteboardInput = {
-      name: '新白板',
-      isRoot: true,
-      position: { x, y }
-    }
-    try {
-      const newWhiteboard = await whiteboardStore.createWhiteboard(input)
-      return newWhiteboard
-    } catch (error) {
-      console.error('Failed to create whiteboard:', error)
-    }
+
+    contextMenuStore.showMenu(event.clientX, event.clientY, [
+      {
+        label: '新建白板',
+        icon: markRaw(Add),
+        action: () => createNewWhiteboard(x, y)
+      }
+    ])
   }
 }
 
