@@ -59,15 +59,17 @@ export async function initDatabase(db: Knex): Promise<void> {
       table.datetime('createdAt').notNullable()
       table.datetime('updatedAt').notNullable()
       table.json('items').notNullable()
-      table.json('position').nullable()
+      table.json('position').notNullable() // 改为 notNullable()
       table.json('size').nullable()
       table.string('parentId').nullable()
       table.boolean('isRoot').notNullable().defaultTo(false)
       table.boolean('isStarred').notNullable().defaultTo(false)
       table.integer('starredOrder').nullable()
-      table.float('scale').nullable() // 新增：缩放比例
-      table.float('translateX').nullable() // 新增：平移X
-      table.float('translateY').nullable() // 新增：平移Y
+      table.float('zoomLevel').nullable() // 新增：缩放级别
+      table.json('scrollPosition').nullable() // 新增：滚动位置
+      table.float('scale').nullable() // 缩放比例
+      table.float('translateX').nullable() // 平移X
+      table.float('translateY').nullable() // 平移Y
     })
     console.log('whiteboards 表创建成功')
   }
@@ -79,6 +81,8 @@ export async function initDatabase(db: Knex): Promise<void> {
       table.datetime('createdAt').notNullable()
       table.datetime('updatedAt').notNullable()
       table.json('items').notNullable() // 包含子白板
+      table.float('zoomLevel').nullable() // 新增：缩放级别
+      table.json('scrollPosition').nullable() // 新增：滚动位置
       table.float('scale').nullable() // 新增：缩放比例
       table.float('translateX').nullable() // 新增：平移X
       table.float('translateY').nullable() // 新增：平移Y

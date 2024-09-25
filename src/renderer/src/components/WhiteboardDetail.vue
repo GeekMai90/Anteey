@@ -128,10 +128,10 @@ const getItemComponent = (item: WhiteboardItem) => {
 
 const getItemStyle = (item: WhiteboardItem) => {
   return {
-    left: `${'position' in item ? item.position.x : 0}px`,
-    top: `${'position' in item ? item.position.y : 0}px`,
-    width: `${'size' in item ? item.size.width : 0}px`,
-    height: `${'size' in item ? item.size.height : 0}px`,
+    left: `${'position' in item && item.position ? item.position.x : 0}px`,
+    top: `${'position' in item && item.position ? item.position.y : 0}px`,
+    width: `${'size' in item && item.size ? item.size.width : 0}px`,
+    height: `${'size' in item && item.size ? item.size.height : 0}px`,
     zIndex: `${'zIndex' in item ? item.zIndex : 0}`,
     transform: `rotate(${'rotation' in item ? item.rotation : 0}deg)`
   }
@@ -168,8 +168,8 @@ const onItemMouseDown = (item: WhiteboardItem, event: MouseEvent) => {
   event.preventDefault()
   const startX = event.clientX
   const startY = event.clientY
-  const initialX = 'position' in item ? item.position.x : 0
-  const initialY = 'position' in item ? item.position.y : 0
+  const initialX = 'position' in item && item.position ? item.position.x : 0
+  const initialY = 'position' in item && item.position ? item.position.y : 0
 
   const onMouseMove = (moveEvent: MouseEvent) => {
     const deltaX = moveEvent.clientX - startX
@@ -177,7 +177,7 @@ const onItemMouseDown = (item: WhiteboardItem, event: MouseEvent) => {
     const newX = initialX + deltaX
     const newY = initialY + deltaY
 
-    if ('position' in item) {
+    if ('position' in item && item.position) {
       item.position.x = newX
       item.position.y = newY
     }
@@ -187,7 +187,7 @@ const onItemMouseDown = (item: WhiteboardItem, event: MouseEvent) => {
     window.removeEventListener('mousemove', onMouseMove)
     window.removeEventListener('mouseup', onMouseUp)
     // 更新白板项位置
-    if ('position' in item) {
+    if ('position' in item && item.position) {
       updateWhiteboardItemPosition(item.id, item.position.x, item.position.y)
     }
   }
@@ -240,7 +240,13 @@ const createNewWhiteboard = async (x: number, y: number) => {
   const input: CreateWhiteboardInput = {
     name: '新白板',
     isRoot: true,
-    position: { x, y }
+    position: { x, y },
+    size: { width: 200, height: 150 },
+    zoomLevel: 1,
+    scrollPosition: { x: 0, y: 0 },
+    scale: 1,
+    translateX: 0,
+    translateY: 0
   }
   try {
     await whiteboardStore.createWhiteboard(input)

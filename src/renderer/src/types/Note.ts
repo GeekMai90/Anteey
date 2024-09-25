@@ -49,12 +49,17 @@ export type WhiteboardItem = WhiteboardNote | WhiteboardSubboard | WhiteboardGro
 export interface CreateWhiteboardInput {
   isRoot: boolean
   position: { x: number; y: number }
-  name?: string
+  name: string
   description?: string
-  size?: { width: number; height: number }
+  size: { width: number; height: number }
   parentId?: string
   isStarred?: boolean
   starredOrder?: number
+  zoomLevel: number
+  scrollPosition: { x: number; y: number }
+  scale: number
+  translateX: number
+  translateY: number
 }
 
 // 根白板
@@ -63,11 +68,11 @@ export interface RootWhiteboard {
   createdAt: Date
   updatedAt: Date
   items: Whiteboard[] // 包含子白板
-  zoomLevel?: number // 缩放级别
-  scrollPosition?: { x: number; y: number } // 滚动位置
-  scale?: number // 缩放比例
-  translateX?: number // 平移X
-  translateY?: number // 平移Y
+  zoomLevel: number // 缩放级别
+  scrollPosition: { x: number; y: number } // 滚动位置
+  scale: number // 缩放比例
+  translateX: number // 平移X
+  translateY: number // 平移Y
 }
 
 // 白板
@@ -78,17 +83,17 @@ export interface Whiteboard {
   createdAt: Date
   updatedAt: Date
   items: WhiteboardItem[] // 包含卡片笔记、子白板、分组和连接
-  position?: { x: number; y: number } // 在父白板中的位置（如果是子白板）
-  size?: { width: number; height: number } // 在父白板中的大小（如果是子白板）
+  position: { x: number; y: number } // 在父白板中的位置（如果是子白板）
+  size: { width: number; height: number } // 在父白板中的大小（如果是子白板）
   parentId?: string // 父白板的ID（如果是子白板）
   isRoot: boolean // 是否为顶层白板
   isStarred?: boolean // 是否被标星
   starredOrder?: number // 标星顺序
-  zoomLevel?: number // 缩放级别
+  zoomLevel: number // 缩放级别
   scrollPosition?: { x: number; y: number } // 滚动位置
-  scale?: number // 缩放比例
-  translateX?: number // 平移X
-  translateY?: number // 平移Y
+  scale: number // 缩放比例
+  translateX: number // 平移X
+  translateY: number // 平移Y
 }
 
 // 创建白板笔记的输入

@@ -54,6 +54,7 @@ export const useWhiteboardStore = defineStore('whiteboard', {
       console.log('whiteboardStore→ 创建根白板成功', newRootWhiteboard)
       return newRootWhiteboard
     },
+    // 创建白板
     async createWhiteboard(input: CreateWhiteboardInput) {
       console.log('whiteboardStore→ 开始创建白板', input)
       const newWhiteboard = await window.electronAPI.createWhiteboard(input)

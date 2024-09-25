@@ -10,6 +10,29 @@ import type {
 } from '../renderer/src/types/Note'
 import { createNote } from './notes'
 
+// 辅助函数：处理白板数据
+function processWhiteboardData(whiteboard: any): Whiteboard {
+  return {
+    id: whiteboard.id,
+    name: whiteboard.name,
+    description: whiteboard.description,
+    createdAt: new Date(whiteboard.createdAt),
+    updatedAt: new Date(whiteboard.updatedAt),
+    items: JSON.parse(whiteboard.items) as WhiteboardItem[],
+    position: JSON.parse(whiteboard.position),
+    size: JSON.parse(whiteboard.size),
+    parentId: whiteboard.parentId,
+    isRoot: whiteboard.isRoot,
+    isStarred: whiteboard.isStarred,
+    starredOrder: whiteboard.starredOrder,
+    zoomLevel: whiteboard.zoomLevel,
+    scrollPosition: whiteboard.scrollPosition ? JSON.parse(whiteboard.scrollPosition) : undefined,
+    scale: whiteboard.scale,
+    translateX: whiteboard.translateX,
+    translateY: whiteboard.translateY
+  }
+}
+
 //创建根白板
 export async function createRootWhiteboard(): Promise<RootWhiteboard> {
   const id = uuidv4()
@@ -20,6 +43,8 @@ export async function createRootWhiteboard(): Promise<RootWhiteboard> {
     createdAt: now,
     updatedAt: now,
     items: [],
+    zoomLevel: 1,
+    scrollPosition: { x: 0, y: 0 },
     scale: 1,
     translateX: 0,
     translateY: 0
@@ -28,6 +53,7 @@ export async function createRootWhiteboard(): Promise<RootWhiteboard> {
   try {
     await db('root_whiteboards').insert({
       ...newRootWhiteboard,
+      scrollPosition: JSON.stringify(newRootWhiteboard.scrollPosition),
       items: JSON.stringify(newRootWhiteboard.items)
     })
     return newRootWhiteboard
@@ -44,7 +70,8 @@ export async function getRootWhiteboard(): Promise<RootWhiteboard> {
     return rootWhiteboard
       ? {
           ...rootWhiteboard,
-          items: JSON.parse(rootWhiteboard.items)
+          items: JSON.parse(rootWhiteboard.items),
+          scrollPosition: JSON.parse(rootWhiteboard.scrollPosition)
         }
       : null
   } catch (error) {
@@ -93,17 +120,6 @@ export async function getRootWhiteboardViewState(): Promise<{
     throw error
   }
 }
-// 辅助函数：处理白板数据
-function processWhiteboardData(whiteboard: any): Whiteboard {
-  return {
-    ...whiteboard,
-    position: JSON.parse(whiteboard.position),
-    items: JSON.parse(whiteboard.items),
-    size: whiteboard.size ? JSON.parse(whiteboard.size) : null,
-    createdAt: new Date(whiteboard.createdAt),
-    updatedAt: new Date(whiteboard.updatedAt)
-  }
-}
 
 export async function createWhiteboard(input: CreateWhiteboardInput): Promise<Whiteboard> {
   const id = uuidv4()
@@ -117,11 +133,16 @@ export async function createWhiteboard(input: CreateWhiteboardInput): Promise<Wh
     updatedAt: new Date(now),
     items: [],
     position: input.position,
-    size: input.size,
+    size: input.size || { width: 200, height: 200 },
     parentId: input.parentId ?? undefined, // 确保 parentId 是 undefined
     isRoot: input.isRoot,
     isStarred: input.isStarred || false,
-    starredOrder: input.starredOrder || undefined // 确保 starredOrder 是undefined
+    starredOrder: input.starredOrder || undefined, // 确保 starredOrder 是undefined
+    zoomLevel: input.zoomLevel || 1,
+    scrollPosition: input.scrollPosition || { x: 0, y: 0 },
+    scale: input.scale || 1,
+    translateX: input.translateX || 0,
+    translateY: input.translateY || 0
   }
 
   try {
@@ -129,7 +150,8 @@ export async function createWhiteboard(input: CreateWhiteboardInput): Promise<Wh
       ...newWhiteboard,
       items: JSON.stringify(newWhiteboard.items), // 确保 items 字段是一个 JSON 字符串
       position: JSON.stringify(newWhiteboard.position), // 确保 position 字段是一个 JSON 字符串
-      size: newWhiteboard.size ? JSON.stringify(newWhiteboard.size) : null // 确保 size 字段是一个 JSON 字符串或 null
+      size: newWhiteboard.size ? JSON.stringify(newWhiteboard.size) : null, // 确保 size 字段是一个 JSON 字符串或 null
+      scrollPosition: JSON.stringify(newWhiteboard.scrollPosition)
     })
     return newWhiteboard
   } catch (error) {
@@ -144,14 +166,6 @@ export async function getTopLevelWhiteboards(): Promise<Whiteboard[]> {
   try {
     console.log('开始获取顶层白板')
     const whiteboards = await db('whiteboards').where({ isRoot: true })
-
-    // 处理返回的数据
-    // const processedWhiteboards = whiteboards.map((whiteboard: any) => ({
-    //   ...whiteboard,
-    //   position: JSON.parse(whiteboard.position),
-    //   items: JSON.parse(whiteboard.items),
-    //   size: whiteboard.size ? JSON.parse(whiteboard.size) : null
-    // }))
     const processedWhiteboards = whiteboards.map(processWhiteboardData)
 
     console.log('获取顶层白板成功', processedWhiteboards)
@@ -169,13 +183,14 @@ export async function updateWhiteboardPosition(
   y: number
 ): Promise<Whiteboard> {
   try {
+    console.log('更新白板位置', id, x, y)
     const updatedWhiteboard = await db('whiteboards')
       .where({ id })
       .update({
         position: JSON.stringify({ x, y })
       })
       .returning('*')
-
+    console.log('更新白板位置成功', updatedWhiteboard)
     return processWhiteboardData(updatedWhiteboard[0])
   } catch (error) {
     console.error('后端→ 更新白板位置失败:', error)
