@@ -29,6 +29,14 @@
           @dragStart="startDraggingThumbnail"
         />
       </div>
+      <!-- 对齐辅助线 -->
+      <!-- <div
+        v-for="guide in alignmentGuides"
+        :key="guide.position"
+        class="alignment-guide"
+        :class="guide.direction"
+        :style="getGuideStyle(guide)"
+      ></div> -->
     </div>
     <!-- 适应视图按钮 -->
 
@@ -82,6 +90,10 @@ let lastX = 0
 let lastY = 0
 let lastPinchDistance = 0
 
+// 磁性吸附和对齐辅助
+const SNAP_THRESHOLD = 10 // 吸附阈值（像素）
+const alignmentGuides = ref<{ direction: 'horizontal' | 'vertical'; position: number }[]>([])
+
 // 组件挂载时执行的操作
 onMounted(async () => {
   await checkAndCreateRootWhiteboard() // 检查并创建根白板
@@ -112,7 +124,7 @@ const createNewWhiteboard = async (x: number, y: number) => {
     name: '新白板',
     isRoot: true,
     position: { x, y },
-    size: { width: 200, height: 200 },
+    size: { width: 200, height: 300 },
     zoomLevel: 1,
     scrollPosition: { x: 0, y: 0 },
     scale: 1,
@@ -382,24 +394,180 @@ const startDraggingThumbnail = (id: string, event: MouseEvent) => {
   document.addEventListener('mousemove', onDragThumbnail)
   document.addEventListener('mouseup', stopDraggingThumbnail)
 }
-// 拖动缩略图过程中
+// // 拖动缩略图过程中，有磁性吸附的效果
+const SPACING = 5 // 定义缩略图之间的间距
 const onDragThumbnail = (event: MouseEvent) => {
   if (!draggingThumbnail.value || !contentRef.value) return
 
   const { id, startX, startY } = draggingThumbnail.value
   const rect = contentRef.value.getBoundingClientRect()
 
-  const newX = (event.clientX - rect.left) / scale.value - startX
-  const newY = (event.clientY - rect.top) / scale.value - startY
+  let newX = (event.clientX - rect.left) / scale.value - startX
+  let newY = (event.clientY - rect.top) / scale.value - startY
+
+  alignmentGuides.value = [] // 清除之前的对齐辅助线
+
+  const currentWhiteboard = whiteboards.value.find((wb) => wb.id === id)
+  if (!currentWhiteboard) return
+
+  const snapThreshold = SNAP_THRESHOLD / scale.value
+
+  const currentCenterX = newX + currentWhiteboard.size.width / 2
+  const currentCenterY = newY + currentWhiteboard.size.height / 2
+
+  whiteboards.value.forEach((otherWhiteboard) => {
+    if (otherWhiteboard.id !== id) {
+      const otherCenterX = otherWhiteboard.position.x + otherWhiteboard.size.width / 2
+      const otherCenterY = otherWhiteboard.position.y + otherWhiteboard.size.height / 2
+
+      // 左边对齐
+      if (Math.abs(newX - otherWhiteboard.position.x) < snapThreshold) {
+        newX = otherWhiteboard.position.x
+        alignmentGuides.value.push({ direction: 'vertical', position: newX })
+      }
+      // 右边对齐
+      if (
+        Math.abs(
+          newX +
+            currentWhiteboard.size.width -
+            (otherWhiteboard.position.x + otherWhiteboard.size.width)
+        ) < snapThreshold
+      ) {
+        newX =
+          otherWhiteboard.position.x + otherWhiteboard.size.width - currentWhiteboard.size.width
+        alignmentGuides.value.push({
+          direction: 'vertical',
+          position: newX + currentWhiteboard.size.width
+        })
+      }
+      // 顶边对齐
+      if (Math.abs(newY - otherWhiteboard.position.y) < snapThreshold) {
+        newY = otherWhiteboard.position.y
+        alignmentGuides.value.push({ direction: 'horizontal', position: newY })
+      }
+      // 底边对齐（修正）
+      if (
+        Math.abs(
+          newY +
+            currentWhiteboard.size.height -
+            (otherWhiteboard.position.y + otherWhiteboard.size.height)
+        ) < snapThreshold
+      ) {
+        newY =
+          otherWhiteboard.position.y + otherWhiteboard.size.height - currentWhiteboard.size.height
+        alignmentGuides.value.push({
+          direction: 'horizontal',
+          position: otherWhiteboard.position.y + otherWhiteboard.size.height
+        })
+      }
+
+      // 中间对齐（水平）
+      if (Math.abs(currentCenterX - otherCenterX) < snapThreshold) {
+        newX = otherCenterX - currentWhiteboard.size.width / 2
+        alignmentGuides.value.push({ direction: 'vertical', position: otherCenterX })
+      }
+      // 中间对齐（垂直）
+      if (Math.abs(currentCenterY - otherCenterY) < snapThreshold) {
+        newY = otherCenterY - currentWhiteboard.size.height / 2
+        alignmentGuides.value.push({ direction: 'horizontal', position: otherCenterY })
+      }
+
+      // 左边相邻
+      if (
+        Math.abs(newX - (otherWhiteboard.position.x + otherWhiteboard.size.width + SPACING)) <
+        snapThreshold
+      ) {
+        newX = otherWhiteboard.position.x + otherWhiteboard.size.width + SPACING
+        alignmentGuides.value.push({ direction: 'vertical', position: newX - SPACING })
+      }
+      // 右边相邻
+      if (
+        Math.abs(newX + currentWhiteboard.size.width + SPACING - otherWhiteboard.position.x) <
+        snapThreshold
+      ) {
+        newX = otherWhiteboard.position.x - currentWhiteboard.size.width - SPACING
+        alignmentGuides.value.push({
+          direction: 'vertical',
+          position: newX + currentWhiteboard.size.width + SPACING
+        })
+      }
+      // 顶边相邻
+      if (
+        Math.abs(newY - (otherWhiteboard.position.y + otherWhiteboard.size.height + SPACING)) <
+        snapThreshold
+      ) {
+        newY = otherWhiteboard.position.y + otherWhiteboard.size.height + SPACING
+        alignmentGuides.value.push({ direction: 'horizontal', position: newY - SPACING })
+      }
+      // 底边相邻（修正）
+      if (
+        Math.abs(newY + currentWhiteboard.size.height + SPACING - otherWhiteboard.position.y) <
+        snapThreshold
+      ) {
+        newY = otherWhiteboard.position.y - currentWhiteboard.size.height - SPACING
+        alignmentGuides.value.push({
+          direction: 'horizontal',
+          position: newY + currentWhiteboard.size.height + SPACING
+        })
+      }
+
+      // 顶边与左边中间对齐
+      if (Math.abs(newY - otherCenterY) < snapThreshold) {
+        newY = otherCenterY
+        alignmentGuides.value.push({ direction: 'horizontal', position: newY })
+      }
+      // 底边与左边中间对齐
+      if (Math.abs(newY + currentWhiteboard.size.height - otherCenterY) < snapThreshold) {
+        newY = otherCenterY - currentWhiteboard.size.height
+        alignmentGuides.value.push({
+          direction: 'horizontal',
+          position: otherCenterY
+        })
+      }
+      // 左边与顶边中间对齐
+      if (Math.abs(newX - otherCenterX) < snapThreshold) {
+        newX = otherCenterX
+        alignmentGuides.value.push({ direction: 'vertical', position: newX })
+      }
+      // 右边与顶边中间对齐
+      if (Math.abs(newX + currentWhiteboard.size.width - otherCenterX) < snapThreshold) {
+        newX = otherCenterX - currentWhiteboard.size.width
+        alignmentGuides.value.push({
+          direction: 'vertical',
+          position: otherCenterX
+        })
+      }
+    }
+  })
 
   updateWhiteboardPosition(id, newX, newY)
 }
-// 停止拖动缩略图
+
+// 修改 stopDraggingThumbnail 函数
 const stopDraggingThumbnail = () => {
   draggingThumbnail.value = null
+  alignmentGuides.value = [] // 清除对齐辅助线
   document.removeEventListener('mousemove', onDragThumbnail)
   document.removeEventListener('mouseup', stopDraggingThumbnail)
 }
+
+// const getGuideStyle = (guide) => {
+//   const position =
+//     guide.position * scale.value +
+//     (guide.direction === 'vertical' ? translateX.value : translateY.value)
+//   return {
+//     [guide.direction === 'vertical' ? 'left' : 'top']: `${position}px`,
+//     [guide.direction === 'vertical' ? 'height' : 'width']: '100%'
+//   }
+// }
+// const getGuideStyle = (guide) => {
+//   const position = guide.position * scale.value
+//   return {
+//     [guide.direction === 'vertical' ? 'left' : 'top']: `${position}px`,
+//     [guide.direction === 'vertical' ? 'height' : 'width']: '100%'
+//   }
+// }
+
 // 更新白板位置
 const updateWhiteboardPosition = (id: string, x: number, y: number) => {
   const whiteboard = whiteboards.value.find((wb) => wb.id === id)
@@ -522,4 +690,20 @@ onUnmounted(() => {
     background-color: var(--color-hover-button);
   }
 }
+
+// .alignment-guide {
+//   position: absolute;
+//   z-index: 1000;
+//   pointer-events: none; // 确保辅助线不会干扰鼠标事件
+
+//   &.vertical {
+//     width: 2px;
+//     transform: translateX(-50%);
+//   }
+
+//   &.horizontal {
+//     height: 2px;
+//     transform: translateY(-50%);
+//   }
+// }
 </style>

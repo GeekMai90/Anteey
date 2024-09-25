@@ -30,8 +30,8 @@ const thumbnailStyle = computed(() => ({
   transform: `translate(${props.whiteboard.position.x}px, ${props.whiteboard.position.y}px)`,
   position: 'absolute',
   cursor: 'move',
-  width: '200px',
-  height: '150px'
+  width: `${props.whiteboard.size.width}px`,
+  height: `${props.whiteboard.size.height}px`
 }))
 
 const startDrag = (event: MouseEvent) => {
