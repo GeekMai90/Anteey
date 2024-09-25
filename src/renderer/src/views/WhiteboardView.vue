@@ -335,7 +335,7 @@ const fitView = async () => {
         acc.left = Math.min(acc.left, wb.position.x)
         acc.top = Math.min(acc.top, wb.position.y)
         acc.right = Math.max(acc.right, wb.position.x + (wb.size?.width || 200))
-        acc.bottom = Math.max(acc.bottom, wb.position.y + (wb.size?.height || 150))
+        acc.bottom = Math.max(acc.bottom, wb.position.y + (wb.size?.height || 200))
       }
       return acc
     },
@@ -351,9 +351,16 @@ const fitView = async () => {
   const scaleY = (containerRect.height - padding * 2) / contentHeight
   scale.value = Math.min(scaleX, scaleY, 1) // 限制最大缩放为 1
 
+  // 如果内容太大，自动缩小白板
+  if (scale.value < 1) {
+    scale.value = Math.min(scaleX, scaleY)
+  }
+
   // 计算平移量，使内容居中
-  translateX.value = (containerRect.width / scale.value - contentWidth) / 2 - bounds.left
-  translateY.value = (containerRect.height / scale.value - contentHeight) / 2 - bounds.top
+  translateX.value =
+    (containerRect.width - contentWidth * scale.value) / 2 - bounds.left * scale.value
+  translateY.value =
+    (containerRect.height - contentHeight * scale.value) / 2 - bounds.top * scale.value
 
   saveViewState()
 }
