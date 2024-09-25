@@ -29,14 +29,6 @@
           @dragStart="startDraggingThumbnail"
         />
       </div>
-      <!-- 对齐辅助线 -->
-      <!-- <div
-        v-for="guide in alignmentGuides"
-        :key="guide.position"
-        class="alignment-guide"
-        :class="guide.direction"
-        :style="getGuideStyle(guide)"
-      ></div> -->
     </div>
     <!-- 适应视图按钮 -->
 
@@ -124,7 +116,7 @@ const createNewWhiteboard = async (x: number, y: number) => {
     name: '新白板',
     isRoot: true,
     position: { x, y },
-    size: { width: 200, height: 300 },
+    size: { width: 300, height: 150 },
     zoomLevel: 1,
     scrollPosition: { x: 0, y: 0 },
     scale: 1,
@@ -151,7 +143,7 @@ const handleContainerDoubleClick = (event: MouseEvent) => {
     return
   }
   // 检查事件目标是否是 contentRef 或其子元素
-  if (event.target === containerRef.value) {
+  if (event.target === contentRef.value) {
     const rect = containerRef.value.getBoundingClientRect()
 
     const x = (event.clientX - rect.left) / scale.value - translateX.value
@@ -558,23 +550,6 @@ const stopDraggingThumbnail = () => {
   document.removeEventListener('mouseup', stopDraggingThumbnail)
 }
 
-// const getGuideStyle = (guide) => {
-//   const position =
-//     guide.position * scale.value +
-//     (guide.direction === 'vertical' ? translateX.value : translateY.value)
-//   return {
-//     [guide.direction === 'vertical' ? 'left' : 'top']: `${position}px`,
-//     [guide.direction === 'vertical' ? 'height' : 'width']: '100%'
-//   }
-// }
-// const getGuideStyle = (guide) => {
-//   const position = guide.position * scale.value
-//   return {
-//     [guide.direction === 'vertical' ? 'left' : 'top']: `${position}px`,
-//     [guide.direction === 'vertical' ? 'height' : 'width']: '100%'
-//   }
-// }
-
 // 更新白板位置
 const updateWhiteboardPosition = (id: string, x: number, y: number) => {
   const whiteboard = whiteboards.value.find((wb) => wb.id === id)
@@ -697,20 +672,4 @@ onUnmounted(() => {
     background-color: var(--color-hover-button);
   }
 }
-
-// .alignment-guide {
-//   position: absolute;
-//   z-index: 1000;
-//   pointer-events: none; // 确保辅助线不会干扰鼠标事件
-
-//   &.vertical {
-//     width: 2px;
-//     transform: translateX(-50%);
-//   }
-
-//   &.horizontal {
-//     height: 2px;
-//     transform: translateY(-50%);
-//   }
-// }
 </style>
