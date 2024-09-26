@@ -30,7 +30,9 @@ import {
   createRootWhiteboard,
   getRootWhiteboard,
   saveViewStateToRootWhiteboard,
-  getRootWhiteboardViewState
+  getRootWhiteboardViewState,
+  saveViewStateToWhiteboard,
+  getWhiteboardViewState
 } from '../db/whiteboards'
 import { CreateWhiteboardInput, CreateWhiteboardNoteInput } from '../renderer/src/types/Note'
 import { db, dbPath } from '../db/config'
@@ -142,6 +144,34 @@ function createCustomMenu() {
 }
 
 function setupIpcHandlers() {
+  //获取白板视图状态
+  ipcMain.handle('get-whiteboard-view-state', async (_, { whiteboardId }) => {
+    try {
+      console.log('主进程 → 获取白板视图状态:', whiteboardId)
+      const viewState = await getWhiteboardViewState(whiteboardId)
+      console.log('主进程 → 获取白板视图状态成功:', viewState)
+      return viewState
+    } catch (error) {
+      console.error('主进程 → 获取白板视图状态时出错:', error)
+      return { success: false, error: error }
+    }
+  })
+  //保存视图状态到白板
+  ipcMain.handle(
+    'save-view-state-to-whiteboard',
+    async (_, { whiteboardId, scale, translateX, translateY }) => {
+      try {
+        console.log('主进程 → 保存视图状态到白板:', { whiteboardId, scale, translateX, translateY })
+        const result = await saveViewStateToWhiteboard(whiteboardId, scale, translateX, translateY)
+        console.log('主进程 → 保存视图状态到白板成功:', result)
+        return result
+      } catch (error) {
+        console.error('主进程 → 保存视图状态到白板时出错:', error)
+        return { success: false, error: error }
+      }
+    }
+  )
+
   // 获取根白板的视图状态
   ipcMain.handle('get-root-whiteboard-view-state', async () => {
     try {

@@ -276,5 +276,49 @@ contextBridge.exposeInMainWorld('electronAPI', {
       console.error('Preload: 获取根白板的视图状态时出错:', error)
       throw error
     }
+  },
+  // 保存视图状态到白板
+  saveViewStateToWhiteboard: async (
+    whiteboardId: string,
+    scale: number,
+    translateX: number,
+    translateY: number
+  ) => {
+    try {
+      console.log('Preload: 正在保存视图状态到白板:', {
+        whiteboardId,
+        scale,
+        translateX,
+        translateY
+      })
+      return (await ipcRenderer.invoke('save-view-state-to-whiteboard', {
+        whiteboardId,
+        scale,
+        translateX,
+        translateY
+      })) as boolean
+    } catch (error) {
+      console.error('Preload: 保存视图状态到白板时出错:', error)
+      throw error
+    }
+  },
+  // 获取白板视图状态
+  getWhiteboardViewState: async (
+    whiteboardId: string
+  ): Promise<{
+    scale: number
+    translateX: number
+    translateY: number
+  }> => {
+    try {
+      return (await ipcRenderer.invoke('get-whiteboard-view-state', { whiteboardId })) as {
+        scale: number
+        translateX: number
+        translateY: number
+      }
+    } catch (error) {
+      console.error('Preload: 获取白板视图状态时出错:', error)
+      throw error
+    }
   }
 })

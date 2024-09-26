@@ -48,6 +48,17 @@ export interface ElectronAPI {
     translateX: number
     translateY: number
   }>
+  saveViewStateToWhiteboard: (
+    whiteboardId: string,
+    scale: number,
+    translateX: number,
+    translateY: number
+  ) => Promise<boolean>
+  getWhiteboardViewState: (whiteboardId: string) => Promise<{
+    scale: number
+    translateX: number
+    translateY: number
+  }>
 }
 
 declare global {

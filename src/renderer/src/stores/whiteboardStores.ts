@@ -109,6 +109,35 @@ export const useWhiteboardStore = defineStore('whiteboard', {
       const updatedItem = await window.electronAPI.updateWhiteboardItemPosition(id, x, y)
       console.log('whiteboardStore→ 更新白板项位置成功', updatedItem)
       return updatedItem
+    },
+    // 保存视图状态到白板
+    async saveViewStateToWhiteboard(
+      whiteboardId: string,
+      scale: number,
+      translateX: number,
+      translateY: number
+    ) {
+      console.log('whiteboardStore→ 开始保存视图状态到白板', {
+        whiteboardId,
+        scale,
+        translateX,
+        translateY
+      })
+      const result = await window.electronAPI.saveViewStateToWhiteboard(
+        whiteboardId,
+        scale,
+        translateX,
+        translateY
+      )
+      console.log('whiteboardStore→ 保存视图状态到白板成功', result)
+      return result
+    },
+    // 获取白板视图状态
+    async getWhiteboardViewState(whiteboardId: string) {
+      console.log('whiteboardStore→ 开始获取白板视图状态', whiteboardId)
+      const viewState = await window.electronAPI.getWhiteboardViewState(whiteboardId)
+      console.log('whiteboardStore→ 获取白板视图状态成功', viewState)
+      return viewState
     }
   },
   getters: {

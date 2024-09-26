@@ -5,7 +5,15 @@
     <div class="fixed-header">
       <AppToolbar />
     </div>
-    <div ref="containerRef" class="whiteboard-container">
+    <div
+      ref="containerRef"
+      class="whiteboard-container"
+      @wheel="handleWheel"
+      @mousedown="handleMouseDown"
+      @touchstart="handleTouchStart"
+      @touchmove="handleTouchMove"
+      @touchend="handleTouchEnd"
+    >
       <div class="whiteboard-detail-content" :style="contentStyle">
         <component
           :is="getItemComponent(item)"
@@ -18,6 +26,14 @@
         />
       </div>
     </div>
+    <!-- 新增：适应视图按钮 -->
+    <div class="fit-view-button" @click="fitView">
+      <div class="icon">
+        <Aiming theme="outline" size="24" fill="#333" />
+      </div>
+    </div>
+    <!-- 新增：缩放控制器 -->
+    <WhiteboardZoomControl v-model:scale="scale" class="zoom-control-position" />
     <!-- 新增：创建白板笔记按钮 -->
     <div class="create-note-button" @click="createWhiteboardNote">
       <div class="icon">
@@ -38,7 +54,8 @@ import WhiteboardNote from './WhiteboardNote.vue'
 import WhiteboardSubboard from './WhiteboardSubboard.vue'
 import WhiteboardGroup from './WhiteboardGroup.vue'
 import WhiteboardConnection from './WhiteboardConnection.vue'
-import { Add } from '@icon-park/vue-next'
+import { Add, Aiming } from '@icon-park/vue-next'
+import WhiteboardZoomControl from './WhiteboardZoomControl.vue'
 
 const containerRef = ref<HTMLElement | null>(null)
 const route = useRoute()
@@ -305,6 +322,192 @@ const createWhiteboardNote = async () => {
     console.error('Failed to create whiteboard note:', error)
   }
 }
+
+// 拖动状态变量
+let isDragging = false
+let lastX = 0
+let lastY = 0
+let lastPinchDistance = 0
+
+const handleMouseDown = (event: MouseEvent) => {
+  if (event.button === 0) {
+    // 左键
+    isDragging = true
+    lastX = event.clientX
+    lastY = event.clientY
+    document.addEventListener('mousemove', handleMouseMove)
+    document.addEventListener('mouseup', handleMouseUp)
+  }
+}
+
+const handleMouseMove = (event: MouseEvent) => {
+  if (!isDragging) return
+  const deltaX = event.clientX - lastX
+  const deltaY = event.clientY - lastY
+  translateX.value += deltaX
+  translateY.value += deltaY
+  lastX = event.clientX
+  lastY = event.clientY
+}
+
+const handleMouseUp = () => {
+  isDragging = false
+  document.removeEventListener('mousemove', handleMouseMove)
+  document.removeEventListener('mouseup', handleMouseUp)
+}
+
+const handleWheel = (event: WheelEvent) => {
+  if (event.ctrlKey) {
+    // 缩放
+    event.preventDefault()
+    const delta = event.deltaY > 0 ? 0.9 : 1.1
+    const newScale = Math.max(0.1, Math.min(scale.value * delta, 5))
+
+    if (!containerRef.value) return
+
+    const rect = containerRef.value.getBoundingClientRect()
+    const mouseX = event.clientX - rect.left
+    const mouseY = event.clientY - rect.top
+
+    const contentX = (mouseX - translateX.value) / scale.value
+    const contentY = (mouseY - translateY.value) / scale.value
+
+    translateX.value = mouseX - contentX * newScale
+    translateY.value = mouseY - contentY * newScale
+
+    scale.value = newScale
+  } else {
+    // 平移
+    translateX.value -= event.deltaX
+    translateY.value -= event.deltaY
+  }
+  saveViewState()
+}
+
+const handleTouchStart = (event: TouchEvent) => {
+  if (event.touches.length === 2) {
+    const touch1 = event.touches[0]
+    const touch2 = event.touches[1]
+    lastPinchDistance = Math.hypot(touch1.clientX - touch2.clientX, touch1.clientY - touch2.clientY)
+  } else if (event.touches.length === 1) {
+    isDragging = true
+    lastX = event.touches[0].clientX
+    lastY = event.touches[0].clientY
+  }
+}
+
+const handleTouchMove = (event: TouchEvent) => {
+  event.preventDefault()
+  if (event.touches.length === 2) {
+    const touch1 = event.touches[0]
+    const touch2 = event.touches[1]
+    const currentDistance = Math.hypot(
+      touch1.clientX - touch2.clientX,
+      touch1.clientY - touch2.clientY
+    )
+
+    if (!containerRef.value) return
+
+    const rect = containerRef.value.getBoundingClientRect()
+    const centerX = (touch1.clientX + touch2.clientX) / 2 - rect.left
+    const centerY = (touch1.clientY + touch2.clientY) / 2 - rect.top
+
+    const delta = currentDistance / lastPinchDistance
+    const newScale = Math.max(0.1, Math.min(scale.value * delta, 5))
+
+    const contentX = (centerX - translateX.value) / scale.value
+    const contentY = (centerY - translateY.value) / scale.value
+
+    translateX.value = centerX - contentX * newScale
+    translateY.value = centerY - contentY * newScale
+
+    scale.value = newScale
+    lastPinchDistance = currentDistance
+
+    const avgDeltaX = (touch1.clientX + touch2.clientX) / 2 - (lastX + lastX) / 2
+    const avgDeltaY = (touch1.clientY + touch2.clientY) / 2 - (lastY + lastY) / 2
+
+    translateX.value += avgDeltaX
+    translateY.value += avgDeltaY
+
+    lastX = (touch1.clientX + touch2.clientX) / 2
+    lastY = (touch1.clientY + touch2.clientY) / 2
+  } else if (event.touches.length === 1 && isDragging) {
+    const touch = event.touches[0]
+    const deltaX = touch.clientX - lastX
+    const deltaY = touch.clientY - lastY
+
+    translateX.value += deltaX
+    translateY.value += deltaY
+    lastX = touch.clientX
+    lastY = touch.clientY
+  }
+  saveViewState()
+}
+
+const handleTouchEnd = () => {
+  isDragging = false
+  lastPinchDistance = 0
+}
+
+const fitView = async () => {
+  if (!containerRef.value || whiteboardItems.value.length === 0) return
+
+  const containerRect = containerRef.value.getBoundingClientRect()
+
+  const bounds = whiteboardItems.value.reduce(
+    (acc, item) => {
+      acc.left = Math.min(acc.left, item.position.x)
+      acc.top = Math.min(acc.top, item.position.y)
+      acc.right = Math.max(acc.right, item.position.x + item.size.width)
+      acc.bottom = Math.max(acc.bottom, item.position.y + item.size.height)
+      return acc
+    },
+    { left: Infinity, top: Infinity, right: -Infinity, bottom: -Infinity }
+  )
+
+  const contentWidth = bounds.right - bounds.left
+  const contentHeight = bounds.bottom - bounds.top
+
+  const padding = 50
+  const scaleX = (containerRect.width - padding * 2) / contentWidth
+  const scaleY = (containerRect.height - padding * 2) / contentHeight
+  scale.value = Math.min(scaleX, scaleY, 1)
+
+  translateX.value =
+    (containerRect.width - contentWidth * scale.value) / 2 - bounds.left * scale.value
+  translateY.value =
+    (containerRect.height - contentHeight * scale.value) / 2 - bounds.top * scale.value
+  saveViewState()
+}
+// 保存视图状态
+const saveViewState = async () => {
+  await whiteboardStore.saveViewStateToWhiteboard(
+    whiteboardId.value as string,
+    scale.value,
+    translateX.value,
+    translateY.value
+  )
+}
+
+// 加载视图状态
+const loadViewState = async () => {
+  const savedState = await whiteboardStore.getWhiteboardViewState(whiteboardId.value as string)
+  console.log('savedState', savedState)
+  if (savedState) {
+    scale.value = savedState.scale
+    translateX.value = savedState.translateX
+    translateY.value = savedState.translateY
+  }
+}
+
+onMounted(async () => {
+  await loadViewState()
+})
+
+onUnmounted(async () => {
+  await saveViewState()
+})
 </script>
 
 <style lang="scss" scoped>
@@ -351,7 +554,6 @@ const createWhiteboardNote = async () => {
     opacity: 0.8;
   }
 }
-
 .create-note-button {
   position: absolute;
   bottom: 8px;
@@ -377,5 +579,78 @@ const createWhiteboardNote = async () => {
   &:hover {
     background-color: var(--color-hover-button);
   }
+}
+
+.fit-view-button {
+  position: absolute;
+  bottom: 8px;
+  right: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border-radius: 6px;
+  padding: 4px 4px;
+  margin: 2px;
+
+  .icon {
+    background: none;
+    border: none;
+    cursor: pointer;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    padding: 0;
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    :deep(.i-icon) {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      height: 100%;
+    }
+
+    :deep(svg) {
+      width: 16px;
+      height: 16px;
+    }
+
+    .name {
+      flex-grow: 0;
+      text-align: left;
+      color: var(--default-text-color);
+      font-size: 13px;
+      font-weight: 400;
+      margin-left: 6px;
+      white-space: nowrap;
+      writing-mode: horizontal-tb;
+    }
+
+    &:active {
+      background-color: rgba(0, 0, 0, 0.1);
+    }
+
+    &.delete {
+      color: #ff4d4f;
+    }
+  }
+  &:hover {
+    background-color: var(--color-hover-button);
+  }
+}
+.zoom-control-position {
+  position: absolute;
+  bottom: 11px;
+  right: 63px;
+  z-index: 100;
 }
 </style>

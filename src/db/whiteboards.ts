@@ -36,6 +36,64 @@ function processWhiteboardData(whiteboard: any): Whiteboard {
   }
 }
 
+// // 获取白板视图状态
+// export async function getWhiteboardViewState(whiteboardId: string): Promise<{
+//   scale: number
+//   translateX: number
+//   translateY: number
+// }> {
+//   const whiteboard = await db('whiteboards').where({ id: whiteboardId }).select('*').first()
+//   return {
+//     scale: whiteboard.scale as number,
+//     translateX: whiteboard.translateX as number,
+//     translateY: whiteboard.translateY as number
+//   }
+// }
+
+// 保存视图状态到白板
+export async function saveViewStateToWhiteboard(
+  whiteboardId: string,
+  scale: number,
+  translateX: number,
+  translateY: number
+) {
+  try {
+    await db('whiteboards')
+      .update({
+        scale,
+        translateX,
+        translateY
+      })
+      .where({ id: whiteboardId })
+      .returning('*')
+    console.log('后端→保存视图状态到白板成功', whiteboardId, scale, translateX, translateY)
+    return true
+  } catch (error) {
+    console.error('后端→ 保存视图状态到白板失败:', error)
+    throw error
+  }
+}
+
+// 获取白板的视图状态
+export async function getWhiteboardViewState(whiteboardId: string): Promise<{
+  scale: number
+  translateX: number
+  translateY: number
+}> {
+  try {
+    const whiteboard = await db('whiteboards').where({ id: whiteboardId }).select('*').first()
+    console.log('后端→ 获取白板的视图状态成功', whiteboard)
+    return {
+      scale: whiteboard.scale as number,
+      translateX: whiteboard.translateX as number,
+      translateY: whiteboard.translateY as number
+    }
+  } catch (error) {
+    console.error('后端→ 获取白板的视图状态失败:', error)
+    throw error
+  }
+}
+
 //创建根白板
 export async function createRootWhiteboard(): Promise<RootWhiteboard> {
   const id = uuidv4()
@@ -234,39 +292,6 @@ export async function updateWhiteboardItemPosition(
 }
 
 // 辅助函数：处理不同类型的 WhiteboardItem
-// function processWhiteboardItemData(item: any): WhiteboardItem {
-//   switch (item.type) {
-//     case 'note':
-//       return {
-//         ...item,
-//         position: JSON.parse(item.position),
-//         size: JSON.parse(item.size)
-//         // 其他 note 类型特有的处理
-//       }
-//     case 'subboard':
-//       return {
-//         ...item,
-//         position: JSON.parse(item.position),
-//         size: JSON.parse(item.size)
-//         // 其他 subboard 类型特有的处理
-//       }
-//     case 'group':
-//       return {
-//         ...item,
-//         position: JSON.parse(item.position),
-//         size: JSON.parse(item.size)
-//         // 其他 group 类型特有的处理
-//       }
-//     case 'connection':
-//       return {
-//         ...item,
-//         position: JSON.parse(item.position)
-//         // 其他 connection 类型特有的处理
-//       }
-//     default:
-//       throw new Error(`未知的 WhiteboardItem 类型: ${item.type}`)
-//   }
-// }
 function processWhiteboardItemData(item: any): WhiteboardItem {
   if (!item || typeof item !== 'object') {
     console.error('无效的白板项数据:', item)
