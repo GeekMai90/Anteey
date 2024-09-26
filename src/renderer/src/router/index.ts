@@ -22,7 +22,7 @@ const routes = [
   },
   {
     name: 'whiteboardDetail',
-    path: '/whiteboarddetail/:id',
+    path: '/whiteboarddetail/:whiteboardId',
     component: () => import('../components/WhiteboardDetail.vue')
   },
   {

@@ -1,7 +1,6 @@
-<!-- src/renderer/src/views/WhiteboardView.vue -->
+<!-- WhiteboardDetail.vue -->
 <template>
-  <div class="whiteboard-view">
-    <!-- 固定在顶部的工具栏 -->
+  <div class="whiteboard-detail">
     <div class="fixed-header">
       <AppToolbar />
     </div>
@@ -9,7 +8,7 @@
     <div
       ref="containerRef"
       class="whiteboard-container"
-      @dblclick="handleContainerDoubleClick"
+      @dblclick.stop="handleContainerDoubleClick"
       @contextmenu.prevent
       @wheel="handleWheel"
       @mousedown="handleMouseDown"
@@ -19,15 +18,21 @@
     >
       <!-- 白板内容 -->
       <div ref="contentRef" class="whiteboard-content" :style="contentStyle">
-        <!-- 遍历渲染白板缩略图 -->
-        <WhiteboardThumbnail
-          v-for="whiteboard in whiteboards"
-          :key="whiteboard.id"
-          :whiteboard="whiteboard"
-          :scale="scale"
-          @click="openWhiteboard(whiteboard.id)"
-          @dragStart="startDraggingThumbnail"
-        />
+        <!-- 遍历渲染白板项 -->
+        <div
+          v-for="item in whiteboardItems"
+          :key="item.id"
+          :class="['whiteboard-item', item.type]"
+          :style="getItemStyle(item)"
+          @mousedown.stop="startDraggingItem(item, $event)"
+        >
+          <!-- @mousedown="onItemMouseDown(item, $event)" -->
+          <component
+            :is="getItemComponent(item)"
+            :note="item.type === 'note' ? whiteboardStore.getReferenceNotes(item.noteId) : null"
+            @dragStart="startDraggingItem(item, $event)"
+          />
+        </div>
       </div>
     </div>
     <!-- 适应视图按钮 -->
@@ -37,31 +42,47 @@
         <Aiming theme="outline" size="24" fill="#333" />
       </div>
     </div>
-    <!-- 上下文菜单组件 -->
+    <!-- 新增：创建白板笔记按钮 -->
+    <div class="create-note-button" @click="createWhiteboardNote">
+      <div class="icon">
+        <Add theme="outline" size="24" fill="#333" />
+      </div>
+      <span>创建笔记</span>
+    </div>
     <ContextMenu />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, markRaw, onUnmounted, computed } from 'vue'
+import { ref, onMounted, markRaw, onUnmounted, computed, watch } from 'vue'
 import AppToolbar from '@renderer/components/AppToolbar.vue'
-import { useRouter } from 'vue-router'
-import WhiteboardThumbnail from '@renderer/components/WhiteboardThumbnail.vue'
+// import { useRouter } from 'vue-router'
+// import WhiteboardThumbnail from '@renderer/components/WhiteboardThumbnail.vue'
 import { useWhiteboardStore } from '@renderer/stores/whiteboardStores'
-import type { CreateWhiteboardInput, Whiteboard } from '@renderer/types/Note'
+import type {
+  CreateWhiteboardInput,
+  WhiteboardItem,
+  Whiteboard,
+  CreateWhiteboardNoteInput
+} from '@renderer/types/Note'
+import WhiteboardNote from '@renderer/components/WhiteboardNote.vue'
+import WhiteboardSubboard from '@renderer/components/WhiteboardSubboard.vue'
+import WhiteboardGroup from '@renderer/components/WhiteboardGroup.vue'
+import Connection from '@renderer/components/Connection.vue'
 import ContextMenu from '../components/ContexMenu.vue'
 import { useContextMenuStore } from '@renderer/stores/contextMenuStore'
 import { Add, Aiming } from '@icon-park/vue-next'
+import { useRoute } from 'vue-router'
 
-// 初始化路由和状态管理
-const router = useRouter()
+// const router = useRouter()
+const route = useRoute()
 const whiteboardStore = useWhiteboardStore()
 const contextMenuStore = useContextMenuStore()
-
-// 定义响应式变量
-const whiteboards = ref<Whiteboard[]>([])
+const whiteboardId = route.params.id as string
+const whiteboardItems = ref<WhiteboardItem[] | null>([])
 const containerRef = ref<HTMLElement | null>(null)
 const contentRef = ref<HTMLElement | null>(null)
+const whiteboards = ref<Whiteboard[] | null>([])
 
 // 缩放和平移状态
 const scale = ref<number>(1)
@@ -75,6 +96,93 @@ const contentStyle = computed(() => ({
   width: '100%',
   height: '100%'
 }))
+
+// 封装获取白板内容的函数
+const fetchWhiteboardItems = async () => {
+  if (whiteboardId) {
+    whiteboardItems.value = await whiteboardStore.getWhiteboardItems(whiteboardId)
+    console.log('whiteboardItems', whiteboardItems.value)
+  }
+}
+
+// 组件挂载时获取白板内容
+onMounted(fetchWhiteboardItems)
+
+// 监听 whiteboardId 的变化并重新获取白板内容
+watch(
+  () => whiteboardId,
+  async () => {
+    fetchWhiteboardItems()
+  },
+  { immediate: true }
+)
+
+// 创建新白板
+// const createNewWhiteboard = async (x: number, y: number) => {
+//   const input: CreateWhiteboardInput = {
+//     name: '新白板',
+//     isRoot: true,
+//     position: { x, y },
+//     size: { width: 200, height: 150 },
+//     zoomLevel: 1,
+//     scrollPosition: { x: 0, y: 0 },
+//     scale: 1,
+//     translateX: 0,
+//     translateY: 0
+//   }
+//   try {
+//     await whiteboardStore.createWhiteboard(input)
+//     whiteboards.value = whiteboardStore.whiteboards
+//     contextMenuStore.closeMenu()
+//   } catch (error) {
+//     console.error('Failed to create whiteboard:', error)
+//   }
+// }
+
+// 新增：创建白板笔记的函数
+const createWhiteboardNote = async () => {
+  const input: CreateWhiteboardNoteInput = {
+    whiteboardId: whiteboardId,
+    noteId: '',
+    position: { x: 100, y: 100 }, // 默认位置，你可以根据需要调整
+    size: { width: 200, height: 150 }, // 默认大小，你可以根据需要调整
+    zIndex: 1,
+    rotation: 0
+  }
+
+  try {
+    const newNote = await whiteboardStore.createWhiteboardNote(input)
+    whiteboardItems.value?.push(newNote)
+  } catch (error) {
+    console.error('Failed to create whiteboard note:', error)
+  }
+}
+
+const getItemComponent = (item: WhiteboardItem) => {
+  switch (item.type) {
+    case 'note':
+      return WhiteboardNote
+    case 'subboard':
+      return WhiteboardSubboard
+    case 'group':
+      return WhiteboardGroup
+    case 'connection':
+      return Connection
+    default:
+      return null
+  }
+}
+
+const getItemStyle = (item: WhiteboardItem) => {
+  return {
+    left: `${'position' in item && item.position ? item.position.x : 0}px`,
+    top: `${'position' in item && item.position ? item.position.y : 0}px`,
+    width: `${'size' in item && item.size ? item.size.width : 0}px`,
+    height: `${'size' in item && item.size ? item.size.height : 0}px`,
+    zIndex: `${'zIndex' in item ? item.zIndex : 0}`,
+    transform: `rotate(${'rotation' in item ? item.rotation : 0}deg)`
+  }
+}
 
 // 拖动状态变量
 let isDragging = false
@@ -107,8 +215,7 @@ const checkAndCreateRootWhiteboard = async () => {
 
 // 打开白板详情
 const openWhiteboard = (id: string) => {
-  console.log('打开白板详情', id)
-  router.push({ name: 'whiteboardDetail', params: { whiteboardId: id } })
+  router.push({ name: 'whiteboardDetail', params: { id } })
 }
 
 // 创建新白板
@@ -379,135 +486,136 @@ const loadViewState = async () => {
 }
 
 // 拖动缩略图相关逻辑
-const draggingThumbnail = ref<{ id: string; startX: number; startY: number } | null>(null)
+const draggingItem = ref<{ id: string; type: string; startX: number; startY: number } | null>(null)
+
 // 开始拖动缩略图
-const startDraggingThumbnail = (id: string, event: MouseEvent) => {
-  const whiteboard = whiteboards.value.find((wb) => wb.id === id)
-  if (!whiteboard || !contentRef.value) return
-  const rect = contentRef.value.getBoundingClientRect()
-  draggingThumbnail.value = {
-    id,
-    startX: (event.clientX - rect.left) / scale.value - whiteboard.position.x,
-    startY: (event.clientY - rect.top) / scale.value - whiteboard.position.y
+const startDraggingItem = (item: WhiteboardItem, event: MouseEvent) => {
+  if (!containerRef.value) return
+  const rect = containerRef.value.getBoundingClientRect()
+  draggingItem.value = {
+    id: item.id,
+    type: item.type,
+    startX: (event.clientX - rect.left) / scale.value - (item.position?.x || 0),
+    startY: (event.clientY - rect.top) / scale.value - (item.position?.y || 0)
   }
 
-  document.addEventListener('mousemove', onDragThumbnail)
-  document.addEventListener('mouseup', stopDraggingThumbnail)
+  document.addEventListener('mousemove', onDragItem)
+  document.addEventListener('mouseup', stopDraggingItem)
 }
+
 // // 拖动缩略图过程中，有磁性吸附的效果
 const SPACING = 5 // 定义缩略图之间的间距
-const onDragThumbnail = (event: MouseEvent) => {
-  if (!draggingThumbnail.value || !contentRef.value) return
+const onDragItem = (event: MouseEvent) => {
+  if (!draggingItem.value || !containerRef.value) return
 
-  const { id, startX, startY } = draggingThumbnail.value
-  const rect = contentRef.value.getBoundingClientRect()
+  const { id, type, startX, startY } = draggingItem.value
+  const rect = containerRef.value.getBoundingClientRect()
 
   let newX = (event.clientX - rect.left) / scale.value - startX
   let newY = (event.clientY - rect.top) / scale.value - startY
 
   alignmentGuides.value = [] // 清除之前的对齐辅助线
 
-  const currentWhiteboard = whiteboards.value.find((wb) => wb.id === id)
-  if (!currentWhiteboard) return
+  const currentItem = whiteboardItems.value.find((item) => item.id === id)
+  if (!currentItem) return
 
   const snapThreshold = SNAP_THRESHOLD / scale.value
 
-  const currentCenterX = newX + currentWhiteboard.size.width / 2
-  const currentCenterY = newY + currentWhiteboard.size.height / 2
+  const currentCenterX = newX + (currentItem.size?.width || 0) / 2
+  const currentCenterY = newY + (currentItem.size?.height || 0) / 2
 
-  whiteboards.value.forEach((otherWhiteboard) => {
-    if (otherWhiteboard.id !== id) {
-      const otherCenterX = otherWhiteboard.position.x + otherWhiteboard.size.width / 2
-      const otherCenterY = otherWhiteboard.position.y + otherWhiteboard.size.height / 2
+  whiteboardItems.value.forEach((otherItem) => {
+    if (otherItem.id !== id) {
+      const otherCenterX = otherItem.position.x + (otherItem.size?.width || 0) / 2
+      const otherCenterY = otherItem.position.y + (otherItem.size?.height || 0) / 2
 
       // 左边对齐
-      if (Math.abs(newX - otherWhiteboard.position.x) < snapThreshold) {
-        newX = otherWhiteboard.position.x
+      if (Math.abs(newX - otherItem.position.x) < snapThreshold) {
+        newX = otherItem.position.x
         alignmentGuides.value.push({ direction: 'vertical', position: newX })
       }
       // 右边对齐
       if (
         Math.abs(
           newX +
-            currentWhiteboard.size.width -
-            (otherWhiteboard.position.x + otherWhiteboard.size.width)
+            (currentItem.size?.width || 0) -
+            (otherItem.position.x + (otherItem.size?.width || 0))
         ) < snapThreshold
       ) {
-        newX =
-          otherWhiteboard.position.x + otherWhiteboard.size.width - currentWhiteboard.size.width
+        newX = otherItem.position.x + (otherItem.size?.width || 0) - (currentItem.size?.width || 0)
         alignmentGuides.value.push({
           direction: 'vertical',
-          position: newX + currentWhiteboard.size.width
+          position: newX + (currentItem.size?.width || 0)
         })
       }
       // 顶边对齐
-      if (Math.abs(newY - otherWhiteboard.position.y) < snapThreshold) {
-        newY = otherWhiteboard.position.y
+      if (Math.abs(newY - otherItem.position.y) < snapThreshold) {
+        newY = otherItem.position.y
         alignmentGuides.value.push({ direction: 'horizontal', position: newY })
       }
-      // 底边对齐（修正）
+      // 底边对齐
       if (
         Math.abs(
           newY +
-            currentWhiteboard.size.height -
-            (otherWhiteboard.position.y + otherWhiteboard.size.height)
+            (currentItem.size?.height || 0) -
+            (otherItem.position.y + (otherItem.size?.height || 0))
         ) < snapThreshold
       ) {
         newY =
-          otherWhiteboard.position.y + otherWhiteboard.size.height - currentWhiteboard.size.height
+          otherItem.position.y + (otherItem.size?.height || 0) - (currentItem.size?.height || 0)
         alignmentGuides.value.push({
           direction: 'horizontal',
-          position: otherWhiteboard.position.y + otherWhiteboard.size.height
+          position: newY + (currentItem.size?.height || 0)
         })
       }
 
       // 中间对齐（水平）
       if (Math.abs(currentCenterX - otherCenterX) < snapThreshold) {
-        newX = otherCenterX - currentWhiteboard.size.width / 2
+        newX = otherCenterX - (currentItem.size?.width || 0) / 2
         alignmentGuides.value.push({ direction: 'vertical', position: otherCenterX })
       }
       // 中间对齐（垂直）
       if (Math.abs(currentCenterY - otherCenterY) < snapThreshold) {
-        newY = otherCenterY - currentWhiteboard.size.height / 2
+        newY = otherCenterY - (currentItem.size?.height || 0) / 2
         alignmentGuides.value.push({ direction: 'horizontal', position: otherCenterY })
       }
 
       // 左边相邻
       if (
-        Math.abs(newX - (otherWhiteboard.position.x + otherWhiteboard.size.width + SPACING)) <
+        Math.abs(newX - (otherItem.position.x + (otherItem.size?.width || 0) + SPACING)) <
         snapThreshold
       ) {
-        newX = otherWhiteboard.position.x + otherWhiteboard.size.width + SPACING
+        newX = otherItem.position.x + (otherItem.size?.width || 0) + SPACING
         alignmentGuides.value.push({ direction: 'vertical', position: newX - SPACING })
       }
       // 右边相邻
       if (
-        Math.abs(newX + currentWhiteboard.size.width + SPACING - otherWhiteboard.position.x) <
+        Math.abs(newX + (currentItem.size?.width || 0) + SPACING - otherItem.position.x) <
         snapThreshold
       ) {
-        newX = otherWhiteboard.position.x - currentWhiteboard.size.width - SPACING
+        newX = otherItem.position.x - (currentItem.size?.width || 0) - SPACING
         alignmentGuides.value.push({
           direction: 'vertical',
-          position: newX + currentWhiteboard.size.width + SPACING
+          position: newX + (currentItem.size?.width || 0) + SPACING
         })
       }
       // 顶边相邻
       if (
-        Math.abs(newY - (otherWhiteboard.position.y + otherWhiteboard.size.height + SPACING)) <
+        Math.abs(newY - (otherItem.position.y + (otherItem.size?.height || 0) + SPACING)) <
         snapThreshold
       ) {
-        newY = otherWhiteboard.position.y + otherWhiteboard.size.height + SPACING
+        newY = otherItem.position.y + (otherItem.size?.height || 0) + SPACING
         alignmentGuides.value.push({ direction: 'horizontal', position: newY - SPACING })
       }
-      // 底边相邻（修正）
+      // 底边相邻
       if (
-        Math.abs(newY + currentWhiteboard.size.height + SPACING - otherWhiteboard.position.y) <
+        Math.abs(newY + (currentItem.size?.height || 0) + SPACING - otherItem.position.y) <
         snapThreshold
       ) {
-        newY = otherWhiteboard.position.y - currentWhiteboard.size.height - SPACING
+        newY = otherItem.position.y - (currentItem.size?.height || 0) - SPACING
         alignmentGuides.value.push({
           direction: 'horizontal',
-          position: newY + currentWhiteboard.size.height + SPACING
+          position: newY + (currentItem.size?.height || 0) + SPACING
         })
       }
 
@@ -517,12 +625,9 @@ const onDragThumbnail = (event: MouseEvent) => {
         alignmentGuides.value.push({ direction: 'horizontal', position: newY })
       }
       // 底边与左边中间对齐
-      if (Math.abs(newY + currentWhiteboard.size.height - otherCenterY) < snapThreshold) {
-        newY = otherCenterY - currentWhiteboard.size.height
-        alignmentGuides.value.push({
-          direction: 'horizontal',
-          position: otherCenterY
-        })
+      if (Math.abs(newY + (currentItem.size?.height || 0) - otherCenterY) < snapThreshold) {
+        newY = otherCenterY - (currentItem.size?.height || 0)
+        alignmentGuides.value.push({ direction: 'horizontal', position: otherCenterY })
       }
       // 左边与顶边中间对齐
       if (Math.abs(newX - otherCenterX) < snapThreshold) {
@@ -530,44 +635,74 @@ const onDragThumbnail = (event: MouseEvent) => {
         alignmentGuides.value.push({ direction: 'vertical', position: newX })
       }
       // 右边与顶边中间对齐
-      if (Math.abs(newX + currentWhiteboard.size.width - otherCenterX) < snapThreshold) {
-        newX = otherCenterX - currentWhiteboard.size.width
-        alignmentGuides.value.push({
-          direction: 'vertical',
-          position: otherCenterX
-        })
+      if (Math.abs(newX + (currentItem.size?.width || 0) - otherCenterX) < snapThreshold) {
+        newX = otherCenterX - (currentItem.size?.width || 0)
+        alignmentGuides.value.push({ direction: 'vertical', position: otherCenterX })
       }
     }
   })
 
-  updateWhiteboardPosition(id, newX, newY)
+  // 更新项目位置
+  updateItemPosition(id, newX, newY)
+
+  // 可选：添加边界检查，防止项目被拖出可视区域
+  const containerWidth = containerRef.value.clientWidth / scale.value
+  const containerHeight = containerRef.value.clientHeight / scale.value
+  if (newX < 0) newX = 0
+  if (newY < 0) newY = 0
+  if (newX + (currentItem.size?.width || 0) > containerWidth)
+    newX = containerWidth - (currentItem.size?.width || 0)
+  if (newY + (currentItem.size?.height || 0) > containerHeight)
+    newY = containerHeight - (currentItem.size?.height || 0)
+
+  // 最终更新位置
+  updateItemPosition(id, newX, newY)
 }
 
 // 修改 stopDraggingThumbnail 函数
-const stopDraggingThumbnail = () => {
-  draggingThumbnail.value = null
+const stopDraggingItem = () => {
+  if (draggingItem.value) {
+    const { id, type } = draggingItem.value
+    const item = whiteboardItems.value.find((item) => item.id === id)
+    if (item) {
+      // 保存项目的新位置到数据库
+      whiteboardStore.updateWhiteboardItemPosition(
+        whiteboardId,
+        id,
+        item.position.x,
+        item.position.y
+      )
+    }
+  }
+  draggingItem.value = null
   alignmentGuides.value = [] // 清除对齐辅助线
-  document.removeEventListener('mousemove', onDragThumbnail)
-  document.removeEventListener('mouseup', stopDraggingThumbnail)
+  document.removeEventListener('mousemove', onDragItem)
+  document.removeEventListener('mouseup', stopDraggingItem)
 }
 
 // 更新白板位置
-const updateWhiteboardPosition = (id: string, x: number, y: number) => {
-  const whiteboard = whiteboards.value.find((wb) => wb.id === id)
-  if (whiteboard) {
-    whiteboard.position = { x, y }
-    whiteboardStore.updateWhiteboardPosition(id, x, y)
+const updateItemPosition = (id: string, x: number, y: number) => {
+  const item = whiteboardItems.value.find((item) => item.id === id)
+  if (item) {
+    item.position = { x, y }
   }
 }
+
 // 组件卸载时移除事件监听器
+// onUnmounted(() => {
+//   window.removeEventListener('mousemove', handleMouseMove)
+//   window.removeEventListener('mouseup', handleMouseUp)
+// })
 onUnmounted(() => {
   window.removeEventListener('mousemove', handleMouseMove)
   window.removeEventListener('mouseup', handleMouseUp)
+  document.removeEventListener('mousemove', onDragItem)
+  document.removeEventListener('mouseup', stopDraggingItem)
 })
 </script>
 
 <style scoped lang="scss">
-.whiteboard-view {
+.whiteboard-detail {
   position: relative;
   width: 100%;
   height: 100vh;
@@ -592,15 +727,16 @@ onUnmounted(() => {
   background-color: var(--color-bg-primary);
   overflow: hidden;
   cursor: default;
-  // z-index: 1;
 }
 
 .whiteboard-content {
   position: absolute;
   width: 100%;
   height: 100%;
-  transform-origin: 0 0;
-  // pointer-events: none; // 添加这行
+}
+
+.whiteboard-item {
+  position: absolute; /* 确保项目是绝对定位的 */
 }
 
 .whiteboard-container:active {
@@ -669,6 +805,33 @@ onUnmounted(() => {
       color: #ff4d4f;
     }
   }
+  &:hover {
+    background-color: var(--color-hover-button);
+  }
+}
+
+.create-note-button {
+  position: absolute;
+  bottom: 8px;
+  left: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border-radius: 6px;
+  padding: 4px 8px;
+  background-color: var(--color-bg-secondary);
+  color: var(--color-text-primary);
+
+  .icon {
+    margin-right: 4px;
+  }
+
+  span {
+    font-size: 14px;
+  }
+
   &:hover {
     background-color: var(--color-hover-button);
   }

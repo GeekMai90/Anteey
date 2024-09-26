@@ -125,6 +125,7 @@ export interface WhiteboardSubboard {
   position: { x: number; y: number }
   size: { width: number; height: number }
   zIndex: number
+  rotation: number
 }
 
 // 白板上的分组
@@ -141,6 +142,7 @@ export interface WhiteboardGroup {
     borderColor?: string
     borderStyle?: string
   }
+  rotation: number
 }
 
 // 白板上的连线
@@ -159,7 +161,9 @@ export interface Connection {
   startArrow?: boolean // 起点是否有箭头，默认false
   endArrow?: boolean // 终点是否有箭头，默认true
   lineShape?: 'straight' | 'curved' | 'angled' // 连线形状
-  position?: { x: number; y: number } // 新增：连线的位置
+  position: { x: number; y: number } // 新增：连线的位置
   controlPoints?: { x: number; y: number }[] // 新增：控制点，用于调整连线形状
-  zIndex?: number // 新增：用于控制连线的层级
+  zIndex: number // 新增：用于控制连线的层级
+  size: { width: number; height: number }
+  rotation: number
 }

@@ -6,6 +6,9 @@ import type {
   Whiteboard,
   WhiteboardItem,
   WhiteboardNote,
+  WhiteboardSubboard,
+  WhiteboardGroup,
+  Connection,
   RootWhiteboard
 } from '../renderer/src/types/Note'
 import { createNote } from './notes'
@@ -205,14 +208,25 @@ export async function updateWhiteboardItemPosition(
   y: number
 ): Promise<WhiteboardItem> {
   try {
-    const updatedItem = await db('whiteboard_items')
+    const position = { x, y }
+    const positionJson = JSON.stringify(position)
+    console.log('后端→ 开始更新白板项位置', id, positionJson)
+
+    const updatedItems = await db('whiteboard_items')
       .where({ id })
       .update({
-        position: JSON.stringify({ x, y })
+        position: positionJson
       })
       .returning('*')
 
-    return processWhiteboardItemData(updatedItem[0])
+    if (!updatedItems || updatedItems.length === 0) {
+      throw new Error(`未找到ID为 ${id} 的白板项`)
+    }
+
+    const updatedItem = updatedItems[0]
+    console.log('后端→ 更新白板项位置成功', updatedItem)
+
+    return processWhiteboardItemData(updatedItem)
   } catch (error) {
     console.error('后端→ 更新白板项位置失败:', error)
     throw error
@@ -220,36 +234,101 @@ export async function updateWhiteboardItemPosition(
 }
 
 // 辅助函数：处理不同类型的 WhiteboardItem
+// function processWhiteboardItemData(item: any): WhiteboardItem {
+//   switch (item.type) {
+//     case 'note':
+//       return {
+//         ...item,
+//         position: JSON.parse(item.position),
+//         size: JSON.parse(item.size)
+//         // 其他 note 类型特有的处理
+//       }
+//     case 'subboard':
+//       return {
+//         ...item,
+//         position: JSON.parse(item.position),
+//         size: JSON.parse(item.size)
+//         // 其他 subboard 类型特有的处理
+//       }
+//     case 'group':
+//       return {
+//         ...item,
+//         position: JSON.parse(item.position),
+//         size: JSON.parse(item.size)
+//         // 其他 group 类型特有的处理
+//       }
+//     case 'connection':
+//       return {
+//         ...item,
+//         position: JSON.parse(item.position)
+//         // 其他 connection 类型特有的处理
+//       }
+//     default:
+//       throw new Error(`未知的 WhiteboardItem 类型: ${item.type}`)
+//   }
+// }
 function processWhiteboardItemData(item: any): WhiteboardItem {
+  if (!item || typeof item !== 'object') {
+    console.error('无效的白板项数据:', item)
+    throw new Error('无效的白板项数据')
+  }
+
+  const baseItem = {
+    id: item.id,
+    position: JSON.parse(item.position),
+    zIndex: item.zIndex,
+    rotation: item.rotation
+  }
+
   switch (item.type) {
     case 'note':
       return {
-        ...item,
-        position: JSON.parse(item.position),
+        ...baseItem,
+        type: 'note',
+        noteId: item.noteId,
         size: JSON.parse(item.size)
-        // 其他 note 类型特有的处理
-      }
+      } as WhiteboardNote
+
     case 'subboard':
       return {
-        ...item,
-        position: JSON.parse(item.position),
+        ...baseItem,
+        type: 'subboard',
+        whiteboardId: item.whiteboardId,
         size: JSON.parse(item.size)
-        // 其他 subboard 类型特有的处理
-      }
+      } as WhiteboardSubboard
+
     case 'group':
       return {
-        ...item,
-        position: JSON.parse(item.position),
-        size: JSON.parse(item.size)
-        // 其他 group 类型特有的处理
-      }
+        ...baseItem,
+        type: 'group',
+        name: item.name,
+        itemIds: JSON.parse(item.itemIds),
+        size: JSON.parse(item.size),
+        style: item.style ? JSON.parse(item.style) : undefined
+      } as WhiteboardGroup
+
     case 'connection':
       return {
-        ...item,
-        position: JSON.parse(item.position)
-        // 其他 connection 类型特有的处理
-      }
+        ...baseItem,
+        type: 'connection',
+        startItemId: item.startItemId,
+        endItemId: item.endItemId,
+        startEdge: item.startEdge,
+        endEdge: item.endEdge,
+        color: item.color,
+        thickness: item.thickness,
+        label: item.label,
+        labelPosition: item.labelPosition ? JSON.parse(item.labelPosition) : undefined,
+        lineStyle: item.lineStyle,
+        startArrow: item.startArrow,
+        endArrow: item.endArrow,
+        lineShape: item.lineShape,
+        controlPoints: item.controlPoints ? JSON.parse(item.controlPoints) : undefined,
+        size: JSON.parse(item.size)
+      } as Connection
+
     default:
+      console.error('未知的 WhiteboardItem 类型:', item.type)
       throw new Error(`未知的 WhiteboardItem 类型: ${item.type}`)
   }
 }

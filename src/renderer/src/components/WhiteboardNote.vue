@@ -6,24 +6,22 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { defineProps } from 'vue'
 import NoteCard from './NoteCard.vue'
-
-const props = defineProps({
-  note: {
-    type: Object,
-    required: true
-  }
-})
+import { Note } from '@renderer/types/Note'
+const props = defineProps<{
+  note: Note
+}>()
 </script>
 
 <style lang="scss" scoped>
 .whiteboard-note {
   background-color: var(--color-bg-primary);
 }
-
-.note-content {
-  margin-top: 5px;
+.whiteboard-note-content {
+  background-color: var(--color-bg-primary);
+  width: 200px;
+  height: 150px;
 }
 </style>

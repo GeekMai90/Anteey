@@ -59,17 +59,17 @@ export async function initDatabase(db: Knex): Promise<void> {
       table.datetime('createdAt').notNullable()
       table.datetime('updatedAt').notNullable()
       table.json('items').notNullable()
-      table.json('position').notNullable() // 改为 notNullable()
-      table.json('size').nullable()
+      table.json('position').notNullable()
+      table.json('size').notNullable()
       table.string('parentId').nullable()
       table.boolean('isRoot').notNullable().defaultTo(false)
       table.boolean('isStarred').notNullable().defaultTo(false)
       table.integer('starredOrder').nullable()
-      table.float('zoomLevel').nullable() // 新增：缩放级别
-      table.json('scrollPosition').nullable() // 新增：滚动位置
-      table.float('scale').nullable() // 缩放比例
-      table.float('translateX').nullable() // 平移X
-      table.float('translateY').nullable() // 平移Y
+      table.float('zoomLevel').notNullable()
+      table.json('scrollPosition').notNullable()
+      table.float('scale').notNullable()
+      table.float('translateX').notNullable()
+      table.float('translateY').notNullable()
     })
     console.log('whiteboards 表创建成功')
   }
@@ -80,13 +80,13 @@ export async function initDatabase(db: Knex): Promise<void> {
       table.string('id').primary()
       table.datetime('createdAt').notNullable()
       table.datetime('updatedAt').notNullable()
-      table.json('items').notNullable() // 包含子白板
-      table.float('zoomLevel').nullable() // 新增：缩放级别
-      table.json('scrollPosition').nullable() // 新增：滚动位置
-      table.float('scale').nullable() // 新增：缩放比例
-      table.float('translateX').nullable() // 新增：平移X
-      table.float('translateY').nullable() // 新增：平移Y
-      table.unique(['id']) // 确保只有一个根白板
+      table.json('items').notNullable()
+      table.float('zoomLevel').notNullable()
+      table.json('scrollPosition').notNullable()
+      table.float('scale').notNullable()
+      table.float('translateX').notNullable()
+      table.float('translateY').notNullable()
+      table.unique(['id'])
     })
     console.log('root_whiteboards 表创建成功')
   }
@@ -95,16 +95,16 @@ export async function initDatabase(db: Knex): Promise<void> {
   if (!(await db.schema.hasTable('whiteboard_items'))) {
     await db.schema.createTable('whiteboard_items', (table) => {
       table.string('id').primary()
-      table.string('type').notNullable() // 'note', 'subboard', 'group'
+      table.string('type').notNullable()
       table.string('whiteboardId').notNullable().index()
-      table.string('noteId').nullable() // 仅对 'note' 类型有效
-      table.string('name').nullable() // 仅对 'group' 类型有效
-      table.json('itemIds').nullable() // 仅对 'group' 类型有效
+      table.string('noteId').nullable()
+      table.string('name').nullable()
+      table.json('itemIds').nullable()
       table.json('position').notNullable()
       table.json('size').notNullable()
       table.integer('zIndex').notNullable()
-      table.integer('rotation').nullable() // 仅对 'note' 类型有效
-      table.json('style').nullable() // 仅对 'group' 类型有效
+      table.float('rotation').notNullable().defaultTo(0)
+      table.json('style').nullable()
     })
     console.log('whiteboard_items 表创建成功')
   }
@@ -121,14 +121,16 @@ export async function initDatabase(db: Knex): Promise<void> {
       table.string('color').nullable()
       table.integer('thickness').nullable()
       table.string('label').nullable()
+      table.json('labelPosition').nullable()
       table.string('lineStyle').notNullable().defaultTo('solid')
       table.boolean('startArrow').notNullable().defaultTo(false)
       table.boolean('endArrow').notNullable().defaultTo(true)
       table.string('lineShape').notNullable().defaultTo('straight')
-      table.json('labelPosition').nullable() // 新增：标签位置
-      table.json('position').nullable() // 新增：连线的位置
-      table.json('controlPoints').nullable() // 新增：控制点
-      table.integer('zIndex').nullable() // 新增：连线的层级
+      table.json('position').notNullable()
+      table.json('controlPoints').nullable()
+      table.integer('zIndex').notNullable()
+      table.json('size').notNullable()
+      table.float('rotation').notNullable().defaultTo(0)
     })
     console.log('connections 表创建成功')
   }
@@ -139,7 +141,7 @@ export async function initDatabase(db: Knex): Promise<void> {
 export async function down(db: Knex): Promise<void> {
   await db.schema.dropTableIfExists('connections')
   await db.schema.dropTableIfExists('whiteboard_items')
-  await db.schema.dropTableIfExists('root_whiteboards') // 新增：删除根白板表
+  await db.schema.dropTableIfExists('root_whiteboards')
   await db.schema.dropTableIfExists('whiteboards')
   await db.schema.dropTableIfExists('tags')
   await db.schema.dropTableIfExists('cardboxes')
