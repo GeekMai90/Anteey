@@ -143,7 +143,7 @@ const handleContainerDoubleClick = (event: MouseEvent) => {
     return
   }
   // 检查事件目标是否是 contentRef 或其子元素
-  if (event.target === contentRef.value) {
+  if (event.target === contentRef.value || event.target === containerRef.value) {
     const rect = containerRef.value.getBoundingClientRect()
 
     const x = (event.clientX - rect.left) / scale.value - translateX.value
