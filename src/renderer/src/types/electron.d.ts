@@ -59,6 +59,7 @@ export interface ElectronAPI {
     translateX: number
     translateY: number
   }>
+  updateWhiteboardItemSize: (id: string, width: number, height: number) => Promise<WhiteboardItem>
 }
 
 declare global {

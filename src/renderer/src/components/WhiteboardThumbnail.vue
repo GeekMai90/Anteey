@@ -2,8 +2,8 @@
   <div
     class="whiteboard-thumbnail"
     :style="thumbnailStyle"
-    @mousedown="startDrag"
-    @dblclick="$emit('click')"
+    @mousedown.stop="startDrag"
+    @dblclick.stop="$emit('click')"
   >
     <div class="topToolBar">
       <div class="icon">
@@ -38,13 +38,13 @@ const cardCount = 5
 
 const emit = defineEmits<{
   (e: 'click'): void
-  (e: 'dragStart', id: string, event: MouseEvent): void
+  (e: 'dragStart', whiteboard: Whiteboard, event: MouseEvent): void
 }>()
 
 const thumbnailStyle = computed(
   (): CSSProperties => ({
-    transform: `translate(${props.whiteboard.position.x}px, ${props.whiteboard.position.y}px)`,
-    position: 'absolute' as const,
+    transform: `translate(${props.whiteboard.position.x - props.whiteboard.size.width / 2}px, ${props.whiteboard.position.y - props.whiteboard.size.height / 2}px)`,
+    position: 'absolute',
     cursor: 'move',
     width: `${props.whiteboard.size.width}px`,
     height: `${props.whiteboard.size.height}px`
@@ -52,159 +52,9 @@ const thumbnailStyle = computed(
 )
 
 const startDrag = (event: MouseEvent) => {
-  emit('dragStart', props.whiteboard.id, event)
+  emit('dragStart', props.whiteboard, event)
 }
 </script>
-
-<!-- <style lang="scss" scoped>
-.whiteboard-thumbnail {
-  border: 1px solid #ccc;
-  border-radius: 5px;
-  padding: 10px;
-  background-color: white;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-  user-select: none;
-  display: flex;
-  flex-direction: column;
-}
-
-.thumbnail-preview {
-  width: 100%;
-  height: calc(100% - 30px);
-  overflow: hidden;
-}
-
-.card-preview {
-  background-color: #f0f0f0;
-  padding: 5px;
-  font-size: 0.8em;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.topToolBar {
-  width: 100%;
-  display: flex;
-  justify-content: flex-end;
-  height: 20px;
-  align-items: center;
-
-  .icon {
-    margin-left: auto;
-    background: none;
-    border: none;
-    cursor: pointer;
-    width: 24px;
-    height: 24px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s ease;
-    padding: 0;
-    border-radius: 6px;
-    &:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
-
-    :deep(.i-icon) {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 100%;
-      height: 100%;
-    }
-
-    :deep(svg) {
-      width: 20px;
-      height: 20px;
-    }
-
-    &:hover {
-      background-color: #f0f0f0;
-    }
-  }
-}
-
-.topToolBar {
-  height: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.whiteboardName {
-  position: relative;
-  display: flex;
-  align-items: center;
-  border: none;
-  background: none;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  border-radius: 6px;
-  padding: 4px 4px;
-  margin: 2px;
-
-  .icon {
-    background: none;
-    border: none;
-    cursor: pointer;
-    width: 24px;
-    height: 24px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s ease;
-    padding: 0;
-
-    &:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
-
-    :deep(.i-icon) {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 100%;
-      height: 100%;
-    }
-
-    :deep(svg) {
-      width: 20px;
-      height: 20px;
-    }
-  }
-
-  .name {
-    flex-grow: 0;
-    text-align: left;
-    color: var(--default-text-color);
-    font-size: 18px;
-    font-weight: 400;
-    margin-left: 6px;
-    white-space: nowrap;
-    writing-mode: horizontal-tb;
-  }
-}
-
-.bottomToolBar {
-  display: flex;
-  align-items: center;
-  justify-content: right;
-  .cardCount {
-    color: var(--color-text-primary);
-    font-size: 20px;
-    font-weight: 400;
-  }
-  .cardCountText {
-    color: var(--color-text-secondary);
-    font-size: 14px;
-    font-weight: 400;
-  }
-}
-</style> -->
 
 <style lang="scss" scoped>
 .whiteboard-thumbnail {
@@ -216,11 +66,10 @@ const startDrag = (event: MouseEvent) => {
   user-select: none;
   display: flex;
   flex-direction: column;
-  // transition: all 0.3s ease;
+  z-index: 10;
 
   &:hover {
     box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
-    transform: translateY(-2px);
   }
 }
 
@@ -321,6 +170,3 @@ const startDrag = (event: MouseEvent) => {
   }
 }
 </style>
-
-:deep(.i-icon) { display: flex; align-items: center; justify-content: center; width: 100%; height:
-100%; } :deep(svg) { width: 16px; height: 16px; }

@@ -138,6 +138,13 @@ export const useWhiteboardStore = defineStore('whiteboard', {
       const viewState = await window.electronAPI.getWhiteboardViewState(whiteboardId)
       console.log('whiteboardStore→ 获取白板视图状态成功', viewState)
       return viewState
+    },
+    // 更新白板项大小
+    async updateWhiteboardItemSize(id: string, width: number, height: number) {
+      console.log('whiteboardStore→ 开始更新白板项大小', { id, width, height })
+      const updatedItem = await window.electronAPI.updateWhiteboardItemSize(id, width, height)
+      console.log('whiteboardStore→ 更新白板项大小成功', updatedItem)
+      return updatedItem
     }
   },
   getters: {

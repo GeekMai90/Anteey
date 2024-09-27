@@ -32,7 +32,8 @@ import {
   saveViewStateToRootWhiteboard,
   getRootWhiteboardViewState,
   saveViewStateToWhiteboard,
-  getWhiteboardViewState
+  getWhiteboardViewState,
+  updateWhiteboardItemSize
 } from '../db/whiteboards'
 import { CreateWhiteboardInput, CreateWhiteboardNoteInput } from '../renderer/src/types/Note'
 import { db, dbPath } from '../db/config'
@@ -144,6 +145,16 @@ function createCustomMenu() {
 }
 
 function setupIpcHandlers() {
+  //更新白板项大小
+  ipcMain.handle('update-whiteboard-item-size', async (_, { id, width, height }) => {
+    try {
+      const updatedItem = await updateWhiteboardItemSize(id, width, height)
+      return updatedItem
+    } catch (error) {
+      console.error('主进程 → 更新白板项大小时出错:', error)
+      return { success: false, error: error }
+    }
+  })
   //获取白板视图状态
   ipcMain.handle('get-whiteboard-view-state', async (_, { whiteboardId }) => {
     try {

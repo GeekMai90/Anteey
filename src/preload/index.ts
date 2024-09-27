@@ -320,5 +320,18 @@ contextBridge.exposeInMainWorld('electronAPI', {
       console.error('Preload: 获取白板视图状态时出错:', error)
       throw error
     }
+  },
+  // 更新白板项大小
+  updateWhiteboardItemSize: async (id: string, width: number, height: number) => {
+    try {
+      return (await ipcRenderer.invoke('update-whiteboard-item-size', {
+        id,
+        width,
+        height
+      })) as WhiteboardItem
+    } catch (error) {
+      console.error('Preload: 更新白板项大小时出错:', error)
+      throw error
+    }
   }
 })

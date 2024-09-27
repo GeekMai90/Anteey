@@ -36,20 +36,6 @@ function processWhiteboardData(whiteboard: any): Whiteboard {
   }
 }
 
-// // 获取白板视图状态
-// export async function getWhiteboardViewState(whiteboardId: string): Promise<{
-//   scale: number
-//   translateX: number
-//   translateY: number
-// }> {
-//   const whiteboard = await db('whiteboards').where({ id: whiteboardId }).select('*').first()
-//   return {
-//     scale: whiteboard.scale as number,
-//     translateX: whiteboard.translateX as number,
-//     translateY: whiteboard.translateY as number
-//   }
-// }
-
 // 保存视图状态到白板
 export async function saveViewStateToWhiteboard(
   whiteboardId: string,
@@ -181,7 +167,7 @@ export async function getRootWhiteboardViewState(): Promise<{
     throw error
   }
 }
-
+// 创建白板
 export async function createWhiteboard(input: CreateWhiteboardInput): Promise<Whiteboard> {
   const id = uuidv4()
   const now = new Date().toISOString() // 确保日期格式正确
@@ -408,6 +394,33 @@ export async function getWhiteboardItems(whiteboardId: string): Promise<Whiteboa
     })) as WhiteboardItem[]
   } catch (error) {
     console.error('后端→ 获取白板内容失败:', error)
+    throw error
+  }
+}
+
+// 更新白板项的大小
+export async function updateWhiteboardItemSize(
+  id: string,
+  width: number,
+  height: number
+): Promise<WhiteboardItem> {
+  try {
+    const updatedItem = await db('whiteboard_items')
+      .where({ id })
+      .update({ size: JSON.stringify({ width, height }) })
+      .returning('*')
+
+    if (!updatedItem || updatedItem.length === 0) {
+      throw new Error(`未找到ID为 ${id} 的白板项`)
+    }
+
+    const updatedItemData = updatedItem[0]
+    return {
+      ...updatedItemData,
+      size: JSON.parse(updatedItemData.size)
+    }
+  } catch (error) {
+    console.error('后端→ 更新白板项大小失败:', error)
     throw error
   }
 }

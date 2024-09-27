@@ -26,12 +26,11 @@
           :whiteboard="whiteboard"
           :scale="scale"
           @click="openWhiteboard(whiteboard.id)"
-          @dragStart="startDraggingThumbnail"
+          @mousedown.stop="startDraggingThumbnail(whiteboard, $event)"
         />
       </div>
     </div>
     <!-- 适应视图按钮 -->
-
     <div class="fit-view-button" @click="fitView">
       <div class="icon">
         <Aiming theme="outline" size="24" fill="#333" />
@@ -43,7 +42,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, markRaw, onUnmounted, computed } from 'vue'
+import { ref, onMounted, markRaw, onUnmounted, computed, watch } from 'vue'
 import AppToolbar from '@renderer/components/AppToolbar.vue'
 import { useRouter } from 'vue-router'
 import WhiteboardThumbnail from '@renderer/components/WhiteboardThumbnail.vue'
@@ -71,9 +70,7 @@ const translateY = ref(0)
 // 计算内容样式
 const contentStyle = computed(() => ({
   transform: `translate(${translateX.value}px, ${translateY.value}px) scale(${scale.value})`,
-  transformOrigin: '0 0',
-  width: '100%',
-  height: '100%'
+  transformOrigin: '0 0'
 }))
 
 // 拖动状态变量
@@ -82,15 +79,11 @@ let lastX = 0
 let lastY = 0
 let lastPinchDistance = 0
 
-// 磁性吸附和对齐辅助
-const SNAP_THRESHOLD = 10 // 吸附阈值（像素）
-const alignmentGuides = ref<{ direction: 'horizontal' | 'vertical'; position: number }[]>([])
-
 // 组件挂载时执行的操作
 onMounted(async () => {
-  await checkAndCreateRootWhiteboard() // 检查并创建根白板
-  await whiteboardStore.getTopLevelWhiteboards() // 获取顶级白板
-  whiteboards.value = whiteboardStore.whiteboards // 设置白板列表
+  await checkAndCreateRootWhiteboard()
+  await whiteboardStore.getTopLevelWhiteboards()
+  whiteboards.value = whiteboardStore.whiteboards
   loadViewState()
   console.log('whiteboards', whiteboards.value)
 })
@@ -119,7 +112,7 @@ const createNewWhiteboard = async (x: number, y: number) => {
     position: { x, y },
     size: { width: 300, height: 150 },
     zoomLevel: 1,
-    scrollPosition: { x: 0, y: 0 },
+    scrollPosition: { x, y },
     scale: 1,
     translateX: 0,
     translateY: 0
@@ -325,10 +318,14 @@ const fitView = async () => {
   const bounds = whiteboards.value.reduce(
     (acc, wb) => {
       if (wb.position) {
-        acc.left = Math.min(acc.left, wb.position.x)
-        acc.top = Math.min(acc.top, wb.position.y)
-        acc.right = Math.max(acc.right, wb.position.x + (wb.size?.width || 200))
-        acc.bottom = Math.max(acc.bottom, wb.position.y + (wb.size?.height || 200))
+        const left = wb.position.x - wb.size.width / 2
+        const top = wb.position.y - wb.size.height / 2
+        const right = wb.position.x + wb.size.width / 2
+        const bottom = wb.position.y + wb.size.height / 2
+        acc.left = Math.min(acc.left, left)
+        acc.top = Math.min(acc.top, top)
+        acc.right = Math.max(acc.right, right)
+        acc.bottom = Math.max(acc.bottom, bottom)
       }
       return acc
     },
@@ -380,21 +377,25 @@ const loadViewState = async () => {
 
 // 拖动缩略图相关逻辑
 const draggingThumbnail = ref<{ id: string; startX: number; startY: number } | null>(null)
+// 磁性吸附和对齐辅助
+const SNAP_THRESHOLD = 10 // 吸附阈值（像素）
+const alignmentGuides = ref<{ direction: 'horizontal' | 'vertical'; position: number }[]>([])
+
 // 开始拖动缩略图
-const startDraggingThumbnail = (id: string, event: MouseEvent) => {
-  const whiteboard = whiteboards.value.find((wb) => wb.id === id)
-  if (!whiteboard || !contentRef.value) return
+const startDraggingThumbnail = (whiteboard: Whiteboard, event: MouseEvent) => {
+  if (!contentRef.value) return
   const rect = contentRef.value.getBoundingClientRect()
   draggingThumbnail.value = {
-    id,
-    startX: (event.clientX - rect.left) / scale.value - whiteboard.position.x,
-    startY: (event.clientY - rect.top) / scale.value - whiteboard.position.y
+    id: whiteboard.id,
+    startX: (event.clientX - rect.left - translateX.value) / scale.value - whiteboard.position.x,
+    startY: (event.clientY - rect.top - translateY.value) / scale.value - whiteboard.position.y
   }
 
   document.addEventListener('mousemove', onDragThumbnail)
   document.addEventListener('mouseup', stopDraggingThumbnail)
 }
-// // 拖动缩略图过程中，有磁性吸附的效果
+
+// 拖动缩略图过程中，有磁性吸附的效果
 const SPACING = 5 // 定义缩略图之间的间距
 const onDragThumbnail = (event: MouseEvent) => {
   if (!draggingThumbnail.value || !contentRef.value) return
@@ -402,163 +403,230 @@ const onDragThumbnail = (event: MouseEvent) => {
   const { id, startX, startY } = draggingThumbnail.value
   const rect = contentRef.value.getBoundingClientRect()
 
-  let newX = (event.clientX - rect.left) / scale.value - startX
-  let newY = (event.clientY - rect.top) / scale.value - startY
+  let newCenterX = (event.clientX - rect.left - translateX.value) / scale.value - startX
+  let newCenterY = (event.clientY - rect.top - translateY.value) / scale.value - startY
 
-  alignmentGuides.value = [] // 清除之前的对齐辅助线
+  alignmentGuides.value = []
 
   const currentWhiteboard = whiteboards.value.find((wb) => wb.id === id)
   if (!currentWhiteboard) return
 
   const snapThreshold = SNAP_THRESHOLD / scale.value
 
-  const currentCenterX = newX + currentWhiteboard.size.width / 2
-  const currentCenterY = newY + currentWhiteboard.size.height / 2
-
   whiteboards.value.forEach((otherWhiteboard) => {
     if (otherWhiteboard.id !== id) {
-      const otherCenterX = otherWhiteboard.position.x + otherWhiteboard.size.width / 2
-      const otherCenterY = otherWhiteboard.position.y + otherWhiteboard.size.height / 2
-
       // 左边对齐
-      if (Math.abs(newX - otherWhiteboard.position.x) < snapThreshold) {
-        newX = otherWhiteboard.position.x
-        alignmentGuides.value.push({ direction: 'vertical', position: newX })
+      if (
+        Math.abs(
+          newCenterX -
+            currentWhiteboard.size.width / 2 -
+            (otherWhiteboard.position.x - otherWhiteboard.size.width / 2)
+        ) < snapThreshold
+      ) {
+        newCenterX =
+          otherWhiteboard.position.x -
+          otherWhiteboard.size.width / 2 +
+          currentWhiteboard.size.width / 2
+        alignmentGuides.value.push({
+          direction: 'vertical',
+          position: newCenterX - currentWhiteboard.size.width / 2
+        })
       }
       // 右边对齐
       if (
         Math.abs(
-          newX +
-            currentWhiteboard.size.width -
-            (otherWhiteboard.position.x + otherWhiteboard.size.width)
+          newCenterX +
+            currentWhiteboard.size.width / 2 -
+            (otherWhiteboard.position.x + otherWhiteboard.size.width / 2)
         ) < snapThreshold
       ) {
-        newX =
-          otherWhiteboard.position.x + otherWhiteboard.size.width - currentWhiteboard.size.width
+        newCenterX =
+          otherWhiteboard.position.x +
+          otherWhiteboard.size.width / 2 -
+          currentWhiteboard.size.width / 2
         alignmentGuides.value.push({
           direction: 'vertical',
-          position: newX + currentWhiteboard.size.width
+          position: newCenterX + currentWhiteboard.size.width / 2
         })
       }
       // 顶边对齐
-      if (Math.abs(newY - otherWhiteboard.position.y) < snapThreshold) {
-        newY = otherWhiteboard.position.y
-        alignmentGuides.value.push({ direction: 'horizontal', position: newY })
-      }
-      // 底边对齐（修正）
       if (
         Math.abs(
-          newY +
-            currentWhiteboard.size.height -
-            (otherWhiteboard.position.y + otherWhiteboard.size.height)
+          newCenterY -
+            currentWhiteboard.size.height / 2 -
+            (otherWhiteboard.position.y - otherWhiteboard.size.height / 2)
         ) < snapThreshold
       ) {
-        newY =
-          otherWhiteboard.position.y + otherWhiteboard.size.height - currentWhiteboard.size.height
+        newCenterY =
+          otherWhiteboard.position.y -
+          otherWhiteboard.size.height / 2 +
+          currentWhiteboard.size.height / 2
         alignmentGuides.value.push({
           direction: 'horizontal',
-          position: otherWhiteboard.position.y + otherWhiteboard.size.height
+          position: newCenterY - currentWhiteboard.size.height / 2
         })
       }
-
+      // 底边对齐
+      if (
+        Math.abs(
+          newCenterY +
+            currentWhiteboard.size.height / 2 -
+            (otherWhiteboard.position.y + otherWhiteboard.size.height / 2)
+        ) < snapThreshold
+      ) {
+        newCenterY =
+          otherWhiteboard.position.y +
+          otherWhiteboard.size.height / 2 -
+          currentWhiteboard.size.height / 2
+        alignmentGuides.value.push({
+          direction: 'horizontal',
+          position: newCenterY + currentWhiteboard.size.height / 2
+        })
+      }
       // 中间对齐（水平）
-      if (Math.abs(currentCenterX - otherCenterX) < snapThreshold) {
-        newX = otherCenterX - currentWhiteboard.size.width / 2
-        alignmentGuides.value.push({ direction: 'vertical', position: otherCenterX })
+      if (Math.abs(newCenterX - otherWhiteboard.position.x) < snapThreshold) {
+        newCenterX = otherWhiteboard.position.x
+        alignmentGuides.value.push({ direction: 'vertical', position: newCenterX })
       }
       // 中间对齐（垂直）
-      if (Math.abs(currentCenterY - otherCenterY) < snapThreshold) {
-        newY = otherCenterY - currentWhiteboard.size.height / 2
-        alignmentGuides.value.push({ direction: 'horizontal', position: otherCenterY })
+      if (Math.abs(newCenterY - otherWhiteboard.position.y) < snapThreshold) {
+        newCenterY = otherWhiteboard.position.y
+        alignmentGuides.value.push({ direction: 'horizontal', position: newCenterY })
       }
-
       // 左边相邻
       if (
-        Math.abs(newX - (otherWhiteboard.position.x + otherWhiteboard.size.width + SPACING)) <
-        snapThreshold
+        Math.abs(
+          newCenterX -
+            currentWhiteboard.size.width / 2 -
+            (otherWhiteboard.position.x + otherWhiteboard.size.width / 2 + SPACING)
+        ) < snapThreshold
       ) {
-        newX = otherWhiteboard.position.x + otherWhiteboard.size.width + SPACING
-        alignmentGuides.value.push({ direction: 'vertical', position: newX - SPACING })
+        newCenterX =
+          otherWhiteboard.position.x +
+          otherWhiteboard.size.width / 2 +
+          SPACING +
+          currentWhiteboard.size.width / 2
+        alignmentGuides.value.push({
+          direction: 'vertical',
+          position: newCenterX - currentWhiteboard.size.width / 2 - SPACING
+        })
       }
       // 右边相邻
       if (
-        Math.abs(newX + currentWhiteboard.size.width + SPACING - otherWhiteboard.position.x) <
-        snapThreshold
+        Math.abs(
+          newCenterX +
+            currentWhiteboard.size.width / 2 +
+            SPACING -
+            (otherWhiteboard.position.x - otherWhiteboard.size.width / 2)
+        ) < snapThreshold
       ) {
-        newX = otherWhiteboard.position.x - currentWhiteboard.size.width - SPACING
+        newCenterX =
+          otherWhiteboard.position.x -
+          otherWhiteboard.size.width / 2 -
+          SPACING -
+          currentWhiteboard.size.width / 2
         alignmentGuides.value.push({
           direction: 'vertical',
-          position: newX + currentWhiteboard.size.width + SPACING
+          position: newCenterX + currentWhiteboard.size.width / 2 + SPACING
         })
       }
       // 顶边相邻
       if (
-        Math.abs(newY - (otherWhiteboard.position.y + otherWhiteboard.size.height + SPACING)) <
-        snapThreshold
+        Math.abs(
+          newCenterY -
+            currentWhiteboard.size.height / 2 -
+            (otherWhiteboard.position.y + otherWhiteboard.size.height / 2 + SPACING)
+        ) < snapThreshold
       ) {
-        newY = otherWhiteboard.position.y + otherWhiteboard.size.height + SPACING
-        alignmentGuides.value.push({ direction: 'horizontal', position: newY - SPACING })
+        newCenterY =
+          otherWhiteboard.position.y +
+          otherWhiteboard.size.height / 2 +
+          SPACING +
+          currentWhiteboard.size.height / 2
+        alignmentGuides.value.push({
+          direction: 'horizontal',
+          position: newCenterY - currentWhiteboard.size.height / 2 - SPACING
+        })
       }
-      // 底边相邻（修正）
+      // 底边相邻
       if (
-        Math.abs(newY + currentWhiteboard.size.height + SPACING - otherWhiteboard.position.y) <
-        snapThreshold
+        Math.abs(
+          newCenterY +
+            currentWhiteboard.size.height / 2 +
+            SPACING -
+            (otherWhiteboard.position.y - otherWhiteboard.size.height / 2)
+        ) < snapThreshold
       ) {
-        newY = otherWhiteboard.position.y - currentWhiteboard.size.height - SPACING
+        newCenterY =
+          otherWhiteboard.position.y -
+          otherWhiteboard.size.height / 2 -
+          SPACING -
+          currentWhiteboard.size.height / 2
         alignmentGuides.value.push({
           direction: 'horizontal',
-          position: newY + currentWhiteboard.size.height + SPACING
-        })
-      }
-
-      // 顶边与左边中间对齐
-      if (Math.abs(newY - otherCenterY) < snapThreshold) {
-        newY = otherCenterY
-        alignmentGuides.value.push({ direction: 'horizontal', position: newY })
-      }
-      // 底边与左边中间对齐
-      if (Math.abs(newY + currentWhiteboard.size.height - otherCenterY) < snapThreshold) {
-        newY = otherCenterY - currentWhiteboard.size.height
-        alignmentGuides.value.push({
-          direction: 'horizontal',
-          position: otherCenterY
-        })
-      }
-      // 左边与顶边中间对齐
-      if (Math.abs(newX - otherCenterX) < snapThreshold) {
-        newX = otherCenterX
-        alignmentGuides.value.push({ direction: 'vertical', position: newX })
-      }
-      // 右边与顶边中间对齐
-      if (Math.abs(newX + currentWhiteboard.size.width - otherCenterX) < snapThreshold) {
-        newX = otherCenterX - currentWhiteboard.size.width
-        alignmentGuides.value.push({
-          direction: 'vertical',
-          position: otherCenterX
+          position: newCenterY + currentWhiteboard.size.height / 2 + SPACING
         })
       }
     }
   })
 
-  updateWhiteboardPosition(id, newX, newY)
+  updateWhiteboardPosition(id, newCenterX, newCenterY)
 }
 
-// 修改 stopDraggingThumbnail 函数
-const stopDraggingThumbnail = () => {
+// stopDraggingThumbnail 函数
+const stopDraggingThumbnail = async () => {
+  if (draggingThumbnail.value) {
+    const whiteboard = whiteboards.value.find((wb) => wb.id === draggingThumbnail.value?.id)
+    if (whiteboard) {
+      await whiteboardStore.updateWhiteboardPosition(
+        whiteboard.id,
+        whiteboard.position.x,
+        whiteboard.position.y
+      )
+    }
+  }
   draggingThumbnail.value = null
-  alignmentGuides.value = [] // 清除对齐辅助线
+  alignmentGuides.value = []
   document.removeEventListener('mousemove', onDragThumbnail)
   document.removeEventListener('mouseup', stopDraggingThumbnail)
 }
 
 // 更新白板位置
-const updateWhiteboardPosition = (id: string, x: number, y: number) => {
-  const whiteboard = whiteboards.value.find((wb) => wb.id === id)
-  if (whiteboard) {
-    whiteboard.position = { x, y }
-    whiteboardStore.updateWhiteboardPosition(id, x, y)
+
+// 更新白板位置
+const updateWhiteboardPosition = (id: string, centerX: number, centerY: number) => {
+  const index = whiteboards.value.findIndex((wb) => wb.id === id)
+  if (index !== -1) {
+    whiteboards.value[index] = {
+      ...whiteboards.value[index],
+      position: { x: centerX, y: centerY }
+    }
   }
 }
+
+onMounted(async () => {
+  await fetchWhiteboards()
+  await loadViewState()
+})
+
+onUnmounted(() => {
+  document.removeEventListener('mousemove', onDragThumbnail)
+  document.removeEventListener('mouseup', stopDraggingThumbnail)
+})
+
+const fetchWhiteboards = async () => {
+  whiteboards.value = await whiteboardStore.getTopLevelWhiteboards()
+}
+
+watch([scale, translateX, translateY], () => {
+  saveViewState()
+})
+
+onUnmounted(() => {
+  document.removeEventListener('mousemove', onDragThumbnail)
+  document.removeEventListener('mouseup', stopDraggingThumbnail)
+})
+
 // 组件卸载时移除事件监听器
 onUnmounted(() => {
   window.removeEventListener('mousemove', handleMouseMove)
@@ -592,7 +660,6 @@ onUnmounted(() => {
   background-color: var(--color-bg-primary);
   overflow: hidden;
   cursor: default;
-  // z-index: 1;
 }
 
 .whiteboard-content {
@@ -600,7 +667,6 @@ onUnmounted(() => {
   width: 100%;
   height: 100%;
   transform-origin: 0 0;
-  // pointer-events: none; // 添加这行
 }
 
 .whiteboard-container:active {
@@ -660,11 +726,9 @@ onUnmounted(() => {
       white-space: nowrap;
       writing-mode: horizontal-tb;
     }
-
     &:active {
       background-color: rgba(0, 0, 0, 0.1);
     }
-
     &.delete {
       color: #ff4d4f;
     }
