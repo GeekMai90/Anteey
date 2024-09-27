@@ -5,16 +5,18 @@
     <div class="fixed-header">
       <AppToolbar />
     </div>
+    <!-- 主容器 -->
     <div
       ref="containerRef"
-      class="whiteboard-container"
+      class="whiteboard-canvas"
       @wheel="handleWheel"
       @mousedown="handleMouseDown"
       @touchstart="handleTouchStart"
       @touchmove="handleTouchMove"
       @touchend="handleTouchEnd"
     >
-      <div class="whiteboard-detail-content" :style="contentStyle">
+      <!-- 变换层 -->
+      <div ref="transformLayerRef" class="whiteboard-transform-layer" :style="transformLayerStyle">
         <component
           :is="getItemComponent(item)"
           v-for="item in whiteboardItems"
@@ -276,7 +278,7 @@ onUnmounted(() => {
 
 // 拖拽改变大小的功能结束
 
-const contentStyle = computed(() => ({
+const transformLayerStyle = computed(() => ({
   transform: `translate(${translateX.value}px, ${translateY.value}px) scale(${scale.value})`,
   transformOrigin: '0 0'
 }))
@@ -676,21 +678,27 @@ onUnmounted(async () => {
   background-color: var(--color-bg-primary);
 }
 
-.whiteboard-container {
+.whiteboard-canvas {
   flex: 1;
   position: relative;
   width: 100%;
   height: 100%;
-  display: flex;
   background-color: var(--color-bg-primary);
   overflow: hidden;
+  touch-action: none;
+  user-select: none;
+  cursor: grab;
+  &:active {
+    cursor: grabbing;
+  }
 }
 
-.whiteboard-detail-content {
+.whiteboard-transform-layer {
   position: absolute;
-  width: 100%;
-  height: 100%;
-  transform-origin: 0 0;
+  top: 0;
+  left: 0;
+  will-change: transform;
+  transition: transform 0.05s linear;
 }
 
 .whiteboard-item {

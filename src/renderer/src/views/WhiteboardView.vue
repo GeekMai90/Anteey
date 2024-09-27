@@ -613,10 +613,6 @@ onUnmounted(() => {
   transition: transform 0.05s linear;
 }
 
-.whiteboard-container:active {
-  cursor: grabbing;
-}
-
 .fit-view-button {
   position: absolute;
   bottom: 8px;
