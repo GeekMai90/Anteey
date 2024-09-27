@@ -19,10 +19,13 @@
           :is="getItemComponent(item)"
           v-for="item in whiteboardItems"
           :key="item.id"
+          :width="item.size.width"
+          :height="item.size.height"
           :class="['whiteboard-item', item.type]"
           :style="getItemStyle(item)"
           :note="item.type === 'note' ? whiteboardStore.getReferenceNotes(item.noteId) : null"
           @mousedown.stop="startDraggingItem(item, $event)"
+          @resize-start="startResizingItem(item, $event)"
         />
       </div>
     </div>
@@ -71,6 +74,129 @@ const SNAP_THRESHOLD = 5
 const scale = ref(1) // 添加缩放状态
 const translateX = ref(0)
 const translateY = ref(0)
+
+//开始实现拖拽改变大小的能
+// 添加 resizingItem ref 来存储拖拽改变大小的信息
+const resizingItem = ref<{
+  id: string
+  direction: string
+  startX: number
+  startY: number
+  startWidth: number
+  startHeight: number
+} | null>(null)
+
+// 开始拖拽改变大小 startResizingItem 函数
+const startResizingItem = (
+  item: WhiteboardItem,
+  { direction, event }: { direction: string; event: MouseEvent }
+) => {
+  event.preventDefault()
+  event.stopPropagation()
+  if (!containerRef.value) return
+  // const rect = containerRef.value.getBoundingClientRect()
+  resizingItem.value = {
+    id: item.id,
+    direction,
+    startX: event.clientX,
+    startY: event.clientY,
+    startWidth: item.size.width,
+    startHeight: item.size.height
+  }
+
+  document.addEventListener('mousemove', onResizeItem)
+  document.addEventListener('mouseup', stopResizingItem)
+}
+
+// 添加一个 ref 来存储视觉调整
+const visualAdjustment = ref({ x: 0, y: 0 })
+
+// 拖拽改变大小 onResizeItem 函数
+const onResizeItem = (event: MouseEvent) => {
+  event.preventDefault()
+  event.stopPropagation()
+  if (!resizingItem.value || !containerRef.value) return
+
+  const { id, direction, startX, startY, startWidth, startHeight } = resizingItem.value
+  const dx = (event.clientX - startX) / scale.value
+  const dy = (event.clientY - startY) / scale.value
+
+  const item = whiteboardItems.value.find((item) => item.id === id)
+  if (!item) return
+
+  let newWidth = startWidth
+  let newHeight = startHeight
+
+  switch (direction) {
+    case 'right':
+      newWidth = Math.max(startWidth + dx, 100)
+      break
+    case 'bottom':
+      newHeight = Math.max(startHeight + dy, 100)
+      break
+    case 'left':
+      newWidth = Math.max(startWidth - dx, 100)
+      visualAdjustment.value.x = startWidth - newWidth
+      break
+    case 'top':
+      newHeight = Math.max(startHeight - dy, 100)
+      visualAdjustment.value.y = startHeight - newHeight
+      break
+    case 'top-left':
+      newWidth = Math.max(startWidth - dx, 100)
+      newHeight = Math.max(startHeight - dy, 100)
+      visualAdjustment.value.x = startWidth - newWidth
+      visualAdjustment.value.y = startHeight - newHeight
+      break
+    case 'top-right':
+      newWidth = Math.max(startWidth + dx, 100)
+      newHeight = Math.max(startHeight - dy, 100)
+      visualAdjustment.value.y = startHeight - newHeight
+      break
+    case 'bottom-right':
+      newWidth = Math.max(startWidth + dx, 100)
+      newHeight = Math.max(startHeight + dy, 100)
+      break
+    case 'bottom-left':
+      newWidth = Math.max(startWidth - dx, 100)
+      newHeight = Math.max(startHeight + dy, 100)
+      visualAdjustment.value.x = startWidth - newWidth
+      break
+  }
+
+  // 更新大小
+  item.size.width = newWidth
+  item.size.height = newHeight
+}
+
+// 停止拖拽改变大小 stopResizingItem 函数
+const stopResizingItem = async (event: MouseEvent) => {
+  event.preventDefault()
+  event.stopPropagation()
+  if (resizingItem.value) {
+    const item = whiteboardItems.value.find((item) => item.id === resizingItem.value?.id)
+    if (item && whiteboardId.value) {
+      // 更新白板项的大小和位置
+      await whiteboardStore.updateWhiteboardItemSize(item.id, item.size.width, item.size.height)
+      await whiteboardStore.updateWhiteboardItemPosition(item.id, item.position.x, item.position.y)
+      // 应用视觉调整到实际位置
+      item.position.x += visualAdjustment.value.x
+      item.position.y += visualAdjustment.value.y
+    }
+  }
+  resizingItem.value = null
+  visualAdjustment.value = { x: 0, y: 0 } // 重置视觉调整
+  document.removeEventListener('mousemove', onResizeItem)
+  document.removeEventListener('mouseup', stopResizingItem)
+}
+
+// 修改 onUnmounted 钩子，添加新的事件监听器移除
+onUnmounted(() => {
+  document.removeEventListener('mousemove', onDragItem)
+  document.removeEventListener('mouseup', stopDraggingItem)
+  document.removeEventListener('mousemove', onResizeItem)
+  document.removeEventListener('mouseup', stopResizingItem)
+})
 
 const contentStyle = computed(() => ({
   transform: `translate(${translateX.value}px, ${translateY.value}px) scale(${scale.value})`,
@@ -290,11 +416,11 @@ const getItemComponent = (item: WhiteboardItem) => {
   }
 }
 
-// 根据 item 中的属性获取组件的 style
+// 修改 getItemStyle 函数以应用视觉调整
 const getItemStyle = (item: WhiteboardItem) => {
   return {
-    left: `${item.position.x}px`,
-    top: `${item.position.y}px`,
+    left: `${item.position.x + (resizingItem.value?.id === item.id ? visualAdjustment.value.x : 0)}px`,
+    top: `${item.position.y + (resizingItem.value?.id === item.id ? visualAdjustment.value.y : 0)}px`,
     width: `${item.size.width}px`,
     height: `${item.size.height}px`,
     zIndex: `${item.zIndex}`,
