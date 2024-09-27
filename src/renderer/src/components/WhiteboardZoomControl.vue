@@ -15,6 +15,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: 'update:scale', value: number): void
+  (e: 'reset-view'): void
 }>()
 
 const zoomPercentage = computed(() => Math.round(props.scale * 100))
@@ -28,6 +29,7 @@ const zoomOut = () => {
 }
 
 const resetZoom = () => {
+  emit('reset-view')
   emit('update:scale', 1)
 }
 </script>

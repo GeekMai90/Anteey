@@ -36,7 +36,11 @@
       </div>
     </div>
     <!-- 新增：缩放控制器 -->
-    <WhiteboardZoomControl v-model:scale="scale" class="zoom-control-position" />
+    <WhiteboardZoomControl
+      v-model:scale="scale"
+      class="zoom-control-position"
+      @reset-view="fitView"
+    />
     <!-- 新增：创建白板笔记按钮 -->
     <div class="create-note-button" @click="createWhiteboardNote">
       <div class="icon">
