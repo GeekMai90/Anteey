@@ -75,8 +75,67 @@ const scale = ref(1) // 添加缩放状态
 const translateX = ref(0)
 const translateY = ref(0)
 
+// 关于获取白板内容的功能
+// 封装获取白板内容的函数
+const fetchWhiteboardItems = async () => {
+  if (whiteboardId.value) {
+    console.log('WhiteboardDetail 开始获取组件项，whiteboardId：', whiteboardId.value)
+    whiteboardItems.value = await whiteboardStore.getWhiteboardItems(whiteboardId.value)
+    console.log('whiteboardItems', whiteboardItems.value)
+  }
+}
+
+// 组件挂载时获取白板内容
+onMounted(async () => {
+  console.log('WhiteboardDetail 组件挂载时获取白板内容', whiteboardId.value)
+  await fetchWhiteboardItems()
+})
+
+// 监听路由参数变化来获取白板内容
+watch(
+  () => route.params.whiteboardId,
+  (newId) => {
+    console.log('WhiteboardDetail 监听路由参数变化', newId)
+    if (newId && typeof newId === 'string') {
+      whiteboardId.value = newId
+      fetchWhiteboardItems()
+    }
+  },
+  { immediate: true }
+)
+
+// 根据 item 中的 type 来匹配组件
+const getItemComponent = (item: WhiteboardItem) => {
+  switch (item.type) {
+    case 'note':
+      return WhiteboardNote
+    case 'subboard':
+      return WhiteboardSubboard
+    case 'group':
+      return WhiteboardGroup
+    case 'connection':
+      return WhiteboardConnection
+    default:
+      return null
+  }
+}
+
+// 获取 item 的 style
+const getItemStyle = (item: WhiteboardItem) => {
+  return {
+    // 当拖拽改变大小的时候，item 的 position 会加上 visualAdjustment 的值
+    left: `${item.position.x + (resizingItem.value?.id === item.id ? visualAdjustment.value.x : 0)}px`, // 适配拖拽改变大小
+    top: `${item.position.y + (resizingItem.value?.id === item.id ? visualAdjustment.value.y : 0)}px`, // 适配拖拽改变大小
+    width: `${item.size.width}px`,
+    height: `${item.size.height}px`,
+    zIndex: `${item.zIndex}`,
+    transform: `rotate(${item.rotation || 0}deg)`
+  }
+}
+
 //开始实现拖拽改变大小的能
-// 添加 resizingItem ref 来存储拖拽改变大小的信息
+// 需要在模板中将 width 和 height 绑定到 item 的 size 上
+// resizingItem ref 来存储拖拽改变大小的信息
 const resizingItem = ref<{
   id: string
   direction: string
@@ -86,7 +145,10 @@ const resizingItem = ref<{
   startHeight: number
 } | null>(null)
 
-// 开始拖拽改变大小 startResizingItem 函数
+// visualAdjustment ref 来存储视觉调整
+const visualAdjustment = ref({ x: 0, y: 0 })
+
+// 开始拖拽改变大小
 const startResizingItem = (
   item: WhiteboardItem,
   { direction, event }: { direction: string; event: MouseEvent }
@@ -94,7 +156,7 @@ const startResizingItem = (
   event.preventDefault()
   event.stopPropagation()
   if (!containerRef.value) return
-  // const rect = containerRef.value.getBoundingClientRect()
+  // 存储开始拖拽之前的 item 信息
   resizingItem.value = {
     id: item.id,
     direction,
@@ -103,30 +165,32 @@ const startResizingItem = (
     startWidth: item.size.width,
     startHeight: item.size.height
   }
-
+  // 监听鼠标移动和抬起事件
   document.addEventListener('mousemove', onResizeItem)
   document.addEventListener('mouseup', stopResizingItem)
 }
 
-// 添加一个 ref 来存储视觉调整
-const visualAdjustment = ref({ x: 0, y: 0 })
-
-// 拖拽改变大小 onResizeItem 函数
+// 计算拖拽改变大小的位置和大小
 const onResizeItem = (event: MouseEvent) => {
   event.preventDefault()
   event.stopPropagation()
   if (!resizingItem.value || !containerRef.value) return
 
+  // 获取拖拽改变大小的信息
   const { id, direction, startX, startY, startWidth, startHeight } = resizingItem.value
+  // 计算拖拽改变大小的位置和大小
   const dx = (event.clientX - startX) / scale.value
   const dy = (event.clientY - startY) / scale.value
 
+  // 获取拖拽改变大小的 item
   const item = whiteboardItems.value.find((item) => item.id === id)
   if (!item) return
 
+  // 初始化新的宽度和高度
   let newWidth = startWidth
   let newHeight = startHeight
 
+  // 根据拖拽改变大小的方向来计算新的宽度和高度
   switch (direction) {
     case 'right':
       newWidth = Math.max(startWidth + dx, 100)
@@ -136,21 +200,25 @@ const onResizeItem = (event: MouseEvent) => {
       break
     case 'left':
       newWidth = Math.max(startWidth - dx, 100)
+      // 当拖拽改变大小的方向为左边时，因为会导致 item 的 position 发生变化，所以将需要调整的视觉偏移量存储到 visualAdjustment 中
       visualAdjustment.value.x = startWidth - newWidth
       break
     case 'top':
       newHeight = Math.max(startHeight - dy, 100)
+      // 当拖拽改变大小的方向为顶边时，因为会导致 item 的 position 发生变化，所以将需要调整的视觉偏移量存储到 visualAdjustment 中
       visualAdjustment.value.y = startHeight - newHeight
       break
     case 'top-left':
       newWidth = Math.max(startWidth - dx, 100)
       newHeight = Math.max(startHeight - dy, 100)
+      // 当拖拽改变大小的方向为顶边和左边时，因为会导致 item 的 position 发生变化，所以将需要调整的视觉偏移量存储到 visualAdjustment 中
       visualAdjustment.value.x = startWidth - newWidth
       visualAdjustment.value.y = startHeight - newHeight
       break
     case 'top-right':
       newWidth = Math.max(startWidth + dx, 100)
       newHeight = Math.max(startHeight - dy, 100)
+      // 当拖拽改变大小的方向为顶边和右边时，因为会导致 item 的 position 发生变化，所以将需要调整的视觉偏移量存储到 visualAdjustment 中
       visualAdjustment.value.y = startHeight - newHeight
       break
     case 'bottom-right':
@@ -160,20 +228,22 @@ const onResizeItem = (event: MouseEvent) => {
     case 'bottom-left':
       newWidth = Math.max(startWidth - dx, 100)
       newHeight = Math.max(startHeight + dy, 100)
+      // 当拖拽改变大小的方向为底边和左边时，因为会导致 item 的 position 发生变化，所以将需要调整的视觉偏移量存储到 visualAdjustment 中
       visualAdjustment.value.x = startWidth - newWidth
       break
   }
 
-  // 更新大小
+  // 更新 item 的 size，注意，这里不改变 item 的 position
   item.size.width = newWidth
   item.size.height = newHeight
 }
 
-// 停止拖拽改变大小 stopResizingItem 函数
+// 停止拖拽改变大小
 const stopResizingItem = async (event: MouseEvent) => {
   event.preventDefault()
   event.stopPropagation()
   if (resizingItem.value) {
+    // 获取拖拽改变大小后的 item
     const item = whiteboardItems.value.find((item) => item.id === resizingItem.value?.id)
     if (item && whiteboardId.value) {
       // 更新白板项的大小和位置
@@ -184,19 +254,23 @@ const stopResizingItem = async (event: MouseEvent) => {
       item.position.y += visualAdjustment.value.y
     }
   }
+  // 重置视觉调整
   resizingItem.value = null
-  visualAdjustment.value = { x: 0, y: 0 } // 重置视觉调整
+  visualAdjustment.value = { x: 0, y: 0 }
+  // 移除事件监听器
   document.removeEventListener('mousemove', onResizeItem)
   document.removeEventListener('mouseup', stopResizingItem)
 }
 
-// 修改 onUnmounted 钩子，添加新的事件监听器移除
+// 组件卸载时移除事件监听器
 onUnmounted(() => {
   document.removeEventListener('mousemove', onDragItem)
   document.removeEventListener('mouseup', stopDraggingItem)
   document.removeEventListener('mousemove', onResizeItem)
   document.removeEventListener('mouseup', stopResizingItem)
 })
+
+// 拖拽改变大小的功能结束
 
 const contentStyle = computed(() => ({
   transform: `translate(${translateX.value}px, ${translateY.value}px) scale(${scale.value})`,
@@ -371,62 +445,6 @@ onUnmounted(() => {
   document.removeEventListener('mousemove', onDragItem)
   document.removeEventListener('mouseup', stopDraggingItem)
 })
-
-// 监听路由参数变化
-watch(
-  () => route.params.whiteboardId,
-  (newId) => {
-    console.log('WhiteboardDetail 监听路由参数变化', newId)
-    if (newId && typeof newId === 'string') {
-      whiteboardId.value = newId
-      fetchWhiteboardItems()
-    }
-  },
-  { immediate: true }
-)
-
-// 封装获取白板内容的函数
-const fetchWhiteboardItems = async () => {
-  if (whiteboardId.value) {
-    console.log('WhiteboardDetail 开始获取组件项，whiteboardId：', whiteboardId.value)
-    whiteboardItems.value = await whiteboardStore.getWhiteboardItems(whiteboardId.value)
-    console.log('whiteboardItems', whiteboardItems.value)
-  }
-}
-
-// 组件挂载时获取白板内容
-onMounted(async () => {
-  console.log('WhiteboardDetail 组件挂载时获取白板内容', whiteboardId.value)
-  await fetchWhiteboardItems()
-})
-
-// 根据 item 中的 type 来匹配组件
-const getItemComponent = (item: WhiteboardItem) => {
-  switch (item.type) {
-    case 'note':
-      return WhiteboardNote
-    case 'subboard':
-      return WhiteboardSubboard
-    case 'group':
-      return WhiteboardGroup
-    case 'connection':
-      return WhiteboardConnection
-    default:
-      return null
-  }
-}
-
-// 修改 getItemStyle 函数以应用视觉调整
-const getItemStyle = (item: WhiteboardItem) => {
-  return {
-    left: `${item.position.x + (resizingItem.value?.id === item.id ? visualAdjustment.value.x : 0)}px`,
-    top: `${item.position.y + (resizingItem.value?.id === item.id ? visualAdjustment.value.y : 0)}px`,
-    width: `${item.size.width}px`,
-    height: `${item.size.height}px`,
-    zIndex: `${item.zIndex}`,
-    transform: `rotate(${item.rotation || 0}deg)`
-  }
-}
 
 // 新增：创建白板笔记的函数
 const createWhiteboardNote = async () => {
