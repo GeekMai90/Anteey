@@ -60,6 +60,7 @@ export interface ElectronAPI {
     translateY: number
   }>
   updateWhiteboardItemSize: (id: string, width: number, height: number) => Promise<WhiteboardItem>
+  getCardCount: (whiteboardId: string) => Promise<number>
 }
 
 declare global {

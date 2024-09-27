@@ -19,7 +19,6 @@
       @touchend="handleTouchEnd"
     >
       <!-- 变换层 -->
-
       <div ref="transformLayerRef" class="whiteboard-transform-layer" :style="transformLayerStyle">
         <!-- 白板项（缩略图） -->
         <WhiteboardThumbnail
@@ -79,7 +78,6 @@ const transformLayerStyle = computed(() => ({
 }))
 
 // 实现平移逻辑
-
 // 组件挂载时执行的操作
 onMounted(async () => {
   await checkAndCreateRootWhiteboard()

@@ -33,7 +33,8 @@ import {
   getRootWhiteboardViewState,
   saveViewStateToWhiteboard,
   getWhiteboardViewState,
-  updateWhiteboardItemSize
+  updateWhiteboardItemSize,
+  getCardCount
 } from '../db/whiteboards'
 import { CreateWhiteboardInput, CreateWhiteboardNoteInput } from '../renderer/src/types/Note'
 import { db, dbPath } from '../db/config'
@@ -145,6 +146,16 @@ function createCustomMenu() {
 }
 
 function setupIpcHandlers() {
+  // 获取白板中的卡片数量
+  ipcMain.handle('get-card-count', async (_, { whiteboardId }) => {
+    try {
+      const cardCount = await getCardCount(whiteboardId)
+      return cardCount
+    } catch (error) {
+      console.error('主进程 → 获取白板中的卡片数量时出错:', error)
+      return { success: false, error: error }
+    }
+  })
   //更新白板项大小
   ipcMain.handle('update-whiteboard-item-size', async (_, { id, width, height }) => {
     try {

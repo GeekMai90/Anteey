@@ -24,7 +24,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted, ref } from 'vue'
+import { useWhiteboardStore } from '../stores/whiteboardStores'
 import type { Whiteboard } from '@renderer/types/Note'
 import type { CSSProperties } from 'vue'
 import { Workbench, More } from '@icon-park/vue-next'
@@ -33,7 +34,13 @@ const props = defineProps<{
   whiteboard: Whiteboard
 }>()
 
-const cardCount = 5
+const whiteboardStore = useWhiteboardStore()
+const cardCount = ref(0)
+// 获取白板中的卡片数量
+// 我们可以通过白板 id 来获取所有的白板项，然后获取白板项中的卡片数量
+onMounted(async () => {
+  cardCount.value = await whiteboardStore.getCardCount(props.whiteboard.id)
+})
 
 const emit = defineEmits<{
   (e: 'click'): void

@@ -333,5 +333,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
       console.error('Preload: 更新白板项大小时出错:', error)
       throw error
     }
+  },
+  // 获取白板中的卡片数量
+  getCardCount: async (whiteboardId: string): Promise<number> => {
+    try {
+      return (await ipcRenderer.invoke('get-card-count', { whiteboardId })) as number
+    } catch (error) {
+      console.error('Preload: 获取白板中的卡片数量时出错:', error)
+      throw error
+    }
   }
 })

@@ -145,6 +145,13 @@ export const useWhiteboardStore = defineStore('whiteboard', {
       const updatedItem = await window.electronAPI.updateWhiteboardItemSize(id, width, height)
       console.log('whiteboardStore→ 更新白板项大小成功', updatedItem)
       return updatedItem
+    },
+    // 获取白板中的卡片数量
+    async getCardCount(whiteboardId: string) {
+      console.log('whiteboardStore→ 开始获取白板中的卡片数量', whiteboardId)
+      const cardCount = await window.electronAPI.getCardCount(whiteboardId)
+      console.log('whiteboardStore→ 获取白板中的卡片数量成功', cardCount)
+      return cardCount
     }
   },
   getters: {

@@ -424,3 +424,16 @@ export async function updateWhiteboardItemSize(
     throw error
   }
 }
+
+// 获取白板中的卡片数量
+export async function getCardCount(whiteboardId: string): Promise<number> {
+  try {
+    const items = await db('whiteboard_items').where({ whiteboardId }).select('*')
+    // 筛选出 type 为 note 的项的数量
+    const cardCount = items.filter((item) => item.type === 'note').length
+    return cardCount
+  } catch (error) {
+    console.error('后端→ 获取白板中的卡片数量失败:', error)
+    throw error
+  }
+}
