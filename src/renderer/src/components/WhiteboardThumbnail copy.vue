@@ -31,6 +31,7 @@ import { Workbench, More } from '@icon-park/vue-next'
 
 const props = defineProps<{
   whiteboard: Whiteboard
+  scale: number
 }>()
 
 const cardCount = 5
@@ -42,10 +43,9 @@ const emit = defineEmits<{
 
 const thumbnailStyle = computed(
   (): CSSProperties => ({
-    left: `${props.whiteboard.position.x}px`,
-    top: `${props.whiteboard.position.y}px`,
+    transform: `translate(${props.whiteboard.position.x - props.whiteboard.size.width / 2}px, ${props.whiteboard.position.y - props.whiteboard.size.height / 2}px)`,
     position: 'absolute',
-
+    cursor: 'move',
     width: `${props.whiteboard.size.width}px`,
     height: `${props.whiteboard.size.height}px`
   })
@@ -67,10 +67,6 @@ const startDrag = (event: MouseEvent) => {
   display: flex;
   flex-direction: column;
   z-index: 10;
-  cursor: pointer;
-  &:active {
-    cursor: grabbing;
-  }
 
   &:hover {
     box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
