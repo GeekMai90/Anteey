@@ -1,6 +1,10 @@
 <!-- WhiteboardNoteComponent.vue -->
 <template>
-  <div :id="`note-${props.note.id}`" class="whiteboard-note" :style="noteStyle">
+  <div
+    :id="`note-${props.note.id}`"
+    :class="['whiteboard-note', { hovered: isHovered }]"
+    :style="noteStyle"
+  >
     <div class="whiteboard-note-content">
       <NoteCard :note="props.note" />
     </div>
@@ -29,6 +33,7 @@ const props = defineProps<{
   width?: number
   height?: number
   item: WhiteboardNote
+  isHovered: boolean
 }>()
 
 const emit = defineEmits(['resize-start', 'start-connection'])
@@ -52,6 +57,9 @@ const startConnection = (event: MouseEvent) => {
 .whiteboard-note {
   background-color: var(--color-bg-primary);
   position: relative;
+  &.hovered {
+    border: 2px solid #3498db; // 蓝色边框，可以根据需要调整颜色
+  }
 }
 
 .whiteboard-note-content {
@@ -144,5 +152,14 @@ const startConnection = (event: MouseEvent) => {
 :deep(.note-card) {
   padding: 0;
   margin: 0;
+}
+.connection-point {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background-color: #3498db;
+  border: 2px solid white;
+  // 位置会在 JavaScript 中动态设置
 }
 </style>

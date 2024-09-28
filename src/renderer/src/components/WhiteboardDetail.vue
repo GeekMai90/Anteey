@@ -9,6 +9,7 @@
     <div
       ref="containerRef"
       class="whiteboard-canvas"
+      :class="{ connecting: isConnecting }"
       @wheel="handleWheel"
       @mousedown="handleMouseDown"
       @touchstart="handleTouchStart"
@@ -27,6 +28,7 @@
           :style="getWhiteNoteStyle(item)"
           :item="item"
           :note="whiteboardStore.getReferenceNotes(item.noteId)"
+          :is-hovered="isCreatingConnection && hoverNote?.id === item.id"
           @mousedown.stop="startDraggingItem(item, $event)"
           @resize-start="startResizingItem(item, $event)"
           @start-connection="startConnection"
@@ -39,16 +41,13 @@
           :strokeWidth="5"
           textColor="#333333"
         />
-        <svg v-if="isCreatingConnection" class="connection-line" width="100%" height="100%">
-          <line
-            :x1="connectionStart.x"
-            :y1="connectionStart.y"
-            :x2="connectionEnd.x"
-            :y2="connectionEnd.y"
-            stroke="red"
-            stroke-width="5"
-          />
-        </svg>
+        <CardConnection
+          v-if="isCreatingConnection"
+          :connection="temporaryConnection"
+          strokeColor="red"
+          :strokeWidth="2"
+          textColor="#333333"
+        />
       </div>
     </div>
     <!-- 新增：适应视图按钮 -->
@@ -115,6 +114,18 @@ const isCreatingConnection = ref(false)
 const connectionStart = ref({ x: 0, y: 0 })
 const connectionEnd = ref({ x: 0, y: 0 })
 const startNote = ref<WhiteboardNote | null>(null)
+const isConnecting = ref(false)
+const hoverNote = ref<WhiteboardNote | null>(null)
+
+const temporaryConnection = computed(() => ({
+  id: 'temp',
+  whiteboardId: whiteboardId.value as string,
+  startItemId: startNote.value?.id || '',
+  endItemId: '',
+  startPoint: connectionStart.value,
+  endPoint: connectionEnd.value,
+  description: ''
+}))
 
 // 计算连线两端的点
 const calculateConnectionPoints = (startNote: WhiteboardNote, endNote: WhiteboardNote) => {
@@ -182,6 +193,8 @@ const updateConnectionPositions = (movedNoteId: string, newPosition: { x: number
 const startConnection = (note: WhiteboardNote) => {
   console.log('Start connection in WhiteboardDetail', note)
   isCreatingConnection.value = true
+  isConnecting.value = true // 添加这行
+  hoverNote.value = null
   console.log('isCreatingConnection', isCreatingConnection.value)
   startNote.value = note
   connectionStart.value = {
@@ -613,12 +626,28 @@ const handleMouseDown = (event: MouseEvent) => {
 const handleMouseMove = (event: MouseEvent) => {
   console.log('Mouse moving', isCreatingConnection.value)
   if (isCreatingConnection.value) {
-    console.log('Creating connection')
+    // console.log('Creating connection')
+    // const rect = containerRef.value?.getBoundingClientRect()
+    // if (rect) {
+    //   connectionEnd.value = {
+    //     x: (event.clientX - rect.left - translateX.value) / scale.value,
+    //     y: (event.clientY - rect.top - translateY.value) / scale.value
+    //   }
+    // }
     const rect = containerRef.value?.getBoundingClientRect()
     if (rect) {
-      connectionEnd.value = {
-        x: (event.clientX - rect.left - translateX.value) / scale.value,
-        y: (event.clientY - rect.top - translateY.value) / scale.value
+      const mouseX = (event.clientX - rect.left - translateX.value) / scale.value
+      const mouseY = (event.clientY - rect.top - translateY.value) / scale.value
+
+      hoverNote.value = findNoteUnderMouse(event)
+
+      if (hoverNote.value && hoverNote.value.id !== startNote.value?.id) {
+        // 如果鼠标悬停在一个卡片上（不是起始卡片），将线吸附到卡片边缘
+        const { endPoint } = calculateConnectionPoints(startNote.value!, hoverNote.value)
+        connectionEnd.value = endPoint
+      } else {
+        // 否则，线跟随鼠标移动
+        connectionEnd.value = { x: mouseX, y: mouseY }
       }
     }
   } else if (isDragging) {
@@ -667,7 +696,9 @@ const handleMouseUp = (event: MouseEvent) => {
       whiteboardStore.createConnection(newConnection)
     }
     isCreatingConnection.value = false
+    isConnecting.value = false // 添加这行
     startNote.value = null
+    hoverNote.value = null
   }
 
   isDragging = false
@@ -869,6 +900,9 @@ onUnmounted(() => {
   &:active {
     cursor: grabbing;
   }
+  &.connecting {
+    cursor: crosshair;
+  }
 }
 
 .whiteboard-transform-layer {
@@ -1010,4 +1044,10 @@ onUnmounted(() => {
 //   height: 1000px;
 //   pointer-events: none;
 // }
+.connection-line {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+}
 </style>
