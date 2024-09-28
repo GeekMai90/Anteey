@@ -110,111 +110,60 @@ const scale = ref(1) // 添加缩放状态
 const translateX = ref(0)
 const translateY = ref(0)
 
+// 连线相关状态
 const isCreatingConnection = ref(false)
 const connectionStart = ref({ x: 0, y: 0 })
 const connectionEnd = ref({ x: 0, y: 0 })
 const startNote = ref<WhiteboardNote | null>(null)
 
+// 计算连线两端的点
 const calculateConnectionPoints = (startNote: WhiteboardNote, endNote: WhiteboardNote) => {
-  const startCenter = {
-    x: startNote.position.x + startNote.size.width / 2,
-    y: startNote.position.y + startNote.size.height / 2
-  }
-  const endCenter = {
-    x: endNote.position.x + endNote.size.width / 2,
-    y: endNote.position.y + endNote.size.height / 2
-  }
+  const getEdgeCenterPoint = (note: WhiteboardNote, angle: number) => {
+    const center = {
+      x: note.position.x + note.size.width / 2,
+      y: note.position.y + note.size.height / 2
+    }
+    const w = note.size.width / 2
+    const h = note.size.height / 2
 
-  // 计算两个中心点之间的角度
-  const angle = Math.atan2(endCenter.y - startCenter.y, endCenter.x - startCenter.x)
-
-  // 定义四个方向的角度范围（弧度）
-  const rightAngle = Math.PI / 4
-  const leftAngle = (Math.PI * 3) / 4
-  const topAngle = -Math.PI / 4
-  const bottomAngle = (Math.PI * 5) / 4
-
-  let startPoint, endPoint
-
-  // 确定起点
-  if (angle > topAngle && angle < rightAngle) {
-    // 右边
-    startPoint = { x: startNote.position.x + startNote.size.width, y: startCenter.y }
-  } else if (angle >= rightAngle && angle < bottomAngle) {
-    // 下边
-    startPoint = { x: startCenter.x, y: startNote.position.y + startNote.size.height }
-  } else if (
-    (angle >= bottomAngle && angle <= Math.PI) ||
-    (angle >= -Math.PI && angle < leftAngle)
-  ) {
-    // 左边
-    startPoint = { x: startNote.position.x, y: startCenter.y }
-  } else {
-    // 上边
-    startPoint = { x: startCenter.x, y: startNote.position.y }
+    // 确定连接边并返回其中心点
+    if (Math.abs(Math.tan(angle)) < h / w) {
+      // 连接到左边或右边
+      return {
+        x: center.x + w * Math.sign(Math.cos(angle)),
+        y: center.y
+      }
+    } else {
+      // 连接到上边或下边
+      return {
+        x: center.x,
+        y: center.y + h * Math.sign(Math.sin(angle))
+      }
+    }
   }
 
-  // 确定终点（使用相反的角度）
-  const oppositeAngle = angle + Math.PI
-  if (oppositeAngle > topAngle && oppositeAngle < rightAngle) {
-    // 右边
-    endPoint = { x: endNote.position.x + endNote.size.width, y: endCenter.y }
-  } else if (oppositeAngle >= rightAngle && oppositeAngle < bottomAngle) {
-    // 下边
-    endPoint = { x: endCenter.x, y: endNote.position.y + endNote.size.height }
-  } else if (
-    (oppositeAngle >= bottomAngle && oppositeAngle <= Math.PI) ||
-    (oppositeAngle >= -Math.PI && oppositeAngle < leftAngle)
-  ) {
-    // 左边
-    endPoint = { x: endNote.position.x, y: endCenter.y }
-  } else {
-    // 上边
-    endPoint = { x: endCenter.x, y: endNote.position.y }
-  }
+  const dx = endNote.position.x - startNote.position.x
+  const dy = endNote.position.y - startNote.position.y
+  const angle = Math.atan2(dy, dx)
+
+  const startPoint = getEdgeCenterPoint(startNote, angle)
+  const endPoint = getEdgeCenterPoint(endNote, angle + Math.PI)
 
   return { startPoint, endPoint }
 }
-// 添加一个新的函数来更新连线位置
-// const updateConnectionPositions = (movedNoteId: string, newPosition: { x: number; y: number }) => {
-//   connections.value = connections.value.map((connection) => {
-//     if (connection.startItemId === movedNoteId || connection.endItemId === movedNoteId) {
-//       const startNote = whiteboardNotes.value.find((note) => note.id === connection.startItemId)
-//       const endNote = whiteboardNotes.value.find((note) => note.id === connection.endItemId)
 
-//       if (startNote && endNote) {
-//         const { startPoint, endPoint } = calculateConnectionPoints(startNote, endNote)
-//         return { ...connection, startPoint, endPoint }
-//       }
-//     }
-//     return connection
-//   })
-// }
-// const updateConnectionPositions = (movedNoteId: string, newPosition: { x: number; y: number }) => {
-//   // 首先更新移动的笔记的位置
-//   const movedNoteIndex = whiteboardNotes.value.findIndex((note) => note.id === movedNoteId)
-//   if (movedNoteIndex !== -1) {
-//     whiteboardNotes.value[movedNoteIndex] = {
-//       ...whiteboardNotes.value[movedNoteIndex],
-//       position: newPosition
-//     }
-//   }
-
-//   // 然后更新受影响的连接
-//   connections.value = connections.value.map((connection) => {
-//     if (connection.startItemId === movedNoteId || connection.endItemId === movedNoteId) {
-//       const startNote = whiteboardNotes.value.find((note) => note.id === connection.startItemId)
-//       const endNote = whiteboardNotes.value.find((note) => note.id === connection.endItemId)
-
-//       if (startNote && endNote) {
-//         const { startPoint, endPoint } = calculateConnectionPoints(startNote, endNote)
-//         return { ...connection, startPoint, endPoint }
-//       }
-//     }
-//     return connection
-//   })
-// }
+// 更新连线位置
 const updateConnectionPositions = (movedNoteId: string, newPosition: { x: number; y: number }) => {
+  // 首先更新移动的笔记的位置
+  const movedNoteIndex = whiteboardNotes.value.findIndex((note) => note.id === movedNoteId)
+  if (movedNoteIndex !== -1) {
+    whiteboardNotes.value[movedNoteIndex] = {
+      ...whiteboardNotes.value[movedNoteIndex],
+      position: newPosition
+    }
+  }
+
+  // 然后更新受影响的连接
   connections.value = connections.value.map((connection) => {
     if (connection.startItemId === movedNoteId || connection.endItemId === movedNoteId) {
       const startNote = whiteboardNotes.value.find((note) => note.id === connection.startItemId)
@@ -229,6 +178,7 @@ const updateConnectionPositions = (movedNoteId: string, newPosition: { x: number
   })
 }
 
+// 开始连线
 const startConnection = (note: WhiteboardNote) => {
   console.log('Start connection in WhiteboardDetail', note)
   isCreatingConnection.value = true
@@ -244,6 +194,26 @@ const startConnection = (note: WhiteboardNote) => {
   document.addEventListener('mousemove', handleMouseMove)
   document.addEventListener('mouseup', handleMouseUp)
 }
+// 更新所有连线的位置
+const updateAllConnectionPositions = () => {
+  connections.value = connections.value.map((connection) => {
+    const startNote = whiteboardNotes.value.find((note) => note.id === connection.startItemId)
+    const endNote = whiteboardNotes.value.find((note) => note.id === connection.endItemId)
+    if (startNote && endNote) {
+      const { startPoint, endPoint } = calculateConnectionPoints(startNote, endNote)
+      return { ...connection, startPoint, endPoint }
+    }
+    return connection
+  })
+}
+// 监听白板笔记的变化来更新所有连线的位置
+watch(
+  () => whiteboardNotes.value,
+  () => {
+    updateAllConnectionPositions()
+  },
+  { deep: true }
+)
 
 // 关于获取白板内容的功能
 // 封装获取白板内容的函数
@@ -262,6 +232,7 @@ const fetchWhiteboardItems = async () => {
 onMounted(async () => {
   console.log('WhiteboardDetail 组件挂载时获取白板内容', whiteboardId.value)
   await fetchWhiteboardItems()
+  updateAllConnectionPositions()
 })
 
 // 监听路由参数变化来获取白板内容
@@ -272,6 +243,7 @@ watch(
     if (newId && typeof newId === 'string') {
       whiteboardId.value = newId
       fetchWhiteboardItems()
+      updateAllConnectionPositions()
     }
   },
   { immediate: true }
@@ -418,14 +390,6 @@ const stopResizingItem = async (event: MouseEvent) => {
   document.removeEventListener('mousemove', onResizeItem)
   document.removeEventListener('mouseup', stopResizingItem)
 }
-
-// 组件卸载时移除事件监听器
-onUnmounted(() => {
-  document.removeEventListener('mousemove', onDragItem)
-  document.removeEventListener('mouseup', stopDraggingItem)
-  document.removeEventListener('mousemove', onResizeItem)
-  document.removeEventListener('mouseup', stopResizingItem)
-})
 
 // 拖拽改变大小的功能结束
 
@@ -646,15 +610,6 @@ const handleMouseDown = (event: MouseEvent) => {
   }
 }
 
-// const handleMouseMove = (event: MouseEvent) => {
-//   if (!isDragging) return
-//   const deltaX = event.clientX - lastX
-//   const deltaY = event.clientY - lastY
-//   translateX.value += deltaX
-//   translateY.value += deltaY
-//   lastX = event.clientX
-//   lastY = event.clientY
-// }
 const handleMouseMove = (event: MouseEvent) => {
   console.log('Mouse moving', isCreatingConnection.value)
   if (isCreatingConnection.value) {
@@ -676,11 +631,6 @@ const handleMouseMove = (event: MouseEvent) => {
   }
 }
 
-// const handleMouseUp = () => {
-//   isDragging = false
-//   document.removeEventListener('mousemove', handleMouseMove)
-//   document.removeEventListener('mouseup', handleMouseUp)
-// }
 const findNoteUnderMouse = (event: MouseEvent): WhiteboardNote | null => {
   if (!containerRef.value) return null
 
@@ -876,6 +826,14 @@ onMounted(async () => {
 
 onUnmounted(async () => {
   await saveViewState()
+})
+
+// 组件卸载时移除事件监听器
+onUnmounted(() => {
+  document.removeEventListener('mousemove', onDragItem)
+  document.removeEventListener('mouseup', stopDraggingItem)
+  document.removeEventListener('mousemove', onResizeItem)
+  document.removeEventListener('mouseup', stopResizingItem)
 })
 </script>
 

@@ -35,8 +35,8 @@ const textColor = computed(() => props.textColor || '#000000')
 
 // 计算容器样式
 const containerStyle = computed(() => {
-  const left = Math.min(props.connection.startPoint.x, props.connection.endPoint.x)
-  const top = Math.min(props.connection.startPoint.y, props.connection.endPoint.y)
+  const left = Math.min(props.connection.startPoint.x, props.connection.endPoint.x) - 10
+  const top = Math.min(props.connection.startPoint.y, props.connection.endPoint.y) - 10
   return {
     position: 'absolute' as const,
     left: `${left}px`,
@@ -59,9 +59,24 @@ const pathData = computed(() => {
   const startY = startPoint.y < endPoint.y ? 10 : svgHeight.value - 10
   const endX = startPoint.x < endPoint.x ? svgWidth.value - 10 : 10
   const endY = startPoint.y < endPoint.y ? svgHeight.value - 10 : 10
-  const midX = (startX + endX) / 2
 
-  return `M ${startX} ${startY} Q ${midX} ${startY}, ${midX} ${(startY + endY) / 2} T ${endX} ${endY}`
+  const dx = endX - startX
+  const dy = endY - startY
+
+  // 检查是否垂直或水平对齐
+  if (Math.abs(dx) < 1 || Math.abs(dy) < 1) {
+    // 如果对齐，则使用直线
+    return `M ${startX} ${startY} L ${endX} ${endY}`
+  } else {
+    // 使用三次贝塞尔曲线
+    const offset = Math.min(Math.abs(dx), Math.abs(dy)) * 0.6
+    const controlX1 = startX + Math.sign(dx) * offset
+    const controlY1 = startY
+    const controlX2 = endX - Math.sign(dx) * offset
+    const controlY2 = endY
+
+    return `M ${startX} ${startY} C ${controlX1} ${controlY1}, ${controlX2} ${controlY2}, ${endX} ${endY}`
+  }
 })
 
 // 计算文本位置
