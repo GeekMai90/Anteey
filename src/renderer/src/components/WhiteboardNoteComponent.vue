@@ -1,5 +1,6 @@
+<!-- WhiteboardNoteComponent.vue -->
 <template>
-  <div class="whiteboard-note" :style="noteStyle">
+  <div :id="`note-${props.note.id}`" class="whiteboard-note" :style="noteStyle">
     <div class="whiteboard-note-content">
       <NoteCard :note="props.note" />
     </div>
@@ -11,21 +12,26 @@
     <div class="resize-handle top-right" @mousedown="startResize('top-right', $event)"></div>
     <div class="resize-handle bottom-right" @mousedown="startResize('bottom-right', $event)"></div>
     <div class="resize-handle bottom-left" @mousedown="startResize('bottom-left', $event)"></div>
+    <button class="connection-button" @click.stop="startConnection">
+      <Plus theme="outline" size="16" fill="#FFF" />
+    </button>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, defineProps, defineEmits } from 'vue'
 import NoteCard from './NoteCard.vue'
-import { Note } from '@renderer/types/Note'
+import { Note, WhiteboardNote } from '@renderer/types/Note'
+import { Plus } from '@icon-park/vue-next'
 
 const props = defineProps<{
   note: Note
   width?: number
   height?: number
+  item: WhiteboardNote
 }>()
 
-const emit = defineEmits(['resize-start'])
+const emit = defineEmits(['resize-start', 'start-connection'])
 
 const noteStyle = computed(() => ({
   width: props.width ? `${props.width}px` : '200px',
@@ -34,6 +40,11 @@ const noteStyle = computed(() => ({
 
 const startResize = (direction: string, event: MouseEvent) => {
   emit('resize-start', { direction, event })
+}
+const startConnection = (event: MouseEvent) => {
+  event.stopPropagation()
+  console.log('Start connection clicked') // 添加这行来调试
+  emit('start-connection', props.item)
 }
 </script>
 
@@ -113,5 +124,25 @@ const startResize = (direction: string, event: MouseEvent) => {
     right: -4px;
     cursor: nwse-resize;
   }
+}
+
+.connection-button {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  z-index: 10;
+  padding: 5px;
+  background-color: #4a90e2;
+  color: white;
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+:deep(.note-card) {
+  padding: 0;
+  margin: 0;
 }
 </style>

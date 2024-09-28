@@ -8,7 +8,9 @@ import {
   WhiteboardNote,
   RootWhiteboard,
   WhiteboardGroup,
-  Connection
+  Connection,
+  ConnectionCreateData,
+  ConnectionUpdateData
 } from '../renderer/src/types/Note'
 
 contextBridge.exposeInMainWorld('electronAPI', {
@@ -327,17 +329,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
       throw error
     }
   },
-  // 获取白板中的所有连线
-  getWhiteboardConnections: async (whiteboardId: string): Promise<Connection[]> => {
-    try {
-      return (await ipcRenderer.invoke('get-whiteboard-connections', {
-        whiteboardId
-      })) as Connection[]
-    } catch (error) {
-      console.error('Preload: 获取白板中的连线时出错:', error)
-      throw error
-    }
-  },
   // 获取白板中的所有白板
   getWhiteboardSubboards: async (whiteboardId: string): Promise<Whiteboard[]> => {
     try {
@@ -380,6 +371,44 @@ contextBridge.exposeInMainWorld('electronAPI', {
       })) as WhiteboardNote
     } catch (error) {
       console.error('Preload: 更新白板笔记大小时出错:', error)
+      throw error
+    }
+  },
+  // 创建连线
+  createConnection: async (connection: ConnectionCreateData): Promise<Connection> => {
+    try {
+      return (await ipcRenderer.invoke('create-connection', connection)) as Connection
+    } catch (error) {
+      console.error('Preload: 创建连线时出错:', error)
+      throw error
+    }
+  },
+  // 更新连线
+  updateConnection: async (connection: ConnectionUpdateData): Promise<Connection> => {
+    try {
+      return (await ipcRenderer.invoke('update-connection', connection)) as Connection
+    } catch (error) {
+      console.error('Preload: 更新连线时出错:', error)
+      throw error
+    }
+  },
+  // 删除连线
+  deleteConnection: async (id: string): Promise<void> => {
+    try {
+      return (await ipcRenderer.invoke('delete-connection', id)) as void
+    } catch (error) {
+      console.error('Preload: 删除连线时出错:', error)
+      throw error
+    }
+  },
+  // 获取白板中的所有连线
+  getConnectionsByWhiteboardId: async (whiteboardId: string): Promise<Connection[]> => {
+    try {
+      return (await ipcRenderer.invoke('get-connections-by-whiteboard-id', {
+        whiteboardId
+      })) as Connection[]
+    } catch (error) {
+      console.error('Preload: 获取白板中的连线时出错:', error)
       throw error
     }
   }

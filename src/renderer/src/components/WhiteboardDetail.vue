@@ -25,22 +25,30 @@
           :height="item.size.height"
           :class="['whiteboard-item']"
           :style="getWhiteNoteStyle(item)"
+          :item="item"
           :note="whiteboardStore.getReferenceNotes(item.noteId)"
           @mousedown.stop="startDraggingItem(item, $event)"
           @resize-start="startResizingItem(item, $event)"
+          @start-connection="startConnection"
         />
-        <!-- <component
-          :is="getItemComponent(item)"
-          v-for="item in whiteboardItems"
-          :key="item.id"
-          :width="item.size.width"
-          :height="item.size.height"
-          :class="['whiteboard-item', item.type]"
-          :style="getItemStyle(item)"
-          :note="item.type === 'note' ? whiteboardStore.getReferenceNotes(item.noteId) : null"
-          @mousedown.stop="startDraggingItem(item, $event)"
-          @resize-start="startResizingItem(item, $event)"
-        /> -->
+        <CardConnection
+          v-for="connection in connections"
+          :key="connection.id"
+          :connection="connection"
+          strokeColor="red"
+          :strokeWidth="5"
+          textColor="#333333"
+        />
+        <svg v-if="isCreatingConnection" class="connection-line" width="100%" height="100%">
+          <line
+            :x1="connectionStart.x"
+            :y1="connectionStart.y"
+            :x2="connectionEnd.x"
+            :y2="connectionEnd.y"
+            stroke="red"
+            stroke-width="5"
+          />
+        </svg>
       </div>
     </div>
     <!-- 新增：适应视图按钮 -->
@@ -83,6 +91,7 @@ import WhiteboardNoteComponent from './WhiteboardNoteComponent.vue'
 // import WhiteboardConnection from './WhiteboardConnection.vue'
 import { Add, Aiming } from '@icon-park/vue-next'
 import WhiteboardZoomControl from './WhiteboardZoomControl.vue'
+import CardConnection from './CardConnection.vue'
 
 const containerRef = ref<HTMLElement | null>(null)
 const route = useRoute()
@@ -101,6 +110,141 @@ const scale = ref(1) // 添加缩放状态
 const translateX = ref(0)
 const translateY = ref(0)
 
+const isCreatingConnection = ref(false)
+const connectionStart = ref({ x: 0, y: 0 })
+const connectionEnd = ref({ x: 0, y: 0 })
+const startNote = ref<WhiteboardNote | null>(null)
+
+const calculateConnectionPoints = (startNote: WhiteboardNote, endNote: WhiteboardNote) => {
+  const startCenter = {
+    x: startNote.position.x + startNote.size.width / 2,
+    y: startNote.position.y + startNote.size.height / 2
+  }
+  const endCenter = {
+    x: endNote.position.x + endNote.size.width / 2,
+    y: endNote.position.y + endNote.size.height / 2
+  }
+
+  // 计算两个中心点之间的角度
+  const angle = Math.atan2(endCenter.y - startCenter.y, endCenter.x - startCenter.x)
+
+  // 定义四个方向的角度范围（弧度）
+  const rightAngle = Math.PI / 4
+  const leftAngle = (Math.PI * 3) / 4
+  const topAngle = -Math.PI / 4
+  const bottomAngle = (Math.PI * 5) / 4
+
+  let startPoint, endPoint
+
+  // 确定起点
+  if (angle > topAngle && angle < rightAngle) {
+    // 右边
+    startPoint = { x: startNote.position.x + startNote.size.width, y: startCenter.y }
+  } else if (angle >= rightAngle && angle < bottomAngle) {
+    // 下边
+    startPoint = { x: startCenter.x, y: startNote.position.y + startNote.size.height }
+  } else if (
+    (angle >= bottomAngle && angle <= Math.PI) ||
+    (angle >= -Math.PI && angle < leftAngle)
+  ) {
+    // 左边
+    startPoint = { x: startNote.position.x, y: startCenter.y }
+  } else {
+    // 上边
+    startPoint = { x: startCenter.x, y: startNote.position.y }
+  }
+
+  // 确定终点（使用相反的角度）
+  const oppositeAngle = angle + Math.PI
+  if (oppositeAngle > topAngle && oppositeAngle < rightAngle) {
+    // 右边
+    endPoint = { x: endNote.position.x + endNote.size.width, y: endCenter.y }
+  } else if (oppositeAngle >= rightAngle && oppositeAngle < bottomAngle) {
+    // 下边
+    endPoint = { x: endCenter.x, y: endNote.position.y + endNote.size.height }
+  } else if (
+    (oppositeAngle >= bottomAngle && oppositeAngle <= Math.PI) ||
+    (oppositeAngle >= -Math.PI && oppositeAngle < leftAngle)
+  ) {
+    // 左边
+    endPoint = { x: endNote.position.x, y: endCenter.y }
+  } else {
+    // 上边
+    endPoint = { x: endCenter.x, y: endNote.position.y }
+  }
+
+  return { startPoint, endPoint }
+}
+// 添加一个新的函数来更新连线位置
+// const updateConnectionPositions = (movedNoteId: string, newPosition: { x: number; y: number }) => {
+//   connections.value = connections.value.map((connection) => {
+//     if (connection.startItemId === movedNoteId || connection.endItemId === movedNoteId) {
+//       const startNote = whiteboardNotes.value.find((note) => note.id === connection.startItemId)
+//       const endNote = whiteboardNotes.value.find((note) => note.id === connection.endItemId)
+
+//       if (startNote && endNote) {
+//         const { startPoint, endPoint } = calculateConnectionPoints(startNote, endNote)
+//         return { ...connection, startPoint, endPoint }
+//       }
+//     }
+//     return connection
+//   })
+// }
+// const updateConnectionPositions = (movedNoteId: string, newPosition: { x: number; y: number }) => {
+//   // 首先更新移动的笔记的位置
+//   const movedNoteIndex = whiteboardNotes.value.findIndex((note) => note.id === movedNoteId)
+//   if (movedNoteIndex !== -1) {
+//     whiteboardNotes.value[movedNoteIndex] = {
+//       ...whiteboardNotes.value[movedNoteIndex],
+//       position: newPosition
+//     }
+//   }
+
+//   // 然后更新受影响的连接
+//   connections.value = connections.value.map((connection) => {
+//     if (connection.startItemId === movedNoteId || connection.endItemId === movedNoteId) {
+//       const startNote = whiteboardNotes.value.find((note) => note.id === connection.startItemId)
+//       const endNote = whiteboardNotes.value.find((note) => note.id === connection.endItemId)
+
+//       if (startNote && endNote) {
+//         const { startPoint, endPoint } = calculateConnectionPoints(startNote, endNote)
+//         return { ...connection, startPoint, endPoint }
+//       }
+//     }
+//     return connection
+//   })
+// }
+const updateConnectionPositions = (movedNoteId: string, newPosition: { x: number; y: number }) => {
+  connections.value = connections.value.map((connection) => {
+    if (connection.startItemId === movedNoteId || connection.endItemId === movedNoteId) {
+      const startNote = whiteboardNotes.value.find((note) => note.id === connection.startItemId)
+      const endNote = whiteboardNotes.value.find((note) => note.id === connection.endItemId)
+
+      if (startNote && endNote) {
+        const { startPoint, endPoint } = calculateConnectionPoints(startNote, endNote)
+        return { ...connection, startPoint, endPoint }
+      }
+    }
+    return connection
+  })
+}
+
+const startConnection = (note: WhiteboardNote) => {
+  console.log('Start connection in WhiteboardDetail', note)
+  isCreatingConnection.value = true
+  console.log('isCreatingConnection', isCreatingConnection.value)
+  startNote.value = note
+  connectionStart.value = {
+    x: note.position.x + note.size.width,
+    y: note.position.y + note.size.height / 2
+  }
+  connectionEnd.value = { ...connectionStart.value }
+
+  // 添加这些行来绑定鼠标移动和鼠标抬起事件
+  document.addEventListener('mousemove', handleMouseMove)
+  document.addEventListener('mouseup', handleMouseUp)
+}
+
 // 关于获取白板内容的功能
 // 封装获取白板内容的函数
 const fetchWhiteboardItems = async () => {
@@ -109,7 +253,8 @@ const fetchWhiteboardItems = async () => {
     whiteboardNotes.value = await whiteboardStore.getWhiteboardNotes(whiteboardId.value)
     whiteboardGroups.value = await whiteboardStore.getWhiteboardGroups(whiteboardId.value)
     whiteboardSubboards.value = await whiteboardStore.getWhiteboardSubboards(whiteboardId.value)
-    connections.value = await whiteboardStore.getWhiteboardConnections(whiteboardId.value)
+    connections.value = await whiteboardStore.getConnections(whiteboardId.value)
+    console.log('connections', connections.value)
   }
 }
 
@@ -290,6 +435,10 @@ const transformLayerStyle = computed(() => ({
 }))
 
 const startDraggingItem = (item: WhiteboardNote, event: MouseEvent) => {
+  // 检查事件目标是否为连接按钮
+  if ((event.target as HTMLElement).closest('.connection-button')) {
+    return // 如果是连接按钮，不启动拖拽
+  }
   if (!containerRef.value) return
   const rect = containerRef.value.getBoundingClientRect()
   draggingItem.value = {
@@ -426,7 +575,8 @@ const onDragItem = (event: MouseEvent) => {
       }
     }
   })
-
+  // 更新连线位置
+  updateConnectionPositions(id, { x: newX, y: newY })
   updateItemPosition(id, newX, newY)
 }
 
@@ -496,17 +646,80 @@ const handleMouseDown = (event: MouseEvent) => {
   }
 }
 
+// const handleMouseMove = (event: MouseEvent) => {
+//   if (!isDragging) return
+//   const deltaX = event.clientX - lastX
+//   const deltaY = event.clientY - lastY
+//   translateX.value += deltaX
+//   translateY.value += deltaY
+//   lastX = event.clientX
+//   lastY = event.clientY
+// }
 const handleMouseMove = (event: MouseEvent) => {
-  if (!isDragging) return
-  const deltaX = event.clientX - lastX
-  const deltaY = event.clientY - lastY
-  translateX.value += deltaX
-  translateY.value += deltaY
-  lastX = event.clientX
-  lastY = event.clientY
+  console.log('Mouse moving', isCreatingConnection.value)
+  if (isCreatingConnection.value) {
+    console.log('Creating connection')
+    const rect = containerRef.value?.getBoundingClientRect()
+    if (rect) {
+      connectionEnd.value = {
+        x: (event.clientX - rect.left - translateX.value) / scale.value,
+        y: (event.clientY - rect.top - translateY.value) / scale.value
+      }
+    }
+  } else if (isDragging) {
+    const deltaX = event.clientX - lastX
+    const deltaY = event.clientY - lastY
+    translateX.value += deltaX
+    translateY.value += deltaY
+    lastX = event.clientX
+    lastY = event.clientY
+  }
 }
 
-const handleMouseUp = () => {
+// const handleMouseUp = () => {
+//   isDragging = false
+//   document.removeEventListener('mousemove', handleMouseMove)
+//   document.removeEventListener('mouseup', handleMouseUp)
+// }
+const findNoteUnderMouse = (event: MouseEvent): WhiteboardNote | null => {
+  if (!containerRef.value) return null
+
+  const rect = containerRef.value.getBoundingClientRect()
+  const mouseX = (event.clientX - rect.left - translateX.value) / scale.value
+  const mouseY = (event.clientY - rect.top - translateY.value) / scale.value
+
+  return (
+    whiteboardNotes.value.find((note) => {
+      return (
+        mouseX >= note.position.x &&
+        mouseX <= note.position.x + note.size.width &&
+        mouseY >= note.position.y &&
+        mouseY <= note.position.y + note.size.height
+      )
+    }) || null
+  )
+}
+const handleMouseUp = (event: MouseEvent) => {
+  if (isCreatingConnection.value && startNote.value) {
+    const endNote = findNoteUnderMouse(event)
+    if (endNote && endNote.id !== startNote.value.id) {
+      const { startPoint, endPoint } = calculateConnectionPoints(startNote.value, endNote)
+      const newConnection: Connection = {
+        id: `connection-${Date.now()}`,
+        whiteboardId: whiteboardId.value as string,
+        startItemId: startNote.value.id,
+        endItemId: endNote.id,
+        startPoint,
+        endPoint,
+        description: ''
+      }
+      connections.value.push(newConnection)
+      whiteboardStore.createConnection(newConnection)
+    }
+    isCreatingConnection.value = false
+    startNote.value = null
+  }
+
   isDragging = false
   document.removeEventListener('mousemove', handleMouseMove)
   document.removeEventListener('mouseup', handleMouseUp)
@@ -688,7 +901,8 @@ onUnmounted(async () => {
   flex: 1;
   position: relative;
   width: 100%;
-  height: 100%;
+  // height: 100%;
+  height: 100vh; /* 或者设置一个固定的高度 */
   background-color: var(--color-bg-primary);
   overflow: hidden;
   touch-action: none;
@@ -703,6 +917,8 @@ onUnmounted(async () => {
   position: absolute;
   top: 0;
   left: 0;
+  // width: 100%;
+  // height: 100%;
   will-change: transform;
   transition: transform 0.05s linear;
 }
@@ -815,4 +1031,25 @@ onUnmounted(async () => {
   right: 63px;
   z-index: 100;
 }
+// .connections-container {
+//   position: absolute;
+//   top: 0;
+//   left: 0;
+//   width: 1000px;
+//   height: 1000px;
+//   pointer-events: none;
+// }
+// .connection-line {
+//   position: absolute;
+//   overflow: visible;
+// }
+
+// .connection-line {
+//   position: absolute;
+//   top: 0;
+//   left: 0;
+//   width: 1000px;
+//   height: 1000px;
+//   pointer-events: none;
+// }
 </style>

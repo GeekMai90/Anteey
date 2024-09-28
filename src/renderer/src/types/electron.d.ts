@@ -59,14 +59,16 @@ export interface ElectronAPI {
     translateY: number
   }>
   getCardCount: (whiteboardId: string) => Promise<number>
-  createConnection: (connection: Connection) => Promise<Connection>
-  getConnectionsByWhiteboardId: (whiteboardId: string) => Promise<Connection[]>
   getWhiteboardNotes: (whiteboardId: string) => Promise<WhiteboardNote[]>
   getWhiteboardGroups: (whiteboardId: string) => Promise<WhiteboardGroup[]>
   getWhiteboardConnections: (whiteboardId: string) => Promise<Connection[]>
   getWhiteboardSubboards: (whiteboardId: string) => Promise<Whiteboard[]>
   updateWhiteboardNotePosition: (id: string, x: number, y: number) => Promise<WhiteboardNote>
   updateWhiteboardNoteSize: (id: string, width: number, height: number) => Promise<WhiteboardNote>
+  updateConnection: (connection: Connection) => Promise<Connection>
+  deleteConnection: (id: string) => Promise<void>
+  getConnectionsByWhiteboardId: (whiteboardId: string) => Promise<Connection[]>
+  createConnection: (connection: Connection) => Promise<Connection>
 }
 
 declare global {

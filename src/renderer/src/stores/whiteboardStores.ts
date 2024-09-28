@@ -156,19 +156,6 @@ export const useWhiteboardStore = defineStore('whiteboard', {
         throw error
       }
     },
-    // 获取白板中的所有连线
-    async getWhiteboardConnections(whiteboardId: string) {
-      try {
-        console.log('whiteboardStore→ 开始获取白板中的所有连线', whiteboardId)
-        const whiteboardConnections =
-          await window.electronAPI.getWhiteboardConnections(whiteboardId)
-        console.log('whiteboardStore→ 获取白板中的所有连线成功', whiteboardConnections)
-        return whiteboardConnections
-      } catch (error) {
-        console.error('whiteboardStore→ 获取白板中的所有连线失败', error)
-        throw error
-      }
-    },
     // 获取白板中的所有白板
     async getWhiteboardSubboards(whiteboardId: string) {
       try {
@@ -210,6 +197,53 @@ export const useWhiteboardStore = defineStore('whiteboard', {
         return updatedWhiteboardNote
       } catch (error) {
         console.error('whiteboardStore→ 更新白板笔记大小失败', error)
+        throw error
+      }
+    },
+    // 创建连线
+    async createConnection(connection: Connection) {
+      try {
+        console.log('whiteboardStore→ 开始创建连线', connection)
+        const newConnection = await window.electronAPI.createConnection(connection)
+        console.log('whiteboardStore→ 创建连线成功', newConnection)
+        return newConnection
+      } catch (error) {
+        console.error('whiteboardStore→ 创建连线失败', error)
+        throw error
+      }
+    },
+    // 更新连线
+    async updateConnection(connection: Connection) {
+      try {
+        console.log('whiteboardStore→ 开始更新连线', connection)
+        const updatedConnection = await window.electronAPI.updateConnection(connection)
+        console.log('whiteboardStore→ 更新连线成功', updatedConnection)
+        return updatedConnection
+      } catch (error) {
+        console.error('whiteboardStore→ 更新连线失败', error)
+        throw error
+      }
+    },
+    // 删除连线
+    async deleteConnection(id: string) {
+      try {
+        console.log('whiteboardStore→ 开始删除连线', id)
+        await window.electronAPI.deleteConnection(id)
+        console.log('whiteboardStore→ 删除连线成功')
+      } catch (error) {
+        console.error('whiteboardStore→ 删除连线失败', error)
+        throw error
+      }
+    },
+    // 获取白板中的所有连线
+    async getConnections(whiteboardId: string) {
+      try {
+        console.log('whiteboardStore→ 开始获取白板中的所有连线', whiteboardId)
+        const connections = await window.electronAPI.getConnectionsByWhiteboardId(whiteboardId)
+        console.log('whiteboardStore→ 获取白板中的所有连线成功', connections)
+        return connections
+      } catch (error) {
+        console.error('whiteboardStore→ 获取白板中的所有连线失败', error)
         throw error
       }
     }

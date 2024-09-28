@@ -2,50 +2,49 @@
 
 import { db } from './config'
 import { v4 as uuidv4 } from 'uuid'
-
-export interface Connection {
-  id: string
-  type: 'connection'
-  startItemId: string // 起点项目的ID
-  endItemId: string // 终点项目的ID
-  startEdge: 'top' | 'right' | 'bottom' | 'left' // 起点边
-  endEdge: 'top' | 'right' | 'bottom' | 'left' // 终点边
-  color?: string // 连线颜色
-  thickness?: number // 连线粗细
-  label?: string // 连线中的文字内容
-  labelPosition?: { x: number; y: number } // 新增：标签位置
-  lineStyle?: 'solid' | 'dashed' // 连线样式
-  startArrow?: boolean // 起点是否有箭头，默认false
-  endArrow?: boolean // 终点是否有箭头，默认true
-  lineShape?: 'straight' | 'curved' | 'angled' // 连线形状
-  position: { x: number; y: number } // 新增：连线的位置
-  controlPoints?: { x: number; y: number }[] // 新增：控制点，用于调整连线形状
-  zIndex: number // 新增：用于控制连线的层级
-  size: { width: number; height: number }
-  rotation: number
-}
+import { Connection, ConnectionCreateData, ConnectionUpdateData } from '@renderer/types/Note'
 
 // 创建连线
-export async function createConnection(connection: Omit<Connection, 'id'>): Promise<Connection> {
+// 需要输入白板id，起点项目id，终点项目id，起点坐标，终点坐标，描述
+export async function createConnection(connection: ConnectionCreateData): Promise<Connection> {
   try {
     const newConnection = {
       id: uuidv4(),
       ...connection,
-      createdAt: new Date(),
-      updatedAt: new Date()
+      startPoint: JSON.stringify(connection.startPoint),
+      endPoint: JSON.stringify(connection.endPoint)
     }
-
-    await db('connections').insert({
-      ...newConnection,
-      labelPosition: JSON.stringify(newConnection.labelPosition),
-      position: JSON.stringify(newConnection.position),
-      controlPoints: JSON.stringify(newConnection.controlPoints),
-      size: JSON.stringify(newConnection.size)
-    })
-    console.log('后端→ 创建连线成功:', newConnection)
-    return newConnection
+    await db('connections').insert(newConnection)
+    return processConnectionData(newConnection)
   } catch (error) {
-    console.error('后端→ 创建连线失败:', error)
+    console.error('Error creating connection:', error)
+    throw error
+  }
+}
+
+// 辅助处理函数
+function processConnectionData(item: any): Connection {
+  return {
+    ...item,
+    startPoint: JSON.parse(item.startPoint),
+    endPoint: JSON.parse(item.endPoint)
+  }
+}
+
+// 更新连线
+export async function updateConnection(connection: ConnectionUpdateData): Promise<Connection> {
+  try {
+    const updatedConnection = await db('connections')
+      .where({ id: connection.id })
+      .update({
+        startPoint: JSON.stringify(connection.startPoint),
+        endPoint: JSON.stringify(connection.endPoint),
+        description: connection.description || null
+      })
+      .returning('*')
+    return processConnectionData(updatedConnection[0])
+  } catch (error) {
+    console.error('Error updating connection:', error)
     throw error
   }
 }
@@ -53,33 +52,21 @@ export async function createConnection(connection: Omit<Connection, 'id'>): Prom
 // 获取白板上的所有连线
 export async function getConnectionsByWhiteboardId(whiteboardId: string): Promise<Connection[]> {
   try {
-    const connections = await db('connections').where({ whiteboardId }).select('*')
-    return connections.map((connection) => ({
-      ...connection,
-      labelPosition: JSON.parse(connection.labelPosition),
-      position: JSON.parse(connection.position),
-      controlPoints: JSON.parse(connection.controlPoints),
-      size: JSON.parse(connection.size)
-    }))
+    const connections = await db('connections').where({ whiteboardId })
+    return connections.map(processConnectionData)
   } catch (error) {
-    console.error('后端→ 获取白板上的所有连线失败:', error)
+    console.error('Error getting connections by whiteboardId:', error)
     throw error
   }
 }
 
-// // 获取白板上的所有连线
-// export async function getConnectionsByWhiteboardId(whiteboardId: string): Promise<Connection[]> {
-//   try {
-//     const connections = await db('connections').where({ whiteboardId }).select('*')
-//     return connections.map((connection) => ({
-//       ...connection,
-//       labelPosition: JSON.parse(connection.labelPosition),
-//       position: JSON.parse(connection.position),
-//       controlPoints: JSON.parse(connection.controlPoints),
-//       size: JSON.parse(connection.size)
-//     }))
-//   } catch (error) {
-//     console.error('后端→ 获取白板上的所有连线失败:', error)
-//     throw error
-//   }
-// }
+// 删除连线
+export async function deleteConnection(id: string): Promise<boolean> {
+  try {
+    await db('connections').where({ id }).del()
+    return true
+  } catch (error) {
+    console.error('Error deleting connection:', error)
+    throw error
+  }
+}

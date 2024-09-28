@@ -120,32 +120,46 @@ export async function initDatabase(db: Knex): Promise<void> {
   }
 
   // 修改 connections 表
+  //   if (!(await db.schema.hasTable('connections'))) {
+  //     await db.schema.createTable('connections', (table) => {
+  //       table.string('id').primary()
+  //       table.string('whiteboardId').notNullable().index()
+  //       table.string('startItemId').notNullable()
+  //       table.string('endItemId').notNullable()
+  //       table.string('startEdge').notNullable()
+  //       table.string('endEdge').notNullable()
+  //       table.string('color').nullable()
+  //       table.integer('thickness').nullable()
+  //       table.string('label').nullable()
+  //       table.json('labelPosition').nullable()
+  //       table.string('lineStyle').notNullable().defaultTo('solid')
+  //       table.boolean('startArrow').notNullable().defaultTo(false)
+  //       table.boolean('endArrow').notNullable().defaultTo(true)
+  //       table.string('lineShape').notNullable().defaultTo('straight')
+  //       table.json('position').notNullable()
+  //       table.json('controlPoints').nullable()
+  //       table.integer('zIndex').notNullable()
+  //       table.json('size').notNullable()
+  //       table.float('rotation').notNullable().defaultTo(0)
+  //     })
+  //     console.log('connections 表创建成功')
+  //   }
+
+  //   console.log('数据库初始化完成')
+
+  // 创建 connections 表
   if (!(await db.schema.hasTable('connections'))) {
     await db.schema.createTable('connections', (table) => {
       table.string('id').primary()
       table.string('whiteboardId').notNullable().index()
       table.string('startItemId').notNullable()
       table.string('endItemId').notNullable()
-      table.string('startEdge').notNullable()
-      table.string('endEdge').notNullable()
-      table.string('color').nullable()
-      table.integer('thickness').nullable()
-      table.string('label').nullable()
-      table.json('labelPosition').nullable()
-      table.string('lineStyle').notNullable().defaultTo('solid')
-      table.boolean('startArrow').notNullable().defaultTo(false)
-      table.boolean('endArrow').notNullable().defaultTo(true)
-      table.string('lineShape').notNullable().defaultTo('straight')
-      table.json('position').notNullable()
-      table.json('controlPoints').nullable()
-      table.integer('zIndex').notNullable()
-      table.json('size').notNullable()
-      table.float('rotation').notNullable().defaultTo(0)
+      table.string('startPoint').notNullable()
+      table.string('endPoint').notNullable()
+      table.string('description').nullable()
     })
     console.log('connections 表创建成功')
   }
-
-  console.log('数据库初始化完成')
 }
 
 export async function down(db: Knex): Promise<void> {

@@ -38,7 +38,18 @@ import {
   updateWhiteboardNotePosition,
   updateWhiteboardNoteSize
 } from '../db/whiteboards'
-import { CreateWhiteboardInput, CreateWhiteboardNoteInput } from '../renderer/src/types/Note'
+import {
+  createConnection,
+  updateConnection,
+  getConnectionsByWhiteboardId,
+  deleteConnection
+} from '../db/connections'
+import {
+  ConnectionCreateData,
+  ConnectionUpdateData,
+  CreateWhiteboardInput,
+  CreateWhiteboardNoteInput
+} from '../renderer/src/types/Note'
 import { db, dbPath } from '../db/config'
 import log from 'electron-log'
 // import { runMigrations } from '../db/migrations/migrations'
@@ -148,6 +159,47 @@ function createCustomMenu() {
 }
 
 function setupIpcHandlers() {
+  // 创建连线
+  ipcMain.handle('create-connection', async (_, connection: ConnectionCreateData) => {
+    try {
+      const newConnection = await createConnection(connection)
+      return newConnection
+    } catch (error) {
+      console.error('主进程 → 创建连线时出错:', error)
+      return { success: false, error: error }
+    }
+  })
+  // 更新连线
+  ipcMain.handle('update-connection', async (_, connection: ConnectionUpdateData) => {
+    try {
+      const updatedConnection = await updateConnection(connection)
+      return updatedConnection
+    } catch (error) {
+      console.error('主进程 → 更新连线时出错:', error)
+      return { success: false, error: error }
+    }
+  })
+  // 获取白板中的所有连线
+  ipcMain.handle('get-connections-by-whiteboard-id', async (_, { whiteboardId }) => {
+    try {
+      const connections = await getConnectionsByWhiteboardId(whiteboardId)
+      return connections
+    } catch (error) {
+      console.error('主进程 → 获取白板中的连线时出错:', error)
+      return { success: false, error: error }
+    }
+  })
+  // 删除连线
+  ipcMain.handle('delete-connection', async (_, { id }) => {
+    try {
+      await deleteConnection(id)
+      return { success: true }
+    } catch (error) {
+      console.error('主进程 → 删除连线时出错:', error)
+      return { success: false, error: error }
+    }
+  })
+
   // 更新白板笔记的大小
   ipcMain.handle('update-whiteboard-note-size', async (_, { id, width, height }) => {
     try {

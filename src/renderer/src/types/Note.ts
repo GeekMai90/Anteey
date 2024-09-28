@@ -101,7 +101,7 @@ export interface WhiteboardGroup {
   rotation: number
 }
 // 连线
-export interface Connection {
+export interface WhiteboardConnection {
   id: string
   whiteboardId: string // 所属白板的ID
   startItemId: string
@@ -147,4 +147,28 @@ export interface CreateWhiteboardNoteInput {
   size: { width: number; height: number }
   zIndex: number
   rotation: number
+}
+
+export interface Connection {
+  id: string
+  whiteboardId: string
+  startItemId: string
+  endItemId: string
+  startPoint: { x: number; y: number }
+  endPoint: { x: number; y: number }
+  description?: string
+}
+export interface ConnectionCreateData {
+  whiteboardId: string
+  startItemId: string
+  endItemId: string
+  startPoint: { x: number; y: number }
+  endPoint: { x: number; y: number }
+  description?: string
+}
+export interface ConnectionUpdateData {
+  id: string
+  startPoint?: { x: number; y: number }
+  endPoint?: { x: number; y: number }
+  description?: string
 }
