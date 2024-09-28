@@ -17,7 +17,19 @@
     >
       <!-- 变换层 -->
       <div ref="transformLayerRef" class="whiteboard-transform-layer" :style="transformLayerStyle">
-        <component
+        <!-- 白板笔记 -->
+        <WhiteboardNoteComponent
+          v-for="item in whiteboardNotes"
+          :key="item.id"
+          :width="item.size.width"
+          :height="item.size.height"
+          :class="['whiteboard-item']"
+          :style="getWhiteNoteStyle(item)"
+          :note="whiteboardStore.getReferenceNotes(item.noteId)"
+          @mousedown.stop="startDraggingItem(item, $event)"
+          @resize-start="startResizingItem(item, $event)"
+        />
+        <!-- <component
           :is="getItemComponent(item)"
           v-for="item in whiteboardItems"
           :key="item.id"
@@ -28,7 +40,7 @@
           :note="item.type === 'note' ? whiteboardStore.getReferenceNotes(item.noteId) : null"
           @mousedown.stop="startDraggingItem(item, $event)"
           @resize-start="startResizingItem(item, $event)"
-        />
+        /> -->
       </div>
     </div>
     <!-- 新增：适应视图按钮 -->
@@ -58,20 +70,28 @@ import { ref, onMounted, onUnmounted, watch, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import AppToolbar from '@renderer/components/AppToolbar.vue'
 import { useWhiteboardStore } from '../stores/whiteboardStores'
-import { CreateWhiteboardNoteInput, WhiteboardItem } from '@renderer/types/Note'
-import WhiteboardNote from './WhiteboardNote.vue'
-import WhiteboardSubboard from './WhiteboardSubboard.vue'
-import WhiteboardGroup from './WhiteboardGroup.vue'
-import WhiteboardConnection from './WhiteboardConnection.vue'
+import {
+  CreateWhiteboardNoteInput,
+  WhiteboardNote,
+  WhiteboardGroup,
+  Whiteboard,
+  Connection
+} from '@renderer/types/Note'
+import WhiteboardNoteComponent from './WhiteboardNoteComponent.vue'
+// import WhiteboardSubboard from './WhiteboardSubboard.vue'
+// import WhiteboardGroupComponent from './WhiteboardGroupComponent.vue'
+// import WhiteboardConnection from './WhiteboardConnection.vue'
 import { Add, Aiming } from '@icon-park/vue-next'
 import WhiteboardZoomControl from './WhiteboardZoomControl.vue'
 
 const containerRef = ref<HTMLElement | null>(null)
 const route = useRoute()
 const whiteboardId = ref<string | null>(null)
-const whiteboardItems = ref<WhiteboardItem[]>([])
-
 const whiteboardStore = useWhiteboardStore()
+const whiteboardNotes = ref<WhiteboardNote[]>([])
+const whiteboardGroups = ref<WhiteboardGroup[]>([])
+const whiteboardSubboards = ref<Whiteboard[]>([])
+const connections = ref<Connection[]>([])
 
 const draggingItem = ref<{ id: string; startX: number; startY: number } | null>(null)
 const alignmentGuides = ref<{ direction: 'horizontal' | 'vertical'; position: number }[]>([])
@@ -85,9 +105,11 @@ const translateY = ref(0)
 // 封装获取白板内容的函数
 const fetchWhiteboardItems = async () => {
   if (whiteboardId.value) {
-    console.log('WhiteboardDetail 开始获取组件项，whiteboardId：', whiteboardId.value)
-    whiteboardItems.value = await whiteboardStore.getWhiteboardItems(whiteboardId.value)
-    console.log('whiteboardItems', whiteboardItems.value)
+    console.log('WhiteboardDetail 开始获取组件项，whiteboardId：')
+    whiteboardNotes.value = await whiteboardStore.getWhiteboardNotes(whiteboardId.value)
+    whiteboardGroups.value = await whiteboardStore.getWhiteboardGroups(whiteboardId.value)
+    whiteboardSubboards.value = await whiteboardStore.getWhiteboardSubboards(whiteboardId.value)
+    connections.value = await whiteboardStore.getWhiteboardConnections(whiteboardId.value)
   }
 }
 
@@ -110,24 +132,8 @@ watch(
   { immediate: true }
 )
 
-// 根据 item 中的 type 来匹配组件
-const getItemComponent = (item: WhiteboardItem) => {
-  switch (item.type) {
-    case 'note':
-      return WhiteboardNote
-    case 'subboard':
-      return WhiteboardSubboard
-    case 'group':
-      return WhiteboardGroup
-    case 'connection':
-      return WhiteboardConnection
-    default:
-      return null
-  }
-}
-
 // 获取 item 的 style
-const getItemStyle = (item: WhiteboardItem) => {
+const getWhiteNoteStyle = (item: WhiteboardNote) => {
   return {
     // 当拖拽改变大小的时候，item 的 position 会加上 visualAdjustment 的值
     left: `${item.position.x + (resizingItem.value?.id === item.id ? visualAdjustment.value.x : 0)}px`, // 适配拖拽改变大小
@@ -156,7 +162,7 @@ const visualAdjustment = ref({ x: 0, y: 0 })
 
 // 开始拖拽改变大小
 const startResizingItem = (
-  item: WhiteboardItem,
+  item: WhiteboardNote,
   { direction, event }: { direction: string; event: MouseEvent }
 ) => {
   event.preventDefault()
@@ -189,7 +195,7 @@ const onResizeItem = (event: MouseEvent) => {
   const dy = (event.clientY - startY) / scale.value
 
   // 获取拖拽改变大小的 item
-  const item = whiteboardItems.value.find((item) => item.id === id)
+  const item = whiteboardNotes.value.find((item) => item.id === id)
   if (!item) return
 
   // 初始化新的宽度和高度
@@ -250,11 +256,11 @@ const stopResizingItem = async (event: MouseEvent) => {
   event.stopPropagation()
   if (resizingItem.value) {
     // 获取拖拽改变大小后的 item
-    const item = whiteboardItems.value.find((item) => item.id === resizingItem.value?.id)
+    const item = whiteboardNotes.value.find((item) => item.id === resizingItem.value?.id)
     if (item && whiteboardId.value) {
       // 更新白板项的大小和位置
-      await whiteboardStore.updateWhiteboardItemSize(item.id, item.size.width, item.size.height)
-      await whiteboardStore.updateWhiteboardItemPosition(item.id, item.position.x, item.position.y)
+      await whiteboardStore.updateWhiteboardNoteSize(item.id, item.size.width, item.size.height)
+      await whiteboardStore.updateWhiteboardNotePosition(item.id, item.position.x, item.position.y)
       // 应用视觉调整到实际位置
       item.position.x += visualAdjustment.value.x
       item.position.y += visualAdjustment.value.y
@@ -283,7 +289,7 @@ const transformLayerStyle = computed(() => ({
   transformOrigin: '0 0'
 }))
 
-const startDraggingItem = (item: WhiteboardItem, event: MouseEvent) => {
+const startDraggingItem = (item: WhiteboardNote, event: MouseEvent) => {
   if (!containerRef.value) return
   const rect = containerRef.value.getBoundingClientRect()
   draggingItem.value = {
@@ -307,7 +313,7 @@ const onDragItem = (event: MouseEvent) => {
 
   alignmentGuides.value = []
 
-  const currentItem = whiteboardItems.value.find((item) => item.id === id)
+  const currentItem = whiteboardNotes.value.find((item) => item.id === id)
   if (!currentItem) return
 
   const snapThreshold = SNAP_THRESHOLD / scale.value
@@ -315,7 +321,7 @@ const onDragItem = (event: MouseEvent) => {
   const currentCenterX = newX + currentItem.size.width / 2
   const currentCenterY = newY + currentItem.size.height / 2
   const SPACING = 5 // 定义缩略图之间的间距
-  whiteboardItems.value.forEach((otherItem) => {
+  whiteboardNotes.value.forEach((otherItem) => {
     if (otherItem.id !== id) {
       const otherCenterX = otherItem.position.x + otherItem.size.width / 2
       const otherCenterY = otherItem.position.y + otherItem.size.height / 2
@@ -426,10 +432,10 @@ const onDragItem = (event: MouseEvent) => {
 
 const stopDraggingItem = async () => {
   if (draggingItem.value) {
-    const item = whiteboardItems.value.find((item) => item.id === draggingItem.value?.id)
+    const item = whiteboardNotes.value.find((item) => item.id === draggingItem.value?.id)
     if (item && whiteboardId.value) {
       console.log('WhiteboardDetail 停止拖拽白板项', whiteboardId.value)
-      await whiteboardStore.updateWhiteboardItemPosition(item.id, item.position.x, item.position.y)
+      await whiteboardStore.updateWhiteboardNotePosition(item.id, item.position.x, item.position.y)
     }
   }
   draggingItem.value = null
@@ -439,11 +445,11 @@ const stopDraggingItem = async () => {
 }
 
 const updateItemPosition = (id: string, x: number, y: number) => {
-  const itemIndex = whiteboardItems.value.findIndex((item) => item.id === id)
+  const itemIndex = whiteboardNotes.value.findIndex((item) => item.id === id)
   if (itemIndex !== -1) {
-    const updatedItem = { ...whiteboardItems.value[itemIndex] }
+    const updatedItem = { ...whiteboardNotes.value[itemIndex] }
     updatedItem.position = { x, y }
-    whiteboardItems.value.splice(itemIndex, 1, updatedItem)
+    whiteboardNotes.value.splice(itemIndex, 1, updatedItem)
   }
 }
 
@@ -467,7 +473,7 @@ const createWhiteboardNote = async () => {
 
   try {
     const newNote = await whiteboardStore.createWhiteboardNote(input)
-    whiteboardItems.value.push(newNote)
+    whiteboardNotes.value.push(newNote)
   } catch (error) {
     console.error('Failed to create whiteboard note:', error)
   }
@@ -601,11 +607,11 @@ const handleTouchEnd = () => {
 }
 
 const fitView = async () => {
-  if (!containerRef.value || whiteboardItems.value.length === 0) return
+  if (!containerRef.value || whiteboardNotes.value.length === 0) return
 
   const containerRect = containerRef.value.getBoundingClientRect()
 
-  const bounds = whiteboardItems.value.reduce(
+  const bounds = whiteboardNotes.value.reduce(
     (acc, item) => {
       acc.left = Math.min(acc.left, item.position.x)
       acc.top = Math.min(acc.top, item.position.y)

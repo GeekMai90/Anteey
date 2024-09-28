@@ -107,14 +107,15 @@ const openWhiteboard = (id: string) => {
 const createNewWhiteboard = async (x: number, y: number) => {
   const input: CreateWhiteboardInput = {
     name: '新白板',
-    isRoot: true,
+    isTopLevel: true,
     position: { x, y },
     size: { width: 300, height: 150 },
     zoomLevel: 1,
     scrollPosition: { x, y },
     scale: 1,
     translateX: 0,
-    translateY: 0
+    translateY: 0,
+    parentId: 'root'
   }
   try {
     await whiteboardStore.createWhiteboard(input)

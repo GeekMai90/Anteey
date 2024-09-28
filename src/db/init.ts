@@ -58,11 +58,10 @@ export async function initDatabase(db: Knex): Promise<void> {
       table.text('description').nullable()
       table.datetime('createdAt').notNullable()
       table.datetime('updatedAt').notNullable()
-      table.json('items').notNullable()
       table.json('position').notNullable()
       table.json('size').notNullable()
-      table.string('parentId').nullable()
-      table.boolean('isRoot').notNullable().defaultTo(false)
+      table.string('parentId').notNullable()
+      table.boolean('isTopLevel').notNullable().defaultTo(true)
       table.boolean('isStarred').notNullable().defaultTo(false)
       table.integer('starredOrder').nullable()
       table.float('zoomLevel').notNullable()
@@ -74,13 +73,12 @@ export async function initDatabase(db: Knex): Promise<void> {
     console.log('whiteboards 表创建成功')
   }
 
-  // 创建 root_whiteboards 表
+  //  创建 root_whiteboards 表
   if (!(await db.schema.hasTable('root_whiteboards'))) {
     await db.schema.createTable('root_whiteboards', (table) => {
       table.string('id').primary()
       table.datetime('createdAt').notNullable()
       table.datetime('updatedAt').notNullable()
-      table.json('items').notNullable()
       table.float('zoomLevel').notNullable()
       table.json('scrollPosition').notNullable()
       table.float('scale').notNullable()
@@ -91,29 +89,41 @@ export async function initDatabase(db: Knex): Promise<void> {
     console.log('root_whiteboards 表创建成功')
   }
 
-  // 创建 whiteboard_items 表
-  if (!(await db.schema.hasTable('whiteboard_items'))) {
-    await db.schema.createTable('whiteboard_items', (table) => {
+  // 创建 whiteboard_notes 表
+  if (!(await db.schema.hasTable('whiteboard_notes'))) {
+    await db.schema.createTable('whiteboard_notes', (table) => {
       table.string('id').primary()
-      table.string('type').notNullable()
       table.string('whiteboardId').notNullable().index()
-      table.string('noteId').nullable()
-      table.string('name').nullable()
-      table.json('itemIds').nullable()
+      table.string('noteId').notNullable().index()
       table.json('position').notNullable()
       table.json('size').notNullable()
       table.integer('zIndex').notNullable()
       table.float('rotation').notNullable().defaultTo(0)
-      table.json('style').nullable()
     })
-    console.log('whiteboard_items 表创建成功')
+    console.log('whiteboard_notes 表创建成功')
   }
 
-  // 创建 connections 表
+  // 创建 whiteboard_groups 表
+  if (!(await db.schema.hasTable('whiteboard_groups'))) {
+    await db.schema.createTable('whiteboard_groups', (table) => {
+      table.string('id').primary()
+      table.string('whiteboardId').notNullable().index()
+      table.string('name').notNullable()
+      table.json('itemIds').notNullable()
+      table.json('position').notNullable()
+      table.json('size').notNullable()
+      table.integer('zIndex').notNullable()
+      table.json('style').nullable()
+      table.float('rotation').notNullable().defaultTo(0)
+    })
+    console.log('whiteboard_groups 表创建成功')
+  }
+
+  // 修改 connections 表
   if (!(await db.schema.hasTable('connections'))) {
     await db.schema.createTable('connections', (table) => {
       table.string('id').primary()
-      table.string('type').notNullable().defaultTo('connection')
+      table.string('whiteboardId').notNullable().index()
       table.string('startItemId').notNullable()
       table.string('endItemId').notNullable()
       table.string('startEdge').notNullable()
@@ -140,7 +150,8 @@ export async function initDatabase(db: Knex): Promise<void> {
 
 export async function down(db: Knex): Promise<void> {
   await db.schema.dropTableIfExists('connections')
-  await db.schema.dropTableIfExists('whiteboard_items')
+  await db.schema.dropTableIfExists('whiteboard_groups')
+  await db.schema.dropTableIfExists('whiteboard_notes')
   await db.schema.dropTableIfExists('root_whiteboards')
   await db.schema.dropTableIfExists('whiteboards')
   await db.schema.dropTableIfExists('tags')

@@ -4,12 +4,10 @@ import type {
   CreateWhiteboardInput,
   CreateWhiteboardNoteInput,
   Whiteboard,
-  WhiteboardItem,
   WhiteboardNote,
-  WhiteboardSubboard,
+  RootWhiteboard,
   WhiteboardGroup,
-  Connection,
-  RootWhiteboard
+  Connection
 } from '../renderer/src/types/Note'
 import { createNote } from './notes'
 
@@ -21,11 +19,10 @@ function processWhiteboardData(whiteboard: any): Whiteboard {
     description: whiteboard.description,
     createdAt: new Date(whiteboard.createdAt),
     updatedAt: new Date(whiteboard.updatedAt),
-    items: JSON.parse(whiteboard.items) as WhiteboardItem[],
     position: JSON.parse(whiteboard.position),
     size: JSON.parse(whiteboard.size),
     parentId: whiteboard.parentId,
-    isRoot: whiteboard.isRoot,
+    isTopLevel: whiteboard.isTopLevel,
     isStarred: whiteboard.isStarred,
     starredOrder: whiteboard.starredOrder,
     zoomLevel: whiteboard.zoomLevel,
@@ -89,7 +86,6 @@ export async function createRootWhiteboard(): Promise<RootWhiteboard> {
     id,
     createdAt: now,
     updatedAt: now,
-    items: [],
     zoomLevel: 1,
     scrollPosition: { x: 0, y: 0 },
     scale: 1,
@@ -100,8 +96,7 @@ export async function createRootWhiteboard(): Promise<RootWhiteboard> {
   try {
     await db('root_whiteboards').insert({
       ...newRootWhiteboard,
-      scrollPosition: JSON.stringify(newRootWhiteboard.scrollPosition),
-      items: JSON.stringify(newRootWhiteboard.items)
+      scrollPosition: JSON.stringify(newRootWhiteboard.scrollPosition)
     })
     return newRootWhiteboard
   } catch (error) {
@@ -178,11 +173,10 @@ export async function createWhiteboard(input: CreateWhiteboardInput): Promise<Wh
     description: input.description || '',
     createdAt: new Date(now),
     updatedAt: new Date(now),
-    items: [],
     position: input.position,
     size: input.size || { width: 200, height: 200 },
-    parentId: input.parentId ?? undefined, // 确保 parentId 是 undefined
-    isRoot: input.isRoot,
+    parentId: input.parentId,
+    isTopLevel: input.isTopLevel,
     isStarred: input.isStarred || false,
     starredOrder: input.starredOrder || undefined, // 确保 starredOrder 是undefined
     zoomLevel: input.zoomLevel || 1,
@@ -195,7 +189,6 @@ export async function createWhiteboard(input: CreateWhiteboardInput): Promise<Wh
   try {
     await db('whiteboards').insert({
       ...newWhiteboard,
-      items: JSON.stringify(newWhiteboard.items), // 确保 items 字段是一个 JSON 字符串
       position: JSON.stringify(newWhiteboard.position), // 确保 position 字段是一个 JSON 字符串
       size: newWhiteboard.size ? JSON.stringify(newWhiteboard.size) : null, // 确保 size 字段是一个 JSON 字符串或 null
       scrollPosition: JSON.stringify(newWhiteboard.scrollPosition)
@@ -208,11 +201,11 @@ export async function createWhiteboard(input: CreateWhiteboardInput): Promise<Wh
 }
 
 // 获取所有顶层白板
-// 顶层白板是指没有父白板的白板，isRoot 为 true
+// 顶层白板是指没有父白板的白板，isTopLevel 为 true
 export async function getTopLevelWhiteboards(): Promise<Whiteboard[]> {
   try {
     console.log('开始获取顶层白板')
-    const whiteboards = await db('whiteboards').where({ isRoot: true })
+    const whiteboards = await db('whiteboards').where({ isTopLevel: true })
     const processedWhiteboards = whiteboards.map(processWhiteboardData)
 
     console.log('获取顶层白板成功', processedWhiteboards)
@@ -245,106 +238,54 @@ export async function updateWhiteboardPosition(
   }
 }
 
-// 更新白板项位置
-export async function updateWhiteboardItemPosition(
+// 更新白板笔记的位置
+export async function updateWhiteboardNotePosition(
   id: string,
   x: number,
   y: number
-): Promise<WhiteboardItem> {
+): Promise<WhiteboardNote> {
   try {
-    const position = { x, y }
-    const positionJson = JSON.stringify(position)
-    console.log('后端→ 开始更新白板项位置', id, positionJson)
-
-    const updatedItems = await db('whiteboard_items')
+    const updatedWhiteboardNote = await db('whiteboard_notes')
       .where({ id })
-      .update({
-        position: positionJson
-      })
+      .update({ position: JSON.stringify({ x, y }) })
       .returning('*')
-
-    if (!updatedItems || updatedItems.length === 0) {
-      throw new Error(`未找到ID为 ${id} 的白板项`)
-    }
-
-    const updatedItem = updatedItems[0]
-    console.log('后端→ 更新白板项位置成功', updatedItem)
-
-    return processWhiteboardItemData(updatedItem)
+    console.log('更新白板笔记位置成功', updatedWhiteboardNote)
+    return processWhiteboardNoteData(updatedWhiteboardNote[0])
   } catch (error) {
-    console.error('后端→ 更新白板项位置失败:', error)
+    console.error('后端→ 更新白板笔记位置失败:', error)
     throw error
   }
 }
 
-// 辅助函数：处理不同类型的 WhiteboardItem
-function processWhiteboardItemData(item: any): WhiteboardItem {
-  if (!item || typeof item !== 'object') {
-    console.error('无效的白板项数据:', item)
-    throw new Error('无效的白板项数据')
+// 更新白板笔记的大小
+export async function updateWhiteboardNoteSize(
+  id: string,
+  width: number,
+  height: number
+): Promise<WhiteboardNote> {
+  try {
+    const updatedWhiteboardNote = await db('whiteboard_notes')
+      .where({ id })
+      .update({ size: JSON.stringify({ width, height }) })
+      .returning('*')
+    console.log('更新白板笔记大小成功', updatedWhiteboardNote)
+    return processWhiteboardNoteData(updatedWhiteboardNote[0])
+  } catch (error) {
+    console.error('后端→ 更新白板笔记大小失败:', error)
+    throw error
   }
-
-  const baseItem = {
-    id: item.id,
+}
+// 白板笔记的辅助函数
+function processWhiteboardNoteData(item: any): WhiteboardNote {
+  return {
+    ...item,
     position: JSON.parse(item.position),
-    zIndex: item.zIndex,
-    rotation: item.rotation
-  }
-
-  switch (item.type) {
-    case 'note':
-      return {
-        ...baseItem,
-        type: 'note',
-        noteId: item.noteId,
-        size: JSON.parse(item.size)
-      } as WhiteboardNote
-
-    case 'subboard':
-      return {
-        ...baseItem,
-        type: 'subboard',
-        whiteboardId: item.whiteboardId,
-        size: JSON.parse(item.size)
-      } as WhiteboardSubboard
-
-    case 'group':
-      return {
-        ...baseItem,
-        type: 'group',
-        name: item.name,
-        itemIds: JSON.parse(item.itemIds),
-        size: JSON.parse(item.size),
-        style: item.style ? JSON.parse(item.style) : undefined
-      } as WhiteboardGroup
-
-    case 'connection':
-      return {
-        ...baseItem,
-        type: 'connection',
-        startItemId: item.startItemId,
-        endItemId: item.endItemId,
-        startEdge: item.startEdge,
-        endEdge: item.endEdge,
-        color: item.color,
-        thickness: item.thickness,
-        label: item.label,
-        labelPosition: item.labelPosition ? JSON.parse(item.labelPosition) : undefined,
-        lineStyle: item.lineStyle,
-        startArrow: item.startArrow,
-        endArrow: item.endArrow,
-        lineShape: item.lineShape,
-        controlPoints: item.controlPoints ? JSON.parse(item.controlPoints) : undefined,
-        size: JSON.parse(item.size)
-      } as Connection
-
-    default:
-      console.error('未知的 WhiteboardItem 类型:', item.type)
-      throw new Error(`未知的 WhiteboardItem 类型: ${item.type}`)
+    size: JSON.parse(item.size)
   }
 }
 
 // 创建白板笔记
+// 输入一个白板的 id，一个白板笔记的数据，白板笔记的数据包括位置，大小，zIndex，旋转
 // 分成两个步骤，首先是创建一个卡片笔记，得到这个卡片笔记的 id
 // 然后，将这个卡片笔记的 id 作为参数，创建一个白板笔记
 export async function createWhiteboardNote(
@@ -353,21 +294,20 @@ export async function createWhiteboardNote(
   const note = await createNote()
   const newWhiteboardNote: WhiteboardNote = {
     id: uuidv4(),
-    type: 'note',
+    whiteboardId: input.whiteboardId,
     noteId: note.id,
     position: input.position,
     size: input.size,
     zIndex: input.zIndex,
     rotation: input.rotation
   }
-  await db('whiteboard_items').insert({
+  await db('whiteboard_notes').insert({
     ...newWhiteboardNote,
     position: JSON.stringify(newWhiteboardNote.position),
-    size: JSON.stringify(newWhiteboardNote.size),
-    whiteboardId: input.whiteboardId
+    size: JSON.stringify(newWhiteboardNote.size)
   })
   // 从数据库中获取刚插入的记录
-  const [insertedNote] = await db('whiteboard_items')
+  const [insertedNote] = await db('whiteboard_notes')
     .where({ id: newWhiteboardNote.id })
     .select('*')
 
@@ -379,48 +319,61 @@ export async function createWhiteboardNote(
   }
 }
 
-// 获取白板上的所有白板项
-// 通过白板ID获取白板内容，返回白板内容的数组
-
-// 获取白板上的所有白板项
-export async function getWhiteboardItems(whiteboardId: string): Promise<WhiteboardItem[]> {
+// 获取白板上的所有笔记
+export async function getWhiteboardNotes(whiteboardId: string): Promise<WhiteboardNote[]> {
   try {
-    const items = await db('whiteboard_items').where({ whiteboardId }).select('*')
-
-    return items.map((item) => ({
-      ...item,
-      position: JSON.parse(item.position),
-      size: JSON.parse(item.size)
-    })) as WhiteboardItem[]
+    const notes = await db('whiteboard_notes').where({ whiteboardId }).select('*')
+    return notes.map((note) => ({
+      ...note,
+      position: JSON.parse(note.position),
+      size: JSON.parse(note.size)
+    })) as WhiteboardNote[]
   } catch (error) {
-    console.error('后端→ 获取白板内容失败:', error)
+    console.error('后端→ 获取白板笔记失败:', error)
+    throw error
+  }
+}
+// 获取白板上的所有分组
+export async function getWhiteboardGroups(whiteboardId: string): Promise<WhiteboardGroup[]> {
+  try {
+    const groups = await db('whiteboard_groups').where({ whiteboardId }).select('*')
+    return groups.map((group) => ({
+      ...group,
+      position: JSON.parse(group.position),
+      size: JSON.parse(group.size)
+    })) as WhiteboardGroup[]
+  } catch (error) {
+    console.error('后端→ 获取白板分组失败:', error)
     throw error
   }
 }
 
-// 更新白板项的大小
-export async function updateWhiteboardItemSize(
-  id: string,
-  width: number,
-  height: number
-): Promise<WhiteboardItem> {
+// 获取白板上的所有连线
+export async function getWhiteboardConnections(whiteboardId: string): Promise<Connection[]> {
   try {
-    const updatedItem = await db('whiteboard_items')
-      .where({ id })
-      .update({ size: JSON.stringify({ width, height }) })
-      .returning('*')
-
-    if (!updatedItem || updatedItem.length === 0) {
-      throw new Error(`未找到ID为 ${id} 的白板项`)
-    }
-
-    const updatedItemData = updatedItem[0]
-    return {
-      ...updatedItemData,
-      size: JSON.parse(updatedItemData.size)
-    }
+    const connections = await db('whiteboard_connections').where({ whiteboardId }).select('*')
+    return connections.map((connection) => ({
+      ...connection,
+      position: JSON.parse(connection.position),
+      size: JSON.parse(connection.size)
+    })) as Connection[]
   } catch (error) {
-    console.error('后端→ 更新白板项大小失败:', error)
+    console.error('后端→ 获取白板连线失败:', error)
+    throw error
+  }
+}
+
+// 获取白板上的所有白板
+export async function getWhiteboardSubboards(whiteboardId: string): Promise<Whiteboard[]> {
+  try {
+    const subboards = await db('whiteboards').where({ parentId: whiteboardId }).select('*')
+    return subboards.map((subboard) => ({
+      ...subboard,
+      position: JSON.parse(subboard.position),
+      size: JSON.parse(subboard.size)
+    })) as Whiteboard[]
+  } catch (error) {
+    console.error('后端→ 获取白板子白板失败:', error)
     throw error
   }
 }
@@ -428,12 +381,27 @@ export async function updateWhiteboardItemSize(
 // 获取白板中的卡片数量
 export async function getCardCount(whiteboardId: string): Promise<number> {
   try {
-    const items = await db('whiteboard_items').where({ whiteboardId }).select('*')
-    // 筛选出 type 为 note 的项的数量
-    const cardCount = items.filter((item) => item.type === 'note').length
+    const items = await db('whiteboard_notes').where({ whiteboardId }).select('*')
+    const cardCount = items.length
+    console.log('后端→ 获取白板中的卡片数量成功', cardCount)
     return cardCount
   } catch (error) {
     console.error('后端→ 获取白板中的卡片数量失败:', error)
     throw error
   }
 }
+
+// 创建白板连线
+// 输入一个白板的 id，一个连线的数据，连线的数据包括起点和终点的 id，起点和终点的边，颜色，粗细，标签，标签位置，线样式，起点和终点的箭头，连线的形状，控制点，大小，旋转
+// 先创建一个连线，然后再创建一个白板连线
+// export async function createWhiteboardConnection(
+//   whiteboardId: string,
+//   connection: Partial<Connection>
+// ): Promise<WhiteboardItem> {
+//   const newConnection = await createConnection(connection as Omit<Connection, 'id'>)
+//   await db('whiteboard_connections').insert({
+//     whiteboardId,
+//     connectionId: newConnection.id
+//   })
+//   return newConnection
+// }

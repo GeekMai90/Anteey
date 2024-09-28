@@ -6,8 +6,9 @@ import {
   CreateWhiteboardInput,
   CreateWhiteboardNoteInput,
   WhiteboardNote,
-  WhiteboardItem,
-  RootWhiteboard
+  RootWhiteboard,
+  WhiteboardGroup,
+  Connection
 } from '../renderer/src/types/Note'
 
 contextBridge.exposeInMainWorld('electronAPI', {
@@ -203,33 +204,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
       throw error
     }
   },
-  getWhiteboardItems: async (whiteboardId: string): Promise<WhiteboardItem[]> => {
-    try {
-      console.log('Preload: 正在获取白板内容:', whiteboardId)
-      return (await ipcRenderer.invoke('get-whiteboard-items', whiteboardId)) as WhiteboardItem[]
-    } catch (error) {
-      console.error('Preload: 获取白板内容时出错:', error)
-      throw error
-    }
-  },
-  // 更新白板项位置
-  updateWhiteboardItemPosition: async (
-    id: string,
-    x: number,
-    y: number
-  ): Promise<WhiteboardItem> => {
-    try {
-      console.log('Preload: 正在更新白板项位置:', { id, x, y })
-      return (await ipcRenderer.invoke('update-whiteboard-item-position', {
-        id,
-        x,
-        y
-      })) as WhiteboardItem
-    } catch (error) {
-      console.error('Preload: 更新白板项位置时出错:', error)
-      throw error
-    }
-  },
   createRootWhiteboard: async (): Promise<RootWhiteboard> => {
     try {
       console.log('Preload: 正在创建根白板')
@@ -321,25 +295,91 @@ contextBridge.exposeInMainWorld('electronAPI', {
       throw error
     }
   },
-  // 更新白板项大小
-  updateWhiteboardItemSize: async (id: string, width: number, height: number) => {
-    try {
-      return (await ipcRenderer.invoke('update-whiteboard-item-size', {
-        id,
-        width,
-        height
-      })) as WhiteboardItem
-    } catch (error) {
-      console.error('Preload: 更新白板项大小时出错:', error)
-      throw error
-    }
-  },
+
   // 获取白板中的卡片数量
   getCardCount: async (whiteboardId: string): Promise<number> => {
     try {
       return (await ipcRenderer.invoke('get-card-count', { whiteboardId })) as number
     } catch (error) {
       console.error('Preload: 获取白板中的卡片数量时出错:', error)
+      throw error
+    }
+  },
+  // 获取白板中的所有白板笔记
+  getWhiteboardNotes: async (whiteboardId: string): Promise<WhiteboardNote[]> => {
+    try {
+      return (await ipcRenderer.invoke('get-whiteboard-notes', {
+        whiteboardId
+      })) as WhiteboardNote[]
+    } catch (error) {
+      console.error('Preload: 获取白板中的笔记时出错:', error)
+      throw error
+    }
+  },
+  // 获取白板中的所有分组
+  getWhiteboardGroups: async (whiteboardId: string): Promise<WhiteboardGroup[]> => {
+    try {
+      return (await ipcRenderer.invoke('get-whiteboard-groups', {
+        whiteboardId
+      })) as WhiteboardGroup[]
+    } catch (error) {
+      console.error('Preload: 获取白板中的分组时出错:', error)
+      throw error
+    }
+  },
+  // 获取白板中的所有连线
+  getWhiteboardConnections: async (whiteboardId: string): Promise<Connection[]> => {
+    try {
+      return (await ipcRenderer.invoke('get-whiteboard-connections', {
+        whiteboardId
+      })) as Connection[]
+    } catch (error) {
+      console.error('Preload: 获取白板中的连线时出错:', error)
+      throw error
+    }
+  },
+  // 获取白板中的所有白板
+  getWhiteboardSubboards: async (whiteboardId: string): Promise<Whiteboard[]> => {
+    try {
+      return (await ipcRenderer.invoke('get-whiteboard-subboards', {
+        whiteboardId
+      })) as Whiteboard[]
+    } catch (error) {
+      console.error('Preload: 获取白板中的白板时出错:', error)
+      throw error
+    }
+  },
+  // 更新白板笔记的位置
+  updateWhiteboardNotePosition: async (
+    id: string,
+    x: number,
+    y: number
+  ): Promise<WhiteboardNote> => {
+    try {
+      return (await ipcRenderer.invoke('update-whiteboard-note-position', {
+        id,
+        x,
+        y
+      })) as WhiteboardNote
+    } catch (error) {
+      console.error('Preload: 更新白板笔记位置时出错:', error)
+      throw error
+    }
+  },
+  // 更新白板笔记的大小
+  updateWhiteboardNoteSize: async (
+    id: string,
+    width: number,
+    height: number
+  ): Promise<WhiteboardNote> => {
+    try {
+      return (await ipcRenderer.invoke('update-whiteboard-note-size', {
+        id,
+        width,
+        height
+      })) as WhiteboardNote
+    } catch (error) {
+      console.error('Preload: 更新白板笔记大小时出错:', error)
       throw error
     }
   }

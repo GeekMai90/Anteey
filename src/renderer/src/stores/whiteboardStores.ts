@@ -10,7 +10,6 @@ import {
 import { useNoteStore } from './noteStores'
 
 const noteStore = useNoteStore()
-
 export const useWhiteboardStore = defineStore('whiteboard', {
   state: () => ({
     whiteboards: [] as Whiteboard[],
@@ -89,27 +88,7 @@ export const useWhiteboardStore = defineStore('whiteboard', {
       console.log('whiteboardStore→ 创建白板笔记成功', newWhiteboardNote)
       return newWhiteboardNote
     },
-    async getWhiteboardItems(whiteboardId: string) {
-      console.log('whiteboardStore→ 开始获取白板内容', whiteboardId)
-      // 获取所有的白板项
-      const items = await window.electronAPI.getWhiteboardItems(whiteboardId)
-      // 获取所有的笔记
-      // 先获取所有的笔记 id
-      const noteIds = items.filter((item) => item.type === 'note').map((item) => item.noteId)
-      // 获取所有的笔记
-      const notes = await noteStore.getNotesByIds(noteIds)
-      // 以笔记 id 和笔记的形式，存储在 whiteboardNotes 中
-      this.referenceNotes = Object.fromEntries(notes.map((note) => [note.id, note]))
-      console.log('whiteboardStore→ 获取白板内容成功', this.referenceNotes)
-      return items
-    },
-    // 更新白板项位置
-    async updateWhiteboardItemPosition(id: string, x: number, y: number) {
-      console.log('whiteboardStore→ 开始更新白板项位置', { id, x, y })
-      const updatedItem = await window.electronAPI.updateWhiteboardItemPosition(id, x, y)
-      console.log('whiteboardStore→ 更新白板项位置成功', updatedItem)
-      return updatedItem
-    },
+
     // 保存视图状态到白板
     async saveViewStateToWhiteboard(
       whiteboardId: string,
@@ -139,19 +118,100 @@ export const useWhiteboardStore = defineStore('whiteboard', {
       console.log('whiteboardStore→ 获取白板视图状态成功', viewState)
       return viewState
     },
-    // 更新白板项大小
-    async updateWhiteboardItemSize(id: string, width: number, height: number) {
-      console.log('whiteboardStore→ 开始更新白板项大小', { id, width, height })
-      const updatedItem = await window.electronAPI.updateWhiteboardItemSize(id, width, height)
-      console.log('whiteboardStore→ 更新白板项大小成功', updatedItem)
-      return updatedItem
-    },
     // 获取白板中的卡片数量
     async getCardCount(whiteboardId: string) {
       console.log('whiteboardStore→ 开始获取白板中的卡片数量', whiteboardId)
       const cardCount = await window.electronAPI.getCardCount(whiteboardId)
       console.log('whiteboardStore→ 获取白板中的卡片数量成功', cardCount)
       return cardCount
+    },
+
+    // 获取白板中的所有白板笔记
+    async getWhiteboardNotes(whiteboardId: string) {
+      try {
+        console.log('whiteboardStore→ 开始获取白板中的所有白板笔记', whiteboardId)
+        const whiteboardNotes = await window.electronAPI.getWhiteboardNotes(whiteboardId)
+        // 先获取所有的笔记 id
+        const noteIds = whiteboardNotes.map((note) => note.noteId)
+        // 获取所有的笔记
+        const notes = await noteStore.getNotesByIds(noteIds)
+        // 以笔记 id 和笔记的形式，存储在 whiteboardNotes 中
+        this.referenceNotes = Object.fromEntries(notes.map((note) => [note.id, note]))
+        console.log('whiteboardStore→ 获取白板中的所有白板笔记成功', this.referenceNotes)
+        return whiteboardNotes
+      } catch (error) {
+        console.error('whiteboardStore→ 获取白板中的所有白板笔记失败', error)
+        throw error
+      }
+    },
+    // 获取白板中的所有分组
+    async getWhiteboardGroups(whiteboardId: string) {
+      try {
+        console.log('whiteboardStore→ 开始获取白板中的所有分组', whiteboardId)
+        const whiteboardGroups = await window.electronAPI.getWhiteboardGroups(whiteboardId)
+        console.log('whiteboardStore→ 获取白板中的所有分组成功', whiteboardGroups)
+        return whiteboardGroups
+      } catch (error) {
+        console.error('whiteboardStore→ 获取白板中的所有分组失败', error)
+        throw error
+      }
+    },
+    // 获取白板中的所有连线
+    async getWhiteboardConnections(whiteboardId: string) {
+      try {
+        console.log('whiteboardStore→ 开始获取白板中的所有连线', whiteboardId)
+        const whiteboardConnections =
+          await window.electronAPI.getWhiteboardConnections(whiteboardId)
+        console.log('whiteboardStore→ 获取白板中的所有连线成功', whiteboardConnections)
+        return whiteboardConnections
+      } catch (error) {
+        console.error('whiteboardStore→ 获取白板中的所有连线失败', error)
+        throw error
+      }
+    },
+    // 获取白板中的所有白板
+    async getWhiteboardSubboards(whiteboardId: string) {
+      try {
+        console.log('whiteboardStore→ 开始获取白板中的所有白板', whiteboardId)
+        const whiteboardSubboards = await window.electronAPI.getWhiteboardSubboards(whiteboardId)
+        console.log('whiteboardStore→ 获取白板中的所有白板成功', whiteboardSubboards)
+        return whiteboardSubboards
+      } catch (error) {
+        console.error('whiteboardStore→ 获取白板中的所有白板失败', error)
+        throw error
+      }
+    },
+    // 更新白板笔记的位置
+    async updateWhiteboardNotePosition(id: string, x: number, y: number) {
+      try {
+        console.log('whiteboardStore→ 开始更新白板笔记位置', { id, x, y })
+        const updatedWhiteboardNote = await window.electronAPI.updateWhiteboardNotePosition(
+          id,
+          x,
+          y
+        )
+        console.log('whiteboardStore→ 更新白板笔记位置成功', updatedWhiteboardNote)
+        return updatedWhiteboardNote
+      } catch (error) {
+        console.error('whiteboardStore→ 更新白板笔记位置失败', error)
+        throw error
+      }
+    },
+    // 更新白板笔记的大小
+    async updateWhiteboardNoteSize(id: string, width: number, height: number) {
+      try {
+        console.log('whiteboardStore→ 开始更新白板笔记大小', { id, width, height })
+        const updatedWhiteboardNote = await window.electronAPI.updateWhiteboardNoteSize(
+          id,
+          width,
+          height
+        )
+        console.log('whiteboardStore→ 更新白板笔记大小成功', updatedWhiteboardNote)
+        return updatedWhiteboardNote
+      } catch (error) {
+        console.error('whiteboardStore→ 更新白板笔记大小失败', error)
+        throw error
+      }
     }
   },
   getters: {

@@ -5,8 +5,9 @@ import {
   CreateWhiteboardInput,
   CreateWhiteboardNoteInput,
   WhiteboardNote,
-  WhiteboardItem,
-  RootWhiteboard
+  RootWhiteboard,
+  Connection,
+  WhiteboardGroup
 } from './Note'
 
 export interface ElectronAPI {
@@ -34,8 +35,6 @@ export interface ElectronAPI {
   getTopLevelWhiteboards: () => Promise<Whiteboard[]>
   updateWhiteboardPosition: (id: string, x: number, y: number) => Promise<Whiteboard>
   createWhiteboardNote: (input: CreateWhiteboardNoteInput) => Promise<WhiteboardNote>
-  getWhiteboardItems: (whiteboardId: string) => Promise<WhiteboardItem[]>
-  updateWhiteboardItemPosition: (id: string, x: number, y: number) => Promise<WhiteboardItem>
   createRootWhiteboard: () => Promise<RootWhiteboard>
   getRootWhiteboard: () => Promise<RootWhiteboard>
   saveViewStateToRootWhiteboard: (
@@ -59,8 +58,15 @@ export interface ElectronAPI {
     translateX: number
     translateY: number
   }>
-  updateWhiteboardItemSize: (id: string, width: number, height: number) => Promise<WhiteboardItem>
   getCardCount: (whiteboardId: string) => Promise<number>
+  createConnection: (connection: Connection) => Promise<Connection>
+  getConnectionsByWhiteboardId: (whiteboardId: string) => Promise<Connection[]>
+  getWhiteboardNotes: (whiteboardId: string) => Promise<WhiteboardNote[]>
+  getWhiteboardGroups: (whiteboardId: string) => Promise<WhiteboardGroup[]>
+  getWhiteboardConnections: (whiteboardId: string) => Promise<Connection[]>
+  getWhiteboardSubboards: (whiteboardId: string) => Promise<Whiteboard[]>
+  updateWhiteboardNotePosition: (id: string, x: number, y: number) => Promise<WhiteboardNote>
+  updateWhiteboardNoteSize: (id: string, width: number, height: number) => Promise<WhiteboardNote>
 }
 
 declare global {

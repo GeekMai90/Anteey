@@ -25,16 +25,18 @@ import {
   getTopLevelWhiteboards,
   updateWhiteboardPosition,
   createWhiteboardNote,
-  getWhiteboardItems,
-  updateWhiteboardItemPosition,
   createRootWhiteboard,
   getRootWhiteboard,
   saveViewStateToRootWhiteboard,
   getRootWhiteboardViewState,
   saveViewStateToWhiteboard,
   getWhiteboardViewState,
-  updateWhiteboardItemSize,
-  getCardCount
+  getCardCount,
+  getWhiteboardNotes,
+  getWhiteboardGroups,
+  getWhiteboardSubboards,
+  updateWhiteboardNotePosition,
+  updateWhiteboardNoteSize
 } from '../db/whiteboards'
 import { CreateWhiteboardInput, CreateWhiteboardNoteInput } from '../renderer/src/types/Note'
 import { db, dbPath } from '../db/config'
@@ -146,6 +148,70 @@ function createCustomMenu() {
 }
 
 function setupIpcHandlers() {
+  // 更新白板笔记的大小
+  ipcMain.handle('update-whiteboard-note-size', async (_, { id, width, height }) => {
+    try {
+      const updatedWhiteboardNote = await updateWhiteboardNoteSize(id, width, height)
+      return updatedWhiteboardNote
+    } catch (error) {
+      console.error('主进程 → 更新白板笔记大小时出错:', error)
+      return { success: false, error: error }
+    }
+  })
+
+  // 更新白板笔记的位置
+  ipcMain.handle('update-whiteboard-note-position', async (_, { id, x, y }) => {
+    try {
+      const updatedWhiteboardNote = await updateWhiteboardNotePosition(id, x, y)
+      return updatedWhiteboardNote
+    } catch (error) {
+      console.error('主进程 → 更新白板笔记位置时出错:', error)
+      return { success: false, error: error }
+    }
+  })
+
+  // 获取白板中的所有白板
+  ipcMain.handle('get-whiteboard-subboards', async (_, { whiteboardId }) => {
+    try {
+      const whiteboardSubboards = await getWhiteboardSubboards(whiteboardId)
+      return whiteboardSubboards
+    } catch (error) {
+      console.error('主进程 → 获取白板中的白板时出错:', error)
+      return { success: false, error: error }
+    }
+  })
+
+  // // 获取白板中的所有连线
+  // ipcMain.handle('get-whiteboard-connections', async (_, { whiteboardId }) => {
+  //   try {
+  //     const whiteboardConnections = await getWhiteboardConnections(whiteboardId)
+  //     return whiteboardConnections
+  //   } catch (error) {
+  //     console.error('主进程 → 获取白板中的连线时出错:', error)
+  //     return { success: false, error: error }
+  //   }
+  // })
+
+  // 获取白板中的所有分组
+  ipcMain.handle('get-whiteboard-groups', async (_, { whiteboardId }) => {
+    try {
+      const whiteboardGroups = await getWhiteboardGroups(whiteboardId)
+      return whiteboardGroups
+    } catch (error) {
+      console.error('主进程 → 获取白板中的分组时出错:', error)
+      return { success: false, error: error }
+    }
+  })
+  // 获取白板中的所有白板笔记
+  ipcMain.handle('get-whiteboard-notes', async (_, { whiteboardId }) => {
+    try {
+      const whiteboardNotes = await getWhiteboardNotes(whiteboardId)
+      return whiteboardNotes
+    } catch (error) {
+      console.error('主进程 → 获取白板中的笔记时出错:', error)
+      return { success: false, error: error }
+    }
+  })
   // 获取白板中的卡片数量
   ipcMain.handle('get-card-count', async (_, { whiteboardId }) => {
     try {
@@ -156,16 +222,7 @@ function setupIpcHandlers() {
       return { success: false, error: error }
     }
   })
-  //更新白板项大小
-  ipcMain.handle('update-whiteboard-item-size', async (_, { id, width, height }) => {
-    try {
-      const updatedItem = await updateWhiteboardItemSize(id, width, height)
-      return updatedItem
-    } catch (error) {
-      console.error('主进程 → 更新白板项大小时出错:', error)
-      return { success: false, error: error }
-    }
-  })
+
   //获取白板视图状态
   ipcMain.handle('get-whiteboard-view-state', async (_, { whiteboardId }) => {
     try {
@@ -245,31 +302,6 @@ function setupIpcHandlers() {
       return newRootWhiteboard
     } catch (error) {
       console.error('主进程 → 创建根白板时出错:', error)
-      return { success: false, error: error }
-    }
-  })
-  // 更新白板项位置
-  ipcMain.handle('update-whiteboard-item-position', async (_, { id, x, y }) => {
-    try {
-      console.log('主进程 → 更新白板项位置:', { id, x, y })
-      const updatedItem = await updateWhiteboardItemPosition(id, x, y)
-      console.log('主进程 → 更新白板项位置成功:', updatedItem)
-      return updatedItem
-    } catch (error) {
-      console.error('主进程 → 更新白板项位置时出错:', error)
-      return { success: false, error: error }
-    }
-  })
-
-  // 获取白板上的所有白板项
-  ipcMain.handle('get-whiteboard-items', async (_, whiteboardId: string) => {
-    try {
-      console.log('主进程 → 获取白板内容:', whiteboardId)
-      const items = await getWhiteboardItems(whiteboardId)
-      console.log('主进程 → 获取白板内容成功:', items)
-      return items
-    } catch (error) {
-      console.error('主进程 → 获取白板内容时出错:', error)
       return { success: false, error: error }
     }
   })
