@@ -37,15 +37,15 @@
           v-for="connection in connections"
           :key="connection.id"
           :connection="connection"
-          strokeColor="red"
-          :strokeWidth="5"
+          strokeColor="var(--color-text-secondary)"
+          :strokeWidth="1"
           textColor="#333333"
         />
         <CardConnection
           v-if="isCreatingConnection"
           :connection="temporaryConnection"
-          strokeColor="red"
-          :strokeWidth="2"
+          strokeColor="var(--color-text-secondary)"
+          :strokeWidth="1"
           textColor="#333333"
         />
       </div>
