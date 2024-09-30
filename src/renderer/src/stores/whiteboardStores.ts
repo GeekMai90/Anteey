@@ -5,7 +5,8 @@ import {
   Connection,
   CreateWhiteboardInput,
   CreateWhiteboardNoteInput,
-  Note
+  Note,
+  ConnectionCreateData
 } from '../types/Note'
 import { useNoteStore } from './noteStores'
 
@@ -201,7 +202,7 @@ export const useWhiteboardStore = defineStore('whiteboard', {
       }
     },
     // 创建连线
-    async createConnection(connection: Connection) {
+    async createConnection(connection: ConnectionCreateData) {
       try {
         console.log('whiteboardStore→ 开始创建连线', connection)
         const newConnection = await window.electronAPI.createConnection(connection)
@@ -226,12 +227,29 @@ export const useWhiteboardStore = defineStore('whiteboard', {
     },
     // 删除连线
     async deleteConnection(id: string) {
+      console.log('whiteboardStore→ 开始删除连线', id)
       try {
-        console.log('whiteboardStore→ 开始删除连线', id)
         await window.electronAPI.deleteConnection(id)
         console.log('whiteboardStore→ 删除连线成功')
       } catch (error) {
         console.error('whiteboardStore→ 删除连线失败', error)
+        throw error
+      }
+    },
+    // 更新连线描述
+    async updateConnectionDescription(id: string, description: string) {
+      try {
+        console.log('whiteboardStore→ 开始更新连线描述', { id, description })
+        const result = await window.electronAPI.updateConnectionDescription(id, description)
+        if (result.success) {
+          const updatedConnection = result.connection
+          return updatedConnection
+        } else {
+          console.error('whiteboardStore→ 更新连线描述失败', result.error)
+          throw result.error
+        }
+      } catch (error) {
+        console.error('whiteboardStore→ 更新连线描述失败', error)
         throw error
       }
     },

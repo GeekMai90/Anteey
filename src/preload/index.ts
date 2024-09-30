@@ -393,9 +393,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
     }
   },
   // 删除连线
-  deleteConnection: async (id: string): Promise<void> => {
+  deleteConnection: async (id: string): Promise<boolean> => {
+    console.log('Preload: 正在删除连线:', id)
     try {
-      return (await ipcRenderer.invoke('delete-connection', id)) as void
+      return (await ipcRenderer.invoke('delete-connection', id)) as boolean
     } catch (error) {
       console.error('Preload: 删除连线时出错:', error)
       throw error
@@ -409,6 +410,19 @@ contextBridge.exposeInMainWorld('electronAPI', {
       })) as Connection[]
     } catch (error) {
       console.error('Preload: 获取白板中的连线时出错:', error)
+      throw error
+    }
+  },
+  // 更新连线描述
+  updateConnectionDescription: async (id: string, description: string): Promise<Connection> => {
+    try {
+      return (await ipcRenderer.invoke(
+        'update-connection-description',
+        id,
+        description
+      )) as Connection
+    } catch (error) {
+      console.error('Preload: 更新连线描述时出错:', error)
       throw error
     }
   }

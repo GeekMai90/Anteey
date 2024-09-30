@@ -42,7 +42,8 @@ import {
   createConnection,
   updateConnection,
   getConnectionsByWhiteboardId,
-  deleteConnection
+  deleteConnection,
+  updateConnectionDescription
 } from '../db/connections'
 import {
   ConnectionCreateData,
@@ -159,6 +160,17 @@ function createCustomMenu() {
 }
 
 function setupIpcHandlers() {
+  // 更新连线描述
+  ipcMain.handle('update-connection-description', async (_, id: string, description: string) => {
+    try {
+      console.log('主进程 → 更新连线描述:', id, description)
+      const updatedConnection = await updateConnectionDescription(id, description)
+      return { success: true, connection: updatedConnection }
+    } catch (error) {
+      console.error('主进程 → 更新连线描述时出错:', error)
+      return { success: false, error: error }
+    }
+  })
   // 创建连线
   ipcMain.handle('create-connection', async (_, connection: ConnectionCreateData) => {
     try {
@@ -189,10 +201,12 @@ function setupIpcHandlers() {
       return { success: false, error: error }
     }
   })
-  // 删除连线
-  ipcMain.handle('delete-connection', async (_, { id }) => {
+  //删除连线
+  ipcMain.handle('delete-connection', async (_, id: string) => {
+    console.log('主进程 → 正在删除连线:', id)
     try {
       await deleteConnection(id)
+      console.log('主进程 → 删除连线成功:', id)
       return { success: true }
     } catch (error) {
       console.error('主进程 → 删除连线时出错:', error)
@@ -232,17 +246,6 @@ function setupIpcHandlers() {
       return { success: false, error: error }
     }
   })
-
-  // // 获取白板中的所有连线
-  // ipcMain.handle('get-whiteboard-connections', async (_, { whiteboardId }) => {
-  //   try {
-  //     const whiteboardConnections = await getWhiteboardConnections(whiteboardId)
-  //     return whiteboardConnections
-  //   } catch (error) {
-  //     console.error('主进程 → 获取白板中的连线时出错:', error)
-  //     return { success: false, error: error }
-  //   }
-  // })
 
   // 获取白板中的所有分组
   ipcMain.handle('get-whiteboard-groups', async (_, { whiteboardId }) => {

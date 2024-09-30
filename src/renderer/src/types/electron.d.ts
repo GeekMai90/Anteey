@@ -7,7 +7,8 @@ import {
   WhiteboardNote,
   RootWhiteboard,
   Connection,
-  WhiteboardGroup
+  WhiteboardGroup,
+  ConnectionCreateData
 } from './Note'
 
 export interface ElectronAPI {
@@ -68,7 +69,15 @@ export interface ElectronAPI {
   updateConnection: (connection: Connection) => Promise<Connection>
   deleteConnection: (id: string) => Promise<void>
   getConnectionsByWhiteboardId: (whiteboardId: string) => Promise<Connection[]>
-  createConnection: (connection: Connection) => Promise<Connection>
+  createConnection: (connection: ConnectionCreateData) => Promise<Connection>
+  updateConnectionDescription: (
+    id: string,
+    description: string
+  ) => Promise<{
+    success: boolean
+    connection: Connection | null
+    error: string | null
+  }>
 }
 
 declare global {

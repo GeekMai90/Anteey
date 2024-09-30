@@ -11,7 +11,6 @@
       class="whiteboard-canvas"
       :class="{ connecting: isConnecting }"
       @wheel="handleWheel"
-      @mousedown="handleMouseDown"
       @touchstart="handleTouchStart"
       @touchmove="handleTouchMove"
       @touchend="handleTouchEnd"
@@ -36,17 +35,19 @@
         <CardConnection
           v-for="connection in connections"
           :key="connection.id"
+          v-click-outside="deselectConnection"
           :connection="connection"
           strokeColor="var(--color-text-secondary)"
-          :strokeWidth="1"
-          textColor="#333333"
+          :isSelected="selectedConnectionId === connection.id"
+          @click="(event) => selectConnection(connection.id, event)"
+          @contextmenu="showConnectionContextMenu"
+          @update:description="updateConnectionDescription"
         />
+
         <CardConnection
           v-if="isCreatingConnection"
           :connection="temporaryConnection"
           strokeColor="var(--color-text-secondary)"
-          :strokeWidth="1"
-          textColor="#333333"
         />
       </div>
     </div>
@@ -73,7 +74,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, watch, computed } from 'vue'
+import { ref, onMounted, onUnmounted, watch, computed, markRaw, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
 import AppToolbar from '@renderer/components/AppToolbar.vue'
 import { useWhiteboardStore } from '../stores/whiteboardStores'
@@ -82,15 +83,17 @@ import {
   WhiteboardNote,
   WhiteboardGroup,
   Whiteboard,
-  Connection
+  Connection,
+  ConnectionCreateData
 } from '@renderer/types/Note'
 import WhiteboardNoteComponent from './WhiteboardNoteComponent.vue'
 // import WhiteboardSubboard from './WhiteboardSubboard.vue'
 // import WhiteboardGroupComponent from './WhiteboardGroupComponent.vue'
 // import WhiteboardConnection from './WhiteboardConnection.vue'
-import { Add, Aiming } from '@icon-park/vue-next'
+import { Add, Aiming, Delete } from '@icon-park/vue-next'
 import WhiteboardZoomControl from './WhiteboardZoomControl.vue'
 import CardConnection from './CardConnection.vue'
+import { useContextMenuStore } from '../stores/contextMenuStore'
 
 const containerRef = ref<HTMLElement | null>(null)
 const route = useRoute()
@@ -100,6 +103,7 @@ const whiteboardNotes = ref<WhiteboardNote[]>([])
 const whiteboardGroups = ref<WhiteboardGroup[]>([])
 const whiteboardSubboards = ref<Whiteboard[]>([])
 const connections = ref<Connection[]>([])
+const contextMenuStore = useContextMenuStore()
 
 const draggingItem = ref<{ id: string; startX: number; startY: number } | null>(null)
 const alignmentGuides = ref<{ direction: 'horizontal' | 'vertical'; position: number }[]>([])
@@ -116,6 +120,75 @@ const connectionEnd = ref({ x: 0, y: 0 })
 const startNote = ref<WhiteboardNote | null>(null)
 const isConnecting = ref(false)
 const hoverNote = ref<WhiteboardNote | null>(null)
+const selectedConnectionId = ref<string | null>(null)
+
+// const editingConnection = ref<Connection | null>(null)
+const descriptionInputRef = ref<HTMLInputElement | null>(null)
+const measureSpan = ref<HTMLSpanElement | null>(null)
+
+const updateConnectionDescription = async (id: string, description: string) => {
+  console.log('updateConnectionDescription', id, description)
+  await whiteboardStore.updateConnectionDescription(id, description)
+  const index = connections.value.findIndex((c) => c.id === id)
+  if (index !== -1) {
+    connections.value[index].description = description
+  }
+}
+
+const adjustInputWidth = () => {
+  if (measureSpan.value && descriptionInputRef.value) {
+    const contentWidth = measureSpan.value.offsetWidth
+    descriptionInputRef.value.style.width = `${Math.max(30, contentWidth + 10)}px`
+  }
+}
+onMounted(() => {
+  nextTick(() => {
+    adjustInputWidth()
+  })
+})
+
+const deselectConnection = () => {
+  if (selectedConnectionId.value) {
+    selectedConnectionId.value = null
+  }
+}
+
+const selectConnection = (connectionId: string, event?: Event) => {
+  if (event) {
+    event.stopPropagation()
+  }
+  console.log('Connection selected:', connectionId)
+  if (selectedConnectionId.value === connectionId) {
+    selectedConnectionId.value = null
+  } else {
+    selectedConnectionId.value = connectionId
+  }
+}
+
+// 显示连线上下文菜单
+const showConnectionContextMenu = (event: MouseEvent, connection: Connection) => {
+  selectedConnectionId.value = connection.id
+  contextMenuStore.showMenu(event.clientX, event.clientY, [
+    {
+      label: '删除连线',
+      icon: markRaw(Delete),
+      action: () => deleteSelectedConnection(connection.id)
+    }
+    // 可以在这里添加更多的菜单项
+  ])
+}
+// 删除连线
+const deleteSelectedConnection = async (connectionId: string) => {
+  try {
+    await whiteboardStore.deleteConnection(connectionId)
+    connections.value = connections.value.filter((c) => c.id !== connectionId)
+    selectedConnectionId.value = null
+    contextMenuStore.closeMenu()
+  } catch (error) {
+    console.error('Failed to delete connection:', error)
+    // 这里可以添加错误处理，比如显示一个错误提示
+  }
+}
 
 const temporaryConnection = computed(() => ({
   id: 'temp',
@@ -612,28 +685,9 @@ let lastX = 0
 let lastY = 0
 let lastPinchDistance = 0
 
-const handleMouseDown = (event: MouseEvent) => {
-  if (event.button === 0) {
-    // 左键
-    isDragging = true
-    lastX = event.clientX
-    lastY = event.clientY
-    document.addEventListener('mousemove', handleMouseMove)
-    document.addEventListener('mouseup', handleMouseUp)
-  }
-}
-
 const handleMouseMove = (event: MouseEvent) => {
   console.log('Mouse moving', isCreatingConnection.value)
   if (isCreatingConnection.value) {
-    // console.log('Creating connection')
-    // const rect = containerRef.value?.getBoundingClientRect()
-    // if (rect) {
-    //   connectionEnd.value = {
-    //     x: (event.clientX - rect.left - translateX.value) / scale.value,
-    //     y: (event.clientY - rect.top - translateY.value) / scale.value
-    //   }
-    // }
     const rect = containerRef.value?.getBoundingClientRect()
     if (rect) {
       const mouseX = (event.clientX - rect.left - translateX.value) / scale.value
@@ -678,13 +732,12 @@ const findNoteUnderMouse = (event: MouseEvent): WhiteboardNote | null => {
     }) || null
   )
 }
-const handleMouseUp = (event: MouseEvent) => {
+const handleMouseUp = async (event: MouseEvent) => {
   if (isCreatingConnection.value && startNote.value) {
     const endNote = findNoteUnderMouse(event)
     if (endNote && endNote.id !== startNote.value.id) {
       const { startPoint, endPoint } = calculateConnectionPoints(startNote.value, endNote)
-      const newConnection: Connection = {
-        id: `connection-${Date.now()}`,
+      const newConnection: ConnectionCreateData = {
         whiteboardId: whiteboardId.value as string,
         startItemId: startNote.value.id,
         endItemId: endNote.id,
@@ -692,8 +745,8 @@ const handleMouseUp = (event: MouseEvent) => {
         endPoint,
         description: ''
       }
-      connections.value.push(newConnection)
-      whiteboardStore.createConnection(newConnection)
+      const createdConnection = await whiteboardStore.createConnection(newConnection)
+      connections.value.push(createdConnection)
     }
     isCreatingConnection.value = false
     isConnecting.value = false // 添加这行
@@ -896,9 +949,9 @@ onUnmounted(() => {
   overflow: hidden;
   touch-action: none;
   user-select: none;
-  cursor: grab;
+  cursor: default;
   &:active {
-    cursor: grabbing;
+    cursor: default;
   }
   &.connecting {
     cursor: crosshair;
@@ -918,6 +971,7 @@ onUnmounted(() => {
 .whiteboard-item {
   position: absolute;
   transition: transform 0.1s ease-out;
+  cursor: grab;
 
   &:active {
     cursor: grabbing;
@@ -1023,31 +1077,38 @@ onUnmounted(() => {
   right: 63px;
   z-index: 100;
 }
-// .connections-container {
-//   position: absolute;
-//   top: 0;
-//   left: 0;
-//   width: 1000px;
-//   height: 1000px;
-//   pointer-events: none;
-// }
-// .connection-line {
-//   position: absolute;
-//   overflow: visible;
-// }
-
-// .connection-line {
-//   position: absolute;
-//   top: 0;
-//   left: 0;
-//   width: 1000px;
-//   height: 1000px;
-//   pointer-events: none;
-// }
 .connection-line {
   position: absolute;
   top: 0;
   left: 0;
   pointer-events: none;
+}
+.connection-description-input {
+  position: absolute;
+  z-index: 1000;
+  display: inline-block; // 添加这行
+
+  input {
+    background-color: var(--color-bg-primary);
+    border: 1px solid var(--color-border);
+    min-width: 20px;
+    border-radius: 4px;
+    padding: 4px 8px;
+    font-size: 12px;
+    color: var(--color-text-primary);
+    outline: none;
+    transition: width 0.2s ease;
+
+    &:focus {
+      border-color: var(--color-primary);
+    }
+  }
+  .measure-span {
+    visibility: hidden;
+    position: absolute;
+    white-space: pre;
+    font-size: 12px;
+    padding: 4px 8px;
+  }
 }
 </style>
