@@ -319,6 +319,27 @@ export async function createWhiteboardNote(
   }
 }
 
+// 删除白板笔记
+// 删除白板笔记，同时删除连接该白板笔记的连线
+export async function deleteWhiteboardNote(id: string): Promise<void> {
+  try {
+    console.log('后端→ 删除白板笔记', id)
+    await db('whiteboard_notes').where({ id }).del()
+    // 通过白板笔记的 id 去查找白板连线的  startItemId 或 endItemId 字段中是否包含该 id，如果包含，则删除该连线
+    const connections = await db('connections')
+      .where({ startItemId: id })
+      .orWhere({ endItemId: id })
+    for (const connection of connections) {
+      await db('connections').where({ id: connection.id }).del()
+    }
+    console.log('后端→ 删除白板笔记成功', id)
+    console.log('后端→ 删除白板连线成功', connections)
+  } catch (error) {
+    console.error('后端→ 删除白板笔记失败:', error)
+    throw error
+  }
+}
+
 // 获取白板上的所有笔记
 export async function getWhiteboardNotes(whiteboardId: string): Promise<WhiteboardNote[]> {
   try {

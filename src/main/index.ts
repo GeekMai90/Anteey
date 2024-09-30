@@ -36,7 +36,8 @@ import {
   getWhiteboardGroups,
   getWhiteboardSubboards,
   updateWhiteboardNotePosition,
-  updateWhiteboardNoteSize
+  updateWhiteboardNoteSize,
+  deleteWhiteboardNote
 } from '../db/whiteboards'
 import {
   createConnection,
@@ -160,6 +161,19 @@ function createCustomMenu() {
 }
 
 function setupIpcHandlers() {
+  // 删除白板笔记
+  ipcMain.handle('delete-whiteboard-note', async (_, id: string) => {
+    try {
+      console.log('主进程 → 删除白板笔记:', id)
+      await deleteWhiteboardNote(id)
+      console.log('主进程 → 删除白板笔记成功:', id)
+      return { success: true }
+    } catch (error) {
+      console.error('主进程 → 删除白板笔记时出错:', error)
+      return { success: false, error: error }
+    }
+  })
+
   // 更新连线描述
   ipcMain.handle('update-connection-description', async (_, id: string, description: string) => {
     try {

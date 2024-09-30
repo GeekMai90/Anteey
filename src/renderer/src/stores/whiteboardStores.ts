@@ -6,7 +6,8 @@ import {
   CreateWhiteboardInput,
   CreateWhiteboardNoteInput,
   Note,
-  ConnectionCreateData
+  ConnectionCreateData,
+  WhiteboardNote
 } from '../types/Note'
 import { useNoteStore } from './noteStores'
 
@@ -18,7 +19,8 @@ export const useWhiteboardStore = defineStore('whiteboard', {
     referenceNotes: {} as Record<string, Note>, // 以笔记 id 和笔记的形式，存储在 referenceNotes 中
     currentWhiteboardId: undefined as string | undefined,
     isLoading: false,
-    error: null as string | null
+    error: null as string | null,
+    whiteboardNotes: [] as WhiteboardNote[]
   }),
   actions: {
     // 获取根白板的视图状态
@@ -132,6 +134,8 @@ export const useWhiteboardStore = defineStore('whiteboard', {
       try {
         console.log('whiteboardStore→ 开始获取白板中的所有白板笔记', whiteboardId)
         const whiteboardNotes = await window.electronAPI.getWhiteboardNotes(whiteboardId)
+        // 将获取到的白板笔记存储在 state 中
+        this.whiteboardNotes = whiteboardNotes
         // 先获取所有的笔记 id
         const noteIds = whiteboardNotes.map((note) => note.noteId)
         // 获取所有的笔记
@@ -194,6 +198,11 @@ export const useWhiteboardStore = defineStore('whiteboard', {
           width,
           height
         )
+        // 使用 Vue 的响应式 API 来更新状态
+        const index = this.whiteboardNotes.findIndex((note) => note.id === id)
+        if (index !== -1) {
+          this.whiteboardNotes[index] = { ...this.whiteboardNotes[index], size: { width, height } }
+        }
         console.log('whiteboardStore→ 更新白板笔记大小成功', updatedWhiteboardNote)
         return updatedWhiteboardNote
       } catch (error) {
@@ -264,12 +273,27 @@ export const useWhiteboardStore = defineStore('whiteboard', {
         console.error('whiteboardStore→ 获取白板中的所有连线失败', error)
         throw error
       }
+    },
+    // 删除白板笔记
+    async deleteWhiteboardNote(id: string) {
+      try {
+        console.log('whiteboardStore→ 开始删除白板笔记', id)
+        const result = await window.electronAPI.deleteWhiteboardNote(id)
+        console.log('whiteboardStore→ 删除白板笔记成功', result)
+        return result
+      } catch (error) {
+        console.error('whiteboardStore→ 删除白板笔记失败', error)
+        throw error
+      }
     }
   },
   getters: {
     // 获取参考笔记,传入笔记 id,返回笔记
     getReferenceNotes: (state) => {
       return (id: string) => state.referenceNotes[id]
+    },
+    getWhiteboardNoteById: (state) => {
+      return (id: string) => state.whiteboardNotes.find((note) => note.id === id)
     }
   },
   persist: true

@@ -78,6 +78,7 @@ export interface ElectronAPI {
     connection: Connection | null
     error: string | null
   }>
+  deleteWhiteboardNote: (id: string) => Promise<boolean>
 }
 
 declare global {

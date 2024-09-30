@@ -425,5 +425,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
       console.error('Preload: 更新连线描述时出错:', error)
       throw error
     }
+  },
+  // 删除白板笔记
+  deleteWhiteboardNote: async (id: string): Promise<boolean> => {
+    try {
+      return (await ipcRenderer.invoke('delete-whiteboard-note', id)) as boolean
+    } catch (error) {
+      console.error('Preload: 删除白板笔记时出错:', error)
+      throw error
+    }
   }
 })

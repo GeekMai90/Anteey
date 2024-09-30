@@ -27,10 +27,12 @@
           :style="getWhiteNoteStyle(item)"
           :item="item"
           :note="whiteboardStore.getReferenceNotes(item.noteId)"
+          :note-id="item.noteId"
           :is-hovered="isCreatingConnection && hoverNote?.id === item.id"
           @mousedown.stop="startDraggingItem(item, $event)"
           @resize-start="startResizingItem(item, $event)"
           @start-connection="startConnection"
+          @note-interaction="handleNoteInteraction"
         />
         <CardConnection
           v-for="connection in connections"
@@ -125,6 +127,12 @@ const selectedConnectionId = ref<string | null>(null)
 // const editingConnection = ref<Connection | null>(null)
 const descriptionInputRef = ref<HTMLInputElement | null>(null)
 const measureSpan = ref<HTMLSpanElement | null>(null)
+
+const isNoteInteracting = ref(false)
+console.log('isNoteInteracting', isNoteInteracting.value)
+const handleNoteInteraction = (interacting: boolean) => {
+  isNoteInteracting.value = interacting
+}
 
 const updateConnectionDescription = async (id: string, description: string) => {
   console.log('updateConnectionDescription', id, description)
@@ -485,6 +493,10 @@ const transformLayerStyle = computed(() => ({
 }))
 
 const startDraggingItem = (item: WhiteboardNote, event: MouseEvent) => {
+  if (isNoteInteracting.value) {
+    event.preventDefault()
+    return
+  }
   // 检查事件目标是否为连接按钮
   if ((event.target as HTMLElement).closest('.connection-button')) {
     return // 如果是连接按钮，不启动拖拽
@@ -666,7 +678,7 @@ const createWhiteboardNote = async () => {
     whiteboardId: whiteboardId.value,
     noteId: '',
     position: { x: 100, y: 100 }, // 默认位置，你可以根据需要调整
-    size: { width: 200, height: 150 }, // 默认大小，你可以根据需要调整
+    size: { width: 350, height: 150 }, // 默认大小，你可以根据需要调整
     zIndex: 1,
     rotation: 0
   }
@@ -686,6 +698,10 @@ let lastY = 0
 let lastPinchDistance = 0
 
 const handleMouseMove = (event: MouseEvent) => {
+  if (isNoteInteracting.value) {
+    event.preventDefault()
+    return
+  }
   console.log('Mouse moving', isCreatingConnection.value)
   if (isCreatingConnection.value) {
     const rect = containerRef.value?.getBoundingClientRect()
@@ -760,6 +776,10 @@ const handleMouseUp = async (event: MouseEvent) => {
 }
 
 const handleWheel = (event: WheelEvent) => {
+  if (isNoteInteracting.value) {
+    event.preventDefault()
+    return
+  }
   if (event.ctrlKey) {
     // 缩放
     event.preventDefault()
@@ -788,6 +808,10 @@ const handleWheel = (event: WheelEvent) => {
 }
 
 const handleTouchStart = (event: TouchEvent) => {
+  if (isNoteInteracting.value) {
+    event.preventDefault()
+    return
+  }
   if (event.touches.length === 2) {
     const touch1 = event.touches[0]
     const touch2 = event.touches[1]
@@ -801,6 +825,11 @@ const handleTouchStart = (event: TouchEvent) => {
 
 const handleTouchMove = (event: TouchEvent) => {
   event.preventDefault()
+  console.log('isNoteInteracting', isNoteInteracting.value)
+  if (isNoteInteracting.value) {
+    event.preventDefault()
+    return
+  }
   if (event.touches.length === 2) {
     const touch1 = event.touches[0]
     const touch2 = event.touches[1]
@@ -928,7 +957,7 @@ onUnmounted(() => {
   height: 100vh;
   display: flex;
   flex-direction: column;
-  background-color: var(--color-bg-primary);
+  background-color: #f3f5f7;
   overflow: hidden;
 }
 
@@ -945,7 +974,7 @@ onUnmounted(() => {
   width: 100%;
   // height: 100%;
   height: 100vh; /* 或者设置一个固定的高度 */
-  background-color: var(--color-bg-primary);
+  background-color: #f3f5f7;
   overflow: hidden;
   touch-action: none;
   user-select: none;

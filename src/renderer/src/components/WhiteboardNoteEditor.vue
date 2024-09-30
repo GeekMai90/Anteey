@@ -1,21 +1,8 @@
-<!-- src/components/WhiteNoteComponent.vue -->
+<!-- src/components/WhiteboardNoteEditor.vue -->
 <template>
-  <div
-    :id="`note-${props.noteId}`"
-    ref="noteRef"
-    class="whiteboard-note-component"
-    :class="['whiteboard-note', { hovered: isHovered, editing: isEditing }]"
-    :style="noteStyle"
-    @mousedown.stop
-    @touchstart.stop
-    @dblclick="startEditing"
-    @v-click-outside="stopEditing"
-  >
+  <div class="whiteboard-note-editor">
     <!-- 顶部工具栏 -->
     <div class="toolbar">
-      <button @click="toggleHeightMode">
-        {{ isFixedHeight ? '自动增高' : '固定高度' }}
-      </button>
       <!-- 展开编辑器 -->
       <div
         v-tooltip.bottom="{ content: '展开编辑器', delay: { show: 1000 } }"
@@ -40,20 +27,19 @@
             @close="showCardBoxMenu = false"
           />
         </div>
-        <div class="connect-btn" @click="startConnection">
-          <div v-tooltip.bottom="{ content: '连线', delay: { show: 1000 } }" class="icon">
-            <Plus theme="outline" size="16" fill="var(--color-icon-default)" />
-          </div>
-        </div>
-        <div class="more-btn" @click.stop="openMenu" @v-click-outside="closeMenu">
+
+        <div class="more-btn" @click.stop="toggleOptionsMenu">
           <div v-tooltip.bottom="{ content: '更多', delay: { show: 1000 } }" class="icon">
             <More theme="outline" size="16" fill="var(--color-icon-default)" />
+          </div>
+          <div v-if="isOptionsMenuVisible" v-click-outside="closeOptionsMenu">
+            <NoteOptionsMenu ref="noteOptionsMenu" :noteId="noteId" @close="closeOptionsMenu" />
           </div>
         </div>
       </div>
     </div>
     <!-- 编辑器内容 -->
-    <div class="editor-content" :style="editorContentStyle">
+    <div class="editor-content">
       <div class="address-input">
         <div
           ref="indicatorButton"
@@ -70,11 +56,11 @@
         />
       </div>
       <div class="content-area">
-        <div ref="editorContainerRef" class="content-wrapper">
+        <div class="content-wrapper">
           <TipTapEditor
             ref="tiptapEditor"
             :content="editedNote.content"
-            :editable="isEditing"
+            :editable="true"
             :enableDragHandle="true"
             @update:content="updateContent"
           />
@@ -96,34 +82,12 @@
         <div class="name">{{ getTypeLabel(type) }}</div>
       </div>
     </div>
-    <div class="resize-handle top" @mousedown="startResize('top', $event)"></div>
-    <div class="resize-handle right" @mousedown="startResize('right', $event)"></div>
-    <div class="resize-handle bottom" @mousedown="startResize('bottom', $event)"></div>
-    <div class="resize-handle left" @mousedown="startResize('left', $event)"></div>
-    <div class="resize-handle top-left" @mousedown="startResize('top-left', $event)"></div>
-    <div class="resize-handle top-right" @mousedown="startResize('top-right', $event)"></div>
-    <div class="resize-handle bottom-right" @mousedown="startResize('bottom-right', $event)"></div>
-    <div class="resize-handle bottom-left" @mousedown="startResize('bottom-left', $event)"></div>
-    <!-- <button class="connection-button" @click.stop="startConnection">
-      <Plus theme="outline" size="16" fill="#FFF" />
-    </button> -->
-    <PopupMenu ref="popupMenuRef" :menuItems="whiteboardMenuItems" />
   </div>
 </template>
 
 <script setup lang="ts">
-import {
-  computed,
-  ComputedRef,
-  CSSProperties,
-  nextTick,
-  onBeforeUnmount,
-  onMounted,
-  onUnmounted,
-  ref,
-  watch
-} from 'vue'
-import { Note, CardType, CardBox, WhiteboardNote } from '../types/Note'
+import { computed, nextTick, onBeforeUnmount, onMounted, onUnmounted, ref, watch } from 'vue'
+import { Note, CardType, CardBox } from '../types/Note'
 import { useNoteStore } from '../stores/noteStores'
 import TipTapEditor from '../components/TipTapEditor.vue'
 import { useRouter } from 'vue-router'
@@ -134,26 +98,16 @@ import {
   Link,
   ExpandTextInput,
   Install,
-  More,
-  Plus
+  More
 } from '@icon-park/vue-next'
 // import { useDebounceFn, useThrottleFn } from '@vueuse/core'
 import CardboxDropdownMenu from './CardboxDropdownMenu.vue'
 // import { isEqual } from 'lodash-es'
+import NoteOptionsMenu from '@renderer/components/NoteOptionsMenu.vue'
 import { debounce } from 'lodash-es'
-import PopupMenu from '@renderer/components/PopupMenu.vue'
-import { useNoteMenu } from '@renderer/composable/useNoteMenu'
-import { useWhiteboardStore } from '../stores/whiteboardStores'
-import { storeToRefs } from 'pinia'
-import { onClickOutside } from '@vueuse/core'
 
 const props = defineProps<{
   noteId: string
-  note: Note
-  width?: number
-  height?: number
-  item: WhiteboardNote
-  isHovered: boolean
 }>()
 
 const router = useRouter()
@@ -161,182 +115,23 @@ const addressInput = ref<HTMLInputElement | null>(null)
 const tiptapEditor = ref<InstanceType<any> | null>(null)
 // const emit = defineEmits(['close', 'save', 'expand', 'toggleOptions'])
 const noteStore = useNoteStore()
-const whiteboardStore = useWhiteboardStore()
 const isExpandingToExpandEditor = ref(false)
 const showCardBoxMenu = ref(false)
 const selectedCardBox = ref<CardBox | null>(null)
 const showMoreActions = ref<string | null>(null)
-const isEditing = ref(false)
-
-const { getWhiteboardNoteById } = storeToRefs(whiteboardStore)
-const currentWhiteboardNote = computed(() => getWhiteboardNoteById.value(props.item.id))
-
-const minHeight = 150 // 设置最小高度
-const editorContainerRef = ref<HTMLElement | null>(null)
-const extraHeight = 90 // 工具栏和地址输入框的估计高度
-const isFixedHeight = ref(false)
-const manuallyResized = ref(false)
-
-const noteRef = ref(null)
-
-onClickOutside(noteRef, () => {
-  if (isEditing.value) {
-    stopEditing()
-  }
-})
-
-const emitNoteInteraction = (interacting: boolean) => {
-  emit('note-interaction', interacting)
-}
-
-const stopEditing = () => {
-  isEditing.value = false
-  emitNoteInteraction(false)
-}
-
-const startEditing = (event: MouseEvent) => {
-  event.stopPropagation()
-  isEditing.value = true
-  emitNoteInteraction(true)
-  nextTick(() => {
-    if (tiptapEditor.value) {
-      tiptapEditor.value.$forceUpdate()
-      focusEditor()
-    }
-  })
-}
-
-onUnmounted(() => {
-  isEditing.value = false
-  emitNoteInteraction(false)
-  // ... 其他卸载逻辑 ...
-})
-
-const toggleHeightMode = () => {
-  isFixedHeight.value = !isFixedHeight.value
-  manuallyResized.value = false
-  updateHeight()
-}
-
-// 使用计算属性获取最新的笔记大小
-const whiteboardNoteSize = computed(() => {
-  const size = currentWhiteboardNote.value?.size || { width: 350, height: minHeight }
-  return size
-})
-
-const noteStyle = computed(() => ({
-  width: `${whiteboardNoteSize.value.width}px`,
-  height: isFixedHeight.value ? `${whiteboardNoteSize.value.height}px` : 'auto',
-  minHeight: `${minHeight}px`
-}))
-const editorContentStyle = computed(() => ({
-  maxHeight: isFixedHeight.value ? `${whiteboardNoteSize.value.height - extraHeight}px` : 'none',
-  overflowY: isFixedHeight.value ? 'auto' : 'visible'
-})) as ComputedRef<CSSProperties>
-
-const updateHeight = async () => {
-  await nextTick()
-  if (editorContainerRef.value) {
-    const tiptapContainer = editorContainerRef.value.querySelector(
-      '.tiptap-container'
-    ) as HTMLElement
-    if (tiptapContainer) {
-      const newHeight = Math.max(tiptapContainer.scrollHeight + extraHeight, minHeight)
-      if (newHeight !== whiteboardNoteSize.value.height && !isFixedHeight.value) {
-        console.log('Updating height to:', newHeight)
-        await whiteboardStore.updateWhiteboardNoteSize(
-          props.item.id,
-          whiteboardNoteSize.value.width,
-          newHeight
-        )
-      }
-    }
-  }
-}
-onMounted(() => {
-  updateHeight()
-})
-// 监听笔记大小的变化
-watch(
-  whiteboardNoteSize,
-  (newSize, oldSize) => {
-    console.log('Note size changed:', oldSize, '->', newSize)
-    // 在这里可以添加额外的逻辑来响应大小变化
-  },
-  { deep: true }
-)
-// 监听笔记大小的变化
-watch(
-  () => whiteboardNoteSize.value,
-  (newSize, oldSize) => {
-    console.log('Note size changed:', oldSize, '->', newSize)
-    if (newSize.height !== oldSize.height) {
-      nextTick(() => {
-        if (editorContainerRef.value) {
-          editorContainerRef.value.style.height = `${newSize.height}px`
-        }
-      })
-    }
-  },
-  { deep: true }
-)
-
-// useResizeObserver(contentWrapperRef, (entries) => {
-//   console.log('ResizeObserver triggered', entries[0].contentRect)
-//   const entry = entries[0]
-//   if (entry) {
-//     const newHeight = entry.contentRect.height + 100 // 添加额外空间，如顶部工具栏
-//     contentHeight.value = Math.max(newHeight, minHeight)
-//   }
-// })
-
-const emit = defineEmits(['resize-start', 'start-connection', 'note-interaction'])
-const startResize = (direction: string, event: MouseEvent) => {
-  emit('resize-start', {
-    direction,
-    event,
-    onResize: (newWidth: number, newHeight: number) => {
-      whiteboardStore.updateWhiteboardNoteSize(props.item.id, newWidth, newHeight)
-      isFixedHeight.value = true
-      manuallyResized.value = true
-    }
-  })
-}
-const startConnection = (event: MouseEvent) => {
-  event.stopPropagation()
-  console.log('Start connection clicked') // 添加这行来调试
-  emit('start-connection', props.item)
-}
-
-const popupMenuRef = ref<{ openMenu: (x: number, y: number) => void } | null>(null)
-
-// const { menuItems } = useNoteMenu(props.noteId)
-const { menuItems: whiteboardMenuItems } = useNoteMenu({
-  noteId: props.noteId,
-  whiteboardNoteId: props.item.id,
-  menuItems: ['star', 'trashFromWhiteboard']
-})
-
-const openMenu = (event: MouseEvent) => {
-  event.preventDefault()
-  popupMenuRef.value?.openMenu(event.clientX, event.clientY)
-}
-const closeMenu = () => {
-  useNoteMenu({ noteId: props.noteId, whiteboardNoteId: props.item.id }).closePopupMenu()
-}
 
 // 笔记选项菜单
-// const isOptionsMenuVisible = ref(false)
-// const noteOptionsMenu = ref<InstanceType<typeof NoteOptionsMenu> | null>(null)
+const isOptionsMenuVisible = ref(false)
+const noteOptionsMenu = ref<InstanceType<typeof NoteOptionsMenu> | null>(null)
 
-// const toggleOptionsMenu = () => {
-//   isOptionsMenuVisible.value = !isOptionsMenuVisible.value
-// }
+const toggleOptionsMenu = () => {
+  isOptionsMenuVisible.value = !isOptionsMenuVisible.value
+}
 
-// const closeOptionsMenu = () => {
-//   isOptionsMenuVisible.value = false
-//   noteOptionsMenu.value?.resetState()
-// }
+const closeOptionsMenu = () => {
+  isOptionsMenuVisible.value = false
+  noteOptionsMenu.value?.resetState()
+}
 
 // 笔记的保存功能
 
@@ -368,7 +163,7 @@ const saveStatus = ref<'idle' | 'saving' | 'saved' | 'error'>('idle')
 // 加载笔记
 const loadNote = async () => {
   try {
-    editedNote.value = props.note
+    editedNote.value = await noteStore.fetchNoteById(props.noteId)
     console.log('NoteEditor.vue → 编辑的笔记:', editedNote.value)
   } catch (error) {
     console.error('Failed to load note:', error)
@@ -455,12 +250,7 @@ const autoSaveInterval = setInterval(() => {
   }
 }, 30000)
 
-onMounted(() => {
-  loadNote()
-  nextTick(() => {
-    updateContent(editedNote.value.content)
-  })
-})
+onMounted(loadNote)
 
 onUnmounted(() => {
   clearInterval(autoSaveInterval)
@@ -476,7 +266,6 @@ onBeforeUnmount(async () => {
 const updateContent = (newContent: any) => {
   if (editedNote.value) {
     editedNote.value.content = newContent
-    updateHeight()
   }
 }
 // 手动保存（如果需要）
@@ -648,16 +437,14 @@ const focusAddressInput = () => {
 
 const focusEditor = () => {
   nextTick(() => {
-    if (tiptapEditor.value && isEditing.value) {
-      tiptapEditor.value.focus()
-    }
+    tiptapEditor.value?.focus()
   })
 }
 
 // 在组件挂载后聚焦
-// onMounted(() => {
-//   focusAddressInput()
-// })
+onMounted(() => {
+  focusAddressInput()
+})
 
 // 当 noteId 改变时聚焦（用于编辑现有笔记）
 watch(
@@ -691,15 +478,16 @@ defineExpose({ focusAddressInput })
 </script>
 
 <style lang="scss" scoped>
-.whiteboard-note-component {
+.whiteboard-note-editor {
   background-color: var(--color-bg-primary);
   border-radius: 12px;
   display: flex;
   flex-direction: column;
+  height: 600px;
+  max-height: 600px;
+  width: 640px;
+  max-width: 100%;
   position: relative;
-  box-shadow: var(--color-shadow-primary);
-  transition: height 0.3s ease; // 添加平滑过渡效果
-  overflow: visible;
 
   // 顶部工具栏
   .toolbar {
@@ -775,7 +563,7 @@ defineExpose({ focusAddressInput })
         background-color: rgba(0, 0, 0, 0.1);
       }
     }
-    .connect-btn,
+
     .install-btn {
       position: relative;
       display: flex;
@@ -927,10 +715,13 @@ defineExpose({ focusAddressInput })
   .editor-content {
     display: flex;
     flex-direction: column;
+    // flex-grow: 1;
     flex: 1;
     min-height: 0;
+    // padding: 0 10px 0 20px;
     width: 100%;
-    overflow: hidden; // 修改这里
+    // padding: 0 10px;
+    overflow: hidden; // 防止双重滚动条
 
     .address-input {
       margin-bottom: 10px;
@@ -1011,37 +802,36 @@ defineExpose({ focusAddressInput })
       overflow-y: auto;
       min-height: 0;
       width: 100%;
-      overflow: hidden; // 修改这里
+      height: 100%;
+      // max-width: 640px;
+      // margin: 0 auto;
 
       .content-wrapper {
         flex: 1;
         display: flex;
         flex-direction: column;
-        overflow: visible;
+        min-height: 100%;
+        padding-bottom: 50px; // 添加底部填充
         width: 100%;
       }
     }
 
     :deep(.tiptap-container) {
       width: 100%;
-      // height: 100%;
-      // overflow-y: auto;
-      // padding: 0 10px;
-      // position: relative;
-      overflow: visible;
-      height: auto !important; // 强制移除固定高度
+      height: 100%;
+      overflow-y: auto;
+      padding: 0 10px;
+      position: relative;
     }
 
     :deep(.tiptap) {
       // min-width: calc(640px - 64px);
       min-width: calc(100% - 40px);
-      overflow: visible;
-      height: auto !important; // 强制移除固定高度
       // width: 100%;
-      min-height: 100px;
-      // overflow-y: auto;
+      min-height: 100%;
+      overflow-y: auto;
       // overflow: hidden;
-      // padding-bottom: 60px;
+      padding-bottom: 60px;
     }
   }
 
@@ -1123,70 +913,6 @@ defineExpose({ focusAddressInput })
         // border: 1px solid var(--color-primary);
       }
     }
-  }
-}
-.resize-handle {
-  position: absolute;
-  // background-color: #4a90e2;
-  z-index: 10;
-
-  &.top,
-  &.bottom {
-    left: 4px;
-    right: 4px;
-    height: 4px;
-    cursor: ns-resize;
-  }
-
-  &.left,
-  &.right {
-    top: 4px;
-    bottom: 4px;
-    width: 4px;
-    cursor: ew-resize;
-  }
-
-  &.top {
-    top: 0;
-  }
-  &.right {
-    right: 0;
-  }
-  &.bottom {
-    bottom: 0;
-  }
-  &.left {
-    left: 0;
-  }
-
-  &.top-left,
-  &.top-right,
-  &.bottom-left,
-  &.bottom-right {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-  }
-
-  &.top-left {
-    top: -4px;
-    left: -4px;
-    cursor: nwse-resize;
-  }
-  &.top-right {
-    top: -4px;
-    right: -4px;
-    cursor: nesw-resize;
-  }
-  &.bottom-left {
-    bottom: -4px;
-    left: -4px;
-    cursor: nesw-resize;
-  }
-  &.bottom-right {
-    bottom: -4px;
-    right: -4px;
-    cursor: nwse-resize;
   }
 }
 </style>

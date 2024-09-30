@@ -7,7 +7,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, onMounted, onBeforeUnmount, computed } from 'vue'
+import { ref, watch, onMounted, onBeforeUnmount, computed, nextTick } from 'vue'
 import { Editor, EditorContent } from '@tiptap/vue-3'
 import type { Editor as CoreEditor, Extension } from '@tiptap/core'
 import DragHandle from '@tiptap-pro/extension-drag-handle'
@@ -161,6 +161,11 @@ onMounted(() => {
       emit('update:content', editor.getJSON())
     }
   })
+  if (props.editable) {
+    nextTick(() => {
+      focus()
+    })
+  }
 })
 
 onBeforeUnmount(() => {
@@ -169,8 +174,30 @@ onBeforeUnmount(() => {
   }
 })
 
+watch(
+  () => props.editable,
+  (newEditable) => {
+    if (editor.value) {
+      editor.value.setEditable(newEditable)
+      if (newEditable) {
+        nextTick(() => {
+          focus()
+        })
+      }
+    }
+  },
+  { immediate: true }
+)
+
+// const focus = () => {
+//   editor.value?.commands.focus()
+// }
 const focus = () => {
-  editor.value?.commands.focus()
+  nextTick(() => {
+    if (editor.value && props.editable) {
+      editor.value.commands.focus('end')
+    }
+  })
 }
 
 defineExpose({
