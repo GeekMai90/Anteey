@@ -90,9 +90,6 @@ import {
   ConnectionCreateData
 } from '@renderer/types/Note'
 import WhiteboardNoteComponent from './WhiteboardNoteComponent.vue'
-// import WhiteboardSubboard from './WhiteboardSubboard.vue'
-// import WhiteboardGroupComponent from './WhiteboardGroupComponent.vue'
-// import WhiteboardConnection from './WhiteboardConnection.vue'
 import { Add, Aiming, Delete } from '@icon-park/vue-next'
 import WhiteboardZoomControl from './WhiteboardZoomControl.vue'
 import CardConnection from './CardConnection.vue'
@@ -787,7 +784,8 @@ const handleWheel = (event: WheelEvent) => {
   //   event.preventDefault()
   //   return
   // }
-  if (isNoteInteracting.value || isHoveringNote.value) {
+  // if (isNoteInteracting.value || isHoveringNote.value) {
+  if (isNoteInteracting.value) {
     // 只有在进行缩放操作时才阻止默认行为
     if (event.ctrlKey) {
       event.preventDefault()
