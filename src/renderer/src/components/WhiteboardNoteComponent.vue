@@ -10,6 +10,8 @@
     @touchstart.stop
     @dblclick="startEditing"
     @v-click-outside="stopEditing"
+    @mouseenter="handleNoteHover(true)"
+    @mouseleave="handleNoteHover(false)"
   >
     <!-- 顶部工具栏 -->
     <div class="toolbar">
@@ -179,6 +181,15 @@ const manuallyResized = ref(false)
 
 const noteRef = ref(null)
 
+const isHovering = ref(false)
+
+const emit = defineEmits(['hover', 'resize-start', 'start-connection', 'note-interaction'])
+
+const handleNoteHover = (hovering: boolean) => {
+  isHovering.value = hovering
+  emit('hover', hovering)
+}
+
 // 编辑状态下可以滚动
 const contentAreaStyle = computed(() => ({
   flexGrow: 1,
@@ -297,7 +308,6 @@ watch(
 //   }
 // })
 
-const emit = defineEmits(['resize-start', 'start-connection', 'note-interaction'])
 const startResize = (direction: string, event: MouseEvent) => {
   emit('resize-start', {
     direction,
@@ -708,6 +718,7 @@ defineExpose({ focusAddressInput })
   transition: height 0.3s ease; // 添加平滑过渡效果
   overflow: visible;
   &.editing {
+    border: 1px solid var(--color-primary);
     .content-area,
     .content-wrapper,
     :deep(.tiptap),
@@ -1052,11 +1063,9 @@ defineExpose({ focusAddressInput })
       min-width: calc(100% - 40px);
       overflow: visible;
       height: auto !important; // 强制移除固定高度
-      // width: 100%;
       min-height: 100px;
-      // overflow-y: auto;
-      // overflow: hidden;
-      // padding-bottom: 60px;
+      padding-left: 2rem;
+      padding-right: 2rem;
     }
   }
 

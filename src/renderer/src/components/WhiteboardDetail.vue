@@ -33,6 +33,7 @@
           @resize-start="startResizingItem(item, $event)"
           @start-connection="startConnection"
           @note-interaction="handleNoteInteraction"
+          @hover="handleNoteHover"
         />
         <CardConnection
           v-for="connection in connections"
@@ -127,6 +128,12 @@ const selectedConnectionId = ref<string | null>(null)
 // const editingConnection = ref<Connection | null>(null)
 const descriptionInputRef = ref<HTMLInputElement | null>(null)
 const measureSpan = ref<HTMLSpanElement | null>(null)
+
+const isHoveringNote = ref(false)
+
+const handleNoteHover = (hovering: boolean) => {
+  isHoveringNote.value = hovering
+}
 
 const isNoteInteracting = ref(false)
 console.log('isNoteInteracting', isNoteInteracting.value)
@@ -780,7 +787,7 @@ const handleWheel = (event: WheelEvent) => {
   //   event.preventDefault()
   //   return
   // }
-  if (isNoteInteracting.value) {
+  if (isNoteInteracting.value || isHoveringNote.value) {
     // 只有在进行缩放操作时才阻止默认行为
     if (event.ctrlKey) {
       event.preventDefault()
