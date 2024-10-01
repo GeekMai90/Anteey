@@ -69,8 +69,8 @@
           @keyup.enter="focusEditor"
         />
       </div>
-      <div class="content-area">
-        <div ref="editorContainerRef" class="content-wrapper">
+      <div class="content-area" @mousedown.stop @touchstart.stop>
+        <div ref="editorContainerRef" class="content-wrapper" @mousedown.stop @touchstart.stop>
           <TipTapEditor
             ref="tiptapEditor"
             :content="editedNote.content"
@@ -700,6 +700,14 @@ defineExpose({ focusAddressInput })
   box-shadow: var(--color-shadow-primary);
   transition: height 0.3s ease; // 添加平滑过渡效果
   overflow: visible;
+  &.editing {
+    .content-area,
+    .content-wrapper,
+    :deep(.tiptap),
+    :deep(.tiptap *) {
+      cursor: default !important; // 使用默认光标
+    }
+  }
 
   // 顶部工具栏
   .toolbar {

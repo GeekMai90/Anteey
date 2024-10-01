@@ -776,8 +776,16 @@ const handleMouseUp = async (event: MouseEvent) => {
 }
 
 const handleWheel = (event: WheelEvent) => {
+  // if (isNoteInteracting.value) {
+  //   event.preventDefault()
+  //   return
+  // }
   if (isNoteInteracting.value) {
-    event.preventDefault()
+    // 只有在进行缩放操作时才阻止默认行为
+    if (event.ctrlKey) {
+      event.preventDefault()
+    }
+    // 允许正常的滚动行为
     return
   }
   if (event.ctrlKey) {
