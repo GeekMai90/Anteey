@@ -69,7 +69,7 @@
           @keyup.enter="focusEditor"
         />
       </div>
-      <div class="content-area" @mousedown.stop @touchstart.stop>
+      <div class="content-area" :style="contentAreaStyle" @mousedown.stop @touchstart.stop>
         <div ref="editorContainerRef" class="content-wrapper" @mousedown.stop @touchstart.stop>
           <TipTapEditor
             ref="tiptapEditor"
@@ -178,6 +178,13 @@ const isFixedHeight = ref(false)
 const manuallyResized = ref(false)
 
 const noteRef = ref(null)
+
+// 编辑状态下可以滚动
+const contentAreaStyle = computed(() => ({
+  flexGrow: 1,
+  overflowY: isFixedHeight.value ? ('auto' as const) : ('visible' as const),
+  maxHeight: isFixedHeight.value ? '100%' : 'none'
+}))
 
 onClickOutside(noteRef, () => {
   if (isEditing.value) {
