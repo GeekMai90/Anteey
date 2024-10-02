@@ -210,7 +210,7 @@ const editorContentStyle = computed(() => ({
 
 const contentHeight = ref(0)
 // 使用 ResizeObserver 监测内容高度变化
-useResizeObserver(tiptapEditorRef, (entries) => {
+useResizeObserver(tiptapEditorRef, async (entries) => {
   const entry = entries[0]
   if (entry && isAutoHeight.value) {
     const newContentHeight = entry.contentRect.height
@@ -220,9 +220,10 @@ useResizeObserver(tiptapEditorRef, (entries) => {
     }
   }
 })
+
 // 平滑地更新高度
 const smoothUpdateHeight = () => {
-  if (!isAutoHeight.value) return
+  if (!isAutoHeight.value || !tiptapEditorRef.value) return
 
   const currentHeight = editorContainerRef.value?.clientHeight || 0
   const targetHeight = Math.max(contentHeight.value + extraHeight, minHeight)
@@ -364,20 +365,15 @@ const saveStatus = ref<'idle' | 'saving' | 'saved' | 'error'>('idle')
 
 // 加载笔记
 const loadNote = async () => {
-  if (!props.noteId) {
-    console.error('NoteEditor.vue → 编辑的笔记为空')
-    return
-  }
-  try {
+  if (props.noteId) {
     const note = await noteStore.getNoteById(props.noteId)
     if (note) {
       editedNote.value = note
-      console.log('NoteEditor.vue → 编辑的笔记:', editedNote.value)
     } else {
-      console.error('NoteEditor.vue → 未找到笔记')
+      console.error('WhiteboardNoteComponent.vue → 编辑的笔记为空')
     }
-  } catch (error) {
-    console.error('加载笔记失败:', error)
+  } else {
+    console.error('WhiteboardNoteComponent.vue → 编辑的笔记为空')
   }
 }
 

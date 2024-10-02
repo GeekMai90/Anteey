@@ -23,6 +23,29 @@ export const useWhiteboardStore = defineStore('whiteboard', {
     whiteboardNotes: [] as WhiteboardNote[]
   }),
   actions: {
+    // 初始化白板数据
+    async initializeWhiteboardData(whiteboardId: string) {
+      this.isLoading = true
+      this.error = null
+      this.currentWhiteboardId = whiteboardId
+
+      try {
+        // 假设这些是您的 API 方法
+        const [whiteboardNotes, connections] = await Promise.all([
+          this.getWhiteboardNotes(whiteboardId),
+          this.getConnections(whiteboardId)
+        ])
+
+        this.whiteboardNotes = whiteboardNotes
+        this.connections = connections
+      } catch (error) {
+        console.error('Failed to initialize whiteboard data:', error)
+        this.error = 'Failed to load whiteboard data'
+      } finally {
+        this.isLoading = false
+      }
+    },
+
     // 获取根白板的视图状态
     async getRootWhiteboardViewState() {
       console.log('whiteboardStore→ 开始获取根白板的视图状态')
@@ -283,6 +306,13 @@ export const useWhiteboardStore = defineStore('whiteboard', {
         console.log('whiteboardStore→ 开始删除白板笔记', id)
         const result = await window.electronAPI.deleteWhiteboardNote(id)
         console.log('whiteboardStore→ 删除白板笔记成功', result)
+        // 更新本地状态
+        this.whiteboardNotes = this.whiteboardNotes.filter((note) => note.id !== id)
+
+        // 更新连接
+        this.connections = this.connections.filter(
+          (conn) => conn.startItemId !== id && conn.endItemId !== id
+        )
         return result
       } catch (error) {
         console.error('whiteboardStore→ 删除白板笔记失败', error)

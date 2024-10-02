@@ -17,40 +17,42 @@
     >
       <!-- 变换层 -->
       <div ref="transformLayerRef" class="whiteboard-transform-layer" :style="transformLayerStyle">
-        <!-- 白板笔记 -->
-        <WhiteboardNoteComponent
-          v-for="item in whiteboardNotes"
-          :key="item.id"
-          :width="item.size.width"
-          :height="item.size.height"
-          :class="['whiteboard-item']"
-          :style="getWhiteNoteStyle(item)"
-          :item="item"
-          :note-id="item.noteId"
-          :is-hovered="isCreatingConnection && hoverNote?.id === item.id"
-          @mousedown.stop="startDraggingItem(item, $event)"
-          @resize-start="startResizingItem(item, $event)"
-          @start-connection="startConnection"
-          @note-interaction="handleNoteInteraction"
-          @hover="handleNoteHover"
-        />
-        <CardConnection
-          v-for="connection in connections"
-          :key="connection.id"
-          v-click-outside="deselectConnection"
-          :connection="connection"
-          strokeColor="var(--color-text-secondary)"
-          :isSelected="selectedConnectionId === connection.id"
-          @click="(event) => selectConnection(connection.id, event)"
-          @contextmenu="showConnectionContextMenu"
-          @update:description="updateConnectionDescription"
-        />
+        <template v-if="dataLoaded">
+          <!-- 白板笔记 -->
+          <WhiteboardNoteComponent
+            v-for="item in whiteboardNotes"
+            :key="item.id"
+            :width="item.size.width"
+            :height="item.size.height"
+            :class="['whiteboard-item']"
+            :style="getWhiteNoteStyle(item)"
+            :item="item"
+            :note-id="item.noteId"
+            :is-hovered="isCreatingConnection && hoverNote?.id === item.id"
+            @mousedown.stop="startDraggingItem(item, $event)"
+            @resize-start="startResizingItem(item, $event)"
+            @start-connection="startConnection"
+            @note-interaction="handleNoteInteraction"
+            @hover="handleNoteHover"
+          />
+          <CardConnection
+            v-for="connection in connections"
+            :key="connection.id"
+            v-click-outside="deselectConnection"
+            :connection="connection"
+            strokeColor="var(--color-text-secondary)"
+            :isSelected="selectedConnectionId === connection.id"
+            @click="(event) => selectConnection(connection.id, event)"
+            @contextmenu="showConnectionContextMenu"
+            @update:description="updateConnectionDescription"
+          />
 
-        <CardConnection
-          v-if="isCreatingConnection"
-          :connection="temporaryConnection"
-          strokeColor="var(--color-text-secondary)"
-        />
+          <CardConnection
+            v-if="isCreatingConnection"
+            :connection="temporaryConnection"
+            strokeColor="var(--color-text-secondary)"
+          />
+        </template>
       </div>
     </div>
     <!-- 新增：适应视图按钮 -->
@@ -83,8 +85,8 @@ import { useWhiteboardStore } from '../stores/whiteboardStores'
 import {
   CreateWhiteboardNoteInput,
   WhiteboardNote,
-  WhiteboardGroup,
-  Whiteboard,
+  // WhiteboardGroup,
+  // Whiteboard,
   Connection,
   ConnectionCreateData
 } from '@renderer/types/Note'
@@ -93,17 +95,18 @@ import { Add, Aiming, Delete } from '@icon-park/vue-next'
 import WhiteboardZoomControl from './WhiteboardZoomControl.vue'
 import CardConnection from './CardConnection.vue'
 import { useContextMenuStore } from '../stores/contextMenuStore'
+import { useNoteStore } from '@renderer/stores/noteStores'
 
 const containerRef = ref<HTMLElement | null>(null)
 const route = useRoute()
 const whiteboardId = ref<string | null>(null)
 const whiteboardStore = useWhiteboardStore()
 const whiteboardNotes = ref<WhiteboardNote[]>([])
-const whiteboardGroups = ref<WhiteboardGroup[]>([])
-const whiteboardSubboards = ref<Whiteboard[]>([])
+// const whiteboardGroups = ref<WhiteboardGroup[]>([])
+// const whiteboardSubboards = ref<Whiteboard[]>([])
 const connections = ref<Connection[]>([])
 const contextMenuStore = useContextMenuStore()
-const dataLoaded = ref(false)
+// const dataLoaded = ref(false)
 
 const draggingItem = ref<{ id: string; startX: number; startY: number } | null>(null)
 const alignmentGuides = ref<{ direction: 'horizontal' | 'vertical'; position: number }[]>([])
@@ -127,6 +130,23 @@ const descriptionInputRef = ref<HTMLInputElement | null>(null)
 const measureSpan = ref<HTMLSpanElement | null>(null)
 
 const isHoveringNote = ref(false)
+
+const noteStore = useNoteStore()
+const loadedNotes = ref(new Map())
+
+const dataLoaded = ref(false)
+
+const preloadNotes = async () => {
+  for (const whiteboardNote of whiteboardNotes.value) {
+    if (!loadedNotes.value.has(whiteboardNote.id)) {
+      const fullNote = await noteStore.getNoteById(whiteboardNote.noteId)
+      console.log('fullNote', fullNote)
+      if (fullNote) {
+        loadedNotes.value.set(whiteboardNote.id, fullNote)
+      }
+    }
+  }
+}
 
 const handleNoteHover = (hovering: boolean) => {
   isHoveringNote.value = hovering
@@ -315,38 +335,69 @@ watch(
 
 // 关于获取白板内容的功能
 // 封装获取白板内容的函数
-const fetchWhiteboardItems = async () => {
-  if (whiteboardId.value) {
-    console.log('WhiteboardDetail 开始获取组件项，whiteboardId：', whiteboardId.value)
-    whiteboardNotes.value = await whiteboardStore.getWhiteboardNotes(whiteboardId.value)
-    whiteboardGroups.value = await whiteboardStore.getWhiteboardGroups(whiteboardId.value)
-    whiteboardSubboards.value = await whiteboardStore.getWhiteboardSubboards(whiteboardId.value)
-    connections.value = await whiteboardStore.getConnections(whiteboardId.value)
-    console.log('connections', connections.value)
+
+const initializeData = async (whiteboardId: string) => {
+  try {
+    await loadViewState()
+    await whiteboardStore.initializeWhiteboardData(whiteboardId)
+    whiteboardNotes.value = whiteboardStore.whiteboardNotes
+    connections.value = whiteboardStore.connections
+    await preloadNotes()
+    updateAllConnectionPositions()
     dataLoaded.value = true
+  } catch (error) {
+    console.error('Failed to initialize data:', error)
   }
 }
+// 监听路由参数变化
+// watch(
+//   () => route.params.whiteboardId,
+//   async (newId) => {
+//     if (newId && typeof newId === 'string') {
+//       whiteboardId.value = newId
+//       await initializeData(newId)
+//     }
+//   },
+//   { immediate: true }
+// )
+
+// const fetchWhiteboardItems = async () => {
+//   if (whiteboardId.value) {
+//     console.log('WhiteboardDetail 开始获取组件项，whiteboardId：', whiteboardId.value)
+//     whiteboardNotes.value = await whiteboardStore.getWhiteboardNotes(whiteboardId.value)
+//     whiteboardGroups.value = await whiteboardStore.getWhiteboardGroups(whiteboardId.value)
+//     whiteboardSubboards.value = await whiteboardStore.getWhiteboardSubboards(whiteboardId.value)
+//     connections.value = await whiteboardStore.getConnections(whiteboardId.value)
+//     console.log('connections', connections.value)
+//     dataLoaded.value = true
+//   }
+// }
 
 // 组件挂载时获取白板内容
 onMounted(async () => {
-  console.log('WhiteboardDetail 组件挂载时获取白板内容', whiteboardId.value)
-  await fetchWhiteboardItems()
+  const id = route.params.whiteboardId
+  console.log('WhiteboardDetail 组件挂载时获取白板内容', id)
+  if (id && typeof id === 'string') {
+    whiteboardId.value = id
+    await initializeData(whiteboardId.value)
+    await preloadNotes()
+  }
   updateAllConnectionPositions()
 })
 
 // 监听路由参数变化来获取白板内容
-watch(
-  () => route.params.whiteboardId,
-  (newId) => {
-    console.log('WhiteboardDetail 监听路由参数变化', newId)
-    if (newId && typeof newId === 'string') {
-      whiteboardId.value = newId
-      fetchWhiteboardItems()
-      updateAllConnectionPositions()
-    }
-  },
-  { immediate: true }
-)
+// watch(
+//   () => route.params.whiteboardId,
+//   (newId) => {
+//     console.log('WhiteboardDetail 监听路由参数变化', newId)
+//     if (newId && typeof newId === 'string') {
+//       whiteboardId.value = newId
+//       fetchWhiteboardItems()
+//       updateAllConnectionPositions()
+//     }
+//   },
+//   { immediate: true }
+// )
 
 // 获取 item 的 style
 const getWhiteNoteStyle = (item: WhiteboardNote) => {
@@ -701,7 +752,7 @@ const createWhiteboardNote = async () => {
       console.log('创建白板笔记成功, 添加到白板笔记列表中', newNote)
       whiteboardNotes.value.push(newNote)
       console.log('创建白板笔记成功, 添加到白板笔记列表中, 重新获取白板项', whiteboardNotes.value)
-      await fetchWhiteboardItems()
+      await initializeData(whiteboardId.value)
 
       // 如果需要，可以在这里添加创建关联笔记的逻辑
       // 例如：await whiteboardStore.createReferenceNote(newNote.id)
@@ -964,9 +1015,9 @@ const loadViewState = async () => {
   }
 }
 
-onMounted(async () => {
-  await loadViewState()
-})
+// onMounted(async () => {
+//   await loadViewState()
+// })
 
 onUnmounted(async () => {
   await saveViewState()

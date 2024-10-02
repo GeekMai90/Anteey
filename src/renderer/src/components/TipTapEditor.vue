@@ -1,5 +1,5 @@
 <template>
-  <editor-content :editor="editorInstance as any" class="tiptap-container" />
+  <editor-content ref="editorRootRef" :editor="editorInstance as any" class="tiptap-container" />
   <div v-if="uploadProgress > 0" class="upload-progress">上传进度: {{ uploadProgress }}%</div>
   <div v-if="uploadError" class="upload-error">
     {{ uploadError }}
@@ -34,6 +34,8 @@ const editor = ref<CoreEditor | null>(null)
 const editorInstance = computed(() => editor.value)
 const uploadProgress = ref<number>(0)
 const uploadError = ref<string | null>(null)
+
+const editorRootRef = ref<HTMLElement | null>(null)
 
 const uploadFile = async (file: File): Promise<string> => {
   uploadProgress.value = 0
