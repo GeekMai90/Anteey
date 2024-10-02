@@ -209,15 +209,19 @@ const editorContentStyle = computed(() => ({
 })) as ComputedRef<CSSProperties>
 
 const contentHeight = ref(0)
-// 使用 ResizeObserver 监测内容高度变化
-useResizeObserver(tiptapEditorRef, async (entries) => {
-  const entry = entries[0]
-  if (entry && isAutoHeight.value) {
-    const newContentHeight = entry.contentRect.height
-    if (Math.abs(newContentHeight - contentHeight.value) > 5) {
-      contentHeight.value = newContentHeight
-      requestAnimationFrame(smoothUpdateHeight)
-    }
+
+watch(tiptapEditorRef, (newValue) => {
+  if (newValue && newValue.$el instanceof HTMLElement) {
+    useResizeObserver(newValue.$el, async (entries) => {
+      const entry = entries[0]
+      if (entry && isAutoHeight.value) {
+        const newContentHeight = entry.contentRect.height
+        if (Math.abs(newContentHeight - contentHeight.value) > 5) {
+          contentHeight.value = newContentHeight
+          requestAnimationFrame(smoothUpdateHeight)
+        }
+      }
+    })
   }
 })
 
@@ -368,7 +372,8 @@ const loadNote = async () => {
   if (props.noteId) {
     const note = await noteStore.getNoteById(props.noteId)
     if (note) {
-      editedNote.value = note
+      // editedNote.value = note
+      editedNote.value = JSON.parse(JSON.stringify(note))
     } else {
       console.error('WhiteboardNoteComponent.vue → 编辑的笔记为空')
     }
@@ -438,17 +443,6 @@ watch(
   },
   { deep: true }
 )
-
-// 监听笔记变化
-// watch(
-//   () => editedNote.value,
-//   () => {
-//     if (editedNote.value) {
-//       autoSave()
-//     }
-//   },
-//   { deep: true }
-// )
 
 // 定期保存
 const autoSaveInterval = setInterval(() => {
