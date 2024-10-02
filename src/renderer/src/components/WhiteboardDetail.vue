@@ -26,7 +26,6 @@
           :class="['whiteboard-item']"
           :style="getWhiteNoteStyle(item)"
           :item="item"
-          :note="whiteboardStore.getReferenceNotes(item.noteId)"
           :note-id="item.noteId"
           :is-hovered="isCreatingConnection && hoverNote?.id === item.id"
           @mousedown.stop="startDraggingItem(item, $event)"
@@ -104,6 +103,7 @@ const whiteboardGroups = ref<WhiteboardGroup[]>([])
 const whiteboardSubboards = ref<Whiteboard[]>([])
 const connections = ref<Connection[]>([])
 const contextMenuStore = useContextMenuStore()
+const dataLoaded = ref(false)
 
 const draggingItem = ref<{ id: string; startX: number; startY: number } | null>(null)
 const alignmentGuides = ref<{ direction: 'horizontal' | 'vertical'; position: number }[]>([])
@@ -317,12 +317,13 @@ watch(
 // 封装获取白板内容的函数
 const fetchWhiteboardItems = async () => {
   if (whiteboardId.value) {
-    console.log('WhiteboardDetail 开始获取组件项，whiteboardId：')
+    console.log('WhiteboardDetail 开始获取组件项，whiteboardId：', whiteboardId.value)
     whiteboardNotes.value = await whiteboardStore.getWhiteboardNotes(whiteboardId.value)
     whiteboardGroups.value = await whiteboardStore.getWhiteboardGroups(whiteboardId.value)
     whiteboardSubboards.value = await whiteboardStore.getWhiteboardSubboards(whiteboardId.value)
     connections.value = await whiteboardStore.getConnections(whiteboardId.value)
     console.log('connections', connections.value)
+    dataLoaded.value = true
   }
 }
 
@@ -681,12 +682,12 @@ onUnmounted(() => {
 // 新增：创建白板笔记的函数
 const createWhiteboardNote = async () => {
   if (!whiteboardId.value) return
-
+  console.log('创建白板笔记', whiteboardId.value)
   const input: CreateWhiteboardNoteInput = {
     whiteboardId: whiteboardId.value,
     noteId: '',
     position: { x: 100, y: 100 }, // 默认位置，你可以根据需要调整
-    size: { width: 350, height: 150 }, // 默认大小，你可以根据需要调整
+    size: { width: 350, height: 300 }, // 默认大小，你可以根据需要调整
     zIndex: 1,
     rotation: 0,
     isAutoHeight: false
@@ -694,7 +695,19 @@ const createWhiteboardNote = async () => {
 
   try {
     const newNote = await whiteboardStore.createWhiteboardNote(input)
-    whiteboardNotes.value.push(newNote)
+    console.log('创建白板笔记成功', newNote)
+    // 确保 newNote 包含所有必要的属性
+    if (newNote && newNote.id) {
+      console.log('创建白板笔记成功, 添加到白板笔记列表中', newNote)
+      whiteboardNotes.value.push(newNote)
+      console.log('创建白板笔记成功, 添加到白板笔记列表中, 重新获取白板项', whiteboardNotes.value)
+      await fetchWhiteboardItems()
+
+      // 如果需要，可以在这里添加创建关联笔记的逻辑
+      // 例如：await whiteboardStore.createReferenceNote(newNote.id)
+    } else {
+      console.error('Created note is invalid:', newNote)
+    }
   } catch (error) {
     console.error('Failed to create whiteboard note:', error)
   }

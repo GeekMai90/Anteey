@@ -14,43 +14,19 @@
     @mouseleave="handleNoteHover(false)"
   >
     <!-- 顶部工具栏 -->
-    <div class="toolbar">
-      <!-- 展开编辑器 -->
-      <div
-        v-tooltip.bottom="{ content: '展开编辑器', delay: { show: 1000 } }"
-        class="expand-btn"
-        @click="handleExpand"
-      >
-        <div class="icon">
-          <ExpandTextInput theme="outline" size="16" fill="#b6b6b6" />
-        </div>
-      </div>
-      <div class="toolbar-right">
-        <div class="install-btn" @click="toggleCardBoxMenu">
-          <div v-tooltip.bottom="{ content: '设置卡片盒', delay: { show: 1000 } }" class="icon">
-            <Install theme="outline" size="16" fill="#b6b6b6" />
-          </div>
-          <!-- 添加卡片盒下拉菜单 -->
-          <CardboxDropdownMenu
-            :isOpen="showCardBoxMenu"
-            :cardBoxes="cardBoxes"
-            :selectedCardBox="selectedCardBox"
-            @update:selectedCardBox="selectCardBox"
-            @close="showCardBoxMenu = false"
-          />
-        </div>
-        <div class="connect-btn" @click="startConnection">
-          <div v-tooltip.bottom="{ content: '连线', delay: { show: 1000 } }" class="icon">
-            <Plus theme="outline" size="16" fill="var(--color-icon-default)" />
-          </div>
-        </div>
-        <div class="more-btn" @click.stop="openMenu" @v-click-outside="closeMenu">
-          <div v-tooltip.bottom="{ content: '更多', delay: { show: 1000 } }" class="icon">
-            <More theme="outline" size="16" fill="var(--color-icon-default)" />
-          </div>
-        </div>
-      </div>
-    </div>
+    <WhiteboardNoteToolbar
+      :isCardBoxMenuOpen="showCardBoxMenu"
+      :cardBoxes="cardBoxes"
+      :selectedCardBox="selectedCardBox"
+      @expand="handleExpand"
+      @toggle-cardbox-menu="toggleCardBoxMenu"
+      @start-connection="startConnection"
+      @open-menu="openMenu"
+      @close-menu="closeMenu"
+      @select-card-box="selectCardBox"
+      @close-cardbox-menu="showCardBoxMenu = false"
+    />
+
     <!-- 编辑器内容 -->
     <div class="editor-content" :style="editorContentStyle">
       <div class="address-input">
@@ -107,9 +83,6 @@
     <div class="resize-handle top-right" @mousedown="startResize('top-right', $event)"></div>
     <div class="resize-handle bottom-right" @mousedown="startResize('bottom-right', $event)"></div>
     <div class="resize-handle bottom-left" @mousedown="startResize('bottom-left', $event)"></div>
-    <!-- <button class="connection-button" @click.stop="startConnection">
-      <Plus theme="outline" size="16" fill="#FFF" />
-    </button> -->
     <PopupMenu ref="popupMenuRef" :menuItems="whiteboardMenuItems" />
   </div>
 </template>
@@ -130,19 +103,7 @@ import { Note, CardType, CardBox, WhiteboardNote } from '../types/Note'
 import { useNoteStore } from '../stores/noteStores'
 import TipTapEditor from '../components/TipTapEditor.vue'
 import { useRouter } from 'vue-router'
-import {
-  Notes,
-  BookOpen,
-  ViewList,
-  Link,
-  ExpandTextInput,
-  Install,
-  More,
-  Plus
-} from '@icon-park/vue-next'
-// import { useDebounceFn, useThrottleFn } from '@vueuse/core'
-import CardboxDropdownMenu from './CardboxDropdownMenu.vue'
-// import { isEqual } from 'lodash-es'
+import { Notes, BookOpen, ViewList, Link } from '@icon-park/vue-next'
 import { debounce } from 'lodash-es'
 import PopupMenu from '@renderer/components/PopupMenu.vue'
 import { useNoteMenu } from '@renderer/composable/useNoteMenu'
@@ -150,10 +111,10 @@ import { useWhiteboardStore } from '../stores/whiteboardStores'
 import { storeToRefs } from 'pinia'
 import { onClickOutside } from '@vueuse/core'
 import { useResizeObserver } from '@vueuse/core'
+import WhiteboardNoteToolbar from './WhiteboardNoteToolbar.vue'
 
 const props = defineProps<{
   noteId: string
-  note: Note
   width?: number
   height?: number
   item: WhiteboardNote
@@ -403,11 +364,20 @@ const saveStatus = ref<'idle' | 'saving' | 'saved' | 'error'>('idle')
 
 // 加载笔记
 const loadNote = async () => {
+  if (!props.noteId) {
+    console.error('NoteEditor.vue → 编辑的笔记为空')
+    return
+  }
   try {
-    editedNote.value = props.note
-    console.log('NoteEditor.vue → 编辑的笔记:', editedNote.value)
+    const note = await noteStore.getNoteById(props.noteId)
+    if (note) {
+      editedNote.value = note
+      console.log('NoteEditor.vue → 编辑的笔记:', editedNote.value)
+    } else {
+      console.error('NoteEditor.vue → 未找到笔记')
+    }
   } catch (error) {
-    console.error('Failed to load note:', error)
+    console.error('加载笔记失败:', error)
   }
 }
 
@@ -700,16 +670,6 @@ const handleExpand = async () => {
   noteStore.closeNoteEditor()
 }
 
-// 打开选项菜单
-// const openOptionsMenu = inject('openOptionsMenu') as (event: MouseEvent, noteId: string) => void
-
-// const handleToggleOptions = (event: MouseEvent) => {
-//   if (props.noteId) {
-//     openOptionsMenu(event, props.noteId)
-//   }
-// }
-
-// defineExpose({ handleAutoSave, focusAddressInput })
 defineExpose({ focusAddressInput, restoreDefaultHeight })
 </script>
 
@@ -730,229 +690,6 @@ defineExpose({ focusAddressInput, restoreDefaultHeight })
     :deep(.tiptap),
     :deep(.tiptap *) {
       cursor: default !important; // 使用默认光标
-    }
-  }
-
-  // 顶部工具栏
-  .toolbar {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 10px 20px;
-    position: relative;
-
-    .expand-btn {
-      position: relative;
-      display: flex;
-      align-items: center;
-      border: none;
-      background: none;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      border-radius: 6px;
-      padding: 4px 4px;
-      margin: 2px;
-
-      .icon {
-        background: none;
-        border: none;
-        cursor: pointer;
-        width: 24px;
-        height: 24px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        transition: all 0.2s ease;
-        padding: 0;
-
-        // &:hover:not(:disabled) {
-        //   background-color: rgba(0, 0, 0, 0.05);
-        // }
-
-        &:disabled {
-          opacity: 0.5;
-          cursor: not-allowed;
-        }
-
-        :deep(.i-icon) {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          width: 100%;
-          height: 100%;
-        }
-
-        :deep(svg) {
-          width: 16px;
-          height: 16px;
-        }
-      }
-
-      .name {
-        flex-grow: 0;
-        text-align: left;
-        color: var(--default-text-color);
-        font-size: 13px;
-        font-weight: 400;
-        margin-left: 6px;
-        white-space: nowrap;
-        writing-mode: horizontal-tb;
-      }
-
-      &:hover {
-        background-color: var(--color-hover-button);
-      }
-
-      &:active {
-        background-color: rgba(0, 0, 0, 0.1);
-      }
-    }
-    .connect-btn,
-    .install-btn {
-      position: relative;
-      display: flex;
-      align-items: center;
-      border: none;
-      background: none;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      border-radius: 6px;
-      padding: 4px 4px;
-      margin: 2px;
-
-      :deep(.dropdown-menu) {
-        transform: translateX(-70%);
-      }
-
-      .icon {
-        background: none;
-        border: none;
-        cursor: pointer;
-        width: 24px;
-        height: 24px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        transition: all 0.2s ease;
-        padding: 0;
-
-        // &:hover:not(:disabled) {
-        //   background-color: rgba(0, 0, 0, 0.05);
-        // }
-
-        &:disabled {
-          opacity: 0.5;
-          cursor: not-allowed;
-        }
-
-        :deep(.i-icon) {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          width: 100%;
-          height: 100%;
-        }
-
-        :deep(svg) {
-          width: 16px;
-          height: 16px;
-        }
-      }
-
-      .name {
-        flex-grow: 0;
-        text-align: left;
-        color: var(--default-text-color);
-        font-size: 13px;
-        font-weight: 400;
-        margin-left: 6px;
-        white-space: nowrap;
-        writing-mode: horizontal-tb;
-      }
-
-      &:hover {
-        background-color: var(--color-hover-button);
-      }
-
-      &:active {
-        background-color: rgba(0, 0, 0, 0.1);
-      }
-    }
-
-    .more-btn {
-      position: relative;
-      display: flex;
-      align-items: center;
-      border: none;
-      background: none;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      border-radius: 6px;
-      padding: 4px 4px;
-      margin: 2px;
-
-      :deep(.note-options-menu) {
-        transform: translateX(-80%);
-      }
-
-      .icon {
-        background: none;
-        border: none;
-        cursor: pointer;
-        width: 24px;
-        height: 24px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        transition: all 0.2s ease;
-        padding: 0;
-
-        // &:hover:not(:disabled) {
-        //   background-color: rgba(0, 0, 0, 0.05);
-        // }
-
-        &:disabled {
-          opacity: 0.5;
-          cursor: not-allowed;
-        }
-
-        :deep(.i-icon) {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          width: 100%;
-          height: 100%;
-        }
-
-        :deep(svg) {
-          width: 16px;
-          height: 16px;
-        }
-      }
-
-      .name {
-        flex-grow: 0;
-        text-align: left;
-        color: var(--default-text-color);
-        font-size: 13px;
-        font-weight: 400;
-        margin-left: 6px;
-        white-space: nowrap;
-        writing-mode: horizontal-tb;
-      }
-
-      &:hover {
-        background-color: var(--color-hover-button);
-      }
-
-      &:active {
-        background-color: rgba(0, 0, 0, 0.1);
-      }
-    }
-
-    .toolbar-right {
-      display: flex;
-      // gap: 10px;
     }
   }
 
