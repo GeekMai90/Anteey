@@ -175,9 +175,7 @@ const currentWhiteboardNote = computed(() => getWhiteboardNoteById.value(props.i
 
 const minHeight = 150 // 设置最小高度
 const editorContainerRef = ref<HTMLElement | null>(null)
-const extraHeight = 90 // 工具栏和地址输入框的估计高度
-const isFixedHeight = ref(false)
-const manuallyResized = ref(false)
+const extraHeight = 120 // 工具栏和地址输入框的估计高度
 
 const noteRef = ref(null)
 
