@@ -83,6 +83,7 @@ export interface WhiteboardNote {
   size: { width: number; height: number }
   zIndex: number
   rotation: number
+  isAutoHeight: boolean // 新增：控制是否自动调整高度
 }
 // 分组
 export interface WhiteboardGroup {
@@ -147,6 +148,7 @@ export interface CreateWhiteboardNoteInput {
   size: { width: number; height: number }
   zIndex: number
   rotation: number
+  isAutoHeight: boolean // 新增：控制是否自动调整高度
 }
 
 export interface Connection {

@@ -434,5 +434,21 @@ contextBridge.exposeInMainWorld('electronAPI', {
       console.error('Preload: 删除白板笔记时出错:', error)
       throw error
     }
+  },
+  // 更新白板笔记的自动高度
+  updateWhiteboardNoteAutoHeight: async (
+    id: string,
+    isAutoHeight: boolean
+  ): Promise<WhiteboardNote> => {
+    try {
+      return (await ipcRenderer.invoke(
+        'update-whiteboard-note-auto-height',
+        id,
+        isAutoHeight
+      )) as WhiteboardNote
+    } catch (error) {
+      console.error('Preload: 更新白板笔记自动高度时出错:', error)
+      throw error
+    }
   }
 })

@@ -37,7 +37,8 @@ import {
   getWhiteboardSubboards,
   updateWhiteboardNotePosition,
   updateWhiteboardNoteSize,
-  deleteWhiteboardNote
+  deleteWhiteboardNote,
+  updateWhiteboardNoteAutoHeight
 } from '../db/whiteboards'
 import {
   createConnection,
@@ -161,6 +162,20 @@ function createCustomMenu() {
 }
 
 function setupIpcHandlers() {
+  // 更新白板笔记的自动高度
+  ipcMain.handle(
+    'update-whiteboard-note-auto-height',
+    async (_, id: string, isAutoHeight: boolean) => {
+      try {
+        const updatedWhiteboardNote = await updateWhiteboardNoteAutoHeight(id, isAutoHeight)
+        return updatedWhiteboardNote
+      } catch (error) {
+        console.error('主进程 → 更新白板笔记自动高度时出错:', error)
+        return { success: false, error: error }
+      }
+    }
+  )
+
   // 删除白板笔记
   ipcMain.handle('delete-whiteboard-note', async (_, id: string) => {
     try {

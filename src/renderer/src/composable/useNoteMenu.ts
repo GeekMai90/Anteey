@@ -1,5 +1,5 @@
 import { computed, ref } from 'vue'
-import { Info, Star, Copy, History, DeleteOne, RightBar } from '@icon-park/vue-next'
+import { Info, Star, Copy, History, DeleteOne, RightBar, Refresh } from '@icon-park/vue-next'
 import { useNoteStore } from '../stores/noteStores'
 import { useWhiteboardStore } from '../stores/whiteboardStores'
 
@@ -7,6 +7,7 @@ interface NoteMenuParams {
   noteId: string
   whiteboardNoteId?: string
   menuItems?: string[] // 新增：用于指定要显示的菜单项
+  onRestoreDefaultHeight?: () => void // 新增：用于处理恢复默认高度的回调函数
 }
 
 export function useNoteMenu(params: NoteMenuParams) {
@@ -80,6 +81,13 @@ export function useNoteMenu(params: NoteMenuParams) {
     closePopupMenu()
   }
 
+  const handleRestoreDefaultHeight = () => {
+    if (params.onRestoreDefaultHeight) {
+      params.onRestoreDefaultHeight()
+    }
+    closePopupMenu()
+  }
+
   const allMenuItems: any = computed(() => ({
     info: { name: 'info', label: '卡片信息', icon: Info, action: handleShare },
     star: {
@@ -110,19 +118,29 @@ export function useNoteMenu(params: NoteMenuParams) {
       icon: DeleteOne,
       action: handleTrashFromWhiteboard,
       isDangerous: true
+    },
+    restoreDefaultHeight: {
+      name: 'restoreDefaultHeight',
+      label: '恢复默认高度',
+      icon: Refresh,
+      action: handleRestoreDefaultHeight
     }
   }))
+
   const menuItems = computed(() => {
     let items
     if (params.menuItems && params.menuItems.length > 0) {
       items = params.menuItems.map((itemName) => allMenuItems.value[itemName]).filter(Boolean)
     } else {
-      items = Object.values(allMenuItems.value).filter(
-        (item: any) => item.name !== 'trashFromWhiteboard' || params.whiteboardNoteId
-      )
+      items = Object.values(allMenuItems.value).filter((item: any) => {
+        if (item.name === 'trashFromWhiteboard' || item.name === 'restoreDefaultHeight') {
+          return !!params.whiteboardNoteId
+        }
+        return true
+      })
     }
-    console.log('Computed menuItems:', items) // 添加日志
-    return items.length > 0 ? items : Object.values(allMenuItems.value) // 确保始终返回有效的菜单项
+    console.log('Computed menuItems:', items)
+    return items.length > 0 ? items : Object.values(allMenuItems.value)
   })
 
   return {

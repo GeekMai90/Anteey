@@ -299,7 +299,8 @@ export async function createWhiteboardNote(
     position: input.position,
     size: input.size,
     zIndex: input.zIndex,
-    rotation: input.rotation
+    rotation: input.rotation,
+    isAutoHeight: input.isAutoHeight || false
   }
   await db('whiteboard_notes').insert({
     ...newWhiteboardNote,
@@ -408,6 +409,24 @@ export async function getCardCount(whiteboardId: string): Promise<number> {
     return cardCount
   } catch (error) {
     console.error('后端→ 获取白板中的卡片数量失败:', error)
+    throw error
+  }
+}
+
+// 更新白板笔记的自动高度
+export async function updateWhiteboardNoteAutoHeight(
+  id: string,
+  isAutoHeight: boolean
+): Promise<WhiteboardNote> {
+  try {
+    const updatedWhiteboardNote = await db('whiteboard_notes')
+      .where({ id })
+      .update({ isAutoHeight })
+      .returning('*')
+
+    return processWhiteboardNoteData(updatedWhiteboardNote[0])
+  } catch (error) {
+    console.error('后端→ 更新白板笔记自动高度失败:', error)
     throw error
   }
 }

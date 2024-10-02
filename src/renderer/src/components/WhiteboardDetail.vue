@@ -445,7 +445,7 @@ const onResizeItem = (event: MouseEvent) => {
     case 'top-right':
       newWidth = Math.max(startWidth + dx, 100)
       newHeight = Math.max(startHeight - dy, 100)
-      // 当拖拽改变大小的方向为顶边和右边时，因为会导致 item 的 position 发生变化，所以将需要调整的视觉偏移量存储到 visualAdjustment 中
+      // 当拖拽改变大小的方向为顶边和右边时，因为会导致 item 的 position 发生变���，所以将需要调整的视觉偏移量存储到 visualAdjustment 中
       visualAdjustment.value.y = startHeight - newHeight
       break
     case 'bottom-right':
@@ -476,6 +476,10 @@ const stopResizingItem = async (event: MouseEvent) => {
       // 更新白板项的大小和位置
       await whiteboardStore.updateWhiteboardNoteSize(item.id, item.size.width, item.size.height)
       await whiteboardStore.updateWhiteboardNotePosition(item.id, item.position.x, item.position.y)
+      // 更新白板笔记的自动高度
+      console.log('更新白板笔记的自动高度', { id: item.id, isAutoHeight: false })
+      await whiteboardStore.updateWhiteboardNoteAutoHeight(item.id, false)
+      item.isAutoHeight = false
       // 应用视觉调整到实际位置
       item.position.x += visualAdjustment.value.x
       item.position.y += visualAdjustment.value.y
@@ -684,7 +688,8 @@ const createWhiteboardNote = async () => {
     position: { x: 100, y: 100 }, // 默认位置，你可以根据需要调整
     size: { width: 350, height: 150 }, // 默认大小，你可以根据需要调整
     zIndex: 1,
-    rotation: 0
+    rotation: 0,
+    isAutoHeight: false
   }
 
   try {

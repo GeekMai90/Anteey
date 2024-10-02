@@ -198,10 +198,13 @@ export const useWhiteboardStore = defineStore('whiteboard', {
           width,
           height
         )
-        // 使用 Vue 的响应式 API 来更新状态
+        // 更新 Pinia 状态
         const index = this.whiteboardNotes.findIndex((note) => note.id === id)
         if (index !== -1) {
-          this.whiteboardNotes[index] = { ...this.whiteboardNotes[index], size: { width, height } }
+          this.whiteboardNotes[index] = {
+            ...this.whiteboardNotes[index],
+            size: { width, height }
+          }
         }
         console.log('whiteboardStore→ 更新白板笔记大小成功', updatedWhiteboardNote)
         return updatedWhiteboardNote
@@ -283,6 +286,29 @@ export const useWhiteboardStore = defineStore('whiteboard', {
         return result
       } catch (error) {
         console.error('whiteboardStore→ 删除白板笔记失败', error)
+        throw error
+      }
+    },
+    // 更新白板笔记的自动高度
+    async updateWhiteboardNoteAutoHeight(id: string, isAutoHeight: boolean) {
+      try {
+        console.log('whiteboardStore→ 开始更新白板笔记自动高度', { id, isAutoHeight })
+        const updatedWhiteboardNote = await window.electronAPI.updateWhiteboardNoteAutoHeight(
+          id,
+          isAutoHeight
+        )
+        // 更新 Pinia 状态
+        const index = this.whiteboardNotes.findIndex((note) => note.id === id)
+        if (index !== -1) {
+          this.whiteboardNotes[index] = {
+            ...this.whiteboardNotes[index],
+            isAutoHeight
+          }
+        }
+        console.log('whiteboardStore→ 更新白板笔记自动高度成功', updatedWhiteboardNote)
+        return updatedWhiteboardNote
+      } catch (error) {
+        console.error('whiteboardStore→ 更新白板笔记自动高度失败', error)
         throw error
       }
     }

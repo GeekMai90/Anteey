@@ -15,9 +15,6 @@
   >
     <!-- 顶部工具栏 -->
     <div class="toolbar">
-      <button @click="toggleHeightMode">
-        {{ isFixedHeight ? '自动增高' : '固定高度' }}
-      </button>
       <!-- 展开编辑器 -->
       <div
         v-tooltip.bottom="{ content: '展开编辑器', delay: { show: 1000 } }"
@@ -71,16 +68,20 @@
           @keyup.enter="focusEditor"
         />
       </div>
-      <div class="content-area" :style="contentAreaStyle" @mousedown.stop @touchstart.stop>
-        <div ref="editorContainerRef" class="content-wrapper" @mousedown.stop @touchstart.stop>
-          <TipTapEditor
-            ref="tiptapEditor"
-            :content="editedNote.content"
-            :editable="isEditing"
-            :enableDragHandle="true"
-            @update:content="updateContent"
-          />
-        </div>
+      <div
+        ref="editorContainerRef"
+        class="content-area"
+        :style="contentAreaStyle"
+        @mousedown.stop
+        @touchstart.stop
+      >
+        <TipTapEditor
+          ref="tiptapEditorRef"
+          :content="editedNote.content"
+          :editable="isEditing"
+          :enableDragHandle="true"
+          @update:content="updateContent"
+        />
       </div>
     </div>
     <!-- 卡片类型选择菜单 -->
@@ -148,6 +149,7 @@ import { useNoteMenu } from '@renderer/composable/useNoteMenu'
 import { useWhiteboardStore } from '../stores/whiteboardStores'
 import { storeToRefs } from 'pinia'
 import { onClickOutside } from '@vueuse/core'
+import { useResizeObserver } from '@vueuse/core'
 
 const props = defineProps<{
   noteId: string
@@ -160,7 +162,7 @@ const props = defineProps<{
 
 const router = useRouter()
 const addressInput = ref<HTMLInputElement | null>(null)
-const tiptapEditor = ref<InstanceType<any> | null>(null)
+const tiptapEditorRef = ref<InstanceType<any> | null>(null)
 // const emit = defineEmits(['close', 'save', 'expand', 'toggleOptions'])
 const noteStore = useNoteStore()
 const whiteboardStore = useWhiteboardStore()
@@ -175,11 +177,13 @@ const currentWhiteboardNote = computed(() => getWhiteboardNoteById.value(props.i
 
 const minHeight = 150 // 设置最小高度
 const editorContainerRef = ref<HTMLElement | null>(null)
-const extraHeight = 120 // 工具栏和地址输入框的估计高度
+const extraHeight = 150 // 工具栏和地址输入框的估计高度
 
 const noteRef = ref(null)
 
 const isHovering = ref(false)
+
+const isAutoHeight = ref(currentWhiteboardNote.value?.isAutoHeight)
 
 const emit = defineEmits(['hover', 'resize-start', 'start-connection', 'note-interaction'])
 
@@ -191,8 +195,8 @@ const handleNoteHover = (hovering: boolean) => {
 // 编辑状态下可以滚动
 const contentAreaStyle = computed(() => ({
   flexGrow: 1,
-  overflowY: isFixedHeight.value ? ('auto' as const) : ('visible' as const),
-  maxHeight: isFixedHeight.value ? '100%' : 'none'
+  overflowY: isAutoHeight.value ? ('hidden' as const) : ('visible' as const),
+  maxHeight: isAutoHeight.value ? '100%' : 'none'
 }))
 
 onClickOutside(noteRef, () => {
@@ -215,8 +219,8 @@ const startEditing = (event: MouseEvent) => {
   isEditing.value = true
   emitNoteInteraction(true)
   nextTick(() => {
-    if (tiptapEditor.value) {
-      tiptapEditor.value.$forceUpdate()
+    if (tiptapEditorRef.value) {
+      tiptapEditorRef.value.$forceUpdate()
       focusEditor()
     }
   })
@@ -225,62 +229,86 @@ const startEditing = (event: MouseEvent) => {
 onUnmounted(() => {
   isEditing.value = false
   emitNoteInteraction(false)
-  // ... 其他卸载逻辑 ...
 })
 
-const toggleHeightMode = () => {
-  isFixedHeight.value = !isFixedHeight.value
-  manuallyResized.value = false
-  updateHeight()
-}
-
-// 使用计算属性获取最新的笔记大小
+// 使用计算属性获���最新的笔记大小
 const whiteboardNoteSize = computed(() => {
-  const size = currentWhiteboardNote.value?.size || { width: 350, height: minHeight }
-  return size
+  const note = whiteboardStore.whiteboardNotes.find((note) => note.id === props.item.id)
+  return note?.size || { width: 350, height: minHeight }
 })
 
 const noteStyle = computed(() => ({
   width: `${whiteboardNoteSize.value.width}px`,
-  height: isFixedHeight.value ? `${whiteboardNoteSize.value.height}px` : 'auto',
+  height: `${whiteboardNoteSize.value.height}px`, // 始终使用保存的高度
   minHeight: `${minHeight}px`
 }))
 const editorContentStyle = computed(() => ({
-  maxHeight: isFixedHeight.value ? `${whiteboardNoteSize.value.height - extraHeight}px` : 'none',
-  overflowY: isFixedHeight.value ? 'auto' : 'visible'
+  height: isAutoHeight.value ? `${whiteboardNoteSize.value.height}px` : '100%',
+  overflowY: isAutoHeight.value ? 'hidden' : 'visible'
 })) as ComputedRef<CSSProperties>
 
+const contentHeight = ref(0)
+// 使用 ResizeObserver 监测内容高度变化
+useResizeObserver(tiptapEditorRef, (entries) => {
+  const entry = entries[0]
+  if (entry && isAutoHeight.value) {
+    const newContentHeight = entry.contentRect.height
+    if (Math.abs(newContentHeight - contentHeight.value) > 5) {
+      contentHeight.value = newContentHeight
+      requestAnimationFrame(smoothUpdateHeight)
+    }
+  }
+})
+// 平滑地更新高度
+const smoothUpdateHeight = () => {
+  if (!isAutoHeight.value) return
+
+  const currentHeight = editorContainerRef.value?.clientHeight || 0
+  const targetHeight = Math.max(contentHeight.value + extraHeight, minHeight)
+  if (editorContainerRef.value) {
+    if (Math.abs(targetHeight - currentHeight) > 1) {
+      const newHeight = currentHeight + (targetHeight - currentHeight) * 0.2
+      editorContainerRef.value.style.height = `${newHeight - extraHeight}px`
+      requestAnimationFrame(smoothUpdateHeight)
+    } else {
+      editorContainerRef.value.style.height = `${targetHeight - extraHeight}px`
+      whiteboardStore.updateWhiteboardNoteSize(
+        props.item.id,
+        whiteboardNoteSize.value.width,
+        targetHeight
+      )
+    }
+  }
+}
+
 const updateHeight = async () => {
+  if (!isAutoHeight.value) return
+
   await nextTick()
   if (editorContainerRef.value) {
-    const tiptapContainer = editorContainerRef.value.querySelector(
-      '.tiptap-container'
-    ) as HTMLElement
+    const tiptapContainer = editorContainerRef.value.querySelector('.tiptap') as HTMLElement
     if (tiptapContainer) {
-      const newHeight = Math.max(tiptapContainer.scrollHeight + extraHeight, minHeight)
-      if (newHeight !== whiteboardNoteSize.value.height && !isFixedHeight.value) {
-        console.log('Updating height to:', newHeight)
+      const currentHeight = editorContainerRef.value.clientHeight
+      const contentHeight = tiptapContainer.scrollHeight
+      if (contentHeight > currentHeight - extraHeight) {
+        const newHeight = Math.max(contentHeight + extraHeight, minHeight)
         await whiteboardStore.updateWhiteboardNoteSize(
           props.item.id,
           whiteboardNoteSize.value.width,
           newHeight
         )
+        editorContainerRef.value.style.height = `${newHeight - extraHeight}px`
       }
     }
   }
 }
-onMounted(() => {
+// 添加恢复默认高度的函数
+const restoreDefaultHeight = () => {
+  isAutoHeight.value = true
+  whiteboardStore.updateWhiteboardNoteAutoHeight(props.item.id, true)
   updateHeight()
-})
-// 监听笔记大小的变化
-watch(
-  whiteboardNoteSize,
-  (newSize, oldSize) => {
-    console.log('Note size changed:', oldSize, '->', newSize)
-    // 在这里可以添加额外的逻辑来响应大小变化
-  },
-  { deep: true }
-)
+}
+
 // 监听笔记大小的变化
 watch(
   () => whiteboardNoteSize.value,
@@ -297,23 +325,15 @@ watch(
   { deep: true }
 )
 
-// useResizeObserver(contentWrapperRef, (entries) => {
-//   console.log('ResizeObserver triggered', entries[0].contentRect)
-//   const entry = entries[0]
-//   if (entry) {
-//     const newHeight = entry.contentRect.height + 100 // 添加额外空间，如顶部工具栏
-//     contentHeight.value = Math.max(newHeight, minHeight)
-//   }
-// })
-
 const startResize = (direction: string, event: MouseEvent) => {
+  console.log('开始调整大小', { id: props.item.id, isAutoHeight: false })
+  whiteboardStore.updateWhiteboardNoteAutoHeight(props.item.id, false)
+  isAutoHeight.value = false
   emit('resize-start', {
     direction,
     event,
     onResize: (newWidth: number, newHeight: number) => {
       whiteboardStore.updateWhiteboardNoteSize(props.item.id, newWidth, newHeight)
-      isFixedHeight.value = true
-      manuallyResized.value = true
     }
   })
 }
@@ -329,7 +349,8 @@ const popupMenuRef = ref<{ openMenu: (x: number, y: number) => void } | null>(nu
 const { menuItems: whiteboardMenuItems } = useNoteMenu({
   noteId: props.noteId,
   whiteboardNoteId: props.item.id,
-  menuItems: ['star', 'trashFromWhiteboard']
+  onRestoreDefaultHeight: restoreDefaultHeight,
+  menuItems: ['star', 'trashFromWhiteboard', 'restoreDefaultHeight']
 })
 
 const openMenu = (event: MouseEvent) => {
@@ -472,9 +493,9 @@ const autoSaveInterval = setInterval(() => {
 
 onMounted(() => {
   loadNote()
-  nextTick(() => {
-    updateContent(editedNote.value.content)
-  })
+  // nextTick(() => {
+  //   updateContent(editedNote.value.content)
+  // })
 })
 
 onUnmounted(() => {
@@ -489,12 +510,16 @@ onBeforeUnmount(async () => {
 
 // 更新内容
 const updateContent = (newContent: any) => {
+  console.log('updateContent 被执行了')
   if (editedNote.value) {
     editedNote.value.content = newContent
-    updateHeight()
+    console.log('isAutoHeight', isAutoHeight.value)
+    if (isAutoHeight.value) {
+      updateHeight()
+    }
   }
 }
-// 手动保存（如果需要）
+// 手保存（如果需要）
 const saveNote = async () => {
   if (editedNote.value) {
     try {
@@ -507,23 +532,6 @@ const saveNote = async () => {
     }
   }
 }
-
-// 更新内容
-// const updateContent = (newContent: any) => {
-//   if (editedNote.value) {
-//     editedNote.value.content = newContent
-//     // saveNote()
-//   }
-// }
-
-// 当模态窗被关闭时，保存笔记
-// const handleAutoSave = () => {
-//   if (editedNote.value?.address || editedNote.value?.content || editedNote.value?.cardType) {
-//     saveNote()
-//   } else {
-//     emit('close')
-//   }
-// }
 
 // 卡片盒列表
 const cardBoxes = computed(() => {
@@ -551,7 +559,7 @@ const selectCardBox = async (box: CardBox) => {
       console.error('NoteEditor.vue → 更新卡片盒失败: 未能获取更新后的笔记')
     }
   } catch (error) {
-    console.error('NoteEditor.vue → 更新卡片盒失败:', error)
+    console.error('NoteEditor.vue → 更新片盒失败:', error)
   }
 }
 
@@ -663,8 +671,8 @@ const focusAddressInput = () => {
 
 const focusEditor = () => {
   nextTick(() => {
-    if (tiptapEditor.value && isEditing.value) {
-      tiptapEditor.value.focus()
+    if (tiptapEditorRef.value && isEditing.value) {
+      tiptapEditorRef.value.focus()
     }
   })
 }
@@ -702,7 +710,7 @@ const handleExpand = async () => {
 // }
 
 // defineExpose({ handleAutoSave, focusAddressInput })
-defineExpose({ focusAddressInput })
+defineExpose({ focusAddressInput, restoreDefaultHeight })
 </script>
 
 <style lang="scss" scoped>
@@ -713,7 +721,7 @@ defineExpose({ focusAddressInput })
   flex-direction: column;
   position: relative;
   box-shadow: var(--color-shadow-primary);
-  transition: height 0.3s ease; // 添加平滑过渡效果
+  transition: height 0.2s ease; // 添加平滑过渡效果
   overflow: visible;
   &.editing {
     border: 1px solid var(--color-primary);
@@ -955,6 +963,7 @@ defineExpose({ focusAddressInput })
     min-height: 0;
     width: 100%;
     overflow: hidden; // 修改这里
+    transition: height 0.2s ease-out;
 
     .address-input {
       margin-bottom: 10px;
