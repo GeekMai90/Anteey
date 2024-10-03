@@ -778,6 +778,7 @@ defineExpose({ focusAddressInput, restoreDefaultHeight })
       width: 100%;
       overflow: visible;
       height: auto !important; // 强制移除固定高度
+      position: relative;
     }
 
     :deep(.tiptap) {

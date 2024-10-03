@@ -158,6 +158,7 @@
 }
 
 .custom-drag-handle {
+  position: relative;
   &::after {
     display: flex;
     align-items: center;

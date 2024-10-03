@@ -11,6 +11,7 @@
       class="whiteboard-canvas"
       :class="{ connecting: isConnecting }"
       @wheel="handleWheel"
+      @dblclick="handleContainerDoubleClick"
       @touchstart="handleTouchStart"
       @touchmove="handleTouchMove"
       @touchend="handleTouchEnd"
@@ -68,12 +69,12 @@
       @reset-view="fitView"
     />
     <!-- 新增：创建白板笔记按钮 -->
-    <div class="create-note-button" @click="createWhiteboardNote">
+    <!-- <div class="create-note-button" @click="createWhiteboardNote">
       <div class="icon">
         <Add theme="outline" size="24" fill="#333" />
       </div>
       <span>创建笔记</span>
-    </div>
+    </div> -->
   </div>
 </template>
 
@@ -95,7 +96,7 @@ import { Add, Aiming, Delete } from '@icon-park/vue-next'
 import WhiteboardZoomControl from './WhiteboardZoomControl.vue'
 import CardConnection from './CardConnection.vue'
 import { useContextMenuStore } from '../stores/contextMenuStore'
-import { useNoteStore } from '@renderer/stores/noteStores'
+// import { useNoteStore } from '@renderer/stores/noteStores'
 
 const containerRef = ref<HTMLElement | null>(null)
 const route = useRoute()
@@ -131,22 +132,33 @@ const measureSpan = ref<HTMLSpanElement | null>(null)
 
 const isHoveringNote = ref(false)
 
-const noteStore = useNoteStore()
-const loadedNotes = ref(new Map())
+// const noteStore = useNoteStore()
+// const loadedNotes = ref(new Map())
 
 const dataLoaded = ref(false)
 
-const preloadNotes = async () => {
-  for (const whiteboardNote of whiteboardNotes.value) {
-    if (!loadedNotes.value.has(whiteboardNote.id)) {
-      const fullNote = await noteStore.getNoteById(whiteboardNote.noteId)
-      console.log('fullNote', fullNote)
-      if (fullNote) {
-        loadedNotes.value.set(whiteboardNote.id, fullNote)
-      }
-    }
-  }
-}
+// 监听 whiteboardStore.whiteboardNotes 的变化，立刻更新视图
+watch(
+  () => whiteboardStore.whiteboardNotes,
+  (newNotes) => {
+    whiteboardNotes.value = newNotes
+    console.log('WhiteboardNotes updated:', newNotes)
+  },
+  { deep: true }
+)
+
+// 预加载笔记
+// const preloadNotes = async () => {
+//   for (const whiteboardNote of whiteboardNotes.value) {
+//     if (!loadedNotes.value.has(whiteboardNote.id)) {
+//       const fullNote = await noteStore.getNoteById(whiteboardNote.noteId)
+//       console.log('fullNote', fullNote)
+//       if (fullNote) {
+//         loadedNotes.value.set(whiteboardNote.id, fullNote)
+//       }
+//     }
+//   }
+// }
 
 const handleNoteHover = (hovering: boolean) => {
   isHoveringNote.value = hovering
@@ -342,7 +354,7 @@ const initializeData = async (whiteboardId: string) => {
     await whiteboardStore.initializeWhiteboardData(whiteboardId)
     whiteboardNotes.value = whiteboardStore.whiteboardNotes
     connections.value = whiteboardStore.connections
-    await preloadNotes()
+    // await preloadNotes()
     updateAllConnectionPositions()
     dataLoaded.value = true
   } catch (error) {
@@ -361,18 +373,6 @@ const initializeData = async (whiteboardId: string) => {
 //   { immediate: true }
 // )
 
-// const fetchWhiteboardItems = async () => {
-//   if (whiteboardId.value) {
-//     console.log('WhiteboardDetail 开始获取组件项，whiteboardId：', whiteboardId.value)
-//     whiteboardNotes.value = await whiteboardStore.getWhiteboardNotes(whiteboardId.value)
-//     whiteboardGroups.value = await whiteboardStore.getWhiteboardGroups(whiteboardId.value)
-//     whiteboardSubboards.value = await whiteboardStore.getWhiteboardSubboards(whiteboardId.value)
-//     connections.value = await whiteboardStore.getConnections(whiteboardId.value)
-//     console.log('connections', connections.value)
-//     dataLoaded.value = true
-//   }
-// }
-
 // 组件挂载时获取白板内容
 onMounted(async () => {
   const id = route.params.whiteboardId
@@ -380,7 +380,7 @@ onMounted(async () => {
   if (id && typeof id === 'string') {
     whiteboardId.value = id
     await initializeData(whiteboardId.value)
-    await preloadNotes()
+    // await preloadNotes()
   }
   updateAllConnectionPositions()
 })
@@ -730,14 +730,43 @@ onUnmounted(() => {
   document.removeEventListener('mouseup', stopDraggingItem)
 })
 
+// 双击空白处新增白板
+const handleContainerDoubleClick = (event: MouseEvent) => {
+  console.log('handleContainerDoubleClick', event)
+  event.preventDefault()
+  event.stopPropagation()
+
+  if (!containerRef.value) {
+    console.error('containerRef is null')
+    return
+  }
+  // 检查事件目标是否是 contentRef 或其子元素
+  if (event.target === containerRef.value) {
+    const rect = containerRef.value.getBoundingClientRect()
+
+    const x = (event.clientX - rect.left) / scale.value - translateX.value
+    const y = (event.clientY - rect.top) / scale.value - translateY.value
+
+    contextMenuStore.showMenu(event.clientX, event.clientY, [
+      {
+        label: '新建笔记',
+        icon: markRaw(Add),
+        action: () => createWhiteboardNote(x, y)
+      }
+    ])
+  } else {
+    console.log('双击事件的目标不是 contentRef 或其子元素')
+  }
+}
+
 // 新增：创建白板笔记的函数
-const createWhiteboardNote = async () => {
+const createWhiteboardNote = async (x: number, y: number) => {
   if (!whiteboardId.value) return
   console.log('创建白板笔记', whiteboardId.value)
   const input: CreateWhiteboardNoteInput = {
     whiteboardId: whiteboardId.value,
     noteId: '',
-    position: { x: 100, y: 100 }, // 默认位置，你可以根据需要调整
+    position: { x, y }, // 默认位置，你可以根据需要调整
     size: { width: 350, height: 300 }, // 默认大小，你可以根据需要调整
     zIndex: 1,
     rotation: 0,
@@ -753,6 +782,7 @@ const createWhiteboardNote = async () => {
       whiteboardNotes.value.push(newNote)
       console.log('创建白板笔记成功, 添加到白板笔记列表中, 重新获取白板项', whiteboardNotes.value)
       await initializeData(whiteboardId.value)
+      contextMenuStore.closeMenu()
 
       // 如果需要，可以在这里添加创建关联笔记的逻辑
       // 例如：await whiteboardStore.createReferenceNote(newNote.id)
@@ -849,11 +879,6 @@ const handleMouseUp = async (event: MouseEvent) => {
 }
 
 const handleWheel = (event: WheelEvent) => {
-  // if (isNoteInteracting.value) {
-  //   event.preventDefault()
-  //   return
-  // }
-  // if (isNoteInteracting.value || isHoveringNote.value) {
   if (isNoteInteracting.value) {
     // 只有在进行缩放操作时才阻止默认行为
     if (event.ctrlKey) {
@@ -866,7 +891,7 @@ const handleWheel = (event: WheelEvent) => {
     // 缩放
     event.preventDefault()
     const delta = event.deltaY > 0 ? 0.9 : 1.1
-    const newScale = Math.max(0.1, Math.min(scale.value * delta, 5))
+    const newScale = Math.max(0.5, Math.min(scale.value * delta, 2))
 
     if (!containerRef.value) return
 

@@ -308,7 +308,6 @@ export const useWhiteboardStore = defineStore('whiteboard', {
         console.log('whiteboardStore→ 删除白板笔记成功', result)
         // 更新本地状态
         this.whiteboardNotes = this.whiteboardNotes.filter((note) => note.id !== id)
-
         // 更新连接
         this.connections = this.connections.filter(
           (conn) => conn.startItemId !== id && conn.endItemId !== id

@@ -21,11 +21,11 @@ const emit = defineEmits<{
 const zoomPercentage = computed(() => Math.round(props.scale * 100))
 
 const zoomIn = () => {
-  emit('update:scale', Math.min(props.scale * 1.1, 5))
+  emit('update:scale', Math.min(props.scale * 1.1, 2))
 }
 
 const zoomOut = () => {
-  emit('update:scale', Math.max(props.scale / 1.1, 0.1))
+  emit('update:scale', Math.max(props.scale / 1.1, 0.5))
 }
 
 const resetZoom = () => {
