@@ -370,13 +370,17 @@ const emptyNote: Note = {
 const editedNote = ref<Note>({ ...emptyNote })
 const saveStatus = ref<'idle' | 'saving' | 'saved' | 'error'>('idle')
 
+// 数据是否加载完成
+const isInitialized = ref(false)
+
 // 加载笔记
 const loadNote = async () => {
   if (props.noteId) {
     const note = await noteStore.getNoteById(props.noteId)
     if (note) {
-      // editedNote.value = note
       editedNote.value = JSON.parse(JSON.stringify(note))
+      lastSavedNote = JSON.parse(JSON.stringify(note))
+      isInitialized.value = true
     } else {
       console.error('WhiteboardNoteComponent.vue → 编辑的笔记为空')
     }
@@ -385,7 +389,13 @@ const loadNote = async () => {
   }
 }
 
-// 自动保存
+// 在组件挂载时加载笔记
+onMounted(() => {
+  loadNote()
+})
+
+// 自动保存功能
+
 // 用于判断内容是否更新的函数
 function isContentChanged(oldNote: Note, newNote: Note): boolean {
   return (
@@ -397,41 +407,16 @@ function isContentChanged(oldNote: Note, newNote: Note): boolean {
   )
 }
 
+// 是否有未保存的更改
+const hasUnsavedChanges = ref(false)
+// 自动保存计时器
+let autoSaveTimer: ReturnType<typeof setTimeout> | null = null
+
 // 上一次保存的笔记内容
 let lastSavedNote = JSON.parse(JSON.stringify(editedNote.value))
-// 自动保存
-const autoSave = debounce(async () => {
-  if (editedNote.value && editedNote.value.id) {
-    // 比较内容是否真的改变
-    if (!isContentChanged(lastSavedNote, editedNote.value)) {
-      console.log('Content not changed, skipping save')
-      return
-    }
-
-    try {
-      // noteStore.updateNoteSaveStatus(editedNote.value.id, 'saving')
-      console.log('NoteEditor.vue → 正在保存笔记:', editedNote.value)
-      noteStore.updateCurrentNoteSaveStatus('saving')
-      const updatedNote = await noteStore.updateNote(editedNote.value.id, editedNote.value)
-
-      // noteStore.updateNoteSaveStatus(editedNote.value.id, 'saved')
-      noteStore.updateCurrentNoteSaveStatus('saved')
-      console.log('NoteEditor.vue → 自动保存成功')
-
-      // 更新最后保存的内容
-      lastSavedNote = JSON.parse(JSON.stringify(updatedNote))
-
-      // 更新编辑中的笔记
-      editedNote.value = updatedNote
-    } catch (error) {
-      console.error('NoteEditor.vue → 自动保存失败:', error)
-      // noteStore.updateNoteSaveStatus(editedNote.value.id, 'error')
-      noteStore.updateCurrentNoteSaveStatus('error')
-    }
-  }
-}, 2000)
 
 // 监听笔记内容的变化
+// 当笔记内容发生变化时，设置 hasUnsavedChanges 为 true，并重置自动保存计时器
 watch(
   () => [
     editedNote.value.content,
@@ -440,35 +425,54 @@ watch(
     editedNote.value.tags
   ],
   () => {
-    if (isContentChanged(lastSavedNote, editedNote.value)) {
-      autoSave()
+    if (isInitialized.value && isContentChanged(lastSavedNote, editedNote.value)) {
+      hasUnsavedChanges.value = true
+      resetAutoSaveTimer()
     }
   },
   { deep: true }
 )
 
-// 定期保存
-const autoSaveInterval = setInterval(() => {
-  if (editedNote.value) {
-    autoSave()
+// 重置自动保存计时器
+const resetAutoSaveTimer = () => {
+  if (autoSaveTimer) {
+    clearTimeout(autoSaveTimer)
   }
-}, 30000)
+  // 如果有未保存的更改，3秒后自动保存
+  autoSaveTimer = setTimeout(() => {
+    if (hasUnsavedChanges.value) {
+      autoSave()
+    }
+  }, 5000)
+}
 
-onMounted(() => {
-  loadNote()
-  // nextTick(() => {
-  //   updateContent(editedNote.value.content)
-  // })
-})
+// 自动保存
+const autoSave = debounce(async () => {
+  if (editedNote.value && editedNote.value.id && hasUnsavedChanges.value && isInitialized.value) {
+    try {
+      console.log('WhiteboardNoteComponent.vue → 正在保存笔记:', editedNote.value)
+      noteStore.updateCurrentNoteSaveStatus('saving')
+      const updatedNote = await noteStore.updateNote(editedNote.value.id, editedNote.value)
+
+      noteStore.updateCurrentNoteSaveStatus('saved')
+      console.log('WhiteboardNoteComponent.vue → 自动保存成功')
+
+      lastSavedNote = JSON.parse(JSON.stringify(updatedNote))
+      editedNote.value = updatedNote
+      hasUnsavedChanges.value = false
+    } catch (error) {
+      console.error('WhiteboardNoteComponent.vue → 自动保存失败:', error)
+      noteStore.updateCurrentNoteSaveStatus('error')
+    }
+  }
+}, 2000)
 
 onUnmounted(() => {
-  clearInterval(autoSaveInterval)
+  if (autoSaveTimer) {
+    clearTimeout(autoSaveTimer)
+  }
   autoSave.cancel()
   noteStore.updateCurrentNoteSaveStatus('saved')
-})
-
-onBeforeUnmount(async () => {
-  await saveNote()
 })
 
 // 更新内容
@@ -482,7 +486,7 @@ const updateContent = (newContent: any) => {
     }
   }
 }
-// 手保存（如果需要）
+// 手动保存
 const saveNote = async () => {
   if (editedNote.value) {
     try {
@@ -495,6 +499,10 @@ const saveNote = async () => {
     }
   }
 }
+// 在组件卸载前保存笔记
+onBeforeUnmount(async () => {
+  await saveNote()
+})
 
 // 卡片盒列表
 const cardBoxes = computed(() => {

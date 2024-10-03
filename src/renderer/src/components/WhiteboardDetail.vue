@@ -135,6 +135,7 @@ const isHoveringNote = ref(false)
 // const noteStore = useNoteStore()
 // const loadedNotes = ref(new Map())
 
+// 数据是否加载完成
 const dataLoaded = ref(false)
 
 // 监听 whiteboardStore.whiteboardNotes 的变化，立刻更新视图
