@@ -96,6 +96,7 @@ import { Add, Aiming, Delete } from '@icon-park/vue-next'
 import WhiteboardZoomControl from './WhiteboardZoomControl.vue'
 import CardConnection from './CardConnection.vue'
 import { useContextMenuStore } from '../stores/contextMenuStore'
+import { debounce } from 'lodash-es'
 // import { useNoteStore } from '@renderer/stores/noteStores'
 
 const containerRef = ref<HTMLElement | null>(null)
@@ -126,14 +127,10 @@ const isConnecting = ref(false)
 const hoverNote = ref<WhiteboardNote | null>(null)
 const selectedConnectionId = ref<string | null>(null)
 
-// const editingConnection = ref<Connection | null>(null)
 const descriptionInputRef = ref<HTMLInputElement | null>(null)
 const measureSpan = ref<HTMLSpanElement | null>(null)
 
 const isHoveringNote = ref(false)
-
-// const noteStore = useNoteStore()
-// const loadedNotes = ref(new Map())
 
 // 数据是否加载完成
 const dataLoaded = ref(false)
@@ -143,23 +140,9 @@ watch(
   () => whiteboardStore.whiteboardNotes,
   (newNotes) => {
     whiteboardNotes.value = newNotes
-    console.log('WhiteboardNotes updated:', newNotes)
   },
   { deep: true }
 )
-
-// 预加载笔记
-// const preloadNotes = async () => {
-//   for (const whiteboardNote of whiteboardNotes.value) {
-//     if (!loadedNotes.value.has(whiteboardNote.id)) {
-//       const fullNote = await noteStore.getNoteById(whiteboardNote.noteId)
-//       console.log('fullNote', fullNote)
-//       if (fullNote) {
-//         loadedNotes.value.set(whiteboardNote.id, fullNote)
-//       }
-//     }
-//   }
-// }
 
 const handleNoteHover = (hovering: boolean) => {
   isHoveringNote.value = hovering
@@ -912,7 +895,7 @@ const handleWheel = (event: WheelEvent) => {
     translateX.value -= event.deltaX
     translateY.value -= event.deltaY
   }
-  saveViewState()
+  debouncedSaveViewState()
 }
 
 const handleTouchStart = (event: TouchEvent) => {
@@ -982,7 +965,7 @@ const handleTouchMove = (event: TouchEvent) => {
     lastX = touch.clientX
     lastY = touch.clientY
   }
-  saveViewState()
+  debouncedSaveViewState()
 }
 
 const handleTouchEnd = () => {
@@ -1018,17 +1001,27 @@ const fitView = async () => {
     (containerRect.width - contentWidth * scale.value) / 2 - bounds.left * scale.value
   translateY.value =
     (containerRect.height - contentHeight * scale.value) / 2 - bounds.top * scale.value
-  saveViewState()
+  debouncedSaveViewState()
 }
 // 保存视图状态
-const saveViewState = async () => {
-  await whiteboardStore.saveViewStateToWhiteboard(
-    whiteboardId.value as string,
-    scale.value,
-    translateX.value,
-    translateY.value
-  )
-}
+const debouncedSaveViewState = debounce(async () => {
+  if (whiteboardId.value) {
+    await whiteboardStore.saveViewStateToWhiteboard(
+      whiteboardId.value,
+      scale.value,
+      translateX.value,
+      translateY.value
+    )
+  }
+}, 200) // 200ms 的延迟，可以根据需要调整
+// const saveViewState = async () => {
+//   await whiteboardStore.saveViewStateToWhiteboard(
+//     whiteboardId.value as string,
+//     scale.value,
+//     translateX.value,
+//     translateY.value
+//   )
+// }
 
 // 加载视图状态
 const loadViewState = async () => {
@@ -1041,16 +1034,10 @@ const loadViewState = async () => {
   }
 }
 
-// onMounted(async () => {
-//   await loadViewState()
-// })
-
-onUnmounted(async () => {
-  await saveViewState()
-})
-
 // 组件卸载时移除事件监听器
 onUnmounted(() => {
+  debouncedSaveViewState.flush()
+
   document.removeEventListener('mousemove', onDragItem)
   document.removeEventListener('mouseup', stopDraggingItem)
   document.removeEventListener('mousemove', onResizeItem)
