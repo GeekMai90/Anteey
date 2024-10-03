@@ -24,7 +24,7 @@
       </div>
       <div class="connect-btn" @click="$emit('start-connection', $event)">
         <div v-tooltip.bottom="{ content: '连线', delay: { show: 1000 } }" class="icon">
-          <Plus theme="outline" size="16" fill="var(--color-icon-default)" />
+          <Connection theme="outline" size="16" fill="var(--color-icon-default)" />
         </div>
       </div>
       <div
@@ -41,7 +41,7 @@
 </template>
 
 <script setup lang="ts">
-import { ExpandTextInput, Install, More, Plus } from '@icon-park/vue-next'
+import { ExpandTextInput, Install, More, Connection } from '@icon-park/vue-next'
 import CardboxDropdownMenu from './CardboxDropdownMenu.vue'
 import { CardBox } from '../types/Note'
 

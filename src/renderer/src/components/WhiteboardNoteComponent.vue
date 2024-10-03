@@ -332,7 +332,7 @@ const { menuItems: whiteboardMenuItems } = useNoteMenu({
   noteId: props.noteId,
   whiteboardNoteId: props.item.id,
   onRestoreDefaultHeight: restoreDefaultHeight,
-  menuItems: ['star', 'trashFromWhiteboard', 'restoreDefaultHeight']
+  menuItems: ['star', 'sidebar', 'restoreDefaultHeight', 'trashFromWhiteboard']
 })
 
 const openMenu = (event: MouseEvent) => {

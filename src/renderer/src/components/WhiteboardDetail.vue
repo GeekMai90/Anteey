@@ -3,7 +3,7 @@
   <div class="whiteboard-detail">
     <!-- 固定在顶部的工具栏 -->
     <div class="fixed-header">
-      <AppToolbar />
+      <AppToolbar backgroundColor="#f3f5f7" />
     </div>
     <!-- 主容器 -->
     <div
@@ -1086,7 +1086,7 @@ onUnmounted(() => {
 
   &:active {
     cursor: grabbing;
-    opacity: 0.8;
+    // opacity: 0.8;
   }
 }
 .create-note-button {

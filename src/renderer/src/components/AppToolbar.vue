@@ -1,7 +1,7 @@
 // src/components/AppToolbar.vue
 
 <template>
-  <div class="app-toolbar" :style="toolbarStyle">
+  <div class="app-toolbar" :style="computedStyle">
     <div class="toolbar-section left">
       <div
         v-tooltip.bottom="{ content: 'Cmd + \\', delay: { show: 1000 } }"
@@ -62,10 +62,19 @@ const toolbarStyle = computed(() => {
   }
 })
 
-defineProps({
+const props = defineProps({
   showBackButton: { type: Boolean, default: true },
   showForwardButton: { type: Boolean, default: true },
-  showRefreshButton: { type: Boolean, default: true }
+  showRefreshButton: { type: Boolean, default: true },
+  backgroundColor: { type: String, required: false }
+})
+
+const computedStyle = computed(() => {
+  const style: any = { ...toolbarStyle.value }
+  if (props.backgroundColor) {
+    style.backgroundColor = props.backgroundColor
+  }
+  return style
 })
 
 const canGoBack = ref(false)

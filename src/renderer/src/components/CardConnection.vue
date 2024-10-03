@@ -12,7 +12,7 @@
       <defs>
         <marker
           :id="arrowheadId"
-          markerWidth="5"
+          markerWidth="6"
           markerHeight="4"
           refX="5"
           refY="2"
@@ -25,7 +25,7 @@
       <path
         :d="pathData"
         :stroke="lineColor"
-        stroke-width="1"
+        stroke-width="1.5"
         fill="none"
         :marker-end="`url(#${arrowheadId})`"
         class="actual-path"
@@ -43,7 +43,7 @@
         @mouseleave="handleMouseLeave"
       />
       <!-- 起点标记（小圆圈） -->
-      <circle :cx="startPoint.x" :cy="startPoint.y" :r="1.5" :fill="lineColor" />
+      <circle :cx="startPoint.x" :cy="startPoint.y" :r="2" :fill="lineColor" />
     </svg>
     <!-- 连接线描述文本 -->
     <div
