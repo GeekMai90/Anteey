@@ -79,6 +79,13 @@
       <span>创建笔记</span>
     </div> -->
     <div v-if="isSelecting" class="selection-box" :style="selectionBoxStyle"></div>
+    <!-- 新增：顶端对齐按钮 -->
+    <SelectionToolbar
+      :selected-notes="selectedNotes"
+      :whiteboard-notes="whiteboardNotes"
+      @update:notes="updateNotes"
+      @update-connections="updateAllConnectionPositions"
+    />
   </div>
 </template>
 
@@ -101,6 +108,7 @@ import WhiteboardZoomControl from './WhiteboardZoomControl.vue'
 import CardConnection from './CardConnection.vue'
 import { useContextMenuStore } from '../stores/contextMenuStore'
 import { debounce } from 'lodash-es'
+import SelectionToolbar from './SelectionToolbar.vue'
 // import { useNoteStore } from '@renderer/stores/noteStores'
 
 const containerRef = ref<HTMLElement | null>(null)
@@ -211,6 +219,15 @@ const handleContainerClickOutside = (event: MouseEvent) => {
   if (event.target === containerRef.value) {
     selectedNotes.value = []
   }
+}
+const updateNotes = (updatedNotes: WhiteboardNote[]) => {
+  whiteboardNotes.value = updatedNotes
+  // 可能需要在这里添加保存到后端的逻辑
+  updatedNotes.forEach((note) => {
+    if (selectedNotes.value.includes(note.id)) {
+      whiteboardStore.updateWhiteboardNotePosition(note.id, note.position.x, note.position.y)
+    }
+  })
 }
 
 // const isNoteInSelection = (note: WhiteboardNote) => {
@@ -1356,5 +1373,34 @@ onUnmounted(() => {
 
 .whiteboard-item.selected {
   outline: 2px solid var(--color-primary);
+}
+
+.align-top-button {
+  position: absolute;
+  left: 20px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border-radius: 6px;
+  padding: 8px;
+  background-color: var(--color-bg-secondary);
+  color: var(--color-text-primary);
+
+  .icon {
+    margin-bottom: 4px;
+  }
+
+  span {
+    font-size: 12px;
+  }
+
+  &:hover {
+    background-color: var(--color-hover-button);
+  }
 }
 </style>
