@@ -10,11 +10,13 @@
       ref="containerRef"
       class="whiteboard-canvas"
       :class="{ connecting: isConnecting }"
+      @v-click-outside="handleContainerClickOutside"
       @wheel="handleWheel"
       @dblclick="handleContainerDoubleClick"
       @touchstart="handleTouchStart"
       @touchmove="handleTouchMove"
       @touchend="handleTouchEnd"
+      @mousedown="startSelection"
     >
       <!-- 变换层 -->
       <div ref="transformLayerRef" class="whiteboard-transform-layer" :style="transformLayerStyle">
@@ -30,6 +32,7 @@
             :item="item"
             :note-id="item.noteId"
             :is-hovered="isCreatingConnection && hoverNote?.id === item.id"
+            :is-selected="selectedNotes.includes(item.id)"
             @drag-start="startDraggingItem(item, $event)"
             @resize-start="startResizingItem(item, $event)"
             @start-connection="startConnection"
@@ -75,6 +78,7 @@
       </div>
       <span>创建笔记</span>
     </div> -->
+    <div v-if="isSelecting" class="selection-box" :style="selectionBoxStyle"></div>
   </div>
 </template>
 
@@ -131,6 +135,97 @@ const descriptionInputRef = ref<HTMLInputElement | null>(null)
 const measureSpan = ref<HTMLSpanElement | null>(null)
 
 const isHoveringNote = ref(false)
+
+// 批量选中功能
+const isSelecting = ref(false)
+const selectionStart = ref({ x: 0, y: 0 })
+const selectionEnd = ref({ x: 0, y: 0 })
+const selectedNotes = ref<string[]>([])
+
+const selectionBoxStyle = computed(() => {
+  const left = Math.min(selectionStart.value.x, selectionEnd.value.x)
+  const top = Math.min(selectionStart.value.y, selectionEnd.value.y)
+  const width = Math.abs(selectionEnd.value.x - selectionStart.value.x)
+  const height = Math.abs(selectionEnd.value.y - selectionStart.value.y)
+  return {
+    transform: `translate(${left * scale.value + translateX.value}px, ${top * scale.value + translateY.value}px)`,
+    width: `${width * scale.value}px`,
+    height: `${height * scale.value}px`
+  }
+})
+
+const transformLayerRef = ref<HTMLDivElement | null>(null)
+const startSelection = (event: MouseEvent) => {
+  if (event.button !== 0) return // 只响应左键
+  isSelecting.value = true
+  const rect = containerRef.value?.getBoundingClientRect()
+  if (rect) {
+    const startX = (event.clientX - rect.left - translateX.value) / scale.value
+    const startY = (event.clientY - rect.top - translateY.value) / scale.value
+    selectionStart.value = { x: startX, y: startY }
+    selectionEnd.value = { x: startX, y: startY }
+    console.log('Start Selection:', {
+      mouseX: event.clientX,
+      mouseY: event.clientY,
+      startX,
+      startY,
+      scale: scale.value,
+      translateX: translateX.value,
+      translateY: translateY.value
+    })
+  }
+  document.addEventListener('mousemove', handleMouseMove)
+  document.addEventListener('mouseup', endSelection)
+}
+
+const endSelection = () => {
+  isSelecting.value = false
+  if (rafId) {
+    cancelAnimationFrame(rafId)
+    rafId = null
+  }
+  updateSelectedNotes() // 确保在结束选择时更新选中的笔记
+  document.removeEventListener('mousemove', handleMouseMove)
+  document.removeEventListener('mouseup', endSelection)
+}
+
+const updateSelectedNotes = () => {
+  const selectionLeft = Math.min(selectionStart.value.x, selectionEnd.value.x)
+  const selectionRight = Math.max(selectionStart.value.x, selectionEnd.value.x)
+  const selectionTop = Math.min(selectionStart.value.y, selectionEnd.value.y)
+  const selectionBottom = Math.max(selectionStart.value.y, selectionEnd.value.y)
+
+  selectedNotes.value = whiteboardNotes.value
+    .filter(
+      (note) =>
+        note.position.x < selectionRight &&
+        note.position.x + note.size.width > selectionLeft &&
+        note.position.y < selectionBottom &&
+        note.position.y + note.size.height > selectionTop
+    )
+    .map((note) => note.id)
+  console.log('Selected notes:', selectedNotes.value) // 添加这行来调试
+}
+
+const handleContainerClickOutside = (event: MouseEvent) => {
+  if (event.target === containerRef.value) {
+    selectedNotes.value = []
+  }
+}
+
+// const isNoteInSelection = (note: WhiteboardNote) => {
+//   const selectionLeft = Math.min(selectionStart.value.x, selectionEnd.value.x)
+//   const selectionRight = Math.max(selectionStart.value.x, selectionEnd.value.x)
+//   const selectionTop = Math.min(selectionStart.value.y, selectionEnd.value.y)
+//   const selectionBottom = Math.max(selectionStart.value.y, selectionEnd.value.y)
+
+//   return (
+//     note.position.x < selectionRight &&
+//     note.position.x + note.size.width > selectionLeft &&
+//     note.position.y < selectionBottom &&
+//     note.position.y + note.size.height > selectionTop
+//   )
+// }
 
 // 数据是否加载完成
 const dataLoaded = ref(false)
@@ -784,13 +879,28 @@ let lastX = 0
 let lastY = 0
 let lastPinchDistance = 0
 
+let rafId: number | null = null
+
 const handleMouseMove = (event: MouseEvent) => {
   if (isNoteInteracting.value) {
     event.preventDefault()
     return
   }
   console.log('Mouse moving', isCreatingConnection.value)
-  if (isCreatingConnection.value) {
+  if (isSelecting.value) {
+    if (rafId) {
+      cancelAnimationFrame(rafId)
+    }
+    rafId = requestAnimationFrame(() => {
+      const rect = containerRef.value?.getBoundingClientRect()
+      if (rect) {
+        const currentX = (event.clientX - rect.left - translateX.value) / scale.value
+        const currentY = (event.clientY - rect.top - translateY.value) / scale.value
+        selectionEnd.value = { x: currentX, y: currentY }
+        updateSelectedNotes()
+      }
+    })
+  } else if (isCreatingConnection.value) {
     const rect = containerRef.value?.getBoundingClientRect()
     if (rect) {
       const mouseX = (event.clientX - rect.left - translateX.value) / scale.value
@@ -1234,5 +1344,17 @@ onUnmounted(() => {
     font-size: 12px;
     padding: 4px 8px;
   }
+}
+
+.selection-box {
+  position: absolute;
+  border: 1px solid var(--color-primary);
+  background-color: rgba(0, 123, 255, 0.1);
+  pointer-events: none;
+  transition: all 0.05s linear; // 添加这行
+}
+
+.whiteboard-item.selected {
+  outline: 2px solid var(--color-primary);
 }
 </style>

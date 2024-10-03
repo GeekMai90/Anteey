@@ -4,7 +4,7 @@
     :id="`note-${props.noteId}`"
     ref="noteRef"
     class="whiteboard-note-component"
-    :class="['whiteboard-note', { hovered: isHovered, editing: isEditing }]"
+    :class="['whiteboard-note', { hovered: isHovered, editing: isEditing, selected: isSelected }]"
     :style="noteStyle"
     @mousedown.stop="handleMouseDown"
     @touchstart.stop="handleTouchStart"
@@ -109,6 +109,7 @@ const props = defineProps<{
   height?: number
   item: WhiteboardNote
   isHovered: boolean
+  isSelected: boolean
 }>()
 
 const router = useRouter()
@@ -942,5 +943,9 @@ defineExpose({ focusAddressInput, restoreDefaultHeight })
     right: -4px;
     cursor: nwse-resize;
   }
+}
+.whiteboard-item.selected {
+  outline: 2px solid var(--color-primary);
+  /* 或者使用其他你喜欢的样式来表示选中状态 */
 }
 </style>
