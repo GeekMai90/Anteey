@@ -6,8 +6,8 @@
     class="whiteboard-note-component"
     :class="['whiteboard-note', { hovered: isHovered, editing: isEditing }]"
     :style="noteStyle"
-    @mousedown.stop
-    @touchstart.stop
+    @mousedown.stop="handleMouseDown"
+    @touchstart.stop="handleTouchStart"
     @dblclick="startEditing"
     @v-click-outside="stopEditing"
     @mouseenter="handleNoteHover(true)"
@@ -29,12 +29,16 @@
 
     <!-- 编辑器内容 -->
     <div class="editor-content" :style="editorContentStyle">
-      <div class="address-input">
+      <div
+        class="address-input"
+        :class="{ 'not-editing': !isEditing }"
+        @mousedown.stop="handleAddressMouseDown"
+      >
         <div
           ref="indicatorButton"
           class="note-indicator"
           :class="cardTypeClass"
-          @click.stop="toggleCardTypeMenu"
+          @mousedown.stop="handleIndicatorMouseDown"
         ></div>
         <input
           ref="addressInput"
@@ -44,13 +48,7 @@
           @keyup.enter="focusEditor"
         />
       </div>
-      <div
-        ref="editorContainerRef"
-        class="content-area"
-        :style="contentAreaStyle"
-        @mousedown.stop
-        @touchstart.stop
-      >
+      <div ref="editorContainerRef" class="content-area" :style="contentAreaStyle">
         <TipTapEditor
           ref="tiptapEditorRef"
           :content="editedNote.content"
@@ -58,21 +56,6 @@
           :enableDragHandle="true"
           @update:content="updateContent"
         />
-      </div>
-    </div>
-    <!-- 卡片类型选择菜单 -->
-    <div v-if="showCardTypeMenu" class="card-type-menu" :style="menuStyle" @click.stop>
-      <div
-        v-for="type in cardTypes"
-        :key="type"
-        :class="{ active: editedNote.cardType === type }"
-        class="card-type-item"
-        @click="selectCardType(type)"
-      >
-        <div class="icon">
-          <component :is="getIcon(type)" theme="outline" size="16" fill="#b6b6b6" />
-        </div>
-        <div class="name">{{ getTypeLabel(type) }}</div>
       </div>
     </div>
     <div class="resize-handle top" @mousedown="startResize('top', $event)"></div>
@@ -84,6 +67,13 @@
     <div class="resize-handle bottom-right" @mousedown="startResize('bottom-right', $event)"></div>
     <div class="resize-handle bottom-left" @mousedown="startResize('bottom-left', $event)"></div>
     <PopupMenu ref="popupMenuRef" :menuItems="whiteboardMenuItems" />
+    <!-- 卡片类型选择菜单 -->
+    <CardTypeMenu
+      v-model="editedNote.cardType"
+      :show="showCardTypeMenu"
+      :position="menuPosition"
+      @close="showCardTypeMenu = false"
+    />
   </div>
 </template>
 
@@ -99,11 +89,10 @@ import {
   ref,
   watch
 } from 'vue'
-import { Note, CardType, CardBox, WhiteboardNote } from '../types/Note'
+import { Note, CardBox, WhiteboardNote } from '../types/Note'
 import { useNoteStore } from '../stores/noteStores'
 import TipTapEditor from '../components/TipTapEditor.vue'
 import { useRouter } from 'vue-router'
-import { Notes, BookOpen, ViewList, Link } from '@icon-park/vue-next'
 import { debounce } from 'lodash-es'
 import PopupMenu from '@renderer/components/PopupMenu.vue'
 import { useNoteMenu } from '@renderer/composable/useNoteMenu'
@@ -112,6 +101,7 @@ import { storeToRefs } from 'pinia'
 import { onClickOutside } from '@vueuse/core'
 import { useResizeObserver } from '@vueuse/core'
 import WhiteboardNoteToolbar from './WhiteboardNoteToolbar.vue'
+import CardTypeMenu from './CardTypeMenu.vue'
 
 const props = defineProps<{
   noteId: string
@@ -146,7 +136,33 @@ const isHovering = ref(false)
 
 const isAutoHeight = ref(currentWhiteboardNote.value?.isAutoHeight)
 
-const emit = defineEmits(['hover', 'resize-start', 'start-connection', 'note-interaction'])
+const emit = defineEmits([
+  'hover',
+  'resize-start',
+  'start-connection',
+  'note-interaction',
+  'drag-start'
+])
+
+const handleMouseDown = (event: MouseEvent) => {
+  if (!isEditing.value) {
+    event.preventDefault()
+    emit('drag-start', event)
+  }
+}
+
+const handleTouchStart = (event: TouchEvent) => {
+  if (!isEditing.value) {
+    event.preventDefault()
+    emit('drag-start', event)
+  }
+}
+const handleAddressMouseDown = (event: MouseEvent) => {
+  if (!isEditing.value) {
+    event.preventDefault()
+    emit('drag-start', event)
+  }
+}
 
 const handleNoteHover = (hovering: boolean) => {
   isHovering.value = hovering
@@ -326,19 +342,6 @@ const openMenu = (event: MouseEvent) => {
 const closeMenu = () => {
   useNoteMenu({ noteId: props.noteId, whiteboardNoteId: props.item.id }).closePopupMenu()
 }
-
-// 笔记选项菜单
-// const isOptionsMenuVisible = ref(false)
-// const noteOptionsMenu = ref<InstanceType<typeof NoteOptionsMenu> | null>(null)
-
-// const toggleOptionsMenu = () => {
-//   isOptionsMenuVisible.value = !isOptionsMenuVisible.value
-// }
-
-// const closeOptionsMenu = () => {
-//   isOptionsMenuVisible.value = false
-//   noteOptionsMenu.value?.resetState()
-// }
 
 // 笔记的保存功能
 
@@ -561,8 +564,7 @@ onUnmounted(() => {
 // 卡片类型选择菜单处理
 const indicatorButton = ref<HTMLButtonElement | null>(null)
 const showCardTypeMenu = ref(false)
-const cardTypes: CardType[] = ['Maincard', 'Bibcard', 'Indexcard', 'Hoplinkcard']
-const menuStyle = ref({})
+const menuPosition = ref({ x: 0, y: 0 })
 
 const cardTypeClass = computed(() => ({
   maincard: editedNote.value?.cardType === 'Maincard',
@@ -571,54 +573,27 @@ const cardTypeClass = computed(() => ({
   hoplinkcard: editedNote.value?.cardType === 'Hoplinkcard'
 }))
 
-const getIcon = (type: CardType) => {
-  switch (type) {
-    case 'Maincard':
-      return Notes
-    case 'Bibcard':
-      return BookOpen
-    case 'Indexcard':
-      return ViewList
-    case 'Hoplinkcard':
-      return Link
-  }
-}
-
-const getTypeLabel = (type: CardType) => {
-  switch (type) {
-    case 'Maincard':
-      return '主要卡'
-    case 'Bibcard':
-      return '书目卡'
-    case 'Indexcard':
-      return '索引卡'
-    case 'Hoplinkcard':
-      return '跳转卡'
+const handleIndicatorMouseDown = (event: MouseEvent) => {
+  event.stopPropagation()
+  event.preventDefault()
+  if (isEditing.value) {
+    console.log('弹出卡片类型菜单')
+    toggleCardTypeMenu(event)
+  } else {
+    emit('drag-start', event)
   }
 }
 
 const toggleCardTypeMenu = (event: MouseEvent) => {
   event.stopPropagation()
+  event.preventDefault()
   showCardTypeMenu.value = !showCardTypeMenu.value
   if (showCardTypeMenu.value) {
-    nextTick(() => {
-      const button = indicatorButton.value
-      if (button) {
-        const rect = button.getBoundingClientRect()
-        menuStyle.value = {
-          top: `${rect.bottom + window.scrollY + 10}px`,
-          left: `${rect.left + window.scrollX}px`
-        }
-      }
-    })
-  }
-}
-
-const selectCardType = (type: CardType) => {
-  if (editedNote.value) {
-    editedNote.value.cardType = type
-    showCardTypeMenu.value = false
-    saveNote()
+    const rect = (event.target as HTMLElement).getBoundingClientRect()
+    menuPosition.value = {
+      x: rect.left + window.scrollX,
+      y: rect.bottom + window.scrollY
+    }
   }
 }
 
@@ -637,18 +612,13 @@ const focusEditor = () => {
   })
 }
 
-// 在组件挂载后聚焦
-// onMounted(() => {
-//   focusAddressInput()
-// })
-
 // 当 noteId 改变时聚焦（用于编辑现有笔记）
-watch(
-  () => props.noteId,
-  () => {
-    focusAddressInput()
-  }
-)
+// watch(
+//   () => props.noteId,
+//   () => {
+//     focusAddressInput()
+//   }
+// )
 
 // 展开编辑器
 const handleExpand = async () => {
@@ -699,6 +669,20 @@ defineExpose({ focusAddressInput, restoreDefaultHeight })
       justify-content: center;
       padding-left: 27px;
 
+      &.not-editing {
+        cursor: grab;
+        &:active {
+          cursor: grabbing;
+        }
+        .note-indicator,
+        input {
+          cursor: grab;
+          &:active {
+            cursor: grabbing;
+          }
+        }
+      }
+
       input {
         width: 100%;
         padding: 8px 0;
@@ -728,6 +712,13 @@ defineExpose({ focusAddressInput, restoreDefaultHeight })
         &:focus::placeholder {
           opacity: 0.5; // 当输入框获得焦点时，可以改变 placeholder 的样式
         }
+        &[readonly] {
+          background-color: transparent;
+          cursor: grab;
+          &:active {
+            cursor: grabbing;
+          }
+        }
       }
 
       .note-indicator {
@@ -741,6 +732,7 @@ defineExpose({ focusAddressInput, restoreDefaultHeight })
         border: none;
         outline: none;
         transition: all 0.3s ease;
+        z-index: 10; // 增加 z-index 确保它在最上层
 
         &.maincard {
           background-color: var(--color-primary);
@@ -784,16 +776,11 @@ defineExpose({ focusAddressInput, restoreDefaultHeight })
 
     :deep(.tiptap-container) {
       width: 100%;
-      // height: 100%;
-      // overflow-y: auto;
-      // padding: 0 10px;
-      // position: relative;
       overflow: visible;
       height: auto !important; // 强制移除固定高度
     }
 
     :deep(.tiptap) {
-      // min-width: calc(640px - 64px);
       min-width: calc(100% - 40px);
       overflow: visible;
       height: auto !important; // 强制移除固定高度

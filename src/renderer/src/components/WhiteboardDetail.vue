@@ -29,7 +29,7 @@
             :item="item"
             :note-id="item.noteId"
             :is-hovered="isCreatingConnection && hoverNote?.id === item.id"
-            @mousedown.stop="startDraggingItem(item, $event)"
+            @drag-start="startDraggingItem(item, $event)"
             @resize-start="startResizingItem(item, $event)"
             @start-connection="startConnection"
             @note-interaction="handleNoteInteraction"
