@@ -1,6 +1,10 @@
 // src/components/NoteCard.vue
 <template>
-  <div class="note-card" @dblclick="useNoteStore().openNoteEditor(note.id)">
+  <div
+    class="note-card"
+    :class="{ 'search-result': isSearchResult }"
+    @dblclick="useNoteStore().openNoteEditor(note.id)"
+  >
     <div class="note-header">
       <span class="note-indicator" :class="cardTypeClass"></span>
       <h3 class="note-title">{{ note.address }}</h3>
@@ -32,11 +36,7 @@
         :editable="false"
         :enable-drag-handle="isDragHandleEnabled"
       />
-      <!-- <div v-if="isOverflowing" class="fade-out"></div> -->
     </div>
-    <!-- <div class="note-timestamp">
-      {{ formatDate(note.updatedAt) }}
-    </div> -->
   </div>
 </template>
 
@@ -51,6 +51,7 @@ import { useNoteStore } from '@renderer/stores/noteStores'
 
 const props = defineProps<{
   note: Note
+  isSearchResult: boolean
 }>()
 
 // const emit = defineEmits(['edit'])
@@ -71,19 +72,6 @@ const closeOptionsMenu = () => {
   isOptionsMenuVisible.value = false
   noteOptionsMenu.value?.resetState()
 }
-
-// const closeOptionsMenu = () => {
-//   isOptionsMenuVisible.value = false
-//   noteOptionsMenu.value?.resetState()
-// }
-
-// const handleNoteDeleted = async () => {
-//   console.log('Note deleted, updating UI')
-//   await noteStore.fetchNotes() // 重新获取笔记列表
-//   noteStore.closeNoteEditor()
-//   closeOptionsMenu()
-//   console.log('UI updated after note deletion')
-// }
 
 // 处理内容超高时底部出现模糊效果
 const noteContent = ref<HTMLDivElement | null>(null)
@@ -154,6 +142,12 @@ watch(
   justify-content: space-between;
   position: relative;
   height: 180px;
+  transition: height 0.3s ease;
+
+  &.search-result {
+    height: 300px; // 搜索结果时的高度
+  }
+
   // box-shadow: var(--shadow-card);
   .note-header {
     display: flex;
@@ -318,8 +312,8 @@ watch(
     text-align: left;
     margin-bottom: 10px;
     min-height: 60px;
-    max-height: 300px;
-    overflow: hidden;
+    max-height: calc(100% - 40px); // 假设标题和其他元素占用约40px
+    overflow-y: auto;
     position: relative;
     font-size: 15px;
   }

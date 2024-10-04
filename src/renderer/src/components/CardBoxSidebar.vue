@@ -2,18 +2,34 @@
   <div class="card-box-sidebar">
     <div class="sidebar-header">
       <div class="search-input">
-        <input v-model="searchQuery" placeholder="搜索并拖拽创建笔记" @input="searchNotes" />
+        <input v-model="searchQuery" placeholder="搜索并拖拽创建笔记" @input="performSearch" />
       </div>
     </div>
     <div class="sidebar-content">
+      <div v-if="searchResults.length === 0 && searchQuery" class="no-results">
+        <div class="no-results-icon">
+          <FileSearch theme="outline" size="48" fill="#888" :strokeWidth="2" />
+        </div>
+        <h3>未找到结果</h3>
+        <p>没有找到与"{{ searchQuery }}"相关的笔记</p>
+        <div class="suggestions">
+          <h4>建议：</h4>
+          <ul>
+            <li>检查您的拼写</li>
+            <li>尝试使用不同的关键词</li>
+            <li>使用更通用的搜索词</li>
+          </ul>
+        </div>
+      </div>
       <div
-        v-for="note in filteredNotes"
+        v-for="note in displayedNotes"
         :key="note.id"
         class="sidebar-note"
+        :class="{ 'search-result': isSearchActive }"
         draggable="true"
         @dragstart="onDragStart(note, $event)"
       >
-        <CardBoxSidebarNoteCard :note="note" />
+        <CardBoxSidebarNoteCard :note="note" :is-search-result="isSearchActive" />
       </div>
     </div>
   </div>
@@ -23,30 +39,37 @@
 import { ref, computed } from 'vue'
 import { useNoteStore } from '../stores/noteStores'
 import CardBoxSidebarNoteCard from './CardBoxSidebarNoteCard.vue'
-// import { Note } from '@renderer/types/Note'
+import { FileSearch } from '@icon-park/vue-next'
+import { debounce } from 'lodash-es'
 
-// const emit = defineEmits(['drag-note'])
+const noteStore = useNoteStore()
+const searchQuery = ref('')
+const searchResults = ref(noteStore.notes)
 
 const onDragStart = (note: any, event: any) => {
   event.dataTransfer.setData('application/json', JSON.stringify(note))
   event.dataTransfer.effectAllowed = 'copy'
 }
 
-const noteStore = useNoteStore()
-const searchQuery = ref('')
+const isSearchActive = computed(() => searchQuery.value.trim() !== '')
 
-const filteredNotes = computed(() => {
-  if (!searchQuery.value) {
-    return noteStore.notes
+const displayedNotes = computed(() =>
+  isSearchActive.value ? searchResults.value : noteStore.notes
+)
+
+const performSearch = debounce(() => {
+  if (searchQuery.value.trim()) {
+    searchResults.value = noteStore.notes.filter((note) => {
+      const addressMatch = note.address.toLowerCase().includes(searchQuery.value.toLowerCase())
+      const contentMatch =
+        typeof note.content === 'object' &&
+        JSON.stringify(note.content).toLowerCase().includes(searchQuery.value.toLowerCase())
+      return addressMatch || contentMatch
+    })
+  } else {
+    searchResults.value = noteStore.notes
   }
-  return noteStore.notes.filter((note) =>
-    note.address.toLowerCase().includes(searchQuery.value.toLowerCase())
-  )
-})
-
-const searchNotes = () => {
-  // 可以在这里添加防抖逻辑
-}
+}, 300)
 </script>
 
 <style scoped lang="scss">
@@ -111,11 +134,14 @@ const searchNotes = () => {
 
   .sidebar-note {
     margin-bottom: 10px;
-    // padding: 10px;
     border-radius: 8px;
     background-color: var(--color-bg-primary);
     cursor: move;
-    transition: background-color 0.2s ease;
+    transition: all 0.2s ease;
+
+    &.search-result {
+      height: 300px; // 搜索结果时的高度
+    }
 
     &:hover {
       background-color: var(--color-hover-button);
@@ -333,6 +359,82 @@ const searchNotes = () => {
       background-color: var(--color-menu-active-bg);
       // border: 1px solid var(--color-primary);
     }
+  }
+}
+.no-results {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: #666;
+  text-align: center;
+  padding: 20px;
+
+  .no-results-icon {
+    margin-bottom: 16px;
+  }
+
+  h3 {
+    font-size: 18px;
+    margin-bottom: 8px;
+    font-weight: 500;
+  }
+
+  p {
+    font-size: 14px;
+    margin-bottom: 24px;
+  }
+
+  .suggestions {
+    background-color: #f0f0f0;
+    border-radius: 8px;
+    padding: 16px;
+    text-align: left;
+    width: 100%;
+    max-width: 300px;
+
+    h4 {
+      font-size: 14px;
+      margin-bottom: 8px;
+      font-weight: 500;
+    }
+
+    ul {
+      list-style-type: none;
+      padding-left: 0;
+
+      li {
+        font-size: 13px;
+        margin-bottom: 4px;
+        position: relative;
+        padding-left: 20px;
+
+        &:before {
+          content: '•';
+          position: absolute;
+          left: 8px;
+          color: #888;
+        }
+      }
+    }
+  }
+}
+
+.note-preview {
+  .note-title {
+    font-weight: bold;
+    margin-bottom: 4px;
+  }
+
+  .note-content {
+    font-size: 0.9em;
+    color: var(--color-text-secondary);
+  }
+
+  .highlight {
+    background-color: yellow;
+    font-weight: bold;
   }
 }
 </style>
