@@ -9,14 +9,20 @@
     <div
       ref="containerRef"
       class="whiteboard-canvas"
-      :class="{ connecting: isConnecting }"
+      :class="{
+        connecting: isConnecting,
+        'mode-drag': currentMode === 'drag',
+        'mode-select': currentMode === 'select'
+      }"
       @v-click-outside="handleContainerClickOutside"
+      @mousedown="handleMouseDown"
+      @mousemove="handleMouseMove"
+      @mouseup="handleMouseUp"
       @wheel="handleWheel"
       @dblclick="handleContainerDoubleClick"
       @touchstart="handleTouchStart"
       @touchmove="handleTouchMove"
       @touchend="handleTouchEnd"
-      @mousedown="startSelection"
     >
       <!-- 变换层 -->
       <div ref="transformLayerRef" class="whiteboard-transform-layer" :style="transformLayerStyle">
@@ -81,10 +87,17 @@
     <div v-if="isSelecting" class="selection-box" :style="selectionBoxStyle"></div>
     <!-- 新增：顶端对齐按钮 -->
     <SelectionToolbar
+      v-if="showSelectionToolbar"
       :selected-notes="selectedNotes"
       :whiteboard-notes="whiteboardNotes"
       @update:notes="updateNotes"
       @update-connections="updateAllConnectionPositions"
+    />
+    <WhiteboardToolbarLeft
+      v-else
+      v-model:mode="currentMode"
+      @add-note="createWhiteboardNote(100, 100)"
+      @search="handleSearch"
     />
   </div>
 </template>
@@ -109,6 +122,7 @@ import CardConnection from './CardConnection.vue'
 import { useContextMenuStore } from '../stores/contextMenuStore'
 import { debounce } from 'lodash-es'
 import SelectionToolbar from './SelectionToolbar.vue'
+import WhiteboardToolbarLeft from './WhiteboardToolbarLeft.vue'
 // import { useNoteStore } from '@renderer/stores/noteStores'
 
 const containerRef = ref<HTMLElement | null>(null)
@@ -148,6 +162,14 @@ const descriptionInputRef = ref<HTMLInputElement | null>(null)
 const measureSpan = ref<HTMLSpanElement | null>(null)
 
 const isHoveringNote = ref(false)
+
+const showSelectionToolbar = computed(() => {
+  return selectedNotes.value.length > 1
+})
+
+const handleSearch = () => {
+  console.log('handleSearch')
+}
 
 // 批量选中功能
 const isSelecting = ref(false)
@@ -913,13 +935,34 @@ let lastPinchDistance = 0
 
 let rafId: number | null = null
 
+const currentMode = ref<'select' | 'drag'>('select')
+
+const handleMouseDown = (event: MouseEvent) => {
+  if (event.button === 0) {
+    // 左键
+    if (currentMode.value === 'select') {
+      startSelection(event)
+    } else if (currentMode.value === 'drag') {
+      isDragging = true
+      lastX = event.clientX
+      lastY = event.clientY
+    }
+  } else if (event.button === 2) {
+    // 右键
+    // 保持原有的右键拖动功能
+    isDragging = true
+    lastX = event.clientX
+    lastY = event.clientY
+  }
+}
+
 const handleMouseMove = (event: MouseEvent) => {
   if (isNoteInteracting.value) {
     event.preventDefault()
     return
   }
   console.log('Mouse moving', isCreatingConnection.value)
-  if (isSelecting.value) {
+  if (currentMode.value === 'select' && isSelecting.value) {
     if (rafId) {
       cancelAnimationFrame(rafId)
     }
@@ -949,7 +992,7 @@ const handleMouseMove = (event: MouseEvent) => {
         connectionEnd.value = { x: mouseX, y: mouseY }
       }
     }
-  } else if (isDragging) {
+  } else if (currentMode.value === 'drag' && isDragging) {
     const deltaX = event.clientX - lastX
     const deltaY = event.clientY - lastY
     translateX.value += deltaX
@@ -1221,6 +1264,15 @@ onUnmounted(() => {
   }
   &.connecting {
     cursor: crosshair;
+  }
+  &.mode-drag {
+    cursor: grab;
+    &:active {
+      cursor: grabbing;
+    }
+  }
+  &.mode-select {
+    cursor: default;
   }
 }
 
