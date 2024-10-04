@@ -1323,6 +1323,13 @@ const loadViewState = async () => {
     translateY.value = savedState.translateY
   }
 }
+watch(
+  () => whiteboardStore.connections,
+  (newConnections) => {
+    connections.value = newConnections
+  },
+  { deep: true }
+)
 
 // 组件卸载时移除事件监听器
 onUnmounted(() => {
