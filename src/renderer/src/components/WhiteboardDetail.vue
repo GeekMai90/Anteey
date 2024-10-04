@@ -122,7 +122,12 @@ const connections = ref<Connection[]>([])
 const contextMenuStore = useContextMenuStore()
 // const dataLoaded = ref(false)
 
-const draggingItem = ref<{ id: string; startX: number; startY: number } | null>(null)
+// 拖拽项
+const draggingItem = ref<{
+  ids: string[]
+  startPositions: { id: string; x: number; y: number }[]
+} | null>(null)
+
 const alignmentGuides = ref<{ direction: 'horizontal' | 'vertical'; position: number }[]>([])
 
 const SNAP_THRESHOLD = 5
@@ -457,17 +462,6 @@ const initializeData = async (whiteboardId: string) => {
     console.error('Failed to initialize data:', error)
   }
 }
-// 监听路由参数变化
-// watch(
-//   () => route.params.whiteboardId,
-//   async (newId) => {
-//     if (newId && typeof newId === 'string') {
-//       whiteboardId.value = newId
-//       await initializeData(newId)
-//     }
-//   },
-//   { immediate: true }
-// )
 
 // 组件挂载时获取白板内容
 onMounted(async () => {
@@ -480,20 +474,6 @@ onMounted(async () => {
   }
   updateAllConnectionPositions()
 })
-
-// 监听路由参数变化来获取白板内容
-// watch(
-//   () => route.params.whiteboardId,
-//   (newId) => {
-//     console.log('WhiteboardDetail 监听路由参数变化', newId)
-//     if (newId && typeof newId === 'string') {
-//       whiteboardId.value = newId
-//       fetchWhiteboardItems()
-//       updateAllConnectionPositions()
-//     }
-//   },
-//   { immediate: true }
-// )
 
 // 获取 item 的 style
 const getWhiteNoteStyle = (item: WhiteboardNote) => {
@@ -649,6 +629,7 @@ const transformLayerStyle = computed(() => ({
 }))
 
 const startDraggingItem = (item: WhiteboardNote, event: MouseEvent) => {
+  // 如果当前有白板项正在交互，则不启动拖拽
   if (isNoteInteracting.value) {
     event.preventDefault()
     return
@@ -657,157 +638,191 @@ const startDraggingItem = (item: WhiteboardNote, event: MouseEvent) => {
   if ((event.target as HTMLElement).closest('.connection-button')) {
     return // 如果是连接按钮，不启动拖拽
   }
+  // 如果 containerRef 不存在，则不启动拖拽
   if (!containerRef.value) return
+
+  // 获取 containerRef 的边界矩形
   const rect = containerRef.value.getBoundingClientRect()
-  draggingItem.value = {
-    id: item.id,
-    startX: (event.clientX - rect.left - translateX.value) / scale.value - item.position.x,
-    startY: (event.clientY - rect.top - translateY.value) / scale.value - item.position.y
+
+  // 如果点击的笔记不在选中列表中,清空选中列表并只选中当前笔记
+  if (!selectedNotes.value.includes(item.id)) {
+    selectedNotes.value = [item.id]
   }
 
+  // 记录所有选中笔记的初始位置
+  const selectedItems = whiteboardNotes.value.filter((note) =>
+    selectedNotes.value.includes(note.id)
+  )
+  draggingItem.value = {
+    ids: selectedItems.map((note) => note.id),
+    startPositions: selectedItems.map((note) => ({
+      id: note.id,
+      x: (event.clientX - rect.left - translateX.value) / scale.value - note.position.x,
+      y: (event.clientY - rect.top - translateY.value) / scale.value - note.position.y
+    }))
+  }
+
+  // 监听鼠标移动和抬起事件
   document.addEventListener('mousemove', onDragItem)
   document.addEventListener('mouseup', stopDraggingItem)
 }
 
 const onDragItem = (event: MouseEvent) => {
+  // 如果 draggingItem 不存在，则不启动拖拽
   if (!draggingItem.value || !containerRef.value) return
 
-  const { id, startX, startY } = draggingItem.value
+  // 获取 containerRef 的边界矩形
   const rect = containerRef.value.getBoundingClientRect()
+  const { ids, startPositions } = draggingItem.value
 
-  let newX = (event.clientX - rect.left - translateX.value) / scale.value - startX
-  let newY = (event.clientY - rect.top - translateY.value) / scale.value - startY
+  // 遍历所有拖拽的项，更新它们的位置
+  ids.forEach((id, index) => {
+    const { x: startX, y: startY } = startPositions[index]
+    let newX = (event.clientX - rect.left - translateX.value) / scale.value - startX
+    let newY = (event.clientY - rect.top - translateY.value) / scale.value - startY
+    const currentItem = whiteboardNotes.value.find((item) => item.id === id)
+    if (!currentItem) return
 
-  alignmentGuides.value = []
+    // 计算对齐阈值
+    const snapThreshold = SNAP_THRESHOLD / scale.value
+    // 计算当前项的中心点
+    const currentCenterX = newX + currentItem.size.width / 2
+    const currentCenterY = newY + currentItem.size.height / 2
+    // 定义缩略图之间的间距
+    const SPACING = 5
+    // 遍历所有项，检查是否与其他项对齐
+    whiteboardNotes.value.forEach((otherItem) => {
+      if (otherItem.id !== id) {
+        const otherCenterX = otherItem.position.x + otherItem.size.width / 2
+        const otherCenterY = otherItem.position.y + otherItem.size.height / 2
 
-  const currentItem = whiteboardNotes.value.find((item) => item.id === id)
-  if (!currentItem) return
+        // 左边对齐
+        if (Math.abs(newX - otherItem.position.x) < snapThreshold) {
+          newX = otherItem.position.x
+          alignmentGuides.value.push({ direction: 'vertical', position: newX })
+        }
+        // 右边对齐
+        if (
+          Math.abs(newX + currentItem.size.width - (otherItem.position.x + otherItem.size.width)) <
+          snapThreshold
+        ) {
+          newX = otherItem.position.x + otherItem.size.width - currentItem.size.width
+          alignmentGuides.value.push({
+            direction: 'vertical',
+            position: newX + currentItem.size.width
+          })
+        }
+        // 顶边对齐
+        if (Math.abs(newY - otherItem.position.y) < snapThreshold) {
+          newY = otherItem.position.y
+          alignmentGuides.value.push({ direction: 'horizontal', position: newY })
+        }
+        // 底边对齐
+        if (
+          Math.abs(
+            newY + currentItem.size.height - (otherItem.position.y + otherItem.size.height)
+          ) < snapThreshold
+        ) {
+          newY = otherItem.position.y + otherItem.size.height - currentItem.size.height
+          alignmentGuides.value.push({
+            direction: 'horizontal',
+            position: newY + currentItem.size.height
+          })
+        }
 
-  const snapThreshold = SNAP_THRESHOLD / scale.value
-
-  const currentCenterX = newX + currentItem.size.width / 2
-  const currentCenterY = newY + currentItem.size.height / 2
-  const SPACING = 5 // 定义缩略图之间的间距
-  whiteboardNotes.value.forEach((otherItem) => {
-    if (otherItem.id !== id) {
-      const otherCenterX = otherItem.position.x + otherItem.size.width / 2
-      const otherCenterY = otherItem.position.y + otherItem.size.height / 2
-
-      // 左边对齐
-      if (Math.abs(newX - otherItem.position.x) < snapThreshold) {
-        newX = otherItem.position.x
-        alignmentGuides.value.push({ direction: 'vertical', position: newX })
+        // 中间对齐（水平和垂直）
+        if (Math.abs(currentCenterX - otherCenterX) < snapThreshold) {
+          newX = otherCenterX - currentItem.size.width / 2
+          alignmentGuides.value.push({ direction: 'vertical', position: otherCenterX })
+        }
+        if (Math.abs(currentCenterY - otherCenterY) < snapThreshold) {
+          newY = otherCenterY - currentItem.size.height / 2
+          alignmentGuides.value.push({ direction: 'horizontal', position: otherCenterY })
+        }
+        // 左边相邻
+        if (
+          Math.abs(newX - (otherItem.position.x + otherItem.size.width + SPACING)) < snapThreshold
+        ) {
+          newX = otherItem.position.x + otherItem.size.width + SPACING
+          alignmentGuides.value.push({ direction: 'vertical', position: newX - SPACING })
+        }
+        // 右边相邻
+        if (
+          Math.abs(newX + otherItem.size.width + SPACING - otherItem.position.x) < snapThreshold
+        ) {
+          newX = otherItem.position.x - otherItem.size.width - SPACING
+          alignmentGuides.value.push({
+            direction: 'vertical',
+            position: newX + otherItem.size.width + SPACING
+          })
+        }
+        // 顶边相邻
+        if (
+          Math.abs(newY - (otherItem.position.y + otherItem.size.height + SPACING)) < snapThreshold
+        ) {
+          newY = otherItem.position.y + otherItem.size.height + SPACING
+          alignmentGuides.value.push({ direction: 'horizontal', position: newY - SPACING })
+        }
+        // 底边相邻（修正）
+        if (
+          Math.abs(newY + otherItem.size.height + SPACING - otherItem.position.y) < snapThreshold
+        ) {
+          newY = otherItem.position.y - otherItem.size.height - SPACING
+          alignmentGuides.value.push({
+            direction: 'horizontal',
+            position: newY + otherItem.size.height + SPACING
+          })
+        }
+        // 顶边与左边中间对齐
+        if (Math.abs(newY - otherCenterY) < snapThreshold) {
+          newY = otherCenterY
+          alignmentGuides.value.push({ direction: 'horizontal', position: newY })
+        }
+        // 底边与左边中间对齐
+        if (Math.abs(newY + otherItem.size.height - otherCenterY) < snapThreshold) {
+          newY = otherCenterY - otherItem.size.height
+          alignmentGuides.value.push({
+            direction: 'horizontal',
+            position: otherCenterY
+          })
+        }
+        // 左边与顶边中间对齐
+        if (Math.abs(newX - otherCenterX) < snapThreshold) {
+          newX = otherCenterX
+          alignmentGuides.value.push({ direction: 'vertical', position: newX })
+        }
+        // 右边与顶边中间对齐
+        if (Math.abs(newX + otherItem.size.width - otherCenterX) < snapThreshold) {
+          newX = otherCenterX - otherItem.size.width
+          alignmentGuides.value.push({
+            direction: 'vertical',
+            position: otherCenterX
+          })
+        }
       }
-      // 右边对齐
-      if (
-        Math.abs(newX + currentItem.size.width - (otherItem.position.x + otherItem.size.width)) <
-        snapThreshold
-      ) {
-        newX = otherItem.position.x + otherItem.size.width - currentItem.size.width
-        alignmentGuides.value.push({
-          direction: 'vertical',
-          position: newX + currentItem.size.width
-        })
-      }
-      // 顶边对齐
-      if (Math.abs(newY - otherItem.position.y) < snapThreshold) {
-        newY = otherItem.position.y
-        alignmentGuides.value.push({ direction: 'horizontal', position: newY })
-      }
-      // 底边对齐
-      if (
-        Math.abs(newY + currentItem.size.height - (otherItem.position.y + otherItem.size.height)) <
-        snapThreshold
-      ) {
-        newY = otherItem.position.y + otherItem.size.height - currentItem.size.height
-        alignmentGuides.value.push({
-          direction: 'horizontal',
-          position: newY + currentItem.size.height
-        })
-      }
-
-      // 中间对齐（水平和垂直）
-      if (Math.abs(currentCenterX - otherCenterX) < snapThreshold) {
-        newX = otherCenterX - currentItem.size.width / 2
-        alignmentGuides.value.push({ direction: 'vertical', position: otherCenterX })
-      }
-      if (Math.abs(currentCenterY - otherCenterY) < snapThreshold) {
-        newY = otherCenterY - currentItem.size.height / 2
-        alignmentGuides.value.push({ direction: 'horizontal', position: otherCenterY })
-      }
-      // 左边相邻
-      if (
-        Math.abs(newX - (otherItem.position.x + otherItem.size.width + SPACING)) < snapThreshold
-      ) {
-        newX = otherItem.position.x + otherItem.size.width + SPACING
-        alignmentGuides.value.push({ direction: 'vertical', position: newX - SPACING })
-      }
-      // 右边相邻
-      if (Math.abs(newX + otherItem.size.width + SPACING - otherItem.position.x) < snapThreshold) {
-        newX = otherItem.position.x - otherItem.size.width - SPACING
-        alignmentGuides.value.push({
-          direction: 'vertical',
-          position: newX + otherItem.size.width + SPACING
-        })
-      }
-      // 顶边相邻
-      if (
-        Math.abs(newY - (otherItem.position.y + otherItem.size.height + SPACING)) < snapThreshold
-      ) {
-        newY = otherItem.position.y + otherItem.size.height + SPACING
-        alignmentGuides.value.push({ direction: 'horizontal', position: newY - SPACING })
-      }
-      // 底边相邻（修正）
-      if (Math.abs(newY + otherItem.size.height + SPACING - otherItem.position.y) < snapThreshold) {
-        newY = otherItem.position.y - otherItem.size.height - SPACING
-        alignmentGuides.value.push({
-          direction: 'horizontal',
-          position: newY + otherItem.size.height + SPACING
-        })
-      }
-      // 顶边与左边中间对齐
-      if (Math.abs(newY - otherCenterY) < snapThreshold) {
-        newY = otherCenterY
-        alignmentGuides.value.push({ direction: 'horizontal', position: newY })
-      }
-      // 底边与左边中间对齐
-      if (Math.abs(newY + otherItem.size.height - otherCenterY) < snapThreshold) {
-        newY = otherCenterY - otherItem.size.height
-        alignmentGuides.value.push({
-          direction: 'horizontal',
-          position: otherCenterY
-        })
-      }
-      // 左边与顶边中间对齐
-      if (Math.abs(newX - otherCenterX) < snapThreshold) {
-        newX = otherCenterX
-        alignmentGuides.value.push({ direction: 'vertical', position: newX })
-      }
-      // 右边与顶边中间对齐
-      if (Math.abs(newX + otherItem.size.width - otherCenterX) < snapThreshold) {
-        newX = otherCenterX - otherItem.size.width
-        alignmentGuides.value.push({
-          direction: 'vertical',
-          position: otherCenterX
-        })
-      }
-    }
+    })
+    // 更新连线位置
+    updateConnectionPositions(id, { x: newX, y: newY })
+    updateItemPosition(id, newX, newY)
   })
-  // 更新连线位置
-  updateConnectionPositions(id, { x: newX, y: newY })
-  updateItemPosition(id, newX, newY)
 }
 
+// 停止拖拽
 const stopDraggingItem = async () => {
   if (draggingItem.value) {
-    const item = whiteboardNotes.value.find((item) => item.id === draggingItem.value?.id)
-    if (item && whiteboardId.value) {
-      console.log('WhiteboardDetail 停止拖拽白板项', whiteboardId.value)
-      await whiteboardStore.updateWhiteboardNotePosition(item.id, item.position.x, item.position.y)
+    const { ids } = draggingItem.value
+    for (const id of ids) {
+      const item = whiteboardNotes.value.find((item) => item.id === id)
+      if (item && whiteboardId.value) {
+        await whiteboardStore.updateWhiteboardNotePosition(
+          item.id,
+          item.position.x,
+          item.position.y
+        )
+      }
     }
   }
   draggingItem.value = null
-  alignmentGuides.value = []
   document.removeEventListener('mousemove', onDragItem)
   document.removeEventListener('mouseup', stopDraggingItem)
 }
@@ -826,7 +841,7 @@ onUnmounted(() => {
   document.removeEventListener('mouseup', stopDraggingItem)
 })
 
-// 双击空白处新增白板
+// 双击空白处新增白板笔记
 const handleContainerDoubleClick = (event: MouseEvent) => {
   console.log('handleContainerDoubleClick', event)
   event.preventDefault()
@@ -855,7 +870,7 @@ const handleContainerDoubleClick = (event: MouseEvent) => {
   }
 }
 
-// 新增：创建白板笔记的函数
+// 创建白板笔记的函数
 const createWhiteboardNote = async (x: number, y: number) => {
   if (!whiteboardId.value) return
   console.log('创建白板笔记', whiteboardId.value)
