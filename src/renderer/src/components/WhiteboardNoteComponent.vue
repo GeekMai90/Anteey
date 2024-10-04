@@ -6,6 +6,7 @@
     class="whiteboard-note-component"
     :class="['whiteboard-note', { hovered: isHovered, editing: isEditing, selected: isSelected }]"
     :style="noteStyle"
+    @click="handleClick"
     @mousedown.stop="handleMouseDown"
     @touchstart.stop="handleTouchStart"
     @dblclick="startEditing"
@@ -142,8 +143,13 @@ const emit = defineEmits([
   'resize-start',
   'start-connection',
   'note-interaction',
-  'drag-start'
+  'drag-start',
+  'click'
 ])
+
+const handleClick = (event: MouseEvent) => {
+  emit('click', event)
+}
 
 const handleMouseDown = (event: MouseEvent) => {
   if (!isEditing.value) {
@@ -151,7 +157,6 @@ const handleMouseDown = (event: MouseEvent) => {
     emit('drag-start', event)
   }
 }
-
 const handleTouchStart = (event: TouchEvent) => {
   if (!isEditing.value) {
     event.preventDefault()

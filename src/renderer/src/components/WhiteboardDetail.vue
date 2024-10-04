@@ -650,6 +650,9 @@ const transformLayerStyle = computed(() => ({
   transformOrigin: '0 0'
 }))
 
+// 拖拽白板笔记的功能
+const hasMoved = ref(false)
+
 const startDraggingItem = (item: WhiteboardNote, event: MouseEvent) => {
   // 如果当前有白板项正在交互，则不启动拖拽
   if (isNoteInteracting.value) {
@@ -683,7 +686,7 @@ const startDraggingItem = (item: WhiteboardNote, event: MouseEvent) => {
       y: (event.clientY - rect.top - translateY.value) / scale.value - note.position.y
     }))
   }
-
+  hasMoved.value = false // 初始化为未移动
   // 监听鼠标移动和抬起事件
   document.addEventListener('mousemove', onDragItem)
   document.addEventListener('mouseup', stopDraggingItem)
@@ -704,6 +707,11 @@ const onDragItem = (event: MouseEvent) => {
     let newY = (event.clientY - rect.top - translateY.value) / scale.value - startY
     const currentItem = whiteboardNotes.value.find((item) => item.id === id)
     if (!currentItem) return
+
+    // 如果位置有变化，设置 hasMoved 为 true
+    if (newX !== currentItem.position.x || newY !== currentItem.position.y) {
+      hasMoved.value = true
+    }
 
     // 计算对齐阈值
     const snapThreshold = SNAP_THRESHOLD / scale.value
@@ -845,6 +853,7 @@ const stopDraggingItem = async () => {
     }
   }
   draggingItem.value = null
+  hasMoved.value = false
   document.removeEventListener('mousemove', onDragItem)
   document.removeEventListener('mouseup', stopDraggingItem)
 }
