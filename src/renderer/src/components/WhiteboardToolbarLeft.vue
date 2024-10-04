@@ -1,15 +1,15 @@
 <template>
   <div class="toolbar-left">
     <button class="toolbar-button" @click="$emit('add-note')">
-      <Add theme="outline" size="20" fill="#333" />
-      <span>新增笔记</span>
+      <Box theme="outline" size="20" fill="#333" />
+      <span>卡片盒</span>
     </button>
     <button
       class="toolbar-button"
       :class="{ active: mode === 'select' }"
       @click="updateMode('select')"
     >
-      <Move theme="outline" size="20" fill="#333" />
+      <MoveOne theme="outline" size="20" fill="#333" />
       <span>选择模式</span>
     </button>
     <button class="toolbar-button" :class="{ active: mode === 'drag' }" @click="updateMode('drag')">
@@ -24,7 +24,7 @@
 </template>
 
 <script setup lang="ts">
-import { Add, Move, Search } from '@icon-park/vue-next'
+import { Box, Move, Search, MoveOne } from '@icon-park/vue-next'
 
 defineProps<{
   mode: 'select' | 'drag'

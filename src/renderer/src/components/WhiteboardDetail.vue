@@ -23,6 +23,8 @@
       @touchstart="handleTouchStart"
       @touchmove="handleTouchMove"
       @touchend="handleTouchEnd"
+      @dragover="handleDragOver"
+      @drop="handleDrop"
     >
       <!-- 变换层 -->
       <div ref="transformLayerRef" class="whiteboard-transform-layer" :style="transformLayerStyle">
@@ -96,7 +98,7 @@
     <WhiteboardToolbarLeft
       v-else
       v-model:mode="currentMode"
-      @add-note="createWhiteboardNote(100, 100)"
+      @add-note="openCardBox"
       @search="handleSearch"
     />
   </div>
@@ -123,6 +125,7 @@ import { useContextMenuStore } from '../stores/contextMenuStore'
 import { debounce } from 'lodash-es'
 import SelectionToolbar from './SelectionToolbar.vue'
 import WhiteboardToolbarLeft from './WhiteboardToolbarLeft.vue'
+import { useNoteStore } from '@renderer/stores/noteStores'
 // import { useNoteStore } from '@renderer/stores/noteStores'
 
 const containerRef = ref<HTMLElement | null>(null)
@@ -167,9 +170,61 @@ const showSelectionToolbar = computed(() => {
   return selectedNotes.value.length > 1
 })
 
+const handleDragOver = (event: DragEvent) => {
+  event.preventDefault()
+  event.dataTransfer!.dropEffect = 'copy'
+}
+
+const handleDrop = async (event: DragEvent) => {
+  event.preventDefault()
+  const noteData = JSON.parse(event.dataTransfer!.getData('application/json'))
+
+  if (!containerRef.value || !whiteboardId.value) return
+
+  const rect = containerRef.value.getBoundingClientRect()
+  const x = (event.clientX - rect.left - translateX.value) / scale.value
+  const y = (event.clientY - rect.top - translateY.value) / scale.value
+
+  const input: CreateWhiteboardNoteInput = {
+    whiteboardId: whiteboardId.value,
+    noteId: noteData.id, // 直接使用拖拽笔记的 id
+    position: { x, y },
+    size: { width: 350, height: 300 },
+    zIndex: 1,
+    rotation: 0,
+    isAutoHeight: false
+  }
+
+  try {
+    const newNote = await whiteboardStore.createWhiteboardNote(input)
+    if (newNote && newNote.id) {
+      whiteboardNotes.value.push(newNote)
+      await initializeData(whiteboardId.value)
+    } else {
+      console.error('Created note is invalid:', newNote)
+    }
+  } catch (error) {
+    console.error('Failed to create whiteboard note:', error)
+  }
+}
+
+// const showCardBox = ref(false)
+const noteStore = useNoteStore()
+
 const handleSearch = () => {
   console.log('handleSearch')
 }
+const openCardBox = () => {
+  noteStore.toggleCardBox()
+}
+
+// const closeCardBox = () => {
+//   showCardBox.value = false
+// }
+// const handleDragNote = (note) => {
+//   // 处理拖拽笔记到画布的逻辑
+//   createWhiteboardNote(note)
+// }
 
 // 批量选中功能
 const isSelecting = ref(false)
@@ -663,6 +718,7 @@ const startDraggingItem = (item: WhiteboardNote, event: MouseEvent) => {
   if ((event.target as HTMLElement).closest('.connection-button')) {
     return // 如果是连接按钮，不启动拖拽
   }
+  event.preventDefault() // 添加这行
   // 如果 containerRef 不存在，则不启动拖拽
   if (!containerRef.value) return
 
@@ -838,20 +894,60 @@ const onDragItem = (event: MouseEvent) => {
 }
 
 // 停止拖拽
+// const stopDraggingItem = async () => {
+//   if (draggingItem.value) {
+//     const { ids } = draggingItem.value
+//     for (const id of ids) {
+//       const item = whiteboardNotes.value.find((item) => item.id === id)
+//       if (item && whiteboardId.value) {
+//         await whiteboardStore.updateWhiteboardNotePosition(
+//           item.id,
+//           item.position.x,
+//           item.position.y
+//         )
+//       }
+//     }
+//   }
+//   draggingItem.value = null
+//   hasMoved.value = false
+//   document.removeEventListener('mousemove', onDragItem)
+//   document.removeEventListener('mouseup', stopDraggingItem)
+// }
+// 停止拖拽
 const stopDraggingItem = async () => {
   if (draggingItem.value) {
     const { ids } = draggingItem.value
+    const updatedItems = []
+
     for (const id of ids) {
-      const item = whiteboardNotes.value.find((item) => item.id === id)
-      if (item && whiteboardId.value) {
-        await whiteboardStore.updateWhiteboardNotePosition(
-          item.id,
-          item.position.x,
-          item.position.y
-        )
+      const itemIndex = whiteboardNotes.value.findIndex((item) => item.id === id)
+      if (itemIndex !== -1 && whiteboardId.value) {
+        const item = whiteboardNotes.value[itemIndex]
+
+        // 更新本地状态
+        const updatedItem = { ...item }
+        whiteboardNotes.value.splice(itemIndex, 1, updatedItem)
+
+        updatedItems.push(updatedItem)
       }
     }
+
+    // 更新连接线位置
+    updateAllConnectionPositions()
+
+    // 异步更新后端
+    try {
+      await Promise.all(
+        updatedItems.map((item) =>
+          whiteboardStore.updateWhiteboardNotePosition(item.id, item.position.x, item.position.y)
+        )
+      )
+    } catch (error) {
+      console.error('Failed to update note positions:', error)
+      // 可以在这里添加错误处理，比如显示一个错误提示
+    }
   }
+
   draggingItem.value = null
   hasMoved.value = false
   document.removeEventListener('mousemove', onDragItem)

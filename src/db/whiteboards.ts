@@ -291,11 +291,18 @@ function processWhiteboardNoteData(item: any): WhiteboardNote {
 export async function createWhiteboardNote(
   input: CreateWhiteboardNoteInput
 ): Promise<WhiteboardNote> {
-  const note = await createNote()
+  let noteId: string
+  if (input.noteId) {
+    noteId = input.noteId
+  } else {
+    const note = await createNote()
+    noteId = note.id
+  }
+
   const newWhiteboardNote: WhiteboardNote = {
     id: uuidv4(),
     whiteboardId: input.whiteboardId,
-    noteId: note.id,
+    noteId: noteId,
     position: input.position,
     size: input.size,
     zIndex: input.zIndex,

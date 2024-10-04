@@ -29,7 +29,7 @@
     />
 
     <!-- 编辑器内容 -->
-    <div class="editor-content" :style="editorContentStyle">
+    <div class="editor-content" :style="editorContentStyle" @mousedown.stop="handleEditorMouseDown">
       <div
         class="address-input"
         :class="{ 'not-editing': !isEditing }"
@@ -49,7 +49,12 @@
           @keyup.enter="focusEditor"
         />
       </div>
-      <div ref="editorContainerRef" class="content-area" :style="contentAreaStyle">
+      <div
+        ref="editorContainerRef"
+        class="content-area"
+        :style="contentAreaStyle"
+        @mousedown.stop="handleEditorMouseDown"
+      >
         <TipTapEditor
           ref="tiptapEditorRef"
           :content="editedNote.content"
@@ -146,6 +151,13 @@ const emit = defineEmits([
   'drag-start',
   'click'
 ])
+const handleEditorMouseDown = (event: MouseEvent) => {
+  if (!isEditing.value) {
+    event.preventDefault()
+    event.stopPropagation()
+    emit('drag-start', event)
+  }
+}
 
 const handleClick = (event: MouseEvent) => {
   emit('click', event)

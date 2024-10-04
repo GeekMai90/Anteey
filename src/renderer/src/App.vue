@@ -11,13 +11,17 @@
       <div class="hover-zone" @mouseenter="showSidebar" @mouseleave="scheduleHideSidebar"></div>
       <div class="content-wrapper">
         <Sidebar
-          v-show="!noteStore.isSidebarCollapsed || isTemporaryVisible"
+          v-show="(!noteStore.isSidebarCollapsed || isTemporaryVisible) && !noteStore.showCardBox"
           class="sidebar"
           :style="sidebarStyle"
           :class="{ 'temporary-visible': isTemporaryVisible }"
           @mouseenter="cancelHideSidebar"
           @mouseleave="hideSidebar"
           @resize="updateLeftSidebarWidth"
+        />
+        <CardBoxSidebar
+          v-if="noteStore.showCardBox && isWhiteboardDetailRoute"
+          class="card-box-sidebar"
         />
         <main class="main-content" :style="mainContentStyle">
           <router-view :key="$route.fullPath"></router-view>
@@ -39,7 +43,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, provide, onErrorCaptured } from 'vue'
+import { ref, computed, onMounted, onUnmounted, provide, onErrorCaptured, watch } from 'vue'
 import { useTransition } from '@vueuse/core'
 import { RouterView, useRouter } from 'vue-router'
 import Sidebar from './components/Sidebar.vue'
@@ -50,6 +54,7 @@ import SearchModal from './components/SearchModal.vue'
 import { useNoteStore } from './stores/noteStores'
 import { useGlobalHotkeys } from './composable/useGlobalHotkeys'
 import ContextMenu from './components/ContexMenu.vue'
+import CardBoxSidebar from './components/CardBoxSidebar.vue'
 
 const noteStore = useNoteStore()
 const isDarkTheme = ref(false)
@@ -70,6 +75,18 @@ onErrorCaptured((err, instance, info) => {
   return false
 })
 
+const isWhiteboardDetailRoute = ref(false)
+// 监听路由变化
+watch(
+  () => router.currentRoute.value,
+  (newRoute) => {
+    isWhiteboardDetailRoute.value = newRoute.name === 'whiteboardDetail'
+    if (!isWhiteboardDetailRoute.value) {
+      noteStore.setShowCardBox(false)
+    }
+  },
+  { immediate: true }
+)
 // 计算侧边栏的位置
 const sidebarPosition = computed(() =>
   !noteStore.isSidebarCollapsed || isTemporaryVisible.value ? 0 : -100
@@ -286,5 +303,13 @@ useGlobalHotkeys()
     left: 0;
     z-index: 9999;
   }
+}
+.card-box-sidebar {
+  flex-shrink: 0;
+  // box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+  height: 100%;
+  z-index: 1000;
+  position: relative;
+  width: 300px;
 }
 </style>

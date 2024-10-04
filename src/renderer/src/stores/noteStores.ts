@@ -28,10 +28,17 @@ export const useNoteStore = defineStore('note', {
     selectedCardTypes: ref<string[]>(cardTypes.map((type) => type.value)),
     noteSaveStatus: {} as Record<string, 'idle' | 'saving' | 'saved' | 'error'>,
     currentNoteSaveStatus: 'idle' as 'idle' | 'saving' | 'saved' | 'error',
-    isSettingDropdownOpen: false
+    isSettingDropdownOpen: false,
+    showCardBox: false
   }),
 
   actions: {
+    toggleCardBox() {
+      this.showCardBox = !this.showCardBox
+    },
+    setShowCardBox(show: boolean) {
+      this.showCardBox = show
+    },
     // UI 状态管理
     toggleSidebar() {
       this.isSidebarCollapsed = !this.isSidebarCollapsed
