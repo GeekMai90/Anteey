@@ -27,6 +27,16 @@
           <Right theme="outline" size="20" fill="#b6b6b6" />
         </div>
       </div>
+      <div v-if="whiteboardName" class="whiteboard-name">
+        <span v-if="!isEditing" @click="startEditing">{{ whiteboardName }}</span>
+        <input
+          v-else
+          v-model="editingName"
+          @blur="finishEditing"
+          @keyup.enter="finishEditing"
+          ref="nameInput"
+        />
+      </div>
       <slot name="left"></slot>
     </div>
     <div class="toolbar-section center">
@@ -48,7 +58,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, computed } from 'vue'
+import { ref, onMounted, onUnmounted, computed, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { Left, Right, ExpandLeft, ExpandRight } from '@icon-park/vue-next'
 import { useNoteStore } from '@renderer/stores/noteStores'
@@ -66,7 +76,8 @@ const props = defineProps({
   showBackButton: { type: Boolean, default: true },
   showForwardButton: { type: Boolean, default: true },
   showRefreshButton: { type: Boolean, default: true },
-  backgroundColor: { type: String, required: false }
+  backgroundColor: { type: String, required: false },
+  whiteboardName: { type: String, required: false }
 })
 
 const computedStyle = computed(() => {
@@ -100,6 +111,29 @@ onMounted(() => {
 onUnmounted(() => {
   window.removeEventListener('popstate', updateNavigationState)
 })
+
+// 新增: 用于向父组件发射更新事件
+const emit = defineEmits(['update:whiteboardName'])
+
+// 修改: 白板名称相关的状态和方法
+const isEditing = ref(false)
+const editingName = ref('')
+const nameInput = ref<HTMLInputElement | null>(null)
+
+const startEditing = () => {
+  isEditing.value = true
+  editingName.value = props.whiteboardName || ''
+  nextTick(() => {
+    nameInput.value?.focus()
+  })
+}
+
+const finishEditing = () => {
+  isEditing.value = false
+  if (editingName.value !== props.whiteboardName) {
+    emit('update:whiteboardName', editingName.value)
+  }
+}
 </script>
 
 <style lang="scss" scoped>
@@ -207,128 +241,32 @@ onUnmounted(() => {
   }
 }
 
-// {
-//   position: relative;
-//   display: flex;
-//   align-items: center;
-//   // width: 200px;
-//   padding: 3px;
-//   border: none;
-//   background: none;
-//   cursor: pointer;
-//   transition: background-color 0.2s;
-//   border-radius: 8px;
-//   // margin: 2px 8px;
+.whiteboard-name {
+  margin-left: 16px;
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--color-text-primary);
+  cursor: pointer;
+  -webkit-app-region: no-drag; /* 使按钮不可拖动，从而可以点击 */
 
-//   .icon {
-//     background: none;
-//     border: none;
-//     cursor: pointer;
-//     width: 24px;
-//     height: 24px;
-//     display: flex;
-//     align-items: center;
-//     justify-content: center;
-//     border-radius: 6px;
-//     transition: background-color 0.2s;
-//     padding: 0;
-//     // margin-right: 3px;
+  span:hover {
+    text-decoration: underline;
+  }
 
-//     &:hover:not(:disabled) {
-//       background-color: var(--color-hover-bg);
-//     }
+  input {
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--color-text-primary);
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid var(--color-border);
+    outline: none;
+    padding: 2px 4px;
+    width: 200px;
 
-//     &:disabled {
-//       opacity: 0.5;
-//       cursor: not-allowed;
-//     }
-
-//     // 新增以下样式来处理 i-icon 类
-//     :deep(.i-icon) {
-//       display: flex;
-//       align-items: center;
-//       justify-content: center;
-//       width: 100%;
-//       height: 100%;
-//     }
-
-//     :deep(svg) {
-//       width: 18px; // 或者您想要的大小
-//       height: 18px; // 或者您想要的大小
-//     }
-//   }
-
-//   .name {
-//     flex-grow: 0;
-//     text-align: left;
-//     color: var(--default-text-color);
-//     font-size: 15px;
-//     white-space: nowrap; // 防止文字换行
-//     writing-mode: horizontal-tb; // 确保文字是水平排列的
-//   }
-
-//   &:hover {
-//     background-color: var(--color-hover-bg);
-//   }
-
-//   &.active {
-//     background-color: var(--color-menu-active-bg);
-//     // border: 1px solid var(--color-primary);
-//   }
-// }
-
-// .toggle-right-sidebar {
-//   display: flex;
-//   align-items: center;
-//   // width: 200px;
-//   // padding: 8px 12px;
-//   border: none;
-//   background: none;
-//   cursor: pointer;
-//   transition: background-color 0.2s;
-//   border-radius: 8px;
-//   // margin: 2px 8px;
-
-//   .icon {
-//     background: none;
-//     border: none;
-//     cursor: pointer;
-//     width: 20px;
-//     height: 20px;
-//     display: flex;
-//     align-items: center;
-//     justify-content: center;
-//     border-radius: 6px;
-//     transition: background-color 0.2s;
-//     padding: 0;
-//     // margin-right: 3px;
-
-//     &:hover:not(:disabled) {
-//       background-color: var(--color-hover-bg);
-//     }
-
-//     &:disabled {
-//       opacity: 0.5;
-//       cursor: not-allowed;
-//     }
-
-//     // 新增以下样式来处理 i-icon 类
-//     :deep(.i-icon) {
-//       display: flex;
-//       align-items: center;
-//       justify-content: center;
-//       width: 100%;
-//       height: 100%;
-//     }
-
-//     :deep(svg) {
-//       width: 18px; // 或者您想要的大小
-//       height: 18px; // 或者您想要的大小
-//     }
-//   }
-
-//   &:hover {
-//     background-color: var(--color-hover-bg);
-//   }
-// }
+    &:focus {
+      border-bottom-color: var(--color-primary);
+    }
+  }
+}
 </style>

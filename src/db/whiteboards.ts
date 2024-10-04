@@ -438,6 +438,17 @@ export async function updateWhiteboardNoteAutoHeight(
   }
 }
 
+// 更新白板名称
+export async function updateWhiteboardName(id: string, name: string): Promise<Whiteboard> {
+  try {
+    const updatedWhiteboard = await db('whiteboards').where({ id }).update({ name }).returning('*')
+    return processWhiteboardData(updatedWhiteboard[0])
+  } catch (error) {
+    console.error('后端→ 更新白板名称失败:', error)
+    throw error
+  }
+}
+
 // 创建白板连线
 // 输入一个白板的 id，一个连线的数据，连线的数据包括起点和终点的 id，起点和终点的边，颜色，粗细，标签，标签位置，线样式，起点和终点的箭头，连线的形状，控制点，大小，旋转
 // 先创建一个连线，然后再创建一个白板连线

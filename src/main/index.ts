@@ -38,7 +38,8 @@ import {
   updateWhiteboardNotePosition,
   updateWhiteboardNoteSize,
   deleteWhiteboardNote,
-  updateWhiteboardNoteAutoHeight
+  updateWhiteboardNoteAutoHeight,
+  updateWhiteboardName
 } from '../db/whiteboards'
 import {
   createConnection,
@@ -162,6 +163,17 @@ function createCustomMenu() {
 }
 
 function setupIpcHandlers() {
+  // 更新白板名称
+  ipcMain.handle('update-whiteboard-name', async (_, id: string, name: string) => {
+    try {
+      const updatedWhiteboard = await updateWhiteboardName(id, name)
+      return updatedWhiteboard
+    } catch (error) {
+      console.error('主进程 → 更新白板名称时出错:', error)
+      return { success: false, error: error }
+    }
+  })
+
   // 更新白板笔记的自动高度
   ipcMain.handle(
     'update-whiteboard-note-auto-height',

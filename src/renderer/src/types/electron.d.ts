@@ -80,6 +80,7 @@ export interface ElectronAPI {
   }>
   deleteWhiteboardNote: (id: string) => Promise<boolean>
   updateWhiteboardNoteAutoHeight: (id: string, isAutoHeight: boolean) => Promise<WhiteboardNote>
+  updateWhiteboardName: (id: string, name: string) => Promise<Whiteboard>
 }
 
 declare global {

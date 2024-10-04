@@ -340,6 +340,18 @@ export const useWhiteboardStore = defineStore('whiteboard', {
         console.error('whiteboardStore→ 更新白板笔记自动高度失败', error)
         throw error
       }
+    },
+    // 更新白板名称
+    async updateWhiteboardName(id: string, name: string) {
+      try {
+        console.log('whiteboardStore→ 开始更新白板名称', { id, name })
+        const updatedWhiteboard = await window.electronAPI.updateWhiteboardName(id, name)
+        console.log('whiteboardStore→ 更新白板名称成功', updatedWhiteboard)
+        return updatedWhiteboard
+      } catch (error) {
+        console.error('whiteboardStore→ 更新白板名称失败', error)
+        throw error
+      }
     }
   },
   getters: {

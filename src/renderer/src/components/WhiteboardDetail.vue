@@ -3,7 +3,11 @@
   <div class="whiteboard-detail">
     <!-- 固定在顶部的工具栏 -->
     <div class="fixed-header">
-      <AppToolbar backgroundColor="#f3f5f7" />
+      <AppToolbar
+        backgroundColor="#f3f5f7"
+        :whiteboardName="whiteboardName"
+        @update:whiteboardName="updateWhiteboardName"
+      />
     </div>
     <!-- 主容器 -->
     <div
@@ -169,6 +173,16 @@ const isHoveringNote = ref(false)
 const showSelectionToolbar = computed(() => {
   return selectedNotes.value.length > 1
 })
+
+const whiteboardName = ref('')
+
+const updateWhiteboardName = async (newName: string) => {
+  const id = route.params.whiteboardId
+  if (typeof id === 'string') {
+    await whiteboardStore.updateWhiteboardName(id, newName)
+    whiteboardName.value = newName
+  }
+}
 
 const handleDragOver = (event: DragEvent) => {
   event.preventDefault()
@@ -532,6 +546,9 @@ const initializeData = async (whiteboardId: string) => {
     await whiteboardStore.initializeWhiteboardData(whiteboardId)
     whiteboardNotes.value = whiteboardStore.whiteboardNotes
     connections.value = whiteboardStore.connections
+    whiteboardName.value =
+      whiteboardStore.whiteboards.find((whiteboard) => whiteboard.id === whiteboardId)?.name ||
+      '未命名白板'
     // await preloadNotes()
     updateAllConnectionPositions()
     dataLoaded.value = true

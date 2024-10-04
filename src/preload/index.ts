@@ -450,5 +450,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
       console.error('Preload: 更新白板笔记自动高度时出错:', error)
       throw error
     }
+  },
+  updateWhiteboardName: async (id: string, name: string): Promise<Whiteboard> => {
+    try {
+      return (await ipcRenderer.invoke('update-whiteboard-name', id, name)) as Whiteboard
+    } catch (error) {
+      console.error('Preload: 更新白板名称时出错:', error)
+      throw error
+    }
   }
 })
