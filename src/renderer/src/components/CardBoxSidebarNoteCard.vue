@@ -32,10 +32,12 @@
     </div>
     <div ref="noteContent" class="note-content">
       <TipTapEditor
-        v-model:content="localNote.content"
+        v-if="isSearchResult"
+        :content="filteredContent"
         :editable="false"
-        :enable-drag-handle="isDragHandleEnabled"
+        :enable-drag-handle="false"
       />
+      <TipTapEditor v-else :content="note.content" :editable="false" :enable-drag-handle="false" />
     </div>
   </div>
 </template>
@@ -55,7 +57,7 @@ const props = defineProps<{
 }>()
 
 // const emit = defineEmits(['edit'])
-const isDragHandleEnabled = ref(false)
+// const isDragHandleEnabled = ref(false)
 // const noteStore = useNoteStore()
 
 const localNote = toRef(props, 'note')
@@ -104,6 +106,13 @@ const cardTypeClass = computed(() => {
   }
 })
 
+const filteredContent = computed(() => {
+  if (props.isSearchResult && typeof props.note.content === 'object') {
+    return props.note.content
+  }
+  return props.note.content
+})
+
 onMounted(() => {
   checkOverflow()
 })
@@ -144,9 +153,9 @@ watch(
   height: 180px;
   transition: height 0.3s ease;
 
-  &.search-result {
-    height: 300px; // 搜索结果时的高度
-  }
+  // &.search-result {
+  //   height: 400px;
+  // }
 
   // box-shadow: var(--shadow-card);
   .note-header {

@@ -57,15 +57,33 @@ const displayedNotes = computed(() =>
   isSearchActive.value ? searchResults.value : noteStore.notes
 )
 
+function filterNoteContent(note: any, query: string) {
+  if (typeof note.content === 'object' && note.content.type === 'doc') {
+    const filteredContent = {
+      ...note.content,
+      content: note.content.content.filter((item: any) => {
+        if (item.type === 'paragraph') {
+          return JSON.stringify(item).toLowerCase().includes(query.toLowerCase())
+        }
+        return false
+      })
+    }
+    return { ...note, content: filteredContent }
+  }
+  return note
+}
+
 const performSearch = debounce(() => {
   if (searchQuery.value.trim()) {
-    searchResults.value = noteStore.notes.filter((note) => {
-      const addressMatch = note.address.toLowerCase().includes(searchQuery.value.toLowerCase())
-      const contentMatch =
-        typeof note.content === 'object' &&
-        JSON.stringify(note.content).toLowerCase().includes(searchQuery.value.toLowerCase())
-      return addressMatch || contentMatch
-    })
+    searchResults.value = noteStore.notes
+      .filter((note) => {
+        const addressMatch = note.address.toLowerCase().includes(searchQuery.value.toLowerCase())
+        const contentMatch =
+          typeof note.content === 'object' &&
+          JSON.stringify(note.content).toLowerCase().includes(searchQuery.value.toLowerCase())
+        return addressMatch || contentMatch
+      })
+      .map((note) => filterNoteContent(note, searchQuery.value))
   } else {
     searchResults.value = noteStore.notes
   }
@@ -139,9 +157,9 @@ const performSearch = debounce(() => {
     cursor: move;
     transition: all 0.2s ease;
 
-    &.search-result {
-      height: 300px; // 搜索结果时的高度
-    }
+    // &.search-result {
+    //   height: 300px; // 搜索结果时的高度
+    // }
 
     &:hover {
       background-color: var(--color-hover-button);
