@@ -31,10 +31,10 @@
         <span v-if="!isEditing" @click="startEditing">{{ whiteboardName }}</span>
         <input
           v-else
+          ref="nameInput"
           v-model="editingName"
           @blur="finishEditing"
           @keyup.enter="finishEditing"
-          ref="nameInput"
         />
       </div>
       <slot name="left"></slot>
