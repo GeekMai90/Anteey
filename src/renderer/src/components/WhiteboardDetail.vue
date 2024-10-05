@@ -129,13 +129,14 @@ import { useContextMenuStore } from '../stores/contextMenuStore'
 import { debounce } from 'lodash-es'
 import SelectionToolbar from './SelectionToolbar.vue'
 import WhiteboardToolbarLeft from './WhiteboardToolbarLeft.vue'
-import { useNoteStore } from '@renderer/stores/noteStores'
+import { useUIStore } from '@renderer/stores/useUIStore'
 // import { useNoteStore } from '@renderer/stores/noteStores'
 
 const containerRef = ref<HTMLElement | null>(null)
 const route = useRoute()
 const whiteboardId = ref<string | null>(null)
 const whiteboardStore = useWhiteboardStore()
+const uiStore = useUIStore()
 const whiteboardNotes = ref<WhiteboardNote[]>([])
 // const whiteboardGroups = ref<WhiteboardGroup[]>([])
 // const whiteboardSubboards = ref<Whiteboard[]>([])
@@ -222,14 +223,11 @@ const handleDrop = async (event: DragEvent) => {
   }
 }
 
-// const showCardBox = ref(false)
-const noteStore = useNoteStore()
-
 const handleSearch = () => {
   console.log('handleSearch')
 }
 const openCardBox = () => {
-  noteStore.toggleCardBox()
+  uiStore.toggleCardBox()
 }
 
 // const closeCardBox = () => {

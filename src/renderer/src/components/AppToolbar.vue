@@ -61,14 +61,14 @@
 import { ref, onMounted, onUnmounted, computed, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { Left, Right, ExpandLeft, ExpandRight } from '@icon-park/vue-next'
-import { useNoteStore } from '@renderer/stores/noteStores'
+import { useUIStore } from '@renderer/stores/useUIStore'
 
-const noteStore = useNoteStore()
+const uiStore = useUIStore()
 const router = useRouter()
 
 const toolbarStyle = computed(() => {
   return {
-    paddingLeft: noteStore.isSidebarCollapsed ? '76px' : '16px' // Adjust these values as needed
+    paddingLeft: uiStore.isSidebarCollapsed ? '76px' : '16px' // Adjust these values as needed
   }
 })
 
@@ -99,9 +99,9 @@ const updateNavigationState = () => {
 const goBack = () => canGoBack.value && router.back()
 const goForward = () => canGoForward.value && router.forward()
 // const refresh = () => console.log('Refresh clicked')
-const toggleSidebar = () => noteStore.toggleSidebar()
+const toggleSidebar = () => uiStore.toggleSidebar()
 
-const toggleRightSidebar = () => (noteStore.isRightSidebarOpen = !noteStore.isRightSidebarOpen)
+const toggleRightSidebar = () => (uiStore.isRightSidebarOpen = !uiStore.isRightSidebarOpen)
 
 onMounted(() => {
   updateNavigationState()

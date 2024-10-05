@@ -11,7 +11,7 @@
       <div class="hover-zone" @mouseenter="showSidebar" @mouseleave="scheduleHideSidebar"></div>
       <div class="content-wrapper">
         <Sidebar
-          v-show="(!noteStore.isSidebarCollapsed || isTemporaryVisible) && !noteStore.showCardBox"
+          v-show="(!uiStore.isSidebarCollapsed || isTemporaryVisible) && !uiStore.showCardBox"
           class="sidebar"
           :style="sidebarStyle"
           :class="{ 'temporary-visible': isTemporaryVisible }"
@@ -20,14 +20,14 @@
           @resize="updateLeftSidebarWidth"
         />
         <CardBoxSidebar
-          v-if="noteStore.showCardBox && isWhiteboardDetailRoute"
+          v-if="uiStore.showCardBox && isWhiteboardDetailRoute"
           class="card-box-sidebar"
         />
         <main class="main-content" :style="mainContentStyle">
           <router-view :key="$route.fullPath"></router-view>
         </main>
         <RightSidebar
-          v-show="noteStore.isRightSidebarOpen"
+          v-show="uiStore.isRightSidebarOpen"
           class="right-sidebar"
           :style="rightSidebarStyle"
           :initialWidth="rightSidebarWidth"
@@ -55,8 +55,10 @@ import { useNoteStore } from './stores/noteStores'
 import { useGlobalHotkeys } from './composable/useGlobalHotkeys'
 import ContextMenu from './components/ContexMenu.vue'
 import CardBoxSidebar from './components/CardBoxSidebar.vue'
+import { useUIStore } from './stores/useUIStore'
 
 const noteStore = useNoteStore()
+const uiStore = useUIStore()
 const isDarkTheme = ref(false)
 const router = useRouter()
 
@@ -82,14 +84,14 @@ watch(
   (newRoute) => {
     isWhiteboardDetailRoute.value = newRoute.name === 'whiteboardDetail'
     if (!isWhiteboardDetailRoute.value) {
-      noteStore.setShowCardBox(false)
+      uiStore.setShowCardBox(false)
     }
   },
   { immediate: true }
 )
 // 计算侧边栏的位置
 const sidebarPosition = computed(() =>
-  !noteStore.isSidebarCollapsed || isTemporaryVisible.value ? 0 : -100
+  !uiStore.isSidebarCollapsed || isTemporaryVisible.value ? 0 : -100
 )
 
 // 使用 useTransition 创建平滑的过渡效果
@@ -101,14 +103,14 @@ const transitionedPosition = useTransition(sidebarPosition, {
 // 计算侧边栏样式
 const sidebarStyle = computed(() => ({
   transform: `translateX(${transitionedPosition.value}%)`,
-  position: noteStore.isSidebarCollapsed ? 'absolute' : 'relative',
+  position: uiStore.isSidebarCollapsed ? 'absolute' : 'relative',
   height: '100%',
   zIndex: 1000
 }))
 
 // 计算右侧边栏样式
 // 计算右侧边栏的位置
-const rightSidebarPosition = computed(() => (noteStore.isRightSidebarOpen ? 0 : 100))
+const rightSidebarPosition = computed(() => (uiStore.isRightSidebarOpen ? 0 : 100))
 
 // 使用 useTransition 创建右侧边栏的平滑过渡效果
 const transitionedRightPosition = useTransition(rightSidebarPosition, {
@@ -125,10 +127,8 @@ const rightSidebarStyle = computed(() => ({
 // 计算主内容区样式
 const mainContentStyle = computed(() => {
   const leftWidth =
-    !noteStore.isSidebarCollapsed || isTemporaryVisible.value
-      ? `${leftSidebarWidth.value}px`
-      : '0px'
-  const rightWidth = noteStore.isRightSidebarOpen ? `${rightSidebarWidth.value}px` : '0px'
+    !uiStore.isSidebarCollapsed || isTemporaryVisible.value ? `${leftSidebarWidth.value}px` : '0px'
+  const rightWidth = uiStore.isRightSidebarOpen ? `${rightSidebarWidth.value}px` : '0px'
   return {
     width: `calc(100% - ${leftWidth} - ${rightWidth})`,
     transition: 'width 0.3s'
@@ -137,20 +137,20 @@ const mainContentStyle = computed(() => {
 
 // 侧边栏显示/隐藏控制
 const showSidebar = () => {
-  if (noteStore.isSidebarCollapsed) {
+  if (uiStore.isSidebarCollapsed) {
     isTemporaryVisible.value = true
     clearTimeout(hideSidebarTimeout)
   }
 }
 
 const hideSidebar = () => {
-  if (noteStore.isSidebarCollapsed) {
+  if (uiStore.isSidebarCollapsed) {
     scheduleHideSidebar()
   }
 }
 
 const scheduleHideSidebar = () => {
-  if (noteStore.isSidebarCollapsed) {
+  if (uiStore.isSidebarCollapsed) {
     hideSidebarTimeout = window.setTimeout(() => {
       isTemporaryVisible.value = false
     }, 300)
@@ -173,7 +173,7 @@ const updateRightSidebarWidth = (width: number) => {
 // 窗口大小检查
 const checkWindowSize = () => {
   const shouldCollapse = window.innerWidth < 768
-  noteStore.setIsSidebarCollapsed(shouldCollapse)
+  uiStore.setIsSidebarCollapsed(shouldCollapse)
 }
 
 // 提供全局方法
