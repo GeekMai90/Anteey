@@ -10,8 +10,17 @@ export const useUIStore = defineStore('ui', () => {
   const isRightSidebarOpen = ref(false)
   const isSettingDropdownOpen = ref(false)
   const showCardBox = ref(false)
-
+  const isCalendarPickerOpen = ref(false)
   //actions
+
+  function toggleCalendarPicker() {
+    isCalendarPickerOpen.value = !isCalendarPickerOpen.value
+  }
+
+  function closeCalendarPicker() {
+    isCalendarPickerOpen.value = false
+  }
+
   function toggleCardBox() {
     showCardBox.value = !showCardBox.value
   }
@@ -68,6 +77,9 @@ export const useUIStore = defineStore('ui', () => {
     toggleSettingDropdown,
     closeSettingDropdown,
     openRightSidebar,
-    closeRightSidebar
+    closeRightSidebar,
+    toggleCalendarPicker,
+    closeCalendarPicker,
+    isCalendarPickerOpen
   }
 })

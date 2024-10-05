@@ -15,9 +15,22 @@
             </div>
             <div class="name">时间线</div>
           </div>
-          <button class="add-note-button" @click="noteStore.createAndOpenNewNote">
-            <Plus theme="outline" size="20" fill="#fff" />
-          </button>
+          <div class="timeline-header-right">
+            <div
+              class="calendar-button"
+              :class="{ 'date-selected': selectedDate }"
+              @click="toggleDateFilter"
+            >
+              <div class="icon">
+                <Calendar
+                  theme="outline"
+                  size="20"
+                  fill="var(--color-text-secondary)"
+                  :strokeWidth="2"
+                />
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -34,28 +47,64 @@
         />
       </div>
     </div>
+    <CalendarPicker
+      :notes="notesForCalendar"
+      :isVisible="uiStore.isCalendarPickerOpen"
+      :selectedDate="selectedDate"
+      triggerElementSelector=".calendar-button"
+      @dateSelected="onDateSelected"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
 import NoteList from '../components/NoteList.vue'
 import { useNoteStore } from '../stores/noteStores'
-import { computed, onMounted } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { storeToRefs } from 'pinia'
-import { Plus, Time } from '@icon-park/vue-next'
+import { Time, Calendar } from '@icon-park/vue-next'
 import AppToolbar from '../components/AppToolbar.vue'
-
+import CalendarPicker from '../components/CalendarPicker.vue'
+import { useUIStore } from '../stores/useUIStore'
 // 初始化笔记状态
 const noteStore = useNoteStore()
 const { notes } = storeToRefs(noteStore)
+const uiStore = useUIStore()
+const selectedDate = ref<string | null>(null)
 
+const onDateSelected = (date: string | null) => {
+  selectedDate.value = date
+}
+const toggleDateFilter = () => {
+  if (selectedDate.value) {
+    selectedDate.value = null
+  } else {
+    uiStore.toggleCalendarPicker()
+  }
+}
+
+// 创建一个新的计算属性，将 Date 类型的 createdAt 转换为 string 类型
+const notesForCalendar = computed(() => {
+  return notes.value.map((note) => ({
+    ...note,
+    createdAt: note.createdAt.toISOString() // 将 Date 转换为 ISO 字符串
+  }))
+})
 // 计算属性：按创建时间排序的笔记列表
 const sortedNotes = computed(() => {
-  return [...notes.value]
-    .filter((note) => !note.isDeleted)
-    .sort((a, b) => {
-      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  let filteredNotes = notes.value.filter((note) => !note.isDeleted)
+
+  if (selectedDate.value) {
+    const selectedDateObj = new Date(selectedDate.value)
+    filteredNotes = filteredNotes.filter((note) => {
+      const noteDate = new Date(note.createdAt)
+      return noteDate.toDateString() === selectedDateObj.toDateString()
     })
+  }
+
+  return filteredNotes.sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  )
 })
 
 onMounted(async () => {
@@ -169,6 +218,60 @@ const handleDelete = async (noteId: string) => {
             white-space: nowrap;
             writing-mode: horizontal-tb;
             user-select: none;
+          }
+        }
+
+        .timeline-header-right {
+          .calendar-button {
+            position: relative;
+            display: flex;
+            align-items: center;
+            border: none;
+            background: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border-radius: 6px;
+            padding: 2px;
+            margin: 2px;
+            &.date-selected {
+              background-color: var(--color-menu-bg);
+              border: 1px solid var(--color-primary);
+            }
+
+            .icon {
+              background: none;
+              border: none;
+              cursor: pointer;
+              width: 26px;
+              height: 26px;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              transition: all 0.2s ease;
+              padding: 0;
+
+              &:disabled {
+                opacity: 0.5;
+                cursor: not-allowed;
+              }
+
+              :deep(.i-icon) {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                width: 100%;
+                height: 100%;
+              }
+
+              :deep(svg) {
+                width: 20px;
+                height: 20px;
+              }
+            }
+
+            &:hover {
+              background-color: var(--color-hover-button);
+            }
           }
         }
 
