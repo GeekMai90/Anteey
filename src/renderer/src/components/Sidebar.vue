@@ -92,7 +92,7 @@
 
 <script setup lang="ts">
 import { onMounted, ref, watch } from 'vue'
-import { Time, Box, Workbench, Plus, Search, Help } from '@icon-park/vue-next'
+import { Time, Box, Workbench, Plus, Search, Help, DocAdd } from '@icon-park/vue-next'
 import { useNoteStore } from '../stores/noteStores'
 import SettingDropdownMenu from './SettingDropdownMenu.vue'
 import StarredNotes from './StarredNotes.vue'

@@ -9,7 +9,12 @@
       <div class="header-content">
         <!-- 时间线头部 -->
         <div class="timeline-header">
-          <h1 class="title">时间线</h1>
+          <div class="timeline-header-left">
+            <div class="icon">
+              <Time theme="outline" size="20" fill="var(--color-primary)" :strokeWidth="2" />
+            </div>
+            <div class="name">时间线</div>
+          </div>
           <button class="add-note-button" @click="noteStore.createAndOpenNewNote">
             <Plus theme="outline" size="20" fill="#fff" />
           </button>
@@ -37,7 +42,7 @@ import NoteList from '../components/NoteList.vue'
 import { useNoteStore } from '../stores/noteStores'
 import { computed, onMounted } from 'vue'
 import { storeToRefs } from 'pinia'
-import { Plus } from '@icon-park/vue-next'
+import { Plus, Time } from '@icon-park/vue-next'
 import AppToolbar from '../components/AppToolbar.vue'
 
 // 初始化笔记状态
@@ -49,7 +54,7 @@ const sortedNotes = computed(() => {
   return [...notes.value]
     .filter((note) => !note.isDeleted)
     .sort((a, b) => {
-      return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     })
 })
 
@@ -84,7 +89,7 @@ const handleDelete = async (noteId: string) => {
 }
 </script>
 
-<style lang="scss">
+<style lang="scss" scoped>
 .timeline-view {
   background-color: var(--color-bg-primary);
   width: 100%;
@@ -107,7 +112,7 @@ const handleDelete = async (noteId: string) => {
     .header-content {
       width: 100%;
       max-width: 900px;
-      padding: 0 80px;
+      padding: 0 20px;
       box-sizing: border-box;
 
       .timeline-header {
@@ -116,6 +121,56 @@ const handleDelete = async (noteId: string) => {
         justify-content: space-between;
         width: 100%;
         padding: 10px 0;
+        border-bottom: 1px solid var(--color-border);
+
+        .timeline-header-left {
+          position: relative;
+          display: flex;
+          align-items: center;
+          border: none;
+          background: none;
+          border-radius: 6px;
+          padding: 4px 0px;
+          margin: 2px;
+
+          .icon {
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            padding: 0;
+            border-radius: 8px;
+            background-color: var(--color-menu-bg);
+            border: 1px solid var(--color-primary);
+
+            :deep(.i-icon) {
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              width: 100%;
+              height: 100%;
+            }
+
+            :deep(svg) {
+              width: 18px;
+              height: 18px;
+            }
+          }
+
+          .name {
+            flex-grow: 0;
+            text-align: left;
+            color: var(--default-text-color);
+            font-size: 20px;
+            font-weight: 600;
+            margin-left: 8px;
+            white-space: nowrap;
+            writing-mode: horizontal-tb;
+            user-select: none;
+          }
+        }
 
         .title {
           margin: 0;
