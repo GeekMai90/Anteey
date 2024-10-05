@@ -3,25 +3,9 @@
   <div class="sidebar" :style="{ width: `${sidebarWidth}px` }">
     <div class="sidebar-header">
       <div class="sidebar-titlebar"></div>
-      <div class="antinet-button" @click.stop="noteStore.toggleSettingDropdown">
+      <div class="antinet-button" @click.stop="uiStore.toggleSettingDropdown">
         <img src="@resources/icon.png" alt="Antinet" class="antinet-icon" />
         <div class="antinet-text">Antinet</div>
-        <svg
-          class="down-arrow"
-          width="12"
-          height="12"
-          viewBox="0 0 24 24"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <path
-            d="M7 10L12 15L17 10"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          />
-        </svg>
         <SettingDropdownMenu />
       </div>
       <!-- 新增搜索区域 -->
@@ -102,7 +86,10 @@ import { ListView, Box, Workbench, Plus, Search, Help } from '@icon-park/vue-nex
 import { useNoteStore } from '../stores/noteStores'
 import SettingDropdownMenu from './SettingDropdownMenu.vue'
 import StarredNotes from './StarredNotes.vue'
+import { useUIStore } from '@renderer/stores/useUIStore'
+
 const imageSrc = ref('')
+const uiStore = useUIStore()
 
 onMounted(async () => {
   imageSrc.value = await window.electronAPI.getResourcePath('icon.png')
@@ -204,6 +191,7 @@ const openHelp = () => {
         font-size: 16px;
         font-weight: bold;
         color: #424242;
+        user-select: none;
       }
 
       .down-arrow {
@@ -221,6 +209,7 @@ const openHelp = () => {
       padding: 10px;
       gap: 10px;
       cursor: pointer;
+      margin-bottom: 5px;
 
       .search-input {
         flex-grow: 1;
@@ -374,7 +363,7 @@ const openHelp = () => {
             margin-right: 6px;
 
             // 新增以下样式来处理 i-icon 类
-            .i-icon {
+            :deep(.i-icon) {
               display: flex;
               align-items: center;
               justify-content: center;

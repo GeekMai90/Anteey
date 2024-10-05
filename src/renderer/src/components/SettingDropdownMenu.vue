@@ -1,49 +1,78 @@
 <!-- src/components/SettingDropdownMenu.vue -->
 <template>
-  <div
-    v-if="noteStore.isSettingDropdownOpen"
-    v-click-outside="closeSettingDropdown"
-    class="setting-dropdown-menu"
-  >
-    <div class="recycle-bin setting-dropdown-item" @click.stop="handleRecycleBinClick">
-      <div class="icon">
-        <ExpandTextInput theme="outline" size="20" fill="#b6b6b6" />
+  <Teleport to="body">
+    <div
+      v-show="uiStore.isSettingDropdownOpen"
+      ref="dropdownRef"
+      v-click-outside="closeSettingDropdown"
+      class="setting-dropdown-menu"
+    >
+      <div class="recycle-bin setting-dropdown-item" @click.stop="handleRecycleBinClick">
+        <div class="icon">
+          <ExpandTextInput theme="outline" size="20" fill="#b6b6b6" />
+        </div>
+        <div class="name">回收站</div>
       </div>
-      <div class="name">回收站</div>
     </div>
-  </div>
+  </Teleport>
 </template>
 
 <script setup lang="ts">
+import { ref, onMounted, onUnmounted, watch } from 'vue'
 import { ExpandTextInput } from '@icon-park/vue-next'
-import { useNoteStore } from '@renderer/stores/noteStores'
 import { useRouter } from 'vue-router'
+import { useUIStore } from '@renderer/stores/useUIStore'
 
-const noteStore = useNoteStore()
 const router = useRouter()
+const uiStore = useUIStore()
+const dropdownRef = ref<HTMLDivElement | null>(null)
 
 const closeSettingDropdown = () => {
-  noteStore.closeSettingDropdown()
+  uiStore.closeSettingDropdown()
 }
 
 const handleRecycleBinClick = () => {
   router.push('/trash')
+  uiStore.closeSettingDropdown()
 }
+
+const updateDropdownPosition = () => {
+  const button = document.querySelector('.antinet-button') // 假设这是触发按钮的类名
+  const dropdown = dropdownRef.value
+  if (button && dropdown) {
+    const rect = button.getBoundingClientRect()
+    dropdown.style.top = `${rect.bottom + 5}px`
+    dropdown.style.left = `${rect.left + 30}px`
+  }
+}
+
+onMounted(() => {
+  window.addEventListener('resize', updateDropdownPosition)
+  watch(
+    () => uiStore.isSettingDropdownOpen,
+    (isOpen) => {
+      if (isOpen) {
+        updateDropdownPosition()
+      }
+    }
+  )
+})
+
+onUnmounted(() => {
+  window.removeEventListener('resize', updateDropdownPosition)
+})
 </script>
 
 <style scoped lang="scss">
 .setting-dropdown-menu {
-  position: absolute;
-  top: calc(100% + 5px);
-  left: 50%;
-  transform: translateX(-50%); // 居中对齐
+  position: fixed; // 改为 fixed 定位
   background-color: var(--color-bg-primary);
   border-radius: 8px;
   box-shadow: var(--shadow-primary);
-  z-index: 9999;
+  z-index: 1001;
   min-width: 200px;
-  width: max-content; // 使用 max-content 确保菜单宽度适应内容
-  max-width: 300px; // 设置最大宽度，避免过宽
+  width: max-content;
+  max-width: 300px;
   overflow-y: auto;
   padding: 6px 12px;
   white-space: nowrap;
