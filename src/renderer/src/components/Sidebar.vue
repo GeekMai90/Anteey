@@ -3,7 +3,7 @@
   <div class="sidebar" :style="{ width: `${sidebarWidth}px` }">
     <div class="sidebar-header">
       <div class="sidebar-titlebar"></div>
-      <button class="antinet-button" @click.stop="noteStore.toggleSettingDropdown">
+      <div class="antinet-button" @click.stop="noteStore.toggleSettingDropdown">
         <img src="@resources/icon.png" alt="Antinet" class="antinet-icon" />
         <div class="antinet-text">Antinet</div>
         <svg
@@ -23,7 +23,29 @@
           />
         </svg>
         <SettingDropdownMenu />
-      </button>
+      </div>
+      <!-- 新增搜索区域 -->
+      <div class="search-area">
+        <div class="search-input" @click="openSearch">
+          <div class="search-icon">
+            <div class="icon">
+              <Search
+                theme="outline"
+                size="16"
+                fill="var(--color-text-secondary)"
+                :strokeWidth="3"
+              />
+            </div>
+            <div class="name">搜索</div>
+          </div>
+          <div class="search-input-text">⌘ S</div>
+        </div>
+        <button class="new-note-btn" @click="createNewCard">
+          <div class="icon">
+            <Plus theme="outline" size="16" fill="var(--color-text-secondary)" :strokeWidth="3" />
+          </div>
+        </button>
+      </div>
     </div>
 
     <div class="sidebar-nav">
@@ -76,7 +98,7 @@
 
 <script setup lang="ts">
 import { onMounted, ref, watch } from 'vue'
-import { ListView, Box, Workbench, DocAdd, Search, Help } from '@icon-park/vue-next'
+import { ListView, Box, Workbench, Plus, Search, Help } from '@icon-park/vue-next'
 import { useNoteStore } from '../stores/noteStores'
 import SettingDropdownMenu from './SettingDropdownMenu.vue'
 import StarredNotes from './StarredNotes.vue'
@@ -141,7 +163,7 @@ const openHelp = () => {
 }
 </script>
 
-<style lang="scss">
+<style lang="scss" scoped>
 .sidebar {
   height: 100%;
   position: relative;
@@ -153,32 +175,33 @@ const openHelp = () => {
   z-index: 1000;
 
   .sidebar-titlebar {
-    height: 40px;
+    height: 35px;
     -webkit-app-region: drag; /* 使区域可拖动 */
   }
 
   .sidebar-header {
     width: 100%; // 确保宽度为100%
-    padding: 0px 0 6px 0; // 移除左右内边距
+    // padding-bottom: 10px; // 移除左右内边距
 
     .antinet-button {
       display: flex;
       align-items: center;
       justify-content: flex-start;
       width: 100%;
-      padding: 6px 10px;
+      padding: 0px 10px 0px 6px;
       background-color: transparent;
       border: none;
       cursor: pointer;
       position: relative;
       .antinet-icon {
-        width: 30px;
-        height: 30px;
+        width: 40px;
+        height: 40px;
         margin-right: 4px;
+        object-fit: cover;
       }
 
       .antinet-text {
-        font-size: 14px;
+        font-size: 16px;
         font-weight: bold;
         color: #424242;
       }
@@ -190,6 +213,116 @@ const openHelp = () => {
 
       &:hover {
         background-color: var(--color-hover-sidebar);
+      }
+    }
+    .search-area {
+      display: flex;
+      align-items: center;
+      padding: 10px;
+      gap: 10px;
+      cursor: pointer;
+
+      .search-input {
+        flex-grow: 1;
+        height: 32px;
+        border: 1px solid var(--color-border-sidebar);
+        border-radius: 8px;
+        background-color: var(--color-shape-tertiary);
+        color: var(--color-text-primary);
+        font-size: 14px;
+        display: flex;
+        align-items: center;
+        padding: 0 5px;
+        justify-content: space-between; // 添加这行
+
+        .search-icon {
+          position: relative;
+          display: flex;
+          align-items: center;
+          border: none;
+          background: none;
+          border-radius: 6px;
+
+          .icon {
+            background: none;
+            border: none;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+
+            :deep(.i-icon) {
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              width: 100%;
+              height: 100%;
+            }
+
+            :deep(svg) {
+              width: 18px;
+              height: 18px;
+            }
+          }
+
+          .name {
+            flex-grow: 0;
+            text-align: left;
+            color: var(--color-text-secondary);
+            font-size: 14px;
+            font-weight: 400;
+            white-space: nowrap;
+            writing-mode: horizontal-tb;
+          }
+        }
+        .search-input-text {
+          margin-left: auto; // 添加这行
+          color: var(--color-text-secondary); // 可选：设置文字颜色
+          font-size: 14px; // 可选：设置字体大小
+        }
+      }
+
+      .new-note-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        background-color: var(-color-shape-tertiary);
+        cursor: pointer;
+        transition: background-color 0.2s;
+        border: 1px solid var(--color-border-sidebar);
+
+        .icon {
+          background: none;
+          border: none;
+          width: 24px;
+          height: 24px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 0;
+
+          :deep(.i-icon) {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
+          }
+
+          :deep(svg) {
+            width: 18px;
+            height: 18px;
+          }
+        }
+
+        &:hover {
+          background-color: var(--color-hover-sidebar);
+        }
       }
     }
   }
