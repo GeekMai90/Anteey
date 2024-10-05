@@ -132,6 +132,7 @@ const openNote = (note: Note) => {
     padding: 6px 12px;
     border-radius: 8px;
     margin-bottom: 5px;
+    user-select: none;
 
     &:hover {
       background-color: var(--color-hover-sidebar);

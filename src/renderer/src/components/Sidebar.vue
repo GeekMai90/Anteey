@@ -17,16 +17,20 @@
                 theme="outline"
                 size="16"
                 fill="var(--color-text-secondary)"
-                :strokeWidth="3"
+                :strokeWidth="2"
               />
             </div>
             <div class="name">搜索</div>
           </div>
           <div class="search-input-text">⌘ S</div>
         </div>
-        <button class="new-note-btn" @click="createNewCard">
+        <button
+          v-tooltip.top="{ content: 'Cmd+N', delay: { show: 1000 } }"
+          class="new-note-btn"
+          @click="createNewCard"
+        >
           <div class="icon">
-            <Plus theme="outline" size="16" fill="var(--color-text-secondary)" :strokeWidth="3" />
+            <Plus theme="outline" size="16" fill="var(--color-text-secondary)" :strokeWidth="2" />
           </div>
         </button>
       </div>
@@ -37,8 +41,14 @@
         <ul>
           <li v-for="item in menuItems" :key="item.name">
             <router-link :to="item.path" class="nav-item" active-class="active">
-              <div class="icon" :style="{ backgroundColor: item.color }">
-                <component :is="item.icon" theme="filled" size="8" fill="#ffffff"></component>
+              <div class="icon">
+                <component
+                  :is="item.icon"
+                  :theme="$route.path === item.path ? 'filled' : 'outline'"
+                  size="18"
+                  fill="var(--color-text-primary)"
+                  :strokeWidth="2"
+                ></component>
               </div>
               <div class="name">{{ item.name }}</div>
             </router-link>
@@ -82,7 +92,7 @@
 
 <script setup lang="ts">
 import { onMounted, ref, watch } from 'vue'
-import { ListView, Box, Workbench, Plus, Search, Help } from '@icon-park/vue-next'
+import { Time, Box, Workbench, Plus, Search, Help } from '@icon-park/vue-next'
 import { useNoteStore } from '../stores/noteStores'
 import SettingDropdownMenu from './SettingDropdownMenu.vue'
 import StarredNotes from './StarredNotes.vue'
@@ -95,7 +105,7 @@ onMounted(async () => {
   imageSrc.value = await window.electronAPI.getResourcePath('icon.png')
 })
 const menuItems = [
-  { name: '时间线', path: '/home', icon: ListView, color: '#4CAF50' },
+  { name: '时间线', path: '/home', icon: Time, color: '#4CAF50' },
   { name: '卡片盒', path: '/cardbox', icon: Box, color: '#2196F3' },
   { name: '思维板', path: '/whiteboard', icon: Workbench, color: '#9C27B0' }
 ]
@@ -106,8 +116,8 @@ const noteStore = useNoteStore()
 
 // 侧边栏宽度调节
 const emit = defineEmits(['resize'])
-const sidebarWidth = ref(250)
-const MIN_WIDTH = 250
+const sidebarWidth = ref(280)
+const MIN_WIDTH = 280
 const MAX_WIDTH = 400
 
 watch(sidebarWidth, (newWidth) => {
@@ -160,6 +170,7 @@ const openHelp = () => {
   flex-direction: column;
   transition: width 0.3s ease;
   z-index: 1000;
+  border-right: 1px solid var(--color-border-sidebar);
 
   .sidebar-titlebar {
     height: 35px;
@@ -175,7 +186,7 @@ const openHelp = () => {
       align-items: center;
       justify-content: flex-start;
       width: 100%;
-      padding: 0px 10px 0px 6px;
+      padding: 2px 10px 2px 6px;
       background-color: transparent;
       border: none;
       cursor: pointer;
@@ -339,7 +350,7 @@ const openHelp = () => {
           display: flex;
           align-items: center;
           // width: 200px;
-          padding: 6px 12px;
+          padding: 8px 8px;
           border: none;
           background: none;
           cursor: pointer;
@@ -360,7 +371,7 @@ const openHelp = () => {
             border-radius: 6px;
             transition: background-color 0.2s;
             padding: 0;
-            margin-right: 6px;
+            margin-right: 8px;
 
             // 新增以下样式来处理 i-icon 类
             :deep(.i-icon) {
@@ -392,7 +403,7 @@ const openHelp = () => {
           }
 
           &.active {
-            background-color: var(--color-sidebar-active-bg);
+            background-color: var(--color-hover-sidebar);
             // border: 1px solid var(--color-primary);
           }
         }
