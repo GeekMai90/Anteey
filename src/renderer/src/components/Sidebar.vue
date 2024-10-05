@@ -150,7 +150,7 @@ const openHelp = () => {
   display: flex;
   flex-direction: column;
   transition: width 0.3s ease;
-  z-index: 5000;
+  z-index: 1000;
 
   .sidebar-titlebar {
     height: 40px;
