@@ -92,7 +92,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
-import { Time, Box, Workbench, Plus, Search, Help, DocAdd } from '@icon-park/vue-next'
+import { Time, Box, Workbench, Plus, Search, Help, DocAdd, Home } from '@icon-park/vue-next'
 import { useNoteStore } from '../stores/noteStores'
 import SettingDropdownMenu from './SettingDropdownMenu.vue'
 import StarredNotes from './StarredNotes.vue'
@@ -113,7 +113,8 @@ onMounted(async () => {
   imageSrc.value = await window.electronAPI.getResourcePath('icon.png')
 })
 const menuItems = [
-  { name: '时间线', path: '/home', icon: Time, color: '#4CAF50' },
+  { name: '主页', path: '/home', icon: Home, color: '#4CAF50' },
+  { name: '时间线', path: '/timeline', icon: Time, color: '#4CAF50' },
   { name: '卡片盒', path: '/cardbox', icon: Box, color: '#2196F3' },
   { name: '思维板', path: '/whiteboard', icon: Workbench, color: '#9C27B0' }
 ]
