@@ -16,6 +16,42 @@
             <div class="name">时间线</div>
           </div>
           <div class="timeline-header-right">
+            <!-- 添加搜索框 -->
+            <div
+              v-tooltip.bottom="{ content: 'Cmd+P', delay: { show: 1000 } }"
+              class="search-box"
+              :class="{ 'is-focused': isSearchFocused }"
+            >
+              <div class="search-icon">
+                <div class="icon">
+                  <Search
+                    theme="outline"
+                    size="16"
+                    fill="var(--color-text-secondary)"
+                    :strokeWidth="2"
+                  />
+                </div>
+              </div>
+              <input
+                ref="searchInput"
+                v-model="searchQuery"
+                type="text"
+                placeholder="搜索"
+                @input="handleSearch"
+                @focus="isSearchFocused = true"
+                @blur="handleBlur"
+              />
+              <div v-if="searchQuery" class="clear-icon" @click="clearSearch">
+                <div class="icon">
+                  <Close
+                    theme="outline"
+                    size="16"
+                    fill="var(--color-text-secondary)"
+                    :strokeWidth="2"
+                  />
+                </div>
+              </div>
+            </div>
             <div
               class="calendar-button"
               :class="{ 'date-selected': selectedDate }"
@@ -62,26 +98,34 @@ import NoteList from '../components/NoteList.vue'
 import { useNoteStore } from '../stores/noteStores'
 import { computed, onMounted, ref } from 'vue'
 import { storeToRefs } from 'pinia'
-import { Time, Calendar } from '@icon-park/vue-next'
+import { Time, Calendar, Search, Close } from '@icon-park/vue-next'
 import AppToolbar from '../components/AppToolbar.vue'
 import CalendarPicker from '../components/CalendarPicker.vue'
 import { useUIStore } from '../stores/useUIStore'
+import { useSearch } from '../composable/useSearch'
 // 初始化笔记状态
 const noteStore = useNoteStore()
 const { notes } = storeToRefs(noteStore)
 const uiStore = useUIStore()
-const selectedDate = ref<string | null>(null)
 
-const onDateSelected = (date: string | null) => {
-  selectedDate.value = date
+const { searchQuery, handleSearch, filteredItems, clearSearch, selectedDate, setSelectedDate } =
+  useSearch(notes)
+
+const isSearchFocused = ref(false)
+
+const handleBlur = () => {
+  // 添加一个小延迟，以确保在点击清除按钮时不会立即失去焦点
+  setTimeout(() => {
+    isSearchFocused.value = false
+  }, 100)
 }
-const toggleDateFilter = () => {
-  if (selectedDate.value) {
-    selectedDate.value = null
-  } else {
-    uiStore.toggleCalendarPicker()
-  }
-}
+
+// 计算属性：按创建时间排序的笔记列表
+const sortedNotes = computed(() => {
+  return filteredItems.value
+    .filter((note) => !note.isDeleted)
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+})
 
 // 创建一个新的计算属性，将 Date 类型的 createdAt 转换为 string 类型
 const notesForCalendar = computed(() => {
@@ -90,22 +134,17 @@ const notesForCalendar = computed(() => {
     createdAt: note.createdAt.toISOString() // 将 Date 转换为 ISO 字符串
   }))
 })
-// 计算属性：按创建时间排序的笔记列表
-const sortedNotes = computed(() => {
-  let filteredNotes = notes.value.filter((note) => !note.isDeleted)
 
+const onDateSelected = (date: string | null) => {
+  setSelectedDate(date)
+}
+const toggleDateFilter = () => {
   if (selectedDate.value) {
-    const selectedDateObj = new Date(selectedDate.value)
-    filteredNotes = filteredNotes.filter((note) => {
-      const noteDate = new Date(note.createdAt)
-      return noteDate.toDateString() === selectedDateObj.toDateString()
-    })
+    setSelectedDate(null)
+  } else {
+    uiStore.toggleCalendarPicker()
   }
-
-  return filteredNotes.sort(
-    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-  )
-})
+}
 
 onMounted(async () => {
   await fetchNotes() // 获取笔记数据
@@ -160,7 +199,7 @@ const handleDelete = async (noteId: string) => {
 
     .header-content {
       width: 100%;
-      max-width: 900px;
+      // max-width: 1000px;
       padding: 0 20px;
       box-sizing: border-box;
 
@@ -169,7 +208,8 @@ const handleDelete = async (noteId: string) => {
         align-items: center;
         justify-content: space-between;
         width: 100%;
-        padding: 10px 0;
+        padding: 8px 0;
+        margin-bottom: 10px;
         border-bottom: 1px solid var(--color-border);
 
         .timeline-header-left {
@@ -222,17 +262,94 @@ const handleDelete = async (noteId: string) => {
         }
 
         .timeline-header-right {
+          display: flex;
+          align-items: center;
+          gap: 5px; // 在搜索框和日历按钮之间添加间距
+
+          .search-box {
+            position: relative;
+            width: 200px;
+            display: flex;
+            align-items: center;
+            background-color: var(--color-bg-secondary);
+            border: 1px solid var(--color-border);
+            border-radius: 8px;
+            padding: 0 8px;
+            overflow: hidden;
+            &.is-focused {
+              border-color: var(--color-primary);
+              box-shadow: 0 0 0 2px rgba(var(--color-primary-rgb), 0.2);
+            }
+            .search-icon {
+              position: absolute;
+              left: 6px;
+              top: 50%;
+              transform: translateY(-50%);
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              width: 22px;
+              height: 22px;
+              pointer-events: none; // 防止图标干扰输入
+              :deep(.i-icon) {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                width: 100%;
+                height: 100%;
+              }
+            }
+
+            .clear-icon {
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              width: 22px;
+              height: 22px;
+              cursor: pointer;
+              :deep(.i-icon) {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                width: 100%;
+                height: 100%;
+              }
+            }
+
+            input {
+              flex-grow: 1;
+              border: none;
+              background: transparent;
+              padding: 4px 4px 4px 25px;
+              color: var(--color-text-secondary);
+              font-size: 14px;
+              min-width: 0;
+
+              &:focus {
+                outline: none;
+              }
+            }
+
+            .clear-icon {
+              cursor: pointer;
+            }
+          }
+
           .calendar-button {
             position: relative;
             display: flex;
             align-items: center;
-            border: none;
+            justify-content: center;
+            width: 32px; // 固定宽度
+            height: 32px; // 固定高度
+            border: 1px solid var(--color-border); // 默认透明边框
             background: none;
             cursor: pointer;
             transition: all 0.2s ease;
             border-radius: 6px;
             padding: 2px;
             margin: 2px;
+            box-sizing: border-box; // 确保边框不会增加元素尺寸
             &.date-selected {
               background-color: var(--color-menu-bg);
               border: 1px solid var(--color-primary);

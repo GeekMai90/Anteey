@@ -46,7 +46,7 @@
                   :is="item.icon"
                   :theme="$route.path === item.path ? 'filled' : 'outline'"
                   size="18"
-                  fill="var(--color-text-primary)"
+                  :fill="getIconFill(item.path)"
                   :strokeWidth="2"
                 ></component>
               </div>
@@ -91,15 +91,23 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { Time, Box, Workbench, Plus, Search, Help, DocAdd } from '@icon-park/vue-next'
 import { useNoteStore } from '../stores/noteStores'
 import SettingDropdownMenu from './SettingDropdownMenu.vue'
 import StarredNotes from './StarredNotes.vue'
 import { useUIStore } from '@renderer/stores/useUIStore'
+import { useRoute } from 'vue-router'
 
 const imageSrc = ref('')
 const uiStore = useUIStore()
+const route = useRoute()
+
+const getIconFill = computed(
+  () => (path: string) =>
+    // route.path === path ? 'var(--color-primary)' : 'var(--color-text-primary)'
+    route.path === path ? 'var(--color-text-primary)' : 'var(--color-text-primary)'
+)
 
 onMounted(async () => {
   imageSrc.value = await window.electronAPI.getResourcePath('icon.png')
@@ -291,7 +299,7 @@ const openHelp = () => {
         width: 32px;
         height: 32px;
         border-radius: 8px;
-        background-color: var(-color-shape-tertiary);
+        background-color: var(--color-shape-tertiary);
         cursor: pointer;
         transition: background-color 0.2s;
         border: 1px solid var(--color-border-sidebar);

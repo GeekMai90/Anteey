@@ -9,7 +9,7 @@
         @click="toggleSidebar"
       >
         <div class="icon">
-          <ExpandRight theme="outline" size="20" fill="#b6b6b6" />
+          <ExpandRight theme="outline" size="20" fill="#b6b6b6" :stroke-width="3" />
         </div>
       </div>
       <div v-if="showBackButton" class="back-button" :disabled="!canGoBack" @click="goBack">
@@ -68,7 +68,7 @@ const router = useRouter()
 
 const toolbarStyle = computed(() => {
   return {
-    paddingLeft: uiStore.isSidebarCollapsed ? '76px' : '16px' // Adjust these values as needed
+    paddingLeft: uiStore.isSidebarCollapsed ? '76px' : '13px' // Adjust these values as needed
   }
 })
 
