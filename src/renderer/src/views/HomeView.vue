@@ -336,7 +336,7 @@ p {
 }
 :deep(.vch__months__labels__wrapper) {
   /* transform: translateY(2px); */
-  /* transform: translateX(-10px); */
+  // transform: translateX(-1px);
   font-size: 10px;
 }
 :deep(.vch__days__labels__wrapper) {
