@@ -85,6 +85,7 @@ export const useNoteStore = defineStore('note', {
       try {
         const notes = await window.electronAPI.getAllNotes(includeDeleted)
         this.notes = notes
+        return notes
       } catch (error) {
         console.error('noteStores.ts→ 获取所有笔记失败:', error)
         throw error

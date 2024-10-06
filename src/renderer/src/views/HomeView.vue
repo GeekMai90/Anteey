@@ -27,7 +27,11 @@
       <div class="stats-container">
         <div class="stat-item">
           <div class="stat-value">{{ cardCount }}</div>
-          <div class="stat-label">卡片</div>
+          <div class="stat-label">昨日新增</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value">{{ cardCount }}</div>
+          <div class="stat-label">卡片笔记</div>
         </div>
         <div class="stat-item">
           <div class="stat-value">{{ viewCount }}</div>
@@ -241,11 +245,13 @@ onMounted(() => {
 .date {
   font-size: 16px;
   margin-bottom: 4px;
+  user-select: none;
 }
 
 .time {
   font-size: 36px;
   font-weight: bold;
+  user-select: none;
 }
 
 .main-content {
@@ -256,6 +262,8 @@ onMounted(() => {
   align-items: center;
   text-align: center;
   z-index: 1;
+  /* justify-content: space-between; */
+  /* min-height: 100vh; */
 }
 
 h1 {
@@ -293,6 +301,7 @@ p {
   margin: 20px auto;
   z-index: 1;
   box-sizing: border-box;
+  user-select: none;
 }
 :deep(.vch__container) {
   /* font-size: 10px; */
@@ -334,8 +343,20 @@ p {
   padding: 20px;
   margin-top: 20px;
   width: 80%;
-  max-width: 400px;
-  margin-bottom: 50px;
+  max-width: 500px;
+  /* margin-bottom: 20px; */
+  margin-bottom: var(--spacing, 20px);
+}
+@media (min-height: 800px) {
+  .stats-container {
+    --spacing: 20px;
+  }
+}
+
+@media (min-height: 1000px) {
+  .stats-container {
+    --spacing: 240px;
+  }
 }
 
 .stat-item {
@@ -347,12 +368,14 @@ p {
   font-weight: bold;
   /* color: #00c8a8;  */
   color: #fff;
+  user-select: none;
 }
 
 .stat-label {
   font-size: 14px;
   color: #ffffff;
   margin-top: 5px;
+  user-select: none;
 }
 
 .change-background-btn {

@@ -125,6 +125,9 @@ importers:
       better-sqlite3:
         specifier: ^11.3.0
         version: 11.3.0
+      canvas-confetti:
+        specifier: ^1.9.3
+        version: 1.9.3
       electron-log:
         specifier: ^5.2.0
         version: 5.2.0
@@ -255,6 +258,9 @@ importers:
       '@rushstack/eslint-patch':
         specifier: ^1.10.3
         version: 1.10.4
+      '@types/canvas-confetti':
+        specifier: ^1.6.4
+        version: 1.6.4
       '@types/fabric':
         specifier: ^5.3.9
         version: 5.3.9
@@ -1513,6 +1519,9 @@ packages:
   '@types/cacheable-request@6.0.3':
     resolution: {integrity: sha512-IQ3EbTzGxIigb1I3qPZc1rWJnH0BmSKv5QYTalEwweFvyBDLSAe24zP0le/hyi7ecGfZVlIVAg4BZqb8WBwKqw==, tarball: https://registry.npmjs.org/@types/cacheable-request/-/cacheable-request-6.0.3.tgz}
 
+  '@types/canvas-confetti@1.6.4':
+    resolution: {integrity: sha512-fNyZ/Fdw/Y92X0vv7B+BD6ysHL4xVU5dJcgzgxLdGbn8O3PezZNIJpml44lKM0nsGur+o/6+NZbZeNTt00U1uA==, tarball: https://registry.npmjs.org/@types/canvas-confetti/-/canvas-confetti-1.6.4.tgz}
+
   '@types/debug@4.1.12':
     resolution: {integrity: sha512-vIChWdVG3LG1SMxEvI/AK+FWJthlrqlTu7fbrlywTkkaONwk/UAGaULXRlf8vkzFBLVm0zkMdCquhL5aOjhXPQ==, tarball: https://registry.npmjs.org/@types/debug/-/debug-4.1.12.tgz}
 
@@ -2080,6 +2089,9 @@ packages:
 
   caniuse-lite@1.0.30001663:
     resolution: {integrity: sha512-o9C3X27GLKbLeTYZ6HBOLU1tsAcBZsLis28wrVzddShCS16RujjHp9GDHKZqrB3meE0YjhawvMFsGb/igqiPzA==, tarball: https://registry.npmjs.org/caniuse-lite/-/caniuse-lite-1.0.30001663.tgz}
+
+  canvas-confetti@1.9.3:
+    resolution: {integrity: sha512-rFfTURMvmVEX1gyXFgn5QMn81bYk70qa0HLzcIOSVEyl57n6o9ItHeBtUSWdvKAPY0xlvBHno4/v3QPrT83q9g==, tarball: https://registry.npmjs.org/canvas-confetti/-/canvas-confetti-1.9.3.tgz}
 
   canvas@2.11.2:
     resolution: {integrity: sha512-ItanGBMrmRV7Py2Z+Xhs7cT+FNt5K0vPL4p9EZ/UX/Mu7hFbkxSjKF2KVtPwX7UYWp7dRKnrTvReflgrItJbdw==, tarball: https://registry.npmjs.org/canvas/-/canvas-2.11.2.tgz}
@@ -6954,6 +6966,8 @@ snapshots:
       '@types/node': 22.5.5
       '@types/responselike': 1.0.3
 
+  '@types/canvas-confetti@1.6.4': {}
+
   '@types/debug@4.1.12':
     dependencies:
       '@types/ms': 0.7.34
@@ -7727,6 +7741,8 @@ snapshots:
   camelcase@6.3.0: {}
 
   caniuse-lite@1.0.30001663: {}
+
+  canvas-confetti@1.9.3: {}
 
   canvas@2.11.2(encoding@0.1.13):
     dependencies:
