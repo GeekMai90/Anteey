@@ -14,19 +14,19 @@
       <h1>{{ greeting }}</h1>
       <div class="heatmap-container">
         <calendar-heatmap
-          :values="heatmapValues"
+          :values="heatmapData"
           :start-date="startDate"
           :end-date="endDate"
           :tooltip-formatter="tooltipFormatter"
           :no-data-text="'0 条笔记'"
-          :range-color="['#ebedf0', '#9be9a8', '#40c463', '#30a14e', '#216e39']"
+          :range-color="['#ebedf0', '#ebedf0', '#9be9a8', '#40c463', '#30a14e']"
           :max="10"
           no-margin
         />
       </div>
       <div class="stats-container">
         <div class="stat-item">
-          <div class="stat-value">{{ cardCount }}</div>
+          <div class="stat-value">{{ lastDayNoteCount }}</div>
           <div class="stat-label">昨日新增</div>
         </div>
         <div class="stat-item">
@@ -50,10 +50,15 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watchEffect } from 'vue'
 import { CalendarHeatmap, TooltipFormatter, CalendarItem } from 'vue3-calendar-heatmap'
 import DailyCardPick from '../components/DailyCardPick.vue'
+import { useWhiteboardStore } from '../stores/whiteboardStores'
+import { useNoteStore } from '../stores/noteStores'
+import { storeToRefs } from 'pinia'
 
+const whiteboardStore = useWhiteboardStore()
+const noteStore = useNoteStore()
 // 导入所有背景图片
 const backgroundImages = import.meta.glob('../assets/backgrounds/*.{jpg,jpeg,png,gif}', {
   eager: true,
@@ -118,14 +123,44 @@ onMounted(() => {
 })
 
 // 计算统计信息
-const cardCount = computed(() => {
-  return heatmapValues.value.reduce((sum, item) => sum + item.count, 0)
+const cardCount = ref(0)
+watchEffect(() => {
+  cardCount.value = noteStore.noteCount
 })
 
-const viewCount = ref(8) // 这里需要根据实际情况计算或获取
+const lastDayNoteCount = ref(0)
+watchEffect(() => {
+  console.log('noteStore.lastDayNoteCount', noteStore.lastDayNoteCount)
+  lastDayNoteCount.value = noteStore.lastDayNoteCount
+})
 
-const dayCount = computed(() => {
-  return heatmapValues.value.length
+const viewCount = ref(whiteboardStore.whiteboardCount) // 这里需要根据实际情况计算或获取
+
+// 计算用户使用天数
+// 使用 ref 来存储 dayCount
+const dayCount = ref(0)
+const FIRST_USE_DATE_KEY = 'firstUseDate'
+
+function calculateDayCount(): number {
+  const firstUseDateString = localStorage.getItem(FIRST_USE_DATE_KEY)
+
+  if (!firstUseDateString) {
+    // 首次使用，设置当前日期
+    const today = new Date().toISOString().split('T')[0]
+    localStorage.setItem(FIRST_USE_DATE_KEY, today)
+    return 1
+  }
+
+  // 计算天数差
+  const firstUseDate = new Date(firstUseDateString)
+  const today = new Date()
+  const diffTime = Math.abs(today.getTime() - firstUseDate.getTime())
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+
+  return diffDays
+}
+onMounted(() => {
+  dayCount.value = calculateDayCount()
 })
 
 const currentDate = ref('')
@@ -141,30 +176,11 @@ const greeting = computed(() => {
     return '🌙 晚上好！'
   }
 })
-
-// 生成随机数据的函数
-function generateRandomData(startDate: Date, endDate: Date) {
-  const data = []
-  const currentDate = new Date(startDate)
-  while (currentDate <= endDate) {
-    // 70% 的概率生成数据，30% 的概率没有数据
-    if (Math.random() < 0.7) {
-      data.push({
-        date: currentDate.toISOString().split('T')[0],
-        count: Math.floor(Math.random() * 10) + 1 // 1 到 10 之间的随机数
-      })
-    }
-    currentDate.setDate(currentDate.getDate() + 1)
-  }
-  return data
-}
-
 // 生成过去一年的随机数据
 const endDate = new Date()
 const startDate = new Date(endDate)
 startDate.setFullYear(startDate.getFullYear() - 1)
-
-const heatmapValues = ref(generateRandomData(startDate, endDate))
+const { heatmapData } = storeToRefs(noteStore)
 
 const tooltipFormatter: TooltipFormatter = (item: CalendarItem) => {
   if (item.date instanceof Date) {
@@ -198,6 +214,7 @@ const updateDateTime = () => {
 onMounted(() => {
   updateDateTime()
   setInterval(updateDateTime, 1000)
+  console.log(heatmapData.value)
 })
 </script>
 

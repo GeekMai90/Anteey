@@ -361,6 +361,9 @@ export const useWhiteboardStore = defineStore('whiteboard', {
     },
     getWhiteboardNoteById: (state) => {
       return (id: string) => state.whiteboardNotes.find((note) => note.id === id)
+    },
+    whiteboardCount: (state) => {
+      return state.whiteboards.length
     }
   },
   persist: true

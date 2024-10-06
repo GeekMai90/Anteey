@@ -601,28 +601,54 @@ export const useNoteStore = defineStore('note', {
           backlinks
         }
       }
+    },
+    noteCount: (state) => {
+      return state.notes.length
+    },
+    lastDayNoteCount: (state) => {
+      const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0]
+      return state.notes.filter((note) => note.createdAt.toISOString().split('T')[0] === yesterday)
+        .length
+    },
+
+    heatmapData: (state) => {
+      const now = new Date()
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+      const oneYearAgo = new Date(today.getFullYear() - 1, today.getMonth(), today.getDate())
+
+      // 将结束日期延长，例如延长30天
+      const endDate = new Date(today)
+      endDate.setDate(endDate.getDate() + 30) // 向后延长30天
+
+      const data: Record<string, number> = {}
+
+      // 初始化日期范围，包括延长的日期
+      for (let d = new Date(oneYearAgo); d <= endDate; d.setDate(d.getDate() + 1)) {
+        const dateString = d
+          .toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' })
+          .replace(/\//g, '-')
+        data[dateString] = 0
+      }
+
+      // 统计每天的笔记数量（保持不变）
+      state.notes.forEach((note) => {
+        const noteDate = new Date(note.createdAt)
+        const noteDateString = noteDate
+          .toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' })
+          .replace(/\//g, '-')
+        if (noteDateString in data) {
+          data[noteDateString]++
+        }
+      })
+
+      console.log('Start date:', oneYearAgo.toLocaleDateString('zh-CN'))
+      console.log('End date:', endDate.toLocaleDateString('zh-CN'))
+      console.log('Notes count:', state.notes.length)
+      console.log('Generated data:', data)
+
+      // 转换为热力图所需的格式
+      return Object.entries(data).map(([date, count]) => ({ date, count }))
     }
-
-    // getNotesOnWhiteboard: (state) => {
-    //   return (whiteboardId: string) => {
-    //     const whiteboard = state.whiteboards.find((board) => board.id === whiteboardId)
-    //     return whiteboard
-    //       ? (whiteboard.notes
-    //           .map((wbNote) => ({
-    //             ...state.notes.find((note) => note.id === wbNote.noteId),
-    //             position: wbNote.position
-    //           }))
-    //           .filter(Boolean) as (Note & {
-    //           position: { x: number; y: number }
-    //         })[])
-    //       : []
-    //   }
-    // },
-
-    // getConnectionsOnWhiteboard: (state) => {
-    //   return (whiteboardId: string) =>
-    //     state.connections.filter((conn) => conn.whiteboardId === whiteboardId)
-    // }
   },
   persist: true
 })
