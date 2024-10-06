@@ -218,7 +218,7 @@ onMounted(() => {
 })
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .home-view {
   /* background-image: url('@resources/home-bg.jpg'); */
   background-size: cover;
@@ -261,12 +261,12 @@ onMounted(() => {
 
 .date {
   font-size: 16px;
-  margin-bottom: 4px;
+  margin-bottom: 6px;
   user-select: none;
 }
 
 .time {
-  font-size: 36px;
+  font-size: 38px;
   font-weight: bold;
   user-select: none;
 }
@@ -408,9 +408,10 @@ p {
   font-size: 14px;
   transition: background-color 0.3s;
   z-index: 10;
-}
-
-.change-background-btn:hover {
-  background-color: rgba(255, 255, 255, 0.3);
+  opacity: 0;
+  &:hover {
+    opacity: 1;
+    background-color: rgba(255, 255, 255, 0.3);
+  }
 }
 </style>

@@ -18,8 +18,8 @@
 import { useNoteStore } from '@renderer/stores/noteStores'
 import { ref, onMounted, computed } from 'vue'
 import NoteCard from './NoteCard.vue'
-import { Note } from '@renderer/types/Note'
 import confetti from 'canvas-confetti'
+import { storeToRefs } from 'pinia'
 
 interface Card {
   id: string
@@ -30,7 +30,8 @@ interface Card {
 const noteStore = useNoteStore()
 const dailyCards = ref<Card[]>([])
 const selectedCard = ref<Card | null>(null)
-const selectedCardNote = ref<Note | null>(null)
+// const selectedCardNote = ref<Note | null>(null)
+const { notes } = storeToRefs(noteStore)
 
 // 导入所有卡片背景图片
 const cardBackgrounds = import.meta.glob('../assets/cardbgs/*.{jpg,jpeg,png,gif}', {
@@ -54,32 +55,6 @@ const getDailyBackground = () => {
   return cardBackgroundArray[index]
 }
 
-// // 从所有笔记中随机抽取3张卡片
-// const fetchDailyCards = async () => {
-//   const dailyBackground = getDailyBackground()
-//   const allNotes = await noteStore.fetchAllNotes()
-
-//   // 随机选择3条笔记
-//   const selectedNotes = allNotes
-//     .sort(() => 0.5 - Math.random())
-//     .slice(0, 3)
-//     .map((note) => ({
-//       id: note.id,
-//       address: note.address,
-//       background: dailyBackground
-//     }))
-
-//   dailyCards.value = selectedNotes
-// }
-
-// const selectCard = (card: Card) => {
-//   selectedCard.value = card
-//   noteStore.openNoteEditor(card.id)
-// }
-
-// onMounted(() => {
-//   fetchDailyCards()
-// })
 // 获取今天的日期字符串
 const getTodayString = () => {
   const today = new Date()
@@ -164,18 +139,25 @@ const selectCard = (card: Card) => {
   selectedCard.value = card
   saveTodaySelection(card)
   noteStore.openNoteEditor(card.id)
-  fetchNote(card.id)
+  // fetchNote(card.id)
   // 触发礼花效果
   // 延迟触发礼花效果
   setTimeout(triggerConfetti, 100)
 }
 
-const fetchNote = async (id: string) => {
-  const note = await noteStore.fetchNoteById(id)
-  if (note) {
-    selectedCardNote.value = note
+const selectedCardNote = computed(() => {
+  if (selectedCard.value) {
+    return notes.value.find((note) => note.id === selectedCard.value?.id) || null
   }
-}
+  return null
+})
+
+// const fetchNote = async (id: string) => {
+//   const note = await noteStore.fetchNoteById(id)
+//   if (note) {
+//     selectedCardNote.value = note
+//   }
+// }
 
 // const viewSelectedCard = () => {
 //   if (selectedCard.value) {
@@ -189,9 +171,6 @@ onMounted(() => {
   if (!checkTodaySelection()) {
     fetchDailyCards()
   }
-  if (selectedCard.value) {
-    fetchNote(selectedCard.value.id)
-  }
 })
 </script>
 
@@ -199,6 +178,7 @@ onMounted(() => {
 .daily-card-pick {
   margin-top: 20px;
   text-align: center;
+  min-height: 466px;
 }
 h3 {
   color: #fff;
