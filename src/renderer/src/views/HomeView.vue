@@ -1,5 +1,5 @@
 <template>
-  <div class="home-view">
+  <div class="home-view" :style="{ backgroundImage: `url(${backgroundImage})` }">
     <div class="blur-overlay"></div>
     <div class="drag-area"></div>
     <div class="top-bar">
@@ -41,6 +41,7 @@
       <!-- 新增的每日卡片选择组件 -->
       <DailyCardPick />
     </div>
+    <button class="change-background-btn" @click="changeBackground">更换背景</button>
   </div>
 </template>
 
@@ -48,6 +49,69 @@
 import { ref, onMounted, computed } from 'vue'
 import { CalendarHeatmap, TooltipFormatter, CalendarItem } from 'vue3-calendar-heatmap'
 import DailyCardPick from '../components/DailyCardPick.vue'
+
+// 导入所有背景图片
+const backgroundImages = import.meta.glob('../assets/backgrounds/*.{jpg,jpeg,png,gif}', {
+  eager: true,
+  as: 'url'
+})
+
+// 获取背景图片数组
+const backgroundImageArray = Object.values(backgroundImages)
+
+// 获取今天的种子
+const getTodaySeed = () => {
+  const today = new Date()
+  return today.getFullYear() * 10000 + (today.getMonth() + 1) * 100 + today.getDate()
+}
+
+// 根据日期选择背景
+const getDailyBackground = () => {
+  const seed = getTodaySeed()
+  const index = seed % backgroundImageArray.length
+  return backgroundImageArray[index]
+}
+
+// 随机选择背景图片（用于手动更换）
+const getRandomBackground = () => {
+  let randomIndex
+  do {
+    randomIndex = Math.floor(Math.random() * backgroundImageArray.length)
+  } while (backgroundImageArray[randomIndex] === backgroundImage.value)
+  return backgroundImageArray[randomIndex]
+}
+
+// 背景图片 ref
+const backgroundImage = ref('')
+
+// 初始化背景
+const initBackground = () => {
+  const lastSetDate = localStorage.getItem('lastSetDate')
+  const savedBackground = localStorage.getItem('savedBackground')
+  const today = getTodaySeed().toString()
+
+  if (lastSetDate === today && savedBackground) {
+    // 如果是今天且有保存的背景，使用保存的背景
+    backgroundImage.value = savedBackground
+  } else {
+    // 否则，设置新的每日背景
+    backgroundImage.value = getDailyBackground()
+    localStorage.setItem('lastSetDate', today)
+    localStorage.setItem('savedBackground', backgroundImage.value)
+  }
+}
+
+// 更换背景的方法
+const changeBackground = () => {
+  backgroundImage.value = getRandomBackground()
+  // 保存用户选择的背景
+  localStorage.setItem('savedBackground', backgroundImage.value)
+}
+
+// 在组件挂载时初始化背景
+onMounted(() => {
+  initBackground()
+})
 
 // 计算统计信息
 const cardCount = computed(() => {
@@ -135,7 +199,7 @@ onMounted(() => {
 
 <style scoped>
 .home-view {
-  background-image: url('@resources/home-bg.jpg');
+  /* background-image: url('@resources/home-bg.jpg'); */
   background-size: cover;
   background-position: center;
   height: 100vh;
@@ -289,5 +353,24 @@ p {
   font-size: 14px;
   color: #ffffff;
   margin-top: 5px;
+}
+
+.change-background-btn {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  padding: 10px 15px;
+  background-color: rgba(255, 255, 255, 0.2);
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.3s;
+  z-index: 10;
+}
+
+.change-background-btn:hover {
+  background-color: rgba(255, 255, 255, 0.3);
 }
 </style>
