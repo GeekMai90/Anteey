@@ -377,14 +377,6 @@ const emptyNote: Note = {
 const editedNote = ref<Note>({ ...emptyNote })
 const saveStatus = ref<'idle' | 'saving' | 'saved' | 'error'>('idle')
 
-// 白板笔记的菜单项
-const { menuItems: whiteboardMenuItems } = useNoteMenu({
-  noteId: props.noteId,
-  whiteboardNoteId: props.item.id,
-  onRestoreDefaultHeight: restoreDefaultHeight,
-  menuItems: ['star', 'sidebar', 'restoreDefaultHeight', 'trashFromWhiteboard']
-})
-
 // 数据是否加载完成
 const isInitialized = ref(false)
 
@@ -458,7 +450,7 @@ const resetAutoSaveTimer = () => {
     if (hasUnsavedChanges.value) {
       autoSave()
     }
-  }, 5000)
+  }, 3000)
 }
 
 // 自动保存
@@ -517,6 +509,14 @@ const saveNote = async () => {
 // 在组件卸载前保存笔记
 onBeforeUnmount(async () => {
   await saveNote()
+})
+
+// 白板笔记的菜单项
+const { menuItems: whiteboardMenuItems } = useNoteMenu({
+  noteId: props.noteId,
+  whiteboardNoteId: props.item.id,
+  onRestoreDefaultHeight: restoreDefaultHeight,
+  menuItems: ['star', 'sidebar', 'restoreDefaultHeight', 'trashFromWhiteboard']
 })
 
 // 卡片盒列表

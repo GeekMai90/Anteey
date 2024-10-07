@@ -15,6 +15,7 @@
             @click="toggleCardTypeMenu"
           ></div>
           <input
+            v-if="editedNote"
             ref="addressInput"
             v-model="editedNote.address"
             type="text"
@@ -23,53 +24,35 @@
           />
         </div>
         <div class="toolbar-right">
-          <div class="info-btn" @click="toggleCardBoxMenu">
+          <div ref="infoBtnRef" class="info-btn" @click.stop="showCardBoxMenu">
             <div class="icon">
               <Install theme="outline" size="18" fill="var(--color-icon-default)" />
             </div>
             <!-- 添加卡片盒下拉菜单 -->
             <CardboxDropdownMenu
-              :isOpen="showCardBoxMenu"
-              :cardBoxes="cardBoxes"
-              :selectedCardBox="selectedCardBox"
-              @update:selectedCardBox="selectCardBox"
-              @close="showCardBoxMenu = false"
+              ref="dropdownMenu"
+              :is-open="isMenuOpen"
+              :note-id="editedNote?.id"
+              :current-cardbox-id="editedNote?.cardBoxId"
+              :offset="{ x: -110, y: 5 }"
+              @close="closeCardBoxMenu"
             />
           </div>
           <!-- 更多菜单 -->
-          <div class="more-btn" @click.stop="toggleOptionsMenu">
+          <div ref="moreBtnRef" class="more-btn" @click.stop="toggleMenu">
             <div v-tooltip.bottom="{ content: '更多', delay: { show: 1000 } }" class="icon">
               <More theme="outline" size="16" fill="var(--color-icon-default)" />
             </div>
-            <div v-if="isOptionsMenuVisible" v-click-outside="closeOptionsMenu">
-              <NoteOptionsMenu ref="noteOptionsMenu" :noteId="noteId" @close="closeOptionsMenu" />
-            </div>
           </div>
-          <!-- <div class="more-btn" @click.stop="toggleOptionsMenu">
-            <div class="icon">
-              <More theme="outline" size="22" fill="var(--color-icon-default)" />
-            </div>
-            <div v-if="isOptionsMenuVisible" v-click-outside="closeOptionsMenu" class="option-menu">
-              <NoteOptionsMenu
-                @share="handleShare"
-                @star="handleStar"
-                @show-sidebar="handleShowSidebar"
-                @copy="handleCopy"
-                @show-history="handleShowHistory"
-                @delete="handleDelete"
-                @close="closeOptionsMenu"
-              />
-            </div>
-          </div> -->
-          <!-- </div> -->
         </div>
       </div>
-      <div class="note-timestamp">
+      <div v-if="editedNote" class="note-timestamp">
         {{ formatDate(editedNote.updatedAt) }}
       </div>
       <!-- 编辑器内容 -->
       <div class="content-area">
         <TipTapEditor
+          v-if="editedNote"
           ref="tiptapEditor"
           v-model:content="editedNote.content"
           :editable="true"
@@ -83,7 +66,7 @@
       <div
         v-for="type in cardTypes"
         :key="type"
-        :class="{ active: editedNote.cardType === type }"
+        :class="{ active: editedNote?.cardType === type }"
         class="card-type-item"
         @click="selectCardType(type)"
       >
@@ -93,142 +76,194 @@
         <div class="name">{{ getTypeLabel(type) }}</div>
       </div>
     </div>
+    <PopupMenu
+      ref="popupMenuRef"
+      :show="isMenuVisible"
+      :menuItems="noteMenuItems"
+      :position="menuPosition"
+      :offset="{ x: -110, y: 5 }"
+      @close="closeMenu"
+      @itemClick="handleMenuItemClick"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, watch, onBeforeUnmount, onMounted, computed, nextTick, onUnmounted } from 'vue'
-import { onBeforeRouteUpdate, useRoute } from 'vue-router'
+import {
+  ref,
+  watch,
+  onBeforeUnmount,
+  onMounted,
+  computed,
+  nextTick,
+  onUnmounted,
+  reactive
+} from 'vue'
+import { useRoute } from 'vue-router'
 import { useNoteStore } from '../stores/noteStores'
-import { CardType, Note, CardBox } from '../types/Note'
+import { CardType, Note } from '../types/Note'
 import { formatDate } from '../utils/noteHelpers'
-import NoteOptionsMenu from '../components/NoteOptionsMenu.vue'
 import { Notes, BookOpen, ViewList, Link, More, Install } from '@icon-park/vue-next'
 import TipTapEditor from '../components/TipTapEditor.vue'
 import CardboxDropdownMenu from '../components/CardboxDropdownMenu.vue'
 import AppToolbar from '../components/AppToolbar.vue'
 import { debounce } from 'lodash-es'
-
-// const props = defineProps<{
-//   noteId: string
-// }>()
+import PopupMenu from '../components/PopupMenu.vue'
+import { useNoteMenu } from '../composable/useNoteMenu'
+import type { MenuItem } from '../components/PopupMenu.vue'
+import { storeToRefs } from 'pinia'
 
 const tiptapEditor = ref<any>(null)
 const route = useRoute()
-// const router = useRouter()
 const noteStore = useNoteStore()
 const noteId = route.params.id as string
 const addressInput = ref<HTMLInputElement | null>(null)
 
-// 笔记选项菜单
-const isOptionsMenuVisible = ref(false)
-const noteOptionsMenu = ref<InstanceType<typeof NoteOptionsMenu> | null>(null)
+// 卡片盒列表
+const dropdownMenu = ref<InstanceType<typeof CardboxDropdownMenu> | null>(null)
+const isMenuOpen = ref(false)
+const infoBtnRef = ref<HTMLElement | null>(null)
 
-const toggleOptionsMenu = () => {
-  isOptionsMenuVisible.value = !isOptionsMenuVisible.value
-}
-
-const closeOptionsMenu = () => {
-  isOptionsMenuVisible.value = false
-  noteOptionsMenu.value?.resetState()
-}
-
-// 笔记的保存功能
-
-const emptyNote: Note = {
-  id: '',
-  type: 'note',
-  cardType: 'Maincard', // 或其他默认类型
-  address: '',
-  content: {
-    type: 'doc',
-    content: [{ type: 'paragraph' }]
-  },
-  createdAt: new Date(),
-  updatedAt: new Date(),
-  tags: [],
-  linkedTo: [],
-  linkedFrom: [],
-  cardBoxId: undefined,
-  parentId: '',
-  isDeleted: false,
-  isStarred: false,
-  starredOrder: 0,
-  rightBarOrder: 0
-}
-
-const editedNote = ref<Note>({ ...emptyNote })
-const saveStatus = ref<'idle' | 'saving' | 'saved' | 'error'>('idle')
-
-// 加载笔记
-const loadNote = async () => {
-  try {
-    editedNote.value = await noteStore.fetchNoteById(noteId)
-  } catch (error) {
-    console.error('Failed to load note:', error)
+const showCardBoxMenu = (event: MouseEvent) => {
+  event.preventDefault()
+  isMenuOpen.value = !isMenuOpen.value
+  if (isMenuOpen.value && infoBtnRef.value) {
+    const rect = infoBtnRef.value.getBoundingClientRect()
+    menuPosition.x = rect.left
+    menuPosition.y = rect.bottom
+    isMenuOpen.value = true
+    nextTick(() => {
+      dropdownMenu.value?.openMenu(menuPosition.x, menuPosition.y)
+    })
   }
 }
-// 自动保存
-// 用于判断内容是否更新的函数
+const closeCardBoxMenu = () => {
+  isMenuOpen.value = false
+}
+
+// 更多按钮弹出菜单
+const moreBtnRef = ref<HTMLElement | null>(null)
+const popupMenuRef = ref<InstanceType<typeof PopupMenu> | null>(null)
+const isMenuVisible = ref(false)
+const menuPosition = reactive({ x: 0, y: 0 })
+
+const { menuItems: noteMenuItems, resetDeleteState } = useNoteMenu({
+  noteId: noteId,
+  menuItems: ['star', 'sidebar', 'delete']
+})
+const toggleMenu = (event: MouseEvent) => {
+  event.preventDefault()
+  isMenuVisible.value = !isMenuVisible.value
+  if (isMenuVisible.value && moreBtnRef.value) {
+    const rect = moreBtnRef.value.getBoundingClientRect()
+    menuPosition.x = rect.left
+    menuPosition.y = rect.bottom
+    isMenuVisible.value = true
+    nextTick(() => {
+      popupMenuRef.value?.openMenu()
+    })
+  }
+}
+const handleMenuItemClick = (item: MenuItem) => {
+  item.action()
+  if (item.name !== 'delete') {
+    closeMenu()
+  }
+}
+
+const closeMenu = () => {
+  isMenuVisible.value = false
+  resetDeleteState()
+}
+
+const { currentNote } = storeToRefs(noteStore)
+
+const isContentModified = ref(false)
+const lastSavedNote = ref(null)
+
+// 监听笔记 ID 的变化，获取笔记
+watch(
+  () => noteId,
+  async (newId) => {
+    await noteStore.fetchNoteById(newId)
+  },
+  { immediate: true }
+)
+
+const editedNote = computed({
+  get: () => currentNote.value,
+  set: (newValue) => {
+    if (newValue) {
+      noteStore.updateCurrentNote(newValue)
+      isContentModified.value = true
+    }
+  }
+})
+
+// 更新内容
+const updateContent = (newContent: any) => {
+  if (editedNote.value) {
+    noteStore.updateNoteContent(editedNote.value.id, newContent)
+    isContentModified.value = true
+  }
+}
+
+// 检查内容是否改变
 function isContentChanged(oldNote: Note, newNote: Note): boolean {
   return (
     JSON.stringify(oldNote.content) !== JSON.stringify(newNote.content) ||
     oldNote.address !== newNote.address ||
     oldNote.cardType !== newNote.cardType ||
-    // 添加其他需要比较的字段
     JSON.stringify(oldNote.tags) !== JSON.stringify(newNote.tags)
   )
 }
 
-// 上一次保存的笔记内容
-let lastSavedNote = JSON.parse(JSON.stringify(editedNote.value))
 // 自动保存
 const autoSave = debounce(async () => {
-  if (editedNote.value && editedNote.value.id) {
-    // 比较内容是否真的改变
-    if (!isContentChanged(lastSavedNote, editedNote.value)) {
-      console.log('Content not changed, skipping save')
-      return
-    }
-
-    try {
-      // noteStore.updateNoteSaveStatus(editedNote.value.id, 'saving')
-      noteStore.updateCurrentNoteSaveStatus('saving')
-      const updatedNote = await noteStore.updateNote(editedNote.value.id, editedNote.value)
-
-      // noteStore.updateNoteSaveStatus(editedNote.value.id, 'saved')
-      noteStore.updateCurrentNoteSaveStatus('saved')
-      console.log('Note auto-saved successfully')
-
-      // 更新最后保存的内容
-      lastSavedNote = JSON.parse(JSON.stringify(updatedNote))
-
-      // 更新编辑中的笔记
-      editedNote.value = updatedNote
-    } catch (error) {
-      console.error('Auto-save failed:', error)
-      // noteStore.updateNoteSaveStatus(editedNote.value.id, 'error')
-      noteStore.updateCurrentNoteSaveStatus('error')
+  if (editedNote.value && editedNote.value.id && isContentModified.value) {
+    if (!lastSavedNote.value || isContentChanged(lastSavedNote.value, editedNote.value)) {
+      try {
+        await noteStore.updateNote(editedNote.value.id, editedNote.value)
+        lastSavedNote.value = JSON.parse(JSON.stringify(editedNote.value))
+        isContentModified.value = false
+        console.log('笔记已自动保存')
+      } catch (error) {
+        console.error('自动保存失败:', error)
+      }
     }
   }
 }, 2000)
 
 // 监听笔记内容的变化
 watch(
-  () => [
-    editedNote.value.content,
-    editedNote.value.address,
-    editedNote.value.cardType,
-    editedNote.value.tags
-  ],
+  () => ({
+    content: editedNote.value?.content,
+    address: editedNote.value?.address,
+    cardType: editedNote.value?.cardType,
+    tags: editedNote.value?.tags
+  }),
   () => {
-    if (isContentChanged(lastSavedNote, editedNote.value)) {
+    if (editedNote.value) {
+      isContentModified.value = true
       autoSave()
     }
   },
   { deep: true }
 )
 
+// 手动保存
+const saveNote = async () => {
+  if (editedNote.value && editedNote.value.id && isContentModified.value) {
+    try {
+      await noteStore.updateNote(editedNote.value.id, editedNote.value)
+      lastSavedNote.value = JSON.parse(JSON.stringify(editedNote.value))
+      isContentModified.value = false
+      console.log('笔记已手动保存')
+    } catch (error) {
+      console.error('手动保存失败:', error)
+    }
+  }
+}
 // 定期保存
 const autoSaveInterval = setInterval(() => {
   if (editedNote.value) {
@@ -236,103 +271,15 @@ const autoSaveInterval = setInterval(() => {
   }
 }, 30000)
 
-onMounted(loadNote)
-
 onUnmounted(() => {
   clearInterval(autoSaveInterval)
   autoSave.cancel()
   noteStore.updateCurrentNoteSaveStatus('saved')
 })
 
+// 组件卸载前保存
 onBeforeUnmount(async () => {
   await saveNote()
-})
-
-// 更新内容
-const updateContent = (newContent: any) => {
-  if (editedNote.value) {
-    editedNote.value.content = newContent
-  }
-}
-// 手动保存（如果需要）
-const saveNote = async () => {
-  if (editedNote.value) {
-    try {
-      saveStatus.value = 'saving'
-      await noteStore.updateNote(editedNote.value.id, editedNote.value)
-      saveStatus.value = 'saved'
-    } catch (error) {
-      console.error('Manual save failed:', error)
-      saveStatus.value = 'error'
-    }
-  }
-}
-// 卡片盒列表
-const showCardBoxMenu = ref(false)
-const selectedCardBox = ref<CardBox | null>(null)
-const showMoreActions = ref<string | null>(null)
-const cardBoxes = computed(() => {
-  return [...noteStore.cardBoxes].sort((a, b) => a.name.localeCompare(b.name, 'zh-CN'))
-})
-
-const toggleCardBoxMenu = () => {
-  showCardBoxMenu.value = !showCardBoxMenu.value
-}
-
-// 选择卡片盒
-const selectCardBox = async (box: CardBox) => {
-  if (!editedNote.value?.id) {
-    console.error('NoteEditor.vue → 编辑的笔记为空')
-    return
-  }
-  try {
-    selectedCardBox.value = box
-    const newCardBoxId = box.id
-    const updatedNote = await noteStore.updateNoteCardBox(editedNote.value.id, newCardBoxId)
-    if (updatedNote) {
-      editedNote.value = updatedNote
-      console.log('NoteEditor.vue → 卡片盒更新成功:', box.name)
-    } else {
-      console.error('NoteEditor.vue → 更新卡片盒失败: 未能获取更新后的笔记')
-    }
-  } catch (error) {
-    console.error('NoteEditor.vue → 更新卡片盒失败:', error)
-  }
-}
-
-// 全局点击事件，关闭下拉菜单
-const handleGlobalClick = (event: MouseEvent) => {
-  if (
-    showCardBoxMenu.value &&
-    event.target instanceof Element &&
-    !event.target.closest('.install-btn') &&
-    !event.target.closest('.dropdown-menu')
-  ) {
-    showCardBoxMenu.value = false
-  }
-  showMoreActions.value = null
-  if (
-    showCardTypeMenu.value &&
-    event.target instanceof Element &&
-    !event.target.closest('.note-indicator') &&
-    !event.target.closest('.card-type-menu')
-  ) {
-    showCardTypeMenu.value = false
-  }
-}
-
-onMounted(() => {
-  document.addEventListener('click', handleGlobalClick)
-  if (editedNote.value.cardBoxId) {
-    const currentCardBox = cardBoxes.value.find((box) => box.id === editedNote.value.cardBoxId)
-    if (currentCardBox) {
-      selectedCardBox.value = currentCardBox
-    }
-  }
-})
-
-onUnmounted(() => {
-  document.removeEventListener('click', handleGlobalClick)
 })
 
 // 卡片类型选择菜单处理
@@ -429,10 +376,10 @@ watch(
 //   loadNote()
 //   next()
 // })
-onBeforeRouteUpdate(() => {
-  // 重新加载笔记数据
-  loadNote()
-})
+// onBeforeRouteUpdate(() => {
+//   // 重新加载笔记数据
+//   loadNote()
+// })
 
 watch(
   () => route.fullPath,
@@ -683,6 +630,7 @@ watch(
   color: var(--color-text-tertiary);
   margin-bottom: 30px;
   margin-left: 40px;
+  user-select: none;
 }
 
 .toolbar-right {
@@ -691,77 +639,6 @@ watch(
   position: relative;
   // margin-right: 10px;
 }
-
-// .info-btn,
-// .more-btn {
-//   // position: relative;
-//   display: flex;
-//   align-items: center;
-//   // width: 200px;
-//   // padding: 8px 12px;
-//   border: none;
-//   background: none;
-//   cursor: pointer;
-//   transition: background-color 0.2s;
-//   border-radius: 8px;
-//   // margin: 2px 8px;
-
-//   .icon {
-//     background: none;
-//     border: none;
-//     cursor: pointer;
-//     width: 28px;
-//     height: 28px;
-//     display: flex;
-//     align-items: center;
-//     justify-content: center;
-//     border-radius: 6px;
-//     transition: background-color 0.2s;
-//     padding: 0;
-//     // margin-right: 3px;
-
-//     &:hover:not(:disabled) {
-//       background-color: var(--color-hover-bg);
-//     }
-
-//     &:disabled {
-//       opacity: 0.5;
-//       cursor: not-allowed;
-//     }
-
-//     // 新增以下样式来处理 i-icon 类
-//     .i-icon {
-//       display: flex;
-//       align-items: center;
-//       justify-content: center;
-//       width: 100%;
-//       height: 100%;
-//     }
-
-//     svg {
-//       width: 18px; // 或者您想要的大小
-//       height: 18px; // 或者您想要的大小
-//     }
-//   }
-
-//   .name {
-//     flex-grow: 0;
-//     text-align: left;
-//     color: var(--default-text-color);
-//     font-size: 15px;
-//     white-space: nowrap; // 防止文字换行
-//     writing-mode: horizontal-tb; // 确保文字是水平排列的
-//   }
-
-//   &:hover {
-//     background-color: var(--color-hover-bg);
-//   }
-
-//   &.active {
-//     background-color: var(--color-menu-active-bg);
-//     // border: 1px solid var(--color-primary);
-//   }
-// }
 
 .info-btn,
 .more-btn {
@@ -806,8 +683,8 @@ watch(
     }
 
     :deep(svg) {
-      width: 16px;
-      height: 16px;
+      width: 18px;
+      height: 18px;
     }
   }
 

@@ -2,7 +2,6 @@ import { computed, ref, watchEffect } from 'vue'
 import { Info, Star, Copy, History, DeleteOne, RightBar, Refresh } from '@icon-park/vue-next'
 import { useNoteStore } from '../stores/noteStores'
 import { useWhiteboardStore } from '../stores/whiteboardStores'
-import { storeToRefs } from 'pinia'
 import { useUIStore } from '@renderer/stores/useUIStore'
 
 interface NoteMenuParams {
@@ -32,10 +31,10 @@ export function useNoteMenu(params: NoteMenuParams) {
   //   return allNotes.find((note) => note.id === params.noteId)?.isStarred || false
   // })
 
-  const togglePopupMenu = () => {
-    isPopupMenuVisible.value = !isPopupMenuVisible.value
-    console.log(isPopupMenuVisible.value)
-  }
+  // const togglePopupMenu = () => {
+  //   isPopupMenuVisible.value = !isPopupMenuVisible.value
+  //   console.log(isPopupMenuVisible.value)
+  // }
 
   const closePopupMenu = () => {
     isPopupMenuVisible.value = false
