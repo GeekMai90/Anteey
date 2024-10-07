@@ -1,4 +1,3 @@
-<!-- src/components/CardboxDropdownMenu.vue -->
 <template>
   <Teleport to="body">
     <Transition name="fade-zoom">
@@ -6,73 +5,48 @@
         v-if="isOpen"
         ref="menuRef"
         :style="computedMenuStyle"
-        class="cardbox-dropdown-menu"
+        class="card-type-dropdown-menu"
         @click.stop
       >
-        <template v-if="sortedCardBoxes.length > 0">
-          <div
-            v-for="box in sortedCardBoxes"
-            :key="box.id"
-            class="dropdown-item"
-            :class="{ active: isBoxSelected(box) }"
-            @click.stop="selectCardBox(box)"
-          >
-            <div class="icon">
-              <component
-                :is="box.id === '0000' ? FileCabinet : Box"
-                theme="outline"
-                size="18"
-                :fill="isBoxSelected(box) ? 'var(--color-primary)' : '#b6b6b6'"
-              />
-            </div>
-            <div class="name">
-              {{ box.name || '请添加卡片盒' }}
-            </div>
+        <div
+          v-for="type in cardTypes"
+          :key="type"
+          class="card-type-item"
+          :class="{ active: isTypeSelected(type) }"
+          @click="selectCardType(type)"
+        >
+          <div class="icon">
+            <component
+              :is="getIcon(type)"
+              theme="outline"
+              size="18"
+              :fill="isTypeSelected(type) ? 'var(--color-primary)' : 'var(--color-icon-default)'"
+            />
           </div>
-        </template>
-        <div v-else class="empty-state">暂无卡片盒，请添加新的卡片盒</div>
+          <div class="name">{{ getTypeLabel(type) }}</div>
+        </div>
       </div>
     </Transition>
   </Teleport>
 </template>
 
 <script setup lang="ts">
-import { FileCabinet, Box } from '@icon-park/vue-next'
-import { CardBox } from '@renderer/types/Note'
 import { ref, computed, onMounted, onUnmounted, CSSProperties, watch, nextTick } from 'vue'
-import { useNoteStore } from '@renderer/stores/noteStores'
-import { storeToRefs } from 'pinia'
+import { CardType } from '@renderer/types/Note'
+import { Notes, BookOpen, ViewList, Link } from '@icon-park/vue-next'
 
 const props = defineProps<{
   isOpen: boolean
   position?: { x: number; y: number }
   offset?: { x: number; y: number }
-  noteId?: string
-  currentCardboxId?: string
+  currentCardType?: CardType
 }>()
 
-const emit = defineEmits(['update:selectedCardBox', 'close'])
+const emit = defineEmits(['update:cardType', 'close'])
 
-const noteStore = useNoteStore()
-const { cardBoxes } = storeToRefs(noteStore)
 const menuRef = ref<HTMLElement | null>(null)
 const menuPosition = ref({ x: 0, y: 0 })
-
-const sortedCardBoxes = computed(() => {
-  return [...cardBoxes.value].sort((a, b) => a.name.localeCompare(b.name, 'zh-CN'))
-})
-
-const selectedCardBox = ref<CardBox | null>(null)
-
-watch(
-  () => props.currentCardboxId,
-  (newId) => {
-    if (newId) {
-      selectedCardBox.value = cardBoxes.value.find((box) => box.id === newId) || null
-    }
-  },
-  { immediate: true }
-)
+const cardTypes: CardType[] = ['Maincard', 'Bibcard', 'Indexcard', 'Hoplinkcard']
 
 const computedMenuStyle = computed((): CSSProperties => {
   const { x, y } = menuPosition.value
@@ -87,28 +61,39 @@ const computedMenuStyle = computed((): CSSProperties => {
   }
 })
 
-const selectCardBox = async (box: CardBox) => {
-  if (!props.noteId) {
-    console.error('CardboxDropdownMenu.vue → 笔记ID为空')
-    return
+const getIcon = (type: CardType) => {
+  switch (type) {
+    case 'Maincard':
+      return Notes
+    case 'Bibcard':
+      return BookOpen
+    case 'Indexcard':
+      return ViewList
+    case 'Hoplinkcard':
+      return Link
   }
-  try {
-    const updatedNote = await noteStore.updateNoteCardBox(props.noteId, box.id)
-    if (updatedNote) {
-      selectedCardBox.value = box
-      emit('update:selectedCardBox', box)
-      console.log('CardboxDropdownMenu.vue → 卡片盒更新成功:', box.name)
-    } else {
-      console.error('CardboxDropdownMenu.vue → 更新卡片盒失败: 未能获取更新后的笔记')
-    }
-  } catch (error) {
-    console.error('CardboxDropdownMenu.vue → 更新卡片盒失败:', error)
+}
+
+const getTypeLabel = (type: CardType) => {
+  switch (type) {
+    case 'Maincard':
+      return '主要卡'
+    case 'Bibcard':
+      return '书目卡'
+    case 'Indexcard':
+      return '索引卡'
+    case 'Hoplinkcard':
+      return '跳转卡'
   }
+}
+
+const selectCardType = (type: CardType) => {
+  emit('update:cardType', type)
   emit('close')
 }
 
-const isBoxSelected = (box: CardBox) => {
-  return selectedCardBox.value && selectedCardBox.value.id === box.id
+const isTypeSelected = (type: CardType) => {
+  return props.currentCardType === type
 }
 
 const closeMenu = () => {
@@ -158,17 +143,18 @@ onUnmounted(() => {
   window.removeEventListener('resize', adjustMenuPosition)
 })
 
-defineExpose({ openMenu, closeMenu, selectedCardBox })
+defineExpose({ openMenu, closeMenu })
 </script>
 
 <style scoped lang="scss">
-.cardbox-dropdown-menu {
+.card-type-dropdown-menu {
   position: fixed;
   background-color: var(--color-bg-primary);
+  border: 1px solid var(--color-border-primary);
   border-radius: 8px;
   box-shadow: var(--shadow-primary);
   z-index: 9999;
-  min-width: 200px;
+  min-width: 180px;
   width: max-content;
   max-width: 100vw; // 确保不超过视口宽度
   overflow-y: auto;
@@ -177,7 +163,7 @@ defineExpose({ openMenu, closeMenu, selectedCardBox })
   white-space: nowrap;
 }
 
-.dropdown-item {
+.card-type-item {
   position: relative;
   display: flex;
   align-items: center;
@@ -188,6 +174,11 @@ defineExpose({ openMenu, closeMenu, selectedCardBox })
   border-radius: 6px;
   padding: 4px 4px;
   margin: 2px;
+
+  &:hover {
+    background-color: var(--color-hover-button);
+  }
+
   &.active {
     background-color: var(--color-hover-button);
     font-weight: 500;
@@ -204,15 +195,6 @@ defineExpose({ openMenu, closeMenu, selectedCardBox })
     justify-content: center;
     transition: all 0.2s ease;
     padding: 0;
-
-    // &:hover:not(:disabled) {
-    //   background-color: rgba(0, 0, 0, 0.05);
-    // }
-
-    &:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
 
     :deep(.i-icon) {
       display: flex;
@@ -239,19 +221,8 @@ defineExpose({ openMenu, closeMenu, selectedCardBox })
     overflow: hidden;
     text-overflow: ellipsis;
   }
-
-  &:hover {
-    background-color: var(--color-hover-button);
-  }
-
-  &:active {
-    background-color: rgba(0, 0, 0, 0.1);
-  }
-
-  &.delete {
-    color: #ff4d4f;
-  }
 }
+
 // 添加动画相关的样式
 .fade-zoom-enter-active,
 .fade-zoom-leave-active {

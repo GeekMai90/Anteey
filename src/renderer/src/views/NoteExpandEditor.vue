@@ -14,6 +14,14 @@
             :class="cardTypeClass"
             @click="toggleCardTypeMenu"
           ></div>
+          <CardTypeDropdownMenu
+            ref="cardTypeDropdownMenu"
+            :is-open="showCardTypeMenu"
+            :current-card-type="editedNote?.cardType"
+            :offset="{ x: -50, y: 10 }"
+            @update:card-type="updateCardType"
+            @close="closeCardTypeMenu"
+          />
           <input
             v-if="editedNote"
             ref="addressInput"
@@ -24,9 +32,14 @@
           />
         </div>
         <div class="toolbar-right">
-          <div ref="infoBtnRef" class="info-btn" @click.stop="showCardBoxMenu">
-            <div class="icon">
-              <Install theme="outline" size="18" fill="var(--color-icon-default)" />
+          <div ref="infoBtnRef" class="install-btn" @click.stop="showCardBoxMenu">
+            <div v-tooltip.bottom="{ content: '设置卡片盒', delay: { show: 1000 } }" class="icon">
+              <Install
+                theme="outline"
+                size="18"
+                fill="var(--color-icon-default)"
+                :stroke-width="3"
+              />
             </div>
             <!-- 添加卡片盒下拉菜单 -->
             <CardboxDropdownMenu
@@ -34,20 +47,29 @@
               :is-open="isMenuOpen"
               :note-id="editedNote?.id"
               :current-cardbox-id="editedNote?.cardBoxId"
-              :offset="{ x: -110, y: 5 }"
+              :offset="{ x: -85, y: 5 }"
               @close="closeCardBoxMenu"
             />
           </div>
           <!-- 更多菜单 -->
           <div ref="moreBtnRef" class="more-btn" @click.stop="toggleMenu">
             <div v-tooltip.bottom="{ content: '更多', delay: { show: 1000 } }" class="icon">
-              <More theme="outline" size="16" fill="var(--color-icon-default)" />
+              <More theme="outline" size="16" fill="var(--color-icon-default)" :stroke-width="3" />
             </div>
+            <PopupMenu
+              ref="popupMenuRef"
+              :show="isMenuVisible"
+              :menuItems="noteMenuItems"
+              :position="menuPosition"
+              :offset="{ x: -75, y: 5 }"
+              @close="closeMenu"
+              @itemClick="handleMenuItemClick"
+            />
           </div>
         </div>
       </div>
       <div v-if="editedNote" class="note-timestamp">
-        {{ formatDate(editedNote.updatedAt) }}
+        {{ formatDate(editedNote.createdAt) }}
       </div>
       <!-- 编辑器内容 -->
       <div class="content-area">
@@ -61,30 +83,6 @@
         />
       </div>
     </div>
-    <!-- 卡片类型选择菜单 -->
-    <div v-if="showCardTypeMenu" class="card-type-menu" :style="menuStyle" @click.stop>
-      <div
-        v-for="type in cardTypes"
-        :key="type"
-        :class="{ active: editedNote?.cardType === type }"
-        class="card-type-item"
-        @click="selectCardType(type)"
-      >
-        <div class="icon">
-          <component :is="getIcon(type)" theme="outline" size="16" fill="#b6b6b6" />
-        </div>
-        <div class="name">{{ getTypeLabel(type) }}</div>
-      </div>
-    </div>
-    <PopupMenu
-      ref="popupMenuRef"
-      :show="isMenuVisible"
-      :menuItems="noteMenuItems"
-      :position="menuPosition"
-      :offset="{ x: -110, y: 5 }"
-      @close="closeMenu"
-      @itemClick="handleMenuItemClick"
-    />
   </div>
 </template>
 
@@ -103,7 +101,7 @@ import { useRoute } from 'vue-router'
 import { useNoteStore } from '../stores/noteStores'
 import { CardType, Note } from '../types/Note'
 import { formatDate } from '../utils/noteHelpers'
-import { Notes, BookOpen, ViewList, Link, More, Install } from '@icon-park/vue-next'
+import { More, Install } from '@icon-park/vue-next'
 import TipTapEditor from '../components/TipTapEditor.vue'
 import CardboxDropdownMenu from '../components/CardboxDropdownMenu.vue'
 import AppToolbar from '../components/AppToolbar.vue'
@@ -112,12 +110,49 @@ import PopupMenu from '../components/PopupMenu.vue'
 import { useNoteMenu } from '../composable/useNoteMenu'
 import type { MenuItem } from '../components/PopupMenu.vue'
 import { storeToRefs } from 'pinia'
+import CardTypeDropdownMenu from '../components/CardTypeDropdownMenu.vue'
 
 const tiptapEditor = ref<any>(null)
 const route = useRoute()
 const noteStore = useNoteStore()
 const noteId = route.params.id as string
 const addressInput = ref<HTMLInputElement | null>(null)
+
+const cardTypeDropdownMenu = ref<InstanceType<typeof CardTypeDropdownMenu> | null>(null)
+const showCardTypeMenu = ref(false)
+const indicatorButton = ref<HTMLElement | null>(null)
+
+const cardTypeClass = computed(() => ({
+  maincard: editedNote.value?.cardType === 'Maincard',
+  bibcard: editedNote.value?.cardType === 'Bibcard',
+  indexcard: editedNote.value?.cardType === 'Indexcard',
+  hoplinkcard: editedNote.value?.cardType === 'Hoplinkcard'
+}))
+
+const toggleCardTypeMenu = (event: MouseEvent) => {
+  event.stopPropagation()
+  showCardTypeMenu.value = !showCardTypeMenu.value
+  if (showCardTypeMenu.value && indicatorButton.value) {
+    const rect = indicatorButton.value.getBoundingClientRect()
+    menuPosition.x = rect.left
+    menuPosition.y = rect.bottom
+    showCardTypeMenu.value = true
+    nextTick(() => {
+      cardTypeDropdownMenu.value?.openMenu(menuPosition.x, menuPosition.y)
+    })
+  }
+}
+
+const closeCardTypeMenu = () => {
+  showCardTypeMenu.value = false
+}
+
+const updateCardType = (newType: CardType) => {
+  if (editedNote.value) {
+    editedNote.value.cardType = newType
+    saveNote()
+  }
+}
 
 // 卡片盒列表
 const dropdownMenu = ref<InstanceType<typeof CardboxDropdownMenu> | null>(null)
@@ -282,70 +317,6 @@ onBeforeUnmount(async () => {
   await saveNote()
 })
 
-// 卡片类型选择菜单处理
-const indicatorButton = ref<HTMLButtonElement | null>(null)
-const showCardTypeMenu = ref(false)
-const cardTypes: CardType[] = ['Maincard', 'Bibcard', 'Indexcard', 'Hoplinkcard']
-const menuStyle = ref({})
-
-const cardTypeClass = computed(() => ({
-  maincard: editedNote.value?.cardType === 'Maincard',
-  bibcard: editedNote.value?.cardType === 'Bibcard',
-  indexcard: editedNote.value?.cardType === 'Indexcard',
-  hoplinkcard: editedNote.value?.cardType === 'Hoplinkcard'
-}))
-
-const getIcon = (type: CardType) => {
-  switch (type) {
-    case 'Maincard':
-      return Notes
-    case 'Bibcard':
-      return BookOpen
-    case 'Indexcard':
-      return ViewList
-    case 'Hoplinkcard':
-      return Link
-  }
-}
-
-const getTypeLabel = (type: CardType) => {
-  switch (type) {
-    case 'Maincard':
-      return '主要卡'
-    case 'Bibcard':
-      return '书目卡'
-    case 'Indexcard':
-      return '索引卡'
-    case 'Hoplinkcard':
-      return '跳转卡'
-  }
-}
-
-const toggleCardTypeMenu = (event: MouseEvent) => {
-  event.stopPropagation()
-  showCardTypeMenu.value = !showCardTypeMenu.value
-  if (showCardTypeMenu.value) {
-    nextTick(() => {
-      const button = indicatorButton.value
-      if (button) {
-        const rect = button.getBoundingClientRect()
-        menuStyle.value = {
-          top: `${rect.bottom + window.scrollY + 10}px`,
-          left: `${rect.left + window.scrollX}px`
-        }
-      }
-    })
-  }
-}
-
-const selectCardType = (type: CardType) => {
-  if (editedNote.value) {
-    editedNote.value.cardType = type
-    showCardTypeMenu.value = false
-    saveNote()
-  }
-}
-
 // 聚焦地址输入框
 const focusAddressInput = () => {
   nextTick(() => {
@@ -371,39 +342,6 @@ watch(
     focusAddressInput()
   }
 )
-// onBeforeRouteUpdate((to, from, next) => {
-//   // 重新加载笔记数据
-//   loadNote()
-//   next()
-// })
-// onBeforeRouteUpdate(() => {
-//   // 重新加载笔记数据
-//   loadNote()
-// })
-
-watch(
-  () => route.fullPath,
-  (newPath) => {
-    console.log('Current route:', newPath)
-  }
-)
-// watch(
-//   () => route.params.id,
-//   () => {
-//     // 重新加载笔记数据
-//     loadNote()
-//   }
-// )
-
-// 展开编辑器
-// const handleExpand = async () => {
-//   await saveNote()
-//   isExpandingToExpandEditor.value = true
-//   if (editedNote.value?.id) {
-//     router.push({ name: 'NoteExpandEditor', params: { id: editedNote.value.id } })
-//   }
-//   noteStore.closeNoteEditor()
-// }
 </script>
 
 <style scoped lang="scss">
@@ -461,7 +399,7 @@ watch(
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-left: 40px;
+  margin-left: 35px;
   z-index: 500;
 }
 
@@ -628,8 +566,8 @@ watch(
 .note-timestamp {
   font-size: 12px;
   color: var(--color-text-tertiary);
-  margin-bottom: 30px;
-  margin-left: 40px;
+  margin-bottom: 20px;
+  margin-left: 33px;
   user-select: none;
 }
 
@@ -640,7 +578,7 @@ watch(
   // margin-right: 10px;
 }
 
-.info-btn,
+.install-btn,
 .more-btn {
   position: relative;
   display: flex;

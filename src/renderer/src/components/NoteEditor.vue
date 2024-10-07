@@ -10,27 +10,28 @@
         @click="handleExpand"
       >
         <div class="icon">
-          <ExpandTextInput theme="outline" size="16" fill="#b6b6b6" />
+          <ExpandTextInput theme="outline" size="16" fill="#b6b6b6" :stroke-width="3" />
         </div>
       </div>
       <div class="toolbar-right">
-        <div class="install-btn" @click="toggleCardBoxMenu">
+        <div ref="infoBtnRef" class="install-btn" @click.stop="showCardBoxMenu">
           <div v-tooltip.bottom="{ content: '设置卡片盒', delay: { show: 1000 } }" class="icon">
-            <Install theme="outline" size="16" fill="#b6b6b6" />
+            <Install theme="outline" size="16" fill="#b6b6b6" :stroke-width="3" />
           </div>
           <!-- 添加卡片盒下拉菜单 -->
           <CardboxDropdownMenu
-            :isOpen="showCardBoxMenu"
-            :cardBoxes="cardBoxes"
-            :selectedCardBox="selectedCardBox"
-            @update:selectedCardBox="selectCardBox"
-            @close="showCardBoxMenu = false"
+            ref="dropdownMenu"
+            :is-open="isMenuOpen"
+            :note-id="editedNote?.id"
+            :current-cardbox-id="editedNote?.cardBoxId"
+            :offset="{ x: -120, y: 5 }"
+            @close="closeCardBoxMenu"
           />
         </div>
 
         <div ref="moreBtnRef" class="more-btn" @click.stop="toggleMenu">
           <div v-tooltip.bottom="{ content: '更多', delay: { show: 1000 } }" class="icon">
-            <More theme="outline" size="16" fill="var(--color-icon-default)" />
+            <More theme="outline" size="16" fill="var(--color-icon-default)" :stroke-width="3" />
           </div>
         </div>
       </div>
@@ -95,7 +96,7 @@
 
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onUnmounted, reactive, ref, watch } from 'vue'
-import { CardType, CardBox, Note } from '../types/Note'
+import { CardType, Note } from '../types/Note'
 import { useNoteStore } from '../stores/noteStores'
 import TipTapEditor from '../components/TipTapEditor.vue'
 import { useRouter } from 'vue-router'
@@ -159,8 +160,6 @@ const tiptapEditor = ref<InstanceType<any> | null>(null)
 // const emit = defineEmits(['close', 'save', 'expand', 'toggleOptions'])
 
 const isExpandingToExpandEditor = ref(false)
-const showCardBoxMenu = ref(false)
-const selectedCardBox = ref<CardBox | null>(null)
 
 const noteStore = useNoteStore()
 const { currentNote } = storeToRefs(noteStore)
@@ -273,33 +272,25 @@ const autoSaveInterval = setInterval(() => {
 // onMounted(loadNote)
 
 // 卡片盒列表
-const cardBoxes = computed(() => {
-  return [...noteStore.cardBoxes].sort((a, b) => a.name.localeCompare(b.name, 'zh-CN'))
-})
+const dropdownMenu = ref<InstanceType<typeof CardboxDropdownMenu> | null>(null)
+const isMenuOpen = ref(false)
+const infoBtnRef = ref<HTMLElement | null>(null)
 
-const toggleCardBoxMenu = () => {
-  showCardBoxMenu.value = !showCardBoxMenu.value
+const showCardBoxMenu = (event: MouseEvent) => {
+  event.preventDefault()
+  isMenuOpen.value = !isMenuOpen.value
+  if (isMenuOpen.value && infoBtnRef.value) {
+    const rect = infoBtnRef.value.getBoundingClientRect()
+    menuPosition.x = rect.left
+    menuPosition.y = rect.bottom
+    isMenuOpen.value = true
+    nextTick(() => {
+      dropdownMenu.value?.openMenu(menuPosition.x, menuPosition.y)
+    })
+  }
 }
-
-// 选择卡片盒
-const selectCardBox = async (box: CardBox) => {
-  if (!editedNote.value?.id) {
-    console.error('NoteEditor.vue → 编辑的笔记为空')
-    return
-  }
-  try {
-    selectedCardBox.value = box
-    const newCardBoxId = box.id
-    const updatedNote = await noteStore.updateNoteCardBox(editedNote.value.id, newCardBoxId)
-    if (updatedNote) {
-      editedNote.value = updatedNote
-      console.log('NoteEditor.vue → 卡片盒更新成功:', box.name)
-    } else {
-      console.error('NoteEditor.vue → 更新卡片盒失败: 未能获取更新后的笔记')
-    }
-  } catch (error) {
-    console.error('NoteEditor.vue → 更新卡片盒失败:', error)
-  }
+const closeCardBoxMenu = () => {
+  isMenuOpen.value = false
 }
 
 // 卡片类型选择菜单处理

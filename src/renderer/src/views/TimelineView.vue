@@ -58,12 +58,7 @@
               @click="toggleDateFilter"
             >
               <div class="icon">
-                <Calendar
-                  theme="outline"
-                  size="20"
-                  fill="var(--color-text-secondary)"
-                  :strokeWidth="2"
-                />
+                <Calendar theme="outline" size="20" fill="#b6b6b6" :strokeWidth="2" />
               </div>
             </div>
           </div>
@@ -325,6 +320,10 @@ const handleDelete = async (noteId: string) => {
               color: var(--color-text-secondary);
               font-size: 14px;
               min-width: 0;
+              &::placeholder {
+                color: var(--color-text-placeholder); // 使用您定义的颜色变量
+                opacity: 1; // 某些浏览器可能需要这个来确保颜色正确应用
+              }
 
               &:focus {
                 outline: none;

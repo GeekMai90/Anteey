@@ -6,7 +6,7 @@
       <div class="toolbar-section right">
         <div class="clear-button" @click="clearSidebarNotes">
           <div class="icon">
-            <Clear theme="outline" size="20" fill="#b6b6b6" />
+            <Clear theme="outline" size="20" fill="#b6b6b6" :stroke-width="3" />
           </div>
         </div>
       </div>

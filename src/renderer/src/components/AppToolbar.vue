@@ -14,7 +14,7 @@
       </div>
       <div v-if="showBackButton" class="back-button" :disabled="!canGoBack" @click="goBack">
         <div class="icon">
-          <Left theme="outline" size="20" fill="#b6b6b6" />
+          <Left theme="outline" size="20" fill="#b6b6b6" :stroke-width="3" />
         </div>
       </div>
       <div
@@ -24,7 +24,7 @@
         @click="goForward"
       >
         <div class="icon">
-          <Right theme="outline" size="20" fill="#b6b6b6" />
+          <Right theme="outline" size="20" fill="#b6b6b6" :stroke-width="3" />
         </div>
       </div>
       <div v-if="whiteboardName" class="whiteboard-name">
@@ -49,7 +49,7 @@
         @click="toggleRightSidebar"
       >
         <div class="icon">
-          <ExpandLeft theme="outline" size="20" fill="#b6b6b6" />
+          <ExpandLeft theme="outline" size="20" fill="#b6b6b6" :stroke-width="3" />
         </div>
       </div>
       <slot name="right"></slot>

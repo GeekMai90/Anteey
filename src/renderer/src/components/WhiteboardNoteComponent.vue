@@ -20,6 +20,7 @@
       :isCardBoxMenuOpen="showCardBoxMenu"
       :cardBoxes="cardBoxes"
       :selectedCardBox="selectedCardBox"
+      :noteId="noteId"
       :moreMenuItems="whiteboardMenuItems"
       @expand="handleExpand"
       @toggle-cardbox-menu="toggleCardBoxMenu"
