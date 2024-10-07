@@ -3,145 +3,207 @@
     <div class="fixed-header">
       <AppToolbar :showBackButton="true" :showForwardButton="true"></AppToolbar>
       <div class="topToolBar">
-        <div class="filter-bar">
-          <!-- 收件箱 -->
-          <div class="inbox-button" :class="{ active: isInboxSelected }" @click="toggleInbox">
+        <div class="topToolBar-header">
+          <div class="topToolBar-left">
             <div class="icon">
-              <InboxIn theme="outline" size="18" fill="var(--color-text-primary)" />
+              <Box theme="outline" size="20" fill="var(--color-primary)" :strokeWidth="2" />
             </div>
-            <div class="name">收件箱</div>
+            <div class="name">卡片盒</div>
           </div>
-          <!-- 卡片柜 -->
-          <div class="cardbox-dropdown" @click.stop="toggleCardBoxMenu">
-            <div class="icon">
-              <FileCabinet theme="outline" size="18" fill="var(--color-text-primary)" />
-            </div>
-            <div class="name">{{ selectedCardBoxName }}</div>
-            <!-- 卡片柜下拉菜单 -->
-            <div v-if="showCardBoxMenu" class="dropdown-menu" :class="{ show: showCardBoxMenu }">
-              <div
-                v-for="box in cardBoxes"
-                :key="box.id"
-                class="dropdown-item"
-                :class="{ active: selectedCardBox && selectedCardBox.id === box.id }"
-                @click.stop="selectCardBox(box)"
-              >
-                <div class="dropdown-item-content">
-                  <div class="icon">
-                    <component
-                      :is="box.id === '0000' ? FileCabinet : Box"
-                      theme="outline"
-                      size="18"
-                      fill="#b6b6b6"
-                    />
-                  </div>
-                  <div class="name">
-                    {{ box.name }}
-                  </div>
-                </div>
-                <div v-if="box.id !== '0000'" class="dropdown-item-actions">
-                  <button class="more-actions-btn" @click.stop="toggleMoreActions(box.id, $event)">
-                    <div class="icon">
-                      <More theme="outline" size="18" fill="#333" />
-                    </div>
-                  </button>
-                </div>
-              </div>
-              <div class="dropdown-divider"></div>
-              <div class="dropdown-item add-cardbox" @click.stop="openCardBoxModal">
-                <div class="dropdown-item-content">
-                  <div class="icon">
-                    <Plus theme="outline" size="18" fill="#b6b6b6" />
-                  </div>
-                  <div class="name">新增卡片盒</div>
-                </div>
-              </div>
-            </div>
-          </div>
-          <!-- 菜单项的编辑菜单 -->
-          <div
-            v-if="showMoreActions"
-            class="more-actions-menu"
-            :class="{ show: showMoreActions }"
-            :style="moreActionsMenuStyle"
-          >
+          <div class="topToolBar-right">
+            <!-- 添加搜索框 -->
             <div
-              class="more-action-item"
-              @click.stop="editCardBox(getCardBoxById(showMoreActions))"
+              v-tooltip.bottom="{ content: 'Cmd+P', delay: { show: 1000 } }"
+              class="search-box"
+              :class="{ 'is-focused': isSearchFocused }"
             >
-              <div class="icon">
-                <EditTwo theme="outline" size="16" fill="#b6b6b6" />
+              <div class="search-icon">
+                <div class="icon">
+                  <Search
+                    theme="outline"
+                    size="16"
+                    fill="var(--color-text-secondary)"
+                    :strokeWidth="2"
+                  />
+                </div>
               </div>
-              <div class="name">编辑</div>
+              <input
+                ref="searchInput"
+                v-model="searchQuery"
+                type="text"
+                placeholder="搜索"
+                @input="handleSearch"
+                @focus="isSearchFocused = true"
+                @blur="handleBlur"
+              />
+              <div v-if="searchQuery" class="clear-icon" @click="clearSearch">
+                <div class="icon">
+                  <Close
+                    theme="outline"
+                    size="16"
+                    fill="var(--color-text-secondary)"
+                    :strokeWidth="2"
+                  />
+                </div>
+              </div>
             </div>
-            <div class="more-action-item delete" @click.stop="deleteCardBox(showMoreActions)">
+            <!-- 收件箱 -->
+            <div class="inbox-button" :class="{ active: isInboxSelected }" @click="toggleInbox">
               <div class="icon">
-                <Delete
+                <InboxIn
                   theme="outline"
-                  size="16"
-                  :fill="isConfirmingDelete ? '#ff4d4f' : '#b6b6b6'"
+                  size="18"
+                  fill="var(--color-text-secondary)"
+                  :strokeWidth="3"
                 />
               </div>
-              <div class="name delete">
-                {{ isConfirmingDelete ? '确认删除' : '删除' }}
+              <div class="name">收件箱</div>
+            </div>
+            <!-- 卡片柜 -->
+            <div class="cardbox-dropdown" @click.stop="toggleCardBoxMenu">
+              <div class="icon">
+                <FileCabinet
+                  theme="outline"
+                  size="18"
+                  fill="var(--color-text-secondary)"
+                  :strokeWidth="3"
+                />
               </div>
-            </div>
-          </div>
-
-          <!-- 卡片类型 -->
-          <div class="cardtype-dropdown" @click.stop="toggleCardTypeMenu">
-            <div class="icon">
-              <BankCardTwo theme="outline" size="18" fill="#333" />
-            </div>
-            <div class="name">卡片类型</div>
-            <div v-if="showCardTypeMenu" class="cadrtype-dropdown-menu" @click.stop>
-              <div v-for="type in cardTypes" :key="type.value" class="cadrtype-dropdown-item">
-                <div class="cadrtype-dropdown-item-content">
-                  <div class="icon">
-                    <component :is="type.icon" theme="outline" size="18" fill="#b6b6b6" />
+              <div class="name">{{ selectedCardBoxName }}</div>
+              <!-- 卡片柜下拉菜单 -->
+              <div v-if="showCardBoxMenu" class="dropdown-menu" :class="{ show: showCardBoxMenu }">
+                <div
+                  v-for="box in cardBoxes"
+                  :key="box.id"
+                  class="dropdown-item"
+                  :class="{ active: selectedCardBox && selectedCardBox.id === box.id }"
+                  @click.stop="selectCardBox(box)"
+                >
+                  <div class="dropdown-item-content">
+                    <div class="icon">
+                      <component
+                        :is="box.id === '0000' ? FileCabinet : Box"
+                        theme="outline"
+                        size="18"
+                        fill="#b6b6b6"
+                      />
+                    </div>
+                    <div class="name">
+                      {{ box.name }}
+                    </div>
                   </div>
-                  <div class="name">
-                    {{ type.label }}
+                  <div v-if="box.id !== '0000'" class="dropdown-item-actions">
+                    <button
+                      class="more-actions-btn"
+                      @click.stop="toggleMoreActions(box.id, $event)"
+                    >
+                      <div class="icon">
+                        <More theme="outline" size="18" fill="#333" />
+                      </div>
+                    </button>
                   </div>
                 </div>
-                <label class="switch">
-                  <input
-                    type="checkbox"
-                    :checked="selectedCardTypes.includes(type.value)"
-                    @change="toggleCardType(type.value)"
-                  />
-
-                  <span class="slider round"></span>
-                </label>
+                <div class="dropdown-divider"></div>
+                <div class="dropdown-item add-cardbox" @click.stop="openCardBoxModal">
+                  <div class="dropdown-item-content">
+                    <div class="icon">
+                      <Plus theme="outline" size="18" fill="#b6b6b6" />
+                    </div>
+                    <div class="name">新增卡片盒</div>
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
-        </div>
-        <div class="right-actions">
-          <div class="sort-button-container" @click.stop="toggleSortMenu">
-            <div class="icon">
-              <SortTwo theme="outline" size="18" fill="var(--color-text-primary)" />
-            </div>
-            <div v-if="showSortMenu" class="sort-dropdown-menu">
+            <!-- 菜单项的编辑菜单 -->
+            <div
+              v-if="showMoreActions"
+              class="more-actions-menu"
+              :class="{ show: showMoreActions }"
+              :style="moreActionsMenuStyle"
+            >
               <div
-                v-for="option in sortOptions"
-                :key="option.value"
-                class="sort-dropdown-item"
-                @click="selectSortOption(option)"
+                class="more-action-item"
+                @click.stop="editCardBox(getCardBoxById(showMoreActions))"
               >
-                <div class="dropdown-item-content">
-                  {{ option.label }}
+                <div class="icon">
+                  <EditTwo theme="outline" size="16" fill="#b6b6b6" />
                 </div>
-                <div v-if="currentSort === option.value" class="sort-direction">
-                  {{ sortDirection === 'asc' ? '↑' : '↓' }}
+                <div class="name">编辑</div>
+              </div>
+              <div class="more-action-item delete" @click.stop="deleteCardBox(showMoreActions)">
+                <div class="icon">
+                  <Delete
+                    theme="outline"
+                    size="16"
+                    :fill="isConfirmingDelete ? '#ff4d4f' : '#b6b6b6'"
+                  />
+                </div>
+                <div class="name delete">
+                  {{ isConfirmingDelete ? '确认删除' : '删除' }}
+                </div>
+              </div>
+            </div>
+            <!-- 卡片类型 -->
+            <div class="cardtype-dropdown" @click.stop="toggleCardTypeMenu">
+              <div class="icon">
+                <BankCardTwo
+                  theme="outline"
+                  size="18"
+                  fill="var(--color-text-secondary)"
+                  :strokeWidth="3"
+                />
+              </div>
+              <div class="name">卡片类型</div>
+              <div v-if="showCardTypeMenu" class="cadrtype-dropdown-menu" @click.stop>
+                <div v-for="type in cardTypes" :key="type.value" class="cadrtype-dropdown-item">
+                  <div class="cadrtype-dropdown-item-content">
+                    <div class="icon">
+                      <component :is="type.icon" theme="outline" size="18" fill="#b6b6b6" />
+                    </div>
+                    <div class="name">
+                      {{ type.label }}
+                    </div>
+                  </div>
+                  <label class="switch">
+                    <input
+                      type="checkbox"
+                      :checked="selectedCardTypes.includes(type.value)"
+                      @change="toggleCardType(type.value)"
+                    />
+
+                    <span class="slider round"></span>
+                  </label>
+                </div>
+              </div>
+            </div>
+            <!-- 排序 -->
+            <div class="sort-button-container" @click.stop="toggleSortMenu">
+              <div class="icon">
+                <SortTwo
+                  theme="outline"
+                  size="18"
+                  fill="var(--color-text-secondary)"
+                  :strokeWidth="3"
+                />
+              </div>
+              <div class="name">排序</div>
+              <div v-if="showSortMenu" class="sort-dropdown-menu">
+                <div
+                  v-for="option in sortOptions"
+                  :key="option.value"
+                  class="sort-dropdown-item"
+                  @click="selectSortOption(option)"
+                >
+                  <div class="dropdown-item-content">
+                    {{ option.label }}
+                  </div>
+                  <div v-if="currentSort === option.value" class="sort-direction">
+                    {{ sortDirection === 'asc' ? '↑' : '↓' }}
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-          <button class="add-note-button" @click="noteStore.createAndOpenNewNote">
-            <Plus theme="outline" size="20" fill="#fff" />
-            <!-- <span class="plus-icon">+</span> -->
-          </button>
         </div>
       </div>
     </div>
@@ -175,7 +237,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useNoteStore } from '../stores/noteStores'
 import AppToolbar from '../components/AppToolbar.vue'
 import {
@@ -191,11 +253,14 @@ import {
   TransactionOrder,
   Deeplink,
   FileCabinet,
-  Plus
+  Plus,
+  Search,
+  Close
 } from '@icon-park/vue-next'
 import { CardBox, Note } from '../types/Note'
 import CardBoxNoteCard from '../components/CardboxNoteCard.vue'
 import { storeToRefs } from 'pinia'
+import { useSearch } from '../composable/useSearch'
 
 const noteStore = useNoteStore()
 const { allNotes, selectedCardTypes } = storeToRefs(noteStore)
@@ -286,13 +351,20 @@ const selectCardBox = (box: CardBox | null) => {
     isInboxSelected.value = false
   }
 }
-const filteredNotes = computed(() => {
-  console.log('重新计算 filteredNotes')
-  console.log('原始笔记数量:', allNotes.value.length)
-  console.log('当前选中的卡片盒:', selectedCardBox.value?.name)
-  console.log('是否选中收件箱:', isInboxSelected.value)
 
-  return allNotes.value
+const { searchQuery, handleSearch, filteredItems, clearSearch } = useSearch(allNotes)
+
+const isSearchFocused = ref(false)
+
+const handleBlur = () => {
+  setTimeout(() => {
+    isSearchFocused.value = false
+  }, 100)
+}
+
+// 修改 filteredNotes 计算属性
+const filteredNotes = computed(() => {
+  return filteredItems.value
     .filter((note: Note) => {
       if (isInboxSelected.value) {
         return !note.cardBoxId
@@ -301,10 +373,10 @@ const filteredNotes = computed(() => {
       }
       return true
     })
-    .filter((note) => {
+    .filter((note: Note) => {
       return selectedCardTypes.value.length === 0 || selectedCardTypes.value.includes(note.cardType)
     })
-    .sort((a, b) => {
+    .sort((a: Note, b: Note) => {
       let comparison = 0
       switch (currentSort.value) {
         case 'name':
@@ -334,50 +406,6 @@ watch(
   },
   { deep: true }
 )
-
-// const filteredNotes = computed(() => {
-//   console.log('原始笔记数量:', notes.value.length)
-
-//   return notes.value
-//     .filter((note) => {
-//       // 根据选中的卡片盒进行筛选
-//       if (isInboxSelected.value) {
-//         return !note.cardBoxId
-//       } else if (selectedCardBox.value && selectedCardBox.value.id !== '0000') {
-//         return note.cardBoxId === selectedCardBox.value.id
-//       }
-//       return true
-//     })
-//     .filter((note) => {
-//       // 根据选中的卡片类型进行筛选
-//       return selectedCardTypes.value.length === 0 || selectedCardTypes.value.includes(note.cardType)
-//     })
-//     .sort((a, b) => {
-//       let comparison = 0
-//       switch (currentSort.value) {
-//         case 'name':
-//           comparison = a.address.localeCompare(b.address, 'zh-CN')
-//           break
-//         case 'createdAt':
-//           comparison = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-//           break
-//         case 'updatedAt':
-//           comparison = new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime()
-//           break
-//       }
-//       return sortDirection.value === 'asc' ? comparison : -comparison
-//     })
-// })
-
-// // 监听可能影响过滤结果的变量
-// watch(
-//   [isInboxSelected, selectedCardBox, selectedCardTypes, currentSort, sortDirection],
-//   () => {
-//     // 触发 filteredNotes 的重新计算
-//     filteredNotes.value
-//   },
-//   { deep: true }
-// )
 
 // 卡片盒下拉项中的更多操作
 const toggleMoreActions = (id: string, event: MouseEvent) => {
@@ -458,6 +486,19 @@ const toggleCardBoxMenu = (event: MouseEvent) => {
   event.stopPropagation()
   showCardBoxMenu.value = !showCardBoxMenu.value
   showCardTypeMenu.value = false // 关闭另一个菜单
+
+  // 添加以下代码来调整菜单位置
+  if (showCardBoxMenu.value) {
+    nextTick(() => {
+      const dropdownElement = event.currentTarget as HTMLElement
+      const menuElement = dropdownElement.querySelector('.dropdown-menu') as HTMLElement
+      if (menuElement) {
+        const rect = dropdownElement.getBoundingClientRect()
+        menuElement.style.top = `${rect.bottom + window.scrollY + 10}px`
+        menuElement.style.left = `${rect.left + window.scrollX}px`
+      }
+    })
+  }
 }
 
 // 全局点击事件，关闭下拉菜单
@@ -556,113 +597,279 @@ onUnmounted(() => {
 })
 </script>
 
-<style lang="scss">
+<style lang="scss" scoped>
 .cardbox-view {
   height: 100vh;
   display: flex;
   flex-direction: column;
   background-color: var(--color-bg-primary);
   overflow: hidden;
+}
+.fixed-header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background-color: var(--color-bg-primary);
+}
+.topToolBar {
+  display: flex;
+  align-items: center;
+  padding: 0px 20px;
+  background-color: var(--color-bg-primary);
+  .topToolBar-header {
+    display: flex;
+    width: 100%;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--color-border);
+  }
+}
+.topToolBar-left {
+  position: relative;
+  display: flex;
+  align-items: center;
+  border: none;
+  background: none;
+  border-radius: 6px;
+  padding: 4px 0px;
+  margin: 2px;
 
-  .fixed-header {
-    position: sticky;
-    top: 0;
-    z-index: 100;
-    background-color: var(--color-bg-primary);
+  .icon {
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    padding: 0;
+    border-radius: 8px;
+    background-color: var(--color-menu-bg);
+    border: 1px solid var(--color-primary);
 
-    .topToolBar {
+    :deep(.i-icon) {
       display: flex;
-      justify-content: space-between;
       align-items: center;
-      padding: 10px 0 10px 16px;
-      background-color: var(--color-bg-primary);
+      justify-content: center;
+      width: 100%;
+      height: 100%;
+    }
 
-      .filter-bar {
+    :deep(svg) {
+      width: 18px;
+      height: 18px;
+    }
+  }
+
+  .name {
+    flex-grow: 0;
+    text-align: left;
+    color: var(--default-text-color);
+    font-size: 20px;
+    font-weight: 600;
+    margin-left: 8px;
+    white-space: nowrap;
+    writing-mode: horizontal-tb;
+    user-select: none;
+  }
+}
+.topToolBar-right {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+
+  .inbox-button {
+    display: flex;
+    align-items: center;
+    // width: 100px;
+    padding: 2px 10px 2px 5px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    border-radius: 8px;
+    border: 1px solid var(--color-border);
+    user-select: none;
+
+    &.active {
+      border: 1px solid var(--color-primary);
+    }
+
+    .icon {
+      background: none;
+      border: none;
+      cursor: pointer;
+      width: 28px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 6px;
+      transition: background-color 0.2s;
+      padding: 0;
+
+      // 新增以下样式来处理 i-icon 类
+      .i-icon {
         display: flex;
-        gap: 4px;
         align-items: center;
+        justify-content: center;
+        width: 100%;
+        height: 100%;
+      }
 
-        .inbox-button {
-          display: flex;
-          align-items: center;
-          // width: 100px;
-          padding: 6px 12px;
-          border: none;
-          background: none;
-          cursor: pointer;
-          transition: background-color 0.2s;
-          border-radius: 8px;
-          // margin: 2px 8px;
+      svg {
+        width: 18px; // 或者您想要的大小
+        height: 18px; // 或者您想要的大小
+      }
+    }
 
-          .icon {
-            background: none;
-            border: none;
-            cursor: pointer;
-            width: 28px;
-            height: 28px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 6px;
-            transition: background-color 0.2s;
-            padding: 0;
-            // margin-right: 3px;
+    .name {
+      flex-grow: 0;
+      text-align: left;
+      color: var(--color-text-primary);
+      font-size: 14px;
+      white-space: nowrap; // 防止文字换行
+      writing-mode: horizontal-tb; // 确保文字是水平排列的
+    }
 
-            &:hover:not(:disabled) {
-              background-color: var(--color-hover-bg);
-            }
+    &:hover {
+      background-color: var(--color-hover-bg);
+    }
 
-            &:disabled {
-              opacity: 0.5;
-              cursor: not-allowed;
-            }
+    &.active {
+      background-color: var(--color-menu-active-bg);
+      // border: 1px solid var(--color-primary);
+    }
+  }
 
-            // 新增以下样式来处理 i-icon 类
-            .i-icon {
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              width: 100%;
-              height: 100%;
-            }
+  .cardbox-dropdown {
+    display: flex;
+    align-items: center;
+    // width: 100px;
+    padding: 2px 10px 2px 5px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    border-radius: 8px;
+    border: 1px solid var(--color-border);
+    user-select: none;
 
-            svg {
-              width: 18px; // 或者您想要的大小
-              height: 18px; // 或者您想要的大小
-            }
-          }
+    .icon {
+      background: none;
+      border: none;
+      cursor: pointer;
+      width: 28px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 6px;
+      transition: background-color 0.2s;
+      padding: 0;
+      // margin-right: 3px;
 
-          .name {
-            flex-grow: 0;
-            text-align: left;
-            color: var(--color-text-primary);
-            font-size: 15px;
-            white-space: nowrap; // 防止文字换行
-            writing-mode: horizontal-tb; // 确保文字是水平排列的
-          }
+      &:hover:not(:disabled) {
+        background-color: var(--color-hover-bg);
+      }
 
-          &:hover {
-            background-color: var(--color-hover-bg);
-          }
+      &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
 
-          &.active {
-            background-color: var(--color-menu-active-bg);
-            // border: 1px solid var(--color-primary);
-          }
+      // 新增以下样式来处理 i-icon 类
+      .i-icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        height: 100%;
+      }
+
+      svg {
+        width: 18px; // 或者您想要的大小
+        height: 18px; // 或者您想要的大小
+      }
+    }
+
+    .name {
+      flex-grow: 0;
+      text-align: left;
+      color: var(--color-text-primary);
+      font-size: 14px;
+      white-space: nowrap; // 防止文字换行
+      writing-mode: horizontal-tb; // 确保文字是水平排列的
+      user-select: none;
+      // margin-left: 6px;
+    }
+
+    &:hover {
+      background-color: var(--color-hover-bg);
+    }
+
+    &.active {
+      background-color: var(--color-menu-active-bg);
+      // border: 1px solid var(--color-primary);
+    }
+
+    .dropdown-menu {
+      position: fixed; // 改为 fixed
+      top: auto; // 删除 top 属性
+      left: auto; // 删除 left 属性
+      transform: none; // 删除 transform
+      background-color: var(--color-bg-primary);
+      border-radius: 8px;
+      z-index: 1000;
+      min-width: 200px;
+      width: auto;
+      max-height: 350px;
+      overflow-y: auto;
+      padding: 6px 12px;
+      white-space: nowrap;
+      background-clip: padding-box;
+      box-shadow: var(--shadow-primary);
+      opacity: 0;
+      visibility: hidden;
+      transition:
+        opacity 0.3s ease,
+        visibility 0.3s ease;
+
+      &.show {
+        opacity: 1;
+        visibility: visible;
+      }
+
+      .dropdown-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 4px 4px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        font-size: 14px;
+        color: var(--color-text-primary);
+        white-space: nowrap;
+        border-radius: 6px;
+        margin: 2px;
+
+        &:hover {
+          background-color: var(--color-hover-bg);
         }
 
-        .cardbox-dropdown {
+        &.active {
+          background-color: var(--color-hover-bg);
+        }
+
+        .dropdown-item-content {
           position: relative;
           display: flex;
           align-items: center;
-          // width: 200px;
-          padding: 6px 12px;
           border: none;
           background: none;
           cursor: pointer;
           transition: background-color 0.2s;
           border-radius: 8px;
-          // margin: 2px 8px;
 
           .icon {
             background: none;
@@ -676,16 +883,6 @@ onUnmounted(() => {
             border-radius: 6px;
             transition: background-color 0.2s;
             padding: 0;
-            // margin-right: 3px;
-
-            &:hover:not(:disabled) {
-              background-color: var(--color-hover-bg);
-            }
-
-            &:disabled {
-              opacity: 0.5;
-              cursor: not-allowed;
-            }
 
             // 新增以下样式来处理 i-icon 类
             .i-icon {
@@ -706,394 +903,339 @@ onUnmounted(() => {
             flex-grow: 0;
             text-align: left;
             color: var(--color-text-primary);
-            font-size: 15px;
+            font-size: 14px;
             white-space: nowrap; // 防止文字换行
             writing-mode: horizontal-tb; // 确保文字是水平排列的
-          }
-
-          &:hover {
-            background-color: var(--color-hover-bg);
-          }
-
-          &.active {
-            background-color: var(--color-menu-active-bg);
-            // border: 1px solid var(--color-primary);
-          }
-
-          .dropdown-menu {
-            position: absolute;
-            top: calc(100% + 5px);
-            left: 50%;
-            transform: translateX(-50%); // 居中对齐
-            background-color: var(--color-bg-primary);
-            border-radius: 8px;
-            z-index: 1000;
-            min-width: max-content; // 至少与内容等宽
-            max-width: 300px; // 设置最大宽度，避免过宽
-            width: auto;
-            max-height: 350px; // 设置最大高度，避免过高的菜单
-            overflow-y: auto;
-            padding: 6px 0;
-            white-space: nowrap;
-            background-clip: padding-box;
-            box-shadow: var(--shadow-primary);
-            opacity: 0;
-            visibility: hidden;
-            transition:
-              opacity 0.3s ease,
-              visibility 0.3s ease,
-              transform 0.3s ease;
-            transform: translateY(-10px) translateX(-50%);
-
-            &.show {
-              opacity: 1;
-              visibility: visible;
-              transform: translateY(0) translateX(-50%);
-            }
-
-            .dropdown-item {
-              display: flex;
-              align-items: center;
-              justify-content: space-between;
-              padding: 4px 16px;
-              cursor: pointer;
-              transition: background-color 0.2s;
-              font-size: 14px;
-              color: var(--color-text-primary);
-              white-space: nowrap;
-              border-radius: 8px;
-              margin: 2px 8px;
-
-              &:hover {
-                background-color: var(--color-hover-bg);
-              }
-
-              &.active {
-                background-color: var(--color-button-active-bg);
-              }
-
-              .dropdown-item-content {
-                position: relative;
-                display: flex;
-                align-items: center;
-                border: none;
-                background: none;
-                cursor: pointer;
-                transition: background-color 0.2s;
-                border-radius: 8px;
-
-                .icon {
-                  background: none;
-                  border: none;
-                  cursor: pointer;
-                  width: 28px;
-                  height: 28px;
-                  display: flex;
-                  align-items: center;
-                  justify-content: center;
-                  border-radius: 6px;
-                  transition: background-color 0.2s;
-                  padding: 0;
-
-                  // 新增以下样式来处理 i-icon 类
-                  .i-icon {
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    width: 100%;
-                    height: 100%;
-                  }
-
-                  svg {
-                    width: 18px; // 或者您想要的大小
-                    height: 18px; // 或者您想要的大小
-                  }
-                }
-
-                .name {
-                  flex-grow: 0;
-                  text-align: left;
-                  color: var(--color-text-primary);
-                  font-size: 15px;
-                  white-space: nowrap; // 防止文字换行
-                  writing-mode: horizontal-tb; // 确保文字是水平排列的
-                }
-              }
-            }
-
-            .dropdown-divider {
-              height: 1px;
-              margin: 6px 0;
-              background-color: var(--color-border);
-            }
-
-            .dropdown-item.add-cardbox {
-              position: sticky;
-              bottom: 0;
-              background-color: var(--color-bg-primary);
-              // border-top: 1px solid var(--color-border);
-              // margin-top: 6px;
-              // padding-top: 8px;
-
-              &:hover {
-                background-color: var(--color-hover-bg);
-              }
-
-              .dropdown-item-content {
-                display: flex;
-                align-items: center;
-                justify-content: center;
-              }
-            }
-          }
-
-          .dropdown-item-actions {
-            position: relative;
-
-            .more-actions-btn {
-              background: none;
-              border: none;
-              cursor: pointer;
-              padding: 4px;
-              border-radius: 50%;
-              transition: background-color 0.2s;
-              margin-left: 10px;
-            }
+            user-select: none;
+            margin-left: 6px;
           }
         }
       }
 
-      .right-actions {
-        display: flex;
-        gap: 10px;
-        align-items: center;
-        padding-right: 16px;
+      .dropdown-divider {
+        height: 1px;
+        margin: 6px 0;
+        background-color: var(--color-border);
+      }
 
-        .sort-button-container {
-          display: flex;
-          align-items: center;
-          border: none;
-          background: none;
-          cursor: pointer;
-          transition: background-color 0.2s;
-          border-radius: 8px;
+      .dropdown-item.add-cardbox {
+        position: sticky;
+        bottom: 0;
+        background-color: var(--color-bg-primary);
+        // border-top: 1px solid var(--color-border);
+        // margin-top: 6px;
+        // padding-top: 8px;
 
-          .icon {
-            background: none;
-            border: none;
-            cursor: pointer;
-            width: 28px;
-            height: 28px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 6px;
-            transition: background-color 0.2s;
-            padding: 0;
-
-            &:hover:not(:disabled) {
-              background-color: var(--color-hover-bg);
-            }
-
-            &:disabled {
-              opacity: 0.5;
-              cursor: not-allowed;
-            }
-
-            // 新增以下样式来处理 i-icon 类
-            .i-icon {
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              width: 100%;
-              height: 100%;
-            }
-
-            svg {
-              width: 18px; // 或者您想要的大小
-              height: 18px; // 或者您想要的大小
-            }
-          }
-
-          &:hover {
-            background-color: var(--color-hover-bg);
-          }
-
-          .sort-dropdown-menu {
-            position: absolute;
-            top: 90%;
-            // left: -10px;
-            right: 0;
-            background-color: var(--color-bg-primary);
-            border-radius: 8px;
-            box-shadow: var(--shadow-primary);
-            z-index: 1000;
-            min-width: 200px;
-            width: auto;
-            overflow-y: auto;
-            padding: 6px 0;
-            white-space: nowrap;
-          }
-
-          .sort-dropdown-item {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 8px 16px;
-            cursor: pointer;
-            transition: background-color 0.2s;
-            font-size: 14px;
-            color: var(--color-text-primary);
-            white-space: nowrap;
-            border-radius: 8px;
-            margin: 2px 8px 2px 8px;
-            user-select: none;
-
-            &:hover {
-              background-color: var(--color-hover-bg);
-            }
-
-            &.active {
-              background-color: var(--color-menu-active-bg);
-            }
-          }
+        &:hover {
+          background-color: var(--color-hover-bg);
         }
 
-        .add-note-button {
-          color: var(--color-text-inversion);
-          background-color: var(--color-primary);
-          border: none;
-          cursor: pointer;
-          border-radius: 50%;
-          width: 28px;
-          height: 28px;
-          font-size: 24px;
-          line-height: 1;
+        .dropdown-item-content {
           display: flex;
           align-items: center;
           justify-content: center;
-          padding: 0;
-
-          // 新增以下样式来处理 i-icon 类
-          :deep(.i-icon) {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 100%;
-            height: 100%;
-          }
-
-          :deep(svg) {
-            width: 20px; // 或者您想要的大小
-            height: 20px; // 或者您想要的大小
-          }
         }
+      }
+    }
+
+    .dropdown-item-actions {
+      position: relative;
+
+      .more-actions-btn {
+        background: none;
+        border: none;
+        cursor: pointer;
+        // padding: 4px;
+        border-radius: 50%;
+        transition: background-color 0.2s;
+        margin-left: 10px;
+      }
+    }
+  }
+  .sort-button-container {
+    display: flex;
+    align-items: center;
+    // width: 100px;
+    padding: 2px 10px 2px 5px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    border-radius: 8px;
+    border: 1px solid var(--color-border);
+    user-select: none;
+
+    .icon {
+      background: none;
+      border: none;
+      cursor: pointer;
+      width: 28px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 6px;
+      transition: background-color 0.2s;
+      padding: 0;
+      // margin-right: 3px;
+
+      &:hover:not(:disabled) {
+        background-color: var(--color-hover-bg);
+      }
+
+      &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      // 新增以下样式来处理 i-icon 类
+      .i-icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        height: 100%;
+      }
+
+      svg {
+        width: 18px; // 或者您想要的大小
+        height: 18px; // 或者您想要的大小
+      }
+    }
+
+    .name {
+      flex-grow: 0;
+      text-align: left;
+      color: var(--color-text-primary);
+      font-size: 14px;
+      white-space: nowrap; // 防止文字换行
+      writing-mode: horizontal-tb; // 确保文字是水平排列的
+    }
+
+    &:hover {
+      background-color: var(--color-hover-bg);
+    }
+
+    &.active {
+      background-color: var(--color-menu-active-bg);
+      // border: 1px solid var(--color-primary);
+    }
+
+    .sort-dropdown-menu {
+      position: absolute;
+      top: 90%;
+      // left: -10px;
+      right: 20px;
+      background-color: var(--color-bg-primary);
+      border-radius: 8px;
+      box-shadow: var(--shadow-primary);
+      z-index: 1000;
+      min-width: 200px;
+      width: auto;
+      overflow-y: auto;
+      padding: 6px 0;
+      white-space: nowrap;
+    }
+
+    .sort-dropdown-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 16px;
+      cursor: pointer;
+      transition: background-color 0.2s;
+      font-size: 14px;
+      color: var(--color-text-primary);
+      white-space: nowrap;
+      border-radius: 8px;
+      margin: 2px 8px 2px 8px;
+      user-select: none;
+
+      &:hover {
+        background-color: var(--color-hover-bg);
+      }
+
+      &.active {
+        background-color: var(--color-menu-active-bg);
       }
     }
   }
 
-  .cardbox-view-container {
-    // height: 100%;
-    // width: 100%;
-    // padding: 0px 0px 10px 0px;
+  .search-box {
+    position: relative;
+    width: 200px;
     display: flex;
-    flex-direction: column;
-    height: calc(100vh - 100px); // 假设顶部工具栏高度为100px，请根据实际情况调整
-    overflow: hidden; // 防止整个页面滚动
-
-    .card-grid-container {
-      flex: 1;
-      // height: 100%;
-      overflow-y: auto; // 允许卡片网格容器滚动
-      // padding: 0 16px 16px 16px;
+    align-items: center;
+    background-color: var(--color-bg-secondary);
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    padding: 1px 8px;
+    overflow: hidden;
+    &.is-focused {
+      border-color: var(--color-primary);
+      box-shadow: 0 0 0 2px rgba(var(--color-primary-rgb), 0.2);
     }
-
-    .card-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
-      gap: 16px;
-      padding: 16px 30px;
-      align-content: start; // 让内容从顶部开始排列
-      justify-content: center; // 水平居中对齐
-
-      // 使用视口单位和 clamp 函数来控制卡片高度
-      --card-height: clamp(300px, calc(20vw - 32px), 370px);
-      grid-auto-rows: var(--card-height);
-
-      // 计算每行可以容纳的卡片数量
-      --cards-per-row: calc((100% - 32px) / (300px + 16px));
-
-      // 设置网格的行数，使用 max 函数确保至少有一行
-      // grid-template-rows: repeat(auto-fill, var(--card-height));
-
-      // 设置容器的最小高度，确保即使卡片数量不足也能填满屏幕
-      // min-height: calc(100vh - 93px); // 假设顶部工具栏高度为100px，请根据实际情况调整
-    }
-
-    .modal-overlay {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background-color: rgba(0, 0, 0, 0.5);
+    .search-icon {
+      position: absolute;
+      left: 6px;
+      top: 50%;
+      transform: translateY(-50%);
       display: flex;
-      justify-content: center;
       align-items: center;
-      z-index: 1000;
+      justify-content: center;
+      width: 22px;
+      height: 22px;
+      pointer-events: none;
+      :deep(.i-icon) {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        height: 100%;
+      }
+    }
 
-      .modal-content {
-        background-color: var(--color-bg-primary);
-        padding: 20px;
-        border-radius: 10px;
-        width: 300px;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    .clear-icon {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 22px;
+      height: 22px;
+      cursor: pointer;
+      :deep(.i-icon) {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        height: 100%;
+      }
+    }
 
-        h2 {
-          margin-top: 0;
-          margin-bottom: 20px;
-          font-size: 18px;
-          text-align: center;
-          color: var(--color-text-primary);
+    input {
+      flex-grow: 1;
+      border: none;
+      background: transparent;
+      padding: 4px 4px 4px 25px;
+      color: var(--color-text-secondary);
+      font-size: 14px;
+      min-width: 0;
+      &::placeholder {
+        color: var(--color-text-placeholder);
+        opacity: 1;
+      }
+
+      &:focus {
+        outline: none;
+      }
+    }
+
+    .clear-icon {
+      cursor: pointer;
+    }
+  }
+}
+
+.cardbox-view-container {
+  // height: 100%;
+  // width: 100%;
+  // padding: 0px 0px 10px 0px;
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 100px); // 假设顶部工具栏高度为100px，请根据实际情况调整
+  overflow: hidden; // 防止整个页面滚动
+
+  .card-grid-container {
+    flex: 1;
+    // height: 100%;
+    overflow-y: auto; // 允许卡片网格容器滚动
+    // padding: 0 16px 16px 16px;
+  }
+
+  .card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+    gap: 16px;
+    padding: 16px 20px;
+    align-content: start; // 让内容从顶部开始排列
+    justify-content: center; // 水平居中对齐
+
+    // 使用视口单位和 clamp 函数来控制卡片高度
+    --card-height: clamp(300px, calc(20vw - 32px), 370px);
+    grid-auto-rows: var(--card-height);
+
+    // 计算每行可以容纳的卡片数量
+    --cards-per-row: calc((100% - 32px) / (300px + 16px));
+
+    // 设置网格的行数，使用 max 函数确保至少有一行
+    // grid-template-rows: repeat(auto-fill, var(--card-height));
+
+    // 设置容器的最小高度，确保即使卡片数量不足也能填满屏幕
+    // min-height: calc(100vh - 93px); // 假设顶部工具栏高度为100px，请根据实际情况调整
+  }
+
+  .modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+
+    .modal-content {
+      background-color: var(--color-bg-primary);
+      padding: 20px;
+      border-radius: 10px;
+      width: 300px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+
+      h2 {
+        margin-top: 0;
+        margin-bottom: 20px;
+        font-size: 18px;
+        text-align: center;
+        color: var(--color-text-primary);
+      }
+
+      input {
+        width: 100%;
+        padding: 10px;
+        margin-bottom: 20px;
+        border: 1px solid var(--color-primary);
+        border-radius: 5px;
+        font-size: 16px;
+
+        &:focus {
+          outline: none;
+          border-color: var(--color-primary);
+          box-shadow: 0 0 0 2px rgba(var(--color-primary), 0.2);
         }
+      }
 
-        input {
-          width: 100%;
-          padding: 10px;
-          margin-bottom: 20px;
-          border: 1px solid var(--color-primary);
+      .modal-actions {
+        display: flex;
+        justify-content: center;
+
+        button {
+          padding: 10px 20px;
+          border: none;
           border-radius: 5px;
+          background-color: var(--color-primary);
+          color: var(--color-bg-primary);
           font-size: 16px;
+          cursor: pointer;
+          transition: background-color 0.3s;
 
-          &:focus {
-            outline: none;
-            border-color: var(--color-primary);
-            box-shadow: 0 0 0 2px rgba(var(--color-primary), 0.2);
+          &:hover {
+            background-color: var(--color-menu-active-bg);
           }
-        }
 
-        .modal-actions {
-          display: flex;
-          justify-content: center;
-
-          button {
-            padding: 10px 20px;
-            border: none;
-            border-radius: 5px;
-            background-color: var(--color-primary);
-            color: var(--color-bg-primary);
-            font-size: 16px;
-            cursor: pointer;
-            transition: background-color 0.3s;
-
-            &:hover {
-              background-color: var(--color-menu-active-bg);
-            }
-
-            &:disabled {
-              background-color: #ccc;
-              cursor: not-allowed;
-            }
+          &:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
           }
         }
       }
@@ -1107,12 +1249,11 @@ onUnmounted(() => {
   position: relative;
   display: flex;
   align-items: center;
-  padding: 6px 12px;
-  border: none;
-  background: none;
+  padding: 2px 10px 2px 5px;
   cursor: pointer;
   transition: background-color 0.2s;
   border-radius: 8px;
+  border: 1px solid var(--color-border);
 
   .icon {
     background: none;
@@ -1156,7 +1297,7 @@ onUnmounted(() => {
     flex-grow: 0;
     text-align: left;
     color: var(--color-text-primary);
-    font-size: 15px;
+    font-size: 14px;
     white-space: nowrap; // 防止文字换行
     writing-mode: horizontal-tb; // 确保文字是水平排列的
   }
@@ -1172,7 +1313,7 @@ onUnmounted(() => {
 
   .cadrtype-dropdown-menu {
     position: absolute;
-    top: calc(100% + 5px);
+    top: calc(100% + 10px);
     left: 50%;
     transform: translateX(-50%); // 居中对齐
     background-color: var(--color-bg-primary);
@@ -1182,7 +1323,7 @@ onUnmounted(() => {
     min-width: 200px;
     width: auto;
     overflow-y: auto;
-    padding: 6px 0;
+    padding: 6px 12px;
     white-space: nowrap;
     background-clip: padding-box;
     box-shadow: var(--shadow-primary);
@@ -1191,14 +1332,14 @@ onUnmounted(() => {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 4px 16px;
+      padding: 4px 8px 4px 4px;
       cursor: pointer;
       transition: background-color 0.2s;
       font-size: 14px;
       color: #333;
       white-space: nowrap;
       border-radius: 8px;
-      margin: 2px 8px 2px 8px;
+      margin: 2px;
 
       &:hover {
         background-color: #f6f7f9;
@@ -1267,9 +1408,11 @@ onUnmounted(() => {
           flex-grow: 0;
           text-align: left;
           color: var(--color-text-primary);
-          font-size: 15px;
+          font-size: 14px;
           white-space: nowrap; // 防止文字换行
           writing-mode: horizontal-tb; // 确保文字是水平排列的
+          user-select: none;
+          margin-left: 6px;
         }
 
         // &:hover {
@@ -1339,49 +1482,49 @@ onUnmounted(() => {
     }
   }
 
-  .sort-dropdown-menu {
-    position: absolute;
-    top: calc(100% + 5px);
-    left: 50%;
-    transform: translateX(-50%); // 居中对齐
-    background-color: var(--color-bg-primary);
-    border-radius: 8px;
-    z-index: 1000;
-    min-width: 200px;
-    width: auto;
-    overflow-y: auto;
-    padding: 6px 0;
-    white-space: nowrap;
-    background-clip: padding-box;
-    box-shadow:
-      0 3px 6px -4px rgb(0 0 0 / 12%),
-      0 6px 16px 0 rgb(0 0 0 / 8%),
-      0 9px 28px 8px rgb(0 0 0 / 5%);
-  }
+  // .sort-dropdown-menu {
+  //   position: absolute;
+  //   top: calc(100% + 5px);
+  //   left: 50%;
+  //   transform: translateX(-50%); // 居中对齐
+  //   background-color: var(--color-bg-primary);
+  //   border-radius: 8px;
+  //   z-index: 1000;
+  //   min-width: 200px;
+  //   width: auto;
+  //   overflow-y: auto;
+  //   padding: 6px 0;
+  //   white-space: nowrap;
+  //   background-clip: padding-box;
+  //   box-shadow:
+  //     0 3px 6px -4px rgb(0 0 0 / 12%),
+  //     0 6px 16px 0 rgb(0 0 0 / 8%),
+  //     0 9px 28px 8px rgb(0 0 0 / 5%);
+  // }
 
-  .sort-dropdown-item {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 8px 16px;
-    cursor: pointer;
-    transition: background-color 0.2s;
-    font-size: 14px;
-    color: #333;
-    white-space: nowrap;
-    border-radius: 8px;
-    margin: 2px 8px 2px 8px;
+  // .sort-dropdown-item {
+  //   display: flex;
+  //   align-items: center;
+  //   justify-content: space-between;
+  //   padding: 8px 16px;
+  //   cursor: pointer;
+  //   transition: background-color 0.2s;
+  //   font-size: 14px;
+  //   color: #333;
+  //   white-space: nowrap;
+  //   border-radius: 8px;
+  //   margin: 2px 8px 2px 8px;
 
-    &:hover {
-      background-color: var(--color-hover-bg);
-    }
+  //   &:hover {
+  //     background-color: var(--color-hover-bg);
+  //   }
 
-    &.active {
-      background-color: rgba(0, 200, 168, 0.05);
-      border: 1px solid #00c8a8;
-      // color: #00C8A8;
-    }
-  }
+  //   &.active {
+  //     background-color: rgba(0, 200, 168, 0.05);
+  //     border: 1px solid #00c8a8;
+  //     // color: #00C8A8;
+  //   }
+  // }
 }
 
 .dropdown-menu::-webkit-scrollbar {
@@ -1407,7 +1550,7 @@ onUnmounted(() => {
   min-width: max-content;
   width: 140px;
   max-width: 200px;
-  padding: 6px;
+  padding: 6px 12px;
   opacity: 0;
   visibility: hidden;
   transition:
@@ -1424,7 +1567,7 @@ onUnmounted(() => {
     display: flex;
     align-items: center;
     // width: 200px;
-    padding: 4px 16px;
+    padding: 4px;
     border: none;
     background: none;
     cursor: pointer;
@@ -1475,7 +1618,7 @@ onUnmounted(() => {
       flex-grow: 0;
       text-align: left;
       color: var(--color-text-primary);
-      font-size: 15px;
+      font-size: 14px;
       white-space: nowrap; // 防止文字换行
       writing-mode: horizontal-tb; // 确保文字是水平排列的
 

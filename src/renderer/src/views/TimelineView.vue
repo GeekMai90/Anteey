@@ -1,4 +1,4 @@
-// src/views/TimelineView.vue
+<!-- src/views/TimelineView.vue  -->
 
 <template>
   <div class="timeline-view">
