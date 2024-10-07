@@ -51,7 +51,8 @@
           v-model="editedNote.address"
           type="text"
           placeholder="输入编码地址"
-          @keyup.enter="focusEditor"
+          @input="handleAddressInput"
+          @keyup.enter="handleAddressEnter"
         />
       </div>
       <div class="content-area">
@@ -193,6 +194,13 @@ const updateContent = (newContent: any) => {
     isContentModified.value = true
   }
 }
+// 添加处理地址输入的函数
+const handleAddressInput = () => {
+  if (editedNote.value) {
+    isContentModified.value = true
+    saveNote()
+  }
+}
 
 // 检查内容是否改变
 function isContentChanged(oldNote: Note, newNote: Note): boolean {
@@ -224,7 +232,6 @@ const autoSave = debounce(async () => {
 watch(
   () => ({
     content: editedNote.value?.content,
-    address: editedNote.value?.address,
     cardType: editedNote.value?.cardType,
     tags: editedNote.value?.tags
   }),
@@ -364,10 +371,17 @@ const focusAddressInput = () => {
   })
 }
 
+// 修改 focusEditor 函数
 const focusEditor = () => {
   nextTick(() => {
-    tiptapEditor.value?.focus()
+    tiptapEditor.value?.focus('end')
   })
+}
+
+// 添加新的处理函数
+const handleAddressEnter = (event: KeyboardEvent) => {
+  event.preventDefault() // 阻止默认行为
+  focusEditor()
 }
 
 // 展开编辑器

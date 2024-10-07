@@ -28,6 +28,7 @@
             v-model="editedNote.address"
             type="text"
             placeholder="输入编码地址"
+            @input="handleAddressInput"
             @keyup.enter="focusEditor"
           />
         </div>
@@ -240,6 +241,13 @@ const updateContent = (newContent: any) => {
   if (editedNote.value) {
     noteStore.updateNoteContent(editedNote.value.id, newContent)
     isContentModified.value = true
+  }
+}
+// 添加处理地址输入的函数
+const handleAddressInput = () => {
+  if (editedNote.value) {
+    isContentModified.value = true
+    saveNote()
   }
 }
 

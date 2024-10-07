@@ -198,13 +198,13 @@ h3 {
 .card {
   width: 170px; /* 固定宽度 */
   /* height: 287px; 固定高度 */
-  aspect-ratio: 1 / 1.68;
+  aspect-ratio: 1 / 1.75;
   cursor: pointer;
   transition:
     transform 0.3s ease,
     box-shadow 0.3s ease;
   position: relative; /* 添加相对定位 */
-  border-radius: 8px; /* 移动到卡片容器 */
+  border-radius: 10px; /* 移动到卡片容器 */
   overflow: hidden; /* 确保内容不会溢出圆角 */
   background-color: #7899e0;
   box-shadow: 0 4px 15px rgba(120, 153, 224, 0.3); /* 更新阴影颜色 */
