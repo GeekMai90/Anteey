@@ -4,6 +4,7 @@ import { defineStore } from 'pinia'
 import { Note, Whiteboard, Connection, CardBox } from '../types/Note'
 import { Notes, Table, TransactionOrder, Deeplink } from '@icon-park/vue-next'
 import { ref } from 'vue'
+import { useUIStore } from './useUIStore'
 
 const cardTypes = [
   { value: 'Maincard', label: '主要卡', icon: Notes },
@@ -14,7 +15,8 @@ const cardTypes = [
 
 export const useNoteStore = defineStore('note', {
   state: () => ({
-    notes: [] as Note[],
+    // notes: [] as Note[],
+    notesMap: new Map<string, Note>(), // 笔记 Map 对象，用笔记的 id 作为键，笔记对象作为值。
     cardBoxes: [] as CardBox[],
     whiteboards: [] as Whiteboard[],
     connections: [] as Connection[],
@@ -74,6 +76,13 @@ export const useNoteStore = defineStore('note', {
       this.isSettingDropdownOpen = false
     },
 
+    // 确保在使用 notesMap 之前进行初始化
+    initializeNotes() {
+      if (!(this.notesMap instanceof Map)) {
+        this.notesMap = new Map<string, Note>()
+      }
+    },
+
     // 初始化
     async initializeStore() {
       await this.fetchAllNotes()
@@ -83,9 +92,11 @@ export const useNoteStore = defineStore('note', {
     // 获取所有笔记
     async fetchAllNotes(includeDeleted: boolean = false) {
       try {
-        const notes = await window.electronAPI.getAllNotes(includeDeleted)
-        this.notes = notes
-        return notes
+        const allNotes = await window.electronAPI.getAllNotes(includeDeleted)
+        // this.notes = notes
+        // 更新 notesMap
+        this.notesMap = new Map(allNotes.map((note) => [note.id, note]))
+        return allNotes
       } catch (error) {
         console.error('noteStores.ts→ 获取所有笔记失败:', error)
         throw error
@@ -100,33 +111,84 @@ export const useNoteStore = defineStore('note', {
           throw new Error(`Note with id ${id} not found`)
         }
 
-        // 更新 notes 数组
-        const index = this.notes.findIndex((n) => n.id === id)
-        if (index !== -1) {
-          this.notes[index] = note
-        } else {
-          this.notes.push(note)
-        }
+        // 存储到所有笔记 Map 中，使用 Map 来存储笔记，提高查找效率
+        this.notesMap.set(id, note)
 
         // 设置当前笔记
-        this.setCurrentNote(note)
+        this.currentNote = note
 
         console.log('noteStores.ts→ 获取笔记', note)
         return note
       } catch (error) {
-        console.error(`Failed to fetch note ${id}:`, error)
+        console.error(`noteStores.ts→ 获取笔记失败 ${id}:`, error)
         if (error instanceof Error) {
-          throw new Error(`Failed to fetch note: ${error.message}`)
+          throw new Error(`noteStores.ts→ 获取笔记失败: ${error.message}`)
         } else {
-          throw new Error('An unknown error occurred while fetching the note')
+          throw new Error('noteStores.ts→ 获取笔记失败: 未知错误')
         }
       }
+    },
+    // 私有方法：更新本地笔记状态
+    updateLocalNote(id: string, updatedNote: Note) {
+      this.notesMap.set(id, updatedNote)
+      if (this.currentNote && this.currentNote.id === id) {
+        this.currentNote = updatedNote
+      }
+    },
+    // 更新整个笔记或多个字段
+    async updateNote(id: string, noteData: Partial<Note>): Promise<Note> {
+      try {
+        console.log('noteStores.ts→ 更新笔记', id, noteData)
+        const serializableNoteData = JSON.parse(JSON.stringify(noteData))
+        const response = await window.electronAPI.updateNote(id, serializableNoteData)
+        const updatedNote = this.parseNoteContent(response)
+
+        this.updateLocalNote(id, updatedNote)
+
+        console.log('noteStores.ts→ 更新后的笔记', updatedNote)
+        return updatedNote
+      } catch (error) {
+        console.error(`noteStores.ts→ 更新笔记失败 ${id}:`, error)
+        throw error
+      }
+    },
+
+    // 更新笔记内容
+    async updateNoteContent(id: string, content: any): Promise<Note> {
+      try {
+        const updatedNote = await window.electronAPI.updateNoteContent(id, content)
+
+        // 更新 notesMap
+        this.updateLocalNote(id, updatedNote)
+
+        console.log('noteStores.ts→ 更新笔记内容成功', updatedNote)
+        return updatedNote
+      } catch (error) {
+        console.error(`noteStores.ts→ 更新笔记内容失败 ${id}:`, error)
+        throw error
+      }
+    },
+    // 更新当前笔记（可以是部分更新）
+    updateCurrentNote(noteData: Partial<Note>) {
+      if (!this.currentNote) return
+
+      const updatedNote = { ...this.currentNote, ...noteData }
+      const updateMethod = 'content' in noteData ? this.updateNoteContent : this.updateNote
+
+      updateMethod(updatedNote.id, noteData).catch((error) =>
+        console.error('更新当前笔记失败:', error)
+      )
+
+      // 立即更新本地状态，以提供即时反馈
+      this.updateLocalNote(updatedNote.id, updatedNote)
     },
 
     // 获取一些笔记
     async getNotesByIds(ids: string[]) {
       await this.fetchAllNotes()
-      const notes = this.notes.filter((note) => ids.includes(note.id))
+      const notes = ids
+        .map((id) => this.notesMap.get(id))
+        .filter((note) => note !== undefined) as Note[]
       console.log('noteStores.ts→ 获取笔记成功', notes)
       return notes
     },
@@ -136,8 +198,7 @@ export const useNoteStore = defineStore('note', {
       console.log('noteStores.ts→ 创建新笔记')
       try {
         const newNote = await window.electronAPI.createNote()
-        this.notes.push(newNote)
-        this.setCurrentNote(newNote)
+        this.updateLocalNote(newNote.id, newNote)
         return newNote
       } catch (error) {
         console.error('noteStores.ts→ 创建新笔记失败:', error)
@@ -152,28 +213,6 @@ export const useNoteStore = defineStore('note', {
       this.openNoteEditor(newNote.id)
     },
 
-    // 更新笔记
-    async updateNote(id: string, noteData: Partial<Note>): Promise<Note> {
-      try {
-        console.log('noteStores.ts→ 更新笔记', id, noteData)
-        const serializableNoteData = JSON.parse(JSON.stringify(noteData))
-        const response = await window.electronAPI.updateNote(id, serializableNoteData)
-        const updatedNote = this.parseNoteContent(response)
-        console.log('noteStores.ts→ 更新后的笔记', updatedNote)
-        const index = this.notes.findIndex((note) => note.id === id)
-        if (index !== -1) {
-          this.notes[index] = updatedNote
-        } else {
-          this.notes.push(updatedNote)
-        }
-        console.log(`noteStores.ts→ 更新笔记成功 ${id}`)
-        return updatedNote
-      } catch (error) {
-        console.error(`noteStores.ts→ 更新笔记失败 ${id}:`, error)
-        throw error
-      }
-    },
-
     // 移动到回收站
     async moveToTrash(id: string) {
       console.log('noteStores.ts→ 移动到回收站:', id)
@@ -181,13 +220,12 @@ export const useNoteStore = defineStore('note', {
         const result = await window.electronAPI.softDeleteNote(id)
         console.log('noteStores.ts→ 移动到回收站结果:', result)
         if (result) {
-          const noteIndex = this.notes.findIndex((note) => note.id === id)
-          if (noteIndex !== -1) {
-            this.notes[noteIndex] = result.note as Note
+          if (this.notesMap.has(id)) {
+            this.notesMap.set(id, result.note as Note)
             console.log('noteStores.ts→ 更新笔记状态成功')
           } else {
             console.warn('noteStores.ts→ 笔记未找到，添加:', id)
-            this.notes.push(result.note as Note)
+            this.notesMap.set(id, result.note as Note)
           }
           if (this.currentNoteId === id) {
             this.closeNoteEditor()
@@ -208,34 +246,50 @@ export const useNoteStore = defineStore('note', {
       try {
         const result = await window.electronAPI.restoreNote(id)
         console.log('noteStores.ts→ 从回收站恢复笔记:', result)
-        const index = this.notes.findIndex((note) => note.id === id)
-        if (index !== -1) {
-          this.notes[index].isDeleted = false
+
+        if (this.notesMap.has(id)) {
+          const note = this.notesMap.get(id)!
+          note.isDeleted = false
+          this.notesMap.set(id, note)
+          console.log(`noteStores.ts→ 从回收站恢复笔记: ${id}`)
+        } else {
+          console.warn(`noteStores.ts→ 笔记 ${id} 未找到，添加它`)
         }
-        console.log(`Restored note from trash: ${id}`)
+
+        return result
       } catch (error) {
-        console.error(`Failed to restore note ${id} from trash:`, error)
+        console.error(`noteStores.ts→ 从回收站恢复笔记失败 ${id}:`, error)
         throw error
       }
     },
     // 获取已删除的笔记
-    async fetchDeletedNotes(): Promise<Note[]> {
-      try {
-        const deletedNotes = await window.electronAPI.getDeletedNotes()
-        this.notes = deletedNotes
-        console.log(`noteStores.ts→ 获取已删除的笔记`, deletedNotes)
-        return deletedNotes
-      } catch (error) {
-        console.error('noteStores.ts→ 获取已删除的笔记失败:', error)
-        throw error
-      }
-    },
+    // async fetchDeletedNotes(): Promise<Note[]> {
+    //   try {
+    //     const deletedNotes = await window.electronAPI.getDeletedNotes()
+    //     this.notes = deletedNotes
+    //     console.log(`noteStores.ts→ 获取已删除的笔记`, deletedNotes)
+    //     return deletedNotes
+    //   } catch (error) {
+    //     console.error('noteStores.ts→ 获取已删除的笔记失败:', error)
+    //     throw error
+    //   }
+    // },
     // 永久删除
     async permanentlyDelete(id: string) {
       try {
         await window.electronAPI.permanentDeleteNote(id)
-        this.notes = this.notes.filter((note) => note.id !== id)
-        console.log(`noteStores.ts→ 永久删除笔记: ${id}`)
+
+        if (this.notesMap.has(id)) {
+          this.notesMap.delete(id)
+          console.log(`noteStores.ts→ 永久删除笔记: ${id}`)
+        } else {
+          console.warn(`noteStores.ts→ 尝试删除不存在的笔记: ${id}`)
+        }
+
+        // 如果当前打开的笔记被删除，关闭编辑器
+        if (this.currentNoteId === id) {
+          this.closeNoteEditor()
+        }
       } catch (error) {
         console.error(`noteStores.ts→ 永久删除笔记失败: ${id}:`, error)
         throw error
@@ -312,14 +366,36 @@ export const useNoteStore = defineStore('note', {
     },
 
     // 更新笔记的卡片盒
+    // async updateNoteCardBox(noteId: string, newCardBoxId: string): Promise<Note | null> {
+    //   console.log(`Updating note ${noteId} to card box ${newCardBoxId}`)
+    //   try {
+    //     await window.electronAPI.updateNoteCardBox(noteId, newCardBoxId)
+    //     console.log(`noteStores.ts→ Note ${noteId} updated successfully in local store`)
+    //     return this.notes.find((note) => note.id === noteId) as Note | null
+    //   } catch (error) {
+    //     console.error('noteStores.ts→ Error in updateNoteCardBox:', error)
+    //     throw error
+    //   }
+    // },
+    // 更新笔记的卡片盒
     async updateNoteCardBox(noteId: string, newCardBoxId: string): Promise<Note | null> {
-      console.log(`Updating note ${noteId} to card box ${newCardBoxId}`)
+      console.log(`noteStores.ts→ 更新笔记 ${noteId} 到卡片盒 ${newCardBoxId}`)
       try {
-        await window.electronAPI.updateNoteCardBox(noteId, newCardBoxId)
-        console.log(`noteStores.ts→ Note ${noteId} updated successfully in local store`)
-        return this.notes.find((note) => note.id === noteId) as Note | null
+        const updatedNote = await window.electronAPI.updateNoteCardBox(noteId, newCardBoxId)
+
+        if (this.notesMap.has(noteId)) {
+          // 更新本地存储的笔记
+          const note = this.notesMap.get(noteId)!
+          note.cardBoxId = newCardBoxId
+          this.notesMap.set(noteId, note)
+
+          console.log(`noteStores.ts→ Note ${noteId} 成功更新卡片盒`)
+        } else {
+          console.warn(`noteStores.ts→ Note ${noteId} 未找到`)
+        }
+        return updatedNote
       } catch (error) {
-        console.error('noteStores.ts→ Error in updateNoteCardBox:', error)
+        console.error('noteStores.ts→ 更新笔记卡片盒失败:', error)
         throw error
       }
     },
@@ -335,17 +411,69 @@ export const useNoteStore = defineStore('note', {
     },
 
     // 搜索功能
+    // searchNotes(query: string): Array<{
+    //   id: string
+    //   title: string
+    //   blocks: Array<{ content: string }>
+    // }> {
+    //   console.log('Searching for:', query)
+    //   console.log('Total notes:', this.notes.length)
+    //   const lowercaseQuery = query.toLowerCase().trim()
+    //   if (!lowercaseQuery) return []
+
+    //   return this.notes.reduce(
+    //     (results, note) => {
+    //       const matchingBlocks: Array<{ content: string }> = []
+
+    //       if (note.address.toLowerCase().includes(lowercaseQuery)) {
+    //         matchingBlocks.push({ content: note.address })
+    //       }
+
+    //       const searchContent = (content: any) => {
+    //         if (!content) return
+    //         if (typeof content === 'object') {
+    //           Object.values(content).forEach((value) => {
+    //             if (typeof value === 'string' && value.toLowerCase().includes(lowercaseQuery)) {
+    //               matchingBlocks.push({ content: value })
+    //             } else if (typeof value === 'object') {
+    //               searchContent(value)
+    //             }
+    //           })
+    //         }
+    //       }
+
+    //       searchContent(note.content)
+
+    //       note.tags.forEach((tag) => {
+    //         if (tag.toLowerCase().includes(lowercaseQuery)) {
+    //           matchingBlocks.push({ content: `#${tag}` })
+    //         }
+    //       })
+
+    //       if (matchingBlocks.length > 0) {
+    //         results.push({
+    //           id: note.id,
+    //           title: note.address,
+    //           blocks: matchingBlocks
+    //         })
+    //       }
+
+    //       return results
+    //     },
+    //     [] as Array<{ id: string; title: string; blocks: Array<{ content: string }> }>
+    //   )
+    // },
     searchNotes(query: string): Array<{
       id: string
       title: string
       blocks: Array<{ content: string }>
     }> {
       console.log('Searching for:', query)
-      console.log('Total notes:', this.notes.length)
+      console.log('Total notes:', this.notesMap.size)
       const lowercaseQuery = query.toLowerCase().trim()
       if (!lowercaseQuery) return []
 
-      return this.notes.reduce(
+      return Array.from(this.notesMap.values()).reduce(
         (results, note) => {
           const matchingBlocks: Array<{ content: string }> = []
 
@@ -389,28 +517,25 @@ export const useNoteStore = defineStore('note', {
     },
 
     // 右侧边栏功能
-    openRightSidebar() {
-      this.isRightSidebarOpen = true
-    },
-    closeRightSidebar() {
-      this.isRightSidebarOpen = false
-    },
     addNoteToRightSidebar(noteId: string) {
-      const note = this.notes.find((n) => n.id === noteId)
+      const note = this.notesMap.get(noteId)
       if (note && !this.rightSidebarNotes.some((n) => n.id === noteId)) {
         this.rightSidebarNotes.push(note)
-        this.openRightSidebar()
+      } else if (!note) {
+        console.warn(`Note with id ${noteId} not found in notesMap`)
       }
     },
     removeNoteFromRightSidebar(noteId: string) {
+      const uiStore = useUIStore()
       this.rightSidebarNotes = this.rightSidebarNotes.filter((n) => n.id !== noteId)
       if (this.rightSidebarNotes.length === 0) {
-        this.closeRightSidebar()
+        uiStore.closeRightSidebar()
       }
     },
     clearRightSidebarNotes() {
       this.rightSidebarNotes = []
-      this.closeRightSidebar()
+      const uiStore = useUIStore()
+      uiStore.closeRightSidebar()
     },
 
     toggleCardType(type: string) {
@@ -423,11 +548,36 @@ export const useNoteStore = defineStore('note', {
     },
 
     // 添加星标收藏
+    // async addStarToNote(id: string) {
+    //   try {
+    //     const updatedNote = await window.electronAPI.addStarToNote(id)
+    //     this.notes = this.notes.map((note) => (note.id === updatedNote.id ? updatedNote : note))
+    //     console.log('noteStores.ts→ 添加星标收藏成功:', updatedNote)
+    //     return updatedNote
+    //   } catch (error) {
+    //     console.error('noteStores.ts→ 添加星标收藏时出错:', error)
+    //     throw error
+    //   }
+    // },
+    // 添加星标收藏
     async addStarToNote(id: string) {
       try {
         const updatedNote = await window.electronAPI.addStarToNote(id)
-        this.notes = this.notes.map((note) => (note.id === updatedNote.id ? updatedNote : note))
-        console.log('noteStores.ts→ 添加星标收藏成功:', updatedNote)
+
+        if (this.notesMap.has(id)) {
+          this.notesMap.set(id, updatedNote)
+          console.log('noteStores.ts→ 添加星标收藏成功:', updatedNote)
+        } else {
+          console.warn(`noteStores.ts→ 尝试为不存在的笔记添加星标: ${id}`)
+          // 如果笔记不在 Map 中，我们可以选择添加它
+          this.notesMap.set(id, updatedNote)
+        }
+
+        // 如果这是当前打开的笔记，更新 currentNote
+        if (this.currentNote && this.currentNote.id === id) {
+          this.currentNote = updatedNote
+        }
+
         return updatedNote
       } catch (error) {
         console.error('noteStores.ts→ 添加星标收藏时出错:', error)
@@ -436,19 +586,52 @@ export const useNoteStore = defineStore('note', {
     },
 
     // 移除星标收藏
+    // async removeStarFromNote(id: string) {
+    //   try {
+    //     const result = await window.electronAPI.removeStarFromNote(id)
+
+    //     // 创建一个 Map 来存储更新后的笔记
+    //     const updatedNotesMap = new Map(
+    //       [result.updatedNote, ...result.reorderedNotes].map((note) => [note.id, note])
+    //     )
+
+    //     // 一次性更新所有笔记
+    //     this.notes = this.notes.map((note) =>
+    //       updatedNotesMap.has(note.id) ? updatedNotesMap.get(note.id)! : note
+    //     )
+
+    //     console.log('noteStores.ts→ 移除星标收藏成功:', result)
+    //     return result
+    //   } catch (error) {
+    //     console.error('noteStores.ts→ 移除星标收藏时出错:', error)
+    //     throw error
+    //   }
+    // },
+    // 移除星标收藏
     async removeStarFromNote(id: string) {
       try {
         const result = await window.electronAPI.removeStarFromNote(id)
 
-        // 创建一个 Map 来存储更新后的笔记
-        const updatedNotesMap = new Map(
-          [result.updatedNote, ...result.reorderedNotes].map((note) => [note.id, note])
-        )
+        // 更新主笔记
+        if (this.notesMap.has(result.updatedNote.id)) {
+          this.notesMap.set(result.updatedNote.id, result.updatedNote)
+        } else {
+          console.warn(`noteStores.ts→ 尝试更新不存在的笔记: ${result.updatedNote.id}`)
+        }
 
-        // 一次性更新所有笔记
-        this.notes = this.notes.map((note) =>
-          updatedNotesMap.has(note.id) ? updatedNotesMap.get(note.id)! : note
-        )
+        // 更新重新排序的笔记
+        result.reorderedNotes.forEach((note) => {
+          if (this.notesMap.has(note.id)) {
+            this.notesMap.set(note.id, note)
+          } else {
+            console.warn(`noteStores.ts→ 尝试更新不存在的笔记: ${note.id}`)
+          }
+        })
+
+        // 如果这是当前打开的笔记，更新 currentNote
+        if (this.currentNote && this.currentNote.id === id) {
+          this.currentNote = result.updatedNote
+        }
 
         console.log('noteStores.ts→ 移除星标收藏成功:', result)
         return result
@@ -471,17 +654,78 @@ export const useNoteStore = defineStore('note', {
     },
 
     // 更新收藏笔记顺序
+    // async updateStarredNotesOrder(orders: { id: string; starredOrder: number }[]) {
+    //   try {
+    //     console.log('noteStores.ts→ 开始更新收藏笔记顺序', orders)
+
+    //     // 乐观更新
+    //     const optimisticUpdate = new Map(orders.map((order) => [order.id, order.starredOrder]))
+    //     this.notes = this.notes.map((note) =>
+    //       optimisticUpdate.has(note.id)
+    //         ? { ...note, starredOrder: optimisticUpdate.get(note.id)! }
+    //         : note
+    //     )
+
+    //     // 调用后端 API 更新顺序
+    //     const result = await window.electronAPI.updateStarredNotesOrder(orders)
+
+    //     console.log('noteStores.ts→ 收到后端返回的结果:', result)
+
+    //     // 检查返回的结果是否为数组
+    //     if (!Array.isArray(result)) {
+    //       console.error('noteStores.ts→ 后端返回的数据格式不正确，预期是数组', result)
+    //       this.rollbackOptimisticUpdate()
+    //       return
+    //     }
+
+    //     // 如果是空数组，可能意味着没有笔记需要更新
+    //     if (result.length === 0) {
+    //       console.log('noteStores.ts→ 后端返回空数组，可能没有笔记需要更新')
+    //       return
+    //     }
+
+    //     // 验证返回的数组是否包含有效的 Note 对象
+    //     if (!this.isValidNoteArray(result)) {
+    //       console.error('noteStores.ts→ 后端返回的数组包含无效的 Note 对象', result)
+    //       this.rollbackOptimisticUpdate()
+    //       return
+    //     }
+
+    //     const updatedNotes = result as Note[]
+
+    //     // 创建一个 Map 来快速查找更新后的笔记
+    //     const updatedNotesMap = new Map(updatedNotes.map((note) => [note.id, note]))
+
+    //     // 更新本地状态
+    //     this.notes = this.notes.map((note) => updatedNotesMap.get(note.id) || note)
+
+    //     // 确保星标笔记保持正确的顺序
+    //     // this.notes.sort((a, b) => {
+    //     //   if (a.isStarred && b.isStarred) {
+    //     //     return (a.starredOrder ?? 0) - (b.starredOrder ?? 0)
+    //     //   }
+    //     //   return 0 // 保持非星标笔记的原有顺序
+    //     // })
+
+    //     console.log('noteStores.ts→ 更新收藏笔记顺序成功', this.starredNotes)
+    //   } catch (error) {
+    //     console.error('noteStores.ts→ 更新收藏笔记顺序失败:', error)
+    //     this.rollbackOptimisticUpdate()
+    //     throw error
+    //   }
+    // },
+    // 更新收藏笔记顺序
     async updateStarredNotesOrder(orders: { id: string; starredOrder: number }[]) {
       try {
         console.log('noteStores.ts→ 开始更新收藏笔记顺序', orders)
 
         // 乐观更新
-        const optimisticUpdate = new Map(orders.map((order) => [order.id, order.starredOrder]))
-        this.notes = this.notes.map((note) =>
-          optimisticUpdate.has(note.id)
-            ? { ...note, starredOrder: optimisticUpdate.get(note.id)! }
-            : note
-        )
+        orders.forEach(({ id, starredOrder }) => {
+          if (this.notesMap.has(id)) {
+            const note = this.notesMap.get(id)!
+            this.notesMap.set(id, { ...note, starredOrder })
+          }
+        })
 
         // 调用后端 API 更新顺序
         const result = await window.electronAPI.updateStarredNotesOrder(orders)
@@ -491,7 +735,7 @@ export const useNoteStore = defineStore('note', {
         // 检查返回的结果是否为数组
         if (!Array.isArray(result)) {
           console.error('noteStores.ts→ 后端返回的数据格式不正确，预期是数组', result)
-          this.rollbackOptimisticUpdate()
+          this.rollbackOptimisticUpdate(orders)
           return
         }
 
@@ -504,32 +748,37 @@ export const useNoteStore = defineStore('note', {
         // 验证返回的数组是否包含有效的 Note 对象
         if (!this.isValidNoteArray(result)) {
           console.error('noteStores.ts→ 后端返回的数组包含无效的 Note 对象', result)
-          this.rollbackOptimisticUpdate()
+          this.rollbackOptimisticUpdate(orders)
           return
         }
 
         const updatedNotes = result as Note[]
 
-        // 创建一个 Map 来快速查找更新后的笔记
-        const updatedNotesMap = new Map(updatedNotes.map((note) => [note.id, note]))
-
         // 更新本地状态
-        this.notes = this.notes.map((note) => updatedNotesMap.get(note.id) || note)
-
-        // 确保星标笔记保持正确的顺序
-        // this.notes.sort((a, b) => {
-        //   if (a.isStarred && b.isStarred) {
-        //     return (a.starredOrder ?? 0) - (b.starredOrder ?? 0)
-        //   }
-        //   return 0 // 保持非星标笔记的原有顺序
-        // })
+        updatedNotes.forEach((note) => {
+          if (this.notesMap.has(note.id)) {
+            this.notesMap.set(note.id, note)
+          } else {
+            console.warn(`noteStores.ts→ 尝试更新不存在的笔记: ${note.id}`)
+          }
+        })
 
         console.log('noteStores.ts→ 更新收藏笔记顺序成功', this.starredNotes)
       } catch (error) {
         console.error('noteStores.ts→ 更新收藏笔记顺序失败:', error)
-        this.rollbackOptimisticUpdate()
+        this.rollbackOptimisticUpdate(orders)
         throw error
       }
+    },
+
+    // 辅助方法：回滚乐观更新
+    rollbackOptimisticUpdate(orders: { id: string; starredOrder: number }[]) {
+      orders.forEach(({ id }) => {
+        if (this.notesMap.has(id)) {
+          const note = this.notesMap.get(id)!
+          this.notesMap.set(id, { ...note, starredOrder: note.starredOrder })
+        }
+      })
     },
 
     // 辅助方法：检查是否为有效的 Note 数组
@@ -542,76 +791,45 @@ export const useNoteStore = defineStore('note', {
           'starredOrder' in item &&
           'isStarred' in item
       )
-    },
-
-    // 辅助方法：回滚乐观更新
-    rollbackOptimisticUpdate() {
-      this.notes = this.notes.map((note) => ({ ...note, starredOrder: note.starredOrder }))
     }
   },
 
   getters: {
-    // 获取收藏的笔记
-    starredNotes: (state) =>
-      state.notes
-        .filter((note) => note.isStarred)
-        .sort((a, b) => (a.starredOrder ?? 0) - (b.starredOrder ?? 0)),
-    getNoteById: (state) => {
-      return (id: string) => state.notes.find((note) => note.id === id)
+    // 获取所有笔记
+    allNotes(): Note[] {
+      return Array.from(this.notesMap.values())
     },
-
-    getNoteByAddress: (state) => {
-      return (address: string) => state.notes.find((note) => note.address === address)
+    // 获取笔记数量
+    noteCount(): number {
+      return this.allNotes.length
+    },
+    // 获取最后一天的笔记数量
+    lastDayNoteCount(): number {
+      const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0]
+      return this.allNotes.filter(
+        (note) => note.createdAt.toISOString().split('T')[0] === yesterday
+      ).length
+    },
+    // 获取收藏的笔记
+    starredNotes(): Note[] {
+      return this.allNotes
+        .filter((note) => note.isStarred)
+        .sort((a, b) => (a.starredOrder ?? 0) - (b.starredOrder ?? 0))
+    },
+    // 获取笔记
+    getNoteById: (state) => {
+      return (id: string) => state.notesMap.get(id)
+    },
+    // 所有已删除的笔记
+    deletedNotes(): Note[] {
+      return this.allNotes.filter((note) => note.isDeleted)
     },
 
     getCardBoxById: (state) => {
       return (id: string) => state.cardBoxes.find((box) => box.id === id)
     },
 
-    getLinkedNotes: (state) => {
-      return (noteId: string) => {
-        const note = state.notes.find((n) => n.id === noteId)
-        return note
-          ? (note.linkedTo
-              .map((id) => state.notes.find((n) => n.id === id))
-              .filter(Boolean) as Note[])
-          : []
-      }
-    },
-
-    getBacklinks: (state) => {
-      return (noteId: string) => {
-        return state.notes.filter((note) => note.linkedFrom.includes(noteId))
-      }
-    },
-
-    getNoteWithLinks: (state) => {
-      return (noteId: string) => {
-        const note = state.notes.find((n) => n.id === noteId)
-        if (!note) return null
-
-        const linkedNotes = note.linkedTo
-          .map((id) => state.notes.find((n) => n.id === id))
-          .filter(Boolean) as Note[]
-        const backlinks = state.notes.filter((n) => n.linkedFrom.includes(noteId))
-
-        return {
-          ...note,
-          linkedNotes,
-          backlinks
-        }
-      }
-    },
-    noteCount: (state) => {
-      return state.notes.length
-    },
-    lastDayNoteCount: (state) => {
-      const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0]
-      return state.notes.filter((note) => note.createdAt.toISOString().split('T')[0] === yesterday)
-        .length
-    },
-
-    heatmapData: (state) => {
+    heatmapData(): { date: string; count: number }[] {
       const now = new Date()
       const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
       const oneYearAgo = new Date(today.getFullYear() - 1, today.getMonth(), today.getDate())
@@ -631,7 +849,7 @@ export const useNoteStore = defineStore('note', {
       }
 
       // 统计每天的笔记数量（保持不变）
-      state.notes.forEach((note) => {
+      this.allNotes.forEach((note) => {
         const noteDate = new Date(note.createdAt)
         const noteDateString = noteDate
           .toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' })
@@ -643,7 +861,7 @@ export const useNoteStore = defineStore('note', {
 
       console.log('Start date:', oneYearAgo.toLocaleDateString('zh-CN'))
       console.log('End date:', endDate.toLocaleDateString('zh-CN'))
-      console.log('Notes count:', state.notes.length)
+      console.log('Notes count:', this.allNotes.length)
       console.log('Generated data:', data)
 
       // 转换为热力图所需的格式

@@ -193,12 +193,12 @@ import {
   FileCabinet,
   Plus
 } from '@icon-park/vue-next'
-import { CardBox } from '../types/Note'
+import { CardBox, Note } from '../types/Note'
 import CardBoxNoteCard from '../components/CardboxNoteCard.vue'
 import { storeToRefs } from 'pinia'
 
 const noteStore = useNoteStore()
-const { notes, selectedCardTypes } = storeToRefs(noteStore)
+const { allNotes, selectedCardTypes } = storeToRefs(noteStore)
 
 const showCardBoxMenu = ref(false)
 const selectedCardBox = ref<CardBox | null>(null)
@@ -288,12 +288,12 @@ const selectCardBox = (box: CardBox | null) => {
 }
 const filteredNotes = computed(() => {
   console.log('重新计算 filteredNotes')
-  console.log('原始笔记数量:', notes.value.length)
+  console.log('原始笔记数量:', allNotes.value.length)
   console.log('当前选中的卡片盒:', selectedCardBox.value?.name)
   console.log('是否选中收件箱:', isInboxSelected.value)
 
-  return notes.value
-    .filter((note) => {
+  return allNotes.value
+    .filter((note: Note) => {
       if (isInboxSelected.value) {
         return !note.cardBoxId
       } else if (selectedCardBox.value && selectedCardBox.value.id !== '0000') {

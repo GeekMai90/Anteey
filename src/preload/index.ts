@@ -121,9 +121,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
     }
   },
 
-  updateNoteCardBox: async (noteId: string, cardBoxId: string): Promise<void> => {
+  updateNoteCardBox: async (noteId: string, cardBoxId: string): Promise<Note> => {
     try {
-      return (await ipcRenderer.invoke('update-note-card-box', { noteId, cardBoxId })) as void
+      return (await ipcRenderer.invoke('update-note-card-box', noteId, cardBoxId)) as Note
+      console.log('Preload: 更新笔记的卡片盒成功:', noteId, cardBoxId)
     } catch (error) {
       console.error('Preload: 更新笔记的卡片盒时出错:', error)
       throw error
@@ -456,6 +457,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
       return (await ipcRenderer.invoke('update-whiteboard-name', id, name)) as Whiteboard
     } catch (error) {
       console.error('Preload: 更新白板名称时出错:', error)
+      throw error
+    }
+  },
+  updateNoteContent: async (id: string, content: any): Promise<Note> => {
+    try {
+      return (await ipcRenderer.invoke('update-note-content', id, content)) as Note
+    } catch (error) {
+      console.error('Preload: 更新笔记内容时出错:', error)
       throw error
     }
   }

@@ -29,7 +29,7 @@ const handleOutsideClick = () => {
 // 窗口打开时聚焦地址输入框
 const focusNoteEditorInput = () => {
   nextTick(() => {
-    noteEditorRef.value?.focusAddressInput()
+    noteEditorRef.value?.focusEditor()
   })
 }
 </script>

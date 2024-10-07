@@ -103,13 +103,14 @@ import AppToolbar from '../components/AppToolbar.vue'
 import CalendarPicker from '../components/CalendarPicker.vue'
 import { useUIStore } from '../stores/useUIStore'
 import { useSearch } from '../composable/useSearch'
+import { Note } from '@renderer/types/Note'
 // 初始化笔记状态
 const noteStore = useNoteStore()
-const { notes } = storeToRefs(noteStore)
+const { allNotes } = storeToRefs(noteStore)
 const uiStore = useUIStore()
 
 const { searchQuery, handleSearch, filteredItems, clearSearch, selectedDate, setSelectedDate } =
-  useSearch(notes)
+  useSearch(allNotes)
 
 const isSearchFocused = ref(false)
 
@@ -129,7 +130,7 @@ const sortedNotes = computed(() => {
 
 // 创建一个新的计算属性，将 Date 类型的 createdAt 转换为 string 类型
 const notesForCalendar = computed(() => {
-  return notes.value.map((note) => ({
+  return allNotes.value.map((note: Note) => ({
     ...note,
     createdAt: note.createdAt.toISOString() // 将 Date 转换为 ISO 字符串
   }))

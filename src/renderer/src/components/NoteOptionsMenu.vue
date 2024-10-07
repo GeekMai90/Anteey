@@ -43,7 +43,7 @@ const isConfirmingDelete = ref(false)
 const isDeleting = ref(false)
 
 const isStarred = computed(() => {
-  return noteStore.notes.find((note) => note.id === props.noteId)?.isStarred || false
+  return noteStore.allNotes.find((note) => note.id === props.noteId)?.isStarred || false
 })
 
 const handleShare = () => {

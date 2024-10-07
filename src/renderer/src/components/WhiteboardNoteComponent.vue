@@ -16,16 +16,17 @@
   >
     <!-- 顶部工具栏 -->
     <WhiteboardNoteToolbar
+      ref="toolbarRef"
       :isCardBoxMenuOpen="showCardBoxMenu"
       :cardBoxes="cardBoxes"
       :selectedCardBox="selectedCardBox"
+      :moreMenuItems="whiteboardMenuItems"
       @expand="handleExpand"
       @toggle-cardbox-menu="toggleCardBoxMenu"
       @start-connection="startConnection"
-      @open-menu="openMenu"
-      @close-menu="closeMenu"
       @select-card-box="selectCardBox"
       @close-cardbox-menu="showCardBoxMenu = false"
+      @more-menu-item-click="handleMoreMenuItemClick"
     />
 
     <!-- 编辑器内容 -->
@@ -72,7 +73,7 @@
     <div class="resize-handle top-right" @mousedown="startResize('top-right', $event)"></div>
     <div class="resize-handle bottom-right" @mousedown="startResize('bottom-right', $event)"></div>
     <div class="resize-handle bottom-left" @mousedown="startResize('bottom-left', $event)"></div>
-    <PopupMenu ref="popupMenuRef" :menuItems="whiteboardMenuItems" />
+
     <!-- 卡片类型选择菜单 -->
     <CardTypeMenu
       v-model="editedNote.cardType"
@@ -100,7 +101,6 @@ import { useNoteStore } from '../stores/noteStores'
 import TipTapEditor from '../components/TipTapEditor.vue'
 import { useRouter } from 'vue-router'
 import { debounce } from 'lodash-es'
-import PopupMenu from '@renderer/components/PopupMenu.vue'
 import { useNoteMenu } from '@renderer/composable/useNoteMenu'
 import { useWhiteboardStore } from '../stores/whiteboardStores'
 import { storeToRefs } from 'pinia'
@@ -108,6 +108,7 @@ import { onClickOutside } from '@vueuse/core'
 import { useResizeObserver } from '@vueuse/core'
 import WhiteboardNoteToolbar from './WhiteboardNoteToolbar.vue'
 import CardTypeMenu from './CardTypeMenu.vue'
+import { MenuItem } from './PopupMenu.vue'
 
 const props = defineProps<{
   noteId: string
@@ -151,6 +152,10 @@ const emit = defineEmits([
   'drag-start',
   'click'
 ])
+
+const handleMoreMenuItemClick = (item: MenuItem) => {
+  item.action()
+}
 const handleEditorMouseDown = (event: MouseEvent) => {
   if (!isEditing.value) {
     event.preventDefault()
@@ -343,23 +348,7 @@ const startConnection = (event: MouseEvent) => {
   emit('start-connection', props.item)
 }
 
-const popupMenuRef = ref<{ openMenu: (x: number, y: number) => void } | null>(null)
-
 // const { menuItems } = useNoteMenu(props.noteId)
-const { menuItems: whiteboardMenuItems } = useNoteMenu({
-  noteId: props.noteId,
-  whiteboardNoteId: props.item.id,
-  onRestoreDefaultHeight: restoreDefaultHeight,
-  menuItems: ['star', 'sidebar', 'restoreDefaultHeight', 'trashFromWhiteboard']
-})
-
-const openMenu = (event: MouseEvent) => {
-  event.preventDefault()
-  popupMenuRef.value?.openMenu(event.clientX, event.clientY)
-}
-const closeMenu = () => {
-  useNoteMenu({ noteId: props.noteId, whiteboardNoteId: props.item.id }).closePopupMenu()
-}
 
 // 笔记的保存功能
 
@@ -387,6 +376,14 @@ const emptyNote: Note = {
 
 const editedNote = ref<Note>({ ...emptyNote })
 const saveStatus = ref<'idle' | 'saving' | 'saved' | 'error'>('idle')
+
+// 白板笔记的菜单项
+const { menuItems: whiteboardMenuItems } = useNoteMenu({
+  noteId: props.noteId,
+  whiteboardNoteId: props.item.id,
+  onRestoreDefaultHeight: restoreDefaultHeight,
+  menuItems: ['star', 'sidebar', 'restoreDefaultHeight', 'trashFromWhiteboard']
+})
 
 // 数据是否加载完成
 const isInitialized = ref(false)
@@ -637,14 +634,6 @@ const focusEditor = () => {
     }
   })
 }
-
-// 当 noteId 改变时聚焦（用于编辑现有笔记）
-// watch(
-//   () => props.noteId,
-//   () => {
-//     focusAddressInput()
-//   }
-// )
 
 // 展开编辑器
 const handleExpand = async () => {

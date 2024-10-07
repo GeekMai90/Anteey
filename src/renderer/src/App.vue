@@ -67,13 +67,11 @@ import RightSidebar from './components/RightSidebar.vue'
 import NoteEditorModal from './components/NoteEditorModal.vue'
 import GlobalUIManager from './components/GlobalUIManager.vue'
 import SearchModal from './components/SearchModal.vue'
-import { useNoteStore } from './stores/noteStores'
 import { useGlobalHotkeys } from './composable/useGlobalHotkeys'
 import ContextMenu from './components/ContexMenu.vue'
 import CardBoxSidebar from './components/CardBoxSidebar.vue'
 import { useUIStore } from './stores/useUIStore'
 
-const noteStore = useNoteStore()
 const uiStore = useUIStore()
 const isDarkTheme = ref(false)
 const router = useRouter()
@@ -169,14 +167,14 @@ provide('openOptionsMenu', (event: MouseEvent, noteId: string) => {
 
 // 生命周期钩子
 onMounted(async () => {
-  await noteStore.initializeStore()
+  // await noteStore.initializeStore()
   checkWindowSize()
   window.addEventListener('resize', checkWindowSize)
   console.log('App mounted')
   console.log('Current route:', router.currentRoute.value)
   if (router.currentRoute.value.path === '/') {
     console.log('Redirecting to /home')
-    router.push('/home')
+    router.push('/timeline')
   }
 })
 

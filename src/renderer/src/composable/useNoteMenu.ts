@@ -1,7 +1,9 @@
-import { computed, ref } from 'vue'
+import { computed, ref, watchEffect } from 'vue'
 import { Info, Star, Copy, History, DeleteOne, RightBar, Refresh } from '@icon-park/vue-next'
 import { useNoteStore } from '../stores/noteStores'
 import { useWhiteboardStore } from '../stores/whiteboardStores'
+import { storeToRefs } from 'pinia'
+import { useUIStore } from '@renderer/stores/useUIStore'
 
 interface NoteMenuParams {
   noteId: string
@@ -12,13 +14,23 @@ interface NoteMenuParams {
 
 export function useNoteMenu(params: NoteMenuParams) {
   const noteStore = useNoteStore()
+  const uiStore = useUIStore()
   const whiteboardStore = useWhiteboardStore()
+  // const { allNotes } = storeToRefs(useNoteStore())
+
+  const allNotes = noteStore.allNotes
 
   const isPopupMenuVisible = ref(false)
 
-  const isStarred = computed(() => {
-    return noteStore.notes.find((note) => note.id === params.noteId)?.isStarred || false
+  const isStarred = ref(false)
+
+  watchEffect(() => {
+    const note = allNotes.find((note) => note.id === params.noteId)
+    isStarred.value = note?.isStarred || false
   })
+  // const isStarred = computed(() => {
+  //   return allNotes.find((note) => note.id === params.noteId)?.isStarred || false
+  // })
 
   const togglePopupMenu = () => {
     isPopupMenuVisible.value = !isPopupMenuVisible.value
@@ -41,11 +53,14 @@ export function useNoteMenu(params: NoteMenuParams) {
       console.log('移除星标收藏')
       noteStore.removeStarFromNote(params.noteId)
     }
-    closePopupMenu()
+    // 立即更新 isStarred 的值
+    isStarred.value = !isStarred.value
   }
 
-  const handleShowSidebar = () => {
-    noteStore.addNoteToRightSidebar(params.noteId)
+  const handleAddToRightSidebar = async () => {
+    await noteStore.addNoteToRightSidebar(params.noteId)
+    await uiStore.openRightSidebar()
+    noteStore.closeNoteEditor()
   }
 
   const handleCopy = () => {
@@ -56,20 +71,52 @@ export function useNoteMenu(params: NoteMenuParams) {
     console.log('显示历史记录', params.noteId)
   }
 
+  const isConfirmingDelete = ref(false)
+  const isDeleting = ref(false)
+  let deleteTimeout: number | null = null
+
   const handleDelete = async () => {
-    try {
-      const success = await noteStore.moveToTrash(params.noteId)
-      if (success) {
-        console.log('笔记已移至回收站')
-        noteStore.closeNoteEditor()
-        return true
-      } else {
-        console.error('移动笔记到回收站失败')
-        return false
+    if (isDeleting.value) return
+
+    if (!isConfirmingDelete.value) {
+      isConfirmingDelete.value = true
+      deleteTimeout = window.setTimeout(() => {
+        isConfirmingDelete.value = false
+      }, 3000) // 3秒后重置确认状态
+    } else {
+      if (deleteTimeout !== null) {
+        clearTimeout(deleteTimeout)
+        deleteTimeout = null
       }
-    } catch (error) {
-      console.error('删除笔记时出错:', error)
-      return false
+
+      isDeleting.value = true
+      try {
+        const success = await noteStore.moveToTrash(params.noteId)
+        if (success) {
+          console.log('笔记已移至回收站')
+          noteStore.closeNoteEditor()
+          return true
+        } else {
+          console.error('移动笔记到回收站失败')
+          return false
+        }
+      } catch (error) {
+        console.error('删除笔记时出错:', error)
+        return false
+      } finally {
+        isDeleting.value = false
+        isConfirmingDelete.value = false
+        closePopupMenu()
+      }
+    }
+  }
+
+  const resetDeleteState = () => {
+    isConfirmingDelete.value = false
+    isDeleting.value = false
+    if (deleteTimeout !== null) {
+      clearTimeout(deleteTimeout)
+      deleteTimeout = null
     }
   }
 
@@ -99,18 +146,19 @@ export function useNoteMenu(params: NoteMenuParams) {
     },
     sidebar: {
       name: 'sidebar',
-      label: '在侧边栏中打开',
+      label: '右侧显示',
       icon: RightBar,
-      action: handleShowSidebar
+      action: handleAddToRightSidebar
     },
     copy: { name: 'copy', label: '复制', icon: Copy, action: handleCopy },
     history: { name: 'history', label: '历史记录', icon: History, action: handleShowHistory },
     delete: {
       name: 'delete',
-      label: '删除',
+      label: isConfirmingDelete.value ? '确认删除' : '删除',
       icon: DeleteOne,
       action: handleDelete,
-      isDangerous: true
+      isDangerous: isConfirmingDelete.value,
+      fill: isConfirmingDelete.value ? '#ff4d4f' : 'var(--color-icon-default)'
     },
     trashFromWhiteboard: {
       name: 'trashFromWhiteboard',
@@ -138,6 +186,18 @@ export function useNoteMenu(params: NoteMenuParams) {
         }
         return true
       })
+      // 确保 delete 项随 isConfirmingDelete 状态更新
+      items = items.map((item: any) => {
+        if (item.name === 'delete') {
+          return {
+            ...item,
+            label: isConfirmingDelete.value ? '确认删除' : '删除',
+            isDangerous: isConfirmingDelete.value,
+            fill: isConfirmingDelete.value ? '#ff4d4f' : 'var(--color-icon-default)'
+          }
+        }
+        return item
+      })
     }
     console.log('Computed menuItems:', items)
     return items.length > 0 ? items : Object.values(allMenuItems.value)
@@ -145,7 +205,8 @@ export function useNoteMenu(params: NoteMenuParams) {
 
   return {
     menuItems,
-    togglePopupMenu,
-    closePopupMenu
+    resetDeleteState,
+    isConfirmingDelete, // 暴露这个状态，以便在需要时可以在外部访问
+    handleDelete
   }
 }

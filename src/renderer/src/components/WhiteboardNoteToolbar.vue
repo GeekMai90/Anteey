@@ -27,16 +27,21 @@
           <Connection theme="outline" size="16" fill="var(--color-icon-default)" />
         </div>
       </div>
-      <div
-        class="more-btn"
-        @click.stop="$emit('open-menu', $event)"
-        @v-click-outside="$emit('close-menu')"
-      >
+      <div ref="moreBtnRef" class="more-btn" @click.stop="toggleMenu">
         <div v-tooltip.bottom="{ content: '更多', delay: { show: 1000 } }" class="icon">
           <More theme="outline" size="16" fill="var(--color-icon-default)" />
         </div>
       </div>
     </div>
+    <PopupMenu
+      ref="popupMenuRef"
+      :show="isMenuVisible"
+      :menuItems="moreMenuItems"
+      :position="menuPosition"
+      :offset="{ x: -70, y: 5 }"
+      @close="closeMenu"
+      @itemClick="handleMenuItemClick"
+    />
   </div>
 </template>
 
@@ -44,12 +49,46 @@
 import { ExpandTextInput, Install, More, Connection } from '@icon-park/vue-next'
 import CardboxDropdownMenu from './CardboxDropdownMenu.vue'
 import { CardBox } from '../types/Note'
+import { nextTick, reactive, ref } from 'vue'
+import PopupMenu from './PopupMenu.vue'
+import type { MenuItem } from './PopupMenu.vue'
 
 defineProps<{
   isCardBoxMenuOpen: boolean
   cardBoxes: CardBox[]
   selectedCardBox: CardBox | null
+  moreMenuItems: MenuItem[]
 }>()
+
+// 更多按钮弹出菜单
+const moreBtnRef = ref<HTMLElement | null>(null)
+const popupMenuRef = ref<InstanceType<typeof PopupMenu> | null>(null)
+const isMenuVisible = ref(false)
+const menuPosition = reactive({ x: 0, y: 0 })
+
+const toggleMenu = (event: MouseEvent) => {
+  event.preventDefault()
+  isMenuVisible.value = !isMenuVisible.value
+  if (isMenuVisible.value && moreBtnRef.value) {
+    const rect = moreBtnRef.value.getBoundingClientRect()
+    menuPosition.x = rect.left
+    menuPosition.y = rect.bottom
+    isMenuVisible.value = true
+    nextTick(() => {
+      popupMenuRef.value?.openMenu()
+    })
+  }
+}
+const handleMenuItemClick = (item: MenuItem) => {
+  item.action()
+  if (item.name !== 'delete') {
+    closeMenu()
+  }
+}
+
+const closeMenu = () => {
+  isMenuVisible.value = false
+}
 
 defineEmits([
   'expand',

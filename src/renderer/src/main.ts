@@ -6,6 +6,7 @@ import './styles/main.scss'
 import piniaPluginPersistedstate from 'pinia-plugin-persistedstate'
 import FloatingVue from 'floating-vue'
 import 'floating-vue/dist/style.css'
+import { useNoteStore } from './stores/noteStores'
 
 const app = createApp(App)
 
@@ -46,5 +47,9 @@ router.isReady().then(() => {
     router.push('/home')
   }
 })
+
+const noteStore = useNoteStore()
+noteStore.initializeNotes()
+noteStore.initializeStore()
 
 app.mount('#app')

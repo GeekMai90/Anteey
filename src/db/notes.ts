@@ -2,6 +2,28 @@ import { db } from './config'
 import { Note } from '../renderer/src/types/Note'
 import { v4 as uuidv4 } from 'uuid'
 
+// 辅助函数：将数据库记录转换为 Note 对象
+function convertToNote(record: any): Note {
+  return {
+    id: record.id,
+    type: 'note',
+    address: record.address,
+    cardType: record.cardType,
+    content: JSON.parse(record.content),
+    createdAt: new Date(record.createdAt),
+    updatedAt: new Date(record.updatedAt),
+    tags: JSON.parse(record.tags),
+    linkedTo: JSON.parse(record.linkedTo),
+    linkedFrom: JSON.parse(record.linkedFrom),
+    cardBoxId: record.cardBoxId || undefined,
+    parentId: record.parentId || undefined,
+    isDeleted: record.isDeleted,
+    isStarred: record.isStarred,
+    starredOrder: record.starredOrder,
+    rightBarOrder: record.rightBarOrder
+  }
+}
+
 // 创建笔记
 export async function createNote(): Promise<Note> {
   const id = uuidv4()
@@ -67,6 +89,20 @@ export async function getAllNotes(includeDeleted: boolean = false): Promise<Note
   } catch (error) {
     console.error('后端→ 获取所有笔记失败:', error)
     throw new Error('后端→ 获取所有笔记失败')
+  }
+}
+
+// 更新笔记 content
+export async function updateNoteContent(id: string, content: any): Promise<Note> {
+  try {
+    const [updatedNote] = await db('notes')
+      .where('id', id)
+      .update({ content: JSON.stringify(content) })
+      .returning('*')
+    return convertToNote(updatedNote)
+  } catch (error) {
+    console.error('后端→ 更新笔记内容失败:', error)
+    throw new Error('后端→ 更新笔记内容失败')
   }
 }
 
@@ -209,7 +245,7 @@ export async function permanentDeleteNote(id: string): Promise<void> {
 // }
 
 // 更新笔记的卡片盒
-export async function updateNoteCardBox(noteId: string, cardBoxId: string): Promise<void> {
+export async function updateNoteCardBox(noteId: string, cardBoxId: string): Promise<Note | null> {
   try {
     // 更新卡片盒前的笔记
     const note = await getNoteById(noteId)
@@ -220,6 +256,7 @@ export async function updateNoteCardBox(noteId: string, cardBoxId: string): Prom
     const updatedNote = await getNoteById(noteId)
     console.log('后端→ 更新卡片盒后的笔记是:', updatedNote)
     // console.log(`后端→ 更新笔记的卡片盒: ${noteId}`)
+    return updatedNote
   } catch (error) {
     console.error(`后端→ 更新笔记的卡片盒失败: ${noteId}:`, error)
     throw error
@@ -378,27 +415,5 @@ export async function updateStarredNotesOrder(
   } catch (error) {
     console.error('后端→ 更新星标笔记顺序失败:', error)
     throw error
-  }
-}
-
-// 辅助函数：将数据库记录转换为 Note 对象
-function convertToNote(record: any): Note {
-  return {
-    id: record.id,
-    type: 'note',
-    address: record.address,
-    cardType: record.cardType,
-    content: JSON.parse(record.content),
-    createdAt: new Date(record.createdAt),
-    updatedAt: new Date(record.updatedAt),
-    tags: JSON.parse(record.tags),
-    linkedTo: JSON.parse(record.linkedTo),
-    linkedFrom: JSON.parse(record.linkedFrom),
-    cardBoxId: record.cardBoxId || undefined,
-    parentId: record.parentId || undefined,
-    isDeleted: record.isDeleted,
-    isStarred: record.isStarred,
-    starredOrder: record.starredOrder,
-    rightBarOrder: record.rightBarOrder
   }
 }

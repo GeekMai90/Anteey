@@ -26,7 +26,7 @@ export interface ElectronAPI {
   updateCardBox: (id: string, name: string) => Promise<CardBox | undefined>
   deleteCardBox: (id: string) => Promise<void>
   // addNoteToCardBox: (cardBoxId: string, noteId: string) => Promise<void>
-  updateNoteCardBox: (noteId: string, cardBoxId: string) => Promise<void>
+  updateNoteCardBox: (noteId: string, cardBoxId: string) => Promise<Note>
   getStarredNotes: () => Promise<Note[]>
   getResourcePath: (filename: string) => Promise<string>
   updateStarredNotesOrder: (orders: { id: string; starredOrder: number }[]) => Promise<Note[]>
@@ -81,6 +81,7 @@ export interface ElectronAPI {
   deleteWhiteboardNote: (id: string) => Promise<boolean>
   updateWhiteboardNoteAutoHeight: (id: string, isAutoHeight: boolean) => Promise<WhiteboardNote>
   updateWhiteboardName: (id: string, name: string) => Promise<Whiteboard>
+  updateNoteContent: (id: string, content: any) => Promise<Note>
 }
 
 declare global {

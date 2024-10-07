@@ -11,7 +11,6 @@ import {
 } from '../types/Note'
 import { useNoteStore } from './noteStores'
 
-const noteStore = useNoteStore()
 export const useWhiteboardStore = defineStore('whiteboard', {
   state: () => ({
     whiteboards: [] as Whiteboard[],
@@ -162,7 +161,7 @@ export const useWhiteboardStore = defineStore('whiteboard', {
         // 先获取所有的笔记 id
         const noteIds = whiteboardNotes.map((note) => note.noteId)
         // 获取所有的笔记
-        const notes = await noteStore.getNotesByIds(noteIds)
+        const notes = await this.noteStore.getNotesByIds(noteIds)
         // 以笔记 id 和笔记的形式，存储在 whiteboardNotes 中
         this.referenceNotes = Object.fromEntries(notes.map((note) => [note.id, note]))
         console.log('whiteboardStore→ 获取白板中的所有白板笔记成功', this.referenceNotes)
@@ -355,6 +354,9 @@ export const useWhiteboardStore = defineStore('whiteboard', {
     }
   },
   getters: {
+    noteStore: () => {
+      return useNoteStore()
+    },
     // 获取参考笔记,传入笔记 id,返回笔记
     getReferenceNotes: (state) => {
       return (id: string) => state.referenceNotes[id]

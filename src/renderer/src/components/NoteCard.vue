@@ -1,6 +1,6 @@
 // src/components/NoteCard.vue
 <template>
-  <div class="note-card" @dblclick="useNoteStore().openNoteEditor(note.id)">
+  <div class="note-card">
     <div class="note-header">
       <span class="note-indicator" :class="cardTypeClass"></span>
       <h3 class="note-title">{{ note.address }}</h3>
@@ -11,22 +11,14 @@
             <ExpandTextInput theme="outline" size="20" fill="#b6b6b6" />
           </div>
         </div>
-        <div class="note-button" @click.stop="toggleOptionsMenu">
-          <div class="icon">
-            <More theme="outline" size="20" fill="#b6b6b6" />
+        <div ref="moreBtnRef" class="note-button" @click.stop="toggleMenu">
+          <div v-tooltip.bottom="{ content: '更多', delay: { show: 1000 } }" class="icon">
+            <More theme="outline" size="16" fill="var(--color-icon-default)" />
           </div>
-        </div>
-
-        <div v-if="isOptionsMenuVisible" v-click-outside="closeOptionsMenu">
-          <NoteOptionsMenu
-            ref="noteOptionsMenu"
-            :noteId="props.note.id"
-            @close="closeOptionsMenu"
-          />
         </div>
       </div>
     </div>
-    <div ref="noteContent" class="note-content">
+    <div ref="noteContent" class="note-content" @dblclick="useNoteStore().openNoteEditor(note.id)">
       <TipTapEditor
         v-model:content="localNote.content"
         :editable="false"
@@ -35,8 +27,18 @@
       <div v-if="isOverflowing" class="fade-out"></div>
     </div>
     <div class="note-timestamp">
-      {{ formatDate(note.updatedAt) }}
+      {{ formatDate(note.createdAt) }}
     </div>
+
+    <PopupMenu
+      ref="popupMenuRef"
+      :show="isMenuVisible"
+      :menuItems="noteMenuItems"
+      :position="menuPosition"
+      :offset="{ x: -80, y: 5 }"
+      @close="closeMenu"
+      @itemClick="handleMenuItemClick"
+    />
   </div>
 </template>
 
@@ -44,34 +46,59 @@
 import { Note } from '@renderer/types/Note'
 import { formatDate } from '@renderer/utils/noteHelpers'
 import { More, ExpandTextInput } from '@icon-park/vue-next'
-import { computed, onMounted, onUpdated, ref, watch, toRef } from 'vue'
-import NoteOptionsMenu from '@renderer/components/NoteOptionsMenu.vue'
+import { computed, onMounted, onUpdated, ref, watch, toRef, nextTick, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import TipTapEditor from '@renderer/components/TipTapEditor.vue'
 import { useNoteStore } from '@renderer/stores/noteStores'
+import PopupMenu from './PopupMenu.vue'
+import { useNoteMenu } from '../composable/useNoteMenu'
+import type { MenuItem } from './PopupMenu.vue'
 
 const props = defineProps<{
   note: Note
 }>()
+
+// 更多按钮弹出菜单
+const moreBtnRef = ref<HTMLElement | null>(null)
+const popupMenuRef = ref<InstanceType<typeof PopupMenu> | null>(null)
+const isMenuVisible = ref(false)
+const menuPosition = reactive({ x: 0, y: 0 })
+
+const { menuItems: noteMenuItems, resetDeleteState } = useNoteMenu({
+  noteId: props.note.id,
+  menuItems: ['star', 'sidebar', 'delete']
+})
+const toggleMenu = (event: MouseEvent) => {
+  event.preventDefault()
+  event.stopPropagation() // 阻止事件冒泡
+  isMenuVisible.value = !isMenuVisible.value
+  if (isMenuVisible.value && moreBtnRef.value) {
+    const rect = moreBtnRef.value.getBoundingClientRect()
+    menuPosition.x = rect.left
+    menuPosition.y = rect.bottom
+    isMenuVisible.value = true
+    nextTick(() => {
+      popupMenuRef.value?.openMenu()
+    })
+  }
+}
+const handleMenuItemClick = (item: MenuItem) => {
+  item.action()
+  if (item.name !== 'delete') {
+    closeMenu()
+  }
+}
+
+const closeMenu = () => {
+  isMenuVisible.value = false
+  resetDeleteState()
+}
 
 // const emit = defineEmits(['edit'])
 const isDragHandleEnabled = ref(false)
 // const noteStore = useNoteStore()
 
 const localNote = toRef(props, 'note')
-
-// 笔记选项菜单
-const isOptionsMenuVisible = ref(false)
-const noteOptionsMenu = ref<InstanceType<typeof NoteOptionsMenu> | null>(null)
-
-const toggleOptionsMenu = () => {
-  isOptionsMenuVisible.value = !isOptionsMenuVisible.value
-}
-
-const closeOptionsMenu = () => {
-  isOptionsMenuVisible.value = false
-  noteOptionsMenu.value?.resetState()
-}
 
 // const closeOptionsMenu = () => {
 //   isOptionsMenuVisible.value = false
@@ -355,8 +382,4 @@ watch(
   align-self: flex-end;
   margin-right: 15px;
 }
-
-// :deep(.tiptap) {
-//   margin-left: 0;
-// }
 </style>

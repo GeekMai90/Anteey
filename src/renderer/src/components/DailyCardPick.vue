@@ -20,6 +20,7 @@ import { ref, onMounted, computed } from 'vue'
 import NoteCard from './NoteCard.vue'
 import confetti from 'canvas-confetti'
 import { storeToRefs } from 'pinia'
+import { Note } from '@renderer/types/Note'
 
 interface Card {
   id: string
@@ -31,7 +32,7 @@ const noteStore = useNoteStore()
 const dailyCards = ref<Card[]>([])
 const selectedCard = ref<Card | null>(null)
 // const selectedCardNote = ref<Note | null>(null)
-const { notes } = storeToRefs(noteStore)
+const { allNotes } = storeToRefs(noteStore)
 
 // 导入所有卡片背景图片
 const cardBackgrounds = import.meta.glob('../assets/cardbgs/*.{jpg,jpeg,png,gif}', {
@@ -147,7 +148,7 @@ const selectCard = (card: Card) => {
 
 const selectedCardNote = computed(() => {
   if (selectedCard.value) {
-    return notes.value.find((note) => note.id === selectedCard.value?.id) || null
+    return allNotes.value.find((note: Note) => note.id === selectedCard.value?.id) || null
   }
   return null
 })

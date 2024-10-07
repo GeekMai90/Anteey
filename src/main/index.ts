@@ -13,6 +13,7 @@ import {
   restoreNote,
   getDeletedNotes,
   permanentDeleteNote,
+  updateNoteContent,
   updateNoteCardBox,
   getStarredNotes,
   addStarToNote,
@@ -163,6 +164,16 @@ function createCustomMenu() {
 }
 
 function setupIpcHandlers() {
+  // 更新笔记内容
+  ipcMain.handle('update-note-content', async (_, id: string, content: any) => {
+    try {
+      const updatedNote = await updateNoteContent(id, content)
+      return updatedNote
+    } catch (error) {
+      console.error('主进程 → 更新笔记内容时出错:', error)
+      return { success: false, error: error }
+    }
+  })
   // 更新白板名称
   ipcMain.handle('update-whiteboard-name', async (_, id: string, name: string) => {
     try {
@@ -612,10 +623,10 @@ function setupIpcHandlers() {
   })
 
   // 更新笔记的卡片盒
-  ipcMain.handle('update-note-card-box', async (_event, { noteId, cardBoxId }) => {
+  ipcMain.handle('update-note-card-box', async (_event, noteId: string, cardBoxId: string) => {
     try {
-      await updateNoteCardBox(noteId, cardBoxId)
-      return { success: true }
+      const updatedNote = await updateNoteCardBox(noteId, cardBoxId)
+      return updatedNote
     } catch (error) {
       console.error('主进程 → 更新笔记的卡片盒时出错:', error)
       return { success: false, error: error }

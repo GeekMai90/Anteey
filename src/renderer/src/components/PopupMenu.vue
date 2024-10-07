@@ -1,33 +1,35 @@
 <template>
   <Teleport to="body">
-    <div v-if="show" :style="menuStyle" class="popup-menu" @click.stop>
-      <div
-        v-for="item in menuItems"
-        :key="item.name"
-        class="popup-menu-item"
-        :class="{ 'popup-menu-item-danger': item.isDangerous }"
-        @click="handleItemClick(item)"
-      >
-        <div v-if="item.icon" class="icon">
-          <component
-            :is="item.icon"
-            theme="outline"
-            size="18"
-            :fill="item.isDangerous ? '#ff4d4f' : item.fill || 'var(--color-icon-default)'"
-          />
-        </div>
-        <div class="name" :class="{ 'popup-menu-item-danger': item.isDangerous }">
-          {{ item.label }}
+    <Transition name="fade-zoom">
+      <div v-if="show" :style="computedMenuStyle" class="popup-menu" @click.stop>
+        <div
+          v-for="item in menuItems"
+          :key="item.name"
+          class="popup-menu-item"
+          :class="{ 'popup-menu-item-danger': item.isDangerous }"
+          @click="handleItemClick(item)"
+        >
+          <div v-if="item.icon" class="icon">
+            <component
+              :is="item.icon"
+              theme="outline"
+              size="18"
+              :fill="item.isDangerous ? '#ff4d4f' : item.fill || 'var(--color-icon-default)'"
+            />
+          </div>
+          <div class="name" :class="{ 'popup-menu-item-danger': item.isDangerous }">
+            {{ item.label }}
+          </div>
         </div>
       </div>
-    </div>
+    </Transition>
   </Teleport>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, CSSProperties } from 'vue'
 
-interface MenuItem {
+export interface MenuItem {
   name: string
   label: string
   icon?: any
@@ -36,29 +38,77 @@ interface MenuItem {
   isDangerous?: boolean
 }
 
-defineProps<{
+interface Position {
+  x: number
+  y: number
+}
+
+const props = defineProps<{
   menuItems: MenuItem[]
+  position?: Position
+  offset?: Position
+  show?: boolean
 }>()
 
-const show = ref(false)
-const menuStyle = ref({})
+const emit = defineEmits(['close', 'itemClick'])
+
+// const show = ref(false)
+const menuPosition = ref<Position>({ x: 0, y: 0 })
+const isConfirmingDelete = ref(false)
+let deleteTimeout: number | null = null
+
+// const computedMenuItems = computed(() => {
+//   return props.menuItems.map((item) => {
+//     if (item.name === 'delete') {
+//       return {
+//         ...item,
+//         label: isConfirmingDelete.value ? '确认删除' : '删除',
+//         isDangerous: isConfirmingDelete.value,
+//         fill: isConfirmingDelete.value ? '#ff4d4f' : item.fill
+//       }
+//     }
+//     return item
+//   })
+// })
+
+const computedMenuStyle = computed((): CSSProperties => {
+  const { x, y } = menuPosition.value
+  const offsetX = props.offset?.x || 0
+  const offsetY = props.offset?.y || 0
+  return {
+    position: 'fixed',
+    top: `${y + offsetY}px`,
+    left: `${x + offsetX}px`
+  }
+})
 
 const handleItemClick = (item: MenuItem) => {
-  item.action()
-  closeMenu()
+  emit('itemClick', item)
 }
 
 const closeMenu = () => {
-  show.value = false
+  isConfirmingDelete.value = false
+  if (deleteTimeout !== null) {
+    clearTimeout(deleteTimeout)
+    deleteTimeout = null
+  }
+  emit('close')
 }
 
-const openMenu = (x: number, y: number) => {
-  menuStyle.value = {
-    position: 'fixed',
-    top: `${y}px`,
-    left: `${x}px`
+const openMenu = (x?: number, y?: number) => {
+  if (x !== undefined && y !== undefined) {
+    menuPosition.value = { x, y }
+  } else if (props.position) {
+    menuPosition.value = props.position
   }
-  show.value = true
+}
+
+const resetDeleteState = () => {
+  isConfirmingDelete.value = false
+  if (deleteTimeout !== null) {
+    clearTimeout(deleteTimeout)
+    deleteTimeout = null
+  }
 }
 
 onMounted(() => {
@@ -67,9 +117,10 @@ onMounted(() => {
 
 onUnmounted(() => {
   document.removeEventListener('click', closeMenu)
+  resetDeleteState()
 })
 
-defineExpose({ openMenu, closeMenu })
+defineExpose({ openMenu, closeMenu, resetDeleteState })
 </script>
 
 <style scoped lang="scss">
@@ -79,7 +130,7 @@ defineExpose({ openMenu, closeMenu })
   border-radius: 8px;
   box-shadow: var(--shadow-primary);
   z-index: 9999;
-  min-width: 200px;
+  min-width: 180px;
   width: max-content;
   max-width: 300px;
   overflow-y: auto;
@@ -164,5 +215,24 @@ defineExpose({ openMenu, closeMenu })
   &.delete {
     color: #ff4d4f;
   }
+}
+// 添加动画相关的样式
+.fade-zoom-enter-active,
+.fade-zoom-leave-active {
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
+}
+
+.fade-zoom-enter-from,
+.fade-zoom-leave-to {
+  opacity: 0;
+  transform: scale(0.95);
+}
+
+.fade-zoom-enter-to,
+.fade-zoom-leave-from {
+  opacity: 1;
+  transform: scale(1);
 }
 </style>
