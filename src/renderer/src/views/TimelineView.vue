@@ -97,7 +97,7 @@ import { Time, Calendar, Search, Close } from '@icon-park/vue-next'
 import AppToolbar from '../components/AppToolbar.vue'
 import CalendarPicker from '../components/CalendarPicker.vue'
 import { useUIStore } from '../stores/useUIStore'
-import { useSearch } from '../composable/useSearch'
+import { useSearch } from '../composables/useSearch'
 import { Note } from '@renderer/types/Note'
 // 初始化笔记状态
 const noteStore = useNoteStore()

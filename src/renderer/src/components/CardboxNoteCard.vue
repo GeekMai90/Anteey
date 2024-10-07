@@ -8,35 +8,34 @@
       <div class="note-buttons">
         <div class="note-button" @click.stop="expandNote">
           <div class="icon">
-            <ExpandTextInput theme="outline" size="20" fill="#b6b6b6" />
+            <ExpandTextInput
+              theme="outline"
+              size="18"
+              fill="var(--color-text-secondary)"
+              :strokeWidth="3"
+            />
           </div>
         </div>
-        <div class="note-button" @click.stop="toggleOptionsMenu">
+        <div ref="moreBtnRef" class="note-button" @click.stop="toggleMenu">
           <div class="icon">
-            <More theme="outline" size="20" fill="#b6b6b6" />
+            <More theme="outline" size="18" fill="var(--color-text-secondary)" :strokeWidth="3" />
           </div>
         </div>
 
-        <div
-          v-if="isOptionsMenuVisible"
-          v-click-outside="closeOptionsMenu"
-          class="note-options-menu"
-        >
-          <NoteOptionsMenu
-            :noteId="note.id"
-            @close="closeOptionsMenu"
-            @note-deleted="handleNoteDeleted"
-            @share="handleShare"
-            @star="handleStar"
-            @show-sidebar="handleShowSidebar"
-            @copy="handleCopy"
-            @show-history="handleShowHistory"
-          />
-        </div>
+        <PopupMenu
+          ref="popupMenuRef"
+          :show="isMenuVisible"
+          :menuItems="noteMenuItems"
+          :position="menuPosition"
+          :offset="{ x: -75, y: 5 }"
+          @close="closeMenu"
+          @itemClick="handleMenuItemClick"
+        />
       </div>
     </div>
     <div ref="noteContent" class="note-content">
       <TipTapEditor
+        v-if="localNote"
         v-model:content="localNote.content"
         :editable="false"
         :enable-drag-handle="isDragHandleEnabled"
@@ -53,40 +52,41 @@
 import { Note } from '@renderer/types/Note'
 import { formatDate } from '@renderer/utils/noteHelpers'
 import { More, ExpandTextInput } from '@icon-park/vue-next'
-import { computed, onMounted, onUpdated, ref, watch, toRef } from 'vue'
-import NoteOptionsMenu from '@renderer/components/NoteOptionsMenu.vue'
-import { useNoteOptions } from '@renderer/composable/useNoteOptions'
+import { computed, onMounted, onUpdated, ref, watch, reactive, nextTick } from 'vue'
+import { useNoteStore } from '@renderer/stores/noteStores'
 import { useRouter } from 'vue-router'
 import TipTapEditor from '@renderer/components/TipTapEditor.vue'
-import { useNoteStore } from '@renderer/stores/noteStores'
+import PopupMenu from '@renderer/components/PopupMenu.vue'
+import { useNoteMenu } from '@renderer/composables/useNoteMenu'
+import type { MenuItem } from '@renderer/components/PopupMenu.vue'
+import { storeToRefs } from 'pinia'
+import { useEventBus } from '@vueuse/core'
 
 const props = defineProps<{
   note: Note
 }>()
 
+const noteStore = useNoteStore()
+const { allNotes } = storeToRefs(noteStore)
+
+const localNote = computed(() => {
+  return allNotes.value.find((note) => note.id === props.note.id)
+})
+
 // const emit = defineEmits(['edit'])
 const isDragHandleEnabled = ref(false)
-const noteStore = useNoteStore()
 
-const {
-  isOptionsMenuVisible,
-  toggleOptionsMenu,
-  closeOptionsMenu,
-  handleShare,
-  handleStar,
-  handleShowSidebar,
-  handleCopy,
-  handleShowHistory
-} = useNoteOptions(props.note.id)
+const moreBtnRef = ref<HTMLElement | null>(null)
+const popupMenuRef = ref<InstanceType<typeof PopupMenu> | null>(null)
+const isMenuVisible = ref(false)
+const menuPosition = reactive({ x: 0, y: 0 })
 
-const localNote = toRef(props, 'note')
+const { menuItems: noteMenuItems, resetDeleteState } = useNoteMenu({
+  noteId: props.note.id,
+  menuItems: ['star', 'sidebar', 'delete']
+})
 
-const handleNoteDeleted = () => {
-  // 处理笔记删除后的逻辑
-  noteStore.closeNoteEditor()
-  // 可能还需要其他操作，如更新UI等
-  closeOptionsMenu() // 只在笔记真正被删除后关闭菜单
-}
+// const localNote = toRef(props, 'note')
 
 // 处理内容超高时底部出现模糊效果
 const noteContent = ref<HTMLDivElement | null>(null)
@@ -118,6 +118,36 @@ const cardTypeClass = computed(() => {
       return ''
   }
 })
+
+const toggleMenu = (event: MouseEvent) => {
+  event.preventDefault()
+  isMenuVisible.value = !isMenuVisible.value
+  if (isMenuVisible.value && moreBtnRef.value) {
+    const rect = moreBtnRef.value.getBoundingClientRect()
+    menuPosition.x = rect.left
+    menuPosition.y = rect.bottom
+    isMenuVisible.value = true
+    nextTick(() => {
+      popupMenuRef.value?.openMenu()
+    })
+  }
+}
+
+const handleMenuItemClick = async (item: MenuItem) => {
+  await item.action()
+  if (item.name === 'delete') {
+    // 触发一个事件，通知父组件刷新笔记列表
+    const eventBus = useEventBus('note-deleted')
+    eventBus.emit()
+  } else {
+    closeMenu()
+  }
+}
+
+const closeMenu = () => {
+  isMenuVisible.value = false
+  resetDeleteState()
+}
 
 onMounted(() => {
   checkOverflow()
@@ -156,18 +186,16 @@ watch(
     justify-content: space-between;
     margin-bottom: 10px;
     position: relative;
-    // margin-left: 2rem;
-    // padding-left: 2rem;
-    padding: 0 15px 0 30px; // 调整左右内边距
+    padding: 0 15px 0 25px; // 调整左右内边距
     height: 30px;
 
     .note-indicator {
       position: absolute;
-      left: 17px;
+      left: 15px;
       top: 50%;
       transform: translateY(-50%);
       width: 4px;
-      height: 13px;
+      height: 12px;
       border-radius: 2px;
       margin-right: 10px;
 
@@ -218,7 +246,7 @@ watch(
     }
     .note-buttons {
       position: absolute;
-      top: 0;
+      top: -5px;
       right: 0;
       display: flex;
       // gap: 3px;
@@ -335,15 +363,17 @@ watch(
 }
 
 .note-timestamp {
-  font-size: 0.8em;
+  font-size: 10px;
   color: var(--color-text-secondary);
   align-self: flex-end;
-  margin-right: 1rem;
-  margin-bottom: 10px;
+  margin-right: 10px;
+  margin-bottom: 5px;
 }
 
 :deep(.tiptap) {
   margin-left: 0;
   margin-right: 0;
+  padding-left: 15px;
+  padding-right: 15px;
 }
 </style>

@@ -51,7 +51,7 @@ import { useRouter } from 'vue-router'
 import TipTapEditor from '@renderer/components/TipTapEditor.vue'
 import { useNoteStore } from '@renderer/stores/noteStores'
 import PopupMenu from './PopupMenu.vue'
-import { useNoteMenu } from '../composable/useNoteMenu'
+import { useNoteMenu } from '../composables/useNoteMenu'
 import type { MenuItem } from './PopupMenu.vue'
 
 const props = defineProps<{

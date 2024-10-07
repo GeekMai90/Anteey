@@ -113,7 +113,7 @@ import CardboxDropdownMenu from './CardboxDropdownMenu.vue'
 import { debounce } from 'lodash-es'
 import { storeToRefs } from 'pinia'
 import PopupMenu from './PopupMenu.vue'
-import { useNoteMenu } from '../composable/useNoteMenu'
+import { useNoteMenu } from '../composables/useNoteMenu'
 import type { MenuItem } from './PopupMenu.vue'
 const props = defineProps<{
   noteId: string

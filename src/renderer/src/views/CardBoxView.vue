@@ -11,11 +11,11 @@
             <div class="name">卡片盒</div>
           </div>
           <div class="topToolBar-right">
-            <!-- 添加搜索框 -->
+            <!-- 更新的搜索框 -->
             <div
               v-tooltip.bottom="{ content: 'Cmd+P', delay: { show: 1000 } }"
               class="search-box"
-              :class="{ 'is-focused': isSearchFocused }"
+              :class="{ 'is-focused': isSearchActive }"
             >
               <div class="search-icon">
                 <div class="icon">
@@ -33,7 +33,7 @@
                 type="text"
                 placeholder="搜索"
                 @input="handleSearch"
-                @focus="isSearchFocused = true"
+                @focus="isSearchActive = true"
                 @blur="handleBlur"
               />
               <div v-if="searchQuery" class="clear-icon" @click="clearSearch">
@@ -44,6 +44,17 @@
                     fill="var(--color-text-secondary)"
                     :strokeWidth="2"
                   />
+                </div>
+              </div>
+              <!-- 新增的搜索结果显示 -->
+              <div v-if="searchResults.length > 0" class="search-results">
+                <div
+                  v-for="result in searchResults"
+                  :key="result.note.id"
+                  class="search-result-item"
+                  @click="scrollToNote(result.index, result.note.id)"
+                >
+                  {{ result.note.address }}
                 </div>
               </div>
             </div>
@@ -210,7 +221,12 @@
     <div class="cardbox-view-container">
       <div class="card-grid-container">
         <div class="card-grid">
-          <CardBoxNoteCard v-for="note in filteredNotes" :key="note.id" :note="note" />
+          <CardBoxNoteCard
+            v-for="note in filteredNotes"
+            :key="note.id"
+            :note="note"
+            :highlightedNoteId="highlightedNoteId"
+          />
         </div>
       </div>
       <!-- 创建/编辑卡片盒的模态框 -->
@@ -260,7 +276,8 @@ import {
 import { CardBox, Note } from '../types/Note'
 import CardBoxNoteCard from '../components/CardboxNoteCard.vue'
 import { storeToRefs } from 'pinia'
-import { useSearch } from '../composable/useSearch'
+import { useCardBoxSearch } from '../composables/useCardBoxSearch'
+import { useEventBus } from '@vueuse/core'
 
 const noteStore = useNoteStore()
 const { allNotes, selectedCardTypes } = storeToRefs(noteStore)
@@ -276,6 +293,38 @@ const isConfirmingDelete = ref(false)
 const showSortMenu = ref(false)
 const currentSort = ref('name')
 const sortDirection = ref('asc')
+const highlightedNoteId = ref<string | null>(null)
+
+// 使用新的 useCardBoxSearch 组合函数
+const {
+  searchQuery,
+  handleSearch,
+  filteredNotes: searchFilteredNotes,
+  searchResults,
+  clearSearch,
+  isSearchActive
+} = useCardBoxSearch(allNotes)
+
+// 初始化组件中的笔记数据
+const fetchNotes = async () => {
+  await noteStore.fetchAllNotes()
+}
+
+// 在组件挂载时，初始化笔记数据
+onMounted(async () => {
+  await fetchNotes()
+  document.addEventListener('click', handleGlobalClick)
+  await noteStore.fetchCardBoxes()
+  if (cardBoxes.value.length > 0) {
+    selectCardBox(cardBoxes.value[0])
+  }
+})
+
+// 监听笔记删除事件，重新获取笔记数据
+const eventBus = useEventBus('note-deleted')
+eventBus.on(() => {
+  fetchNotes()
+})
 
 // 排序选项功能
 const sortOptions = [
@@ -302,12 +351,10 @@ const selectSortOption = (option: { value: string; label: string }) => {
 let deleteTimeout: ReturnType<typeof setTimeout> | null = null
 
 // 收件箱功能
-// 筛选出所有没有加入卡片盒的笔记
 const isInboxSelected = ref(false)
 
 const toggleInbox = () => {
   isInboxSelected.value = !isInboxSelected.value
-  // 如果切换收件箱的状态，将卡片盒的状态设置为卡片柜，即显示全部卡片
   if (isInboxSelected.value) {
     selectedCardBox.value = cardBoxes.value[0]
   }
@@ -326,14 +373,11 @@ const cardBoxes = computed(() => {
     parentId: ''
   }
 
-  // 确保 noteStore.cardBoxes 是一个数组，并且每个元素都有 name 属性
   const validCardBoxes = (noteStore.cardBoxes || []).filter(
     (box) => box && typeof box.name === 'string'
   )
-  // 对 noteStore.cardBoxes 进行排序
   const sortedCardBoxes = [...validCardBoxes].sort((a, b) => a.name.localeCompare(b.name, 'zh-CN'))
 
-  // 将 "全部卡片" 选项放在最前面，然后是排序后的其他卡片盒
   return [allCardsOption, ...sortedCardBoxes]
 })
 
@@ -346,25 +390,20 @@ const selectCardBox = (box: CardBox | null) => {
   console.log('选择卡片盒:', box?.name)
   selectedCardBox.value = box
   showCardBoxMenu.value = false
-  // 如果选择了卡片盒，取消收件箱的选择状态
   if (box !== null) {
     isInboxSelected.value = false
   }
 }
 
-const { searchQuery, handleSearch, filteredItems, clearSearch } = useSearch(allNotes)
-
-const isSearchFocused = ref(false)
-
 const handleBlur = () => {
   setTimeout(() => {
-    isSearchFocused.value = false
+    isSearchActive.value = false
   }, 100)
 }
 
 // 修改 filteredNotes 计算属性
 const filteredNotes = computed(() => {
-  return filteredItems.value
+  return searchFilteredNotes.value
     .filter((note: Note) => {
       if (isInboxSelected.value) {
         return !note.cardBoxId
@@ -406,6 +445,19 @@ watch(
   },
   { deep: true }
 )
+
+// 新增的 scrollToNote 函数
+const scrollToNote = (index: number, noteId: string) => {
+  const cardElements = document.querySelectorAll('.card-grid > *')
+  if (cardElements[index]) {
+    cardElements[index].scrollIntoView({ behavior: 'smooth', block: 'center' })
+    highlightedNoteId.value = noteId
+    setTimeout(() => {
+      highlightedNoteId.value = null
+    }, 3000) // 3秒后取消高亮
+  }
+  clearSearch() // 清除搜索结果
+}
 
 // 卡片盒下拉项中的更多操作
 const toggleMoreActions = (id: string, event: MouseEvent) => {
@@ -579,18 +631,8 @@ const toggleCardType = (type: string) => {
   noteStore.toggleCardType(type)
 }
 
-onMounted(async () => {
-  document.addEventListener('click', handleGlobalClick)
-  await noteStore.fetchCardBoxes()
-  if (cardBoxes.value.length > 0) {
-    selectCardBox(cardBoxes.value[0])
-  }
-})
-
 onUnmounted(() => {
   document.removeEventListener('click', handleGlobalClick)
-})
-onUnmounted(() => {
   if (deleteTimeout) {
     clearTimeout(deleteTimeout)
   }
@@ -1131,6 +1173,30 @@ onUnmounted(() => {
 
     .clear-icon {
       cursor: pointer;
+    }
+
+    .search-results {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background-color: var(--color-bg-primary);
+      border: 1px solid var(--color-border);
+      border-radius: 8px;
+      box-shadow: var(--shadow-primary);
+      max-height: 300px;
+      overflow-y: auto;
+      z-index: 1000;
+    }
+
+    .search-result-item {
+      padding: 8px 12px;
+      cursor: pointer;
+      transition: background-color 0.2s;
+
+      &:hover {
+        background-color: var(--color-hover-bg);
+      }
     }
   }
 }

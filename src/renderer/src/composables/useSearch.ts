@@ -92,12 +92,6 @@ export function useSearch<T extends Searchable>(items: Ref<T[]>) {
     selectedDate.value = date
   }
 
-  // const handleEscKey = (event: KeyboardEvent) => {
-  //   if (event.key === 'Escape') {
-  //     clearSearch()
-  //   }
-  // }
-
   onMounted(() => {
     document.addEventListener('keydown', handleKeyDown)
   })

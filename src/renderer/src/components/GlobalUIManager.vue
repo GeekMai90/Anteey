@@ -14,7 +14,7 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted, onUnmounted } from 'vue'
 import NoteOptionsMenu from '@renderer/components/NoteOptionsMenu.vue'
-import { useNoteOptions } from '@renderer/composable/useNoteOptions'
+import { useNoteOptions } from '@renderer/composables/useNoteOptions'
 
 const currentNoteId = ref<string | undefined>(undefined)
 const optionsMenuStyle = ref({})
