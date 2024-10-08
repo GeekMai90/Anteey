@@ -88,14 +88,16 @@ const handleOverlayClick = () => {
   font-size: 14px;
   cursor: pointer;
   transition: all 0.2s ease;
+  border: none;
+  // outline: none;
 
   &.cancel {
-    background-color: var(--color-bg-secondary);
+    background-color: #f0f0f0;
     color: var(--color-text-primary);
     margin-right: 12px;
 
     &:hover {
-      background-color: var(--color-hover-button);
+      background-color: #e0e0e0;
     }
   }
 

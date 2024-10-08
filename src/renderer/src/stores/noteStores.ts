@@ -128,6 +128,11 @@ export const useNoteStore = defineStore('note', {
         }
       }
     },
+    // 将白板中创建的笔记添加到笔记列表中
+    async addNoteToNoteList(id: string) {
+      const note = await this.fetchNoteById(id)
+      this.notesMap.set(note.id, note)
+    },
     // 私有方法：更新本地笔记状态
     updateLocalNote(id: string, updatedNote: Note) {
       this.notesMap.set(id, updatedNote)

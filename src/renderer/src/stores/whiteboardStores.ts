@@ -109,9 +109,12 @@ export const useWhiteboardStore = defineStore('whiteboard', {
       )
       return updatedWhiteboard
     },
+    // 创建白板笔记
     async createWhiteboardNote(input: CreateWhiteboardNoteInput) {
       console.log('whiteboardStore→ 开始创建白板笔记', input)
       const newWhiteboardNote = await window.electronAPI.createWhiteboardNote(input)
+      const noteId = newWhiteboardNote.noteId
+      await this.noteStore.addNoteToNoteList(noteId)
       console.log('whiteboardStore→ 创建白板笔记成功', newWhiteboardNote)
       return newWhiteboardNote
     },

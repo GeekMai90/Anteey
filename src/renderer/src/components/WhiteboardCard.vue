@@ -7,7 +7,7 @@
         </div>
       </div>
     </div>
-    <div class="whiteboard-card-content" @dblclick="openWhiteboard(whiteboard.id)">
+    <div class="whiteboard-card-content" @dblclick.stop="openWhiteboard(whiteboard.id)">
       <div class="whiteboard-name">
         <div class="icon">
           <Workbench
@@ -68,9 +68,17 @@ onMounted(async () => {
 })
 
 // 打开白板详情
+// const openWhiteboard = (id: string) => {
+//   console.log('打开白板详情', id)
+//   router.push({ name: 'whiteboardDetail', params: { whiteboardId: id } })
+// }
 const openWhiteboard = (id: string) => {
   console.log('打开白板详情', id)
-  router.push({ name: 'whiteboardDetail', params: { whiteboardId: id } })
+  console.log('当前路由:', router.currentRoute.value)
+  router
+    .push({ name: 'whiteboardDetail', params: { whiteboardId: id } })
+    .then(() => console.log('路由跳转成功'))
+    .catch((error) => console.error('路由跳转失败:', error))
 }
 
 // 更多按钮弹出菜单
@@ -107,6 +115,7 @@ const toggleMenu = (event: MouseEvent) => {
 const handleMenuItemClick = (item: MenuItem) => {
   if (item.name === 'deleteWhiteboard') {
     handleDeleteWhiteboard()
+    closeMenu()
   } else {
     item.action()
     closeMenu()
@@ -184,6 +193,7 @@ const closeMenu = () => {
   display: flex;
   align-items: center;
   cursor: pointer;
+  user-select: none;
 }
 .whiteboard-name {
   display: flex;

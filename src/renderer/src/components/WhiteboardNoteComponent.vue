@@ -101,7 +101,6 @@ import { Note, CardBox, WhiteboardNote } from '../types/Note'
 import { useNoteStore } from '../stores/noteStores'
 import TipTapEditor from '../components/TipTapEditor.vue'
 import { useRouter } from 'vue-router'
-import { debounce } from 'lodash-es'
 import { useNoteMenu } from '@renderer/composables/useNoteMenu'
 import { useWhiteboardStore } from '../stores/whiteboardStores'
 import { storeToRefs } from 'pinia'
@@ -110,6 +109,7 @@ import { useResizeObserver } from '@vueuse/core'
 import WhiteboardNoteToolbar from './WhiteboardNoteToolbar.vue'
 import CardTypeMenu from './CardTypeMenu.vue'
 import { MenuItem } from './PopupMenu.vue'
+import { debounce } from 'lodash-es'
 
 const props = defineProps<{
   noteId: string
@@ -381,24 +381,45 @@ const saveStatus = ref<'idle' | 'saving' | 'saved' | 'error'>('idle')
 // 数据是否加载完成
 const isInitialized = ref(false)
 
+watch(
+  () => props.noteId,
+  (newNoteId) => {
+    if (newNoteId) {
+      // 在这里添加加载笔记内容的逻辑
+      loadNote()
+    }
+  }
+)
+
 // 加载笔记
 const loadNote = async () => {
+  console.log('开始加载笔记，noteId:', props.noteId)
   if (props.noteId) {
-    const note = await noteStore.getNoteById(props.noteId)
-    if (note) {
-      editedNote.value = JSON.parse(JSON.stringify(note))
-      lastSavedNote = JSON.parse(JSON.stringify(note))
-      isInitialized.value = true
-    } else {
-      console.error('WhiteboardNoteComponent.vue → 编辑的笔记为空')
+    try {
+      const note = await noteStore.getNoteById(props.noteId)
+      console.log('从 store 获取到的笔记:', note)
+      if (note) {
+        editedNote.value = JSON.parse(JSON.stringify(note))
+        lastSavedNote = JSON.parse(JSON.stringify(note))
+        isInitialized.value = true
+        console.log('笔记加载成功:', editedNote.value)
+      } else {
+        console.error('WhiteboardNoteComponent.vue → 获取到的笔记为空')
+        // 可以在这里添加一些错误处理逻辑，比如显示一个错误消息
+      }
+    } catch (error) {
+      console.error('WhiteboardNoteComponent.vue → 加载笔记时发生错误:', error)
+      // 可以在这里添加一些错误处理逻辑，比如显示一个错误消息
     }
   } else {
-    console.error('WhiteboardNoteComponent.vue → 编辑的笔记为空')
+    console.error('WhiteboardNoteComponent.vue → noteId 为空')
+    // 可以在这里添加一些错误处理逻辑，比如显示一个错误消息
   }
 }
 
 // 在组件挂载时加载笔记
 onMounted(() => {
+  console.log('WhiteboardNoteComponent.vue → 组件挂载时加载笔记', props.noteId)
   loadNote()
 })
 
@@ -451,10 +472,11 @@ const resetAutoSaveTimer = () => {
     if (hasUnsavedChanges.value) {
       autoSave()
     }
-  }, 3000)
+  }, 1000)
 }
 
 // 自动保存
+// 增加防抖
 const autoSave = debounce(async () => {
   if (editedNote.value && editedNote.value.id && hasUnsavedChanges.value && isInitialized.value) {
     try {
@@ -473,13 +495,13 @@ const autoSave = debounce(async () => {
       noteStore.updateCurrentNoteSaveStatus('error')
     }
   }
-}, 2000)
+}, 1000)
 
 onUnmounted(() => {
   if (autoSaveTimer) {
     clearTimeout(autoSaveTimer)
   }
-  autoSave.cancel()
+  // autoSave.cancel()
   noteStore.updateCurrentNoteSaveStatus('saved')
 })
 

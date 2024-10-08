@@ -324,20 +324,6 @@ const updateNotes = (updatedNotes: WhiteboardNote[]) => {
   })
 }
 
-// const isNoteInSelection = (note: WhiteboardNote) => {
-//   const selectionLeft = Math.min(selectionStart.value.x, selectionEnd.value.x)
-//   const selectionRight = Math.max(selectionStart.value.x, selectionEnd.value.x)
-//   const selectionTop = Math.min(selectionStart.value.y, selectionEnd.value.y)
-//   const selectionBottom = Math.max(selectionStart.value.y, selectionEnd.value.y)
-
-//   return (
-//     note.position.x < selectionRight &&
-//     note.position.x + note.size.width > selectionLeft &&
-//     note.position.y < selectionBottom &&
-//     note.position.y + note.size.height > selectionTop
-//   )
-// }
-
 // 数据是否加载完成
 const dataLoaded = ref(false)
 
@@ -1032,9 +1018,13 @@ const createWhiteboardNote = async (x: number, y: number) => {
     // 确保 newNote 包含所有必要的属性
     if (newNote && newNote.id) {
       console.log('创建白板笔记成功, 添加到白板笔记列表中', newNote)
-      whiteboardNotes.value.push(newNote)
+      // whiteboardNotes.value.push(newNote)
+      whiteboardNotes.value = [...whiteboardNotes.value, newNote]
       console.log('创建白板笔记成功, 添加到白板笔记列表中, 重新获取白板项', whiteboardNotes.value)
-      await initializeData(whiteboardId.value)
+      // await initializeData(whiteboardId.value)
+
+      await nextTick()
+      console.log('白板笔记列表更新后', whiteboardNotes.value)
       contextMenuStore.closeMenu()
 
       // 如果需要，可以在这里添加创建关联笔记的逻辑
