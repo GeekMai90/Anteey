@@ -724,7 +724,7 @@ onUnmounted(() => {
     display: flex;
     align-items: center;
     // width: 100px;
-    padding: 2px 10px 2px 5px;
+    padding: 2px 12px 2px 7px;
     border: none;
     background: none;
     cursor: pointer;
@@ -751,7 +751,7 @@ onUnmounted(() => {
       padding: 0;
 
       // 新增以下样式来处理 i-icon 类
-      .i-icon {
+      :deep(.i-icon) {
         display: flex;
         align-items: center;
         justify-content: center;
@@ -759,9 +759,9 @@ onUnmounted(() => {
         height: 100%;
       }
 
-      svg {
-        width: 18px; // 或者您想要的大小
-        height: 18px; // 或者您想要的大小
+      :deep(svg) {
+        width: 16px; // 或者您想要的大小
+        height: 16px; // 或者您想要的大小
       }
     }
 
@@ -788,7 +788,7 @@ onUnmounted(() => {
     display: flex;
     align-items: center;
     // width: 100px;
-    padding: 2px 10px 2px 5px;
+    padding: 2px 12px 2px 7px;
     border: none;
     background: none;
     cursor: pointer;
@@ -821,7 +821,7 @@ onUnmounted(() => {
       }
 
       // 新增以下样式来处理 i-icon 类
-      .i-icon {
+      :deep(.i-icon) {
         display: flex;
         align-items: center;
         justify-content: center;
@@ -829,9 +829,9 @@ onUnmounted(() => {
         height: 100%;
       }
 
-      svg {
-        width: 18px; // 或者您想要的大小
-        height: 18px; // 或者您想要的大小
+      :deep(svg) {
+        width: 16px; // 或者您想要的大小
+        height: 16px; // 或者您想要的大小
       }
     }
 
@@ -998,7 +998,7 @@ onUnmounted(() => {
     display: flex;
     align-items: center;
     // width: 100px;
-    padding: 2px 10px 2px 5px;
+    padding: 2px 12px 2px 7px;
     border: none;
     background: none;
     cursor: pointer;
@@ -1031,7 +1031,7 @@ onUnmounted(() => {
       }
 
       // 新增以下样式来处理 i-icon 类
-      .i-icon {
+      :deep(.i-icon) {
         display: flex;
         align-items: center;
         justify-content: center;
@@ -1039,9 +1039,9 @@ onUnmounted(() => {
         height: 100%;
       }
 
-      svg {
-        width: 18px; // 或者您想要的大小
-        height: 18px; // 或者您想要的大小
+      :deep(svg) {
+        width: 16px; // 或者您想要的大小
+        height: 16px; // 或者您想要的大小
       }
     }
 
@@ -1315,7 +1315,7 @@ onUnmounted(() => {
   position: relative;
   display: flex;
   align-items: center;
-  padding: 2px 10px 2px 5px;
+  padding: 2px 12px 2px 7px;
   cursor: pointer;
   transition: background-color 0.2s;
   border-radius: 8px;
@@ -1345,7 +1345,7 @@ onUnmounted(() => {
     }
 
     // 新增以下样式来处理 i-icon 类
-    .i-icon {
+    :deep(.i-icon) {
       display: flex;
       align-items: center;
       justify-content: center;
@@ -1353,9 +1353,9 @@ onUnmounted(() => {
       height: 100%;
     }
 
-    svg {
-      width: 18px; // 或者您想要的大小
-      height: 18px; // 或者您想要的大小
+    :deep(svg) {
+      width: 16px; // 或者您想要的大小
+      height: 16px; // 或者您想要的大小
     }
   }
 
@@ -1408,7 +1408,7 @@ onUnmounted(() => {
       margin: 2px;
 
       &:hover {
-        background-color: #f6f7f9;
+        background-color: var(--color-hover-bg);
       }
 
       &.active {
@@ -1547,50 +1547,6 @@ onUnmounted(() => {
       }
     }
   }
-
-  // .sort-dropdown-menu {
-  //   position: absolute;
-  //   top: calc(100% + 5px);
-  //   left: 50%;
-  //   transform: translateX(-50%); // 居中对齐
-  //   background-color: var(--color-bg-primary);
-  //   border-radius: 8px;
-  //   z-index: 1000;
-  //   min-width: 200px;
-  //   width: auto;
-  //   overflow-y: auto;
-  //   padding: 6px 0;
-  //   white-space: nowrap;
-  //   background-clip: padding-box;
-  //   box-shadow:
-  //     0 3px 6px -4px rgb(0 0 0 / 12%),
-  //     0 6px 16px 0 rgb(0 0 0 / 8%),
-  //     0 9px 28px 8px rgb(0 0 0 / 5%);
-  // }
-
-  // .sort-dropdown-item {
-  //   display: flex;
-  //   align-items: center;
-  //   justify-content: space-between;
-  //   padding: 8px 16px;
-  //   cursor: pointer;
-  //   transition: background-color 0.2s;
-  //   font-size: 14px;
-  //   color: #333;
-  //   white-space: nowrap;
-  //   border-radius: 8px;
-  //   margin: 2px 8px 2px 8px;
-
-  //   &:hover {
-  //     background-color: var(--color-hover-bg);
-  //   }
-
-  //   &.active {
-  //     background-color: rgba(0, 200, 168, 0.05);
-  //     border: 1px solid #00c8a8;
-  //     // color: #00C8A8;
-  //   }
-  // }
 }
 
 .dropdown-menu::-webkit-scrollbar {
@@ -1665,7 +1621,7 @@ onUnmounted(() => {
       }
 
       // 新增以下样式来处理 i-icon 类
-      .i-icon {
+      :deep(.i-icon) {
         display: flex;
         align-items: center;
         justify-content: center;
@@ -1674,7 +1630,7 @@ onUnmounted(() => {
         flex-shrink: 0; // 防止图标缩小
       }
 
-      svg {
+      :deep(svg) {
         width: 16px; // 或者您想要的大小
         height: 16px; // 或者您想要的大小
       }
