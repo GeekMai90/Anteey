@@ -42,14 +42,21 @@ const attributes = computed(() => {
   return [
     {
       key: 'today',
+      dates: new Date(),
       highlight: {
-        fillMode: 'outline'
+        fillMode: 'solid',
+        class: 'today-highlight'
       }
     },
     {
+      key: 'selected',
+      dates: internalSelectedDate.value ? new Date(internalSelectedDate.value) : null,
       highlight: {
-        color: '#00c8a8'
-      },
+        fillMode: 'outline',
+        class: 'selected-highlight'
+      }
+    },
+    {
       dot: {
         class: 'custom-dot'
       },
@@ -62,7 +69,7 @@ const calendarRef = ref<HTMLDivElement | null>(null)
 
 const onDayClick = (day: { id: string }) => {
   internalSelectedDate.value = day.id
-  uiStore.closeCalendarPicker()
+  // uiStore.closeCalendarPicker()
 }
 
 const updateCalendarPosition = () => {
@@ -152,6 +159,33 @@ onUnmounted(() => {
 .calendar-popup {
   :deep(.vc-highlight) {
     background-color: var(--color-primary) !important;
+  }
+  :deep(.vc-highlight) {
+    background-color: transparent !important;
+  }
+
+  :deep(.today-highlight) {
+    background-color: var(--color-primary) !important;
+    border-radius: 50%;
+  }
+
+  :deep(.selected-highlight) {
+    border: 2px solid var(--color-primary) !important;
+    border-radius: 50%;
+    background-color: transparent !important;
+  }
+
+  :deep(.vc-day) {
+    &.is-today {
+      .vc-day-content {
+        color: white !important;
+      }
+    }
+    .vc-highlight-content-outline,
+    .vc-highlight-content-none {
+      color: #0f172a !important;
+      font-weight: 500 !important;
+    }
   }
 }
 .calendar-popup {

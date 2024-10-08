@@ -372,7 +372,7 @@ p {
 
 @media (min-height: 1000px) {
   .stats-container {
-    --spacing: 240px;
+    --spacing: 100px;
   }
 }
 
