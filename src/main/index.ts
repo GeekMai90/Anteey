@@ -40,7 +40,8 @@ import {
   updateWhiteboardNoteSize,
   deleteWhiteboardNote,
   updateWhiteboardNoteAutoHeight,
-  updateWhiteboardName
+  updateWhiteboardName,
+  deleteWhiteboard
 } from '../db/whiteboards'
 import {
   createConnection,
@@ -164,6 +165,17 @@ function createCustomMenu() {
 }
 
 function setupIpcHandlers() {
+  // 删除白板
+  ipcMain.handle('delete-whiteboard', async (_, id: string) => {
+    try {
+      const result = await deleteWhiteboard(id)
+      return result
+    } catch (error) {
+      console.error('主进程 → 删除白板时出错:', error)
+      return { success: false, error: error as string }
+    }
+  })
+
   // 更新笔记内容
   ipcMain.handle('update-note-content', async (_, id: string, content: any) => {
     try {

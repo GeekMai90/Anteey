@@ -449,17 +449,35 @@ export async function updateWhiteboardName(id: string, name: string): Promise<Wh
   }
 }
 
-// 创建白板连线
-// 输入一个白板的 id，一个连线的数据，连线的数据包括起点和终点的 id，起点和终点的边，颜色，粗细，标签，标签位置，线样式，起点和终点的箭头，连线的形状，控制点，大小，旋转
-// 先创建一个连线，然后再创建一个白板连线
-// export async function createWhiteboardConnection(
-//   whiteboardId: string,
-//   connection: Partial<Connection>
-// ): Promise<WhiteboardItem> {
-//   const newConnection = await createConnection(connection as Omit<Connection, 'id'>)
-//   await db('whiteboard_connections').insert({
-//     whiteboardId,
-//     connectionId: newConnection.id
-//   })
-//   return newConnection
-// }
+// 删除白板
+// 删除白板，同时删除白板中的所有笔记，连线，分组，子白板
+export async function deleteWhiteboard(id: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    await db('whiteboards').where({ id }).del()
+    console.log('后端→ 删除白板成功', id)
+    // 删除白板中的所有笔记
+    const notes = await db('whiteboard_notes').where({ whiteboardId: id }).select('*')
+    for (const note of notes) {
+      await deleteWhiteboardNote(note.id)
+    }
+    // 删除白板中的所有连线
+    const connections = await db('connections').where({ whiteboardId: id }).select('*')
+    for (const connection of connections) {
+      await db('connections').where({ id: connection.id }).del()
+    }
+    // 删除白板中的所有分组
+    const groups = await db('whiteboard_groups').where({ whiteboardId: id }).select('*')
+    for (const group of groups) {
+      await db('whiteboard_groups').where({ id: group.id }).del()
+    }
+    // 删除白板中的所有子白板
+    const subboards = await db('whiteboards').where({ parentId: id }).select('*')
+    for (const subboard of subboards) {
+      await deleteWhiteboard(subboard.id)
+    }
+    return { success: true }
+  } catch (error) {
+    console.error('后端→ 删除白板失败:', error)
+    return { success: false, error: error as string }
+  }
+}

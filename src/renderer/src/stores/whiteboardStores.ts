@@ -91,6 +91,7 @@ export const useWhiteboardStore = defineStore('whiteboard', {
         console.error('whiteboardStore→ 创建白板失败')
       }
     },
+    // 获取所有顶层白板
     async getTopLevelWhiteboards() {
       console.log('whiteboardStore→ 开始获取顶层白板')
       const whiteboards = await window.electronAPI.getTopLevelWhiteboards()
@@ -98,6 +99,7 @@ export const useWhiteboardStore = defineStore('whiteboard', {
       this.whiteboards = whiteboards
       return whiteboards
     },
+    // 更新白板位置
     async updateWhiteboardPosition(id: string, x: number, y: number) {
       console.log('whiteboardStore→ 开始更新白板位置', { id, x, y })
       const updatedWhiteboard = await window.electronAPI.updateWhiteboardPosition(id, x, y)
@@ -351,9 +353,28 @@ export const useWhiteboardStore = defineStore('whiteboard', {
         console.error('whiteboardStore→ 更新白板名称失败', error)
         throw error
       }
+    },
+    // 删除白板
+    async deleteWhiteboard(id: string) {
+      try {
+        console.log('whiteboardStore→ 开始删除白板', id)
+        const result = await window.electronAPI.deleteWhiteboard(id)
+        this.whiteboards = this.whiteboards.filter((whiteboard) => whiteboard.id !== id)
+        console.log('whiteboardStore→ 删除白板成功', result)
+        return result
+      } catch (error) {
+        console.error('whiteboardStore→ 删除白板失败', error)
+        throw error
+      }
     }
   },
   getters: {
+    // 所有顶层白板
+    allTopLevelWhiteboards: (state) => {
+      return state.whiteboards
+    },
+    // 获取参考笔记,传入笔记 id,返回笔记
+
     noteStore: () => {
       return useNoteStore()
     },

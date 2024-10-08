@@ -1,117 +1,171 @@
-<!-- src/renderer/src/views/WhiteboardView.vue -->
 <template>
   <div class="whiteboard-view">
-    <!-- 固定在顶部的工具栏 -->
     <div class="fixed-header">
-      <AppToolbar />
-    </div>
-    <!-- 主容器 -->
-    <div
-      ref="containerRef"
-      class="whiteboard-canvas"
-      :class="{ grabbing: isDragging }"
-      @dblclick="handleContainerDoubleClick"
-      @contextmenu.prevent
-      @wheel="handleWheel"
-      @mousedown="handleMouseDown"
-      @touchstart="handleTouchStart"
-      @touchmove="handleTouchMove"
-      @touchend="handleTouchEnd"
-    >
-      <!-- 变换层 -->
-      <div ref="transformLayerRef" class="whiteboard-transform-layer" :style="transformLayerStyle">
-        <!-- 白板项（缩略图） -->
-        <WhiteboardThumbnail
-          v-for="whiteboard in whiteboards"
-          :key="whiteboard.id"
-          :whiteboard="whiteboard"
-          @click="openWhiteboard(whiteboard.id)"
-          @mousedown.stop="startDraggingThumbnail(whiteboard, $event)"
-        />
+      <AppToolbar :showBackButton="true" :showForwardButton="true"></AppToolbar>
+      <div class="topToolBar">
+        <div class="topToolBar-header">
+          <div class="topToolBar-left">
+            <div class="icon">
+              <Workbench theme="outline" size="20" fill="var(--color-primary)" :strokeWidth="2" />
+            </div>
+            <div class="name">思维板</div>
+          </div>
+          <div class="topToolBar-right">
+            <!-- 添加搜索框 -->
+            <div
+              v-tooltip.bottom="{ content: 'Cmd+P', delay: { show: 1000 } }"
+              class="search-box"
+              :class="{ 'is-focused': isSearchFocused }"
+            >
+              <div class="search-icon">
+                <div class="icon">
+                  <Search
+                    theme="outline"
+                    size="16"
+                    fill="var(--color-text-secondary)"
+                    :strokeWidth="2"
+                  />
+                </div>
+              </div>
+              <input
+                ref="searchInput"
+                v-model="searchQuery"
+                type="text"
+                placeholder="搜索白板"
+                @input="handleSearch"
+                @focus="isSearchFocused = true"
+                @blur="handleBlur"
+              />
+              <div v-if="searchQuery" class="clear-icon" @click="clearSearch">
+                <div class="icon">
+                  <Close
+                    theme="outline"
+                    size="16"
+                    fill="var(--color-text-secondary)"
+                    :strokeWidth="2"
+                  />
+                </div>
+              </div>
+            </div>
+            <!-- 新增白板 -->
+            <div class="add-whiteboard-button" @click="addWhiteboard">
+              <div class="icon">
+                <Plus
+                  theme="outline"
+                  size="18"
+                  fill="var(--color-text-secondary)"
+                  :strokeWidth="3"
+                />
+              </div>
+              <div class="name">新增思维板</div>
+            </div>
+            <!-- 排序 -->
+            <div class="sort-button-container" @click.stop="toggleSortMenu">
+              <div class="icon">
+                <SortTwo
+                  theme="outline"
+                  size="18"
+                  fill="var(--color-text-secondary)"
+                  :strokeWidth="3"
+                />
+              </div>
+              <div class="name">排序</div>
+              <div v-if="showSortMenu" class="sort-dropdown-menu">
+                <div
+                  v-for="option in sortOptions"
+                  :key="option.value"
+                  class="sort-dropdown-item"
+                  @click="selectSortOption(option)"
+                >
+                  <div class="dropdown-item-content">
+                    {{ option.label }}
+                  </div>
+                  <div v-if="currentSort === option.value" class="sort-direction">
+                    {{ sortDirection === 'asc' ? '↑' : '↓' }}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
-    <!-- 适应视图按钮 -->
-    <div class="fit-view-button" @click="fitView">
-      <div class="icon">
-        <Aiming theme="outline" size="24" fill="#333" />
+    <div class="whiteboard-view-container">
+      <div class="card-grid-container">
+        <div class="card-grid">
+          <WhiteboardCard
+            v-for="whiteboard in sortedWhiteboards"
+            :key="whiteboard.id"
+            :whiteboard="whiteboard"
+          />
+        </div>
       </div>
     </div>
-    <!-- 上下文菜单组件 -->
-    <ContextMenu />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, markRaw, onUnmounted, computed, watch } from 'vue'
-import AppToolbar from '@renderer/components/AppToolbar.vue'
-import { useRouter } from 'vue-router'
-import WhiteboardThumbnail from '@renderer/components/WhiteboardThumbnail.vue'
+import { ref, onMounted, computed } from 'vue'
+import AppToolbar from '../components/AppToolbar.vue'
+import { SortTwo, Workbench, Plus, Search, Close } from '@icon-park/vue-next'
 import { useWhiteboardStore } from '@renderer/stores/whiteboardStores'
-import type { CreateWhiteboardInput, Whiteboard } from '@renderer/types/Note'
-import ContextMenu from '../components/ContexMenu.vue'
-import { useContextMenuStore } from '@renderer/stores/contextMenuStore'
-import { Add, Aiming } from '@icon-park/vue-next'
+import WhiteboardCard from '@renderer/components/WhiteboardCard.vue'
+import { CreateWhiteboardInput } from '@renderer/types/Note'
+import { useSearch } from '@renderer/composables/useSearch'
 
-// 初始化路由和状态管理
-const router = useRouter()
 const whiteboardStore = useWhiteboardStore()
-const contextMenuStore = useContextMenuStore()
+const showSortMenu = ref(false)
+const currentSort = ref('name')
+const sortDirection = ref('asc')
 
-// 定义响应式变量
-const whiteboards = ref<Whiteboard[]>([])
-const containerRef = ref<HTMLElement | null>(null)
-const transformLayerRef = ref<HTMLElement | null>(null)
+const whiteboards = computed(() => whiteboardStore.whiteboards)
 
-// 缩放和平移状态
-const scale = ref<number>(1)
-const translateX = ref(0)
-const translateY = ref(0)
-let isDragging = false
-const isMouseDown = ref(false)
-let lastX = 0
-let lastY = 0
+const { searchQuery, handleSearch, filteredItems, clearSearch } = useSearch(whiteboards)
 
-// 计算内容样式
-const transformLayerStyle = computed(() => ({
-  transform: `translate(${translateX.value}px, ${translateY.value}px) scale(${scale.value})`,
-  transformOrigin: '0 0'
-}))
+const isSearchFocused = ref(false)
 
-// 实现平移逻辑
-// 组件挂载时执行的操作
-onMounted(async () => {
-  await checkAndCreateRootWhiteboard()
-  await whiteboardStore.getTopLevelWhiteboards()
-  whiteboards.value = whiteboardStore.whiteboards
-  loadViewState()
-  console.log('whiteboards', whiteboards.value)
+const handleBlur = () => {
+  setTimeout(() => {
+    isSearchFocused.value = false
+  }, 100)
+}
+
+// 使用计算属性来获取白板数据
+// const whiteboards = computed(() => whiteboardStore.whiteboards)
+// 使用计算属性来获取并排序白板数据
+const sortedWhiteboards = computed(() => {
+  const boards = filteredItems.value
+  return boards.sort((a, b) => {
+    let comparison = 0
+    switch (currentSort.value) {
+      case 'name':
+        comparison = a.name.localeCompare(b.name)
+        break
+      case 'createdAt':
+        comparison = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+        break
+      case 'updatedAt':
+        comparison = new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime()
+        break
+    }
+    return sortDirection.value === 'asc' ? comparison : -comparison
+  })
 })
 
-// 检查并创建根白板
-const checkAndCreateRootWhiteboard = async () => {
-  const rootWhiteboard = await whiteboardStore.getRootWhiteboard()
-  console.log('根白板的值是：', rootWhiteboard)
-  if (rootWhiteboard) {
-    return
-  }
-  await whiteboardStore.createRootWhiteboard()
-}
-
-// 打开白板详情
-const openWhiteboard = (id: string) => {
-  console.log('打开白板详情', id)
-  router.push({ name: 'whiteboardDetail', params: { whiteboardId: id } })
-}
+onMounted(async () => {
+  // 初始加载数据
+  await whiteboardStore.getTopLevelWhiteboards()
+})
 
 // 创建新白板
-const createNewWhiteboard = async (x: number, y: number) => {
+const addWhiteboard = async () => {
   const input: CreateWhiteboardInput = {
-    name: '新白板',
+    name: '新思维板',
     isTopLevel: true,
-    position: { x, y },
+    position: { x: 0, y: 0 },
     size: { width: 300, height: 150 },
     zoomLevel: 1,
-    scrollPosition: { x, y },
+    scrollPosition: { x: 0, y: 0 },
     scale: 1,
     translateX: 0,
     translateY: 0,
@@ -119,530 +173,82 @@ const createNewWhiteboard = async (x: number, y: number) => {
   }
   try {
     await whiteboardStore.createWhiteboard(input)
-    whiteboards.value = whiteboardStore.whiteboards
-    contextMenuStore.closeMenu()
   } catch (error) {
     console.error('Failed to create whiteboard:', error)
   }
 }
+// 排序选项功能
+const sortOptions = [
+  { value: 'name', label: '按名称排序' },
+  { value: 'createdAt', label: '按创建时间排序' },
+  { value: 'updatedAt', label: '按更新时间排序' }
+]
 
-// 双击空白处新增白板
-const handleContainerDoubleClick = (event: MouseEvent) => {
-  console.log('handleContainerDoubleClick', event)
-  event.preventDefault()
+const toggleSortMenu = (event: MouseEvent) => {
   event.stopPropagation()
+  showSortMenu.value = !showSortMenu.value
+}
 
-  if (!containerRef.value) {
-    console.error('containerRef is null')
-    return
-  }
-  // 检查事件目标是否是 contentRef 或其子元素
-  if (event.target === containerRef.value) {
-    const rect = containerRef.value.getBoundingClientRect()
-
-    const x = (event.clientX - rect.left) / scale.value - translateX.value
-    const y = (event.clientY - rect.top) / scale.value - translateY.value
-
-    contextMenuStore.showMenu(event.clientX, event.clientY, [
-      {
-        label: '新建白板',
-        icon: markRaw(Add),
-        action: () => createNewWhiteboard(x, y)
-      }
-    ])
+const selectSortOption = (option: { value: string; label: string }) => {
+  if (currentSort.value === option.value) {
+    sortDirection.value = sortDirection.value === 'asc' ? 'desc' : 'asc'
   } else {
-    console.log('双击事件的目标不是 contentRef 或其子元素')
+    currentSort.value = option.value
+    sortDirection.value = 'asc'
   }
+  showSortMenu.value = false
 }
-
-// 处理鼠标按下事件
-const handleMouseDown = (event: MouseEvent) => {
-  if (event.button === 0 || event.button === 2) {
-    isMouseDown.value = true
-    // 左键或右键
-    event.preventDefault()
-    isDragging = true
-    lastX = event.clientX
-    lastY = event.clientY
-    document.addEventListener('mousemove', handleMouseMove)
-    document.addEventListener('mouseup', handleMouseUp)
-  }
-}
-
-// 处理鼠标移动事件
-const handleMouseMove = (event: MouseEvent) => {
-  if (!isDragging) return
-  if (isMouseDown.value) {
-    const deltaX = event.clientX - lastX
-    const deltaY = event.clientY - lastY
-    translateX.value += deltaX
-    translateY.value += deltaY
-    lastX = event.clientX
-    lastY = event.clientY
-  }
-}
-// 处理鼠标松开事件
-const handleMouseUp = () => {
-  isMouseDown.value = false
-  isDragging = false
-  document.removeEventListener('mousemove', handleMouseMove)
-  document.removeEventListener('mouseup', handleMouseUp)
-}
-
-// 处理滚轮事件（用于缩放和平移）
-const handleWheel = (event: WheelEvent) => {
-  if (event.ctrlKey) {
-    event.preventDefault()
-
-    // 使用较小的缩放增量来使缩放更平滑
-    const zoomIntensity = 0.1
-    const delta = event.deltaY > 0 ? -zoomIntensity : zoomIntensity
-    const newScale = Math.max(0.1, Math.min(scale.value * (1 + delta), 5))
-
-    if (!containerRef.value) return
-
-    const rect = containerRef.value.getBoundingClientRect()
-    const mouseX = event.clientX - rect.left
-    const mouseY = event.clientY - rect.top
-
-    // 计算新的平移值
-    const newTranslateX = mouseX - (mouseX - translateX.value) * (newScale / scale.value)
-    const newTranslateY = mouseY - (mouseY - translateY.value) * (newScale / scale.value)
-
-    // 应用新的缩放和平移值
-    scale.value = newScale
-    translateX.value = newTranslateX
-    translateY.value = newTranslateY
-  } else {
-    // 平移逻辑保持不变
-    translateX.value -= event.deltaX
-    translateY.value -= event.deltaY
-  }
-}
-
-// 处理触摸开始事件
-const handleTouchStart = (event: TouchEvent) => {
-  if (event.touches.length === 1) {
-    event.preventDefault()
-    isDragging = true
-    lastX = event.touches[0].clientX
-    lastY = event.touches[0].clientY
-  }
-}
-
-// 处理触摸移动事件
-const handleTouchMove = (event: TouchEvent) => {
-  if (!isDragging || event.touches.length !== 1) return
-  event.preventDefault()
-  const touch = event.touches[0]
-  const deltaX = touch.clientX - lastX
-  const deltaY = touch.clientY - lastY
-  translateX.value += deltaX
-  translateY.value += deltaY
-  lastX = touch.clientX
-  lastY = touch.clientY
-}
-
-// 处理触摸结束事件
-const handleTouchEnd = () => {
-  isDragging = false
-}
-
-// 适应视图（使所有白板缩略图适应当前视图）
-const fitView = async () => {
-  // 确保白板数据是最新的
-  await whiteboardStore.getTopLevelWhiteboards()
-  whiteboards.value = whiteboardStore.whiteboards
-
-  if (!containerRef.value || whiteboards.value.length === 0) return
-
-  const containerRect = containerRef.value.getBoundingClientRect()
-
-  // 计算所有白板的边界
-  const bounds = whiteboards.value.reduce(
-    (acc, wb) => {
-      acc.left = Math.min(acc.left, wb.position.x)
-      acc.top = Math.min(acc.top, wb.position.y)
-      acc.right = Math.max(acc.right, wb.position.x + wb.size.width)
-      acc.bottom = Math.max(acc.bottom, wb.position.y + wb.size.height)
-      return acc
-    },
-    { left: Infinity, top: Infinity, right: -Infinity, bottom: -Infinity }
-  )
-
-  const contentWidth = bounds.right - bounds.left
-  const contentHeight = bounds.bottom - bounds.top
-
-  // 计算内容的中心点
-  const contentCenterX = (bounds.left + bounds.right) / 2
-  const contentCenterY = (bounds.top + bounds.bottom) / 2
-
-  // 计算缩放比例
-  const padding = 50 // 边距
-  const scaleX = (containerRect.width - padding * 2) / contentWidth
-  const scaleY = (containerRect.height - padding * 2) / contentHeight
-  const newScale = Math.min(scaleX, scaleY, 1) // 限制最大缩放为 1
-
-  // 计算新的平移值，使内容居中
-  const newTranslateX = containerRect.width / 2 - contentCenterX * newScale
-  const newTranslateY = containerRect.height / 2 - contentCenterY * newScale
-
-  // 应用新的缩放和平移值
-  scale.value = newScale
-  translateX.value = newTranslateX
-  translateY.value = newTranslateY
-
-  // 保存新的视图状态
-  saveViewState()
-}
-
-// 保存视图状态
-const saveViewState = async () => {
-  await whiteboardStore.saveViewStateToRootWhiteboard(
-    scale.value,
-    translateX.value,
-    translateY.value
-  )
-}
-
-// 加载视图状态
-const loadViewState = async () => {
-  const savedState = await whiteboardStore.getRootWhiteboardViewState()
-  console.log('savedState', savedState)
-  if (savedState) {
-    scale.value = savedState.scale
-    translateX.value = savedState.translateX
-    translateY.value = savedState.translateY
-  }
-}
-
-// 拖动缩略图相关逻辑
-const draggingThumbnail = ref<{ id: string; startX: number; startY: number } | null>(null)
-// 磁性吸附和对齐辅助
-const SNAP_THRESHOLD = 10 // 吸附阈值（像素）
-const alignmentGuides = ref<{ direction: 'horizontal' | 'vertical'; position: number }[]>([])
-
-// 开始拖动缩略图
-const startDraggingThumbnail = (whiteboard: Whiteboard, event: MouseEvent) => {
-  if (!transformLayerRef.value) return
-  const rect = transformLayerRef.value.getBoundingClientRect()
-  draggingThumbnail.value = {
-    id: whiteboard.id,
-    startX: (event.clientX - rect.left - translateX.value) / scale.value - whiteboard.position.x,
-    startY: (event.clientY - rect.top - translateY.value) / scale.value - whiteboard.position.y
-  }
-
-  document.addEventListener('mousemove', onDragThumbnail)
-  document.addEventListener('mouseup', stopDraggingThumbnail)
-}
-
-// 拖动缩略图过程中，有磁性吸附的效果
-const SPACING = 5 // 定义缩略图之间的间距
-const onDragThumbnail = (event: MouseEvent) => {
-  if (!draggingThumbnail.value || !transformLayerRef.value) return
-
-  const { id, startX, startY } = draggingThumbnail.value
-  const rect = transformLayerRef.value.getBoundingClientRect()
-
-  let newCenterX = (event.clientX - rect.left - translateX.value) / scale.value - startX
-  let newCenterY = (event.clientY - rect.top - translateY.value) / scale.value - startY
-
-  alignmentGuides.value = []
-
-  const currentWhiteboard = whiteboards.value.find((wb) => wb.id === id)
-  if (!currentWhiteboard) return
-
-  const snapThreshold = SNAP_THRESHOLD / scale.value
-
-  whiteboards.value.forEach((otherWhiteboard) => {
-    if (otherWhiteboard.id !== id) {
-      // 左边对齐
-      if (
-        Math.abs(
-          newCenterX -
-            currentWhiteboard.size.width / 2 -
-            (otherWhiteboard.position.x - otherWhiteboard.size.width / 2)
-        ) < snapThreshold
-      ) {
-        newCenterX =
-          otherWhiteboard.position.x -
-          otherWhiteboard.size.width / 2 +
-          currentWhiteboard.size.width / 2
-        alignmentGuides.value.push({
-          direction: 'vertical',
-          position: newCenterX - currentWhiteboard.size.width / 2
-        })
-      }
-      // 右边对齐
-      if (
-        Math.abs(
-          newCenterX +
-            currentWhiteboard.size.width / 2 -
-            (otherWhiteboard.position.x + otherWhiteboard.size.width / 2)
-        ) < snapThreshold
-      ) {
-        newCenterX =
-          otherWhiteboard.position.x +
-          otherWhiteboard.size.width / 2 -
-          currentWhiteboard.size.width / 2
-        alignmentGuides.value.push({
-          direction: 'vertical',
-          position: newCenterX + currentWhiteboard.size.width / 2
-        })
-      }
-      // 顶边对齐
-      if (
-        Math.abs(
-          newCenterY -
-            currentWhiteboard.size.height / 2 -
-            (otherWhiteboard.position.y - otherWhiteboard.size.height / 2)
-        ) < snapThreshold
-      ) {
-        newCenterY =
-          otherWhiteboard.position.y -
-          otherWhiteboard.size.height / 2 +
-          currentWhiteboard.size.height / 2
-        alignmentGuides.value.push({
-          direction: 'horizontal',
-          position: newCenterY - currentWhiteboard.size.height / 2
-        })
-      }
-      // 底边对齐
-      if (
-        Math.abs(
-          newCenterY +
-            currentWhiteboard.size.height / 2 -
-            (otherWhiteboard.position.y + otherWhiteboard.size.height / 2)
-        ) < snapThreshold
-      ) {
-        newCenterY =
-          otherWhiteboard.position.y +
-          otherWhiteboard.size.height / 2 -
-          currentWhiteboard.size.height / 2
-        alignmentGuides.value.push({
-          direction: 'horizontal',
-          position: newCenterY + currentWhiteboard.size.height / 2
-        })
-      }
-      // 中间对齐（水平）
-      if (Math.abs(newCenterX - otherWhiteboard.position.x) < snapThreshold) {
-        newCenterX = otherWhiteboard.position.x
-        alignmentGuides.value.push({ direction: 'vertical', position: newCenterX })
-      }
-      // 中间对齐（垂直）
-      if (Math.abs(newCenterY - otherWhiteboard.position.y) < snapThreshold) {
-        newCenterY = otherWhiteboard.position.y
-        alignmentGuides.value.push({ direction: 'horizontal', position: newCenterY })
-      }
-      // 左边相邻
-      if (
-        Math.abs(
-          newCenterX -
-            currentWhiteboard.size.width / 2 -
-            (otherWhiteboard.position.x + otherWhiteboard.size.width / 2 + SPACING)
-        ) < snapThreshold
-      ) {
-        newCenterX =
-          otherWhiteboard.position.x +
-          otherWhiteboard.size.width / 2 +
-          SPACING +
-          currentWhiteboard.size.width / 2
-        alignmentGuides.value.push({
-          direction: 'vertical',
-          position: newCenterX - currentWhiteboard.size.width / 2 - SPACING
-        })
-      }
-      // 右边相邻
-      if (
-        Math.abs(
-          newCenterX +
-            currentWhiteboard.size.width / 2 +
-            SPACING -
-            (otherWhiteboard.position.x - otherWhiteboard.size.width / 2)
-        ) < snapThreshold
-      ) {
-        newCenterX =
-          otherWhiteboard.position.x -
-          otherWhiteboard.size.width / 2 -
-          SPACING -
-          currentWhiteboard.size.width / 2
-        alignmentGuides.value.push({
-          direction: 'vertical',
-          position: newCenterX + currentWhiteboard.size.width / 2 + SPACING
-        })
-      }
-      // 顶边相邻
-      if (
-        Math.abs(
-          newCenterY -
-            currentWhiteboard.size.height / 2 -
-            (otherWhiteboard.position.y + otherWhiteboard.size.height / 2 + SPACING)
-        ) < snapThreshold
-      ) {
-        newCenterY =
-          otherWhiteboard.position.y +
-          otherWhiteboard.size.height / 2 +
-          SPACING +
-          currentWhiteboard.size.height / 2
-        alignmentGuides.value.push({
-          direction: 'horizontal',
-          position: newCenterY - currentWhiteboard.size.height / 2 - SPACING
-        })
-      }
-      // 底边相邻
-      if (
-        Math.abs(
-          newCenterY +
-            currentWhiteboard.size.height / 2 +
-            SPACING -
-            (otherWhiteboard.position.y - otherWhiteboard.size.height / 2)
-        ) < snapThreshold
-      ) {
-        newCenterY =
-          otherWhiteboard.position.y -
-          otherWhiteboard.size.height / 2 -
-          SPACING -
-          currentWhiteboard.size.height / 2
-        alignmentGuides.value.push({
-          direction: 'horizontal',
-          position: newCenterY + currentWhiteboard.size.height / 2 + SPACING
-        })
-      }
-    }
-  })
-
-  updateWhiteboardPosition(id, newCenterX, newCenterY)
-}
-
-// stopDraggingThumbnail 函数
-const stopDraggingThumbnail = async () => {
-  if (draggingThumbnail.value) {
-    const whiteboard = whiteboards.value.find((wb) => wb.id === draggingThumbnail.value?.id)
-    if (whiteboard) {
-      await whiteboardStore.updateWhiteboardPosition(
-        whiteboard.id,
-        whiteboard.position.x,
-        whiteboard.position.y
-      )
-    }
-  }
-  draggingThumbnail.value = null
-  alignmentGuides.value = []
-  document.removeEventListener('mousemove', onDragThumbnail)
-  document.removeEventListener('mouseup', stopDraggingThumbnail)
-}
-
-// 更新白板位置
-const updateWhiteboardPosition = (id: string, centerX: number, centerY: number) => {
-  const index = whiteboards.value.findIndex((wb) => wb.id === id)
-  if (index !== -1) {
-    whiteboards.value[index] = {
-      ...whiteboards.value[index],
-      position: { x: centerX, y: centerY }
-    }
-  }
-}
-
-onMounted(async () => {
-  await fetchWhiteboards()
-  await loadViewState()
-})
-
-onUnmounted(() => {
-  document.removeEventListener('mousemove', onDragThumbnail)
-  document.removeEventListener('mouseup', stopDraggingThumbnail)
-})
-
-const fetchWhiteboards = async () => {
-  whiteboards.value = await whiteboardStore.getTopLevelWhiteboards()
-}
-
-watch([scale, translateX, translateY], () => {
-  saveViewState()
-})
-
-onUnmounted(() => {
-  document.removeEventListener('mousemove', onDragThumbnail)
-  document.removeEventListener('mouseup', stopDraggingThumbnail)
-})
-
-// 组件卸载时移除事件监听器
-onUnmounted(() => {
-  window.removeEventListener('mousemove', handleMouseMove)
-  window.removeEventListener('mouseup', handleMouseUp)
-})
 </script>
 
-<style scoped lang="scss">
+<style lang="scss" scoped>
 .whiteboard-view {
-  position: relative;
-  width: 100%;
   height: 100vh;
   display: flex;
   flex-direction: column;
   background-color: var(--color-bg-primary);
   overflow: hidden;
 }
-
 .fixed-header {
   position: sticky;
   top: 0;
   z-index: 100;
   background-color: var(--color-bg-primary);
 }
-
-.whiteboard-canvas {
-  flex: 1;
-  position: relative;
-  width: 100%;
-  height: 100%;
-  background-color: var(--color-bg-primary);
-  overflow: hidden;
-  touch-action: none;
-  user-select: none;
-  cursor: grab;
-  &:active {
-    cursor: grabbing;
-  }
-}
-
-.whiteboard-transform-layer {
-  position: absolute;
-  top: 0;
-  left: 0;
-  will-change: transform;
-  transition: transform 0.05s linear;
-}
-
-.fit-view-button {
-  position: absolute;
-  bottom: 8px;
-  right: 20px;
+.topToolBar {
   display: flex;
   align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.3s ease;
+  padding: 0px 20px;
+  background-color: var(--color-bg-primary);
+  .topToolBar-header {
+    display: flex;
+    width: 100%;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--color-border);
+  }
+}
+.topToolBar-left {
+  position: relative;
+  display: flex;
+  align-items: center;
+  border: none;
+  background: none;
   border-radius: 6px;
-  padding: 4px 4px;
+  padding: 4px 0px;
   margin: 2px;
 
   .icon {
-    background: none;
-    border: none;
-    cursor: pointer;
-    width: 24px;
-    height: 24px;
+    width: 30px;
+    height: 30px;
     display: flex;
     align-items: center;
     justify-content: center;
     transition: all 0.2s ease;
     padding: 0;
-
-    &:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
+    border-radius: 8px;
+    background-color: var(--color-menu-bg);
+    border: 1px solid var(--color-primary);
 
     :deep(.i-icon) {
       display: flex;
@@ -653,29 +259,826 @@ onUnmounted(() => {
     }
 
     :deep(svg) {
-      width: 16px;
-      height: 16px;
+      width: 18px;
+      height: 18px;
+    }
+  }
+
+  .name {
+    flex-grow: 0;
+    text-align: left;
+    color: var(--default-text-color);
+    font-size: 20px;
+    font-weight: 600;
+    margin-left: 8px;
+    white-space: nowrap;
+    writing-mode: horizontal-tb;
+    user-select: none;
+  }
+}
+.topToolBar-right {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+
+  .add-whiteboard-button {
+    display: flex;
+    align-items: center;
+    // width: 100px;
+    padding: 2px 12px 2px 7px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    border-radius: 8px;
+    border: 1px solid var(--color-border);
+    user-select: none;
+
+    .icon {
+      background: none;
+      border: none;
+      cursor: pointer;
+      width: 28px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 6px;
+      transition: background-color 0.2s;
+      padding: 0;
+      // margin-right: 3px;
+
+      &:hover:not(:disabled) {
+        background-color: var(--color-hover-bg);
+      }
+
+      &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      // 新增以下样式来处理 i-icon 类
+      :deep(.i-icon) {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        height: 100%;
+      }
+
+      :deep(svg) {
+        width: 16px; // 或者您想要的大小
+        height: 16px; // 或者您想要的大小
+      }
     }
 
     .name {
       flex-grow: 0;
       text-align: left;
-      color: var(--default-text-color);
-      font-size: 13px;
-      font-weight: 400;
-      margin-left: 6px;
-      white-space: nowrap;
-      writing-mode: horizontal-tb;
+      color: var(--color-text-primary);
+      font-size: 14px;
+      white-space: nowrap; // 防止文字换行
+      writing-mode: horizontal-tb; // 确保文字是水平排列的
     }
-    &:active {
-      background-color: rgba(0, 0, 0, 0.1);
+
+    &:hover {
+      background-color: var(--color-hover-bg);
     }
-    &.delete {
-      color: #ff4d4f;
+
+    &.active {
+      background-color: var(--color-menu-active-bg);
+      // border: 1px solid var(--color-primary);
     }
   }
+
+  .sort-button-container {
+    display: flex;
+    align-items: center;
+    // width: 100px;
+    padding: 2px 12px 2px 7px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    border-radius: 8px;
+    border: 1px solid var(--color-border);
+    user-select: none;
+
+    .icon {
+      background: none;
+      border: none;
+      cursor: pointer;
+      width: 28px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 6px;
+      transition: background-color 0.2s;
+      padding: 0;
+      // margin-right: 3px;
+
+      &:hover:not(:disabled) {
+        background-color: var(--color-hover-bg);
+      }
+
+      &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      // 新增以下样式来处理 i-icon 类
+      :deep(.i-icon) {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        height: 100%;
+      }
+
+      :deep(svg) {
+        width: 16px; // 或者您想要的大小
+        height: 16px; // 或者您想要的大小
+      }
+    }
+
+    .name {
+      flex-grow: 0;
+      text-align: left;
+      color: var(--color-text-primary);
+      font-size: 14px;
+      white-space: nowrap; // 防止文字换行
+      writing-mode: horizontal-tb; // 确保文字是水平排列的
+    }
+
+    &:hover {
+      background-color: var(--color-hover-bg);
+    }
+
+    &.active {
+      background-color: var(--color-menu-active-bg);
+      // border: 1px solid var(--color-primary);
+    }
+
+    .sort-dropdown-menu {
+      position: absolute;
+      top: 90%;
+      // left: -10px;
+      right: 20px;
+      background-color: var(--color-bg-primary);
+      border-radius: 8px;
+      box-shadow: var(--shadow-primary);
+      z-index: 1000;
+      min-width: 200px;
+      width: auto;
+      overflow-y: auto;
+      padding: 6px 0;
+      white-space: nowrap;
+    }
+
+    .sort-dropdown-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 16px;
+      cursor: pointer;
+      transition: background-color 0.2s;
+      font-size: 14px;
+      color: var(--color-text-primary);
+      white-space: nowrap;
+      border-radius: 8px;
+      margin: 2px 8px 2px 8px;
+      user-select: none;
+
+      &:hover {
+        background-color: var(--color-hover-bg);
+      }
+
+      &.active {
+        background-color: var(--color-menu-active-bg);
+      }
+    }
+  }
+
+  .search-box {
+    position: relative;
+    width: 200px;
+    display: flex;
+    align-items: center;
+    background-color: var(--color-bg-secondary);
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    padding: 1px 8px;
+    overflow: hidden;
+    &.is-focused {
+      border-color: var(--color-primary);
+      box-shadow: 0 0 0 2px rgba(var(--color-primary-rgb), 0.2);
+    }
+    .search-icon {
+      position: absolute;
+      left: 6px;
+      top: 50%;
+      transform: translateY(-50%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 22px;
+      height: 22px;
+      pointer-events: none;
+      :deep(.i-icon) {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        height: 100%;
+      }
+    }
+
+    .clear-icon {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 22px;
+      height: 22px;
+      cursor: pointer;
+      :deep(.i-icon) {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        height: 100%;
+      }
+    }
+
+    input {
+      flex-grow: 1;
+      border: none;
+      background: transparent;
+      padding: 4px 4px 4px 25px;
+      color: var(--color-text-secondary);
+      font-size: 14px;
+      min-width: 0;
+      &::placeholder {
+        color: var(--color-text-placeholder);
+        opacity: 1;
+      }
+
+      &:focus {
+        outline: none;
+      }
+    }
+
+    .clear-icon {
+      cursor: pointer;
+    }
+
+    .search-results {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background-color: var(--color-bg-primary);
+      border: 1px solid var(--color-border);
+      border-radius: 8px;
+      box-shadow: var(--shadow-primary);
+      max-height: 300px;
+      overflow-y: auto;
+      z-index: 1000;
+    }
+
+    .search-result-item {
+      padding: 8px 12px;
+      cursor: pointer;
+      transition: background-color 0.2s;
+
+      &:hover {
+        background-color: var(--color-hover-bg);
+      }
+    }
+  }
+}
+
+.whiteboard-view-container {
+  // height: 100%;
+  // width: 100%;
+  // padding: 0px 0px 10px 0px;
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 100px); // 假设顶部工具栏高度为100px，请根据实际情况调整
+  overflow: hidden; // 防止整个页面滚动
+
+  .card-grid-container {
+    flex: 1;
+    // height: 100%;
+    overflow-y: auto; // 允许卡片网格容器滚动
+    // padding: 0 16px 16px 16px;
+  }
+
+  .card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 16px;
+    padding: 16px 20px;
+    align-content: start; // 让内容从顶部开始排列
+    justify-content: center; // 水平居中对齐
+
+    // 使用视口单位和 clamp 函数来控制卡片高度
+    --card-height: clamp(150px, calc(20vw - 32px), 150px);
+    grid-auto-rows: var(--card-height);
+    --cards-per-row: calc((100% - 32px) / (300px + 16px));
+  }
+
+  .modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+
+    .modal-content {
+      background-color: var(--color-bg-primary);
+      padding: 20px;
+      border-radius: 10px;
+      width: 300px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+
+      h2 {
+        margin-top: 0;
+        margin-bottom: 20px;
+        font-size: 18px;
+        text-align: center;
+        color: var(--color-text-primary);
+      }
+
+      input {
+        width: 100%;
+        padding: 10px;
+        margin-bottom: 20px;
+        border: 1px solid var(--color-primary);
+        border-radius: 5px;
+        font-size: 16px;
+
+        &:focus {
+          outline: none;
+          border-color: var(--color-primary);
+          box-shadow: 0 0 0 2px rgba(var(--color-primary), 0.2);
+        }
+      }
+
+      .modal-actions {
+        display: flex;
+        justify-content: center;
+
+        button {
+          padding: 10px 20px;
+          border: none;
+          border-radius: 5px;
+          background-color: var(--color-primary);
+          color: var(--color-bg-primary);
+          font-size: 16px;
+          cursor: pointer;
+          transition: background-color 0.3s;
+
+          &:hover {
+            background-color: var(--color-menu-active-bg);
+          }
+
+          &:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+          }
+        }
+      }
+    }
+  }
+}
+
+.cardtype-dropdown {
+  position: relative;
+  display: inline-flex;
+  position: relative;
+  display: flex;
+  align-items: center;
+  padding: 2px 12px 2px 7px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  border-radius: 8px;
+  border: 1px solid var(--color-border);
+
+  .icon {
+    background: none;
+    border: none;
+    cursor: pointer;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    transition: background-color 0.2s;
+    padding: 0;
+    // margin-right: 3px;
+
+    &:hover:not(:disabled) {
+      background-color: var(--color-hover-bg);
+    }
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    // 新增以下样式来处理 i-icon 类
+    :deep(.i-icon) {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      height: 100%;
+    }
+
+    :deep(svg) {
+      width: 16px; // 或者您想要的大小
+      height: 16px; // 或者您想要的大小
+    }
+  }
+
+  .name {
+    flex-grow: 0;
+    text-align: left;
+    color: var(--color-text-primary);
+    font-size: 14px;
+    white-space: nowrap; // 防止文字换行
+    writing-mode: horizontal-tb; // 确保文字是水平排列的
+  }
+
   &:hover {
-    background-color: var(--color-hover-button);
+    background-color: var(--color-hover-bg);
+  }
+
+  &.active {
+    background-color: var(--color-menu-active-bg);
+    // border: 1px solid var(--color-primary);
+  }
+
+  .cadrtype-dropdown-menu {
+    position: absolute;
+    top: calc(100% + 10px);
+    left: 50%;
+    transform: translateX(-50%); // 居中对齐
+    background-color: var(--color-bg-primary);
+    border-radius: 8px;
+    // box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+    min-width: 200px;
+    width: auto;
+    overflow-y: auto;
+    padding: 6px 12px;
+    white-space: nowrap;
+    background-clip: padding-box;
+    box-shadow: var(--shadow-primary);
+
+    .cadrtype-dropdown-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 4px 8px 4px 4px;
+      cursor: pointer;
+      transition: background-color 0.2s;
+      font-size: 14px;
+      color: #333;
+      white-space: nowrap;
+      border-radius: 8px;
+      margin: 2px;
+
+      &:hover {
+        background-color: var(--color-hover-bg);
+      }
+
+      &.active {
+        background-color: rgba(0, 200, 168, 0.05);
+        border: 1px solid #00c8a8;
+        // color: #00C8A8;
+      }
+
+      .cadrtype-dropdown-item-content {
+        display: flex;
+        align-items: center;
+        // gap: 10px;
+        flex-grow: 1;
+        align-items: center;
+        // width: 200px;
+        // padding: 8px 12px;
+        border: none;
+        background: none;
+        cursor: pointer;
+        transition: background-color 0.2s;
+        border-radius: 8px;
+        // margin: 2px 8px;
+
+        .icon {
+          background: none;
+          border: none;
+          cursor: pointer;
+          width: 28px;
+          height: 28px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: 6px;
+          transition: background-color 0.2s;
+          padding: 0;
+          // margin-right: 3px;
+
+          &:hover:not(:disabled) {
+            background-color: var(--color-hover-bg);
+          }
+
+          &:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+          }
+
+          // 新增以下样式来处理 i-icon 类
+          .i-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
+          }
+
+          svg {
+            width: 18px; // 或者您想要的大小
+            height: 18px; // 或者您想要的大小
+          }
+        }
+
+        .name {
+          flex-grow: 0;
+          text-align: left;
+          color: var(--color-text-primary);
+          font-size: 14px;
+          white-space: nowrap; // 防止文字换行
+          writing-mode: horizontal-tb; // 确保文字是水平排列的
+          user-select: none;
+          margin-left: 6px;
+        }
+
+        // &:hover {
+        //   background-color: var(--color-hover-bg);
+        // }
+
+        &.active {
+          background-color: var(--color-menu-active-bg);
+          // border: 1px solid var(--color-primary);
+        }
+      }
+
+      .switch {
+        position: relative;
+        display: inline-block;
+        width: 28px;
+        height: 18px;
+
+        input {
+          opacity: 0;
+          width: 0;
+          height: 0;
+        }
+
+        .slider {
+          position: absolute;
+          cursor: pointer;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background-color: #ccc;
+          transition: 0.4s;
+        }
+
+        .slider:before {
+          position: absolute;
+          content: '';
+          height: 14px;
+          width: 14px;
+          left: 2px;
+          bottom: 2px;
+          background-color: white;
+          transition: 0.4s;
+        }
+
+        input:checked + .slider {
+          background-color: #00c8a8;
+        }
+
+        input:focus + .slider {
+          box-shadow: 0 0 1px #00c8a8;
+        }
+
+        input:checked + .slider:before {
+          transform: translateX(10px);
+        }
+
+        .slider.round {
+          border-radius: 34px;
+        }
+
+        .slider.round:before {
+          border-radius: 50%;
+        }
+      }
+    }
+  }
+}
+
+.dropdown-menu::-webkit-scrollbar {
+  width: 6px;
+}
+
+.dropdown-menu::-webkit-scrollbar-thumb {
+  background-color: #d0d0d0;
+  border-radius: 3px;
+}
+
+.dropdown-menu::-webkit-scrollbar-track {
+  background-color: #f0f0f0;
+}
+
+//卡片盒的更多操作菜单
+.more-actions-menu {
+  position: fixed; // 改回 fixed
+  background-color: var(--color-bg-primary);
+  border-radius: 8px;
+  box-shadow: var(--shadow-primary);
+  z-index: 1002;
+  min-width: max-content;
+  width: 140px;
+  max-width: 200px;
+  padding: 6px 12px;
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity 0.2s ease,
+    visibility 0.2s ease;
+
+  &.show {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+  }
+
+  .more-action-item {
+    display: flex;
+    align-items: center;
+    // width: 200px;
+    padding: 4px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    border-radius: 8px;
+    // margin: 2px 8px;
+
+    .icon {
+      background: none;
+      border: none;
+      cursor: pointer;
+      width: 28px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 6px;
+      transition: background-color 0.2s;
+      padding: 0;
+      margin-right: 2px;
+
+      &:hover:not(:disabled) {
+        background-color: var(--color-hover-bg);
+      }
+
+      &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      // 新增以下样式来处理 i-icon 类
+      :deep(.i-icon) {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        height: 100%;
+        flex-shrink: 0; // 防止图标缩小
+      }
+
+      :deep(svg) {
+        width: 16px; // 或者您想要的大小
+        height: 16px; // 或者您想要的大小
+      }
+    }
+
+    .name {
+      flex-grow: 0;
+      text-align: left;
+      color: var(--color-text-primary);
+      font-size: 14px;
+      white-space: nowrap; // 防止文字换行
+      writing-mode: horizontal-tb; // 确保文字是水平排列的
+
+      &.delete {
+        color: var(--color-text-danger);
+      }
+    }
+
+    &:hover {
+      background-color: var(--color-hover-bg);
+    }
+
+    &.delete {
+      color: var(--color-text-danger);
+    }
+  }
+}
+
+.sort-direction {
+  font-size: 12px;
+  margin-left: 5px;
+}
+
+.search-box {
+  position: relative;
+  width: 200px;
+  display: flex;
+  align-items: center;
+  background-color: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 0 8px;
+  overflow: hidden;
+  &.is-focused {
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 2px rgba(var(--color-primary-rgb), 0.2);
+  }
+  .search-icon {
+    position: absolute;
+    left: 6px;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    pointer-events: none;
+    :deep(.i-icon) {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      height: 100%;
+    }
+  }
+
+  .clear-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    cursor: pointer;
+    :deep(.i-icon) {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      height: 100%;
+    }
+  }
+
+  input {
+    flex-grow: 1;
+    border: none;
+    background: transparent;
+    padding: 4px 4px 4px 25px;
+    color: var(--color-text-secondary);
+    font-size: 14px;
+    min-width: 0;
+    &::placeholder {
+      color: var(--color-text-placeholder);
+      opacity: 1;
+    }
+
+    &:focus {
+      outline: none;
+    }
   }
 }
 </style>

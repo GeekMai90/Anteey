@@ -7,6 +7,7 @@ import { useUIStore } from '@renderer/stores/useUIStore'
 interface NoteMenuParams {
   noteId: string
   whiteboardNoteId?: string
+  whiteboardId?: string
   menuItems?: string[] // 新增：用于指定要显示的菜单项
   onRestoreDefaultHeight?: () => void // 新增：用于处理恢复默认高度的回调函数
 }
@@ -15,6 +16,7 @@ export function useNoteMenu(params: NoteMenuParams) {
   const noteStore = useNoteStore()
   const uiStore = useUIStore()
   const whiteboardStore = useWhiteboardStore()
+  const showConfirmModal = ref(false)
   // const { allNotes } = storeToRefs(useNoteStore())
 
   const allNotes = noteStore.allNotes
@@ -27,14 +29,6 @@ export function useNoteMenu(params: NoteMenuParams) {
     const note = allNotes.find((note) => note.id === params.noteId)
     isStarred.value = note?.isStarred || false
   })
-  // const isStarred = computed(() => {
-  //   return allNotes.find((note) => note.id === params.noteId)?.isStarred || false
-  // })
-
-  // const togglePopupMenu = () => {
-  //   isPopupMenuVisible.value = !isPopupMenuVisible.value
-  //   console.log(isPopupMenuVisible.value)
-  // }
 
   const closePopupMenu = () => {
     isPopupMenuVisible.value = false
@@ -134,6 +128,22 @@ export function useNoteMenu(params: NoteMenuParams) {
     closePopupMenu()
   }
 
+  // 删除白板
+  const handleDeleteWhiteboard = () => {
+    showConfirmModal.value = true
+  }
+
+  const confirmDeleteWhiteboard = async () => {
+    if (params.whiteboardId) {
+      await whiteboardStore.deleteWhiteboard(params.whiteboardId)
+    }
+    showConfirmModal.value = false
+  }
+
+  const cancelDeleteWhiteboard = () => {
+    showConfirmModal.value = false
+  }
+
   const allMenuItems: any = computed(() => ({
     info: { name: 'info', label: '卡片信息', icon: Info, action: handleShare },
     star: {
@@ -171,6 +181,13 @@ export function useNoteMenu(params: NoteMenuParams) {
       label: '恢复默认高度',
       icon: Refresh,
       action: handleRestoreDefaultHeight
+    },
+    deleteWhiteboard: {
+      name: 'deleteWhiteboard',
+      label: '删除白板',
+      icon: DeleteOne,
+      action: handleDeleteWhiteboard,
+      isDangerous: true
     }
   }))
 
@@ -206,6 +223,10 @@ export function useNoteMenu(params: NoteMenuParams) {
     menuItems,
     resetDeleteState,
     isConfirmingDelete, // 暴露这个状态，以便在需要时可以在外部访问
-    handleDelete
+    handleDelete,
+    showConfirmModal,
+    handleDeleteWhiteboard,
+    confirmDeleteWhiteboard,
+    cancelDeleteWhiteboard
   }
 }

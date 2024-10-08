@@ -3,8 +3,9 @@ import { debounce } from 'lodash-es'
 
 export interface Searchable {
   id: string
+  name?: string // 添加 name 字段，用于白板名称
   address?: string
-  content: any
+  content?: any
   createdAt: Date
   [key: string]: any
 }
@@ -25,6 +26,11 @@ export function useSearch<T extends Searchable>(items: Ref<T[]>) {
     if (searchQuery.value) {
       const query = searchQuery.value.toLowerCase()
       result = result.filter((item) => {
+        // 搜索白板名称
+        if (item.name && item.name.toLowerCase().includes(query)) {
+          return true
+        }
+        // 保留原有的搜索逻辑
         if (item.address && item.address.toLowerCase().includes(query)) {
           return true
         }
@@ -106,6 +112,7 @@ export function useSearch<T extends Searchable>(items: Ref<T[]>) {
     filteredItems,
     clearSearch,
     selectedDate,
-    setSelectedDate
+    setSelectedDate,
+    isSearchActive // 添加这个，以便在组件中使用
   }
 }

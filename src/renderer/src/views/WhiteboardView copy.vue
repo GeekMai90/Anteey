@@ -5,10 +5,11 @@
     <div class="fixed-header">
       <AppToolbar />
     </div>
-    <!-- 白板容器 -->
+    <!-- 主容器 -->
     <div
       ref="containerRef"
-      class="whiteboard-container"
+      class="whiteboard-canvas"
+      :class="{ grabbing: isDragging }"
       @dblclick="handleContainerDoubleClick"
       @contextmenu.prevent
       @wheel="handleWheel"
@@ -17,14 +18,13 @@
       @touchmove="handleTouchMove"
       @touchend="handleTouchEnd"
     >
-      <!-- 白板内容 -->
-      <div ref="contentRef" class="whiteboard-content" :style="contentStyle">
-        <!-- 遍历渲染白板缩略图 -->
+      <!-- 变换层 -->
+      <div ref="transformLayerRef" class="whiteboard-transform-layer" :style="transformLayerStyle">
+        <!-- 白板项（缩略图） -->
         <WhiteboardThumbnail
           v-for="whiteboard in whiteboards"
           :key="whiteboard.id"
           :whiteboard="whiteboard"
-          :scale="scale"
           @click="openWhiteboard(whiteboard.id)"
           @mousedown.stop="startDraggingThumbnail(whiteboard, $event)"
         />
@@ -60,25 +60,24 @@ const contextMenuStore = useContextMenuStore()
 // 定义响应式变量
 const whiteboards = ref<Whiteboard[]>([])
 const containerRef = ref<HTMLElement | null>(null)
-const contentRef = ref<HTMLElement | null>(null)
+const transformLayerRef = ref<HTMLElement | null>(null)
 
 // 缩放和平移状态
 const scale = ref<number>(1)
 const translateX = ref(0)
 const translateY = ref(0)
+let isDragging = false
+const isMouseDown = ref(false)
+let lastX = 0
+let lastY = 0
 
 // 计算内容样式
-const contentStyle = computed(() => ({
+const transformLayerStyle = computed(() => ({
   transform: `translate(${translateX.value}px, ${translateY.value}px) scale(${scale.value})`,
   transformOrigin: '0 0'
 }))
 
-// 拖动状态变量
-let isDragging = false
-let lastX = 0
-let lastY = 0
-let lastPinchDistance = 0
-
+// 实现平移逻辑
 // 组件挂载时执行的操作
 onMounted(async () => {
   await checkAndCreateRootWhiteboard()
@@ -108,14 +107,15 @@ const openWhiteboard = (id: string) => {
 const createNewWhiteboard = async (x: number, y: number) => {
   const input: CreateWhiteboardInput = {
     name: '新白板',
-    isRoot: true,
+    isTopLevel: true,
     position: { x, y },
     size: { width: 300, height: 150 },
     zoomLevel: 1,
     scrollPosition: { x, y },
     scale: 1,
     translateX: 0,
-    translateY: 0
+    translateY: 0,
+    parentId: 'root'
   }
   try {
     await whiteboardStore.createWhiteboard(input)
@@ -126,7 +126,7 @@ const createNewWhiteboard = async (x: number, y: number) => {
   }
 }
 
-// 处理容器双击事件
+// 双击空白处新增白板
 const handleContainerDoubleClick = (event: MouseEvent) => {
   console.log('handleContainerDoubleClick', event)
   event.preventDefault()
@@ -137,7 +137,7 @@ const handleContainerDoubleClick = (event: MouseEvent) => {
     return
   }
   // 检查事件目标是否是 contentRef 或其子元素
-  if (event.target === contentRef.value || event.target === containerRef.value) {
+  if (event.target === containerRef.value) {
     const rect = containerRef.value.getBoundingClientRect()
 
     const x = (event.clientX - rect.left) / scale.value - translateX.value
@@ -157,41 +157,47 @@ const handleContainerDoubleClick = (event: MouseEvent) => {
 
 // 处理鼠标按下事件
 const handleMouseDown = (event: MouseEvent) => {
-  event.preventDefault()
-  if (event.button === 2) {
-    // 右键
+  if (event.button === 0 || event.button === 2) {
+    isMouseDown.value = true
+    // 左键或右键
     event.preventDefault()
     isDragging = true
     lastX = event.clientX
     lastY = event.clientY
+    document.addEventListener('mousemove', handleMouseMove)
+    document.addEventListener('mouseup', handleMouseUp)
   }
 }
 
 // 处理鼠标移动事件
 const handleMouseMove = (event: MouseEvent) => {
   if (!isDragging) return
-  event.preventDefault()
-  const deltaX = event.clientX - lastX
-  const deltaY = event.clientY - lastY
-  translateX.value += deltaX / scale.value
-  translateY.value += deltaY / scale.value
-  lastX = event.clientX
-  lastY = event.clientY
-  saveViewState()
+  if (isMouseDown.value) {
+    const deltaX = event.clientX - lastX
+    const deltaY = event.clientY - lastY
+    translateX.value += deltaX
+    translateY.value += deltaY
+    lastX = event.clientX
+    lastY = event.clientY
+  }
 }
-
 // 处理鼠标松开事件
 const handleMouseUp = () => {
+  isMouseDown.value = false
   isDragging = false
+  document.removeEventListener('mousemove', handleMouseMove)
+  document.removeEventListener('mouseup', handleMouseUp)
 }
 
 // 处理滚轮事件（用于缩放和平移）
 const handleWheel = (event: WheelEvent) => {
   if (event.ctrlKey) {
-    // 缩放
     event.preventDefault()
-    const delta = event.deltaY > 0 ? 0.9 : 1.1
-    const newScale = Math.max(0.1, Math.min(scale.value * delta, 5))
+
+    // 使用较小的缩放增量来使缩放更平滑
+    const zoomIntensity = 0.1
+    const delta = event.deltaY > 0 ? -zoomIntensity : zoomIntensity
+    const newScale = Math.max(0.1, Math.min(scale.value * (1 + delta), 5))
 
     if (!containerRef.value) return
 
@@ -199,32 +205,25 @@ const handleWheel = (event: WheelEvent) => {
     const mouseX = event.clientX - rect.left
     const mouseY = event.clientY - rect.top
 
-    // 计算鼠标位置在缩放前内容坐标系中的位置
-    const contentX = (mouseX - translateX.value) / scale.value
-    const contentY = (mouseY - translateY.value) / scale.value
+    // 计算新的平移值
+    const newTranslateX = mouseX - (mouseX - translateX.value) * (newScale / scale.value)
+    const newTranslateY = mouseY - (mouseY - translateY.value) * (newScale / scale.value)
 
-    // 调整平移量以保持鼠标位置不变
-    translateX.value = mouseX - contentX * newScale
-    translateY.value = mouseY - contentY * newScale
-
+    // 应用新的缩放和平移值
     scale.value = newScale
+    translateX.value = newTranslateX
+    translateY.value = newTranslateY
   } else {
-    // 平移
+    // 平移逻辑保持不变
     translateX.value -= event.deltaX
     translateY.value -= event.deltaY
   }
-  saveViewState()
 }
 
 // 处理触摸开始事件
 const handleTouchStart = (event: TouchEvent) => {
-  if (event.touches.length === 2) {
-    // 双指触摸，准备缩放
-    const touch1 = event.touches[0]
-    const touch2 = event.touches[1]
-    lastPinchDistance = Math.hypot(touch1.clientX - touch2.clientX, touch1.clientY - touch2.clientY)
-  } else if (event.touches.length === 1) {
-    // 单指触摸，准备拖动
+  if (event.touches.length === 1) {
+    event.preventDefault()
     isDragging = true
     lastX = event.touches[0].clientX
     lastY = event.touches[0].clientY
@@ -233,76 +232,20 @@ const handleTouchStart = (event: TouchEvent) => {
 
 // 处理触摸移动事件
 const handleTouchMove = (event: TouchEvent) => {
-  console.log('触摸移动，对象是：', event)
-  event.preventDefault() // 阻止默认的触摸行为，如页面滚动
-  if (event.touches.length === 2) {
-    // 处理双指触摸移动（用于缩放和平移）
-    const touch1 = event.touches[0]
-    const touch2 = event.touches[1]
-    // 计算两个触摸点之间的当前距离
-    const currentDistance = Math.hypot(
-      touch1.clientX - touch2.clientX,
-      touch1.clientY - touch2.clientY
-    )
-
-    if (!containerRef.value) return
-
-    const rect = containerRef.value.getBoundingClientRect()
-    // 计算两个触摸点的中心位置
-    const centerX = (touch1.clientX + touch2.clientX) / 2 - rect.left
-    const centerY = (touch1.clientY + touch2.clientY) / 2 - rect.top
-
-    // 计算缩放比例
-    const delta = currentDistance / lastPinchDistance
-    // 限制缩放范围在 0.1 到 5 之间
-    const newScale = Math.max(0.1, Math.min(scale.value * delta, 5))
-
-    // 计算缩放中心在内容坐标系中的位置
-    const contentX = (centerX - translateX.value) / scale.value
-    const contentY = (centerY - translateY.value) / scale.value
-
-    // 调整平移量以保持缩放中心不变
-    translateX.value = centerX - contentX * newScale
-    translateY.value = centerY - contentY * newScale
-
-    // 更新缩放值
-    scale.value = newScale
-    // 更新上次的触摸距离，用于下次计算缩放比例
-    lastPinchDistance = currentDistance
-
-    // 添加平移逻辑
-    // 计算两个触摸点的平均移动距离
-    const avgDeltaX = ((touch1.clientX + touch2.clientX) / 2 - (lastX + lastX) / 2) / scale.value
-    const avgDeltaY = ((touch1.clientY + touch2.clientY) / 2 - (lastY + lastY) / 2) / scale.value
-
-    // 更新平移量
-    translateX.value += avgDeltaX
-    translateY.value += avgDeltaY
-
-    // 更新上次触摸点的位置
-    lastX = (touch1.clientX + touch2.clientX) / 2
-    lastY = (touch1.clientY + touch2.clientY) / 2
-  } else if (event.touches.length === 1 && isDragging) {
-    // 处理单指平移
-    const touch = event.touches[0]
-    // 计算触摸点移动的距离
-    const deltaX = touch.clientX - lastX
-    const deltaY = touch.clientY - lastY
-
-    // 更新平移量，注意这里使用加法使移动方向与手指一致
-    translateX.value += deltaX / scale.value
-    translateY.value += deltaY / scale.value
-    // 更新上次触摸点的位置
-    lastX = touch.clientX
-    lastY = touch.clientY
-  }
-  saveViewState()
+  if (!isDragging || event.touches.length !== 1) return
+  event.preventDefault()
+  const touch = event.touches[0]
+  const deltaX = touch.clientX - lastX
+  const deltaY = touch.clientY - lastY
+  translateX.value += deltaX
+  translateY.value += deltaY
+  lastX = touch.clientX
+  lastY = touch.clientY
 }
 
 // 处理触摸结束事件
 const handleTouchEnd = () => {
   isDragging = false
-  lastPinchDistance = 0
 }
 
 // 适应视图（使所有白板缩略图适应当前视图）
@@ -310,23 +253,18 @@ const fitView = async () => {
   // 确保白板数据是最新的
   await whiteboardStore.getTopLevelWhiteboards()
   whiteboards.value = whiteboardStore.whiteboards
-  if (!containerRef.value || !contentRef.value || whiteboards.value.length === 0) return
+
+  if (!containerRef.value || whiteboards.value.length === 0) return
 
   const containerRect = containerRef.value.getBoundingClientRect()
 
   // 计算所有白板的边界
   const bounds = whiteboards.value.reduce(
     (acc, wb) => {
-      if (wb.position) {
-        const left = wb.position.x - wb.size.width / 2
-        const top = wb.position.y - wb.size.height / 2
-        const right = wb.position.x + wb.size.width / 2
-        const bottom = wb.position.y + wb.size.height / 2
-        acc.left = Math.min(acc.left, left)
-        acc.top = Math.min(acc.top, top)
-        acc.right = Math.max(acc.right, right)
-        acc.bottom = Math.max(acc.bottom, bottom)
-      }
+      acc.left = Math.min(acc.left, wb.position.x)
+      acc.top = Math.min(acc.top, wb.position.y)
+      acc.right = Math.max(acc.right, wb.position.x + wb.size.width)
+      acc.bottom = Math.max(acc.bottom, wb.position.y + wb.size.height)
       return acc
     },
     { left: Infinity, top: Infinity, right: -Infinity, bottom: -Infinity }
@@ -335,23 +273,26 @@ const fitView = async () => {
   const contentWidth = bounds.right - bounds.left
   const contentHeight = bounds.bottom - bounds.top
 
+  // 计算内容的中心点
+  const contentCenterX = (bounds.left + bounds.right) / 2
+  const contentCenterY = (bounds.top + bounds.bottom) / 2
+
   // 计算缩放比例
-  const padding = 50
+  const padding = 50 // 边距
   const scaleX = (containerRect.width - padding * 2) / contentWidth
   const scaleY = (containerRect.height - padding * 2) / contentHeight
-  scale.value = Math.min(scaleX, scaleY, 1) // 限制最大缩放为 1
+  const newScale = Math.min(scaleX, scaleY, 1) // 限制最大缩放为 1
 
-  // 如果内容太大，自动缩小白板
-  if (scale.value < 1) {
-    scale.value = Math.min(scaleX, scaleY)
-  }
+  // 计算新的平移值，使内容居中
+  const newTranslateX = containerRect.width / 2 - contentCenterX * newScale
+  const newTranslateY = containerRect.height / 2 - contentCenterY * newScale
 
-  // 计算平移量，使内容居中
-  translateX.value =
-    (containerRect.width - contentWidth * scale.value) / 2 - bounds.left * scale.value
-  translateY.value =
-    (containerRect.height - contentHeight * scale.value) / 2 - bounds.top * scale.value
+  // 应用新的缩放和平移值
+  scale.value = newScale
+  translateX.value = newTranslateX
+  translateY.value = newTranslateY
 
+  // 保存新的视图状态
   saveViewState()
 }
 
@@ -383,8 +324,8 @@ const alignmentGuides = ref<{ direction: 'horizontal' | 'vertical'; position: nu
 
 // 开始拖动缩略图
 const startDraggingThumbnail = (whiteboard: Whiteboard, event: MouseEvent) => {
-  if (!contentRef.value) return
-  const rect = contentRef.value.getBoundingClientRect()
+  if (!transformLayerRef.value) return
+  const rect = transformLayerRef.value.getBoundingClientRect()
   draggingThumbnail.value = {
     id: whiteboard.id,
     startX: (event.clientX - rect.left - translateX.value) / scale.value - whiteboard.position.x,
@@ -398,10 +339,10 @@ const startDraggingThumbnail = (whiteboard: Whiteboard, event: MouseEvent) => {
 // 拖动缩略图过程中，有磁性吸附的效果
 const SPACING = 5 // 定义缩略图之间的间距
 const onDragThumbnail = (event: MouseEvent) => {
-  if (!draggingThumbnail.value || !contentRef.value) return
+  if (!draggingThumbnail.value || !transformLayerRef.value) return
 
   const { id, startX, startY } = draggingThumbnail.value
-  const rect = contentRef.value.getBoundingClientRect()
+  const rect = transformLayerRef.value.getBoundingClientRect()
 
   let newCenterX = (event.clientX - rect.left - translateX.value) / scale.value - startX
   let newCenterY = (event.clientY - rect.top - translateY.value) / scale.value - startY
@@ -592,8 +533,6 @@ const stopDraggingThumbnail = async () => {
 }
 
 // 更新白板位置
-
-// 更新白板位置
 const updateWhiteboardPosition = (id: string, centerX: number, centerY: number) => {
   const index = whiteboards.value.findIndex((wb) => wb.id === id)
   if (index !== -1) {
@@ -652,25 +591,27 @@ onUnmounted(() => {
   background-color: var(--color-bg-primary);
 }
 
-.whiteboard-container {
+.whiteboard-canvas {
   flex: 1;
   position: relative;
   width: 100%;
   height: 100%;
   background-color: var(--color-bg-primary);
   overflow: hidden;
-  cursor: default;
+  touch-action: none;
+  user-select: none;
+  cursor: grab;
+  &:active {
+    cursor: grabbing;
+  }
 }
 
-.whiteboard-content {
+.whiteboard-transform-layer {
   position: absolute;
-  width: 100%;
-  height: 100%;
-  transform-origin: 0 0;
-}
-
-.whiteboard-container:active {
-  cursor: grabbing;
+  top: 0;
+  left: 0;
+  will-change: transform;
+  transition: transform 0.05s linear;
 }
 
 .fit-view-button {

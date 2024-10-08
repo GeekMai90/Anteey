@@ -467,5 +467,16 @@ contextBridge.exposeInMainWorld('electronAPI', {
       console.error('Preload: 更新笔记内容时出错:', error)
       throw error
     }
+  },
+  deleteWhiteboard: async (id: string): Promise<{ success: boolean; error?: string }> => {
+    try {
+      return (await ipcRenderer.invoke('delete-whiteboard', id)) as {
+        success: boolean
+        error?: string
+      }
+    } catch (error) {
+      console.error('Preload: 删除白板时出错:', error)
+      throw error
+    }
   }
 })
