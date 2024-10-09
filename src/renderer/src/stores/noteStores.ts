@@ -804,6 +804,22 @@ export const useNoteStore = defineStore('note', {
     allNotes(): Note[] {
       return Array.from(this.notesMap.values())
     },
+    // 获取所有的文献卡片
+    allBibNotes(): Note[] {
+      return this.allNotes.filter((note) => note.cardType === 'Bibcard')
+    },
+    // 获取所有的索引卡片
+    allIndexNotes(): Note[] {
+      return this.allNotes.filter((note) => note.cardType === 'Indexcard')
+    },
+    // 获取所有的跳转卡片
+    allHoplinkNotes(): Note[] {
+      return this.allNotes.filter((note) => note.cardType === 'Hoplinkcard')
+    },
+    // 获取所有的主要卡片
+    allMainNotes(): Note[] {
+      return this.allNotes.filter((note) => note.cardType === 'Maincard')
+    },
     // 获取笔记数量
     noteCount(): number {
       return this.allNotes.length

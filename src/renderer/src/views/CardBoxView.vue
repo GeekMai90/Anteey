@@ -71,7 +71,7 @@
               <div class="name">收件箱</div>
             </div>
             <!-- 卡片柜 -->
-            <div class="cardbox-dropdown" @click.stop="toggleCardBoxMenu">
+            <div ref="cardboxDropdown" class="cardbox-dropdown" @click.stop="toggleCardBoxMenu">
               <div class="icon">
                 <FileCabinet
                   theme="outline"
@@ -82,7 +82,12 @@
               </div>
               <div class="name">{{ selectedCardBoxName }}</div>
               <!-- 卡片柜下拉菜单 -->
-              <div v-if="showCardBoxMenu" class="dropdown-menu" :class="{ show: showCardBoxMenu }">
+              <div
+                v-if="showCardBoxMenu"
+                class="dropdown-menu"
+                :class="{ show: showCardBoxMenu }"
+                :style="dropdownMenuStyle"
+              >
                 <div
                   v-for="box in cardBoxes"
                   :key="box.id"
@@ -364,9 +369,9 @@ const toggleInbox = () => {
 const cardBoxes = computed(() => {
   const allCardsOption: CardBox = {
     id: '0000',
-    name: '卡片柜',
+    name: '所有卡片',
     type: 'cardbox',
-    description: '卡片柜',
+    description: '所有卡片',
     createdAt: new Date('2023-01-15T09:00:00Z'),
     updatedAt: new Date('2023-06-20T14:30:00Z'),
     noteIds: [],
@@ -534,22 +539,46 @@ const deleteCardBox = async (id: string | null) => {
 }
 
 // 打开卡片盒下拉菜单
+// const toggleCardBoxMenu = (event: MouseEvent) => {
+//   event.stopPropagation()
+//   showCardBoxMenu.value = !showCardBoxMenu.value
+//   showCardTypeMenu.value = false // 关闭另一个菜单
+
+//   // 添加以下代码来调整菜单位置
+//   if (showCardBoxMenu.value) {
+//     nextTick(() => {
+//       const dropdownElement = event.currentTarget as HTMLElement
+//       const menuElement = dropdownElement.querySelector('.dropdown-menu') as HTMLElement
+//       if (menuElement) {
+//         const rect = dropdownElement.getBoundingClientRect()
+//         menuElement.style.top = `${rect.bottom + window.scrollY + 10}px`
+//         menuElement.style.left = `${rect.left + window.scrollX - 100}px`
+//       }
+//     })
+//   }
+// }
+const cardboxDropdown = ref<HTMLElement | null>(null)
+const dropdownMenuStyle = ref({})
+
+const calculateMenuPosition = () => {
+  nextTick(() => {
+    if (cardboxDropdown.value) {
+      const rect = cardboxDropdown.value.getBoundingClientRect()
+      dropdownMenuStyle.value = {
+        position: 'fixed',
+        top: `${rect.bottom + window.scrollY}px`,
+        left: `${rect.left + window.scrollX}px`,
+        minWidth: `${rect.width}px`
+      }
+    }
+  })
+}
+
 const toggleCardBoxMenu = (event: MouseEvent) => {
   event.stopPropagation()
   showCardBoxMenu.value = !showCardBoxMenu.value
-  showCardTypeMenu.value = false // 关闭另一个菜单
-
-  // 添加以下代码来调整菜单位置
   if (showCardBoxMenu.value) {
-    nextTick(() => {
-      const dropdownElement = event.currentTarget as HTMLElement
-      const menuElement = dropdownElement.querySelector('.dropdown-menu') as HTMLElement
-      if (menuElement) {
-        const rect = dropdownElement.getBoundingClientRect()
-        menuElement.style.top = `${rect.bottom + window.scrollY + 10}px`
-        menuElement.style.left = `${rect.left + window.scrollX}px`
-      }
-    })
+    calculateMenuPosition()
   }
 }
 
@@ -857,9 +886,7 @@ onUnmounted(() => {
 
     .dropdown-menu {
       position: fixed; // 改为 fixed
-      top: auto; // 删除 top 属性
-      left: auto; // 删除 left 属性
-      transform: none; // 删除 transform
+      margin-top: 5px;
       background-color: var(--color-bg-primary);
       border-radius: 8px;
       z-index: 1000;
@@ -917,8 +944,8 @@ onUnmounted(() => {
             background: none;
             border: none;
             cursor: pointer;
-            width: 28px;
-            height: 28px;
+            width: 24px;
+            height: 24px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -991,6 +1018,33 @@ onUnmounted(() => {
         border-radius: 50%;
         transition: background-color 0.2s;
         margin-left: 10px;
+        .icon {
+          background: none;
+          border: none;
+          cursor: pointer;
+          width: 24px;
+          height: 24px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: 6px;
+          transition: background-color 0.2s;
+          padding: 0;
+
+          // 新增以下样式来处理 i-icon 类
+          .i-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
+          }
+
+          svg {
+            width: 18px; // 或者您想要的大小
+            height: 18px; // 或者您想要的大小
+          }
+        }
       }
     }
   }

@@ -149,8 +149,8 @@ import {
   Down,
   Right,
   Notes,
-  TransactionOrder,
-  Table
+  ListAlphabet,
+  Bookshelf
 } from '@icon-park/vue-next'
 import { useNoteStore } from '../stores/noteStores'
 import SettingDropdownMenu from './SettingDropdownMenu.vue'
@@ -181,8 +181,8 @@ const menuItems = [
     icon: Box,
     children: [
       { name: '主要卡片', path: '/maincard', icon: Notes },
-      { name: '索引卡片', path: '/bibcard', icon: TransactionOrder },
-      { name: '文献卡片', path: '/indexcard', icon: Table }
+      { name: '索引卡片', path: '/indexcard', icon: ListAlphabet },
+      { name: '文献卡片', path: '/bibcard', icon: Bookshelf }
     ]
   },
   { name: '思维板', path: '/whiteboard', icon: Workbench }
