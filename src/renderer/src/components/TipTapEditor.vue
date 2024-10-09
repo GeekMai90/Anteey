@@ -191,9 +191,6 @@ watch(
   { immediate: true }
 )
 
-// const focus = () => {
-//   editor.value?.commands.focus()
-// }
 const focus = () => {
   nextTick(() => {
     if (editor.value && props.editable) {
