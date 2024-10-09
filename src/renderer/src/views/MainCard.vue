@@ -96,7 +96,7 @@
                       {{ box.name }}
                     </div>
                   </div>
-                  <div v-if="box.id !== '0000'" class="dropdown-item-actions">
+                  <div v-if="box.id !== '0000' && box.id !== 'inbox'" class="dropdown-item-actions">
                     <button
                       class="more-actions-btn"
                       @click.stop="toggleMoreActions(box.id, $event)"
@@ -305,6 +305,18 @@ const selectSortOption = (option: { value: string; label: string }) => {
 
 let deleteTimeout: ReturnType<typeof setTimeout> | null = null
 
+// 添加收件箱选项
+const inboxOption: CardBox = {
+  id: 'inbox',
+  name: '收件箱',
+  type: 'cardbox',
+  description: '未分类卡片',
+  createdAt: new Date(),
+  updatedAt: new Date(),
+  noteIds: [],
+  parentId: ''
+}
+
 // 卡片柜
 const cardBoxes = computed(() => {
   const allCardsOption: CardBox = {
@@ -323,7 +335,7 @@ const cardBoxes = computed(() => {
   )
   const sortedCardBoxes = [...validCardBoxes].sort((a, b) => a.name.localeCompare(b.name, 'zh-CN'))
 
-  return [allCardsOption, ...sortedCardBoxes]
+  return [allCardsOption, inboxOption, ...sortedCardBoxes]
 })
 
 const selectedCardBoxName = computed(() => {
@@ -344,13 +356,45 @@ const handleBlur = () => {
 }
 
 // 修改 filteredNotes 计算属性
+// const filteredNotes = computed(() => {
+//   return searchFilteredNotes.value
+//     .filter((note: Note) => {
+//       if (selectedCardBox.value && selectedCardBox.value.id !== '0000') {
+//         return note.cardBoxId === selectedCardBox.value.id
+//       }
+//       return true
+//     })
+//     .sort((a: Note, b: Note) => {
+//       let comparison = 0
+//       switch (currentSort.value) {
+//         case 'name':
+//           comparison = a.address.localeCompare(b.address, 'zh-CN')
+//           break
+//         case 'createdAt':
+//           comparison = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+//           break
+//         case 'updatedAt':
+//           comparison = new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime()
+//           break
+//       }
+//       return sortDirection.value === 'asc' ? comparison : -comparison
+//     })
+// })
+// 修改 filteredNotes 计算属性
 const filteredNotes = computed(() => {
   return searchFilteredNotes.value
     .filter((note: Note) => {
-      if (selectedCardBox.value && selectedCardBox.value.id !== '0000') {
-        return note.cardBoxId === selectedCardBox.value.id
+      if (selectedCardBox.value) {
+        switch (selectedCardBox.value.id) {
+          case '0000':
+            return true // 所有卡片
+          case 'inbox':
+            return !note.cardBoxId || note.cardBoxId === '' // 未设置卡片盒的卡片
+          default:
+            return note.cardBoxId === selectedCardBox.value.id // 特定卡片盒的卡片
+        }
       }
-      return true
+      return true // 如果没有选择卡片盒，显示所有卡片
     })
     .sort((a: Note, b: Note) => {
       let comparison = 0

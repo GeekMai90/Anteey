@@ -539,24 +539,6 @@ const deleteCardBox = async (id: string | null) => {
 }
 
 // 打开卡片盒下拉菜单
-// const toggleCardBoxMenu = (event: MouseEvent) => {
-//   event.stopPropagation()
-//   showCardBoxMenu.value = !showCardBoxMenu.value
-//   showCardTypeMenu.value = false // 关闭另一个菜单
-
-//   // 添加以下代码来调整菜单位置
-//   if (showCardBoxMenu.value) {
-//     nextTick(() => {
-//       const dropdownElement = event.currentTarget as HTMLElement
-//       const menuElement = dropdownElement.querySelector('.dropdown-menu') as HTMLElement
-//       if (menuElement) {
-//         const rect = dropdownElement.getBoundingClientRect()
-//         menuElement.style.top = `${rect.bottom + window.scrollY + 10}px`
-//         menuElement.style.left = `${rect.left + window.scrollX - 100}px`
-//       }
-//     })
-//   }
-// }
 const cardboxDropdown = ref<HTMLElement | null>(null)
 const dropdownMenuStyle = ref({})
 

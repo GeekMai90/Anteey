@@ -191,7 +191,7 @@ const handleDelete = async (noteId: string) => {
     display: flex;
     flex-direction: column;
     align-items: center;
-    margin-bottom: 10px;
+    // margin-bottom: 10px;
 
     .header-content {
       width: 100%;
@@ -205,7 +205,7 @@ const handleDelete = async (noteId: string) => {
         justify-content: space-between;
         width: 100%;
         padding: 8px 0;
-        margin-bottom: 10px;
+        // margin-bottom: 10px;
         border-bottom: 1px solid var(--color-border);
 
         .timeline-header-left {
@@ -445,6 +445,7 @@ const handleDelete = async (noteId: string) => {
       width: 100%;
       max-width: 900px;
       margin: 0 auto;
+      padding-top: 16px;
     }
   }
 }
