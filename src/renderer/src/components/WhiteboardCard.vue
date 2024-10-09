@@ -68,10 +68,6 @@ onMounted(async () => {
 })
 
 // 打开白板详情
-// const openWhiteboard = (id: string) => {
-//   console.log('打开白板详情', id)
-//   router.push({ name: 'whiteboardDetail', params: { whiteboardId: id } })
-// }
 const openWhiteboard = (id: string) => {
   console.log('打开白板详情', id)
   console.log('当前路由:', router.currentRoute.value)
