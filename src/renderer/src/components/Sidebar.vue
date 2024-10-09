@@ -180,9 +180,9 @@ const menuItems = [
     path: '/cardbox',
     icon: Box,
     children: [
-      { name: '主要卡片', path: '/cardbox/maincard', icon: Notes },
-      { name: '索引卡片', path: '/cardbox/bibcard', icon: TransactionOrder },
-      { name: '文献卡片', path: '/cardbox/indexcard', icon: Table }
+      { name: '主要卡片', path: '/maincard', icon: Notes },
+      { name: '索引卡片', path: '/bibcard', icon: TransactionOrder },
+      { name: '文献卡片', path: '/indexcard', icon: Table }
     ]
   },
   { name: '思维板', path: '/whiteboard', icon: Workbench }
@@ -568,6 +568,7 @@ const openHelp = () => {
           border-radius: 8px;
           text-decoration: none;
           color: inherit;
+          margin-bottom: 4px;
           &:hover {
             background-color: var(--color-hover-sidebar);
           }
