@@ -39,19 +39,64 @@
     <div class="sidebar-nav">
       <nav>
         <ul>
-          <li v-for="item in menuItems" :key="item.name">
-            <router-link :to="item.path" class="nav-item" active-class="active">
-              <div class="icon">
-                <component
-                  :is="item.icon"
-                  :theme="$route.path === item.path ? 'filled' : 'outline'"
-                  size="18"
-                  :fill="getIconFill(item.path)"
-                  :strokeWidth="2"
-                ></component>
+          <li v-for="item in menuItems" :key="item.name" class="nav-item-wrapper">
+            <div class="nav-item" :class="{ active: isActiveOrHasActiveChild(item) }">
+              <router-link
+                :to="item.path"
+                class="nav-link"
+                :class="{ active: isActive(item.path) }"
+              >
+                <div class="icon">
+                  <component
+                    :is="item.icon"
+                    :theme="isActiveOrHasActiveChild(item) ? 'filled' : 'outline'"
+                    size="18"
+                    :fill="getIconFill(item.path)"
+                    :strokeWidth="2"
+                  ></component>
+                </div>
+                <div class="name">{{ item.name }}</div>
+              </router-link>
+              <div v-if="item.children" class="expand-button" @click.stop="toggleSubMenu(item)">
+                <div class="icon">
+                  <Down
+                    v-if="expanded"
+                    theme="outline"
+                    size="16"
+                    fill="var(--color-text-primary)"
+                    :strokeWidth="2"
+                  />
+                  <Right
+                    v-else
+                    theme="outline"
+                    size="16"
+                    fill="var(--color-text-primary)"
+                    :strokeWidth="2"
+                  />
+                </div>
               </div>
-              <div class="name">{{ item.name }}</div>
-            </router-link>
+            </div>
+            <ul v-if="item.children && expanded" class="sub-menu">
+              <li v-for="child in item.children" :key="child.name">
+                <router-link
+                  :to="child.path"
+                  class="nav-link sub-item"
+                  :class="{ active: isActive(child.path) }"
+                  @click.stop
+                >
+                  <div class="icon">
+                    <component
+                      :is="child.icon || item.icon"
+                      :theme="isActive(child.path) ? 'filled' : 'outline'"
+                      size="18"
+                      :fill="getIconFill(child.path)"
+                      :strokeWidth="2"
+                    ></component>
+                  </div>
+                  <div class="name">{{ child.name }}</div>
+                </router-link>
+              </li>
+            </ul>
           </li>
         </ul>
       </nav>
@@ -92,7 +137,21 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
-import { Time, Box, Workbench, Plus, Search, Help, DocAdd, Home } from '@icon-park/vue-next'
+import {
+  Time,
+  Box,
+  Workbench,
+  Plus,
+  Search,
+  Help,
+  DocAdd,
+  Home,
+  Down,
+  Right,
+  Notes,
+  TransactionOrder,
+  Table
+} from '@icon-park/vue-next'
 import { useNoteStore } from '../stores/noteStores'
 import SettingDropdownMenu from './SettingDropdownMenu.vue'
 import StarredNotes from './StarredNotes.vue'
@@ -112,12 +171,38 @@ const getIconFill = computed(
 onMounted(async () => {
   imageSrc.value = await window.electronAPI.getResourcePath('icon.png')
 })
+const expanded = ref(false)
 const menuItems = [
-  { name: '主页', path: '/home', icon: Home, color: '#4CAF50' },
-  { name: '时间线', path: '/timeline', icon: Time, color: '#4CAF50' },
-  { name: '卡片盒', path: '/cardbox', icon: Box, color: '#2196F3' },
-  { name: '思维板', path: '/whiteboard', icon: Workbench, color: '#9C27B0' }
+  { name: '主页', path: '/home', icon: Home },
+  { name: '时间线', path: '/timeline', icon: Time },
+  {
+    name: '卡片盒',
+    path: '/cardbox',
+    icon: Box,
+    children: [
+      { name: '主要卡片', path: '/cardbox/maincard', icon: Notes },
+      { name: '索引卡片', path: '/cardbox/bibcard', icon: TransactionOrder },
+      { name: '文献卡片', path: '/cardbox/indexcard', icon: Table }
+    ]
+  },
+  { name: '思维板', path: '/whiteboard', icon: Workbench }
 ]
+
+const isActive = (path: string) => {
+  return route.path === path || route.path.startsWith(path + '/')
+}
+
+const isActiveOrHasActiveChild = (item: any) => {
+  if (isActive(item.path)) return true
+  if (item.children) {
+    return item.children.some((child: any) => isActive(child.path))
+  }
+  return false
+}
+const toggleSubMenu = (item: any) => {
+  expanded.value = !expanded.value
+  console.log('Toggled:', item.name, 'Expanded:', item.expanded)
+}
 
 const noteStore = useNoteStore()
 // const isSidebarCollapsed = computed(() => noteStore.isSidebarCollapsed);
@@ -350,23 +435,35 @@ const openHelp = () => {
         list-style-type: none;
         padding: 0;
         margin: 0;
-
-        li {
-          margin-bottom: 0px;
+        .nav-item-wrapper {
+          margin-bottom: 4px;
         }
-
         .nav-item {
           display: flex;
           align-items: center;
-          // width: 200px;
-          padding: 8px 8px;
-          border: none;
-          background: none;
-          cursor: pointer;
-          transition: background-color 0.2s;
+          justify-content: space-between;
+          width: 100%;
+          padding: 8px;
           border-radius: 8px;
-          margin-bottom: 4px;
-          // margin: 2px 8px;
+          transition: background-color 0.2s;
+          user-select: none;
+
+          &:hover {
+            background-color: var(--color-hover-sidebar);
+          }
+          // &:has(.nav-link.active) {
+          //   background-color: var(--color-hover-sidebar);
+          // }
+          &.active {
+            background-color: var(--color-hover-sidebar);
+          }
+        }
+        .nav-link {
+          display: flex;
+          align-items: center;
+          flex-grow: 1;
+          text-decoration: none;
+          color: inherit;
 
           .icon {
             background: none;
@@ -407,13 +504,113 @@ const openHelp = () => {
             font-weight: 400;
           }
 
+          // &:hover {
+          //   background-color: var(--color-hover-sidebar);
+          // }
+        }
+
+        .expand-button {
+          background: none;
+          border: none;
+          cursor: pointer;
+          transition: transform 0.3s ease;
+          border-radius: 6px;
+          &:hover {
+            background-color: var(--color-hover-button);
+          }
+          .icon {
+            background: none;
+            border: none;
+            cursor: pointer;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            padding: 0;
+
+            &:disabled {
+              opacity: 0.5;
+              cursor: not-allowed;
+            }
+
+            :deep(.i-icon) {
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              width: 100%;
+              height: 100%;
+            }
+
+            :deep(svg) {
+              width: 16px;
+              height: 16px;
+            }
+          }
+        }
+
+        .expand-button .rotated {
+          transform: translateY(-50%) rotate(180deg);
+        }
+
+        .sub-menu {
+          list-style-type: none;
+          padding-left: 26px; // 与图标对齐
+          margin-top: 4px;
+        }
+
+        .sub-item {
+          display: flex;
+          align-items: center;
+          padding: 8px;
+          font-size: 14px;
+          border-radius: 8px;
+          text-decoration: none;
+          color: inherit;
           &:hover {
             background-color: var(--color-hover-sidebar);
           }
-
           &.active {
             background-color: var(--color-hover-sidebar);
-            // border: 1px solid var(--color-primary);
+          }
+          .icon {
+            background: none;
+            border: none;
+            cursor: pointer;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px;
+            transition: background-color 0.2s;
+            padding: 0;
+            margin-right: 8px;
+
+            // 新增以下样式来处理 i-icon 类
+            :deep(.i-icon) {
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              width: 100%;
+              height: 100%;
+            }
+
+            svg {
+              width: 16px; // 或者您想要的大小
+              height: 12px; // 或者您想要的大小
+            }
+          }
+
+          .name {
+            flex-grow: 0;
+            text-align: left;
+            color: var(--default-text-color);
+            font-size: 14px;
+            white-space: nowrap; // 防止文字换行
+            writing-mode: horizontal-tb; // 确保文字是水平排列的
+            font-weight: 400;
           }
         }
       }
