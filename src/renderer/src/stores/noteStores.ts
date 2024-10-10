@@ -164,7 +164,12 @@ export const useNoteStore = defineStore('note', {
         const updatedNote = await window.electronAPI.updateNoteContent(id, content)
 
         // 更新 notesMap
-        this.updateLocalNote(id, updatedNote)
+        // this.updateLocalNote(id, updatedNote)
+        // 仅更新 notesMap，不触发响应式更新
+        // if (this.notesMap.has(id)) {
+        //   const existingNote = this.notesMap.get(id)!
+        //   Object.assign(existingNote, updatedNote)
+        // }
 
         console.log('noteStores.ts→ 更新笔记内容成功', updatedNote)
         return updatedNote
@@ -172,7 +177,9 @@ export const useNoteStore = defineStore('note', {
         console.error(`noteStores.ts→ 更新笔记内容失败 ${id}:`, error)
         throw error
       }
+      console.log('noteStores.ts→ 更新笔记内容成功', id, content)
     },
+
     // 更新当前笔记（可以是部分更新）
     updateCurrentNote(noteData: Partial<Note>) {
       if (!this.currentNote) return

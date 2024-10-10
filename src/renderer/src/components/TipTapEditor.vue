@@ -228,17 +228,17 @@ watch(
   { immediate: true }
 )
 
-// const focus = () => {
-//   nextTick(() => {
-//     if (editor.value && props.editable) {
-//       editor.value.commands.focus('end')
-//     }
-//   })
-// }
+const focus = () => {
+  nextTick(() => {
+    if (editor.value && props.editable) {
+      editor.value.commands.focus('end')
+    }
+  })
+}
 
-// defineExpose({
-//   focus
-// })
+defineExpose({
+  focus
+})
 
 watch(
   () => props.content,
