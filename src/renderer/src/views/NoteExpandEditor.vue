@@ -29,7 +29,6 @@
             type="text"
             placeholder="输入编码地址"
             @input="handleAddressInput"
-            @keyup.enter="focusEditor"
           />
         </div>
         <div class="toolbar-right">
@@ -332,11 +331,11 @@ const focusAddressInput = () => {
   })
 }
 
-const focusEditor = () => {
-  nextTick(() => {
-    tiptapEditor.value?.focus()
-  })
-}
+// const focusEditor = () => {
+//   nextTick(() => {
+//     tiptapEditor.value?.focus()
+//   })
+// }
 
 // 在组件挂载后聚焦
 onMounted(() => {
