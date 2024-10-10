@@ -10,10 +10,11 @@ import NodeRange from '@tiptap-pro/extension-node-range'
 import Heading from '@tiptap/extension-heading'
 import StarterKit from '@tiptap/starter-kit'
 import Hightlight from '@tiptap/extension-highlight'
-import Code from '@tiptap/extension-code'
 import Link from '@tiptap/extension-link'
 import Underline from '@tiptap/extension-underline'
-import CodeBlock from '@tiptap/extension-code-block'
+import Emoji, { gitHubEmojis } from '@tiptap-pro/extension-emoji'
+import suggestion from '../tiptap/suggestion.js'
+// import HardBreak from '@tiptap/extension-hard-break'
 
 const props = defineProps({
   content: {
@@ -45,14 +46,17 @@ const editorExtensions = computed(() => {
       levels: [1, 2, 3]
     }),
     Hightlight,
-    Code,
     Link.configure({
       openOnClick: true,
       defaultProtocol: 'https',
       linkOnPaste: true
     }),
     Underline,
-    CodeBlock,
+    Emoji.configure({
+      emojis: gitHubEmojis,
+      enableEmoticons: true,
+      suggestion
+    }),
     NodeRange.configure({
       key: null,
       depth: undefined
