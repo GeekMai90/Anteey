@@ -1,7 +1,12 @@
 <template>
   <div class="editor-wrapper">
     <editor-content ref="editorRootRef" :editor="editorInstance" class="tiptap-container" />
-    <bubble-menu v-if="editorInstance" :editor="editorInstance" :tippy-options="{ duration: 100 }">
+    <bubble-menu
+      v-if="editorInstance"
+      :editor="editorInstance"
+      :tippy-options="{ duration: 100 }"
+      :should-show="shouldShowTextStyleMenu"
+    >
       <div class="bubble-menu">
         <!-- 加粗 -->
         <button
@@ -79,12 +84,60 @@
         </button>
       </div>
     </bubble-menu>
+    <!-- 为图片添加气泡菜单 -->
+    <bubble-menu
+      v-if="editorInstance"
+      :editor="editorInstance"
+      :tippy-options="{ duration: 100 }"
+      :should-show="shouldShowImageMenu"
+    >
+      <div class="bubble-menu image-menu">
+        <!-- 调整图片大小 -->
+        <button @click="resizeImage('small')">小</button>
+        <button @click="resizeImage('medium')">中</button>
+        <button @click="resizeImage('large')">大</button>
+
+        <!-- 调整图片对齐方式 -->
+        <button @click="alignImage('left')">
+          <AlignTextLeft
+            theme="outline"
+            size="16"
+            fill="var(--color-text-primary)"
+            :strokeWidth="4"
+          />
+        </button>
+        <button @click="alignImage('center')">
+          <AlignTextCenter
+            theme="outline"
+            size="16"
+            fill="var(--color-text-primary)"
+            :strokeWidth="4"
+          />
+        </button>
+        <button @click="alignImage('right')">
+          <AlignTextRight
+            theme="outline"
+            size="16"
+            fill="var(--color-text-primary)"
+            :strokeWidth="4"
+          />
+        </button>
+      </div>
+    </bubble-menu>
   </div>
 </template>
 
 <script setup>
 import { ref, watch, onMounted, onBeforeUnmount, computed, nextTick } from 'vue'
-import { Editor, EditorContent, BubbleMenu } from '@tiptap/vue-3'
+import {
+  Editor,
+  EditorContent,
+  BubbleMenu,
+  NodeViewWrapper,
+  NodeViewContent,
+  nodeViewProps,
+  VueNodeViewRenderer
+} from '@tiptap/vue-3'
 import DragHandle from '@tiptap-pro/extension-drag-handle'
 import NodeRange from '@tiptap-pro/extension-node-range'
 import StarterKit from '@tiptap/starter-kit'
@@ -107,7 +160,10 @@ import {
   Strikethrough,
   TextUnderline,
   HighLight,
-  Code as CodeIcon
+  Code as CodeIcon,
+  AlignTextLeft,
+  AlignTextCenter,
+  AlignTextRight
 } from '@icon-park/vue-next'
 // import HardBreak from '@tiptap/extension-hard-break'
 
@@ -151,6 +207,129 @@ const handleFileUpload = async (file) => {
     console.error('处理文件上传时出错:', error)
     return null
   }
+}
+
+// 自定义图片组件
+// const ImageComponent = {
+//   components: {
+//     NodeViewWrapper,
+//     NodeViewContent
+//   },
+//   props: nodeViewProps,
+//   template: `
+//     <node-view-wrapper data-type="image-wrapper" :style="{ width: node.attrs.width, textAlign: node.attrs.align }">
+//       <img :src="node.attrs.src" :alt="node.attrs.alt" />
+//     </node-view-wrapper>
+//   `,
+//   methods: {
+//     resizeImage(size) {
+//       const sizeMap = {
+//         small: '25%',
+//         medium: '50%',
+//         large: '100%'
+//       }
+//       this.updateAttributes({ width: sizeMap[size] })
+//     },
+//     alignImage(alignment) {
+//       this.updateAttributes({ align: alignment })
+//     }
+//   }
+// }
+// 修改 ImageComponent
+const ImageComponent = {
+  components: {
+    NodeViewWrapper,
+    NodeViewContent
+  },
+  props: nodeViewProps,
+  computed: {
+    imageStyle() {
+      const { width, align } = this.node.attrs
+      return {
+        width: width || '100%',
+        display: 'block',
+        margin: align === 'left' ? '0 auto 0 0' : align === 'right' ? '0 0 0 auto' : '0 auto'
+      }
+    },
+    wrapperStyle() {
+      return {
+        textAlign: this.node.attrs.align
+      }
+    }
+  },
+  template: `
+    <node-view-wrapper data-type="image-wrapper" class="tiptap-image-wrapper" :style="wrapperStyle">
+      <img :src="node.attrs.src" :alt="node.attrs.alt" :style="imageStyle" />
+    </node-view-wrapper>
+  `
+}
+
+// 扩展 Image 扩展
+// const CustomImage = Image.extend({
+//   addAttributes() {
+//     return {
+//       ...this.parent?.(),
+//       width: {
+//         default: '100%',
+//         renderHTML: (attributes) => ({
+//           width: attributes.width
+//         })
+//       },
+//       align: {
+//         default: 'center',
+//         renderHTML: (attributes) => ({
+//           style: `text-align: ${attributes.align}`
+//         })
+//       }
+//     }
+//   },
+
+//   addNodeView() {
+//     return VueNodeViewRenderer(ImageComponent)
+//   }
+// })
+// 修改 CustomImage 扩展
+const CustomImage = Image.extend({
+  addAttributes() {
+    return {
+      ...this.parent?.(),
+      width: {
+        default: '100%'
+      },
+      align: {
+        default: 'center'
+      }
+    }
+  },
+  addNodeView() {
+    return VueNodeViewRenderer(ImageComponent)
+  }
+})
+
+// 调整图片大小的函数
+const resizeImage = (size) => {
+  const sizeMap = {
+    small: '25%',
+    medium: '50%',
+    large: '100%'
+  }
+  editorInstance.value.chain().focus().updateAttributes('image', { width: sizeMap[size] }).run()
+}
+
+// 调整图片对齐方式的函数
+const alignImage = (alignment) => {
+  editorInstance.value.chain().focus().updateAttributes('image', { align: alignment }).run()
+}
+
+// 判断是否应该显示文字样式菜单
+const shouldShowTextStyleMenu = ({ editor }) => {
+  // 检查是否有文本选择，并且不是图片
+  return editor.state.selection.content().content.size > 0 && !editor.isActive('image')
+}
+
+// 判断是否应该显示图片菜单
+const shouldShowImageMenu = ({ editor }) => {
+  return editor.isActive('image')
 }
 
 const lowlight = createLowlight(all)
@@ -200,7 +379,7 @@ const editorExtensions = computed(() => {
       defaultLanguage: 'plaintext'
     }),
     Typography,
-    Image,
+    CustomImage,
     FileHandler.configure({
       allowedMimeTypes: ['image/png', 'image/jpeg', 'image/gif', 'image/webp'],
       onDrop: async (currentEditor, files, pos) => {
@@ -378,6 +557,17 @@ watch(
       &:hover {
         background-color: var(--color-hover-button);
       }
+    }
+  }
+}
+
+.image-menu {
+  button {
+    margin: 0 4px;
+    padding: 4px 8px;
+
+    &:hover {
+      background-color: var(--color-hover-button);
     }
   }
 }

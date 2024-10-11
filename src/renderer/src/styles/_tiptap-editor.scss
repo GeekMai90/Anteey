@@ -208,10 +208,11 @@
   img {
     display: block;
     height: auto;
-    margin: 1.5rem 0 1.5rem 0;
+    // margin: 1.5rem 0 1.5rem 0;
     // max-width: calc(100% - 2rem);
     max-width: 100%;
     width: auto;
+    border-radius: 0.75rem;
 
     &.ProseMirror-selectednode {
       outline: 3px solid red;
@@ -245,7 +246,7 @@
   position: relative;
   z-index: 0;
 
-  &::after {
+  &:not(.tiptap-image-wrapper)::after {
     position: absolute;
     pointer-events: none;
     z-index: -1;
