@@ -7,7 +7,9 @@ import {
   Menu,
   MenuItemConstructorOptions,
   protocol,
-  net
+  net,
+  nativeImage,
+  clipboard
 } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
@@ -69,7 +71,10 @@ import log from 'electron-log'
 import * as dotenv from 'dotenv'
 import { default as installExtension, VUEJS3_DEVTOOLS } from 'electron-devtools-installer'
 import path from 'path'
-import fs from 'fs'
+// import fs from 'fs'
+import fs from 'fs/promises'
+import fetch from 'node-fetch'
+import { URL } from 'url'
 
 // 设置应用名称
 app.name = 'Antinet'
@@ -174,8 +179,65 @@ function createCustomMenu() {
 }
 
 function setupIpcHandlers() {
-  // 图片上传
-  // 处理图片上传
+  // 复制图片
+  ipcMain.handle('copy-image', async (event, imageUrl: string) => {
+    console.log('尝试复制图片:', imageUrl)
+
+    try {
+      let filePath = imageUrl
+
+      // 如果 URL 以 "file://" 开头，解码并移除这个前缀
+      if (filePath.startsWith('file://')) {
+        filePath = decodeURIComponent(new URL(filePath).pathname)
+      } else {
+        // 如果不是 file:// URL，也进行解码
+        filePath = decodeURIComponent(filePath)
+      }
+
+      // 如果路径不是绝对路径，假设它是相对于 userData/images 目录的
+      if (!path.isAbsolute(filePath)) {
+        filePath = path.join(app.getPath('userData'), 'images', filePath)
+      }
+
+      console.log('读取文件:', filePath)
+
+      // 直接读取文件
+      const buffer = await fs.readFile(filePath)
+
+      // 创建 nativeImage 并写入剪贴板
+      const image = nativeImage.createFromBuffer(buffer)
+      clipboard.writeImage(image)
+
+      console.log('图片已成功复制到剪贴板')
+      return { success: true, message: '图片已复制到剪贴板' }
+    } catch (error: unknown) {
+      console.error('复制图片失败:', error)
+      return {
+        success: false,
+        message: '复制图片失败',
+        error: error instanceof Error ? error.message : String(error)
+      }
+    }
+  })
+  // 图片下载
+  ipcMain.handle('download-image', async (event, { url, filename }) => {
+    const win = BrowserWindow.getFocusedWindow()
+    const downloadPath = app.getPath('downloads')
+    const filePath = join(downloadPath, filename)
+
+    try {
+      const { download } = await import('electron-dl')
+      await download(win as BrowserWindow, url, {
+        directory: downloadPath,
+        filename: filename,
+        saveAs: true
+      })
+      return { success: true, message: '图片下载成功', path: filePath }
+    } catch (error) {
+      console.error('下载失败:', error)
+      return { success: false, message: '图片下载失败', error }
+    }
+  })
   // 处理图片上传
   ipcMain.handle('upload-image', async (_event, filePath: string) => {
     try {
@@ -183,10 +245,10 @@ function setupIpcHandlers() {
       const destPath = path.join(app.getPath('userData'), 'images', fileName)
 
       // 确保 images 目录存在
-      await fs.promises.mkdir(path.dirname(destPath), { recursive: true })
+      await fs.mkdir(path.dirname(destPath), { recursive: true })
 
       // 复制文件
-      await fs.promises.copyFile(filePath, destPath)
+      await fs.copyFile(filePath, destPath)
 
       return { success: true, path: `file://${destPath}` }
     } catch (error) {

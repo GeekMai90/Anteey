@@ -145,14 +145,72 @@ const wrapperStyle = computed(() => ({
 const hideMenu = () => {
   showMenu.value = false
 }
+const downloadImage = async () => {
+  const imageUrl = props.node.attrs.src
+  const fileName = getFileNameFromUrl(imageUrl)
 
-const downloadImage = () => {
-  // 实现下载图片的逻辑
+  try {
+    const result = await window.electronAPI.downloadImage(imageUrl, fileName)
+
+    if (result.success) {
+      console.log('图片下载成功:', result.path)
+      // 可以在这里添加一个成功提示
+    } else {
+      console.error('图片下载失败:', result.message)
+      // 可以在这里添加一个错误提示
+    }
+  } catch (error) {
+    console.error('下载过程中发生错误:', error)
+    // 可以在这里添加一个错误提示
+  }
+
   showMenu.value = false
 }
+// const downloadImage = () => {
+//   const imageUrl = props.node.attrs.src
+//   const fileName = getFileNameFromUrl(imageUrl)
 
-const copyImage = () => {
-  // 实现复制图片的逻辑
+//   const link = document.createElement('a')
+//   link.href = imageUrl
+//   link.download = fileName
+//   document.body.appendChild(link)
+//   link.click()
+//   document.body.removeChild(link)
+//   showMenu.value = false
+// }
+const getFileNameFromUrl = (url) => {
+  // 从 URL 中提取文件名
+  const pathArray = url.split('/')
+  let fileName = pathArray[pathArray.length - 1]
+
+  // 移除可能的查询参数
+  fileName = fileName.split('?')[0]
+
+  // 如果文件名为空，使用默认名称
+  if (!fileName) {
+    fileName = 'image.jpg'
+  }
+
+  return fileName
+}
+
+const copyImage = async () => {
+  const imageUrl = props.node.attrs.src
+
+  try {
+    const result = await window.electronAPI.copyImage(imageUrl)
+    if (result.success) {
+      console.log(result.message)
+      // 可以在这里添加一个成功提示
+    } else {
+      console.error('复制图片失败:', result.message)
+      // 可以在这里添加一个错误提示
+    }
+  } catch (error) {
+    console.error('复制过程中发生错误:', error)
+    // 可以在这里添加一个错误提示
+  }
+
   showMenu.value = false
 }
 

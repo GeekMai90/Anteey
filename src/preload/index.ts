@@ -510,5 +510,34 @@ contextBridge.exposeInMainWorld('electronAPI', {
       console.error('Preload: 上传图片时出错:', error)
       throw error
     }
+  },
+  downloadImage: async (
+    url: string,
+    filename: string
+  ): Promise<{ success: boolean; path?: string; error?: string }> => {
+    try {
+      return (await ipcRenderer.invoke('download-image', { url, filename })) as {
+        success: boolean
+        path?: string
+        error?: string
+      }
+    } catch (error) {
+      console.error('Preload: 下载图片时出错:', error)
+      throw error
+    }
+  },
+  copyImage: async (
+    imageUrl: string
+  ): Promise<{ success: boolean; message?: string; error?: string }> => {
+    try {
+      return (await ipcRenderer.invoke('copy-image', imageUrl)) as {
+        success: boolean
+        message?: string
+        error?: string
+      }
+    } catch (error) {
+      console.error('Preload: 复制图片时出错:', error)
+      throw error
+    }
   }
 })
