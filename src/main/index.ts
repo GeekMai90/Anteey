@@ -1,7 +1,15 @@
 // src/main/index.ts
-import { app, shell, BrowserWindow, ipcMain, Menu, MenuItemConstructorOptions } from 'electron'
+import {
+  app,
+  shell,
+  BrowserWindow,
+  ipcMain,
+  Menu,
+  MenuItemConstructorOptions,
+  protocol,
+  net
+} from 'electron'
 import { join } from 'path'
-import path from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import { initDatabase } from '../db/init'
 import {
@@ -58,10 +66,11 @@ import {
 } from '../renderer/src/types/Note'
 import { db, dbPath } from '../db/config'
 import log from 'electron-log'
-// import { runMigrations } from '../db/migrations/migrations'
 import * as dotenv from 'dotenv'
 import { default as installExtension, VUEJS3_DEVTOOLS } from 'electron-devtools-installer'
-// import { CardBox } from '@renderer/types/Note'
+import path from 'path'
+import fs from 'fs'
+
 // 设置应用名称
 app.name = 'Antinet'
 // 加载 .env 文件
@@ -165,6 +174,32 @@ function createCustomMenu() {
 }
 
 function setupIpcHandlers() {
+  // 图片上传
+  // 处理图片上传
+  // 处理图片上传
+  ipcMain.handle('upload-image', async (_event, filePath: string) => {
+    try {
+      const fileName = `${Date.now()}-${path.basename(filePath)}`
+      const destPath = path.join(app.getPath('userData'), 'images', fileName)
+
+      // 确保 images 目录存在
+      await fs.promises.mkdir(path.dirname(destPath), { recursive: true })
+
+      // 复制文件
+      await fs.promises.copyFile(filePath, destPath)
+
+      return { success: true, path: `file://${destPath}` }
+    } catch (error) {
+      console.error('上传图片时出错:', error)
+      return { success: false, error: String(error) }
+    }
+  })
+
+  // 获取图片路径
+  ipcMain.handle('get-image-path', (_event, fileName: string) => {
+    const fullPath = path.join(app.getPath('userData'), 'images', fileName)
+    return `file://${fullPath}`
+  })
   // 删除白板
   ipcMain.handle('delete-whiteboard', async (_, id: string) => {
     try {
@@ -712,7 +747,10 @@ function createWindow(): void {
       sandbox: false,
       contextIsolation: true,
       nodeIntegration: false,
-      devTools: true // 确保开发工具可用
+      devTools: true, // 确保开发工具可用
+      additionalArguments: ['--disable-site-isolation-trials'],
+      webSecurity: false // 警告：这可能带来安全风险，仅在开发环境使用
+      // allowRunningInsecureContent: true // 警告：这可能带来安全风险，仅在开发环境使用
     }
   })
   mainWindow.maximize()
@@ -741,13 +779,17 @@ function createWindow(): void {
     `)
   })
 
-  // 处理 HTML5 History 模式的路由
-  // mainWindow.webContents.on('will-navigate', (event, url) => {
-  //   if (!url.startsWith('http://localhost') && !url.startsWith('https://localhost')) {
-  //     event.preventDefault()
-  //     mainWindow.loadURL(`http://localhost:${process.env.PORT}${url}`)
-  //   }
-  // })
+  // 修改 CSP 设置
+  mainWindow.webContents.session.webRequest.onHeadersReceived((details, callback) => {
+    callback({
+      responseHeaders: {
+        ...details.responseHeaders,
+        'Content-Security-Policy': [
+          "default-src 'self'; img-src 'self' file: data: blob:; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline';"
+        ]
+      }
+    })
+  })
 
   // 在加载 URL 之前就创建并显示窗口
   mainWindow.webContents.on('did-finish-load', () => {
@@ -796,14 +838,12 @@ function createWindow(): void {
 }
 
 app.whenReady().then(async () => {
-  try {
-    console.log(`Electron 版本: ${process.versions.electron}`)
-    console.log(`Node.js 版本: ${process.versions.node}`)
-    console.log(`Chrome 版本: ${process.versions.chrome}`)
-    log.info(`Electron 版本: ${process.versions.electron}`)
-    log.info(`Node.js 版本: ${process.versions.node}`)
-    log.info(`Chrome 版本: ${process.versions.chrome}`)
+  const userDataPath = app.getPath('userData')
+  const imagesPath = path.join(userDataPath, 'images')
 
+  console.log('用户数据目录:', userDataPath)
+  console.log('图片目录:', imagesPath)
+  try {
     // 安装 Vue 3 Devtools
     installExtension(VUEJS3_DEVTOOLS)
       .then((name) => console.log(`Added Extension:  ${name}`))
@@ -816,6 +856,11 @@ app.whenReady().then(async () => {
     log.info('主进程→ 数据库初始化成功')
     log.info('数据库路径:', dbPath)
 
+    // protocol.registerFileProtocol('file', (request, callback) => {
+    //   const pathname = decodeURI(request.url.replace('file:///', ''))
+    //   callback(pathname)
+    // })
+
     // 验证表是否创建成功
     const hasNotesTable = await db.schema.hasTable('notes')
     console.log('notes 表是否存在:', hasNotesTable)
@@ -825,6 +870,14 @@ app.whenReady().then(async () => {
 
     ipcMain.handle('get-resource-path', (_event, filename) => {
       return path.join(app.getAppPath(), 'resources', filename)
+    })
+
+    // 注册自定义协议
+    protocol.handle('app-image', (request) => {
+      const url = new URL(request.url)
+      const decodedPath = decodeURIComponent(url.pathname)
+      const filePath = path.join(app.getPath('userData'), decodedPath)
+      return net.fetch('file://' + filePath)
     })
 
     // 设置 IPC 处理程序

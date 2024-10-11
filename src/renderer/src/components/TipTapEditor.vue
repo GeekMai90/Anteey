@@ -99,6 +99,8 @@ import Placeholder from '@tiptap/extension-placeholder'
 import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight'
 import { all, createLowlight } from 'lowlight'
 import Typography from '@tiptap/extension-typography'
+import FileHandler from '@tiptap-pro/extension-file-handler'
+import Image from '@tiptap/extension-image'
 import {
   TextBold,
   TextItalic,
@@ -129,6 +131,27 @@ const editor = ref(null)
 const editorInstance = computed(() => editor.value)
 
 const editorRootRef = ref(null)
+
+// 图片上传
+const handleFileUpload = async (file) => {
+  if (!file) {
+    console.error('没有文件被上传')
+    return null
+  }
+  try {
+    const result = await window.electronAPI.uploadImage(file.path)
+    if (result.success && result.path) {
+      // 直接使用返回的 path，它现在应该是 file:// 协议的 URL
+      return result.path
+    } else {
+      console.error('上传图片失败:', result.error)
+      return null
+    }
+  } catch (error) {
+    console.error('处理文件上传时出错:', error)
+    return null
+  }
+}
 
 const lowlight = createLowlight(all)
 const editorExtensions = computed(() => {
@@ -177,6 +200,56 @@ const editorExtensions = computed(() => {
       defaultLanguage: 'plaintext'
     }),
     Typography,
+    Image,
+    FileHandler.configure({
+      allowedMimeTypes: ['image/png', 'image/jpeg', 'image/gif', 'image/webp'],
+      onDrop: async (currentEditor, files, pos) => {
+        for (const file of files) {
+          try {
+            const imageUrl = await handleFileUpload(file)
+            if (imageUrl) {
+              currentEditor
+                .chain()
+                .insertContentAt(pos, {
+                  type: 'image',
+                  attrs: {
+                    src: imageUrl
+                  }
+                })
+                .focus()
+                .run()
+            } else {
+              console.error('Failed to upload image:', file.name)
+            }
+          } catch (error) {
+            console.error('Error handling dropped file:', file.name, error)
+          }
+        }
+      },
+      onPaste: async (currentEditor, files) => {
+        for (const file of files) {
+          try {
+            const imageUrl = await handleFileUpload(file)
+            if (imageUrl) {
+              currentEditor
+                .chain()
+                .insertContentAt(currentEditor.state.selection.anchor, {
+                  type: 'image',
+                  attrs: {
+                    src: imageUrl
+                  }
+                })
+                .focus()
+                .run()
+            } else {
+              console.error('Failed to upload pasted image:', file.name)
+            }
+          } catch (error) {
+            console.error('Error handling pasted file:', file.name, error)
+          }
+        }
+      }
+    }),
     NodeRange.configure({
       key: null,
       depth: undefined

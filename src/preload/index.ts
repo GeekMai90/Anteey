@@ -478,5 +478,37 @@ contextBridge.exposeInMainWorld('electronAPI', {
       console.error('Preload: 删除白板时出错:', error)
       throw error
     }
+  },
+  getImagePath: async (relativePath: string): Promise<string> => {
+    try {
+      const imagePath = await ipcRenderer.invoke('get-image-path', relativePath)
+      if (typeof imagePath !== 'string') {
+        throw new Error('Invalid image path returned')
+      }
+      // 确保返回的路径以 file:// 开头
+      return imagePath.startsWith('file://') ? imagePath : `file://${imagePath}`
+    } catch (error) {
+      console.error('Preload: 获取图片路径时出错:', error)
+      throw error
+    }
+  },
+
+  uploadImage: async (
+    filePath: string
+  ): Promise<{ success: boolean; path?: string; error?: string }> => {
+    try {
+      const result = await ipcRenderer.invoke('upload-image', filePath)
+      if (typeof result !== 'object' || result === null) {
+        throw new Error('Invalid upload result')
+      }
+      // 确保返回的路径以 file:// 开头
+      if (result.success && result.path && !result.path.startsWith('file://')) {
+        result.path = `file://${result.path}`
+      }
+      return result as { success: boolean; path?: string; error?: string }
+    } catch (error) {
+      console.error('Preload: 上传图片时出错:', error)
+      throw error
+    }
   }
 })
