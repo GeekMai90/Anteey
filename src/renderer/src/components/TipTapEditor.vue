@@ -292,15 +292,37 @@ const handleFileUpload = async (file) => {
 //   }
 // })
 // 修改 CustomImage 扩展
+// const CustomImage = Image.extend({
+//   addAttributes() {
+//     return {
+//       ...this.parent?.(),
+//       width: {
+//         default: '100%'
+//       },
+//       align: {
+//         default: 'center'
+//       }
+//     }
+//   },
+//   addNodeView() {
+//     return VueNodeViewRenderer(TiptapImage)
+//   }
+// })
 const CustomImage = Image.extend({
   addAttributes() {
     return {
       ...this.parent?.(),
       width: {
-        default: '100%'
+        default: '100%',
+        renderHTML: (attributes) => ({
+          style: `width: ${attributes.width}`
+        })
       },
       align: {
-        default: 'center'
+        default: 'center',
+        renderHTML: (attributes) => ({
+          style: `display: block; margin: ${attributes.align === 'center' ? '0 auto' : attributes.align === 'left' ? '0 auto 0 0' : '0 0 0 auto'}`
+        })
       }
     }
   },
@@ -379,7 +401,9 @@ const editorExtensions = computed(() => {
                 .insertContentAt(pos, {
                   type: 'image',
                   attrs: {
-                    src: imageUrl
+                    src: imageUrl,
+                    width: '100%', // 设置默认宽度
+                    align: 'center' // 设置默认对齐方式
                   }
                 })
                 .focus()
