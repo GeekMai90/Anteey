@@ -95,34 +95,28 @@
       <div class="bubble-menu image-menu">
         <!-- 调整图片对齐方式 -->
         <button @click="alignImage('left')">
-          <div class="icon">
-            <AlignTextLeft
-              theme="outline"
-              size="16"
-              fill="var(--color-text-primary)"
-              :strokeWidth="4"
-            />
-          </div>
+          <AlignTextLeft
+            theme="outline"
+            size="16"
+            fill="var(--color-text-primary)"
+            :strokeWidth="4"
+          />
         </button>
         <button @click="alignImage('center')">
-          <div class="icon">
-            <AlignTextCenter
-              theme="outline"
-              size="16"
-              fill="var(--color-text-primary)"
-              :strokeWidth="4"
-            />
-          </div>
+          <AlignTextCenter
+            theme="outline"
+            size="16"
+            fill="var(--color-text-primary)"
+            :strokeWidth="4"
+          />
         </button>
         <button @click="alignImage('right')">
-          <div class="icon">
-            <AlignTextRight
-              theme="outline"
-              size="16"
-              fill="var(--color-text-primary)"
-              :strokeWidth="4"
-            />
-          </div>
+          <AlignTextRight
+            theme="outline"
+            size="16"
+            fill="var(--color-text-primary)"
+            :strokeWidth="4"
+          />
         </button>
         <!-- 调整图片大小 -->
         <input
@@ -141,7 +135,15 @@
 
 <script setup>
 import { ref, watch, onMounted, onBeforeUnmount, computed, nextTick } from 'vue'
-import { Editor, EditorContent, BubbleMenu, VueNodeViewRenderer } from '@tiptap/vue-3'
+import {
+  Editor,
+  EditorContent,
+  BubbleMenu,
+  NodeViewWrapper,
+  NodeViewContent,
+  nodeViewProps,
+  VueNodeViewRenderer
+} from '@tiptap/vue-3'
 import DragHandle from '@tiptap-pro/extension-drag-handle'
 import NodeRange from '@tiptap-pro/extension-node-range'
 import StarterKit from '@tiptap/starter-kit'
@@ -169,7 +171,6 @@ import {
   AlignTextCenter,
   AlignTextRight
 } from '@icon-park/vue-next'
-import TiptapImage from './TiptapImage.vue'
 // import HardBreak from '@tiptap/extension-hard-break'
 
 const props = defineProps({
@@ -268,58 +269,58 @@ const handleFileUpload = async (file) => {
 //     </node-view-wrapper>
 //   `
 // }
-// const ImageComponent = {
-//   components: {
-//     NodeViewWrapper,
-//     NodeViewContent
-//   },
-//   props: nodeViewProps,
-//   data() {
-//     return {
-//       showMenu: false
-//     }
-//   },
-//   computed: {
-//     imageStyle() {
-//       const { width, align } = this.node.attrs
-//       return {
-//         width: width || '100%',
-//         display: 'block',
-//         margin: align === 'left' ? '0 auto 0 0' : align === 'right' ? '0 0 0 auto' : '0 auto'
-//       }
-//     },
-//     wrapperStyle() {
-//       return {
-//         textAlign: this.node.attrs.align
-//       }
-//     }
-//   },
-//   methods: {
-//     toggleMenu() {
-//       this.showMenu = !this.showMenu
-//     },
-//     downloadImage() {
-//       // 实现下载图片的逻辑
-//     },
-//     copyImage() {
-//       // 实现复制图片的逻辑
-//     },
-//     deleteImage() {
-//       this.deleteNode()
-//     }
-//   },
-//   template: `
-//     <node-view-wrapper data-type="image-wrapper" class="tiptap-image-wrapper" :class="{ 'is-selected': selected }" :style="wrapperStyle">
-//       <img :src="node.attrs.src" :alt="node.attrs.alt" :style="imageStyle" />
-//       <div class="image-more-button" @click="toggleMenu">...</div>
-//       <div v-if="showMenu" class="image-popup-menu">
-//         <button @click="downloadImage">下载</button>
-//         <button @click="copyImage">复制</button>
-//         <button @click="deleteImage">删除</button>
-//       </div>
-//     </node-view-wrapper>
-//   `
-// }
+const ImageComponent = {
+  components: {
+    NodeViewWrapper,
+    NodeViewContent
+  },
+  props: nodeViewProps,
+  data() {
+    return {
+      showMenu: false
+    }
+  },
+  computed: {
+    imageStyle() {
+      const { width, align } = this.node.attrs
+      return {
+        width: width || '100%',
+        display: 'block',
+        margin: align === 'left' ? '0 auto 0 0' : align === 'right' ? '0 0 0 auto' : '0 auto'
+      }
+    },
+    wrapperStyle() {
+      return {
+        textAlign: this.node.attrs.align
+      }
+    }
+  },
+  methods: {
+    toggleMenu() {
+      this.showMenu = !this.showMenu
+    },
+    downloadImage() {
+      // 实现下载图片的逻辑
+    },
+    copyImage() {
+      // 实现复制图片的逻辑
+    },
+    deleteImage() {
+      this.deleteNode()
+    }
+  },
+  template: `
+    <node-view-wrapper data-type="image-wrapper" class="tiptap-image-wrapper" :class="{ 'is-selected': selected }" :style="wrapperStyle">
+      <img :src="node.attrs.src" :alt="node.attrs.alt" :style="imageStyle" />
+      <div class="image-more-button" @click="toggleMenu">...</div>
+      <div v-if="showMenu" class="image-popup-menu">
+        <button @click="downloadImage">下载</button>
+        <button @click="copyImage">复制</button>
+        <button @click="deleteImage">删除</button>
+      </div>
+    </node-view-wrapper>
+  `
+}
 
 // 扩展 Image 扩展
 // const CustomImage = Image.extend({
@@ -359,27 +360,24 @@ const CustomImage = Image.extend({
     }
   },
   addNodeView() {
-    return VueNodeViewRenderer(TiptapImage)
+    return VueNodeViewRenderer(ImageComponent)
   }
 })
 
 // 调整图片大小的函数
-
+// const resizeImage = (size) => {
+//   const sizeMap = {
+//     small: '25%',
+//     medium: '50%',
+//     large: '100%'
+//   }
+//   editorInstance.value.chain().focus().updateAttributes('image', { width: sizeMap[size] }).run()
+// }
 const currentImageSize = ref(100)
 const resizeImage = (size) => {
   const newSize = `${size}%`
   editorInstance.value.chain().focus().updateAttributes('image', { width: newSize }).run()
   currentImageSize.value = parseInt(size)
-}
-// 添加这个函数来获取当前选中图片的大小
-const updateCurrentImageSize = () => {
-  const { selection } = editorInstance.value.state
-  const node = selection.$anchor.parent
-  if (node.type.name === 'image') {
-    const width = node.attrs.width
-    const match = width?.match(/(\d+)%/)
-    currentImageSize.value = match ? parseInt(match[1]) : 100
-  }
 }
 // 调整图片对齐方式的函数
 const alignImage = (alignment) => {
@@ -397,44 +395,9 @@ const shouldShowTextStyleMenu = ({ editor }) => {
 }
 
 // 判断是否应该显示图片菜单
-// const shouldShowImageMenu = ({ editor }) => {
-//   // return true
-//   return editor.isEditable && editor.isActive('image')
-// }
 const shouldShowImageMenu = ({ editor }) => {
-  if (editor.isEditable && editor.isActive('image')) {
-    updateCurrentImageSize()
-    return true
-  }
-  return false
+  return editor.isEditable && editor.isActive('image')
 }
-// 监听编辑器内容变化
-watch(
-  () => editorInstance.value?.state.doc,
-  () => {
-    if (editorInstance.value?.isActive('image')) {
-      updateCurrentImageSize()
-    }
-  },
-  { deep: true }
-)
-
-onMounted(() => {
-  editor.value = new Editor({
-    extensions: editorExtensions.value,
-    content: props.content,
-    editable: props.editable,
-    onUpdate: ({ editor }) => {
-      emit('update:content', editor.getJSON())
-    },
-    onCreate: ({ editor }) => {
-      // 在编辑器创建后立即更新图片大小
-      if (editor.isActive('image')) {
-        updateCurrentImageSize()
-      }
-    }
-  })
-})
 
 const lowlight = createLowlight(all)
 const editorExtensions = computed(() => {
@@ -719,143 +682,75 @@ watch(
     }
   }
 
-  // span {
-  //   margin-right: 10px;
-  // }
+  span {
+    margin-right: 10px;
+  }
 
-  // button {
-  //   margin: 0 4px;
-  //   padding: 4px 4px;
-  //   background-color: red;
-  //   display: flex;
-  //   align-items: center;
-  //   justify-content: center;
-  // }
   button {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 28px; // 调整为更小的尺寸
-    height: 28px;
     margin: 0 4px;
-    padding: 0;
-    background-color: var(--color-bg-secondary); // 添加背景色以便于调试
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    transition: background-color 0.2s ease;
+    padding: 4px 8px;
 
     &:hover {
       background-color: var(--color-hover-button);
     }
-
-    .icon {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 20px; // 稍微缩小图标容器
-      height: 20px;
-      line-height: 1; // 添加这行
-
-      :deep(.i-icon) {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        width: 100%;
-        height: 100%;
-      }
-
-      :deep(svg) {
-        width: 16px;
-        height: 16px;
-        display: block; // 添加这行
-        margin: auto; // 添加这行
-      }
-    }
   }
 }
-
 .tiptap-image-wrapper {
   position: relative;
   display: inline-block;
 
-  img {
-    transition: all 0.2s ease;
-    border-radius: 8px; // 给图片添加圆角
-  }
-
-  &.is-selected img {
-    box-shadow: 0 0 0 2px var(--color-primary);
+  &.is-selected::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    border: 2px solid var(--color-primary);
+    pointer-events: none;
+    border-radius: 8px;
   }
   &:hover .image-more-button {
     display: block;
   }
 
-  // .image-more-button {
-  //   position: absolute;
-  //   top: 5px;
-  //   right: 5px;
-  //   background-color: rgba(0, 0, 0, 0.5);
-  //   color: white;
-  //   border-radius: 50%;
-  //   width: 24px;
-  //   height: 24px;
-  //   display: none;
-  //   align-items: center;
-  //   justify-content: center;
-  //   cursor: pointer;
-  // }
-  // .image-popup-menu {
-  //   position: absolute;
-  //   top: 30px;
-  //   right: 5px;
-  //   background-color: white;
-  //   border: 1px solid #ccc;
-  //   border-radius: 4px;
-  //   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  .image-more-button {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    background-color: rgba(0, 0, 0, 0.5);
+    color: white;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+  }
+  .image-popup-menu {
+    position: absolute;
+    top: 30px;
+    right: 5px;
+    background-color: white;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
 
-  //   button {
-  //     display: flex; // 改为 flex 布局
-  //     align-items: center; // 垂直居中
-  //     justify-content: center; // 水平居中
-  //     width: 28px;
-  //     height: 28px;
-  //     border: none;
-  //     background: none;
-  //     cursor: pointer;
-  //     padding: 0; // 移除内边距
-  //     background-color: red;
+    button {
+      display: block;
+      width: 100%;
+      padding: 8px 12px;
+      text-align: left;
+      border: none;
+      background: none;
+      cursor: pointer;
 
-  //     &:hover {
-  //       background-color: #f0f0f0;
-  //     }
-  //     .icon {
-  //       background: none;
-  //       border: none;
-  //       cursor: pointer;
-  //       width: 24px;
-  //       height: 24px;
-  //       display: flex;
-  //       align-items: center;
-  //       justify-content: center;
-  //       transition: all 0.2s ease;
-  //       padding: 0;
-
-  //       .i-icon {
-  //         display: flex;
-  //         align-items: center;
-  //         justify-content: center;
-  //         width: 100%;
-  //         height: 100%;
-  //       }
-
-  //       svg {
-  //         width: 16px;
-  //         height: 16px;
-  //       }
-  //     }
-  //   }
-  // }
+      &:hover {
+        background-color: #f0f0f0;
+      }
+    }
+  }
 }
 
 /* 样式保持不变 */
