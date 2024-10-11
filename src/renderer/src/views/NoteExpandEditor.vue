@@ -226,23 +226,24 @@ watch(
   { immediate: true }
 )
 
-const editedNote = computed({
-  get: () => currentNote.value,
-  set: (newValue) => {
-    if (newValue) {
-      noteStore.updateCurrentNote(newValue)
-      isContentModified.value = true
-    }
-  }
-})
+const editedNote = computed(() => currentNote.value)
+// const editedNote = computed({
+//   get: () => currentNote.value,
+//   set: (newValue) => {
+//     if (newValue) {
+//       noteStore.updateCurrentNote(newValue)
+//       isContentModified.value = true
+//     }
+//   }
+// })
 
 // 更新内容
-const updateContent = (newContent: any) => {
+const updateContent = debounce((newContent: any) => {
   if (editedNote.value) {
     noteStore.updateNoteContent(editedNote.value.id, newContent)
     isContentModified.value = true
   }
-}
+}, 300)
 // 添加处理地址输入的函数
 const handleAddressInput = () => {
   if (editedNote.value) {

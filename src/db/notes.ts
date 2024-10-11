@@ -95,6 +95,7 @@ export async function getAllNotes(includeDeleted: boolean = false): Promise<Note
 // 更新笔记 content
 export async function updateNoteContent(id: string, content: any): Promise<Note> {
   try {
+    console.log('后端→ 更新笔记内容', id, content)
     const [updatedNote] = await db('notes')
       .where('id', id)
       .update({ content: JSON.stringify(content) })

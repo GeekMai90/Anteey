@@ -5,6 +5,7 @@ import { Note, Whiteboard, Connection, CardBox } from '../types/Note'
 import { Notes, Table, TransactionOrder, Deeplink } from '@icon-park/vue-next'
 import { ref } from 'vue'
 import { useUIStore } from './useUIStore'
+import { debounce } from 'lodash-es'
 
 const cardTypes = [
   { value: 'Maincard', label: '主要卡', icon: Notes },
@@ -134,16 +135,68 @@ export const useNoteStore = defineStore('note', {
       this.notesMap.set(note.id, note)
     },
     // 私有方法：更新本地笔记状态
-    updateLocalNote(id: string, updatedNote: Note) {
-      this.notesMap.set(id, updatedNote)
+    // updateLocalNote(id: string, updatedNote: Note) {
+    //   this.notesMap.set(id, updatedNote)
+    //   if (this.currentNote && this.currentNote.id === id) {
+    //     this.currentNote = updatedNote
+    //   }
+    // },
+    updateLocalNote(id: string, updatedFields: Partial<Note>) {
+      console.log('noteStores.ts→ 更新本地笔记', id, updatedFields)
+      if (this.notesMap.has(id)) {
+        const existingNote = this.notesMap.get(id)!
+        this.notesMap.set(id, {
+          ...existingNote,
+          ...updatedFields
+        })
+      }
       if (this.currentNote && this.currentNote.id === id) {
-        this.currentNote = updatedNote
+        this.currentNote = {
+          ...this.currentNote,
+          ...updatedFields
+        }
       }
     },
+    // 更新笔记内容
+    // async updateNoteContent(id: string, content: any): Promise<Note> {
+    //   try {
+    //     const updatedNote = await window.electronAPI.updateNoteContent(id, content)
+
+    //     // 更新 notesMap
+    //     this.updateLocalNote(id, updatedNote)
+    //     // 仅更新 notesMap，不触发响应式更新
+    //     // if (this.notesMap.has(id)) {
+    //     //   const existingNote = this.notesMap.get(id)!
+    //     //   Object.assign(existingNote, updatedNote)
+    //     // }
+    //     console.log('noteStores.ts→ 更新笔记内容成功', updatedNote)
+    //     // return updatedNote
+    //   } catch (error) {
+    //     console.error(`noteStores.ts→ 更新笔记内容失败 ${id}:`, error)
+    //     throw error
+    //   }
+    //   console.log('noteStores.ts→ 更新笔记内容成功', id, content)
+    // },
+    updateNoteContent(id: string, content: any) {
+      // 立即更新本地状态
+      this.updateLocalNote(id, { content })
+
+      // 延迟更新远程数据库
+      this.debouncedUpdateRemote(id, content)
+    },
+
+    debouncedUpdateRemote: debounce(async (id: string, content: any) => {
+      try {
+        await window.electronAPI.updateNoteContent(id, content)
+        console.log('noteStores.ts→ 更新远程笔记内容成功', id)
+      } catch (error) {
+        console.error(`noteStores.ts→ 更新远程笔记内容失败 ${id}:`, error)
+      }
+    }, 1000), // 1秒延迟
     // 更新整个笔记或多个字段
     async updateNote(id: string, noteData: Partial<Note>): Promise<Note> {
       try {
-        console.log('noteStores.ts→ 更新笔记', id, noteData)
+        console.log('noteStores.ts→ 更新整个笔记', id, noteData)
         const serializableNoteData = JSON.parse(JSON.stringify(noteData))
         const response = await window.electronAPI.updateNote(id, serializableNoteData)
         const updatedNote = this.parseNoteContent(response)
@@ -156,28 +209,6 @@ export const useNoteStore = defineStore('note', {
         console.error(`noteStores.ts→ 更新笔记失败 ${id}:`, error)
         throw error
       }
-    },
-
-    // 更新笔记内容
-    async updateNoteContent(id: string, content: any): Promise<Note> {
-      try {
-        const updatedNote = await window.electronAPI.updateNoteContent(id, content)
-
-        // 更新 notesMap
-        this.updateLocalNote(id, updatedNote)
-        // 仅更新 notesMap，不触发响应式更新
-        // if (this.notesMap.has(id)) {
-        //   const existingNote = this.notesMap.get(id)!
-        //   Object.assign(existingNote, updatedNote)
-        // }
-
-        console.log('noteStores.ts→ 更新笔记内容成功', updatedNote)
-        return updatedNote
-      } catch (error) {
-        console.error(`noteStores.ts→ 更新笔记内容失败 ${id}:`, error)
-        throw error
-      }
-      console.log('noteStores.ts→ 更新笔记内容成功', id, content)
     },
 
     // 更新当前笔记（可以是部分更新）
