@@ -324,12 +324,16 @@ const alignImage = (alignment) => {
 // 判断是否应该显示文字样式菜单
 const shouldShowTextStyleMenu = ({ editor }) => {
   // 检查是否有文本选择，并且不是图片
-  return editor.state.selection.content().content.size > 0 && !editor.isActive('image')
+  return (
+    editor.isEditable &&
+    editor.state.selection.content().content.size > 0 &&
+    !editor.isActive('image')
+  )
 }
 
 // 判断是否应该显示图片菜单
 const shouldShowImageMenu = ({ editor }) => {
-  return editor.isActive('image')
+  return editor.isEditable && editor.isActive('image')
 }
 
 const lowlight = createLowlight(all)

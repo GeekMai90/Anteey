@@ -212,19 +212,19 @@ export const useNoteStore = defineStore('note', {
     },
 
     // 更新当前笔记（可以是部分更新）
-    updateCurrentNote(noteData: Partial<Note>) {
-      if (!this.currentNote) return
+    // updateCurrentNote(noteData: Partial<Note>) {
+    //   if (!this.currentNote) return
 
-      const updatedNote = { ...this.currentNote, ...noteData }
-      const updateMethod = 'content' in noteData ? this.updateNoteContent : this.updateNote
+    //   const updatedNote = { ...this.currentNote, ...noteData }
+    //   const updateMethod = 'content' in noteData ? this.updateNoteContent : this.updateNote
 
-      updateMethod(updatedNote.id, noteData).catch((error) =>
-        console.error('更新当前笔记失败:', error)
-      )
+    //   updateMethod(updatedNote.id, noteData).catch((error) =>
+    //     console.error('更新当前笔记失败:', error)
+    //   )
 
-      // 立即更新本地状态，以提供即时反馈
-      this.updateLocalNote(updatedNote.id, updatedNote)
-    },
+    //   // 立即更新本地状态，以提供即时反馈
+    //   this.updateLocalNote(updatedNote.id, updatedNote)
+    // },
 
     // 获取一些笔记
     async getNotesByIds(ids: string[]) {
