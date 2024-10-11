@@ -85,57 +85,6 @@
         </button>
       </div>
     </bubble-menu>
-    <!-- 为图片添加气泡菜单 -->
-    <bubble-menu
-      v-if="editorInstance"
-      :editor="editorInstance"
-      :tippy-options="{ duration: 100 }"
-      :should-show="shouldShowImageMenu"
-    >
-      <div class="bubble-menu image-menu">
-        <!-- 调整图片对齐方式 -->
-        <button @click="alignImage('left')">
-          <div class="icon">
-            <AlignTextLeft
-              theme="outline"
-              size="16"
-              fill="var(--color-text-primary)"
-              :strokeWidth="4"
-            />
-          </div>
-        </button>
-        <button @click="alignImage('center')">
-          <div class="icon">
-            <AlignTextCenter
-              theme="outline"
-              size="16"
-              fill="var(--color-text-primary)"
-              :strokeWidth="4"
-            />
-          </div>
-        </button>
-        <button @click="alignImage('right')">
-          <div class="icon">
-            <AlignTextRight
-              theme="outline"
-              size="16"
-              fill="var(--color-text-primary)"
-              :strokeWidth="4"
-            />
-          </div>
-        </button>
-        <!-- 调整图片大小 -->
-        <input
-          type="range"
-          min="25"
-          max="100"
-          step="25"
-          :value="currentImageSize"
-          @input="resizeImage($event.target.value)"
-        />
-        <span>{{ currentImageSize }}%</span>
-      </div>
-    </bubble-menu>
   </div>
 </template>
 
@@ -164,10 +113,7 @@ import {
   Strikethrough,
   TextUnderline,
   HighLight,
-  Code as CodeIcon,
-  AlignTextLeft,
-  AlignTextCenter,
-  AlignTextRight
+  Code as CodeIcon
 } from '@icon-park/vue-next'
 import TiptapImage from './TiptapImage.vue'
 // import HardBreak from '@tiptap/extension-hard-break'
@@ -363,29 +309,6 @@ const CustomImage = Image.extend({
   }
 })
 
-// 调整图片大小的函数
-
-const currentImageSize = ref(100)
-const resizeImage = (size) => {
-  const newSize = `${size}%`
-  editorInstance.value.chain().focus().updateAttributes('image', { width: newSize }).run()
-  currentImageSize.value = parseInt(size)
-}
-// 添加这个函数来获取当前选中图片的大小
-const updateCurrentImageSize = () => {
-  const { selection } = editorInstance.value.state
-  const node = selection.$anchor.parent
-  if (node.type.name === 'image') {
-    const width = node.attrs.width
-    const match = width?.match(/(\d+)%/)
-    currentImageSize.value = match ? parseInt(match[1]) : 100
-  }
-}
-// 调整图片对齐方式的函数
-const alignImage = (alignment) => {
-  editorInstance.value.chain().focus().updateAttributes('image', { align: alignment }).run()
-}
-
 // 判断是否应该显示文字样式菜单
 const shouldShowTextStyleMenu = ({ editor }) => {
   // 检查是否有文本选择，并且不是图片
@@ -395,46 +318,6 @@ const shouldShowTextStyleMenu = ({ editor }) => {
     !editor.isActive('image')
   )
 }
-
-// 判断是否应该显示图片菜单
-// const shouldShowImageMenu = ({ editor }) => {
-//   // return true
-//   return editor.isEditable && editor.isActive('image')
-// }
-const shouldShowImageMenu = ({ editor }) => {
-  if (editor.isEditable && editor.isActive('image')) {
-    updateCurrentImageSize()
-    return true
-  }
-  return false
-}
-// 监听编辑器内容变化
-watch(
-  () => editorInstance.value?.state.doc,
-  () => {
-    if (editorInstance.value?.isActive('image')) {
-      updateCurrentImageSize()
-    }
-  },
-  { deep: true }
-)
-
-onMounted(() => {
-  editor.value = new Editor({
-    extensions: editorExtensions.value,
-    content: props.content,
-    editable: props.editable,
-    onUpdate: ({ editor }) => {
-      emit('update:content', editor.getJSON())
-    },
-    onCreate: ({ editor }) => {
-      // 在编辑器创建后立即更新图片大小
-      if (editor.isActive('image')) {
-        updateCurrentImageSize()
-      }
-    }
-  })
-})
 
 const lowlight = createLowlight(all)
 const editorExtensions = computed(() => {
@@ -665,198 +548,88 @@ watch(
   }
 }
 
-// .image-menu {
-//   button {
-//     margin: 0 4px;
-//     padding: 4px 8px;
+// .tiptap-image-wrapper {
+//   position: relative;
+//   display: inline-block;
 
-//     &:hover {
-//       background-color: var(--color-hover-button);
-//     }
+//   img {
+//     transition: all 0.2s ease;
+//     border-radius: 8px; // 给图片添加圆角
 //   }
+
+//   &.is-selected img {
+//     box-shadow: 0 0 0 2px var(--color-primary);
+//   }
+//   &:hover .image-more-button {
+//     display: block;
+//   }
+
+//   // .image-more-button {
+//   //   position: absolute;
+//   //   top: 5px;
+//   //   right: 5px;
+//   //   background-color: rgba(0, 0, 0, 0.5);
+//   //   color: white;
+//   //   border-radius: 50%;
+//   //   width: 24px;
+//   //   height: 24px;
+//   //   display: none;
+//   //   align-items: center;
+//   //   justify-content: center;
+//   //   cursor: pointer;
+//   // }
+//   // .image-popup-menu {
+//   //   position: absolute;
+//   //   top: 30px;
+//   //   right: 5px;
+//   //   background-color: white;
+//   //   border: 1px solid #ccc;
+//   //   border-radius: 4px;
+//   //   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+
+//   //   button {
+//   //     display: flex; // 改为 flex 布局
+//   //     align-items: center; // 垂直居中
+//   //     justify-content: center; // 水平居中
+//   //     width: 28px;
+//   //     height: 28px;
+//   //     border: none;
+//   //     background: none;
+//   //     cursor: pointer;
+//   //     padding: 0; // 移除内边距
+//   //     background-color: red;
+
+//   //     &:hover {
+//   //       background-color: #f0f0f0;
+//   //     }
+//   //     .icon {
+//   //       background: none;
+//   //       border: none;
+//   //       cursor: pointer;
+//   //       width: 24px;
+//   //       height: 24px;
+//   //       display: flex;
+//   //       align-items: center;
+//   //       justify-content: center;
+//   //       transition: all 0.2s ease;
+//   //       padding: 0;
+
+//   //       .i-icon {
+//   //         display: flex;
+//   //         align-items: center;
+//   //         justify-content: center;
+//   //         width: 100%;
+//   //         height: 100%;
+//   //       }
+
+//   //       svg {
+//   //         width: 16px;
+//   //         height: 16px;
+//   //       }
+//   //     }
+//   //   }
+//   // }
 // }
-.image-menu {
-  display: flex;
-  align-items: center;
-
-  input[type='range'] {
-    width: 100px;
-    margin-right: 10px;
-    -webkit-appearance: none;
-    appearance: none; // 添加这一行
-    background: transparent;
-
-    &::-webkit-slider-runnable-track {
-      width: 100%;
-      height: 4px;
-      background: var(--color-slider-track);
-      border-radius: 2px;
-    }
-
-    &::-webkit-slider-thumb {
-      -webkit-appearance: none;
-      height: 16px;
-      width: 16px;
-      border-radius: 50%;
-      background: var(--color-primary);
-      cursor: pointer;
-      margin-top: -6px;
-    }
-
-    &::-moz-range-track {
-      width: 100%;
-      height: 4px;
-      background: var(--color-slider-track);
-      border-radius: 2px;
-    }
-
-    &::-moz-range-thumb {
-      height: 16px;
-      width: 16px;
-      border-radius: 50%;
-      background: var(--color-primary);
-      cursor: pointer;
-    }
-  }
-
-  // span {
-  //   margin-right: 10px;
-  // }
-
-  // button {
-  //   margin: 0 4px;
-  //   padding: 4px 4px;
-  //   background-color: red;
-  //   display: flex;
-  //   align-items: center;
-  //   justify-content: center;
-  // }
-  button {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 28px; // 调整为更小的尺寸
-    height: 28px;
-    margin: 0 4px;
-    padding: 0;
-    background-color: var(--color-bg-secondary); // 添加背景色以便于调试
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    transition: background-color 0.2s ease;
-
-    &:hover {
-      background-color: var(--color-hover-button);
-    }
-
-    .icon {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 20px; // 稍微缩小图标容器
-      height: 20px;
-      line-height: 1; // 添加这行
-
-      :deep(.i-icon) {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        width: 100%;
-        height: 100%;
-      }
-
-      :deep(svg) {
-        width: 16px;
-        height: 16px;
-        display: block; // 添加这行
-        margin: auto; // 添加这行
-      }
-    }
-  }
-}
-
-.tiptap-image-wrapper {
-  position: relative;
-  display: inline-block;
-
-  img {
-    transition: all 0.2s ease;
-    border-radius: 8px; // 给图片添加圆角
-  }
-
-  &.is-selected img {
-    box-shadow: 0 0 0 2px var(--color-primary);
-  }
-  &:hover .image-more-button {
-    display: block;
-  }
-
-  // .image-more-button {
-  //   position: absolute;
-  //   top: 5px;
-  //   right: 5px;
-  //   background-color: rgba(0, 0, 0, 0.5);
-  //   color: white;
-  //   border-radius: 50%;
-  //   width: 24px;
-  //   height: 24px;
-  //   display: none;
-  //   align-items: center;
-  //   justify-content: center;
-  //   cursor: pointer;
-  // }
-  // .image-popup-menu {
-  //   position: absolute;
-  //   top: 30px;
-  //   right: 5px;
-  //   background-color: white;
-  //   border: 1px solid #ccc;
-  //   border-radius: 4px;
-  //   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-
-  //   button {
-  //     display: flex; // 改为 flex 布局
-  //     align-items: center; // 垂直居中
-  //     justify-content: center; // 水平居中
-  //     width: 28px;
-  //     height: 28px;
-  //     border: none;
-  //     background: none;
-  //     cursor: pointer;
-  //     padding: 0; // 移除内边距
-  //     background-color: red;
-
-  //     &:hover {
-  //       background-color: #f0f0f0;
-  //     }
-  //     .icon {
-  //       background: none;
-  //       border: none;
-  //       cursor: pointer;
-  //       width: 24px;
-  //       height: 24px;
-  //       display: flex;
-  //       align-items: center;
-  //       justify-content: center;
-  //       transition: all 0.2s ease;
-  //       padding: 0;
-
-  //       .i-icon {
-  //         display: flex;
-  //         align-items: center;
-  //         justify-content: center;
-  //         width: 100%;
-  //         height: 100%;
-  //       }
-
-  //       svg {
-  //         width: 16px;
-  //         height: 16px;
-  //       }
-  //     }
-  //   }
-  // }
-}
 
 /* 样式保持不变 */
 </style>
