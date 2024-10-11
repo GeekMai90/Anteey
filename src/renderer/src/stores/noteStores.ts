@@ -164,7 +164,7 @@ export const useNoteStore = defineStore('note', {
         const updatedNote = await window.electronAPI.updateNoteContent(id, content)
 
         // 更新 notesMap
-        // this.updateLocalNote(id, updatedNote)
+        this.updateLocalNote(id, updatedNote)
         // 仅更新 notesMap，不触发响应式更新
         // if (this.notesMap.has(id)) {
         //   const existingNote = this.notesMap.get(id)!
