@@ -98,7 +98,7 @@ import Hightlight from '@tiptap/extension-highlight'
 import Link from '@tiptap/extension-link'
 import Underline from '@tiptap/extension-underline'
 import Emoji, { gitHubEmojis } from '@tiptap-pro/extension-emoji'
-import suggestion from '../tiptap/suggestion.js'
+// import suggestion from '../tiptap/suggestion.js'
 import { Markdown } from 'tiptap-markdown'
 import Dropcursor from '@tiptap/extension-dropcursor'
 import Placeholder from '@tiptap/extension-placeholder'
@@ -118,7 +118,11 @@ import {
 import TiptapImage from './TiptapImage.vue'
 import TaskItem from '@tiptap/extension-task-item'
 import TaskList from '@tiptap/extension-task-list'
+import { emojiSuggestion } from '../tiptap/suggestion'
 // import HardBreak from '@tiptap/extension-hard-break'
+// import Suggestion from '@tiptap/suggestion'
+import { SlashCommands } from '../tiptap/SlashCommands'
+import { slashCommandSuggestion } from '../tiptap/slashCommandSuggestion'
 
 const props = defineProps({
   content: {
@@ -229,7 +233,11 @@ const editorExtensions = computed(() => {
     Emoji.configure({
       emojis: gitHubEmojis,
       enableEmoticons: true,
-      suggestion
+      suggestion: emojiSuggestion
+    }),
+    // 斜杠命令菜单
+    SlashCommands.configure({
+      suggestion: slashCommandSuggestion
     }),
     Dropcursor.configure({
       color: 'var(--color-primary)',
