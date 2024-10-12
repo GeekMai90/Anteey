@@ -119,8 +119,6 @@ import TiptapImage from './TiptapImage.vue'
 import TaskItem from '@tiptap/extension-task-item'
 import TaskList from '@tiptap/extension-task-list'
 import { emojiSuggestion } from '../tiptap/suggestion'
-// import HardBreak from '@tiptap/extension-hard-break'
-// import Suggestion from '@tiptap/suggestion'
 import { SlashCommands } from '../tiptap/SlashCommands'
 import { slashCommandSuggestion } from '../tiptap/slashCommandSuggestion'
 
@@ -244,7 +242,7 @@ const editorExtensions = computed(() => {
       width: 2
     }),
     Placeholder.configure({
-      placeholder: '请输入你的思考...'
+      placeholder: '记录思考，或输入 / 命令'
     }),
     CodeBlockLowlight.configure({
       lowlight,
@@ -335,11 +333,6 @@ onMounted(() => {
       emit('update:content', editor.getJSON())
     }
   })
-  // if (props.editable) {
-  //   nextTick(() => {
-  //     focus()
-  //   })
-  // }
 })
 
 onBeforeUnmount(() => {
@@ -366,10 +359,6 @@ const focus = () => {
   })
 }
 
-defineExpose({
-  focus
-})
-
 watch(
   () => props.content,
   (newContent) => {
@@ -382,6 +371,10 @@ watch(
   },
   { deep: true }
 )
+defineExpose({
+  focus,
+  editor: editorInstance
+})
 </script>
 
 <style lang="scss">
@@ -523,4 +516,48 @@ watch(
 // }
 
 /* 样式保持不变 */
+.ProseMirror {
+  position: relative;
+}
+
+.tableWrapper {
+  padding-top: 1em;
+  padding-left: 1em;
+}
+
+.grip-column,
+.grip-row {
+  position: absolute;
+  background: red; /* 改为红色以便更容易看到 */
+  opacity: 1; /* 改为始终可见 */
+  width: 20px; /* 增加大小 */
+  height: 20px;
+  z-index: 1000; /* 确保在最上层 */
+}
+
+.grip-column {
+  top: -12px;
+  left: 0;
+  width: 100%;
+  height: 12px;
+  cursor: col-resize;
+}
+
+.grip-row {
+  top: 0;
+  left: -12px;
+  width: 12px;
+  height: 100%;
+  cursor: row-resize;
+}
+
+.tableWrapper:hover .grip-column,
+.tableWrapper:hover .grip-row {
+  opacity: 0.3;
+}
+
+.grip-column:hover,
+.grip-row:hover {
+  opacity: 1 !important;
+}
 </style>

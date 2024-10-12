@@ -157,6 +157,9 @@ $dark-mode-text: $gray-100;
   --z-index-tertiary: 500;
   --z-index-quaternary: 100;
   --color-slider-track: #b6b6b6;
+  --color-table-border: rgba(61, 37, 20, 0.12);
+  --color-table-header-bg: rgba(61, 37, 20, 0.05);
+  --color-table-selected-cell-bg: rgba(61, 37, 20, 0.08);
 
   // --light-gray-color: rgba(0, 0, 0, 0.5);
   --sidebar-bg: #{$gray-100};

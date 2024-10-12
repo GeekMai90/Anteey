@@ -439,7 +439,7 @@ const editorExtensions = computed(() => {
       width: 2
     }),
     Placeholder.configure({
-      placeholder: '请输入你的思考...'
+      placeholder: '记录思考，或输入 / 命令'
     }),
     CodeBlockLowlight.configure({
       lowlight,

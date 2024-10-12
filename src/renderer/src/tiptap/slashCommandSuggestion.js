@@ -17,7 +17,7 @@ import {
 export const slashCommandSuggestion = {
   items: ({ query }) => {
     const commands = [
-      { type: 'separator', title: '样式' }, // 这是分隔符
+      // { type: 'separator', title: '样式' }, // 这是分隔符
       {
         title: '主标题',
         icon: H1,
@@ -77,7 +77,7 @@ export const slashCommandSuggestion = {
           editor.chain().focus().deleteRange(range).toggleCodeBlock().run()
         }
       },
-      { type: 'separator', title: '插入' }, // 这是分隔符
+      // { type: 'separator', title: '插入' }, // 这是分隔符
       {
         title: '分隔线',
         icon: DividingLine,

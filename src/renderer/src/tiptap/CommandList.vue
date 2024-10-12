@@ -92,7 +92,7 @@ defineExpose({
   min-width: 180px;
   width: max-content;
   max-width: 300px;
-  max-height: 300px; // 设置最大高度
+  max-height: 350px; // 设置最大高度
   overflow-y: auto; // 允许垂直滚动
   overflow-x: hidden; // 防止水平溢出
   white-space: nowrap;
@@ -108,7 +108,7 @@ defineExpose({
   transition: all 0.2s ease;
   border-radius: 6px;
   padding: 4px 12px;
-  margin: 2px 6px;
+  margin: 2px 8px;
 
   &:hover {
     background-color: var(--color-hover-button);
