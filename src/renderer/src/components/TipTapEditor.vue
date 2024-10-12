@@ -116,6 +116,8 @@ import {
   Code as CodeIcon
 } from '@icon-park/vue-next'
 import TiptapImage from './TiptapImage.vue'
+import TaskItem from '@tiptap/extension-task-item'
+import TaskList from '@tiptap/extension-task-list'
 // import HardBreak from '@tiptap/extension-hard-break'
 
 const props = defineProps({
@@ -242,6 +244,10 @@ const editorExtensions = computed(() => {
     }),
     Typography,
     CustomImage,
+    TaskList,
+    TaskItem.configure({
+      nested: true
+    }),
     FileHandler.configure({
       allowedMimeTypes: ['image/png', 'image/jpeg', 'image/gif', 'image/webp'],
       onDrop: async (currentEditor, files, pos) => {

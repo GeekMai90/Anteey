@@ -71,9 +71,7 @@ import log from 'electron-log'
 import * as dotenv from 'dotenv'
 import { default as installExtension, VUEJS3_DEVTOOLS } from 'electron-devtools-installer'
 import path from 'path'
-// import fs from 'fs'
 import fs from 'fs/promises'
-import fetch from 'node-fetch'
 import { URL } from 'url'
 
 // 设置应用名称

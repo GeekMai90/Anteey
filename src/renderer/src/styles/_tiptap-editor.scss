@@ -8,19 +8,9 @@
     margin-top: 0;
   }
 
-  * {
-    margin-top: 0.75em;
-  }
-  ul,
-  ol {
-    padding: 0 1rem;
-    margin: 1.25rem 1rem 1.25rem 0.4rem;
-
-    li p {
-      margin-top: 0.25em;
-      margin-bottom: 0.25em;
-    }
-  }
+  // * {
+  //   margin-top: 0.75em;
+  // }
 
   // 标题样式
   h1 {
@@ -61,6 +51,15 @@
     &.ProseMirror-selectednode {
       border-top: 1px solid #888;
     }
+  }
+  // 段落样式
+  p {
+    display: block;
+    margin-block-start: 1em;
+    margin-block-end: 1em;
+    margin-inline-start: 0px;
+    margin-inline-end: 0px;
+    unicode-bidi: isolate;
   }
   // 加粗
   strong,
@@ -185,6 +184,7 @@
     pointer-events: none;
   }
 
+  // 列表样式
   ul,
   ol {
     padding: 0 1rem;
@@ -194,9 +194,69 @@
       margin-top: 0.25em;
       margin-bottom: 0.25em;
     }
-    // li::marker {
-    //   color: #6a00f5; // 将颜色改为您想要的颜色
-    // }
+  }
+  // 任务列表样式
+  ul[data-type="taskList"] {
+    list-style: none;
+    margin-left: 0;
+    padding: 0;
+
+    li {
+      align-items: flex-start;
+      display: flex;
+
+      > label {
+        display: inline-flex; // 使用 inline-flex
+        align-items: center; // 确保 checkbox 垂直居中
+        margin-right: 0.5rem;
+        user-select: none;
+      }
+
+      > div {
+        flex: 1 1 auto;
+        margin-top: 0;
+      }
+    }
+    input[type="checkbox"] {
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      appearance: none;
+      width: 1em;
+      height: 1em;
+      border: 1px solid #ccc; // 正常时的边框颜色（灰色）
+      border-radius: 50%; // 圆形复选框
+      outline: none;
+      cursor: pointer;
+      position: relative;
+      transition: all 0.3s ease;
+      margin: 0.3em 0; // 微调垂直边距
+      flex-shrink: 0;
+
+      &:hover {
+        border-color: var(--color-primary); // 鼠标悬停时变为主题色
+      }
+
+      &:checked {
+        background-color: #ccc; // 选中时的背景颜色（灰色）
+        border-color: #ccc;
+
+        &::after {
+          content: "\2713"; // Unicode 对号字符
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          font-size: 0.7em;
+          font-weight: 900;
+          color: white;
+          line-height: 1;
+        }
+      }
+    }
+
+    ul[data-type="taskList"] {
+      margin: 0;
+    }
   }
 
   blockquote {
@@ -213,10 +273,6 @@
     max-width: 100%;
     width: auto;
     border-radius: 8px;
-
-    &.ProseMirror-selectednode {
-      outline: 3px solid red;
-    }
   }
 }
 
