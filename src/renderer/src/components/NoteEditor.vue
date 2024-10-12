@@ -188,12 +188,12 @@ const updateContent = debounce((newContent: any) => {
   }
 }, 300)
 // 添加处理地址输入的函数
-const handleAddressInput = () => {
+const handleAddressInput = debounce(() => {
   if (editedNote.value) {
     isContentModified.value = true
     saveNote()
   }
-}
+}, 300)
 
 // 检查内容是否改变
 function isContentChanged(oldNote: Note, newNote: Note): boolean {
@@ -643,19 +643,19 @@ defineExpose({ focusAddressInput, focusEditor })
       align-items: center;
       justify-content: center;
       padding-left: 27px;
+      width: 100%;
 
       input {
         width: 100%;
         padding: 8px 0;
-        /* 移除左右内边距，保留上下内边距 */
         border: none;
-        /* 移除所有边框 */
         outline: none;
-        /* 移除聚焦时的轮廓 */
         font-size: 1.3rem;
         font-weight: bold;
         background-color: transparent;
-        /* 确保背景透明 */
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
 
         &::placeholder {
           display: flex;

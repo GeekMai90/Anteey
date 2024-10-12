@@ -243,6 +243,9 @@ watch(
       font-size: 1.1rem;
       font-weight: bold;
       color: var(--color-text-primary);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
     .note-buttons {
       position: absolute;

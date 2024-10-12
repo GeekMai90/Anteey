@@ -432,6 +432,7 @@ watch(
   display: flex;
   align-items: center;
   height: 40px;
+  width: 100%;
 
   input {
     display: flex;
@@ -445,6 +446,9 @@ watch(
     line-height: 40px; // 设置行高，通常设置为 1.2 到 1.5 之间的值
     padding: 0;
     margin: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 
     &::placeholder {
       display: flex;
