@@ -13,21 +13,21 @@ import {
   ListSuccess,
   Code
 } from '@icon-park/vue-next'
-
+import { markRaw } from 'vue'
 export const slashCommandSuggestion = {
   items: ({ query }) => {
     const commands = [
       // { type: 'separator', title: '样式' }, // 这是分隔符
       {
         title: '主标题',
-        icon: H1,
+        icon: markRaw(H1),
         command: ({ editor, range }) => {
           editor.chain().focus().deleteRange(range).setNode('heading', { level: 1 }).run()
         }
       },
       {
         title: '副标题',
-        icon: H2,
+        icon: markRaw(H2),
         command: ({ editor, range }) => {
           editor.chain().focus().deleteRange(range).setNode('heading', { level: 2 }).run()
         }
@@ -35,14 +35,14 @@ export const slashCommandSuggestion = {
 
       {
         title: '中标题',
-        icon: H3,
+        icon: markRaw(H3),
         command: ({ editor, range }) => {
           editor.chain().focus().deleteRange(range).setNode('heading', { level: 3 }).run()
         }
       },
       {
         title: '无序列表',
-        icon: ListTwo,
+        icon: markRaw(ListTwo),
         command: ({ editor, range }) => {
           editor.chain().focus().deleteRange(range).toggleBulletList().run()
         }
@@ -50,7 +50,7 @@ export const slashCommandSuggestion = {
       //有序列表
       {
         title: '有序列表',
-        icon: OrderedList,
+        icon: markRaw(OrderedList),
         command: ({ editor, range }) => {
           editor.chain().focus().deleteRange(range).toggleOrderedList().run()
         }
@@ -58,21 +58,21 @@ export const slashCommandSuggestion = {
       // 任务列表
       {
         title: '任务列表',
-        icon: ListSuccess,
+        icon: markRaw(ListSuccess),
         command: ({ editor, range }) => {
           editor.chain().focus().deleteRange(range).toggleTaskList().run()
         }
       },
       {
         title: '引述',
-        icon: Quote,
+        icon: markRaw(Quote),
         command: ({ editor, range }) => {
           editor.chain().focus().deleteRange(range).toggleBlockquote().run()
         }
       },
       {
         title: '代码块',
-        icon: Code,
+        icon: markRaw(Code),
         command: ({ editor, range }) => {
           editor.chain().focus().deleteRange(range).toggleCodeBlock().run()
         }
@@ -80,7 +80,7 @@ export const slashCommandSuggestion = {
       // { type: 'separator', title: '插入' }, // 这是分隔符
       {
         title: '分隔线',
-        icon: DividingLine,
+        icon: markRaw(DividingLine),
         command: ({ editor, range }) => {
           editor.chain().focus().deleteRange(range).setHorizontalRule().run()
         }

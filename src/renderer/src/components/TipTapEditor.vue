@@ -1,5 +1,5 @@
 <template>
-  <div class="editor-wrapper">
+  <div ref="editorContainer" class="editor-wrapper">
     <editor-content ref="editorRootRef" :editor="editorInstance" class="tiptap-container" />
     <!-- 文字样式菜单 -->
     <bubble-menu
@@ -85,6 +85,36 @@
         </button>
       </div>
     </bubble-menu>
+    <!-- 上下文菜单 -->
+    <div
+      v-if="showContextMenu"
+      class="context-menu"
+      :style="{ top: `${contextMenuY}px`, left: `${contextMenuX}px` }"
+    >
+      <div class="context-menu-item" @click="clearFormatting">
+        <div class="icon">
+          <ClearFormat
+            theme="outline"
+            size="16"
+            fill="var(--color-text-primary)"
+            :strokeWidth="4"
+          />
+        </div>
+        <div class="name">清空格式</div>
+      </div>
+      <div class="context-menu-item" @click="copyToClipboard">
+        <div class="icon">
+          <Copy theme="outline" size="16" fill="var(--color-text-primary)" :strokeWidth="4" />
+        </div>
+        <div class="name">复制到剪贴板</div>
+      </div>
+      <div class="context-menu-item delete" @click="deleteParagraph">
+        <div class="icon">
+          <Delete theme="outline" size="16" fill="var(--color-text-danger)" :strokeWidth="4" />
+        </div>
+        <div class="name">删除段落</div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -92,6 +122,7 @@
 import { ref, watch, onMounted, onBeforeUnmount, computed, nextTick } from 'vue'
 import { Editor, EditorContent, BubbleMenu, VueNodeViewRenderer } from '@tiptap/vue-3'
 import DragHandle from '@tiptap-pro/extension-drag-handle'
+// import CustomDragHandle from '../tiptap/CustomDragHandle.js'
 import NodeRange from '@tiptap-pro/extension-node-range'
 import StarterKit from '@tiptap/starter-kit'
 import Hightlight from '@tiptap/extension-highlight'
@@ -113,7 +144,10 @@ import {
   Strikethrough,
   TextUnderline,
   HighLight,
-  Code as CodeIcon
+  Code as CodeIcon,
+  ClearFormat,
+  Copy,
+  Delete
 } from '@icon-park/vue-next'
 import TiptapImage from './TiptapImage.vue'
 import TaskItem from '@tiptap/extension-task-item'
@@ -121,6 +155,7 @@ import TaskList from '@tiptap/extension-task-list'
 import { emojiSuggestion } from '../tiptap/suggestion'
 import { SlashCommands } from '../tiptap/SlashCommands'
 import { slashCommandSuggestion } from '../tiptap/slashCommandSuggestion'
+import UniqueID from '@tiptap-pro/extension-unique-id'
 
 const props = defineProps({
   content: {
@@ -197,6 +232,118 @@ const shouldShowTextStyleMenu = ({ editor }) => {
     !editor.isActive('image')
   )
 }
+//拖拽块菜单
+const showContextMenu = ref(false)
+const contextMenuX = ref(0)
+const contextMenuY = ref(0)
+const currentParagraph = ref(null)
+
+const currentHoveredNode = ref(null)
+const editorContainer = ref(null)
+
+const getContextMenuPosition = (event) => {
+  if (editorContainer.value) {
+    const containerRect = editorContainer.value.getBoundingClientRect()
+    return {
+      x: event.clientX - containerRect.left,
+      y: event.clientY - containerRect.top
+    }
+  }
+  return { x: 0, y: 0 }
+}
+// const handleDragHandleClick = (event) => {
+//   event.preventDefault()
+//   event.stopPropagation()
+
+//   if (editor.value && currentHoveredNode.value) {
+//     const node = currentHoveredNode.value
+
+//     if (node.type.name === 'paragraph' || node.type.name.startsWith('heading')) {
+//       showContextMenu.value = true
+//       contextMenuX.value = event.clientX
+//       contextMenuY.value = event.clientY
+//       currentParagraph.value = node
+
+//       console.log('拖拽块被点击了!', node)
+//       console.log('节点类型:', node.type.name)
+//       console.log('节点内容:', node.textContent)
+//     } else {
+//       console.log('点击的不是段落或标题')
+//     }
+//   } else {
+//     console.log('未找到有效的节点')
+//   }
+// }
+const closeContextMenu = (event) => {
+  // 检查点击是否在上下文菜单外部
+  if (showContextMenu.value && !event.target.closest('.context-menu')) {
+    showContextMenu.value = false
+  }
+}
+onMounted(() => {
+  // 添加全局点击事件监听器
+  document.addEventListener('click', closeContextMenu)
+})
+
+onBeforeUnmount(() => {
+  // 移除全局点击事件监听器
+  document.removeEventListener('click', closeContextMenu)
+})
+const handleDragHandleClick = (event) => {
+  event.preventDefault()
+  event.stopPropagation()
+
+  if (editor.value && currentHoveredNode.value) {
+    const node = currentHoveredNode.value
+
+    if (node) {
+      const { x, y } = getContextMenuPosition(event)
+      showContextMenu.value = true
+      contextMenuX.value = x - 5
+      contextMenuY.value = y + 10
+      currentParagraph.value = node
+
+      console.log('拖拽块被点击了!', node)
+      console.log('节点类型:', node.type.name)
+      console.log('节点内容:', node.textContent)
+    } else {
+      console.log('点击的不是段落或标题')
+    }
+  } else {
+    console.log('未找到有效的节点')
+  }
+}
+const clearFormatting = () => {
+  if (currentParagraph.value && editor.value) {
+    editor.value.chain().focus().clearNodes().unsetAllMarks().run()
+  }
+  showContextMenu.value = false
+}
+
+const copyToClipboard = () => {
+  if (currentParagraph.value) {
+    navigator.clipboard.writeText(currentParagraph.value.textContent)
+  }
+  showContextMenu.value = false
+}
+
+const deleteParagraph = () => {
+  if (editor.value && currentParagraph.value) {
+    const nodeType = currentParagraph.value.type.name
+    console.log('当前段落类型:', nodeType)
+
+    editor.value.chain().focus().deleteNode(nodeType).run()
+
+    console.log('尝试删除节点类型:', nodeType)
+
+    // 触发内容更新
+    emit('update:content', editor.value.getJSON())
+  } else {
+    console.log('无法删除段落：编辑器或当前段落未定义')
+  }
+  showContextMenu.value = false
+  currentParagraph.value = null
+}
 
 const lowlight = createLowlight(all)
 const editorExtensions = computed(() => {
@@ -253,6 +400,9 @@ const editorExtensions = computed(() => {
     TaskList,
     TaskItem.configure({
       nested: true
+    }),
+    UniqueID.configure({
+      types: ['heading', 'paragraph']
     }),
     FileHandler.configure({
       allowedMimeTypes: ['image/png', 'image/jpeg', 'image/gif', 'image/webp'],
@@ -316,7 +466,15 @@ const editorExtensions = computed(() => {
         render() {
           const element = document.createElement('div')
           element.classList.add('custom-drag-handle')
+          element.addEventListener('click', handleDragHandleClick)
           return element
+        },
+        onNodeChange: ({ node }) => {
+          if (node) {
+            currentHoveredNode.value = node
+            console.log('当前悬停的节点:', node.type.name)
+            // 可以在这里存储当前节点信息，以便在点击时使用
+          }
         }
       })
     )
@@ -432,132 +590,99 @@ defineExpose({
   }
 }
 
-// .tiptap-image-wrapper {
-//   position: relative;
-//   display: inline-block;
-
-//   img {
-//     transition: all 0.2s ease;
-//     border-radius: 8px; // 给图片添加圆角
-//   }
-
-//   &.is-selected img {
-//     box-shadow: 0 0 0 2px var(--color-primary);
-//   }
-//   &:hover .image-more-button {
-//     display: block;
-//   }
-
-//   // .image-more-button {
-//   //   position: absolute;
-//   //   top: 5px;
-//   //   right: 5px;
-//   //   background-color: rgba(0, 0, 0, 0.5);
-//   //   color: white;
-//   //   border-radius: 50%;
-//   //   width: 24px;
-//   //   height: 24px;
-//   //   display: none;
-//   //   align-items: center;
-//   //   justify-content: center;
-//   //   cursor: pointer;
-//   // }
-//   // .image-popup-menu {
-//   //   position: absolute;
-//   //   top: 30px;
-//   //   right: 5px;
-//   //   background-color: white;
-//   //   border: 1px solid #ccc;
-//   //   border-radius: 4px;
-//   //   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-
-//   //   button {
-//   //     display: flex; // 改为 flex 布局
-//   //     align-items: center; // 垂直居中
-//   //     justify-content: center; // 水平居中
-//   //     width: 28px;
-//   //     height: 28px;
-//   //     border: none;
-//   //     background: none;
-//   //     cursor: pointer;
-//   //     padding: 0; // 移除内边距
-//   //     background-color: red;
-
-//   //     &:hover {
-//   //       background-color: #f0f0f0;
-//   //     }
-//   //     .icon {
-//   //       background: none;
-//   //       border: none;
-//   //       cursor: pointer;
-//   //       width: 24px;
-//   //       height: 24px;
-//   //       display: flex;
-//   //       align-items: center;
-//   //       justify-content: center;
-//   //       transition: all 0.2s ease;
-//   //       padding: 0;
-
-//   //       .i-icon {
-//   //         display: flex;
-//   //         align-items: center;
-//   //         justify-content: center;
-//   //         width: 100%;
-//   //         height: 100%;
-//   //       }
-
-//   //       svg {
-//   //         width: 16px;
-//   //         height: 16px;
-//   //       }
-//   //     }
-//   //   }
-//   // }
-// }
-
-/* 样式保持不变 */
-.ProseMirror {
+.editor-wrapper {
   position: relative;
-}
-
-.tableWrapper {
-  padding-top: 1em;
-  padding-left: 1em;
-}
-
-.grip-column,
-.grip-row {
-  position: absolute;
-  background: red; /* 改为红色以便更容易看到 */
-  opacity: 1; /* 改为始终可见 */
-  width: 20px; /* 增加大小 */
-  height: 20px;
-  z-index: 1000; /* 确保在最上层 */
-}
-
-.grip-column {
-  top: -12px;
-  left: 0;
   width: 100%;
-  height: 12px;
-  cursor: col-resize;
-}
-
-.grip-row {
-  top: 0;
-  left: -12px;
-  width: 12px;
   height: 100%;
-  cursor: row-resize;
 }
 
-.tableWrapper:hover .grip-column,
-.tableWrapper:hover .grip-row {
-  opacity: 0.3;
+.context-menu {
+  position: absolute;
+  background-color: var(--color-bg-primary);
+  border: 1px solid var(--color-border-primary);
+  border-radius: 8px;
+  box-shadow: var(--shadow-primary);
+  z-index: 9999;
+  min-width: 180px;
+  width: max-content;
+  max-width: 300px;
+  overflow-y: auto;
+  padding: 6px 12px;
+  white-space: nowrap;
+  max-width: 100vw; // 确保不超过视口宽度
+  overflow-x: hidden; // 防止水平溢出
+  align-items: center;
 }
 
-.grip-column:hover,
-.grip-row:hover {
-  opacity: 1 !important;
+.context-menu-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  border: none;
+  background: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border-radius: 6px;
+  padding: 4px 4px;
+  margin: 2px;
+
+  &:hover {
+    background-color: var(--color-hover-button);
+  }
+
+  .icon {
+    background: none;
+    border: none;
+    cursor: pointer;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    padding: 0;
+    flex-shrink: 0;
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .i-icon {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      height: 100%;
+    }
+
+    :deep(svg) {
+      width: 16px;
+      height: 16px;
+    }
+  }
+
+  .name {
+    flex-grow: 1;
+    text-align: left;
+    line-height: 1;
+    color: var(--default-text-color);
+    font-size: 13px;
+    font-weight: 400;
+    margin-left: 6px;
+    white-space: nowrap;
+    writing-mode: horizontal-tb;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    align-items: center;
+    justify-content: center;
+  }
+  &.delete {
+    color: var(--color-text-danger);
+  }
+
+  &:hover {
+    background-color: var(--color-hover-button);
+  }
 }
 </style>

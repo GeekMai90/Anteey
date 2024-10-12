@@ -217,6 +217,7 @@ defineExpose({ openMenu, closeMenu, resetDeleteState })
     writing-mode: horizontal-tb;
     overflow: hidden;
     text-overflow: ellipsis;
+    line-height: 1;
   }
 
   &:hover {

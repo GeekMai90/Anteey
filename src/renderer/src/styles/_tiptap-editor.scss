@@ -381,9 +381,15 @@
   }
 }
 
-.ProseMirror:hover [data-drag-handle] {
-  opacity: 1;
-}
+// .ProseMirror:hover [data-drag-handle] {
+//   opacity: 1;
+// }
+// .ProseMirror {
+//   .custom-drag-handle {
+//     opacity: 1 !important;
+//     visibility: visible !important;
+//   }
+// }
 
 .ProseMirror-focused {
   outline: none;
