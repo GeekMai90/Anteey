@@ -838,6 +838,10 @@ export const useNoteStore = defineStore('note', {
   },
 
   getters: {
+    // 获取笔记地址
+    getNoteAddress: (state) => {
+      return (id: string) => state.notesMap.get(id)?.address || ''
+    },
     // 获取所有笔记
     allNotes(): Note[] {
       return Array.from(this.notesMap.values())

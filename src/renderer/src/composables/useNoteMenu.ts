@@ -1,5 +1,14 @@
 import { computed, ref, watchEffect } from 'vue'
-import { Info, Star, Copy, History, DeleteOne, RightBar, Refresh } from '@icon-park/vue-next'
+import {
+  Info,
+  Star,
+  Copy,
+  History,
+  DeleteOne,
+  RightBar,
+  Refresh,
+  CopyLink
+} from '@icon-park/vue-next'
 import { useNoteStore } from '../stores/noteStores'
 import { useWhiteboardStore } from '../stores/whiteboardStores'
 import { useUIStore } from '@renderer/stores/useUIStore'
@@ -36,6 +45,14 @@ export function useNoteMenu(params: NoteMenuParams) {
 
   const handleShare = () => {
     console.log('分享笔记', params.noteId)
+  }
+
+  // 复制笔记引用链接
+  const handleCopyNoteLink = () => {
+    const noteAddress = noteStore.getNoteAddress(params.noteId)
+    const noteLink = `[${noteAddress}](note://${params.noteId})`
+    navigator.clipboard.writeText(noteLink)
+    console.log('已复制笔记链接:', noteLink)
   }
 
   const handleStar = () => {
@@ -188,6 +205,12 @@ export function useNoteMenu(params: NoteMenuParams) {
       icon: DeleteOne,
       action: handleDeleteWhiteboard,
       isDangerous: true
+    },
+    copyNoteLink: {
+      name: 'copyNoteLink',
+      label: '拷贝链接',
+      icon: CopyLink,
+      action: handleCopyNoteLink
     }
   }))
 

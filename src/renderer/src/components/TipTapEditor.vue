@@ -126,36 +126,23 @@
     </div>
     <!-- 链接设置菜单 -->
     <div v-if="showLinkInput" class="link-input-menu" :style="linkMenuStyle">
-      <input v-model="linkUrl" type="text" placeholder="输入链接URL" @keyup.enter="setLink" />
-      <button @click="setLink">确认</button>
-      <button @click="cancelLink">取消</button>
-    </div>
-    <!-- 链接编辑菜单 -->
-    <div v-if="showLinkEditMenu" class="link-edit-menu" :style="linkEditMenuStyle">
-      <a
-        :href="currentLinkUrl"
-        target="_blank"
-        rel="noopener noreferrer"
-        @click.stop="handleLinkClick"
-        >{{ currentLinkUrl }}</a
-      >
-      <div class="divider"></div>
-      <div class="link-edit-actions">
-        <button @click.stop="editLink">
+      <div class="link-input-fields">
+        <div class="link-input-field">
           <div class="icon">
-            <Edit theme="outline" size="16" fill="var(--color-text-primary)" :strokeWidth="4" />
+            <FontSize theme="outline" size="16" fill="var(--color-text-primary)" :strokeWidth="3" />
           </div>
-        </button>
-        <button @click.stop="removeLink">
+          <input v-model="linkText" type="text" placeholder="链接文本" @keyup.enter="setLink" />
+        </div>
+        <div class="link-input-field">
           <div class="icon">
-            <DeleteFive
-              theme="outline"
-              size="16"
-              fill="var(--color-text-primary)"
-              :strokeWidth="4"
-            />
+            <LinkIcon theme="outline" size="16" fill="var(--color-text-primary)" :strokeWidth="3" />
           </div>
-        </button>
+          <input v-model="linkUrl" type="text" placeholder="输入链接URL" @keyup.enter="setLink" />
+        </div>
+      </div>
+      <div class="link-input-actions">
+        <button @click="setLink">确认</button>
+        <button @click="cancelLink">取消</button>
       </div>
     </div>
   </div>
@@ -165,14 +152,11 @@
 import { ref, watch, onMounted, onBeforeUnmount, computed, nextTick } from 'vue'
 import { Editor, EditorContent, BubbleMenu, VueNodeViewRenderer } from '@tiptap/vue-3'
 import DragHandle from '@tiptap-pro/extension-drag-handle'
-// import CustomDragHandle from '../tiptap/CustomDragHandle.js'
 import NodeRange from '@tiptap-pro/extension-node-range'
 import StarterKit from '@tiptap/starter-kit'
 import Hightlight from '@tiptap/extension-highlight'
-import Link from '@tiptap/extension-link'
 import Underline from '@tiptap/extension-underline'
 import Emoji, { gitHubEmojis } from '@tiptap-pro/extension-emoji'
-// import suggestion from '../tiptap/suggestion.js'
 import { Markdown } from 'tiptap-markdown'
 import Dropcursor from '@tiptap/extension-dropcursor'
 import Placeholder from '@tiptap/extension-placeholder'
@@ -192,8 +176,7 @@ import {
   Copy,
   Delete,
   Link as LinkIcon,
-  Edit,
-  DeleteFive
+  FontSize
 } from '@icon-park/vue-next'
 import TiptapImage from './TiptapImage.vue'
 import TaskItem from '@tiptap/extension-task-item'
@@ -202,6 +185,10 @@ import { emojiSuggestion } from '../tiptap/suggestion'
 import { SlashCommands } from '../tiptap/SlashCommands'
 import { slashCommandSuggestion } from '../tiptap/slashCommandSuggestion'
 import UniqueID from '@tiptap-pro/extension-unique-id'
+import { CustomLink } from '../tiptap/CustomLink'
+import { useRouter } from 'vue-router'
+
+const router = useRouter()
 
 const props = defineProps({
   content: {
@@ -226,9 +213,10 @@ const editorRootRef = ref(null)
 
 // 链接设置菜单
 const showLinkInput = ref(false)
+const linkText = ref('')
 const linkUrl = ref('')
 const linkMenuPosition = ref({ x: 0, y: 0 })
-
+// 链接设置菜单样式
 const linkMenuStyle = computed(() => ({
   position: 'absolute',
   top: `${linkMenuPosition.value.y}px`,
@@ -236,29 +224,42 @@ const linkMenuStyle = computed(() => ({
   zIndex: 11
 }))
 
-const showLinkMenu = (event) => {
+// 显示链接设置菜单
+const showLinkMenu = (event, linkElement = null) => {
   closeLinkMenus()
   showLinkInput.value = true
-  linkUrl.value = editorInstance.value.getAttributes('link').href || ''
 
+  if (linkElement) {
+    // 编辑现有链接
+    const href = linkElement.getAttribute('href')
+    linkUrl.value = href
+    linkText.value = linkElement.textContent
+  } else {
+    // 创建新链接
+    const { from, to } = editorInstance.value.state.selection
+    linkUrl.value = ''
+    linkText.value = editorInstance.value.state.doc.textBetween(from, to) || ''
+  }
+
+  // 设置菜单位置
   if (event) {
-    // 如果是从气泡菜单点击的
-    const buttonRect = event.target.closest('button').getBoundingClientRect()
+    const rect = (linkElement || event.target.closest('button')).getBoundingClientRect()
     const containerRect = editorContainer.value.getBoundingClientRect()
     linkMenuPosition.value = {
-      x: buttonRect.left - containerRect.left,
-      y: buttonRect.bottom - containerRect.top + 5
+      x: rect.left - containerRect.left,
+      y: rect.bottom - containerRect.top + 5
     }
   }
 
   nextTick(() => {
-    const inputElement = document.querySelector('.link-input-menu input')
-    if (inputElement) {
-      inputElement.focus()
+    const inputElements = document.querySelectorAll('.link-input-menu input')
+    if (inputElements.length >= 2) {
+      inputElements[0].value = linkText.value
+      inputElements[1].value = linkUrl.value
+      inputElements[0].focus()
     }
   })
 }
-
 const setLink = () => {
   if (linkUrl.value) {
     editorInstance.value
@@ -267,78 +268,48 @@ const setLink = () => {
       .extendMarkRange('link')
       .setLink({ href: linkUrl.value })
       .run()
+
+    // 如果链接文本与 URL 不同,则插入新的文本
+    if (linkText.value !== linkUrl.value) {
+      editorInstance.value.chain().focus().insertContent(linkText.value).run()
+    }
   } else {
     editorInstance.value.chain().focus().extendMarkRange('link').unsetLink().run()
   }
   closeLinkMenus()
 }
-
+// 取消链接设置
 const cancelLink = () => {
   showLinkInput.value = false
   linkUrl.value = ''
+  linkText.value = ''
 }
-
-const showLinkEditMenu = ref(false)
-const currentLinkUrl = ref('')
-const linkEditMenuPosition = ref({ x: 0, y: 0 })
-
-const linkEditMenuStyle = computed(() => ({
-  position: 'absolute',
-  top: `${linkEditMenuPosition.value.y}px`,
-  left: `${linkEditMenuPosition.value.x}px`
-}))
+// 链接编辑菜单
 
 const handleLinkClick = (event) => {
-  const isCommandClick = event.metaKey || event.ctrlKey // 检查是否按下了 Command (Mac) 或 Ctrl (Windows)
-
-  if (isCommandClick) {
-    // 如果按下了 Command/Ctrl，则在新标签页中打开链接
-    window.open(event.target.href, '_blank')
-    return
-  }
-
-  event.preventDefault()
   const linkElement = event.target.closest('a')
   if (linkElement) {
-    currentLinkUrl.value = linkElement.href
-    const rect = linkElement.getBoundingClientRect()
-    const containerRect = editorContainer.value.getBoundingClientRect()
-    linkEditMenuPosition.value = {
-      x: rect.left - containerRect.left,
-      y: rect.bottom - containerRect.top
+    const href = linkElement.getAttribute('href')
+    const isModifierKeyPressed = event.metaKey || event.ctrlKey
+
+    if (isModifierKeyPressed) {
+      // 如果按下了修饰键，显示链接设置菜单
+      event.preventDefault()
+      showLinkMenu(event, linkElement)
+    } else {
+      // 如果没有按下修饰键
+      if (href.startsWith('note://')) {
+        event.preventDefault()
+        const noteId = href.replace('note://', '')
+        router.push({ name: 'NoteExpandEditor', params: { id: noteId } })
+      } else {
+        window.open(href, '_blank')
+      }
     }
-    showLinkEditMenu.value = true
   }
-}
-
-const editLink = (event) => {
-  event.stopPropagation()
-  linkUrl.value = currentLinkUrl.value
-  showLinkInput.value = true
-  showLinkEditMenu.value = false
-
-  // 使用当前链接编辑菜单的位置来设置链接输入菜单的位置
-  linkMenuPosition.value = {
-    x: linkEditMenuPosition.value.x,
-    y: linkEditMenuPosition.value.y + 30 // 稍微向下偏移，以免遮挡原链接
-  }
-
-  nextTick(() => {
-    const inputElement = document.querySelector('.link-input-menu input')
-    if (inputElement) {
-      inputElement.focus()
-    }
-  })
-}
-
-const removeLink = (event) => {
-  event.stopPropagation()
-  editorInstance.value.chain().focus().extendMarkRange('link').unsetLink().run()
-  showLinkEditMenu.value = false
 }
 
 const closeLinkMenus = () => {
-  showLinkEditMenu.value = false
   showLinkInput.value = false
 }
 const handleOutsideClick = (event) => {
@@ -346,9 +317,11 @@ const handleOutsideClick = (event) => {
     closeLinkMenus()
   }
 }
+// 监听点击事件
 onMounted(() => {
   document.addEventListener('click', handleOutsideClick)
 })
+// 移除点击事件
 onBeforeUnmount(() => {
   document.removeEventListener('click', handleOutsideClick)
 })
@@ -434,7 +407,7 @@ const closeContextMenu = (event) => {
   }
 }
 onMounted(() => {
-  // 添加全局点击事件监听器
+  // 添加全��点击事件监听器
   document.addEventListener('click', closeContextMenu)
 })
 
@@ -544,16 +517,21 @@ const editorExtensions = computed(() => {
     //   levels: [1, 2, 3]
     // }),
     Hightlight,
-    Link.configure({
+    // Link.configure({
+    //   openOnClick: false,
+    //   defaultProtocol: 'https',
+    //   linkOnPaste: true,
+    //   HTMLAttributes: {
+    //     rel: 'noopener noreferrer',
+    //     target: '_blank',
+    //     class: 'custom-link'
+    //   },
+    //   parseMarkdown: true // 启用 Markdown 链接解析
+    // }),
+    CustomLink.configure({
       openOnClick: false,
-      defaultProtocol: 'https',
-      linkOnPaste: true,
-      HTMLAttributes: {
-        rel: 'noopener noreferrer',
-        target: '_blank',
-        class: 'custom-link'
-      },
-      parseMarkdown: true // 启用 Markdown 链接解析
+      parseMarkdown: true,
+      validate: (url) => /^(https?:\/\/|note:\/\/)/.test(url)
     }),
     Underline,
     Emoji.configure({
@@ -673,11 +651,12 @@ onMounted(() => {
     },
     editorProps: {
       handleClick: (view, pos, event) => {
-        if (event.target.tagName === 'A') {
+        if (event.target instanceof HTMLAnchorElement) {
           handleLinkClick(event)
-        } else {
-          closeLinkMenus()
+          return true // 阻止 Tiptap 的默认行为
         }
+        closeLinkMenus()
+        return false // 允许 Tiptap 处理其他点击
       }
     }
   })
@@ -733,15 +712,17 @@ defineExpose({
 /* Bubble menu */
 .bubble-menu {
   background-color: var(--color-bg-primary);
-  border: 1px solid var(--color-hover-button);
+  border: 1px solid var(--color-border);
   border-radius: 8px;
   box-shadow: var(--shadow-card);
   display: flex;
-  padding: 4px 8px;
+  padding: 8px 8px;
 
   button {
     background-color: unset;
     border-radius: 8px;
+    padding: 4px;
+
     .icon {
       background: none;
       border: none;
@@ -880,103 +861,163 @@ defineExpose({
   position: absolute;
   z-index: 10;
   background-color: var(--color-bg-primary);
-  border: 1px solid var(--color-border-primary);
-  border-radius: 4px;
-  padding: 8px;
+  border-radius: 8px;
+  padding: 12px;
   display: flex;
+  flex-direction: column;
   gap: 8px;
   box-shadow: var(--shadow-primary);
-}
+  width: 360px;
 
-.link-input-menu input {
-  padding: 4px 8px;
-  border: 1px solid var(--color-text-tertiary);
-  border-radius: 4px;
-  transition: all 0.3s ease;
-  background-color: var(--color-bg-secondary);
-  color: var(--color-text-primary);
-  font-size: 14px;
-  width: 200px; // 或者根据需要调整
-
-  &:focus {
-    outline: none;
-    border-color: var(--color-primary);
-    box-shadow: 0 0 0 2px rgba(var(--color-primary-rgb), 0.2);
-  }
-}
-
-.link-input-menu button {
-  padding: 4px 8px;
-  background-color: var(--color-primary);
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-}
-.link-edit-menu {
-  background-color: var(--color-bg-primary);
-  border: 1px solid var(--color-border-primary);
-  border-radius: 4px;
-  padding: 8px 8px 8px 16px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-  z-index: 10;
-
-  a {
-    color: var(--color-text-primary);
-    text-decoration: underline;
-    margin-right: 8px;
-    &:hover {
-      text-decoration: underline;
-    }
-  }
-
-  .divider {
-    width: 1px;
-    height: 20px;
-    background-color: var(--color-text-secondary);
-    // margin: 0 8px;
-  }
-
-  .link-edit-actions {
+  .link-input-fields {
     display: flex;
-    gap: 4px;
+    flex-direction: column;
+    gap: 8px;
+  }
 
-    button {
+  .link-input-field {
+    display: flex;
+    align-items: center;
+    background-color: var(--color-bg-secondary);
+    border-radius: 6px;
+    overflow: hidden;
+
+    .icon {
       background: none;
-      border: none;
-      cursor: pointer;
-      padding: 4px;
-      border-radius: 8px;
-      &:hover {
-        background-color: var(--color-hover-button);
-      }
-      .icon {
-        background: none;
-        border: none;
-        cursor: pointer;
-        width: 24px;
-        height: 24px;
+      border: 1px solid var(--color-border);
+      border-radius: 6px;
+      width: 28px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+
+      margin-right: 4px;
+      .i-icon {
         display: flex;
         align-items: center;
         justify-content: center;
-        transition: all 0.2s ease;
-        padding: 0;
-        .i-icon {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          width: 100%;
-          height: 100%;
-        }
-        svg {
-          width: 16px;
-          height: 16px;
-        }
+        width: 100%;
+        height: 100%;
+      }
+      svg {
+        width: 14px;
+        height: 14px;
+      }
+    }
+
+    input {
+      flex-grow: 1;
+      border: 1px solid var(--color-border);
+      border-radius: 6px;
+      background: none;
+      padding: 3px 12px;
+      height: 30px;
+      font-size: 14px;
+      color: var(--color-text-primary);
+
+      &::placeholder {
+        color: var(--color-text-tertiary);
+      }
+
+      &:focus {
+        outline: none;
+      }
+    }
+  }
+
+  .link-input-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 4px;
+
+    button {
+      padding: 6px 12px;
+      background-color: var(--color-primary);
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+
+      &:last-child {
+        background-color: var(--color-bg-secondary);
+        border: 1px solid var(--color-border);
+        color: var(--color-text-primary);
+      }
+
+      &:hover {
+        opacity: 0.9;
       }
     }
   }
 }
+
+// .link-edit-menu {
+//   background-color: var(--color-bg-primary);
+//   border: 1px solid var(--color-border-primary);
+//   border-radius: 4px;
+//   padding: 8px 8px 8px 16px;
+//   display: flex;
+//   align-items: center;
+//   gap: 8px;
+//   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+//   z-index: 10;
+
+//   a {
+//     color: var(--color-text-primary);
+//     text-decoration: underline;
+//     margin-right: 8px;
+//     &:hover {
+//       text-decoration: underline;
+//     }
+//   }
+
+//   .divider {
+//     width: 1px;
+//     height: 20px;
+//     background-color: var(--color-text-secondary);
+//   }
+
+//   .link-edit-actions {
+//     display: flex;
+//     gap: 4px;
+
+//     button {
+//       background: none;
+//       border: none;
+//       cursor: pointer;
+//       padding: 4px;
+//       border-radius: 8px;
+//       &:hover {
+//         background-color: var(--color-hover-button);
+//       }
+//       .icon {
+//         background: none;
+//         border: none;
+//         cursor: pointer;
+//         width: 24px;
+//         height: 24px;
+//         display: flex;
+//         align-items: center;
+//         justify-content: center;
+//         transition: all 0.2s ease;
+//         padding: 0;
+//         .i-icon {
+//           display: flex;
+//           align-items: center;
+//           justify-content: center;
+//           width: 100%;
+//           height: 100%;
+//         }
+//         svg {
+//           width: 16px;
+//           height: 16px;
+//         }
+//       }
+//     }
+//   }
+// }
 </style>

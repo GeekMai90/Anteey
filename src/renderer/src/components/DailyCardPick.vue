@@ -177,9 +177,9 @@ onMounted(() => {
 
 <style scoped>
 .daily-card-pick {
-  margin-top: 20px;
+  /* margin-top: 20px; */
   text-align: center;
-  min-height: 466px;
+  min-height: 400px;
 }
 h3 {
   color: #fff;

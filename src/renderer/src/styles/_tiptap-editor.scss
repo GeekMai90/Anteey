@@ -99,6 +99,44 @@
       text-decoration: underline;
     }
   }
+  a[href^="note://"]
+  {
+    display: inline-flex;
+    align-items: center;
+    text-decoration: none;
+    font-size: inherit;
+    line-height: 1; // 设置为1，确保内容紧贴
+    vertical-align: middle; // 使用middle而不是baseline
+
+    &::before {
+      content: "";
+      display: inline-block;
+      width: 1em;
+      height: 1em;
+      margin-right: 0.25em;
+      background-image: url("data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIHZpZXdCb3g9IjAgMCA0OCA0OCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNMTAgNEgzMEw0MCAxNFY0NEgxMFY0WiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSJjdXJyZW50Q29sb3IiIHN0cm9rZS13aWR0aD0iMyIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+PHBhdGggZD0iTTMwIDRWMTRINDBNMTkgMjFIMjlNMTkgMzFIMjkiIHN0cm9rZT0iY3VycmVudENvbG9yIiBzdHJva2Utd2lkdGg9IjMiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPjwvc3ZnPg==");
+      background-size: contain;
+      background-repeat: no-repeat;
+      background-position: center;
+      flex-shrink: 0;
+      vertical-align: middle; // 确保图标也垂直居中
+    }
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+
+  // 为了确保链接在行内时也能正确对齐，可以添加以下样式
+  p,
+  div,
+  span {
+    a[href^="note://"]
+    {
+      vertical-align: -0.1em; // 微调垂直对齐
+    }
+  }
+  // 删除线
   s {
     text-decoration: line-through;
   }
