@@ -251,29 +251,7 @@ const getContextMenuPosition = (event) => {
   }
   return { x: 0, y: 0 }
 }
-// const handleDragHandleClick = (event) => {
-//   event.preventDefault()
-//   event.stopPropagation()
 
-//   if (editor.value && currentHoveredNode.value) {
-//     const node = currentHoveredNode.value
-
-//     if (node.type.name === 'paragraph' || node.type.name.startsWith('heading')) {
-//       showContextMenu.value = true
-//       contextMenuX.value = event.clientX
-//       contextMenuY.value = event.clientY
-//       currentParagraph.value = node
-
-//       console.log('拖拽块被点击了!', node)
-//       console.log('节点类型:', node.type.name)
-//       console.log('节点内容:', node.textContent)
-//     } else {
-//       console.log('点击的不是段落或标题')
-//     }
-//   } else {
-//     console.log('未找到有效的节点')
-//   }
-// }
 const closeContextMenu = (event) => {
   // 检查点击是否在上下文菜单外部
   if (showContextMenu.value && !event.target.closest('.context-menu')) {
@@ -289,6 +267,7 @@ onBeforeUnmount(() => {
   // 移除全局点击事件监听器
   document.removeEventListener('click', closeContextMenu)
 })
+// 拖拽块点击功能
 const handleDragHandleClick = (event) => {
   event.preventDefault()
   event.stopPropagation()
@@ -303,9 +282,35 @@ const handleDragHandleClick = (event) => {
       contextMenuY.value = y + 10
       currentParagraph.value = node
 
-      console.log('拖拽块被点击了!', node)
-      console.log('节点类型:', node.type.name)
-      console.log('节点内容:', node.textContent)
+      const nodeId = node.attrs.id
+
+      // 使用 nodeId 找到节点位置
+      let targetPos = -1
+      let targetEnd = -1
+      editor.value.state.doc.descendants((child, pos) => {
+        if (child.attrs.id === nodeId) {
+          targetPos = pos
+          targetEnd = pos + child.nodeSize
+          return false // 停止遍历
+        }
+      })
+
+      if (targetPos > -1 && targetEnd > -1) {
+        // 选中节点的文本内容
+        editor.value
+          .chain()
+          .focus()
+          .setTextSelection({ from: targetPos + 1, to: targetEnd - 1 })
+          .run()
+
+        console.log('拖拽块被点击了!', node)
+        console.log('节点类型:', node.type.name)
+        console.log('节点ID:', nodeId)
+        console.log('节点开始位置:', targetPos)
+        console.log('节点结束位置:', targetEnd)
+      } else {
+        console.log('无法找到节点位置')
+      }
     } else {
       console.log('点击的不是段落或标题')
     }
