@@ -9,13 +9,29 @@
       :should-show="shouldShowTextStyleMenu"
     >
       <div class="bubble-menu">
+        <!-- 新增的下拉菜单按钮 -->
+        <button ref="dropdownButton" class="dropdown-trigger" @click="toggleDropdown">
+          <div class="icon">
+            <TextStyleOne
+              theme="outline"
+              size="16"
+              fill="var(--color-icon-menu-default)"
+              :strokeWidth="3"
+            />
+          </div>
+        </button>
         <!-- 加粗 -->
         <button
           :class="{ 'is-active': editorInstance.isActive('bold') }"
           @click="editorInstance.chain().focus().toggleBold().run()"
         >
           <div class="icon">
-            <TextBold theme="outline" size="16" fill="var(--color-text-primary)" :strokeWidth="4" />
+            <TextBold
+              theme="outline"
+              size="16"
+              fill="var(--color-icon-menu-default)"
+              :strokeWidth="3"
+            />
           </div>
         </button>
         <!-- 斜体 -->
@@ -27,8 +43,8 @@
             <TextItalic
               theme="outline"
               size="16"
-              fill="var(--color-text-primary)"
-              :strokeWidth="4"
+              fill="var(--color-icon-menu-default)"
+              :strokeWidth="3"
             />
           </div>
         </button>
@@ -41,8 +57,8 @@
             <Strikethrough
               theme="outline"
               size="16"
-              fill="var(--color-text-primary)"
-              :strokeWidth="4"
+              fill="var(--color-icon-menu-default)"
+              :strokeWidth="3"
             />
           </div>
         </button>
@@ -55,8 +71,8 @@
             <TextUnderline
               theme="outline"
               size="16"
-              fill="var(--color-text-primary)"
-              :strokeWidth="4"
+              fill="var(--color-icon-menu-default)"
+              :strokeWidth="3"
             />
           </div>
         </button>
@@ -69,8 +85,8 @@
             <HighLight
               theme="outline"
               size="16"
-              fill="var(--color-text-primary)"
-              :strokeWidth="4"
+              fill="var(--color-icon-menu-default)"
+              :strokeWidth="3"
             />
           </div>
         </button>
@@ -80,7 +96,12 @@
           @click="editorInstance.chain().focus().toggleCode().run()"
         >
           <div class="icon">
-            <CodeIcon theme="outline" size="16" fill="var(--color-text-primary)" :strokeWidth="4" />
+            <CodeIcon
+              theme="outline"
+              size="16"
+              fill="var(--color-icon-menu-default)"
+              :strokeWidth="3"
+            />
           </div>
         </button>
         <!-- 链接 -->
@@ -89,7 +110,12 @@
           @click="showLinkMenu($event)"
         >
           <div class="icon">
-            <LinkIcon theme="outline" size="16" fill="var(--color-text-primary)" :strokeWidth="4" />
+            <LinkIcon
+              theme="outline"
+              size="16"
+              fill="var(--color-icon-menu-default)"
+              :strokeWidth="3"
+            />
           </div>
         </button>
       </div>
@@ -106,7 +132,7 @@
             theme="outline"
             size="16"
             fill="var(--color-text-primary)"
-            :strokeWidth="4"
+            :strokeWidth="3"
           />
         </div>
         <div class="name">清空格式</div>
@@ -129,13 +155,23 @@
       <div class="link-input-fields">
         <div class="link-input-field">
           <div class="icon">
-            <FontSize theme="outline" size="16" fill="var(--color-text-primary)" :strokeWidth="3" />
+            <FontSize
+              theme="outline"
+              size="16"
+              fill="var(--color-icon-menu-default)"
+              :strokeWidth="3"
+            />
           </div>
           <input v-model="linkText" type="text" placeholder="链接文本" @keyup.enter="setLink" />
         </div>
         <div class="link-input-field">
           <div class="icon">
-            <LinkIcon theme="outline" size="16" fill="var(--color-text-primary)" :strokeWidth="3" />
+            <LinkIcon
+              theme="outline"
+              size="16"
+              fill="var(--color-icon-menu-default)"
+              :strokeWidth="3"
+            />
           </div>
           <input v-model="linkUrl" type="text" placeholder="输入链接URL" @keyup.enter="setLink" />
         </div>
@@ -144,6 +180,71 @@
         <button @click="setLink">确认</button>
         <button @click="cancelLink">取消</button>
       </div>
+    </div>
+    <!-- 下拉菜单 -->
+    <div v-if="showDropdown" class="style-dropdown-menu" :style="dropdownMenuStyle">
+      <button @click="setNodeType('paragraph')">
+        <div class="icon">
+          <ParagraphAlphabet
+            theme="outline"
+            size="16"
+            fill="var(--color-icon-menu-default)"
+            :strokeWidth="3"
+          />
+        </div>
+        <div class="name">段落</div>
+      </button>
+      <button @click="setNodeType('heading', { level: 1 })">
+        <div class="icon">
+          <H1 theme="outline" size="16" fill="var(--color-icon-menu-default)" :strokeWidth="3" />
+        </div>
+        <div class="name">标题1</div>
+      </button>
+      <button @click="setNodeType('heading', { level: 2 })">
+        <div class="icon">
+          <H2 theme="outline" size="16" fill="var(--color-icon-menu-default)" :strokeWidth="3" />
+        </div>
+        <div class="name">标题2</div>
+      </button>
+      <button @click="setNodeType('heading', { level: 3 })">
+        <div class="icon">
+          <H3 theme="outline" size="16" fill="var(--color-icon-menu-default)" :strokeWidth="3" />
+        </div>
+        <div class="name">标题3</div>
+      </button>
+      <button @click="setNodeType('bulletList')">
+        <div class="icon">
+          <ListTwo
+            theme="outline"
+            size="16"
+            fill="var(--color-icon-menu-default)"
+            :strokeWidth="3"
+          />
+        </div>
+        <div class="name">无序列表</div>
+      </button>
+      <button @click="setNodeType('orderedList')">
+        <div class="icon">
+          <OrderedList
+            theme="outline"
+            size="16"
+            fill="var(--color-icon-menu-default)"
+            :strokeWidth="3"
+          />
+        </div>
+        <div class="name">有序列表</div>
+      </button>
+      <button @click="setNodeType('taskList')">
+        <div class="icon">
+          <ListSuccess
+            theme="outline"
+            size="16"
+            fill="var(--color-icon-menu-default)"
+            :strokeWidth="3"
+          />
+        </div>
+        <div class="name">任务列表</div>
+      </button>
     </div>
   </div>
 </template>
@@ -176,7 +277,15 @@ import {
   Copy,
   Delete,
   Link as LinkIcon,
-  FontSize
+  FontSize,
+  H1,
+  H2,
+  H3,
+  ParagraphAlphabet,
+  ListTwo,
+  OrderedList,
+  ListSuccess,
+  TextStyleOne
 } from '@icon-park/vue-next'
 import TiptapImage from './TiptapImage.vue'
 import TaskItem from '@tiptap/extension-task-item'
@@ -210,6 +319,70 @@ const editor = ref(null)
 const editorInstance = computed(() => editor.value)
 
 const editorRootRef = ref(null)
+
+const showDropdown = ref(false)
+const dropdownButton = ref(null)
+const dropdownMenuStyle = ref({})
+
+const toggleDropdown = () => {
+  showDropdown.value = !showDropdown.value
+  if (showDropdown.value) {
+    nextTick(() => {
+      const buttonRect = dropdownButton.value.getBoundingClientRect()
+      // const bubbleMenuRect = dropdownButton.value.closest('.bubble-menu').getBoundingClientRect()
+
+      dropdownMenuStyle.value = {
+        position: 'fixed',
+        top: `${buttonRect.bottom + 15}px`,
+        left: `${buttonRect.left - 10}px`,
+        // minWidth: `${bubbleMenuRect.width}px`,
+        zIndex: 1000
+      }
+    })
+  }
+}
+
+const setNodeType = (type, attrs = {}) => {
+  switch (type) {
+    case 'paragraph':
+      editorInstance.value.chain().focus().clearNodes().setParagraph().run()
+      break
+    case 'bulletList':
+      editorInstance.value.chain().focus().toggleBulletList().run()
+      break
+    case 'taskList':
+      editorInstance.value.chain().focus().toggleTaskList().run()
+      break
+    case 'orderedList':
+      editorInstance.value.chain().focus().toggleOrderedList().run()
+      break
+    case 'heading':
+      editorInstance.value.chain().focus().toggleHeading(attrs).run()
+      break
+    default:
+      editorInstance.value.chain().focus().setNode(type, attrs).run()
+  }
+  showDropdown.value = false
+}
+
+// 关闭下拉菜单的函数
+const closeDropdown = (event) => {
+  if (
+    showDropdown.value &&
+    !event.target.closest('.dropdown-menu') &&
+    !event.target.closest('button')
+  ) {
+    showDropdown.value = false
+  }
+}
+
+onMounted(() => {
+  document.addEventListener('click', closeDropdown)
+})
+
+onBeforeUnmount(() => {
+  document.removeEventListener('click', closeDropdown)
+})
 
 // 链接设置菜单
 const showLinkInput = ref(false)
@@ -716,7 +889,7 @@ defineExpose({
   border-radius: 8px;
   box-shadow: var(--shadow-card);
   display: flex;
-  padding: 8px 8px;
+  padding: 4px 8px;
 
   button {
     background-color: unset;
@@ -727,8 +900,8 @@ defineExpose({
       background: none;
       border: none;
       cursor: pointer;
-      width: 24px;
-      height: 24px;
+      width: 22px;
+      height: 22px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -742,8 +915,8 @@ defineExpose({
         height: 100%;
       }
       svg {
-        width: 16px;
-        height: 16px;
+        width: 14px;
+        height: 14px;
       }
     }
 
@@ -951,6 +1124,89 @@ defineExpose({
       &:hover {
         opacity: 0.9;
       }
+    }
+  }
+}
+.dropdown-trigger {
+  position: relative;
+}
+.style-dropdown-menu {
+  padding: 6px 12px 6px 0px;
+  position: absolute;
+  background-color: var(--color-bg-primary);
+  border: 1px solid var(--color-border-primary);
+  border-radius: 8px;
+  box-shadow: var(--shadow-primary);
+  list-style-type: none;
+  z-index: 9999;
+  // width: max-content;
+  min-width: auto;
+  width: fit-content;
+  max-width: 200px;
+  max-height: 350px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  white-space: nowrap;
+
+  button {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    border: none;
+    background: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border-radius: 6px;
+    padding: 4px 8px;
+    margin: 2px 6px;
+
+    &:hover {
+      background-color: var(--color-hover-button);
+    }
+
+    &:active {
+      background-color: rgba(0, 0, 0, 0.1);
+    }
+
+    .icon {
+      background: none;
+      border: none;
+      cursor: pointer;
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+      padding: 0;
+      margin-right: 6px;
+      .i-icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        height: 100%;
+      }
+
+      :deep(svg) {
+        width: 16px;
+        height: 16px;
+      }
+    }
+
+    .name {
+      // flex-grow: 1;
+      text-align: left;
+      color: var(--default-text-color);
+      font-size: 13px;
+      font-weight: 400;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      line-height: 1;
     }
   }
 }

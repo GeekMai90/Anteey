@@ -14,7 +14,8 @@
               :is="item.icon"
               theme="outline"
               size="18"
-              :fill="item.isDangerous ? '#ff4d4f' : item.fill || 'var(--color-icon-default)'"
+              :fill="item.isDangerous ? '#ff4d4f' : item.fill || 'var(--color-icon-menu-default)'"
+              :strokeWidth="3"
             />
           </div>
           <div class="name" :class="{ 'popup-menu-item-danger': item.isDangerous }">
@@ -171,7 +172,8 @@ defineExpose({ openMenu, closeMenu, resetDeleteState })
     background-color: rgba(0, 0, 0, 0.1);
   }
 
-  &.popup-menu-item-danger {
+  &.popup-menu-item-danger,
+  &.popup-menu-item-danger .name {
     color: #ff4d4f;
   }
 
@@ -209,7 +211,7 @@ defineExpose({ openMenu, closeMenu, resetDeleteState })
   .name {
     flex-grow: 0;
     text-align: left;
-    color: var(--default-text-color);
+    color: var(--color-text-primary);
     font-size: 13px;
     font-weight: 400;
     margin-left: 6px;
@@ -226,6 +228,9 @@ defineExpose({ openMenu, closeMenu, resetDeleteState })
 
   &:active {
     background-color: rgba(0, 0, 0, 0.1);
+  }
+  &.popup-menu-item-danger {
+    color: #ff4d4f;
   }
 
   &.delete {

@@ -160,21 +160,14 @@ $dark-mode-text: $gray-100;
   --color-table-border: rgba(61, 37, 20, 0.12);
   --color-table-header-bg: rgba(61, 37, 20, 0.05);
   --color-table-selected-cell-bg: rgba(61, 37, 20, 0.08);
-
-  // --light-gray-color: rgba(0, 0, 0, 0.5);
+  --color-icon-menu-default: #252525;
+  --color-icon-image-more: rgba(0, 0, 0, 0.5);
+  --color-icon-image-more-hover: rgba(0, 0, 0, 0.6);
+  --color-selection: #{rgba($primary-color, 0.1)};
   --sidebar-bg: #{$gray-100};
   --sidebar-hover-bg: #{$gray-200};
   --left-nav-tab-active-bg: #{rgba($primary-color, 0.05)};
-  // --menu-active-bg: #{rgba($primary-color, 0.05)};
-  // --menu-bg: #{$body-bg};
-  // --icon-default-color: #{$gray-100};
   --time-card-border-color: rgba(173, 181, 188, 0.3);
-  // --timestamp-color: #999;
-  // --error-color: #{$danger-color};
-  // --card-shadow: 0px 2px 6px rgb(0 0 0 / 12%);
-  // --border-color: #e7eaee;
-  // --timeline-card-bg: #{$white};
-  // --card-timestamp-color: #999;
 }
 
 .theme-dark {

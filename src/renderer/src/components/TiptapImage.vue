@@ -23,37 +23,57 @@
     <div v-if="showMenu" class="popup-menu" :style="menuStyle" @click.stop>
       <div class="popup-menu-item" @click="alignImage('left')">
         <div class="icon">
-          <AlignTextLeft theme="outline" size="18" fill="var(--color-icon-default)" />
+          <AlignTextLeft
+            theme="outline"
+            size="18"
+            fill="var(--color-icon-menu-default)"
+            :strokeWidth="3"
+          />
         </div>
         <div class="name">左对齐</div>
       </div>
       <div class="popup-menu-item" @click="alignImage('center')">
         <div class="icon">
-          <AlignTextCenter theme="outline" size="18" fill="var(--color-icon-default)" />
+          <AlignTextCenter
+            theme="outline"
+            size="18"
+            fill="var(--color-icon-menu-default)"
+            :strokeWidth="3"
+          />
         </div>
         <div class="name">居中对齐</div>
       </div>
       <div class="popup-menu-item" @click="alignImage('right')">
         <div class="icon">
-          <AlignTextRight theme="outline" size="18" fill="var(--color-icon-default)" />
+          <AlignTextRight
+            theme="outline"
+            size="18"
+            fill="var(--color-icon-menu-default)"
+            :strokeWidth="3"
+          />
         </div>
         <div class="name">右对齐</div>
       </div>
       <div class="popup-menu-item" @click="downloadImage">
         <div class="icon">
-          <Download theme="outline" size="18" fill="var(--color-icon-default)" />
+          <Download
+            theme="outline"
+            size="18"
+            fill="var(--color-icon-menu-default)"
+            :strokeWidth="3"
+          />
         </div>
         <div class="name">下载</div>
       </div>
       <div class="popup-menu-item" @click="copyImage">
         <div class="icon">
-          <Copy theme="outline" size="18" fill="var(--color-icon-default)" />
+          <Copy theme="outline" size="18" fill="var(--color-icon-menu-default)" :strokeWidth="3" />
         </div>
         <div class="name">复制</div>
       </div>
       <div class="popup-menu-item popup-menu-item-danger" @click="deleteImage">
         <div class="icon">
-          <Delete theme="outline" size="18" fill="#ff4d4f" />
+          <Delete theme="outline" size="18" fill="#ff4d4f" :strokeWidth="3" />
         </div>
         <div class="name">删除</div>
       </div>
@@ -320,7 +340,6 @@ const startResize = (side, event) => {
     top: 0;
     bottom: 0;
     width: 12px;
-    // background-color: rgba(0, 0, 0, 0.1);
     cursor: ew-resize;
     opacity: 0;
     transition:
@@ -335,7 +354,7 @@ const startResize = (side, event) => {
       transform: translate(-50%, -50%);
       width: 6px;
       height: 50px;
-      background-color: var(--color-text-primary);
+      background-color: var(--color-text-secondary);
       border-radius: 3px;
       border: 1px solid #fff;
     }
@@ -348,37 +367,12 @@ const startResize = (side, event) => {
       right: 0;
     }
   }
-
-  // .image-more-button {
-  //   position: absolute;
-  //   top: 5px;
-  //   right: 5px;
-  //   background-color: rgba(0, 0, 0, 0.5);
-  //   opacity: 0;
-  //   display: flex;
-  //   align-items: center;
-  //   border: none;
-  //   cursor: pointer;
-  //   transition: all 0.2s ease;
-  //   border-radius: 4px;
-  //   padding: 4px;
-
-  //   &:hover {
-  //     background-color: rgba(0, 0, 0, 0.7);
-  //   }
-
-  //   .icon {
-  //     display: flex;
-  //     align-items: center;
-  //     justify-content: center;
-  //   }
-  // }
 }
 .image-more-button {
   position: absolute;
   top: 20px;
   right: 10px;
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: var(--color-icon-image-more);
   opacity: 0;
   display: flex;
   align-items: center;
@@ -390,7 +384,7 @@ const startResize = (side, event) => {
   margin: 2px;
 
   &:hover {
-    background-color: rgba(0, 0, 0, 0.6);
+    background-color: var(--color-icon-image-more-hover);
   }
 
   .icon {
@@ -422,7 +416,7 @@ const startResize = (side, event) => {
   .name {
     flex-grow: 0;
     text-align: left;
-    color: var(--default-text-color);
+    color: var(--color-text-primary);
     font-size: 13px;
     font-weight: 400;
     margin-left: 6px;

@@ -413,30 +413,30 @@
     content: "⠿";
     font-weight: 700;
     cursor: grab;
-    background: #0d0d0d10;
-    color: #0d0d0d50;
+    // background: #0d0d0d10;
+    color: var(--color-text-tertiary);
     border-radius: 0.25rem;
     z-index: 0;
-    margin-top: 2px;
+    margin-top: 1px;
+  }
+  &:hover {
+    &::after {
+      background: var(--color-hover-button);
+      color: var(--color-text-secondary);
+    }
   }
 }
-
-// .ProseMirror:hover [data-drag-handle] {
-//   opacity: 1;
-// }
-// .ProseMirror {
-//   .custom-drag-handle {
-//     opacity: 1 !important;
-//     visibility: visible !important;
-//   }
-// }
 
 .ProseMirror-focused {
   outline: none;
 }
 
 ::selection {
-  background-color: #70cff850;
+  background-color: var(--color-selection) !important;
+}
+.ProseMirror-selectednode:not(.tiptap-image-wrapper)::after,
+.ProseMirror-selectednoderange:not(.tiptap-image-wrapper)::after {
+  background-color: var(--color-selection) !important;
 }
 
 /* 针对 Webkit 浏览器（Chrome、Safari 等） */
@@ -445,7 +445,7 @@
 }
 
 .tiptap-container::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.3); /* 滚动条滑块颜色 */
+  background: rgba(0, 0, 0, 0.2); /* 滚动条滑块颜色 */
   border-radius: 4px;
   transition: background 0.2s; /* 平滑过渡效果 */
 }
@@ -457,7 +457,7 @@
 // /* 针对 Firefox */
 .tiptap-container {
   scrollbar-width: thin; /* "auto" 或 "thin" */
-  scrollbar-color: rgba(0, 0, 0, 0.3) rgba(0, 0, 0, 0.1); /* 滑块颜色 轨道颜色 */
+  scrollbar-color: rgba(0, 0, 0, 0.2) rgba(0, 0, 0, 0.1); /* 滑块颜色 轨道颜色 */
 }
 
 /* 针对 IE 和 Edge */

@@ -15,7 +15,8 @@
             :is="item.icon"
             theme="outline"
             size="18"
-            :fill="item.fill || 'var(--color-icon-default)'"
+            :fill="item.fill || 'var(--color-icon-menu-default)'"
+            :strokeWidth="3"
           />
         </div>
         <div class="name">
@@ -89,7 +90,7 @@ defineExpose({
   box-shadow: var(--shadow-primary);
   list-style-type: none;
   z-index: 9999;
-  min-width: 180px;
+  min-width: 150px;
   width: max-content;
   max-width: 300px;
   max-height: 350px; // 设置最大高度

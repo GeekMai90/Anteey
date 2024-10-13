@@ -168,7 +168,7 @@ export function useNoteMenu(params: NoteMenuParams) {
       label: '星标收藏',
       icon: Star,
       action: handleStar,
-      fill: isStarred.value ? 'var(--color-primary)' : 'var(--color-icon-default)'
+      fill: isStarred.value ? 'var(--color-primary)' : 'var(--color-icon-menu-default)'
     },
     sidebar: {
       name: 'sidebar',
@@ -184,7 +184,7 @@ export function useNoteMenu(params: NoteMenuParams) {
       icon: DeleteOne,
       action: handleDelete,
       isDangerous: isConfirmingDelete.value,
-      fill: isConfirmingDelete.value ? '#ff4d4f' : 'var(--color-icon-default)'
+      fill: isConfirmingDelete.value ? '#ff4d4f' : 'var(--color-icon-menu-default)'
     },
     trashFromWhiteboard: {
       name: 'trashFromWhiteboard',
@@ -232,7 +232,7 @@ export function useNoteMenu(params: NoteMenuParams) {
             ...item,
             label: isConfirmingDelete.value ? '确认删除' : '删除',
             isDangerous: isConfirmingDelete.value,
-            fill: isConfirmingDelete.value ? '#ff4d4f' : 'var(--color-icon-default)'
+            fill: isConfirmingDelete.value ? '#ff4d4f' : 'var(--color-icon-menu-default)'
           }
         }
         return item
