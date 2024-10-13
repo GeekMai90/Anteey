@@ -83,6 +83,15 @@
             <CodeIcon theme="outline" size="16" fill="var(--color-text-primary)" :strokeWidth="4" />
           </div>
         </button>
+        <!-- 链接 -->
+        <button
+          :class="{ 'is-active': editorInstance.isActive('link') }"
+          @click="showLinkMenu($event)"
+        >
+          <div class="icon">
+            <LinkIcon theme="outline" size="16" fill="var(--color-text-primary)" :strokeWidth="4" />
+          </div>
+        </button>
       </div>
     </bubble-menu>
     <!-- 上下文菜单 -->
@@ -113,6 +122,40 @@
           <Delete theme="outline" size="16" fill="var(--color-text-danger)" :strokeWidth="4" />
         </div>
         <div class="name">删除段落</div>
+      </div>
+    </div>
+    <!-- 链接设置菜单 -->
+    <div v-if="showLinkInput" class="link-input-menu" :style="linkMenuStyle">
+      <input v-model="linkUrl" type="text" placeholder="输入链接URL" @keyup.enter="setLink" />
+      <button @click="setLink">确认</button>
+      <button @click="cancelLink">取消</button>
+    </div>
+    <!-- 链接编辑菜单 -->
+    <div v-if="showLinkEditMenu" class="link-edit-menu" :style="linkEditMenuStyle">
+      <a
+        :href="currentLinkUrl"
+        target="_blank"
+        rel="noopener noreferrer"
+        @click.stop="handleLinkClick"
+        >{{ currentLinkUrl }}</a
+      >
+      <div class="divider"></div>
+      <div class="link-edit-actions">
+        <button @click.stop="editLink">
+          <div class="icon">
+            <Edit theme="outline" size="16" fill="var(--color-text-primary)" :strokeWidth="4" />
+          </div>
+        </button>
+        <button @click.stop="removeLink">
+          <div class="icon">
+            <DeleteFive
+              theme="outline"
+              size="16"
+              fill="var(--color-text-primary)"
+              :strokeWidth="4"
+            />
+          </div>
+        </button>
       </div>
     </div>
   </div>
@@ -147,7 +190,10 @@ import {
   Code as CodeIcon,
   ClearFormat,
   Copy,
-  Delete
+  Delete,
+  Link as LinkIcon,
+  Edit,
+  DeleteFive
 } from '@icon-park/vue-next'
 import TiptapImage from './TiptapImage.vue'
 import TaskItem from '@tiptap/extension-task-item'
@@ -177,6 +223,135 @@ const editor = ref(null)
 const editorInstance = computed(() => editor.value)
 
 const editorRootRef = ref(null)
+
+// 链接设置菜单
+const showLinkInput = ref(false)
+const linkUrl = ref('')
+const linkMenuPosition = ref({ x: 0, y: 0 })
+
+const linkMenuStyle = computed(() => ({
+  position: 'absolute',
+  top: `${linkMenuPosition.value.y}px`,
+  left: `${linkMenuPosition.value.x}px`,
+  zIndex: 11
+}))
+
+const showLinkMenu = (event) => {
+  closeLinkMenus()
+  showLinkInput.value = true
+  linkUrl.value = editorInstance.value.getAttributes('link').href || ''
+
+  if (event) {
+    // 如果是从气泡菜单点击的
+    const buttonRect = event.target.closest('button').getBoundingClientRect()
+    const containerRect = editorContainer.value.getBoundingClientRect()
+    linkMenuPosition.value = {
+      x: buttonRect.left - containerRect.left,
+      y: buttonRect.bottom - containerRect.top + 5
+    }
+  }
+
+  nextTick(() => {
+    const inputElement = document.querySelector('.link-input-menu input')
+    if (inputElement) {
+      inputElement.focus()
+    }
+  })
+}
+
+const setLink = () => {
+  if (linkUrl.value) {
+    editorInstance.value
+      .chain()
+      .focus()
+      .extendMarkRange('link')
+      .setLink({ href: linkUrl.value })
+      .run()
+  } else {
+    editorInstance.value.chain().focus().extendMarkRange('link').unsetLink().run()
+  }
+  closeLinkMenus()
+}
+
+const cancelLink = () => {
+  showLinkInput.value = false
+  linkUrl.value = ''
+}
+
+const showLinkEditMenu = ref(false)
+const currentLinkUrl = ref('')
+const linkEditMenuPosition = ref({ x: 0, y: 0 })
+
+const linkEditMenuStyle = computed(() => ({
+  position: 'absolute',
+  top: `${linkEditMenuPosition.value.y}px`,
+  left: `${linkEditMenuPosition.value.x}px`
+}))
+
+const handleLinkClick = (event) => {
+  const isCommandClick = event.metaKey || event.ctrlKey // 检查是否按下了 Command (Mac) 或 Ctrl (Windows)
+
+  if (isCommandClick) {
+    // 如果按下了 Command/Ctrl，则在新标签页中打开链接
+    window.open(event.target.href, '_blank')
+    return
+  }
+
+  event.preventDefault()
+  const linkElement = event.target.closest('a')
+  if (linkElement) {
+    currentLinkUrl.value = linkElement.href
+    const rect = linkElement.getBoundingClientRect()
+    const containerRect = editorContainer.value.getBoundingClientRect()
+    linkEditMenuPosition.value = {
+      x: rect.left - containerRect.left,
+      y: rect.bottom - containerRect.top
+    }
+    showLinkEditMenu.value = true
+  }
+}
+
+const editLink = (event) => {
+  event.stopPropagation()
+  linkUrl.value = currentLinkUrl.value
+  showLinkInput.value = true
+  showLinkEditMenu.value = false
+
+  // 使用当前链接编辑菜单的位置来设置链接输入菜单的位置
+  linkMenuPosition.value = {
+    x: linkEditMenuPosition.value.x,
+    y: linkEditMenuPosition.value.y + 30 // 稍微向下偏移，以免遮挡原链接
+  }
+
+  nextTick(() => {
+    const inputElement = document.querySelector('.link-input-menu input')
+    if (inputElement) {
+      inputElement.focus()
+    }
+  })
+}
+
+const removeLink = (event) => {
+  event.stopPropagation()
+  editorInstance.value.chain().focus().extendMarkRange('link').unsetLink().run()
+  showLinkEditMenu.value = false
+}
+
+const closeLinkMenus = () => {
+  showLinkEditMenu.value = false
+  showLinkInput.value = false
+}
+const handleOutsideClick = (event) => {
+  if (editorContainer.value && !editorContainer.value.contains(event.target)) {
+    closeLinkMenus()
+  }
+}
+onMounted(() => {
+  document.addEventListener('click', handleOutsideClick)
+})
+onBeforeUnmount(() => {
+  document.removeEventListener('click', handleOutsideClick)
+})
 
 // 图片上传
 const handleFileUpload = async (file) => {
@@ -370,12 +545,13 @@ const editorExtensions = computed(() => {
     // }),
     Hightlight,
     Link.configure({
-      openOnClick: true,
+      openOnClick: false,
       defaultProtocol: 'https',
       linkOnPaste: true,
       HTMLAttributes: {
         rel: 'noopener noreferrer',
-        target: '_blank'
+        target: '_blank',
+        class: 'custom-link'
       },
       parseMarkdown: true // 启用 Markdown 链接解析
     }),
@@ -494,6 +670,15 @@ onMounted(() => {
     editable: props.editable,
     onUpdate: ({ editor }) => {
       emit('update:content', editor.getJSON())
+    },
+    editorProps: {
+      handleClick: (view, pos, event) => {
+        if (event.target.tagName === 'A') {
+          handleLinkClick(event)
+        } else {
+          closeLinkMenus()
+        }
+      }
     }
   })
 })
@@ -688,6 +873,110 @@ defineExpose({
 
   &:hover {
     background-color: var(--color-hover-button);
+  }
+}
+
+.link-input-menu {
+  position: absolute;
+  z-index: 10;
+  background-color: var(--color-bg-primary);
+  border: 1px solid var(--color-border-primary);
+  border-radius: 4px;
+  padding: 8px;
+  display: flex;
+  gap: 8px;
+  box-shadow: var(--shadow-primary);
+}
+
+.link-input-menu input {
+  padding: 4px 8px;
+  border: 1px solid var(--color-text-tertiary);
+  border-radius: 4px;
+  transition: all 0.3s ease;
+  background-color: var(--color-bg-secondary);
+  color: var(--color-text-primary);
+  font-size: 14px;
+  width: 200px; // 或者根据需要调整
+
+  &:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 2px rgba(var(--color-primary-rgb), 0.2);
+  }
+}
+
+.link-input-menu button {
+  padding: 4px 8px;
+  background-color: var(--color-primary);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.link-edit-menu {
+  background-color: var(--color-bg-primary);
+  border: 1px solid var(--color-border-primary);
+  border-radius: 4px;
+  padding: 8px 8px 8px 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  z-index: 10;
+
+  a {
+    color: var(--color-text-primary);
+    text-decoration: underline;
+    margin-right: 8px;
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+
+  .divider {
+    width: 1px;
+    height: 20px;
+    background-color: var(--color-text-secondary);
+    // margin: 0 8px;
+  }
+
+  .link-edit-actions {
+    display: flex;
+    gap: 4px;
+
+    button {
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 4px;
+      border-radius: 8px;
+      &:hover {
+        background-color: var(--color-hover-button);
+      }
+      .icon {
+        background: none;
+        border: none;
+        cursor: pointer;
+        width: 24px;
+        height: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s ease;
+        padding: 0;
+        .i-icon {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 100%;
+          height: 100%;
+        }
+        svg {
+          width: 16px;
+          height: 16px;
+        }
+      }
+    }
   }
 }
 </style>
