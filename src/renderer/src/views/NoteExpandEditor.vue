@@ -185,7 +185,7 @@ const menuPosition = reactive({ x: 0, y: 0 })
 
 const { menuItems: noteMenuItems, resetDeleteState } = useNoteMenu({
   noteId: noteId,
-  menuItems: ['star', 'sidebar', 'copyNoteLink', 'delete']
+  menuItems: ['star', 'sidebar', 'copyNoteLink', 'exportNote', 'delete']
 })
 const toggleMenu = (event: MouseEvent) => {
   event.preventDefault()

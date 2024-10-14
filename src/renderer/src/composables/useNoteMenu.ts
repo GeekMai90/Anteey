@@ -7,11 +7,14 @@ import {
   DeleteOne,
   RightBar,
   Refresh,
-  CopyLink
+  CopyLink,
+  Export as ExportIcon
 } from '@icon-park/vue-next'
 import { useNoteStore } from '../stores/noteStores'
 import { useWhiteboardStore } from '../stores/whiteboardStores'
 import { useUIStore } from '../stores/useUIStore'
+import TurndownService from 'turndown'
+import { format } from 'date-fns'
 
 interface NoteMenuParams {
   noteId: string
@@ -162,6 +165,62 @@ export function useNoteMenu(params: NoteMenuParams) {
     showConfirmModal.value = false
   }
 
+  // 导出笔记
+  const handleExportNote = () => {
+    if (noteStore.editor && params.noteId) {
+      const html = noteStore.editor.getHTML()
+      const turndownService = new TurndownService({
+        headingStyle: 'atx' // 使用 # 符号作为标题
+      })
+
+      // ... Turndown 规则设置 ...
+
+      const markdown = turndownService.turndown(html)
+
+      // 获取笔记的 address 和创建时间
+      let noteAddress = noteStore.getNoteAddress(params.noteId)
+      const note = noteStore.getNoteById(params.noteId)
+
+      if (!note) {
+        console.error('笔记不存在')
+        return
+      }
+
+      const createdAt = new Date(note.createdAt)
+      const timeString = format(createdAt, 'yyyyMMddHHmm')
+      // 清理文件名
+      const sanitizeFileName = (name: string): string => {
+        return name
+          .replace(/^[-_]+/, '') // 移除开头的横杠或下划线
+          .replace(/[/\\?%*:|"<>]/g, '_') // 替换不允许的字符为下划线
+          .replace(/[. ]+$/, '') // 移除结尾的点和空格
+      }
+      noteAddress = sanitizeFileName(noteAddress)
+
+      // 创建文件名，包含时间戳和 address
+      const fileName = `${noteAddress}_${timeString}.md`
+
+      // 创建 Blob 对象
+      const blob = new Blob([markdown], { type: 'text/markdown' })
+
+      // 创建下载链接
+      const link = document.createElement('a')
+      link.href = URL.createObjectURL(blob)
+      link.download = fileName
+
+      // 触发下载
+      link.click()
+
+      // 清理 URL 对象
+      URL.revokeObjectURL(link.href)
+
+      console.log(`笔记已导出为 Markdown: ${fileName}`)
+    } else {
+      console.error('编辑器实例不存在或笔记ID未提供')
+    }
+    closePopupMenu()
+  }
+
   const allMenuItems: any = computed(() => ({
     info: { name: 'info', label: '卡片信息', icon: Info, action: handleShare },
     star: {
@@ -212,6 +271,12 @@ export function useNoteMenu(params: NoteMenuParams) {
       label: '拷贝链接',
       icon: CopyLink,
       action: handleCopyNoteLink
+    },
+    exportNote: {
+      name: 'exportNote',
+      label: '导出笔记',
+      icon: ExportIcon,
+      action: handleExportNote
     }
   }))
 

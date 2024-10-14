@@ -6,6 +6,7 @@ import { Notes, Table, TransactionOrder, Deeplink } from '@icon-park/vue-next'
 import { ref } from 'vue'
 import { useUIStore } from './useUIStore'
 import { debounce } from 'lodash-es'
+import { Editor } from '@tiptap/vue-3'
 
 const cardTypes = [
   { value: 'Maincard', label: '主要卡', icon: Notes },
@@ -32,7 +33,8 @@ export const useNoteStore = defineStore('note', {
     noteSaveStatus: {} as Record<string, 'idle' | 'saving' | 'saved' | 'error'>,
     currentNoteSaveStatus: 'idle' as 'idle' | 'saving' | 'saved' | 'error',
     isSettingDropdownOpen: false,
-    showCardBox: false
+    showCardBox: false,
+    editor: null as Editor | null
   }),
 
   actions: {
@@ -88,6 +90,18 @@ export const useNoteStore = defineStore('note', {
     async initializeStore() {
       await this.fetchAllNotes()
       await this.initializeCardBoxes()
+    },
+
+    // 设置编辑器实例
+    setEditor(newEditor: Editor) {
+      this.editor = newEditor as any
+    },
+    // 清除编辑器实例
+    clearEditor() {
+      if (this.editor) {
+        this.editor.destroy()
+      }
+      this.editor = null
     },
 
     // 获取所有笔记

@@ -10,8 +10,13 @@
       :should-show="shouldShowTextStyleMenu"
     >
       <div class="bubble-menu">
-        <!-- 新增的下拉菜单按钮 -->
-        <button ref="dropdownButton" class="dropdown-trigger" @click="toggleDropdown">
+        <!-- 下拉菜单按钮 -->
+        <button
+          ref="dropdownButton"
+          v-tooltip.top="{ content: '样式设置', delay: { show: 1000 } }"
+          class="dropdown-trigger"
+          @click="toggleDropdown"
+        >
           <div class="icon">
             <TextStyleOne
               theme="outline"
@@ -23,6 +28,7 @@
         </button>
         <!-- 加粗 -->
         <button
+          v-tooltip.top="{ content: '粗体<br>Cmd+B', delay: { show: 1000 }, html: true }"
           :class="{ 'is-active': editorInstance.isActive('bold') }"
           @click="editorInstance.chain().focus().toggleBold().run()"
         >
@@ -37,6 +43,7 @@
         </button>
         <!-- 斜体 -->
         <button
+          v-tooltip.top="{ content: '斜体<br>Cmd+I', delay: { show: 1000 }, html: true }"
           :class="{ 'is-active': editorInstance.isActive('italic') }"
           @click="editorInstance.chain().focus().toggleItalic().run()"
         >
@@ -51,6 +58,7 @@
         </button>
         <!-- 删除线 -->
         <button
+          v-tooltip.top="{ content: '删除线<br>Cmd+Shift+S', delay: { show: 1000 }, html: true }"
           :class="{ 'is-active': editorInstance.isActive('strike') }"
           @click="editorInstance.chain().focus().toggleStrike().run()"
         >
@@ -65,6 +73,7 @@
         </button>
         <!-- 下划线 -->
         <button
+          v-tooltip.top="{ content: '下划线<br>Cmd+U', delay: { show: 1000 }, html: true }"
           :class="{ 'is-active': editorInstance.isActive('underline') }"
           @click="editorInstance.chain().focus().toggleUnderline().run()"
         >
@@ -79,6 +88,7 @@
         </button>
         <!-- 高亮 -->
         <button
+          v-tooltip.top="{ content: '高亮<br>Cmd+Shift+H', delay: { show: 1000 }, html: true }"
           :class="{ 'is-active': editorInstance.isActive('highlight') }"
           @click="editorInstance.chain().focus().toggleHighlight().run()"
         >
@@ -93,6 +103,7 @@
         </button>
         <!-- 行内代码 -->
         <button
+          v-tooltip.top="{ content: '行内代码<br>Cmd+E', delay: { show: 1000 }, html: true }"
           :class="{ 'is-active': editorInstance.isActive('code') }"
           @click="editorInstance.chain().focus().toggleCode().run()"
         >
@@ -107,6 +118,7 @@
         </button>
         <!-- 链接 -->
         <button
+          v-tooltip.top="{ content: '链接', delay: { show: 1000 }, html: true }"
           :class="{ 'is-active': editorInstance.isActive('link') }"
           @click="showLinkMenu($event)"
         >
@@ -119,8 +131,44 @@
             />
           </div>
         </button>
+        <!-- 详情 -->
+        <button
+          v-tooltip.top="{ content: '设置详情', delay: { show: 1000 }, html: true }"
+          :class="{ 'is-active': editorInstance.isActive('details') }"
+          @click="editorInstance.chain().focus().setDetails().run()"
+        >
+          <div class="icon">
+            <ParagraphTriangle
+              theme="outline"
+              size="16"
+              fill="var(--color-icon-menu-default)"
+              :strokeWidth="3"
+            />
+          </div>
+        </button>
+        <button
+          v-tooltip.top="{ content: '取消详情', delay: { show: 1000 }, html: true }"
+          :class="{
+            'is-active':
+              editorInstance.isActive('details') && !editorInstance.isActive('detailsContent')
+          }"
+          @click="editorInstance.chain().focus().unsetDetails().run()"
+        >
+          <div class="icon">
+            <ParagraphAlphabet
+              theme="outline"
+              size="16"
+              fill="var(--color-icon-menu-default)"
+              :strokeWidth="3"
+            />
+          </div>
+        </button>
         <!-- 更多按钮 -->
-        <button @click="toggleMoreMenu" ref="moreButton">
+        <button
+          ref="moreButton"
+          v-tooltip.top="{ content: '更多', delay: { show: 1000 }, html: true }"
+          @click="toggleMoreMenu"
+        >
           <div class="icon">
             <More
               theme="outline"
@@ -134,14 +182,21 @@
     </bubble-menu>
     <!-- 更多菜单 -->
     <div v-if="showMoreMenu" class="more-menu" :style="moreMenuStyle">
-      <button title="下标" @click="applySubscript">
+      <button
+        v-tooltip.top="{ content: '下标', delay: { show: 1000 }, html: true }"
+        @click="applySubscript"
+      >
         <div class="text-icon">X₂</div>
       </button>
-      <button title="上标" @click="applySuperscript">
+      <button
+        v-tooltip.top="{ content: '上标', delay: { show: 1000 }, html: true }"
+        @click="applySuperscript"
+      >
         <div class="text-icon">X²</div>
       </button>
       <!-- 居左 -->
       <button
+        v-tooltip.top="{ content: '居左<br>Cmd+Shift+L', delay: { show: 1000 }, html: true }"
         :class="{ 'is-active': editorInstance.isActive({ textAlign: 'left' }) }"
         @click="applyLeft"
       >
@@ -155,6 +210,7 @@
         </div>
       </button>
       <button
+        v-tooltip.top="{ content: '居中<br>Cmd+Shift+E', delay: { show: 1000 }, html: true }"
         :class="{ 'is-active': editorInstance.isActive({ textAlign: 'center' }) }"
         @click="applyCenter"
       >
@@ -168,6 +224,7 @@
         </div>
       </button>
       <button
+        v-tooltip.top="{ content: '居右<br>Cmd+Shift+R', delay: { show: 1000 }, html: true }"
         :class="{ 'is-active': editorInstance.isActive({ textAlign: 'right' }) }"
         @click="applyRight"
       >
@@ -181,6 +238,7 @@
         </div>
       </button>
       <button
+        v-tooltip.top="{ content: '两端对齐<br>Cmd+Shift+J', delay: { show: 1000 }, html: true }"
         :class="{ 'is-active': editorInstance.isActive({ textAlign: 'justify' }) }"
         @click="applyJustify"
       >
@@ -193,8 +251,6 @@
           />
         </div>
       </button>
-
-      <!-- 可以根据需要添加更多选项 -->
     </div>
     <!-- 上下文菜单 -->
     <div
@@ -366,7 +422,8 @@ import {
   AlignTextLeft,
   AlignTextCenter,
   AlignTextRight,
-  AlignTextBoth
+  AlignTextBoth,
+  ParagraphTriangle
 } from '@icon-park/vue-next'
 import TiptapImage from './TiptapImage.vue'
 import TaskItem from '@tiptap/extension-task-item'
@@ -380,8 +437,14 @@ import { useRouter } from 'vue-router'
 import Subscript from '@tiptap/extension-subscript'
 import Superscript from '@tiptap/extension-superscript'
 import TextAlign from '@tiptap/extension-text-align'
+import Details from '@tiptap-pro/extension-details'
+import DetailsContent from '@tiptap-pro/extension-details-content'
+import DetailsSummary from '@tiptap-pro/extension-details-summary'
+import Export from '@tiptap-pro/extension-export'
+import { useNoteStore } from '../stores/noteStores'
 
 const router = useRouter()
+const noteStore = useNoteStore()
 
 const props = defineProps({
   content: {
@@ -873,6 +936,15 @@ const editorExtensions = computed(() => {
     Typography,
     CustomImage,
     TaskList,
+    Details.configure({
+      persist: true,
+      HTMLAttributes: {
+        class: 'details'
+      }
+    }),
+    DetailsSummary,
+    DetailsContent,
+    Export,
     TextAlign.configure({
       types: ['paragraph', 'heading']
     }),
@@ -979,12 +1051,14 @@ onMounted(() => {
       }
     }
   })
+  noteStore.setEditor(editor.value)
 })
 
 onBeforeUnmount(() => {
   if (editor.value) {
     editor.value.destroy()
   }
+  noteStore.clearEditor()
 })
 
 watch(
