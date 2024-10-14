@@ -6,7 +6,7 @@
         <div class="topToolBar-header">
           <div class="topToolBar-left">
             <div class="icon">
-              <Notes theme="outline" size="20" fill="var(--color-primary)" :strokeWidth="2" />
+              <Notes theme="outline" size="20" fill="var(--color-primary)" :strokeWidth="3" />
             </div>
             <div class="name">主要卡片</div>
           </div>
@@ -22,8 +22,8 @@
                   <Search
                     theme="outline"
                     size="16"
-                    fill="var(--color-text-secondary)"
-                    :strokeWidth="2"
+                    fill="var(--color-icon-secondary)"
+                    :strokeWidth="3"
                   />
                 </div>
               </div>
@@ -41,8 +41,8 @@
                   <Close
                     theme="outline"
                     size="16"
-                    fill="var(--color-text-secondary)"
-                    :strokeWidth="2"
+                    fill="var(--color-icon-secondary)"
+                    :strokeWidth="3"
                   />
                 </div>
               </div>
@@ -64,7 +64,7 @@
                 <FileCabinet
                   theme="outline"
                   size="18"
-                  fill="var(--color-text-secondary)"
+                  fill="var(--color-icon-menu-default)"
                   :strokeWidth="3"
                 />
               </div>
@@ -89,7 +89,8 @@
                         :is="box.id === '0000' ? FileCabinet : Box"
                         theme="outline"
                         size="18"
-                        fill="#b6b6b6"
+                        fill="var(--color-icon-menu-default)"
+                        :strokeWidth="3"
                       />
                     </div>
                     <div class="name">
@@ -102,7 +103,12 @@
                       @click.stop="toggleMoreActions(box.id, $event)"
                     >
                       <div class="icon">
-                        <More theme="outline" size="18" fill="#333" />
+                        <More
+                          theme="outline"
+                          size="18"
+                          fill="var(--color-icon-menu-default)"
+                          :strokeWidth="3"
+                        />
                       </div>
                     </button>
                   </div>
@@ -111,7 +117,12 @@
                 <div class="dropdown-item add-cardbox" @click.stop="openCardBoxModal">
                   <div class="dropdown-item-content">
                     <div class="icon">
-                      <Plus theme="outline" size="18" fill="#b6b6b6" />
+                      <Plus
+                        theme="outline"
+                        size="18"
+                        fill="var(--color-icon-menu-default)"
+                        :strokeWidth="3"
+                      />
                     </div>
                     <div class="name">新增卡片盒</div>
                   </div>
@@ -130,7 +141,12 @@
                 @click.stop="editCardBox(getCardBoxById(showMoreActions))"
               >
                 <div class="icon">
-                  <EditTwo theme="outline" size="16" fill="#b6b6b6" />
+                  <EditTwo
+                    theme="outline"
+                    size="16"
+                    fill="var(--color-icon-menu-default)"
+                    :strokeWidth="3"
+                  />
                 </div>
                 <div class="name">编辑</div>
               </div>
@@ -139,7 +155,8 @@
                   <Delete
                     theme="outline"
                     size="16"
-                    :fill="isConfirmingDelete ? '#ff4d4f' : '#b6b6b6'"
+                    fill="var(--color-text-danger)"
+                    :strokeWidth="3"
                   />
                 </div>
                 <div class="name delete">
@@ -153,7 +170,7 @@
                 <SortTwo
                   theme="outline"
                   size="18"
-                  fill="var(--color-text-secondary)"
+                  fill="var(--color-icon-menu-default)"
                   :strokeWidth="3"
                 />
               </div>
@@ -670,6 +687,7 @@ onUnmounted(() => {
     white-space: nowrap;
     writing-mode: horizontal-tb;
     user-select: none;
+    line-height: 1;
   }
 }
 .topToolBar-right {
@@ -736,6 +754,7 @@ onUnmounted(() => {
       white-space: nowrap; // 防止文字换行
       writing-mode: horizontal-tb; // 确保文字是水平排列的
       user-select: none;
+      line-height: 1;
       // margin-left: 6px;
     }
 
@@ -846,6 +865,7 @@ onUnmounted(() => {
             writing-mode: horizontal-tb; // 确保文字是水平排列的
             user-select: none;
             margin-left: 6px;
+            line-height: 1;
           }
         }
       }
@@ -975,6 +995,7 @@ onUnmounted(() => {
       font-size: 14px;
       white-space: nowrap; // 防止文字换行
       writing-mode: horizontal-tb; // 确保文字是水平排列的
+      line-height: 1;
     }
 
     &:hover {
@@ -1125,9 +1146,6 @@ onUnmounted(() => {
 }
 
 .cardbox-view-container {
-  // height: 100%;
-  // width: 100%;
-  // padding: 0px 0px 10px 0px;
   display: flex;
   flex-direction: column;
   height: calc(100vh - 100px); // 假设顶部工具栏高度为100px，请根据实际情况调整
@@ -1135,21 +1153,19 @@ onUnmounted(() => {
 
   .card-grid-container {
     flex: 1;
-    // height: 100%;
     overflow-y: auto; // 允许卡片网格容器滚动
-    // padding: 0 16px 16px 16px;
   }
 
   .card-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
     gap: 16px;
     padding: 16px 20px;
     align-content: start; // 让内容从顶部开始排列
     justify-content: center; // 水平居中对齐
 
     // 使用视口单位和 clamp 函数来控制卡片高度
-    --card-height: clamp(300px, calc(20vw - 32px), 370px);
+    --card-height: clamp(250px, calc(20vw - 32px), 350px);
     grid-auto-rows: var(--card-height);
 
     // 计算每行可以容纳的卡片数量
@@ -1311,6 +1327,7 @@ onUnmounted(() => {
       font-size: 14px;
       white-space: nowrap; // 防止文字换行
       writing-mode: horizontal-tb; // 确保文字是水平排列的
+      line-height: 1;
 
       &.delete {
         color: var(--color-text-danger);

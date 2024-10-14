@@ -6,7 +6,7 @@
         <div class="topToolBar-header">
           <div class="topToolBar-left">
             <div class="icon">
-              <Box theme="outline" size="20" fill="var(--color-primary)" :strokeWidth="2" />
+              <Box theme="outline" size="20" fill="var(--color-primary)" :strokeWidth="3" />
             </div>
             <div class="name">卡片盒</div>
           </div>
@@ -22,7 +22,7 @@
                   <Search
                     theme="outline"
                     size="16"
-                    fill="var(--color-text-secondary)"
+                    fill="var(--color-icon-secondary)"
                     :strokeWidth="2"
                   />
                 </div>
@@ -41,20 +41,9 @@
                   <Close
                     theme="outline"
                     size="16"
-                    fill="var(--color-text-secondary)"
+                    fill="var(--color-icon-secondary)"
                     :strokeWidth="2"
                   />
-                </div>
-              </div>
-              <!-- 新增的搜索结果显示 -->
-              <div v-if="searchResults.length > 0" class="search-results">
-                <div
-                  v-for="result in searchResults"
-                  :key="result.note.id"
-                  class="search-result-item"
-                  @click="scrollToNote(result.index, result.note.id)"
-                >
-                  {{ result.note.address }}
                 </div>
               </div>
             </div>
@@ -64,7 +53,7 @@
                 <InboxIn
                   theme="outline"
                   size="18"
-                  fill="var(--color-text-secondary)"
+                  fill="var(--color-icon-menu-default)"
                   :strokeWidth="3"
                 />
               </div>
@@ -76,7 +65,7 @@
                 <FileCabinet
                   theme="outline"
                   size="18"
-                  fill="var(--color-text-secondary)"
+                  fill="var(--color-icon-menu-default)"
                   :strokeWidth="3"
                 />
               </div>
@@ -101,7 +90,8 @@
                         :is="box.id === '0000' ? FileCabinet : Box"
                         theme="outline"
                         size="18"
-                        fill="#b6b6b6"
+                        fill="var(--color-icon-menu-default)"
+                        :strokeWidth="3"
                       />
                     </div>
                     <div class="name">
@@ -114,7 +104,12 @@
                       @click.stop="toggleMoreActions(box.id, $event)"
                     >
                       <div class="icon">
-                        <More theme="outline" size="18" fill="#333" />
+                        <More
+                          theme="outline"
+                          size="18"
+                          fill="var(--color-icon-menu-default)"
+                          :strokeWidth="3"
+                        />
                       </div>
                     </button>
                   </div>
@@ -123,7 +118,12 @@
                 <div class="dropdown-item add-cardbox" @click.stop="openCardBoxModal">
                   <div class="dropdown-item-content">
                     <div class="icon">
-                      <Plus theme="outline" size="18" fill="#b6b6b6" />
+                      <Plus
+                        theme="outline"
+                        size="18"
+                        fill="var(--color-icon-menu-default)"
+                        :strokeWidth="3"
+                      />
                     </div>
                     <div class="name">新增卡片盒</div>
                   </div>
@@ -142,7 +142,12 @@
                 @click.stop="editCardBox(getCardBoxById(showMoreActions))"
               >
                 <div class="icon">
-                  <EditTwo theme="outline" size="16" fill="#b6b6b6" />
+                  <EditTwo
+                    theme="outline"
+                    size="16"
+                    fill="var(--color-icon-menu-default)"
+                    :strokeWidth="3"
+                  />
                 </div>
                 <div class="name">编辑</div>
               </div>
@@ -151,7 +156,8 @@
                   <Delete
                     theme="outline"
                     size="16"
-                    :fill="isConfirmingDelete ? '#ff4d4f' : '#b6b6b6'"
+                    fill="var(--color-text-danger)"
+                    :strokeWidth="3"
                   />
                 </div>
                 <div class="name delete">
@@ -165,7 +171,7 @@
                 <BankCardTwo
                   theme="outline"
                   size="18"
-                  fill="var(--color-text-secondary)"
+                  fill="var(--color-icon-menu-default)"
                   :strokeWidth="3"
                 />
               </div>
@@ -174,7 +180,13 @@
                 <div v-for="type in cardTypes" :key="type.value" class="cadrtype-dropdown-item">
                   <div class="cadrtype-dropdown-item-content">
                     <div class="icon">
-                      <component :is="type.icon" theme="outline" size="18" fill="#b6b6b6" />
+                      <component
+                        :is="type.icon"
+                        theme="outline"
+                        size="18"
+                        fill="var(--color-icon-menu-default)"
+                        :strokeWidth="3"
+                      />
                     </div>
                     <div class="name">
                       {{ type.label }}
@@ -198,7 +210,7 @@
                 <SortTwo
                   theme="outline"
                   size="18"
-                  fill="var(--color-text-secondary)"
+                  fill="var(--color-icon-menu-default)"
                   :strokeWidth="3"
                 />
               </div>
@@ -270,13 +282,12 @@ import {
   EditTwo,
   Delete,
   Notes,
-  Table,
-  TransactionOrder,
-  Deeplink,
   FileCabinet,
   Plus,
   Search,
-  Close
+  Close,
+  ListAlphabet,
+  Bookshelf
 } from '@icon-park/vue-next'
 import { CardBox, Note } from '../types/Note'
 import CardBoxNoteCard from '../components/CardboxNoteCard.vue'
@@ -305,7 +316,6 @@ const {
   searchQuery,
   handleSearch,
   filteredNotes: searchFilteredNotes,
-  searchResults,
   clearSearch,
   isSearchActive
 } = useCardBoxSearch(allNotes)
@@ -450,19 +460,6 @@ watch(
   },
   { deep: true }
 )
-
-// 新增的 scrollToNote 函数
-const scrollToNote = (index: number, noteId: string) => {
-  const cardElements = document.querySelectorAll('.card-grid > *')
-  if (cardElements[index]) {
-    cardElements[index].scrollIntoView({ behavior: 'smooth', block: 'center' })
-    highlightedNoteId.value = noteId
-    setTimeout(() => {
-      highlightedNoteId.value = null
-    }, 3000) // 3秒后取消高亮
-  }
-  clearSearch() // 清除搜索结果
-}
 
 // 卡片盒下拉项中的更多操作
 const toggleMoreActions = (id: string, event: MouseEvent) => {
@@ -625,10 +622,11 @@ const saveCardBox = async () => {
 // 卡片类型下拉菜单
 
 const cardTypes = [
-  { value: 'Maincard', label: '主要卡', icon: Notes },
-  { value: 'Bibcard', label: '书目卡', icon: Table },
-  { value: 'Indexcard', label: '索引卡', icon: TransactionOrder },
-  { value: 'Hoplinkcard', label: '跳转卡', icon: Deeplink }
+  { value: 'Maincard', label: '主要卡片', icon: Notes },
+  { value: 'Indexcard', label: '索引卡片', icon: ListAlphabet },
+  { value: 'Bibcard', label: '文献卡片', icon: Bookshelf }
+
+  // { value: 'Hoplinkcard', label: '跳转卡片', icon: Deeplink }
 ]
 const showCardTypeMenu = ref(false)
 
@@ -728,7 +726,7 @@ onUnmounted(() => {
 }
 .topToolBar-right {
   display: flex;
-  gap: 10px;
+  gap: 8px;
   align-items: center;
 
   .inbox-button {
@@ -783,6 +781,7 @@ onUnmounted(() => {
       font-size: 14px;
       white-space: nowrap; // 防止文字换行
       writing-mode: horizontal-tb; // 确保文字是水平排列的
+      line-height: 1;
     }
 
     &:hover {
@@ -854,7 +853,7 @@ onUnmounted(() => {
       white-space: nowrap; // 防止文字换行
       writing-mode: horizontal-tb; // 确保文字是水平排列的
       user-select: none;
-      // margin-left: 6px;
+      line-height: 1;
     }
 
     &:hover {
@@ -1088,6 +1087,7 @@ onUnmounted(() => {
       font-size: 14px;
       white-space: nowrap; // 防止文字换行
       writing-mode: horizontal-tb; // 确保文字是水平排列的
+      line-height: 1;
     }
 
     &:hover {
@@ -1238,9 +1238,6 @@ onUnmounted(() => {
 }
 
 .cardbox-view-container {
-  // height: 100%;
-  // width: 100%;
-  // padding: 0px 0px 10px 0px;
   display: flex;
   flex-direction: column;
   height: calc(100vh - 100px); // 假设顶部工具栏高度为100px，请根据实际情况调整
@@ -1248,31 +1245,38 @@ onUnmounted(() => {
 
   .card-grid-container {
     flex: 1;
-    // height: 100%;
     overflow-y: auto; // 允许卡片网格容器滚动
-    // padding: 0 16px 16px 16px;
   }
 
+  // .card-grid {
+  //   display: grid;
+  //   grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  //   gap: 16px;
+  //   padding: 16px 20px;
+  //   align-content: start; // 让内容从顶部开始排列
+  //   justify-content: center; // 水平居中对齐
+
+  //   // 使用视口单位和 clamp 函数来控制卡片高度
+  //   --card-height: clamp(300px, calc(20vw - 32px), 370px);
+  //   grid-auto-rows: var(--card-height);
+
+  //   // 计算每行可以容纳的卡片数量
+  //   --cards-per-row: calc((100% - 32px) / (300px + 16px));
+  // }
   .card-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
     gap: 16px;
     padding: 16px 20px;
     align-content: start; // 让内容从顶部开始排列
     justify-content: center; // 水平居中对齐
 
     // 使用视口单位和 clamp 函数来控制卡片高度
-    --card-height: clamp(300px, calc(20vw - 32px), 370px);
+    --card-height: clamp(250px, calc(20vw - 32px), 350px);
     grid-auto-rows: var(--card-height);
 
     // 计算每行可以容纳的卡片数量
     --cards-per-row: calc((100% - 32px) / (300px + 16px));
-
-    // 设置网格的行数，使用 max 函数确保至少有一行
-    // grid-template-rows: repeat(auto-fill, var(--card-height));
-
-    // 设置容器的最小高度，确保即使卡片数量不足也能填满屏幕
-    // min-height: calc(100vh - 93px); // 假设顶部工具栏高度为100px，请根据实际情况调整
   }
 
   .modal-overlay {
@@ -1330,10 +1334,6 @@ onUnmounted(() => {
           font-size: 16px;
           cursor: pointer;
           transition: background-color 0.3s;
-
-          &:hover {
-            background-color: var(--color-menu-active-bg);
-          }
 
           &:disabled {
             background-color: #ccc;
@@ -1402,6 +1402,7 @@ onUnmounted(() => {
     font-size: 14px;
     white-space: nowrap; // 防止文字换行
     writing-mode: horizontal-tb; // 确保文字是水平排列的
+    line-height: 1;
   }
 
   &:hover {
@@ -1515,11 +1516,8 @@ onUnmounted(() => {
           writing-mode: horizontal-tb; // 确保文字是水平排列的
           user-select: none;
           margin-left: 6px;
+          line-height: 1;
         }
-
-        // &:hover {
-        //   background-color: var(--color-hover-bg);
-        // }
 
         &.active {
           background-color: var(--color-menu-active-bg);

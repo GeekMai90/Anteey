@@ -22,7 +22,8 @@
                 :is="box.id === '0000' ? FileCabinet : Box"
                 theme="outline"
                 size="18"
-                :fill="isBoxSelected(box) ? 'var(--color-primary)' : '#b6b6b6'"
+                fill="var(--color-icon-menu-default)"
+                :strokeWidth="3"
               />
             </div>
             <div class="name">
@@ -231,13 +232,14 @@ defineExpose({ openMenu, closeMenu, selectedCardBox })
   .name {
     flex-grow: 1;
     text-align: left;
-    color: var(--default-text-color);
+    color: var(--color-text-primary);
     font-size: 13px;
     font-weight: 400;
     margin-left: 6px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    line-height: 1;
   }
 
   &:hover {

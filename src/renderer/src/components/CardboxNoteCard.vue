@@ -11,14 +11,14 @@
             <ExpandTextInput
               theme="outline"
               size="18"
-              fill="var(--color-text-secondary)"
+              fill="var(--color-icon-secondary)"
               :strokeWidth="3"
             />
           </div>
         </div>
         <div ref="moreBtnRef" class="note-button" @click.stop="toggleMenu">
           <div class="icon">
-            <More theme="outline" size="18" fill="var(--color-text-secondary)" :strokeWidth="3" />
+            <More theme="outline" size="18" fill="var(--color-icon-secondary)" :strokeWidth="3" />
           </div>
         </div>
 
@@ -313,6 +313,7 @@ watch(
           margin-left: 6px;
           white-space: nowrap;
           writing-mode: horizontal-tb;
+          line-height: 1;
         }
 
         &:hover {

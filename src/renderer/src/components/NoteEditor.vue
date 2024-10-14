@@ -45,6 +45,14 @@
           :class="cardTypeClass"
           @click.stop="toggleCardTypeMenu"
         ></div>
+        <CardTypeDropdownMenu
+          ref="cardTypeDropdownMenu"
+          :is-open="showCardTypeMenu"
+          :current-card-type="editedNote?.cardType"
+          :offset="{ x: -50, y: 10 }"
+          @update:card-type="updateCardType"
+          @close="closeCardTypeMenu"
+        />
         <input
           v-if="editedNote"
           ref="addressInput"
@@ -68,21 +76,6 @@
         </div>
       </div>
     </div>
-    <!-- 卡片类型选择菜单 -->
-    <div v-if="showCardTypeMenu" class="card-type-menu" :style="menuStyle" @click.stop>
-      <div
-        v-for="type in cardTypes"
-        :key="type"
-        :class="{ active: editedNote?.cardType === type }"
-        class="card-type-item"
-        @click="selectCardType(type)"
-      >
-        <div class="icon">
-          <component :is="getIcon(type)" theme="outline" size="16" fill="#b6b6b6" />
-        </div>
-        <div class="name">{{ getTypeLabel(type) }}</div>
-      </div>
-    </div>
     <PopupMenu
       ref="popupMenuRef"
       :show="isMenuVisible"
@@ -101,24 +94,54 @@ import { CardType, Note } from '../types/Note'
 import { useNoteStore } from '../stores/noteStores'
 import TipTapEditor from '../components/TipTapEditor.vue'
 import { useRouter } from 'vue-router'
-import {
-  Notes,
-  BookOpen,
-  ViewList,
-  Link,
-  ExpandTextInput,
-  Install,
-  More
-} from '@icon-park/vue-next'
+import { ExpandTextInput, Install, More } from '@icon-park/vue-next'
 import CardboxDropdownMenu from './CardboxDropdownMenu.vue'
 import { debounce } from 'lodash-es'
 import { storeToRefs } from 'pinia'
 import PopupMenu from './PopupMenu.vue'
 import { useNoteMenu } from '../composables/useNoteMenu'
 import type { MenuItem } from './PopupMenu.vue'
+import CardTypeDropdownMenu from '../components/CardTypeDropdownMenu.vue'
+
 const props = defineProps<{
   noteId: string
 }>()
+
+const cardTypeDropdownMenu = ref<InstanceType<typeof CardTypeDropdownMenu> | null>(null)
+const showCardTypeMenu = ref(false)
+const indicatorButton = ref<HTMLElement | null>(null)
+
+const cardTypeClass = computed(() => ({
+  maincard: editedNote.value?.cardType === 'Maincard',
+  bibcard: editedNote.value?.cardType === 'Bibcard',
+  indexcard: editedNote.value?.cardType === 'Indexcard',
+  hoplinkcard: editedNote.value?.cardType === 'Hoplinkcard'
+}))
+
+const toggleCardTypeMenu = (event: MouseEvent) => {
+  event.stopPropagation()
+  showCardTypeMenu.value = !showCardTypeMenu.value
+  if (showCardTypeMenu.value && indicatorButton.value) {
+    const rect = indicatorButton.value.getBoundingClientRect()
+    menuPosition.x = rect.left
+    menuPosition.y = rect.bottom
+    showCardTypeMenu.value = true
+    nextTick(() => {
+      cardTypeDropdownMenu.value?.openMenu(menuPosition.x, menuPosition.y)
+    })
+  }
+}
+
+const closeCardTypeMenu = () => {
+  showCardTypeMenu.value = false
+}
+
+const updateCardType = (newType: CardType) => {
+  if (editedNote.value) {
+    editedNote.value.cardType = newType
+    saveNote()
+  }
+}
 
 // 更多按钮弹出菜单
 const moreBtnRef = ref<HTMLElement | null>(null)
@@ -128,7 +151,7 @@ const menuPosition = reactive({ x: 0, y: 0 })
 
 const { menuItems: noteMenuItems, resetDeleteState } = useNoteMenu({
   noteId: props.noteId,
-  menuItems: ['star', 'sidebar', 'delete']
+  menuItems: ['star', 'sidebar', 'copyNoteLink', 'delete']
 })
 const toggleMenu = (event: MouseEvent) => {
   event.preventDefault()
@@ -293,70 +316,6 @@ const closeCardBoxMenu = () => {
   isMenuOpen.value = false
 }
 
-// 卡片类型选择菜单处理
-const indicatorButton = ref<HTMLButtonElement | null>(null)
-const showCardTypeMenu = ref(false)
-const cardTypes: CardType[] = ['Maincard', 'Bibcard', 'Indexcard', 'Hoplinkcard']
-const menuStyle = ref({})
-
-const cardTypeClass = computed(() => ({
-  maincard: editedNote.value?.cardType === 'Maincard',
-  bibcard: editedNote.value?.cardType === 'Bibcard',
-  indexcard: editedNote.value?.cardType === 'Indexcard',
-  hoplinkcard: editedNote.value?.cardType === 'Hoplinkcard'
-}))
-
-const getIcon = (type: CardType) => {
-  switch (type) {
-    case 'Maincard':
-      return Notes
-    case 'Bibcard':
-      return BookOpen
-    case 'Indexcard':
-      return ViewList
-    case 'Hoplinkcard':
-      return Link
-  }
-}
-
-const getTypeLabel = (type: CardType) => {
-  switch (type) {
-    case 'Maincard':
-      return '主要卡'
-    case 'Bibcard':
-      return '书目卡'
-    case 'Indexcard':
-      return '索引卡'
-    case 'Hoplinkcard':
-      return '跳转卡'
-  }
-}
-
-const toggleCardTypeMenu = (event: MouseEvent) => {
-  event.stopPropagation()
-  showCardTypeMenu.value = !showCardTypeMenu.value
-  if (showCardTypeMenu.value) {
-    nextTick(() => {
-      const button = indicatorButton.value
-      if (button) {
-        const rect = button.getBoundingClientRect()
-        menuStyle.value = {
-          top: `${rect.bottom + window.scrollY + 10}px`,
-          left: `${rect.left + window.scrollX}px`
-        }
-      }
-    })
-  }
-}
-
-const selectCardType = (type: CardType) => {
-  if (editedNote.value) {
-    editedNote.value.cardType = type
-    showCardTypeMenu.value = false
-    saveNote()
-  }
-}
-
 // 聚焦地址输入框
 const focusAddressInput = () => {
   nextTick(() => {
@@ -397,8 +356,8 @@ defineExpose({ focusAddressInput, focusEditor })
   border-radius: 12px;
   display: flex;
   flex-direction: column;
-  height: 600px;
-  max-height: 600px;
+  height: 650px;
+  max-height: 650px;
   width: 640px;
   max-width: 100%;
   position: relative;
@@ -408,7 +367,7 @@ defineExpose({ focusAddressInput, focusEditor })
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 10px 20px;
+    padding: 10px 20px 0 20px;
     position: relative;
 
     .expand-btn {
@@ -638,16 +597,16 @@ defineExpose({ focusAddressInput, focusEditor })
     overflow: hidden; // 防止双重滚动条
 
     .address-input {
-      margin-bottom: 10px;
+      margin-bottom: 8px;
       display: flex;
       align-items: center;
       justify-content: center;
-      padding-left: 27px;
+      padding-left: 20px;
       width: 100%;
 
       input {
         width: 100%;
-        padding: 8px 0;
+        padding: 6px 0;
         border: none;
         outline: none;
         font-size: 1.3rem;
@@ -679,7 +638,7 @@ defineExpose({ focusAddressInput, focusEditor })
         width: 4px;
         height: 14px;
         border-radius: 2px;
-        margin-right: 10px;
+        margin-right: 8px;
         display: block;
         flex-shrink: 0;
         cursor: pointer;
@@ -725,7 +684,7 @@ defineExpose({ focusAddressInput, focusEditor })
         display: flex;
         flex-direction: column;
         min-height: 100%;
-        padding-bottom: 50px; // 添加底部填充
+        padding-bottom: 30px; // 添加底部填充
         width: 100%;
       }
     }
@@ -749,84 +708,84 @@ defineExpose({ focusAddressInput, focusEditor })
     }
   }
 
-  .card-type-menu {
-    position: fixed;
-    background-color: var(--color-bg-primary);
-    border-radius: 8px;
-    box-shadow: var(--shadow-primary);
-    z-index: 1000;
-    padding: 8px 0;
-    width: auto;
-    align-items: center;
+  // .card-type-menu {
+  //   position: fixed;
+  //   background-color: var(--color-bg-primary);
+  //   border-radius: 8px;
+  //   box-shadow: var(--shadow-primary);
+  //   z-index: 1000;
+  //   padding: 8px 0;
+  //   width: auto;
+  //   align-items: center;
 
-    .card-type-item {
-      display: flex;
-      align-items: center;
-      width: 150px;
-      padding: 2px 8px;
-      border: none;
-      background: none;
-      cursor: pointer;
-      transition: background-color 0.2s;
-      border-radius: 8px;
-      margin: 2px 8px;
+  //   .card-type-item {
+  //     display: flex;
+  //     align-items: center;
+  //     width: 150px;
+  //     padding: 2px 8px;
+  //     border: none;
+  //     background: none;
+  //     cursor: pointer;
+  //     transition: background-color 0.2s;
+  //     border-radius: 8px;
+  //     margin: 2px 8px;
 
-      .icon {
-        background: none;
-        border: none;
-        cursor: pointer;
-        width: 28px;
-        height: 28px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        border-radius: 6px;
-        transition: background-color 0.2s;
-        padding: 0;
-        margin-right: 5px;
+  //     .icon {
+  //       background: none;
+  //       border: none;
+  //       cursor: pointer;
+  //       width: 28px;
+  //       height: 28px;
+  //       display: flex;
+  //       align-items: center;
+  //       justify-content: center;
+  //       border-radius: 6px;
+  //       transition: background-color 0.2s;
+  //       padding: 0;
+  //       margin-right: 5px;
 
-        &:hover:not(:disabled) {
-          background-color: var(--color-hover-bg);
-        }
+  //       &:hover:not(:disabled) {
+  //         background-color: var(--color-hover-bg);
+  //       }
 
-        &:disabled {
-          opacity: 0.5;
-          cursor: not-allowed;
-        }
+  //       &:disabled {
+  //         opacity: 0.5;
+  //         cursor: not-allowed;
+  //       }
 
-        // 新增以下样式来处理 i-icon 类
-        :deep(.i-icon) {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          width: 100%;
-          height: 100%;
-        }
+  //       // 新增以下样式来处理 i-icon 类
+  //       :deep(.i-icon) {
+  //         display: flex;
+  //         align-items: center;
+  //         justify-content: center;
+  //         width: 100%;
+  //         height: 100%;
+  //       }
 
-        :deep(svg) {
-          width: 16px; // 或者您想要的大小
-          height: 16px; // 或者您想要的大小
-        }
-      }
+  //       :deep(svg) {
+  //         width: 16px; // 或者您想要的大小
+  //         height: 16px; // 或者您想要的大小
+  //       }
+  //     }
 
-      .name {
-        flex-grow: 0;
-        text-align: left;
-        color: var(--color-text-primary);
-        font-size: 14px;
-        white-space: nowrap; // 防止文字换行
-        writing-mode: horizontal-tb; // 确保文字是水平排列的
-      }
+  //     .name {
+  //       flex-grow: 0;
+  //       text-align: left;
+  //       color: var(--color-text-primary);
+  //       font-size: 14px;
+  //       white-space: nowrap; // 防止文字换行
+  //       writing-mode: horizontal-tb; // 确保文字是水平排列的
+  //     }
 
-      &:hover {
-        background-color: var(--color-hover-bg);
-      }
+  //     &:hover {
+  //       background-color: var(--color-hover-bg);
+  //     }
 
-      &.active {
-        background-color: var(--color-menu-active-bg);
-        // border: 1px solid var(--color-primary);
-      }
-    }
-  }
+  //     &.active {
+  //       background-color: var(--color-menu-active-bg);
+  //       // border: 1px solid var(--color-primary);
+  //     }
+  //   }
+  // }
 }
 </style>

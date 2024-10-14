@@ -27,12 +27,6 @@ body {
 a {
   color: var(--color-text-primary);
   text-decoration: none;
-  // transition: color 0.3s ease;
-
-  // &:hover {
-  //   color: var(--link-hover-color);
-  //   // text-decoration: underline;
-  // }
 }
 
 // 图片样式
@@ -93,20 +87,6 @@ table {
   color: var(--color-text-primary);
 }
 
-// 焦点样式
-// :focus {
-//   outline: 2px solid var(--color-focus);
-//   outline-offset: 2px;
-// }
-
-// 基础容器
-// .container {
-//   width: 100%;
-//   max-width: $container-max-width;
-//   margin: 0 auto;
-//   padding: 0 $container-padding;
-// }
-
 // 清除浮动
 .clearfix::after {
   content: "";
@@ -153,36 +133,10 @@ table {
   padding: 8px 12px;
 }
 
-// // 全局滚动条样式
-// ::-webkit-scrollbar {
-//   width: 8px;
-//   height: 8px;
-// }
-
-// ::-webkit-scrollbar-track {
-//   background: var(--color-scroll-track, #f1f1f1);
-//   border-radius: 4px;
-// }
-
-// ::-webkit-scrollbar-thumb {
-//   background: var(--color-scroll-thumb, #888);
-//   border-radius: 4px;
-// }
-
-// ::-webkit-scrollbar-thumb:hover {
-//   background: var(--color-scroll-thumb-hover, #555);
-// }
-
-// // Firefox 滚动条样式
-// * {
-//   scrollbar-width: thin;
-//   scrollbar-color: var(--color-scroll-thumb, #888) var(--color-scroll-track, #f1f1f1);
-// }
-
 // 全局滚动条样式
 * {
   scrollbar-width: thin;
-  scrollbar-color: var(--color-scroll-thumb) var(--color-scroll-track);
+  scrollbar-color: var(--color-scroll-thumb) transparent;
 }
 
 ::-webkit-scrollbar {
@@ -191,21 +145,18 @@ table {
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--color-scroll-track);
-  border-radius: 3px;
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
   background-color: var(--color-scroll-thumb);
   border-radius: 3px;
-  border: 2px solid var(--color-scroll-track);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background-color: var(--color-scroll-thumb-hover);
+  background-color: var(--color-scroll-thumb);
 }
 
-// 当不滚动时隐藏滚动条
 ::-webkit-scrollbar-thumb:vertical {
   min-height: 30px;
 }
@@ -214,7 +165,6 @@ table {
   min-width: 30px;
 }
 
-// 滚动条角落
 ::-webkit-scrollbar-corner {
-  background: var(--color-scroll-track);
+  background: transparent;
 }

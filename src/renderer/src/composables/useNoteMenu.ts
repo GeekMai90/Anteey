@@ -11,7 +11,7 @@ import {
 } from '@icon-park/vue-next'
 import { useNoteStore } from '../stores/noteStores'
 import { useWhiteboardStore } from '../stores/whiteboardStores'
-import { useUIStore } from '@renderer/stores/useUIStore'
+import { useUIStore } from '../stores/useUIStore'
 
 interface NoteMenuParams {
   noteId: string
@@ -86,13 +86,14 @@ export function useNoteMenu(params: NoteMenuParams) {
   let deleteTimeout: number | null = null
 
   const handleDelete = async () => {
-    if (isDeleting.value) return
+    if (isDeleting.value) return false
 
     if (!isConfirmingDelete.value) {
       isConfirmingDelete.value = true
       deleteTimeout = window.setTimeout(() => {
         isConfirmingDelete.value = false
       }, 3000) // 3秒后重置确认状态
+      return false
     } else {
       if (deleteTimeout !== null) {
         clearTimeout(deleteTimeout)

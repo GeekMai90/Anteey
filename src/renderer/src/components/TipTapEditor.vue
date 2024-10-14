@@ -131,7 +131,7 @@
           <ClearFormat
             theme="outline"
             size="16"
-            fill="var(--color-text-primary)"
+            fill="var(--color-icon-menu-default)"
             :strokeWidth="3"
           />
         </div>
@@ -139,13 +139,13 @@
       </div>
       <div class="context-menu-item" @click="copyToClipboard">
         <div class="icon">
-          <Copy theme="outline" size="16" fill="var(--color-text-primary)" :strokeWidth="4" />
+          <Copy theme="outline" size="16" fill="var(--color-icon-menu-default)" :strokeWidth="3" />
         </div>
         <div class="name">复制到剪贴板</div>
       </div>
       <div class="context-menu-item delete" @click="deleteParagraph">
         <div class="icon">
-          <Delete theme="outline" size="16" fill="var(--color-text-danger)" :strokeWidth="4" />
+          <Delete theme="outline" size="16" fill="var(--color-text-danger)" :strokeWidth="3" />
         </div>
         <div class="name">删除段落</div>
       </div>
@@ -1088,6 +1088,7 @@ defineExpose({
       padding: 3px 12px;
       height: 30px;
       font-size: 14px;
+      line-height: 1;
       color: var(--color-text-primary);
 
       &::placeholder {

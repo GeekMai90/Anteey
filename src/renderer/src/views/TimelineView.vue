@@ -11,7 +11,7 @@
         <div class="timeline-header">
           <div class="timeline-header-left">
             <div class="icon">
-              <Time theme="outline" size="20" fill="var(--color-primary)" :strokeWidth="2" />
+              <TimeIcon theme="outline" size="20" fill="var(--color-primary)" :strokeWidth="3" />
             </div>
             <div class="name">时间线</div>
           </div>
@@ -27,8 +27,8 @@
                   <Search
                     theme="outline"
                     size="16"
-                    fill="var(--color-text-secondary)"
-                    :strokeWidth="2"
+                    fill="var(--color-icon-secondary)"
+                    :strokeWidth="3"
                   />
                 </div>
               </div>
@@ -46,8 +46,8 @@
                   <Close
                     theme="outline"
                     size="16"
-                    fill="var(--color-text-secondary)"
-                    :strokeWidth="2"
+                    fill="var(--color-icon-secondary)"
+                    :strokeWidth="3"
                   />
                 </div>
               </div>
@@ -58,7 +58,12 @@
               @click="toggleDateFilter"
             >
               <div class="icon">
-                <Calendar theme="outline" size="20" fill="#b6b6b6" :strokeWidth="2" />
+                <Calendar
+                  theme="outline"
+                  size="20"
+                  fill="var(--color-icon-secondary)"
+                  :strokeWidth="3"
+                />
               </div>
             </div>
           </div>
@@ -93,7 +98,7 @@ import NoteList from '../components/NoteList.vue'
 import { useNoteStore } from '../stores/noteStores'
 import { computed, onMounted, ref } from 'vue'
 import { storeToRefs } from 'pinia'
-import { Time, Calendar, Search, Close } from '@icon-park/vue-next'
+import { Time as TimeIcon, Calendar, Search, Close } from '@icon-park/vue-next'
 import AppToolbar from '../components/AppToolbar.vue'
 import CalendarPicker from '../components/CalendarPicker.vue'
 import { useUIStore } from '../stores/useUIStore'
@@ -254,6 +259,7 @@ const handleDelete = async (noteId: string) => {
             white-space: nowrap;
             writing-mode: horizontal-tb;
             user-select: none;
+            line-height: 1;
           }
         }
 

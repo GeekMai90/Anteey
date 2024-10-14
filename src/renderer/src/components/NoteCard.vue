@@ -8,12 +8,17 @@
       <div class="note-buttons">
         <div class="note-button" @click.stop="expandNote">
           <div class="icon">
-            <ExpandTextInput theme="outline" size="20" fill="#b6b6b6" />
+            <ExpandTextInput
+              theme="outline"
+              size="20"
+              fill="var(--color-icon-default)"
+              :strokeWidth="4"
+            />
           </div>
         </div>
         <div ref="moreBtnRef" class="note-button" @click.stop="toggleMenu">
           <div v-tooltip.bottom="{ content: '更多', delay: { show: 1000 } }" class="icon">
-            <More theme="outline" size="16" fill="var(--color-icon-default)" />
+            <More theme="outline" size="16" fill="var(--color-icon-default)" :strokeWidth="4" />
           </div>
         </div>
       </div>
@@ -66,7 +71,7 @@ const menuPosition = reactive({ x: 0, y: 0 })
 
 const { menuItems: noteMenuItems, resetDeleteState } = useNoteMenu({
   noteId: props.note.id,
-  menuItems: ['star', 'sidebar', 'delete']
+  menuItems: ['star', 'sidebar', 'copyNoteLink', 'delete']
 })
 const toggleMenu = (event: MouseEvent) => {
   event.preventDefault()

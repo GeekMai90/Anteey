@@ -135,8 +135,8 @@ $dark-mode-text: $gray-100;
   --color-scrollbar-thumb-bg: #888;
   --color-scrollbar-thumb-hover-bg: #555;
   --color-focus: #4361ee;
-  --color-icon-default: #b6b6b6;
-  --color-border: #e7eaee;
+  --color-border: #e7e5e4;
+  // --color-border: #e7eaee;
   --color-border-sidebar: #e1e1e1;
   --font-weight-title: 700;
   --color-hover-bg: #{$gray-200};
@@ -160,6 +160,8 @@ $dark-mode-text: $gray-100;
   --color-table-border: rgba(61, 37, 20, 0.12);
   --color-table-header-bg: rgba(61, 37, 20, 0.05);
   --color-table-selected-cell-bg: rgba(61, 37, 20, 0.08);
+  --color-icon-default: #b6b6b6;
+  --color-icon-secondary: #949494;
   --color-icon-menu-default: #252525;
   --color-icon-image-more: rgba(0, 0, 0, 0.5);
   --color-icon-image-more-hover: rgba(0, 0, 0, 0.6);
@@ -194,37 +196,3 @@ $dark-mode-text: $gray-100;
   --color-scroll-thumb: rgba(255, 255, 255, 0.2);
   --color-scroll-thumb-hover: rgba(255, 255, 255, 0.3);
 }
-// 颜色函数
-// @function lighten-color($color, $percentage) {
-//   @return lighten($color, $percentage);
-// }
-
-// @function darken-color($color, $percentage) {
-//   @return darken($color, $percentage);
-// }
-
-// // 颜色变体示例
-// $primary-light: lighten-color($primary-color, 10%);
-// $primary-dark: darken-color($primary-color, 10%);
-
-// @function theme-color($key, $theme: "light") {
-//   @return map-get(map-get($themes, $theme), $key);
-// }
-// @mixin themed() {
-//   @each $theme, $map in $themes {
-//     .theme-#{$theme} & {
-//       $theme-map: () !global;
-//       @each $key, $submap in $map {
-//         $value: map-get(map-get($themes, $theme), "#{$key}");
-//         $theme-map: map-merge(
-//           $theme-map,
-//           (
-//             $key: $value
-//           )
-//         ) !global;
-//       }
-//       @content;
-//       $theme-map: null !global;
-//     }
-//   }
-// }

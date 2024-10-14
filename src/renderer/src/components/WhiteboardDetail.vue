@@ -918,7 +918,7 @@ const onDragItem = (event: MouseEvent) => {
 const stopDraggingItem = async () => {
   if (draggingItem.value) {
     const { ids } = draggingItem.value
-    const updatedItems = []
+    const updatedItems: WhiteboardNote[] = []
 
     for (const id of ids) {
       const itemIndex = whiteboardNotes.value.findIndex((item) => item.id === id)
@@ -926,7 +926,7 @@ const stopDraggingItem = async () => {
         const item = whiteboardNotes.value[itemIndex]
 
         // 更新本地状态
-        const updatedItem = { ...item }
+        const updatedItem = { ...item } as WhiteboardNote
         whiteboardNotes.value.splice(itemIndex, 1, updatedItem)
 
         updatedItems.push(updatedItem)
@@ -939,12 +939,12 @@ const stopDraggingItem = async () => {
     // 异步更新后端
     try {
       await Promise.all(
-        updatedItems.map((item) =>
+        updatedItems.map((item: WhiteboardNote) =>
           whiteboardStore.updateWhiteboardNotePosition(item.id, item.position.x, item.position.y)
         )
       )
     } catch (error) {
-      console.error('Failed to update note positions:', error)
+      console.error('更新笔记位置失败:', error)
       // 可以在这里添加错误处理，比如显示一个错误提示
     }
   }

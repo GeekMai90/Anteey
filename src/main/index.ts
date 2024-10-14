@@ -178,7 +178,7 @@ function createCustomMenu() {
 
 function setupIpcHandlers() {
   // 复制图片
-  ipcMain.handle('copy-image', async (event, imageUrl: string) => {
+  ipcMain.handle('copy-image', async (_event, imageUrl: string) => {
     console.log('尝试复制图片:', imageUrl)
 
     try {
@@ -218,7 +218,7 @@ function setupIpcHandlers() {
     }
   })
   // 图片下载
-  ipcMain.handle('download-image', async (event, { url, filename }) => {
+  ipcMain.handle('download-image', async (_event, { url, filename }) => {
     const win = BrowserWindow.getFocusedWindow()
     const downloadPath = app.getPath('downloads')
     const filePath = join(downloadPath, filename)
@@ -845,7 +845,7 @@ function createWindow(): void {
       responseHeaders: {
         ...details.responseHeaders,
         'Content-Security-Policy': [
-          "default-src 'self'; img-src 'self' file: data: blob:; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline';"
+          "default-src 'self'; img-src 'self' file: data: blob: https://cdn.jsdelivr.net; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; connect-src 'self' file:;"
         ]
       }
     })

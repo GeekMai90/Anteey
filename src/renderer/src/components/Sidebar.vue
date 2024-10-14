@@ -16,8 +16,8 @@
               <Search
                 theme="outline"
                 size="16"
-                fill="var(--color-text-secondary)"
-                :strokeWidth="2"
+                fill="var(--color-icon-secondary)"
+                :strokeWidth="3"
               />
             </div>
             <div class="name">搜索</div>
@@ -30,7 +30,7 @@
           @click="createNewCard"
         >
           <div class="icon">
-            <Plus theme="outline" size="16" fill="var(--color-text-secondary)" :strokeWidth="2" />
+            <Plus theme="outline" size="16" fill="var(--color-icon-secondary)" :strokeWidth="3" />
           </div>
         </button>
       </div>
@@ -356,8 +356,8 @@ const openHelp = () => {
             }
 
             :deep(svg) {
-              width: 18px;
-              height: 18px;
+              width: 16px;
+              height: 16px;
             }
           }
 
@@ -369,6 +369,7 @@ const openHelp = () => {
             font-weight: 400;
             white-space: nowrap;
             writing-mode: horizontal-tb;
+            line-height: 1;
           }
         }
         .search-input-text {

@@ -44,7 +44,7 @@ import { debounce } from 'lodash-es'
 
 const noteStore = useNoteStore()
 const searchQuery = ref('')
-const searchResults = ref(noteStore.notes)
+const searchResults = ref(noteStore.allNotes)
 
 const onDragStart = (note: any, event: any) => {
   event.dataTransfer.setData('application/json', JSON.stringify(note))
@@ -54,7 +54,7 @@ const onDragStart = (note: any, event: any) => {
 const isSearchActive = computed(() => searchQuery.value.trim() !== '')
 
 const displayedNotes = computed(() =>
-  isSearchActive.value ? searchResults.value : noteStore.notes
+  isSearchActive.value ? searchResults.value : noteStore.allNotes
 )
 
 function filterNoteContent(note: any, query: string) {
@@ -75,7 +75,7 @@ function filterNoteContent(note: any, query: string) {
 
 const performSearch = debounce(() => {
   if (searchQuery.value.trim()) {
-    searchResults.value = noteStore.notes
+    searchResults.value = noteStore.allNotes
       .filter((note) => {
         const addressMatch = note.address.toLowerCase().includes(searchQuery.value.toLowerCase())
         const contentMatch =
@@ -85,7 +85,7 @@ const performSearch = debounce(() => {
       })
       .map((note) => filterNoteContent(note, searchQuery.value))
   } else {
-    searchResults.value = noteStore.notes
+    searchResults.value = noteStore.allNotes
   }
 }, 300)
 </script>

@@ -20,7 +20,8 @@
               :is="getIcon(type)"
               theme="outline"
               size="18"
-              :fill="isTypeSelected(type) ? 'var(--color-primary)' : 'var(--color-icon-default)'"
+              fill="var(--color-icon-menu-default)"
+              :strokeWidth="3"
             />
           </div>
           <div class="name">{{ getTypeLabel(type) }}</div>
@@ -33,7 +34,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, CSSProperties, watch, nextTick } from 'vue'
 import { CardType } from '@renderer/types/Note'
-import { Notes, BookOpen, ViewList, Link } from '@icon-park/vue-next'
+import { Notes, ListAlphabet, Bookshelf } from '@icon-park/vue-next'
 
 const props = defineProps<{
   isOpen: boolean
@@ -46,7 +47,7 @@ const emit = defineEmits(['update:cardType', 'close'])
 
 const menuRef = ref<HTMLElement | null>(null)
 const menuPosition = ref({ x: 0, y: 0 })
-const cardTypes: CardType[] = ['Maincard', 'Bibcard', 'Indexcard', 'Hoplinkcard']
+const cardTypes: CardType[] = ['Maincard', 'Indexcard', 'Bibcard']
 
 const computedMenuStyle = computed((): CSSProperties => {
   const { x, y } = menuPosition.value
@@ -66,24 +67,28 @@ const getIcon = (type: CardType) => {
     case 'Maincard':
       return Notes
     case 'Bibcard':
-      return BookOpen
+      return Bookshelf
     case 'Indexcard':
-      return ViewList
-    case 'Hoplinkcard':
-      return Link
+      return ListAlphabet
+    // case 'Hoplinkcard':
+    //   return Link
+    default:
+      return Notes // 默认返回 Notes 图标
   }
 }
 
-const getTypeLabel = (type: CardType) => {
+const getTypeLabel = (type: CardType): string => {
   switch (type) {
     case 'Maincard':
-      return '主要卡'
+      return '主要卡片'
     case 'Bibcard':
-      return '书目卡'
+      return '文献卡片'
     case 'Indexcard':
-      return '索引卡'
-    case 'Hoplinkcard':
-      return '跳转卡'
+      return '索引卡片'
+    // case 'Hoplinkcard':
+    //   return '跳转卡'
+    default:
+      return '主要卡片'
   }
 }
 
@@ -213,13 +218,14 @@ defineExpose({ openMenu, closeMenu })
   .name {
     flex-grow: 1;
     text-align: left;
-    color: var(--default-text-color);
-    font-size: 13px;
+    color: var(--color-text-primary);
+    font-size: 14px;
     font-weight: 400;
     margin-left: 6px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    line-height: 1;
   }
 }
 

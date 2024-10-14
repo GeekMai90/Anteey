@@ -6,7 +6,7 @@
         <div class="topToolBar-header">
           <div class="topToolBar-left">
             <div class="icon">
-              <ListAlphabet theme="outline" size="20" fill="var(--color-blue)" :strokeWidth="2" />
+              <ListAlphabet theme="outline" size="20" fill="var(--color-blue)" :strokeWidth="3" />
             </div>
             <div class="name">索引卡片</div>
           </div>
@@ -22,8 +22,8 @@
                   <Search
                     theme="outline"
                     size="16"
-                    fill="var(--color-text-secondary)"
-                    :strokeWidth="2"
+                    fill="var(--color-icon-secondary)"
+                    :strokeWidth="3"
                   />
                 </div>
               </div>
@@ -41,8 +41,8 @@
                   <Close
                     theme="outline"
                     size="16"
-                    fill="var(--color-text-secondary)"
-                    :strokeWidth="2"
+                    fill="var(--color-icon-secondary)"
+                    :strokeWidth="3"
                   />
                 </div>
               </div>
@@ -64,7 +64,7 @@
                 <SortTwo
                   theme="outline"
                   size="18"
-                  fill="var(--color-text-secondary)"
+                  fill="var(--color-icon-menu-default)"
                   :strokeWidth="3"
                 />
               </div>
@@ -374,6 +374,7 @@ onUnmounted(() => {
       font-size: 14px;
       white-space: nowrap; // 防止文字换行
       writing-mode: horizontal-tb; // 确保文字是水平排列的
+      line-height: 1;
     }
 
     &:hover {
@@ -541,24 +542,18 @@ onUnmounted(() => {
 
   .card-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
     gap: 16px;
     padding: 16px 20px;
     align-content: start; // 让内容从顶部开始排列
     justify-content: center; // 水平居中对齐
 
     // 使用视口单位和 clamp 函数来控制卡片高度
-    --card-height: clamp(300px, calc(20vw - 32px), 370px);
+    --card-height: clamp(250px, calc(20vw - 32px), 350px);
     grid-auto-rows: var(--card-height);
 
     // 计算每行可以容纳的卡片数量
     --cards-per-row: calc((100% - 32px) / (300px + 16px));
-
-    // 设置网格的行数，使用 max 函数确保至少有一行
-    // grid-template-rows: repeat(auto-fill, var(--card-height));
-
-    // 设置容器的最小高度，确保即使卡片数量不足也能填满屏幕
-    // min-height: calc(100vh - 93px); // 假设顶部工具栏高度为100px，请根据实际情况调整
   }
 }
 

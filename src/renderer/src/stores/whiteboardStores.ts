@@ -85,10 +85,11 @@ export const useWhiteboardStore = defineStore('whiteboard', {
       if (newWhiteboard) {
         this.whiteboards.push(newWhiteboard)
         console.log('whiteboardStore→ 创建白板成功', this.whiteboards)
-        return newWhiteboard
         await this.getTopLevelWhiteboards()
+        return newWhiteboard
       } else {
         console.error('whiteboardStore→ 创建白板失败')
+        return null
       }
     },
     // 获取所有顶层白板

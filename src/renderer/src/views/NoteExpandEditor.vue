@@ -12,7 +12,7 @@
             ref="indicatorButton"
             class="note-indicator"
             :class="cardTypeClass"
-            @click="toggleCardTypeMenu"
+            @click.stop="toggleCardTypeMenu"
           ></div>
           <CardTypeDropdownMenu
             ref="cardTypeDropdownMenu"
@@ -126,8 +126,8 @@ const indicatorButton = ref<HTMLElement | null>(null)
 const cardTypeClass = computed(() => ({
   maincard: editedNote.value?.cardType === 'Maincard',
   bibcard: editedNote.value?.cardType === 'Bibcard',
-  indexcard: editedNote.value?.cardType === 'Indexcard',
-  hoplinkcard: editedNote.value?.cardType === 'Hoplinkcard'
+  indexcard: editedNote.value?.cardType === 'Indexcard'
+  // hoplinkcard: editedNote.value?.cardType === 'Hoplinkcard'
 }))
 
 const toggleCardTypeMenu = (event: MouseEvent) => {
@@ -415,7 +415,7 @@ watch(
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-left: 35px;
+  margin-left: 20px;
   z-index: 500;
 }
 

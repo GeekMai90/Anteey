@@ -9,7 +9,13 @@
         @click="selectCardType(type)"
       >
         <div class="icon">
-          <component :is="getIcon(type)" theme="outline" size="16" fill="#b6b6b6" />
+          <component
+            :is="getIcon(type)"
+            theme="outline"
+            size="16"
+            fill="var(--color-icon-menu-default)"
+            :strokeWidth="3"
+          />
         </div>
         <div class="name">{{ getTypeLabel(type) }}</div>
       </div>
@@ -102,9 +108,8 @@ const selectCardType = (type: CardType) => {
 
     .name {
       font-size: 14px;
+      line-height: 1;
     }
   }
-
-  // ... 其他样式保持不变 ...
 }
 </style>

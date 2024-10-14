@@ -7,6 +7,8 @@
   :first-child {
     margin-top: 0;
   }
+  // 光标颜色
+  // caret-color: var(--color-primary); // 使用您的主题色变量
 
   // 标题样式
   h1 {
@@ -114,7 +116,8 @@
       width: 1em;
       height: 1em;
       margin-right: 0.25em;
-      background-image: url("data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIHZpZXdCb3g9IjAgMCA0OCA0OCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNMTAgNEgzMEw0MCAxNFY0NEgxMFY0WiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSJjdXJyZW50Q29sb3IiIHN0cm9rZS13aWR0aD0iMyIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+PHBhdGggZD0iTTMwIDRWMTRINDBNMTkgMjFIMjlNMTkgMzFIMjkiIHN0cm9rZT0iY3VycmVudENvbG9yIiBzdHJva2Utd2lkdGg9IjMiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPjwvc3ZnPg==");
+      // background-image: url("data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIHZpZXdCb3g9IjAgMCA0OCA0OCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNMTAgNEgzMEw0MCAxNFY0NEgxMFY0WiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSJjdXJyZW50Q29sb3IiIHN0cm9rZS13aWR0aD0iMyIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+PHBhdGggZD0iTTMwIDRWMTRINDBNMTkgMjFIMjlNMTkgMzFIMjkiIHN0cm9rZT0iY3VycmVudENvbG9yIiBzdHJva2Utd2lkdGg9IjMiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPjwvc3ZnPg==");
+      background-image: url("data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIHZpZXdCb3g9IjAgMCA0OCA0OCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNOCA2QzggNC44OTU0MyA4Ljg5NTQzIDQgMTAgNEgzMEw0MCAxNFY0MkM0MCA0My4xMDQ2IDM5LjEwNDYgNDQgMzggNDRIMTBDOC44OTU0MyA0NCA4IDQzLjEwNDYgOCA0MlY2WiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMjUyNTI1IiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz48cGF0aCBkPSJNMTYgMjBIMzIiIHN0cm9rZT0iIzI1MjUyNSIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz48cGF0aCBkPSJNMTYgMjhIMzIiIHN0cm9rZT0iIzI1MjUyNSIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz48L3N2Zz4=");
       background-size: contain;
       background-repeat: no-repeat;
       background-position: center;
@@ -439,25 +442,51 @@
   background-color: var(--color-selection) !important;
 }
 
+// /* 针对 Webkit 浏览器（Chrome、Safari 等） */
+// .tiptap-container::-webkit-scrollbar {
+//   width: 8px; /* 滚动条宽度 */
+// }
+
+// .tiptap-container::-webkit-scrollbar-thumb {
+//   background: rgba(0, 0, 0, 0.2); /* 滚动条滑块颜色 */
+//   border-radius: 4px;
+//   transition: background 0.2s; /* 平滑过渡效果 */
+// }
+
+// // .tiptap-container::-webkit-scrollbar-thumb:hover {
+// //   background: rgba(0, 0, 0, 0.5); /* 鼠标悬停时的颜色 */
+// // }
+
+// // /* 针对 Firefox */
+// .tiptap-container {
+//   scrollbar-width: thin; /* "auto" 或 "thin" */
+//   scrollbar-color: rgba(0, 0, 0, 0.2) rgba(0, 0, 0, 0.1); /* 滑块颜色 轨道颜色 */
+// }
+
+// /* 针对 IE 和 Edge */
+// .tiptap-container {
+//   -ms-overflow-style: none; /* IE 和 Edge */
+// }
+
 /* 针对 Webkit 浏览器（Chrome、Safari 等） */
 .tiptap-container::-webkit-scrollbar {
-  width: 8px; /* 滚动条宽度 */
+  width: 8px; /* 保持较细的宽度 */
 }
 
 .tiptap-container::-webkit-scrollbar-thumb {
   background: rgba(0, 0, 0, 0.2); /* 滚动条滑块颜色 */
   border-radius: 4px;
-  transition: background 0.2s; /* 平滑过渡效果 */
 }
 
-// .tiptap-container::-webkit-scrollbar-thumb:hover {
-//   background: rgba(0, 0, 0, 0.5); /* 鼠标悬停时的颜色 */
-// }
+/* 移除悬停效果 */
+.tiptap-container::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.2); /* 与非悬停状态保持一致 */
+}
 
-// /* 针对 Firefox */
+/* 针对 Firefox */
 .tiptap-container {
-  scrollbar-width: thin; /* "auto" 或 "thin" */
-  scrollbar-color: rgba(0, 0, 0, 0.2) rgba(0, 0, 0, 0.1); /* 滑块颜色 轨道颜色 */
+  scrollbar-width: thin; /* 保持"thin"设置 */
+  scrollbar-color: rgba(0, 0, 0, 0.2) transparent; /* 滑块颜色 透明轨道 */
 }
 
 /* 针对 IE 和 Edge */
