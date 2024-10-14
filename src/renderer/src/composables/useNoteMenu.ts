@@ -8,7 +8,8 @@ import {
   RightBar,
   Refresh,
   CopyLink,
-  Export as ExportIcon
+  Export as ExportIcon,
+  SettingTwo
 } from '@icon-park/vue-next'
 import { useWhiteboardStore } from '../stores/whiteboardStores'
 import { useUIStore } from '../stores/useUIStore'
@@ -61,6 +62,7 @@ export function useNoteMenu(params: NoteMenuParams) {
   const showConfirmModal = ref(false)
   // const { allNotes } = storeToRefs(useNoteStore())
 
+  // 批量导出笔记
   const allNotes = noteStore.allNotes
 
   const isPopupMenuVisible = ref(false)
@@ -515,6 +517,12 @@ export function useNoteMenu(params: NoteMenuParams) {
   //   }
   // }
 
+  // 设置
+  const handleSettings = () => {
+    uiStore.openSettingsPage()
+    closePopupMenu()
+  }
+
   function sanitizeFileName(name: string): string {
     name = name.replace(/^[-_]+/, '') // 移除开头的横杠或下划线
     name = name.replace(/[/\\?%*:|"<>]/g, '_') // 替换不允许的字符为下划线
@@ -584,6 +592,12 @@ export function useNoteMenu(params: NoteMenuParams) {
       label: '批量导出',
       icon: ExportIcon,
       action: handleBulkExport
+    },
+    settings: {
+      name: 'settings',
+      label: '设置',
+      icon: SettingTwo,
+      action: handleSettings
     }
   }))
 
@@ -623,6 +637,7 @@ export function useNoteMenu(params: NoteMenuParams) {
     showConfirmModal,
     handleDeleteWhiteboard,
     confirmDeleteWhiteboard,
-    cancelDeleteWhiteboard
+    cancelDeleteWhiteboard,
+    handleBulkExport
   }
 }

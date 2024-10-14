@@ -9,9 +9,25 @@
     >
       <div class="recycle-bin setting-dropdown-item" @click.stop="handleRecycleBinClick">
         <div class="icon">
-          <ExpandTextInput theme="outline" size="20" fill="#b6b6b6" />
+          <RecycleBin
+            theme="outline"
+            size="20"
+            fill="var(--color-icon-menu-default)"
+            :strokeWidth="3"
+          />
         </div>
         <div class="name">回收站</div>
+      </div>
+      <div class="settings setting-dropdown-item" @click.stop="handleSettingsClick">
+        <div class="icon">
+          <SettingTwo
+            theme="outline"
+            size="20"
+            fill="var(--color-icon-menu-default)"
+            :strokeWidth="3"
+          />
+        </div>
+        <div class="name">设置</div>
       </div>
     </div>
   </Teleport>
@@ -19,7 +35,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch } from 'vue'
-import { ExpandTextInput } from '@icon-park/vue-next'
+import { RecycleBin, SettingTwo } from '@icon-park/vue-next'
 import { useRouter } from 'vue-router'
 import { useUIStore } from '@renderer/stores/useUIStore'
 
@@ -36,8 +52,13 @@ const handleRecycleBinClick = () => {
   uiStore.closeSettingDropdown()
 }
 
+const handleSettingsClick = () => {
+  uiStore.openSettingsPage()
+  uiStore.closeSettingDropdown()
+}
+
 const updateDropdownPosition = () => {
-  const button = document.querySelector('.antinet-button') // 假设这是触发按钮的类名
+  const button = document.querySelector('.antinet-button')
   const dropdown = dropdownRef.value
   if (button && dropdown) {
     const rect = button.getBoundingClientRect()
@@ -134,6 +155,7 @@ onUnmounted(() => {
     margin-left: 6px;
     white-space: nowrap;
     writing-mode: horizontal-tb;
+    line-height: 1;
   }
 
   &:hover {

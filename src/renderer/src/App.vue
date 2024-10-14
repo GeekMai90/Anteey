@@ -56,6 +56,9 @@
     <GlobalUIManager ref="globalUIManager" />
     <SearchModal ref="searchModal" />
     <ContextMenu />
+    <Modal v-model="uiStore.showSettingsPage" @outside-click="uiStore.closeSettingsPage">
+      <SettingsPage />
+    </Modal>
   </div>
 </template>
 
@@ -71,6 +74,8 @@ import { useGlobalHotkeys } from './composables/useGlobalHotkeys'
 import ContextMenu from './components/ContexMenu.vue'
 import CardBoxSidebar from './components/CardBoxSidebar.vue'
 import { useUIStore } from './stores/useUIStore'
+import Modal from './components/Modal.vue'
+import SettingsPage from './components/SettingsPage.vue'
 
 const uiStore = useUIStore()
 const isDarkTheme = ref(false)
