@@ -1,4 +1,4 @@
-import { computed, ref, watchEffect } from 'vue'
+import { computed, createApp, ref, watchEffect } from 'vue'
 import {
   Info,
   Star,
@@ -15,6 +15,8 @@ import { useWhiteboardStore } from '../stores/whiteboardStores'
 import { useUIStore } from '../stores/useUIStore'
 import TurndownService from 'turndown'
 import { format } from 'date-fns'
+import JSZip from 'jszip'
+import TipTapEditor from '../components/TipTapEditor.vue'
 
 interface NoteMenuParams {
   noteId: string
@@ -221,6 +223,96 @@ export function useNoteMenu(params: NoteMenuParams) {
     closePopupMenu()
   }
 
+  // 批量导出笔记
+  const handleBulkExport = async () => {
+    const allNotes = noteStore.allNotes
+
+    if (allNotes.length === 0) {
+      console.error('没有可导出的笔记')
+      return
+    }
+
+    const turndownService = new TurndownService({
+      headingStyle: 'atx'
+    })
+
+    // 创建一个临时的 Vue 应用来包含 TipTapEditor
+    const tempApp = createApp({
+      components: { TipTapEditor },
+      setup() {
+        const editorRef = ref(null)
+        return { editorRef }
+      },
+      template: '<TipTapEditor ref="editorRef" :content="{}" :editable="false" />'
+    })
+
+    const tempRoot = document.createElement('div')
+    document.body.appendChild(tempRoot)
+    const vm = tempApp.mount(tempRoot)
+
+    // 等待编辑器实例创建完成
+    await new Promise((resolve) => setTimeout(resolve, 0))
+
+    const zip = new JSZip()
+
+    for (const note of allNotes) {
+      if (note.content) {
+        try {
+          // 设置笔记内容到编辑器
+          ;(vm.$refs.editorRef as any).editor.commands.setContent(note.content)
+
+          // 获取 HTML 内容
+          const html = (vm.$refs.editorRef as any).editor.getHTML()
+
+          const markdown = turndownService.turndown(html)
+
+          const createdAt = new Date(note.createdAt)
+          const timeString = format(createdAt, 'yyyyMMddHHmm')
+
+          let noteAddress = noteStore.getNoteAddress(note.id)
+          noteAddress = sanitizeFileName(noteAddress)
+
+          const fileName = `${noteAddress}_${timeString}.md`
+
+          zip.file(fileName, markdown)
+
+          console.log(`成功处理笔记: ${fileName}`)
+        } catch (error: unknown) {
+          console.error(`处理笔记时出错 (ID: ${note.id}):`, error)
+          zip.file(`error_${note.id}.txt`, `处理此笔记时出错: ${(error as Error).message}`)
+        }
+      }
+    }
+
+    // 清理临时 Vue 应用
+    ;(vm.$refs.editorRef as any).editor.destroy()
+    tempApp.unmount()
+    document.body.removeChild(tempRoot)
+
+    try {
+      const content = await zip.generateAsync({ type: 'blob' })
+
+      const link = document.createElement('a')
+      link.href = URL.createObjectURL(content)
+      link.download = `all_notes_export_${format(new Date(), 'yyyyMMddHHmm')}.zip`
+
+      link.click()
+
+      URL.revokeObjectURL(link.href)
+
+      console.log(`${allNotes.length} 个笔记已导出为 zip 文件`)
+    } catch (error: unknown) {
+      console.error('生成 zip 文件时出错:', error)
+    }
+  }
+
+  function sanitizeFileName(name: string): string {
+    name = name.replace(/^[-_]+/, '') // 移除开头的横杠或下划线
+    name = name.replace(/[/\\?%*:|"<>]/g, '_') // 替换不允许的字符为下划线
+    name = name.replace(/[. ]+$/, '') // 移除结尾的点和空格
+    return name
+  }
+
   const allMenuItems: any = computed(() => ({
     info: { name: 'info', label: '卡片信息', icon: Info, action: handleShare },
     star: {
@@ -277,6 +369,12 @@ export function useNoteMenu(params: NoteMenuParams) {
       label: '导出笔记',
       icon: ExportIcon,
       action: handleExportNote
+    },
+    bulkExport: {
+      name: 'bulkExport',
+      label: '批量导出',
+      icon: ExportIcon,
+      action: handleBulkExport
     }
   }))
 
