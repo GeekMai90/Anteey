@@ -240,7 +240,7 @@ function setupIpcHandlers() {
   ipcMain.handle('upload-image', async (_event, filePath: string) => {
     try {
       const fileName = `${Date.now()}-${path.basename(filePath)}`
-      const destPath = path.join(app.getPath('userData'), 'images', fileName)
+      const destPath = path.join(app.getPath('userData'), 'UserData', 'images', fileName)
 
       // 确保 images 目录存在
       await fs.mkdir(path.dirname(destPath), { recursive: true })
@@ -257,7 +257,7 @@ function setupIpcHandlers() {
 
   // 获取图片路径
   ipcMain.handle('get-image-path', (_event, fileName: string) => {
-    const fullPath = path.join(app.getPath('userData'), 'images', fileName)
+    const fullPath = path.join(app.getPath('userData'), 'UserData', 'images', fileName)
     return `file://${fullPath}`
   })
   // 删除白板
@@ -839,17 +839,6 @@ function createWindow(): void {
     `)
   })
 
-  // 修改 CSP 设置
-  // mainWindow.webContents.session.webRequest.onHeadersReceived((details, callback) => {
-  //   callback({
-  //     responseHeaders: {
-  //       ...details.responseHeaders,
-  //       'Content-Security-Policy': [
-  //         "default-src 'self'; img-src 'self' file: data: blob: https://cdn.jsdelivr.net; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; connect-src 'self' file:;"
-  //       ]
-  //     }
-  //   })
-  // })
   mainWindow.webContents.session.webRequest.onHeadersReceived((details, callback) => {
     callback({
       responseHeaders: {
@@ -912,9 +901,19 @@ function createWindow(): void {
 }
 
 app.whenReady().then(async () => {
-  const userDataPath = app.getPath('userData')
+  // const userDataPath = app.getPath('userData')
+  // const imagesPath = path.join(userDataPath, 'images')
+  const antinetPath = app.getPath('userData')
+  const userDataPath = path.join(antinetPath, 'UserData')
   const imagesPath = path.join(userDataPath, 'images')
 
+  // 确保 UserData 和 images 目录存在
+  try {
+    await fs.mkdir(userDataPath, { recursive: true })
+    await fs.mkdir(imagesPath, { recursive: true })
+  } catch (error) {
+    console.error('创建目录失败:', error)
+  }
   console.log('用户数据目录:', userDataPath)
   console.log('图片目录:', imagesPath)
   try {

@@ -24,7 +24,14 @@ export function initializeDb() {
 
     dbPath = path.join(devDbDir, 'dev_database.sqlite')
   } else {
-    dbPath = path.join(app.getPath('userData'), 'antinet.sqlite')
+    // dbPath = path.join(app.getPath('userData'), 'antinet.sqlite')
+    // 生产环境: 在 antinet 文件夹下创建 UserData 文件夹
+    const antinetPath = app.getPath('userData')
+    const userDataPath = path.join(antinetPath, 'UserData')
+    if (!fs.existsSync(userDataPath)) {
+      fs.mkdirSync(userDataPath, { recursive: true })
+    }
+    dbPath = path.join(userDataPath, 'antinet.sqlite')
   }
 
   console.log('数据库路径:', dbPath)

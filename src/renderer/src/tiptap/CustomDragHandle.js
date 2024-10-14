@@ -47,38 +47,6 @@ const CustomDragHandle = DragHandle.extend({
       })
     ]
   }
-  // onCreate() {
-  //   if (this.options.alwaysVisible) {
-  //     const style = document.createElement('style')
-  //     style.textContent = `
-  //       .${this.options.dragHandleClass} {
-  //         position: absolute;
-  //         left: -1.5rem;
-  //         top: 0.25rem;
-  //         width: 1rem;
-  //         height: 1.25rem;
-  //         cursor: grab;
-  //         opacity: 1 !important;
-  //         visibility: visible !important;
-  //         z-index: 100;
-  //         pointer-events: auto;
-  //       }
-  //       .${this.options.dragHandleClass}::after {
-  //         content: "⠿";
-  //         display: flex;
-  //         align-items: center;
-  //         justify-content: center;
-  //         width: 100%;
-  //         height: 100%;
-  //         font-weight: 700;
-  //         background: #0d0d0d10;
-  //         color: #0d0d0d50;
-  //         border-radius: 0.25rem;
-  //       }
-  //     `
-  //     document.head.appendChild(style)
-  //   }
-  // }
 })
 
 export default CustomDragHandle
