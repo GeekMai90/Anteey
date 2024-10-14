@@ -312,6 +312,18 @@
     border-radius: 8px;
   }
 
+  // 下标
+  sub {
+    font-size: 0.8em;
+    vertical-align: sub;
+  }
+
+  // 上标
+  sup {
+    font-size: 0.8em;
+    vertical-align: super;
+  }
+
   /* Table-specific styling */
   table {
     border-collapse: collapse;
@@ -441,32 +453,6 @@
 .ProseMirror-selectednoderange:not(.tiptap-image-wrapper)::after {
   background-color: var(--color-selection) !important;
 }
-
-// /* 针对 Webkit 浏览器（Chrome、Safari 等） */
-// .tiptap-container::-webkit-scrollbar {
-//   width: 8px; /* 滚动条宽度 */
-// }
-
-// .tiptap-container::-webkit-scrollbar-thumb {
-//   background: rgba(0, 0, 0, 0.2); /* 滚动条滑块颜色 */
-//   border-radius: 4px;
-//   transition: background 0.2s; /* 平滑过渡效果 */
-// }
-
-// // .tiptap-container::-webkit-scrollbar-thumb:hover {
-// //   background: rgba(0, 0, 0, 0.5); /* 鼠标悬停时的颜色 */
-// // }
-
-// // /* 针对 Firefox */
-// .tiptap-container {
-//   scrollbar-width: thin; /* "auto" 或 "thin" */
-//   scrollbar-color: rgba(0, 0, 0, 0.2) rgba(0, 0, 0, 0.1); /* 滑块颜色 轨道颜色 */
-// }
-
-// /* 针对 IE 和 Edge */
-// .tiptap-container {
-//   -ms-overflow-style: none; /* IE 和 Edge */
-// }
 
 /* 针对 Webkit 浏览器（Chrome、Safari 等） */
 .tiptap-container::-webkit-scrollbar {

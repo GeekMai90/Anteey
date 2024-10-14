@@ -4,6 +4,7 @@
     <!-- 文字样式菜单 -->
     <bubble-menu
       v-if="editorInstance"
+      ref="bubbleMenuRef"
       :editor="editorInstance"
       :tippy-options="{ duration: 100 }"
       :should-show="shouldShowTextStyleMenu"
@@ -118,8 +119,83 @@
             />
           </div>
         </button>
+        <!-- 更多按钮 -->
+        <button @click="toggleMoreMenu" ref="moreButton">
+          <div class="icon">
+            <More
+              theme="outline"
+              size="16"
+              fill="var(--color-icon-menu-default)"
+              :strokeWidth="3"
+            />
+          </div>
+        </button>
       </div>
     </bubble-menu>
+    <!-- 更多菜单 -->
+    <div v-if="showMoreMenu" class="more-menu" :style="moreMenuStyle">
+      <button title="下标" @click="applySubscript">
+        <div class="text-icon">X₂</div>
+      </button>
+      <button title="上标" @click="applySuperscript">
+        <div class="text-icon">X²</div>
+      </button>
+      <!-- 居左 -->
+      <button
+        :class="{ 'is-active': editorInstance.isActive({ textAlign: 'left' }) }"
+        @click="applyLeft"
+      >
+        <div class="icon">
+          <AlignTextLeft
+            theme="outline"
+            size="16"
+            fill="var(--color-icon-menu-default)"
+            :strokeWidth="3"
+          />
+        </div>
+      </button>
+      <button
+        :class="{ 'is-active': editorInstance.isActive({ textAlign: 'center' }) }"
+        @click="applyCenter"
+      >
+        <div class="icon">
+          <AlignTextCenter
+            theme="outline"
+            size="16"
+            fill="var(--color-icon-menu-default)"
+            :strokeWidth="3"
+          />
+        </div>
+      </button>
+      <button
+        :class="{ 'is-active': editorInstance.isActive({ textAlign: 'right' }) }"
+        @click="applyRight"
+      >
+        <div class="icon">
+          <AlignTextRight
+            theme="outline"
+            size="16"
+            fill="var(--color-icon-menu-default)"
+            :strokeWidth="3"
+          />
+        </div>
+      </button>
+      <button
+        :class="{ 'is-active': editorInstance.isActive({ textAlign: 'justify' }) }"
+        @click="applyJustify"
+      >
+        <div class="icon">
+          <AlignTextBoth
+            theme="outline"
+            size="16"
+            fill="var(--color-icon-menu-default)"
+            :strokeWidth="3"
+          />
+        </div>
+      </button>
+
+      <!-- 可以根据需要添加更多选项 -->
+    </div>
     <!-- 上下文菜单 -->
     <div
       v-if="showContextMenu"
@@ -285,7 +361,12 @@ import {
   ListTwo,
   OrderedList,
   ListSuccess,
-  TextStyleOne
+  TextStyleOne,
+  More,
+  AlignTextLeft,
+  AlignTextCenter,
+  AlignTextRight,
+  AlignTextBoth
 } from '@icon-park/vue-next'
 import TiptapImage from './TiptapImage.vue'
 import TaskItem from '@tiptap/extension-task-item'
@@ -296,6 +377,9 @@ import { slashCommandSuggestion } from '../tiptap/slashCommandSuggestion'
 import UniqueID from '@tiptap-pro/extension-unique-id'
 import { CustomLink } from '../tiptap/CustomLink'
 import { useRouter } from 'vue-router'
+import Subscript from '@tiptap/extension-subscript'
+import Superscript from '@tiptap/extension-superscript'
+import TextAlign from '@tiptap/extension-text-align'
 
 const router = useRouter()
 
@@ -319,6 +403,77 @@ const editor = ref(null)
 const editorInstance = computed(() => editor.value)
 
 const editorRootRef = ref(null)
+
+// 更多菜单
+const bubbleMenuRef = ref(null)
+const showMoreMenu = ref(false)
+const moreButton = ref(null)
+const moreMenuStyle = ref({})
+const toggleMoreMenu = () => {
+  showMoreMenu.value = !showMoreMenu.value
+  if (showMoreMenu.value) {
+    nextTick(() => {
+      const bubbleMenuRect = bubbleMenuRef.value.$el.getBoundingClientRect()
+      const moreButtonRect = moreButton.value.getBoundingClientRect()
+      const editorRect = editorContainer.value.getBoundingClientRect()
+
+      moreMenuStyle.value = {
+        position: 'absolute',
+        top: `${moreButtonRect.bottom - editorRect.top + 10}px`,
+        right: `${editorRect.right - bubbleMenuRect.right}px`,
+        zIndex: 1000
+      }
+    })
+  }
+}
+
+const applySubscript = () => {
+  editorInstance.value.chain().focus().toggleSubscript().run()
+  showMoreMenu.value = false
+}
+
+const applySuperscript = () => {
+  editorInstance.value.chain().focus().toggleSuperscript().run()
+  showMoreMenu.value = false
+}
+
+const applyLeft = () => {
+  editorInstance.value.chain().focus().setTextAlign('left').run()
+  showMoreMenu.value = false
+}
+
+const applyCenter = () => {
+  editorInstance.value.chain().focus().setTextAlign('center').run()
+  showMoreMenu.value = false
+}
+
+const applyRight = () => {
+  editorInstance.value.chain().focus().setTextAlign('right').run()
+  showMoreMenu.value = false
+}
+
+const applyJustify = () => {
+  editorInstance.value.chain().focus().setTextAlign('justify').run()
+  showMoreMenu.value = false
+}
+// 关闭更多菜单的函数
+const closeMoreMenu = (event) => {
+  if (
+    showMoreMenu.value &&
+    !event.target.closest('.more-menu') &&
+    !event.target.closest('button')
+  ) {
+    showMoreMenu.value = false
+  }
+}
+
+onMounted(() => {
+  document.addEventListener('click', closeMoreMenu)
+})
+
+onBeforeUnmount(() => {
+  document.removeEventListener('click', closeMoreMenu)
+})
 
 const showDropdown = ref(false)
 const dropdownButton = ref(null)
@@ -686,27 +841,15 @@ const editorExtensions = computed(() => {
       transformPastedText: true, // 启用 Markdown 粘贴文本转换
       transformCopiedText: true // 复制的文本转换为Markdown
     }),
-    // Heading.configure({
-    //   levels: [1, 2, 3]
-    // }),
     Hightlight,
-    // Link.configure({
-    //   openOnClick: false,
-    //   defaultProtocol: 'https',
-    //   linkOnPaste: true,
-    //   HTMLAttributes: {
-    //     rel: 'noopener noreferrer',
-    //     target: '_blank',
-    //     class: 'custom-link'
-    //   },
-    //   parseMarkdown: true // 启用 Markdown 链接解析
-    // }),
     CustomLink.configure({
       openOnClick: false,
       parseMarkdown: true,
       validate: (url) => /^(https?:\/\/|note:\/\/)/.test(url)
     }),
     Underline,
+    Subscript,
+    Superscript,
     Emoji.configure({
       emojis: gitHubEmojis,
       enableEmoticons: true,
@@ -730,6 +873,9 @@ const editorExtensions = computed(() => {
     Typography,
     CustomImage,
     TaskList,
+    TextAlign.configure({
+      types: ['paragraph', 'heading']
+    }),
     TaskItem.configure({
       nested: true
     }),
@@ -1212,69 +1358,83 @@ defineExpose({
   }
 }
 
-// .link-edit-menu {
-//   background-color: var(--color-bg-primary);
-//   border: 1px solid var(--color-border-primary);
-//   border-radius: 4px;
-//   padding: 8px 8px 8px 16px;
-//   display: flex;
-//   align-items: center;
-//   gap: 8px;
-//   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-//   z-index: 10;
+.more-menu {
+  padding: 4px 8px;
+  position: absolute;
+  background-color: var(--color-bg-primary);
+  border: 1px solid var(--color-border-primary);
+  border-radius: 8px;
+  box-shadow: var(--shadow-primary);
+  display: flex;
+  flex-direction: row;
+  z-index: 9999;
 
-//   a {
-//     color: var(--color-text-primary);
-//     text-decoration: underline;
-//     margin-right: 8px;
-//     &:hover {
-//       text-decoration: underline;
-//     }
-//   }
+  button {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    border: none;
+    background: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border-radius: 6px;
+    padding: 4px;
+    // margin: 2px 2px;
 
-//   .divider {
-//     width: 1px;
-//     height: 20px;
-//     background-color: var(--color-text-secondary);
-//   }
+    &:hover {
+      background-color: var(--color-hover-button);
+    }
+    .text-icon {
+      width: 22px;
+      height: 22px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: bold;
+      // margin-right: 6px;
+      color: var(--color-text-primary);
+    }
 
-//   .link-edit-actions {
-//     display: flex;
-//     gap: 4px;
+    .icon {
+      background: none;
+      border: none;
+      cursor: pointer;
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+      padding: 0;
+      // margin-right: 6px;
+      .i-icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        height: 100%;
+      }
 
-//     button {
-//       background: none;
-//       border: none;
-//       cursor: pointer;
-//       padding: 4px;
-//       border-radius: 8px;
-//       &:hover {
-//         background-color: var(--color-hover-button);
-//       }
-//       .icon {
-//         background: none;
-//         border: none;
-//         cursor: pointer;
-//         width: 24px;
-//         height: 24px;
-//         display: flex;
-//         align-items: center;
-//         justify-content: center;
-//         transition: all 0.2s ease;
-//         padding: 0;
-//         .i-icon {
-//           display: flex;
-//           align-items: center;
-//           justify-content: center;
-//           width: 100%;
-//           height: 100%;
-//         }
-//         svg {
-//           width: 16px;
-//           height: 16px;
-//         }
-//       }
-//     }
-//   }
-// }
+      :deep(svg) {
+        width: 16px;
+        height: 16px;
+      }
+    }
+
+    .name {
+      text-align: left;
+      color: var(--default-text-color);
+      font-size: 13px;
+      font-weight: 400;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      line-height: 1;
+    }
+  }
+}
 </style>

@@ -104,6 +104,12 @@ importers:
       '@tiptap/extension-strike':
         specifier: ^2.6.6
         version: 2.7.2(@tiptap/core@2.7.2(@tiptap/pm@2.7.2))
+      '@tiptap/extension-subscript':
+        specifier: ^2.8.0
+        version: 2.8.0(@tiptap/core@2.7.2(@tiptap/pm@2.7.2))
+      '@tiptap/extension-superscript':
+        specifier: ^2.8.0
+        version: 2.8.0(@tiptap/core@2.7.2(@tiptap/pm@2.7.2))
       '@tiptap/extension-table':
         specifier: ^2.7.2
         version: 2.7.2(@tiptap/core@2.7.2(@tiptap/pm@2.7.2))(@tiptap/pm@2.7.2)
@@ -125,6 +131,9 @@ importers:
       '@tiptap/extension-text':
         specifier: ^2.6.6
         version: 2.7.2(@tiptap/core@2.7.2(@tiptap/pm@2.7.2))
+      '@tiptap/extension-text-align':
+        specifier: ^2.8.0
+        version: 2.8.0(@tiptap/core@2.7.2(@tiptap/pm@2.7.2))
       '@tiptap/extension-typography':
         specifier: ^2.8.0
         version: 2.8.0(@tiptap/core@2.7.2(@tiptap/pm@2.7.2))
@@ -1509,6 +1518,16 @@ packages:
     peerDependencies:
       '@tiptap/core': ^2.7.0
 
+  '@tiptap/extension-subscript@2.8.0':
+    resolution: {integrity: sha512-m14K5M7E+SqqrBul+B9t5sjN4zqTddV+Q+vd+RIm+OHG6AQhwewNoFyghZz5dGZ2Xj7HqiEyusBN+iHwfgJpmg==, tarball: https://registry.npmjs.org/@tiptap/extension-subscript/-/extension-subscript-2.8.0.tgz}
+    peerDependencies:
+      '@tiptap/core': ^2.7.0
+
+  '@tiptap/extension-superscript@2.8.0':
+    resolution: {integrity: sha512-3rAVyRvzhoM51vaeIAEXmr2PkucIwv7ptgyxg6zx6STxcyzMchafGee0LJL7Kcn9uE/n7Yt7ek6bDqo8jU8CtA==, tarball: https://registry.npmjs.org/@tiptap/extension-superscript/-/extension-superscript-2.8.0.tgz}
+    peerDependencies:
+      '@tiptap/core': ^2.7.0
+
   '@tiptap/extension-table-cell@2.7.2':
     resolution: {integrity: sha512-I2H9FtqGxYvym6eUX+x94sDXpczDhhhjertdH64cf6HDbUGm0FQloE0XdA0f6VaL4I8qaSpnybd04R8nztTe5g==, tarball: https://registry.npmjs.org/@tiptap/extension-table-cell/-/extension-table-cell-2.7.2.tgz}
     peerDependencies:
@@ -1538,6 +1557,11 @@ packages:
 
   '@tiptap/extension-task-list@2.8.0':
     resolution: {integrity: sha512-2Zkq0UojPh+Y4trJcNSsjkdHsYczxFReUqhzl5T0/OuPzIcDYL2OicUrsp36y16KKnH+WSOUOR8twDfR9LHygg==, tarball: https://registry.npmjs.org/@tiptap/extension-task-list/-/extension-task-list-2.8.0.tgz}
+    peerDependencies:
+      '@tiptap/core': ^2.7.0
+
+  '@tiptap/extension-text-align@2.8.0':
+    resolution: {integrity: sha512-Y6s/DF+P4lxpAnvSrnmt4xGwQT/AJJJm0aA1wu5GuPKpAQ+K4C7K6rE6uGNAXtR39GlewC7KdmcvA+CYhL8xlw==, tarball: https://registry.npmjs.org/@tiptap/extension-text-align/-/extension-text-align-2.8.0.tgz}
     peerDependencies:
       '@tiptap/core': ^2.7.0
 
@@ -6844,6 +6868,14 @@ snapshots:
     dependencies:
       '@tiptap/core': 2.7.2(@tiptap/pm@2.7.2)
 
+  '@tiptap/extension-subscript@2.8.0(@tiptap/core@2.7.2(@tiptap/pm@2.7.2))':
+    dependencies:
+      '@tiptap/core': 2.7.2(@tiptap/pm@2.7.2)
+
+  '@tiptap/extension-superscript@2.8.0(@tiptap/core@2.7.2(@tiptap/pm@2.7.2))':
+    dependencies:
+      '@tiptap/core': 2.7.2(@tiptap/pm@2.7.2)
+
   '@tiptap/extension-table-cell@2.7.2(@tiptap/core@2.7.2(@tiptap/pm@2.7.2))':
     dependencies:
       '@tiptap/core': 2.7.2(@tiptap/pm@2.7.2)
@@ -6867,6 +6899,10 @@ snapshots:
       '@tiptap/pm': 2.7.2
 
   '@tiptap/extension-task-list@2.8.0(@tiptap/core@2.7.2(@tiptap/pm@2.7.2))':
+    dependencies:
+      '@tiptap/core': 2.7.2(@tiptap/pm@2.7.2)
+
+  '@tiptap/extension-text-align@2.8.0(@tiptap/core@2.7.2(@tiptap/pm@2.7.2))':
     dependencies:
       '@tiptap/core': 2.7.2(@tiptap/pm@2.7.2)
 
