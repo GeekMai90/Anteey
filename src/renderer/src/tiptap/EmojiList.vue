@@ -88,10 +88,10 @@ defineExpose({
 <style lang="scss">
 /* Dropdown menu 样式保持不变 */
 .dropdown-menu {
-  background: #fff;
-  border: 1px solid #e0e0e0;
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
   border-radius: 0.7rem;
-  box-shadow: var(--color-shadow);
+  box-shadow: var(--shadow-primary);
   display: flex;
   flex-direction: column;
   gap: 0.1rem;
@@ -108,14 +108,15 @@ defineExpose({
     width: 100%;
     border: none;
     border-radius: 0.25rem;
+    padding: 0.25rem 0.5rem;
 
     &:hover,
     &:hover.is-selected {
-      background-color: #f0f0f0;
+      background-color: var(--color-hover-bg);
     }
 
     &.is-selected {
-      background-color: #f0f0f0;
+      background-color: var(--color-hover-bg);
     }
 
     img {
