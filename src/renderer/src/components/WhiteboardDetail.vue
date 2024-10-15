@@ -1,6 +1,6 @@
 <!-- WhiteboardDetail.vue -->
 <template>
-  <div class="whiteboard-detail">
+  <div ref="whiteboardRef" class="whiteboard-detail">
     <!-- 固定在顶部的工具栏 -->
     <div class="fixed-header">
       <AppToolbar
@@ -226,17 +226,9 @@ const handleDrop = async (event: DragEvent) => {
 const handleSearch = () => {
   console.log('handleSearch')
 }
-const openCardBox = () => {
+const openCardBox = async () => {
   uiStore.toggleCardBox()
 }
-
-// const closeCardBox = () => {
-//   showCardBox.value = false
-// }
-// const handleDragNote = (note) => {
-//   // 处理拖拽笔记到画布的逻辑
-//   createWhiteboardNote(note)
-// }
 
 // 批量选中功能
 const isSelecting = ref(false)
@@ -331,6 +323,7 @@ const dataLoaded = ref(false)
 watch(
   () => whiteboardStore.whiteboardNotes,
   (newNotes) => {
+    console.log('更新后的白板笔记:', newNotes)
     whiteboardNotes.value = newNotes
   },
   { deep: true }
@@ -895,26 +888,6 @@ const onDragItem = (event: MouseEvent) => {
 }
 
 // 停止拖拽
-// const stopDraggingItem = async () => {
-//   if (draggingItem.value) {
-//     const { ids } = draggingItem.value
-//     for (const id of ids) {
-//       const item = whiteboardNotes.value.find((item) => item.id === id)
-//       if (item && whiteboardId.value) {
-//         await whiteboardStore.updateWhiteboardNotePosition(
-//           item.id,
-//           item.position.x,
-//           item.position.y
-//         )
-//       }
-//     }
-//   }
-//   draggingItem.value = null
-//   hasMoved.value = false
-//   document.removeEventListener('mousemove', onDragItem)
-//   document.removeEventListener('mouseup', stopDraggingItem)
-// }
-// 停止拖拽
 const stopDraggingItem = async () => {
   if (draggingItem.value) {
     const { ids } = draggingItem.value
@@ -1309,14 +1282,6 @@ const debouncedSaveViewState = debounce(async () => {
     )
   }
 }, 200) // 200ms 的延迟，可以根据需要调整
-// const saveViewState = async () => {
-//   await whiteboardStore.saveViewStateToWhiteboard(
-//     whiteboardId.value as string,
-//     scale.value,
-//     translateX.value,
-//     translateY.value
-//   )
-// }
 
 // 加载视图状态
 const loadViewState = async () => {

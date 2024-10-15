@@ -98,6 +98,7 @@ const performSearch = debounce(() => {
   flex-direction: column;
   transition: width 0.3s ease;
   position: relative;
+  border-left: 1px solid var(--color-border);
 
   .sidebar-header {
     margin-top: 40px;

@@ -376,34 +376,36 @@ const emptyNote: Note = {
 }
 
 const editedNote = ref<Note>({ ...emptyNote })
+// const editedNote = ref<Note | null>(null)
 const saveStatus = ref<'idle' | 'saving' | 'saved' | 'error'>('idle')
 
 // 数据是否加载完成
 const isInitialized = ref(false)
 
+const { allNotes } = storeToRefs(noteStore)
+
+// const editedNote = computed(() => allNotes.value.find((note) => note.id === props.noteId))
+
 watch(
   () => props.noteId,
-  (newNoteId) => {
+  async (newNoteId) => {
     if (newNoteId) {
-      // 在这里添加加载笔记内容的逻辑
       loadNote()
     }
   }
 )
+// const editedNote = computed(() => noteStore.getNoteById(props.noteId))
 
 // 加载笔记
 const loadNote = async () => {
   console.log('开始加载笔记，noteId:', props.noteId)
   if (props.noteId) {
     try {
-      const note = await noteStore.fetchNoteById(props.noteId)
-      // const editedNote = computed(() => note)
+      const note = computed(() => allNotes.value.find((note) => note.id === props.noteId))
       console.log('从 store 获取到的笔记:', note)
-      if (note) {
-        editedNote.value = note
-        // editedNote.value = JSON.parse(JSON.stringify(note))
-        // lastSavedNote = JSON.parse(JSON.stringify(note))
-        lastSavedNote.value = note
+      if (note.value) {
+        editedNote.value = note.value
+        lastSavedNote.value = note.value
         isInitialized.value = true
         console.log('笔记加载成功:', editedNote.value)
       } else {
@@ -451,10 +453,10 @@ let lastSavedNote = JSON.parse(JSON.stringify(editedNote.value))
 // 当笔记内容发生变化时，设置 hasUnsavedChanges 为 true，并重置自动保存计时器
 watch(
   () => [
-    editedNote.value.content,
-    editedNote.value.address,
-    editedNote.value.cardType,
-    editedNote.value.tags
+    editedNote.value?.content,
+    editedNote.value?.address,
+    editedNote.value?.cardType,
+    editedNote.value?.tags
   ],
   () => {
     if (isInitialized.value && isContentChanged(lastSavedNote, editedNote.value)) {

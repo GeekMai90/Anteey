@@ -8,30 +8,20 @@
       </div>
     </div>
     <div class="content-wrapper">
-      <!-- 左侧边栏和卡片盒二选一 -->
-      <template v-if="!uiStore.showCardBox">
-        <!-- 常规侧边栏 -->
+      <Sidebar
+        v-show="!uiStore.isSidebarCollapsed"
+        class="sidebar"
+        @resize="updateLeftSidebarWidth"
+      />
+      <!-- 悬停侧边栏 -->
+      <Transition name="slide-left">
         <Sidebar
-          v-if="!uiStore.isSidebarCollapsed"
-          class="sidebar"
-          @resize="updateLeftSidebarWidth"
+          v-show="isTemporaryVisible && uiStore.isSidebarCollapsed"
+          class="sidebar hover-sidebar"
+          @mouseenter="cancelHideSidebar"
+          @mouseleave="hideSidebar"
         />
-        <!-- 悬停侧边栏 -->
-        <Transition name="slide-left">
-          <Sidebar
-            v-if="isTemporaryVisible && uiStore.isSidebarCollapsed"
-            class="sidebar hover-sidebar"
-            @mouseenter="cancelHideSidebar"
-            @mouseleave="hideSidebar"
-          />
-        </Transition>
-      </template>
-      <template v-else>
-        <!-- 卡片盒侧边栏 -->
-        <Transition name="slide-fade">
-          <CardBoxSidebar v-if="isWhiteboardDetailRoute" class="card-box-sidebar" />
-        </Transition>
-      </template>
+      </Transition>
 
       <!-- 主内容区 -->
       <main class="main-content">
@@ -44,10 +34,14 @@
         :initialWidth="rightSidebarWidth"
         @resize="updateRightSidebarWidth"
       />
+      <!-- 卡片盒侧边栏 -->
+      <!-- <Transition name="slide-fade"> -->
+      <CardBoxSidebar v-show="uiStore.showCardBox" class="card-box-sidebar" />
+      <!-- </Transition> -->
     </div>
     <!-- 鼠标悬停区域 -->
     <div
-      v-if="uiStore.isSidebarCollapsed && !uiStore.showCardBox"
+      v-if="uiStore.isSidebarCollapsed"
       class="hover-zone"
       @mouseenter="showSidebar"
       @mouseleave="scheduleHideSidebar"
@@ -111,12 +105,6 @@ watch(
 
 // 计算右侧边栏的位置
 const rightSidebarPosition = computed(() => (uiStore.isRightSidebarOpen ? 0 : 100))
-
-// 使用 useTransition 创建右侧边栏的平滑过渡效果
-// const transitionedRightPosition = useTransition(rightSidebarPosition, {
-//   duration: 100,
-//   transition: [0.25, 0.1, 0.25, 1] // 自定义贝塞尔曲线
-// })
 
 // 计算右侧边栏样式
 const rightSidebarStyle = computed(() => ({
@@ -255,8 +243,7 @@ useGlobalHotkeys()
   position: relative;
 }
 
-.sidebar,
-.card-box-sidebar {
+.sidebar {
   flex-shrink: 0;
   width: v-bind(sidebarWidth + 'px');
   height: 100%;
@@ -284,7 +271,7 @@ useGlobalHotkeys()
   left: 0;
   width: 10px;
   height: 100%;
-  z-index: 999;
+  z-index: 1002;
 }
 
 .fade-enter-active,
@@ -304,6 +291,16 @@ useGlobalHotkeys()
 
 .right-sidebar {
   flex-shrink: 0;
+}
+.card-box-sidebar {
+  flex-shrink: 0;
+  height: 100%;
+  z-index: 1000;
+  // position: relative;
+  width: v-bind(rightSidebarWidth + 'px'); // 使用右侧边栏的宽度
+  position: absolute;
+  top: 0;
+  right: 0; // 将其定位到右侧
 }
 
 // .theme-dark {
@@ -325,7 +322,7 @@ useGlobalHotkeys()
   height: 100%;
   z-index: 1000;
   position: relative;
-  width: 300px;
+  width: 400px;
 }
 
 .slide-left-enter-active,
