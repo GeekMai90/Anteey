@@ -3,7 +3,7 @@
     <div class="whiteboard-card-header">
       <div ref="moreBtnRef" class="more-btn" @click.stop="toggleMenu">
         <div class="icon">
-          <More theme="outline" size="20" fill="var(--color-text-secondary)" :strokeWidth="3" />
+          <More theme="outline" size="20" fill="var(--color-icon-default)" :strokeWidth="3" />
         </div>
       </div>
     </div>
@@ -13,7 +13,7 @@
           <Workbench
             theme="outline"
             size="20"
-            fill="var(--color-text-secondary)"
+            fill="var(--color-icon-menu-default)"
             :strokeWidth="3"
           />
         </div>
@@ -61,8 +61,9 @@ const props = defineProps<{
 }>()
 
 const whiteboardStore = useWhiteboardStore()
-const cardCount = ref(0)
 
+//初始化数据
+const cardCount = ref(0)
 onMounted(async () => {
   cardCount.value = await whiteboardStore.getCardCount(props.whiteboard.id)
 })
@@ -72,11 +73,16 @@ const openWhiteboard = (id: string) => {
   console.log('打开白板详情', id)
   console.log('当前路由:', router.currentRoute.value)
   router
-    .push({ name: 'whiteboardDetail', params: { whiteboardId: id } })
-    .then(() => console.log('路由跳转成功'))
+    .replace({ name: 'whiteboardDetail', params: { whiteboardId: id } })
+    .then(() => {
+      console.log('路由跳转成功')
+      console.log('跳转后的路由:', router.currentRoute.value)
+      nextTick(() => {
+        console.log('在 nextTick 中检查路由:', router.currentRoute.value)
+      })
+    })
     .catch((error) => console.error('路由跳转失败:', error))
 }
-
 // 更多按钮弹出菜单
 const moreBtnRef = ref<HTMLElement | null>(null)
 const popupMenuRef = ref<InstanceType<typeof PopupMenu> | null>(null)

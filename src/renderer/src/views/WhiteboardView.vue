@@ -6,7 +6,7 @@
         <div class="topToolBar-header">
           <div class="topToolBar-left">
             <div class="icon">
-              <Workbench theme="outline" size="20" fill="var(--color-primary)" :strokeWidth="2" />
+              <Workbench theme="outline" size="20" fill="var(--color-primary)" :strokeWidth="3" />
             </div>
             <div class="name">思维板</div>
           </div>
@@ -53,7 +53,7 @@
                 <Plus
                   theme="outline"
                   size="18"
-                  fill="var(--color-text-secondary)"
+                  fill="var(--color-icon-menu-default)"
                   :strokeWidth="3"
                 />
               </div>
@@ -65,7 +65,7 @@
                 <SortTwo
                   theme="outline"
                   size="18"
-                  fill="var(--color-text-secondary)"
+                  fill="var(--color-icon-menu-default)"
                   :strokeWidth="3"
                 />
               </div>
@@ -118,8 +118,14 @@ const showSortMenu = ref(false)
 const currentSort = ref('name')
 const sortDirection = ref('asc')
 
-const whiteboards = computed(() => whiteboardStore.whiteboards)
+// 初始加载数据
+onMounted(async () => {
+  // 初始加载数据
+  await whiteboardStore.getTopLevelWhiteboards()
+})
+const whiteboards = computed(() => whiteboardStore.topLevelWhiteboards)
 
+// 搜索功能
 const { searchQuery, handleSearch, filteredItems, clearSearch } = useSearch(whiteboards)
 
 const isSearchFocused = ref(false)
@@ -150,11 +156,6 @@ const sortedWhiteboards = computed(() => {
     }
     return sortDirection.value === 'asc' ? comparison : -comparison
   })
-})
-
-onMounted(async () => {
-  // 初始加载数据
-  await whiteboardStore.getTopLevelWhiteboards()
 })
 
 // 创建新白板
@@ -274,6 +275,7 @@ const selectSortOption = (option: { value: string; label: string }) => {
     white-space: nowrap;
     writing-mode: horizontal-tb;
     user-select: none;
+    line-height: 1;
   }
 }
 .topToolBar-right {
@@ -339,6 +341,7 @@ const selectSortOption = (option: { value: string; label: string }) => {
       font-size: 14px;
       white-space: nowrap; // 防止文字换行
       writing-mode: horizontal-tb; // 确保文字是水平排列的
+      line-height: 1;
     }
 
     &:hover {
@@ -409,6 +412,7 @@ const selectSortOption = (option: { value: string; label: string }) => {
       font-size: 14px;
       white-space: nowrap; // 防止文字换行
       writing-mode: horizontal-tb; // 确保文字是水平排列的
+      line-height: 1;
     }
 
     &:hover {
@@ -658,246 +662,6 @@ const selectSortOption = (option: { value: string; label: string }) => {
   }
 }
 
-.cardtype-dropdown {
-  position: relative;
-  display: inline-flex;
-  position: relative;
-  display: flex;
-  align-items: center;
-  padding: 2px 12px 2px 7px;
-  cursor: pointer;
-  transition: background-color 0.2s;
-  border-radius: 8px;
-  border: 1px solid var(--color-border);
-
-  .icon {
-    background: none;
-    border: none;
-    cursor: pointer;
-    width: 28px;
-    height: 28px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 6px;
-    transition: background-color 0.2s;
-    padding: 0;
-    // margin-right: 3px;
-
-    &:hover:not(:disabled) {
-      background-color: var(--color-hover-bg);
-    }
-
-    &:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
-
-    // 新增以下样式来处理 i-icon 类
-    :deep(.i-icon) {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 100%;
-      height: 100%;
-    }
-
-    :deep(svg) {
-      width: 16px; // 或者您想要的大小
-      height: 16px; // 或者您想要的大小
-    }
-  }
-
-  .name {
-    flex-grow: 0;
-    text-align: left;
-    color: var(--color-text-primary);
-    font-size: 14px;
-    white-space: nowrap; // 防止文字换行
-    writing-mode: horizontal-tb; // 确保文字是水平排列的
-  }
-
-  &:hover {
-    background-color: var(--color-hover-bg);
-  }
-
-  &.active {
-    background-color: var(--color-menu-active-bg);
-    // border: 1px solid var(--color-primary);
-  }
-
-  .cadrtype-dropdown-menu {
-    position: absolute;
-    top: calc(100% + 10px);
-    left: 50%;
-    transform: translateX(-50%); // 居中对齐
-    background-color: var(--color-bg-primary);
-    border-radius: 8px;
-    // box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    z-index: 1000;
-    min-width: 200px;
-    width: auto;
-    overflow-y: auto;
-    padding: 6px 12px;
-    white-space: nowrap;
-    background-clip: padding-box;
-    box-shadow: var(--shadow-primary);
-
-    .cadrtype-dropdown-item {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 4px 8px 4px 4px;
-      cursor: pointer;
-      transition: background-color 0.2s;
-      font-size: 14px;
-      color: #333;
-      white-space: nowrap;
-      border-radius: 8px;
-      margin: 2px;
-
-      &:hover {
-        background-color: var(--color-hover-bg);
-      }
-
-      &.active {
-        background-color: rgba(0, 200, 168, 0.05);
-        border: 1px solid #00c8a8;
-        // color: #00C8A8;
-      }
-
-      .cadrtype-dropdown-item-content {
-        display: flex;
-        align-items: center;
-        // gap: 10px;
-        flex-grow: 1;
-        align-items: center;
-        // width: 200px;
-        // padding: 8px 12px;
-        border: none;
-        background: none;
-        cursor: pointer;
-        transition: background-color 0.2s;
-        border-radius: 8px;
-        // margin: 2px 8px;
-
-        .icon {
-          background: none;
-          border: none;
-          cursor: pointer;
-          width: 28px;
-          height: 28px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          border-radius: 6px;
-          transition: background-color 0.2s;
-          padding: 0;
-          // margin-right: 3px;
-
-          &:hover:not(:disabled) {
-            background-color: var(--color-hover-bg);
-          }
-
-          &:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-          }
-
-          // 新增以下样式来处理 i-icon 类
-          .i-icon {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 100%;
-            height: 100%;
-          }
-
-          svg {
-            width: 18px; // 或者您想要的大小
-            height: 18px; // 或者您想要的大小
-          }
-        }
-
-        .name {
-          flex-grow: 0;
-          text-align: left;
-          color: var(--color-text-primary);
-          font-size: 14px;
-          white-space: nowrap; // 防止文字换行
-          writing-mode: horizontal-tb; // 确保文字是水平排列的
-          user-select: none;
-          margin-left: 6px;
-        }
-
-        // &:hover {
-        //   background-color: var(--color-hover-bg);
-        // }
-
-        &.active {
-          background-color: var(--color-menu-active-bg);
-          // border: 1px solid var(--color-primary);
-        }
-      }
-
-      .switch {
-        position: relative;
-        display: inline-block;
-        width: 28px;
-        height: 18px;
-
-        input {
-          opacity: 0;
-          width: 0;
-          height: 0;
-        }
-
-        .slider {
-          position: absolute;
-          cursor: pointer;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background-color: #ccc;
-          transition: 0.4s;
-        }
-
-        .slider:before {
-          position: absolute;
-          content: '';
-          height: 14px;
-          width: 14px;
-          left: 2px;
-          bottom: 2px;
-          background-color: white;
-          transition: 0.4s;
-        }
-
-        input:checked + .slider {
-          background-color: #00c8a8;
-        }
-
-        input:focus + .slider {
-          box-shadow: 0 0 1px #00c8a8;
-        }
-
-        input:checked + .slider:before {
-          transform: translateX(10px);
-        }
-
-        .slider.round {
-          border-radius: 34px;
-        }
-
-        .slider.round:before {
-          border-radius: 50%;
-        }
-      }
-    }
-  }
-}
-
 .dropdown-menu::-webkit-scrollbar {
   width: 6px;
 }
@@ -909,103 +673,6 @@ const selectSortOption = (option: { value: string; label: string }) => {
 
 .dropdown-menu::-webkit-scrollbar-track {
   background-color: #f0f0f0;
-}
-
-//卡片盒的更多操作菜单
-.more-actions-menu {
-  position: fixed; // 改回 fixed
-  background-color: var(--color-bg-primary);
-  border-radius: 8px;
-  box-shadow: var(--shadow-primary);
-  z-index: 1002;
-  min-width: max-content;
-  width: 140px;
-  max-width: 200px;
-  padding: 6px 12px;
-  opacity: 0;
-  visibility: hidden;
-  transition:
-    opacity 0.2s ease,
-    visibility 0.2s ease;
-
-  &.show {
-    opacity: 1;
-    visibility: visible;
-    transform: translateY(0);
-  }
-
-  .more-action-item {
-    display: flex;
-    align-items: center;
-    // width: 200px;
-    padding: 4px;
-    border: none;
-    background: none;
-    cursor: pointer;
-    transition: background-color 0.2s;
-    border-radius: 8px;
-    // margin: 2px 8px;
-
-    .icon {
-      background: none;
-      border: none;
-      cursor: pointer;
-      width: 28px;
-      height: 28px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 6px;
-      transition: background-color 0.2s;
-      padding: 0;
-      margin-right: 2px;
-
-      &:hover:not(:disabled) {
-        background-color: var(--color-hover-bg);
-      }
-
-      &:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-      }
-
-      // 新增以下样式来处理 i-icon 类
-      :deep(.i-icon) {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        width: 100%;
-        height: 100%;
-        flex-shrink: 0; // 防止图标缩小
-      }
-
-      :deep(svg) {
-        width: 16px; // 或者您想要的大小
-        height: 16px; // 或者您想要的大小
-      }
-    }
-
-    .name {
-      flex-grow: 0;
-      text-align: left;
-      color: var(--color-text-primary);
-      font-size: 14px;
-      white-space: nowrap; // 防止文字换行
-      writing-mode: horizontal-tb; // 确保文字是水平排列的
-
-      &.delete {
-        color: var(--color-text-danger);
-      }
-    }
-
-    &:hover {
-      background-color: var(--color-hover-bg);
-    }
-
-    &.delete {
-      color: var(--color-text-danger);
-    }
-  }
 }
 
 .sort-direction {

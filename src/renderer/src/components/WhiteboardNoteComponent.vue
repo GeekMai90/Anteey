@@ -59,7 +59,7 @@
       >
         <TipTapEditor
           ref="tiptapEditorRef"
-          :content="editedNote.content"
+          v-model:content="editedNote.content"
           :editable="isEditing"
           :enableDragHandle="true"
           @update:content="updateContent"
@@ -396,11 +396,14 @@ const loadNote = async () => {
   console.log('开始加载笔记，noteId:', props.noteId)
   if (props.noteId) {
     try {
-      const note = await noteStore.getNoteById(props.noteId)
+      const note = await noteStore.fetchNoteById(props.noteId)
+      // const editedNote = computed(() => note)
       console.log('从 store 获取到的笔记:', note)
       if (note) {
-        editedNote.value = JSON.parse(JSON.stringify(note))
-        lastSavedNote = JSON.parse(JSON.stringify(note))
+        editedNote.value = note
+        // editedNote.value = JSON.parse(JSON.stringify(note))
+        // lastSavedNote = JSON.parse(JSON.stringify(note))
+        lastSavedNote.value = note
         isInitialized.value = true
         console.log('笔记加载成功:', editedNote.value)
       } else {

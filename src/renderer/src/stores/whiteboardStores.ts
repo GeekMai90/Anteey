@@ -22,6 +22,19 @@ export const useWhiteboardStore = defineStore('whiteboard', {
     whiteboardNotes: [] as WhiteboardNote[]
   }),
   actions: {
+    // 获取所有顶层白板
+    async getTopLevelWhiteboards() {
+      try {
+        console.log('whiteboardStore→ 开始获取顶层白板')
+        const whiteboards = await window.electronAPI.getTopLevelWhiteboards()
+        console.log('whiteboardStore→ 获取顶层白板成功', whiteboards)
+        this.whiteboards = whiteboards
+        return whiteboards
+      } catch (error) {
+        console.error('whiteboardStore→ 获取顶层白板失败', error)
+        throw error
+      }
+    },
     // 初始化白板数据
     async initializeWhiteboardData(whiteboardId: string) {
       this.isLoading = true
@@ -92,14 +105,7 @@ export const useWhiteboardStore = defineStore('whiteboard', {
         return null
       }
     },
-    // 获取所有顶层白板
-    async getTopLevelWhiteboards() {
-      console.log('whiteboardStore→ 开始获取顶层白板')
-      const whiteboards = await window.electronAPI.getTopLevelWhiteboards()
-      console.log('whiteboardStore→ 获取顶层白板成功', whiteboards)
-      this.whiteboards = whiteboards
-      return whiteboards
-    },
+
     // 更新白板位置
     async updateWhiteboardPosition(id: string, x: number, y: number) {
       console.log('whiteboardStore→ 开始更新白板位置', { id, x, y })
@@ -374,10 +380,7 @@ export const useWhiteboardStore = defineStore('whiteboard', {
   },
   getters: {
     // 所有顶层白板
-    allTopLevelWhiteboards: (state) => {
-      return state.whiteboards
-    },
-    // 获取参考笔记,传入笔记 id,返回笔记
+    topLevelWhiteboards: (state) => state.whiteboards,
 
     noteStore: () => {
       return useNoteStore()
