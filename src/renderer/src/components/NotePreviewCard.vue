@@ -10,7 +10,6 @@
         :editable="false"
         :enable-drag-handle="false"
       />
-      <!-- <div v-if="isOverflowing" class="fade-out"></div> -->
     </div>
     <div class="note-timestamp">
       {{ formatDate(note.createdAt) }}
@@ -30,32 +29,13 @@ const props = defineProps<{
 
 const localNote = ref<Note>(props.note)
 const noteContent = ref<HTMLDivElement | null>(null)
-// const isOverflowing = ref(false);
-
-// const checkOverflow = () => {
-//   if (noteContent.value) {
-//     isOverflowing.value = noteContent.value.scrollHeight > noteContent.value.clientHeight;
-//   }
-// };
-
-// onMounted(() => {
-//   checkOverflow();
-// });
-
-// onUpdated(() => {
-//   checkOverflow();
-// });
-
-// watch(() => props.note.content, () => {
-//   checkOverflow();
-// });
 </script>
 
 <style lang="scss" scoped>
 .note-preview-card {
   background-color: #fff;
   border-radius: 8px;
-  padding: 16px;
+  padding: 14px 12px 8px 12px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -73,7 +53,7 @@ const noteContent = ref<HTMLDivElement | null>(null)
   height: 10px;
   background-color: #00c8a8;
   border-radius: 2px;
-  margin-right: 10px;
+  margin-right: 6px;
 }
 
 .note-title {
@@ -81,6 +61,7 @@ const noteContent = ref<HTMLDivElement | null>(null)
   font-size: 0.9rem;
   font-weight: bold;
   color: #333;
+  line-height: 1;
 }
 
 .note-content {
@@ -99,17 +80,6 @@ const noteContent = ref<HTMLDivElement | null>(null)
   display: none;
   /* Chrome, Safari, Opera */
 }
-
-// .fade-out {
-//   content: '';
-//   position: absolute;
-//   bottom: 0;
-//   left: 0;
-//   width: 100%;
-//   height: 40px;
-//   background: linear-gradient(to bottom, rgba(255, 255, 255, 0), rgba(255, 255, 255, 1));
-//   pointer-events: none;
-// }
 
 .note-timestamp {
   font-size: 0.6em;

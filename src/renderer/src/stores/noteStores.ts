@@ -34,7 +34,8 @@ export const useNoteStore = defineStore('note', {
     currentNoteSaveStatus: 'idle' as 'idle' | 'saving' | 'saved' | 'error',
     isSettingDropdownOpen: false,
     showCardBox: false,
-    editor: null as Editor | null
+    editor: null as Editor | null,
+    isLoading: true
   }),
 
   actions: {
@@ -55,9 +56,16 @@ export const useNoteStore = defineStore('note', {
       this.currentNote = note
       this.currentNoteId = note ? note.id : undefined
     },
-    openNoteEditor(noteId?: string) {
-      this.currentNoteId = noteId
-      this.isEditorOpen = true
+    async openNoteEditor(noteId: string) {
+      try {
+        const fullNote = await this.fetchNoteById(noteId)
+        this.currentNote = fullNote
+        this.currentNoteId = noteId
+        this.isLoading = false
+        this.isEditorOpen = true
+      } catch (error) {
+        console.error('noteStores.ts→ 打开笔记编辑器失败:', error)
+      }
     },
     closeNoteEditor() {
       this.isEditorOpen = false

@@ -6,6 +6,7 @@ export const useUIStore = defineStore('ui', () => {
   //state
   const isEditorOpen = ref(false)
   const isSearchModalOpen = ref(false)
+  const isWhiteboardSearchModalOpen = ref(false)
   const isSidebarCollapsed = ref(false)
   const isRightSidebarOpen = ref(false)
   const isSettingDropdownOpen = ref(false)
@@ -49,9 +50,16 @@ export const useUIStore = defineStore('ui', () => {
   function openSearchModal() {
     isSearchModalOpen.value = true
   }
-
   function closeSearchModal() {
     isSearchModalOpen.value = false
+  }
+
+  function openWhiteboardSearchModal() {
+    isWhiteboardSearchModalOpen.value = true
+  }
+
+  function closeWhiteboardSearchModal() {
+    isWhiteboardSearchModalOpen.value = false
   }
 
   function toggleSettingDropdown() {
@@ -92,6 +100,9 @@ export const useUIStore = defineStore('ui', () => {
     isCalendarPickerOpen,
     openSettingsPage,
     closeSettingsPage,
-    showSettingsPage
+    showSettingsPage,
+    openWhiteboardSearchModal,
+    closeWhiteboardSearchModal,
+    isWhiteboardSearchModalOpen
   }
 })

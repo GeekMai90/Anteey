@@ -1,6 +1,6 @@
 <template>
   <Modal
-    :modelValue="noteStore.isSearchModalOpen"
+    :modelValue="uiStore.isWhiteboardSearchModalOpen"
     @update:modelValue="updateModalState"
     @after-enter="focusInput"
   >
@@ -9,7 +9,7 @@
         ref="searchInput"
         v-model="searchQuery"
         class="search-input"
-        placeholder="搜索笔记"
+        placeholder="搜索笔记，按回车创建白板笔记"
         @input="performSearch"
         @keydown="handleKeyDown"
       />
@@ -58,7 +58,7 @@
                 :class="{
                   selected: noteIndex === selectedNoteIndex && blockIndex === selectedBlockIndex
                 }"
-                @click="selectResult(noteIndex, blockIndex, true)"
+                @click="selectResult(noteIndex, blockIndex)"
                 @mouseover="hoverResult(noteIndex, blockIndex)"
               >
                 <div class="result-preview">
@@ -96,12 +96,17 @@
 import { ref, computed, watch, nextTick } from 'vue'
 import { useNoteStore } from '@renderer/stores/noteStores'
 import Modal from '@renderer/components/Modal.vue'
-import { useRouter } from 'vue-router'
 import NotePreviewCard from '@renderer/components/NotePreviewCard.vue'
 import { BankCard, ParagraphRectangle, FileSearch } from '@icon-park/vue-next'
+import { useUIStore } from '@renderer/stores/useUIStore'
+
+const uiStore = useUIStore()
+
+const props = defineProps<{
+  createWhiteboardNote: (note: any) => void
+}>()
 
 const noteStore = useNoteStore()
-const router = useRouter()
 
 const isExpanded = ref(false)
 
@@ -155,16 +160,9 @@ const performSearch = () => {
   console.log('Search results:', searchResults.value)
 }
 
-const selectResult = (noteIndex: number, blockIndex: number, openEditor = false) => {
+const selectResult = (noteIndex: number, blockIndex: number) => {
   selectedNoteIndex.value = noteIndex
   selectedBlockIndex.value = blockIndex
-  if (openEditor) {
-    const note = searchResults.value[noteIndex]
-    if (note) {
-      noteStore.openNoteEditor(note.id)
-      noteStore.closeSearchModal()
-    }
-  }
 }
 
 const hoverResult = (noteIndex: number, blockIndex: number) => {
@@ -174,9 +172,9 @@ const hoverResult = (noteIndex: number, blockIndex: number) => {
 
 const updateModalState = (value: boolean) => {
   if (value) {
-    noteStore.openSearchModal()
+    uiStore.openWhiteboardSearchModal()
   } else {
-    noteStore.closeSearchModal()
+    uiStore.closeWhiteboardSearchModal()
   }
 }
 
@@ -185,15 +183,16 @@ const focusInput = () => {
 }
 
 const show = () => {
-  noteStore.openSearchModal()
+  uiStore.openWhiteboardSearchModal()
 }
 
 const hide = () => {
-  noteStore.closeSearchModal()
+  uiStore.closeWhiteboardSearchModal()
   searchQuery.value = ''
   searchResults.value = []
   selectedNoteIndex.value = -1
   selectedBlockIndex.value = -1
+  isExpanded.value = false
 }
 
 const handleKeyDown = (event: KeyboardEvent) => {
@@ -226,13 +225,9 @@ const handleKeyDown = (event: KeyboardEvent) => {
       scrollToSelectedItem()
       break
     case 'Enter':
-      if (event.metaKey && selectedNote.value) {
-        // Cmd+Enter
-        router.push({ name: 'NoteExpandEditor', params: { id: selectedNote.value.id } })
-        noteStore.closeSearchModal()
-      } else if (selectedNote.value) {
-        noteStore.openNoteEditor(selectedNote.value.id)
-        noteStore.closeSearchModal()
+      if (selectedNote.value) {
+        props.createWhiteboardNote(selectedNote.value)
+        hide()
       }
       break
     case 'Escape':
@@ -389,7 +384,7 @@ defineExpose({ show, hide })
     background-color 0.2s,
     box-shadow 0.2s;
   border-radius: 8px;
-  margin-bottom: 4px;
+  margin-bottom: 8px;
 
   &:hover,
   &.selected {
@@ -397,6 +392,7 @@ defineExpose({ show, hide })
     // box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   }
 }
+
 .result-preview {
   font-size: 0.9em;
   color: #333;
@@ -411,12 +407,6 @@ defineExpose({ show, hide })
     word-break: break-word;
   }
 
-  // .highlight {
-  //   background-color: var(--color-primary); // 更明显的黄色
-  //   border-radius: 2px;
-  //   padding: 0 2px;
-  //   font-weight: 500;
-  // }
   .highlight {
     background-color: rgba(0, 200, 168, 0.2); // 使用主题色的半透明版本作为背景
     color: #00806c; // 使用主题色的深色版本作为文字颜色
@@ -425,13 +415,6 @@ defineExpose({ show, hide })
     font-weight: 500;
     box-shadow: 0 0 0 1px rgba(0, 200, 168, 0.3); // 添加一个细微的边框效果
   }
-  // .highlight {
-  //   background-color: rgba(0, 200, 168, 0.15); // 降低不透明度，使颜色更淡
-  //   color: inherit; // 使用默认文字颜色，不改变文字颜色
-  //   border-radius: 2px;
-  //   padding: 0 2px; // 减少内边距
-  //   font-weight: normal; // 移除加粗效果
-  // }
 }
 
 .result-preview-icon {
@@ -474,7 +457,6 @@ defineExpose({ show, hide })
   width: 18px; // 给图标一个固定宽度
   height: 18px; // 给图标一个固定高度
   flex-shrink: 0; // 防止图标被压缩
-
   .icon {
     background: none;
     border: none;

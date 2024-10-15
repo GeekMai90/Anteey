@@ -83,13 +83,6 @@
       class="zoom-control-position"
       @reset-view="fitView"
     />
-    <!-- 新增：创建白板笔记按钮 -->
-    <!-- <div class="create-note-button" @click="createWhiteboardNote">
-      <div class="icon">
-        <Add theme="outline" size="24" fill="#333" />
-      </div>
-      <span>创建笔记</span>
-    </div> -->
     <div v-if="isSelecting" class="selection-box" :style="selectionBoxStyle"></div>
     <!-- 新增：顶端对齐按钮 -->
     <SelectionToolbar
@@ -102,8 +95,12 @@
     <WhiteboardToolbarLeft
       v-else
       v-model:mode="currentMode"
-      @add-note="openCardBox"
+      @add-note="openSearchModal"
       @search="handleSearch"
+    />
+    <WhiteboardSearchModal
+      ref="whiteboardSearchModalRef"
+      :create-whiteboard-note="createWhiteboardNoteFromSearch"
     />
   </div>
 </template>
@@ -129,20 +126,51 @@ import { useContextMenuStore } from '../stores/contextMenuStore'
 import { debounce } from 'lodash-es'
 import SelectionToolbar from './SelectionToolbar.vue'
 import WhiteboardToolbarLeft from './WhiteboardToolbarLeft.vue'
-import { useUIStore } from '@renderer/stores/useUIStore'
-// import { useNoteStore } from '@renderer/stores/noteStores'
+import WhiteboardSearchModal from './WhiteboardSearchModal.vue'
 
 const containerRef = ref<HTMLElement | null>(null)
 const route = useRoute()
 const whiteboardId = ref<string | null>(null)
 const whiteboardStore = useWhiteboardStore()
-const uiStore = useUIStore()
 const whiteboardNotes = ref<WhiteboardNote[]>([])
-// const whiteboardGroups = ref<WhiteboardGroup[]>([])
-// const whiteboardSubboards = ref<Whiteboard[]>([])
 const connections = ref<Connection[]>([])
 const contextMenuStore = useContextMenuStore()
-// const dataLoaded = ref(false)
+const whiteboardSearchModalRef = ref<InstanceType<typeof WhiteboardSearchModal> | null>(null)
+
+const openSearchModal = () => {
+  whiteboardSearchModalRef.value?.show()
+  // uiStore.openWhiteboardSearchModal()
+}
+
+const createWhiteboardNoteFromSearch = async (note: any) => {
+  if (!containerRef.value || !whiteboardId.value) return
+
+  const rect = containerRef.value.getBoundingClientRect()
+  const centerX = (rect.width / 2 - translateX.value) / scale.value
+  const centerY = (rect.height / 2 - translateY.value) / scale.value
+
+  const input: CreateWhiteboardNoteInput = {
+    whiteboardId: whiteboardId.value,
+    noteId: note.id,
+    position: { x: centerX, y: centerY },
+    size: { width: 350, height: 300 },
+    zIndex: 1,
+    rotation: 0,
+    isAutoHeight: false
+  }
+
+  try {
+    const newNote = await whiteboardStore.createWhiteboardNote(input)
+    if (newNote && newNote.id) {
+      whiteboardNotes.value.push(newNote)
+      await initializeData(whiteboardId.value)
+    } else {
+      console.error('Created note is invalid:', newNote)
+    }
+  } catch (error) {
+    console.error('Failed to create whiteboard note:', error)
+  }
+}
 
 // 拖拽项
 const draggingItem = ref<{
@@ -226,9 +254,9 @@ const handleDrop = async (event: DragEvent) => {
 const handleSearch = () => {
   console.log('handleSearch')
 }
-const openCardBox = async () => {
-  uiStore.toggleCardBox()
-}
+// const openCardBox = async () => {
+//   uiStore.toggleCardBox()
+// }
 
 // 批量选中功能
 const isSelecting = ref(false)
