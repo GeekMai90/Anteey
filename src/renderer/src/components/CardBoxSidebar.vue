@@ -1,7 +1,12 @@
 <template>
   <div class="card-box-sidebar">
     <div class="sidebar-header">
-      <div class="search-input">
+      <div class="search-input" :class="{ 'is-focused': isSearchActive }">
+        <div class="search-icon">
+          <div class="icon">
+            <Search theme="outline" size="16" fill="var(--color-icon-secondary)" :strokeWidth="2" />
+          </div>
+        </div>
         <input v-model="searchQuery" placeholder="搜索并拖拽创建笔记" @input="performSearch" />
       </div>
     </div>
@@ -39,7 +44,7 @@
 import { ref, computed } from 'vue'
 import { useNoteStore } from '../stores/noteStores'
 import CardBoxSidebarNoteCard from './CardBoxSidebarNoteCard.vue'
-import { FileSearch } from '@icon-park/vue-next'
+import { FileSearch, Search } from '@icon-park/vue-next'
 import { debounce } from 'lodash-es'
 
 const noteStore = useNoteStore()
@@ -113,22 +118,54 @@ const performSearch = debounce(() => {
       display: flex;
       align-items: center;
       flex-grow: 1;
+      position: relative;
+      display: flex;
+      align-items: center;
+      background-color: var(--color-bg-secondary);
+      border: 1px solid var(--color-border);
+      border-radius: 8px;
+      padding: 1px 8px;
+      overflow: hidden;
+      &.is-focused {
+        border-color: var(--color-primary);
+        box-shadow: 0 0 0 2px rgba(var(--color-primary-rgb), 0.2);
+      }
+
+      .search-icon {
+        position: absolute;
+        left: 6px;
+        top: 50%;
+        transform: translateY(-50%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 22px;
+        height: 22px;
+        pointer-events: none;
+        :deep(.i-icon) {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 100%;
+          height: 100%;
+        }
+      }
 
       input {
         width: 100%;
         padding: 8px;
-        border: 1px solid var(--color-border);
+
+        border: none;
         border-radius: 4px;
         background-color: var(--color-bg-input);
         color: var(--color-text-primary);
 
         &::placeholder {
-          color: var(--color-text-secondary);
+          color: var(--color-text-placeholder);
         }
 
         &:focus {
           outline: none;
-          border-color: var(--color-primary);
         }
       }
 
