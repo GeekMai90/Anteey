@@ -35,7 +35,9 @@ export const useNoteStore = defineStore('note', {
     isSettingDropdownOpen: false,
     showCardBox: false,
     editor: null as Editor | null,
-    isLoading: true
+    isLoading: true,
+    recentNotes: [] as string[],
+    maxRecentNotes: 6
   }),
 
   actions: {
@@ -56,6 +58,20 @@ export const useNoteStore = defineStore('note', {
       this.currentNote = note
       this.currentNoteId = note ? note.id : undefined
     },
+    addToRecentNotes(noteId: string) {
+      // 如果笔记已经在列表中，先移除它
+      this.recentNotes = this.recentNotes.filter((id) => id !== noteId)
+      // 将笔记ID添加到列表开头
+      this.recentNotes.unshift(noteId)
+      // 如果超过最大数量，删除最后一个
+      if (this.recentNotes.length > this.maxRecentNotes) {
+        this.recentNotes.pop()
+      }
+    },
+
+    removeFromRecentNotes(noteId: string) {
+      this.recentNotes = this.recentNotes.filter((id) => id !== noteId)
+    },
     async openNoteEditor(noteId: string) {
       try {
         const fullNote = await this.fetchNoteById(noteId)
@@ -63,6 +79,7 @@ export const useNoteStore = defineStore('note', {
         this.currentNoteId = noteId
         this.isLoading = false
         this.isEditorOpen = true
+        this.addToRecentNotes(noteId)
       } catch (error) {
         console.error('noteStores.ts→ 打开笔记编辑器失败:', error)
       }
@@ -180,31 +197,21 @@ export const useNoteStore = defineStore('note', {
       }
     },
     // 更新笔记内容
-    // async updateNoteContent(id: string, content: any): Promise<Note> {
-    //   try {
-    //     const updatedNote = await window.electronAPI.updateNoteContent(id, content)
-
-    //     // 更新 notesMap
-    //     this.updateLocalNote(id, updatedNote)
-    //     // 仅更新 notesMap，不触发响应式更新
-    //     // if (this.notesMap.has(id)) {
-    //     //   const existingNote = this.notesMap.get(id)!
-    //     //   Object.assign(existingNote, updatedNote)
-    //     // }
-    //     console.log('noteStores.ts→ 更新笔记内容成功', updatedNote)
-    //     // return updatedNote
-    //   } catch (error) {
-    //     console.error(`noteStores.ts→ 更新笔记内容失败 ${id}:`, error)
-    //     throw error
-    //   }
-    //   console.log('noteStores.ts→ 更新笔记内容成功', id, content)
-    // },
-    updateNoteContent(id: string, content: any) {
+    async updateNoteContent(id: string, content: any) {
       // 立即更新本地状态
       this.updateLocalNote(id, { content })
 
       // 延迟更新远程数据库
-      this.debouncedUpdateRemote(id, content)
+      try {
+        this.currentNoteSaveStatus = 'saving'
+        await this.debouncedUpdateRemote(id, content)
+        setTimeout(() => {
+          this.currentNoteSaveStatus = 'saved'
+        }, 2000)
+      } catch (error) {
+        console.error(`noteStores.ts→ 更新远程笔记内容失败 ${id}:`, error)
+        this.currentNoteSaveStatus = 'error'
+      }
     },
 
     debouncedUpdateRemote: debounce(async (id: string, content: any) => {
@@ -232,21 +239,6 @@ export const useNoteStore = defineStore('note', {
         throw error
       }
     },
-
-    // 更新当前笔记（可以是部分更新）
-    // updateCurrentNote(noteData: Partial<Note>) {
-    //   if (!this.currentNote) return
-
-    //   const updatedNote = { ...this.currentNote, ...noteData }
-    //   const updateMethod = 'content' in noteData ? this.updateNoteContent : this.updateNote
-
-    //   updateMethod(updatedNote.id, noteData).catch((error) =>
-    //     console.error('更新当前笔记失败:', error)
-    //   )
-
-    //   // 立即更新本地状态，以提供即时反馈
-    //   this.updateLocalNote(updatedNote.id, updatedNote)
-    // },
 
     // 获取一些笔记
     async getNotesByIds(ids: string[]) {
@@ -860,6 +852,10 @@ export const useNoteStore = defineStore('note', {
   },
 
   getters: {
+    // 获取最近访问的笔记
+    recentNotesList(): Note[] {
+      return this.recentNotes.map((id) => this.notesMap.get(id)).filter(Boolean) as Note[]
+    },
     // 获取笔记地址
     getNoteAddress: (state) => {
       return (id: string) => state.notesMap.get(id)?.address || ''

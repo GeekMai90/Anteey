@@ -6,6 +6,7 @@
       <div class="antinet-button" @click.stop="uiStore.toggleSettingDropdown">
         <img src="@resources/icon.png" alt="Antinet" class="antinet-icon" />
         <div class="antinet-text">Antinet</div>
+        <div class="status-icon" :class="noteStore.currentNoteSaveStatus"></div>
         <SettingDropdownMenu />
       </div>
       <!-- 新增搜索区域 -->
@@ -103,6 +104,7 @@
     </div>
     <div class="sidebar-header-divider"></div>
     <StarredNotes />
+    <RecentNotes />
     <div class="resize-handle" @mousedown="startResize"></div>
     <div class="sidebar-footer">
       <div class="new-card-wrapper">
@@ -157,6 +159,7 @@ import SettingDropdownMenu from './SettingDropdownMenu.vue'
 import StarredNotes from './StarredNotes.vue'
 import { useUIStore } from '@renderer/stores/useUIStore'
 import { useRoute } from 'vue-router'
+import RecentNotes from './RecentNotes.vue'
 
 const imageSrc = ref('')
 const uiStore = useUIStore()
@@ -314,7 +317,7 @@ const openHelp = () => {
       padding: 10px;
       gap: 10px;
       cursor: pointer;
-      margin-bottom: 5px;
+      // margin-bottom: 5px;
 
       .search-input {
         flex-grow: 1;
@@ -425,7 +428,7 @@ const openHelp = () => {
   .sidebar-header-divider {
     border-bottom: 1px solid var(--color-border-sidebar);
 
-    margin: 0px 10px;
+    margin: 6px;
   }
 
   .sidebar-nav {
@@ -444,7 +447,7 @@ const openHelp = () => {
           align-items: center;
           justify-content: space-between;
           width: 100%;
-          padding: 8px;
+          padding: 6px 8px;
           border-radius: 8px;
           transition: background-color 0.2s;
           user-select: none;
@@ -564,7 +567,7 @@ const openHelp = () => {
         .sub-item {
           display: flex;
           align-items: center;
-          padding: 8px;
+          padding: 6px 8px;
           font-size: 14px;
           border-radius: 8px;
           text-decoration: none;
@@ -742,33 +745,46 @@ const openHelp = () => {
   }
 }
 
-.save-status-container {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 5px;
-  padding: 10px;
-}
-
-.save-status-indicator {
-  display: inline-block;
-  width: 8px;
-  height: 8px;
+.status-icon {
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
+  position: absolute;
+  top: 19px;
+  right: 22px;
+  box-shadow: 0 0 5px 1px currentColor;
+  transition: all 0.3s ease;
 }
 
-.status-idle {
-  background-color: #ccc;
+.status-icon.idle {
+  background-color: #808080;
+  box-shadow: 0 0 5px 1px rgba(128, 128, 128, 0.5);
 }
 
-.status-saving {
-  background-color: #ffd700; /* 黄色 */
+.status-icon.saving {
+  background-color: #ffa500;
+  box-shadow: 0 0 5px 1px rgba(255, 165, 0, 0.7);
+  animation: pulse 1s infinite alternate;
 }
 
-.status-saved {
-  background-color: #4caf50; /* 绿色 */
+.status-icon.saved {
+  background-color: var(--color-primary);
+  box-shadow: 0 0 5px 1px rgba(var(--color-primary-rgb), 0.7);
 }
 
-.status-error {
-  background-color: #f44336; /* 红色 */
+.status-icon.error {
+  background-color: #ff0000;
+  box-shadow: 0 0 5px 1px rgba(255, 0, 0, 0.7);
+}
+
+@keyframes pulse {
+  from {
+    opacity: 0.5;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1.1);
+  }
 }
 </style>

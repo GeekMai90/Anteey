@@ -80,14 +80,6 @@ const toggleStarredNotes = () => {
   isExpanded.value = !isExpanded.value
 }
 
-// const onDragEnd = () => {
-//   console.log('Drag ended, updating order')
-//   const orders = localStarredNotes.value.map((note, index) => ({
-//     id: note.id,
-//     starredOrder: localStarredNotes.value.length - index
-//   }))
-//   noteStore.updateStarredNotesOrder(orders)
-// }
 const onDragEnd = () => {
   console.log('Drag ended, updating order')
   const newOrders = localStarredNotes.value.map((note, index) => ({
@@ -122,18 +114,19 @@ const openNote = (note: Note) => {
 
 <style scoped lang="scss">
 .starred-notes {
-  margin-top: 10px;
+  // margin-top: 10px;
   padding: 0 10px;
+  border-radius: 8px;
 
   .starred-header {
     display: flex;
     align-items: center;
     cursor: pointer;
-    padding: 6px 12px;
+    padding: 6px 8px 6px 10px;
     border-radius: 8px;
     margin-bottom: 5px;
     user-select: none;
-
+    color: var(--color-text-secondary);
     &:hover {
       background-color: var(--color-hover-sidebar);
     }
@@ -175,8 +168,8 @@ const openNote = (note: Note) => {
         }
 
         :deep(svg) {
-          width: 14px;
-          height: 14px;
+          width: 16px;
+          height: 16px;
         }
       }
     }
@@ -187,8 +180,10 @@ const openNote = (note: Note) => {
   flex-direction: column;
   gap: 5px;
   padding-left: 10px;
+  border-radius: 8px;
   .starred-note-content {
     cursor: move;
+    border-radius: 8px;
     &:hover {
       background-color: var(--color-hover-sidebar);
     }

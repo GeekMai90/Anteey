@@ -7,6 +7,7 @@
     </div>
     <div ref="noteContent" class="note-content">
       <TipTapEditor
+        :key="note.id"
         v-model:content="localNote.content"
         :editable="false"
         :enable-drag-handle="isDragHandleEnabled"
@@ -24,9 +25,7 @@ const props = defineProps<{
   note: Note
 }>()
 
-// const emit = defineEmits(['edit'])
 const isDragHandleEnabled = ref(false)
-// const noteStore = useNoteStore()
 
 const localNote = toRef(props, 'note')
 
@@ -62,27 +61,19 @@ watch(
   background-color: var(--body-bg);
   border: 1px solid var(--time-card-border-color);
   border-radius: 8px;
-  // padding: 15px 0px 10px 0;
-  // margin-bottom: 5px;
+  padding: 2px 0;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   position: relative;
-  // height: 60px;
   overflow: hidden;
-  // box-shadow: var(--shadow-card);
-  // 文字不可选中
   user-select: none;
   .note-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    // margin-bottom: 10px;
     position: relative;
-    // margin-left: 2rem;
-    // padding-left: 2rem;
-    padding: 0 15px 0 15px; // 调整左右内边距
-    // height: 30px;
+    padding: 0 15px 0 15px;
 
     .note-indicator {
       position: absolute;
@@ -92,7 +83,6 @@ watch(
       width: 4px;
       height: 8px;
       border-radius: 2px;
-      // margin-right: 10px;
 
       &.maincard {
         background-color: var(--color-primary);
@@ -145,9 +135,6 @@ watch(
     color: var(--color-text-primary);
     text-align: left;
     height: 20px;
-    // margin-bottom: 10px;
-    // min-height: 60px;
-    // max-height: 300px;
     overflow: hidden;
     position: relative;
     font-size: 13px;

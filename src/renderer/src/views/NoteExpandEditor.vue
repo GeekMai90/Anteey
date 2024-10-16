@@ -185,7 +185,7 @@ const menuPosition = reactive({ x: 0, y: 0 })
 
 const { menuItems: noteMenuItems, resetDeleteState } = useNoteMenu({
   noteId: noteId,
-  menuItems: ['star', 'sidebar', 'copyNoteLink', 'exportNote', 'bulkExport', 'delete']
+  menuItems: ['star', 'sidebar', 'copyNoteLink', 'exportNote', 'delete']
 })
 const toggleMenu = (event: MouseEvent) => {
   event.preventDefault()
@@ -344,6 +344,9 @@ const handleAddressEnter = (event: KeyboardEvent) => {
 // 在组件挂载后聚焦
 onMounted(() => {
   focusAddressInput()
+  if (noteId) {
+    noteStore.addToRecentNotes(noteId)
+  }
 })
 
 // 当 noteId 改变时聚焦（用于编辑现有笔记）

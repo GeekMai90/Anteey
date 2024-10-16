@@ -17,7 +17,7 @@
       </div>
     </div>
     <div
-      v-tooltip.right="{ content: '选择模式<br>V', delay: { show: 1000 }, html: true }"
+      v-tooltip.right="{ content: '选择模式', delay: { show: 1000 }, html: true }"
       class="toolbar-button"
       :class="{ active: mode === 'select' }"
       @click="updateMode('select')"
@@ -32,7 +32,7 @@
       </div>
     </div>
     <div
-      v-tooltip.right="{ content: '拖拽模式<br>V', delay: { show: 1000 }, html: true }"
+      v-tooltip.right="{ content: '拖拽模式', delay: { show: 1000 }, html: true }"
       class="toolbar-button"
       :class="{ active: mode === 'drag' }"
       @click="updateMode('drag')"
@@ -51,9 +51,9 @@
 
 <script setup lang="ts">
 import { DocAdd, Move, MoveOne } from '@icon-park/vue-next'
-import { onMounted, onUnmounted, ref } from 'vue'
+import { ref } from 'vue'
 
-const props = defineProps<{
+defineProps<{
   mode: 'select' | 'drag'
 }>()
 
@@ -71,27 +71,6 @@ const addNote = () => {
   console.log('addNote function called')
   emit('add-note')
 }
-const toggleMode = () => {
-  const newMode = props.mode === 'select' ? 'drag' : 'select'
-  emit('update:mode', newMode)
-}
-
-// 监听 V 键切换模式
-const handleKeydown = (event: KeyboardEvent) => {
-  if (event.key === 'v' || event.key === 'V') {
-    toggleMode()
-  }
-}
-
-// 在组件挂载时添加事件监听器
-onMounted(() => {
-  document.addEventListener('keydown', handleKeydown)
-})
-
-// 在组件卸载时移除事件监听器
-onUnmounted(() => {
-  document.removeEventListener('keydown', handleKeydown)
-})
 </script>
 
 <style lang="scss" scoped>
