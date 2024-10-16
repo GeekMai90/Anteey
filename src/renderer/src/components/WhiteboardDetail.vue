@@ -69,6 +69,8 @@
             strokeColor="var(--color-text-secondary)"
           />
         </template>
+        <!-- 选择框 -->
+        <div v-if="isSelecting" class="selection-box" :style="selectionBoxStyle"></div>
       </div>
     </div>
     <!-- 新增：适应视图按钮 -->
@@ -83,7 +85,7 @@
       class="zoom-control-position"
       @reset-view="fitView"
     />
-    <div v-if="isSelecting" class="selection-box" :style="selectionBoxStyle"></div>
+
     <!-- 新增：顶端对齐按钮 -->
     <SelectionToolbar
       v-if="showSelectionToolbar"
@@ -139,7 +141,6 @@ const whiteboardSearchModalRef = ref<InstanceType<typeof WhiteboardSearchModal> 
 
 const openSearchModal = () => {
   whiteboardSearchModalRef.value?.show()
-  // uiStore.openWhiteboardSearchModal()
 }
 
 const createWhiteboardNoteFromSearch = async (note: any) => {
@@ -230,7 +231,7 @@ const handleDrop = async (event: DragEvent) => {
 
   const input: CreateWhiteboardNoteInput = {
     whiteboardId: whiteboardId.value,
-    noteId: noteData.id, // 直接使用拖拽笔记的 id
+    noteId: noteData.id, // 直接使用拖拽笔记�� id
     position: { x, y },
     size: { width: 350, height: 300 },
     zIndex: 1,
@@ -270,9 +271,10 @@ const selectionBoxStyle = computed(() => {
   const width = Math.abs(selectionEnd.value.x - selectionStart.value.x)
   const height = Math.abs(selectionEnd.value.y - selectionStart.value.y)
   return {
-    transform: `translate(${left * scale.value + translateX.value}px, ${top * scale.value + translateY.value}px)`,
-    width: `${width * scale.value}px`,
-    height: `${height * scale.value}px`
+    left: `${left}px`,
+    top: `${top}px`,
+    width: `${width}px`,
+    height: `${height}px`
   }
 })
 
@@ -282,6 +284,7 @@ const startSelection = (event: MouseEvent) => {
   isSelecting.value = true
   const rect = containerRef.value?.getBoundingClientRect()
   if (rect) {
+    // 修改这里的坐标计算
     const startX = (event.clientX - rect.left - translateX.value) / scale.value
     const startY = (event.clientY - rect.top - translateY.value) / scale.value
     selectionStart.value = { x: startX, y: startY }
@@ -672,7 +675,7 @@ const onResizeItem = (event: MouseEvent) => {
     case 'top-right':
       newWidth = Math.max(startWidth + dx, 100)
       newHeight = Math.max(startHeight - dy, 100)
-      // 当拖拽改变大小的方向为顶边和右边时，因为会导致 item 的 position 发生变���，所以将需要调整的视觉偏移量存储到 visualAdjustment 中
+      // 当拖拽改变大小的方向为顶边和右边时，因为会导致 item 的 position 发生变化，所以将需要调整的视觉偏移量存储到 visualAdjustment 中
       visualAdjustment.value.y = startHeight - newHeight
       break
     case 'bottom-right':
@@ -984,8 +987,10 @@ const handleContainerDoubleClick = (event: MouseEvent) => {
   if (event.target === containerRef.value) {
     const rect = containerRef.value.getBoundingClientRect()
 
-    const x = (event.clientX - rect.left) / scale.value - translateX.value
-    const y = (event.clientY - rect.top) / scale.value - translateY.value
+    // const x = (event.clientX - rect.left) / scale.value - translateX.value
+    // const y = (event.clientY - rect.top) / scale.value - translateY.value
+    const x = (event.clientX - rect.left - translateX.value) / scale.value
+    const y = (event.clientY - rect.top - translateY.value) / scale.value
 
     contextMenuStore.showMenu(event.clientX, event.clientY, [
       {
@@ -1080,8 +1085,18 @@ const handleMouseMove = (event: MouseEvent) => {
     rafId = requestAnimationFrame(() => {
       const rect = containerRef.value?.getBoundingClientRect()
       if (rect) {
+        // 修改这里的坐标计算
         const currentX = (event.clientX - rect.left - translateX.value) / scale.value
         const currentY = (event.clientY - rect.top - translateY.value) / scale.value
+        console.log('Mouse move:', {
+          clientX: event.clientX,
+          clientY: event.clientY,
+          currentX,
+          currentY,
+          scale: scale.value,
+          translateX: translateX.value,
+          translateY: translateY.value
+        })
         selectionEnd.value = { x: currentX, y: currentY }
         updateSelectedNotes()
       }
