@@ -302,6 +302,9 @@ importers:
       vue-shortkey:
         specifier: ^3.1.7
         version: 3.1.7
+      vue3-shortkey:
+        specifier: ^4.0.0
+        version: 4.0.0
       vuedraggable:
         specifier: ^4.1.0
         version: 4.1.0(vue@3.5.8(typescript@5.6.2))
@@ -5362,6 +5365,9 @@ packages:
     peerDependencies:
       tippy.js: ^6.3.7
       vue: ^3.2.29
+
+  vue3-shortkey@4.0.0:
+    resolution: {integrity: sha512-pXb/K7aw3ViqzWL9jz/IL4wOk7M7FQ87ekYxk5J7uKTNEfOVBYtILGjvCBJD3/zEUipcLQJEg7TjE1xYnVYV/w==, tarball: https://registry.npmjs.org/vue3-shortkey/-/vue3-shortkey-4.0.0.tgz}
 
   vue@3.5.8:
     resolution: {integrity: sha512-hvuvuCy51nP/1fSRvrrIqTLSvrSyz2Pq+KQ8S8SXCxTWVE0nMaOnSDnSOxV1eYmGfvK7mqiwvd1C59CEEz7dAQ==, tarball: https://registry.npmjs.org/vue/-/vue-3.5.8.tgz}
@@ -11451,6 +11457,11 @@ snapshots:
     dependencies:
       tippy.js: 6.3.7
       vue: 3.5.8(typescript@5.6.2)
+
+  vue3-shortkey@4.0.0:
+    dependencies:
+      custom-event-polyfill: 1.0.7
+      element-matches: 0.1.2
 
   vue@3.5.8(typescript@5.6.2):
     dependencies:

@@ -1,51 +1,146 @@
 <template>
-  <div v-if="selectedCount > 1" class="selection-toolbar">
-    <button class="toolbar-button" @click="alignTop">
-      <AlignTop theme="outline" size="20" />
-      <span>顶端对齐</span>
+  <div
+    v-if="selectedCount > 1"
+    class="selection-toolbar"
+    @mouseenter="isHovered = true"
+    @mouseleave="isHovered = false"
+  >
+    <button
+      v-tooltip.right="{ content: '顶部对齐', delay: { show: 1000 } }"
+      class="toolbar-button"
+      @click="alignTop"
+    >
+      <div class="icon">
+        <AlignTop
+          theme="outline"
+          size="20"
+          :fill="isHovered ? 'var(--color-text-primary)' : 'var(--color-icon-secondary)'"
+        />
+      </div>
     </button>
-    <button class="toolbar-button" @click="alignBottom">
-      <AlignBottom theme="outline" size="20" />
-      <span>底部对齐</span>
+    <button
+      v-tooltip.right="{ content: '底部对齐', delay: { show: 1000 } }"
+      class="toolbar-button"
+      @click="alignBottom"
+    >
+      <div class="icon">
+        <AlignBottom
+          theme="outline"
+          size="20"
+          :fill="isHovered ? 'var(--color-text-primary)' : 'var(--color-icon-secondary)'"
+        />
+      </div>
     </button>
-    <button class="toolbar-button" @click="alignLeft">
-      <AlignLeft theme="outline" size="20" />
-      <span>左侧对齐</span>
+    <button
+      v-tooltip.right="{ content: '左侧对齐', delay: { show: 1000 } }"
+      class="toolbar-button"
+      @click="alignLeft"
+    >
+      <div class="icon">
+        <AlignLeft
+          theme="outline"
+          size="20"
+          :fill="isHovered ? 'var(--color-text-primary)' : 'var(--color-icon-secondary)'"
+        />
+      </div>
     </button>
-    <button class="toolbar-button" @click="alignRight">
-      <AlignRight theme="outline" size="20" />
-      <span>右侧对齐</span>
+    <button
+      v-tooltip.right="{ content: '右侧对齐', delay: { show: 1000 } }"
+      class="toolbar-button"
+      @click="alignRight"
+    >
+      <div class="icon">
+        <AlignRight
+          theme="outline"
+          size="20"
+          :fill="isHovered ? 'var(--color-text-primary)' : 'var(--color-icon-secondary)'"
+        />
+      </div>
     </button>
-    <button class="toolbar-button" @click="alignHorizontalCenter">
-      <AlignHorizontally theme="outline" size="20" />
-      <span>水平居中</span>
+    <button
+      v-tooltip.right="{ content: '水平居中', delay: { show: 1000 } }"
+      class="toolbar-button"
+      @click="alignHorizontalCenter"
+    >
+      <div class="icon">
+        <AlignHorizontally
+          theme="outline"
+          size="20"
+          :fill="isHovered ? 'var(--color-text-primary)' : 'var(--color-icon-secondary)'"
+        />
+      </div>
     </button>
-    <button class="toolbar-button" @click="alignVerticalCenter">
-      <AlignVertically theme="outline" size="20" />
-      <span>垂直居中</span>
+    <button
+      v-tooltip.right="{ content: '垂直居中', delay: { show: 1000 } }"
+      class="toolbar-button"
+      @click="alignVerticalCenter"
+    >
+      <div class="icon">
+        <AlignVertically
+          theme="outline"
+          size="20"
+          :fill="isHovered ? 'var(--color-text-primary)' : 'var(--color-icon-secondary)'"
+        />
+      </div>
     </button>
-    <button class="toolbar-button" @click="distributeVertically">
-      <DistributeVertically theme="outline" size="20" />
-      <span>垂直分布</span>
+    <button
+      v-tooltip.right="{ content: '垂直分布', delay: { show: 1000 } }"
+      class="toolbar-button"
+      @click="distributeVertically"
+    >
+      <div class="icon">
+        <DistributeVertically
+          theme="outline"
+          size="20"
+          :fill="isHovered ? 'var(--color-text-primary)' : 'var(--color-icon-secondary)'"
+        />
+      </div>
     </button>
-    <button class="toolbar-button" @click="distributeHorizontally">
-      <DistributeHorizontally theme="outline" size="20" />
-      <span>水平分布</span>
+    <button
+      v-tooltip.right="{ content: '水平分布', delay: { show: 1000 } }"
+      class="toolbar-button"
+      @click="distributeHorizontally"
+    >
+      <div class="icon">
+        <DistributeHorizontally
+          theme="outline"
+          size="20"
+          :fill="isHovered ? 'var(--color-text-primary)' : 'var(--color-icon-secondary)'"
+        />
+      </div>
     </button>
-    <button class="toolbar-button" @click="horizontalStack">
-      <WaterfallsH theme="outline" size="20" />
-      <span>水平堆叠</span>
+    <button
+      v-tooltip.right="{ content: '水平堆叠', delay: { show: 1000 } }"
+      class="toolbar-button"
+      @click="horizontalStack"
+    >
+      <div class="icon">
+        <WaterfallsH
+          theme="outline"
+          size="20"
+          :fill="isHovered ? 'var(--color-text-primary)' : 'var(--color-icon-secondary)'"
+        />
+      </div>
     </button>
-    <button class="toolbar-button" @click="verticalStack">
-      <WaterfallsV theme="outline" size="20" />
-      <span>垂直堆叠</span>
+    <button
+      v-tooltip.right="{ content: '垂直堆叠', delay: { show: 1000 } }"
+      class="toolbar-button"
+      @click="verticalStack"
+    >
+      <div class="icon">
+        <WaterfallsV
+          theme="outline"
+          size="20"
+          :fill="isHovered ? 'var(--color-text-primary)' : 'var(--color-icon-secondary)'"
+        />
+      </div>
     </button>
     <!-- 可以根据需要添加更多按钮 -->
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import {
   AlignTop,
   AlignBottom,
@@ -71,6 +166,7 @@ const emit = defineEmits<{
 }>()
 
 const selectedCount = computed(() => props.selectedNotes.length)
+const isHovered = ref(false)
 
 const getSelectedNotes = () =>
   props.whiteboardNotes.filter((note) => props.selectedNotes.includes(note.id))
@@ -229,19 +325,23 @@ const updateNotePositions = (
 }
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .selection-toolbar {
   position: absolute;
-  left: 20px;
+  left: 10px;
   top: 50%;
   transform: translateY(-50%);
   display: flex;
   flex-direction: column;
   gap: 8px;
-  background-color: var(--color-bg-secondary);
+  background-color: var(--color-bg-whiteboard);
   border-radius: 8px;
   padding: 8px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  border: 1px solid transparent;
+  &:hover {
+    border: 1px solid var(--color-border);
+  }
+  // box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
 }
 
 .toolbar-button {
@@ -260,10 +360,39 @@ const updateNotePositions = (
   &:hover {
     background-color: var(--color-hover-button);
   }
+  .icon {
+    background: none;
+    border: none;
+    cursor: pointer;
+    width: 18px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    padding: 0;
 
-  span {
-    font-size: 12px;
-    margin-top: 4px;
+    // &:hover:not(:disabled) {
+    //   background-color: rgba(0, 0, 0, 0.05);
+    // }
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    :deep(.i-icon) {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      height: 100%;
+    }
+
+    :deep(svg) {
+      width: 16px;
+      height: 16px;
+    }
   }
 }
 </style>

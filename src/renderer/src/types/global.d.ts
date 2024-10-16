@@ -2,6 +2,7 @@ declare module 'lodash-es'
 declare module 'leader-line'
 declare module 'leader-line-vue'
 declare module 'canvas-confetti'
+declare module 'vue3-shortkey'
 
 // 为 slashCommandSuggestion 添加类型声明
 declare module 'tiptap/slashCommandSuggestion' {

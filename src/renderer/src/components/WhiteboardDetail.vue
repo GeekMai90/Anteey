@@ -74,9 +74,20 @@
       </div>
     </div>
     <!-- 新增：适应视图按钮 -->
-    <div class="fit-view-button" @click="fitView">
+    <div
+      v-tooltip.top="{ content: '适应视图', delay: { show: 1000 }, html: true }"
+      class="fit-view-button"
+      @click="fitView"
+      @mouseenter="isHovered = true"
+      @mouseleave="isHovered = false"
+    >
       <div class="icon">
-        <Aiming theme="outline" size="24" fill="#333" />
+        <Aiming
+          theme="outline"
+          size="24"
+          :fill="isHovered ? 'var(--color-text-primary)' : 'var(--color-icon-secondary)'"
+          :stroke-width="2"
+        />
       </div>
     </div>
     <!-- 新增：缩放控制器 -->
@@ -138,6 +149,7 @@ const whiteboardNotes = ref<WhiteboardNote[]>([])
 const connections = ref<Connection[]>([])
 const contextMenuStore = useContextMenuStore()
 const whiteboardSearchModalRef = ref<InstanceType<typeof WhiteboardSearchModal> | null>(null)
+const isHovered = ref(false)
 
 const openSearchModal = () => {
   whiteboardSearchModalRef.value?.show()
@@ -1365,7 +1377,7 @@ onUnmounted(() => {
   height: 100vh;
   display: flex;
   flex-direction: column;
-  background-color: #f3f5f7;
+  background-color: var(--color-bg-whiteboard);
   overflow: hidden;
 }
 
@@ -1453,8 +1465,8 @@ onUnmounted(() => {
 
 .fit-view-button {
   position: absolute;
-  bottom: 8px;
-  right: 20px;
+  bottom: 10px;
+  right: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1519,8 +1531,8 @@ onUnmounted(() => {
 }
 .zoom-control-position {
   position: absolute;
-  bottom: 11px;
-  right: 63px;
+  bottom: 10px;
+  right: 50px;
   z-index: 100;
 }
 .connection-line {

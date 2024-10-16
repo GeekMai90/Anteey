@@ -7,6 +7,7 @@ import piniaPluginPersistedstate from 'pinia-plugin-persistedstate'
 import FloatingVue from 'floating-vue'
 import 'floating-vue/dist/style.css'
 import { useNoteStore } from './stores/noteStores'
+import ShortKey from 'vue3-shortkey'
 
 const app = createApp(App)
 
@@ -28,6 +29,7 @@ app.directive('click-outside', {
     document.removeEventListener('click', el.clickOutsideEvent)
   }
 })
+app.use(ShortKey, { prevent: ['input', 'textarea'] })
 
 // app.use(FloatingVue)
 app.use(FloatingVue, {
