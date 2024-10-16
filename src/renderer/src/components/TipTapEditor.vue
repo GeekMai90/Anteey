@@ -811,8 +811,33 @@ const handleDragHandleClick = (event) => {
   event.preventDefault()
   event.stopPropagation()
 
-  if (editor.value && currentHoveredNode.value) {
-    const node = currentHoveredNode.value
+  if (editor.value) {
+    const { state } = editor.value
+    const { from } = state.selection
+    const $pos = state.doc.resolve(from)
+    let node = $pos.parent
+
+    // 确保选中的是有效的块级节点
+    while (
+      node &&
+      ![
+        'paragraph',
+        'heading',
+        'bulletList',
+        'orderedList',
+        'listItem',
+        'taskList',
+        'taskItem',
+        'codeBlock',
+        'image'
+      ].includes(node.type.name)
+    ) {
+      if (node.type.name === 'doc') {
+        console.log('未找到有效的块级节点')
+        return
+      }
+      node = node.parent
+    }
 
     if (node) {
       const { x, y } = getContextMenuPosition(event)
@@ -821,42 +846,24 @@ const handleDragHandleClick = (event) => {
       contextMenuY.value = y + 10
       currentParagraph.value = node
 
-      const nodeId = node.attrs.id
+      const nodePos = $pos.before()
+      const nodeEnd = $pos.after()
 
-      // 使用 nodeId 找到节点位置
-      let targetPos = -1
-      let targetEnd = -1
-      editor.value.state.doc.descendants((child, pos) => {
-        if (child.attrs.id === nodeId) {
-          targetPos = pos
-          targetEnd = pos + child.nodeSize
-          return false // 停止遍历
-        }
-      })
+      // 选中整个节点，而不是节点中的文本
+      editor.value.chain().focus().setNodeSelection(nodePos).run()
 
-      if (targetPos > -1 && targetEnd > -1) {
-        // 选中节点的文本内容
-        editor.value
-          .chain()
-          .focus()
-          .setTextSelection({ from: targetPos + 1, to: targetEnd - 1 })
-          .run()
-
-        console.log('拖拽块被点击了!', node)
-        console.log('节点类型:', node.type.name)
-        console.log('节点ID:', nodeId)
-        console.log('节点开始位置:', targetPos)
-        console.log('节点结束位置:', targetEnd)
-      } else {
-        console.log('无法找到节点位置')
-      }
+      console.log('拖拽块被点击了!', node)
+      console.log('节点类型:', node.type.name)
+      console.log('节点开始位置:', nodePos)
+      console.log('节点结束位置:', nodeEnd)
     } else {
-      console.log('点击的不是段落或标题')
+      console.log('未找到有效的块级节点')
     }
   } else {
-    console.log('未找到有效的节点')
+    console.log('编辑器实例未找到')
   }
 }
+
 const clearFormatting = () => {
   if (currentParagraph.value && editor.value) {
     editor.value.chain().focus().clearNodes().unsetAllMarks().run()
@@ -873,15 +880,25 @@ const copyToClipboard = () => {
 
 const deleteParagraph = () => {
   if (editor.value && currentParagraph.value) {
-    const nodeType = currentParagraph.value.type.name
-    console.log('当前段落类型:', nodeType)
+    const nodePos = editor.value.state.selection.from
+    const node = editor.value.state.doc.nodeAt(nodePos)
 
-    editor.value.chain().focus().deleteNode(nodeType).run()
+    if (node) {
+      console.log('当前段落类型:', node.type.name)
 
-    console.log('尝试删除节点类型:', nodeType)
+      editor.value
+        .chain()
+        .focus()
+        .deleteRange({ from: nodePos, to: nodePos + node.nodeSize })
+        .run()
 
-    // 触发内容更新
-    emit('update:content', editor.value.getJSON())
+      console.log('尝试删除节点')
+
+      // 触发内容更新
+      emit('update:content', editor.value.getJSON())
+    } else {
+      console.log('无法找到当前节点')
+    }
   } else {
     console.log('无法删除段落：编辑器或当前段落未定义')
   }

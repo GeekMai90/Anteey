@@ -110,7 +110,7 @@ import { debounce } from 'lodash-es'
 import PopupMenu from '../components/PopupMenu.vue'
 import { useNoteMenu } from '../composables/useNoteMenu'
 import type { MenuItem } from '../components/PopupMenu.vue'
-import { storeToRefs } from 'pinia'
+// import { storeToRefs } from 'pinia'
 import CardTypeDropdownMenu from '../components/CardTypeDropdownMenu.vue'
 
 const tiptapEditor = ref<any>(null)
@@ -212,30 +212,25 @@ const closeMenu = () => {
   resetDeleteState()
 }
 
-const { currentNote } = storeToRefs(noteStore)
+// const { currentNote } = storeToRefs(noteStore)
 
 const isContentModified = ref(false)
 const lastSavedNote = ref(null)
+const editedNote = ref<Note | null>(null)
 
 // 监听笔记 ID 的变化，获取笔记
 watch(
   () => noteId,
   async (newId) => {
-    await noteStore.fetchNoteById(newId)
+    const note = await noteStore.fetchNoteById(newId)
+    if (note) {
+      editedNote.value = note
+    }
   },
   { immediate: true }
 )
 
-const editedNote = computed(() => currentNote.value)
-// const editedNote = computed({
-//   get: () => currentNote.value,
-//   set: (newValue) => {
-//     if (newValue) {
-//       noteStore.updateCurrentNote(newValue)
-//       isContentModified.value = true
-//     }
-//   }
-// })
+// const editedNote = computed(() => currentNote.value)
 
 // 更新内容
 const updateContent = debounce((newContent: any) => {
