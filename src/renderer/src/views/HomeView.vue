@@ -2,50 +2,52 @@
   <div class="home-view" :style="{ backgroundImage: `url(${backgroundImage})` }">
     <div class="blur-overlay"></div>
     <div class="drag-area"></div>
-    <div class="top-bar">
-      <div class="date-time-container">
-        <div class="date">{{ currentDate }}</div>
-        <div class="time">{{ currentTime }}</div>
+    <div class="content-wrapper">
+      <div class="top-bar">
+        <div class="date-time-container">
+          <div class="date">{{ currentDate }}</div>
+          <div class="time">{{ currentTime }}</div>
+        </div>
+        <div class="actions"></div>
       </div>
-      <div class="actions"></div>
-    </div>
 
-    <div class="main-content">
-      <h1>{{ greeting }}</h1>
-      <div class="heatmap-container">
-        <calendar-heatmap
-          :values="heatmapData"
-          :start-date="startDate"
-          :end-date="endDate"
-          :tooltip-formatter="tooltipFormatter"
-          :no-data-text="'0 条笔记'"
-          :range-color="['#ebedf0', '#ebedf0', '#9be9a8', '#40c463', '#30a14e']"
-          :max="10"
-          no-margin
-        />
+      <div class="main-content">
+        <h1>{{ greeting }}</h1>
+        <div class="heatmap-container">
+          <calendar-heatmap
+            :values="heatmapData"
+            :start-date="startDate"
+            :end-date="endDate"
+            :tooltip-formatter="tooltipFormatter"
+            :no-data-text="'0 条笔记'"
+            :range-color="['#ebedf0', '#ebedf0', '#9be9a8', '#40c463', '#30a14e']"
+            :max="10"
+            no-margin
+          />
+        </div>
+        <div class="stats-container">
+          <div class="stat-item">
+            <div class="stat-value">{{ lastDayNoteCount }}</div>
+            <div class="stat-label">昨日新增</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-value">{{ cardCount }}</div>
+            <div class="stat-label">卡片笔记</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-value">{{ viewCount }}</div>
+            <div class="stat-label">思维板</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-value">{{ dayCount }}</div>
+            <div class="stat-label">天</div>
+          </div>
+        </div>
+        <!-- 新增的每日卡片选择组件 -->
+        <DailyCardPick />
       </div>
-      <div class="stats-container">
-        <div class="stat-item">
-          <div class="stat-value">{{ lastDayNoteCount }}</div>
-          <div class="stat-label">昨日新增</div>
-        </div>
-        <div class="stat-item">
-          <div class="stat-value">{{ cardCount }}</div>
-          <div class="stat-label">卡片笔记</div>
-        </div>
-        <div class="stat-item">
-          <div class="stat-value">{{ viewCount }}</div>
-          <div class="stat-label">思维板</div>
-        </div>
-        <div class="stat-item">
-          <div class="stat-value">{{ dayCount }}</div>
-          <div class="stat-label">天</div>
-        </div>
-      </div>
-      <!-- 新增的每日卡片选择组件 -->
-      <DailyCardPick />
+      <button class="change-background-btn" @click="changeBackground">更换背景</button>
     </div>
-    <button class="change-background-btn" @click="changeBackground">更换背景</button>
   </div>
 </template>
 
@@ -246,12 +248,25 @@ onMounted(() => {
   left: 0;
   z-index: 10;
 }
+.content-wrapper {
+  position: relative;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  z-index: 1;
+}
 
 .top-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 2;
   display: flex;
   justify-content: space-between;
   padding: 20px;
   z-index: 1;
+  width: 300px;
 }
 .date-time-container {
   display: flex;

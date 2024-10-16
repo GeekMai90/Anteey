@@ -1,6 +1,6 @@
 {
   "name": "antinet",
-  "version": "0.1.12",
+  "version": "0.1.13",
   "description": "Antinet",
   "main": "./out/main/index.js",
   "author": "example.com",

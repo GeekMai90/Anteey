@@ -14,6 +14,13 @@ const cardTypes = [
   { value: 'Indexcard', label: '索引卡', icon: TransactionOrder },
   { value: 'Hoplinkcard', label: '跳转卡', icon: Deeplink }
 ]
+interface NoteContent {
+  type: 'doc'
+  content: Array<{
+    type: 'paragraph'
+    content?: Array<any>
+  }>
+}
 
 export const useNoteStore = defineStore('note', {
   state: () => ({
@@ -58,6 +65,35 @@ export const useNoteStore = defineStore('note', {
       this.currentNote = note
       this.currentNoteId = note ? note.id : undefined
     },
+
+    // 将空笔记移到回收站
+    moveEmptyNotesToTrash() {
+      this.notesMap.forEach((note, noteId) => {
+        console.log(`Checking note ${noteId}:`, JSON.stringify(note.content))
+
+        const content = note.content as NoteContent
+
+        const isEmptyContent =
+          content.type === 'doc' &&
+          Array.isArray(content.content) &&
+          (content.content.length === 0 ||
+            (content.content.length === 1 &&
+              content.content[0].type === 'paragraph' &&
+              (!content.content[0].content || content.content[0].content.length === 0)))
+
+        if (isEmptyContent && note.address === '' && !note.isDeleted) {
+          console.log(`Moving note ${noteId} to trash`)
+          this.moveToTrash(noteId)
+        }
+
+        // 添加调试日志
+        console.log(`Note ${noteId} content:`, JSON.stringify(content, null, 2))
+        console.log(`Is empty content: ${isEmptyContent}`)
+        console.log(`Address: "${note.address}"`)
+        console.log(`Is deleted: ${note.isDeleted}`)
+      })
+    },
+    // 添加到最近笔记
     addToRecentNotes(noteId: string) {
       // 如果笔记已经在列表中，先移除它
       this.recentNotes = this.recentNotes.filter((id) => id !== noteId)
@@ -68,7 +104,7 @@ export const useNoteStore = defineStore('note', {
         this.recentNotes.pop()
       }
     },
-
+    // 从最近笔记中删除
     removeFromRecentNotes(noteId: string) {
       this.recentNotes = this.recentNotes.filter((id) => id !== noteId)
     },

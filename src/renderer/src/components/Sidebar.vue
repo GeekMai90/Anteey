@@ -108,7 +108,7 @@
     <div class="resize-handle" @mousedown="startResize"></div>
     <div class="sidebar-footer">
       <div class="new-card-wrapper">
-        <div
+        <!-- <div
           v-tooltip.top="{ content: 'Cmd+N', delay: { show: 1000 } }"
           class="new-card"
           @click="createNewCard"
@@ -117,20 +117,25 @@
             <DocAdd theme="outline" size="20" fill="var(--color-text-primary)" :strokeWidth="3" />
           </div>
           <div class="add-text">新建卡片</div>
+        </div> -->
+      </div>
+      <!-- 清除空笔记 -->
+      <div
+        v-tooltip.top="{ content: '清除空笔记', delay: { show: 1000 } }"
+        class="clear-empty-note"
+        @click="noteStore.moveEmptyNotesToTrash"
+      >
+        <div class="icon">
+          <Clear theme="outline" size="20" fill="var(--color-icon-menu-default)" :strokeWidth="2" />
         </div>
       </div>
       <div
-        v-tooltip.top="{ content: 'Cmd+S', delay: { show: 1000 } }"
-        class="search"
-        @click="openSearch"
+        v-tooltip.top="{ content: '帮助中心', delay: { show: 1000 } }"
+        class="help"
+        @click="openHelp"
       >
         <div class="icon">
-          <Search theme="outline" size="20" fill="var(--color-text-primary)" :strokeWidth="3" />
-        </div>
-      </div>
-      <div class="help" @click="openHelp">
-        <div class="icon">
-          <Help theme="outline" size="20" fill="var(--color-text-primary)" :strokeWidth="3" />
+          <Help theme="outline" size="20" fill="var(--color-icon-menu-default)" :strokeWidth="2" />
         </div>
       </div>
     </div>
@@ -146,13 +151,13 @@ import {
   Plus,
   Search,
   Help,
-  DocAdd,
   Home,
   Down,
   Right,
   Notes,
   ListAlphabet,
-  Bookshelf
+  Bookshelf,
+  Clear
 } from '@icon-park/vue-next'
 import { useNoteStore } from '../stores/noteStores'
 import SettingDropdownMenu from './SettingDropdownMenu.vue'
@@ -678,7 +683,7 @@ const openHelp = () => {
       }
     }
 
-    .search,
+    .clear-empty-note,
     .help {
       width: 30px;
       height: 30px;

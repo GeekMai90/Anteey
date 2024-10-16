@@ -44,6 +44,20 @@ select {
   font-size: inherit;
   line-height: inherit;
 }
+// 添加 input 的默认样式
+input {
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  padding: 8px;
+  background-color: var(--color-bg-secondary);
+  color: var(--color-text-primary);
+
+  &:focus {
+    outline: none;
+    border-color: var(--color-primary) !important;
+    box-shadow: 0 0 0 2px var(--color-primary-light);
+  }
+}
 
 // 按钮样式
 button {

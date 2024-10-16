@@ -3,10 +3,12 @@ import { onMounted, onUnmounted } from 'vue'
 import hotkeys from 'hotkeys-js'
 import { useNoteStore } from '../stores/noteStores'
 import { useRouter } from 'vue-router'
+import { useUIStore } from '../stores/useUIStore'
 
 export function useGlobalHotkeys() {
   const noteStore = useNoteStore()
   const router = useRouter()
+  const uiStore = useUIStore()
 
   const setupHotkeys = () => {
     // 添加笔记快捷键
@@ -53,6 +55,11 @@ export function useGlobalHotkeys() {
     hotkeys('command+shift+w, ctrl+shift+w', (event) => {
       event.preventDefault()
       router.push('/whiteboard') // 假设时间线页面的路由是 '/timeline'
+    })
+    // 打开设置
+    hotkeys('command+,, ctrl+,', (event) => {
+      event.preventDefault()
+      uiStore.openSettingsPage()
     })
   }
 
