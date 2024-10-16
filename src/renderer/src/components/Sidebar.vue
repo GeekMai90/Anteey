@@ -26,7 +26,11 @@
           <div class="search-input-text">⌘ S</div>
         </div>
         <button
-          v-tooltip.top="{ content: 'Cmd+N', delay: { show: 1000 } }"
+          v-tooltip.top="{
+            content: '添加笔记<br>Cmd+N',
+            delay: { show: 1000 },
+            html: true
+          }"
           class="new-note-btn"
           @click="createNewCard"
         >

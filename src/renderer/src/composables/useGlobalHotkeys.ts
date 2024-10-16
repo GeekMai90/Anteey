@@ -61,6 +61,16 @@ export function useGlobalHotkeys() {
       event.preventDefault()
       uiStore.openSettingsPage()
     })
+    // 折叠/展开左侧边栏
+    hotkeys('command+/, ctrl+/', (event) => {
+      event.preventDefault()
+      uiStore.toggleSidebar()
+    })
+    // 折叠/展开右侧边栏
+    hotkeys('command+shift+/, ctrl+shift+/', (event) => {
+      event.preventDefault()
+      uiStore.toggleRightSidebar()
+    })
   }
 
   onMounted(() => {

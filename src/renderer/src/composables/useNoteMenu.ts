@@ -570,7 +570,7 @@ export function useNoteMenu(params: NoteMenuParams) {
     },
     deleteWhiteboard: {
       name: 'deleteWhiteboard',
-      label: '删除白板',
+      label: '删除思维板',
       icon: DeleteOne,
       action: handleDeleteWhiteboard,
       isDangerous: true

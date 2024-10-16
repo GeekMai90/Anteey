@@ -157,7 +157,8 @@ const shortcuts = [
       { action: '打开文献卡片盒', keys: ['⌘', '⇧', 'L'] },
       { action: '打开思维板', keys: ['⌘', '⇧', 'W'] },
       { action: '添加新卡片笔记', keys: ['⌘', 'N'] },
-      { action: '搜索', keys: ['⌘', 'S'] }
+      { action: '搜索', keys: ['⌘', 'S'] },
+      { action: '折叠/展开左侧边栏', keys: ['⌘', '/'] }
     ]
   },
   {

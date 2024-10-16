@@ -31,7 +31,7 @@
                 ref="searchInput"
                 v-model="searchQuery"
                 type="text"
-                placeholder="搜索白板"
+                placeholder="搜索思维板"
                 @input="handleSearch"
                 @focus="isSearchFocused = true"
                 @blur="handleBlur"

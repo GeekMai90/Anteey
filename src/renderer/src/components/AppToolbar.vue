@@ -4,7 +4,11 @@
   <div class="app-toolbar" :style="computedStyle">
     <div class="toolbar-section left">
       <div
-        v-tooltip.bottom="{ content: 'Cmd + \\', delay: { show: 1000 } }"
+        v-tooltip.bottom="{
+          content: '折叠/展开左侧边栏<br>Cmd + /',
+          delay: { show: 1000 },
+          html: true
+        }"
         class="toggle-left-sidebar"
         @click="toggleSidebar"
       >
@@ -44,7 +48,11 @@
     </div>
     <div class="toolbar-section right">
       <div
-        v-tooltip.bottom="{ content: 'Cmd + Option + \\', delay: { show: 1000 } }"
+        v-tooltip.bottom="{
+          content: '折叠/展开右侧边栏<br>Cmd + shift + /',
+          delay: { show: 1000 },
+          html: true
+        }"
         class="toggle-right-sidebar"
         @click="toggleRightSidebar"
       >

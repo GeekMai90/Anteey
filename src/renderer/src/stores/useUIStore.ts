@@ -77,6 +77,9 @@ export const useUIStore = defineStore('ui', () => {
   function closeRightSidebar() {
     isRightSidebarOpen.value = false
   }
+  function toggleRightSidebar() {
+    isRightSidebarOpen.value = !isRightSidebarOpen.value
+  }
 
   return {
     isEditorOpen,
@@ -103,6 +106,7 @@ export const useUIStore = defineStore('ui', () => {
     showSettingsPage,
     openWhiteboardSearchModal,
     closeWhiteboardSearchModal,
-    isWhiteboardSearchModalOpen
+    isWhiteboardSearchModalOpen,
+    toggleRightSidebar
   }
 })
