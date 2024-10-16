@@ -74,8 +74,8 @@
                   </div>
                   <span class="result-text">
                     <template
-                      v-for="(part, index) in highlightedParts(block.content, searchQuery)"
-                      :key="index"
+                      v-for="part in highlightedParts(block.content, searchQuery)"
+                      :key="part.index"
                     >
                       <span :class="{ highlight: part.isMatch }">{{ part.text }}</span>
                     </template>
