@@ -28,7 +28,7 @@
         <router-view :key="$route.fullPath"></router-view>
       </main>
       <RightSidebar
-        v-if="uiStore.isRightSidebarOpen"
+        v-show="uiStore.isRightSidebarOpen"
         class="right-sidebar"
         :style="rightSidebarStyle"
         :initialWidth="rightSidebarWidth"
