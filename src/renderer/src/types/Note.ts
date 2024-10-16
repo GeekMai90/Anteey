@@ -84,6 +84,9 @@ export interface WhiteboardNote {
   zIndex: number
   rotation: number
   isAutoHeight: boolean // 新增：控制是否自动调整高度
+  type: 'card' | 'text' | 'image' // 新增类型字段
+  content?: string // 文本内容
+  imageUrl?: string // 图片链接
 }
 // 分组
 export interface WhiteboardGroup {
@@ -149,6 +152,9 @@ export interface CreateWhiteboardNoteInput {
   zIndex: number
   rotation: number
   isAutoHeight: boolean // 新增：控制是否自动调整高度
+  type: 'card' | 'text' | 'image' // 新增类型字段
+  content?: string // 文本内容
+  imageUrl?: string // 图片链接
 }
 
 export interface Connection {

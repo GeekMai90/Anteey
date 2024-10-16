@@ -100,6 +100,9 @@ export async function initDatabase(db: Knex): Promise<void> {
       table.integer('zIndex').notNullable()
       table.float('rotation').notNullable().defaultTo(0)
       table.boolean('isAutoHeight').notNullable().defaultTo(false)
+      table.string('type').notNullable().defaultTo('card')
+      table.string('content').nullable()
+      table.string('imageUrl').nullable()
     })
     console.log('whiteboard_notes 表创建成功')
   }

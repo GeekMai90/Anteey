@@ -307,7 +307,10 @@ export async function createWhiteboardNote(
     size: input.size,
     zIndex: input.zIndex,
     rotation: input.rotation,
-    isAutoHeight: input.isAutoHeight || false
+    isAutoHeight: input.isAutoHeight || false,
+    type: input.type || 'card',
+    content: input.content || '',
+    imageUrl: input.imageUrl || ''
   }
   await db('whiteboard_notes').insert({
     ...newWhiteboardNote,

@@ -157,7 +157,8 @@ const createWhiteboardNoteFromSearch = async (note: any) => {
     size: { width: 350, height: 300 },
     zIndex: 1,
     rotation: 0,
-    isAutoHeight: false
+    isAutoHeight: false,
+    type: 'card'
   }
 
   try {
@@ -236,7 +237,8 @@ const handleDrop = async (event: DragEvent) => {
     size: { width: 350, height: 300 },
     zIndex: 1,
     rotation: 0,
-    isAutoHeight: false
+    isAutoHeight: false,
+    type: 'card'
   }
 
   try {
@@ -1015,7 +1017,8 @@ const createWhiteboardNote = async (x: number, y: number) => {
     size: { width: 350, height: 300 }, // 默认大小，你可以根据需要调整
     zIndex: 1,
     rotation: 0,
-    isAutoHeight: false
+    isAutoHeight: false,
+    type: 'card'
   }
 
   try {
