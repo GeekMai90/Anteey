@@ -1,10 +1,10 @@
 {
   "name": "antinet",
-  "version": "0.1.13",
+  "version": "0.1.17",
   "description": "Antinet",
   "main": "./out/main/index.js",
-  "author": "example.com",
-  "homepage": "https://electron-vite.org",
+  "author": "antinet.com",
+  "homepage": "https://antinet.com",
   "scripts": {
     "format": "prettier --write .",
     "lint": "eslint . --ext .js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts,.vue --fix",

@@ -84,13 +84,8 @@ export const useNoteStore = defineStore('note', {
         if (isEmptyContent && note.address === '' && !note.isDeleted) {
           console.log(`Moving note ${noteId} to trash`)
           this.moveToTrash(noteId)
+          this.removeFromRecentNotes(noteId)
         }
-
-        // 添加调试日志
-        console.log(`Note ${noteId} content:`, JSON.stringify(content, null, 2))
-        console.log(`Is empty content: ${isEmptyContent}`)
-        console.log(`Address: "${note.address}"`)
-        console.log(`Is deleted: ${note.isDeleted}`)
       })
     },
     // 添加到最近笔记
@@ -151,6 +146,9 @@ export const useNoteStore = defineStore('note', {
     async initializeStore() {
       await this.fetchAllNotes()
       await this.initializeCardBoxes()
+      setTimeout(() => {
+        this.isLoading = false
+      }, 2000)
     },
 
     // 设置编辑器实例

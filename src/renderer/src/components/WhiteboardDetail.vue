@@ -4,7 +4,7 @@
     <!-- 固定在顶部的工具栏 -->
     <div class="fixed-header">
       <AppToolbar
-        backgroundColor="#f3f5f7"
+        backgroundColor="var(--color-bg-whiteboard)"
         :whiteboardName="whiteboardName"
         @update:whiteboardName="updateWhiteboardName"
       />

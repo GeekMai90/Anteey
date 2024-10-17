@@ -1,18 +1,18 @@
 <template>
   <div class="app-container" :class="{ 'theme-dark': isDarkTheme }">
     <!-- 加载动画 -->
-    <div v-if="isLoading" class="loading-overlay">
+    <div v-if="noteStore.isLoading" class="loading-overlay">
       <Vue3Lottie :animationData="loadingAnimation" :height="300" :width="300" />
     </div>
     <!-- 按钮 -->
-    <div class="custom-titlebar">
+    <!-- <div class="custom-titlebar">
       <div class="fake-traffic-lights">
         <div class="fake-button close"></div>
         <div class="fake-button minimize"></div>
         <div class="fake-button maximize"></div>
       </div>
-    </div>
-    <div v-show="!isLoading" class="content-wrapper">
+    </div> -->
+    <div v-show="!noteStore.isLoading" class="content-wrapper">
       <Sidebar
         v-show="!uiStore.isSidebarCollapsed"
         class="sidebar"
@@ -77,20 +77,31 @@ import Modal from './components/Modal.vue'
 import SettingsPage from './components/SettingsPage.vue'
 import { Vue3Lottie } from 'vue3-lottie'
 import loadingAnimation from './assets/loading.json'
+import { useNoteStore } from './stores/noteStores'
+import { useNoteMenu } from './composables/useNoteMenu'
 
 const uiStore = useUIStore()
+const noteStore = useNoteStore()
 const isDarkTheme = ref(false)
 const router = useRouter()
 
-const isLoading = ref(true)
+// const isLoading = ref(true)
+const { handleBulkExport } = useNoteMenu({
+  noteId: '',
+  menuItems: ['star']
+})
 
-onMounted(async () => {
-  // 模拟加载过程
-  setTimeout(() => {
-    isLoading.value = false
-  }, 2000) // 2秒后隐藏加载动画
+onMounted(() => {
+  window.electronAPI.onMenuNewNote(async () => {
+    await noteStore.createAndOpenNewNote()
+  })
+  window.electronAPI.onMenuExportNotes(async () => {
+    await handleBulkExport()
+  })
+})
 
-  // ... 您现有的 onMounted 代码 ...
+onUnmounted(() => {
+  window.electronAPI.removeAllListeners('menu-new-note')
 })
 
 // 侧边栏相关
@@ -185,7 +196,7 @@ onMounted(async () => {
   console.log('Current route:', router.currentRoute.value)
   if (router.currentRoute.value.path === '/') {
     console.log('Redirecting to /home')
-    router.push('/whiteboard')
+    router.push('/timeline')
   }
 })
 

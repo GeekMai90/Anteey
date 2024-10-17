@@ -25,6 +25,7 @@
     </div>
     <div ref="noteContent" class="note-content" @dblclick="useNoteStore().openNoteEditor(note.id)">
       <TipTapEditor
+        v-if="localNote.content"
         v-model:content="localNote.content"
         :editable="false"
         :enable-drag-handle="isDragHandleEnabled"

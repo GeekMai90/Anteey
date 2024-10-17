@@ -83,6 +83,10 @@ export interface ElectronAPI {
   updateWhiteboardName: (id: string, name: string) => Promise<Whiteboard>
   updateNoteContent: (id: string, content: any) => Promise<Note>
   deleteWhiteboard: (id: string) => Promise<{ success: boolean; error?: string }>
+  newNote: () => Promise<boolean>
+  onMenuNewNote: (callback: () => void) => void
+  removeAllListeners: (channel: string) => void
+  onMenuExportNotes: (callback: () => void) => void
 }
 
 declare global {

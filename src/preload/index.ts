@@ -539,5 +539,21 @@ contextBridge.exposeInMainWorld('electronAPI', {
       console.error('Preload: 复制图片时出错:', error)
       throw error
     }
+  },
+  removeAllListeners: async (channel: string) => {
+    try {
+      ipcRenderer.removeAllListeners(channel)
+    } catch (error) {
+      console.error('Preload: 移除所有监听器时出错:', error)
+      throw error
+    }
+  },
+  // 监听菜单新建笔记事件
+  onMenuNewNote: (callback: () => void) => {
+    ipcRenderer.on('menu-new-note', () => callback())
+  },
+  // 监听菜单导出所有笔记事件
+  onMenuExportNotes: (callback: () => void) => {
+    ipcRenderer.on('menu-export-notes', () => callback())
   }
 })

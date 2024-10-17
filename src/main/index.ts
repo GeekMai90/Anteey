@@ -9,7 +9,8 @@ import {
   protocol,
   net,
   nativeImage,
-  clipboard
+  clipboard,
+  globalShortcut
 } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
@@ -97,73 +98,97 @@ function createCustomMenu() {
     {
       label: 'Antinet',
       submenu: [
-        { role: 'about' },
+        {
+          label: '关于Antinet',
+          role: 'about'
+        },
         { type: 'separator' },
-        { role: 'services' },
+        { label: '服务', role: 'services' },
         { type: 'separator' },
-        { role: 'hide' },
-        { role: 'hideOthers' },
-        { role: 'unhide' },
+        { label: '隐藏', role: 'hide' },
+        { label: '隐藏其他', role: 'hideOthers' },
+        { label: '显示所有', role: 'unhide' },
         { type: 'separator' },
-        { role: 'quit' }
+        { label: '退出', role: 'quit' }
       ]
     },
     {
-      label: 'File',
+      label: '文件',
       submenu: [
         {
-          label: 'New Note',
+          label: '新笔记',
+          accelerator: 'CmdOrCtrl+N', // 添加这一行
           click: () => {
-            /* 实现新建笔记的逻辑 */
+            const focusedWindow = BrowserWindow.getFocusedWindow()
+            if (focusedWindow) {
+              focusedWindow.webContents.send('menu-new-note')
+            }
+          }
+        },
+        {
+          label: '导出笔记',
+          click: () => {
+            const focusedWindow = BrowserWindow.getFocusedWindow()
+            if (focusedWindow) {
+              focusedWindow.webContents.send('menu-export-notes')
+            }
           }
         },
         { type: 'separator' },
-        { role: 'close' }
+        {
+          label: '关闭',
+          role: 'close'
+        }
       ]
     },
     {
-      label: 'Edit',
+      label: '编辑',
       submenu: [
-        { role: 'undo' },
-        { role: 'redo' },
+        { label: '撤销', role: 'undo' },
+        { label: '重做', role: 'redo' },
         { type: 'separator' },
-        { role: 'cut' },
-        { role: 'copy' },
-        { role: 'paste' },
-        { role: 'delete' },
-        { role: 'selectAll' }
+        { label: '剪切', role: 'cut' },
+        { label: '复制', role: 'copy' },
+        { label: '粘贴', role: 'paste' },
+        { label: '删除', role: 'delete' },
+        { label: '全选', role: 'selectAll' },
+        {
+          label: '表情与符号',
+          role: 'emoji',
+          visible: process.platform === 'darwin'
+        }
       ]
     },
     {
-      label: 'View',
+      label: '视图',
       submenu: [
-        { role: 'reload' },
-        { role: 'forceReload' },
-        { role: 'toggleDevTools' },
+        { label: '重新加载', role: 'reload' },
+        { label: '强制重新加载', role: 'forceReload' },
+        { label: '切换开发者工具', role: 'toggleDevTools' },
         { type: 'separator' },
-        { role: 'resetZoom' },
-        { role: 'zoomIn' },
-        { role: 'zoomOut' },
+        { label: '重置缩放', role: 'resetZoom' },
+        { label: '放大', role: 'zoomIn' },
+        { label: '缩小', role: 'zoomOut' },
         { type: 'separator' },
-        { role: 'togglefullscreen' }
+        { label: '全屏', role: 'togglefullscreen' }
       ]
     },
     {
-      label: 'Window',
+      label: '窗口',
       submenu: [
-        { role: 'minimize' },
-        { role: 'zoom' },
+        { label: '最小化', role: 'minimize' },
+        { label: '最大化', role: 'zoom' },
         { type: 'separator' },
-        { role: 'front' },
+        { label: '置顶', role: 'front' },
         { type: 'separator' },
-        { role: 'window' }
+        { label: '窗口', role: 'window' }
       ]
     },
     {
-      role: 'help',
+      label: '帮助',
       submenu: [
         {
-          label: 'Learn More',
+          label: '官网',
           click: async () => {
             await shell.openExternal('https://your-website.com')
           }
@@ -901,8 +926,6 @@ function createWindow(): void {
 }
 
 app.whenReady().then(async () => {
-  // const userDataPath = app.getPath('userData')
-  // const imagesPath = path.join(userDataPath, 'images')
   const antinetPath = app.getPath('userData')
   const userDataPath = path.join(antinetPath, 'UserData')
   const imagesPath = path.join(userDataPath, 'images')
@@ -928,12 +951,6 @@ app.whenReady().then(async () => {
     console.log('数据库路径:', db.client.connectionSettings.filename)
     log.info('主进程→ 数据库初始化成功')
     log.info('数据库路径:', dbPath)
-
-    // protocol.registerFileProtocol('file', (request, callback) => {
-    //   const pathname = decodeURI(request.url.replace('file:///', ''))
-    //   callback(pathname)
-    // })
-
     // 验证表是否创建成功
     const hasNotesTable = await db.schema.hasTable('notes')
     console.log('notes 表是否存在:', hasNotesTable)
@@ -973,6 +990,21 @@ app.whenReady().then(async () => {
     createCustomMenu()
 
     createWindow()
+
+    // 添加全局快捷键
+    globalShortcut.register('CommandOrControl+R', () => {
+      const focusedWindow = BrowserWindow.getFocusedWindow()
+      if (focusedWindow) {
+        focusedWindow.webContents.reload()
+      }
+    })
+
+    globalShortcut.register('F5', () => {
+      const focusedWindow = BrowserWindow.getFocusedWindow()
+      if (focusedWindow) {
+        focusedWindow.webContents.reload()
+      }
+    })
 
     app.on('activate', function () {
       if (BrowserWindow.getAllWindows().length === 0) createWindow()

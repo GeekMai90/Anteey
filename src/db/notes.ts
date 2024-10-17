@@ -34,10 +34,11 @@ export async function createNote(): Promise<Note> {
     type: 'note',
     address: '',
     cardType: 'Maincard',
-    content: {
-      type: 'doc',
-      content: [{ type: 'paragraph' }]
-    },
+    // content: {
+    //   type: 'doc',
+    //   content: [{ type: 'paragraph' }]
+    // },
+    content: { type: 'doc', content: [] },
     createdAt: now,
     updatedAt: now,
     tags: [],

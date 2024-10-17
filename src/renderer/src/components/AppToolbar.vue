@@ -13,22 +13,46 @@
         @click="toggleSidebar"
       >
         <div class="icon">
-          <ExpandRight theme="outline" size="20" fill="#b6b6b6" :stroke-width="3" />
+          <ExpandRight
+            theme="outline"
+            size="20"
+            fill="var(--color-icon-default)"
+            :stroke-width="3"
+          />
         </div>
       </div>
-      <div v-if="showBackButton" class="back-button" :disabled="!canGoBack" @click="goBack">
+      <div
+        v-if="showBackButton"
+        v-tooltip.bottom="{
+          content: '后退<br>Cmd + [',
+          delay: { show: 1000 },
+          html: true
+        }"
+        v-shortkey="['meta', '[']"
+        class="back-button"
+        :disabled="!canGoBack"
+        @shortkey="goBack"
+        @click="goBack"
+      >
         <div class="icon">
-          <Left theme="outline" size="20" fill="#b6b6b6" :stroke-width="3" />
+          <Left theme="outline" size="20" fill="var(--color-icon-default)" :stroke-width="3" />
         </div>
       </div>
       <div
         v-if="showForwardButton"
+        v-tooltip.bottom="{
+          content: '前进<br>Cmd + ]',
+          delay: { show: 1000 },
+          html: true
+        }"
+        v-shortkey="['meta', ']']"
         class="forward-button"
         :disabled="!canGoForward"
+        @shortkey="goForward"
         @click="goForward"
       >
         <div class="icon">
-          <Right theme="outline" size="20" fill="#b6b6b6" :stroke-width="3" />
+          <Right theme="outline" size="20" fill="var(--color-icon-default)" :stroke-width="3" />
         </div>
       </div>
       <div v-if="whiteboardName" class="whiteboard-name">
@@ -57,7 +81,12 @@
         @click="toggleRightSidebar"
       >
         <div class="icon">
-          <ExpandLeft theme="outline" size="20" fill="#b6b6b6" :stroke-width="3" />
+          <ExpandLeft
+            theme="outline"
+            size="20"
+            fill="var(--color-icon-default)"
+            :stroke-width="3"
+          />
         </div>
       </div>
       <slot name="right"></slot>
@@ -164,12 +193,12 @@ const finishEditing = () => {
 
   &.left {
     justify-content: flex-start;
-    flex: 1;
+    flex: 2;
   }
 
   &.center {
     justify-content: center;
-    flex: 2;
+    flex: 1;
   }
 
   &.right {
@@ -205,10 +234,6 @@ const finishEditing = () => {
     justify-content: center;
     transition: all 0.2s ease;
     padding: 0;
-
-    // &:hover:not(:disabled) {
-    //   background-color: rgba(0, 0, 0, 0.05);
-    // }
 
     &:disabled {
       opacity: 0.5;
@@ -252,7 +277,6 @@ const finishEditing = () => {
 .whiteboard-name {
   margin-left: 16px;
   font-size: 16px;
-  font-weight: 500;
   color: var(--color-text-primary);
   cursor: pointer;
   -webkit-app-region: no-drag; /* 使按钮不可拖动，从而可以点击 */
@@ -263,17 +287,15 @@ const finishEditing = () => {
 
   input {
     font-size: 16px;
-    font-weight: 500;
     color: var(--color-text-primary);
     background: transparent;
-    border: none;
-    border-bottom: 1px solid var(--color-border);
     outline: none;
     padding: 2px 4px;
-    width: 200px;
+    width: 400px;
+    line-height: 1;
 
     &:focus {
-      border-bottom-color: var(--color-primary);
+      background-color: var(--color-hover-button);
     }
   }
 }

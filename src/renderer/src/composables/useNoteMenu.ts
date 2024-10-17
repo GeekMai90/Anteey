@@ -46,6 +46,7 @@ import DetailsContent from '@tiptap-pro/extension-details-content'
 import DetailsSummary from '@tiptap-pro/extension-details-summary'
 import Export from '@tiptap-pro/extension-export'
 import { useNoteStore } from '../stores/noteStores'
+import { useRoute, useRouter } from 'vue-router'
 
 interface NoteMenuParams {
   noteId: string
@@ -61,6 +62,8 @@ export function useNoteMenu(params: NoteMenuParams) {
   const whiteboardStore = useWhiteboardStore()
   const showConfirmModal = ref(false)
   // const { allNotes } = storeToRefs(useNoteStore())
+  const route = useRoute()
+  const router = useRouter()
 
   // 批量导出笔记
   const allNotes = noteStore.allNotes
@@ -322,6 +325,10 @@ export function useNoteMenu(params: NoteMenuParams) {
         if (success) {
           console.log('笔记已移至回收站')
           noteStore.closeNoteEditor()
+          // 通过路由判断，如果在NoteExpandEditor页面，则跳转到Timeline页面
+          if (route.name === 'NoteExpandEditor') {
+            router.push('/timeline')
+          }
           return true
         } else {
           console.error('移动笔记到回收站失败')

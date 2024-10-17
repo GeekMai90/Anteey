@@ -31,7 +31,7 @@
             </div>
           </div>
         </template>
-        <div v-else class="empty-state">暂无卡片盒，请添加新的卡片盒</div>
+        <div v-else class="empty-state" @click="goToCardboxPage">点击前往卡片盒页面新增卡片盒</div>
       </div>
     </Transition>
   </Teleport>
@@ -43,6 +43,7 @@ import { CardBox } from '@renderer/types/Note'
 import { ref, computed, onMounted, onUnmounted, CSSProperties, watch, nextTick } from 'vue'
 import { useNoteStore } from '@renderer/stores/noteStores'
 import { storeToRefs } from 'pinia'
+import router from '@renderer/router'
 
 const props = defineProps<{
   isOpen: boolean
@@ -125,6 +126,10 @@ const adjustMenuPosition = () => {
       menuPosition.value.x -= overflowX + 10 // 10px 作为安全边距
     }
   }
+}
+
+const goToCardboxPage = () => {
+  router.push('/cardbox')
 }
 
 watch(
@@ -272,5 +277,13 @@ defineExpose({ openMenu, closeMenu, selectedCardBox })
 .fade-zoom-leave-from {
   opacity: 1;
   transform: scale(1);
+}
+.empty-state {
+  padding: 6px 12px;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  font-weight: 400;
+  text-align: center;
+  cursor: pointer;
 }
 </style>
