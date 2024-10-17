@@ -1,5 +1,10 @@
 <template>
   <div class="app-container" :class="{ 'theme-dark': isDarkTheme }">
+    <!-- 加载动画 -->
+    <div v-if="isLoading" class="loading-overlay">
+      <Vue3Lottie :animationData="loadingAnimation" :height="300" :width="300" />
+    </div>
+    <!-- 按钮 -->
     <div class="custom-titlebar">
       <div class="fake-traffic-lights">
         <div class="fake-button close"></div>
@@ -7,7 +12,7 @@
         <div class="fake-button maximize"></div>
       </div>
     </div>
-    <div class="content-wrapper">
+    <div v-show="!isLoading" class="content-wrapper">
       <Sidebar
         v-show="!uiStore.isSidebarCollapsed"
         class="sidebar"
@@ -70,10 +75,23 @@ import CardBoxSidebar from './components/CardBoxSidebar.vue'
 import { useUIStore } from './stores/useUIStore'
 import Modal from './components/Modal.vue'
 import SettingsPage from './components/SettingsPage.vue'
+import { Vue3Lottie } from 'vue3-lottie'
+import loadingAnimation from './assets/loading.json'
 
 const uiStore = useUIStore()
 const isDarkTheme = ref(false)
 const router = useRouter()
+
+const isLoading = ref(true)
+
+onMounted(async () => {
+  // 模拟加载过程
+  setTimeout(() => {
+    isLoading.value = false
+  }, 2000) // 2秒后隐藏加载动画
+
+  // ... 您现有的 onMounted 代码 ...
+})
 
 // 侧边栏相关
 const isTemporaryVisible = ref(false)
@@ -336,5 +354,18 @@ useGlobalHotkeys()
 .slide-left-leave-to {
   transform: translateX(-100%);
   opacity: 0;
+}
+
+.loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(255, 255, 255, 0.8);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
 }
 </style>
