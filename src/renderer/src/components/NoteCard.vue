@@ -25,7 +25,7 @@
     </div>
     <div ref="noteContent" class="note-content" @dblclick="useNoteStore().openNoteEditor(note.id)">
       <TipTapEditor
-        v-if="localNote.content"
+        v-show="hasContent"
         v-model:content="localNote.content"
         :editable="false"
         :enable-drag-handle="isDragHandleEnabled"
@@ -63,6 +63,22 @@ import type { MenuItem } from './PopupMenu.vue'
 const props = defineProps<{
   note: Note
 }>()
+
+// interface NoteContent {
+//   content?: {
+//     type: string
+//     content: any[]
+//   }
+// }
+
+const hasContent = computed(() => {
+  return (
+    localNote.value.content &&
+    'content' in localNote.value.content &&
+    Array.isArray(localNote.value.content.content) &&
+    localNote.value.content.content.length > 0
+  )
+})
 
 // 更多按钮弹出菜单
 const moreBtnRef = ref<HTMLElement | null>(null)

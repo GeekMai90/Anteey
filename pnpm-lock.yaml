@@ -330,6 +330,9 @@ importers:
       '@types/jest':
         specifier: ^29.5.13
         version: 29.5.13
+      '@types/knex':
+        specifier: ^0.16.1
+        version: 0.16.1(better-sqlite3@11.3.0)
       '@types/lodash-es':
         specifier: ^4.17.12
         version: 4.17.12
@@ -1724,6 +1727,10 @@ packages:
 
   '@types/keyv@3.1.4':
     resolution: {integrity: sha512-BQ5aZNSCpj7D6K2ksrRCTmKRLEpnPvWDiLPfoGyhZ++8YtiK9d/3DBKPJgry359X/P1PfruyYwvnvwFjuEiEIg==, tarball: https://registry.npmjs.org/@types/keyv/-/keyv-3.1.4.tgz}
+
+  '@types/knex@0.16.1':
+    resolution: {integrity: sha512-54gWD1HWwdVx5iLHaJ1qxH3I6KyBsj5fFqzRpXFn7REWiEB2jwspeVCombNsocSrqPd7IRPqKrsIME7/cD+TFQ==, tarball: https://registry.npmjs.org/@types/knex/-/knex-0.16.1.tgz}
+    deprecated: This is a stub types definition. knex provides its own type definitions, so you do not need this installed.
 
   '@types/linkify-it@3.0.5':
     resolution: {integrity: sha512-yg6E+u0/+Zjva+buc3EIb+29XEg4wltq7cSmd4Uc2EE/1nUVmxyzpX6gUXD0V8jIrG0r7YeOGVIbYRkxeooCtw==, tarball: https://registry.npmjs.org/@types/linkify-it/-/linkify-it-3.0.5.tgz}
@@ -7156,6 +7163,19 @@ snapshots:
   '@types/keyv@3.1.4':
     dependencies:
       '@types/node': 22.5.5
+
+  '@types/knex@0.16.1(better-sqlite3@11.3.0)':
+    dependencies:
+      knex: 3.1.0(better-sqlite3@11.3.0)
+    transitivePeerDependencies:
+      - better-sqlite3
+      - mysql
+      - mysql2
+      - pg
+      - pg-native
+      - sqlite3
+      - supports-color
+      - tedious
 
   '@types/linkify-it@3.0.5': {}
 
