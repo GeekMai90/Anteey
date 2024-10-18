@@ -123,7 +123,7 @@
           @click="showLinkMenu($event)"
         >
           <div class="icon">
-            <LinkIcon
+            <LinkTwo
               theme="outline"
               size="16"
               fill="var(--color-icon-menu-default)"
@@ -260,7 +260,7 @@
     >
       <div class="context-menu-item" @click="clearFormatting">
         <div class="icon">
-          <ClearFormat
+          <Format
             theme="outline"
             size="16"
             fill="var(--color-icon-menu-default)"
@@ -268,6 +268,17 @@
           />
         </div>
         <div class="name">清空格式</div>
+      </div>
+      <div class="context-menu-item" @click="clearStyle">
+        <div class="icon">
+          <ClearFormat
+            theme="outline"
+            size="16"
+            fill="var(--color-icon-menu-default)"
+            :strokeWidth="3"
+          />
+        </div>
+        <div class="name">清空样式</div>
       </div>
       <div class="context-menu-item" @click="copyToClipboard">
         <div class="icon">
@@ -298,7 +309,7 @@
         </div>
         <div class="link-input-field">
           <div class="icon">
-            <LinkIcon
+            <LinkTwo
               theme="outline"
               size="16"
               fill="var(--color-icon-menu-default)"
@@ -408,7 +419,7 @@ import {
   ClearFormat,
   Copy,
   Delete,
-  Link as LinkIcon,
+  LinkTwo,
   FontSize,
   H1,
   H2,
@@ -423,7 +434,8 @@ import {
   AlignTextCenter,
   AlignTextRight,
   AlignTextBoth,
-  ParagraphTriangle
+  ParagraphTriangle,
+  Format
 } from '@icon-park/vue-next'
 import TiptapImage from './TiptapImage.vue'
 import TaskItem from '@tiptap/extension-task-item'
@@ -442,7 +454,6 @@ import DetailsContent from '@tiptap-pro/extension-details-content'
 import DetailsSummary from '@tiptap-pro/extension-details-summary'
 import Export from '@tiptap-pro/extension-export'
 import { useNoteStore } from '../stores/noteStores'
-
 const router = useRouter()
 const noteStore = useNoteStore()
 
@@ -806,56 +817,157 @@ onBeforeUnmount(() => {
   // 移除全局点击事件监听器
   document.removeEventListener('click', closeContextMenu)
 })
+// // 拖拽块点击功能
+// const handleDragHandleClick = (event) => {
+//   event.preventDefault()
+//   event.stopPropagation()
+
+//   if (editor.value) {
+//     const { state } = editor.value
+//     const { from } = state.selection
+//     const $pos = state.doc.resolve(from)
+//     let node = $pos.parent
+
+//     // 确保选中的是有效的块级节点
+//     while (
+//       node &&
+//       ![
+//         'paragraph',
+//         'heading',
+//         'bulletList',
+//         'orderedList',
+//         'listItem',
+//         'taskList',
+//         'taskItem',
+//         'codeBlock',
+//         'image'
+//       ].includes(node.type.name)
+//     ) {
+//       if (node.type.name === 'doc') {
+//         console.log('未找到有效的块级节点')
+//         return
+//       }
+//       node = node.parent
+//     }
+
+//     if (node) {
+//       const { x, y } = getContextMenuPosition(event)
+//       showContextMenu.value = true
+//       contextMenuX.value = x - 5
+//       contextMenuY.value = y + 10
+//       currentParagraph.value = node
+
+//       const nodePos = $pos.before()
+//       const nodeEnd = $pos.after()
+
+//       // 选中整个节点，而不是节点中的文本
+//       editor.value.chain().focus().setNodeSelection(nodePos).run()
+
+//       console.log('拖拽块被点击了!', node)
+//       console.log('节点类型:', node.type.name)
+//       console.log('节点开始位置:', nodePos)
+//       console.log('节点结束位置:', nodeEnd)
+//     } else {
+//       console.log('未找到有效的块级节点')
+//     }
+//   } else {
+//     console.log('编辑器实例未找到')
+//   }
+// }
+// 辅助函数：检查是否为有效的块级节点
+const isValidBlockNode = (node) => {
+  return [
+    'paragraph',
+    'heading',
+    'bulletList',
+    'orderedList',
+    'listItem',
+    'taskList',
+    'taskItem',
+    'codeBlock',
+    'image'
+  ].includes(node.type.name)
+}
+
+// 拖拽块点击功能
+// const handleDragHandleClick = (event) => {
+//   event.preventDefault()
+//   event.stopPropagation()
+
+//   if (editor.value) {
+//     const { state } = editor.value
+//     const { from } = state.selection
+//     const $pos = state.doc.resolve(from)
+//     let node = $pos.parent
+//     let depth = $pos.depth
+
+//     // 向上查找有效的块级节点
+//     while (depth > 0 && !isValidBlockNode(node)) {
+//       depth--
+//       node = $pos.node(depth)
+//     }
+
+//     if (isValidBlockNode(node)) {
+//       const nodePos = $pos.before(depth)
+
+//       // 先将光标移动到行首
+//       editor.value.commands.focus(nodePos)
+
+//       // 使用 setNodeSelection 命令选择整个节点
+//       editor.value.commands.setNodeSelection(nodePos)
+
+//       // 设置上下文菜单位置
+//       const { x, y } = getContextMenuPosition(event)
+//       showContextMenu.value = true
+//       contextMenuX.value = x - 5
+//       contextMenuY.value = y + 10
+//       currentParagraph.value = node
+
+//       console.log('拖拽块被点击了!', node)
+//       console.log('节点类型:', node.type.name)
+//       console.log('节点位置:', nodePos)
+//     } else {
+//       console.log('未找到有效的块级节点')
+//     }
+//   } else {
+//     console.log('编辑器实例未找到')
+//   }
+// }
+// 拖拽块点击功能
 // 拖拽块点击功能
 const handleDragHandleClick = (event) => {
   event.preventDefault()
   event.stopPropagation()
 
   if (editor.value) {
-    const { state } = editor.value
+    const { state, commands } = editor.value
     const { from } = state.selection
     const $pos = state.doc.resolve(from)
     let node = $pos.parent
+    let depth = $pos.depth
 
-    // 确保选中的是有效的块级节点
-    while (
-      node &&
-      ![
-        'paragraph',
-        'heading',
-        'bulletList',
-        'orderedList',
-        'listItem',
-        'taskList',
-        'taskItem',
-        'codeBlock',
-        'image'
-      ].includes(node.type.name)
-    ) {
-      if (node.type.name === 'doc') {
-        console.log('未找到有效的块级节点')
-        return
-      }
-      node = node.parent
+    // 向上查找有效的块级节点
+    while (depth > 0 && !isValidBlockNode(node)) {
+      depth--
+      node = $pos.node(depth)
     }
 
-    if (node) {
+    if (isValidBlockNode(node)) {
+      const nodePos = $pos.before(depth)
+
+      // 使用 Tiptap 命令选择整个节点
+      commands.setNodeSelection(nodePos)
+
+      // 设置上下文菜单位置
       const { x, y } = getContextMenuPosition(event)
       showContextMenu.value = true
       contextMenuX.value = x - 5
       contextMenuY.value = y + 10
       currentParagraph.value = node
 
-      const nodePos = $pos.before()
-      const nodeEnd = $pos.after()
-
-      // 选中整个节点，而不是节点中的文本
-      editor.value.chain().focus().setNodeSelection(nodePos).run()
-
       console.log('拖拽块被点击了!', node)
       console.log('节点类型:', node.type.name)
-      console.log('节点开始位置:', nodePos)
-      console.log('节点结束位置:', nodeEnd)
+      console.log('节点位置:', nodePos)
     } else {
       console.log('未找到有效的块级节点')
     }
@@ -864,27 +976,39 @@ const handleDragHandleClick = (event) => {
   }
 }
 
+// 清空格式
 const clearFormatting = () => {
   if (currentParagraph.value && editor.value) {
-    editor.value.chain().focus().clearNodes().unsetAllMarks().run()
+    editor.value.chain().focus().clearNodes().unsetAllMarks().setParagraph().run()
   }
   showContextMenu.value = false
 }
-
+// 清空样式
+const clearStyle = () => {
+  if (currentParagraph.value && editor.value) {
+    editor.value.chain().focus().unsetAllMarks().run()
+  }
+  showContextMenu.value = false
+}
+// 复制到剪贴板
 const copyToClipboard = () => {
   if (currentParagraph.value) {
     navigator.clipboard.writeText(currentParagraph.value.textContent)
   }
   showContextMenu.value = false
 }
-
+// 删除段落
 const deleteParagraph = () => {
   if (editor.value && currentParagraph.value) {
     const nodePos = editor.value.state.selection.from
     const node = editor.value.state.doc.nodeAt(nodePos)
 
     if (node) {
-      console.log('当前段落类型:', node.type.name)
+      // console.log('当前段落类型:', node.type.name)
+      // 清空样式
+      editor.value.chain().focus().unsetAllMarks().run()
+      // 清空节点
+      editor.value.chain().focus().clearNodes().unsetAllMarks().setParagraph().run()
 
       editor.value
         .chain()
@@ -892,7 +1016,7 @@ const deleteParagraph = () => {
         .deleteRange({ from: nodePos, to: nodePos + node.nodeSize })
         .run()
 
-      console.log('尝试删除节点')
+      // console.log('尝试删除节点')
 
       // 触发内容更新
       emit('update:content', editor.value.getJSON())
