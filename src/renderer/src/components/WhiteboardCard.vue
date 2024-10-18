@@ -73,7 +73,12 @@ const openWhiteboard = (id: string) => {
   console.log('打开白板详情', id)
   console.log('当前路由:', router.currentRoute.value)
   router
-    .replace({ name: 'whiteboardDetail', params: { whiteboardId: id } })
+    // .replace({ name: 'whiteboardDetail', params: { whiteboardId: id } })
+    .push({
+      name: 'whiteboardDetail',
+      params: { whiteboardId: id },
+      query: { _t: Date.now() }
+    })
     .then(() => {
       console.log('路由跳转成功')
       console.log('跳转后的路由:', router.currentRoute.value)

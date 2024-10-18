@@ -7,6 +7,7 @@ import { ref } from 'vue'
 import { useUIStore } from './useUIStore'
 import { debounce } from 'lodash-es'
 import { Editor } from '@tiptap/vue-3'
+import { useWhiteboardStore } from './whiteboardStores'
 
 const cardTypes = [
   { value: 'Maincard', label: '主要卡', icon: Notes },
@@ -314,6 +315,7 @@ export const useNoteStore = defineStore('note', {
     // 移动到回收站
     async moveToTrash(id: string) {
       console.log('noteStores.ts→ 移动到回收站:', id)
+      const whiteboardStore = useWhiteboardStore()
       try {
         const result = await window.electronAPI.softDeleteNote(id)
         console.log('noteStores.ts→ 移动到回收站结果:', result)
@@ -329,6 +331,8 @@ export const useNoteStore = defineStore('note', {
             this.closeNoteEditor()
             console.log('noteStores.ts→ 关闭笔记编辑器')
           }
+          // 将引用该笔记的白板笔记删除
+          await whiteboardStore.deleteWhiteboardNoteByNoteId(id)
           return true
         } else {
           console.error('noteStores.ts→ 移动笔记到回收站失败:', result)

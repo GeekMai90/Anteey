@@ -329,6 +329,19 @@ export const useWhiteboardStore = defineStore('whiteboard', {
         throw error
       }
     },
+    // 通过引用的卡片笔记 id 找到白板笔记并删除白板笔记
+    async deleteWhiteboardNoteByNoteId(noteId: string) {
+      try {
+        console.log('whiteboardStore→ 开始删除白板笔记', noteId)
+        const whiteboardNotes = this.whiteboardNotes.filter((note) => note.noteId === noteId)
+        const result = await window.electronAPI.deleteWhiteboardNote(whiteboardNotes[0].id)
+        console.log('whiteboardStore→ 删除白板笔记成功', result)
+        return result
+      } catch (error) {
+        console.error('whiteboardStore→ 删除白板笔记失败', error)
+        throw error
+      }
+    },
     // 更新白板笔记的自动高度
     async updateWhiteboardNoteAutoHeight(id: string, isAutoHeight: boolean) {
       try {
