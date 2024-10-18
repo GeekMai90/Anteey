@@ -104,6 +104,7 @@ import CalendarPicker from '../components/CalendarPicker.vue'
 import { useUIStore } from '../stores/useUIStore'
 import { useSearch } from '../composables/useSearch'
 import { Note } from '@renderer/types/Note'
+import { useEventBus } from '@vueuse/core'
 // 初始化笔记状态
 const noteStore = useNoteStore()
 const { allNotes } = storeToRefs(noteStore)
@@ -113,6 +114,12 @@ const { searchQuery, handleSearch, filteredItems, clearSearch, selectedDate, set
   useSearch(allNotes)
 
 const isSearchFocused = ref(false)
+
+// 监听笔记删除事件，重新获取笔记数据
+const eventBus = useEventBus('note-deleted')
+eventBus.on(() => {
+  fetchNotes()
+})
 
 const handleBlur = () => {
   // 添加一个小延迟，以确保在点击清除按钮时不会立即失去焦点

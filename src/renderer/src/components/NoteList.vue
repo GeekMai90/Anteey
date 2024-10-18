@@ -14,6 +14,12 @@
       @expand="handleExpang"
       @more="handleMore"
     />
+    <!-- 添加底线 -->
+    <div v-if="notes.length > 0" class="bottom-line">
+      <div class="line"></div>
+      <span class="text">🙈 我也是有底线的 🙊</span>
+      <div class="line"></div>
+    </div>
   </div>
 </template>
 
@@ -85,6 +91,40 @@ const handleMore = (noteId: string) => {
     &-description {
       font-size: 1rem;
       max-width: 300px;
+    }
+  }
+
+  // 添加底线样式
+  .bottom-line {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 0;
+    margin-top: auto;
+    color: var(--color-text-secondary);
+    font-size: 14px;
+
+    .line {
+      flex-grow: 1;
+      height: 1px;
+      background: linear-gradient(to right, transparent, var(--color-text-secondary), transparent);
+      opacity: 0.2;
+    }
+
+    .text {
+      padding: 0 15px;
+      white-space: nowrap;
+      opacity: 0.8;
+      // font-style: italic;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+
+      &::before,
+      &::after {
+        font-style: normal;
+        font-size: 16px;
+      }
     }
   }
 }

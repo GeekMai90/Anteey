@@ -370,17 +370,6 @@ onMounted(async () => {
     scrollToHighlightedNote()
   }
 })
-// 监听 store 中的 highlightedNoteId 变化
-// 监听路由变化
-// watch(
-//   () => route.query.highlightedNoteId,
-//   async (newId) => {
-//     if (newId) {
-//       highlightedNoteId.value = newId as string
-//       await scrollToHighlightedNote()
-//     }
-//   }
-// )
 // 监听路由变化
 watch(
   () => route.query.highlightedNoteId,
@@ -391,16 +380,6 @@ watch(
     }
   }
 )
-// 监听 store 中的 highlightedNoteId 变化
-// watch(
-//   () => noteStore.highlightedNoteId,
-//   async (newId) => {
-//     if (newId) {
-//       highlightedNoteId.value = newId
-//       await scrollToHighlightedNote()
-//     }
-//   }
-// )
 // 监听 store 中的 highlightedNoteId 变化
 watch(
   () => noteStore.highlightedNoteId,
@@ -416,6 +395,9 @@ watch(
 const eventBus = useEventBus('note-deleted')
 eventBus.on(() => {
   fetchNotes()
+})
+onUnmounted(() => {
+  eventBus.off('note-deleted' as any)
 })
 
 // 监听搜索高亮事件的事件总线
