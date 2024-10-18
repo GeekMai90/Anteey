@@ -1,4 +1,3 @@
-// src/views/NoteExpandEditor.vue
 <!-- src/views/NoteExpandEditor.vue -->
 <template>
   <div class="note-expand-editor">
@@ -110,7 +109,6 @@ import { debounce } from 'lodash-es'
 import PopupMenu from '../components/PopupMenu.vue'
 import { useNoteMenu } from '../composables/useNoteMenu'
 import type { MenuItem } from '../components/PopupMenu.vue'
-// import { storeToRefs } from 'pinia'
 import CardTypeDropdownMenu from '../components/CardTypeDropdownMenu.vue'
 
 const tiptapEditor = ref<any>(null)
@@ -119,10 +117,12 @@ const noteStore = useNoteStore()
 const noteId = route.params.id as string
 const addressInput = ref<HTMLInputElement | null>(null)
 
+// 卡片类型菜单
 const cardTypeDropdownMenu = ref<InstanceType<typeof CardTypeDropdownMenu> | null>(null)
 const showCardTypeMenu = ref(false)
 const indicatorButton = ref<HTMLElement | null>(null)
 
+// 卡片类型
 const cardTypeClass = computed(() => ({
   maincard: editedNote.value?.cardType === 'Maincard',
   bibcard: editedNote.value?.cardType === 'Bibcard',
@@ -130,6 +130,7 @@ const cardTypeClass = computed(() => ({
   // hoplinkcard: editedNote.value?.cardType === 'Hoplinkcard'
 }))
 
+// 打开卡片类型菜单
 const toggleCardTypeMenu = (event: MouseEvent) => {
   event.stopPropagation()
   showCardTypeMenu.value = !showCardTypeMenu.value
@@ -144,6 +145,7 @@ const toggleCardTypeMenu = (event: MouseEvent) => {
   }
 }
 
+// 关闭卡片类型菜单
 const closeCardTypeMenu = () => {
   showCardTypeMenu.value = false
 }
@@ -155,11 +157,12 @@ const updateCardType = (newType: CardType) => {
   }
 }
 
-// 卡片盒列表
+// 卡片盒菜单
 const dropdownMenu = ref<InstanceType<typeof CardboxDropdownMenu> | null>(null)
 const isMenuOpen = ref(false)
 const infoBtnRef = ref<HTMLElement | null>(null)
 
+// 卡片盒菜单
 const showCardBoxMenu = (event: MouseEvent) => {
   event.preventDefault()
   isMenuOpen.value = !isMenuOpen.value
@@ -183,10 +186,13 @@ const popupMenuRef = ref<InstanceType<typeof PopupMenu> | null>(null)
 const isMenuVisible = ref(false)
 const menuPosition = reactive({ x: 0, y: 0 })
 
+// 更多菜单
 const { menuItems: noteMenuItems, resetDeleteState } = useNoteMenu({
   noteId: noteId,
   menuItems: ['star', 'sidebar', 'copyNoteLink', 'exportNote', 'delete']
 })
+
+// 更多菜单点击事件
 const toggleMenu = (event: MouseEvent) => {
   event.preventDefault()
   isMenuVisible.value = !isMenuVisible.value
@@ -200,6 +206,8 @@ const toggleMenu = (event: MouseEvent) => {
     })
   }
 }
+
+// 更多菜单点击事件
 const handleMenuItemClick = (item: MenuItem) => {
   item.action()
   if (item.name !== 'delete') {
@@ -212,9 +220,9 @@ const closeMenu = () => {
   resetDeleteState()
 }
 
-// const { currentNote } = storeToRefs(noteStore)
-
+// 内容是否修改
 const isContentModified = ref(false)
+// 最后保存的笔记
 const lastSavedNote = ref(null)
 const editedNote = ref<Note | null>(null)
 
@@ -225,12 +233,13 @@ watch(
     const note = await noteStore.fetchNoteById(newId)
     if (note) {
       editedNote.value = note
+      nextTick(() => {
+        focusEditor()
+      })
     }
   },
   { immediate: true }
 )
-
-// const editedNote = computed(() => currentNote.value)
 
 // 更新内容
 const updateContent = debounce((newContent: any) => {
@@ -239,7 +248,8 @@ const updateContent = debounce((newContent: any) => {
     isContentModified.value = true
   }
 }, 300)
-// 添加处理地址输入的函数
+
+// 处理地址输入的函数
 const handleAddressInput = () => {
   if (editedNote.value) {
     isContentModified.value = true
@@ -265,7 +275,7 @@ const autoSave = debounce(async () => {
         await noteStore.updateNote(editedNote.value.id, editedNote.value)
         lastSavedNote.value = JSON.parse(JSON.stringify(editedNote.value))
         isContentModified.value = false
-        console.log('笔记已自动保存')
+        // console.log('笔记已自动保存')
       } catch (error) {
         console.error('自动保存失败:', error)
       }
@@ -297,7 +307,7 @@ const saveNote = async () => {
       await noteStore.updateNote(editedNote.value.id, editedNote.value)
       lastSavedNote.value = JSON.parse(JSON.stringify(editedNote.value))
       isContentModified.value = false
-      console.log('笔记已手动保存')
+      // console.log('笔记已手动保存')
     } catch (error) {
       console.error('手动保存失败:', error)
     }
@@ -321,41 +331,33 @@ onBeforeUnmount(async () => {
   await saveNote()
 })
 
-// 聚焦地址输入框
-const focusAddressInput = () => {
-  nextTick(() => {
-    addressInput.value?.focus()
-  })
-}
+// 聚焦地址输入框（暂不使用）
+// const focusAddressInput = () => {
+//   nextTick(() => {
+//     addressInput.value?.focus()
+//   })
+// }
 
-// 修改 focusEditor 函数
+// 聚焦编辑器
 const focusEditor = () => {
   nextTick(() => {
-    tiptapEditor.value?.focus('end')
+    tiptapEditor.value?.focus('start')
   })
 }
 
-// 添加新的处理函数
+// 地址栏回车后聚焦编辑器
 const handleAddressEnter = (event: KeyboardEvent) => {
   event.preventDefault() // 阻止默认行为
   focusEditor()
 }
 
-// 在组件挂载后聚焦
+// 在组件挂载后将笔记添加到最近笔记
 onMounted(() => {
-  focusAddressInput()
+  // focusAddressInput()
   if (noteId) {
     noteStore.addToRecentNotes(noteId)
   }
 })
-
-// 当 noteId 改变时聚焦（用于编辑现有笔记）
-watch(
-  () => noteId,
-  () => {
-    focusAddressInput()
-  }
-)
 </script>
 
 <style scoped lang="scss">

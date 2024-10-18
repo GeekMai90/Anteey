@@ -914,7 +914,13 @@ const editorExtensions = computed(() => {
         levels: [1, 2, 3]
       },
       dropcursor: false,
-      codeBlock: false
+      codeBlock: false,
+      keymap: {
+        Escape: ({ editor }) => {
+          editor.commands.blur()
+          return true
+        }
+      }
     }),
     BubbleMenu,
     Markdown.configure({
@@ -1065,6 +1071,14 @@ onMounted(() => {
         }
         closeLinkMenus()
         return false // 允许 Tiptap 处理其他点击
+      },
+      // 添加 handleKeyDown 处理函数
+      handleKeyDown: (view, event) => {
+        if (event.key === 'Escape') {
+          editor.value.commands.blur()
+          return true // 阻止事件进一步传播
+        }
+        return false // 允许其他键盘事件正常处理
       }
     }
   })
@@ -1091,7 +1105,7 @@ watch(
 const focus = () => {
   nextTick(() => {
     if (editor.value && props.editable) {
-      editor.value.commands.focus('end')
+      editor.value.commands.focus('start')
     }
   })
 }
