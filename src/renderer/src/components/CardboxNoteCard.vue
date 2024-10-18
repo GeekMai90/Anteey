@@ -1,6 +1,10 @@
 // src/components/NoteCard.vue
 <template>
-  <div class="note-card" @dblclick="useNoteStore().openNoteEditor(note.id)">
+  <div
+    :id="`note-${note.id}`"
+    :class="{ 'note-card': true, highlighted: isHighlighted }"
+    @dblclick="useNoteStore().openNoteEditor(note.id)"
+  >
     <div class="note-header">
       <span class="note-indicator" :class="cardTypeClass"></span>
       <h3 class="note-title">{{ note.address }}</h3>
@@ -64,7 +68,10 @@ import { useEventBus } from '@vueuse/core'
 
 const props = defineProps<{
   note: Note
+  highlightedNoteId: string | null
 }>()
+
+const isHighlighted = computed(() => props.highlightedNoteId === props.note.id)
 
 const noteStore = useNoteStore()
 const { allNotes } = storeToRefs(noteStore)
@@ -379,5 +386,26 @@ watch(
   margin-right: 0;
   padding-left: 15px;
   padding-right: 15px;
+}
+
+.note-card {
+  // ... 现有的样式 ...
+
+  &.highlighted {
+    box-shadow: 0 0 0 2px var(--color-primary);
+    animation: pulse 2s infinite;
+  }
+}
+
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(var(--color-primary-rgb), 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(var(--color-primary-rgb), 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(var(--color-primary-rgb), 0);
+  }
 }
 </style>

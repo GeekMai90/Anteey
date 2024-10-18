@@ -196,6 +196,12 @@ const hide = () => {
   selectedBlockIndex.value = -1
 }
 
+const locateNoteInCardBox = (noteId: string) => {
+  noteStore.setHighlightedNoteId(noteId)
+  router.push({ name: 'cardbox' })
+  noteStore.closeSearchModal()
+}
+
 const handleKeyDown = (event: KeyboardEvent) => {
   // const totalBlocks = searchResults.value.reduce((sum, note) => sum + note.blocks.length, 0)
   switch (event.key) {
@@ -230,6 +236,11 @@ const handleKeyDown = (event: KeyboardEvent) => {
         // Cmd+Enter
         router.push({ name: 'NoteExpandEditor', params: { id: selectedNote.value.id } })
         noteStore.closeSearchModal()
+      }
+      // 按下alt+enter 在卡片盒中定位笔记
+      if (event.altKey && event.key === 'Enter' && selectedNote.value) {
+        locateNoteInCardBox(selectedNote.value.id)
+        event.preventDefault()
       } else if (selectedNote.value) {
         noteStore.openNoteEditor(selectedNote.value.id)
         noteStore.closeSearchModal()

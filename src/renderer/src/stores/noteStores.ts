@@ -44,7 +44,8 @@ export const useNoteStore = defineStore('note', {
     editor: null as Editor | null,
     isLoading: true,
     recentNotes: [] as string[],
-    maxRecentNotes: 6
+    maxRecentNotes: 6,
+    highlightedNoteId: null as string | null
   }),
 
   actions: {
@@ -64,6 +65,12 @@ export const useNoteStore = defineStore('note', {
     setCurrentNote(note: Note | null) {
       this.currentNote = note
       this.currentNoteId = note ? note.id : undefined
+    },
+    setHighlightedNoteId(noteId: string | null) {
+      this.highlightedNoteId = noteId
+    },
+    clearHighlightedNoteId() {
+      this.highlightedNoteId = null
     },
 
     // 将空笔记移到回收站

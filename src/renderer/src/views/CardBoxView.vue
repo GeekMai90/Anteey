@@ -294,6 +294,7 @@ import CardBoxNoteCard from '../components/CardboxNoteCard.vue'
 import { storeToRefs } from 'pinia'
 import { useCardBoxSearch } from '../composables/useCardBoxSearch'
 import { useEventBus } from '@vueuse/core'
+import { useRoute, useRouter } from 'vue-router'
 
 const noteStore = useNoteStore()
 const { allNotes, selectedCardTypes } = storeToRefs(noteStore)
@@ -310,6 +311,8 @@ const showSortMenu = ref(false)
 const currentSort = ref('name')
 const sortDirection = ref('asc')
 const highlightedNoteId = ref<string | null>(null)
+const route = useRoute()
+const router = useRouter()
 
 // 使用新的 useCardBoxSearch 组合函数
 const {
@@ -325,6 +328,21 @@ const fetchNotes = async () => {
   await noteStore.fetchAllNotes()
 }
 
+const scrollToHighlightedNote = async () => {
+  if (highlightedNoteId.value) {
+    await nextTick()
+    const highlightedElement = document.getElementById(`note-${highlightedNoteId.value}`)
+    if (highlightedElement) {
+      highlightedElement.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      // 添加一个小延迟后清除高亮ID
+      setTimeout(() => {
+        highlightedNoteId.value = null
+        router.replace({ query: {} })
+      }, 2000) // 2秒后清除高亮状态
+    }
+  }
+}
+
 // 在组件挂载时，初始化笔记数据
 onMounted(async () => {
   await fetchNotes()
@@ -333,7 +351,55 @@ onMounted(async () => {
   if (cardBoxes.value.length > 0) {
     selectCardBox(cardBoxes.value[0])
   }
+
+  highlightedNoteId.value =
+    (route.query.highlightedNoteId as string | null) || noteStore.highlightedNoteId
+  if (highlightedNoteId.value) {
+    await nextTick()
+    scrollToHighlightedNote()
+  }
 })
+// 监听 store 中的 highlightedNoteId 变化
+// 监听路由变化
+// watch(
+//   () => route.query.highlightedNoteId,
+//   async (newId) => {
+//     if (newId) {
+//       highlightedNoteId.value = newId as string
+//       await scrollToHighlightedNote()
+//     }
+//   }
+// )
+// 监听路由变化
+watch(
+  () => route.query.highlightedNoteId,
+  async (newId) => {
+    if (newId) {
+      highlightedNoteId.value = newId as string
+      await scrollToHighlightedNote()
+    }
+  }
+)
+// 监听 store 中的 highlightedNoteId 变化
+// watch(
+//   () => noteStore.highlightedNoteId,
+//   async (newId) => {
+//     if (newId) {
+//       highlightedNoteId.value = newId
+//       await scrollToHighlightedNote()
+//     }
+//   }
+// )
+// 监听 store 中的 highlightedNoteId 变化
+watch(
+  () => noteStore.highlightedNoteId,
+  async (newId) => {
+    if (newId) {
+      highlightedNoteId.value = newId
+      await scrollToHighlightedNote()
+    }
+  }
+)
 
 // 监听笔记删除事件，重新获取笔记数据
 const eventBus = useEventBus('note-deleted')
@@ -1246,6 +1312,7 @@ onUnmounted(() => {
   .card-grid-container {
     flex: 1;
     overflow-y: auto; // 允许卡片网格容器滚动
+    scroll-behavior: smooth; // 添加平滑滚动
   }
 
   // .card-grid {
