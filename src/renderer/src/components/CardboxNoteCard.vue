@@ -175,7 +175,7 @@ watch(
 <style lang="scss" scoped>
 .note-card {
   background-color: var(--color-bg-primary);
-  border: 1px solid var(--color-border-primary);
+  border: 1px solid var(--color-border);
   border-radius: 8px;
   padding: 10px 0px 0px 0;
   // margin-bottom: 15px;
@@ -187,6 +187,18 @@ watch(
   height: var(--card-height);
   overflow: hidden; // 防止内容溢出
   box-shadow: var(--shadow-card);
+  user-select: none;
+  // box-shadow:
+  //   0 1px 2px rgba(0, 0, 0, 0.05),
+  //   0 4px 8px rgba(0, 0, 0, 0.05),
+  //   0 8px 16px rgba(0, 0, 0, 0.05);
+  // transition: box-shadow 0.3s ease-in-out;
+  // &:hover {
+  //   box-shadow:
+  //     0 2px 4px rgba(0, 0, 0, 0.05),
+  //     0 6px 12px rgba(0, 0, 0, 0.05),
+  //     0 12px 24px rgba(0, 0, 0, 0.05);
+  // }
   .note-header {
     display: flex;
     align-items: center;

@@ -99,6 +99,7 @@ import Modal from '@renderer/components/Modal.vue'
 import { useRouter } from 'vue-router'
 import NotePreviewCard from '@renderer/components/NotePreviewCard.vue'
 import { BankCard, ParagraphRectangle, FileSearch } from '@icon-park/vue-next'
+import { useEventBus } from '@vueuse/core'
 
 const noteStore = useNoteStore()
 const router = useRouter()
@@ -200,6 +201,9 @@ const locateNoteInCardBox = (noteId: string) => {
   noteStore.setHighlightedNoteId(noteId)
   router.push({ name: 'cardbox' })
   noteStore.closeSearchModal()
+  // 触发事件
+  const searchHighlightEventBus = useEventBus('search-highlight')
+  searchHighlightEventBus.emit(noteId)
 }
 
 const handleKeyDown = (event: KeyboardEvent) => {

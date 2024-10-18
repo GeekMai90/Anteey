@@ -236,7 +236,7 @@
       </div>
     </div>
     <div class="cardbox-view-container">
-      <div class="card-grid-container">
+      <div ref="cardGridContainer" class="card-grid-container">
         <div class="card-grid">
           <CardBoxNoteCard
             v-for="note in filteredNotes"
@@ -328,19 +328,30 @@ const fetchNotes = async () => {
   await noteStore.fetchAllNotes()
 }
 
+const cardGridContainer = ref<HTMLElement | null>(null)
+
 const scrollToHighlightedNote = async () => {
   if (highlightedNoteId.value) {
     await nextTick()
     const highlightedElement = document.getElementById(`note-${highlightedNoteId.value}`)
-    if (highlightedElement) {
-      highlightedElement.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    if (highlightedElement && cardGridContainer.value) {
+      cardGridContainer.value.scrollTo({
+        top: highlightedElement.offsetTop - cardGridContainer.value.offsetTop - 20,
+        behavior: 'smooth'
+      })
       // 添加一个小延迟后清除高亮ID
       setTimeout(() => {
         highlightedNoteId.value = null
         router.replace({ query: {} })
+        // 清除 noteStore 中的高亮笔记
+        noteStore.clearHighlightedNoteId()
       }, 2000) // 2秒后清除高亮状态
     }
   }
+}
+const handleSearchHighlight = (noteId: string) => {
+  highlightedNoteId.value = noteId
+  scrollToHighlightedNote()
 }
 
 // 在组件挂载时，初始化笔记数据
@@ -406,6 +417,16 @@ const eventBus = useEventBus('note-deleted')
 eventBus.on(() => {
   fetchNotes()
 })
+
+// 监听搜索高亮事件的事件总线
+const searchHighlightEventBus = useEventBus('search-highlight')
+searchHighlightEventBus.on((noteId: any) => {
+  handleSearchHighlight(noteId)
+})
+// onUnmounted(() => {
+//   eventBus.off()
+//   searchHighlightEventBus.off()
+// })
 
 // 排序选项功能
 const sortOptions = [
