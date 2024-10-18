@@ -236,18 +236,21 @@ const handleKeyDown = (event: KeyboardEvent) => {
       scrollToSelectedItem()
       break
     case 'Enter':
-      if (event.metaKey && selectedNote.value) {
-        // Cmd+Enter
-        router.push({ name: 'NoteExpandEditor', params: { id: selectedNote.value.id } })
-        noteStore.closeSearchModal()
-      }
-      // 按下alt+enter 在卡片盒中定位笔记
-      if (event.altKey && event.key === 'Enter' && selectedNote.value) {
-        locateNoteInCardBox(selectedNote.value.id)
-        event.preventDefault()
-      } else if (selectedNote.value) {
-        noteStore.openNoteEditor(selectedNote.value.id)
-        noteStore.closeSearchModal()
+      event.preventDefault() // 阻止默认行为
+      if (selectedNote.value) {
+        if (event.metaKey) {
+          // Cmd+Enter: 只打开扩展笔记编辑器
+          router.push({ name: 'NoteExpandEditor', params: { id: selectedNote.value.id } })
+          noteStore.closeSearchModal()
+        } else if (event.altKey) {
+          // Alt+Enter: 在卡片盒中定位笔记
+          locateNoteInCardBox(selectedNote.value.id)
+          noteStore.closeSearchModal()
+        } else {
+          // 普通 Enter: 打开小窗编辑器
+          noteStore.openNoteEditor(selectedNote.value.id)
+          noteStore.closeSearchModal()
+        }
       }
       break
     case 'Escape':
