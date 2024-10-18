@@ -8,9 +8,9 @@
     <div ref="noteContent" class="note-content">
       <TipTapEditor
         :key="note.id"
-        v-model:content="localNote.content"
+        :content="note.content"
         :editable="false"
-        :enable-drag-handle="isDragHandleEnabled"
+        :enable-drag-handle="false"
       />
     </div>
   </div>
@@ -18,16 +18,16 @@
 
 <script setup lang="ts">
 import { Note } from '@renderer/types/Note'
-import { computed, ref, watch, toRef } from 'vue'
+import { computed } from 'vue'
 import TipTapEditor from '@renderer/components/TipTapEditor.vue'
 
 const props = defineProps<{
   note: Note
 }>()
 
-const isDragHandleEnabled = ref(false)
+// const isDragHandleEnabled = ref(false)
 
-const localNote = toRef(props, 'note')
+// const localNote = toRef(props, 'note')
 
 const cardTypeClass = computed(() => {
   switch (props.note.cardType) {
@@ -44,16 +44,16 @@ const cardTypeClass = computed(() => {
   }
 })
 
-watch(
-  () => props.note,
-  (newNote, oldNote) => {
-    if (newNote.id !== oldNote.id || newNote.isDeleted !== oldNote.isDeleted) {
-      console.log('Note changed, updating local note')
-      localNote.value = newNote
-    }
-  },
-  { deep: true }
-)
+// watch(
+//   () => props.note,
+//   (newNote, oldNote) => {
+//     if (newNote.id !== oldNote.id || newNote.isDeleted !== oldNote.isDeleted) {
+//       console.log('Note changed, updating local note')
+//       localNote.value = newNote
+//     }
+//   },
+//   { deep: true }
+// )
 </script>
 
 <style lang="scss" scoped>

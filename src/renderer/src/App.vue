@@ -41,7 +41,7 @@
       />
       <!-- 卡片盒侧边栏 -->
       <!-- <Transition name="slide-fade"> -->
-      <CardBoxSidebar v-show="uiStore.showCardBox" class="card-box-sidebar" />
+      <!-- <CardBoxSidebar v-show="uiStore.showCardBox" class="card-box-sidebar" /> -->
       <!-- </Transition> -->
     </div>
     <!-- 鼠标悬停区域 -->
@@ -71,7 +71,7 @@ import GlobalUIManager from './components/GlobalUIManager.vue'
 import SearchModal from './components/SearchModal.vue'
 import { useGlobalHotkeys } from './composables/useGlobalHotkeys'
 import ContextMenu from './components/ContexMenu.vue'
-import CardBoxSidebar from './components/CardBoxSidebar.vue'
+// import CardBoxSidebar from './components/CardBoxSidebar.vue'
 import { useUIStore } from './stores/useUIStore'
 import Modal from './components/Modal.vue'
 import SettingsPage from './components/SettingsPage.vue'

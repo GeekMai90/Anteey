@@ -325,6 +325,7 @@ export function useNoteMenu(params: NoteMenuParams) {
         if (success) {
           console.log('笔记已移至回收站')
           noteStore.closeNoteEditor()
+          await noteStore.fetchAllNotes()
           // 通过路由判断，如果在NoteExpandEditor页面，则跳转到Timeline页面
           if (route.name === 'NoteExpandEditor') {
             router.push('/timeline')

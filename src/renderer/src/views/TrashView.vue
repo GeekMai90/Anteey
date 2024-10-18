@@ -2,32 +2,37 @@
   <div class="trash-view">
     <div class="fixed-header">
       <AppToolbar :showBackButton="true" :showForwardButton="true"></AppToolbar>
-      <div class="topToolBar">
-        <div class="filter-bar">
-          <h2>回收站</h2>
-        </div>
-        <div class="right-actions">
-          <div class="sort-button-container" @click.stop="toggleSortMenu">
-            <SortTwo theme="outline" size="18" fill="currentColor" />
-            <div v-if="showSortMenu" class="sort-dropdown-menu">
-              <div
-                v-for="option in sortOptions"
-                :key="option.value"
-                class="sort-dropdown-item"
-                @click="selectSortOption(option)"
-              >
-                <div class="dropdown-item-content">
-                  {{ option.label }}
-                </div>
-                <div v-if="currentSort === option.value" class="sort-direction">
-                  {{ sortDirection === 'asc' ? '↑' : '↓' }}
+      <div class="header-content">
+        <div class="topToolBar">
+          <div class="trash-header-left">
+            <div class="icon">
+              <RecycleBin theme="outline" size="20" fill="var(--color-primary)" :strokeWidth="3" />
+            </div>
+            <div class="name">回收站</div>
+          </div>
+          <div class="right-actions">
+            <div class="sort-button-container" @click.stop="toggleSortMenu">
+              <SortTwo theme="outline" size="18" fill="var(--color-icon-menu-default)" />
+              <div v-if="showSortMenu" class="sort-dropdown-menu">
+                <div
+                  v-for="option in sortOptions"
+                  :key="option.value"
+                  class="sort-dropdown-item"
+                  @click="selectSortOption(option)"
+                >
+                  <div class="dropdown-item-content">
+                    {{ option.label }}
+                  </div>
+                  <div v-if="currentSort === option.value" class="sort-direction">
+                    {{ sortDirection === 'asc' ? '↑' : '↓' }}
+                  </div>
                 </div>
               </div>
             </div>
+            <button v-if="deletedNotes.length > 0" class="empty-trash-button" @click="emptyTrash">
+              清空回收站
+            </button>
           </div>
-          <button v-if="deletedNotes.length > 0" class="empty-trash-button" @click="emptyTrash">
-            清空回收站
-          </button>
         </div>
       </div>
     </div>
@@ -47,7 +52,7 @@
         <div class="empty-state">
           <div class="empty-state-content">
             <!-- <clear theme="outline" size="24" fill="#333" :strokeWidth="1"/> -->
-            <Clear theme="outline" size="64" fill="currentColor" :strokeWidth="2" />
+            <Clear theme="outline" size="64" fill="var(--color-icon-secondary)" :strokeWidth="2" />
             <p>回收站是空的</p>
             <span>删除的笔记将会在这里显示</span>
           </div>
@@ -84,7 +89,7 @@ import { useNoteStore } from '../stores/noteStores'
 import AppToolbar from '../components/AppToolbar.vue'
 import TrashNoteCard from '../components/TrashNoteCard.vue'
 import ConfirmDialog from '../components/ConfirmDialog.vue'
-import { SortTwo, Recycling, Delete, Clear } from '@icon-park/vue-next'
+import { SortTwo, Recycling, Delete, Clear, RecycleBin } from '@icon-park/vue-next'
 import { Note } from '../types/Note'
 
 const noteStore = useNoteStore()
@@ -114,7 +119,8 @@ onUnmounted(() => {
 
 const fetchDeletedNotes = async () => {
   try {
-    const fetchedNotes = await noteStore.deletedNotes
+    const fetchedNotes = await noteStore.allDeletedNotes
+    console.log('fetchedNotes', fetchedNotes)
     deletedNotes.value = Array.isArray(fetchedNotes) ? fetchedNotes : []
   } catch (error) {
     console.error('加载回收站笔记失败', error)
@@ -266,13 +272,68 @@ const handleCancelEmptyTrash = () => {
     top: 0;
     z-index: 100;
     background-color: var(--body-bg);
+    .header-content {
+      padding: 0px 20px;
+    }
 
     .topToolBar {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 10px 30px;
+      // padding: 10px 20px;
       background-color: var(--body-bg);
+      padding: 8px 0;
+      border-bottom: 1px solid var(--color-border);
+
+      .trash-header-left {
+        position: relative;
+        display: flex;
+        align-items: center;
+        border: none;
+        background: none;
+        border-radius: 6px;
+        padding: 4px 0px;
+        margin: 2px;
+
+        .icon {
+          width: 30px;
+          height: 30px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: all 0.2s ease;
+          padding: 0;
+          border-radius: 8px;
+          background-color: var(--color-menu-bg);
+          border: 1px solid var(--color-primary);
+
+          :deep(.i-icon) {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
+          }
+
+          :deep(svg) {
+            width: 18px;
+            height: 18px;
+          }
+        }
+
+        .name {
+          flex-grow: 0;
+          text-align: left;
+          color: var(--default-text-color);
+          font-size: 20px;
+          font-weight: 600;
+          margin-left: 8px;
+          white-space: nowrap;
+          writing-mode: horizontal-tb;
+          user-select: none;
+          line-height: 1;
+        }
+      }
 
       h2 {
         margin: 0;
