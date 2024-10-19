@@ -357,7 +357,7 @@ watch(
     margin-bottom: 10px;
     // min-height: 60px;
     // max-height: 300px;
-    height: 300px;
+    height: 240px;
     overflow: hidden;
     position: relative;
     font-size: 15px;

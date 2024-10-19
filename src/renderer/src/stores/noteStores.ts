@@ -7,7 +7,7 @@ import { ref } from 'vue'
 import { useUIStore } from './useUIStore'
 import { debounce } from 'lodash-es'
 import { Editor } from '@tiptap/vue-3'
-import { useWhiteboardStore } from './whiteboardStores'
+// import { useWhiteboardStore } from './whiteboardStores'
 
 const cardTypes = [
   { value: 'Maincard', label: '主要卡', icon: Notes },

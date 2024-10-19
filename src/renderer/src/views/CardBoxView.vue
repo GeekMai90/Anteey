@@ -330,23 +330,50 @@ const fetchNotes = async () => {
 
 const cardGridContainer = ref<HTMLElement | null>(null)
 
+// const scrollToHighlightedNote = async () => {
+//   if (highlightedNoteId.value) {
+//     await nextTick()
+//     const highlightedElement = document.getElementById(`note-${highlightedNoteId.value}`)
+//     if (highlightedElement && cardGridContainer.value) {
+//       cardGridContainer.value.scrollTo({
+//         top: highlightedElement.offsetTop - cardGridContainer.value.offsetTop - 20,
+//         behavior: 'smooth'
+//       })
+//       // 添加一个小延迟后清除高亮ID
+//       setTimeout(() => {
+//         highlightedNoteId.value = null
+//         router.replace({ query: {} })
+//         // 清除 noteStore 中的高亮笔记
+//         noteStore.clearHighlightedNoteId()
+//       }, 2000) // 2秒后清除高亮状态
+//     }
+//   }
+// }
 const scrollToHighlightedNote = async () => {
   if (highlightedNoteId.value) {
-    await nextTick()
-    const highlightedElement = document.getElementById(`note-${highlightedNoteId.value}`)
-    if (highlightedElement && cardGridContainer.value) {
-      cardGridContainer.value.scrollTo({
-        top: highlightedElement.offsetTop - cardGridContainer.value.offsetTop - 20,
-        behavior: 'smooth'
-      })
-      // 添加一个小延迟后清除高亮ID
-      setTimeout(() => {
-        highlightedNoteId.value = null
-        router.replace({ query: {} })
-        // 清除 noteStore 中的高亮笔记
-        noteStore.clearHighlightedNoteId()
-      }, 2000) // 2秒后清除高亮状态
+    for (let i = 0; i < 5; i++) {
+      // 尝试5次
+      await new Promise((resolve) => setTimeout(resolve, 100)) // 等待100ms
+      const highlightedElement = document.getElementById(`note-${highlightedNoteId.value}`)
+      if (highlightedElement && cardGridContainer.value) {
+        const containerRect = cardGridContainer.value.getBoundingClientRect()
+        const elementRect = highlightedElement.getBoundingClientRect()
+        const scrollTop =
+          elementRect.top - containerRect.top + cardGridContainer.value.scrollTop - 20
+        cardGridContainer.value.scrollTo({
+          top: scrollTop,
+          behavior: 'smooth'
+        })
+        break
+      }
     }
+    // 添加一个小延迟后清除高亮ID
+    setTimeout(() => {
+      highlightedNoteId.value = null
+      router.replace({ query: {} })
+      // 清除 noteStore 中的高亮笔记
+      noteStore.clearHighlightedNoteId()
+    }, 2000) // 2秒后清除高亮状态
   }
 }
 const handleSearchHighlight = (noteId: string) => {

@@ -45,7 +45,7 @@
         :editable="false"
         :enable-drag-handle="isDragHandleEnabled"
       />
-      <div v-if="isOverflowing" class="fade-out"></div>
+      <!-- <div v-if="isOverflowing" class="fade-out"></div> -->
     </div>
     <div class="note-timestamp">
       {{ formatDate(note.updatedAt) }}
@@ -57,14 +57,14 @@
 import { Note } from '@renderer/types/Note'
 import { formatDate } from '@renderer/utils/noteHelpers'
 import { More, ExpandTextInput } from '@icon-park/vue-next'
-import { computed, onMounted, onUpdated, ref, watch, reactive, nextTick, toRef } from 'vue'
+import { computed, ref, reactive, nextTick, toRef } from 'vue'
 import { useNoteStore } from '@renderer/stores/noteStores'
 import { useRouter } from 'vue-router'
 import TipTapEditor from '@renderer/components/TipTapEditor.vue'
 import PopupMenu from '@renderer/components/PopupMenu.vue'
 import { useNoteMenu } from '@renderer/composables/useNoteMenu'
 import type { MenuItem } from '@renderer/components/PopupMenu.vue'
-import { storeToRefs } from 'pinia'
+// import { storeToRefs } from 'pinia'
 import { useEventBus } from '@vueuse/core'
 
 const props = defineProps<{
@@ -74,8 +74,7 @@ const props = defineProps<{
 
 const isHighlighted = computed(() => props.highlightedNoteId === props.note.id)
 
-const noteStore = useNoteStore()
-const { allNotes } = storeToRefs(noteStore)
+// const noteStore = useNoteStore()
 
 // const localNote = computed(() => {
 //   return allNotes.value.find((note) => note.id === props.note.id)
@@ -99,13 +98,13 @@ const { menuItems: noteMenuItems, resetDeleteState } = useNoteMenu({
 
 // 处理内容超高时底部出现模糊效果
 const noteContent = ref<HTMLDivElement | null>(null)
-const isOverflowing = ref(false)
+// const isOverflowing = ref(false)
 
-const checkOverflow = () => {
-  if (noteContent.value) {
-    isOverflowing.value = noteContent.value.scrollHeight > noteContent.value.clientHeight
-  }
-}
+// const checkOverflow = () => {
+//   if (noteContent.value) {
+//     isOverflowing.value = noteContent.value.scrollHeight > noteContent.value.clientHeight
+//   }
+// }
 
 const router = useRouter()
 
@@ -158,20 +157,20 @@ const closeMenu = () => {
   resetDeleteState()
 }
 
-onMounted(() => {
-  checkOverflow()
-})
+// onMounted(() => {
+//   checkOverflow()
+// })
 
-onUpdated(() => {
-  checkOverflow()
-})
+// onUpdated(() => {
+//   checkOverflow()
+// })
 
-watch(
-  () => props.note.content,
-  () => {
-    checkOverflow()
-  }
-)
+// watch(
+//   () => props.note.content,
+//   () => {
+//     checkOverflow()
+//   }
+// )
 </script>
 
 <style lang="scss" scoped>

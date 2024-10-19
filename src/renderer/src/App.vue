@@ -29,8 +29,16 @@
       </Transition>
 
       <!-- 主内容区 -->
-      <main class="main-content">
+      <!-- <main class="main-content">
         <router-view :key="$route.fullPath"></router-view>
+      </main> -->
+      <main class="main-content">
+        <router-view v-slot="{ Component }">
+          <keep-alive>
+            <component :is="Component" v-if="$route.meta.keepAlive" :key="$route.fullPath" />
+          </keep-alive>
+          <component :is="Component" v-if="!$route.meta.keepAlive" :key="$route.fullPath" />
+        </router-view>
       </main>
       <RightSidebar
         v-show="uiStore.isRightSidebarOpen"

@@ -8,7 +8,8 @@ const routes = [
   {
     name: 'home',
     path: '/home',
-    component: () => import('../views/HomeView.vue')
+    component: () => import('../views/HomeView.vue'),
+    meta: { keepAlive: true }
   },
   {
     name: 'timeline',
@@ -18,7 +19,8 @@ const routes = [
   {
     name: 'cardbox',
     path: '/cardbox',
-    component: () => import('../views/CardBoxView.vue')
+    component: () => import('../views/CardBoxView.vue'),
+    meta: { keepAlive: true }
   },
   {
     name: 'whiteboard',
@@ -43,7 +45,8 @@ const routes = [
   {
     name: 'MainCard',
     path: '/maincard',
-    component: () => import('../views/MainCard.vue')
+    component: () => import('../views/MainCard.vue'),
+    meta: { keepAlive: true }
   },
   {
     name: 'BibCard',

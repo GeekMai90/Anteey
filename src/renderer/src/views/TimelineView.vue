@@ -168,7 +168,7 @@ const sortedNotes = computed(() => {
 })
 
 // 使用虚拟列表
-const itemHeight = 410 // 假设每个笔记卡片的高度为100px，根据实际情况调整
+const itemHeight = 350 // 假设每个笔记卡片的高度为100px，根据实际情况调整
 
 const { list, containerProps, wrapperProps } = useVirtualList(sortedNotes, {
   itemHeight,
