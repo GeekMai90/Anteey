@@ -16,6 +16,7 @@ export function useCardBoxSearch(allNotes: Ref<Note[]>) {
 
     const query = searchQuery.value.toLowerCase()
     searchResults.value = allNotes.value
+      .filter((note) => !note.isDeleted)
       .map((note, index) => ({ note, index }))
       .filter(
         ({ note }) =>
@@ -25,7 +26,7 @@ export function useCardBoxSearch(allNotes: Ref<Note[]>) {
   }, 300)
 
   const filteredNotes = computed(() => {
-    let result = allNotes.value
+    let result = allNotes.value.filter((note) => !note.isDeleted)
 
     // 应用搜索过滤
     if (searchQuery.value) {

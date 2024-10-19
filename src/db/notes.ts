@@ -190,17 +190,52 @@ export async function updateNote(id: string, updateNoteDto: Partial<Note>): Prom
 }
 
 // 软删除笔记
-export async function softDeleteNote(id: string): Promise<Note | null> {
-  try {
-    // 软删除后返回更新后的笔记
-    const result = await db('notes').where('id', id).update('isDeleted', true).returning('*')
-    const updatedNote = result[0] ? convertToNote(result[0]) : null
-    console.log('后端→ 软删除笔记更新后的笔记:', JSON.stringify(updatedNote))
-    return updatedNote
-  } catch (error) {
-    console.error(`后端→ 软删除笔记失败: ${id}:`, error)
-    throw error
-  }
+// export async function softDeleteNote(id: string): Promise<Note | null> {
+//   try {
+//     // 软删除后返回更新后的笔记
+//     const result = await db('notes').where('id', id).update('isDeleted', true).returning('*')
+//     const updatedNote = result[0] ? convertToNote(result[0]) : null
+//     console.log('后端→ 软删除笔记更新后的笔记:', JSON.stringify(updatedNote))
+//     return updatedNote
+//   } catch (error) {
+//     console.error(`后端→ 软删除笔记失败: ${id}:`, error)
+//     throw error
+//   }
+// }
+// 软删除笔记
+export async function softDeleteNote(id: string): Promise<{ note: Note | null; success: boolean }> {
+  console.log(`后端→ 开始软删除笔记: ${id}`)
+
+  return db.transaction(async (trx) => {
+    try {
+      // 1. 首先获取笔记
+      const note = await trx('notes').where('id', id).first()
+
+      if (!note) {
+        console.warn(`后端→ 未找到ID为 ${id} 的笔记`)
+        return { note: null, success: false }
+      }
+
+      // 2. 更新笔记状态
+      const [updatedNote] = await trx('notes')
+        .where('id', id)
+        .update({ isDeleted: true, updatedAt: new Date() })
+        .returning('*')
+
+      if (!updatedNote) {
+        console.error(`后端→ 更新笔记失败: ${id}`)
+        return { note: null, success: false }
+      }
+
+      const convertedNote = convertToNote(updatedNote)
+      console.log('后端→ 软删除笔记成功，更新后的笔记:', JSON.stringify(convertedNote))
+
+      return { note: convertedNote, success: true }
+    } catch (error) {
+      console.error(`后端→ 软删除笔记失败: ${id}:`, error)
+      throw error
+    }
+  })
 }
 
 // 恢复已删除的笔记

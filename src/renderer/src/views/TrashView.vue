@@ -119,9 +119,10 @@ onUnmounted(() => {
 
 const fetchDeletedNotes = async () => {
   try {
-    const fetchedNotes = await noteStore.allDeletedNotes
+    const fetchedNotes = await noteStore.deletedNotes
     console.log('fetchedNotes', fetchedNotes)
-    deletedNotes.value = Array.isArray(fetchedNotes) ? fetchedNotes : []
+    // deletedNotes.value = Array.isArray(fetchedNotes) ? fetchedNotes : []
+    deletedNotes.value = fetchedNotes
   } catch (error) {
     console.error('加载回收站笔记失败', error)
     deletedNotes.value = []

@@ -40,7 +40,8 @@
     <div ref="noteContent" class="note-content">
       <TipTapEditor
         v-if="localNote"
-        v-model:content="localNote.content"
+        :key="localNote.id"
+        :content="localNote.content"
         :editable="false"
         :enable-drag-handle="isDragHandleEnabled"
       />
@@ -56,7 +57,7 @@
 import { Note } from '@renderer/types/Note'
 import { formatDate } from '@renderer/utils/noteHelpers'
 import { More, ExpandTextInput } from '@icon-park/vue-next'
-import { computed, onMounted, onUpdated, ref, watch, reactive, nextTick } from 'vue'
+import { computed, onMounted, onUpdated, ref, watch, reactive, nextTick, toRef } from 'vue'
 import { useNoteStore } from '@renderer/stores/noteStores'
 import { useRouter } from 'vue-router'
 import TipTapEditor from '@renderer/components/TipTapEditor.vue'
@@ -76,9 +77,10 @@ const isHighlighted = computed(() => props.highlightedNoteId === props.note.id)
 const noteStore = useNoteStore()
 const { allNotes } = storeToRefs(noteStore)
 
-const localNote = computed(() => {
-  return allNotes.value.find((note) => note.id === props.note.id)
-})
+// const localNote = computed(() => {
+//   return allNotes.value.find((note) => note.id === props.note.id)
+// })
+const localNote = toRef(props, 'note')
 
 // const emit = defineEmits(['edit'])
 const isDragHandleEnabled = ref(false)
@@ -145,7 +147,7 @@ const handleMenuItemClick = async (item: MenuItem) => {
   if (item.name === 'delete') {
     // 触发一个事件，通知父组件刷新笔记列表
     const eventBus = useEventBus('note-deleted')
-    eventBus.emit()
+    eventBus.emit(props.note.id)
   } else {
     closeMenu()
   }

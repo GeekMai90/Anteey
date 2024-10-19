@@ -47,6 +47,7 @@ import DetailsSummary from '@tiptap-pro/extension-details-summary'
 import Export from '@tiptap-pro/extension-export'
 import { useNoteStore } from '../stores/noteStores'
 import { useRoute, useRouter } from 'vue-router'
+import { useEventBus } from '@vueuse/core'
 
 interface NoteMenuParams {
   noteId: string
@@ -303,7 +304,7 @@ export function useNoteMenu(params: NoteMenuParams) {
   const isConfirmingDelete = ref(false)
   const isDeleting = ref(false)
   let deleteTimeout: number | null = null
-
+  const eventBus = useEventBus('note-deleted')
   const handleDelete = async () => {
     if (isDeleting.value) return false
 
@@ -325,7 +326,12 @@ export function useNoteMenu(params: NoteMenuParams) {
         if (success) {
           console.log('笔记已移至回收站')
           noteStore.closeNoteEditor()
+
+          // 触发笔记删除事件
+          eventBus.emit(params.noteId)
+          // 强制刷新笔记列表
           await noteStore.fetchAllNotes()
+          // await noteStore.fetchAllNotes()
           // 通过路由判断，如果在NoteExpandEditor页面，则跳转到Timeline页面
           if (route.name === 'NoteExpandEditor') {
             router.push('/timeline')

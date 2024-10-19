@@ -15,7 +15,7 @@
             <div
               v-tooltip.bottom="{ content: 'Cmd+P', delay: { show: 1000 } }"
               class="search-box"
-              :class="{ 'is-focused': isSearchActive }"
+              :class="{ 'is-focused': isSearchFocused }"
             >
               <div class="search-icon">
                 <div class="icon">
@@ -33,7 +33,7 @@
                 type="text"
                 placeholder="搜索"
                 @input="handleSearch"
-                @focus="isSearchActive = true"
+                @focus="isSearchFocused = true"
                 @blur="handleBlur"
               />
               <div v-if="searchQuery" class="clear-icon" @click="clearSearch">
@@ -46,7 +46,7 @@
                   />
                 </div>
               </div>
-              <!-- 搜索结果显示 -->
+              <!-- 搜索结果显示
               <div v-if="searchResults.length > 0" class="search-results">
                 <div
                   v-for="result in searchResults"
@@ -56,7 +56,7 @@
                 >
                   {{ result.note.address }}
                 </div>
-              </div>
+              </div> -->
             </div>
             <!-- 卡片柜 -->
             <div ref="cardboxDropdown" class="cardbox-dropdown" @click.stop="toggleCardBoxMenu">
@@ -248,8 +248,9 @@ import {
 import { CardBox, Note } from '../types/Note'
 import CardBoxNoteCard from '../components/CardboxNoteCard.vue'
 import { storeToRefs } from 'pinia'
-import { useCardBoxSearch } from '../composables/useCardBoxSearch'
+// import { useCardBoxSearch } from '../composables/useCardBoxSearch'
 import { useEventBus } from '@vueuse/core'
+import { useSearch } from '@renderer/composables/useSearch'
 
 const noteStore = useNoteStore()
 const { allMainNotes } = storeToRefs(noteStore)
@@ -268,14 +269,8 @@ const sortDirection = ref('asc')
 const highlightedNoteId = ref<string | null>(null)
 
 // 使用新的 useCardBoxSearch 组合函数
-const {
-  searchQuery,
-  handleSearch,
-  filteredNotes: searchFilteredNotes,
-  searchResults,
-  clearSearch,
-  isSearchActive
-} = useCardBoxSearch(allMainNotes)
+const { searchQuery, handleSearch, filteredItems, clearSearch } = useSearch(allMainNotes)
+const isSearchFocused = ref(false)
 
 // 初始化组件中的笔记数据
 const fetchNotes = async () => {
@@ -368,7 +363,7 @@ const selectCardBox = (box: CardBox | null) => {
 
 const handleBlur = () => {
   setTimeout(() => {
-    isSearchActive.value = false
+    isSearchFocused.value = false
   }, 100)
 }
 
@@ -399,7 +394,7 @@ const handleBlur = () => {
 // })
 // 修改 filteredNotes 计算属性
 const filteredNotes = computed(() => {
-  return searchFilteredNotes.value
+  return filteredItems.value
     .filter((note: Note) => {
       if (selectedCardBox.value) {
         switch (selectedCardBox.value.id) {
@@ -443,17 +438,17 @@ watch(
 )
 
 // 新增的 scrollToNote 函数
-const scrollToNote = (index: number, noteId: string) => {
-  const cardElements = document.querySelectorAll('.card-grid > *')
-  if (cardElements[index]) {
-    cardElements[index].scrollIntoView({ behavior: 'smooth', block: 'center' })
-    highlightedNoteId.value = noteId
-    setTimeout(() => {
-      highlightedNoteId.value = null
-    }, 3000) // 3秒后取消高亮
-  }
-  clearSearch() // 清除搜索结果
-}
+// const scrollToNote = (index: number, noteId: string) => {
+//   const cardElements = document.querySelectorAll('.card-grid > *')
+//   if (cardElements[index]) {
+//     cardElements[index].scrollIntoView({ behavior: 'smooth', block: 'center' })
+//     highlightedNoteId.value = noteId
+//     setTimeout(() => {
+//       highlightedNoteId.value = null
+//     }, 3000) // 3秒后取消高亮
+//   }
+//   clearSearch() // 清除搜索结果
+// }
 
 // 卡片盒下拉项中的更多操作
 const toggleMoreActions = (id: string, event: MouseEvent) => {

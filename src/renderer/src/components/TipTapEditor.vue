@@ -453,9 +453,10 @@ import Details from '@tiptap-pro/extension-details'
 import DetailsContent from '@tiptap-pro/extension-details-content'
 import DetailsSummary from '@tiptap-pro/extension-details-summary'
 import Export from '@tiptap-pro/extension-export'
-import { useNoteStore } from '../stores/noteStores'
+// import { useNoteStore } from '../stores/noteStores'
+
 const router = useRouter()
-const noteStore = useNoteStore()
+// const noteStore = useNoteStore()
 
 const props = defineProps({
   content: {
@@ -1206,15 +1207,25 @@ onMounted(() => {
       }
     }
   })
-  noteStore.setEditor(editor.value)
+  // noteStore.setEditor(editor.value)
 })
 
 onBeforeUnmount(() => {
   if (editor.value) {
     editor.value.destroy()
   }
-  noteStore.clearEditor()
+  // noteStore.clearEditor()
 })
+// const debouncedDestroy = debounce(() => {
+//   if (editor.value) {
+//     editor.value.destroy()
+//   }
+//   noteStore.clearEditor()
+// }, 200) // 调整延迟时间以适应您的应用
+
+// onBeforeUnmount(() => {
+//   debouncedDestroy()
+// })
 
 watch(
   () => props.editable,

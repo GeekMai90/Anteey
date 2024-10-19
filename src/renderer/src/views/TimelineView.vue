@@ -1,7 +1,6 @@
 <!-- src/views/TimelineView.vue  -->
-
 <template>
-  <div class="timeline-view">
+  <div v-if="isLoaded" class="timeline-view">
     <!-- 固定头部 -->
     <div class="sticky-header">
       <!-- 工具栏 -->
@@ -73,16 +72,27 @@
     <!-- 时间线内容 -->
     <div class="timeline-container">
       <div class="note-list-container">
+        <div v-if="sortedNotes.length === 0" class="empty-state">
+          <div class="empty-state-icon">📝</div>
+          <h2 class="empty-state-title">暂无笔记</h2>
+          <p class="empty-state-description">开始创建新笔记</p>
+        </div>
         <!-- 笔记列表 -->
-        <NoteList
-          :notes="sortedNotes"
+        <NoteCard
+          v-for="note in sortedNotes"
+          :key="note.id"
+          :note="note"
           @edit="noteStore.openNoteEditor"
-          @expand="expandNote"
-          @more="showMoreOptions"
-          @delete="handleDelete"
         />
+        <!-- 添加底线 -->
+        <div v-if="sortedNotes.length > 0" class="bottom-line">
+          <div class="line"></div>
+          <span class="text">🙈 我也是有底线的 🙊</span>
+          <div class="line"></div>
+        </div>
       </div>
     </div>
+    <!-- 日历选择器 -->
     <CalendarPicker
       :notes="notesForCalendar"
       :isVisible="uiStore.isCalendarPickerOpen"
@@ -94,9 +104,8 @@
 </template>
 
 <script setup lang="ts">
-import NoteList from '../components/NoteList.vue'
 import { useNoteStore } from '../stores/noteStores'
-import { computed, onMounted, ref } from 'vue'
+import { computed, onActivated, onMounted, ref } from 'vue'
 import { storeToRefs } from 'pinia'
 import { Time as TimeIcon, Calendar, Search, Close } from '@icon-park/vue-next'
 import AppToolbar from '../components/AppToolbar.vue'
@@ -104,23 +113,38 @@ import CalendarPicker from '../components/CalendarPicker.vue'
 import { useUIStore } from '../stores/useUIStore'
 import { useSearch } from '../composables/useSearch'
 import { Note } from '@renderer/types/Note'
-import { useEventBus } from '@vueuse/core'
+import NoteCard from '../components/NoteCard.vue'
+
 // 初始化笔记状态
 const noteStore = useNoteStore()
 const { allNotes } = storeToRefs(noteStore)
 const uiStore = useUIStore()
 
+// 初始化时间线状态
+const isLoaded = ref(false)
+onMounted(async () => {
+  await noteStore.$persist()
+  isLoaded.value = true
+})
+// 获取笔记数据
+const fetchNotes = async () => {
+  await noteStore.fetchAllNotes()
+}
+
+// 获取笔记数据
+onMounted(() => {
+  fetchNotes() // 获取笔记数据
+})
+// 激活时获取笔记数据
+onActivated(fetchNotes)
+
+// 初始化搜索状态
 const { searchQuery, handleSearch, filteredItems, clearSearch, selectedDate, setSelectedDate } =
   useSearch(allNotes)
 
 const isSearchFocused = ref(false)
 
-// 监听笔记删除事件，重新获取笔记数据
-const eventBus = useEventBus('note-deleted')
-eventBus.on(() => {
-  fetchNotes()
-})
-
+// 处理搜索框失去焦点
 const handleBlur = () => {
   // 添加一个小延迟，以确保在点击清除按钮时不会立即失去焦点
   setTimeout(() => {
@@ -130,57 +154,38 @@ const handleBlur = () => {
 
 // 计算属性：按创建时间排序的笔记列表
 const sortedNotes = computed(() => {
-  return filteredItems.value
+  const sorted = filteredItems.value
     .filter((note) => !note.isDeleted)
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+
+  console.log('Sorted Notes:', sorted)
+  return sorted
 })
 
 // 创建一个新的计算属性，将 Date 类型的 createdAt 转换为 string 类型
 const notesForCalendar = computed(() => {
   return allNotes.value.map((note: Note) => ({
     ...note,
-    createdAt: note.createdAt.toISOString() // 将 Date 转换为 ISO 字符串
+    createdAt:
+      note.createdAt instanceof Date
+        ? note.createdAt.toISOString()
+        : typeof note.createdAt === 'string'
+          ? note.createdAt
+          : new Date().toISOString()
   }))
 })
 
+// 处理日历选择器事件
 const onDateSelected = (date: string | null) => {
   setSelectedDate(date)
 }
+
+// 切换日历选择器
 const toggleDateFilter = () => {
   if (selectedDate.value) {
     setSelectedDate(null)
   } else {
     uiStore.toggleCalendarPicker()
-  }
-}
-
-onMounted(async () => {
-  await fetchNotes() // 获取笔记数据
-})
-
-const fetchNotes = async () => {
-  await noteStore.fetchAllNotes()
-}
-
-// 展开笔记（这里可以实现查看完整笔记内容的逻辑）
-const expandNote = (noteId: string) => {
-  console.log('Expand note:', noteId)
-  // 这里可以实现打开一个模态框显示完整笔记内容，或者导航到笔记详情页面
-}
-
-// 显示更多选项（这里可以实现显示更多操作的逻辑，如删除、移动等）
-const showMoreOptions = (noteId: string) => {
-  console.log('Show more options for note:', noteId)
-  // 这里可以实现显示一个包含更多操作的下拉菜单或模态框
-}
-
-// 删除笔记
-const handleDelete = async (noteId: string) => {
-  try {
-    await noteStore.moveToTrash(noteId)
-    console.log('笔记已移动到回收站')
-  } catch (error) {
-    console.error('移动笔记到回收站失败:', error)
   }
 }
 </script>
@@ -459,6 +464,71 @@ const handleDelete = async (noteId: string) => {
       max-width: 900px;
       margin: 0 auto;
       padding-top: 16px;
+      position: relative;
+
+      .empty-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -90%);
+        width: 100%;
+        text-align: center;
+        color: var(--color-text-primary);
+
+        &-icon {
+          font-size: 4rem;
+          margin-bottom: 1rem;
+        }
+
+        &-title {
+          font-size: 1.5rem;
+          font-weight: 600;
+          margin-bottom: 0.5rem;
+          color: var(--color-text-primary);
+        }
+
+        &-description {
+          font-size: 1rem;
+          max-width: 300px;
+        }
+      }
+    }
+  }
+}
+// 添加底线样式
+.bottom-line {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 0;
+  margin-top: auto;
+  color: var(--color-text-secondary);
+  font-size: 14px;
+
+  .line {
+    flex-grow: 1;
+    height: 1px;
+    background: linear-gradient(to right, transparent, var(--color-text-secondary), transparent);
+    opacity: 0.2;
+  }
+
+  .text {
+    padding: 0 15px;
+    white-space: nowrap;
+    opacity: 0.8;
+    // font-style: italic;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    &::before,
+    &::after {
+      font-style: normal;
+      font-size: 16px;
     }
   }
 }

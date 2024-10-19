@@ -1,4 +1,4 @@
-// src/components/NoteCard.vue
+<!-- src/components/NoteCard.vue -->
 <template>
   <div class="note-card">
     <div class="note-header">
@@ -6,36 +6,46 @@
       <h3 class="note-title">{{ note.address }}</h3>
 
       <div class="note-buttons">
-        <div class="note-button" @click.stop="expandNote">
+        <div
+          v-tooltip.bottom="{
+            content: '展开编辑',
+            delay: { show: 1000 },
+            html: true
+          }"
+          class="note-button"
+          @click.stop="expandNote"
+        >
           <div class="icon">
             <ExpandTextInput
               theme="outline"
-              size="20"
+              size="16"
               fill="var(--color-icon-default)"
-              :strokeWidth="4"
+              :strokeWidth="3"
             />
           </div>
         </div>
         <div ref="moreBtnRef" class="note-button" @click.stop="toggleMenu">
           <div v-tooltip.bottom="{ content: '更多', delay: { show: 1000 } }" class="icon">
-            <More theme="outline" size="16" fill="var(--color-icon-default)" :strokeWidth="4" />
+            <More theme="outline" size="16" fill="var(--color-icon-default)" :strokeWidth="3" />
           </div>
         </div>
       </div>
     </div>
     <div ref="noteContent" class="note-content" @dblclick="useNoteStore().openNoteEditor(note.id)">
       <TipTapEditor
-        v-show="hasContent"
-        v-model:content="localNote.content"
+        v-if="shouldRenderTipTap"
+        :key="note.id"
+        :content="note.content"
         :editable="false"
-        :enable-drag-handle="isDragHandleEnabled"
+        :enable-drag-handle="false"
       />
+      <!-- 内容超出时，显示模糊效果 -->
       <div v-if="isOverflowing" class="fade-out"></div>
     </div>
     <div class="note-timestamp">
       {{ formatDate(note.createdAt) }}
     </div>
-
+    <!-- 更多按钮弹出菜单 -->
     <PopupMenu
       ref="popupMenuRef"
       :show="isMenuVisible"
@@ -52,7 +62,7 @@
 import { Note } from '@renderer/types/Note'
 import { formatDate } from '@renderer/utils/noteHelpers'
 import { More, ExpandTextInput } from '@icon-park/vue-next'
-import { computed, onMounted, onUpdated, ref, watch, toRef, nextTick, reactive } from 'vue'
+import { computed, onMounted, onUpdated, ref, watch, nextTick, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import TipTapEditor from '@renderer/components/TipTapEditor.vue'
 import { useNoteStore } from '@renderer/stores/noteStores'
@@ -65,20 +75,12 @@ const props = defineProps<{
   note: Note
 }>()
 
-// interface NoteContent {
-//   content?: {
-//     type: string
-//     content: any[]
-//   }
-// }
+const shouldRenderTipTap = ref(false)
 
-const hasContent = computed(() => {
-  return (
-    localNote.value.content &&
-    'content' in localNote.value.content &&
-    Array.isArray(localNote.value.content.content) &&
-    localNote.value.content.content.length > 0
-  )
+onMounted(() => {
+  nextTick(() => {
+    shouldRenderTipTap.value = true
+  })
 })
 
 // 更多按钮弹出菜单
@@ -121,25 +123,6 @@ const closeMenu = () => {
   resetDeleteState()
 }
 
-// const emit = defineEmits(['edit'])
-const isDragHandleEnabled = ref(false)
-// const noteStore = useNoteStore()
-
-const localNote = toRef(props, 'note')
-
-// const closeOptionsMenu = () => {
-//   isOptionsMenuVisible.value = false
-//   noteOptionsMenu.value?.resetState()
-// }
-
-// const handleNoteDeleted = async () => {
-//   console.log('Note deleted, updating UI')
-//   await noteStore.fetchNotes() // 重新获取笔记列表
-//   noteStore.closeNoteEditor()
-//   closeOptionsMenu()
-//   console.log('UI updated after note deletion')
-// }
-
 // 处理内容超高时底部出现模糊效果
 const noteContent = ref<HTMLDivElement | null>(null)
 const isOverflowing = ref(false)
@@ -150,8 +133,8 @@ const checkOverflow = () => {
   }
 }
 
+// 展开笔记
 const router = useRouter()
-
 const expandNote = () => {
   router.push({ name: 'NoteExpandEditor', params: { id: props.note.id } })
 }
@@ -185,16 +168,17 @@ watch(
     checkOverflow()
   }
 )
-watch(
-  () => props.note,
-  (newNote, oldNote) => {
-    if (newNote.id !== oldNote.id || newNote.isDeleted !== oldNote.isDeleted) {
-      console.log('Note changed, updating local note')
-      localNote.value = newNote
-    }
-  },
-  { deep: true }
-)
+// const localNote = toRef(props, 'note')
+// watch(
+//   () => props.note,
+//   (newNote, oldNote) => {
+//     if (newNote.id !== oldNote.id || newNote.isDeleted !== oldNote.isDeleted) {
+//       console.log('Note changed, updating local note')
+//       localNote.value = newNote
+//     }
+//   },
+//   { deep: true }
+// )
 </script>
 
 <style lang="scss" scoped>

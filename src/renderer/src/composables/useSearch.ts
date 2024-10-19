@@ -17,10 +17,11 @@ export function useSearch<T extends Searchable>(items: Ref<T[]>) {
 
   const handleSearch = debounce(() => {
     // 搜索逻辑会在 filteredItems 计算属性中处理
-  }, 300)
+  }, 500)
 
   const filteredItems = computed(() => {
-    let result = items.value
+    // 过滤掉被删除的笔记
+    let result = items.value.filter((item) => !item.isDeleted)
 
     // 应用搜索过滤
     if (searchQuery.value) {
