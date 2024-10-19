@@ -639,7 +639,7 @@ export function useNoteMenu(params: NoteMenuParams) {
         return item
       })
     }
-    console.log('Computed menuItems:', items)
+    // console.log('Computed menuItems:', items)
     return items.length > 0 ? items : Object.values(allMenuItems.value)
   })
 

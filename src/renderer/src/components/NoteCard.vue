@@ -355,8 +355,9 @@ watch(
     color: var(--color-text-primary);
     text-align: left;
     margin-bottom: 10px;
-    min-height: 60px;
-    max-height: 300px;
+    // min-height: 60px;
+    // max-height: 300px;
+    height: 300px;
     overflow: hidden;
     position: relative;
     font-size: 15px;

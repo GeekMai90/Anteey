@@ -71,19 +71,25 @@
     </div>
     <!-- 时间线内容 -->
     <div class="timeline-container">
-      <div class="note-list-container">
+      <div v-bind="containerProps" class="note-list-container">
         <div v-if="sortedNotes.length === 0" class="empty-state">
           <div class="empty-state-icon">📝</div>
           <h2 class="empty-state-title">暂无笔记</h2>
           <p class="empty-state-description">开始创建新笔记</p>
         </div>
+        <div v-else v-bind="wrapperProps">
+          <div v-for="{ index, data } in list" :key="index" :style="{ height: `${itemHeight}px` }">
+            <NoteCard :note="data" @edit="noteStore.openNoteEditor" />
+            <!-- {{ data }} -->
+          </div>
+        </div>
         <!-- 笔记列表 -->
-        <NoteCard
+        <!-- <NoteCard
           v-for="note in sortedNotes"
           :key="note.id"
           :note="note"
           @edit="noteStore.openNoteEditor"
-        />
+        /> -->
         <!-- 添加底线 -->
         <div v-if="sortedNotes.length > 0" class="bottom-line">
           <div class="line"></div>
@@ -114,6 +120,7 @@ import { useUIStore } from '../stores/useUIStore'
 import { useSearch } from '../composables/useSearch'
 import { Note } from '@renderer/types/Note'
 import NoteCard from '../components/NoteCard.vue'
+import { useVirtualList } from '@vueuse/core'
 
 // 初始化笔记状态
 const noteStore = useNoteStore()
@@ -157,9 +164,15 @@ const sortedNotes = computed(() => {
   const sorted = filteredItems.value
     .filter((note) => !note.isDeleted)
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-
-  console.log('Sorted Notes:', sorted)
   return sorted
+})
+
+// 使用虚拟列表
+const itemHeight = 410 // 假设每个笔记卡片的高度为100px，根据实际情况调整
+
+const { list, containerProps, wrapperProps } = useVirtualList(sortedNotes, {
+  itemHeight,
+  overscan: 5 // 预渲染的额外项目数量
 })
 
 // 创建一个新的计算属性，将 Date 类型的 createdAt 转换为 string 类型

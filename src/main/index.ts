@@ -869,11 +869,12 @@ function createWindow(): void {
       responseHeaders: {
         ...details.responseHeaders,
         'Content-Security-Policy': [
-          "default-src 'self'; " +
+          'default-src *; ' +
             "img-src 'self' file: data: blob: https://cdn.jsdelivr.net; " +
             "script-src 'self' 'unsafe-inline' 'unsafe-eval'; " +
             "style-src 'self' 'unsafe-inline'; " +
-            "connect-src 'self' file: https://api.tiptap.dev;"
+            "connect-src 'self' file: https://api.tiptap.dev;" +
+            'font-src *'
         ]
       }
     })
