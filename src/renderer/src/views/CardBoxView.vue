@@ -239,11 +239,16 @@
       <div ref="cardGridContainer" class="card-grid-container">
         <div class="card-grid">
           <CardBoxNoteCard
-            v-for="note in filteredNotes"
+            v-for="note in displayedNotes"
             :key="note.id"
             :note="note"
             :highlightedNoteId="highlightedNoteId"
           />
+        </div>
+        <div v-if="currentPage < totalPages" class="load-more">
+          <button :disabled="isLoading" @click="loadMoreNotes">
+            {{ isLoading ? '加载中...' : '加载更多' }}
+          </button>
         </div>
       </div>
       <!-- 创建/编辑卡片盒的模态框 -->
@@ -297,7 +302,7 @@ import { useEventBus } from '@vueuse/core'
 import { useRoute, useRouter } from 'vue-router'
 
 const noteStore = useNoteStore()
-const { allNotes, selectedCardTypes } = storeToRefs(noteStore)
+const { allNotes, selectedCardTypes, isLoading } = storeToRefs(noteStore)
 
 const showCardBoxMenu = ref(false)
 const selectedCardBox = ref<CardBox | null>(null)
@@ -322,6 +327,93 @@ const {
   clearSearch,
   isSearchActive
 } = useCardBoxSearch(allNotes)
+
+// 分页相关变量
+const currentPage = ref(1)
+const pageSize = ref(20) // 每页显示的笔记数量
+
+const allFilteredNotes = computed(() => {
+  return allNotes.value
+    .filter((note: Note) => {
+      if (isInboxSelected.value) {
+        return !note.cardBoxId
+      } else if (selectedCardBox.value && selectedCardBox.value.id !== '0000') {
+        return note.cardBoxId === selectedCardBox.value.id
+      }
+      return true
+    })
+    .filter((note: Note) => {
+      return selectedCardTypes.value.length === 0 || selectedCardTypes.value.includes(note.cardType)
+    })
+    .sort((a: Note, b: Note) => {
+      let comparison = 0
+      switch (currentSort.value) {
+        case 'name':
+          comparison = a.address.localeCompare(b.address, 'zh-CN')
+          break
+        case 'createdAt':
+          comparison = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+          break
+        case 'updatedAt':
+          comparison = new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime()
+          break
+      }
+      return sortDirection.value === 'asc' ? comparison : -comparison
+    })
+
+  // // 应用分页
+  // const startIndex = (currentPage.value - 1) * pageSize.value
+  // const endIndex = startIndex + pageSize.value
+  // return notes.slice(startIndex, endIndex)
+})
+
+const displayedNotes = computed(() => {
+  const startIndex = 0
+  const endIndex = currentPage.value * pageSize.value
+  return allFilteredNotes.value.slice(startIndex, endIndex)
+})
+
+// 计算总页数
+const totalPages = computed(() => {
+  return Math.ceil(allFilteredNotes.value.length / pageSize.value)
+})
+
+// 加载更多笔记
+const loadMoreNotes = () => {
+  if (currentPage.value < totalPages.value) {
+    currentPage.value++
+  }
+}
+
+// const filteredNotes = computed(() => {
+//   return searchFilteredNotes.value
+//     .filter((note: Note) => {
+//       if (isInboxSelected.value) {
+//         return !note.cardBoxId
+//       } else if (selectedCardBox.value && selectedCardBox.value.id !== '0000') {
+//         return note.cardBoxId === selectedCardBox.value.id
+//       }
+//       return true
+//     })
+//     .filter((note: Note) => {
+//       return selectedCardTypes.value.length === 0 || selectedCardTypes.value.includes(note.cardType)
+//     })
+//     .sort((a: Note, b: Note) => {
+//       let comparison = 0
+//       switch (currentSort.value) {
+//         case 'name':
+//           comparison = a.address.localeCompare(b.address, 'zh-CN')
+//           break
+//         case 'createdAt':
+//           comparison = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+//           break
+//         case 'updatedAt':
+//           comparison = new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime()
+//           break
+//       }
+//       return sortDirection.value === 'asc' ? comparison : -comparison
+//     })
+// })
 
 // 初始化组件中的笔记数据
 const fetchNotes = async () => {
@@ -513,36 +605,10 @@ const handleBlur = () => {
 }
 
 // 修改 filteredNotes 计算属性
-const filteredNotes = computed(() => {
-  return searchFilteredNotes.value
-    .filter((note: Note) => {
-      if (isInboxSelected.value) {
-        return !note.cardBoxId
-      } else if (selectedCardBox.value && selectedCardBox.value.id !== '0000') {
-        return note.cardBoxId === selectedCardBox.value.id
-      }
-      return true
-    })
-    .filter((note: Note) => {
-      return selectedCardTypes.value.length === 0 || selectedCardTypes.value.includes(note.cardType)
-    })
-    .sort((a: Note, b: Note) => {
-      let comparison = 0
-      switch (currentSort.value) {
-        case 'name':
-          comparison = a.address.localeCompare(b.address, 'zh-CN')
-          break
-        case 'createdAt':
-          comparison = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-          break
-        case 'updatedAt':
-          comparison = new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime()
-          break
-      }
-      return sortDirection.value === 'asc' ? comparison : -comparison
-    })
-})
-
+// 重置分页
+const resetPagination = () => {
+  currentPage.value = 1
+}
 // 监听可能影响过滤结果的变量
 watch(
   [isInboxSelected, selectedCardBox, selectedCardTypes, currentSort, sortDirection],
@@ -553,6 +619,7 @@ watch(
     console.log('选中的卡片类型:', selectedCardTypes.value)
     console.log('当前排序:', currentSort.value)
     console.log('排序方向:', sortDirection.value)
+    resetPagination()
   },
   { deep: true }
 )
