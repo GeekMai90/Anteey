@@ -87,6 +87,12 @@ export interface ElectronAPI {
   onMenuNewNote: (callback: () => void) => void
   removeAllListeners: (channel: string) => void
   onMenuExportNotes: (callback: () => void) => void
+  getPaginatedNotes: (page: number, limit: number) => Promise<{ notes: Note[]; totalCount: number }>
+  getNotesByDate: (
+    direction: 'newer' | 'older',
+    referenceDate: Date | null,
+    limit: number
+  ) => Promise<{ notes: Note[]; totalCount: number }>
 }
 
 declare global {

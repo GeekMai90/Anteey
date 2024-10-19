@@ -52,7 +52,6 @@ router.isReady().then(() => {
 
 const noteStore = useNoteStore()
 
-// noteStore.initializeNotes()
 noteStore.initializeStore()
 
 app.mount('#app')

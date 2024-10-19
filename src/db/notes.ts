@@ -23,6 +23,57 @@ function convertToNote(record: any): Note {
     rightBarOrder: record.rightBarOrder
   }
 }
+interface GetNotesByDateResult {
+  notes: Note[]
+  totalCount: number
+}
+// 获取按日期排序的笔记
+export async function getNotesByDate(
+  direction: 'newer' | 'older',
+  referenceDate: Date | null,
+  limit: number
+): Promise<GetNotesByDateResult> {
+  let query = db('notes').where('isDeleted', false)
+  const sortOrder = direction === 'older' ? 'desc' : 'asc'
+
+  if (referenceDate) {
+    query = query.where('createdAt', direction === 'older' ? '<' : '>', referenceDate)
+  }
+
+  const notes = await query.orderBy('createdAt', sortOrder).limit(limit)
+
+  const totalCount = await db('notes').where('isDeleted', false).count('* as count').first()
+  const count = totalCount ? (totalCount.count as number) : 0
+
+  return {
+    notes: notes.map(convertToNote),
+    totalCount: count
+  }
+}
+// 获取分页的笔记
+export async function getPaginatedNotes(
+  page: number,
+  limit: number
+): Promise<{ notes: Note[]; totalCount: number }> {
+  try {
+    const query = db('notes').where('isDeleted', false)
+
+    const offset = (page - 1) * limit
+
+    const [notes, countResult] = await Promise.all([
+      query.clone().orderBy('createdAt', 'desc').limit(limit).offset(offset),
+      query.clone().count('* as count').first()
+    ])
+
+    return {
+      notes: notes.map(convertToNote),
+      totalCount: countResult ? (countResult.count as number) : 0
+    }
+  } catch (error) {
+    console.error('后端→ 获取分页笔记失败:', error)
+    throw new Error('后端→ 获取分页笔记失败')
+  }
+}
 
 // 创建笔记
 export async function createNote(): Promise<Note> {

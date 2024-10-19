@@ -555,5 +555,27 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // 监听菜单导出所有笔记事件
   onMenuExportNotes: (callback: () => void) => {
     ipcRenderer.on('menu-export-notes', () => callback())
+  },
+  // 分页获取笔记
+  getPaginatedNotes: async (
+    page: number,
+    limit: number
+  ): Promise<{ notes: Note[]; totalCount: number }> => {
+    return (await ipcRenderer.invoke('get-paginated-notes', { page, limit })) as {
+      notes: Note[]
+      totalCount: number
+    }
+  },
+  // 按日期排序获取笔记
+  getNotesByDate: async (
+    direction: 'newer' | 'older',
+    referenceDate: Date | null,
+    limit: number
+  ): Promise<{ notes: Note[]; totalCount: number }> => {
+    return (await ipcRenderer.invoke('get-notes-by-date', {
+      direction,
+      referenceDate,
+      limit
+    })) as { notes: Note[]; totalCount: number }
   }
 })

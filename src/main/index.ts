@@ -29,7 +29,9 @@ import {
   getStarredNotes,
   addStarToNote,
   updateStarredNotesOrder,
-  removeStarFromNote
+  removeStarFromNote,
+  getPaginatedNotes,
+  getNotesByDate
 } from '../db/notes'
 import { createCardBox, getAllCardBoxes, updateCardBox, deleteCardBox } from '../db/cardBoxes'
 import {
@@ -202,6 +204,25 @@ function createCustomMenu() {
 }
 
 function setupIpcHandlers() {
+  // 按日期排序获取笔记
+  ipcMain.handle('get-notes-by-date', async (_event, { direction, referenceDate, limit }) => {
+    try {
+      const result = await getNotesByDate(direction, referenceDate, limit)
+      return result
+    } catch (error) {
+      console.error('获取按日期排序的笔记失败:', error)
+      throw error
+    }
+  })
+  // 分页获取笔记
+  ipcMain.handle('get-paginated-notes', async (_event, { page, limit }) => {
+    try {
+      return await getPaginatedNotes(page, limit)
+    } catch (error) {
+      console.error('获取分页笔记失败:', error)
+      throw error
+    }
+  })
   // 复制图片
   ipcMain.handle('copy-image', async (_event, imageUrl: string) => {
     console.log('尝试复制图片:', imageUrl)

@@ -1099,9 +1099,9 @@ const editorExtensions = computed(() => {
     TaskItem.configure({
       nested: true
     }),
-    UniqueID.configure({
-      types: ['heading', 'paragraph']
-    }),
+    // UniqueID.configure({
+    //   types: ['heading', 'paragraph']
+    // }),
     FileHandler.configure({
       allowedMimeTypes: ['image/png', 'image/jpeg', 'image/gif', 'image/webp'],
       onDrop: async (currentEditor, files, pos) => {
@@ -1210,12 +1210,14 @@ onMounted(() => {
   // noteStore.setEditor(editor.value)
 })
 
-onBeforeUnmount(() => {
+const destroyEditor = () => {
   if (editor.value) {
     editor.value.destroy()
+    editor.value = null
   }
-  // noteStore.clearEditor()
-})
+}
+
+onBeforeUnmount(destroyEditor)
 // const debouncedDestroy = debounce(() => {
 //   if (editor.value) {
 //     editor.value.destroy()

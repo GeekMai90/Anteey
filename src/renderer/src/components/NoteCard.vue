@@ -33,14 +33,13 @@
     </div>
     <div ref="noteContent" class="note-content" @dblclick="useNoteStore().openNoteEditor(note.id)">
       <TipTapEditor
-        v-if="shouldRenderTipTap"
         :key="note.id"
         :content="note.content"
         :editable="false"
         :enable-drag-handle="false"
       />
       <!-- 内容超出时，显示模糊效果 -->
-      <div v-if="isOverflowing" class="fade-out"></div>
+      <!-- <div v-if="isOverflowing" class="fade-out"></div> -->
     </div>
     <div class="note-timestamp">
       {{ formatDate(note.createdAt) }}
@@ -62,7 +61,7 @@
 import { Note } from '@renderer/types/Note'
 import { formatDate } from '@renderer/utils/noteHelpers'
 import { More, ExpandTextInput } from '@icon-park/vue-next'
-import { computed, onMounted, onUpdated, ref, watch, nextTick, reactive } from 'vue'
+import { computed, ref, nextTick, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import TipTapEditor from '@renderer/components/TipTapEditor.vue'
 import { useNoteStore } from '@renderer/stores/noteStores'
@@ -74,14 +73,6 @@ import { useEventBus } from '@vueuse/core'
 const props = defineProps<{
   note: Note
 }>()
-
-const shouldRenderTipTap = ref(false)
-
-onMounted(() => {
-  nextTick(() => {
-    shouldRenderTipTap.value = true
-  })
-})
 
 // 更多按钮弹出菜单
 const moreBtnRef = ref<HTMLElement | null>(null)
@@ -123,16 +114,6 @@ const closeMenu = () => {
   resetDeleteState()
 }
 
-// 处理内容超高时底部出现模糊效果
-const noteContent = ref<HTMLDivElement | null>(null)
-const isOverflowing = ref(false)
-
-const checkOverflow = () => {
-  if (noteContent.value) {
-    isOverflowing.value = noteContent.value.scrollHeight > noteContent.value.clientHeight
-  }
-}
-
 // 展开笔记
 const router = useRouter()
 const expandNote = () => {
@@ -153,32 +134,6 @@ const cardTypeClass = computed(() => {
       return ''
   }
 })
-
-onMounted(() => {
-  checkOverflow()
-})
-
-onUpdated(() => {
-  checkOverflow()
-})
-
-watch(
-  () => props.note.content,
-  () => {
-    checkOverflow()
-  }
-)
-// const localNote = toRef(props, 'note')
-// watch(
-//   () => props.note,
-//   (newNote, oldNote) => {
-//     if (newNote.id !== oldNote.id || newNote.isDeleted !== oldNote.isDeleted) {
-//       console.log('Note changed, updating local note')
-//       localNote.value = newNote
-//     }
-//   },
-//   { deep: true }
-// )
 </script>
 
 <style lang="scss" scoped>

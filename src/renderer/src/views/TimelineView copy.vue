@@ -80,20 +80,24 @@
         <div v-else v-bind="wrapperProps">
           <div v-for="{ index, data } in list" :key="index" :style="{ height: `${itemHeight}px` }">
             <NoteCard :note="data" @edit="noteStore.openNoteEditor" />
+            <!-- {{ data }} -->
           </div>
         </div>
+        <!-- 笔记列表 -->
+        <!-- <NoteCard
+          v-for="note in sortedNotes"
+          :key="note.id"
+          :note="note"
+          @edit="noteStore.openNoteEditor"
+        /> -->
         <!-- 添加底线 -->
-        <div v-if="sortedNotes.length > 0 && !noteStore.hasMoreOlderNotes" class="bottom-line">
+        <div v-if="sortedNotes.length > 0" class="bottom-line">
           <div class="line"></div>
           <span class="text">🙈 我也是有底线的 🙊</span>
           <div class="line"></div>
         </div>
       </div>
     </div>
-    <!-- 回到顶部按钮 -->
-    <button class="back-to-top" aria-label="回到顶部" @click="scrollToTop">
-      <ArrowUp theme="outline" size="24" fill="currentColor" :strokeWidth="3" />
-    </button>
     <!-- 日历选择器 -->
     <CalendarPicker
       :notes="notesForCalendar"
@@ -107,43 +111,43 @@
 
 <script setup lang="ts">
 import { useNoteStore } from '../stores/noteStores'
-import { computed, onActivated, onMounted, onUnmounted, ref, watchEffect } from 'vue'
+import { computed, onActivated, onMounted, ref } from 'vue'
 import { storeToRefs } from 'pinia'
-import { Time as TimeIcon, Calendar, Search, Close, ArrowUp } from '@icon-park/vue-next'
+import { Time as TimeIcon, Calendar, Search, Close } from '@icon-park/vue-next'
 import AppToolbar from '../components/AppToolbar.vue'
 import CalendarPicker from '../components/CalendarPicker.vue'
 import { useUIStore } from '../stores/useUIStore'
 import { useSearch } from '../composables/useSearch'
 import { Note } from '@renderer/types/Note'
 import NoteCard from '../components/NoteCard.vue'
-import { useVirtualList, UseVirtualListReturn } from '@vueuse/core'
+import { useVirtualList } from '@vueuse/core'
 
 // 初始化笔记状态
 const noteStore = useNoteStore()
+const { allNotes } = storeToRefs(noteStore)
 const uiStore = useUIStore()
 
-const isLoaded = ref(false)
-const showBackToTop = ref(false)
-// const itemHeight = 350 // 笔记卡片的高度
-
-// 使用 storeToRefs 来保持响应性
-const { notes } = storeToRefs(noteStore)
-
 // 初始化时间线状态
+const isLoaded = ref(false)
 onMounted(async () => {
-  await noteStore.refreshNotes()
+  await noteStore.$persist()
   isLoaded.value = true
 })
-// 激活时刷新笔记数据
-onActivated(() => {
-  if (notes.value.length === 0) {
-    noteStore.refreshNotes()
-  }
+// 获取笔记数据
+const fetchNotes = async () => {
+  await noteStore.fetchAllNotes()
+}
+
+// 获取笔记数据
+onMounted(() => {
+  fetchNotes() // 获取笔记数据
 })
+// 激活时获取笔记数据
+onActivated(fetchNotes)
 
 // 初始化搜索状态
 const { searchQuery, handleSearch, filteredItems, clearSearch, selectedDate, setSelectedDate } =
-  useSearch(notes)
+  useSearch(allNotes)
 
 const isSearchFocused = ref(false)
 
@@ -169,69 +173,11 @@ const itemHeight = 350 // 假设每个笔记卡片的高度为100px，根据实�
 const { list, containerProps, wrapperProps } = useVirtualList(sortedNotes, {
   itemHeight,
   overscan: 5 // 预渲染的额外项目数量
-}) as UseVirtualListReturn<Note>
-
-// 定义 containerProps 的类型
-import { Ref } from 'vue'
-import { CSSProperties } from 'vue'
-
-type ContainerProps = {
-  ref: Ref<HTMLElement | null>
-  onScroll: ((e: Event) => void) | undefined
-  style: CSSProperties
-}
-
-// 监听虚拟列表的滚动，在接近底部时加载更多
-const checkScroll = (e: Event) => {
-  const target = e.target as HTMLElement
-  if (target) {
-    showBackToTop.value = target.scrollTop > 300
-    console.log('Scroll position:', target.scrollTop, 'Show button:', showBackToTop.value)
-  }
-}
-watchEffect(() => {
-  const originalOnScroll = (containerProps as ContainerProps).onScroll
-  ;(containerProps as ContainerProps).onScroll = async (e: Event) => {
-    if (typeof originalOnScroll === 'function') {
-      originalOnScroll(e)
-    }
-    checkScroll(e)
-    const target = e.target as HTMLElement
-    if (target) {
-      const { scrollTop, scrollHeight, clientHeight } = target
-      if (scrollTop < itemHeight * 2 && !noteStore.isLoading && noteStore.hasMoreNewerNotes) {
-        // 加载更新的笔记
-        await noteStore.fetchNotesByDate('newer')
-      } else if (
-        scrollHeight - scrollTop - clientHeight < itemHeight * 2 &&
-        noteStore.hasMoreOlderNotes &&
-        !noteStore.isLoading
-      ) {
-        // 加载更旧的笔记
-        await noteStore.fetchNotesByDate('older')
-      }
-    }
-  }
 })
-// 在组件卸载时清理数据
-onUnmounted(() => {
-  noteStore.clearNotes()
-})
-
-const scrollToTop = async () => {
-  await noteStore.scrollToTop()
-  const scrollContainer = containerProps.ref.value
-  if (scrollContainer) {
-    scrollContainer.scrollTo({
-      top: 0,
-      behavior: 'smooth'
-    })
-  }
-}
 
 // 创建一个新的计算属性，将 Date 类型的 createdAt 转换为 string 类型
 const notesForCalendar = computed(() => {
-  return notes.value.map((note: Note) => ({
+  return allNotes.value.map((note: Note) => ({
     ...note,
     createdAt:
       note.createdAt instanceof Date
@@ -598,76 +544,5 @@ const toggleDateFilter = () => {
       font-size: 16px;
     }
   }
-}
-
-.back-to-top {
-  position: fixed;
-  bottom: 30px;
-  right: 30px;
-  width: 50px;
-  height: 50px;
-  border-radius: 50%;
-  background-color: rgba(var(--color-primary-rgb), 0.2);
-  color: var(--color-text-primary);
-  border: none;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-  z-index: 9999;
-  opacity: 0.6;
-
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    border-radius: 50%;
-    background-color: var(--color-primary);
-    opacity: 0;
-    transition: opacity 0.3s ease;
-  }
-
-  &:hover {
-    transform: translateY(-5px);
-    background-color: rgba(var(--color-primary-rgb), 0.3);
-    color: var(--color-text-inversion);
-    opacity: 1;
-    box-shadow: 0 5px 15px rgba(var(--color-primary-rgb), 0.3);
-
-    &::before {
-      opacity: 1;
-    }
-  }
-
-  &:focus {
-    outline: none;
-    box-shadow: 0 0 0 3px rgba(var(--color-primary-rgb), 0.3);
-  }
-
-  svg {
-    position: relative;
-    z-index: 1;
-  }
-}
-
-@keyframes float {
-  0% {
-    transform: translateY(0px);
-  }
-  50% {
-    transform: translateY(-5px);
-  }
-  100% {
-    transform: translateY(0px);
-  }
-}
-
-.back-to-top {
-  animation: float 3s ease-in-out infinite;
 }
 </style>

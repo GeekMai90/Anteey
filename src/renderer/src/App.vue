@@ -1,9 +1,9 @@
 <template>
   <div class="app-container" :class="{ 'theme-dark': isDarkTheme }">
     <!-- 加载动画 -->
-    <div v-if="noteStore.isLoading" class="loading-overlay">
+    <!-- <div v-if="noteStore.isLoading" class="loading-overlay">
       <Vue3Lottie :animationData="loadingAnimation" :height="300" :width="300" />
-    </div>
+    </div> -->
     <!-- 按钮 -->
     <!-- <div class="custom-titlebar">
       <div class="fake-traffic-lights">
@@ -12,7 +12,7 @@
         <div class="fake-button maximize"></div>
       </div>
     </div> -->
-    <div v-show="!noteStore.isLoading" class="content-wrapper">
+    <div class="content-wrapper">
       <Sidebar
         v-show="!uiStore.isSidebarCollapsed"
         class="sidebar"
