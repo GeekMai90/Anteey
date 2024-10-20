@@ -137,8 +137,8 @@ export interface GetPaginatedNotesParams {
   limit: number
   cardBoxId?: string // 'all' 表示所有卡片, 'inbox' 表示收件箱, 其他值为特定卡片盒 ID
   cardTypes?: string[] // ['Maincard', 'Bibcard', 'Indexcard']
-  sortBy?: string
-  sortOrder?: 'asc' | 'desc'
+  sortBy: string
+  sortOrder: 'asc' | 'desc'
 }
 //卡片盒页面获取分页的笔记
 export async function getPaginatedNotesByCardbox({
@@ -152,12 +152,17 @@ export async function getPaginatedNotesByCardbox({
   try {
     console.log('后端→ 开始获取卡片盒分页笔记', cardBoxId, cardTypes, sortBy, sortOrder)
     let query = db('notes').where('isDeleted', false)
+    // let query = db('notes').whereNull('cardBoxId').where('isDeleted', false)
 
     // 卡片盒筛选
     if (cardBoxId === 'inbox') {
-      query = query.whereNull('cardBoxId')
+      console.log('后端→ 筛选收件箱笔记')
+      query = query.where('cardBoxId', '')
     } else if (cardBoxId && cardBoxId !== 'all') {
+      console.log(`后端→ 筛选卡片盒 ${cardBoxId} 的笔记`)
       query = query.where('cardBoxId', cardBoxId)
+    } else {
+      console.log('后端→ 获取所有卡片盒的笔记')
     }
 
     // 卡片类型筛选
