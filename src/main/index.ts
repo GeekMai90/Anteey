@@ -31,7 +31,9 @@ import {
   updateStarredNotesOrder,
   removeStarFromNote,
   getPaginatedNotes,
-  getNotesByDate
+  getNotesByDate,
+  getNotesByOneDate,
+  getAllDatesWithNotes
 } from '../db/notes'
 import { createCardBox, getAllCardBoxes, updateCardBox, deleteCardBox } from '../db/cardBoxes'
 import {
@@ -204,6 +206,28 @@ function createCustomMenu() {
 }
 
 function setupIpcHandlers() {
+  // 获取都有哪些日期有笔记
+  ipcMain.handle('get-all-dates-with-notes', async () => {
+    try {
+      const result = await getAllDatesWithNotes()
+      console.log('主进程 → 获取都有哪些日期有笔记成功', result)
+      return result
+    } catch (error) {
+      console.error('主进程 → 获取都有哪些日期有笔记失败:', error)
+      throw error
+    }
+  })
+  // 获取某一天的笔记
+  ipcMain.handle('get-notes-by-one-date', async (_event, date: string) => {
+    try {
+      const result = await getNotesByOneDate(date)
+      console.log('主进程 → 获取某一天的笔记成功', result)
+      return result
+    } catch (error) {
+      console.error('主进程 → 获取某一天的笔记失败:', error)
+      throw error
+    }
+  })
   // 按日期排序获取笔记
   ipcMain.handle('get-notes-by-date', async (_event, { direction, referenceDate, limit }) => {
     try {
@@ -687,10 +711,10 @@ function setupIpcHandlers() {
     try {
       const updatedNote = await softDeleteNote(id)
       console.log('主进程 → 软删除笔记更新后的笔记:', JSON.stringify(updatedNote))
-      return { success: true, note: updatedNote }
+      return updatedNote
     } catch (error) {
       console.error('主进程 → 软删除笔记时出错:', error)
-      return { success: false, error: error }
+      throw error
     }
   })
 

@@ -3,10 +3,11 @@
 import { defineStore } from 'pinia'
 import { Note, Whiteboard, Connection, CardBox } from '../types/Note'
 import { Notes, Table, TransactionOrder, Deeplink } from '@icon-park/vue-next'
-import { ref, shallowRef } from 'vue'
+import { ref } from 'vue'
 import { useUIStore } from './useUIStore'
 import { debounce } from 'lodash-es'
 import { Editor } from '@tiptap/vue-3'
+import { useEventBus } from '@vueuse/core'
 // import { useWhiteboardStore } from './whiteboardStores'
 
 const cardTypes = [
@@ -55,7 +56,11 @@ export const useNoteStore = defineStore('note', {
     hasMoreNotes: true,
     hasMoreOlderNotes: true,
     hasMoreNewerNotes: false,
-    selectedCardBoxId: null as string | null
+    windowSize: 50,
+    selectedCardBoxId: null as string | null,
+    lastUpdatedNote: null as Note | null,
+    lastCreatedNote: null as Note | null,
+    lastDeletedNote: null as Note | null
   }),
 
   actions: {
@@ -90,43 +95,159 @@ export const useNoteStore = defineStore('note', {
         this.isLoading = false
       }, 2000)
     },
+
+    //获取某一天的笔记
+    async fetchNotesByOneDate(date: string) {
+      console.log('noteStores.ts→ 开始获取某一天的笔记', date)
+      try {
+        const notes = await window.electronAPI.getNotesByOneDate(date)
+        console.log('noteStores.ts→ 获取某一天的笔记成功', notes)
+        return notes
+      } catch (error) {
+        console.error('noteStores.ts→ 获取某一天的笔记失败:', error)
+      }
+    },
+    // 获取都有哪些日期有笔记
+    async fetchAllDatesWithNotes() {
+      try {
+        const dates = await window.electronAPI.getAllDatesWithNotes()
+        console.log('noteStores.ts→ 获取都有哪些日期有笔记成功', dates)
+        return dates
+      } catch (error) {
+        console.error('noteStores.ts→ 获取都有哪些日期有笔记失败:', error)
+      }
+    },
     // 获取按日期排序的笔记
-    async fetchNotesByDate(direction: 'newer' | 'older' = 'older', limit = 20) {
+    // async fetchNotesByDate(direction: 'newer' | 'older' = 'older', limit = 20) {
+    //   if (this.isLoading) return false
+
+    //   this.isLoading = true
+    //   try {
+    //     const referenceDate = direction === 'older' ? this.oldestLoadedDate : this.newestLoadedDate
+    //     const { notes, totalCount } = await window.electronAPI.getNotesByDate(
+    //       direction,
+    //       referenceDate ? new Date(referenceDate) : null,
+    //       limit
+    //     )
+
+    //     if (notes.length > 0) {
+    //       if (direction === 'older') {
+    //         this.notes.push(...notes)
+    //         this.oldestLoadedDate = new Date(notes[notes.length - 1].createdAt)
+    //       } else {
+    //         this.notes.unshift(...notes)
+    //         this.newestLoadedDate = new Date(notes[0].createdAt)
+    //       }
+
+    //       if (!this.oldestLoadedDate || !this.newestLoadedDate) {
+    //         this.oldestLoadedDate =
+    //           this.oldestLoadedDate || new Date(notes[notes.length - 1].createdAt)
+    //         this.newestLoadedDate = this.newestLoadedDate || new Date(notes[0].createdAt)
+    //       }
+    //     }
+
+    //     this.totalNotes = totalCount
+    //     // 更新是否还有更多笔记的状态
+    //     if (direction === 'older') {
+    //       this.hasMoreOlderNotes = this.notes.length < this.totalNotes
+    //     } else {
+    //       this.hasMoreNewerNotes = this.notes[0].createdAt < new Date()
+    //     }
+    //     return notes.length > 0
+    //   } catch (error) {
+    //     console.error('Failed to fetch notes:', error)
+    //     return false
+    //   } finally {
+    //     this.isLoading = false
+    //   }
+    // },
+    // async fetchNotesByDate(direction: 'newer' | 'older' = 'older', limit = 10) {
+    //   if (this.isLoading) return false
+
+    //   this.isLoading = true
+    //   try {
+    //     const referenceDate = direction === 'older' ? this.oldestLoadedDate : this.newestLoadedDate
+    //     const { notes: fetchedNotes, totalCount } = await window.electronAPI.getNotesByDate(
+    //       direction,
+    //       referenceDate,
+    //       limit
+    //     )
+
+    //     if (fetchedNotes.length > 0) {
+    //       if (direction === 'older') {
+    //         this.notes = [...this.notes, ...fetchedNotes]
+    //         this.oldestLoadedDate = new Date(fetchedNotes[fetchedNotes.length - 1].createdAt)
+    //       } else {
+    //         this.notes = [...fetchedNotes, ...this.notes]
+    //         this.newestLoadedDate = new Date(fetchedNotes[0].createdAt)
+    //       }
+
+    //       // 更新日期，确保它们不为 null
+    //       this.oldestLoadedDate =
+    //         this.oldestLoadedDate || new Date(this.notes[this.notes.length - 1].createdAt)
+    //       this.newestLoadedDate = this.newestLoadedDate || new Date(this.notes[0].createdAt)
+    //     }
+
+    //     this.totalNotes = totalCount
+    //     this.hasMoreOlderNotes = this.notes.length < this.totalNotes
+
+    //     // 添加空值检查
+    //     this.hasMoreNewerNotes = this.newestLoadedDate ? this.newestLoadedDate < new Date() : false
+
+    //     console.log('noteStores.ts→ 获取按日期排序的笔记成功', this.notes.length, this.totalNotes)
+    //     return fetchedNotes.length > 0
+    //   } catch (error) {
+    //     console.error('Failed to fetch notes:', error)
+    //     return false
+    //   } finally {
+    //     this.isLoading = false
+    //   }
+    // },
+    // sortedNotes: computed(() => {
+    //   if (!this.notes) return []
+    //   return this.notes
+    //     .slice()
+    //     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    // }),
+    async fetchNotesByDate(direction: 'newer' | 'older' = 'older', limit = 10) {
       if (this.isLoading) return false
 
       this.isLoading = true
       try {
         const referenceDate = direction === 'older' ? this.oldestLoadedDate : this.newestLoadedDate
-        const { notes, totalCount } = await window.electronAPI.getNotesByDate(
+        const { notes: fetchedNotes, totalCount } = await window.electronAPI.getNotesByDate(
           direction,
-          referenceDate ? new Date(referenceDate) : null,
+          referenceDate,
           limit
         )
 
-        if (notes.length > 0) {
+        if (fetchedNotes.length > 0) {
           if (direction === 'older') {
-            this.notes.push(...notes)
-            this.oldestLoadedDate = new Date(notes[notes.length - 1].createdAt)
+            this.notes = [...this.notes, ...fetchedNotes]
+            this.oldestLoadedDate = new Date(fetchedNotes[fetchedNotes.length - 1].createdAt)
           } else {
-            this.notes.unshift(...notes)
-            this.newestLoadedDate = new Date(notes[0].createdAt)
+            this.notes = [...fetchedNotes, ...this.notes]
+            this.newestLoadedDate = new Date(fetchedNotes[0].createdAt)
           }
 
-          if (!this.oldestLoadedDate || !this.newestLoadedDate) {
-            this.oldestLoadedDate =
-              this.oldestLoadedDate || new Date(notes[notes.length - 1].createdAt)
-            this.newestLoadedDate = this.newestLoadedDate || new Date(notes[0].createdAt)
-          }
+          // 更新日期，确保它们不为 null
+          this.oldestLoadedDate =
+            this.oldestLoadedDate || new Date(this.notes[this.notes.length - 1].createdAt)
+          this.newestLoadedDate = this.newestLoadedDate || new Date(this.notes[0].createdAt)
         }
 
         this.totalNotes = totalCount
-        // 更新是否还有更多笔记的状态
-        if (direction === 'older') {
-          this.hasMoreOlderNotes = this.notes.length < this.totalNotes
-        } else {
-          this.hasMoreNewerNotes = this.notes[0].createdAt < new Date()
+        this.hasMoreOlderNotes = this.notes.length < this.totalNotes
+
+        // 添加空值检查
+        this.hasMoreNewerNotes = this.newestLoadedDate ? this.newestLoadedDate < new Date() : false
+
+        // 只在笔记数量超过窗口大小的两倍时进行裁剪
+        if (this.notes.length > this.windowSize * 2) {
+          this.trimNotes(direction)
         }
-        return notes.length > 0
+        console.log('noteStores.ts→ Pinia 中的笔记数量', this.notes.length)
+        return fetchedNotes.length > 0
       } catch (error) {
         console.error('Failed to fetch notes:', error)
         return false
@@ -134,12 +255,28 @@ export const useNoteStore = defineStore('note', {
         this.isLoading = false
       }
     },
-    async refreshNotes() {
+
+    trimNotes(direction: 'newer' | 'older') {
+      if (direction === 'older') {
+        this.notes = this.notes.slice(-this.windowSize)
+        this.newestLoadedDate = new Date(this.notes[0].createdAt)
+      } else {
+        this.notes = this.notes.slice(0, this.windowSize)
+        this.oldestLoadedDate = new Date(this.notes[this.notes.length - 1].createdAt)
+      }
+    },
+    async clearNotes() {
       this.notes = []
       this.oldestLoadedDate = null
       this.newestLoadedDate = null
+      this.hasMoreOlderNotes = true
+      this.hasMoreNewerNotes = false
+    },
+    async refreshNotes() {
+      this.clearNotes()
       return this.fetchNotesByDate('older')
     },
+
     clearOlderNotes() {
       const notesToKeep = 30 // 保留最新的30条笔记
       if (this.notes.length > notesToKeep) {
@@ -154,36 +291,54 @@ export const useNoteStore = defineStore('note', {
       // 清理旧数据
       this.clearOlderNotes()
 
-      // 如果需要，可以在这里重新加载最新的笔记
-      await this.fetchNotesByDate('newer')
+      // 重新加载最新的笔记
+      await this.refreshNotes()
 
       // 返回 true 表示操作完成
       return true
     },
     // 获取分页笔记
-    async fetchPaginatedNotes(reset = false) {
-      // 如果正在加载或没有更多笔记，则返回
-      if (this.isLoading || (!reset && !this.hasMoreNotes)) return
+    // async fetchPaginatedNotes(reset = false) {
+    //   // 如果正在加载或没有更多笔记，则返回
+    //   if (this.isLoading || (!reset && !this.hasMoreNotes)) return
 
-      // this.isLoading = true
+    //   // this.isLoading = true
+
+    //   try {
+    //     if (reset) {
+    //       this.currentPage = 1
+    //       this.notes = []
+    //       this.hasMoreNotes = true
+    //     }
+
+    //     const { notes, totalCount } = await window.electronAPI.getPaginatedNotes(
+    //       this.currentPage,
+    //       this.pageSize
+    //     )
+
+    //     this.notes.push(...notes)
+    //     this.totalNotes = totalCount
+    //     this.currentPage++
+    //     this.hasMoreNotes = notes.length === this.pageSize
+
+    //     console.log('noteStores.ts→ 获取分页笔记成功', notes, totalCount)
+    //     return { notes, totalCount }
+    //   } catch (error) {
+    //     console.error('noteStores.ts→ 获取分页笔记失败:', error)
+    //     throw error
+    //   } finally {
+    //     this.isLoading = false
+    //   }
+    // },
+    async fetchPaginatedNotes(page: number, pageSize: number) {
+      // if (this.isLoading) return null
+      console.log('noteStores.ts→ 获取分页笔记', page, pageSize)
+
+      this.isLoading = true
 
       try {
-        if (reset) {
-          this.currentPage = 1
-          this.notes = []
-          this.hasMoreNotes = true
-        }
-
-        const { notes, totalCount } = await window.electronAPI.getPaginatedNotes(
-          this.currentPage,
-          this.pageSize
-        )
-
-        this.notes.push(...notes)
+        const { notes, totalCount } = await window.electronAPI.getPaginatedNotes(page, pageSize)
         this.totalNotes = totalCount
-        this.currentPage++
-        this.hasMoreNotes = notes.length === this.pageSize
-
         console.log('noteStores.ts→ 获取分页笔记成功', notes, totalCount)
         return { notes, totalCount }
       } catch (error) {
@@ -194,24 +349,22 @@ export const useNoteStore = defineStore('note', {
       }
     },
     async preloadFirstPage() {
-      if (this.notes.length === 0) {
-        try {
-          await this.fetchPaginatedNotes(true)
-        } catch (error) {
-          console.error('noteStores.ts→ 预加载第一页笔记失败:', error)
-        }
+      try {
+        await this.fetchPaginatedNotes(1, this.pageSize)
+      } catch (error) {
+        console.error('noteStores.ts→ 预加载第一页笔记失败:', error)
       }
     },
-    clearNotes() {
-      this.notes = []
-      this.currentPage = 1
-      this.hasMoreNotes = true
-    },
+    // clearNotes() {
+    //   this.notes = []
+    //   this.currentPage = 1
+    //   this.hasMoreNotes = true
+    // },
     // 设置选中的卡片盒
-    setSelectedCardBox(cardBoxId: string | null) {
-      this.selectedCardBoxId = cardBoxId
-      this.fetchPaginatedNotes(true) // 重置并重新加载笔记
-    },
+    // setSelectedCardBox(cardBoxId: string | null) {
+    //   this.selectedCardBoxId = cardBoxId
+    //   this.fetchPaginatedNotes(true) // 重置并重新加载笔记
+    // },
 
     // 将空笔记移到回收站
     moveEmptyNotesToTrash() {
@@ -374,6 +527,7 @@ export const useNoteStore = defineStore('note', {
     }, 1000), // 1秒延迟
     // 更新整个笔记或多个字段
     async updateNote(id: string, noteData: Partial<Note>): Promise<Note> {
+      const eventBus = useEventBus('note-updated')
       try {
         console.log('noteStores.ts→ 更新整个笔记', id, noteData)
         const serializableNoteData = JSON.parse(JSON.stringify(noteData))
@@ -381,7 +535,12 @@ export const useNoteStore = defineStore('note', {
         const updatedNote = this.parseNoteContent(response)
 
         this.updateLocalNote(id, updatedNote)
+        //添加到 notes
+        this.notes.push(updatedNote)
+        this.lastUpdatedNote = updatedNote
+        eventBus.emit(updatedNote)
 
+        console.log('现在的 notes 是', this.notes)
         console.log('noteStores.ts→ 更新后的笔记', updatedNote)
         return updatedNote
       } catch (error) {
@@ -403,9 +562,13 @@ export const useNoteStore = defineStore('note', {
     // 创建新笔记
     async createNote() {
       console.log('noteStores.ts→ 创建新笔记')
+      const eventBus = useEventBus('note-created')
       try {
         const newNote = await window.electronAPI.createNote()
+        this.notes.push(newNote)
         this.updateLocalNote(newNote.id, newNote)
+        this.lastCreatedNote = newNote
+        eventBus.emit(newNote)
         return newNote
       } catch (error) {
         console.error('noteStores.ts→ 创建新笔记失败:', error)
@@ -451,31 +614,19 @@ export const useNoteStore = defineStore('note', {
     //   }
     // },
     async moveToTrash(id: string) {
-      console.log('移动到回收站:', id)
+      console.log('noteStores.ts→ 移动到回收站:', id)
       try {
         const result = await window.electronAPI.softDeleteNote(id)
-        if (result.success && result.note) {
-          const index = this.notes.findIndex((note) => note.id === id)
-          if (index !== -1) {
-            this.notes[index] = result.note
-            console.log('更新笔记状态成功')
-          } else {
-            console.warn('笔记未找到，添加到列表:', id)
-            this.notes.push(result.note)
-          }
-          if (this.currentNoteId === id) {
-            this.closeNoteEditor()
-          }
-          // 可选：重新获取所有笔记以确保状态一致
-          // await this.fetchAllNotes()
+        if (result) {
+          this.lastDeletedNote = result
+          console.log('noteStores.ts→ 移动到回收站结果:', result)
           return true
         } else {
-          console.error('移动笔记到回收站失败:', result)
-          return false
+          console.error('noteStores.ts→ 移动笔记到回收站失败:', result)
         }
       } catch (error) {
-        console.error('移动笔记到回收站失败:', error)
-        return false
+        console.error('noteStores.ts→ 移动笔记到回收站失败:', error)
+        throw error
       }
     },
     // 从回收站恢复

@@ -17,7 +17,7 @@ export interface ElectronAPI {
   getAllNotes: (includeDeleted: boolean) => Promise<Note[]>
   updateNote: (id: string, updatedNote: Partial<Note>) => Promise<Note>
   deleteNote: (id: string) => Promise<boolean>
-  softDeleteNote: (id: string) => Promise<{ success: boolean; note: Note | null }>
+  softDeleteNote: (id: string) => Promise<Note>
   restoreNote: (id: string) => Promise<void>
   getDeletedNotes: () => Promise<Note[]>
   permanentDeleteNote: (id: string) => Promise<boolean>
@@ -93,6 +93,8 @@ export interface ElectronAPI {
     referenceDate: Date | null,
     limit: number
   ) => Promise<{ notes: Note[]; totalCount: number }>
+  getNotesByOneDate: (date: string) => Promise<Note[]>
+  getAllDatesWithNotes: () => Promise<string[]>
 }
 
 declare global {

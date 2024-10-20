@@ -1099,9 +1099,9 @@ const editorExtensions = computed(() => {
     TaskItem.configure({
       nested: true
     }),
-    // UniqueID.configure({
-    //   types: ['heading', 'paragraph']
-    // }),
+    UniqueID.configure({
+      types: ['heading', 'paragraph']
+    }),
     FileHandler.configure({
       allowedMimeTypes: ['image/png', 'image/jpeg', 'image/gif', 'image/webp'],
       onDrop: async (currentEditor, files, pos) => {

@@ -220,6 +220,7 @@ defineExpose({ openMenu, closeMenu, resetDeleteState })
     overflow: hidden;
     text-overflow: ellipsis;
     line-height: 1;
+    user-select: none;
   }
 
   &:hover {

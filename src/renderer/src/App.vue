@@ -83,8 +83,8 @@ import ContextMenu from './components/ContexMenu.vue'
 import { useUIStore } from './stores/useUIStore'
 import Modal from './components/Modal.vue'
 import SettingsPage from './components/SettingsPage.vue'
-import { Vue3Lottie } from 'vue3-lottie'
-import loadingAnimation from './assets/loading.json'
+// import { Vue3Lottie } from 'vue3-lottie'
+// import loadingAnimation from './assets/loading.json'
 import { useNoteStore } from './stores/noteStores'
 import { useNoteMenu } from './composables/useNoteMenu'
 
@@ -110,6 +110,7 @@ onMounted(() => {
 
 onUnmounted(() => {
   window.electronAPI.removeAllListeners('menu-new-note')
+  noteStore.clearNotes()
 })
 
 // 侧边栏相关
@@ -208,8 +209,9 @@ onMounted(async () => {
   }
 })
 
-onUnmounted(() => {
+onUnmounted(async () => {
   window.removeEventListener('resize', checkWindowSize)
+  await noteStore.clearNotes()
 })
 
 // 使用全局热键

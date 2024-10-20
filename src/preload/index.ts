@@ -55,9 +55,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
     console.log('Preload: 更新笔记成功:', result.note)
     return result.note
   },
-  softDeleteNote: async (id: string): Promise<Note | null> => {
+  softDeleteNote: async (id: string): Promise<Note> => {
     try {
-      return (await ipcRenderer.invoke('soft-delete-note', id)) as Note | null
+      return (await ipcRenderer.invoke('soft-delete-note', id)) as Note
     } catch (error) {
       console.error(`Preload: Failed to soft delete note with id ${id}:`, error)
       throw error
@@ -577,5 +577,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
       referenceDate,
       limit
     })) as { notes: Note[]; totalCount: number }
+  },
+  // 获取某一天的笔记
+  getNotesByOneDate: async (date: string): Promise<Note[]> => {
+    return (await ipcRenderer.invoke('get-notes-by-one-date', date)) as Note[]
+  },
+  // 获取都有哪些日期有笔记
+  getAllDatesWithNotes: async (): Promise<string[]> => {
+    return (await ipcRenderer.invoke('get-all-dates-with-notes')) as string[]
   }
 })

@@ -27,6 +27,63 @@ interface GetNotesByDateResult {
   notes: Note[]
   totalCount: number
 }
+//获取都有哪些日期有笔记
+export async function getAllDatesWithNotes(): Promise<string[]> {
+  try {
+    console.log('后端→ 开始获取有笔记的日期')
+
+    const result = await db('notes')
+      .distinct(db.raw("strftime('%Y-%m-%d', datetime(createdAt / 1000, 'unixepoch')) as date"))
+      .where('isDeleted', 0)
+      .orderBy('date', 'desc')
+
+    console.log('后端→ 原始查询结果:', result)
+
+    if (!result || result.length === 0) {
+      console.log('后端→ 查询结果为空')
+      return []
+    }
+
+    const dates = result.map((row: { date: string }) => row.date)
+    console.log('后端→ 处理后的日期数组:', dates)
+
+    return dates
+  } catch (error) {
+    console.error('后端→ 获取有笔记的日期失败:', error)
+    throw error
+  }
+}
+//获取某一天的笔记
+export async function getNotesByOneDate(date: string): Promise<Note[]> {
+  try {
+    console.log('后端→ 开始获取某一天的笔记', date)
+
+    // 将输入的日期字符串转换为当天的开始和结束时间戳
+    const startOfDay = new Date(date)
+    startOfDay.setHours(0, 0, 0, 0)
+    const endOfDay = new Date(date)
+    endOfDay.setHours(23, 59, 59, 999)
+
+    const startTimestamp = startOfDay.getTime()
+    const endTimestamp = endOfDay.getTime()
+
+    const notes = await db('notes')
+      .where('isDeleted', false)
+      .whereBetween('createdAt', [startTimestamp, endTimestamp])
+
+    console.log('后端→ 获取某一天的笔记成功', notes)
+
+    if (notes.length === 0) {
+      console.log('后端→ 没有找到该日期的笔记')
+      return []
+    }
+
+    return notes.map(convertToNote)
+  } catch (error) {
+    console.error('后端→ 获取某一天的笔记失败:', error)
+    throw error
+  }
+}
 // 获取按日期排序的笔记
 export async function getNotesByDate(
   direction: 'newer' | 'older',
@@ -254,7 +311,7 @@ export async function updateNote(id: string, updateNoteDto: Partial<Note>): Prom
 //   }
 // }
 // 软删除笔记
-export async function softDeleteNote(id: string): Promise<{ note: Note | null; success: boolean }> {
+export async function softDeleteNote(id: string): Promise<Note> {
   console.log(`后端→ 开始软删除笔记: ${id}`)
 
   return db.transaction(async (trx) => {
@@ -264,7 +321,7 @@ export async function softDeleteNote(id: string): Promise<{ note: Note | null; s
 
       if (!note) {
         console.warn(`后端→ 未找到ID为 ${id} 的笔记`)
-        return { note: null, success: false }
+        throw new Error(`后端→ 未找到ID为 ${id} 的笔记`)
       }
 
       // 2. 更新笔记状态
@@ -275,13 +332,13 @@ export async function softDeleteNote(id: string): Promise<{ note: Note | null; s
 
       if (!updatedNote) {
         console.error(`后端→ 更新笔记失败: ${id}`)
-        return { note: null, success: false }
+        throw new Error(`后端→ 更新笔记失败: ${id}`)
       }
 
       const convertedNote = convertToNote(updatedNote)
       console.log('后端→ 软删除笔记成功，更新后的笔记:', JSON.stringify(convertedNote))
 
-      return { note: convertedNote, success: true }
+      return convertedNote
     } catch (error) {
       console.error(`后端→ 软删除笔记失败: ${id}:`, error)
       throw error

@@ -1,24 +1,56 @@
 <!-- src/views/TimelineView.vue  -->
 <template>
-  <!-- 当数据加载完成时显示时间线视图 -->
   <div v-if="isLoaded" class="timeline-view">
-    <!-- 固定在顶部的头部区域 -->
+    <!-- 固定头部 -->
     <div class="sticky-header">
-      <!-- 工具栏组件 -->
+      <!-- 工具栏 -->
       <AppToolbar :showBackButton="true" :showForwardButton="true"></AppToolbar>
       <div class="header-content">
         <!-- 时间线头部 -->
         <div class="timeline-header">
-          <!-- 左侧标题区域 -->
           <div class="timeline-header-left">
             <div class="icon">
               <TimeIcon theme="outline" size="20" fill="var(--color-primary)" :strokeWidth="3" />
             </div>
             <div class="name">时间线</div>
           </div>
-          <!-- 右侧功能区域 -->
           <div class="timeline-header-right">
-            <!-- 日历按钮 -->
+            <!-- 添加搜索框 -->
+            <div
+              v-tooltip.bottom="{ content: 'Cmd+P', delay: { show: 1000 } }"
+              class="search-box"
+              :class="{ 'is-focused': isSearchFocused }"
+            >
+              <div class="search-icon">
+                <div class="icon">
+                  <Search
+                    theme="outline"
+                    size="16"
+                    fill="var(--color-icon-secondary)"
+                    :strokeWidth="3"
+                  />
+                </div>
+              </div>
+              <input
+                ref="searchInput"
+                v-model="searchQuery"
+                type="text"
+                placeholder="搜索"
+                @input="handleSearch"
+                @focus="isSearchFocused = true"
+                @blur="handleBlur"
+              />
+              <div v-if="searchQuery" class="clear-icon" @click="clearSearch">
+                <div class="icon">
+                  <Close
+                    theme="outline"
+                    size="16"
+                    fill="var(--color-icon-secondary)"
+                    :strokeWidth="3"
+                  />
+                </div>
+              </div>
+            </div>
             <div
               class="calendar-button"
               :class="{ 'date-selected': selectedDate }"
@@ -37,45 +69,34 @@
         </div>
       </div>
     </div>
-    <!-- 时间线内容区域 -->
+    <!-- 时间线内容 -->
     <div class="timeline-container">
       <div v-bind="containerProps" class="note-list-container">
-        <!-- 当没有笔记时显示空状态 -->
-        <div v-if="list.length === 0" class="empty-state">
+        <div v-if="sortedNotes.length === 0" class="empty-state">
           <div class="empty-state-icon">📝</div>
           <h2 class="empty-state-title">暂无笔记</h2>
           <p class="empty-state-description">开始创建新笔记</p>
         </div>
-        <!-- 使用虚拟列表显示笔记 -->
         <div v-else v-bind="wrapperProps">
-          <div
-            v-for="{ data } in virtualList"
-            :key="`${data.id}-${new Date(data.updatedAt).toISOString()}`"
-            :style="{ height: `${itemHeight}px` }"
-          >
+          <div v-for="{ index, data } in list" :key="index" :style="{ height: `${itemHeight}px` }">
             <NoteCard :note="data" @edit="noteStore.openNoteEditor" />
           </div>
         </div>
-        <!-- 用于触发无限滚动的观察元素 -->
-        <div ref="observerTarget" class="observer-target"></div>
-        <!-- 底部提示信息 -->
-        <div v-if="sortedNotes.length > 0 && !hasMoreNotes" class="bottom-line">
+        <!-- 添加底线 -->
+        <div v-if="sortedNotes.length > 0 && !noteStore.hasMoreOlderNotes" class="bottom-line">
           <div class="line"></div>
           <span class="text">🙈 我也是有底线的 🙊</span>
           <div class="line"></div>
         </div>
       </div>
     </div>
-
     <!-- 回到顶部按钮 -->
     <button class="back-to-top" aria-label="回到顶部" @click="scrollToTop">
-      <div class="icon">
-        <RocketOne theme="outline" size="24" fill="var(--color-primary)" :strokeWidth="2" />
-      </div>
+      <ArrowUp theme="outline" size="24" fill="currentColor" :strokeWidth="3" />
     </button>
-    <!-- 日历选择器组件 -->
+    <!-- 日历选择器 -->
     <CalendarPicker
-      :noteDates="noteDates"
+      :notes="notesForCalendar"
       :isVisible="uiStore.isCalendarPickerOpen"
       :selectedDate="selectedDate"
       triggerElementSelector=".calendar-button"
@@ -86,237 +107,196 @@
 
 <script setup lang="ts">
 import { useNoteStore } from '../stores/noteStores'
-import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue'
+import { computed, onActivated, onMounted, onUnmounted, ref, watchEffect } from 'vue'
 import { storeToRefs } from 'pinia'
-import { Time as TimeIcon, Calendar, RocketOne } from '@icon-park/vue-next'
+import { Time as TimeIcon, Calendar, Search, Close, ArrowUp } from '@icon-park/vue-next'
 import AppToolbar from '../components/AppToolbar.vue'
 import CalendarPicker from '../components/CalendarPicker.vue'
 import { useUIStore } from '../stores/useUIStore'
+import { useSearch } from '../composables/useSearch'
 import { Note } from '@renderer/types/Note'
 import NoteCard from '../components/NoteCard.vue'
-import { useVirtualList } from '@vueuse/core'
-import { useEventBus } from '@vueuse/core'
-import { debounce } from 'lodash-es'
+import { useVirtualList, UseVirtualListReturn } from '@vueuse/core'
 
-// 初始化状态管理
+// 初始化笔记状态
 const noteStore = useNoteStore()
 const uiStore = useUIStore()
 
-// 组件加载状态
 const isLoaded = ref(false)
+const showBackToTop = ref(false)
+// const itemHeight = 350 // 笔记卡片的高度
 
-// 从 store 中解构需要的状态
-const { isLoading, totalNotes, lastUpdatedNote, lastCreatedNote, lastDeletedNote } =
-  storeToRefs(noteStore)
+// 使用 storeToRefs 来保持响应性
+const { notes } = storeToRefs(noteStore)
 
-// 定义组件内部状态
-const notes = ref<Note[]>([])
-const currentPage = ref(1)
-const pageSize = 20
-const hasMoreNotes = computed(() => notes.value.length < totalNotes.value)
-const selectedDate = ref<string | null>(null)
-const isDateFiltered = computed(() => selectedDate.value !== null)
-const filteredNotes = ref<Note[]>([])
-const noteDates = ref<string[]>([])
-
-// 计算属性：根据日期筛选和排序笔记
-const sortedNotes = computed(() => {
-  const notesToSort = isDateFiltered.value ? filteredNotes.value : notes.value
-  return notesToSort
-    .slice()
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+// 初始化时间线状态
+onMounted(async () => {
+  await noteStore.refreshNotes()
+  isLoaded.value = true
 })
-
-// 设置事件总线，用于监听笔记更新和创建事件
-const eventBus = useEventBus('note-updated')
-const eventBusCreated = useEventBus('note-created')
-const eventBusDeleted = useEventBus('note-deleted')
-// 监听笔记更新事件
-eventBus.on(() => {
-  console.log('TimelineView.vue→ 监听到笔记更新事件', lastUpdatedNote.value)
-  if (!lastUpdatedNote.value) return
-  updateSingleNote(lastUpdatedNote.value)
-})
-
-// 监听笔记创建事件
-eventBusCreated.on(() => {
-  console.log('TimelineView.vue→ 监听到笔记创建事件', lastCreatedNote.value)
-  if (!lastCreatedNote.value) return
-  notes.value.push(lastCreatedNote.value)
-})
-
-// 监听笔记删除事件
-eventBusDeleted.on(() => {
-  console.log('TimelineView.vue→ 监听到笔记删除事件', lastDeletedNote.value)
-  if (!lastDeletedNote.value) return
-  // 如果删除的笔记在notes中，则删除
-  const index = notes.value.findIndex((note) => note.id === lastDeletedNote.value?.id)
-  if (index !== -1) {
-    notes.value.splice(index, 1)
-    // 强制更新虚拟列表
-    nextTick(() => {
-      virtualList.value = [...virtualList.value]
-    })
+// 激活时刷新笔记数据
+onActivated(() => {
+  if (notes.value.length === 0) {
+    noteStore.refreshNotes()
   }
 })
 
-// 更新单个笔记的函数
-const updateSingleNote = (updatedNote: Note) => {
-  if (!updatedNote) return
-  // 如果日历被选择了，则更新filteredNotes
-  if (isDateFiltered.value) {
-    const index = filteredNotes.value.findIndex((note) => note.id === updatedNote.id)
-    if (index !== -1) {
-      filteredNotes.value[index] = { ...filteredNotes.value[index], ...updatedNote }
-    }
-  }
-  // 更新notes
-  const index = notes.value.findIndex((note) => note.id === updatedNote.id)
-  if (index !== -1) {
-    notes.value[index] = { ...notes.value[index], ...updatedNote }
-  }
+// 初始化搜索状态
+const { searchQuery, handleSearch, filteredItems, clearSearch, selectedDate, setSelectedDate } =
+  useSearch(notes)
+
+const isSearchFocused = ref(false)
+
+// 处理搜索框失去焦点
+const handleBlur = () => {
+  // 添加一个小延迟，以确保在点击清除按钮时不会立即失去焦点
+  setTimeout(() => {
+    isSearchFocused.value = false
+  }, 100)
 }
 
-// 使用虚拟列表优化性能
-const itemHeight = 350 // 每个笔记卡片的预估高度
+// 计算属性：按创建时间排序的笔记列表
+const sortedNotes = computed(() => {
+  const sorted = filteredItems.value
+    .filter((note) => !note.isDeleted)
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+  return sorted
+})
+
+// 使用虚拟列表
+const itemHeight = 350 // 假设每个笔记卡片的高度为100px，根据实际情况调整
 
 const { list, containerProps, wrapperProps } = useVirtualList(sortedNotes, {
   itemHeight,
   overscan: 5 // 预渲染的额外项目数量
-})
+}) as UseVirtualListReturn<Note>
 
-const virtualList = list as any
+// 定义 containerProps 的类型
+import { Ref } from 'vue'
+import { CSSProperties } from 'vue'
 
-// 组件挂载时的初始化操作
-onMounted(async () => {
-  console.log('组件挂载，开始加载笔记')
-  if (notes.value.length === 0) {
-    await refreshNotes()
-  }
-  console.log('笔记加载完成，数量:', notes.value.length)
-  isLoaded.value = true
-  const dates = await noteStore.fetchAllDatesWithNotes()
-  if (dates) {
-    noteDates.value = dates
-  }
-  nextTick(() => {
-    setupInfiniteScroll()
-  })
-})
-
-// 刷新笔记列表
-async function refreshNotes() {
-  currentPage.value = 1
-  notes.value = []
-  await loadMoreNotes()
+type ContainerProps = {
+  ref: Ref<HTMLElement | null>
+  onScroll: ((e: Event) => void) | undefined
+  style: CSSProperties
 }
 
-// 设置无限滚动
-const observerTarget = ref<HTMLElement | null>(null)
-let observer: IntersectionObserver | null = null
-
-// 组件卸载时清理观察者
+// 监听虚拟列表的滚动，在接近底部时加载更多
+const checkScroll = (e: Event) => {
+  const target = e.target as HTMLElement
+  if (target) {
+    showBackToTop.value = target.scrollTop > 300
+    console.log('Scroll position:', target.scrollTop, 'Show button:', showBackToTop.value)
+  }
+}
+// watchEffect(() => {
+//   const originalOnScroll = (containerProps as ContainerProps).onScroll
+//   ;(containerProps as ContainerProps).onScroll = async (e: Event) => {
+//     if (typeof originalOnScroll === 'function') {
+//       originalOnScroll(e)
+//     }
+//     checkScroll(e)
+//     const target = e.target as HTMLElement
+//     if (target) {
+//       const { scrollTop, scrollHeight, clientHeight } = target
+//       if (scrollTop < itemHeight * 2 && !noteStore.isLoading && noteStore.hasMoreNewerNotes) {
+//         // 加载更新的笔记
+//         await noteStore.fetchNotesByDate('newer')
+//       } else if (
+//         scrollHeight - scrollTop - clientHeight < itemHeight * 2 &&
+//         noteStore.hasMoreOlderNotes &&
+//         !noteStore.isLoading
+//       ) {
+//         // 加载更旧的笔记
+//         await noteStore.fetchNotesByDate('older')
+//       }
+//     }
+//   }
+// })
+// watchEffect(() => {
+//   const originalOnScroll = (containerProps as any).onScroll
+//   ;(containerProps as any).onScroll = async (e: Event) => {
+//     if (typeof originalOnScroll === 'function') {
+//       originalOnScroll(e)
+//     }
+//     const target = e.target as HTMLElement
+//     if (target) {
+//       const { scrollTop, scrollHeight, clientHeight } = target
+//       if (scrollTop < itemHeight * 2 && !noteStore.isLoading && noteStore.hasMoreNewerNotes) {
+//         // 加载更新的笔记
+//         await noteStore.fetchNotesByDate('newer')
+//       } else if (
+//         scrollHeight - scrollTop - clientHeight < itemHeight * 2 &&
+//         noteStore.hasMoreOlderNotes &&
+//         !noteStore.isLoading
+//       ) {
+//         // 加载更旧的笔记
+//         await noteStore.fetchNotesByDate('older')
+//       }
+//     }
+//   }
+// })
+watchEffect(() => {
+  const originalOnScroll = (containerProps as any).onScroll
+  ;(containerProps as any).onScroll = async (e: Event) => {
+    if (typeof originalOnScroll === 'function') {
+      originalOnScroll(e)
+    }
+    const target = e.target as HTMLElement
+    if (target) {
+      const { scrollTop, scrollHeight, clientHeight } = target
+      if (scrollTop < itemHeight * 2 && !noteStore.isLoading && noteStore.hasMoreNewerNotes) {
+        // 加载更新的笔记
+        await noteStore.fetchNotesByDate('newer')
+      } else if (
+        scrollHeight - scrollTop - clientHeight < itemHeight * 2 &&
+        noteStore.hasMoreOlderNotes &&
+        !noteStore.isLoading
+      ) {
+        // 加载更旧的笔记
+        await noteStore.fetchNotesByDate('older')
+      }
+    }
+  }
+})
+// 在组件卸载时清理数据
 onUnmounted(() => {
-  if (observer) {
-    observer.disconnect()
-  }
+  noteStore.clearNotes()
 })
 
-function setupInfiniteScroll() {
-  console.log('初始化 Intersection Observer')
-  observer = new IntersectionObserver(
-    (entries) => {
-      if (entries[0].isIntersecting && hasMoreNotes.value && !isLoading.value) {
-        console.log('触发加载更多笔记')
-        loadMoreNotes()
-      }
-    },
-    {
-      root: null,
-      rootMargin: '200px',
-      threshold: 0.1
-    }
-  )
-
-  if (observerTarget.value) {
-    observer.observe(observerTarget.value)
-    console.log('观察目标元素设置完成')
-  } else {
-    console.warn('观察目标元素不存在')
-  }
-}
-
-// 加载更多笔记
-async function loadMoreNotes() {
-  if (!isLoading.value && hasMoreNotes.value) {
-    isLoading.value = true
-    try {
-      console.log('开始加载更多笔记，当前页:', currentPage.value)
-      const result = await noteStore.fetchPaginatedNotes(currentPage.value, pageSize)
-      if (result) {
-        notes.value.push(...result.notes)
-        currentPage.value++
-        console.log('新加载的笔记数:', result.notes.length, '总笔记数:', notes.value.length)
-      }
-    } catch (error) {
-      console.error('加载更多笔记时出错:', error)
-    } finally {
-      isLoading.value = false
-    }
-  }
-}
-
-// 滚动到顶部
-async function scrollToTop() {
-  console.log('尝试滚动到顶部')
+const scrollToTop = async () => {
+  await noteStore.scrollToTop()
   const scrollContainer = containerProps.ref.value
-  console.log('滚动容器:', scrollContainer)
-
   if (scrollContainer) {
     scrollContainer.scrollTo({
       top: 0,
       behavior: 'smooth'
     })
-    console.log('已执行滚动操作')
-  } else {
-    console.warn('未找到滚动容器')
   }
 }
 
-// 根据日期筛选笔记
-async function filterNotesByDate(date: string | null) {
-  selectedDate.value = date
-  if (date) {
-    try {
-      const notes = await noteStore.fetchNotesByOneDate(date)
-      if (!notes) {
-        filteredNotes.value = []
-      } else {
-        filteredNotes.value = notes
-      }
-    } catch (error) {
-      console.error('筛选笔记失败:', error)
-      filteredNotes.value = []
-    }
-  } else {
-    // 如果没有选择日期，重置为原始笔记列表
-    filteredNotes.value = []
-    await refreshNotes() // 重新加载所有笔记
-  }
-}
+// 创建一个新的计算属性，将 Date 类型的 createdAt 转换为 string 类型
+const notesForCalendar = computed(() => {
+  return notes.value.map((note: Note) => ({
+    ...note,
+    createdAt:
+      note.createdAt instanceof Date
+        ? note.createdAt.toISOString()
+        : typeof note.createdAt === 'string'
+          ? note.createdAt
+          : new Date().toISOString()
+  }))
+})
 
-// 处理日历选择器事件（使用防抖优化）
-const onDateSelected = debounce((date: string | null) => {
-  console.log('TimelineView.vue→ 日历选择器事件触发', date)
-  filterNotesByDate(date)
-}, 300)
+// 处理日历选择器事件
+const onDateSelected = (date: string | null) => {
+  setSelectedDate(date)
+}
 
 // 切换日历选择器
 const toggleDateFilter = () => {
   if (selectedDate.value) {
-    selectedDate.value = null
-    filteredNotes.value = []
-    refreshNotes()
+    setSelectedDate(null)
   } else {
     uiStore.toggleCalendarPicker()
   }
@@ -641,8 +621,6 @@ const toggleDateFilter = () => {
   margin-top: auto;
   color: var(--color-text-secondary);
   font-size: 14px;
-  opacity: 0.8;
-  user-select: none;
 
   .line {
     flex-grow: 1;
@@ -655,6 +633,7 @@ const toggleDateFilter = () => {
     padding: 0 15px;
     white-space: nowrap;
     opacity: 0.8;
+    // font-style: italic;
     display: flex;
     align-items: center;
     gap: 8px;
@@ -671,8 +650,8 @@ const toggleDateFilter = () => {
   position: fixed;
   bottom: 30px;
   right: 30px;
-  width: 40px;
-  height: 40px;
+  width: 50px;
+  height: 50px;
   border-radius: 50%;
   background-color: rgba(var(--color-primary-rgb), 0.2);
   color: var(--color-text-primary);
@@ -685,31 +664,6 @@ const toggleDateFilter = () => {
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
   z-index: 9999;
   opacity: 0.6;
-
-  .icon {
-    background: none;
-    border: none;
-    width: 24px;
-    height: 24px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s ease;
-    padding: 0;
-
-    :deep(.i-icon) {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 100%;
-      height: 100%;
-    }
-
-    :deep(svg) {
-      width: 18px;
-      height: 18px;
-    }
-  }
 
   &::before {
     content: '';
@@ -727,16 +681,19 @@ const toggleDateFilter = () => {
   &:hover {
     transform: translateY(-5px);
     background-color: rgba(var(--color-primary-rgb), 0.3);
-
     color: var(--color-text-inversion);
     opacity: 1;
     box-shadow: 0 5px 15px rgba(var(--color-primary-rgb), 0.3);
+
+    &::before {
+      opacity: 1;
+    }
   }
 
-  // &:focus {
-  //   outline: none;
-  //   box-shadow: 0 0 0 3px rgba(var(--color-primary-rgb), 0.3);
-  // }
+  &:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(var(--color-primary-rgb), 0.3);
+  }
 
   svg {
     position: relative;
@@ -758,9 +715,5 @@ const toggleDateFilter = () => {
 
 .back-to-top {
   animation: float 3s ease-in-out infinite;
-}
-.observer-target {
-  height: 20px;
-  width: 100%;
 }
 </style>

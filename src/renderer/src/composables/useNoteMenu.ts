@@ -1,4 +1,4 @@
-import { onUnmounted, watchEffect } from 'vue'
+import { onUnmounted } from 'vue'
 import {
   Info,
   Star,
@@ -67,7 +67,7 @@ export function useNoteMenu(params: NoteMenuParams) {
   const router = useRouter()
 
   // 批量导出笔记
-  const allNotes = noteStore.allNotes
+  // const allNotes = noteStore.allNotes
 
   const isPopupMenuVisible = ref(false)
 
@@ -254,10 +254,10 @@ export function useNoteMenu(params: NoteMenuParams) {
 
   // 原有代码
 
-  watchEffect(() => {
-    const note = allNotes.find((note) => note.id === params.noteId)
-    isStarred.value = note?.isStarred || false
-  })
+  // watchEffect(() => {
+  //   const note = allNotes.find((note) => note.id === params.noteId)
+  //   isStarred.value = note?.isStarred || false
+  // })
 
   const closePopupMenu = () => {
     isPopupMenuVisible.value = false
@@ -304,7 +304,55 @@ export function useNoteMenu(params: NoteMenuParams) {
   const isConfirmingDelete = ref(false)
   const isDeleting = ref(false)
   let deleteTimeout: number | null = null
-  const eventBus = useEventBus('note-deleted')
+
+  // const handleDelete = async () => {
+  //   if (isDeleting.value) return false
+
+  //   if (!isConfirmingDelete.value) {
+  //     isConfirmingDelete.value = true
+  //     deleteTimeout = window.setTimeout(() => {
+  //       isConfirmingDelete.value = false
+  //     }, 3000) // 3秒后重置确认状态
+  //     return false
+  //   } else {
+  //     if (deleteTimeout !== null) {
+  //       clearTimeout(deleteTimeout)
+  //       deleteTimeout = null
+  //     }
+
+  //     isDeleting.value = true
+  //     try {
+  //       const success = await noteStore.moveToTrash(params.noteId)
+  //       if (success) {
+  //         console.log('笔记已移至回收站')
+  //         noteStore.closeNoteEditor()
+
+  //         const eventBus = useEventBus('note-deleted')
+  //         // 触发笔记删除事件
+  //         eventBus.emit(params.noteId)
+  //         // 强制刷新笔记列表
+  //         // await noteStore.fetchAllNotes()
+  //         // await noteStore.fetchAllNotes()
+  //         // 通过路由判断，如果在NoteExpandEditor页面，则跳转到Timeline页面
+  //         if (route.name === 'NoteExpandEditor') {
+  //           router.push('/timeline')
+  //         }
+  //         closePopupMenu()
+  //         return true
+  //       } else {
+  //         console.error('移动笔记到回收站失败')
+  //         return false
+  //       }
+  //     } catch (error) {
+  //       console.error('删除笔记时出错:', error)
+  //       return false
+  //     } finally {
+  //       isDeleting.value = false
+  //       isConfirmingDelete.value = false
+  //       closePopupMenu()
+  //     }
+  //   }
+  // }
   const handleDelete = async () => {
     if (isDeleting.value) return false
 
@@ -322,16 +370,15 @@ export function useNoteMenu(params: NoteMenuParams) {
 
       isDeleting.value = true
       try {
-        const success = await noteStore.moveToTrash(params.noteId)
-        if (success) {
+        const result = await noteStore.moveToTrash(params.noteId)
+        if (result) {
           console.log('笔记已移至回收站')
           noteStore.closeNoteEditor()
 
+          const eventBus = useEventBus('note-deleted')
           // 触发笔记删除事件
-          eventBus.emit(params.noteId)
-          // 强制刷新笔记列表
-          await noteStore.fetchAllNotes()
-          // await noteStore.fetchAllNotes()
+          eventBus.emit()
+
           // 通过路由判断，如果在NoteExpandEditor页面，则跳转到Timeline页面
           if (route.name === 'NoteExpandEditor') {
             router.push('/timeline')
@@ -347,7 +394,7 @@ export function useNoteMenu(params: NoteMenuParams) {
       } finally {
         isDeleting.value = false
         isConfirmingDelete.value = false
-        closePopupMenu()
+        closePopupMenu() // 确保在所有情况下都会关闭弹出菜单
       }
     }
   }

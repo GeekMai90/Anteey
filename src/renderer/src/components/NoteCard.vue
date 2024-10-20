@@ -68,7 +68,6 @@ import { useNoteStore } from '@renderer/stores/noteStores'
 import PopupMenu from './PopupMenu.vue'
 import { useNoteMenu } from '../composables/useNoteMenu'
 import type { MenuItem } from './PopupMenu.vue'
-import { useEventBus } from '@vueuse/core'
 
 const props = defineProps<{
   note: Note
@@ -98,13 +97,19 @@ const toggleMenu = (event: MouseEvent) => {
     })
   }
 }
-const handleMenuItemClick = async (item: MenuItem) => {
-  await item.action()
-  if (item.name === 'delete') {
-    // 触发一个事件，通知父组件刷新笔记列表
-    const eventBus = useEventBus('note-deleted')
-    eventBus.emit()
-  } else {
+// const handleMenuItemClick = async (item: MenuItem) => {
+//   await item.action()
+//   if (item.name === 'delete') {
+//     // 触发一个事件，通知父组件刷新笔记列表
+//     const eventBus = useEventBus('note-deleted')
+//     eventBus.emit()
+//   } else {
+//     closeMenu()
+//   }
+// }
+const handleMenuItemClick = (item: MenuItem) => {
+  item.action()
+  if (item.name !== 'delete') {
     closeMenu()
   }
 }
