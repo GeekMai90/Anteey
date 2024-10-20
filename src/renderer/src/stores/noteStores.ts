@@ -105,6 +105,7 @@ export const useNoteStore = defineStore('note', {
         return notes
       } catch (error) {
         console.error('noteStores.ts→ 获取某一天的笔记失败:', error)
+        throw error
       }
     },
     // 获取都有哪些日期有笔记
@@ -115,6 +116,7 @@ export const useNoteStore = defineStore('note', {
         return dates
       } catch (error) {
         console.error('noteStores.ts→ 获取都有哪些日期有笔记失败:', error)
+        throw error
       }
     },
     // 获取按日期排序的笔记
@@ -623,6 +625,7 @@ export const useNoteStore = defineStore('note', {
           return true
         } else {
           console.error('noteStores.ts→ 移动笔记到回收站失败:', result)
+          throw new Error('移动笔记到回收站失败')
         }
       } catch (error) {
         console.error('noteStores.ts→ 移动笔记到回收站失败:', error)
