@@ -8,6 +8,7 @@ import { useUIStore } from './useUIStore'
 import { debounce } from 'lodash-es'
 import { Editor } from '@tiptap/vue-3'
 import { useEventBus } from '@vueuse/core'
+import { GetPaginatedNotesParams } from '../../../db/notes'
 // import { useWhiteboardStore } from './whiteboardStores'
 
 const cardTypes = [
@@ -95,6 +96,19 @@ export const useNoteStore = defineStore('note', {
       setTimeout(() => {
         this.isLoading = false
       }, 2000)
+    },
+
+    // 获取卡片盒页面的分页笔记
+    async fetchPaginatedNotesByCardbox(params: GetPaginatedNotesParams) {
+      console.log('noteStores.ts→ 开始获取卡片盒分页笔记', params)
+      try {
+        const { notes, totalCount } = await window.electronAPI.getPaginatedNotesByCardbox(params)
+        console.log('noteStores.ts→ 获取卡片盒分页笔记成功', notes, totalCount)
+        return { notes, totalCount }
+      } catch (error) {
+        console.error('noteStores.ts→ 获取卡片盒分页笔记失败:', error)
+        throw error // 或者返回一个默认值,取决于您的错误处理策略
+      }
     },
 
     //获取某一天的笔记
@@ -301,38 +315,6 @@ export const useNoteStore = defineStore('note', {
       return true
     },
     // 获取分页笔记
-    // async fetchPaginatedNotes(reset = false) {
-    //   // 如果正在加载或没有更多笔记，则返回
-    //   if (this.isLoading || (!reset && !this.hasMoreNotes)) return
-
-    //   // this.isLoading = true
-
-    //   try {
-    //     if (reset) {
-    //       this.currentPage = 1
-    //       this.notes = []
-    //       this.hasMoreNotes = true
-    //     }
-
-    //     const { notes, totalCount } = await window.electronAPI.getPaginatedNotes(
-    //       this.currentPage,
-    //       this.pageSize
-    //     )
-
-    //     this.notes.push(...notes)
-    //     this.totalNotes = totalCount
-    //     this.currentPage++
-    //     this.hasMoreNotes = notes.length === this.pageSize
-
-    //     console.log('noteStores.ts→ 获取分页笔记成功', notes, totalCount)
-    //     return { notes, totalCount }
-    //   } catch (error) {
-    //     console.error('noteStores.ts→ 获取分页笔记失败:', error)
-    //     throw error
-    //   } finally {
-    //     this.isLoading = false
-    //   }
-    // },
     async fetchPaginatedNotes(page: number, pageSize: number) {
       // if (this.isLoading) return null
       console.log('noteStores.ts→ 获取分页笔记', page, pageSize)

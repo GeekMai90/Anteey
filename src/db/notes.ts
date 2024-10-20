@@ -107,6 +107,7 @@ export async function getNotesByDate(
     totalCount: count
   }
 }
+
 // 获取分页的笔记
 export async function getPaginatedNotes(
   page: number,
@@ -122,6 +123,60 @@ export async function getPaginatedNotes(
       query.clone().count('* as count').first()
     ])
 
+    return {
+      notes: notes.map(convertToNote),
+      totalCount: countResult ? (countResult.count as number) : 0
+    }
+  } catch (error) {
+    console.error('后端→ 获取分页笔记失败:', error)
+    throw new Error('后端→ 获取分页笔记失败')
+  }
+}
+export interface GetPaginatedNotesParams {
+  page: number
+  limit: number
+  cardBoxId?: string // 'all' 表示所有卡片, 'inbox' 表示收件箱, 其他值为特定卡片盒 ID
+  cardTypes?: string[] // ['Maincard', 'Bibcard', 'Indexcard']
+  sortBy?: string
+  sortOrder?: 'asc' | 'desc'
+}
+//卡片盒页面获取分页的笔记
+export async function getPaginatedNotesByCardbox({
+  page,
+  limit,
+  cardBoxId,
+  cardTypes,
+  sortBy = 'address',
+  sortOrder = 'asc'
+}: GetPaginatedNotesParams): Promise<{ notes: Note[]; totalCount: number }> {
+  try {
+    console.log('后端→ 开始获取卡片盒分页笔记', cardBoxId, cardTypes, sortBy, sortOrder)
+    let query = db('notes').where('isDeleted', false)
+
+    // 卡片盒筛选
+    if (cardBoxId === 'inbox') {
+      query = query.whereNull('cardBoxId')
+    } else if (cardBoxId && cardBoxId !== 'all') {
+      query = query.where('cardBoxId', cardBoxId)
+    }
+
+    // 卡片类型筛选
+    if (cardTypes && cardTypes.length > 0) {
+      query = query.whereIn('cardType', cardTypes)
+    }
+
+    const offset = (page - 1) * limit
+
+    // 排序
+    const validSortColumns = ['address', 'createdAt', 'updatedAt'] // 添加其他有效的排序列
+    const actualSortBy = validSortColumns.includes(sortBy) ? sortBy : 'address'
+
+    const [notes, countResult] = await Promise.all([
+      query.clone().orderBy(actualSortBy, sortOrder).limit(limit).offset(offset),
+      query.clone().count('* as count').first()
+    ])
+
+    console.log('后端→ 获取卡片盒分页笔记成功', notes)
     return {
       notes: notes.map(convertToNote),
       totalCount: countResult ? (countResult.count as number) : 0

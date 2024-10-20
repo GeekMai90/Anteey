@@ -33,7 +33,9 @@ import {
   getPaginatedNotes,
   getNotesByDate,
   getNotesByOneDate,
-  getAllDatesWithNotes
+  getAllDatesWithNotes,
+  getPaginatedNotesByCardbox,
+  GetPaginatedNotesParams
 } from '../db/notes'
 import { createCardBox, getAllCardBoxes, updateCardBox, deleteCardBox } from '../db/cardBoxes'
 import {
@@ -206,6 +208,17 @@ function createCustomMenu() {
 }
 
 function setupIpcHandlers() {
+  // 获取卡片盒页面的分页笔记
+  ipcMain.handle('get-paginated-notes-by-cardbox', async (_, params: GetPaginatedNotesParams) => {
+    try {
+      const result = await getPaginatedNotesByCardbox(params)
+      return result
+    } catch (error) {
+      console.error('主进程 → 获取卡片盒分页笔记失败:', error)
+      throw error // 或者返回一个错误对象,以便渲染进程可以处理
+    }
+  })
+
   // 获取都有哪些日期有笔记
   ipcMain.handle('get-all-dates-with-notes', async () => {
     try {

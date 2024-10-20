@@ -1,3 +1,4 @@
+import { GetPaginatedNotesParams } from '../../../db/notes'
 import {
   Note,
   CardBox,
@@ -95,6 +96,10 @@ export interface ElectronAPI {
   ) => Promise<{ notes: Note[]; totalCount: number }>
   getNotesByOneDate: (date: string) => Promise<Note[]>
   getAllDatesWithNotes: () => Promise<string[]>
+  getPaginatedNotesByCardbox: (params: GetPaginatedNotesParams) => Promise<{
+    notes: Note[]
+    totalCount: number
+  }>
 }
 
 declare global {
