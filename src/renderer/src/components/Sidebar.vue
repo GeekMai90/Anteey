@@ -111,18 +111,7 @@
     <RecentNotes />
     <div class="resize-handle" @mousedown="startResize"></div>
     <div class="sidebar-footer">
-      <div class="new-card-wrapper">
-        <!-- <div
-          v-tooltip.top="{ content: 'Cmd+N', delay: { show: 1000 } }"
-          class="new-card"
-          @click="createNewCard"
-        >
-          <div class="icon">
-            <DocAdd theme="outline" size="20" fill="var(--color-text-primary)" :strokeWidth="3" />
-          </div>
-          <div class="add-text">新建卡片</div>
-        </div> -->
-      </div>
+      <div class="new-card-wrapper"></div>
       <!-- 清除空笔记 -->
       <div
         v-tooltip.top="{ content: '清除空笔记', delay: { show: 1000 } }"

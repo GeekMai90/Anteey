@@ -1,4 +1,4 @@
-import { onUnmounted } from 'vue'
+import { onUnmounted, watchEffect } from 'vue'
 import {
   Info,
   Star,
@@ -254,10 +254,10 @@ export function useNoteMenu(params: NoteMenuParams) {
 
   // 原有代码
 
-  // watchEffect(() => {
-  //   const note = allNotes.find((note) => note.id === params.noteId)
-  //   isStarred.value = note?.isStarred || false
-  // })
+  watchEffect(() => {
+    const note = noteStore.starredNotes.find((note) => note.id === params.noteId)
+    isStarred.value = note?.isStarred || false
+  })
 
   const closePopupMenu = () => {
     isPopupMenuVisible.value = false

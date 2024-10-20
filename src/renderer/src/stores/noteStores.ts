@@ -60,7 +60,8 @@ export const useNoteStore = defineStore('note', {
     selectedCardBoxId: null as string | null,
     lastUpdatedNote: null as Note | null,
     lastCreatedNote: null as Note | null,
-    lastDeletedNote: null as Note | null
+    lastDeletedNote: null as Note | null,
+    starredNotes: [] as Note[]
   }),
 
   actions: {
@@ -541,6 +542,10 @@ export const useNoteStore = defineStore('note', {
         this.notes.push(updatedNote)
         this.lastUpdatedNote = updatedNote
         eventBus.emit(updatedNote)
+        // 如果是星标笔记，更新 starredNotes
+        if (updatedNote.isStarred) {
+          this.starredNotes = this.starredNotes.map((note) => (note.id === id ? updatedNote : note))
+        }
 
         console.log('现在的 notes 是', this.notes)
         console.log('noteStores.ts→ 更新后的笔记', updatedNote)
@@ -855,13 +860,10 @@ export const useNoteStore = defineStore('note', {
     async addStarToNote(id: string) {
       try {
         const updatedNote = await window.electronAPI.addStarToNote(id)
-        const index = this.notes.findIndex((note) => note.id === id)
-        if (index !== -1) {
-          this.notes[index] = updatedNote
-          console.log('noteStores.ts→ 添加星标收藏成功:', updatedNote)
+        if (updatedNote) {
+          this.starredNotes.push(updatedNote)
         } else {
           console.warn(`noteStores.ts→ 尝试为不存在的笔记添加星标: ${id}`)
-          this.notes.push(updatedNote)
         }
         if (this.currentNote && this.currentNote.id === id) {
           this.currentNote = updatedNote
@@ -877,14 +879,16 @@ export const useNoteStore = defineStore('note', {
     async removeStarFromNote(id: string) {
       try {
         const result = await window.electronAPI.removeStarFromNote(id)
-        const updatedNoteIndex = this.notes.findIndex((note) => note.id === result.updatedNote.id)
+        const updatedNoteIndex = this.starredNotes.findIndex(
+          (note) => note.id === result.updatedNote.id
+        )
         if (updatedNoteIndex !== -1) {
-          this.notes[updatedNoteIndex] = result.updatedNote
+          this.starredNotes[updatedNoteIndex] = result.updatedNote
         }
         result.reorderedNotes.forEach((note) => {
-          const index = this.notes.findIndex((n) => n.id === note.id)
+          const index = this.starredNotes.findIndex((n) => n.id === note.id)
           if (index !== -1) {
-            this.notes[index] = note
+            this.starredNotes[index] = note
           }
         })
         if (this.currentNote && this.currentNote.id === id) {
@@ -903,6 +907,7 @@ export const useNoteStore = defineStore('note', {
       try {
         const starredNotes = await window.electronAPI.getStarredNotes()
         console.log(`noteStores.ts→ 获取收藏的笔记`, starredNotes)
+        this.starredNotes = starredNotes
         return starredNotes
       } catch (error) {
         console.error('noteStores.ts→ 获取收藏的笔记失败:', error)
@@ -916,9 +921,9 @@ export const useNoteStore = defineStore('note', {
         console.log('noteStores.ts→ 开始更新收藏笔记顺序', orders)
         // 乐观更新
         orders.forEach(({ id, starredOrder }) => {
-          const index = this.notes.findIndex((note) => note.id === id)
+          const index = this.starredNotes.findIndex((note) => note.id === id)
           if (index !== -1) {
-            this.notes[index] = { ...this.notes[index], starredOrder }
+            this.starredNotes[index] = { ...this.starredNotes[index], starredOrder }
           }
         })
         // 调用后端 API 更新顺序
@@ -940,9 +945,9 @@ export const useNoteStore = defineStore('note', {
         }
         const updatedNotes = result as Note[]
         updatedNotes.forEach((note) => {
-          const index = this.notes.findIndex((n) => n.id === note.id)
+          const index = this.starredNotes.findIndex((n) => n.id === note.id)
           if (index !== -1) {
-            this.notes[index] = note
+            this.starredNotes[index] = note
           } else {
             console.warn(`noteStores.ts→ 尝试更新不存在的笔记: ${note.id}`)
           }
@@ -1021,11 +1026,11 @@ export const useNoteStore = defineStore('note', {
         .length
     },
     // 获取收藏的笔记
-    starredNotes(): Note[] {
-      return this.notes
-        .filter((note) => note.isStarred)
-        .sort((a, b) => (a.starredOrder ?? 0) - (b.starredOrder ?? 0))
-    },
+    // starredNotes(): Note[] {
+    //   return this.notes
+    //     .filter((note) => note.isStarred)
+    //     .sort((a, b) => (a.starredOrder ?? 0) - (b.starredOrder ?? 0))
+    // },
     // 获取笔记
     getNoteById: (state) => {
       return (id: string) => state.notes.find((note) => note.id === id)
