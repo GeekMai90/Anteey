@@ -12,7 +12,7 @@
           </div>
           <div class="topToolBar-right">
             <!-- 搜索框 -->
-            <div
+            <!-- <div
               v-tooltip.bottom="{ content: 'Cmd+P', delay: { show: 1000 } }"
               class="search-box"
               :class="{ 'is-focused': isSearchFocused }"
@@ -46,7 +46,7 @@
                   />
                 </div>
               </div>
-            </div>
+            </div> -->
             <!-- 收件箱 -->
             <div class="inbox-button" :class="{ active: isInboxSelected }" @click="toggleInbox">
               <div class="icon">
@@ -271,7 +271,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, nextTick, onActivated } from 'vue'
 import { useNoteStore } from '../stores/noteStores'
 import AppToolbar from '../components/AppToolbar.vue'
 import {
@@ -323,6 +323,10 @@ const currentSort = ref('address')
 const sortDirection = ref('asc')
 const hasMoreNotes = ref(true)
 
+onActivated(() => {
+  // 组件被激活时的逻辑，例如刷新数据
+  fetchNotes()
+})
 // 获取所有卡片盒笔记
 const fetchNotes = async () => {
   if (isLoading.value) return

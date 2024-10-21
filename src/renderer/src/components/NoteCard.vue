@@ -32,7 +32,7 @@
       </div>
     </div>
     <div ref="noteContent" class="note-content" @dblclick="useNoteStore().openNoteEditor(note.id)">
-      <TipTapEditor
+      <TipTapRender
         :key="note.id"
         :content="note.content"
         :editable="false"
@@ -63,11 +63,12 @@ import { formatDate } from '@renderer/utils/noteHelpers'
 import { More, ExpandTextInput } from '@icon-park/vue-next'
 import { computed, ref, nextTick, reactive } from 'vue'
 import { useRouter } from 'vue-router'
-import TipTapEditor from '@renderer/components/TipTapEditor.vue'
+// import TipTapEditor from '@renderer/components/TipTapEditor.vue'
 import { useNoteStore } from '@renderer/stores/noteStores'
 import PopupMenu from './PopupMenu.vue'
 import { useNoteMenu } from '../composables/useNoteMenu'
 import type { MenuItem } from './PopupMenu.vue'
+import TipTapRender from './TipTapRender.vue'
 
 const props = defineProps<{
   note: Note
@@ -317,7 +318,7 @@ const cardTypeClass = computed(() => {
     margin-bottom: 10px;
     // min-height: 60px;
     // max-height: 300px;
-    height: 240px;
+    height: 230px;
     overflow: hidden;
     position: relative;
     font-size: 15px;

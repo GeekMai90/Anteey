@@ -14,12 +14,14 @@ const routes = [
   {
     name: 'timeline',
     path: '/timeline',
-    component: () => import('../views/TimelineView.vue')
+    component: () => import('../views/TimelineView.vue'),
+    meta: { keepAlive: true }
   },
   {
     name: 'cardbox',
     path: '/cardbox',
-    component: () => import('../views/CardBoxView.vue')
+    component: () => import('../views/CardBoxView.vue'),
+    meta: { keepAlive: true }
   },
   {
     name: 'whiteboard',
@@ -44,7 +46,8 @@ const routes = [
   {
     name: 'MainCard',
     path: '/maincard',
-    component: () => import('../views/MainCard.vue')
+    component: () => import('../views/MainCard.vue'),
+    meta: { keepAlive: true }
   },
   {
     name: 'BibCard',

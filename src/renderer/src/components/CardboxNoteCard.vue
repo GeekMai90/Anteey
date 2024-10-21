@@ -38,7 +38,7 @@
       </div>
     </div>
     <div ref="noteContent" class="note-content">
-      <TipTapEditor
+      <TipTapRender
         v-if="localNote"
         :key="localNote.id"
         :content="localNote.content"
@@ -61,6 +61,7 @@ import { computed, ref, reactive, nextTick, toRef } from 'vue'
 import { useNoteStore } from '@renderer/stores/noteStores'
 import { useRouter } from 'vue-router'
 import TipTapEditor from '@renderer/components/TipTapEditor.vue'
+import TipTapRender from '@renderer/components/TipTapRender.vue'
 import PopupMenu from '@renderer/components/PopupMenu.vue'
 import { useNoteMenu } from '@renderer/composables/useNoteMenu'
 import type { MenuItem } from '@renderer/components/PopupMenu.vue'

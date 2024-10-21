@@ -178,7 +178,7 @@ const updateSingleNote = (updatedNote: Note) => {
 }
 
 // 使用虚拟列表优化性能
-const itemHeight = 350 // 每个笔记卡片的预估高度
+const itemHeight = 340 // 每个笔记卡片的预估高度
 
 const { list, containerProps, wrapperProps } = useVirtualList(sortedNotes, {
   itemHeight,
