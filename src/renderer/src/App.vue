@@ -1,9 +1,9 @@
 <template>
   <div class="app-container" :class="{ 'theme-dark': isDarkTheme }">
     <!-- 加载动画 -->
-    <!-- <div v-if="noteStore.isLoading" class="loading-overlay">
+    <div v-if="isLoading" class="loading-overlay">
       <Vue3Lottie :animationData="loadingAnimation" :height="300" :width="300" />
-    </div> -->
+    </div>
     <!-- 按钮 -->
     <!-- <div class="custom-titlebar">
       <div class="fake-traffic-lights">
@@ -83,8 +83,8 @@ import ContextMenu from './components/ContexMenu.vue'
 import { useUIStore } from './stores/useUIStore'
 import Modal from './components/Modal.vue'
 import SettingsPage from './components/SettingsPage.vue'
-// import { Vue3Lottie } from 'vue3-lottie'
-// import loadingAnimation from './assets/loading.json'
+import { Vue3Lottie } from 'vue3-lottie'
+import loadingAnimation from './assets/loading.json'
 import { useNoteStore } from './stores/noteStores'
 import { useNoteMenu } from './composables/useNoteMenu'
 
@@ -92,6 +92,7 @@ const uiStore = useUIStore()
 const noteStore = useNoteStore()
 const isDarkTheme = ref(false)
 const router = useRouter()
+const isLoading = ref(true)
 
 // const isLoading = ref(true)
 const { handleBulkExport } = useNoteMenu({
@@ -106,6 +107,9 @@ onMounted(() => {
   window.electronAPI.onMenuExportNotes(async () => {
     await handleBulkExport()
   })
+  setTimeout(() => {
+    isLoading.value = false
+  }, 1000)
 })
 
 onUnmounted(() => {

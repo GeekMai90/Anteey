@@ -1,4 +1,5 @@
-import { onUnmounted, watchEffect } from 'vue'
+import { watchEffect } from 'vue'
+import { useEventBus } from '@vueuse/core'
 import {
   Info,
   Star,
@@ -16,38 +17,9 @@ import { useUIStore } from '../stores/useUIStore'
 import TurndownService from 'turndown'
 import { format } from 'date-fns'
 import JSZip from 'jszip'
-import { ref, onMounted, computed } from 'vue'
-import { Editor, BubbleMenu, VueNodeViewRenderer } from '@tiptap/vue-3'
-import NodeRange from '@tiptap-pro/extension-node-range'
-import StarterKit from '@tiptap/starter-kit'
-import Hightlight from '@tiptap/extension-highlight'
-import Underline from '@tiptap/extension-underline'
-import Emoji, { gitHubEmojis } from '@tiptap-pro/extension-emoji'
-import { Markdown } from 'tiptap-markdown'
-import Dropcursor from '@tiptap/extension-dropcursor'
-import Placeholder from '@tiptap/extension-placeholder'
-import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight'
-import { all, createLowlight } from 'lowlight'
-import Typography from '@tiptap/extension-typography'
-import Image from '@tiptap/extension-image'
-import TiptapImage from '../components/TiptapImage.vue'
-import TaskItem from '@tiptap/extension-task-item'
-import TaskList from '@tiptap/extension-task-list'
-import { emojiSuggestion } from '../tiptap/suggestion'
-import { SlashCommands } from '../tiptap/SlashCommands'
-import { slashCommandSuggestion } from '../tiptap/slashCommandSuggestion'
-import UniqueID from '@tiptap-pro/extension-unique-id'
-import { CustomLink } from '../tiptap/CustomLink'
-import Subscript from '@tiptap/extension-subscript'
-import Superscript from '@tiptap/extension-superscript'
-import TextAlign from '@tiptap/extension-text-align'
-import Details from '@tiptap-pro/extension-details'
-import DetailsContent from '@tiptap-pro/extension-details-content'
-import DetailsSummary from '@tiptap-pro/extension-details-summary'
-import Export from '@tiptap-pro/extension-export'
+import { ref, computed } from 'vue'
 import { useNoteStore } from '../stores/noteStores'
 import { useRoute, useRouter } from 'vue-router'
-import { useEventBus } from '@vueuse/core'
 
 interface NoteMenuParams {
   noteId: string
@@ -62,207 +34,17 @@ export function useNoteMenu(params: NoteMenuParams) {
   const uiStore = useUIStore()
   const whiteboardStore = useWhiteboardStore()
   const showConfirmModal = ref(false)
-  // const { allNotes } = storeToRefs(useNoteStore())
   const route = useRoute()
   const router = useRouter()
-
-  // 批量导出笔记
-  // const allNotes = noteStore.allNotes
-
   const isPopupMenuVisible = ref(false)
-
   const isStarred = ref(false)
 
-  const editor = ref<Editor | null>(null)
-
-  onMounted(() => {
-    editor.value = new Editor({
-      extensions: [
-        StarterKit
-        // 添加其他必要的扩展，确保与主编辑器配置一致
-      ],
-      editable: false
-    })
-  })
-
-  onUnmounted(() => {
-    if (editor.value) {
-      editor.value.destroy()
-    }
-  })
-  // 扩展 Image 扩展
-  const CustomImage = Image.extend({
-    addAttributes() {
-      return {
-        ...this.parent?.(),
-        width: {
-          default: '100%',
-          renderHTML: (attributes) => ({
-            style: `width: ${attributes.width}`
-          })
-        },
-        align: {
-          default: 'center',
-          renderHTML: (attributes) => ({
-            style: `display: block; margin: ${attributes.align === 'center' ? '0 auto' : attributes.align === 'left' ? '0 auto 0 0' : '0 0 0 auto'}`
-          })
-        }
-      }
-    },
-    addNodeView() {
-      return VueNodeViewRenderer(TiptapImage as any)
-    }
-  })
-  const lowlight = createLowlight(all)
-  const editorExtensions = computed(() => {
-    const extensions = [
-      StarterKit.configure({
-        heading: {
-          levels: [1, 2, 3]
-        },
-        dropcursor: false,
-        codeBlock: false
-      }),
-      BubbleMenu,
-      Markdown.configure({
-        transformPastedText: true, // 启用 Markdown 粘贴文本转换
-        transformCopiedText: true // 复制的文本转换为Markdown
-      }),
-      Hightlight,
-      CustomLink.configure({
-        openOnClick: false,
-        validate: (url) => /^(https?:\/\/|note:\/\/)/.test(url)
-      }),
-      Underline,
-      Subscript,
-      Superscript,
-      Emoji.configure({
-        emojis: gitHubEmojis,
-        enableEmoticons: true,
-        suggestion: emojiSuggestion
-      }),
-      // 斜杠命令菜单
-      SlashCommands.configure({
-        suggestion: slashCommandSuggestion
-      }),
-      Dropcursor.configure({
-        color: 'var(--color-primary)',
-        width: 2
-      }),
-      Placeholder.configure({
-        placeholder: '记录思考，或输入 / 命令'
-      }),
-      CodeBlockLowlight.configure({
-        lowlight,
-        defaultLanguage: 'plaintext'
-      }),
-      Typography,
-      CustomImage,
-      TaskList,
-      Details.configure({
-        persist: true,
-        HTMLAttributes: {
-          class: 'details'
-        }
-      }),
-      DetailsSummary,
-      DetailsContent,
-      Export,
-      TextAlign.configure({
-        types: ['paragraph', 'heading']
-      }),
-      TaskItem.configure({
-        nested: true
-      }),
-      UniqueID.configure({
-        types: ['heading', 'paragraph']
-      }),
-      NodeRange.configure({
-        key: null,
-        depth: undefined
-      })
-    ]
-    return extensions
-  })
-
-  onMounted(() => {
-    editor.value = new Editor({
-      extensions: editorExtensions.value as any,
-      content: '',
-      editable: false
-    })
-  })
-
-  const handleBulkExport = async () => {
-    console.log('Starting bulk export...')
-    const allNotes = noteStore.allNotes
-
-    if (allNotes.length === 0) {
-      console.error('No notes to export')
-      return
-    }
-
-    if (!editor.value) {
-      console.error('Editor instance not available')
-      return
-    }
-
-    console.log(`Found ${allNotes.length} notes to export`)
-
-    const turndownService = new TurndownService({ headingStyle: 'atx' })
-    const zip = new JSZip()
-
-    for (const note of allNotes) {
-      if (note.content) {
-        try {
-          console.log(`Processing note: ${note.id}`)
-          editor.value.commands.setContent(note.content)
-          const html = editor.value.getHTML()
-          const markdown = turndownService.turndown(html)
-
-          const createdAt = new Date(note.createdAt)
-          const timeString = format(createdAt, 'yyyyMMddHHmm')
-          let noteAddress = noteStore.getNoteAddress(note.id)
-          noteAddress = sanitizeFileName(noteAddress)
-          const fileName = `${noteAddress}_${timeString}.md`
-
-          zip.file(fileName, markdown)
-          console.log(`Note processed successfully: ${fileName}`)
-        } catch (error) {
-          console.error(`Error processing note (ID: ${note.id}):`, error)
-          zip.file(
-            `error_${note.id}.txt`,
-            `Error processing this note: ${(error as Error).message}`
-          )
-        }
-      }
-    }
-
-    try {
-      console.log('Generating zip file...')
-      const content = await zip.generateAsync({ type: 'blob' })
-      const link = document.createElement('a')
-      link.href = URL.createObjectURL(content)
-      link.download = `all_notes_export_${format(new Date(), 'yyyyMMddHHmm')}.zip`
-      link.click()
-      URL.revokeObjectURL(link.href)
-      console.log(`${allNotes.length} notes exported to zip file`)
-    } catch (error) {
-      console.error('Error generating zip file:', error)
-    }
-  }
-
-  // 原有代码
-
-  watchEffect(() => {
-    const note = noteStore.starredNotes.find((note) => note.id === params.noteId)
-    isStarred.value = note?.isStarred || false
-  })
-
+  // 关闭弹出菜单
   const closePopupMenu = () => {
     isPopupMenuVisible.value = false
   }
 
+  // 分享笔记
   const handleShare = () => {
     console.log('分享笔记', params.noteId)
   }
@@ -275,6 +57,7 @@ export function useNoteMenu(params: NoteMenuParams) {
     console.log('已复制笔记链接:', noteLink)
   }
 
+  // 添加或移除星标收藏
   const handleStar = () => {
     if (!isStarred.value) {
       console.log('添加星标收藏')
@@ -286,73 +69,33 @@ export function useNoteMenu(params: NoteMenuParams) {
     // 立即更新 isStarred 的值
     isStarred.value = !isStarred.value
   }
+  watchEffect(() => {
+    const note = noteStore.starredNotes.find((note) => note.id === params.noteId)
+    isStarred.value = note?.isStarred || false
+  })
 
+  // 添加或移除右侧显示
   const handleAddToRightSidebar = async () => {
     await noteStore.addNoteToRightSidebar(params.noteId)
     await uiStore.openRightSidebar()
     noteStore.closeNoteEditor()
   }
 
+  // 复制笔记
   const handleCopy = () => {
     console.log('复制笔记', params.noteId)
   }
 
+  // 显示历史记录
   const handleShowHistory = () => {
     console.log('显示历史记录', params.noteId)
   }
 
+  // 删除笔记
   const isConfirmingDelete = ref(false)
   const isDeleting = ref(false)
   let deleteTimeout: number | null = null
 
-  // const handleDelete = async () => {
-  //   if (isDeleting.value) return false
-
-  //   if (!isConfirmingDelete.value) {
-  //     isConfirmingDelete.value = true
-  //     deleteTimeout = window.setTimeout(() => {
-  //       isConfirmingDelete.value = false
-  //     }, 3000) // 3秒后重置确认状态
-  //     return false
-  //   } else {
-  //     if (deleteTimeout !== null) {
-  //       clearTimeout(deleteTimeout)
-  //       deleteTimeout = null
-  //     }
-
-  //     isDeleting.value = true
-  //     try {
-  //       const success = await noteStore.moveToTrash(params.noteId)
-  //       if (success) {
-  //         console.log('笔记已移至回收站')
-  //         noteStore.closeNoteEditor()
-
-  //         const eventBus = useEventBus('note-deleted')
-  //         // 触发笔记删除事件
-  //         eventBus.emit(params.noteId)
-  //         // 强制刷新笔记列表
-  //         // await noteStore.fetchAllNotes()
-  //         // await noteStore.fetchAllNotes()
-  //         // 通过路由判断，如果在NoteExpandEditor页面，则跳转到Timeline页面
-  //         if (route.name === 'NoteExpandEditor') {
-  //           router.push('/timeline')
-  //         }
-  //         closePopupMenu()
-  //         return true
-  //       } else {
-  //         console.error('移动笔记到回收站失败')
-  //         return false
-  //       }
-  //     } catch (error) {
-  //       console.error('删除笔记时出错:', error)
-  //       return false
-  //     } finally {
-  //       isDeleting.value = false
-  //       isConfirmingDelete.value = false
-  //       closePopupMenu()
-  //     }
-  //   }
-  // }
   const handleDelete = async () => {
     if (isDeleting.value) return false
 
@@ -439,20 +182,9 @@ export function useNoteMenu(params: NoteMenuParams) {
     showConfirmModal.value = false
   }
 
-  // 导出笔记
-  const handleExportNote = () => {
+  // 导出单个笔记
+  const handleExportNote = async () => {
     if (noteStore.editor && params.noteId) {
-      const html = noteStore.editor.getHTML()
-      const turndownService = new TurndownService({
-        headingStyle: 'atx' // 使用 # 符号作为标题
-      })
-
-      // ... Turndown 规则设置 ...
-
-      const markdown = turndownService.turndown(html)
-
-      // 获取笔记的 address 和创建时间
-      let noteAddress = noteStore.getNoteAddress(params.noteId)
       const note = noteStore.getNoteById(params.noteId)
 
       if (!note) {
@@ -460,35 +192,72 @@ export function useNoteMenu(params: NoteMenuParams) {
         return
       }
 
-      const createdAt = new Date(note.createdAt)
-      const timeString = format(createdAt, 'yyyyMMddHHmm')
-      // 清理文件名
-      const sanitizeFileName = (name: string): string => {
-        return name
-          .replace(/^[-_]+/, '') // 移除开头的横杠或下划线
-          .replace(/[/\\?%*:|"<>]/g, '_') // 替换不允许的字符为下划线
-          .replace(/[. ]+$/, '') // 移除结尾的点和空格
+      console.log(`准备导出笔记: ${note.id}`)
+
+      const turndownService = new TurndownService({ headingStyle: 'atx' })
+      const zip = new JSZip()
+
+      try {
+        noteStore.editor.commands.setContent(note.content)
+        const html = noteStore.editor.getHTML()
+        let markdown = turndownService.turndown(html)
+
+        const imageUrls = getImageUrlsFromHtml(html)
+
+        const imagePromises = imageUrls.map(async (imageUrl) => {
+          try {
+            const imageData = await downloadImage(imageUrl)
+            const imageName = imageUrl.split('/').pop() || 'image.png'
+            zip.file(`images/${imageName}`, imageData)
+            return { oldUrl: imageUrl, newUrl: `images/${imageName}` }
+          } catch (error) {
+            console.error(`下载图片失败: ${imageUrl}`, error)
+            return null
+          }
+        })
+
+        const imageResults = await Promise.all(imagePromises)
+
+        imageResults.forEach((result) => {
+          if (result) {
+            markdown = markdown.replace(result.oldUrl, result.newUrl)
+          }
+        })
+
+        // 处理本地图片链接
+        markdown = markdown.replace(
+          /!\[([^\]]*)\]\(file:\/\/\/Users\/geekmai\/Library\/Application Support\/antinet\/UserData\/images\/([^)]+)\)/g,
+          '![$1](./images/$2)'
+        )
+
+        // 处理笔记链接（对于单条笔记，我们保留原始链接）
+        markdown = markdown.replace(
+          /\[([^\]]+)\]\(note:\/\/([^)]+)\)/g,
+          (match, linkText, noteId) => {
+            return `[${linkText}](note://${noteId})`
+          }
+        )
+
+        const createdAt = new Date(note.createdAt)
+        const timeString = format(createdAt, 'yyyyMMddHHmm')
+        let noteAddress = noteStore.getNoteAddress(note.id)
+        noteAddress = sanitizeFileName(noteAddress)
+        const fileName = `${noteAddress}_${timeString}.md`
+
+        zip.file(fileName, markdown)
+        console.log(`笔记处理成功: ${fileName}`)
+
+        console.log('正在生成 zip 文件...')
+        const content = await zip.generateAsync({ type: 'blob' })
+        const link = document.createElement('a')
+        link.href = URL.createObjectURL(content)
+        link.download = `Antinet_note_export_${noteAddress}_${timeString}.zip`
+        link.click()
+        URL.revokeObjectURL(link.href)
+        console.log(`笔记已导出到 zip 文件: ${link.download}`)
+      } catch (error) {
+        console.error(`处理笔记时出错 (ID: ${note.id}):`, error)
       }
-      noteAddress = sanitizeFileName(noteAddress)
-
-      // 创建文件名，包含时间戳和 address
-      const fileName = `${noteAddress}_${timeString}.md`
-
-      // 创建 Blob 对象
-      const blob = new Blob([markdown], { type: 'text/markdown' })
-
-      // 创建下载链接
-      const link = document.createElement('a')
-      link.href = URL.createObjectURL(blob)
-      link.download = fileName
-
-      // 触发下载
-      link.click()
-
-      // 清理 URL 对象
-      URL.revokeObjectURL(link.href)
-
-      console.log(`笔记已导出为 Markdown: ${fileName}`)
     } else {
       console.error('编辑器实例不存在或笔记ID未提供')
     }
@@ -496,87 +265,126 @@ export function useNoteMenu(params: NoteMenuParams) {
   }
 
   // 批量导出笔记
-  // const handleBulkExport = async () => {
-  //   const allNotes = noteStore.allNotes
+  const handleBulkExport = async () => {
+    console.log('准备开始批量导出...')
 
-  //   if (allNotes.length === 0) {
-  //     console.error('没有可导出的笔记')
-  //     return
-  //   }
+    const allNotes = await noteStore.fetchAllNotes()
 
-  //   const turndownService = new TurndownService({
-  //     headingStyle: 'atx'
-  //   })
+    if (allNotes.length === 0) {
+      console.error('没有可导出的笔记')
+      return
+    }
 
-  //   // 创建一个临时的 Vue 应用来包含 TipTapEditor
-  //   const tempApp = createApp({
-  //     components: { TipTapEditor },
-  //     setup() {
-  //       const editorRef = ref(null)
-  //       return { editorRef }
-  //     },
-  //     template: '<TipTapEditor ref="editorRef" :content="{}" :editable="false" />'
-  //   })
+    if (!noteStore.editor) {
+      console.error('编辑器实例不可用')
+      return
+    }
 
-  //   const tempRoot = document.createElement('div')
-  //   document.body.appendChild(tempRoot)
-  //   const vm = tempApp.mount(tempRoot)
+    console.log(`找到 ${allNotes.length} 条笔记待导出`)
 
-  //   // 等待编辑器实例创建完成
-  //   await new Promise((resolve) => setTimeout(resolve, 0))
+    const turndownService = new TurndownService({ headingStyle: 'atx' })
+    const zip = new JSZip()
 
-  //   const zip = new JSZip()
+    // 创建笔记 ID 到文件名的映射
+    const noteIdToFilename = new Map<string, string>()
 
-  //   for (const note of allNotes) {
-  //     if (note.content) {
-  //       try {
-  //         // 设置笔记内容到编辑器
-  //         ;(vm.$refs.editorRef as any).editor.commands.setContent(note.content)
+    // 第一次遍历：创建文件名映射
+    for (const note of allNotes) {
+      const createdAt = new Date(note.createdAt)
+      const timeString = format(createdAt, 'yyyyMMddHHmm')
+      let noteAddress = noteStore.getNoteAddress(note.id)
+      noteAddress = sanitizeFileName(noteAddress)
+      const fileName = `${noteAddress}_${timeString}.md`
+      noteIdToFilename.set(note.id, fileName)
+    }
 
-  //         // 获取 HTML 内容
-  //         const html = (vm.$refs.editorRef as any).editor.getHTML()
+    // 第二次遍历：处理笔记内容和链接
+    for (const note of allNotes) {
+      if (!note.content) {
+        console.warn(`笔记 ${note.id} 没有内容，跳过`)
+        continue
+      }
 
-  //         const markdown = turndownService.turndown(html)
+      try {
+        console.log(`正在处理笔记: ${note.id}`)
 
-  //         const createdAt = new Date(note.createdAt)
-  //         const timeString = format(createdAt, 'yyyyMMddHHmm')
+        noteStore.editor.commands.setContent(note.content)
+        const html = noteStore.editor.getHTML()
+        let markdown = turndownService.turndown(html)
 
-  //         let noteAddress = noteStore.getNoteAddress(note.id)
-  //         noteAddress = sanitizeFileName(noteAddress)
+        const imageUrls = getImageUrlsFromHtml(html)
 
-  //         const fileName = `${noteAddress}_${timeString}.md`
+        const imagePromises = imageUrls.map(async (imageUrl) => {
+          try {
+            const imageData = await downloadImage(imageUrl)
+            const imageName = imageUrl.split('/').pop() || 'image.png'
+            zip.file(`images/${imageName}`, imageData)
+            return { oldUrl: imageUrl, newUrl: `images/${imageName}` }
+          } catch (error) {
+            console.error(`下载图片失败: ${imageUrl}`, error)
+            return null
+          }
+        })
 
-  //         zip.file(fileName, markdown)
+        const imageResults = await Promise.all(imagePromises)
 
-  //         console.log(`成功处理笔记: ${fileName}`)
-  //       } catch (error: unknown) {
-  //         console.error(`处理笔记时出错 (ID: ${note.id}):`, error)
-  //         zip.file(`error_${note.id}.txt`, `处理此笔记时出错: ${(error as Error).message}`)
-  //       }
-  //     }
-  //   }
+        imageResults.forEach((result) => {
+          if (result) {
+            markdown = markdown.replace(result.oldUrl, result.newUrl)
+          }
+        })
 
-  //   // 清理临时 Vue 应用
-  //   ;(vm.$refs.editorRef as any).editor.destroy()
-  //   tempApp.unmount()
-  //   document.body.removeChild(tempRoot)
+        // 处理本地图片链接
+        markdown = markdown.replace(
+          /!\[([^\]]*)\]\(file:\/\/\/Users\/geekmai\/Library\/Application Support\/antinet\/UserData\/images\/([^)]+)\)/g,
+          '![$1](./images/$2)'
+        )
 
-  //   try {
-  //     const content = await zip.generateAsync({ type: 'blob' })
+        // 处理笔记链接
+        markdown = markdown.replace(
+          /\[([^\]]+)\]\(note:\/\/([^)]+)\)/g,
+          (match, linkText, noteId) => {
+            const fileName = noteIdToFilename.get(noteId)
+            return fileName ? `[${linkText}](./${fileName})` : match
+          }
+        )
 
-  //     const link = document.createElement('a')
-  //     link.href = URL.createObjectURL(content)
-  //     link.download = `all_notes_export_${format(new Date(), 'yyyyMMddHHmm')}.zip`
+        const fileName = noteIdToFilename.get(note.id)!
+        zip.file(fileName, markdown)
+        console.log(`笔记处理成功: ${fileName}`)
+      } catch (error) {
+        console.error(`处理笔记时出错 (ID: ${note.id}):`, error)
+        zip.file(`error_${note.id}.txt`, `处理此笔记时出错: ${(error as Error).message}`)
+      }
+    }
 
-  //     link.click()
-
-  //     URL.revokeObjectURL(link.href)
-
-  //     console.log(`${allNotes.length} 个笔记已导出为 zip 文件`)
-  //   } catch (error: unknown) {
-  //     console.error('生成 zip 文件时出错:', error)
-  //   }
-  // }
+    try {
+      console.log('正在生成 zip 文件...')
+      const content = await zip.generateAsync({ type: 'blob' })
+      const link = document.createElement('a')
+      link.href = URL.createObjectURL(content)
+      link.download = `Antinet_all_notes_export_${format(new Date(), 'yyyyMMddHHmm')}.zip`
+      link.click()
+      URL.revokeObjectURL(link.href)
+      console.log(`${allNotes.length} 条笔记已导出到 zip 文件`)
+    } catch (error) {
+      console.error('生成 zip 文件时出错:', error)
+    }
+  }
+  // 批量导出笔记的辅助函数
+  const getImageUrlsFromHtml = (html: string): string[] => {
+    const parser = new DOMParser()
+    const doc = parser.parseFromString(html, 'text/html')
+    const images = doc.getElementsByTagName('img')
+    return Array.from(images).map((img) => img.src)
+  }
+  const downloadImage = async (url: string): Promise<ArrayBuffer> => {
+    const response = await fetch(url)
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+    return await response.arrayBuffer()
+  }
 
   // 设置
   const handleSettings = () => {
@@ -662,6 +470,7 @@ export function useNoteMenu(params: NoteMenuParams) {
     }
   }))
 
+  // 根据参数生成菜单项
   const menuItems = computed(() => {
     let items
     if (params.menuItems && params.menuItems.length > 0) {
@@ -686,7 +495,6 @@ export function useNoteMenu(params: NoteMenuParams) {
         return item
       })
     }
-    // console.log('Computed menuItems:', items)
     return items.length > 0 ? items : Object.values(allMenuItems.value)
   })
 

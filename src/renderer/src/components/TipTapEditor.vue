@@ -443,7 +443,7 @@ import TaskList from '@tiptap/extension-task-list'
 import { emojiSuggestion } from '../tiptap/suggestion'
 import { SlashCommands } from '../tiptap/SlashCommands'
 import { slashCommandSuggestion } from '../tiptap/slashCommandSuggestion'
-import UniqueID from '@tiptap-pro/extension-unique-id'
+// import UniqueID from '@tiptap-pro/extension-unique-id'
 import { CustomLink } from '../tiptap/CustomLink'
 import { useRouter } from 'vue-router'
 import Subscript from '@tiptap/extension-subscript'
@@ -453,10 +453,10 @@ import Details from '@tiptap-pro/extension-details'
 import DetailsContent from '@tiptap-pro/extension-details-content'
 import DetailsSummary from '@tiptap-pro/extension-details-summary'
 import Export from '@tiptap-pro/extension-export'
-// import { useNoteStore } from '../stores/noteStores'
+import { useNoteStore } from '../stores/noteStores'
 
 const router = useRouter()
-// const noteStore = useNoteStore()
+const noteStore = useNoteStore()
 
 const props = defineProps({
   content: {
@@ -818,63 +818,7 @@ onBeforeUnmount(() => {
   // 移除全局点击事件监听器
   document.removeEventListener('click', closeContextMenu)
 })
-// // 拖拽块点击功能
-// const handleDragHandleClick = (event) => {
-//   event.preventDefault()
-//   event.stopPropagation()
 
-//   if (editor.value) {
-//     const { state } = editor.value
-//     const { from } = state.selection
-//     const $pos = state.doc.resolve(from)
-//     let node = $pos.parent
-
-//     // 确保选中的是有效的块级节点
-//     while (
-//       node &&
-//       ![
-//         'paragraph',
-//         'heading',
-//         'bulletList',
-//         'orderedList',
-//         'listItem',
-//         'taskList',
-//         'taskItem',
-//         'codeBlock',
-//         'image'
-//       ].includes(node.type.name)
-//     ) {
-//       if (node.type.name === 'doc') {
-//         console.log('未找到有效的块级节点')
-//         return
-//       }
-//       node = node.parent
-//     }
-
-//     if (node) {
-//       const { x, y } = getContextMenuPosition(event)
-//       showContextMenu.value = true
-//       contextMenuX.value = x - 5
-//       contextMenuY.value = y + 10
-//       currentParagraph.value = node
-
-//       const nodePos = $pos.before()
-//       const nodeEnd = $pos.after()
-
-//       // 选中整个节点，而不是节点中的文本
-//       editor.value.chain().focus().setNodeSelection(nodePos).run()
-
-//       console.log('拖拽块被点击了!', node)
-//       console.log('节点类型:', node.type.name)
-//       console.log('节点开始位置:', nodePos)
-//       console.log('节点结束位置:', nodeEnd)
-//     } else {
-//       console.log('未找到有效的块级节点')
-//     }
-//   } else {
-//     console.log('编辑器实例未找到')
-//   }
-// }
 // 辅助函数：检查是否为有效的块级节点
 const isValidBlockNode = (node) => {
   return [
@@ -889,52 +833,6 @@ const isValidBlockNode = (node) => {
     'image'
   ].includes(node.type.name)
 }
-
-// 拖拽块点击功能
-// const handleDragHandleClick = (event) => {
-//   event.preventDefault()
-//   event.stopPropagation()
-
-//   if (editor.value) {
-//     const { state } = editor.value
-//     const { from } = state.selection
-//     const $pos = state.doc.resolve(from)
-//     let node = $pos.parent
-//     let depth = $pos.depth
-
-//     // 向上查找有效的块级节点
-//     while (depth > 0 && !isValidBlockNode(node)) {
-//       depth--
-//       node = $pos.node(depth)
-//     }
-
-//     if (isValidBlockNode(node)) {
-//       const nodePos = $pos.before(depth)
-
-//       // 先将光标移动到行首
-//       editor.value.commands.focus(nodePos)
-
-//       // 使用 setNodeSelection 命令选择整个节点
-//       editor.value.commands.setNodeSelection(nodePos)
-
-//       // 设置上下文菜单位置
-//       const { x, y } = getContextMenuPosition(event)
-//       showContextMenu.value = true
-//       contextMenuX.value = x - 5
-//       contextMenuY.value = y + 10
-//       currentParagraph.value = node
-
-//       console.log('拖拽块被点击了!', node)
-//       console.log('节点类型:', node.type.name)
-//       console.log('节点位置:', nodePos)
-//     } else {
-//       console.log('未找到有效的块级节点')
-//     }
-//   } else {
-//     console.log('编辑器实例未找到')
-//   }
-// }
-// 拖拽块点击功能
 // 拖拽块点击功能
 const handleDragHandleClick = (event) => {
   event.preventDefault()
@@ -1099,9 +997,9 @@ const editorExtensions = computed(() => {
     TaskItem.configure({
       nested: true
     }),
-    UniqueID.configure({
-      types: ['heading', 'paragraph']
-    }),
+    // UniqueID.configure({
+    //   types: ['heading', 'paragraph']
+    // }),
     FileHandler.configure({
       allowedMimeTypes: ['image/png', 'image/jpeg', 'image/gif', 'image/webp'],
       onDrop: async (currentEditor, files, pos) => {
@@ -1207,7 +1105,7 @@ onMounted(() => {
       }
     }
   })
-  // noteStore.setEditor(editor.value)
+  noteStore.setEditor(editor.value)
 })
 
 const destroyEditor = () => {
