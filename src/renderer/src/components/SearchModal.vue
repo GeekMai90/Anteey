@@ -179,6 +179,12 @@ const debouncedSearch = useDebounceFn(async () => {
 const performSearch = () => {
   debouncedSearch()
 }
+// const performSearch = () => {
+//   requestAnimationFrame(() => {
+//     // isExpanded.value = true
+//     debouncedSearch()
+//   })
+// }
 
 // 选择搜索结果
 const selectResult = (noteIndex: number, blockIndex: number, openEditor = false) => {
@@ -352,6 +358,7 @@ defineExpose({ show, hide })
   border-radius: 2px;
 }
 .search-container {
+  will-change: transform, opacity;
   width: 640px;
   max-width: 90vw;
   background: var(--color-bg-primary);
@@ -465,12 +472,6 @@ defineExpose({ show, hide })
     word-break: break-word;
   }
 
-  // .highlight {
-  //   background-color: var(--color-primary); // 更明显的黄色
-  //   border-radius: 2px;
-  //   padding: 0 2px;
-  //   font-weight: 500;
-  // }
   .highlight {
     background-color: rgba(0, 200, 168, 0.2); // 使用主题色的半透明版本作为背景
     color: #00806c; // 使用主题色的深色版本作为文字颜色
@@ -479,13 +480,6 @@ defineExpose({ show, hide })
     font-weight: 500;
     box-shadow: 0 0 0 1px rgba(0, 200, 168, 0.3); // 添加一个细微的边框效果
   }
-  // .highlight {
-  //   background-color: rgba(0, 200, 168, 0.15); // 降低不透明度，使颜色更淡
-  //   color: inherit; // 使用默认文字颜色，不改变文字颜色
-  //   border-radius: 2px;
-  //   padding: 0 2px; // 减少内边距
-  //   font-weight: normal; // 移除加粗效果
-  // }
 }
 
 .result-preview-icon {
