@@ -100,6 +100,13 @@ export interface ElectronAPI {
     notes: Note[]
     totalCount: number
   }>
+  searchNotes: (query: string) => Promise<
+    Array<{
+      id: string
+      title: string
+      blocks: Array<{ content: string }>
+    }>
+  >
 }
 
 declare global {

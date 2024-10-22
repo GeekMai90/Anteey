@@ -23,6 +23,145 @@ function convertToNote(record: any): Note {
     rightBarOrder: record.rightBarOrder
   }
 }
+
+// 搜索笔记
+// export async function searchNotes(query: string): Promise<
+//   Array<{
+//     id: string
+//     title: string
+//     blocks: Array<{ content: string }>
+//   }>
+// > {
+//   console.log('后端→ 开始搜索笔记:', query)
+//   const lowercaseQuery = query.toLowerCase().trim()
+//   if (!lowercaseQuery) return []
+
+//   try {
+//     const notes = await db('notes')
+//       .where('isDeleted', false)
+//       .select('id', 'address', 'content', 'tags')
+
+//     return notes.reduce(
+//       (results, note) => {
+//         const matchingBlocks: Array<{ content: string }> = []
+
+//         // 搜索地址
+//         if (note.address.toLowerCase().includes(lowercaseQuery)) {
+//           matchingBlocks.push({ content: note.address })
+//         }
+
+//         // 搜索内容
+//         const content = JSON.parse(note.content)
+//         const searchContent = (content: any) => {
+//           if (!content) return
+//           if (typeof content === 'object') {
+//             Object.values(content).forEach((value) => {
+//               if (typeof value === 'string' && value.toLowerCase().includes(lowercaseQuery)) {
+//                 matchingBlocks.push({ content: value })
+//               } else if (typeof value === 'object') {
+//                 searchContent(value)
+//               }
+//             })
+//           }
+//         }
+//         searchContent(content)
+
+//         // 搜索标签
+//         const tags = JSON.parse(note.tags)
+//         tags.forEach((tag: string) => {
+//           if (tag.toLowerCase().includes(lowercaseQuery)) {
+//             matchingBlocks.push({ content: `#${tag}` })
+//           }
+//         })
+
+//         if (matchingBlocks.length > 0) {
+//           results.push({
+//             id: note.id,
+//             title: note.address,
+//             blocks: matchingBlocks
+//           })
+//         }
+
+//         return results
+//       },
+//       [] as Array<{ id: string; title: string; blocks: Array<{ content: string }> }>
+//     )
+//   } catch (error) {
+//     console.error('后端→ 搜索笔记失败:', error)
+//     throw new Error('搜索笔记失败')
+//   }
+// }
+export async function searchNotes(query: string): Promise<
+  Array<{
+    id: string
+    title: string
+    blocks: Array<{ content: string }>
+  }>
+> {
+  console.log('后端→ 开始搜索笔记:', query)
+  const lowercaseQuery = query.toLowerCase().trim()
+  if (!lowercaseQuery) return []
+
+  try {
+    const notes = await db('notes')
+      .where('isDeleted', false)
+      .select('id', 'address', 'content', 'tags')
+
+    return notes.reduce(
+      (results, note) => {
+        const matchingBlocks: Array<{ content: string }> = []
+
+        // 搜索地址
+        if (note.address.toLowerCase().includes(lowercaseQuery)) {
+          matchingBlocks.push({ content: note.address })
+        }
+
+        // 搜索内容
+        const content = JSON.parse(note.content)
+        const searchContent = (item: any) => {
+          if (!item) return
+          if (Array.isArray(item)) {
+            item.forEach(searchContent)
+          } else if (typeof item === 'object') {
+            if (item.type === 'text' && typeof item.text === 'string') {
+              if (item.text.toLowerCase().includes(lowercaseQuery)) {
+                matchingBlocks.push({ content: item.text })
+              }
+            } else if (item.content) {
+              searchContent(item.content)
+            } else {
+              Object.values(item).forEach(searchContent)
+            }
+          }
+        }
+        searchContent(content)
+
+        // 搜索标签
+        const tags = JSON.parse(note.tags)
+        tags.forEach((tag: string) => {
+          if (tag.toLowerCase().includes(lowercaseQuery)) {
+            matchingBlocks.push({ content: `#${tag}` })
+          }
+        })
+
+        if (matchingBlocks.length > 0) {
+          results.push({
+            id: note.id,
+            title: note.address,
+            blocks: matchingBlocks
+          })
+        }
+
+        return results
+      },
+      [] as Array<{ id: string; title: string; blocks: Array<{ content: string }> }>
+    )
+  } catch (error) {
+    console.error('后端→ 搜索笔记失败:', error)
+    throw new Error('搜索笔记失败')
+  }
+}
+
 interface GetNotesByDateResult {
   notes: Note[]
   totalCount: number

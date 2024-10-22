@@ -600,5 +600,21 @@ contextBridge.exposeInMainWorld('electronAPI', {
       console.error('预加载脚本 → 获取卡片盒分页笔记失败:', error)
       throw error // 或者返回一个默认值,取决于您的错误处理策略
     }
+  },
+  // 搜索笔记
+  searchNotes: async (
+    query: string
+  ): Promise<
+    Array<{
+      id: string
+      title: string
+      blocks: Array<{ content: string }>
+    }>
+  > => {
+    return (await ipcRenderer.invoke('search-notes', query)) as Array<{
+      id: string
+      title: string
+      blocks: Array<{ content: string }>
+    }>
   }
 })

@@ -5,7 +5,7 @@
       <h3 class="note-title">{{ note.address }}</h3>
     </div>
     <div ref="noteContent" class="note-content marked-content">
-      <TipTapEditor
+      <TipTapRender
         v-model:content="localNote.content"
         :editable="false"
         :enable-drag-handle="false"
@@ -21,7 +21,7 @@
 import { Note } from '@renderer/types/Note'
 import { formatDate } from '@renderer/utils/noteHelpers'
 import { ref } from 'vue'
-import TipTapEditor from '@renderer/components/TipTapEditor.vue'
+import TipTapRender from '@renderer/components/TipTapRender.vue'
 
 const props = defineProps<{
   note: Note

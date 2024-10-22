@@ -365,12 +365,12 @@ export const useNoteStore = defineStore('note', {
         if (!note) {
           throw new Error(`Note with id ${id} not found`)
         }
-        const index = this.notes.findIndex((n) => n.id === id)
-        if (index !== -1) {
-          this.notes[index] = note
-        } else {
-          this.notes.push(note)
-        }
+        // const index = this.notes.findIndex((n) => n.id === id)
+        // if (index !== -1) {
+        //   this.notes[index] = note
+        // } else {
+        //   this.notes.push(note)
+        // }
         this.currentNote = note
         console.log('noteStores.ts→ 获取笔记', note)
         return note
@@ -667,58 +667,67 @@ export const useNoteStore = defineStore('note', {
       }
     },
 
-    // 搜索功能
-    searchNotes(query: string): Array<{
-      id: string
-      title: string
-      blocks: Array<{ content: string }>
-    }> {
-      console.log('Searching for:', query)
-      console.log('Total notes:', this.notes.length)
-      const lowercaseQuery = query.toLowerCase().trim()
-      if (!lowercaseQuery) return []
+    // // 搜索功能
+    // searchNotes(query: string): Array<{
+    //   id: string
+    //   title: string
+    //   blocks: Array<{ content: string }>
+    // }> {
+    //   console.log('Searching for:', query)
+    //   console.log('Total notes:', this.notes.length)
+    //   const lowercaseQuery = query.toLowerCase().trim()
+    //   if (!lowercaseQuery) return []
 
-      return this.notes.reduce(
-        (results, note) => {
-          const matchingBlocks: Array<{ content: string }> = []
+    //   return this.notes.reduce(
+    //     (results, note) => {
+    //       const matchingBlocks: Array<{ content: string }> = []
 
-          if (note.address.toLowerCase().includes(lowercaseQuery)) {
-            matchingBlocks.push({ content: note.address })
-          }
+    //       if (note.address.toLowerCase().includes(lowercaseQuery)) {
+    //         matchingBlocks.push({ content: note.address })
+    //       }
 
-          const searchContent = (content: any) => {
-            if (!content) return
-            if (typeof content === 'object') {
-              Object.values(content).forEach((value) => {
-                if (typeof value === 'string' && value.toLowerCase().includes(lowercaseQuery)) {
-                  matchingBlocks.push({ content: value })
-                } else if (typeof value === 'object') {
-                  searchContent(value)
-                }
-              })
-            }
-          }
+    //       const searchContent = (content: any) => {
+    //         if (!content) return
+    //         if (typeof content === 'object') {
+    //           Object.values(content).forEach((value) => {
+    //             if (typeof value === 'string' && value.toLowerCase().includes(lowercaseQuery)) {
+    //               matchingBlocks.push({ content: value })
+    //             } else if (typeof value === 'object') {
+    //               searchContent(value)
+    //             }
+    //           })
+    //         }
+    //       }
 
-          searchContent(note.content)
+    //       searchContent(note.content)
 
-          note.tags.forEach((tag) => {
-            if (tag.toLowerCase().includes(lowercaseQuery)) {
-              matchingBlocks.push({ content: `#${tag}` })
-            }
-          })
+    //       note.tags.forEach((tag) => {
+    //         if (tag.toLowerCase().includes(lowercaseQuery)) {
+    //           matchingBlocks.push({ content: `#${tag}` })
+    //         }
+    //       })
 
-          if (matchingBlocks.length > 0) {
-            results.push({
-              id: note.id,
-              title: note.address,
-              blocks: matchingBlocks
-            })
-          }
+    //       if (matchingBlocks.length > 0) {
+    //         results.push({
+    //           id: note.id,
+    //           title: note.address,
+    //           blocks: matchingBlocks
+    //         })
+    //       }
 
-          return results
-        },
-        [] as Array<{ id: string; title: string; blocks: Array<{ content: string }> }>
-      )
+    //       return results
+    //     },
+    //     [] as Array<{ id: string; title: string; blocks: Array<{ content: string }> }>
+    //   )
+    // },
+    // 搜索笔记
+    async searchNotes(query: string) {
+      try {
+        return await window.electronAPI.searchNotes(query)
+      } catch (error) {
+        console.error('noteStores.ts→ 搜索笔记失败:', error)
+        throw error
+      }
     },
 
     // 右侧边栏功能
@@ -928,9 +937,9 @@ export const useNoteStore = defineStore('note', {
     //     .sort((a, b) => (a.starredOrder ?? 0) - (b.starredOrder ?? 0))
     // },
     // 获取笔记
-    getNoteById: (state) => {
-      return (id: string) => state.notes.find((note) => note.id === id)
-    },
+    // getNoteById: (state) => {
+    //   return (id: string) => state.notes.find((note) => note.id === id)
+    // },
     // 所有已删除的笔记
     deletedNotes(): Note[] {
       return this.notes.filter((note) => note.isDeleted)

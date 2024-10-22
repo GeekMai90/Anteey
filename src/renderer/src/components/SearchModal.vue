@@ -1,10 +1,13 @@
 <template>
+  <!-- 搜索模态框组件 -->
   <Modal
-    :modelValue="noteStore.isSearchModalOpen"
+    :modelValue="uiStore.isSearchModalOpen"
     @update:modelValue="updateModalState"
     @after-enter="focusInput"
   >
+    <!-- 搜索容器，根据是否展开应用不同的样式 -->
     <div class="search-container" :class="{ expanded: isExpanded }">
+      <!-- 搜索输入框 -->
       <input
         ref="searchInput"
         v-model="searchQuery"
@@ -13,9 +16,12 @@
         @input="performSearch"
         @keydown="handleKeyDown"
       />
+      <!-- 搜索结果展示区域，使用 transition 实现展开/收起动画 -->
       <transition name="expand">
         <div v-if="isExpanded" class="search-results-container">
+          <!-- 搜索结果列表 -->
           <div ref="searchResultsContainer" class="search-results">
+            <!-- 无搜索结果时显示的内容 -->
             <div v-if="searchResults.length === 0" class="no-results">
               <div class="no-results-icon">
                 <FileSearch theme="outline" size="48" fill="#888" :strokeWidth="2" />
@@ -31,12 +37,14 @@
                 </ul>
               </div>
             </div>
+            <!-- 有搜索结果时显示的内容 -->
             <div
               v-for="(note, noteIndex) in searchResults"
               v-else
               :key="note.id"
               class="search-result-note"
             >
+              <!-- ... 笔记标题和内容块的渲染逻辑 ... -->
               <div class="note-title">
                 <div class="result-preview-icon-note">
                   <div class="icon">
@@ -84,6 +92,7 @@
               </div>
             </div>
           </div>
+          <!-- 选中笔记的预览容器 -->
           <div v-if="selectedNote" class="preview-container">
             <NotePreviewCard :key="selectedNote.id" :note="selectedNote" />
           </div>
@@ -93,38 +102,47 @@
   </Modal>
 </template>
 <script setup lang="ts">
-import { ref, computed, watch, nextTick } from 'vue'
+import { ref, watch, nextTick } from 'vue'
 import { useNoteStore } from '@renderer/stores/noteStores'
 import Modal from '@renderer/components/Modal.vue'
 import { useRouter } from 'vue-router'
 import NotePreviewCard from '@renderer/components/NotePreviewCard.vue'
 import { BankCard, ParagraphRectangle, FileSearch } from '@icon-park/vue-next'
-import { useEventBus } from '@vueuse/core'
+import { useDebounceFn, useEventBus } from '@vueuse/core'
+import { Note } from '@renderer/types/Note'
+import { useUIStore } from '@renderer/stores/useUIStore'
 
+// 初始化 store 和 router
 const noteStore = useNoteStore()
+const uiStore = useUIStore()
 const router = useRouter()
 
+// 定义组件的响应式状态
 const isExpanded = ref(false)
-
 const searchInput = ref<HTMLInputElement | null>(null)
 const searchResultsContainer = ref<HTMLDivElement | null>(null)
 const resultItems = ref<HTMLElement[]>([])
-
 const searchQuery = ref('')
 const searchResults = ref<Array<{ id: string; title: string; blocks: Array<{ content: string }> }>>(
   []
 )
 const selectedNoteIndex = ref(-1)
 const selectedBlockIndex = ref(-1)
+const selectedNote = ref<Note | null>(null)
 
-const selectedNote = computed(() => {
+// 获取选中笔记的详细信息
+const fetchSelectedNote = async () => {
   if (selectedNoteIndex.value >= 0 && selectedNoteIndex.value < searchResults.value.length) {
     const note = searchResults.value[selectedNoteIndex.value]
-    return noteStore.getNoteById(note.id)
+    selectedNote.value = await noteStore.fetchNoteById(note.id)
+  } else {
+    selectedNote.value = null
   }
-  return null
-})
+}
+// 监听选中笔记索引的变化，更新选中的笔记
+watch(selectedNoteIndex, fetchSelectedNote)
 
+// 高亮搜索结果中匹配的文本
 const highlightedParts = (text: string, query: string) => {
   if (!query.trim()) return [{ text, isMatch: false }]
   const escapedQuery = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
@@ -135,11 +153,12 @@ const highlightedParts = (text: string, query: string) => {
   }))
 }
 
-const performSearch = () => {
+// 使用防抖函数来优化搜索性能
+const debouncedSearch = useDebounceFn(async () => {
   console.log('Performing search for:', searchQuery.value)
   if (searchQuery.value.trim()) {
     isExpanded.value = true
-    searchResults.value = noteStore.searchNotes(searchQuery.value)
+    searchResults.value = await noteStore.searchNotes(searchQuery.value)
     if (searchResults.value.length > 0) {
       selectedNoteIndex.value = 0
       selectedBlockIndex.value = 0
@@ -154,8 +173,14 @@ const performSearch = () => {
     selectedBlockIndex.value = -1
   }
   console.log('Search results:', searchResults.value)
+}, 300) // 300ms 的延迟
+
+// 执行搜索的函数
+const performSearch = () => {
+  debouncedSearch()
 }
 
+// 选择搜索结果
 const selectResult = (noteIndex: number, blockIndex: number, openEditor = false) => {
   selectedNoteIndex.value = noteIndex
   selectedBlockIndex.value = blockIndex
@@ -163,49 +188,56 @@ const selectResult = (noteIndex: number, blockIndex: number, openEditor = false)
     const note = searchResults.value[noteIndex]
     if (note) {
       noteStore.openNoteEditor(note.id)
-      noteStore.closeSearchModal()
+      uiStore.closeSearchModal()
     }
   }
 }
 
+// 鼠标悬停在搜索结果上时的处理
 const hoverResult = (noteIndex: number, blockIndex: number) => {
   selectedNoteIndex.value = noteIndex
   selectedBlockIndex.value = blockIndex
 }
 
+// 更新模态框状态
 const updateModalState = (value: boolean) => {
   if (value) {
-    noteStore.openSearchModal()
+    uiStore.openSearchModal()
   } else {
-    noteStore.closeSearchModal()
+    uiStore.closeSearchModal()
   }
 }
 
+// 聚焦搜索输入框
 const focusInput = () => {
   searchInput.value?.focus()
 }
 
+// 显示搜索模态框
 const show = () => {
-  noteStore.openSearchModal()
+  uiStore.openSearchModal()
 }
 
+// 隐藏搜索模态框并重置状态
 const hide = () => {
-  noteStore.closeSearchModal()
+  uiStore.closeSearchModal()
   searchQuery.value = ''
   searchResults.value = []
   selectedNoteIndex.value = -1
   selectedBlockIndex.value = -1
 }
 
+// 在卡片盒中定位笔记
 const locateNoteInCardBox = (noteId: string) => {
   noteStore.setHighlightedNoteId(noteId)
   router.push({ name: 'cardbox' })
-  noteStore.closeSearchModal()
+  uiStore.closeSearchModal()
   // 触发事件
   const searchHighlightEventBus = useEventBus('search-highlight')
   searchHighlightEventBus.emit(noteId)
 }
 
+// 处理键盘事件
 const handleKeyDown = (event: KeyboardEvent) => {
   // const totalBlocks = searchResults.value.reduce((sum, note) => sum + note.blocks.length, 0)
   switch (event.key) {
@@ -241,15 +273,15 @@ const handleKeyDown = (event: KeyboardEvent) => {
         if (event.metaKey) {
           // Cmd+Enter: 只打开扩展笔记编辑器
           router.push({ name: 'NoteExpandEditor', params: { id: selectedNote.value.id } })
-          noteStore.closeSearchModal()
+          uiStore.closeSearchModal()
         } else if (event.altKey) {
           // Alt+Enter: 在卡片盒中定位笔记
           locateNoteInCardBox(selectedNote.value.id)
-          noteStore.closeSearchModal()
+          uiStore.closeSearchModal()
         } else {
           // 普通 Enter: 打开小窗编辑器
           noteStore.openNoteEditor(selectedNote.value.id)
-          noteStore.closeSearchModal()
+          uiStore.closeSearchModal()
         }
       }
       break
@@ -268,6 +300,7 @@ const handleKeyDown = (event: KeyboardEvent) => {
   })
 }
 
+// 滚动到选中的搜索结果项
 const scrollToSelectedItem = () => {
   nextTick(() => {
     const container = searchResultsContainer.value
@@ -288,6 +321,7 @@ const scrollToSelectedItem = () => {
   })
 }
 
+// 监听搜索模态框的打开状态
 watch(
   () => noteStore.isSearchModalOpen,
   (newValue) => {
@@ -302,12 +336,14 @@ watch(
   }
 )
 
+// 监听搜索结果的变化，更新结果项的引用
 watch(searchResults, () => {
   nextTick(() => {
     resultItems.value = Array.from(document.querySelectorAll('.search-result-note'))
   })
 })
 
+// 暴露组件的方法
 defineExpose({ show, hide })
 </script>
 <style scoped lang="scss">

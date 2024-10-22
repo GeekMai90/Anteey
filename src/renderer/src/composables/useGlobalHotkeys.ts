@@ -16,10 +16,10 @@ export function useGlobalHotkeys() {
       event.preventDefault()
       noteStore.createAndOpenNewNote()
     })
-    // 添加搜索快捷键
+    // 搜索笔记
     hotkeys('ctrl+s, command+s', (event) => {
       event.preventDefault()
-      noteStore.openSearchModal()
+      uiStore.openSearchModal()
     })
     // 打开主页的快捷键
     hotkeys('command+shift+h, ctrl+shift+h', (event) => {

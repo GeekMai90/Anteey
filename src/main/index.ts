@@ -35,7 +35,8 @@ import {
   getNotesByOneDate,
   getAllDatesWithNotes,
   getPaginatedNotesByCardbox,
-  GetPaginatedNotesParams
+  GetPaginatedNotesParams,
+  searchNotes
 } from '../db/notes'
 import { createCardBox, getAllCardBoxes, updateCardBox, deleteCardBox } from '../db/cardBoxes'
 import {
@@ -208,6 +209,10 @@ function createCustomMenu() {
 }
 
 function setupIpcHandlers() {
+  // 搜索笔记
+  ipcMain.handle('search-notes', async (_, query: string) => {
+    return await searchNotes(query)
+  })
   // 获取卡片盒页面的分页笔记
   ipcMain.handle('get-paginated-notes-by-cardbox', async (_, params: GetPaginatedNotesParams) => {
     try {
