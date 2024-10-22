@@ -107,6 +107,7 @@ export interface ElectronAPI {
       blocks: Array<{ content: string }>
     }>
   >
+  searchNotesList: (query: string) => Promise<Note[]>
 }
 
 declare global {

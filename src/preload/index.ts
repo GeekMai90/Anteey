@@ -616,5 +616,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
       title: string
       blocks: Array<{ content: string }>
     }>
+  },
+  // 搜索笔记列表
+  searchNotesList: async (query: string): Promise<Note[]> => {
+    return (await ipcRenderer.invoke('search-notes-list', query)) as Note[]
   }
 })

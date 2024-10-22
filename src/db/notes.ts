@@ -162,6 +162,53 @@ export async function searchNotes(query: string): Promise<
   }
 }
 
+// 搜索笔记列表
+export async function searchNotesList(query: string): Promise<Note[]> {
+  console.log('后端→ 开始搜索笔记列表:', query)
+  const lowercaseQuery = query.toLowerCase().trim()
+  if (!lowercaseQuery) return []
+
+  try {
+    const result = await db('notes').where('isDeleted', false).select('*')
+
+    const notes = result.filter((note) => {
+      // 搜索地址
+      if (note.address.toLowerCase().includes(lowercaseQuery)) {
+        return true
+      }
+
+      // 搜索内容
+      const content = JSON.parse(note.content)
+      const searchContent = (item: any): boolean => {
+        if (!item) return false
+        if (Array.isArray(item)) {
+          return item.some(searchContent)
+        } else if (typeof item === 'object') {
+          if (item.type === 'text' && typeof item.text === 'string') {
+            return item.text.toLowerCase().includes(lowercaseQuery)
+          } else if (item.content) {
+            return searchContent(item.content)
+          } else {
+            return Object.values(item).some(searchContent)
+          }
+        }
+        return false
+      }
+      if (searchContent(content)) {
+        return true
+      }
+
+      // 搜索标签
+      const tags = JSON.parse(note.tags)
+      return tags.some((tag: string) => tag.toLowerCase().includes(lowercaseQuery))
+    })
+    return notes.map(convertToNote)
+  } catch (error) {
+    console.error('后端→ 搜索笔记列表失败:', error)
+    throw new Error('搜索笔记列表失败')
+  }
+}
+
 interface GetNotesByDateResult {
   notes: Note[]
   totalCount: number

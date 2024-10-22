@@ -12,7 +12,7 @@
           </div>
           <div class="topToolBar-right">
             <!-- 搜索框 -->
-            <!-- <div
+            <div
               v-tooltip.bottom="{ content: 'Cmd+P', delay: { show: 1000 } }"
               class="search-box"
               :class="{ 'is-focused': isSearchFocused }"
@@ -32,7 +32,7 @@
                 v-model="searchQuery"
                 type="text"
                 placeholder="搜索"
-                @input="handleSearch"
+                @input="debouncedSearch"
                 @focus="isSearchFocused = true"
                 @blur="handleBlur"
               />
@@ -46,7 +46,7 @@
                   />
                 </div>
               </div>
-            </div> -->
+            </div>
             <!-- 收件箱 -->
             <div class="inbox-button" :class="{ active: isInboxSelected }" @click="toggleInbox">
               <div class="icon">
@@ -289,7 +289,6 @@ import {
 import { CardBox, Note } from '../types/Note'
 import CardBoxNoteCard from '../components/CardboxNoteCard.vue'
 import { storeToRefs } from 'pinia'
-// import { useCardBoxSearch } from '../composables/useCardBoxSearch'
 import { useDebounceFn, useEventBus, useThrottleFn } from '@vueuse/core'
 import { useRouter } from 'vue-router'
 import { GetPaginatedNotesParams } from '../../../db/notes'
@@ -306,14 +305,10 @@ const isEditing = ref(false)
 const editingCardBox = ref<Partial<CardBox>>({ name: '' })
 const moreActionsMenuStyle = ref({})
 const isConfirmingDelete = ref(false)
-
 const highlightedNoteId = ref<string | null>(null)
-// const route = useRoute()
 const router = useRouter()
-
 const cardGridContainer = ref<HTMLElement | null>(null)
 const isLoading = ref(false)
-
 const currentPage = ref(1)
 const pageSize = ref(28)
 const totalCount = ref(0)
@@ -322,11 +317,20 @@ const showSortMenu = ref(false)
 const currentSort = ref('address')
 const sortDirection = ref('asc')
 const hasMoreNotes = ref(true)
+const isInboxSelected = ref(false)
 
+// 组件被激活时，重新获取笔记
 onActivated(() => {
   // 组件被激活时的逻辑，例如刷新数据
   fetchNotes()
 })
+
+// 组件挂载时，重置分页并获取笔记
+onMounted(() => {
+  resetPagination()
+  fetchNotes()
+})
+
 // 获取所有卡片盒笔记
 const fetchNotes = async () => {
   if (isLoading.value) return
@@ -359,9 +363,9 @@ const fetchNotes = async () => {
   }
 }
 
-// const totalPages = computed(() => Math.ceil(totalCount.value / pageSize.value))
-
-// const displayedNotes = computed(() => notes.value)
+// 显示的笔记
+// 如果搜索框没有聚焦，则显示所有笔记
+// 如果搜索框聚焦，则显示搜索结果
 const displayedNotes = computed(() => {
   if (searchQuery.value.trim() === '') {
     return notes.value
@@ -369,52 +373,68 @@ const displayedNotes = computed(() => {
   return searchResults.value
 })
 
+// 搜索功能
 const searchQuery = ref('')
 const isSearchFocused = ref(false)
 const searchResults = ref<Note[]>([])
 
 // 使用防抖函数优化搜索性能
-const debouncedSearch = useDebounceFn(async (query) => {
-  if (query.trim() === '') {
+const debouncedSearch = useDebounceFn(async () => {
+  if (searchQuery.value.trim() === '') {
     searchResults.value = []
     return
   }
-  const results = await noteStore.searchNotes(query)
+  const results = await noteStore.searchNotesList(searchQuery.value)
   if (results) {
     searchResults.value = results
   }
 }, 300)
 
+// 搜索框失去焦点
+const handleBlur = () => {
+  setTimeout(() => {
+    isSearchFocused.value = false
+  }, 100)
+}
+// 清空搜索
+const clearSearch = () => {
+  searchQuery.value = ''
+  searchResults.value = []
+  nextTick(() => {
+    const activeElement = document.activeElement as HTMLElement
+    if (activeElement && 'blur' in activeElement) {
+      activeElement.blur()
+    }
+  })
+}
+
+// 监听键盘事件，设置搜索框聚焦快捷键
+const handleKeyDown = (event: KeyboardEvent) => {
+  if ((event.metaKey || event.ctrlKey) && event.key === 'p') {
+    event.preventDefault()
+    isSearchFocused.value = true
+    nextTick(() => {
+      const searchInput = document.querySelector('.search-box input') as HTMLInputElement
+      if (searchInput) {
+        searchInput.focus()
+      }
+    })
+  } else if (event.key === 'Escape') {
+    clearSearch()
+  }
+}
+onMounted(() => {
+  document.addEventListener('keydown', handleKeyDown)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('keydown', handleKeyDown)
+})
+
 // 重置分页
 const resetPagination = () => {
   currentPage.value = 1
 }
-
-watch(
-  [selectedCardBox, selectedCardTypes, currentSort, sortDirection],
-  () => {
-    currentPage.value = 1
-    fetchNotes()
-  },
-  { deep: true }
-)
-
-onMounted(() => {
-  resetPagination()
-  fetchNotes()
-})
-
-// 监听筛选条件变化
-watch(
-  [selectedCardBox, selectedCardTypes, currentSort, sortDirection],
-  () => {
-    console.log('Filter conditions changed, resetting and fetching notes')
-    resetPagination()
-    notes.value = []
-    fetchNotes()
-  },
-  { deep: true }
-)
 
 // 滚动加载更多笔记
 const handleScroll = useThrottleFn(() => {
@@ -477,6 +497,7 @@ eventBusDeleted.on(() => {
   }
 })
 
+// 滚动到高亮笔记
 const scrollToHighlightedNote = async () => {
   if (highlightedNoteId.value) {
     for (let i = 0; i < 5; i++) {
@@ -505,6 +526,7 @@ const scrollToHighlightedNote = async () => {
   }
 }
 
+// 搜索高亮事件
 const handleSearchHighlight = (noteId: string) => {
   highlightedNoteId.value = noteId
   scrollToHighlightedNote()
@@ -512,58 +534,8 @@ const handleSearchHighlight = (noteId: string) => {
 
 // 在组件挂载时，初始化笔记数据
 onMounted(async () => {
-  // await fetchNotes()
   document.addEventListener('click', handleGlobalClick)
-  // await noteStore.fetchCardBoxes()
-  // if (cardBoxes.value.length > 0) {
-  //   selectCardBox(cardBoxes.value[0])
-  // }
-
-  // highlightedNoteId.value =
-  //   (route.query.highlightedNoteId as string | null) || noteStore.highlightedNoteId
-  // if (highlightedNoteId.value) {
-  //   await nextTick()
-  //   scrollToHighlightedNote()
-  // }
-
-  // cardGridContainer.value?.addEventListener('scroll', checkScroll)
 })
-
-// onUnmounted(() => {
-//   document.removeEventListener('click', handleGlobalClick)
-//   if (deleteTimeout) {
-//     clearTimeout(deleteTimeout)
-//   }
-//   // cardGridContainer.value?.removeEventListener('scroll', checkScroll)
-// })
-
-// 监听路由变化
-// watch(
-//   () => route.query.highlightedNoteId,
-//   async (newId) => {
-//     if (newId) {
-//       highlightedNoteId.value = newId as string
-//       await scrollToHighlightedNote()
-//     }
-//   }
-// )
-
-// 监听 store 中的 highlightedNoteId 变化
-// watch(
-//   () => noteStore.highlightedNoteId,
-//   async (newId) => {
-//     if (newId) {
-//       highlightedNoteId.value = newId
-//       await scrollToHighlightedNote()
-//     }
-//   }
-// )
-
-// 监听笔记删除事件，重新获取笔记数据
-// const eventBus = useEventBus('note-deleted')
-// eventBus.on(() => {
-//   fetchNotes()
-// })
 
 // 监听搜索高亮事件的事件总线
 const searchHighlightEventBus = useEventBus('search-highlight')
@@ -598,7 +570,6 @@ const selectSortOption = (option: { value: string; label: string }) => {
 let deleteTimeout: ReturnType<typeof setTimeout> | null = null
 
 // 收件箱功能
-const isInboxSelected = ref(false)
 
 const toggleInbox = async () => {
   isInboxSelected.value = !isInboxSelected.value
@@ -641,6 +612,22 @@ const fetchInboxNotes = async () => {
   }
 }
 
+// 监听可能影响过滤结果的变量
+watch(
+  [selectedCardBox, selectedCardTypes, currentSort, sortDirection, isInboxSelected],
+  () => {
+    console.log('Filter conditions changed, resetting and fetching notes')
+    currentPage.value = 1
+    notes.value = []
+    if (isInboxSelected.value) {
+      fetchInboxNotes()
+    } else {
+      fetchNotes()
+    }
+  },
+  { deep: true }
+)
+
 // 卡片柜
 const cardBoxes = computed(() => {
   const allCardsOption: CardBox = {
@@ -675,22 +662,6 @@ const selectCardBox = (box: CardBox | null) => {
     isInboxSelected.value = false
   }
 }
-
-// 监听可能影响过滤结果的变量
-watch(
-  [selectedCardBox, selectedCardTypes, currentSort, sortDirection, isInboxSelected],
-  () => {
-    console.log('Filter conditions changed, resetting and fetching notes')
-    currentPage.value = 1
-    notes.value = []
-    if (isInboxSelected.value) {
-      fetchInboxNotes()
-    } else {
-      fetchNotes()
-    }
-  },
-  { deep: true }
-)
 
 // 卡片盒下拉项中的更多操作
 const toggleMoreActions = (id: string, event: MouseEvent) => {
@@ -794,14 +765,6 @@ const handleGlobalClick = (event: MouseEvent) => {
   const cardBoxDropdown = document.querySelector('.cardbox-dropdown')
   const sortDropdown = document.querySelector('.sort-button-container')
 
-  // if (
-  //   showCardTypeMenu.value &&
-  //   cardTypeDropdown &&
-  //   !cardTypeDropdown.contains(event.target as Node)
-  // ) {
-  //   showCardTypeMenu.value = false
-  // }
-
   if (showCardBoxMenu.value && cardBoxDropdown && !cardBoxDropdown.contains(event.target as Node)) {
     showCardBoxMenu.value = false
   }
@@ -845,24 +808,6 @@ const saveCardBox = async () => {
     }
   }
 }
-
-// 卡片类型下拉菜单
-// const cardTypes = [
-//   { value: 'Maincard', label: '主要卡片', icon: Notes },
-//   { value: 'Indexcard', label: '索引卡片', icon: ListAlphabet },
-//   { value: 'Bibcard', label: '文献卡片', icon: Bookshelf }
-// ]
-// const showCardTypeMenu = ref(false)
-
-// const toggleCardTypeMenu = (event: MouseEvent) => {
-//   event.stopPropagation()
-//   showCardTypeMenu.value = !showCardTypeMenu.value
-//   showCardBoxMenu.value = false // 关闭另一个菜单
-// }
-
-// const toggleCardType = (type: string) => {
-//   noteStore.toggleCardType(type)
-// }
 </script>
 
 <style lang="scss" scoped>

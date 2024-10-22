@@ -36,7 +36,8 @@ import {
   getAllDatesWithNotes,
   getPaginatedNotesByCardbox,
   GetPaginatedNotesParams,
-  searchNotes
+  searchNotes,
+  searchNotesList
 } from '../db/notes'
 import { createCardBox, getAllCardBoxes, updateCardBox, deleteCardBox } from '../db/cardBoxes'
 import {
@@ -209,6 +210,10 @@ function createCustomMenu() {
 }
 
 function setupIpcHandlers() {
+  // 搜索笔记列表
+  ipcMain.handle('search-notes-list', async (_, query: string) => {
+    return await searchNotesList(query)
+  })
   // 搜索笔记
   ipcMain.handle('search-notes', async (_, query: string) => {
     return await searchNotes(query)
