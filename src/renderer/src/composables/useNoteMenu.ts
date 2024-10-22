@@ -185,7 +185,7 @@ export function useNoteMenu(params: NoteMenuParams) {
   // 导出单个笔记
   const handleExportNote = async () => {
     if (noteStore.editor && params.noteId) {
-      const note = noteStore.getNoteById(params.noteId)
+      const note = await noteStore.fetchNoteById(params.noteId)
 
       if (!note) {
         console.error('笔记不存在')
@@ -233,7 +233,7 @@ export function useNoteMenu(params: NoteMenuParams) {
         // 处理笔记链接（对于单条笔记，我们保留原始链接）
         markdown = markdown.replace(
           /\[([^\]]+)\]\(note:\/\/([^)]+)\)/g,
-          (match, linkText, noteId) => {
+          (_match, linkText, noteId) => {
             return `[${linkText}](note://${noteId})`
           }
         )

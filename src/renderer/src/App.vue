@@ -209,7 +209,7 @@ onMounted(async () => {
   console.log('Current route:', router.currentRoute.value)
   if (router.currentRoute.value.path === '/') {
     console.log('Redirecting to /home')
-    router.push('/cardbox')
+    router.push('/indexCard')
   }
 })
 

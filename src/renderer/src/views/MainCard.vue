@@ -11,6 +11,42 @@
             <div class="name">主要卡片</div>
           </div>
           <div class="topToolBar-right">
+            <!-- 搜索框 -->
+            <div
+              v-tooltip.bottom="{ content: 'Cmd+P', delay: { show: 1000 } }"
+              class="search-box"
+              :class="{ 'is-focused': isSearchFocused }"
+            >
+              <div class="search-icon">
+                <div class="icon">
+                  <Search
+                    theme="outline"
+                    size="16"
+                    fill="var(--color-icon-secondary)"
+                    :strokeWidth="3"
+                  />
+                </div>
+              </div>
+              <input
+                ref="searchInput"
+                v-model="searchQuery"
+                type="text"
+                placeholder="搜索"
+                @input="debouncedSearch"
+                @focus="isSearchFocused = true"
+                @blur="handleBlur"
+              />
+              <div v-if="searchQuery" class="clear-icon" @click="clearSearch">
+                <div class="icon">
+                  <Close
+                    theme="outline"
+                    size="16"
+                    fill="var(--color-icon-secondary)"
+                    :strokeWidth="3"
+                  />
+                </div>
+              </div>
+            </div>
             <!-- 收件箱 -->
             <div class="inbox-button" :class="{ active: isInboxSelected }" @click="toggleInbox">
               <div class="icon">
@@ -247,13 +283,15 @@ import {
   Delete,
   FileCabinet,
   Plus,
+  Search,
+  Close,
   Notes
 } from '@icon-park/vue-next'
 import { CardBox, Note } from '../types/Note'
 import CardBoxNoteCard from '../components/CardboxNoteCard.vue'
 import { storeToRefs } from 'pinia'
 // import { useCardBoxSearch } from '../composables/useCardBoxSearch'
-import { useEventBus, useThrottleFn } from '@vueuse/core'
+import { useDebounceFn, useEventBus, useThrottleFn } from '@vueuse/core'
 import { useRouter } from 'vue-router'
 import { GetPaginatedNotesParams } from '../../../db/notes'
 
@@ -318,9 +356,73 @@ const fetchNotes = async () => {
   }
 }
 
-// const totalPages = computed(() => Math.ceil(totalCount.value / pageSize.value))
+// 显示的笔记
+// 如果搜索框没有聚焦，则显示所有笔记
+// 如果搜索框聚焦，则显示搜索结果
+const displayedNotes = computed(() => {
+  if (searchQuery.value.trim() === '') {
+    return notes.value
+  }
+  return searchResults.value.filter((note) => note.cardType === 'Maincard')
+})
 
-const displayedNotes = computed(() => notes.value)
+// 搜索功能
+const searchQuery = ref('')
+const isSearchFocused = ref(false)
+const searchResults = ref<Note[]>([])
+
+// 使用防抖函数优化搜索性能
+const debouncedSearch = useDebounceFn(async () => {
+  if (searchQuery.value.trim() === '') {
+    searchResults.value = []
+    return
+  }
+  const results = await noteStore.searchNotesList(searchQuery.value)
+  if (results) {
+    searchResults.value = results
+  }
+}, 300)
+
+// 搜索框失去焦点
+const handleBlur = () => {
+  setTimeout(() => {
+    isSearchFocused.value = false
+  }, 100)
+}
+// 清空搜索
+const clearSearch = () => {
+  searchQuery.value = ''
+  searchResults.value = []
+  nextTick(() => {
+    const activeElement = document.activeElement as HTMLElement
+    if (activeElement && 'blur' in activeElement) {
+      activeElement.blur()
+    }
+  })
+}
+
+// 监听键盘事件，设置搜索框聚焦快捷键
+const handleKeyDown = (event: KeyboardEvent) => {
+  if ((event.metaKey || event.ctrlKey) && event.key === 'p') {
+    event.preventDefault()
+    isSearchFocused.value = true
+    nextTick(() => {
+      const searchInput = document.querySelector('.search-box input') as HTMLInputElement
+      if (searchInput) {
+        searchInput.focus()
+      }
+    })
+  } else if (event.key === 'Escape') {
+    clearSearch()
+  }
+}
+onMounted(() => {
+  document.addEventListener('keydown', handleKeyDown)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('keydown', handleKeyDown)
+})
 
 // 重置分页
 const resetPagination = () => {

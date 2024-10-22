@@ -165,45 +165,6 @@
                 </div>
               </div>
             </div>
-            <!-- 卡片类型 -->
-            <!-- <div class="cardtype-dropdown" @click.stop="toggleCardTypeMenu">
-              <div class="icon">
-                <BankCardTwo
-                  theme="outline"
-                  size="18"
-                  fill="var(--color-icon-menu-default)"
-                  :strokeWidth="3"
-                />
-              </div>
-              <div class="name">卡片类型</div>
-              <div v-if="showCardTypeMenu" class="cadrtype-dropdown-menu" @click.stop>
-                <div v-for="type in cardTypes" :key="type.value" class="cadrtype-dropdown-item">
-                  <div class="cadrtype-dropdown-item-content">
-                    <div class="icon">
-                      <component
-                        :is="type.icon"
-                        theme="outline"
-                        size="18"
-                        fill="var(--color-icon-menu-default)"
-                        :strokeWidth="3"
-                      />
-                    </div>
-                    <div class="name">
-                      {{ type.label }}
-                    </div>
-                  </div>
-                  <label class="switch">
-                    <input
-                      type="checkbox"
-                      :checked="selectedCardTypes.includes(type.value)"
-                      @change="toggleCardType(type.value)"
-                    />
-
-                    <span class="slider round"></span>
-                  </label>
-                </div>
-              </div>
-            </div> -->
             <!-- 排序 -->
             <div class="sort-button-container" @click.stop="toggleSortMenu">
               <div class="icon">

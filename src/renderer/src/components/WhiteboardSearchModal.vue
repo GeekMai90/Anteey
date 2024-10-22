@@ -93,12 +93,13 @@
   </Modal>
 </template>
 <script setup lang="ts">
-import { ref, computed, watch, nextTick } from 'vue'
+import { ref, watch, nextTick, watchEffect } from 'vue'
 import { useNoteStore } from '@renderer/stores/noteStores'
 import Modal from '@renderer/components/Modal.vue'
 import NotePreviewCard from '@renderer/components/NotePreviewCard.vue'
 import { BankCard, ParagraphRectangle, FileSearch } from '@icon-park/vue-next'
 import { useUIStore } from '@renderer/stores/useUIStore'
+import { Note } from '@renderer/types/Note'
 
 const uiStore = useUIStore()
 
@@ -120,11 +121,12 @@ const searchResults = ref<Array<{ id: string; title: string; blocks: Array<{ con
 )
 const selectedNoteIndex = ref(-1)
 const selectedBlockIndex = ref(-1)
+const selectedNote = ref<Note | null>(null)
 
-const selectedNote = computed(() => {
+watchEffect(async () => {
   if (selectedNoteIndex.value >= 0 && selectedNoteIndex.value < searchResults.value.length) {
     const note = searchResults.value[selectedNoteIndex.value]
-    return noteStore.getNoteById(note.id)
+    return await noteStore.fetchNoteById(note.id)
   }
   return null
 })
@@ -139,11 +141,11 @@ const highlightedParts = (text: string, query: string) => {
   }))
 }
 
-const performSearch = () => {
+const performSearch = async () => {
   console.log('Performing search for:', searchQuery.value)
   if (searchQuery.value.trim()) {
     isExpanded.value = true
-    searchResults.value = noteStore.searchNotes(searchQuery.value)
+    searchResults.value = await noteStore.searchNotes(searchQuery.value)
     if (searchResults.value.length > 0) {
       selectedNoteIndex.value = 0
       selectedBlockIndex.value = 0

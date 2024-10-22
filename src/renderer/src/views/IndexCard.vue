@@ -15,7 +15,7 @@
             <div
               v-tooltip.bottom="{ content: 'Cmd+P', delay: { show: 1000 } }"
               class="search-box"
-              :class="{ 'is-focused': isSearchActive }"
+              :class="{ 'is-focused': isSearchFocused }"
             >
               <div class="search-icon">
                 <div class="icon">
@@ -32,8 +32,8 @@
                 v-model="searchQuery"
                 type="text"
                 placeholder="搜索"
-                @input="handleSearch"
-                @focus="isSearchActive = true"
+                @input="debouncedSearch"
+                @focus="isSearchFocused = true"
                 @blur="handleBlur"
               />
               <div v-if="searchQuery" class="clear-icon" @click="clearSearch">
@@ -44,17 +44,6 @@
                     fill="var(--color-icon-secondary)"
                     :strokeWidth="3"
                   />
-                </div>
-              </div>
-              <!-- 搜索结果显示 -->
-              <div v-if="searchResults.length > 0" class="search-results">
-                <div
-                  v-for="result in searchResults"
-                  :key="result.note.id"
-                  class="search-result-item"
-                  @click="scrollToNote(result.index, result.note.id)"
-                >
-                  {{ result.note.address }}
                 </div>
               </div>
             </div>
@@ -90,11 +79,12 @@
       </div>
     </div>
     <div class="cardbox-view-container">
-      <div class="card-grid-container">
+      <div ref="cardGridContainer" class="card-grid-container">
         <div class="card-grid">
           <CardBoxNoteCard
-            v-for="note in filteredNotes"
-            :key="note.id"
+            v-for="note in displayedNotes"
+            :key="`${note.id}-${new Date(note.updatedAt).toISOString()}`"
+            v-memo="[note.id, note.createdAt]"
             :note="note"
             :highlightedNoteId="highlightedNoteId"
           />
@@ -105,49 +95,270 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useNoteStore } from '../stores/noteStores'
 import AppToolbar from '../components/AppToolbar.vue'
 import { SortTwo, Search, Close, ListAlphabet } from '@icon-park/vue-next'
-import { Note } from '../types/Note'
+import { CardBox, Note } from '../types/Note'
 import CardBoxNoteCard from '../components/CardboxNoteCard.vue'
 import { storeToRefs } from 'pinia'
-import { useCardBoxSearch } from '../composables/useCardBoxSearch'
-import { useEventBus } from '@vueuse/core'
+import { useDebounceFn, useEventBus, useThrottleFn } from '@vueuse/core'
+import { useRouter } from 'vue-router'
+import { GetPaginatedNotesParams } from '../../../db/notes'
 
 const noteStore = useNoteStore()
-const { allIndexNotes } = storeToRefs(noteStore)
 
-const showSortMenu = ref(false)
-const currentSort = ref('name')
-const sortDirection = ref('asc')
+const { selectedCardTypes, lastUpdatedNote, lastCreatedNote, lastDeletedNote } =
+  storeToRefs(noteStore)
+const selectedCardBox = ref<CardBox | null>(null)
+const showMoreActions = ref<string | null>(null)
+
 const highlightedNoteId = ref<string | null>(null)
+// const route = useRoute()
+const router = useRouter()
 
-// 使用新的 useCardBoxSearch 组合函数
-const {
-  searchQuery,
-  handleSearch,
-  filteredNotes: searchFilteredNotes,
-  searchResults,
-  clearSearch,
-  isSearchActive
-} = useCardBoxSearch(allIndexNotes)
+const cardGridContainer = ref<HTMLElement | null>(null)
+const isLoading = ref(false)
 
-// 初始化组件中的笔记数据
+const currentPage = ref(1)
+const pageSize = ref(21)
+const totalCount = ref(0)
+const notes = ref<Note[]>([])
+const showSortMenu = ref(false)
+const currentSort = ref('address')
+const sortDirection = ref('asc')
+const hasMoreNotes = ref(true)
+
+// 获取所有卡片盒笔记
 const fetchNotes = async () => {
-  await noteStore.fetchAllNotes()
+  if (isLoading.value) return
+
+  isLoading.value = true
+  console.log('Fetching notes, page:', currentPage.value)
+  try {
+    const params: GetPaginatedNotesParams = {
+      page: currentPage.value,
+      limit: pageSize.value,
+      cardBoxId: selectedCardBox.value?.id || 'all',
+      cardTypes: ['Indexcard'],
+      sortBy: currentSort.value,
+      sortOrder: sortDirection.value as 'asc' | 'desc'
+    }
+    const result = await noteStore.fetchPaginatedNotesByCardbox(params)
+    if (currentPage.value === 1) {
+      notes.value = result.notes
+    } else {
+      notes.value = [...notes.value, ...result.notes]
+    }
+    totalCount.value = result.totalCount
+    hasMoreNotes.value = notes.value.length < totalCount.value
+    currentPage.value++
+    console.log('Fetched notes:', result.notes.length, 'Total:', totalCount.value)
+  } catch (error) {
+    console.error('获取笔记失败:', error)
+  } finally {
+    isLoading.value = false
+  }
+}
+
+// 显示的笔记
+// 如果搜索框没有聚焦，则显示所有笔记
+// 如果搜索框聚焦，则显示搜索结果
+const displayedNotes = computed(() => {
+  if (searchQuery.value.trim() === '') {
+    return notes.value
+  }
+  return searchResults.value.filter((note) => note.cardType === 'Indexcard')
+})
+
+// 搜索功能
+const searchQuery = ref('')
+const isSearchFocused = ref(false)
+const searchResults = ref<Note[]>([])
+
+// 使用防抖函数优化搜索性能
+const debouncedSearch = useDebounceFn(async () => {
+  if (searchQuery.value.trim() === '') {
+    searchResults.value = []
+    return
+  }
+  const results = await noteStore.searchNotesList(searchQuery.value)
+  if (results) {
+    searchResults.value = results
+  }
+}, 300)
+
+// 搜索框失去焦点
+const handleBlur = () => {
+  setTimeout(() => {
+    isSearchFocused.value = false
+  }, 100)
+}
+// 清空搜索
+const clearSearch = () => {
+  searchQuery.value = ''
+  searchResults.value = []
+  nextTick(() => {
+    const activeElement = document.activeElement as HTMLElement
+    if (activeElement && 'blur' in activeElement) {
+      activeElement.blur()
+    }
+  })
+}
+
+// 监听键盘事件，设置搜索框聚焦快捷键
+const handleKeyDown = (event: KeyboardEvent) => {
+  if ((event.metaKey || event.ctrlKey) && event.key === 'p') {
+    event.preventDefault()
+    isSearchFocused.value = true
+    nextTick(() => {
+      const searchInput = document.querySelector('.search-box input') as HTMLInputElement
+      if (searchInput) {
+        searchInput.focus()
+      }
+    })
+  } else if (event.key === 'Escape') {
+    clearSearch()
+  }
+}
+onMounted(() => {
+  document.addEventListener('keydown', handleKeyDown)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('keydown', handleKeyDown)
+})
+
+// 重置分页
+const resetPagination = () => {
+  currentPage.value = 1
+}
+
+watch(
+  [selectedCardBox, selectedCardTypes, currentSort, sortDirection],
+  () => {
+    currentPage.value = 1
+    fetchNotes()
+  },
+  { deep: true }
+)
+
+onMounted(() => {
+  resetPagination()
+  fetchNotes()
+})
+
+// 监听筛选条件变化
+watch(
+  [currentSort, sortDirection],
+  () => {
+    console.log('Filter conditions changed, resetting and fetching notes')
+    resetPagination()
+    notes.value = []
+    fetchNotes()
+  },
+  { deep: true }
+)
+
+// 滚动加载更多笔记
+const handleScroll = useThrottleFn(() => {
+  if (cardGridContainer.value) {
+    const { scrollTop, scrollHeight, clientHeight } = cardGridContainer.value
+    if (scrollHeight - scrollTop - clientHeight < 800 && !isLoading.value && hasMoreNotes.value) {
+      console.log('滚动触发，加载更多笔记')
+      fetchNotes()
+    }
+  }
+}, 300)
+
+onMounted(() => {
+  cardGridContainer.value?.addEventListener('scroll', handleScroll)
+})
+
+onUnmounted(() => {
+  cardGridContainer.value?.removeEventListener('scroll', handleScroll)
+})
+
+// 设置事件总线，用于监听笔记更新和创建事件
+const eventBus = useEventBus('note-updated')
+const eventBusCreated = useEventBus('note-created')
+const eventBusDeleted = useEventBus('note-deleted')
+
+// 监听笔记更新事件
+eventBus.on(() => {
+  console.log('TimelineView.vue→ 监听到笔记更新事件', lastUpdatedNote.value)
+  if (!lastUpdatedNote.value) return
+  updateSingleNote(lastUpdatedNote.value)
+})
+// 更新单个笔记的函数
+const updateSingleNote = (updatedNote: Note) => {
+  if (!updatedNote) return
+  // 如果日历被选择了，则更新filteredNotes
+  const index = displayedNotes.value.findIndex((note) => note.id === updatedNote.id)
+  if (index !== -1) {
+    displayedNotes.value[index] = { ...displayedNotes.value[index], ...updatedNote }
+  }
+}
+// 监听笔记创建事件
+eventBusCreated.on(() => {
+  console.log('TimelineView.vue→ 监听到笔记创建事件', lastCreatedNote.value)
+  if (!lastCreatedNote.value) return
+  displayedNotes.value.push(lastCreatedNote.value)
+})
+
+// 监听笔记删除事件
+eventBusDeleted.on(() => {
+  console.log('TimelineView.vue→ 监听到笔记删除事件', lastDeletedNote.value)
+  if (!lastDeletedNote.value) return
+  // 如果删除的笔记在notes中，则删除
+  const index = displayedNotes.value.findIndex((note) => note.id === lastDeletedNote.value?.id)
+  if (index !== -1) {
+    displayedNotes.value.splice(index, 1)
+  }
+})
+
+const scrollToHighlightedNote = async () => {
+  if (highlightedNoteId.value) {
+    for (let i = 0; i < 5; i++) {
+      // 尝试5次
+      await new Promise((resolve) => setTimeout(resolve, 100)) // 等待100ms
+      const highlightedElement = document.getElementById(`note-${highlightedNoteId.value}`)
+      if (highlightedElement && cardGridContainer.value) {
+        const containerRect = cardGridContainer.value.getBoundingClientRect()
+        const elementRect = highlightedElement.getBoundingClientRect()
+        const scrollTop =
+          elementRect.top - containerRect.top + cardGridContainer.value.scrollTop - 20
+        cardGridContainer.value.scrollTo({
+          top: scrollTop,
+          behavior: 'smooth'
+        })
+        break
+      }
+    }
+    // 添加一个小延迟后清除高亮ID
+    setTimeout(() => {
+      highlightedNoteId.value = null
+      router.replace({ query: {} })
+      // 清除 noteStore 中的高亮笔记
+      noteStore.clearHighlightedNoteId()
+    }, 2000) // 2秒后清除高亮状态
+  }
+}
+
+const handleSearchHighlight = (noteId: string) => {
+  highlightedNoteId.value = noteId
+  scrollToHighlightedNote()
 }
 
 // 在组件挂载时，初始化笔记数据
 onMounted(async () => {
-  await fetchNotes()
   document.addEventListener('click', handleGlobalClick)
 })
 
-// 监听笔记删除事件，重新获取笔记数据
-const eventBus = useEventBus('note-deleted')
-eventBus.on(() => {
-  fetchNotes()
+// 监听搜索高亮事件的事件总线
+const searchHighlightEventBus = useEventBus('search-highlight')
+searchHighlightEventBus.on((noteId: any) => {
+  handleSearchHighlight(noteId)
 })
 
 // 排序选项功能
@@ -170,69 +381,31 @@ const selectSortOption = (option: { value: string; label: string }) => {
     sortDirection.value = 'asc'
   }
   showSortMenu.value = false
+  resetPagination()
+  fetchNotes()
 }
-
-const handleBlur = () => {
-  setTimeout(() => {
-    isSearchActive.value = false
-  }, 100)
-}
-
-// 修改 filteredNotes 计算属性
-const filteredNotes = computed(() => {
-  return [...searchFilteredNotes.value].sort((a: Note, b: Note) => {
-    let comparison = 0
-    switch (currentSort.value) {
-      case 'name':
-        comparison = a.address.localeCompare(b.address, 'zh-CN')
-        break
-      case 'createdAt':
-        comparison = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-        break
-      case 'updatedAt':
-        comparison = new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime()
-        break
-    }
-    return sortDirection.value === 'asc' ? comparison : -comparison
-  })
-})
 
 // 监听可能影响过滤结果的变量
 watch(
-  [currentSort, sortDirection],
+  [selectedCardBox, selectedCardTypes, currentSort, sortDirection],
   () => {
-    console.log('筛选条件发生变化')
-    console.log('当前排序:', currentSort.value)
-    console.log('排序方向:', sortDirection.value)
+    console.log('Filter conditions changed, resetting and fetching notes')
+    currentPage.value = 1
+    notes.value = []
+    fetchNotes()
   },
   { deep: true }
 )
 
-// 新增的 scrollToNote 函数
-const scrollToNote = (index: number, noteId: string) => {
-  const cardElements = document.querySelectorAll('.card-grid > *')
-  if (cardElements[index]) {
-    cardElements[index].scrollIntoView({ behavior: 'smooth', block: 'center' })
-    highlightedNoteId.value = noteId
-    setTimeout(() => {
-      highlightedNoteId.value = null
-    }, 3000) // 3秒后取消高亮
-  }
-  clearSearch() // 清除搜索结果
-}
-
 // 全局点击事件，关闭下拉菜单
 const handleGlobalClick = (event: MouseEvent) => {
   const sortDropdown = document.querySelector('.sort-button-container')
-
   if (showSortMenu.value && sortDropdown && !sortDropdown.contains(event.target as Node)) {
     showSortMenu.value = false
   }
-}
 
-onUnmounted(() => {
-  document.removeEventListener('click', handleGlobalClick)
-})
+  showMoreActions.value = null
+}
 </script>
 
 <style lang="scss" scoped>
@@ -282,7 +455,7 @@ onUnmounted(() => {
     transition: all 0.2s ease;
     padding: 0;
     border-radius: 8px;
-    // background-color: var(--color-menu-bg);
+    background-color: var(--color-menu-bg);
     border: 1px solid var(--color-blue);
 
     :deep(.i-icon) {
@@ -313,9 +486,309 @@ onUnmounted(() => {
 }
 .topToolBar-right {
   display: flex;
-  gap: 10px;
+  gap: 8px;
   align-items: center;
 
+  .inbox-button {
+    display: flex;
+    align-items: center;
+    // width: 100px;
+    padding: 2px 12px 2px 7px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    border-radius: 8px;
+    border: 1px solid var(--color-border);
+    user-select: none;
+
+    &.active {
+      border: 1px solid var(--color-primary);
+    }
+
+    .icon {
+      background: none;
+      border: none;
+      cursor: pointer;
+      width: 28px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 6px;
+      transition: background-color 0.2s;
+      padding: 0;
+
+      // 新增以下样式来处理 i-icon 类
+      :deep(.i-icon) {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        height: 100%;
+      }
+
+      :deep(svg) {
+        width: 16px; // 或者您想要的大小
+        height: 16px; // 或者您想要的大小
+      }
+    }
+
+    .name {
+      flex-grow: 0;
+      text-align: left;
+      color: var(--color-text-primary);
+      font-size: 14px;
+      white-space: nowrap; // 防止文字换行
+      writing-mode: horizontal-tb; // 确保文字是水平排列的
+      line-height: 1;
+    }
+
+    &:hover {
+      background-color: var(--color-hover-bg);
+    }
+
+    &.active {
+      background-color: var(--color-menu-active-bg);
+      // border: 1px solid var(--color-primary);
+    }
+  }
+
+  .cardbox-dropdown {
+    display: flex;
+    align-items: center;
+    // width: 100px;
+    padding: 2px 12px 2px 7px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    border-radius: 8px;
+    border: 1px solid var(--color-border);
+    user-select: none;
+
+    .icon {
+      background: none;
+      border: none;
+      cursor: pointer;
+      width: 28px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 6px;
+      transition: background-color 0.2s;
+      padding: 0;
+      // margin-right: 3px;
+
+      &:hover:not(:disabled) {
+        background-color: var(--color-hover-bg);
+      }
+
+      &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      // 新增以下样式来处理 i-icon 类
+      :deep(.i-icon) {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        height: 100%;
+      }
+
+      :deep(svg) {
+        width: 16px; // 或者您想要的大小
+        height: 16px; // 或者您想要的大小
+      }
+    }
+
+    .name {
+      flex-grow: 0;
+      text-align: left;
+      color: var(--color-text-primary);
+      font-size: 14px;
+      white-space: nowrap; // 防止文字换行
+      writing-mode: horizontal-tb; // 确保文字是水平排列的
+      user-select: none;
+      line-height: 1;
+    }
+
+    &:hover {
+      background-color: var(--color-hover-bg);
+    }
+
+    &.active {
+      background-color: var(--color-menu-active-bg);
+      // border: 1px solid var(--color-primary);
+    }
+
+    .dropdown-menu {
+      position: fixed; // 改为 fixed
+      margin-top: 5px;
+      background-color: var(--color-bg-primary);
+      border-radius: 8px;
+      z-index: 1000;
+      min-width: 200px;
+      width: auto;
+      max-height: 350px;
+      overflow-y: auto;
+      padding: 6px 12px;
+      white-space: nowrap;
+      background-clip: padding-box;
+      box-shadow: var(--shadow-primary);
+      opacity: 0;
+      visibility: hidden;
+      transition:
+        opacity 0.3s ease,
+        visibility 0.3s ease;
+
+      &.show {
+        opacity: 1;
+        visibility: visible;
+      }
+
+      .dropdown-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 4px 4px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        font-size: 14px;
+        color: var(--color-text-primary);
+        white-space: nowrap;
+        border-radius: 6px;
+        margin: 2px;
+
+        &:hover {
+          background-color: var(--color-hover-bg);
+        }
+
+        &.active {
+          background-color: var(--color-hover-bg);
+        }
+
+        .dropdown-item-content {
+          position: relative;
+          display: flex;
+          align-items: center;
+          border: none;
+          background: none;
+          cursor: pointer;
+          transition: background-color 0.2s;
+          border-radius: 8px;
+
+          .icon {
+            background: none;
+            border: none;
+            cursor: pointer;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px;
+            transition: background-color 0.2s;
+            padding: 0;
+
+            // 新增以下样式来处理 i-icon 类
+            .i-icon {
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              width: 100%;
+              height: 100%;
+            }
+
+            svg {
+              width: 18px; // 或者您想要的大小
+              height: 18px; // 或者您想要的大小
+            }
+          }
+
+          .name {
+            flex-grow: 0;
+            text-align: left;
+            color: var(--color-text-primary);
+            font-size: 14px;
+            white-space: nowrap; // 防止文字换行
+            writing-mode: horizontal-tb; // 确保文字是水平排列的
+            user-select: none;
+            margin-left: 6px;
+          }
+        }
+      }
+
+      .dropdown-divider {
+        height: 1px;
+        margin: 6px 0;
+        background-color: var(--color-border);
+      }
+
+      .dropdown-item.add-cardbox {
+        position: sticky;
+        bottom: 0;
+        background-color: var(--color-bg-primary);
+        // border-top: 1px solid var(--color-border);
+        // margin-top: 6px;
+        // padding-top: 8px;
+
+        &:hover {
+          background-color: var(--color-hover-bg);
+        }
+
+        .dropdown-item-content {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+      }
+    }
+
+    .dropdown-item-actions {
+      position: relative;
+
+      .more-actions-btn {
+        background: none;
+        border: none;
+        cursor: pointer;
+        // padding: 4px;
+        border-radius: 50%;
+        transition: background-color 0.2s;
+        margin-left: 10px;
+        .icon {
+          background: none;
+          border: none;
+          cursor: pointer;
+          width: 24px;
+          height: 24px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: 6px;
+          transition: background-color 0.2s;
+          padding: 0;
+
+          // 新增以下样式来处理 i-icon 类
+          .i-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
+          }
+
+          svg {
+            width: 18px; // 或者您想要的大小
+            height: 18px; // 或者您想要的大小
+          }
+        }
+      }
+    }
+  }
   .sort-button-container {
     display: flex;
     align-items: center;
@@ -525,21 +998,33 @@ onUnmounted(() => {
 }
 
 .cardbox-view-container {
-  // height: 100%;
-  // width: 100%;
-  // padding: 0px 0px 10px 0px;
   display: flex;
   flex-direction: column;
   height: calc(100vh - 100px); // 假设顶部工具栏高度为100px，请根据实际情况调整
   overflow: hidden; // 防止整个页面滚动
+  scroll-behavior: smooth; // 添加平滑滚动
 
   .card-grid-container {
     flex: 1;
-    // height: 100%;
     overflow-y: auto; // 允许卡片网格容器滚动
-    // padding: 0 16px 16px 16px;
+    scroll-behavior: smooth; // 添加平滑滚动
   }
 
+  // .card-grid {
+  //   display: grid;
+  //   grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  //   gap: 16px;
+  //   padding: 16px 20px;
+  //   align-content: start; // 让内容从顶部开始排列
+  //   justify-content: center; // 水平居中对齐
+
+  //   // 使用视口单位和 clamp 函数来控制卡片高度
+  //   --card-height: clamp(300px, calc(20vw - 32px), 370px);
+  //   grid-auto-rows: var(--card-height);
+
+  //   // 计算每行可以容纳的卡片数量
+  //   --cards-per-row: calc((100% - 32px) / (300px + 16px));
+  // }
   .card-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
@@ -555,10 +1040,429 @@ onUnmounted(() => {
     // 计算每行可以容纳的卡片数量
     --cards-per-row: calc((100% - 32px) / (300px + 16px));
   }
+
+  .modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+
+    .modal-content {
+      background-color: var(--color-bg-primary);
+      padding: 20px;
+      border-radius: 10px;
+      width: 300px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+
+      h2 {
+        margin-top: 0;
+        margin-bottom: 20px;
+        font-size: 18px;
+        text-align: center;
+        color: var(--color-text-primary);
+      }
+
+      input {
+        width: 100%;
+        padding: 10px;
+        margin-bottom: 20px;
+        border: 1px solid var(--color-primary);
+        border-radius: 5px;
+        font-size: 16px;
+
+        &:focus {
+          outline: none;
+          border-color: var(--color-primary);
+          box-shadow: 0 0 0 2px rgba(var(--color-primary), 0.2);
+        }
+      }
+
+      .modal-actions {
+        display: flex;
+        justify-content: center;
+
+        button {
+          padding: 10px 20px;
+          border: none;
+          border-radius: 5px;
+          background-color: var(--color-primary);
+          color: var(--color-bg-primary);
+          font-size: 16px;
+          cursor: pointer;
+          transition: background-color 0.3s;
+
+          &:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+          }
+        }
+      }
+    }
+  }
+}
+
+.cardtype-dropdown {
+  position: relative;
+  display: inline-flex;
+  position: relative;
+  display: flex;
+  align-items: center;
+  padding: 2px 12px 2px 7px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  border-radius: 8px;
+  border: 1px solid var(--color-border);
+
+  .icon {
+    background: none;
+    border: none;
+    cursor: pointer;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    transition: background-color 0.2s;
+    padding: 0;
+    // margin-right: 3px;
+
+    &:hover:not(:disabled) {
+      background-color: var(--color-hover-bg);
+    }
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    // 新增以下样式来处理 i-icon 类
+    :deep(.i-icon) {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      height: 100%;
+    }
+
+    :deep(svg) {
+      width: 16px; // 或者您想要的大小
+      height: 16px; // 或者您想要的大小
+    }
+  }
+
+  .name {
+    flex-grow: 0;
+    text-align: left;
+    color: var(--color-text-primary);
+    font-size: 14px;
+    white-space: nowrap; // 防止文字换行
+    writing-mode: horizontal-tb; // 确保文字是水平排列的
+    line-height: 1;
+  }
+
+  &:hover {
+    background-color: var(--color-hover-bg);
+  }
+
+  &.active {
+    background-color: var(--color-menu-active-bg);
+    // border: 1px solid var(--color-primary);
+  }
+
+  .cadrtype-dropdown-menu {
+    position: absolute;
+    top: calc(100% + 10px);
+    left: 50%;
+    transform: translateX(-50%); // 居中对齐
+    background-color: var(--color-bg-primary);
+    border-radius: 8px;
+    // box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+    min-width: 200px;
+    width: auto;
+    overflow-y: auto;
+    padding: 6px 12px;
+    white-space: nowrap;
+    background-clip: padding-box;
+    box-shadow: var(--shadow-primary);
+
+    .cadrtype-dropdown-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 4px 8px 4px 4px;
+      cursor: pointer;
+      transition: background-color 0.2s;
+      font-size: 14px;
+      color: #333;
+      white-space: nowrap;
+      border-radius: 8px;
+      margin: 2px;
+
+      &:hover {
+        background-color: var(--color-hover-bg);
+      }
+
+      &.active {
+        background-color: rgba(0, 200, 168, 0.05);
+        border: 1px solid #00c8a8;
+        // color: #00C8A8;
+      }
+
+      .cadrtype-dropdown-item-content {
+        display: flex;
+        align-items: center;
+        // gap: 10px;
+        flex-grow: 1;
+        align-items: center;
+        // width: 200px;
+        // padding: 8px 12px;
+        border: none;
+        background: none;
+        cursor: pointer;
+        transition: background-color 0.2s;
+        border-radius: 8px;
+        // margin: 2px 8px;
+
+        .icon {
+          background: none;
+          border: none;
+          cursor: pointer;
+          width: 28px;
+          height: 28px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: 6px;
+          transition: background-color 0.2s;
+          padding: 0;
+          // margin-right: 3px;
+
+          &:hover:not(:disabled) {
+            background-color: var(--color-hover-bg);
+          }
+
+          &:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+          }
+
+          // 新增以下样式来处理 i-icon 类
+          .i-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
+          }
+
+          svg {
+            width: 18px; // 或者您想要的大小
+            height: 18px; // 或者您想要的大小
+          }
+        }
+
+        .name {
+          flex-grow: 0;
+          text-align: left;
+          color: var(--color-text-primary);
+          font-size: 14px;
+          white-space: nowrap; // 防止文字换行
+          writing-mode: horizontal-tb; // 确保文字是水平排列的
+          user-select: none;
+          margin-left: 6px;
+          line-height: 1;
+        }
+
+        &.active {
+          background-color: var(--color-menu-active-bg);
+          // border: 1px solid var(--color-primary);
+        }
+      }
+
+      .switch {
+        position: relative;
+        display: inline-block;
+        width: 28px;
+        height: 18px;
+
+        input {
+          opacity: 0;
+          width: 0;
+          height: 0;
+        }
+
+        .slider {
+          position: absolute;
+          cursor: pointer;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background-color: #ccc;
+          transition: 0.4s;
+        }
+
+        .slider:before {
+          position: absolute;
+          content: '';
+          height: 14px;
+          width: 14px;
+          left: 2px;
+          bottom: 2px;
+          background-color: white;
+          transition: 0.4s;
+        }
+
+        input:checked + .slider {
+          background-color: #00c8a8;
+        }
+
+        input:focus + .slider {
+          box-shadow: 0 0 1px #00c8a8;
+        }
+
+        input:checked + .slider:before {
+          transform: translateX(10px);
+        }
+
+        .slider.round {
+          border-radius: 34px;
+        }
+
+        .slider.round:before {
+          border-radius: 50%;
+        }
+      }
+    }
+  }
+}
+
+.dropdown-menu::-webkit-scrollbar {
+  width: 6px;
+}
+
+.dropdown-menu::-webkit-scrollbar-thumb {
+  background-color: #d0d0d0;
+  border-radius: 3px;
+}
+
+.dropdown-menu::-webkit-scrollbar-track {
+  background-color: #f0f0f0;
+}
+
+//卡片盒的更多操作菜单
+.more-actions-menu {
+  position: fixed; // 改回 fixed
+  background-color: var(--color-bg-primary);
+  border-radius: 8px;
+  box-shadow: var(--shadow-primary);
+  z-index: 1002;
+  min-width: max-content;
+  width: 140px;
+  max-width: 200px;
+  padding: 6px 12px;
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity 0.2s ease,
+    visibility 0.2s ease;
+
+  &.show {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+  }
+
+  .more-action-item {
+    display: flex;
+    align-items: center;
+    // width: 200px;
+    padding: 4px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    border-radius: 8px;
+    // margin: 2px 8px;
+
+    .icon {
+      background: none;
+      border: none;
+      cursor: pointer;
+      width: 28px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 6px;
+      transition: background-color 0.2s;
+      padding: 0;
+      margin-right: 2px;
+
+      &:hover:not(:disabled) {
+        background-color: var(--color-hover-bg);
+      }
+
+      &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      // 新增以下样式来处理 i-icon 类
+      :deep(.i-icon) {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        height: 100%;
+        flex-shrink: 0; // 防止图标缩小
+      }
+
+      :deep(svg) {
+        width: 16px; // 或者您想要的大小
+        height: 16px; // 或者您想要的大小
+      }
+    }
+
+    .name {
+      flex-grow: 0;
+      text-align: left;
+      color: var(--color-text-primary);
+      font-size: 14px;
+      white-space: nowrap; // 防止文字换行
+      writing-mode: horizontal-tb; // 确保文字是水平排列的
+
+      &.delete {
+        color: var(--color-text-danger);
+      }
+    }
+
+    &:hover {
+      background-color: var(--color-hover-bg);
+    }
+
+    &.delete {
+      color: var(--color-text-danger);
+    }
+  }
 }
 
 .sort-direction {
   font-size: 12px;
   margin-left: 5px;
+}
+
+.observer-target {
+  height: 20px;
+  width: 100%;
+  background-color: red;
 }
 </style>

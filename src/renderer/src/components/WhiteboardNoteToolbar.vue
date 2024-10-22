@@ -59,7 +59,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, nextTick, computed } from 'vue'
+import { ref, nextTick, watchEffect } from 'vue'
 import { ExpandTextInput, Install, More, Connection } from '@icon-park/vue-next'
 import CardboxDropdownMenu from './CardboxDropdownMenu.vue'
 import PopupMenu from './PopupMenu.vue'
@@ -74,9 +74,10 @@ const props = defineProps<{
 defineEmits(['expand', 'start-connection'])
 
 const noteStore = useNoteStore()
-const currentCardboxId = computed(() => {
-  const note = noteStore.getNoteById(props.noteId)
-  return note?.cardBoxId || null
+const currentCardboxId = ref<string | null>(null)
+watchEffect(async () => {
+  const note = await noteStore.fetchNoteById(props.noteId)
+  currentCardboxId.value = note?.cardBoxId || null
 })
 
 // 卡片盒下拉菜单
