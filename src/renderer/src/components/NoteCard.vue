@@ -153,6 +153,7 @@ const cardTypeClass = computed(() => {
   flex-direction: column;
   justify-content: space-between;
   position: relative;
+  cursor: pointer;
   // box-shadow: var(--shadow-card);
   .note-header {
     display: flex;
@@ -354,5 +355,6 @@ const cardTypeClass = computed(() => {
   color: var(--color-text-secondary);
   align-self: flex-end;
   margin-right: 15px;
+  user-select: none;
 }
 </style>

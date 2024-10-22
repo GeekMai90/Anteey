@@ -829,50 +829,90 @@ const isValidBlockNode = (node) => {
     'listItem',
     'taskList',
     'taskItem',
-    'codeBlock',
-    'image'
+    'codeBlock'
   ].includes(node.type.name)
 }
 // 拖拽块点击功能
+// const handleDragHandleClick = (event) => {
+//   event.preventDefault()
+//   event.stopPropagation()
+
+//   if (editor.value) {
+//     const { state, commands } = editor.value
+//     const { from } = state.selection
+//     const $pos = state.doc.resolve(from)
+//     let node = $pos.parent
+//     let depth = $pos.depth
+
+//     // 向上查找有效的块级节点
+//     while (depth > 0 && !isValidBlockNode(node)) {
+//       depth--
+//       node = $pos.node(depth)
+//     }
+
+//     if (isValidBlockNode(node)) {
+//       const nodePos = $pos.before(depth)
+
+//       // 使用 Tiptap 命令选择整个节点
+//       commands.setNodeSelection(nodePos)
+
+//       // 设置上下文菜单位置
+//       const { x, y } = getContextMenuPosition(event)
+//       showContextMenu.value = true
+//       contextMenuX.value = x - 5
+//       contextMenuY.value = y + 10
+//       currentParagraph.value = node
+
+//       console.log('拖拽块被点击了!', node)
+//       console.log('节点类型:', node.type.name)
+//       console.log('节点位置:', nodePos)
+//     } else {
+//       console.log('未找到有效的块级节点')
+//     }
+//   } else {
+//     console.log('编辑器实例未找到')
+//   }
+// }
 const handleDragHandleClick = (event) => {
   event.preventDefault()
   event.stopPropagation()
 
-  if (editor.value) {
-    const { state, commands } = editor.value
-    const { from } = state.selection
-    const $pos = state.doc.resolve(from)
-    let node = $pos.parent
-    let depth = $pos.depth
-
-    // 向上查找有效的块级节点
-    while (depth > 0 && !isValidBlockNode(node)) {
-      depth--
-      node = $pos.node(depth)
-    }
-
-    if (isValidBlockNode(node)) {
-      const nodePos = $pos.before(depth)
-
-      // 使用 Tiptap 命令选择整个节点
-      commands.setNodeSelection(nodePos)
-
-      // 设置上下文菜单位置
-      const { x, y } = getContextMenuPosition(event)
-      showContextMenu.value = true
-      contextMenuX.value = x - 5
-      contextMenuY.value = y + 10
-      currentParagraph.value = node
-
-      console.log('拖拽块被点击了!', node)
-      console.log('节点类型:', node.type.name)
-      console.log('节点位置:', nodePos)
-    } else {
-      console.log('未找到有效的块级节点')
-    }
-  } else {
+  if (!editor.value) {
     console.log('编辑器实例未找到')
+    return
   }
+
+  const { state } = editor.value
+
+  // 获取当前选区的开始位置
+  const from = state.selection.from
+
+  // 解析位置
+  const $pos = state.doc.resolve(from)
+
+  // 查找最近的块级节点
+  let depth = $pos.depth
+  console.log('初始深度:', depth)
+  while (depth > 0 && !isValidBlockNode($pos.node(depth))) {
+    depth--
+  }
+
+  if (depth === 0) {
+    return
+  }
+
+  const node = $pos.node(depth)
+  const nodePos = $pos.before(depth)
+
+  // 使用 setNodeSelection 命令选择整个节点
+  editor.value.commands.setNodeSelection(nodePos)
+
+  // 设置上下文菜单位置
+  const { x, y } = getContextMenuPosition(event)
+  showContextMenu.value = true
+  contextMenuX.value = x - 5
+  contextMenuY.value = y + 10
+  currentParagraph.value = node
 }
 
 // 清空格式
