@@ -6,12 +6,7 @@
       <h3 class="note-title">{{ note.address }}</h3>
     </div>
     <div ref="noteContent" class="note-content">
-      <TipTapEditor
-        :key="note.id"
-        :content="note.content"
-        :editable="false"
-        :enable-drag-handle="false"
-      />
+      <TipTapRender :key="note.id" :content="note.content" />
     </div>
   </div>
 </template>
@@ -19,15 +14,11 @@
 <script setup lang="ts">
 import { Note } from '@renderer/types/Note'
 import { computed } from 'vue'
-import TipTapEditor from '@renderer/components/TipTapEditor.vue'
+import TipTapRender from '@renderer/components/TipTapRender.vue'
 
 const props = defineProps<{
   note: Note
 }>()
-
-// const isDragHandleEnabled = ref(false)
-
-// const localNote = toRef(props, 'note')
 
 const cardTypeClass = computed(() => {
   switch (props.note.cardType) {
@@ -43,17 +34,6 @@ const cardTypeClass = computed(() => {
       return ''
   }
 })
-
-// watch(
-//   () => props.note,
-//   (newNote, oldNote) => {
-//     if (newNote.id !== oldNote.id || newNote.isDeleted !== oldNote.isDeleted) {
-//       console.log('Note changed, updating local note')
-//       localNote.value = newNote
-//     }
-//   },
-//   { deep: true }
-// )
 </script>
 
 <style lang="scss" scoped>

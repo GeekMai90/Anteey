@@ -93,6 +93,7 @@ export const useNoteStore = defineStore('note', {
     async initializeStore() {
       await this.preloadFirstPage() // 预加载第一页笔记
       await this.initializeCardBoxes() // 初始化卡片盒
+      await this.fetchStarredNotes() // 获取星标收藏的笔记
       setTimeout(() => {
         this.isLoading = false
       }, 2000)
@@ -794,25 +795,55 @@ export const useNoteStore = defineStore('note', {
     },
 
     // 移除星标收藏
+    // async removeStarFromNote(id: string) {
+    //   try {
+    //     const result = await window.electronAPI.removeStarFromNote(id)
+    //     const updatedNoteIndex = this.starredNotes.findIndex(
+    //       (note) => note.id === result.updatedNote.id
+    //     )
+    //     if (updatedNoteIndex !== -1) {
+    //       this.starredNotes[updatedNoteIndex] = result.updatedNote
+    //     }
+    //     result.reorderedNotes.forEach((note) => {
+    //       const index = this.starredNotes.findIndex((n) => n.id === note.id)
+    //       if (index !== -1) {
+    //         this.starredNotes[index] = note
+    //       }
+    //     })
+    //     if (this.currentNote && this.currentNote.id === id) {
+    //       this.currentNote = result.updatedNote
+    //     }
+    //     console.log('noteStores.ts→ 移除星标收藏成功:', result)
+    //     console.log('noteStores.ts→ 移除星标收藏后收藏的笔记:', this.starredNotes)
+    //     return result
+    //   } catch (error) {
+    //     console.error('noteStores.ts→ 移除星标收藏时出错:', error)
+    //     throw error
+    //   }
+    // },
+    // 移除星标收藏
     async removeStarFromNote(id: string) {
       try {
         const result = await window.electronAPI.removeStarFromNote(id)
-        const updatedNoteIndex = this.starredNotes.findIndex(
-          (note) => note.id === result.updatedNote.id
-        )
-        if (updatedNoteIndex !== -1) {
-          this.starredNotes[updatedNoteIndex] = result.updatedNote
-        }
+
+        // 从 starredNotes 中移除取消收藏的笔记
+        this.starredNotes = this.starredNotes.filter((note) => note.id !== id)
+
+        // 更新其他收藏笔记的顺序
         result.reorderedNotes.forEach((note) => {
           const index = this.starredNotes.findIndex((n) => n.id === note.id)
           if (index !== -1) {
             this.starredNotes[index] = note
           }
         })
+
+        // 如果是当前笔记，更新当前笔记的状态
         if (this.currentNote && this.currentNote.id === id) {
           this.currentNote = result.updatedNote
         }
+
         console.log('noteStores.ts→ 移除星标收藏成功:', result)
+        console.log('noteStores.ts→ 移除星标收藏后收藏的笔记:', this.starredNotes)
         return result
       } catch (error) {
         console.error('noteStores.ts→ 移除星标收藏时出错:', error)
