@@ -644,5 +644,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // 获取随机笔记
   getRandomNotes: async (): Promise<Note[]> => {
     return (await ipcRenderer.invoke('get-random-notes')) as Note[]
+  },
+  // 将空笔记移到回收站
+  moveEmptyNotesToTrash: async (): Promise<void> => {
+    await ipcRenderer.invoke('move-empty-notes-to-trash')
+  },
+  // 获取所有已删除的笔记
+  getAllDeletedNotes: async (): Promise<Note[]> => {
+    return (await ipcRenderer.invoke('get-all-deleted-notes')) as Note[]
   }
 })

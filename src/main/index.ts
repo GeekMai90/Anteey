@@ -42,7 +42,9 @@ import {
   getNoteCount,
   getLastDayNoteCount,
   getUserUsageDays,
-  getRandomNotes
+  getRandomNotes,
+  moveEmptyNotesToTrash,
+  getAllDeletedNotes
 } from '../db/notes'
 import { createCardBox, getAllCardBoxes, updateCardBox, deleteCardBox } from '../db/cardBoxes'
 import {
@@ -216,6 +218,25 @@ function createCustomMenu() {
 }
 
 function setupIpcHandlers() {
+  // 获取所有已删除的笔记
+  ipcMain.handle('get-all-deleted-notes', async () => {
+    try {
+      const result = await getAllDeletedNotes()
+      return result
+    } catch (error) {
+      console.error('主进程 → 获取所有已删除的笔记失败:', error)
+      throw error
+    }
+  })
+  // 将空笔记移到回收站
+  ipcMain.handle('move-empty-notes-to-trash', async () => {
+    try {
+      await moveEmptyNotesToTrash()
+    } catch (error) {
+      console.error('主进程 → 将空笔记移到回收站失败:', error)
+      throw error
+    }
+  })
   // 获取随机笔记
   ipcMain.handle('get-random-notes', async () => {
     try {

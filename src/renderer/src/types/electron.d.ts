@@ -114,6 +114,8 @@ export interface ElectronAPI {
   getWhiteboardCount: () => Promise<number>
   getUserUsageDays: () => Promise<number>
   getRandomNotes: () => Promise<Note[]>
+  moveEmptyNotesToTrash: () => Promise<void>
+  getAllDeletedNotes: () => Promise<Note[]>
 }
 
 declare global {

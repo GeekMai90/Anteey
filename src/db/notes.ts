@@ -23,6 +23,48 @@ function convertToNote(record: any): Note {
     rightBarOrder: record.rightBarOrder
   }
 }
+//所有已删除的笔记
+export async function getAllDeletedNotes(): Promise<Note[]> {
+  try {
+    const notes = await db('notes').where('isDeleted', true).select('*')
+    return notes.map(convertToNote)
+  } catch (error) {
+    console.error('后端→ 获取所有已删除的笔记失败:', error)
+    throw error
+  }
+}
+// 将空笔记移到回收站
+export async function moveEmptyNotesToTrash(): Promise<void> {
+  try {
+    // 获取所有未删除的笔记
+    const notes = await db('notes').where('isDeleted', false).select('*')
+
+    for (const note of notes) {
+      const content = JSON.parse(note.content)
+
+      // 检查笔记是否为空
+      const isEmptyContent =
+        content.type === 'doc' &&
+        Array.isArray(content.content) &&
+        (content.content.length === 0 ||
+          (content.content.length === 1 &&
+            content.content[0].type === 'paragraph' &&
+            (!content.content[0].content || content.content[0].content.length === 0)))
+
+      // 如果笔记内容为空且地址为空，则移到回收站
+      if (isEmptyContent && note.address === '') {
+        await db('notes').where('id', note.id).update({
+          isDeleted: true,
+          updatedAt: new Date().getTime()
+        })
+      }
+    }
+    console.log('后端→ 空笔记已移至回收站')
+  } catch (error) {
+    console.error('后端→ 移动空笔记到回收站失败:', error)
+    throw error
+  }
+}
 // 从所有笔记中随机选择三个笔记
 export async function getRandomNotes(): Promise<Note[]> {
   try {
@@ -790,7 +832,10 @@ export async function removeStarFromNote(
 // 获取收藏的笔记
 export async function getStarredNotes(): Promise<Note[]> {
   try {
-    const notes = await db('notes').where('isStarred', true).orderBy('updatedAt', 'desc')
+    const notes = await db('notes')
+      .where('isStarred', true)
+      .andWhere('isDeleted', false)
+      .orderBy('updatedAt', 'desc')
     return notes.map(convertToNote)
   } catch (error) {
     console.error('后端→ 获取收藏的笔记失败:', error)

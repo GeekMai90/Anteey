@@ -16,13 +16,13 @@ const cardTypes = [
   { value: 'Indexcard', label: '索引卡', icon: TransactionOrder },
   { value: 'Hoplinkcard', label: '跳转卡', icon: Deeplink }
 ]
-interface NoteContent {
-  type: 'doc'
-  content: Array<{
-    type: 'paragraph'
-    content?: Array<any>
-  }>
-}
+// interface NoteContent {
+//   type: 'doc'
+//   content: Array<{
+//     type: 'paragraph'
+//     content?: Array<any>
+//   }>
+// }
 
 export const useNoteStore = defineStore('note', {
   state: () => ({
@@ -264,26 +264,36 @@ export const useNoteStore = defineStore('note', {
     },
 
     // 将空笔记移到回收站
-    moveEmptyNotesToTrash() {
-      this.notes.forEach((note, noteId) => {
-        console.log(`Checking note ${noteId}:`, JSON.stringify(note.content))
+    // moveEmptyNotesToTrash() {
+    //   this.notes.forEach((note, noteId) => {
+    //     console.log(`Checking note ${noteId}:`, JSON.stringify(note.content))
 
-        const content = note.content as NoteContent
+    //     const content = note.content as NoteContent
 
-        const isEmptyContent =
-          content.type === 'doc' &&
-          Array.isArray(content.content) &&
-          (content.content.length === 0 ||
-            (content.content.length === 1 &&
-              content.content[0].type === 'paragraph' &&
-              (!content.content[0].content || content.content[0].content.length === 0)))
+    //     const isEmptyContent =
+    //       content.type === 'doc' &&
+    //       Array.isArray(content.content) &&
+    //       (content.content.length === 0 ||
+    //         (content.content.length === 1 &&
+    //           content.content[0].type === 'paragraph' &&
+    //           (!content.content[0].content || content.content[0].content.length === 0)))
 
-        if (isEmptyContent && note.address === '' && !note.isDeleted) {
-          console.log(`Moving note ${noteId} to trash`)
-          this.moveToTrash(noteId as unknown as string)
-          this.removeFromRecentNotes(noteId as unknown as string)
-        }
-      })
+    //     if (isEmptyContent && note.address === '' && !note.isDeleted) {
+    //       console.log(`Moving note ${noteId} to trash`)
+    //       this.moveToTrash(noteId as unknown as string)
+    //       this.removeFromRecentNotes(noteId as unknown as string)
+    //     }
+    //   })
+    // },
+    async moveEmptyNotesToTrash() {
+      try {
+        await window.electronAPI.moveEmptyNotesToTrash()
+        const emptyNotesMovedToTrashEventBus = useEventBus('empty-notes-moved-to-trash')
+        emptyNotesMovedToTrashEventBus.emit()
+      } catch (error) {
+        console.error('noteStores.ts→ 将空笔记移到回收站失败:', error)
+        throw error
+      }
     },
     // 添加到最近笔记
     addToRecentNotes(noteId: string) {
@@ -526,6 +536,10 @@ export const useNoteStore = defineStore('note', {
         if (result) {
           this.lastDeletedNote = result
           console.log('noteStores.ts→ 移动到回收站结果:', result)
+          // 从星标笔记中移除
+          if (this.starredNotes.some((note) => note.id === id)) {
+            this.starredNotes = this.starredNotes.filter((note) => note.id !== id)
+          }
           return true
         } else {
           console.error('noteStores.ts→ 移动笔记到回收站失败:', result)
@@ -540,15 +554,8 @@ export const useNoteStore = defineStore('note', {
     async restoreFromTrash(id: string) {
       try {
         const result = await window.electronAPI.restoreNote(id)
-        console.log('noteStores.ts→ 从回收站恢复笔记:', result)
-        const index = this.notes.findIndex((note) => note.id === id)
-        if (index !== -1) {
-          this.notes[index] = { ...this.notes[index], isDeleted: false }
-          console.log(`noteStores.ts→ 从回收站恢复笔记: ${id}`)
-        } else {
-          console.warn(`noteStores.ts→ 笔记 ${id} 未找到，添加它`)
-          this.notes.push(result as unknown as Note)
-        }
+        const noteRestoredEventBus = useEventBus('note-restored')
+        noteRestoredEventBus.emit()
         return result
       } catch (error) {
         console.error(`noteStores.ts→ 从回收站恢复笔记失败 ${id}:`, error)
@@ -559,8 +566,8 @@ export const useNoteStore = defineStore('note', {
     async permanentlyDelete(id: string) {
       try {
         await window.electronAPI.permanentDeleteNote(id)
-        this.notes = this.notes.filter((note) => note.id !== id)
-        console.log(`noteStores.ts→ 永久删除笔记: ${id}`)
+        // this.notes = this.notes.filter((note) => note.id !== id)
+        // console.log(`noteStores.ts→ 永久删除笔记: ${id}`)
         if (this.currentNoteId === id) {
           this.closeNoteEditor()
         }
@@ -969,6 +976,16 @@ export const useNoteStore = defineStore('note', {
         console.error('noteStores.ts→ 获取随机笔记失败:', error)
         throw error
       }
+    },
+
+    // 获取所有已删除的笔记
+    async getAllDeletedNotes() {
+      try {
+        return await window.electronAPI.getAllDeletedNotes()
+      } catch (error) {
+        console.error('noteStores.ts→ 获取所有已删除的笔记失败:', error)
+        throw error
+      }
     }
   },
 
@@ -1004,9 +1021,9 @@ export const useNoteStore = defineStore('note', {
       return this.notes.filter((note) => note.cardType === 'Maincard')
     },
     // 所有已删除的笔记
-    deletedNotes(): Note[] {
-      return this.notes.filter((note) => note.isDeleted)
-    },
+    // deletedNotes(): Note[] {
+    //   return this.notes.filter((note) => note.isDeleted)
+    // },
 
     getCardBoxById: (state) => {
       return (id: string) => state.cardBoxes.find((box) => box.id === id)

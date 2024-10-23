@@ -283,6 +283,19 @@ onUnmounted(() => {
 const eventBus = useEventBus('note-updated')
 const eventBusCreated = useEventBus('note-created')
 const eventBusDeleted = useEventBus('note-deleted')
+const eventBusEmptyNotesMovedToTrash = useEventBus('empty-notes-moved-to-trash')
+const eventBusNoteRestored = useEventBus('note-restored')
+eventBusNoteRestored.on(() => {
+  console.log('BibCard.vue→ 监听到笔记从回收站恢复事件')
+  resetPagination()
+  fetchNotes()
+})
+
+eventBusEmptyNotesMovedToTrash.on(() => {
+  console.log('BibCard.vue→ 监听到空笔记移到回收站事件')
+  resetPagination()
+  fetchNotes()
+})
 
 // 监听笔记更新事件
 eventBus.on(() => {

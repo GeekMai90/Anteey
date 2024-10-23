@@ -119,7 +119,7 @@ onUnmounted(() => {
 
 const fetchDeletedNotes = async () => {
   try {
-    const fetchedNotes = await noteStore.deletedNotes
+    const fetchedNotes = await noteStore.getAllDeletedNotes()
     console.log('fetchedNotes', fetchedNotes)
     // deletedNotes.value = Array.isArray(fetchedNotes) ? fetchedNotes : []
     deletedNotes.value = fetchedNotes
@@ -382,7 +382,7 @@ const handleCancelEmptyTrash = () => {
             position: absolute;
             top: 100%;
             right: 0;
-            background-color: var(--body-bg);
+            background-color: var(--color-bg-primary);
             border-radius: 8px;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
             z-index: 1000;
