@@ -640,5 +640,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // 获取用户使用天数
   getUserUsageDays: async (): Promise<number> => {
     return (await ipcRenderer.invoke('get-user-usage-days')) as number
+  },
+  // 获取随机笔记
+  getRandomNotes: async (): Promise<Note[]> => {
+    return (await ipcRenderer.invoke('get-random-notes')) as Note[]
   }
 })

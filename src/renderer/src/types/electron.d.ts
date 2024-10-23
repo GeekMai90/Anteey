@@ -113,6 +113,7 @@ export interface ElectronAPI {
   getLastDayNoteCount: () => Promise<number>
   getWhiteboardCount: () => Promise<number>
   getUserUsageDays: () => Promise<number>
+  getRandomNotes: () => Promise<Note[]>
 }
 
 declare global {

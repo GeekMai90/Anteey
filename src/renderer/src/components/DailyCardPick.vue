@@ -16,11 +16,10 @@
 
 <script setup lang="ts">
 import { useNoteStore } from '@renderer/stores/noteStores'
-import { ref, onMounted, computed } from 'vue'
-import NoteCard from './NoteCard.vue'
+import { ref, onMounted, computed, watchEffect } from 'vue'
 import confetti from 'canvas-confetti'
-import { storeToRefs } from 'pinia'
 import { Note } from '@renderer/types/Note'
+import NoteCard from './NoteCard.vue'
 
 interface Card {
   id: string
@@ -31,8 +30,6 @@ interface Card {
 const noteStore = useNoteStore()
 const dailyCards = ref<Card[]>([])
 const selectedCard = ref<Card | null>(null)
-// const selectedCardNote = ref<Note | null>(null)
-const { allNotes } = storeToRefs(noteStore)
 
 // 导入所有卡片背景图片
 const cardBackgrounds = import.meta.glob('../assets/cardbgs/*.{jpg,jpeg,png,gif}', {
@@ -95,20 +92,20 @@ const fetchDailyCards = async () => {
   }
 
   const dailyBackground = getDailyBackground()
-  const allNotes = await noteStore.fetchAllNotes()
+  // const allNotes = await noteStore.fetchAllNotes()
+  // 获取随机笔记
+  const randomNotes = await noteStore.getRandomNotes()
 
-  const selectedNotes = allNotes
-    .sort(() => 0.5 - Math.random())
-    .slice(0, 3)
-    .map((note) => ({
-      id: note.id,
-      address: note.address,
-      background: dailyBackground
-    }))
+  const selectedNotes = randomNotes.map((note) => ({
+    id: note.id,
+    address: note.address,
+    background: dailyBackground
+  }))
 
   dailyCards.value = selectedNotes
 }
 
+// 触发礼花效果
 const triggerConfetti = () => {
   const myCanvas = document.createElement('canvas')
   myCanvas.style.position = 'fixed'
@@ -136,6 +133,7 @@ const triggerConfetti = () => {
   }, 4000) // 根据动画持续时间调整
 }
 
+// 选择卡片
 const selectCard = (card: Card) => {
   selectedCard.value = card
   saveTodaySelection(card)
@@ -146,9 +144,12 @@ const selectCard = (card: Card) => {
   setTimeout(triggerConfetti, 100)
 }
 
-const selectedCardNote = computed(() => {
+// 选择卡片的笔记
+const selectedCardNote = ref<Note | null>(null)
+
+watchEffect(async () => {
   if (selectedCard.value) {
-    return allNotes.value.find((note: Note) => note.id === selectedCard.value?.id) || null
+    selectedCardNote.value = await noteStore.fetchNoteById(selectedCard.value?.id)
   }
   return null
 })
@@ -241,5 +242,8 @@ h3 {
   /* padding: 20px; */
   margin-top: 20px;
   user-select: none;
+}
+:deep(.note-content) {
+  height: 250px;
 }
 </style>

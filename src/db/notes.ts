@@ -23,6 +23,17 @@ function convertToNote(record: any): Note {
     rightBarOrder: record.rightBarOrder
   }
 }
+// 从所有笔记中随机选择三个笔记
+export async function getRandomNotes(): Promise<Note[]> {
+  try {
+    const notes = await db('notes').where('isDeleted', false).orderBy('createdAt', 'desc')
+    const randomNotes = notes.sort(() => Math.random() - 0.5).slice(0, 3)
+    return randomNotes.map(convertToNote)
+  } catch (error) {
+    console.error('后端→ 从所有笔记中随机选择三个笔记失败:', error)
+    throw error
+  }
+}
 // 获取用户使用天数
 export async function getUserUsageDays(): Promise<number> {
   try {

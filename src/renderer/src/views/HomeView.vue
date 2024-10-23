@@ -307,7 +307,7 @@ onMounted(() => {
 }
 
 .main-content {
-  margin-top: 60px; // 设置固定的顶部距离
+  margin-top: 70px; // 设置固定的顶部距离
   flex-shrink: 0; // 防止内容被压缩
   display: flex;
   flex-direction: column;

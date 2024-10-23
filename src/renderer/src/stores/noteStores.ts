@@ -939,6 +939,16 @@ export const useNoteStore = defineStore('note', {
         console.error('noteStores.ts→ 获取用户使用天数失败:', error)
         throw error
       }
+    },
+
+    // 获取随机笔记
+    async getRandomNotes() {
+      try {
+        return await window.electronAPI.getRandomNotes()
+      } catch (error) {
+        console.error('noteStores.ts→ 获取随机笔记失败:', error)
+        throw error
+      }
     }
   },
 

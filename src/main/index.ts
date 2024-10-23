@@ -41,7 +41,8 @@ import {
   getHeatmapData,
   getNoteCount,
   getLastDayNoteCount,
-  getUserUsageDays
+  getUserUsageDays,
+  getRandomNotes
 } from '../db/notes'
 import { createCardBox, getAllCardBoxes, updateCardBox, deleteCardBox } from '../db/cardBoxes'
 import {
@@ -215,6 +216,16 @@ function createCustomMenu() {
 }
 
 function setupIpcHandlers() {
+  // 获取随机笔记
+  ipcMain.handle('get-random-notes', async () => {
+    try {
+      const result = await getRandomNotes()
+      return result
+    } catch (error) {
+      console.error('主进程 → 获取随机笔记失败:', error)
+      throw error
+    }
+  })
   // 获取用户使用天数
   ipcMain.handle('get-user-usage-days', async () => {
     try {
