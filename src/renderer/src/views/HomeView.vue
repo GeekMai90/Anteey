@@ -57,7 +57,6 @@ import { CalendarHeatmap, TooltipFormatter, CalendarItem } from 'vue3-calendar-h
 import DailyCardPick from '../components/DailyCardPick.vue'
 import { useWhiteboardStore } from '../stores/whiteboardStores'
 import { useNoteStore } from '../stores/noteStores'
-import { storeToRefs } from 'pinia'
 
 const whiteboardStore = useWhiteboardStore()
 const noteStore = useNoteStore()
@@ -178,11 +177,15 @@ const greeting = computed(() => {
     return '🌙 晚上好！'
   }
 })
-// 生成过去一年的随机数据
+
 const endDate = new Date()
 const startDate = new Date(endDate)
 startDate.setFullYear(startDate.getFullYear() - 1)
-const { heatmapData } = storeToRefs(noteStore)
+const heatmapData = ref<{ date: string; count: number }[]>([])
+
+onMounted(async () => {
+  heatmapData.value = await noteStore.getHeatmapData()
+})
 
 const tooltipFormatter: TooltipFormatter = (item: CalendarItem) => {
   if (item.date instanceof Date) {

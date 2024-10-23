@@ -620,5 +620,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // 搜索笔记列表
   searchNotesList: async (query: string): Promise<Note[]> => {
     return (await ipcRenderer.invoke('search-notes-list', query)) as Note[]
+  },
+  // 获取热力图数据
+  getHeatmapData: async (): Promise<{ date: string; count: number }[]> => {
+    return (await ipcRenderer.invoke('get-heatmap-data')) as { date: string; count: number }[]
   }
 })

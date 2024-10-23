@@ -37,7 +37,8 @@ import {
   getPaginatedNotesByCardbox,
   GetPaginatedNotesParams,
   searchNotes,
-  searchNotesList
+  searchNotesList,
+  getHeatmapData
 } from '../db/notes'
 import { createCardBox, getAllCardBoxes, updateCardBox, deleteCardBox } from '../db/cardBoxes'
 import {
@@ -210,6 +211,16 @@ function createCustomMenu() {
 }
 
 function setupIpcHandlers() {
+  // 获取热力图数据
+  ipcMain.handle('get-heatmap-data', async () => {
+    try {
+      const result = await getHeatmapData()
+      return result
+    } catch (error) {
+      console.error('主进程 → 获取热力图数据失败:', error)
+      throw error
+    }
+  })
   // 搜索笔记列表
   ipcMain.handle('search-notes-list', async (_, query: string) => {
     return await searchNotesList(query)

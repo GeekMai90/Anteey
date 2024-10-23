@@ -899,6 +899,16 @@ export const useNoteStore = defineStore('note', {
           'starredOrder' in item &&
           'isStarred' in item
       )
+    },
+
+    // 获取热力图数据
+    async getHeatmapData() {
+      try {
+        return await window.electronAPI.getHeatmapData()
+      } catch (error) {
+        console.error('noteStores.ts→ 获取热力图数据失败:', error)
+        throw error
+      }
     }
   },
 
@@ -943,16 +953,6 @@ export const useNoteStore = defineStore('note', {
       return this.notes.filter((note) => note.createdAt.toISOString().split('T')[0] === yesterday)
         .length
     },
-    // 获取收藏的笔记
-    // starredNotes(): Note[] {
-    //   return this.notes
-    //     .filter((note) => note.isStarred)
-    //     .sort((a, b) => (a.starredOrder ?? 0) - (b.starredOrder ?? 0))
-    // },
-    // 获取笔记
-    // getNoteById: (state) => {
-    //   return (id: string) => state.notes.find((note) => note.id === id)
-    // },
     // 所有已删除的笔记
     deletedNotes(): Note[] {
       return this.notes.filter((note) => note.isDeleted)
@@ -960,56 +960,46 @@ export const useNoteStore = defineStore('note', {
 
     getCardBoxById: (state) => {
       return (id: string) => state.cardBoxes.find((box) => box.id === id)
-    },
-
-    heatmapData(): { date: string; count: number }[] {
-      const now = new Date()
-      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-      const oneYearAgo = new Date(today.getFullYear() - 1, today.getMonth(), today.getDate())
-
-      // 将结束日期延长，例如延长30天
-      const endDate = new Date(today)
-      endDate.setDate(endDate.getDate() + 30) // 向后延长30天
-
-      const data: Record<string, number> = {}
-
-      // 初始化日期范围，包括延长的日期
-      for (let d = new Date(oneYearAgo); d <= endDate; d.setDate(d.getDate() + 1)) {
-        const dateString = d
-          .toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' })
-          .replace(/\//g, '-')
-        data[dateString] = 0
-      }
-
-      // 统计每天的笔记数量（保持不变）
-      this.notes.forEach((note) => {
-        const noteDate = new Date(note.createdAt)
-        const noteDateString = noteDate
-          .toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' })
-          .replace(/\//g, '-')
-        if (noteDateString in data) {
-          data[noteDateString]++
-        }
-      })
-
-      console.log('Start date:', oneYearAgo.toLocaleDateString('zh-CN'))
-      console.log('End date:', endDate.toLocaleDateString('zh-CN'))
-      console.log('Notes count:', this.notes.length)
-      console.log('Generated data:', data)
-
-      // 转换为热力图所需的格式
-      return Object.entries(data).map(([date, count]) => ({ date, count }))
     }
+
+    // heatmapData(): { date: string; count: number }[] {
+    //   const now = new Date()
+    //   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+    //   const oneYearAgo = new Date(today.getFullYear() - 1, today.getMonth(), today.getDate())
+
+    //   // 将结束日期延长，例如延长30天
+    //   const endDate = new Date(today)
+    //   endDate.setDate(endDate.getDate() + 30) // 向后延长30天
+
+    //   const data: Record<string, number> = {}
+
+    //   // 初始化日期范围，包括延长的日期
+    //   for (let d = new Date(oneYearAgo); d <= endDate; d.setDate(d.getDate() + 1)) {
+    //     const dateString = d
+    //       .toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' })
+    //       .replace(/\//g, '-')
+    //     data[dateString] = 0
+    //   }
+
+    //   // 统计每天的笔记数量（保持不变）
+    //   this.notes.forEach((note) => {
+    //     const noteDate = new Date(note.createdAt)
+    //     const noteDateString = noteDate
+    //       .toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' })
+    //       .replace(/\//g, '-')
+    //     if (noteDateString in data) {
+    //       data[noteDateString]++
+    //     }
+    //   })
+
+    //   console.log('Start date:', oneYearAgo.toLocaleDateString('zh-CN'))
+    //   console.log('End date:', endDate.toLocaleDateString('zh-CN'))
+    //   console.log('Notes count:', this.notes.length)
+    //   console.log('Generated data:', data)
+
+    //   // 转换为热力图所需的格式
+    //   return Object.entries(data).map(([date, count]) => ({ date, count }))
+    // }
   },
   persist: true
-  // persist: {
-  //   enabled: true,
-  //   strategies: [
-  //     {
-  //       key: 'note-store',
-  //       storage: localStorage,
-  //       paths: ['notes']
-  //     }
-  //   ]
-  // }
 })

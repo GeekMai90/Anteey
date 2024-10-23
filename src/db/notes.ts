@@ -24,73 +24,69 @@ function convertToNote(record: any): Note {
   }
 }
 
-// 搜索笔记
-// export async function searchNotes(query: string): Promise<
-//   Array<{
-//     id: string
-//     title: string
-//     blocks: Array<{ content: string }>
-//   }>
-// > {
-//   console.log('后端→ 开始搜索笔记:', query)
-//   const lowercaseQuery = query.toLowerCase().trim()
-//   if (!lowercaseQuery) return []
+//获取热力图数据
+// export async function getHeatmapData(): Promise<{ date: string; count: number }[]> {
+//   const now = new Date()
+//   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+//   const oneYearAgo = new Date(today.getFullYear() - 1, today.getMonth(), today.getDate())
+//   const endDate = new Date(today)
+//   endDate.setDate(endDate.getDate() + 30)
 
-//   try {
-//     const notes = await db('notes')
-//       .where('isDeleted', false)
-//       .select('id', 'address', 'content', 'tags')
+//   const data: Record<string, number> = {}
 
-//     return notes.reduce(
-//       (results, note) => {
-//         const matchingBlocks: Array<{ content: string }> = []
-
-//         // 搜索地址
-//         if (note.address.toLowerCase().includes(lowercaseQuery)) {
-//           matchingBlocks.push({ content: note.address })
-//         }
-
-//         // 搜索内容
-//         const content = JSON.parse(note.content)
-//         const searchContent = (content: any) => {
-//           if (!content) return
-//           if (typeof content === 'object') {
-//             Object.values(content).forEach((value) => {
-//               if (typeof value === 'string' && value.toLowerCase().includes(lowercaseQuery)) {
-//                 matchingBlocks.push({ content: value })
-//               } else if (typeof value === 'object') {
-//                 searchContent(value)
-//               }
-//             })
-//           }
-//         }
-//         searchContent(content)
-
-//         // 搜索标签
-//         const tags = JSON.parse(note.tags)
-//         tags.forEach((tag: string) => {
-//           if (tag.toLowerCase().includes(lowercaseQuery)) {
-//             matchingBlocks.push({ content: `#${tag}` })
-//           }
-//         })
-
-//         if (matchingBlocks.length > 0) {
-//           results.push({
-//             id: note.id,
-//             title: note.address,
-//             blocks: matchingBlocks
-//           })
-//         }
-
-//         return results
-//       },
-//       [] as Array<{ id: string; title: string; blocks: Array<{ content: string }> }>
-//     )
-//   } catch (error) {
-//     console.error('后端→ 搜索笔记失败:', error)
-//     throw new Error('搜索笔记失败')
+//   // 初始化日期范围
+//   for (let d = new Date(oneYearAgo); d <= endDate; d.setDate(d.getDate() + 1)) {
+//     const dateString = d.toISOString().split('T')[0]
+//     data[dateString] = 0
 //   }
+
+//   // 从数据库获取笔记创建日期并统计
+//   const notes = await db('notes')
+//     .where('isDeleted', false)
+//     .select('createdAt')
+//     .whereBetween('createdAt', [oneYearAgo, endDate])
+
+//   notes.forEach((note) => {
+//     const dateString = note.createdAt.toISOString().split('T')[0]
+//     if (dateString in data) {
+//       data[dateString]++
+//     }
+//   })
+
+//   return Object.entries(data).map(([date, count]) => ({ date, count }))
 // }
+export async function getHeatmapData(): Promise<{ date: string; count: number }[]> {
+  const now = new Date()
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  const oneYearAgo = new Date(today.getFullYear() - 1, today.getMonth(), today.getDate())
+  const endDate = new Date(today)
+  endDate.setDate(endDate.getDate() + 30)
+
+  const data: Record<string, number> = {}
+
+  // 初始化日期范围
+  for (let d = new Date(oneYearAgo); d <= endDate; d.setDate(d.getDate() + 1)) {
+    const dateString = d.toISOString().split('T')[0]
+    data[dateString] = 0
+  }
+
+  // 从数据库获取笔记创建日期并统计
+  const notes = await db('notes')
+    .where('isDeleted', false)
+    .select(db.raw("strftime('%Y-%m-%d', datetime(createdAt / 1000, 'unixepoch')) as createdDate"))
+    .whereBetween('createdAt', [oneYearAgo.getTime(), endDate.getTime()])
+
+  notes.forEach((note) => {
+    const dateString = note.createdDate
+    if (dateString in data) {
+      data[dateString]++
+    }
+  })
+
+  return Object.entries(data).map(([date, count]) => ({ date, count }))
+}
+
+// 搜索笔记
 export async function searchNotes(query: string): Promise<
   Array<{
     id: string

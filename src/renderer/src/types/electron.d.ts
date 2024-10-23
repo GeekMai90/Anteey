@@ -108,6 +108,7 @@ export interface ElectronAPI {
     }>
   >
   searchNotesList: (query: string) => Promise<Note[]>
+  getHeatmapData: () => Promise<{ date: string; count: number }[]>
 }
 
 declare global {
