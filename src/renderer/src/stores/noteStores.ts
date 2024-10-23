@@ -262,16 +262,6 @@ export const useNoteStore = defineStore('note', {
         console.error('noteStores.ts→ 预加载第一页笔记失败:', error)
       }
     },
-    // clearNotes() {
-    //   this.notes = []
-    //   this.currentPage = 1
-    //   this.hasMoreNotes = true
-    // },
-    // 设置选中的卡片盒
-    // setSelectedCardBox(cardBoxId: string | null) {
-    //   this.selectedCardBoxId = cardBoxId
-    //   this.fetchPaginatedNotes(true) // 重置并重新加载笔记
-    // },
 
     // 将空笔记移到回收站
     moveEmptyNotesToTrash() {

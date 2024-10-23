@@ -1150,6 +1150,7 @@ app.whenReady().then(async () => {
     log.error('主进程→ 应用初始化失败:', error)
   }
 })
+app.setName('Antinet')
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {

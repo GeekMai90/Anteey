@@ -1,13 +1,10 @@
 <template>
-  <!-- 搜索模态框组件 -->
   <Modal
-    :modelValue="uiStore.isSearchModalOpen"
+    :modelValue="uiStore.isWhiteboardSearchModalOpen"
     @update:modelValue="updateModalState"
     @after-enter="focusInput"
   >
-    <!-- 搜索容器，根据是否展开应用不同的样式 -->
     <div class="search-container" :class="{ expanded: isExpanded }">
-      <!-- 搜索输入框 -->
       <input
         ref="searchInput"
         v-model="searchQuery"
@@ -16,12 +13,9 @@
         @input="performSearch"
         @keydown="handleKeyDown"
       />
-      <!-- 搜索结果展示区域，使用 transition 实现展开/收起动画 -->
       <transition name="expand">
         <div v-if="isExpanded" class="search-results-container">
-          <!-- 搜索结果列表 -->
           <div ref="searchResultsContainer" class="search-results">
-            <!-- 无搜索结果时显示的内容 -->
             <div v-if="searchResults.length === 0" class="no-results">
               <div class="no-results-icon">
                 <FileSearch theme="outline" size="48" fill="#888" :strokeWidth="2" />
@@ -37,14 +31,12 @@
                 </ul>
               </div>
             </div>
-            <!-- 有搜索结果时显示的内容 -->
             <div
               v-for="(note, noteIndex) in searchResults"
               v-else
               :key="note.id"
               class="search-result-note"
             >
-              <!-- ... 笔记标题和内容块的渲染逻辑 ... -->
               <div class="note-title">
                 <div class="result-preview-icon-note">
                   <div class="icon">
@@ -66,7 +58,7 @@
                 :class="{
                   selected: noteIndex === selectedNoteIndex && blockIndex === selectedBlockIndex
                 }"
-                @click="selectResult(noteIndex, blockIndex, true)"
+                @click="selectResult(noteIndex, blockIndex)"
                 @mouseover="hoverResult(noteIndex, blockIndex)"
               >
                 <div class="result-preview">
@@ -92,7 +84,6 @@
               </div>
             </div>
           </div>
-          <!-- 选中笔记的预览容器 -->
           <div v-if="selectedNote" class="preview-container">
             <NotePreviewCard :key="selectedNote.id" :note="selectedNote" />
           </div>
@@ -102,24 +93,28 @@
   </Modal>
 </template>
 <script setup lang="ts">
-import { ref, watch, nextTick } from 'vue'
+import { ref, watch, nextTick, watchEffect } from 'vue'
 import { useNoteStore } from '@renderer/stores/noteStores'
 import Modal from '@renderer/components/Modal.vue'
 import NotePreviewCard from '@renderer/components/NotePreviewCard.vue'
 import { BankCard, ParagraphRectangle, FileSearch } from '@icon-park/vue-next'
-import { useDebounceFn } from '@vueuse/core'
-import { Note } from '@renderer/types/Note'
 import { useUIStore } from '@renderer/stores/useUIStore'
+import { Note } from '@renderer/types/Note'
 
-// 初始化 store 和 router
-const noteStore = useNoteStore()
 const uiStore = useUIStore()
 
-// 定义组件的响应式状态
+const props = defineProps<{
+  createWhiteboardNote: (note: any) => void
+}>()
+
+const noteStore = useNoteStore()
+
 const isExpanded = ref(false)
+
 const searchInput = ref<HTMLInputElement | null>(null)
 const searchResultsContainer = ref<HTMLDivElement | null>(null)
 const resultItems = ref<HTMLElement[]>([])
+
 const searchQuery = ref('')
 const searchResults = ref<Array<{ id: string; title: string; blocks: Array<{ content: string }> }>>(
   []
@@ -128,23 +123,14 @@ const selectedNoteIndex = ref(-1)
 const selectedBlockIndex = ref(-1)
 const selectedNote = ref<Note | null>(null)
 
-const props = defineProps<{
-  createWhiteboardNote: (note: any) => void
-}>()
-
-// 获取选中笔记的详细信息
-const fetchSelectedNote = async () => {
+watchEffect(async () => {
   if (selectedNoteIndex.value >= 0 && selectedNoteIndex.value < searchResults.value.length) {
     const note = searchResults.value[selectedNoteIndex.value]
-    selectedNote.value = await noteStore.fetchNoteById(note.id)
-  } else {
-    selectedNote.value = null
+    return await noteStore.fetchNoteById(note.id)
   }
-}
-// 监听选中笔记索引的变化，更新选中的笔记
-watch(selectedNoteIndex, fetchSelectedNote)
+  return null
+})
 
-// 高亮搜索结果中匹配的文本
 const highlightedParts = (text: string, query: string) => {
   if (!query.trim()) return [{ text, isMatch: false }]
   const escapedQuery = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
@@ -155,8 +141,7 @@ const highlightedParts = (text: string, query: string) => {
   }))
 }
 
-// 使用防抖函数来优化搜索性能
-const debouncedSearch = useDebounceFn(async () => {
+const performSearch = async () => {
   console.log('Performing search for:', searchQuery.value)
   if (searchQuery.value.trim()) {
     isExpanded.value = true
@@ -175,67 +160,43 @@ const debouncedSearch = useDebounceFn(async () => {
     selectedBlockIndex.value = -1
   }
   console.log('Search results:', searchResults.value)
-}, 300) // 300ms 的延迟
-
-// 执行搜索的函数
-const performSearch = () => {
-  debouncedSearch()
 }
-// const performSearch = () => {
-//   requestAnimationFrame(() => {
-//     // isExpanded.value = true
-//     debouncedSearch()
-//   })
-// }
 
-// 选择搜索结果
-const selectResult = (noteIndex: number, blockIndex: number, openEditor = false) => {
+const selectResult = (noteIndex: number, blockIndex: number) => {
   selectedNoteIndex.value = noteIndex
   selectedBlockIndex.value = blockIndex
-  if (openEditor) {
-    const note = searchResults.value[noteIndex]
-    if (note) {
-      noteStore.openNoteEditor(note.id)
-      uiStore.closeSearchModal()
-    }
-  }
 }
 
-// 鼠标悬停在搜索结果上时的处理
 const hoverResult = (noteIndex: number, blockIndex: number) => {
   selectedNoteIndex.value = noteIndex
   selectedBlockIndex.value = blockIndex
 }
 
-// 更新模态框状态
 const updateModalState = (value: boolean) => {
   if (value) {
-    uiStore.openSearchModal()
+    uiStore.openWhiteboardSearchModal()
   } else {
-    uiStore.closeSearchModal()
+    uiStore.closeWhiteboardSearchModal()
   }
 }
 
-// 聚焦搜索输入框
 const focusInput = () => {
   searchInput.value?.focus()
 }
 
-// 显示搜索模态框
 const show = () => {
-  uiStore.openSearchModal()
+  uiStore.openWhiteboardSearchModal()
 }
 
-// 隐藏搜索模态框并重置状态
 const hide = () => {
-  uiStore.closeSearchModal()
+  uiStore.closeWhiteboardSearchModal()
   searchQuery.value = ''
   searchResults.value = []
   selectedNoteIndex.value = -1
   selectedBlockIndex.value = -1
+  isExpanded.value = false
 }
 
-// 处理键盘事件
 const handleKeyDown = (event: KeyboardEvent) => {
   // const totalBlocks = searchResults.value.reduce((sum, note) => sum + note.blocks.length, 0)
   switch (event.key) {
@@ -266,7 +227,6 @@ const handleKeyDown = (event: KeyboardEvent) => {
       scrollToSelectedItem()
       break
     case 'Enter':
-      event.preventDefault() // 阻止默认行为
       if (selectedNote.value) {
         props.createWhiteboardNote(selectedNote.value)
         hide()
@@ -287,7 +247,6 @@ const handleKeyDown = (event: KeyboardEvent) => {
   })
 }
 
-// 滚动到选中的搜索结果项
 const scrollToSelectedItem = () => {
   nextTick(() => {
     const container = searchResultsContainer.value
@@ -308,7 +267,6 @@ const scrollToSelectedItem = () => {
   })
 }
 
-// 监听搜索模态框的打开状态
 watch(
   () => noteStore.isSearchModalOpen,
   (newValue) => {
@@ -323,14 +281,12 @@ watch(
   }
 )
 
-// 监听搜索结果的变化，更新结果项的引用
 watch(searchResults, () => {
   nextTick(() => {
     resultItems.value = Array.from(document.querySelectorAll('.search-result-note'))
   })
 })
 
-// 暴露组件的方法
 defineExpose({ show, hide })
 </script>
 <style scoped lang="scss">
@@ -339,7 +295,6 @@ defineExpose({ show, hide })
   border-radius: 2px;
 }
 .search-container {
-  will-change: transform, opacity;
   width: 640px;
   max-width: 90vw;
   background: var(--color-bg-primary);
@@ -431,7 +386,7 @@ defineExpose({ show, hide })
     background-color 0.2s,
     box-shadow 0.2s;
   border-radius: 8px;
-  margin-bottom: 4px;
+  margin-bottom: 8px;
 
   &:hover,
   &.selected {
@@ -439,6 +394,7 @@ defineExpose({ show, hide })
     // box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   }
 }
+
 .result-preview {
   font-size: 0.9em;
   color: #333;
@@ -503,7 +459,6 @@ defineExpose({ show, hide })
   width: 18px; // 给图标一个固定宽度
   height: 18px; // 给图标一个固定高度
   flex-shrink: 0; // 防止图标被压缩
-
   .icon {
     background: none;
     border: none;
