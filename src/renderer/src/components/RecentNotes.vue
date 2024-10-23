@@ -2,7 +2,7 @@
 <template>
   <div class="recent-notes">
     <div class="recent-header" @click="toggleRecentNotes">
-      <span>标签</span>
+      <span>最近笔记</span>
       <div class="toggle-icon">
         <div class="icon">
           <Down v-if="isExpanded" theme="outline" size="18" fill="var(--color-icon-default)" />

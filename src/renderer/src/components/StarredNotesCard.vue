@@ -1,4 +1,4 @@
-// src/components/StarredNotesCard.vue
+<!-- src/components/StarredNotesCard.vue -->
 <template>
   <div class="starred-note-card">
     <div class="note-header">

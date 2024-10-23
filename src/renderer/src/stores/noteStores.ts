@@ -9,7 +9,6 @@ import { debounce } from 'lodash-es'
 import { Editor } from '@tiptap/vue-3'
 import { useEventBus } from '@vueuse/core'
 import { GetPaginatedNotesParams } from '../../../db/notes'
-// import { useWhiteboardStore } from './whiteboardStores'
 
 const cardTypes = [
   { value: 'Maincard', label: '主要卡', icon: Notes },
