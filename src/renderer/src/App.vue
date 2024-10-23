@@ -70,7 +70,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, provide, watch, onErrorCaptured } from 'vue'
+import { ref, computed, onMounted, onUnmounted, provide, onErrorCaptured } from 'vue'
 import { RouterView, useRouter } from 'vue-router'
 import Sidebar from './components/Sidebar.vue'
 import RightSidebar from './components/RightSidebar.vue'
@@ -132,18 +132,18 @@ onErrorCaptured((err, instance, info) => {
   return false
 })
 
-const isWhiteboardDetailRoute = ref(false)
+// const isWhiteboardDetailRoute = ref(false)
 // 监听路由变化
-watch(
-  () => router.currentRoute.value,
-  (newRoute) => {
-    isWhiteboardDetailRoute.value = newRoute.name === 'whiteboardDetail'
-    if (!isWhiteboardDetailRoute.value) {
-      uiStore.setShowCardBox(false)
-    }
-  },
-  { immediate: true }
-)
+// watch(
+//   () => router.currentRoute.value,
+//   (newRoute) => {
+//     isWhiteboardDetailRoute.value = newRoute.name === 'whiteboardDetail'
+//     if (!isWhiteboardDetailRoute.value) {
+//       uiStore.setShowCardBox(false)
+//     }
+//   },
+//   { immediate: true }
+// )
 
 // 计算右侧边栏的位置
 const rightSidebarPosition = computed(() => (uiStore.isRightSidebarOpen ? 0 : 100))

@@ -52,12 +52,14 @@ const routes = [
   {
     name: 'BibCard',
     path: '/bibcard',
-    component: () => import('../views/BibCard.vue')
+    component: () => import('../views/BibCard.vue'),
+    meta: { keepAlive: true }
   },
   {
     name: 'IndexCard',
     path: '/indexcard',
-    component: () => import('../views/IndexCard.vue')
+    component: () => import('../views/IndexCard.vue'),
+    meta: { keepAlive: true }
   }
 ]
 

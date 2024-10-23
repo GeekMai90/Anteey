@@ -566,56 +566,7 @@ const handleSearchHighlight = (noteId: string) => {
 onMounted(async () => {
   // await fetchNotes()
   document.addEventListener('click', handleGlobalClick)
-  // await noteStore.fetchCardBoxes()
-  // if (cardBoxes.value.length > 0) {
-  //   selectCardBox(cardBoxes.value[0])
-  // }
-
-  // highlightedNoteId.value =
-  //   (route.query.highlightedNoteId as string | null) || noteStore.highlightedNoteId
-  // if (highlightedNoteId.value) {
-  //   await nextTick()
-  //   scrollToHighlightedNote()
-  // }
-
-  // cardGridContainer.value?.addEventListener('scroll', checkScroll)
 })
-
-// onUnmounted(() => {
-//   document.removeEventListener('click', handleGlobalClick)
-//   if (deleteTimeout) {
-//     clearTimeout(deleteTimeout)
-//   }
-//   // cardGridContainer.value?.removeEventListener('scroll', checkScroll)
-// })
-
-// 监听路由变化
-// watch(
-//   () => route.query.highlightedNoteId,
-//   async (newId) => {
-//     if (newId) {
-//       highlightedNoteId.value = newId as string
-//       await scrollToHighlightedNote()
-//     }
-//   }
-// )
-
-// 监听 store 中的 highlightedNoteId 变化
-// watch(
-//   () => noteStore.highlightedNoteId,
-//   async (newId) => {
-//     if (newId) {
-//       highlightedNoteId.value = newId
-//       await scrollToHighlightedNote()
-//     }
-//   }
-// )
-
-// 监听笔记删除事件，重新获取笔记数据
-// const eventBus = useEventBus('note-deleted')
-// eventBus.on(() => {
-//   fetchNotes()
-// })
 
 // 监听搜索高亮事件的事件总线
 const searchHighlightEventBus = useEventBus('search-highlight')

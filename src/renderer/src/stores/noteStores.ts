@@ -140,7 +140,6 @@ export const useNoteStore = defineStore('note', {
     async fetchAllDatesWithNotes() {
       try {
         const dates = await window.electronAPI.getAllDatesWithNotes()
-        console.log('noteStores.ts→ 获取都有哪些日期有笔记成功', dates)
         return dates
       } catch (error) {
         console.error('noteStores.ts→ 获取都有哪些日期有笔记失败:', error)
@@ -311,6 +310,13 @@ export const useNoteStore = defineStore('note', {
       this.recentNotes = this.recentNotes.filter((id) => id !== noteId)
     },
     async openNoteEditor(noteId: string) {
+      console.group('打开笔记编辑器')
+      console.trace('调用栈:')
+      console.log('noteId:', noteId)
+      console.log('当前路由:', window.location.href)
+      console.log('isEditorOpen 当前状态:', this.isEditorOpen)
+      console.groupEnd()
+
       try {
         const fullNote = await this.fetchNoteById(noteId)
         this.currentNote = fullNote
@@ -378,12 +384,6 @@ export const useNoteStore = defineStore('note', {
         if (!note) {
           throw new Error(`Note with id ${id} not found`)
         }
-        // const index = this.notes.findIndex((n) => n.id === id)
-        // if (index !== -1) {
-        //   this.notes[index] = note
-        // } else {
-        //   this.notes.push(note)
-        // }
         this.currentNote = note
         console.log('noteStores.ts→ 获取笔记', note)
         return note
@@ -1020,14 +1020,17 @@ export const useNoteStore = defineStore('note', {
     allMainNotes(): Note[] {
       return this.notes.filter((note) => note.cardType === 'Maincard')
     },
-    // 所有已删除的笔记
-    // deletedNotes(): Note[] {
-    //   return this.notes.filter((note) => note.isDeleted)
-    // },
 
     getCardBoxById: (state) => {
       return (id: string) => state.cardBoxes.find((box) => box.id === id)
     }
   },
-  persist: true
+  persist: {
+    // 指定需要持久化的state
+    pick: ['recentNotes', 'starredNotes'],
+    // 使用 localStorage 存储
+    storage: localStorage,
+    // 自定义存储的 key
+    key: 'note-store'
+  }
 })
