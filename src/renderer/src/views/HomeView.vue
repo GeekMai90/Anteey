@@ -1,16 +1,20 @@
 <template>
-  <div class="home-view" :style="{ backgroundImage: `url(${backgroundImage})` }">
+  <div
+    class="home-view"
+    :style="{ backgroundImage: `url(${backgroundImage})` }"
+    :class="{ 'background-loaded': isBackgroundLoaded }"
+  >
+    <!-- 背景模糊 -->
     <div class="blur-overlay"></div>
+    <!-- 窗口拖拽区域 -->
     <div class="drag-area"></div>
+    <!-- 日期时间 -->
+    <div class="date-time-container">
+      <div class="date">{{ currentDate }}</div>
+      <div class="time">{{ currentTime }}</div>
+    </div>
+    <!-- 内容区域 -->
     <div class="content-wrapper">
-      <div class="top-bar">
-        <div class="date-time-container">
-          <div class="date">{{ currentDate }}</div>
-          <div class="time">{{ currentTime }}</div>
-        </div>
-        <div class="actions"></div>
-      </div>
-
       <div class="main-content">
         <h1>{{ greeting }}</h1>
         <div class="heatmap-container">
@@ -20,7 +24,14 @@
             :end-date="endDate"
             :tooltip-formatter="tooltipFormatter"
             :no-data-text="'0 条笔记'"
-            :range-color="['#ebedf0', '#ebedf0', '#9be9a8', '#40c463', '#30a14e']"
+            :range-color="[
+              '#ebedf0', // 0值背景色
+              '#e6f7f4', // 最浅
+              '#b3ebe3', // 较浅
+              '#00c8a8', // 中等（主题色）
+              '#009c83', // 较深
+              '#00705e' // 最深
+            ]"
             :max="10"
             no-margin
           />
@@ -35,7 +46,7 @@
             <div class="stat-label">卡片笔记</div>
           </div>
           <div class="stat-item">
-            <div class="stat-value">{{ viewCount }}</div>
+            <div class="stat-value">{{ whiteboardCount }}</div>
             <div class="stat-label">思维板</div>
           </div>
           <div class="stat-item">
@@ -43,9 +54,12 @@
             <div class="stat-label">天</div>
           </div>
         </div>
-        <!-- 新增的每日卡片选择组件 -->
-        <DailyCardPick />
       </div>
+      <!-- 弹性空间 -->
+      <div class="spacer"></div>
+      <!-- 每日卡片选择组件 -->
+      <DailyCardPick class="daily-card-pick" />
+      <!-- 更换背景按钮 -->
       <button class="change-background-btn" @click="changeBackground">更换背景</button>
     </div>
   </div>
@@ -60,6 +74,21 @@ import { useNoteStore } from '../stores/noteStores'
 
 const whiteboardStore = useWhiteboardStore()
 const noteStore = useNoteStore()
+
+// 背景图片相关状态
+const backgroundImage = ref('')
+const isBackgroundLoaded = ref(false)
+
+// 预加载图片的函数
+const preloadImage = (url: string): Promise<void> => {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    img.onload = () => resolve()
+    img.onerror = reject
+    img.src = url
+  })
+}
+
 // 导入所有背景图片
 const backgroundImages = import.meta.glob('../assets/backgrounds/*.{jpg,jpeg,png,gif}', {
   eager: true,
@@ -91,31 +120,44 @@ const getRandomBackground = () => {
   return backgroundImageArray[randomIndex]
 }
 
-// 背景图片 ref
-const backgroundImage = ref('')
-
 // 初始化背景
-const initBackground = () => {
+const initBackground = async () => {
   const lastSetDate = localStorage.getItem('lastSetDate')
   const savedBackground = localStorage.getItem('savedBackground')
   const today = getTodaySeed().toString()
 
+  let selectedBackground: string
   if (lastSetDate === today && savedBackground) {
-    // 如果是今天且有保存的背景，使用保存的背景
-    backgroundImage.value = savedBackground
+    selectedBackground = savedBackground
   } else {
-    // 否则，设置新的每日背景
-    backgroundImage.value = getDailyBackground()
+    selectedBackground = getDailyBackground()
     localStorage.setItem('lastSetDate', today)
-    localStorage.setItem('savedBackground', backgroundImage.value)
+    localStorage.setItem('savedBackground', selectedBackground)
+  }
+
+  try {
+    isBackgroundLoaded.value = false
+    await preloadImage(selectedBackground)
+    backgroundImage.value = selectedBackground
+    isBackgroundLoaded.value = true
+  } catch (error) {
+    console.error('背景图片加载失败:', error)
+    // 可以在这里设置一个默认背景
   }
 }
 
-// 更换背景的方法
-const changeBackground = () => {
-  backgroundImage.value = getRandomBackground()
-  // 保存用户选择的背景
-  localStorage.setItem('savedBackground', backgroundImage.value)
+// 更换背景
+const changeBackground = async () => {
+  const newBackground = getRandomBackground()
+  try {
+    isBackgroundLoaded.value = false
+    await preloadImage(newBackground)
+    backgroundImage.value = newBackground
+    isBackgroundLoaded.value = true
+    localStorage.setItem('savedBackground', newBackground)
+  } catch (error) {
+    console.error('更换背景失败:', error)
+  }
 }
 
 // 在组件挂载时初始化背景
@@ -123,50 +165,35 @@ onMounted(() => {
   initBackground()
 })
 
-// 计算统计信息
+// 卡片笔记数量
 const cardCount = ref(0)
-watchEffect(() => {
-  cardCount.value = noteStore.noteCount
+watchEffect(async () => {
+  cardCount.value = await noteStore.getNoteCount()
 })
 
+// 昨日笔记数量
 const lastDayNoteCount = ref(0)
-watchEffect(() => {
-  console.log('noteStore.lastDayNoteCount', noteStore.lastDayNoteCount)
-  lastDayNoteCount.value = noteStore.lastDayNoteCount
+watchEffect(async () => {
+  lastDayNoteCount.value = await noteStore.getLastDayNoteCount()
 })
 
-const viewCount = ref(whiteboardStore.whiteboardCount) // 这里需要根据实际情况计算或获取
+// 白板数量
+const whiteboardCount = ref(0)
+watchEffect(async () => {
+  whiteboardCount.value = await whiteboardStore.getWhiteboardCount()
+})
 
-// 计算用户使用天数
-// 使用 ref 来存储 dayCount
+// 用户使用天数
 const dayCount = ref(0)
-const FIRST_USE_DATE_KEY = 'firstUseDate'
-
-function calculateDayCount(): number {
-  const firstUseDateString = localStorage.getItem(FIRST_USE_DATE_KEY)
-
-  if (!firstUseDateString) {
-    // 首次使用，设置当前日期
-    const today = new Date().toISOString().split('T')[0]
-    localStorage.setItem(FIRST_USE_DATE_KEY, today)
-    return 1
-  }
-
-  // 计算天数差
-  const firstUseDate = new Date(firstUseDateString)
-  const today = new Date()
-  const diffTime = Math.abs(today.getTime() - firstUseDate.getTime())
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-
-  return diffDays
-}
-onMounted(() => {
-  dayCount.value = calculateDayCount()
+watchEffect(async () => {
+  dayCount.value = await noteStore.getUserUsageDays()
 })
 
+// 日期时间
 const currentDate = ref('')
 const currentTime = ref('')
 
+// 问候语
 const greeting = computed(() => {
   const hour = new Date().getHours()
   if (hour >= 5 && hour < 12) {
@@ -178,6 +205,7 @@ const greeting = computed(() => {
   }
 })
 
+// 热力图数据
 const endDate = new Date()
 const startDate = new Date(endDate)
 startDate.setFullYear(startDate.getFullYear() - 1)
@@ -187,6 +215,7 @@ onMounted(async () => {
   heatmapData.value = await noteStore.getHeatmapData()
 })
 
+// 热力图 tooltip 格式化
 const tooltipFormatter: TooltipFormatter = (item: CalendarItem) => {
   if (item.date instanceof Date) {
     const date = item.date
@@ -196,16 +225,7 @@ const tooltipFormatter: TooltipFormatter = (item: CalendarItem) => {
   return ''
 }
 
-// 计算开始日期（一年前的今天）
-// const startDate = computed(() => {
-//   const date = new Date()
-//   date.setFullYear(date.getFullYear() - 1)
-//   return date
-// })
-
-// // 计算结束日期（今天）
-// const endDate = computed(() => new Date())
-
+// 更新日期时间
 const updateDateTime = () => {
   const now = new Date()
   currentDate.value = now.toLocaleDateString('zh-CN', {
@@ -219,19 +239,23 @@ const updateDateTime = () => {
 onMounted(() => {
   updateDateTime()
   setInterval(updateDateTime, 1000)
-  console.log(heatmapData.value)
 })
 </script>
 
 <style scoped lang="scss">
 .home-view {
-  /* background-image: url('@resources/home-bg.jpg'); */
+  position: relative;
   background-size: cover;
   background-position: center;
   height: 100vh;
   display: flex;
   flex-direction: column;
   color: white;
+  opacity: 0;
+  transition: opacity 0.3s ease-in-out;
+  &.background-loaded {
+    opacity: 1;
+  }
 }
 .blur-overlay {
   position: absolute;
@@ -252,26 +276,20 @@ onMounted(() => {
   z-index: 10;
 }
 .content-wrapper {
+  flex-grow: 1;
   position: relative;
   height: 100%;
   display: flex;
   flex-direction: column;
   z-index: 1;
+  padding: 0 20px; // 添加左右内边距
 }
 
-.top-bar {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: 2;
-  display: flex;
-  justify-content: space-between;
-  padding: 20px;
-  z-index: 1;
-  width: 300px;
-}
 .date-time-container {
+  position: absolute;
+  top: 40px;
+  left: 20px;
+  z-index: 2;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -279,7 +297,6 @@ onMounted(() => {
 
 .date {
   font-size: 16px;
-  margin-bottom: 6px;
   user-select: none;
 }
 
@@ -290,50 +307,38 @@ onMounted(() => {
 }
 
 .main-content {
-  flex-grow: 1;
+  margin-top: 60px; // 设置固定的顶部距离
+  flex-shrink: 0; // 防止内容被压缩
   display: flex;
   flex-direction: column;
-  justify-content: center;
   align-items: center;
   text-align: center;
   z-index: 1;
-  /* justify-content: space-between; */
-  /* min-height: 100vh; */
+}
+// 添加弹性空间
+.spacer {
+  flex-grow: 1;
+  min-height: 20px; // 设置最小间距
 }
 
 h1 {
   font-size: 3rem;
-  // margin-bottom: 1rem;
+  margin: 0 0 10px 0; // 调整标题边距
   user-select: none;
 }
 
-p {
-  font-size: 1.5rem;
-  margin-bottom: 2rem;
-}
-
-.cta-button {
-  padding: 10px 20px;
-  font-size: 1.2rem;
-  background-color: rgba(255, 255, 255, 0.2);
-  border: none;
-  border-radius: 5px;
-  color: white;
-  cursor: pointer;
-}
-
-.action-button {
-  background: none;
-  border: none;
-  color: white;
-  cursor: pointer;
-  margin-left: 10px;
+// 调整每日卡片选择组件
+.daily-card-pick {
+  flex-shrink: 0; // 防止被压缩
+  margin-bottom: 40px; // 距离底部的距离
+  align-self: center;
 }
 
 .heatmap-container {
   width: 100%;
   max-width: 800px;
   margin: 20px auto;
+  padding: 0 20px; // 添加左右内边距
   z-index: 1;
   box-sizing: border-box;
   user-select: none;
@@ -379,19 +384,7 @@ p {
   margin-top: 20px;
   width: 80%;
   max-width: 500px;
-  /* margin-bottom: 20px; */
-  margin-bottom: var(--spacing, 20px);
-}
-@media (min-height: 800px) {
-  .stats-container {
-    --spacing: 20px;
-  }
-}
-
-@media (min-height: 1000px) {
-  .stats-container {
-    --spacing: 100px;
-  }
+  margin-bottom: 0; // 移除底部边距，让间距由 spacer 控制
 }
 
 .stat-item {

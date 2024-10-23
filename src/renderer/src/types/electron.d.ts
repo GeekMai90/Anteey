@@ -109,6 +109,10 @@ export interface ElectronAPI {
   >
   searchNotesList: (query: string) => Promise<Note[]>
   getHeatmapData: () => Promise<{ date: string; count: number }[]>
+  getNoteCount: () => Promise<number>
+  getLastDayNoteCount: () => Promise<number>
+  getWhiteboardCount: () => Promise<number>
+  getUserUsageDays: () => Promise<number>
 }
 
 declare global {

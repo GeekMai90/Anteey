@@ -33,6 +33,17 @@ function processWhiteboardData(whiteboard: any): Whiteboard {
   }
 }
 
+// 白板数量
+export async function getWhiteboardCount(): Promise<number> {
+  try {
+    const count = await db('whiteboards').count('* as count').first()
+    return count ? (count.count as number) : 0
+  } catch (error) {
+    console.error('后端→ 获取白板数量失败:', error)
+    throw error
+  }
+}
+
 // 保存视图状态到白板
 export async function saveViewStateToWhiteboard(
   whiteboardId: string,

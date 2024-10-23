@@ -153,19 +153,6 @@ const selectedCardNote = computed(() => {
   return null
 })
 
-// const fetchNote = async (id: string) => {
-//   const note = await noteStore.fetchNoteById(id)
-//   if (note) {
-//     selectedCardNote.value = note
-//   }
-// }
-
-// const viewSelectedCard = () => {
-//   if (selectedCard.value) {
-//     noteStore.openNoteEditor(selectedCard.value.id)
-//   }
-// }
-
 const todayCardSelected = computed(() => selectedCard.value !== null)
 
 onMounted(() => {

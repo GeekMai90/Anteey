@@ -389,6 +389,15 @@ export const useWhiteboardStore = defineStore('whiteboard', {
         console.error('whiteboardStore→ 删除白板失败', error)
         throw error
       }
+    },
+    // 获取白板数量
+    async getWhiteboardCount() {
+      try {
+        return await window.electronAPI.getWhiteboardCount()
+      } catch (error) {
+        console.error('whiteboardStore→ 获取白板数量失败', error)
+        throw error
+      }
     }
   },
   getters: {
