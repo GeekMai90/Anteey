@@ -63,12 +63,16 @@
     <!-- 笔记操作菜单 -->
     <div v-if="activeNoteMenu" class="note-menu" :style="menuPosition">
       <div class="menu-item" @click="restoreNote(activeNoteMenu)">
-        <Recycling theme="outline" size="16" fill="currentColor" />
-        <span>恢复笔记</span>
+        <div class="icon">
+          <Recycling theme="outline" size="16" fill="currentColor" />
+        </div>
+        <div class="name">恢复笔记</div>
       </div>
       <div class="menu-item delete" @click="deleteNote">
-        <Delete theme="outline" size="16" fill="currentColor" />
-        <span>{{ isConfirmingDelete ? '确认删除' : '永久删除' }}</span>
+        <div class="icon">
+          <Delete theme="outline" size="16" fill="currentColor" />
+        </div>
+        <div class="name">{{ isConfirmingDelete ? '确认删除' : '永久删除' }}</div>
       </div>
     </div>
 
@@ -445,7 +449,7 @@ const handleCancelEmptyTrash = () => {
     .card-grid-container {
       width: 100%;
       height: 100%;
-      padding: 16px 30px;
+      padding: 16px 20px;
       // display: flex;
       // align-items: center;
       // justify-content: center;
@@ -502,37 +506,99 @@ const handleCancelEmptyTrash = () => {
     padding: 8px 12px;
     white-space: nowrap;
 
+    // .menu-item {
+    //   display: flex;
+    //   align-items: center;
+    //   width: 100%; // 使用100%宽度
+    //   padding: 8px 16px; // 左右padding相等
+    //   cursor: pointer;
+    //   transition: background-color 0.2s;
+    //   font-size: 14px;
+    //   color: var(--text-default-color);
+    //   gap: 8px;
+    //   border-radius: 8px;
+
+    //   &:hover {
+    //     background-color: var(--sidebar-hover-bg);
+    //   }
+
+    //   &.delete {
+    //     color: var(--error-color);
+    //   }
+
+    //   .i-icon {
+    //     display: flex;
+    //     align-items: center;
+    //     justify-content: center;
+    //     width: 18px;
+    //     height: 18px;
+    //     flex-shrink: 0; // 防止图标缩小
+    //   }
+
+    //   span {
+    //     flex-grow: 1; // 让文字占据剩余空间
+    //   }
+    // }
     .menu-item {
+      position: relative;
       display: flex;
       align-items: center;
-      width: 100%; // 使用100%宽度
-      padding: 8px 16px; // 左右padding相等
+      border: none;
+      background: none;
       cursor: pointer;
-      transition: background-color 0.2s;
-      font-size: 14px;
-      color: var(--text-default-color);
-      gap: 8px;
-      border-radius: 8px;
+      transition: all 0.2s ease;
+      border-radius: 6px;
+      padding: 4px 4px;
+      margin: 2px;
 
-      &:hover {
-        background-color: var(--sidebar-hover-bg);
-      }
-
-      &.delete {
-        color: var(--error-color);
-      }
-
-      .i-icon {
+      .icon {
+        background: none;
+        border: none;
+        cursor: pointer;
+        width: 24px;
+        height: 24px;
         display: flex;
         align-items: center;
         justify-content: center;
-        width: 18px;
-        height: 18px;
-        flex-shrink: 0; // 防止图标缩小
+        transition: all 0.2s ease;
+        padding: 0;
+
+        :deep(.i-icon) {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 100%;
+          height: 100%;
+        }
+
+        :deep(svg) {
+          width: 16px;
+          height: 16px;
+        }
       }
 
-      span {
-        flex-grow: 1; // 让文字占据剩余空间
+      .name {
+        flex-grow: 0;
+        text-align: left;
+        color: var(--default-text-color);
+        font-size: 13px;
+        font-weight: 400;
+        margin-left: 6px;
+        white-space: nowrap;
+        writing-mode: horizontal-tb;
+        line-height: 1;
+      }
+
+      &:hover {
+        background-color: var(--color-hover-button);
+      }
+
+      &:active {
+        background-color: rgba(0, 0, 0, 0.1);
+      }
+
+      &.delete {
+        color: #ff4d4f;
       }
     }
   }

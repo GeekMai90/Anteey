@@ -10,17 +10,16 @@
       </div>
     </div>
     <div ref="noteContent" class="note-content">
-      <TipTapEditor v-model:content="note.content" :editable="false" :enable-drag-handle="false" />
-      <div v-if="isOverflowing" class="fade-out"></div>
+      <TipTapRender :content="note.content" :editable="false" :enable-drag-handle="false" />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed } from 'vue'
 import { Note } from '../types/Note'
 import { More } from '@icon-park/vue-next'
-import TipTapEditor from './TipTapEditor.vue'
+import TipTapRender from './TipTapRender.vue'
 
 const props = defineProps<{
   note: Note
@@ -29,7 +28,6 @@ const props = defineProps<{
 const emit = defineEmits(['toggleMenu'])
 
 const noteContent = ref<HTMLDivElement | null>(null)
-const isOverflowing = ref(false)
 
 const cardTypeClass = computed(() => {
   switch (props.note.cardType) {
@@ -45,23 +43,6 @@ const cardTypeClass = computed(() => {
       return ''
   }
 })
-
-const checkOverflow = () => {
-  if (noteContent.value) {
-    isOverflowing.value = noteContent.value.scrollHeight > noteContent.value.clientHeight
-  }
-}
-
-onMounted(() => {
-  checkOverflow()
-})
-
-watch(
-  () => props.note.content,
-  () => {
-    checkOverflow()
-  }
-)
 
 const handleMoreClick = (event: MouseEvent) => {
   const target = event.currentTarget as HTMLElement
@@ -146,15 +127,6 @@ const handleMoreClick = (event: MouseEvent) => {
   flex-grow: 1;
   overflow: hidden;
   position: relative;
-}
-
-.fade-out {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 20px;
-  background: linear-gradient(transparent, var(--timeline-card-bg));
 }
 
 :deep(.tiptap) {
