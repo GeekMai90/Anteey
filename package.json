@@ -1,6 +1,6 @@
 {
   "name": "antinet",
-  "version": "0.1.28",
+  "version": "0.1.30",
   "description": "Antinet",
   "main": "./out/main/index.js",
   "author": "antinet.com",
@@ -94,6 +94,7 @@
     "gsap": "^3.12.5",
     "highlight.js": "^11.10.0",
     "hotkeys-js": "^3.13.7",
+    "html2canvas": "^1.4.1",
     "json-server": "1.0.0-beta.2",
     "jszip": "^3.10.1",
     "knex": "^3.1.0",

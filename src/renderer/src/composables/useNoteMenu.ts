@@ -10,7 +10,8 @@ import {
   Refresh,
   CopyLink,
   Export as ExportIcon,
-  SettingTwo
+  SettingTwo,
+  ShareThree
 } from '@icon-park/vue-next'
 import { useWhiteboardStore } from '../stores/whiteboardStores'
 import { useUIStore } from '../stores/useUIStore'
@@ -43,10 +44,10 @@ export function useNoteMenu(params: NoteMenuParams) {
   const closePopupMenu = () => {
     isPopupMenuVisible.value = false
   }
-
   // 分享笔记
-  const handleShare = () => {
-    console.log('分享笔记', params.noteId)
+  const handleShare = async () => {
+    await noteStore.handleShare(params.noteId)
+    closePopupMenu()
   }
 
   // 复制笔记引用链接
@@ -467,6 +468,12 @@ export function useNoteMenu(params: NoteMenuParams) {
       label: '设置',
       icon: SettingTwo,
       action: handleSettings
+    },
+    share: {
+      name: 'share',
+      label: '分享',
+      icon: ShareThree,
+      action: handleShare
     }
   }))
 

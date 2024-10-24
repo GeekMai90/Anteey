@@ -189,7 +189,7 @@ const menuPosition = reactive({ x: 0, y: 0 })
 // 更多菜单
 const { menuItems: noteMenuItems, resetDeleteState } = useNoteMenu({
   noteId: noteId,
-  menuItems: ['star', 'sidebar', 'copyNoteLink', 'exportNote', 'delete']
+  menuItems: ['star', 'share', 'sidebar', 'copyNoteLink', 'exportNote', 'delete']
 })
 
 // 更多菜单点击事件

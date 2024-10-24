@@ -1041,7 +1041,7 @@ const editorExtensions = computed(() => {
     //   types: ['heading', 'paragraph']
     // }),
     FileHandler.configure({
-      allowedMimeTypes: ['image/png', 'image/jpeg', 'image/gif', 'image/webp'],
+      allowedMimeTypes: ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp'],
       onDrop: async (currentEditor, files, pos) => {
         for (const file of files) {
           try {

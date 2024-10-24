@@ -66,6 +66,12 @@
     <Modal v-model="uiStore.showSettingsPage" @outside-click="uiStore.closeSettingsPage">
       <SettingsPage />
     </Modal>
+    <SharePreviewModal
+      v-if="noteStore.showShareModal"
+      :note="noteStore.shareNote"
+      @close="noteStore.showShareModal = false"
+      @confirm="noteStore.handleExportImage"
+    />
   </div>
 </template>
 
@@ -87,6 +93,7 @@ import SettingsPage from './components/SettingsPage.vue'
 // import loadingAnimation from './assets/loading.json'
 import { useNoteStore } from './stores/noteStores'
 import { useNoteMenu } from './composables/useNoteMenu'
+import SharePreviewModal from './components/SharePreviewModal.vue'
 
 const uiStore = useUIStore()
 const noteStore = useNoteStore()
