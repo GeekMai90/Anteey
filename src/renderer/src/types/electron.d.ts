@@ -11,6 +11,7 @@ import {
   WhiteboardGroup,
   ConnectionCreateData
 } from './Note'
+import { UpdateUserSettings, UserSettings } from './UserSettings'
 
 export interface ElectronAPI {
   createNote: () => Promise<Note>
@@ -116,6 +117,8 @@ export interface ElectronAPI {
   getRandomNotes: () => Promise<Note[]>
   moveEmptyNotesToTrash: () => Promise<void>
   getAllDeletedNotes: () => Promise<Note[]>
+  getUserSettings: () => Promise<UserSettings>
+  updateUserSettings: (settings: UpdateUserSettings) => Promise<UserSettings>
 }
 
 declare global {

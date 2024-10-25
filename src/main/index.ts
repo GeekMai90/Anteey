@@ -90,6 +90,9 @@ import { default as installExtension, VUEJS3_DEVTOOLS } from 'electron-devtools-
 import path from 'path'
 import fs from 'fs/promises'
 import { URL } from 'url'
+import { getUserSettings } from '../db/userSettings'
+import { updateUserSettings } from '../db/userSettings'
+import { UpdateUserSettings } from '../renderer/src/types/UserSettings'
 
 // 设置应用名称
 app.name = 'Antinet'
@@ -218,6 +221,27 @@ function createCustomMenu() {
 }
 
 function setupIpcHandlers() {
+  // 获取用户设置
+  ipcMain.handle('get-user-settings', async () => {
+    try {
+      const settings = await getUserSettings()
+      return settings
+    } catch (error) {
+      console.error('主进程 → 获取用户设置失败:', error)
+      throw error
+    }
+  })
+
+  // 更新用户设置
+  ipcMain.handle('update-user-settings', async (_, settings: UpdateUserSettings) => {
+    try {
+      const updatedSettings = await updateUserSettings(settings)
+      return updatedSettings
+    } catch (error) {
+      console.error('主进程 → 更新用户设置失败:', error)
+      throw error
+    }
+  })
   // 获取所有已删除的笔记
   ipcMain.handle('get-all-deleted-notes', async () => {
     try {
@@ -1025,7 +1049,7 @@ function createWindow(): void {
         ...details.responseHeaders,
         'Content-Security-Policy': [
           'default-src *; ' +
-            "img-src 'self' file: data: blob: https://cdn.jsdelivr.net; " +
+            "img-src 'self' file: data: blob: https: http: *; " +
             "script-src 'self' 'unsafe-inline' 'unsafe-eval'; " +
             "style-src 'self' 'unsafe-inline'; " +
             "connect-src 'self' file: https://api.tiptap.dev;" +

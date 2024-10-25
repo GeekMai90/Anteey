@@ -13,6 +13,7 @@ import {
   ConnectionUpdateData
 } from '../renderer/src/types/Note'
 import { GetPaginatedNotesParams } from '../db/notes'
+import { UpdateUserSettings, UserSettings } from '@renderer/types/UserSettings'
 
 contextBridge.exposeInMainWorld('electronAPI', {
   getResourcePath: async (filename: string): Promise<string> => {
@@ -652,5 +653,23 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // 获取所有已删除的笔记
   getAllDeletedNotes: async (): Promise<Note[]> => {
     return (await ipcRenderer.invoke('get-all-deleted-notes')) as Note[]
+  },
+  // 用户设置相关 API
+  getUserSettings: async (): Promise<UserSettings> => {
+    try {
+      return await ipcRenderer.invoke('get-user-settings')
+    } catch (error) {
+      console.error('Preload: 获取用户设置失败:', error)
+      throw error
+    }
+  },
+
+  updateUserSettings: async (settings: UpdateUserSettings): Promise<UserSettings> => {
+    try {
+      return await ipcRenderer.invoke('update-user-settings', settings)
+    } catch (error) {
+      console.error('Preload: 更新用户设置失败:', error)
+      throw error
+    }
   }
 })

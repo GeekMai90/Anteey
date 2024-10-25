@@ -13,14 +13,21 @@
             <div ref="previewCardRef" class="preview-card" :style="previewStyle">
               <div class="share-content">
                 <div class="note-header">
-                  <div class="note-indicator" :class="cardTypeClass"></div>
-                  <h3 class="note-title">{{ note.address }}</h3>
+                  <div class="note-date">{{ currentDate }}</div>
                 </div>
                 <div class="note-content">
                   <TipTapRender :content="note.content" :editable="false" />
                 </div>
-                <div class="content-spacer"></div>
-                <div class="note-date">{{ currentDate }}</div>
+                <div class="note-footer">
+                  <div class="footer-left">
+                    <div class="footer-author">{{ authorName }}</div>
+                    <div class="footer-motto">{{ authorMotto }}</div>
+                  </div>
+                  <!-- 只在有二维码地址时显示二维码 -->
+                  <div v-if="customQrcodeUrl" class="footer-qrcode">
+                    <img :src="qrCodeUrl" alt="专栏二维码" />
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -47,7 +54,7 @@
 
           <div class="action-buttons">
             <button class="copy-btn" @click="copyToClipboard">复制</button>
-            <button class="save-btn" @click="$emit('confirm')">保存</button>
+            <button class="save-btn" @click="handleExportImage">保存</button>
           </div>
         </div>
       </div>
@@ -56,19 +63,68 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { format } from 'date-fns'
 import TipTapRender from './TipTapRender.vue'
 import { Note } from '@renderer/types/Note'
-import html2canvas from 'html2canvas' // 需要先安装这个包
+import { exportNoteImage, copyNoteToClipboard } from '../utils/shareNoteImage'
+import { message } from '../utils/message'
+import QRCode from 'qrcode'
+import { useUserSettingsStore } from '../stores/useUserSettings'
 
 const props = defineProps<{
   note: Note
 }>()
-
+const userSettingsStore = useUserSettingsStore()
 const currentDate = format(new Date(), 'yyyy年MM月dd日')
 const selectedStyle = ref(0)
 const previewCardRef = ref<HTMLElement | null>(null)
+
+const qrCodeUrl = ref('')
+
+// 从 store 中获取用户设置
+const authorName = computed(() => userSettingsStore.settings?.authorName || 'Antinet')
+const authorMotto = computed(() => userSettingsStore.settings?.authorMotto || '一起践行终身成长')
+const customQrcodeUrl = computed(() => userSettingsStore.settings?.qrcodeUrl || '')
+
+// 单独封装二维码更新逻辑
+const updateQRCode = async () => {
+  try {
+    const customUrl = userSettingsStore.settings?.qrcodeUrl
+
+    if (customUrl && customUrl.trim() !== '') {
+      // 如果是 URL，则生成二维码
+      if (customUrl.match(/^https?:\/\//)) {
+        qrCodeUrl.value = await QRCode.toDataURL(customUrl, {
+          width: 64,
+          margin: 1,
+          color: {
+            dark: '#333333',
+            light: '#FFFFFF'
+          }
+        })
+      } else if (customUrl.startsWith('data:image')) {
+        // 如果已经是 base64 图片，直接使用
+        qrCodeUrl.value = customUrl
+      } else {
+        console.error('无效的二维码 URL 格式')
+        qrCodeUrl.value = ''
+      }
+    } else {
+      qrCodeUrl.value = ''
+    }
+  } catch (err) {
+    console.error('二维码处理错误:', err)
+    qrCodeUrl.value = ''
+  }
+}
+
+onMounted(async () => {
+  if (!userSettingsStore.settings) {
+    await userSettingsStore.fetchSettings()
+  }
+  await updateQRCode()
+})
 
 // 预定义的背景样式
 const backgroundStyles = [
@@ -118,55 +174,27 @@ const previewStyle = computed(() => {
 const selectStyle = (index: number) => {
   selectedStyle.value = index
 }
-
-// 复制图片到剪贴板
 const copyToClipboard = async () => {
-  if (!previewCardRef.value) return
-
+  if (!props.note) return
   try {
-    // 创建 canvas
-    const canvas = await html2canvas(previewCardRef.value, {
-      scale: 2, // 提高图片质量
-      backgroundColor: null, // 保持背景透明
-      useCORS: true // 允许加载跨域图片
+    await copyNoteToClipboard({
+      note: props.note,
+      background: backgroundStyles[selectedStyle.value].style.background
     })
-
-    // 将 canvas 转换为 blob
-    const blob = await new Promise<Blob>((resolve) => {
-      canvas.toBlob((blob) => {
-        resolve(blob!)
-      }, 'image/png')
-    })
-
-    // 创建 ClipboardItem 并复制到剪贴板
-    const data = new ClipboardItem({
-      'image/png': blob
-    })
-
-    await navigator.clipboard.write([data])
-
-    // 可以添加一个成功提示
-    // message.success('已复制到剪贴板')
+    message.success('已复制到剪贴板')
   } catch (error) {
     console.error('复制失败:', error)
-    // message.error('复制失败，请重试')
+    message.error('复制失败，请重试')
   }
 }
+const handleExportImage = async () => {
+  if (!props.note) return
+  await exportNoteImage({
+    note: props.note,
+    background: backgroundStyles[selectedStyle.value].style.background
+  })
+}
 
-const cardTypeClass = computed(() => {
-  switch (props.note.cardType) {
-    case 'Maincard':
-      return 'maincard'
-    case 'Bibcard':
-      return 'bibcard'
-    case 'Indexcard':
-      return 'indexcard'
-    case 'Hoplinkcard':
-      return 'hoplinkcard'
-    default:
-      return ''
-  }
-})
 // 将方法传递给父组件
 defineEmits<{
   (e: 'copy'): void
@@ -256,11 +284,12 @@ defineEmits<{
 .preview-card {
   width: 500px;
   height: 700px;
-  transform: scale(0.7);
+  transform: scale(0.75);
   transform-origin: center center;
-  border-radius: 24px; // 增加圆角
+  // border-radius: 24px; // 增加圆角
   transition: all 0.3s ease;
-  padding: 32px; // 添加内边距
+  padding: 16px; // 添加内边距
+  position: relative; // 为水印定位
 }
 
 .style-section {
@@ -344,7 +373,7 @@ defineEmits<{
   display: flex;
   flex-direction: column;
   background: white; // 内容区域始终保持白色背景
-  border-radius: 12px; // 内容区域添加圆角
+  border-radius: 16px; // 内容区域添加圆角
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1); // 可选：添加轻微阴影
 }
 
@@ -354,29 +383,11 @@ defineEmits<{
   margin-bottom: 16px;
 }
 
-.note-indicator {
-  width: 4px;
-  height: 14px;
-  border-radius: 2px;
-  margin-right: 10px;
-
-  &.maincard {
-    background-color: var(--color-primary);
-  }
-  &.bibcard {
-    background-color: var(--color-yellow);
-  }
-  &.indexcard {
-    background-color: var(--color-blue);
-  }
-  &.hoplinkcard {
-    background-color: var(--color-pink);
-  }
-}
-
 .note-content {
   flex: 1;
-  overflow: hidden;
+  // overflow: hidden;
+  overflow-y: auto;
+  margin: 16px 0;
   :deep(.tiptap) {
     margin: 0;
     padding: 0;
@@ -386,18 +397,40 @@ defineEmits<{
   }
 }
 
-.content-spacer {
-  height: 16px;
+.note-footer {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--color-border);
+  display: flex;
+  justify-content: space-between; // 改为两端对齐
+  align-items: center;
+  .footer-left {
+    margin: 0; // 在没有二维码时居中显示
+  }
 }
 
+.footer-author {
+  font-size: 16px;
+  color: var(--color-text-primary);
+  font-weight: 500;
+}
+.footer-motto {
+  font-size: 14px;
+  color: var(--color-text-secondary);
+}
+.footer-qrcode {
+  width: 46px;
+  height: 46px;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    border-radius: 4px;
+  }
+}
 .note-date {
   font-size: 14px;
   color: var(--color-text-secondary);
-  align-self: flex-end;
-}
-
-.note-title {
-  margin: 0;
-  font-size: 16px;
 }
 </style>

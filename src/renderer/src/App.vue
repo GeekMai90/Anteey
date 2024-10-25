@@ -70,7 +70,6 @@
       v-if="noteStore.showShareModal"
       :note="noteStore.shareNote"
       @close="noteStore.showShareModal = false"
-      @confirm="noteStore.handleExportImage"
     />
   </div>
 </template>

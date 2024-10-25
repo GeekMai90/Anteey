@@ -112,6 +112,7 @@
     "prisma": "^5.19.1",
     "prosemirror-dropcursor": "^1.8.1",
     "prosemirror-state": "^1.4.3",
+    "qrcode": "^1.5.4",
     "remark-breaks": "^4.0.0",
     "remark-gfm": "^4.0.0",
     "remark-inline-links": "^7.0.0",

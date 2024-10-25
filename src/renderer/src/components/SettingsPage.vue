@@ -106,15 +106,80 @@
           </div>
         </div>
       </div>
+      <div v-if="currentMenuItem === 'share'" class="share-settings">
+        <div class="share-settings-wrapper">
+          <div class="settings-content-header">
+            <div class="icon">
+              <Share
+                theme="outline"
+                size="20"
+                fill="var(--color-icon-menu-default)"
+                :strokeWidth="3"
+              />
+            </div>
+            <div class="name">{{ currentMenuItemLabel }}</div>
+          </div>
+          <div class="shortcuts-settings-divider"></div>
+          <div class="share-settings-content">
+            <div class="share-section">
+              <div class="section-title">作者信息</div>
+              <div class="form-group">
+                <label>作者名称</label>
+                <input
+                  v-model="shareSettings.authorName"
+                  type="text"
+                  placeholder="请输入作者名称"
+                />
+              </div>
+              <div class="form-group">
+                <label>个性签名</label>
+                <input
+                  v-model="shareSettings.authorMotto"
+                  type="text"
+                  placeholder="请输入个性签名"
+                />
+              </div>
+              <div class="form-group">
+                <label>二维码链接</label>
+                <input
+                  v-model="shareSettings.qrcodeUrl"
+                  type="text"
+                  placeholder="请输入二维码链接"
+                />
+                <div class="form-help">该链接将生成二维码显示在分享卡片底部</div>
+              </div>
+            </div>
+
+            <div class="share-section">
+              <div class="section-title">预览</div>
+              <div class="preview-card">
+                <!-- 这里放预览卡片组件 -->
+                <ShareNoteCard
+                  :note="previewNote"
+                  :background="'linear-gradient(135deg, #7ec2ff 0%, #73e7d1 100%)'"
+                />
+              </div>
+            </div>
+
+            <div class="action-buttons">
+              <button class="save-btn" @click="handleSaveSettings">保存设置</button>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
     <!-- 其他设置项的内容可以在这里添加 -->
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
-import { Api, DatabaseDownload, KeyboardOne, SettingTwo, Theme } from '@icon-park/vue-next'
+import { ref, computed, onMounted } from 'vue'
+import { Api, DatabaseDownload, KeyboardOne, SettingTwo, Theme, Share } from '@icon-park/vue-next'
 import { useNoteMenu } from '@renderer/composables/useNoteMenu'
+import { useUserSettingsStore } from '../stores/useUserSettings'
+import ShareNoteCard from '../components/ShareNotedCard.vue'
+import { UpdateUserSettings } from '@renderer/types/UserSettings'
+import { message } from '../utils/message'
 
 const noteId = ref('')
 const { handleBulkExport } = useNoteMenu({
@@ -122,10 +187,58 @@ const { handleBulkExport } = useNoteMenu({
   menuItems: ['star']
 })
 
+// 在 setup 中添加
+const userSettingsStore = useUserSettingsStore()
+const shareSettings = ref<UpdateUserSettings>({
+  authorName: '',
+  authorMotto: '',
+  qrcodeUrl: ''
+})
+
+// 用于预览的示例笔记
+const previewNote = ref<any>({
+  id: 'preview',
+  content: '<p>这是一条示例笔记，用于预览分享效果。</p>',
+  type: 'note',
+  address: '',
+  cardType: 'note',
+  createdAt: new Date(),
+  updatedAt: new Date(),
+  tags: [],
+  linkedTo: [],
+  linkedFrom: []
+})
+
+onMounted(async () => {
+  try {
+    await userSettingsStore.fetchSettings()
+    const currentSettings = userSettingsStore.settings
+
+    if (currentSettings) {
+      shareSettings.value = {
+        authorName: currentSettings.authorName,
+        authorMotto: currentSettings.authorMotto,
+        qrcodeUrl: currentSettings.qrcodeUrl
+      }
+    }
+  } catch (error) {
+    message.error('获取设置失败')
+  }
+})
+
+const handleSaveSettings = async () => {
+  try {
+    await userSettingsStore.updateSettings(shareSettings.value)
+    message.success('设置已保存')
+  } catch (error) {
+    message.error('保存失败')
+  }
+}
+
 const menuItems = [
   { key: 'backup', label: '备份', icon: DatabaseDownload },
   { key: 'shortcuts', label: '快捷键', icon: KeyboardOne },
-  // { key: 'account', label: '我的账号', icon: SettingTwo },
+  { key: 'share', label: '分享设置', icon: Share }, // 添加这行
   { key: 'appearance', label: '外观', icon: Theme },
   { key: 'api', label: '专属API', icon: Api }
 
@@ -196,6 +309,7 @@ const filteredShortcuts = computed(() => {
   height: 80vh;
   max-width: 1000px;
   max-height: 600px;
+  z-index: 9999;
 }
 
 .settings-sidebar {
@@ -557,6 +671,97 @@ const filteredShortcuts = computed(() => {
             color: var(--color-text-primary);
           }
         }
+      }
+    }
+  }
+}
+.share-settings {
+  width: 100%;
+  height: 100%;
+
+  .share-settings-wrapper {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .share-settings-content {
+    flex: 1;
+    overflow-y: auto;
+    padding-right: 10px;
+  }
+
+  .share-section {
+    margin-bottom: 24px;
+
+    .section-title {
+      font-size: 18px;
+      font-weight: 500;
+      margin-bottom: 16px;
+      color: var(--color-text-primary);
+    }
+  }
+
+  .form-group {
+    margin-bottom: 16px;
+
+    label {
+      display: block;
+      font-size: 14px;
+      color: var(--color-text-primary);
+      margin-bottom: 8px;
+    }
+
+    input {
+      width: 100%;
+      padding: 8px 12px;
+      border: 1px solid var(--color-border);
+      border-radius: 6px;
+      font-size: 14px;
+      background: var(--color-background-primary);
+      color: var(--color-text-primary);
+
+      &:focus {
+        border-color: var(--color-primary);
+        outline: none;
+      }
+    }
+
+    .form-help {
+      font-size: 12px;
+      color: var(--color-text-secondary);
+      margin-top: 4px;
+    }
+  }
+
+  .preview-card {
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    padding: 16px;
+    background: var(--color-background-secondary);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .action-buttons {
+    margin-top: 24px;
+    display: flex;
+    justify-content: flex-end;
+
+    .save-btn {
+      padding: 8px 24px;
+      background-color: var(--color-primary);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      cursor: pointer;
+      transition: opacity 0.2s;
+
+      &:hover {
+        opacity: 0.9;
       }
     }
   }

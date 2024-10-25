@@ -1,4 +1,5 @@
 import { Knex } from 'knex'
+import { v4 as uuidv4 } from 'uuid'
 
 export async function initDatabase(db: Knex): Promise<void> {
   // 创建 notes 表
@@ -136,6 +137,28 @@ export async function initDatabase(db: Knex): Promise<void> {
     })
     console.log('connections 表创建成功')
   }
+  if (!(await db.schema.hasTable('user_settings'))) {
+    await db.schema.createTable('user_settings', (table) => {
+      table.string('id').primary()
+      table.string('authorName').notNullable().defaultTo('麦先生的专栏')
+      table.string('authorMotto').notNullable().defaultTo('一起践行终身成长')
+      table.string('qrcodeUrl').notNullable().defaultTo('')
+      table.datetime('createdAt').notNullable()
+      table.datetime('updatedAt').notNullable()
+    })
+    console.log('user_settings 表创建成功')
+
+    // 创建默认设置
+    await db('user_settings').insert({
+      id: uuidv4(),
+      authorName: '麦先生的专栏',
+      authorMotto: '一起践行终身成长',
+      qrcodeUrl: '',
+      createdAt: new Date(),
+      updatedAt: new Date()
+    })
+    console.log('user_settings 默认数据创建成功')
+  }
 }
 
 export async function down(db: Knex): Promise<void> {
@@ -147,5 +170,6 @@ export async function down(db: Knex): Promise<void> {
   await db.schema.dropTableIfExists('tags')
   await db.schema.dropTableIfExists('cardboxes')
   await db.schema.dropTableIfExists('notes')
+  await db.schema.dropTableIfExists('user_settings') // 添加这一行
   console.log('所有表已删除')
 }
