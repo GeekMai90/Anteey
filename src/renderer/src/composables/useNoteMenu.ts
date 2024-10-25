@@ -11,7 +11,7 @@ import {
   CopyLink,
   Export as ExportIcon,
   SettingTwo,
-  ShareThree
+  Share
 } from '@icon-park/vue-next'
 import { useWhiteboardStore } from '../stores/whiteboardStores'
 import { useUIStore } from '../stores/useUIStore'
@@ -472,7 +472,7 @@ export function useNoteMenu(params: NoteMenuParams) {
     share: {
       name: 'share',
       label: '分享',
-      icon: ShareThree,
+      icon: Share,
       action: handleShare
     }
   }))

@@ -308,7 +308,7 @@ const filteredShortcuts = computed(() => {
   width: 60vw;
   height: 80vh;
   max-width: 1000px;
-  max-height: 600px;
+  max-height: 820px;
   z-index: 9999;
 }
 

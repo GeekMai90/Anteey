@@ -3,7 +3,16 @@
     <div class="modal-content" @click.stop>
       <div class="modal-header">
         <h3>分享笔记</h3>
-        <button class="close-button" @click="$emit('close')">×</button>
+        <button class="close-button" @click="$emit('close')">
+          <div class="icon">
+            <CloseOne
+              theme="outline"
+              size="20"
+              fill="var(--color-icon-default)"
+              :stroke-width="3"
+            />
+          </div>
+        </button>
       </div>
 
       <div class="share-container">
@@ -71,6 +80,7 @@ import { exportNoteImage, copyNoteToClipboard } from '../utils/shareNoteImage'
 import { message } from '../utils/message'
 import QRCode from 'qrcode'
 import { useUserSettingsStore } from '../stores/useUserSettings'
+import { CloseOne } from '@icon-park/vue-next'
 
 const props = defineProps<{
   note: Note
@@ -228,7 +238,7 @@ defineEmits<{
 }
 
 .modal-header {
-  padding: 20px 24px;
+  padding: 10px 24px;
   border-bottom: 1px solid var(--color-border);
   display: flex;
   justify-content: space-between;
@@ -239,18 +249,74 @@ defineEmits<{
     font-size: 18px;
     font-weight: 600;
   }
-
   .close-button {
-    background: none;
+    position: relative;
+    display: flex;
+    align-items: center;
     border: none;
-    font-size: 24px;
+    background: none;
     cursor: pointer;
-    color: var(--color-text-secondary);
-    padding: 4px;
-    border-radius: 4px;
+    transition: all 0.2s ease;
+    border-radius: 6px;
+    padding: 4px 4px;
+    margin: 2px;
+
+    .icon {
+      background: none;
+      border: none;
+      cursor: pointer;
+      width: 26px;
+      height: 26px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+      padding: 0;
+
+      // &:hover:not(:disabled) {
+      //   background-color: rgba(0, 0, 0, 0.05);
+      // }
+
+      &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      :deep(.i-icon) {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        height: 100%;
+      }
+
+      :deep(svg) {
+        width: 20px;
+        height: 20px;
+      }
+    }
+
+    .name {
+      flex-grow: 0;
+      text-align: left;
+      color: var(--default-text-color);
+      font-size: 13px;
+      font-weight: 400;
+      margin-left: 6px;
+      white-space: nowrap;
+      writing-mode: horizontal-tb;
+    }
 
     &:hover {
-      background-color: var(--color-hover-bg);
+      background-color: var(--color-hover-button);
+    }
+
+    &:active {
+      background-color: rgba(0, 0, 0, 0.1);
+    }
+
+    &.delete {
+      color: #ff4d4f;
     }
   }
 }
@@ -346,6 +412,7 @@ defineEmits<{
     font-size: 16px;
     cursor: pointer;
     transition: all 0.2s;
+    font-weight: 500;
   }
 
   .copy-btn {
