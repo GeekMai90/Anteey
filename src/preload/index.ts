@@ -13,7 +13,7 @@ import {
   ConnectionUpdateData
 } from '../renderer/src/types/Note'
 import { GetPaginatedNotesParams } from '../db/notes'
-import { UpdateUserSettings, UserSettings } from '@renderer/types/UserSettings'
+import { UpdateUserSettings, UserSettings } from '../renderer/src/types/UserSettings'
 
 contextBridge.exposeInMainWorld('electronAPI', {
   getResourcePath: async (filename: string): Promise<string> => {
