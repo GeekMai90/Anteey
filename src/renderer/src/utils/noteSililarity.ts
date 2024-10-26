@@ -1,175 +1,108 @@
-// import { Note, Keyword } from '../types/Note'
+import { Keyword } from '../types/Note'
 
-// /**
-//  * 计算两组关键词的相似度
-//  * @param keywords1 第一组关键词
-//  * @param keywords2 第二组关键词
-//  * @returns 相似度分数 (0-1)
-//  */
-// export function calculateSimilarity(keywords1: Keyword[], keywords2: Keyword[]): number {
-//   if (!keywords1?.length || !keywords2?.length) return 0
-
-//   // 创建关键词权重映射
-//   const weightMap1 = new Map(keywords1.map((k) => [k.word, k.weight]))
-//   const weightMap2 = new Map(keywords2.map((k) => [k.word, k.weight]))
-
-//   // 计算共同关键词的权重贡献
-//   let similarity = 0
-//   let totalWeight1 = 0
-//   let totalWeight2 = 0
-
-//   // 累加所有权重
-//   weightMap1.forEach((weight) => (totalWeight1 += weight))
-//   weightMap2.forEach((weight) => (totalWeight2 += weight))
-
-//   // 计算共同关键词的相似度贡献
-//   weightMap1.forEach((weight1, word) => {
-//     const weight2 = weightMap2.get(word)
-//     if (weight2) {
-//       // 使用归一化的权重计算相似度
-//       similarity += (weight1 / totalWeight1) * (weight2 / totalWeight2)
-//     }
-//   })
-
-//   return similarity
-// }
-
-// /**
-//  * 查找与当前笔记相关的笔记
-//  * @param currentNote 当前笔记
-//  * @param allNotes 所有笔记
-//  * @param limit 返回的相关笔记数量
-//  * @returns 相关笔记数组
-//  */
-// export function findRelatedNotes(
-//   currentNote: Note,
-//   allNotes: Note[],
-//   limit: number = 5
-// ): { note: Note; similarity: number }[] {
-//   if (!currentNote?.keywords?.length) return []
-
-//   // 计算所有其他笔记与当前笔记的相似度
-//   const notesWithSimilarity = allNotes
-//     .filter(
-//       (note) =>
-//         note.id !== currentNote.id && // 排除当前笔记
-//         !note.isDeleted && // 排除已删除的笔记
-//         note.keywords &&
-//         note.keywords.length > 0 // 确保有关键词
-//     )
-//     .map((note) => ({
-//       note,
-//       similarity: calculateSimilarity(currentNote.keywords!, note.keywords!)
-//     }))
-//     .filter((item) => item.similarity > 0) // 只保留有相似度的笔记
-//     .sort((a, b) => b.similarity - a.similarity) // 按相似度降序排序
-//     .slice(0, limit) // 只取前 N 个
-
-//   return notesWithSimilarity
-// }
-interface Keyword {
-  word: string
-  weight: number
-}
-
-// 扩展同义词映射表
-const SYNONYM_MAP = new Map<string, string[]>([
-  ['react', ['reactjs', 'react.js', 'react开发']],
-  ['nextjs', ['next.js', 'next', 'next开发']],
-  ['javascript', ['js', 'typescript', 'ts']],
-  ['性能', ['优化', 'performance', '提升', '改进']],
-  ['组件', ['component', 'components', '模块']],
-  ['服务端', ['server', 'ssr', 'server-side']],
-  ['客户端', ['client', 'client-side', 'browser']],
-  ['开发', ['实践', '应用', '使用']],
-  ['配置', ['设置', '构建', 'config']],
-  ['优化', ['performance', '提升', '改进']]
+// 定义核心概念及其相关词
+const CORE_CONCEPTS = new Map([
+  ['卢曼', ['luhmann', '卢曼卡片盒', 'zettelkasten', '尼克拉斯']],
+  ['卡片盒', ['卡片', 'zettelkasten', '笔记系统', '笔记工具']],
+  ['笔记', ['笔记法', '记录', '卡片', '记笔记']],
+  ['知识', ['知识管理', '学习', '思维', '认知']],
+  ['方法', ['方法论', '系统', '工具', '技巧']],
+  ['链接', ['关联', '连接', '引用', '网络']],
+  ['索引', ['检索', '查找', '目录', '搜索']],
+  ['写作', ['创作', '写文章', '写书', '著作']]
 ])
 
 export function calculateSimilarity(keywords1: Keyword[], keywords2: Keyword[]): number {
   if (!keywords1?.length || !keywords2?.length) return 0
 
-  // 1. 预处理关键词
-  const normalizeKeywords = (keywords: Keyword[]): Map<string, number> => {
-    const weightMap = new Map<string, number>()
-
-    keywords.forEach(({ word, weight }) => {
-      const normalizedWord = word.toLowerCase().trim()
-      // 提高原始关键词的权重
-      weightMap.set(normalizedWord, (weightMap.get(normalizedWord) || 0) + weight * 1.2)
-
-      // 同义词权重提高到 0.9
-      const synonyms = SYNONYM_MAP.get(normalizedWord) || []
-      synonyms.forEach((synonym) => {
-        weightMap.set(synonym, (weightMap.get(synonym) || 0) + weight * 0.9)
-      })
-    })
-
-    return weightMap
+  // 1. 预处理关键词，确保权重归一化
+  const normalizeKeywords = (keywords: Keyword[]) => {
+    const totalWeight = keywords.reduce((sum, k) => sum + k.weight, 0)
+    return keywords.map((k) => ({
+      word: k.word.toLowerCase(),
+      weight: k.weight / totalWeight
+    }))
   }
 
-  const weightMap1 = normalizeKeywords(keywords1)
-  const weightMap2 = normalizeKeywords(keywords2)
+  const words1 = normalizeKeywords(keywords1)
+  const words2 = normalizeKeywords(keywords2)
 
-  // 2. 计算总权重
-  let totalWeight1 = 0
-  let totalWeight2 = 0
-  weightMap1.forEach((weight) => (totalWeight1 += weight))
-  weightMap2.forEach((weight) => (totalWeight2 += weight))
+  // 2. 计算核心主题匹配
+  let coreThemeScore = 0
+  const coreThemes = ['卢曼', '卡片盒', 'zettelkasten']
+  const hasCommonCore = coreThemes.some((theme) => {
+    const inWords1 = words1.some((w) => w.word.includes(theme))
+    const inWords2 = words2.some((w) => w.word.includes(theme))
+    return inWords1 && inWords2
+  })
+  if (hasCommonCore) {
+    coreThemeScore = 0.4
+  }
 
-  // 3. 计算相似度
-  let similarity = 0
+  // 3. 计算匹配分数
+  let totalScore = coreThemeScore
+  const matched = new Set<string>()
 
-  weightMap1.forEach((weight1, word1) => {
-    // 完全匹配权重提高到 1.2
-    if (weightMap2.has(word1)) {
-      const weight2 = weightMap2.get(word1)!
-      similarity += (weight1 / totalWeight1) * (weight2 / totalWeight2) * 1.2
-    }
-    // 部分匹配权重提高到 0.8
-    else {
-      weightMap2.forEach((weight2, word2) => {
-        if (word1.includes(word2) || word2.includes(word1)) {
-          similarity += (weight1 / totalWeight1) * (weight2 / totalWeight2) * 0.8
-        }
-        // 编辑距离匹配权重提高到 0.6
-        else if (calculateLevenshteinDistance(word1, word2) <= 2) {
-          similarity += (weight1 / totalWeight1) * (weight2 / totalWeight2) * 0.6
-        }
-      })
+  // 完全匹配（权重2.0）
+  words1.forEach((k1) => {
+    if (matched.has(k1.word)) return
+    const match = words2.find((k2) => !matched.has(k2.word) && k1.word === k2.word)
+    if (match) {
+      totalScore += Math.min(k1.weight, match.weight) * 2.0
+      matched.add(k1.word)
+      matched.add(match.word)
     }
   })
 
-  // 4. 根据文本长度相似度进行额外加权
-  const lengthSimilarity =
-    Math.min(keywords1.length, keywords2.length) / Math.max(keywords1.length, keywords2.length)
-  similarity = similarity * (0.8 + lengthSimilarity * 0.2)
+  // 核心概念匹配（权重1.5）
+  words1.forEach((k1) => {
+    if (matched.has(k1.word)) return
+    words2.forEach((k2) => {
+      if (matched.has(k2.word)) return
 
-  return Math.min(1, similarity)
-}
+      for (const [concept, related] of CORE_CONCEPTS.entries()) {
+        const isWord1Related = concept === k1.word || related.includes(k1.word)
+        const isWord2Related = concept === k2.word || related.includes(k2.word)
 
-// 计算编辑距离（Levenshtein Distance）
-function calculateLevenshteinDistance(str1: string, str2: string): number {
-  const m = str1.length
-  const n = str2.length
-  const dp: number[][] = Array.from({ length: m + 1 }, () => Array(n + 1).fill(0))
-
-  for (let i = 0; i <= m; i++) dp[i][0] = i
-  for (let j = 0; j <= n; j++) dp[0][j] = j
-
-  for (let i = 1; i <= m; i++) {
-    for (let j = 1; j <= n; j++) {
-      if (str1[i - 1] === str2[j - 1]) {
-        dp[i][j] = dp[i - 1][j - 1]
-      } else {
-        dp[i][j] = Math.min(
-          dp[i - 1][j - 1] + 1, // 替换
-          dp[i - 1][j] + 1, // 删除
-          dp[i][j - 1] + 1 // 插入
-        )
+        if (isWord1Related && isWord2Related) {
+          totalScore += Math.min(k1.weight, k2.weight) * 1.5
+          matched.add(k1.word)
+          matched.add(k2.word)
+          break
+        }
       }
-    }
-  }
+    })
+  })
 
-  return dp[m][n]
+  // 包含关系（权重1.0）
+  words1.forEach((k1) => {
+    if (matched.has(k1.word)) return
+    const match = words2.find(
+      (k2) => !matched.has(k2.word) && (k1.word.includes(k2.word) || k2.word.includes(k1.word))
+    )
+    if (match) {
+      totalScore += Math.min(k1.weight, match.weight) * 1.0
+      matched.add(k1.word)
+      matched.add(match.word)
+    }
+  })
+
+  // 4. 应用相似度提升因子
+  const matchedRatio = matched.size / Math.min(words1.length, words2.length)
+  const boostFactor = Math.pow(matchedRatio, 0.5)
+
+  // 5. 计算最终相似度
+  const rawSimilarity = totalScore * boostFactor * 100
+
+  // 6. 调整相似度分档
+  if (hasCommonCore) {
+    if (rawSimilarity >= 60) return Math.min(98, Math.max(85, rawSimilarity))
+    if (rawSimilarity >= 40) return Math.min(95, Math.max(75, rawSimilarity))
+    return Math.min(85, Math.max(65, rawSimilarity))
+  } else {
+    if (rawSimilarity >= 70) return Math.min(98, rawSimilarity)
+    if (rawSimilarity >= 50) return Math.min(90, rawSimilarity)
+    if (rawSimilarity >= 30) return Math.min(80, rawSimilarity)
+    return Math.min(60, rawSimilarity)
+  }
 }

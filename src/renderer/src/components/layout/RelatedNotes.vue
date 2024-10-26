@@ -11,7 +11,7 @@
         >
           <div class="note-header">
             <div class="note-address">{{ note.address }}</div>
-            <div class="similarity">相似度: {{ (note.similarity * 100).toFixed(1) }}%</div>
+            <div class="similarity">相似度: {{ note.similarity.toFixed(1) }}%</div>
           </div>
           <div class="note-preview">
             <TipTapRender :content="note.content" />
@@ -63,14 +63,6 @@ const openNote = (noteId: string) => {
   router.push(`/note/${noteId}`)
 }
 
-// const getPreviewText = (content: any) => {
-//   // 实现提取预览文本的逻辑
-//   if (typeof content === 'string') {
-//     return content.slice(0, 100)
-//   }
-//   return content?.text || '暂无预览'
-// }
-
 watch(
   () => props.noteId,
   () => {
@@ -84,6 +76,8 @@ watch(
 
 <style scoped lang="scss">
 .related-notes {
+  height: 100%;
+  overflow-y: auto;
   .notes-list {
     display: flex;
     flex-direction: column;
