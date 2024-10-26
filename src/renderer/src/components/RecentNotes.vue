@@ -17,14 +17,14 @@
         class="recent-note-card"
         @click="openNote(note)"
       >
-        <StarredNotesCard :note="note" />
+        <StarredNotesCard :key="`${note.id}-${note.updatedAt}`" :note="note" />
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useNoteStore } from '../stores/noteStores'
 import { useRouter } from 'vue-router'
 import { Down, Right } from '@icon-park/vue-next'
@@ -34,6 +34,18 @@ import { Note } from '@renderer/types/Note'
 const noteStore = useNoteStore()
 const router = useRouter()
 const isExpanded = ref(true)
+
+// 添加这段代码
+onMounted(async () => {
+  if (noteStore.recentNotes.length > 0 && noteStore.notes.length === 0) {
+    const notes = await Promise.all(
+      noteStore.recentNotes.map((id) => window.electronAPI.getNote(id))
+    )
+    notes.forEach((note) => {
+      if (note) noteStore.notes.push(note)
+    })
+  }
+})
 
 const recentNotes = computed(() => noteStore.recentNotesList)
 

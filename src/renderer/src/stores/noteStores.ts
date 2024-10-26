@@ -3,7 +3,7 @@
 import { defineStore } from 'pinia'
 import { Note, Whiteboard, Connection, CardBox } from '../types/Note'
 import { Notes, Table, TransactionOrder, Deeplink } from '@icon-park/vue-next'
-import { createApp, ref } from 'vue'
+import { computed, createApp, ref } from 'vue'
 import { useUIStore } from './useUIStore'
 import { debounce } from 'lodash-es'
 import { Editor } from '@tiptap/vue-3'
@@ -541,7 +541,14 @@ export const useNoteStore = defineStore('note', {
         eventBus.emit(updatedNote)
         // 如果是星标笔记，更新 starredNotes
         if (updatedNote.isStarred) {
-          this.starredNotes = this.starredNotes.map((note) => (note.id === id ? updatedNote : note))
+          const starredIndex = this.starredNotes.findIndex((note) => note.id === id)
+
+          if (starredIndex !== -1) {
+            // 创建新的数组以触发响应式更新
+            const newStarredNotes = [...this.starredNotes]
+            newStarredNotes[starredIndex] = { ...updatedNote }
+            this.starredNotes = newStarredNotes
+          }
         }
 
         console.log('现在的 notes 是', this.notes)
@@ -1080,9 +1087,12 @@ export const useNoteStore = defineStore('note', {
   getters: {
     // 获取最近访问的笔记
     recentNotesList(): Note[] {
-      return this.recentNotes
-        .map((id) => this.notes.find((note) => note.id === id))
-        .filter(Boolean) as Note[]
+      return computed(
+        () =>
+          this.recentNotes
+            .map((id) => this.notes.find((note) => note.id === id))
+            .filter(Boolean) as Note[]
+      ).value
     },
     // 获取笔记地址
     getNoteAddress: (state) => {

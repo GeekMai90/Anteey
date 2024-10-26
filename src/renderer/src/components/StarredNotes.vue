@@ -38,7 +38,11 @@
       <template #item="{ element }">
         <div class="starred-note-card" @contextmenu.prevent="openContextMenu($event, element)">
           <div class="starred-note-content">
-            <StarredNotesCard :note="element" @dblclick="openNote(element)" />
+            <StarredNotesCard
+              :key="`${element.id}-${element.updatedAt}`"
+              :note="element"
+              @dblclick="openNote(element)"
+            />
           </div>
         </div>
       </template>
@@ -47,7 +51,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, markRaw, onMounted, ref, shallowRef, watch } from 'vue'
+import { markRaw, onMounted, ref, watch } from 'vue'
 import { Right, Down, Star } from '@icon-park/vue-next'
 import { useNoteStore } from '../stores/noteStores'
 import { Note } from '@renderer/types/Note'
@@ -55,27 +59,33 @@ import { useRouter } from 'vue-router'
 import StarredNotesCard from './StarredNotesCard.vue'
 import draggable from 'vuedraggable'
 import { useContextMenuStore } from '../stores/contextMenuStore'
+import { storeToRefs } from 'pinia'
 
 // 初始化必要的 store 和路由
 const noteStore = useNoteStore()
 const router = useRouter()
 // 控制列表展开/折叠状态
 const isExpanded = ref(true)
-// 使用 shallowRef 优化性能，因为不需要深层响应性
-const localStarredNotes = shallowRef<Note[]>([])
 
+const localStarredNotes = ref<Note[]>([])
+
+const fetchStarredNotes = async () => {
+  await noteStore.fetchStarredNotes()
+}
 // 组件挂载时获取星标笔记列表
 onMounted(async () => {
-  await noteStore.fetchStarredNotes()
+  await fetchStarredNotes()
 })
 
-// 计算属性：获取 store 中的星标笔记
-const starredNotes = computed(() => noteStore.starredNotes)
+// 计算属性：获取 store 中的星标笔记，并保持响应式
+const { starredNotes } = storeToRefs(noteStore)
 
 // 监听星标笔记变化，更新本地列表并按顺序排序
+
 watch(
   starredNotes,
   (newStarredNotes) => {
+    console.log('StarredNotes.vue→ 监听星标笔记变化', newStarredNotes)
     localStarredNotes.value = [...newStarredNotes].sort(
       (a, b) => (a.starredOrder ?? 0) - (b.starredOrder ?? 0)
     )
