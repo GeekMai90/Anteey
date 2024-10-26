@@ -89,12 +89,12 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { useNoteStore } from '../stores/noteStores'
-import AppToolbar from '../components/AppToolbar.vue'
-import TrashNoteCard from '../components/TrashNoteCard.vue'
-import ConfirmDialog from '../components/ConfirmDialog.vue'
+import { useNoteStore } from '@renderer/stores/noteStores'
+import AppToolbar from '@renderer/components/layout/AppToolbar.vue'
+import TrashNoteCard from '@renderer/components/note/TrashNoteCard.vue'
+import ConfirmDialog from '@renderer/components/common/ConfirmDialog.vue'
 import { SortTwo, Recycling, Delete, Clear, RecycleBin } from '@icon-park/vue-next'
-import { Note } from '../types/Note'
+import { Note } from '@renderer/types/Note'
 
 const noteStore = useNoteStore()
 const deletedNotes = ref<Note[]>([])

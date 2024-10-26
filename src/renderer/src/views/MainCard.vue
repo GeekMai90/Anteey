@@ -272,8 +272,8 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
-import { useNoteStore } from '../stores/noteStores'
-import AppToolbar from '../components/AppToolbar.vue'
+import { useNoteStore } from '@renderer/stores/noteStores'
+import AppToolbar from '@renderer/components/layout/AppToolbar.vue'
 import {
   SortTwo,
   InboxIn,
@@ -287,8 +287,8 @@ import {
   Close,
   Notes
 } from '@icon-park/vue-next'
-import { CardBox, Note } from '../types/Note'
-import CardBoxNoteCard from '../components/CardboxNoteCard.vue'
+import { CardBox, Note } from '@renderer/types/Note'
+import CardBoxNoteCard from '@renderer/components/cardbox/CardboxNoteCard.vue'
 import { storeToRefs } from 'pinia'
 // import { useCardBoxSearch } from '../composables/useCardBoxSearch'
 import { useDebounceFn, useEventBus, useThrottleFn } from '@vueuse/core'

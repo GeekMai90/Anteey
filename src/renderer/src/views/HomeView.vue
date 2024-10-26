@@ -68,9 +68,9 @@
 <script setup lang="ts">
 import { ref, onMounted, computed, watchEffect } from 'vue'
 import { CalendarHeatmap, TooltipFormatter, CalendarItem } from 'vue3-calendar-heatmap'
-import DailyCardPick from '../components/DailyCardPick.vue'
-import { useWhiteboardStore } from '../stores/whiteboardStores'
-import { useNoteStore } from '../stores/noteStores'
+import DailyCardPick from '@renderer/components/home/DailyCardPick.vue'
+import { useWhiteboardStore } from '@renderer/stores/whiteboardStores'
+import { useNoteStore } from '@renderer/stores/noteStores'
 
 const whiteboardStore = useWhiteboardStore()
 const noteStore = useNoteStore()

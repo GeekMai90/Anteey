@@ -85,15 +85,15 @@
 </template>
 
 <script setup lang="ts">
-import { useNoteStore } from '../stores/noteStores'
+import { useNoteStore } from '@renderer/stores/noteStores'
 import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue'
 import { storeToRefs } from 'pinia'
 import { Time as TimeIcon, Calendar, RocketOne } from '@icon-park/vue-next'
-import AppToolbar from '../components/AppToolbar.vue'
-import CalendarPicker from '../components/CalendarPicker.vue'
-import { useUIStore } from '../stores/useUIStore'
+import AppToolbar from '@renderer/components/layout/AppToolbar.vue'
+import CalendarPicker from '@renderer/components/timelineView/CalendarPicker.vue'
+import { useUIStore } from '@renderer/stores/useUIStore'
 import { Note } from '@renderer/types/Note'
-import NoteCard from '../components/NoteCard.vue'
+import NoteCard from '@renderer/components/note/NoteCard.vue'
 import { useVirtualList } from '@vueuse/core'
 import { useEventBus } from '@vueuse/core'
 import { debounce } from 'lodash-es'

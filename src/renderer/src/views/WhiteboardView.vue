@@ -106,10 +106,10 @@
 
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
-import AppToolbar from '../components/AppToolbar.vue'
+import AppToolbar from '@renderer/components/layout/AppToolbar.vue'
 import { SortTwo, Workbench, Plus, Search, Close } from '@icon-park/vue-next'
 import { useWhiteboardStore } from '@renderer/stores/whiteboardStores'
-import WhiteboardCard from '@renderer/components/WhiteboardCard.vue'
+import WhiteboardCard from '@renderer/components/whiteboard/WhiteboardCard.vue'
 import { CreateWhiteboardInput } from '@renderer/types/Note'
 import { useSearch } from '@renderer/composables/useSearch'
 

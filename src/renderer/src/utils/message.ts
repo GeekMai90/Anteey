@@ -1,5 +1,5 @@
 import { createApp } from 'vue'
-import MessageToast from '../components/MessageToast.vue'
+import MessageToast from '../components/common/MessageToast.vue'
 
 export const message = {
   success(message: string, duration = 2000) {

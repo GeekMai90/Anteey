@@ -43,7 +43,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, markRaw, onUnmounted, computed, watch } from 'vue'
-import AppToolbar from '@renderer/components/AppToolbar.vue'
+import AppToolbar from '@renderer/components/layout/AppToolbar.vue'
 import { useRouter } from 'vue-router'
 import WhiteboardThumbnail from '@renderer/components/WhiteboardThumbnail.vue'
 import { useWhiteboardStore } from '@renderer/stores/whiteboardStores'

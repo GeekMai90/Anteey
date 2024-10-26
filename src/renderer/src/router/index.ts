@@ -37,7 +37,7 @@ const routes = [
   {
     name: 'whiteboardDetail',
     path: '/whiteboard/:whiteboardId', // 修改路径，保持一致性
-    component: () => import('../components/WhiteboardDetail.vue'),
+    component: () => import('../components/whiteboard/WhiteboardDetail.vue'),
     props: true, // 添加 props
     meta: {
       keepAlive: false,
@@ -76,7 +76,7 @@ const routes = [
   {
     name: 'temp',
     path: '/temp',
-    component: () => import('../components/EmptyComponent.vue'),
+    component: () => import('../components/common/EmptyComponent.vue'),
     meta: { keepAlive: false }
   }
 ]

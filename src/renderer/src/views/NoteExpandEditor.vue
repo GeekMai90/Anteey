@@ -98,18 +98,18 @@ import {
   reactive
 } from 'vue'
 import { useRoute } from 'vue-router'
-import { useNoteStore } from '../stores/noteStores'
-import { CardType, Note } from '../types/Note'
-import { formatDate } from '../utils/noteHelpers'
+import { useNoteStore } from '@renderer/stores/noteStores'
+import { CardType, Note } from '@renderer/types/Note'
+import { formatDate } from '@renderer/utils/noteHelpers'
 import { More, Install } from '@icon-park/vue-next'
-import TipTapEditor from '../components/TipTapEditor.vue'
-import CardboxDropdownMenu from '../components/CardboxDropdownMenu.vue'
-import AppToolbar from '../components/AppToolbar.vue'
+import TipTapEditor from '@renderer/components/tiptap/TipTapEditor.vue'
+import CardboxDropdownMenu from '@renderer/components/cardbox/CardboxDropdownMenu.vue'
+import AppToolbar from '@renderer/components/layout/AppToolbar.vue'
 import { debounce } from 'lodash-es'
-import PopupMenu from '../components/PopupMenu.vue'
-import { useNoteMenu } from '../composables/useNoteMenu'
-import type { MenuItem } from '../components/PopupMenu.vue'
-import CardTypeDropdownMenu from '../components/CardTypeDropdownMenu.vue'
+import PopupMenu from '@renderer/components/common/PopupMenu.vue'
+import { useNoteMenu } from '@renderer/composables/useNoteMenu'
+import type { MenuItem } from '@renderer/components/common/PopupMenu.vue'
+import CardTypeDropdownMenu from '@renderer/components/note/CardTypeDropdownMenu.vue'
 
 const tiptapEditor = ref<any>(null)
 const route = useRoute()

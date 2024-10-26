@@ -9,7 +9,7 @@ import { debounce } from 'lodash-es'
 import { Editor } from '@tiptap/vue-3'
 import { useEventBus } from '@vueuse/core'
 import { GetPaginatedNotesParams } from '../../../db/notes'
-import ShareNoteCard from '../components/ShareNotedCard.vue'
+import ShareNoteCard from '@renderer/components/share/ShareNotedCard.vue'
 import html2canvas from 'html2canvas'
 import { format } from 'date-fns'
 
