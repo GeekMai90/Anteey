@@ -10,7 +10,8 @@ import {
   WhiteboardGroup,
   Connection,
   ConnectionCreateData,
-  ConnectionUpdateData
+  ConnectionUpdateData,
+  RelatedNotesResult
 } from '../renderer/src/types/Note'
 import { GetPaginatedNotesParams } from '../db/notes'
 import { UpdateUserSettings, UserSettings } from '../renderer/src/types/UserSettings'
@@ -671,5 +672,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
       console.error('Preload: 更新用户设置失败:', error)
       throw error
     }
+  },
+  // 获取相关笔记
+  getRelatedNotes: async (noteId: string, limit: number): Promise<RelatedNotesResult> => {
+    return await ipcRenderer.invoke('get-related-notes', { noteId, limit })
   }
 })

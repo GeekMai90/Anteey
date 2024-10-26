@@ -1,17 +1,21 @@
 // src/stores/noteStores.ts
 
 import { defineStore } from 'pinia'
-import { Note, Whiteboard, Connection, CardBox } from '../types/Note'
+import {
+  Note,
+  Whiteboard,
+  Connection,
+  CardBox,
+  RelatedNotesResult,
+  RelatedNote
+} from '../types/Note'
 import { Notes, Table, TransactionOrder, Deeplink } from '@icon-park/vue-next'
-import { computed, createApp, ref } from 'vue'
+import { computed, ref } from 'vue'
 import { useUIStore } from './useUIStore'
 import { debounce } from 'lodash-es'
 import { Editor } from '@tiptap/vue-3'
 import { useEventBus } from '@vueuse/core'
 import { GetPaginatedNotesParams } from '../../../db/notes'
-import ShareNoteCard from '@renderer/components/share/ShareNotedCard.vue'
-import html2canvas from 'html2canvas'
-import { format } from 'date-fns'
 
 const cardTypes = [
   { value: 'Maincard', label: '主要卡', icon: Notes },
@@ -66,7 +70,8 @@ export const useNoteStore = defineStore('note', {
     lastDeletedNote: null as Note | null,
     starredNotes: [] as Note[],
     showShareModal: false,
-    shareNote: null as any
+    shareNote: null as any,
+    relatedNotes: [] as RelatedNote[]
   }),
 
   actions: {
@@ -108,8 +113,8 @@ export const useNoteStore = defineStore('note', {
     //   const container = document.createElement('div')
     //   container.style.position = 'fixed'
     //   container.style.left = '-9999px'
-    //   container.style.width = '375px' // 固定宽度
-    //   container.style.overflow = 'visible' // 允许溢出
+    //   container.style.width = '375px' // 设置固定宽度
+    //   container.style.overflow = 'visible' // 允许内容溢出
     //   document.body.appendChild(container)
 
     //   // 创建分享卡片实例
@@ -117,11 +122,16 @@ export const useNoteStore = defineStore('note', {
     //   app.mount(container)
 
     //   try {
-    //     await new Promise((resolve) => setTimeout(resolve, 100))
+    //     // 等待内容渲染完成
+    //     await new Promise((resolve) => setTimeout(resolve, 200)) // 增加等待时间确保渲染完成
+
     //     const canvas = await html2canvas(container.firstElementChild as HTMLElement, {
-    //       scale: 2,
+    //       scale: 2, // 保持清晰度
     //       useCORS: true,
-    //       backgroundColor: null
+    //       backgroundColor: null,
+    //       width: 375, // 设置画布宽度
+    //       height: container.firstElementChild?.clientHeight || 667,
+    //       windowWidth: 375 // 设置窗口宽度
     //     })
 
     //     const imgUrl = canvas.toDataURL('image/png')
@@ -136,46 +146,6 @@ export const useNoteStore = defineStore('note', {
     //     this.shareNote = null
     //   }
     // },
-    async handleExportImage() {
-      if (!this.shareNote) return
-
-      // 创建临时容器
-      const container = document.createElement('div')
-      container.style.position = 'fixed'
-      container.style.left = '-9999px'
-      container.style.width = '375px' // 设置固定宽度
-      container.style.overflow = 'visible' // 允许内容溢出
-      document.body.appendChild(container)
-
-      // 创建分享卡片实例
-      const app = createApp(ShareNoteCard, { note: this.shareNote })
-      app.mount(container)
-
-      try {
-        // 等待内容渲染完成
-        await new Promise((resolve) => setTimeout(resolve, 200)) // 增加等待时间确保渲染完成
-
-        const canvas = await html2canvas(container.firstElementChild as HTMLElement, {
-          scale: 2, // 保持清晰度
-          useCORS: true,
-          backgroundColor: null,
-          width: 375, // 设置画布宽度
-          height: container.firstElementChild?.clientHeight || 667,
-          windowWidth: 375 // 设置窗口宽度
-        })
-
-        const imgUrl = canvas.toDataURL('image/png')
-        const link = document.createElement('a')
-        link.download = `note-${format(new Date(), 'yyyyMMddHHmm')}.png`
-        link.href = imgUrl
-        link.click()
-      } finally {
-        app.unmount()
-        document.body.removeChild(container)
-        this.showShareModal = false
-        this.shareNote = null
-      }
-    },
     // 初始化
     async initializeStore() {
       await this.preloadFirstPage() // 预加载第一页笔记
@@ -184,6 +154,27 @@ export const useNoteStore = defineStore('note', {
       setTimeout(() => {
         this.isLoading = false
       }, 2000)
+    },
+
+    // 获取相关笔记
+    async getRelatedNotes(noteId: string, limit: number): Promise<RelatedNotesResult> {
+      try {
+        const result = await window.electronAPI.getRelatedNotes(noteId, limit)
+
+        // 可以选择更新状态
+        if (result.success) {
+          this.relatedNotes = result.notes
+        }
+
+        return result
+      } catch (error) {
+        console.error('noteStores.ts→ 获取相关笔记失败:', error)
+        return {
+          success: false,
+          notes: [],
+          error: error instanceof Error ? error.message : String(error)
+        }
+      }
     },
 
     // 搜索笔记列表

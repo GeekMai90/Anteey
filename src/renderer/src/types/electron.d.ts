@@ -9,7 +9,8 @@ import {
   RootWhiteboard,
   Connection,
   WhiteboardGroup,
-  ConnectionCreateData
+  ConnectionCreateData,
+  RelatedNotesResult
 } from './Note'
 import { UpdateUserSettings, UserSettings } from './UserSettings'
 
@@ -119,6 +120,7 @@ export interface ElectronAPI {
   getAllDeletedNotes: () => Promise<Note[]>
   getUserSettings: () => Promise<UserSettings>
   updateUserSettings: (settings: UpdateUserSettings) => Promise<UserSettings>
+  getRelatedNotes: (noteId: string, limit: number) => Promise<RelatedNotesResult>
 }
 
 declare global {

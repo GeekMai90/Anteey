@@ -3,6 +3,24 @@
 // 定义卡片类型
 export type CardType = 'Maincard' | 'Bibcard' | 'Indexcard' | 'Hoplinkcard'
 
+// 关键词接口
+export interface Keyword {
+  word: string
+  weight: number
+}
+
+// 相关笔记接口（扩展 Note 接口）
+export interface RelatedNote extends Note {
+  similarity: number
+}
+
+// 相关笔记查询结果接口
+export interface RelatedNotesResult {
+  success: boolean
+  notes: RelatedNote[]
+  error?: string // 添加可选的错误信息字段
+}
+
 // 卡片笔记
 export interface Note {
   id: string
@@ -21,6 +39,7 @@ export interface Note {
   isStarred?: boolean
   starredOrder?: number
   rightBarOrder?: number
+  keywords?: Keyword[] // 存储提取的关键词
 }
 
 // 卡片盒（文件夹）
