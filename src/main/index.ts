@@ -44,7 +44,8 @@ import {
   getUserUsageDays,
   getRandomNotes,
   moveEmptyNotesToTrash,
-  getAllDeletedNotes
+  getAllDeletedNotes,
+  getRelatedNotes
 } from '../db/notes'
 import { createCardBox, getAllCardBoxes, updateCardBox, deleteCardBox } from '../db/cardBoxes'
 import {
@@ -221,6 +222,19 @@ function createCustomMenu() {
 }
 
 function setupIpcHandlers() {
+  // 获取相关笔记
+  ipcMain.handle('get-related-notes', async (_event, { noteId, limit }) => {
+    console.log('主进程 → 收到获取相关笔记请求:', { noteId, limit })
+
+    try {
+      const relatedNotes = await getRelatedNotes(noteId, limit)
+      return { success: true, notes: relatedNotes }
+    } catch (error) {
+      console.error('主进程 → 获取相关笔记失败:', error)
+      return { success: false, error: error }
+    }
+  })
+
   // 获取用户设置
   ipcMain.handle('get-user-settings', async () => {
     try {

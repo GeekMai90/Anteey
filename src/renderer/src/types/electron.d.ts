@@ -119,6 +119,7 @@ export interface ElectronAPI {
   getAllDeletedNotes: () => Promise<Note[]>
   getUserSettings: () => Promise<UserSettings>
   updateUserSettings: (settings: UpdateUserSettings) => Promise<UserSettings>
+  getRelatedNotes: (noteId: string, limit: number) => Promise<Note[]>
 }
 
 declare global {

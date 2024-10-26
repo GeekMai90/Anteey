@@ -1,6 +1,8 @@
 import { db } from './config'
-import { Note } from '../renderer/src/types/Note'
+import { Keyword, Note } from '../renderer/src/types/Note'
 import { v4 as uuidv4 } from 'uuid'
+import { extractKeywords } from '../renderer/src/utils/keywordExtractor'
+import { calculateSimilarity } from '../renderer/src/utils/noteSililarity'
 
 // 辅助函数：将数据库记录转换为 Note 对象
 function convertToNote(record: any): Note {
@@ -20,9 +22,57 @@ function convertToNote(record: any): Note {
     isDeleted: record.isDeleted,
     isStarred: record.isStarred,
     starredOrder: record.starredOrder,
-    rightBarOrder: record.rightBarOrder
+    rightBarOrder: record.rightBarOrder,
+    keywords: record.keywords ? (JSON.parse(record.keywords) as Keyword[]) : []
   }
 }
+
+// 获取相关笔记
+export async function getRelatedNotes(noteId: string, limit: number = 5): Promise<Note[]> {
+  try {
+    console.log('后端→ 开始查找相关笔记:', noteId)
+
+    // 1. 获取当前笔记
+    const currentNote = await db('notes').where('id', noteId).first()
+    if (!currentNote) {
+      throw new Error(`Note with ID "${noteId}" not found`)
+    }
+
+    // 2. 解析当前笔记的关键词
+    const currentKeywords = JSON.parse(currentNote.keywords || '[]')
+    if (!currentKeywords.length) {
+      console.log('后端→ 当前笔记没有关键词')
+      return []
+    }
+
+    // 3. 获取所有其他未删除的笔记
+    const allNotes = await db('notes')
+      .where('id', '!=', noteId)
+      .andWhere('isDeleted', false)
+      .select('*')
+
+    // 4. 计算相似度并排序
+    const notesWithSimilarity = allNotes
+      .map((note) => {
+        const noteKeywords = JSON.parse(note.keywords || '[]')
+        return {
+          note: convertToNote(note),
+          similarity: calculateSimilarity(currentKeywords, noteKeywords)
+        }
+      })
+      .filter((item) => item.similarity > 0)
+      .sort((a, b) => b.similarity - a.similarity)
+      .slice(0, limit)
+
+    console.log(`后端→ 找到 ${notesWithSimilarity.length} 个相关笔记`)
+
+    return notesWithSimilarity.map((item) => item.note)
+  } catch (error) {
+    console.error('后端→ 查找相关笔记失败:', error)
+    throw error
+  }
+}
+
 //所有已删除的笔记
 export async function getAllDeletedNotes(): Promise<Note[]> {
   try {
@@ -540,6 +590,107 @@ export async function updateNoteContent(id: string, content: any): Promise<Note>
 }
 
 //更新笔记
+// export async function updateNote(id: string, updateNoteDto: Partial<Note>): Promise<Note> {
+//   console.log(`后端→ 开始更新笔记 ID: ${id}`)
+//   console.log('后端→ 更新数据:', JSON.stringify(updateNoteDto))
+
+//   return db.transaction(async (trx) => {
+//     try {
+//       // 1. 查找笔记
+//       const note = await trx('notes').where({ id }).first()
+
+//       if (!note) {
+//         console.error(`后端→ 未找到ID为 ${id} 的笔记`)
+//         throw new Error(`Note with ID "${id}" not found`)
+//       }
+
+//       console.log('后端→ 找到的原始笔记:', JSON.stringify(note))
+
+//       // 2. 准备更新数据
+//       const updateData: any = {}
+
+//       const fields = ['address', 'cardType', 'tags', 'linkedTo', 'linkedFrom', 'parentId']
+//       fields.forEach((field) => {
+//         if (updateNoteDto[field as keyof Partial<Note>] !== undefined) {
+//           ;(updateData as any)[field] = updateNoteDto[field as keyof Partial<Note>]
+//         }
+//       })
+
+//       if (updateNoteDto.content !== undefined) {
+//         try {
+//           updateData.content =
+//             typeof updateNoteDto.content === 'string'
+//               ? JSON.parse(updateNoteDto.content)
+//               : updateNoteDto.content
+//           console.log('后端→ 更新内容:', JSON.stringify(updateData.content))
+//         } catch (error) {
+//           console.error('后端→ 解析内容时出错:', error)
+//           throw new Error('Invalid content format')
+//         }
+//       }
+//       // 如果内容更新了，重新提取关键词
+//       if (updateNoteDto.content !== undefined) {
+//         try {
+//           updateData.content =
+//             typeof updateNoteDto.content === 'string'
+//               ? JSON.parse(updateNoteDto.content)
+//               : updateNoteDto.content
+
+//           // 提取关键词
+//           const keywords: Keyword[] = extractKeywords(updateData.content)
+//           updateData.keywords = JSON.stringify(keywords)
+
+//           console.log('后端→ 更新内容和关键词:', {
+//             content: JSON.stringify(updateData.content),
+//             keywords: updateData.keywords
+//           })
+//         } catch (error) {
+//           console.error('后端→ 解析内容或提取关键词时出错:', error)
+//           throw new Error('Invalid content format')
+//         }
+//       }
+
+//       // 3. 更新时间戳
+//       updateData.updatedAt = new Date()
+
+//       // 4. 保存更新
+//       console.log('后端→ 更新后的笔记（保存前）:', JSON.stringify({ ...note, ...updateData }))
+
+//       // 确保 content 字段在存储到数据库之前被转换为 JSON 字符串
+//       if (updateData.content) {
+//         updateData.content = JSON.stringify(updateData.content) as any
+//       }
+
+//       // 处理数组字段
+//       ;['tags', 'linkedTo', 'linkedFrom'].forEach((field) => {
+//         if (Array.isArray(updateData[field as keyof Partial<Note>])) {
+//           ;(updateData as any)[field] = JSON.stringify(updateData[field as keyof Partial<Note>])
+//         }
+//       })
+
+//       const [updatedNote] = await trx('notes').where({ id }).update(updateData).returning('*')
+
+//       // 解析返回的数据
+//       if (typeof updatedNote.content === 'string') {
+//         updatedNote.content = JSON.parse(updatedNote.content)
+//       }
+
+//       // 解析数组字段
+//       ;['tags', 'linkedTo', 'linkedFrom'].forEach((field) => {
+//         if (typeof updatedNote[field] === 'string') {
+//           updatedNote[field] = JSON.parse(updatedNote[field])
+//         }
+//       })
+
+//       console.log('后端→ 保存后的笔记:', JSON.stringify(updatedNote))
+//       return updatedNote
+//     } catch (error) {
+//       console.error('后端→ 更新笔记事务失败:', error)
+//       throw error
+//     }
+//   })
+// }
+
 export async function updateNote(id: string, updateNoteDto: Partial<Note>): Promise<Note> {
   console.log(`后端→ 开始更新笔记 ID: ${id}`)
   console.log('后端→ 更新数据:', JSON.stringify(updateNoteDto))
@@ -557,24 +708,35 @@ export async function updateNote(id: string, updateNoteDto: Partial<Note>): Prom
       console.log('后端→ 找到的原始笔记:', JSON.stringify(note))
 
       // 2. 准备更新数据
-      const updateData: Partial<Note> = {}
+      const updateData: any = {}
 
+      // 处理基础字段
       const fields = ['address', 'cardType', 'tags', 'linkedTo', 'linkedFrom', 'parentId']
       fields.forEach((field) => {
         if (updateNoteDto[field as keyof Partial<Note>] !== undefined) {
-          ;(updateData as any)[field] = updateNoteDto[field as keyof Partial<Note>]
+          updateData[field] = updateNoteDto[field as keyof Partial<Note>]
         }
       })
 
+      // 处理内容和关键词
       if (updateNoteDto.content !== undefined) {
         try {
+          // 解析或直接使用内容
           updateData.content =
             typeof updateNoteDto.content === 'string'
               ? JSON.parse(updateNoteDto.content)
               : updateNoteDto.content
-          console.log('后端→ 更新内容:', JSON.stringify(updateData.content))
+
+          // 提取关键词
+          const keywords: Keyword[] = extractKeywords(updateData.content)
+          updateData.keywords = JSON.stringify(keywords)
+
+          console.log('后端→ 更新内容和关键词:', {
+            content: JSON.stringify(updateData.content),
+            keywords: updateData.keywords
+          })
         } catch (error) {
-          console.error('后端→ 解析内容时出错:', error)
+          console.error('后端→ 解析内容或提取关键词时出错:', error)
           throw new Error('Invalid content format')
         }
       }
@@ -582,32 +744,35 @@ export async function updateNote(id: string, updateNoteDto: Partial<Note>): Prom
       // 3. 更新时间戳
       updateData.updatedAt = new Date()
 
-      // 4. 保存更新
+      // 4. 保存更新前的数据处理
       console.log('后端→ 更新后的笔记（保存前）:', JSON.stringify({ ...note, ...updateData }))
 
-      // 确保 content 字段在存储到数据库之前被转换为 JSON 字符串
+      // 将 content 转换为 JSON 字符串
       if (updateData.content) {
-        updateData.content = JSON.stringify(updateData.content) as any
+        updateData.content = JSON.stringify(updateData.content)
       }
 
-      // 处理数组字段
-      ;['tags', 'linkedTo', 'linkedFrom'].forEach((field) => {
-        if (Array.isArray(updateData[field as keyof Partial<Note>])) {
-          ;(updateData as any)[field] = JSON.stringify(updateData[field as keyof Partial<Note>])
+      // 处理所有需要 JSON 序列化的字段
+      const jsonFields = ['tags', 'linkedTo', 'linkedFrom']
+      jsonFields.forEach((field) => {
+        if (Array.isArray(updateData[field])) {
+          updateData[field] = JSON.stringify(updateData[field])
         }
       })
 
+      // 5. 执行更新
       const [updatedNote] = await trx('notes').where({ id }).update(updateData).returning('*')
 
-      // 解析返回的数据
-      if (typeof updatedNote.content === 'string') {
-        updatedNote.content = JSON.parse(updatedNote.content)
-      }
-
-      // 解析数组字段
-      ;['tags', 'linkedTo', 'linkedFrom'].forEach((field) => {
+      // 6. 处理返回数据
+      // 解析 JSON 字符串字段
+      const parseFields = ['content', 'tags', 'linkedTo', 'linkedFrom', 'keywords']
+      parseFields.forEach((field) => {
         if (typeof updatedNote[field] === 'string') {
-          updatedNote[field] = JSON.parse(updatedNote[field])
+          try {
+            updatedNote[field] = JSON.parse(updatedNote[field])
+          } catch (error) {
+            console.error(`后端→ 解析 ${field} 字段失败:`, error)
+          }
         }
       })
 

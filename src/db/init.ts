@@ -3,6 +3,27 @@ import { v4 as uuidv4 } from 'uuid'
 
 export async function initDatabase(db: Knex): Promise<void> {
   // 创建 notes 表
+  // if (!(await db.schema.hasTable('notes'))) {
+  //   await db.schema.createTable('notes', (table) => {
+  //     table.string('id').primary()
+  //     table.string('type').notNullable().defaultTo('note')
+  //     table.string('address').notNullable()
+  //     table.string('cardType').notNullable().defaultTo('Maincard')
+  //     table.json('content').notNullable()
+  //     table.datetime('createdAt').notNullable()
+  //     table.datetime('updatedAt').notNullable()
+  //     table.json('tags').notNullable()
+  //     table.json('linkedTo').notNullable()
+  //     table.json('linkedFrom').notNullable()
+  //     table.string('cardBoxId').nullable().index()
+  //     table.string('parentId').nullable().index()
+  //     table.boolean('isDeleted').notNullable().defaultTo(false)
+  //     table.boolean('isStarred').notNullable().defaultTo(false)
+  //     table.integer('starredOrder').nullable()
+  //     table.integer('rightBarOrder').nullable()
+  //   })
+  //   console.log('notes 表创建成功')
+  // }
   if (!(await db.schema.hasTable('notes'))) {
     await db.schema.createTable('notes', (table) => {
       table.string('id').primary()
@@ -21,8 +42,19 @@ export async function initDatabase(db: Knex): Promise<void> {
       table.boolean('isStarred').notNullable().defaultTo(false)
       table.integer('starredOrder').nullable()
       table.integer('rightBarOrder').nullable()
+      // 新增字段
+      table.json('keywords').nullable() // 存储关键词数组
     })
     console.log('notes 表创建成功')
+  } else {
+    // 检查是否需要添加 keywords 列
+    const hasKeywordsColumn = await db.schema.hasColumn('notes', 'keywords')
+    if (!hasKeywordsColumn) {
+      await db.schema.table('notes', (table) => {
+        table.json('keywords').nullable()
+      })
+      console.log('notes 表添加 keywords 列成功')
+    }
   }
 
   // 创建 cardboxes 表
