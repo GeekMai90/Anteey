@@ -2,34 +2,41 @@
   <div class="right-sidebar" :style="{ width: `${sidebarWidth}px` }">
     <div class="resize-handle" @mousedown="startResize"></div>
     <div class="sidebar-header">
-      <div class="toolbar-section left"></div>
-      <div class="toolbar-section right">
-        <div class="clear-button" @click="clearSidebarNotes">
+      <!-- Tab 切换按钮 -->
+      <div class="tabs-container">
+        <div
+          v-for="tab in tabs"
+          :key="tab.key"
+          class="tab-item"
+          :class="{ active: currentTab === tab.key }"
+          @click="currentTab = tab.key"
+        >
           <div class="icon">
-            <Clear theme="outline" size="20" fill="#b6b6b6" :stroke-width="3" />
+            <component
+              :is="tab.icon"
+              theme="outline"
+              size="18"
+              :fill="currentTab === tab.key ? 'var(--color-primary)' : '#b6b6b6'"
+            />
           </div>
+          <span>{{ tab.label }}</span>
         </div>
       </div>
     </div>
+
+    <!-- 内容区域 -->
     <div class="sidebar-content">
-      <div v-for="note in sidebarNotes" :key="note.id" class="sidebar-note">
-        <div class="note-content">
-          <RightSidebarNoteEditor
-            ref="noteEditorRef"
-            :noteId="note.id"
-            @close="noteStore.closeNoteEditor"
-          />
-        </div>
-      </div>
+      <component :is="currentComponent" :noteId="currentNoteId" />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
-import { useNoteStore } from '@renderer/stores/noteStores'
-import RightSidebarNoteEditor from '@renderer/components/layout/RightSidebarNoteEditor.vue'
-import { Clear } from '@icon-park/vue-next'
+import { ref, computed } from 'vue'
+import { useRoute } from 'vue-router'
+import { Split, Connection } from '@icon-park/vue-next'
+import MultiNotes from '@renderer/components/layout/MultiNotes.vue'
+import RelatedNotes from '@renderer/components/layout/RelatedNotes.vue'
 
 const props = defineProps<{
   initialWidth?: number
@@ -37,14 +44,39 @@ const props = defineProps<{
 
 const emit = defineEmits(['resize'])
 
-const noteStore = useNoteStore()
-
 const sidebarWidth = ref(props.initialWidth || 400)
-const sidebarNotes = computed(() => noteStore.rightSidebarNotes)
-const clearSidebarNotes = () => {
-  noteStore.clearRightSidebarNotes()
-}
+const currentTab = ref('multi')
+const route = useRoute()
 
+// 定义可用的 tabs
+const tabs = [
+  {
+    key: 'multi',
+    label: '多开笔记',
+    icon: Split,
+    component: MultiNotes
+  },
+  {
+    key: 'related',
+    label: '相关笔记',
+    icon: Connection,
+    component: RelatedNotes
+  }
+]
+
+// 获取当前打开的笔记 ID
+const currentNoteId = computed(() => {
+  const id = route.params.id
+  return typeof id === 'string' ? id : null
+})
+
+// 当前应该显示的组件
+const currentComponent = computed(() => {
+  const tab = tabs.find((t) => t.key === currentTab.value)
+  return tab?.component
+})
+
+// 处理侧边栏宽度调整
 const startResize = (e: MouseEvent) => {
   e.preventDefault()
   const startX = e.clientX
@@ -65,10 +97,6 @@ const startResize = (e: MouseEvent) => {
   window.addEventListener('mousemove', resize)
   window.addEventListener('mouseup', stopResize)
 }
-
-watch(sidebarWidth, (newWidth) => {
-  emit('resize', newWidth)
-})
 </script>
 
 <style scoped lang="scss">
@@ -91,141 +119,42 @@ watch(sidebarWidth, (newWidth) => {
   }
 
   .sidebar-header {
-    padding: 0 10px; // 使用padding来控制高度，而不是固定高度
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    min-height: 40px; // 使用最小高度而不是固定高度
-    box-sizing: border-box;
-    .toolbar-section {
-      display: flex;
-      align-items: center;
-      position: relative;
-      display: flex;
-      align-items: center;
-      border: none;
-      background: none;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      border-radius: 6px;
-      padding: 4px 4px;
-      margin: 2px;
-
-      .icon {
-        background: none;
-        border: none;
-        cursor: pointer;
-        width: 24px;
-        height: 24px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        transition: all 0.2s ease;
-        padding: 0;
-
-        // &:hover:not(:disabled) {
-        //   background-color: rgba(0, 0, 0, 0.05);
-        // }
-
-        &:disabled {
-          opacity: 0.5;
-          cursor: not-allowed;
-        }
-
-        :deep(.i-icon) {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          width: 100%;
-          height: 100%;
-        }
-
-        :deep(svg) {
-          width: 18px;
-          height: 18px;
-        }
-      }
-
-      .name {
-        flex-grow: 0;
-        text-align: left;
-        color: var(--color-text-primary);
-        font-size: 13px;
-        font-weight: 400;
-        margin-left: 6px;
-        white-space: nowrap;
-        writing-mode: horizontal-tb;
-      }
-
-      &:hover {
-        background-color: var(--color-hover-button);
-      }
-
-      &:active {
-        background-color: rgba(0, 0, 0, 0.1);
-      }
-    }
+    padding: 8px;
+    border-bottom: 1px solid var(--color-border);
   }
 
-  .search-bar {
-    padding: 10px;
+  .tabs-container {
+    display: flex;
+    gap: 8px;
 
-    input {
-      width: 100%;
-      padding: 8px;
-      border: 1px solid var(--color-border);
-      border-radius: 4px;
-      background-color: var(--color-bg-input);
-      color: var(--color-text-primary);
+    .tab-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      user-select: none;
 
-      &::placeholder {
-        color: var(--color-text-secondary);
+      &:hover {
+        background-color: var(--color-hover-bg);
       }
 
-      &:focus {
-        outline: none;
-        border-color: var(--color-primary);
+      &.active {
+        color: var(--color-primary);
+        background-color: var(--color-menu-active-bg);
+      }
+
+      span {
+        font-size: 13px;
       }
     }
   }
 
   .sidebar-content {
-    flex-grow: 1;
-    overflow-y: auto;
-    padding: 10px 15px;
-  }
-
-  .sidebar-note {
-    margin-bottom: 10px;
-    border-radius: 4px;
+    flex: 1;
     overflow: hidden;
-
-    .note-footer {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 10px;
-      border-top: 1px solid var(--color-border);
-      background-color: var(--color-bg-secondary);
-
-      .info-icon {
-        color: var(--color-text-secondary);
-      }
-
-      .show-button {
-        padding: 5px 10px;
-        background-color: var(--color-bg-button);
-        border: none;
-        border-radius: 4px;
-        cursor: pointer;
-        color: var(--color-text-button);
-        transition: background-color 0.2s ease;
-
-        &:hover {
-          background-color: var(--color-bg-button-hover);
-        }
-      }
-    }
   }
 }
 

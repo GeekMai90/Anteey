@@ -1,5 +1,5 @@
 import { db } from './config'
-import { Keyword, Note } from '../renderer/src/types/Note'
+import { Keyword, Note, RelatedNote, RelatedNotesResult } from '../renderer/src/types/Note'
 import { v4 as uuidv4 } from 'uuid'
 import { extractKeywords } from '../renderer/src/utils/keywordExtractor'
 import { calculateSimilarity } from '../renderer/src/utils/noteSililarity'
@@ -28,7 +28,10 @@ function convertToNote(record: any): Note {
 }
 
 // 获取相关笔记
-export async function getRelatedNotes(noteId: string, limit: number = 5): Promise<Note[]> {
+export async function getRelatedNotes(
+  noteId: string,
+  limit: number = 5
+): Promise<RelatedNotesResult> {
   try {
     console.log('后端→ 开始查找相关笔记:', noteId)
 
@@ -42,7 +45,7 @@ export async function getRelatedNotes(noteId: string, limit: number = 5): Promis
     const currentKeywords = JSON.parse(currentNote.keywords || '[]')
     if (!currentKeywords.length) {
       console.log('后端→ 当前笔记没有关键词')
-      return []
+      return { success: true, notes: [] }
     }
 
     // 3. 获取所有其他未删除的笔记
@@ -55,10 +58,13 @@ export async function getRelatedNotes(noteId: string, limit: number = 5): Promis
     const notesWithSimilarity = allNotes
       .map((note) => {
         const noteKeywords = JSON.parse(note.keywords || '[]')
+        const baseNote = convertToNote(note)
+        const similarity = calculateSimilarity(currentKeywords, noteKeywords)
+
         return {
-          note: convertToNote(note),
-          similarity: calculateSimilarity(currentKeywords, noteKeywords)
-        }
+          ...baseNote, // 展开基础笔记属性
+          similarity // 添加相似度属性
+        } as RelatedNote
       })
       .filter((item) => item.similarity > 0)
       .sort((a, b) => b.similarity - a.similarity)
@@ -66,10 +72,16 @@ export async function getRelatedNotes(noteId: string, limit: number = 5): Promis
 
     console.log(`后端→ 找到 ${notesWithSimilarity.length} 个相关笔记`)
 
-    return notesWithSimilarity.map((item) => item.note)
+    return {
+      success: true,
+      notes: notesWithSimilarity
+    }
   } catch (error) {
     console.error('后端→ 查找相关笔记失败:', error)
-    throw error
+    return {
+      success: false,
+      notes: []
+    }
   }
 }
 

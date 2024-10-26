@@ -1,7 +1,14 @@
 // src/stores/noteStores.ts
 
 import { defineStore } from 'pinia'
-import { Note, Whiteboard, Connection, CardBox } from '../types/Note'
+import {
+  Note,
+  Whiteboard,
+  Connection,
+  CardBox,
+  RelatedNotesResult,
+  RelatedNote
+} from '../types/Note'
 import { Notes, Table, TransactionOrder, Deeplink } from '@icon-park/vue-next'
 import { computed, ref } from 'vue'
 import { useUIStore } from './useUIStore'
@@ -63,7 +70,8 @@ export const useNoteStore = defineStore('note', {
     lastDeletedNote: null as Note | null,
     starredNotes: [] as Note[],
     showShareModal: false,
-    shareNote: null as any
+    shareNote: null as any,
+    relatedNotes: [] as RelatedNote[]
   }),
 
   actions: {
@@ -149,13 +157,23 @@ export const useNoteStore = defineStore('note', {
     },
 
     // 获取相关笔记
-    async getRelatedNotes(noteId: string, limit: number) {
+    async getRelatedNotes(noteId: string, limit: number): Promise<RelatedNotesResult> {
       try {
-        const relatedNotes = await window.electronAPI.getRelatedNotes(noteId, limit)
-        return relatedNotes
+        const result = await window.electronAPI.getRelatedNotes(noteId, limit)
+
+        // 可以选择更新状态
+        if (result.success) {
+          this.relatedNotes = result.notes
+        }
+
+        return result
       } catch (error) {
         console.error('noteStores.ts→ 获取相关笔记失败:', error)
-        throw error
+        return {
+          success: false,
+          notes: [],
+          error: error instanceof Error ? error.message : String(error)
+        }
       }
     },
 

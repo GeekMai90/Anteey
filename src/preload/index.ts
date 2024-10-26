@@ -10,7 +10,8 @@ import {
   WhiteboardGroup,
   Connection,
   ConnectionCreateData,
-  ConnectionUpdateData
+  ConnectionUpdateData,
+  RelatedNotesResult
 } from '../renderer/src/types/Note'
 import { GetPaginatedNotesParams } from '../db/notes'
 import { UpdateUserSettings, UserSettings } from '../renderer/src/types/UserSettings'
@@ -673,7 +674,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     }
   },
   // 获取相关笔记
-  getRelatedNotes: async (noteId: string, limit: number): Promise<Note[]> => {
-    return (await ipcRenderer.invoke('get-related-notes', { noteId, limit })) as Note[]
+  getRelatedNotes: async (noteId: string, limit: number): Promise<RelatedNotesResult> => {
+    return await ipcRenderer.invoke('get-related-notes', { noteId, limit })
   }
 })

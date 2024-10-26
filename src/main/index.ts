@@ -227,11 +227,16 @@ function setupIpcHandlers() {
     console.log('主进程 → 收到获取相关笔记请求:', { noteId, limit })
 
     try {
-      const relatedNotes = await getRelatedNotes(noteId, limit)
-      return { success: true, notes: relatedNotes }
+      // getRelatedNotes 现在直接返回 { success, notes } 格式
+      const result = await getRelatedNotes(noteId, limit)
+      return result
     } catch (error) {
       console.error('主进程 → 获取相关笔记失败:', error)
-      return { success: false, error: error }
+      return {
+        success: false,
+        notes: [],
+        error: error instanceof Error ? error.message : String(error)
+      }
     }
   })
 

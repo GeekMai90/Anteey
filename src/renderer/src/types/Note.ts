@@ -8,6 +8,18 @@ export interface Keyword {
   weight: number
 }
 
+// 相关笔记接口（扩展 Note 接口）
+export interface RelatedNote extends Note {
+  similarity: number
+}
+
+// 相关笔记查询结果接口
+export interface RelatedNotesResult {
+  success: boolean
+  notes: RelatedNote[]
+  error?: string // 添加可选的错误信息字段
+}
+
 // 卡片笔记
 export interface Note {
   id: string
