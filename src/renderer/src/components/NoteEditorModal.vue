@@ -2,6 +2,7 @@
 <template>
   <Modal
     v-model="noteStore.isEditorOpen"
+    class="note-editor-modal"
     @outside-click="handleOutsideClick"
     @after-enter="focusNoteEditorInput"
   >
@@ -60,4 +61,10 @@ onUnmounted(() => {
 })
 </script>
 
-<style scoped></style>
+<style scoped>
+.note-editor-modal {
+  background-color: transparent; /* 移除背景色 */
+  border-radius: 12px;
+  overflow: hidden; /* 确保内容不会溢出圆角 */
+}
+</style>

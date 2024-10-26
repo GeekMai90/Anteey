@@ -154,7 +154,7 @@ defineExpose({ openMenu, closeMenu })
 <style scoped lang="scss">
 .card-type-dropdown-menu {
   position: fixed;
-  background-color: var(--color-bg-primary);
+  background-color: var(--color-dropdown-bg);
   border: 1px solid var(--color-border-primary);
   border-radius: 8px;
   box-shadow: var(--shadow-primary);

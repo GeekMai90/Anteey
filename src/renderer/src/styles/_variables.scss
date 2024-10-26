@@ -110,6 +110,7 @@ $light-mode-text: $gray-900;
 $dark-mode-text: $gray-100;
 
 :root {
+  // 主题基础色
   --color-primary: #00c8a8;
   --color-primary-rgb: 0, 200, 168;
   --color-yellow: #ff9f1c;
@@ -118,82 +119,191 @@ $dark-mode-text: $gray-100;
   --color-blue-rgb: 67, 97, 238;
   --color-pink: #f72585;
   --color-pink-rgb: 247, 37, 133;
+  // 主题文字色
   --color-text-primary: #252525;
   --color-text-secondary: #949494;
   --color-text-tertiary: #bfbfbf;
   --color-text-inversion: #fff;
   --color-text-placeholder: #999;
+  --color-text-danger: #ff4d4f;
+  // 主题形状色
   --color-shape-primary: #e3e3e3;
   --color-shape-secondary: #ebebeb;
   --color-shape-tertiary: #f2f2f2;
+  // 主题背景色
   --color-bg-primary: #fff;
   --color-bg-whiteboard: #f3f5f7;
+
+  // 模态框背景色
+  --color-modal-bg: rgba(0, 0, 0, 0.32);
+
+  // 弹出菜单的背景色
+  --color-dropdown-bg: #fff;
+
+  // 卡片笔记背景颜色
+  --color-note-card-bg: #fff;
+
+  // 主题链接色
   --color-link: #4361ee;
   --color-link-hover: #4361ee;
-  --color-text-danger: #ff4d4f;
+
+  // 主题系统选择色
   --color-system-selection: rgba(24, 163, 241, 0.15);
-  --color-scrollbar-track-bg: #f0f0f0;
-  --color-scrollbar-thumb-bg: #888;
-  --color-scrollbar-thumb-hover-bg: #555;
-  --color-focus: #4361ee;
+  --color-selection: #{rgba($primary-color, 0.1)};
+
+  // 主题滚动条色
+  --color-scrollbar-track-bg: transparent;
+  --color-scrollbar-thumb-bg: rgba(0, 0, 0, 0.2);
+  --color-scrollbar-thumb-hover-bg: rgba(0, 0, 0, 0.3);
+  --color-scroll-thumb: rgba(0, 0, 0, 0.2);
+
+  // 主题边框色
   --color-border: #e7e5e4;
-  // --color-border: #e7eaee;
   --color-border-sidebar: #e1e1e1;
+  --time-card-border-color: rgba(173, 181, 188, 0.3);
+
+  // 主题字体权重
   --font-weight-title: 700;
+
+  // 主题悬浮色
   --color-hover-bg: #{$gray-200};
   --color-hover-button: rgba(0, 0, 0, 0.05);
   --color-hover-sidebar: #e0e0e07f;
+
+  // 主题菜单
   --color-menu-bg: #{rgba($primary-color, 0.05)};
   --color-button-active-bg: #{rgba($primary-color, 0.08)};
+
+  // 主题侧边栏
+  --sidebar-bg: #f2f2f2;
+  --sidebar-hover-bg: #{$gray-200};
   --color-sidebar-active-bg: #{rgba($primary-color, 0.09)};
+  --left-nav-tab-active-bg: #{rgba($primary-color, 0.05)};
+
+  // 主题阴影
   --shadow-primary: 0 3px 6px -4px rgb(0 0 0 / 12%), 0 6px 16px 0 rgb(0 0 0 / 8%), 0 9px 28px 8px rgb(0 0 0 / 5%);
   --shadow-card: 0px 2px 6px rgb(0 0 0 / 12%);
-  --color-scroll-track: rgba(0, 0, 0, 0.05);
-  --color-scroll-thumb: rgba(0, 0, 0, 0.2);
-  --color-scroll-thumb-hover: rgba(0, 0, 0, 0.3);
+
+  // 主题z-index
   --z-index-hightest: 9999;
   --z-index-base: 1000;
   --z-index-primary: 1500;
   --z-index-secondary: 1000;
   --z-index-tertiary: 500;
   --z-index-quaternary: 100;
+
+  // 主题滑块
   --color-slider-track: #b6b6b6;
+
+  // 主题表格
   --color-table-border: rgba(61, 37, 20, 0.12);
   --color-table-header-bg: rgba(61, 37, 20, 0.05);
   --color-table-selected-cell-bg: rgba(61, 37, 20, 0.08);
+
+  // 主题图标
   --color-icon-default: #b6b6b6;
   --color-icon-secondary: #949494;
   --color-icon-menu-default: #252525;
   --color-icon-image-more: rgba(0, 0, 0, 0.5);
   --color-icon-image-more-hover: rgba(0, 0, 0, 0.6);
-  --color-selection: #{rgba($primary-color, 0.1)};
-  --sidebar-bg: #{$gray-100};
-  --sidebar-hover-bg: #{$gray-200};
-  --left-nav-tab-active-bg: #{rgba($primary-color, 0.05)};
-  --time-card-border-color: rgba(173, 181, 188, 0.3);
 }
 
 .theme-dark {
-  --primary-color: #{$primary-color};
-  --body-bg: #{$dark-mode-bg};
-  --default-text-color: #{$dark-text-color};
-  --sidebar-bg: #{$gray-1000};
-  --sidebar-hover-bg: #{$gray-1000};
-  --left-nav-tab-active-bg: #{rgba($primary-color, 0.05)};
-  --menu-active-bg: #{rgba($primary-color, 0.05)};
-  --icon-default-color: #{$gray-100};
-  --time-card-border-color: rgba(173, 181, 188, 0.12);
-  --main-card-color: #00c8a8;
-  --bib-card-color: #ffb740;
-  --index-card-color: #6c8eff;
-  --hoplink-card-color: #ff5fa2;
-  --timestamp-color: #999;
-  --error-color: #{$danger-color};
-  --card-shadow: 0px 2px 6px rgb(0 0 0 / 12%);
-  --border-color: #e7eaee;
-  --timeline-card-bg: #{$white};
-  --card-timestamp-color: #999;
-  --color-scroll-track: rgba(255, 255, 255, 0.05);
+  // 主题基础色（保持原色调，但可能需要调整亮度）
+  --color-primary: #20ceae;
+  --color-primary-rgb: 32, 206, 174;
+  --color-yellow: #ff9f1c;
+  --color-yellow-rgb: 255, 159, 28;
+  --color-blue: #4361ee;
+  --color-blue-rgb: 67, 97, 238;
+  --color-pink: #f72585;
+  --color-pink-rgb: 247, 37, 133;
+
+  // 主题文字色
+  --color-text-primary: #f4f4f4;
+  --color-text-secondary: #a0a0a0;
+  --color-text-tertiary: #666666;
+  --color-text-inversion: #1f1f1f;
+  --color-text-placeholder: #666666;
+  --color-text-danger: #ff6b6b;
+
+  // 主题形状色
+  --color-shape-primary: #2f2f2f;
+  --color-shape-secondary: #363636;
+  --color-shape-tertiary: #404040;
+
+  // 主题背景色
+  --color-bg-primary: #191919;
+  --color-bg-whiteboard: #2d2d2d;
+
+  // 模态框背景色
+  --color-modal-bg: rgba(0, 0, 0, 0.8);
+
+  // 弹出菜单的背景色
+  --color-dropdown-bg: #242424;
+
+  // 卡片笔记背景颜色
+  --color-note-card-bg: #242424;
+
+  // 主题链接色
+  --color-link: #5c7cff;
+  --color-link-hover: #7591ff;
+
+  // 主题系统选择色
+  --color-system-selection: rgba(67, 97, 238, 0.3);
+  --color-selection: rgba(0, 200, 168, 0.2);
+
+  // 主题滚动条色
+  --color-scrollbar-track-bg: transparent;
+  --color-scrollbar-thumb-bg: rgba(255, 255, 255, 0.2);
+  --color-scrollbar-thumb-hover-bg: rgba(255, 255, 255, 0.3);
   --color-scroll-thumb: rgba(255, 255, 255, 0.2);
-  --color-scroll-thumb-hover: rgba(255, 255, 255, 0.3);
+
+  // 主题边框色
+  --color-border: #2f2f2f;
+  --color-border-sidebar: #3b3b3b;
+  --time-card-border-color: rgba(255, 255, 255, 0.12);
+
+  // 主题悬浮色
+  --color-hover-bg: #2a2a2a;
+  --color-hover-button: rgba(255, 255, 255, 0.05);
+  --color-hover-sidebar: rgba(255, 255, 255, 0.05);
+
+  // 主题菜单
+  --color-menu-bg: rgba(0, 200, 168, 0.1);
+  --color-button-active-bg: rgba(0, 200, 168, 0.15);
+
+  // 主题侧边栏
+  --sidebar-bg: #242424;
+  --sidebar-hover-bg: #2a2a2a;
+  --color-sidebar-active-bg: rgba(0, 200, 168, 0.15);
+  --left-nav-tab-active-bg: rgba(0, 200, 168, 0.1);
+
+  // 主题阴影
+  --shadow-primary: 0 3px 6px -4px rgba(0, 0, 0, 0.48), 0 6px 16px 0 rgba(0, 0, 0, 0.32),
+    0 9px 28px 8px rgba(0, 0, 0, 0.2);
+  --shadow-card: 0px 2px 6px rgba(0, 0, 0, 0.3);
+
+  // z-index 保持不变
+  --z-index-hightest: 9999;
+  --z-index-base: 1000;
+  --z-index-primary: 1500;
+  --z-index-secondary: 1000;
+  --z-index-tertiary: 500;
+  --z-index-quaternary: 100;
+
+  // 主题滑块
+  --color-slider-track: #4a4a4a;
+
+  // 主题表格
+  --color-table-border: rgba(255, 255, 255, 0.12);
+  --color-table-header-bg: rgba(255, 255, 255, 0.05);
+  --color-table-selected-cell-bg: rgba(255, 255, 255, 0.08);
+
+  // 主题图标
+  --color-icon-default: #666666;
+  --color-icon-secondary: #808080;
+  --color-icon-menu-default: #ffffff;
+  --color-icon-image-more: rgba(255, 255, 255, 0.5);
+  --color-icon-image-more-hover: rgba(255, 255, 255, 0.6);
 }

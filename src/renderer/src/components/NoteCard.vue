@@ -144,7 +144,7 @@ const cardTypeClass = computed(() => {
 
 <style lang="scss" scoped>
 .note-card {
-  background-color: var(--body-bg);
+  background-color: var(--color-note-card-bg);
   border: 1px solid var(--time-card-border-color);
   border-radius: 8px;
   padding: 15px 0px 10px 0;

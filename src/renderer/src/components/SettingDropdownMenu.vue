@@ -87,7 +87,7 @@ onUnmounted(() => {
 <style scoped lang="scss">
 .setting-dropdown-menu {
   position: fixed; // 改为 fixed 定位
-  background-color: var(--color-bg-primary);
+  background-color: var(--color-dropdown-bg);
   border-radius: 8px;
   box-shadow: var(--shadow-primary);
   z-index: 1001;

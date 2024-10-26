@@ -16,6 +16,21 @@ const createTempContainer = (options: ShareNoteImageOptions) => {
   container.style.left = '-9999px'
   container.style.width = '375px'
   container.style.overflow = 'visible'
+  container.style.backgroundColor = '#ffffff'
+
+  // 创建并注入临时样式表
+  const styleSheet = document.createElement('style')
+  styleSheet.textContent = `
+    .temp-share-container * {
+      color: #252525 !important;
+    }
+    .temp-share-container .ProseMirror {
+      color: #252525 !important;
+      background-color: #ffffff !important;
+    }
+  `
+  container.className = 'temp-share-container'
+  container.appendChild(styleSheet)
   document.body.appendChild(container)
 
   const app = createApp(ShareNoteCard, {

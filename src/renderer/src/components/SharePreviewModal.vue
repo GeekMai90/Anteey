@@ -25,7 +25,7 @@
                   <div class="note-date">{{ currentDate }}</div>
                 </div>
                 <div class="note-content">
-                  <TipTapRender :content="note.content" :editable="false" />
+                  <ShareTipTapRender :content="note.content" :editable="false" />
                 </div>
                 <div class="note-footer">
                   <div class="footer-left">
@@ -74,7 +74,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { format } from 'date-fns'
-import TipTapRender from './TipTapRender.vue'
+import ShareTipTapRender from './ShareTipTapRender.vue'
 import { Note } from '@renderer/types/Note'
 import { exportNoteImage, copyNoteToClipboard } from '../utils/shareNoteImage'
 import { message } from '../utils/message'
@@ -389,6 +389,9 @@ defineEmits<{
   border: 2px solid transparent;
   font-size: 20px;
   transition: all 0.2s ease;
+  span {
+    color: #252525;
+  }
 
   &:hover {
     transform: scale(1.05);
@@ -467,7 +470,7 @@ defineEmits<{
 .note-footer {
   margin-top: 16px;
   padding-top: 16px;
-  border-top: 1px solid var(--color-border);
+  border-top: 1px solid #e7e5e4;
   display: flex;
   justify-content: space-between; // 改为两端对齐
   align-items: center;
@@ -478,12 +481,12 @@ defineEmits<{
 
 .footer-author {
   font-size: 16px;
-  color: var(--color-text-primary);
+  color: #252525;
   font-weight: 500;
 }
 .footer-motto {
   font-size: 14px;
-  color: var(--color-text-secondary);
+  color: #949494;
 }
 .footer-qrcode {
   width: 46px;
@@ -498,6 +501,6 @@ defineEmits<{
 }
 .note-date {
   font-size: 14px;
-  color: var(--color-text-secondary);
+  color: #949494;
 }
 </style>

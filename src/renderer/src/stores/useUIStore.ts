@@ -18,7 +18,65 @@ export const useUIStore = defineStore(
     const showCardBox = ref(false)
     const isCalendarPickerOpen = ref(false)
     const showSettingsPage = ref(false)
+    const isDarkTheme = ref(false)
+    const themeMode = ref<'system' | 'light' | 'dark'>('system')
     //actions
+    // 初始化主题
+    function initTheme() {
+      // 从本地存储获取主题模式设置
+      const savedThemeMode = localStorage.getItem('themeMode') as 'system' | 'light' | 'dark'
+      themeMode.value = savedThemeMode || 'system'
+
+      if (themeMode.value === 'system') {
+        // 如果是系统模式，则使用系统主题
+        isDarkTheme.value = window.matchMedia('(prefers-color-scheme: dark)').matches
+      } else {
+        // 否则使用用户设置的主题
+        isDarkTheme.value = themeMode.value === 'dark'
+      }
+
+      applyTheme()
+    }
+
+    // 监听系统主题变化
+    function setupThemeListener() {
+      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
+
+      mediaQuery.addEventListener('change', (e) => {
+        if (themeMode.value === 'system') {
+          isDarkTheme.value = e.matches
+          applyTheme()
+        }
+      })
+    }
+    const toggleTheme = () => {
+      const uiStore = useUIStore()
+      uiStore.setThemeMode(uiStore.themeMode === 'light' ? 'dark' : 'light')
+    }
+
+    // 切换主题模式
+    function setThemeMode(mode: 'system' | 'light' | 'dark') {
+      themeMode.value = mode
+      localStorage.setItem('themeMode', mode)
+
+      if (mode === 'system') {
+        isDarkTheme.value = window.matchMedia('(prefers-color-scheme: dark)').matches
+      } else {
+        isDarkTheme.value = mode === 'dark'
+      }
+
+      applyTheme()
+    }
+
+    // 应用主题
+    function applyTheme() {
+      document.documentElement.classList.toggle('theme-dark', isDarkTheme.value)
+      localStorage.setItem('theme', isDarkTheme.value ? 'dark' : 'light')
+    }
+
+    // 初始化
+    initTheme()
+    setupThemeListener()
 
     function openSettingsPage() {
       showSettingsPage.value = true
@@ -112,13 +170,18 @@ export const useUIStore = defineStore(
       openWhiteboardSearchModal,
       closeWhiteboardSearchModal,
       isWhiteboardSearchModalOpen,
-      toggleRightSidebar
+      toggleRightSidebar,
+      setThemeMode,
+      initTheme,
+      isDarkTheme,
+      themeMode,
+      toggleTheme
     }
   },
   {
     persist: {
       // 指定需要持久化的state
-      pick: ['isSidebarCollapsed', 'isRightSidebarOpen', 'showSettingsPage'],
+      pick: ['isSidebarCollapsed', 'isRightSidebarOpen', 'showSettingsPage', 'isDarkTheme'],
       // 使用 localStorage 存储
       storage: localStorage,
       // 自定义存储的 key

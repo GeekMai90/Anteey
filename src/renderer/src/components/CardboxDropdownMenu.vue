@@ -170,7 +170,7 @@ defineExpose({ openMenu, closeMenu, selectedCardBox })
 <style scoped lang="scss">
 .cardbox-dropdown-menu {
   position: fixed;
-  background-color: var(--color-bg-primary);
+  background-color: var(--color-dropdown-bg);
   border-radius: 8px;
   box-shadow: var(--shadow-primary);
   z-index: 9999;
@@ -238,7 +238,7 @@ defineExpose({ openMenu, closeMenu, selectedCardBox })
     flex-grow: 1;
     text-align: left;
     color: var(--color-text-primary);
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 400;
     margin-left: 6px;
     white-space: nowrap;

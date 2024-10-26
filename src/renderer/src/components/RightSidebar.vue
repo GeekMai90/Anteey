@@ -74,7 +74,7 @@ watch(sidebarWidth, (newWidth) => {
 <style scoped lang="scss">
 .right-sidebar {
   height: 100vh;
-  background-color: var(--color-shape-tertiary);
+  background-color: var(--sidebar-bg);
   display: flex;
   flex-direction: column;
   transition: width 0.3s ease;
@@ -149,7 +149,7 @@ watch(sidebarWidth, (newWidth) => {
       .name {
         flex-grow: 0;
         text-align: left;
-        color: var(--default-text-color);
+        color: var(--color-text-primary);
         font-size: 13px;
         font-weight: 400;
         margin-left: 6px;

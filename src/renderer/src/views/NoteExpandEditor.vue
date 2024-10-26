@@ -366,7 +366,7 @@ onMounted(() => {
   flex-direction: column;
   // height: 100%;
   height: 100vh;
-  background-color: #ffffff;
+  background-color: var(--color-bg-primary);
   width: 100%;
   position: relative;
 }

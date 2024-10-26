@@ -5,7 +5,7 @@
         <div class="note-date">{{ currentDate }}</div>
       </div>
       <div class="note-content">
-        <TipTapRender :content="note.content" :editable="false" />
+        <ShareTipTapRender :content="note.content" :editable="false" />
       </div>
       <div class="note-footer">
         <div class="footer-left">
@@ -22,7 +22,7 @@
 
 <script setup lang="ts">
 import { format } from 'date-fns'
-import TipTapRender from './TipTapRender.vue'
+import ShareTipTapRender from './ShareTipTapRender.vue'
 import { Note } from '@renderer/types/Note'
 import { computed, onMounted, ref } from 'vue'
 import QRCode from 'qrcode'
@@ -107,7 +107,7 @@ onMounted(async () => {
 
 .note-date {
   font-size: 12px;
-  color: var(--color-text-secondary);
+  color: #949494;
 }
 
 .note-content {
@@ -124,7 +124,7 @@ onMounted(async () => {
   }
 
   &::-webkit-scrollbar-thumb {
-    background: var(--color-border);
+    background: #e7e5e4;
     border-radius: 2px;
   }
 
@@ -135,8 +135,13 @@ onMounted(async () => {
     line-height: 1.6;
 
     h1 {
+      font-size: 18px;
+    }
+    h2 {
       font-size: 16px;
-      margin-bottom: 12px;
+    }
+    h3 {
+      font-size: 14px;
     }
 
     p {
@@ -149,7 +154,7 @@ onMounted(async () => {
 
 .note-footer {
   padding-top: 16px;
-  border-top: 1px solid var(--color-border);
+  border-top: 1px solid #e7e5e4;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -163,13 +168,13 @@ onMounted(async () => {
 
 .footer-author {
   font-size: 16px;
-  color: var(--color-text-primary);
+  color: #252525;
   font-weight: 500;
 }
 
 .footer-motto {
   font-size: 14px;
-  color: var(--color-text-secondary);
+  color: #949494;
 }
 
 .footer-qrcode {

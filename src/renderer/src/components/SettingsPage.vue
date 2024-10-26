@@ -38,6 +38,7 @@
       </div>
     </div>
     <div class="settings-content">
+      <!-- 备份设置 -->
       <div v-if="currentMenuItem === 'backup'" class="backup-settings">
         <div class="settings-content-header">
           <div class="icon">
@@ -61,6 +62,7 @@
           </div>
         </div>
       </div>
+      <!-- 快捷键设置 -->
       <div v-if="currentMenuItem === 'shortcuts'" class="shortcuts-settings">
         <div class="shortcuts-settings-wrapper">
           <div class="shortcuts-settings-header">
@@ -106,6 +108,7 @@
           </div>
         </div>
       </div>
+      <!-- 分享设置 -->
       <div v-if="currentMenuItem === 'share'" class="share-settings">
         <div class="share-settings-wrapper">
           <div class="settings-content-header">
@@ -167,6 +170,47 @@
           </div>
         </div>
       </div>
+      <!-- 外观设置 -->
+      <div v-if="currentMenuItem === 'appearance'" class="appearance-settings">
+        <div class="settings-content-header">
+          <div class="icon">
+            <Theme
+              theme="outline"
+              size="20"
+              fill="var(--color-icon-menu-default)"
+              :strokeWidth="3"
+            />
+          </div>
+          <div class="name">{{ currentMenuItemLabel }}</div>
+        </div>
+        <div class="shortcuts-settings-divider"></div>
+
+        <div class="appearance-content">
+          <div class="settings-section">
+            <div class="section-title">主题模式</div>
+            <div class="theme-options">
+              <div
+                v-for="theme in themeOptions"
+                :key="theme.value"
+                class="theme-card"
+                :class="{ active: currentTheme === theme.value }"
+                @click="handleThemeChange(theme.value)"
+              >
+                <div class="theme-preview" :class="theme.value">
+                  <div class="preview-window">
+                    <div class="preview-header"></div>
+                    <div class="preview-content">
+                      <div class="preview-line"></div>
+                      <div class="preview-line short"></div>
+                    </div>
+                  </div>
+                </div>
+                <div class="theme-name">{{ theme.label }}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
     <!-- 其他设置项的内容可以在这里添加 -->
   </div>
@@ -180,12 +224,26 @@ import { useUserSettingsStore } from '../stores/useUserSettings'
 import ShareNoteCard from '../components/ShareNotedCard.vue'
 import { UpdateUserSettings } from '@renderer/types/UserSettings'
 import { message } from '../utils/message'
+import { useUIStore } from '@renderer/stores/useUIStore'
 
 const noteId = ref('')
 const { handleBulkExport } = useNoteMenu({
   noteId: noteId.value,
   menuItems: ['star']
 })
+
+const uiStore = useUIStore()
+const currentTheme = computed(() => uiStore.themeMode)
+
+const themeOptions = [
+  { label: '浅色', value: 'light' },
+  { label: '深色', value: 'dark' },
+  { label: '跟随系统', value: 'system' }
+]
+
+const handleThemeChange = (theme: string) => {
+  uiStore.setThemeMode(theme as 'light' | 'dark' | 'system')
+}
 
 // 在 setup 中添加
 const userSettingsStore = useUserSettingsStore()
@@ -262,6 +320,7 @@ const shortcuts = [
     name: '常规',
     shortcuts: [
       { action: '打开设置', keys: ['⌘', ','] },
+      { action: '切换主题', keys: ['⌘', '⇧', 'T'] },
       { action: '打开主页', keys: ['⌘', '⇧', 'H'] },
       { action: '打开时间线', keys: ['⌘', 'J'] },
       { action: '打开卡片盒', keys: ['⌘', '⇧', 'B'] },
@@ -304,7 +363,7 @@ const filteredShortcuts = computed(() => {
 <style scoped lang="scss">
 .settings-page {
   display: flex;
-  background-color: var(--color-background-primary);
+  background-color: var(--color-bg-primary);
   width: 60vw;
   height: 80vh;
   max-width: 1000px;
@@ -762,6 +821,119 @@ const filteredShortcuts = computed(() => {
 
       &:hover {
         opacity: 0.9;
+      }
+    }
+  }
+}
+.appearance-settings {
+  width: 100%;
+  height: 100%;
+
+  .appearance-content {
+    padding-right: 10px;
+  }
+
+  .settings-section {
+    margin-bottom: 32px;
+
+    .section-title {
+      font-size: 16px;
+      font-weight: 500;
+      margin-bottom: 16px;
+      color: var(--color-text-primary);
+    }
+  }
+
+  .theme-options {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 16px;
+
+    .theme-card {
+      cursor: pointer;
+      border-radius: 8px;
+      overflow: hidden;
+      transition: all 0.2s;
+
+      &:hover .theme-preview {
+        border-color: var(--color-border-hover);
+      }
+
+      &.active {
+        .theme-preview {
+          border-color: var(--color-primary);
+          box-shadow: 0 0 0 2px var(--color-primary-alpha);
+        }
+      }
+
+      .theme-preview {
+        height: 120px;
+        border: 1px solid var(--color-border);
+        border-radius: 8px;
+        padding: 12px;
+        transition: all 0.2s;
+
+        .preview-window {
+          height: 100%;
+          border-radius: 6px;
+          overflow: hidden;
+        }
+
+        .preview-header {
+          height: 24px;
+          border-bottom: 1px solid rgba(125, 125, 125, 0.2);
+        }
+
+        .preview-content {
+          padding: 12px;
+
+          .preview-line {
+            height: 8px;
+            border-radius: 4px;
+            margin-bottom: 8px;
+
+            &.short {
+              width: 60%;
+            }
+          }
+        }
+
+        &.light {
+          background: #fff;
+          .preview-window {
+            background: #f5f5f5;
+          }
+          .preview-line {
+            background: #e0e0e0;
+          }
+        }
+
+        &.dark {
+          background: #1a1a1a;
+          .preview-window {
+            background: #2a2a2a;
+          }
+          .preview-line {
+            background: #3a3a3a;
+          }
+        }
+
+        &.system {
+          background: linear-gradient(to right, #fff 50%, #1a1a1a 50%);
+          .preview-window {
+            background: linear-gradient(to right, #f5f5f5 50%, #2a2a2a 50%);
+          }
+          .preview-line {
+            background: linear-gradient(to right, #e0e0e0 50%, #3a3a3a 50%);
+          }
+        }
+      }
+
+      .theme-name {
+        margin-top: 8px;
+        font-size: 14px;
+        text-align: center;
+        color: var(--color-text-primary);
       }
     }
   }

@@ -877,7 +877,7 @@ const handleGlobalClick = (event: MouseEvent) => {
       top: 90%;
       // left: -10px;
       right: 20px;
-      background-color: var(--color-bg-primary);
+      background-color: var(--color-dropdown-bg);
       border-radius: 8px;
       box-shadow: var(--shadow-primary);
       z-index: 1000;

@@ -362,6 +362,8 @@ defineExpose({ focusAddressInput, focusEditor })
   width: 640px;
   max-width: 100%;
   position: relative;
+  overflow: hidden;
+  box-shadow: var(--shadow-primary);
 
   // 顶部工具栏
   .toolbar {

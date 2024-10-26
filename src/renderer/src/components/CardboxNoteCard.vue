@@ -176,7 +176,7 @@ const closeMenu = () => {
 
 <style lang="scss" scoped>
 .note-card {
-  background-color: var(--color-bg-primary);
+  background-color: var(--color-note-card-bg);
   border: 1px solid var(--color-border);
   border-radius: 8px;
   padding: 10px 0px 0px 0;

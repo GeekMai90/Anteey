@@ -678,7 +678,7 @@ defineExpose({ focusAddressInput, restoreDefaultHeight })
 
 <style lang="scss" scoped>
 .whiteboard-note-component {
-  background-color: var(--color-bg-primary);
+  background-color: var(--color-note-card-bg);
   border-radius: 12px;
   display: flex;
   flex-direction: column;

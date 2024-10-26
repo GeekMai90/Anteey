@@ -1394,7 +1394,7 @@ onUnmounted(() => {
   width: 100%;
   // height: 100%;
   height: 100vh; /* 或者设置一个固定的高度 */
-  background-color: #f3f5f7;
+  background-color: var(--color-bg-whiteboard);
   overflow: hidden;
   touch-action: none;
   user-select: none;
@@ -1420,8 +1420,6 @@ onUnmounted(() => {
   position: absolute;
   top: 0;
   left: 0;
-  // width: 100%;
-  // height: 100%;
   will-change: transform;
   transition: transform 0.05s linear;
 }

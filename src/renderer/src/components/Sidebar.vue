@@ -54,7 +54,7 @@
                 <div class="icon">
                   <component
                     :is="item.icon"
-                    :theme="isActiveOrHasActiveChild(item) ? 'filled' : 'outline'"
+                    theme="outline"
                     size="18"
                     :fill="getIconFill(item.path)"
                     :strokeWidth="2"
@@ -92,7 +92,7 @@
                   <div class="icon">
                     <component
                       :is="child.icon || item.icon"
-                      :theme="isActive(child.path) ? 'filled' : 'outline'"
+                      theme="outline"
                       size="18"
                       :fill="getIconFill(child.path)"
                       :strokeWidth="2"
@@ -112,6 +112,32 @@
     <div class="resize-handle" @mousedown="startResize"></div>
     <div class="sidebar-footer">
       <div class="new-card-wrapper"></div>
+      <!-- 主题切换按钮 -->
+      <div
+        v-tooltip.top="{
+          content: uiStore.isDarkTheme ? '切换亮色主题' : '切换暗色主题',
+          delay: { show: 1000 }
+        }"
+        class="theme-toggle"
+        @click="uiStore.setThemeMode(uiStore.isDarkTheme ? 'light' : 'dark')"
+      >
+        <div class="icon">
+          <Moon
+            v-if="!uiStore.isDarkTheme"
+            theme="outline"
+            size="20"
+            fill="var(--color-icon-menu-default)"
+            :strokeWidth="2"
+          />
+          <SunOne
+            v-else
+            theme="outline"
+            size="20"
+            fill="var(--color-icon-menu-default)"
+            :strokeWidth="2"
+          />
+        </div>
+      </div>
       <!-- 清除空笔记 -->
       <div
         v-tooltip.top="{ content: '清除空笔记', delay: { show: 1000 } }"
@@ -150,7 +176,9 @@ import {
   Notes,
   ListAlphabet,
   Bookshelf,
-  Clear
+  Clear,
+  Moon,
+  SunOne
 } from '@icon-park/vue-next'
 import { useNoteStore } from '../stores/noteStores'
 import SettingDropdownMenu from './SettingDropdownMenu.vue'
@@ -260,7 +288,7 @@ const openHelp = () => {
   height: 100%;
   position: relative;
   overflow: hidden;
-  background-color: var(--color-shape-tertiary);
+  background-color: var(--sidebar-bg);
   display: flex;
   flex-direction: column;
   transition: width 0.3s ease;
@@ -296,7 +324,7 @@ const openHelp = () => {
       .antinet-text {
         font-size: 16px;
         font-weight: bold;
-        color: #424242;
+        color: var(--color-text-primary);
         user-select: none;
       }
 
@@ -453,9 +481,6 @@ const openHelp = () => {
           &:hover {
             background-color: var(--color-hover-sidebar);
           }
-          // &:has(.nav-link.active) {
-          //   background-color: var(--color-hover-sidebar);
-          // }
           &.active {
             background-color: var(--color-hover-sidebar);
           }
@@ -499,7 +524,7 @@ const openHelp = () => {
           .name {
             flex-grow: 0;
             text-align: left;
-            color: var(--default-text-color);
+            color: var(--color-text-primary);
             font-size: 14px;
             white-space: nowrap; // 防止文字换行
             writing-mode: horizontal-tb; // 确保文字是水平排列的
@@ -609,7 +634,7 @@ const openHelp = () => {
           .name {
             flex-grow: 0;
             text-align: left;
-            color: var(--default-text-color);
+            color: var(--color-text-primary);
             font-size: 14px;
             white-space: nowrap; // 防止文字换行
             writing-mode: horizontal-tb; // 确保文字是水平排列的
@@ -677,6 +702,7 @@ const openHelp = () => {
     }
 
     .clear-empty-note,
+    .theme-toggle,
     .help {
       width: 30px;
       height: 30px;
@@ -709,6 +735,15 @@ const openHelp = () => {
 
       &:hover {
         background-color: var(--color-hover-sidebar);
+      }
+    }
+    .theme-toggle {
+      .icon {
+        transition: transform 0.3s ease;
+      }
+
+      &:hover .icon {
+        transform: rotate(15deg);
       }
     }
   }

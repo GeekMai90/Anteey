@@ -1,5 +1,5 @@
 <template>
-  <div class="app-container" :class="{ 'theme-dark': isDarkTheme }">
+  <div class="app-container" :class="{ 'theme-dark': uiStore.isDarkTheme }">
     <!-- 加载动画 -->
     <!-- <div v-if="isLoading" class="loading-overlay">
       <Vue3Lottie :animationData="loadingAnimation" :height="300" :width="300" />
@@ -96,7 +96,6 @@ import SharePreviewModal from './components/SharePreviewModal.vue'
 
 const uiStore = useUIStore()
 const noteStore = useNoteStore()
-const isDarkTheme = ref(false)
 const router = useRouter()
 const isLoading = ref(true)
 
@@ -209,6 +208,7 @@ provide('openOptionsMenu', (event: MouseEvent, noteId: string) => {
 // 生命周期钩子
 onMounted(async () => {
   // await noteStore.initializeStore()
+  uiStore.initTheme()
   checkWindowSize()
   window.addEventListener('resize', checkWindowSize)
   console.log('App mounted')
@@ -226,11 +226,6 @@ onUnmounted(async () => {
 
 // 使用全局热键
 useGlobalHotkeys()
-
-// 主题切换（如果需要）
-// function toggleTheme() {
-//   isDarkTheme.value = !isDarkTheme.value
-// }
 </script>
 
 <style lang="scss">
@@ -266,15 +261,15 @@ useGlobalHotkeys()
   opacity: 0.5;
 }
 
-.close {
-  background-color: #ff5f56;
-}
-.minimize {
-  background-color: #ffbd2e;
-}
-.maximize {
-  background-color: #27c93f;
-}
+// .close {
+//   background-color: #ff5f56;
+// }
+// .minimize {
+//   background-color: #ffbd2e;
+// }
+// .maximize {
+//   background-color: #27c93f;
+// }
 
 /* 当真实按钮可见时，隐藏假按钮 */
 @media (display-mode: window-controls-overlay) {

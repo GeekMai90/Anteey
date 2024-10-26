@@ -1004,7 +1004,7 @@ const saveCardBox = async () => {
     .dropdown-menu {
       position: fixed; // 改为 fixed
       margin-top: 5px;
-      background-color: var(--color-bg-primary);
+      background-color: var(--color-dropdown-bg);
       border-radius: 8px;
       z-index: 1000;
       min-width: 200px;
@@ -1107,7 +1107,7 @@ const saveCardBox = async () => {
       .dropdown-item.add-cardbox {
         position: sticky;
         bottom: 0;
-        background-color: var(--color-bg-primary);
+        background-color: var(--color-dropdown-bg);
         // border-top: 1px solid var(--color-border);
         // margin-top: 6px;
         // padding-top: 8px;
@@ -1240,7 +1240,7 @@ const saveCardBox = async () => {
       top: 90%;
       // left: -10px;
       right: 20px;
-      background-color: var(--color-bg-primary);
+      background-color: var(--color-dropdown-bg);
       border-radius: 8px;
       box-shadow: var(--shadow-primary);
       z-index: 1000;

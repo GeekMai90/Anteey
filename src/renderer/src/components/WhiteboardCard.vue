@@ -141,7 +141,7 @@ const closeMenu = () => {
   height: 100%;
   display: flex;
   flex-direction: column;
-  background-color: #ffffff;
+  background-color: var(--color-note-card-bg);
   border-radius: 12px;
   padding: 16px;
   box-shadow:

@@ -2,7 +2,12 @@
   <!-- 使用 Teleport 将日历弹出框渲染到 body 元素中，以避免被其他元素遮挡 -->
   <Teleport to="body">
     <!-- 日历弹出框，只在 isVisible 为 true 时显示 -->
-    <div v-show="isVisible" ref="calendarRef" class="calendar-popup">
+    <div
+      v-show="isVisible"
+      ref="calendarRef"
+      class="calendar-popup"
+      :class="{ 'theme-dark': uiStore.isDarkTheme }"
+    >
       <!-- v-calendar 的 DatePicker 组件 -->
       <DatePicker
         :model-value="selectedDate"
@@ -10,6 +15,8 @@
         :model-config="{ type: 'string', mask: 'YYYY-MM-DD' }"
         :masks="{ title: 'YYYY年MM月' }"
         :attributes="attributes"
+        :is-dark="uiStore.isDarkTheme"
+        transparent
         @dayclick="onDayClick"
       />
     </div>
@@ -164,7 +171,7 @@ onUnmounted(() => {
 
   &.is-selected {
     .custom-dot {
-      background-color: white !important; // 选中时改变点的颜色
+      background-color: var(--color-text-primary) !important; // 选中时改变点的颜色
     }
   }
 }
@@ -190,12 +197,12 @@ onUnmounted(() => {
   :deep(.vc-day) {
     &.is-today {
       .vc-day-content {
-        color: white !important;
+        color: var(--color-text-primary) !important;
       }
     }
     .vc-highlight-content-outline,
     .vc-highlight-content-none {
-      color: #0f172a !important;
+      color: var(--color-text-primary) !important;
       font-weight: 500 !important;
     }
   }

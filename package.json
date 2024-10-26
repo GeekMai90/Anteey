@@ -1,6 +1,6 @@
 {
   "name": "antinet",
-  "version": "0.1.31",
+  "version": "0.1.32",
   "description": "Antinet",
   "main": "./out/main/index.js",
   "author": "antinet.com",
@@ -179,13 +179,6 @@
       "target": [
         {
           "target": "dmg",
-          "arch": [
-            "x64",
-            "arm64"
-          ]
-        },
-        {
-          "target": "zip",
           "arch": [
             "x64",
             "arm64"

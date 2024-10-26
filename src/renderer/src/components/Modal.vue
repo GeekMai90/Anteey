@@ -33,7 +33,7 @@ const handleOverlayClick = (event: MouseEvent) => {
   left: 0;
   width: 100%;
   height: 100%;
-  background-color: rgba(0, 0, 0, 0.32);
+  background-color: var(--color-modal-bg);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -42,8 +42,7 @@ const handleOverlayClick = (event: MouseEvent) => {
 }
 
 .modal-content {
-  background-color: white;
-  /* padding: 10px; */
+  background-color: transparent;
   border-radius: 12px;
   max-width: 100%;
   max-height: 100%;

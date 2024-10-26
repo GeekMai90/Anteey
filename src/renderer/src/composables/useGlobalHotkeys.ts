@@ -71,6 +71,11 @@ export function useGlobalHotkeys() {
       event.preventDefault()
       uiStore.toggleRightSidebar()
     })
+    // 切换主题
+    hotkeys('command+shift+t, ctrl+shift+t', (event) => {
+      event.preventDefault()
+      uiStore.toggleTheme()
+    })
   }
 
   onMounted(() => {
