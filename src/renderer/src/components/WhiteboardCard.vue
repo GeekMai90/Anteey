@@ -69,24 +69,51 @@ onMounted(async () => {
 })
 
 // 打开白板详情
-const openWhiteboard = (id: string) => {
-  console.log('打开白板详情', id)
-  console.log('当前路由:', router.currentRoute.value)
-  router
-    // .replace({ name: 'whiteboardDetail', params: { whiteboardId: id } })
-    .push({
-      name: 'whiteboardDetail',
-      params: { whiteboardId: id },
-      query: { _t: Date.now() }
+// const openWhiteboard = (id: string) => {
+//   console.log('打开白板详情', id)
+//   console.log('当前路由:', router.currentRoute.value)
+//   router
+//     // .replace({ name: 'whiteboardDetail', params: { whiteboardId: id } })
+//     .push({
+//       name: 'whiteboardDetail',
+//       params: { whiteboardId: id },
+//       query: { _t: Date.now() }
+//     })
+//     .then(() => {
+//       console.log('路由跳转成功')
+//       console.log('跳转后的路由:', router.currentRoute.value)
+//       nextTick(() => {
+//         console.log('在 nextTick 中检查路由:', router.currentRoute.value)
+//       })
+//     })
+//     .catch((error) => console.error('路由跳转失败:', error))
+// }
+const openWhiteboard = async (id: string) => {
+  try {
+    // 确保路径正确
+    const targetPath = `/whiteboard/${id}`
+
+    // 如果当前已经在白板详情页，先跳转到临时页面
+    if (router.currentRoute.value.name === 'whiteboardDetail') {
+      await router.replace({ name: 'temp' })
+    }
+
+    // 使用完整的路径进行跳转
+    await router.push({
+      path: targetPath,
+      replace: true
     })
-    .then(() => {
-      console.log('路由跳转成功')
-      console.log('跳转后的路由:', router.currentRoute.value)
-      nextTick(() => {
-        console.log('在 nextTick 中检查路由:', router.currentRoute.value)
-      })
-    })
-    .catch((error) => console.error('路由跳转失败:', error))
+
+    // 验证跳转结果
+    await nextTick()
+    if (router.currentRoute.value.path !== targetPath) {
+      console.error('Route not updated correctly')
+      window.location.reload()
+    }
+  } catch (error) {
+    console.error('Navigation failed:', error)
+    window.location.reload()
+  }
 }
 // 更多按钮弹出菜单
 const moreBtnRef = ref<HTMLElement | null>(null)

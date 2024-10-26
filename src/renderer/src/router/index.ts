@@ -26,12 +26,23 @@ const routes = [
   {
     name: 'whiteboard',
     path: '/whiteboard',
-    component: () => import('../views/WhiteboardView.vue')
+    component: () => import('../views/WhiteboardView.vue'),
+    meta: { keepAlive: false }
   },
+  // {
+  //   name: 'whiteboardDetail',
+  //   path: '/whiteboarddetail/:whiteboardId',
+  //   component: () => import('../components/WhiteboardDetail.vue')
+  // },
   {
     name: 'whiteboardDetail',
-    path: '/whiteboarddetail/:whiteboardId',
-    component: () => import('../components/WhiteboardDetail.vue')
+    path: '/whiteboard/:whiteboardId', // 修改路径，保持一致性
+    component: () => import('../components/WhiteboardDetail.vue'),
+    props: true, // 添加 props
+    meta: {
+      keepAlive: false,
+      parent: 'whiteboard' // 添加父级关系
+    }
   },
   {
     name: 'NoteExpandEditor',
@@ -60,12 +71,34 @@ const routes = [
     path: '/indexcard',
     component: () => import('../views/IndexCard.vue'),
     meta: { keepAlive: true }
+  },
+  // 添加临时路由用于清除缓存
+  {
+    name: 'temp',
+    path: '/temp',
+    component: () => import('../components/EmptyComponent.vue'),
+    meta: { keepAlive: false }
   }
 ]
 
 const router = createRouter({
   history: createWebHashHistory(),
   routes
+})
+
+// 添加全局导航守卫进行调试
+router.beforeEach((to, from, next) => {
+  console.log('Route change:', {
+    from: { name: from.name, params: from.params },
+    to: { name: to.name, params: to.params }
+  })
+  next()
+})
+
+// 添加错误处理
+router.onError((error) => {
+  console.error('Router error:', error)
+  // 可以在这里添加全局的错误处理逻辑
 })
 
 export default router
