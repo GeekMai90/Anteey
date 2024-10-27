@@ -6,6 +6,8 @@ declare module 'vue3-shortkey'
 declare module 'vue-virtual-scroller'
 declare module 'qrcode'
 declare module 'segmentit'
+declare module '@themaximalist/embeddings.js'
+declare module '@themaximalist/embeddings'
 // 为 slashCommandSuggestion 添加类型声明
 declare module 'tiptap/slashCommandSuggestion' {
   import { Editor, Range } from '@tiptap/core'

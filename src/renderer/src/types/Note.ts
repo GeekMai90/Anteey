@@ -12,6 +12,7 @@ export interface Keyword {
 // 相关笔记接口（扩展 Note 接口）
 export interface RelatedNote extends Note {
   similarity: number
+  matchType?: 'keyword' | 'semantic' | 'hybrid' | 'error'
 }
 
 // 相关笔记查询结果接口
@@ -19,6 +20,13 @@ export interface RelatedNotesResult {
   success: boolean
   notes: RelatedNote[]
   error?: string // 添加可选的错误信息字段
+  totalProcessed?: number // 添加这个可选属性
+  stats?: {
+    keywordMatches: number
+    semanticMatches: number
+    hybridMatches: number
+    errors: number
+  }
 }
 
 // 卡片笔记
@@ -40,6 +48,7 @@ export interface Note {
   starredOrder?: number
   rightBarOrder?: number
   keywords?: Keyword[] // 存储提取的关键词
+  semanticVector?: number[] // 存储文本的语义向量
 }
 
 // 卡片盒（文件夹）

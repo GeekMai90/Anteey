@@ -94,6 +94,7 @@ import { useNoteStore } from './stores/noteStores'
 import { useNoteMenu } from './composables/useNoteMenu'
 import SharePreviewModal from './components/share/SharePreviewModal.vue'
 import { useDebounceFn } from '@vueuse/core'
+// import { SemanticVectorizer } from './utils/semanticVector'
 
 // 初始化store
 const uiStore = useUIStore()
@@ -175,6 +176,16 @@ useGlobalHotkeys()
 onMounted(async () => {
   // 初始化主题
   uiStore.initTheme()
+
+  // // 初始化语义向量模型
+  // try {
+  //   console.log('开始初始化语义向量模型...')
+  //   const vectorizer = SemanticVectorizer.getInstance()
+  //   await vectorizer.initialize()
+  //   console.log('语义向量模型初始化成功')
+  // } catch (error) {
+  //   console.error('语义向量模型初始化失败:', error)
+  // }
   // 设置响应式布局
   debouncedCheckWindowSize()
   window.addEventListener('resize', debouncedCheckWindowSize)

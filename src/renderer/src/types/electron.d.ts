@@ -121,6 +121,9 @@ export interface ElectronAPI {
   getUserSettings: () => Promise<UserSettings>
   updateUserSettings: (settings: UpdateUserSettings) => Promise<UserSettings>
   getRelatedNotes: (noteId: string, limit: number) => Promise<RelatedNotesResult>
+  getUserDataPath: () => Promise<string>
+  loadEmbeddingsCache: () => Promise<Record<string, string>>
+  saveEmbeddingsCache: (cacheData: Record<string, string>) => Promise<boolean>
 }
 
 declare global {

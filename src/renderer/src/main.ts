@@ -42,14 +42,6 @@ app.use(FloatingVue, {
 if (process.env.NODE_ENV === 'development') {
   ;(app.config as any).devtools = true
 }
-// 添加这部分代码
-// router.isReady().then(() => {
-//   console.log('Router is ready, current path:', router.currentRoute.value.path)
-//   if (router.currentRoute.value.path === '/' || router.currentRoute.value.path === '') {
-//     console.log('Redirecting to /home')
-//     router.push('/home')
-//   }
-// })
 
 const noteStore = useNoteStore()
 noteStore.initializeStore()
@@ -60,7 +52,5 @@ console.log = (...args) => log.log(...args)
 console.error = (...args) => log.error(...args)
 console.warn = (...args) => log.warn(...args)
 console.info = (...args) => log.info(...args)
-
-console.log('渲染进程 → 应用启动')
 
 app.mount('#app')

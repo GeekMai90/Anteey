@@ -90,10 +90,13 @@ import * as dotenv from 'dotenv'
 import { default as installExtension, VUEJS3_DEVTOOLS } from 'electron-devtools-installer'
 import path from 'path'
 import fs from 'fs/promises'
+import { existsSync } from 'fs'
 import { URL } from 'url'
 import { getUserSettings } from '../db/userSettings'
 import { updateUserSettings } from '../db/userSettings'
 import { UpdateUserSettings } from '../renderer/src/types/UserSettings'
+import { initialize, enable } from '@electron/remote/main'
+// import './cacheManager'
 
 // 在所有导入之后，但在其他代码之前初始化日志
 log.initialize()
@@ -246,6 +249,40 @@ function createCustomMenu() {
 }
 
 function setupIpcHandlers() {
+  // 添加缓存处理
+  ipcMain.handle('load-embeddings-cache', async () => {
+    try {
+      const cachePath = path.join(app.getPath('userData'), 'embeddings.cache.json')
+      if (
+        await fs
+          .access(cachePath)
+          .then(() => true)
+          .catch(() => false)
+      ) {
+        const data = await fs.readFile(cachePath, 'utf8')
+        return JSON.parse(data)
+      }
+      return {}
+    } catch (error) {
+      console.error('Main: 加载向量缓存失败:', error)
+      return {}
+    }
+  })
+
+  ipcMain.handle('save-embeddings-cache', async (_, cacheData: Record<string, string>) => {
+    try {
+      const cachePath = path.join(app.getPath('userData'), 'embeddings.cache.json')
+      await fs.writeFile(cachePath, JSON.stringify(cacheData), 'utf8')
+      return true
+    } catch (error) {
+      console.error('Main: 保存向量缓存失败:', error)
+      return false
+    }
+  })
+  // 获取用户数据目录
+  ipcMain.handle('get-user-data-path', () => {
+    return app.getPath('userData')
+  })
   // 获取相关笔记
   ipcMain.handle('get-related-notes', async (_event, { noteId, limit }) => {
     console.log('主进程 → 收到获取相关笔记请求:', { noteId, limit })
@@ -1060,6 +1097,9 @@ function createWindow(): void {
       // allowRunningInsecureContent: true // 警告：这可能带来安全风险，仅在开发环境使用
     }
   })
+  // 启用 remote 模块
+
+  enable(mainWindow.webContents)
   mainWindow.maximize()
 
   mainWindow.webContents.openDevTools()
@@ -1150,13 +1190,62 @@ function createWindow(): void {
   log.info('Main window created and loaded')
 }
 
+// 获取正确的用户数据路径
+// function getAppDataPath() {
+//   // 生产环境
+//   if (app.isPackaged) {
+//     return path.join(app.getPath('userData'), 'Cache')
+//   }
+//   // 开发环境
+//   return app.getPath('userData')
+// }
+
+async function initializeCacheDirectory() {
+  try {
+    // 获取应用的用户数据目录
+    const userDataPath = app.getPath('userData')
+    log.info('用户数据目录:', userDataPath)
+
+    // 创建一个专门的缓存目录
+    const cacheDirPath = path.join(userDataPath, 'cache')
+    if (!existsSync(cacheDirPath)) {
+      await fs.mkdir(cacheDirPath, { recursive: true, mode: 0o777 })
+      log.info('创建缓存目录:', cacheDirPath)
+    }
+
+    // 设置缓存文件路径
+    const cachePath = path.join(cacheDirPath, 'embeddings.cache.json')
+
+    // 如果文件不存在，创建一个空的缓存文件
+    if (!existsSync(cachePath)) {
+      await fs.writeFile(cachePath, '{}', {
+        encoding: 'utf8',
+        mode: 0o666
+      })
+      log.info('创建缓存文件:', cachePath)
+    }
+
+    return cachePath
+  } catch (error) {
+    log.error('缓存初始化失败:', error)
+    // 如果出错，使用临时目录作为后备
+    const tempPath = path.join(app.getPath('temp'), 'embeddings.cache.json')
+    log.info('使用临时缓存路径:', tempPath)
+    return tempPath
+  }
+}
+// 在应用启动时初始化
+let globalCachePath: string
+
 app.whenReady().then(async () => {
   const antinetPath = app.getPath('userData')
   const userDataPath = path.join(antinetPath, 'UserData')
   const imagesPath = path.join(userDataPath, 'images')
+  const cachePath = path.join(userDataPath, 'cache')
 
   // 确保 UserData 和 images 目录存在
   try {
+    await fs.mkdir(cachePath, { recursive: true })
     await fs.mkdir(userDataPath, { recursive: true })
     await fs.mkdir(imagesPath, { recursive: true })
   } catch (error) {
@@ -1164,6 +1253,19 @@ app.whenReady().then(async () => {
   }
   console.log('用户数据目录:', userDataPath)
   console.log('图片目录:', imagesPath)
+  console.log('缓存目录:', cachePath)
+
+  try {
+    globalCachePath = await initializeCacheDirectory()
+    // 导出获取缓存路径的方法
+    ;(global as any).getCachePath = () => globalCachePath
+    log.info('缓存路径初始化成功:', globalCachePath)
+  } catch (error) {
+    log.error('缓存路径初始化失败:', error)
+  }
+
+  // 初始化 remote 模块
+  initialize()
   try {
     // 安装 Vue 3 Devtools
     installExtension(VUEJS3_DEVTOOLS)
@@ -1248,3 +1350,8 @@ app.on('window-all-closed', () => {
     app.quit()
   }
 })
+
+// 暴露获取缓存路径的方法
+// export function getCachePath() {
+//   return globalCachePath
+// }

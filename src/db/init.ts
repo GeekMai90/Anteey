@@ -44,16 +44,24 @@ export async function initDatabase(db: Knex): Promise<void> {
       table.integer('rightBarOrder').nullable()
       // 新增字段
       table.json('keywords').nullable() // 存储关键词数组
+      table.json('semanticVector').nullable() // 存储语义向量
     })
     console.log('notes 表创建成功')
   } else {
     // 检查是否需要添加 keywords 列
     const hasKeywordsColumn = await db.schema.hasColumn('notes', 'keywords')
-    if (!hasKeywordsColumn) {
+    const hasSemanticVectorColumn = await db.schema.hasColumn('notes', 'semanticVector')
+    if (!hasKeywordsColumn || !hasSemanticVectorColumn) {
       await db.schema.table('notes', (table) => {
-        table.json('keywords').nullable()
+        if (!hasKeywordsColumn) {
+          table.json('keywords').nullable()
+          console.log('notes 表添加 keywords 列成功')
+        }
+        if (!hasSemanticVectorColumn) {
+          table.json('semanticVector').nullable()
+          console.log('notes 表添加 semanticVector 列成功')
+        }
       })
-      console.log('notes 表添加 keywords 列成功')
     }
   }
 

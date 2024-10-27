@@ -212,12 +212,30 @@ const updateContent = debounce((newContent: any) => {
   }
 }, 300)
 // 添加处理地址输入的函数
-const handleAddressInput = debounce(() => {
+// const handleAddressInput = debounce(() => {
+//   if (editedNote.value) {
+//     isContentModified.value = true
+//     saveNote()
+//   }
+// }, 300)
+// 修改处理地址输入的函数
+const handleAddressInput = () => {
   if (editedNote.value) {
     isContentModified.value = true
-    saveNote()
+    debouncedSave()
   }
+}
+
+// 创建一个单独的防抖保存函数
+const debouncedSave = debounce(() => {
+  saveNote()
 }, 300)
+// const handleAddressInput = () => {
+//   if (editedNote.value) {
+//     isContentModified.value = true
+//     saveNote()
+//   }
+// }
 
 // 检查内容是否改变
 function isContentChanged(oldNote: Note, newNote: Note): boolean {

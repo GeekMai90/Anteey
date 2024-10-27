@@ -15,6 +15,39 @@ import {
 } from '../renderer/src/types/Note'
 import { GetPaginatedNotesParams } from '../db/notes'
 import { UpdateUserSettings, UserSettings } from '../renderer/src/types/UserSettings'
+import path from 'path'
+import fs from 'fs'
+import { app } from '@electron/remote'
+
+// 缓存处理函数
+async function loadCache(): Promise<Record<string, string>> {
+  try {
+    const userDataPath = app.getPath('userData')
+    const cachePath = path.join(userDataPath, 'embeddings.cache.json')
+
+    if (fs.existsSync(cachePath)) {
+      const data = fs.readFileSync(cachePath, 'utf8')
+      return JSON.parse(data)
+    }
+    return {}
+  } catch (error) {
+    console.error('加载缓存失败:', error)
+    return {}
+  }
+}
+
+async function saveCache(cacheData: Record<string, string>): Promise<boolean> {
+  try {
+    const userDataPath = app.getPath('userData')
+    const cachePath = path.join(userDataPath, 'embeddings.cache.json')
+
+    fs.writeFileSync(cachePath, JSON.stringify(cacheData), 'utf8')
+    return true
+  } catch (error) {
+    console.error('保存缓存失败:', error)
+    return false
+  }
+}
 
 contextBridge.exposeInMainWorld('electronAPI', {
   getResourcePath: async (filename: string): Promise<string> => {
@@ -676,5 +709,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // 获取相关笔记
   getRelatedNotes: async (noteId: string, limit: number): Promise<RelatedNotesResult> => {
     return await ipcRenderer.invoke('get-related-notes', { noteId, limit })
-  }
+  },
+  // 获取用户数据目录
+  getUserDataPath: async (): Promise<string> => {
+    return await ipcRenderer.invoke('get-user-data-path')
+  },
+  loadEmbeddingsCache: loadCache,
+  saveEmbeddingsCache: saveCache
 })
