@@ -44,17 +44,23 @@ const isLoading = ref(false)
 const relatedNotes = ref<RelatedNote[]>([])
 
 const fetchRelatedNotes = async () => {
+  console.log('开始获取相关笔记，noteId:', props.noteId) // 添加日志
   isLoading.value = true
   try {
-    if (!props.noteId) return
+    if (!props.noteId) {
+      console.log('noteId 为空，跳过获取') // 添加日志
+      return
+    }
+    console.log('正在调用 getRelatedNotes...') // 添加日志
     const response = await noteStore.getRelatedNotes(props.noteId, 10)
+    console.log('获取响应:', response) // 添加日志
     if (response.success) {
       relatedNotes.value = response.notes
     } else if (response.error) {
       console.error('获取相关笔记失败:', response.error)
     }
   } catch (error) {
-    console.error('获取相关笔记失败:', error)
+    console.error('获取相关笔记发生异常:', error)
   } finally {
     isLoading.value = false
   }

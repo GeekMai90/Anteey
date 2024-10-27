@@ -95,6 +95,30 @@ import { getUserSettings } from '../db/userSettings'
 import { updateUserSettings } from '../db/userSettings'
 import { UpdateUserSettings } from '../renderer/src/types/UserSettings'
 
+// 在所有导入之后，但在其他代码之前初始化日志
+log.initialize()
+
+// 设置日志级别
+log.transports.file.level = 'debug'
+log.transports.console.level = 'debug'
+
+// 替换控制台日志方法
+console.log = (...args) => log.log(...args)
+console.error = (...args) => log.error(...args)
+console.warn = (...args) => log.warn(...args)
+console.info = (...args) => log.info(...args)
+
+// ... 其他导入和代码 ...
+
+// 错误处理
+process.on('uncaughtException', (error) => {
+  log.error('未捕获的异常:', error)
+})
+
+process.on('unhandledRejection', (reason) => {
+  log.error('未处理的 Promise 拒绝:', reason)
+})
+
 // 设置应用名称
 app.name = 'Antinet'
 // 加载 .env 文件
@@ -1037,6 +1061,8 @@ function createWindow(): void {
     }
   })
   mainWindow.maximize()
+
+  mainWindow.webContents.openDevTools()
 
   if (app.isPackaged) {
     mainWindow.loadFile(path.join(__dirname, '../renderer/index.html'))

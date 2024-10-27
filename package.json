@@ -1,6 +1,6 @@
 {
   "name": "antinet",
-  "version": "0.1.33",
+  "version": "0.1.42",
   "description": "Antinet",
   "main": "./out/main/index.js",
   "author": "antinet.com",
@@ -106,7 +106,6 @@
     "lowlight": "^3.1.0",
     "marked": "^14.1.0",
     "md-editor-v3": "^4.19.2",
-    "nodejieba": "^3.4.3",
     "pinia": "^2.2.2",
     "pinia-plugin-persistedstate": "^4.0.0",
     "postcss": "^8.4.41",
@@ -118,6 +117,7 @@
     "remark-gfm": "^4.0.0",
     "remark-inline-links": "^7.0.0",
     "sass-embedded": "^1.77.8",
+    "segmentit": "^2.0.3",
     "tiptap-extension-global-drag-handle": "^0.1.12",
     "tiptap-markdown": "^0.8.10",
     "turndown": "^7.2.0",
@@ -181,7 +181,6 @@
         {
           "target": "dmg",
           "arch": [
-            "x64",
             "arm64"
           ]
         }
