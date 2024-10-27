@@ -8,7 +8,7 @@ import FloatingVue from 'floating-vue'
 import 'floating-vue/dist/style.css'
 import { useNoteStore } from './stores/noteStores'
 import ShortKey from 'vue3-shortkey'
-import log from 'electron-log/renderer' // 修改这里，使用 renderer 版本
+// import log from 'electron-log/renderer' // 修改这里，使用 renderer 版本
 
 const app = createApp(App)
 
@@ -48,9 +48,9 @@ noteStore.initializeStore()
 
 // 配置日志
 // 直接使用 log 的方法
-console.log = (...args) => log.log(...args)
-console.error = (...args) => log.error(...args)
-console.warn = (...args) => log.warn(...args)
-console.info = (...args) => log.info(...args)
+// console.log = (...args) => log.log(...args)
+// console.error = (...args) => log.error(...args)
+// console.warn = (...args) => log.warn(...args)
+// console.info = (...args) => log.info(...args)
 
 app.mount('#app')

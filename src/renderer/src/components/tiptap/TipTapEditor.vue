@@ -470,6 +470,11 @@ const props = defineProps({
   enableDragHandle: {
     type: Boolean,
     default: true
+  },
+  // 添加 noteId 属性
+  noteId: {
+    type: String,
+    required: true
   }
 })
 
@@ -994,6 +999,7 @@ const editorExtensions = computed(() => {
     CustomLink.configure({
       openOnClick: false,
       parseMarkdown: true,
+      noteId: props.noteId,
       validate: (url) => /^(https?:\/\/|note:\/\/)/.test(url)
     }),
     Underline,
@@ -1108,7 +1114,7 @@ const editorExtensions = computed(() => {
         onNodeChange: ({ node }) => {
           if (node) {
             currentHoveredNode.value = node
-            console.log('当前悬停的节点:', node.type.name)
+            // console.log('当前悬停的节点:', node.type.name)
             // 可以在这里存储当前节点信息，以便在点击时使用
           }
         }

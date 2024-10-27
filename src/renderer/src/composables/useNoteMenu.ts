@@ -11,7 +11,8 @@ import {
   CopyLink,
   Export as ExportIcon,
   SettingTwo,
-  Share
+  Share,
+  AdjacentItem
 } from '@icon-park/vue-next'
 import { useWhiteboardStore } from '../stores/whiteboardStores'
 import { useUIStore } from '../stores/useUIStore'
@@ -21,6 +22,8 @@ import JSZip from 'jszip'
 import { ref, computed } from 'vue'
 import { useNoteStore } from '../stores/noteStores'
 import { useRoute, useRouter } from 'vue-router'
+import { Note } from '@renderer/types/Note'
+import { message } from '@renderer/utils/message'
 
 interface NoteMenuParams {
   noteId: string
@@ -400,6 +403,50 @@ export function useNoteMenu(params: NoteMenuParams) {
     return name
   }
 
+  // 从笔记内容中提取第一行文本
+  function extractFirstLineText(content: any): string {
+    // 检查 content 是否存在且有内容
+    if (
+      content &&
+      content.content &&
+      content.content[0] &&
+      content.content[0].content &&
+      content.content[0].content[0] &&
+      content.content[0].content[0].text
+    ) {
+      return content.content[0].content[0].text
+    }
+    return '无标题'
+  }
+
+  // 生成笔记引用
+  function generateNoteReference(note: Note): string {
+    // 获取笔记地址和第一行文本
+    const address = note.address || ''
+    const firstLineText = extractFirstLineText(note.content)
+
+    // 组合标题：地址 + 第一行文本
+    const title = `${address} ${firstLineText}`.trim()
+
+    // 返回引用格式
+    return `[[${note.id}:${title}]]`
+  }
+
+  // 复制引用
+  const handleCopyQuote = async () => {
+    // 1. 先通过 noteId 获取完整的笔记数据
+    const note = await noteStore.fetchNoteById(params.noteId)
+    if (!note) {
+      console.error('笔记不存在')
+      return
+    }
+    // 2. 生成并复制引用
+    const reference = generateNoteReference(note)
+    await navigator.clipboard.writeText(reference)
+    // 3. 提示用户
+    message.success('引用已复制')
+  }
+
   const allMenuItems: any = computed(() => ({
     info: { name: 'info', label: '卡片信息', icon: Info, action: handleShare },
     star: {
@@ -474,6 +521,12 @@ export function useNoteMenu(params: NoteMenuParams) {
       label: '分享',
       icon: Share,
       action: handleShare
+    },
+    copyQuote: {
+      name: 'copyQuote',
+      label: '复制引用',
+      icon: AdjacentItem,
+      action: handleCopyQuote
     }
   }))
 

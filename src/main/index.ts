@@ -1145,9 +1145,7 @@ function createWindow(): void {
   mainWindow.webContents.on('did-finish-load', () => {
     log.info('Window did-finish-load event triggered')
     mainWindow.webContents.executeJavaScript(`
-      console.log('Current pathname:', window.location.pathname);
       if (window.location.pathname === '/' || window.location.pathname === '') {
-        console.log('Redirecting to /home');
         window.history.pushState(null, '', '/home');
         if (window.dispatchEvent) {
           window.dispatchEvent(new Event('popstate'));

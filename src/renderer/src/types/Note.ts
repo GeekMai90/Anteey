@@ -29,6 +29,13 @@ export interface RelatedNotesResult {
   }
 }
 
+// 在已有的类型定义中添加新的引用格式
+export interface NoteReference {
+  id: string
+  title: string
+  type: 'reference'
+}
+
 // 卡片笔记
 export interface Note {
   id: string

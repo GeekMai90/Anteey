@@ -199,11 +199,11 @@ const virtualList = list as any
 
 // 组件挂载时的初始化操作
 onMounted(async () => {
-  console.log('组件挂载，开始加载笔记')
+  // console.log('组件挂载，开始加载笔记')
   if (notes.value.length === 0) {
     await refreshNotes()
   }
-  console.log('笔记加载完成，数量:', notes.value.length)
+  // console.log('笔记加载完成，数量:', notes.value.length)
   isLoaded.value = true
   const dates = await noteStore.fetchAllDatesWithNotes()
   if (dates) {
@@ -233,7 +233,7 @@ onUnmounted(() => {
 })
 
 function setupInfiniteScroll() {
-  console.log('初始化 Intersection Observer')
+  // console.log('初始化 Intersection Observer')
   observer = new IntersectionObserver(
     (entries) => {
       if (entries[0].isIntersecting && hasMoreNotes.value && !isLoading.value) {
@@ -250,7 +250,7 @@ function setupInfiniteScroll() {
 
   if (observerTarget.value) {
     observer.observe(observerTarget.value)
-    console.log('观察目标元素设置完成')
+    // console.log('观察目标元素设置完成')
   } else {
     console.warn('观察目标元素不存在')
   }
@@ -261,12 +261,12 @@ async function loadMoreNotes() {
   if (!isLoading.value && hasMoreNotes.value) {
     isLoading.value = true
     try {
-      console.log('开始加载更多笔记，当前页:', currentPage.value)
+      // console.log('开始加载更多笔记，当前页:', currentPage.value)
       const result = await noteStore.fetchPaginatedNotes(currentPage.value, pageSize)
       if (result) {
         notes.value.push(...result.notes)
         currentPage.value++
-        console.log('新加载的笔记数:', result.notes.length, '总笔记数:', notes.value.length)
+        // console.log('新加载的笔记数:', result.notes.length, '总笔记数:', notes.value.length)
       }
     } catch (error) {
       console.error('加载更多笔记时出错:', error)

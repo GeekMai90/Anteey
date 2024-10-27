@@ -16,6 +16,7 @@ import { debounce } from 'lodash-es'
 import { Editor } from '@tiptap/vue-3'
 import { useEventBus } from '@vueuse/core'
 import { GetPaginatedNotesParams } from '../../../db/notes'
+// import { log } from 'electron-log'
 
 const cardTypes = [
   { value: 'Maincard', label: '主要卡', icon: Notes },
@@ -98,6 +99,73 @@ export const useNoteStore = defineStore('note', {
     clearHighlightedNoteId() {
       this.highlightedNoteId = null
     },
+
+    //双链笔记
+    // 创建笔记间的引用关系
+    async createNoteReference(sourceId: string, targetId: string) {
+      try {
+        // 1. 更新源笔记的 linkedTo
+        const sourceNote = await this.fetchNoteById(sourceId)
+        if (!sourceNote) throw new Error('Source note not found')
+
+        // 检查是否已经存在引用关系
+        if (!sourceNote.linkedTo.includes(targetId)) {
+          // 更新源笔记
+          await window.electronAPI.updateNote(sourceId, {
+            linkedTo: [...sourceNote.linkedTo, targetId]
+          })
+
+          // 2. 更新目标笔记的 linkedFrom
+          const targetNote = await this.fetchNoteById(targetId)
+          if (!targetNote) throw new Error('Target note not found')
+
+          await window.electronAPI.updateNote(targetId, {
+            linkedFrom: [...targetNote.linkedFrom, sourceId]
+          })
+
+          // // 3. 更新本地状态
+          // this.updateLocalNote(sourceId, {
+          //   linkedTo: [...sourceNote.linkedTo, targetId]
+          // })
+          // this.updateLocalNote(targetId, {
+          //   linkedFrom: [...targetNote.linkedFrom, sourceId]
+          // })
+        }
+      } catch (error) {
+        console.error('Failed to create note reference:', error)
+      }
+    },
+    // 删除笔记间的引用关系
+    async removeNoteReference(sourceId: string, targetId: string) {
+      try {
+        // 1. 更新源笔记的 linkedTo
+        const sourceNote = await this.fetchNoteById(sourceId)
+        if (!sourceNote) throw new Error('Source note not found')
+
+        await window.electronAPI.updateNote(sourceId, {
+          linkedTo: sourceNote.linkedTo.filter((id) => id !== targetId)
+        })
+
+        // 2. 更新目标笔记的 linkedFrom
+        const targetNote = await this.fetchNoteById(targetId)
+        if (!targetNote) throw new Error('Target note not found')
+
+        await window.electronAPI.updateNote(targetId, {
+          linkedFrom: targetNote.linkedFrom.filter((id) => id !== sourceId)
+        })
+
+        // 3. 更新本地状态
+        this.updateLocalNote(sourceId, {
+          linkedTo: sourceNote.linkedTo.filter((id) => id !== targetId)
+        })
+        this.updateLocalNote(targetId, {
+          linkedFrom: targetNote.linkedFrom.filter((id) => id !== sourceId)
+        })
+      } catch (error) {
+        console.error('Failed to remove note reference:', error)
+      }
+    },
+
     async handleShare(noteId: string) {
       const note = await this.fetchNoteById(noteId)
       if (!note) return
@@ -192,10 +260,10 @@ export const useNoteStore = defineStore('note', {
 
     // 获取卡片盒页面的分页笔记
     async fetchPaginatedNotesByCardbox(params: GetPaginatedNotesParams) {
-      console.log('noteStores.ts→ 开始获取卡片盒分页笔记', params)
+      // console.log('noteStores.ts→ 开始获取卡片盒分页笔记', params)
       try {
         const { notes, totalCount } = await window.electronAPI.getPaginatedNotesByCardbox(params)
-        console.log('noteStores.ts→ 获取卡片盒分页笔记成功', notes, totalCount)
+        // console.log('noteStores.ts→ 获取卡片盒分页笔记成功', notes, totalCount)
         return { notes, totalCount }
       } catch (error) {
         console.error('noteStores.ts→ 获取卡片盒分页笔记失败:', error)
@@ -317,14 +385,14 @@ export const useNoteStore = defineStore('note', {
     // 获取分页笔记
     async fetchPaginatedNotes(page: number, pageSize: number) {
       // if (this.isLoading) return null
-      console.log('noteStores.ts→ 获取分页笔记', page, pageSize)
+      // console.log('noteStores.ts→ 获取分页笔记', page, pageSize)
 
       this.isLoading = true
 
       try {
         const { notes, totalCount } = await window.electronAPI.getPaginatedNotes(page, pageSize)
         this.totalNotes = totalCount
-        console.log('noteStores.ts→ 获取分页笔记成功', notes, totalCount)
+        // console.log('noteStores.ts→ 获取分页笔记成功', notes, totalCount)
         return { notes, totalCount }
       } catch (error) {
         console.error('noteStores.ts→ 获取分页笔记失败:', error)
@@ -482,46 +550,51 @@ export const useNoteStore = defineStore('note', {
     // 更新本地笔记状态
     updateLocalNote(id: string, updatedFields: Partial<Note>) {
       console.log('noteStores.ts→ 更新本地笔记', id, updatedFields)
-      const index = this.notes.findIndex((note) => note.id === id)
-      if (index !== -1) {
-        this.notes[index] = { ...this.notes[index], ...updatedFields }
-      }
-      if (this.currentNote && this.currentNote.id === id) {
-        this.currentNote = { ...this.currentNote, ...updatedFields }
-      }
+      // const index = this.notes.findIndex((note) => note.id === id)
+      // if (index !== -1) {
+      //   this.notes[index] = { ...this.notes[index], ...updatedFields }
+      // }
+      // if (this.currentNote && this.currentNote.id === id) {
+      //   this.currentNote = { ...this.currentNote, ...updatedFields }
+      // }
     },
     // 更新笔记内容
-    async updateNoteContent(id: string, content: any) {
-      // 立即更新本地状态
-      this.updateLocalNote(id, { content })
+    // async updateNoteContent(id: string, content: any) {
+    //   // 立即更新本地状态
+    //   this.updateLocalNote(id, { content })
 
-      // 延迟更新远程数据库
-      try {
-        this.currentNoteSaveStatus = 'saving'
-        await this.debouncedUpdateRemote(id, content)
-        setTimeout(() => {
-          this.currentNoteSaveStatus = 'saved'
-        }, 2000)
-      } catch (error) {
-        console.error(`noteStores.ts→ 更新远程笔记内容失败 ${id}:`, error)
-        this.currentNoteSaveStatus = 'error'
-      }
-    },
+    //   // 延迟更新远程数据库
+    //   try {
+    //     this.currentNoteSaveStatus = 'saving'
+    //     await this.debouncedUpdateRemote(id, content)
+    //     setTimeout(() => {
+    //       this.currentNoteSaveStatus = 'saved'
+    //     }, 2000)
+    //   } catch (error) {
+    //     console.error(`noteStores.ts→ 更新远程笔记内容失败 ${id}:`, error)
+    //     this.currentNoteSaveStatus = 'error'
+    //   }
+    // },
 
-    debouncedUpdateRemote: debounce(async (id: string, content: any) => {
-      try {
-        await window.electronAPI.updateNoteContent(id, content)
-        console.log('noteStores.ts→ 更新远程笔记内容成功', id)
-      } catch (error) {
-        console.error(`noteStores.ts→ 更新远程笔记内容失败 ${id}:`, error)
-      }
-    }, 1000), // 1秒延迟
+    // debouncedUpdateRemote: debounce(async (id: string, content: any) => {
+    //   try {
+    //     await window.electronAPI.updateNoteContent(id, content)
+    //     console.log('noteStores.ts→ 更新远程笔记内容成功', id)
+    //   } catch (error) {
+    //     console.error(`noteStores.ts→ 更新远程笔记内容失败 ${id}:`, error)
+    //   }
+    // }, 1000), // 1秒延迟
     // 更新整个笔记或多个字段
     async updateNote(id: string, noteData: Partial<Note>): Promise<Note> {
       const eventBus = useEventBus('note-updated')
       try {
         console.log('noteStores.ts→ 更新整个笔记', id, noteData)
-        const serializableNoteData = JSON.parse(JSON.stringify(noteData))
+
+        // 创建一个新对象，排除引用关系字段
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { linkedTo, linkedFrom, ...dataToUpdate } = noteData
+
+        const serializableNoteData = JSON.parse(JSON.stringify(dataToUpdate))
         const response = await window.electronAPI.updateNote(id, serializableNoteData)
         const updatedNote = this.parseNoteContent(response)
 
@@ -550,6 +623,108 @@ export const useNoteStore = defineStore('note', {
         throw error
       }
     },
+    // 1. 更新笔记内容（仅内容）
+    async updateNoteContent(id: string, content: any) {
+      try {
+        this.currentNoteSaveStatus = 'saving'
+
+        // 获取当前笔记以保留其他字段
+        const currentNote = await this.fetchNoteById(id)
+        if (!currentNote) throw new Error('Note not found')
+
+        // 只更新内容，保留其他字段
+        const updatedFields = {
+          ...currentNote,
+          content,
+          updatedAt: new Date().toISOString()
+        }
+
+        // 立即更新本地状态
+        // this.updateLocalNote(id, updatedFields)
+
+        // 延迟更新远程数据库
+        await this.debouncedUpdateRemote(id, 'content', updatedFields)
+
+        setTimeout(() => {
+          this.currentNoteSaveStatus = 'saved'
+        }, 2000)
+      } catch (error) {
+        console.error(`更新笔记内容失败 ${id}:`, error)
+        this.currentNoteSaveStatus = 'error'
+      }
+    },
+
+    // 2. 防抖更新远程数据
+    debouncedUpdateRemote: debounce(async (id: string, type: 'content' | 'full', data: any) => {
+      try {
+        if (type === 'content') {
+          await window.electronAPI.updateNoteContent(id, data.content)
+        } else {
+          await window.electronAPI.updateNote(id, data)
+        }
+        console.log(`更新远程笔记${type}成功`, id)
+      } catch (error) {
+        console.error(`更新远程笔记${type}失败 ${id}:`, error)
+        throw error
+      }
+    }, 1000),
+
+    // 3. 更新整个笔记
+    // async updateNote(id: string, noteData: Partial<Note>): Promise<Note> {
+    //   const eventBus = useEventBus('note-updated')
+    //   try {
+    //     // 获取当前笔记
+    //     const currentNote = await this.fetchNoteById(id)
+    //     if (!currentNote) throw new Error('Note not found')
+
+    //     // 合并更新，确保保留现有字段
+    //     const mergedData = {
+    //       ...currentNote,
+    //       ...noteData,
+    //       updatedAt: new Date().toISOString(),
+    //       // 确保引用关系不被覆盖
+    //       linkedTo: currentNote.linkedTo,
+    //       linkedFrom: currentNote.linkedFrom
+    //     }
+
+    //     // 序列化数据
+    //     const serializableData = JSON.parse(JSON.stringify(mergedData))
+
+    //     // 更新远程
+    //     const response = await window.electronAPI.updateNote(id, serializableData)
+    //     const updatedNote = this.parseNoteContent(response)
+
+    //     // 更新本地状态
+    //     this.updateLocalNote(id, updatedNote)
+
+    //     // 更新 notes 数组
+    //     const noteIndex = this.notes.findIndex((note) => note.id === id)
+    //     if (noteIndex === -1) {
+    //       this.notes.push(updatedNote)
+    //     } else {
+    //       this.notes[noteIndex] = updatedNote
+    //     }
+
+    //     // 更新其他状态
+    //     this.lastUpdatedNote = updatedNote
+    //     eventBus.emit(updatedNote)
+
+    //     // 更新星标笔记
+    //     if (updatedNote.isStarred) {
+    //       const starredIndex = this.starredNotes.findIndex((note) => note.id === id)
+    //       if (starredIndex !== -1) {
+    //         const newStarredNotes = [...this.starredNotes]
+    //         newStarredNotes[starredIndex] = { ...updatedNote }
+    //         this.starredNotes = newStarredNotes
+    //       }
+    //     }
+
+    //     return updatedNote
+    //   } catch (error) {
+    //     console.error(`更新笔记失败 ${id}:`, error)
+    //     throw error
+    //   }
+    // },
 
     // 获取一些笔记
     async getNotesByIds(ids: string[]) {
@@ -675,7 +850,7 @@ export const useNoteStore = defineStore('note', {
           ...box,
           noteIds: box.noteIds || []
         }))
-        console.log(`noteStores.ts→ 获取卡片盒`, this.cardBoxes)
+        // console.log(`noteStores.ts→ 获取卡片盒`, this.cardBoxes)
       } catch (error) {
         console.error('noteStores.ts→ 获取卡片盒失败:', error)
         throw error
@@ -937,7 +1112,7 @@ export const useNoteStore = defineStore('note', {
     async fetchStarredNotes() {
       try {
         const starredNotes = await window.electronAPI.getStarredNotes()
-        console.log(`noteStores.ts→ 获取收藏的笔记`, starredNotes)
+        // console.log(`noteStores.ts→ 获取收藏的笔记`, starredNotes)
         this.starredNotes = starredNotes
         return starredNotes
       } catch (error) {

@@ -85,7 +85,7 @@ const { starredNotes } = storeToRefs(noteStore)
 watch(
   starredNotes,
   (newStarredNotes) => {
-    console.log('StarredNotes.vue→ 监听星标笔记变化', newStarredNotes)
+    // console.log('StarredNotes.vue→ 监听星标笔记变化', newStarredNotes)
     localStarredNotes.value = [...newStarredNotes].sort(
       (a, b) => (a.starredOrder ?? 0) - (b.starredOrder ?? 0)
     )

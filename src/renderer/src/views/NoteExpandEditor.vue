@@ -77,6 +77,7 @@
           v-if="editedNote"
           ref="tiptapEditor"
           v-model:content="editedNote.content"
+          :note-id="editedNote.id"
           :editable="true"
           :enableDragHandle="true"
           @update:content="updateContent"
@@ -189,7 +190,7 @@ const menuPosition = reactive({ x: 0, y: 0 })
 // 更多菜单
 const { menuItems: noteMenuItems, resetDeleteState } = useNoteMenu({
   noteId: noteId,
-  menuItems: ['star', 'share', 'sidebar', 'copyNoteLink', 'exportNote', 'delete']
+  menuItems: ['star', 'share', 'sidebar', 'copyNoteLink', 'exportNote', 'delete', 'copyQuote']
 })
 
 // 更多菜单点击事件
@@ -240,11 +241,16 @@ watch(
   },
   { immediate: true }
 )
-
+// 1. 首先定义一个追踪最后更新时间的变量
+// const lastUpdateTime = ref(Date.now())
 // 更新内容
 const updateContent = debounce((newContent: any) => {
   if (editedNote.value) {
+    // 更新内容
     noteStore.updateNoteContent(editedNote.value.id, newContent)
+    // 更新本地状态
+    editedNote.value.content = newContent
+
     isContentModified.value = true
   }
 }, 300)
@@ -298,7 +304,6 @@ const autoSave = debounce(async () => {
 // 监听笔记内容的变化
 watch(
   () => ({
-    content: editedNote.value?.content,
     address: editedNote.value?.address,
     cardType: editedNote.value?.cardType,
     tags: editedNote.value?.tags
@@ -317,6 +322,7 @@ const saveNote = async () => {
   if (editedNote.value && editedNote.value.id && isContentModified.value) {
     try {
       await noteStore.updateNote(editedNote.value.id, editedNote.value)
+
       lastSavedNote.value = JSON.parse(JSON.stringify(editedNote.value))
       isContentModified.value = false
       // console.log('笔记已手动保存')
