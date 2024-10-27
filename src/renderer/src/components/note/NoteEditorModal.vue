@@ -2,7 +2,6 @@
 <template>
   <Modal
     v-model="noteStore.isEditorOpen"
-    class="note-editor-modal"
     @outside-click="handleOutsideClick"
     @after-enter="focusNoteEditorInput"
   >
@@ -20,7 +19,7 @@ import { useNoteStore } from '@renderer/stores/noteStores'
 import Modal from '@renderer/components/common/Modal.vue'
 import NoteEditor from '@renderer/components/note/NoteEditor.vue'
 
-console.log('NoteEditorModal.vue 组件加载')
+// console.log('NoteEditorModal.vue 组件加载')
 
 const noteStore = useNoteStore()
 const noteEditorRef = shallowRef<InstanceType<typeof NoteEditor> | null>(null)

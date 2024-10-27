@@ -96,7 +96,6 @@ import { getUserSettings } from '../db/userSettings'
 import { updateUserSettings } from '../db/userSettings'
 import { UpdateUserSettings } from '../renderer/src/types/UserSettings'
 import { initialize, enable } from '@electron/remote/main'
-// import './cacheManager'
 
 // 在所有导入之后，但在其他代码之前初始化日志
 log.initialize()
@@ -1091,7 +1090,7 @@ function createWindow(): void {
       sandbox: false,
       contextIsolation: true,
       nodeIntegration: false,
-      devTools: true, // 确保开发工具可用
+      devTools: !app.isPackaged, // 仅在开发环境启用开发者工具
       additionalArguments: ['--disable-site-isolation-trials'],
       webSecurity: false // 警告：这可能带来安全风险，仅在开发环境使用
       // allowRunningInsecureContent: true // 警告：这可能带来安全风险，仅在开发环境使用
@@ -1101,8 +1100,6 @@ function createWindow(): void {
 
   enable(mainWindow.webContents)
   mainWindow.maximize()
-
-  mainWindow.webContents.openDevTools()
 
   if (app.isPackaged) {
     mainWindow.loadFile(path.join(__dirname, '../renderer/index.html'))
@@ -1182,23 +1179,8 @@ function createWindow(): void {
     mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
   }
 
-  // // 添加这部分代码
-  // mainWindow.webContents.on('did-finish-load', () => {
-  //   mainWindow.webContents.executeJavaScript('window.location.hash = "/home"')
-  // })
-
   log.info('Main window created and loaded')
 }
-
-// 获取正确的用户数据路径
-// function getAppDataPath() {
-//   // 生产环境
-//   if (app.isPackaged) {
-//     return path.join(app.getPath('userData'), 'Cache')
-//   }
-//   // 开发环境
-//   return app.getPath('userData')
-// }
 
 async function initializeCacheDirectory() {
   try {

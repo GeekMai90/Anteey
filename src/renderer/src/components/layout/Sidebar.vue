@@ -40,6 +40,7 @@
         </button>
       </div>
     </div>
+    <!-- 添加可滚动容器 -->
 
     <div class="sidebar-nav">
       <nav>
@@ -107,8 +108,10 @@
       </nav>
     </div>
     <div class="sidebar-header-divider"></div>
-    <StarredNotes />
-    <RecentNotes />
+    <div class="scrollable-content">
+      <StarredNotes />
+      <RecentNotes />
+    </div>
     <div class="resize-handle" @mousedown="startResize"></div>
     <div class="sidebar-footer">
       <div class="new-card-wrapper"></div>
@@ -302,6 +305,7 @@ const openHelp = () => {
 
   .sidebar-header {
     width: 100%; // 确保宽度为100%
+    flex-shrink: 0; // 防止头部被压缩
     // padding-bottom: 10px; // 移除左右内边距
 
     .antinet-button {
@@ -453,12 +457,13 @@ const openHelp = () => {
 
   .sidebar-header-divider {
     border-bottom: 1px solid var(--color-border-sidebar);
-
+    flex-shrink: 0; // 防止分割线被压缩
     margin: 6px;
   }
 
   .sidebar-nav {
     padding: 0px 10px;
+    flex-shrink: 0; // 防止导航菜单被压缩
 
     nav {
       ul {
@@ -655,7 +660,9 @@ const openHelp = () => {
   }
 
   .sidebar-footer {
-    margin-top: auto; // 将footer推到底部
+    // margin-top: auto; // 将footer推到底部
+    margin-top: 0; // 移除 margin-top: auto
+    flex-shrink: 0; // 防止底部工具栏被压缩
     padding: 10px;
     display: flex;
     justify-content: space-between;
@@ -819,5 +826,11 @@ const openHelp = () => {
     opacity: 1;
     transform: scale(1.1);
   }
+}
+// 添加一个内容容器来包裹可滚动的内容
+.scrollable-content {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0; // 重要：确保内容可以正确滚动
 }
 </style>
