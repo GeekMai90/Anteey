@@ -32,7 +32,7 @@
             html: true
           }"
           class="new-note-btn"
-          @click="createNewCard"
+          @click="noteStore.createAndOpenNote"
         >
           <div class="icon">
             <Plus theme="outline" size="16" fill="var(--color-icon-secondary)" :strokeWidth="3" />
@@ -183,7 +183,7 @@ import {
   Moon,
   SunOne
 } from '@icon-park/vue-next'
-import { useNoteStore } from '@renderer/stores/noteStores'
+import { useNoteStore } from '@renderer/stores/note-store'
 import SettingDropdownMenu from '@renderer/components/settings/SettingDropdownMenu.vue'
 import StarredNotes from '@renderer/components/layout/StarredNotes.vue'
 import { useUIStore } from '@renderer/stores/useUIStore'

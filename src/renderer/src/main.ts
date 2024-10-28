@@ -6,7 +6,7 @@ import './styles/main.scss'
 import piniaPluginPersistedstate from 'pinia-plugin-persistedstate'
 import FloatingVue from 'floating-vue'
 import 'floating-vue/dist/style.css'
-import { useNoteStore } from './stores/noteStores'
+import { useNoteStore } from './stores/note-store'
 import ShortKey from 'vue3-shortkey'
 // import log from 'electron-log/renderer' // 修改这里，使用 renderer 版本
 

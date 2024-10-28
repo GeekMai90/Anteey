@@ -89,7 +89,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { useNoteStore } from '@renderer/stores/noteStores'
+import { useNoteStore } from '@renderer/stores/note-store'
 import AppToolbar from '@renderer/components/layout/AppToolbar.vue'
 import TrashNoteCard from '@renderer/components/note/TrashNoteCard.vue'
 import ConfirmDialog from '@renderer/components/common/ConfirmDialog.vue'

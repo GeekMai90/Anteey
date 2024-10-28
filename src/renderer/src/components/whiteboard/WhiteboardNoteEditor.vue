@@ -88,7 +88,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, onUnmounted, ref, watch } from 'vue'
 import { Note, CardType, CardBox } from '@renderer/types/Note'
-import { useNoteStore } from '@renderer/stores/noteStores'
+import { useNoteStore } from '@renderer/stores/note-store'
 import TipTapEditor from '@renderer/components/tiptap/TipTapEditor.vue'
 import { useRouter } from 'vue-router'
 import {

@@ -25,7 +25,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { useNoteStore } from '@renderer/stores/noteStores'
+import { useNoteStore } from '@renderer/stores/note-store'
 import { useRouter } from 'vue-router'
 import { Down, Right } from '@icon-park/vue-next'
 import StarredNotesCard from '@renderer/components/layout/StarredNotesCard.vue'

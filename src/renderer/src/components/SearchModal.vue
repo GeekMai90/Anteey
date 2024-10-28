@@ -103,7 +103,7 @@
 </template>
 <script setup lang="ts">
 import { ref, watch, nextTick } from 'vue'
-import { useNoteStore } from '@renderer/stores/noteStores'
+import { useNoteStore } from '@renderer/stores/note-store'
 import Modal from '@renderer/components/common/Modal.vue'
 import { useRouter } from 'vue-router'
 import NotePreviewCard from '@renderer/components/note/NotePreviewCard.vue'

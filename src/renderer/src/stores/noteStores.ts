@@ -1,4 +1,4 @@
-// src/stores/noteStores.ts
+// src/stores/note-store.ts
 
 import { defineStore } from 'pinia'
 import {
@@ -13,9 +13,9 @@ import { Notes, Table, TransactionOrder, Deeplink } from '@icon-park/vue-next'
 import { computed, ref } from 'vue'
 import { useUIStore } from './useUIStore'
 import { debounce } from 'lodash-es'
-import { Editor } from '@tiptap/vue-3'
+
 import { useEventBus } from '@vueuse/core'
-import { GetPaginatedNotesParams } from '../../../db/notes'
+import { GetPaginatedNotesParams } from '../../../db/notesService'
 // import { log } from 'electron-log'
 
 const cardTypes = [
@@ -51,7 +51,7 @@ export const useNoteStore = defineStore('note', {
     currentNoteSaveStatus: 'idle' as 'idle' | 'saving' | 'saved' | 'error',
     isSettingDropdownOpen: false,
     showCardBox: false,
-    editor: null as Editor | null,
+
     isLoading: true,
     recentNotes: [] as string[],
     maxRecentNotes: 6,
@@ -493,18 +493,6 @@ export const useNoteStore = defineStore('note', {
     },
     closeSettingDropdown() {
       this.isSettingDropdownOpen = false
-    },
-
-    // 设置编辑器实例
-    setEditor(newEditor: Editor) {
-      this.editor = newEditor as any
-    },
-    // 清除编辑器实例
-    clearEditor() {
-      if (this.editor) {
-        this.editor.destroy()
-      }
-      this.editor = null
     },
 
     // 获取所有笔记

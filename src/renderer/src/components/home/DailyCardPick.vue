@@ -15,7 +15,7 @@
 </template>
 
 <script setup lang="ts">
-import { useNoteStore } from '@renderer/stores/noteStores'
+import { useNoteStore } from '@renderer/stores/note-store'
 import { ref, onMounted, computed, watchEffect } from 'vue'
 import confetti from 'canvas-confetti'
 import { Note } from '@renderer/types/Note'

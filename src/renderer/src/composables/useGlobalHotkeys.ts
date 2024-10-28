@@ -1,7 +1,7 @@
 // src/composables/useGlobalHotkeys.ts
 import { onMounted, onUnmounted } from 'vue'
 import hotkeys from 'hotkeys-js'
-import { useNoteStore } from '../stores/noteStores'
+import { useNoteStore } from '../stores/note-store'
 import { useRouter } from 'vue-router'
 import { useUIStore } from '../stores/useUIStore'
 

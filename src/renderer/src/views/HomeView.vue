@@ -70,7 +70,7 @@ import { ref, onMounted, computed, watchEffect } from 'vue'
 import { CalendarHeatmap, TooltipFormatter, CalendarItem } from 'vue3-calendar-heatmap'
 import DailyCardPick from '@renderer/components/home/DailyCardPick.vue'
 import { useWhiteboardStore } from '@renderer/stores/whiteboardStores'
-import { useNoteStore } from '@renderer/stores/noteStores'
+import { useNoteStore } from '@renderer/stores/note-store'
 
 const whiteboardStore = useWhiteboardStore()
 const noteStore = useNoteStore()

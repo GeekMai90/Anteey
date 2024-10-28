@@ -94,7 +94,7 @@
 </template>
 <script setup lang="ts">
 import { ref, watch, nextTick, watchEffect } from 'vue'
-import { useNoteStore } from '@renderer/stores/noteStores'
+import { useNoteStore } from '@renderer/stores/note-store'
 import Modal from '@renderer/components/common/Modal.vue'
 import NotePreviewCard from '@renderer/components/note/NotePreviewCard.vue'
 import { BankCard, ParagraphRectangle, FileSearch } from '@icon-park/vue-next'

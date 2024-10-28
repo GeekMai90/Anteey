@@ -9,7 +9,7 @@ import type {
   WhiteboardGroup,
   Connection
 } from '../renderer/src/types/Note'
-import { createNote } from './notes'
+import { createNote } from './notesService'
 
 // 辅助函数：处理白板数据
 function processWhiteboardData(whiteboard: any): Whiteboard {

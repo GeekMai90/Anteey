@@ -272,7 +272,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
-import { useNoteStore } from '@renderer/stores/noteStores'
+import { useNoteStore } from '@renderer/stores/note-store'
 import AppToolbar from '@renderer/components/layout/AppToolbar.vue'
 import {
   SortTwo,
@@ -293,7 +293,7 @@ import { storeToRefs } from 'pinia'
 // import { useCardBoxSearch } from '../composables/useCardBoxSearch'
 import { useDebounceFn, useEventBus, useThrottleFn } from '@vueuse/core'
 import { useRouter } from 'vue-router'
-import { GetPaginatedNotesParams } from '../../../db/notes'
+import { GetPaginatedNotesParams } from '../../../db/notesService'
 
 const noteStore = useNoteStore()
 

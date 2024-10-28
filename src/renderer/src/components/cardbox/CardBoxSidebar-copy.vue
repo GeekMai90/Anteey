@@ -42,7 +42,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { useNoteStore } from '@renderer/stores/noteStores'
+import { useNoteStore } from '@renderer/stores/note-store'
 import CardBoxSidebarNoteCard from '@renderer/components/cardbox/CardBoxSidebarNoteCard.vue'
 import { FileSearch, Search } from '@icon-park/vue-next'
 import { debounce } from 'lodash-es'

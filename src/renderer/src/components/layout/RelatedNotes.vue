@@ -28,7 +28,7 @@
 
 <script setup lang="ts">
 import { ref, watch } from 'vue'
-import { useNoteStore } from '@renderer/stores/noteStores'
+import { useNoteStore } from '@renderer/stores/note-store'
 import { useRouter } from 'vue-router'
 import { formatDate } from '@renderer/utils/noteHelpers'
 import type { RelatedNote } from '@renderer/types/Note'

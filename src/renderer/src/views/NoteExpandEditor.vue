@@ -99,7 +99,7 @@ import {
   reactive
 } from 'vue'
 import { useRoute } from 'vue-router'
-import { useNoteStore } from '@renderer/stores/noteStores'
+import { useNoteStore } from '@renderer/stores/note-store'
 import { CardType, Note } from '@renderer/types/Note'
 import { formatDate } from '@renderer/utils/noteHelpers'
 import { More, Install } from '@icon-park/vue-next'

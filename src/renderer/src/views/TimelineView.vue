@@ -85,7 +85,7 @@
 </template>
 
 <script setup lang="ts">
-import { useNoteStore } from '@renderer/stores/noteStores'
+import { useNoteStore } from '@renderer/stores/note-store'
 import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue'
 import { storeToRefs } from 'pinia'
 import { Time as TimeIcon, Calendar, RocketOne } from '@icon-park/vue-next'

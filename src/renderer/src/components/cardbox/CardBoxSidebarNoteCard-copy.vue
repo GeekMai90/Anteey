@@ -49,7 +49,7 @@ import { computed, onMounted, onUpdated, ref, watch, toRef } from 'vue'
 import NoteOptionsMenu from '@renderer/components/note/NoteOptionsMenu.vue'
 import { useRouter } from 'vue-router'
 import TipTapEditor from '@renderer/components/tiptap/TipTapEditor.vue'
-import { useNoteStore } from '@renderer/stores/noteStores'
+import { useNoteStore } from '@renderer/stores/note-store'
 
 const props = defineProps<{
   note: Note

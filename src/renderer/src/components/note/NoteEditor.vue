@@ -22,8 +22,8 @@
           <CardboxDropdownMenu
             ref="dropdownMenu"
             :is-open="isMenuOpen"
-            :note-id="editedNote?.id"
-            :current-cardbox-id="editedNote?.cardBoxId"
+            :note-id="currentNote?.id"
+            :current-cardbox-id="currentNote?.cardBoxId"
             :offset="{ x: -120, y: 5 }"
             @close="closeCardBoxMenu"
           />
@@ -48,30 +48,31 @@
         <CardTypeDropdownMenu
           ref="cardTypeDropdownMenu"
           :is-open="showCardTypeMenu"
-          :current-card-type="editedNote?.cardType"
+          :current-card-type="currentNote?.cardType"
           :offset="{ x: -50, y: 10 }"
-          @update:card-type="updateCardType"
+          @update:card-type="handleCardTypeUpdate"
           @close="closeCardTypeMenu"
         />
         <input
-          v-if="editedNote"
+          v-if="currentNote"
           ref="addressInput"
-          v-model="editedNote.address"
+          v-model="currentNote.address"
           type="text"
           placeholder="输入编码地址"
-          @input="handleAddressInput"
+          @input="handleAddressUpdate"
           @keyup.enter="handleAddressEnter"
         />
       </div>
       <div class="content-area">
         <div class="content-wrapper">
           <TipTapEditor
-            v-if="editedNote"
+            v-if="currentNote"
             ref="tiptapEditor"
-            v-model:content="editedNote.content"
+            v-model:content="currentNote.content"
+            :note-id="currentNote?.id"
             :editable="true"
             :enableDragHandle="true"
-            @update:content="updateContent"
+            @update:content="debouncedContentUpdate"
           />
         </div>
       </div>
@@ -89,9 +90,9 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onUnmounted, reactive, ref, watch } from 'vue'
-import { CardType, Note } from '@renderer/types/Note'
-import { useNoteStore } from '@renderer/stores/noteStores'
+import { computed, nextTick, reactive, ref, watch } from 'vue'
+import { CardType } from '@renderer/types/Note'
+import { useNoteStore } from '@renderer/stores/note-store'
 import TipTapEditor from '@renderer/components/tiptap/TipTapEditor.vue'
 import { useRouter } from 'vue-router'
 import { ExpandTextInput, Install, More } from '@icon-park/vue-next'
@@ -107,15 +108,54 @@ const props = defineProps<{
   noteId: string
 }>()
 
+const noteStore = useNoteStore()
+const { currentNote } = storeToRefs(noteStore)
+
+// 监听笔记 ID 的变化，获取笔记
+watch(
+  () => props.noteId,
+  async (newId) => {
+    if (newId) {
+      await noteStore.fetchNoteById(newId)
+    }
+  },
+  { immediate: true }
+)
+
+// 地址更新（不需要防抖）
+const handleAddressUpdate = async (newAddress: string) => {
+  try {
+    await noteStore.updateNoteAddress(props.noteId, newAddress)
+  } catch (error) {
+    // 处理错误
+  }
+}
+// 卡片类型更新
+const handleCardTypeUpdate = async (newType: CardType) => {
+  try {
+    await noteStore.updateNoteCardType(props.noteId, newType)
+  } catch (error) {
+    // 处理错误
+  }
+}
+// 防抖的内容更新
+const debouncedContentUpdate = debounce(async (newContent: any) => {
+  try {
+    await noteStore.updateNoteContent(props.noteId, newContent)
+  } catch (error) {
+    // 处理错误，可能显示提示等
+  }
+}, 300)
+
 const cardTypeDropdownMenu = ref<InstanceType<typeof CardTypeDropdownMenu> | null>(null)
 const showCardTypeMenu = ref(false)
 const indicatorButton = ref<HTMLElement | null>(null)
 
 const cardTypeClass = computed(() => ({
-  maincard: editedNote.value?.cardType === 'Maincard',
-  bibcard: editedNote.value?.cardType === 'Bibcard',
-  indexcard: editedNote.value?.cardType === 'Indexcard',
-  hoplinkcard: editedNote.value?.cardType === 'Hoplinkcard'
+  maincard: currentNote.value?.cardType === 'Maincard',
+  bibcard: currentNote.value?.cardType === 'Bibcard',
+  indexcard: currentNote.value?.cardType === 'Indexcard',
+  hoplinkcard: currentNote.value?.cardType === 'Hoplinkcard'
 }))
 
 const toggleCardTypeMenu = (event: MouseEvent) => {
@@ -134,13 +174,6 @@ const toggleCardTypeMenu = (event: MouseEvent) => {
 
 const closeCardTypeMenu = () => {
   showCardTypeMenu.value = false
-}
-
-const updateCardType = (newType: CardType) => {
-  if (editedNote.value) {
-    editedNote.value.cardType = newType
-    saveNote()
-  }
 }
 
 // 更多按钮弹出菜单
@@ -184,134 +217,6 @@ const tiptapEditor = ref<InstanceType<any> | null>(null)
 // const emit = defineEmits(['close', 'save', 'expand', 'toggleOptions'])
 
 const isExpandingToExpandEditor = ref(false)
-
-const noteStore = useNoteStore()
-const { currentNote } = storeToRefs(noteStore)
-
-const isContentModified = ref(false)
-const lastSavedNote = ref(null)
-
-// 监听笔记 ID 的变化，获取笔记
-watch(
-  () => props.noteId,
-  async (newId) => {
-    if (newId) {
-      await noteStore.fetchNoteById(newId)
-    }
-  },
-  { immediate: true }
-)
-
-const editedNote = computed(() => currentNote.value)
-
-// 更新内容
-const updateContent = debounce((newContent: any) => {
-  if (editedNote.value) {
-    noteStore.updateNoteContent(editedNote.value.id, newContent)
-    isContentModified.value = true
-  }
-}, 300)
-// 添加处理地址输入的函数
-// const handleAddressInput = debounce(() => {
-//   if (editedNote.value) {
-//     isContentModified.value = true
-//     saveNote()
-//   }
-// }, 300)
-// 修改处理地址输入的函数
-const handleAddressInput = () => {
-  if (editedNote.value) {
-    isContentModified.value = true
-    debouncedSave()
-  }
-}
-
-// 创建一个单独的防抖保存函数
-const debouncedSave = debounce(() => {
-  saveNote()
-}, 300)
-// const handleAddressInput = () => {
-//   if (editedNote.value) {
-//     isContentModified.value = true
-//     saveNote()
-//   }
-// }
-
-// 检查内容是否改变
-function isContentChanged(oldNote: Note, newNote: Note): boolean {
-  return (
-    JSON.stringify(oldNote.content) !== JSON.stringify(newNote.content) ||
-    oldNote.address !== newNote.address ||
-    oldNote.cardType !== newNote.cardType ||
-    JSON.stringify(oldNote.tags) !== JSON.stringify(newNote.tags)
-  )
-}
-
-// 自动保存
-const autoSave = debounce(async () => {
-  if (editedNote.value && editedNote.value.id && isContentModified.value) {
-    if (!lastSavedNote.value || isContentChanged(lastSavedNote.value, editedNote.value)) {
-      try {
-        await noteStore.updateNote(editedNote.value.id, editedNote.value)
-        lastSavedNote.value = JSON.parse(JSON.stringify(editedNote.value))
-        isContentModified.value = false
-        console.log('笔记已自动保存')
-      } catch (error) {
-        console.error('自动保存失败:', error)
-      }
-    }
-  }
-}, 2000)
-
-// 监听笔记内容的变化
-watch(
-  () => ({
-    content: editedNote.value?.content,
-    cardType: editedNote.value?.cardType,
-    tags: editedNote.value?.tags
-  }),
-  () => {
-    if (editedNote.value) {
-      isContentModified.value = true
-      autoSave()
-    }
-  },
-  { deep: true }
-)
-
-// 手动保存
-const saveNote = async () => {
-  if (editedNote.value && editedNote.value.id && isContentModified.value) {
-    try {
-      await noteStore.updateNote(editedNote.value.id, editedNote.value)
-      lastSavedNote.value = JSON.parse(JSON.stringify(editedNote.value))
-      isContentModified.value = false
-      console.log('笔记已手动保存')
-    } catch (error) {
-      console.error('手动保存失败:', error)
-    }
-  }
-}
-
-onUnmounted(() => {
-  clearInterval(autoSaveInterval)
-  autoSave.cancel()
-  noteStore.updateCurrentNoteSaveStatus('saved')
-})
-
-// 组件卸载前保存
-onBeforeUnmount(async () => {
-  await saveNote()
-})
-
-// 定期保存
-const autoSaveInterval = setInterval(() => {
-  if (editedNote.value) {
-    autoSave()
-  }
-}, 30000)
-
-// onMounted(loadNote)
 
 // 卡片盒列表
 const dropdownMenu = ref<InstanceType<typeof CardboxDropdownMenu> | null>(null)
@@ -357,10 +262,9 @@ const handleAddressEnter = (event: KeyboardEvent) => {
 
 // 展开编辑器
 const handleExpand = async () => {
-  await saveNote()
   isExpandingToExpandEditor.value = true
-  if (editedNote.value?.id) {
-    router.push({ name: 'NoteExpandEditor', params: { id: editedNote.value.id } })
+  if (currentNote.value?.id) {
+    router.push({ name: 'NoteExpandEditor', params: { id: currentNote.value.id } })
   }
   noteStore.closeNoteEditor()
 }
@@ -728,85 +632,5 @@ defineExpose({ focusAddressInput, focusEditor })
       padding-bottom: 60px;
     }
   }
-
-  // .card-type-menu {
-  //   position: fixed;
-  //   background-color: var(--color-bg-primary);
-  //   border-radius: 8px;
-  //   box-shadow: var(--shadow-primary);
-  //   z-index: 1000;
-  //   padding: 8px 0;
-  //   width: auto;
-  //   align-items: center;
-
-  //   .card-type-item {
-  //     display: flex;
-  //     align-items: center;
-  //     width: 150px;
-  //     padding: 2px 8px;
-  //     border: none;
-  //     background: none;
-  //     cursor: pointer;
-  //     transition: background-color 0.2s;
-  //     border-radius: 8px;
-  //     margin: 2px 8px;
-
-  //     .icon {
-  //       background: none;
-  //       border: none;
-  //       cursor: pointer;
-  //       width: 28px;
-  //       height: 28px;
-  //       display: flex;
-  //       align-items: center;
-  //       justify-content: center;
-  //       border-radius: 6px;
-  //       transition: background-color 0.2s;
-  //       padding: 0;
-  //       margin-right: 5px;
-
-  //       &:hover:not(:disabled) {
-  //         background-color: var(--color-hover-bg);
-  //       }
-
-  //       &:disabled {
-  //         opacity: 0.5;
-  //         cursor: not-allowed;
-  //       }
-
-  //       // 新增以下样式来处理 i-icon 类
-  //       :deep(.i-icon) {
-  //         display: flex;
-  //         align-items: center;
-  //         justify-content: center;
-  //         width: 100%;
-  //         height: 100%;
-  //       }
-
-  //       :deep(svg) {
-  //         width: 16px; // 或者您想要的大小
-  //         height: 16px; // 或者您想要的大小
-  //       }
-  //     }
-
-  //     .name {
-  //       flex-grow: 0;
-  //       text-align: left;
-  //       color: var(--color-text-primary);
-  //       font-size: 14px;
-  //       white-space: nowrap; // 防止文字换行
-  //       writing-mode: horizontal-tb; // 确保文字是水平排列的
-  //     }
-
-  //     &:hover {
-  //       background-color: var(--color-hover-bg);
-  //     }
-
-  //     &.active {
-  //       background-color: var(--color-menu-active-bg);
-  //       // border: 1px solid var(--color-primary);
-  //     }
-  //   }
-  // }
 }
 </style>

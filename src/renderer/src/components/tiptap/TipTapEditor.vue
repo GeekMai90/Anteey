@@ -453,7 +453,7 @@ import Details from '@tiptap-pro/extension-details'
 import DetailsContent from '@tiptap-pro/extension-details-content'
 import DetailsSummary from '@tiptap-pro/extension-details-summary'
 import Export from '@tiptap-pro/extension-export'
-import { useNoteStore } from '@renderer/stores/noteStores'
+import { useNoteStore } from '@renderer/stores/note-store'
 
 const router = useRouter()
 const noteStore = useNoteStore()

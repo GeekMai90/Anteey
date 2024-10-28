@@ -98,7 +98,7 @@ import {
   watch
 } from 'vue'
 import { Note, CardBox, WhiteboardNote } from '@renderer/types/Note'
-import { useNoteStore } from '@renderer/stores/noteStores'
+import { useNoteStore } from '@renderer/stores/note-store'
 import TipTapEditor from '@renderer/components/tiptap/TipTapEditor.vue'
 import { useRouter } from 'vue-router'
 import { useNoteMenu } from '@renderer/composables/useNoteMenu'

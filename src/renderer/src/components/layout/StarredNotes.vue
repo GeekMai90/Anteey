@@ -53,7 +53,7 @@
 <script setup lang="ts">
 import { markRaw, onMounted, ref, watch } from 'vue'
 import { Right, Down, Star } from '@icon-park/vue-next'
-import { useNoteStore } from '@renderer/stores/noteStores'
+import { useNoteStore } from '@renderer/stores/note-store'
 import { Note } from '@renderer/types/Note'
 import { useRouter } from 'vue-router'
 import StarredNotesCard from './StarredNotesCard.vue'

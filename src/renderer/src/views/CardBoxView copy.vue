@@ -271,7 +271,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
-import { useNoteStore } from '../stores/noteStores'
+import { useNoteStore } from '../stores/note-store'
 import AppToolbar from '../components/layout/AppToolbar.vue'
 import {
   SortTwo,
