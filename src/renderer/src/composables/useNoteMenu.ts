@@ -22,8 +22,8 @@ import JSZip from 'jszip'
 import { ref, computed } from 'vue'
 import { useNoteStore } from '../stores/noteStores'
 import { useRoute, useRouter } from 'vue-router'
-import { Note } from '@renderer/types/Note'
-import { message } from '@renderer/utils/message'
+import { Note } from '../types/Note'
+import { message } from '../utils/message'
 
 interface NoteMenuParams {
   noteId: string

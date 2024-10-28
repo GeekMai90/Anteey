@@ -22,7 +22,7 @@
 // })
 import { Link } from '@tiptap/extension-link'
 import { mergeAttributes } from '@tiptap/core'
-import { useNoteStore } from '@renderer/stores/noteStores'
+import { useNoteStore } from '../../stores/noteStores'
 
 // 扩展 LinkOptions 类型
 interface CustomLinkOptions {
