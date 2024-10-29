@@ -29,8 +29,9 @@ import {
   getRandomNotes,
   moveEmptyNotesToTrash,
   getAllDeletedNotes,
-  getRelatedNotes
-} from '../../db/notes'
+  getRelatedNotes,
+  updateNoteAddress
+} from '../../db/notesService'
 
 export function setupNotesHandlers() {
   // 获取相关笔记
@@ -359,4 +360,14 @@ export function setupNotesHandlers() {
       }
     }
   )
+  // 更新笔记地址
+  ipcMain.handle('update-note-address', async (_event, id: string, address: string) => {
+    try {
+      const updatedNote = await updateNoteAddress(id, address)
+      return { success: true, note: updatedNote }
+    } catch (error) {
+      console.error('主进程 → 更新笔记地址失败:', error)
+      return { success: false, error: error }
+    }
+  })
 }

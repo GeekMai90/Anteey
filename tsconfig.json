@@ -40,7 +40,8 @@
     "tests/**/*.ts",
     "src/**/*.vue",
     "src/renderer/src/types/electron.d.ts",
-    "src/renderer/src/utils/tiptap/CustomDragHandle.js"
+    "src/renderer/src/utils/tiptap/CustomDragHandle.js",
+    "src/renderer/src/stores/noteStorests"
   ],
   "exclude": [
     "node_modules"

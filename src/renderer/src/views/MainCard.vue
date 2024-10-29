@@ -293,7 +293,7 @@ import { storeToRefs } from 'pinia'
 // import { useCardBoxSearch } from '../composables/useCardBoxSearch'
 import { useDebounceFn, useEventBus, useThrottleFn } from '@vueuse/core'
 import { useRouter } from 'vue-router'
-import { GetPaginatedNotesParams } from '../../../db/notes'
+import { GetPaginatedNotesParams } from '../../../db/notesService'
 
 const noteStore = useNoteStore()
 

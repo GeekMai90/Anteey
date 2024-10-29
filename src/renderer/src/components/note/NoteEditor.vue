@@ -69,6 +69,7 @@
             v-if="editedNote"
             ref="tiptapEditor"
             v-model:content="editedNote.content"
+            :note-id="editedNote?.id"
             :editable="true"
             :enableDragHandle="true"
             @update:content="updateContent"

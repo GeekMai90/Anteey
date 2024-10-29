@@ -29,13 +29,6 @@ export interface RelatedNotesResult {
   }
 }
 
-// 在已有的类型定义中添加新的引用格式
-export interface NoteReference {
-  id: string
-  title: string
-  type: 'reference'
-}
-
 // 卡片笔记
 export interface Note {
   id: string
@@ -45,17 +38,103 @@ export interface Note {
   content: object // 包含标题和正文
   createdAt: Date
   updatedAt: Date
+
   tags: string[] // 标签列表
-  linkedTo: string[]
-  linkedFrom: string[]
+
+  // 引用关系
+  references: {
+    outgoing: NoteReference[]
+    incoming: NoteReference[]
+  }
+
+  // 关系树缓存
+  relationshipTree?: RelationshipTree
+
+  // 图谱相关
+  graphData?: {
+    x?: number
+    y?: number
+    cluster?: string
+    weight?: number
+    level?: number
+  }
+
   cardBoxId?: string
   parentId?: string // 父笔记的ID，支持笔记的层级结构
   isDeleted?: boolean
   isStarred?: boolean
   starredOrder?: number
   rightBarOrder?: number
+
+  // 语义相关
   keywords?: Keyword[] // 存储提取的关键词
   semanticVector?: number[] // 存储文本的语义向量
+
+  // 元数据
+  metadata?: {
+    title?: string
+    summary?: string
+    references?: string[]
+    attachments?: string[]
+  }
+}
+
+// 引用类型和关系树接口保持不变
+export type ReferenceType =
+  | 'quote'
+  | 'reference'
+  | 'parent'
+  | 'child'
+  | 'sibling'
+  | 'related'
+  | 'sequence'
+
+export interface NoteReference {
+  noteId: string
+  type: ReferenceType
+  context?: string
+  position?: number
+  createdAt: Date
+  metadata?: {
+    title?: string
+    preview?: string
+    cardType?: CardType
+  }
+}
+
+export interface RelationshipTree {
+  parents: string[]
+  children: string[]
+  siblings: string[]
+  sequence?: {
+    prev?: string
+    next?: string
+    order?: number
+  }
+}
+// 标签接口
+export interface Tag {
+  id: string
+  name: string // 完整的标签名，如 'work/project/dev'
+  path: string[] // 标签路径，如 ['work', 'project', 'dev']
+  color?: string // 标签颜色（可选）
+  icon?: string // 标签图标（可选）
+  metadata: {
+    count: number // 使用该标签的笔记数量
+    lastUsed: Date // 最后使用时间
+  }
+  createdAt: Date
+  updatedAt: Date
+}
+// 用于构建标签导航树的类型
+export interface TagTreeNode {
+  id: string
+  name: string // 显示名称
+  path: string[] // 完整路径
+  children: TagTreeNode[]
+  noteCount: number // 该标签及子标签的笔记总数
+  color?: string // 继承自 Tag 的颜色
+  icon?: string // 继承自 Tag 的图标
 }
 
 // 卡片盒（文件夹）
@@ -68,14 +147,6 @@ export interface CardBox {
   updatedAt: Date
   noteIds: string[] //包含的笔记 id 列表
   parentId?: string // 父卡片盒的ID，支持嵌套结构
-}
-
-// 标签
-export interface Tag {
-  id: string
-  type: 'tag'
-  name: string
-  color: string
 }
 
 // 根白板

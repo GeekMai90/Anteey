@@ -1,6 +1,6 @@
 import { ipcRenderer } from 'electron'
 import { Note, RelatedNotesResult } from '../../renderer/src/types/Note'
-import { GetPaginatedNotesParams } from '../../db/notes'
+import { GetPaginatedNotesParams } from '../../db/notesService'
 export const notesApi = {
   createNote: async (): Promise<Note> => {
     try {
@@ -197,5 +197,18 @@ export const notesApi = {
   // 获取相关笔记
   getRelatedNotes: async (noteId: string, limit: number): Promise<RelatedNotesResult> => {
     return await ipcRenderer.invoke('get-related-notes', { noteId, limit })
+  },
+  // 更新笔记地址
+  updateNoteAddress: async (id: string, address: string): Promise<Note> => {
+    try {
+      const result = await ipcRenderer.invoke('update-note-address', id, address)
+      if (!result.success) {
+        throw new Error(result.error)
+      }
+      return result.note
+    } catch (error) {
+      console.error('Preload: 更新笔记地址失败:', error)
+      throw error
+    }
   }
 }

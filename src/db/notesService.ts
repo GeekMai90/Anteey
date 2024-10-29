@@ -16,337 +16,37 @@ function convertToNote(record: any): Note {
     content: JSON.parse(record.content),
     createdAt: new Date(record.createdAt),
     updatedAt: new Date(record.updatedAt),
+
+    // 标签列表
     tags: JSON.parse(record.tags),
-    linkedTo: JSON.parse(record.linkedTo),
-    linkedFrom: JSON.parse(record.linkedFrom),
+
+    // 引用关系
+    references: JSON.parse(record.references),
+
+    // 关系树缓存
+    relationshipTree: record.relationshipTree ? JSON.parse(record.relationshipTree) : undefined,
+
+    // 图谱数据
+    graphData: record.graphData ? JSON.parse(record.graphData) : undefined,
+
+    // 基础字段
     cardBoxId: record.cardBoxId || undefined,
     parentId: record.parentId || undefined,
     isDeleted: record.isDeleted,
     isStarred: record.isStarred,
     starredOrder: record.starredOrder,
     rightBarOrder: record.rightBarOrder,
-    keywords: record.keywords ? (JSON.parse(record.keywords) as Keyword[]) : [],
-    semanticVector: record.semanticVector ? JSON.parse(record.semanticVector) : undefined
+
+    // 语义相关
+    keywords: record.keywords ? (JSON.parse(record.keywords) as Keyword[]) : undefined,
+    semanticVector: record.semanticVector ? JSON.parse(record.semanticVector) : undefined,
+
+    // 元数据
+    metadata: record.metadata ? JSON.parse(record.metadata) : undefined
   }
 }
 
 // 获取相关笔记
-// export async function getRelatedNotes(
-//   noteId: string,
-//   limit: number = 5
-// ): Promise<RelatedNotesResult> {
-//   try {
-//     console.log('后端→ 开始查找相关笔记:', noteId)
-
-//     // 1. 获取当前笔记
-//     const currentNote = await db('notes').where('id', noteId).first()
-//     if (!currentNote) {
-//       throw new Error(`Note with ID "${noteId}" not found`)
-//     }
-
-//     // 2. 解析当前笔记的关键词
-//     const currentKeywords = JSON.parse(currentNote.keywords || '[]')
-//     if (!currentKeywords.length) {
-//       console.log('后端→ 当前笔记没有关键词')
-//       return { success: true, notes: [] }
-//     }
-
-//     // 3. 获取所有其他未删除的笔记
-//     const allNotes = await db('notes')
-//       .where('id', '!=', noteId)
-//       .andWhere('isDeleted', false)
-//       .select('*')
-
-//     // 4. 计算相似度并排序
-//     const notesWithSimilarity = allNotes
-//       .map((note) => {
-//         const noteKeywords = JSON.parse(note.keywords || '[]')
-//         const baseNote = convertToNote(note)
-//         const similarity = calculateSimilarity(currentKeywords, noteKeywords)
-
-//         return {
-//           ...baseNote, // 展开基础笔记属性
-//           similarity // 添加相似度属性
-//         } as RelatedNote
-//       })
-//       .filter((item) => item.similarity > 0)
-//       .sort((a, b) => b.similarity - a.similarity)
-//       .slice(0, limit)
-
-//     console.log(`后端→ 找到 ${notesWithSimilarity.length} 个相关笔记`)
-
-//     return {
-//       success: true,
-//       notes: notesWithSimilarity
-//     }
-//   } catch (error) {
-//     console.error('后端→ 查找相关笔记失败:', error)
-//     return {
-//       success: false,
-//       notes: []
-//     }
-//   }
-// }
-// 获取相关笔记
-// export async function getRelatedNotes(
-//   noteId: string,
-//   limit: number = 5
-// ): Promise<RelatedNotesResult> {
-//   try {
-//     console.log('后端→ 开始查找相关笔记:', noteId)
-
-//     // 1. 获取当前笔记
-//     const currentNote = await db('notes').where('id', noteId).first()
-//     if (!currentNote) {
-//       throw new Error(`Note with ID "${noteId}" not found`)
-//     }
-
-//     // 2. 初始化语义向量器
-//     const vectorizer = SemanticVectorizer.getInstance()
-//     await vectorizer.initialize()
-
-//     // 3. 获取所有其他未删除的笔记
-//     const allNotes = await db('notes')
-//       .where('id', '!=', noteId)
-//       .andWhere('isDeleted', false)
-//       .select('*')
-
-//     // 4. 计算混合相似度
-//     const notesWithSimilarity = await Promise.all(
-//       allNotes.map(async (note) => {
-//         try {
-//           // 解析关键词和内容
-//           const currentKeywords = JSON.parse(currentNote.keywords || '[]')
-//           const noteKeywords = JSON.parse(note.keywords || '[]')
-//           const currentContent = JSON.parse(currentNote.content)
-//           const noteContent = JSON.parse(note.content)
-
-//           // 计算混合相似度
-//           const similarity = await vectorizer.calculateHybridSimilarity(
-//             currentContent,
-//             noteContent,
-//             currentKeywords,
-//             noteKeywords
-//           )
-
-//           return {
-//             ...convertToNote(note),
-//             similarity
-//           } as RelatedNote
-//         } catch (error) {
-//           console.error('后端→ 计算笔记相似度失败:', error)
-//           return {
-//             ...convertToNote(note),
-//             similarity: 0
-//           } as RelatedNote
-//         }
-//       })
-//     )
-
-//     // 5. 过滤和排序结果
-//     const filteredNotes = notesWithSimilarity
-//       .filter((item) => item.similarity > 30) // 设置最小相似度阈值
-//       .sort((a, b) => b.similarity - a.similarity)
-//       .slice(0, limit)
-
-//     console.log(`后端→ 找到 ${filteredNotes.length} 个相关笔记`)
-
-//     return {
-//       success: true,
-//       notes: filteredNotes
-//     }
-//   } catch (error) {
-//     console.error('后端→ 查找相关笔记失败:', error)
-//     return {
-//       success: false,
-//       notes: [],
-//       error: error instanceof Error ? error.message : String(error)
-//     }
-//   }
-// }
-
-// export async function getRelatedNotes(
-//   noteId: string,
-//   limit: number = 5
-// ): Promise<RelatedNotesResult> {
-//   try {
-//     console.log('后端→ 开始查找相关笔记:', noteId)
-
-//     // 1. 获取当前笔记
-//     const currentNote = await db('notes').where('id', noteId).first()
-//     if (!currentNote) {
-//       throw new Error(`Note with ID "${noteId}" not found`)
-//     }
-
-//     // 2. 初始化语义向量器
-//     const vectorizer = SemanticVectorizer.getInstance()
-//     await vectorizer.initialize()
-
-//     // 3. 获取所有其他未删除的笔记
-//     const allNotes = await db('notes')
-//       .where('id', '!=', noteId)
-//       .andWhere('isDeleted', false)
-//       .select('*')
-
-//     // 4. 先用关键词相似度快速筛选
-//     const currentKeywords = JSON.parse(currentNote.keywords || '[]')
-//     const preFilteredNotes = allNotes
-//       .map((note) => {
-//         try {
-//           const noteKeywords = JSON.parse(note.keywords || '[]')
-//           const keywordSimilarity = calculateSimilarity(currentKeywords, noteKeywords)
-//           return { note, keywordSimilarity }
-//         } catch (error) {
-//           console.error('后端→ 关键词相似度计算失败:', error)
-//           return { note, keywordSimilarity: 0 }
-//         }
-//       })
-//       .filter((item) => item.keywordSimilarity > 20) // 关键词相似度阈值
-//       .sort((a, b) => b.keywordSimilarity - a.keywordSimilarity)
-//       .slice(0, Math.min(20, allNotes.length)) // 只取前20个计算语义相似度
-
-//     console.log(`后端→ 关键词预过滤后剩余 ${preFilteredNotes.length} 个笔记`)
-
-//     // 5. 对筛选后的笔记计算混合相似度
-//     const notesWithSimilarity = await Promise.all(
-//       preFilteredNotes.map(async ({ note }) => {
-//         try {
-//           const noteKeywords = JSON.parse(note.keywords || '[]')
-//           const currentContent = JSON.parse(currentNote.content)
-//           const noteContent = JSON.parse(note.content)
-
-//           const similarity = await vectorizer.calculateHybridSimilarity(
-//             currentContent,
-//             noteContent,
-//             currentKeywords,
-//             noteKeywords
-//           )
-
-//           return {
-//             ...convertToNote(note),
-//             similarity
-//           } as RelatedNote
-//         } catch (error) {
-//           console.error('后端→ 计算混合相似度失败:', error)
-//           return {
-//             ...convertToNote(note),
-//             similarity: 0
-//           } as RelatedNote
-//         }
-//       })
-//     )
-
-//     // 6. 最终过滤和排序
-//     const filteredNotes = notesWithSimilarity
-//       .filter((item) => item.similarity > 30)
-//       .sort((a, b) => b.similarity - a.similarity)
-//       .slice(0, limit)
-
-//     console.log(`后端→ 最终找到 ${filteredNotes.length} 个相关笔记`)
-
-//     return {
-//       success: true,
-//       notes: filteredNotes,
-//       totalProcessed: preFilteredNotes.length // 添加处理统计
-//     }
-//   } catch (error) {
-//     console.error('后端→ 查找相关笔记失败:', error)
-//     return {
-//       success: false,
-//       notes: [],
-//       error: error instanceof Error ? error.message : String(error)
-//     }
-//   }
-// }
-// 这个版本不错
-// export async function getRelatedNotes(
-//   noteId: string,
-//   limit: number = 5
-// ): Promise<RelatedNotesResult> {
-//   try {
-//     console.log('后端→ 开始查找相关笔记:', noteId)
-
-//     // 1. 获取当前笔记
-//     const currentNote = await db('notes').where('id', noteId).first()
-//     if (!currentNote) {
-//       throw new Error(`Note with ID "${noteId}" not found`)
-//     }
-
-//     // 2. 初始化语义向量器
-//     const vectorizer = SemanticVectorizer.getInstance()
-//     await vectorizer.initialize()
-
-//     // 3. 获取所有其他未删除的笔记
-//     const allNotes = await db('notes')
-//       .where('id', '!=', noteId)
-//       .andWhere('isDeleted', false)
-//       .select('*')
-
-//     // 4. 并行计算关键词相似度和语义相似度
-//     const notesWithSimilarity = await Promise.all(
-//       allNotes.map(async (note) => {
-//         try {
-//           const currentKeywords = JSON.parse(currentNote.keywords || '[]')
-//           const noteKeywords = JSON.parse(note.keywords || '[]')
-//           const currentContent = JSON.parse(currentNote.content)
-//           const noteContent = JSON.parse(note.content)
-
-//           // 如果内容很短，优先使用关键词相似度
-//           const isShortContent = extractTextFromContent(noteContent).length < 50
-
-//           if (isShortContent) {
-//             const keywordSimilarity = calculateSimilarity(currentKeywords, noteKeywords)
-//             return {
-//               ...convertToNote(note),
-//               similarity: keywordSimilarity
-//             } as RelatedNote
-//           }
-
-//           // 否则使用混合相似度
-//           const similarity = await vectorizer.calculateHybridSimilarity(
-//             currentContent,
-//             noteContent,
-//             currentKeywords,
-//             noteKeywords
-//           )
-
-//           return {
-//             ...convertToNote(note),
-//             similarity
-//           } as RelatedNote
-//         } catch (error) {
-//           console.error('后端→ 计算笔记相似度失败:', error)
-//           return {
-//             ...convertToNote(note),
-//             similarity: 0
-//           } as RelatedNote
-//         }
-//       })
-//     )
-
-//     // 5. 过滤和排序结果
-//     const filteredNotes = notesWithSimilarity
-//       .filter((item) => item.similarity > 20) // 降低阈值以包含更多潜在相关笔记
-//       .sort((a, b) => b.similarity - a.similarity)
-//       .slice(0, limit)
-
-//     console.log(`后端→ 找到 ${filteredNotes.length} 个相关笔记`)
-
-//     return {
-//       success: true,
-//       notes: filteredNotes,
-//       totalProcessed: allNotes.length
-//     }
-//   } catch (error) {
-//     console.error('后端→ 查找相关笔记失败:', error)
-//     return {
-//       success: false,
-//       notes: [],
-//       error: error instanceof Error ? error.message : String(error)
-//     }
-//   }
-// }
-
 export async function getRelatedNotes(
   noteId: string,
   limit: number = 5
@@ -895,6 +595,7 @@ export async function getPaginatedNotesByCardbox({
 }
 
 // 创建笔记
+// 创建笔记
 export async function createNote(): Promise<Note> {
   const id = uuidv4()
   const now = new Date()
@@ -907,15 +608,46 @@ export async function createNote(): Promise<Note> {
     content: { type: 'doc', content: [] },
     createdAt: now,
     updatedAt: now,
+
+    // 标签列表
     tags: [],
-    linkedTo: [],
-    linkedFrom: [],
-    cardBoxId: '',
-    parentId: '',
+
+    // 引用关系
+    references: {
+      outgoing: [],
+      incoming: []
+    },
+
+    // 关系树（初始为空）
+    relationshipTree: {
+      parents: [],
+      children: [],
+      siblings: []
+    },
+
+    // 图谱数据（初始为空）
+    graphData: {
+      x: 0,
+      y: 0
+    },
+
+    // 基础字段
+    cardBoxId: undefined,
+    parentId: undefined,
     isDeleted: false,
     isStarred: false,
-    starredOrder: 0,
-    rightBarOrder: 0
+    starredOrder: undefined,
+    rightBarOrder: undefined,
+
+    // 语义相关（初始为空）
+    keywords: [],
+    semanticVector: undefined,
+
+    // 元数据（初始为空）
+    metadata: {
+      title: '',
+      summary: ''
+    }
   }
 
   try {
@@ -923,9 +655,14 @@ export async function createNote(): Promise<Note> {
       ...newNote,
       content: JSON.stringify(newNote.content),
       tags: JSON.stringify(newNote.tags),
-      linkedTo: JSON.stringify(newNote.linkedTo),
-      linkedFrom: JSON.stringify(newNote.linkedFrom)
+      references: JSON.stringify(newNote.references),
+      relationshipTree: JSON.stringify(newNote.relationshipTree),
+      graphData: JSON.stringify(newNote.graphData),
+      keywords: JSON.stringify(newNote.keywords),
+      metadata: JSON.stringify(newNote.metadata)
     })
+
+    console.log('后端→ 创建笔记成功:', id)
     return newNote
   } catch (error) {
     console.error('后端→ 创建笔记失败:', error)
@@ -1573,6 +1310,30 @@ export async function updateStarredNotesOrder(
     return updatedNotes.map(convertToNote)
   } catch (error) {
     console.error('后端→ 更新星标笔记顺序失败:', error)
+    throw error
+  }
+}
+// 更新笔记地址
+export async function updateNoteAddress(id: string, address: string): Promise<Note> {
+  try {
+    console.log('后端→ 开始更新笔记地址:', { id, address })
+
+    const [updatedNote] = await db('notes')
+      .where({ id })
+      .update({
+        address,
+        updatedAt: new Date()
+      })
+      .returning('*')
+
+    if (!updatedNote) {
+      throw new Error(`未找到ID为 ${id} 的笔记`)
+    }
+
+    console.log('后端→ 笔记地址更新成功:', updatedNote)
+    return convertToNote(updatedNote)
+  } catch (error) {
+    console.error('后端→ 更新笔记地址失败:', error)
     throw error
   }
 }

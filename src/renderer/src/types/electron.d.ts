@@ -1,4 +1,4 @@
-import { GetPaginatedNotesParams } from '../../../db/notes'
+import { GetPaginatedNotesParams } from '../../../db/notesService'
 import {
   Note,
   CardBox,
@@ -124,6 +124,7 @@ export interface ElectronAPI {
   getUserDataPath: () => Promise<string>
   loadEmbeddingsCache: () => Promise<Record<string, string>>
   saveEmbeddingsCache: (cacheData: Record<string, string>) => Promise<boolean>
+  updateNoteAddress: (id: string, address: string) => Promise<Note>
 }
 
 declare global {

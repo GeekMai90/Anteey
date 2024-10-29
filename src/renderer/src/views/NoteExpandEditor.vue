@@ -349,13 +349,6 @@ onBeforeUnmount(async () => {
   await saveNote()
 })
 
-// 聚焦地址输入框（暂不使用）
-// const focusAddressInput = () => {
-//   nextTick(() => {
-//     addressInput.value?.focus()
-//   })
-// }
-
 // 聚焦编辑器
 const focusEditor = () => {
   nextTick(() => {
