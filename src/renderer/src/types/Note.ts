@@ -31,6 +31,7 @@ export interface RelatedNotesResult {
 
 // 卡片笔记
 export interface Note {
+  [key: string]: any // 添加这行，允许字符串索引
   id: string
   type: 'note'
   address: string // Zettelkasten 编码地址

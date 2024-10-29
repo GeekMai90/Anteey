@@ -88,10 +88,10 @@ export const useNoteStore = defineStore('note', {
       console.log('Store: 开始更新笔记地址:', { noteId, address })
 
       // 1. 保存原始笔记状态
-      const originalNote = { ...this.notes[noteId] }
+      const originalNote = { ...this.notes[noteId as any] }
 
       // 2. 乐观更新
-      this.notes[noteId] = {
+      this.notes[noteId as any] = {
         ...originalNote,
         address,
         updatedAt: new Date()
@@ -110,13 +110,13 @@ export const useNoteStore = defineStore('note', {
         // 5. 检查是否有更新的pending更新
         const pendingUpdate = this.pendingUpdates.get(`${noteId}-address`)
         if (!pendingUpdate || pendingUpdate.timestamp <= Date.now()) {
-          this.notes[noteId] = updatedNote
+          this.notes[noteId as any] = updatedNote
         }
 
         return updatedNote
       } catch (error) {
         // 6. 发生错误时回滚
-        this.notes[noteId] = originalNote
+        this.notes[noteId as any] = originalNote
         throw error
       } finally {
         this.pendingUpdates.delete(`${noteId}-address`)

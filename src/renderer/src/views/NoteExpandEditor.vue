@@ -16,15 +16,14 @@
           <CardTypeDropdownMenu
             ref="cardTypeDropdownMenu"
             :is-open="showCardTypeMenu"
-            :current-card-type="editedNote?.cardType"
+            :current-card-type="currentNote?.cardType"
             :offset="{ x: -50, y: 10 }"
-            @update:card-type="updateCardType"
             @close="closeCardTypeMenu"
           />
           <input
-            v-if="editedNote"
+            v-if="currentNote"
             ref="addressInput"
-            v-model="editedNote.address"
+            v-model="currentNote.address"
             type="text"
             placeholder="输入编码地址"
             @input="handleAddressInput"
@@ -45,8 +44,8 @@
             <CardboxDropdownMenu
               ref="dropdownMenu"
               :is-open="isMenuOpen"
-              :note-id="editedNote?.id"
-              :current-cardbox-id="editedNote?.cardBoxId"
+              :note-id="currentNote?.id"
+              :current-cardbox-id="currentNote?.cardBoxId"
               :offset="{ x: -85, y: 5 }"
               @close="closeCardBoxMenu"
             />
@@ -68,19 +67,19 @@
           </div>
         </div>
       </div>
-      <div v-if="editedNote" class="note-timestamp">
-        {{ formatDate(editedNote.createdAt) }}
+      <div v-if="currentNote" class="note-timestamp">
+        {{ formatDate(currentNote.createdAt) }}
       </div>
       <!-- 编辑器内容 -->
       <div class="content-area">
         <TipTapEditor
-          v-if="editedNote"
+          v-if="currentNote"
           ref="tiptapEditor"
-          v-model:content="editedNote.content"
-          :note-id="editedNote.id"
+          v-model:content="currentNote.content"
+          :note-id="currentNote.id"
           :editable="true"
           :enableDragHandle="true"
-          @update:content="updateContent"
+          @update:content="handleContentUpdate"
         />
       </div>
     </div>
@@ -88,29 +87,20 @@
 </template>
 
 <script setup lang="ts">
-import {
-  ref,
-  watch,
-  onBeforeUnmount,
-  onMounted,
-  computed,
-  nextTick,
-  onUnmounted,
-  reactive
-} from 'vue'
+import { ref, onMounted, computed, nextTick, reactive } from 'vue'
 import { useRoute } from 'vue-router'
 import { useNoteStore } from '@renderer/stores/noteStores'
-import { CardType, Note } from '@renderer/types/Note'
 import { formatDate } from '@renderer/utils/noteHelpers'
 import { More, Install } from '@icon-park/vue-next'
 import TipTapEditor from '@renderer/components/tiptap/TipTapEditor.vue'
 import CardboxDropdownMenu from '@renderer/components/cardbox/CardboxDropdownMenu.vue'
 import AppToolbar from '@renderer/components/layout/AppToolbar.vue'
-import { debounce } from 'lodash-es'
 import PopupMenu from '@renderer/components/common/PopupMenu.vue'
 import { useNoteMenu } from '@renderer/composables/useNoteMenu'
 import type { MenuItem } from '@renderer/components/common/PopupMenu.vue'
 import CardTypeDropdownMenu from '@renderer/components/note/CardTypeDropdownMenu.vue'
+import { debounce } from 'lodash-es'
+import { message } from '@renderer/utils/message'
 
 const tiptapEditor = ref<any>(null)
 const route = useRoute()
@@ -118,6 +108,39 @@ const noteStore = useNoteStore()
 const noteId = route.params.id as string
 const addressInput = ref<HTMLInputElement | null>(null)
 
+// 1. 组件挂载时获取笔记
+onMounted(async () => {
+  console.log('组件挂载, noteId:', noteId)
+  await noteStore.fetchNote(noteId)
+})
+
+// 使用计算属性获取当前编辑的笔记
+const currentNote = computed(() => {
+  console.log('computed 执行, activeNotes:', noteStore.activeNotes)
+  return noteStore.activeNotes[noteId]
+})
+
+// 处理地址输入
+const handleAddressInput = debounce(async () => {
+  if (currentNote.value) {
+    try {
+      await noteStore.updateNoteAddress(noteId, currentNote.value.address)
+      console.log('地址更新成功')
+    } catch (error) {
+      console.error('更新地址失败:', error)
+      message.error('更新地址失败')
+    }
+  }
+}, 300) // 300ms 的防抖
+// 处理回车键
+const handleAddressEnter = (event: KeyboardEvent) => {
+  event.preventDefault() // 阻止默认行为
+  handleAddressInput.flush() // 立即执行防抖函数
+  focusEditor() // 聚焦到编辑器
+}
+const handleContentUpdate = (newContent: any) => {
+  console.log('内容更新:', newContent)
+}
 // 卡片类型菜单
 const cardTypeDropdownMenu = ref<InstanceType<typeof CardTypeDropdownMenu> | null>(null)
 const showCardTypeMenu = ref(false)
@@ -125,10 +148,10 @@ const indicatorButton = ref<HTMLElement | null>(null)
 
 // 卡片类型
 const cardTypeClass = computed(() => ({
-  maincard: editedNote.value?.cardType === 'Maincard',
-  bibcard: editedNote.value?.cardType === 'Bibcard',
-  indexcard: editedNote.value?.cardType === 'Indexcard'
-  // hoplinkcard: editedNote.value?.cardType === 'Hoplinkcard'
+  maincard: currentNote.value?.cardType === 'Maincard',
+  bibcard: currentNote.value?.cardType === 'Bibcard',
+  indexcard: currentNote.value?.cardType === 'Indexcard'
+  // hoplinkcard: currentNote.value?.cardType === 'Hoplinkcard'
 }))
 
 // 打开卡片类型菜单
@@ -151,12 +174,12 @@ const closeCardTypeMenu = () => {
   showCardTypeMenu.value = false
 }
 
-const updateCardType = (newType: CardType) => {
-  if (editedNote.value) {
-    editedNote.value.cardType = newType
-    saveNote()
-  }
-}
+// const updateCardType = (newType: CardType) => {
+//   if (editedNote.value) {
+//     editedNote.value.cardType = newType
+//     saveNote()
+//   }
+// }
 
 // 卡片盒菜单
 const dropdownMenu = ref<InstanceType<typeof CardboxDropdownMenu> | null>(null)
@@ -221,145 +244,11 @@ const closeMenu = () => {
   resetDeleteState()
 }
 
-// 内容是否修改
-const isContentModified = ref(false)
-// 最后保存的笔记
-const lastSavedNote = ref(null)
-const editedNote = ref<Note | null>(null)
-
-// 监听笔记 ID 的变化，获取笔记
-watch(
-  () => noteId,
-  async (newId) => {
-    const note = await noteStore.fetchNoteById(newId)
-    if (note) {
-      editedNote.value = note
-      nextTick(() => {
-        focusEditor()
-      })
-    }
-  },
-  { immediate: true }
-)
-// 1. 首先定义一个追踪最后更新时间的变量
-// const lastUpdateTime = ref(Date.now())
-// 更新内容
-const updateContent = debounce((newContent: any) => {
-  if (editedNote.value) {
-    // 更新内容
-    noteStore.updateNoteContent(editedNote.value.id, newContent)
-    // 更新本地状态
-    editedNote.value.content = newContent
-
-    isContentModified.value = true
-  }
-}, 300)
-
-// 处理地址输入的函数
-// const handleAddressInput = () => {
-//   if (editedNote.value) {
-//     isContentModified.value = true
-//     saveNote()
-//   }
-// }
-// 修改处理地址输入的函数
-const handleAddressInput = () => {
-  if (editedNote.value) {
-    isContentModified.value = true
-    debouncedSave()
-  }
-}
-
-// 创建一个单独的防抖保存函数
-const debouncedSave = debounce(() => {
-  saveNote()
-}, 300)
-
-// 检查内容是否改变
-function isContentChanged(oldNote: Note, newNote: Note): boolean {
-  return (
-    JSON.stringify(oldNote.content) !== JSON.stringify(newNote.content) ||
-    oldNote.address !== newNote.address ||
-    oldNote.cardType !== newNote.cardType ||
-    JSON.stringify(oldNote.tags) !== JSON.stringify(newNote.tags)
-  )
-}
-
-// 自动保存
-const autoSave = debounce(async () => {
-  if (editedNote.value && editedNote.value.id && isContentModified.value) {
-    if (!lastSavedNote.value || isContentChanged(lastSavedNote.value, editedNote.value)) {
-      try {
-        await noteStore.updateNote(editedNote.value.id, editedNote.value)
-        lastSavedNote.value = JSON.parse(JSON.stringify(editedNote.value))
-        isContentModified.value = false
-        // console.log('笔记已自动保存')
-      } catch (error) {
-        console.error('自动保存失败:', error)
-      }
-    }
-  }
-}, 2000)
-
-// 监听笔记内容的变化
-watch(
-  () => ({
-    address: editedNote.value?.address,
-    cardType: editedNote.value?.cardType,
-    tags: editedNote.value?.tags
-  }),
-  () => {
-    if (editedNote.value) {
-      isContentModified.value = true
-      autoSave()
-    }
-  },
-  { deep: true }
-)
-
-// 手动保存
-const saveNote = async () => {
-  if (editedNote.value && editedNote.value.id && isContentModified.value) {
-    try {
-      await noteStore.updateNote(editedNote.value.id, editedNote.value)
-
-      lastSavedNote.value = JSON.parse(JSON.stringify(editedNote.value))
-      isContentModified.value = false
-      // console.log('笔记已手动保存')
-    } catch (error) {
-      console.error('手动保存失败:', error)
-    }
-  }
-}
-// 定期保存
-const autoSaveInterval = setInterval(() => {
-  if (editedNote.value) {
-    autoSave()
-  }
-}, 30000)
-
-onUnmounted(() => {
-  clearInterval(autoSaveInterval)
-  autoSave.cancel()
-  noteStore.updateCurrentNoteSaveStatus('saved')
-})
-
-// 组件卸载前保存
-onBeforeUnmount(async () => {
-  await saveNote()
-})
-
 // 聚焦编辑器
 const focusEditor = () => {
   nextTick(() => {
     tiptapEditor.value?.focus('start')
   })
-}
-
-// 地址栏回车后聚焦编辑器
-const handleAddressEnter = (event: KeyboardEvent) => {
-  event.preventDefault() // 阻止默认行为
-  focusEditor()
 }
 
 // 在组件挂载后将笔记添加到最近笔记
