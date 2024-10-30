@@ -1,18 +1,22 @@
 <!-- src/views/NoteExpandEditor.vue -->
+<!-- 笔记展开编辑器组件 - 用于编辑单个笔记的主要界面 -->
 <template>
   <div class="note-expand-editor">
-    <!-- 顶部工具栏 -->
+    <!-- 顶部工具栏，包含返回和前进按钮 -->
     <AppToolbar :showBackButton="true" :showForwardButton="true"></AppToolbar>
     <!-- 编辑器内容 -->
     <div class="editor-content">
       <div class="editor-header">
+        <!-- 地址输入区域 -->
         <div class="address-input">
+          <!-- 笔记类型指示器，点击可切换笔记类型 -->
           <div
             ref="indicatorButton"
             class="note-indicator"
             :class="cardTypeClass"
             @click="(e) => toggleCardTypeMenu(e)"
           ></div>
+          <!-- 笔记类型下拉菜单组件 -->
           <CardTypeDropdownMenu
             ref="cardTypeDropdownMenuRef"
             :is-open="cardTypeMenuState.isOpen"
@@ -21,6 +25,7 @@
             @close="closeCardTypeMenu"
             @select="handleCardTypeSelect"
           />
+          <!-- 笔记地址输入框 -->
           <input
             v-if="currentNote"
             ref="addressInput"
@@ -31,7 +36,9 @@
             @keyup.enter="handleAddressEnter"
           />
         </div>
+        <!-- 右侧工具栏 -->
         <div class="toolbar-right">
+          <!-- 卡片盒设置按钮 -->
           <div ref="cardboxBtnRef" class="install-btn" @click.stop="toggleCardboxMenu">
             <div v-tooltip.bottom="{ content: '设置卡片盒', delay: { show: 1000 } }" class="icon">
               <Install
@@ -51,11 +58,12 @@
               @close="closeCardboxMenu"
             />
           </div>
-          <!-- 更多菜单 -->
+          <!-- 更多功能菜单按钮 -->
           <div ref="moreBtnRef" class="more-btn" @click.stop="toggleMoreMenu">
             <div v-tooltip.bottom="{ content: '更多', delay: { show: 1000 } }" class="icon">
               <More theme="outline" size="16" fill="var(--color-icon-default)" :stroke-width="3" />
             </div>
+            <!-- 更多功能菜单按钮 -->
             <PopupMenu
               ref="moreMenuRef"
               :show="moreMenuState.isOpen"
@@ -67,6 +75,7 @@
           </div>
         </div>
       </div>
+      <!-- 笔记创建时间显示 -->
       <div v-if="currentNote" class="note-timestamp">
         {{ formatDate(currentNote.createdAt) }}
       </div>
@@ -103,25 +112,29 @@ import { debounce } from 'lodash-es'
 import { message } from '@renderer/utils/message'
 import { useMenu } from '@renderer/composables/useMenu'
 
+// === 组件状态管理 ===
 const tiptapEditor = ref<any>(null)
 const route = useRoute()
 const noteStore = useNoteStore()
 const noteId = route.params.id as string
 const addressInput = ref<HTMLInputElement | null>(null)
 
-// 1. 组件挂载时获取笔记
+// === 生命周期钩子 ===
+
 onMounted(async () => {
-  console.log('组件挂载, noteId:', noteId)
+  // 1. 组件挂载时获取笔记
   await noteStore.fetchNote(noteId)
 })
 
-// 使用计算属性获取当前编辑的笔记
+// === 计算属性 ===
+// 获取当前编辑的笔记数据
 const currentNote = computed(() => {
   console.log('computed 执行, activeNotes:', noteStore.activeNotes)
   return noteStore.activeNotes[noteId]
 })
 
-// 处理地址输入
+// === 地址输入处理 ===
+// 使用防抖处理地址输入，避免频繁更新
 const handleAddressInput = debounce(async () => {
   if (currentNote.value) {
     try {
@@ -140,16 +153,29 @@ const handleAddressEnter = (event: KeyboardEvent) => {
   focusEditor() // 聚焦到编辑器
 }
 
-// 处理内容更新
-// 1. 编辑器组件的内容更新处理
+// === 内容更新处理 ===
+// 编辑器内容更新状态管理
 const updateState = reactive({
   pending: false,
   lastContent: null as any,
   updateTimer: null as any,
-  saveTimeout: 1000 // 保存延迟时间，可以根据实际需求调整
+  saveTimeout: 2000 // 保存延迟时间，可以根据实际需求调整
 })
 
-// 处理内容更新
+// 立即保存的函数
+const saveContentImmediately = async () => {
+  if (!currentNote.value || !updateState.lastContent) return
+
+  try {
+    await noteStore.updateNoteContent(currentNote.value.id, updateState.lastContent)
+    console.log('内容已保存')
+  } catch (error) {
+    console.error('保存失败:', error)
+    message.error('保存失败')
+  }
+}
+
+// 处理编辑器内容更新
 const handleContentUpdate = (newContent: any) => {
   if (!currentNote.value) return
 
@@ -180,14 +206,15 @@ const handleContentUpdate = (newContent: any) => {
 }
 
 // 组件卸载时清理
-onBeforeUnmount(() => {
+onBeforeUnmount(async () => {
   if (updateState.updateTimer) {
     clearTimeout(updateState.updateTimer)
   }
+  // 执行最后一次保存
+  await saveContentImmediately()
 })
 
-// ===卡片类型菜单===
-// 卡片类型菜单按钮
+// === 卡片类型菜单管理 ===
 const indicatorButton = ref<HTMLElement | null>(null)
 const cardTypeDropdownMenuRef = ref<HTMLElement | null>(null)
 
@@ -225,7 +252,7 @@ const handleCardTypeSelect = async (newType: string) => {
   }
 }
 
-// 卡片盒菜单状态管理
+// === 卡片盒菜单管理 ===
 const cardboxBtnRef = ref<HTMLElement | null>(null)
 const cardboxMenuRef = ref<HTMLElement | null>(null)
 const {
@@ -240,9 +267,7 @@ const {
   }
 })
 
-// 更多按钮弹出菜单
-
-// 更多菜单
+// === 更多功能菜单管理 ===
 const { menuItems: noteMenuItems, resetDeleteState } = useNoteMenu({
   noteId: noteId,
   menuItems: ['star', 'share', 'sidebar', 'copyNoteLink', 'exportNote', 'delete', 'copyQuote']
@@ -261,7 +286,6 @@ const {
     resetDeleteState()
   }
 })
-
 // 更多菜单点击事件
 const handleMenuItemClick = (item: MenuItem) => {
   item.action()
@@ -270,6 +294,7 @@ const handleMenuItemClick = (item: MenuItem) => {
   }
 }
 
+// === 辅助函数 ===
 // 聚焦编辑器
 const focusEditor = () => {
   nextTick(() => {
@@ -504,7 +529,6 @@ onMounted(() => {
 
     &.active {
       background-color: var(--color-menu-active-bg);
-      // border: 1px solid var(--color-primary);
     }
   }
 }
@@ -519,9 +543,7 @@ onMounted(() => {
 
 .toolbar-right {
   display: flex;
-  // gap: 10px;
   position: relative;
-  // margin-right: 10px;
 }
 
 .install-btn,
@@ -548,10 +570,6 @@ onMounted(() => {
     justify-content: center;
     transition: all 0.2s ease;
     padding: 0;
-
-    // &:hover:not(:disabled) {
-    //   background-color: rgba(0, 0, 0, 0.05);
-    // }
 
     &:disabled {
       opacity: 0.5;
