@@ -68,15 +68,7 @@ export const notesApi = {
       throw error
     }
   },
-  updateNoteCardBox: async (noteId: string, cardBoxId: string): Promise<Note> => {
-    try {
-      return (await ipcRenderer.invoke('update-note-card-box', noteId, cardBoxId)) as Note
-      console.log('Preload: 更新笔记的卡片盒成功:', noteId, cardBoxId)
-    } catch (error) {
-      console.error('Preload: 更新笔记的卡片盒时出错:', error)
-      throw error
-    }
-  },
+
   getStarredNotes: async (): Promise<Note[]> => {
     try {
       return (await ipcRenderer.invoke('get-starred-notes')) as Note[]
@@ -208,6 +200,32 @@ export const notesApi = {
       return result.note
     } catch (error) {
       console.error('Preload: 更新笔记地址失败:', error)
+      throw error
+    }
+  },
+  // 更新笔记类型
+  updateNoteCardType: async (id: string, cardType: string): Promise<Note> => {
+    try {
+      const result = await ipcRenderer.invoke('update-note-card-type', id, cardType)
+      if (!result.success) {
+        throw new Error(result.error)
+      }
+      return result.note
+    } catch (error) {
+      console.error('Preload: 更新笔记类型失败:', error)
+      throw error
+    }
+  },
+  // 更新笔记的卡片盒
+  updateNoteCardBox: async (id: string, cardBoxId: string): Promise<Note> => {
+    try {
+      const result = await ipcRenderer.invoke('update-note-card-box', id, cardBoxId)
+      if (!result.success) {
+        throw new Error(result.error)
+      }
+      return result.note
+    } catch (error) {
+      console.error('Preload: 更新笔记的卡片盒时出错:', error)
       throw error
     }
   }

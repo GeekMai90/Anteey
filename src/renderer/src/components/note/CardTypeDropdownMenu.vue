@@ -43,7 +43,7 @@ const props = defineProps<{
   currentCardType?: CardType
 }>()
 
-const emit = defineEmits(['update:cardType', 'close'])
+const emit = defineEmits(['select', 'close'])
 
 const menuRef = ref<HTMLElement | null>(null)
 const menuPosition = ref({ x: 0, y: 0 })
@@ -92,8 +92,9 @@ const getTypeLabel = (type: CardType): string => {
   }
 }
 
+// 修改选择处理函数
 const selectCardType = (type: CardType) => {
-  emit('update:cardType', type)
+  emit('select', type) // 改为发送 select 事件
   emit('close')
 }
 

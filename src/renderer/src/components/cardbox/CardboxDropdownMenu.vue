@@ -1,4 +1,3 @@
-<!-- src/components/CardboxDropdownMenu.vue -->
 <template>
   <Teleport to="body">
     <Transition name="fade-zoom">
@@ -40,7 +39,7 @@
 <script setup lang="ts">
 import { FileCabinet, Box } from '@icon-park/vue-next'
 import { CardBox } from '@renderer/types/Note'
-import { ref, computed, onMounted, onUnmounted, CSSProperties, watch, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted, CSSProperties, nextTick, watch } from 'vue'
 import { useNoteStore } from '@renderer/stores/noteStores'
 import { storeToRefs } from 'pinia'
 import router from '@renderer/router'
@@ -53,7 +52,7 @@ const props = defineProps<{
   currentCardboxId?: string
 }>()
 
-const emit = defineEmits(['update:selectedCardBox', 'close'])
+const emit = defineEmits(['close'])
 
 const noteStore = useNoteStore()
 const { cardBoxes } = storeToRefs(noteStore)
@@ -64,23 +63,11 @@ const sortedCardBoxes = computed(() => {
   return [...cardBoxes.value].sort((a, b) => a.name.localeCompare(b.name, 'zh-CN'))
 })
 
-const selectedCardBox = ref<CardBox | null>(null)
-
-watch(
-  () => props.currentCardboxId,
-  (newId) => {
-    if (newId) {
-      selectedCardBox.value = cardBoxes.value.find((box) => box.id === newId) || null
-    }
-  },
-  { immediate: true }
-)
-
 const computedMenuStyle = computed((): CSSProperties => {
   const { x, y } = menuPosition.value
   const offsetX = props.offset?.x || 0
   const offsetY = props.offset?.y || 0
-  const maxWidth = Math.min(300, window.innerWidth - 20) // 20px 作为安全边距
+  const maxWidth = Math.min(300, window.innerWidth - 20)
   return {
     position: 'fixed',
     top: `${y + offsetY}px`,
@@ -94,23 +81,19 @@ const selectCardBox = async (box: CardBox) => {
     console.error('CardboxDropdownMenu.vue → 笔记ID为空')
     return
   }
+
   try {
-    const updatedNote = await noteStore.updateNoteCardBox(props.noteId, box.id)
-    if (updatedNote) {
-      selectedCardBox.value = box
-      emit('update:selectedCardBox', box)
-      console.log('CardboxDropdownMenu.vue → 卡片盒更新成功:', box.name)
-    } else {
-      console.error('CardboxDropdownMenu.vue → 更新卡片盒失败: 未能获取更新后的笔记')
-    }
+    await noteStore.updateNoteCardBox(props.noteId, box.id)
+    console.log('CardboxDropdownMenu.vue → 卡片盒更新成功:', box.name)
+    emit('close')
   } catch (error) {
     console.error('CardboxDropdownMenu.vue → 更新卡片盒失败:', error)
+    throw error
   }
-  emit('close')
 }
 
 const isBoxSelected = (box: CardBox) => {
-  return selectedCardBox.value && selectedCardBox.value.id === box.id
+  return props.currentCardboxId === box.id
 }
 
 const closeMenu = () => {
@@ -123,13 +106,24 @@ const adjustMenuPosition = () => {
     const windowWidth = window.innerWidth
     if (rect.right > windowWidth) {
       const overflowX = rect.right - windowWidth
-      menuPosition.value.x -= overflowX + 10 // 10px 作为安全边距
+      menuPosition.value.x -= overflowX + 10
     }
   }
 }
 
 const goToCardboxPage = () => {
   router.push('/cardbox')
+}
+
+const openMenu = (x?: number, y?: number) => {
+  if (x !== undefined && y !== undefined) {
+    menuPosition.value = { x, y }
+  } else if (props.position) {
+    menuPosition.value = props.position
+  }
+  nextTick(() => {
+    adjustMenuPosition()
+  })
 }
 
 watch(
@@ -143,17 +137,6 @@ watch(
   }
 )
 
-const openMenu = (x?: number, y?: number) => {
-  if (x !== undefined && y !== undefined) {
-    menuPosition.value = { x, y }
-  } else if (props.position) {
-    menuPosition.value = props.position
-  }
-  nextTick(() => {
-    adjustMenuPosition()
-  })
-}
-
 onMounted(() => {
   document.addEventListener('click', closeMenu)
   window.addEventListener('resize', adjustMenuPosition)
@@ -164,7 +147,7 @@ onUnmounted(() => {
   window.removeEventListener('resize', adjustMenuPosition)
 })
 
-defineExpose({ openMenu, closeMenu, selectedCardBox })
+defineExpose({ openMenu, closeMenu })
 </script>
 
 <style scoped lang="scss">
@@ -176,9 +159,9 @@ defineExpose({ openMenu, closeMenu, selectedCardBox })
   z-index: 9999;
   min-width: 200px;
   width: max-content;
-  max-width: 100vw; // 确保不超过视口宽度
+  max-width: 100vw;
   overflow-y: auto;
-  overflow-x: hidden; // 防止水平溢出
+  overflow-x: hidden;
   padding: 6px 12px;
   white-space: nowrap;
 }
@@ -194,6 +177,7 @@ defineExpose({ openMenu, closeMenu, selectedCardBox })
   border-radius: 6px;
   padding: 4px 4px;
   margin: 2px;
+
   &.active {
     background-color: var(--color-hover-button);
     font-weight: 500;
@@ -210,10 +194,6 @@ defineExpose({ openMenu, closeMenu, selectedCardBox })
     justify-content: center;
     transition: all 0.2s ease;
     padding: 0;
-
-    // &:hover:not(:disabled) {
-    //   background-color: rgba(0, 0, 0, 0.05);
-    // }
 
     &:disabled {
       opacity: 0.5;
@@ -254,12 +234,8 @@ defineExpose({ openMenu, closeMenu, selectedCardBox })
   &:active {
     background-color: rgba(0, 0, 0, 0.1);
   }
-
-  &.delete {
-    color: #ff4d4f;
-  }
 }
-// 添加动画相关的样式
+
 .fade-zoom-enter-active,
 .fade-zoom-leave-active {
   transition:
@@ -278,6 +254,7 @@ defineExpose({ openMenu, closeMenu, selectedCardBox })
   opacity: 1;
   transform: scale(1);
 }
+
 .empty-state {
   padding: 6px 12px;
   color: var(--color-text-secondary);

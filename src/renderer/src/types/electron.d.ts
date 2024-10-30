@@ -125,6 +125,7 @@ export interface ElectronAPI {
   loadEmbeddingsCache: () => Promise<Record<string, string>>
   saveEmbeddingsCache: (cacheData: Record<string, string>) => Promise<boolean>
   updateNoteAddress: (id: string, address: string) => Promise<Note>
+  updateNoteCardType: (id: string, cardType: string) => Promise<Note>
 }
 
 declare global {

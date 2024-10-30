@@ -30,7 +30,8 @@ import {
   moveEmptyNotesToTrash,
   getAllDeletedNotes,
   getRelatedNotes,
-  updateNoteAddress
+  updateNoteAddress,
+  updateNoteCardType
 } from '../../db/notesService'
 
 export function setupNotesHandlers() {
@@ -299,17 +300,6 @@ export function setupNotesHandlers() {
     }
   })
 
-  // 更新笔记的卡片盒
-  ipcMain.handle('update-note-card-box', async (_event, noteId: string, cardBoxId: string) => {
-    try {
-      const updatedNote = await updateNoteCardBox(noteId, cardBoxId)
-      return updatedNote
-    } catch (error) {
-      console.error('主进程 → 更新笔记的卡片盒时出错:', error)
-      return { success: false, error: error }
-    }
-  })
-
   // 添加星标收藏
   ipcMain.handle('add-star-to-note', async (_event, id: string) => {
     try {
@@ -367,6 +357,26 @@ export function setupNotesHandlers() {
       return { success: true, note: updatedNote }
     } catch (error) {
       console.error('主进程 → 更新笔记地址失败:', error)
+      return { success: false, error: error }
+    }
+  })
+  // 更新笔记类型
+  ipcMain.handle('update-note-card-type', async (_event, id: string, cardType: string) => {
+    try {
+      const updatedNote = await updateNoteCardType(id, cardType)
+      return { success: true, note: updatedNote }
+    } catch (error) {
+      console.error('主进程 → 更新笔记类型失败:', error)
+      return { success: false, error: error }
+    }
+  })
+  // 更新笔记的卡片盒
+  ipcMain.handle('update-note-card-box', async (_event, id: string, cardBoxId: string) => {
+    try {
+      const updatedNote = await updateNoteCardBox(id, cardBoxId)
+      return { success: true, note: updatedNote }
+    } catch (error) {
+      console.error('主进程 → 更新笔记的卡片盒时出错:', error)
       return { success: false, error: error }
     }
   })

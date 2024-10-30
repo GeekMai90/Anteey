@@ -19,6 +19,7 @@
             :current-card-type="currentNote?.cardType"
             :offset="{ x: -50, y: 10 }"
             @close="closeCardTypeMenu"
+            @select="handleCardTypeSelect"
           />
           <input
             v-if="currentNote"
@@ -138,9 +139,20 @@ const handleAddressEnter = (event: KeyboardEvent) => {
   handleAddressInput.flush() // 立即执行防抖函数
   focusEditor() // 聚焦到编辑器
 }
-const handleContentUpdate = (newContent: any) => {
-  console.log('内容更新:', newContent)
-}
+
+// 处理内容更新
+const handleContentUpdate = debounce(async (newContent: any) => {
+  if (currentNote.value) {
+    try {
+      await noteStore.updateNoteContent(noteId, newContent)
+      console.log('内容更新成功')
+    } catch (error) {
+      console.error('更新内容失败:', error)
+      message.error('更新内容失败')
+    }
+  }
+}, 500) // 内容更新可以用稍长的防抖时间
+
 // 卡片类型菜单
 const cardTypeDropdownMenu = ref<InstanceType<typeof CardTypeDropdownMenu> | null>(null)
 const showCardTypeMenu = ref(false)
@@ -174,12 +186,18 @@ const closeCardTypeMenu = () => {
   showCardTypeMenu.value = false
 }
 
-// const updateCardType = (newType: CardType) => {
-//   if (editedNote.value) {
-//     editedNote.value.cardType = newType
-//     saveNote()
-//   }
-// }
+// 处理卡片类型选择和更新
+const handleCardTypeSelect = async (newType: string) => {
+  if (currentNote.value) {
+    try {
+      await noteStore.updateNoteCardType(noteId, newType)
+      closeCardTypeMenu()
+    } catch (error) {
+      console.error('更新卡片类型失败:', error)
+      message.error('更新卡片类型失败')
+    }
+  }
+}
 
 // 卡片盒菜单
 const dropdownMenu = ref<InstanceType<typeof CardboxDropdownMenu> | null>(null)

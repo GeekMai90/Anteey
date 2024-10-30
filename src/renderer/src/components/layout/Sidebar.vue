@@ -6,7 +6,7 @@
       <div class="antinet-button" @click.stop="uiStore.toggleSettingDropdown">
         <img src="@resources/icon.png" alt="Antinet" class="antinet-icon" />
         <div class="antinet-text">Antinet</div>
-        <div class="status-icon" :class="noteStore.currentNoteSaveStatus"></div>
+        <div class="status-icon" :class="saveStatusClass"></div>
         <SettingDropdownMenu />
       </div>
       <!-- 新增搜索区域 -->
@@ -189,6 +189,7 @@ import StarredNotes from '@renderer/components/layout/StarredNotes.vue'
 import { useUIStore } from '@renderer/stores/useUIStore'
 import { useRoute } from 'vue-router'
 import RecentNotes from '@renderer/components/layout/RecentNotes.vue'
+import { storeToRefs } from 'pinia'
 
 const imageSrc = ref('')
 const uiStore = useUIStore()
@@ -237,6 +238,17 @@ const toggleSubMenu = (item: any) => {
 }
 
 const noteStore = useNoteStore()
+const { getCurrentNoteSaveStatus } = storeToRefs(noteStore)
+// 使用计算属性来处理保存状态的显示
+// 简化状态类的计算
+const saveStatusClass = computed(() => {
+  console.log('当前保存状态:', getCurrentNoteSaveStatus.value) // 添加日志
+  return {
+    'status-saving': getCurrentNoteSaveStatus.value === 'saving',
+    'status-saved': getCurrentNoteSaveStatus.value === 'saved',
+    'status-error': getCurrentNoteSaveStatus.value === 'error'
+  }
+})
 // const isSidebarCollapsed = computed(() => noteStore.isSidebarCollapsed);
 // const isSidebarVisible = computed(() => !isSidebarCollapsed.value || props.isTemporaryVisible);
 
@@ -796,23 +808,23 @@ const openHelp = () => {
   transition: all 0.3s ease;
 }
 
-.status-icon.idle {
+.status-icon.status-idle {
   background-color: #808080;
   box-shadow: 0 0 5px 1px rgba(128, 128, 128, 0.5);
 }
 
-.status-icon.saving {
+.status-icon.status-saving {
   background-color: #ffa500;
   box-shadow: 0 0 5px 1px rgba(255, 165, 0, 0.7);
   animation: pulse 1s infinite alternate;
 }
 
-.status-icon.saved {
+.status-icon.status-saved {
   background-color: var(--color-primary);
   box-shadow: 0 0 5px 1px rgba(var(--color-primary-rgb), 0.7);
 }
 
-.status-icon.error {
+.status-icon.status-error {
   background-color: #ff0000;
   box-shadow: 0 0 5px 1px rgba(255, 0, 0, 0.7);
 }

@@ -1137,25 +1137,6 @@ export async function permanentDeleteNote(id: string): Promise<void> {
 //   }
 // }
 
-// 更新笔记的卡片盒
-export async function updateNoteCardBox(noteId: string, cardBoxId: string): Promise<Note | null> {
-  try {
-    // 更新卡片盒前的笔记
-    const note = await getNoteById(noteId)
-    console.log('后端→ 更新卡片盒的笔记是:', note)
-    // 更新卡片盒
-    await db('notes').where('id', noteId).update({ cardBoxId: cardBoxId })
-    // 更新卡片盒后的笔记
-    const updatedNote = await getNoteById(noteId)
-    console.log('后端→ 更新卡片盒后的笔记是:', updatedNote)
-    // console.log(`后端→ 更新笔记的卡片盒: ${noteId}`)
-    return updatedNote
-  } catch (error) {
-    console.error(`后端→ 更新笔记的卡片盒失败: ${noteId}:`, error)
-    throw error
-  }
-}
-
 // 添加星标收藏
 export async function addStarToNote(id: string): Promise<Note> {
   return db.transaction(async (trx) => {
@@ -1334,6 +1315,54 @@ export async function updateNoteAddress(id: string, address: string): Promise<No
     return convertToNote(updatedNote)
   } catch (error) {
     console.error('后端→ 更新笔记地址失败:', error)
+    throw error
+  }
+}
+// 更新笔记类型
+export async function updateNoteCardType(id: string, cardType: string): Promise<Note> {
+  try {
+    console.log('后端→ 开始更新笔记类型:', { id, cardType })
+
+    const [updatedNote] = await db('notes')
+      .where({ id })
+      .update({
+        cardType,
+        updatedAt: new Date()
+      })
+      .returning('*')
+
+    if (!updatedNote) {
+      throw new Error(`未找到ID为 ${id} 的笔记`)
+    }
+
+    console.log('后端→ 笔记类型更新成功:', updatedNote)
+    return convertToNote(updatedNote)
+  } catch (error) {
+    console.error('后端→ 更新笔记类型失败:', error)
+    throw error
+  }
+}
+// 更新笔记的卡片盒
+export async function updateNoteCardBox(noteId: string, cardBoxId: string): Promise<Note> {
+  try {
+    console.log('后端→ 开始更新笔记卡片盒:', { noteId, cardBoxId })
+
+    const [updatedNote] = await db('notes')
+      .where({ id: noteId })
+      .update({
+        cardBoxId,
+        updatedAt: new Date()
+      })
+      .returning('*')
+
+    if (!updatedNote) {
+      throw new Error(`未找到ID为 ${noteId} 的笔记`)
+    }
+
+    console.log('后端→ 笔记卡片盒更新成功:', updatedNote)
+    return convertToNote(updatedNote)
+  } catch (error) {
+    console.error('后端→ 更新笔记卡片盒失败:', error)
     throw error
   }
 }
