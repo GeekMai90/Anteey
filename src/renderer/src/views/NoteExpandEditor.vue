@@ -11,13 +11,13 @@
             ref="indicatorButton"
             class="note-indicator"
             :class="cardTypeClass"
-            @click.stop="toggleCardTypeMenu"
+            @click="(e) => toggleCardTypeMenu(e)"
           ></div>
           <CardTypeDropdownMenu
-            ref="cardTypeDropdownMenu"
-            :is-open="showCardTypeMenu"
+            ref="cardTypeDropdownMenuRef"
+            :is-open="cardTypeMenuState.isOpen"
+            :position="cardTypeMenuState.position"
             :current-card-type="currentNote?.cardType"
-            :offset="{ x: -50, y: 10 }"
             @close="closeCardTypeMenu"
             @select="handleCardTypeSelect"
           />
@@ -32,7 +32,7 @@
           />
         </div>
         <div class="toolbar-right">
-          <div ref="infoBtnRef" class="install-btn" @click.stop="showCardBoxMenu">
+          <div ref="cardboxBtnRef" class="install-btn" @click.stop="toggleCardboxMenu">
             <div v-tooltip.bottom="{ content: '设置卡片盒', delay: { show: 1000 } }" class="icon">
               <Install
                 theme="outline"
@@ -43,26 +43,25 @@
             </div>
             <!-- 添加卡片盒下拉菜单 -->
             <CardboxDropdownMenu
-              ref="dropdownMenu"
-              :is-open="isMenuOpen"
+              ref="cardboxMenuRef"
+              :is-open="cardboxMenuState.isOpen"
+              :position="cardboxMenuState.position"
               :note-id="currentNote?.id"
               :current-cardbox-id="currentNote?.cardBoxId"
-              :offset="{ x: -85, y: 5 }"
-              @close="closeCardBoxMenu"
+              @close="closeCardboxMenu"
             />
           </div>
           <!-- 更多菜单 -->
-          <div ref="moreBtnRef" class="more-btn" @click.stop="toggleMenu">
+          <div ref="moreBtnRef" class="more-btn" @click.stop="toggleMoreMenu">
             <div v-tooltip.bottom="{ content: '更多', delay: { show: 1000 } }" class="icon">
               <More theme="outline" size="16" fill="var(--color-icon-default)" :stroke-width="3" />
             </div>
             <PopupMenu
-              ref="popupMenuRef"
-              :show="isMenuVisible"
+              ref="moreMenuRef"
+              :show="moreMenuState.isOpen"
+              :position="moreMenuState.position"
               :menuItems="noteMenuItems"
-              :position="menuPosition"
-              :offset="{ x: -75, y: 5 }"
-              @close="closeMenu"
+              @close="closeMoreMenu"
               @itemClick="handleMenuItemClick"
             />
           </div>
@@ -88,7 +87,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed, nextTick, reactive } from 'vue'
+import { ref, onMounted, computed, nextTick, reactive, onBeforeUnmount } from 'vue'
 import { useRoute } from 'vue-router'
 import { useNoteStore } from '@renderer/stores/noteStores'
 import { formatDate } from '@renderer/utils/noteHelpers'
@@ -102,6 +101,7 @@ import type { MenuItem } from '@renderer/components/common/PopupMenu.vue'
 import CardTypeDropdownMenu from '@renderer/components/note/CardTypeDropdownMenu.vue'
 import { debounce } from 'lodash-es'
 import { message } from '@renderer/utils/message'
+import { useMenu } from '@renderer/composables/useMenu'
 
 const tiptapEditor = ref<any>(null)
 const route = useRoute()
@@ -141,50 +141,76 @@ const handleAddressEnter = (event: KeyboardEvent) => {
 }
 
 // 处理内容更新
-const handleContentUpdate = debounce(async (newContent: any) => {
-  if (currentNote.value) {
-    try {
-      await noteStore.updateNoteContent(noteId, newContent)
-      console.log('内容更新成功')
-    } catch (error) {
-      console.error('更新内容失败:', error)
-      message.error('更新内容失败')
-    }
+// 1. 编辑器组件的内容更新处理
+const updateState = reactive({
+  pending: false,
+  lastContent: null as any,
+  updateTimer: null as any,
+  saveTimeout: 1000 // 保存延迟时间，可以根据实际需求调整
+})
+
+// 处理内容更新
+const handleContentUpdate = (newContent: any) => {
+  if (!currentNote.value) return
+
+  // 保存当前光标位置
+  const editor = tiptapEditor.value?.editor
+  const selection = editor?.state.selection
+
+  // 使用防抖进行更新
+  if (updateState.updateTimer) {
+    clearTimeout(updateState.updateTimer)
   }
-}, 500) // 内容更新可以用稍长的防抖时间
 
-// 卡片类型菜单
-const cardTypeDropdownMenu = ref<InstanceType<typeof CardTypeDropdownMenu> | null>(null)
-const showCardTypeMenu = ref(false)
+  updateState.updateTimer = setTimeout(async () => {
+    try {
+      await noteStore.updateNoteContent(currentNote.value.id, newContent)
+
+      // 恢复光标位置
+      nextTick(() => {
+        if (editor && selection) {
+          editor.commands.setTextSelection(selection.$head.pos)
+        }
+      })
+    } catch (error) {
+      console.error('内容更新失败:', error)
+      message.error('保存失败')
+    }
+  }, updateState.saveTimeout)
+}
+
+// 组件卸载时清理
+onBeforeUnmount(() => {
+  if (updateState.updateTimer) {
+    clearTimeout(updateState.updateTimer)
+  }
+})
+
+// ===卡片类型菜单===
+// 卡片类型菜单按钮
 const indicatorButton = ref<HTMLElement | null>(null)
+const cardTypeDropdownMenuRef = ref<HTMLElement | null>(null)
 
-// 卡片类型
+// 使用 useMenu 时传入正确的类型
+const {
+  menuState: cardTypeMenuState,
+  toggleMenu: toggleCardTypeMenu,
+  closeMenu: closeCardTypeMenu
+} = useMenu({
+  buttonRef: indicatorButton, // 直接传入 ref
+  menuRef: cardTypeDropdownMenuRef,
+  onClose: () => {
+    console.log('卡片类型菜单已关闭')
+  }
+})
+
+// 卡片类型，根据当前笔记的卡片类型设置样式
 const cardTypeClass = computed(() => ({
   maincard: currentNote.value?.cardType === 'Maincard',
   bibcard: currentNote.value?.cardType === 'Bibcard',
   indexcard: currentNote.value?.cardType === 'Indexcard'
   // hoplinkcard: currentNote.value?.cardType === 'Hoplinkcard'
 }))
-
-// 打开卡片类型菜单
-const toggleCardTypeMenu = (event: MouseEvent) => {
-  event.stopPropagation()
-  showCardTypeMenu.value = !showCardTypeMenu.value
-  if (showCardTypeMenu.value && indicatorButton.value) {
-    const rect = indicatorButton.value.getBoundingClientRect()
-    menuPosition.x = rect.left
-    menuPosition.y = rect.bottom
-    showCardTypeMenu.value = true
-    nextTick(() => {
-      cardTypeDropdownMenu.value?.openMenu(menuPosition.x, menuPosition.y)
-    })
-  }
-}
-
-// 关闭卡片类型菜单
-const closeCardTypeMenu = () => {
-  showCardTypeMenu.value = false
-}
 
 // 处理卡片类型选择和更新
 const handleCardTypeSelect = async (newType: string) => {
@@ -199,34 +225,22 @@ const handleCardTypeSelect = async (newType: string) => {
   }
 }
 
-// 卡片盒菜单
-const dropdownMenu = ref<InstanceType<typeof CardboxDropdownMenu> | null>(null)
-const isMenuOpen = ref(false)
-const infoBtnRef = ref<HTMLElement | null>(null)
-
-// 卡片盒菜单
-const showCardBoxMenu = (event: MouseEvent) => {
-  event.preventDefault()
-  isMenuOpen.value = !isMenuOpen.value
-  if (isMenuOpen.value && infoBtnRef.value) {
-    const rect = infoBtnRef.value.getBoundingClientRect()
-    menuPosition.x = rect.left
-    menuPosition.y = rect.bottom
-    isMenuOpen.value = true
-    nextTick(() => {
-      dropdownMenu.value?.openMenu(menuPosition.x, menuPosition.y)
-    })
+// 卡片盒菜单状态管理
+const cardboxBtnRef = ref<HTMLElement | null>(null)
+const cardboxMenuRef = ref<HTMLElement | null>(null)
+const {
+  menuState: cardboxMenuState,
+  toggleMenu: toggleCardboxMenu,
+  closeMenu: closeCardboxMenu
+} = useMenu({
+  buttonRef: cardboxBtnRef,
+  menuRef: cardboxMenuRef,
+  onClose: () => {
+    console.log('卡片盒菜单已关闭')
   }
-}
-const closeCardBoxMenu = () => {
-  isMenuOpen.value = false
-}
+})
 
 // 更多按钮弹出菜单
-const moreBtnRef = ref<HTMLElement | null>(null)
-const popupMenuRef = ref<InstanceType<typeof PopupMenu> | null>(null)
-const isMenuVisible = ref(false)
-const menuPosition = reactive({ x: 0, y: 0 })
 
 // 更多菜单
 const { menuItems: noteMenuItems, resetDeleteState } = useNoteMenu({
@@ -234,32 +248,26 @@ const { menuItems: noteMenuItems, resetDeleteState } = useNoteMenu({
   menuItems: ['star', 'share', 'sidebar', 'copyNoteLink', 'exportNote', 'delete', 'copyQuote']
 })
 
-// 更多菜单点击事件
-const toggleMenu = (event: MouseEvent) => {
-  event.preventDefault()
-  isMenuVisible.value = !isMenuVisible.value
-  if (isMenuVisible.value && moreBtnRef.value) {
-    const rect = moreBtnRef.value.getBoundingClientRect()
-    menuPosition.x = rect.left
-    menuPosition.y = rect.bottom
-    isMenuVisible.value = true
-    nextTick(() => {
-      popupMenuRef.value?.openMenu()
-    })
+const moreBtnRef = ref<HTMLElement | null>(null)
+const moreMenuRef = ref<HTMLElement | null>(null)
+const {
+  menuState: moreMenuState,
+  toggleMenu: toggleMoreMenu,
+  closeMenu: closeMoreMenu
+} = useMenu({
+  buttonRef: moreBtnRef,
+  menuRef: moreMenuRef,
+  onClose: () => {
+    resetDeleteState()
   }
-}
+})
 
 // 更多菜单点击事件
 const handleMenuItemClick = (item: MenuItem) => {
   item.action()
   if (item.name !== 'delete') {
-    closeMenu()
+    closeMoreMenu()
   }
-}
-
-const closeMenu = () => {
-  isMenuVisible.value = false
-  resetDeleteState()
 }
 
 // 聚焦编辑器

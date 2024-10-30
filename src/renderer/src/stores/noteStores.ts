@@ -164,71 +164,154 @@ export const useNoteStore = defineStore('note', () => {
     delete activeNotes.value[noteId]
   }
   // 更新笔记内容
+  // const updateNoteContent = async (noteId: string, content: any) => {
+  //   console.log('Store: 开始更新笔记内容:', { noteId })
+
+  //   // 1. 更新保存状态
+  //   updateSaveStatus('saving')
+
+  //   // 2. 检查笔记是否存在且处于编辑状态
+  //   if (!activeNotes.value[noteId]) {
+  //     throw new Error('笔记不在编辑状态')
+  //   }
+
+  //   // 3. 乐观更新
+  //   activeNotes.value[noteId] = {
+  //     ...activeNotes.value[noteId],
+  //     content,
+  //     updatedAt: new Date()
+  //   }
+
+  //   // 4. 同步更新 cache 和 visible
+  //   if (noteCache.has(noteId)) {
+  //     noteCache.set(noteId, { ...activeNotes.value[noteId] })
+  //   }
+  //   if (noteId in visibleNotes.value) {
+  //     visibleNotes.value[noteId] = { ...activeNotes.value[noteId] }
+  //   }
+
+  //   // 5. 记录pending状态
+  //   pendingUpdates.value.set(`${noteId}-content`, {
+  //     type: 'content',
+  //     timestamp: Date.now()
+  //   })
+
+  //   try {
+  //     // 添加最小延迟确保用户能看到保存状态
+  //     await new Promise((resolve) => setTimeout(resolve, 500))
+  //     // 6. 发送后端请求
+  //     const updatedNote = await window.electronAPI.updateNoteContent(noteId, content)
+
+  //     // 7. 检查是否有更新的pending更新
+  //     const pendingUpdate = pendingUpdates.value.get(`${noteId}-content`)
+  //     if (!pendingUpdate || pendingUpdate.timestamp <= Date.now()) {
+  //       // 8. 更新成功，同步所有状态
+  //       activeNotes.value[noteId] = updatedNote
+  //       noteCache.set(noteId, updatedNote)
+  //       if (noteId in visibleNotes.value) {
+  //         visibleNotes.value[noteId] = updatedNote
+  //       }
+  //     }
+  //     // 9. 更新成功
+  //     updateSaveStatus('saved')
+  //     resetToSaved()
+  //     return updatedNote
+  //   } catch (error) {
+  //     // 10. 更新失败，回滚所有状态
+  //     const originalNote = noteCache.get(noteId)!
+  //     activeNotes.value[noteId] = { ...originalNote }
+  //     if (noteId in visibleNotes.value) {
+  //       visibleNotes.value[noteId] = { ...originalNote }
+  //     }
+  //     // 11. 更新失败
+  //     updateSaveStatus('error')
+  //     console.error('更新内容失败:', error)
+  //     throw error
+  //   } finally {
+  //     // 12. 清理pending状态
+  //     pendingUpdates.value.delete(`${noteId}-content`)
+  //   }
+  // }
+
   const updateNoteContent = async (noteId: string, content: any) => {
     console.log('Store: 开始更新笔记内容:', { noteId })
 
-    // 1. 更新保存状态
-    updateSaveStatus('saving')
-
-    // 2. 检查笔记是否存在且处于编辑状态
+    // 1. 状态检查
     if (!activeNotes.value[noteId]) {
       throw new Error('笔记不在编辑状态')
     }
 
-    // 3. 乐观更新
-    activeNotes.value[noteId] = {
-      ...activeNotes.value[noteId],
-      content,
-      updatedAt: new Date()
-    }
+    // 2. 更新保存状态
+    updateSaveStatus('saving')
 
-    // 4. 同步更新 cache 和 visible
-    if (noteCache.has(noteId)) {
-      noteCache.set(noteId, { ...activeNotes.value[noteId] })
-    }
-    if (noteId in visibleNotes.value) {
-      visibleNotes.value[noteId] = { ...activeNotes.value[noteId] }
-    }
-
-    // 5. 记录pending状态
+    // 3. 记录更新标记，用于处理并发更新
+    const updateTimestamp = Date.now()
     pendingUpdates.value.set(`${noteId}-content`, {
       type: 'content',
-      timestamp: Date.now()
+      timestamp: updateTimestamp
     })
 
+    // 4. 保存之前的状态（移到 try 外面）
+    const previousState = {
+      content: activeNotes.value[noteId].content,
+      cache: noteCache.has(noteId) ? { ...noteCache.get(noteId)! } : null,
+      visible: noteId in visibleNotes.value ? { ...visibleNotes.value[noteId] } : null
+    }
+
     try {
+      // 5. 更新所有本地状态
+      const updatedNote = {
+        ...activeNotes.value[noteId],
+        content,
+        updatedAt: new Date()
+      }
+
+      // 同步更新所有状态
+      activeNotes.value[noteId] = updatedNote
+      if (noteCache.has(noteId)) {
+        noteCache.set(noteId, updatedNote)
+      }
+      if (noteId in visibleNotes.value) {
+        visibleNotes.value[noteId] = updatedNote
+      }
       // 添加最小延迟确保用户能看到保存状态
       await new Promise((resolve) => setTimeout(resolve, 500))
+
       // 6. 发送后端请求
-      const updatedNote = await window.electronAPI.updateNoteContent(noteId, content)
+      const serverUpdatedNote = await window.electronAPI.updateNoteContent(noteId, content)
 
       // 7. 检查是否有更新的pending更新
-      const pendingUpdate = pendingUpdates.value.get(`${noteId}-content`)
-      if (!pendingUpdate || pendingUpdate.timestamp <= Date.now()) {
-        // 8. 更新成功，同步所有状态
-        activeNotes.value[noteId] = updatedNote
-        noteCache.set(noteId, updatedNote)
+      const currentPending = pendingUpdates.value.get(`${noteId}-content`)
+      if (!currentPending || currentPending.timestamp <= updateTimestamp) {
+        // 8. 使用服务器返回的数据更新状态
+        activeNotes.value[noteId] = serverUpdatedNote
+        if (noteCache.has(noteId)) {
+          noteCache.set(noteId, serverUpdatedNote)
+        }
         if (noteId in visibleNotes.value) {
-          visibleNotes.value[noteId] = updatedNote
+          visibleNotes.value[noteId] = serverUpdatedNote
         }
       }
+
       // 9. 更新成功
       updateSaveStatus('saved')
       resetToSaved()
-      return updatedNote
+      return serverUpdatedNote
     } catch (error) {
-      // 10. 更新失败，回滚所有状态
-      const originalNote = noteCache.get(noteId)!
-      activeNotes.value[noteId] = { ...originalNote }
-      if (noteId in visibleNotes.value) {
-        visibleNotes.value[noteId] = { ...originalNote }
+      // 10. 错误处理 - 回滚所有状态
+      activeNotes.value[noteId].content = previousState.content
+      if (previousState.cache) {
+        noteCache.set(noteId, previousState.cache)
       }
-      // 11. 更新失败
+      if (previousState.visible) {
+        visibleNotes.value[noteId] = previousState.visible
+      }
+
       updateSaveStatus('error')
       console.error('更新内容失败:', error)
       throw error
     } finally {
-      // 12. 清理pending状态
+      // 11. 清理pending状态
       pendingUpdates.value.delete(`${noteId}-content`)
     }
   }

@@ -46,45 +46,33 @@ interface Position {
 
 const props = defineProps<{
   menuItems: MenuItem[]
-  position?: Position
-  offset?: Position
-  show?: boolean
+  position: Position
+  show: boolean
 }>()
 
 const emit = defineEmits(['close', 'itemClick'])
 
-// const show = ref(false)
 const menuRef = ref<HTMLElement | null>(null)
-const menuPosition = ref<Position>({ x: 0, y: 0 })
-const isConfirmingDelete = ref(false)
-let deleteTimeout: number | null = null
+const menuPosition = ref(props.position)
 
-const computedMenuStyle = computed((): CSSProperties => {
-  const { x, y } = menuPosition.value
-  const offsetX = props.offset?.x || 0
-  const offsetY = props.offset?.y || 0
-  const maxWidth = Math.min(300, window.innerWidth - 20) // 20px 作为安全边距
-  return {
-    position: 'fixed',
-    top: `${y + offsetY}px`,
-    left: `${x + offsetX}px`,
-    maxWidth: `${maxWidth}px`
-  }
-})
-const adjustMenuPosition = () => {
-  if (menuRef.value) {
-    const rect = menuRef.value.getBoundingClientRect()
-    const windowWidth = window.innerWidth
-    if (rect.right > windowWidth) {
-      const overflowX = rect.right - windowWidth
-      menuPosition.value.x -= overflowX + 10 // 10px 作为安全边距
+watch(
+  () => props.position,
+  (newPosition) => {
+    menuPosition.value = newPosition
+    if (props.show) {
+      nextTick(() => {
+        adjustMenuPosition()
+      })
     }
-  }
-}
+  },
+  { deep: true }
+)
+
 watch(
   () => props.show,
   (newValue) => {
     if (newValue) {
+      menuPosition.value = props.position
       nextTick(() => {
         adjustMenuPosition()
       })
@@ -92,47 +80,47 @@ watch(
   }
 )
 
+const computedMenuStyle = computed((): CSSProperties => {
+  const { x, y } = menuPosition.value
+  const maxWidth = Math.min(300, window.innerWidth - 20)
+  return {
+    position: 'fixed',
+    top: `${y}px`,
+    left: `${x}px`,
+    maxWidth: `${maxWidth}px`
+  }
+})
+
+const handleDocumentClick = (event: MouseEvent) => {
+  if (menuRef.value && !menuRef.value.contains(event.target as Node)) {
+    emit('close')
+  }
+}
+
 const handleItemClick = (item: MenuItem) => {
   emit('itemClick', item)
 }
 
-const closeMenu = () => {
-  isConfirmingDelete.value = false
-  if (deleteTimeout !== null) {
-    clearTimeout(deleteTimeout)
-    deleteTimeout = null
-  }
-  emit('close')
-}
-
-const openMenu = (x?: number, y?: number) => {
-  if (x !== undefined && y !== undefined) {
-    menuPosition.value = { x, y }
-  } else if (props.position) {
-    menuPosition.value = props.position
-  }
-}
-
-const resetDeleteState = () => {
-  isConfirmingDelete.value = false
-  if (deleteTimeout !== null) {
-    clearTimeout(deleteTimeout)
-    deleteTimeout = null
+const adjustMenuPosition = () => {
+  if (menuRef.value) {
+    const rect = menuRef.value.getBoundingClientRect()
+    const windowWidth = window.innerWidth
+    if (rect.right > windowWidth) {
+      const overflowX = rect.right - windowWidth
+      menuPosition.value.x -= overflowX + 10
+    }
   }
 }
 
 onMounted(() => {
-  document.addEventListener('click', closeMenu)
+  document.addEventListener('click', handleDocumentClick)
   window.addEventListener('resize', adjustMenuPosition)
 })
 
 onUnmounted(() => {
-  document.removeEventListener('click', closeMenu)
+  document.removeEventListener('click', handleDocumentClick)
   window.removeEventListener('resize', adjustMenuPosition)
-  resetDeleteState()
 })
-
-defineExpose({ openMenu, closeMenu, resetDeleteState })
 </script>
 
 <style scoped lang="scss">
@@ -148,8 +136,8 @@ defineExpose({ openMenu, closeMenu, resetDeleteState })
   overflow-y: auto;
   padding: 6px 12px;
   white-space: nowrap;
-  max-width: 100vw; // 确保不超过视口宽度
-  overflow-x: hidden; // 防止水平溢出
+  max-width: 100vw;
+  overflow-x: hidden;
 }
 
 .popup-menu-item {
@@ -238,7 +226,7 @@ defineExpose({ openMenu, closeMenu, resetDeleteState })
     color: #ff4d4f;
   }
 }
-// 添加动画相关的样式
+
 .fade-zoom-enter-active,
 .fade-zoom-leave-active {
   transition:

@@ -38,29 +38,79 @@ import { Notes, ListAlphabet, Bookshelf } from '@icon-park/vue-next'
 
 const props = defineProps<{
   isOpen: boolean
-  position?: { x: number; y: number }
-  offset?: { x: number; y: number }
+  position: { x: number; y: number }
   currentCardType?: CardType
 }>()
 
 const emit = defineEmits(['select', 'close'])
 
 const menuRef = ref<HTMLElement | null>(null)
-const menuPosition = ref({ x: 0, y: 0 })
 const cardTypes: CardType[] = ['Maincard', 'Indexcard', 'Bibcard']
+const menuPosition = ref(props.position)
 
+// 计算菜单样式，使用 menuPosition 而不是直接使用 props.position
 const computedMenuStyle = computed((): CSSProperties => {
   const { x, y } = menuPosition.value
-  const offsetX = props.offset?.x || 0
-  const offsetY = props.offset?.y || 0
-  const maxWidth = Math.min(300, window.innerWidth - 20) // 20px 作为安全边距
+  const maxWidth = Math.min(300, window.innerWidth - 20)
   return {
     position: 'fixed',
-    top: `${y + offsetY}px`,
-    left: `${x + offsetX}px`,
+    top: `${y}px`,
+    left: `${x}px`,
     maxWidth: `${maxWidth}px`
   }
 })
+
+// 添加位置调整逻辑
+const adjustMenuPosition = () => {
+  if (menuRef.value) {
+    const rect = menuRef.value.getBoundingClientRect()
+    const windowWidth = window.innerWidth
+    const windowHeight = window.innerHeight
+
+    // 处理水平方向的溢出
+    if (rect.right > windowWidth) {
+      menuPosition.value.x -= rect.right - windowWidth + 10
+    }
+    if (rect.left < 0) {
+      menuPosition.value.x = 10
+    }
+
+    // 处理垂直方向的溢出
+    if (rect.bottom > windowHeight) {
+      menuPosition.value.y -= rect.bottom - windowHeight + 10
+    }
+    if (rect.top < 0) {
+      menuPosition.value.y = 10
+    }
+  }
+}
+
+// 监听显示状态变化
+watch(
+  () => props.isOpen,
+  (newValue) => {
+    if (newValue) {
+      menuPosition.value = props.position
+      nextTick(() => {
+        adjustMenuPosition()
+      })
+    }
+  }
+)
+
+// 监听位置变化
+watch(
+  () => props.position,
+  (newPosition) => {
+    menuPosition.value = newPosition
+    if (props.isOpen) {
+      nextTick(() => {
+        adjustMenuPosition()
+      })
+    }
+  },
+  { deep: true }
+)
 
 const getIcon = (type: CardType) => {
   switch (type) {
@@ -70,10 +120,8 @@ const getIcon = (type: CardType) => {
       return Bookshelf
     case 'Indexcard':
       return ListAlphabet
-    // case 'Hoplinkcard':
-    //   return Link
     default:
-      return Notes // 默认返回 Notes 图标
+      return Notes
   }
 }
 
@@ -85,16 +133,13 @@ const getTypeLabel = (type: CardType): string => {
       return '文献卡片'
     case 'Indexcard':
       return '索引卡片'
-    // case 'Hoplinkcard':
-    //   return '跳转卡'
     default:
       return '主要卡片'
   }
 }
 
-// 修改选择处理函数
 const selectCardType = (type: CardType) => {
-  emit('select', type) // 改为发送 select 事件
+  emit('select', type)
   emit('close')
 }
 
@@ -105,51 +150,23 @@ const isTypeSelected = (type: CardType) => {
 const closeMenu = () => {
   emit('close')
 }
-
-const adjustMenuPosition = () => {
-  if (menuRef.value) {
-    const rect = menuRef.value.getBoundingClientRect()
-    const windowWidth = window.innerWidth
-    if (rect.right > windowWidth) {
-      const overflowX = rect.right - windowWidth
-      menuPosition.value.x -= overflowX + 10 // 10px 作为安全边距
-    }
+// 使用具名函数，这样在移除时能确保移除的是同一个函数
+const handleDocumentClick = (event: MouseEvent) => {
+  // 如果点击的不是菜单内部元素，则关闭菜单
+  if (menuRef.value && !menuRef.value.contains(event.target as Node)) {
+    closeMenu()
   }
-}
-
-watch(
-  () => props.isOpen,
-  (newValue) => {
-    if (newValue) {
-      nextTick(() => {
-        adjustMenuPosition()
-      })
-    }
-  }
-)
-
-const openMenu = (x?: number, y?: number) => {
-  if (x !== undefined && y !== undefined) {
-    menuPosition.value = { x, y }
-  } else if (props.position) {
-    menuPosition.value = props.position
-  }
-  nextTick(() => {
-    adjustMenuPosition()
-  })
 }
 
 onMounted(() => {
-  document.addEventListener('click', closeMenu)
+  document.addEventListener('click', handleDocumentClick)
   window.addEventListener('resize', adjustMenuPosition)
 })
 
 onUnmounted(() => {
-  document.removeEventListener('click', closeMenu)
+  document.removeEventListener('click', handleDocumentClick)
   window.removeEventListener('resize', adjustMenuPosition)
 })
-
-defineExpose({ openMenu, closeMenu })
 </script>
 
 <style scoped lang="scss">
