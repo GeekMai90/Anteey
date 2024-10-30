@@ -155,7 +155,7 @@ const updateState = reactive({
   saveTimeout: 2000 // 保存延迟时间，可以根据实际需求调整
 })
 
-// 立即保存的函数
+// 添加一个立即保存的函数
 const saveContentImmediately = async () => {
   if (!currentNote.value || !updateState.lastContent) return
 
@@ -200,6 +200,7 @@ const handleContentUpdate = (newContent: any) => {
 
 // 组件卸载时清理
 onBeforeUnmount(async () => {
+  console.log('NoteEditor 组件卸载前')
   if (updateState.updateTimer) {
     clearTimeout(updateState.updateTimer)
   }
@@ -313,17 +314,40 @@ const focusEditor = () => {
   })
 }
 
-// 展开编辑器
+// 修改展开编辑器的处理函数
 const handleExpand = async () => {
   isExpandingToExpandEditor.value = true
-  if (currentNote.value?.id) {
-    router.push({ name: 'NoteExpandEditor', params: { id: currentNote.value.id } })
+  // 先保存内容
+  if (updateState.updateTimer) {
+    clearTimeout(updateState.updateTimer)
   }
-  noteStore.closeNoteEditor()
+  try {
+    await saveContentImmediately()
+    // 保存成功后再跳转
+    if (currentNote.value?.id) {
+      router.push({ name: 'NoteExpandEditor', params: { id: currentNote.value.id } })
+    }
+    noteStore.closeNoteEditor()
+  } catch (error) {
+    console.error('保存失败:', error)
+    message.error('保存失败')
+  }
 }
+// 组件卸载时清理
+onBeforeUnmount(() => {
+  console.log('NoteEditor 组件卸载前')
+  if (updateState.updateTimer) {
+    clearTimeout(updateState.updateTimer)
+  }
+})
+
+// 暴露方法给父组件
+defineExpose({
+  focusAddressInput,
+  focusEditor
+})
 
 // defineExpose({ handleAutoSave, focusAddressInput })
-defineExpose({ focusAddressInput, focusEditor })
 </script>
 
 <style lang="scss" scoped>

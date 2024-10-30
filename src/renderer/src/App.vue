@@ -211,7 +211,7 @@ onUnmounted(async () => {
   window.electronAPI.removeAllListeners('menu-new-note')
   window.electronAPI.removeAllListeners('menu-export-notes')
   // 清理笔记数据
-  await noteStore.clearNotes()
+  // await noteStore.clearNotes()
 })
 
 // 提供全局方法给子组件使用

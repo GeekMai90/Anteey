@@ -31,7 +31,10 @@ import {
   getAllDeletedNotes,
   getRelatedNotes,
   updateNoteAddress,
-  updateNoteCardType
+  updateNoteCardType,
+  getTimelineNotes,
+  TimelineQueryParams,
+  TimelineQueryResult
 } from '../../db/notesService'
 
 export function setupNotesHandlers() {
@@ -380,4 +383,25 @@ export function setupNotesHandlers() {
       return { success: false, error: error }
     }
   })
+  // 时间线笔记查询
+  ipcMain.handle(
+    'get-timeline-notes',
+    async (
+      _event,
+      params: TimelineQueryParams
+    ): Promise<{
+      success: boolean
+      result?: TimelineQueryResult
+      error?: any
+    }> => {
+      try {
+        console.log('主进程→ 获取时间线笔记', params)
+        const result = await getTimelineNotes(params)
+        return { success: true, result }
+      } catch (error) {
+        console.error('主进程→ 获取时间线笔记失败:', error)
+        return { success: false, error: error }
+      }
+    }
+  )
 }

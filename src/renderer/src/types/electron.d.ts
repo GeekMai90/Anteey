@@ -1,4 +1,8 @@
-import { GetPaginatedNotesParams } from '../../../db/notesService'
+import {
+  GetPaginatedNotesParams,
+  TimelineQueryParams,
+  TimelineQueryResult
+} from '../../../db/notesService'
 import {
   Note,
   CardBox,
@@ -126,6 +130,7 @@ export interface ElectronAPI {
   saveEmbeddingsCache: (cacheData: Record<string, string>) => Promise<boolean>
   updateNoteAddress: (id: string, address: string) => Promise<Note>
   updateNoteCardType: (id: string, cardType: string) => Promise<Note>
+  getTimelineNotes: (params: TimelineQueryParams) => Promise<TimelineQueryResult>
 }
 
 declare global {

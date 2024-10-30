@@ -5,11 +5,7 @@
     @outside-click="handleOutsideClick"
     @after-enter="focusNoteEditorInput"
   >
-    <NoteEditor
-      ref="noteEditorRef"
-      :noteId="noteStore.currentNoteId || ''"
-      @close="noteStore.closeNoteEditor"
-    />
+    <NoteEditor ref="noteEditorRef" :noteId="noteStore.currentNoteId || ''" @close="handleClose" />
   </Modal>
 </template>
 
@@ -24,7 +20,12 @@ import NoteEditor from '@renderer/components/note/NoteEditor.vue'
 const noteStore = useNoteStore()
 const noteEditorRef = shallowRef<InstanceType<typeof NoteEditor> | null>(null)
 
-const handleOutsideClick = () => {
+// 处理关闭事件
+const handleClose = async () => {
+  noteStore.closeNoteEditor()
+}
+
+const handleOutsideClick = async () => {
   noteStore.closeNoteEditor()
 }
 
@@ -40,7 +41,7 @@ const lastEscTime = ref(0)
 const ESC_INTERVAL = 300 // 连续按 ESC 的时间间隔（毫秒）
 
 // 连按两次 ESC 键关闭
-const handleKeyDown = (event: KeyboardEvent) => {
+const handleKeyDown = async (event: KeyboardEvent) => {
   if (event.key === 'Escape' && noteStore.isEditorOpen) {
     const currentTime = new Date().getTime()
     if (currentTime - lastEscTime.value <= ESC_INTERVAL) {

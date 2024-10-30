@@ -1,5 +1,11 @@
 import { db } from './config'
-import { Keyword, Note, RelatedNote, RelatedNotesResult } from '../renderer/src/types/Note'
+import {
+  CardType,
+  Keyword,
+  Note,
+  RelatedNote,
+  RelatedNotesResult
+} from '../renderer/src/types/Note'
 import { v4 as uuidv4 } from 'uuid'
 import { extractKeywords } from '../renderer/src/utils/keywordExtractor'
 import { calculateSimilarity } from '../renderer/src/utils/noteSililarity'
@@ -594,8 +600,7 @@ export async function getPaginatedNotesByCardbox({
   }
 }
 
-// 创建笔记
-// 创建笔记
+// 创建笔记、新建笔记
 export async function createNote(): Promise<Note> {
   const id = uuidv4()
   const now = new Date()
@@ -1363,6 +1368,130 @@ export async function updateNoteCardBox(noteId: string, cardBoxId: string): Prom
     return convertToNote(updatedNote)
   } catch (error) {
     console.error('后端→ 更新笔记卡片盒失败:', error)
+    throw error
+  }
+}
+
+// 时间线查询参数接口
+export interface TimelineQueryParams {
+  mode: 'all' | 'date' | 'range' // 查询模式
+  page?: number // 分页模式参数
+  limit?: number
+  date?: string // 具体日期查询参数
+  dateRange?: {
+    // 日期范围查询参数
+    start: Date
+    end: Date
+  }
+  cardTypes?: CardType[] // 卡片类型过滤
+  sortOrder?: 'asc' | 'desc' // 排序方向
+  searchTerm?: string // 搜索关键词
+  searchFields?: ('content' | 'address' | 'metadata')[] // 搜索字段
+}
+
+// 时间线查询结果接口
+export interface TimelineQueryResult {
+  notes: Note[] // 笔记列表
+  totalCount: number // 总数
+  currentPage?: number // 当前页码（仅在 mode='all' 时返回）
+  hasMore?: boolean // 是否还有更多（仅在 mode='all' 时返回）
+}
+
+// 获取时间线笔记
+export async function getTimelineNotes(params: TimelineQueryParams): Promise<TimelineQueryResult> {
+  try {
+    console.log('后端→ 开始获取时间线笔记', params)
+
+    let query = db('notes').where('isDeleted', false)
+
+    // 日期相关查询条件
+    switch (params.mode) {
+      case 'date': {
+        if (!params.date) throw new Error('日期参数缺失')
+        const startOfDay = new Date(params.date)
+        startOfDay.setHours(0, 0, 0, 0)
+        const endOfDay = new Date(params.date)
+        endOfDay.setHours(23, 59, 59, 999)
+        query = query.whereBetween('createdAt', [startOfDay, endOfDay])
+        break
+      }
+
+      case 'range': {
+        if (!params.dateRange) throw new Error('日期范围参数缺失')
+        query = query.whereBetween('createdAt', [params.dateRange.start, params.dateRange.end])
+        break
+      }
+
+      case 'all': {
+        if (!params.page || !params.limit) {
+          throw new Error('分页参数缺失')
+        }
+        break
+      }
+    }
+
+    // 搜索条件
+    if (params.searchTerm?.trim()) {
+      query = query.where((builder) => {
+        const searchFields = params.searchFields || ['content', 'address', 'metadata']
+        const searchTerm = params.searchTerm!.toLowerCase()
+
+        searchFields.forEach((field, index) => {
+          const condition = index === 0 ? 'whereRaw' : 'orWhereRaw'
+          switch (field) {
+            case 'content':
+              builder[condition]('LOWER(content::text) LIKE ?', [`%${searchTerm}%`])
+              break
+            case 'address':
+              builder[condition]('LOWER(address) LIKE ?', [`%${searchTerm}%`])
+              break
+            case 'metadata':
+              builder[condition]('LOWER(metadata::text) LIKE ?', [`%${searchTerm}%`])
+              break
+          }
+        })
+      })
+      console.log(`后端→ 添加搜索条件: ${params.searchTerm}`)
+    }
+
+    // 卡片类型过滤
+    if (params.cardTypes && params.cardTypes.length > 0) {
+      query = query.whereIn('cardType', params.cardTypes)
+    }
+
+    // 排序
+    query = query.orderBy('createdAt', params.sortOrder || 'desc')
+
+    // 执行查询
+    if (params.mode === 'all') {
+      const offset = (params.page! - 1) * params.limit!
+
+      const [notes, countResult] = await Promise.all([
+        query
+          .clone()
+          .limit(params.limit! + 1)
+          .offset(offset),
+        query.clone().count('* as count').first()
+      ])
+
+      const hasMore = notes.length > params.limit!
+      const resultNotes = hasMore ? notes.slice(0, params.limit!) : notes
+
+      return {
+        notes: resultNotes.map(convertToNote),
+        totalCount: countResult ? (countResult.count as number) : 0,
+        hasMore,
+        currentPage: params.page
+      }
+    } else {
+      const notes = await query
+      return {
+        notes: notes.map(convertToNote),
+        totalCount: notes.length
+      }
+    }
+  } catch (error) {
+    console.error('后端→ 获取时间线笔记失败:', error)
     throw error
   }
 }

@@ -24,10 +24,20 @@
             />
           </div>
         </div>
-        <div ref="moreBtnRef" class="note-button" @click.stop="toggleMenu">
+        <!-- 更多功能菜单按钮 -->
+        <div ref="moreBtnRef" class="more-btn" @click.stop="toggleMoreMenu">
           <div v-tooltip.bottom="{ content: '更多', delay: { show: 1000 } }" class="icon">
-            <More theme="outline" size="16" fill="var(--color-icon-default)" :strokeWidth="3" />
+            <More theme="outline" size="16" fill="var(--color-icon-default)" :stroke-width="3" />
           </div>
+          <!-- 更多功能菜单按钮 -->
+          <PopupMenu
+            ref="moreMenuRef"
+            :show="moreMenuState.isOpen"
+            :position="moreMenuState.position"
+            :menuItems="noteMenuItems"
+            @close="closeMoreMenu"
+            @itemClick="handleMenuItemClick"
+          />
         </div>
       </div>
     </div>
@@ -44,16 +54,6 @@
     <div class="note-timestamp">
       {{ formatDate(note.createdAt) }}
     </div>
-    <!-- 更多按钮弹出菜单 -->
-    <PopupMenu
-      ref="popupMenuRef"
-      :show="isMenuVisible"
-      :menuItems="noteMenuItems"
-      :position="menuPosition"
-      :offset="{ x: -80, y: 5 }"
-      @close="closeMenu"
-      @itemClick="handleMenuItemClick"
-    />
   </div>
 </template>
 
@@ -61,7 +61,7 @@
 import { Note } from '@renderer/types/Note'
 import { formatDate } from '@renderer/utils/noteHelpers'
 import { More, ExpandTextInput } from '@icon-park/vue-next'
-import { computed, ref, nextTick, reactive } from 'vue'
+import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 // import TipTapEditor from '@renderer/components/TipTapEditor.vue'
 import { useNoteStore } from '@renderer/stores/noteStores'
@@ -69,55 +69,37 @@ import PopupMenu from '@renderer/components/common/PopupMenu.vue'
 import { useNoteMenu } from '@renderer/composables/useNoteMenu'
 import type { MenuItem } from '@renderer/components/common/PopupMenu.vue'
 import TipTapRender from '@renderer/components/tiptap/TipTapRender.vue'
+import { useMenu } from '@renderer/composables/useMenu'
 
 const props = defineProps<{
   note: Note
 }>()
 
 // 更多按钮弹出菜单
-const moreBtnRef = ref<HTMLElement | null>(null)
-const popupMenuRef = ref<InstanceType<typeof PopupMenu> | null>(null)
-const isMenuVisible = ref(false)
-const menuPosition = reactive({ x: 0, y: 0 })
 
 const { menuItems: noteMenuItems, resetDeleteState } = useNoteMenu({
   noteId: props.note.id,
   menuItems: ['star', 'sidebar', 'copyNoteLink', 'delete']
 })
-const toggleMenu = (event: MouseEvent) => {
-  event.preventDefault()
-  event.stopPropagation() // 阻止事件冒泡
-  isMenuVisible.value = !isMenuVisible.value
-  if (isMenuVisible.value && moreBtnRef.value) {
-    const rect = moreBtnRef.value.getBoundingClientRect()
-    menuPosition.x = rect.left
-    menuPosition.y = rect.bottom
-    isMenuVisible.value = true
-    nextTick(() => {
-      popupMenuRef.value?.openMenu()
-    })
+const moreBtnRef = ref<HTMLElement | null>(null)
+const moreMenuRef = ref<HTMLElement | null>(null)
+const {
+  menuState: moreMenuState,
+  toggleMenu: toggleMoreMenu,
+  closeMenu: closeMoreMenu
+} = useMenu({
+  buttonRef: moreBtnRef,
+  menuRef: moreMenuRef,
+  onClose: () => {
+    resetDeleteState()
   }
-}
-// const handleMenuItemClick = async (item: MenuItem) => {
-//   await item.action()
-//   if (item.name === 'delete') {
-//     // 触发一个事件，通知父组件刷新笔记列表
-//     const eventBus = useEventBus('note-deleted')
-//     eventBus.emit()
-//   } else {
-//     closeMenu()
-//   }
-// }
+})
+// 更多菜单点击事件
 const handleMenuItemClick = (item: MenuItem) => {
   item.action()
   if (item.name !== 'delete') {
-    closeMenu()
+    closeMoreMenu()
   }
-}
-
-const closeMenu = () => {
-  isMenuVisible.value = false
-  resetDeleteState()
 }
 
 // 展开笔记
@@ -235,7 +217,8 @@ const cardTypeClass = computed(() => {
           transform: translateX(-68%); // 居中对齐
         }
       }
-      .note-button {
+      .note-button,
+      .more-btn {
         position: relative;
         display: flex;
         align-items: center;

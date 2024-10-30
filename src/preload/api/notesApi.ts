@@ -1,6 +1,10 @@
 import { ipcRenderer } from 'electron'
 import { Note, RelatedNotesResult } from '../../renderer/src/types/Note'
-import { GetPaginatedNotesParams } from '../../db/notesService'
+import {
+  GetPaginatedNotesParams,
+  TimelineQueryParams,
+  TimelineQueryResult
+} from '../../db/notesService'
 export const notesApi = {
   createNote: async (): Promise<Note> => {
     try {
@@ -226,6 +230,18 @@ export const notesApi = {
       return result.note
     } catch (error) {
       console.error('Preload: 更新笔记的卡片盒时出错:', error)
+      throw error
+    }
+  },
+  getTimelineNotes: async (params: TimelineQueryParams): Promise<TimelineQueryResult> => {
+    try {
+      const response = await ipcRenderer.invoke('get-timeline-notes', params)
+      if (!response.success) {
+        throw new Error(response.error)
+      }
+      return response.result
+    } catch (error) {
+      console.error('预加载脚本 → 获取时间线笔记失败:', error)
       throw error
     }
   }

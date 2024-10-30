@@ -41,7 +41,7 @@
     <div class="timeline-container">
       <div v-bind="containerProps" class="note-list-container">
         <!-- 当没有笔记时显示空状态 -->
-        <div v-if="list.length === 0" class="empty-state">
+        <div v-if="timelineNotes.length === 0" class="empty-state">
           <div class="empty-state-icon">📝</div>
           <h2 class="empty-state-title">暂无笔记</h2>
           <p class="empty-state-description">开始创建新笔记</p>
@@ -59,7 +59,7 @@
         <!-- 用于触发无限滚动的观察元素 -->
         <div ref="observerTarget" class="observer-target"></div>
         <!-- 底部提示信息 -->
-        <div v-if="sortedNotes.length > 0 && !hasMoreNotes" class="bottom-line">
+        <div v-if="timelineNotes.length > 0 && !timelineHasMore" class="bottom-line">
           <div class="line"></div>
           <span class="text">🙈 我也是有底线的 🙊</span>
           <div class="line"></div>
@@ -92,7 +92,6 @@ import { Time as TimeIcon, Calendar, RocketOne } from '@icon-park/vue-next'
 import AppToolbar from '@renderer/components/layout/AppToolbar.vue'
 import CalendarPicker from '@renderer/components/timelineView/CalendarPicker.vue'
 import { useUIStore } from '@renderer/stores/useUIStore'
-import { Note } from '@renderer/types/Note'
 import NoteCard from '@renderer/components/note/NoteCard.vue'
 import { useVirtualList } from '@vueuse/core'
 import { useEventBus } from '@vueuse/core'
@@ -102,142 +101,91 @@ import { debounce } from 'lodash-es'
 const noteStore = useNoteStore()
 const uiStore = useUIStore()
 
-// 组件加载状态
+// 从 store 中解构状态
+const { timelineNotes, timelineHasMore, timelineIsLoading, visibleNotes } = storeToRefs(noteStore)
+
+// 组件本地状态
 const isLoaded = ref(false)
-
-// 从 store 中解构需要的状态
-const { isLoading, totalNotes, lastUpdatedNote, lastCreatedNote, lastDeletedNote } =
-  storeToRefs(noteStore)
-
-// 定义组件内部状态
-const notes = ref<Note[]>([])
-const currentPage = ref(1)
-const pageSize = 20
-const hasMoreNotes = computed(() => notes.value.length < totalNotes.value)
 const selectedDate = ref<string | null>(null)
-const isDateFiltered = computed(() => selectedDate.value !== null)
-const filteredNotes = ref<Note[]>([])
 const noteDates = ref<string[]>([])
+const observerTarget = ref<HTMLElement | null>(null)
 
-// 计算属性：根据日期筛选和排序笔记
-const sortedNotes = computed(() => {
-  const notesToSort = isDateFiltered.value ? filteredNotes.value : notes.value
-  return notesToSort
-    .slice()
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-})
+// 计算属性
+// const isDateFiltered = computed(() => selectedDate.value !== null)
 
-// 设置事件总线，用于监听笔记更新和创建事件
-const eventBus = useEventBus('note-updated')
-const eventBusCreated = useEventBus('note-created')
-const eventBusDeleted = useEventBus('note-deleted')
-const eventBusEmptyNotesMovedToTrash = useEventBus('empty-notes-moved-to-trash')
-const eventBusNoteRestored = useEventBus('note-restored')
-eventBusNoteRestored.on(() => {
-  console.log('TimelineView.vue→ 监听到笔记从回收站恢复事件')
-  refreshNotes()
-})
-// 监听笔记更新事件
-eventBusEmptyNotesMovedToTrash.on(() => {
-  console.log('TimelineView.vue→ 监听到空笔记移到回收站事件')
-  refreshNotes()
-})
-eventBus.on(() => {
-  console.log('TimelineView.vue→ 监听到笔记更新事件', lastUpdatedNote.value)
-  if (!lastUpdatedNote.value) return
-  updateSingleNote(lastUpdatedNote.value)
+// 虚拟列表应该直接使用 visibleNotes
+const visibleNotesList = computed(() => {
+  const notes = Object.values(visibleNotes.value)
+  // 只有当笔记数量或内容变化时才重新排序
+  return notes.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
 })
 
-// 监听笔记创建事件
-eventBusCreated.on(() => {
-  console.log('TimelineView.vue→ 监听到笔记创建事件', lastCreatedNote.value)
-  if (!lastCreatedNote.value) return
-  notes.value.push(lastCreatedNote.value)
+// 虚拟列表配置
+const itemHeight = 340
+const {
+  list: virtualList,
+  containerProps,
+  wrapperProps
+} = useVirtualList(visibleNotesList, {
+  itemHeight,
+  overscan: 5
 })
 
-// 监听笔记删除事件
-eventBusDeleted.on(() => {
-  console.log('TimelineView.vue→ 监听到笔记删除事件', lastDeletedNote.value)
-  if (!lastDeletedNote.value) return
-  // 如果删除的笔记在notes中，则删除
-  const index = notes.value.findIndex((note) => note.id === lastDeletedNote.value?.id)
-  if (index !== -1) {
-    notes.value.splice(index, 1)
-    // 强制更新虚拟列表
-    nextTick(() => {
-      virtualList.value = [...virtualList.value]
-    })
-  }
-})
-
-// 更新单个笔记的函数
-const updateSingleNote = (updatedNote: Note) => {
-  if (!updatedNote) return
-  // 如果日历被选择了，则更新filteredNotes
-  if (isDateFiltered.value) {
-    const index = filteredNotes.value.findIndex((note) => note.id === updatedNote.id)
-    if (index !== -1) {
-      filteredNotes.value[index] = { ...filteredNotes.value[index], ...updatedNote }
-    }
-  }
-  // 更新notes
-  const index = notes.value.findIndex((note) => note.id === updatedNote.id)
-  if (index !== -1) {
-    notes.value[index] = { ...notes.value[index], ...updatedNote }
+// 加载更多笔记
+async function loadMoreNotes() {
+  if (!timelineIsLoading.value && timelineHasMore.value) {
+    await noteStore.loadMoreTimelineNotes()
   }
 }
-
-// 使用虚拟列表优化性能
-const itemHeight = 340 // 每个笔记卡片的预估高度
-
-const { list, containerProps, wrapperProps } = useVirtualList(sortedNotes, {
-  itemHeight,
-  overscan: 5 // 预渲染的额外项目数量
-})
-
-const virtualList = list as any
-
-// 组件挂载时的初始化操作
-onMounted(async () => {
-  // console.log('组件挂载，开始加载笔记')
-  if (notes.value.length === 0) {
-    await refreshNotes()
-  }
-  // console.log('笔记加载完成，数量:', notes.value.length)
-  isLoaded.value = true
-  const dates = await noteStore.fetchAllDatesWithNotes()
-  if (dates) {
-    noteDates.value = dates
-  }
-  nextTick(() => {
-    setupInfiniteScroll()
-  })
-})
 
 // 刷新笔记列表
 async function refreshNotes() {
-  currentPage.value = 1
-  notes.value = []
-  await loadMoreNotes()
+  await noteStore.refreshTimelineNotes()
 }
 
-// 设置无限滚动
-const observerTarget = ref<HTMLElement | null>(null)
+// 日期筛选
+async function filterNotesByDate(date: string | null) {
+  selectedDate.value = date
+  if (date) {
+    await noteStore.filterTimelineNotesByDate(date)
+  } else {
+    await noteStore.refreshTimelineNotes()
+  }
+}
+
+// 滚动到顶部
+const scrollToTop = () => {
+  const scrollContainer = containerProps.ref.value
+  if (scrollContainer) {
+    scrollContainer.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    })
+  }
+}
+
+// 切换日历选择器
+const toggleDateFilter = () => {
+  if (selectedDate.value) {
+    selectedDate.value = null
+    refreshNotes()
+  } else {
+    uiStore.toggleCalendarPicker()
+  }
+}
+
+// 日期选择处理（防抖）
+const onDateSelected = debounce((date: string | null) => {
+  filterNotesByDate(date)
+}, 300)
+
+// 无限滚动设置
 let observer: IntersectionObserver | null = null
 
-// 组件卸载时清理观察者
-onUnmounted(() => {
-  if (observer) {
-    observer.disconnect()
-  }
-})
-
 function setupInfiniteScroll() {
-  // console.log('初始化 Intersection Observer')
   observer = new IntersectionObserver(
     (entries) => {
-      if (entries[0].isIntersecting && hasMoreNotes.value && !isLoading.value) {
-        console.log('触发加载更多笔记')
+      if (entries[0].isIntersecting && timelineHasMore.value && !timelineIsLoading.value) {
         loadMoreNotes()
       }
     },
@@ -250,87 +198,60 @@ function setupInfiniteScroll() {
 
   if (observerTarget.value) {
     observer.observe(observerTarget.value)
-    // console.log('观察目标元素设置完成')
-  } else {
-    console.warn('观察目标元素不存在')
   }
 }
 
-// 加载更多笔记
-async function loadMoreNotes() {
-  if (!isLoading.value && hasMoreNotes.value) {
-    isLoading.value = true
-    try {
-      // console.log('开始加载更多笔记，当前页:', currentPage.value)
-      const result = await noteStore.fetchPaginatedNotes(currentPage.value, pageSize)
-      if (result) {
-        notes.value.push(...result.notes)
-        currentPage.value++
-        // console.log('新加载的笔记数:', result.notes.length, '总笔记数:', notes.value.length)
-      }
-    } catch (error) {
-      console.error('加载更多笔记时出错:', error)
-    } finally {
-      isLoading.value = false
-    }
+// 组件挂载
+onMounted(async () => {
+  await noteStore.refreshTimelineNotes()
+  isLoaded.value = true
+  const dates = await noteStore.fetchAllDatesWithNotes()
+  if (dates) {
+    noteDates.value = dates
   }
-}
+  nextTick(() => {
+    setupInfiniteScroll()
+  })
+})
 
-// 滚动到顶部
-async function scrollToTop() {
-  console.log('尝试滚动到顶部')
-  const scrollContainer = containerProps.ref.value
-  console.log('滚动容器:', scrollContainer)
-
-  if (scrollContainer) {
-    scrollContainer.scrollTo({
-      top: 0,
-      behavior: 'smooth'
-    })
-    console.log('已执行滚动操作')
-  } else {
-    console.warn('未找到滚动容器')
+// 组件卸载
+onUnmounted(() => {
+  if (observer) {
+    observer.disconnect()
   }
-}
+  noteStore.manageVisibleNotes.clearVisible()
+})
 
-// 根据日期筛选笔记
-async function filterNotesByDate(date: string | null) {
-  selectedDate.value = date
-  if (date) {
-    try {
-      const notes = await noteStore.fetchNotesByOneDate(date)
-      if (!notes) {
-        filteredNotes.value = []
-      } else {
-        filteredNotes.value = notes
-      }
-    } catch (error) {
-      console.error('筛选笔记失败:', error)
-      filteredNotes.value = []
-    }
-  } else {
-    // 如果没有选择日期，重置为原始笔记列表
-    filteredNotes.value = []
-    await refreshNotes() // 重新加载所有笔记
-  }
-}
+// 事件总线设置
+const eventBus = useEventBus('note-updated')
+const eventBusCreated = useEventBus('note-created')
+const eventBusDeleted = useEventBus('note-deleted')
+const eventBusEmptyNotesMovedToTrash = useEventBus('empty-notes-moved-to-trash')
+const eventBusNoteRestored = useEventBus('note-restored')
 
-// 处理日历选择器事件（使用防抖优化）
-const onDateSelected = debounce((date: string | null) => {
-  console.log('TimelineView.vue→ 日历选择器事件触发', date)
-  filterNotesByDate(date)
-}, 300)
+// 事件监听
+eventBus.on(() => {
+  if (!noteStore.lastUpdatedNote) return
+  noteStore.updateTimelineNote(noteStore.lastUpdatedNote)
+})
 
-// 切换日历选择器
-const toggleDateFilter = () => {
-  if (selectedDate.value) {
-    selectedDate.value = null
-    filteredNotes.value = []
-    refreshNotes()
-  } else {
-    uiStore.toggleCalendarPicker()
-  }
-}
+eventBusCreated.on(() => {
+  if (!noteStore.lastCreatedNote) return
+  noteStore.refreshTimelineNotes()
+})
+
+eventBusDeleted.on(() => {
+  if (!noteStore.lastDeletedNote) return
+  noteStore.refreshTimelineNotes()
+})
+
+eventBusEmptyNotesMovedToTrash.on(() => {
+  refreshNotes()
+})
+
+eventBusNoteRestored.on(() => {
+  refreshNotes()
+})
 </script>
 
 <style lang="scss" scoped>

@@ -11,7 +11,7 @@ import type {
   CardType
 } from '../types/Note'
 import type { Editor } from '@tiptap/vue-3'
-import { GetPaginatedNotesParams } from '../../../db/notesService'
+import { GetPaginatedNotesParams, TimelineQueryParams } from '../../../db/notesService'
 import { useEventBus } from '@vueuse/core/index.cjs'
 import { debounce } from 'lodash-es'
 import { useUIStore } from './useUIStore'
@@ -25,6 +25,24 @@ const cardTypes = [
 ]
 
 export const useNoteStore = defineStore('note', () => {
+  // ==================== 基础状态 ====================
+  const visibleNotes = ref<Record<string, Note>>({}) // 可见笔记的响应式存储
+  const noteCache = new Map<string, Note>() // 所有笔记的非响应式缓存
+  const activeNotes = ref<Record<string, Note>>({}) // 当前正在编辑的笔记
+
+  // ==================== 编辑器相关 ====================
+  // 保存状态相关
+  const savingOperations = ref(0)
+  const currentNoteSaveStatus = ref<'idle' | 'saving' | 'saved' | 'error'>('idle')
+
+  // ==================== 时间线相关 ====================
+  const timelineNotes = ref<Note[]>([])
+  const timelineCurrentPage = ref(1)
+  const timelinePageSize = ref(20)
+  const timelineHasMore = ref(true)
+  const timelineIsLoading = ref(false)
+  const timelineTotalCount = ref(0) // 总笔记数
+
   // State
   const notes = ref<Note[]>([])
   const cardBoxes = ref<CardBox[]>([])
@@ -75,19 +93,14 @@ export const useNoteStore = defineStore('note', () => {
       }
     >()
   )
-  const visibleNotes = ref<Record<string, Note>>({}) // 可见笔记的响应式存储
-  const noteCache = new Map<string, Note>() // 所有笔记的非响应式缓存
-  const activeNotes = ref<Record<string, Note>>({}) // 当前正在编辑的笔记
 
   // 视图配置
   const viewConfig = ref({
     pageSize: 20,
     currentPage: 1
   })
-  // 保存状态相关
-  const savingOperations = ref(0)
-  const currentNoteSaveStatus = ref<'idle' | 'saving' | 'saved' | 'error'>('idle')
 
+  // ==================== 编辑器方法 ====================
   // 更新保存状态
   const updateSaveStatus = (status: 'saving' | 'saved' | 'error') => {
     if (status === 'saving') {
@@ -163,76 +176,8 @@ export const useNoteStore = defineStore('note', () => {
   const deactivateNote = (noteId: string) => {
     delete activeNotes.value[noteId]
   }
+
   // 更新笔记内容
-  // const updateNoteContent = async (noteId: string, content: any) => {
-  //   console.log('Store: 开始更新笔记内容:', { noteId })
-
-  //   // 1. 更新保存状态
-  //   updateSaveStatus('saving')
-
-  //   // 2. 检查笔记是否存在且处于编辑状态
-  //   if (!activeNotes.value[noteId]) {
-  //     throw new Error('笔记不在编辑状态')
-  //   }
-
-  //   // 3. 乐观更新
-  //   activeNotes.value[noteId] = {
-  //     ...activeNotes.value[noteId],
-  //     content,
-  //     updatedAt: new Date()
-  //   }
-
-  //   // 4. 同步更新 cache 和 visible
-  //   if (noteCache.has(noteId)) {
-  //     noteCache.set(noteId, { ...activeNotes.value[noteId] })
-  //   }
-  //   if (noteId in visibleNotes.value) {
-  //     visibleNotes.value[noteId] = { ...activeNotes.value[noteId] }
-  //   }
-
-  //   // 5. 记录pending状态
-  //   pendingUpdates.value.set(`${noteId}-content`, {
-  //     type: 'content',
-  //     timestamp: Date.now()
-  //   })
-
-  //   try {
-  //     // 添加最小延迟确保用户能看到保存状态
-  //     await new Promise((resolve) => setTimeout(resolve, 500))
-  //     // 6. 发送后端请求
-  //     const updatedNote = await window.electronAPI.updateNoteContent(noteId, content)
-
-  //     // 7. 检查是否有更新的pending更新
-  //     const pendingUpdate = pendingUpdates.value.get(`${noteId}-content`)
-  //     if (!pendingUpdate || pendingUpdate.timestamp <= Date.now()) {
-  //       // 8. 更新成功，同步所有状态
-  //       activeNotes.value[noteId] = updatedNote
-  //       noteCache.set(noteId, updatedNote)
-  //       if (noteId in visibleNotes.value) {
-  //         visibleNotes.value[noteId] = updatedNote
-  //       }
-  //     }
-  //     // 9. 更新成功
-  //     updateSaveStatus('saved')
-  //     resetToSaved()
-  //     return updatedNote
-  //   } catch (error) {
-  //     // 10. 更新失败，回滚所有状态
-  //     const originalNote = noteCache.get(noteId)!
-  //     activeNotes.value[noteId] = { ...originalNote }
-  //     if (noteId in visibleNotes.value) {
-  //       visibleNotes.value[noteId] = { ...originalNote }
-  //     }
-  //     // 11. 更新失败
-  //     updateSaveStatus('error')
-  //     console.error('更新内容失败:', error)
-  //     throw error
-  //   } finally {
-  //     // 12. 清理pending状态
-  //     pendingUpdates.value.delete(`${noteId}-content`)
-  //   }
-  // }
-
   const updateNoteContent = async (noteId: string, content: any) => {
     console.log('Store: 开始更新笔记内容:', { noteId })
 
@@ -274,6 +219,8 @@ export const useNoteStore = defineStore('note', () => {
       if (noteId in visibleNotes.value) {
         visibleNotes.value[noteId] = updatedNote
       }
+      // 更新时间线笔记
+      updateTimelineNote(updatedNote)
       // 添加最小延迟确保用户能看到保存状态
       await new Promise((resolve) => setTimeout(resolve, 500))
 
@@ -291,6 +238,8 @@ export const useNoteStore = defineStore('note', () => {
         if (noteId in visibleNotes.value) {
           visibleNotes.value[noteId] = serverUpdatedNote
         }
+        // 更新时间线笔记
+        updateTimelineNote(serverUpdatedNote)
       }
 
       // 9. 更新成功
@@ -523,6 +472,153 @@ export const useNoteStore = defineStore('note', () => {
       // 12. 清理pending状态
       pendingUpdates.value.delete(`${noteId}-cardBox`)
     }
+  }
+
+  // 管理可见笔记和缓存的方法
+  const manageVisibleNotes = {
+    // 添加到可见笔记和缓存
+    addToVisible(note: Note) {
+      visibleNotes.value[note.id] = note
+      noteCache.set(note.id, note)
+    },
+
+    // 批量添加可见笔记
+    addMultipleToVisible(notes: Note[]) {
+      notes.forEach((note) => {
+        visibleNotes.value[note.id] = note
+        noteCache.set(note.id, note)
+      })
+    },
+
+    // 从可见笔记中移除
+    removeFromVisible(noteId: string) {
+      delete visibleNotes.value[noteId]
+    },
+
+    // 添加清理方法
+    cleanup() {
+      const visibleIds = new Set(Object.keys(visibleNotes.value))
+      if (visibleIds.size > 100) {
+        // 设置一个合理的阈值
+        console.log('清理过多的可见笔记...')
+        // 只保留最近的笔记
+        const recentIds = Array.from(visibleIds).slice(-50)
+        const newVisibleNotes: Record<string, Note> = {}
+        recentIds.forEach((id) => {
+          if (visibleNotes.value[id]) {
+            newVisibleNotes[id] = visibleNotes.value[id]
+          }
+        })
+        visibleNotes.value = newVisibleNotes
+      }
+    },
+
+    // 清空可见笔记
+    clearVisible() {
+      visibleNotes.value = {}
+    }
+  }
+
+  // ==================== 时间线方法 ====================
+
+  // 获取时间线笔记
+  const fetchTimelineNotes = async (params: TimelineQueryParams) => {
+    if (timelineIsLoading.value) return
+
+    try {
+      timelineIsLoading.value = true
+      const response = await window.electronAPI.getTimelineNotes(params)
+
+      if (response) {
+        const { notes, totalCount, hasMore } = response
+
+        if (params.mode === 'all') {
+          // 分页模式
+          if (params.page === 1) {
+            // 重置可见笔记
+            manageVisibleNotes.clearVisible()
+            timelineNotes.value = notes
+          } else {
+            timelineNotes.value = [...timelineNotes.value, ...notes]
+          }
+          // 更新可见笔记和缓存
+          manageVisibleNotes.addMultipleToVisible(notes)
+
+          timelineHasMore.value = hasMore || false
+          timelineCurrentPage.value = params.page || 1
+        } else {
+          // 日期筛选模式
+          manageVisibleNotes.clearVisible()
+          manageVisibleNotes.addMultipleToVisible(notes)
+          timelineNotes.value = notes
+          timelineHasMore.value = false
+        }
+
+        timelineTotalCount.value = totalCount
+      }
+    } catch (error) {
+      console.error('noteStores.ts→ 获取时间线笔记失败:', error)
+      throw error
+    } finally {
+      timelineIsLoading.value = false
+    }
+  }
+
+  // 更新单个笔记时同步更新可见笔记和缓存
+  const updateTimelineNote = (updatedNote: Note) => {
+    const index = timelineNotes.value.findIndex((note) => note.id === updatedNote.id)
+    if (index !== -1) {
+      // 创建新数组以触发响应式更新
+      timelineNotes.value = timelineNotes.value.map((note, i) =>
+        i === index ? { ...updatedNote } : note
+      )
+
+      // 如果笔记在可见区域，更新可见笔记
+      if (updatedNote.id in visibleNotes.value) {
+        manageVisibleNotes.addToVisible(updatedNote)
+      }
+    }
+  }
+
+  // 重置时间线状态
+  const resetTimelineState = () => {
+    timelineNotes.value = []
+    timelineCurrentPage.value = 1
+    timelineHasMore.value = true
+    timelineTotalCount.value = 0
+    manageVisibleNotes.clearVisible() // 清空可见笔记
+  }
+
+  // 加载更多时间线笔记
+  const loadMoreTimelineNotes = async () => {
+    if (!timelineHasMore.value || timelineIsLoading.value) return
+
+    await fetchTimelineNotes({
+      mode: 'all',
+      page: timelineCurrentPage.value + 1,
+      limit: timelinePageSize.value,
+      sortOrder: 'desc'
+    })
+  }
+
+  // 按日期筛选笔记
+  const filterTimelineNotesByDate = async (date: string) => {
+    resetTimelineState()
+    await fetchTimelineNotes({
+      mode: 'date',
+      date,
+      sortOrder: 'desc'
+    })
+  }
+  // 刷新时间线笔记
+  const refreshTimelineNotes = async () => {
+    resetTimelineState()
+    await fetchTimelineNotes({
+      mode: 'all',
+      page: 1,
+      limit: timelinePageSize.value,
+      sortOrder: 'desc'
+    })
   }
 
   // Getters
@@ -1526,6 +1622,7 @@ export const useNoteStore = defineStore('note', () => {
     deactivateNote,
     updateNoteContent,
     updateNoteCardBox,
+    manageVisibleNotes,
 
     createNote,
     removeFromRecentNotes,
@@ -1583,6 +1680,18 @@ export const useNoteStore = defineStore('note', () => {
     setEditor,
     clearAllNotes,
     addNoteToNoteList,
-    addToRecentNotes
+    addToRecentNotes,
+    timelineNotes,
+    timelineCurrentPage,
+    timelinePageSize,
+    timelineHasMore,
+    timelineTotalCount,
+    timelineIsLoading,
+    fetchTimelineNotes,
+    loadMoreTimelineNotes,
+    filterTimelineNotesByDate,
+    refreshTimelineNotes,
+    resetTimelineState,
+    updateTimelineNote
   }
 })
