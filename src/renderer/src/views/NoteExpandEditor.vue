@@ -124,6 +124,8 @@ const addressInput = ref<HTMLInputElement | null>(null)
 onMounted(async () => {
   // 1. 组件挂载时获取笔记
   await noteStore.fetchNote(noteId)
+  // 2. 激活笔记编辑状态
+  noteStore.activateNote(noteId)
 })
 
 // === 计算属性 ===
@@ -212,6 +214,8 @@ onBeforeUnmount(async () => {
   }
   // 执行最后一次保存
   await saveContentImmediately()
+  // 停用笔记编辑状态
+  noteStore.deactivateNote(noteId)
 })
 
 // === 卡片类型菜单管理 ===

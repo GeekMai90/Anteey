@@ -117,6 +117,8 @@ const noteStore = useNoteStore()
 onMounted(async () => {
   // 1. 组件挂载时获取笔记
   await noteStore.fetchNote(props.noteId)
+  // 2. 激活笔记编辑状态
+  noteStore.activateNote(props.noteId)
 })
 
 // === 计算属性 ===
@@ -339,6 +341,8 @@ onBeforeUnmount(() => {
   if (updateState.updateTimer) {
     clearTimeout(updateState.updateTimer)
   }
+  // 停用笔记编辑状态
+  noteStore.deactivateNote(props.noteId)
 })
 
 // 暴露方法给父组件

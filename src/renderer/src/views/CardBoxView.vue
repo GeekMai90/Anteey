@@ -401,7 +401,13 @@ const resetPagination = () => {
 const handleScroll = useThrottleFn(() => {
   if (cardGridContainer.value) {
     const { scrollTop, scrollHeight, clientHeight } = cardGridContainer.value
-    if (scrollHeight - scrollTop - clientHeight < 1000 && !isLoading.value && hasMoreNotes.value) {
+    // 增加判断条件，防止重复加载
+    if (
+      scrollHeight - scrollTop - clientHeight < 1000 &&
+      !isLoading.value &&
+      hasMoreNotes.value &&
+      notes.value.length < totalCount.value
+    ) {
       console.log('滚动触发，加载更多笔记')
       if (isInboxSelected.value) {
         fetchInboxNotes()
@@ -545,40 +551,52 @@ let deleteTimeout: ReturnType<typeof setTimeout> | null = null
 
 // 收件箱功能
 
+// 修改 toggleInbox 函数，确保状态完全重置
 const toggleInbox = async () => {
   isInboxSelected.value = !isInboxSelected.value
+  // 重置所有状态
+  notes.value = [] // 清空现有笔记
   currentPage.value = 1
-  notes.value = []
+  hasMoreNotes.value = true
+  totalCount.value = 0
 
   if (isInboxSelected.value) {
-    // 获取未分类的笔记
     await fetchInboxNotes()
   } else {
-    // 获取所有笔记
     await fetchNotes()
   }
 }
 const fetchInboxNotes = async () => {
-  console.log('Fetching inbox notes, page:', currentPage.value)
+  if (isLoading.value) return
+
+  isLoading.value = true
+  console.log('获取收件箱笔记, 当前页:', currentPage.value)
   try {
     const params: GetPaginatedNotesParams = {
       page: currentPage.value,
       limit: pageSize.value,
       cardBoxId: 'inbox',
       cardTypes: ['Maincard', 'Bibcard', 'Indexcard'],
-      sortBy: 'address',
-      sortOrder: 'asc'
+      sortBy: currentSort.value,
+      sortOrder: sortDirection.value as 'asc' | 'desc'
     }
     const result = await noteStore.fetchPaginatedNotesByCardbox(params)
+
     if (currentPage.value === 1) {
+      // 第一页直接赋值
       notes.value = result.notes
     } else {
-      notes.value = [...notes.value, ...result.notes]
+      // 加载更多时，使用 Set 去重
+      const uniqueNotes = new Set(
+        [...notes.value, ...result.notes].map((note) => JSON.stringify(note))
+      )
+      notes.value = Array.from(uniqueNotes).map((noteStr) => JSON.parse(noteStr))
     }
+
     totalCount.value = result.totalCount
     hasMoreNotes.value = notes.value.length < totalCount.value
     currentPage.value++
-    console.log('Fetched notes:', result.notes.length, 'Total:', totalCount.value)
+    console.log('获取到的笔记数:', result.notes.length, '当前总笔记数:', notes.value.length)
   } catch (error) {
     console.error('获取笔记失败:', error)
   } finally {

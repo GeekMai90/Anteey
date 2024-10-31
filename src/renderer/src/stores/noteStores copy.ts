@@ -11,7 +11,7 @@ import type {
   CardType
 } from '../types/Note'
 import type { Editor } from '@tiptap/vue-3'
-import { GetPaginatedNotesParams } from '../../../db/notesService'
+import { GetPaginatedNotesParams, TimelineQueryParams } from '../../../db/notesService'
 import { useEventBus } from '@vueuse/core/index.cjs'
 import { debounce } from 'lodash-es'
 import { useUIStore } from './useUIStore'
@@ -524,6 +524,106 @@ export const useNoteStore = defineStore('note', () => {
   }
 
   // ==================== 时间线方法 ====================
+
+  // 获取时间线笔记
+  const fetchTimelineNotes = async (params: TimelineQueryParams) => {
+    if (timelineIsLoading.value) return
+
+    try {
+      timelineIsLoading.value = true
+      const response = await window.electronAPI.getTimelineNotes(params)
+
+      if (response) {
+        const { notes, totalCount, hasMore } = response
+
+        if (params.mode === 'all') {
+          // 分页模式
+          if (params.page === 1) {
+            // 重置可见笔记
+            manageVisibleNotes.clearVisible()
+            timelineNotes.value = notes
+          } else {
+            timelineNotes.value = [...timelineNotes.value, ...notes]
+          }
+          // 更新可见笔记和缓存
+          manageVisibleNotes.addMultipleToVisible(notes)
+
+          timelineHasMore.value = hasMore || false
+          timelineCurrentPage.value = params.page || 1
+        } else {
+          // 日期筛选模式
+          manageVisibleNotes.clearVisible()
+          manageVisibleNotes.addMultipleToVisible(notes)
+          timelineNotes.value = notes
+          timelineHasMore.value = false
+        }
+
+        timelineTotalCount.value = totalCount
+      }
+    } catch (error) {
+      console.error('noteStores.ts→ 获取时间线笔记失败:', error)
+      throw error
+    } finally {
+      timelineIsLoading.value = false
+    }
+  }
+
+  // 更新单个笔记时同步更新可见笔记和缓存
+  const updateTimelineNote = (updatedNote: Note) => {
+    const index = timelineNotes.value.findIndex((note) => note.id === updatedNote.id)
+    if (index !== -1) {
+      // 创建新数组以触发响应式更新
+      timelineNotes.value = timelineNotes.value.map((note, i) =>
+        i === index ? { ...updatedNote } : note
+      )
+
+      // 如果笔记在可见区域，更新可见笔记
+      if (updatedNote.id in visibleNotes.value) {
+        manageVisibleNotes.addToVisible(updatedNote)
+      }
+    }
+  }
+
+  // 重置时间线状态
+  const resetTimelineState = () => {
+    timelineNotes.value = []
+    timelineCurrentPage.value = 1
+    timelineHasMore.value = true
+    timelineTotalCount.value = 0
+    manageVisibleNotes.clearVisible() // 清空可见笔记
+  }
+
+  // 加载更多时间线笔记
+  const loadMoreTimelineNotes = async () => {
+    if (!timelineHasMore.value || timelineIsLoading.value) return
+
+    await fetchTimelineNotes({
+      mode: 'all',
+      page: timelineCurrentPage.value + 1,
+      limit: timelinePageSize.value,
+      sortOrder: 'desc'
+    })
+  }
+
+  // 按日期筛选笔记
+  const filterTimelineNotesByDate = async (date: string) => {
+    resetTimelineState()
+    await fetchTimelineNotes({
+      mode: 'date',
+      date,
+      sortOrder: 'desc'
+    })
+  }
+  // 刷新时间线笔记
+  const refreshTimelineNotes = async () => {
+    resetTimelineState()
+    await fetchTimelineNotes({
+      mode: 'all',
+      page: 1,
+      limit: timelinePageSize.value,
+      sortOrder: 'desc'
+    })
+  }
 
   // Getters
   const recentNotesList = computed(
@@ -1486,6 +1586,12 @@ export const useNoteStore = defineStore('note', () => {
     timelineHasMore,
     timelineTotalCount,
     timelineIsLoading,
+    fetchTimelineNotes,
+    loadMoreTimelineNotes,
+    filterTimelineNotesByDate,
+    refreshTimelineNotes,
+    resetTimelineState,
+    updateTimelineNote,
 
     // 卡片盒相关
     cardboxNotes,
