@@ -1018,8 +1018,17 @@ const editorExtensions = computed(() => {
       color: 'var(--color-primary)',
       width: 2
     }),
+    // Placeholder.configure({
+    //   placeholder: '记录思考，或输入 / 命令'
+    // }),
     Placeholder.configure({
-      placeholder: '记录思考，或输入 / 命令'
+      placeholder: ({ node }) => {
+        if (node.type.name === 'heading') {
+          return '输入标题'
+        }
+
+        return '记录思考，或输入 / 命令'
+      }
     }),
     CodeBlockLowlight.configure({
       lowlight,

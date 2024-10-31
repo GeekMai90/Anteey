@@ -14,7 +14,7 @@
             ref="indicatorButton"
             class="note-indicator"
             :class="cardTypeClass"
-            @click="(e) => toggleCardTypeMenu(e)"
+            @click="(e: Event) => toggleCardTypeMenu(e)"
           ></div>
           <!-- 笔记类型下拉菜单组件 -->
           <CardTypeDropdownMenu
@@ -125,6 +125,9 @@ onMounted(async () => {
   await noteStore.fetchNote(noteId)
   // 2. 激活笔记编辑状态
   noteStore.activateNote(noteId)
+  noteStore.addToRecentNotes(noteId)
+
+  focusEditor()
 })
 
 // === 计算属性 ===

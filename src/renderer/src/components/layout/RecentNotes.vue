@@ -24,30 +24,19 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref } from 'vue'
 import { useNoteStore } from '@renderer/stores/noteStores'
 import { useRouter } from 'vue-router'
 import { Down, Right } from '@icon-park/vue-next'
 import StarredNotesCard from '@renderer/components/layout/StarredNotesCard.vue'
 import { Note } from '@renderer/types/Note'
+import { storeToRefs } from 'pinia'
 
 const noteStore = useNoteStore()
 const router = useRouter()
 const isExpanded = ref(true)
 
-// 添加这段代码
-onMounted(async () => {
-  if (noteStore.recentNotes.length > 0 && noteStore.notes.length === 0) {
-    const notes = await Promise.all(
-      noteStore.recentNotes.map((id) => window.electronAPI.getNote(id))
-    )
-    notes.forEach((note) => {
-      if (note) noteStore.notes.push(note)
-    })
-  }
-})
-
-const recentNotes = computed(() => noteStore.recentNotesList)
+const { recentNotes } = storeToRefs(noteStore)
 
 const toggleRecentNotes = () => {
   isExpanded.value = !isExpanded.value
