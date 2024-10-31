@@ -22,7 +22,7 @@
 // })
 import { Link } from '@tiptap/extension-link'
 import { mergeAttributes } from '@tiptap/core'
-import { useNoteStore } from '../../stores/noteStores'
+// import { useNoteStore } from '../../stores/noteStores'
 
 // 扩展 LinkOptions 类型
 interface CustomLinkOptions {
@@ -50,7 +50,7 @@ export const CustomLink = Link.extend<CustomLinkOptions>({
   },
 
   addPasteRules() {
-    const noteStore = useNoteStore()
+    // const noteStore = useNoteStore()
     return [
       {
         find: /\[\[([0-9a-f-]+):(.+?)\]\]/g,
@@ -76,7 +76,7 @@ export const CustomLink = Link.extend<CustomLinkOptions>({
             console.log('目标笔记 ID:', noteId)
             // 创建引用关系
 
-            noteStore.createNoteReference(currentNoteId, noteId)
+            // noteStore.createNoteReference(currentNoteId, noteId)
           }
 
           // 插入节点

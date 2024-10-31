@@ -20,21 +20,21 @@
             />
           </div>
         </div>
-        <div ref="moreBtnRef" class="note-button" @click.stop="toggleMenu">
-          <div class="icon">
-            <More theme="outline" size="18" fill="var(--color-icon-secondary)" :strokeWidth="3" />
+        <!-- 更多功能菜单按钮 -->
+        <div ref="moreBtnRef" class="note-button" @click.stop="toggleMoreMenu">
+          <div v-tooltip.bottom="{ content: '更多', delay: { show: 1000 } }" class="icon">
+            <More theme="outline" size="16" fill="var(--color-icon-default)" :stroke-width="3" />
           </div>
+          <!-- 更多功能菜单按钮 -->
+          <PopupMenu
+            ref="moreMenuRef"
+            :show="moreMenuState.isOpen"
+            :position="moreMenuState.position"
+            :menuItems="noteMenuItems"
+            @close="closeMoreMenu"
+            @itemClick="handleMenuItemClick"
+          />
         </div>
-
-        <PopupMenu
-          ref="popupMenuRef"
-          :show="isMenuVisible"
-          :menuItems="noteMenuItems"
-          :position="menuPosition"
-          :offset="{ x: -75, y: 5 }"
-          @close="closeMenu"
-          @itemClick="handleMenuItemClick"
-        />
       </div>
     </div>
     <div ref="noteContent" class="note-content">
@@ -57,16 +57,14 @@
 import { Note } from '@renderer/types/Note'
 import { formatDate } from '@renderer/utils/noteHelpers'
 import { More, ExpandTextInput } from '@icon-park/vue-next'
-import { computed, ref, reactive, nextTick, toRef } from 'vue'
+import { computed, ref, toRef } from 'vue'
 import { useNoteStore } from '@renderer/stores/noteStores'
 import { useRouter } from 'vue-router'
-// import TipTapEditor from '@renderer/components/TipTapEditor.vue'
 import TipTapRender from '@renderer/components/tiptap/TipTapRender.vue'
 import PopupMenu from '@renderer/components/common/PopupMenu.vue'
 import { useNoteMenu } from '@renderer/composables/useNoteMenu'
 import type { MenuItem } from '@renderer/components/common/PopupMenu.vue'
-// import { storeToRefs } from 'pinia'
-import { useEventBus } from '@vueuse/core'
+import { useMenu } from '@renderer/composables/useMenu'
 
 const props = defineProps<{
   note: Note
@@ -85,15 +83,31 @@ const localNote = toRef(props, 'note')
 // const emit = defineEmits(['edit'])
 const isDragHandleEnabled = ref(false)
 
-const moreBtnRef = ref<HTMLElement | null>(null)
-const popupMenuRef = ref<InstanceType<typeof PopupMenu> | null>(null)
-const isMenuVisible = ref(false)
-const menuPosition = reactive({ x: 0, y: 0 })
-
 const { menuItems: noteMenuItems, resetDeleteState } = useNoteMenu({
   noteId: props.note.id,
   menuItems: ['star', 'sidebar', 'delete']
 })
+
+const moreBtnRef = ref<HTMLElement | null>(null)
+const moreMenuRef = ref<HTMLElement | null>(null)
+const {
+  menuState: moreMenuState,
+  toggleMenu: toggleMoreMenu,
+  closeMenu: closeMoreMenu
+} = useMenu({
+  buttonRef: moreBtnRef,
+  menuRef: moreMenuRef,
+  onClose: () => {
+    resetDeleteState()
+  }
+})
+// 更多菜单点击事件
+const handleMenuItemClick = (item: MenuItem) => {
+  item.action()
+  if (item.name !== 'delete') {
+    closeMoreMenu()
+  }
+}
 
 // const localNote = toRef(props, 'note')
 
@@ -127,51 +141,6 @@ const cardTypeClass = computed(() => {
       return ''
   }
 })
-
-const toggleMenu = (event: MouseEvent) => {
-  event.preventDefault()
-  isMenuVisible.value = !isMenuVisible.value
-  if (isMenuVisible.value && moreBtnRef.value) {
-    const rect = moreBtnRef.value.getBoundingClientRect()
-    menuPosition.x = rect.left
-    menuPosition.y = rect.bottom
-    isMenuVisible.value = true
-    nextTick(() => {
-      popupMenuRef.value?.openMenu()
-    })
-  }
-}
-
-const handleMenuItemClick = async (item: MenuItem) => {
-  await item.action()
-  if (item.name === 'delete') {
-    // 触发一个事件，通知父组件刷新笔记列表
-    const eventBus = useEventBus('note-deleted')
-    eventBus.emit(props.note.id)
-  } else {
-    closeMenu()
-  }
-}
-
-const closeMenu = () => {
-  isMenuVisible.value = false
-  resetDeleteState()
-}
-
-// onMounted(() => {
-//   checkOverflow()
-// })
-
-// onUpdated(() => {
-//   checkOverflow()
-// })
-
-// watch(
-//   () => props.note.content,
-//   () => {
-//     checkOverflow()
-//   }
-// )
 </script>
 
 <style lang="scss" scoped>

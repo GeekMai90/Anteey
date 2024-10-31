@@ -37,18 +37,31 @@
         :class="{ 'not-editing': !isEditing }"
         @mousedown.stop="handleAddressMouseDown"
       >
+        <!-- 笔记类型指示器，点击可切换笔记类型 -->
         <div
           ref="indicatorButton"
           class="note-indicator"
           :class="cardTypeClass"
-          @mousedown.stop="handleIndicatorMouseDown"
+          @click="(e) => toggleCardTypeMenu(e)"
         ></div>
+        <!-- 笔记类型下拉菜单组件 -->
+        <CardTypeDropdownMenu
+          ref="cardTypeDropdownMenuRef"
+          :is-open="cardTypeMenuState.isOpen"
+          :position="cardTypeMenuState.position"
+          :current-card-type="currentNote?.cardType"
+          @close="closeCardTypeMenu"
+          @select="handleCardTypeSelect"
+        />
+        <!-- 笔记地址输入框 -->
         <input
+          v-if="currentNote"
           ref="addressInput"
-          v-model="editedNote.address"
+          v-model="localAddress"
           type="text"
           placeholder="输入编码地址"
-          @keyup.enter="focusEditor"
+          @input="handleAddressInput"
+          @keyup.enter="handleAddressEnter"
         />
       </div>
       <div
@@ -58,11 +71,13 @@
         @mousedown.stop="handleEditorMouseDown"
       >
         <TipTapEditor
-          ref="tiptapEditorRef"
-          v-model:content="editedNote.content"
-          :editable="isEditing"
+          v-if="currentNote"
+          ref="tiptapEditor"
+          v-model:content="currentNote.content"
+          :note-id="currentNote.id"
+          :editable="true"
           :enableDragHandle="true"
-          @update:content="updateContent"
+          @update:content="handleContentUpdate"
         />
       </div>
     </div>
@@ -74,14 +89,6 @@
     <div class="resize-handle top-right" @mousedown="startResize('top-right', $event)"></div>
     <div class="resize-handle bottom-right" @mousedown="startResize('bottom-right', $event)"></div>
     <div class="resize-handle bottom-left" @mousedown="startResize('bottom-left', $event)"></div>
-
-    <!-- 卡片类型选择菜单 -->
-    <CardTypeMenu
-      v-model="editedNote.cardType"
-      :show="showCardTypeMenu"
-      :position="menuPosition"
-      @close="showCardTypeMenu = false"
-    />
   </div>
 </template>
 
@@ -91,13 +98,12 @@ import {
   ComputedRef,
   CSSProperties,
   nextTick,
-  onBeforeUnmount,
   onMounted,
   onUnmounted,
   ref,
   watch
 } from 'vue'
-import { Note, CardBox, WhiteboardNote } from '@renderer/types/Note'
+import { CardBox, WhiteboardNote } from '@renderer/types/Note'
 import { useNoteStore } from '@renderer/stores/noteStores'
 import TipTapEditor from '@renderer/components/tiptap/TipTapEditor.vue'
 import { useRouter } from 'vue-router'
@@ -107,9 +113,11 @@ import { storeToRefs } from 'pinia'
 import { onClickOutside } from '@vueuse/core'
 import { useResizeObserver } from '@vueuse/core'
 import WhiteboardNoteToolbar from '@renderer/components/whiteboard/WhiteboardNoteToolbar.vue'
-import CardTypeMenu from '@renderer/components/note/CardTypeMenu.vue'
+import CardTypeDropdownMenu from '@renderer/components/note/CardTypeDropdownMenu.vue'
 import { MenuItem } from '@renderer/components/common/PopupMenu.vue'
-import { debounce } from 'lodash-es'
+import { message } from '@renderer/utils/message'
+import { reactive } from 'vue'
+import { useMenu } from '@renderer/composables/useMenu'
 
 const props = defineProps<{
   noteId: string
@@ -353,191 +361,155 @@ const startConnection = (event: MouseEvent) => {
 
 // 笔记的保存功能
 
-const emptyNote: Note = {
-  id: '',
-  type: 'note',
-  address: '',
-  cardType: 'Maincard',
-  content: {
-    type: 'doc',
-    content: [{ type: 'paragraph' }]
-  },
-  createdAt: new Date(),
-  updatedAt: new Date(),
-  tags: [],
-  linkedTo: [],
-  linkedFrom: [],
-  cardBoxId: '',
-  parentId: '',
-  isDeleted: false,
-  isStarred: false,
-  starredOrder: 0,
-  rightBarOrder: 0
-}
+// === 生命周期钩子 ===
 
-const editedNote = ref<Note>({ ...emptyNote })
-// const editedNote = ref<Note | null>(null)
-const saveStatus = ref<'idle' | 'saving' | 'saved' | 'error'>('idle')
+onMounted(async () => {
+  // 1. 组件挂载时获取笔记
+  await noteStore.fetchNote(props.noteId)
+  // 2. 激活笔记编辑状态
+  noteStore.activateNote(props.noteId)
+})
 
-// 数据是否加载完成
-const isInitialized = ref(false)
+// === 计算属性 ===
+// 获取当前编辑的笔记数据
+const currentNote = computed(() => {
+  console.log('computed 执行, activeNotes:', noteStore.activeNotes)
+  return noteStore.activeNotes[props.noteId]
+})
 
-const { allNotes } = storeToRefs(noteStore)
+// === 地址输入处理 ===
+// 使用本地状态来管理输入
+const localAddress = ref('')
+const addressUpdateTimer = ref<any>(null)
 
-// const editedNote = computed(() => allNotes.value.find((note) => note.id === props.noteId))
-
-watch(
-  () => props.noteId,
-  async (newNoteId) => {
-    if (newNoteId) {
-      loadNote()
-    }
-  }
-)
-// const editedNote = computed(() => noteStore.getNoteById(props.noteId))
-
-// 加载笔记
-const loadNote = async () => {
-  console.log('开始加载笔记，noteId:', props.noteId)
-  if (props.noteId) {
-    try {
-      const note = computed(() => allNotes.value.find((note) => note.id === props.noteId))
-      console.log('从 store 获取到的笔记:', note)
-      if (note.value) {
-        editedNote.value = note.value
-        lastSavedNote.value = note.value
-        isInitialized.value = true
-        console.log('笔记加载成功:', editedNote.value)
-      } else {
-        console.error('WhiteboardNoteComponent.vue → 获取到的笔记为空')
-        // 可以在这里添加一些错误处理逻辑，比如显示一个错误消息
-      }
-    } catch (error) {
-      console.error('WhiteboardNoteComponent.vue → 加载笔记时发生错误:', error)
-      // 可以在这里添加一些错误处理逻辑，比如显示一个错误消息
-    }
-  } else {
-    console.error('WhiteboardNoteComponent.vue → noteId 为空')
-    // 可以在这里添加一些错误处理逻辑，比如显示一个错误消息
-  }
-}
-
-// 在组件挂载时加载笔记
 onMounted(() => {
-  console.log('WhiteboardNoteComponent.vue → 组件挂载时加载笔记', props.noteId)
-  loadNote()
+  if (currentNote.value) {
+    localAddress.value = currentNote.value.address
+  }
 })
 
-// 自动保存功能
-
-// 用于判断内容是否更新的函数
-function isContentChanged(oldNote: Note, newNote: Note): boolean {
-  return (
-    JSON.stringify(oldNote.content) !== JSON.stringify(newNote.content) ||
-    oldNote.address !== newNote.address ||
-    oldNote.cardType !== newNote.cardType ||
-    // 添加其他需要比较的字段
-    JSON.stringify(oldNote.tags) !== JSON.stringify(newNote.tags)
-  )
-}
-
-// 是否有未保存的更改
-const hasUnsavedChanges = ref(false)
-// 自动保存计时器
-let autoSaveTimer: ReturnType<typeof setTimeout> | null = null
-
-// 上一次保存的笔记内容
-let lastSavedNote = JSON.parse(JSON.stringify(editedNote.value))
-
-// 监听笔记内容的变化
-// 当笔记内容发生变化时，设置 hasUnsavedChanges 为 true，并重置自动保存计时器
+// 监听 currentNote 的变化，同步地址
 watch(
-  () => [
-    editedNote.value?.content,
-    editedNote.value?.address,
-    editedNote.value?.cardType,
-    editedNote.value?.tags
-  ],
-  () => {
-    if (isInitialized.value && isContentChanged(lastSavedNote, editedNote.value)) {
-      hasUnsavedChanges.value = true
-      resetAutoSaveTimer()
+  () => currentNote.value?.address,
+  (newAddress) => {
+    if (newAddress !== undefined && newAddress !== localAddress.value) {
+      localAddress.value = newAddress
     }
-  },
-  { deep: true }
+  }
 )
 
-// 重置自动保存计时器
-const resetAutoSaveTimer = () => {
-  if (autoSaveTimer) {
-    clearTimeout(autoSaveTimer)
+// 处理地址输入
+const handleAddressInput = (event: Event) => {
+  const input = event.target as HTMLInputElement
+  localAddress.value = input.value
+
+  if (currentNote.value) {
+    currentNote.value.address = input.value
   }
-  // 如果有未保存的更改，3秒后自动保存
-  autoSaveTimer = setTimeout(() => {
-    if (hasUnsavedChanges.value) {
-      autoSave()
+
+  if (addressUpdateTimer.value) {
+    clearTimeout(addressUpdateTimer.value)
+  }
+
+  addressUpdateTimer.value = setTimeout(async () => {
+    try {
+      await noteStore.updateNoteAddress(props.noteId, localAddress.value)
+    } catch (error) {
+      console.error('更新地址失败:', error)
+      message.error('更新地址失败')
     }
-  }, 1000)
+  }, 300)
 }
 
-// 自动保存
-// 增加防抖
-const autoSave = debounce(async () => {
-  if (editedNote.value && editedNote.value.id && hasUnsavedChanges.value && isInitialized.value) {
+// 处理回车键
+const handleAddressEnter = (event: KeyboardEvent) => {
+  event.preventDefault() // 阻止默认行为
+  if (addressUpdateTimer.value) {
+    clearTimeout(addressUpdateTimer.value)
+    noteStore.updateNoteAddress(props.noteId, localAddress.value)
+  }
+  focusEditor() // 聚焦到编辑器
+}
+
+// === 内容更新处理 ===
+// 编辑器内容更新状态管理
+const updateState = reactive({
+  pending: false,
+  lastContent: null as any,
+  updateTimer: null as any,
+  saveTimeout: 2000 // 保存延迟时间，可以根据实际需求调整
+})
+const tiptapEditor = ref<any>(null)
+// 处理编辑器内容更新
+const handleContentUpdate = (newContent: any) => {
+  if (!currentNote.value) return
+
+  // 立即更新 lastContent，不要等待防抖
+  updateState.lastContent = newContent
+
+  // 保存当前光标位置
+  const editor = tiptapEditor.value?.editor
+  const selection = editor?.state.selection
+
+  // 使用防抖进行保存
+  if (updateState.updateTimer) {
+    clearTimeout(updateState.updateTimer)
+  }
+
+  updateState.updateTimer = setTimeout(async () => {
     try {
-      console.log('WhiteboardNoteComponent.vue → 正在保存笔记:', editedNote.value)
-      noteStore.updateCurrentNoteSaveStatus('saving')
-      const updatedNote = await noteStore.updateNote(editedNote.value.id, editedNote.value)
+      await noteStore.updateNoteContent(currentNote.value.id, newContent)
 
-      noteStore.updateCurrentNoteSaveStatus('saved')
-      console.log('WhiteboardNoteComponent.vue → 自动保存成功')
-
-      lastSavedNote = JSON.parse(JSON.stringify(updatedNote))
-      editedNote.value = updatedNote
-      hasUnsavedChanges.value = false
+      // 恢复光标位置
+      nextTick(() => {
+        if (editor && selection) {
+          editor.commands.setTextSelection(selection.$head.pos)
+        }
+      })
     } catch (error) {
-      console.error('WhiteboardNoteComponent.vue → 自动保存失败:', error)
-      noteStore.updateCurrentNoteSaveStatus('error')
+      console.error('内容更新失败:', error)
+      message.error('保存失败')
     }
-  }
-}, 1000)
+  }, updateState.saveTimeout)
+}
 
-onUnmounted(() => {
-  if (autoSaveTimer) {
-    clearTimeout(autoSaveTimer)
+// === 卡片类型菜单管理 ===
+const indicatorButton = ref<HTMLElement | null>(null)
+const cardTypeDropdownMenuRef = ref<HTMLElement | null>(null)
+
+// 使用 useMenu 时传入正确的类型
+const {
+  menuState: cardTypeMenuState,
+  toggleMenu: toggleCardTypeMenu,
+  closeMenu: closeCardTypeMenu
+} = useMenu({
+  buttonRef: indicatorButton, // 直接传入 ref
+  menuRef: cardTypeDropdownMenuRef,
+  onClose: () => {
+    console.log('卡片类型菜单已关闭')
   }
-  // autoSave.cancel()
-  noteStore.updateCurrentNoteSaveStatus('saved')
 })
 
-// 更新内容
-const updateContent = (newContent: any) => {
-  console.log('updateContent 被执行了')
-  if (editedNote.value) {
-    editedNote.value.content = newContent
-    console.log('isAutoHeight', isAutoHeight.value)
-    if (isAutoHeight.value) {
-      updateHeight()
-    }
-  }
-}
-// 手动保存
-const saveNote = async () => {
-  if (editedNote.value) {
+// 卡片类型，根据当前笔记的卡片类型设置样式
+const cardTypeClass = computed(() => ({
+  maincard: currentNote.value?.cardType === 'Maincard',
+  bibcard: currentNote.value?.cardType === 'Bibcard',
+  indexcard: currentNote.value?.cardType === 'Indexcard'
+  // hoplinkcard: currentNote.value?.cardType === 'Hoplinkcard'
+}))
+
+// 处理卡片类型选择和更新
+const handleCardTypeSelect = async (newType: string) => {
+  if (currentNote.value) {
     try {
-      saveStatus.value = 'saving'
-      await noteStore.updateNote(editedNote.value.id, editedNote.value)
-      saveStatus.value = 'saved'
+      await noteStore.updateNoteCardType(props.noteId, newType)
+      closeCardTypeMenu()
     } catch (error) {
-      console.error('Manual save failed:', error)
-      saveStatus.value = 'error'
+      console.error('更新卡片类型失败:', error)
+      message.error('更新卡片类型失败')
     }
   }
 }
-// 在组件卸载前保存笔记
-onBeforeUnmount(async () => {
-  await saveNote()
-})
 
 // 白板笔记的菜单项
 const { menuItems: whiteboardMenuItems } = useNoteMenu({
@@ -558,16 +530,16 @@ const toggleCardBoxMenu = () => {
 
 // 选择卡片盒
 const selectCardBox = async (box: CardBox) => {
-  if (!editedNote.value?.id) {
+  if (!currentNote.value?.id) {
     console.error('NoteEditor.vue → 编辑的笔记为空')
     return
   }
   try {
     selectedCardBox.value = box
     const newCardBoxId = box.id
-    const updatedNote = await noteStore.updateNoteCardBox(editedNote.value.id, newCardBoxId)
+    const updatedNote = await noteStore.updateNoteCardBox(currentNote.value.id, newCardBoxId)
     if (updatedNote) {
-      editedNote.value = updatedNote
+      // currentNote.value = updatedNote
       console.log('NoteEditor.vue → 卡片盒更新成功:', box.name)
     } else {
       console.error('NoteEditor.vue → 更新卡片盒失败: 未能获取更新后的笔记')
@@ -588,20 +560,12 @@ const handleGlobalClick = (event: MouseEvent) => {
     showCardBoxMenu.value = false
   }
   showMoreActions.value = null
-  if (
-    showCardTypeMenu.value &&
-    event.target instanceof Element &&
-    !event.target.closest('.note-indicator') &&
-    !event.target.closest('.card-type-menu')
-  ) {
-    showCardTypeMenu.value = false
-  }
 }
 
 onMounted(() => {
   document.addEventListener('click', handleGlobalClick)
-  if (editedNote.value.cardBoxId) {
-    const currentCardBox = cardBoxes.value.find((box) => box.id === editedNote.value.cardBoxId)
+  if (currentNote.value?.cardBoxId) {
+    const currentCardBox = cardBoxes.value.find((box) => box.id === currentNote.value.cardBoxId)
     if (currentCardBox) {
       selectedCardBox.value = currentCardBox
     }
@@ -611,42 +575,6 @@ onMounted(() => {
 onUnmounted(() => {
   document.removeEventListener('click', handleGlobalClick)
 })
-
-// 卡片类型选择菜单处理
-const indicatorButton = ref<HTMLButtonElement | null>(null)
-const showCardTypeMenu = ref(false)
-const menuPosition = ref({ x: 0, y: 0 })
-
-const cardTypeClass = computed(() => ({
-  maincard: editedNote.value?.cardType === 'Maincard',
-  bibcard: editedNote.value?.cardType === 'Bibcard',
-  indexcard: editedNote.value?.cardType === 'Indexcard',
-  hoplinkcard: editedNote.value?.cardType === 'Hoplinkcard'
-}))
-
-const handleIndicatorMouseDown = (event: MouseEvent) => {
-  event.stopPropagation()
-  event.preventDefault()
-  if (isEditing.value) {
-    console.log('弹出卡片类型菜单')
-    toggleCardTypeMenu(event)
-  } else {
-    emit('drag-start', event)
-  }
-}
-
-const toggleCardTypeMenu = (event: MouseEvent) => {
-  event.stopPropagation()
-  event.preventDefault()
-  showCardTypeMenu.value = !showCardTypeMenu.value
-  if (showCardTypeMenu.value) {
-    const rect = (event.target as HTMLElement).getBoundingClientRect()
-    menuPosition.value = {
-      x: rect.left + window.scrollX,
-      y: rect.bottom + window.scrollY
-    }
-  }
-}
 
 // 聚焦地址输入框
 const focusAddressInput = () => {
@@ -665,10 +593,9 @@ const focusEditor = () => {
 
 // 展开编辑器
 const handleExpand = async () => {
-  await saveNote()
   isExpandingToExpandEditor.value = true
-  if (editedNote.value?.id) {
-    router.push({ name: 'NoteExpandEditor', params: { id: editedNote.value.id } })
+  if (currentNote.value?.id) {
+    router.push({ name: 'NoteExpandEditor', params: { id: currentNote.value.id } })
   }
   noteStore.closeNoteEditor()
 }

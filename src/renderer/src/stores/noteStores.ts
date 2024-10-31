@@ -1161,8 +1161,8 @@ export const useNoteStore = defineStore('note', () => {
   }
 
   // 右侧边栏功能
-  const addNoteToRightSidebar = (noteId: string) => {
-    const note = notes.value.find((n) => n.id === noteId)
+  const addNoteToRightSidebar = async (noteId: string) => {
+    const note = await fetchNoteById(noteId)
     if (note && !rightSidebarNotes.value.some((n) => n.id === noteId)) {
       rightSidebarNotes.value.push(note)
     } else if (!note) {

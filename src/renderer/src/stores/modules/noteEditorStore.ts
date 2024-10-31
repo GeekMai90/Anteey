@@ -3,7 +3,7 @@ import { defineStore } from 'pinia'
 import { useBaseStore } from './baseStore'
 import { computed, ref } from 'vue'
 import { debounce } from 'lodash-es'
-import { CardType } from '@renderer/types/Note'
+import { CardType } from '../../types/Note'
 
 export type NoteEditorStore = ReturnType<typeof useNoteEditorStore>
 export const useNoteEditorStore = defineStore('noteEditor', () => {

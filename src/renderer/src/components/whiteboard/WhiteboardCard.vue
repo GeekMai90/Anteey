@@ -1,10 +1,20 @@
 <template>
   <div class="whiteboard-card">
     <div class="whiteboard-card-header">
-      <div ref="moreBtnRef" class="more-btn" @click.stop="toggleMenu">
-        <div class="icon">
-          <More theme="outline" size="20" fill="var(--color-icon-default)" :strokeWidth="3" />
+      <!-- 更多功能菜单按钮 -->
+      <div ref="moreBtnRef" class="more-btn" @click.stop="toggleMoreMenu">
+        <div v-tooltip.bottom="{ content: '更多', delay: { show: 1000 } }" class="icon">
+          <More theme="outline" size="16" fill="var(--color-icon-default)" :stroke-width="3" />
         </div>
+        <!-- 更多功能菜单按钮 -->
+        <PopupMenu
+          ref="moreMenuRef"
+          :show="moreMenuState.isOpen"
+          :position="moreMenuState.position"
+          :menuItems="noteMenuItems"
+          @close="closeMoreMenu"
+          @itemClick="handleMenuItemClick"
+        />
       </div>
     </div>
     <div class="whiteboard-card-content" @dblclick.stop="openWhiteboard(whiteboard.id)">
@@ -26,15 +36,6 @@
       <div class="cardCount">{{ cardCount }}</div>
       <div class="cardCountText">张卡片</div>
     </div>
-    <PopupMenu
-      ref="popupMenuRef"
-      :show="isMenuVisible"
-      :menuItems="noteMenuItems"
-      :position="menuPosition"
-      :offset="{ x: -80, y: 5 }"
-      @close="closeMenu"
-      @itemClick="handleMenuItemClick"
-    />
     <ConfirmModal
       :show="showConfirmModal"
       title="删除白板"
@@ -46,7 +47,7 @@
 </template>
 
 <script setup lang="ts">
-import { defineProps, nextTick, onMounted, reactive, ref } from 'vue'
+import { defineProps, nextTick, onMounted, ref } from 'vue'
 import type { Whiteboard } from '@renderer/types/Note'
 import { Workbench, More } from '@icon-park/vue-next'
 import { useWhiteboardStore } from '@renderer/stores/whiteboardStores'
@@ -55,6 +56,7 @@ import PopupMenu from '@renderer/components/common/PopupMenu.vue'
 import { useNoteMenu } from '@renderer/composables/useNoteMenu'
 import type { MenuItem } from '@renderer/components/common/PopupMenu.vue'
 import ConfirmModal from '@renderer/components/ConfirmModal.vue'
+import { useMenu } from '@renderer/composables/useMenu'
 
 const props = defineProps<{
   whiteboard: Whiteboard
@@ -69,25 +71,6 @@ onMounted(async () => {
 })
 
 // 打开白板详情
-// const openWhiteboard = (id: string) => {
-//   console.log('打开白板详情', id)
-//   console.log('当前路由:', router.currentRoute.value)
-//   router
-//     // .replace({ name: 'whiteboardDetail', params: { whiteboardId: id } })
-//     .push({
-//       name: 'whiteboardDetail',
-//       params: { whiteboardId: id },
-//       query: { _t: Date.now() }
-//     })
-//     .then(() => {
-//       console.log('路由跳转成功')
-//       console.log('跳转后的路由:', router.currentRoute.value)
-//       nextTick(() => {
-//         console.log('在 nextTick 中检查路由:', router.currentRoute.value)
-//       })
-//     })
-//     .catch((error) => console.error('路由跳转失败:', error))
-// }
 const openWhiteboard = async (id: string) => {
   try {
     // 确保路径正确
@@ -116,49 +99,36 @@ const openWhiteboard = async (id: string) => {
   }
 }
 // 更多按钮弹出菜单
-const moreBtnRef = ref<HTMLElement | null>(null)
-const popupMenuRef = ref<InstanceType<typeof PopupMenu> | null>(null)
-const isMenuVisible = ref(false)
-const menuPosition = reactive({ x: 0, y: 0 })
-
 const {
   menuItems: noteMenuItems,
   resetDeleteState,
   showConfirmModal,
   cancelDeleteWhiteboard,
-  handleDeleteWhiteboard,
   confirmDeleteWhiteboard
 } = useNoteMenu({
   noteId: props.whiteboard.id,
   whiteboardId: props.whiteboard.id,
   menuItems: ['deleteWhiteboard']
 })
-const toggleMenu = (event: MouseEvent) => {
-  event.preventDefault()
-  isMenuVisible.value = !isMenuVisible.value
-  if (isMenuVisible.value && moreBtnRef.value) {
-    const rect = moreBtnRef.value.getBoundingClientRect()
-    menuPosition.x = rect.left
-    menuPosition.y = rect.bottom
-    isMenuVisible.value = true
-    nextTick(() => {
-      popupMenuRef.value?.openMenu()
-    })
+const moreBtnRef = ref<HTMLElement | null>(null)
+const moreMenuRef = ref<HTMLElement | null>(null)
+const {
+  menuState: moreMenuState,
+  toggleMenu: toggleMoreMenu,
+  closeMenu: closeMoreMenu
+} = useMenu({
+  buttonRef: moreBtnRef,
+  menuRef: moreMenuRef,
+  onClose: () => {
+    resetDeleteState()
   }
-}
+})
+// 更多菜单点击事件
 const handleMenuItemClick = (item: MenuItem) => {
-  if (item.name === 'deleteWhiteboard') {
-    handleDeleteWhiteboard()
-    closeMenu()
-  } else {
-    item.action()
-    closeMenu()
+  item.action()
+  if (item.name !== 'delete') {
+    closeMoreMenu()
   }
-}
-
-const closeMenu = () => {
-  isMenuVisible.value = false
-  resetDeleteState()
 }
 </script>
 

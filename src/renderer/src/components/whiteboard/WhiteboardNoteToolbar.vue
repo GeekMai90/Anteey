@@ -16,10 +16,20 @@
         </div>
       </div>
       <div class="toolbar-right">
-        <div ref="cardBoxBtnRef" class="install-btn" @click.stop="toggleCardboxMenu">
+        <!-- 卡片盒设置按钮 -->
+        <div ref="cardboxBtnRef" class="install-btn" @click.stop="toggleCardboxMenu">
           <div v-tooltip.bottom="{ content: '设置卡片盒', delay: { show: 1000 } }" class="icon">
-            <Install theme="outline" size="16" fill="var(--color-icon-default)" :stroke-width="3" />
+            <Install theme="outline" size="18" fill="var(--color-icon-default)" :stroke-width="3" />
           </div>
+          <!-- 添加卡片盒下拉菜单 -->
+          <CardboxDropdownMenu
+            ref="cardboxMenuRef"
+            :is-open="cardboxMenuState.isOpen"
+            :position="cardboxMenuState.position"
+            :note-id="props.noteId"
+            :current-cardbox-id="currentCardboxId || ''"
+            @close="closeCardboxMenu"
+          />
         </div>
         <div class="connect-btn" @click="$emit('start-connection', $event)">
           <div v-tooltip.bottom="{ content: '连线', delay: { show: 1000 } }" class="icon">
@@ -31,40 +41,35 @@
             />
           </div>
         </div>
-        <div ref="moreBtnRef" class="more-btn" @click.stop="toggleMenu">
+        <!-- 更多功能菜单按钮 -->
+        <div ref="moreBtnRef" class="more-btn" @click.stop="toggleMoreMenu">
           <div v-tooltip.bottom="{ content: '更多', delay: { show: 1000 } }" class="icon">
             <More theme="outline" size="16" fill="var(--color-icon-default)" :stroke-width="3" />
           </div>
+          <!-- 更多功能菜单按钮 -->
+          <PopupMenu
+            ref="moreMenuRef"
+            :show="moreMenuState.isOpen"
+            :position="moreMenuState.position"
+            :menuItems="noteMenuItems"
+            @close="closeMoreMenu"
+            @itemClick="handleMenuItemClick"
+          />
         </div>
       </div>
     </div>
-    <CardboxDropdownMenu
-      ref="cardboxDropdownMenu"
-      :is-open="isCardboxMenuOpen"
-      :note-id="noteId"
-      :current-cardbox-id="currentCardboxId || ''"
-      :offset="{ x: -70, y: 5 }"
-      @close="closeCardboxMenu"
-    />
-    <PopupMenu
-      ref="popupMenuRef"
-      :show="isMenuVisible"
-      :menuItems="moreMenuItems"
-      :position="menuPosition"
-      :offset="{ x: -70, y: 5 }"
-      @close="closeMenu"
-      @itemClick="handleMenuItemClick"
-    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, nextTick, watchEffect } from 'vue'
+import { ref, watchEffect } from 'vue'
 import { ExpandTextInput, Install, More, Connection } from '@icon-park/vue-next'
 import CardboxDropdownMenu from '@renderer/components/cardbox/CardboxDropdownMenu.vue'
 import PopupMenu from '@renderer/components/common/PopupMenu.vue'
 import type { MenuItem } from '@renderer/components/common/PopupMenu.vue'
 import { useNoteStore } from '@renderer/stores/noteStores'
+import { useMenu } from '@renderer/composables/useMenu'
+import { useNoteMenu } from '@renderer/composables/useNoteMenu'
 
 const props = defineProps<{
   noteId: string
@@ -80,54 +85,47 @@ watchEffect(async () => {
   currentCardboxId.value = note?.cardBoxId || null
 })
 
-// 卡片盒下拉菜单
-const cardboxDropdownMenu = ref<InstanceType<typeof CardboxDropdownMenu> | null>(null)
-const isCardboxMenuOpen = ref(false)
-const cardBoxBtnRef = ref<HTMLElement | null>(null)
+// === 更多功能菜单管理 ===
+const { menuItems: noteMenuItems, resetDeleteState } = useNoteMenu({
+  noteId: props.noteId,
+  menuItems: ['star', 'share', 'sidebar', 'copyNoteLink', 'exportNote', 'delete', 'copyQuote']
+})
 
-const toggleCardboxMenu = (event: MouseEvent) => {
-  event.preventDefault()
-  isCardboxMenuOpen.value = !isCardboxMenuOpen.value
-  if (isCardboxMenuOpen.value && cardBoxBtnRef.value) {
-    const rect = cardBoxBtnRef.value.getBoundingClientRect()
-    nextTick(() => {
-      cardboxDropdownMenu.value?.openMenu(rect.left, rect.bottom)
-    })
-  }
-}
-
-const closeCardboxMenu = () => {
-  isCardboxMenuOpen.value = false
-}
-
-// 更多按钮弹出菜单
 const moreBtnRef = ref<HTMLElement | null>(null)
-const popupMenuRef = ref<InstanceType<typeof PopupMenu> | null>(null)
-const isMenuVisible = ref(false)
-const menuPosition = ref({ x: 0, y: 0 })
-
-const toggleMenu = (event: MouseEvent) => {
-  event.preventDefault()
-  isMenuVisible.value = !isMenuVisible.value
-  if (isMenuVisible.value && moreBtnRef.value) {
-    const rect = moreBtnRef.value.getBoundingClientRect()
-    menuPosition.value = { x: rect.left, y: rect.bottom }
-    nextTick(() => {
-      popupMenuRef.value?.openMenu()
-    })
+const moreMenuRef = ref<HTMLElement | null>(null)
+const {
+  menuState: moreMenuState,
+  toggleMenu: toggleMoreMenu,
+  closeMenu: closeMoreMenu
+} = useMenu({
+  buttonRef: moreBtnRef,
+  menuRef: moreMenuRef,
+  onClose: () => {
+    resetDeleteState()
   }
-}
-
+})
+// 更多菜单点击事件
 const handleMenuItemClick = (item: MenuItem) => {
   item.action()
   if (item.name !== 'delete') {
-    closeMenu()
+    closeMoreMenu()
   }
 }
 
-const closeMenu = () => {
-  isMenuVisible.value = false
-}
+// === 卡片盒菜单管理 ===
+const cardboxBtnRef = ref<HTMLElement | null>(null)
+const cardboxMenuRef = ref<HTMLElement | null>(null)
+const {
+  menuState: cardboxMenuState,
+  toggleMenu: toggleCardboxMenu,
+  closeMenu: closeCardboxMenu
+} = useMenu({
+  buttonRef: cardboxBtnRef,
+  menuRef: cardboxMenuRef,
+  onClose: () => {
+    console.log('卡片盒菜单已关闭')
+  }
+})
 </script>
 
 <style lang="scss" scoped>
