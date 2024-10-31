@@ -372,6 +372,7 @@ onBeforeUnmount(async () => {
     try {
       // 确保内容是编辑器的最终状态
       const finalContent = tiptapEditor.value?.editor?.getJSON() || updateState.lastContent
+
       await noteStore.saveNoteContentImmediately(currentNote.value.id, finalContent)
     } catch (error) {
       console.error('保存失败:', error)

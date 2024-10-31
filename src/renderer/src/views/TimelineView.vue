@@ -128,8 +128,8 @@ const sortedNotes = computed(() => {
 })
 
 // 设置事件总线，用于监听笔记更新和创建事件
-const eventBus = useEventBus('note-updated')
-const eventBusCreated = useEventBus('note-created')
+const noteUpdatedBus = useEventBus('note-updated')
+const noteCreatedBus = useEventBus('note-created')
 const eventBusDeleted = useEventBus('note-deleted')
 const eventBusEmptyNotesMovedToTrash = useEventBus('empty-notes-moved-to-trash')
 const eventBusNoteRestored = useEventBus('note-restored')
@@ -142,17 +142,19 @@ eventBusEmptyNotesMovedToTrash.on(() => {
   console.log('TimelineView.vue→ 监听到空笔记移到回收站事件')
   refreshNotes()
 })
-eventBus.on(() => {
+noteUpdatedBus.on(() => {
   console.log('TimelineView.vue→ 监听到笔记更新事件', lastUpdatedNote.value)
   if (!lastUpdatedNote.value) return
   updateSingleNote(lastUpdatedNote.value)
 })
 
 // 监听笔记创建事件
-eventBusCreated.on(() => {
-  console.log('TimelineView.vue→ 监听到笔记创建事件', lastCreatedNote.value)
-  if (!lastCreatedNote.value) return
-  notes.value.push(lastCreatedNote.value)
+noteCreatedBus.on((newNote) => {
+  console.log('TimelineView.vue→ 监听到新笔记创建:', newNote)
+  // 将新笔记添加到列表开头
+  notes.value.unshift(lastCreatedNote.value as Note)
+  // 更新总数
+  totalNotes.value++
 })
 
 // 监听笔记删除事件
@@ -186,6 +188,30 @@ const updateSingleNote = (updatedNote: Note) => {
     notes.value[index] = { ...notes.value[index], ...updatedNote }
   }
 }
+// 处理笔记更新
+// noteUpdatedBus.on((event: unknown) => {
+//   const updatedNote = event as Note
+//   console.log('TimelineView.vue→ 监听到笔记更新:', updatedNote)
+
+//   // 查找并更新对应的笔记
+//   const index = notes.value.findIndex((n) => n.id === updatedNote.id)
+//   if (index !== -1) {
+//     // 更新笔记数据
+//     notes.value[index] = {
+//       ...notes.value[index],
+//       ...updatedNote
+//     }
+
+//     // 确保视图更新
+//     nextTick(() => {
+//       if (virtualList?.value) {
+//         virtualList.value = [...virtualList.value]
+//       }
+//     })
+//   } else {
+//     console.warn('TimelineView.vue→ 未找到要更新的笔记:', updatedNote.id)
+//   }
+// })
 
 // 使用虚拟列表优化性能
 const itemHeight = 340 // 每个笔记卡片的预估高度
