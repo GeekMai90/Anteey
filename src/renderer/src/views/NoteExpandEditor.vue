@@ -29,7 +29,7 @@
           <input
             v-if="currentNote"
             ref="addressInput"
-            v-model="currentNote.address"
+            v-model="localAddress"
             type="text"
             placeholder="输入编码地址"
             @input="handleAddressInput"
@@ -96,7 +96,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed, nextTick, reactive, onBeforeUnmount } from 'vue'
+import { ref, onMounted, computed, nextTick, reactive, onBeforeUnmount, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useNoteStore } from '@renderer/stores/noteStores'
 import { formatDate } from '@renderer/utils/noteHelpers'
@@ -108,7 +108,6 @@ import PopupMenu from '@renderer/components/common/PopupMenu.vue'
 import { useNoteMenu } from '@renderer/composables/useNoteMenu'
 import type { MenuItem } from '@renderer/components/common/PopupMenu.vue'
 import CardTypeDropdownMenu from '@renderer/components/note/CardTypeDropdownMenu.vue'
-import { debounce } from 'lodash-es'
 import { message } from '@renderer/utils/message'
 import { useMenu } from '@renderer/composables/useMenu'
 
@@ -136,22 +135,56 @@ const currentNote = computed(() => {
 })
 
 // === 地址输入处理 ===
-// 使用防抖处理地址输入，避免频繁更新
-const handleAddressInput = debounce(async () => {
+// 使用本地状态来管理输入
+const localAddress = ref('')
+const addressUpdateTimer = ref<any>(null)
+
+onMounted(() => {
   if (currentNote.value) {
+    localAddress.value = currentNote.value.address
+  }
+})
+
+// 监听 currentNote 的变化，同步地址
+watch(
+  () => currentNote.value?.address,
+  (newAddress) => {
+    if (newAddress !== undefined && newAddress !== localAddress.value) {
+      localAddress.value = newAddress
+    }
+  }
+)
+
+// 处理地址输入
+const handleAddressInput = (event: Event) => {
+  const input = event.target as HTMLInputElement
+  localAddress.value = input.value
+
+  if (currentNote.value) {
+    currentNote.value.address = input.value
+  }
+
+  if (addressUpdateTimer.value) {
+    clearTimeout(addressUpdateTimer.value)
+  }
+
+  addressUpdateTimer.value = setTimeout(async () => {
     try {
-      await noteStore.updateNoteAddress(noteId, currentNote.value.address)
-      console.log('地址更新成功')
+      await noteStore.updateNoteAddress(noteId, localAddress.value)
     } catch (error) {
       console.error('更新地址失败:', error)
       message.error('更新地址失败')
     }
-  }
-}, 300) // 300ms 的防抖
+  }, 300)
+}
+
 // 处理回车键
 const handleAddressEnter = (event: KeyboardEvent) => {
   event.preventDefault() // 阻止默认行为
-  handleAddressInput.flush() // 立即执行防抖函数
+  if (addressUpdateTimer.value) {
+    clearTimeout(addressUpdateTimer.value)
+    noteStore.updateNoteAddress(noteId, localAddress.value)
+  }
   focusEditor() // 聚焦到编辑器
 }
 
@@ -164,28 +197,18 @@ const updateState = reactive({
   saveTimeout: 2000 // 保存延迟时间，可以根据实际需求调整
 })
 
-// 立即保存的函数
-const saveContentImmediately = async () => {
-  if (!currentNote.value || !updateState.lastContent) return
-
-  try {
-    await noteStore.updateNoteContent(currentNote.value.id, updateState.lastContent)
-    console.log('内容已保存')
-  } catch (error) {
-    console.error('保存失败:', error)
-    message.error('保存失败')
-  }
-}
-
 // 处理编辑器内容更新
 const handleContentUpdate = (newContent: any) => {
   if (!currentNote.value) return
+
+  // 立即更新 lastContent，不要等待防抖
+  updateState.lastContent = newContent
 
   // 保存当前光标位置
   const editor = tiptapEditor.value?.editor
   const selection = editor?.state.selection
 
-  // 使用防抖进行更新
+  // 使用防抖进行保存
   if (updateState.updateTimer) {
     clearTimeout(updateState.updateTimer)
   }
@@ -206,17 +229,6 @@ const handleContentUpdate = (newContent: any) => {
     }
   }, updateState.saveTimeout)
 }
-
-// 组件卸载时清理
-onBeforeUnmount(async () => {
-  if (updateState.updateTimer) {
-    clearTimeout(updateState.updateTimer)
-  }
-  // 执行最后一次保存
-  await saveContentImmediately()
-  // 停用笔记编辑状态
-  noteStore.deactivateNote(noteId)
-})
 
 // === 卡片类型菜单管理 ===
 const indicatorButton = ref<HTMLElement | null>(null)
@@ -312,6 +324,29 @@ onMounted(() => {
   if (noteId) {
     noteStore.addToRecentNotes(noteId)
   }
+})
+// 组件卸载时清理
+onBeforeUnmount(async () => {
+  console.log('NoteEditor 组件卸载前')
+  if (updateState.updateTimer) {
+    clearTimeout(updateState.updateTimer)
+  }
+  if (addressUpdateTimer.value) {
+    clearTimeout(addressUpdateTimer.value)
+  }
+  // 如果有未保存的内容，立即保存
+  if (currentNote.value && updateState.lastContent) {
+    try {
+      // 确保内容是编辑器的最终状态
+      const finalContent = tiptapEditor.value?.editor?.getJSON() || updateState.lastContent
+      await noteStore.saveNoteContentImmediately(currentNote.value.id, finalContent)
+    } catch (error) {
+      console.error('保存失败:', error)
+      message.error('保存失败')
+    }
+  }
+
+  noteStore.deactivateNote(noteId)
 })
 </script>
 

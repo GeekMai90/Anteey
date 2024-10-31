@@ -181,13 +181,6 @@ const handleAddressEnter = (event: KeyboardEvent) => {
   focusEditor() // 聚焦到编辑器
 }
 
-// 组件卸载时清理
-onBeforeUnmount(() => {
-  if (addressUpdateTimer.value) {
-    clearTimeout(addressUpdateTimer.value)
-  }
-})
-
 // === 内容更新处理 ===
 // 编辑器内容更新状态管理
 const updateState = reactive({
@@ -364,7 +357,6 @@ const handleExpand = async () => {
     isExpandingToExpandEditor.value = false
   }
 }
-// 修改展开编辑器的处理函数
 
 // 组件卸载时清理
 onBeforeUnmount(async () => {
