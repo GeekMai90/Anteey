@@ -270,69 +270,111 @@ export const useNoteStore = defineStore('note', () => {
   }
 
   // 更新笔记地址
+  // const updateNoteAddress = async (noteId: string, address: string) => {
+  //   console.log('Store: 开始更新笔记地址:', { noteId, address })
+
+  //   updateSaveStatus('saving')
+
+  //   // 1. 检查笔记是否存在且处于编辑状态
+  //   if (!activeNotes.value[noteId]) {
+  //     throw new Error('笔记不在编辑状态')
+  //   }
+
+  //   // 2. 乐观更新
+  //   activeNotes.value[noteId] = {
+  //     ...activeNotes.value[noteId],
+  //     address,
+  //     updatedAt: new Date()
+  //   }
+
+  //   // 3. 同步更新 cache 和 visible (如果存在)
+  //   if (noteCache.has(noteId)) {
+  //     noteCache.set(noteId, { ...activeNotes.value[noteId] })
+  //   }
+  //   if (noteId in visibleNotes.value) {
+  //     visibleNotes.value[noteId] = { ...activeNotes.value[noteId] }
+  //   }
+
+  //   // 4. 记录pending状态，防止并发更新
+  //   pendingUpdates.value.set(`${noteId}-address`, {
+  //     type: 'address',
+  //     timestamp: Date.now()
+  //   })
+
+  //   try {
+  //     // 添加最小延迟确保用户能看到保存状态
+  //     await new Promise((resolve) => setTimeout(resolve, 500))
+
+  //     // 5. 发送后端请求
+  //     const updatedNote = await window.electronAPI.updateNoteAddress(noteId, address)
+
+  //     // 6. 检查是否有更新的pending更新，避免覆盖新的更改
+  //     const pendingUpdate = pendingUpdates.value.get(`${noteId}-address`)
+  //     if (!pendingUpdate || pendingUpdate.timestamp <= Date.now()) {
+  //       // 7. 更新成功，同步所有状态
+  //       activeNotes.value[noteId] = updatedNote
+  //       noteCache.set(noteId, updatedNote)
+  //       if (noteId in visibleNotes.value) {
+  //         visibleNotes.value[noteId] = updatedNote
+  //       }
+  //     }
+  //     updateSaveStatus('saved')
+  //     resetToSaved()
+  //     return updatedNote
+  //   } catch (error) {
+  //     // 8. 更新失败，回滚所有状态
+  //     const originalNote = noteCache.get(noteId)!
+  //     activeNotes.value[noteId] = { ...originalNote }
+  //     if (noteId in visibleNotes.value) {
+  //       visibleNotes.value[noteId] = { ...originalNote }
+  //     }
+  //     console.error('更新地址失败:', error)
+  //     updateSaveStatus('error')
+  //     throw error
+  //   } finally {
+  //     // 9. 清理pending状态
+  //     pendingUpdates.value.delete(`${noteId}-address`)
+  //   }
+  // }
+
+  // 更新笔记地址
   const updateNoteAddress = async (noteId: string, address: string) => {
     console.log('Store: 开始更新笔记地址:', { noteId, address })
-
-    updateSaveStatus('saving')
 
     // 1. 检查笔记是否存在且处于编辑状态
     if (!activeNotes.value[noteId]) {
       throw new Error('笔记不在编辑状态')
     }
 
-    // 2. 乐观更新
-    activeNotes.value[noteId] = {
-      ...activeNotes.value[noteId],
-      address,
-      updatedAt: new Date()
-    }
-
-    // 3. 同步更新 cache 和 visible (如果存在)
-    if (noteCache.has(noteId)) {
-      noteCache.set(noteId, { ...activeNotes.value[noteId] })
-    }
-    if (noteId in visibleNotes.value) {
-      visibleNotes.value[noteId] = { ...activeNotes.value[noteId] }
-    }
-
-    // 4. 记录pending状态，防止并发更新
+    // 2. 记录pending状态，防止并发更新
+    const updateTimestamp = Date.now()
     pendingUpdates.value.set(`${noteId}-address`, {
       type: 'address',
-      timestamp: Date.now()
+      timestamp: updateTimestamp
     })
 
     try {
-      // 添加最小延迟确保用户能看到保存状态
-      await new Promise((resolve) => setTimeout(resolve, 500))
-
-      // 5. 发送后端请求
+      // 3. 发送后端请求
       const updatedNote = await window.electronAPI.updateNoteAddress(noteId, address)
 
-      // 6. 检查是否有更新的pending更新，避免覆盖新的更改
-      const pendingUpdate = pendingUpdates.value.get(`${noteId}-address`)
-      if (!pendingUpdate || pendingUpdate.timestamp <= Date.now()) {
-        // 7. 更新成功，同步所有状态
+      // 4. 检查是否有更新的pending更新
+      const currentPending = pendingUpdates.value.get(`${noteId}-address`)
+      if (!currentPending || currentPending.timestamp <= updateTimestamp) {
+        // 5. 只在成功后更新一次状态
         activeNotes.value[noteId] = updatedNote
-        noteCache.set(noteId, updatedNote)
+        if (noteCache.has(noteId)) {
+          noteCache.set(noteId, updatedNote)
+        }
         if (noteId in visibleNotes.value) {
           visibleNotes.value[noteId] = updatedNote
         }
       }
-      updateSaveStatus('saved')
-      resetToSaved()
+
       return updatedNote
     } catch (error) {
-      // 8. 更新失败，回滚所有状态
-      const originalNote = noteCache.get(noteId)!
-      activeNotes.value[noteId] = { ...originalNote }
-      if (noteId in visibleNotes.value) {
-        visibleNotes.value[noteId] = { ...originalNote }
-      }
       console.error('更新地址失败:', error)
-      updateSaveStatus('error')
       throw error
     } finally {
-      // 9. 清理pending状态
       pendingUpdates.value.delete(`${noteId}-address`)
     }
   }
@@ -475,6 +517,53 @@ export const useNoteStore = defineStore('note', () => {
     } finally {
       // 12. 清理pending状态
       pendingUpdates.value.delete(`${noteId}-cardBox`)
+    }
+  }
+
+  // 添加立即保存笔记内容的方法
+  const saveNoteContentImmediately = async (noteId: string, content: any) => {
+    try {
+      // 1. 状态检查
+      if (!activeNotes.value[noteId]) {
+        throw new Error('笔记不在编辑状态')
+      }
+
+      updateSaveStatus('saving')
+
+      // 2. 更新本地状态
+      const updatedNote = {
+        ...activeNotes.value[noteId],
+        content,
+        updatedAt: new Date()
+      }
+
+      // 3. 同步更新所有状态
+      activeNotes.value[noteId] = updatedNote
+      if (noteCache.has(noteId)) {
+        noteCache.set(noteId, updatedNote)
+      }
+      if (noteId in visibleNotes.value) {
+        visibleNotes.value[noteId] = updatedNote
+      }
+
+      // 4. 发送后端请求
+      const serverUpdatedNote = await window.electronAPI.updateNoteContent(noteId, content)
+
+      // 5. 使用服务器返回的数据更新状态
+      activeNotes.value[noteId] = serverUpdatedNote
+      if (noteCache.has(noteId)) {
+        noteCache.set(noteId, serverUpdatedNote)
+      }
+      if (noteId in visibleNotes.value) {
+        visibleNotes.value[noteId] = serverUpdatedNote
+      }
+
+      updateSaveStatus('saved')
+      return serverUpdatedNote
+    } catch (error) {
+      updateSaveStatus('error')
+      console.error('立即保存笔记内容失败:', error)
+      throw error
     }
   }
 
@@ -1493,6 +1582,9 @@ export const useNoteStore = defineStore('note', () => {
     cardboxPageSize,
     cardboxHasMore,
     cardboxIsLoading,
-    cardboxTotalCount
+    cardboxTotalCount,
+
+    // 编辑器相关
+    saveNoteContentImmediately
   }
 })

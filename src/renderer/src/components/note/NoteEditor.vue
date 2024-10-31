@@ -68,7 +68,7 @@
         <input
           v-if="currentNote"
           ref="addressInput"
-          v-model="currentNote.address"
+          v-model="localAddress"
           type="text"
           placeholder="输入编码地址"
           @input="handleAddressInput"
@@ -93,13 +93,12 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { useNoteStore } from '@renderer/stores/noteStores'
 import TipTapEditor from '@renderer/components/tiptap/TipTapEditor.vue'
 import { useRouter } from 'vue-router'
 import { ExpandTextInput, Install, More } from '@icon-park/vue-next'
 import CardboxDropdownMenu from '@renderer/components/cardbox/CardboxDropdownMenu.vue'
-import { debounce } from 'lodash-es'
 import PopupMenu from '@renderer/components/common/PopupMenu.vue'
 import { useNoteMenu } from '@renderer/composables/useNoteMenu'
 import type { MenuItem } from '@renderer/components/common/PopupMenu.vue'
@@ -129,24 +128,65 @@ const currentNote = computed(() => {
 })
 
 // === 地址输入处理 ===
-// 使用防抖处理地址输入，避免频繁更新
-const handleAddressInput = debounce(async () => {
+// 使用本地状态来管理输入
+const localAddress = ref('')
+const addressUpdateTimer = ref<any>(null)
+
+onMounted(() => {
   if (currentNote.value) {
+    localAddress.value = currentNote.value.address
+  }
+})
+
+// 监听 currentNote 的变化，同步地址
+watch(
+  () => currentNote.value?.address,
+  (newAddress) => {
+    if (newAddress !== undefined && newAddress !== localAddress.value) {
+      localAddress.value = newAddress
+    }
+  }
+)
+
+// 处理地址输入
+const handleAddressInput = (event: Event) => {
+  const input = event.target as HTMLInputElement
+  localAddress.value = input.value
+
+  if (currentNote.value) {
+    currentNote.value.address = input.value
+  }
+
+  if (addressUpdateTimer.value) {
+    clearTimeout(addressUpdateTimer.value)
+  }
+
+  addressUpdateTimer.value = setTimeout(async () => {
     try {
-      await noteStore.updateNoteAddress(props.noteId, currentNote.value.address)
-      console.log('地址更新成功')
+      await noteStore.updateNoteAddress(props.noteId, localAddress.value)
     } catch (error) {
       console.error('更新地址失败:', error)
       message.error('更新地址失败')
     }
-  }
-}, 300) // 300ms 的防抖
+  }, 300)
+}
+
 // 处理回车键
 const handleAddressEnter = (event: KeyboardEvent) => {
   event.preventDefault() // 阻止默认行为
-  handleAddressInput.flush() // 立即执行防抖函数
+  if (addressUpdateTimer.value) {
+    clearTimeout(addressUpdateTimer.value)
+    noteStore.updateNoteAddress(props.noteId, localAddress.value)
+  }
   focusEditor() // 聚焦到编辑器
 }
+
+// 组件卸载时清理
+onBeforeUnmount(() => {
+  if (addressUpdateTimer.value) {
+    clearTimeout(addressUpdateTimer.value)
+  }
+})
 
 // === 内容更新处理 ===
 // 编辑器内容更新状态管理
@@ -157,28 +197,18 @@ const updateState = reactive({
   saveTimeout: 2000 // 保存延迟时间，可以根据实际需求调整
 })
 
-// 添加一个立即保存的函数
-const saveContentImmediately = async () => {
-  if (!currentNote.value || !updateState.lastContent) return
-
-  try {
-    await noteStore.updateNoteContent(currentNote.value.id, updateState.lastContent)
-    console.log('内容已保存')
-  } catch (error) {
-    console.error('保存失败:', error)
-    message.error('保存失败')
-  }
-}
-
 // 处理编辑器内容更新
 const handleContentUpdate = (newContent: any) => {
   if (!currentNote.value) return
+
+  // 立即更新 lastContent，不要等待防抖
+  updateState.lastContent = newContent
 
   // 保存当前光标位置
   const editor = tiptapEditor.value?.editor
   const selection = editor?.state.selection
 
-  // 使用防抖进行更新
+  // 使用防抖进行保存
   if (updateState.updateTimer) {
     clearTimeout(updateState.updateTimer)
   }
@@ -199,16 +229,6 @@ const handleContentUpdate = (newContent: any) => {
     }
   }, updateState.saveTimeout)
 }
-
-// 组件卸载时清理
-onBeforeUnmount(async () => {
-  console.log('NoteEditor 组件卸载前')
-  if (updateState.updateTimer) {
-    clearTimeout(updateState.updateTimer)
-  }
-  // 执行最后一次保存
-  await saveContentImmediately()
-})
 
 // === 卡片类型菜单管理 ===
 const indicatorButton = ref<HTMLElement | null>(null)
@@ -275,11 +295,6 @@ const handleMenuItemClick = (item: MenuItem) => {
   }
 }
 
-// const closeMenu = () => {
-//   isMenuVisible.value = false
-//   resetDeleteState()
-// }
-
 const router = useRouter()
 const addressInput = ref<HTMLInputElement | null>(null)
 const tiptapEditor = ref<InstanceType<any> | null>(null)
@@ -319,30 +334,62 @@ const focusEditor = () => {
 // 修改展开编辑器的处理函数
 const handleExpand = async () => {
   isExpandingToExpandEditor.value = true
-  // 先保存内容
+
+  // 先清除定时器
   if (updateState.updateTimer) {
     clearTimeout(updateState.updateTimer)
   }
+
   try {
-    await saveContentImmediately()
-    // 保存成功后再跳转
-    if (currentNote.value?.id) {
-      router.push({ name: 'NoteExpandEditor', params: { id: currentNote.value.id } })
+    // 1. 获取编辑器的最终状态并保存
+    const finalContent = tiptapEditor.value?.editor?.getJSON() || updateState.lastContent
+    if (finalContent) {
+      await noteStore.updateNoteContent(currentNote.value.id, finalContent)
     }
-    noteStore.closeNoteEditor()
+
+    // 2. 再次获取笔记确认数据已保存
+    await noteStore.fetchNote(currentNote.value.id)
+
+    // 3. 保存成功后再跳转
+    if (currentNote.value?.id) {
+      // 4. 先关闭当前编辑器
+      noteStore.closeNoteEditor()
+
+      // 5. 最后进行跳转
+      await router.push({ name: 'NoteExpandEditor', params: { id: currentNote.value.id } })
+    }
   } catch (error) {
     console.error('保存失败:', error)
     message.error('保存失败')
+    isExpandingToExpandEditor.value = false
   }
 }
+// 修改展开编辑器的处理函数
+
 // 组件卸载时清理
-onBeforeUnmount(() => {
+onBeforeUnmount(async () => {
   console.log('NoteEditor 组件卸载前')
   if (updateState.updateTimer) {
     clearTimeout(updateState.updateTimer)
   }
-  // 停用笔记编辑状态
-  noteStore.deactivateNote(props.noteId)
+  if (addressUpdateTimer.value) {
+    clearTimeout(addressUpdateTimer.value)
+  }
+  // 如果有未保存的内容，立即保存
+  if (currentNote.value && updateState.lastContent) {
+    try {
+      // 确保内容是编辑器的最终状态
+      const finalContent = tiptapEditor.value?.editor?.getJSON() || updateState.lastContent
+      await noteStore.saveNoteContentImmediately(currentNote.value.id, finalContent)
+    } catch (error) {
+      console.error('保存失败:', error)
+      message.error('保存失败')
+    }
+  }
+  // 停用笔记编辑状态, 如果不是跳转到展开编辑器进行编辑，则停用笔记编辑状态
+  if (!isExpandingToExpandEditor.value) {
+    noteStore.deactivateNote(props.noteId)
+  }
 })
 
 // 暴露方法给父组件
@@ -350,8 +397,6 @@ defineExpose({
   focusAddressInput,
   focusEditor
 })
-
-// defineExpose({ handleAutoSave, focusAddressInput })
 </script>
 
 <style lang="scss" scoped>
@@ -713,85 +758,5 @@ defineExpose({
       padding-bottom: 60px;
     }
   }
-
-  // .card-type-menu {
-  //   position: fixed;
-  //   background-color: var(--color-bg-primary);
-  //   border-radius: 8px;
-  //   box-shadow: var(--shadow-primary);
-  //   z-index: 1000;
-  //   padding: 8px 0;
-  //   width: auto;
-  //   align-items: center;
-
-  //   .card-type-item {
-  //     display: flex;
-  //     align-items: center;
-  //     width: 150px;
-  //     padding: 2px 8px;
-  //     border: none;
-  //     background: none;
-  //     cursor: pointer;
-  //     transition: background-color 0.2s;
-  //     border-radius: 8px;
-  //     margin: 2px 8px;
-
-  //     .icon {
-  //       background: none;
-  //       border: none;
-  //       cursor: pointer;
-  //       width: 28px;
-  //       height: 28px;
-  //       display: flex;
-  //       align-items: center;
-  //       justify-content: center;
-  //       border-radius: 6px;
-  //       transition: background-color 0.2s;
-  //       padding: 0;
-  //       margin-right: 5px;
-
-  //       &:hover:not(:disabled) {
-  //         background-color: var(--color-hover-bg);
-  //       }
-
-  //       &:disabled {
-  //         opacity: 0.5;
-  //         cursor: not-allowed;
-  //       }
-
-  //       // 新增以下样式来处理 i-icon 类
-  //       :deep(.i-icon) {
-  //         display: flex;
-  //         align-items: center;
-  //         justify-content: center;
-  //         width: 100%;
-  //         height: 100%;
-  //       }
-
-  //       :deep(svg) {
-  //         width: 16px; // 或者您想要的大小
-  //         height: 16px; // 或者您想要的大小
-  //       }
-  //     }
-
-  //     .name {
-  //       flex-grow: 0;
-  //       text-align: left;
-  //       color: var(--color-text-primary);
-  //       font-size: 14px;
-  //       white-space: nowrap; // 防止文字换行
-  //       writing-mode: horizontal-tb; // 确保文字是水平排列的
-  //     }
-
-  //     &:hover {
-  //       background-color: var(--color-hover-bg);
-  //     }
-
-  //     &.active {
-  //       background-color: var(--color-menu-active-bg);
-  //       // border: 1px solid var(--color-primary);
-  //     }
-  //   }
-  // }
 }
 </style>
