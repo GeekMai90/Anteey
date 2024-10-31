@@ -47,8 +47,13 @@
           />
         </div>
         <div class="remove-btn" @click.stop="handleRemoveNoteFromRightSidebar">
-          <div v-tooltip.bottom="{ content: '更多', delay: { show: 1000 } }" class="icon">
-            <CloseOne theme="outline" size="16" fill="var(--color-icon-default)" />
+          <div v-tooltip.bottom="{ content: '关闭', delay: { show: 1000 } }" class="icon">
+            <CloseOne
+              theme="outline"
+              size="16"
+              fill="var(--color-icon-default)"
+              :stroke-width="3"
+            />
           </div>
         </div>
       </div>
@@ -61,7 +66,7 @@
           ref="indicatorButton"
           class="note-indicator"
           :class="cardTypeClass"
-          @click="(e) => toggleCardTypeMenu(e)"
+          @click="(e: Event) => toggleCardTypeMenu(e)"
         ></div>
         <!-- 笔记类型下拉菜单组件 -->
         <CardTypeDropdownMenu
@@ -128,14 +133,14 @@ onMounted(async () => {
   // 1. 组件挂载时获取笔记
   await noteStore.fetchNote(props.noteId)
   // 2. 激活笔记编辑状态
-  noteStore.activateNote(props.noteId)
+  noteStore.activateRightSidebarNote(props.noteId)
 })
 
 // === 计算属性 ===
 // 获取当前编辑的笔记数据
 const currentNote = computed(() => {
-  console.log('computed 执行, activeNotes:', noteStore.activeNotes)
-  return noteStore.activeNotes[props.noteId]
+  console.log('computed 执行, activeNotes:', noteStore.rightSidebarActiveNotes)
+  return noteStore.rightSidebarActiveNotes[props.noteId]
 })
 
 // === 地址输入处理 ===
@@ -290,7 +295,7 @@ const {
 // === 更多功能菜单管理 ===
 const { menuItems: noteMenuItems, resetDeleteState } = useNoteMenu({
   noteId: props.noteId,
-  menuItems: ['star', 'share', 'sidebar', 'copyNoteLink', 'exportNote', 'delete', 'copyQuote']
+  menuItems: ['star', 'sidebar', 'copyNoteLink', 'exportNote', 'delete', 'copyQuote']
 })
 
 const moreBtnRef = ref<HTMLElement | null>(null)
@@ -349,8 +354,7 @@ onBeforeUnmount(async () => {
       message.error('保存失败')
     }
   }
-
-  noteStore.deactivateNote(props.noteId)
+  noteStore.deactivateRightSidebarNote(props.noteId)
 })
 
 const handleRemoveNoteFromRightSidebar = () => {
@@ -402,7 +406,7 @@ const handleExpand = () => {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 10px 20px 0px 20px;
+    padding: 10px 10px 0px 10px;
     position: relative;
 
     .expand-btn {

@@ -29,6 +29,7 @@ export const useNoteStore = defineStore('note', () => {
   const visibleNotes = ref<Record<string, Note>>({}) // 可见笔记的响应式存储
   const noteCache = new Map<string, Note>() // 所有笔记的非响应式缓存
   const activeNotes = ref<Record<string, Note>>({}) // 当前正在编辑的笔记
+  const rightSidebarActiveNotes = ref<Record<string, Note>>({}) // 右侧面板正在编辑的笔记
 
   // ==================== 编辑器相关 ====================
   // 保存状态相关
@@ -185,6 +186,19 @@ export const useNoteStore = defineStore('note', () => {
     delete activeNotes.value[noteId]
   }
 
+  // 激活右侧面板笔记编辑
+  const activateRightSidebarNote = (noteId: string) => {
+    if (!noteCache.has(noteId)) return null
+    const note = noteCache.get(noteId)!
+    rightSidebarActiveNotes.value[noteId] = { ...note }
+    return rightSidebarActiveNotes.value[noteId]
+  }
+
+  // 停用右侧面板笔记编辑
+  const deactivateRightSidebarNote = (noteId: string) => {
+    delete rightSidebarActiveNotes.value[noteId]
+  }
+
   // 更新笔记内容
   const updateNoteContent = async (noteId: string, content: any) => {
     console.log('Store: 开始更新笔记内容:', { noteId })
@@ -224,6 +238,9 @@ export const useNoteStore = defineStore('note', () => {
       noteUpdatedBus.emit(updatedNote)
       // 同步更新所有状态
       activeNotes.value[noteId] = updatedNote
+      if (noteId in rightSidebarActiveNotes.value) {
+        rightSidebarActiveNotes.value[noteId] = updatedNote
+      }
       if (noteCache.has(noteId)) {
         noteCache.set(noteId, updatedNote)
       }
@@ -302,6 +319,9 @@ export const useNoteStore = defineStore('note', () => {
       if (!currentPending || currentPending.timestamp <= updateTimestamp) {
         // 5. 只在成功后更新一次状态
         activeNotes.value[noteId] = updatedNote
+        if (noteId in rightSidebarActiveNotes.value) {
+          rightSidebarActiveNotes.value[noteId] = updatedNote
+        }
         if (noteCache.has(noteId)) {
           noteCache.set(noteId, updatedNote)
         }
@@ -360,6 +380,7 @@ export const useNoteStore = defineStore('note', () => {
 
       // 将更新后的笔记赋值给 lastUpdatedNote，用于事件通知
       lastUpdatedNote.value = updatedNote
+
       const noteUpdatedBus = useEventBus('note-updated')
       noteUpdatedBus.emit(updatedNote)
 
@@ -368,6 +389,9 @@ export const useNoteStore = defineStore('note', () => {
       if (!pendingUpdate || pendingUpdate.timestamp <= Date.now()) {
         // 7. 更新成功，同步所有状态
         activeNotes.value[noteId] = updatedNote
+        if (noteId in rightSidebarActiveNotes.value) {
+          rightSidebarActiveNotes.value[noteId] = updatedNote
+        }
         noteCache.set(noteId, updatedNote)
         if (noteId in visibleNotes.value) {
           visibleNotes.value[noteId] = updatedNote
@@ -438,6 +462,9 @@ export const useNoteStore = defineStore('note', () => {
       if (!pendingUpdate || pendingUpdate.timestamp <= Date.now()) {
         // 8. 更新成功，同步所有状态
         activeNotes.value[noteId] = updatedNote
+        if (noteId in rightSidebarActiveNotes.value) {
+          rightSidebarActiveNotes.value[noteId] = updatedNote
+        }
         noteCache.set(noteId, updatedNote)
         if (noteId in visibleNotes.value) {
           visibleNotes.value[noteId] = updatedNote
@@ -489,6 +516,9 @@ export const useNoteStore = defineStore('note', () => {
 
       // 3. 同步更新所有状态
       activeNotes.value[noteId] = updatedNote
+      if (noteId in rightSidebarActiveNotes.value) {
+        rightSidebarActiveNotes.value[noteId] = updatedNote
+      }
       if (noteCache.has(noteId)) {
         noteCache.set(noteId, updatedNote)
       }
@@ -1535,6 +1565,9 @@ export const useNoteStore = defineStore('note', () => {
     cardboxTotalCount,
 
     // 编辑器相关
-    saveNoteContentImmediately
+    saveNoteContentImmediately,
+    rightSidebarActiveNotes,
+    activateRightSidebarNote,
+    deactivateRightSidebarNote
   }
 })

@@ -7,6 +7,10 @@
         <div
           v-for="tab in tabs"
           :key="tab.key"
+          v-tooltip.bottom="{
+            content: tab.label,
+            delay: { show: 1000 }
+          }"
           class="tab-item"
           :class="{ active: currentTab === tab.key }"
           @click="currentTab = tab.key"
@@ -16,10 +20,10 @@
               :is="tab.icon"
               theme="outline"
               size="18"
-              :fill="currentTab === tab.key ? 'var(--color-primary)' : '#b6b6b6'"
+              :fill="currentTab === tab.key ? 'var(--color-primary)' : 'var(--color-icon-default)'"
+              :stroke-width="3"
             />
           </div>
-          <span>{{ tab.label }}</span>
         </div>
       </div>
     </div>
@@ -34,7 +38,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useRoute } from 'vue-router'
-import { Split, Connection } from '@icon-park/vue-next'
+import { Split, Concern } from '@icon-park/vue-next'
 import MultiNotes from '@renderer/components/layout/MultiNotes.vue'
 import RelatedNotes from '@renderer/components/layout/RelatedNotes.vue'
 
@@ -59,7 +63,7 @@ const tabs = [
   {
     key: 'related',
     label: '相关笔记',
-    icon: Connection,
+    icon: Concern,
     component: RelatedNotes
   }
 ]
@@ -107,6 +111,7 @@ const startResize = (e: MouseEvent) => {
   flex-direction: column;
   transition: width 0.3s ease;
   position: relative;
+  border-left: 1px solid var(--color-border);
 
   .resize-handle {
     position: absolute;
@@ -119,8 +124,9 @@ const startResize = (e: MouseEvent) => {
   }
 
   .sidebar-header {
-    padding: 8px;
-    border-bottom: 1px solid var(--color-border);
+    // border-bottom: 1px solid var(--color-border);
+    height: 40px;
+    padding: 2px 8px;
   }
 
   .tabs-container {
@@ -131,19 +137,49 @@ const startResize = (e: MouseEvent) => {
       display: flex;
       align-items: center;
       gap: 6px;
-      padding: 6px 12px;
       border-radius: 6px;
       cursor: pointer;
       transition: all 0.2s ease;
       user-select: none;
+      padding: 4px 4px;
+      margin: 2px;
 
       &:hover {
-        background-color: var(--color-hover-bg);
+        background-color: var(--color-hover-button);
       }
 
-      &.active {
-        color: var(--color-primary);
-        background-color: var(--color-menu-active-bg);
+      &:active {
+        background-color: rgba(0, 0, 0, 0.1);
+      }
+      .icon {
+        background: none;
+        border: none;
+        cursor: pointer;
+        width: 24px;
+        height: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s ease;
+        padding: 0;
+
+        &:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+
+        :deep(.i-icon) {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 100%;
+          height: 100%;
+        }
+
+        :deep(svg) {
+          width: 18px;
+          height: 18px;
+        }
       }
 
       span {

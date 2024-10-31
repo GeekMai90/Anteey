@@ -53,6 +53,128 @@ function convertToNote(record: any): Note {
 }
 
 // 获取相关笔记
+// export async function getRelatedNotes(
+//   noteId: string,
+//   limit: number = 5
+// ): Promise<RelatedNotesResult> {
+//   try {
+//     console.log('后端→ 开始查找相关笔记:', noteId)
+
+//     // 1. 获取当前笔记
+//     const currentNote = await db('notes').where('id', noteId).first()
+//     if (!currentNote) {
+//       throw new Error(`Note with ID "${noteId}" not found`)
+//     }
+
+//     // 2. 确保语义向量服务已初始化
+//     const vectorizer = SemanticVectorizer.getInstance()
+//     await vectorizer.initialize()
+
+//     // 3. 获取所有其他未删除的笔记
+//     const allNotes = await db('notes')
+//       .where('id', '!=', noteId)
+//       .andWhere('isDeleted', false)
+//       .select('*')
+
+//     const currentKeywords = JSON.parse(currentNote.keywords || '[]')
+//     const currentContent = JSON.parse(currentNote.content)
+//     const currentText = extractTextFromContent(currentContent)
+
+//     // 4. 并行计算相似度
+//     const notesWithSimilarity = await Promise.all(
+//       allNotes.map(async (note) => {
+//         try {
+//           const noteKeywords = JSON.parse(note.keywords || '[]')
+//           const noteContent = JSON.parse(note.content)
+//           const noteText = extractTextFromContent(noteContent)
+
+//           // 根据内容长度和关键词数量决定计算方法
+//           const isShortContent = noteText.length < 100 || currentText.length < 100
+//           const hasKeywords = noteKeywords.length > 0 && currentKeywords.length > 0
+
+//           let similarity: number
+
+//           if (isShortContent && hasKeywords) {
+//             // 短内容且有关键词时使用关键词相似度
+//             similarity = calculateSimilarity(currentKeywords, noteKeywords)
+//             console.log('后端→ 使用关键词相似度:', note.id)
+//           } else if (!hasKeywords && !isShortContent) {
+//             // 长内容无关键词时使用纯语义相似度
+//             similarity = await vectorizer.calculateSemanticSimilarity(currentText, noteText)
+//             console.log('后端→ 使用语义相似度:', note.id)
+//           } else {
+//             // 其他情况使用混合相似度
+//             similarity = await vectorizer.calculateHybridSimilarity(
+//               currentContent,
+//               noteContent,
+//               currentKeywords,
+//               noteKeywords
+//             )
+//             console.log('后端→ 使用混合相似度:', note.id)
+//           }
+
+//           return {
+//             ...convertToNote(note),
+//             similarity,
+//             matchType:
+//               isShortContent && hasKeywords
+//                 ? 'keyword'
+//                 : !hasKeywords && !isShortContent
+//                   ? 'semantic'
+//                   : 'hybrid'
+//           } as RelatedNote & { matchType: string }
+//         } catch (error) {
+//           console.error('后端→ 计算笔记相似度失败:', error)
+//           return {
+//             ...convertToNote(note),
+//             similarity: 0,
+//             matchType: 'error'
+//           } as RelatedNote & { matchType: string }
+//         }
+//       })
+//     )
+
+//     // 5. 过滤和排序结果
+//     const filteredNotes = notesWithSimilarity
+//       .filter((item) => item.similarity > 20)
+//       .sort((a, b) => b.similarity - a.similarity)
+//       .slice(0, limit)
+
+//     console.log('后端→ 相似度计算统计:', {
+//       关键词匹配: notesWithSimilarity.filter((n) => n.matchType === 'keyword').length,
+//       语义匹配: notesWithSimilarity.filter((n) => n.matchType === 'semantic').length,
+//       混合匹配: notesWithSimilarity.filter((n) => n.matchType === 'hybrid').length,
+//       匹配失败: notesWithSimilarity.filter((n) => n.matchType === 'error').length
+//     })
+
+//     return {
+//       success: true,
+//       notes: filteredNotes,
+//       totalProcessed: allNotes.length,
+//       stats: {
+//         keywordMatches: notesWithSimilarity.filter((n) => n.matchType === 'keyword').length,
+//         semanticMatches: notesWithSimilarity.filter((n) => n.matchType === 'semantic').length,
+//         hybridMatches: notesWithSimilarity.filter((n) => n.matchType === 'hybrid').length,
+//         errors: notesWithSimilarity.filter((n) => n.matchType === 'error').length
+//       }
+//     }
+//   } catch (error) {
+//     console.error('后端→ 查找相关笔记失败:', error)
+//     return {
+//       success: false,
+//       notes: [],
+//       error: error instanceof Error ? error.message : String(error)
+//     }
+//   }
+// }
+
+// ... existing imports ...
+
+// 批处理大小常量
+const BATCH_SIZE = 50
+const SIMILARITY_THRESHOLD = 20
+const MAX_TOTAL_NOTES = 1000
+
 export async function getRelatedNotes(
   noteId: string,
   limit: number = 5
@@ -66,96 +188,118 @@ export async function getRelatedNotes(
       throw new Error(`Note with ID "${noteId}" not found`)
     }
 
-    // 2. 确保语义向量服务已初始化
+    // 2. 初始化向量服务
     const vectorizer = SemanticVectorizer.getInstance()
     await vectorizer.initialize()
 
-    // 3. 获取所有其他未删除的笔记
-    const allNotes = await db('notes')
-      .where('id', '!=', noteId)
-      .andWhere('isDeleted', false)
-      .select('*')
-
+    // 3. 预处理当前笔记数据
     const currentKeywords = JSON.parse(currentNote.keywords || '[]')
     const currentContent = JSON.parse(currentNote.content)
     const currentText = extractTextFromContent(currentContent)
 
-    // 4. 并行计算相似度
-    const notesWithSimilarity = await Promise.all(
-      allNotes.map(async (note) => {
-        try {
-          const noteKeywords = JSON.parse(note.keywords || '[]')
-          const noteContent = JSON.parse(note.content)
-          const noteText = extractTextFromContent(noteContent)
+    // 4. 获取笔记总数
+    const { count } = (await db('notes')
+      .where('id', '!=', noteId)
+      .andWhere('isDeleted', false)
+      .count('* as count')
+      .first()) as { count: number }
 
-          // 根据内容长度和关键词数量决定计算方法
-          const isShortContent = noteText.length < 100 || currentText.length < 100
-          const hasKeywords = noteKeywords.length > 0 && currentKeywords.length > 0
+    if (count > MAX_TOTAL_NOTES) {
+      console.log(`后端→ 笔记数量(${count})超过限制(${MAX_TOTAL_NOTES})，将随机选择笔记进行比较`)
+    }
 
-          let similarity: number
+    // 5. 分批处理笔记
+    let processedNotes = 0
+    let allResults: (RelatedNote & { matchType: string })[] = []
+    const stats = { keyword: 0, semantic: 0, hybrid: 0, error: 0 }
 
-          if (isShortContent && hasKeywords) {
-            // 短内容且有关键词时使用关键词相似度
-            similarity = calculateSimilarity(currentKeywords, noteKeywords)
-            console.log('后端→ 使用关键词相似度:', note.id)
-          } else if (!hasKeywords && !isShortContent) {
-            // 长内容无关键词时使用纯语义相似度
-            similarity = await vectorizer.calculateSemanticSimilarity(currentText, noteText)
-            console.log('后端→ 使用语义相似度:', note.id)
-          } else {
-            // 其他情况使用混合相似度
-            similarity = await vectorizer.calculateHybridSimilarity(
-              currentContent,
-              noteContent,
-              currentKeywords,
-              noteKeywords
-            )
-            console.log('后端→ 使用混合相似度:', note.id)
+    while (processedNotes < Math.min(count, MAX_TOTAL_NOTES)) {
+      // 获取一批笔记
+      const notes = await db('notes')
+        .where('id', '!=', noteId)
+        .andWhere('isDeleted', false)
+        .offset(processedNotes)
+        .limit(BATCH_SIZE)
+        .select('*')
+
+      if (notes.length === 0) break
+
+      // 处理这一批笔记
+      const batchResults = await Promise.all(
+        notes.map(async (note) => {
+          try {
+            const noteKeywords = JSON.parse(note.keywords || '[]')
+            const noteContent = JSON.parse(note.content)
+            const noteText = extractTextFromContent(noteContent)
+
+            const isShortContent = noteText.length < 100 || currentText.length < 100
+            const hasKeywords = noteKeywords.length > 0 && currentKeywords.length > 0
+
+            let similarity: number
+            let matchType: string
+
+            if (isShortContent && hasKeywords) {
+              similarity = calculateSimilarity(currentKeywords, noteKeywords)
+              matchType = 'keyword'
+              stats.keyword++
+            } else if (!hasKeywords && !isShortContent) {
+              similarity = await vectorizer.calculateSemanticSimilarity(currentText, noteText)
+              matchType = 'semantic'
+              stats.semantic++
+            } else {
+              similarity = await vectorizer.calculateHybridSimilarity(
+                currentContent,
+                noteContent,
+                currentKeywords,
+                noteKeywords
+              )
+              matchType = 'hybrid'
+              stats.hybrid++
+            }
+
+            // 提前过滤掉相似度低的结果
+            if (similarity <= SIMILARITY_THRESHOLD) {
+              return null
+            }
+
+            return {
+              ...convertToNote(note),
+              similarity,
+              matchType
+            }
+          } catch (error) {
+            console.error('后端→ 计算单个笔记相似度失败:', error)
+            stats.error++
+            return null
           }
+        })
+      )
 
-          return {
-            ...convertToNote(note),
-            similarity,
-            matchType:
-              isShortContent && hasKeywords
-                ? 'keyword'
-                : !hasKeywords && !isShortContent
-                  ? 'semantic'
-                  : 'hybrid'
-          } as RelatedNote & { matchType: string }
-        } catch (error) {
-          console.error('后端→ 计算笔记相似度失败:', error)
-          return {
-            ...convertToNote(note),
-            similarity: 0,
-            matchType: 'error'
-          } as RelatedNote & { matchType: string }
-        }
-      })
-    )
+      // 过滤掉空值并添加到结果集
+      const validResults = batchResults.filter(
+        (r): r is RelatedNote & { matchType: string } => r !== null
+      )
+      allResults = [...allResults, ...validResults]
 
-    // 5. 过滤和排序结果
-    const filteredNotes = notesWithSimilarity
-      .filter((item) => item.similarity > 20)
-      .sort((a, b) => b.similarity - a.similarity)
-      .slice(0, limit)
+      // 对结果进行排序和裁剪，保持最相关的结果
+      allResults.sort((a, b) => b.similarity - a.similarity)
+      allResults = allResults.slice(0, limit)
 
-    console.log('后端→ 相似度计算统计:', {
-      关键词匹配: notesWithSimilarity.filter((n) => n.matchType === 'keyword').length,
-      语义匹配: notesWithSimilarity.filter((n) => n.matchType === 'semantic').length,
-      混合匹配: notesWithSimilarity.filter((n) => n.matchType === 'hybrid').length,
-      匹配失败: notesWithSimilarity.filter((n) => n.matchType === 'error').length
-    })
+      processedNotes += notes.length
+      console.log(`后端→ 已处理 ${processedNotes}/${Math.min(count, MAX_TOTAL_NOTES)} 个笔记`)
+    }
+
+    console.log('后端→ 相似度计算统计:', stats)
 
     return {
       success: true,
-      notes: filteredNotes,
-      totalProcessed: allNotes.length,
+      notes: allResults,
+      totalProcessed: processedNotes,
       stats: {
-        keywordMatches: notesWithSimilarity.filter((n) => n.matchType === 'keyword').length,
-        semanticMatches: notesWithSimilarity.filter((n) => n.matchType === 'semantic').length,
-        hybridMatches: notesWithSimilarity.filter((n) => n.matchType === 'hybrid').length,
-        errors: notesWithSimilarity.filter((n) => n.matchType === 'error').length
+        keywordMatches: stats.keyword,
+        semanticMatches: stats.semantic,
+        hybridMatches: stats.hybrid,
+        errors: stats.error
       }
     }
   } catch (error) {
