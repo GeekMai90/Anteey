@@ -866,216 +866,125 @@ export async function getAllNotes(includeDeleted: boolean = false): Promise<Note
   }
 }
 
-// 更新笔记 content
-export async function updateNoteContent(id: string, content: any): Promise<Note> {
-  try {
-    console.log('后端→ 更新笔记内容', id, content)
-    const [updatedNote] = await db('notes')
-      .where('id', id)
-      .update({ content: JSON.stringify(content) })
-      .returning('*')
-    return convertToNote(updatedNote)
-  } catch (error) {
-    console.error('后端→ 更新笔记内容失败:', error)
-    throw new Error('后端→ 更新笔记内容失败')
+// 更新笔记内容 content
+// export async function updateNoteContent(id: string, content: object): Promise<Note> {
+//   try {
+//     return await db.transaction(async (trx) => {
+//       // 1. 准备更新数据
+//       const updateData: any = {
+//         content: JSON.stringify(content),
+//         updatedAt: new Date()
+//       }
+
+//       // 2. 提取关键词
+//       try {
+//         const keywords: Keyword[] = extractKeywords(content)
+//         console.log('后端→ 关键词提取完成:', keywords)
+//         updateData.keywords = JSON.stringify(keywords)
+//       } catch (keywordError) {
+//         console.error('后端→ 关键词提取失败:', keywordError)
+//         updateData.keywords = JSON.stringify([])
+//       }
+
+//       // 3. 计算语义向量
+//       try {
+//         const vectorizer = SemanticVectorizer.getInstance()
+//         await vectorizer.initialize()
+//         const text = extractTextFromContent(content)
+//         const vector = await vectorizer.getVector(text)
+//         updateData.semanticVector = JSON.stringify(vector)
+//         console.log('后端→ 语义向量计算完成')
+//       } catch (vectorError) {
+//         console.error('后端→ 语义向量计算失败:', vectorError)
+//         updateData.semanticVector = JSON.stringify([])
+//       }
+
+//       // 4. 执行更新并返回更新后的笔记
+//       const [updatedNote] = await trx('notes').where('id', id).update(updateData).returning('*')
+
+//       console.log(`后端→ 笔记 ${id} 内容已更新`)
+
+//       // 5. 转换并返回笔记
+//       return convertToNote(updatedNote)
+//     })
+//   } catch (error) {
+//     console.error('后端→ 更新笔记内容失败:', error)
+//     throw error
+//   }
+// }
+const MAX_RETRIES = 3
+const RETRY_DELAY = 100 // 毫秒
+
+export async function updateNoteContent(id: string, content: object): Promise<Note> {
+  let retries = 0
+
+  while (retries < MAX_RETRIES) {
+    try {
+      return await db.transaction(
+        async (trx) => {
+          // 设置事务超时
+          await trx.raw('PRAGMA busy_timeout = 5000;')
+
+          // 1. 准备更新数据
+          const updateData: any = {
+            content: JSON.stringify(content),
+            updatedAt: new Date()
+          }
+
+          // 2. 提取关键词
+          try {
+            const keywords: Keyword[] = extractKeywords(content)
+            console.log('后端→ 关键词提取完成:', keywords)
+            updateData.keywords = JSON.stringify(keywords)
+          } catch (keywordError) {
+            console.error('后端→ 关键词提取失败:', keywordError)
+            updateData.keywords = JSON.stringify([])
+          }
+
+          // 3. 计算语义向量
+          try {
+            const vectorizer = SemanticVectorizer.getInstance()
+            await vectorizer.initialize()
+            const text = extractTextFromContent(content)
+            const vector = await vectorizer.getVector(text)
+            updateData.semanticVector = JSON.stringify(vector)
+            console.log('后端→ 语义向量计算完成')
+          } catch (vectorError) {
+            console.error('后端→ 语义向量计算失败:', vectorError)
+            updateData.semanticVector = JSON.stringify([])
+          }
+
+          // 4. 执行更新并返回更新后的笔记
+          const [updatedNote] = await trx('notes').where('id', id).update(updateData).returning('*')
+
+          console.log(`后端→ 笔记 ${id} 内容已更新`)
+
+          // 5. 转换并返回笔记
+          return convertToNote(updatedNote)
+        },
+        {
+          // 设置事务配置
+          isolationLevel: 'read committed'
+        }
+      )
+    } catch (error) {
+      retries++
+
+      if ((error as Error).message.includes('database is locked')) {
+        console.warn(`后端→ 数据库锁定，正在重试 (${retries}/${MAX_RETRIES})`)
+        if (retries < MAX_RETRIES) {
+          await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY * retries))
+          continue
+        }
+      }
+
+      console.error('后端→ 更新笔记内容失败:', error)
+      throw error
+    }
   }
+
+  throw new Error('更新笔记内容失败: 达到最大重试次数')
 }
-
-//更新笔记
-// export async function updateNote(id: string, updateNoteDto: Partial<Note>): Promise<Note> {
-//   console.log(`后端→ 开始更新笔记 ID: ${id}`)
-//   console.log('后端→ 更新数据:', JSON.stringify(updateNoteDto))
-
-//   return db.transaction(async (trx) => {
-//     try {
-//       // 1. 查找笔记
-//       const note = await trx('notes').where({ id }).first()
-
-//       if (!note) {
-//         console.error(`后端→ 未找到ID为 ${id} 的笔记`)
-//         throw new Error(`Note with ID "${id}" not found`)
-//       }
-
-//       console.log('后端→ 找到的原始笔记:', JSON.stringify(note))
-
-//       // 2. 准备更新数据
-//       const updateData: any = {}
-
-//       const fields = ['address', 'cardType', 'tags', 'linkedTo', 'linkedFrom', 'parentId']
-//       fields.forEach((field) => {
-//         if (updateNoteDto[field as keyof Partial<Note>] !== undefined) {
-//           ;(updateData as any)[field] = updateNoteDto[field as keyof Partial<Note>]
-//         }
-//       })
-
-//       if (updateNoteDto.content !== undefined) {
-//         try {
-//           updateData.content =
-//             typeof updateNoteDto.content === 'string'
-//               ? JSON.parse(updateNoteDto.content)
-//               : updateNoteDto.content
-//           console.log('后端→ 更新内容:', JSON.stringify(updateData.content))
-//         } catch (error) {
-//           console.error('后端→ 解析内容时出错:', error)
-//           throw new Error('Invalid content format')
-//         }
-//       }
-//       // 如果内容更新了，重新提取关键词
-//       if (updateNoteDto.content !== undefined) {
-//         try {
-//           updateData.content =
-//             typeof updateNoteDto.content === 'string'
-//               ? JSON.parse(updateNoteDto.content)
-//               : updateNoteDto.content
-
-//           // 提取关键词
-//           const keywords: Keyword[] = extractKeywords(updateData.content)
-//           updateData.keywords = JSON.stringify(keywords)
-
-//           console.log('后端→ 更新内容和关键词:', {
-//             content: JSON.stringify(updateData.content),
-//             keywords: updateData.keywords
-//           })
-//         } catch (error) {
-//           console.error('后端→ 解析内容或提取关键词时出错:', error)
-//           throw new Error('Invalid content format')
-//         }
-//       }
-
-//       // 3. 更新时间戳
-//       updateData.updatedAt = new Date()
-
-//       // 4. 保存更新
-//       console.log('后端→ 更新后的笔记（保存前）:', JSON.stringify({ ...note, ...updateData }))
-
-//       // 确保 content 字段在存储到数据库之前被转换为 JSON 字符串
-//       if (updateData.content) {
-//         updateData.content = JSON.stringify(updateData.content) as any
-//       }
-
-//       // 处理数组字段
-//       ;['tags', 'linkedTo', 'linkedFrom'].forEach((field) => {
-//         if (Array.isArray(updateData[field as keyof Partial<Note>])) {
-//           ;(updateData as any)[field] = JSON.stringify(updateData[field as keyof Partial<Note>])
-//         }
-//       })
-
-//       const [updatedNote] = await trx('notes').where({ id }).update(updateData).returning('*')
-
-//       // 解析返回的数据
-//       if (typeof updatedNote.content === 'string') {
-//         updatedNote.content = JSON.parse(updatedNote.content)
-//       }
-
-//       // 解析数组字段
-//       ;['tags', 'linkedTo', 'linkedFrom'].forEach((field) => {
-//         if (typeof updatedNote[field] === 'string') {
-//           updatedNote[field] = JSON.parse(updatedNote[field])
-//         }
-//       })
-
-//       console.log('后端→ 保存后的笔记:', JSON.stringify(updatedNote))
-//       return updatedNote
-//     } catch (error) {
-//       console.error('后端→ 更新笔记事务失败:', error)
-//       throw error
-//     }
-//   })
-// }
-
-// export async function updateNote(id: string, updateNoteDto: Partial<Note>): Promise<Note> {
-//   console.log(`后端→ 开始更新笔记 ID: ${id}`)
-//   console.log('后端→ 更新数据:', JSON.stringify(updateNoteDto))
-
-//   return db.transaction(async (trx) => {
-//     try {
-//       // 1. 查找笔记
-//       const note = await trx('notes').where({ id }).first()
-
-//       if (!note) {
-//         console.error(`后端→ 未找到ID为 ${id} 的笔记`)
-//         throw new Error(`Note with ID "${id}" not found`)
-//       }
-
-//       console.log('后端→ 找到的原始笔记:', JSON.stringify(note))
-
-//       // 2. 准备更新数据
-//       const updateData: any = {}
-
-//       // 处理基础字段
-//       const fields = ['address', 'cardType', 'tags', 'linkedTo', 'linkedFrom', 'parentId']
-//       fields.forEach((field) => {
-//         if (updateNoteDto[field as keyof Partial<Note>] !== undefined) {
-//           updateData[field] = updateNoteDto[field as keyof Partial<Note>]
-//         }
-//       })
-
-//       // 处理内容和关键词
-//       if (updateNoteDto.content !== undefined) {
-//         try {
-//           // 解析或直接使用内容
-//           updateData.content =
-//             typeof updateNoteDto.content === 'string'
-//               ? JSON.parse(updateNoteDto.content)
-//               : updateNoteDto.content
-
-//           // 提取关键词
-//           const keywords: Keyword[] = extractKeywords(updateData.content)
-//           updateData.keywords = JSON.stringify(keywords)
-
-//           console.log('后端→ 更新内容和关键词:', {
-//             content: JSON.stringify(updateData.content),
-//             keywords: updateData.keywords
-//           })
-//         } catch (error) {
-//           console.error('后端→ 解析内容或提取关键词时出错:', error)
-//           throw new Error('Invalid content format')
-//         }
-//       }
-
-//       // 3. 更新时间戳
-//       updateData.updatedAt = new Date()
-
-//       // 4. 保存更新前的数据处理
-//       console.log('后端→ 更新后的笔记（保存前）:', JSON.stringify({ ...note, ...updateData }))
-
-//       // 将 content 转换为 JSON 字符串
-//       if (updateData.content) {
-//         updateData.content = JSON.stringify(updateData.content)
-//       }
-
-//       // 处理所有需要 JSON 序列化的字段
-//       const jsonFields = ['tags', 'linkedTo', 'linkedFrom']
-//       jsonFields.forEach((field) => {
-//         if (Array.isArray(updateData[field])) {
-//           updateData[field] = JSON.stringify(updateData[field])
-//         }
-//       })
-
-//       // 5. 执行更新
-//       const [updatedNote] = await trx('notes').where({ id }).update(updateData).returning('*')
-
-//       // 6. 处理返回数据
-//       // 解析 JSON 字符串字段
-//       const parseFields = ['content', 'tags', 'linkedTo', 'linkedFrom', 'keywords']
-//       parseFields.forEach((field) => {
-//         if (typeof updatedNote[field] === 'string') {
-//           try {
-//             updatedNote[field] = JSON.parse(updatedNote[field])
-//           } catch (error) {
-//             console.error(`后端→ 解析 ${field} 字段失败:`, error)
-//           }
-//         }
-//       })
-
-//       console.log('后端→ 保存后的笔记:', JSON.stringify(updatedNote))
-//       return updatedNote
-//     } catch (error) {
-//       console.error('后端→ 更新笔记事务失败:', error)
-//       throw error
-//     }
-//   })
-// }
 
 export async function updateNote(id: string, updateNoteDto: Partial<Note>): Promise<Note> {
   console.log(`后端→ 开始更新笔记 ID: ${id}`)
@@ -1660,111 +1569,3 @@ export async function getTimelineNotes(params: TimelineQueryParams): Promise<Tim
     throw error
   }
 }
-
-// // 分页查询参数接口
-// export interface GetPaginatedNotesParams {
-//   page: number
-//   limit: number
-//   cardBoxId?: string // 'all' | 'inbox' | string
-//   cardTypes?: CardType[]
-//   sortBy: 'address' | 'createdAt' | 'updatedAt'
-//   sortOrder: 'asc' | 'desc'
-//   searchTerm?: string
-// }
-
-// // 分页查询结果接口
-// export interface PaginatedResult {
-//   notes: Note[]
-//   totalCount: number
-//   currentPage: number
-//   totalPages: number
-//   hasMore: boolean
-// }
-
-// // 卡片盒页面获取分页的笔记
-// export async function getPaginatedNotesByCardbox({
-//   page,
-//   limit,
-//   cardBoxId,
-//   cardTypes,
-//   sortBy = 'address',
-//   sortOrder = 'asc',
-//   searchTerm
-// }: GetPaginatedNotesParams): Promise<PaginatedResult> {
-//   try {
-//     console.log('后端→ 开始获取卡片盒分页笔记', {
-//       cardBoxId,
-//       cardTypes,
-//       sortBy,
-//       sortOrder,
-//       searchTerm,
-//       page,
-//       limit
-//     })
-
-//     let query = db('notes').where('isDeleted', false)
-
-//     // 卡片盒筛选
-//     if (cardBoxId === 'inbox') {
-//       console.log('后端→ 筛选收件箱笔记')
-//       query = query.whereNull('cardBoxId')
-//     } else if (cardBoxId && cardBoxId !== 'all') {
-//       console.log(`后端→ 筛选卡片盒 ${cardBoxId} 的笔记`)
-//       query = query.where('cardBoxId', cardBoxId)
-//     } else {
-//       console.log('后端→ 获取所有卡片盒的笔记')
-//     }
-
-//     // 搜索条件
-//     if (searchTerm?.trim()) {
-//       query = query.where((builder) => {
-//         builder
-//           .whereRaw('LOWER(address) LIKE ?', [`%${searchTerm.toLowerCase()}%`])
-//           .orWhereRaw('content::text ILIKE ?', [`%${searchTerm}%`])
-//           .orWhereRaw('metadata::text ILIKE ?', [`%${searchTerm}%`])
-//       })
-//       console.log(`后端→ 添加搜索条件: ${searchTerm}`)
-//     }
-
-//     // 卡片类型筛选
-//     if (cardTypes && cardTypes.length > 0) {
-//       query = query.whereIn('cardType', cardTypes)
-//       console.log('后端→ 添加卡片类型筛选:', cardTypes)
-//     }
-
-//     const offset = (page - 1) * limit
-
-//     // 排序
-//     const validSortColumns = ['address', 'createdAt', 'updatedAt']
-//     const actualSortBy = validSortColumns.includes(sortBy) ? sortBy : 'address'
-
-//     // 并发查询总数和分页数据
-//     const [notes, countResult] = await Promise.all([
-//       query.clone().orderBy(actualSortBy, sortOrder).limit(limit).offset(offset),
-//       query.clone().count('* as count').first()
-//     ])
-
-//     const totalCount = countResult ? (countResult.count as number) : 0
-//     const totalPages = Math.ceil(totalCount / limit)
-//     const hasMore = page < totalPages
-
-//     console.log('后端→ 获取卡片盒分页笔记成功', {
-//       totalCount,
-//       currentPage: page,
-//       totalPages,
-//       hasMore,
-//       noteCount: notes.length
-//     })
-
-//     return {
-//       notes: notes.map(convertToNote),
-//       totalCount,
-//       currentPage: page,
-//       totalPages,
-//       hasMore
-//     }
-//   } catch (error) {
-//     console.error('后端→ 获取分页笔记失败:', error)
-//     throw error
-//   }
-// }

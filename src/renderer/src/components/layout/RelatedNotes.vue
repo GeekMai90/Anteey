@@ -1,6 +1,15 @@
 <template>
   <div class="related-notes">
-    <div v-if="isLoading" class="loading-state">加载中...</div>
+    <div v-if="isLoading" class="loading-container">
+      <Vue3Lottie
+        :animationData="loadingAnimation"
+        :height="200"
+        :width="200"
+        :loop="true"
+        :autoPlay="true"
+      />
+      <div class="loading-text">正在寻找相关笔记...</div>
+    </div>
     <template v-else>
       <div v-if="relatedNotes.length" class="notes-list">
         <div
@@ -33,6 +42,8 @@ import { useRouter } from 'vue-router'
 import { formatDate } from '@renderer/utils/noteHelpers'
 import type { RelatedNote } from '@renderer/types/Note'
 import TipTapRender from '@renderer/components/tiptap/TipTapRender.vue'
+import { Vue3Lottie } from 'vue3-lottie'
+import loadingAnimation from '@renderer/assets/loading.json'
 
 const props = defineProps<{
   noteId: string
@@ -171,5 +182,32 @@ watch(
   height: 200px;
   color: var(--color-text-secondary);
   font-size: 14px;
+}
+
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+  padding: 20px;
+  height: 100%; // 改为100%以占满父容器
+
+  .loading-text {
+    margin-top: 8px;
+    font-size: 14px;
+    color: var(--color-text-secondary);
+    animation: text-fade 2s ease-in-out infinite;
+  }
+}
+
+@keyframes text-fade {
+  0%,
+  100% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
+  }
 }
 </style>

@@ -1,6 +1,6 @@
 {
   "name": "antinet",
-  "version": "0.1.49",
+  "version": "0.1.51",
   "description": "Antinet",
   "main": "./out/main/index.js",
   "author": "antinet.com",
@@ -185,8 +185,8 @@
         {
           "target": "dmg",
           "arch": [
-            "arm64",
-            "x64"
+            "x64",
+            "arm64"
           ]
         }
       ]

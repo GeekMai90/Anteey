@@ -66,7 +66,7 @@
           ref="indicatorButton"
           class="note-indicator"
           :class="cardTypeClass"
-          @click="(e: Event) => toggleCardTypeMenu(e)"
+          @click="(e: any) => toggleCardTypeMenu(e)"
         ></div>
         <!-- 笔记类型下拉菜单组件 -->
         <CardTypeDropdownMenu
@@ -148,21 +148,16 @@ const currentNote = computed(() => {
 const localAddress = ref('')
 const addressUpdateTimer = ref<any>(null)
 
-onMounted(() => {
-  if (currentNote.value) {
-    localAddress.value = currentNote.value.address
-  }
-})
-
-// 监听 currentNote 的变化，同步地址
+// 监听 currentNote 的变化，同步初始地址
 watch(
-  () => currentNote.value?.address,
-  (newAddress) => {
-    if (newAddress !== undefined && newAddress !== localAddress.value) {
-      localAddress.value = newAddress
+  () => currentNote.value,
+  (newNote) => {
+    if (newNote?.address) {
+      localAddress.value = newNote.address
     }
-  }
-)
+  },
+  { immediate: true }
+) // 添加 immediate: true 确保首次加载时也执行
 
 // 处理地址输入
 const handleAddressInput = (event: Event) => {
@@ -211,6 +206,7 @@ const handleContentUpdate = (newContent: any) => {
   if (!currentNote.value) return
 
   // 立即更新 lastContent，不要等待防抖
+  currentNote.value.content = newContent
   updateState.lastContent = newContent
 
   // 保存当前光标位置

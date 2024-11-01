@@ -237,7 +237,7 @@ export const useNoteStore = defineStore(
       }
 
       // 2. 更新保存状态
-      updateSaveStatus('saving')
+      // updateSaveStatus('saving')
 
       // 3. 记录更新标记，用于处理并发更新
       const updateTimestamp = Date.now()
@@ -276,7 +276,7 @@ export const useNoteStore = defineStore(
           visibleNotes.value[noteId] = updatedNote
         }
         // 添加最小延迟确保用户能看到保存状态
-        await new Promise((resolve) => setTimeout(resolve, 500))
+        // await new Promise((resolve) => setTimeout(resolve, 500))
 
         // 6. 发送后端请求
         const serverUpdatedNote = await window.electronAPI.updateNoteContent(noteId, content)
@@ -296,7 +296,7 @@ export const useNoteStore = defineStore(
 
         // 9. 更新成功
         updateSaveStatus('saved')
-        resetToSaved()
+        // resetToSaved()
         return serverUpdatedNote
       } catch (error) {
         // 10. 错误处理 - 回滚所有状态
@@ -1604,6 +1604,10 @@ export const useNoteStore = defineStore(
       {
         key: 'note-rightSidebar',
         pick: ['rightSidebarNotes']
+      },
+      {
+        key: 'note-active',
+        pick: ['activeNotes']
       }
     ]
   }

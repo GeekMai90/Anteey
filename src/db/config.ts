@@ -39,7 +39,15 @@ export function initializeDb() {
   const config = {
     client: 'better-sqlite3',
     connection: {
-      filename: dbPath
+      filename: dbPath,
+      options: {
+        pragma: {
+          journal_mode: 'WAL', // 启用 WAL 模式
+          busy_timeout: 5000, // 设置锁等待超时
+          synchronous: 'NORMAL', // 写入策略（NORMAL 比 FULL 快）
+          wal_autocheckpoint: 1000 // 每 1000 页自动检查点
+        }
+      }
     },
     useNullAsDefault: true
   }

@@ -4,6 +4,66 @@
     <meta charset="UTF-8" />
     <title>Antinet</title>
     <!-- https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP -->
+    <style>
+      #loading-wrapper {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: #ffffff;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        z-index: 9999;
+      }
+    
+      .loading-placeholder {
+        position: relative;
+        width: 40px;
+        height: 40px;
+      }
+    
+      .loading-placeholder::before,
+      .loading-placeholder::after {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        background-color: #20ceae;
+        transform: translate(-50%, -50%) scale(0);
+        animation: ripple 2s ease-in-out infinite;
+      }
+    
+      .loading-placeholder::after {
+        animation-delay: -0.5s;
+      }
+    
+      @keyframes ripple {
+        0% {
+          transform: translate(-50%, -50%) scale(0);
+          opacity: 0.8;
+        }
+        100% {
+          transform: translate(-50%, -50%) scale(1);
+          opacity: 0;
+        }
+      }
+    
+      /* 可选：添加品牌名称 */
+      .loading-text {
+        margin-top: 20px;
+        font-family: system-ui, -apple-system, sans-serif;
+        font-size: 16px;
+        color: #20ceae;
+        letter-spacing: 0.5px;
+        opacity: 0.8;
+      }
+    </style>
     <meta
     http-equiv="Content-Security-Policy"
     content="default-src *; img-src 'self' file: data: blob: https: http: *; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; connect-src 'self' file: https://api.tiptap.dev; "
@@ -11,6 +71,10 @@
   </head>
 
   <body>
+    <div id="loading-wrapper">
+      <div class="loading-placeholder"></div>
+      <div class="loading-text">Loading your Antinet</div>
+    </div>
     <div id="app"></div>
     <script type="module" src="/src/main.ts"></script>
   </body>

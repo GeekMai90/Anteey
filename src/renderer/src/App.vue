@@ -2,8 +2,14 @@
   <!-- 应用程序根容器，支持深色主题切换 -->
   <div class="app-container" :class="{ 'theme-dark': uiStore.isDarkTheme }">
     <!-- 加载动画 -->
-    <!-- <div v-if=" isLoading" class="loading-overlay">
-      <Vue3Lottie :animationData="loadingAnimation" :height="300" :width="300" />
+    <!-- <div v-if="isInitialLoading" class="loading-overlay">
+      <Vue3Lottie
+        :animationData="loadingAnimation"
+        :height="120"
+        :width="120"
+        :loop="true"
+        :autoPlay="true"
+      />
     </div> -->
     <!-- 主要内容布局容器 -->
     <div class="content-wrapper">
@@ -100,6 +106,7 @@ import { useDebounceFn } from '@vueuse/core'
 const uiStore = useUIStore()
 const noteStore = useNoteStore()
 const router = useRouter()
+// const isInitialLoading = ref(true)
 
 // 导出功能函数
 const { handleBulkExport } = useNoteMenu({
@@ -176,22 +183,21 @@ useGlobalHotkeys()
 onMounted(async () => {
   // 初始化主题
   uiStore.initTheme()
-
-  // // 初始化语义向量模型
-  // try {
-  //   console.log('开始初始化语义向量模型...')
-  //   const vectorizer = SemanticVectorizer.getInstance()
-  //   await vectorizer.initialize()
-  //   console.log('语义向量模型初始化成功')
-  // } catch (error) {
-  //   console.error('语义向量模型初始化失败:', error)
-  // }
   // 设置响应式布局
   debouncedCheckWindowSize()
   window.addEventListener('resize', debouncedCheckWindowSize)
   // 路由重定向
   if (router.currentRoute.value.path === '/') {
     router.push('/timeline')
+  }
+  // 移除初始加载动画
+  const loadingWrapper = document.getElementById('loading-wrapper')
+  if (loadingWrapper) {
+    loadingWrapper.style.opacity = '0'
+    loadingWrapper.style.transition = 'opacity 0.3s'
+    setTimeout(() => {
+      loadingWrapper?.remove()
+    }, 300)
   }
   // 设置菜单事件监听
   // 新建笔记

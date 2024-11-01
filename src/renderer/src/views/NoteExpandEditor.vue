@@ -14,7 +14,7 @@
             ref="indicatorButton"
             class="note-indicator"
             :class="cardTypeClass"
-            @click="(e: Event) => toggleCardTypeMenu(e)"
+            @click="(e: any) => toggleCardTypeMenu(e)"
           ></div>
           <!-- 笔记类型下拉菜单组件 -->
           <CardTypeDropdownMenu
@@ -125,6 +125,7 @@ onMounted(async () => {
   await noteStore.fetchNote(noteId)
   // 2. 激活笔记编辑状态
   noteStore.activateNote(noteId)
+  // 3. 添加到最近笔记
   noteStore.addToRecentNotes(noteId)
 
   focusEditor()
@@ -133,7 +134,7 @@ onMounted(async () => {
 // === 计算属性 ===
 // 获取当前编辑的笔记数据
 const currentNote = computed(() => {
-  console.log('computed 执行, activeNotes:', noteStore.activeNotes)
+  // console.log('computed 执行, activeNotes:', noteStore.activeNotes)
   return noteStore.activeNotes[noteId]
 })
 
@@ -142,21 +143,16 @@ const currentNote = computed(() => {
 const localAddress = ref('')
 const addressUpdateTimer = ref<any>(null)
 
-onMounted(() => {
-  if (currentNote.value) {
-    localAddress.value = currentNote.value.address
-  }
-})
-
-// 监听 currentNote 的变化，同步地址
+// 监听 currentNote 的变化，同步初始地址
 watch(
-  () => currentNote.value?.address,
-  (newAddress) => {
-    if (newAddress !== undefined && newAddress !== localAddress.value) {
-      localAddress.value = newAddress
+  () => currentNote.value,
+  (newNote) => {
+    if (newNote?.address) {
+      localAddress.value = newNote.address
     }
-  }
-)
+  },
+  { immediate: true }
+) // 添加 immediate: true 确保首次加载时也执行
 
 // 处理地址输入
 const handleAddressInput = (event: Event) => {
@@ -204,7 +200,8 @@ const updateState = reactive({
 const handleContentUpdate = (newContent: any) => {
   if (!currentNote.value) return
 
-  // 立即更新 lastContent，不要等待防抖
+  // 立即更新本地状态
+  currentNote.value.content = newContent
   updateState.lastContent = newContent
 
   // 保存当前光标位置
