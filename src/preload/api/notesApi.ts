@@ -1,5 +1,5 @@
 import { ipcRenderer } from 'electron'
-import { Note, RelatedNotesResult } from '../../renderer/src/types/Note'
+import { Note, NoteReference, RelatedNotesResult } from '../../renderer/src/types/Note'
 import {
   GetPaginatedNotesParams,
   TimelineQueryParams,
@@ -242,6 +242,45 @@ export const notesApi = {
       return response.result
     } catch (error) {
       console.error('预加载脚本 → 获取时间线笔记失败:', error)
+      throw error
+    }
+  },
+  // 创建笔记引用关系
+  createNoteReference: async (params: {
+    sourceNoteId: string
+    targetNoteId: string
+    type: 'reference'
+    context: {
+      text: string
+      position: number
+    }
+    metadata: {
+      title: string
+      preview: string
+    }
+  }): Promise<NoteReference> => {
+    try {
+      const result = await ipcRenderer.invoke('create-note-reference', params)
+      if (!result.success) {
+        throw new Error(result.error)
+      }
+      return result.reference
+    } catch (error) {
+      console.error('Preload: 创建笔记引用关系失败:', error)
+      throw error
+    }
+  },
+  deleteNoteReference: async (params: {
+    sourceNoteId: string
+    targetNoteId: string
+  }): Promise<void> => {
+    try {
+      const result = await ipcRenderer.invoke('delete-note-reference', params)
+      if (!result.success) {
+        throw new Error(result.error)
+      }
+    } catch (error) {
+      console.error('Preload: 删除笔记引用关系失败:', error)
       throw error
     }
   }

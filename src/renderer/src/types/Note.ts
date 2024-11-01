@@ -90,17 +90,25 @@ export type ReferenceType =
   | 'related'
   | 'sequence'
 
+// 引用关系接口
 export interface NoteReference {
-  noteId: string
-  type: ReferenceType
-  context?: string
-  position?: number
-  createdAt: Date
-  metadata?: {
-    title?: string
-    preview?: string
-    cardType?: CardType
+  id: string // 引用关系的唯一ID
+  sourceNoteId: string // 引用源笔记ID
+  targetNoteId: string // 被引用笔记ID
+  type: 'reference' // 引用类型，目前固定为 'reference'
+  context: {
+    // 引用上下文
+    text: string // 上下文文本
+    position: number // 在文档中的位置
   }
+  metadata: {
+    // 引用元数据
+    title: string // 被引用笔记标题
+    preview: string // 预览内容
+    cardType?: CardType // 可选：笔记类型
+  }
+  createdAt: Date
+  updatedAt: Date
 }
 
 export interface RelationshipTree {

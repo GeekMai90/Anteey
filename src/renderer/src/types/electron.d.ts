@@ -14,7 +14,8 @@ import {
   Connection,
   WhiteboardGroup,
   ConnectionCreateData,
-  RelatedNotesResult
+  RelatedNotesResult,
+  NoteReference
 } from './Note'
 import { UpdateUserSettings, UserSettings } from './UserSettings'
 
@@ -131,6 +132,21 @@ export interface ElectronAPI {
   updateNoteAddress: (id: string, address: string) => Promise<Note>
   updateNoteCardType: (id: string, cardType: string) => Promise<Note>
   getTimelineNotes: (params: TimelineQueryParams) => Promise<TimelineQueryResult>
+  createNoteReference: (params: {
+    sourceNoteId: string
+    targetNoteId: string
+    type: 'reference'
+    context: {
+      text: string
+      position: number
+    }
+    metadata: {
+      title: string
+      preview: string
+      cardType?: string // 添加可选的 cardType 字段
+    }
+  }) => Promise<NoteReference>
+  deleteNoteReference: (params: { sourceNoteId: string; targetNoteId: string }) => Promise<void>
 }
 
 declare global {

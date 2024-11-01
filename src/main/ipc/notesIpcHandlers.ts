@@ -34,7 +34,9 @@ import {
   updateNoteCardType,
   getTimelineNotes,
   TimelineQueryParams,
-  TimelineQueryResult
+  TimelineQueryResult,
+  createNoteReference,
+  deleteNoteReference
 } from '../../db/notesService'
 
 export function setupNotesHandlers() {
@@ -404,4 +406,31 @@ export function setupNotesHandlers() {
       }
     }
   )
+  // 创建笔记引用关系
+  ipcMain.handle('create-note-reference', async (_event, params) => {
+    try {
+      const reference = await createNoteReference(params)
+      return { success: true, reference }
+    } catch (error) {
+      console.error('主进程→ 创建笔记引用关系失败:', error)
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : String(error)
+      }
+    }
+  })
+
+  // 删除笔记引用关系
+  ipcMain.handle('delete-note-reference', async (_event, params) => {
+    try {
+      await deleteNoteReference(params)
+      return { success: true }
+    } catch (error) {
+      console.error('主进程→ 删除笔记引用关系失败:', error)
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : String(error)
+      }
+    }
+  })
 }

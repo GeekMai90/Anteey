@@ -99,25 +99,39 @@ export async function initDatabase(db: Knex): Promise<void> {
       table.string('id').primary()
       table.string('sourceNoteId').notNullable().index() // 引用来源笔记ID
       table.string('targetNoteId').notNullable().index() // 被引用笔记ID
-      table.string('type').notNullable() // 引用类型：quote/reference/parent/child/sibling/related/sequence
-      table.text('context').nullable() // 引用的上下文内容
-      table.integer('position').nullable() // 在文档中的位置
-      table.datetime('createdAt').notNullable()
+      table.string('type').notNullable().defaultTo('reference') // 引用类型，现在固定为 reference
+
+      // 引用上下文，使用 JSON 类型存储更复杂的结构
+      table
+        .json('context')
+        .notNullable()
+        .defaultTo(
+          JSON.stringify({
+            text: '', // 上下文文本
+            position: 0 // 在文档中的位置
+          })
+        )
 
       // 引用元数据
       table
         .json('metadata')
-        .nullable()
+        .notNullable()
         .defaultTo(
           JSON.stringify({
-            title: null, // 被引用笔记的标题
-            preview: null, // 被引用内容的预览
-            cardType: null // 被引用笔记的类型
+            title: '', // 被引用笔记的标题
+            preview: '', // 预览内容
+            cardType: null // 被引用笔记的类型（可选）
           })
         )
 
+      // 时间戳
+      table.datetime('createdAt').notNullable()
+      table.datetime('updatedAt').notNullable()
+
       // 添加复合索引以优化查询
       table.index(['sourceNoteId', 'targetNoteId'])
+      table.index(['createdAt'])
+      table.index(['updatedAt'])
     })
     console.log('note_references 表创建成功')
   }
