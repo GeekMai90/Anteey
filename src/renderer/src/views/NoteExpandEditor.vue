@@ -80,16 +80,27 @@
         {{ formatDate(currentNote.createdAt) }}
       </div>
       <!-- 编辑器内容 -->
-      <div class="content-area">
-        <TipTapEditor
-          v-if="currentNote"
-          ref="tiptapEditor"
-          v-model:content="currentNote.content"
-          :note-id="currentNote.id"
-          :editable="true"
-          :enableDragHandle="true"
-          @update:content="handleContentUpdate"
-        />
+      <div class="content-container">
+        <div class="editor-area">
+          <TipTapEditor
+            v-if="currentNote"
+            ref="tiptapEditor"
+            v-model:content="currentNote.content"
+            :note-id="currentNote.id"
+            :editable="true"
+            :enableDragHandle="true"
+            @update:content="handleContentUpdate"
+          />
+        </div>
+        <!-- 添加反向链接面板 -->
+        <div class="backlinks-area">
+          <BacklinksPanel
+            v-if="currentNote"
+            :note-id="currentNote.id"
+            :references="currentNote.references"
+            @refresh="refreshNoteData"
+          />
+        </div>
       </div>
     </div>
   </div>
@@ -110,6 +121,7 @@ import type { MenuItem } from '@renderer/components/common/PopupMenu.vue'
 import CardTypeDropdownMenu from '@renderer/components/note/CardTypeDropdownMenu.vue'
 import { message } from '@renderer/utils/message'
 import { useMenu } from '@renderer/composables/useMenu'
+import BacklinksPanel from '@renderer/components/note/BacklinksPanel.vue'
 
 // === 组件状态管理 ===
 const tiptapEditor = ref<any>(null)
@@ -131,10 +143,25 @@ onMounted(async () => {
   focusEditor()
 })
 
+const refreshNoteData = async () => {
+  console.log('刷新笔记数据')
+  try {
+    const updatedNote = await noteStore.fetchNote(noteId)
+    console.log('updatedNote:', updatedNote)
+    if (updatedNote) {
+      currentNote.value.references = updatedNote.references
+    }
+  } catch (error) {
+    console.error('刷新笔记数据失败:', error)
+    message.error('刷新笔记数据失败')
+  }
+}
+
 // === 计算属性 ===
 // 获取当前编辑的笔记数据
 const currentNote = computed(() => {
   // console.log('computed 执行, activeNotes:', noteStore.activeNotes)
+  console.log('currentNote:', currentNote.value)
   return noteStore.activeNotes[noteId]
 })
 
@@ -368,10 +395,17 @@ onBeforeUnmount(async () => {
   // flex-grow: 1;
   /* padding: 20px calc((100% - 900px)/2); */
   padding: 20px;
-  overflow: auto;
+  overflow-y: auto; // 让整个内容区可滚动
   max-width: 900px;
   width: 100%;
   margin: 0 auto;
+  .content-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    min-height: min-content; // 确保容器可以根据内容增长
+  }
 
   .content-area {
     flex-grow: 1;
@@ -380,20 +414,26 @@ onBeforeUnmount(async () => {
     position: relative;
     min-height: 0;
   }
+  .editor-area {
+    width: 100%;
+  }
+  .backlinks-area {
+    width: 100%;
+    margin-top: 40px; // 添加一些间距
+    flex-shrink: 0; // 防止面板被压缩
+    background: var(--color-bg-secondary);
+  }
 
   :deep(.tiptap-container) {
     width: 100%;
-    height: 100%;
-    overflow-y: auto;
     padding: 0 10px;
     position: relative;
   }
 
   :deep(.tiptap) {
-    // width: 100%;
+    width: 100%;
     min-width: calc(100% - 40px);
-    min-height: 100%;
-    overflow-y: auto;
+    min-height: 300px;
   }
 }
 

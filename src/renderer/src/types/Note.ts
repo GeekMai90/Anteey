@@ -43,10 +43,7 @@ export interface Note {
   tags: string[] // 标签列表
 
   // 引用关系
-  references: {
-    outgoing: NoteReference[]
-    incoming: NoteReference[]
-  }
+  references: References
 
   // 关系树缓存
   relationshipTree?: RelationshipTree
@@ -90,7 +87,7 @@ export type ReferenceType =
   | 'related'
   | 'sequence'
 
-// 引用关系接口
+// 数据库中的引用关系接口
 export interface NoteReference {
   id: string // 引用关系的唯一ID
   sourceNoteId: string // 引用源笔记ID
@@ -103,12 +100,39 @@ export interface NoteReference {
   }
   metadata: {
     // 引用元数据
+    address: string // 引用笔记的地址
     title: string // 被引用笔记标题
     preview: string // 预览内容
     cardType?: CardType // 可选：笔记类型
   }
   createdAt: Date
   updatedAt: Date
+}
+
+// 笔记内部的引用关系接口（outgoing和incoming使用）
+export interface InternalNoteReference {
+  id: string
+  sourceNoteId?: string // incoming引用需要
+  targetNoteId?: string // outgoing引用需要
+  type: 'reference'
+  context: {
+    text: string
+    position: number
+  }
+  metadata: {
+    address: string
+    title: string
+    preview: string
+    cardType?: CardType
+  }
+  createdAt: Date
+  updatedAt: Date
+}
+
+// 笔记的引用集合接口
+export interface References {
+  incoming: InternalNoteReference[]
+  outgoing: InternalNoteReference[]
 }
 
 export interface RelationshipTree {

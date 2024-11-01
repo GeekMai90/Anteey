@@ -144,6 +144,7 @@ export interface ElectronAPI {
       title: string
       preview: string
       cardType?: string // 添加可选的 cardType 字段
+      address?: string
     }
   }) => Promise<NoteReference>
   deleteNoteReference: (params: { sourceNoteId: string; targetNoteId: string }) => Promise<void>

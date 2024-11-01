@@ -1,6 +1,7 @@
 import { Link } from '@tiptap/extension-link'
 import { mergeAttributes } from '@tiptap/core'
 import { Node as ProsemirrorNode, Mark } from 'prosemirror-model'
+import { useNoteStore } from '@renderer/stores/noteStores'
 
 // 扩展 LinkOptions 类型
 interface CustomLinkOptions {
@@ -12,6 +13,7 @@ interface CustomLinkOptions {
 
 export const CustomLink = Link.extend<CustomLinkOptions>({
   name: 'link',
+  inclusive: false, // 设置为 false，这样新输入的文本不会继承链接标记
 
   addOptions() {
     return {
@@ -71,11 +73,29 @@ export const CustomLink = Link.extend<CustomLinkOptions>({
     )
 
     // 处理删除的链接
+    // if (deletedLinks.length > 0 && this.options.noteId) {
+    //   deletedLinks.forEach((targetNoteId) => {
+    //     setTimeout(async () => {
+    //       try {
+    //         await window.electronAPI.deleteNoteReference({
+    //           sourceNoteId: this.options.noteId!,
+    //           targetNoteId: targetNoteId as string
+    //         })
+    //         console.log('引用关系删除成功:', targetNoteId)
+    //       } catch (error) {
+    //         console.error('删除引用关系失败:', error)
+    //       }
+    //     }, 0)
+    //   })
+    // }
+    // 处理删除的链接
     if (deletedLinks.length > 0 && this.options.noteId) {
+      const noteStore = useNoteStore()
+
       deletedLinks.forEach((targetNoteId) => {
         setTimeout(async () => {
           try {
-            await window.electronAPI.deleteNoteReference({
+            await noteStore.deleteNoteReference({
               sourceNoteId: this.options.noteId!,
               targetNoteId: targetNoteId as string
             })
@@ -127,10 +147,10 @@ export const CustomLink = Link.extend<CustomLinkOptions>({
             'data-note-id': noteId
           })
 
-          // 2. 获取引用上下文（前后50个字符）
-          const contextStart = Math.max(0, range.from - 50)
-          const contextEnd = Math.min(state.doc.content.size, range.to + 50)
-          const context = state.doc.textBetween(contextStart, contextEnd)
+          // 2. 获取当前节点的文本内容作为上下文
+          const $pos = state.doc.resolve(range.from)
+          const currentNode = $pos.node()
+          const context = currentNode.textContent || title // 如果节点没有文本内容，就使用标题作为上下文
 
           // 3. 创建并插入节点
           const text = state.schema.text(title)
@@ -141,7 +161,11 @@ export const CustomLink = Link.extend<CustomLinkOptions>({
           if (currentNoteId) {
             setTimeout(async () => {
               try {
-                await window.electronAPI.createNoteReference({
+                const noteStore = useNoteStore()
+                // 先获取目标笔记的信息
+                const targetNote = await noteStore.fetchNote(noteId)
+
+                await noteStore.createNoteReference({
                   sourceNoteId: currentNoteId,
                   targetNoteId: noteId,
                   type: 'reference',
@@ -152,7 +176,8 @@ export const CustomLink = Link.extend<CustomLinkOptions>({
                   metadata: {
                     title,
                     preview: context,
-                    cardType: 'reference'
+                    cardType: targetNote?.cardType, // 使用目标笔记的类型
+                    address: targetNote?.address // 同时也添加地址
                   }
                 })
               } catch (error) {
@@ -194,17 +219,17 @@ export const CustomLink = Link.extend<CustomLinkOptions>({
 })
 
 // 添加样式
-const style = document.createElement('style')
-style.textContent = `
-  .note-reference-link {
-    color: var(--note-link-color, #3b82f6);
-    text-decoration: none;
-    border-bottom: 1px dashed currentColor;
-    cursor: pointer;
-  }
-  
-  .note-reference-link:hover {
-    background-color: rgba(59, 130, 246, 0.1);
-  }
-`
-document.head.appendChild(style)
+// const style = document.createElement('style')
+// style.textContent = `
+//   .note-reference-link {
+//     color: var(--note-link-color, #3b82f6);
+//     text-decoration: none;
+//     border-bottom: 1px dashed currentColor;
+//     cursor: pointer;
+//   }
+
+//   .note-reference-link:hover {
+//     background-color: rgba(59, 130, 246, 0.1);
+//   }
+// `
+// document.head.appendChild(style)

@@ -11,6 +11,7 @@ import { extractKeywords } from '../renderer/src/utils/keywordExtractor'
 import { calculateSimilarity } from '../renderer/src/utils/noteSililarity'
 import { SemanticVectorizer } from '../renderer/src/utils/semanticVector'
 import { extractTextFromContent } from '../renderer/src/utils/keywordExtractor'
+import type { NoteReference, InternalNoteReference } from '@renderer/types/Note'
 
 // 辅助函数：将数据库记录转换为 Note 对象
 function convertToNote(record: any): Note {
@@ -1570,27 +1571,6 @@ export async function getTimelineNotes(params: TimelineQueryParams): Promise<Tim
   }
 }
 
-// 引用关系类型定义
-export interface NoteReference {
-  id: string
-  sourceNoteId: string // 引用源笔记ID
-  targetNoteId: string // 被引用笔记ID
-  type: 'reference' // 引用类型
-  context: {
-    // 引用上下文
-    text: string // 上下文文本
-    position: number // 在文档中的位置
-  }
-  metadata: {
-    // 引用元数据
-    title: string // 被引用笔记标题
-    preview: string // 预览内容
-    cardType?: string // 可选：笔记类型
-  }
-  createdAt: Date
-  updatedAt: Date
-}
-
 // 创建引用关系
 export interface CreateNoteReferenceParams {
   sourceNoteId: string
@@ -1612,6 +1592,7 @@ export async function createNoteReference(
 ): Promise<NoteReference> {
   try {
     console.log('后端→ 创建笔记引用关系:', params)
+    const now = new Date()
 
     // 1. 验证笔记是否存在
     const [sourceNote, targetNote] = await Promise.all([
@@ -1633,51 +1614,69 @@ export async function createNoteReference(
         context: JSON.stringify(params.context),
         metadata: JSON.stringify({
           ...params.metadata,
+          address: targetNote.address,
           cardType: params.metadata.cardType || targetNote.cardType
         }),
-        createdAt: new Date(),
-        updatedAt: new Date()
+        createdAt: now,
+        updatedAt: now
       })
       .returning('*')
 
-    // 3. 更新源笔记的 outgoing references
-    const sourceReferences = JSON.parse(sourceNote.references)
-    sourceReferences.outgoing.push({
+    // 3. 创建内部引用对象
+    const outgoingRef: InternalNoteReference = {
       id: reference.id,
       targetNoteId: params.targetNoteId,
       type: params.type,
       context: params.context,
-      metadata: params.metadata
-    })
-    await db('notes')
-      .where('id', params.sourceNoteId)
-      .update({
-        references: JSON.stringify(sourceReferences),
-        updatedAt: new Date()
-      })
+      metadata: {
+        ...params.metadata,
+        address: targetNote.address,
+        cardType: params.metadata.cardType || targetNote.cardType
+      },
+      createdAt: now,
+      updatedAt: now
+    }
 
-    // 4. 更新目标笔记的 incoming references
-    const targetReferences = JSON.parse(targetNote.references)
-    targetReferences.incoming.push({
+    const incomingRef: InternalNoteReference = {
       id: reference.id,
       sourceNoteId: params.sourceNoteId,
       type: params.type,
       context: params.context,
-      metadata: params.metadata
-    })
+      metadata: {
+        ...params.metadata,
+        address: sourceNote.address,
+        cardType: params.metadata.cardType || sourceNote.cardType
+      },
+      createdAt: now,
+      updatedAt: now
+    }
+
+    // 4. 更新源笔记的 outgoing references
+    const sourceReferences = JSON.parse(sourceNote.references)
+    sourceReferences.outgoing.push(outgoingRef)
+    await db('notes')
+      .where('id', params.sourceNoteId)
+      .update({
+        references: JSON.stringify(sourceReferences),
+        updatedAt: now
+      })
+
+    // 5. 更新目标笔记的 incoming references
+    const targetReferences = JSON.parse(targetNote.references)
+    targetReferences.incoming.push(incomingRef)
     await db('notes')
       .where('id', params.targetNoteId)
       .update({
         references: JSON.stringify(targetReferences),
-        updatedAt: new Date()
+        updatedAt: now
       })
 
     return {
       ...reference,
       context: JSON.parse(reference.context),
       metadata: JSON.parse(reference.metadata),
-      createdAt: new Date(reference.createdAt),
-      updatedAt: new Date(reference.updatedAt)
+      createdAt: now,
+      updatedAt: now
     }
   } catch (error) {
     console.error('后端→ 创建笔记引用关系失败:', error)
@@ -1685,7 +1684,6 @@ export async function createNoteReference(
   }
 }
 
-// 删除引用关系
 export async function deleteNoteReference(params: {
   sourceNoteId: string
   targetNoteId: string
@@ -1709,7 +1707,7 @@ export async function deleteNoteReference(params: {
     const sourceNote = await db('notes').where('id', params.sourceNoteId).first()
     const sourceReferences = JSON.parse(sourceNote.references)
     sourceReferences.outgoing = sourceReferences.outgoing.filter(
-      (ref: NoteReference) => ref.targetNoteId !== params.targetNoteId
+      (ref: InternalNoteReference) => ref.targetNoteId !== params.targetNoteId
     )
     await db('notes')
       .where('id', params.sourceNoteId)
@@ -1722,7 +1720,7 @@ export async function deleteNoteReference(params: {
     const targetNote = await db('notes').where('id', params.targetNoteId).first()
     const targetReferences = JSON.parse(targetNote.references)
     targetReferences.incoming = targetReferences.incoming.filter(
-      (ref: NoteReference) => ref.sourceNoteId !== params.sourceNoteId
+      (ref: InternalNoteReference) => ref.sourceNoteId !== params.sourceNoteId
     )
     await db('notes')
       .where('id', params.targetNoteId)

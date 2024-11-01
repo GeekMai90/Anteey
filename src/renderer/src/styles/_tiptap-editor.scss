@@ -153,36 +153,31 @@
     align-items: center;
     text-decoration: none;
     font-size: inherit;
-    line-height: 1; // 设置为1，确保内容紧贴
-    vertical-align: middle; // 使用middle而不是baseline
+    line-height: inherit;
+    vertical-align: baseline;
+    position: relative;
+    color: var(--color-primary);
+    transition: all 0.2s ease;
+    height: 1.2em; // 设置一个固定的高度，与行高匹配
+    margin: 0 4px;
 
-    &::before {
+    &::after {
       content: "";
-      display: inline-block;
-      width: 1em;
-      height: 1em;
-      margin-right: 0.25em;
-      // background-image: url("data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIHZpZXdCb3g9IjAgMCA0OCA0OCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNMTAgNEgzMEw0MCAxNFY0NEgxMFY0WiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSJjdXJyZW50Q29sb3IiIHN0cm9rZS13aWR0aD0iMyIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+PHBhdGggZD0iTTMwIDRWMTRINDBNMTkgMjFIMjlNMTkgMzFIMjkiIHN0cm9rZT0iY3VycmVudENvbG9yIiBzdHJva2Utd2lkdGg9IjMiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPjwvc3ZnPg==");
-      background-image: url("data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIHZpZXdCb3g9IjAgMCA0OCA0OCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNOCA2QzggNC44OTU0MyA4Ljg5NTQzIDQgMTAgNEgzMEw0MCAxNFY0MkM0MCA0My4xMDQ2IDM5LjEwNDYgNDQgMzggNDRIMTBDOC44OTU0MyA0NCA4IDQzLjEwNDYgOCA0MlY2WiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMjUyNTI1IiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz48cGF0aCBkPSJNMTYgMjBIMzIiIHN0cm9rZT0iIzI1MjUyNSIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz48cGF0aCBkPSJNMTYgMjhIMzIiIHN0cm9rZT0iIzI1MjUyNSIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz48L3N2Zz4=");
-      background-size: contain;
-      background-repeat: no-repeat;
-      background-position: center;
-      flex-shrink: 0;
-      vertical-align: middle; // 确保图标也垂直居中
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 1px;
+      background-color: currentColor;
+      opacity: 0.5;
     }
 
     &:hover {
-      text-decoration: underline;
-    }
-  }
+      text-decoration: none;
 
-  // 为了确保链接在行内时也能正确对齐，可以添加以下样式
-  p,
-  div,
-  span {
-    a[href^="note://"]
-    {
-      vertical-align: -0.1em; // 微调垂直对齐
+      &::after {
+        opacity: 1;
+      }
     }
   }
   // 删除线

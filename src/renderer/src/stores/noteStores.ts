@@ -164,17 +164,17 @@ export const useNoteStore = defineStore(
 
       try {
         // 1. 先检查缓存
-        if (noteCache.has(noteId)) {
-          console.log('Store: 从缓存获取笔记')
-          const note = noteCache.get(noteId)!
-          // 确保使用响应式更新
-          activeNotes.value = {
-            ...activeNotes.value,
-            [noteId]: { ...note }
-          }
-          console.log('Store: 从缓存更新后的状态:', activeNotes.value)
-          return note
-        }
+        // if (noteCache.has(noteId)) {
+        //   console.log('Store: 从缓存获取笔记')
+        //   const note = noteCache.get(noteId)!
+        //   // 确保使用响应式更新
+        //   activeNotes.value = {
+        //     ...activeNotes.value,
+        //     [noteId]: { ...note }
+        //   }
+        //   console.log('Store: 从缓存更新后的状态:', activeNotes.value)
+        //   return note
+        // }
 
         // 2. 缓存没有则从后端获取
         console.log('Store: 从后端获取笔记')
@@ -400,9 +400,6 @@ export const useNoteStore = defineStore(
       })
 
       try {
-        // 添加最小延迟确保用户能看到保存状态
-        await new Promise((resolve) => setTimeout(resolve, 500))
-
         // 5. 发送后端请求
         const updatedNote = await window.electronAPI.updateNoteCardType(noteId, cardType)
 
@@ -479,9 +476,6 @@ export const useNoteStore = defineStore(
       })
 
       try {
-        // 添加最小延迟确保用户能看到保存状态
-        await new Promise((resolve) => setTimeout(resolve, 500))
-
         // 6. 发送后端请求
         const updatedNote = await window.electronAPI.updateNoteCardBox(noteId, cardBoxId)
 
@@ -571,6 +565,92 @@ export const useNoteStore = defineStore(
       } catch (error) {
         updateSaveStatus('error')
         console.error('立即保存笔记内容失败:', error)
+        throw error
+      }
+    }
+
+    // 创建笔记引用关系
+    const createNoteReference = async (referenceData: {
+      sourceNoteId: string
+      targetNoteId: string
+      type: 'reference' // 固定为 "reference"
+      context: {
+        text: string
+        position: number
+      }
+      metadata: {
+        title: string
+        preview: string
+        cardType?: string
+        address?: string
+      }
+    }) => {
+      const { sourceNoteId, targetNoteId } = referenceData
+
+      updateSaveStatus('saving')
+
+      try {
+        // 1. 创建引用关系
+        await window.electronAPI.createNoteReference(referenceData)
+
+        // 2. 获取更新后的笔记数据
+        const [updatedSourceNote, updatedTargetNote] = await Promise.all([
+          window.electronAPI.getNote(sourceNoteId),
+          window.electronAPI.getNote(targetNoteId)
+        ])
+
+        // 4. 更新目标笔记的缓存数据
+        if (activeNotes.value[targetNoteId] && updatedTargetNote) {
+          activeNotes.value[targetNoteId] = updatedTargetNote
+          if (noteCache.has(targetNoteId)) {
+            noteCache.set(targetNoteId, updatedTargetNote)
+          }
+          if (targetNoteId in visibleNotes.value) {
+            visibleNotes.value[targetNoteId] = updatedTargetNote
+          }
+        }
+
+        updateSaveStatus('saved')
+        return { sourceNote: updatedSourceNote, targetNote: updatedTargetNote }
+      } catch (error) {
+        console.error('创建引用关系失败:', error)
+        updateSaveStatus('error')
+        throw error
+      }
+    }
+
+    // 删除笔记引用关系
+    const deleteNoteReference = async (params: { sourceNoteId: string; targetNoteId: string }) => {
+      const { sourceNoteId, targetNoteId } = params
+
+      updateSaveStatus('saving')
+
+      try {
+        // 1. 删除引用关系
+        await window.electronAPI.deleteNoteReference(params)
+
+        // 2. 获取更新后的笔记数据
+        const [updatedSourceNote, updatedTargetNote] = await Promise.all([
+          window.electronAPI.getNote(sourceNoteId),
+          window.electronAPI.getNote(targetNoteId)
+        ])
+
+        // 3. 更新目标笔记的缓存数据
+        if (activeNotes.value[targetNoteId] && updatedTargetNote) {
+          activeNotes.value[targetNoteId] = updatedTargetNote
+          if (noteCache.has(targetNoteId)) {
+            noteCache.set(targetNoteId, updatedTargetNote)
+          }
+          if (targetNoteId in visibleNotes.value) {
+            visibleNotes.value[targetNoteId] = updatedTargetNote
+          }
+        }
+
+        updateSaveStatus('saved')
+        return { sourceNote: updatedSourceNote, targetNote: updatedTargetNote }
+      } catch (error) {
+        console.error('删除引用关系失败:', error)
+        updateSaveStatus('error')
         throw error
       }
     }
@@ -1584,7 +1664,9 @@ export const useNoteStore = defineStore(
       saveNoteContentImmediately,
       rightSidebarActiveNotes,
       activateRightSidebarNote,
-      deactivateRightSidebarNote
+      deactivateRightSidebarNote,
+      createNoteReference,
+      deleteNoteReference
     }
   },
   {
