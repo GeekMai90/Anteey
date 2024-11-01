@@ -10,7 +10,12 @@
         @click="handleExpand"
       >
         <div class="icon">
-          <ExpandTextInput theme="outline" size="16" fill="#b6b6b6" :stroke-width="3" />
+          <ExpandTextInput
+            theme="outline"
+            size="16"
+            fill="var(--color-icon-default)"
+            :stroke-width="3"
+          />
         </div>
       </div>
       <div class="toolbar-right">
