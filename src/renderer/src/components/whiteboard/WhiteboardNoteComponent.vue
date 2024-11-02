@@ -98,12 +98,13 @@ import {
   ComputedRef,
   CSSProperties,
   nextTick,
+  onBeforeUnmount,
   onMounted,
   onUnmounted,
   ref,
   watch
 } from 'vue'
-import { CardBox, WhiteboardNote } from '@renderer/types/Note'
+import { CardBox, CardType, Note, WhiteboardNote } from '@renderer/types/Note'
 import { useNoteStore } from '@renderer/stores/noteStores'
 import TipTapEditor from '@renderer/components/tiptap/TipTapEditor.vue'
 import { useRouter } from 'vue-router'
@@ -116,8 +117,9 @@ import WhiteboardNoteToolbar from '@renderer/components/whiteboard/WhiteboardNot
 import CardTypeDropdownMenu from '@renderer/components/note/CardTypeDropdownMenu.vue'
 import { MenuItem } from '@renderer/components/common/PopupMenu.vue'
 import { message } from '@renderer/utils/message'
-import { reactive } from 'vue'
 import { useMenu } from '@renderer/composables/useMenu'
+import { debounce } from 'lodash-es'
+import { EditorState } from '@tiptap/pm/state/dist'
 
 const props = defineProps<{
   noteId: string
@@ -361,64 +363,80 @@ const startConnection = (event: MouseEvent) => {
 
 // 笔记的保存功能
 
+const currentNote = ref<Note | null>(null)
 // === 生命周期钩子 ===
-
-onMounted(async () => {
-  // 1. 组件挂载时获取笔记
-  await noteStore.fetchNote(props.noteId)
-  // 2. 激活笔记编辑状态
-  noteStore.activateNote(props.noteId)
+// 初始化笔记数据
+const initializeNote = async (noteId: string) => {
+  try {
+    const note = await noteStore.fetchNote(noteId)
+    if (note) {
+      currentNote.value = note
+      // 添加到最近笔记
+      noteStore.addToRecentNotes(noteId)
+      focusEditor()
+    } else {
+      message.error('笔记不存在')
+    }
+  } catch (error) {
+    console.error('加载笔记失败:', error)
+    message.error('加载笔记失败')
+  }
+}
+// 组件挂载时加载笔记
+onMounted(() => {
+  const noteId = props.noteId
+  if (noteId && typeof noteId === 'string') {
+    initializeNote(noteId)
+  }
 })
 
-// === 计算属性 ===
-// 获取当前编辑的笔记数据
-const currentNote = computed(() => {
-  console.log('computed 执行, activeNotes:', noteStore.activeNotes)
-  return noteStore.activeNotes[props.noteId]
-})
+// 监听路由参数变化，重新加载笔记
+watch(
+  () => props.noteId,
+  (newId) => {
+    if (newId && typeof newId === 'string') {
+      initializeNote(newId)
+    }
+  }
+)
 
 // === 地址输入处理 ===
 // 使用本地状态来管理输入
 const localAddress = ref('')
 const addressUpdateTimer = ref<any>(null)
 
-onMounted(() => {
-  if (currentNote.value) {
-    localAddress.value = currentNote.value.address
-  }
-})
-
-// 监听 currentNote 的变化，同步地址
+// 监听 currentNote 的变化，同步初始地址
 watch(
   () => currentNote.value?.address,
   (newAddress) => {
-    if (newAddress !== undefined && newAddress !== localAddress.value) {
+    if (newAddress) {
       localAddress.value = newAddress
     }
-  }
+  },
+  { immediate: true }
 )
+
+// 使用防抖处理地址更新
+const updateAddress = debounce(async (address: string) => {
+  if (!currentNote.value) return
+
+  try {
+    const updatedNote = await noteStore.updateNoteAddress(currentNote.value.id, address)
+    // 更新本地状态
+    currentNote.value = updatedNote
+  } catch (error) {
+    console.error('更新地址失败:', error)
+    message.error('更新地址失败')
+    // 回滚到最后一个有效的地址
+    localAddress.value = currentNote.value.address
+  }
+}, 300)
 
 // 处理地址输入
 const handleAddressInput = (event: Event) => {
   const input = event.target as HTMLInputElement
   localAddress.value = input.value
-
-  if (currentNote.value) {
-    currentNote.value.address = input.value
-  }
-
-  if (addressUpdateTimer.value) {
-    clearTimeout(addressUpdateTimer.value)
-  }
-
-  addressUpdateTimer.value = setTimeout(async () => {
-    try {
-      await noteStore.updateNoteAddress(props.noteId, localAddress.value)
-    } catch (error) {
-      console.error('更新地址失败:', error)
-      message.error('更新地址失败')
-    }
-  }, 300)
+  updateAddress(input.value)
 }
 
 // 处理回车键
@@ -432,46 +450,47 @@ const handleAddressEnter = (event: KeyboardEvent) => {
 }
 
 // === 内容更新处理 ===
-// 编辑器内容更新状态管理
-const updateState = reactive({
-  pending: false,
-  lastContent: null as any,
-  updateTimer: null as any,
-  saveTimeout: 2000 // 保存延迟时间，可以根据实际需求调整
-})
+// 使用防抖保存内容
 const tiptapEditor = ref<any>(null)
-// 处理编辑器内容更新
-const handleContentUpdate = (newContent: any) => {
-  if (!currentNote.value) return
-
-  // 立即更新 lastContent，不要等待防抖
-  updateState.lastContent = newContent
-
-  // 保存当前光标位置
-  const editor = tiptapEditor.value?.editor
-  const selection = editor?.state.selection
-
-  // 使用防抖进行保存
-  if (updateState.updateTimer) {
-    clearTimeout(updateState.updateTimer)
-  }
-
-  updateState.updateTimer = setTimeout(async () => {
+const saveContent = debounce(
+  async (noteId: string, content: any, selection?: EditorState['selection']) => {
     try {
-      await noteStore.updateNoteContent(currentNote.value.id, newContent)
+      await noteStore.updateNoteContent(noteId, content)
 
       // 恢复光标位置
       nextTick(() => {
+        const editor = tiptapEditor.value?.editor
         if (editor && selection) {
           editor.commands.setTextSelection(selection.$head.pos)
         }
       })
     } catch (error) {
-      console.error('内容更新失败:', error)
+      console.error('保存笔记失败:', error)
       message.error('保存失败')
     }
-  }, updateState.saveTimeout)
+  },
+  2000
+) // 2秒的防抖时间
+
+// 处理编辑器内容更新
+const handleContentUpdate = (newContent: any) => {
+  if (!currentNote.value) return
+
+  // 1. 立即更新本地状态，保持编辑器响应
+  currentNote.value.content = newContent
+
+  // 2. 保存当前光标位置
+  const editor = tiptapEditor.value?.editor
+  const selection = editor?.state.selection
+
+  // 3. 使用防抖保存
+  saveContent(currentNote.value.id, newContent, selection)
 }
+
+// 在组件卸载前确保所有待保存的内容都已保存
+onBeforeUnmount(() => {
+  saveContent.flush()
+})
 
 // === 卡片类型菜单管理 ===
 const indicatorButton = ref<HTMLElement | null>(null)
@@ -502,7 +521,8 @@ const cardTypeClass = computed(() => ({
 const handleCardTypeSelect = async (newType: string) => {
   if (currentNote.value) {
     try {
-      await noteStore.updateNoteCardType(props.noteId, newType)
+      currentNote.value.cardType = newType as CardType
+      await noteStore.updateNoteCardType(props.noteId, newType as CardType)
       closeCardTypeMenu()
     } catch (error) {
       console.error('更新卡片类型失败:', error)
@@ -564,8 +584,8 @@ const handleGlobalClick = (event: MouseEvent) => {
 
 onMounted(() => {
   document.addEventListener('click', handleGlobalClick)
-  if (currentNote.value?.cardBoxId) {
-    const currentCardBox = cardBoxes.value.find((box) => box.id === currentNote.value.cardBoxId)
+  if (currentNote.value && currentNote.value.cardBoxId) {
+    const currentCardBox = cardBoxes.value.find((box) => box.id === currentNote.value?.cardBoxId)
     if (currentCardBox) {
       selectedCardBox.value = currentCardBox
     }

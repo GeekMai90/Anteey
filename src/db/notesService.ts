@@ -11,7 +11,7 @@ import { extractKeywords } from '../renderer/src/utils/keywordExtractor'
 import { calculateSimilarity } from '../renderer/src/utils/noteSililarity'
 import { SemanticVectorizer } from '../renderer/src/utils/semanticVector'
 import { extractTextFromContent } from '../renderer/src/utils/keywordExtractor'
-import type { NoteReference, InternalNoteReference } from '@renderer/types/Note'
+import type { NoteReference, InternalNoteReference } from '../renderer/src/types/Note'
 
 // 辅助函数：将数据库记录转换为 Note 对象
 function convertToNote(record: any): Note {

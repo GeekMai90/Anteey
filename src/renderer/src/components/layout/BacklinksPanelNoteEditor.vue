@@ -30,7 +30,12 @@
         </div>
         <!-- 右侧工具栏 -->
         <div class="toolbar-right">
-          <div ref="cardboxBtnRef" class="install-btn" @click.stop="openInMainPanel">
+          <div
+            v-if="currentNote"
+            ref="cardboxBtnRef"
+            class="install-btn"
+            @click.stop="openInMainPanel"
+          >
             <div v-tooltip.bottom="{ content: '在主面板打开', delay: { show: 1000 } }" class="icon">
               <Afferent
                 theme="outline"
@@ -105,7 +110,6 @@ const initializeNote = async (noteId: string) => {
       currentNote.value = note
       // 添加到最近笔记
       noteStore.addToRecentNotes(noteId)
-      focusEditor()
     } else {
       message.error('笔记不存在')
     }

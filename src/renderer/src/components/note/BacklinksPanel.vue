@@ -141,7 +141,7 @@ const handleLinkClick = (link: InternalNoteReference) => {
 const formatLinkContext = (text: string | undefined) => {
   if (!text) return ''
   // 将特殊标记转换为 Heptabase 风格的引用链接
-  return text.replace(/\[\[([0-9a-f-]+):(.+?)\]\]/g, (_, id, text) => {
+  return text.replace(/\[\[([0-9a-f-]+):(.+?)\]\]/g, (_, _id, text) => {
     return `<span class="reference-link"><span class="reference-text">${text}</span></span>`
   })
 }
