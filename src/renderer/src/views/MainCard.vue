@@ -297,8 +297,7 @@ import { GetPaginatedNotesParams } from '../../../db/notesService'
 
 const noteStore = useNoteStore()
 
-const { selectedCardTypes, lastUpdatedNote, lastCreatedNote, lastDeletedNote } =
-  storeToRefs(noteStore)
+const { selectedCardTypes, lastCreatedNote, lastDeletedNote } = storeToRefs(noteStore)
 const showCardBoxMenu = ref(false)
 const selectedCardBox = ref<CardBox | null>(null)
 const showMoreActions = ref<string | null>(null)
@@ -479,7 +478,7 @@ onUnmounted(() => {
 })
 
 // 设置事件总线，用于监听笔记更新和创建事件
-const eventBus = useEventBus('note-updated')
+const noteUpdatedBus = useEventBus<Note>('note-updated')
 const eventBusCreated = useEventBus('note-created')
 const eventBusDeleted = useEventBus('note-deleted')
 const eventBusEmptyNotesMovedToTrash = useEventBus('empty-notes-moved-to-trash')
@@ -497,10 +496,10 @@ eventBusEmptyNotesMovedToTrash.on(() => {
 })
 
 // 监听笔记更新事件
-eventBus.on(() => {
-  console.log('TimelineView.vue→ 监听到笔记更新事件', lastUpdatedNote.value)
-  if (!lastUpdatedNote.value) return
-  updateSingleNote(lastUpdatedNote.value)
+noteUpdatedBus.on((updatedNote) => {
+  console.log('TimelineView.vue→ 监听到笔记更新事件', updatedNote)
+  if (!updatedNote) return
+  updateSingleNote(updatedNote)
 })
 // 更新单个笔记的函数
 const updateSingleNote = (updatedNote: Note) => {

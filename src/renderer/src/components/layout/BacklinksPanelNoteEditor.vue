@@ -73,7 +73,7 @@
   </div>
 </template>
 <script setup lang="ts">
-import { ref, onMounted, computed, nextTick, reactive, onBeforeUnmount, watch } from 'vue'
+import { ref, onMounted, computed, nextTick, onBeforeUnmount, watch } from 'vue'
 import { useNoteStore } from '@renderer/stores/noteStores'
 import { formatDate } from '@renderer/utils/noteHelpers'
 import TipTapEditor from '@renderer/components/tiptap/TipTapEditor.vue'
@@ -84,6 +84,9 @@ import BacklinksPanel from '@renderer/components/note/BacklinksPanel.vue'
 import { Afferent } from '@icon-park/vue-next'
 import { useRouter } from 'vue-router/dist/vue-router'
 import { useUIStore } from '@renderer/stores/useUIStore'
+import { debounce } from 'lodash-es'
+import { CardType, Note } from '@renderer/types/Note'
+import { EditorState } from '@tiptap/pm/state/dist'
 
 // === 组件状态管理 ===
 const tiptapEditor = ref<any>(null)
@@ -92,56 +95,67 @@ const noteStore = useNoteStore()
 const addressInput = ref<HTMLInputElement | null>(null)
 const router = useRouter()
 const uiStore = useUIStore()
+const currentNote = ref<Note | null>(null)
+
+// 初始化笔记数据
+const initializeNote = async (noteId: string) => {
+  try {
+    const note = await noteStore.fetchNote(noteId)
+    if (note) {
+      currentNote.value = note
+      // 添加到最近笔记
+      noteStore.addToRecentNotes(noteId)
+      focusEditor()
+    } else {
+      message.error('笔记不存在')
+    }
+  } catch (error) {
+    console.error('加载笔记失败:', error)
+    message.error('加载笔记失败')
+  }
+}
+
+// 组件挂载时加载笔记
+onMounted(() => {
+  const noteId = noteStore.rightSidebarBacklinkNoteId
+  if (noteId && typeof noteId === 'string') {
+    initializeNote(noteId)
+  }
+})
 
 watch(
   () => noteStore.rightSidebarBacklinkNoteId,
   (newId) => {
-    noteId.value = newId
+    if (newId && typeof newId === 'string') {
+      initializeNote(newId)
+    }
   }
 )
-// === 生命周期钩子 ===
 
-onMounted(async () => {
-  if (noteStore.rightSidebarBacklinkNoteId) {
-    noteId.value = noteStore.rightSidebarBacklinkNoteId
-    // 1. 组件挂载时获取笔记
-    await noteStore.fetchNote(noteId.value)
-    // 2. 激活笔记编辑状态
-    noteStore.activateNote(noteId.value)
-    // 3. 添加到最近笔记
-    noteStore.addToRecentNotes(noteId.value)
-
-    focusEditor()
-  }
-})
-
+// 打开笔记到主面板
 const openInMainPanel = () => {
-  router.push(`/note/${noteId.value}`)
+  saveContent.flush()
+  router.push(`/note/${currentNote.value?.id}`)
   noteStore.rightSidebarBacklinkNoteId = null
   uiStore.toggleRightSidebar()
 }
 
+// 刷新笔记数据
 const refreshNoteData = async () => {
-  console.log('刷新笔记数据')
   try {
-    const updatedNote = await noteStore.fetchNote(noteId.value!)
-    console.log('updatedNote:', updatedNote)
+    // 检查 currentNote.value 和 id 是否存在
+    if (!currentNote.value?.id) {
+      return
+    }
+    const updatedNote = await noteStore.fetchNote(currentNote.value.id)
     if (updatedNote) {
-      currentNote.value.references = updatedNote.references
+      currentNote.value = updatedNote
     }
   } catch (error) {
     console.error('刷新笔记数据失败:', error)
     message.error('刷新笔记数据失败')
   }
 }
-
-// === 计算属性 ===
-// 获取当前编辑的笔记数据
-const currentNote = computed(() => {
-  // console.log('computed 执行, activeNotes:', noteStore.activeNotes)
-  console.log('currentNote:', currentNote.value)
-  return noteStore.activeNotes[noteId.value!]
-})
 
 // === 地址输入处理 ===
 // 使用本地状态来管理输入
@@ -150,36 +164,36 @@ const addressUpdateTimer = ref<any>(null)
 
 // 监听 currentNote 的变化，同步初始地址
 watch(
-  () => currentNote.value,
-  (newNote) => {
-    if (newNote?.address) {
-      localAddress.value = newNote.address
+  () => currentNote.value?.address,
+  (newAddress) => {
+    if (newAddress) {
+      localAddress.value = newAddress
     }
   },
   { immediate: true }
-) // 添加 immediate: true 确保首次加载时也执行
+)
+
+// 使用防抖处理地址更新
+const updateAddress = debounce(async (address: string) => {
+  if (!currentNote.value) return
+
+  try {
+    const updatedNote = await noteStore.updateNoteAddress(currentNote.value.id, address)
+    // 更新本地状态
+    currentNote.value = updatedNote
+  } catch (error) {
+    console.error('更新地址失败:', error)
+    message.error('更新地址失败')
+    // 回滚到最后一个有效的地址
+    localAddress.value = currentNote.value.address
+  }
+}, 300)
 
 // 处理地址输入
 const handleAddressInput = (event: Event) => {
   const input = event.target as HTMLInputElement
   localAddress.value = input.value
-
-  if (currentNote.value) {
-    currentNote.value.address = input.value
-  }
-
-  if (addressUpdateTimer.value) {
-    clearTimeout(addressUpdateTimer.value)
-  }
-
-  addressUpdateTimer.value = setTimeout(async () => {
-    try {
-      await noteStore.updateNoteAddress(noteId.value!, localAddress.value)
-    } catch (error) {
-      console.error('更新地址失败:', error)
-      message.error('更新地址失败')
-    }
-  }, 300)
+  updateAddress(input.value)
 }
 
 // 处理回车键
@@ -193,47 +207,46 @@ const handleAddressEnter = (event: KeyboardEvent) => {
 }
 
 // === 内容更新处理 ===
-// 编辑器内容更新状态管理
-const updateState = reactive({
-  pending: false,
-  lastContent: null as any,
-  updateTimer: null as any,
-  saveTimeout: 2000 // 保存延迟时间，可以根据实际需求调整
-})
-
-// 处理编辑器内容更新
-const handleContentUpdate = (newContent: any) => {
-  if (!currentNote.value) return
-
-  // 立即更新本地状态
-  currentNote.value.content = newContent
-  updateState.lastContent = newContent
-
-  // 保存当前光标位置
-  const editor = tiptapEditor.value?.editor
-  const selection = editor?.state.selection
-
-  // 使用防抖进行保存
-  if (updateState.updateTimer) {
-    clearTimeout(updateState.updateTimer)
-  }
-
-  updateState.updateTimer = setTimeout(async () => {
+// 使用防抖保存内容
+const saveContent = debounce(
+  async (noteId: string, content: any, selection?: EditorState['selection']) => {
     try {
-      await noteStore.updateNoteContent(currentNote.value.id, newContent)
+      await noteStore.updateNoteContent(noteId, content)
 
       // 恢复光标位置
       nextTick(() => {
+        const editor = tiptapEditor.value?.editor
         if (editor && selection) {
           editor.commands.setTextSelection(selection.$head.pos)
         }
       })
     } catch (error) {
-      console.error('内容更新失败:', error)
+      console.error('保存笔记失败:', error)
       message.error('保存失败')
     }
-  }, updateState.saveTimeout)
+  },
+  2000
+) // 2秒的防抖时间
+
+// 处理编辑器内容更新
+const handleContentUpdate = (newContent: any) => {
+  if (!currentNote.value) return
+
+  // 1. 立即更新本地状态，保持编辑器响应
+  currentNote.value.content = newContent
+
+  // 2. 保存当前光标位置
+  const editor = tiptapEditor.value?.editor
+  const selection = editor?.state.selection
+
+  // 3. 使用防抖保存
+  saveContent(currentNote.value.id, newContent, selection)
 }
+
+// 在组件卸载前确保所有待保存的内容都已保存
+onBeforeUnmount(() => {
+  saveContent.flush()
+})
 
 // === 卡片类型菜单管理 ===
 const indicatorButton = ref<HTMLElement | null>(null)
@@ -262,14 +275,14 @@ const cardTypeClass = computed(() => ({
 
 // 处理卡片类型选择和更新
 const handleCardTypeSelect = async (newType: string) => {
-  if (currentNote.value) {
-    try {
-      await noteStore.updateNoteCardType(noteId.value!, newType)
-      closeCardTypeMenu()
-    } catch (error) {
-      console.error('更新卡片类型失败:', error)
-      message.error('更新卡片类型失败')
-    }
+  if (!currentNote.value) return
+  currentNote.value.cardType = newType as CardType
+  try {
+    await noteStore.updateNoteCardType(currentNote.value.id, newType as CardType)
+    closeCardTypeMenu()
+  } catch (error) {
+    console.error('更新卡片类型失败:', error)
+    message.error('更新卡片类型失败')
   }
 }
 
@@ -286,27 +299,6 @@ onMounted(() => {
   // focusAddressInput()
   if (noteId.value) {
     noteStore.addToRecentNotes(noteId.value!)
-  }
-})
-// 组件卸载时清理
-onBeforeUnmount(async () => {
-  console.log('NoteEditor 组件卸载前')
-  if (updateState.updateTimer) {
-    clearTimeout(updateState.updateTimer)
-  }
-  if (addressUpdateTimer.value) {
-    clearTimeout(addressUpdateTimer.value)
-  }
-  // 如果有未保存的内容，立即保存
-  if (currentNote.value && updateState.lastContent) {
-    try {
-      // 确保内容是编辑器的最终状态
-      const finalContent = tiptapEditor.value?.editor?.getJSON() || updateState.lastContent
-      await noteStore.saveNoteContentImmediately(currentNote.value.id, finalContent)
-    } catch (error) {
-      console.error('保存失败:', error)
-      message.error('保存失败')
-    }
   }
 })
 </script>
@@ -391,6 +383,8 @@ onBeforeUnmount(async () => {
   align-items: center;
   height: 40px;
   width: 100%;
+  position: relative; // 添加相对定位作为参考
+  margin-left: 10px;
 
   input {
     display: flex;
@@ -398,7 +392,7 @@ onBeforeUnmount(async () => {
     height: 100%;
     border: none;
     outline: none;
-    font-size: 1.5rem;
+    font-size: 1.4rem;
     font-weight: bold;
     background-color: transparent;
     line-height: 40px; // 设置行高，通常设置为 1.2 到 1.5 之间的值
@@ -426,38 +420,71 @@ onBeforeUnmount(async () => {
     }
   }
 }
-
 .note-indicator {
+  position: absolute; // 改为绝对定位
+  left: -10px;
+  top: 50%;
+  transform: translateY(-50%); // 垂直居中
   width: 4px;
   height: 15px;
   border-radius: 2px;
-  margin-right: 10px;
   display: block;
   flex-shrink: 0;
   cursor: pointer;
   border: none;
   outline: none;
-  transition: all 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+  // 添加微光效果
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    border-radius: inherit;
+    opacity: 0;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 0 8px 2px currentColor;
+  }
 
   &.maincard {
     background-color: var(--color-primary);
+    &::after {
+      color: var(--color-primary);
+    }
   }
 
   &.bibcard {
     background-color: var(--color-yellow);
+    &::after {
+      color: var(--color-yellow);
+    }
   }
 
   &.indexcard {
     background-color: var(--color-blue);
+    &::after {
+      color: var(--color-blue);
+    }
   }
 
   &.hoplinkcard {
     background-color: var(--color-pink);
+    &::after {
+      color: var(--color-pink);
+    }
   }
 
   &:hover {
     width: 6px;
-    height: 15px;
+    height: 20px; // 增加高度变化
+    transform: translateY(-50%) translateX(-1px); // 合并transform
+
+    &::after {
+      opacity: 0.5; // 显示光晕效果
+    }
   }
 }
 

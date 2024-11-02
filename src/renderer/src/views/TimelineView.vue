@@ -106,8 +106,7 @@ const uiStore = useUIStore()
 const isLoaded = ref(false)
 
 // 从 store 中解构需要的状态
-const { isLoading, totalNotes, lastUpdatedNote, lastCreatedNote, lastDeletedNote } =
-  storeToRefs(noteStore)
+const { isLoading, totalNotes, lastCreatedNote, lastDeletedNote } = storeToRefs(noteStore)
 
 // 定义组件内部状态
 const notes = ref<Note[]>([])
@@ -128,24 +127,27 @@ const sortedNotes = computed(() => {
 })
 
 // 设置事件总线，用于监听笔记更新和创建事件
-const noteUpdatedBus = useEventBus('note-updated')
+const noteUpdatedBus = useEventBus<Note>('note-updated')
 const noteCreatedBus = useEventBus('note-created')
 const eventBusDeleted = useEventBus('note-deleted')
 const eventBusEmptyNotesMovedToTrash = useEventBus('empty-notes-moved-to-trash')
 const eventBusNoteRestored = useEventBus('note-restored')
+
+// 监听笔记更新事件
+noteUpdatedBus.on((updatedNote) => {
+  console.log('TimelineView.vue→ 监听到笔记更新事件', updatedNote)
+  if (!updatedNote) return
+  updateSingleNote(updatedNote)
+})
+
 eventBusNoteRestored.on(() => {
   console.log('TimelineView.vue→ 监听到笔记从回收站恢复事件')
   refreshNotes()
 })
-// 监听笔记更新事件
+
 eventBusEmptyNotesMovedToTrash.on(() => {
   console.log('TimelineView.vue→ 监听到空笔记移到回收站事件')
   refreshNotes()
-})
-noteUpdatedBus.on(() => {
-  console.log('TimelineView.vue→ 监听到笔记更新事件', lastUpdatedNote.value)
-  if (!lastUpdatedNote.value) return
-  updateSingleNote(lastUpdatedNote.value)
 })
 
 // 监听笔记创建事件
