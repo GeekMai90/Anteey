@@ -307,7 +307,7 @@
           </div>
           <input v-model="linkText" type="text" placeholder="链接文本" @keyup.enter="setLink" />
         </div>
-        <div class="link-input-field">
+        <div v-if="!isNoteReference" class="link-input-field">
           <div class="icon">
             <LinkTwo
               theme="outline"
@@ -632,6 +632,8 @@ const linkMenuStyle = computed(() => ({
   zIndex: 11
 }))
 
+// 添加新的响应式变量
+const isNoteReference = ref(false)
 // 显示链接设置菜单
 const showLinkMenu = (event, linkElement = null) => {
   closeLinkMenus()
@@ -640,11 +642,13 @@ const showLinkMenu = (event, linkElement = null) => {
   if (linkElement) {
     // 编辑现有链接
     const href = linkElement.getAttribute('href')
+    isNoteReference.value = href.startsWith('note://')
     linkUrl.value = href
     linkText.value = linkElement.textContent
   } else {
     // 创建新链接
     const { from, to } = editorInstance.value.state.selection
+    isNoteReference.value = false
     linkUrl.value = ''
     linkText.value = editorInstance.value.state.doc.textBetween(from, to) || ''
   }
@@ -661,29 +665,63 @@ const showLinkMenu = (event, linkElement = null) => {
 
   nextTick(() => {
     const inputElements = document.querySelectorAll('.link-input-menu input')
-    if (inputElements.length >= 2) {
+    if (inputElements.length > 0) {
       inputElements[0].value = linkText.value
-      inputElements[1].value = linkUrl.value
+      if (!isNoteReference.value && inputElements[1]) {
+        inputElements[1].value = linkUrl.value
+      }
       inputElements[0].focus()
     }
   })
 }
-const setLink = () => {
-  if (linkUrl.value) {
+const setLink = async () => {
+  if (!linkUrl.value && !isNoteReference.value) {
+    editorInstance.value.chain().focus().extendMarkRange('link').unsetLink().run()
+    closeLinkMenus()
+    return
+  }
+
+  if (isNoteReference.value) {
+    const noteId = linkUrl.value.replace('note://', '')
+    // 处理笔记引用链接的逻辑保持不变
     editorInstance.value
       .chain()
       .focus()
       .extendMarkRange('link')
-      .setLink({ href: linkUrl.value })
+      .insertContent({
+        type: 'text',
+        text: linkText.value,
+        marks: [
+          {
+            type: 'link',
+            attrs: {
+              href: linkUrl.value,
+              class: 'note-reference-link',
+              'data-note-id': noteId
+            }
+          }
+        ]
+      })
       .run()
-
-    // 如果链接文本与 URL 不同,则插入新的文本
-    if (linkText.value !== linkUrl.value) {
-      editorInstance.value.chain().focus().insertContent(linkText.value).run()
-    }
   } else {
-    editorInstance.value.chain().focus().extendMarkRange('link').unsetLink().run()
+    // 处理普通链接
+    editorInstance.value
+      .chain()
+      .focus()
+      .extendMarkRange('link')
+      .insertContent({
+        type: 'text',
+        text: linkText.value,
+        marks: [
+          {
+            type: 'link',
+            attrs: { href: linkUrl.value }
+          }
+        ]
+      })
+      .run()
   }
+
   closeLinkMenus()
 }
 // 取消链接设置
