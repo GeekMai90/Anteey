@@ -142,10 +142,12 @@ $dark-mode-text: $gray-100;
 
   // 卡片笔记背景颜色
   --color-note-card-bg: #fff;
+  --color-backlink-note-card-bg: #f8f9fb;
 
   // 主题链接色
   --color-link: #4361ee;
   --color-link-hover: #4361ee;
+  --color-link-backlink: #0d7260;
 
   // 主题系统选择色
   --color-system-selection: rgba(24, 163, 241, 0.15);
@@ -244,6 +246,7 @@ $dark-mode-text: $gray-100;
 
   // 卡片笔记背景颜色
   --color-note-card-bg: #242424;
+  --color-backlink-note-card-bg: #242424;
 
   // 主题链接色
   --color-link: #5c7cff;

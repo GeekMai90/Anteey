@@ -445,7 +445,6 @@ import { SlashCommands } from '@renderer/utils/tiptap/SlashCommands'
 import { slashCommandSuggestion } from '@renderer/utils/tiptap/slashCommandSuggestion'
 // import UniqueID from '@tiptap-pro/extension-unique-id'
 import { CustomLink } from '@renderer/utils/tiptap/CustomLink'
-import { useRouter } from 'vue-router'
 import Subscript from '@tiptap/extension-subscript'
 import Superscript from '@tiptap/extension-superscript'
 import TextAlign from '@tiptap/extension-text-align'
@@ -454,9 +453,12 @@ import DetailsContent from '@tiptap-pro/extension-details-content'
 import DetailsSummary from '@tiptap-pro/extension-details-summary'
 import Export from '@tiptap-pro/extension-export'
 import { useNoteStore } from '@renderer/stores/noteStores'
+import { useUIStore } from '@renderer/stores/useUIStore'
+import { useRouter } from 'vue-router/dist/vue-router'
 
-const router = useRouter()
 const noteStore = useNoteStore()
+const uiStore = useUIStore()
+const router = useRouter()
 
 const props = defineProps({
   content: {
@@ -732,27 +734,58 @@ const cancelLink = () => {
 }
 // 链接编辑菜单
 
+// const handleLinkClick = (event) => {
+//   const linkElement = event.target.closest('a')
+//   if (linkElement) {
+//     const href = linkElement.getAttribute('href')
+//     const isModifierKeyPressed = event.metaKey || event.ctrlKey
+
+//     if (isModifierKeyPressed) {
+//       // 如果按下了修饰键，显示链接设置菜单
+//       event.preventDefault()
+//       showLinkMenu(event, linkElement)
+//     } else {
+//       // 如果没有按下修饰键
+//       if (href.startsWith('note://')) {
+//         event.preventDefault()
+//         const noteId = href.replace('note://', '')
+//         console.log('noteId', noteId)
+//         noteStore.openBacklinkPreview(noteId)
+//         uiStore.openRightSidebarWithTab('backlink')
+//       } else {
+//         window.open(href, '_blank')
+//       }
+//     }
+//   }
+// }
 const handleLinkClick = (event) => {
   const linkElement = event.target.closest('a')
-  if (linkElement) {
-    const href = linkElement.getAttribute('href')
-    const isModifierKeyPressed = event.metaKey || event.ctrlKey
+  if (!linkElement) return
 
-    if (isModifierKeyPressed) {
-      // 如果按下了修饰键，显示链接设置菜单
-      event.preventDefault()
-      showLinkMenu(event, linkElement)
-    } else {
-      // 如果没有按下修饰键
-      if (href.startsWith('note://')) {
-        event.preventDefault()
-        const noteId = href.replace('note://', '')
-        router.push({ name: 'NoteExpandEditor', params: { id: noteId } })
-      } else {
-        window.open(href, '_blank')
-      }
-    }
+  const href = linkElement.getAttribute('href')
+  if (!href?.startsWith('note://')) {
+    window.open(href, '_blank')
+    return
   }
+
+  event.preventDefault()
+  const noteId = href.replace('note://', '')
+
+  // Command/Ctrl: 显示链接设置菜单
+  if (event.metaKey || event.ctrlKey) {
+    showLinkMenu(event, linkElement)
+    return
+  }
+
+  // Alt: 在主编辑器打开
+  if (event.altKey) {
+    router.push(`/note/${noteId}`)
+    return
+  }
+
+  // 无修饰键: 在右侧边栏查看
+  noteStore.openBacklinkPreview(noteId)
+  uiStore.openRightSidebarWithTab('backlink')
 }
 
 const closeLinkMenus = () => {

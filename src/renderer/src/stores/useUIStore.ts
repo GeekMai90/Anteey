@@ -13,13 +13,32 @@ export const useUIStore = defineStore(
     const isSidebarCollapsed = ref(
       JSON.parse(localStorage.getItem('ui-store') || '{}')?.isSidebarCollapsed || false
     )
-    const isRightSidebarOpen = ref(false)
+
     const isSettingDropdownOpen = ref(false)
     const showCardBox = ref(false)
     const isCalendarPickerOpen = ref(false)
     const showSettingsPage = ref(false)
     const isDarkTheme = ref(false)
     const themeMode = ref<'system' | 'light' | 'dark'>('system')
+
+    //右侧边栏状态
+    const isRightSidebarOpen = ref(false)
+    const rightSidebarTab = ref('multi') // 当前激活的标签页
+    // 打开右侧边栏并设置标签页
+    const openRightSidebarWithTab = (tab: string) => {
+      isRightSidebarOpen.value = true
+      rightSidebarTab.value = tab
+    }
+    // 关闭右侧边栏
+    const closeRightSidebar = () => {
+      isRightSidebarOpen.value = false
+    }
+    function openRightSidebar() {
+      isRightSidebarOpen.value = true
+    }
+    function toggleRightSidebar() {
+      isRightSidebarOpen.value = !isRightSidebarOpen.value
+    }
     //actions
     // 初始化主题
     function initTheme() {
@@ -133,17 +152,6 @@ export const useUIStore = defineStore(
       isSettingDropdownOpen.value = false
     }
 
-    function openRightSidebar() {
-      isRightSidebarOpen.value = true
-    }
-
-    function closeRightSidebar() {
-      isRightSidebarOpen.value = false
-    }
-    function toggleRightSidebar() {
-      isRightSidebarOpen.value = !isRightSidebarOpen.value
-    }
-
     return {
       isEditorOpen,
       isSearchModalOpen,
@@ -159,8 +167,7 @@ export const useUIStore = defineStore(
       closeSearchModal,
       toggleSettingDropdown,
       closeSettingDropdown,
-      openRightSidebar,
-      closeRightSidebar,
+
       toggleCalendarPicker,
       closeCalendarPicker,
       isCalendarPickerOpen,
@@ -175,7 +182,11 @@ export const useUIStore = defineStore(
       initTheme,
       isDarkTheme,
       themeMode,
-      toggleTheme
+      toggleTheme,
+      openRightSidebar,
+      closeRightSidebar,
+      openRightSidebarWithTab,
+      rightSidebarTab
     }
   },
   {

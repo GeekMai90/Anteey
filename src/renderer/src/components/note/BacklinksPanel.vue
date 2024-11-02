@@ -271,7 +271,7 @@ const togglePanel = async () => {
   .link-item {
     padding: 12px;
     border-radius: 8px;
-    background: var(--color-note-card-bg);
+    background: var(--color-backlink-note-card-bg);
     cursor: pointer;
     transition: all 0.2s ease;
 
@@ -319,7 +319,7 @@ const togglePanel = async () => {
 
       :deep(.reference-link) {
         border-radius: 0.125rem;
-        color: var(--color-primary);
+        color: var(--color-link-backlink);
         cursor: pointer;
         transition: all 0.1s ease-in;
         box-shadow: 0 0 0 3px transparent;
@@ -330,7 +330,7 @@ const togglePanel = async () => {
         }
 
         .reference-text {
-          border-bottom: 1px solid var(--color-primary);
+          border-bottom: 1px solid var(--color-link-backlink);
           margin: 0 4px;
         }
       }

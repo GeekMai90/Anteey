@@ -38,18 +38,24 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useRoute } from 'vue-router'
-import { Split, Concern } from '@icon-park/vue-next'
+import { Split, Concern, LinkTwo } from '@icon-park/vue-next'
 import MultiNotes from '@renderer/components/layout/MultiNotes.vue'
 import RelatedNotes from '@renderer/components/layout/RelatedNotes.vue'
+import BacklinksPanelNoteEditor from '@renderer/components/layout/BacklinksPanelNoteEditor.vue'
+import { useUIStore } from '@renderer/stores/useUIStore'
 
 const props = defineProps<{
   initialWidth?: number
 }>()
 
 const emit = defineEmits(['resize'])
+const uiStore = useUIStore()
 
 const sidebarWidth = ref(props.initialWidth || 400)
-const currentTab = ref('multi')
+const currentTab = computed({
+  get: () => uiStore.rightSidebarTab,
+  set: (value) => (uiStore.rightSidebarTab = value)
+})
 const route = useRoute()
 
 // 定义可用的 tabs
@@ -65,6 +71,12 @@ const tabs = [
     label: '相关笔记',
     icon: Concern,
     component: RelatedNotes
+  },
+  {
+    key: 'backlink',
+    label: '回链笔记',
+    icon: LinkTwo,
+    component: BacklinksPanelNoteEditor
   }
 ]
 

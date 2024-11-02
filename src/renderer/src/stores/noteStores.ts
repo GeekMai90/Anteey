@@ -58,6 +58,9 @@ export const useNoteStore = defineStore(
     const recentNotes = ref<Note[]>([])
     const maxRecentNotes = ref(6)
 
+    // ==================== 右侧边栏反向链接笔记 ====================
+    const rightSidebarBacklinkNoteId = ref<string | null>(null)
+
     // State
     const notes = ref<Note[]>([])
     const cardBoxes = ref<CardBox[]>([])
@@ -112,6 +115,16 @@ export const useNoteStore = defineStore(
       pageSize: 20,
       currentPage: 1
     })
+    // ==================== 右侧边栏反向链接笔记 ====================
+    // 打开反向链接预览
+    const openBacklinkPreview = async (noteId: string) => {
+      rightSidebarBacklinkNoteId.value = noteId
+      // 自动加载笔记数据
+      await fetchNote(noteId)
+      // 激活笔记
+      activateNote(noteId)
+    }
+
     // ==================== 最近笔记相关方法 ====================
 
     // 添加到最近笔记
@@ -1666,7 +1679,9 @@ export const useNoteStore = defineStore(
       activateRightSidebarNote,
       deactivateRightSidebarNote,
       createNoteReference,
-      deleteNoteReference
+      deleteNoteReference,
+      rightSidebarBacklinkNoteId,
+      openBacklinkPreview
     }
   },
   {

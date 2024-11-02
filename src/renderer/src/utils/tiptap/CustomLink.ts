@@ -71,23 +71,6 @@ export const CustomLink = Link.extend<CustomLinkOptions>({
     const deletedLinks = Array.from(this.storage.previousLinks).filter(
       (id) => !currentLinks.has(id as string)
     )
-
-    // 处理删除的链接
-    // if (deletedLinks.length > 0 && this.options.noteId) {
-    //   deletedLinks.forEach((targetNoteId) => {
-    //     setTimeout(async () => {
-    //       try {
-    //         await window.electronAPI.deleteNoteReference({
-    //           sourceNoteId: this.options.noteId!,
-    //           targetNoteId: targetNoteId as string
-    //         })
-    //         console.log('引用关系删除成功:', targetNoteId)
-    //       } catch (error) {
-    //         console.error('删除引用关系失败:', error)
-    //       }
-    //     }, 0)
-    //   })
-    // }
     // 处理删除的链接
     if (deletedLinks.length > 0 && this.options.noteId) {
       const noteStore = useNoteStore()
@@ -200,7 +183,11 @@ export const CustomLink = Link.extend<CustomLinkOptions>({
     if (HTMLAttributes.href?.startsWith('note://')) {
       HTMLAttributes.class = (HTMLAttributes.class || '') + ' note-reference-link'
       // 添加交互属性
-      HTMLAttributes['data-tooltip'] = '点击查看笔记'
+      HTMLAttributes['data-tooltip'] = `
+      点击: 在右侧边栏查看
+      Alt + 点击: 在主编辑器打开
+      Command/Ctrl + 点击: 链接设置
+    `.trim()
       HTMLAttributes['role'] = 'button'
     }
 
