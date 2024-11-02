@@ -322,8 +322,6 @@ onBeforeUnmount(async () => {
   flex: 1;
   display: flex;
   flex-direction: column;
-  // flex-grow: 1;
-  /* padding: 20px calc((100% - 900px)/2); */
   padding: 12px 6px;
   overflow-y: auto; // 让整个内容区可滚动
   max-width: 900px;
