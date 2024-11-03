@@ -17,6 +17,7 @@ import path from 'path'
 import fs from 'fs'
 import { app } from '@electron/remote'
 import { notesApi } from './api/notesApi'
+import { excalidrawApi } from './api/excalidrawApi'
 // 缓存处理函数
 async function loadCache(): Promise<Record<string, string>> {
   try {
@@ -49,6 +50,7 @@ async function saveCache(cacheData: Record<string, string>): Promise<boolean> {
 
 contextBridge.exposeInMainWorld('electronAPI', {
   ...notesApi,
+  ...excalidrawApi,
   getResourcePath: async (filename: string): Promise<string> => {
     try {
       return (await ipcRenderer.invoke('get-resource-path', filename)) as string
@@ -520,5 +522,65 @@ contextBridge.exposeInMainWorld('electronAPI', {
     return await ipcRenderer.invoke('get-user-data-path')
   },
   loadEmbeddingsCache: loadCache,
-  saveEmbeddingsCache: saveCache
+  saveEmbeddingsCache: saveCache,
+  excalidraw: {
+    saveExcalidrawImage: async (imageData: string, filename: string) => {
+      try {
+        return await ipcRenderer.invoke('save-excalidraw-image', { imageData, filename })
+      } catch (error) {
+        console.error('Preload: 保存 Excalidraw 图像时出错:', error)
+        throw error
+      }
+    },
+    loadExcalidrawImage: async (path: string) => {
+      try {
+        return await ipcRenderer.invoke('load-excalidraw-image', path)
+      } catch (error) {
+        console.error('Preload: 加载 Excalidraw 图像时出错:', error)
+        throw error
+      }
+    },
+    exportToPng: async (sceneData: any) => {
+      try {
+        return await ipcRenderer.invoke('export-excalidraw-png', sceneData)
+      } catch (error) {
+        console.error('Preload: 导出 Excalidraw PNG 时出错:', error)
+        throw error
+      }
+    },
+    generateThumbnail: async (sceneData: any) => {
+      try {
+        return await ipcRenderer.invoke('generate-excalidraw-thumbnail', sceneData)
+      } catch (error) {
+        console.error('Preload: 生成 Excalidraw 缩略图时出错:', error)
+        throw error
+      }
+    }
+  }
+})
+// 创建一个简化版的 process 对象
+const processProxy = {
+  platform: process.platform,
+  versions: {
+    node: process.versions.node,
+    electron: process.versions.electron
+  },
+  env: {
+    NODE_ENV: process.env.NODE_ENV,
+    // 添加 Excalidraw 需要的环境变量
+    REACT_APP_BACKEND_V2_GET_URL: process.env.REACT_APP_BACKEND_V2_GET_URL,
+    REACT_APP_BACKEND_V2_POST_URL: process.env.REACT_APP_BACKEND_V2_POST_URL,
+    REACT_APP_LIBRARY_URL: process.env.REACT_APP_LIBRARY_URL,
+    REACT_APP_SOCKET_SERVER_URL: process.env.REACT_APP_SOCKET_SERVER_URL
+  },
+  type: 'renderer'
+}
+
+// 暴露简化版的 process 对象
+contextBridge.exposeInMainWorld('process', processProxy)
+
+// 暴露必要的 Buffer
+contextBridge.exposeInMainWorld('Buffer', {
+  from: Buffer.from.bind(Buffer),
+  isBuffer: Buffer.isBuffer.bind(Buffer)
 })

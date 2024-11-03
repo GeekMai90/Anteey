@@ -1,5 +1,6 @@
 // src/types/Note.ts
 
+import type { AppState } from '@excalidraw/excalidraw/types/types'
 // 定义卡片类型
 export type CardType = 'Maincard' | 'Bibcard' | 'Indexcard' | 'Hoplinkcard'
 
@@ -75,6 +76,98 @@ export interface Note {
     references?: string[]
     attachments?: string[]
   }
+}
+
+// 基础节点类型
+export interface BaseNode {
+  type: string
+  attrs?: Record<string, any>
+  content?: any[]
+}
+
+// 更新 ExcalidrawNode 接口
+export interface ExcalidrawNode {
+  type: 'excalidraw'
+  attrs: {
+    id: string
+    excalidrawId: string | null
+    thumbnail: string | null
+    isFullscreen: boolean
+  }
+}
+
+// 更新 ExcalidrawElementBase 接口
+export interface ExcalidrawElementBase {
+  id: string
+  x: number
+  y: number
+  strokeColor: string
+  backgroundColor: string
+  fillStyle: string
+  strokeWidth: number
+  strokeStyle: string
+  roughness: number
+  opacity: number
+  width: number
+  height: number
+  angle: number
+  strokeSharpness: 'round' | 'sharp'
+  seed: number
+  version: number
+  versionNonce: number
+  isDeleted: boolean
+  groupIds: string[]
+  boundElements: null | { type: 'arrow' | 'text'; id: string }[]
+  updated: number
+  link: null | string
+  locked: boolean
+  roundness?: { type: number } | null
+  frameId?: string | null
+}
+
+// 扩展 ExcalidrawElement 类型以包含所有可能的元素类型
+export type ExcalidrawElement = ExcalidrawElementBase &
+  (
+    | { type: 'rectangle' }
+    | { type: 'diamond' }
+    | { type: 'ellipse' }
+    | { type: 'line' }
+    | { type: 'arrow' }
+    | { type: 'draw' }
+    | { type: 'text'; text: string; fontSize: number; fontFamily: number; textAlign: string }
+    | { type: 'image'; fileId: string }
+  )
+
+// Excalidraw 文档存储接口（删除重复的定义）
+export interface ExcalidrawDocument {
+  id: string
+  noteId: string
+  elements: ExcalidrawElement[]
+  appState: Partial<AppState>
+  createdAt: Date
+  updatedAt: Date
+}
+
+// ExcalidrawData 接口用于数据传输
+export interface ExcalidrawData {
+  type: 'excalidraw'
+  version: number
+  source: string
+  elements: ExcalidrawElement[]
+  appState: {
+    gridSize: number | null
+    viewBackgroundColor: string
+  }
+  files?: Record<
+    string,
+    {
+      mimeType: string
+      id: string
+      dataURL: string
+      created: number
+      lastRetrieved: number
+    }
+  >
 }
 
 // 引用类型和关系树接口保持不变

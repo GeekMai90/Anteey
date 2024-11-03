@@ -455,6 +455,7 @@ import Export from '@tiptap-pro/extension-export'
 import { useNoteStore } from '@renderer/stores/noteStores'
 import { useUIStore } from '@renderer/stores/useUIStore'
 import { useRouter } from 'vue-router/dist/vue-router'
+import { ExcalidrawExtension } from '@renderer/utils/tiptap/ExcalidrawExtension'
 
 const noteStore = useNoteStore()
 const uiStore = useUIStore()
@@ -1062,6 +1063,11 @@ const editorExtensions = computed(() => {
       }
     }),
     BubbleMenu,
+    ExcalidrawExtension.configure({
+      HTMLAttributes: {
+        class: 'excalidraw-editor'
+      }
+    }),
     Markdown.configure({
       transformPastedText: true, // 启用 Markdown 粘贴文本转换
       transformCopiedText: true // 复制的文本转换为Markdown

@@ -259,6 +259,26 @@ export async function initDatabase(db: Knex): Promise<void> {
     })
     console.log('user_settings 默认数据创建成功')
   }
+
+  // 创建 excalidraw_documents 表
+  // 创建 excalidraw_documents 表
+  if (!(await db.schema.hasTable('excalidraw_documents'))) {
+    await db.schema.createTable('excalidraw_documents', (table) => {
+      table.string('id').primary()
+      table.string('noteId').notNullable().index() // 关联的笔记 ID
+      table.json('elements').notNullable() // 存储 Excalidraw 元素数组
+      table.json('appState').notNullable() // 存储应用状态
+      table.datetime('createdAt').notNullable()
+      table.datetime('updatedAt').notNullable()
+
+      // 添加外键约束
+      table.foreign('noteId').references('id').inTable('notes').onDelete('CASCADE')
+
+      // 添加索引
+      table.index(['noteId', 'updatedAt'])
+    })
+    console.log('excalidraw_documents 表创建成功')
+  }
 }
 
 export async function down(db: Knex): Promise<void> {
@@ -271,5 +291,6 @@ export async function down(db: Knex): Promise<void> {
   await db.schema.dropTableIfExists('cardboxes')
   await db.schema.dropTableIfExists('notes')
   await db.schema.dropTableIfExists('user_settings') // 添加这一行
+  await db.schema.dropTableIfExists('excalidraw_documents')
   console.log('所有表已删除')
 }

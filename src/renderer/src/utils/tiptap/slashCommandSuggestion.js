@@ -11,7 +11,8 @@ import {
   OrderedList,
   Quote,
   ListSuccess,
-  Code
+  Code,
+  HandPaintedPlate
 } from '@icon-park/vue-next'
 import { markRaw } from 'vue'
 export const slashCommandSuggestion = {
@@ -23,6 +24,35 @@ export const slashCommandSuggestion = {
         icon: markRaw(H1),
         command: ({ editor, range }) => {
           editor.chain().focus().deleteRange(range).setNode('heading', { level: 1 }).run()
+        }
+      },
+      {
+        title: '绘图',
+        icon: markRaw(HandPaintedPlate),
+        command: ({ editor, range }) => {
+          editor
+            .chain()
+            .focus()
+            .deleteRange(range)
+            .insertContent({
+              type: 'excalidraw', // 直接使用 type
+              attrs: {
+                id: crypto.randomUUID(),
+                data: {
+                  type: 'excalidraw',
+                  version: 2,
+                  source: 'hopscotch',
+                  elements: [],
+                  appState: {
+                    gridSize: null,
+                    viewBackgroundColor: '#ffffff'
+                  }
+                },
+                thumbnail: null,
+                isFullscreen: false
+              }
+            })
+            .run()
         }
       },
       {

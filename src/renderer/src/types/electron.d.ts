@@ -15,9 +15,20 @@ import {
   WhiteboardGroup,
   ConnectionCreateData,
   RelatedNotesResult,
-  NoteReference
+  NoteReference,
+  ExcalidrawDocument
 } from './Note'
 import { UpdateUserSettings, UserSettings } from './UserSettings'
+
+export interface ExcalidrawAPI {
+  saveExcalidrawImage: (
+    imageData: string,
+    filename: string
+  ) => Promise<{ success: boolean; path?: string; error?: string }>
+  loadExcalidrawImage: (path: string) => Promise<string>
+  exportToPng: (sceneData: any) => Promise<{ success: boolean; path?: string; error?: string }>
+  generateThumbnail: (sceneData: any) => Promise<string>
+}
 
 export interface ElectronAPI {
   createNote: () => Promise<Note>
@@ -148,10 +159,62 @@ export interface ElectronAPI {
     }
   }) => Promise<NoteReference>
   deleteNoteReference: (params: { sourceNoteId: string; targetNoteId: string }) => Promise<void>
+  createExcalidrawDocument: (params: {
+    noteId: string
+    data: Partial<ExcalidrawDocument>
+  }) => Promise<{
+    success: boolean
+    document?: ExcalidrawDocument
+    error?: string
+  }>
+
+  getExcalidrawDocument: (id: string) => Promise<{
+    success: boolean
+    document?: ExcalidrawDocument
+    error?: string
+  }>
+
+  updateExcalidrawDocument: (params: { id: string; data: Partial<ExcalidrawDocument> }) => Promise<{
+    success: boolean
+    document?: ExcalidrawDocument
+    error?: string
+  }>
+
+  deleteExcalidrawDocument: (id: string) => Promise<{
+    success: boolean
+    error?: string
+  }>
+
+  getNoteExcalidrawDocuments: (noteId: string) => Promise<{
+    success: boolean
+    documents?: ExcalidrawDocument[]
+    error?: string
+  }>
+  excalidraw: ExcalidrawAPI
 }
 
 declare global {
   interface Window {
     electronAPI: ElectronAPI
+    // 添加 process 类型定义
+    process: {
+      platform: string
+      versions: {
+        node: string
+        electron: string
+      }
+      env: {
+        NODE_ENV?: string
+        REACT_APP_BACKEND_V2_GET_URL?: string
+        REACT_APP_BACKEND_V2_POST_URL?: string
+        REACT_APP_LIBRARY_URL?: string
+        REACT_APP_SOCKET_SERVER_URL?: string
+      }
+      type: 'renderer'
+    }
+    Buffer: {
+      from: typeof Buffer.from
+      isBuffer: typeof Buffer.isBuffer
+    }
   }
 }

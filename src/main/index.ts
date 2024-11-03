@@ -191,8 +191,12 @@ function createWindow(): void {
       nodeIntegration: false,
       devTools: !app.isPackaged, // 仅在开发环境启用开发者工具
       additionalArguments: ['--disable-site-isolation-trials'],
-      webSecurity: false // 警告：这可能带来安全风险，仅在开发环境使用
+      webSecurity: false, // 警告：这可能带来安全风险，仅在开发环境使用
       // allowRunningInsecureContent: true // 警告：这可能带来安全风险，仅在开发环境使用
+      // 添加这个配置
+      nodeIntegrationInWorker: true,
+      // 添加文件系统访问权限
+      allowRunningInsecureContent: false
     }
   })
   // 启用 remote 模块
@@ -224,17 +228,38 @@ function createWindow(): void {
     `)
   })
 
+  // mainWindow.webContents.session.webRequest.onHeadersReceived((details, callback) => {
+  //   callback({
+  //     responseHeaders: {
+  //       ...details.responseHeaders,
+  //       'Content-Security-Policy': [
+  //         "default-src 'self'; " +
+  //           "img-src 'self' file: data: blob: https: http: *; " +
+  //           "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com; " +
+  //           "style-src 'self' 'unsafe-inline' https://unpkg.com; " +
+  //           "connect-src 'self' file: https://api.tiptap.dev https://unpkg.com; " +
+  //           "worker-src 'self' blob:; " +
+  //           "font-src 'self' data: https://unpkg.com; " +
+  //           "frame-src 'self' https://unpkg.com"
+  //       ]
+  //     }
+  //   })
+  // })
   mainWindow.webContents.session.webRequest.onHeadersReceived((details, callback) => {
     callback({
       responseHeaders: {
         ...details.responseHeaders,
         'Content-Security-Policy': [
-          'default-src *; ' +
-            "img-src 'self' file: data: blob: https: http: *; " +
-            "script-src 'self' 'unsafe-inline' 'unsafe-eval'; " +
-            "style-src 'self' 'unsafe-inline'; " +
-            "connect-src 'self' file: https://api.tiptap.dev;" +
-            'font-src *'
+          "default-src * 'unsafe-inline' 'unsafe-eval' data: blob: file:; " +
+            "script-src * 'unsafe-inline' 'unsafe-eval' data: blob: file:; " +
+            "style-src * 'unsafe-inline' data: blob: file:; " +
+            'img-src * data: blob: file:; ' +
+            'font-src * data: blob: file:; ' +
+            'connect-src * data: blob: file:; ' +
+            'media-src * data: blob: file:; ' +
+            'worker-src * data: blob: file:; ' +
+            'frame-src * data: blob: file:; ' +
+            'child-src * data: blob: file:;'
         ]
       }
     })

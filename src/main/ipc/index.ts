@@ -5,6 +5,7 @@ import { setupUserSettingsHandlers } from './userSettingsIpcHandlers'
 import { setupConnectionsHandlers } from './connectionsIpcHandlers'
 import { setupCacheHandlers } from './cacheIpcHandlers'
 import { setupImageHandlers } from './imageIpcHandlers'
+import { setupExcalidrawHandlers } from './excalidrawIpcHandlers'
 
 export function setupIpcHandlers() {
   setupNotesHandlers()
@@ -14,4 +15,5 @@ export function setupIpcHandlers() {
   setupConnectionsHandlers()
   setupCacheHandlers()
   setupImageHandlers()
+  setupExcalidrawHandlers()
 }
