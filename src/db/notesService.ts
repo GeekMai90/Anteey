@@ -1743,3 +1743,53 @@ export async function deleteNoteReference(params: {
     throw error
   }
 }
+
+// 更新笔记标签
+export async function updateNoteTag(params: {
+  noteId: string
+  tagName: string
+  action: 'add' | 'remove'
+}): Promise<Note> {
+  try {
+    console.log('后端→ 开始更新笔记标签:', params)
+
+    return await db.transaction(async (trx) => {
+      // 1. 检查笔记是否存在
+      const note = await trx('notes').where({ id: params.noteId }).first()
+      if (!note) {
+        throw new Error(`未找到ID为 ${params.noteId} 的笔记`)
+      }
+
+      // 2. 获取当前标签列表
+      const currentTags = JSON.parse(note.tags || '[]')
+
+      // 3. 根据操作类型更新标签列表
+      let updatedTags = currentTags
+      if (params.action === 'add' && !currentTags.includes(params.tagName)) {
+        updatedTags = [...currentTags, params.tagName]
+      } else if (params.action === 'remove') {
+        updatedTags = currentTags.filter((tag: string) => tag !== params.tagName)
+      }
+
+      // 4. 更新笔记的标签
+      const [updatedNote] = await trx('notes')
+        .where({ id: params.noteId })
+        .update({
+          tags: JSON.stringify(updatedTags),
+          updatedAt: new Date()
+        })
+        .returning('*')
+
+      if (!updatedNote) {
+        throw new Error('更新标签失败：未返回更新后的笔记')
+      }
+
+      // 5. 转换并返回更新后的笔记
+      console.log('后端→ 笔记标签更新成功:', updatedNote)
+      return convertToNote(updatedNote)
+    })
+  } catch (error) {
+    console.error('后端→ 更新笔记标签失败:', error)
+    throw error
+  }
+}

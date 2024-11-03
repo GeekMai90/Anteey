@@ -283,5 +283,21 @@ export const notesApi = {
       console.error('Preload: 删除笔记引用关系失败:', error)
       throw error
     }
+  },
+  updateNoteTag: async (params: {
+    noteId: string
+    tagName: string
+    action: 'add' | 'remove'
+  }): Promise<Note> => {
+    try {
+      const result = await ipcRenderer.invoke('update-note-tag', params)
+      if (!result.success) {
+        throw new Error(result.error)
+      }
+      return result.note
+    } catch (error) {
+      console.error('预加载脚本 → 更新笔记标签失败:', error)
+      throw error
+    }
   }
 }

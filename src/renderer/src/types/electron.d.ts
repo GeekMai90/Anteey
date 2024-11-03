@@ -15,7 +15,8 @@ import {
   WhiteboardGroup,
   ConnectionCreateData,
   RelatedNotesResult,
-  NoteReference
+  NoteReference,
+  Tag
 } from './Note'
 import { UpdateUserSettings, UserSettings } from './UserSettings'
 
@@ -148,6 +149,35 @@ export interface ElectronAPI {
     }
   }) => Promise<NoteReference>
   deleteNoteReference: (params: { sourceNoteId: string; targetNoteId: string }) => Promise<void>
+  // 标签相关的方法
+
+  // 创建标签
+  createTag: (params: { name: string; color?: string; icon?: string }) => Promise<Tag>
+
+  // 获取所有标签
+  getAllTags: () => Promise<Tag[]>
+
+  // 根据ID获取标签
+  getTagById: (id: string) => Promise<Tag | null>
+
+  // 更新标签
+  updateTag: (id: string, updateData: Partial<Tag>) => Promise<Tag>
+
+  // 删除标签
+  deleteTag: (id: string) => Promise<void>
+
+  // 增加标签使用次数
+  incrementTagUseCount: (id: string) => Promise<void>
+
+  // 搜索标签
+  searchTags: (query: string) => Promise<Tag[]>
+
+  // 更新笔记标签
+  updateNoteTag: (params: {
+    noteId: string
+    tagName: string
+    action: 'add' | 'remove'
+  }) => Promise<Note>
 }
 
 declare global {

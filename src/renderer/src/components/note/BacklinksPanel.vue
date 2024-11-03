@@ -164,14 +164,14 @@ const togglePanel = async () => {
 <style scoped lang="scss">
 .backlinks-panel {
   margin-top: 40px;
-  padding: 20px;
+  padding: 20px 20px 4px 20px;
   border-top: 1px solid var(--color-border);
 
   .panel-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 20px;
+    margin-bottom: 10px;
 
     .title {
       display: flex;

@@ -101,6 +101,13 @@
             @refresh="refreshNoteData"
           />
         </div>
+        <!-- 标签面板 -->
+        <TagsPanel
+          v-if="currentNote"
+          :note-id="currentNote.id"
+          :tags="currentNote.tags"
+          @refresh="refreshNoteData"
+        />
       </div>
     </div>
   </div>
@@ -125,6 +132,7 @@ import BacklinksPanel from '@renderer/components/note/BacklinksPanel.vue'
 import { CardType, Note } from '@renderer/types/Note'
 import { debounce } from 'lodash-es'
 import { EditorState } from '@tiptap/pm/state/dist'
+import TagsPanel from '@renderer/components/note/TagsPanel.vue'
 // === 组件状态管理 ===
 const tiptapEditor = ref<any>(null)
 const route = useRoute()

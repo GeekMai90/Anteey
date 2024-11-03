@@ -36,7 +36,8 @@ import {
   TimelineQueryParams,
   TimelineQueryResult,
   createNoteReference,
-  deleteNoteReference
+  deleteNoteReference,
+  updateNoteTag
 } from '../../db/notesService'
 
 export function setupNotesHandlers() {
@@ -434,3 +435,28 @@ export function setupNotesHandlers() {
     }
   })
 }
+
+// 更新笔记标签
+ipcMain.handle(
+  'update-note-tag',
+  async (
+    _event,
+    params: {
+      noteId: string
+      tagName: string
+      action: 'add' | 'remove'
+    }
+  ) => {
+    try {
+      console.log('主进程→ 更新笔记标签:', params)
+      const updatedNote = await updateNoteTag(params)
+      return { success: true, note: updatedNote }
+    } catch (error) {
+      console.error('主进程→ 更新笔记标签失败:', error)
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : String(error)
+      }
+    }
+  }
+)
