@@ -172,6 +172,9 @@ export interface ElectronAPI {
   // 搜索标签
   searchTags: (query: string) => Promise<Tag[]>
 
+  // 获取所有标签(带完整计数)
+  getAllTagsWithCount: () => Promise<Tag[]>
+
   // 更新笔记标签
   updateNoteTag: (params: {
     noteId: string

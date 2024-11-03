@@ -28,7 +28,8 @@ export async function createTag(name: string, color?: string, icon?: string): Pr
       icon,
       metadata: {
         count: 0,
-        lastUsed: now
+        lastUsed: now,
+        totalCount: 0
       },
       createdAt: now,
       updatedAt: now
@@ -75,32 +76,60 @@ export async function getTagById(id: string): Promise<Tag | null> {
 // 更新标签
 export async function updateTag(id: string, updateData: Partial<Tag>): Promise<Tag> {
   try {
-    // 如果更新了name,需要重新解析path
-    if (updateData.name) {
-      updateData.path = updateData.name.split('/').filter(Boolean)
-    }
+    return await db.transaction(async (trx) => {
+      // 1. 获取原标签信息
+      const oldTag = await trx('tags').where({ id }).first()
+      if (!oldTag) {
+        throw new Error(`未找到ID为 ${id} 的标签`)
+      }
 
-    const now = new Date()
-    const dataToUpdate: any = {
-      ...updateData,
-      updatedAt: now
-    }
+      // 2. 如果更新了name,需要重新解析path
+      if (updateData.name) {
+        updateData.path = updateData.name.split('/').filter(Boolean)
 
-    // JSON序列化需要的字段
-    if (dataToUpdate.path) {
-      dataToUpdate.path = JSON.stringify(dataToUpdate.path)
-    }
-    if (dataToUpdate.metadata) {
-      dataToUpdate.metadata = JSON.stringify(dataToUpdate.metadata)
-    }
+        // 3. 更新所有使用该标签的笔记
+        const notesWithTag = await trx('notes')
+          .whereRaw(`tags::jsonb ? ?`, [oldTag.name])
+          .select('id', 'tags')
 
-    const [updatedTag] = await db('tags').where({ id }).update(dataToUpdate).returning('*')
+        for (const note of notesWithTag) {
+          const tags = JSON.parse(note.tags || '[]')
+          const updatedTags = tags.map((tag: string) =>
+            tag === oldTag.name ? updateData.name : tag
+          )
 
-    if (!updatedTag) {
-      throw new Error(`未找到ID为 ${id} 的标签`)
-    }
+          await trx('notes')
+            .where({ id: note.id })
+            .update({
+              tags: JSON.stringify(updatedTags),
+              updatedAt: new Date()
+            })
+        }
+      }
 
-    return convertToTag(updatedTag)
+      const now = new Date()
+      const dataToUpdate: any = {
+        ...updateData,
+        updatedAt: now
+      }
+
+      // JSON序列化需要的字段
+      if (dataToUpdate.path) {
+        dataToUpdate.path = JSON.stringify(dataToUpdate.path)
+      }
+      if (dataToUpdate.metadata) {
+        dataToUpdate.metadata = JSON.stringify(dataToUpdate.metadata)
+      }
+
+      // 4. 更新标签
+      const [updatedTag] = await trx('tags').where({ id }).update(dataToUpdate).returning('*')
+
+      if (!updatedTag) {
+        throw new Error(`更新标签失败: ${id}`)
+      }
+
+      return convertToTag(updatedTag)
+    })
   } catch (error) {
     console.error('后端→ 更新标签失败:', error)
     throw error
@@ -144,6 +173,92 @@ export async function searchTags(query: string): Promise<Tag[]> {
     return tags.map(convertToTag)
   } catch (error) {
     console.error('后端→ 搜索标签失败:', error)
+    throw error
+  }
+}
+
+// 获取标签及其子标签的笔记总数
+export async function getTagNotesCount(tagId: string): Promise<number> {
+  try {
+    // 获取当前标签信息
+    const tag = await db('tags').where('id', tagId).first()
+    if (!tag) return 0
+
+    // 获取所有标签
+    const allTags = await db('tags').select('*')
+    const tagPath = JSON.parse(tag.path)
+
+    // 找出所有子标签（路径以当前标签路径开头的标签）
+    const childTags = allTags.filter((t) => {
+      const currentPath = JSON.parse(t.path)
+      return (
+        currentPath.length > tagPath.length &&
+        currentPath.slice(0, tagPath.length).join('/') === tagPath.join('/')
+      )
+    })
+
+    // 获取当前标签的笔记数量
+    const currentTagCount = JSON.parse(tag.metadata).count || 0
+
+    // 获取所有子标签的笔记数量之和
+    const childrenCount = childTags.reduce((sum, t) => {
+      const metadata = JSON.parse(t.metadata)
+      return sum + (metadata.count || 0)
+    }, 0)
+
+    return currentTagCount + childrenCount
+  } catch (error) {
+    console.error('后端→ 获取标签笔记数量失败:', error)
+    throw error
+  }
+}
+
+// 获取所有标签(带完整计数)
+export async function getAllTagsWithCount(): Promise<Tag[]> {
+  try {
+    const tags = await db('tags').select('*').orderBy('useCount', 'desc')
+
+    // 为每个标签获取完整的笔记数量
+    const tagsWithCount = await Promise.all(
+      tags.map(async (tag) => {
+        const totalCount = await getTagNotesCount(tag.id)
+        const convertedTag = convertToTag(tag) // 先转换为 Tag 对象
+        convertedTag.metadata.totalCount = totalCount // 添加总数量
+        return convertedTag
+      })
+    )
+
+    return tagsWithCount
+  } catch (error) {
+    console.error('后端→ 获取所有标签(带计数)失败:', error)
+    throw error
+  }
+}
+
+// 更新标签的笔记数量
+export async function updateTagCount(
+  tagId: string,
+  increment: boolean = true,
+  trx = db // 默认使用 db，但可以传入事务
+): Promise<void> {
+  try {
+    const tag = await trx('tags').where('id', tagId).first()
+    if (!tag) return
+
+    const metadata = JSON.parse(tag.metadata)
+    metadata.count = (metadata.count || 0) + (increment ? 1 : -1)
+    metadata.lastUsed = new Date()
+
+    await trx('tags')
+      .where('id', tagId)
+      .update({
+        metadata: JSON.stringify(metadata),
+        updatedAt: new Date()
+      })
+
+    console.log(`后端→ ${increment ? '增加' : '减少'}标签计数:`, tagId)
+  } catch (error) {
+    console.error('后端→ 更新标签计数失败:', error)
     throw error
   }
 }

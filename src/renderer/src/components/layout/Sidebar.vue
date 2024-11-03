@@ -111,6 +111,7 @@
     <div class="scrollable-content">
       <StarredNotes />
       <RecentNotes />
+      <TagsTree />
     </div>
     <div class="resize-handle" @mousedown="startResize"></div>
     <div class="sidebar-footer">
@@ -190,6 +191,7 @@ import { useUIStore } from '@renderer/stores/useUIStore'
 import { useRoute } from 'vue-router'
 import RecentNotes from '@renderer/components/layout/RecentNotes.vue'
 import { storeToRefs } from 'pinia'
+import TagsTree from '@renderer/components/layout/TagsTree.vue'
 
 const imageSrc = ref('')
 const uiStore = useUIStore()

@@ -6,7 +6,8 @@ import {
   updateTag,
   deleteTag,
   incrementTagUseCount,
-  searchTags
+  searchTags,
+  getAllTagsWithCount
 } from '../../db/tagService'
 import type { Tag } from '../../renderer/src/types/Note'
 
@@ -115,6 +116,21 @@ export function setupTagHandlers() {
       return { success: true, tags }
     } catch (error) {
       console.error('主进程→ 搜索标签失败:', error)
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : String(error)
+      }
+    }
+  })
+
+  // 获取所有标签(带完整计数)
+  ipcMain.handle('get-all-tags-with-count', async () => {
+    try {
+      console.log('主进程→ 获取所有标签(带计数)')
+      const tags = await getAllTagsWithCount()
+      return { success: true, tags }
+    } catch (error) {
+      console.error('主进程→ 获取所有标签(带计数)失败:', error)
       return {
         success: false,
         error: error instanceof Error ? error.message : String(error)

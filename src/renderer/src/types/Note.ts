@@ -155,6 +155,7 @@ export interface Tag {
   metadata: {
     count: number // 使用该标签的笔记数量
     lastUsed: Date // 最后使用时间
+    totalCount?: number // 添加该标签及子标签的笔记总数
   }
   createdAt: Date
   updatedAt: Date
@@ -166,6 +167,7 @@ export interface TagTreeNode {
   path: string[] // 完整路径
   children: TagTreeNode[]
   noteCount: number // 该标签及子标签的笔记总数
+  totalCount?: number // 该标签及子标签的笔记总数
   color?: string // 继承自 Tag 的颜色
   icon?: string // 继承自 Tag 的图标
 }

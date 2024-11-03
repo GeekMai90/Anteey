@@ -104,5 +104,19 @@ export const tagApi = {
       console.error('预加载脚本 → 搜索标签失败:', error)
       throw error
     }
+  },
+
+  // 获取所有标签(带完整计数)
+  getAllTagsWithCount: async (): Promise<Tag[]> => {
+    try {
+      const result = await ipcRenderer.invoke('get-all-tags-with-count')
+      if (!result.success) {
+        throw new Error(result.error)
+      }
+      return result.tags
+    } catch (error) {
+      console.error('预加载脚本 → 获取所有标签(带计数)失败:', error)
+      throw error
+    }
   }
 }

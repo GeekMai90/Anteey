@@ -12,6 +12,7 @@ import { calculateSimilarity } from '../renderer/src/utils/noteSililarity'
 import { SemanticVectorizer } from '../renderer/src/utils/semanticVector'
 import { extractTextFromContent } from '../renderer/src/utils/keywordExtractor'
 import type { NoteReference, InternalNoteReference } from '../renderer/src/types/Note'
+import { updateTagCount } from './tagService'
 
 // 辅助函数：将数据库记录转换为 Note 对象
 function convertToNote(record: any): Note {
@@ -1767,8 +1768,18 @@ export async function updateNoteTag(params: {
       let updatedTags = currentTags
       if (params.action === 'add' && !currentTags.includes(params.tagName)) {
         updatedTags = [...currentTags, params.tagName]
+        // 获取标签并更新计数
+        const tag = await trx('tags').where('name', params.tagName).first()
+        if (tag) {
+          await updateTagCount(tag.id, true, trx)
+        }
       } else if (params.action === 'remove') {
         updatedTags = currentTags.filter((tag: string) => tag !== params.tagName)
+        // 获取标签并更新计数
+        const tag = await trx('tags').where('name', params.tagName).first()
+        if (tag) {
+          await updateTagCount(tag.id, false, trx)
+        }
       }
 
       // 4. 更新笔记的标签

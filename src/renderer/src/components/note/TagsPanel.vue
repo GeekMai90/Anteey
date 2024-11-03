@@ -88,6 +88,8 @@
 import { ref, computed, nextTick } from 'vue'
 import { TagOne, Close, Plus } from '@icon-park/vue-next'
 import { useNoteStore } from '@renderer/stores/noteStores'
+import { useTagStore } from '@renderer/stores/tagStore'
+import { useEventBus } from '@vueuse/core'
 
 const props = defineProps<{
   noteId: string
@@ -95,6 +97,7 @@ const props = defineProps<{
 }>()
 
 const noteStore = useNoteStore()
+const tagStore = useTagStore()
 const isCollapsed = ref(true) // 添加折叠状态
 const isAdding = ref(false)
 const newTagInput = ref('')
@@ -103,6 +106,8 @@ const suggestions = ref<any[]>([])
 const tagInput = ref<HTMLInputElement | null>(null)
 
 const emit = defineEmits(['refresh'])
+
+const tagChangeEventBus = useEventBus('tagChange')
 
 // 添加切换面板的方法
 const togglePanel = () => {
@@ -140,7 +145,7 @@ const handleBlur = () => {
 
 const handleTagInput = async () => {
   if (newTagInput.value.trim()) {
-    suggestions.value = await noteStore.searchTags(newTagInput.value)
+    suggestions.value = await tagStore.searchTags(newTagInput.value)
     showSuggestions.value = true
   } else {
     showSuggestions.value = false
@@ -150,6 +155,7 @@ const handleTagInput = async () => {
 const selectSuggestion = async (tagName: string) => {
   await noteStore.addTagToNote(props.noteId, tagName)
   emit('refresh')
+  tagChangeEventBus.emit()
   cancelAdding()
 }
 
@@ -165,11 +171,13 @@ const addTag = async () => {
     if (existingTag) {
       // 如果标签已存在，直接使用
       await noteStore.addTagToNote(props.noteId, existingTag.name)
+      tagChangeEventBus.emit()
     } else {
       // 如果标签不存在，先创建新标签
-      const newTag = await noteStore.createTag({ name: newTagInput.value })
+      const newTag = await tagStore.createTag({ name: newTagInput.value })
       // 然后添加到笔记
       await noteStore.addTagToNote(props.noteId, newTag.name)
+      tagChangeEventBus.emit()
     }
     emit('refresh')
 
@@ -184,6 +192,7 @@ const removeTag = async (tagName: string) => {
   try {
     await noteStore.removeTagFromNote(props.noteId, tagName)
     emit('refresh') // 通知父组件刷新数据
+    tagChangeEventBus.emit()
   } catch (error) {
     console.error('移除标签失败:', error)
   }

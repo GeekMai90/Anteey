@@ -49,7 +49,7 @@ const openNote = (note: Note) => {
 
 <style scoped lang="scss">
 .recent-notes {
-  margin-top: 10px;
+  margin-top: 5px;
   padding: 0 10px;
   border-radius: 8px;
 

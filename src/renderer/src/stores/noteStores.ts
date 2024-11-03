@@ -8,8 +8,7 @@ import type {
   CardBox,
   RelatedNote,
   RelatedNotesResult,
-  CardType,
-  Tag
+  CardType
 } from '../types/Note'
 import type { Editor } from '@tiptap/vue-3'
 import { GetPaginatedNotesParams } from '../../../db/notesService'
@@ -57,11 +56,6 @@ export const useNoteStore = defineStore(
     // ==================== 右侧边栏反向链接笔记 ====================
     const rightSidebarBacklinkNoteId = ref<string | null>(null)
 
-    // ==================== 标签相关状态 ====================
-    const tags = ref<Tag[]>([]) // 所有标签
-    const currentTag = ref<Tag | null>(null) // 当前选中的标签
-    const tagSearchQuery = ref('') // 标签搜索关键词
-    const isTagModalOpen = ref(false) // 标签管理模态框状态
     // State
     const notes = ref<Note[]>([])
     const cardBoxes = ref<CardBox[]>([])
@@ -125,85 +119,9 @@ export const useNoteStore = defineStore(
     }
     // ==================== 标签相关方法 ====================
 
-    // 获取所有标签
-    const fetchAllTags = async () => {
-      try {
-        const allTags = await window.electronAPI.getAllTags()
-        tags.value = allTags
-        console.log('noteStores.ts→ 获取所有标签成功:', allTags)
-        return allTags
-      } catch (error) {
-        console.error('noteStores.ts→ 获取所有标签失败:', error)
-        throw error
-      }
-    }
-
-    // 创建新标签
-    const createTag = async (params: { name: string; color?: string; icon?: string }) => {
-      try {
-        const newTag = await window.electronAPI.createTag(params)
-        tags.value.push(newTag)
-        return newTag
-      } catch (error) {
-        console.error('noteStores.ts→ 创建标签失败:', error)
-        throw error
-      }
-    }
-
-    // 更新标签
-    const updateTag = async (id: string, updateData: Partial<Tag>) => {
-      try {
-        const updatedTag = await window.electronAPI.updateTag(id, updateData)
-        const index = tags.value.findIndex((tag) => tag.id === id)
-        if (index !== -1) {
-          tags.value[index] = updatedTag
-        }
-        return updatedTag
-      } catch (error) {
-        console.error('noteStores.ts→ 更新标签失败:', error)
-        throw error
-      }
-    }
-
-    // 删除标签
-    const deleteTag = async (id: string) => {
-      try {
-        await window.electronAPI.deleteTag(id)
-        tags.value = tags.value.filter((tag) => tag.id !== id)
-        if (currentTag.value?.id === id) {
-          currentTag.value = null
-        }
-      } catch (error) {
-        console.error('noteStores.ts→ 删除标签失败:', error)
-        throw error
-      }
-    }
-
-    // 搜索标签
-    const searchTags = async (query: string) => {
-      try {
-        tagSearchQuery.value = query
-        if (!query.trim()) {
-          return tags.value
-        }
-        const searchResult = await window.electronAPI.searchTags(query)
-        console.log(searchResult)
-        return searchResult
-      } catch (error) {
-        console.error('noteStores.ts→ 搜索标签失败:', error)
-        throw error
-      }
-    }
-
     // 为笔记添加标签
     const addTagToNote = async (noteId: string, tagName: string) => {
       try {
-        // // 查找标签
-        // const tag = tags.value.find((t) => t.name === tagName)
-        // if (!tag) {
-        //   throw new Error(`标签 "${tagName}" 不存在`)
-        // }
-
         // 更新笔记的标签
         const updatedNote = await window.electronAPI.updateNoteTag({
           noteId,
@@ -236,16 +154,6 @@ export const useNoteStore = defineStore(
 
     const openTaggedNotes = async (tagName: string) => {
       console.log('noteStores.ts→ 打开标签为', tagName, '的笔记')
-    }
-
-    // 打开标签管理模态框
-    const openTagModal = () => {
-      isTagModalOpen.value = true
-    }
-
-    // 关闭标签管理模态框
-    const closeTagModal = () => {
-      isTagModalOpen.value = false
     }
 
     // ==================== 最近笔记相关方法 ====================
@@ -1414,21 +1322,8 @@ export const useNoteStore = defineStore(
       rightSidebarBacklinkNoteId,
       openBacklinkPreview,
       // 标签相关状态
-      tags,
-      currentTag,
-      tagSearchQuery,
-      isTagModalOpen,
-
-      // 标签相关方法
-      fetchAllTags,
-      createTag,
-      updateTag,
-      deleteTag,
-      searchTags,
       addTagToNote,
       removeTagFromNote,
-      openTagModal,
-      closeTagModal,
       openTaggedNotes
     }
   },
