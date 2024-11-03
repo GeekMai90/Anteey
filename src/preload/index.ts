@@ -17,6 +17,7 @@ import path from 'path'
 import fs from 'fs'
 import { app } from '@electron/remote'
 import { notesApi } from './api/notesApi'
+import { canvasApi } from './api/canvasApi'
 // 缓存处理函数
 async function loadCache(): Promise<Record<string, string>> {
   try {
@@ -49,6 +50,7 @@ async function saveCache(cacheData: Record<string, string>): Promise<boolean> {
 
 contextBridge.exposeInMainWorld('electronAPI', {
   ...notesApi,
+  ...canvasApi,
   getResourcePath: async (filename: string): Promise<string> => {
     try {
       return (await ipcRenderer.invoke('get-resource-path', filename)) as string

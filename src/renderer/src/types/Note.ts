@@ -319,3 +319,69 @@ export interface ConnectionUpdateData {
   endPoint?: { x: number; y: number }
   description?: string
 }
+
+// Canvas 相关的类型定义
+export interface Canvas {
+  id: string
+  name: string
+  description?: string
+  createdAt: Date
+  updatedAt: Date
+  snapshot?: TLSnapshot
+  customAssets: {
+    [key: string]: CanvasAsset
+  }
+  isStarred: boolean
+  starredOrder?: number
+}
+
+// Canvas 中的自定义资产
+export interface CanvasAsset {
+  id: string
+  type: 'note' | 'image' | 'text'
+  noteId?: string
+  content?: string
+  imageUrl?: string
+  metadata?: {
+    title?: string
+    description?: string
+    [key: string]: any
+  }
+}
+
+// 创建 Canvas 的输入
+export interface CreateCanvasInput {
+  name: string
+  description?: string
+}
+
+// 更新 Canvas 的输入
+// 更新 Canvas 的输入
+export interface UpdateCanvasInput {
+  name?: string
+  description?: string
+  snapshot?: TLSnapshot
+  customAssets?: {
+    [key: string]: CanvasAsset
+  }
+  isStarred?: boolean
+  starredOrder?: number
+}
+
+// Canvas 资产的输入
+export interface CanvasAssetInput {
+  type: 'note' | 'image' | 'text'
+  noteId?: string
+  content?: string
+  imageUrl?: string
+  metadata?: {
+    title?: string
+    description?: string
+    [key: string]: any
+  }
+}
+
+// tldraw 相关类型
+export interface TLSnapshot {
+  [key: string]: any // tldraw 的具体状态结构
+}

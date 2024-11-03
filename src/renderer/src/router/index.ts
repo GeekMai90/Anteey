@@ -78,7 +78,17 @@ const routes = [
     path: '/temp',
     component: () => import('../components/common/EmptyComponent.vue'),
     meta: { keepAlive: false }
+  },
+  {
+    name: 'canvas',
+    path: '/canvas',
+    component: () => import('../components/canvas/CanvasDetail.vue')
   }
+  // {
+  //   name: 'canvasDetail',
+  //   path: '/canvas/:id',
+  //   component: () => import('../components/canvas/CanvasDetail.vue')
+  // }
 ]
 
 const router = createRouter({

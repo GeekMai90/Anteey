@@ -15,7 +15,11 @@ import {
   WhiteboardGroup,
   ConnectionCreateData,
   RelatedNotesResult,
-  NoteReference
+  NoteReference,
+  CreateCanvasInput,
+  Canvas,
+  UpdateCanvasInput,
+  CanvasAsset
 } from './Note'
 import { UpdateUserSettings, UserSettings } from './UserSettings'
 
@@ -148,6 +152,29 @@ export interface ElectronAPI {
     }
   }) => Promise<NoteReference>
   deleteNoteReference: (params: { sourceNoteId: string; targetNoteId: string }) => Promise<void>
+  // 创建画布
+  createCanvas: (input: CreateCanvasInput) => Promise<Canvas>
+
+  // 获取单个画布
+  getCanvas: (id: string) => Promise<Canvas>
+
+  // 获取所有画布
+  getAllCanvases: () => Promise<Canvas[]>
+
+  // 更新画布
+  updateCanvas: (id: string, data: UpdateCanvasInput) => Promise<Canvas>
+
+  // 删除画布
+  deleteCanvas: (id: string) => Promise<boolean>
+
+  // 添加资产到画布
+  addAssetToCanvas: (canvasId: string, asset: CanvasAsset) => Promise<Canvas>
+
+  // 从画布移除资产
+  removeAssetFromCanvas: (canvasId: string, assetId: string) => Promise<Canvas>
+
+  // 更新画布收藏状态
+  updateCanvasStarred: (id: string, isStarred: boolean, starredOrder?: number) => Promise<Canvas>
 }
 
 declare global {

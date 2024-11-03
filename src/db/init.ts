@@ -259,6 +259,53 @@ export async function initDatabase(db: Knex): Promise<void> {
     })
     console.log('user_settings 默认数据创建成功')
   }
+  // 创建 canvases 表
+  // 创建 canvases 表
+  // 创建 canvases 表
+  if (!(await db.schema.hasTable('canvases'))) {
+    await db.schema.createTable('canvases', (table) => {
+      table.string('id').primary()
+      table.string('name').notNullable()
+      table.text('description').nullable()
+      table.json('snapshot').nullable() // tldraw 状态数据
+      table.json('customAssets').notNullable().defaultTo('{}') // 修改这里，默认为空对象
+      table.boolean('isStarred').notNullable().defaultTo(false)
+      table.integer('starredOrder').nullable()
+      table.datetime('createdAt').notNullable()
+      table.datetime('updatedAt').notNullable()
+
+      // 索引
+      table.index(['isStarred', 'starredOrder'])
+      table.index(['createdAt'])
+    })
+    console.log('canvases 表创建成功')
+  }
+
+  // 创建 canvas_assets 表
+  if (!(await db.schema.hasTable('canvas_assets'))) {
+    await db.schema.createTable('canvas_assets', (table) => {
+      table.string('id').primary()
+      table.string('canvasId').notNullable()
+      table.string('type').notNullable() // 'note' | 'image' | 'text'
+      table.string('noteId').nullable() // 关联到 notes 表的 ID
+      table.text('content').nullable() // 文本内容
+      table.string('imageUrl').nullable() // 图片 URL
+      table.json('metadata').nullable() // 额外元数据
+      table.datetime('createdAt').notNullable()
+      table.datetime('updatedAt').notNullable()
+
+      // 添加外键约束
+      table.foreign('canvasId').references('canvases.id').onDelete('CASCADE')
+      table.foreign('noteId').references('notes.id').onDelete('SET NULL')
+
+      // 创建索引时指定唯一的名称
+      table.index('canvasId', 'canvas_assets_canvasid_index')
+      table.index('noteId', 'canvas_assets_noteid_index')
+      table.index(['canvasId', 'type'], 'canvas_assets_canvasid_type_index')
+      table.index(['canvasId', 'updatedAt'], 'canvas_assets_canvasid_updatedat_index')
+    })
+    console.log('canvas_assets 表创建成功')
+  }
 }
 
 export async function down(db: Knex): Promise<void> {
@@ -271,5 +318,7 @@ export async function down(db: Knex): Promise<void> {
   await db.schema.dropTableIfExists('cardboxes')
   await db.schema.dropTableIfExists('notes')
   await db.schema.dropTableIfExists('user_settings') // 添加这一行
+  await db.schema.dropTableIfExists('canvas_assets')
+  await db.schema.dropTableIfExists('canvases')
   console.log('所有表已删除')
 }

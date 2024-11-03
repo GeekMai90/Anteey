@@ -218,7 +218,7 @@ const menuItems = [
       { name: '文献卡片', path: '/bibcard', icon: Bookshelf }
     ]
   },
-  { name: '思维板', path: '/whiteboard', icon: Workbench }
+  { name: '白板', path: '/canvas', icon: Workbench }
 ]
 
 const isActive = (path: string) => {
