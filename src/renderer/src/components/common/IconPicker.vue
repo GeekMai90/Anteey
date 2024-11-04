@@ -31,7 +31,7 @@ import { iconKeywords } from './iconKeywords'
 // 从 IconPark 中获取所有图标
 const icons = Object.entries(IconPark)
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  .filter(([name, component]) => typeof component === 'object')
+  .filter(([name, component]) => typeof component === 'object' && name.length > 0)
   .map(([name]) => ({
     name,
     component: IconPark[name as keyof typeof IconPark],

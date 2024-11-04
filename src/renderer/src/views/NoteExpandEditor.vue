@@ -34,6 +34,7 @@
             placeholder="输入编码地址"
             @input="handleAddressInput"
             @keyup.enter="handleAddressEnter"
+            @focus="handleAddressFocus"
           />
         </div>
         <!-- 右侧工具栏 -->
@@ -131,7 +132,7 @@ import { useMenu } from '@renderer/composables/useMenu'
 import BacklinksPanel from '@renderer/components/note/BacklinksPanel.vue'
 import { CardType, Note } from '@renderer/types/Note'
 import { debounce } from 'lodash-es'
-import { EditorState } from '@tiptap/pm/state/dist'
+// import { EditorState } from '@tiptap/pm/state/dist'
 import TagsPanel from '@renderer/components/note/TagsPanel.vue'
 // === 组件状态管理 ===
 const tiptapEditor = ref<any>(null)
@@ -233,6 +234,19 @@ const handleAddressInput = (event: Event) => {
   updateAddress(input.value)
 }
 
+// 处理地址输入框获得焦点
+const handleAddressFocus = () => {
+  // 立即保存当前编辑器内容
+  if (currentNote.value) {
+    const editor = tiptapEditor.value?.editor
+    if (editor) {
+      const content = editor.getJSON()
+      saveContent.flush() // 立即执行之前可能还在等待的保存
+      noteStore.updateNoteContent(currentNote.value.id, content)
+    }
+  }
+}
+
 // 处理回车键
 const handleAddressEnter = (event: KeyboardEvent) => {
   event.preventDefault() // 阻止默认行为
@@ -285,40 +299,64 @@ const handleAddressEnter = (event: KeyboardEvent) => {
 //     }
 //   }, updateState.saveTimeout)
 // }
-// 使用防抖保存内容
+// // 使用防抖保存内容
+// const saveContent = debounce(
+//   async (noteId: string, content: any, selection?: EditorState['selection']) => {
+//     try {
+//       await noteStore.updateNoteContent(noteId, content)
+
+//       // 恢复光标位置
+//       nextTick(() => {
+//         const editor = tiptapEditor.value?.editor
+//         if (editor && selection) {
+//           editor.commands.setTextSelection(selection.$head.pos)
+//         }
+//       })
+//     } catch (error) {
+//       console.error('保存笔记失败:', error)
+//       message.error('保存失败')
+//     }
+//   },
+//   2000
+// ) // 2秒的防抖时间
+
+// // 处理编辑器内容更新
+// const handleContentUpdate = (newContent: any) => {
+//   if (!currentNote.value) return
+
+//   // 1. 立即更新本地状态，保持编辑器响应
+//   currentNote.value.content = newContent
+
+//   // 2. 保存当前光标位置
+//   const editor = tiptapEditor.value?.editor
+//   const selection = editor?.state.selection
+
+//   // 3. 使用防抖保存
+//   saveContent(currentNote.value.id, newContent, selection)
+// }
+// 使用一个更保守的保存策略
 const saveContent = debounce(
-  async (noteId: string, content: any, selection?: EditorState['selection']) => {
+  async (noteId: string, content: any) => {
     try {
       await noteStore.updateNoteContent(noteId, content)
-
-      // 恢复光标位置
-      nextTick(() => {
-        const editor = tiptapEditor.value?.editor
-        if (editor && selection) {
-          editor.commands.setTextSelection(selection.$head.pos)
-        }
-      })
     } catch (error) {
       console.error('保存笔记失败:', error)
       message.error('保存失败')
     }
   },
-  2000
-) // 2秒的防抖时间
+  2000,
+  { trailing: true }
+)
 
 // 处理编辑器内容更新
 const handleContentUpdate = (newContent: any) => {
   if (!currentNote.value) return
 
-  // 1. 立即更新本地状态，保持编辑器响应
+  // 只更新本地状态
   currentNote.value.content = newContent
 
-  // 2. 保存当前光标位置
-  const editor = tiptapEditor.value?.editor
-  const selection = editor?.state.selection
-
-  // 3. 使用防抖保存
-  saveContent(currentNote.value.id, newContent, selection)
+  // 触发防抖保存，不传递光标位置
+  saveContent(currentNote.value.id, newContent)
 }
 
 // 在组件卸载前确保所有待保存的内容都已保存
