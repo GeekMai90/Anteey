@@ -116,7 +116,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, computed, nextTick, onBeforeUnmount, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { onBeforeRouteLeave, onBeforeRouteUpdate, useRoute } from 'vue-router'
 import { useNoteStore } from '@renderer/stores/noteStores'
 import { formatDate } from '@renderer/utils/noteHelpers'
 import { More, Install } from '@icon-park/vue-next'
@@ -358,6 +358,51 @@ const handleContentUpdate = (newContent: any) => {
   // 触发防抖保存，不传递光标位置
   saveContent(currentNote.value.id, newContent)
 }
+
+// === 尝试一下增加新的保存功能 ===
+// 保存当前笔记内容的通用函数
+const saveCurrentNote = async () => {
+  if (!currentNote.value) return
+
+  try {
+    // 立即执行所有待保存的内容
+    saveContent.flush()
+
+    const editor = tiptapEditor.value?.editor
+    if (editor) {
+      const content = editor.getJSON()
+      await noteStore.updateNoteContent(currentNote.value.id, content)
+    }
+  } catch (error) {
+    console.error('保存笔记失败:', error)
+    message.error('保存失败')
+    throw error // 可以选择是否抛出错误
+  }
+}
+
+// 路由离开前保存
+onBeforeRouteLeave(async (to, from, next) => {
+  try {
+    await saveCurrentNote()
+    next()
+  } catch (error) {
+    // 可以选择是否阻止路由切换
+    // next(false) // 阻止路由切换
+    next() // 继续路由切换
+  }
+})
+
+// 路由更新前保存
+onBeforeRouteUpdate(async (to, from, next) => {
+  try {
+    if (from.params.id !== to.params.id) {
+      await saveCurrentNote()
+    }
+    next()
+  } catch (error) {
+    next()
+  }
+})
 
 // 在组件卸载前确保所有待保存的内容都已保存
 onBeforeUnmount(() => {
