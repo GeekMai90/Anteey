@@ -777,7 +777,18 @@ export async function createNote(): Promise<Note> {
     type: 'note',
     address: '',
     cardType: 'Maincard',
-    content: { type: 'doc', content: [] },
+    content: {
+      type: 'doc',
+      content: [
+        {
+          attrs: {
+            textAlign: 'left'
+          },
+          content: [],
+          type: 'paragraph'
+        }
+      ]
+    },
     createdAt: now,
     updatedAt: now,
 

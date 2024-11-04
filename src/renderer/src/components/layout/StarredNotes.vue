@@ -4,7 +4,7 @@
   <div class="starred-notes">
     <!-- 星标区域头部，点击可展开/折叠列表 -->
     <div class="starred-header" @click="toggleStarredNotes">
-      <span>星标笔记</span>
+      <span>星标</span>
       <div class="toggle-icon">
         <div class="icon">
           <Down

@@ -118,5 +118,17 @@ export const tagApi = {
       console.error('预加载脚本 → 获取所有标签(带计数)失败:', error)
       throw error
     }
+  },
+  // 更新标签置顶状态
+  updateTagPinned: async (id: string, pinned: boolean): Promise<void> => {
+    try {
+      const result = await ipcRenderer.invoke('update-tag-pinned', { id, pinned })
+      if (!result.success) {
+        throw new Error(result.error)
+      }
+    } catch (error) {
+      console.error('预加载脚本 → 更新标签置顶状态失败:', error)
+      throw error
+    }
   }
 }

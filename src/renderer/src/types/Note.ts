@@ -152,6 +152,7 @@ export interface Tag {
   path: string[] // 标签路径，如 ['work', 'project', 'dev']
   color?: string // 标签颜色（可选）
   icon?: string // 标签图标（可选）
+  pinned?: boolean // 添加置顶标记
   metadata: {
     count: number // 使用该标签的笔记数量
     lastUsed: Date // 最后使用时间
@@ -170,6 +171,7 @@ export interface TagTreeNode {
   totalCount?: number // 该标签及子标签的笔记总数
   color?: string // 继承自 Tag 的颜色
   icon?: string // 继承自 Tag 的图标
+  pinned?: boolean // 添加置顶标记
 }
 
 // 卡片盒（文件夹）

@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import { Tag, TagTreeNode } from '@renderer/types/Note'
+import { Tag, TagTreeNode } from '../types/Note'
 
 export const useTagStore = defineStore('tag', () => {
   // ==================== 标签相关状态 ====================
@@ -26,7 +26,8 @@ export const useTagStore = defineStore('tag', () => {
         noteCount: tag.metadata.count,
         totalCount: tag.metadata.totalCount || tag.metadata.count, // 使用 totalCount，如果没有则使用 count
         color: tag.color,
-        icon: tag.icon
+        icon: tag.icon,
+        pinned: tag.pinned
       }
       tagMap.set(tag.path.join('/'), node)
     })
@@ -50,13 +51,15 @@ export const useTagStore = defineStore('tag', () => {
     return root
   }
 
-  // 获取标签树
+  // 修改 fetchTagTree 函数
   const fetchTagTree = async () => {
     try {
-      const tags = await window.electronAPI.getAllTagsWithCount()
-      allTags.value = tags
-      console.log('tagStore.ts→ 获取所有标签(带计数)成功:', tags)
-      tagTree.value = buildTagTree(tags)
+      const fetchedTags = await window.electronAPI.getAllTagsWithCount()
+      allTags.value = fetchedTags
+      console.log('tagStore.ts→ 获取所有标签(带计数)成功:', fetchedTags)
+      // 直接赋值新的树结构
+      tagTree.value = buildTagTree(fetchedTags)
+      console.log('tagStore.ts→ 标签树已更新:', tagTree.value)
     } catch (error) {
       console.error('Failed to fetch tag tree:', error)
     }
@@ -169,6 +172,18 @@ export const useTagStore = defineStore('tag', () => {
     }
   }
 
+  // 添加置顶/取消置顶方法
+  const toggleTagPin = async (tagId: string, pinned: boolean) => {
+    try {
+      await window.electronAPI.updateTagPinned(tagId, pinned)
+      await fetchTagTree() // 重新获取标签树以更新排序
+      console.log(`标签${pinned ? '置顶' : '取消置顶'}成功:`, tagId)
+    } catch (error) {
+      console.error('更新标签置顶状态失败:', error)
+      throw error
+    }
+  }
+
   // 打开标签管理模态框
   const openTagModal = () => {
     isTagModalOpen.value = true
@@ -193,6 +208,7 @@ export const useTagStore = defineStore('tag', () => {
     tags,
     currentTag,
     tagSearchQuery,
-    isTagModalOpen
+    isTagModalOpen,
+    toggleTagPin
   }
 })

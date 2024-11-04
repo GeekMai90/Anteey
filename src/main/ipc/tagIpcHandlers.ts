@@ -7,7 +7,8 @@ import {
   deleteTag,
   incrementTagUseCount,
   searchTags,
-  getAllTagsWithCount
+  getAllTagsWithCount,
+  updateTagPinned
 } from '../../db/tagService'
 import type { Tag } from '../../renderer/src/types/Note'
 
@@ -137,4 +138,22 @@ export function setupTagHandlers() {
       }
     }
   })
+
+  // 更新标签置顶状态
+  ipcMain.handle(
+    'update-tag-pinned',
+    async (_event, { id, pinned }: { id: string; pinned: boolean }) => {
+      try {
+        console.log('主进程→ 更新标签置顶状态:', { id, pinned })
+        const updatedTag = await updateTagPinned(id, pinned)
+        return { success: true, tag: updatedTag }
+      } catch (error) {
+        console.error('主进程→ 更新标签置顶状态失败:', error)
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : String(error)
+        }
+      }
+    }
+  )
 }

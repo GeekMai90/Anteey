@@ -455,8 +455,6 @@ import Export from '@tiptap-pro/extension-export'
 import { useNoteStore } from '@renderer/stores/noteStores'
 import { useUIStore } from '@renderer/stores/useUIStore'
 import { useRouter } from 'vue-router/dist/vue-router'
-import { Tag } from '@renderer/utils/tiptap/Tag'
-import { TagCommands } from '@renderer/utils/tiptap/TagCommands'
 import { tagSuggestion } from '@renderer/utils/tiptap/tagSuggestion'
 
 const noteStore = useNoteStore()

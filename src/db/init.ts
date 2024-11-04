@@ -71,7 +71,8 @@ export async function initDatabase(db: Knex): Promise<void> {
       table.json('path').notNullable() // 标签路径，如 ['work', 'project', 'dev']
       table.string('color').nullable() // 标签颜色（可选）
       table.string('icon').nullable() // 标签图标（可选）
-
+      table.boolean('pinned').notNullable().defaultTo(false) // 置顶标记
+      table.integer('pinOrder').nullable().index() // 添加置顶排序字段
       // 标签元数据
       table
         .json('metadata')
@@ -89,6 +90,8 @@ export async function initDatabase(db: Knex): Promise<void> {
       // 添加单独的列来支持排序和索引
       table.integer('useCount').notNullable().defaultTo(0).index() // 使用次数
       table.datetime('lastUsedAt').notNullable().index() // 最后使用时间
+      // 添加置顶相关的索引
+      table.index(['pinned', 'pinOrder']) // 复合索引优化置顶排序查询
     })
     console.log('tags 表创建成功')
   }

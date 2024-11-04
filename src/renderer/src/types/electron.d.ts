@@ -175,6 +175,9 @@ export interface ElectronAPI {
   // 获取所有标签(带完整计数)
   getAllTagsWithCount: () => Promise<Tag[]>
 
+  // 更新标签置顶状态
+  updateTagPinned: (id: string, pinned: boolean) => Promise<void>
+
   // 更新笔记标签
   updateNoteTag: (params: {
     noteId: string

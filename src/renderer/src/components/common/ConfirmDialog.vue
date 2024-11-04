@@ -1,110 +1,171 @@
 <template>
   <Teleport to="body">
-    <div v-if="show" class="confirm-dialog-overlay">
-      <div class="confirm-dialog">
-        <h3>{{ title }}</h3>
-        <p>{{ message }}</p>
-        <div class="button-group">
-          <button class="cancel-button" @click="onCancel">{{ cancelText }}</button>
-          <button class="confirm-button" @click="onConfirm">{{ confirmText }}</button>
+    <Transition name="dialog-fade">
+      <div v-if="visible" class="dialog-overlay" @click="handleOverlayClick">
+        <div class="dialog-container" @click.stop>
+          <div class="dialog-content">
+            <div class="dialog-title">{{ title }}</div>
+            <div class="dialog-message">{{ message }}</div>
+            <div class="dialog-buttons">
+              <button class="cancel-button" @click="handleCancel">{{ cancelText }}</button>
+              <button
+                class="confirm-button"
+                :class="{ danger: type === 'danger' }"
+                @click="handleConfirm"
+              >
+                {{ confirmText }}
+              </button>
+            </div>
+          </div>
         </div>
       </div>
-    </div>
+    </Transition>
   </Teleport>
 </template>
 
 <script setup lang="ts">
 import { defineProps, defineEmits } from 'vue'
 
-defineProps({
-  show: Boolean,
-  title: String,
-  message: String,
-  cancelText: {
-    type: String,
-    default: '取消'
-  },
-  confirmText: {
-    type: String,
-    default: '确定'
-  }
-})
+defineProps<{
+  visible: boolean
+  title: string
+  message: string
+  type?: 'default' | 'danger'
+  cancelText?: string
+  confirmText?: string
+}>()
 
-const emit = defineEmits(['cancel', 'confirm'])
+const emit = defineEmits<{
+  (e: 'update:visible', value: boolean): void
+  (e: 'confirm'): void
+  (e: 'cancel'): void
+}>()
 
-const onCancel = () => emit('cancel')
-const onConfirm = () => emit('confirm')
+const handleOverlayClick = () => {
+  emit('update:visible', false)
+  emit('cancel')
+}
+
+const handleConfirm = () => {
+  emit('confirm')
+  emit('update:visible', false)
+}
+
+const handleCancel = () => {
+  emit('cancel')
+  emit('update:visible', false)
+}
 </script>
 
-<style scoped>
-.confirm-dialog-overlay {
+<style scoped lang="scss">
+.dialog-overlay {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: rgba(0, 0, 0, 0.4);
   display: flex;
-  justify-content: center;
   align-items: center;
-  z-index: 9999;
+  justify-content: center;
+  z-index: 1000;
 }
 
-.confirm-dialog {
-  background-color: white;
+.dialog-container {
+  background: var(--color-bg-primary);
   border-radius: 12px;
-  padding: 24px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.12);
   width: 320px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  padding: 24px;
+  transform-origin: center;
+}
+
+.dialog-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   text-align: center;
 }
 
-h3 {
-  margin-top: 0;
-  margin-bottom: 16px;
-  font-size: 20px;
+.dialog-title {
+  font-size: 16px;
   font-weight: 600;
-  color: #333;
+  color: var(--color-text-primary);
+  margin-bottom: 12px;
 }
 
-p {
+.dialog-message {
+  font-size: 14px;
+  color: var(--color-text-secondary);
   margin-bottom: 24px;
-  font-size: 16px;
-  color: #666;
   line-height: 1.5;
 }
 
-.button-group {
+.dialog-buttons {
   display: flex;
-  justify-content: center;
-  gap: 16px;
+  gap: 12px;
+  width: 100%;
+
+  button {
+    flex: 1;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: none;
+
+    &.cancel-button {
+      background: var(--color-button-bg);
+      color: var(--color-text-secondary);
+
+      &:hover {
+        background: var(--color-hover-bg);
+      }
+    }
+
+    &.confirm-button {
+      background: var(--color-primary);
+      color: white;
+
+      &:hover {
+        opacity: 0.9;
+        background: var(--color-danger);
+      }
+
+      // &.danger {
+      //   background: var(--color-danger);
+      // }
+    }
+  }
 }
 
-button {
-  padding: 10px 24px;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 16px;
-  font-weight: 500;
-  transition: all 0.3s ease;
+// 动画
+.dialog-fade-enter-active,
+.dialog-fade-leave-active {
+  transition: opacity 0.2s ease;
+
+  .dialog-container {
+    transition: transform 0.2s ease;
+  }
 }
 
-.cancel-button {
-  background-color: #f0f0f0;
-  color: #333;
+.dialog-fade-enter-from,
+.dialog-fade-leave-to {
+  opacity: 0;
+
+  .dialog-container {
+    transform: scale(0.95);
+  }
 }
 
-.cancel-button:hover {
-  background-color: #e0e0e0;
-}
+.dialog-fade-enter-to,
+.dialog-fade-leave-from {
+  opacity: 1;
 
-.confirm-button {
-  background-color: #ff4d4f;
-  color: white;
-}
-
-.confirm-button:hover {
-  background-color: #ff7875;
+  .dialog-container {
+    transform: scale(1);
+  }
 }
 </style>

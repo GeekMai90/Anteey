@@ -26,6 +26,7 @@ export async function createTag(name: string, color?: string, icon?: string): Pr
       path, // 标签路径数组
       color,
       icon,
+      pinned: false, // 默认不置顶
       metadata: {
         count: 0,
         lastUsed: now,
@@ -74,6 +75,12 @@ export async function getTagById(id: string): Promise<Tag | null> {
 }
 
 // 更新标签
+// 辅助函数：检查是否为子路径
+function isChildPath(childPath: string[], parentPath: string[]): boolean {
+  if (childPath.length <= parentPath.length) return false
+  return parentPath.every((segment, index) => segment === childPath[index])
+}
+
 export async function updateTag(id: string, updateData: Partial<Tag>): Promise<Tag> {
   try {
     return await db.transaction(async (trx) => {
@@ -83,14 +90,55 @@ export async function updateTag(id: string, updateData: Partial<Tag>): Promise<T
         throw new Error(`未找到ID为 ${id} 的标签`)
       }
 
-      // 2. 如果更新了name,需要重新解析path
+      // 2. 如果更新了name,需要重新解析path并更新子标签
       if (updateData.name) {
-        updateData.path = updateData.name.split('/').filter(Boolean)
+        const oldPath = JSON.parse(oldTag.path)
+        const newPath = updateData.name.split('/').filter(Boolean)
+        updateData.path = newPath
 
-        // 3. 更新所有使用该标签的笔记
+        // 3. 获取所有标签
+        const allTags = await trx('tags').select('*').whereNot('id', id)
+
+        // 4. 找出并更新子标签
+        for (const tag of allTags) {
+          const tagPath = JSON.parse(tag.path)
+          if (isChildPath(tagPath, oldPath)) {
+            // 构建新的子标签路径
+            const newChildPath = [...newPath, ...tagPath.slice(oldPath.length)]
+            // 更新子标签的名称（保持与路径一致）
+            const newChildName = newChildPath.join('/')
+
+            await trx('tags')
+              .where({ id: tag.id })
+              .update({
+                path: JSON.stringify(newChildPath),
+                name: newChildName,
+                updatedAt: new Date()
+              })
+
+            // 更新使用此子标签的笔记
+            const notesWithChildTag = await trx('notes')
+              .select('id', 'tags')
+              .where('tags', 'like', `%${tag.name}%`)
+
+            for (const note of notesWithChildTag) {
+              const tags = JSON.parse(note.tags || '[]')
+              const updatedTags = tags.map((t: string) => (t === tag.name ? newChildName : t))
+
+              await trx('notes')
+                .where({ id: note.id })
+                .update({
+                  tags: JSON.stringify(updatedTags),
+                  updatedAt: new Date()
+                })
+            }
+          }
+        }
+
+        // 5. 更新使用当前标签的笔记
         const notesWithTag = await trx('notes')
-          .whereRaw(`tags::jsonb ? ?`, [oldTag.name])
           .select('id', 'tags')
+          .where('tags', 'like', `%${oldTag.name}%`)
 
         for (const note of notesWithTag) {
           const tags = JSON.parse(note.tags || '[]')
@@ -121,7 +169,7 @@ export async function updateTag(id: string, updateData: Partial<Tag>): Promise<T
         dataToUpdate.metadata = JSON.stringify(dataToUpdate.metadata)
       }
 
-      // 4. 更新标签
+      // 6. 更新当前标签
       const [updatedTag] = await trx('tags').where({ id }).update(dataToUpdate).returning('*')
 
       if (!updatedTag) {
@@ -139,8 +187,54 @@ export async function updateTag(id: string, updateData: Partial<Tag>): Promise<T
 // 删除标签
 export async function deleteTag(id: string): Promise<void> {
   try {
-    await db('tags').where({ id }).delete()
-    console.log('后端→ 删除标签成功:', id)
+    await db.transaction(async (trx) => {
+      // 1. 获取要删除的标签及其所有子标签
+      const tagToDelete = await trx('tags').where({ id }).first()
+      if (!tagToDelete) {
+        throw new Error(`未找到ID为 ${id} 的标签`)
+      }
+
+      // 2. 获取所有子标签
+      const childTags = await trx('tags')
+        .select('*')
+        .where('path', 'like', `${JSON.stringify(tagToDelete.path)}%`)
+
+      // 收集所有需要删除的标签名称
+      const tagsToDelete = [tagToDelete, ...childTags]
+      const tagNames = tagsToDelete.map((tag) => tag.name)
+
+      // 3. 更新所有使用这些标签的笔记
+      const notesWithTags = await trx('notes')
+        .select('id', 'tags')
+        .where(function () {
+          tagNames.forEach((tagName) => {
+            this.orWhere('tags', 'like', `%${tagName}%`)
+          })
+        })
+
+      // 4. 从每个笔记中移除相关标签
+      for (const note of notesWithTags) {
+        const tags = JSON.parse(note.tags || '[]')
+        const updatedTags = tags.filter((t: string) => !tagNames.includes(t))
+
+        await trx('notes')
+          .where({ id: note.id })
+          .update({
+            tags: JSON.stringify(updatedTags),
+            updatedAt: new Date()
+          })
+      }
+
+      // 5. 删除所有相关标签
+      await trx('tags')
+        .whereIn(
+          'id',
+          tagsToDelete.map((tag) => tag.id)
+        )
+        .delete()
+
+      console.log('后端→ 删除标签及其子标签成功:', id)
+    })
   } catch (error) {
     console.error('后端→ 删除标签失败:', error)
     throw error
@@ -228,7 +322,12 @@ export async function getAllTagsWithCount(): Promise<Tag[]> {
       })
     )
 
-    return tagsWithCount
+    // 添加排序：置顶的在前，同样置顶状态下按名称排序
+    return tagsWithCount.sort((a, b) => {
+      if (a.pinned && !b.pinned) return -1
+      if (!a.pinned && b.pinned) return 1
+      return a.name.localeCompare(b.name)
+    })
   } catch (error) {
     console.error('后端→ 获取所有标签(带计数)失败:', error)
     throw error
@@ -259,6 +358,28 @@ export async function updateTagCount(
     console.log(`后端→ ${increment ? '增加' : '减少'}标签计数:`, tagId)
   } catch (error) {
     console.error('后端→ 更新标签计数失败:', error)
+    throw error
+  }
+}
+
+// 添加更新置顶状态的函数
+export async function updateTagPinned(id: string, pinned: boolean): Promise<Tag> {
+  try {
+    const [updatedTag] = await db('tags')
+      .where({ id })
+      .update({
+        pinned,
+        updatedAt: new Date()
+      })
+      .returning('*')
+
+    if (!updatedTag) {
+      throw new Error(`更新标签失败: ${id}`)
+    }
+
+    return convertToTag(updatedTag)
+  } catch (error) {
+    console.error('后端→ 更新标签置顶状态失败:', error)
     throw error
   }
 }

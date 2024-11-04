@@ -110,8 +110,8 @@
     <div class="sidebar-header-divider"></div>
     <div class="scrollable-content">
       <StarredNotes />
-      <RecentNotes />
       <TagsTree />
+      <RecentNotes />
     </div>
     <div class="resize-handle" @mousedown="startResize"></div>
     <div class="sidebar-footer">
@@ -256,8 +256,8 @@ const saveStatusClass = computed(() => {
 
 // 侧边栏宽度调节
 const emit = defineEmits(['resize'])
-const sidebarWidth = ref(280)
-const MIN_WIDTH = 280
+const sidebarWidth = ref(250)
+const MIN_WIDTH = 250
 const MAX_WIDTH = 400
 
 watch(sidebarWidth, (newWidth) => {

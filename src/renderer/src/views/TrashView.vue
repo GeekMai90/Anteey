@@ -78,9 +78,12 @@
 
     <!-- 确认对话框 -->
     <ConfirmDialog
-      :show="showConfirmDialog"
+      v-model:visible="showConfirmDialog"
       title="全部清空"
       message="笔记将被删除，此操作不能撤销"
+      type="danger"
+      cancel-text="取消"
+      confirm-text="清空"
       @cancel="handleCancelEmptyTrash"
       @confirm="handleConfirmEmptyTrash"
     />

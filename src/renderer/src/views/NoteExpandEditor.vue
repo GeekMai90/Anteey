@@ -498,7 +498,7 @@ const focusEditor = () => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-left: 20px;
+  margin-left: 24px;
   z-index: 500;
 }
 
@@ -704,7 +704,7 @@ const focusEditor = () => {
   font-size: 12px;
   color: var(--color-text-tertiary);
   margin-bottom: 20px;
-  margin-left: 33px;
+  margin-left: 34px;
   user-select: none;
 }
 

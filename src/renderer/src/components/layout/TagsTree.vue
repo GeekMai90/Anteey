@@ -37,14 +37,17 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { Down, Right } from '@icon-park/vue-next'
 import { useTagStore } from '@renderer/stores/tagStore' // 需要创建
 import { TagTreeNode } from '@renderer/types/Note'
 import TagTreeItem from './TagTreeItem.vue' // 需要创建
 import { useEventBus } from '@vueuse/core'
+import { storeToRefs } from 'pinia'
 
 const tagStore = useTagStore()
+// 使用 storeToRefs 来保持响应性
+const { tagTree: storeTagTree } = storeToRefs(tagStore)
 const isExpanded = ref(true)
 const tagTree = ref<TagTreeNode[]>([])
 
@@ -59,17 +62,32 @@ const handleTagSelect = (tag: TagTreeNode) => {
   // TODO: 实现标签选择逻辑
 }
 
+// 监听 store 中的 tagTree 变化
+watch(
+  storeTagTree,
+  (newValue) => {
+    console.log('标签树→ store tagTree 发生变化:', newValue)
+    tagTree.value = JSON.parse(JSON.stringify(newValue))
+    console.log('标签树→ tagTree 已更新:', tagTree.value)
+  },
+  { deep: true }
+)
+// 获取标签树数据的函数
+const refreshTagTree = async () => {
+  console.log('标签树→ 开始刷新数据')
+  await tagStore.fetchTagTree()
+  // 不需要手动赋值，watch 会处理
+}
 // 监听标签变化事件
 const tagChangeEventBus = useEventBus('tagChange')
 tagChangeEventBus.on(async () => {
-  await tagStore.fetchTagTree()
-  tagTree.value = tagStore.tagTree
+  console.log('标签树→ 接收到标签变化事件')
+  await refreshTagTree()
 })
 
-// 获取标签树数据
+// 初始加载
 onMounted(async () => {
-  await tagStore.fetchTagTree()
-  tagTree.value = tagStore.tagTree
+  await refreshTagTree()
 })
 </script>
 
