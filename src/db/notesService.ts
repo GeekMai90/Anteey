@@ -12,7 +12,6 @@ import { calculateSimilarity } from '../renderer/src/utils/noteSililarity'
 import { SemanticVectorizer } from '../renderer/src/utils/semanticVector'
 import { extractTextFromContent } from '../renderer/src/utils/keywordExtractor'
 import type { NoteReference, InternalNoteReference } from '../renderer/src/types/Note'
-import { updateTagCount } from './tagService'
 
 // 辅助函数：将数据库记录转换为 Note 对象
 function convertToNote(record: any): Note {
@@ -24,9 +23,6 @@ function convertToNote(record: any): Note {
     content: JSON.parse(record.content),
     createdAt: new Date(record.createdAt),
     updatedAt: new Date(record.updatedAt),
-
-    // 标签列表
-    tags: JSON.parse(record.tags),
 
     // 引用关系
     references: JSON.parse(record.references),
@@ -55,122 +51,6 @@ function convertToNote(record: any): Note {
 }
 
 // 获取相关笔记
-// export async function getRelatedNotes(
-//   noteId: string,
-//   limit: number = 5
-// ): Promise<RelatedNotesResult> {
-//   try {
-//     console.log('后端→ 开始查找相关笔记:', noteId)
-
-//     // 1. 获取当前笔记
-//     const currentNote = await db('notes').where('id', noteId).first()
-//     if (!currentNote) {
-//       throw new Error(`Note with ID "${noteId}" not found`)
-//     }
-
-//     // 2. 确保语义向量服务已初始化
-//     const vectorizer = SemanticVectorizer.getInstance()
-//     await vectorizer.initialize()
-
-//     // 3. 获取所有其他未删除的笔记
-//     const allNotes = await db('notes')
-//       .where('id', '!=', noteId)
-//       .andWhere('isDeleted', false)
-//       .select('*')
-
-//     const currentKeywords = JSON.parse(currentNote.keywords || '[]')
-//     const currentContent = JSON.parse(currentNote.content)
-//     const currentText = extractTextFromContent(currentContent)
-
-//     // 4. 并行计算相似度
-//     const notesWithSimilarity = await Promise.all(
-//       allNotes.map(async (note) => {
-//         try {
-//           const noteKeywords = JSON.parse(note.keywords || '[]')
-//           const noteContent = JSON.parse(note.content)
-//           const noteText = extractTextFromContent(noteContent)
-
-//           // 根据内容长度和关键词数量决定计算方法
-//           const isShortContent = noteText.length < 100 || currentText.length < 100
-//           const hasKeywords = noteKeywords.length > 0 && currentKeywords.length > 0
-
-//           let similarity: number
-
-//           if (isShortContent && hasKeywords) {
-//             // 短内容且有关键词时使用关键词相似度
-//             similarity = calculateSimilarity(currentKeywords, noteKeywords)
-//             console.log('后端→ 使用关键词相似度:', note.id)
-//           } else if (!hasKeywords && !isShortContent) {
-//             // 长内容无关键词时使用纯语义相似度
-//             similarity = await vectorizer.calculateSemanticSimilarity(currentText, noteText)
-//             console.log('后端→ 使用语义相似度:', note.id)
-//           } else {
-//             // 其他情况使用混合相似度
-//             similarity = await vectorizer.calculateHybridSimilarity(
-//               currentContent,
-//               noteContent,
-//               currentKeywords,
-//               noteKeywords
-//             )
-//             console.log('后端→ 使用混合相似度:', note.id)
-//           }
-
-//           return {
-//             ...convertToNote(note),
-//             similarity,
-//             matchType:
-//               isShortContent && hasKeywords
-//                 ? 'keyword'
-//                 : !hasKeywords && !isShortContent
-//                   ? 'semantic'
-//                   : 'hybrid'
-//           } as RelatedNote & { matchType: string }
-//         } catch (error) {
-//           console.error('后端→ 计算笔记相似度失败:', error)
-//           return {
-//             ...convertToNote(note),
-//             similarity: 0,
-//             matchType: 'error'
-//           } as RelatedNote & { matchType: string }
-//         }
-//       })
-//     )
-
-//     // 5. 过滤和排序结果
-//     const filteredNotes = notesWithSimilarity
-//       .filter((item) => item.similarity > 20)
-//       .sort((a, b) => b.similarity - a.similarity)
-//       .slice(0, limit)
-
-//     console.log('后端→ 相似度计算统计:', {
-//       关键词匹配: notesWithSimilarity.filter((n) => n.matchType === 'keyword').length,
-//       语义匹配: notesWithSimilarity.filter((n) => n.matchType === 'semantic').length,
-//       混合匹配: notesWithSimilarity.filter((n) => n.matchType === 'hybrid').length,
-//       匹配失败: notesWithSimilarity.filter((n) => n.matchType === 'error').length
-//     })
-
-//     return {
-//       success: true,
-//       notes: filteredNotes,
-//       totalProcessed: allNotes.length,
-//       stats: {
-//         keywordMatches: notesWithSimilarity.filter((n) => n.matchType === 'keyword').length,
-//         semanticMatches: notesWithSimilarity.filter((n) => n.matchType === 'semantic').length,
-//         hybridMatches: notesWithSimilarity.filter((n) => n.matchType === 'hybrid').length,
-//         errors: notesWithSimilarity.filter((n) => n.matchType === 'error').length
-//       }
-//     }
-//   } catch (error) {
-//     console.error('后端→ 查找相关笔记失败:', error)
-//     return {
-//       success: false,
-//       notes: [],
-//       error: error instanceof Error ? error.message : String(error)
-//     }
-//   }
-// }
-
-// ... existing imports ...
 
 // 批处理大小常量
 const BATCH_SIZE = 50
@@ -471,9 +351,7 @@ export async function searchNotes(query: string): Promise<
   if (!lowercaseQuery) return []
 
   try {
-    const notes = await db('notes')
-      .where('isDeleted', false)
-      .select('id', 'address', 'content', 'tags')
+    const notes = await db('notes').where('isDeleted', false).select('id', 'address', 'content')
 
     return notes.reduce(
       (results, note) => {
@@ -792,9 +670,6 @@ export async function createNote(): Promise<Note> {
     createdAt: now,
     updatedAt: now,
 
-    // 标签列表
-    tags: [],
-
     // 引用关系
     references: {
       outgoing: [],
@@ -837,7 +712,6 @@ export async function createNote(): Promise<Note> {
     await db('notes').insert({
       ...newNote,
       content: JSON.stringify(newNote.content),
-      tags: JSON.stringify(newNote.tags),
       references: JSON.stringify(newNote.references),
       relationshipTree: JSON.stringify(newNote.relationshipTree),
       graphData: JSON.stringify(newNote.graphData),
@@ -880,51 +754,6 @@ export async function getAllNotes(includeDeleted: boolean = false): Promise<Note
 }
 
 // 更新笔记内容 content
-// export async function updateNoteContent(id: string, content: object): Promise<Note> {
-//   try {
-//     return await db.transaction(async (trx) => {
-//       // 1. 准备更新数据
-//       const updateData: any = {
-//         content: JSON.stringify(content),
-//         updatedAt: new Date()
-//       }
-
-//       // 2. 提取关键词
-//       try {
-//         const keywords: Keyword[] = extractKeywords(content)
-//         console.log('后端→ 关键词提取完成:', keywords)
-//         updateData.keywords = JSON.stringify(keywords)
-//       } catch (keywordError) {
-//         console.error('后端→ 关键词提取失败:', keywordError)
-//         updateData.keywords = JSON.stringify([])
-//       }
-
-//       // 3. 计算语义向量
-//       try {
-//         const vectorizer = SemanticVectorizer.getInstance()
-//         await vectorizer.initialize()
-//         const text = extractTextFromContent(content)
-//         const vector = await vectorizer.getVector(text)
-//         updateData.semanticVector = JSON.stringify(vector)
-//         console.log('后端→ 语义向量计算完成')
-//       } catch (vectorError) {
-//         console.error('后端→ 语义向量计算失败:', vectorError)
-//         updateData.semanticVector = JSON.stringify([])
-//       }
-
-//       // 4. 执行更新并返回更新后的笔记
-//       const [updatedNote] = await trx('notes').where('id', id).update(updateData).returning('*')
-
-//       console.log(`后端→ 笔记 ${id} 内容已更新`)
-
-//       // 5. 转换并返回笔记
-//       return convertToNote(updatedNote)
-//     })
-//   } catch (error) {
-//     console.error('后端→ 更新笔记内容失败:', error)
-//     throw error
-//   }
-// }
 const MAX_RETRIES = 3
 const RETRY_DELAY = 100 // 毫秒
 
@@ -1023,7 +852,7 @@ export async function updateNote(id: string, updateNoteDto: Partial<Note>): Prom
       const updateData: any = {}
 
       // 处理基础字段
-      const fields = ['address', 'cardType', 'tags', 'linkedTo', 'linkedFrom', 'parentId']
+      const fields = ['address', 'cardType', 'linkedTo', 'linkedFrom', 'parentId']
       fields.forEach((field) => {
         if (updateNoteDto[field as keyof Partial<Note>] !== undefined) {
           console.log(`后端→ 更新字段 ${field}:`, updateNoteDto[field as keyof Partial<Note>])
@@ -1088,7 +917,7 @@ export async function updateNote(id: string, updateNoteDto: Partial<Note>): Prom
       }
 
       // 处理所有需要 JSON 序列化的字段
-      const jsonFields = ['tags', 'linkedTo', 'linkedFrom']
+      const jsonFields = ['linkedTo', 'linkedFrom']
       jsonFields.forEach((field) => {
         if (Array.isArray(updateData[field])) {
           try {
@@ -1110,14 +939,7 @@ export async function updateNote(id: string, updateNoteDto: Partial<Note>): Prom
       }
 
       // 6. 处理返回数据
-      const parseFields = [
-        'content',
-        'tags',
-        'linkedTo',
-        'linkedFrom',
-        'keywords',
-        'semanticVector'
-      ]
+      const parseFields = ['content', 'linkedTo', 'linkedFrom', 'keywords', 'semanticVector']
       parseFields.forEach((field) => {
         if (typeof updatedNote[field] === 'string') {
           try {
@@ -1137,19 +959,7 @@ export async function updateNote(id: string, updateNoteDto: Partial<Note>): Prom
     }
   })
 }
-// 软删除笔记
-// export async function softDeleteNote(id: string): Promise<Note | null> {
-//   try {
-//     // 软删除后返回更新后的笔记
-//     const result = await db('notes').where('id', id).update('isDeleted', true).returning('*')
-//     const updatedNote = result[0] ? convertToNote(result[0]) : null
-//     console.log('后端→ 软删除笔记更新后的笔记:', JSON.stringify(updatedNote))
-//     return updatedNote
-//   } catch (error) {
-//     console.error(`后端→ 软删除笔记失败: ${id}:`, error)
-//     throw error
-//   }
-// }
+
 // 软删除笔记
 export async function softDeleteNote(id: string): Promise<Note> {
   console.log(`后端→ 开始软删除笔记: ${id}`)
@@ -1759,59 +1569,93 @@ export async function deleteNoteReference(params: {
 // 更新笔记标签
 export async function updateNoteTag(params: {
   noteId: string
-  tagName: string
+  tagId: string
   action: 'add' | 'remove'
-}): Promise<Note> {
+}): Promise<void> {
+  // 不需要返回整个笔记了
   try {
-    console.log('后端→ 开始更新笔记标签:', params)
-
-    return await db.transaction(async (trx) => {
+    await db.transaction(async (trx) => {
       // 1. 检查笔记是否存在
-      const note = await trx('notes').where({ id: params.noteId }).first()
-      if (!note) {
-        throw new Error(`未找到ID为 ${params.noteId} 的笔记`)
+      const noteExists = await trx('notes').where({ id: params.noteId }).first()
+      if (!noteExists) {
+        throw new Error(`笔记不存在: ${params.noteId}`)
       }
 
-      // 2. 获取当前标签列表
-      const currentTags = JSON.parse(note.tags || '[]')
-
-      // 3. 根据操作类型更新标签列表
-      let updatedTags = currentTags
-      if (params.action === 'add' && !currentTags.includes(params.tagName)) {
-        updatedTags = [...currentTags, params.tagName]
-        // 获取标签并更新计数
-        const tag = await trx('tags').where('name', params.tagName).first()
-        if (tag) {
-          await updateTagCount(tag.id, true, trx)
-        }
-      } else if (params.action === 'remove') {
-        updatedTags = currentTags.filter((tag: string) => tag !== params.tagName)
-        // 获取标签并更新计数
-        const tag = await trx('tags').where('name', params.tagName).first()
-        if (tag) {
-          await updateTagCount(tag.id, false, trx)
-        }
+      // 2. 检查标签是否存在
+      const tagExists = await trx('tags').where({ id: params.tagId }).first()
+      if (!tagExists) {
+        throw new Error(`标签不存在: ${params.tagId}`)
       }
 
-      // 4. 更新笔记的标签
-      const [updatedNote] = await trx('notes')
-        .where({ id: params.noteId })
-        .update({
-          tags: JSON.stringify(updatedTags),
-          updatedAt: new Date()
-        })
-        .returning('*')
-
-      if (!updatedNote) {
-        throw new Error('更新标签失败：未返回更新后的笔记')
+      if (params.action === 'add') {
+        // 3a. 添加标签关联（使用 onConflict 避免重复）
+        await trx('note_tags')
+          .insert({
+            noteId: params.noteId,
+            tagId: params.tagId,
+            createdAt: new Date()
+          })
+          .onConflict(['noteId', 'tagId'])
+          .ignore()
+      } else {
+        // 3b. 移除标签关联
+        await trx('note_tags')
+          .where({
+            noteId: params.noteId,
+            tagId: params.tagId
+          })
+          .delete()
       }
 
-      // 5. 转换并返回更新后的笔记
-      console.log('后端→ 笔记标签更新成功:', updatedNote)
-      return convertToNote(updatedNote)
+      console.log('后端→ 笔记标签更新成功:', {
+        noteId: params.noteId,
+        tagId: params.tagId,
+        action: params.action
+      })
     })
   } catch (error) {
-    console.error('后端→ 更新笔记标签失败:', error)
-    throw error
+    console.error('后端→ 更新笔记标签失败:', { params, error })
+    throw new Error('更新笔记标签失败')
+  }
+}
+
+// 批量更新笔记标签
+export async function updateNoteTags(noteId: string, tagIds: string[]): Promise<void> {
+  try {
+    await db.transaction(async (trx) => {
+      // 1. 检查笔记是否存在
+      const noteExists = await trx('notes').where({ id: noteId }).first()
+      if (!noteExists) {
+        throw new Error(`笔记不存在: ${noteId}`)
+      }
+
+      // 2. 检查所有标签是否存在
+      const existingTags = await trx('tags').whereIn('id', tagIds).select('id')
+      if (existingTags.length !== tagIds.length) {
+        throw new Error('存在无效的标签ID')
+      }
+
+      // 3. 删除所有现有关联
+      await trx('note_tags').where('noteId', noteId).delete()
+
+      // 4. 添加新的关联
+      if (tagIds.length > 0) {
+        await trx('note_tags').insert(
+          tagIds.map((tagId) => ({
+            noteId,
+            tagId,
+            createdAt: new Date()
+          }))
+        )
+      }
+
+      console.log('后端→ 批量更新笔记标签成功:', {
+        noteId,
+        tagCount: tagIds.length
+      })
+    })
+  } catch (error) {
+    console.error('后端→ 批量更新笔记标签失败:', { noteId, tagIds, error })
+    throw new Error('批量更新笔记标签失败')
   }
 }

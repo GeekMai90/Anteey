@@ -18,6 +18,14 @@ import fs from 'fs'
 import { app } from '@electron/remote'
 import { notesApi } from './api/notesApi'
 import { tagApi } from './api/tagApi'
+// 添加日志 API
+contextBridge.exposeInMainWorld('electronLog', {
+  info: (...args: any[]) => ipcRenderer.send('renderer-log', { level: 'info', args }),
+  error: (...args: any[]) => ipcRenderer.send('renderer-log', { level: 'error', args }),
+  warn: (...args: any[]) => ipcRenderer.send('renderer-log', { level: 'warn', args }),
+  debug: (...args: any[]) => ipcRenderer.send('renderer-log', { level: 'debug', args })
+})
+
 // 缓存处理函数
 async function loadCache(): Promise<Record<string, string>> {
   try {

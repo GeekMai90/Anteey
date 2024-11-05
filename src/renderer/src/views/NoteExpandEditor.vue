@@ -106,7 +106,7 @@
         <TagsPanel
           v-if="currentNote"
           :note-id="currentNote.id"
-          :tags="currentNote.tags"
+          :tags="noteTags"
           @refresh="refreshNoteData"
         />
       </div>
@@ -134,6 +134,7 @@ import { CardType, Note } from '@renderer/types/Note'
 import { debounce } from 'lodash-es'
 // import { EditorState } from '@tiptap/pm/state/dist'
 import TagsPanel from '@renderer/components/note/TagsPanel.vue'
+import { useTagStore } from '@renderer/stores/tagStore'
 // === 组件状态管理 ===
 const tiptapEditor = ref<any>(null)
 const route = useRoute()
@@ -141,6 +142,21 @@ const noteStore = useNoteStore()
 const noteId = route.params.id as string
 const addressInput = ref<HTMLInputElement | null>(null)
 const currentNote = ref<Note | null>(null)
+// 1. 添加一个 ref 来存储笔记的标签
+const noteTags = ref<{ id: string; name: string }[]>([])
+
+const tagStore = useTagStore()
+
+// 2. 添加获取笔记标签的方法
+const fetchNoteTags = async (noteId: string) => {
+  try {
+    const tags = await tagStore.getNoteTags(noteId) // 需要在 noteStore 中添加这个方法
+    noteTags.value = tags
+  } catch (error) {
+    console.error('获取笔记标签失败:', error)
+    message.error('获取笔记标签失败')
+  }
+}
 
 // 初始化笔记数据
 const initializeNote = async (noteId: string) => {
@@ -148,6 +164,7 @@ const initializeNote = async (noteId: string) => {
     const note = await noteStore.fetchNote(noteId)
     if (note) {
       currentNote.value = note
+      await fetchNoteTags(noteId) // 获取笔记的标签
       // 添加到最近笔记
       noteStore.addToRecentNotes(noteId)
       focusEditor()
@@ -188,6 +205,7 @@ const refreshNoteData = async () => {
     const updatedNote = await noteStore.fetchNote(currentNote.value.id)
     if (updatedNote) {
       currentNote.value = updatedNote
+      await fetchNoteTags(updatedNote.id) // 刷新标签
     }
   } catch (error) {
     console.error('刷新笔记数据失败:', error)
@@ -381,7 +399,7 @@ const saveCurrentNote = async () => {
 }
 
 // 路由离开前保存
-onBeforeRouteLeave(async (to, from, next) => {
+onBeforeRouteLeave(async (_to, _from, next) => {
   try {
     await saveCurrentNote()
     next()

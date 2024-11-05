@@ -14,7 +14,6 @@ import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import { initDatabase } from '../db/init'
 import { db, dbPath } from '../db/config'
-import log from 'electron-log'
 import * as dotenv from 'dotenv'
 import { default as installExtension, VUEJS3_DEVTOOLS } from 'electron-devtools-installer'
 import path from 'path'
@@ -23,21 +22,12 @@ import { existsSync } from 'fs'
 import { URL } from 'url'
 import { initialize, enable } from '@electron/remote/main'
 import { setupIpcHandlers } from './ipc'
+import log from './logger'
 
-// 在所有导入之后，但在其他代码之前初始化日志
-log.initialize()
-
-// 设置日志级别
-log.transports.file.level = 'debug'
-log.transports.console.level = 'debug'
-
-// 替换控制台日志方法
-console.log = (...args) => log.log(...args)
-console.error = (...args) => log.error(...args)
-console.warn = (...args) => log.warn(...args)
-console.info = (...args) => log.info(...args)
-
-// ... 其他导入和代码 ...
+// 添加 IPC 日志转发
+ipcMain.on('renderer-log', (_, { level, args }) => {
+  ;(log[level as keyof typeof log] as (...args: any[]) => void)('[渲染进程]', ...args)
+})
 
 // 错误处理
 process.on('uncaughtException', (error) => {

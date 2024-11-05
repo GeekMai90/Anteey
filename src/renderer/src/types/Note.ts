@@ -40,8 +40,6 @@ export interface Note {
   createdAt: Date
   updatedAt: Date
 
-  tags: string[] // 标签列表
-
   // 引用关系
   references: References
 
@@ -146,32 +144,47 @@ export interface RelationshipTree {
   }
 }
 // 标签接口
+// export interface Tag {
+//   id: string
+//   name: string // 完整的标签名，如 'work/project/dev'
+//   path: string[] // 标签路径，如 ['work', 'project', 'dev']
+//   color?: string // 标签颜色（可选）
+//   icon?: string // 标签图标（可选）
+//   pinned?: boolean // 添加置顶标记
+//   metadata: {
+//     count: number // 使用该标签的笔记数量
+//     lastUsed: Date // 最后使用时间
+//     totalCount?: number // 添加该标签及子标签的笔记总数
+//   }
+//   createdAt: Date
+//   updatedAt: Date
+// }
+// 标签基础接口
 export interface Tag {
   id: string
-  name: string // 完整的标签名，如 'work/project/dev'
-  path: string[] // 标签路径，如 ['work', 'project', 'dev']
-  color?: string // 标签颜色（可选）
-  icon?: string // 标签图标（可选）
-  pinned?: boolean // 添加置顶标记
-  metadata: {
-    count: number // 使用该标签的笔记数量
-    lastUsed: Date // 最后使用时间
-    totalCount?: number // 添加该标签及子标签的笔记总数
-  }
+  name: string
+  path: string[]
+  color?: string
+  icon?: string
+  pinned: boolean
+  pinOrder?: number
+  useCount?: number
   createdAt: Date
   updatedAt: Date
 }
 // 用于构建标签导航树的类型
+// 标签树节点（用于UI展示）
 export interface TagTreeNode {
   id: string
-  name: string // 显示名称
-  path: string[] // 完整路径
+  name: string
+  path: string[]
   children: TagTreeNode[]
-  noteCount: number // 该标签及子标签的笔记总数
-  totalCount?: number // 该标签及子标签的笔记总数
-  color?: string // 继承自 Tag 的颜色
-  icon?: string // 继承自 Tag 的图标
-  pinned?: boolean // 添加置顶标记
+  noteCount: number // 直接使用该标签的笔记数
+  totalCount: number // 包含子标签的笔记总数
+  color?: string
+  icon?: string
+  pinned: boolean
+  pinOrder?: number
 }
 
 // 卡片盒（文件夹）

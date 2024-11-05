@@ -443,7 +443,7 @@ ipcMain.handle(
     _event,
     params: {
       noteId: string
-      tagName: string
+      tagId: string
       action: 'add' | 'remove'
     }
   ) => {

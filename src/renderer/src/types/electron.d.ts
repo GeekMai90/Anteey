@@ -1,3 +1,4 @@
+import { TagSearchParams } from '../../../db/tagService'
 import {
   GetPaginatedNotesParams,
   TimelineQueryParams,
@@ -150,11 +151,10 @@ export interface ElectronAPI {
   }) => Promise<NoteReference>
   deleteNoteReference: (params: { sourceNoteId: string; targetNoteId: string }) => Promise<void>
   // 标签相关的方法
-
   // 创建标签
   createTag: (params: { name: string; color?: string; icon?: string }) => Promise<Tag>
 
-  // 获取所有标签
+  // 获取所有标签（包含使用次数）
   getAllTags: () => Promise<Tag[]>
 
   // 根据ID获取标签
@@ -166,24 +166,27 @@ export interface ElectronAPI {
   // 删除标签
   deleteTag: (id: string) => Promise<void>
 
-  // 增加标签使用次数
-  incrementTagUseCount: (id: string) => Promise<void>
-
   // 搜索标签
   searchTags: (query: string) => Promise<Tag[]>
 
-  // 获取所有标签(带完整计数)
-  getAllTagsWithCount: () => Promise<Tag[]>
+  // 高级搜索标签
+  searchTagsAdvanced: (params: TagSearchParams) => Promise<Tag[]>
 
   // 更新标签置顶状态
-  updateTagPinned: (id: string, pinned: boolean) => Promise<void>
+  updateTagPinned: (id: string, pinned: boolean, pinOrder?: number) => Promise<Tag>
+
+  // 更新标签置顶顺序
+  updateTagPinOrder: (id: string, pinOrder: number) => Promise<Tag>
 
   // 更新笔记标签
   updateNoteTag: (params: {
     noteId: string
-    tagName: string
+    tagId: string // 改用 tagId 替代 tagName
     action: 'add' | 'remove'
-  }) => Promise<Note>
+  }) => Promise<void> // 不再返回整个笔记对象
+
+  // 获取笔记的标签
+  getNoteTags: (noteId: string) => Promise<Tag[]>
 }
 
 declare global {

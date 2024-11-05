@@ -7,14 +7,14 @@ export async function initDatabase(db: Knex): Promise<void> {
     await db.schema.createTable('notes', (table) => {
       table.string('id').primary()
       table.string('type').notNullable().defaultTo('note')
-      table.string('address').notNullable().index() // 卡片地址索引
+      table.string('address').notNullable().index()
       table.string('cardType').notNullable().defaultTo('Maincard').index()
       table.json('content').notNullable()
       table.datetime('createdAt').notNullable().index()
       table.datetime('updatedAt').notNullable().index()
 
-      // 标签系统 - 只存储标签名数组
-      table.json('tags').notNullable().defaultTo('[]')
+      // 移除 tags 字段
+      // table.json('tags').notNullable().defaultTo('[]')  <- 删除这行
 
       // 引用关系
       table
@@ -27,73 +27,71 @@ export async function initDatabase(db: Knex): Promise<void> {
           })
         )
 
-      // 关系树缓存
+      // 其他字段保持不变
       table.json('relationshipTree').nullable()
-
-      // 图谱数据
       table.json('graphData').nullable()
-
       table.string('cardBoxId').nullable().index()
       table.string('parentId').nullable().index()
       table.boolean('isDeleted').notNullable().defaultTo(false).index()
       table.boolean('isStarred').notNullable().defaultTo(false).index()
       table.integer('starredOrder').nullable()
       table.integer('rightBarOrder').nullable()
-
-      // 语义相关
       table.json('keywords').nullable()
       table.json('semanticVector').nullable()
-
-      // 元数据
       table.json('metadata').nullable()
 
-      // 常用查询场景的复合索引
-      // 1. 卡片盒筛选 + 排序
-      table.index(['cardBoxId', 'updatedAt']) // 某个卡片盒内按更新时间排序
-      table.index(['cardBoxId', 'createdAt']) // 某个卡片盒内按创建时间排序
-      table.index(['cardType', 'createdAt']) // 某个卡片类型内按创建时间排序
-
-      // 2. 收件箱（未分类笔记）+ 排序
-      table.index(['cardBoxId', 'isDeleted', 'updatedAt']) // 查找未分类的未删除笔记，按时间排序
-      table.index(['cardBoxId', 'isDeleted', 'createdAt']) // 查找未分类的未删除笔记，按创建时间排序
-
-      // 3. 收藏夹排序
+      // 保持现有的索引
+      table.index(['cardBoxId', 'updatedAt'])
+      table.index(['cardBoxId', 'createdAt'])
+      table.index(['cardType', 'createdAt'])
+      table.index(['cardBoxId', 'isDeleted', 'updatedAt'])
+      table.index(['cardBoxId', 'isDeleted', 'createdAt'])
       table.index(['isStarred', 'starredOrder', 'updatedAt'])
     })
     console.log('notes 表创建成功')
   }
 
-  // 创建 tags 表
+  // 2. 创建 tags 表
   if (!(await db.schema.hasTable('tags'))) {
     await db.schema.createTable('tags', (table) => {
       table.string('id').primary()
-      table.string('name').notNullable().unique() // 完整的标签名，如 'work/project/dev'
-      table.json('path').notNullable() // 标签路径，如 ['work', 'project', 'dev']
-      table.string('color').nullable() // 标签颜色（可选）
-      table.string('icon').nullable() // 标签图标（可选）
-      table.boolean('pinned').notNullable().defaultTo(false) // 置顶标记
-      table.integer('pinOrder').nullable().index() // 添加置顶排序字段
-      // 标签元数据
-      table
-        .json('metadata')
-        .notNullable()
-        .defaultTo(
-          JSON.stringify({
-            count: 0, // 使用该标签的笔记数量
-            lastUsed: new Date() // 最后使用时间
-          })
-        )
+      table.string('name').notNullable().unique()
+      table.json('path').notNullable()
+      table.string('color').nullable()
+      table.string('icon').nullable()
+      table.boolean('pinned').notNullable().defaultTo(false)
+      table.integer('pinOrder').nullable()
+      table.datetime('createdAt').notNullable()
+      table.datetime('updatedAt').notNullable()
 
-      table.datetime('createdAt').notNullable().index() // 按创建时间排序
-      table.datetime('updatedAt').notNullable().index() // 按更新时间排序
-
-      // 添加单独的列来支持排序和索引
-      table.integer('useCount').notNullable().defaultTo(0).index() // 使用次数
-      table.datetime('lastUsedAt').notNullable().index() // 最后使用时间
-      // 添加置顶相关的索引
-      table.index(['pinned', 'pinOrder']) // 复合索引优化置顶排序查询
+      // 索引
+      table.index('name')
+      table.index(['pinned', 'pinOrder'])
+      table.index('useCount')
+      table.index('lastUsedAt')
     })
     console.log('tags 表创建成功')
+  }
+
+  // 3. 创建 note_tags 关联表
+  if (!(await db.schema.hasTable('note_tags'))) {
+    await db.schema.createTable('note_tags', (table) => {
+      table.string('noteId').notNullable()
+      table.string('tagId').notNullable()
+      table.datetime('createdAt').notNullable()
+
+      // 复合主键
+      table.primary(['noteId', 'tagId'])
+
+      // 外键约束
+      table.foreign('noteId').references('notes.id').onDelete('CASCADE')
+      table.foreign('tagId').references('tags.id').onDelete('CASCADE')
+
+      // 索引
+      table.index('noteId')
+      table.index('tagId')
+    })
+    console.log('note_tags 表创建成功')
   }
 
   // 创建 note_references 表

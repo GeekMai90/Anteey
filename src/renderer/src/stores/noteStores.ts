@@ -14,6 +14,7 @@ import type { Editor } from '@tiptap/vue-3'
 import { GetPaginatedNotesParams } from '../../../db/notesService'
 import { useEventBus } from '@vueuse/core'
 import { useUIStore } from './useUIStore'
+import { useTagStore } from './tagStore'
 
 // 常量定义
 const cardTypes = [
@@ -118,34 +119,37 @@ export const useNoteStore = defineStore(
       await fetchNote(noteId)
     }
     // ==================== 标签相关方法 ====================
-
+    const tagStore = useTagStore()
     // 为笔记添加标签
-    const addTagToNote = async (noteId: string, tagName: string) => {
+    const addTagToNote = async (noteId: string, tagId: string) => {
       try {
-        // 更新笔记的标签
-        const updatedNote = await window.electronAPI.updateNoteTag({
+        await window.electronAPI.updateNoteTag({
           noteId,
-          tagName,
+          tagId, // 使用 tagId 替代 tagName
           action: 'add'
         })
 
-        // 增加标签使用次数
-        await window.electronAPI.incrementTagUseCount(tagName)
-
-        return updatedNote
+        // 刷新笔记和标签状态
+        await fetchNote(noteId)
+        await tagStore.fetchTagTree() // 更新标签树以反映新的使用次数
       } catch (error) {
         console.error('noteStores.ts→ 为笔记添加标签失败:', error)
         throw error
       }
     }
+
     // 从笔记中移除标签
-    const removeTagFromNote = async (noteId: string, tagName: string) => {
+    const removeTagFromNote = async (noteId: string, tagId: string) => {
       try {
-        return await window.electronAPI.updateNoteTag({
+        await window.electronAPI.updateNoteTag({
           noteId,
-          tagName,
+          tagId, // 使用 tagId 替代 tagName
           action: 'remove'
         })
+
+        // 刷新笔记和标签状态
+        await fetchNote(noteId)
+        await tagStore.fetchTagTree() // 更新标签树以反映新的使用次数
       } catch (error) {
         console.error('noteStores.ts→ 从笔记中移除标签失败:', error)
         throw error

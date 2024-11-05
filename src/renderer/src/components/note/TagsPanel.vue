@@ -15,12 +15,12 @@
 
     <div v-show="!isCollapsed" class="tags-container">
       <div class="tags-list">
-        <div v-for="tagName in tags" :key="tagName" class="tag-pill">
+        <div v-for="tag in tags" :key="tag.id" class="tag-pill">
           <span class="tag-symbol">#</span>
-          <span class="tag-name">{{ tagName }}</span>
+          <span class="tag-name">{{ tag.name }}</span>
           <div class="remove-tag">
             <div class="icon">
-              <Close theme="outline" size="12" @click.stop="removeTag(tagName)" />
+              <Close theme="outline" size="12" @click.stop="removeTag(tag.id)" />
             </div>
           </div>
         </div>
@@ -72,7 +72,7 @@
                 'is-selected':
                   selectedIndex === (!existingTag && newTagInput.trim() ? index + 1 : index)
               }"
-              @mousedown.prevent="selectSuggestion(tag.name)"
+              @mousedown.prevent="selectSuggestion(tag)"
               @mouseover="selectedIndex = !existingTag && newTagInput.trim() ? index + 1 : index"
             >
               {{ tag.name }}
@@ -93,7 +93,7 @@ import { useEventBus } from '@vueuse/core'
 
 const props = defineProps<{
   noteId: string
-  tags?: string[]
+  tags?: { id: string; name: string }[] // 改为接收标签对象数组
 }>()
 
 const noteStore = useNoteStore()
@@ -152,8 +152,8 @@ const handleTagInput = async () => {
   }
 }
 
-const selectSuggestion = async (tagName: string) => {
-  await noteStore.addTagToNote(props.noteId, tagName)
+const selectSuggestion = async (tag: { id: string; name: string }) => {
+  await noteStore.addTagToNote(props.noteId, tag.id) // 使用 tagId
   emit('refresh')
   tagChangeEventBus.emit()
   cancelAdding()
@@ -170,13 +170,13 @@ const addTag = async () => {
 
     if (existingTag) {
       // 如果标签已存在，直接使用
-      await noteStore.addTagToNote(props.noteId, existingTag.name)
+      await noteStore.addTagToNote(props.noteId, existingTag.id)
       tagChangeEventBus.emit()
     } else {
       // 如果标签不存在，先创建新标签
       const newTag = await tagStore.createTag({ name: newTagInput.value })
       // 然后添加到笔记
-      await noteStore.addTagToNote(props.noteId, newTag.name)
+      await noteStore.addTagToNote(props.noteId, newTag.id)
       tagChangeEventBus.emit()
     }
     emit('refresh')
@@ -188,10 +188,11 @@ const addTag = async () => {
   }
 }
 
-const removeTag = async (tagName: string) => {
+// 更新移除标签的方法
+const removeTag = async (tagId: string) => {
   try {
-    await noteStore.removeTagFromNote(props.noteId, tagName)
-    emit('refresh') // 通知父组件刷新数据
+    await noteStore.removeTagFromNote(props.noteId, tagId) // 使用 tagId
+    emit('refresh')
     tagChangeEventBus.emit()
   } catch (error) {
     console.error('移除标签失败:', error)
@@ -227,7 +228,7 @@ const handleKeydown = (e: KeyboardEvent) => {
           !existingTag.value && newTagInput.value.trim()
             ? selectedIndex.value - 1
             : selectedIndex.value
-        selectSuggestion(filteredSuggestions.value[actualIndex].name)
+        selectSuggestion(filteredSuggestions.value[actualIndex])
       }
       break
     case 'Escape':

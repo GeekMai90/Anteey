@@ -286,7 +286,7 @@ export const notesApi = {
   },
   updateNoteTag: async (params: {
     noteId: string
-    tagName: string
+    tagId: string
     action: 'add' | 'remove'
   }): Promise<Note> => {
     try {
