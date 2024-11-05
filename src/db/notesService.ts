@@ -567,81 +567,96 @@ export async function getPaginatedNotes(
 export interface GetPaginatedNotesParams {
   page: number
   limit: number
-  cardBoxId?: string // 'all' 表示所有卡片, 'inbox' 表示收件箱, 其他值为特定卡片盒 ID
+  cardBoxId?: string // 'all' | 'inbox' | string
   cardTypes?: string[] // ['Maincard', 'Bibcard', 'Indexcard']
-  sortBy: string
+  tags?: string[] // 标签ID数组
+  keyword?: string // 搜索关键词
+  sortBy: string // 排序字段
   sortOrder: 'asc' | 'desc'
 }
-//卡片盒页面获取分页的笔记
+
 export async function getPaginatedNotesByCardbox({
   page,
   limit,
   cardBoxId,
   cardTypes,
-  sortBy = 'address',
-  sortOrder = 'asc'
+  tags,
+  keyword,
+  sortBy = 'updatedAt',
+  sortOrder = 'desc'
 }: GetPaginatedNotesParams): Promise<{ notes: Note[]; totalCount: number }> {
   try {
     console.log('后端→ 开始获取卡片盒分页笔记', {
       cardBoxId,
       cardTypes,
+      tags,
+      keyword,
       sortBy,
       sortOrder,
       page,
       limit
     })
 
-    let query = db('notes').where('isDeleted', false)
+    let query = db('notes')
+      .leftJoin('note_tags', 'notes.id', 'note_tags.noteId')
+      .where('notes.isDeleted', false)
+      .distinct('notes.*')
 
-    // 在执行查询前先统计一下总数，用于调试
-    const totalNotes = await query.clone().count('* as count').first()
-    console.log('后端→ 总笔记数:', totalNotes)
-
-    // 卡片盒筛选
+    // 基础筛选：卡片盒
     if (cardBoxId === 'inbox') {
-      console.log('后端→ 筛选收件箱笔记')
-      query = query.whereNull('cardBoxId')
-      // 打印收件箱笔记数量
-      const inboxCount = await query.clone().count('* as count').first()
-      console.log('后端→ 收件箱笔记数:', inboxCount)
+      query = query.whereNull('notes.cardBoxId')
     } else if (cardBoxId && cardBoxId !== 'all') {
-      console.log(`后端→ 筛选卡片盒 ${cardBoxId} 的笔记`)
-      query = query.where('cardBoxId', cardBoxId)
-    } else {
-      console.log('后端→ 获取所有卡片盒的笔记')
-      // 确保"全部卡片"也包含未分类的笔记
-      query = query.where((builder) => {
-        builder.whereNotNull('cardBoxId').orWhereNull('cardBoxId')
-      })
+      query = query.where('notes.cardBoxId', cardBoxId)
     }
 
     // 卡片类型筛选
     if (cardTypes && cardTypes.length > 0) {
-      console.log('后端→ 应用卡片类型筛选:', cardTypes)
-      query = query.whereIn('cardType', cardTypes)
+      query = query.whereIn('notes.cardType', cardTypes)
     }
 
+    // 标签筛选
+    if (tags && tags.length > 0) {
+      query = query.whereIn('note_tags.tagId', tags)
+      // 如果需要匹配所有标签（而不是任意一个），使用以下方式：
+      // tags.forEach(tagId => {
+      //   query = query.whereExists(function() {
+      //     this.select('*')
+      //       .from('note_tags as nt')
+      //       .whereRaw('nt.noteId = notes.id')
+      //       .where('nt.tagId', tagId)
+      //   })
+      // })
+    }
+
+    // 关键词搜索
+    if (keyword) {
+      const searchKeyword = `%${keyword}%`
+      query = query.where((builder) => {
+        builder
+          .where('notes.title', 'like', searchKeyword)
+          .orWhere('notes.content', 'like', searchKeyword)
+          .orWhere('notes.address', 'like', searchKeyword)
+      })
+    }
+
+    // 计算总数
+    const countResult = await query.clone().count('* as count').first()
+    const totalCount = countResult ? (countResult.count as number) : 0
+
+    // 获取分页数据
     const offset = (page - 1) * limit
-
-    // 在执行最终查询前打印 SQL
-    const finalQuery = query.clone().orderBy(sortBy, sortOrder).limit(limit).offset(offset)
-    console.log('后端→ 最终SQL查询:', finalQuery.toString())
-
-    const [notes, countResult] = await Promise.all([
-      finalQuery,
-      query.clone().count('* as count').first()
-    ])
+    const notes = await query.orderBy(`notes.${sortBy}`, sortOrder).limit(limit).offset(offset)
 
     console.log('后端→ 查询结果数量:', notes.length)
-    console.log('后端→ 总计数:', countResult)
+    console.log('后端→ 总计数:', totalCount)
 
     return {
       notes: notes.map(convertToNote),
-      totalCount: countResult ? (countResult.count as number) : 0
+      totalCount
     }
   } catch (error) {
     console.error('后端→ 获取分页笔记失败:', error)
-    throw new Error('后端→ 获取分页笔记失败')
+    throw new Error('获取分页笔记失败')
   }
 }
 

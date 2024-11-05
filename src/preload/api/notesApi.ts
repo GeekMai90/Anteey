@@ -144,20 +144,7 @@ export const notesApi = {
   getAllDatesWithNotes: async (): Promise<string[]> => {
     return (await ipcRenderer.invoke('get-all-dates-with-notes')) as string[]
   },
-  // 获取卡片盒页面的分页笔记
-  getPaginatedNotesByCardbox: async (
-    params: GetPaginatedNotesParams
-  ): Promise<{ notes: Note[]; totalCount: number }> => {
-    try {
-      return (await ipcRenderer.invoke('get-paginated-notes-by-cardbox', params)) as {
-        notes: Note[]
-        totalCount: number
-      }
-    } catch (error) {
-      console.error('预加载脚本 → 获取卡片盒分页笔记失败:', error)
-      throw error // 或者返回一个默认值,取决于您的错误处理策略
-    }
-  },
+
   // 搜索笔记
   searchNotes: async (
     query: string
@@ -298,6 +285,20 @@ export const notesApi = {
     } catch (error) {
       console.error('预加载脚本 → 更新笔记标签失败:', error)
       throw error
+    }
+  },
+  // 获取卡片盒页面的分页笔记
+  getPaginatedNotesByCardbox: async (
+    params: GetPaginatedNotesParams
+  ): Promise<{ notes: Note[]; totalCount: number }> => {
+    try {
+      return (await ipcRenderer.invoke('get-paginated-notes-by-cardbox', params)) as {
+        notes: Note[]
+        totalCount: number
+      }
+    } catch (error) {
+      console.error('预加载脚本 → 获取卡片盒分页笔记失败:', error)
+      throw error // 或者返回一个默认值,取决于您的错误处理策略
     }
   }
 }

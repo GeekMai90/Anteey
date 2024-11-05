@@ -137,16 +137,6 @@ export function setupNotesHandlers() {
   ipcMain.handle('search-notes', async (_, query: string) => {
     return await searchNotes(query)
   })
-  // 获取卡片盒页面的分页笔记
-  ipcMain.handle('get-paginated-notes-by-cardbox', async (_, params: GetPaginatedNotesParams) => {
-    try {
-      const result = await getPaginatedNotesByCardbox(params)
-      return result
-    } catch (error) {
-      console.error('主进程 → 获取卡片盒分页笔记失败:', error)
-      throw error // 或者返回一个错误对象,以便渲染进程可以处理
-    }
-  })
 
   // 获取都有哪些日期有笔记
   ipcMain.handle('get-all-dates-with-notes', async () => {
@@ -460,3 +450,13 @@ ipcMain.handle(
     }
   }
 )
+// 获取卡片盒页面的分页笔记
+ipcMain.handle('get-paginated-notes-by-cardbox', async (_, params: GetPaginatedNotesParams) => {
+  try {
+    const result = await getPaginatedNotesByCardbox(params)
+    return result
+  } catch (error) {
+    console.error('主进程 → 获取卡片盒分页笔记失败:', error)
+    throw error // 或者返回一个错误对象,以便渲染进程可以处理
+  }
+})

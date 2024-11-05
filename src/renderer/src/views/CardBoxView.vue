@@ -5,11 +5,134 @@
       <div class="topToolBar">
         <div class="topToolBar-header">
           <div class="topToolBar-left">
-            <div class="icon">
-              <Box theme="outline" size="20" fill="var(--color-primary)" :strokeWidth="3" />
+            <!-- 全部按钮 -->
+            <div
+              class="all-button"
+              :class="{ active: filterState.cardBoxId === 'all' }"
+              @click="selectAll"
+            >
+              <div class="icon">
+                <Box
+                  theme="outline"
+                  size="18"
+                  fill="var(--color-icon-menu-default)"
+                  :strokeWidth="3"
+                />
+              </div>
+              <div class="name">全部</div>
             </div>
-            <div class="name">卡片盒</div>
+            <!-- 卡片盒按钮 -->
+            <div ref="cardboxDropdown" class="cardbox-dropdown" @click.stop="toggleCardBoxMenu">
+              <div class="icon">
+                <FileCabinet
+                  theme="outline"
+                  size="18"
+                  fill="var(--color-icon-menu-default)"
+                  :strokeWidth="3"
+                />
+              </div>
+              <div class="name">{{ selectedCardBoxName || '卡片盒' }}</div>
+              <!-- 卡片柜下拉菜单 -->
+              <div
+                v-if="showCardBoxMenu"
+                class="dropdown-menu"
+                :class="{ show: showCardBoxMenu }"
+                :style="dropdownMenuStyle"
+              >
+                <!-- 固定选项：全部卡片盒 -->
+                <div
+                  class="dropdown-item"
+                  :class="{ active: filterState.cardBoxId === 'all' }"
+                  @click.stop="selectCardBox({ id: 'all', name: '全部卡片盒' })"
+                >
+                  <div class="dropdown-item-content">
+                    <div class="icon">
+                      <FileCabinet
+                        theme="outline"
+                        size="18"
+                        fill="var(--color-icon-menu-default)"
+                        :strokeWidth="3"
+                      />
+                    </div>
+                    <div class="name">全部卡片盒</div>
+                  </div>
+                </div>
+                <!-- 固定选项：无卡片盒 (Inbox) -->
+                <div
+                  class="dropdown-item"
+                  :class="{ active: filterState.cardBoxId === 'inbox' }"
+                  @click.stop="selectCardBox({ id: 'inbox', name: '无卡片盒' })"
+                >
+                  <div class="dropdown-item-content">
+                    <div class="icon">
+                      <InboxIn
+                        theme="outline"
+                        size="18"
+                        fill="var(--color-icon-menu-default)"
+                        :strokeWidth="3"
+                      />
+                    </div>
+                    <div class="name">无卡片盒</div>
+                  </div>
+                </div>
+                <!-- 分隔线 -->
+                <div class="dropdown-divider"></div>
+
+                <div v-for="box in cardBoxes" :key="box.id" class="dropdown-item">
+                  <div
+                    class="dropdown-item-content"
+                    :class="{ active: selectedCardBox && selectedCardBox.id === box.id }"
+                    @click.stop="selectCardBox(box)"
+                  >
+                    <div class="icon">
+                      <Box
+                        theme="outline"
+                        size="18"
+                        fill="var(--color-icon-menu-default)"
+                        :strokeWidth="3"
+                      />
+                    </div>
+                    <div class="name">
+                      {{ box.name }}
+                    </div>
+                  </div>
+                  <!-- 更多操作按钮 -->
+                  <div class="dropdown-item-actions">
+                    <button
+                      class="more-actions-btn"
+                      @click.stop="toggleMoreActions(box.id, $event)"
+                    >
+                      <div class="icon">
+                        <More
+                          theme="outline"
+                          size="18"
+                          fill="var(--color-icon-menu-default)"
+                          :strokeWidth="3"
+                        />
+                      </div>
+                    </button>
+                  </div>
+                </div>
+                <!-- 分隔线 -->
+                <div class="dropdown-divider"></div>
+                <!-- 新增卡片盒按钮 -->
+                <div class="dropdown-item add-cardbox" @click.stop="openCardBoxModal">
+                  <div class="dropdown-item-content">
+                    <div class="icon">
+                      <Plus
+                        theme="outline"
+                        size="18"
+                        fill="var(--color-icon-menu-default)"
+                        :strokeWidth="3"
+                      />
+                    </div>
+                    <div class="name">新增卡片盒</div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
+
           <div class="topToolBar-right">
             <!-- 搜索框 -->
             <div
@@ -44,89 +167,6 @@
                     fill="var(--color-icon-secondary)"
                     :strokeWidth="3"
                   />
-                </div>
-              </div>
-            </div>
-            <!-- 收件箱 -->
-            <div class="inbox-button" :class="{ active: isInboxSelected }" @click="toggleInbox">
-              <div class="icon">
-                <InboxIn
-                  theme="outline"
-                  size="18"
-                  fill="var(--color-icon-menu-default)"
-                  :strokeWidth="3"
-                />
-              </div>
-              <div class="name">收件箱</div>
-            </div>
-            <!-- 卡片柜 -->
-            <div ref="cardboxDropdown" class="cardbox-dropdown" @click.stop="toggleCardBoxMenu">
-              <div class="icon">
-                <FileCabinet
-                  theme="outline"
-                  size="18"
-                  fill="var(--color-icon-menu-default)"
-                  :strokeWidth="3"
-                />
-              </div>
-              <div class="name">{{ selectedCardBoxName }}</div>
-              <!-- 卡片柜下拉菜单 -->
-              <div
-                v-if="showCardBoxMenu"
-                class="dropdown-menu"
-                :class="{ show: showCardBoxMenu }"
-                :style="dropdownMenuStyle"
-              >
-                <div
-                  v-for="box in cardBoxes"
-                  :key="box.id"
-                  class="dropdown-item"
-                  :class="{ active: selectedCardBox && selectedCardBox.id === box.id }"
-                  @click.stop="selectCardBox(box)"
-                >
-                  <div class="dropdown-item-content">
-                    <div class="icon">
-                      <component
-                        :is="box.id === '0000' ? FileCabinet : Box"
-                        theme="outline"
-                        size="18"
-                        fill="var(--color-icon-menu-default)"
-                        :strokeWidth="3"
-                      />
-                    </div>
-                    <div class="name">
-                      {{ box.name }}
-                    </div>
-                  </div>
-                  <div v-if="box.id !== '0000'" class="dropdown-item-actions">
-                    <button
-                      class="more-actions-btn"
-                      @click.stop="toggleMoreActions(box.id, $event)"
-                    >
-                      <div class="icon">
-                        <More
-                          theme="outline"
-                          size="18"
-                          fill="var(--color-icon-menu-default)"
-                          :strokeWidth="3"
-                        />
-                      </div>
-                    </button>
-                  </div>
-                </div>
-                <div class="dropdown-divider"></div>
-                <div class="dropdown-item add-cardbox" @click.stop="openCardBoxModal">
-                  <div class="dropdown-item-content">
-                    <div class="icon">
-                      <Plus
-                        theme="outline"
-                        size="18"
-                        fill="var(--color-icon-menu-default)"
-                        :strokeWidth="3"
-                      />
-                    </div>
-                    <div class="name">新增卡片盒</div>
-                  </div>
                 </div>
               </div>
             </div>
@@ -232,7 +272,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, watch, nextTick, onActivated } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, nextTick, onActivated, reactive } from 'vue'
 import { useNoteStore } from '@renderer/stores/noteStores'
 import AppToolbar from '@renderer/components/layout/AppToolbar.vue'
 import {
@@ -251,12 +291,12 @@ import { CardBox, Note } from '@renderer/types/Note'
 import CardBoxNoteCard from '@renderer/components/cardbox/CardboxNoteCard.vue'
 import { storeToRefs } from 'pinia'
 import { useDebounceFn, useEventBus, useThrottleFn } from '@vueuse/core'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { GetPaginatedNotesParams } from '../../../db/notesService'
 
 const noteStore = useNoteStore()
 
-const { selectedCardTypes, lastCreatedNote, lastDeletedNote } = storeToRefs(noteStore)
+const { lastCreatedNote, lastDeletedNote } = storeToRefs(noteStore)
 const showCardBoxMenu = ref(false)
 const selectedCardBox = ref<CardBox | null>(null)
 const showMoreActions = ref<string | null>(null)
@@ -266,7 +306,6 @@ const editingCardBox = ref<Partial<CardBox>>({ name: '' })
 const moreActionsMenuStyle = ref({})
 const isConfirmingDelete = ref(false)
 const highlightedNoteId = ref<string | null>(null)
-const router = useRouter()
 const cardGridContainer = ref<HTMLElement | null>(null)
 const isLoading = ref(false)
 const currentPage = ref(1)
@@ -277,12 +316,159 @@ const showSortMenu = ref(false)
 const currentSort = ref('address')
 const sortDirection = ref('asc')
 const hasMoreNotes = ref(true)
-const isInboxSelected = ref(false)
+const route = useRoute()
+const router = useRouter()
 
-// 组件被激活时，重新获取笔记
-onActivated(() => {
-  // 组件被激活时的逻辑，例如刷新数据
+// 组件挂载时初始化数据
+onMounted(async () => {
+  // 然后再执行数据获取
+  resetAndFetch()
+
+  // 添加事件监听器
+  document.addEventListener('click', handleGlobalClick)
+  document.addEventListener('keydown', handleKeyDown)
+  cardGridContainer.value?.addEventListener('scroll', handleScroll)
+})
+
+// 组件卸载时清理
+onUnmounted(() => {
+  document.removeEventListener('click', handleGlobalClick)
+  document.removeEventListener('keydown', handleKeyDown)
+  cardGridContainer.value?.removeEventListener('scroll', handleScroll)
+})
+
+// 3. 筛选状态
+const filterState = reactive({
+  cardBoxId: (route.query.box as string) || 'all',
+  cardTypes: ((route.query.type as string)?.split(',') || []) as string[],
+  tags: ((route.query.tags as string)?.split(',') || []) as string[],
+  keyword: (route.query.keyword as string) || '',
+  sort: {
+    field: (route.query.sort as string) || 'updatedAt',
+    order: (route.query.order as 'asc' | 'desc') || 'desc'
+  }
+})
+
+// 4. 监听路由变化
+watch(
+  () => route.query,
+  (query) => {
+    console.log('路由查询参数变化:', route) // 添加这行
+    console.log('当前路由完整信息:', {
+      fullPath: route.fullPath,
+      path: route.path,
+      query: route.query,
+      params: route.params
+    })
+    // 更新筛选状态
+    filterState.cardBoxId = (query.box as string) || 'all'
+    filterState.cardTypes = (query.type as string)?.split(',') || []
+    filterState.tags = (query.tags as string)?.split(',') || []
+    filterState.keyword = (query.keyword as string) || ''
+    filterState.sort.field = (query.sort as string) || 'updatedAt'
+    filterState.sort.order = (query.order as 'asc' | 'desc') || 'desc'
+  }
+)
+
+interface QueryParams {
+  box?: string
+  type?: string
+  tags?: string
+  keyword?: string
+  sort?: string
+  order?: 'asc' | 'desc'
+  page?: string
+  [key: string]: string | undefined // 添加索引签名
+}
+
+// 5. 更新路由方法
+const updateRouteQuery = () => {
+  const query = {
+    ...route.query,
+    box: filterState.cardBoxId === 'all' ? undefined : filterState.cardBoxId,
+    type: filterState.cardTypes?.length ? filterState.cardTypes.join(',') : undefined,
+    tags: filterState.tags?.length ? filterState.tags.join(',') : undefined,
+    keyword: filterState.keyword || undefined,
+    sort: filterState.sort.field,
+    order: filterState.sort.order,
+    page: currentPage.value.toString()
+  } as QueryParams
+
+  // 移除所有 undefined 的参数
+  Object.keys(query).forEach((key) => {
+    if (query[key] === undefined) {
+      delete query[key]
+    }
+  })
+
+  // 更新路由
+  router.push({ query })
+}
+
+// 6. 重置并获取数据
+const resetAndFetch = async () => {
+  currentPage.value = 1
+  notes.value = []
+  await nextTick() // 确保状态更新
   fetchNotes()
+}
+
+// 7. 获取笔记数据
+const fetchNotes = async () => {
+  if (isLoading.value) return
+
+  isLoading.value = true
+  try {
+    console.log('获取笔记数据，当前筛选状态:', {
+      cardBoxId: filterState.cardBoxId,
+      cardTypes: filterState.cardTypes,
+      tags: filterState.tags,
+      page: currentPage.value
+    })
+    const params: GetPaginatedNotesParams = {
+      page: currentPage.value,
+      limit: pageSize.value,
+      cardBoxId: filterState.cardBoxId,
+      cardTypes: filterState.cardTypes,
+      tags: filterState.tags,
+      keyword: filterState.keyword,
+      sortBy: filterState.sort.field,
+      sortOrder: filterState.sort.order
+    }
+
+    const result = await noteStore.fetchPaginatedNotesByCardbox(params)
+
+    if (currentPage.value === 1) {
+      notes.value = result.notes
+    } else {
+      notes.value = [...notes.value, ...result.notes]
+    }
+
+    totalCount.value = result.totalCount
+    hasMoreNotes.value = notes.value.length < totalCount.value
+    currentPage.value++
+  } catch (error) {
+    console.error('获取笔记失败:', error)
+  } finally {
+    isLoading.value = false
+  }
+}
+
+// 8. 监听筛选条件变化
+watch(
+  filterState,
+  () => {
+    updateRouteQuery()
+  },
+  { deep: true }
+)
+
+// 组件被激活时触发
+onActivated(() => {
+  // 如果有路由参数变化，重新获取数据
+  if (route.query.box !== filterState.cardBoxId) {
+    resetAndFetch()
+  }
 })
 
 // 组件挂载时，重置分页并获取笔记
@@ -291,36 +477,11 @@ onMounted(() => {
   fetchNotes()
 })
 
-// 获取所有卡片盒笔记
-const fetchNotes = async () => {
-  if (isLoading.value) return
-
-  isLoading.value = true
-  console.log('Fetching notes, page:', currentPage.value)
-  try {
-    const params: GetPaginatedNotesParams = {
-      page: currentPage.value,
-      limit: pageSize.value,
-      cardBoxId: selectedCardBox.value?.id || 'all',
-      cardTypes: ['Maincard', 'Bibcard', 'Indexcard'],
-      sortBy: currentSort.value,
-      sortOrder: sortDirection.value as 'asc' | 'desc'
-    }
-    const result = await noteStore.fetchPaginatedNotesByCardbox(params)
-    if (currentPage.value === 1) {
-      notes.value = result.notes
-    } else {
-      notes.value = [...notes.value, ...result.notes]
-    }
-    totalCount.value = result.totalCount
-    hasMoreNotes.value = notes.value.length < totalCount.value
-    currentPage.value++
-    console.log('Fetched notes:', result.notes.length, 'Total:', totalCount.value)
-  } catch (error) {
-    console.error('获取笔记失败:', error)
-  } finally {
-    isLoading.value = false
-  }
+// 选择全部的方法
+const selectAll = () => {
+  filterState.cardBoxId = 'all'
+  selectedCardBox.value = null
+  resetAndFetch()
 }
 
 // 显示的笔记
@@ -408,11 +569,8 @@ const handleScroll = useThrottleFn(() => {
       notes.value.length < totalCount.value
     ) {
       console.log('滚动触发，加载更多笔记')
-      if (isInboxSelected.value) {
-        fetchInboxNotes()
-      } else {
-        fetchNotes()
-      }
+
+      fetchNotes()
     }
   }
 }, 300)
@@ -548,110 +706,56 @@ const selectSortOption = (option: { value: string; label: string }) => {
 
 let deleteTimeout: ReturnType<typeof setTimeout> | null = null
 
-// 收件箱功能
-
-// 修改 toggleInbox 函数，确保状态完全重置
-const toggleInbox = async () => {
-  isInboxSelected.value = !isInboxSelected.value
-  // 重置所有状态
-  notes.value = [] // 清空现有笔记
-  currentPage.value = 1
-  hasMoreNotes.value = true
-  totalCount.value = 0
-
-  if (isInboxSelected.value) {
-    await fetchInboxNotes()
-  } else {
-    await fetchNotes()
-  }
-}
-const fetchInboxNotes = async () => {
-  if (isLoading.value) return
-
-  isLoading.value = true
-  console.log('获取收件箱笔记, 当前页:', currentPage.value)
-  try {
-    const params: GetPaginatedNotesParams = {
-      page: currentPage.value,
-      limit: pageSize.value,
-      cardBoxId: 'inbox',
-      cardTypes: ['Maincard', 'Bibcard', 'Indexcard'],
-      sortBy: currentSort.value,
-      sortOrder: sortDirection.value as 'asc' | 'desc'
-    }
-    const result = await noteStore.fetchPaginatedNotesByCardbox(params)
-
-    if (currentPage.value === 1) {
-      // 第一页直接赋值
-      notes.value = result.notes
-    } else {
-      // 加载更多时，使用 Set 去重
-      const uniqueNotes = new Set(
-        [...notes.value, ...result.notes].map((note) => JSON.stringify(note))
-      )
-      notes.value = Array.from(uniqueNotes).map((noteStr) => JSON.parse(noteStr))
-    }
-
-    totalCount.value = result.totalCount
-    hasMoreNotes.value = notes.value.length < totalCount.value
-    currentPage.value++
-    console.log('获取到的笔记数:', result.notes.length, '当前总笔记数:', notes.value.length)
-  } catch (error) {
-    console.error('获取笔记失败:', error)
-  } finally {
-    isLoading.value = false
-  }
-}
-
 // 监听可能影响过滤结果的变量
-watch(
-  [selectedCardBox, selectedCardTypes, currentSort, sortDirection, isInboxSelected],
-  () => {
-    console.log('Filter conditions changed, resetting and fetching notes')
-    currentPage.value = 1
-    notes.value = []
-    if (isInboxSelected.value) {
-      fetchInboxNotes()
-    } else {
-      fetchNotes()
-    }
-  },
-  { deep: true }
-)
+// watch(
+//   [selectedCardBox, selectedCardTypes, currentSort, sortDirection, isInboxSelected],
+//   () => {
+//     console.log('Filter conditions changed, resetting and fetching notes')
+//     currentPage.value = 1
+//     notes.value = []
+//     if (isInboxSelected.value) {
+//       fetchInboxNotes()
+//     } else {
+//       fetchNotes()
+//     }
+//   },
+//   { deep: true }
+// )
 
-// 卡片柜
+// 卡片盒选择
 const cardBoxes = computed(() => {
-  const allCardsOption: CardBox = {
-    id: 'all',
-    name: '全部卡片',
-    type: 'cardbox',
-    description: '所有卡片',
-    createdAt: new Date('2023-01-15T09:00:00Z'),
-    updatedAt: new Date('2023-06-20T14:30:00Z'),
-    noteIds: [],
-    parentId: ''
-  }
-
   const validCardBoxes = (noteStore.cardBoxes || []).filter(
     (box) => box && typeof box.name === 'string'
   )
   const sortedCardBoxes = [...validCardBoxes].sort((a, b) => a.name.localeCompare(b.name, 'zh-CN'))
 
-  return [allCardsOption, ...sortedCardBoxes]
+  return sortedCardBoxes
 })
 
+// 选中的卡片盒名称
 const selectedCardBoxName = computed(() => {
-  return selectedCardBox.value ? selectedCardBox.value.name : '全部卡片'
+  if (filterState.cardBoxId === 'all') return '全部卡片盒'
+  if (filterState.cardBoxId === 'inbox') return '无卡片盒'
+  if (selectedCardBox.value) return selectedCardBox.value.name
+
+  // 如果有 cardBoxId 但没有 selectedCardBox，尝试从 cardBoxes 中找到对应的卡片盒
+  const currentBox = cardBoxes.value.find((box) => box.id === filterState.cardBoxId)
+  return currentBox?.name || '卡片盒'
 })
 
-// 选择卡片盒进行筛选
-const selectCardBox = (box: CardBox | null) => {
-  console.log('选择卡片盒:', box?.name)
-  selectedCardBox.value = box
+// 选择卡片盒的方法
+const selectCardBox = async (box: CardBox | { id: string; name: string }) => {
+  // 先更新选中的卡片盒
+  selectedCardBox.value = box.id === 'all' || box.id === 'inbox' ? null : (box as CardBox)
+
+  // 更新过滤状态
+  filterState.cardBoxId = box.id
+
+  // 关闭下拉菜单
   showCardBoxMenu.value = false
-  if (box !== null) {
-    isInboxSelected.value = false
-  }
+
+  // 重新获取数据
+  await resetAndFetch()
 }
 
 // 卡片盒下拉项中的更多操作
@@ -830,123 +934,49 @@ const saveCardBox = async () => {
   }
 }
 .topToolBar-left {
-  position: relative;
   display: flex;
   align-items: center;
-  border: none;
-  background: none;
-  border-radius: 6px;
-  padding: 4px 0px;
-  margin: 2px;
-
-  .icon {
-    width: 30px;
-    height: 30px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s ease;
-    padding: 0;
-    border-radius: 8px;
-    background-color: var(--color-menu-bg);
-    border: 1px solid var(--color-primary);
-
-    :deep(.i-icon) {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 100%;
-      height: 100%;
-    }
-
-    :deep(svg) {
-      width: 18px;
-      height: 18px;
-    }
-  }
-
-  .name {
-    flex-grow: 0;
-    text-align: left;
-    color: var(--default-text-color);
-    font-size: 20px;
-    font-weight: 600;
-    margin-left: 8px;
-    white-space: nowrap;
-    writing-mode: horizontal-tb;
-    user-select: none;
-  }
-}
-.topToolBar-right {
-  display: flex;
   gap: 8px;
-  align-items: center;
-
-  .inbox-button {
+  .all-button {
     display: flex;
     align-items: center;
-    // width: 100px;
-    padding: 2px 12px 2px 7px;
-    border: none;
-    background: none;
+    padding: 6px 12px;
+    border-radius: 6px;
     cursor: pointer;
     transition: background-color 0.2s;
-    border-radius: 8px;
-    border: 1px solid var(--color-border);
-    user-select: none;
-
-    &.active {
-      border: 1px solid var(--color-primary);
-    }
-
-    .icon {
-      background: none;
-      border: none;
-      cursor: pointer;
-      width: 28px;
-      height: 28px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 6px;
-      transition: background-color 0.2s;
-      padding: 0;
-
-      // 新增以下样式来处理 i-icon 类
-      :deep(.i-icon) {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        width: 100%;
-        height: 100%;
-      }
-
-      :deep(svg) {
-        width: 16px; // 或者您想要的大小
-        height: 16px; // 或者您想要的大小
-      }
-    }
-
-    .name {
-      flex-grow: 0;
-      text-align: left;
-      color: var(--color-text-primary);
-      font-size: 14px;
-      white-space: nowrap; // 防止文字换行
-      writing-mode: horizontal-tb; // 确保文字是水平排列的
-      line-height: 1;
-    }
 
     &:hover {
       background-color: var(--color-hover-bg);
     }
 
     &.active {
-      background-color: var(--color-menu-active-bg);
-      // border: 1px solid var(--color-primary);
+      background-color: var(--color-primary-light);
+
+      .icon {
+        svg {
+          fill: var(--color-primary);
+        }
+      }
+
+      .name {
+        color: var(--color-primary);
+      }
+    }
+
+    .icon {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 24px;
+      height: 24px;
+      margin-right: 4px;
+    }
+
+    .name {
+      font-size: 14px;
+      color: var(--color-text-primary);
     }
   }
-
   .cardbox-dropdown {
     display: flex;
     align-items: center;
@@ -1182,6 +1212,77 @@ const saveCardBox = async () => {
       }
     }
   }
+}
+.topToolBar-right {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+
+  .inbox-button {
+    display: flex;
+    align-items: center;
+    // width: 100px;
+    padding: 2px 12px 2px 7px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    border-radius: 8px;
+    border: 1px solid var(--color-border);
+    user-select: none;
+
+    &.active {
+      border: 1px solid var(--color-primary);
+    }
+
+    .icon {
+      background: none;
+      border: none;
+      cursor: pointer;
+      width: 28px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 6px;
+      transition: background-color 0.2s;
+      padding: 0;
+
+      // 新增以下样式来处理 i-icon 类
+      :deep(.i-icon) {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        height: 100%;
+      }
+
+      :deep(svg) {
+        width: 16px; // 或者您想要的大小
+        height: 16px; // 或者您想要的大小
+      }
+    }
+
+    .name {
+      flex-grow: 0;
+      text-align: left;
+      color: var(--color-text-primary);
+      font-size: 14px;
+      white-space: nowrap; // 防止文字换行
+      writing-mode: horizontal-tb; // 确保文字是水平排列的
+      line-height: 1;
+    }
+
+    &:hover {
+      background-color: var(--color-hover-bg);
+    }
+
+    &.active {
+      background-color: var(--color-menu-active-bg);
+      // border: 1px solid var(--color-primary);
+    }
+  }
+
   .sort-button-container {
     display: flex;
     align-items: center;

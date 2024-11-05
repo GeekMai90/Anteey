@@ -1,4 +1,4 @@
-import { createRouter, createWebHashHistory } from 'vue-router'
+import { createRouter, createWebHashHistory, RouteLocationNormalized } from 'vue-router'
 
 const routes = [
   {
@@ -21,7 +21,45 @@ const routes = [
     name: 'cardbox',
     path: '/cardbox',
     component: () => import('../views/CardBoxView.vue'),
-    meta: { keepAlive: true }
+    // 添加子路由用于处理不同的筛选场景
+    children: [
+      {
+        name: 'cardboxAll',
+        path: '', // 默认子路由，显示所有卡片
+        component: () => import('../views/CardBoxView.vue')
+      },
+      {
+        name: 'cardboxBox',
+        path: 'box/:boxId', // 特定卡片盒
+        component: () => import('../views/CardBoxView.vue')
+      },
+      {
+        name: 'cardboxTag',
+        path: 'tag/:tagId', // 特定标签
+        component: () => import('../views/CardBoxView.vue')
+      },
+      {
+        name: 'cardboxType',
+        path: 'type/:type', // 特定类型
+        component: () => import('../views/CardBoxView.vue')
+      },
+      {
+        name: 'cardboxInbox',
+        path: 'inbox', // 收件箱
+        component: () => import('../views/CardBoxView.vue')
+      }
+    ],
+    // 添加 props 配置，允许路由参数传递到组件
+    props: (route: RouteLocationNormalized) => ({
+      // 将查询参数转换为组件 props
+      boxId: route.params.boxId || route.query.box,
+      tagId: route.params.tagId || route.query.tag,
+      type: route.params.type || route.query.type,
+      keyword: route.query.keyword,
+      sort: route.query.sort,
+      order: route.query.order,
+      page: parseInt(route.query.page as string) || 1
+    })
   },
   {
     name: 'whiteboard',
@@ -86,12 +124,33 @@ const router = createRouter({
   routes
 })
 
-// 添加全局导航守卫进行调试
+// 添加路由导航守卫，用于处理从其他页面的跳转
 router.beforeEach((to, from, next) => {
   console.log('Route change:', {
-    from: { name: from.name, params: from.params },
-    to: { name: to.name, params: to.params }
+    from: { name: from.name, params: from.params, query: from.query },
+    to: { name: to.name, params: to.params, query: to.query }
   })
+
+  // 处理从标签树的跳转
+  if (to.name === 'cardbox' && to.query.tag) {
+    next({
+      name: 'cardboxTag',
+      params: { tagId: to.query.tag as string },
+      query: { ...to.query }
+    })
+    return
+  }
+
+  // 处理从卡片盒列表的跳转
+  if (to.name === 'cardbox' && to.query.box) {
+    next({
+      name: 'cardboxBox',
+      params: { boxId: to.query.box as string },
+      query: { ...to.query }
+    })
+    return
+  }
+
   next()
 })
 

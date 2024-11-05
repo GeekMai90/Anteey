@@ -482,15 +482,25 @@ export const useNoteStore = defineStore(
     }
     // 获取卡片盒分页笔记
     const fetchPaginatedNotesByCardbox = async (params: GetPaginatedNotesParams) => {
-      // console.log('noteStores.ts→ 开始获取卡片盒分页笔记', params)
+      console.log('noteStores.ts→ 开始获取卡片盒分页笔记', params)
       try {
+        // 解构并转换 Proxy 对象为普通数组
+        const { cardTypes = [], tags = [], ...otherParams } = params
+
+        // 确保传递给后端的是普通数组而不是 Proxy
+        const sanitizedParams = {
+          ...otherParams,
+          cardTypes: Array.from(cardTypes),
+          tags: Array.from(tags)
+        }
+
         const { notes: fetchedNotes, totalCount } =
-          await window.electronAPI.getPaginatedNotesByCardbox(params)
-        // console.log('noteStores.ts→ 获取卡片盒分页笔记成功', fetchedNotes, totalCount)
+          await window.electronAPI.getPaginatedNotesByCardbox(sanitizedParams)
+
         return { notes: fetchedNotes, totalCount }
       } catch (error) {
-        console.error('noteStores.ts→ 获取卡片盒分页笔记失败:', error)
-        throw error // 或者返回一个默认值,取决于您的错误处理策略
+        console.error('获取卡片盒分页笔记失败:', error)
+        throw error
       }
     }
     //获取某一天的笔记
