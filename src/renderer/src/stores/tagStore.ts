@@ -90,6 +90,19 @@ export const useTagStore = defineStore('tag', () => {
     }
   }
 
+  // 获取所有标签（扁平列表）
+  const fetchAllTags = async () => {
+    try {
+      const fetchedTags = await window.electronAPI.getAllTags()
+      tags.value = fetchedTags
+      console.log('tagStore.ts→ 获取所有标签:', fetchedTags)
+      return fetchedTags
+    } catch (error) {
+      console.error('获取所有标签失败:', error)
+      throw error
+    }
+  }
+
   // 创建新标签
   const createTag = async (params: { name: string; color?: string; icon?: string }) => {
     try {
@@ -207,6 +220,7 @@ export const useTagStore = defineStore('tag', () => {
     updateTagPinOrder,
     openTagModal,
     closeTagModal,
-    getNoteTags
+    getNoteTags,
+    fetchAllTags
   }
 })

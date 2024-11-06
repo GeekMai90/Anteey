@@ -6,6 +6,7 @@ import { setupConnectionsHandlers } from './connectionsIpcHandlers'
 import { setupCacheHandlers } from './cacheIpcHandlers'
 import { setupImageHandlers } from './imageIpcHandlers'
 import { setupTagHandlers } from './tagIpcHandlers'
+import { setupFilterHandlers } from './filterIpcHandlers'
 
 export function setupIpcHandlers() {
   setupNotesHandlers()
@@ -16,4 +17,5 @@ export function setupIpcHandlers() {
   setupCacheHandlers()
   setupImageHandlers()
   setupTagHandlers()
+  setupFilterHandlers()
 }

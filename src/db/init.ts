@@ -260,6 +260,46 @@ export async function initDatabase(db: Knex): Promise<void> {
     })
     console.log('user_settings 默认数据创建成功')
   }
+  // 创建 custom_filters 表
+  if (!(await db.schema.hasTable('custom_filters'))) {
+    await db.schema.createTable('custom_filters', (table) => {
+      table.string('id').primary()
+      table.string('name').notNullable()
+      table.enum('matchType', ['all', 'any']).notNullable()
+      table.boolean('isPinned').notNullable().defaultTo(false)
+      table.integer('pinnedOrder').nullable()
+      table.datetime('createdAt').notNullable()
+      table.datetime('updatedAt').notNullable()
+
+      // 索引
+      table.index('name')
+      table.index(['isPinned', 'pinnedOrder'])
+      table.index('createdAt')
+      table.index('updatedAt')
+    })
+    console.log('custom_filters 表创建成功')
+  }
+
+  // 创建 filter_rules 表
+  if (!(await db.schema.hasTable('filter_rules'))) {
+    await db.schema.createTable('filter_rules', (table) => {
+      table.string('id').primary()
+      table.string('filterId').notNullable().index()
+      table.enum('field', ['tag', 'cardBox', 'keyword', 'cardType']).notNullable()
+      table.enum('operator', ['contains', 'doesNotContain', 'is', 'isNot']).notNullable()
+      table.json('value').notNullable() // 使用 json 类型来存储 string | string[]
+      table.datetime('createdAt').notNullable()
+      table.datetime('updatedAt').notNullable()
+
+      // 外键约束
+      table.foreign('filterId').references('custom_filters.id').onDelete('CASCADE')
+
+      // 索引
+      table.index(['filterId', 'field'])
+      table.index('createdAt')
+    })
+    console.log('filter_rules 表创建成功')
+  }
 }
 
 export async function down(db: Knex): Promise<void> {
@@ -272,5 +312,7 @@ export async function down(db: Knex): Promise<void> {
   await db.schema.dropTableIfExists('cardboxes')
   await db.schema.dropTableIfExists('notes')
   await db.schema.dropTableIfExists('user_settings') // 添加这一行
+  await db.schema.dropTableIfExists('filter_rules')
+  await db.schema.dropTableIfExists('custom_filters')
   console.log('所有表已删除')
 }

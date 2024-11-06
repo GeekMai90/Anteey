@@ -12,6 +12,8 @@ import { calculateSimilarity } from '../renderer/src/utils/noteSililarity'
 import { SemanticVectorizer } from '../renderer/src/utils/semanticVector'
 import { extractTextFromContent } from '../renderer/src/utils/keywordExtractor'
 import type { NoteReference, InternalNoteReference } from '../renderer/src/types/Note'
+import { Knex } from 'knex/types'
+import { FilterRule } from '@renderer/types/Filter'
 
 // 辅助函数：将数据库记录转换为 Note 对象
 function convertToNote(record: any): Note {
@@ -564,101 +566,100 @@ export async function getPaginatedNotes(
     throw new Error('后端→ 获取分页笔记失败')
   }
 }
-export interface GetPaginatedNotesParams {
-  page: number
-  limit: number
-  cardBoxId?: string // 'all' | 'inbox' | string
-  cardTypes?: string[] // ['Maincard', 'Bibcard', 'Indexcard']
-  tags?: string[] // 标签ID数组
-  keyword?: string // 搜索关键词
-  sortBy: string // 排序字段
-  sortOrder: 'asc' | 'desc'
-}
+// export interface GetPaginatedNotesParams {
+//   page: number
+//   limit: number
+//   cardBoxId?: string // 'all' | 'inbox' | string
+//   cardTypes?: string[] // ['Maincard', 'Bibcard', 'Indexcard']
+//   tags?: string[] // 标签ID数组
+//   keyword?: string // 搜索关键词
+//   sortBy: string // 排序字段
+//   sortOrder: 'asc' | 'desc'
+// }
 
-export async function getPaginatedNotesByCardbox({
-  page,
-  limit,
-  cardBoxId,
-  cardTypes,
-  tags,
-  keyword,
-  sortBy = 'updatedAt',
-  sortOrder = 'desc'
-}: GetPaginatedNotesParams): Promise<{ notes: Note[]; totalCount: number }> {
-  try {
-    console.log('后端→ 开始获取卡片盒分页笔记', {
-      cardBoxId,
-      cardTypes,
-      tags,
-      keyword,
-      sortBy,
-      sortOrder,
-      page,
-      limit
-    })
+// export async function getPaginatedNotesByCardbox({
+//   page,
+//   limit,
+//   cardBoxId,
+//   cardTypes,
+//   tags,
+//   keyword,
+//   sortBy = 'updatedAt',
+//   sortOrder = 'desc'
+// }: GetPaginatedNotesParams): Promise<{ notes: Note[]; totalCount: number }> {
+//   try {
+//     console.log('后端→ 开始获取卡片盒分页笔记', {
+//       cardBoxId,
+//       cardTypes,
+//       tags,
+//       keyword,
+//       sortBy,
+//       sortOrder,
+//       page,
+//       limit
+//     })
 
-    let query = db('notes')
-      .leftJoin('note_tags', 'notes.id', 'note_tags.noteId')
-      .where('notes.isDeleted', false)
-      .distinct('notes.*')
+//     let query = db('notes')
+//       .leftJoin('note_tags', 'notes.id', 'note_tags.noteId')
+//       .where('notes.isDeleted', false)
+//       .distinct('notes.*')
 
-    // 基础筛选：卡片盒
-    if (cardBoxId === 'inbox') {
-      query = query.whereNull('notes.cardBoxId')
-    } else if (cardBoxId && cardBoxId !== 'all') {
-      query = query.where('notes.cardBoxId', cardBoxId)
-    }
+//     // 基础筛选：卡片盒
+//     if (cardBoxId === 'inbox') {
+//       query = query.whereNull('notes.cardBoxId')
+//     } else if (cardBoxId && cardBoxId !== 'all') {
+//       query = query.where('notes.cardBoxId', cardBoxId)
+//     }
 
-    // 卡片类型筛选
-    if (cardTypes && cardTypes.length > 0) {
-      query = query.whereIn('notes.cardType', cardTypes)
-    }
+//     // 卡片类型筛选
+//     if (cardTypes && cardTypes.length > 0) {
+//       query = query.whereIn('notes.cardType', cardTypes)
+//     }
 
-    // 标签筛选
-    if (tags && tags.length > 0) {
-      query = query.whereIn('note_tags.tagId', tags)
-      // 如果需要匹配所有标签（而不是任意一个），使用以下方式：
-      // tags.forEach(tagId => {
-      //   query = query.whereExists(function() {
-      //     this.select('*')
-      //       .from('note_tags as nt')
-      //       .whereRaw('nt.noteId = notes.id')
-      //       .where('nt.tagId', tagId)
-      //   })
-      // })
-    }
+//     // 标签筛选
+//     if (tags && tags.length > 0) {
+//       if (tags.includes('none')) {
+//         // 筛选无标签的笔记
+//         query = query.whereNotExists(function () {
+//           this.select('*').from('note_tags').whereRaw('note_tags.noteId = notes.id')
+//         })
+//       } else {
+//         // 筛选有特定标签的笔记
+//         query = query.whereIn('note_tags.tagId', tags)
+//       }
+//     }
 
-    // 关键词搜索
-    if (keyword) {
-      const searchKeyword = `%${keyword}%`
-      query = query.where((builder) => {
-        builder
-          .where('notes.title', 'like', searchKeyword)
-          .orWhere('notes.content', 'like', searchKeyword)
-          .orWhere('notes.address', 'like', searchKeyword)
-      })
-    }
+//     // 关键词搜索
+//     if (keyword) {
+//       const searchKeyword = `%${keyword}%`
+//       query = query.where((builder) => {
+//         builder
+//           .where('notes.title', 'like', searchKeyword)
+//           .orWhere('notes.content', 'like', searchKeyword)
+//           .orWhere('notes.address', 'like', searchKeyword)
+//       })
+//     }
 
-    // 计算总数
-    const countResult = await query.clone().count('* as count').first()
-    const totalCount = countResult ? (countResult.count as number) : 0
+//     // 计算总数
+//     const countResult = await query.clone().count('* as count').first()
+//     const totalCount = countResult ? (countResult.count as number) : 0
 
-    // 获取分页数据
-    const offset = (page - 1) * limit
-    const notes = await query.orderBy(`notes.${sortBy}`, sortOrder).limit(limit).offset(offset)
+//     // 获取分页数据
+//     const offset = (page - 1) * limit
+//     const notes = await query.orderBy(`notes.${sortBy}`, sortOrder).limit(limit).offset(offset)
 
-    console.log('后端→ 查询结果数量:', notes.length)
-    console.log('后端→ 总计数:', totalCount)
+//     console.log('后端→ 查询结果数量:', notes.length)
+//     console.log('后端→ 总计数:', totalCount)
 
-    return {
-      notes: notes.map(convertToNote),
-      totalCount
-    }
-  } catch (error) {
-    console.error('后端→ 获取分页笔记失败:', error)
-    throw new Error('获取分页笔记失败')
-  }
-}
+//     return {
+//       notes: notes.map(convertToNote),
+//       totalCount
+//     }
+//   } catch (error) {
+//     console.error('后端→ 获取分页笔记失败:', error)
+//     throw new Error('获取分页笔记失败')
+//   }
+// }
 
 // 创建笔记、新建笔记
 export async function createNote(): Promise<Note> {
@@ -1673,4 +1674,394 @@ export async function updateNoteTags(noteId: string, tagIds: string[]): Promise<
     console.error('后端→ 批量更新笔记标签失败:', { noteId, tagIds, error })
     throw new Error('批量更新笔记标签失败')
   }
+}
+
+// 更新参数接口
+export interface GetPaginatedNotesParams {
+  page: number
+  limit: number
+  cardBoxId?: string // 'all' | 'inbox' | string
+  cardTypes?: string[] // ['Maincard', 'Bibcard', 'Indexcard']
+  tags?: string[] // 标签ID数组
+  keyword?: string // 搜索关键词
+  sortBy: string // 排序字段
+  sortOrder: 'asc' | 'desc'
+  customFilterId?: string // 新增：自定义筛选规则ID
+}
+
+export async function getPaginatedNotesByCardbox({
+  page,
+  limit,
+  cardBoxId,
+  cardTypes,
+  tags,
+  keyword,
+  sortBy = 'updatedAt',
+  sortOrder = 'desc',
+  customFilterId
+}: GetPaginatedNotesParams): Promise<{ notes: Note[]; totalCount: number }> {
+  try {
+    console.log('后端→ 开始获取卡片盒分页笔记', {
+      cardBoxId,
+      cardTypes,
+      tags,
+      keyword,
+      sortBy,
+      sortOrder,
+      page,
+      limit,
+      customFilterId
+    })
+
+    let query = db('notes')
+      .leftJoin('note_tags', 'notes.id', 'note_tags.noteId')
+      .where('notes.isDeleted', false)
+      .distinct('notes.*')
+
+    // 如果有自定义筛选规则，优先使用自定义规则
+    if (customFilterId) {
+      console.log('使用自定义筛选规则:', customFilterId)
+      const customFilter = await db('custom_filters').where('id', customFilterId).first()
+
+      if (customFilter) {
+        const rules = await db('filter_rules')
+          .where('filterId', customFilterId)
+          .orderBy('createdAt', 'asc')
+
+        console.log('获取到的筛选规则:', rules)
+
+        // 根据匹配类型构建查询
+        if (customFilter.matchType === 'all') {
+          // AND 逻辑：所有规则都必须满足
+          for (const rule of rules) {
+            query = applyFilterRule(query.clone(), rule)
+          }
+        } else {
+          // OR 逻辑：满足任一规则即可
+          query = query.where(function () {
+            rules.forEach((rule, index) => {
+              const method = index === 0 ? 'where' : 'orWhere'
+              this[method](function () {
+                applyFilterRule(this, rule)
+              })
+            })
+          })
+        }
+
+        // 添加调试日志
+        const sqlString = query.toString()
+        console.log('生成的SQL查询:', sqlString)
+      }
+    } else {
+      // 使用常规筛选条件
+      // 基础筛选：卡片盒
+      if (cardBoxId === 'inbox') {
+        query = query.whereNull('notes.cardBoxId')
+      } else if (cardBoxId && cardBoxId !== 'all') {
+        query = query.where('notes.cardBoxId', cardBoxId)
+      }
+
+      // 卡片类型筛选
+      if (cardTypes && cardTypes.length > 0) {
+        query = query.whereIn('notes.cardType', cardTypes)
+      }
+
+      // 标签筛选
+      if (tags && tags.length > 0) {
+        if (tags.includes('none')) {
+          // 筛选无标签的笔记
+          query = query.whereNotExists(function () {
+            this.select('*').from('note_tags').whereRaw('note_tags.noteId = notes.id')
+          })
+        } else {
+          // 筛选有特定标签的笔记
+          query = query.whereIn('note_tags.tagId', tags)
+        }
+      }
+
+      // 关键词搜索
+      if (keyword) {
+        const searchKeyword = `%${keyword}%`
+        query = query.where((builder) => {
+          builder
+            .where('notes.content', 'like', searchKeyword)
+            .orWhere('notes.address', 'like', searchKeyword)
+        })
+      }
+    }
+
+    // 计算总数
+    const countResult = await query.clone().count('* as count').first()
+    const totalCount = countResult ? (countResult.count as number) : 0
+
+    // 获取分页数据
+    const offset = (page - 1) * limit
+    const notes = await query.orderBy(`notes.${sortBy}`, sortOrder).limit(limit).offset(offset)
+
+    console.log('后端→ 查询结果数量:', notes.length)
+    console.log('后端→ 总计数:', totalCount)
+
+    return {
+      notes: notes.map(convertToNote),
+      totalCount
+    }
+  } catch (error) {
+    console.error('后端→ 获取分页笔记失败:', error)
+    throw new Error('获取分页笔记失败')
+  }
+}
+
+// 辅助函数：应用单个筛选规则
+// function applyFilterRule(query: Knex.QueryBuilder, rule: FilterRule): Knex.QueryBuilder {
+//   // 解析值
+//   const parseValue = (value: any) => {
+//     if (typeof value === 'string') {
+//       try {
+//         const parsed = JSON.parse(value)
+//         // 如果解析后还是字符串，可能需要再次解析
+//         if (typeof parsed === 'string') {
+//           try {
+//             return JSON.parse(parsed)
+//           } catch {
+//             return parsed
+//           }
+//         }
+//         return parsed
+//       } catch {
+//         return value
+//       }
+//     }
+//     return value
+//   }
+
+//   const value = parseValue(rule.value)
+//   console.log('解析后的值:', value, '类型:', typeof value)
+
+//   // 提前声明所有可能用到的变量
+//   const tagIds = Array.isArray(value) ? value : [value]
+//   const boxId = String(value)
+//   const searchKeyword = `%${String(value)}%`
+
+//   console.log('处理后的变量:', {
+//     tagIds,
+//     boxId,
+//     searchKeyword
+//   })
+
+//   switch (rule.field) {
+//     case 'tag':
+//       if (rule.operator === 'contains') {
+//         console.log('执行标签包含查询，tagIds:', tagIds)
+//         return query.whereIn('note_tags.tagId', tagIds)
+//       } else if (rule.operator === 'doesNotContain') {
+//         return query.whereNotIn('note_tags.tagId', tagIds)
+//       }
+//       break
+
+//     case 'cardBox':
+//       if (rule.operator === 'is') {
+//         return boxId === 'inbox'
+//           ? query.whereNull('notes.cardBoxId')
+//           : query.where('notes.cardBoxId', boxId)
+//       } else if (rule.operator === 'isNot') {
+//         return boxId === 'inbox'
+//           ? query.whereNotNull('notes.cardBoxId')
+//           : query.whereNot('notes.cardBoxId', boxId)
+//       }
+//       break
+
+//     case 'cardType':
+//       if (rule.operator === 'is') {
+//         return query.where('notes.cardType', String(value))
+//       } else if (rule.operator === 'isNot') {
+//         return query.whereNot('notes.cardType', String(value))
+//       }
+//       break
+
+//     case 'keyword':
+//       if (rule.operator === 'contains') {
+//         return query.where((builder) => {
+//           builder
+//             .where('notes.content', 'like', searchKeyword)
+//             .orWhere('notes.address', 'like', searchKeyword)
+//         })
+//       } else if (rule.operator === 'doesNotContain') {
+//         return query.whereNot((builder) => {
+//           builder
+//             .where('notes.content', 'like', searchKeyword)
+//             .orWhere('notes.address', 'like', searchKeyword)
+//         })
+//       }
+//       break
+//   }
+//   // 在返回前打印生成的 SQL
+//   const sqlString = query.toString()
+//   console.log('生成的SQL:', sqlString)
+//   return query
+// }
+function applyFilterRule(query: Knex.QueryBuilder, rule: FilterRule): Knex.QueryBuilder {
+  // 解析值并去除额外的引号
+  const parseValue = (value: any) => {
+    if (typeof value === 'string') {
+      // 先去除外层的引号
+      let parsed = value.replace(/^"(.*)"$/, '$1')
+      try {
+        // 尝试解析 JSON
+        parsed = JSON.parse(parsed)
+        return parsed
+      } catch {
+        return parsed
+      }
+    }
+    return value
+  }
+
+  console.log('原始规则值:', rule.value)
+  const value = parseValue(rule.value)
+  console.log('第一次解析后的值:', value)
+
+  switch (rule.field) {
+    // case 'tag': {
+    //   let tagIds: string[] = []
+
+    //   // 处理标签值，可能需要多次解析
+    //   if (typeof value === 'string') {
+    //     try {
+    //       // 尝试解析可能的嵌套 JSON
+    //       let parsed = value
+    //       while (typeof parsed === 'string' && (parsed.startsWith('[') || parsed.startsWith('"'))) {
+    //         parsed = JSON.parse(parsed)
+    //       }
+    //       tagIds = Array.isArray(parsed) ? parsed : [parsed]
+    //     } catch {
+    //       tagIds = [value]
+    //     }
+    //   } else if (Array.isArray(value)) {
+    //     tagIds = value
+    //   } else {
+    //     tagIds = [String(value)]
+    //   }
+
+    //   // 确保每个标签 ID 是干净的字符串
+    //   tagIds = tagIds.map((id) => {
+    //     if (typeof id === 'string') {
+    //       return id
+    //         .replace(/^"(.*)"$/, '$1')
+    //         .replace(/\\/g, '')
+    //         .replace(/^\[(.*)\]$/, '$1')
+    //     }
+    //     return String(id)
+    //   })
+
+    //   console.log('最终标签ID数组:', tagIds)
+
+    //   if (rule.operator === 'contains') {
+    //     return query.whereIn('note_tags.tagId', tagIds)
+    //   } else if (rule.operator === 'doesNotContain') {
+    //     return query.whereNotIn('note_tags.tagId', tagIds)
+    //   }
+    //   break
+    // }
+    case 'tag': {
+      let tagIds: string[] = []
+
+      // 处理标签值，可能需要多次解析
+      if (typeof value === 'string') {
+        try {
+          // 尝试解析可能的嵌套 JSON
+          let parsed = value
+          while (typeof parsed === 'string' && (parsed.startsWith('[') || parsed.startsWith('"'))) {
+            parsed = JSON.parse(parsed)
+          }
+          tagIds = Array.isArray(parsed) ? parsed : [parsed]
+        } catch {
+          tagIds = [value]
+        }
+      } else if (Array.isArray(value)) {
+        tagIds = value
+      } else {
+        tagIds = [String(value)]
+      }
+
+      // 确保每个标签 ID 是干净的字符串
+      tagIds = tagIds.map((id) => {
+        if (typeof id === 'string') {
+          return id
+            .replace(/^"(.*)"$/, '$1')
+            .replace(/\\/g, '')
+            .replace(/^\[(.*)\]$/, '$1')
+        }
+        return String(id)
+      })
+
+      console.log('最终标签ID数组:', tagIds)
+
+      if (rule.operator === 'contains') {
+        // 修改为使用子查询，确保笔记同时包含所有指定标签
+        return query.whereIn('notes.id', function () {
+          this.select('noteId')
+            .from('note_tags')
+            .whereIn('tagId', tagIds)
+            .groupBy('noteId')
+            .havingRaw('COUNT(DISTINCT tagId) = ?', [tagIds.length])
+        })
+      } else if (rule.operator === 'doesNotContain') {
+        // 不包含任何指定标签
+        return query.whereNotIn('notes.id', function () {
+          this.select('noteId').from('note_tags').whereIn('tagId', tagIds)
+        })
+      }
+      break
+    }
+
+    case 'cardBox': {
+      const boxId = String(value)
+      console.log('卡片盒ID:', boxId)
+      if (rule.operator === 'is') {
+        return boxId === 'inbox'
+          ? query.whereNull('notes.cardBoxId')
+          : query.where('notes.cardBoxId', boxId)
+      } else if (rule.operator === 'isNot') {
+        return boxId === 'inbox'
+          ? query.whereNotNull('notes.cardBoxId')
+          : query.whereNot('notes.cardBoxId', boxId)
+      }
+      break
+    }
+
+    case 'cardType': {
+      const cardType = String(value)
+      console.log('卡片类型:', cardType)
+      if (rule.operator === 'is') {
+        return query.where('notes.cardType', cardType)
+      } else if (rule.operator === 'isNot') {
+        return query.whereNot('notes.cardType', cardType)
+      }
+      break
+    }
+
+    case 'keyword': {
+      const keyword = String(value)
+      const searchKeyword = `%${keyword}%`
+      console.log('搜索关键词:', searchKeyword)
+      if (rule.operator === 'contains') {
+        return query.where((builder) => {
+          builder
+            .where('notes.content', 'like', searchKeyword)
+            .orWhere('notes.address', 'like', searchKeyword)
+        })
+      } else if (rule.operator === 'doesNotContain') {
+        return query.whereNot((builder) => {
+          builder
+            .where('notes.content', 'like', searchKeyword)
+            .orWhere('notes.address', 'like', searchKeyword)
+        })
+      }
+      break
+    }
+  }
+
+  const sqlString = query.toString()
+  console.log('生成的SQL:', sqlString)
+  return query
 }

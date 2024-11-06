@@ -20,6 +20,7 @@ import {
   Tag
 } from './Note'
 import { UpdateUserSettings, UserSettings } from './UserSettings'
+import { CreateCustomFilterInput, CustomFilter, UpdateCustomFilterInput } from './Filter'
 
 export interface ElectronAPI {
   createNote: () => Promise<Note>
@@ -187,6 +188,37 @@ export interface ElectronAPI {
 
   // 获取笔记的标签
   getNoteTags: (noteId: string) => Promise<Tag[]>
+
+  // 筛选规则相关的方法
+  // 创建自定义筛选规则
+  createCustomFilter: (input: CreateCustomFilterInput) => Promise<CustomFilter>
+
+  // 获取所有自定义筛选规则
+  getAllCustomFilters: () => Promise<CustomFilter[]>
+
+  // 根据ID获取筛选规则
+  getCustomFilterById: (id: string) => Promise<CustomFilter | null>
+
+  // 更新筛选规则
+  updateCustomFilter: (id: string, updateData: UpdateCustomFilterInput) => Promise<CustomFilter>
+
+  // 删除筛选规则
+  deleteCustomFilter: (id: string) => Promise<void>
+
+  // 更新筛选规则置顶状态
+  updateFilterPinned: (id: string, isPinned: boolean, pinnedOrder?: number) => Promise<CustomFilter>
+
+  // 应用筛选规则获取笔记
+  getPaginatedNotesByFilter: (params: {
+    customFilterId: string
+    page: number
+    limit: number
+    sortBy?: string
+    sortOrder?: 'asc' | 'desc'
+  }) => Promise<{
+    notes: Note[]
+    totalCount: number
+  }>
 }
 
 declare global {

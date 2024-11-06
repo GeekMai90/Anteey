@@ -18,6 +18,7 @@ import fs from 'fs'
 import { app } from '@electron/remote'
 import { notesApi } from './api/notesApi'
 import { tagApi } from './api/tagApi'
+import { filterApi } from './api/filterApi'
 // 添加日志 API
 contextBridge.exposeInMainWorld('electronLog', {
   info: (...args: any[]) => ipcRenderer.send('renderer-log', { level: 'info', args }),
@@ -59,6 +60,7 @@ async function saveCache(cacheData: Record<string, string>): Promise<boolean> {
 contextBridge.exposeInMainWorld('electronAPI', {
   ...notesApi,
   ...tagApi,
+  ...filterApi,
   getResourcePath: async (filename: string): Promise<string> => {
     try {
       return (await ipcRenderer.invoke('get-resource-path', filename)) as string

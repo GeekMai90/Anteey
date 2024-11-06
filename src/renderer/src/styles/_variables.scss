@@ -177,6 +177,8 @@ $dark-mode-text: $gray-100;
   // 主题菜单
   --color-menu-bg: #{rgba($primary-color, 0.05)};
   --color-button-active-bg: #{rgba($primary-color, 0.08)};
+  --color-disabled-bg: rgba(0, 0, 0, 0.04);
+  --color-disabled-text: rgba(0, 0, 0, 0.25);
 
   // 主题侧边栏
   --sidebar-bg: #f2f2f2;

@@ -21,116 +21,26 @@
               </div>
               <div class="name">全部</div>
             </div>
-            <!-- 卡片盒按钮 -->
-            <div ref="cardboxDropdown" class="cardbox-dropdown" @click.stop="toggleCardBoxMenu">
-              <div class="icon">
-                <FileCabinet
-                  theme="outline"
-                  size="18"
-                  fill="var(--color-icon-menu-default)"
-                  :strokeWidth="3"
-                />
-              </div>
-              <div class="name">{{ selectedCardBoxName || '卡片盒' }}</div>
-              <!-- 卡片柜下拉菜单 -->
-              <div
-                v-if="showCardBoxMenu"
-                class="dropdown-menu"
-                :class="{ show: showCardBoxMenu }"
-                :style="dropdownMenuStyle"
-              >
-                <!-- 固定选项：全部卡片盒 -->
-                <div
-                  class="dropdown-item"
-                  :class="{ active: filterState.cardBoxId === 'all' }"
-                  @click.stop="selectCardBox({ id: 'all', name: '全部卡片盒' })"
-                >
-                  <div class="dropdown-item-content">
-                    <div class="icon">
-                      <FileCabinet
-                        theme="outline"
-                        size="18"
-                        fill="var(--color-icon-menu-default)"
-                        :strokeWidth="3"
-                      />
-                    </div>
-                    <div class="name">全部卡片盒</div>
-                  </div>
-                </div>
-                <!-- 固定选项：无卡片盒 (Inbox) -->
-                <div
-                  class="dropdown-item"
-                  :class="{ active: filterState.cardBoxId === 'inbox' }"
-                  @click.stop="selectCardBox({ id: 'inbox', name: '无卡片盒' })"
-                >
-                  <div class="dropdown-item-content">
-                    <div class="icon">
-                      <InboxIn
-                        theme="outline"
-                        size="18"
-                        fill="var(--color-icon-menu-default)"
-                        :strokeWidth="3"
-                      />
-                    </div>
-                    <div class="name">无卡片盒</div>
-                  </div>
-                </div>
-                <!-- 分隔线 -->
-                <div class="dropdown-divider"></div>
-
-                <div v-for="box in cardBoxes" :key="box.id" class="dropdown-item">
-                  <div
-                    class="dropdown-item-content"
-                    :class="{ active: selectedCardBox && selectedCardBox.id === box.id }"
-                    @click.stop="selectCardBox(box)"
-                  >
-                    <div class="icon">
-                      <Box
-                        theme="outline"
-                        size="18"
-                        fill="var(--color-icon-menu-default)"
-                        :strokeWidth="3"
-                      />
-                    </div>
-                    <div class="name">
-                      {{ box.name }}
-                    </div>
-                  </div>
-                  <!-- 更多操作按钮 -->
-                  <div class="dropdown-item-actions">
-                    <button
-                      class="more-actions-btn"
-                      @click.stop="toggleMoreActions(box.id, $event)"
-                    >
-                      <div class="icon">
-                        <More
-                          theme="outline"
-                          size="18"
-                          fill="var(--color-icon-menu-default)"
-                          :strokeWidth="3"
-                        />
-                      </div>
-                    </button>
-                  </div>
-                </div>
-                <!-- 分隔线 -->
-                <div class="dropdown-divider"></div>
-                <!-- 新增卡片盒按钮 -->
-                <div class="dropdown-item add-cardbox" @click.stop="openCardBoxModal">
-                  <div class="dropdown-item-content">
-                    <div class="icon">
-                      <Plus
-                        theme="outline"
-                        size="18"
-                        fill="var(--color-icon-menu-default)"
-                        :strokeWidth="3"
-                      />
-                    </div>
-                    <div class="name">新增卡片盒</div>
-                  </div>
-                </div>
-              </div>
-            </div>
+            <!-- 卡片盒下拉菜单 -->
+            <CardBoxDropdown
+              v-model="filterState.cardBoxId"
+              :card-boxes="cardBoxes"
+              :selected-box="selectedCardBox"
+              @select="selectCardBox"
+              @more="toggleMoreActions"
+              @add="openCardBoxModal"
+            />
+            <!-- 标签下拉菜单 -->
+            <TagDropdown
+              v-model="filterState.tags"
+              :tags="tags"
+              :selected-tag="selectedTag"
+              @select="selectTag"
+            />
+            <!-- 卡片类型下拉菜单 -->
+            <CardTypeDropdown v-model="filterState.cardTypes" />
+            <!-- 添加自定义筛选组件 -->
+            <CustomFilterDropdown @filter="handleCustomFilter" @reset="handleResetFilter" />
           </div>
 
           <div class="topToolBar-right">
@@ -268,6 +178,13 @@
         </div>
       </div>
     </div>
+    <!-- 添加 FilterDialog -->
+    <FilterDialog
+      v-if="filterStore.dialogState.visible"
+      :filter="filterStore.dialogState.editingFilter"
+      @close="handleCloseFilterDialog"
+      @save="handleSaveFilter"
+    />
   </div>
 </template>
 
@@ -275,26 +192,25 @@
 import { ref, computed, onMounted, onUnmounted, watch, nextTick, onActivated, reactive } from 'vue'
 import { useNoteStore } from '@renderer/stores/noteStores'
 import AppToolbar from '@renderer/components/layout/AppToolbar.vue'
-import {
-  SortTwo,
-  InboxIn,
-  Box,
-  More,
-  EditTwo,
-  Delete,
-  FileCabinet,
-  Plus,
-  Close,
-  Search
-} from '@icon-park/vue-next'
-import { CardBox, Note } from '@renderer/types/Note'
+import { SortTwo, Box, EditTwo, Delete, Close, Search } from '@icon-park/vue-next'
+import { CardBox, Note, Tag } from '@renderer/types/Note'
 import CardBoxNoteCard from '@renderer/components/cardbox/CardboxNoteCard.vue'
 import { storeToRefs } from 'pinia'
 import { useDebounceFn, useEventBus, useThrottleFn } from '@vueuse/core'
 import { useRoute, useRouter } from 'vue-router'
 import { GetPaginatedNotesParams } from '../../../db/notesService'
+import CardBoxDropdown from '@renderer/components/cardbox/CardBoxDropdown.vue'
+import TagDropdown from '@renderer/components/cardbox/TagDropdown.vue'
+import { useTagStore } from '@renderer/stores/tagStore'
+import CardTypeDropdown from '@renderer/components/cardbox/CardTypeDropdown.vue'
+import CustomFilterDropdown from '@renderer/components/cardbox/CustomFilterDropdown.vue'
+import { useFilterStore } from '@renderer/stores/filterStore'
+import FilterDialog from '@renderer/components/cardbox/FilterDialog.vue'
+import { CreateCustomFilterInput, UpdateCustomFilterInput } from '@renderer/types/Filter'
+import { message } from '@renderer/utils/message'
 
 const noteStore = useNoteStore()
+const filterStore = useFilterStore()
 
 const { lastCreatedNote, lastDeletedNote } = storeToRefs(noteStore)
 const showCardBoxMenu = ref(false)
@@ -318,11 +234,21 @@ const sortDirection = ref('asc')
 const hasMoreNotes = ref(true)
 const route = useRoute()
 const router = useRouter()
+const tagStore = useTagStore()
+
+// 标签列表
+const tags = computed(() => {
+  const validTags = (tagStore.tags || []).filter((tag) => tag && typeof tag.name === 'string')
+  // 按中文名称排序
+  return [...validTags].sort((a, b) => a.name.localeCompare(b.name, 'zh-CN'))
+})
 
 // 组件挂载时初始化数据
 onMounted(async () => {
   // 然后再执行数据获取
   resetAndFetch()
+  // 获取所有标签（扁平列表）
+  await tagStore.fetchAllTags()
 
   // 添加事件监听器
   document.addEventListener('click', handleGlobalClick)
@@ -414,17 +340,60 @@ const resetAndFetch = async () => {
 }
 
 // 7. 获取笔记数据
+// const fetchNotes = async () => {
+//   if (isLoading.value) return
+
+//   isLoading.value = true
+//   try {
+//     console.log('获取笔记数据，当前筛选状态:', {
+//       cardBoxId: filterState.cardBoxId,
+//       cardTypes: filterState.cardTypes,
+//       tags: filterState.tags,
+//       page: currentPage.value
+//     })
+//     const params: GetPaginatedNotesParams = {
+//       page: currentPage.value,
+//       limit: pageSize.value,
+//       cardBoxId: filterState.cardBoxId,
+//       cardTypes: filterState.cardTypes,
+//       tags: filterState.tags,
+//       keyword: filterState.keyword,
+//       sortBy: filterState.sort.field,
+//       sortOrder: filterState.sort.order
+//     }
+
+//     const result = await noteStore.fetchPaginatedNotesByCardbox(params)
+
+//     if (currentPage.value === 1) {
+//       notes.value = result.notes
+//     } else {
+//       notes.value = [...notes.value, ...result.notes]
+//     }
+
+//     totalCount.value = result.totalCount
+//     hasMoreNotes.value = notes.value.length < totalCount.value
+//     currentPage.value++
+//   } catch (error) {
+//     console.error('获取笔记失败:', error)
+//   } finally {
+//     isLoading.value = false
+//   }
+// }
 const fetchNotes = async () => {
   if (isLoading.value) return
 
   isLoading.value = true
   try {
+    const activeFilter = filterStore.activeFilter
+
     console.log('获取笔记数据，当前筛选状态:', {
+      customFilterId: activeFilter?.id,
       cardBoxId: filterState.cardBoxId,
       cardTypes: filterState.cardTypes,
       tags: filterState.tags,
       page: currentPage.value
     })
+
     const params: GetPaginatedNotesParams = {
       page: currentPage.value,
       limit: pageSize.value,
@@ -433,7 +402,9 @@ const fetchNotes = async () => {
       tags: filterState.tags,
       keyword: filterState.keyword,
       sortBy: filterState.sort.field,
-      sortOrder: filterState.sort.order
+      sortOrder: filterState.sort.order,
+      // 如果有激活的自定义筛选规则，添加 customFilterId
+      customFilterId: activeFilter?.id
     }
 
     const result = await noteStore.fetchPaginatedNotesByCardbox(params)
@@ -481,6 +452,9 @@ onMounted(() => {
 const selectAll = () => {
   filterState.cardBoxId = 'all'
   selectedCardBox.value = null
+  filterState.tags = []
+  // 清空自定义筛选规则
+  filterStore.setActiveFilter(null)
   resetAndFetch()
 }
 
@@ -732,17 +706,6 @@ const cardBoxes = computed(() => {
   return sortedCardBoxes
 })
 
-// 选中的卡片盒名称
-const selectedCardBoxName = computed(() => {
-  if (filterState.cardBoxId === 'all') return '全部卡片盒'
-  if (filterState.cardBoxId === 'inbox') return '无卡片盒'
-  if (selectedCardBox.value) return selectedCardBox.value.name
-
-  // 如果有 cardBoxId 但没有 selectedCardBox，尝试从 cardBoxes 中找到对应的卡片盒
-  const currentBox = cardBoxes.value.find((box) => box.id === filterState.cardBoxId)
-  return currentBox?.name || '卡片盒'
-})
-
 // 选择卡片盒的方法
 const selectCardBox = async (box: CardBox | { id: string; name: string }) => {
   // 先更新选中的卡片盒
@@ -827,33 +790,6 @@ const deleteCardBox = async (id: string | null) => {
   }
 }
 
-// 打开卡片盒下拉菜单
-const cardboxDropdown = ref<HTMLElement | null>(null)
-const dropdownMenuStyle = ref({})
-
-const calculateMenuPosition = () => {
-  nextTick(() => {
-    if (cardboxDropdown.value) {
-      const rect = cardboxDropdown.value.getBoundingClientRect()
-      dropdownMenuStyle.value = {
-        position: 'fixed',
-        top: `${rect.bottom + window.scrollY}px`,
-        right: `${window.innerWidth - rect.right - window.scrollX}px`,
-        left: 'auto', // 移除左侧定位
-        minWidth: `${rect.width}px`
-      }
-    }
-  })
-}
-
-const toggleCardBoxMenu = (event: MouseEvent) => {
-  event.stopPropagation()
-  showCardBoxMenu.value = !showCardBoxMenu.value
-  if (showCardBoxMenu.value) {
-    calculateMenuPosition()
-  }
-}
-
 // 全局点击事件，关闭下拉菜单
 const handleGlobalClick = (event: MouseEvent) => {
   // const cardTypeDropdown = document.querySelector('.cardtype-dropdown')
@@ -903,6 +839,70 @@ const saveCardBox = async () => {
     }
   }
 }
+
+// 标签相关功能
+// 标签相关状态
+const selectedTag = ref<Tag | null>(null)
+// 选择标签的方法
+// 选择标签的方法
+const selectTag = async (tag: Tag | { id: string; name: string }) => {
+  selectedTag.value = tag.id === 'all' || tag.id === 'none' ? null : (tag as Tag)
+
+  // 更新标签筛选状态
+  if (tag.id === 'all') {
+    // 所有标签：筛选所有有标签的笔记
+    filterState.tags = tags.value.map((t: Tag) => t.id)
+  } else if (tag.id === 'none') {
+    // 无标签：清空标签筛选
+    filterState.tags = ['none'] // 后端需要特殊处理这个值
+  } else {
+    // 选择特定标签
+    filterState.tags = [tag.id]
+  }
+
+  await resetAndFetch()
+}
+
+// 关闭筛选规则对话框
+const handleCloseFilterDialog = () => {
+  filterStore.closeFilterDialog()
+}
+
+// 保存筛选规则
+const handleSaveFilter = async (data: CreateCustomFilterInput | UpdateCustomFilterInput) => {
+  try {
+    if (filterStore.dialogState.editingFilter) {
+      await filterStore.updateFilter(
+        filterStore.dialogState.editingFilter.id,
+        data as UpdateCustomFilterInput
+      )
+    } else {
+      await filterStore.createFilter(data as CreateCustomFilterInput)
+    }
+    filterStore.closeFilterDialog()
+    message.success('保存成功')
+  } catch (error) {
+    console.error('保存筛选规则失败:', error)
+    message.error('保存失败')
+  }
+}
+// 处理自定义筛选
+const handleCustomFilter = async () => {
+  // 清空其他筛选条件
+  filterState.cardBoxId = 'all'
+  filterState.tags = []
+  filterState.cardTypes = []
+  selectedCardBox.value = null
+  selectedTag.value = null
+
+  // 重新获取笔记
+  await resetAndFetch()
+}
+
+// 处理重置筛选
+const handleResetFilter = async () => {
+  await resetAndFetch()
+}
 </script>
 
 <style lang="scss" scoped>
@@ -940,27 +940,56 @@ const saveCardBox = async () => {
   .all-button {
     display: flex;
     align-items: center;
-    padding: 6px 12px;
-    border-radius: 6px;
+    padding: 4px 10px 4px 4px;
+    border: none;
+    background: none;
     cursor: pointer;
-    transition: background-color 0.2s;
+    border-radius: 8px;
+    border: 1px solid var(--color-border);
+    user-select: none;
 
     &:hover {
       background-color: var(--color-hover-bg);
     }
+    .icon {
+      background: none;
+      border: none;
+      cursor: pointer;
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+      padding: 0;
+
+      :deep(.i-icon) {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        height: 100%;
+      }
+
+      :deep(svg) {
+        width: 15px;
+        height: 15px;
+      }
+    }
+
+    .name {
+      flex-grow: 0;
+      text-align: left;
+      color: var(--default-text-color);
+      font-size: 14px;
+      font-weight: 400;
+      white-space: nowrap;
+      writing-mode: horizontal-tb;
+      line-height: 1;
+    }
 
     &.active {
-      background-color: var(--color-primary-light);
-
-      .icon {
-        svg {
-          fill: var(--color-primary);
-        }
-      }
-
-      .name {
-        color: var(--color-primary);
-      }
+      background-color: var(--color-hover-bg);
     }
 
     .icon {
@@ -975,241 +1004,6 @@ const saveCardBox = async () => {
     .name {
       font-size: 14px;
       color: var(--color-text-primary);
-    }
-  }
-  .cardbox-dropdown {
-    display: flex;
-    align-items: center;
-    // width: 100px;
-    padding: 2px 12px 2px 7px;
-    border: none;
-    background: none;
-    cursor: pointer;
-    transition: background-color 0.2s;
-    border-radius: 8px;
-    border: 1px solid var(--color-border);
-    user-select: none;
-
-    .icon {
-      background: none;
-      border: none;
-      cursor: pointer;
-      width: 28px;
-      height: 28px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 6px;
-      transition: background-color 0.2s;
-      padding: 0;
-      // margin-right: 3px;
-
-      &:hover:not(:disabled) {
-        background-color: var(--color-hover-bg);
-      }
-
-      &:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-      }
-
-      // 新增以下样式来处理 i-icon 类
-      :deep(.i-icon) {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        width: 100%;
-        height: 100%;
-      }
-
-      :deep(svg) {
-        width: 16px; // 或者您想要的大小
-        height: 16px; // 或者您想要的大小
-      }
-    }
-
-    .name {
-      flex-grow: 0;
-      text-align: left;
-      color: var(--color-text-primary);
-      font-size: 14px;
-      white-space: nowrap; // 防止文字换行
-      writing-mode: horizontal-tb; // 确保文字是水平排列的
-      user-select: none;
-      line-height: 1;
-    }
-
-    &:hover {
-      background-color: var(--color-hover-bg);
-    }
-
-    &.active {
-      background-color: var(--color-menu-active-bg);
-      // border: 1px solid var(--color-primary);
-    }
-
-    .dropdown-menu {
-      position: fixed; // 改为 fixed
-      margin-top: 5px;
-      background-color: var(--color-dropdown-bg);
-      border-radius: 8px;
-      z-index: 1000;
-      min-width: 200px;
-      width: auto;
-      max-height: 350px;
-      overflow-y: auto;
-      padding: 6px 12px;
-      white-space: nowrap;
-      background-clip: padding-box;
-      box-shadow: var(--shadow-primary);
-      opacity: 0;
-      visibility: hidden;
-      transition:
-        opacity 0.3s ease,
-        visibility 0.3s ease;
-
-      &.show {
-        opacity: 1;
-        visibility: visible;
-      }
-
-      .dropdown-item {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 4px 4px;
-        cursor: pointer;
-        transition: all 0.2s ease;
-        font-size: 14px;
-        color: var(--color-text-primary);
-        white-space: nowrap;
-        border-radius: 6px;
-        margin: 2px;
-
-        &:hover {
-          background-color: var(--color-hover-bg);
-        }
-
-        &.active {
-          background-color: var(--color-hover-bg);
-        }
-
-        .dropdown-item-content {
-          position: relative;
-          display: flex;
-          align-items: center;
-          border: none;
-          background: none;
-          cursor: pointer;
-          transition: background-color 0.2s;
-          border-radius: 8px;
-
-          .icon {
-            background: none;
-            border: none;
-            cursor: pointer;
-            width: 24px;
-            height: 24px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 6px;
-            transition: background-color 0.2s;
-            padding: 0;
-
-            // 新增以下样式来处理 i-icon 类
-            .i-icon {
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              width: 100%;
-              height: 100%;
-            }
-
-            svg {
-              width: 18px; // 或者您想要的大小
-              height: 18px; // 或者您想要的大小
-            }
-          }
-
-          .name {
-            flex-grow: 0;
-            text-align: left;
-            color: var(--color-text-primary);
-            font-size: 14px;
-            white-space: nowrap; // 防止文字换行
-            writing-mode: horizontal-tb; // 确保文字是水平排列的
-            user-select: none;
-            margin-left: 6px;
-          }
-        }
-      }
-
-      .dropdown-divider {
-        height: 1px;
-        margin: 6px 0;
-        background-color: var(--color-border);
-      }
-
-      .dropdown-item.add-cardbox {
-        position: sticky;
-        bottom: 0;
-        background-color: var(--color-dropdown-bg);
-        // border-top: 1px solid var(--color-border);
-        // margin-top: 6px;
-        // padding-top: 8px;
-
-        &:hover {
-          background-color: var(--color-hover-bg);
-        }
-
-        .dropdown-item-content {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-      }
-    }
-
-    .dropdown-item-actions {
-      position: relative;
-
-      .more-actions-btn {
-        background: none;
-        border: none;
-        cursor: pointer;
-        // padding: 4px;
-        border-radius: 50%;
-        transition: background-color 0.2s;
-        margin-left: 10px;
-        .icon {
-          background: none;
-          border: none;
-          cursor: pointer;
-          width: 24px;
-          height: 24px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          border-radius: 6px;
-          transition: background-color 0.2s;
-          padding: 0;
-
-          // 新增以下样式来处理 i-icon 类
-          .i-icon {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 100%;
-            height: 100%;
-          }
-
-          svg {
-            width: 18px; // 或者您想要的大小
-            height: 18px; // 或者您想要的大小
-          }
-        }
-      }
     }
   }
 }
@@ -1286,12 +1080,10 @@ const saveCardBox = async () => {
   .sort-button-container {
     display: flex;
     align-items: center;
-    // width: 100px;
-    padding: 2px 12px 2px 7px;
+    padding: 4px 10px 4px 4px;
     border: none;
     background: none;
     cursor: pointer;
-    transition: background-color 0.2s;
     border-radius: 8px;
     border: 1px solid var(--color-border);
     user-select: none;
@@ -1300,24 +1092,14 @@ const saveCardBox = async () => {
       background: none;
       border: none;
       cursor: pointer;
-      width: 28px;
-      height: 28px;
+      width: 24px;
+      height: 24px;
       display: flex;
       align-items: center;
       justify-content: center;
       border-radius: 6px;
-      transition: background-color 0.2s;
+      transition: all 0.2s ease;
       padding: 0;
-      // margin-right: 3px;
-
-      &:hover:not(:disabled) {
-        background-color: var(--color-hover-bg);
-      }
-
-      &:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-      }
 
       // 新增以下样式来处理 i-icon 类
       :deep(.i-icon) {
@@ -1329,8 +1111,8 @@ const saveCardBox = async () => {
       }
 
       :deep(svg) {
-        width: 16px; // 或者您想要的大小
-        height: 16px; // 或者您想要的大小
+        width: 15px; // 或者您想要的大小
+        height: 15px; // 或者您想要的大小
       }
     }
 
@@ -1341,6 +1123,7 @@ const saveCardBox = async () => {
       font-size: 14px;
       white-space: nowrap; // 防止文字换行
       writing-mode: horizontal-tb; // 确保文字是水平排列的
+      margin-left: 3px;
       line-height: 1;
     }
 
@@ -1355,7 +1138,7 @@ const saveCardBox = async () => {
 
     .sort-dropdown-menu {
       position: absolute;
-      top: 90%;
+      top: 100%;
       // left: -10px;
       right: 20px;
       background-color: var(--color-dropdown-bg);
@@ -1503,22 +1286,6 @@ const saveCardBox = async () => {
     overflow-y: auto; // 允许卡片网格容器滚动
     scroll-behavior: smooth; // 添加平滑滚动
   }
-
-  // .card-grid {
-  //   display: grid;
-  //   grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
-  //   gap: 16px;
-  //   padding: 16px 20px;
-  //   align-content: start; // 让内容从顶部开始排列
-  //   justify-content: center; // 水平居中对齐
-
-  //   // 使用视口单位和 clamp 函数来控制卡片高度
-  //   --card-height: clamp(300px, calc(20vw - 32px), 370px);
-  //   grid-auto-rows: var(--card-height);
-
-  //   // 计算每行可以容纳的卡片数量
-  //   --cards-per-row: calc((100% - 32px) / (300px + 16px));
-  // }
   .card-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
@@ -1599,257 +1366,6 @@ const saveCardBox = async () => {
       }
     }
   }
-}
-
-.cardtype-dropdown {
-  position: relative;
-  display: inline-flex;
-  position: relative;
-  display: flex;
-  align-items: center;
-  padding: 2px 12px 2px 7px;
-  cursor: pointer;
-  transition: background-color 0.2s;
-  border-radius: 8px;
-  border: 1px solid var(--color-border);
-
-  .icon {
-    background: none;
-    border: none;
-    cursor: pointer;
-    width: 28px;
-    height: 28px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 6px;
-    transition: background-color 0.2s;
-    padding: 0;
-    // margin-right: 3px;
-
-    &:hover:not(:disabled) {
-      background-color: var(--color-hover-bg);
-    }
-
-    &:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
-
-    // 新增以下样式来处理 i-icon 类
-    :deep(.i-icon) {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 100%;
-      height: 100%;
-    }
-
-    :deep(svg) {
-      width: 16px; // 或者您想要的大小
-      height: 16px; // 或者您想要的大小
-    }
-  }
-
-  .name {
-    flex-grow: 0;
-    text-align: left;
-    color: var(--color-text-primary);
-    font-size: 14px;
-    white-space: nowrap; // 防止文字换行
-    writing-mode: horizontal-tb; // 确保文字是水平排列的
-    line-height: 1;
-  }
-
-  &:hover {
-    background-color: var(--color-hover-bg);
-  }
-
-  &.active {
-    background-color: var(--color-menu-active-bg);
-    // border: 1px solid var(--color-primary);
-  }
-
-  .cadrtype-dropdown-menu {
-    position: absolute;
-    top: calc(100% + 10px);
-    left: 50%;
-    transform: translateX(-50%); // 居中对齐
-    background-color: var(--color-bg-primary);
-    border-radius: 8px;
-    // box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    z-index: 1000;
-    min-width: 200px;
-    width: auto;
-    overflow-y: auto;
-    padding: 6px 12px;
-    white-space: nowrap;
-    background-clip: padding-box;
-    box-shadow: var(--shadow-primary);
-
-    .cadrtype-dropdown-item {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 4px 8px 4px 4px;
-      cursor: pointer;
-      transition: background-color 0.2s;
-      font-size: 14px;
-      color: #333;
-      white-space: nowrap;
-      border-radius: 8px;
-      margin: 2px;
-
-      &:hover {
-        background-color: var(--color-hover-bg);
-      }
-
-      &.active {
-        background-color: rgba(0, 200, 168, 0.05);
-        border: 1px solid #00c8a8;
-        // color: #00C8A8;
-      }
-
-      .cadrtype-dropdown-item-content {
-        display: flex;
-        align-items: center;
-        // gap: 10px;
-        flex-grow: 1;
-        align-items: center;
-        // width: 200px;
-        // padding: 8px 12px;
-        border: none;
-        background: none;
-        cursor: pointer;
-        transition: background-color 0.2s;
-        border-radius: 8px;
-        // margin: 2px 8px;
-
-        .icon {
-          background: none;
-          border: none;
-          cursor: pointer;
-          width: 28px;
-          height: 28px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          border-radius: 6px;
-          transition: background-color 0.2s;
-          padding: 0;
-          // margin-right: 3px;
-
-          &:hover:not(:disabled) {
-            background-color: var(--color-hover-bg);
-          }
-
-          &:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-          }
-
-          // 新增以下样式来处理 i-icon 类
-          .i-icon {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 100%;
-            height: 100%;
-          }
-
-          svg {
-            width: 18px; // 或者您想要的大小
-            height: 18px; // 或者您想要的大小
-          }
-        }
-
-        .name {
-          flex-grow: 0;
-          text-align: left;
-          color: var(--color-text-primary);
-          font-size: 14px;
-          white-space: nowrap; // 防止文字换行
-          writing-mode: horizontal-tb; // 确保文字是水平排列的
-          user-select: none;
-          margin-left: 6px;
-          line-height: 1;
-        }
-
-        &.active {
-          background-color: var(--color-menu-active-bg);
-          // border: 1px solid var(--color-primary);
-        }
-      }
-
-      .switch {
-        position: relative;
-        display: inline-block;
-        width: 28px;
-        height: 18px;
-
-        input {
-          opacity: 0;
-          width: 0;
-          height: 0;
-        }
-
-        .slider {
-          position: absolute;
-          cursor: pointer;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background-color: #ccc;
-          transition: 0.4s;
-        }
-
-        .slider:before {
-          position: absolute;
-          content: '';
-          height: 14px;
-          width: 14px;
-          left: 2px;
-          bottom: 2px;
-          background-color: white;
-          transition: 0.4s;
-        }
-
-        input:checked + .slider {
-          background-color: #00c8a8;
-        }
-
-        input:focus + .slider {
-          box-shadow: 0 0 1px #00c8a8;
-        }
-
-        input:checked + .slider:before {
-          transform: translateX(10px);
-        }
-
-        .slider.round {
-          border-radius: 34px;
-        }
-
-        .slider.round:before {
-          border-radius: 50%;
-        }
-      }
-    }
-  }
-}
-
-.dropdown-menu::-webkit-scrollbar {
-  width: 6px;
-}
-
-.dropdown-menu::-webkit-scrollbar-thumb {
-  background-color: #d0d0d0;
-  border-radius: 3px;
-}
-
-.dropdown-menu::-webkit-scrollbar-track {
-  background-color: #f0f0f0;
 }
 
 //卡片盒的更多操作菜单
@@ -1958,5 +1474,10 @@ const saveCardBox = async () => {
   height: 20px;
   width: 100%;
   background-color: red;
+}
+.content-container {
+  position: relative; /* 添加这行 */
+  flex: 1;
+  overflow: hidden;
 }
 </style>
