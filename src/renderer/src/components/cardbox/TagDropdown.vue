@@ -44,12 +44,15 @@
       <div class="dropdown-divider"></div>
 
       <!-- 用户标签列表 -->
-      <div v-for="tag in tags" :key="tag.id" class="dropdown-item">
-        <div
-          class="dropdown-item-content"
-          :class="{ active: selectedTag && selectedTag.id === tag.id }"
-          @click.stop="select(tag)"
-        >
+      <div
+        v-for="tag in tags"
+        :key="tag.id"
+        class="dropdown-item"
+        :class="{
+          active: !modelValue.includes('all') && modelValue.includes(tag.id)
+        }"
+      >
+        <div class="dropdown-item-content" @click.stop="select(tag)">
           <div class="icon">
             <TagOne
               theme="outline"
@@ -66,7 +69,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { Tag, TagOne, Down } from '@icon-park/vue-next'
 import type { Tag as TagType } from '@renderer/types/Note'
 
@@ -118,8 +121,9 @@ const toggleMenu = () => {
 }
 
 // 选择标签
-const select = (tag: TagType | { id: string; name: string }) => {
+const select = async (tag: TagType | { id: string; name: string }) => {
   emit('select', tag)
+  await nextTick()
   showMenu.value = false
 }
 
@@ -257,7 +261,7 @@ onUnmounted(() => {
     }
 
     &.active .dropdown-item-content {
-      background-color: var(--color-menu-active-bg);
+      background-color: var(--color-hover-bg);
     }
   }
 

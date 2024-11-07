@@ -1696,7 +1696,7 @@ export async function getPaginatedNotesByCardbox({
   cardTypes,
   tags,
   keyword,
-  sortBy = 'updatedAt',
+  sortBy = 'address',
   sortOrder = 'desc',
   customFilterId
 }: GetPaginatedNotesParams): Promise<{ notes: Note[]; totalCount: number }> {
@@ -1767,10 +1767,16 @@ export async function getPaginatedNotesByCardbox({
       }
 
       // 标签筛选
+      // 标签筛选
       if (tags && tags.length > 0) {
         if (tags.includes('none')) {
           // 筛选无标签的笔记
           query = query.whereNotExists(function () {
+            this.select('*').from('note_tags').whereRaw('note_tags.noteId = notes.id')
+          })
+        } else if (tags.includes('all')) {
+          // 筛选所有有标签的笔记
+          query = query.whereExists(function () {
             this.select('*').from('note_tags').whereRaw('note_tags.noteId = notes.id')
           })
         } else {

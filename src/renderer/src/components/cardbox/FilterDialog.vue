@@ -293,9 +293,9 @@ const getValueOptions = (field: FilterField) => {
       }))
     case 'cardType':
       return [
-        { label: '文本', value: 'text' },
-        { label: '图片', value: 'image' },
-        { label: '链接', value: 'link' }
+        { label: '主要卡片', value: 'Maincard' },
+        { label: '参考卡片', value: 'Bibcard' },
+        { label: '索引卡片', value: 'Indexcard' }
       ]
     default:
       return []

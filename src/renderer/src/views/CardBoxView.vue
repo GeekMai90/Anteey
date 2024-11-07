@@ -8,7 +8,14 @@
             <!-- 全部按钮 -->
             <div
               class="all-button"
-              :class="{ active: filterState.cardBoxId === 'all' }"
+              :class="{
+                active:
+                  filterState.cardBoxId === 'all' &&
+                  !filterStore.activeFilter &&
+                  !filterState.keyword &&
+                  filterState.tags.length === 0 &&
+                  filterState.cardTypes.length === 0
+              }"
               @click="selectAll"
             >
               <div class="icon">
@@ -125,12 +132,15 @@
                   :strokeWidth="3"
                 />
               </div>
+              <!-- <div class="name">{{ currentSortLabel }}</div> -->
               <div class="name">排序</div>
+
               <div v-if="showSortMenu" class="sort-dropdown-menu">
                 <div
                   v-for="option in sortOptions"
                   :key="option.value"
                   class="sort-dropdown-item"
+                  :class="{ active: currentSort === option.value }"
                   @click="selectSortOption(option)"
                 >
                   <div class="dropdown-item-content">
@@ -148,15 +158,16 @@
     </div>
     <div class="cardbox-view-container">
       <div ref="cardGridContainer" class="card-grid-container">
-        <div class="card-grid">
+        <TransitionGroup name="card-list" tag="div" class="card-grid">
           <CardBoxNoteCard
             v-for="note in displayedNotes"
             :key="`${note.id}-${new Date(note.updatedAt).toISOString()}`"
             v-memo="[note.id, note.createdAt]"
+            class="card-item"
             :note="note"
             :highlightedNoteId="highlightedNoteId"
           />
-        </div>
+        </TransitionGroup>
       </div>
       <!-- 创建/编辑卡片盒的模态框 -->
       <div v-if="showCardBoxModal" class="modal-overlay" @click="closeCardBoxModal">
@@ -229,8 +240,6 @@ const pageSize = ref(28)
 const totalCount = ref(0)
 const notes = ref<Note[]>([])
 const showSortMenu = ref(false)
-const currentSort = ref('address')
-const sortDirection = ref('asc')
 const hasMoreNotes = ref(true)
 const route = useRoute()
 const router = useRouter()
@@ -270,7 +279,7 @@ const filterState = reactive({
   tags: ((route.query.tags as string)?.split(',') || []) as string[],
   keyword: (route.query.keyword as string) || '',
   sort: {
-    field: (route.query.sort as string) || 'updatedAt',
+    field: (route.query.sort as string) || 'address',
     order: (route.query.order as 'asc' | 'desc') || 'desc'
   }
 })
@@ -450,11 +459,21 @@ onMounted(() => {
 
 // 选择全部的方法
 const selectAll = () => {
+  // 如果有激活的自定义筛选规则，先清除它
+  if (filterStore.activeFilter) {
+    filterStore.setActiveFilter(null)
+  }
+
+  // 重置所有筛选条件
   filterState.cardBoxId = 'all'
-  selectedCardBox.value = null
   filterState.tags = []
-  // 清空自定义筛选规则
-  filterStore.setActiveFilter(null)
+  filterState.cardTypes = []
+  filterState.keyword = '' // 清除搜索关键词
+  searchQuery.value = '' // 清除搜索框的内容
+
+  selectedCardBox.value = null
+  selectedTag.value = null
+
   resetAndFetch()
 }
 
@@ -462,26 +481,26 @@ const selectAll = () => {
 // 如果搜索框没有聚焦，则显示所有笔记
 // 如果搜索框聚焦，则显示搜索结果
 const displayedNotes = computed(() => {
-  if (searchQuery.value.trim() === '') {
-    return notes.value
-  }
-  return searchResults.value
+  return notes.value
 })
 
 // 搜索功能
-const searchQuery = ref('')
+const searchQuery = ref(filterState.keyword || '')
 const isSearchFocused = ref(false)
-const searchResults = ref<Note[]>([])
+
+// 监听 filterState.keyword 的变化，同步到 searchQuery
+watch(
+  () => filterState.keyword,
+  (newKeyword) => {
+    searchQuery.value = newKeyword || ''
+  }
+)
 
 // 使用防抖函数优化搜索性能
 const debouncedSearch = useDebounceFn(async () => {
-  if (searchQuery.value.trim() === '') {
-    searchResults.value = []
-    return
-  }
-  const results = await noteStore.searchNotesList(searchQuery.value)
-  if (results) {
-    searchResults.value = results
+  if (filterState.keyword !== searchQuery.value.trim()) {
+    filterState.keyword = searchQuery.value.trim()
+    await resetAndFetch()
   }
 }, 300)
 
@@ -494,7 +513,8 @@ const handleBlur = () => {
 // 清空搜索
 const clearSearch = () => {
   searchQuery.value = ''
-  searchResults.value = []
+  filterState.keyword = ''
+  resetAndFetch()
   nextTick(() => {
     const activeElement = document.activeElement as HTMLElement
     if (activeElement && 'blur' in activeElement) {
@@ -656,27 +676,49 @@ searchHighlightEventBus.on((noteId: any) => {
 
 // 排序选项功能
 const sortOptions = [
-  { value: 'name', label: '按名称排序' },
+  { value: 'address', label: '按名称排序' },
   { value: 'createdAt', label: '按创建时间排序' },
   { value: 'updatedAt', label: '按更新时间排序' }
 ]
+
+// 计算当前排序状态
+const currentSort = computed({
+  get: () => filterState.sort.field,
+  set: (value) => {
+    filterState.sort.field = value
+  }
+})
+
+const sortDirection = computed({
+  get: () => filterState.sort.order,
+  set: (value) => {
+    filterState.sort.order = value as 'asc' | 'desc'
+  }
+})
 
 const toggleSortMenu = (event: MouseEvent) => {
   event.stopPropagation()
   showSortMenu.value = !showSortMenu.value
 }
 
-const selectSortOption = (option: { value: string; label: string }) => {
+const selectSortOption = async (option: { value: string; label: string }) => {
   if (currentSort.value === option.value) {
+    // 如果点击当前排序字段，切换排序方向
     sortDirection.value = sortDirection.value === 'asc' ? 'desc' : 'asc'
   } else {
+    // 如果选择新的排序字段，设置字段并默认使用降序
     currentSort.value = option.value
-    sortDirection.value = 'asc'
+    sortDirection.value = 'desc'
   }
+
   showSortMenu.value = false
-  resetPagination()
-  fetchNotes()
+  await resetAndFetch()
 }
+
+// const currentSortLabel = computed(() => {
+//   const option = sortOptions.find((opt) => opt.value === currentSort.value)
+//   return option ? option.label : '排序'
+// })
 
 let deleteTimeout: ReturnType<typeof setTimeout> | null = null
 
@@ -844,19 +886,18 @@ const saveCardBox = async () => {
 // 标签相关状态
 const selectedTag = ref<Tag | null>(null)
 // 选择标签的方法
-// 选择标签的方法
 const selectTag = async (tag: Tag | { id: string; name: string }) => {
   selectedTag.value = tag.id === 'all' || tag.id === 'none' ? null : (tag as Tag)
 
   // 更新标签筛选状态
   if (tag.id === 'all') {
-    // 所有标签：筛选所有有标签的笔记
-    filterState.tags = tags.value.map((t: Tag) => t.id)
+    // 选择"所有标签"时，传递 ['all']
+    filterState.tags = ['all']
   } else if (tag.id === 'none') {
-    // 无标签：清空标签筛选
-    filterState.tags = ['none'] // 后端需要特殊处理这个值
+    // 选择"无标签"时
+    filterState.tags = ['none']
   } else {
-    // 选择特定标签
+    // 选择单个标签时
     filterState.tags = [tag.id]
   }
 
@@ -1300,7 +1341,24 @@ const handleResetFilter = async () => {
 
     // 计算每行可以容纳的卡片数量
     --cards-per-row: calc((100% - 32px) / (300px + 16px));
+    .card-item {
+      transition: all 0.2s ease;
+    }
   }
+  .card-list-enter-active,
+  .card-list-leave-active {
+    transition: all 0.2s ease;
+  }
+
+  .card-list-enter-from,
+  .card-list-leave-to {
+    opacity: 0;
+    // transform: translateY(30px);
+  }
+
+  // .card-list-move {
+  //   transition: transform 0.3s ease;
+  // }
 
   .modal-overlay {
     position: fixed;
