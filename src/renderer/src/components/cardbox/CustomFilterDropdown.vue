@@ -42,16 +42,47 @@
                 :strokeWidth="3"
               />
             </div>
-            <div class="icon" @click.stop="editFilter(filter)">
-              <Edit
+            <div class="icon" @click.stop="showMoreMenu(filter, $event)">
+              <More
                 theme="outline"
                 size="16"
                 fill="var(--color-icon-menu-default)"
                 :strokeWidth="3"
               />
             </div>
-            <div class="icon" @click.stop="deleteFilter(filter)">
-              <Delete theme="outline" size="16" fill="var(--color-danger)" :strokeWidth="3" />
+            <!-- 更多操作菜单 -->
+            <!-- 更改更多菜单部分的代码 -->
+            <div v-if="showMoreMenuId === filter.id" class="more-menu" :style="moreMenuPosition">
+              <div class="more-menu-item" @click="toggleStar(filter)">
+                <div class="icon">
+                  <Star
+                    theme="outline"
+                    size="16"
+                    :fill="
+                      filter.isStarred ? 'var(--color-primary)' : 'var(--color-icon-menu-default)'
+                    "
+                    :strokeWidth="3"
+                  />
+                </div>
+                <div class="name">{{ filter.isStarred ? '取消收藏' : '收藏' }}</div>
+              </div>
+              <div class="more-menu-item" @click="editFilter(filter)">
+                <div class="icon">
+                  <Edit
+                    theme="outline"
+                    size="16"
+                    fill="var(--color-icon-menu-default)"
+                    :strokeWidth="3"
+                  />
+                </div>
+                <div class="name">编辑</div>
+              </div>
+              <div class="more-menu-item delete" @click="deleteFilter(filter)">
+                <div class="icon">
+                  <Delete theme="outline" size="16" fill="var(--color-danger)" :strokeWidth="3" />
+                </div>
+                <div class="name">删除</div>
+              </div>
             </div>
           </div>
         </div>
@@ -70,7 +101,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { Filter, Plus, Down, Pushpin, Edit, Delete } from '@icon-park/vue-next'
+import { Filter, Plus, Down, Pushpin, Edit, Delete, More, Star } from '@icon-park/vue-next'
 import { useFilterStore } from '@renderer/stores/filterStore'
 import type { CustomFilter } from '@renderer/types/Filter'
 
@@ -142,6 +173,53 @@ const selectFilter = async (filter: CustomFilter) => {
 const togglePin = async (filter: CustomFilter) => {
   try {
     await filterStore.toggleFilterPin(filter.id)
+    message.success('操作成功')
+  } catch (error) {
+    message.error('操作失败')
+  }
+}
+
+const showMoreMenuId = ref<string | null>(null)
+const moreMenuPosition = ref({ top: '0px', left: '0px' })
+
+// 显示更多菜单
+// 显示更多菜单
+const showMoreMenu = (filter: CustomFilter, event: MouseEvent) => {
+  event.stopPropagation()
+
+  // 如果点击的是同一个菜单，则关闭它
+  if (showMoreMenuId.value === filter.id) {
+    closeMoreMenu()
+    return
+  }
+
+  // 否则，显示新的菜单
+  showMoreMenuId.value = filter.id
+
+  // 计算菜单位置
+  const target = event.currentTarget as HTMLElement
+  const rect = target.getBoundingClientRect()
+  moreMenuPosition.value = {
+    top: `${rect.bottom + 5}px`,
+    left: `${rect.left}px`
+  }
+
+  // 添加点击外部关闭菜单的监听
+  setTimeout(() => {
+    document.addEventListener('click', closeMoreMenu)
+  })
+}
+
+// 关闭更多菜单
+const closeMoreMenu = () => {
+  showMoreMenuId.value = null
+  document.removeEventListener('click', closeMoreMenu)
+}
+
+// 切换收藏状态
+const toggleStar = async (filter: CustomFilter) => {
+  try {
+    await filterStore.toggleFilterStar(filter.id)
     message.success('操作成功')
   } catch (error) {
     message.error('操作失败')
@@ -434,6 +512,92 @@ const editFilter = (filter: CustomFilter) => {
     white-space: nowrap;
     writing-mode: horizontal-tb;
     line-height: 1;
+  }
+}
+.more-menu {
+  position: fixed;
+  background-color: var(--color-dropdown-bg);
+  border: 1px solid var(--color-border-primary);
+  border-radius: 8px;
+  box-shadow: var(--shadow-primary);
+  z-index: 9999;
+  min-width: 120px;
+  width: max-content;
+  max-width: 300px;
+  overflow-y: auto;
+  padding: 6px 12px;
+  white-space: nowrap;
+  flex-direction: column; // 确保菜单项垂直排列
+}
+
+.more-menu-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  border: none;
+  background: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border-radius: 6px;
+  padding: 4px 4px;
+  margin: 2px;
+  width: 100%; // 确保菜单项占满容器宽度
+
+  gap: 6px;
+
+  &:hover {
+    background-color: var(--color-hover-button);
+  }
+
+  &:active {
+    background-color: rgba(0, 0, 0, 0.1);
+  }
+
+  .icon {
+    background: none;
+    border: none;
+    cursor: pointer;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    padding: 0;
+    flex-shrink: 0; // 防止图标被压缩
+
+    :deep(.i-icon) {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      height: 100%;
+    }
+
+    :deep(svg) {
+      width: 16px;
+      height: 16px;
+    }
+  }
+
+  .name {
+    flex-grow: 0;
+    text-align: left;
+    color: var(--color-text-primary);
+    font-size: 14px;
+    font-weight: 400;
+    white-space: nowrap;
+    writing-mode: horizontal-tb;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1;
+    user-select: none;
+  }
+
+  &.delete {
+    .name {
+      color: var(--color-danger);
+    }
   }
 }
 </style>

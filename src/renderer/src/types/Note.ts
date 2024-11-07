@@ -143,22 +143,7 @@ export interface RelationshipTree {
     order?: number
   }
 }
-// 标签接口
-// export interface Tag {
-//   id: string
-//   name: string // 完整的标签名，如 'work/project/dev'
-//   path: string[] // 标签路径，如 ['work', 'project', 'dev']
-//   color?: string // 标签颜色（可选）
-//   icon?: string // 标签图标（可选）
-//   pinned?: boolean // 添加置顶标记
-//   metadata: {
-//     count: number // 使用该标签的笔记数量
-//     lastUsed: Date // 最后使用时间
-//     totalCount?: number // 添加该标签及子标签的笔记总数
-//   }
-//   createdAt: Date
-//   updatedAt: Date
-// }
+
 // 标签基础接口
 export interface Tag {
   id: string
@@ -197,6 +182,10 @@ export interface CardBox {
   updatedAt: Date
   noteIds: string[] //包含的笔记 id 列表
   parentId?: string // 父卡片盒的ID，支持嵌套结构
+  isStarred?: boolean
+  starredOrder?: number
+  isPinned?: boolean
+  pinnedOrder?: number
 }
 
 // 根白板

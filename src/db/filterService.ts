@@ -20,6 +20,7 @@ async function convertToCustomFilter(
     matchType: record.matchType,
     isPinned: Boolean(record.isPinned),
     pinnedOrder: record.pinnedOrder || undefined,
+    isStarred: Boolean(record.isStarred),
     rules: rules.map((rule) => ({
       id: rule.id,
       field: rule.field,
@@ -47,6 +48,7 @@ export async function createCustomFilter(input: CreateCustomFilterInput): Promis
           name: input.name,
           matchType: input.matchType,
           isPinned: false,
+          isStarred: false,
           createdAt: now,
           updatedAt: now
         })
@@ -75,6 +77,7 @@ export async function createCustomFilter(input: CreateCustomFilterInput): Promis
         ...filter,
         isPinned: Boolean(filter.isPinned),
         pinnedOrder: filter.pinnedOrder || undefined,
+        isStarred: Boolean(filter.isStarred),
         rules: rules.map((rule) => ({
           ...rule,
           value: JSON.parse(rule.value),
@@ -136,7 +139,7 @@ export async function updateCustomFilter(
       if (input.matchType !== undefined) updateData.matchType = input.matchType
       if (input.isPinned !== undefined) updateData.isPinned = input.isPinned
       if (input.pinnedOrder !== undefined) updateData.pinnedOrder = input.pinnedOrder
-
+      if (input.isStarred !== undefined) updateData.isStarred = input.isStarred
       const [filter] = await trx('custom_filters').where({ id }).update(updateData).returning('*')
 
       // 2. 如果提供了新的规则，则更新规则
@@ -227,6 +230,35 @@ export async function updateFilterPinned(
     return await convertToCustomFilter(filter)
   } catch (error) {
     console.error('后端→ 更新筛选规则置顶状态失败:', error)
+    throw error
+  }
+}
+
+// 切换筛选规则的收藏状态
+export async function toggleFilterStar(id: string): Promise<CustomFilter> {
+  try {
+    return await db.transaction(async (trx) => {
+      // 1. 获取当前规则
+      const currentFilter = await trx('custom_filters').where({ id }).first()
+
+      if (!currentFilter) {
+        throw new Error(`筛选规则不存在: ${id}`)
+      }
+
+      // 2. 更新收藏状态
+      const [filter] = await trx('custom_filters')
+        .where({ id })
+        .update({
+          isStarred: !currentFilter.isStarred,
+          updatedAt: new Date()
+        })
+        .returning('*')
+
+      // 3. 返回更新后的完整筛选规则
+      return await convertToCustomFilter(filter, trx)
+    })
+  } catch (error) {
+    console.error('后端→ 切换筛选规则收藏状态失败:', error)
     throw error
   }
 }

@@ -13,7 +13,7 @@ import { SemanticVectorizer } from '../renderer/src/utils/semanticVector'
 import { extractTextFromContent } from '../renderer/src/utils/keywordExtractor'
 import type { NoteReference, InternalNoteReference } from '../renderer/src/types/Note'
 import { Knex } from 'knex/types'
-import { FilterRule } from '@renderer/types/Filter'
+import { FilterRule } from '../renderer/src/types/Filter'
 
 // 辅助函数：将数据库记录转换为 Note 对象
 function convertToNote(record: any): Note {

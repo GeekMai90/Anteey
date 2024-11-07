@@ -5,7 +5,8 @@ import {
   getCustomFilterById,
   updateCustomFilter,
   deleteCustomFilter,
-  updateFilterPinned
+  updateFilterPinned,
+  toggleFilterStar
 } from '../../db/filterService'
 import type {
   CreateCustomFilterInput,
@@ -87,4 +88,15 @@ export function setupFilterHandlers() {
       }
     }
   )
+
+  // 切换筛选规则的收藏状态
+  ipcMain.handle('toggle-filter-star', async (_event, id: string) => {
+    try {
+      const updatedFilter = await toggleFilterStar(id)
+      return { success: true, filter: updatedFilter }
+    } catch (error) {
+      console.error('主进程→ 切换筛选规则收藏状态失败:', error)
+      return { success: false, error: String(error) }
+    }
+  })
 }

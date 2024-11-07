@@ -219,6 +219,9 @@ export interface ElectronAPI {
     notes: Note[]
     totalCount: number
   }>
+
+  // 切换筛选规则的收藏状态
+  toggleFilterStar: (id: string) => Promise<CustomFilter>
 }
 
 declare global {

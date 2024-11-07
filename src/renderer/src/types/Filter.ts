@@ -23,6 +23,7 @@ export interface CustomFilter {
   matchType: 'all' | 'any' // all: AND, any: OR
   rules: FilterRule[]
   isPinned: boolean
+  isStarred: boolean
   pinnedOrder?: number
   createdAt: Date
   updatedAt: Date
@@ -42,6 +43,7 @@ export interface UpdateCustomFilterInput {
   matchType?: 'all' | 'any'
   rules?: Omit<FilterRule, 'id' | 'createdAt' | 'updatedAt'>[]
   isPinned?: boolean
+  isStarred?: boolean
   pinnedOrder?: number
 }
 

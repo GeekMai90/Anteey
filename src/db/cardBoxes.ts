@@ -15,7 +15,11 @@ export async function createCardBox(name: string): Promise<CardBox> {
     createdAt: new Date(),
     updatedAt: new Date(),
     noteIds: [],
-    parentId: ''
+    parentId: '',
+    isStarred: false,
+    starredOrder: 0,
+    isPinned: false,
+    pinnedOrder: 0
   }
   // 返回新创建的卡片盒
   const result = await db('cardboxes')

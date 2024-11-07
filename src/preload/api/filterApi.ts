@@ -86,5 +86,17 @@ export const filterApi = {
       console.error('预加载脚本 → 更新筛选规则置顶状态失败:', error)
       throw error
     }
+  },
+
+  // 切换筛选规则的收藏状态
+  toggleFilterStar: async (id: string): Promise<CustomFilter> => {
+    try {
+      const result = await ipcRenderer.invoke('toggle-filter-star', id)
+      if (!result.success) throw new Error(result.error)
+      return result.filter
+    } catch (error) {
+      console.error('预加载脚本 → 切换筛选规则收藏状态失败:', error)
+      throw error
+    }
   }
 }

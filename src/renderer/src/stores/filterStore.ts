@@ -225,26 +225,20 @@ export const useFilterStore = defineStore('filter', () => {
     activeFilter.value = filter
   }
 
-  // 获取筛选后的笔记
-  // const getFilteredNotes = async (params: {
-  //   page: number
-  //   limit: number
-  //   sortBy?: string
-  //   sortOrder?: 'asc' | 'desc'
-  // }) => {
-  //   if (!activeFilter.value) return null
-
-  //   try {
-  //     return await window.electronAPI.getPaginatedNotesByCardbox({
-  //       customFilterId: activeFilter.value.id,
-  //       ...params
-  //     })
-  //   } catch (err) {
-  //     console.error('获取筛选笔记失败:', err)
-  //     error.value = '获取筛选笔记失败'
-  //     throw err
-  //   }
-  // }
+  // 切换筛选规则的收藏状态
+  const toggleFilterStar = async (id: string) => {
+    try {
+      const updatedFilter = await window.electronAPI.toggleFilterStar(id)
+      const index = customFilters.value.findIndex((f) => f.id === id)
+      if (index !== -1) {
+        customFilters.value[index] = updatedFilter
+      }
+    } catch (err) {
+      console.error('切换筛选规则收藏状态失败:', err)
+      error.value = '切换收藏状态失败'
+      throw err
+    }
+  }
 
   return {
     customFilters,
@@ -259,6 +253,7 @@ export const useFilterStore = defineStore('filter', () => {
     setActiveFilter,
     openFilterDialog,
     closeFilterDialog,
-    dialogState
+    dialogState,
+    toggleFilterStar
   }
 })

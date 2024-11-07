@@ -67,8 +67,6 @@ export async function initDatabase(db: Knex): Promise<void> {
       // 索引
       table.index('name')
       table.index(['pinned', 'pinOrder'])
-      table.index('useCount')
-      table.index('lastUsedAt')
     })
     console.log('tags 表创建成功')
   }
@@ -148,6 +146,10 @@ export async function initDatabase(db: Knex): Promise<void> {
       table.datetime('updatedAt').notNullable()
       table.json('noteIds').notNullable()
       table.string('parentId').nullable().index()
+      table.boolean('isStarred').notNullable().defaultTo(false).index()
+      table.integer('starredOrder').nullable()
+      table.boolean('isPinned').notNullable().defaultTo(false).index()
+      table.integer('pinnedOrder').nullable()
     })
     console.log('cardboxes 表创建成功')
   }
@@ -267,6 +269,7 @@ export async function initDatabase(db: Knex): Promise<void> {
       table.string('name').notNullable()
       table.enum('matchType', ['all', 'any']).notNullable()
       table.boolean('isPinned').notNullable().defaultTo(false)
+      table.boolean('isStarred').notNullable().defaultTo(false)
       table.integer('pinnedOrder').nullable()
       table.datetime('createdAt').notNullable()
       table.datetime('updatedAt').notNullable()
@@ -274,6 +277,7 @@ export async function initDatabase(db: Knex): Promise<void> {
       // 索引
       table.index('name')
       table.index(['isPinned', 'pinnedOrder'])
+      table.index('isStarred')
       table.index('createdAt')
       table.index('updatedAt')
     })

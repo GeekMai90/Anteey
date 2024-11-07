@@ -46,7 +46,12 @@
       <nav>
         <ul>
           <li v-for="item in menuItems" :key="item.name" class="nav-item-wrapper">
-            <div class="nav-item" :class="{ active: isActiveOrHasActiveChild(item) }">
+            <div
+              class="nav-item"
+              :class="{ active: isActiveOrHasActiveChild(item) }"
+              @mouseenter="item.path === '/cardbox' ? showQuickAccess($event) : null"
+              @mouseleave="item.path === '/cardbox' ? handleMenuLeave($event) : null"
+            >
               <router-link
                 :to="item.path"
                 class="nav-link"
@@ -59,50 +64,18 @@
                     size="18"
                     :fill="getIconFill(item.path)"
                     :strokeWidth="2"
-                  ></component>
+                  />
                 </div>
                 <div class="name">{{ item.name }}</div>
               </router-link>
-              <div v-if="item.children" class="expand-button" @click.stop="toggleSubMenu(item)">
-                <div class="icon">
-                  <Down
-                    v-if="expanded"
-                    theme="outline"
-                    size="16"
-                    fill="var(--color-text-primary)"
-                    :strokeWidth="2"
-                  />
-                  <Right
-                    v-else
-                    theme="outline"
-                    size="16"
-                    fill="var(--color-text-primary)"
-                    :strokeWidth="2"
-                  />
-                </div>
-              </div>
+              <!-- Quick Access Menu -->
+              <QuickAccessMenu
+                v-if="item.path === '/cardbox' && isQuickAccessVisible"
+                v-model:visible="isQuickAccessVisible"
+                :style="quickAccessPosition"
+                @mouseleave="handleMenuLeave"
+              />
             </div>
-            <ul v-if="item.children && expanded" class="sub-menu">
-              <li v-for="child in item.children" :key="child.name">
-                <router-link
-                  :to="child.path"
-                  class="nav-link sub-item"
-                  :class="{ active: isActive(child.path) }"
-                  @click.stop
-                >
-                  <div class="icon">
-                    <component
-                      :is="child.icon || item.icon"
-                      theme="outline"
-                      size="18"
-                      :fill="getIconFill(child.path)"
-                      :strokeWidth="2"
-                    ></component>
-                  </div>
-                  <div class="name">{{ child.name }}</div>
-                </router-link>
-              </li>
-            </ul>
           </li>
         </ul>
       </nav>
@@ -166,7 +139,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import {
   Time,
   Box,
@@ -175,11 +148,6 @@ import {
   Search,
   Help,
   Home,
-  Down,
-  Right,
-  Notes,
-  ListAlphabet,
-  Bookshelf,
   Clear,
   Moon,
   SunOne
@@ -192,6 +160,7 @@ import { useRoute } from 'vue-router'
 import RecentNotes from '@renderer/components/layout/RecentNotes.vue'
 import { storeToRefs } from 'pinia'
 import TagsTree from '@renderer/components/layout/TagsTree.vue'
+import QuickAccessMenu from '@renderer/components/layout/QuickAccessMenu.vue'
 
 const imageSrc = ref('')
 const uiStore = useUIStore()
@@ -206,20 +175,10 @@ const getIconFill = computed(
 onMounted(async () => {
   imageSrc.value = await window.electronAPI.getResourcePath('icon.png')
 })
-const expanded = ref(false)
 const menuItems = [
   { name: '主页', path: '/home', icon: Home },
   { name: '时间线', path: '/timeline', icon: Time },
-  {
-    name: '卡片盒',
-    path: '/cardbox',
-    icon: Box,
-    children: [
-      { name: '主要卡片', path: '/maincard', icon: Notes },
-      { name: '索引卡片', path: '/indexcard', icon: ListAlphabet },
-      { name: '文献卡片', path: '/bibcard', icon: Bookshelf }
-    ]
-  },
+  { name: '卡片盒', path: '/cardbox', icon: Box },
   { name: '思维板', path: '/whiteboard', icon: Workbench }
 ]
 
@@ -228,15 +187,7 @@ const isActive = (path: string) => {
 }
 
 const isActiveOrHasActiveChild = (item: any) => {
-  if (isActive(item.path)) return true
-  if (item.children) {
-    return item.children.some((child: any) => isActive(child.path))
-  }
-  return false
-}
-const toggleSubMenu = (item: any) => {
-  expanded.value = !expanded.value
-  console.log('Toggled:', item.name, 'Expanded:', item.expanded)
+  return isActive(item.path)
 }
 
 const noteStore = useNoteStore()
@@ -297,6 +248,66 @@ const openSearch = () => {
 const openHelp = () => {
   // 实现打开帮助的逻辑
   console.log('打开帮助')
+}
+
+const isQuickAccessVisible = ref(false)
+const quickAccessPosition = ref({})
+let hideTimeout: NodeJS.Timeout | null = null
+
+// 显示菜单
+const showQuickAccess = (event: MouseEvent) => {
+  if (hideTimeout) {
+    clearTimeout(hideTimeout)
+    hideTimeout = null
+  }
+
+  const target = event.currentTarget as HTMLElement
+  const rect = target.getBoundingClientRect()
+
+  quickAccessPosition.value = {
+    position: 'fixed',
+    top: `${rect.top}px`,
+    left: `${rect.right - 8}px`,
+    zIndex: 1000
+  }
+
+  isQuickAccessVisible.value = true
+}
+
+// 处理菜单离开事件
+const handleMenuLeave = (event: MouseEvent) => {
+  const relatedTarget = event.relatedTarget as HTMLElement
+  if (
+    !relatedTarget?.closest('.quick-access-trigger') &&
+    !relatedTarget?.closest('.quick-access-menu')
+  ) {
+    hideTimeout = setTimeout(() => {
+      isQuickAccessVisible.value = false
+    }, 100) // 添加小延迟，使过渡更平滑
+  }
+}
+
+// 在组件卸载时清理定时器
+onUnmounted(() => {
+  if (hideTimeout) {
+    clearTimeout(hideTimeout)
+  }
+})
+
+// 添加点击外部区域关闭菜单的处理
+onMounted(() => {
+  document.addEventListener('click', handleClickOutside)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutside)
+})
+
+const handleClickOutside = (event: MouseEvent) => {
+  const target = event.target as HTMLElement
+  if (!target.closest('.quick-access-trigger') && !target.closest('.quick-access-menu')) {
+    isQuickAccessVisible.value = false
+  }
 }
 </script>
 
@@ -490,12 +501,12 @@ const openHelp = () => {
         .nav-item {
           display: flex;
           align-items: center;
-          justify-content: space-between;
           width: 100%;
           padding: 6px 8px;
           border-radius: 8px;
           transition: background-color 0.2s;
           user-select: none;
+          position: relative; // 添加这行
 
           &:hover {
             background-color: var(--color-hover-sidebar);
@@ -503,14 +514,28 @@ const openHelp = () => {
           &.active {
             background-color: var(--color-hover-sidebar);
           }
+          // 专门针对卡片盒导航项的样式
+          &[data-type='cardbox'] {
+            .quick-access-trigger {
+              position: absolute;
+              right: 0;
+              top: 0;
+              bottom: 0;
+              width: 50%;
+              z-index: 1;
+              cursor: pointer;
+            }
+          }
         }
+
         .nav-link {
           display: flex;
           align-items: center;
           flex-grow: 1;
           text-decoration: none;
           color: inherit;
-
+          position: relative; // 添加这行
+          z-index: 2;
           .icon {
             background: none;
             border: none;
@@ -846,5 +871,56 @@ const openHelp = () => {
   flex: 1;
   overflow-y: auto;
   min-height: 0; // 重要：确保内容可以正确滚动
+}
+
+.quick-access-menu {
+  position: fixed;
+  background-color: var(--color-dropdown-bg);
+  border-radius: 8px;
+  box-shadow: var(--shadow-primary);
+  padding: 8px;
+  min-width: 200px;
+  z-index: 1000;
+
+  .menu-group {
+    margin-bottom: 12px;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+
+    .group-title {
+      font-size: 12px;
+      color: var(--color-text-secondary);
+      padding: 4px 8px;
+      margin-bottom: 4px;
+    }
+
+    .menu-items {
+      .menu-item {
+        display: flex;
+        align-items: center;
+        padding: 6px 8px;
+        border-radius: 6px;
+        cursor: pointer;
+        text-decoration: none;
+        color: var(--color-text-primary);
+
+        &:hover {
+          background-color: var(--color-hover-sidebar);
+        }
+
+        .icon {
+          margin-right: 8px;
+          display: flex;
+          align-items: center;
+        }
+
+        .name {
+          font-size: 14px;
+        }
+      }
+    }
+  }
 }
 </style>
