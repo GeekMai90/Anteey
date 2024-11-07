@@ -44,12 +44,14 @@ import { TagTreeNode } from '@renderer/types/Note'
 import TagTreeItem from './TagTreeItem.vue' // 需要创建
 import { useEventBus } from '@vueuse/core'
 import { storeToRefs } from 'pinia'
+import { useRouter } from 'vue-router/dist/vue-router'
 
 const tagStore = useTagStore()
 // 使用 storeToRefs 来保持响应性
 const { tagTree: storeTagTree } = storeToRefs(tagStore)
 const isExpanded = ref(true)
 const tagTree = ref<TagTreeNode[]>([])
+const router = useRouter()
 
 // 切换展开/折叠
 const toggleTagsTree = () => {
@@ -59,7 +61,15 @@ const toggleTagsTree = () => {
 // 处理标签选择
 const handleTagSelect = (tag: TagTreeNode) => {
   console.log('Selected tag:', tag)
-  // TODO: 实现标签选择逻辑
+
+  // 跳转到卡片盒页面，并设置标签筛选参数
+  router.push({
+    name: 'cardbox', // 确保这是卡片盒页面的路由名称
+    query: {
+      tags: tag.id, // 设置选中的标签ID
+      box: 'all' // 默认显示所有卡片盒
+    }
+  })
 }
 
 // 监听 store 中的 tagTree 变化

@@ -18,28 +18,34 @@ export const useTagStore = defineStore('tag', () => {
     const tagMap = new Map<string, TagTreeNode>()
     const root: TagTreeNode[] = []
 
+    // 创建一个路径到标签的映射，用于快速查找实际标签
+    const pathToTagMap = new Map<string, Tag>()
+    tags.forEach((tag) => {
+      pathToTagMap.set(tag.path.join('/'), tag)
+    })
+
     // 首先为所有可能的路径创建节点（包括父路径）
     tags.forEach((tag) => {
-      // 为每一级路径创建节点
       const currentPath: string[] = []
-      tag.path.forEach((segment, index) => {
+      tag.path.forEach((segment) => {
         currentPath.push(segment)
         const pathKey = currentPath.join('/')
 
         // 如果节点不存在，创建一个新节点
         if (!tagMap.has(pathKey)) {
-          const isActualTag = index === tag.path.length - 1
+          // 检查当前路径是否对应一个实际标签
+          const actualTag = pathToTagMap.get(pathKey)
           const node: TagTreeNode = {
-            id: isActualTag ? tag.id : `virtual_${pathKey}`, // 虚拟节点使用特殊ID
+            id: actualTag ? actualTag.id : `virtual_${pathKey}`, // 如果是实际标签，使用实际ID
             name: segment,
             path: [...currentPath],
             children: [],
-            noteCount: isActualTag ? tag.useCount || 0 : 0,
+            noteCount: actualTag ? actualTag.useCount || 0 : 0,
             totalCount: 0,
-            color: isActualTag ? tag.color : undefined,
-            icon: isActualTag ? tag.icon : undefined,
-            pinned: isActualTag ? tag.pinned : false,
-            pinOrder: isActualTag ? tag.pinOrder : undefined
+            color: actualTag?.color,
+            icon: actualTag?.icon,
+            pinned: actualTag?.pinned || false,
+            pinOrder: actualTag?.pinOrder
           }
           tagMap.set(pathKey, node)
         }
