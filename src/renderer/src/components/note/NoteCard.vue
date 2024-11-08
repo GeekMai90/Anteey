@@ -128,7 +128,10 @@ const cardTypeClass = computed(() => {
 .note-card {
   background-color: var(--color-note-card-bg);
   border: 1px solid var(--time-card-border-color);
-  border-radius: 8px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  border: 1px solid var(--color-border);
+  transition: all 0.3s ease;
   padding: 15px 0px 10px 0;
   margin-bottom: 15px;
   display: flex;
@@ -136,6 +139,10 @@ const cardTypeClass = computed(() => {
   justify-content: space-between;
   position: relative;
   cursor: pointer;
+  &:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    border-color: var(--color-primary);
+  }
   // box-shadow: var(--shadow-card);
   .note-header {
     display: flex;

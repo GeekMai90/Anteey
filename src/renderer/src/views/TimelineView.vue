@@ -41,19 +41,29 @@
     <div class="timeline-container">
       <div v-bind="containerProps" class="note-list-container">
         <!-- 当没有笔记时显示空状态 -->
-        <div v-if="list.length === 0" class="empty-state">
+        <div v-if="virtualList.length === 0" class="empty-state">
           <div class="empty-state-icon">📝</div>
           <h2 class="empty-state-title">暂无笔记</h2>
           <p class="empty-state-description">开始创建新笔记</p>
         </div>
         <!-- 使用虚拟列表显示笔记 -->
-        <div v-else v-bind="wrapperProps">
+        <div v-else v-bind="wrapperProps" class="timeline-notes">
           <div
-            v-for="{ data } in virtualList"
-            :key="`${data.id}-${new Date(data.updatedAt).toISOString()}`"
-            :style="{ height: `${itemHeight}px` }"
+            v-for="item in virtualList"
+            :key="`${item.data.id}-${new Date(item.data.updatedAt).toISOString()}`"
+            class="timeline-item"
           >
-            <NoteCard :note="data" @edit="noteStore.openNoteEditor" />
+            <!-- 日期分隔 -->
+            <DateDivider
+              v-if="shouldShowDateDivider(item.data, item.index)"
+              :date="item.data.createdAt"
+            />
+
+            <!-- 笔记卡片 -->
+            <div class="note-wrapper">
+              <div class="timeline-dot"></div>
+              <NoteCard :note="item.data" @edit="noteStore.openNoteEditor" />
+            </div>
           </div>
         </div>
         <!-- 用于触发无限滚动的观察元素 -->
@@ -97,6 +107,8 @@ import NoteCard from '@renderer/components/note/NoteCard.vue'
 import { useVirtualList } from '@vueuse/core'
 import { useEventBus } from '@vueuse/core'
 import { debounce } from 'lodash-es'
+import DateDivider from '@renderer/components/timelineView/DateDivider.vue'
+import type { UseVirtualListOptions } from '@vueuse/core'
 
 // 初始化状态管理
 const noteStore = useNoteStore()
@@ -216,14 +228,21 @@ const updateSingleNote = (updatedNote: Note) => {
 // })
 
 // 使用虚拟列表优化性能
-const itemHeight = 340 // 每个笔记卡片的预估高度
+// const itemHeight = 340 // 每个笔记卡片的预估高度
 
-const { list, containerProps, wrapperProps } = useVirtualList(sortedNotes, {
-  itemHeight,
-  overscan: 5 // 预渲染的额外项目数量
-})
+// 定义垂直列表选项
+const virtualListOptions: UseVirtualListOptions = {
+  // 使用固定的 itemHeight
+  itemHeight: 400,
+  // 预渲染的额外项目数量
+  overscan: 5
+}
 
-const virtualList = list as any
+const {
+  list: virtualList,
+  containerProps,
+  wrapperProps
+} = useVirtualList(sortedNotes, virtualListOptions)
 
 // 组件挂载时的初始化操作
 onMounted(async () => {
@@ -358,6 +377,19 @@ const toggleDateFilter = () => {
   } else {
     uiStore.toggleCalendarPicker()
   }
+}
+
+// 在 script setup 中添加
+const shouldShowDateDivider = (currentNote: Note, index: number) => {
+  if (!currentNote || !currentNote.createdAt) return false
+  if (index === 0) return true
+
+  const currentDate = new Date(currentNote.createdAt).toDateString()
+  const prevNote = sortedNotes.value[index - 1]
+  if (!prevNote || !prevNote.createdAt) return false
+
+  const prevDate = new Date(prevNote.createdAt).toDateString()
+  return currentDate !== prevDate
 }
 </script>
 
@@ -629,7 +661,7 @@ const toggleDateFilter = () => {
     .note-list-container {
       flex-grow: 1;
       overflow-y: auto; // 允许笔记列表滚动
-      padding: 0 80px;
+      padding: 0 40px 0 0px;
       box-sizing: border-box;
       width: 100%;
       max-width: 900px;
@@ -800,5 +832,65 @@ const toggleDateFilter = () => {
 .observer-target {
   height: 20px;
   width: 100%;
+}
+
+.timeline-notes {
+  position: relative;
+  scroll-behavior: auto !important; // 禁用平滑滚动
+
+  // 左侧时间线
+  &::before {
+    content: '';
+    position: absolute;
+    left: 40px;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    border-left: 1.5px dashed var(--color-border);
+  }
+}
+
+.timeline-item {
+  position: relative;
+  margin-bottom: 10px; // 增加笔记之间的间距
+  transform: translateZ(0); // 启用硬件加速
+  will-change: transform; // 提示浏览器这个元素会经常变化
+}
+
+.note-wrapper {
+  position: relative;
+  padding-left: 60px; // 为时间线和圆点留出空间
+  transition: all 0.2s ease;
+
+  &:hover {
+    // 只让卡片有轻微上浮效果
+    .note-card {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+      border-color: var(--color-primary);
+    }
+
+    // 时间线圆点效果优化
+    .timeline-dot {
+      transform: scale(1.2);
+      border-color: var(--color-primary);
+      // 添加发光效果但不移动位置
+      box-shadow: 0 0 0 4px rgba(var(--color-primary-rgb), 0.15);
+    }
+  }
+}
+
+.timeline-dot {
+  position: absolute;
+  left: 36.5px; // 调整点的位置以对齐虚线
+  top: 27.5px; // 根据实际卡片调整
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-bg-primary);
+  border: 1.5px solid var(--color-primary);
+  z-index: 1;
+  transition: all 0.2s ease;
+  box-shadow: 0 0 0 4px rgba(var(--color-primary-rgb), 0.1); // 添加光晕效果
 }
 </style>

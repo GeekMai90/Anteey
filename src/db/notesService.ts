@@ -662,9 +662,101 @@ export async function getPaginatedNotes(
 // }
 
 // 创建笔记、新建笔记
+// export async function createNote(): Promise<Note> {
+//   const id = uuidv4()
+//   const now = new Date()
+
+//   const newNote: Note = {
+//     id,
+//     type: 'note',
+//     address: '',
+//     cardType: 'Maincard',
+//     content: {
+//       type: 'doc',
+//       content: [
+//         {
+//           attrs: {
+//             textAlign: 'left'
+//           },
+//           content: [],
+//           type: 'paragraph'
+//         }
+//       ]
+//     },
+//     createdAt: now,
+//     updatedAt: now,
+
+//     // 引用关系
+//     references: {
+//       outgoing: [],
+//       incoming: []
+//     },
+
+//     // 关系树（初始为空）
+//     relationshipTree: {
+//       parents: [],
+//       children: [],
+//       siblings: []
+//     },
+
+//     // 图谱数据（初始为空）
+//     graphData: {
+//       x: 0,
+//       y: 0
+//     },
+
+//     // 基础字段
+//     cardBoxId: undefined,
+//     parentId: undefined,
+//     isDeleted: false,
+//     isStarred: false,
+//     starredOrder: undefined,
+//     rightBarOrder: undefined,
+
+//     // 语义相关（初始为空）
+//     keywords: [],
+//     semanticVector: undefined,
+
+//     // 元数据（初始为空）
+//     metadata: {
+//       title: '',
+//       summary: ''
+//     }
+//   }
+
+//   try {
+//     await db('notes').insert({
+//       ...newNote,
+//       content: JSON.stringify(newNote.content),
+//       references: JSON.stringify(newNote.references),
+//       relationshipTree: JSON.stringify(newNote.relationshipTree),
+//       graphData: JSON.stringify(newNote.graphData),
+//       keywords: JSON.stringify(newNote.keywords),
+//       metadata: JSON.stringify(newNote.metadata)
+//     })
+
+//     console.log('后端→ 创建笔记成功:', id)
+//     return newNote
+//   } catch (error) {
+//     console.error('后端→ 创建笔记失败:', error)
+//     throw error
+//   }
+// }
+
+// 在文件顶部添加一个计数器
+let noteCounter = 0
+const startDate = new Date('2024-11-01')
+
+// 修改创建笔记函数
 export async function createNote(): Promise<Note> {
   const id = uuidv4()
-  const now = new Date()
+
+  // 每创建两个笔记，日期加一天
+  const daysToAdd = Math.floor(noteCounter / 2)
+  const now = new Date(startDate.getTime() + daysToAdd * 24 * 60 * 60 * 1000)
+
+  // 增加计数器
+  noteCounter++
 
   const newNote: Note = {
     id,
@@ -678,15 +770,18 @@ export async function createNote(): Promise<Note> {
           attrs: {
             textAlign: 'left'
           },
-          content: [],
+          content: [
+            {
+              type: 'text',
+              text: `${now.toLocaleDateString()} 的笔记 #${noteCounter}`
+            }
+          ],
           type: 'paragraph'
         }
       ]
     },
     createdAt: now,
     updatedAt: now,
-
-    // 引用关系
     references: {
       outgoing: [],
       incoming: []
@@ -735,7 +830,7 @@ export async function createNote(): Promise<Note> {
       metadata: JSON.stringify(newNote.metadata)
     })
 
-    console.log('后端→ 创建笔记成功:', id)
+    console.log('后端→ 创建笔记成功:', id, '创建时间:', now.toLocaleString())
     return newNote
   } catch (error) {
     console.error('后端→ 创建笔记失败:', error)
