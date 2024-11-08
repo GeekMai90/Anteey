@@ -509,18 +509,20 @@ onMounted(() => {
 })
 
 // 选择全部的方法
-const selectAll = () => {
-  // 如果有激活的自定义筛选规则，先清除它
+const selectAll = async () => {
+  // 先清除路由参数，触发路由监听
+  await router.replace({ query: {} })
+
+  // 然后再重置其他状态
   if (filterStore.activeFilter) {
     filterStore.setActiveFilter(null)
   }
 
-  // 重置所有筛选条件
   filterState.cardBoxId = 'all'
   filterState.tags = []
   filterState.cardTypes = []
-  filterState.keyword = '' // 清除搜索关键词
-  searchQuery.value = '' // 清除搜索框的内容
+  filterState.keyword = ''
+  searchQuery.value = ''
 
   selectedCardBox.value = null
   selectedTag.value = null
