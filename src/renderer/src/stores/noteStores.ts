@@ -722,9 +722,6 @@ export const useNoteStore = defineStore(
     const fetchAllNotes = async (includeDeleted: boolean = true) => {
       try {
         const allNotes = await window.electronAPI.getAllNotes(includeDeleted)
-        //只存储 20 条笔记
-        notes.value = allNotes.slice(0, 20)
-        // notes.value = allNotes
         return allNotes
       } catch (error) {
         console.error('noteStores.ts→ 获取所有笔记失败:', error)

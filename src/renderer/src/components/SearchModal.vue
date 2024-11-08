@@ -108,7 +108,7 @@ import Modal from '@renderer/components/common/Modal.vue'
 import { useRouter } from 'vue-router'
 import NotePreviewCard from '@renderer/components/note/NotePreviewCard.vue'
 import { BankCard, ParagraphRectangle, FileSearch } from '@icon-park/vue-next'
-import { useDebounceFn, useEventBus } from '@vueuse/core'
+import { useDebounceFn } from '@vueuse/core'
 import { Note } from '@renderer/types/Note'
 import { useUIStore } from '@renderer/stores/useUIStore'
 
@@ -233,14 +233,16 @@ const hide = () => {
   selectedBlockIndex.value = -1
 }
 
-// 在卡片盒中定位笔记
-const locateNoteInCardBox = (noteId: string) => {
-  noteStore.setHighlightedNoteId(noteId)
-  router.push({ name: 'cardbox' })
-  uiStore.closeSearchModal()
-  // 触发事件
-  const searchHighlightEventBus = useEventBus('search-highlight')
-  searchHighlightEventBus.emit(noteId)
+// 添加新的函数来处理上下文查看
+const viewNoteContext = (noteId: string) => {
+  // 跳转到卡片盒页面，并带上查看上下文的标记
+  router.push({
+    name: 'cardbox',
+    query: {
+      mode: 'context',
+      noteId: noteId
+    }
+  })
 }
 
 // 处理键盘事件
@@ -279,15 +281,15 @@ const handleKeyDown = (event: KeyboardEvent) => {
         if (event.metaKey) {
           // Cmd+Enter: 只打开扩展笔记编辑器
           router.push({ name: 'NoteExpandEditor', params: { id: selectedNote.value.id } })
-          uiStore.closeSearchModal()
+          hide()
         } else if (event.altKey) {
-          // Alt+Enter: 在卡片盒中定位笔记
-          locateNoteInCardBox(selectedNote.value.id)
-          uiStore.closeSearchModal()
+          // Alt+Enter: 在卡片盒中查看上下文
+          viewNoteContext(selectedNote.value.id)
+          hide()
         } else {
           // 普通 Enter: 打开小窗编辑器
           noteStore.openNoteEditor(selectedNote.value.id)
-          uiStore.closeSearchModal()
+          hide()
         }
       }
       break
@@ -295,6 +297,7 @@ const handleKeyDown = (event: KeyboardEvent) => {
       hide()
       break
   }
+
   // 在每次键盘操作后强制更新 selectedNote
   nextTick(() => {
     // 触发 selectedNote 的重新计算

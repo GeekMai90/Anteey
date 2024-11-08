@@ -384,13 +384,13 @@ export async function searchNotes(query: string): Promise<
         }
         searchContent(content)
 
-        // 搜索标签
-        const tags = JSON.parse(note.tags)
-        tags.forEach((tag: string) => {
-          if (tag.toLowerCase().includes(lowercaseQuery)) {
-            matchingBlocks.push({ content: `#${tag}` })
-          }
-        })
+        // // 搜索标签
+        // const tags = JSON.parse(note.tags)
+        // tags.forEach((tag: string) => {
+        //   if (tag.toLowerCase().includes(lowercaseQuery)) {
+        //     matchingBlocks.push({ content: `#${tag}` })
+        //   }
+        // })
 
         if (matchingBlocks.length > 0) {
           results.push({
@@ -850,13 +850,18 @@ export async function getNoteById(id: string): Promise<Note | null> {
 }
 
 // 获取所有笔记
+// 获取所有笔记
 export async function getAllNotes(includeDeleted: boolean = false): Promise<Note[]> {
   try {
     let query = db('notes')
     if (!includeDeleted) {
       query = query.where('isDeleted', false)
     }
-    const noteRecords = await query.orderBy('updatedAt', 'desc')
+    // 修改排序方式：使用单引号包裹空字符串
+    const noteRecords = await query
+      .orderByRaw("CASE WHEN address = '' OR address IS NULL THEN 1 ELSE 0 END")
+      .orderBy('address', 'asc')
+
     return noteRecords.map(convertToNote)
   } catch (error) {
     console.error('后端→ 获取所有笔记失败:', error)

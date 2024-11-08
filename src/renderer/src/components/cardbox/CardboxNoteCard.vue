@@ -1,8 +1,8 @@
-// src/components/NoteCard.vue
 <template>
   <div
     :id="`note-${note.id}`"
-    :class="{ 'note-card': true, highlighted: isHighlighted }"
+    class="note-card"
+    :class="{ highlighted: isHighlighted }"
     @dblclick="useNoteStore().openNoteEditor(note.id)"
   >
     <div class="note-header">
@@ -57,7 +57,7 @@
 import { Note } from '@renderer/types/Note'
 import { formatDate } from '@renderer/utils/noteHelpers'
 import { More, ExpandTextInput } from '@icon-park/vue-next'
-import { computed, ref, toRef } from 'vue'
+import { computed, onUnmounted, ref, toRef, watch } from 'vue'
 import { useNoteStore } from '@renderer/stores/noteStores'
 import { useRouter } from 'vue-router'
 import TipTapRender from '@renderer/components/tiptap/TipTapRender.vue'
@@ -71,13 +71,48 @@ const props = defineProps<{
   highlightedNoteId: string | null
 }>()
 
-const isHighlighted = computed(() => props.highlightedNoteId === props.note.id)
-
-// const noteStore = useNoteStore()
-
-// const localNote = computed(() => {
-//   return allNotes.value.find((note) => note.id === props.note.id)
+// const isHighlighted = computed(() => props.highlightedNoteId === props.note.id)
+// const isHighlighted = computed(() => {
+//   return props.highlightedNoteId === props.note.id
 // })
+// 本地控制高亮状态
+const localHighlight = ref(false)
+let highlightTimer: NodeJS.Timeout | null = null
+
+// 监听 highlightedNoteId 变化
+watch(
+  () => props.highlightedNoteId,
+  (newId) => {
+    if (newId === props.note.id) {
+      localHighlight.value = true
+
+      // 清除之前的定时器（如果存在）
+      if (highlightTimer) {
+        clearTimeout(highlightTimer)
+      }
+
+      // 等待滚动动画完成（大约500ms）后再开始计时
+      highlightTimer = setTimeout(() => {
+        // 2秒后清除高亮
+        setTimeout(() => {
+          localHighlight.value = false
+        }, 5000)
+      }, 500) // 等待滚动完成
+    }
+  },
+  { immediate: true }
+)
+
+// 组件卸载时清理定时器
+onUnmounted(() => {
+  if (highlightTimer) {
+    clearTimeout(highlightTimer)
+  }
+})
+
+// 修改计算属性
+const isHighlighted = computed(() => localHighlight.value)
+
 const localNote = toRef(props, 'note')
 
 // const emit = defineEmits(['edit'])
@@ -372,8 +407,6 @@ const cardTypeClass = computed(() => {
 }
 
 .note-card {
-  // ... 现有的样式 ...
-
   &.highlighted {
     box-shadow: 0 0 0 2px var(--color-primary);
     animation: pulse 2s infinite;

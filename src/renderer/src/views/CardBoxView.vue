@@ -232,7 +232,7 @@ const isEditing = ref(false)
 const editingCardBox = ref<Partial<CardBox>>({ name: '' })
 const moreActionsMenuStyle = ref({})
 const isConfirmingDelete = ref(false)
-const highlightedNoteId = ref<string | null>(null)
+
 const cardGridContainer = ref<HTMLElement | null>(null)
 const isLoading = ref(false)
 const currentPage = ref(1)
@@ -244,6 +244,57 @@ const hasMoreNotes = ref(true)
 const route = useRoute()
 const router = useRouter()
 const tagStore = useTagStore()
+// 添加新的状态
+const isContextMode = ref(false)
+const targetNoteId = ref<string | null>(null)
+const highlightedNoteId = ref<string | null>(null)
+
+// 修改 loadAllNotes 函数
+const loadAllNotes = async () => {
+  try {
+    isLoading.value = true
+    notes.value = await window.electronAPI.getAllNotes(false)
+    await nextTick()
+
+    if (targetNoteId.value) {
+      const element = document.getElementById(`note-${targetNoteId.value}`)
+      if (element && cardGridContainer.value) {
+        const containerRect = cardGridContainer.value.getBoundingClientRect()
+        const elementRect = element.getBoundingClientRect()
+        const scrollTop =
+          elementRect.top - containerRect.top + cardGridContainer.value.scrollTop - 20
+
+        cardGridContainer.value.scrollTo({
+          top: scrollTop,
+          behavior: 'smooth'
+        })
+      }
+    }
+  } catch (error) {
+    console.error('加载笔记失败:', error)
+  } finally {
+    isLoading.value = false
+  }
+}
+// 修改 watch 函数
+watch(
+  () => route.query,
+  async (query) => {
+    if (query.mode === 'context' && query.noteId) {
+      isContextMode.value = true
+      targetNoteId.value = query.noteId as string
+      highlightedNoteId.value = query.noteId as string // 设置高亮ID
+      console.log('进入上下文查看模式，目标笔记ID:', targetNoteId.value)
+      await loadAllNotes()
+    } else {
+      // 如果不是上下文模式，清除高亮
+      isContextMode.value = false
+      targetNoteId.value = null
+      highlightedNoteId.value = null
+    }
+  },
+  { immediate: true }
+)
 
 // 标签列表
 const tags = computed(() => {
@@ -628,50 +679,9 @@ eventBusDeleted.on(() => {
   }
 })
 
-// 滚动到高亮笔记
-const scrollToHighlightedNote = async () => {
-  if (highlightedNoteId.value) {
-    for (let i = 0; i < 5; i++) {
-      // 尝试5次
-      await new Promise((resolve) => setTimeout(resolve, 100)) // 等待100ms
-      const highlightedElement = document.getElementById(`note-${highlightedNoteId.value}`)
-      if (highlightedElement && cardGridContainer.value) {
-        const containerRect = cardGridContainer.value.getBoundingClientRect()
-        const elementRect = highlightedElement.getBoundingClientRect()
-        const scrollTop =
-          elementRect.top - containerRect.top + cardGridContainer.value.scrollTop - 20
-        cardGridContainer.value.scrollTo({
-          top: scrollTop,
-          behavior: 'smooth'
-        })
-        break
-      }
-    }
-    // 添加一个小延迟后清除高亮ID
-    setTimeout(() => {
-      highlightedNoteId.value = null
-      router.replace({ query: {} })
-      // 清除 noteStore 中的高亮笔记
-      noteStore.clearHighlightedNoteId()
-    }, 2000) // 2秒后清除高亮状态
-  }
-}
-
-// 搜索高亮事件
-const handleSearchHighlight = (noteId: string) => {
-  highlightedNoteId.value = noteId
-  scrollToHighlightedNote()
-}
-
 // 在组件挂载时，初始化笔记数据
 onMounted(async () => {
   document.addEventListener('click', handleGlobalClick)
-})
-
-// 监听搜索高亮事件的事件总线
-const searchHighlightEventBus = useEventBus('search-highlight')
-searchHighlightEventBus.on((noteId: any) => {
-  handleSearchHighlight(noteId)
 })
 
 // 排序选项功能
