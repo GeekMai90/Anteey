@@ -92,13 +92,20 @@ const onDayClick = (day: { id: string }) => {
 }
 
 // 更新日历弹出框的位置
+// 更新日历弹出框的位置
 const updateCalendarPosition = () => {
   const triggerElement = document.querySelector(props.triggerElementSelector)
   const calendar = calendarRef.value
   if (triggerElement && calendar) {
-    const rect = triggerElement.getBoundingClientRect()
-    calendar.style.top = `${rect.bottom + 5}px`
-    calendar.style.left = `${rect.left - 210}px`
+    const triggerRect = triggerElement.getBoundingClientRect()
+
+    // 计算右对齐的位置
+    const right = window.innerWidth - triggerRect.right
+    calendar.style.right = `${right}px`
+    calendar.style.top = `${triggerRect.bottom + 9}px`
+
+    // 移除左对齐的样式
+    calendar.style.left = 'auto'
   }
 }
 
@@ -211,7 +218,7 @@ onUnmounted(() => {
   :deep(.vc-header) {
     .vc-title {
       font-weight: bold;
-      color: var(--color-text-primary, #000);
+      color: var(--color-text-primary);
       background: none !important;
     }
     .vc-arrow {
@@ -232,6 +239,9 @@ onUnmounted(() => {
   }
   :deep(.vc-nav-item.is-current) {
     color: var(--color-primary) !important;
+  }
+  :deep(.vc-bordered) {
+    border: none !important;
   }
 }
 </style>

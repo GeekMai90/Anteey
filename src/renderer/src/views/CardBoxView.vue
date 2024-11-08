@@ -972,12 +972,21 @@ const handleResetFilter = async () => {
     align-items: center;
     padding: 8px 0;
     border-bottom: 1px solid var(--color-border);
+    flex-wrap: wrap; // 关键:允许元素换行
+    gap: 8px; // 设置行间距
   }
 }
 .topToolBar-left {
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  min-width: 300px; // 设置最小宽度,防止过度挤压
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
   .all-button {
     display: flex;
     align-items: center;
@@ -1052,6 +1061,11 @@ const handleResetFilter = async () => {
   display: flex;
   gap: 8px;
   align-items: center;
+  margin-left: auto; // 让右侧工具靠右对齐
+  @media screen and (max-width: 768px) {
+    width: 100%; // 在窄屏时占满整行
+    justify-content: flex-end; // 靠右对齐
+  }
 
   .inbox-button {
     display: flex;
@@ -1225,7 +1239,7 @@ const handleResetFilter = async () => {
     background-color: var(--color-bg-secondary);
     border: 1px solid var(--color-border);
     border-radius: 8px;
-    padding: 1px 8px;
+    padding: 1.5px 8px;
     overflow: hidden;
     &.is-focused {
       border-color: var(--color-primary);

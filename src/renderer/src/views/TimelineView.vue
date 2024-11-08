@@ -25,13 +25,9 @@
               @click="toggleDateFilter"
             >
               <div class="icon">
-                <Calendar
-                  theme="outline"
-                  size="20"
-                  fill="var(--color-icon-secondary)"
-                  :strokeWidth="3"
-                />
+                <Calendar theme="outline" size="16" :strokeWidth="3" />
               </div>
+              <span class="date-text">{{ selectedDate || '选择日期' }}</span>
             </div>
           </div>
         </div>
@@ -560,38 +556,34 @@ const shouldShowDateDivider = (currentNote: Note, index: number) => {
             position: relative;
             display: flex;
             align-items: center;
-            justify-content: center;
-            width: 32px; // 固定宽度
-            height: 32px; // 固定高度
-            border: 1px solid var(--color-border); // 默认透明边框
-            background: none;
+            gap: 6px;
+            padding: 6px 12px 6px 9px;
+            background: var(--color-bg-secondary);
+            border: 1px solid var(--color-border);
+            border-radius: 8px;
             cursor: pointer;
             transition: all 0.2s ease;
-            border-radius: 6px;
-            padding: 2px;
-            margin: 2px;
-            box-sizing: border-box; // 确保边框不会增加元素尺寸
-            &.date-selected {
-              background-color: var(--color-menu-bg);
-              border: 1px solid var(--color-primary);
+
+            // 添加日期文本
+            .date-text {
+              font-size: 13px;
+              color: var(--color-text-secondary);
+              font-weight: 500;
+              line-height: 1;
             }
 
             .icon {
               background: none;
               border: none;
               cursor: pointer;
-              width: 26px;
-              height: 26px;
+              width: 24px;
+              height: 24px;
               display: flex;
               align-items: center;
               justify-content: center;
               transition: all 0.2s ease;
               padding: 0;
-
-              &:disabled {
-                opacity: 0.5;
-                cursor: not-allowed;
-              }
+              color: var(--color-text-secondary);
 
               :deep(.i-icon) {
                 display: flex;
@@ -602,13 +594,32 @@ const shouldShowDateDivider = (currentNote: Note, index: number) => {
               }
 
               :deep(svg) {
-                width: 20px;
-                height: 20px;
+                width: 16px;
+                height: 16px;
               }
             }
 
+            // 选中状态
+            &.date-selected {
+              background: rgba(var(--color-primary-rgb), 0.1);
+              border-color: var(--color-primary);
+
+              .date-text,
+              .icon {
+                color: var(--color-primary);
+              }
+            }
+
+            // 悬停效果
             &:hover {
-              background-color: var(--color-hover-button);
+              background: var(--color-hover-button);
+              transform: translateY(-1px);
+              box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+            }
+
+            // 点击效果
+            &:active {
+              transform: translateY(0);
             }
           }
         }

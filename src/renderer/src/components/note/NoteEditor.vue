@@ -101,7 +101,7 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useNoteStore } from '@renderer/stores/noteStores'
 import TipTapEditor from '@renderer/components/tiptap/TipTapEditor.vue'
-import { onBeforeRouteLeave, onBeforeRouteUpdate, useRouter } from 'vue-router'
+import { useRouter } from 'vue-router'
 import { ExpandTextInput, Install, More } from '@icon-park/vue-next'
 import CardboxDropdownMenu from '@renderer/components/cardbox/CardboxDropdownMenu.vue'
 import PopupMenu from '@renderer/components/common/PopupMenu.vue'
@@ -273,48 +273,24 @@ const handleContentUpdate = (newContent: any) => {
 
 // === 尝试一下增加新的保存功能 ===
 // 保存当前笔记内容的通用函数
-const saveCurrentNote = async () => {
-  if (!currentNote.value) return
+// const saveCurrentNote = async () => {
+//   if (!currentNote.value) return
 
-  try {
-    // 立即执行所有待保存的内容
-    saveContent.flush()
+//   try {
+//     // 立即执行所有待保存的内容
+//     saveContent.flush()
 
-    const editor = tiptapEditor.value?.editor
-    if (editor) {
-      const content = editor.getJSON()
-      await noteStore.updateNoteContent(currentNote.value.id, content)
-    }
-  } catch (error) {
-    console.error('保存笔记失败:', error)
-    message.error('保存失败')
-    throw error // 可以选择是否抛出错误
-  }
-}
-
-// 路由离开前保存
-onBeforeRouteLeave(async (_to, _from, next) => {
-  try {
-    await saveCurrentNote()
-    next()
-  } catch (error) {
-    // 可以选择是否阻止路由切换
-    // next(false) // 阻止路由切换
-    next() // 继续路由切换
-  }
-})
-
-// 路由更新前保存
-onBeforeRouteUpdate(async (to, from, next) => {
-  try {
-    if (from.params.id !== to.params.id) {
-      await saveCurrentNote()
-    }
-    next()
-  } catch (error) {
-    next()
-  }
-})
+//     const editor = tiptapEditor.value?.editor
+//     if (editor) {
+//       const content = editor.getJSON()
+//       await noteStore.updateNoteContent(currentNote.value.id, content)
+//     }
+//   } catch (error) {
+//     console.error('保存笔记失败:', error)
+//     message.error('保存失败')
+//     throw error // 可以选择是否抛出错误
+//   }
+// }
 
 // 在组件卸载前确保所有待保存的内容都已保存
 onBeforeUnmount(() => {
