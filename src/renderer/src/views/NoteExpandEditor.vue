@@ -236,7 +236,7 @@ const updateAddress = debounce(async (address: string) => {
   try {
     const updatedNote = await noteStore.updateNoteAddress(currentNote.value.id, address)
     // 更新本地状态
-    currentNote.value = updatedNote
+    currentNote.value.address = updatedNote.address
   } catch (error) {
     console.error('更新地址失败:', error)
     message.error('更新地址失败')
