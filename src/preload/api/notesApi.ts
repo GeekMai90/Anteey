@@ -300,5 +300,18 @@ export const notesApi = {
       console.error('预加载脚本 → 获取卡片盒分页笔记失败:', error)
       throw error // 或者返回一个默认值,取决于您的错误处理策略
     }
+  },
+  // 语义搜索笔记
+  semanticSearchNotes: async (query: string): Promise<Note[]> => {
+    try {
+      const result = await ipcRenderer.invoke('semantic-search-notes', query)
+      if (!result.success) {
+        throw new Error(result.error)
+      }
+      return result.notes
+    } catch (error) {
+      console.error('Preload: 语义搜索笔记失败:', error)
+      throw error
+    }
   }
 }

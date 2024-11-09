@@ -129,7 +129,7 @@ export interface ElectronAPI {
   getUserSettings: () => Promise<UserSettings>
   updateUserSettings: (settings: UpdateUserSettings) => Promise<UserSettings>
   getRelatedNotes: (noteId: string, limit: number) => Promise<RelatedNotesResult>
-  getUserDataPath: () => Promise<string>
+  // getUserDataPath: () => Promise<string>
   loadEmbeddingsCache: () => Promise<Record<string, string>>
   saveEmbeddingsCache: (cacheData: Record<string, string>) => Promise<boolean>
   updateNoteAddress: (id: string, address: string) => Promise<Note>
@@ -222,6 +222,15 @@ export interface ElectronAPI {
 
   // 切换筛选规则的收藏状态
   toggleFilterStar: (id: string) => Promise<CustomFilter>
+
+  // 语义搜索笔记
+  semanticSearchNotes: (query: string) => Promise<Note[]>
+
+  // FAISS 相关的方法
+  initializeFaiss: () => Promise<void>
+  isFaissReady: () => Promise<boolean>
+  getUserDataPath: () => string
+  joinPath: (...args: string[]) => string
 }
 
 declare global {

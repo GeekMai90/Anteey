@@ -18,6 +18,11 @@ const routes = [
     meta: { keepAlive: true }
   },
   {
+    name: 'AIAssistant',
+    path: '/aiassistant',
+    component: () => import('../views/AIAssistant.vue')
+  },
+  {
     name: 'cardbox',
     path: '/cardbox',
     component: () => import('../views/CardBoxView.vue'),

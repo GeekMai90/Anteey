@@ -19,6 +19,7 @@ import { app } from '@electron/remote'
 import { notesApi } from './api/notesApi'
 import { tagApi } from './api/tagApi'
 import { filterApi } from './api/filterApi'
+import { faissApi } from './api/faissApi'
 // 添加日志 API
 contextBridge.exposeInMainWorld('electronLog', {
   info: (...args: any[]) => ipcRenderer.send('renderer-log', { level: 'info', args }),
@@ -61,6 +62,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   ...notesApi,
   ...tagApi,
   ...filterApi,
+  ...faissApi,
   getResourcePath: async (filename: string): Promise<string> => {
     try {
       return (await ipcRenderer.invoke('get-resource-path', filename)) as string
@@ -532,5 +534,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     return await ipcRenderer.invoke('get-user-data-path')
   },
   loadEmbeddingsCache: loadCache,
-  saveEmbeddingsCache: saveCache
+  saveEmbeddingsCache: saveCache,
+  // getUserDataPath: () => app.getPath('userData'),
+  joinPath: (...args: string[]) => path.join(...args)
 })

@@ -870,26 +870,186 @@ export async function getAllNotes(includeDeleted: boolean = false): Promise<Note
 }
 
 // 更新笔记内容 content
+// const MAX_RETRIES = 3
+// const RETRY_DELAY = 100 // 毫秒
+
+// export async function updateNoteContent(id: string, content: object): Promise<Note> {
+//   let retries = 0
+
+//   while (retries < MAX_RETRIES) {
+//     try {
+//       return await db.transaction(
+//         async (trx) => {
+//           // 设置事务超时
+//           await trx.raw('PRAGMA busy_timeout = 5000;')
+
+//           // 1. 准备更新数据
+//           const updateData: any = {
+//             content: JSON.stringify(content),
+//             updatedAt: new Date()
+//           }
+
+//           // 2. 提取关键词
+//           try {
+//             const keywords: Keyword[] = extractKeywords(content)
+//             console.log('后端→ 关键词提取完成:', keywords)
+//             updateData.keywords = JSON.stringify(keywords)
+//           } catch (keywordError) {
+//             console.error('后端→ 关键词提取失败:', keywordError)
+//             updateData.keywords = JSON.stringify([])
+//           }
+
+//           // 3. 计算语义向量
+//           try {
+//             const vectorizer = SemanticVectorizer.getInstance()
+//             await vectorizer.initialize()
+//             const text = extractTextFromContent(content)
+//             const vector = await vectorizer.getVector(text)
+//             updateData.semanticVector = JSON.stringify(vector)
+//             console.log('后端→ 语义向量计算完成')
+//           } catch (vectorError) {
+//             console.error('后端→ 语义向量计算失败:', vectorError)
+//             updateData.semanticVector = JSON.stringify([])
+//           }
+
+//           // 4. 执行更新并返回更新后的笔记
+//           const [updatedNote] = await trx('notes').where('id', id).update(updateData).returning('*')
+
+//           console.log(`后端→ 笔记 ${id} 内容已更新`)
+
+//           // 5. 转换并返回笔记
+//           return convertToNote(updatedNote)
+//         },
+//         {
+//           // 设置事务配置
+//           isolationLevel: 'read committed'
+//         }
+//       )
+//     } catch (error) {
+//       retries++
+
+//       if ((error as Error).message.includes('database is locked')) {
+//         console.warn(`后端→ 数据库锁定，正在重试 (${retries}/${MAX_RETRIES})`)
+//         if (retries < MAX_RETRIES) {
+//           await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY * retries))
+//           continue
+//         }
+//       }
+
+//       console.error('后端→ 更新笔记内容失败:', error)
+//       throw error
+//     }
+//   }
+
+//   throw new Error('更新笔记内容失败: 达到最大重试次数')
+// }
+
+// 更新笔记内容 content
 const MAX_RETRIES = 3
 const RETRY_DELAY = 100 // 毫秒
 
+// export async function updateNoteContent(id: string, content: object): Promise<Note> {
+//   let retries = 0
+
+//   while (retries < MAX_RETRIES) {
+//     try {
+//       return await db.transaction(
+//         async (trx) => {
+//           // 设置事务超时
+//           await trx.raw('PRAGMA busy_timeout = 5000;')
+
+//           // 1. 提取文本
+//           const text = extractTextFromContent(content)
+//           const updateData: any = {
+//             content: JSON.stringify(content),
+//             updatedAt: new Date()
+//           }
+
+//           // 2. 只在文本不为空时处理向量和关键词
+//           if (text.trim().length > 0) {
+//             // 2.1 提取关键词
+//             try {
+//               const keywords: Keyword[] = extractKeywords(content)
+//               console.log('后端→ 关键词提取完成:', keywords)
+//               updateData.keywords = JSON.stringify(keywords)
+//             } catch (keywordError) {
+//               console.error('后端→ 关键词提取失败:', keywordError)
+//               updateData.keywords = JSON.stringify([])
+//             }
+
+//             // 2.2 计算语义向量并更新 FAISS 索引
+//             try {
+//               const vectorizer = SemanticVectorizer.getInstance()
+//               await vectorizer.initialize()
+
+//               // 获取向量 - 不在这里添加到索引
+//               const vector = await vectorizer.getVector(text)
+//               updateData.semanticVector = JSON.stringify(vector)
+
+//               // 只在向量有效时更新 FAISS 索引
+//               if (vector && vector.length > 0) {
+//                 // 确保向量只添加一次
+//                 await vectorizer.addToIndex(id, vector)
+//                 console.log('后端→ 语义向量计算完成并添加到 FAISS 索引')
+//               } else {
+//                 console.warn('后端→ 生成的向量为空，跳过 FAISS 索引更新')
+//               }
+//             } catch (vectorError) {
+//               console.error('后端→ 语义向量处理失败:', vectorError)
+//               updateData.semanticVector = JSON.stringify([])
+//             }
+//           } else {
+//             console.log('后端→ 笔记内容为空，跳过向量和关键词处理')
+//             updateData.keywords = JSON.stringify([])
+//             updateData.semanticVector = JSON.stringify([])
+//           }
+
+//           // 3. 执行数据库更新
+//           const [updatedNote] = await trx('notes').where('id', id).update(updateData).returning('*')
+
+//           console.log(`后端→ 笔记 ${id} 内容已更新`)
+
+//           // 4. 转换并返回笔记
+//           return convertToNote(updatedNote)
+//         },
+//         {
+//           isolationLevel: 'read committed'
+//         }
+//       )
+//     } catch (error) {
+//       retries++
+//       if ((error as Error).message.includes('database is locked')) {
+//         console.warn(`后端→ 数据库锁定，正在重试 (${retries}/${MAX_RETRIES})`)
+//         if (retries < MAX_RETRIES) {
+//           await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY * retries))
+//           continue
+//         }
+//       }
+//       console.error('后端→ 更新笔记内容失败:', error)
+//       throw error
+//     }
+//   }
+
+//   throw new Error('更新笔记内容失败: 达到最大重试次数')
+// }
 export async function updateNoteContent(id: string, content: object): Promise<Note> {
   let retries = 0
 
   while (retries < MAX_RETRIES) {
     try {
-      return await db.transaction(
-        async (trx) => {
-          // 设置事务超时
-          await trx.raw('PRAGMA busy_timeout = 5000;')
+      return await db.transaction(async (trx) => {
+        await trx.raw('PRAGMA busy_timeout = 5000;')
 
-          // 1. 准备更新数据
-          const updateData: any = {
-            content: JSON.stringify(content),
-            updatedAt: new Date()
-          }
+        // 1. 提取文本
+        const text = extractTextFromContent(content)
+        const updateData: any = {
+          content: JSON.stringify(content),
+          updatedAt: new Date()
+        }
 
-          // 2. 提取关键词
+        // 2. 只在文本不为空时处理向量和关键词
+        if (text.trim().length > 0) {
+          // 2.1 提取关键词
           try {
             const keywords: Keyword[] = extractKeywords(content)
             console.log('后端→ 关键词提取完成:', keywords)
@@ -899,35 +1059,68 @@ export async function updateNoteContent(id: string, content: object): Promise<No
             updateData.keywords = JSON.stringify([])
           }
 
-          // 3. 计算语义向量
+          // 2.2 计算语义向量
           try {
             const vectorizer = SemanticVectorizer.getInstance()
             await vectorizer.initialize()
-            const text = extractTextFromContent(content)
-            const vector = await vectorizer.getVector(text)
-            updateData.semanticVector = JSON.stringify(vector)
-            console.log('后端→ 语义向量计算完成')
+
+            // 获取向量 - 传入 noteId 以支持缓存和更新
+            const vector = await vectorizer.getVector(text, id)
+
+            if (vector && vector.length > 0) {
+              updateData.semanticVector = JSON.stringify(vector)
+
+              // 更新 FAISS 索引 - addToIndex 现在会处理重复情况
+              await vectorizer.addToIndex(id, vector)
+              console.log('后端→ 语义向量已更新:', {
+                noteId: id,
+                vectorLength: vector.length,
+                textLength: text.length
+              })
+            } else {
+              console.warn('后端→ 生成的向量为空，清理相关数据')
+              updateData.semanticVector = JSON.stringify([])
+              await vectorizer.clearVectorData(id)
+            }
           } catch (vectorError) {
-            console.error('后端→ 语义向量计算失败:', vectorError)
+            console.error('后端→ 语义向量处理失败:', vectorError)
             updateData.semanticVector = JSON.stringify([])
+            // 出错时也清理向量数据
+            try {
+              const vectorizer = SemanticVectorizer.getInstance()
+              await vectorizer.clearVectorData(id)
+            } catch (cleanupError) {
+              console.error('后端→ 清理向量数据失败:', cleanupError)
+            }
           }
+        } else {
+          console.log('后端→ 笔记内容为空，清理向量和关键词数据')
+          updateData.keywords = JSON.stringify([])
+          updateData.semanticVector = JSON.stringify([])
 
-          // 4. 执行更新并返回更新后的笔记
-          const [updatedNote] = await trx('notes').where('id', id).update(updateData).returning('*')
-
-          console.log(`后端→ 笔记 ${id} 内容已更新`)
-
-          // 5. 转换并返回笔记
-          return convertToNote(updatedNote)
-        },
-        {
-          // 设置事务配置
-          isolationLevel: 'read committed'
+          // 清理空笔记的向量数据
+          try {
+            const vectorizer = SemanticVectorizer.getInstance()
+            await vectorizer.clearVectorData(id)
+          } catch (cleanupError) {
+            console.error('后端→ 清理向量数据失败:', cleanupError)
+          }
         }
-      )
+
+        // 3. 执行数据库更新
+        const [updatedNote] = await trx('notes').where('id', id).update(updateData).returning('*')
+
+        console.log('后端→ 笔记更新成功:', {
+          id,
+          contentLength: text.length,
+          hasVector: updateData.semanticVector.length > 2, // "[]" 的长度是 2
+          hasKeywords: updateData.keywords.length > 2
+        })
+
+        return convertToNote(updatedNote)
+      })
     } catch (error) {
       retries++
-
       if ((error as Error).message.includes('database is locked')) {
         console.warn(`后端→ 数据库锁定，正在重试 (${retries}/${MAX_RETRIES})`)
         if (retries < MAX_RETRIES) {
@@ -935,7 +1128,6 @@ export async function updateNoteContent(id: string, content: object): Promise<No
           continue
         }
       }
-
       console.error('后端→ 更新笔记内容失败:', error)
       throw error
     }
@@ -943,7 +1135,6 @@ export async function updateNoteContent(id: string, content: object): Promise<No
 
   throw new Error('更新笔记内容失败: 达到最大重试次数')
 }
-
 export async function updateNote(id: string, updateNoteDto: Partial<Note>): Promise<Note> {
   console.log(`后端→ 开始更新笔记 ID: ${id}`)
   console.log('后端→ 更新数据:', JSON.stringify(updateNoteDto, null, 2))
@@ -2170,4 +2361,27 @@ function applyFilterRule(query: Knex.QueryBuilder, rule: FilterRule): Knex.Query
   const sqlString = query.toString()
   console.log('生成的SQL:', sqlString)
   return query
+}
+
+// 添加语义搜索服务方法
+export async function semanticSearchNotes(query: string, limit: number = 10): Promise<Note[]> {
+  try {
+    console.info('开始语义搜索:', query)
+
+    const vectorizer = SemanticVectorizer.getInstance()
+    const results = await vectorizer.semanticSearch(query, limit)
+
+    // 获取匹配的笔记完整信息
+    const notes = await Promise.all(
+      results.map(async ({ noteId }) => {
+        return await getNoteById(noteId)
+      })
+    )
+
+    // 过滤掉可能的空值
+    return notes.filter((note): note is Note => note !== null)
+  } catch (error) {
+    console.error('语义搜索失败:', error)
+    throw error
+  }
 }

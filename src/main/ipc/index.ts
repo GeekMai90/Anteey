@@ -7,7 +7,7 @@ import { setupCacheHandlers } from './cacheIpcHandlers'
 import { setupImageHandlers } from './imageIpcHandlers'
 import { setupTagHandlers } from './tagIpcHandlers'
 import { setupFilterHandlers } from './filterIpcHandlers'
-
+import { setupFaissHandlers } from './faissHandler'
 export function setupIpcHandlers() {
   setupNotesHandlers()
   setupWhiteboardHandlers()
@@ -18,4 +18,5 @@ export function setupIpcHandlers() {
   setupImageHandlers()
   setupTagHandlers()
   setupFilterHandlers()
+  setupFaissHandlers()
 }

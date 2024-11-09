@@ -37,7 +37,8 @@ import {
   TimelineQueryResult,
   createNoteReference,
   deleteNoteReference,
-  updateNoteTag
+  updateNoteTag,
+  semanticSearchNotes
 } from '../../db/notesService'
 
 export function setupNotesHandlers() {
@@ -458,5 +459,16 @@ ipcMain.handle('get-paginated-notes-by-cardbox', async (_, params: GetPaginatedN
   } catch (error) {
     console.error('主进程 → 获取卡片盒分页笔记失败:', error)
     throw error // 或者返回一个错误对象,以便渲染进程可以处理
+  }
+})
+
+// 添加语义搜索处理器
+ipcMain.handle('semantic-search-notes', async (_, query: string) => {
+  try {
+    const notes = await semanticSearchNotes(query)
+    return { success: true, notes }
+  } catch (error) {
+    console.error('语义搜索失败:', error)
+    return { success: false, error: error }
   }
 })

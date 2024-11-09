@@ -177,6 +177,7 @@ onMounted(async () => {
 })
 const menuItems = [
   { name: '主页', path: '/home', icon: Home },
+  { name: 'AI助手', path: '/aiassistant', icon: Home },
   { name: '时间线', path: '/timeline', icon: Time },
   { name: '卡片盒', path: '/cardbox', icon: Box },
   { name: '思维板', path: '/whiteboard', icon: Workbench }
