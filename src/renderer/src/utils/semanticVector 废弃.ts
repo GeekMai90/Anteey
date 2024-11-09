@@ -422,15 +422,12 @@ export class SemanticVectorizer {
   }
   // 添加一个辅助方法来分类相似度
   private getSimilarityLevel(similarity: number): string {
-    if (similarity >= 0.85) {
-      return '几乎相同'
-    } else if (similarity >= 0.7) {
-      return '高度相关'
-    } else if (similarity >= 0.5) {
-      return '部分相关'
-    } else {
-      return '不相关'
-    }
+    if (similarity >= 0.8) return '几乎相同'
+    if (similarity >= 0.6) return '高度相关'
+    if (similarity >= 0.4) return '相关'
+    if (similarity >= 0.2) return '部分相关'
+    if (similarity >= 0) return '稍微相关'
+    return '不相关'
   }
   // 添加辅助方法用于调试
   private calculateDotProduct(vec1: number[], vec2: number[]): number {
@@ -658,15 +655,20 @@ export class SemanticVectorizer {
     }
   }
 
+  // 优化余弦相似度计算
   private cosineSimilarity(vec1: number[], vec2: number[]): number {
+    if (!vec1.length || !vec2.length || vec1.length !== vec2.length) {
+      return -1
+    }
+
+    let dotProduct = 0
     let norm1 = 0
     let norm2 = 0
-    let dotProduct = 0
 
     for (let i = 0; i < vec1.length; i++) {
+      dotProduct += vec1[i] * vec2[i]
       norm1 += vec1[i] * vec1[i]
       norm2 += vec2[i] * vec2[i]
-      dotProduct += vec1[i] * vec2[i]
     }
 
     norm1 = Math.sqrt(norm1)
@@ -680,16 +682,18 @@ export class SemanticVectorizer {
   public async semanticSearch(
     query: string,
     limit: number = 10
-  ): Promise<
-    Array<{
-      noteId: string
-      similarity: number
-      similarityLevel: string
-    }>
-  > {
+  ): Promise<Array<{ noteId: string; similarity: number; similarityLevel: string }>> {
     try {
       if (!this.faissIndex) {
-        throw new Error('FAISS 索引未初始化')
+        log.warn('SemanticService: FAISS 索引未初始化')
+        return []
+      }
+
+      // 检查索引是否为空
+      const totalVectors = this.faissIndex.ntotal()
+      if (totalVectors === 0) {
+        log.info('SemanticService: 索引为空，无法搜索')
+        return []
       }
 
       // 1. 将查询文本转换为向量
@@ -697,53 +701,62 @@ export class SemanticVectorizer {
 
       // 2. 使用 FAISS 进行最近邻搜索
       const searchVector = Array.from(queryVector)
-      const k = Math.min(limit, this.faissIndex.ntotal())
+      const k = Math.min(limit, totalVectors)
       const results = this.faissIndex.search(searchVector, k)
 
-      // 3. 从缓存中获取映射数据
-      const mappingContent = await fs.promises.readFile(this.faissIndexPath + '.mapping', 'utf8')
-      const mappingData = JSON.parse(mappingContent) as {
-        vectorToIdMap: [string, number][] // 明确定义映射数据的类型
-      }
-
-      // 创建反向映射：索引 -> 笔记ID
-      const indexToNoteId = new Map(
-        mappingData.vectorToIdMap.map(([noteId, index]) => [index, noteId])
-      )
-
-      // 4. 处理搜索结果
+      // 3. 处理搜索结果
       const searchResults: Array<{
         noteId: string
         similarity: number
         similarityLevel: string
       }> = []
 
+      // 创建索引到ID的反向映射
+      const indexToNoteId = new Map(
+        Array.from(this.vectorToIdMap.entries()).map(([noteId, index]) => [index, noteId])
+      )
+
       for (let i = 0; i < results.labels.length; i++) {
         const index = results.labels[i]
         if (index === -1) continue
 
         const noteId = indexToNoteId.get(index)
-        if (!noteId) continue // 跳过找不到对应 ID 的结果
+        if (!noteId) continue
 
-        const similarity = 1 - results.distances[i]
+        // 计算余弦相似度
+        const similarity = this.cosineSimilarity(searchVector, this.noteVectors.get(noteId) || [])
 
+        // 记录所有结果，不过滤
         searchResults.push({
           noteId,
           similarity,
           similarityLevel: this.getSimilarityLevel(similarity)
         })
+
+        log.info('SemanticService: 搜索结果:', {
+          noteId,
+          similarity,
+          similarityLevel: this.getSimilarityLevel(similarity),
+          distance: results.distances[i]
+        })
       }
 
-      log.info('语义搜索完成:', {
+      // 按相似度降序排序
+      searchResults.sort((a, b) => b.similarity - a.similarity)
+
+      log.info('SemanticService: 语义搜索完成:', {
         query,
         resultCount: searchResults.length,
-        topSimilarity: searchResults[0]?.similarity
+        topSimilarity: searchResults[0]?.similarity,
+        totalVectors,
+        requestedLimit: limit,
+        actualLimit: k
       })
 
       return searchResults
     } catch (error) {
-      log.error('语义搜索失败:', error)
-      throw error
+      log.error('SemanticService: 语义搜索失败:', error)
+      return []
     }
   }
 

@@ -3,12 +3,6 @@
 // 定义卡片类型
 export type CardType = 'Maincard' | 'Bibcard' | 'Indexcard' | 'Hoplinkcard'
 
-// 关键词接口
-export interface Keyword {
-  word: string
-  weight: number
-}
-
 // 相关笔记接口（扩展 Note 接口）
 export interface RelatedNote extends Note {
   similarity: number
@@ -63,7 +57,7 @@ export interface Note {
   rightBarOrder?: number
 
   // 语义相关
-  keywords?: Keyword[] // 存储提取的关键词
+  keywords?: string[] // 存储提取的关键词
   semanticVector?: number[] // 存储文本的语义向量
 
   // 元数据

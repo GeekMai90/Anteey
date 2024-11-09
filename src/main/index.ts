@@ -23,6 +23,8 @@ import { URL } from 'url'
 import { initialize, enable } from '@electron/remote/main'
 import { setupIpcHandlers } from './ipc'
 import log from './logger'
+import { SemanticService } from './services/semanticService'
+import { getPaths } from './services/constants'
 
 // 添加 IPC 日志转发
 ipcMain.on('renderer-log', (_, { level, args }) => {
@@ -303,62 +305,58 @@ async function initializeCacheDirectory() {
     return tempPath
   }
 }
-// 在应用启动时初始化
-let globalCachePath: string
 
 app.whenReady().then(async () => {
-  const antinetPath = app.getPath('userData')
-  const userDataPath = path.join(antinetPath, 'UserData')
-  const imagesPath = path.join(userDataPath, 'images')
-  const cachePath = path.join(userDataPath, 'cache')
-
-  // 确保 UserData 和 images 目录存在
   try {
-    await fs.mkdir(cachePath, { recursive: true })
+    log.info('应用启动')
+
+    // 1. 初始化基础目录
+    const antinetPath = app.getPath('userData')
+    const userDataPath = path.join(antinetPath, 'UserData')
+    const imagesPath = path.join(userDataPath, 'images')
+
+    // 创建必要的目录
     await fs.mkdir(userDataPath, { recursive: true })
     await fs.mkdir(imagesPath, { recursive: true })
-  } catch (error) {
-    console.error('创建目录失败:', error)
-  }
-  console.log('用户数据目录:', userDataPath)
-  console.log('图片目录:', imagesPath)
-  console.log('缓存目录:', cachePath)
 
-  try {
-    globalCachePath = await initializeCacheDirectory()
-    // 导出获取缓存路径的方法
-    ;(global as any).getCachePath = () => globalCachePath
-    log.info('缓存路径初始化成功:', globalCachePath)
-  } catch (error) {
-    log.error('缓存路径初始化失败:', error)
-  }
+    // 2. 初始化缓存目录
+    const cachePath = await initializeCacheDirectory()
+    ;(global as any).getCachePath = () => cachePath
 
-  // 初始化 remote 模块
-  initialize()
-  try {
-    // 安装 Vue 3 Devtools
-    installExtension(VUEJS3_DEVTOOLS)
-      .then((name) => console.log(`Added Extension:  ${name}`))
-      .catch((err) => console.log('An error occurred: ', err))
+    // 确保 FAISS 目录存在
+    const faissPath = path.join(cachePath, 'faiss')
+    await fs.mkdir(faissPath, { recursive: true })
 
-    // 初始化数据库
-    await initDatabase(db)
-    console.log('主进程→ 数据库初始化成功')
-    console.log('数据库路径:', db.client.connectionSettings.filename)
-    log.info('主进程→ 数据库初始化成功')
-    log.info('数据库路径:', dbPath)
-    // 验证表是否创建成功
-    const hasNotesTable = await db.schema.hasTable('notes')
-    console.log('notes 表是否存在:', hasNotesTable)
-    log.info('notes 表是否存在:', hasNotesTable)
-
-    electronApp.setAppUserModelId('com.electron')
-
-    ipcMain.handle('get-resource-path', (_event, filename) => {
-      return path.join(app.getAppPath(), 'resources', filename)
+    log.info('缓存初始化完成:', {
+      userDataPath,
+      imagesPath,
+      cachePath,
+      faissPath
     })
 
-    // 注册自定义协议
+    // 3. 初始化语义服务
+    log.info('开始初始化语义服务...')
+    const semanticService = SemanticService.getInstance()
+    await semanticService.initialize()
+    log.info('语义服务初始化完成')
+
+    // 4. 初始化基础服务
+    initialize() // remote 模块
+    await initDatabase(db)
+    electronApp.setAppUserModelId('com.electron')
+
+    // 5. 开发环境配置
+    if (!app.isPackaged) {
+      await installExtension(VUEJS3_DEVTOOLS)
+        .then((name) => log.info('已安装扩展:', name))
+        .catch((err) => log.error('安装扩展失败:', err))
+    }
+
+    // 6. 设置应用功能
+    setupIpcHandlers()
+    createCustomMenu()
+
+    // 7. 注册协议和事件处理
     protocol.handle('app-image', (request) => {
       const url = new URL(request.url)
       const decodedPath = decodeURIComponent(url.pathname)
@@ -366,15 +364,11 @@ app.whenReady().then(async () => {
       return net.fetch('file://' + filePath)
     })
 
-    // 设置 IPC 处理程序
-    setupIpcHandlers()
-
     app.on('browser-window-created', (_, window) => {
       optimizer.watchWindowShortcuts(window)
     })
 
     ipcMain.on('window-click', (event) => {
-      // 将点击事件广播到所有窗口
       BrowserWindow.getAllWindows().forEach((win) => {
         if (win.webContents !== event.sender) {
           win.webContents.send('global-click')
@@ -382,39 +376,62 @@ app.whenReady().then(async () => {
       })
     })
 
-    // 创建自定义菜单
-    createCustomMenu()
-
+    // 8. 创建窗口
     createWindow()
 
-    // 添加全局快捷键
+    // 9. 注册快捷键
     globalShortcut.register('CommandOrControl+R', () => {
       const focusedWindow = BrowserWindow.getFocusedWindow()
-      if (focusedWindow) {
-        focusedWindow.webContents.reload()
-      }
+      if (focusedWindow) focusedWindow.webContents.reload()
     })
 
     globalShortcut.register('F5', () => {
       const focusedWindow = BrowserWindow.getFocusedWindow()
-      if (focusedWindow) {
-        focusedWindow.webContents.reload()
-      }
+      if (focusedWindow) focusedWindow.webContents.reload()
     })
 
-    app.on('activate', function () {
+    // 10. 注册窗口激活事件
+    app.on('activate', () => {
       if (BrowserWindow.getAllWindows().length === 0) createWindow()
     })
+
     log.info('应用初始化完成')
   } catch (error) {
-    console.error('主进程→ 应用初始化失败:', error)
-    log.error('主进程→ 应用初始化失败:', error)
+    log.error('应用初始化失败:', error)
+    console.error('应用初始化失败:', error)
   }
 })
 
 app.setName('Antinet')
 
-app.on('window-all-closed', () => {
+// 修改退出处理
+app.on('before-quit', async (event) => {
+  event.preventDefault()
+  try {
+    const semanticService = SemanticService.getInstance()
+    if (semanticService.isInitialized) {
+      await semanticService.saveFaissIndex()
+      log.info('退出前保存 FAISS 索引成功')
+    }
+  } catch (error) {
+    log.error('退出前保存 FAISS 索引失败:', error)
+  } finally {
+    app.exit()
+  }
+})
+
+// 窗口关闭时也保存索引
+app.on('window-all-closed', async () => {
+  try {
+    const semanticService = SemanticService.getInstance()
+    if (semanticService.isInitialized) {
+      await semanticService.saveFaissIndex()
+      log.info('窗口关闭前保存 FAISS 索引成功')
+    }
+  } catch (error) {
+    log.error('窗口关闭前保存 FAISS 索引失败:', error)
+  }
+
   if (process.platform !== 'darwin') {
     app.quit()
   }

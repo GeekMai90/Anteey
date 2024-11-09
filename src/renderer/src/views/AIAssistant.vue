@@ -31,30 +31,35 @@
     </div>
 
     <!-- 对话区域 -->
-    <div class="chat-container" ref="chatContainerRef">
+    <div ref="chatContainerRef" class="chat-container">
       <div v-for="message in messages" :key="message.id" class="message" :class="message.type">
-        <!-- 修改消息展示逻辑 -->
         <div class="message-content" v-if="message.type === 'user'">
           {{ message.content }}
         </div>
         <div class="message-content" v-else>
-          <!-- 处理助手消息 -->
-          <div v-if="message.searchResults">
-            <div class="search-results">
-              <div v-if="message.searchResults.length > 0">
-                <div class="result-count">找到 {{ message.searchResults.length }} 条相关笔记：</div>
-                <div
-                  v-for="note in message.searchResults"
-                  :key="note.id"
-                  class="search-result-item"
-                >
-                  <h4>{{ note.title }}</h4>
-                  <p class="result-preview">{{ getPreview(note.content) }}</p>
-                  <div class="similarity">相关度: {{ note.similarity.toFixed(2) }}</div>
+          <div v-if="message.loading" class="loading-indicator">
+            <span>搜索中...</span>
+          </div>
+          <div v-else-if="message.searchResults" class="search-results">
+            <div v-if="message.searchResults.length > 0">
+              <div class="result-count">找到 {{ message.searchResults.length }} 条相关笔记</div>
+              <div
+                v-for="result in message.searchResults"
+                :key="result.noteId"
+                class="search-result-item"
+                @click="openNote(result.noteId)"
+              >
+                <div class="result-header">
+                  <div class="similarity-badge" :class="result.similarityLevel.toLowerCase()">
+                    {{ getSimilarityText(result.similarity) }}
+                  </div>
+                </div>
+                <div class="result-content">
+                  <p class="result-preview">{{ getPreview(result.text) }}</p>
                 </div>
               </div>
-              <div v-else class="no-results">没有找到相关笔记</div>
             </div>
+            <div v-else class="no-results">没有找到相关笔记</div>
           </div>
           <div v-else>
             {{ message.content }}
@@ -71,33 +76,42 @@
         class="chat-input"
         @keyup.enter="handleSend"
       />
-      <button class="send-button" :disabled="!inputText.trim()" @click="handleSend">发送</button>
+      <button class="send-button" :disabled="!inputText.trim() || isProcessing" @click="handleSend">
+        {{ isProcessing ? '处理中...' : '发送' }}
+      </button>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
-import { useNoteStore } from '../stores/noteStores'
-import { Note } from '@renderer/types/Note'
+import { ref, computed, onMounted } from 'vue'
+import { useSemanticStore } from '../stores/semanticStore'
+import { useRouter } from 'vue-router'
+import log from 'electron-log'
+import type { SearchResult, SearchOptions } from '../types/semantic'
 
 interface Message {
   id: number
   content: string
   type: 'user' | 'assistant'
-  searchResults?: Array<{
-    id: string
-    title: string
-    content: string
-    similarity: number
-  }>
+  loading?: boolean
+  searchResults?: SearchResult[]
+  metadata?: {
+    query?: string
+    strategy?: string
+    timeTaken?: number
+    totalFound?: number
+  }
 }
 
-const noteStore = useNoteStore()
+const router = useRouter()
+const semanticStore = useSemanticStore()
 const inputText = ref('')
 const messages = ref<Message[]>([])
 const hasStartedChat = ref(false)
 const currentAction = ref<'search' | 'brainstorm' | 'summarize' | null>(null)
+const chatContainerRef = ref<HTMLElement | null>(null)
+const isProcessing = ref(false)
 
 const inputPlaceholder = computed(() => {
   switch (currentAction.value) {
@@ -112,12 +126,20 @@ const inputPlaceholder = computed(() => {
   }
 })
 
+onMounted(async () => {
+  try {
+    await semanticStore.initialize()
+    log.info('AIAssistant: 语义服务初始化成功')
+  } catch (error) {
+    log.error('AIAssistant: 语义服务初始化失败:', error)
+  }
+})
+
 const startAction = (action: 'search' | 'brainstorm' | 'summarize') => {
-  console.log('AIAssistant.vue→ 开始动作:', action)
+  log.info('AIAssistant: 开始动作:', action)
   hasStartedChat.value = true
   currentAction.value = action
 
-  // 添加助手欢迎消息
   const welcomeMessages = {
     search: '好的，我来帮你搜索相关笔记。请输入你想搜索的内容。',
     brainstorm: '让我们开始头脑风暴吧！请告诉我你想探讨的主题。',
@@ -127,51 +149,136 @@ const startAction = (action: 'search' | 'brainstorm' | 'summarize') => {
   addMessage(welcomeMessages[action], 'assistant')
 }
 
-const addMessage = (content: string, type: 'user' | 'assistant') => {
+const addMessage = (
+  content: string,
+  type: 'user' | 'assistant',
+  metadata?: Message['metadata']
+) => {
   messages.value.push({
     id: Date.now(),
     content,
-    type
+    type,
+    metadata
   })
 }
 
 const handleSend = async () => {
-  console.log('AIAssistant.vue→ 发送消息:', inputText.value)
-  if (!inputText.value.trim()) return
+  if (!inputText.value.trim() || isProcessing.value) return
 
-  // 添加用户消息
+  isProcessing.value = true
   addMessage(inputText.value, 'user')
 
-  if (currentAction.value === 'search') {
-    console.log('AIAssistant.vue→ 语义搜索查询:', inputText.value)
-    try {
-      const results = await noteStore.semanticSearch(inputText.value)
-      console.log('AIAssistant.vue→ 搜索结果:', results)
-
-      // 添加搜索结果消息
-      messages.value.push({
-        id: Date.now(),
-        type: 'assistant',
-        content: '',
-        searchResults: results.map((note) => ({
-          id: note.id,
-          title: String(note.title || ''),
-          content: String(note.content || ''),
-          similarity: Number(note.similarity || 0)
-        }))
-      })
-    } catch (error) {
-      console.error('AIAssistant.vue→ 搜索失败:', error)
-      addMessage('搜索出错了，请稍后重试。', 'assistant')
-    }
+  const tempMessage: Message = {
+    id: Date.now(),
+    type: 'assistant',
+    content: '',
+    loading: true
   }
+  messages.value.push(tempMessage)
+  scrollToBottom()
 
-  inputText.value = ''
+  try {
+    switch (currentAction.value) {
+      case 'search': {
+        log.info('AIAssistant: 执行语义搜索:', inputText.value)
+        const searchOptions: SearchOptions = {
+          limit: 5,
+          minSimilarity: 0.3,
+          includeMetadata: true
+        }
+
+        const response = await semanticStore.enhancedSearch(inputText.value, searchOptions)
+        log.info('AIAssistant: 搜索结果:', {
+          query: inputText.value,
+          resultCount: response.length,
+          metadata: semanticStore.searchMetadata
+        })
+
+        if (response.length === 0) {
+          tempMessage.loading = false
+          tempMessage.content = '抱歉，没有找到相关的笔记内容。'
+          break
+        }
+
+        tempMessage.loading = false
+        tempMessage.searchResults = response
+        tempMessage.metadata = semanticStore.searchMetadata || {}
+        tempMessage.content = `为您找到 ${response.length} 条相关笔记：`
+        break
+      }
+
+      case 'brainstorm': {
+        tempMessage.loading = false
+        tempMessage.content = '头脑风暴功能正在开发中...'
+        break
+      }
+
+      case 'summarize': {
+        tempMessage.loading = false
+        tempMessage.content = '内容总结功能正在开发中...'
+        break
+      }
+
+      default: {
+        tempMessage.loading = false
+        tempMessage.content = '请先选择一个功能。'
+      }
+    }
+  } catch (error) {
+    log.error('AIAssistant: 操作失败:', error)
+    tempMessage.loading = false
+    tempMessage.content = '抱歉，处理过程中出现错误，请稍后重试。'
+  } finally {
+    isProcessing.value = false
+    scrollToBottom()
+    inputText.value = ''
+  }
 }
 
-// 辅助函数：获取内容预览
-const getPreview = (content: string) => {
-  return content.length > 100 ? content.slice(0, 100) + '...' : content
+const scrollToBottom = () => {
+  if (chatContainerRef.value) {
+    setTimeout(() => {
+      chatContainerRef.value!.scrollTop = chatContainerRef.value!.scrollHeight
+    }, 100)
+  }
+}
+
+const getPreview = (text: string): string => {
+  const maxLength = 200
+  if (!text) return '无内容预览'
+
+  // 如果有高亮片段，优先显示高亮内容
+  const highlights = text.match(/<mark>(.*?)<\/mark>/g)
+  if (highlights && highlights.length > 0) {
+    const highlightText = highlights.map((h) => h.replace(/<\/?mark>/g, '')).join(' ... ')
+    return highlightText.length > maxLength
+      ? highlightText.slice(0, maxLength) + '...'
+      : highlightText
+  }
+
+  return text.length > maxLength ? text.slice(0, maxLength) + '...' : text
+}
+
+const getSimilarityText = (similarity: number): string => {
+  const percentage = (similarity * 100).toFixed(0)
+  let level = ''
+  if (similarity >= 0.8) level = '(几乎相同)'
+  else if (similarity >= 0.6) level = '(高度相关)'
+  else if (similarity >= 0.4) level = '(相关)'
+  else level = '(部分相关)'
+
+  return `相关度 ${percentage}% ${level}`
+}
+
+const openNote = async (noteId: string) => {
+  try {
+    await router.push({
+      name: 'note',
+      params: { id: noteId }
+    })
+  } catch (error) {
+    log.error('AIAssistant: 打开笔记失败:', error)
+  }
 }
 </script>
 
@@ -270,6 +377,75 @@ const getPreview = (content: string) => {
   color: white;
 }
 
+.loading-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  color: #666;
+}
+
+.search-results {
+  width: 100%;
+}
+
+.result-count {
+  margin-bottom: 12px;
+  color: #666;
+}
+
+.search-result-item {
+  padding: 16px;
+  margin-bottom: 16px;
+  background: #f9f9f9;
+  border-radius: 8px;
+  border: 1px solid #eee;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.search-result-item:hover {
+  background: #f0f0f0;
+  transform: translateY(-2px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.result-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.similarity-badge {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.similarity-badge.high {
+  background: #e6f4ea;
+  color: #1e8e3e;
+}
+
+.similarity-badge.medium {
+  background: #fef7e0;
+  color: #b06000;
+}
+
+.similarity-badge.low {
+  background: #fce8e6;
+  color: #c5221f;
+}
+
+.result-preview {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #333;
+}
+
 .input-container {
   display: flex;
   gap: 12px;
@@ -292,7 +468,7 @@ const getPreview = (content: string) => {
   background: #007aff;
   color: white;
   cursor: pointer;
-  transition: opacity 0.2s;
+  transition: all 0.2s;
 }
 
 .send-button:disabled {
@@ -300,42 +476,12 @@ const getPreview = (content: string) => {
   cursor: not-allowed;
 }
 
-.search-results {
-  width: 100%;
-}
-
-.result-count {
-  margin-bottom: 12px;
-  color: #666;
-}
-
-.search-result-item {
-  padding: 12px;
-  margin-bottom: 12px;
-  background: #f9f9f9;
-  border-radius: 6px;
-  border: 1px solid #eee;
-}
-
-.search-result-item h4 {
-  margin: 0 0 8px 0;
-  color: #333;
-}
-
-.result-preview {
-  margin: 8px 0;
+.no-results {
+  text-align: center;
+  padding: 32px;
   color: #666;
   font-size: 14px;
-}
-
-.similarity {
-  font-size: 12px;
-  color: #999;
-}
-
-.no-results {
-  color: #666;
-  text-align: center;
-  padding: 20px;
+  background: #f9f9f9;
+  border-radius: 8px;
 }
 </style>

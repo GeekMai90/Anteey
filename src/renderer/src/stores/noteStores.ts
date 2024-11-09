@@ -118,21 +118,21 @@ export const useNoteStore = defineStore(
 
     // ==================== 语义搜索方法 ====================
     // 添加语义搜索方法
-    const semanticSearch = async (query: string): Promise<Note[]> => {
-      console.log('noteStores.ts→ 语义搜索查询:', query)
-      try {
-        isSemanticSearching.value = true
-        const results = await window.electronAPI.semanticSearchNotes(query)
-        console.log('noteStores.ts→ 语义搜索结果:', results)
-        semanticSearchResults.value = results
-        return results
-      } catch (error) {
-        console.error('语义搜索失败:', error)
-        return [] // 返回空数组而不是 undefined
-      } finally {
-        isSemanticSearching.value = false
-      }
-    }
+    // const semanticSearch = async (query: string): Promise<Note[]> => {
+    //   console.log('noteStores.ts→ 语义搜索查询:', query)
+    //   try {
+    //     isSemanticSearching.value = true
+    //     const results = await window.electronAPI.semanticSearchNotes(query)
+    //     console.log('noteStores.ts→ 语义搜索结果:', results)
+    //     semanticSearchResults.value = results
+    //     return results
+    //   } catch (error) {
+    //     console.error('语义搜索失败:', error)
+    //     return [] // 返回空数组而不是 undefined
+    //   } finally {
+    //     isSemanticSearching.value = false
+    //   }
+    // }
     // ==================== 右侧边栏反向链接笔记 ====================
     // 打开反向链接预览
     const openBacklinkPreview = async (noteId: string) => {
@@ -1360,8 +1360,7 @@ export const useNoteStore = defineStore(
       openTaggedNotes,
       // 语义搜索
       semanticSearchResults,
-      isSemanticSearching,
-      semanticSearch
+      isSemanticSearching
     }
   },
   {

@@ -21,6 +21,7 @@ import {
 } from './Note'
 import { UpdateUserSettings, UserSettings } from './UserSettings'
 import { CreateCustomFilterInput, CustomFilter, UpdateCustomFilterInput } from './Filter'
+import { EnhancedSearchResult, SearchOptions, SearchResult } from './semantic'
 
 export interface ElectronAPI {
   createNote: () => Promise<Note>
@@ -223,12 +224,40 @@ export interface ElectronAPI {
   // 切换筛选规则的收藏状态
   toggleFilterStar: (id: string) => Promise<CustomFilter>
 
-  // 语义搜索笔记
-  semanticSearchNotes: (query: string) => Promise<Note[]>
+  // 语义服务相关方法
+  initializeSemantic: () => Promise<boolean>
+  clearSemanticCache: () => Promise<boolean>
 
-  // FAISS 相关的方法
+  semanticSearch: (query: string, options?: SearchOptions) => Promise<SearchResult[]>
+
+  findSimilarNotes: (content: any, options?: SearchOptions) => Promise<SearchResult[]>
+
+  calculateHybridSimilarity: (
+    content1: any,
+    content2: any,
+    keywords1: string[],
+    keywords2: string[]
+  ) => Promise<number>
+
+  rebuildSemanticIndex: (
+    notes: Array<{
+      id: string
+      content: any
+    }>
+  ) => Promise<boolean>
+
+  clearNoteVectorData: (noteId: string) => Promise<boolean>
+
+  testSemanticSearch: () => Promise<boolean>
+
+  // FAISS 相关方法
   initializeFaiss: () => Promise<void>
   isFaissReady: () => Promise<boolean>
+
+  // 增强搜索方法
+  enhancedSearch: (query: string, options?: SearchOptions) => Promise<EnhancedSearchResult>
+
+  // 文件路径相关方法
   getUserDataPath: () => string
   joinPath: (...args: string[]) => string
 }

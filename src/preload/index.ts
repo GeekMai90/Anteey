@@ -14,12 +14,11 @@ import {
 } from '../renderer/src/types/Note'
 import { UpdateUserSettings, UserSettings } from '../renderer/src/types/UserSettings'
 import path from 'path'
-import fs from 'fs'
-import { app } from '@electron/remote'
 import { notesApi } from './api/notesApi'
 import { tagApi } from './api/tagApi'
 import { filterApi } from './api/filterApi'
 import { faissApi } from './api/faissApi'
+import { semanticApi } from './api/semanticApi'
 // 添加日志 API
 contextBridge.exposeInMainWorld('electronLog', {
   info: (...args: any[]) => ipcRenderer.send('renderer-log', { level: 'info', args }),
@@ -28,41 +27,12 @@ contextBridge.exposeInMainWorld('electronLog', {
   debug: (...args: any[]) => ipcRenderer.send('renderer-log', { level: 'debug', args })
 })
 
-// 缓存处理函数
-async function loadCache(): Promise<Record<string, string>> {
-  try {
-    const userDataPath = app.getPath('userData')
-    const cachePath = path.join(userDataPath, 'embeddings.cache.json')
-
-    if (fs.existsSync(cachePath)) {
-      const data = fs.readFileSync(cachePath, 'utf8')
-      return JSON.parse(data)
-    }
-    return {}
-  } catch (error) {
-    console.error('加载缓存失败:', error)
-    return {}
-  }
-}
-
-async function saveCache(cacheData: Record<string, string>): Promise<boolean> {
-  try {
-    const userDataPath = app.getPath('userData')
-    const cachePath = path.join(userDataPath, 'embeddings.cache.json')
-
-    fs.writeFileSync(cachePath, JSON.stringify(cacheData), 'utf8')
-    return true
-  } catch (error) {
-    console.error('保存缓存失败:', error)
-    return false
-  }
-}
-
 contextBridge.exposeInMainWorld('electronAPI', {
   ...notesApi,
   ...tagApi,
   ...filterApi,
   ...faissApi,
+  ...semanticApi,
   getResourcePath: async (filename: string): Promise<string> => {
     try {
       return (await ipcRenderer.invoke('get-resource-path', filename)) as string
@@ -533,8 +503,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getUserDataPath: async (): Promise<string> => {
     return await ipcRenderer.invoke('get-user-data-path')
   },
-  loadEmbeddingsCache: loadCache,
-  saveEmbeddingsCache: saveCache,
   // getUserDataPath: () => app.getPath('userData'),
-  joinPath: (...args: string[]) => path.join(...args)
+  joinPath: (...args: string[]) => path.join(...args),
+  loadEmbeddingsCache: () => ipcRenderer.invoke('load-embeddings-cache'),
+  saveEmbeddingsCache: (data: Record<string, string>) =>
+    ipcRenderer.invoke('save-embeddings-cache', data)
 })
