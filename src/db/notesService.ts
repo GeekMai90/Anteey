@@ -1,16 +1,6 @@
 import { db } from './config'
-import {
-  CardType,
-  Keyword,
-  Note,
-  RelatedNote,
-  RelatedNotesResult
-} from '../renderer/src/types/Note'
+import { CardType, Keyword, Note } from '../renderer/src/types/Note'
 import { v4 as uuidv4 } from 'uuid'
-import { extractKeywords } from '../renderer/src/utils/keywordExtractor'
-import { calculateSimilarity } from '../renderer/src/utils/noteSililarity'
-import { SemanticVectorizer } from '../renderer/src/utils/semanticVector'
-import { extractTextFromContent } from '../renderer/src/utils/keywordExtractor'
 import type { NoteReference, InternalNoteReference } from '../renderer/src/types/Note'
 import { Knex } from 'knex/types'
 import { FilterRule } from '../renderer/src/types/Filter'
@@ -53,148 +43,6 @@ function convertToNote(record: any): Note {
 }
 
 // 获取相关笔记
-
-// 批处理大小常量
-const BATCH_SIZE = 50
-const SIMILARITY_THRESHOLD = 20
-const MAX_TOTAL_NOTES = 1000
-
-export async function getRelatedNotes(
-  noteId: string,
-  limit: number = 5
-): Promise<RelatedNotesResult> {
-  try {
-    console.log('后端→ 开始查找相关笔记:', noteId)
-
-    // 1. 获取当前笔记
-    const currentNote = await db('notes').where('id', noteId).first()
-    if (!currentNote) {
-      throw new Error(`Note with ID "${noteId}" not found`)
-    }
-
-    // 2. 初始化向量服务
-    const vectorizer = SemanticVectorizer.getInstance()
-    await vectorizer.initialize()
-
-    // 3. 预处理当前笔记数据
-    const currentKeywords = JSON.parse(currentNote.keywords || '[]')
-    const currentContent = JSON.parse(currentNote.content)
-    const currentText = extractTextFromContent(currentContent)
-
-    // 4. 获取笔记总数
-    const { count } = (await db('notes')
-      .where('id', '!=', noteId)
-      .andWhere('isDeleted', false)
-      .count('* as count')
-      .first()) as { count: number }
-
-    if (count > MAX_TOTAL_NOTES) {
-      console.log(`后端→ 笔记数量(${count})超过限制(${MAX_TOTAL_NOTES})，将随机选择笔记进行比较`)
-    }
-
-    // 5. 分批处理笔记
-    let processedNotes = 0
-    let allResults: (RelatedNote & { matchType: string })[] = []
-    const stats = { keyword: 0, semantic: 0, hybrid: 0, error: 0 }
-
-    while (processedNotes < Math.min(count, MAX_TOTAL_NOTES)) {
-      // 获取一批笔记
-      const notes = await db('notes')
-        .where('id', '!=', noteId)
-        .andWhere('isDeleted', false)
-        .offset(processedNotes)
-        .limit(BATCH_SIZE)
-        .select('*')
-
-      if (notes.length === 0) break
-
-      // 处理这一批笔记
-      const batchResults = await Promise.all(
-        notes.map(async (note) => {
-          try {
-            const noteKeywords = JSON.parse(note.keywords || '[]')
-            const noteContent = JSON.parse(note.content)
-            const noteText = extractTextFromContent(noteContent)
-
-            const isShortContent = noteText.length < 100 || currentText.length < 100
-            const hasKeywords = noteKeywords.length > 0 && currentKeywords.length > 0
-
-            let similarity: number
-            let matchType: string
-
-            if (isShortContent && hasKeywords) {
-              similarity = calculateSimilarity(currentKeywords, noteKeywords)
-              matchType = 'keyword'
-              stats.keyword++
-            } else if (!hasKeywords && !isShortContent) {
-              similarity = await vectorizer.calculateSemanticSimilarity(currentText, noteText)
-              matchType = 'semantic'
-              stats.semantic++
-            } else {
-              similarity = await vectorizer.calculateHybridSimilarity(
-                currentContent,
-                noteContent,
-                currentKeywords,
-                noteKeywords
-              )
-              matchType = 'hybrid'
-              stats.hybrid++
-            }
-
-            // 提前过滤掉相似度低的结果
-            if (similarity <= SIMILARITY_THRESHOLD) {
-              return null
-            }
-
-            return {
-              ...convertToNote(note),
-              similarity,
-              matchType
-            }
-          } catch (error) {
-            console.error('后端→ 计算单个笔记相似度失败:', error)
-            stats.error++
-            return null
-          }
-        })
-      )
-
-      // 过滤掉空值并添加到结果集
-      const validResults = batchResults.filter(
-        (r): r is RelatedNote & { matchType: string } => r !== null
-      )
-      allResults = [...allResults, ...validResults]
-
-      // 对结果进行排序和裁剪，保持最相关的结果
-      allResults.sort((a, b) => b.similarity - a.similarity)
-      allResults = allResults.slice(0, limit)
-
-      processedNotes += notes.length
-      console.log(`后端→ 已处理 ${processedNotes}/${Math.min(count, MAX_TOTAL_NOTES)} 个笔记`)
-    }
-
-    console.log('后端→ 相似度计算统计:', stats)
-
-    return {
-      success: true,
-      notes: allResults,
-      totalProcessed: processedNotes,
-      stats: {
-        keywordMatches: stats.keyword,
-        semanticMatches: stats.semantic,
-        hybridMatches: stats.hybrid,
-        errors: stats.error
-      }
-    }
-  } catch (error) {
-    console.error('后端→ 查找相关笔记失败:', error)
-    return {
-      success: false,
-      notes: [],
-      error: error instanceof Error ? error.message : String(error)
-    }
-  }
-}
 
 //所有已删除的笔记
 export async function getAllDeletedNotes(): Promise<Note[]> {
@@ -889,29 +737,6 @@ export async function updateNoteContent(id: string, content: object): Promise<No
             updatedAt: new Date()
           }
 
-          // 2. 提取关键词
-          try {
-            const keywords: Keyword[] = extractKeywords(content)
-            console.log('后端→ 关键词提取完成:', keywords)
-            updateData.keywords = JSON.stringify(keywords)
-          } catch (keywordError) {
-            console.error('后端→ 关键词提取失败:', keywordError)
-            updateData.keywords = JSON.stringify([])
-          }
-
-          // 3. 计算语义向量
-          try {
-            const vectorizer = SemanticVectorizer.getInstance()
-            await vectorizer.initialize()
-            const text = extractTextFromContent(content)
-            const vector = await vectorizer.getVector(text)
-            updateData.semanticVector = JSON.stringify(vector)
-            console.log('后端→ 语义向量计算完成')
-          } catch (vectorError) {
-            console.error('后端→ 语义向量计算失败:', vectorError)
-            updateData.semanticVector = JSON.stringify([])
-          }
-
           // 4. 执行更新并返回更新后的笔记
           const [updatedNote] = await trx('notes').where('id', id).update(updateData).returning('*')
 
@@ -985,34 +810,9 @@ export async function updateNote(id: string, updateNoteDto: Partial<Note>): Prom
             typeof updateNoteDto.content === 'string'
               ? JSON.parse(updateNoteDto.content)
               : updateNoteDto.content
-
-          // 1. 提取关键词
-          try {
-            const keywords: Keyword[] = extractKeywords(updateData.content)
-            console.log('后端→ 关键词提取完成:', keywords)
-            updateData.keywords = JSON.stringify(keywords)
-          } catch (keywordError) {
-            console.error('后端→ 关键词提取失败:', keywordError)
-            updateData.keywords = JSON.stringify([])
-          }
-
-          // 2. 计算语义向量 (新增)
-          try {
-            const vectorizer = SemanticVectorizer.getInstance()
-            await vectorizer.initialize()
-            const text = extractTextFromContent(updateData.content)
-            const vector = await vectorizer.getVector(text)
-            updateData.semanticVector = JSON.stringify(vector)
-            console.log('后端→ 语义向量计算完成')
-          } catch (vectorError) {
-            console.error('后端→ 语义向量计算失败:', vectorError)
-            updateData.semanticVector = JSON.stringify([])
-          }
         } catch (error) {
           console.error('后端→ 解析内容时出错:', error)
           updateData.content = { type: 'doc', content: [] }
-          updateData.keywords = JSON.stringify([])
-          updateData.semanticVector = JSON.stringify([])
         }
       }
 

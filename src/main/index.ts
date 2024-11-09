@@ -18,7 +18,6 @@ import * as dotenv from 'dotenv'
 import { default as installExtension, VUEJS3_DEVTOOLS } from 'electron-devtools-installer'
 import path from 'path'
 import fs from 'fs/promises'
-import { existsSync } from 'fs'
 import { URL } from 'url'
 import { initialize, enable } from '@electron/remote/main'
 import { setupIpcHandlers } from './ipc'
@@ -269,52 +268,13 @@ function createWindow(): void {
   log.info('Main window created and loaded')
 }
 
-async function initializeCacheDirectory() {
-  try {
-    // 获取应用的用户数据目录
-    const userDataPath = app.getPath('userData')
-    log.info('用户数据目录:', userDataPath)
-
-    // 创建一个专门的缓存目录
-    const cacheDirPath = path.join(userDataPath, 'cache')
-    if (!existsSync(cacheDirPath)) {
-      await fs.mkdir(cacheDirPath, { recursive: true, mode: 0o777 })
-      log.info('创建缓存目录:', cacheDirPath)
-    }
-
-    // 设置缓存文件路径
-    const cachePath = path.join(cacheDirPath, 'embeddings.cache.json')
-
-    // 如果文件不存在，创建一个空的缓存文件
-    if (!existsSync(cachePath)) {
-      await fs.writeFile(cachePath, '{}', {
-        encoding: 'utf8',
-        mode: 0o666
-      })
-      log.info('创建缓存文件:', cachePath)
-    }
-
-    return cachePath
-  } catch (error) {
-    log.error('缓存初始化失败:', error)
-    // 如果出错，使用临时目录作为后备
-    const tempPath = path.join(app.getPath('temp'), 'embeddings.cache.json')
-    log.info('使用临时缓存路径:', tempPath)
-    return tempPath
-  }
-}
-// 在应用启动时初始化
-let globalCachePath: string
-
 app.whenReady().then(async () => {
   const antinetPath = app.getPath('userData')
   const userDataPath = path.join(antinetPath, 'UserData')
   const imagesPath = path.join(userDataPath, 'images')
-  const cachePath = path.join(userDataPath, 'cache')
 
   // 确保 UserData 和 images 目录存在
   try {
-    await fs.mkdir(cachePath, { recursive: true })
     await fs.mkdir(userDataPath, { recursive: true })
     await fs.mkdir(imagesPath, { recursive: true })
   } catch (error) {
@@ -322,16 +282,6 @@ app.whenReady().then(async () => {
   }
   console.log('用户数据目录:', userDataPath)
   console.log('图片目录:', imagesPath)
-  console.log('缓存目录:', cachePath)
-
-  try {
-    globalCachePath = await initializeCacheDirectory()
-    // 导出获取缓存路径的方法
-    ;(global as any).getCachePath = () => globalCachePath
-    log.info('缓存路径初始化成功:', globalCachePath)
-  } catch (error) {
-    log.error('缓存路径初始化失败:', error)
-  }
 
   // 初始化 remote 模块
   initialize()

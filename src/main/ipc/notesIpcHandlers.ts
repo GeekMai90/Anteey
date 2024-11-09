@@ -29,7 +29,6 @@ import {
   getRandomNotes,
   moveEmptyNotesToTrash,
   getAllDeletedNotes,
-  getRelatedNotes,
   updateNoteAddress,
   updateNoteCardType,
   getTimelineNotes,
@@ -41,24 +40,6 @@ import {
 } from '../../db/notesService'
 
 export function setupNotesHandlers() {
-  // 获取相关笔记
-  ipcMain.handle('get-related-notes', async (_event, { noteId, limit }) => {
-    console.log('主进程 → 收到获取相关笔记请求:', { noteId, limit })
-
-    try {
-      // getRelatedNotes 现在直接返回 { success, notes } 格式
-      const result = await getRelatedNotes(noteId, limit)
-      return result
-    } catch (error) {
-      console.error('主进程 → 获取相关笔记失败:', error)
-      return {
-        success: false,
-        notes: [],
-        error: error instanceof Error ? error.message : String(error)
-      }
-    }
-  })
-
   // 获取所有已删除的笔记
   ipcMain.handle('get-all-deleted-notes', async () => {
     try {
