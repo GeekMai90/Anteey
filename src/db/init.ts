@@ -432,6 +432,25 @@ export async function initDatabase(db: Knex): Promise<void> {
     })
     console.log('word_category_relations 表创建成功')
   }
+
+  // 创建 rag_history 表
+  if (!(await db.schema.hasTable('rag_history'))) {
+    await db.schema.createTable('rag_history', (table) => {
+      table.string('id').primary()
+      table.text('query').notNullable() // 用户的查询内容
+      table.json('context').notNullable() // 检索到的上下文
+      table.json('response').nullable() // AI 的回复内容
+      table.float('relevanceScore').nullable() // 相关性得分
+      table.integer('tokenCount').nullable() // 使用的 token 数量
+      table.datetime('createdAt').notNullable()
+      table.datetime('updatedAt').notNullable()
+
+      // 索引
+      table.index('createdAt')
+      table.index(['createdAt', 'relevanceScore'])
+    })
+    console.log('rag_history 表创建成功')
+  }
 }
 
 export async function down(db: Knex): Promise<void> {
@@ -451,5 +470,6 @@ export async function down(db: Knex): Promise<void> {
   await db.schema.dropTableIfExists('dictionary_suggestions')
   await db.schema.dropTableIfExists('dictionary_categories')
   await db.schema.dropTableIfExists('dictionary')
+  await db.schema.dropTableIfExists('rag_history')
   console.log('所有表已删除')
 }

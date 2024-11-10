@@ -22,6 +22,12 @@ import { URL } from 'url'
 import { initialize, enable } from '@electron/remote/main'
 import { setupIpcHandlers } from './ipc'
 import log from './logger'
+import { config } from 'dotenv'
+
+// 加载环境变量
+config({
+  path: join(__dirname, '../../../.env')
+})
 
 // 添加 IPC 日志转发
 ipcMain.on('renderer-log', (_, { level, args }) => {

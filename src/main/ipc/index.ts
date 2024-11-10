@@ -8,6 +8,7 @@ import { setupTagHandlers } from './tagIpcHandlers'
 import { setupFilterHandlers } from './filterIpcHandlers'
 import { setupEmbeddingHandlers } from './embeddingIpcHandlers'
 import { setupDictionaryHandlers } from './dictionaryIpcHandlers'
+import { setupRAGHandlers } from './ragIpcHandlers'
 
 export function setupIpcHandlers() {
   setupNotesHandlers()
@@ -20,4 +21,5 @@ export function setupIpcHandlers() {
   setupFilterHandlers()
   setupEmbeddingHandlers()
   setupDictionaryHandlers()
+  setupRAGHandlers()
 }

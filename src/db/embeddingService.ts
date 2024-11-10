@@ -1,3 +1,4 @@
+// 向量服务
 import { db } from './config'
 import { NoteEmbedding } from '../renderer/src/types/Note'
 import log from 'electron-log'
@@ -8,7 +9,7 @@ let embeddings: any = null
 
 // 初始化 embeddings
 // 初始化向量模型
-async function initEmbeddings() {
+export async function initEmbeddings() {
   if (!embeddings) {
     try {
       // 直接使用默认导出

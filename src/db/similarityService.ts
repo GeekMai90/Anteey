@@ -1,3 +1,4 @@
+// 关键词提取和相似度计算服务
 import * as nodejieba from 'nodejieba'
 import { Keyword } from '../renderer/src/types/Embedding'
 import log from 'electron-log/renderer'
@@ -173,7 +174,19 @@ const STOP_WORDS = new Set([
   '给',
   '从',
   '向',
-  '它'
+  '它',
+  '的',
+  '和',
+  '与',
+  '或',
+  '在',
+  '是',
+  '都',
+  '1.',
+  '2.',
+  '3.',
+  '4.',
+  '5.'
 ])
 
 // 提取文本内容 (保持原有逻辑不变)

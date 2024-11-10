@@ -1,3 +1,4 @@
+// 词典服务
 import { db } from './config'
 import log from 'electron-log/renderer'
 

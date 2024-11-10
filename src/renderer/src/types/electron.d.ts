@@ -22,6 +22,7 @@ import { UpdateUserSettings, UserSettings } from './UserSettings'
 import { CreateCustomFilterInput, CustomFilter, UpdateCustomFilterInput } from './Filter'
 import { WordSuggestion } from '../../../db/dictionaryService'
 import { DictWord } from '../../../db/dictionaryService'
+import { RAGContext } from './RAG'
 
 export interface ElectronAPI {
   createNote: () => Promise<Note>
@@ -252,6 +253,11 @@ export interface ElectronAPI {
   deleteWords: (words: string[]) => Promise<void>
   searchWords: (query: string) => Promise<DictWord[]>
   updateWordStatus: (word: string, enabled: boolean) => Promise<void>
+
+  // RAG 相关的方法
+  retrieveContext: (query: string) => Promise<RAGContext>
+  generateAnswer: (query: string) => Promise<string>
+  getHistory: (limit?: number) => Promise<RAGContext[]>
 }
 
 declare global {

@@ -18,6 +18,7 @@ import { tagApi } from './api/tagApi'
 import { filterApi } from './api/filterApi'
 import { embeddingApi } from './api/embeddingApi'
 import { dictionaryApi } from './api/dictionaryApi'
+import { ragApi } from './api/ragApi'
 // 添加日志 API
 contextBridge.exposeInMainWorld('electronLog', {
   info: (...args: any[]) => ipcRenderer.send('renderer-log', { level: 'info', args }),
@@ -32,6 +33,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   ...filterApi,
   ...embeddingApi,
   ...dictionaryApi,
+  ...ragApi,
   getResourcePath: async (filename: string): Promise<string> => {
     try {
       return (await ipcRenderer.invoke('get-resource-path', filename)) as string
