@@ -15,12 +15,13 @@ import {
   Connection,
   WhiteboardGroup,
   ConnectionCreateData,
-  RelatedNotesResult,
   NoteReference,
   Tag
 } from './Note'
 import { UpdateUserSettings, UserSettings } from './UserSettings'
 import { CreateCustomFilterInput, CustomFilter, UpdateCustomFilterInput } from './Filter'
+import { WordSuggestion } from '../../../db/dictionaryService'
+import { DictWord } from '../../../db/dictionaryService'
 
 export interface ElectronAPI {
   createNote: () => Promise<Note>
@@ -128,7 +129,6 @@ export interface ElectronAPI {
   getAllDeletedNotes: () => Promise<Note[]>
   getUserSettings: () => Promise<UserSettings>
   updateUserSettings: (settings: UpdateUserSettings) => Promise<UserSettings>
-  getRelatedNotes: (noteId: string, limit: number) => Promise<RelatedNotesResult>
   getUserDataPath: () => Promise<string>
   loadEmbeddingsCache: () => Promise<Record<string, string>>
   saveEmbeddingsCache: (cacheData: Record<string, string>) => Promise<boolean>
@@ -222,6 +222,36 @@ export interface ElectronAPI {
 
   // 切换筛选规则的收藏状态
   toggleFilterStar: (id: string) => Promise<CustomFilter>
+
+  // 向量搜索
+  searchSimilarNotes: (
+    query: string,
+    limit: number
+  ) => Promise<{ noteId: string; similarity: number }[]>
+
+  // 获取特定笔记的相似笔记
+  getSimilarNotesForNote: (
+    noteId: string,
+    limit: number
+  ) => Promise<
+    {
+      noteId: string
+      similarity: number
+    }[]
+  >
+
+  // 词典相关的方法
+  getPendingSuggestions: () => Promise<WordSuggestion[]>
+  processSuggestion: (word: string, status: 'accepted' | 'rejected') => Promise<void>
+  processSuggestionBatch: (words: string[], status: 'accepted' | 'rejected') => Promise<void>
+  getDictionary: () => Promise<DictWord[]>
+  cleanupDictionary: (days: number) => Promise<void>
+  getAllWords: () => Promise<DictWord[]>
+  addWord: (word: string) => Promise<DictWord>
+  deleteWord: (word: string) => Promise<void>
+  deleteWords: (words: string[]) => Promise<void>
+  searchWords: (query: string) => Promise<DictWord[]>
+  updateWordStatus: (word: string, enabled: boolean) => Promise<void>
 }
 
 declare global {

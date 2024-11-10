@@ -13,14 +13,14 @@
     <template v-else>
       <div v-if="relatedNotes.length" class="notes-list">
         <div
-          v-for="note in relatedNotes"
+          v-for="{ note, similarity } in relatedNotes"
           :key="note.id"
           class="note-item"
           @click="openNote(note.id)"
         >
           <div class="note-header">
             <div class="note-address">{{ note.address }}</div>
-            <div class="similarity">相似度: {{ note.similarity.toFixed(1) }}%</div>
+            <div class="similarity">相似度: {{ similarity.toFixed(1) }}%</div>
           </div>
           <div class="note-preview">
             <TipTapRender :content="note.content" />
@@ -38,40 +38,53 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 import { useNoteStore } from '@renderer/stores/noteStores'
+import { useSemanticStore } from '@renderer/stores/semanticStore' // 新增
 import { useRouter } from 'vue-router'
 import { formatDate } from '@renderer/utils/noteHelpers'
-import type { RelatedNote } from '@renderer/types/Note'
+import type { Note } from '@renderer/types/Note'
 import TipTapRender from '@renderer/components/tiptap/TipTapRender.vue'
 import { Vue3Lottie } from 'vue3-lottie'
 import loadingAnimation from '@renderer/assets/loading.json'
+import log from 'electron-log'
 
 const props = defineProps<{
-  noteId: string
+  noteId: string | null
 }>()
 
 const noteStore = useNoteStore()
+const semanticStore = useSemanticStore() // 新增
 const router = useRouter()
 const isLoading = ref(false)
-const relatedNotes = ref<RelatedNote[]>([])
+const relatedNotes = ref<Array<{ note: Note; similarity: number }>>([])
 
 const fetchRelatedNotes = async () => {
-  console.log('开始获取相关笔记，noteId:', props.noteId) // 添加日志
+  log.info('开始获取相关笔记，noteId:', props.noteId)
   isLoading.value = true
+
   try {
     if (!props.noteId) {
-      console.log('noteId 为空，跳过获取') // 添加日志
+      log.info('noteId 为空，跳过获取')
       return
     }
-    console.log('正在调用 getRelatedNotes...') // 添加日志
-    const response = await noteStore.getRelatedNotes(props.noteId, 10)
-    console.log('获取响应:', response) // 添加日志
-    if (response.success) {
-      relatedNotes.value = response.notes
-    } else if (response.error) {
-      console.error('获取相关笔记失败:', response.error)
-    }
+
+    // 使用新的语义搜索方法
+    const similarResults = await semanticStore.getSimilarNotesForNote(props.noteId, 10)
+
+    // 获取完整的笔记信息
+    const notesWithDetails = await Promise.all(
+      similarResults.map(async (result) => {
+        const note = await noteStore.fetchNote(result.noteId)
+        return {
+          note,
+          similarity: result.similarity * 100 // 转换为百分比
+        }
+      })
+    )
+
+    relatedNotes.value = notesWithDetails as Array<{ note: Note; similarity: number }>
+    log.info('获取相关笔记成功:', notesWithDetails.length)
   } catch (error) {
-    console.error('获取相关笔记发生异常:', error)
+    log.error('获取相关笔记失败:', error)
   } finally {
     isLoading.value = false
   }

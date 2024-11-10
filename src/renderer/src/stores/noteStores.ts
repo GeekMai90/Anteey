@@ -1,15 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { Notes, Table, TransactionOrder, Deeplink } from '@icon-park/vue-next'
-import type {
-  Note,
-  Whiteboard,
-  Connection,
-  CardBox,
-  RelatedNote,
-  RelatedNotesResult,
-  CardType
-} from '../types/Note'
+import type { Note, Whiteboard, Connection, CardBox, CardType } from '../types/Note'
 import type { Editor } from '@tiptap/vue-3'
 import { GetPaginatedNotesParams } from '../../../db/notesService'
 import { useEventBus } from '@vueuse/core'
@@ -93,7 +85,6 @@ export const useNoteStore = defineStore(
     const starredNotes = ref<Note[]>([])
     const showShareModal = ref(false)
     const shareNote = ref<any>(null)
-    const relatedNotes = ref<RelatedNote[]>([])
 
     // 最近更新的状态
     const pendingUpdates = ref(
@@ -447,26 +438,6 @@ export const useNoteStore = defineStore(
       setTimeout(() => {
         isLoading.value = false
       }, 2000)
-    }
-
-    const getRelatedNotes = async (noteId: string, limit: number): Promise<RelatedNotesResult> => {
-      try {
-        const result = await window.electronAPI.getRelatedNotes(noteId, limit)
-
-        // 可以选择更新状态
-        if (result.success) {
-          relatedNotes.value = result.notes
-        }
-
-        return result
-      } catch (error) {
-        console.error('noteStores.ts→ 获取相关笔记失败:', error)
-        return {
-          success: false,
-          notes: [],
-          error: error instanceof Error ? error.message : String(error)
-        }
-      }
     }
 
     const searchNotesList = async (query: string) => {
@@ -1226,7 +1197,6 @@ export const useNoteStore = defineStore(
       starredNotes,
       showShareModal,
       shareNote,
-      relatedNotes,
       pendingUpdates,
       viewConfig,
 
@@ -1261,7 +1231,6 @@ export const useNoteStore = defineStore(
 
       searchNotes,
       searchNotesList,
-      getRelatedNotes,
       fetchAllDatesWithNotes,
       initializeStore,
       addNoteToRightSidebar,

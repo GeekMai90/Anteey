@@ -16,6 +16,8 @@ import { UpdateUserSettings, UserSettings } from '../renderer/src/types/UserSett
 import { notesApi } from './api/notesApi'
 import { tagApi } from './api/tagApi'
 import { filterApi } from './api/filterApi'
+import { embeddingApi } from './api/embeddingApi'
+import { dictionaryApi } from './api/dictionaryApi'
 // 添加日志 API
 contextBridge.exposeInMainWorld('electronLog', {
   info: (...args: any[]) => ipcRenderer.send('renderer-log', { level: 'info', args }),
@@ -28,6 +30,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   ...notesApi,
   ...tagApi,
   ...filterApi,
+  ...embeddingApi,
+  ...dictionaryApi,
   getResourcePath: async (filename: string): Promise<string> => {
     try {
       return (await ipcRenderer.invoke('get-resource-path', filename)) as string

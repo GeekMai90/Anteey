@@ -1,9 +1,10 @@
 import { db } from './config'
-import { CardType, Keyword, Note } from '../renderer/src/types/Note'
+import { CardType, Note } from '../renderer/src/types/Note'
 import { v4 as uuidv4 } from 'uuid'
 import type { NoteReference, InternalNoteReference } from '../renderer/src/types/Note'
 import { Knex } from 'knex/types'
 import { FilterRule } from '../renderer/src/types/Filter'
+import { updateNoteEmbedding } from './embeddingService'
 
 // 辅助函数：将数据库记录转换为 Note 对象
 function convertToNote(record: any): Note {
@@ -32,10 +33,6 @@ function convertToNote(record: any): Note {
     isStarred: record.isStarred,
     starredOrder: record.starredOrder,
     rightBarOrder: record.rightBarOrder,
-
-    // 语义相关
-    keywords: record.keywords ? (JSON.parse(record.keywords) as Keyword[]) : undefined,
-    semanticVector: record.semanticVector ? JSON.parse(record.semanticVector) : undefined,
 
     // 元数据
     metadata: record.metadata ? JSON.parse(record.metadata) : undefined
@@ -561,10 +558,6 @@ export async function createNote(): Promise<Note> {
     starredOrder: undefined,
     rightBarOrder: undefined,
 
-    // 语义相关（初始为空）
-    keywords: [],
-    semanticVector: undefined,
-
     // 元数据（初始为空）
     metadata: {
       title: '',
@@ -579,7 +572,6 @@ export async function createNote(): Promise<Note> {
       references: JSON.stringify(newNote.references),
       relationshipTree: JSON.stringify(newNote.relationshipTree),
       graphData: JSON.stringify(newNote.graphData),
-      keywords: JSON.stringify(newNote.keywords),
       metadata: JSON.stringify(newNote.metadata)
     })
 
@@ -742,6 +734,9 @@ export async function updateNoteContent(id: string, content: object): Promise<No
 
           console.log(`后端→ 笔记 ${id} 内容已更新`)
 
+          // 2. 更新笔记的向量 - 传入事务对象
+          await updateNoteEmbedding(id, content, trx)
+
           // 5. 转换并返回笔记
           return convertToNote(updatedNote)
         },
@@ -801,8 +796,6 @@ export async function updateNote(id: string, updateNoteDto: Partial<Note>): Prom
         }
       })
 
-      // 处理内容和关键词
-      // 处理内容和关键词
       if (updateNoteDto.content !== undefined) {
         try {
           console.log('后端→ 开始处理内容更新')
@@ -855,7 +848,7 @@ export async function updateNote(id: string, updateNoteDto: Partial<Note>): Prom
       }
 
       // 6. 处理返回数据
-      const parseFields = ['content', 'linkedTo', 'linkedFrom', 'keywords', 'semanticVector']
+      const parseFields = ['content', 'linkedTo', 'linkedFrom']
       parseFields.forEach((field) => {
         if (typeof updatedNote[field] === 'string') {
           try {

@@ -13,9 +13,6 @@ export async function initDatabase(db: Knex): Promise<void> {
       table.datetime('createdAt').notNullable().index()
       table.datetime('updatedAt').notNullable().index()
 
-      // 移除 tags 字段
-      // table.json('tags').notNullable().defaultTo('[]')  <- 删除这行
-
       // 引用关系
       table
         .json('references')
@@ -36,8 +33,6 @@ export async function initDatabase(db: Knex): Promise<void> {
       table.boolean('isStarred').notNullable().defaultTo(false).index()
       table.integer('starredOrder').nullable()
       table.integer('rightBarOrder').nullable()
-      table.json('keywords').nullable()
-      table.json('semanticVector').nullable()
       table.json('metadata').nullable()
 
       // 保持现有的索引
@@ -304,6 +299,139 @@ export async function initDatabase(db: Knex): Promise<void> {
     })
     console.log('filter_rules 表创建成功')
   }
+
+  // 创建 note_embeddings 表
+  // 创建 note_embeddings 表
+  if (!(await db.schema.hasTable('note_embeddings'))) {
+    await db.schema.createTable('note_embeddings', (table) => {
+      table.string('note_id').primary()
+      table.binary('embedding').notNullable() // 使用 binary 类型存储向量数据
+      table.text('keywords').nullable() // 添加 keywords 字段，使用 text 类型存储 JSON 字符串
+      table.integer('created_at').notNullable()
+      table.integer('updated_at').notNullable()
+      table.string('model_version').notNullable().defaultTo('minilm-l6-v2')
+
+      // 外键约束
+      table.foreign('note_id').references('notes.id').onDelete('CASCADE')
+
+      // 索引
+      table.index('updated_at')
+      table.index(['note_id', 'updated_at'])
+      table.index('keywords') // 可选：如果需要按关键词搜索，可以添加索引
+    })
+    console.log('note_embeddings 表创建成功')
+  }
+
+  // 如果表已存在但需要添加 keywords 字段，可以添加以下代码
+  else if (!(await db.schema.hasColumn('note_embeddings', 'keywords'))) {
+    await db.schema.alterTable('note_embeddings', (table) => {
+      table.text('keywords').nullable()
+      table.index('keywords')
+    })
+    console.log('note_embeddings 表添加 keywords 字段成功')
+  }
+
+  // 创建 dictionary 表
+  if (!(await db.schema.hasTable('dictionary'))) {
+    await db.schema.createTable('dictionary', (table) => {
+      table.string('word').primary()
+      table.float('weight').notNullable()
+      table.integer('frequency').notNullable().defaultTo(0)
+      table.integer('documents').notNullable().defaultTo(0)
+      table.bigInteger('lastSeen').notNullable()
+      table.json('cooccurrences').notNullable().defaultTo('{}')
+      table.enum('source', ['auto', 'manual']).notNullable().defaultTo('auto')
+      table.boolean('enabled').notNullable().defaultTo(true)
+      table.timestamp('createdAt').notNullable().defaultTo(db.fn.now())
+      table.timestamp('updatedAt').notNullable().defaultTo(db.fn.now())
+
+      // 索引
+      table.index('frequency')
+      table.index('lastSeen')
+      table.index(['enabled', 'frequency'])
+      table.index(['source', 'lastSeen'])
+    })
+    console.log('dictionary 表创建成功')
+  }
+
+  // 创建 dictionary_suggestions 表
+  if (!(await db.schema.hasTable('dictionary_suggestions'))) {
+    await db.schema.createTable('dictionary_suggestions', (table) => {
+      table.string('word').primary()
+      table.float('weight').notNullable()
+      table.float('score').notNullable()
+      table.json('reason').notNullable()
+      table.enum('status', ['pending', 'accepted', 'rejected']).notNullable().defaultTo('pending')
+      table.timestamp('createdAt').notNullable().defaultTo(db.fn.now())
+      table.timestamp('processedAt').nullable()
+
+      // 索引
+      table.index(['status', 'score'])
+      table.index('createdAt')
+    })
+    console.log('dictionary_suggestions 表创建成功')
+  }
+
+  // 创建 dictionary_categories 表
+  if (!(await db.schema.hasTable('dictionary_categories'))) {
+    await db.schema.createTable('dictionary_categories', (table) => {
+      table.string('id').primary()
+      table.string('name').notNullable().unique()
+      table.string('description').nullable()
+      table.boolean('enabled').notNullable().defaultTo(true)
+      table.integer('order').nullable()
+      table.timestamp('createdAt').notNullable().defaultTo(db.fn.now())
+      table.timestamp('updatedAt').notNullable().defaultTo(db.fn.now())
+
+      // 索引
+      table.index(['enabled', 'order'])
+    })
+    console.log('dictionary_categories 表创建成功')
+
+    // 插入默认分类
+    await db('dictionary_categories').insert([
+      {
+        id: uuidv4(),
+        name: '核心术语',
+        description: '领域核心概念和术语',
+        order: 1
+      },
+      {
+        id: uuidv4(),
+        name: '评估指标',
+        description: '评估和度量相关术语',
+        order: 2
+      },
+      {
+        id: uuidv4(),
+        name: '方法论',
+        description: '方法和流程相关术语',
+        order: 3
+      }
+    ])
+    console.log('dictionary_categories 默认数据创建成功')
+  }
+
+  // 创建 word_category_relations 表
+  if (!(await db.schema.hasTable('word_category_relations'))) {
+    await db.schema.createTable('word_category_relations', (table) => {
+      table.string('word').notNullable()
+      table.string('categoryId').notNullable()
+      table.timestamp('createdAt').notNullable().defaultTo(db.fn.now())
+
+      // 复合主键
+      table.primary(['word', 'categoryId'])
+
+      // 外键约束
+      table.foreign('word').references('dictionary.word').onDelete('CASCADE')
+      table.foreign('categoryId').references('dictionary_categories.id').onDelete('CASCADE')
+
+      // 索引
+      table.index('word')
+      table.index('categoryId')
+    })
+    console.log('word_category_relations 表创建成功')
+  }
 }
 
 export async function down(db: Knex): Promise<void> {
@@ -318,5 +446,10 @@ export async function down(db: Knex): Promise<void> {
   await db.schema.dropTableIfExists('user_settings') // 添加这一行
   await db.schema.dropTableIfExists('filter_rules')
   await db.schema.dropTableIfExists('custom_filters')
+  await db.schema.dropTableIfExists('note_embeddings')
+  await db.schema.dropTableIfExists('word_category_relations')
+  await db.schema.dropTableIfExists('dictionary_suggestions')
+  await db.schema.dropTableIfExists('dictionary_categories')
+  await db.schema.dropTableIfExists('dictionary')
   console.log('所有表已删除')
 }

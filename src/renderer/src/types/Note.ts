@@ -3,32 +3,6 @@
 // 定义卡片类型
 export type CardType = 'Maincard' | 'Bibcard' | 'Indexcard' | 'Hoplinkcard'
 
-// 关键词接口
-export interface Keyword {
-  word: string
-  weight: number
-}
-
-// 相关笔记接口（扩展 Note 接口）
-export interface RelatedNote extends Note {
-  similarity: number
-  matchType?: 'keyword' | 'semantic' | 'hybrid' | 'error'
-}
-
-// 相关笔记查询结果接口
-export interface RelatedNotesResult {
-  success: boolean
-  notes: RelatedNote[]
-  error?: string // 添加可选的错误信息字段
-  totalProcessed?: number // 添加这个可选属性
-  stats?: {
-    keywordMatches: number
-    semanticMatches: number
-    hybridMatches: number
-    errors: number
-  }
-}
-
 // 卡片笔记
 export interface Note {
   [key: string]: any // 添加这行，允许字符串索引
@@ -61,10 +35,6 @@ export interface Note {
   isStarred?: boolean
   starredOrder?: number
   rightBarOrder?: number
-
-  // 语义相关
-  keywords?: Keyword[] // 存储提取的关键词
-  semanticVector?: number[] // 存储文本的语义向量
 
   // 元数据
   metadata?: {
@@ -324,4 +294,38 @@ export interface ConnectionUpdateData {
   startPoint?: { x: number; y: number }
   endPoint?: { x: number; y: number }
   description?: string
+}
+
+// 向量存储接口
+export interface NoteEmbedding {
+  note_id: string
+  embedding: Buffer
+  created_at: number
+  updated_at: number
+  model_version: string
+}
+
+// 向量搜索结果
+export interface VectorSearchResult {
+  noteId: string
+  score: number // 相似度分数
+  distance: number // 向量距离
+}
+
+// 向量搜索参数
+export interface VectorSearchParams {
+  query: string
+  limit?: number
+  threshold?: number // 相似度阈值
+  includeContent?: boolean // 是否包含笔记内容
+}
+
+// 向量搜索响应
+export interface VectorSearchResponse {
+  results: VectorSearchResult[]
+  timing?: {
+    vectorization: number
+    search: number
+    total: number
+  }
 }

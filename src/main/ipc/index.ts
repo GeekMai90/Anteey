@@ -6,6 +6,8 @@ import { setupConnectionsHandlers } from './connectionsIpcHandlers'
 import { setupImageHandlers } from './imageIpcHandlers'
 import { setupTagHandlers } from './tagIpcHandlers'
 import { setupFilterHandlers } from './filterIpcHandlers'
+import { setupEmbeddingHandlers } from './embeddingIpcHandlers'
+import { setupDictionaryHandlers } from './dictionaryIpcHandlers'
 
 export function setupIpcHandlers() {
   setupNotesHandlers()
@@ -16,4 +18,6 @@ export function setupIpcHandlers() {
   setupImageHandlers()
   setupTagHandlers()
   setupFilterHandlers()
+  setupEmbeddingHandlers()
+  setupDictionaryHandlers()
 }
