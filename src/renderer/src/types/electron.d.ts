@@ -22,7 +22,7 @@ import { UpdateUserSettings, UserSettings } from './UserSettings'
 import { CreateCustomFilterInput, CustomFilter, UpdateCustomFilterInput } from './Filter'
 import { WordSuggestion } from '../../../db/dictionaryService'
 import { DictWord } from '../../../db/dictionaryService'
-import { RAGContext } from './RAG'
+import { RAGContext } from './assistant'
 
 export interface ElectronAPI {
   createNote: () => Promise<Note>
@@ -256,7 +256,7 @@ export interface ElectronAPI {
 
   // RAG 相关的方法
   retrieveContext: (query: string) => Promise<RAGContext>
-  generateAnswer: (query: string) => Promise<string>
+  generateAnswer: (query: string) => Promise<{ answer: string; context: RAGContext }>
   getHistory: (limit?: number) => Promise<RAGContext[]>
 }
 

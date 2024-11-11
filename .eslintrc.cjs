@@ -15,6 +15,7 @@ module.exports = {
     'vue/multi-word-component-names': 'off',
     'vue/attribute-hyphenation': 'off',
     'vue/v-on-event-hyphenation': 'off',
-    '@typescript-eslint/no-explicit-any': 'off'
+    '@typescript-eslint/no-explicit-any': 'off',
+    'vue/no-v-html': 'off'
   }
 }

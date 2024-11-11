@@ -16,11 +16,11 @@ export const ragApi = {
   },
 
   // 生成 AI 回答
-  generateAnswer: async (query: string): Promise<string> => {
+  generateAnswer: async (query: string): Promise<{ answer: string; context: RAGContext }> => {
     try {
       const result = await ipcRenderer.invoke('generate-answer', query)
       if (!result.success) throw new Error(result.error)
-      return result.answer
+      return result
     } catch (error) {
       console.error('预加载脚本 → 生成回答失败:', error)
       throw error

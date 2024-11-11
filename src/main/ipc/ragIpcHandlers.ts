@@ -18,8 +18,8 @@ export function setupRAGHandlers() {
   // 生成 AI 回答
   ipcMain.handle('generate-answer', async (_event, query: string) => {
     try {
-      const answer = await generateAnswer(query)
-      return { success: true, answer }
+      const { answer, context } = await generateAnswer(query)
+      return { success: true, answer, context }
     } catch (error) {
       log.error('主进程→ 生成回答失败:', error)
       return { success: false, error: String(error) }

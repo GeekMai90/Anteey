@@ -723,10 +723,23 @@ export async function updateNoteContent(id: string, content: object): Promise<No
           // 设置事务超时
           await trx.raw('PRAGMA busy_timeout = 5000;')
 
+          // 1. 提取第一行文本作为标题
+          const firstLineText = extractFirstLineText(content)
+
           // 1. 准备更新数据
           const updateData: any = {
             content: JSON.stringify(content),
-            updatedAt: new Date()
+            updatedAt: new Date(),
+            // 更新或创建 metadata，保留其他 metadata 字段
+            metadata: db.raw(
+              `
+              json_patch(
+                COALESCE(metadata, '{}'),
+                json_object('title', ?)
+              )
+            `,
+              [firstLineText]
+            )
           }
 
           // 4. 执行更新并返回更新后的笔记
@@ -762,6 +775,14 @@ export async function updateNoteContent(id: string, content: object): Promise<No
   }
 
   throw new Error('更新笔记内容失败: 达到最大重试次数')
+}
+
+// 添加提取第一行文本的辅助函数
+function extractFirstLineText(content: any): string {
+  if (content?.content?.[0]?.content?.[0]?.text) {
+    return content.content[0].content[0].text
+  }
+  return '无标题'
 }
 
 export async function updateNote(id: string, updateNoteDto: Partial<Note>): Promise<Note> {

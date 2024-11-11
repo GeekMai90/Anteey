@@ -3,7 +3,7 @@
 import { db } from './config'
 import { initEmbeddings } from './embeddingService'
 import log from 'electron-log'
-import { RAGContext, RAGResult } from '../renderer/src/types/RAG'
+import { RAGContext, RAGResult } from '../renderer/src/types/assistant'
 import { v4 as uuidv4 } from 'uuid'
 import { LLMService } from '../services/llmService'
 import { SimilarityService } from './utils/calculateSimilarity'
@@ -14,16 +14,19 @@ const llm = new LLMService(process.env.ZHIPU_API_KEY || '')
 
 // 将数据库结果转换为前端需要的格式
 function transformDBResult(result: any): RAGResult {
+  // 解析 metadata 字符串为对象
+  const metadata = result.metadata ? JSON.parse(result.metadata) : {}
   return {
     noteId: result.id,
-    title: result.title,
+    address: result.address,
+    title: metadata.title,
     content: result.content,
     similarity: result.similarity,
     createdAt: new Date(Number(result.createdAt)).toISOString()
   }
 }
 
-export async function retrieveContext(query: string, limit: number = 3): Promise<RAGContext> {
+export async function retrieveContext(query: string, limit: number = 5): Promise<RAGContext> {
   try {
     // 1. 初始化向量模型并生成查询向量
     const embedder = await initEmbeddings()
@@ -43,7 +46,7 @@ export async function retrieveContext(query: string, limit: number = 3): Promise
       总数: notes.length,
       示例: notes.slice(0, 2).map((n) => ({
         id: n.id,
-        title: n.title,
+        title: n.metadata?.title,
         content: n.content?.substring(0, 50) + '...',
         hasEmbedding: !!n.embedding,
         keywords: n.keywords
@@ -70,7 +73,7 @@ export async function retrieveContext(query: string, limit: number = 3): Promise
 
           log.debug('相似度计算:', {
             笔记ID: note.id,
-            标题: note.title,
+            标题: note.metadata?.title,
             相似度: similarity
           })
 
@@ -84,7 +87,7 @@ export async function retrieveContext(query: string, limit: number = 3): Promise
         }
       })
       .filter((result): result is NonNullable<typeof result> => {
-        const SIMILARITY_THRESHOLD = 0.15
+        const SIMILARITY_THRESHOLD = 0.2
         return result !== null && result.similarity > SIMILARITY_THRESHOLD
       })
       .sort((a, b) => b.similarity - a.similarity)
@@ -92,6 +95,7 @@ export async function retrieveContext(query: string, limit: number = 3): Promise
 
     // 4. 转换结果
     const relevantDocs = results.map(transformDBResult)
+    console.log('relevantDocs', relevantDocs)
 
     log.info('RAG检索结果:', {
       查询: query,
@@ -147,7 +151,10 @@ export async function getRAGHistory(limit: number = 10): Promise<RAGContext[]> {
   }
 }
 
-export async function generateAnswer(query: string): Promise<string> {
+export async function generateAnswer(query: string): Promise<{
+  answer: string
+  context: RAGContext
+}> {
   try {
     // 1. 获取相关上下文
     const context = await retrieveContext(query)
@@ -156,15 +163,19 @@ export async function generateAnswer(query: string): Promise<string> {
     const prompt = buildPrompt(query, context)
 
     // 3. 调用大模型
-    const response = await llm.generateResponse(prompt)
+    const answer = await llm.generateResponse(prompt)
 
     // 4. 保存历史记录
     await saveRAGHistory({
       ...context,
-      response: response
+      response: answer
     })
 
-    return response
+    // 5. 返回答案和上下文
+    return {
+      answer,
+      context
+    }
   } catch (error) {
     log.error('生成回答失败:', error)
     throw error
@@ -178,16 +189,50 @@ function buildPrompt(query: string, context: RAGContext): string {
     .join('\n\n')
 
   return `
-请基于以下笔记内容回答用户的问题：
+# Role: RAG 笔记应用的 AI 助手安安
 
+## Profile
+-  description: 为用户提供基于笔记库和自身知识的智能问答服务
+
+## Background
+你的名字叫安安，是一位美丽、温柔、善良的笔记应用的 AI 助手，通过检索笔记库的内容来回答问题。助手需要在有相关笔记时优先使用笔记内容，并在没有相关笔记时利用自身知识进行回答。
+
+## Goals
+1. 检索用户笔记库中与问题相关的笔记
+2. 优先使用相关笔记内容进行回答
+3. 在无相关笔记时，基于自身知识进行回答
+4. 提供简洁清晰的回答，不提及信息来源
+
+## Constraints
+1. 回答时不提及“根据相关笔记”或“没有相关笔记”的字样
+2. 回答必须简洁清晰，通俗易懂
+3. 在检索笔记时，确保隐私和数据安全
+
+## Skills
+1. 高效的笔记检索能力
+2. 自然语言理解与生成能力
+3. 知识整合与补充能力
+
+## Workflows
+1. 接收用户问题
+2. 检索笔记库中相关的笔记
+3. 如果有相关笔记，提取并整合笔记内容
+4. 如果无相关笔记，基于自身知识生成回答
+5. 提供简洁清晰的回答
+
+## 格式
+以 markdown 格式输出:
+- **加粗**
+- *斜体*
+- \`代码\`
+- 列表
+- 引用
+- 代码块（使用 \`\`\` 包裹）
+
+## 上下文
 ${contextText}
 
-用户问题：${query}
-
-要求：
-1. 仅使用提供的笔记内容作为信息来源
-2. 如果笔记内容不足以完整回答问题，请明确说明
-3. 回答要简洁清晰
-4. 必要时可以引用具体的笔记内容作为依据
+## 问题
+${query}
 `
 }

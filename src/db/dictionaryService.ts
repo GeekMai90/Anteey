@@ -106,9 +106,21 @@ export async function saveWords(
 }
 
 // 获取词典
+// export async function getDictionary(): Promise<DictWord[]> {
+//   try {
+//     const words = await db('dictionary').where('enabled', true).orderBy('frequency', 'desc')
+
+//     return words.map(convertCooccurrences)
+//   } catch (error) {
+//     log.error('获取词典失败:', error)
+//     throw error
+//   }
+// }
 export async function getDictionary(): Promise<DictWord[]> {
   try {
-    const words = await db('dictionary').where('enabled', true).orderBy('frequency', 'desc')
+    const words = await db.transaction(async (trx) => {
+      return await trx('dictionary').where('enabled', true).orderBy('frequency', 'desc')
+    })
 
     return words.map(convertCooccurrences)
   } catch (error) {
