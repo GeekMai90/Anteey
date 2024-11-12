@@ -434,20 +434,35 @@ export async function initDatabase(db: Knex): Promise<void> {
   }
 
   // 创建 rag_history 表
+  // 创建 rag_history 表
+  // 修改 rag_history 表结构
   if (!(await db.schema.hasTable('rag_history'))) {
     await db.schema.createTable('rag_history', (table) => {
       table.string('id').primary()
-      table.text('query').notNullable() // 用户的查询内容
-      table.json('context').notNullable() // 检索到的上下文
-      table.json('response').nullable() // AI 的回复内容
-      table.float('relevanceScore').nullable() // 相关性得分
-      table.integer('tokenCount').nullable() // 使用的 token 数量
+      table.string('title').nullable() // 对话标题
+      table.json('messages').notNullable() // 存储完整的对话消息数组
+      table.json('contexts').notNullable() // 存储每次对话的上下文数组
+      table.string('summary').nullable() // 对话摘要
+      table.integer('totalTokens').nullable() // 总 token 数
+      table
+        .json('metadata')
+        .notNullable()
+        .defaultTo(
+          JSON.stringify({
+            messageCount: 0,
+            userMessageCount: 0,
+            aiMessageCount: 0,
+            averageRelevanceScore: 0
+          })
+        ) // 元数据
+      table.boolean('isPinned').defaultTo(false) // 是否置顶
       table.datetime('createdAt').notNullable()
       table.datetime('updatedAt').notNullable()
 
       // 索引
       table.index('createdAt')
-      table.index(['createdAt', 'relevanceScore'])
+      table.index('isPinned')
+      table.index(['isPinned', 'createdAt']) // 组合索引用于排序查询
     })
     console.log('rag_history 表创建成功')
   }

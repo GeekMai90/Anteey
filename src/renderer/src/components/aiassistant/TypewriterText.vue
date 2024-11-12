@@ -1,13 +1,12 @@
 <template>
   <div class="typewriter markdown-body">
-    <template v-for="(segment, index) in segments" :key="index">
-      <div class="segment">
-        <div
-          v-if="segment.length <= 15 || index < currentSegment"
-          v-html="renderMarkdown(segment)"
-        />
-        <div v-else-if="index === currentSegment" v-html="renderMarkdown(displayText)" />
-      </div>
+    <template v-if="instant">
+      <!-- 完整内容直接渲染 -->
+      <div class="segment" v-html="renderedContent" />
+    </template>
+    <template v-else>
+      <!-- 打字机效果 -->
+      <div class="segment" v-html="renderMarkdown(accumulatedText)" />
     </template>
   </div>
 </template>
@@ -32,7 +31,14 @@ marked.setOptions({
 
 const props = defineProps<{
   content: string
+  instant?: boolean
 }>()
+
+const emit = defineEmits(['complete', 'segmentComplete'])
+
+// 状态
+const accumulatedText = ref('')
+const isComplete = ref(false)
 
 // 安全地渲染 Markdown
 const renderMarkdown = (text: string) => {
@@ -40,102 +46,51 @@ const renderMarkdown = (text: string) => {
   return DOMPurify.sanitize(html as string)
 }
 
-// 将内容按句子分段，保留 Markdown 格式
-// 将内容按句子分段，保留 Markdown 格式和列表完整性
-// const segments = computed(() => {
-//   const lines = props.content.split('\n')
-//   const result: string[] = []
-//   let currentSegment = ''
-
-//   for (let i = 0; i < lines.length; i++) {
-//     const line = lines[i]
-
-//     // 如果是列表项，与下一行合并
-//     if (/^\d+\.\s/.test(line)) {
-//       currentSegment = line
-//       // 查找并合并列表项的内容
-//       while (i + 1 < lines.length && lines[i + 1] && !lines[i + 1].match(/^\d+\.\s/)) {
-//         currentSegment += '\n' + lines[i + 1]
-//         i++
-//       }
-//       result.push(currentSegment)
-//     }
-//     // 普通段落按句号分割
-//     else {
-//       const sentences = line.split(/([。！？.!?\n]+)(?![^[]*\]|\*\*|`)/g).filter(Boolean)
-
-//       for (let j = 0; j < sentences.length; j += 2) {
-//         const sentence = sentences[j] + (sentences[j + 1] || '')
-//         if (sentence.trim()) {
-//           result.push(sentence)
-//         }
-//       }
-//     }
-//   }
-
-//   return result
-// })
-// 将内容按句子分段，保留 Markdown 格式
-const segments = computed(() => {
-  const lines = props.content.split('\n')
-  const result: string[] = []
-  let currentSegment = ''
-
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i]
-
-    // 如果是列表项，与下一行合并
-    if (/^[0-9-*]\.\s/.test(line)) {
-      currentSegment = line
-      // 查找并合并列表项的内容
-      while (i + 1 < lines.length && lines[i + 1] && !lines[i + 1].match(/^[0-9-*]\.\s/)) {
-        currentSegment += '\n' + lines[i + 1]
-        i++
-      }
-      result.push(currentSegment)
-    }
-    // 普通段落按中文或英文的句号、问号、感叹号分割
-    else {
-      const sentences = line
-        .split(/([。！？.!?]+["""'']*)/)
-        .filter(Boolean)
-        .reduce((acc: string[], cur, i, arr) => {
-          if (i % 2 === 0) {
-            // 如果是最后一个片段，且不是完整句子，就与前一个合并
-            if (i === arr.length - 1 && !cur.match(/[。！？.!?]/)) {
-              if (acc.length > 0) {
-                acc[acc.length - 1] += cur
-              } else {
-                acc.push(cur)
-              }
-            } else {
-              acc.push(cur + (arr[i + 1] || ''))
-            }
-          }
-          return acc
-        }, [])
-
-      result.push(...sentences.filter((s) => s.trim()))
-    }
-  }
-
-  return result
+// 缓存完整渲染结果
+const renderedContent = computed(() => {
+  return renderMarkdown(props.content)
 })
 
-const emit = defineEmits(['complete', 'segmentComplete']) // 添加新的事件
-const currentSegment = ref(0)
-const displayText = ref('')
+// 分段逻辑
+const segments = computed(() => {
+  const text = props.content
+  // 按句子分割，但保持段落结构
+  return text
+    .split(/([。！？.!?]+["""'']*)/)
+    .filter(Boolean)
+    .reduce((acc: string[], cur, i, arr) => {
+      if (i % 2 === 0) {
+        if (i === arr.length - 1 && !cur.match(/[。！？.!?]/)) {
+          if (acc.length > 0) {
+            acc[acc.length - 1] += cur
+          } else {
+            acc.push(cur)
+          }
+        } else {
+          acc.push(cur + (arr[i + 1] || ''))
+        }
+      }
+      return acc
+    }, [])
+    .filter((s) => s.trim())
+})
 
-const typeSegment = (text: string) => {
+// 打字效果
+const typeSegment = (text: string, startFrom: number) => {
   return new Promise<void>((resolve) => {
-    let index = 0
-    const speed = 10
+    let index = startFrom
+    const getTypeSpeed = (char: string) => {
+      if (char.match(/[，。！？,.!?]/)) {
+        return 50
+      }
+      return 10
+    }
 
     const type = () => {
       if (index < text.length) {
-        displayText.value = text.slice(0, index + 1)
+        accumulatedText.value = text.slice(0, index + 1)
         index++
-        setTimeout(type, speed)
+        setTimeout(type, getTypeSpeed(text[index - 1]))
       } else {
         resolve()
       }
@@ -144,27 +99,23 @@ const typeSegment = (text: string) => {
   })
 }
 
-// 统一的更新函数
-// 更新的更新函数
+// 更新逻辑
 const updateText = async () => {
-  for (let i = 0; i < segments.value.length; i++) {
-    currentSegment.value = i
-    const segment = segments.value[i]
+  isComplete.value = false
+  accumulatedText.value = ''
+  let startIndex = 0
 
-    if (segment.length > 15) {
-      displayText.value = ''
-      await typeSegment(segment)
-    } else {
-      displayText.value = segment
-    }
-
-    // 每个段落完成后触发事件
+  for (const segment of segments.value) {
+    // 计算新的文本长度
+    const newText = startIndex === 0 ? segment : accumulatedText.value + segment
+    // 从上一次结束的位置开始打字
+    await typeSegment(newText, startIndex)
+    startIndex = newText.length
     emit('segmentComplete')
-
-    await new Promise((resolve) => setTimeout(resolve, 100))
+    await new Promise((resolve) => setTimeout(resolve, 150))
   }
 
-  // 所有段落完成后发出完成事件
+  isComplete.value = true
   emit('complete')
 }
 
@@ -172,10 +123,15 @@ const updateText = async () => {
 watch(
   () => props.content,
   () => {
-    currentSegment.value = 0
-    displayText.value = ''
-    if (props.content) {
-      updateText()
+    if (props.instant) {
+      isComplete.value = true
+      accumulatedText.value = props.content
+    } else {
+      isComplete.value = false
+      accumulatedText.value = ''
+      if (props.content) {
+        updateText()
+      }
     }
   },
   { immediate: true }
@@ -191,6 +147,7 @@ watch(
 .markdown-body p {
   margin: 0;
   line-height: 1.8;
+  margin-bottom: 0.5em;
 }
 
 .markdown-body code {

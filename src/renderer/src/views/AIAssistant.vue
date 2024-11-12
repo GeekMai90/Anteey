@@ -3,19 +3,12 @@
     <!-- 添加 AppToolbar -->
     <AppToolbar :showBackButton="true" :showForwardButton="true" />
     <!-- 顶部栏 - 固定 -->
-    <div v-if="currentMode || messages.length > 0" class="top-bar">
-      <div class="assistant-info">
-        <img src="@resources/avatar.png" alt="安安" class="assistant-avatar" />
-        <div class="assistant-name">安安</div>
+    <!-- 更多按钮 - 固定在右上角 -->
+    <button class="float-menu-btn" @click="toggleHistoryPanel">
+      <div class="icon">
+        <More theme="outline" size="18" />
       </div>
-      <div class="top-actions">
-        <button class="top-action-btn menu-btn">
-          <div class="icon">
-            <More theme="outline" size="18" />
-          </div>
-        </button>
-      </div>
-    </div>
+    </button>
 
     <!-- 消息区域 - 可滚动 -->
     <div ref="messagesContainer" class="messages-container">
@@ -87,27 +80,39 @@
                 <TypewriterText
                   :key="msg.id"
                   :content="msg.content"
+                  :instant="isHistoryMessage || showHistoryPanel"
                   @complete="onTypewriterComplete"
                   @segment-complete="onSegmentComplete"
                 />
                 <!-- 引用信息区域 -->
                 <div class="message-references">
-                  <button
-                    class="reference-btn"
-                    :class="{ active: expandedMessageId === msg.id }"
-                    @click="toggleReferences(msg.id)"
-                  >
-                    <component
-                      :is="msg.sourceType === 'notes' ? Notes : Brain"
-                      theme="outline"
-                      size="14"
-                    />
-                    {{
-                      msg.sourceType === 'notes'
-                        ? `引用 ${msg.references?.length} 篇笔记作为参考`
-                        : '基于 AI 知识库'
-                    }}
-                  </button>
+                  <div class="references-header">
+                    <button
+                      class="reference-btn"
+                      :class="{ active: expandedMessageId === msg.id }"
+                      @click="toggleReferences(msg.id)"
+                    >
+                      <component
+                        :is="msg.sourceType === 'notes' ? Notes : Brain"
+                        theme="outline"
+                        size="14"
+                      />
+                      {{
+                        msg.sourceType === 'notes'
+                          ? `引用 ${msg.references?.length} 篇笔记作为参考`
+                          : '基于 AI 知识库'
+                      }}
+                    </button>
+
+                    <!-- 添加复制按钮 -->
+                    <button
+                      v-tooltip.top="'复制内容'"
+                      class="copy-btn"
+                      @click="copyMessageContent(msg.content)"
+                    >
+                      <Copy theme="outline" size="14" />
+                    </button>
+                  </div>
 
                   <!-- 展开的引用列表 -->
                   <div v-if="expandedMessageId === msg.id" class="references-list">
@@ -122,6 +127,8 @@
                         v-for="reference in msg.references"
                         :key="reference.noteId"
                         class="reference-item"
+                        @click="handleReferenceClick($event, reference.noteId)"
+                        @dblclick.stop="handleReferenceDoubleClick(reference.noteId)"
                       >
                         <div class="reference-header">
                           <span class="reference-address">{{ reference.address }}</span>
@@ -196,6 +203,12 @@
         </div>
       </div>
     </div>
+    <!-- 历史面板 -->
+    <AIChatHistoryPanel
+      :show="showHistoryPanel"
+      @close="showHistoryPanel = false"
+      @new-chat="startNewChat"
+    />
   </div>
 </template>
 <script setup lang="ts">
@@ -210,14 +223,19 @@ import {
   Code,
   Link,
   Send,
-  More
+  More,
+  Copy
 } from '@icon-park/vue-next'
 import type { Suggestion } from '@renderer/types/assistant'
 import TypewriterText from '@renderer/components/aiassistant/TypewriterText.vue'
 import { Vue3Lottie } from 'vue3-lottie'
 import loadingAnimation from '@renderer/assets/loading.json'
 import AppToolbar from '@renderer/components/layout/AppToolbar.vue'
-
+import { useNoteStore } from '@renderer/stores/noteStores'
+import { useUIStore } from '@renderer/stores/useUIStore'
+import { useRouter } from 'vue-router'
+import { message } from '@renderer/utils/message'
+import AIChatHistoryPanel from '@renderer/components/aiassistant/AIChatHistoryPanel.vue'
 // Store
 const assistantStore = useAssistantStore()
 const { messages, isProcessing } = storeToRefs(assistantStore)
@@ -226,6 +244,59 @@ const { messages, isProcessing } = storeToRefs(assistantStore)
 const inputMessage = ref('')
 const messagesContainer = ref<HTMLElement | null>(null)
 const currentMode = ref<Suggestion | null>(null)
+const noteStore = useNoteStore()
+const uiStore = useUIStore()
+const router = useRouter()
+
+const showHistoryPanel = ref(false)
+
+// 判断是否是历史消息
+// const isHistoryMessage = computed((): boolean => {
+//   // 如果是在加载历史记录时的消息，则为 true
+//   if (assistantStore.isLoadingHistory) {
+//     return true
+//   }
+
+//   // 如果没有当前会话开始时间，说明是新会话，显示打字机效果
+//   if (!assistantStore.currentSessionStartTime) {
+//     return false
+//   }
+
+//   // 比较消息的时间戳
+//   return (
+//     messages.value[messages.value.length - 1].timestamp < assistantStore.currentSessionStartTime
+//   )
+// })
+const isHistoryMessage = computed((): boolean => {
+  // 如果历史面板打开，直接返回 true
+  if (showHistoryPanel.value) {
+    return true
+  }
+
+  // 如果是在加载历史记录时的消息，则为 true
+  if (assistantStore.isLoadingHistory) {
+    return true
+  }
+
+  // 如果没有消息，返回 false
+  if (messages.value.length === 0) {
+    return false
+  }
+
+  // 如果没有当前会话开始时间，说明是新会话
+  if (!assistantStore.currentSessionStartTime) {
+    return false
+  }
+
+  // 获取最后一条消息的时间戳
+  const lastMessageTimestamp = messages.value[messages.value.length - 1].timestamp
+  return lastMessageTimestamp < assistantStore.currentSessionStartTime
+})
+
+// 修改 toggleHistoryPanel 方法
+const toggleHistoryPanel = () => {
+  showHistoryPanel.value = !showHistoryPanel.value
+}
 
 // 建议列表
 const suggestions: Suggestion[] = [
@@ -370,6 +441,39 @@ const onTypewriterComplete = () => {
     scrollToBottom()
   })
 }
+
+// 处理引用点击事件
+const handleReferenceClick = (event: MouseEvent, noteId: string) => {
+  // Command/Ctrl + 点击: 在展开编辑器中打开
+  if (event.metaKey || event.ctrlKey) {
+    router.push({ name: 'NoteExpandEditor', params: { id: noteId } })
+    return
+  }
+
+  // Alt + 点击: 在右侧边栏打开
+  if (event.altKey) {
+    noteStore.addNoteToRightSidebar(noteId)
+    uiStore.openRightSidebarWithTab('multi')
+    return
+  }
+}
+
+// 处理引用双击事件
+const handleReferenceDoubleClick = (noteId: string) => {
+  // 双击: 小窗打开
+  noteStore.openNoteEditor(noteId)
+}
+
+// 添加复制功能
+const copyMessageContent = async (content: string) => {
+  try {
+    await navigator.clipboard.writeText(content)
+    message.success('复制成功')
+  } catch (err) {
+    console.error('复制失败:', err)
+    message.error('复制失败')
+  }
+}
 </script>
 
 <style scoped lang="scss">
@@ -381,16 +485,40 @@ const onTypewriterComplete = () => {
   background: var(--color-bg-primary);
 }
 
-/* 顶部栏 - 固定 */
-.top-bar {
-  flex-shrink: 0;
-  padding: 0.75rem 1.25rem;
-  background: var(--color-bg-primary);
-  border-bottom: 1px solid var(--color-border);
-  z-index: 10;
+/* 添加新的浮动按钮样式 */
+.float-menu-btn {
+  position: fixed;
+  top: 40px;
+  right: 19px;
+  z-index: 100;
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: var(--color-hover-button);
+  }
+
+  .icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+
+    :deep(svg) {
+      width: 16px;
+      height: 16px;
+      color: var(--color-text-secondary);
+    }
+  }
 }
 
 .assistant-info {
@@ -475,7 +603,7 @@ const onTypewriterComplete = () => {
   flex: 1;
   overflow-y: auto;
   scroll-behavior: smooth;
-  padding: 0 2rem;
+  padding: 1rem 2rem;
 
   /* 确保内容居中 */
   display: flex;
@@ -695,9 +823,14 @@ const onTypewriterComplete = () => {
   padding: 12px;
   border-radius: 6px;
   background: var(--color-bg-primary);
+  cursor: pointer;
+  transition: background-color 0.2s ease;
 
   & + .reference-item {
     margin-top: 8px;
+  }
+  &:hover {
+    background: var(--color-hover-bg);
   }
 }
 
@@ -708,6 +841,37 @@ const onTypewriterComplete = () => {
   margin-bottom: 8px;
 }
 
+.references-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  .copy-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    color: var(--color-text-tertiary);
+    border-radius: 4px;
+    transition: all 0.2s ease;
+    opacity: 0; // 默认隐藏
+
+    &:hover {
+      background: var(--color-hover-bg);
+      color: var(--color-text-secondary);
+    }
+  }
+
+  &:hover {
+    .copy-btn {
+      opacity: 1; // hover 时显示
+    }
+  }
+}
+
 .reference-address {
   font-weight: 500;
   color: var(--color-text-primary);
@@ -716,6 +880,7 @@ const onTypewriterComplete = () => {
 .reference-similarity {
   font-size: 12px;
   color: var(--color-primary);
+  user-select: none;
 }
 
 .reference-content {
@@ -723,11 +888,13 @@ const onTypewriterComplete = () => {
   line-height: 1.5;
   color: var(--color-text-secondary);
   margin-bottom: 8px;
+  user-select: none;
 }
 
 .reference-meta {
   font-size: 12px;
   color: var(--color-text-tertiary);
+  user-select: none;
 }
 
 .ai-reference-tip {

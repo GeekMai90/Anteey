@@ -22,7 +22,7 @@ import { UpdateUserSettings, UserSettings } from './UserSettings'
 import { CreateCustomFilterInput, CustomFilter, UpdateCustomFilterInput } from './Filter'
 import { WordSuggestion } from '../../../db/dictionaryService'
 import { DictWord } from '../../../db/dictionaryService'
-import { RAGContext } from './assistant'
+import { ChatMessage, RAGContext, RAGHistoryRecord } from './assistant'
 
 export interface ElectronAPI {
   createNote: () => Promise<Note>
@@ -256,8 +256,35 @@ export interface ElectronAPI {
 
   // RAG 相关的方法
   retrieveContext: (query: string) => Promise<RAGContext>
-  generateAnswer: (query: string) => Promise<{ answer: string; context: RAGContext }>
-  getHistory: (limit?: number) => Promise<RAGContext[]>
+
+  generateAnswer: (
+    query: string,
+    sessionId: string | null,
+    currentMessages: ChatMessage[],
+    currentContexts: RAGContext[]
+  ) => Promise<{
+    answer: string
+    context: RAGContext
+    messages: ChatMessage[]
+  }>
+
+  updateRAGHistory: (params: {
+    sessionId: string
+    messages: ChatMessage[]
+    contexts: RAGContext[]
+  }) => Promise<void>
+
+  updateRAGHistoryTitle: (id: string, title: string) => Promise<void>
+
+  toggleRAGHistoryPin: (id: string) => Promise<void>
+
+  deleteRAGHistory: (id: string) => Promise<void>
+
+  clearAllRAGHistory: () => Promise<void>
+
+  getRAGHistory: () => Promise<RAGHistoryRecord[]>
+
+  getRAGHistoryDetail: (id: string) => Promise<RAGHistoryRecord | null>
 }
 
 declare global {
