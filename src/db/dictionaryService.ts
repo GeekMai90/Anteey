@@ -1,4 +1,5 @@
 // 词典服务
+import { Knex } from 'knex/types'
 import { db } from './config'
 import log from 'electron-log/renderer'
 
@@ -116,11 +117,24 @@ export async function saveWords(
 //     throw error
 //   }
 // }
-export async function getDictionary(): Promise<DictWord[]> {
+// export async function getDictionary(): Promise<DictWord[]> {
+//   try {
+//     const words = await db.transaction(async (trx) => {
+//       return await trx('dictionary').where('enabled', true).orderBy('frequency', 'desc')
+//     })
+
+//     return words.map(convertCooccurrences)
+//   } catch (error) {
+//     log.error('获取词典失败:', error)
+//     throw error
+//   }
+// }
+export async function getDictionary(trx?: Knex.Transaction): Promise<DictWord[]> {
   try {
-    const words = await db.transaction(async (trx) => {
-      return await trx('dictionary').where('enabled', true).orderBy('frequency', 'desc')
-    })
+    const dbConnection = trx || db
+    const words = await dbConnection('dictionary')
+      .where('enabled', true)
+      .orderBy('frequency', 'desc')
 
     return words.map(convertCooccurrences)
   } catch (error) {

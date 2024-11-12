@@ -3,7 +3,7 @@ import { db } from './config'
 import { NoteEmbedding } from '../renderer/src/types/Note'
 import log from 'electron-log'
 import { Knex } from 'knex/types'
-import { extractKeywordsAndLearn, calculateKeywordSimilarity } from './similarityService'
+import { extractKeywords, calculateKeywordSimilarity } from './similarityService'
 
 let embeddings: any = null
 
@@ -170,11 +170,15 @@ export async function updateNoteEmbedding(
       return
     }
 
-    // 并行处理向量生成和关键词提取
-    const [vector, keywords] = await Promise.all([
-      embedder(textContent),
-      extractKeywordsAndLearn(content)
-    ])
+    // 使用传入的事务对象进行关键词提取
+    const keywords = await extractKeywords(content, trx)
+    const vector = await embedder(textContent)
+
+    // // 并行处理向量生成和关键词提取
+    // const [vector, keywords] = await Promise.all([
+    //   embedder(textContent),
+    //   extractKeywordsAndLearn(content)
+    // ])
 
     const embedding = Buffer.from(new Float32Array(vector).buffer)
     const now = Math.floor(Date.now() / 1000)

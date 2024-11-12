@@ -13,7 +13,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { marked } from 'marked'
 import hljs from 'highlight.js'
 import 'highlight.js/styles/github-dark.css'
@@ -29,6 +29,7 @@ marked.setOptions({
   breaks: true,
   gfm: true
 } as any)
+
 const props = defineProps<{
   content: string
 }>()
@@ -120,6 +121,8 @@ const segments = computed(() => {
 
   return result
 })
+
+const emit = defineEmits(['complete', 'segmentComplete']) // 添加新的事件
 const currentSegment = ref(0)
 const displayText = ref('')
 
@@ -141,7 +144,9 @@ const typeSegment = (text: string) => {
   })
 }
 
-onMounted(async () => {
+// 统一的更新函数
+// 更新的更新函数
+const updateText = async () => {
   for (let i = 0; i < segments.value.length; i++) {
     currentSegment.value = i
     const segment = segments.value[i]
@@ -149,10 +154,32 @@ onMounted(async () => {
     if (segment.length > 15) {
       displayText.value = ''
       await typeSegment(segment)
+    } else {
+      displayText.value = segment
     }
+
+    // 每个段落完成后触发事件
+    emit('segmentComplete')
+
     await new Promise((resolve) => setTimeout(resolve, 100))
   }
-})
+
+  // 所有段落完成后发出完成事件
+  emit('complete')
+}
+
+// 监听内容变化
+watch(
+  () => props.content,
+  () => {
+    currentSegment.value = 0
+    displayText.value = ''
+    if (props.content) {
+      updateText()
+    }
+  },
+  { immediate: true }
+)
 </script>
 
 <style lang="scss">

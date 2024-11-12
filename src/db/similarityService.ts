@@ -7,6 +7,8 @@ import { writeFile } from 'fs/promises'
 import { DictionaryLearner } from './dictionaryLearner'
 import * as DictionaryService from './dictionaryService'
 import { TextProcessor } from './textProcessor'
+import { db } from './config'
+import { Knex } from 'knex/types'
 
 // 添加自定义词典
 const CUSTOM_DICT = `
@@ -56,8 +58,11 @@ export async function cleanupDictionary() {
 }
 
 // 在提取关键词时顺便学习
-export async function extractKeywordsAndLearn(content: any): Promise<Keyword[]> {
-  const keywords = extractKeywords(content)
+export async function extractKeywordsAndLearn(
+  content: any,
+  trx?: Knex.Transaction
+): Promise<Keyword[]> {
+  const keywords = extractKeywords(content, trx)
 
   // 先提取纯文本
   const text = TextProcessor.extractText(content)
@@ -82,7 +87,48 @@ let lastDictUpdate = 0
 const DICT_UPDATE_INTERVAL = 5 * 60 * 1000 // 5分钟更新一次词典
 
 // 更新词典内容
-async function updateCustomDict() {
+// async function updateCustomDict() {
+//   try {
+//     // 检查是否需要更新
+//     const now = Date.now()
+//     if (now - lastDictUpdate < DICT_UPDATE_INTERVAL) {
+//       return
+//     }
+
+//     // 获取数据库中的词典
+//     const dictWords = await DictionaryService.getDictionary()
+
+//     // 构建新的词典内容
+//     const dbDictContent = dictWords
+//       .map((word) => {
+//         // 根据来源和权重设置不同的基础分数
+//         const baseScore = word.source === 'manual' ? 12 : 10
+//         // 使用词频和文档数调整最终分数
+//         const score = Math.min(
+//           Math.round(baseScore * (1 + Math.log(word.frequency + word.documents))),
+//           15
+//         )
+//         return `${word.word} ${score}`
+//       })
+//       .join('\n')
+
+//     // 合并固定词典和数据库词典
+//     customDictContent = `${CUSTOM_DICT}\n\n# 数据库词典\n${dbDictContent}`
+
+//     // 写入临时文件并重新加载
+//     await writeFile(userDictPath, customDictContent, 'utf8')
+//     nodejieba.load({
+//       userDict: userDictPath
+//     })
+
+//     lastDictUpdate = now
+//     log.info('词典更新成功，当前词条数:', dictWords.length)
+//   } catch (error) {
+//     log.error('更新自定义词典失败:', error)
+//   }
+// }
+
+async function updateCustomDict(trx?: Knex.Transaction) {
   try {
     // 检查是否需要更新
     const now = Date.now()
@@ -90,34 +136,42 @@ async function updateCustomDict() {
       return
     }
 
-    // 获取数据库中的词典
-    const dictWords = await DictionaryService.getDictionary()
+    // 如果已有事务则使用现有事务，否则创建新事务
+    const operation = async (transaction: Knex.Transaction) => {
+      // 获取数据库中的词典
+      const dictWords = await DictionaryService.getDictionary(transaction)
 
-    // 构建新的词典内容
-    const dbDictContent = dictWords
-      .map((word) => {
-        // 根据来源和权重设置不同的基础分数
-        const baseScore = word.source === 'manual' ? 12 : 10
-        // 使用词频和文档数调整最终分数
-        const score = Math.min(
-          Math.round(baseScore * (1 + Math.log(word.frequency + word.documents))),
-          15
-        )
-        return `${word.word} ${score}`
+      // 构建新的词典内容
+      const dbDictContent = dictWords
+        .map((word) => {
+          const baseScore = word.source === 'manual' ? 12 : 10
+          const score = Math.min(
+            Math.round(baseScore * (1 + Math.log(word.frequency + word.documents))),
+            15
+          )
+          return `${word.word} ${score}`
+        })
+        .join('\n')
+
+      // 合并固定词典和数据库词典
+      customDictContent = `${CUSTOM_DICT}\n\n# 数据库词典\n${dbDictContent}`
+
+      // 写入临时文件并重新加载
+      await writeFile(userDictPath, customDictContent, 'utf8')
+      nodejieba.load({
+        userDict: userDictPath
       })
-      .join('\n')
 
-    // 合并固定词典和数据库词典
-    customDictContent = `${CUSTOM_DICT}\n\n# 数据库词典\n${dbDictContent}`
+      lastDictUpdate = now
+    }
 
-    // 写入临时文件并重新加载
-    await writeFile(userDictPath, customDictContent, 'utf8')
-    nodejieba.load({
-      userDict: userDictPath
-    })
+    if (trx) {
+      await operation(trx)
+    } else {
+      await db.transaction(operation)
+    }
 
-    lastDictUpdate = now
-    log.info('词典更新成功，当前词条数:', dictWords.length)
+    log.info('词典更新成功')
   } catch (error) {
     log.error('更新自定义词典失败:', error)
   }
@@ -229,10 +283,10 @@ function preProcessText(text: string): string {
 }
 
 // 提取关键词
-export async function extractKeywords(content: any): Promise<Keyword[]> {
+export async function extractKeywords(content: any, trx?: Knex.Transaction): Promise<Keyword[]> {
   try {
     // 确保词典是最新的
-    await updateCustomDict()
+    await updateCustomDict(trx)
     const text = extractText(content)
     if (!text.trim()) return []
 
