@@ -6,7 +6,8 @@ import type {
   SystemMessage,
   RAGContext,
   RAGHistoryRecord,
-  AIAssistantMessage
+  AIAssistantMessage,
+  ChatSession
 } from '../types/assistant'
 import { v4 as uuidv4 } from 'uuid'
 
@@ -87,71 +88,376 @@ export const useAssistantStore = defineStore('assistant', () => {
 
   // 清空对话时重置会话ID
 
+  // 新增：会话追踪
+  const currentSession = ref<ChatSession | null>(null)
+  const performanceMetrics = ref<{
+    messageCount: number
+    averageResponseTime: number
+    errorCount: number
+  }>({
+    messageCount: 0,
+    averageResponseTime: 0,
+    errorCount: 0
+  })
+  // const sendMessage = async (content: string) => {
+  //   try {
+  //     isProcessing.value = true
+
+  //     // 1. 如果是新对话，生成新的会话ID
+  //     if (!currentSessionId.value) {
+  //       currentSessionId.value = uuidv4()
+  //     }
+
+  //     // 2. 立即添加用户消息
+  //     const userMessage: UserMessage = markRaw({
+  //       id: uuidv4(),
+  //       role: 'user',
+  //       content,
+  //       timestamp: Date.now()
+  //     })
+  //     messages.value.push(userMessage)
+
+  //     // 3. 准备发送给后端的数据 - 确保数据是可序列化的
+  //     const messagesToSend = JSON.parse(JSON.stringify(messages.value.slice(0, -1)))
+  //     const contextsToSend = JSON.parse(JSON.stringify(contexts.value))
+
+  //     // 4. 调用后端生成回答，传入 sessionId
+  //     const { context, answer } = await window.electronAPI.generateAnswer(
+  //       content,
+  //       currentSessionId.value,
+  //       messagesToSend,
+  //       contextsToSend
+  //     )
+
+  //     // 5. 添加AI回复
+  //     const assistantMessage: AIAssistantMessage = markRaw({
+  //       id: uuidv4(),
+  //       role: 'assistant',
+  //       content: answer,
+  //       timestamp: Date.now(),
+  //       sourceType: context.relevantDocs.length > 0 ? 'notes' : 'ai',
+  //       references: context.relevantDocs.length > 0 ? context.relevantDocs : undefined
+  //     })
+  //     messages.value.push(assistantMessage)
+
+  //     // 6. 更新上下文
+  //     currentContext.value = markRaw(context)
+  //     contexts.value = markRaw([...contexts.value, context]) as RAGContext[]
+
+  //     // 7. 更新历史记录 - 确保发送可序列化的数据
+  //     await window.electronAPI.updateRAGHistory({
+  //       sessionId: currentSessionId.value,
+  //       messages: JSON.parse(JSON.stringify(messages.value)),
+  //       contexts: JSON.parse(JSON.stringify(contexts.value))
+  //     })
+  //   } catch (error) {
+  //     console.error('发送消息失败:', error)
+  //     const errorMessage: SystemMessage = markRaw({
+  //       id: uuidv4(),
+  //       role: 'system',
+  //       content: '抱歉，生成回答时出现错误，请稍后重试。',
+  //       timestamp: Date.now()
+  //     })
+  //     messages.value.push(errorMessage)
+  //     throw error
+  //   } finally {
+  //     isProcessing.value = false
+  //   }
+  // }
+
+  // const sendMessage = async (content: string) => {
+  //   const startTime = performance.now()
+  //   try {
+  //     isProcessing.value = true
+
+  //     // 1. 会话管理
+  //     if (!currentSessionId.value) {
+  //       currentSessionId.value = uuidv4()
+  //       currentSession.value = {
+  //         id: currentSessionId.value,
+  //         messages: [],
+  //         currentContext: undefined,
+  //         metadata: {
+  //           startTime: new Date().toISOString(),
+  //           lastUpdateTime: new Date().toISOString(),
+  //           messageCount: 0,
+  //           hasReferences: false
+  //         }
+  //       }
+  //     }
+
+  //     // 2. 添加用户消息
+  //     const userMessage: UserMessage = markRaw({
+  //       id: uuidv4(),
+  //       role: 'user',
+  //       content,
+  //       timestamp: Date.now()
+  //     })
+  //     messages.value.push(userMessage)
+
+  //     // 3. 准备发送数据
+  //     const messagesToSend = JSON.parse(JSON.stringify(messages.value.slice(0, -1)))
+  //     const contextsToSend = JSON.parse(JSON.stringify(contexts.value))
+
+  //     // 4. 生成回答
+  //     // 4. 生成回答
+  //     const { context, answer } = await window.electronAPI.generateAnswer(
+  //       // 注意这里改用 ragApi
+  //       content, // 直接传递字符串
+  //       currentSessionId.value,
+  //       messagesToSend,
+  //       contextsToSend
+  //     )
+
+  //     // 5. 添加AI回复
+  //     const assistantMessage: AIAssistantMessage = markRaw({
+  //       id: uuidv4(),
+  //       role: 'assistant',
+  //       content: answer,
+  //       timestamp: Date.now(),
+  //       sourceType: context.relevantDocs.length > 0 ? 'notes' : 'ai',
+  //       references: context.relevantDocs.length > 0 ? context.relevantDocs : undefined
+  //     })
+  //     messages.value.push(assistantMessage)
+
+  //     // 6. 更新上下文
+  //     currentContext.value = markRaw(context)
+  //     contexts.value = markRaw([...contexts.value, context]) as RAGContext[]
+
+  //     // 7. 更新会话状态
+  //     if (currentSession.value) {
+  //       currentSession.value.messages = messages.value
+  //       currentSession.value.currentContext = currentContext.value
+  //       currentSession.value.metadata.messageCount += 2
+  //       currentSession.value.metadata.lastUpdateTime = new Date().toISOString()
+  //       currentSession.value.metadata.hasReferences = context.relevantDocs.length > 0
+  //     }
+
+  //     // 8. 更新历史记录
+  //     await window.electronAPI.updateRAGHistory({
+  //       sessionId: currentSessionId.value,
+  //       messages: JSON.parse(JSON.stringify(messages.value)),
+  //       contexts: JSON.parse(JSON.stringify(contexts.value)),
+  //       metadata: currentSession.value?.metadata
+  //     })
+
+  //     // 9. 更新性能指标
+  //     const duration = performance.now() - startTime
+  //     updatePerformanceMetrics(duration)
+
+  //     // 10. 记录性能数据
+  //     await window.electronAPI.trackRAGPerformance(
+  //       currentSessionId.value!,
+  //       'sendMessage',
+  //       duration,
+  //       {
+  //         success: true,
+  //         metadata: {
+  //           messageLength: content.length,
+  //           hasReferences: context.relevantDocs.length > 0
+  //         }
+  //       }
+  //     )
+  //   } catch (error) {
+  //     console.error('发送消息失败:', error)
+  //     const errorMessage: SystemMessage = markRaw({
+  //       id: uuidv4(),
+  //       role: 'system',
+  //       content: '抱歉，生成回答时出现错误，请稍后重试。',
+  //       timestamp: Date.now()
+  //     })
+  //     messages.value.push(errorMessage)
+
+  //     // 记录错误性能数据
+  //     const duration = performance.now() - startTime
+  //     performanceMetrics.value.errorCount++
+  //     await window.electronAPI.trackRAGPerformance(
+  //       currentSessionId.value!,
+  //       'sendMessage',
+  //       duration,
+  //       {
+  //         success: false,
+  //         error: String(error)
+  //       }
+  //     )
+
+  //     throw error
+  //   } finally {
+  //     isProcessing.value = false
+  //   }
+  // }
+
   const sendMessage = async (content: string) => {
+    const startTime = performance.now()
     try {
       isProcessing.value = true
 
-      // 1. 如果是新对话，生成新的会话ID
+      // 1. 会话管理
       if (!currentSessionId.value) {
         currentSessionId.value = uuidv4()
+        currentSession.value = {
+          id: currentSessionId.value,
+          messages: [],
+          currentContext: undefined,
+          metadata: {
+            startTime: new Date().toISOString(),
+            lastUpdateTime: new Date().toISOString(),
+            messageCount: 0,
+            hasReferences: false
+          }
+        }
       }
 
-      // 2. 立即添加用户消息
-      const userMessage: UserMessage = markRaw({
+      // 2. 添加用户消息
+      const userMessage: UserMessage = {
         id: uuidv4(),
         role: 'user',
         content,
         timestamp: Date.now()
-      })
-      messages.value.push(userMessage)
+      }
+      messages.value.push(markRaw(userMessage))
 
-      // 3. 准备发送给后端的数据 - 确保数据是可序列化的
-      const messagesToSend = JSON.parse(JSON.stringify(messages.value.slice(0, -1)))
-      const contextsToSend = JSON.parse(JSON.stringify(contexts.value))
+      // 3. 准备发送数据 - 深度清理数据
+      const prepareDataForTransfer = (data: any) => {
+        return JSON.parse(
+          JSON.stringify(data, (key, value) => {
+            if (typeof value === 'function' || key.startsWith('_')) {
+              return undefined
+            }
+            return value
+          })
+        )
+      }
 
-      // 4. 调用后端生成回答，传入 sessionId
-      const { context, answer } = await window.electronAPI.generateAnswer(
+      const messagesToSend = prepareDataForTransfer(messages.value.slice(0, -1))
+      const contextsToSend = prepareDataForTransfer(contexts.value)
+
+      // 4. 生成回答
+      const result = await window.electronAPI.generateAnswer(
         content,
         currentSessionId.value,
         messagesToSend,
         contextsToSend
       )
 
+      if (!result) {
+        throw new Error('生成回答失败：未收到响应')
+      }
+
+      const { context, answer } = result
+
       // 5. 添加AI回复
-      const assistantMessage: AIAssistantMessage = markRaw({
+      const assistantMessage: AIAssistantMessage = {
         id: uuidv4(),
         role: 'assistant',
         content: answer,
         timestamp: Date.now(),
         sourceType: context.relevantDocs.length > 0 ? 'notes' : 'ai',
-        references: context.relevantDocs.length > 0 ? context.relevantDocs : undefined
-      })
-      messages.value.push(assistantMessage)
+        references:
+          context.relevantDocs.length > 0 ? prepareDataForTransfer(context.relevantDocs) : undefined
+      }
+      messages.value.push(markRaw(assistantMessage))
 
       // 6. 更新上下文
-      currentContext.value = markRaw(context)
-      contexts.value = markRaw([...contexts.value, context]) as RAGContext[]
+      const cleanContext = prepareDataForTransfer(context)
+      currentContext.value = markRaw(cleanContext)
+      contexts.value = markRaw([...contexts.value, cleanContext]) as RAGContext[]
 
-      // 7. 更新历史记录 - 确保发送可序列化的数据
+      // 7. 更新会话状态
+      if (currentSession.value) {
+        const cleanMessages = prepareDataForTransfer(messages.value)
+        currentSession.value = markRaw({
+          ...currentSession.value,
+          messages: cleanMessages,
+          currentContext: cleanContext,
+          metadata: {
+            ...currentSession.value.metadata,
+            messageCount: currentSession.value.metadata.messageCount + 2,
+            lastUpdateTime: new Date().toISOString(),
+            hasReferences: context.relevantDocs.length > 0
+          }
+        })
+      }
+
+      // 8. 更新历史记录
       await window.electronAPI.updateRAGHistory({
         sessionId: currentSessionId.value,
-        messages: JSON.parse(JSON.stringify(messages.value)),
-        contexts: JSON.parse(JSON.stringify(contexts.value))
+        messages: prepareDataForTransfer(messages.value),
+        contexts: prepareDataForTransfer(contexts.value),
+        metadata: prepareDataForTransfer(currentSession.value?.metadata)
       })
+
+      // 9. 更新性能指标
+      const duration = performance.now() - startTime
+      updatePerformanceMetrics(duration)
+
+      // 10. 记录性能数据
+      await window.electronAPI.trackRAGPerformance(
+        currentSessionId.value!,
+        'sendMessage',
+        duration,
+        {
+          success: true,
+          metadata: {
+            messageLength: content.length,
+            hasReferences: context.relevantDocs.length > 0
+          }
+        }
+      )
+
+      return {
+        answer,
+        context: cleanContext,
+        messages: prepareDataForTransfer(messages.value)
+      }
     } catch (error) {
       console.error('发送消息失败:', error)
-      const errorMessage: SystemMessage = markRaw({
+      const errorMessage: SystemMessage = {
         id: uuidv4(),
         role: 'system',
         content: '抱歉，生成回答时出现错误，请稍后重试。',
         timestamp: Date.now()
-      })
-      messages.value.push(errorMessage)
+      }
+      messages.value.push(markRaw(errorMessage))
+
+      // 记录错误性能数据
+      const duration = performance.now() - startTime
+      performanceMetrics.value.errorCount++
+      await window.electronAPI.trackRAGPerformance(
+        currentSessionId.value!,
+        'sendMessage',
+        duration,
+        {
+          success: false,
+          error: String(error)
+        }
+      )
+
       throw error
     } finally {
       isProcessing.value = false
     }
   }
+
+  // 更新性能指标
+  const updatePerformanceMetrics = (duration: number) => {
+    const metrics = performanceMetrics.value
+    metrics.messageCount++
+    metrics.averageResponseTime =
+      (metrics.averageResponseTime * (metrics.messageCount - 1) + duration) / metrics.messageCount
+  }
+
+  // 清理过期会话
+  const cleanupExpiredSessions = async () => {
+    try {
+      await window.electronAPI.cleanupExpiredSessions()
+      await loadHistory() // 重新加载历史记录
+    } catch (error) {
+      console.error('清理过期会话失败:', error)
+      throw error
+    }
+  }
+
   const clearMessages = () => {
     messages.value = []
     contexts.value = []
@@ -285,6 +591,7 @@ export const useAssistantStore = defineStore('assistant', () => {
     startNewChat,
     continueHistoryChat,
     isLoadingHistory,
-    currentSessionStartTime
+    currentSessionStartTime,
+    cleanupExpiredSessions
   }
 })

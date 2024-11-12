@@ -1,13 +1,14 @@
 // src/preload/api/ragApi.ts
 import { ipcRenderer } from 'electron'
 import type { RAGContext } from '../../renderer/src/types/RAG'
-import { ChatMessage, RAGHistoryRecord } from '@renderer/types/assistant'
+import { ChatMessage, ChatSession, RAGHistoryRecord } from '@renderer/types/assistant'
+import { RAGPerformanceData } from '../../db/ragService'
 
 export const ragApi = {
-  // 检索相关上下文
-  retrieveContext: async (query: string): Promise<RAGContext> => {
+  // 检索相关上下文 - 支持会话
+  retrieveContext: async (query: string, session?: ChatSession): Promise<RAGContext> => {
     try {
-      const result = await ipcRenderer.invoke('retrieve-context', query)
+      const result = await ipcRenderer.invoke('retrieve-context', { query, session })
       if (!result.success) throw new Error(result.error)
       return result.context
     } catch (error) {
@@ -16,7 +17,7 @@ export const ragApi = {
     }
   },
 
-  // 生成 AI 回答 - 更新以支持会话ID和消息历史
+  // 生成 AI 回答 - 支持会话和上下文
   generateAnswer: async (
     query: string,
     sessionId: string | null,
@@ -28,12 +29,20 @@ export const ragApi = {
     messages: ChatMessage[]
   }> => {
     try {
+      console.log('预加载脚本 - 生成回答:', {
+        query,
+        sessionId,
+        messagesCount: currentMessages.length,
+        contextsCount: currentContexts.length
+      })
+
       const result = await ipcRenderer.invoke('generate-answer', {
         query,
         sessionId,
         currentMessages,
         currentContexts
       })
+
       if (!result.success) throw new Error(result.error)
       return result
     } catch (error) {
@@ -42,11 +51,12 @@ export const ragApi = {
     }
   },
 
-  // 更新历史记录
+  // 更新历史记录 - 支持元数据
   updateRAGHistory: async (params: {
     sessionId: string
     messages: ChatMessage[]
     contexts: RAGContext[]
+    metadata?: any
   }): Promise<void> => {
     try {
       const result = await ipcRenderer.invoke('update-rag-history', params)
@@ -115,6 +125,57 @@ export const ragApi = {
       return result.detail
     } catch (error) {
       console.error('预加载脚本 → 获取RAG历史详情失败:', error)
+      throw error
+    }
+  },
+  // 添加新的批量操作方法
+  batchGetRAGHistory: async (ids: string[]): Promise<(RAGHistoryRecord | null)[]> => {
+    try {
+      const result = await ipcRenderer.invoke('batch-get-rag-history', ids)
+      if (!result.success) throw new Error(result.error)
+      return result.details
+    } catch (error) {
+      console.error('预加载脚本 → 批量获取RAG历史失败:', error)
+      throw error
+    }
+  },
+
+  // 添加会话清理方法
+  cleanupExpiredSessions: async (): Promise<void> => {
+    try {
+      const result = await ipcRenderer.invoke('cleanup-expired-sessions')
+      if (!result.success) throw new Error(result.error)
+    } catch (error) {
+      console.error('预加载脚本 → 清理过期会话失败:', error)
+      throw error
+    }
+  },
+
+  // 添加重试装饰器
+  withRetry: <T>(fn: () => Promise<T>, retries = 3, delay = 1000): (() => Promise<T>) => {
+    return async () => {
+      let lastError: Error | null = null
+      for (let i = 0; i < retries; i++) {
+        try {
+          return await fn()
+        } catch (error) {
+          lastError = error as Error
+          if (i < retries - 1) {
+            await new Promise((resolve) => setTimeout(resolve, delay * (i + 1)))
+          }
+        }
+      }
+      throw lastError
+    }
+  },
+
+  // 性能监控
+  trackRAGPerformance: async (data: RAGPerformanceData): Promise<void> => {
+    try {
+      const result = await ipcRenderer.invoke('track-rag-performance', data)
+      if (!result.success) throw new Error(result.error)
+    } catch (error) {
+      console.error('预加载脚本 → 性能监控失败:', error)
       throw error
     }
   }

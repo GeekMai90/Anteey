@@ -9,24 +9,31 @@ import {
   toggleRAGHistoryPin,
   deleteRAGHistory,
   clearAllRAGHistory,
-  updateRAGHistory
+  updateRAGHistory,
+  cleanupExpiredSessions,
+  trackRAGPerformance,
+  RAGPerformanceData
 } from '../../db/ragService'
 import log from 'electron-log'
-import { ChatMessage, RAGContext } from '@renderer/types/assistant'
+import { ChatMessage, ChatSession, RAGContext } from '@renderer/types/assistant'
 
 export function setupRAGHandlers() {
-  // 检索相关上下文
-  ipcMain.handle('retrieve-context', async (_event, query: string) => {
-    try {
-      const context = await retrieveContext(query)
-      return { success: true, context }
-    } catch (error) {
-      log.error('主进程→ 检索上下文失败:', error)
-      return { success: false, error: String(error) }
+  // 检索相关上下文 - 支持会话
+  ipcMain.handle(
+    'retrieve-context',
+    async (_event, { query, session }: { query: string; session?: ChatSession }) => {
+      try {
+        const context = await retrieveContext(query, session)
+        return { success: true, context }
+      } catch (error) {
+        log.error('主进程→ 检索上下文失败:', error)
+        return { success: false, error: String(error) }
+      }
     }
-  })
+  )
 
-  // 生成回答 - 更新参数
+  // 生成回答 - 支持会话和上下文
+  // 生成回答 - 支持会话和上下文
   ipcMain.handle(
     'generate-answer',
     async (
@@ -44,16 +51,30 @@ export function setupRAGHandlers() {
       }
     ) => {
       try {
-        const result = await generateAnswer(query, sessionId, currentMessages, currentContexts)
+        // 直接解构参数
+        console.log('IPC处理器 - 生成回答:', {
+          query,
+          sessionId,
+          messagesCount: currentMessages?.length || 0,
+          contextsCount: currentContexts?.length || 0
+        })
+
+        const result = await generateAnswer(
+          query,
+          sessionId,
+          currentMessages || [],
+          currentContexts || []
+        )
+
         return { success: true, ...result }
       } catch (error) {
         log.error('主进程→ 生成回答失败:', error)
-        throw error
+        return { success: false, error: String(error) }
       }
     }
   )
 
-  // 更新或保存历史记录
+  // 更新或保存历史记录 - 支持元数据
   ipcMain.handle(
     'update-rag-history',
     async (
@@ -61,15 +82,17 @@ export function setupRAGHandlers() {
       {
         sessionId,
         messages,
-        contexts
+        contexts,
+        metadata
       }: {
         sessionId: string
         messages: ChatMessage[]
         contexts: RAGContext[]
+        metadata?: any
       }
     ) => {
       try {
-        await updateRAGHistory(sessionId, messages, contexts)
+        await updateRAGHistory(sessionId, messages, contexts, metadata)
         return { success: true }
       } catch (error) {
         log.error('主进程→ 更新RAG历史失败:', error)
@@ -136,6 +159,39 @@ export function setupRAGHandlers() {
       return { success: true, detail }
     } catch (error) {
       log.error('主进程→ 获取RAG历史详情失败:', error)
+      return { success: false, error: String(error) }
+    }
+  })
+
+  // 批量获取历史记录
+  ipcMain.handle('batch-get-rag-history', async (_event, ids: string[]) => {
+    try {
+      const details = await Promise.all(ids.map((id) => getRAGHistoryDetail(id)))
+      return { success: true, details }
+    } catch (error) {
+      log.error('批量获取RAG历史失败:', error)
+      return { success: false, error: String(error) }
+    }
+  })
+
+  // 会话清理
+  ipcMain.handle('cleanup-expired-sessions', async () => {
+    try {
+      await cleanupExpiredSessions()
+      return { success: true }
+    } catch (error) {
+      log.error('清理过期会话失败:', error)
+      return { success: false, error: String(error) }
+    }
+  })
+
+  // 性能监控
+  ipcMain.handle('track-rag-performance', async (_event, data: RAGPerformanceData) => {
+    try {
+      trackRAGPerformance(data.sessionId, data.method, data.duration)
+      return { success: true }
+    } catch (error) {
+      log.error('性能监控失败:', error)
       return { success: false, error: String(error) }
     }
   })

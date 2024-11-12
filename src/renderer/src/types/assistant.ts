@@ -74,22 +74,44 @@ export interface RAGResult {
 // 修改 RAG历史记录接口
 export interface RAGHistoryRecord {
   id: string
-  title?: string // 对话标题
-  messages: ChatMessage[] // 完整的对话消息数组
-  contexts: RAGContext[] // 每次对话的上下文数组
-  isPinned: boolean // 是否置顶
-  createdAt: string // 创建时间
-  updatedAt: string // 更新时间
-  summary?: string // 可选：对话摘要
-  totalTokens?: number // 可选：总 token 数
-  metadata?: {
-    messageCount: number // 消息数量
-    userMessageCount: number // 用户消息数量
-    aiMessageCount: number // AI 消息数量
-    averageRelevanceScore?: number // 平均相关度分数
-    lastContext?: RAGContext // 最后一次对话的上下文
-  }
+  title: string
+  messages: ChatMessage[]
+  contexts: RAGContext[]
+  summary: string
+  totalTokens: number
+  metadata: RAGHistoryMetadata
+  isPinned: boolean
+  createdAt: string
+  updatedAt: string
 }
+interface RAGHistoryMetadata {
+  messageCount: number
+  userMessageCount: number
+  aiMessageCount: number
+  averageRelevanceScore?: number
+  lastContext?: RAGContext
+  conversationTracker?: ConversationTracker
+  currentTopicId?: string
+  topicStartTime?: number
+}
+// export interface RAGHistoryRecord {
+//   id: string
+//   title?: string // 对话标题
+//   messages: ChatMessage[] // 完整的对话消息数组
+//   contexts: RAGContext[] // 每次对话的上下文数组
+//   isPinned: boolean // 是否置顶
+//   createdAt: string // 创建时间
+//   updatedAt: string // 更新时间
+//   summary?: string // 可选：对话摘要
+//   totalTokens?: number // 可选：总 token 数
+//   metadata?: {
+//     messageCount: number // 消息数量
+//     userMessageCount: number // 用户消息数量
+//     aiMessageCount: number // AI 消息数量
+//     averageRelevanceScore?: number // 平均相关度分数
+//     lastContext?: RAGContext // 最后一次对话的上下文
+//   }
+// }
 
 // 前端展示用的历史记录项
 // 更新前端展示用的历史记录项
@@ -108,15 +130,53 @@ export interface ChatHistoryItem {
   }
 }
 
-// 新增：对话会话接口
+// 新增：对话上下文追踪接口
+export interface ConversationTracker {
+  topicId: string
+  startTime: number
+  // 文档使用追踪
+  docUsage: {
+    [noteId: string]: {
+      usageCount: number // 在当前话题中被使用的次数
+      lastUsed: number // 最后使用时间戳
+      similarity: number // 最高相似度记录
+    }
+  }
+  // 问题向量记录
+  questionHistory: {
+    content: string
+    vector: number[]
+    timestamp: number
+  }[]
+}
+
+// 扩展现有的 ChatSession 接口
 export interface ChatSession {
   id: string
   messages: ChatMessage[]
   currentContext?: RAGContext
+  conversationTracker?: ConversationTracker // 新增：对话追踪器
   metadata: {
     startTime: string
     lastUpdateTime: string
     messageCount: number
     hasReferences: boolean
+    currentTopicId?: string // 新增：当前话题ID
+    topicStartTime?: number // 新增：当前话题开始时间
   }
+}
+
+// 新增：相似度配置接口
+export interface SimilarityConfig {
+  topicThreshold: number // 话题相似度阈值 (0.7)
+  docThreshold: number // 文档相似度阈值 (0.6)
+  contextWindowSize: number // 上下文窗口大小 (5)
+}
+
+// 新增：检索策略配置
+export interface RetrievalConfig {
+  maxDocsPerQuery: number // 每次查询最大文档数
+  minSimilarity: number // 最小相似度要求
+  reuseThreshold: number // 文档重用阈值
+  weightDecayFactor: number // 历史文档权重衰减因子
 }

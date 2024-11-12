@@ -22,7 +22,7 @@ import { UpdateUserSettings, UserSettings } from './UserSettings'
 import { CreateCustomFilterInput, CustomFilter, UpdateCustomFilterInput } from './Filter'
 import { WordSuggestion } from '../../../db/dictionaryService'
 import { DictWord } from '../../../db/dictionaryService'
-import { ChatMessage, RAGContext, RAGHistoryRecord } from './assistant'
+import { ChatMessage, ChatSession, RAGContext, RAGHistoryRecord } from './assistant'
 
 export interface ElectronAPI {
   createNote: () => Promise<Note>
@@ -255,7 +255,7 @@ export interface ElectronAPI {
   updateWordStatus: (word: string, enabled: boolean) => Promise<void>
 
   // RAG 相关的方法
-  retrieveContext: (query: string) => Promise<RAGContext>
+  retrieveContext: (params: { query: string; session?: ChatSession }) => Promise<RAGContext>
 
   generateAnswer: (
     query: string,
@@ -272,6 +272,7 @@ export interface ElectronAPI {
     sessionId: string
     messages: ChatMessage[]
     contexts: RAGContext[]
+    metadata?: any // 添加可选的元数据
   }) => Promise<void>
 
   updateRAGHistoryTitle: (id: string, title: string) => Promise<void>
@@ -285,6 +286,24 @@ export interface ElectronAPI {
   getRAGHistory: () => Promise<RAGHistoryRecord[]>
 
   getRAGHistoryDetail: (id: string) => Promise<RAGHistoryRecord | null>
+
+  // 新增的批量操作方法
+  batchGetRAGHistory: (ids: string[]) => Promise<(RAGHistoryRecord | null)[]>
+
+  // 新增的会话管理方法
+  cleanupExpiredSessions: () => Promise<void>
+
+  // 新增的性能监控方法
+  trackRAGPerformance: (
+    sessionId: string,
+    method: string,
+    duration: number,
+    options: {
+      success: boolean
+      error?: string
+      metadata?: Record<string, any>
+    }
+  ) => Promise<void>
 }
 
 declare global {
