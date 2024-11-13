@@ -216,3 +216,9 @@ export interface NoteProcessingResult {
   result: string
   timestamp: string
 }
+
+// 新增：笔记引用接口
+export interface NoteReference {
+  id: string
+  title: string
+}

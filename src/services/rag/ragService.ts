@@ -11,6 +11,7 @@ import {
   ChatMessage,
   ChatSession,
   ConversationTracker,
+  NoteReference,
   RAGContext,
   RAGHistoryRecord,
   RAGResult,
@@ -1056,6 +1057,149 @@ export async function cleanupExpiredSessions(): Promise<void> {
     })
   } catch (error) {
     log.error('清理过期会话失败:', error)
+    throw error
+  }
+}
+
+/**
+ * 生成带引用回答
+ */
+export async function generateAnswerWithReferences(
+  query: string,
+  noteReferences: NoteReference[],
+  sessionId: string | null,
+  currentMessages: ChatMessage[] = [],
+  currentContexts: RAGContext[] = []
+): Promise<{
+  answer: string
+  context: RAGContext
+  messages: ChatMessage[]
+}> {
+  try {
+    // 1. 参数验证
+    if (typeof query !== 'string') {
+      throw new Error('查询必须是字符串类型')
+    }
+
+    // 记录调用信息
+    log.info('生成带引用回答 - 输入参数:', {
+      query,
+      sessionId,
+      referencesCount: noteReferences.length,
+      messagesCount: currentMessages.length,
+      contextsCount: currentContexts.length
+    })
+
+    // 2. 获取或创建会话（复用原有逻辑）
+    let session: ChatSession | undefined
+    if (sessionId) {
+      const history = await getRAGHistoryDetail(sessionId)
+      if (history) {
+        session = {
+          id: sessionId,
+          messages: currentMessages,
+          currentContext: currentContexts[currentContexts.length - 1],
+          conversationTracker: history.metadata?.conversationTracker,
+          metadata: {
+            startTime: history.createdAt,
+            lastUpdateTime: history.updatedAt,
+            messageCount: history.metadata.messageCount,
+            hasReferences: true,
+            currentTopicId: history.metadata.currentTopicId,
+            topicStartTime: history.metadata.topicStartTime
+          }
+        }
+      }
+    }
+
+    // 3. 获取被引用笔记的完整内容
+    const notes = await db('notes').whereIn(
+      'id',
+      noteReferences.map((ref) => ref.id)
+    )
+    if (notes.length === 0) {
+      throw new Error('未找到引用的笔记')
+    }
+
+    // 4. 构建上下文（使用引用的笔记作为相关文档）
+    const context: RAGContext = {
+      query,
+      timestamp: new Date().toISOString(),
+      relevantDocs: notes.map((note) => ({
+        noteId: note.id,
+        address: note.address || '',
+        title: note.title,
+        content: note.content,
+        similarity: 1, // 直接引用的笔记，相关度设为 1
+        createdAt: new Date(Number(note.createdAt)).toISOString()
+      })),
+      processingType: 'qa'
+    }
+
+    // 5. 构建特殊的 prompt，强调这些是用户主动引用的笔记
+    const referencesText = notes
+      .map((note, index) => `笔记 ${index + 1}（${note.title}）：\n${note.content}`)
+      .join('\n\n')
+    const prompt = `用户引用了以下笔记，请基于这些笔记的内容来回答用户的问题：\n\n${referencesText}\n\n用户问题：${query}`
+
+    // 6. 调用大模型
+    const answer = await llm.generateResponse(prompt)
+
+    // 7. 构建新的消息（复用原有逻辑）
+    const userMessage: UserMessage = {
+      id: uuidv4(),
+      role: 'user',
+      content: query,
+      timestamp: Date.now()
+    }
+
+    const assistantMessage: AIAssistantMessage = {
+      id: uuidv4(),
+      role: 'assistant',
+      content: answer,
+      timestamp: Date.now(),
+      sourceType: 'notes',
+      references: context.relevantDocs
+    }
+
+    const updatedMessages = [...currentMessages, userMessage, assistantMessage]
+    const updatedContexts = [...currentContexts, context]
+
+    // 8. 更新会话状态（复用原有逻辑）
+    if (session?.conversationTracker) {
+      const queryVector = await getQueryVector(query)
+      session.conversationTracker.questionHistory.push({
+        content: query,
+        vector: Array.from(queryVector),
+        timestamp: Date.now()
+      })
+
+      if (
+        session.conversationTracker.questionHistory.length > RAG_CONFIG.similarity.contextWindowSize
+      ) {
+        session.conversationTracker.questionHistory.shift()
+      }
+
+      session.metadata.messageCount += 2
+      session.metadata.lastUpdateTime = new Date().toISOString()
+    }
+
+    // 9. 更新历史记录
+    if (sessionId) {
+      await updateRAGHistory(sessionId, updatedMessages, updatedContexts, {
+        ...session?.metadata,
+        conversationTracker: session?.conversationTracker
+      })
+    }
+
+    // 10. 返回结果
+    return {
+      answer,
+      context,
+      messages: updatedMessages
+    }
+  } catch (error) {
+    log.error('生成带引用回答失败:', error)
     throw error
   }
 }

@@ -1,10 +1,10 @@
 import { ipcRenderer } from 'electron'
-import { Note, NoteReference, RelatedNotesResult } from '../../renderer/src/types/Note'
+import { Note, NoteReference } from '../../renderer/src/types/Note'
 import {
   GetPaginatedNotesParams,
   TimelineQueryParams,
   TimelineQueryResult
-} from '../../db/notesService'
+} from '../../services/notes/notesService'
 export const notesApi = {
   createNote: async (): Promise<Note> => {
     try {
@@ -178,9 +178,9 @@ export const notesApi = {
     return (await ipcRenderer.invoke('get-last-day-note-count')) as number
   },
   // 获取相关笔记
-  getRelatedNotes: async (noteId: string, limit: number): Promise<RelatedNotesResult> => {
-    return await ipcRenderer.invoke('get-related-notes', { noteId, limit })
-  },
+  // getRelatedNotes: async (noteId: string, limit: number): Promise<RelatedNotesResult> => {
+  //   return await ipcRenderer.invoke('get-related-notes', { noteId, limit })
+  // },
   // 更新笔记地址
   updateNoteAddress: async (id: string, address: string): Promise<Note> => {
     try {
@@ -300,5 +300,21 @@ export const notesApi = {
       console.error('预加载脚本 → 获取卡片盒分页笔记失败:', error)
       throw error // 或者返回一个默认值,取决于您的错误处理策略
     }
+  },
+  // 获取最近编辑的 10 篇笔记
+  getRecentEditedNotes: async (): Promise<
+    {
+      id: string
+      address: string
+      title: string
+      cardType: string
+    }[]
+  > => {
+    return (await ipcRenderer.invoke('get-recent-edited-notes')) as {
+      id: string
+      address: string
+      title: string
+      cardType: string
+    }[]
   }
 }

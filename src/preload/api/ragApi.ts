@@ -1,8 +1,13 @@
 // src/preload/api/ragApi.ts
 import { ipcRenderer } from 'electron'
 import type { RAGContext } from '../../renderer/src/types/RAG'
-import { ChatMessage, ChatSession, RAGHistoryRecord } from '@renderer/types/assistant'
-import { RAGPerformanceData } from '../../db/ragService'
+import {
+  ChatMessage,
+  ChatSession,
+  NoteReference,
+  RAGHistoryRecord
+} from '@renderer/types/assistant'
+import { RAGPerformanceData } from '../../services/rag/ragService'
 
 export const ragApi = {
   // 检索相关上下文 - 支持会话
@@ -176,6 +181,48 @@ export const ragApi = {
       if (!result.success) throw new Error(result.error)
     } catch (error) {
       console.error('预加载脚本 → 性能监控失败:', error)
+      throw error
+    }
+  },
+
+  // 生成带引用回答
+  // 生成带引用回答
+  // 生成带引用回答
+  generateAnswerWithReferences: async (
+    query: string,
+    noteReferences: NoteReference[],
+    sessionId: string | null,
+    currentMessages: ChatMessage[] = [],
+    currentContexts: RAGContext[] = []
+  ): Promise<{
+    answer: string
+    context: RAGContext
+    messages: ChatMessage[]
+  }> => {
+    try {
+      console.log('预加载脚本 - 生成带引用回答:', {
+        query,
+        sessionId,
+        referencesCount: noteReferences.length,
+        messagesCount: currentMessages.length,
+        contextsCount: currentContexts.length
+      })
+
+      const result = await ipcRenderer.invoke('generate-answer-with-references', {
+        query,
+        noteReferences,
+        sessionId,
+        currentMessages,
+        currentContexts
+      })
+
+      if (!result.success) {
+        throw new Error(result.error)
+      }
+
+      return result
+    } catch (error) {
+      console.error('预加载脚本 → 生成带引用回答失败:', error)
       throw error
     }
   }

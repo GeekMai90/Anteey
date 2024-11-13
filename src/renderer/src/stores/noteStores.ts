@@ -3,7 +3,7 @@ import { ref, computed } from 'vue'
 import { Notes, Table, TransactionOrder, Deeplink } from '@icon-park/vue-next'
 import type { Note, Whiteboard, Connection, CardBox, CardType } from '../types/Note'
 import type { Editor } from '@tiptap/vue-3'
-import { GetPaginatedNotesParams } from '../../../db/notesService'
+import { GetPaginatedNotesParams } from '../../../services/notes/notesService'
 import { useEventBus } from '@vueuse/core'
 import { useUIStore } from './useUIStore'
 import { useTagStore } from './tagStore'
@@ -102,6 +102,21 @@ export const useNoteStore = defineStore(
       pageSize: 20,
       currentPage: 1
     })
+    const getRecentNotes = (count: number) => {
+      return recentNotes.value.slice(0, count)
+    }
+
+    const getRecentEditedNotes = async () => {
+      try {
+        const notes = await window.electronAPI.getRecentEditedNotes()
+        console.log('noteStores.ts→ 获取最近编辑的笔记:', notes)
+        return notes
+      } catch (error) {
+        console.error('获取最近编辑的笔记失败:', error)
+        throw error
+      }
+    }
+
     // ==================== 右侧边栏反向链接笔记 ====================
     // 打开反向链接预览
     const openBacklinkPreview = async (noteId: string) => {
@@ -1304,7 +1319,9 @@ export const useNoteStore = defineStore(
       // 标签相关状态
       addTagToNote,
       removeTagFromNote,
-      openTaggedNotes
+      openTaggedNotes,
+      getRecentNotes,
+      getRecentEditedNotes
     }
   },
   {

@@ -7,7 +7,8 @@ import type {
   RAGContext,
   RAGHistoryRecord,
   AIAssistantMessage,
-  ChatSession
+  ChatSession,
+  NoteReference
 } from '../types/assistant'
 import { v4 as uuidv4 } from 'uuid'
 
@@ -439,6 +440,159 @@ export const useAssistantStore = defineStore('assistant', () => {
     }
   }
 
+  const sendMessageWithReference = async (content: string, noteReferences: NoteReference[]) => {
+    const startTime = performance.now()
+    try {
+      isProcessing.value = true
+
+      // 1. 会话管理
+      if (!currentSessionId.value) {
+        currentSessionId.value = uuidv4()
+        currentSession.value = {
+          id: currentSessionId.value,
+          messages: [],
+          currentContext: undefined,
+          metadata: {
+            startTime: new Date().toISOString(),
+            lastUpdateTime: new Date().toISOString(),
+            messageCount: 0,
+            hasReferences: true // 默认为 true，因为是带引用的消息
+          }
+        }
+      }
+
+      // 2. 添加用户消息
+      const userMessage: UserMessage = {
+        id: uuidv4(),
+        role: 'user',
+        content,
+        timestamp: Date.now()
+      }
+      messages.value.push(markRaw(userMessage))
+
+      // 3. 准备发送数据 - 深度清理数据
+      const prepareDataForTransfer = (data: any) => {
+        return JSON.parse(
+          JSON.stringify(data, (key, value) => {
+            if (typeof value === 'function' || key.startsWith('_')) {
+              return undefined
+            }
+            return value
+          })
+        )
+      }
+
+      const messagesToSend = prepareDataForTransfer(messages.value.slice(0, -1))
+      const contextsToSend = prepareDataForTransfer(contexts.value)
+      const referencesToSend = prepareDataForTransfer(noteReferences)
+
+      // 4. 生成带引用的回答
+      const result = await window.electronAPI.generateAnswerWithReferences(
+        content,
+        referencesToSend,
+        currentSessionId.value,
+        messagesToSend,
+        contextsToSend
+      )
+
+      if (!result) {
+        throw new Error('生成回答失败：未收到响应')
+      }
+
+      const { context, answer } = result
+
+      // 5. 添加AI回复
+      const assistantMessage: AIAssistantMessage = {
+        id: uuidv4(),
+        role: 'assistant',
+        content: answer,
+        timestamp: Date.now(),
+        sourceType: 'notes', // 固定为 notes，因为是引用笔记
+        references: prepareDataForTransfer(context.relevantDocs)
+      }
+      messages.value.push(markRaw(assistantMessage))
+
+      // 6. 更新上下文
+      const cleanContext = prepareDataForTransfer(context)
+      currentContext.value = markRaw(cleanContext)
+      contexts.value = markRaw([...contexts.value, cleanContext]) as RAGContext[]
+
+      // 7. 更新会话状态
+      if (currentSession.value) {
+        const cleanMessages = prepareDataForTransfer(messages.value)
+        currentSession.value = markRaw({
+          ...currentSession.value,
+          messages: cleanMessages,
+          currentContext: cleanContext,
+          metadata: {
+            ...currentSession.value.metadata,
+            messageCount: currentSession.value.metadata.messageCount + 2,
+            lastUpdateTime: new Date().toISOString(),
+            hasReferences: true
+          }
+        })
+      }
+
+      // 8. 更新历史记录
+      await window.electronAPI.updateRAGHistory({
+        sessionId: currentSessionId.value,
+        messages: prepareDataForTransfer(messages.value),
+        contexts: prepareDataForTransfer(contexts.value),
+        metadata: prepareDataForTransfer(currentSession.value?.metadata)
+      })
+
+      // 9. 更新性能指标
+      const duration = performance.now() - startTime
+      updatePerformanceMetrics(duration)
+
+      // 10. 记录性能数据
+      await window.electronAPI.trackRAGPerformance(
+        currentSessionId.value!,
+        'sendMessageWithReference',
+        duration,
+        {
+          success: true,
+          metadata: {
+            messageLength: content.length,
+            referencesCount: noteReferences.length
+          }
+        }
+      )
+
+      return {
+        answer,
+        context: cleanContext,
+        messages: prepareDataForTransfer(messages.value)
+      }
+    } catch (error) {
+      console.error('发送带引用消息失败:', error)
+      const errorMessage: SystemMessage = {
+        id: uuidv4(),
+        role: 'system',
+        content: '抱歉，生成回答时出现错误，请稍后重试。',
+        timestamp: Date.now()
+      }
+      messages.value.push(markRaw(errorMessage))
+
+      // 记录错误性能数据
+      const duration = performance.now() - startTime
+      performanceMetrics.value.errorCount++
+      await window.electronAPI.trackRAGPerformance(
+        currentSessionId.value!,
+        'sendMessageWithReference',
+        duration,
+        {
+          success: false,
+          error: String(error)
+        }
+      )
+
+      throw error
+    } finally {
+      isProcessing.value = false
+    }
+  }
+
   // 更新性能指标
   const updatePerformanceMetrics = (duration: number) => {
     const metrics = performanceMetrics.value
@@ -592,6 +746,7 @@ export const useAssistantStore = defineStore('assistant', () => {
     continueHistoryChat,
     isLoadingHistory,
     currentSessionStartTime,
-    cleanupExpiredSessions
+    cleanupExpiredSessions,
+    sendMessageWithReference
   }
 })

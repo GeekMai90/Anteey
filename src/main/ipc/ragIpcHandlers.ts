@@ -12,10 +12,11 @@ import {
   updateRAGHistory,
   cleanupExpiredSessions,
   trackRAGPerformance,
-  RAGPerformanceData
+  RAGPerformanceData,
+  generateAnswerWithReferences
 } from '../../services/rag/ragService'
 import log from 'electron-log'
-import { ChatMessage, ChatSession, RAGContext } from '@renderer/types/assistant'
+import { ChatMessage, ChatSession, NoteReference, RAGContext } from '@renderer/types/assistant'
 
 export function setupRAGHandlers() {
   // 检索相关上下文 - 支持会话
@@ -195,4 +196,49 @@ export function setupRAGHandlers() {
       return { success: false, error: String(error) }
     }
   })
+
+  // 生成带引用回答
+  ipcMain.handle(
+    'generate-answer-with-references',
+    async (
+      _event,
+      {
+        query,
+        sessionId,
+        noteReferences,
+        currentMessages,
+        currentContexts
+      }: {
+        query: string
+        sessionId: string | null
+        noteReferences: NoteReference[]
+        currentMessages: ChatMessage[]
+        currentContexts: RAGContext[]
+      }
+    ) => {
+      try {
+        // 直接解构参数
+        console.log('IPC处理器 - 生成带引用回答:', {
+          query,
+          sessionId,
+          referencesCount: noteReferences?.length || 0,
+          messagesCount: currentMessages?.length || 0,
+          contextsCount: currentContexts?.length || 0
+        })
+
+        const result = await generateAnswerWithReferences(
+          query,
+          noteReferences,
+          sessionId,
+          currentMessages || [],
+          currentContexts || []
+        )
+
+        return { success: true, ...result }
+      } catch (error) {
+        log.error('主进程→ 生成带引用回答失败:', error)
+        return { success: false, error: String(error) }
+      }
+    }
+  )
 }

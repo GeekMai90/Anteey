@@ -34,7 +34,6 @@
             placeholder="输入编码地址"
             @input="handleAddressInput"
             @keyup.enter="handleAddressEnter"
-            @focus="handleAddressFocus"
           />
         </div>
         <!-- 右侧工具栏 -->
@@ -253,17 +252,17 @@ const handleAddressInput = (event: Event) => {
 }
 
 // 处理地址输入框获得焦点
-const handleAddressFocus = () => {
-  // 立即保存当前编辑器内容
-  if (currentNote.value) {
-    const editor = tiptapEditor.value?.editor
-    if (editor) {
-      const content = editor.getJSON()
-      saveContent.flush() // 立即执行之前可能还在等待的保存
-      noteStore.updateNoteContent(currentNote.value.id, content)
-    }
-  }
-}
+// const handleAddressFocus = () => {
+//   // 立即保存当前编辑器内容
+//   if (currentNote.value) {
+//     const editor = tiptapEditor.value?.editor
+//     if (editor) {
+//       const content = editor.getJSON()
+//       saveContent.flush() // 立即执行之前可能还在等待的保存
+//       noteStore.updateNoteContent(currentNote.value.id, content)
+//     }
+//   }
+// }
 
 // 处理回车键
 const handleAddressEnter = (event: KeyboardEvent) => {

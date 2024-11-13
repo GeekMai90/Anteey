@@ -36,7 +36,8 @@ import {
   TimelineQueryResult,
   createNoteReference,
   deleteNoteReference,
-  updateNoteTag
+  updateNoteTag,
+  getRecentEditedNotes
 } from '../../services/notes/notesService'
 
 export function setupNotesHandlers() {
@@ -439,5 +440,15 @@ ipcMain.handle('get-paginated-notes-by-cardbox', async (_, params: GetPaginatedN
   } catch (error) {
     console.error('主进程 → 获取卡片盒分页笔记失败:', error)
     throw error // 或者返回一个错误对象,以便渲染进程可以处理
+  }
+})
+// 获取最近编辑的 10 篇笔记
+ipcMain.handle('get-recent-edited-notes', async () => {
+  try {
+    const notes = await getRecentEditedNotes()
+    return notes
+  } catch (error) {
+    console.error('主进程 → 获取最近编辑的笔记失败:', error)
+    throw error
   }
 })

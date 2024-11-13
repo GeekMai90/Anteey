@@ -185,20 +185,53 @@
           </div>
         </button>
 
-        <div class="input-container">
-          <input
-            v-model="inputMessage"
-            :placeholder="getPlaceholder"
-            :disabled="isProcessing"
-            @keyup.enter="sendMessage"
-          />
-          <div class="input-actions">
-            <button class="action-icon link-btn">
-              <Link theme="outline" size="18" />
-            </button>
-            <button class="action-icon send-btn" @click="sendMessage">
-              <Send theme="outline" size="18" />
-            </button>
+        <div class="input-outer-container">
+          <!-- 引用笔记显示区域 - 移到输入框外部 -->
+          <div v-if="selectedNotes.length > 0" class="references-display">
+            <div v-for="note in selectedNotes" :key="note.id" class="note-reference">
+              <div class="reference-icon">
+                <Notes theme="outline" size="14" />
+              </div>
+              <span class="reference-title">{{ note.title }}</span>
+              <button class="remove-reference" @click="removeNote(note.id)">
+                <Close theme="outline" size="12" />
+              </button>
+            </div>
+          </div>
+
+          <!-- 输入框容器 -->
+          <div class="input-container">
+            <!-- 笔记选择器 -->
+            <Transition name="slide-fade">
+              <NoteSelector
+                v-if="showNoteSelector"
+                class="note-selector"
+                @select="handleNoteSelect"
+                @close="showNoteSelector = false"
+              />
+            </Transition>
+
+            <!-- 输入区域 -->
+            <div class="input-content">
+              <input
+                ref="inputRef"
+                v-model="inputMessage"
+                :placeholder="getPlaceholder"
+                :disabled="isProcessing"
+                @input="handleInput"
+                @keyup.enter="handleSend"
+                @keydown.esc="showNoteSelector = false"
+              />
+            </div>
+
+            <div class="input-actions">
+              <button class="action-icon link-btn" @click="toggleNoteSelector">
+                <Link theme="outline" size="18" />
+              </button>
+              <button class="action-icon send-btn" @click="handleSend">
+                <Send theme="outline" size="18" />
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -212,7 +245,7 @@
   </div>
 </template>
 <script setup lang="ts">
-import { ref, computed, watch, markRaw } from 'vue'
+import { ref, computed, watch, markRaw, onMounted, onUnmounted, nextTick } from 'vue'
 import { useAssistantStore } from '@renderer/stores/assistantStore'
 import { storeToRefs } from 'pinia'
 import {
@@ -224,7 +257,8 @@ import {
   Link,
   Send,
   More,
-  Copy
+  Copy,
+  Close
 } from '@icon-park/vue-next'
 import type { Suggestion } from '@renderer/types/assistant'
 import TypewriterText from '@renderer/components/aiassistant/TypewriterText.vue'
@@ -236,6 +270,7 @@ import { useUIStore } from '@renderer/stores/useUIStore'
 import { useRouter } from 'vue-router'
 import { message } from '@renderer/utils/message'
 import AIChatHistoryPanel from '@renderer/components/aiassistant/AIChatHistoryPanel.vue'
+import NoteSelector from '@renderer/components/aiassistant/NoteSelector.vue'
 // Store
 const assistantStore = useAssistantStore()
 const { messages, isProcessing } = storeToRefs(assistantStore)
@@ -249,24 +284,78 @@ const uiStore = useUIStore()
 const router = useRouter()
 
 const showHistoryPanel = ref(false)
+const inputRef = ref<HTMLInputElement | null>(null)
+
+// 添加笔记选择器的状态控制
+const showNoteSelector = ref(false)
+const lastAtPosition = ref(-1)
+
+const selectedNotes = ref<Array<{ id: string; title: string }>>([])
+
+// 监听输入内容变化
+const handleInput = (event: Event) => {
+  const input = event.target as HTMLInputElement
+  const value = input.value
+  const cursorPosition = input.selectionStart || 0
+
+  // 检查是否输入了 @
+  if (value[cursorPosition - 1] === '@') {
+    showNoteSelector.value = true
+    lastAtPosition.value = cursorPosition - 1
+  }
+}
+
+// 处理笔记选择
+const handleNoteSelect = (note: { id: string; title: string }) => {
+  // 检查是否已经选择了这个笔记
+  const isAlreadySelected = selectedNotes.value.some((n) => n.id === note.id)
+  if (!isAlreadySelected) {
+    // 添加到已选择的笔记数组中
+    selectedNotes.value.push(note)
+  }
+  showNoteSelector.value = false
+
+  // 清除 @ 符号
+  if (lastAtPosition.value >= 0) {
+    inputMessage.value =
+      inputMessage.value.slice(0, lastAtPosition.value) +
+      inputMessage.value.slice(lastAtPosition.value + 1)
+    lastAtPosition.value = -1 // 重置位置
+  }
+  // 重新聚焦到输入框并将光标移到末尾
+  nextTick(() => {
+    if (inputRef.value) {
+      inputRef.value.focus()
+      // 可选：将光标移到文本末尾
+      const length = inputRef.value.value.length
+      inputRef.value.setSelectionRange(length, length)
+    }
+  })
+}
+
+const removeNote = (noteId: string) => {
+  selectedNotes.value = selectedNotes.value.filter((note) => note.id !== noteId)
+}
+
+const toggleNoteSelector = () => {
+  showNoteSelector.value = !showNoteSelector.value
+}
+
+// 添加点击外部关闭选择器的处理
+onMounted(() => {
+  document.addEventListener('click', (event) => {
+    const target = event.target as HTMLElement
+    if (!target.closest('.note-selector') && !target.closest('.input-container')) {
+      showNoteSelector.value = false
+    }
+  })
+})
+
+onUnmounted(() => {
+  document.removeEventListener('click', () => {})
+})
 
 // 判断是否是历史消息
-// const isHistoryMessage = computed((): boolean => {
-//   // 如果是在加载历史记录时的消息，则为 true
-//   if (assistantStore.isLoadingHistory) {
-//     return true
-//   }
-
-//   // 如果没有当前会话开始时间，说明是新会话，显示打字机效果
-//   if (!assistantStore.currentSessionStartTime) {
-//     return false
-//   }
-
-//   // 比较消息的时间戳
-//   return (
-//     messages.value[messages.value.length - 1].timestamp < assistantStore.currentSessionStartTime
-//   )
-// })
 const isHistoryMessage = computed((): boolean => {
   // 如果历史面板打开，直接返回 true
   if (showHistoryPanel.value) {
@@ -368,16 +457,40 @@ const startNewChat = () => {
   inputMessage.value = ''
 }
 
+// 发送普通消息
 const sendMessage = async () => {
   if (!inputMessage.value.trim() || isProcessing.value) return
 
   const message = inputMessage.value
   inputMessage.value = ''
+  selectedNotes.value = []
 
   try {
     await assistantStore.sendMessage(message)
   } catch (error) {
     console.error('发送消息失败:', error)
+  }
+}
+
+// 发送带引用的消息
+const sendMessageWithReference = async () => {
+  if (!inputMessage.value.trim() && !selectedNotes.value.length) return
+  if (isProcessing.value) return
+
+  const content = inputMessage.value.trim()
+  const noteReferences = selectedNotes.value
+  inputMessage.value = ''
+  selectedNotes.value = []
+  // 发送带引用的消息给 AI
+  await assistantStore.sendMessageWithReference(content, noteReferences)
+}
+
+// 统一的发送处理
+const handleSend = () => {
+  if (selectedNotes.value.length > 0) {
+    sendMessageWithReference()
+  } else {
+    sendMessage()
   }
 }
 
@@ -477,7 +590,7 @@ const copyMessageContent = async (content: string) => {
 </script>
 
 <style scoped lang="scss">
-/* 容器样式 */
+/* 1. 基础布局 */
 .ai-assistant-container {
   display: flex;
   flex-direction: column;
@@ -485,7 +598,7 @@ const copyMessageContent = async (content: string) => {
   background: var(--color-bg-primary);
 }
 
-/* 添加新的浮动按钮样式 */
+/* 2. 顶部区域 */
 .float-menu-btn {
   position: fixed;
   top: 40px;
@@ -521,6 +634,7 @@ const copyMessageContent = async (content: string) => {
   }
 }
 
+/* 3. 助手信息 */
 .assistant-info {
   display: flex;
   align-items: center;
@@ -541,6 +655,7 @@ const copyMessageContent = async (content: string) => {
   color: var(--color-text-primary);
 }
 
+/* 4. 顶部操作区 */
 .top-actions {
   display: flex;
   gap: 0.5rem;
@@ -598,20 +713,18 @@ const copyMessageContent = async (content: string) => {
   }
 }
 
-/* 消息容器 - 可滚动 */
+/* 5. 消息容器 */
 .messages-container {
   flex: 1;
   overflow-y: auto;
   scroll-behavior: smooth;
   padding: 1rem 2rem;
-
-  /* 确保内容居中 */
   display: flex;
   flex-direction: column;
   align-items: center;
 }
 
-/* 欢迎区域 */
+/* 6. 欢迎区域 */
 .welcome-section {
   width: 100%;
   max-width: 768px;
@@ -620,10 +733,9 @@ const copyMessageContent = async (content: string) => {
   flex-direction: column;
   align-items: center;
   gap: 2rem;
-  /* 添加以下样式实现垂直居中 */
-  min-height: 100%; /* 确保高度足够 */
-  justify-content: center; /* 垂直居中 */
-  padding-bottom: 15vh; /* 视觉上的微调，让整体看起来更居中 */
+  min-height: 100%;
+  justify-content: center;
+  padding-bottom: 15vh;
 }
 
 .ai-info {
@@ -647,7 +759,7 @@ const copyMessageContent = async (content: string) => {
   color: var(--color-text-primary);
 }
 
-/* 建议区域 */
+/* 7. 建议区域 */
 .suggestions-container {
   width: 100%;
   margin-top: 1rem;
@@ -719,7 +831,7 @@ const copyMessageContent = async (content: string) => {
   }
 }
 
-/* 对话区域 */
+/* 8. 对话区域 */
 .chat-section {
   width: 100%;
   max-width: 768px;
@@ -743,7 +855,7 @@ const copyMessageContent = async (content: string) => {
   font-size: 0.875rem;
 }
 
-/* 消息列表 */
+/* 9. 消息列表 */
 .messages {
   display: flex;
   flex-direction: column;
@@ -751,17 +863,18 @@ const copyMessageContent = async (content: string) => {
   padding: 1rem 0;
 }
 
-/* 消息包装器 */
 .message-wrapper {
   display: flex;
   max-width: 85%;
+  animation: messageSlide 0.3s ease-out;
+  opacity: 0;
+  animation-fill-mode: forwards;
 
   &.user {
     margin-left: auto;
   }
 }
 
-/* 消息样式 */
 .message {
   padding: 0.7rem 1rem;
   font-size: 0.9375rem;
@@ -782,7 +895,7 @@ const copyMessageContent = async (content: string) => {
   border-radius: 0 1rem 1rem 1rem;
 }
 
-/* 消息引用区域 */
+/* 10. 引用区域 */
 .message-references {
   margin-top: 12px;
   padding-top: 8px;
@@ -857,7 +970,7 @@ const copyMessageContent = async (content: string) => {
     color: var(--color-text-tertiary);
     border-radius: 4px;
     transition: all 0.2s ease;
-    opacity: 0; // 默认隐藏
+    opacity: 0;
 
     &:hover {
       background: var(--color-hover-bg);
@@ -867,7 +980,7 @@ const copyMessageContent = async (content: string) => {
 
   &:hover {
     .copy-btn {
-      opacity: 1; // hover 时显示
+      opacity: 1;
     }
   }
 }
@@ -906,7 +1019,7 @@ const copyMessageContent = async (content: string) => {
   text-align: center;
 }
 
-/* 输入区域 - 固定 */
+/* 11. 输入区域 */
 .input-section {
   flex-shrink: 0;
   padding: 1rem 2rem;
@@ -920,6 +1033,14 @@ const copyMessageContent = async (content: string) => {
     align-items: center;
     gap: 0.75rem;
   }
+}
+
+.input-outer-container {
+  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .new-chat-btn {
@@ -959,7 +1080,6 @@ const copyMessageContent = async (content: string) => {
 }
 
 .input-container {
-  flex: 1;
   display: flex;
   align-items: center;
   border: 1px solid var(--color-shape-secondary);
@@ -967,32 +1087,119 @@ const copyMessageContent = async (content: string) => {
   padding: 6px;
   background: var(--color-bg-primary);
   transition: border-color 0.2s ease;
+  position: relative;
 
   &:focus-within {
     border-color: var(--color-primary);
     box-shadow: 0 0 0 2px rgba(var(--color-primary-rgb), 0.1);
   }
+}
+
+.note-selector {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  z-index: 1000;
+}
+
+.input-content {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  background: var(--color-bg-secondary);
+  border-radius: 8px;
+  // padding: 8px 12px;
+  min-height: 44px;
 
   input {
-    flex: 1;
+    width: 100%;
     border: none;
     outline: none;
-    padding: 8px;
-    font-size: 0.875rem;
     background: transparent;
-    color: var(--color-text-primary);
+    font-size: 14px;
+    line-height: 1.5;
+    padding: 0 12px;
 
     &::placeholder {
-      color: var(--color-text-tertiary);
+      color: var(--color-text-secondary);
+    }
+  }
+}
+.references-display {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  &:not(:empty) {
+    margin-top: 8px;
+  }
+}
+.note-reference {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--color-bg-hover);
+  padding: 4px 8px;
+  border-radius: 6px;
+  max-width: 150px;
+  border: 1px solid var(--color-border);
+
+  .reference-icon {
+    background: none;
+    border: none;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    padding: 0;
+    color: var(--color-text-secondary);
+    :deep(.i-icon) {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      height: 100%;
+    }
+
+    :deep(svg) {
+      width: 14px;
+      height: 14px;
+    }
+  }
+
+  .reference-title {
+    color: var(--color-primary);
+    font-size: 13px;
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    line-height: 1;
+  }
+
+  .remove-reference {
+    display: flex;
+    align-items: center;
+    padding: 2px;
+    border-radius: 3px;
+    opacity: 0.6;
+    cursor: pointer;
+    border: none;
+    background: none;
+
+    &:hover {
+      opacity: 1;
+      background: var(--color-bg-secondary);
     }
   }
 }
 
 .input-actions {
   display: flex;
-  gap: 0.5rem;
-  padding-left: 0.5rem;
-  border-left: 1px solid var(--color-shape-secondary);
+  gap: 8px;
+  padding: 4px;
 }
 
 .action-icon {
@@ -1044,7 +1251,7 @@ const copyMessageContent = async (content: string) => {
   }
 }
 
-/* 加载动画 */
+/* 12. 加载动画 */
 .loading-indicator {
   display: flex;
   gap: 4px;
@@ -1081,6 +1288,7 @@ const copyMessageContent = async (content: string) => {
   }
 }
 
+/* 13. 动画 */
 @keyframes typing {
   0%,
   80%,
@@ -1094,13 +1302,6 @@ const copyMessageContent = async (content: string) => {
   }
 }
 
-/* 消息动画 */
-.message-wrapper {
-  animation: messageSlide 0.3s ease-out;
-  opacity: 0;
-  animation-fill-mode: forwards;
-}
-
 @keyframes messageSlide {
   from {
     opacity: 0;
@@ -1110,5 +1311,16 @@ const copyMessageContent = async (content: string) => {
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+.slide-fade-enter-active,
+.slide-fade-leave-active {
+  transition: all 0.3s ease;
+}
+
+.slide-fade-enter-from,
+.slide-fade-leave-to {
+  transform: translateY(10px);
+  opacity: 0;
 }
 </style>

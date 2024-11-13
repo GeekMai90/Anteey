@@ -179,12 +179,6 @@ const debouncedSearch = useDebounceFn(async () => {
 const performSearch = () => {
   debouncedSearch()
 }
-// const performSearch = () => {
-//   requestAnimationFrame(() => {
-//     // isExpanded.value = true
-//     debouncedSearch()
-//   })
-// }
 
 // 选择搜索结果
 const selectResult = (noteIndex: number, blockIndex: number, openEditor = false) => {

@@ -1985,3 +1985,38 @@ function applyFilterRule(query: Knex.QueryBuilder, rule: FilterRule): Knex.Query
   console.log('生成的SQL:', sqlString)
   return query
 }
+
+// 获取最近编辑的 10 篇笔记
+export async function getRecentEditedNotes(): Promise<
+  Array<{
+    id: string
+    address: string
+    title: string
+    cardType: string
+  }>
+> {
+  try {
+    const notes = await db('notes').where('isDeleted', false).orderBy('updatedAt', 'desc').limit(10)
+
+    return notes.map((note: Note) => {
+      let metadata = { title: '' }
+      try {
+        // 因为从数据库读出来的 metadata 是字符串，需要解析
+        metadata =
+          typeof note.metadata === 'string' ? JSON.parse(note.metadata) : note.metadata || {}
+      } catch (e) {
+        console.error('解析笔记 metadata 失败:', note.id, e)
+      }
+
+      return {
+        id: note.id,
+        address: note.address,
+        title: metadata.title || '',
+        cardType: note.cardType
+      }
+    })
+  } catch (error) {
+    console.error('后端→ 获取最近编辑的笔记失败:', error)
+    throw new Error('获取最近编辑的笔记失败')
+  }
+}

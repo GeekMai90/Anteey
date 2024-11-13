@@ -304,6 +304,28 @@ export interface ElectronAPI {
       metadata?: Record<string, any>
     }
   ) => Promise<void>
+
+  generateAnswerWithReferences: (
+    query: string,
+    noteReferences: NoteReference[],
+    sessionId: string | null,
+    currentMessages: ChatMessage[],
+    currentContexts: RAGContext[]
+  ) => Promise<{
+    answer: string
+    context: RAGContext
+    messages: ChatMessage[]
+  }>
+
+  // 获取最近编辑的 10 篇笔记
+  getRecentEditedNotes: () => Promise<
+    {
+      id: string
+      address: string
+      title: string
+      cardType: string
+    }[]
+  >
 }
 
 declare global {
