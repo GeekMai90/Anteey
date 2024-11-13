@@ -1,5 +1,5 @@
-import { db } from './config'
-import { Tag } from '../renderer/src/types/Note'
+import { db } from '../../db/config'
+import { Tag } from '../../renderer/src/types/Note'
 import { v4 as uuidv4 } from 'uuid'
 
 interface TagRecord {

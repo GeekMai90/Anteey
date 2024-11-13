@@ -1,6 +1,6 @@
 // 词典服务
 import { Knex } from 'knex/types'
-import { db } from './config'
+import { db } from '../../db/config'
 import log from 'electron-log/renderer'
 
 // 接口定义

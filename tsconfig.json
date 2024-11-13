@@ -42,7 +42,8 @@
     "src/renderer/src/types/electron.d.ts",
     "src/renderer/src/utils/tiptap/CustomDragHandle.js",
     "src/renderer/src/stores/noteStorests",
-    "src/renderer/src/utils/tiptap/tagSuggestion.js"
+    "src/renderer/src/utils/tiptap/tagSuggestion.js",
+    "src/renderer/src/components/aiassistant/constants/noteActions"
   ],
   "exclude": [
     "node_modules"

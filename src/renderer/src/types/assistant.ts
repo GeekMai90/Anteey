@@ -1,3 +1,5 @@
+import { Component } from 'vue'
+
 // 基础消息接口
 export interface AssistantMessage {
   id: string
@@ -9,7 +11,7 @@ export interface AssistantMessage {
 // AI 助手消息接口（扩展基础消息）
 export interface AIAssistantMessage extends AssistantMessage {
   role: 'assistant'
-  sourceType: 'notes' | 'ai' // 来源类型：笔记库或AI知识库
+  sourceType: 'notes' | 'ai' | 'note_processing' // 来源类型：笔记库或AI知识库
   references?: {
     noteId: string
     address: string
@@ -18,6 +20,12 @@ export interface AIAssistantMessage extends AssistantMessage {
     similarity: number // 相关度
     createdAt: string // 笔记创建时间
   }[]
+  processingInfo?: {
+    // 新增：处理信息
+    actionId: string
+    actionName: string
+    originalNoteId: string
+  }
 }
 
 // 用户消息接口
@@ -49,6 +57,14 @@ export interface RAGContext {
   timestamp: string
   relevantDocs: RAGResult[]
   response?: string
+  processingType?: 'qa' | 'note_processing' // 新增：处理类型
+  targetNote?: {
+    // 新增：目标笔记信息
+    id: string
+    title: string
+    content: string
+    metadata?: any
+  }
 }
 
 // RAG 检索结果接口
@@ -179,4 +195,24 @@ export interface RetrievalConfig {
   minSimilarity: number // 最小相似度要求
   reuseThreshold: number // 文档重用阈值
   weightDecayFactor: number // 历史文档权重衰减因子
+}
+
+// 新增：笔记处理相关接口
+
+// 新增：笔记处理动作接口
+export interface NoteAction {
+  id: string
+  name: string
+  description: string
+  icon: Component
+  prompt: string
+  type: 'summarize' | 'optimize' | 'expand' | 'flashcards' // 处理类型
+}
+
+// 新增：笔记处理结果接口
+export interface NoteProcessingResult {
+  noteId: string
+  actionId: string
+  result: string
+  timestamp: string
 }

@@ -1,5 +1,5 @@
 import { ipcMain } from 'electron'
-import * as DictionaryService from '../../db/dictionaryService'
+import * as DictionaryService from '../../services/dictionary/dictionaryService'
 import log from 'electron-log'
 
 export function setupDictionaryHandlers() {

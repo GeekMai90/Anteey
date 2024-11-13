@@ -1,8 +1,12 @@
-// src/db/connections.ts
+// src/services/notes/connections.ts
 
-import { db } from './config'
+import { db } from '../../db/config'
 import { v4 as uuidv4 } from 'uuid'
-import { Connection, ConnectionCreateData, ConnectionUpdateData } from '../renderer/src/types/Note'
+import {
+  Connection,
+  ConnectionCreateData,
+  ConnectionUpdateData
+} from '../../renderer/src/types/Note'
 
 // 创建连线
 // 需要输入白板id，起点项目id，终点项目id，起点坐标，终点坐标，描述

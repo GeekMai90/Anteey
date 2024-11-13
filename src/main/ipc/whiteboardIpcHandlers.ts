@@ -22,7 +22,7 @@ import {
   updateWhiteboardName,
   deleteWhiteboard,
   getWhiteboardCount
-} from '../../db/whiteboards'
+} from '../../services/notes/whiteboards'
 
 export function setupWhiteboardHandlers() {
   // 获取白板数量

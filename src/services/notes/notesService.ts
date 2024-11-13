@@ -1,10 +1,10 @@
-import { db } from './config'
-import { CardType, Note } from '../renderer/src/types/Note'
+import { CardType, Note } from '../../renderer/src/types/Note'
 import { v4 as uuidv4 } from 'uuid'
-import type { NoteReference, InternalNoteReference } from '../renderer/src/types/Note'
+import type { NoteReference, InternalNoteReference } from '../../renderer/src/types/Note'
 import { Knex } from 'knex/types'
-import { FilterRule } from '../renderer/src/types/Filter'
-import { updateNoteEmbedding } from './embeddingService'
+import { FilterRule } from '../../renderer/src/types/Filter'
+import { updateNoteEmbedding } from '../rag/embeddingService'
+import { db } from '../../db/config'
 
 // 辅助函数：将数据库记录转换为 Note 对象
 function convertToNote(record: any): Note {

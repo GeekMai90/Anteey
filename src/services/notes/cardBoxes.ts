@@ -1,7 +1,7 @@
 // src/db/cardBoxes.ts
 
-import { db } from './config'
-import { CardBox } from '../renderer/src/types/Note'
+import { db } from '../../db/config'
+import { CardBox } from '../../renderer/src/types/Note'
 import { v4 as uuidv4 } from 'uuid'
 
 // 创建卡片盒

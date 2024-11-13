@@ -1,6 +1,6 @@
 // 向量服务
-import { db } from './config'
-import { NoteEmbedding } from '../renderer/src/types/Note'
+import { db } from '../../db/config'
+import { NoteEmbedding } from '../../renderer/src/types/Note'
 import log from 'electron-log'
 import { Knex } from 'knex/types'
 import { extractKeywords, calculateKeywordSimilarity } from './similarityService'

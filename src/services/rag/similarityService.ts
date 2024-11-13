@@ -1,13 +1,13 @@
 // 关键词提取和相似度计算服务
 import * as nodejieba from 'nodejieba'
-import { Keyword } from '../renderer/src/types/Embedding'
+import { Keyword } from '../../renderer/src/types/Embedding'
 import log from 'electron-log/renderer'
 import path from 'path'
 import { writeFile } from 'fs/promises'
-import { DictionaryLearner } from './dictionaryLearner'
-import * as DictionaryService from './dictionaryService'
-import { TextProcessor } from './textProcessor'
-import { db } from './config'
+import { DictionaryLearner } from '../../services/dictionary/dictionaryLearner'
+import * as DictionaryService from '../../services/dictionary/dictionaryService'
+import { TextProcessor } from '../../services/dictionary/textProcessor'
+import { db } from '../../db/config'
 import { Knex } from 'knex/types'
 
 // 添加自定义词典

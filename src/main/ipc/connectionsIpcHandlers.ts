@@ -6,7 +6,7 @@ import {
   getConnectionsByWhiteboardId,
   deleteConnection,
   updateConnectionDescription
-} from '../../db/connections'
+} from '../../services/notes/connections'
 
 export function setupConnectionsHandlers() {
   // 创建连线

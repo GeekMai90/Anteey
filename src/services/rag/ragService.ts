@@ -1,6 +1,9 @@
-// src/db/ragService.ts
-// 基于关键词和向量检索的RAG服务
-import { db } from './config'
+/**
+ * RAG (Retrieval-Augmented Generation) 服务
+ * 基于关键词和向量检索的智能问答系统
+ */
+
+import { db } from '../../db/config'
 import { initEmbeddings } from './embeddingService'
 import log from 'electron-log'
 import {
@@ -12,25 +15,28 @@ import {
   RAGHistoryRecord,
   RAGResult,
   UserMessage
-} from '../renderer/src/types/assistant'
+} from '../../renderer/src/types/assistant'
 import { v4 as uuidv4 } from 'uuid'
-import { LLMService } from '../services/llmService'
-import { SimilarityService } from './utils/calculateSimilarity'
+import { LLMService } from '../../services/rag/llmService'
+import { SimilarityService } from './calculateSimilarity'
 import { extractKeywords } from './similarityService'
 import { Keyword } from '@renderer/types/Embedding'
 
+/**
+ * 系统配置常量
+ */
 // RAG 系统配置
 export const RAG_CONFIG = {
   similarity: {
     topicThreshold: 0.7, // 话题相似度阈值
     docThreshold: 0.6, // 文档相似度阈值
-    contextWindowSize: 5 // 保留最近5轮对话
+    contextWindowSize: 5 // 对话上下文窗口大小
   },
   retrieval: {
-    maxDocsPerQuery: 5, // 每次最多返回5个相关文档
+    maxDocsPerQuery: 5, // 单次查询最大文档数
     minSimilarity: 0.3, // 最小相似度要求
     reuseThreshold: 0.8, // 文档重用阈值
-    weightDecayFactor: 0.8 // 历史文档权重衰减因子
+    weightDecayFactor: 0.8 // 历史权重衰减因子
   }
 } as const
 
@@ -44,9 +50,16 @@ export const TOPIC_CONFIG = {
 // 初始化 LLM 服务
 const llm = new LLMService(process.env.ZHIPU_API_KEY || '')
 
-// 将数据库结果转换为前端需要的格式
+/**
+ * 核心检索功能
+ */
+
+/**
+ * 将数据库查询结果转换为前端所需格式
+ * @param result - 数据库查询结果
+ * @returns 格式化后的RAG结果
+ */
 function transformDBResult(result: any): RAGResult {
-  // 解析 metadata 字符串为对象
   const metadata = result.metadata ? JSON.parse(result.metadata) : {}
   return {
     noteId: result.id,
@@ -58,109 +71,20 @@ function transformDBResult(result: any): RAGResult {
   }
 }
 
-// export async function retrieveContext(query: string, limit: number = 5): Promise<RAGContext> {
-//   try {
-//     // 1. 初始化向量模型并生成查询向量
-//     const embedder = await initEmbeddings()
-//     const queryVector = await embedder(query)
-//     const queryFloat32Array = new Float32Array(queryVector)
-
-//     // 从查询中提取关键词
-//     const queryKeywords = await extractKeywords(query)
-//     log.info('查询关键词:', queryKeywords)
-
-//     // 2. 获取所有笔记
-//     const notes = await db('note_embeddings')
-//       .join('notes', 'note_embeddings.note_id', 'notes.id')
-//       .select('notes.*', 'note_embeddings.embedding', 'note_embeddings.keywords')
-
-//     log.info('检索到的笔记:', {
-//       总数: notes.length,
-//       示例: notes.slice(0, 2).map((n) => ({
-//         id: n.id,
-//         title: n.metadata?.title,
-//         content: n.content?.substring(0, 50) + '...',
-//         hasEmbedding: !!n.embedding,
-//         keywords: n.keywords
-//       }))
-//     })
-
-//     // 3. 计算相似度
-//     const results = notes
-//       .map((note) => {
-//         try {
-//           if (!note.embedding) {
-//             return null
-//           }
-
-//           const noteVector = SimilarityService.blobToFloat32Array(note.embedding)
-//           const noteKeywords = JSON.parse(note.keywords || '[]')
-
-//           const similarity = SimilarityService.calculateSimilarity(
-//             queryFloat32Array,
-//             noteVector,
-//             queryKeywords,
-//             noteKeywords
-//           )
-
-//           log.debug('相似度计算:', {
-//             笔记ID: note.id,
-//             标题: note.metadata?.title,
-//             相似度: similarity
-//           })
-
-//           return {
-//             ...note,
-//             similarity
-//           }
-//         } catch (error) {
-//           log.error('处理笔记相似度失败:', { id: note.id, error })
-//           return null
-//         }
-//       })
-//       .filter((result): result is NonNullable<typeof result> => {
-//         const SIMILARITY_THRESHOLD = 0.2
-//         return result !== null && result.similarity > SIMILARITY_THRESHOLD
-//       })
-//       .sort((a, b) => b.similarity - a.similarity)
-//       .slice(0, limit)
-
-//     // 4. 转换结果
-//     const relevantDocs = results.map(transformDBResult)
-//     console.log('relevantDocs', relevantDocs)
-
-//     log.info('RAG检索结果:', {
-//       查询: query,
-//       关键词: queryKeywords,
-//       相关文档数: relevantDocs.length,
-//       相似度详情: relevantDocs.map((doc) => ({
-//         id: doc.noteId,
-//         title: doc.title,
-//         similarity: doc.similarity
-//       }))
-//     })
-
-//     return {
-//       query,
-//       timestamp: new Date().toISOString(),
-//       relevantDocs
-//     }
-//   } catch (error) {
-//     log.error('RAG检索失败:', error)
-//     throw error
-//   }
-// }
-
-// 保存检索历史
-// 保存检索历史
-// 修改检索上下文函数,增加会话追踪支持
+/**
+ * 检索相关上下文
+ * @param query - 用户查询
+ * @param session - 当前会话信息(可选)
+ * @param limit - 最大返回文档数
+ * @returns 包含相关文档的上下文
+ */
 export async function retrieveContext(
   query: string,
   session?: ChatSession,
   limit: number = 5
 ): Promise<RAGContext> {
   try {
-    // 添加输入验证
+    // 输入验证
     if (typeof query !== 'string') {
       log.error('检索上下文失败: 查询必须是字符串类型', {
         receivedType: typeof query,
@@ -169,23 +93,25 @@ export async function retrieveContext(
       throw new Error('查询必须是字符串类型')
     }
 
-    // 记录输入
+    // 记录检索开始
     log.info('开始检索上下文:', {
       query,
       sessionId: session?.id
     })
-    // 1. 初始化向量模型并生成查询向量
+
+    // 初始化向量模型并生成查询向量
     const embedder = await initEmbeddings()
     const queryVector = await embedder(query)
     const queryFloat32Array = new Float32Array(queryVector)
 
-    // 2. 提取查询关键词
+    // 提取查询关键词
     const queryKeywords = await extractKeywords(query)
     log.info('查询关键词:', queryKeywords)
 
-    // 3. 判断话题相关性
+    // 根据会话状态处理检索
     let relevantDocs: RAGResult[] = []
     if (session?.conversationTracker) {
+      // 检查话题相关性
       const { isRelatedTopic, topicSimilarity } = await checkTopicSimilarity(
         query,
         queryVector,
@@ -199,7 +125,7 @@ export async function retrieveContext(
       })
 
       if (isRelatedTopic) {
-        // 3a. 同话题处理: 优先使用现有文档
+        // 同话题处理: 优先使用现有文档
         relevantDocs = await handleSameTopicRetrieval(
           query,
           queryFloat32Array,
@@ -208,24 +134,23 @@ export async function retrieveContext(
           limit
         )
       } else {
-        // 3b. 新话题处理: 重新检索
+        // 新话题处理: 重新检索
         relevantDocs = await handleNewTopicRetrieval(query, queryFloat32Array, queryKeywords, limit)
-
-        // 更新话题追踪器
         session.conversationTracker = createNewTopicTracker(query, queryVector)
       }
     } else {
-      // 4. 无会话上下文时的处理
+      // 无会话上下文时的处理
       relevantDocs = await handleNewTopicRetrieval(query, queryFloat32Array, queryKeywords, limit)
     }
 
-    // 5. 构建返回结果
+    // 构建返回结果
     const context: RAGContext = {
       query,
       timestamp: new Date().toISOString(),
       relevantDocs
     }
 
+    // 记录检索结果
     log.info('RAG检索结果:', {
       查询: query,
       关键词: queryKeywords,
@@ -244,20 +169,30 @@ export async function retrieveContext(
   }
 }
 
-// 检查话题相关性
+/**
+ * 话题管理相关功能
+ */
+
+/**
+ * 检查查询与当前话题的相关性
+ * @param query - 用户查询
+ * @param queryVector - 查询向量
+ * @param tracker - 会话追踪器
+ * @returns 相关性判断结果
+ */
 async function checkTopicSimilarity(
   query: string,
   queryVector: number[],
   tracker: ConversationTracker
 ): Promise<{ isRelatedTopic: boolean; topicSimilarity: number }> {
   try {
-    // 1. 检查话题是否过期
+    // 检查话题是否过期
     const topicAge = Date.now() - tracker.startTime
     if (topicAge > TOPIC_CONFIG.maxTopicAge) {
       return { isRelatedTopic: false, topicSimilarity: 0 }
     }
 
-    // 2. 获取最近的问题向量
+    // 获取最近的问题记录
     const recentQuestions = tracker.questionHistory
       .slice(-RAG_CONFIG.similarity.contextWindowSize)
       .filter((q) => Date.now() - q.timestamp < TOPIC_CONFIG.maxTopicIdle)
@@ -266,7 +201,7 @@ async function checkTopicSimilarity(
       return { isRelatedTopic: false, topicSimilarity: 0 }
     }
 
-    // 3. 计算与最近问题的相似度
+    // 计算与历史问题的相似度
     const similarities = recentQuestions.map((q) => ({
       similarity: calculateVectorSimilarity(
         new Float32Array(queryVector),
@@ -275,7 +210,7 @@ async function checkTopicSimilarity(
       timestamp: q.timestamp
     }))
 
-    // 4. 计算加权平均相似度(越近的问题权重越大)
+    // 计算加权平均相似度
     const weightedSimilarity = calculateWeightedSimilarity(similarities)
 
     return {
@@ -288,84 +223,9 @@ async function checkTopicSimilarity(
   }
 }
 
-// 处理同话题检索
-async function handleSameTopicRetrieval(
-  query: string,
-  queryVector: Float32Array,
-  queryKeywords: Keyword[],
-  tracker: ConversationTracker,
-  limit: number
-): Promise<RAGResult[]> {
-  // 1. 筛选和重新排序现有文档
-  const reusableDocs = await filterAndReweightExistingDocs(
-    tracker.docUsage,
-    queryVector,
-    queryKeywords
-  )
-
-  // 2. 补充检索新文档
-  const supplementaryDocs = await retrieveSupplementaryDocs(
-    query,
-    queryVector,
-    queryKeywords,
-    reusableDocs,
-    limit
-  )
-
-  // 3. 合并结果并更新使用记录
-  const mergedDocs = mergeDocs(reusableDocs, supplementaryDocs, limit)
-  updateDocUsage(tracker, mergedDocs)
-
-  return mergedDocs
-}
-
-// 处理新话题检索
-async function handleNewTopicRetrieval(
-  query: string,
-  queryVector: Float32Array,
-  queryKeywords: Keyword[],
-  limit: number
-): Promise<RAGResult[]> {
-  // 执行全新检索
-  const notes = await db('note_embeddings')
-    .join('notes', 'note_embeddings.note_id', 'notes.id')
-    .select('notes.*', 'note_embeddings.embedding', 'note_embeddings.keywords')
-
-  // 计算相似度并排序
-  const results = notes
-    .map((note) => {
-      try {
-        if (!note.embedding) return null
-
-        const noteVector = SimilarityService.blobToFloat32Array(note.embedding)
-        const noteKeywords = JSON.parse(note.keywords || '[]')
-
-        const similarity = SimilarityService.calculateSimilarity(
-          queryVector,
-          noteVector,
-          queryKeywords,
-          noteKeywords
-        )
-
-        return {
-          ...note,
-          similarity
-        }
-      } catch (error) {
-        log.error('处理笔记相似度失败:', { id: note.id, error })
-        return null
-      }
-    })
-    .filter((result): result is NonNullable<typeof result> => {
-      return result !== null && result.similarity > RAG_CONFIG.retrieval.minSimilarity
-    })
-    .sort((a, b) => b.similarity - a.similarity)
-    .slice(0, limit)
-
-  return results.map(transformDBResult)
-}
-
-// 创建新的话题追踪器
+/**
+ * 创建新的话题追踪器
+ */
 function createNewTopicTracker(query: string, queryVector: number[]): ConversationTracker {
   return {
     topicId: uuidv4(),
@@ -381,7 +241,93 @@ function createNewTopicTracker(query: string, queryVector: number[]): Conversati
   }
 }
 
-// 计算向量相似度
+/**
+ * 文档处理相关功能
+ */
+
+/**
+ * 处理同话题下的文档检索
+ * 优先使用历史相关文档，必要时补充新文档
+ */
+async function handleSameTopicRetrieval(
+  query: string,
+  queryVector: Float32Array,
+  queryKeywords: Keyword[],
+  tracker: ConversationTracker,
+  limit: number
+): Promise<RAGResult[]> {
+  // 筛选和重新排序现有文档
+  const reusableDocs = await filterAndReweightExistingDocs(
+    tracker.docUsage,
+    queryVector,
+    queryKeywords
+  )
+
+  // 补充检索新文档
+  const supplementaryDocs = await retrieveSupplementaryDocs(
+    query,
+    queryVector,
+    queryKeywords,
+    reusableDocs,
+    limit
+  )
+
+  // 合并结果并更新使用记录
+  const mergedDocs = mergeDocs(reusableDocs, supplementaryDocs, limit)
+  updateDocUsage(tracker, mergedDocs)
+
+  return mergedDocs
+}
+
+/**
+ * 处理新话题的文档检索
+ * 执行全新的文档检索和相似度计算
+ */
+async function handleNewTopicRetrieval(
+  query: string,
+  queryVector: Float32Array,
+  queryKeywords: Keyword[],
+  limit: number
+): Promise<RAGResult[]> {
+  // 获取所有可能相关的笔记
+  const notes = await db('note_embeddings')
+    .join('notes', 'note_embeddings.note_id', 'notes.id')
+    .select('notes.*', 'note_embeddings.embedding', 'note_embeddings.keywords')
+
+  // 计算相似度并排序
+  const results = notes
+    .map((note) => {
+      try {
+        if (!note.embedding) return null
+
+        const noteVector = SimilarityService.blobToFloat32Array(note.embedding)
+        const noteKeywords = JSON.parse(note.keywords || '[]')
+        const similarity = SimilarityService.calculateSimilarity(
+          queryVector,
+          noteVector,
+          queryKeywords,
+          noteKeywords
+        )
+
+        return { ...note, similarity }
+      } catch (error) {
+        log.error('处理笔记相似度失败:', { id: note.id, error })
+        return null
+      }
+    })
+    .filter((result): result is NonNullable<typeof result> => {
+      return result !== null && result.similarity > RAG_CONFIG.retrieval.minSimilarity
+    })
+    .sort((a, b) => b.similarity - a.similarity)
+    .slice(0, limit)
+
+  return results.map(transformDBResult)
+}
+
+/**
+ * 计算向量相似度
+ * 使用余弦相似度计算两个向量的相似程度
+ */
 function calculateVectorSimilarity(vec1: Float32Array, vec2: Float32Array): number {
   if (vec1.length !== vec2.length) {
     throw new Error('向量维度不匹配')
@@ -422,7 +368,9 @@ function calculateWeightedSimilarity(
   return weightedSum / totalWeight
 }
 
-// 筛选和重新权重现有文档
+/**
+ * 筛选和重新计算现有文档的权重
+ */
 async function filterAndReweightExistingDocs(
   docUsage: ConversationTracker['docUsage'],
   queryVector: Float32Array,
@@ -431,7 +379,6 @@ async function filterAndReweightExistingDocs(
   const results: RAGResult[] = []
 
   for (const [noteId, usage] of Object.entries(docUsage)) {
-    // 获取文档详情
     const note = await db('notes')
       .join('note_embeddings', 'notes.id', 'note_embeddings.note_id')
       .where('notes.id', noteId)
@@ -449,7 +396,7 @@ async function filterAndReweightExistingDocs(
       noteKeywords
     )
 
-    // 应用使用频率和时间衰减
+    // 应用使用频率和时间衰减因子
     const timeDecay = Math.exp(
       -(Date.now() - usage.lastUsed) / (RAG_CONFIG.retrieval.weightDecayFactor * 3600000)
     )
@@ -544,75 +491,22 @@ function updateDocUsage(tracker: ConversationTracker, docs: RAGResult[]): void {
   })
 }
 
-// 创建或更新检索历史
-// export async function updateRAGHistory(
-//   sessionId: string,
-//   messages: ChatMessage[],
-//   contexts: RAGContext[]
-// ): Promise<void> {
-//   try {
-//     const now = Date.now()
-//     const firstMessage = messages[0]
+/**
+ * 历史记录管理功能
+ */
 
-//     // 计算元数据
-//     const metadata = {
-//       messageCount: messages.length,
-//       userMessageCount: messages.filter((m) => m.role === 'user').length,
-//       aiMessageCount: messages.filter((m) => m.role === 'assistant').length,
-//       averageRelevanceScore:
-//         contexts.reduce(
-//           (acc, ctx) =>
-//             acc +
-//             ctx.relevantDocs.reduce((sum, doc) => sum + doc.similarity, 0) /
-//               ctx.relevantDocs.length,
-//           0
-//         ) / contexts.length
-//     }
-
-//     // 生成摘要（使用第一条消息）
-//     const summary = firstMessage.content.slice(0, 100)
-//     const title = firstMessage.content.slice(0, 20)
-
-//     // 检查是否存在现有记录
-//     const existing = await db('rag_history').where('id', sessionId).first()
-
-//     if (existing) {
-//       // 更新现有记录
-//       await db('rag_history')
-//         .where('id', sessionId)
-//         .update({
-//           messages: JSON.stringify(messages),
-//           contexts: JSON.stringify(contexts),
-//           summary,
-//           metadata: JSON.stringify(metadata),
-//           updatedAt: now
-//         })
-//     } else {
-//       // 创建新记录
-//       await db('rag_history').insert({
-//         id: sessionId,
-//         title,
-//         messages: JSON.stringify(messages),
-//         contexts: JSON.stringify(contexts),
-//         summary,
-//         totalTokens: 0, // 可以实现 token 计算逻辑
-//         metadata: JSON.stringify(metadata),
-//         isPinned: false,
-//         createdAt: now,
-//         updatedAt: now
-//       })
-//     }
-//   } catch (error) {
-//     log.error('更新RAG历史失败:', error)
-//     throw error
-//   }
-// }
-
+/**
+ * 更新RAG历史记录
+ * @param sessionId - 会话ID
+ * @param messages - 对话消息列表
+ * @param contexts - 上下文列表
+ * @param metadata - 元数据
+ */
 export async function updateRAGHistory(
   sessionId: string,
   messages: ChatMessage[],
   contexts: RAGContext[],
-  metadata: any // 添加元数据参数
+  metadata: any
 ): Promise<void> {
   try {
     const now = Date.now()
@@ -631,13 +525,14 @@ export async function updateRAGHistory(
               ctx.relevantDocs.length,
           0
         ) / contexts.length,
-      ...metadata // 合并传入的元数据
+      ...metadata
     }
 
     // 检查是否存在现有记录
     const existing = await db('rag_history').where('id', sessionId).first()
 
     if (existing) {
+      // 更新现有记录
       await db('rag_history')
         .where('id', sessionId)
         .update({
@@ -647,13 +542,14 @@ export async function updateRAGHistory(
           updatedAt: now
         })
     } else {
+      // 创建新记录
       await db('rag_history').insert({
         id: sessionId,
         title: firstMessage.content.slice(0, 20),
         messages: JSON.stringify(messages),
         contexts: JSON.stringify(contexts),
         summary: firstMessage.content.slice(0, 100),
-        totalTokens: 0, // 可以实现 token 计算逻辑
+        totalTokens: 0,
         metadata: JSON.stringify(extendedMetadata),
         isPinned: false,
         createdAt: now,
@@ -717,7 +613,6 @@ export async function clearAllRAGHistory(): Promise<void> {
 }
 
 // 获取检索历史
-// 获取检索历史
 export async function getRAGHistory(): Promise<RAGHistoryRecord[]> {
   try {
     const history = await db('rag_history').orderBy([
@@ -744,7 +639,6 @@ export async function getRAGHistory(): Promise<RAGHistoryRecord[]> {
 }
 
 // 获取单条历史记录详情
-// 获取单条历史记录详情
 export async function getRAGHistoryDetail(id: string): Promise<RAGHistoryRecord | null> {
   try {
     const item = await db('rag_history').where({ id }).first()
@@ -768,64 +662,14 @@ export async function getRAGHistoryDetail(id: string): Promise<RAGHistoryRecord 
   }
 }
 
-// export async function generateAnswer(
-//   query: string,
-//   sessionId: string | null, // 添加会话ID参数
-//   currentMessages: ChatMessage[] = [],
-//   currentContexts: RAGContext[] = []
-// ): Promise<{
-//   answer: string
-//   context: RAGContext
-//   messages: ChatMessage[]
-// }> {
-//   try {
-//     // 1. 获取相关上下文
-//     const context = await retrieveContext(query)
+/**
+ * 答案生成相关功能
+ */
 
-//     // 2. 构建提示词
-//     const prompt = buildPrompt(query, context)
-
-//     // 3. 调用大模型
-//     const answer = await llm.generateResponse(prompt)
-
-//     // 4. 构建新的消息
-//     const userMessage: UserMessage = {
-//       id: uuidv4(),
-//       role: 'user',
-//       content: query,
-//       timestamp: Date.now()
-//     }
-
-//     const assistantMessage: AIAssistantMessage = {
-//       id: uuidv4(),
-//       role: 'assistant',
-//       content: answer,
-//       timestamp: Date.now(),
-//       sourceType: context.relevantDocs.length > 0 ? 'notes' : 'ai',
-//       references: context.relevantDocs.length > 0 ? context.relevantDocs : undefined
-//     }
-
-//     const updatedMessages = [...currentMessages, userMessage, assistantMessage]
-//     const updatedContexts = [...currentContexts, context]
-
-//     // 5. 如果有会话ID，则更新历史记录
-//     if (sessionId) {
-//       await updateRAGHistory(sessionId, updatedMessages, updatedContexts)
-//     }
-
-//     // 6. 返回结果
-//     return {
-//       answer,
-//       context,
-//       messages: updatedMessages
-//     }
-//   } catch (error) {
-//     log.error('生成回答失败:', error)
-//     throw error
-//   }
-// }
-
-// 构建中文提示词
+/**
+ * 生成回答
+ * 整合检索结果和历史对话，生成合适的回答
+ */
 
 export async function generateAnswer(
   query: string,
@@ -956,9 +800,18 @@ export async function generateAnswer(
   }
 }
 
+/**
+ * 工具函数
+ */
+
 // 辅助函数：获取查询向量（带缓存）
 const vectorCache = new Map<string, Float32Array>()
 
+/**
+ * 获取查询向量（带缓存）
+ * @param query - 查询文本
+ * @returns 向量表示
+ */
 async function getQueryVector(query: string): Promise<Float32Array> {
   const cached = vectorCache.get(query)
   if (cached) return cached
@@ -977,6 +830,10 @@ async function getQueryVector(query: string): Promise<Float32Array> {
   return vector
 }
 
+/**
+ * 构建提示词
+ * 整合上下文和历史对话，生成结构化的提示词
+ */
 function buildPrompt(query: string, context: RAGContext, messages: ChatMessage[] = []): string {
   // 添加类型检查
   if (!context || !Array.isArray(context.relevantDocs)) {
@@ -985,6 +842,7 @@ function buildPrompt(query: string, context: RAGContext, messages: ChatMessage[]
   }
 
   try {
+    // 格式化相关文档
     const contextText = context.relevantDocs
       .map((doc) => {
         if (typeof doc.title !== 'string' || typeof doc.content !== 'string') {
@@ -993,7 +851,7 @@ function buildPrompt(query: string, context: RAGContext, messages: ChatMessage[]
         return `【笔记标题】${doc.title}\n【笔记内容】${doc.content}`
       })
       .join('\n\n')
-
+    // 格式化历史对话
     const recentMessages = messages
       .slice(-RAG_CONFIG.similarity.contextWindowSize * 2)
       .map((msg) => {
@@ -1003,7 +861,7 @@ function buildPrompt(query: string, context: RAGContext, messages: ChatMessage[]
         return `${msg.role === 'user' ? '用户' : 'AI'}：${msg.content}`
       })
       .join('\n')
-
+    // 返回结构化的提示词
     return `
 # Role: RAG笔记应用AI助手安安
 
@@ -1048,25 +906,6 @@ ${query}
   }
 }
 
-// 清理过期会话
-export async function cleanupExpiredSessions(): Promise<void> {
-  try {
-    const expirationTime = Date.now() - TOPIC_CONFIG.maxTopicAge
-    const result = await db('rag_history')
-      .where('updatedAt', '<', expirationTime)
-      .whereNot('isPinned', true) // 不删除置顶的会话
-      .delete()
-
-    log.info('清理过期会话完成:', {
-      清理时间: new Date().toISOString(),
-      删除数量: result
-    })
-  } catch (error) {
-    log.error('清理过期会话失败:', error)
-    throw error
-  }
-}
-
 // 批量获取历史记录
 export async function batchGetRAGHistory(ids: string[]): Promise<RAGHistoryRecord[]> {
   try {
@@ -1093,6 +932,9 @@ export async function batchGetRAGHistory(ids: string[]): Promise<RAGHistoryRecor
   }
 }
 
+/**
+ * 性能监控
+ */
 // 性能监控方法
 export interface RAGPerformanceData {
   sessionId: string
@@ -1105,7 +947,9 @@ export interface RAGPerformanceData {
 }
 
 const performanceLog: RAGPerformanceData[] = []
-
+/**
+ * 记录RAG性能数据
+ */
 export function trackRAGPerformance(
   sessionId: string,
   method: string,
@@ -1153,7 +997,10 @@ export function trackRAGPerformance(
   }
 }
 
-// 获取性能日志
+/**
+ * 获取性能日志
+ * 支持多种过滤条件
+ */
 export function getRAGPerformanceLogs(
   options: {
     startTime?: number
@@ -1186,4 +1033,29 @@ export function getRAGPerformanceLogs(
   }
 
   return filtered
+}
+
+/**
+ * 系统维护
+ */
+/**
+ * 清理过期会话
+ * 定期清理超过最大存活时间的非置顶会话
+ */
+export async function cleanupExpiredSessions(): Promise<void> {
+  try {
+    const expirationTime = Date.now() - TOPIC_CONFIG.maxTopicAge
+    const result = await db('rag_history')
+      .where('updatedAt', '<', expirationTime)
+      .whereNot('isPinned', true) // 不删除置顶的会话
+      .delete()
+
+    log.info('清理过期会话完成:', {
+      清理时间: new Date().toISOString(),
+      删除数量: result
+    })
+  } catch (error) {
+    log.error('清理过期会话失败:', error)
+    throw error
+  }
 }

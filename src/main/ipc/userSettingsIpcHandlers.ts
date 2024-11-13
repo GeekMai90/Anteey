@@ -1,6 +1,6 @@
 import { ipcMain } from 'electron'
 import { UpdateUserSettings } from '../../renderer/src/types/UserSettings'
-import { getUserSettings, updateUserSettings } from '../../db/userSettings'
+import { getUserSettings, updateUserSettings } from '../../services/user/userSettings'
 
 export function setupUserSettingsHandlers() {
   // 更新用户设置

@@ -1,5 +1,5 @@
 import { v4 as uuidv4 } from 'uuid'
-import { db } from './config' // 假设你有一个 db 模块来处理数据库连接
+import { db } from '../../db/config'
 import type {
   CreateWhiteboardInput,
   CreateWhiteboardNoteInput,
@@ -8,7 +8,7 @@ import type {
   RootWhiteboard,
   WhiteboardGroup,
   Connection
-} from '../renderer/src/types/Note'
+} from '../../renderer/src/types/Note'
 import { createNote } from './notesService'
 
 // 辅助函数：处理白板数据
@@ -126,7 +126,16 @@ export async function getRootWhiteboard(): Promise<RootWhiteboard> {
           items: JSON.parse(rootWhiteboard.items),
           scrollPosition: JSON.parse(rootWhiteboard.scrollPosition)
         }
-      : null
+      : {
+          id: uuidv4(),
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          zoomLevel: 1,
+          scrollPosition: { x: 0, y: 0 },
+          scale: 1,
+          translateX: 0,
+          translateY: 0
+        }
   } catch (error) {
     console.error('后端→ 获取根白板失败:', error)
     throw error

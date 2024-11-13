@@ -11,7 +11,7 @@ import {
   searchTagsAdvanced,
   type TagSearchParams,
   getNoteTags
-} from '../../db/tagService'
+} from '../../services/notes/tagService'
 import type { Tag } from '../../renderer/src/types/Note'
 
 export function setupTagHandlers() {

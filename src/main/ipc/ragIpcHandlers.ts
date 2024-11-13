@@ -13,7 +13,7 @@ import {
   cleanupExpiredSessions,
   trackRAGPerformance,
   RAGPerformanceData
-} from '../../db/ragService'
+} from '../../services/rag/ragService'
 import log from 'electron-log'
 import { ChatMessage, ChatSession, RAGContext } from '@renderer/types/assistant'
 

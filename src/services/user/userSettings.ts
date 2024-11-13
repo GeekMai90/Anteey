@@ -1,10 +1,10 @@
-import { db } from './config'
+import { db } from '../../db/config'
 import { v4 as uuidv4 } from 'uuid'
 import {
   UserSettings,
   DBUserSettings,
   UpdateUserSettings
-} from '../renderer/src/types/UserSettings'
+} from '../../renderer/src/types/UserSettings'
 
 // 将数据库结果转换为前端需要的格式
 function transformDBSettings(settings: DBUserSettings): UserSettings {

@@ -1,5 +1,10 @@
 import { ipcMain } from 'electron'
-import { createCardBox, getAllCardBoxes, updateCardBox, deleteCardBox } from '../../db/cardBoxes'
+import {
+  createCardBox,
+  getAllCardBoxes,
+  updateCardBox,
+  deleteCardBox
+} from '../../services/notes/cardBoxes'
 
 export function setupCardboxHandlers() {
   // 创建卡片盒

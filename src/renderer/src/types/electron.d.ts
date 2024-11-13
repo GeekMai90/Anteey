@@ -1,9 +1,9 @@
-import { TagSearchParams } from '../../../db/tagService'
+import { TagSearchParams } from '../../../services/notes/tagService'
 import {
   GetPaginatedNotesParams,
   TimelineQueryParams,
   TimelineQueryResult
-} from '../../../db/notesService'
+} from '../../../services/notes/notesService'
 import {
   Note,
   CardBox,
@@ -20,8 +20,8 @@ import {
 } from './Note'
 import { UpdateUserSettings, UserSettings } from './UserSettings'
 import { CreateCustomFilterInput, CustomFilter, UpdateCustomFilterInput } from './Filter'
-import { WordSuggestion } from '../../../db/dictionaryService'
-import { DictWord } from '../../../db/dictionaryService'
+import { WordSuggestion } from '../../../services/dictionary/dictionaryService'
+import { DictWord } from '../../../services/dictionary/dictionaryService'
 import { ChatMessage, ChatSession, RAGContext, RAGHistoryRecord } from './assistant'
 
 export interface ElectronAPI {

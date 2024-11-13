@@ -37,7 +37,7 @@ import {
   createNoteReference,
   deleteNoteReference,
   updateNoteTag
-} from '../../db/notesService'
+} from '../../services/notes/notesService'
 
 export function setupNotesHandlers() {
   // 获取所有已删除的笔记
