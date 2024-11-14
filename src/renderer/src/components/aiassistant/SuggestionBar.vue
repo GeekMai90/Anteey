@@ -5,7 +5,7 @@
       :key="suggestion.id"
       class="suggestion-button"
       :class="{ active: currentMode?.id === suggestion.id }"
-      @click="selectMode(suggestion)"
+      @click="selectMode(suggestion as Suggestion)"
     >
       <div class="icon">
         <component :is="suggestion.icon" theme="outline" size="18" />
@@ -68,6 +68,14 @@ const suggestions = [
     mode: 'search',
     prompt: '',
     description: '搜索相关内容'
+  },
+  {
+    id: 'talk',
+    text: '聊一聊',
+    icon: markRaw(Code),
+    mode: 'talk',
+    prompt: '',
+    description: '与 AI 进行对话'
   }
 ]
 

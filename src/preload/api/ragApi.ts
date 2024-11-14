@@ -186,8 +186,6 @@ export const ragApi = {
   },
 
   // 生成带引用回答
-  // 生成带引用回答
-  // 生成带引用回答
   generateAnswerWithReferences: async (
     query: string,
     noteReferences: NoteReference[],
@@ -223,6 +221,49 @@ export const ragApi = {
       return result
     } catch (error) {
       console.error('预加载脚本 → 生成带引用回答失败:', error)
+      throw error
+    }
+  },
+  // 问一问模式
+  handleAskQuestion: async (
+    query: string,
+    noteReferences: NoteReference[] = [],
+    sessionId: string | null = null,
+    currentMessages: ChatMessage[] = [],
+    currentContexts: RAGContext[] = []
+  ): Promise<{
+    answer: string
+    context: RAGContext
+    messages: ChatMessage[]
+  }> => {
+    try {
+      console.log('预加载脚本 - 问一问模式:', {
+        query,
+        referencesCount: noteReferences.length,
+        sessionId,
+        messagesCount: currentMessages.length,
+        contextsCount: currentContexts.length
+      })
+
+      const result = await ipcRenderer.invoke('handle-ask-question', {
+        query,
+        noteReferences,
+        sessionId,
+        currentMessages,
+        currentContexts
+      })
+
+      if (!result.success) {
+        throw new Error(result.error)
+      }
+
+      return {
+        answer: result.answer,
+        context: result.context,
+        messages: result.messages
+      }
+    } catch (error) {
+      console.error('预加载脚本 → 问一问模式失败:', error)
       throw error
     }
   }

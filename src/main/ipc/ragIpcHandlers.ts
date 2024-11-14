@@ -13,7 +13,8 @@ import {
   cleanupExpiredSessions,
   trackRAGPerformance,
   RAGPerformanceData,
-  generateAnswerWithReferences
+  generateAnswerWithReferences,
+  handleAskQuestion
 } from '../../services/rag/ragService'
 import log from 'electron-log'
 import { ChatMessage, ChatSession, NoteReference, RAGContext } from '@renderer/types/assistant'
@@ -241,4 +242,22 @@ export function setupRAGHandlers() {
       }
     }
   )
+
+  // 问一问模式
+  ipcMain.handle('handle-ask-question', async (_event, params) => {
+    try {
+      const { query, noteReferences, sessionId, currentMessages, currentContexts } = params
+      const result = await handleAskQuestion(
+        query,
+        noteReferences,
+        sessionId,
+        currentMessages,
+        currentContexts
+      )
+      return { success: true, ...result }
+    } catch (error) {
+      log.error('主进程→ 问一问模式失败:', error)
+      return { success: false, error: String(error) }
+    }
+  })
 }

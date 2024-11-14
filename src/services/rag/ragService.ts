@@ -22,6 +22,7 @@ import { LLMService } from '../../services/rag/llmService'
 import { SimilarityService } from './calculateSimilarity'
 import { extractKeywords } from './similarityService'
 import { Keyword } from '@renderer/types/Embedding'
+import { Note } from '@renderer/types/Note'
 
 /**
  * 系统配置常量
@@ -1200,6 +1201,312 @@ export async function generateAnswerWithReferences(
     }
   } catch (error) {
     log.error('生成带引用回答失败:', error)
+    throw error
+  }
+}
+
+/**
+ * 问一问模式
+ * 从笔记中搜索相关内容并回答问题
+ */
+export async function handleAskQuestion(
+  query: string,
+  noteReferences: NoteReference[],
+  sessionId: string | null,
+  currentMessages: ChatMessage[] = [],
+  currentContexts: RAGContext[] = []
+): Promise<{
+  answer: string
+  context: RAGContext
+  messages: ChatMessage[]
+}> {
+  try {
+    // 1. 参数验证
+    if (typeof query !== 'string') {
+      throw new Error('查询必须是字符串类型')
+    }
+
+    // 记录调用信息
+    log.info('问一问模式 - 输入参数:', {
+      query,
+      sessionId,
+      referencesCount: noteReferences.length,
+      messagesCount: currentMessages.length,
+      contextsCount: currentContexts.length
+    })
+
+    // 2. 获取或创建会话
+    let session: ChatSession | undefined
+    if (sessionId) {
+      const history = await getRAGHistoryDetail(sessionId)
+      if (history) {
+        session = {
+          id: sessionId,
+          messages: currentMessages,
+          currentContext: currentContexts[currentContexts.length - 1],
+          conversationTracker: history.metadata?.conversationTracker,
+          metadata: {
+            startTime: history.createdAt,
+            lastUpdateTime: history.updatedAt,
+            messageCount: history.metadata.messageCount,
+            hasReferences: noteReferences.length > 0,
+            currentTopicId: history.metadata.currentTopicId,
+            topicStartTime: history.metadata.topicStartTime
+          }
+        }
+      }
+    }
+
+    let context: RAGContext
+    let answer: string
+
+    if (noteReferences.length > 0) {
+      // 3a. 处理有引用笔记的情况
+      // 获取被引用笔记的完整内容
+      const notes = await db('notes').whereIn(
+        'id',
+        noteReferences.map((ref) => ref.id)
+      )
+      if (notes.length === 0) {
+        throw new Error('未找到引用的笔记')
+      }
+
+      // 构建上下文
+      context = {
+        query,
+        timestamp: new Date().toISOString(),
+        relevantDocs: notes.map((note: Note) => ({
+          noteId: note.id,
+          address: note.address || '',
+          title: note.metadata?.title || '',
+          content: note.content,
+          similarity: 1,
+          createdAt: new Date(Number(note.createdAt)).toISOString()
+        })),
+        processingType: 'qa'
+      }
+
+      // 使用问一问模式的提示词
+      const prompt = buildAskQuestionPrompt(query, context, currentMessages)
+      answer = await llm.generateResponse(prompt)
+    } else {
+      // 3b. 处理无引用笔记的情况
+      // 获取相关上下文
+      context = await retrieveContext(query, session)
+      const prompt = buildAskQuestionPrompt(query, context, currentMessages)
+      answer = await llm.generateResponse(prompt)
+    }
+
+    // 4. 构建新的消息
+    const userMessage: UserMessage = {
+      id: uuidv4(),
+      role: 'user',
+      content: query,
+      timestamp: Date.now()
+    }
+
+    const assistantMessage: AIAssistantMessage = {
+      id: uuidv4(),
+      role: 'assistant',
+      content: answer,
+      timestamp: Date.now(),
+      sourceType: context.relevantDocs.length > 0 ? 'notes' : 'ai',
+      references: context.relevantDocs.length > 0 ? context.relevantDocs : undefined
+    }
+
+    const updatedMessages = [...currentMessages, userMessage, assistantMessage]
+    const updatedContexts = [...currentContexts, context]
+
+    // 5. 更新会话状态
+    if (session?.conversationTracker) {
+      const queryVector = await getQueryVector(query)
+      session.conversationTracker.questionHistory.push({
+        content: query,
+        vector: Array.from(queryVector),
+        timestamp: Date.now()
+      })
+
+      if (
+        session.conversationTracker.questionHistory.length > RAG_CONFIG.similarity.contextWindowSize
+      ) {
+        session.conversationTracker.questionHistory.shift()
+      }
+
+      session.metadata.messageCount += 2
+      session.metadata.lastUpdateTime = new Date().toISOString()
+    }
+
+    // 6. 更新历史记录
+    if (sessionId) {
+      await updateRAGHistory(sessionId, updatedMessages, updatedContexts, {
+        ...session?.metadata,
+        conversationTracker: session?.conversationTracker
+      })
+    }
+
+    // 7. 返回结果
+    return {
+      answer,
+      context,
+      messages: updatedMessages
+    }
+  } catch (error) {
+    log.error('问一问模式处理失败:', error)
+    throw error
+  }
+}
+
+// 提取单个节点的文本
+function extractNodeText(node: any): string {
+  if (!node) return ''
+
+  // 如果是文本节点，直接返回文本
+  if (node.type === 'text') return node.text
+
+  // 如果有子内容，递归处理
+  if (node.content) {
+    const texts = node.content.map((child: any) => extractNodeText(child)).filter(Boolean)
+
+    // 根据节点类型添加额外的格式
+    switch (node.type) {
+      case 'heading':
+        return `${texts.join('')}\n`
+      case 'paragraph':
+        return `${texts.join('')}\n`
+      case 'listItem':
+        return `• ${texts.join('')}\n` // 添加项目符号
+      case 'bulletList':
+      case 'orderedList':
+        return texts.join('')
+      default:
+        return texts.join('')
+    }
+  }
+
+  return ''
+}
+
+// 提取文档内容
+function extractTextFromContent(content: any): string {
+  try {
+    const contentObj = typeof content === 'string' ? JSON.parse(content) : content
+
+    if (!contentObj || !contentObj.content) {
+      log.error('内容格式无效:', content)
+      return ''
+    }
+
+    const text = extractNodeText(contentObj)
+
+    // 清理多余的换行符
+    return text.split('\n').filter(Boolean).join('\n')
+  } catch (error) {
+    log.error('提取文本内容失败:', error)
+    return String(content)
+  }
+}
+
+/**
+ * 构建问一问模式的提示词
+ */
+function buildAskQuestionPrompt(
+  query: string,
+  context: RAGContext,
+  messages: ChatMessage[] = []
+): string {
+  // 添加详细的日志
+  log.info('构建提示词 - 输入参数:', {
+    query,
+    contextDocs: context?.relevantDocs?.map((doc) => ({
+      id: doc.noteId,
+      hasTitle: !!doc.title,
+      hasContent: !!doc.content,
+      titleType: typeof doc.title,
+      contentType: typeof doc.content
+    })),
+    messagesCount: messages?.length
+  })
+  // 添加类型检查
+  if (!context || !Array.isArray(context.relevantDocs)) {
+    log.error('构建提示词失败: 无效的上下文格式', { context })
+    throw new Error('无效的上下文格式')
+  }
+
+  try {
+    // 格式化相关文档
+    const contextText = context.relevantDocs
+      .map((doc, index) => {
+        // 从富文本内容中提取纯文本
+        const textContent = extractTextFromContent(doc.content)
+
+        // 添加更多的日志
+        log.info(`文档 ${index} 处理结果:`, {
+          hasContent: !!doc.content,
+          extractedText: textContent,
+          textLength: textContent?.length
+        })
+
+        // 放宽条件，只要有内容就接受
+        if (!textContent && textContent !== '') {
+          log.error(`文档 ${index} 内容为空:`, doc.content)
+          throw new Error(`文档 ${index} 内容为空`)
+        }
+
+        const title = doc.title || ''
+        return `【笔记内容】${textContent}${title ? `\n【笔记标题】${title}` : ''}`
+      })
+      .join('\n\n')
+    // 格式化历史对话
+    const recentMessages = messages
+      .slice(-RAG_CONFIG.similarity.contextWindowSize * 2)
+      .map((msg) => {
+        if (typeof msg.content !== 'string') {
+          throw new Error('无效的消息格式')
+        }
+        return `${msg.role === 'user' ? '用户' : 'AI'}：${msg.content}`
+      })
+      .join('\n')
+
+    // 返回问一问模式的特定提示词
+    return `
+# Role: RAG笔记应用AI助手安安
+
+## Profile
+- 名字：安安
+- 角色：笔记应用的问答助手
+- 职责：帮助用户理解和获取笔记中的知识
+- 性格：专业、耐心
+
+## Core Functions
+1. 准确理解用户问题
+2. 从笔记中提取相关信息
+3. 提供清晰的解答
+
+## Response Guidelines
+1. 直接回答问题，不提及信息来源
+2. 确保回答准确且有针对性
+3. 使用简洁清晰的语言
+4. 如有必要，可以适当组织和整理信息
+
+## Format Specifications
+使用markdown格式，保持回答结构清晰
+
+## Workflow
+1. 理解用户问题
+2. 分析相关笔记内容
+3. 组织核心信息
+4. 生成清晰答案
+
+## Input Variables
+### 历史对话
+${recentMessages}
+### 相关笔记
+${contextText}
+### 用户问题
+${query}
+`
+  } catch (error) {
+    log.error('构建问一问提示词失败:', error)
     throw error
   }
 }

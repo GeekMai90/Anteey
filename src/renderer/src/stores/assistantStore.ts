@@ -593,6 +593,19 @@ export const useAssistantStore = defineStore('assistant', () => {
     }
   }
 
+  const generateWriting = async () => {
+    console.log('generateWriting')
+  }
+  const brainstorm = async () => {
+    console.log('brainstorm')
+  }
+  const analyzeContent = async () => {
+    console.log('analyzeContent')
+  }
+  const searchContent = async () => {
+    console.log('searchContent')
+  }
+
   // 更新性能指标
   const updatePerformanceMetrics = (duration: number) => {
     const metrics = performanceMetrics.value
@@ -728,6 +741,161 @@ export const useAssistantStore = defineStore('assistant', () => {
       throw error
     }
   }
+  // ==================问一问模式==================
+  // 问一问模式
+  const handleAskQuestion = async (content: string, noteReferences: NoteReference[] = []) => {
+    const startTime = performance.now()
+    try {
+      isProcessing.value = true
+
+      // 1. 会话管理
+      if (!currentSessionId.value) {
+        currentSessionId.value = uuidv4()
+        currentSession.value = {
+          id: currentSessionId.value,
+          messages: [],
+          currentContext: undefined,
+          metadata: {
+            startTime: new Date().toISOString(),
+            lastUpdateTime: new Date().toISOString(),
+            messageCount: 0,
+            hasReferences: noteReferences.length > 0
+          }
+        }
+      }
+
+      // 2. 添加用户消息
+      const userMessage: UserMessage = {
+        id: uuidv4(),
+        role: 'user',
+        content,
+        timestamp: Date.now()
+      }
+      messages.value.push(markRaw(userMessage))
+
+      // 3. 准备发送数据
+      const prepareDataForTransfer = (data: any) => {
+        return JSON.parse(
+          JSON.stringify(data, (key, value) => {
+            if (typeof value === 'function' || key.startsWith('_')) {
+              return undefined
+            }
+            return value
+          })
+        )
+      }
+
+      const messagesToSend = prepareDataForTransfer(messages.value.slice(0, -1))
+      const contextsToSend = prepareDataForTransfer(contexts.value)
+      const referencesToSend = prepareDataForTransfer(noteReferences)
+
+      // 4. 调用问一问模式
+      const result = await window.electronAPI.handleAskQuestion(
+        content,
+        referencesToSend,
+        currentSessionId.value,
+        messagesToSend,
+        contextsToSend
+      )
+
+      if (!result) {
+        throw new Error('问一问失败：未收到响应')
+      }
+
+      const { context, answer } = result
+
+      // 5. 添加AI回复
+      const assistantMessage: AIAssistantMessage = {
+        id: uuidv4(),
+        role: 'assistant',
+        content: answer,
+        timestamp: Date.now(),
+        sourceType: context.relevantDocs.length > 0 ? 'notes' : 'ai',
+        references:
+          context.relevantDocs.length > 0 ? prepareDataForTransfer(context.relevantDocs) : undefined
+      }
+      messages.value.push(markRaw(assistantMessage))
+
+      // 6. 更新上下文
+      const cleanContext = prepareDataForTransfer(context)
+      currentContext.value = markRaw(cleanContext)
+      contexts.value = markRaw([...contexts.value, cleanContext]) as RAGContext[]
+
+      // 7. 更新会话状态
+      if (currentSession.value) {
+        const cleanMessages = prepareDataForTransfer(messages.value)
+        currentSession.value = markRaw({
+          ...currentSession.value,
+          messages: cleanMessages,
+          currentContext: cleanContext,
+          metadata: {
+            ...currentSession.value.metadata,
+            messageCount: currentSession.value.metadata.messageCount + 2,
+            lastUpdateTime: new Date().toISOString(),
+            hasReferences: context.relevantDocs.length > 0
+          }
+        })
+      }
+
+      // 8. 更新历史记录
+      await window.electronAPI.updateRAGHistory({
+        sessionId: currentSessionId.value,
+        messages: prepareDataForTransfer(messages.value),
+        contexts: prepareDataForTransfer(contexts.value),
+        metadata: prepareDataForTransfer(currentSession.value?.metadata)
+      })
+
+      // 9. 更新性能指标
+      const duration = performance.now() - startTime
+      updatePerformanceMetrics(duration)
+
+      // 10. 记录性能数据
+      await window.electronAPI.trackRAGPerformance(
+        currentSessionId.value!,
+        'askQuestion',
+        duration,
+        {
+          success: true,
+          metadata: {
+            messageLength: content.length,
+            hasReferences: context.relevantDocs.length > 0
+          }
+        }
+      )
+
+      return {
+        answer,
+        context: cleanContext,
+        messages: prepareDataForTransfer(messages.value)
+      }
+    } catch (error) {
+      console.error('问一问失败:', error)
+      const errorMessage: SystemMessage = {
+        id: uuidv4(),
+        role: 'system',
+        content: '抱歉，处理问题时出现错误，请稍后重试。',
+        timestamp: Date.now()
+      }
+      messages.value.push(markRaw(errorMessage))
+
+      // 记录错误性能数据
+      const duration = performance.now() - startTime
+      performanceMetrics.value.errorCount++
+      await window.electronAPI.trackRAGPerformance(
+        currentSessionId.value!,
+        'askQuestion',
+        duration,
+        {
+          success: false,
+          error: String(error)
+        }
+      )
+
+      throw error
+    } finally {
+      isProcessing.value = false
+    }
+  }
 
   return {
     messages,
@@ -747,6 +915,11 @@ export const useAssistantStore = defineStore('assistant', () => {
     isLoadingHistory,
     currentSessionStartTime,
     cleanupExpiredSessions,
-    sendMessageWithReference
+    sendMessageWithReference,
+    generateWriting,
+    brainstorm,
+    analyzeContent,
+    searchContent,
+    handleAskQuestion
   }
 })

@@ -166,7 +166,7 @@
     <div class="input-section">
       <div class="input-wrapper">
         <!-- 新对话按钮 -->
-        <button
+        <!-- <button
           v-if="currentMode || messages.length > 0"
           class="new-chat-btn"
           @click="startNewChat"
@@ -183,7 +183,7 @@
           <div v-else class="new-chat-avatar">
             <img src="@resources/bot-avatar.svg" alt="AI Assistant" />
           </div>
-        </button>
+        </button> -->
 
         <div class="input-outer-container">
           <!-- 建议功能/引用笔记显示区域 -->
@@ -271,8 +271,8 @@ import {
 } from '@icon-park/vue-next'
 import type { Suggestion } from '@renderer/types/assistant'
 import TypewriterText from '@renderer/components/aiassistant/TypewriterText.vue'
-import { Vue3Lottie } from 'vue3-lottie'
-import loadingAnimation from '@renderer/assets/loading.json'
+// import { Vue3Lottie } from 'vue3-lottie'
+// import loadingAnimation from '@renderer/assets/loading.json'
 import AppToolbar from '@renderer/components/layout/AppToolbar.vue'
 import { useNoteStore } from '@renderer/stores/noteStores'
 import { useUIStore } from '@renderer/stores/useUIStore'
@@ -408,18 +408,18 @@ const suggestions: Suggestion[] = [
     description: '从你的笔记中搜索相关内容'
   },
   {
-    id: 'draft',
+    id: 'write',
     text: '帮你起草任何内容',
     icon: markRaw(Write),
-    mode: 'draft',
+    mode: 'write',
     prompt: '',
     description: '帮你起草任何内容'
   },
   {
-    id: 'brainstorm',
+    id: 'think',
     text: '头脑风暴新想法',
     icon: markRaw(Brain),
-    mode: 'brainstorm',
+    mode: 'think',
     prompt: '',
     description: '头脑风暴新想法'
   }
@@ -428,18 +428,18 @@ const suggestions: Suggestion[] = [
 // 常用功能
 const commonActions: Suggestion[] = [
   {
-    id: 'summarize',
-    text: '总结文本内容',
+    id: 'search',
+    text: '从你的笔记中搜索相关内容',
     icon: markRaw(Notes),
-    mode: 'summarize',
+    mode: 'search',
     prompt: '',
-    description: '总结文本内容'
+    description: '从你的笔记中搜索相关内容'
   },
   {
-    id: 'code',
+    id: 'answer',
     text: '解决代码相关问题',
     icon: markRaw(Code),
-    mode: 'code',
+    mode: 'answer',
     prompt: '',
     description: '解决代码相关问题'
   }
@@ -453,12 +453,18 @@ const getPlaceholder = computed(() => {
 })
 
 // 方法
+// const selectMode = (suggestion: Suggestion) => {
+//   currentMode.value = suggestion
+//   if (suggestion.prompt) {
+//     inputMessage.value = suggestion.prompt
+//     sendMessage()
+//   }
+// }
+// 选择模式
 const selectMode = (suggestion: Suggestion) => {
+  assistantStore.clearMessages()
   currentMode.value = suggestion
-  if (suggestion.prompt) {
-    inputMessage.value = suggestion.prompt
-    sendMessage()
-  }
+  selectedNotes.value = []
 }
 
 const startNewChat = () => {
@@ -468,39 +474,77 @@ const startNewChat = () => {
 }
 
 // 发送普通消息
-const sendMessage = async () => {
-  if (!inputMessage.value.trim() || isProcessing.value) return
+// const sendMessage = async () => {
+//   if (!inputMessage.value.trim() || isProcessing.value) return
 
-  const message = inputMessage.value
-  inputMessage.value = ''
-  selectedNotes.value = []
+//   const message = inputMessage.value
+//   inputMessage.value = ''
+//   selectedNotes.value = []
 
-  try {
-    await assistantStore.sendMessage(message)
-  } catch (error) {
-    console.error('发送消息失败:', error)
-  }
-}
+//   try {
+//     await assistantStore.sendMessage(message)
+//   } catch (error) {
+//     console.error('发送消息失败:', error)
+//   }
+// }
 
-// 发送带引用的消息
-const sendMessageWithReference = async () => {
-  if (!inputMessage.value.trim() && !selectedNotes.value.length) return
-  if (isProcessing.value) return
+// // 发送带引用的消息
+// const sendMessageWithReference = async () => {
+//   if (!inputMessage.value.trim() && !selectedNotes.value.length) return
+//   if (isProcessing.value) return
 
-  const content = inputMessage.value.trim()
-  const noteReferences = selectedNotes.value
-  inputMessage.value = ''
-  selectedNotes.value = []
-  // 发送带引用的消息给 AI
-  await assistantStore.sendMessageWithReference(content, noteReferences)
-}
+//   const content = inputMessage.value.trim()
+//   const noteReferences = selectedNotes.value
+//   inputMessage.value = ''
+//   selectedNotes.value = []
+//   // 发送带引用的消息给 AI
+//   await assistantStore.sendMessageWithReference(content, noteReferences)
+// }
 
 // 统一的发送处理
-const handleSend = () => {
-  if (selectedNotes.value.length > 0) {
-    sendMessageWithReference()
-  } else {
-    sendMessage()
+// const handleSend = () => {
+//   if (selectedNotes.value.length > 0) {
+//     sendMessageWithReference()
+//   } else {
+//     sendMessage()
+//   }
+// }
+const handleSend = async () => {
+  if (!inputMessage.value.trim() || assistantStore.isProcessing) return
+
+  try {
+    const message = inputMessage.value
+    const noteReferences = selectedNotes.value
+
+    // 清空输入和选中的笔记
+    inputMessage.value = ''
+    selectedNotes.value = []
+
+    switch (currentMode.value?.mode) {
+      case 'ask':
+        await assistantStore.handleAskQuestion(message, noteReferences)
+        break
+      // 其他模式暂时保持不变
+      case 'write':
+        await assistantStore.generateWriting()
+        break
+      case 'think':
+        await assistantStore.brainstorm()
+        break
+      case 'answer':
+        if (!selectedNotes.value.length) {
+          throw new Error('请先选择需要理解的笔记内容')
+        }
+        await assistantStore.analyzeContent()
+        break
+      case 'search':
+        await assistantStore.searchContent()
+        break
+    }
+  } catch (error) {
+    console.error('发送消息失败:', error)
+    // 可以添加一个提示
+    message.error('发送消息失败')
   }
 }
 

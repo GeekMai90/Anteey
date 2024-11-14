@@ -16,7 +16,7 @@ export interface AIAssistantMessage extends AssistantMessage {
     noteId: string
     address: string
     title: string
-    content: string // 相关片段
+    content: object // 相关片段
     similarity: number // 相关度
     createdAt: string // 笔记创建时间
   }[]
@@ -42,8 +42,8 @@ export interface SystemMessage extends AssistantMessage {
 export interface Suggestion {
   id: string
   text: string
-  icon: any
-  mode: string
+  icon: Component
+  mode: 'ask' | 'write' | 'think' | 'answer' | 'search' | 'talk'
   prompt: string
   description: string
 }
@@ -66,13 +66,21 @@ export interface RAGContext {
     metadata?: any
   }
 }
+// 笔记内容接口
+export interface NoteContent {
+  content: Array<{
+    attrs: {
+      text: string
+    }
+  }>
+}
 
 // RAG 检索结果接口
 export interface RAGResult {
   noteId: string
   address: string
   title: string
-  content: string
+  content: object
   similarity: number
   createdAt: string
 }

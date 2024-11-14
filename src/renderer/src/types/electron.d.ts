@@ -326,6 +326,15 @@ export interface ElectronAPI {
       cardType: string
     }[]
   >
+
+  // 问一问模式
+  handleAskQuestion: (
+    query: string,
+    noteReferences: NoteReference[],
+    sessionId: string | null,
+    currentMessages: ChatMessage[],
+    currentContexts: RAGContext[]
+  ) => Promise<{ answer: string; context: RAGContext; messages: ChatMessage[] }>
 }
 
 declare global {
