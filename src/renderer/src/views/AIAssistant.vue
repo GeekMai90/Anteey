@@ -186,17 +186,26 @@
         </button>
 
         <div class="input-outer-container">
-          <!-- 引用笔记显示区域 - 移到输入框外部 -->
-          <div v-if="selectedNotes.length > 0" class="references-display">
-            <div v-for="note in selectedNotes" :key="note.id" class="note-reference">
-              <div class="reference-icon">
-                <Notes theme="outline" size="14" />
+          <!-- 建议功能/引用笔记显示区域 -->
+          <div class="suggestion-reference-area">
+            <template v-if="selectedNotes.length > 0">
+              <!-- 引用笔记显示 -->
+              <div class="references-display">
+                <div v-for="note in selectedNotes" :key="note.id" class="note-reference">
+                  <div class="reference-icon">
+                    <Notes theme="outline" size="14" />
+                  </div>
+                  <span class="reference-title">{{ note.title }}</span>
+                  <button class="remove-reference" @click="removeNote(note.id)">
+                    <Close theme="outline" size="12" />
+                  </button>
+                </div>
               </div>
-              <span class="reference-title">{{ note.title }}</span>
-              <button class="remove-reference" @click="removeNote(note.id)">
-                <Close theme="outline" size="12" />
-              </button>
-            </div>
+            </template>
+            <template v-else>
+              <!-- 建议功能栏 -->
+              <SuggestionBar :current-mode="currentMode" @select="selectMode" />
+            </template>
           </div>
 
           <!-- 输入框容器 -->
@@ -271,6 +280,7 @@ import { useRouter } from 'vue-router'
 import { message } from '@renderer/utils/message'
 import AIChatHistoryPanel from '@renderer/components/aiassistant/AIChatHistoryPanel.vue'
 import NoteSelector from '@renderer/components/aiassistant/NoteSelector.vue'
+import SuggestionBar from '@renderer/components/aiassistant/SuggestionBar.vue'
 // Store
 const assistantStore = useAssistantStore()
 const { messages, isProcessing } = storeToRefs(assistantStore)
@@ -1079,6 +1089,11 @@ const copyMessageContent = async (content: string) => {
   }
 }
 
+.suggestion-reference-area {
+  min-height: 40px; // 给一个固定的最小高度,避免切换时的跳动
+  transition: all 0.3s ease; // 添加过渡效果
+}
+
 .input-container {
   display: flex;
   align-items: center;
@@ -1110,7 +1125,7 @@ const copyMessageContent = async (content: string) => {
   background: var(--color-bg-secondary);
   border-radius: 8px;
   // padding: 8px 12px;
-  min-height: 44px;
+  min-height: 30px;
 
   input {
     width: 100%;
@@ -1119,7 +1134,7 @@ const copyMessageContent = async (content: string) => {
     background: transparent;
     font-size: 14px;
     line-height: 1.5;
-    padding: 0 12px;
+    padding: 0 8px;
 
     &::placeholder {
       color: var(--color-text-secondary);
@@ -1130,29 +1145,30 @@ const copyMessageContent = async (content: string) => {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  &:not(:empty) {
-    margin-top: 8px;
-  }
+  padding: 4px 0;
+  // &:not(:empty) {
+  //   margin-top: 8px;
+  // }
 }
 .note-reference {
   display: inline-flex;
   align-items: center;
   gap: 4px;
   background: var(--color-bg-hover);
-  padding: 4px 8px;
+  padding: 8px 4px;
   border-radius: 6px;
   max-width: 150px;
   border: 1px solid var(--color-border);
 
   .reference-icon {
+    flex-shrink: 0;
     background: none;
     border: none;
-    width: 24px;
-    height: 24px;
+    width: 20px;
+    height: 20px;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.2s ease;
     padding: 0;
     color: var(--color-text-secondary);
     :deep(.i-icon) {
@@ -1180,14 +1196,29 @@ const copyMessageContent = async (content: string) => {
   }
 
   .remove-reference {
+    flex-shrink: 0;
+    background: none;
+    border: none;
+    width: 20px;
+    height: 20px;
     display: flex;
     align-items: center;
-    padding: 2px;
-    border-radius: 3px;
+    justify-content: center;
+    padding: 0;
     opacity: 0.6;
-    cursor: pointer;
-    border: none;
-    background: none;
+    color: var(--color-text-secondary);
+    :deep(.i-icon) {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      height: 100%;
+    }
+
+    :deep(svg) {
+      width: 12px;
+      height: 12px;
+    }
 
     &:hover {
       opacity: 1;
@@ -1207,8 +1238,8 @@ const copyMessageContent = async (content: string) => {
   cursor: pointer;
   background: none;
   border: none;
-  width: 24px;
-  height: 24px;
+  width: 26px;
+  height: 26px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1230,8 +1261,8 @@ const copyMessageContent = async (content: string) => {
 }
 
 .send-btn {
-  width: 30px;
-  height: 30px;
+  width: 26px;
+  height: 26px;
   background: var(--color-primary);
   border-radius: 50%;
   color: white;
@@ -1242,8 +1273,8 @@ const copyMessageContent = async (content: string) => {
 }
 
 .link-btn {
-  width: 32px;
-  height: 32px;
+  width: 26px;
+  height: 26px;
   border-radius: 50%;
 
   &:hover {
