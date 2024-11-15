@@ -1,5 +1,5 @@
 import { ipcRenderer } from 'electron'
-import type { DictWord, WordSuggestion } from '../../db/dictionaryService'
+import type { DictWord, WordSuggestion } from '../../services/dictionary/dictionaryService'
 
 export const dictionaryApi = {
   // 获取待处理的建议

@@ -1,6 +1,6 @@
 import { ipcRenderer } from 'electron'
 import type { Tag } from '../../renderer/src/types/Note'
-import type { TagSearchParams } from '../../db/tagService'
+import type { TagSearchParams } from '../../services/notes/tagService'
 
 export const tagApi = {
   // 创建标签

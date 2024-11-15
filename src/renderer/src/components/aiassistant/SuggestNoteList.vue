@@ -29,7 +29,10 @@ defineEmits<{
   (e: 'select', note: Note): void
 }>()
 
-const formatPreview = (content: string) => {
+const formatPreview = (content: unknown) => {
+  if (typeof content !== 'string') {
+    return String(content || '')
+  }
   return content.slice(0, 100) + (content.length > 100 ? '...' : '')
 }
 </script>

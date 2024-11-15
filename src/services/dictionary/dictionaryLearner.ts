@@ -208,16 +208,16 @@ export class DictionaryLearner {
   }
 
   // 清理过期数据
-  private cleanup() {
-    const now = Date.now()
-    const threshold = now - 30 * 24 * 60 * 60 * 1000 // 30天
+  // private cleanup() {
+  //   const now = Date.now()
+  //   const threshold = now - 30 * 24 * 60 * 60 * 1000 // 30天
 
-    for (const [word, stats] of this.wordStats.entries()) {
-      if (stats.lastSeen < threshold) {
-        this.wordStats.delete(word)
-      }
-    }
-  }
+  //   for (const [word, stats] of this.wordStats.entries()) {
+  //     if (stats.lastSeen < threshold) {
+  //       this.wordStats.delete(word)
+  //     }
+  //   }
+  // }
 
   // 获取词典统计信息
   getStats() {

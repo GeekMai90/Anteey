@@ -104,7 +104,7 @@ import CardBoxNoteCard from '@renderer/components/cardbox/CardboxNoteCard.vue'
 import { storeToRefs } from 'pinia'
 import { useDebounceFn, useEventBus, useThrottleFn } from '@vueuse/core'
 import { useRouter } from 'vue-router'
-import { GetPaginatedNotesParams } from '../../../db/notesService'
+import { GetPaginatedNotesParams } from '../../../services/notes/notesService'
 
 const noteStore = useNoteStore()
 

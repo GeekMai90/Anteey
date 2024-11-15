@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import type { DictWord, WordSuggestion } from '../../../db/dictionaryService'
+import type { DictWord, WordSuggestion } from '../../../services/dictionary/dictionaryService'
 
 export const useDictionaryStore = defineStore('dictionary', () => {
   // 状态

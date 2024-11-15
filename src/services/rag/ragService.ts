@@ -21,8 +21,8 @@ import { v4 as uuidv4 } from 'uuid'
 import { LLMService } from '../../services/rag/llmService'
 import { SimilarityService } from './calculateSimilarity'
 import { extractKeywords } from './similarityService'
-import { Keyword } from '@renderer/types/Embedding'
-import { Note } from '@renderer/types/Note'
+import { Keyword } from '../../renderer/src/types/Embedding'
+import { Note } from '../../renderer/src/types/Note'
 
 /**
  * 系统配置常量
@@ -183,7 +183,7 @@ export async function retrieveContext(
  * @returns 相关性判断结果
  */
 async function checkTopicSimilarity(
-  query: string,
+  _query: string,
   queryVector: number[],
   tracker: ConversationTracker
 ): Promise<{ isRelatedTopic: boolean; topicSimilarity: number }> {
@@ -286,7 +286,7 @@ async function handleSameTopicRetrieval(
  * 执行全新的文档检索和相似度计算
  */
 async function handleNewTopicRetrieval(
-  query: string,
+  _query: string,
   queryVector: Float32Array,
   queryKeywords: Keyword[],
   limit: number
@@ -419,7 +419,7 @@ async function filterAndReweightExistingDocs(
 
 // 检索补充文档
 async function retrieveSupplementaryDocs(
-  query: string,
+  _query: string,
   queryVector: Float32Array,
   queryKeywords: Keyword[],
   existingDocs: RAGResult[],

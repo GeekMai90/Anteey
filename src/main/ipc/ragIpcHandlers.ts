@@ -17,7 +17,12 @@ import {
   handleAskQuestion
 } from '../../services/rag/ragService'
 import log from 'electron-log'
-import { ChatMessage, ChatSession, NoteReference, RAGContext } from '@renderer/types/assistant'
+import {
+  ChatMessage,
+  ChatSession,
+  NoteReference,
+  RAGContext
+} from '../../renderer/src/types/assistant'
 
 export function setupRAGHandlers() {
   // 检索相关上下文 - 支持会话

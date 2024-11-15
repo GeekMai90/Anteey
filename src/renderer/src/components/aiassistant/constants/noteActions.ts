@@ -1,5 +1,5 @@
 import { FileFocus } from '@icon-park/vue-next'
-import type { NoteAction } from '@renderer/types/assistant'
+import type { NoteAction } from '../../../types/assistant'
 
 export const NOTE_ACTIONS: NoteAction[] = [
   {

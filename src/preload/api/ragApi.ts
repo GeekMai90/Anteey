@@ -6,7 +6,7 @@ import {
   ChatSession,
   NoteReference,
   RAGHistoryRecord
-} from '@renderer/types/assistant'
+} from '../../renderer/src/types/assistant'
 import { RAGPerformanceData } from '../../services/rag/ragService'
 
 export const ragApi = {

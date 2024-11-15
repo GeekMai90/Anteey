@@ -175,7 +175,7 @@ import { ref, computed, onMounted } from 'vue'
 import { BookOne } from '@icon-park/vue-next'
 import AppToolbar from '@renderer/components/layout/AppToolbar.vue'
 import { useDictionaryStore } from '@renderer/stores/dictionaryStore'
-import type { WordSuggestion } from '../../../db/dictionaryService'
+import type { WordSuggestion } from '../../../services/dictionary/dictionaryService'
 import ConfirmDialog from '@renderer/components/common/ConfirmDialog.vue'
 
 // 初始化 store

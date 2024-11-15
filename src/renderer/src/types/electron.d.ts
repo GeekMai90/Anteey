@@ -32,7 +32,6 @@ export interface ElectronAPI {
   deleteNote: (id: string) => Promise<boolean>
   softDeleteNote: (id: string) => Promise<Note>
   restoreNote: (id: string) => Promise<void>
-  getDeletedNotes: () => Promise<Note[]>
   permanentDeleteNote: (id: string) => Promise<boolean>
   createCardBox: (name: string) => Promise<CardBox>
   getAllCardBoxes: () => Promise<CardBox[]>
