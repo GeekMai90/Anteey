@@ -1,6 +1,6 @@
 {
   "name": "antinet",
-  "version": "0.1.80",
+  "version": "0.1.84",
   "description": "Antinet",
   "main": "./out/main/index.js",
   "author": "antinet.com",
@@ -14,7 +14,7 @@
     "start": "electron-vite preview",
     "dev": "electron-vite dev",
     "test": "jest",
-    "build": "npm run typecheck && npx @electron/rebuild -f -w better-sqlite3 nodejieba && electron-vite build",
+    "build": "npm run typecheck && npx @electron/rebuild -f -w better-sqlite3 && electron-vite build",
     "postinstall": "electron-builder install-app-deps",
     "build:unpack": "npm run build && electron-builder --dir",
     "build:win": "npm run build && electron-builder --win",
@@ -22,7 +22,7 @@
     "build:mac": "npm run build && electron-builder --mac",
     "build:proxyMac": "./build-with-proxy-mac.sh",
     "build:linux": "npm run build && electron-builder --linux",
-    "rebuild": "@electron/rebuild -f -w better-sqlite3 nodejieba",
+    "rebuild": "@electron/rebuild -f -w better-sqlite3",
     "migrate:make": "knex migrate:make --knexfile ./knexfile.ts -x ts",
     "migrate:latest": "knex migrate:latest --knexfile ./knexfile.ts",
     "migrate:rollback": "knex migrate:rollback --knexfile ./knexfile.ts"

@@ -1,5 +1,5 @@
 <template>
-  <div class="custom-filter-container">
+  <div ref="filterDropdown" class="custom-filter-container">
     <!-- Custom 下拉按钮 -->
     <div class="custom-filter-dropdown" @click.stop="toggleMenu">
       <div class="icon">
@@ -12,7 +12,13 @@
     </div>
 
     <!-- 筛选规则下拉菜单 -->
-    <div v-if="showMenu" v-click-outside="closeMenu" class="filter-menu">
+    <div
+      v-if="showMenu"
+      v-click-outside="closeMenu"
+      class="filter-menu"
+      :class="{ show: showMenu }"
+      :style="menuStyle"
+    >
       <!-- 筛选规则列表 -->
       <div class="filter-list">
         <div
@@ -51,8 +57,12 @@
               />
             </div>
             <!-- 更多操作菜单 -->
-            <!-- 更改更多菜单部分的代码 -->
-            <div v-if="showMoreMenuId === filter.id" class="more-menu" :style="moreMenuPosition">
+            <div
+              v-if="showMoreMenuId === filter.id"
+              class="more-menu"
+              :class="{ show: showMoreMenuId === filter.id }"
+              :style="moreMenuPosition"
+            >
               <div class="more-menu-item" @click="toggleStar(filter)">
                 <div class="icon">
                   <Star
@@ -100,16 +110,17 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { Filter, Plus, Down, Pushpin, Edit, Delete, More, Star } from '@icon-park/vue-next'
 import { useFilterStore } from '@renderer/stores/filterStore'
 import type { CustomFilter } from '@renderer/types/Filter'
-
 import { message } from '@renderer/utils/message'
 
 const filterStore = useFilterStore()
+const filterDropdown = ref<HTMLElement | null>(null)
 const showMenu = ref(false)
 const searchQuery = ref('')
+const menuStyle = ref({})
 
 // 计算筛选后的规则列表
 const filteredRules = computed(() => {
@@ -117,20 +128,15 @@ const filteredRules = computed(() => {
 
   // 先按照置顶状态和置顶顺序排序
   rules = [...rules].sort((a, b) => {
-    // 如果两个都是置顶或都不是置顶，按照 pinnedOrder 排序
     if (a.isPinned === b.isPinned) {
       if (a.isPinned) {
-        // 数字小的排在前面
         return (a.pinnedOrder || 0) - (b.pinnedOrder || 0)
       }
-      // 非置顶的按照创建时间排序
       return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     }
-    // 置顶的排在前面
     return a.isPinned ? -1 : 1
   })
 
-  // 然后再进行搜索过滤
   if (!searchQuery.value) return rules
   const query = searchQuery.value.toLowerCase()
   return rules.filter((filter) => filter.name.toLowerCase().includes(query))
@@ -139,9 +145,25 @@ const filteredRules = computed(() => {
 // 获取当前活动的筛选规则
 const activeFilter = computed(() => filterStore.activeFilter)
 
+// 更新菜单位置
+const updateMenuPosition = () => {
+  if (!filterDropdown.value) return
+  const rect = filterDropdown.value.getBoundingClientRect()
+  const scrollTop = window.scrollY || document.documentElement.scrollTop
+  menuStyle.value = {
+    top: `${rect.bottom + scrollTop + 8}px`,
+    left: `${rect.left}px`
+  }
+}
+
 // 切换菜单显示状态
 const toggleMenu = () => {
   showMenu.value = !showMenu.value
+  if (showMenu.value) {
+    nextTick(() => {
+      updateMenuPosition()
+    })
+  }
 }
 
 const closeMenu = () => {
@@ -149,17 +171,15 @@ const closeMenu = () => {
 }
 
 const emit = defineEmits(['reset', 'filter'])
-// 选择筛选规则
+
 // 选择筛选规则
 const selectFilter = async (filter: CustomFilter) => {
   try {
     if (activeFilter.value?.id === filter.id) {
       filterStore.setActiveFilter(null)
-      // 重置筛选状态
       emit('reset')
     } else {
       filterStore.setActiveFilter(filter)
-      // 触发筛选
       emit('filter', filter)
     }
     closeMenu()
@@ -183,28 +203,27 @@ const showMoreMenuId = ref<string | null>(null)
 const moreMenuPosition = ref({ top: '0px', left: '0px' })
 
 // 显示更多菜单
-// 显示更多菜单
 const showMoreMenu = (filter: CustomFilter, event: MouseEvent) => {
   event.stopPropagation()
 
-  // 如果点击的是同一个菜单，则关闭它
   if (showMoreMenuId.value === filter.id) {
     closeMoreMenu()
     return
   }
 
-  // 否则，显示新的菜单
   showMoreMenuId.value = filter.id
 
-  // 计算菜单位置
   const target = event.currentTarget as HTMLElement
   const rect = target.getBoundingClientRect()
+  const scrollTop = window.scrollY || document.documentElement.scrollTop
+  const rightSpace = window.innerWidth - rect.right
+  const menuWidth = 150 // 估计的菜单宽度
+
   moreMenuPosition.value = {
-    top: `${rect.bottom + 5}px`,
-    left: `${rect.left}px`
+    top: `${rect.bottom + scrollTop + 5}px`,
+    left: rightSpace < menuWidth ? `${rect.left - menuWidth + rect.width}px` : `${rect.left}px`
   }
 
-  // 添加点击外部关闭菜单的监听
   setTimeout(() => {
     document.addEventListener('click', closeMoreMenu)
   })
@@ -237,10 +256,10 @@ const deleteFilter = async (filter: CustomFilter) => {
     }
   }
 }
+
 // 初始化加载筛选规则
 filterStore.fetchCustomFilters()
 
-// 删除 FilterDialog 相关代码
 const handleAddFilter = () => {
   filterStore.openFilterDialog()
 }
@@ -248,6 +267,17 @@ const handleAddFilter = () => {
 const editFilter = (filter: CustomFilter) => {
   filterStore.openFilterDialog(filter)
 }
+
+// 添加事件监听
+onMounted(() => {
+  window.addEventListener('scroll', updateMenuPosition)
+  window.addEventListener('resize', updateMenuPosition)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('scroll', updateMenuPosition)
+  window.removeEventListener('resize', updateMenuPosition)
+})
 </script>
 
 <style lang="scss" scoped>
@@ -271,6 +301,7 @@ const editFilter = (filter: CustomFilter) => {
   &:hover {
     background-color: var(--color-hover-bg);
   }
+
   .icon {
     background: none;
     border: none;
@@ -311,20 +342,38 @@ const editFilter = (filter: CustomFilter) => {
 }
 
 .filter-menu {
-  position: absolute;
-  top: 100%;
-  left: 0;
+  position: fixed;
+  background-color: var(--color-bg-primary, #ffffff);
+  border: 1px solid var(--color-border, #dcdfe6);
+  border-radius: 8px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+  z-index: 9999;
   width: 280px;
   max-height: 400px;
-  margin-top: 8px;
-  background-color: var(--color-bg-primary);
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
-
-  z-index: 1000;
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.2s ease;
+
+  &.show {
+    opacity: 1;
+    visibility: visible;
+  }
+
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background-color: #d0d0d0;
+    border-radius: 3px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background-color: #f0f0f0;
+  }
 }
 
 .search-box {
@@ -375,6 +424,7 @@ const editFilter = (filter: CustomFilter) => {
   display: flex;
   align-items: center;
   gap: 2px;
+
   .icon {
     background: none;
     border: none;
@@ -428,6 +478,7 @@ const editFilter = (filter: CustomFilter) => {
   display: flex;
   gap: 6px;
   opacity: 0;
+  transition: opacity 0.2s ease;
 
   .filter-item:hover & {
     opacity: 1;
@@ -463,6 +514,7 @@ const editFilter = (filter: CustomFilter) => {
 .divider {
   height: 1px;
   background-color: var(--color-border);
+  margin: 4px 0;
 }
 
 .add-filter-button {
@@ -472,10 +524,12 @@ const editFilter = (filter: CustomFilter) => {
   margin: 8px;
   border-radius: 6px;
   cursor: pointer;
+  transition: background-color 0.2s ease;
 
   &:hover {
     background-color: var(--color-hover-bg);
   }
+
   .icon {
     background: none;
     border: none;
@@ -514,20 +568,29 @@ const editFilter = (filter: CustomFilter) => {
     line-height: 1;
   }
 }
+
 .more-menu {
   position: fixed;
-  background-color: var(--color-dropdown-bg);
-  border: 1px solid var(--color-border-primary);
+  background-color: var(--color-dropdown-bg, #ffffff);
+  border: 1px solid var(--color-border-primary, #dcdfe6);
   border-radius: 8px;
-  box-shadow: var(--shadow-primary);
-  z-index: 9999;
+  box-shadow: var(--shadow-primary, 0 2px 12px rgba(0, 0, 0, 0.1));
+  z-index: 10000;
   min-width: 120px;
   width: max-content;
   max-width: 300px;
   overflow-y: auto;
   padding: 6px 12px;
   white-space: nowrap;
-  flex-direction: column; // 确保菜单项垂直排列
+  flex-direction: column;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.2s ease;
+
+  &.show {
+    opacity: 1;
+    visibility: visible;
+  }
 }
 
 .more-menu-item {
@@ -541,8 +604,7 @@ const editFilter = (filter: CustomFilter) => {
   border-radius: 6px;
   padding: 4px 4px;
   margin: 2px;
-  width: 100%; // 确保菜单项占满容器宽度
-
+  width: 100%;
   gap: 6px;
 
   &:hover {
@@ -564,7 +626,7 @@ const editFilter = (filter: CustomFilter) => {
     justify-content: center;
     transition: all 0.2s ease;
     padding: 0;
-    flex-shrink: 0; // 防止图标被压缩
+    flex-shrink: 0;
 
     :deep(.i-icon) {
       display: flex;

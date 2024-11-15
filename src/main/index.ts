@@ -184,7 +184,7 @@ function createWindow(): void {
       sandbox: false,
       contextIsolation: true,
       nodeIntegration: false,
-      devTools: !app.isPackaged, // 仅在开发环境启用开发者工具
+      devTools: true, // 仅在开发环境启用开发者工具
       additionalArguments: ['--disable-site-isolation-trials'],
       webSecurity: false // 警告：这可能带来安全风险，仅在开发环境使用
       // allowRunningInsecureContent: true // 警告：这可能带来安全风险，仅在开发环境使用

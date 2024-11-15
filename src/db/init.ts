@@ -301,12 +301,10 @@ export async function initDatabase(db: Knex): Promise<void> {
   }
 
   // 创建 note_embeddings 表
-  // 创建 note_embeddings 表
   if (!(await db.schema.hasTable('note_embeddings'))) {
     await db.schema.createTable('note_embeddings', (table) => {
       table.string('note_id').primary()
       table.binary('embedding').notNullable() // 使用 binary 类型存储向量数据
-      table.text('keywords').nullable() // 添加 keywords 字段，使用 text 类型存储 JSON 字符串
       table.integer('created_at').notNullable()
       table.integer('updated_at').notNullable()
       table.string('model_version').notNullable().defaultTo('minilm-l6-v2')
@@ -317,18 +315,8 @@ export async function initDatabase(db: Knex): Promise<void> {
       // 索引
       table.index('updated_at')
       table.index(['note_id', 'updated_at'])
-      table.index('keywords') // 可选：如果需要按关键词搜索，可以添加索引
     })
     console.log('note_embeddings 表创建成功')
-  }
-
-  // 如果表已存在但需要添加 keywords 字段，可以添加以下代码
-  else if (!(await db.schema.hasColumn('note_embeddings', 'keywords'))) {
-    await db.schema.alterTable('note_embeddings', (table) => {
-      table.text('keywords').nullable()
-      table.index('keywords')
-    })
-    console.log('note_embeddings 表添加 keywords 字段成功')
   }
 
   // 创建 dictionary 表

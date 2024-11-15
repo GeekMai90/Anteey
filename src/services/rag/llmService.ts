@@ -13,7 +13,8 @@ export class LLMService {
   private model = 'glm-4' // 使用最新的 GLM-4 模型
 
   constructor(apiKey?: string) {
-    this.apiKey = apiKey || process.env.ZHIPU_API_KEY || ''
+    this.apiKey =
+      apiKey || process.env.ZHIPU_API_KEY || 'a0f1e756f5fa638e9f372daf69517016.g1uLIkLVTY2CrUoQ'
   }
 
   async generateResponse(prompt: string): Promise<string> {

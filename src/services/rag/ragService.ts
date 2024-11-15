@@ -20,8 +20,6 @@ import {
 import { v4 as uuidv4 } from 'uuid'
 import { LLMService } from '../../services/rag/llmService'
 import { SimilarityService } from './calculateSimilarity'
-import { extractKeywords } from './similarityService'
-import { Keyword } from '../../renderer/src/types/Embedding'
 import { Note } from '../../renderer/src/types/Note'
 
 /**
@@ -36,7 +34,7 @@ export const RAG_CONFIG = {
   },
   retrieval: {
     maxDocsPerQuery: 5, // 单次查询最大文档数
-    minSimilarity: 0.3, // 最小相似度要求
+    minSimilarity: 0.1, // 最小相似度要求
     reuseThreshold: 0.8, // 文档重用阈值
     weightDecayFactor: 0.8 // 历史权重衰减因子
   }
@@ -95,76 +93,43 @@ export async function retrieveContext(
       throw new Error('查询必须是字符串类型')
     }
 
-    // 记录检索开始
-    log.info('开始检索上下文:', {
-      query,
-      sessionId: session?.id
-    })
-
     // 初始化向量模型并生成查询向量
     const embedder = await initEmbeddings()
     const queryVector = await embedder(query)
     const queryFloat32Array = new Float32Array(queryVector)
 
-    // 提取查询关键词
-    const queryKeywords = await extractKeywords(query)
-    log.info('查询关键词:', queryKeywords)
-
     // 根据会话状态处理检索
     let relevantDocs: RAGResult[] = []
     if (session?.conversationTracker) {
       // 检查话题相关性
-      const { isRelatedTopic, topicSimilarity } = await checkTopicSimilarity(
+      const { isRelatedTopic } = await checkTopicSimilarity(
         query,
         queryVector,
         session.conversationTracker
       )
 
-      log.info('话题相关性检查:', {
-        原始查询: query,
-        是否相关话题: isRelatedTopic,
-        话题相似度: topicSimilarity
-      })
-
       if (isRelatedTopic) {
         // 同话题处理: 优先使用现有文档
         relevantDocs = await handleSameTopicRetrieval(
-          query,
           queryFloat32Array,
-          queryKeywords,
           session.conversationTracker,
           limit
         )
       } else {
         // 新话题处理: 重新检索
-        relevantDocs = await handleNewTopicRetrieval(query, queryFloat32Array, queryKeywords, limit)
+        relevantDocs = await handleNewTopicRetrieval(queryFloat32Array, limit)
         session.conversationTracker = createNewTopicTracker(query, queryVector)
       }
     } else {
       // 无会话上下文时的处理
-      relevantDocs = await handleNewTopicRetrieval(query, queryFloat32Array, queryKeywords, limit)
+      relevantDocs = await handleNewTopicRetrieval(queryFloat32Array, limit)
     }
 
-    // 构建返回结果
-    const context: RAGContext = {
+    return {
       query,
       timestamp: new Date().toISOString(),
       relevantDocs
     }
-
-    // 记录检索结果
-    log.info('RAG检索结果:', {
-      查询: query,
-      关键词: queryKeywords,
-      相关文档数: relevantDocs.length,
-      相似度详情: relevantDocs.map((doc) => ({
-        id: doc.noteId,
-        title: doc.title,
-        similarity: doc.similarity
-      }))
-    })
-
-    return context
   } catch (error) {
     log.error('RAG检索失败:', error)
     throw error
@@ -252,33 +217,18 @@ function createNewTopicTracker(query: string, queryVector: number[]): Conversati
  * 优先使用历史相关文档，必要时补充新文档
  */
 async function handleSameTopicRetrieval(
-  query: string,
   queryVector: Float32Array,
-  queryKeywords: Keyword[],
   tracker: ConversationTracker,
   limit: number
 ): Promise<RAGResult[]> {
   // 筛选和重新排序现有文档
-  const reusableDocs = await filterAndReweightExistingDocs(
-    tracker.docUsage,
-    queryVector,
-    queryKeywords
-  )
+  const reusableDocs = await filterAndReweightExistingDocs(tracker.docUsage, queryVector)
 
   // 补充检索新文档
-  const supplementaryDocs = await retrieveSupplementaryDocs(
-    query,
-    queryVector,
-    queryKeywords,
-    reusableDocs,
-    limit
-  )
+  const supplementaryDocs = await retrieveSupplementaryDocs(queryVector, reusableDocs, limit)
 
   // 合并结果并更新使用记录
-  const mergedDocs = mergeDocs(reusableDocs, supplementaryDocs, limit)
-  updateDocUsage(tracker, mergedDocs)
-
-  return mergedDocs
+  return mergeDocs(reusableDocs, supplementaryDocs, limit)
 }
 
 /**
@@ -286,44 +236,79 @@ async function handleSameTopicRetrieval(
  * 执行全新的文档检索和相似度计算
  */
 async function handleNewTopicRetrieval(
-  _query: string,
   queryVector: Float32Array,
-  queryKeywords: Keyword[],
   limit: number
 ): Promise<RAGResult[]> {
-  // 获取所有可能相关的笔记
-  const notes = await db('note_embeddings')
-    .join('notes', 'note_embeddings.note_id', 'notes.id')
-    .select('notes.*', 'note_embeddings.embedding', 'note_embeddings.keywords')
+  try {
+    // 1. 检查数据库中是否有数据
+    const noteCount = await db('note_embeddings').count('* as count').first()
+    log.info('数据库笔记数量:', noteCount)
 
-  // 计算相似度并排序
-  const results = notes
-    .map((note) => {
-      try {
-        if (!note.embedding) return null
+    // 2. 获取笔记数据
+    const notes = await db('note_embeddings')
+      .join('notes', 'note_embeddings.note_id', 'notes.id')
+      .select('notes.*', 'note_embeddings.embedding')
 
-        const noteVector = SimilarityService.blobToFloat32Array(note.embedding)
-        const noteKeywords = JSON.parse(note.keywords || '[]')
-        const similarity = SimilarityService.calculateSimilarity(
-          queryVector,
-          noteVector,
-          queryKeywords,
-          noteKeywords
-        )
-
-        return { ...note, similarity }
-      } catch (error) {
-        log.error('处理笔记相似度失败:', { id: note.id, error })
-        return null
-      }
+    log.info('检索到的笔记数量:', {
+      总数: notes.length,
+      有向量数: notes.filter((n) => n.embedding).length
     })
-    .filter((result): result is NonNullable<typeof result> => {
-      return result !== null && result.similarity > RAG_CONFIG.retrieval.minSimilarity
-    })
-    .sort((a, b) => b.similarity - a.similarity)
-    .slice(0, limit)
 
-  return results.map(transformDBResult)
+    // 3. 计算相似度
+    const results = notes
+      .map((note) => {
+        try {
+          if (!note.embedding) {
+            log.warn('笔记缺少向量:', { noteId: note.id })
+            return null
+          }
+
+          const noteVector = SimilarityService.blobToFloat32Array(note.embedding)
+          const similarity = SimilarityService.calculateSimilarity(queryVector, noteVector)
+
+          log.debug('笔记相似度:', {
+            noteId: note.id,
+            similarity,
+            hasTitle: !!note.title,
+            contentLength: note.content?.length
+          })
+
+          return { ...note, similarity }
+        } catch (error) {
+          log.error('处理笔记相似度失败:', { id: note.id, error })
+          return null
+        }
+      })
+      .filter((result): result is NonNullable<typeof result> => {
+        const isValid = result !== null && result.similarity > RAG_CONFIG.retrieval.minSimilarity
+        if (!isValid && result) {
+          log.debug('笔记被过滤:', {
+            noteId: result.id,
+            similarity: result.similarity,
+            threshold: RAG_CONFIG.retrieval.minSimilarity
+          })
+        }
+        return isValid
+      })
+      .sort((a, b) => b.similarity - a.similarity)
+      .slice(0, limit)
+
+    log.info('相似度计算结果:', {
+      符合条件数量: results.length,
+      相似度范围:
+        results.length > 0
+          ? {
+              最高: results[0]?.similarity,
+              最低: results[results.length - 1]?.similarity
+            }
+          : null
+    })
+
+    return results.map(transformDBResult)
+  } catch (error) {
+    log.error('检索相关文档失败:', error)
+    throw error
+  }
 }
 
 /**
@@ -375,8 +360,7 @@ function calculateWeightedSimilarity(
  */
 async function filterAndReweightExistingDocs(
   docUsage: ConversationTracker['docUsage'],
-  queryVector: Float32Array,
-  queryKeywords: Keyword[]
+  queryVector: Float32Array
 ): Promise<RAGResult[]> {
   const results: RAGResult[] = []
 
@@ -390,13 +374,7 @@ async function filterAndReweightExistingDocs(
 
     // 计算新的相似度
     const noteVector = SimilarityService.blobToFloat32Array(note.embedding)
-    const noteKeywords = JSON.parse(note.keywords || '[]')
-    const newSimilarity = SimilarityService.calculateSimilarity(
-      queryVector,
-      noteVector,
-      queryKeywords,
-      noteKeywords
-    )
+    const newSimilarity = SimilarityService.calculateSimilarity(queryVector, noteVector)
 
     // 应用使用频率和时间衰减因子
     const timeDecay = Math.exp(
@@ -419,9 +397,7 @@ async function filterAndReweightExistingDocs(
 
 // 检索补充文档
 async function retrieveSupplementaryDocs(
-  _query: string,
   queryVector: Float32Array,
-  queryKeywords: Keyword[],
   existingDocs: RAGResult[],
   limit: number
 ): Promise<RAGResult[]> {
@@ -440,13 +416,7 @@ async function retrieveSupplementaryDocs(
         if (!note.embedding) return null
 
         const noteVector = SimilarityService.blobToFloat32Array(note.embedding)
-        const noteKeywords = JSON.parse(note.keywords || '[]')
-        const similarity = SimilarityService.calculateSimilarity(
-          queryVector,
-          noteVector,
-          queryKeywords,
-          noteKeywords
-        )
+        const similarity = SimilarityService.calculateSimilarity(queryVector, noteVector)
 
         return { ...note, similarity }
       } catch (error) {
@@ -475,23 +445,23 @@ function mergeDocs(
 }
 
 // 更新文档使用记录
-function updateDocUsage(tracker: ConversationTracker, docs: RAGResult[]): void {
-  const now = Date.now()
+// function updateDocUsage(tracker: ConversationTracker, docs: RAGResult[]): void {
+//   const now = Date.now()
 
-  docs.forEach((doc) => {
-    const currentUsage = tracker.docUsage[doc.noteId] || {
-      usageCount: 0,
-      lastUsed: now,
-      similarity: 0
-    }
+//   docs.forEach((doc) => {
+//     const currentUsage = tracker.docUsage[doc.noteId] || {
+//       usageCount: 0,
+//       lastUsed: now,
+//       similarity: 0
+//     }
 
-    tracker.docUsage[doc.noteId] = {
-      usageCount: currentUsage.usageCount + 1,
-      lastUsed: now,
-      similarity: Math.max(currentUsage.similarity, doc.similarity)
-    }
-  })
-}
+//     tracker.docUsage[doc.noteId] = {
+//       usageCount: currentUsage.usageCount + 1,
+//       lastUsed: now,
+//       similarity: Math.max(currentUsage.similarity, doc.similarity)
+//     }
+//   })
+// }
 
 /**
  * 历史记录管理功能

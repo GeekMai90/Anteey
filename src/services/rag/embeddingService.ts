@@ -3,9 +3,13 @@ import { db } from '../../db/config'
 import { NoteEmbedding } from '../../renderer/src/types/Note'
 import log from 'electron-log'
 import { Knex } from 'knex/types'
-import { extractKeywords, calculateKeywordSimilarity } from './similarityService'
+import { SimilarityService } from './calculateSimilarity'
+import path from 'path'
+import { app } from 'electron'
 
 let embeddings: any = null
+
+const cachePath = path.join(app.getPath('userData'), 'UserData', 'cache', 'embeddings.cache.json')
 
 // 初始化 embeddings
 // 初始化向量模型
@@ -13,7 +17,19 @@ export async function initEmbeddings() {
   if (!embeddings) {
     try {
       // 直接使用默认导出
-      embeddings = (await import('@themaximalist/embeddings.js')).default
+      const embeddingsModule = (await import('@themaximalist/embeddings.js')).default
+
+      // 测试初始化并配置缓存
+      await embeddingsModule('测试文本', {
+        cache_file: cachePath
+      })
+
+      // 保存配置好的函数
+      embeddings = (text: string) =>
+        embeddingsModule(text, {
+          cache_file: cachePath
+        })
+
       log.info('向量模型初始化成功')
     } catch (error) {
       log.error('向量模型初始化失败:', error)
@@ -72,7 +88,8 @@ export async function generateEmbedding(noteId: string): Promise<NoteEmbedding> 
     const textContent = extractTextContent(note.content)
 
     // 3. 生成向量
-    const vector = await embeddings.embed(textContent)
+    const embedder = await initEmbeddings()
+    const vector = await embedder(textContent)
     const embedding = Buffer.from(new Float32Array(vector).buffer)
 
     // 4. 准备数据
@@ -171,14 +188,7 @@ export async function updateNoteEmbedding(
     }
 
     // 使用传入的事务对象进行关键词提取
-    const keywords = await extractKeywords(content, trx)
     const vector = await embedder(textContent)
-
-    // // 并行处理向量生成和关键词提取
-    // const [vector, keywords] = await Promise.all([
-    //   embedder(textContent),
-    //   extractKeywordsAndLearn(content)
-    // ])
 
     const embedding = Buffer.from(new Float32Array(vector).buffer)
     const now = Math.floor(Date.now() / 1000)
@@ -186,7 +196,6 @@ export async function updateNoteEmbedding(
     const query = {
       note_id: noteId,
       embedding: embedding,
-      keywords: JSON.stringify(keywords), // 添加关键词
       created_at: now,
       updated_at: now,
       model_version: 'minilm-l6-v2'
@@ -197,14 +206,11 @@ export async function updateNoteEmbedding(
     await dbConnection('note_embeddings')
       .insert(query)
       .onConflict('note_id')
-      .merge(['embedding', 'keywords', 'updated_at']) // 更新时也包含关键词
+      .merge(['embedding', 'updated_at'])
 
-    log.info('更新笔记向量和关键词成功:', {
-      noteId,
-      keywordCount: keywords.length
-    })
+    log.info('更新笔记向量成功:', { noteId })
   } catch (error) {
-    log.error('更新笔记向量和关键词失败:', { noteId, error })
+    log.error('更新笔记向量失败:', { noteId, error })
     throw error
   }
 }
@@ -218,6 +224,7 @@ const cosineSimilarityQuery = `
   ) as similarity
 `
 
+// 搜索相似笔记
 // 搜索相似笔记
 export async function searchSimilarNotes(
   query: string,
@@ -234,7 +241,7 @@ export async function searchSimilarNotes(
       .join('notes', 'note_embeddings.note_id', 'notes.id')
       .whereNull('notes.deletedAt') // 排除已删除的笔记
       .select('notes.id as noteId', db.raw(cosineSimilarityQuery, { queryEmbedding }))
-      .having('similarity', '>', 0.7) // 设置相似度阈值
+      .having('similarity', '>', 0.4) // 设置相似度阈值
       .orderBy('similarity', 'desc')
       .limit(limit)
 
@@ -248,117 +255,44 @@ export async function searchSimilarNotes(
   }
 }
 
-// 将二进制向量转换为数字数组
-function blobToFloat32Array(blob: Buffer): Float32Array {
-  return new Float32Array(blob.buffer)
-}
-
-// 计算两个向量的余弦相似度
-function cosineSimilarity(a: Float32Array, b: Float32Array): number {
-  let dotProduct = 0
-  let normA = 0
-  let normB = 0
-
-  for (let i = 0; i < a.length; i++) {
-    dotProduct += a[i] * b[i]
-    normA += a[i] * a[i]
-    normB += b[i] * b[i]
-  }
-
-  return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB))
-}
-
 // 获取特定笔记的相似笔记
-// 获取特定笔记的相似笔记
-
-function calculateFinalSimilarity(vectorSimilarity: number, keywordSimilarity: number): number {
-  // 关键词相似度的阈值区间
-  const KEYWORD_THRESHOLDS = {
-    VERY_LOW: 0.1, // 几乎没有共同关键词
-    LOW: 0.3, // 较少共同关键词
-    MEDIUM: 0.5 // 中等程度共同关键词
-  }
-
-  // 根据关键词相似度的不同区间，调整向量相似度的权重
-  if (keywordSimilarity < KEYWORD_THRESHOLDS.VERY_LOW) {
-    // 几乎没有共同关键词，大幅降低相似度
-    return vectorSimilarity * 0.4
-  } else if (keywordSimilarity < KEYWORD_THRESHOLDS.LOW) {
-    // 较少共同关键词，适度降低相似度
-    return vectorSimilarity * 0.6 + keywordSimilarity * 0.2
-  } else if (keywordSimilarity < KEYWORD_THRESHOLDS.MEDIUM) {
-    // 一定程度的共同关键词，正常权重
-    return vectorSimilarity * 0.7 + keywordSimilarity * 0.3
-  } else {
-    // 较多共同关键词，给予更高权重
-    return vectorSimilarity * 0.8 + keywordSimilarity * 0.2
-  }
-}
-
 export async function getSimilarNotesForNote(
   noteId: string,
   limit: number = 10
 ): Promise<Array<{ noteId: string; similarity: number }>> {
   try {
-    // 1. 获取源笔记的向量和关键词
+    // 1. 获取源笔记的向量
     const sourceNote = await db('note_embeddings').where('note_id', noteId).first()
 
     if (!sourceNote) {
       throw new Error('笔记向量不存在')
     }
 
-    const sourceKeywords = JSON.parse(sourceNote.keywords || '[]')
-    const sourceVector = blobToFloat32Array(sourceNote.embedding)
+    const sourceVector = SimilarityService.blobToFloat32Array(sourceNote.embedding)
 
-    // 2. 获取所有其他笔记的向量和关键词
+    // 2. 获取所有其他笔记的向量
     const otherNotes = await db('note_embeddings')
       .whereNot('note_id', noteId)
-      .select('note_id', 'embedding', 'keywords')
+      .select('note_id', 'embedding')
 
-    // 3. 计算综合相似度
+    // 3. 计算相似度
     const results = otherNotes
       .map((other) => {
-        // 计算向量相似度 (70%)
-        const vectorSimilarity = cosineSimilarity(sourceVector, blobToFloat32Array(other.embedding))
-
-        // 计算关键词相似度 (30%)
-        const otherKeywords = JSON.parse(other.keywords || '[]')
-        const keywordSimilarity = calculateKeywordSimilarity(sourceKeywords, otherKeywords)
-
-        // 计算加权总相似度
-        // 如果关键词相似度太低，大幅降低最终相似度
-        const finalSimilarity = calculateFinalSimilarity(vectorSimilarity, keywordSimilarity)
+        const similarity = SimilarityService.calculateSimilarity(
+          sourceVector,
+          SimilarityService.blobToFloat32Array(other.embedding)
+        )
 
         return {
           noteId: other.note_id,
-          similarity: finalSimilarity,
-          // 调试信息
-          debug: {
-            vectorSimilarity,
-            keywordSimilarity,
-            keywords: otherKeywords
-          }
+          similarity
         }
       })
-      .filter((result) => result.similarity > 0.3) // 提高阈值
+      .filter((result) => result.similarity > 0.7) // 设置相似度阈值
       .sort((a, b) => b.similarity - a.similarity)
       .slice(0, limit)
 
-    log.info('相似度计算结果:', {
-      sourceNoteId: noteId,
-      sourceKeywords,
-      results: results.map((r) => ({
-        noteId: r.noteId,
-        similarity: r.similarity,
-        debug: r.debug
-      }))
-    })
-
-    // 返回结果时移除调试信息
-    return results.map(({ noteId, similarity }) => ({
-      noteId,
-      similarity
-    }))
+    return results
   } catch (error) {
     log.error('获取相似笔记失败:', { noteId, error })
     throw error
