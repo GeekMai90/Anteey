@@ -31,11 +31,18 @@ export const RAG_CONFIG = {
   similarity: {
     topicThreshold: 0.7, // 话题相似度阈值
     docThreshold: 0.6, // 文档相似度阈值
-    contextWindowSize: 5 // 对话上下文窗口大小
+    contextWindowSize: 5, // 对话上下文窗口大小
+    weights: {
+      // 新增权重配置
+      vectorSimilarity: 0.55,
+      keywordSimilarity: 0.2,
+      timeDecay: 0.15,
+      titleSimilarity: 0.1
+    }
   },
   retrieval: {
     maxDocsPerQuery: 5, // 单次查询最大文档数
-    minSimilarity: 0.1, // 最小相似度要求
+    minSimilarity: 0.25, // 最小相似度要求
     reuseThreshold: 0.8, // 文档重用阈值
     weightDecayFactor: 0.8 // 历史权重衰减因子
   }
@@ -192,12 +199,12 @@ export async function retrieveContext(
         )
       } else {
         // 新话题处理: 重新检索
-        relevantDocs = await handleNewTopicRetrieval(queryVector, queryKeywords, limit)
+        relevantDocs = await handleNewTopicRetrieval(queryVector, queryKeywords, limit, query)
         session.conversationTracker = createNewTopicTracker(query, queryVector, queryKeywords)
       }
     } else {
       // 无会话上下文时的处理
-      relevantDocs = await handleNewTopicRetrieval(queryVector, queryKeywords, limit)
+      relevantDocs = await handleNewTopicRetrieval(queryVector, queryKeywords, limit, query)
     }
 
     // 记录检索结果
@@ -342,7 +349,8 @@ async function handleSameTopicRetrieval(
 async function handleNewTopicRetrieval(
   queryVector: Float32Array,
   queryKeywords: string[], // 添加查询关键词参数
-  limit: number
+  limit: number,
+  query: string
 ): Promise<RAGResult[]> {
   try {
     // 1. 检查数据库中是否有数据
@@ -350,9 +358,10 @@ async function handleNewTopicRetrieval(
     log.info('数据库笔记数量:', noteCount)
 
     // 2. 获取笔记数据，包括关键词
+    // 获取笔记数据时包含 metadata
     const notes = await db('note_embeddings')
       .join('notes', 'note_embeddings.note_id', 'notes.id')
-      .select('notes.*', 'note_embeddings.embedding', 'note_embeddings.keywords')
+      .select('notes.*', 'note_embeddings.embedding', 'note_embeddings.keywords', 'notes.metadata')
 
     log.info('检索到的笔记数量:', {
       总数: notes.length,
@@ -380,14 +389,16 @@ async function handleNewTopicRetrieval(
             {
               createdAt: Number(note.createdAt),
               sourceKeywords: queryKeywords,
-              targetKeywords: noteKeywords
+              targetKeywords: noteKeywords,
+              title: note.metadata?.title,
+              query: query
             }
           )
 
           log.debug('笔记相似度:', {
             noteId: note.id,
             similarity,
-            hasTitle: !!note.title,
+            hasTitle: !!note.metadata?.title,
             contentLength: note.content?.length,
             keywordsCount: noteKeywords.length,
             keywords: noteKeywords
@@ -408,13 +419,18 @@ async function handleNewTopicRetrieval(
         }
       })
       .filter((result): result is NonNullable<typeof result> => {
-        const isValid = result !== null && result.similarity > RAG_CONFIG.retrieval.minSimilarity
+        const isValid =
+          result !== null &&
+          // result.similarity > RAG_CONFIG.retrieval.minSimilarity &&
+          // result.matchedKeywords.length > 0 // 要求至少有一个关键词匹配
+          result.similarity > RAG_CONFIG.retrieval.minSimilarity
         if (!isValid && result) {
           log.debug('笔记被过滤:', {
             noteId: result.id,
             similarity: result.similarity,
             threshold: RAG_CONFIG.retrieval.minSimilarity,
-            matchedKeywords: result.matchedKeywords
+            matchedKeywords: result.matchedKeywords,
+            reason: result.matchedKeywords.length === 0 ? '无关键词匹配' : '相似度过低'
           })
         }
         return isValid
