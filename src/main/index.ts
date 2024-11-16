@@ -14,7 +14,6 @@ import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import { initDatabase } from '../db/init'
 import { db, dbPath } from '../db/config'
-import * as dotenv from 'dotenv'
 import { default as installExtension, VUEJS3_DEVTOOLS } from 'electron-devtools-installer'
 import path from 'path'
 import fs from 'fs/promises'
@@ -34,19 +33,8 @@ ipcMain.on('renderer-log', (_, { level, args }) => {
   ;(log[level as keyof typeof log] as (...args: any[]) => void)('[渲染进程]', ...args)
 })
 
-// 错误处理
-process.on('uncaughtException', (error) => {
-  log.error('未捕获的异常:', error)
-})
-
-process.on('unhandledRejection', (reason) => {
-  log.error('未处理的 Promise 拒绝:', reason)
-})
-
 // 设置应用名称
 app.name = 'Antinet'
-// 加载 .env 文件
-dotenv.config({ path: path.join(__dirname, '../../.env') })
 
 // 设置日志
 log.transports.file.level = 'info'
@@ -237,7 +225,6 @@ function createWindow(): void {
 
   // 在加载 URL 之前就创建并显示窗口
   mainWindow.webContents.on('did-finish-load', () => {
-    log.info('Window did-finish-load event triggered')
     mainWindow.webContents.executeJavaScript(`
       if (window.location.pathname === '/' || window.location.pathname === '') {
         window.history.pushState(null, '', '/home');

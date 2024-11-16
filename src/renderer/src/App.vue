@@ -188,7 +188,7 @@ onMounted(async () => {
   window.addEventListener('resize', debouncedCheckWindowSize)
   // 路由重定向
   if (router.currentRoute.value.path === '/') {
-    router.push('/aiassistant')
+    router.push('/timeline')
   }
   // 移除初始加载动画
   const loadingWrapper = document.getElementById('loading-wrapper')

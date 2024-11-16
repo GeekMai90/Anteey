@@ -143,7 +143,7 @@ const router = createRouter({
 })
 
 // 添加路由导航守卫，用于处理从其他页面的跳转
-router.beforeEach((to, from, next) => {
+router.beforeEach((to, _from, next) => {
   // 处理从标签树的跳转
   if (to.name === 'cardbox' && to.query.tag) {
     next({

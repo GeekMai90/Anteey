@@ -34,11 +34,11 @@ const selectedCard = ref<Card | null>(null)
 // 导入所有卡片背景图片
 const cardBackgrounds = import.meta.glob('@renderer/assets/cardbgs/*.{jpg,jpeg,png,gif}', {
   eager: true,
-  as: 'url'
+  query: '?url',
+  import: 'default'
 })
-
 // 获取卡片背景图片数组
-const cardBackgroundArray = Object.values(cardBackgrounds)
+const cardBackgroundArray = Object.values(cardBackgrounds) as string[]
 
 // 获取今天的种子
 const getTodaySeed = () => {
@@ -47,7 +47,7 @@ const getTodaySeed = () => {
 }
 
 // 根据日期选择背景
-const getDailyBackground = () => {
+const getDailyBackground = (): string => {
   const seed = getTodaySeed()
   const index = seed % cardBackgroundArray.length
   return cardBackgroundArray[index]
@@ -96,7 +96,7 @@ const fetchDailyCards = async () => {
   // 获取随机笔记
   const randomNotes = await noteStore.getRandomNotes()
 
-  const selectedNotes = randomNotes.map((note) => ({
+  const selectedNotes: Card[] = randomNotes.map((note) => ({
     id: note.id,
     address: note.address,
     background: dailyBackground
