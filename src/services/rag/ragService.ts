@@ -21,7 +21,7 @@ import { v4 as uuidv4 } from 'uuid'
 import { LLMService } from '../../services/rag/llmService'
 import { SimilarityService } from './calculateSimilarity'
 import { Note } from '../../renderer/src/types/Note'
-import { keywordExtractor } from './keywordExtractor'
+import { getKeywordExtractor } from './keywordExtractor'
 
 /**
  * 系统配置常量
@@ -34,10 +34,8 @@ export const RAG_CONFIG = {
     contextWindowSize: 5, // 对话上下文窗口大小
     weights: {
       // 新增权重配置
-      vectorSimilarity: 0.55,
-      keywordSimilarity: 0.2,
-      timeDecay: 0.15,
-      titleSimilarity: 0.1
+      vectorSimilarity: 0.65,
+      keywordSimilarity: 0.35
     }
   },
   retrieval: {
@@ -168,7 +166,8 @@ export async function retrieveContext(
       })(),
       // 提取查询关键词
       (async () => {
-        const keywords = keywordExtractor.extract(query)
+        const keywordExtractor = await getKeywordExtractor()
+        const keywords = await keywordExtractor.extract(query)
         return keywords.map((k) => k.word)
       })()
     ])
@@ -199,12 +198,12 @@ export async function retrieveContext(
         )
       } else {
         // 新话题处理: 重新检索
-        relevantDocs = await handleNewTopicRetrieval(queryVector, queryKeywords, limit, query)
+        relevantDocs = await handleNewTopicRetrieval(queryVector, queryKeywords, limit)
         session.conversationTracker = createNewTopicTracker(query, queryVector, queryKeywords)
       }
     } else {
       // 无会话上下文时的处理
-      relevantDocs = await handleNewTopicRetrieval(queryVector, queryKeywords, limit, query)
+      relevantDocs = await handleNewTopicRetrieval(queryVector, queryKeywords, limit)
     }
 
     // 记录检索结果
@@ -349,8 +348,7 @@ async function handleSameTopicRetrieval(
 async function handleNewTopicRetrieval(
   queryVector: Float32Array,
   queryKeywords: string[], // 添加查询关键词参数
-  limit: number,
-  query: string
+  limit: number
 ): Promise<RAGResult[]> {
   try {
     // 1. 检查数据库中是否有数据
@@ -382,16 +380,36 @@ async function handleNewTopicRetrieval(
           // 解析关键词
           const noteKeywords = note.keywords ? JSON.parse(note.keywords) : []
 
+          // 1. 首先定义 metadata 的类型
+          interface NoteMetadata {
+            title?: string
+            summary?: string
+            // 其他可能的元数据字段...
+          }
+          // 解析 metadata JSON 字符串
+          let metadata: NoteMetadata = {}
+          try {
+            metadata = note.metadata ? JSON.parse(note.metadata) : {}
+            log.debug('笔记元数据:', {
+              noteId: note.id,
+              title: metadata.title,
+              rawMetadata: note.metadata?.slice(0, 100) // 记录前100个字符用于调试
+            })
+          } catch (e) {
+            log.error('解析元数据失败:', {
+              noteId: note.id,
+              rawMetadata: note.metadata,
+              error: e
+            })
+          }
+
           // 使用增强版相似度计算
           const similarity = SimilarityService.calculateEnhancedSimilarity(
             queryVector,
             noteVector,
             {
-              createdAt: Number(note.createdAt),
               sourceKeywords: queryKeywords,
-              targetKeywords: noteKeywords,
-              title: note.metadata?.title,
-              query: query
+              targetKeywords: noteKeywords
             }
           )
 
@@ -401,12 +419,15 @@ async function handleNewTopicRetrieval(
             hasTitle: !!note.metadata?.title,
             contentLength: note.content?.length,
             keywordsCount: noteKeywords.length,
-            keywords: noteKeywords
+            keywords: noteKeywords,
+            queryKeywords: queryKeywords,
+            title: note.metadata?.title
           })
 
           return {
             ...note,
             similarity,
+            title: metadata.title,
             matchedKeywords: noteKeywords.filter((k: string) => queryKeywords.includes(k))
           }
         } catch (error) {
@@ -530,7 +551,6 @@ async function filterAndReweightExistingDocs(
     // 计算新的相似度（使用增强版计算）
     const noteVector = SimilarityService.blobToFloat32Array(note.embedding)
     const similarity = SimilarityService.calculateEnhancedSimilarity(queryVector, noteVector, {
-      createdAt: Number(note.createdAt),
       sourceKeywords: queryKeywords,
       targetKeywords: noteKeywords
     })
@@ -581,7 +601,6 @@ async function retrieveSupplementaryDocs(
 
         // 使用增强版相似度计算
         const similarity = SimilarityService.calculateEnhancedSimilarity(queryVector, noteVector, {
-          createdAt: Number(note.createdAt),
           sourceKeywords: queryKeywords,
           targetKeywords: noteKeywords
         })

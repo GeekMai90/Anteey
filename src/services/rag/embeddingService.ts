@@ -5,7 +5,7 @@ import { Knex } from 'knex/types'
 import { SimilarityService } from './calculateSimilarity'
 import path from 'path'
 import { app } from 'electron'
-import { keywordExtractor } from './keywordExtractor'
+import { getKeywordExtractor } from './keywordExtractor'
 import { Keyword, NoteEmbedding } from '../../renderer/src/types/Embedding'
 
 let embeddings: any = null
@@ -146,7 +146,8 @@ export async function generateEmbedding(noteId: string): Promise<NoteEmbedding> 
     }
 
     // 2. 提取文本内容 - 使用 KeywordExtractor 中的方法
-    const textContent = keywordExtractor['extractTextContent'](note.content)
+    const keywordExtractor = await getKeywordExtractor()
+    const textContent = await keywordExtractor['extractTextContent'](note.content)
     if (!textContent.trim()) {
       throw new Error(`笔记内容为空: ${noteId}`)
     }
@@ -327,11 +328,12 @@ export async function updateNoteEmbedding(
     }
 
     // 并行处理向量生成和关键词提取
+    const keywordExtractor = await getKeywordExtractor()
     const [vector, keywords] = await Promise.all([
       // 生成向量
       embedder(textContent),
       // 提取关键词
-      keywordExtractor.extract(content)
+      await keywordExtractor.extract(content)
     ])
 
     log.debug('处理结果:', {

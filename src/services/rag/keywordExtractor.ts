@@ -1,10 +1,13 @@
 import { Segment, useDefault } from 'segmentit'
 import log from 'electron-log'
 import { Keyword } from '../../renderer/src/types/Embedding'
+import { getAllDictionaryWords } from '../dictionary/dictionaryService'
 
 export class KeywordExtractor {
-  private static instance: KeywordExtractor
+  private static instance: KeywordExtractor | null = null
   private segment: any | null = null
+  private customDict: Map<string, any> = new Map()
+  private initialized: boolean = false
 
   // 技术术语词典
   private readonly TECH_TERMS = new Map([
@@ -15,36 +18,59 @@ export class KeywordExtractor {
   ])
 
   private constructor() {
-    this.initSegment()
+    // this.initSegment()
   }
 
   /**
    * 获取单例实例
    */
-  public static getInstance(): KeywordExtractor {
+  public static async getInstance(): Promise<KeywordExtractor> {
     if (!KeywordExtractor.instance) {
       KeywordExtractor.instance = new KeywordExtractor()
     }
+
+    // 如果还未初始化，则进行初始化
+    if (!KeywordExtractor.instance.initialized) {
+      await KeywordExtractor.instance.initSegment()
+    }
+
     return KeywordExtractor.instance
   }
 
   /**
    * 初始化分词器
    */
-  private initSegment(): void {
+  private async initSegment(): Promise<void> {
+    if (this.initialized) return
+
     try {
+      // 1. 使用 useDefault 初始化分词器
       this.segment = useDefault(new Segment())
-      // 添加初始化检查
-      if (!this.segment || typeof this.segment.doSegment !== 'function') {
-        throw new Error('分词器初始化不完整')
+
+      // 2. 加载用户自定义词典
+      const dictWords = await getAllDictionaryWords()
+      const customDictText = dictWords
+        .filter((word) => word.enabled)
+        .map((word) => {
+          // 使用最高词频和原始权重
+          return `${word.word} 9999 n ${word.weight}`
+        })
+        .join('\n')
+
+      // 3. 加载自定义词典
+      if (customDictText) {
+        this.segment.loadDict(customDictText)
       }
+
+      this.initialized = true
       log.info('分词器初始化成功', {
-        segmentExists: !!this.segment,
-        hasDoSegment: typeof this.segment.doSegment === 'function'
+        dictSize: dictWords.filter((w) => w.enabled).length,
+        sampleDict: customDictText.slice(0, 100)
       })
     } catch (error) {
       log.error('分词器初始化失败:', error)
       this.segment = null
+      throw error
     }
   }
 
@@ -88,7 +114,7 @@ export class KeywordExtractor {
 
       // 清理特殊字符
       return processedText
-        .replace(/[^\u4e00-\u9fa5a-z0-9\s.,!?，。！？、]/g, ' ')
+        .replace(/[^\u4e00-\u9fa5a-z0-9\s.,!?，。！？、_]/g, ' ')
         .replace(/\s+/g, ' ')
         .trim()
     } catch (error) {
@@ -100,7 +126,7 @@ export class KeywordExtractor {
   /**
    * 提取关键词
    */
-  public extract(content: any): Keyword[] {
+  public async extract(content: any): Promise<Keyword[]> {
     try {
       if (!this.segment) {
         throw new Error('分词器未初始化')
@@ -108,65 +134,72 @@ export class KeywordExtractor {
 
       // 1. 提取和预处理文本
       const rawText = this.extractTextContent(content)
-      console.log('原始文本:', { length: rawText.length, sample: rawText.slice(0, 100) })
-
       const text = this.preProcessText(rawText)
-      console.log('预处理后文本:', { length: text.length, sample: text.slice(0, 100) })
+
+      log.debug('文本处理:', {
+        原始文本: { length: rawText.length, sample: rawText.slice(0, 100) },
+        预处理文本: { length: text.length, sample: text.slice(0, 100) }
+      })
 
       if (!text) {
         log.warn('预处理后文本为空')
         return []
       }
 
-      // 2. 分词并获取词性
-      const tokens = this.segment.doSegment(text)
-      console.log('分词结果:', {
-        tokenCount: tokens.length,
-        sampleTokens: tokens.slice(0, 5)
+      // 2. 分词
+      const tokens = this.segment.doSegment(text, {
+        simple: false,
+        stripPunctuation: true
       })
 
       // 3. 统计词频和计算权重
-      const wordStats = new Map<string, { freq: number; pos: string }>()
+      const wordStats = new Map<string, { freq: number; pos: string; weight: number }>()
       let totalWords = 0
 
       tokens.forEach((token: any) => {
-        const { w: word, p: pos } = token
-        if (word.length < 2) return
+        const { w: word, p: pos, t: termWeight = 1 } = token
+        // if (word.length < 2) return
 
-        const key = word.toLowerCase()
-        const current = wordStats.get(key) || { freq: 0, pos }
-        wordStats.set(key, { freq: current.freq + 1, pos })
+        const current = wordStats.get(word) || {
+          freq: 0,
+          pos,
+          weight: termWeight
+        }
+
+        wordStats.set(word, {
+          freq: current.freq + 1,
+          pos: current.pos,
+          weight: current.weight
+        })
         totalWords++
-      })
-
-      console.log('词频统计:', {
-        uniqueWords: wordStats.size,
-        totalWords
       })
 
       // 4. 生成关键词列表
       const keywords = Array.from(wordStats.entries())
-        .map(([word, { freq, pos }]) => {
-          let weight = freq / totalWords
-
-          // 技术术语加权
-          const techTerm = this.TECH_TERMS.get(word)
-          if (techTerm) {
-            weight *= techTerm.weight
-            word = techTerm.standard
-          }
+        .map(([word, { freq, pos, weight }]) => {
+          let finalWeight = freq / totalWords
 
           // 词性加权
           if (['n', 'v', 'vn', 'nz'].includes(pos)) {
-            weight *= 1.2
+            finalWeight *= 1.2
           }
 
-          return { word, weight }
+          // segmentit词典权重
+          finalWeight *= weight
+
+          return { word, weight: finalWeight }
         })
         .sort((a, b) => b.weight - a.weight)
         .slice(0, 10)
 
-      console.log('最终关键词:', keywords)
+      log.debug('关键词提取结果:', {
+        分词数: tokens.length,
+        唯一词数: wordStats.size,
+        关键词: keywords.map((k) => ({
+          word: k.word,
+          weight: k.weight.toFixed(4)
+        }))
+      })
 
       return keywords
     } catch (error) {
@@ -176,5 +209,12 @@ export class KeywordExtractor {
   }
 }
 
-// 导出单例实例
-export const keywordExtractor = KeywordExtractor.getInstance()
+// 修改导出方式
+let extractor: KeywordExtractor | null = null
+
+export const getKeywordExtractor = async () => {
+  if (!extractor) {
+    extractor = await KeywordExtractor.getInstance()
+  }
+  return extractor
+}

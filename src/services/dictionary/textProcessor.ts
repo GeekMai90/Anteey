@@ -73,7 +73,7 @@ export class TextProcessor {
   static preProcessText(text: string): string {
     try {
       let processedText = text.toLowerCase().trim()
-      processedText = processedText.replace(/[^\u4e00-\u9fa5a-z0-9\s.,，。]/gi, ' ')
+      processedText = processedText.replace(/[^\u4e00-\u9fa5a-z0-9\s.,!?，。！？、_]/g, ' ')
       processedText = processedText.replace(/\s+/g, ' ').trim()
       return processedText
     } catch (error) {
