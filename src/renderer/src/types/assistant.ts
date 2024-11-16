@@ -54,6 +54,7 @@ export type ChatMessage = UserMessage | AIAssistantMessage | SystemMessage
 // RAG 上下文接口
 export interface RAGContext {
   query: string
+  queryKeywords?: string[] // 添加关键词字段
   timestamp: string
   relevantDocs: RAGResult[]
   response?: string
@@ -172,6 +173,7 @@ export interface ConversationTracker {
     vector: number[]
     timestamp: number
   }[]
+  topicKeywords?: string[] // 添加关键词字段
 }
 
 // 扩展现有的 ChatSession 接口

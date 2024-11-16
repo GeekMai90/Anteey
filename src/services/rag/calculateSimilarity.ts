@@ -45,45 +45,88 @@ export class SimilarityService {
   /**
    * 组合相似度因子
    */
-  private static combineFactors(factors: { vectorSimilarity: number; timeDecay: number }): number {
+  private static combineFactors(factors: {
+    vectorSimilarity: number
+    timeDecay: number
+    keywordSimilarity: number
+  }): number {
     // 设置权重
     const weights = {
-      vectorSimilarity: 0.8, // 向量相似度权重更高
-      timeDecay: 0.2 // 时间衰减权重较小
+      vectorSimilarity: 0.6, // 向量相似度权重仍然最高
+      keywordSimilarity: 0.25, // 关键词相似度次之
+      timeDecay: 0.15 // 时间衰减权重最小
     }
 
     // 计算加权平均
     const score =
-      factors.vectorSimilarity * weights.vectorSimilarity + factors.timeDecay * weights.timeDecay
+      factors.vectorSimilarity * weights.vectorSimilarity +
+      factors.keywordSimilarity * weights.keywordSimilarity +
+      factors.timeDecay * weights.timeDecay
 
     // 确保分数在 [0,1] 范围内
     return Math.max(0, Math.min(1, score))
   }
 
   /**
-   * 增强版相似度计算 V1
-   * 结合向量相似度和时间衰减
+   * 计算关键词相似度
+   */
+  private static calculateKeywordSimilarity(
+    sourceKeywords: string[],
+    targetKeywords: string[]
+  ): number {
+    if (!sourceKeywords.length || !targetKeywords.length) return 0
+
+    // 转换为 Set 以便快速查找
+    const sourceSet = new Set(sourceKeywords)
+    const targetSet = new Set(targetKeywords)
+
+    // 计算交集大小
+    const intersection = new Set([...sourceSet].filter((x) => targetSet.has(x)))
+
+    // 使用 Jaccard 相似度
+    const union = new Set([...sourceSet, ...targetSet])
+    return intersection.size / union.size
+  }
+
+  /**
+   * 增强版相似度计算 V2
+   * 结合向量相似度、关键词相似度和时间衰减
    */
   static calculateEnhancedSimilarity(
     sourceVector: Float32Array,
     targetVector: Float32Array,
     metadata: {
       createdAt: number
+      sourceKeywords: string[]
+      targetKeywords: string[]
     }
   ): number {
     try {
       // 1. 计算向量余弦相似度
       const vectorSimilarity = this.vectorSimilarity(sourceVector, targetVector)
 
-      // 2. 计算时间衰减因子
-      // 使用对数衰减，避免时间权重下降过快
-      const timeAgeInDays = (Date.now() - metadata.createdAt) / (24 * 60 * 60 * 1000)
-      const timeDecay = 1 / (1 + Math.log1p(timeAgeInDays / 30)) // 30天为一个衰减周期
+      // 2. 计算关键词相似度
+      const keywordSimilarity = this.calculateKeywordSimilarity(
+        metadata.sourceKeywords,
+        metadata.targetKeywords
+      )
 
-      // 3. 组合两个因子
+      // 3. 计算时间衰减因子
+      const timeAgeInDays = (Date.now() - metadata.createdAt) / (24 * 60 * 60 * 1000)
+      const timeDecay = 1 / (1 + Math.log1p(timeAgeInDays / 30))
+
+      // 4. 组合所有因子
       const combinedScore = this.combineFactors({
         vectorSimilarity,
+        keywordSimilarity,
         timeDecay
+      })
+
+      log.debug('相似度计算详情:', {
+        vectorSimilarity,
+        keywordSimilarity,
+        timeDecay,
+        combinedScore
       })
 
       return combinedScore
