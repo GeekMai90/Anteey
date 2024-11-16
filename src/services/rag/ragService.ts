@@ -1846,6 +1846,146 @@ ${query}
  * 找一找模式
  * 通过语义搜索查找相关笔记
  */
+// export async function handleFindNotes(
+//   query: string,
+//   sessionId: string | null,
+//   currentMessages: ChatMessage[] = [],
+//   currentContexts: RAGContext[] = []
+// ): Promise<{
+//   answer: string
+//   context: RAGContext
+//   messages: ChatMessage[]
+// }> {
+//   try {
+//     // 1. 参数验证
+//     if (typeof query !== 'string') {
+//       throw new Error('查询必须是字符串类型')
+//     }
+
+//     log.info('找一找模式 - 输入参数:', {
+//       query,
+//       sessionId,
+//       messagesCount: currentMessages.length
+//     })
+
+//     // 2. 初始化向量模型并生成查询向量
+//     const embedder = await initEmbeddings()
+//     const queryVector = await embedder(query)
+//     const queryFloat32Array = new Float32Array(queryVector)
+
+//     // 3. 设置找一找模式的特定配置
+//     const FIND_CONFIG = {
+//       minSimilarity: 0.3, // 相对宽松的相似度阈值
+//       maxResults: 10 // 最大返回数量
+//     }
+
+//     // 4. 执行向量检索
+//     const results = await handleSemanticSearch(queryFloat32Array, FIND_CONFIG)
+
+//     // 5. 构建上下文
+//     const context: RAGContext = {
+//       query,
+//       timestamp: new Date().toISOString(),
+//       relevantDocs: results,
+//       processingType: 'find'
+//     }
+
+//     // 6. 生成回答文本
+//     const answer = `根据你的描述，我找到了以下 ${results.length} 条相关笔记。`
+
+//     // 7. 构建消息
+//     const userMessage: UserMessage = {
+//       id: uuidv4(),
+//       role: 'user',
+//       content: query,
+//       timestamp: Date.now()
+//     }
+
+//     const assistantMessage: AIAssistantMessage = {
+//       id: uuidv4(),
+//       role: 'assistant',
+//       content: answer,
+//       timestamp: Date.now(),
+//       sourceType: 'notes',
+//       references: results
+//     }
+
+//     const updatedMessages = [...currentMessages, userMessage, assistantMessage]
+//     const updatedContexts = [...currentContexts, context]
+
+//     // 8. 更新历史记录
+//     if (sessionId) {
+//       await updateRAGHistory(sessionId, updatedMessages, updatedContexts, {
+//         processingType: 'find',
+//         queryVector: Array.from(queryVector)
+//       })
+//     }
+
+//     return {
+//       answer,
+//       context,
+//       messages: updatedMessages
+//     }
+//   } catch (error) {
+//     log.error('找一找模式处理失败:', error)
+//     throw error
+//   }
+// }
+
+// /**
+//  * 执行语义搜索
+//  * 专门用于找一找模式的向量检索
+//  */
+// async function handleSemanticSearch(
+//   queryVector: Float32Array,
+//   config: {
+//     minSimilarity: number
+//     maxResults: number
+//   }
+// ): Promise<RAGResult[]> {
+//   try {
+//     // 1. 获取所有笔记
+//     const notes = await db('note_embeddings')
+//       .join('notes', 'note_embeddings.note_id', 'notes.id')
+//       .select('notes.*', 'note_embeddings.embedding')
+
+//     // 2. 计算相似度并排序
+//     const results = notes
+//       .map((note) => {
+//         try {
+//           if (!note.embedding) return null
+
+//           const noteVector = SimilarityService.blobToFloat32Array(note.embedding)
+//           const similarity = SimilarityService.calculateSimilarity(queryVector, noteVector)
+
+//           return { ...note, similarity }
+//         } catch (error) {
+//           log.error('处理笔记相似度失败:', { id: note.id, error })
+//           return null
+//         }
+//       })
+//       .filter((result): result is NonNullable<typeof result> => {
+//         return result !== null && result.similarity > config.minSimilarity
+//       })
+//       .sort((a, b) => b.similarity - a.similarity)
+//       .slice(0, config.maxResults)
+
+//     // 3. 转换为前端所需格式
+//     return results.map(transformDBResult)
+//   } catch (error) {
+//     log.error('语义搜索失败:', error)
+//     throw error
+//   }
+// }
+
+/**
+ * 找一找模式
+ * 通过语义搜索查找相关笔记
+ */
+/**
+ * 找一找模式
+ * 通过语义搜索查找相关笔记
+ */
 export async function handleFindNotes(
   query: string,
   sessionId: string | null,
@@ -1868,21 +2008,29 @@ export async function handleFindNotes(
       messagesCount: currentMessages.length
     })
 
-    // 2. 初始化向量模型并生成查询向量
+    // 2. 获取关键词提取器实例并提取关键词
+    const extractor = await getKeywordExtractor()
+    const extractedKeywords = await extractor.extract(query)
+    const keywords = extractedKeywords.map((k) => k.word)
+
+    log.info('查询关键词:', keywords)
+
+    // 3. 初始化向量模型并生成查询向量
     const embedder = await initEmbeddings()
     const queryVector = await embedder(query)
     const queryFloat32Array = new Float32Array(queryVector)
 
-    // 3. 设置找一找模式的特定配置
+    // 4. 设置找一找模式的特定配置
     const FIND_CONFIG = {
-      minSimilarity: 0.3, // 相对宽松的相似度阈值
-      maxResults: 10 // 最大返回数量
+      minSimilarity: 0.25, // 相似度阈值
+      maxResults: 15, // 最大返回数量
+      minKeywordMatch: 1 // 最小关键词匹配数
     }
 
-    // 4. 执行向量检索
-    const results = await handleSemanticSearch(queryFloat32Array, FIND_CONFIG)
+    // 5. 执行增强版语义搜索
+    const results = await handleEnhancedSemanticSearch(queryFloat32Array, query, FIND_CONFIG)
 
-    // 5. 构建上下文
+    // 6. 构建上下文
     const context: RAGContext = {
       query,
       timestamp: new Date().toISOString(),
@@ -1890,10 +2038,10 @@ export async function handleFindNotes(
       processingType: 'find'
     }
 
-    // 6. 生成回答文本
+    // 7. 生成回答文本
     const answer = `根据你的描述，我找到了以下 ${results.length} 条相关笔记。`
 
-    // 7. 构建消息
+    // 8. 构建消息
     const userMessage: UserMessage = {
       id: uuidv4(),
       role: 'user',
@@ -1913,7 +2061,7 @@ export async function handleFindNotes(
     const updatedMessages = [...currentMessages, userMessage, assistantMessage]
     const updatedContexts = [...currentContexts, context]
 
-    // 8. 更新历史记录
+    // 9. 更新历史记录
     if (sessionId) {
       await updateRAGHistory(sessionId, updatedMessages, updatedContexts, {
         processingType: 'find',
@@ -1933,44 +2081,88 @@ export async function handleFindNotes(
 }
 
 /**
- * 执行语义搜索
- * 专门用于找一找模式的向量检索
+ * 执行增强版语义搜索
+ * 结合向量相似度和关键词匹配的搜索实现
  */
-async function handleSemanticSearch(
+
+async function handleEnhancedSemanticSearch(
   queryVector: Float32Array,
+  queryText: string,
   config: {
     minSimilarity: number
     maxResults: number
   }
 ): Promise<RAGResult[]> {
   try {
-    // 1. 获取所有笔记
     const notes = await db('note_embeddings')
       .join('notes', 'note_embeddings.note_id', 'notes.id')
       .select('notes.*', 'note_embeddings.embedding')
 
-    // 2. 计算相似度并排序
+    const queryTerms = queryText.toLowerCase().split(/\s+/)
+
     const results = notes
       .map((note) => {
         try {
           if (!note.embedding) return null
 
           const noteVector = SimilarityService.blobToFloat32Array(note.embedding)
-          const similarity = SimilarityService.calculateSimilarity(queryVector, noteVector)
+          const similarity = SimilarityService.vectorSimilarity(queryVector, noteVector)
 
-          return { ...note, similarity }
+          // 计算标题匹配分数
+          let titleScore = 0
+          if (note.title) {
+            const titleLower = note.title.toLowerCase()
+            // 完全匹配加分最高
+            if (titleLower === queryText.toLowerCase()) {
+              titleScore = 0.3
+            }
+            // 部分匹配按匹配词数加分
+            else {
+              const matchedTerms = queryTerms.filter((term) => titleLower.includes(term))
+              titleScore = (matchedTerms.length / queryTerms.length) * 0.2
+            }
+          }
+
+          // 计算内容匹配分数
+          let contentScore = 0
+          if (note.content) {
+            const contentLower = note.content.toLowerCase()
+            const matchedTerms = queryTerms.filter((term) => contentLower.includes(term))
+            contentScore = (matchedTerms.length / queryTerms.length) * 0.1
+          }
+
+          // 综合评分
+          const finalSimilarity = similarity + titleScore + contentScore
+
+          return {
+            ...note,
+            similarity: finalSimilarity,
+            debug: { base: similarity, title: titleScore, content: contentScore }
+          }
         } catch (error) {
           log.error('处理笔记相似度失败:', { id: note.id, error })
           return null
         }
       })
       .filter((result): result is NonNullable<typeof result> => {
-        return result !== null && result.similarity > config.minSimilarity
+        if (!result) return false
+        return result.similarity > 0.3 // 降低基础阈值
       })
       .sort((a, b) => b.similarity - a.similarity)
       .slice(0, config.maxResults)
 
-    // 3. 转换为前端所需格式
+    // 记录详细的评分信息
+    if (results.length > 0) {
+      log.debug(
+        '搜索结果评分详情:',
+        results.map((r) => ({
+          title: r.title,
+          scores: r.debug,
+          final: r.similarity.toFixed(3)
+        }))
+      )
+    }
+
     return results.map(transformDBResult)
   } catch (error) {
     log.error('语义搜索失败:', error)
