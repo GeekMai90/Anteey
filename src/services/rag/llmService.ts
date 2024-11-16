@@ -2,7 +2,7 @@ import log from 'electron-log'
 import axios from 'axios'
 import { LLMConfigService } from './llmConfigService'
 import { LLM_MODELS } from './llm.config'
-import type { LLMConfig } from '@renderer/types/llm'
+import type { LLMConfig } from '../../renderer/src/types/llm'
 
 export class LLMService {
   private configService: LLMConfigService
