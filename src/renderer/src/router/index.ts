@@ -144,11 +144,6 @@ const router = createRouter({
 
 // 添加路由导航守卫，用于处理从其他页面的跳转
 router.beforeEach((to, from, next) => {
-  console.log('Route change:', {
-    from: { name: from.name, params: from.params, query: from.query },
-    to: { name: to.name, params: to.params, query: to.query }
-  })
-
   // 处理从标签树的跳转
   if (to.name === 'cardbox' && to.query.tag) {
     next({

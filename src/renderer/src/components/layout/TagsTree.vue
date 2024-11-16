@@ -76,22 +76,18 @@ const handleTagSelect = (tag: TagTreeNode) => {
 watch(
   storeTagTree,
   (newValue) => {
-    console.log('标签树→ store tagTree 发生变化:', newValue)
     tagTree.value = JSON.parse(JSON.stringify(newValue))
-    console.log('标签树→ tagTree 已更新:', tagTree.value)
   },
   { deep: true }
 )
 // 获取标签树数据的函数
 const refreshTagTree = async () => {
-  console.log('标签树→ 开始刷新数据')
   await tagStore.fetchTagTree()
   // 不需要手动赋值，watch 会处理
 }
 // 监听标签变化事件
 const tagChangeEventBus = useEventBus('tagChange')
 tagChangeEventBus.on(async () => {
-  console.log('标签树→ 接收到标签变化事件')
   await refreshTagTree()
 })
 

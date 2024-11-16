@@ -14,7 +14,6 @@ export const useTagStore = defineStore('tag', () => {
   // ==================== 工具函数 ====================
   // 将扁平标签列表转换为树形结构
   const buildTagTree = (tags: Tag[]): TagTreeNode[] => {
-    console.log('构建标签树→ 输入标签:', tags)
     const tagMap = new Map<string, TagTreeNode>()
     const root: TagTreeNode[] = []
 
@@ -76,8 +75,6 @@ export const useTagStore = defineStore('tag', () => {
     }
 
     root.forEach(calculateTotalCount)
-
-    console.log('构建标签树→ 最终树结构:', root)
     return root
   }
 
@@ -86,10 +83,8 @@ export const useTagStore = defineStore('tag', () => {
   const fetchTagTree = async () => {
     try {
       const fetchedTags = await window.electronAPI.getAllTags()
-      console.log('tagStore.ts→ 获取标签树:', fetchedTags)
       tags.value = fetchedTags
       tagTree.value = buildTagTree(fetchedTags)
-      console.log('tagStore.ts→ 标签树已更新:', tagTree.value)
     } catch (error) {
       console.error('获取标签树失败:', error)
       throw error
@@ -101,7 +96,6 @@ export const useTagStore = defineStore('tag', () => {
     try {
       const fetchedTags = await window.electronAPI.getAllTags()
       tags.value = fetchedTags
-      console.log('tagStore.ts→ 获取所有标签:', fetchedTags)
       return fetchedTags
     } catch (error) {
       console.error('获取所有标签失败:', error)

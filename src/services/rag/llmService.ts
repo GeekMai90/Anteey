@@ -83,8 +83,6 @@ export class LLMService {
           throw new Error(`不支持的模型提供商: ${modelConfig.provider}`)
       }
 
-      log.info('LLM 响应数据:', response.data)
-
       // 根据不同提供商处理响应
       let content: string
       switch (modelConfig.provider) {

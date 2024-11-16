@@ -237,14 +237,6 @@ export const ragApi = {
     messages: ChatMessage[]
   }> => {
     try {
-      console.log('预加载脚本 - 问一问模式:', {
-        query,
-        referencesCount: noteReferences.length,
-        sessionId,
-        messagesCount: currentMessages.length,
-        contextsCount: currentContexts.length
-      })
-
       const result = await ipcRenderer.invoke('handle-ask-question', {
         query,
         noteReferences,

@@ -197,15 +197,12 @@ const { getCurrentNoteSaveStatus } = storeToRefs(noteStore)
 // 使用计算属性来处理保存状态的显示
 // 简化状态类的计算
 const saveStatusClass = computed(() => {
-  console.log('当前保存状态:', getCurrentNoteSaveStatus.value) // 添加日志
   return {
     'status-saving': getCurrentNoteSaveStatus.value === 'saving',
     'status-saved': getCurrentNoteSaveStatus.value === 'saved',
     'status-error': getCurrentNoteSaveStatus.value === 'error'
   }
 })
-// const isSidebarCollapsed = computed(() => noteStore.isSidebarCollapsed);
-// const isSidebarVisible = computed(() => !isSidebarCollapsed.value || props.isTemporaryVisible);
 
 // 侧边栏宽度调节
 const emit = defineEmits(['resize'])

@@ -172,12 +172,6 @@ export async function retrieveContext(
       })()
     ])
 
-    log.info('查询处理:', {
-      query,
-      keywordsCount: queryKeywords.length,
-      keywords: queryKeywords
-    })
-
     // 根据会话状态处理检索
     let relevantDocs: RAGResult[] = []
     if (session?.conversationTracker) {
@@ -205,20 +199,6 @@ export async function retrieveContext(
       // 无会话上下文时的处理
       relevantDocs = await handleNewTopicRetrieval(queryVector, queryKeywords, limit)
     }
-
-    // 记录检索结果
-    log.info('RAG检索结果:', {
-      查询: query,
-      关键词: queryKeywords,
-      相关文档数: relevantDocs.length,
-      相似度范围:
-        relevantDocs.length > 0
-          ? {
-              最高: relevantDocs[0].similarity,
-              最低: relevantDocs[relevantDocs.length - 1].similarity
-            }
-          : null
-    })
 
     return {
       query,
@@ -361,12 +341,6 @@ async function handleNewTopicRetrieval(
       .join('notes', 'note_embeddings.note_id', 'notes.id')
       .select('notes.*', 'note_embeddings.embedding', 'note_embeddings.keywords', 'notes.metadata')
 
-    log.info('检索到的笔记数量:', {
-      总数: notes.length,
-      有向量数: notes.filter((n) => n.embedding).length,
-      有关键词数: notes.filter((n) => n.keywords).length
-    })
-
     // 3. 计算相似度
     const results = notes
       .map((note) => {
@@ -458,23 +432,6 @@ async function handleNewTopicRetrieval(
       })
       .sort((a, b) => b.similarity - a.similarity)
       .slice(0, limit)
-
-    log.info('相似度计算结果:', {
-      符合条件数量: results.length,
-      相似度范围:
-        results.length > 0
-          ? {
-              最高: {
-                similarity: results[0]?.similarity,
-                matchedKeywords: results[0]?.matchedKeywords
-              },
-              最低: {
-                similarity: results[results.length - 1]?.similarity,
-                matchedKeywords: results[results.length - 1]?.matchedKeywords
-              }
-            }
-          : null
-    })
 
     return results.map(transformDBResult)
   } catch (error) {
@@ -1139,16 +1096,6 @@ export function trackRAGPerformance(
     performanceLog.splice(0, 100)
   }
 
-  // 记录到日志
-  log.info('RAG性能监控:', {
-    会话ID: sessionId,
-    方法: method,
-    耗时: `${duration}ms`,
-    状态: options.success ? '成功' : '失败',
-    错误: options.error,
-    元数据: options.metadata
-  })
-
   // 如果性能异常，记录警告
   if (duration > 5000) {
     // 超过5秒
@@ -1387,15 +1334,6 @@ export async function handleAskQuestion(
       throw new Error('查询必须是字符串类型')
     }
 
-    // 记录调用信息
-    log.info('问一问模式 - 输入参数:', {
-      query,
-      sessionId,
-      referencesCount: noteReferences.length,
-      messagesCount: currentMessages.length,
-      contextsCount: currentContexts.length
-    })
-
     // 2. 获取或创建会话
     let session: ChatSession | undefined
     if (sessionId) {
@@ -1575,18 +1513,6 @@ function buildAskQuestionPrompt(
   context: RAGContext,
   messages: ChatMessage[] = []
 ): string {
-  // 添加详细的日志
-  log.info('构建提示词 - 输入参数:', {
-    query,
-    contextDocs: context?.relevantDocs?.map((doc) => ({
-      id: doc.noteId,
-      hasTitle: !!doc.title,
-      hasContent: !!doc.content,
-      titleType: typeof doc.title,
-      contentType: typeof doc.content
-    })),
-    messagesCount: messages?.length
-  })
   // 添加类型检查
   if (!context || !Array.isArray(context.relevantDocs)) {
     log.error('构建提示词失败: 无效的上下文格式', { context })
