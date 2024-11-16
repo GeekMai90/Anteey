@@ -2,13 +2,6 @@
   <div class="ai-assistant-container">
     <!-- 添加 AppToolbar -->
     <AppToolbar :showBackButton="true" :showForwardButton="true" />
-    <!-- 顶部栏 - 固定 -->
-    <!-- 更多按钮 - 固定在右上角 -->
-    <button class="float-menu-btn" @click="toggleHistoryPanel">
-      <div class="icon">
-        <More theme="outline" size="18" />
-      </div>
-    </button>
 
     <!-- 消息区域 - 可滚动 -->
     <div ref="messagesContainer" class="messages-container">
@@ -31,27 +24,9 @@
               @click="selectMode(suggestion)"
             >
               <div class="icon">
-                <component :is="suggestion.icon" theme="outline" size="18" />
+                <component :is="suggestion.icon" theme="outline" size="18" :stroke-width="3" />
               </div>
-              <div class="name">{{ suggestion.text }}</div>
-            </button>
-          </div>
-        </div>
-
-        <!-- 常用功能区 -->
-        <div class="suggestions-container">
-          <h3>思考、提问、聊天</h3>
-          <div class="suggestions-scroll">
-            <button
-              v-for="action in commonActions"
-              :key="action.id"
-              class="suggestion-btn"
-              @click="selectMode(action)"
-            >
-              <div class="icon">
-                <component :is="action.icon" theme="outline" size="18" />
-              </div>
-              <div class="name">{{ action.text }}</div>
+              <div class="name">{{ suggestion.description }}</div>
             </button>
           </div>
         </div>
@@ -62,8 +37,10 @@
         <!-- 模式指示器 -->
         <div v-if="currentMode" class="mode-indicator">
           <div class="mode-badge">
-            <component :is="currentMode.icon" theme="outline" size="18" />
-            {{ currentMode.text }}
+            <div class="icon">
+              <component :is="currentMode.icon" theme="outline" size="18" :stroke-width="3" />
+            </div>
+            <div class="name">{{ currentMode.text }}</div>
           </div>
         </div>
 
@@ -92,16 +69,21 @@
                       :class="{ active: expandedMessageId === msg.id }"
                       @click="toggleReferences(msg.id)"
                     >
-                      <component
-                        :is="msg.sourceType === 'notes' ? Notes : Brain"
-                        theme="outline"
-                        size="14"
-                      />
-                      {{
-                        msg.sourceType === 'notes'
-                          ? `引用 ${msg.references?.length} 篇笔记作为参考`
-                          : '基于 AI 知识库'
-                      }}
+                      <div class="icon">
+                        <component
+                          :is="msg.sourceType === 'notes' ? Notes : Brain"
+                          theme="outline"
+                          size="14"
+                          :stroke-width="3"
+                        />
+                      </div>
+                      <div class="name">
+                        {{
+                          msg.sourceType === 'notes'
+                            ? `引用 ${msg.references?.length} 篇笔记作为参考`
+                            : '基于 AI 知识库'
+                        }}
+                      </div>
                     </button>
 
                     <!-- 添加复制按钮 -->
@@ -110,7 +92,9 @@
                       class="copy-btn"
                       @click="copyMessageContent(msg.content)"
                     >
-                      <Copy theme="outline" size="14" />
+                      <div class="icon">
+                        <Copy theme="outline" size="14" :stroke-width="3" />
+                      </div>
                     </button>
                   </div>
 
@@ -165,26 +149,6 @@
     <!-- 输入区域 - 固定 -->
     <div class="input-section">
       <div class="input-wrapper">
-        <!-- 新对话按钮 -->
-        <!-- <button
-          v-if="currentMode || messages.length > 0"
-          class="new-chat-btn"
-          @click="startNewChat"
-        >
-          <div v-if="isProcessing" class="new-chat-loading">
-            <Vue3Lottie
-              :animationData="loadingAnimation"
-              :height="100"
-              :width="100"
-              :loop="true"
-              :autoPlay="true"
-            />
-          </div>
-          <div v-else class="new-chat-avatar">
-            <img src="@resources/bot-avatar.svg" alt="AI Assistant" />
-          </div>
-        </button> -->
-
         <div class="input-outer-container">
           <!-- 建议功能/引用笔记显示区域 -->
           <div class="suggestion-reference-area">
@@ -193,11 +157,11 @@
               <div class="references-display">
                 <div v-for="note in selectedNotes" :key="note.id" class="note-reference">
                   <div class="reference-icon">
-                    <Notes theme="outline" size="14" />
+                    <Notes theme="outline" size="14" :stroke-width="3" />
                   </div>
                   <span class="reference-title">{{ note.title }}</span>
                   <button class="remove-reference" @click="removeNote(note.id)">
-                    <Close theme="outline" size="12" />
+                    <Close theme="outline" size="12" :stroke-width="3" />
                   </button>
                 </div>
               </div>
@@ -234,11 +198,11 @@
             </div>
 
             <div class="input-actions">
-              <button class="action-icon link-btn" @click="toggleNoteSelector">
-                <Link theme="outline" size="18" />
+              <button class="action-icon link-btn" @click="toggleHistoryPanel">
+                <History theme="outline" size="18" :stroke-width="3" />
               </button>
               <button class="action-icon send-btn" @click="handleSend">
-                <Send theme="outline" size="18" />
+                <Send theme="outline" size="18" :stroke-width="3" />
               </button>
             </div>
           </div>
@@ -258,21 +222,17 @@ import { ref, computed, watch, markRaw, onMounted, onUnmounted, nextTick } from 
 import { useAssistantStore } from '@renderer/stores/assistantStore'
 import { storeToRefs } from 'pinia'
 import {
-  Search as SearchOne,
-  Write,
+  ThinkingProblem,
+  MessageEmoji,
   Brain,
   Notes,
-  Code,
-  Link,
+  History,
   Send,
-  More,
   Copy,
   Close
 } from '@icon-park/vue-next'
 import type { Suggestion } from '@renderer/types/assistant'
 import TypewriterText from '@renderer/components/aiassistant/TypewriterText.vue'
-// import { Vue3Lottie } from 'vue3-lottie'
-// import loadingAnimation from '@renderer/assets/loading.json'
 import AppToolbar from '@renderer/components/layout/AppToolbar.vue'
 import { useNoteStore } from '@renderer/stores/noteStores'
 import { useUIStore } from '@renderer/stores/useUIStore'
@@ -347,9 +307,9 @@ const removeNote = (noteId: string) => {
   selectedNotes.value = selectedNotes.value.filter((note) => note.id !== noteId)
 }
 
-const toggleNoteSelector = () => {
-  showNoteSelector.value = !showNoteSelector.value
-}
+// const toggleNoteSelector = () => {
+//   showNoteSelector.value = !showNoteSelector.value
+// }
 
 // 添加点击外部关闭选择器的处理
 onMounted(() => {
@@ -401,47 +361,19 @@ const toggleHistoryPanel = () => {
 const suggestions: Suggestion[] = [
   {
     id: 'ask',
-    text: '从你的笔记中搜索相关内容',
-    icon: markRaw(SearchOne),
+    text: '问一问',
+    icon: markRaw(ThinkingProblem),
     mode: 'ask',
     prompt: '',
-    description: '从你的笔记中搜索相关内容'
+    description: '基于个人知识的精准解答，就像与了解您所有笔记的私人助理对话。'
   },
   {
-    id: 'write',
-    text: '帮你起草任何内容',
-    icon: markRaw(Write),
-    mode: 'write',
+    id: 'chat',
+    text: '聊一聊',
+    icon: markRaw(MessageEmoji),
+    mode: 'chat',
     prompt: '',
-    description: '帮你起草任何内容'
-  },
-  {
-    id: 'think',
-    text: '头脑风暴新想法',
-    icon: markRaw(Brain),
-    mode: 'think',
-    prompt: '',
-    description: '头脑风暴新想法'
-  }
-]
-
-// 常用功能
-const commonActions: Suggestion[] = [
-  {
-    id: 'search',
-    text: '从你的笔记中搜索相关内容',
-    icon: markRaw(Notes),
-    mode: 'search',
-    prompt: '',
-    description: '从你的笔记中搜索相关内容'
-  },
-  {
-    id: 'answer',
-    text: '解决代码相关问题',
-    icon: markRaw(Code),
-    mode: 'answer',
-    prompt: '',
-    description: '解决代码相关问题'
+    description: '智能 AI 助手随时恭候，解答疑惑、分享见解，让对话充满趣味与智慧。'
   }
 ]
 
@@ -452,14 +384,6 @@ const getPlaceholder = computed(() => {
   return '提问、思考、聊天...'
 })
 
-// 方法
-// const selectMode = (suggestion: Suggestion) => {
-//   currentMode.value = suggestion
-//   if (suggestion.prompt) {
-//     inputMessage.value = suggestion.prompt
-//     sendMessage()
-//   }
-// }
 // 选择模式
 const selectMode = (suggestion: Suggestion) => {
   assistantStore.clearMessages()
@@ -474,41 +398,6 @@ const startNewChat = () => {
 }
 
 // 发送普通消息
-// const sendMessage = async () => {
-//   if (!inputMessage.value.trim() || isProcessing.value) return
-
-//   const message = inputMessage.value
-//   inputMessage.value = ''
-//   selectedNotes.value = []
-
-//   try {
-//     await assistantStore.sendMessage(message)
-//   } catch (error) {
-//     console.error('发送消息失败:', error)
-//   }
-// }
-
-// // 发送带引用的消息
-// const sendMessageWithReference = async () => {
-//   if (!inputMessage.value.trim() && !selectedNotes.value.length) return
-//   if (isProcessing.value) return
-
-//   const content = inputMessage.value.trim()
-//   const noteReferences = selectedNotes.value
-//   inputMessage.value = ''
-//   selectedNotes.value = []
-//   // 发送带引用的消息给 AI
-//   await assistantStore.sendMessageWithReference(content, noteReferences)
-// }
-
-// 统一的发送处理
-// const handleSend = () => {
-//   if (selectedNotes.value.length > 0) {
-//     sendMessageWithReference()
-//   } else {
-//     sendMessage()
-//   }
-// }
 const handleSend = async () => {
   if (!inputMessage.value.trim() || assistantStore.isProcessing) return
 
@@ -520,7 +409,18 @@ const handleSend = async () => {
     inputMessage.value = ''
     selectedNotes.value = []
 
-    switch (currentMode.value?.mode) {
+    // 如果没有选择模式，默认使用 ask 模式并设置 currentMode
+    if (!currentMode.value) {
+      const askSuggestion = suggestions.find((s) => s.mode === 'ask')
+      if (askSuggestion) {
+        currentMode.value = askSuggestion
+      }
+    }
+
+    // 如果没有选择模式，默认使用 ask 模式
+    const mode = currentMode.value?.mode || 'ask'
+
+    switch (mode) {
       case 'ask':
         await assistantStore.handleAskQuestion(message, noteReferences)
         break
@@ -906,10 +806,44 @@ const copyMessageContent = async (content: string) => {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.5rem 1rem;
+  padding: 8px 16px 8px 12px;
   background: var(--color-shape-secondary);
   border-radius: 2rem;
-  font-size: 0.875rem;
+  .icon {
+    background: none;
+    border: none;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    padding: 0;
+
+    :deep(.i-icon) {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      height: 100%;
+    }
+
+    :deep(svg) {
+      width: 16px;
+      height: 16px;
+    }
+  }
+
+  .name {
+    flex-grow: 0;
+    text-align: left;
+    color: var(--color-text-primary);
+    font-size: 14px;
+    font-weight: 400;
+    white-space: nowrap;
+    writing-mode: horizontal-tb;
+    line-height: 1;
+  }
 }
 
 /* 9. 消息列表 */
@@ -980,6 +914,41 @@ const copyMessageContent = async (content: string) => {
     color: var(--color-primary);
     background: var(--color-hover-bg);
   }
+  .icon {
+    background: none;
+    border: none;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    padding: 0;
+
+    :deep(.i-icon) {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      height: 100%;
+    }
+
+    :deep(svg) {
+      width: 14px;
+      height: 14px;
+    }
+  }
+
+  .name {
+    flex-grow: 0;
+    text-align: left;
+    color: var(--default-text-color);
+    font-size: 13px;
+    font-weight: 400;
+    white-space: nowrap;
+    writing-mode: horizontal-tb;
+    line-height: 1;
+  }
 }
 
 .references-list {
@@ -1033,6 +1002,30 @@ const copyMessageContent = async (content: string) => {
       background: var(--color-hover-bg);
       color: var(--color-text-secondary);
     }
+    .icon {
+      background: none;
+      border: none;
+      width: 20px;
+      height: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+      padding: 0;
+
+      :deep(.i-icon) {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        height: 100%;
+      }
+
+      :deep(svg) {
+        width: 16px;
+        height: 16px;
+      }
+    }
   }
 
   &:hover {
@@ -1079,7 +1072,7 @@ const copyMessageContent = async (content: string) => {
 /* 11. 输入区域 */
 .input-section {
   flex-shrink: 0;
-  padding: 1rem 2rem;
+  padding: 1rem 2rem 2rem 2rem;
   background: var(--color-bg-primary);
 
   .input-wrapper {
@@ -1308,8 +1301,6 @@ const copyMessageContent = async (content: string) => {
 }
 
 .send-btn {
-  width: 26px;
-  height: 26px;
   background: var(--color-primary);
   border-radius: 50%;
   color: white;

@@ -6,7 +6,6 @@ import { getAllDictionaryWords } from '../dictionary/dictionaryService'
 export class KeywordExtractor {
   private static instance: KeywordExtractor | null = null
   private segment: any | null = null
-  private customDict: Map<string, any> = new Map()
   private initialized: boolean = false
 
   // 技术术语词典

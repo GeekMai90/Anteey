@@ -7,11 +7,13 @@
           <img src="@resources/avatar.png" alt="安安" class="assistant-avatar" />
           <div class="header-text">
             <h2>安安</h2>
-            <p class="subtitle">你好，我是安安，你的专属智能伙伴，有什么问题都可以问我哦</p>
+            <p class="subtitle">你好，我是安安，你的专属智能伙伴，有什么问题都可以问我哦~~~</p>
           </div>
         </div>
         <button class="close-btn" @click="$emit('close')">
-          <Close theme="outline" size="18" />
+          <div class="icon">
+            <Close theme="outline" size="18" :stroke-width="3" />
+          </div>
         </button>
       </div>
 
@@ -26,10 +28,17 @@
           <span class="section-title">对话历史</span>
           <button
             v-if="assistantStore.chatHistory.length > 0"
+            v-tooltip.top="{
+              content: '清空对话历史',
+              delay: { show: 1000 },
+              html: true
+            }"
             class="clear-btn"
             @click="showClearConfirm = true"
           >
-            <Delete theme="outline" size="14" />
+            <div class="icon">
+              <Delete theme="outline" size="14" :stroke-width="3" />
+            </div>
           </button>
         </div>
         <div class="history-list">
@@ -54,17 +63,18 @@
                 <!-- 操作按钮只在悬浮时显示 -->
                 <div v-show="hoveredItem === item.id" class="item-actions">
                   <button class="action-btn" @click.stop="handleEditClick(item)">
-                    <Edit theme="outline" size="14" />
+                    <Edit theme="outline" size="14" :stroke-width="3" />
                   </button>
                   <button class="action-btn" @click.stop="handleTogglePin(item.id)">
                     <Pushpin
                       theme="outline"
                       size="14"
                       :fill="item.isPinned ? 'var(--color-primary)' : 'var(--color-text-tertiary)'"
+                      :stroke-width="3"
                     />
                   </button>
                   <button class="action-btn" @click.stop="handleDeleteClick(item.id)">
-                    <Delete theme="outline" size="14" />
+                    <Delete theme="outline" size="14" :stroke-width="3" />
                   </button>
                 </div>
               </div>
@@ -286,10 +296,35 @@ const formatDateOnly = (dateString: string) => {
   background: none;
   cursor: pointer;
   color: var(--color-text-secondary);
-  border-radius: 4px;
+  border-radius: 6px;
 
   &:hover {
     background: var(--color-hover-bg);
+  }
+  .icon {
+    background: none;
+    border: none;
+    cursor: pointer;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    padding: 0;
+
+    :deep(.i-icon) {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      height: 100%;
+    }
+
+    :deep(svg) {
+      width: 14px;
+      height: 14px;
+    }
   }
 }
 
@@ -339,12 +374,37 @@ const formatDateOnly = (dateString: string) => {
   border: none;
   background: none;
   color: var(--color-text-tertiary);
-  border-radius: 4px;
+  border-radius: 6px;
   cursor: pointer;
 
   &:hover {
     background: var(--color-hover-bg);
-    color: var(--color-text-secondary);
+  }
+
+  .icon {
+    background: none;
+    border: none;
+    cursor: pointer;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    padding: 0;
+
+    :deep(.i-icon) {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      height: 100%;
+    }
+
+    :deep(svg) {
+      width: 14px;
+      height: 14px;
+    }
   }
 }
 
@@ -421,10 +481,5 @@ const formatDateOnly = (dateString: string) => {
   display: flex;
   align-items: center;
   justify-content: center;
-
-  &:hover {
-    background: var(--color-bg-secondary);
-    color: var(--color-text-secondary);
-  }
 }
 </style>

@@ -17,7 +17,7 @@
 
 <script setup lang="ts">
 import type { Suggestion } from '@renderer/types/assistant'
-import { Search, Code } from '@icon-park/vue-next'
+import { ThinkingProblem, MessageEmoji } from '@icon-park/vue-next'
 import { markRaw } from 'vue'
 
 defineProps<{
@@ -32,23 +32,15 @@ const suggestions = [
   {
     id: 'ask',
     text: '问一问',
-    icon: markRaw(Search),
+    icon: markRaw(ThinkingProblem),
     mode: 'ask',
     prompt: '',
     description: '从你的笔记中搜索相关内容'
   },
   {
-    id: 'find',
-    text: '找一找',
-    icon: markRaw(Code),
-    mode: 'find',
-    prompt: '',
-    description: '搜索相关内容'
-  },
-  {
     id: 'chat',
     text: '聊一聊',
-    icon: markRaw(Code),
+    icon: markRaw(MessageEmoji),
     mode: 'chat',
     prompt: '',
     description: '与AI助手进行轻松的对话'
