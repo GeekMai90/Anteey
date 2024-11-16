@@ -9,7 +9,7 @@ import { setupFilterHandlers } from './filterIpcHandlers'
 import { setupEmbeddingHandlers } from './embeddingIpcHandlers'
 import { setupDictionaryHandlers } from './dictionaryIpcHandlers'
 import { setupRAGHandlers } from './ragIpcHandlers'
-
+import { setupLLMConfigHandlers } from './llmConfigIpcHandlers'
 export function setupIpcHandlers() {
   setupNotesHandlers()
   setupWhiteboardHandlers()
@@ -22,4 +22,5 @@ export function setupIpcHandlers() {
   setupEmbeddingHandlers()
   setupDictionaryHandlers()
   setupRAGHandlers()
+  setupLLMConfigHandlers()
 }

@@ -454,6 +454,24 @@ export async function initDatabase(db: Knex): Promise<void> {
     })
     console.log('rag_history 表创建成功')
   }
+
+  // 创建 llm_configs 表
+  if (!(await db.schema.hasTable('llm_configs'))) {
+    await db.schema.createTable('llm_configs', (table) => {
+      table.string('id').primary()
+      table.string('model').notNullable() // 存储预设的模型ID，如 'glm-4'
+      table.string('apiKey').notNullable() // 用户的 API Key
+      table.boolean('isDefault').notNullable().defaultTo(false) // 是否为默认模型
+      table.datetime('createdAt').notNullable()
+      table.datetime('updatedAt').notNullable()
+
+      // 索引
+      table.index('model')
+      table.index('isDefault')
+    })
+
+    console.log('llm_configs 表创建成功')
+  }
 }
 
 export async function down(db: Knex): Promise<void> {
@@ -474,5 +492,6 @@ export async function down(db: Knex): Promise<void> {
   await db.schema.dropTableIfExists('dictionary_categories')
   await db.schema.dropTableIfExists('dictionary')
   await db.schema.dropTableIfExists('rag_history')
+  await db.schema.dropTableIfExists('llm_configs')
   console.log('所有表已删除')
 }

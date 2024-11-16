@@ -23,6 +23,7 @@ import { CreateCustomFilterInput, CustomFilter, UpdateCustomFilterInput } from '
 import { WordSuggestion } from '../../../services/dictionary/dictionaryService'
 import { DictWord } from '../../../services/dictionary/dictionaryService'
 import { ChatMessage, ChatSession, RAGContext, RAGHistoryRecord } from './assistant'
+import { LLMConfig } from './llm'
 
 export interface ElectronAPI {
   createNote: () => Promise<Note>
@@ -346,6 +347,26 @@ export interface ElectronAPI {
     context: RAGContext
     messages: ChatMessage[]
   }>
+
+  // LLM 配置相关的方法
+
+  // 获取所有配置
+  getAllConfigs: () => Promise<LLMConfig[]>
+
+  // 获取默认配置
+  getDefaultConfig: () => Promise<LLMConfig | null>
+
+  // 添加新配置
+  addConfig: (model: string, apiKey: string) => Promise<LLMConfig>
+
+  // 更新配置
+  updateConfig: (id: string, apiKey: string) => Promise<LLMConfig>
+
+  // 删除配置
+  deleteConfig: (id: string) => Promise<void>
+
+  // 设置默认配置
+  setDefaultConfig: (id: string) => Promise<void>
 }
 
 declare global {

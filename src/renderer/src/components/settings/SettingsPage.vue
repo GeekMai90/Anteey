@@ -43,6 +43,7 @@
       <ShareSettings v-if="currentMenuItem === 'share'" />
       <AppearanceSettings v-if="currentMenuItem === 'appearance'" />
       <DictionarySettings v-if="currentMenuItem === 'dictionary'" />
+      <LLMSettings v-if="currentMenuItem === 'llm'" />
     </div>
   </div>
 </template>
@@ -63,6 +64,7 @@ import ShortcutsSettings from './pages/ShortcutsSettings.vue'
 import ShareSettings from './pages/ShareSettings.vue'
 import AppearanceSettings from './pages/AppearanceSettings.vue'
 import DictionarySettings from './pages/DictionarySettings.vue'
+import LLMSettings from './pages/LLMSettings.vue'
 
 const menuItems = [
   { key: 'backup', label: '备份', icon: DatabaseDownload },
@@ -70,7 +72,8 @@ const menuItems = [
   { key: 'share', label: '分享设置', icon: Share },
   { key: 'appearance', label: '外观', icon: Theme },
   { key: 'dictionary', label: '词库管理', icon: BookOne },
-  { key: 'api', label: '专属API', icon: Api }
+  { key: 'api', label: '专属API', icon: Api },
+  { key: 'llm', label: 'LLM配置', icon: Api }
 ]
 
 const currentMenuItem = ref('backup')

@@ -48,7 +48,7 @@ export const TOPIC_CONFIG = {
 } as const
 
 // 初始化 LLM 服务
-const llm = new LLMService(process.env.ZHIPU_API_KEY || '')
+const llm = new LLMService()
 
 /**
  * 核心检索功能

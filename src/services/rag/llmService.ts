@@ -1,67 +1,114 @@
-// src/services/llmService.ts
 import log from 'electron-log'
 import axios from 'axios'
-import dotenv from 'dotenv'
+import { LLMConfigService } from './llmConfigService'
+import { LLM_MODELS } from './llm.config'
+import type { LLMConfig } from '@renderer/types/llm'
 
-dotenv.config()
-
-// src/services/llmService.ts
 export class LLMService {
-  private apiKey: string
-  // 更新为最新的 API 地址
-  private baseURL = 'https://open.bigmodel.cn/api/paas/v4'
-  private model = 'glm-4' // 使用最新的 GLM-4 模型
+  private configService: LLMConfigService
 
-  constructor(apiKey?: string) {
-    this.apiKey =
-      apiKey || process.env.ZHIPU_API_KEY || 'a0f1e756f5fa638e9f372daf69517016.g1uLIkLVTY2CrUoQ'
+  constructor() {
+    this.configService = new LLMConfigService()
   }
 
   async generateResponse(prompt: string): Promise<string> {
+    let config: LLMConfig | null = null
+
     try {
-      if (!this.apiKey) {
-        throw new Error('未配置智谱 AI API Key')
+      // 获取默认配置
+      config = await this.configService.getDefaultConfig()
+      if (!config) {
+        throw new Error('未配置默认的 LLM 模型，请在设置中配置')
       }
 
-      const response = await axios.post(
-        `${this.baseURL}/chat/completions`,
-        {
-          model: this.model,
-          messages: [
+      // 获取模型配置
+      const modelConfig = LLM_MODELS[config.model]
+      if (!modelConfig) {
+        throw new Error(`不支持的模型类型: ${config.model}`)
+      }
+
+      let response
+      // 根据不同提供商处理请求
+      switch (modelConfig.provider) {
+        case 'zhipu':
+          response = await axios.post(
+            modelConfig.baseURL,
             {
-              role: 'user',
-              content: prompt
+              model: config.model,
+              messages: [
+                {
+                  role: 'user',
+                  content: prompt
+                }
+              ],
+              stream: false
+            },
+            {
+              headers: {
+                Authorization: `Bearer ${config.apiKey}`,
+                'Content-Type': 'application/json'
+              }
             }
-          ],
-          stream: false // 非流式响应
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${this.apiKey}`,
-            'Content-Type': 'application/json'
-          }
-        }
-      )
+          )
+          break
+
+        case 'moonshot':
+          response = await axios.post(
+            modelConfig.baseURL,
+            {
+              model: 'moonshot-v1-8k', // 使用正确的模型名称
+              messages: [
+                {
+                  role: 'system',
+                  content:
+                    '你是 Kimi，由 Moonshot AI 提供的人工智能助手，你更擅长中文和英文的对话。你会为用户提供安全，有帮助，准确的回答。同时，你会拒绝一切涉及恐怖主义，种族歧视，黄色暴力等问题的回答。Moonshot AI 为专有名词，不可翻译成其他语言。'
+                },
+                {
+                  role: 'user',
+                  content: prompt
+                }
+              ],
+              temperature: 0.3 // 使用推荐的温度值
+            },
+            {
+              headers: {
+                Authorization: `Bearer ${config.apiKey}`,
+                'Content-Type': 'application/json'
+              }
+            }
+          )
+          break
+
+        default:
+          throw new Error(`不支持的模型提供商: ${modelConfig.provider}`)
+      }
 
       log.info('LLM 响应数据:', response.data)
 
-      if (
-        response.data &&
-        response.data.choices &&
-        response.data.choices[0] &&
-        response.data.choices[0].message &&
-        response.data.choices[0].message.content
-      ) {
-        return response.data.choices[0].message.content
+      // 根据不同提供商处理响应
+      let content: string
+      switch (modelConfig.provider) {
+        case 'zhipu':
+        case 'moonshot':
+          if (!response.data?.choices?.[0]?.message?.content) {
+            throw new Error('API 响应格式异常: ' + JSON.stringify(response.data))
+          }
+          content = response.data.choices[0].message.content
+          break
+
+        default:
+          throw new Error(`不支持的模型提供商: ${modelConfig.provider}`)
       }
 
-      throw new Error('API 响应格式异常: ' + JSON.stringify(response.data))
+      return content
     } catch (error) {
       if (axios.isAxiosError(error)) {
+        const errorMessage = error.response?.data?.error?.message || error.message
         log.error('LLM API 调用失败:', {
+          model: config?.model,
           status: error.response?.status,
           statusText: error.response?.statusText,
-          data: error.response?.data
+          message: errorMessage
         })
       } else {
         log.error('LLM 调用失败:', error)
