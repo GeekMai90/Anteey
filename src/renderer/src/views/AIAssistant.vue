@@ -540,6 +540,9 @@ const handleSend = async () => {
       case 'search':
         await assistantStore.searchContent()
         break
+      case 'chat':
+        await assistantStore.handleChat(message)
+        break
     }
   } catch (error) {
     console.error('发送消息失败:', error)

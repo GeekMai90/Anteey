@@ -14,7 +14,8 @@ import {
   trackRAGPerformance,
   RAGPerformanceData,
   generateAnswerWithReferences,
-  handleAskQuestion
+  handleAskQuestion,
+  handleChat
 } from '../../services/rag/ragService'
 import log from 'electron-log'
 import {
@@ -265,4 +266,44 @@ export function setupRAGHandlers() {
       return { success: false, error: String(error) }
     }
   })
+
+  // 聊一聊模式
+  ipcMain.handle(
+    'handle-chat',
+    async (
+      _event,
+      {
+        query,
+        sessionId,
+        currentMessages,
+        currentContexts
+      }: {
+        query: string
+        sessionId: string | null
+        currentMessages: ChatMessage[]
+        currentContexts: RAGContext[]
+      }
+    ) => {
+      try {
+        console.log('IPC处理器 - 聊一聊:', {
+          query,
+          sessionId,
+          messagesCount: currentMessages?.length || 0,
+          contextsCount: currentContexts?.length || 0
+        })
+
+        const result = await handleChat(
+          query,
+          sessionId,
+          currentMessages || [],
+          currentContexts || []
+        )
+
+        return { success: true, ...result }
+      } catch (error) {
+        log.error('主进程→ 聊一聊模式失败:', error)
+        return { success: false, error: String(error) }
+      }
+    }
+  )
 }

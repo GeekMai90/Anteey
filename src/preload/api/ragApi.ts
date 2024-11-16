@@ -266,5 +266,45 @@ export const ragApi = {
       console.error('预加载脚本 → 问一问模式失败:', error)
       throw error
     }
+  },
+  // 聊一聊模式
+  handleChat: async (
+    query: string,
+    sessionId: string | null = null,
+    currentMessages: ChatMessage[] = [],
+    currentContexts: RAGContext[] = []
+  ): Promise<{
+    answer: string
+    context: RAGContext
+    messages: ChatMessage[]
+  }> => {
+    try {
+      console.log('预加载脚本 - 聊一聊:', {
+        query,
+        sessionId,
+        messagesCount: currentMessages.length,
+        contextsCount: currentContexts.length
+      })
+
+      const result = await ipcRenderer.invoke('handle-chat', {
+        query,
+        sessionId,
+        currentMessages,
+        currentContexts
+      })
+
+      if (!result.success) {
+        throw new Error(result.error)
+      }
+
+      return {
+        answer: result.answer,
+        context: result.context,
+        messages: result.messages
+      }
+    } catch (error) {
+      console.error('预加载脚本 → 聊一聊模式失败:', error)
+      throw error
+    }
   }
 }

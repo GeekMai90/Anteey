@@ -43,7 +43,7 @@ export interface Suggestion {
   id: string
   text: string
   icon: Component
-  mode: 'ask' | 'write' | 'think' | 'answer' | 'search' | 'talk'
+  mode: 'ask' | 'write' | 'think' | 'answer' | 'search' | 'chat'
   prompt: string
   description: string
 }
@@ -57,7 +57,7 @@ export interface RAGContext {
   timestamp: string
   relevantDocs: RAGResult[]
   response?: string
-  processingType?: 'qa' | 'note_processing' // 新增：处理类型
+  processingType?: 'qa' | 'note_processing' | 'chat' // 新增：处理类型
   targetNote?: {
     // 新增：目标笔记信息
     id: string

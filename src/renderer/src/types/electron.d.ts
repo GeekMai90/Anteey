@@ -334,6 +334,18 @@ export interface ElectronAPI {
     currentMessages: ChatMessage[],
     currentContexts: RAGContext[]
   ) => Promise<{ answer: string; context: RAGContext; messages: ChatMessage[] }>
+
+  // 聊一聊模式
+  handleChat: (
+    query: string,
+    sessionId: string | null,
+    currentMessages: ChatMessage[],
+    currentContexts: RAGContext[]
+  ) => Promise<{
+    answer: string
+    context: RAGContext
+    messages: ChatMessage[]
+  }>
 }
 
 declare global {

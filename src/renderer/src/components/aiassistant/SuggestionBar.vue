@@ -70,12 +70,12 @@ const suggestions = [
     description: '搜索相关内容'
   },
   {
-    id: 'talk',
+    id: 'chat',
     text: '聊一聊',
     icon: markRaw(Code),
-    mode: 'talk',
+    mode: 'chat',
     prompt: '',
-    description: '与 AI 进行对话'
+    description: '与AI助手进行轻松的对话'
   }
 ]
 

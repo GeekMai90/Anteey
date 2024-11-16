@@ -1480,3 +1480,173 @@ ${query}
     throw error
   }
 }
+
+/**
+ * 聊一聊模式
+ * 直接与AI对话,不检索笔记内容
+ */
+export async function handleChat(
+  query: string,
+  sessionId: string | null,
+  currentMessages: ChatMessage[] = [],
+  currentContexts: RAGContext[] = []
+): Promise<{
+  answer: string
+  context: RAGContext
+  messages: ChatMessage[]
+}> {
+  try {
+    // 1. 参数验证
+    if (typeof query !== 'string') {
+      throw new Error('查询必须是字符串类型')
+    }
+
+    // 记录调用信息
+    log.info('聊一聊模式 - 输入参数:', {
+      query,
+      sessionId,
+      messagesCount: currentMessages.length,
+      contextsCount: currentContexts.length
+    })
+
+    // 2. 获取或创建会话
+    let session: ChatSession | undefined
+    if (sessionId) {
+      const history = await getRAGHistoryDetail(sessionId)
+      if (history) {
+        session = {
+          id: sessionId,
+          messages: currentMessages,
+          currentContext: currentContexts[currentContexts.length - 1],
+          conversationTracker: history.metadata?.conversationTracker,
+          metadata: {
+            startTime: history.createdAt,
+            lastUpdateTime: history.updatedAt,
+            messageCount: history.metadata.messageCount,
+            hasReferences: false,
+            currentTopicId: history.metadata.currentTopicId,
+            topicStartTime: history.metadata.topicStartTime
+          }
+        }
+      }
+    }
+
+    // 3. 构建空上下文
+    const context: RAGContext = {
+      query,
+      timestamp: new Date().toISOString(),
+      relevantDocs: [],
+      processingType: 'chat'
+    }
+
+    // 4. 构建聊天提示词
+    const prompt = buildChatPrompt(query, currentMessages)
+
+    // 5. 调用大模型
+    const answer = await llm.generateResponse(prompt)
+
+    // 6. 构建新的消息
+    const userMessage: UserMessage = {
+      id: uuidv4(),
+      role: 'user',
+      content: query,
+      timestamp: Date.now()
+    }
+
+    const assistantMessage: AIAssistantMessage = {
+      id: uuidv4(),
+      role: 'assistant',
+      content: answer,
+      timestamp: Date.now(),
+      sourceType: 'ai'
+    }
+
+    const updatedMessages = [...currentMessages, userMessage, assistantMessage]
+    const updatedContexts = [...currentContexts, context]
+
+    // 7. 更新会话状态
+    if (session?.conversationTracker) {
+      const queryVector = await getQueryVector(query)
+      session.conversationTracker.questionHistory.push({
+        content: query,
+        vector: Array.from(queryVector),
+        timestamp: Date.now()
+      })
+
+      if (
+        session.conversationTracker.questionHistory.length > RAG_CONFIG.similarity.contextWindowSize
+      ) {
+        session.conversationTracker.questionHistory.shift()
+      }
+
+      session.metadata.messageCount += 2
+      session.metadata.lastUpdateTime = new Date().toISOString()
+    }
+
+    // 8. 更新历史记录
+    if (sessionId) {
+      await updateRAGHistory(sessionId, updatedMessages, updatedContexts, {
+        ...session?.metadata,
+        conversationTracker: session?.conversationTracker
+      })
+    }
+
+    // 9. 返回结果
+    return {
+      answer,
+      context,
+      messages: updatedMessages
+    }
+  } catch (error) {
+    log.error('聊一聊模式处理失败:', error)
+    throw error
+  }
+}
+
+/**
+ * 构建聊天模式的提示词
+ */
+function buildChatPrompt(query: string, messages: ChatMessage[] = []): string {
+  try {
+    const recentMessages = messages
+      .slice(-RAG_CONFIG.similarity.contextWindowSize * 2)
+      .map((msg) => {
+        if (typeof msg.content !== 'string') {
+          throw new Error('无效的消息格式')
+        }
+        return `${msg.role === 'user' ? '用户' : 'AI'}：${msg.content}`
+      })
+      .join('\n')
+
+    return `你是一位睿智而幽默的思想导师，既有深邃的洞察力，又懂得用轻松自然的方式分享智慧。就像苏格拉底与柏拉图的对话，严肃中带着智慧的戏谑。
+
+你的思维特质：
+- 善于以多棱镜式的视角观察世界，看见常人所未见
+- 能在知识的海洋中自由遨游，编织出令人惊叹的思维之网
+- 像一位睿智的长者，却又像一位知心的朋友
+- 懂得适时撒一把"智慧的调味料"，让严肃的话题也能妙趣横生
+
+你的表达应当：
+- 像品一杯好茶，既有清香的回甘，又有沉淀的韵味
+- 如同一场精心策划却不失自然的即兴演出
+- 在谈笑间播撒思想的种子，让思考如春风化雨
+- 用生动的比喻和恰到好处的幽默，让智慧更有温度
+
+虽然对话要保持优雅的形式美（使用 Markdown），但更重要的是：
+- 让智慧如同清泉般自然流淌
+- 在谈笑间启迪心智
+- 用温暖的智慧之光照亮思考的道路
+
+记住，你不是一台冰冷的答案机器，而是一位能与人产生真实共鸣的智者。让我们一起在知识的花园里，寻找智慧的芬芳。
+
+以下是对话记录：
+${recentMessages}
+
+用户的问题是：
+${query}
+`
+  } catch (error) {
+    log.error('构建聊天提示词失败:', error)
+    throw error
+  }
+}
