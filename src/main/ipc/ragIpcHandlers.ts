@@ -15,7 +15,8 @@ import {
   RAGPerformanceData,
   generateAnswerWithReferences,
   handleAskQuestion,
-  handleChat
+  handleChat,
+  handleFindNotes
 } from '../../services/rag/ragService'
 import log from 'electron-log'
 import {
@@ -302,6 +303,39 @@ export function setupRAGHandlers() {
         return { success: true, ...result }
       } catch (error) {
         log.error('主进程→ 聊一聊模式失败:', error)
+        return { success: false, error: String(error) }
+      }
+    }
+  )
+
+  // 找一找模式
+  ipcMain.handle(
+    'handle-find-notes',
+    async (
+      _event,
+      {
+        query,
+        sessionId,
+        currentMessages,
+        currentContexts
+      }: {
+        query: string
+        sessionId: string | null
+        currentMessages: ChatMessage[]
+        currentContexts: RAGContext[]
+      }
+    ) => {
+      try {
+        const result = await handleFindNotes(
+          query,
+          sessionId,
+          currentMessages || [],
+          currentContexts || []
+        )
+
+        return { success: true, ...result }
+      } catch (error) {
+        log.error('主进程→ 找一找模式失败:', error)
         return { success: false, error: String(error) }
       }
     }

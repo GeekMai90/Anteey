@@ -537,8 +537,8 @@ const handleSend = async () => {
         }
         await assistantStore.analyzeContent()
         break
-      case 'search':
-        await assistantStore.searchContent()
+      case 'find':
+        await assistantStore.handleFindNotes(message)
         break
       case 'chat':
         await assistantStore.handleChat(message)

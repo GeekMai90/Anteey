@@ -367,6 +367,18 @@ export interface ElectronAPI {
 
   // 设置默认配置
   setDefaultConfig: (id: string) => Promise<void>
+
+  // 找一找模式
+  handleFindNotes: (
+    query: string,
+    sessionId: string | null,
+    currentMessages: ChatMessage[],
+    currentContexts: RAGContext[]
+  ) => Promise<{
+    answer: string
+    context: RAGContext
+    messages: ChatMessage[]
+  }>
 }
 
 declare global {

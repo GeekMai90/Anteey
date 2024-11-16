@@ -1039,6 +1039,148 @@ export const useAssistantStore = defineStore('assistant', () => {
     }
   }
 
+  const handleFindNotes = async (content: string) => {
+    const startTime = performance.now()
+    try {
+      isProcessing.value = true
+
+      // 1. 会话管理
+      if (!currentSessionId.value) {
+        currentSessionId.value = uuidv4()
+        currentSession.value = {
+          id: currentSessionId.value,
+          messages: [],
+          currentContext: undefined,
+          metadata: {
+            startTime: new Date().toISOString(),
+            lastUpdateTime: new Date().toISOString(),
+            messageCount: 0,
+            hasReferences: true // 找一找模式总是有引用
+          }
+        }
+      }
+
+      // 2. 添加用户消息
+      const userMessage: UserMessage = {
+        id: uuidv4(),
+        role: 'user',
+        content,
+        timestamp: Date.now()
+      }
+      messages.value.push(markRaw(userMessage))
+
+      // 3. 准备发送数据
+      const prepareDataForTransfer = (data: any) => {
+        return JSON.parse(
+          JSON.stringify(data, (key, value) => {
+            if (typeof value === 'function' || key.startsWith('_')) {
+              return undefined
+            }
+            return value
+          })
+        )
+      }
+
+      // 3. 准备发送数据
+      const messagesToSend = prepareDataForTransfer(messages.value.slice(0, -1))
+      const contextsToSend = prepareDataForTransfer(contexts.value)
+
+      // 4. 调用找一找模式
+      const result = await window.electronAPI.handleFindNotes(
+        content,
+        currentSessionId.value,
+        messagesToSend,
+        contextsToSend
+      )
+
+      if (!result) {
+        throw new Error('找一找失败：未收到响应')
+      }
+
+      const { context, answer } = result
+
+      // 5. 添加AI回复
+      const assistantMessage: AIAssistantMessage = {
+        id: uuidv4(),
+        role: 'assistant',
+        content: answer,
+        timestamp: Date.now(),
+        sourceType: 'notes',
+        references: prepareDataForTransfer(context.relevantDocs)
+      }
+      messages.value.push(markRaw(assistantMessage))
+
+      // 6. 更新上下文
+      const cleanContext = prepareDataForTransfer(context)
+      currentContext.value = markRaw(cleanContext)
+      contexts.value = markRaw([...contexts.value, cleanContext]) as RAGContext[]
+
+      // 7. 更新会话状态
+      if (currentSession.value) {
+        const cleanMessages = prepareDataForTransfer(messages.value)
+        currentSession.value = markRaw({
+          ...currentSession.value,
+          messages: cleanMessages,
+          currentContext: cleanContext,
+          metadata: {
+            ...currentSession.value.metadata,
+            messageCount: currentSession.value.metadata.messageCount + 2,
+            lastUpdateTime: new Date().toISOString(),
+            hasReferences: true
+          }
+        })
+      }
+
+      // 8. 更新历史记录
+      await window.electronAPI.updateRAGHistory({
+        sessionId: currentSessionId.value,
+        messages: prepareDataForTransfer(messages.value),
+        contexts: prepareDataForTransfer(contexts.value),
+        metadata: prepareDataForTransfer(currentSession.value?.metadata)
+      })
+
+      // 9. 更新性能指标
+      const duration = performance.now() - startTime
+      updatePerformanceMetrics(duration)
+
+      // 10. 记录性能数据
+      await window.electronAPI.trackRAGPerformance(currentSessionId.value!, 'findNotes', duration, {
+        success: true,
+        metadata: {
+          messageLength: content.length,
+          hasReferences: true
+        }
+      })
+
+      return {
+        answer,
+        context: cleanContext,
+        messages: prepareDataForTransfer(messages.value)
+      }
+    } catch (error) {
+      console.error('找一找模式失败:', error)
+      const errorMessage: SystemMessage = {
+        id: uuidv4(),
+        role: 'system',
+        content: '抱歉，找一找失败，请稍后重试。',
+        timestamp: Date.now()
+      }
+      messages.value.push(markRaw(errorMessage))
+
+      // 记录错误性能数据
+      const duration = performance.now() - startTime
+      performanceMetrics.value.errorCount++
+      await window.electronAPI.trackRAGPerformance(currentSessionId.value!, 'findNotes', duration, {
+        success: false,
+        error: String(error)
+      })
+
+      throw error
+    } finally {
+      isProcessing.value = false
+    }
+  }
+
   return {
     messages,
     isProcessing,
@@ -1063,6 +1205,7 @@ export const useAssistantStore = defineStore('assistant', () => {
     analyzeContent,
     searchContent,
     handleAskQuestion,
-    handleChat
+    handleChat,
+    handleFindNotes
   }
 })

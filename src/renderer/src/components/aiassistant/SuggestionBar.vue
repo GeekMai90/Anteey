@@ -17,7 +17,7 @@
 
 <script setup lang="ts">
 import type { Suggestion } from '@renderer/types/assistant'
-import { Search, Write, Brain, Notes, Code } from '@icon-park/vue-next'
+import { Search, Code } from '@icon-park/vue-next'
 import { markRaw } from 'vue'
 
 defineProps<{
@@ -38,34 +38,10 @@ const suggestions = [
     description: '从你的笔记中搜索相关内容'
   },
   {
-    id: 'write',
-    text: '写一写',
-    icon: markRaw(Write),
-    mode: 'write',
-    prompt: '',
-    description: '帮你起草任何内容'
-  },
-  {
-    id: 'think',
-    text: '想一想',
-    icon: markRaw(Brain),
-    mode: 'think',
-    prompt: '',
-    description: '头脑风暴新想法'
-  },
-  {
-    id: 'answer',
-    text: '答一答',
-    icon: markRaw(Notes),
-    mode: 'answer',
-    prompt: '',
-    description: '深度阅读理解'
-  },
-  {
-    id: 'search',
+    id: 'find',
     text: '找一找',
     icon: markRaw(Code),
-    mode: 'search',
+    mode: 'find',
     prompt: '',
     description: '搜索相关内容'
   },

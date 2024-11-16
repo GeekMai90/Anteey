@@ -306,5 +306,26 @@ export const ragApi = {
       console.error('预加载脚本 → 聊一聊模式失败:', error)
       throw error
     }
+  },
+  // 找一找模式
+  handleFindNotes: async (
+    query: string,
+    sessionId: string | null,
+    currentMessages: ChatMessage[] = [],
+    currentContexts: RAGContext[] = []
+  ) => {
+    try {
+      const result = await ipcRenderer.invoke('handle-find-notes', {
+        query,
+        sessionId,
+        currentMessages,
+        currentContexts
+      })
+      if (!result.success) throw new Error(result.error)
+      return result
+    } catch (error) {
+      console.error('预加载脚本 → 找一找模式失败:', error)
+      throw error
+    }
   }
 }
