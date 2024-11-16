@@ -2,6 +2,7 @@
 export interface NoteEmbedding {
   note_id: string
   embedding: Buffer
+  keywords: string[]
   created_at: number
   updated_at: number
   model_version: string

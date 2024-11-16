@@ -305,6 +305,7 @@ export async function initDatabase(db: Knex): Promise<void> {
     await db.schema.createTable('note_embeddings', (table) => {
       table.string('note_id').primary()
       table.binary('embedding').notNullable() // 使用 binary 类型存储向量数据
+      table.json('keywords').notNullable().defaultTo('[]') // 新增字段，存储关键词数组
       table.integer('created_at').notNullable()
       table.integer('updated_at').notNullable()
       table.string('model_version').notNullable().defaultTo('minilm-l6-v2')
@@ -422,8 +423,6 @@ export async function initDatabase(db: Knex): Promise<void> {
   }
 
   // 创建 rag_history 表
-  // 创建 rag_history 表
-  // 修改 rag_history 表结构
   if (!(await db.schema.hasTable('rag_history'))) {
     await db.schema.createTable('rag_history', (table) => {
       table.string('id').primary()

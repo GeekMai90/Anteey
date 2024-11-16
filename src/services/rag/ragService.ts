@@ -264,7 +264,15 @@ async function handleNewTopicRetrieval(
           }
 
           const noteVector = SimilarityService.blobToFloat32Array(note.embedding)
-          const similarity = SimilarityService.calculateSimilarity(queryVector, noteVector)
+          // const similarity = SimilarityService.calculateSimilarity(queryVector, noteVector)
+          // 使用增强版相似度计算
+          const similarity = SimilarityService.calculateEnhancedSimilarity(
+            queryVector,
+            noteVector,
+            {
+              createdAt: Number(note.createdAt)
+            }
+          )
 
           log.debug('笔记相似度:', {
             noteId: note.id,

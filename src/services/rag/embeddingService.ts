@@ -1,11 +1,12 @@
 // 向量服务
 import { db } from '../../db/config'
-import { NoteEmbedding } from '../../renderer/src/types/Note'
 import log from 'electron-log'
 import { Knex } from 'knex/types'
 import { SimilarityService } from './calculateSimilarity'
 import path from 'path'
 import { app } from 'electron'
+import { keywordExtractor } from './keywordExtractor'
+import { Keyword, NoteEmbedding } from '../../renderer/src/types/Embedding'
 
 let embeddings: any = null
 
@@ -39,14 +40,29 @@ export async function initEmbeddings() {
   return embeddings
 }
 
-// 转换函数
-function convertToEmbedding(record: any): NoteEmbedding {
-  return {
-    note_id: record.note_id,
-    embedding: record.embedding,
-    created_at: record.created_at,
-    updated_at: record.updated_at,
-    model_version: record.model_version
+/**
+ * 转换数据库结果为 NoteEmbedding 类型
+ */
+function convertToEmbedding(result: any): NoteEmbedding {
+  try {
+    return {
+      note_id: result.note_id,
+      embedding: result.embedding,
+      keywords: JSON.parse(result.keywords),
+      created_at: result.created_at,
+      updated_at: result.updated_at,
+      model_version: result.model_version
+    }
+  } catch (error) {
+    log.error('转换 embedding 结果失败:', error)
+    return {
+      note_id: result.note_id,
+      embedding: result.embedding,
+      keywords: [],
+      created_at: result.created_at,
+      updated_at: result.updated_at,
+      model_version: result.model_version
+    }
   }
 }
 
@@ -75,47 +91,127 @@ function extractTextContent(content: any): string {
 }
 
 // 生成并保存笔记的向量
+// export async function generateEmbedding(noteId: string): Promise<NoteEmbedding> {
+//   try {
+//     // 1. 获取笔记内容
+//     const note = await db('notes').where({ id: noteId }).first()
+
+//     if (!note) {
+//       throw new Error(`笔记不存在: ${noteId}`)
+//     }
+
+//     // 2. 提取文本内容
+//     const textContent = extractTextContent(note.content)
+
+//     // 3. 生成向量
+//     const embedder = await initEmbeddings()
+//     const vector = await embedder(textContent)
+//     const embedding = Buffer.from(new Float32Array(vector).buffer)
+
+//     // 4. 准备数据
+//     const now = Math.floor(Date.now() / 1000)
+//     const embeddingData = {
+//       note_id: noteId,
+//       embedding: embedding,
+//       created_at: now,
+//       updated_at: now,
+//       model_version: 'minilm-l6-v2'
+//     }
+
+//     // 5. 保存或更新向量
+//     const [result] = await db('note_embeddings')
+//       .insert(embeddingData)
+//       .onConflict('note_id')
+//       .merge(['embedding', 'updated_at'])
+//       .returning('*')
+
+//     return convertToEmbedding(result)
+//   } catch (error) {
+//     console.error('生成向量失败:', { noteId, error })
+//     throw error
+//   }
+// }
+
+// 配置常量
+const KEYWORDS_LIMIT = 10
+const MIN_KEYWORD_WEIGHT = 0.05
+
+// 生成并保存笔记的向量
 export async function generateEmbedding(noteId: string): Promise<NoteEmbedding> {
   try {
     // 1. 获取笔记内容
     const note = await db('notes').where({ id: noteId }).first()
-
     if (!note) {
       throw new Error(`笔记不存在: ${noteId}`)
     }
 
-    // 2. 提取文本内容
-    const textContent = extractTextContent(note.content)
+    // 2. 提取文本内容 - 使用 KeywordExtractor 中的方法
+    const textContent = keywordExtractor['extractTextContent'](note.content)
+    if (!textContent.trim()) {
+      throw new Error(`笔记内容为空: ${noteId}`)
+    }
 
-    // 3. 生成向量
-    const embedder = await initEmbeddings()
-    const vector = await embedder(textContent)
-    const embedding = Buffer.from(new Float32Array(vector).buffer)
+    // 3. 同时进行向量生成和关键词提取
+    const [vector, keywordObjects] = await Promise.all([
+      // 生成向量
+      (async () => {
+        const embedder = await initEmbeddings()
+        const vector = await embedder(textContent)
+        return Buffer.from(new Float32Array(vector).buffer)
+      })(),
+      // 提取关键词
+      keywordExtractor.extract(note.content) // 直接传入原始内容，让 KeywordExtractor 处理
+    ])
 
-    // 4. 准备数据
+    // 4. 筛选关键词
+    const keywords = keywordObjects
+      .filter((k: Keyword) => k.weight >= MIN_KEYWORD_WEIGHT)
+      .sort((a: Keyword, b: Keyword) => b.weight - a.weight)
+      .slice(0, KEYWORDS_LIMIT)
+      .map((k: Keyword) => k.word)
+
+    console.log('关键词提取结果:', {
+      笔记ID: noteId,
+      原始关键词数: keywordObjects.length,
+      筛选后关键词数: keywords.length,
+      关键词列表: keywords
+    })
+    log.info('关键词提取结果:', {
+      笔记ID: noteId,
+      原始关键词数: keywordObjects.length,
+      筛选后关键词数: keywords.length,
+      关键词列表: keywords
+    })
+
+    // 5. 准备数据
     const now = Math.floor(Date.now() / 1000)
     const embeddingData = {
       note_id: noteId,
-      embedding: embedding,
+      embedding: vector,
+      keywords: JSON.stringify(keywords),
       created_at: now,
       updated_at: now,
       model_version: 'minilm-l6-v2'
     }
 
-    // 5. 保存或更新向量
+    // 6. 保存或更新向量
     const [result] = await db('note_embeddings')
       .insert(embeddingData)
       .onConflict('note_id')
-      .merge(['embedding', 'updated_at'])
+      .merge(['embedding', 'keywords', 'updated_at'])
       .returning('*')
 
     return convertToEmbedding(result)
   } catch (error) {
-    console.error('生成向量失败:', { noteId, error })
+    log.error('生成向量失败:', {
+      noteId,
+      error: error as Error,
+      errorMessage: (error as Error).message,
+      stack: (error as Error).stack
+    })
     throw error
   }
 }
-
 // 获取笔记的向量
 export async function getNoteEmbedding(noteId: string): Promise<NoteEmbedding | null> {
   try {
@@ -173,22 +269,77 @@ export async function generateEmbeddingsBatch(noteIds: string[]): Promise<void> 
 }
 
 // 添加事务参数
+// export async function updateNoteEmbedding(
+//   noteId: string,
+//   content: any,
+//   trx?: Knex.Transaction
+// ): Promise<void> {
+//   try {
+//     const embedder = await initEmbeddings()
+
+//     const textContent = extractTextContent(content)
+//     if (!textContent) {
+//       log.warn('笔记内容为空，跳过向量生成:', noteId)
+//       return
+//     }
+
+//     // 使用传入的事务对象进行关键词提取
+//     const vector = await embedder(textContent)
+
+//     const embedding = Buffer.from(new Float32Array(vector).buffer)
+//     const now = Math.floor(Date.now() / 1000)
+
+//     const query = {
+//       note_id: noteId,
+//       embedding: embedding,
+//       created_at: now,
+//       updated_at: now,
+//       model_version: 'minilm-l6-v2'
+//     }
+
+//     // 使用传入的事务对象或默认数据库连接
+//     const dbConnection = trx || db
+//     await dbConnection('note_embeddings')
+//       .insert(query)
+//       .onConflict('note_id')
+//       .merge(['embedding', 'updated_at'])
+
+//     log.info('更新笔记向量成功:', { noteId })
+//   } catch (error) {
+//     log.error('更新笔记向量失败:', { noteId, error })
+//     throw error
+//   }
+// }
 export async function updateNoteEmbedding(
   noteId: string,
   content: any,
   trx?: Knex.Transaction
 ): Promise<void> {
   try {
-    const embedder = await initEmbeddings()
+    log.info('开始更新笔记向量和关键词:', { noteId })
 
+    const embedder = await initEmbeddings()
     const textContent = extractTextContent(content)
+
     if (!textContent) {
-      log.warn('笔记内容为空，跳过向量生成:', noteId)
+      log.warn('笔记内容为空，跳过处理:', noteId)
       return
     }
 
-    // 使用传入的事务对象进行关键词提取
-    const vector = await embedder(textContent)
+    // 并行处理向量生成和关键词提取
+    const [vector, keywords] = await Promise.all([
+      // 生成向量
+      embedder(textContent),
+      // 提取关键词
+      keywordExtractor.extract(content)
+    ])
+
+    log.debug('处理结果:', {
+      noteId,
+      vectorLength: vector.length,
+      keywordsCount: keywords.length,
+      keywords
+    })
 
     const embedding = Buffer.from(new Float32Array(vector).buffer)
     const now = Math.floor(Date.now() / 1000)
@@ -196,6 +347,7 @@ export async function updateNoteEmbedding(
     const query = {
       note_id: noteId,
       embedding: embedding,
+      keywords: JSON.stringify(keywords.map((k) => k.word)), // 只存储关键词文本
       created_at: now,
       updated_at: now,
       model_version: 'minilm-l6-v2'
@@ -206,15 +358,23 @@ export async function updateNoteEmbedding(
     await dbConnection('note_embeddings')
       .insert(query)
       .onConflict('note_id')
-      .merge(['embedding', 'updated_at'])
+      .merge(['embedding', 'keywords', 'updated_at'])
 
-    log.info('更新笔记向量成功:', { noteId })
+    log.info('更新笔记向量和关键词成功:', {
+      noteId,
+      keywordsCount: keywords.length,
+      keywordsList: keywords.map((k) => k.word)
+    })
   } catch (error) {
-    log.error('更新笔记向量失败:', { noteId, error })
+    log.error('更新笔记向量和关键词失败:', {
+      noteId,
+      error,
+      errorMessage: (error as Error).message,
+      stack: (error as Error).stack
+    })
     throw error
   }
 }
-
 // 计算余弦相似度的 SQL 辅助函数
 const cosineSimilarityQuery = `
   (CAST((embedding * :queryEmbedding) AS REAL)) / 
