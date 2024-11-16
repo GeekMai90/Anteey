@@ -423,36 +423,60 @@ export async function getSimilarNotesForNote(
   limit: number = 10
 ): Promise<Array<{ noteId: string; similarity: number }>> {
   try {
-    // 1. 获取源笔记的向量
-    const sourceNote = await db('note_embeddings').where('note_id', noteId).first()
+    // 1. 获取源笔记的向量和关键词
+    const sourceNote = await db('notes')
+      .join('note_embeddings', 'notes.id', 'note_embeddings.note_id')
+      .where('notes.id', noteId)
+      .select('note_embeddings.embedding', 'note_embeddings.keywords')
+      .first()
 
     if (!sourceNote) {
-      throw new Error('笔记向量不存在')
+      throw new Error('笔记不存在')
     }
 
     const sourceVector = SimilarityService.blobToFloat32Array(sourceNote.embedding)
+    const sourceKeywords = JSON.parse(sourceNote.keywords || '[]')
 
-    // 2. 获取所有其他笔记的向量
+    // 2. 获取其他笔记
     const otherNotes = await db('note_embeddings')
       .whereNot('note_id', noteId)
-      .select('note_id', 'embedding')
+      .select('note_id', 'embedding', 'keywords')
 
-    // 3. 计算相似度
+    // 3. 计算相似度并排序
     const results = otherNotes
-      .map((other) => {
-        const similarity = SimilarityService.calculateSimilarity(
+      .map((note) => {
+        const targetVector = SimilarityService.blobToFloat32Array(note.embedding)
+        const targetKeywords = JSON.parse(note.keywords || '[]')
+
+        // 使用增强版相似度计算
+        const similarity = SimilarityService.calculateEnhancedSimilarity(
           sourceVector,
-          SimilarityService.blobToFloat32Array(other.embedding)
+          targetVector,
+          {
+            sourceKeywords,
+            targetKeywords
+          }
         )
 
         return {
-          noteId: other.note_id,
+          noteId: note.note_id,
           similarity
         }
       })
-      .filter((result) => result.similarity > 0.7) // 设置相似度阈值
+      .filter((result) => result.similarity > 0.3) // 只保留相似度较高的结果
       .sort((a, b) => b.similarity - a.similarity)
       .slice(0, limit)
+
+    log.debug('相似笔记查找结果:', {
+      sourceNoteId: noteId,
+      resultsCount: results.length,
+      similarityRange: results.length
+        ? {
+            highest: results[0].similarity,
+            lowest: results[results.length - 1].similarity
+          }
+        : null
+    })
 
     return results
   } catch (error) {
