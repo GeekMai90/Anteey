@@ -10,6 +10,7 @@ import { setupEmbeddingHandlers } from './embeddingIpcHandlers'
 import { setupDictionaryHandlers } from './dictionaryIpcHandlers'
 import { setupRAGHandlers } from './ragIpcHandlers'
 import { setupLLMConfigHandlers } from './llmConfigIpcHandlers'
+import { setupLocalTreeHandlers } from './localTreeIpcHandlers'
 export function setupIpcHandlers() {
   setupNotesHandlers()
   setupWhiteboardHandlers()
@@ -23,4 +24,5 @@ export function setupIpcHandlers() {
   setupDictionaryHandlers()
   setupRAGHandlers()
   setupLLMConfigHandlers()
+  setupLocalTreeHandlers()
 }

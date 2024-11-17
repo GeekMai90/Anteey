@@ -24,6 +24,7 @@ import { WordSuggestion } from '../../../services/dictionary/dictionaryService'
 import { DictWord } from '../../../services/dictionary/dictionaryService'
 import { ChatMessage, ChatSession, RAGContext, RAGHistoryRecord } from './assistant'
 import { LLMConfig } from './llm'
+import { LocalTreeData } from './localTree'
 
 export interface ElectronAPI {
   createNote: () => Promise<Note>
@@ -379,6 +380,9 @@ export interface ElectronAPI {
     context: RAGContext
     messages: ChatMessage[]
   }>
+
+  // 获取本地树数据
+  getLocalTree: (noteId: string) => Promise<LocalTreeData>
 }
 
 declare global {

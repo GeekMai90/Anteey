@@ -108,6 +108,10 @@
           :tags="noteTags"
           @refresh="refreshNoteData"
         />
+        <!-- 本地树面板 -->
+        <LocalTreePanel v-if="currentNote" :note-id="currentNote.id" />
+        <!-- 层级树面板 -->
+        <HierarchyTreePanel v-if="currentNote" :note-id="currentNote.id" />
       </div>
     </div>
   </div>
@@ -134,6 +138,8 @@ import { debounce } from 'lodash-es'
 // import { EditorState } from '@tiptap/pm/state/dist'
 import TagsPanel from '@renderer/components/note/TagsPanel.vue'
 import { useTagStore } from '@renderer/stores/tagStore'
+import LocalTreePanel from '@renderer/components/note/LocalTreePanel.vue'
+import HierarchyTreePanel from '@renderer/components/note/HierarchyTreePanel.vue'
 // === 组件状态管理 ===
 const tiptapEditor = ref<any>(null)
 const route = useRoute()
