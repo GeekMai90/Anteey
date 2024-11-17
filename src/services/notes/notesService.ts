@@ -1612,7 +1612,7 @@ export async function getPaginatedNotesByCardbox({
   tags,
   keyword,
   sortBy = 'address',
-  sortOrder = 'desc',
+  sortOrder = 'asc',
   customFilterId
 }: GetPaginatedNotesParams): Promise<{ notes: Note[]; totalCount: number }> {
   try {

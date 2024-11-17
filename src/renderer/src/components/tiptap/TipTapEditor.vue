@@ -758,34 +758,68 @@ const cancelLink = () => {
 //     }
 //   }
 // }
+// const handleLinkClick = (event) => {
+//   const linkElement = event.target.closest('a')
+//   if (!linkElement) return
+
+//   const href = linkElement.getAttribute('href')
+//   if (!href?.startsWith('note://')) {
+//     window.open(href, '_blank')
+//     return
+//   }
+
+//   event.preventDefault()
+//   const noteId = href.replace('note://', '')
+
+//   // Command/Ctrl: 显示链接设置菜单
+//   if (event.metaKey || event.ctrlKey) {
+//     showLinkMenu(event, linkElement)
+//     return
+//   }
+
+//   // Alt: 在主编辑器打开
+//   if (event.altKey) {
+//     router.push(`/note/${noteId}`)
+//     return
+//   }
+
+//   // 无修饰键: 在右侧边栏查看
+//   noteStore.openBacklinkPreview(noteId)
+//   uiStore.openRightSidebarWithTab('backlink')
+// }
 const handleLinkClick = (event) => {
   const linkElement = event.target.closest('a')
   if (!linkElement) return
 
   const href = linkElement.getAttribute('href')
-  if (!href?.startsWith('note://')) {
-    window.open(href, '_blank')
-    return
-  }
 
-  event.preventDefault()
-  const noteId = href.replace('note://', '')
-
-  // Command/Ctrl: 显示链接设置菜单
+  // Command/Ctrl: 显示链接设置菜单（对所有类型的链接都生效）
   if (event.metaKey || event.ctrlKey) {
+    event.preventDefault()
     showLinkMenu(event, linkElement)
     return
   }
 
-  // Alt: 在主编辑器打开
-  if (event.altKey) {
-    router.push(`/note/${noteId}`)
-    return
-  }
+  // 处理笔记链接的特殊行为
+  if (href?.startsWith('note://')) {
+    event.preventDefault()
+    const noteId = href.replace('note://', '')
 
-  // 无修饰键: 在右侧边栏查看
-  noteStore.openBacklinkPreview(noteId)
-  uiStore.openRightSidebarWithTab('backlink')
+    // Alt: 在主编辑器打开
+    if (event.altKey) {
+      router.push(`/note/${noteId}`)
+      return
+    }
+
+    // 无修饰键: 在右侧边栏查看
+    noteStore.openBacklinkPreview(noteId)
+    uiStore.openRightSidebarWithTab('backlink')
+  } else {
+    // 普通链接的默认行为：在新标签页打开
+    if (!event.metaKey && !event.ctrlKey) {
+      window.open(href, '_blank')
+    }
+  }
 }
 
 const closeLinkMenus = () => {

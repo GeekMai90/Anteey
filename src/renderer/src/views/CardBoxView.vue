@@ -158,16 +158,16 @@
     </div>
     <div class="cardbox-view-container">
       <div ref="cardGridContainer" class="card-grid-container">
-        <TransitionGroup name="card-list" tag="div" class="card-grid">
+        <div name="card-list" tag="div" class="card-grid">
           <CardBoxNoteCard
             v-for="note in displayedNotes"
             :key="`${note.id}-${new Date(note.updatedAt).toISOString()}`"
-            v-memo="[note.id, note.createdAt]"
+            v-memo="[note.id, note.content, note.createdAt]"
             class="card-item"
             :note="note"
             :highlightedNoteId="highlightedNoteId"
           />
-        </TransitionGroup>
+        </div>
       </div>
       <!-- 创建/编辑卡片盒的模态框 -->
       <div v-if="showCardBoxModal" class="modal-overlay" @click="closeCardBoxModal">
@@ -331,7 +331,7 @@ const filterState = reactive({
   keyword: (route.query.keyword as string) || '',
   sort: {
     field: (route.query.sort as string) || 'address',
-    order: (route.query.order as 'asc' | 'desc') || 'desc'
+    order: (route.query.order as 'asc' | 'desc') || 'asc'
   }
 })
 

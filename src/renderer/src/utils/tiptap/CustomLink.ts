@@ -22,7 +22,10 @@ export const CustomLink = Link.extend<CustomLinkOptions>({
       linkOnPaste: true,
       noteId: '',
       validate: (url: string) => {
-        return /^(https?:\/\/|note:\/\/)/.test(url) || /^\[\[([0-9a-f-]+):(.+?)\]\]$/.test(url)
+        return (
+          /^(https?:\/\/|note:\/\/|x-devonthink-item:\/\/)/.test(url) ||
+          /^\[\[([0-9a-f-]+):(.+?)\]\]$/.test(url)
+        )
       }
     }
   },
@@ -116,6 +119,21 @@ export const CustomLink = Link.extend<CustomLinkOptions>({
   addPasteRules() {
     return [
       {
+        // 添加 DevonThink 链接的识别规则
+        find: /(x-devonthink-item:\/\/[A-F0-9-]+)/g,
+        handler: ({ state, range, match }) => {
+          const [url] = match
+          const mark = this.type.create({
+            href: url,
+            class: 'devonthink-link'
+          })
+
+          const text = state.schema.text(url)
+          const node = text.mark([mark])
+          state.tr.replaceWith(range.from, range.to, node)
+        }
+      },
+      {
         find: /\[\[([0-9a-f-]+):(.+?)\]\]/g,
         handler: ({ state, range, match }) => {
           // 解构匹配结果
@@ -188,6 +206,10 @@ export const CustomLink = Link.extend<CustomLinkOptions>({
       Alt + 点击: 在主编辑器打开
       Command/Ctrl + 点击: 链接设置
     `.trim()
+      HTMLAttributes['role'] = 'button'
+    } else if (HTMLAttributes.href?.startsWith('x-devonthink-item://')) {
+      HTMLAttributes.class = (HTMLAttributes.class || '') + ' devonthink-link'
+      HTMLAttributes['data-tooltip'] = '点击打开 DevonThink 中的项目'
       HTMLAttributes['role'] = 'button'
     }
 

@@ -13,12 +13,6 @@
         <div class="description">管理系统词库，添加或删除词条。</div>
         <div class="dictionary-item-button">进入管理</div>
       </div>
-
-      <div class="dictionary-item" @click="openDictionarySuggestions">
-        <div class="title">建议词库</div>
-        <div class="description">查看系统推荐的新词条，选择接受或拒绝。</div>
-        <div class="dictionary-item-button">查看建议</div>
-      </div>
     </div>
   </div>
 </template>
@@ -33,11 +27,6 @@ const uiStore = useUIStore()
 
 const openDictionaryManage = () => {
   router.push('/dictionary/manage')
-  uiStore.closeSettingsPage()
-}
-
-const openDictionarySuggestions = () => {
-  router.push('/dictionary/suggestions')
   uiStore.closeSettingsPage()
 }
 </script>
