@@ -1,16 +1,6 @@
 <template>
   <!-- 应用程序根容器，支持深色主题切换 -->
   <div class="app-container" :class="{ 'theme-dark': uiStore.isDarkTheme }">
-    <!-- 加载动画 -->
-    <!-- <div v-if="isInitialLoading" class="loading-overlay">
-      <Vue3Lottie
-        :animationData="loadingAnimation"
-        :height="120"
-        :width="120"
-        :loop="true"
-        :autoPlay="true"
-      />
-    </div> -->
     <!-- 主要内容布局容器 -->
     <div class="content-wrapper">
       <!-- 左侧边栏 - 常规状态 -->
@@ -19,6 +9,7 @@
         class="sidebar"
         @resize="updateLeftSidebarWidth"
       />
+
       <!-- 左侧边栏 - 悬停状态（当侧边栏折叠时显示） -->
       <Transition name="slide-left">
         <Sidebar
@@ -32,11 +23,9 @@
       <!-- 主内容区域 - 包含路由视图 -->
       <main class="main-content">
         <router-view v-slot="{ Component }">
-          <!-- 使用keep-alive缓存需要保持状态的组件 -->
           <keep-alive>
             <component :is="Component" v-if="$route.meta.keepAlive" :key="$route.fullPath" />
           </keep-alive>
-          <!-- 不需要缓存的组件直接渲染 -->
           <component :is="Component" v-if="!$route.meta.keepAlive" :key="$route.fullPath" />
         </router-view>
       </main>
@@ -51,7 +40,7 @@
       />
     </div>
 
-    <!-- 左侧悬停触发区域 - 用于显示折叠的侧边栏 -->
+    <!-- 左侧悬停触发区域 -->
     <div
       v-if="uiStore.isSidebarCollapsed"
       class="hover-zone"
@@ -59,20 +48,14 @@
       @mouseleave="scheduleHideSidebar"
     ></div>
 
-    <!-- 全局组件 -->
-    <!-- 笔记编辑器模态框 -->
+    <!-- 全局模态框组件 -->
     <NoteEditorModal />
-    <!-- 全局UI管理器 -->
     <GlobalUIManager ref="globalUIManager" />
-    <!-- 搜索模态框 -->
     <SearchModal ref="searchModal" />
-    <!-- 上下文菜单 -->
     <ContextMenu />
-    <!-- 设置页面模态框 -->
     <Modal v-model="uiStore.showSettingsPage" @outside-click="uiStore.closeSettingsPage">
       <SettingsPage />
     </Modal>
-    <!-- 分享预览模态框 -->
     <SharePreviewModal
       v-if="noteStore.showShareModal"
       :note="noteStore.shareNote"
@@ -84,67 +67,57 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, provide } from 'vue'
 import { RouterView, useRouter } from 'vue-router'
+import { useDebounceFn } from '@vueuse/core'
+import { useUIStore } from './stores/useUIStore'
+import { useNoteStore } from './stores/noteStores'
+import { useNoteMenu } from './composables/useNoteMenu'
+import { useGlobalHotkeys } from './composables/useGlobalHotkeys'
+
+// 组件导入
 import Sidebar from './components/layout/Sidebar.vue'
 import RightSidebar from './components/layout/RightSidebar.vue'
 import NoteEditorModal from './components/note/NoteEditorModal.vue'
 import GlobalUIManager from './components/ui/GlobalUIManager.vue'
 import SearchModal from './components/SearchModal.vue'
-import { useGlobalHotkeys } from './composables/useGlobalHotkeys'
 import ContextMenu from './components/common/ContexMenu.vue'
-import { useUIStore } from './stores/useUIStore'
 import Modal from './components/common/Modal.vue'
 import SettingsPage from './components/settings/SettingsPage.vue'
-// import { Vue3Lottie } from 'vue3-lottie'
-// import loadingAnimation from './assets/loading.json'
-import { useNoteStore } from './stores/noteStores'
-import { useNoteMenu } from './composables/useNoteMenu'
 import SharePreviewModal from './components/share/SharePreviewModal.vue'
-import { useDebounceFn } from '@vueuse/core'
-// import { SemanticVectorizer } from './utils/semanticVector'
 
-// 初始化store
+// 状态管理初始化
 const uiStore = useUIStore()
 const noteStore = useNoteStore()
 const router = useRouter()
-// const isInitialLoading = ref(true)
-
-// 导出功能函数
-const { handleBulkExport } = useNoteMenu({
-  noteId: '',
-  menuItems: ['star']
-})
-
-// ===== 侧边栏相关状态和方法 =====
-const isTemporaryVisible = ref(false) // 控制悬停侧边栏的显示
-let hideSidebarTimeout: number | undefined = undefined // 用于延迟隐藏侧边栏的定时器
-const sidebarWidth = ref(250) // 左侧边栏宽度
-const rightSidebarWidth = ref(400) // 右侧边栏宽度
 
 // 全局UI管理器引用
 const globalUIManager = ref<InstanceType<typeof GlobalUIManager> | null>(null)
 
-// // 计算右侧边栏样式
+// ===== 侧边栏状态管理 =====
+const isTemporaryVisible = ref(false)
+let hideSidebarTimeout: number | undefined = undefined
+const sidebarWidth = ref(250)
+const rightSidebarWidth = ref(400)
+
+// 右侧边栏样式计算
 const rightSidebarStyle = computed(() => ({
   transform: uiStore.isRightSidebarOpen ? 'translateX(0)' : 'translateX(100%)',
   width: `${rightSidebarWidth.value}px`
 }))
 
 // ===== 侧边栏控制方法 =====
-// 显示侧边栏
 const showSidebar = () => {
   if (uiStore.isSidebarCollapsed) {
     isTemporaryVisible.value = true
     clearTimeout(hideSidebarTimeout)
   }
 }
-// 隐藏侧边栏
+
 const hideSidebar = () => {
   if (uiStore.isSidebarCollapsed) {
     scheduleHideSidebar()
   }
 }
 
-// 计划延迟隐藏侧边栏
 const scheduleHideSidebar = () => {
   if (uiStore.isSidebarCollapsed) {
     hideSidebarTimeout = window.setTimeout(() => {
@@ -153,12 +126,11 @@ const scheduleHideSidebar = () => {
   }
 }
 
-// 取消隐藏侧边栏的计划
 const cancelHideSidebar = () => {
   clearTimeout(hideSidebarTimeout)
 }
 
-// ===== 侧边栏宽度调整方法 =====
+// ===== 侧边栏宽度调整 =====
 const updateLeftSidebarWidth = (width: number) => {
   sidebarWidth.value = width
 }
@@ -167,67 +139,67 @@ const updateRightSidebarWidth = (width: number) => {
   rightSidebarWidth.value = width
 }
 
-// ===== 响应式布局相关 =====
-// 检查窗口大小并决定是否折叠侧边栏
+// ===== 响应式布局处理 =====
 const checkWindowSize = () => {
   const shouldCollapse = window.innerWidth < 768
   uiStore.setIsSidebarCollapsed(shouldCollapse)
 }
-// 使用防抖处理窗口resize事件，避免频繁触发
+
 const debouncedCheckWindowSize = useDebounceFn(checkWindowSize, 200)
 
-// 初始化全局热键
-useGlobalHotkeys()
+// ===== 菜单功能 =====
+const { handleBulkExport } = useNoteMenu({
+  noteId: '',
+  menuItems: ['star']
+})
 
 // ===== 生命周期钩子 =====
 onMounted(async () => {
-  // 初始化主题
+  // 初始化主题和布局
   uiStore.initTheme()
-  // 设置响应式布局
   debouncedCheckWindowSize()
   window.addEventListener('resize', debouncedCheckWindowSize)
-  // 路由重定向
+
+  // 路由初始化
   if (router.currentRoute.value.path === '/') {
     router.push('/timeline')
   }
-  // 移除初始加载动画
+
+  // 移除加载动画
   const loadingWrapper = document.getElementById('loading-wrapper')
   if (loadingWrapper) {
     loadingWrapper.style.opacity = '0'
     loadingWrapper.style.transition = 'opacity 0.3s'
-    setTimeout(() => {
-      loadingWrapper?.remove()
-    }, 300)
+    setTimeout(() => loadingWrapper?.remove(), 300)
   }
+
   // 设置菜单事件监听
-  // 新建笔记
   window.electronAPI.onMenuNewNote(async () => {
     await noteStore.createAndOpenNewNote()
   })
-  // 导出笔记
   window.electronAPI.onMenuExportNotes(async () => {
     await handleBulkExport()
   })
 })
 
-// 组件卸载时清理
-onUnmounted(async () => {
-  // 移除事件监听
+onUnmounted(() => {
+  // 清理事件监听
   window.removeEventListener('resize', debouncedCheckWindowSize)
   window.electronAPI.removeAllListeners('menu-new-note')
   window.electronAPI.removeAllListeners('menu-export-notes')
-  // 清理笔记数据
-  // await noteStore.clearNotes()
 })
 
-// 提供全局方法给子组件使用
+// 全局方法注入
 provide('openOptionsMenu', (event: MouseEvent, noteId: string) => {
   globalUIManager.value?.openOptionsMenu(event, noteId)
 })
+
+// 初始化全局热键
+useGlobalHotkeys()
 </script>
 
 <style lang="scss">
-/* 应用容器样式 */
+/* 基础布局样式 */
 .app-container {
   display: flex;
   height: 100vh;
@@ -235,18 +207,6 @@ provide('openOptionsMenu', (event: MouseEvent, noteId: string) => {
   overflow: hidden;
 }
 
-/* 标题栏样式（用于自定义窗口标题栏） */
-.custom-titlebar {
-  position: fixed;
-  top: 2px;
-  left: 1px;
-  width: 70px;
-  height: 28px;
-  -webkit-app-region: drag; // 允许拖动窗口
-  z-index: 9999;
-}
-
-/* 布局相关样式 */
 .content-wrapper {
   display: flex;
   flex: 1;
@@ -256,21 +216,20 @@ provide('openOptionsMenu', (event: MouseEvent, noteId: string) => {
   position: relative;
 }
 
-/* 侧边栏基础样式 */
+/* 侧边栏样式 */
 .sidebar {
   flex-shrink: 0;
   width: v-bind(sidebarWidth + 'px');
   height: 100%;
   transition: all 0.3s ease;
-}
 
-/* 悬停侧边栏特殊样式 */
-.sidebar.hover-sidebar {
-  position: absolute;
-  top: 0;
-  left: 0;
-  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
-  z-index: 1001;
+  &.hover-sidebar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+    z-index: 1001;
+  }
 }
 
 /* 主内容区域样式 */
@@ -281,6 +240,7 @@ provide('openOptionsMenu', (event: MouseEvent, noteId: string) => {
   transition: margin-left 0.3s ease;
 }
 
+/* 悬停触发区样式 */
 .hover-zone {
   position: absolute;
   top: 0;
@@ -290,34 +250,12 @@ provide('openOptionsMenu', (event: MouseEvent, noteId: string) => {
   z-index: 1002;
 }
 
-/* 过渡动画样式 */
-.slide-fade-enter-active,
-.slide-fade-leave-active {
-  transition: all 0.3s ease;
-}
-
-.slide-fade-enter-from,
-.slide-fade-leave-to {
-  opacity: 0;
-  transform: translateX(-100%);
-}
-
+/* 右侧边栏样式 */
 .right-sidebar {
   flex-shrink: 0;
 }
 
-/* 响应式布局 */
-@media (max-width: 768px) {
-  .sidebar {
-    position: fixed;
-    top: 0;
-    bottom: 0;
-    left: 0;
-    z-index: 9999;
-  }
-}
-
-/* 过渡动画样式 */
+/* 过渡动画 */
 .slide-left-enter-active,
 .slide-left-leave-active {
   transition:
@@ -331,16 +269,14 @@ provide('openOptionsMenu', (event: MouseEvent, noteId: string) => {
   opacity: 0;
 }
 
-.loading-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(255, 255, 255, 0.8);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 9999;
+/* 响应式布局 */
+@media (max-width: 768px) {
+  .sidebar {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 9999;
+  }
 }
 </style>

@@ -1,0 +1,24 @@
+# 项目简介
+Antinet 是一个践行卢曼卡片笔记法理念的桌面笔记应用。
+
+# 技术栈
+- 前端：Vue3、TypeScript、Pinia、Vue Router
+- 桌面端：Electron
+- 数据库：BetterSQLite3
+
+# 项目结构
+- src/db/：数据库
+- src/main/：主进程
+- src/preload/：预加载脚本
+- src/renderer/：渲染进程
+- src/services/：服务
+
+# 编码规范
+- 组件编写规范
+  - 组件使用Setup API 编写
+  - 组件拆分粒度为中等，根据组件的复杂度进行拆分
+  - 组件使用 TypeScript 编写
+- 状态管理规范
+  - 使用 Pinia 作为状态管理库
+  - 使用组合式函数管理状态
+  - 使用 TypeScript 编写

@@ -200,7 +200,6 @@ const selectSortOption = (option: { value: string; label: string }) => {
   showSortMenu.value = false
 }
 </script>
-
 <style lang="scss" scoped>
 .whiteboard-view {
   height: 100vh;
