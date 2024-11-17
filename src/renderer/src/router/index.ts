@@ -30,12 +30,6 @@ const routes = [
     meta: { keepAlive: true }
   },
   {
-    name: 'dictionarySuggestions',
-    path: '/dictionary/suggestions',
-    component: () => import('../views/DictionarySuggestionsView.vue'),
-    meta: { keepAlive: true }
-  },
-  {
     name: 'cardbox',
     path: '/cardbox',
     component: () => import('../views/CardBoxView.vue'),
@@ -85,11 +79,6 @@ const routes = [
     component: () => import('../views/WhiteboardView.vue'),
     meta: { keepAlive: false }
   },
-  // {
-  //   name: 'whiteboardDetail',
-  //   path: '/whiteboarddetail/:whiteboardId',
-  //   component: () => import('../components/WhiteboardDetail.vue')
-  // },
   {
     name: 'whiteboardDetail',
     path: '/whiteboard/:whiteboardId', // 修改路径，保持一致性
@@ -109,24 +98,6 @@ const routes = [
     name: 'TrashView',
     path: '/trash',
     component: () => import('../views/TrashView.vue')
-  },
-  {
-    name: 'MainCard',
-    path: '/maincard',
-    component: () => import('../views/MainCard.vue'),
-    meta: { keepAlive: true }
-  },
-  {
-    name: 'BibCard',
-    path: '/bibcard',
-    component: () => import('../views/BibCard.vue'),
-    meta: { keepAlive: true }
-  },
-  {
-    name: 'IndexCard',
-    path: '/indexcard',
-    component: () => import('../views/IndexCard.vue'),
-    meta: { keepAlive: true }
   },
   // 添加临时路由用于清除缓存
   {

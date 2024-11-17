@@ -760,17 +760,18 @@ export async function updateNoteContent(id: string, content: object): Promise<No
       )
     } catch (error) {
       retries++
+      const isLockError = (error as Error).message.includes('database is locked')
 
-      if ((error as Error).message.includes('database is locked')) {
-        console.warn(`后端→ 数据库锁定，正在重试 (${retries}/${MAX_RETRIES})`)
-        if (retries < MAX_RETRIES) {
-          await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY * retries))
-          continue
-        }
+      if (isLockError && retries < MAX_RETRIES) {
+        // 使用指数退避策略替代线性增长
+        const delay = RETRY_DELAY * Math.pow(2, retries - 1)
+        console.warn(`后端→ 数据库锁定，正在重试 (${retries}/${MAX_RETRIES})，延迟: ${delay}ms`)
+        await new Promise((resolve) => setTimeout(resolve, delay))
+        continue
       }
 
       console.error('后端→ 更新笔记内容失败:', error)
-      throw error
+      throw new Error(`更新笔记内容失败: ${isLockError ? '数据库锁定' : (error as Error).message}`)
     }
   }
 
