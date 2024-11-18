@@ -1,6 +1,6 @@
 <template>
   <div class="local-tree-panel">
-    <div class="panel-header">
+    <div v-if="!hideHeader" class="panel-header">
       <div class="title" @click="togglePanel">
         <div class="icon" :class="{ collapsed: isCollapsed }">
           <BranchTwo
@@ -9,7 +9,7 @@
             :fill="isCollapsed ? 'var(--color-icon-secondary)' : 'var(--color-primary)'"
           />
         </div>
-        <div class="name">本地树</div>
+        <div class="name">局部图谱</div>
       </div>
     </div>
 
@@ -48,11 +48,13 @@ interface LinkDatum {
 
 const props = defineProps<{
   noteId: string
+  hideHeader?: boolean
+  isCollapsed?: boolean
 }>()
 
 const router = useRouter()
 const localTreeStore = useLocalTreeStore()
-const isCollapsed = ref(true)
+const isCollapsed = ref(props.isCollapsed ?? true)
 const svgRef = ref<SVGElement>()
 
 const togglePanel = () => {
@@ -141,50 +143,52 @@ const renderGraph = () => {
         .forceLink<TreeNode, LinkDatum>()
         .id((d) => d.id)
         .distance((d) => {
-          if (d.type === 'reference') return 150 // 引用关系的连线长度
-          if ((d.target as TreeNode).type === 'parent') return 120
-          if ((d.target as TreeNode).type === 'sibling') return 150
-          if ((d.target as TreeNode).type === 'child') return 150
-          return 100
+          if (d.type === 'reference') return 120
+          if ((d.target as TreeNode).type === 'parent') return 100
+          if ((d.target as TreeNode).type === 'sibling') return 120
+          if ((d.target as TreeNode).type === 'child') return 120
+          return 80
         })
     )
     .force(
       'charge',
       d3.forceManyBody().strength((d) => {
-        if ((d as TreeNode).type === 'parent') return -800
-        if ((d as TreeNode).type === 'sibling') return -400
-        if ((d as TreeNode).type === 'child') return -400
-        if ((d as TreeNode).type === 'incoming') return -300
-        if ((d as TreeNode).type === 'outgoing') return -300
-        return -600
+        if ((d as TreeNode).type === 'parent') return -600
+        if ((d as TreeNode).type === 'sibling') return -300
+        if ((d as TreeNode).type === 'child') return -300
+        if ((d as TreeNode).type === 'incoming') return -200
+        if ((d as TreeNode).type === 'outgoing') return -200
+        return -400
       })
     )
-    .force('collision', d3.forceCollide().radius(50))
+    .force('collision', d3.forceCollide().radius(40))
     .force(
       'x',
       d3
         .forceX()
         .x((d) => {
-          if ((d as TreeNode).type === 'parent') return width / 2
-          if ((d as TreeNode).type === 'sibling') return padding + 150
-          if ((d as TreeNode).type === 'child') return width - padding - 150
-          if ((d as TreeNode).type === 'incoming') return padding + 100
-          if ((d as TreeNode).type === 'outgoing') return width - padding - 100
-          return width / 2
+          const centerX = width / 2
+          if ((d as TreeNode).type === 'parent') return centerX
+          if ((d as TreeNode).type === 'sibling') return centerX - 150
+          if ((d as TreeNode).type === 'child') return centerX + 150
+          if ((d as TreeNode).type === 'incoming') return centerX - 180
+          if ((d as TreeNode).type === 'outgoing') return centerX + 180
+          return centerX
         })
-        .strength(0.2)
+        .strength(0.3)
     )
     .force(
       'y',
       d3
         .forceY()
         .y((d) => {
-          if ((d as TreeNode).type === 'parent') return padding + 30
+          const centerY = height / 2
+          if ((d as TreeNode).type === 'parent') return padding + 50
           if ((d as TreeNode).type === 'incoming' || (d as TreeNode).type === 'outgoing')
-            return padding + 50
-          return height / 2
+            return padding + 60
+          return centerY
         })
-        .strength(0.3)
+        .strength(0.4)
     )
 
   // 创建连线数据
@@ -354,6 +358,15 @@ watch(
     }
   },
   { immediate: true }
+)
+
+watch(
+  () => props.isCollapsed,
+  (newValue) => {
+    if (newValue !== undefined) {
+      isCollapsed.value = newValue
+    }
+  }
 )
 
 onMounted(() => {

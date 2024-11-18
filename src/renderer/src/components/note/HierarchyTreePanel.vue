@@ -1,6 +1,6 @@
 <template>
   <div class="hierarchy-tree-panel">
-    <div class="panel-header">
+    <div v-if="!hideHeader" class="panel-header">
       <div class="title" @click="togglePanel">
         <div class="icon" :class="{ collapsed: isCollapsed }">
           <BranchTwo
@@ -37,18 +37,20 @@ import NoteListDialog from './NoteListDialog.vue'
 
 const props = defineProps<{
   noteId: string
+  hideHeader?: boolean
+  isCollapsed?: boolean
 }>()
 
 const router = useRouter()
 const localTreeStore = useLocalTreeStore()
-const isCollapsed = ref(true)
+const isCollapsed = ref(props.isCollapsed ?? true)
 const svgRef = ref<SVGElement>()
 const showNoteList = ref(false)
 const allChildren = ref<Note[]>([])
 
 const width = 800
 const height = 500
-const nodeWidth = 80
+const nodeWidth = 120
 const nodeHeight = 50
 const cornerRadius = 6
 const horizontalGap = 200
@@ -65,24 +67,28 @@ const COLUMN_GAP = 200
 // 修改颜色常量
 const colors = {
   current: {
-    bg: 'var(--color-primary)', // 使用主题色 #00c8a8
+    bg: 'var(--color-primary)',
     text: '#FFFFFF',
-    stroke: '#00b398' // 稍深的青绿色作为描边
+    stroke: 'var(--color-primary-dark)',
+    opacity: 1
   },
   parent: {
-    bg: 'var(--color-blue)', // 使用主题蓝色 #4361ee
-    text: '#FFFFFF',
-    stroke: '#3b56d4' // 稍深的蓝色作为描边
+    bg: 'var(--color-bg-primary)',
+    text: 'var(--color-blue)',
+    stroke: 'var(--color-blue)',
+    opacity: 0.8
   },
   sibling: {
-    bg: 'var(--color-yellow)', // 使用主题黄色 #ff9f1c
-    text: '#FFFFFF',
-    stroke: '#e58f19' // 稍深的黄色作为描边
+    bg: 'var(--color-bg-primary)',
+    text: 'var(--color-yellow)',
+    stroke: 'var(--color-yellow)',
+    opacity: 0.8
   },
   child: {
-    bg: 'var(--color-pink)', // 使用主题粉色 #f72585
-    text: '#FFFFFF',
-    stroke: '#de2177' // 稍深的粉色作为描边
+    bg: 'var(--color-bg-primary)',
+    text: 'var(--color-primary)',
+    stroke: 'var(--color-primary)',
+    opacity: 0.8
   }
 }
 
@@ -132,9 +138,65 @@ const renderHierarchyTree = () => {
   if (!svgRef.value || !localTreeStore.treeData) return
 
   const svg = d3.select(svgRef.value)
-
-  // 清空现有内容
   svg.selectAll('*').remove()
+
+  // 添加图例组
+  const legend = svg.append('g').attr('class', 'legend').attr('transform', 'translate(20, 20)') // 位于左上角，留出边距
+
+  const legendData = [
+    { type: 'current', label: '当前笔记', color: colors.current },
+    { type: 'parent', label: '父级笔记', color: colors.parent },
+    { type: 'sibling', label: '同级笔记', color: colors.sibling },
+    { type: 'child', label: '子级笔记', color: colors.child }
+  ]
+
+  // 为每个图例项创建一个组
+  const legendItems = legend
+    .selectAll('.legend-item')
+    .data(legendData)
+    .enter()
+    .append('g')
+    .attr('class', 'legend-item')
+    .attr('transform', (d, i) => `translate(0, ${i * 20})`) // 减小垂直间距从 25 改为 20
+
+  // 添加图例符号（小矩形）
+  legendItems
+    .append('rect')
+    .attr('width', 12) // 从 16 减小到 12
+    .attr('height', 12) // 从 16 减小到 12
+    .attr('rx', 2) // 从 3 减小到 2
+    .attr('ry', 2) // 从 3 减小到 2
+    .attr('fill', (d) => (d.type === 'current' ? d.color.bg : 'var(--color-bg-primary)'))
+    .attr('stroke', (d) => d.color.stroke)
+    .attr('stroke-width', 1)
+    .attr('stroke-opacity', 0.3)
+
+  // 添加图例文本
+  legendItems
+    .append('text')
+    .attr('x', 20) // 从 24 减小到 20
+    .attr('y', 9) // 从 12 调整到 9
+    .attr('fill', 'var(--color-text-secondary)')
+    .attr('font-size', '11px') // 从 12px 减小到 11px
+    .text((d) => d.label)
+
+  // 为图例添加半透明背景
+  const legendBBox = legend.node()?.getBBox()
+  if (legendBBox) {
+    legend
+      .insert('rect', ':first-child')
+      .attr('x', -6) // 从 -8 改为 -6
+      .attr('y', -6) // 从 -8 改为 -6
+      .attr('width', legendBBox.width + 12) // 从 16 改为 12
+      .attr('height', legendBBox.height + 12) // 从 16 改为 12
+      .attr('rx', 4) // 从 6 改为 4
+      .attr('ry', 4) // 从 6 改为 4
+      .attr('fill', 'var(--color-bg-primary)')
+      .attr('fill-opacity', 0.8)
+      .attr('stroke', 'var(--color-border)')
+      .attr('stroke-width', 1)
+      .attr('stroke-opacity', 0.1)
+  }
 
   // 创建主容器组，并设置居中偏移
   const g = svg
@@ -171,12 +233,15 @@ const renderHierarchyTree = () => {
     .attr('fill', colors.current.bg)
     .attr('stroke', colors.current.stroke)
     .attr('stroke-width', 2)
+    .attr('filter', 'drop-shadow(0 2px 2px rgba(0,0,0,0.1))')
 
   currentNode
     .append('text')
     .attr('text-anchor', 'middle')
     .attr('dy', '0.3em')
     .attr('fill', colors.current.text)
+    .attr('fill-opacity', colors.current.opacity)
+    .attr('font-weight', '500')
     .text(currentNote.address)
 
   // 绘制父节点（在左侧）
@@ -188,8 +253,10 @@ const renderHierarchyTree = () => {
       .attr('y1', 0)
       .attr('x2', -nodeWidth / 2)
       .attr('y2', 0)
-      .attr('stroke', 'var(--color-border)')
-      .attr('stroke-width', 2)
+      .attr('stroke', 'var(--color-blue)')
+      .attr('stroke-width', 1.5)
+      .attr('stroke-opacity', 0.4)
+      .attr('stroke-dasharray', '3,3')
 
     // 画节点
     const parentNode = nodesGroup
@@ -212,19 +279,22 @@ const renderHierarchyTree = () => {
       .attr('ry', cornerRadius)
       .attr('fill', colors.parent.bg)
       .attr('stroke', colors.parent.stroke)
-      .attr('stroke-width', 2)
+      .attr('stroke-width', 1)
+      .attr('stroke-opacity', 0.3)
 
     parentNode
       .append('text')
       .attr('text-anchor', 'middle')
       .attr('dy', '0.3em')
       .attr('fill', colors.parent.text)
+      .attr('fill-opacity', colors.parent.opacity)
+      .attr('font-weight', '500')
       .text(treeData.parent.address)
   }
 
   // 修改兄弟节点的渲染部分
   if (treeData.siblings.length > 0) {
-    // 对兄弟节点进行排序，创建新数组避免修改原数组
+    // 对兄弟节点进行排序，创建新数组避免修改原组
     const sortedSiblings = [...treeData.siblings].sort(compareAddresses)
     console.log('排序后的兄弟节点:', sortedSiblings)
 
@@ -253,7 +323,7 @@ const renderHierarchyTree = () => {
       const siblingNum = parseInt(match[1])
       const siblingAlpha = match[2] || ''
 
-      // 判断是否为前一个节点
+      // 判断是否为一个节点
       if (siblingNum < currentNum || (siblingNum === currentNum && !siblingAlpha && currentAlpha)) {
         prevSibling = sibling
       }
@@ -279,8 +349,10 @@ const renderHierarchyTree = () => {
         .attr('y1', nodeHeight / 2)
         .attr('x2', 0)
         .attr('y2', -verticalGap + nodeHeight / 2)
-        .attr('stroke', 'var(--color-border)')
-        .attr('stroke-width', 2)
+        .attr('stroke', 'var(--color-yellow)')
+        .attr('stroke-width', 1.5)
+        .attr('stroke-opacity', 0.25)
+        .attr('stroke-dasharray', '3,3')
 
       // 画节点
       const prevNode = nodesGroup
@@ -299,13 +371,16 @@ const renderHierarchyTree = () => {
         .attr('ry', cornerRadius)
         .attr('fill', colors.sibling.bg)
         .attr('stroke', colors.sibling.stroke)
-        .attr('stroke-width', 2)
+        .attr('stroke-width', 1)
+        .attr('stroke-opacity', 0.3)
 
       prevNode
         .append('text')
         .attr('text-anchor', 'middle')
         .attr('dy', '0.3em')
         .attr('fill', colors.sibling.text)
+        .attr('fill-opacity', colors.sibling.opacity)
+        .attr('font-weight', '500')
         .text(prevSibling.address)
     }
 
@@ -318,8 +393,10 @@ const renderHierarchyTree = () => {
         .attr('y1', nodeHeight / 2)
         .attr('x2', 0)
         .attr('y2', verticalGap - nodeHeight / 2)
-        .attr('stroke', 'var(--color-border)')
-        .attr('stroke-width', 2)
+        .attr('stroke', 'var(--color-yellow)')
+        .attr('stroke-width', 1.5)
+        .attr('stroke-opacity', 0.25)
+        .attr('stroke-dasharray', '3,3')
 
       // 画节点
       const nextNode = nodesGroup
@@ -338,13 +415,16 @@ const renderHierarchyTree = () => {
         .attr('ry', cornerRadius)
         .attr('fill', colors.sibling.bg)
         .attr('stroke', colors.sibling.stroke)
-        .attr('stroke-width', 2)
+        .attr('stroke-width', 1)
+        .attr('stroke-opacity', 0.3)
 
       nextNode
         .append('text')
         .attr('text-anchor', 'middle')
         .attr('dy', '0.3em')
         .attr('fill', colors.sibling.text)
+        .attr('fill-opacity', colors.sibling.opacity)
+        .attr('font-weight', '500')
         .text(nextSibling.address)
     }
   }
@@ -379,8 +459,8 @@ const renderHierarchyTree = () => {
         .attr('y2', childY)
         .attr('stroke', 'var(--color-primary)')
         .attr('stroke-width', 1.5)
-        .attr('stroke-opacity', 0.2)
-        .attr('stroke-dasharray', '4,4')
+        .attr('stroke-opacity', 0.3)
+        .attr('stroke-dasharray', '3,3')
 
       // 画节点
       const childNode = nodesGroup
@@ -403,13 +483,16 @@ const renderHierarchyTree = () => {
         .attr('ry', cornerRadius)
         .attr('fill', colors.child.bg)
         .attr('stroke', colors.child.stroke)
-        .attr('stroke-width', 2)
+        .attr('stroke-width', 1)
+        .attr('stroke-opacity', 0.3)
 
       childNode
         .append('text')
         .attr('text-anchor', 'middle')
         .attr('dy', '0.3em')
         .attr('fill', colors.child.text)
+        .attr('fill-opacity', colors.child.opacity)
+        .attr('font-weight', '500')
         .text(child.address)
     })
 
@@ -493,6 +576,15 @@ watch(
   { immediate: true }
 )
 
+watch(
+  () => props.isCollapsed,
+  (newValue) => {
+    if (newValue !== undefined) {
+      isCollapsed.value = newValue
+    }
+  }
+)
+
 onMounted(() => {
   renderHierarchyTree()
 })
@@ -522,7 +614,7 @@ document.head.appendChild(style)
 const svgWidth = computed(() => {
   if (!localTreeStore.treeData) return width
   const totalColumns = Math.ceil(currentVisibleCount.value / MAX_VISIBLE_CHILDREN)
-  return horizontalGap * 2 + COLUMN_GAP * (totalColumns - 1) + 150
+  return Math.max(horizontalGap * 2 + COLUMN_GAP * (totalColumns - 1) + 150, width)
 })
 </script>
 
@@ -571,7 +663,7 @@ const svgWidth = computed(() => {
   }
 
   .tree-container {
-    padding: 32px;
+    padding: 32px 0;
     background: var(--color-bg-secondary);
     border-radius: 8px;
     margin-bottom: 16px;
