@@ -149,3 +149,49 @@ export async function findNoteByAddress(address: string) {
     throw error
   }
 }
+
+// src/services/localTree/localTreeService.ts 中添加
+export async function getLocalTreeWithReferences(noteId: string) {
+  try {
+    // 1. 获取基础的本地树数据
+    const treeData = await getLocalTreeNotes(noteId)
+
+    // 2. 获取当前笔记
+    const currentNote = await findNoteById(noteId)
+    if (!currentNote) {
+      throw new Error('笔记不存在')
+    }
+
+    // 3. 获取引用关系
+    // 获取引用了当前笔记的笔记(incoming)
+    const incomingRefs = await db('note_references')
+      .where('targetNoteId', noteId)
+      .where('type', 'reference')
+
+    // 获取被当前笔记引用的笔记(outgoing)
+    const outgoingRefs = await db('note_references')
+      .where('sourceNoteId', noteId)
+      .where('type', 'reference')
+
+    // 4. 获取相关笔记的完整信息
+    const incomingNotes = await Promise.all(
+      incomingRefs.map((ref) => findNoteById(ref.sourceNoteId))
+    )
+
+    const outgoingNotes = await Promise.all(
+      outgoingRefs.map((ref) => findNoteById(ref.targetNoteId))
+    )
+
+    // 5. 组合数据
+    return {
+      ...treeData,
+      references: {
+        incoming: incomingNotes.filter((note): note is Note => note !== null),
+        outgoing: outgoingNotes.filter((note): note is Note => note !== null)
+      }
+    }
+  } catch (error) {
+    console.error('获取本地树与引用数据失败:', error)
+    throw error
+  }
+}

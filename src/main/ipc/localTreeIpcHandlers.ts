@@ -1,5 +1,9 @@
 import { ipcMain } from 'electron'
-import { getLocalTreeNotes, findNoteByAddress } from '../../services/localTree/localTreeService'
+import {
+  getLocalTreeNotes,
+  findNoteByAddress,
+  getLocalTreeWithReferences
+} from '../../services/localTree/localTreeService'
 
 export function setupLocalTreeHandlers() {
   // 获取本地树相关笔记
@@ -11,6 +15,19 @@ export function setupLocalTreeHandlers() {
       return { success: true, data: treeData }
     } catch (error) {
       console.error('主进程→ 获取本地树失败:', error)
+      return { success: false, error: String(error) }
+    }
+  })
+
+  // 添加新的处理器
+  ipcMain.handle('get-local-tree-with-references', async (_event, noteId: string) => {
+    try {
+      console.log('主进程→ 收到获取本地树与引用数据请求:', noteId)
+      const treeData = await getLocalTreeWithReferences(noteId)
+      console.log('主进程→ 获取本地树与引用数据成功')
+      return { success: true, data: treeData }
+    } catch (error) {
+      console.error('主进程→ 获取本地树与引用数据失败:', error)
       return { success: false, error: String(error) }
     }
   })

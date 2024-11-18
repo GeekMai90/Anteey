@@ -24,7 +24,7 @@ import { WordSuggestion } from '../../../services/dictionary/dictionaryService'
 import { DictWord } from '../../../services/dictionary/dictionaryService'
 import { ChatMessage, ChatSession, RAGContext, RAGHistoryRecord } from './assistant'
 import { LLMConfig } from './llm'
-import { LocalTreeData } from './localTree'
+import { LocalTreeData, LocalTreeWithReferencesData } from './localTree'
 
 export interface ElectronAPI {
   createNote: () => Promise<Note>
@@ -242,7 +242,7 @@ export interface ElectronAPI {
     }[]
   >
 
-  // 词典相关的方法
+  // 词��相关的方法
   getPendingSuggestions: () => Promise<WordSuggestion[]>
   processSuggestion: (word: string, status: 'accepted' | 'rejected') => Promise<void>
   processSuggestionBatch: (words: string[], status: 'accepted' | 'rejected') => Promise<void>
@@ -386,6 +386,9 @@ export interface ElectronAPI {
 
   // 添加根据地址获取笔记的方法定义
   getNoteByAddress: (address: string) => Promise<Note | null>
+
+  // 获取本地树数据与引用数据
+  getLocalTreeWithReferences: (noteId: string) => Promise<LocalTreeWithReferencesData>
 }
 
 declare global {

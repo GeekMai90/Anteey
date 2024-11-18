@@ -1,11 +1,11 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import type { LocalTreeData } from '@renderer/types/localTree'
+import type { LocalTreeData, LocalTreeWithReferencesData } from '@renderer/types/localTree'
 
 export const useLocalTreeStore = defineStore('localTree', () => {
   const treeData = ref<LocalTreeData | null>(null)
+  const treeDataWithRefs = ref<LocalTreeWithReferencesData | null>(null)
 
-  // 添加地址解析和验证函数
   const isValidAddress = (address: string): boolean => {
     const valid = /^\d+(-\d+[a-z]?)*(-\d+)?$/.test(address)
     console.log(`验证地址 ${address}: ${valid}`)
@@ -33,13 +33,11 @@ export const useLocalTreeStore = defineStore('localTree', () => {
       const data = await window.electronAPI.getLocalTree(noteId)
 
       if (data) {
-        // 验证当前节点数据
         if (!data.current?.id || !data.current?.address) {
           console.error('当前节点数据无效:', data.current)
           return
         }
 
-        // 确保所有数组属性都存在
         data.siblings = data.siblings || []
         data.children = data.children || []
 
@@ -53,16 +51,13 @@ export const useLocalTreeStore = defineStore('localTree', () => {
         const currentAddress = data.current.address
         console.log('当前节点地址:', currentAddress)
 
-        // 1. 处理父节点
         const parentAddress = getParentAddress(currentAddress)
         console.log('计算得到的父节点地址:', parentAddress)
 
         if (parentAddress) {
-          // 先检查后端返回的父节点
           if (data.parent?.id && data.parent?.address === parentAddress) {
             console.log('使用后端返回的父节点:', data.parent)
           } else {
-            // 如果在现有数据中找不到父节点，尝试从后端获取
             try {
               const result = await window.electronAPI.getNoteByAddress(parentAddress)
               if (result?.id) {
@@ -81,11 +76,9 @@ export const useLocalTreeStore = defineStore('localTree', () => {
           data.parent = null
         }
 
-        // 2. 处理兄弟节点 - 过滤掉无效的节点
         data.siblings = data.siblings.filter((note) => note?.id && note?.address)
         console.log('处理后的兄弟节点:', data.siblings)
 
-        // 3. 处理子节点
         console.log('开始处理子节点')
         const validChildren = data.children.filter((note) => {
           if (!note?.id || !note?.address) return false
@@ -112,9 +105,41 @@ export const useLocalTreeStore = defineStore('localTree', () => {
     }
   }
 
+  const fetchLocalTreeWithRefs = async (noteId: string) => {
+    try {
+      console.group('开始获取树形数据与引用')
+      const data = await window.electronAPI.getLocalTreeWithReferences(noteId)
+
+      if (data) {
+        if (!data.current?.id || !data.current?.address) {
+          console.error('当前节点数据无效:', data.current)
+          return
+        }
+
+        data.siblings = data.siblings || []
+        data.children = data.children || []
+        data.references = data.references || { incoming: [], outgoing: [] }
+
+        console.log('获取到的完整数据:', data)
+        treeDataWithRefs.value = data
+      } else {
+        console.error('获取到的数据无效:', data)
+        treeDataWithRefs.value = null
+      }
+
+      console.groupEnd()
+    } catch (error) {
+      console.error('获取树形数据与引用失败:', error)
+      treeDataWithRefs.value = null
+      console.groupEnd()
+    }
+  }
+
   return {
     treeData,
     fetchLocalTree,
-    isValidAddress // 保留这个方法因为其他组件可能在使用
+    isValidAddress,
+    treeDataWithRefs,
+    fetchLocalTreeWithRefs
   }
 })

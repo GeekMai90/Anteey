@@ -33,7 +33,7 @@ interface TreeNode extends SimulationNodeDatum {
   id: string
   address: string
   children?: TreeNode[]
-  type?: 'parent' | 'sibling' | 'child'
+  type?: 'parent' | 'sibling' | 'child' | 'incoming' | 'outgoing'
   x?: number
   y?: number
   fx?: number | null
@@ -43,6 +43,7 @@ interface TreeNode extends SimulationNodeDatum {
 interface LinkDatum {
   source: TreeNode
   target: TreeNode
+  type: 'address' | 'reference'
 }
 
 const props = defineProps<{
@@ -59,7 +60,7 @@ const togglePanel = () => {
 }
 
 const renderGraph = () => {
-  if (!svgRef.value || !localTreeStore.treeData) return
+  if (!svgRef.value || !localTreeStore.treeDataWithRefs) return
 
   const svg = d3.select(svgRef.value)
   const width = svgRef.value.clientWidth || 800
@@ -69,7 +70,7 @@ const renderGraph = () => {
   // 清空现有内容
   svg.selectAll('*').remove()
 
-  const treeData = localTreeStore.treeData // 创建引用避免重复检查
+  const treeData = localTreeStore.treeDataWithRefs
 
   // 准备数据，并为不同类型的节点设置初始位置
   const data: TreeNode = {
@@ -110,6 +111,27 @@ const renderGraph = () => {
     } as TreeNode)
   })
 
+  // 添加引用节点
+  // 引用我的节点在左上
+  treeData.references.incoming.forEach((note, index) => {
+    data.children?.push({
+      ...note,
+      x: padding + 50,
+      y: padding + 30 + index * 40,
+      type: 'incoming'
+    } as TreeNode)
+  })
+
+  // 我引用的节点在右上
+  treeData.references.outgoing.forEach((note, index) => {
+    data.children?.push({
+      ...note,
+      x: width - padding - 50,
+      y: padding + 30 + index * 40,
+      type: 'outgoing'
+    } as TreeNode)
+  })
+
   // 创建力导向图布局
   const simulation = d3
     .forceSimulation<TreeNode>()
@@ -119,6 +141,7 @@ const renderGraph = () => {
         .forceLink<TreeNode, LinkDatum>()
         .id((d) => d.id)
         .distance((d) => {
+          if (d.type === 'reference') return 150 // 引用关系的连线长度
           if ((d.target as TreeNode).type === 'parent') return 120
           if ((d.target as TreeNode).type === 'sibling') return 150
           if ((d.target as TreeNode).type === 'child') return 150
@@ -131,6 +154,8 @@ const renderGraph = () => {
         if ((d as TreeNode).type === 'parent') return -800
         if ((d as TreeNode).type === 'sibling') return -400
         if ((d as TreeNode).type === 'child') return -400
+        if ((d as TreeNode).type === 'incoming') return -300
+        if ((d as TreeNode).type === 'outgoing') return -300
         return -600
       })
     )
@@ -143,6 +168,8 @@ const renderGraph = () => {
           if ((d as TreeNode).type === 'parent') return width / 2
           if ((d as TreeNode).type === 'sibling') return padding + 150
           if ((d as TreeNode).type === 'child') return width - padding - 150
+          if ((d as TreeNode).type === 'incoming') return padding + 100
+          if ((d as TreeNode).type === 'outgoing') return width - padding - 100
           return width / 2
         })
         .strength(0.2)
@@ -153,19 +180,43 @@ const renderGraph = () => {
         .forceY()
         .y((d) => {
           if ((d as TreeNode).type === 'parent') return padding + 30
-          if ((d as TreeNode).type === 'sibling' || (d as TreeNode).type === 'child')
-            return height / 2
+          if ((d as TreeNode).type === 'incoming' || (d as TreeNode).type === 'outgoing')
+            return padding + 50
           return height / 2
         })
         .strength(0.3)
     )
 
   // 创建连线数据
-  const links =
-    data.children?.map((child) => ({
-      source: data,
-      target: child
-    })) || []
+  const links: LinkDatum[] = []
+
+  // 添加地址关系的连线
+  data.children?.forEach((child) => {
+    if (['parent', 'sibling', 'child'].includes(child.type || '')) {
+      links.push({
+        source: data,
+        target: child,
+        type: 'address'
+      })
+    }
+  })
+
+  // 添加引用关系的连线
+  data.children?.forEach((child) => {
+    if (child.type === 'incoming') {
+      links.push({
+        source: child,
+        target: data,
+        type: 'reference'
+      })
+    } else if (child.type === 'outgoing') {
+      links.push({
+        source: data,
+        target: child,
+        type: 'reference'
+      })
+    }
+  })
 
   // 添加连线
   const link = svg
@@ -173,8 +224,11 @@ const renderGraph = () => {
     .selectAll('line')
     .data(links)
     .join('line')
-    .attr('stroke', 'var(--color-border)')
+    .attr('stroke', (d) =>
+      d.type === 'reference' ? 'var(--color-primary)' : 'var(--color-border)'
+    )
     .attr('stroke-width', 1)
+    .attr('stroke-dasharray', (d) => (d.type === 'reference' ? '5,5' : '0'))
 
   // 添加节点
   const nodes = svg
@@ -190,12 +244,7 @@ const renderGraph = () => {
         .on('end', dragended)
     )
     .on('dblclick', (event, d) => {
-      const note =
-        treeData.current.id === d.id
-          ? treeData.current
-          : treeData.children.find((n) => n.id === d.id) ||
-            treeData.siblings.find((n) => n.id === d.id) ||
-            treeData.parent
+      const note = treeData.current.id === d.id ? treeData.current : findNoteInData(d.id, treeData)
       if (note) handleNodeClick(note)
     })
 
@@ -204,19 +253,21 @@ const renderGraph = () => {
     .append('circle')
     .attr('r', 10)
     .attr('fill', (d) => {
-      if (d.id === data.id) {
-        return 'var(--color-primary)'
+      if (d.id === data.id) return 'var(--color-primary)'
+      switch (d.type) {
+        case 'parent':
+          return '#ff9800'
+        case 'sibling':
+          return '#9c27b0'
+        case 'child':
+          return '#2196f3'
+        case 'incoming':
+          return '#4caf50'
+        case 'outgoing':
+          return '#f44336'
+        default:
+          return 'var(--color-bg-secondary)'
       }
-      if (d.type === 'parent') {
-        return '#ff9800'
-      }
-      if (d.type === 'sibling') {
-        return '#9c27b0'
-      }
-      if (d.type === 'child') {
-        return '#2196f3'
-      }
-      return 'var(--color-bg-secondary)'
     })
     .attr('stroke', 'var(--color-border)')
     .attr('stroke-width', 1)
@@ -269,6 +320,20 @@ const renderGraph = () => {
   }
 }
 
+// 辅助函数：在树数据中查找笔记
+const findNoteInData = (id: string, treeData: any): Note | null => {
+  if (treeData.parent?.id === id) return treeData.parent
+  const sibling = treeData.siblings.find((n: Note) => n.id === id)
+  if (sibling) return sibling
+  const child = treeData.children.find((n: Note) => n.id === id)
+  if (child) return child
+  const incoming = treeData.references.incoming.find((n: Note) => n.id === id)
+  if (incoming) return incoming
+  const outgoing = treeData.references.outgoing.find((n: Note) => n.id === id)
+  if (outgoing) return outgoing
+  return null
+}
+
 const handleNodeClick = (note: Note) => {
   router.push({
     name: 'NoteExpandEditor',
@@ -277,7 +342,7 @@ const handleNodeClick = (note: Note) => {
 }
 
 watch(
-  () => localTreeStore.treeData,
+  () => localTreeStore.treeDataWithRefs,
   () => renderGraph()
 )
 
@@ -285,7 +350,7 @@ watch(
   () => props.noteId,
   async (newId) => {
     if (newId) {
-      await localTreeStore.fetchLocalTree(newId)
+      await localTreeStore.fetchLocalTreeWithRefs(newId)
     }
   },
   { immediate: true }
@@ -348,8 +413,8 @@ onMounted(() => {
     margin-bottom: 16px;
     position: relative;
     overflow: hidden;
-    min-height: 400px; // 增加最小高度
-    width: 100%; // 确保容器占满宽度
+    min-height: 400px;
+    width: 100%;
 
     .tree-graph {
       width: 100%;
