@@ -253,7 +253,7 @@ const renderHierarchyTree = () => {
 
   // 绘制父节点（在左侧）
   if (treeData.parent) {
-    // 画连接��
+    // 画连接线
     linesGroup
       .append('line')
       .attr('x1', -horizontalGap + nodeWidth / 2)
@@ -673,10 +673,25 @@ const handleNodeMouseEnter = (event: MouseEvent, note: Note) => {
   if (!note.id) return
 
   const rect = (event.target as Element).getBoundingClientRect()
-  previewPosition.value = {
-    x: rect.right + 10,
-    y: rect.top
+  const windowWidth = window.innerWidth
+  const previewWidth = 300 // 预览窗口的宽度
+  const padding = 10 // 边距
+
+  // 检查是否靠近右边界
+  if (rect.right + previewWidth + padding > windowWidth) {
+    // 如果靠近右边界，显示在左侧
+    previewPosition.value = {
+      x: rect.left - previewWidth - padding,
+      y: rect.top
+    }
+  } else {
+    // 否则显示在右侧
+    previewPosition.value = {
+      x: rect.right + padding,
+      y: rect.top
+    }
   }
+
   previewNoteId.value = note.id
   showPreview.value = true
 }
@@ -741,7 +756,7 @@ const handleNodeMouseLeave = () => {
   }
 
   .tree-container {
-    padding: 32px 0;
+    // padding: 12px 0;
     background: var(--color-bg-secondary);
     border-radius: 8px;
     margin-bottom: 16px;

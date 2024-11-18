@@ -16,6 +16,12 @@
     <div v-show="!isCollapsed" class="tree-container">
       <svg ref="svgRef" class="tree-graph"></svg>
     </div>
+
+    <NotePreviewPopup
+      v-if="showPreview && previewNoteId"
+      :noteId="previewNoteId"
+      :position="previewPosition"
+    />
   </div>
 </template>
 
@@ -27,6 +33,8 @@ import { useLocalTreeStore } from '@renderer/stores/localTreeStore'
 import * as d3 from 'd3'
 import type { Note } from '@renderer/types/Note'
 import type { SimulationNodeDatum } from 'd3'
+import { useNoteStore } from '@renderer/stores/noteStores'
+import NotePreviewPopup from './NotePreviewPopup.vue'
 
 // 扩展 d3 的类型定义
 interface TreeNode extends SimulationNodeDatum {
@@ -45,6 +53,11 @@ interface LinkDatum {
   target: TreeNode
   type: 'address' | 'reference'
 }
+
+// 在 props 声明之前添加预览相关的响应式变量
+const showPreview = ref(false)
+const previewNoteId = ref<string | null>(null)
+const previewPosition = ref({ x: 0, y: 0 })
 
 const props = defineProps<{
   noteId: string
@@ -72,6 +85,65 @@ const renderGraph = () => {
   // 清空现有内容
   svg.selectAll('*').remove()
 
+  // 添加图例组
+  const legend = svg.append('g').attr('class', 'legend').attr('transform', 'translate(20, 20)')
+
+  const legendData = [
+    { type: 'current', label: '当前笔记', color: 'var(--color-primary)' },
+    { type: 'parent', label: '父级笔记', color: 'var(--node-color-parent)' },
+    { type: 'sibling', label: '同级笔记', color: 'var(--node-color-sibling)' },
+    { type: 'child', label: '子级笔记', color: 'var(--node-color-child)' },
+    { type: 'incoming', label: '引用我的', color: 'var(--node-color-incoming)' },
+    { type: 'outgoing', label: '我引用的', color: 'var(--node-color-outgoing)' }
+  ]
+
+  // 为每个图例项创建一个组
+  const legendItems = legend
+    .selectAll('.legend-item')
+    .data(legendData)
+    .enter()
+    .append('g')
+    .attr('class', 'legend-item')
+    .attr('transform', (d, i) => `translate(0, ${i * 20})`)
+
+  // 添加图例圆点
+  legendItems
+    .append('circle')
+    .attr('r', 6)
+    .attr('cx', 6)
+    .attr('cy', 6)
+    .attr('fill', (d) => d.color)
+    .attr('stroke', (d) => (d.type === 'current' ? 'var(--color-primary)' : 'var(--color-border)'))
+    .attr('stroke-width', (d) => (d.type === 'current' ? 2 : 1))
+    .attr('stroke-opacity', 0.3)
+
+  // 添加图例文本
+  legendItems
+    .append('text')
+    .attr('x', 20)
+    .attr('y', 9)
+    .attr('fill', 'var(--color-text-secondary)')
+    .attr('font-size', '11px')
+    .text((d) => d.label)
+
+  // 为图例添加半透明背景
+  const legendBBox = legend.node()?.getBBox()
+  if (legendBBox) {
+    legend
+      .insert('rect', ':first-child')
+      .attr('x', -6)
+      .attr('y', -6)
+      .attr('width', legendBBox.width + 12)
+      .attr('height', legendBBox.height + 12)
+      .attr('rx', 4)
+      .attr('ry', 4)
+      .attr('fill', 'var(--color-bg-primary)')
+      .attr('fill-opacity', 0.8)
+      .attr('stroke', 'var(--color-border)')
+      .attr('stroke-width', 1)
+      .attr('stroke-opacity', 0.1)
+  }
+
   const treeData = localTreeStore.treeDataWithRefs
 
   // 准备数据，并为不同类型的节点设置初始位置
@@ -93,7 +165,7 @@ const renderGraph = () => {
     } as TreeNode)
   }
 
-  // 兄弟节点在左侧
+  // 弟节点在左侧
   treeData.siblings.forEach((sibling, index) => {
     data.children?.push({
       ...sibling,
@@ -247,34 +319,99 @@ const renderGraph = () => {
         .on('drag', dragged)
         .on('end', dragended)
     )
+    .on('click', (event, d) => {
+      const note = treeData.current.id === d.id ? treeData.current : findNoteInData(d.id, treeData)
+      if (note) handleNodeClick(event, note)
+    })
     .on('dblclick', (event, d) => {
       const note = treeData.current.id === d.id ? treeData.current : findNoteInData(d.id, treeData)
-      if (note) handleNodeClick(note)
+      if (note) handleNodeDblClick(note)
     })
+    .on('mouseenter', (event, d) => {
+      const note = treeData.current.id === d.id ? treeData.current : findNoteInData(d.id, treeData)
+      if (note) handleNodeMouseEnter(event, note)
+    })
+    .on('mouseleave', handleNodeMouseLeave)
 
   // 添加节点圆圈
   nodes
     .append('circle')
-    .attr('r', 10)
-    .attr('fill', (d) => {
-      if (d.id === data.id) return 'var(--color-primary)'
+    .attr('r', (d) => {
+      if (d.id === data.id) return 14 // 当前节点最大
       switch (d.type) {
         case 'parent':
-          return '#ff9800'
+          return 12
         case 'sibling':
-          return '#9c27b0'
         case 'child':
-          return '#2196f3'
+          return 10
         case 'incoming':
-          return '#4caf50'
         case 'outgoing':
-          return '#f44336'
+          return 8
+        default:
+          return 10
+      }
+    })
+    .attr('fill', (d) => {
+      if (d.id === data.id) {
+        // 当前节点使用渐变效果
+        return 'url(#currentGradient)'
+      }
+      switch (d.type) {
+        case 'parent':
+          return 'var(--node-color-parent, #FFB74D)'
+        case 'sibling':
+          return 'var(--node-color-sibling, #CE93D8)'
+        case 'child':
+          return 'var(--node-color-child, #90CAF9)'
+        case 'incoming':
+          return 'var(--node-color-incoming, #A5D6A7)'
+        case 'outgoing':
+          return 'var(--node-color-outgoing, #EF9A9A)'
         default:
           return 'var(--color-bg-secondary)'
       }
     })
-    .attr('stroke', 'var(--color-border)')
-    .attr('stroke-width', 1)
+    .attr('stroke', (d) => (d.id === data.id ? 'var(--color-primary)' : 'var(--color-border)'))
+    .attr('stroke-width', (d) => (d.id === data.id ? 2 : 1))
+    .style('cursor', 'pointer')
+    .style('transition', 'all 0.2s ease')
+    // 添加悬停效果
+    .on('mouseover', function () {
+      d3.select(this)
+        .transition()
+        .duration(200)
+        .attr('r', () => {
+          const currentRadius = d3.select(this).attr('r')
+          return parseFloat(currentRadius) + 2
+        })
+        .attr('stroke-width', 2)
+    })
+    .on('mouseout', function (this: SVGCircleElement) {
+      const element = d3.select(this)
+      const datum = element.datum() as TreeNode
+
+      d3.select(this)
+        .transition()
+        .duration(200)
+        .attr('r', () => {
+          if (datum.id === data.id) return 14
+          switch (datum.type) {
+            case 'parent':
+              return 12
+            case 'sibling':
+            case 'child':
+              return 10
+            case 'incoming':
+            case 'outgoing':
+              return 8
+            default:
+              return 10
+          }
+        })
+        .attr('stroke-width', () => {
+          return datum.id === data.id ? 2 : 1
+        })
+    })
 
   // 添加地址文本
   nodes
@@ -322,6 +459,30 @@ const renderGraph = () => {
     event.subject.fx = null
     event.subject.fy = null
   }
+
+  // 在 svg 初始化时添加渐变定义
+  const defs = svg.append('defs')
+
+  // 为当前节点创建渐变效果
+  const gradient = defs
+    .append('linearGradient')
+    .attr('id', 'currentGradient')
+    .attr('x1', '0%')
+    .attr('y1', '0%')
+    .attr('x2', '100%')
+    .attr('y2', '100%')
+
+  gradient
+    .append('stop')
+    .attr('offset', '0%')
+    .attr('stop-color', 'var(--color-primary)')
+    .attr('stop-opacity', 0.8)
+
+  gradient
+    .append('stop')
+    .attr('offset', '100%')
+    .attr('stop-color', 'var(--color-primary)')
+    .attr('stop-opacity', 0.6)
 }
 
 // 辅助函数：在树数据中查找笔记
@@ -338,11 +499,51 @@ const findNoteInData = (id: string, treeData: any): Note | null => {
   return null
 }
 
-const handleNodeClick = (note: Note) => {
-  router.push({
-    name: 'NoteExpandEditor',
-    params: { id: note.id }
-  })
+const handleNodeClick = (event: MouseEvent, note: Note) => {
+  // Command/Ctrl + 点击使用展开编辑器
+  if (event.metaKey || event.ctrlKey) {
+    router.push({
+      name: 'NoteExpandEditor',
+      params: { id: note.id }
+    })
+  }
+}
+
+const handleNodeDblClick = (note: Note) => {
+  if (!note.id) return
+  useNoteStore().openNoteEditor(note.id)
+}
+
+const handleNodeMouseEnter = (event: MouseEvent, note: Note) => {
+  if (!note.id) return
+
+  const rect = (event.target as Element).getBoundingClientRect()
+  const windowWidth = window.innerWidth
+  const previewWidth = 300 // 预览窗口的宽度
+  const padding = 10 // 边距
+
+  // 检查是否靠近右边界
+  if (rect.right + previewWidth + padding > windowWidth) {
+    // 如果靠近右边界，显示在左侧
+    previewPosition.value = {
+      x: rect.left - previewWidth - padding,
+      y: rect.top
+    }
+  } else {
+    // 否则显示在右侧
+    previewPosition.value = {
+      x: rect.right + padding,
+      y: rect.top
+    }
+  }
+
+  previewNoteId.value = note.id
+  showPreview.value = true
+}
+
+const handleNodeMouseLeave = () => {
+  showPreview.value = false
+  previewNoteId.value = null
 }
 
 watch(
@@ -420,7 +621,7 @@ onMounted(() => {
   }
 
   .tree-container {
-    padding: 12px;
+    // padding: 12px 0;
     background: var(--color-bg-secondary);
     border-radius: 8px;
     margin-bottom: 16px;
@@ -434,6 +635,13 @@ onMounted(() => {
       height: 400px;
       display: block;
     }
+
+    // 添加CSS变量用于节点颜色
+    --node-color-parent: #ffb74d;
+    --node-color-sibling: #ce93d8;
+    --node-color-child: #90caf9;
+    --node-color-incoming: #a5d6a7;
+    --node-color-outgoing: #ef9a9a;
   }
 }
 </style>

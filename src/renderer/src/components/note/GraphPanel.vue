@@ -3,13 +3,14 @@
     <div class="panel-header">
       <div class="title" @click="togglePanel">
         <div class="icon" :class="{ collapsed: isCollapsed }">
-          <Share
+          <GraphicStitchingThree
             theme="outline"
             size="16"
             :fill="isCollapsed ? 'var(--color-icon-secondary)' : 'var(--color-primary)'"
+            :stroke-width="3"
           />
         </div>
-        <div class="name">笔记图谱</div>
+        <div class="name">图谱</div>
       </div>
       <!-- 切换按钮 -->
       <div v-show="!isCollapsed" class="view-toggle">
@@ -49,7 +50,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import { Share } from '@icon-park/vue-next'
+import { GraphicStitchingThree } from '@icon-park/vue-next'
 import LocalMapPanel from './LocalMapPanel.vue'
 import HierarchyTreePanel from './HierarchyTreePanel.vue'
 
@@ -75,44 +76,51 @@ const togglePanel = () => {
 
 <style lang="scss" scoped>
 .graph-panel {
-  margin-top: 24px;
-  padding: 0 24px;
+  // margin-top: 24px;
+  padding: 0 20px 10px 20px;
   user-select: none;
 
   .panel-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 16px;
 
     .title {
       display: flex;
       align-items: center;
-      gap: 8px;
-      padding: 4px;
-      border-radius: 6px;
+      gap: 6px;
+      font-weight: 500;
+      color: var(--color-text-secondary);
       cursor: pointer;
-      transition: all 0.2s ease;
-
-      &:hover {
-        background: var(--color-hover-bg);
-      }
+      position: relative;
 
       .icon {
+        background: none;
+        border: none;
+        width: 24px;
+        height: 24px;
         display: flex;
         align-items: center;
         justify-content: center;
-        transition: transform 0.2s ease;
-
-        &.collapsed {
-          transform: rotate(-90deg);
+        transition: all 0.2s ease;
+        padding: 0;
+        :deep(.i-icon) {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 100%;
+          height: 100%;
+        }
+        :deep(svg) {
+          width: 18px;
+          height: 18px;
         }
       }
 
       .name {
-        font-size: 13px;
-        color: var(--color-text-secondary);
-        font-weight: 500;
+        font-size: 14px;
+        line-height: 24px;
+        user-select: none;
       }
     }
 
@@ -121,12 +129,12 @@ const togglePanel = () => {
       gap: 8px;
 
       .toggle-btn {
-        padding: 4px 12px;
+        padding: 2px 12px;
         border-radius: 4px;
         border: 1px solid var(--color-border);
         background: transparent;
         color: var(--color-text-secondary);
-        font-size: 12px;
+        font-size: 11px;
         cursor: pointer;
         transition: all 0.2s ease;
 

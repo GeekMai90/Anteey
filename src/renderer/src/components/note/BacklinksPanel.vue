@@ -164,7 +164,7 @@ const togglePanel = async () => {
 <style scoped lang="scss">
 .backlinks-panel {
   margin-top: 40px;
-  padding: 20px 20px 4px 20px;
+  padding: 20px 20px 0px 20px;
   border-top: 1px solid var(--color-border);
 
   .panel-header {
@@ -189,13 +189,9 @@ const togglePanel = async () => {
         display: flex;
         align-items: center;
         justify-content: center;
-        transform: rotate(-45deg);
+        // transform: rotate(-45deg);
         transition: all 0.2s ease;
         padding: 0;
-
-        &.collapsed {
-          transform: rotate(0deg);
-        }
 
         :deep(.i-icon) {
           display: flex;

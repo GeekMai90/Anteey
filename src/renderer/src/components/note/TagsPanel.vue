@@ -7,6 +7,7 @@
             theme="outline"
             size="16"
             :fill="isCollapsed ? 'var(--color-icon-secondary)' : 'var(--color-primary)'"
+            :stroke-width="3"
           />
         </div>
         <div class="name">标签 ({{ tags?.length || 0 }})</div>
@@ -240,7 +241,7 @@ const handleKeydown = (e: KeyboardEvent) => {
 
 <style scoped lang="scss">
 .tags-panel {
-  padding: 0 20px 20px;
+  padding: 0 20px 10px 20px;
 
   .panel-header {
     display: flex;
@@ -264,13 +265,20 @@ const handleKeydown = (e: KeyboardEvent) => {
         display: flex;
         align-items: center;
         justify-content: center;
-        transform: rotate(0deg);
+        // transform: rotate(0deg);
         transition: all 0.2s ease;
         padding: 0;
-        translate: 0 1.5px;
+        :deep(.i-icon) {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 100%;
+          height: 100%;
+        }
 
-        &.collapsed {
-          transform: rotate(-45deg);
+        :deep(svg) {
+          width: 18px;
+          height: 18px;
         }
       }
 
@@ -283,7 +291,7 @@ const handleKeydown = (e: KeyboardEvent) => {
   }
 
   .tags-container {
-    padding: 12px 0;
+    padding: 12px 6px;
 
     .tags-list {
       display: flex;
