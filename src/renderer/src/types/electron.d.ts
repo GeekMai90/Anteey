@@ -383,6 +383,9 @@ export interface ElectronAPI {
 
   // 获取本地树数据
   getLocalTree: (noteId: string) => Promise<LocalTreeData>
+
+  // 添加根据地址获取笔记的方法定义
+  getNoteByAddress: (address: string) => Promise<Note | null>
 }
 
 declare global {

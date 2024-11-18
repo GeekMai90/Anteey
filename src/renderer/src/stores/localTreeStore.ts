@@ -1,47 +1,120 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import type { Note } from '../types/Note'
-
-interface LocalTreeData {
-  current: Note
-  parent: Note | null
-  siblings: Note[]
-  children: Note[]
-}
+import type { LocalTreeData } from '@renderer/types/localTree'
 
 export const useLocalTreeStore = defineStore('localTree', () => {
-  // 状态
   const treeData = ref<LocalTreeData | null>(null)
-  const loading = ref(false)
-  const error = ref<string | null>(null)
 
-  // 获取本地树数据
-  const fetchLocalTree = async (noteId: string) => {
-    try {
-      loading.value = true
-      error.value = null
-      const data = await window.electronAPI.getLocalTree(noteId)
-      treeData.value = data
-    } catch (err) {
-      console.error('获取本地树失败:', err)
-      error.value = String(err)
-    } finally {
-      loading.value = false
-    }
+  // 添加地址解析和验证函数
+  const isValidAddress = (address: string): boolean => {
+    const valid = /^\d+(-\d+[a-z]?)*(-\d+)?$/.test(address)
+    console.log(`验证地址 ${address}: ${valid}`)
+    return valid
   }
 
-  // 重置状态
-  const reset = () => {
-    treeData.value = null
-    loading.value = false
-    error.value = null
+  const getParentAddress = (address: string): string | null => {
+    if (!isValidAddress(address)) {
+      console.log(`地址无效: ${address}`)
+      return null
+    }
+    const parts = address.split('-')
+    if (parts.length <= 1) {
+      console.log(`地址没有父级: ${address}`)
+      return null
+    }
+    const parentAddr = parts.slice(0, -1).join('-')
+    console.log(`${address} 的父地址是: ${parentAddr}`)
+    return parentAddr
+  }
+
+  const fetchLocalTree = async (noteId: string) => {
+    try {
+      console.group('开始获取树形数据')
+      const data = await window.electronAPI.getLocalTree(noteId)
+
+      if (data) {
+        // 验证当前节点数据
+        if (!data.current?.id || !data.current?.address) {
+          console.error('当前节点数据无效:', data.current)
+          return
+        }
+
+        // 确保所有数组属性都存在
+        data.siblings = data.siblings || []
+        data.children = data.children || []
+
+        console.log('原始数据:', {
+          current: data.current,
+          parent: data.parent,
+          siblings: data.siblings,
+          children: data.children
+        })
+
+        const currentAddress = data.current.address
+        console.log('当前节点地址:', currentAddress)
+
+        // 1. 处理父节点
+        const parentAddress = getParentAddress(currentAddress)
+        console.log('计算得到的父节点地址:', parentAddress)
+
+        if (parentAddress) {
+          // 先检查后端返回的父节点
+          if (data.parent?.id && data.parent?.address === parentAddress) {
+            console.log('使用后端返回的父节点:', data.parent)
+          } else {
+            // 如果在现有数据中找不到父节点，尝试从后端获取
+            try {
+              const result = await window.electronAPI.getNoteByAddress(parentAddress)
+              if (result?.id) {
+                console.log('从后端获取到的父节点:', result)
+                data.parent = result
+              } else {
+                console.log('未找到父节点:', parentAddress)
+                data.parent = null
+              }
+            } catch (error) {
+              console.error('获取父节点失败:', error)
+              data.parent = null
+            }
+          }
+        } else {
+          data.parent = null
+        }
+
+        // 2. 处理兄弟节点 - 过滤掉无效的节点
+        data.siblings = data.siblings.filter((note) => note?.id && note?.address)
+        console.log('处理后的兄弟节点:', data.siblings)
+
+        // 3. 处理子节点
+        console.log('开始处理子节点')
+        const validChildren = data.children.filter((note) => {
+          if (!note?.id || !note?.address) return false
+          const isValid = isValidAddress(note.address)
+          console.log(`检查子节点 ${note.address}: 地址有效=${isValid}`)
+          return isValid
+        })
+
+        data.children = validChildren
+        console.log('处理后的子节点:', validChildren)
+
+        console.log('最终处理后的数据:', data)
+        treeData.value = data
+      } else {
+        console.error('获取到的树形数据无效:', data)
+        treeData.value = null
+      }
+
+      console.groupEnd()
+    } catch (error) {
+      console.error('获取树形数据失败:', error)
+      treeData.value = null
+      console.groupEnd()
+    }
   }
 
   return {
     treeData,
-    loading,
-    error,
     fetchLocalTree,
-    reset
+    isValidAddress // 保留这个方法因为其他组件可能在使用
   }
 })

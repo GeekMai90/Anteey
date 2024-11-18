@@ -33,32 +33,119 @@ export async function getLocalTreeNotes(noteId: string) {
       children: [] as Note[]
     }
 
+    // 获取当前笔记的层级和父级地址
+    const currentParts = currentNote.address.split('-')
+    const parentAddress = currentParts.slice(0, -1).join('-')
+
     allNotes.forEach((note) => {
-      // 父级：当前地址是否以某个笔记地址为前缀
-      if (currentNote.address.startsWith(note.address + '-')) {
+      // 父级：当前地址是否以某个笔记地址为前缀，且层级差为1
+      if (
+        currentNote.address.startsWith(note.address + '-') &&
+        note.address.split('-').length === currentParts.length - 1
+      ) {
         result.parent = note
       }
 
-      // 兄弟级：和当前地址有相同的父级前缀
-      const currentSegments = currentNote.address.split('-')
-      const noteSegments = note.address.split('-')
-      if (
-        currentSegments.length === noteSegments.length &&
-        currentSegments.slice(0, -1).join('-') === noteSegments.slice(0, -1).join('-') &&
-        note.id !== noteId
-      ) {
-        result.siblings.push(note)
+      // 兄弟级：如果是顶级节点，就找同层级的，如果不是，就找当前地址有相同的父级前缀
+
+      if (note.id !== noteId && note.address.split('-').length === currentParts.length) {
+        // 如果是顶级节点（没有父级地址），直接添加同层级节点
+        if (!parentAddress) {
+          result.siblings.push(note)
+        }
+        // 如果有父级地址，则检查是否有相同的父级前缀
+        else if (note.address.startsWith(parentAddress + '-')) {
+          result.siblings.push(note)
+        }
       }
 
-      // 子级：以当前地址为前缀
-      if (note.address.startsWith(currentNote.address + '-')) {
+      // 子级：以当前地址为前缀，且层级差为1
+      if (
+        note.address.startsWith(currentNote.address + '-') &&
+        note.address.split('-').length === currentParts.length + 1
+      ) {
         result.children.push(note)
       }
     })
 
+    // 对兄弟节点进行排序
+    result.siblings.sort((a, b) => {
+      const aLast = a.address.split('-').pop() || ''
+      const bLast = b.address.split('-').pop() || ''
+
+      const aMatch = aLast.match(/^(\d+)([a-z]*)$/)
+      const bMatch = bLast.match(/^(\d+)([a-z]*)$/)
+
+      if (!aMatch || !bMatch) return 0
+
+      const aNum = parseInt(aMatch[1])
+      const bNum = parseInt(bMatch[1])
+
+      // 先比较数字
+      if (aNum !== bNum) return aNum - bNum
+
+      // 数字相同时，无字母的排在前面
+      const aAlpha = aMatch[2]
+      const bAlpha = bMatch[2]
+      if (!aAlpha && bAlpha) return -1
+      if (aAlpha && !bAlpha) return 1
+      return aAlpha.localeCompare(bAlpha)
+    })
+
+    // 找到当前节点在排序后的数组中的位置
+    const currentIndex = result.siblings.findIndex((note) => {
+      const noteLast = note.address.split('-').pop() || ''
+      const noteMatch = noteLast.match(/^(\d+)([a-z]*)$/)
+      const currentLast = currentNote.address.split('-').pop() || ''
+      const currentMatch = currentLast.match(/^(\d+)([a-z]*)$/)
+
+      if (!noteMatch || !currentMatch) return false
+
+      const noteNum = parseInt(noteMatch[1])
+      const currentNum = parseInt(currentMatch[1])
+
+      if (noteNum !== currentNum) return noteNum > currentNum
+
+      const noteAlpha = noteMatch[2]
+      const currentAlpha = currentMatch[2]
+
+      if (!noteAlpha && !currentAlpha) return false
+      if (!noteAlpha) return false
+      if (!currentAlpha) return true
+      return noteAlpha.localeCompare(currentAlpha) > 0
+    })
+
+    // 获取前一个和后一个节点
+    const prevSibling =
+      currentIndex > 0
+        ? result.siblings[currentIndex - 1]
+        : currentIndex === -1
+          ? result.siblings[result.siblings.length - 1]
+          : null
+    const nextSibling =
+      currentIndex !== -1
+        ? result.siblings[currentIndex]
+        : result.siblings.length > 0
+          ? result.siblings[0]
+          : null
+
+    result.siblings = [prevSibling, nextSibling].filter((note): note is Note => note !== null)
+
     return result
   } catch (error) {
     console.error('获取本地树相关笔记失败:', error)
+    throw error
+  }
+}
+
+// 根据地址查找笔记
+export async function findNoteByAddress(address: string) {
+  try {
+    const note = await db('notes').where('address', address).where('isDeleted', false).first()
+
+    return note || null
+  } catch (error) {
+    console.error('根据地址查找笔记失败:', error)
     throw error
   }
 }
