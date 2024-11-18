@@ -17,11 +17,17 @@
       <svg ref="svgRef" class="tree-graph" :width="svgWidth" :height="height"></svg>
     </div>
 
-    <NoteListDialog
+    <!-- <NoteListDialog
       :visible="showNoteList"
       :notes="allChildren"
       @close="showNoteList = false"
-      @select="handleNodeClick"
+      @select="handleListSelect"
+    /> -->
+
+    <NotePreviewPopup
+      v-if="showPreview && previewNoteId"
+      :noteId="previewNoteId"
+      :position="previewPosition"
     />
   </div>
 </template>
@@ -33,7 +39,9 @@ import { useRouter } from 'vue-router'
 import { useLocalTreeStore } from '@renderer/stores/localTreeStore'
 import * as d3 from 'd3'
 import type { Note } from '@renderer/types/Note'
-import NoteListDialog from './NoteListDialog.vue'
+// import NoteListDialog from './NoteListDialog.vue'
+import NotePreviewPopup from './NotePreviewPopup.vue'
+import { useNoteStore } from '@renderer/stores/noteStores'
 
 const props = defineProps<{
   noteId: string
@@ -45,8 +53,8 @@ const router = useRouter()
 const localTreeStore = useLocalTreeStore()
 const isCollapsed = ref(props.isCollapsed ?? true)
 const svgRef = ref<SVGElement>()
-const showNoteList = ref(false)
-const allChildren = ref<Note[]>([])
+// const showNoteList = ref(false)
+// const allChildren = ref<Note[]>([])
 
 const width = 800
 const height = 500
@@ -216,11 +224,10 @@ const renderHierarchyTree = () => {
     .append('g')
     .attr('transform', 'translate(0,0)')
     .attr('class', 'node current')
-    .on('click', () => {
-      if (currentNote && currentNote.id) {
-        handleNodeClick(currentNote)
-      }
-    })
+    .on('click', (event) => handleNodeClick(event, currentNote))
+    .on('dblclick', () => handleNodeDblClick(currentNote))
+    .on('mouseenter', (event) => handleNodeMouseEnter(event, currentNote))
+    .on('mouseleave', handleNodeMouseLeave)
 
   currentNode
     .append('rect')
@@ -246,7 +253,7 @@ const renderHierarchyTree = () => {
 
   // 绘制父节点（在左侧）
   if (treeData.parent) {
-    // 画连接线
+    // 画连接��
     linesGroup
       .append('line')
       .attr('x1', -horizontalGap + nodeWidth / 2)
@@ -263,11 +270,22 @@ const renderHierarchyTree = () => {
       .append('g')
       .attr('transform', `translate(${-horizontalGap},0)`)
       .attr('class', 'node parent')
-      .on('click', () => {
+      .on('click', (event) => {
         if (treeData.parent) {
-          handleNodeClick(treeData.parent)
+          handleNodeClick(event, treeData.parent)
         }
       })
+      .on('dblclick', () => {
+        if (treeData.parent) {
+          handleNodeDblClick(treeData.parent)
+        }
+      })
+      .on('mouseenter', (event) => {
+        if (treeData.parent) {
+          handleNodeMouseEnter(event, treeData.parent)
+        }
+      })
+      .on('mouseleave', handleNodeMouseLeave)
 
     parentNode
       .append('rect')
@@ -359,7 +377,10 @@ const renderHierarchyTree = () => {
         .append('g')
         .attr('transform', `translate(0,${-verticalGap})`)
         .attr('class', 'node sibling')
-        .on('click', () => handleNodeClick(prevSibling))
+        .on('click', (event) => handleNodeClick(event, prevSibling))
+        .on('dblclick', () => handleNodeDblClick(prevSibling))
+        .on('mouseenter', (event) => handleNodeMouseEnter(event, prevSibling))
+        .on('mouseleave', handleNodeMouseLeave)
 
       prevNode
         .append('rect')
@@ -403,7 +424,10 @@ const renderHierarchyTree = () => {
         .append('g')
         .attr('transform', `translate(0,${verticalGap})`)
         .attr('class', 'node sibling')
-        .on('click', () => handleNodeClick(nextSibling))
+        .on('click', (event) => handleNodeClick(event, nextSibling))
+        .on('dblclick', () => handleNodeDblClick(nextSibling))
+        .on('mouseenter', (event) => handleNodeMouseEnter(event, nextSibling))
+        .on('mouseleave', handleNodeMouseLeave)
 
       nextNode
         .append('rect')
@@ -467,11 +491,18 @@ const renderHierarchyTree = () => {
         .append('g')
         .attr('transform', `translate(${columnX},${childY})`)
         .attr('class', 'node child')
-        .on('click', () => {
+        .on('click', (event) => {
           if (child && child.id) {
-            handleNodeClick(child)
+            handleNodeClick(event, child)
           }
         })
+        .on('dblclick', () => {
+          if (child && child.id) {
+            handleNodeDblClick(child)
+          }
+        })
+        .on('mouseenter', (event) => handleNodeMouseEnter(event, child))
+        .on('mouseleave', handleNodeMouseLeave)
 
       childNode
         .append('rect')
@@ -548,21 +579,33 @@ const renderHierarchyTree = () => {
   }
 }
 
-const handleNodeClick = (note: Note | undefined | null) => {
+const handleNodeClick = (event: MouseEvent, note: Note | undefined | null) => {
   if (!note || !note.id) {
     console.warn('无效的笔记节点:', note)
     return
   }
 
-  router.push({
-    name: 'NoteExpandEditor',
-    params: { id: note.id }
-  })
+  // Command/Ctrl + 点击 使用展开编辑器
+  if (event.metaKey || event.ctrlKey) {
+    router.push({
+      name: 'NoteExpandEditor',
+      params: { id: note.id }
+    })
+  }
+}
+
+// 添加双击处理方法
+const handleNodeDblClick = (note: Note | undefined | null) => {
+  if (!note || !note.id) return
+  useNoteStore().openNoteEditor(note.id)
 }
 
 watch(
   () => localTreeStore.treeData,
-  () => renderHierarchyTree()
+  (newData) => {
+    console.log('Tree data updated:', newData) // 检查树形数据更新
+    renderHierarchyTree()
+  }
 )
 
 watch(
@@ -589,9 +632,12 @@ onMounted(() => {
   renderHierarchyTree()
 })
 
-// 添加节点悬停效果
+// 修改节点悬停效果的样式
 const style = document.createElement('style')
 style.textContent = `
+  .node {
+    cursor: pointer;  // 添加鼠标指针样式
+  }
   .node rect {
     transition: all 0.3s ease;
   }
@@ -616,6 +662,38 @@ const svgWidth = computed(() => {
   const totalColumns = Math.ceil(currentVisibleCount.value / MAX_VISIBLE_CHILDREN)
   return Math.max(horizontalGap * 2 + COLUMN_GAP * (totalColumns - 1) + 150, width)
 })
+
+// 修改预览相关的响应式变量
+const showPreview = ref(false)
+const previewNoteId = ref<string | null>(null)
+const previewPosition = ref({ x: 0, y: 0 })
+
+// 修改预览相关的方法
+const handleNodeMouseEnter = (event: MouseEvent, note: Note) => {
+  if (!note.id) return
+
+  const rect = (event.target as Element).getBoundingClientRect()
+  previewPosition.value = {
+    x: rect.right + 10,
+    y: rect.top
+  }
+  previewNoteId.value = note.id
+  showPreview.value = true
+}
+
+const handleNodeMouseLeave = () => {
+  showPreview.value = false
+  previewNoteId.value = null
+}
+
+// 添加新的处理函数专门用于处理列表选择
+// const handleListSelect = (note: Note) => {
+//   if (!note || !note.id) return
+//   router.push({
+//     name: 'NoteExpandEditor',
+//     params: { id: note.id }
+//   })
+// }
 </script>
 
 <style lang="scss" scoped>
