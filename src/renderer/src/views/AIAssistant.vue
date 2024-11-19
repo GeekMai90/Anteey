@@ -192,8 +192,10 @@
                 :placeholder="getPlaceholder"
                 :disabled="isProcessing"
                 @input="handleInput"
-                @keyup.enter="handleSend"
+                @keydown.enter="handleEnter"
                 @keydown.esc="showNoteSelector = false"
+                @compositionstart="handleCompositionStart"
+                @compositionend="handleCompositionEnd"
               />
             </div>
 
@@ -261,6 +263,9 @@ const showNoteSelector = ref(false)
 const lastAtPosition = ref(-1)
 
 const selectedNotes = ref<Array<{ id: string; title: string }>>([])
+
+// 1. 添加输入法状态
+const isComposing = ref(false)
 
 // 监听输入内容变化
 const handleInput = (event: Event) => {
@@ -543,6 +548,26 @@ const copyMessageContent = async (content: string) => {
     console.error('复制失败:', err)
     message.error('复制失败')
   }
+}
+
+// 3. 添加输入法事件处理函数
+const handleCompositionStart = () => {
+  isComposing.value = true
+}
+
+const handleCompositionEnd = () => {
+  isComposing.value = false
+}
+
+// 4. 修改回车处理函数
+const handleEnter = (event: KeyboardEvent) => {
+  // 如果正在输入法输入中，不做任何处理
+  if (isComposing.value) {
+    return
+  }
+
+  event.preventDefault()
+  handleSend()
 }
 </script>
 

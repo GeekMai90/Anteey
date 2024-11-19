@@ -77,7 +77,9 @@
           type="text"
           placeholder="输入编码地址"
           @input="handleAddressInput"
-          @keyup.enter="handleAddressEnter"
+          @keydown.enter="handleAddressEnter"
+          @compositionstart="handleCompositionStart"
+          @compositionend="handleCompositionEnd"
         />
       </div>
       <div class="content-area">
@@ -194,14 +196,32 @@ const handleAddressInput = (event: Event) => {
   updateAddress(input.value)
 }
 
-// 处理回车键
+// 添加一个状态来跟踪输入法状态
+const isComposing = ref(false)
+
+// 处理输入法开始
+const handleCompositionStart = () => {
+  isComposing.value = true
+}
+
+// 处理输入法结束
+const handleCompositionEnd = () => {
+  isComposing.value = false
+}
+
+// 修改回车键处理函数
 const handleAddressEnter = (event: KeyboardEvent) => {
-  event.preventDefault() // 阻止默认行为
+  // 如果正在输入法输入中，不做任何处理
+  if (isComposing.value) {
+    return
+  }
+
+  event.preventDefault()
   if (addressUpdateTimer.value) {
     clearTimeout(addressUpdateTimer.value)
     noteStore.updateNoteAddress(props.noteId, localAddress.value)
   }
-  focusEditor() // 聚焦到编辑器
+  focusEditor()
 }
 
 // === 内容更新处理 ===
@@ -674,7 +694,7 @@ defineExpose({
         height: 100%;
         border: none;
         outline: none;
-        font-size: 1.4rem;
+        font-size: 1.2rem;
         font-weight: bold;
         background-color: transparent;
         line-height: 40px; // 设置行高，通常设置为 1.2 到 1.5 之间的值

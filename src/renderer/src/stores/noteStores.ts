@@ -648,12 +648,12 @@ export const useNoteStore = defineStore(
     }
 
     const openNoteEditor = async (noteId: string) => {
-      console.group('打开笔记编辑器')
-      console.trace('调用栈:')
-      console.log('noteId:', noteId)
-      console.log('当前路由:', window.location.href)
-      console.log('isEditorOpen 当前状态:', isEditorOpen.value)
-      console.groupEnd()
+      // console.group('打开笔记编辑器')
+      // console.trace('调用栈:')
+      // console.log('noteId:', noteId)
+      // console.log('当前路由:', window.location.href)
+      // console.log('isEditorOpen 当前状态:', isEditorOpen.value)
+      // console.groupEnd()
 
       try {
         const fullNote = await fetchNoteById(noteId)

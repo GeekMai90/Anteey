@@ -33,7 +33,9 @@
             type="text"
             placeholder="输入编码地址"
             @input="handleAddressInput"
-            @keyup.enter="handleAddressEnter"
+            @keydown.enter="handleAddressEnter"
+            @compositionstart="handleCompositionStart"
+            @compositionend="handleCompositionEnd"
           />
         </div>
         <!-- 右侧工具栏 -->
@@ -254,27 +256,32 @@ const handleAddressInput = (event: Event) => {
   updateAddress(input.value)
 }
 
-// 处理地址输入框获得焦点
-// const handleAddressFocus = () => {
-//   // 立即保存当前编辑器内容
-//   if (currentNote.value) {
-//     const editor = tiptapEditor.value?.editor
-//     if (editor) {
-//       const content = editor.getJSON()
-//       saveContent.flush() // 立即执行之前可能还在等待的保存
-//       noteStore.updateNoteContent(currentNote.value.id, content)
-//     }
-//   }
-// }
+// 添加一个状态来跟踪输入法状态
+const isComposing = ref(false)
+
+// 处理输入法开始
+const handleCompositionStart = () => {
+  isComposing.value = true
+}
+
+// 处理输入法结束
+const handleCompositionEnd = () => {
+  isComposing.value = false
+}
 
 // 处理回车键
 const handleAddressEnter = (event: KeyboardEvent) => {
-  event.preventDefault() // 阻止默认行为
+  // 如果正在输入法输入中，不做任何处理
+  if (isComposing.value) {
+    return
+  }
+
+  event.preventDefault()
   if (addressUpdateTimer.value) {
     clearTimeout(addressUpdateTimer.value)
     noteStore.updateNoteAddress(noteId, localAddress.value)
   }
-  focusEditor() // 聚焦到编辑器
+  focusEditor()
 }
 
 // === 内容更新处理 ===
