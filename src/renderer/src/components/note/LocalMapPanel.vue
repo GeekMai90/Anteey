@@ -104,7 +104,7 @@ const renderGraph = () => {
     .enter()
     .append('g')
     .attr('class', 'legend-item')
-    .attr('transform', (d, i) => `translate(0, ${i * 20})`)
+    .attr('transform', (_d, i) => `translate(0, ${i * 20})`)
 
   // 添加图例圆点
   legendItems
@@ -323,7 +323,7 @@ const renderGraph = () => {
       const note = treeData.current.id === d.id ? treeData.current : findNoteInData(d.id, treeData)
       if (note) handleNodeClick(event, note)
     })
-    .on('dblclick', (event, d) => {
+    .on('dblclick', (_event, d) => {
       const note = treeData.current.id === d.id ? treeData.current : findNoteInData(d.id, treeData)
       if (note) handleNodeDblClick(note)
     })

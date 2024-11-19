@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import type { LocalTreeData, LocalTreeWithReferencesData } from '@renderer/types/localTree'
+import type { LocalTreeData, LocalTreeWithReferencesData } from '../types/localTree'
 
 export const useLocalTreeStore = defineStore('localTree', () => {
   const treeData = ref<LocalTreeData | null>(null)

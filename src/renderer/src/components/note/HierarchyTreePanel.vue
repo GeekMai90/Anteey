@@ -165,7 +165,7 @@ const renderHierarchyTree = () => {
     .enter()
     .append('g')
     .attr('class', 'legend-item')
-    .attr('transform', (d, i) => `translate(0, ${i * 20})`) // 减小垂直间距从 25 改为 20
+    .attr('transform', (_d, i) => `translate(0, ${i * 20})`) // 减小垂直间距从 25 改为 20
 
   // 添加图例符号（小矩形）
   legendItems
@@ -325,8 +325,8 @@ const renderHierarchyTree = () => {
     const currentAlpha = currentMatch ? currentMatch[2] : ''
 
     // 找到前一个和后一个节点
-    let prevSibling = null
-    let nextSibling = null
+    let prevSibling: Note | null = null
+    let nextSibling: Note | null = null
 
     // 遍历排序后的兄弟节点数组
     for (let i = 0; i < sortedSiblings.length; i++) {

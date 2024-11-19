@@ -129,7 +129,7 @@ const togglePanel = () => {
       gap: 8px;
 
       .toggle-btn {
-        padding: 2px 12px;
+        padding: 2px 8px;
         border-radius: 4px;
         border: 1px solid var(--color-border);
         background: transparent;
