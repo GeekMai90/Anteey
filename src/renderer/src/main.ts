@@ -8,49 +8,58 @@ import FloatingVue from 'floating-vue'
 import 'floating-vue/dist/style.css'
 import { useNoteStore } from './stores/noteStores'
 import ShortKey from 'vue3-shortkey'
-// import log from 'electron-log/renderer' // 修改这里，使用 renderer 版本
+import { useAppearanceStore } from './stores/appearanceStore'
 
-const app = createApp(App)
+async function initializeApp() {
+  const app = createApp(App)
 
-const pinia = createPinia()
-pinia.use(piniaPluginPersistedstate)
+  // 初始化 Pinia
+  const pinia = createPinia()
+  pinia.use(piniaPluginPersistedstate)
+  app.use(pinia)
 
-app.use(pinia)
-app.use(router)
-app.directive('click-outside', {
-  mounted(el, binding) {
-    el.clickOutsideEvent = (event: Event) => {
-      if (!(el === event.target || el.contains(event.target as Node))) {
-        binding.value(event)
+  // 初始化路由
+  app.use(router)
+
+  // 注册指令
+  app.directive('click-outside', {
+    mounted(el, binding) {
+      el.clickOutsideEvent = (event: Event) => {
+        if (!(el === event.target || el.contains(event.target as Node))) {
+          binding.value(event)
+        }
       }
+      document.addEventListener('click', el.clickOutsideEvent)
+    },
+    unmounted(el) {
+      document.removeEventListener('click', el.clickOutsideEvent)
     }
-    document.addEventListener('click', el.clickOutsideEvent)
-  },
-  unmounted(el) {
-    document.removeEventListener('click', el.clickOutsideEvent)
-  }
-})
-app.use(ShortKey, { prevent: ['input', 'textarea'] })
+  })
 
-// app.use(FloatingVue)
-app.use(FloatingVue, {
-  delay: {
-    show: 10000, // 显示延迟 500 毫秒
-    hide: 0 // 隐藏无延迟
+  // 注册插件
+  app.use(ShortKey, { prevent: ['input', 'textarea'] })
+  app.use(FloatingVue, {
+    delay: {
+      show: 10000,
+      hide: 0
+    }
+  })
+
+  if (process.env.NODE_ENV === 'development') {
+    ;(app.config as any).devtools = true
   }
-})
-if (process.env.NODE_ENV === 'development') {
-  ;(app.config as any).devtools = true
+
+  // 初始化 stores
+  const noteStore = useNoteStore()
+  await noteStore.initializeStore()
+
+  // 初始化外观设置
+  const appearanceStore = useAppearanceStore()
+  await appearanceStore.initializeSettings()
+
+  // 挂载应用
+  app.mount('#app')
 }
 
-const noteStore = useNoteStore()
-noteStore.initializeStore()
-
-// 配置日志
-// 直接使用 log 的方法
-// console.log = (...args) => log.log(...args)
-// console.error = (...args) => log.error(...args)
-// console.warn = (...args) => log.warn(...args)
-// console.info = (...args) => log.info(...args)
-
-app.mount('#app')
+// 启动应用
+initializeApp().catch(console.error)

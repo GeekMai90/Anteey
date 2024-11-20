@@ -21,6 +21,7 @@ import { dictionaryApi } from './api/dictionaryApi'
 import { ragApi } from './api/ragApi'
 import { llmConfigApi } from './api/llmConfigApi'
 import { localTreeApi } from './api/localTreeApi'
+import { appearanceApi } from './api/appearanceApi'
 // 添加日志 API
 contextBridge.exposeInMainWorld('electronLog', {
   info: (...args: any[]) => ipcRenderer.send('renderer-log', { level: 'info', args }),
@@ -38,6 +39,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   ...ragApi,
   ...llmConfigApi,
   ...localTreeApi,
+  ...appearanceApi,
   getResourcePath: async (filename: string): Promise<string> => {
     try {
       return (await ipcRenderer.invoke('get-resource-path', filename)) as string

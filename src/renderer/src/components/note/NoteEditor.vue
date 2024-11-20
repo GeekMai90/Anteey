@@ -328,10 +328,7 @@ const {
   closeMenu: closeCardTypeMenu
 } = useMenu({
   buttonRef: indicatorButton, // 直接传入 ref
-  menuRef: cardTypeDropdownMenuRef,
-  onClose: () => {
-    console.log('卡片类型菜单已关闭')
-  }
+  menuRef: cardTypeDropdownMenuRef
 })
 
 // 卡片类型，根据当前笔记的卡片类型设置样式

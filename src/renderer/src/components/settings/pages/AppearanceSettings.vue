@@ -32,16 +32,46 @@
           </div>
         </div>
       </div>
+
+      <div class="settings-section">
+        <div class="section-title">字体设置</div>
+        <div class="font-settings">
+          <div class="setting-item">
+            <div class="setting-label">界面字体</div>
+            <select v-model="uiFont" class="font-select" @change="handleUIFontChange">
+              <option v-for="font in fontOptions" :key="font.value" :value="font.value">
+                {{ font.label }}
+              </option>
+            </select>
+            <div class="font-preview">预览文本 Preview Text</div>
+          </div>
+
+          <div class="setting-item">
+            <div class="setting-label">编辑器字体</div>
+            <select v-model="editorFont" class="font-select" @change="handleEditorFontChange">
+              <option v-for="font in fontOptions" :key="font.value" :value="font.value">
+                {{ font.label }}
+              </option>
+            </select>
+            <div class="font-preview" :style="{ fontFamily: previewEditorFont }">
+              预览文本 Preview Text
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { Theme } from '@icon-park/vue-next'
 import { useUIStore } from '@renderer/stores/useUIStore'
+import { useAppearanceStore } from '@renderer/stores/appearanceStore'
 
 const uiStore = useUIStore()
+const appearanceStore = useAppearanceStore()
+
 const currentTheme = computed(() => uiStore.themeMode)
 
 const themeOptions = [
@@ -53,6 +83,35 @@ const themeOptions = [
 const handleThemeChange = (theme: string) => {
   uiStore.setThemeMode(theme as 'light' | 'dark' | 'system')
 }
+
+const fontOptions = [
+  { label: '系统默认', value: 'system' },
+  { label: '霞鹜文楷', value: 'wenkai' }
+]
+
+const uiFont = ref('system')
+const editorFont = ref('system')
+
+const previewEditorFont = computed(() => {
+  return editorFont.value === 'wenkai' ? '"LXGW WenKai", sans-serif' : 'system-ui'
+})
+
+const handleUIFontChange = async () => {
+  await appearanceStore.updateUIFont(uiFont.value)
+}
+
+const handleEditorFontChange = async () => {
+  await appearanceStore.updateEditorFont(editorFont.value)
+}
+
+onMounted(async () => {
+  await appearanceStore.fetchSettings()
+  // 直接从 store 中获取设置
+  if (appearanceStore.settings) {
+    uiFont.value = appearanceStore.settings.uiFont
+    editorFont.value = appearanceStore.settings.editorFont
+  }
+})
 </script>
 
 <style scoped lang="scss">
@@ -213,6 +272,58 @@ const handleThemeChange = (theme: string) => {
         font-size: 14px;
         text-align: center;
         color: var(--color-text-primary);
+      }
+    }
+  }
+
+  .font-settings {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+
+    .setting-item {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+
+      .setting-label {
+        font-size: 14px;
+        color: var(--color-text-secondary);
+      }
+
+      .font-select {
+        width: 200px;
+        padding: 8px 12px;
+        border-radius: 6px;
+        border: 1px solid var(--color-border);
+        background-color: var(--color-bg-secondary);
+        color: var(--color-text-primary);
+        font-size: 14px;
+        cursor: pointer;
+        transition: all 0.2s;
+
+        &:hover {
+          border-color: var(--color-border-hover);
+        }
+
+        &:focus {
+          outline: none;
+          border-color: var(--color-primary);
+          box-shadow: 0 0 0 2px var(--color-primary-alpha);
+        }
+      }
+
+      .font-preview {
+        margin-top: 8px;
+        padding: 12px;
+        border-radius: 6px;
+        background-color: var(--color-bg-secondary);
+        color: var(--color-text-primary);
+        font-size: 16px;
+        line-height: 1.5;
+        min-height: 48px;
+        display: flex;
+        align-items: center;
       }
     }
   }

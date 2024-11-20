@@ -11,6 +11,7 @@ import { setupDictionaryHandlers } from './dictionaryIpcHandlers'
 import { setupRAGHandlers } from './ragIpcHandlers'
 import { setupLLMConfigHandlers } from './llmConfigIpcHandlers'
 import { setupLocalTreeHandlers } from './localTreeIpcHandlers'
+import { setupAppearanceHandlers } from './appearanceIpcHandlers'
 export function setupIpcHandlers() {
   setupNotesHandlers()
   setupWhiteboardHandlers()
@@ -25,4 +26,5 @@ export function setupIpcHandlers() {
   setupRAGHandlers()
   setupLLMConfigHandlers()
   setupLocalTreeHandlers()
+  setupAppearanceHandlers()
 }

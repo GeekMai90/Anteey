@@ -25,6 +25,7 @@ import { DictWord } from '../../../services/dictionary/dictionaryService'
 import { ChatMessage, ChatSession, RAGContext, RAGHistoryRecord } from './assistant'
 import { LLMConfig } from './llm'
 import { LocalTreeData, LocalTreeWithReferencesData } from './localTree'
+import { AppearanceSettings } from '../../../services/appearance/appearanceService'
 
 export interface ElectronAPI {
   createNote: () => Promise<Note>
@@ -389,6 +390,12 @@ export interface ElectronAPI {
 
   // 获取本地树数据与引用数据
   getLocalTreeWithReferences: (noteId: string) => Promise<LocalTreeWithReferencesData>
+
+  // 获取外观设置
+  getAppearanceSettings: () => Promise<AppearanceSettings>
+
+  // 更新外观设置
+  updateAppearanceSettings: (settings: Partial<AppearanceSettings>) => Promise<AppearanceSettings>
 }
 
 declare global {

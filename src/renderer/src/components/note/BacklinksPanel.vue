@@ -7,6 +7,7 @@
             theme="outline"
             size="16"
             :fill="isCollapsed ? 'var(--color-icon-secondary)' : 'var(--color-primary)'"
+            :stroke-width="3"
           />
         </div>
         <div class="name">关联 ({{ totalLinks }})</div>

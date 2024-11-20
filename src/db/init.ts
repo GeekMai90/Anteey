@@ -471,6 +471,28 @@ export async function initDatabase(db: Knex): Promise<void> {
 
     console.log('llm_configs 表创建成功')
   }
+
+  // 创建 appearance_settings 表
+  if (!(await db.schema.hasTable('appearance_settings'))) {
+    await db.schema.createTable('appearance_settings', (table) => {
+      table.string('id').primary()
+      table.string('uiFont').notNullable().defaultTo('system') // UI 界面字体
+      table.string('editorFont').notNullable().defaultTo('system') // 编辑器字体改为 system
+      table.datetime('createdAt').notNullable()
+      table.datetime('updatedAt').notNullable()
+    })
+
+    // 插入默认设置
+    await db('appearance_settings').insert({
+      id: uuidv4(),
+      uiFont: 'system',
+      editorFont: 'system', // 修改为 system
+      createdAt: new Date(),
+      updatedAt: new Date()
+    })
+
+    console.log('appearance_settings 表创建成功')
+  }
 }
 
 export async function down(db: Knex): Promise<void> {
@@ -492,5 +514,6 @@ export async function down(db: Knex): Promise<void> {
   await db.schema.dropTableIfExists('dictionary')
   await db.schema.dropTableIfExists('rag_history')
   await db.schema.dropTableIfExists('llm_configs')
+  await db.schema.dropTableIfExists('appearance_settings')
   console.log('所有表已删除')
 }

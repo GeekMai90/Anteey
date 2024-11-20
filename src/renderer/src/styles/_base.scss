@@ -14,7 +14,7 @@ html {
 }
 
 body {
-  font-family: $font-family-base;
+  font-family: var(--font-family-ui);
   font-size: 1rem;
   line-height: $line-height-base;
   color: var(--color-text-primary);

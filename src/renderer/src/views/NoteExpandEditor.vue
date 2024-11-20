@@ -635,7 +635,7 @@ const focusEditor = () => {
     height: 100%;
     border: none;
     outline: none;
-    font-size: 1.4rem;
+    font-size: 1.2rem;
     font-weight: bold;
     background-color: transparent;
     line-height: 40px; // 设置行高，通常设置为 1.2 到 1.5 之间的值
