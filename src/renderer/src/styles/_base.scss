@@ -7,6 +7,14 @@ html {
   box-sizing: border-box;
 }
 
+:root {
+  --color-border-rgb: 0, 0, 0; /* 浅色主题 */
+}
+
+.theme-dark {
+  --color-border-rgb: 255, 255, 255; /* 深色主题 */
+}
+
 *,
 *::before,
 *::after {

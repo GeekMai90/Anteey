@@ -7,6 +7,7 @@
       <Sidebar
         v-show="!uiStore.isSidebarCollapsed"
         class="sidebar"
+        :class="{ collapsed: uiStore.isSidebarCollapsed }"
         @resize="updateLeftSidebarWidth"
       />
 
@@ -221,14 +222,35 @@ useGlobalHotkeys()
   flex-shrink: 0;
   width: v-bind(sidebarWidth + 'px');
   height: 100%;
-  transition: all 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
   &.hover-sidebar {
     position: absolute;
     top: 0;
     left: 0;
+    background-color: var(--sidebar-bg);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
     box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
     z-index: 1001;
+
+    // 添加微妙的边框效果
+    border-right: 1px solid rgba(var(--color-border-rgb), 0.1);
+
+    // 添加细微的缩放效果
+    transform-origin: left center;
+    animation: sidebar-pop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+}
+
+@keyframes sidebar-pop {
+  from {
+    transform: translateX(-10px) scale(0.98);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0) scale(1);
+    opacity: 1;
   }
 }
 
@@ -248,6 +270,13 @@ useGlobalHotkeys()
   width: 10px;
   height: 100%;
   z-index: 1002;
+  background: linear-gradient(to right, rgba(var(--color-border-rgb), 0.05), transparent);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+
+  &:hover {
+    opacity: 1;
+  }
 }
 
 /* 右侧边栏样式 */
@@ -258,25 +287,87 @@ useGlobalHotkeys()
 /* 过渡动画 */
 .slide-left-enter-active,
 .slide-left-leave-active {
-  transition:
-    transform 0.3s ease,
-    opacity 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .slide-left-enter-from,
 .slide-left-leave-to {
   transform: translateX(-100%);
   opacity: 0;
+  box-shadow: none;
+}
+
+.slide-left-enter-to,
+.slide-left-leave-from {
+  transform: translateX(0);
+  opacity: 1;
+  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
 }
 
 /* 响应式布局 */
 @media (max-width: 768px) {
-  .sidebar {
-    position: fixed;
+  .content-wrapper {
+    position: relative;
+  }
+
+  // 常规侧边栏在移动端的样式
+  .sidebar:not(.hover-sidebar) {
+    position: absolute;
     top: 0;
     bottom: 0;
     left: 0;
-    z-index: 9999;
+    z-index: 1001;
+    background-color: var(--sidebar-bg);
+    transition: transform 0.3s ease;
+    transform: translateX(0);
+    width: 250px !important; // 固定宽度
+
+    &.collapsed {
+      transform: translateX(-100%);
+    }
+  }
+
+  // 恢复悬浮侧边栏样式
+  .sidebar.hover-sidebar {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 1001;
+    background-color: var(--sidebar-bg);
+    width: 250px !important;
+    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-right: 1px solid rgba(var(--color-border-rgb), 0.15);
+  }
+
+  // 保留悬停触发区，但调整其样式
+  .hover-zone {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 20px; // 增加触发区域宽度，方便移动端触发
+    height: 100%;
+    z-index: 1000;
+    background: linear-gradient(to right, rgba(var(--color-border-rgb), 0.08), transparent);
+  }
+
+  .main-content {
+    min-width: 0;
+    flex-shrink: 1;
+    margin-left: 0;
+    transition: margin-left 0.3s ease;
+  }
+
+  // 当侧边栏展开时，给主内容区添加左边距
+  .content-wrapper:has(.sidebar:not(.collapsed):not(.hover-sidebar)) .main-content {
+    margin-left: 250px;
+  }
+
+  .right-sidebar {
+    flex-shrink: 0;
+    width: 400px !important;
   }
 }
 </style>

@@ -72,7 +72,7 @@
               <QuickAccessMenu
                 v-if="item.path === '/cardbox' && isQuickAccessVisible"
                 v-model:visible="isQuickAccessVisible"
-                :style="quickAccessPosition"
+                :trigger-rect="triggerRect as DOMRect"
                 @mouseleave="handleMenuLeave"
               />
             </div>
@@ -250,7 +250,7 @@ const openHelp = () => {
 }
 
 const isQuickAccessVisible = ref(false)
-const quickAccessPosition = ref({})
+const triggerRect = ref<DOMRect | null>(null)
 let hideTimeout: NodeJS.Timeout | null = null
 
 // 显示菜单
@@ -261,15 +261,7 @@ const showQuickAccess = (event: MouseEvent) => {
   }
 
   const target = event.currentTarget as HTMLElement
-  const rect = target.getBoundingClientRect()
-
-  quickAccessPosition.value = {
-    position: 'fixed',
-    top: `${rect.top}px`,
-    left: `${rect.right - 8}px`,
-    zIndex: 1000
-  }
-
+  triggerRect.value = target.getBoundingClientRect()
   isQuickAccessVisible.value = true
 }
 

@@ -204,16 +204,11 @@ const startResize = (e: MouseEvent) => {
     flex: 1;
     overflow: hidden;
   }
-}
 
-@media (max-width: 768px) {
-  .right-sidebar {
-    position: fixed;
-    top: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 1000;
-    width: 100% !important;
+  @media (max-width: 768px) {
+    .resize-handle {
+      display: none;
+    }
   }
 }
 </style>
