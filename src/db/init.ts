@@ -241,6 +241,7 @@ export async function initDatabase(db: Knex): Promise<void> {
       table.string('authorName').notNullable().defaultTo('麦先生的专栏')
       table.string('authorMotto').notNullable().defaultTo('一起践行终身成长')
       table.string('qrcodeUrl').notNullable().defaultTo('')
+      table.string('globalHotkey').nullable()
       table.datetime('createdAt').notNullable()
       table.datetime('updatedAt').notNullable()
     })
@@ -252,10 +253,20 @@ export async function initDatabase(db: Knex): Promise<void> {
       authorName: '麦先生的专栏',
       authorMotto: '一起践行终身成长',
       qrcodeUrl: '',
+      globalHotkey: 'Alt+CommandOrControl+U',
       createdAt: new Date(),
       updatedAt: new Date()
     })
     console.log('user_settings 默认数据创建成功')
+  } else {
+    // 检查是否需要添加 globalHotkey 列
+    const hasGlobalHotkeyColumn = await db.schema.hasColumn('user_settings', 'globalHotkey')
+    if (!hasGlobalHotkeyColumn) {
+      await db.schema.alterTable('user_settings', (table) => {
+        table.string('globalHotkey').nullable()
+      })
+      console.log('user_settings 表添加 globalHotkey 列成功')
+    }
   }
   // 创建 custom_filters 表
   if (!(await db.schema.hasTable('custom_filters'))) {

@@ -1,5 +1,9 @@
 // 基础的用户设置字段
 export interface BaseUserSettings {
+  theme: 'light' | 'dark' | 'system'
+  fontSize: number
+  lineHeight: number
+  globalHotkey: string
   authorName: string
   authorMotto: string
   qrcodeUrl: string

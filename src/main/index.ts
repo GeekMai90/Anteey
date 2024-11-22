@@ -22,6 +22,7 @@ import { initialize, enable } from '@electron/remote/main'
 import { setupIpcHandlers } from './ipc'
 import log from './logger'
 import { config } from 'dotenv'
+import { getUserSettings } from '../services/user/userSettings'
 
 // 加载环境变量
 config({
@@ -175,7 +176,7 @@ function createWindow(): void {
       devTools: true, // 仅在开发环境启用开发者工具
       additionalArguments: ['--disable-site-isolation-trials'],
       webSecurity: false // 警告：这可能带来安全风险，仅在开发环境使用
-      // allowRunningInsecureContent: true // 警告：这可能带来安全风险，仅在开发环境使用
+      // allowRunningInsecureContent: true // 警告：这可能来安全风险，仅在开发环境使用
     }
   })
   // 启用 remote 模块
@@ -261,6 +262,9 @@ function createWindow(): void {
   log.info('Main window created and loaded')
 }
 
+// 添加窗口显示状态追踪
+let isWindowVisible = true
+
 app.whenReady().then(async () => {
   const antinetPath = app.getPath('userData')
   const userDataPath = path.join(antinetPath, 'UserData')
@@ -345,6 +349,24 @@ app.whenReady().then(async () => {
       }
     })
 
+    // 加载用户设置的快捷键
+    const settings = await getUserSettings()
+    if (settings?.globalHotkey) {
+      globalShortcut.register(settings.globalHotkey, () => {
+        const win = BrowserWindow.getFocusedWindow() || BrowserWindow.getAllWindows()[0]
+        if (win) {
+          if (isWindowVisible) {
+            win.hide()
+            isWindowVisible = false
+          } else {
+            win.show()
+            win.focus()
+            isWindowVisible = true
+          }
+        }
+      })
+    }
+
     app.on('activate', function () {
       if (BrowserWindow.getAllWindows().length === 0) createWindow()
     })
@@ -353,6 +375,11 @@ app.whenReady().then(async () => {
     console.error('主进程→ 应用初始化失败:', error)
     log.error('主进程→ 应用初始化失败:', error)
   }
+
+  // 在应用退出时注销快捷键
+  app.on('will-quit', () => {
+    globalShortcut.unregisterAll()
+  })
 })
 
 app.setName('Antinet')

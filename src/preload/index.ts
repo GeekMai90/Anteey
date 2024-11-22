@@ -509,5 +509,15 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // 获取用户数据目录
   getUserDataPath: async (): Promise<string> => {
     return await ipcRenderer.invoke('get-user-data-path')
+  },
+  updateGlobalHotkey: async (
+    newHotkey: string
+  ): Promise<{ success: boolean; settings?: UserSettings }> => {
+    try {
+      return await ipcRenderer.invoke('update-global-hotkey', newHotkey)
+    } catch (error) {
+      console.error('Preload: 更新全局快捷键时出错:', error)
+      throw error
+    }
   }
 })

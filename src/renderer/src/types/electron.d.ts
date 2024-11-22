@@ -193,7 +193,7 @@ export interface ElectronAPI {
   // 获取笔记的标签
   getNoteTags: (noteId: string) => Promise<Tag[]>
 
-  // 筛选规则相关的方法
+  // 筛选规则相关���方法
   // 创建自定义筛选规则
   createCustomFilter: (input: CreateCustomFilterInput) => Promise<CustomFilter>
 
@@ -244,7 +244,7 @@ export interface ElectronAPI {
     }[]
   >
 
-  // 词��相关的方法
+  // 词相关的方法
   getPendingSuggestions: () => Promise<WordSuggestion[]>
   processSuggestion: (word: string, status: 'accepted' | 'rejected') => Promise<void>
   processSuggestionBatch: (words: string[], status: 'accepted' | 'rejected') => Promise<void>
@@ -397,6 +397,8 @@ export interface ElectronAPI {
 
   // 更新外观设置
   updateAppearanceSettings: (settings: Partial<AppearanceSettings>) => Promise<AppearanceSettings>
+
+  updateGlobalHotkey: (hotkey: string) => Promise<{ success: boolean; error?: string }>
 }
 
 declare global {
