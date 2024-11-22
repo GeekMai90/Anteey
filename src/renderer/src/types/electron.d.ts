@@ -16,7 +16,8 @@ import {
   WhiteboardGroup,
   ConnectionCreateData,
   NoteReference,
-  Tag
+  Tag,
+  SearchParams
 } from './Note'
 import { UpdateUserSettings, UserSettings } from './UserSettings'
 import { CreateCustomFilterInput, CustomFilter, UpdateCustomFilterInput } from './Filter'
@@ -114,7 +115,7 @@ export interface ElectronAPI {
     notes: Note[]
     totalCount: number
   }>
-  searchNotes: (query: string) => Promise<
+  searchNotes: (query: SearchParams) => Promise<
     Array<{
       id: string
       title: string

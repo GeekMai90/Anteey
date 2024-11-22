@@ -1,5 +1,5 @@
 import { ipcRenderer } from 'electron'
-import { Note, NoteReference } from '../../renderer/src/types/Note'
+import { Note, NoteReference, SearchParams } from '../../renderer/src/types/Note'
 import {
   GetPaginatedNotesParams,
   TimelineQueryParams,
@@ -147,7 +147,7 @@ export const notesApi = {
 
   // 搜索笔记
   searchNotes: async (
-    query: string
+    query: SearchParams
   ): Promise<
     Array<{
       id: string

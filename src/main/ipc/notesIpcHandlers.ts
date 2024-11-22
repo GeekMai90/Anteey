@@ -40,6 +40,8 @@ import {
   getRecentEditedNotes
 } from '../../services/notes/notesService'
 
+import type { SearchParams } from '../../renderer/src/types/Note'
+
 export function setupNotesHandlers() {
   // 获取所有已删除的笔记
   ipcMain.handle('get-all-deleted-notes', async () => {
@@ -116,7 +118,7 @@ export function setupNotesHandlers() {
     return await searchNotesList(query)
   })
   // 搜索笔记
-  ipcMain.handle('search-notes', async (_, query: string) => {
+  ipcMain.handle('search-notes', async (_, query: SearchParams) => {
     return await searchNotes(query)
   })
 

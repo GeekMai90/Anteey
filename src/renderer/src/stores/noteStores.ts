@@ -16,6 +16,12 @@ const cardTypes = [
   { value: 'Hoplinkcard', label: '跳转卡', icon: Deeplink }
 ]
 
+// 添加搜索参数接口
+interface SearchParams {
+  mode: 'all' | 'address' | 'title'
+  term: string
+}
+
 export const useNoteStore = defineStore(
   'note',
   () => {
@@ -261,7 +267,7 @@ export const useNoteStore = defineStore(
     // 更新笔记类型
     const updateNoteCardType = async (noteId: string, cardType: CardType) => {
       try {
-        // 1. 更新保存状态
+        // 1. 更���保存状态
         currentNoteSaveStatus.value = 'saving'
 
         // 2. 直接更新数据库
@@ -929,12 +935,17 @@ export const useNoteStore = defineStore(
     }
 
     // 搜索笔记
-    const searchNotes = async (query: string) => {
+    const searchNotes = async (params: SearchParams | string) => {
       try {
-        return await window.electronAPI.searchNotes(query)
+        // 如果是字符串参数，转换为默认的全文搜索
+        const searchParams =
+          typeof params === 'string' ? { mode: 'all' as const, term: params } : params
+
+        const results = await window.electronAPI.searchNotes(searchParams)
+        return results
       } catch (error) {
-        console.error('noteStores.ts→ 搜索笔记失败:', error)
-        throw error
+        console.error('搜索笔记失败:', error)
+        return []
       }
     }
 

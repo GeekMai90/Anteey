@@ -185,62 +185,130 @@ export async function getHeatmapData(): Promise<{ date: string; count: number }[
   return Object.entries(data).map(([date, count]) => ({ date, count }))
 }
 
-// 搜索笔记
-export async function searchNotes(query: string): Promise<
+// 添加搜索参数接口
+interface SearchParams {
+  mode: 'all' | 'address' | 'title'
+  term: string
+}
+
+// 修改搜索笔记函数
+export async function searchNotes(params: SearchParams): Promise<
   Array<{
     id: string
     title: string
     blocks: Array<{ content: string }>
   }>
 > {
-  console.log('后端→ 开始搜索笔记:', query)
-  const lowercaseQuery = query.toLowerCase().trim()
+  console.log('后端→ 开始搜索笔记:', params)
+  const { mode, term } = params
+  const lowercaseQuery = term.toLowerCase().trim()
+
   if (!lowercaseQuery) return []
 
   try {
-    const notes = await db('notes').where('isDeleted', false).select('id', 'address', 'content')
+    let query = db('notes').where('isDeleted', false)
+
+    // 根据搜索模式构建不同的查询
+    switch (mode) {
+      case 'address':
+        // 只搜索地址
+        query = query.whereRaw('LOWER(address) LIKE ?', [`%${lowercaseQuery}%`])
+        break
+
+      case 'title':
+        // 搜索 metadata 中的 title
+        query = query.whereRaw("LOWER(json_extract(metadata, '$.title')) LIKE ?", [
+          `%${lowercaseQuery}%`
+        ])
+        break
+
+      case 'all':
+      default:
+        // 搜索所有字段
+        query = query.where((builder) => {
+          builder
+            .whereRaw('LOWER(address) LIKE ?', [`%${lowercaseQuery}%`])
+            .orWhereRaw("LOWER(json_extract(metadata, '$.title')) LIKE ?", [`%${lowercaseQuery}%`])
+            .orWhereRaw("LOWER(json_extract(content, '$')) LIKE ?", [`%${lowercaseQuery}%`])
+        })
+        break
+    }
+
+    const notes = await query.select('id', 'address', 'content', 'metadata')
 
     return notes.reduce(
       (results, note) => {
         const matchingBlocks: Array<{ content: string }> = []
+        const metadata = JSON.parse(note.metadata || '{}')
+        let content: any
 
-        // 搜索地址
-        if (note.address.toLowerCase().includes(lowercaseQuery)) {
-          matchingBlocks.push({ content: note.address })
+        try {
+          content = typeof note.content === 'string' ? JSON.parse(note.content) : note.content
+        } catch (e) {
+          console.error('解析笔记内容失败:', e)
+          content = { type: 'doc', content: [] }
         }
 
-        // 搜索内容
-        const content = JSON.parse(note.content)
-        const searchContent = (item: any) => {
+        // 定义一个辅助函数用于内容搜索
+        const searchContentHelper = (item: any) => {
           if (!item) return
           if (Array.isArray(item)) {
-            item.forEach(searchContent)
+            item.forEach(searchContentHelper)
           } else if (typeof item === 'object') {
             if (item.type === 'text' && typeof item.text === 'string') {
-              if (item.text.toLowerCase().includes(lowercaseQuery)) {
+              // 跳过第一行内容(标题)的匹配
+              if (
+                item.text.toLowerCase().includes(lowercaseQuery) &&
+                item.text !== metadata.title
+              ) {
                 matchingBlocks.push({ content: item.text })
               }
             } else if (item.content) {
-              searchContent(item.content)
+              searchContentHelper(item.content)
             } else {
-              Object.values(item).forEach(searchContent)
+              Object.values(item).forEach(searchContentHelper)
             }
           }
         }
-        searchContent(content)
 
-        // // 搜索标签
-        // const tags = JSON.parse(note.tags)
-        // tags.forEach((tag: string) => {
-        //   if (tag.toLowerCase().includes(lowercaseQuery)) {
-        //     matchingBlocks.push({ content: `#${tag}` })
-        //   }
-        // })
+        // 根据搜索模式处理匹配结果
+        switch (mode) {
+          case 'address': {
+            if (note.address.toLowerCase().includes(lowercaseQuery)) {
+              matchingBlocks.push({ content: note.address })
+            }
+            break
+          }
+
+          case 'title': {
+            const titleText = metadata.title || ''
+            if (titleText.toLowerCase().includes(lowercaseQuery)) {
+              matchingBlocks.push({ content: titleText })
+            }
+            break
+          }
+
+          case 'all': {
+            // 地址匹配
+            if (note.address.toLowerCase().includes(lowercaseQuery)) {
+              matchingBlocks.push({ content: note.address })
+            }
+
+            // 标题匹配
+            if (metadata.title?.toLowerCase().includes(lowercaseQuery)) {
+              matchingBlocks.push({ content: metadata.title })
+            }
+
+            // 内容匹配 (跳过标题)
+            searchContentHelper(content)
+            break
+          }
+        }
 
         if (matchingBlocks.length > 0) {
           results.push({
             id: note.id,
-            title: note.address,
+            title: note.address || metadata.title || '无标题',
             blocks: matchingBlocks
           })
         }
@@ -750,7 +818,7 @@ export async function updateNoteContent(id: string, content: object): Promise<No
           // 2. 更新笔记的向量 - 传入事务对象
           await updateNoteEmbedding(id, content, trx)
 
-          // 5. 转换并返回笔记
+          // 5. 转换并返���笔记
           return convertToNote(updatedNote)
         },
         {
@@ -835,7 +903,7 @@ export async function updateNote(id: string, updateNoteDto: Partial<Note>): Prom
       updateData.updatedAt = new Date()
 
       // 4. 保存更新前的数据处理
-      console.log('后端→ 更新数据处理完成，准备保存:', JSON.stringify(updateData, null, 2))
+      console.log('后端→ 更新数据处理完成准备保存:', JSON.stringify(updateData, null, 2))
 
       // 将 content 转换为 JSON 字符串
       if (updateData.content) {
@@ -1004,7 +1072,7 @@ export async function addStarToNote(id: string): Promise<Note> {
 export async function removeStarFromNote(
   id: string
 ): Promise<{ updatedNote: Note; reorderedNotes: Note[] }> {
-  console.log(`开始取消笔记 ${id} 的星标状态`)
+  console.log(`开始取消笔记 ${id} ��星标状态`)
 
   return db
     .transaction(async (trx) => {
@@ -1123,7 +1191,7 @@ export async function updateStarredNotesOrder(
 
     return updatedNotes.map(convertToNote)
   } catch (error) {
-    console.error('后端→ 更新星标笔记顺序失败:', error)
+    console.error('后端→ 更新星标��记顺序失败:', error)
     throw error
   }
 }
@@ -1171,7 +1239,7 @@ export async function updateNoteCardType(id: string, cardType: string): Promise<
     console.log('后端→ 笔记类型更新成功:', updatedNote)
     return convertToNote(updatedNote)
   } catch (error) {
-    console.error('后端→ 更新笔记类型失败:', error)
+    console.error('后���→ 更新笔记类型失败:', error)
     throw error
   }
 }
@@ -1503,7 +1571,7 @@ export async function updateNoteTag(params: {
   tagId: string
   action: 'add' | 'remove'
 }): Promise<void> {
-  // 不需要返回整个笔记了
+  // 不需要返回个笔记了
   try {
     await db.transaction(async (trx) => {
       // 1. 检查笔记是否存在
@@ -1733,93 +1801,6 @@ export async function getPaginatedNotesByCardbox({
 }
 
 // 辅助函数：应用单个筛选规则
-// function applyFilterRule(query: Knex.QueryBuilder, rule: FilterRule): Knex.QueryBuilder {
-//   // 解析值
-//   const parseValue = (value: any) => {
-//     if (typeof value === 'string') {
-//       try {
-//         const parsed = JSON.parse(value)
-//         // 如果解析后还是字符串，可能需要再次解析
-//         if (typeof parsed === 'string') {
-//           try {
-//             return JSON.parse(parsed)
-//           } catch {
-//             return parsed
-//           }
-//         }
-//         return parsed
-//       } catch {
-//         return value
-//       }
-//     }
-//     return value
-//   }
-
-//   const value = parseValue(rule.value)
-//   console.log('解析后的值:', value, '类型:', typeof value)
-
-//   // 提前声明所有可能用到的变量
-//   const tagIds = Array.isArray(value) ? value : [value]
-//   const boxId = String(value)
-//   const searchKeyword = `%${String(value)}%`
-
-//   console.log('处理后的变量:', {
-//     tagIds,
-//     boxId,
-//     searchKeyword
-//   })
-
-//   switch (rule.field) {
-//     case 'tag':
-//       if (rule.operator === 'contains') {
-//         console.log('执行标签包含查询，tagIds:', tagIds)
-//         return query.whereIn('note_tags.tagId', tagIds)
-//       } else if (rule.operator === 'doesNotContain') {
-//         return query.whereNotIn('note_tags.tagId', tagIds)
-//       }
-//       break
-
-//     case 'cardBox':
-//       if (rule.operator === 'is') {
-//         return boxId === 'inbox'
-//           ? query.whereNull('notes.cardBoxId')
-//           : query.where('notes.cardBoxId', boxId)
-//       } else if (rule.operator === 'isNot') {
-//         return boxId === 'inbox'
-//           ? query.whereNotNull('notes.cardBoxId')
-//           : query.whereNot('notes.cardBoxId', boxId)
-//       }
-//       break
-
-//     case 'cardType':
-//       if (rule.operator === 'is') {
-//         return query.where('notes.cardType', String(value))
-//       } else if (rule.operator === 'isNot') {
-//         return query.whereNot('notes.cardType', String(value))
-//       }
-//       break
-
-//     case 'keyword':
-//       if (rule.operator === 'contains') {
-//         return query.where((builder) => {
-//           builder
-//             .where('notes.content', 'like', searchKeyword)
-//             .orWhere('notes.address', 'like', searchKeyword)
-//         })
-//       } else if (rule.operator === 'doesNotContain') {
-//         return query.whereNot((builder) => {
-//           builder
-//             .where('notes.content', 'like', searchKeyword)
-//             .orWhere('notes.address', 'like', searchKeyword)
-//         })
-//       }
-//       break
-//   }
-//   // 在返回前打印生成的 SQL
-//   const sqlString = query.toString()
-//   console.log('生成的SQL:', sqlString)
-//   return query
-// }
 function applyFilterRule(query: Knex.QueryBuilder, rule: FilterRule): Knex.QueryBuilder {
   // 解析值并去除额外的引号
   const parseValue = (value: any) => {
@@ -1842,47 +1823,6 @@ function applyFilterRule(query: Knex.QueryBuilder, rule: FilterRule): Knex.Query
   console.log('第一次解析后的值:', value)
 
   switch (rule.field) {
-    // case 'tag': {
-    //   let tagIds: string[] = []
-
-    //   // 处理标签值，可能需要多次解析
-    //   if (typeof value === 'string') {
-    //     try {
-    //       // 尝试解析可能的嵌套 JSON
-    //       let parsed = value
-    //       while (typeof parsed === 'string' && (parsed.startsWith('[') || parsed.startsWith('"'))) {
-    //         parsed = JSON.parse(parsed)
-    //       }
-    //       tagIds = Array.isArray(parsed) ? parsed : [parsed]
-    //     } catch {
-    //       tagIds = [value]
-    //     }
-    //   } else if (Array.isArray(value)) {
-    //     tagIds = value
-    //   } else {
-    //     tagIds = [String(value)]
-    //   }
-
-    //   // 确保每个标签 ID 是干净的字符串
-    //   tagIds = tagIds.map((id) => {
-    //     if (typeof id === 'string') {
-    //       return id
-    //         .replace(/^"(.*)"$/, '$1')
-    //         .replace(/\\/g, '')
-    //         .replace(/^\[(.*)\]$/, '$1')
-    //     }
-    //     return String(id)
-    //   })
-
-    //   console.log('最终标签ID数组:', tagIds)
-
-    //   if (rule.operator === 'contains') {
-    //     return query.whereIn('note_tags.tagId', tagIds)
-    //   } else if (rule.operator === 'doesNotContain') {
-    //     return query.whereNotIn('note_tags.tagId', tagIds)
-    //   }
-    //   break
-    // }
     case 'tag': {
       let tagIds: string[] = []
 
@@ -1918,7 +1858,7 @@ function applyFilterRule(query: Knex.QueryBuilder, rule: FilterRule): Knex.Query
       console.log('最终标签ID数组:', tagIds)
 
       if (rule.operator === 'contains') {
-        // 修改为使用子查询，确保笔记同时包含所有指定标签
+        // 修改为使用子查询，确保笔记同时包含所有指定标��
         return query.whereIn('notes.id', function () {
           this.select('noteId')
             .from('note_tags')

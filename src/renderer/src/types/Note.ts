@@ -329,3 +329,8 @@ export interface VectorSearchResponse {
     total: number
   }
 }
+
+export interface SearchParams {
+  mode: 'all' | 'address' | 'title'
+  term: string
+}
