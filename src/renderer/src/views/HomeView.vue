@@ -354,8 +354,21 @@ onMounted(async () => {
   color: white;
 }
 
-:deep(.vch__months__labels__wrapper, .vch__days__labels__wrapper) {
+:deep(.vch__days__labels__wrapper) {
+  width: 40px !important;
   font-size: 10px;
+  color: rgba(255, 255, 255, 0.8);
+
+  .vch__day__label {
+    width: 100% !important;
+    text-align: right;
+    padding-right: 8px;
+  }
+}
+
+:deep(.vch__months__labels__wrapper) {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.8);
 }
 
 :deep(.vch__legend) {
