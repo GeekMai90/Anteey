@@ -169,8 +169,7 @@ const initializeNote = async (noteId: string) => {
     if (note) {
       currentNote.value = note
       await fetchNoteTags(noteId) // 获取笔记的标签
-      // 添加到最近笔记
-      noteStore.addToRecentNotes(noteId)
+
       focusEditor()
     } else {
       message.error('笔记不存在')
@@ -434,6 +433,8 @@ onBeforeRouteUpdate(async (to, from, next) => {
 // 在组件卸载前确保所有待保存的内容都已保存
 onBeforeUnmount(() => {
   saveContent.flush()
+  // 添加到最近笔记
+  noteStore.addToRecentNotes(noteId)
 })
 
 // === 卡片类型菜单管理 ===
