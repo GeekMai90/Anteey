@@ -311,7 +311,7 @@ const {
 // === 更多功能菜单管理 ===
 const { menuItems: noteMenuItems, resetDeleteState } = useNoteMenu({
   noteId: props.noteId,
-  menuItems: ['star', 'sidebar', 'copyNoteLink', 'exportNote', 'delete', 'copyQuote']
+  menuItems: ['star', 'copyQuote', 'share', 'exportNote']
 })
 
 const moreBtnRef = ref<HTMLElement | null>(null)

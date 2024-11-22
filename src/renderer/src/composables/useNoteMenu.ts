@@ -500,7 +500,7 @@ export function useNoteMenu(params: NoteMenuParams) {
     },
     exportNote: {
       name: 'exportNote',
-      label: '导出笔记',
+      label: '导出',
       icon: ExportIcon,
       action: handleExportNote
     },
