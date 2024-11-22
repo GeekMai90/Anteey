@@ -334,7 +334,6 @@ onMounted(async () => {
   width: 100%;
   max-width: 800px;
   margin: 20px auto;
-  padding: 0 20px;
   z-index: 1;
   box-sizing: border-box;
   user-select: none;
