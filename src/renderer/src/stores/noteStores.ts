@@ -109,7 +109,10 @@ export const useNoteStore = defineStore(
       currentPage: 1
     })
     const getRecentNotes = (count: number) => {
-      return recentNotes.value.slice(0, count)
+      // 过滤掉已删除的笔记，并返回指定数量
+      return recentNotes.value
+        .filter((note) => !note.isDeleted) // 添加过滤条件
+        .slice(0, count)
     }
 
     const getRecentEditedNotes = async () => {
@@ -800,6 +803,10 @@ export const useNoteStore = defineStore(
           // 从星标笔记中移除
           if (starredNotes.value.some((note) => note.id === id)) {
             starredNotes.value = starredNotes.value.filter((note) => note.id !== id)
+          }
+          // 从最近笔记中移除
+          if (recentNotes.value.some((note) => note.id === id)) {
+            recentNotes.value = recentNotes.value.filter((note) => note.id !== id)
           }
           return true
         } else {
