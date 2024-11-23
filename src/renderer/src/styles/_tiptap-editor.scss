@@ -596,29 +596,3 @@ span[data-type="emoji"] {
     background-color: var(--color-selection) !important;
   }
 }
-
-// /* 针对 Webkit 浏览器（Chrome、Safari 等） */
-// .tiptap-container::-webkit-scrollbar {
-//   width: 8px; /* 保持较细的宽度 */
-// }
-
-// .tiptap-container::-webkit-scrollbar-thumb {
-//   background: rgba(0, 0, 0, 0.2); /* 滚动条滑块颜色 */
-//   border-radius: 4px;
-// }
-
-// /* 移除悬停效果 */
-// .tiptap-container::-webkit-scrollbar-thumb:hover {
-//   background: rgba(0, 0, 0, 0.2); /* 与非悬停状态保持一致 */
-// }
-
-// /* 针对 Firefox */
-// .tiptap-container {
-//   scrollbar-width: thin; /* 保持"thin"设置 */
-//   scrollbar-color: rgba(0, 0, 0, 0.2) transparent; /* 滑块颜色 透明轨道 */
-// }
-
-// /* 针对 IE 和 Edge */
-// .tiptap-container {
-//   -ms-overflow-style: none; /* IE 和 Edge */
-// }
