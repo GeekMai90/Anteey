@@ -1,6 +1,6 @@
 import { ref } from 'vue'
 import { debounce } from 'lodash-es'
-import { useWhiteboardStore } from '@renderer/stores/whiteboardStores'
+import { useWhiteboardStore } from '../../stores/whiteboardStores'
 
 export function useWhiteboardViewState() {
   const whiteboardStore = useWhiteboardStore()

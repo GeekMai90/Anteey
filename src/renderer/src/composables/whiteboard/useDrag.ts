@@ -1,6 +1,6 @@
 import { ref } from 'vue'
-import type { WhiteboardNote } from '@renderer/types/Note'
-import { useWhiteboardStore } from '@renderer/stores/whiteboardStores'
+import type { WhiteboardNote } from '../../types/Note'
+import { useWhiteboardStore } from '../../stores/whiteboardStores'
 import type { Ref } from 'vue'
 
 export function useDrag(

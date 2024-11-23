@@ -1,6 +1,6 @@
 import { ref, type Ref } from 'vue'
-import type { WhiteboardNote } from '@renderer/types/Note'
-import { useWhiteboardStore } from '@renderer/stores/whiteboardStores'
+import type { WhiteboardNote } from '../../types/Note'
+import { useWhiteboardStore } from '../../stores/whiteboardStores'
 
 export function useResize(
   whiteboardNotes: Ref<WhiteboardNote[]>,

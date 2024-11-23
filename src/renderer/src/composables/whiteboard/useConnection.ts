@@ -1,7 +1,7 @@
 import { ref, computed, type Ref } from 'vue'
-import type { WhiteboardNote, Connection, ConnectionCreateData } from '@renderer/types/Note'
-import { useWhiteboardStore } from '@renderer/stores/whiteboardStores'
-import { useContextMenuStore } from '@renderer/stores/contextMenuStore'
+import type { WhiteboardNote, Connection, ConnectionCreateData } from '../../types/Note'
+import { useWhiteboardStore } from '../../stores/whiteboardStores'
+import { useContextMenuStore } from '../../stores/contextMenuStore'
 import { Delete } from '@icon-park/vue-next'
 import { markRaw } from 'vue'
 
