@@ -233,6 +233,14 @@ $dark-mode-text: $gray-100;
 
   // 主题菜单
   --color-button-bg: #f2f2f2;
+
+  // 主题文字颜色
+  --color-text-pink: #ff6b8b;
+  --color-text-orange: #ff9f69;
+  --color-text-green: #7ec062;
+  --color-text-cyan: #5cd9cf;
+  --color-text-blue: #69b5ff;
+  --color-text-purple: #b37feb;
 }
 
 .theme-dark {
@@ -335,4 +343,12 @@ $dark-mode-text: $gray-100;
   --color-icon-menu-default: #ffffff;
   --color-icon-image-more: rgba(255, 255, 255, 0.5);
   --color-icon-image-more-hover: rgba(255, 255, 255, 0.6);
+
+  // 主题文字颜色
+  --color-text-pink: #ff8fa6;
+  --color-text-orange: #ffbb8c;
+  --color-text-green: #a6e595;
+  --color-text-cyan: #87ede5;
+  --color-text-blue: #91caff;
+  --color-text-purple: #d3adf7;
 }
