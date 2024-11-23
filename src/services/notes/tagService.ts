@@ -211,7 +211,7 @@ export async function deleteTag(id: string): Promise<void> {
         .whereNot('id', id)
         .andWhere(function () {
           const pathStr = JSON.stringify(JSON.parse(tagToDelete.path)).slice(1, -1)
-          this.whereRaw(`path::text LIKE ?`, [`[${pathStr}%`])
+          this.whereRaw(`path LIKE ?`, [`[${pathStr}%`])
         })
 
       // 3. 收集所有需要删除的标签ID
@@ -262,7 +262,7 @@ export async function getTagNotesCount(tagId: string): Promise<{
       .whereNot('id', tagId)
       .andWhere(function () {
         const pathStr = JSON.stringify(JSON.parse(tag.path)).slice(1, -1)
-        this.whereRaw(`path::text LIKE ?`, [`[${pathStr}%`])
+        this.whereRaw(`path LIKE ?`, [`[${pathStr}%`])
       })
 
     // 4. 获取包含子标签的所有笔记数量
@@ -411,7 +411,7 @@ export async function searchTagsAdvanced(params: TagSearchParams): Promise<Tag[]
 
     if (params.parentPath) {
       const pathStr = JSON.stringify(params.parentPath).slice(1, -1)
-      query = query.whereRaw(`path::text LIKE ?`, [`[${pathStr}%`])
+      query = query.whereRaw(`path LIKE ?`, [`[${pathStr}%`])
     }
 
     // 分组和排序
