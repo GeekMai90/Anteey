@@ -404,8 +404,6 @@ import Emoji, { gitHubEmojis } from '@tiptap-pro/extension-emoji'
 import { Markdown } from 'tiptap-markdown'
 import Dropcursor from '@tiptap/extension-dropcursor'
 import Placeholder from '@tiptap/extension-placeholder'
-import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight'
-import { all, createLowlight } from 'lowlight'
 import Typography from '@tiptap/extension-typography'
 import FileHandler from '@tiptap-pro/extension-file-handler'
 import Image from '@tiptap/extension-image'
@@ -455,6 +453,7 @@ import Export from '@tiptap-pro/extension-export'
 import { useNoteStore } from '@renderer/stores/noteStores'
 import { useUIStore } from '@renderer/stores/useUIStore'
 import { useRouter } from 'vue-router/dist/vue-router'
+import { CustomCodeBlock } from '@renderer/utils/tiptap/CustomCodeBlock'
 
 const noteStore = useNoteStore()
 const uiStore = useUIStore()
@@ -1079,7 +1078,6 @@ const deleteParagraph = () => {
   currentParagraph.value = null
 }
 
-const lowlight = createLowlight(all)
 const editorExtensions = computed(() => {
   const extensions = [
     StarterKit.configure({
@@ -1135,10 +1133,7 @@ const editorExtensions = computed(() => {
         return '记录思考，或输入 / 命令'
       }
     }),
-    CodeBlockLowlight.configure({
-      lowlight,
-      defaultLanguage: 'plaintext'
-    }),
+    CustomCodeBlock,
     Typography,
     CustomImage,
     TaskList,
