@@ -913,13 +913,13 @@ const getContextMenuPosition = (event) => {
 }
 
 const closeContextMenu = (event) => {
-  // 检查点击是否在上下文菜单外部
+  // 检查点击是否在上下文菜单���部
   if (showContextMenu.value && !event.target.closest('.context-menu')) {
     showContextMenu.value = false
   }
 }
 onMounted(() => {
-  // 添加全��点击事件监听器
+  // 添加全点击事件监听器
   document.addEventListener('click', closeContextMenu)
 })
 
@@ -928,100 +928,25 @@ onBeforeUnmount(() => {
   document.removeEventListener('click', closeContextMenu)
 })
 
-// 辅助函数：检查是否为有效的块级节点
-const isValidBlockNode = (node) => {
-  return [
-    'paragraph',
-    'heading',
-    'bulletList',
-    'orderedList',
-    'listItem',
-    'taskList',
-    'taskItem',
-    'codeBlock'
-  ].includes(node.type.name)
-}
 // 拖拽块点击功能
-// const handleDragHandleClick = (event) => {
-//   event.preventDefault()
-//   event.stopPropagation()
-
-//   if (editor.value) {
-//     const { state, commands } = editor.value
-//     const { from } = state.selection
-//     const $pos = state.doc.resolve(from)
-//     let node = $pos.parent
-//     let depth = $pos.depth
-
-//     // 向上查找有效的块级节点
-//     while (depth > 0 && !isValidBlockNode(node)) {
-//       depth--
-//       node = $pos.node(depth)
-//     }
-
-//     if (isValidBlockNode(node)) {
-//       const nodePos = $pos.before(depth)
-
-//       // 使用 Tiptap 命令选择整个节点
-//       commands.setNodeSelection(nodePos)
-
-//       // 设置上下文菜单位置
-//       const { x, y } = getContextMenuPosition(event)
-//       showContextMenu.value = true
-//       contextMenuX.value = x - 5
-//       contextMenuY.value = y + 10
-//       currentParagraph.value = node
-
-//       console.log('拖拽块被点击了!', node)
-//       console.log('节点类型:', node.type.name)
-//       console.log('节点位置:', nodePos)
-//     } else {
-//       console.log('未找到有效的块级节点')
-//     }
-//   } else {
-//     console.log('编辑器实例未找到')
-//   }
-// }
 const handleDragHandleClick = (event) => {
   event.preventDefault()
   event.stopPropagation()
 
-  if (!editor.value) {
-    console.log('编辑器实例未找到')
+  if (!editor.value || !currentHoveredNode.value || currentNodePos.value === -1) {
+    console.log('编辑器实例或节点未找到')
     return
   }
 
-  const { state } = editor.value
-
-  // 获取当前选区的开始位置
-  const from = state.selection.from
-
-  // 解析位置
-  const $pos = state.doc.resolve(from)
-
-  // 查找最近的块级节点
-  let depth = $pos.depth
-  console.log('初始深度:', depth)
-  while (depth > 0 && !isValidBlockNode($pos.node(depth))) {
-    depth--
-  }
-
-  if (depth === 0) {
-    return
-  }
-
-  const node = $pos.node(depth)
-  const nodePos = $pos.before(depth)
-
-  // 使用 setNodeSelection 命令选择整个节点
-  editor.value.commands.setNodeSelection(nodePos)
+  // 直接使用存储的位置
+  editor.value.commands.setNodeSelection(currentNodePos.value)
 
   // 设置上下文菜单位置
   const { x, y } = getContextMenuPosition(event)
   showContextMenu.value = true
   contextMenuX.value = x - 5
   contextMenuY.value = y + 10
-  currentParagraph.value = node
+  currentParagraph.value = currentHoveredNode.value
 }
 
 // 清空格式
@@ -1078,6 +1003,10 @@ const deleteParagraph = () => {
   currentParagraph.value = null
 }
 
+// 添加一个新的 ref 来存储节点位置
+const currentNodePos = ref(-1)
+
+// 在 editorExtensions computed 属性中修改 DragHandle 配置
 const editorExtensions = computed(() => {
   const extensions = [
     StarterKit.configure({
@@ -1220,12 +1149,15 @@ const editorExtensions = computed(() => {
           element.addEventListener('click', handleDragHandleClick)
           return element
         },
-        onNodeChange: ({ node }) => {
-          if (node) {
-            currentHoveredNode.value = node
-            // console.log('当前悬停的节点:', node.type.name)
-            // 可以在这里存储当前节点信息，以便在点击时使用
+        onNodeChange: ({ node, pos }) => {
+          // 使用 pos 参数
+          if (!node || pos === -1) {
+            currentHoveredNode.value = null
+            currentNodePos.value = -1
+            return
           }
+          currentHoveredNode.value = node
+          currentNodePos.value = pos
         }
       })
     )
