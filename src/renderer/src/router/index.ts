@@ -105,6 +105,11 @@ const routes = [
     path: '/temp',
     component: () => import('../components/common/EmptyComponent.vue'),
     meta: { keepAlive: false }
+  },
+  {
+    path: '/tldraw/:id?',
+    name: 'Tldraw',
+    component: () => import('../views/TldrawView.vue')
   }
 ]
 

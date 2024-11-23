@@ -1,0 +1,11 @@
+:root {
+  /* 覆盖 tldraw 的默认字体设置 */
+  --tldraw-font-draw: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
+    sans-serif;
+  --tldraw-font-serif: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue',
+    Arial, serif;
+  --tldraw-font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
+    sans-serif;
+  --tldraw-font-mono: ui-monospace, 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier,
+    monospace;
+}

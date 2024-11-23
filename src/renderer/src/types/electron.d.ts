@@ -27,6 +27,19 @@ import { ChatMessage, ChatSession, RAGContext, RAGHistoryRecord } from './assist
 import { LLMConfig } from './llm'
 import { LocalTreeData, LocalTreeWithReferencesData } from './localTree'
 import { AppearanceSettings } from '../../../services/appearance/appearanceService'
+import {
+  Camera,
+  CreateBoardDto,
+  CreateBoardNoteDto,
+  TldrawBoard,
+  TldrawBoardFilter,
+  TldrawBoardNote,
+  TldrawBoardSort,
+  TldrawBoardState,
+  UpdateBoardDto,
+  UpdateBoardNoteDto,
+  TldrawSnapshot
+} from './Tldraw'
 
 export interface ElectronAPI {
   createNote: () => Promise<Note>
@@ -193,7 +206,7 @@ export interface ElectronAPI {
   // 获取笔记的标签
   getNoteTags: (noteId: string) => Promise<Tag[]>
 
-  // 筛选规则相关���方法
+  // 筛选规则相关的方法
   // 创建自定义筛选规则
   createCustomFilter: (input: CreateCustomFilterInput) => Promise<CustomFilter>
 
@@ -339,7 +352,7 @@ export interface ElectronAPI {
     currentContexts: RAGContext[]
   ) => Promise<{ answer: string; context: RAGContext; messages: ChatMessage[] }>
 
-  // 聊一聊模式
+  // 一聊模式
   handleChat: (
     query: string,
     sessionId: string | null,
@@ -399,6 +412,29 @@ export interface ElectronAPI {
   updateAppearanceSettings: (settings: Partial<AppearanceSettings>) => Promise<AppearanceSettings>
 
   updateGlobalHotkey: (hotkey: string) => Promise<{ success: boolean; error?: string }>
+
+  // Tldraw 相关的方法
+  // 白板基础操作
+  createTldrawBoard: (data: CreateBoardDto) => Promise<TldrawBoard>
+  updateTldrawBoard: (id: string, data: UpdateBoardDto) => Promise<void>
+  deleteTldrawBoard: (id: string) => Promise<void>
+  getTldrawBoard: (id: string) => Promise<TldrawBoard | null>
+  getTldrawBoards: (filter: TldrawBoardFilter, sort?: TldrawBoardSort) => Promise<TldrawBoard[]>
+
+  // 白板状态操作
+  saveTldrawBoardState: (boardId: string, content: TldrawSnapshot, camera: Camera) => Promise<void>
+  getTldrawBoardState: (boardId: string) => Promise<TldrawBoardState | null>
+
+  // 白板笔记操作
+  createTldrawNote: (data: CreateBoardNoteDto) => Promise<TldrawBoardNote>
+  updateTldrawNote: (id: string, data: UpdateBoardNoteDto) => Promise<void>
+  deleteTldrawNote: (id: string) => Promise<void>
+  getTldrawBoardNotes: (boardId: string) => Promise<TldrawBoardNote[]>
+
+  // 白板排序和收藏操作
+  updateTldrawBoardsOrder: (boardIds: string[]) => Promise<void>
+  toggleTldrawBoardStarred: (id: string) => Promise<void>
+  updateTldrawNotesZIndex: (notes: { id: string; zIndex: number }[]) => Promise<void>
 }
 
 declare global {

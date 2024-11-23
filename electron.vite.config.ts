@@ -1,7 +1,7 @@
 import { defineConfig, externalizeDepsPlugin } from 'electron-vite'
 import vue from '@vitejs/plugin-vue'
+import react from '@vitejs/plugin-react'
 import path from 'path'
-import { visualizer } from 'rollup-plugin-visualizer'
 
 export default defineConfig({
   main: {
@@ -17,21 +17,26 @@ export default defineConfig({
         '@resources': path.resolve(__dirname, 'resources')
       }
     },
-    plugins: [
-      vue(),
-      visualizer({
-        filename: './stats.html', // 分析图生成的文件名
-        open: true, // 自动打开分析图
-        gzipSize: true, // 显示 gzip 后的大小
-        brotliSize: true, // 显示 brotli 压缩后的大小
-        template: 'treemap' // 使用树形图模板
-      })
-    ],
+    plugins: [vue(), react()],
+    optimizeDeps: {
+      include: ['@tldraw/tldraw']
+    },
     build: {
       rollupOptions: {
         input: {
           index: path.resolve(__dirname, 'src/renderer/index.html')
         }
+      },
+      assetsInlineLimit: 0
+    },
+    server: {
+      fs: {
+        strict: false
+      },
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Content-Security-Policy':
+          "default-src * 'unsafe-inline' 'unsafe-eval'; font-src 'self' data: https://cdn.tldraw.com"
       }
     }
   }

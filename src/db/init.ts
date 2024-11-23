@@ -106,7 +106,7 @@ export async function initDatabase(db: Knex): Promise<void> {
           })
         )
 
-      // 引用元数据
+      // 引用��数据
       table
         .json('metadata')
         .notNullable()
@@ -504,6 +504,115 @@ export async function initDatabase(db: Knex): Promise<void> {
 
     console.log('appearance_settings 表创建成功')
   }
+
+  // 创建 tldraw_boards 表
+  if (!(await db.schema.hasTable('tldraw_boards'))) {
+    await db.schema.createTable('tldraw_boards', (table) => {
+      table.string('id').primary()
+      table.string('name').notNullable()
+      table.text('description').nullable()
+      table.datetime('createdAt').notNullable()
+      table.datetime('updatedAt').notNullable()
+      table.string('parentId').nullable().index()
+      table.boolean('isFolder').notNullable().defaultTo(false)
+      table.integer('sortOrder').nullable()
+      table.boolean('isStarred').notNullable().defaultTo(false)
+      table.integer('starredOrder').nullable()
+      table
+        .json('metadata')
+        .nullable()
+        .defaultTo(
+          JSON.stringify({
+            content: null,
+            camera: { x: 0, y: 0, z: 1 }
+          })
+        )
+
+      // 索引
+      table.index(['parentId', 'sortOrder'])
+      table.index(['isStarred', 'starredOrder'])
+      table.index('createdAt')
+      table.index('updatedAt')
+    })
+    console.log('tldraw_boards 表创建成功')
+  }
+
+  // 创建 tldraw_board_states 表
+  if (!(await db.schema.hasTable('tldraw_board_states'))) {
+    await db.schema.createTable('tldraw_board_states', (table) => {
+      table.string('boardId').primary()
+      table
+        .json('content')
+        .notNullable()
+        .defaultTo(
+          JSON.stringify({
+            shapes: {},
+            bindings: {},
+            assets: {}
+          })
+        )
+      table
+        .json('camera')
+        .notNullable()
+        .defaultTo(
+          JSON.stringify({
+            x: 0,
+            y: 0,
+            z: 1
+          })
+        )
+      table.datetime('createdAt').notNullable()
+      table.datetime('updatedAt').notNullable()
+
+      table.foreign('boardId').references('tldraw_boards.id').onDelete('CASCADE')
+      table.index('updatedAt')
+    })
+    console.log('tldraw_board_states 表创建成功')
+  }
+
+  // 创建 tldraw_board_notes 表
+  if (!(await db.schema.hasTable('tldraw_board_notes'))) {
+    await db.schema.createTable('tldraw_board_notes', (table) => {
+      table.string('id').primary()
+      table.string('boardId').notNullable()
+      table.string('noteId').notNullable()
+      table.json('position').notNullable()
+      table.json('size').notNullable()
+      table.float('rotation').notNullable().defaultTo(0)
+      table.integer('zIndex').notNullable()
+      table.boolean('isLocked').notNullable().defaultTo(false)
+      table.boolean('isHidden').notNullable().defaultTo(false)
+      table.datetime('createdAt').notNullable()
+      table.datetime('updatedAt').notNullable()
+      table
+        .json('style')
+        .nullable()
+        .defaultTo(
+          JSON.stringify({
+            backgroundColor: null,
+            borderColor: null,
+            textColor: null
+          })
+        )
+      table
+        .json('metadata')
+        .nullable()
+        .defaultTo(
+          JSON.stringify({
+            lastSync: null,
+            version: 1
+          })
+        )
+
+      table.foreign('boardId').references('tldraw_boards.id').onDelete('CASCADE')
+      table.foreign('noteId').references('notes.id').onDelete('CASCADE')
+      table.index('boardId')
+      table.index('noteId')
+      table.index(['boardId', 'zIndex'])
+      table.index('updatedAt')
+    })
+    console.log('tldraw_board_notes 表创建成功')
+  }
 }
 
 export async function down(db: Knex): Promise<void> {
@@ -526,5 +635,8 @@ export async function down(db: Knex): Promise<void> {
   await db.schema.dropTableIfExists('rag_history')
   await db.schema.dropTableIfExists('llm_configs')
   await db.schema.dropTableIfExists('appearance_settings')
+  await db.schema.dropTableIfExists('tldraw_board_notes')
+  await db.schema.dropTableIfExists('tldraw_board_states')
+  await db.schema.dropTableIfExists('tldraw_boards')
   console.log('所有表已删除')
 }

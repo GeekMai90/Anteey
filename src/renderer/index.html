@@ -66,8 +66,30 @@
     </style>
     <meta
     http-equiv="Content-Security-Policy"
-    content="default-src *; img-src 'self' file: data: blob: https: http: *; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; connect-src 'self' file: https://api.tiptap.dev; "
+    content="
+      default-src *; 
+      img-src 'self' file: data: blob: https: http: *; 
+      script-src 'self' 'unsafe-inline' 'unsafe-eval'; 
+      style-src 'self' 'unsafe-inline' https://cdn.tldraw.com; 
+      font-src 'self' data: https://cdn.tldraw.com;
+      connect-src 'self' file: https://api.tiptap.dev https://cdn.tldraw.com https://www.tldraw.com;
+    "
   />
+    <!-- 预加载 tldraw 字体 -->
+    <link 
+      rel="preload" 
+      href="https://cdn.tldraw.com/3.4.1/fonts/Shantell_Sans-TldrawishRegular.woff2" 
+      as="font" 
+      type="font/woff2" 
+      crossorigin 
+    />
+    <link 
+      rel="preload" 
+      href="https://cdn.tldraw.com/3.4.1/fonts/IBMPlexSans-Medium.woff2" 
+      as="font" 
+      type="font/woff2" 
+      crossorigin 
+    />
   </head>
 
   <body>

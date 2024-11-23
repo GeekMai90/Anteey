@@ -32,7 +32,9 @@
     "types": [
       "jest",
       "node"
-    ]
+    ],
+    "jsx": "react-jsx",
+    "jsxImportSource": "react"
   },
   "include": [
     "src/**/*.ts",

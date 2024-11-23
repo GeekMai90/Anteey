@@ -12,6 +12,7 @@ import { setupRAGHandlers } from './ragIpcHandlers'
 import { setupLLMConfigHandlers } from './llmConfigIpcHandlers'
 import { setupLocalTreeHandlers } from './localTreeIpcHandlers'
 import { setupAppearanceHandlers } from './appearanceIpcHandlers'
+import { setupTldrawHandlers } from './tldrawIpcHandlers'
 export function setupIpcHandlers() {
   setupNotesHandlers()
   setupWhiteboardHandlers()
@@ -27,4 +28,5 @@ export function setupIpcHandlers() {
   setupLLMConfigHandlers()
   setupLocalTreeHandlers()
   setupAppearanceHandlers()
+  setupTldrawHandlers()
 }

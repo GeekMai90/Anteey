@@ -175,8 +175,11 @@ function createWindow(): void {
       nodeIntegration: false,
       devTools: true, // 仅在开发环境启用开发者工具
       additionalArguments: ['--disable-site-isolation-trials'],
-      webSecurity: false // 警告：这可能带来安全风险，仅在开发环境使用
-      // allowRunningInsecureContent: true // 警告：这可能来安全风险，仅在开发环境使用
+      webSecurity: true,
+      allowRunningInsecureContent: false,
+      webviewTag: true,
+      nodeIntegrationInWorker: true,
+      experimentalFeatures: true
     }
   })
   // 启用 remote 模块
@@ -209,19 +212,31 @@ function createWindow(): void {
   })
 
   mainWindow.webContents.session.webRequest.onHeadersReceived((details, callback) => {
+    const responseHeaders = { ...details.responseHeaders }
+    delete responseHeaders['content-security-policy']
+    delete responseHeaders['content-security-policy-report-only']
+
     callback({
       responseHeaders: {
-        ...details.responseHeaders,
+        ...responseHeaders,
         'Content-Security-Policy': [
-          'default-src *; ' +
-            "img-src 'self' file: data: blob: https: http: *; " +
-            "script-src 'self' 'unsafe-inline' 'unsafe-eval'; " +
-            "style-src 'self' 'unsafe-inline'; " +
-            "connect-src 'self' file: https://api.tiptap.dev;" +
-            'font-src *'
+          "default-src * 'unsafe-inline' 'unsafe-eval' data: blob:;" +
+            "script-src * 'unsafe-inline' 'unsafe-eval';" +
+            "style-src * 'unsafe-inline';" +
+            'img-src * data: blob:;' +
+            'font-src * data:;' +
+            'connect-src *;'
         ]
       }
     })
+  })
+
+  mainWindow.webContents.session.webRequest.onBeforeRequest((details, callback) => {
+    if (details.url.includes('cdn.tldraw.com')) {
+      callback({ cancel: false })
+    } else {
+      callback({ cancel: false })
+    }
   })
 
   // 在加载 URL 之前就创建并显示窗口
