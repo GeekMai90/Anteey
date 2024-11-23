@@ -483,7 +483,7 @@ import {
 import TiptapImage from '@renderer/components/tiptap/TiptapImage.vue'
 import TaskItem from '@tiptap/extension-task-item'
 import TaskList from '@tiptap/extension-task-list'
-import { emojiSuggestion } from '@renderer/utils/tiptap/suggestion'
+import { emojiSuggestion } from '@renderer/utils/tiptap/EmojiSuggestion'
 import { SlashCommands } from '@renderer/utils/tiptap/SlashCommands'
 import { slashCommandSuggestion } from '@renderer/utils/tiptap/slashCommandSuggestion'
 // import UniqueID from '@tiptap-pro/extension-unique-id'

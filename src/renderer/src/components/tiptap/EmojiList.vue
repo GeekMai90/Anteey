@@ -6,11 +6,8 @@
       :class="{ 'is-selected': index === selectedIndex }"
       @click="selectItem(index)"
     >
-      <img v-if="item.fallbackImage" :src="item.fallbackImage" align="absmiddle" />
-      <template v-else>
-        {{ item.emoji }}
-      </template>
-      :{{ item.name }}:
+      <img :src="item.src" :alt="item.shortName" class="emoji-image" />
+      <span>:{{ item.shortName }}:</span>
     </button>
   </div>
 </template>
@@ -57,7 +54,11 @@ const enterHandler = () => {
 const selectItem = (index) => {
   const item = props.items[index]
   if (item) {
-    props.command({ name: item.name })
+    props.command({
+      name: item.shortName,
+      src: item.src,
+      shortcodes: [item.shortName]
+    })
   }
 }
 
@@ -86,7 +87,6 @@ defineExpose({
 </script>
 
 <style lang="scss">
-/* Dropdown menu 样式保持不变 */
 .dropdown-menu {
   background: var(--color-bg-primary);
   border: 1px solid var(--color-border);
@@ -98,17 +98,20 @@ defineExpose({
   overflow: auto;
   padding: 0.4rem;
   position: relative;
+  max-height: 300px;
 
   button {
     align-items: center;
     background-color: transparent;
     display: flex;
-    gap: 0.25rem;
+    gap: 0.5rem;
     text-align: left;
     width: 100%;
     border: none;
     border-radius: 0.25rem;
-    padding: 0.25rem 0.5rem;
+    padding: 0.4rem 0.6rem;
+    color: var(--color-text-primary);
+    cursor: pointer;
 
     &:hover,
     &:hover.is-selected {
@@ -119,9 +122,14 @@ defineExpose({
       background-color: var(--color-hover-bg);
     }
 
-    img {
-      height: 1em;
-      width: 1em;
+    .emoji-image {
+      width: 1.2em;
+      height: 1.2em;
+      vertical-align: -0.1em;
+    }
+
+    span {
+      font-size: 0.9em;
     }
   }
 }
