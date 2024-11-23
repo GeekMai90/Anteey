@@ -101,6 +101,22 @@
             />
           </div>
         </button>
+        <!-- 颜色按钮 -->
+        <button
+          ref="colorButton"
+          v-tooltip.top="{ content: '文字颜色', delay: { show: 1000 } }"
+          :class="{ 'is-active': editorInstance.isActive('textStyle', { color: currentColor }) }"
+          @click="toggleColorMenu"
+        >
+          <div class="icon">
+            <Platte
+              theme="outline"
+              size="16"
+              fill="var(--color-icon-menu-default)"
+              :strokeWidth="3"
+            />
+          </div>
+        </button>
         <!-- 行内代码 -->
         <button
           v-tooltip.top="{ content: '行内代码<br>Cmd+E', delay: { show: 1000 }, html: true }"
@@ -389,6 +405,34 @@
         <div class="name">任务列表</div>
       </button>
     </div>
+    <!-- 颜色选择菜单 -->
+    <div v-if="showColorMenu" class="color-menu" :style="colorMenuStyle">
+      <div class="color-list">
+        <button
+          v-for="color in colors"
+          :key="color.value"
+          v-tooltip.top="{ content: color.name, delay: { show: 500 } }"
+          class="color-item"
+          :style="{ backgroundColor: color.value }"
+          @click="setColor(color.value)"
+        />
+      </div>
+      <div class="divider"></div>
+      <button
+        v-tooltip.top="{ content: '清除颜色', delay: { show: 500 } }"
+        class="clear-color-btn"
+        @click="clearColor"
+      >
+        <div class="icon">
+          <ClearFormat
+            theme="outline"
+            size="16"
+            fill="var(--color-icon-menu-default)"
+            :strokeWidth="3"
+          />
+        </div>
+      </button>
+    </div>
   </div>
 </template>
 
@@ -433,7 +477,8 @@ import {
   AlignTextRight,
   AlignTextBoth,
   ParagraphTriangle,
-  Format
+  Format,
+  Platte
 } from '@icon-park/vue-next'
 import TiptapImage from '@renderer/components/tiptap/TiptapImage.vue'
 import TaskItem from '@tiptap/extension-task-item'
@@ -454,6 +499,7 @@ import { useNoteStore } from '@renderer/stores/noteStores'
 import { useUIStore } from '@renderer/stores/useUIStore'
 import { useRouter } from 'vue-router/dist/vue-router'
 import { CustomCodeBlock } from '@renderer/utils/tiptap/CustomCodeBlock'
+import { CustomTextStyle } from '@renderer/utils/tiptap/CustomTextStyle'
 
 const noteStore = useNoteStore()
 const uiStore = useUIStore()
@@ -498,10 +544,12 @@ const toggleMoreMenu = () => {
       const moreButtonRect = moreButton.value.getBoundingClientRect()
       const editorRect = editorContainer.value.getBoundingClientRect()
 
+      // 修改定位逻辑,使用 right 对齐
       moreMenuStyle.value = {
         position: 'absolute',
         top: `${moreButtonRect.bottom - editorRect.top + 10}px`,
-        right: `${editorRect.right - bubbleMenuRect.right}px`,
+        // 计算右侧距离,与气泡菜单右对齐
+        right: `${editorRect.right - bubbleMenuRect.right - 50}px`, // 移除额外的 10px 偏移
         zIndex: 1000
       }
     })
@@ -732,60 +780,6 @@ const cancelLink = () => {
   linkText.value = ''
 }
 // 链接编辑菜单
-
-// const handleLinkClick = (event) => {
-//   const linkElement = event.target.closest('a')
-//   if (linkElement) {
-//     const href = linkElement.getAttribute('href')
-//     const isModifierKeyPressed = event.metaKey || event.ctrlKey
-
-//     if (isModifierKeyPressed) {
-//       // 如果按下了修饰键，显示链接设置菜单
-//       event.preventDefault()
-//       showLinkMenu(event, linkElement)
-//     } else {
-//       // 如果没有按下修饰键
-//       if (href.startsWith('note://')) {
-//         event.preventDefault()
-//         const noteId = href.replace('note://', '')
-//         console.log('noteId', noteId)
-//         noteStore.openBacklinkPreview(noteId)
-//         uiStore.openRightSidebarWithTab('backlink')
-//       } else {
-//         window.open(href, '_blank')
-//       }
-//     }
-//   }
-// }
-// const handleLinkClick = (event) => {
-//   const linkElement = event.target.closest('a')
-//   if (!linkElement) return
-
-//   const href = linkElement.getAttribute('href')
-//   if (!href?.startsWith('note://')) {
-//     window.open(href, '_blank')
-//     return
-//   }
-
-//   event.preventDefault()
-//   const noteId = href.replace('note://', '')
-
-//   // Command/Ctrl: 显示链接设置菜单
-//   if (event.metaKey || event.ctrlKey) {
-//     showLinkMenu(event, linkElement)
-//     return
-//   }
-
-//   // Alt: 在主编辑器打开
-//   if (event.altKey) {
-//     router.push(`/note/${noteId}`)
-//     return
-//   }
-
-//   // 无修饰键: 在右侧边栏查看
-//   noteStore.openBacklinkPreview(noteId)
-//   uiStore.openRightSidebarWithTab('backlink')
-// }
 const handleLinkClick = (event) => {
   const linkElement = event.target.closest('a')
   if (!linkElement) return
@@ -913,7 +907,7 @@ const getContextMenuPosition = (event) => {
 }
 
 const closeContextMenu = (event) => {
-  // 检查点击是否在上下文菜单���部
+  // 检查点击是否在上下文菜单部
   if (showContextMenu.value && !event.target.closest('.context-menu')) {
     showContextMenu.value = false
   }
@@ -978,7 +972,7 @@ const deleteParagraph = () => {
 
     if (node) {
       // console.log('当前段落类型:', node.type.name)
-      // 清空样式
+      // 清空式
       editor.value.chain().focus().unsetAllMarks().run()
       // 清空节点
       editor.value.chain().focus().clearNodes().unsetAllMarks().setParagraph().run()
@@ -1025,7 +1019,7 @@ const editorExtensions = computed(() => {
     BubbleMenu,
     Markdown.configure({
       transformPastedText: true, // 启用 Markdown 粘贴文本转换
-      transformCopiedText: true // 复制的文本转换为Markdown
+      transformCopiedText: true // 复制的文本转为Markdown
     }),
     Hightlight,
     CustomLink.configure({
@@ -1051,7 +1045,7 @@ const editorExtensions = computed(() => {
       width: 2
     }),
     // Placeholder.configure({
-    //   placeholder: '记录思考，或输入 / 命令'
+    //   placeholder: '记录考，或输入 / 命令'
     // }),
     Placeholder.configure({
       placeholder: ({ node }) => {
@@ -1059,7 +1053,7 @@ const editorExtensions = computed(() => {
           return '输入标题'
         }
 
-        return '记录思考，或输入 / 命令'
+        return '记录思考，输入 / 命令'
       }
     }),
     CustomCodeBlock,
@@ -1138,7 +1132,8 @@ const editorExtensions = computed(() => {
     NodeRange.configure({
       key: null,
       depth: undefined
-    })
+    }),
+    CustomTextStyle
   ]
   if (props.enableDragHandle) {
     extensions.push(
@@ -1248,6 +1243,81 @@ defineExpose({
   focus,
   editor: editorInstance
 })
+
+// 添加颜色相关的响应式变量
+const showColorMenu = ref(false)
+const colorButton = ref(null)
+const colorMenuStyle = ref({})
+const currentColor = ref(null)
+
+// 修改颜色数组，使用 CSS 变量来适应不同主题
+const colors = [
+  { name: '默认', value: 'var(--color-text-primary)' },
+  { name: '粉色', value: 'var(--color-text-pink)' },
+  { name: '橙色', value: 'var(--color-text-orange)' },
+  { name: '绿色', value: 'var(--color-text-green)' },
+  { name: '青色', value: 'var(--color-text-cyan)' },
+  { name: '蓝色', value: 'var(--color-text-blue)' },
+  { name: '紫色', value: 'var(--color-text-purple)' }
+]
+
+// 添加颜色菜单相关方法
+const toggleColorMenu = () => {
+  showColorMenu.value = !showColorMenu.value
+  if (showColorMenu.value) {
+    nextTick(() => {
+      const buttonRect = colorButton.value.getBoundingClientRect()
+      const editorRect = editorContainer.value.getBoundingClientRect()
+
+      colorMenuStyle.value = {
+        position: 'absolute',
+        top: `${buttonRect.bottom - editorRect.top + 10}px`,
+        left: `${buttonRect.left - editorRect.left}px`
+      }
+    })
+  }
+}
+
+const setColor = (color) => {
+  if (!editorInstance.value) return
+
+  if (color === 'var(--color-text-primary)') {
+    // 如果是默认颜色，则移除颜色标记
+    editorInstance.value.chain().focus().toggleMark('textStyle', { color: null }).run()
+  } else {
+    // 设置新的颜色
+    editorInstance.value.chain().focus().toggleMark('textStyle', { color }).run()
+  }
+
+  currentColor.value = color
+  showColorMenu.value = false
+}
+
+const closeColorMenu = (event) => {
+  if (
+    showColorMenu.value &&
+    !event.target.closest('.color-menu') &&
+    !event.target.closest('button')
+  ) {
+    showColorMenu.value = false
+  }
+}
+
+onMounted(() => {
+  document.addEventListener('click', closeColorMenu)
+})
+
+onBeforeUnmount(() => {
+  document.removeEventListener('click', closeColorMenu)
+})
+
+// 添加清除颜色方法
+const clearColor = () => {
+  if (!editorInstance.value) return
+  editorInstance.value.chain().focus().unsetMark('textStyle').run()
+  currentColor.value = null
+  showColorMenu.value = false
+}
 </script>
 
 <style lang="scss">
@@ -1263,11 +1333,19 @@ defineExpose({
   box-shadow: var(--shadow-card);
   display: flex;
   padding: 4px 8px;
+  flex-wrap: wrap;
+  gap: 2px;
+  max-width: 500px;
+  width: max-content;
 
   button {
     background-color: unset;
     border-radius: 8px;
     padding: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 30px;
 
     .icon {
       background: none;
@@ -1280,6 +1358,7 @@ defineExpose({
       justify-content: center;
       transition: all 0.2s ease;
       padding: 0;
+
       .i-icon {
         display: flex;
         align-items: center;
@@ -1287,6 +1366,7 @@ defineExpose({
         width: 100%;
         height: 100%;
       }
+
       svg {
         width: 14px;
         height: 14px;
@@ -1661,6 +1741,86 @@ defineExpose({
       overflow: hidden;
       text-overflow: ellipsis;
       line-height: 1;
+    }
+  }
+}
+
+.color-menu {
+  padding: 6px;
+  background-color: var(--color-bg-primary);
+  border: 1px solid var(--color-border-primary);
+  border-radius: 8px;
+  box-shadow: var(--shadow-primary);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 36px;
+
+  .color-list {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+  }
+
+  .color-item {
+    width: 24px;
+    height: 24px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    padding: 0;
+
+    &:hover {
+      transform: scale(1.1);
+    }
+  }
+
+  .divider {
+    width: 1px;
+    height: 24px;
+    background-color: var(--color-border);
+    margin: 0 2px;
+    align-self: center;
+  }
+
+  .clear-color-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border: none;
+    background: none;
+    border-radius: 4px;
+    cursor: pointer;
+    padding: 0;
+    flex-shrink: 0;
+
+    &:hover {
+      background-color: var(--color-hover-button);
+    }
+
+    .icon {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      height: 100%;
+
+      .i-icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        height: 100%;
+      }
+
+      svg {
+        width: 16px;
+        height: 16px;
+      }
     }
   }
 }

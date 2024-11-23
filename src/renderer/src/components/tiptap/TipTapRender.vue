@@ -26,6 +26,7 @@ import TextAlign from '@tiptap/extension-text-align'
 import Details from '@tiptap-pro/extension-details'
 import DetailsContent from '@tiptap-pro/extension-details-content'
 import DetailsSummary from '@tiptap-pro/extension-details-summary'
+import { CustomTextStyle } from '@renderer/utils/tiptap/CustomTextStyle' // 添加这行
 
 const props = defineProps({
   content: {
@@ -82,6 +83,7 @@ const editorExtensions = computed(() => {
       codeBlock: false
     }),
     Hightlight,
+    CustomTextStyle,
     CustomLink.configure({
       openOnClick: false,
       parseMarkdown: true,
