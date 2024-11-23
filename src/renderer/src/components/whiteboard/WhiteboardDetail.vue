@@ -50,6 +50,7 @@
             @start-connection="startConnection"
             @note-interaction="handleNoteInteraction"
             @hover="handleNoteHover"
+            @click-outside="handleContainerClickOutside"
           />
           <CardConnection
             v-for="connection in connections"
@@ -77,7 +78,7 @@
     <div
       v-tooltip.top="{ content: '适应视图', delay: { show: 1000 }, html: true }"
       class="fit-view-button"
-      @click="fitView"
+      @click="handleFitView"
       @mouseenter="isHovered = true"
       @mouseleave="isHovered = false"
     >
@@ -94,7 +95,7 @@
     <WhiteboardZoomControl
       v-model:scale="scale"
       class="zoom-control-position"
-      @reset-view="fitView"
+      @reset-view="handleFitView"
     />
 
     <!-- 新增：顶端对齐按钮 -->
@@ -123,23 +124,18 @@ import { ref, onMounted, onUnmounted, watch, computed, markRaw, nextTick } from 
 import { useRoute } from 'vue-router'
 import AppToolbar from '@renderer/components/layout/AppToolbar.vue'
 import { useWhiteboardStore } from '@renderer/stores/whiteboardStores'
-import {
-  CreateWhiteboardNoteInput,
-  WhiteboardNote,
-  // WhiteboardGroup,
-  // Whiteboard,
-  Connection,
-  ConnectionCreateData
-} from '@renderer/types/Note'
+import { CreateWhiteboardNoteInput, WhiteboardNote, Connection } from '@renderer/types/Note'
 import WhiteboardNoteComponent from '@renderer/components/whiteboard/WhiteboardNoteComponent.vue'
-import { Add, Aiming, Delete } from '@icon-park/vue-next'
+import { Add, Aiming } from '@icon-park/vue-next'
 import WhiteboardZoomControl from '@renderer/components/whiteboard/WhiteboardZoomControl.vue'
 import CardConnection from './CardConnection.vue'
 import { useContextMenuStore } from '@renderer/stores/contextMenuStore'
-import { debounce } from 'lodash-es'
 import SelectionToolbar from '@renderer/components/whiteboard/SelectionToolbar.vue'
 import WhiteboardToolbarLeft from '@renderer/components/whiteboard/WhiteboardToolbarLeft.vue'
 import WhiteboardSearchModal from '@renderer/components/whiteboard/WhiteboardSearchModal.vue'
+import { useConnection } from '@renderer/composables/whiteboard/useConnection'
+import { useSelection } from '@renderer/composables/whiteboard/useSelection'
+import { useWhiteboardViewState } from '@renderer/composables/whiteboard/useWhiteboardViewState'
 
 const containerRef = ref<HTMLElement | null>(null)
 const route = useRoute()
@@ -195,18 +191,8 @@ const draggingItem = ref<{
 const alignmentGuides = ref<{ direction: 'horizontal' | 'vertical'; position: number }[]>([])
 
 const SNAP_THRESHOLD = 5
-const scale = ref(1) // 添加缩放状态
-const translateX = ref(0)
-const translateY = ref(0)
 
 // 连线相关状态
-const isCreatingConnection = ref(false)
-const connectionStart = ref({ x: 0, y: 0 })
-const connectionEnd = ref({ x: 0, y: 0 })
-const startNote = ref<WhiteboardNote | null>(null)
-const isConnecting = ref(false)
-const hoverNote = ref<WhiteboardNote | null>(null)
-const selectedConnectionId = ref<string | null>(null)
 
 const descriptionInputRef = ref<HTMLInputElement | null>(null)
 const measureSpan = ref<HTMLSpanElement | null>(null)
@@ -217,7 +203,46 @@ const showSelectionToolbar = computed(() => {
   return selectedNotes.value.length > 1
 })
 
+const { scale, translateX, translateY, debouncedSaveViewState, loadViewState, fitView } =
+  useWhiteboardViewState()
+
 const whiteboardName = ref('')
+
+// 使用 useConnection 组合式函数
+const {
+  isCreatingConnection,
+  isConnecting,
+  hoverNote,
+  selectedConnectionId,
+  temporaryConnection,
+  startConnection,
+  updateConnectionDescription,
+  selectConnection,
+  deselectConnection,
+  handleConnectionMouseMove,
+  showConnectionContextMenu,
+  updateConnectionPositions,
+  updateAllConnectionPositions,
+  finishConnection
+} = useConnection(
+  whiteboardNotes,
+  connections,
+  whiteboardId,
+  scale,
+  translateX,
+  translateY,
+  containerRef
+)
+
+const {
+  isSelecting,
+  selectedNotes,
+  selectionBoxStyle,
+  startSelection,
+  updateSelection,
+  endSelection,
+  handleContainerClickOutside
+} = useSelection(whiteboardNotes, scale, translateX, translateY, containerRef)
 
 const updateWhiteboardName = async (newName: string) => {
   const id = route.params.whiteboardId
@@ -274,83 +299,9 @@ const handleSearch = () => {
 // }
 
 // 批量选中功能
-const isSelecting = ref(false)
-const selectionStart = ref({ x: 0, y: 0 })
-const selectionEnd = ref({ x: 0, y: 0 })
-const selectedNotes = ref<string[]>([])
-
-const selectionBoxStyle = computed(() => {
-  const left = Math.min(selectionStart.value.x, selectionEnd.value.x)
-  const top = Math.min(selectionStart.value.y, selectionEnd.value.y)
-  const width = Math.abs(selectionEnd.value.x - selectionStart.value.x)
-  const height = Math.abs(selectionEnd.value.y - selectionStart.value.y)
-  return {
-    left: `${left}px`,
-    top: `${top}px`,
-    width: `${width}px`,
-    height: `${height}px`
-  }
-})
 
 const transformLayerRef = ref<HTMLDivElement | null>(null)
-const startSelection = (event: MouseEvent) => {
-  if (event.button !== 0) return // 只响应左键
-  isSelecting.value = true
-  const rect = containerRef.value?.getBoundingClientRect()
-  if (rect) {
-    // 修改这里的坐标计算
-    const startX = (event.clientX - rect.left - translateX.value) / scale.value
-    const startY = (event.clientY - rect.top - translateY.value) / scale.value
-    selectionStart.value = { x: startX, y: startY }
-    selectionEnd.value = { x: startX, y: startY }
-    console.log('Start Selection:', {
-      mouseX: event.clientX,
-      mouseY: event.clientY,
-      startX,
-      startY,
-      scale: scale.value,
-      translateX: translateX.value,
-      translateY: translateY.value
-    })
-  }
-  document.addEventListener('mousemove', handleMouseMove)
-  document.addEventListener('mouseup', endSelection)
-}
 
-const endSelection = () => {
-  isSelecting.value = false
-  if (rafId) {
-    cancelAnimationFrame(rafId)
-    rafId = null
-  }
-  updateSelectedNotes() // 确保在结束选择时更新选中的笔记
-  document.removeEventListener('mousemove', handleMouseMove)
-  document.removeEventListener('mouseup', endSelection)
-}
-
-const updateSelectedNotes = () => {
-  const selectionLeft = Math.min(selectionStart.value.x, selectionEnd.value.x)
-  const selectionRight = Math.max(selectionStart.value.x, selectionEnd.value.x)
-  const selectionTop = Math.min(selectionStart.value.y, selectionEnd.value.y)
-  const selectionBottom = Math.max(selectionStart.value.y, selectionEnd.value.y)
-
-  selectedNotes.value = whiteboardNotes.value
-    .filter(
-      (note) =>
-        note.position.x < selectionRight &&
-        note.position.x + note.size.width > selectionLeft &&
-        note.position.y < selectionBottom &&
-        note.position.y + note.size.height > selectionTop
-    )
-    .map((note) => note.id)
-  console.log('Selected notes:', selectedNotes.value) // 添加这行来调试
-}
-
-const handleContainerClickOutside = (event: MouseEvent) => {
-  if (event.target === containerRef.value) {
-    selectedNotes.value = []
-  }
-}
 const updateNotes = (updatedNotes: WhiteboardNote[]) => {
   whiteboardNotes.value = updatedNotes
   // 可能需要在这里添加保存到后端的逻辑
@@ -384,15 +335,6 @@ const handleNoteInteraction = (interacting: boolean) => {
   isNoteInteracting.value = interacting
 }
 
-const updateConnectionDescription = async (id: string, description: string) => {
-  console.log('updateConnectionDescription', id, description)
-  await whiteboardStore.updateConnectionDescription(id, description)
-  const index = connections.value.findIndex((c) => c.id === id)
-  if (index !== -1) {
-    connections.value[index].description = description
-  }
-}
-
 const adjustInputWidth = () => {
   if (measureSpan.value && descriptionInputRef.value) {
     const contentWidth = measureSpan.value.offsetWidth
@@ -405,151 +347,42 @@ onMounted(() => {
   })
 })
 
-const deselectConnection = () => {
-  if (selectedConnectionId.value) {
-    selectedConnectionId.value = null
-  }
-}
-
-const selectConnection = (connectionId: string, event?: Event) => {
-  if (event) {
-    event.stopPropagation()
-  }
-  console.log('Connection selected:', connectionId)
-  if (selectedConnectionId.value === connectionId) {
-    selectedConnectionId.value = null
-  } else {
-    selectedConnectionId.value = connectionId
-  }
-}
-
-// 显示连线上下文菜单
-const showConnectionContextMenu = (event: MouseEvent, connection: Connection) => {
-  selectedConnectionId.value = connection.id
-  contextMenuStore.showMenu(event.clientX, event.clientY, [
-    {
-      label: '删除连线',
-      icon: markRaw(Delete),
-      action: () => deleteSelectedConnection(connection.id)
-    }
-    // 可以在这里添加更多的菜单项
-  ])
-}
-// 删除连线
-const deleteSelectedConnection = async (connectionId: string) => {
-  try {
-    await whiteboardStore.deleteConnection(connectionId)
-    connections.value = connections.value.filter((c) => c.id !== connectionId)
-    selectedConnectionId.value = null
-    contextMenuStore.closeMenu()
-  } catch (error) {
-    console.error('Failed to delete connection:', error)
-    // 这里可以添加错误处理，比如显示一个错误提示
-  }
-}
-
-const temporaryConnection = computed(() => ({
-  id: 'temp',
-  whiteboardId: whiteboardId.value as string,
-  startItemId: startNote.value?.id || '',
-  endItemId: '',
-  startPoint: connectionStart.value,
-  endPoint: connectionEnd.value,
-  description: ''
-}))
-
 // 计算连线两端的点
-const calculateConnectionPoints = (startNote: WhiteboardNote, endNote: WhiteboardNote) => {
-  const getEdgeCenterPoint = (note: WhiteboardNote, angle: number) => {
-    const center = {
-      x: note.position.x + note.size.width / 2,
-      y: note.position.y + note.size.height / 2
-    }
-    const w = note.size.width / 2
-    const h = note.size.height / 2
+// const calculateConnectionPoints = (startNote: WhiteboardNote, endNote: WhiteboardNote) => {
+//   const getEdgeCenterPoint = (note: WhiteboardNote, angle: number) => {
+//     const center = {
+//       x: note.position.x + note.size.width / 2,
+//       y: note.position.y + note.size.height / 2
+//     }
+//     const w = note.size.width / 2
+//     const h = note.size.height / 2
 
-    // 确定连接边并返回其中心点
-    if (Math.abs(Math.tan(angle)) < h / w) {
-      // 连接到左边或右边
-      return {
-        x: center.x + w * Math.sign(Math.cos(angle)),
-        y: center.y
-      }
-    } else {
-      // 连接到上边或下边
-      return {
-        x: center.x,
-        y: center.y + h * Math.sign(Math.sin(angle))
-      }
-    }
-  }
+//     // 确定连接边并返回其中心点
+//     if (Math.abs(Math.tan(angle)) < h / w) {
+//       // 连接到左边或右边
+//       return {
+//         x: center.x + w * Math.sign(Math.cos(angle)),
+//         y: center.y
+//       }
+//     } else {
+//       // 连接到上边或下边
+//       return {
+//         x: center.x,
+//         y: center.y + h * Math.sign(Math.sin(angle))
+//       }
+//     }
+//   }
 
-  const dx = endNote.position.x - startNote.position.x
-  const dy = endNote.position.y - startNote.position.y
-  const angle = Math.atan2(dy, dx)
+//   const dx = endNote.position.x - startNote.position.x
+//   const dy = endNote.position.y - startNote.position.y
+//   const angle = Math.atan2(dy, dx)
 
-  const startPoint = getEdgeCenterPoint(startNote, angle)
-  const endPoint = getEdgeCenterPoint(endNote, angle + Math.PI)
+//   const startPoint = getEdgeCenterPoint(startNote, angle)
+//   const endPoint = getEdgeCenterPoint(endNote, angle + Math.PI)
 
-  return { startPoint, endPoint }
-}
+//   return { startPoint, endPoint }
+// }
 
-// 更新连线位置
-const updateConnectionPositions = (movedNoteId: string, newPosition: { x: number; y: number }) => {
-  // 首先更新移动的笔记的位置
-  const movedNoteIndex = whiteboardNotes.value.findIndex((note) => note.id === movedNoteId)
-  if (movedNoteIndex !== -1) {
-    whiteboardNotes.value[movedNoteIndex] = {
-      ...whiteboardNotes.value[movedNoteIndex],
-      position: newPosition
-    }
-  }
-
-  // 然后更新受影响的连接
-  connections.value = connections.value.map((connection) => {
-    if (connection.startItemId === movedNoteId || connection.endItemId === movedNoteId) {
-      const startNote = whiteboardNotes.value.find((note) => note.id === connection.startItemId)
-      const endNote = whiteboardNotes.value.find((note) => note.id === connection.endItemId)
-
-      if (startNote && endNote) {
-        const { startPoint, endPoint } = calculateConnectionPoints(startNote, endNote)
-        return { ...connection, startPoint, endPoint }
-      }
-    }
-    return connection
-  })
-}
-
-// 开始连线
-const startConnection = (note: WhiteboardNote) => {
-  console.log('Start connection in WhiteboardDetail', note)
-  isCreatingConnection.value = true
-  isConnecting.value = true // 添加这行
-  hoverNote.value = null
-  console.log('isCreatingConnection', isCreatingConnection.value)
-  startNote.value = note
-  connectionStart.value = {
-    x: note.position.x + note.size.width,
-    y: note.position.y + note.size.height / 2
-  }
-  connectionEnd.value = { ...connectionStart.value }
-
-  // 添加这些行来绑定鼠标移动和鼠标抬起事件
-  document.addEventListener('mousemove', handleMouseMove)
-  document.addEventListener('mouseup', handleMouseUp)
-}
-// 更新所有连线的位置
-const updateAllConnectionPositions = () => {
-  connections.value = connections.value.map((connection) => {
-    const startNote = whiteboardNotes.value.find((note) => note.id === connection.startItemId)
-    const endNote = whiteboardNotes.value.find((note) => note.id === connection.endItemId)
-    if (startNote && endNote) {
-      const { startPoint, endPoint } = calculateConnectionPoints(startNote, endNote)
-      return { ...connection, startPoint, endPoint }
-    }
-    return connection
-  })
-}
 // 监听白板笔记的变化来更新所有连线的位置
 watch(
   () => whiteboardNotes.value,
@@ -564,7 +397,7 @@ watch(
 
 const initializeData = async (whiteboardId: string) => {
   try {
-    await loadViewState()
+    await loadViewState(whiteboardId)
     await whiteboardStore.initializeWhiteboardData(whiteboardId)
     whiteboardNotes.value = whiteboardStore.whiteboardNotes
     connections.value = whiteboardStore.connections
@@ -1064,8 +897,6 @@ let lastX = 0
 let lastY = 0
 let lastPinchDistance = 0
 
-let rafId: number | null = null
-
 const currentMode = ref<'select' | 'drag'>('select')
 
 const handleMouseDown = (event: MouseEvent) => {
@@ -1080,7 +911,6 @@ const handleMouseDown = (event: MouseEvent) => {
     }
   } else if (event.button === 2) {
     // 右键
-    // 保持原有的右键拖动功能
     isDragging = true
     lastX = event.clientX
     lastY = event.clientY
@@ -1092,47 +922,12 @@ const handleMouseMove = (event: MouseEvent) => {
     event.preventDefault()
     return
   }
-  console.log('Mouse moving', isCreatingConnection.value)
+
   if (currentMode.value === 'select' && isSelecting.value) {
-    if (rafId) {
-      cancelAnimationFrame(rafId)
-    }
-    rafId = requestAnimationFrame(() => {
-      const rect = containerRef.value?.getBoundingClientRect()
-      if (rect) {
-        // 修改这里的坐标计算
-        const currentX = (event.clientX - rect.left - translateX.value) / scale.value
-        const currentY = (event.clientY - rect.top - translateY.value) / scale.value
-        console.log('Mouse move:', {
-          clientX: event.clientX,
-          clientY: event.clientY,
-          currentX,
-          currentY,
-          scale: scale.value,
-          translateX: translateX.value,
-          translateY: translateY.value
-        })
-        selectionEnd.value = { x: currentX, y: currentY }
-        updateSelectedNotes()
-      }
-    })
+    // 使用 useSelection 提供的方法处理选择框更新
+    updateSelection(event)
   } else if (isCreatingConnection.value) {
-    const rect = containerRef.value?.getBoundingClientRect()
-    if (rect) {
-      const mouseX = (event.clientX - rect.left - translateX.value) / scale.value
-      const mouseY = (event.clientY - rect.top - translateY.value) / scale.value
-
-      hoverNote.value = findNoteUnderMouse(event)
-
-      if (hoverNote.value && hoverNote.value.id !== startNote.value?.id) {
-        // 如果鼠标悬停在一个卡片上（不是起始卡片），将线吸附到卡片边缘
-        const { endPoint } = calculateConnectionPoints(startNote.value!, hoverNote.value)
-        connectionEnd.value = endPoint
-      } else {
-        // 否则，线跟随鼠标移动
-        connectionEnd.value = { x: mouseX, y: mouseY }
-      }
-    }
+    handleConnectionMouseMove(event)
   } else if (currentMode.value === 'drag' && isDragging) {
     const deltaX = event.clientX - lastX
     const deltaY = event.clientY - lastY
@@ -1143,44 +938,13 @@ const handleMouseMove = (event: MouseEvent) => {
   }
 }
 
-const findNoteUnderMouse = (event: MouseEvent): WhiteboardNote | null => {
-  if (!containerRef.value) return null
-
-  const rect = containerRef.value.getBoundingClientRect()
-  const mouseX = (event.clientX - rect.left - translateX.value) / scale.value
-  const mouseY = (event.clientY - rect.top - translateY.value) / scale.value
-
-  return (
-    whiteboardNotes.value.find((note) => {
-      return (
-        mouseX >= note.position.x &&
-        mouseX <= note.position.x + note.size.width &&
-        mouseY >= note.position.y &&
-        mouseY <= note.position.y + note.size.height
-      )
-    }) || null
-  )
-}
 const handleMouseUp = async (event: MouseEvent) => {
-  if (isCreatingConnection.value && startNote.value) {
-    const endNote = findNoteUnderMouse(event)
-    if (endNote && endNote.id !== startNote.value.id) {
-      const { startPoint, endPoint } = calculateConnectionPoints(startNote.value, endNote)
-      const newConnection: ConnectionCreateData = {
-        whiteboardId: whiteboardId.value as string,
-        startItemId: startNote.value.id,
-        endItemId: endNote.id,
-        startPoint,
-        endPoint,
-        description: ''
-      }
-      const createdConnection = await whiteboardStore.createConnection(newConnection)
-      connections.value.push(createdConnection)
-    }
-    isCreatingConnection.value = false
-    isConnecting.value = false // 添加这行
-    startNote.value = null
-    hoverNote.value = null
+  if (isCreatingConnection.value) {
+    await finishConnection(event)
+  }
+
+  if (isSelecting.value) {
+    endSelection()
   }
 
   isDragging = false
@@ -1190,13 +954,12 @@ const handleMouseUp = async (event: MouseEvent) => {
 
 const handleWheel = (event: WheelEvent) => {
   if (isNoteInteracting.value) {
-    // 只有在进行缩放操作时才阻止默认行为
     if (event.ctrlKey) {
       event.preventDefault()
     }
-    // 允许正常的滚动行为
     return
   }
+
   if (event.ctrlKey) {
     // 缩放
     event.preventDefault()
@@ -1221,7 +984,11 @@ const handleWheel = (event: WheelEvent) => {
     translateX.value -= event.deltaX
     translateY.value -= event.deltaY
   }
-  debouncedSaveViewState()
+
+  // 使用新的保存视图状态方法
+  if (whiteboardId.value) {
+    debouncedSaveViewState(whiteboardId.value)
+  }
 }
 
 const handleTouchStart = (event: TouchEvent) => {
@@ -1299,58 +1066,16 @@ const handleTouchEnd = () => {
   lastPinchDistance = 0
 }
 
-const fitView = async () => {
-  if (!containerRef.value || whiteboardNotes.value.length === 0) return
-
-  const containerRect = containerRef.value.getBoundingClientRect()
-
-  const bounds = whiteboardNotes.value.reduce(
-    (acc, item) => {
-      acc.left = Math.min(acc.left, item.position.x)
-      acc.top = Math.min(acc.top, item.position.y)
-      acc.right = Math.max(acc.right, item.position.x + item.size.width)
-      acc.bottom = Math.max(acc.bottom, item.position.y + item.size.height)
-      return acc
-    },
-    { left: Infinity, top: Infinity, right: -Infinity, bottom: -Infinity }
-  )
-
-  const contentWidth = bounds.right - bounds.left
-  const contentHeight = bounds.bottom - bounds.top
-
-  const padding = 50
-  const scaleX = (containerRect.width - padding * 2) / contentWidth
-  const scaleY = (containerRect.height - padding * 2) / contentHeight
-  scale.value = Math.min(scaleX, scaleY, 1)
-
-  translateX.value =
-    (containerRect.width - contentWidth * scale.value) / 2 - bounds.left * scale.value
-  translateY.value =
-    (containerRect.height - contentHeight * scale.value) / 2 - bounds.top * scale.value
-  debouncedSaveViewState()
-}
-// 保存视图状态
-const debouncedSaveViewState = debounce(async () => {
-  if (whiteboardId.value) {
-    await whiteboardStore.saveViewStateToWhiteboard(
-      whiteboardId.value,
-      scale.value,
-      translateX.value,
-      translateY.value
-    )
-  }
-}, 200) // 200ms 的延迟，可以根据需要调整
-
-// 加载视图状态
-const loadViewState = async () => {
-  const savedState = await whiteboardStore.getWhiteboardViewState(whiteboardId.value as string)
-  console.log('savedState', savedState)
-  if (savedState) {
-    scale.value = savedState.scale
-    translateX.value = savedState.translateX
-    translateY.value = savedState.translateY
+const handleFitView = () => {
+  if (containerRef.value) {
+    fitView()(containerRef.value, whiteboardNotes.value)
+    // 保存新的视图状态
+    if (whiteboardId.value) {
+      debouncedSaveViewState(whiteboardId.value)
+    }
   }
 }
+
 watch(
   () => whiteboardStore.connections,
   (newConnections) => {
