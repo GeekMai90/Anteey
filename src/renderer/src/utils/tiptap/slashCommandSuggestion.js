@@ -11,7 +11,8 @@ import {
   OrderedList,
   Quote,
   ListSuccess,
-  Code
+  Code,
+  Table
 } from '@icon-park/vue-next'
 import { markRaw } from 'vue'
 export const slashCommandSuggestion = {
@@ -38,6 +39,18 @@ export const slashCommandSuggestion = {
         icon: markRaw(H3),
         command: ({ editor, range }) => {
           editor.chain().focus().deleteRange(range).setNode('heading', { level: 3 }).run()
+        }
+      },
+      {
+        title: '表格',
+        icon: markRaw(Table),
+        command: ({ editor, range }) => {
+          editor
+            .chain()
+            .focus()
+            .deleteRange(range)
+            .insertTable({ rows: 3, cols: 3, withHeaderRow: true })
+            .run()
         }
       },
       {

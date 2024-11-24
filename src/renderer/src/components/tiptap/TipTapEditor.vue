@@ -196,6 +196,8 @@
         </button>
       </div>
     </bubble-menu>
+    <!-- 表格工具菜单 -->
+    <table-bubble-menu v-if="editorInstance" :editor="editorInstance" />
     <!-- 更多菜单 -->
     <div v-if="showMoreMenu" class="more-menu" :style="moreMenuStyle">
       <button
@@ -500,6 +502,8 @@ import { useUIStore } from '@renderer/stores/useUIStore'
 import { useRouter } from 'vue-router/dist/vue-router'
 import { CustomCodeBlock } from '@renderer/utils/tiptap/CustomCodeBlock'
 import { CustomTextStyle } from '@renderer/utils/tiptap/CustomTextStyle'
+import { CustomTable, TableRow, TableHeader, TableCell } from '@renderer/utils/tiptap/CustomTable'
+import TableBubbleMenu from './TableBubbleMenu.vue'
 
 const noteStore = useNoteStore()
 const uiStore = useUIStore()
@@ -1014,12 +1018,63 @@ const editorExtensions = computed(() => {
           editor.commands.blur()
           return true
         }
-      }
+      },
+      table: false
     }),
     BubbleMenu,
+    CustomTable.configure({
+      resizable: true,
+      handleWidth: 4,
+      cellMinWidth: 100,
+      lastColumnResizable: true,
+      HTMLAttributes: {
+        class: 'custom-table'
+      }
+    }),
+    TableRow.configure({
+      HTMLAttributes: {
+        class: 'table-row'
+      }
+    }),
+    TableHeader.configure({
+      HTMLAttributes: {
+        class: 'table-header'
+      }
+    }),
+    TableCell.configure({
+      HTMLAttributes: {
+        class: 'table-cell'
+      }
+    }),
     Markdown.configure({
       transformPastedText: true, // 启用 Markdown 粘贴文本转换
-      transformCopiedText: true // 复制的文本转为Markdown
+      transformCopiedText: true, // 复制的文本转为Markdown
+      html: true, // 启用 HTML 支持
+      tightLists: true,
+      tightListClass: 'tight',
+      bulletListMarker: '-',
+      linkify: true,
+      breaks: true,
+      transformPastedHTML: true,
+      // 添加表格的特殊处理
+      extensions: [
+        {
+          name: 'table',
+          type: 'node',
+          toMarkdown: {
+            match: (node) => node.type.name === 'table',
+            runner: (state, node) => {
+              state.renderContent(node)
+            }
+          },
+          parseMarkdown: {
+            match: (node) => node.type === 'table',
+            runner: (state, node) => {
+              state.addNode('table', {}, node.children)
+            }
+          }
+        }
+      ]
     }),
     Hightlight,
     CustomLink.configure({

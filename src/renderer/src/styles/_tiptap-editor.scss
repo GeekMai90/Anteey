@@ -51,7 +51,7 @@
       top: -1.2em; // 调整小圆点的垂直位置
       left: 0;
       display: flex;
-      gap: 4px; // 圆点之间的间距
+      gap: 4px; // 圆点���间的间距
     }
   }
 
@@ -496,11 +496,12 @@
     .column-resize-handle {
       background-color: var(--color-primary);
       bottom: -2px;
-      pointer-events: none;
       position: absolute;
       right: -2px;
       top: 0;
       width: 4px;
+      cursor: ew-resize !important;
+      z-index: 30;
     }
   }
 }
@@ -594,5 +595,22 @@ span[data-type="emoji"] {
   }
   &::-moz-selection {
     background-color: var(--color-selection) !important;
+  }
+}
+
+// 添加拖动状态的样式
+.resize-cursor,
+.resize-cursor *,
+.resize-cursor table,
+.resize-cursor td,
+.resize-cursor th,
+.resize-cursor .column-resize-handle {
+  cursor: ew-resize !important;
+}
+
+// 确保拖动时所有元素都使用相同的光标
+.ProseMirror.resize-cursor {
+  * {
+    cursor: ew-resize !important;
   }
 }

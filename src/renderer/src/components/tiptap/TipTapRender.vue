@@ -27,6 +27,7 @@ import Details from '@tiptap-pro/extension-details'
 import DetailsContent from '@tiptap-pro/extension-details-content'
 import DetailsSummary from '@tiptap-pro/extension-details-summary'
 import { CustomTextStyle } from '@renderer/utils/tiptap/CustomTextStyle' // 添加这行
+import { CustomTable, TableRow, TableHeader, TableCell } from '@renderer/utils/tiptap/CustomTable'
 
 const props = defineProps({
   content: {
@@ -92,6 +93,15 @@ const editorExtensions = computed(() => {
     Underline,
     Subscript,
     Superscript,
+    CustomTable.configure({
+      resizable: true,
+      handleWidth: 4,
+      cellMinWidth: 100,
+      lastColumnResizable: true
+    }),
+    TableRow,
+    TableHeader,
+    TableCell,
     Emoji.configure({
       emojis: gitHubEmojis,
       enableEmoticons: true

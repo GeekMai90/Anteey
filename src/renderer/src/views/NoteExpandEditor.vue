@@ -366,23 +366,55 @@ const saveContent = debounce(
     try {
       await noteStore.updateNoteContent(noteId, content)
     } catch (error) {
-      console.error('保存笔记失败:', error)
-      message.error('保存失败')
+      console.log('保存笔记失败:', error)
+      message.error('saveContent保存失败')
     }
   },
   2000,
   { trailing: true }
 )
+// const saveContent = debounce(
+//   async (noteId: string, content: any) => {
+//     try {
+//       // 确保内容是纯净的 JSON 对象
+//       const safeContent =
+//         typeof content === 'string' ? JSON.parse(content) : JSON.parse(JSON.stringify(content))
+
+//       await noteStore.updateNoteContent(noteId, safeContent)
+//     } catch (error) {
+//       console.error('保存笔记失败:', error)
+//       message.error('保存失败')
+//     }
+//   },
+//   2000,
+//   { trailing: true }
+// )
 
 // 处理编辑器内容更新
+// const handleContentUpdate = (newContent: any) => {
+//   if (!currentNote.value) return
+
+//   // 只更新本地状态
+//   currentNote.value.content = newContent
+
+//   // 触发防抖保存，不传递光标位置
+//   saveContent(currentNote.value.id, newContent)
+// }
 const handleContentUpdate = (newContent: any) => {
   if (!currentNote.value) return
 
-  // 只更新本地状态
-  currentNote.value.content = newContent
+  try {
+    // 确保内容是可序列化的
+    const safeContent = JSON.parse(JSON.stringify(newContent))
 
-  // 触发防抖保存，不传递光标位置
-  saveContent(currentNote.value.id, newContent)
+    // 更新本地状态
+    currentNote.value.content = safeContent
+
+    // 触发防抖保存
+    saveContent(currentNote.value.id, safeContent)
+  } catch (error) {
+    console.error('Content serialization error:', error)
+  }
 }
 
 // === 尝试一下增加新的保存功能 ===
@@ -397,12 +429,14 @@ const saveCurrentNote = async () => {
     const editor = tiptapEditor.value?.editor
     if (editor) {
       const content = editor.getJSON()
-      await noteStore.updateNoteContent(currentNote.value.id, content)
+      // 使用和 saveContent 相同的方式处理内容
+      const safeContent = JSON.parse(JSON.stringify(content))
+      await noteStore.updateNoteContent(currentNote.value.id, safeContent)
     }
   } catch (error) {
     console.error('保存笔记失败:', error)
-    message.error('保存失败')
-    throw error // 可以选择是否抛出错误
+    message.error('saveCurrentNote保存失败')
+    throw error
   }
 }
 
