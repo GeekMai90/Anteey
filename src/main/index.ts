@@ -215,10 +215,11 @@ function createWindow(): void {
         'Content-Security-Policy': [
           'default-src *; ' +
             "img-src 'self' file: data: blob: https: http: *; " +
-            "script-src 'self' 'unsafe-inline' 'unsafe-eval'; " +
+            "script-src 'self' 'unsafe-inline' 'unsafe-eval' blob:; " + // 添加 blob:
             "style-src 'self' 'unsafe-inline'; " +
-            "connect-src 'self' file: https://api.tiptap.dev;" +
-            'font-src *'
+            "connect-src 'self' file: https://api.tiptap.dev; " +
+            'font-src *; ' +
+            "worker-src 'self' blob: data:;"
         ]
       }
     })

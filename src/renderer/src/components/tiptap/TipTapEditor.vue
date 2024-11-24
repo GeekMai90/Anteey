@@ -490,8 +490,8 @@ import {
   Plus
 } from '@icon-park/vue-next'
 import TiptapImage from '@renderer/components/tiptap/TiptapImage.vue'
-import TaskItem from '@tiptap/extension-task-item'
-import TaskList from '@tiptap/extension-task-list'
+// import TaskItem from '@tiptap/extension-task-item'
+// import TaskList from '@tiptap/extension-task-list'
 import { emojiSuggestion } from '@renderer/utils/tiptap/EmojiSuggestion'
 import { SlashCommands } from '@renderer/utils/tiptap/SlashCommands'
 import { slashCommandSuggestion } from '@renderer/utils/tiptap/slashCommandSuggestion'
@@ -511,6 +511,9 @@ import { CustomCodeBlock } from '@renderer/utils/tiptap/CustomCodeBlock'
 import { CustomTextStyle } from '@renderer/utils/tiptap/CustomTextStyle'
 import { CustomTable, TableRow, TableHeader, TableCell } from '@renderer/utils/tiptap/CustomTable'
 import TableBubbleMenu from './TableBubbleMenu.vue'
+import { CustomBlockquote } from '@renderer/utils/tiptap/CustomBlockquote'
+import { CustomTaskList } from '@renderer/utils/tiptap/CustomTaskList'
+import { CustomTaskItem } from '@renderer/utils/tiptap/CustomTaskItem'
 
 const noteStore = useNoteStore()
 const uiStore = useUIStore()
@@ -1072,9 +1075,11 @@ const editorExtensions = computed(() => {
           return true
         }
       },
-      table: false
+      table: false,
+      blockquote: false
     }),
     BubbleMenu,
+    CustomBlockquote,
     CustomTable.configure({
       resizable: true,
       handleWidth: 4,
@@ -1167,7 +1172,6 @@ const editorExtensions = computed(() => {
     CustomCodeBlock,
     Typography,
     CustomImage,
-    TaskList,
     Details.configure({
       persist: true,
       HTMLAttributes: {
@@ -1180,7 +1184,15 @@ const editorExtensions = computed(() => {
     TextAlign.configure({
       types: ['paragraph', 'heading']
     }),
-    TaskItem.configure({
+    CustomTaskList.configure({
+      HTMLAttributes: {
+        class: 'task-list'
+      }
+    }),
+    // TaskItem.configure({
+    //   nested: true
+    // }),
+    CustomTaskItem.configure({
       nested: true
     }),
     // UniqueID.configure({
