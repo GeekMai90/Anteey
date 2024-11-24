@@ -21,6 +21,7 @@
       :cardBoxes="cardBoxes"
       :selectedCardBox="selectedCardBox"
       :noteId="noteId"
+      :whiteboardNoteId="props.item.id"
       :moreMenuItems="whiteboardMenuItems"
       @expand="handleExpand"
       @toggle-cardbox-menu="toggleCardBoxMenu"

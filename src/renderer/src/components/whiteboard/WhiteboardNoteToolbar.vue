@@ -73,6 +73,7 @@ import { useNoteMenu } from '@renderer/composables/useNoteMenu'
 
 const props = defineProps<{
   noteId: string
+  whiteboardNoteId: string
   moreMenuItems: MenuItem[]
 }>()
 
@@ -88,7 +89,8 @@ watchEffect(async () => {
 // === 更多功能菜单管理 ===
 const { menuItems: noteMenuItems, resetDeleteState } = useNoteMenu({
   noteId: props.noteId,
-  menuItems: ['star', 'share', 'sidebar', 'copyNoteLink', 'exportNote', 'delete', 'copyQuote']
+  whiteboardNoteId: props.whiteboardNoteId,
+  menuItems: ['star', 'sidebar', 'copyQuote', 'trashFromWhiteboard']
 })
 
 const moreBtnRef = ref<HTMLElement | null>(null)
@@ -133,7 +135,7 @@ const {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 10px 20px;
+  padding: 10px 20px 0 20px;
   position: relative;
 
   .expand-btn {
