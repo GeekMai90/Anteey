@@ -225,25 +225,61 @@ export const useNoteStore = defineStore(
     }
 
     // 更新笔记内容
+    // const updateNoteContent = async (noteId: string, content: any) => {
+    //   try {
+    //     // 1. 更新保存状态
+    //     currentNoteSaveStatus.value = 'saving'
+
+    //     // 2. 直接保存到数据库
+    //     // 由于是本地数据库，这个操作会很快
+    //     const updatedNote = await window.electronAPI.updateNoteContent(noteId, content)
+
+    //     // 3. 发送更新事件通知
+    //     const noteUpdatedBus = useEventBus<Note>('note-updated')
+    //     noteUpdatedBus.emit(updatedNote)
+
+    //     // 4. 更新保存状态
+    //     currentNoteSaveStatus.value = 'saved'
+
+    //     return updatedNote
+    //   } catch (error) {
+    //     // 5. 错误处理
+    //     currentNoteSaveStatus.value = 'error'
+    //     console.error('更新笔记内容失败:', error)
+    //     throw error
+    //   }
+    // }
+
+    // 更新笔记内容
     const updateNoteContent = async (noteId: string, content: any) => {
       try {
         // 1. 更新保存状态
         currentNoteSaveStatus.value = 'saving'
 
         // 2. 直接保存到数据库
-        // 由于是本地数据库，这个操作会很快
         const updatedNote = await window.electronAPI.updateNoteContent(noteId, content)
 
-        // 3. 发送更新事件通知
+        // 3. 更新收藏笔记列表中的笔记内容
+        const starredIndex = starredNotes.value.findIndex((note) => note.id === noteId)
+        if (starredIndex !== -1) {
+          starredNotes.value[starredIndex] = {
+            ...starredNotes.value[starredIndex],
+            ...updatedNote
+          }
+          // 强制触发响应式更新
+          starredNotes.value = [...starredNotes.value]
+        }
+
+        // 4. 发送更新事件通知
         const noteUpdatedBus = useEventBus<Note>('note-updated')
         noteUpdatedBus.emit(updatedNote)
 
-        // 4. 更新保存状态
+        // 5. 更新保存状态
         currentNoteSaveStatus.value = 'saved'
 
         return updatedNote
       } catch (error) {
-        // 5. 错误处理
+        // 6. 错误处理
         currentNoteSaveStatus.value = 'error'
         console.error('更新笔记内容失败:', error)
         throw error
@@ -251,12 +287,39 @@ export const useNoteStore = defineStore(
     }
 
     // 更新笔记地址
+    // const updateNoteAddress = async (noteId: string, address: string) => {
+    //   try {
+    //     // 1. 直接更新数据库
+    //     const updatedNote = await window.electronAPI.updateNoteAddress(noteId, address)
+
+    //     // 2. 发送更新事件通知
+    //     const noteUpdatedBus = useEventBus<Note>('note-updated')
+    //     noteUpdatedBus.emit(updatedNote)
+
+    //     return updatedNote
+    //   } catch (error) {
+    //     console.error('更新笔记地址失败:', error)
+    //     throw error
+    //   }
+    // }
+    // 更新笔记地址
     const updateNoteAddress = async (noteId: string, address: string) => {
       try {
         // 1. 直接更新数据库
         const updatedNote = await window.electronAPI.updateNoteAddress(noteId, address)
 
-        // 2. 发送更新事件通知
+        // 2. 更新收藏笔记列表中的笔记地址
+        const starredIndex = starredNotes.value.findIndex((note) => note.id === noteId)
+        if (starredIndex !== -1) {
+          starredNotes.value[starredIndex] = {
+            ...starredNotes.value[starredIndex],
+            ...updatedNote
+          }
+          // 强制触发响应式更新
+          starredNotes.value = [...starredNotes.value]
+        }
+
+        // 3. 发送更新事件通知
         const noteUpdatedBus = useEventBus<Note>('note-updated')
         noteUpdatedBus.emit(updatedNote)
 
@@ -268,6 +331,29 @@ export const useNoteStore = defineStore(
     }
 
     // 更新笔记类型
+    // const updateNoteCardType = async (noteId: string, cardType: CardType) => {
+    //   try {
+    //     // 1. 更���保存状态
+    //     currentNoteSaveStatus.value = 'saving'
+
+    //     // 2. 直接更新数据库
+    //     const updatedNote = await window.electronAPI.updateNoteCardType(noteId, cardType)
+
+    //     // 3. 发送更新事件通知
+    //     const noteUpdatedBus = useEventBus<Note>('note-updated')
+    //     noteUpdatedBus.emit(updatedNote)
+
+    //     // 4. 更新保存状态
+    //     currentNoteSaveStatus.value = 'saved'
+
+    //     return updatedNote
+    //   } catch (error) {
+    //     // 5. 错误处理
+    //     currentNoteSaveStatus.value = 'error'
+    //     console.error('更新笔记类型失败:', error)
+    //     throw error
+    //   }
+    // }
     const updateNoteCardType = async (noteId: string, cardType: CardType) => {
       try {
         // 1. 更���保存状态
@@ -793,6 +879,7 @@ export const useNoteStore = defineStore(
       openNoteEditor(newNote.id)
     }
 
+    //删除笔记，移动到回收站
     const moveToTrash = async (id: string) => {
       console.log('noteStores.ts→ 移动到回收站:', id)
       try {
@@ -806,7 +893,10 @@ export const useNoteStore = defineStore(
           }
           // 从最近笔记中移除
           if (recentNotes.value.some((note) => note.id === id)) {
+            // 先过滤
             recentNotes.value = recentNotes.value.filter((note) => note.id !== id)
+            // 强制触发响应式更新
+            recentNotes.value = [...recentNotes.value]
           }
           return true
         } else {

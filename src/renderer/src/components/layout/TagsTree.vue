@@ -49,7 +49,7 @@ import { useRouter } from 'vue-router/dist/vue-router'
 const tagStore = useTagStore()
 // 使用 storeToRefs 来保持响应性
 const { tagTree: storeTagTree } = storeToRefs(tagStore)
-const isExpanded = ref(true)
+const isExpanded = ref(false)
 const tagTree = ref<TagTreeNode[]>([])
 const router = useRouter()
 

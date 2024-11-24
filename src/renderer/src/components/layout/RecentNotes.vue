@@ -12,7 +12,7 @@
     </div>
     <div v-if="isExpanded" class="recent-notes-container">
       <div
-        v-for="note in recentNotes"
+        v-for="note in filteredRecentNotes"
         :key="note.id"
         class="recent-note-card"
         @click="openNote(note)"
@@ -24,7 +24,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { useNoteStore } from '@renderer/stores/noteStores'
 import { useRouter } from 'vue-router'
 import { Down, Right } from '@icon-park/vue-next'
@@ -37,6 +37,11 @@ const router = useRouter()
 const isExpanded = ref(true)
 
 const { recentNotes } = storeToRefs(noteStore)
+
+// 添加计算属性过滤已删除的笔记
+const filteredRecentNotes = computed(() => {
+  return recentNotes.value.filter((note) => !note.isDeleted)
+})
 
 const toggleRecentNotes = () => {
   isExpanded.value = !isExpanded.value

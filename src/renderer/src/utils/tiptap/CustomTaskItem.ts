@@ -21,7 +21,7 @@ export const CustomTaskItem = TaskItem.extend({
       new Plugin({
         props: {
           handleDOMEvents: {
-            click: (view, event) => {
+            click: (_view, event) => {
               if (!(event.target instanceof HTMLInputElement)) {
                 return false
               }
