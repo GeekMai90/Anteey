@@ -93,7 +93,7 @@ defineExpose({
   min-width: 150px;
   width: max-content;
   max-width: 300px;
-  max-height: 350px; // 设置最大高度
+  max-height: 360px; // 设置最大高度
   overflow-y: auto; // 允许垂直滚动
   overflow-x: hidden; // 防止水平溢出
   white-space: nowrap;

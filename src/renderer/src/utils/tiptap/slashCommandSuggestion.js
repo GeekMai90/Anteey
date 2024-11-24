@@ -12,7 +12,7 @@ import {
   Quote,
   ListSuccess,
   Code,
-  Table
+  Form
 } from '@icon-park/vue-next'
 import { markRaw } from 'vue'
 export const slashCommandSuggestion = {
@@ -42,19 +42,7 @@ export const slashCommandSuggestion = {
           editor.chain().focus().deleteRange(range).setNode('heading', { level: 3 }).run()
         }
       },
-      {
-        title: '表格',
-        icon: markRaw(Table),
-        keywords: ['table', 'tb', '表'],
-        command: ({ editor, range }) => {
-          editor
-            .chain()
-            .focus()
-            .deleteRange(range)
-            .insertTable({ rows: 3, cols: 3, withHeaderRow: true })
-            .run()
-        }
-      },
+
       {
         title: '无序列表',
         icon: markRaw(ListTwo),
@@ -93,6 +81,19 @@ export const slashCommandSuggestion = {
         keywords: ['code', 'cb', '代码', 'coding'],
         command: ({ editor, range }) => {
           editor.chain().focus().deleteRange(range).toggleCodeBlock().run()
+        }
+      },
+      {
+        title: '表格',
+        icon: markRaw(Form),
+        keywords: ['table', 'tb', '表'],
+        command: ({ editor, range }) => {
+          editor
+            .chain()
+            .focus()
+            .deleteRange(range)
+            .insertTable({ rows: 3, cols: 3, withHeaderRow: true })
+            .run()
         }
       },
       {

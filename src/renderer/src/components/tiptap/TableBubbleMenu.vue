@@ -117,20 +117,44 @@ const shouldShow = (props: {
   const { selection } = state
   const { $anchor } = selection
 
-  // 检查光标是否在表格内
+  // 检查是否在表格内
   let isInTable = false
   let depth = $anchor.depth
+  let cellNode = null
 
   while (depth > 0) {
     const node = $anchor.node(depth)
     if (node.type.name === 'table') {
       isInTable = true
-      break
+    }
+    if (node.type.name === 'tableCell' || node.type.name === 'tableHeader') {
+      cellNode = node
     }
     depth--
   }
 
-  return isInTable
+  if (!isInTable || !cellNode) {
+    return false
+  }
+
+  // 检查是否处于表格操作状态
+  const isTableOperation =
+    // 1. 选中了多个单元格
+    (selection.ranges && selection.ranges.length > 1) ||
+    // 2. 选中了整行或整列
+    Object.prototype.hasOwnProperty.call(selection, 'isRowSelection') ||
+    Object.prototype.hasOwnProperty.call(selection, 'isColSelection') ||
+    // 3. 光标在单元格的边界位置
+    selection.$anchor.parentOffset === 0 ||
+    selection.$anchor.parentOffset === cellNode.content.size ||
+    // 4. 选中了整个单元格的内容
+    (selection.from <= $anchor.start() && selection.to >= $anchor.end()) ||
+    // 5. 用户刚刚点击了单元格（空选区在单元格开始位置）
+    (selection.empty &&
+      selection.$anchor.parentOffset === 0 &&
+      selection.from === selection.$anchor.start())
+
+  return isTableOperation
 }
 </script>
 

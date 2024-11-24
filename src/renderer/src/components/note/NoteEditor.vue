@@ -280,14 +280,30 @@ const saveContent = debounce(
 )
 
 // 处理编辑器内容更新
+// const handleContentUpdate = (newContent: any) => {
+//   if (!currentNote.value) return
+
+//   // 只更新本地状态
+//   currentNote.value.content = newContent
+
+//   // 触发防抖保存，不传递光标位置
+//   saveContent(currentNote.value.id, newContent)
+// }
 const handleContentUpdate = (newContent: any) => {
   if (!currentNote.value) return
 
-  // 只更新本地状态
-  currentNote.value.content = newContent
+  try {
+    // 确保内容是可序列化的
+    const safeContent = JSON.parse(JSON.stringify(newContent))
 
-  // 触发防抖保存，不传递光标位置
-  saveContent(currentNote.value.id, newContent)
+    // 更新本地状态
+    currentNote.value.content = safeContent
+
+    // 触发防抖保存
+    saveContent(currentNote.value.id, safeContent)
+  } catch (error) {
+    console.error('Content serialization error:', error)
+  }
 }
 
 // === 尝试一下增加新的保存功能 ===
