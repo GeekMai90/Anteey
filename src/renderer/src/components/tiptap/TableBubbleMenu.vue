@@ -120,7 +120,7 @@ const shouldShow = (props: {
   // 检查是否在表格内
   let isInTable = false
   let depth = $anchor.depth
-  let cellNode = null
+  let cellNode: any = null
 
   while (depth > 0) {
     const node = $anchor.node(depth)
@@ -128,7 +128,7 @@ const shouldShow = (props: {
       isInTable = true
     }
     if (node.type.name === 'tableCell' || node.type.name === 'tableHeader') {
-      cellNode = node
+      cellNode = node as any
     }
     depth--
   }
