@@ -653,7 +653,7 @@ const setNodeType = (type, attrs = {}) => {
   showDropdown.value = false
 }
 
-// 关闭下拉菜单的函数
+// 关闭下拉菜单的数
 const closeDropdown = (event) => {
   if (
     showDropdown.value &&
@@ -777,7 +777,7 @@ const setLink = async () => {
 
   closeLinkMenus()
 }
-// 取消链接设置
+// 消链接设置
 const cancelLink = () => {
   showLinkInput.value = false
   linkUrl.value = ''
@@ -794,7 +794,7 @@ const handleLinkClick = (event) => {
   if (event.metaKey || event.ctrlKey) {
     event.preventDefault()
     showLinkMenu(event, linkElement)
-    return
+    return true // 阻止 Tiptap 的默认行为
   }
 
   // 处理笔记链接的特殊行为
@@ -839,7 +839,7 @@ onBeforeUnmount(() => {
 // 图片上传
 const handleFileUpload = async (file) => {
   if (!file) {
-    console.error('没有文件被上传')
+    console.error('没有件被上传')
     return null
   }
   try {
@@ -881,7 +881,7 @@ const CustomImage = Image.extend({
   }
 })
 
-// 判断是否应该显示文字样式菜单
+// 判是否应该显示文字样式菜单
 const shouldShowTextStyleMenu = ({ editor }) => {
   // 检查是否有文本选择，并且不是图片
   return (
@@ -970,33 +970,79 @@ const copyToClipboard = () => {
 }
 // 删除段落
 const deleteParagraph = () => {
-  if (editor.value && currentParagraph.value) {
-    const nodePos = editor.value.state.selection.from
-    const node = editor.value.state.doc.nodeAt(nodePos)
+  if (!editor.value || !currentParagraph.value) {
+    console.log('无法删除：编辑器或当前段落未定义')
+    return
+  }
 
-    if (node) {
-      // console.log('当前段落类型:', node.type.name)
-      // 清空式
-      editor.value.chain().focus().unsetAllMarks().run()
-      // 清空节点
-      editor.value.chain().focus().clearNodes().unsetAllMarks().setParagraph().run()
+  try {
+    const { state } = editor.value
+    const { selection } = state
+    const { from } = selection
+    const $pos = state.doc.resolve(from)
+    const currentNode = $pos.node()
+    const nodeType = currentNode?.type.name
 
+    // 处理表格节点
+    if (
+      nodeType === 'table' ||
+      nodeType === 'tableRow' ||
+      nodeType === 'tableCell' ||
+      nodeType === 'tableHeader'
+    ) {
+      let depth = $pos.depth
+      while (depth > 0) {
+        const node = $pos.node(depth)
+        if (node.type.name === 'table') {
+          const start = $pos.before(depth)
+          const end = start + node.nodeSize
+
+          editor.value.chain().focus().deleteRange({ from: start, to: end }).run()
+          break
+        }
+        depth--
+      }
+    } else {
+      // 其他节点的处理
       editor.value
         .chain()
         .focus()
-        .deleteRange({ from: nodePos, to: nodePos + node.nodeSize })
+        // 1. 清除所有标记和样式
+        .unsetAllMarks()
+        .clearNodes()
+        // 2. 根据节点类型执行删除
+        .command(({ commands }) => {
+          switch (nodeType) {
+            case 'bulletList':
+              return commands.deleteNode('bulletList')
+            case 'orderedList':
+              return commands.deleteNode('orderedList')
+            case 'taskList':
+              return commands.deleteNode('taskList')
+            case 'blockquote':
+              return commands.deleteNode('blockquote')
+            case 'heading':
+              return commands.deleteNode('heading')
+            default:
+              return commands.deleteNode('paragraph')
+          }
+        })
+        // 3. 如果需要，插入空段落
+        .command(({ state, commands }) => {
+          if (state.doc.content.size === 0) {
+            return commands.insertContent({ type: 'paragraph' })
+          }
+          return true
+        })
         .run()
-
-      // console.log('尝试删除节点')
-
-      // 触发内容更新
-      emit('update:content', editor.value.getJSON())
-    } else {
-      console.log('无法找到当前节点')
     }
-  } else {
-    console.log('无法删除段落：编辑器或当前段落未定义')
+
+    // 触发内容更新
+    emit('update:content', editor.value.getJSON())
+  } catch (error) {
+    console.error('删除节点时出错:', error)
   }
+
   showContextMenu.value = false
   currentParagraph.value = null
 }
@@ -1299,13 +1345,13 @@ defineExpose({
   editor: editorInstance
 })
 
-// 添加颜色相关的响应式变量
+// 添加颜色相关的响应式变
 const showColorMenu = ref(false)
 const colorButton = ref(null)
 const colorMenuStyle = ref({})
 const currentColor = ref(null)
 
-// 修改颜色数组，使用 CSS 变量来适应不同主题
+// 修改颜色数组用 CSS 变量来适应不同主题
 const colors = [
   { name: '默认', value: 'var(--color-text-primary)' },
   { name: '粉色', value: 'var(--color-text-pink)' },
@@ -1461,7 +1507,7 @@ const clearColor = () => {
   overflow-y: auto;
   padding: 6px 12px;
   white-space: nowrap;
-  max-width: 100vw; // 确保不超过视口宽度
+  max-width: 100vw; // 确保不超过视口宽
   overflow-x: hidden; // 防止水平溢出
   align-items: center;
 }
