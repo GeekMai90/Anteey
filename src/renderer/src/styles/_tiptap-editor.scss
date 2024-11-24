@@ -1,3 +1,6 @@
+/* ------------------------------------
+ * 编辑器基础样式
+ * ------------------------------------ */
 .tiptap {
   height: auto;
   position: relative;
@@ -5,13 +8,16 @@
   padding-right: 1.5rem;
   font-family: var(--font-family-editor);
 
+  // 光标颜色
+  caret-color: var(--color-primary);
+
   :first-child {
     margin-top: 0;
   }
-  // 光标颜色
-  // caret-color: var(--color-primary); // 使用您的主题色变量
 
-  // 标题样式
+  /* ------------------------------------
+   * 标题样式
+   * ------------------------------------ */
   h1 {
     font-size: 1.4rem;
     font-weight: var(--font-weight-medium);
@@ -31,6 +37,7 @@
     margin-right: 0;
     text-wrap: pretty;
   }
+
   h3 {
     font-size: 1.1rem;
     font-weight: var(--font-weight-medium);
@@ -40,18 +47,29 @@
     margin-right: 0;
     text-wrap: pretty;
   }
+
+  // 标题悬停小圆点效果
   h1,
   h2,
   h3 {
-    position: relative; // 为伪元素定位做准备
+    position: relative;
 
     &:hover::before {
       content: "";
       position: absolute;
-      top: -1.2em; // 调整小圆点的垂直位置
+      top: -1.2em;
       left: 0;
       display: flex;
-      gap: 4px; // 圆点���间的间距
+      gap: 4px;
+    }
+
+    &::before {
+      opacity: 0;
+      transition: opacity 0.2s ease;
+    }
+
+    &:hover::before {
+      opacity: 1;
     }
   }
 
@@ -73,31 +91,10 @@
     font-size: 12px;
   }
 
-  // 可选：添加过渡动画
-  h1,
-  h2,
-  h3 {
-    &::before {
-      opacity: 0;
-      transition: opacity 0.2s ease;
-    }
-
-    &:hover::before {
-      opacity: 1;
-    }
-  }
-
-  hr {
-    border: none;
-    border-top: 1px solid #888;
-    cursor: pointer;
-    margin: 2rem 0;
-
-    &.ProseMirror-selectednode {
-      border-top: 1px solid #888;
-    }
-  }
-  // 段落样式
+  /* ------------------------------------
+   * 基础文本样式
+   * ------------------------------------ */
+  // 段落
   p {
     display: block;
     margin-block-start: 1em;
@@ -106,22 +103,20 @@
     margin-inline-end: 0px;
     unicode-bidi: isolate;
   }
+
   // 加粗
   strong,
   b {
     font-weight: var(--font-weight-medium);
-    color: var(--color-text-primary); // 可以根据需要调整颜色
-    // 您可以添加其他样式，比如：
-    // background-color: #f0f0f0;
-    // padding: 0 2px;
-    // border-radius: 2px;
+    color: var(--color-text-primary);
   }
 
-  /* 斜体文本样式 */
+  // 斜体
   em,
   i {
     font-style: italic;
   }
+
   // 高亮
   mark {
     background-color: rgba(var(--color-primary-rgb), 0.2);
@@ -131,15 +126,36 @@
     color: var(--color-text-primary);
   }
 
-  // 行内代码
-  code {
-    background-color: var(--color-shape-tertiary);
-    border-radius: 0.4rem;
-    color: black;
-    font-size: 0.85rem;
-    padding: 0.25em 0.3em;
+  // 删除线
+  s {
+    text-decoration: line-through;
+    color: var(--color-text-secondary);
   }
-  // 链接
+
+  // 下划线
+  u {
+    text-decoration: none;
+    background-image: linear-gradient(to right, var(--color-primary) 75%, transparent 75%);
+    background-position: 0 100%;
+    background-size: 6px 1px;
+    background-repeat: repeat-x;
+    padding-bottom: 1px;
+  }
+
+  // 上下标
+  sub {
+    font-size: 0.8em;
+    vertical-align: sub;
+  }
+
+  sup {
+    font-size: 0.8em;
+    vertical-align: super;
+  }
+
+  /* ------------------------------------
+   * 链接样式
+   * ------------------------------------ */
   a {
     color: var(--color-link);
     cursor: pointer;
@@ -149,6 +165,8 @@
       text-decoration: underline;
     }
   }
+
+  // 笔记引用链接
   a[href^="note://"]
   {
     display: inline-flex;
@@ -160,7 +178,7 @@
     position: relative;
     color: var(--color-link-backlink);
     transition: all 0.2s ease;
-    height: 1.2em; // 设置一个固定的高度，与行高匹配
+    height: 1.2em;
     margin: 0 4px;
 
     &::after {
@@ -182,20 +200,19 @@
       }
     }
   }
-  // .devonthink-link {
-  //   color: var(--devonthink-link-color, #6366f1);
-  //   text-decoration: none;
-  //   border-bottom: 1px dashed currentColor;
-  //   cursor: pointer;
-  // }
 
-  // .devonthink-link:hover {
-  //   background-color: rgba(99, 102, 241, 0.1);
-  // }
-  // 删除线
-  s {
-    text-decoration: line-through;
+  /* ------------------------------------
+   * 代码样式
+   * ------------------------------------ */
+  // 行内代码
+  code {
+    background-color: var(--color-shape-tertiary);
+    border-radius: 0.4rem;
+    color: black;
+    font-size: 0.85rem;
+    padding: 0.25em 0.3em;
   }
+
   // 代码块
   pre {
     background: #2e2b29;
@@ -211,7 +228,8 @@
       font-size: 0.8rem;
       padding: 0;
     }
-    /* Code styling */
+
+    // 代码高亮
     .hljs-comment,
     .hljs-quote {
       color: #616161;
@@ -265,48 +283,40 @@
     }
   }
 
-  //Placeholder 样式
-  // 空编辑器提示,只在第一行显示
-  // p.is-editor-empty:first-child::before {
-  //   color: var(--color-text-placeholder);
-  //   content: attr(data-placeholder);
-  //   opacity: 0.7; // 调整透明度
-  //   float: left;
-  //   height: 0;
-  //   pointer-events: none;
-  // }
-
-  p.is-empty::before {
-    color: var(--color-text-placeholder);
-    content: attr(data-placeholder);
-    opacity: 0.4; // 调整透明度
-    float: left;
-    height: 0;
-    pointer-events: none;
-  }
-  h1.is-empty::before,
-  h2.is-empty::before,
-  h3.is-empty::before {
-    color: var(--color-text-placeholder);
-    content: attr(data-placeholder);
-    opacity: 0.4; // 调整透明度
-    float: left;
-    height: 0;
-    pointer-events: none;
-  }
-
-  // 列表样式
+  /* ------------------------------------
+   * 列表样式
+   * ------------------------------------ */
+  // 基础列表
   ul,
   ol {
     padding: 0 1rem;
-    margin: 0.5rem 0 1rem 0.4rem;
+    margin: 0.5rem 0 1rem 0rem;
 
     li p {
       margin-top: 0.25em;
       margin-bottom: 0.25em;
     }
   }
-  // 任务列表样式
+
+  // 无序列表标记
+  ul {
+    li {
+      &::marker {
+        color: var(--color-primary);
+      }
+    }
+  }
+
+  // 有序列表标记
+  ol {
+    li {
+      &::marker {
+        color: var(--color-primary);
+      }
+    }
+  }
+
+  // 任务列表
   ul[data-type="taskList"] {
     list-style: none;
     margin-left: 0;
@@ -317,8 +327,8 @@
       display: flex;
 
       > label {
-        display: inline-flex; // 使用 inline-flex
-        align-items: center; // 确保 checkbox 垂直居中
+        display: inline-flex;
+        align-items: center;
         margin-right: 0.5rem;
         user-select: none;
       }
@@ -328,31 +338,33 @@
         margin-top: 0;
       }
     }
+
+    // 自定义复选框样式
     input[type="checkbox"] {
       -webkit-appearance: none;
       -moz-appearance: none;
       appearance: none;
       width: 1em;
       height: 1em;
-      border: 1px solid #ccc; // 正常时的边框颜色（灰色）
-      border-radius: 50%; // 圆形复选框
+      border: 1px solid #ccc;
+      border-radius: 50%;
       outline: none;
       cursor: pointer;
       position: relative;
       transition: all 0.3s ease;
-      margin: 3.5px 0; // 微调垂直边距
+      margin: 3.5px 0;
       flex-shrink: 0;
 
       &:hover {
-        border-color: var(--color-primary); // 鼠标悬停时变为主题色
+        border-color: var(--color-primary);
       }
 
       &:checked {
-        background-color: #ccc; // 选中时的背景颜色（灰色）
+        background-color: #ccc;
         border-color: #ccc;
 
         &::after {
-          content: "\2713"; // Unicode 对号字符
+          content: "\2713";
           position: absolute;
           top: 50%;
           left: 50%;
@@ -370,35 +382,41 @@
     }
   }
 
+  /* ------------------------------------
+   * 引用块样式
+   * ------------------------------------ */
   blockquote {
-    border-left: 3px solid #e7e4e2;
+    position: relative;
     margin: 1.5rem 0;
     padding-left: 1rem;
+    border-left: none;
+
+    &::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 3px;
+      background-color: var(--color-primary);
+      border-radius: 1.5px;
+    }
   }
 
+  /* ------------------------------------
+   * 图片样式
+   * ------------------------------------ */
   img {
     display: block;
     height: auto;
-    // margin: 1.5rem 0 1.5rem 0;
-    // max-width: calc(100% - 2rem);
     max-width: 100%;
     width: auto;
     border-radius: 8px;
   }
 
-  // 下标
-  sub {
-    font-size: 0.8em;
-    vertical-align: sub;
-  }
-
-  // 上标
-  sup {
-    font-size: 0.8em;
-    vertical-align: super;
-  }
-
-  /* Details */
+  /* ------------------------------------
+   * Details 折叠面板样式
+   * ------------------------------------ */
   .details {
     display: flex;
     gap: 0.25rem;
@@ -453,7 +471,9 @@
     }
   }
 
-  /* Table-specific styling */
+  /* ------------------------------------
+   * 表格样式
+   * ------------------------------------ */
   table {
     border-collapse: collapse;
     margin: 0;
@@ -504,31 +524,67 @@
       z-index: 30;
     }
   }
+
+  /* ------------------------------------
+   * 占位符样式
+   * ------------------------------------ */
+  p.is-empty::before {
+    color: var(--color-text-placeholder);
+    content: attr(data-placeholder);
+    opacity: 0.4;
+    float: left;
+    height: 0;
+    pointer-events: none;
+  }
+
+  h1.is-empty::before,
+  h2.is-empty::before,
+  h3.is-empty::before {
+    color: var(--color-text-placeholder);
+    content: attr(data-placeholder);
+    opacity: 0.4;
+    float: left;
+    height: 0;
+    pointer-events: none;
+  }
+
+  /* ------------------------------------
+   * 编辑器状态样式
+   * ------------------------------------ */
+  // 选中状态下的光标颜色
+  &.ProseMirror-focused {
+    caret-color: var(--color-primary);
+  }
+
+  // 只读状态下的光标颜色
+  &.ProseMirror-readonly {
+    caret-color: var(--color-text-tertiary);
+  }
 }
 
+/* ------------------------------------
+ * ProseMirror 编辑器特定样式
+ * ------------------------------------ */
 .ProseMirror {
-  // padding: 1rem 1rem 1rem 0;
-
   .ProseMirror-widget * {
     margin-top: auto;
   }
 }
 
+// 节点范围选择
 .ProseMirror-noderangeselection {
   *::selection {
     background: transparent;
-    // background-color: #70cff850;
   }
 
   * {
     caret-color: transparent;
-    // caret-color: #70cff850;
   }
 }
 
+// 选中节点样式
 .ProseMirror-selectednode,
 .ProseMirror-selectednoderange {
-  // outline: 1px solid red; /* 临时添加，用于调试 */
   position: relative;
   z-index: 0;
 
@@ -546,6 +602,9 @@
   }
 }
 
+/* ------------------------------------
+ * 拖动手柄样式
+ * ------------------------------------ */
 .custom-drag-handle {
   position: relative;
   &::after {
@@ -558,7 +617,6 @@
     content: "⠿";
     font-weight: 700;
     cursor: grab;
-    // background: #0d0d0d10;
     color: var(--color-text-tertiary);
     border-radius: 0.25rem;
     z-index: 0;
@@ -572,6 +630,9 @@
   }
 }
 
+/* ------------------------------------
+ * 其他通用样式
+ * ------------------------------------ */
 .ProseMirror-focused {
   outline: none;
 }
@@ -579,12 +640,15 @@
 ::selection {
   background-color: var(--color-selection) !important;
 }
+
 .ProseMirror-selectednode:not(.tiptap-image-wrapper)::after,
 .ProseMirror-selectednoderange:not(.tiptap-image-wrapper)::after {
   background-color: var(--color-selection) !important;
 }
 
-// 添加 emoji 选择样式
+/* ------------------------------------
+ * Emoji 样式
+ * ------------------------------------ */
 span[data-type="emoji"] {
   user-select: text !important;
   -webkit-user-select: text !important;
@@ -598,7 +662,9 @@ span[data-type="emoji"] {
   }
 }
 
-// 添加拖动状态的样式
+/* ------------------------------------
+ * 调整大小时的光标样式
+ * ------------------------------------ */
 .resize-cursor,
 .resize-cursor *,
 .resize-cursor table,
@@ -608,7 +674,6 @@ span[data-type="emoji"] {
   cursor: ew-resize !important;
 }
 
-// 确保拖动时所有元素都使用相同的光标
 .ProseMirror.resize-cursor {
   * {
     cursor: ew-resize !important;

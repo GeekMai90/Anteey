@@ -1306,16 +1306,6 @@ const destroyEditor = () => {
 }
 
 onBeforeUnmount(destroyEditor)
-// const debouncedDestroy = debounce(() => {
-//   if (editor.value) {
-//     editor.value.destroy()
-//   }
-//   noteStore.clearEditor()
-// }, 200) // 调整延迟时间以适应您的应用
-
-// onBeforeUnmount(() => {
-//   debouncedDestroy()
-// })
 
 watch(
   () => props.editable,
