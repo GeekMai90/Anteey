@@ -304,6 +304,12 @@
         </div>
         <div class="name">复制到剪贴板</div>
       </div>
+      <div class="context-menu-item" @click="insertParagraphBelow">
+        <div class="icon">
+          <Plus theme="outline" size="16" fill="var(--color-icon-menu-default)" :strokeWidth="3" />
+        </div>
+        <div class="name">在下方插入段落</div>
+      </div>
       <div class="context-menu-item delete" @click="deleteParagraph">
         <div class="icon">
           <Delete theme="outline" size="16" fill="var(--color-text-danger)" :strokeWidth="3" />
@@ -407,7 +413,7 @@
         <div class="name">任务列表</div>
       </button>
     </div>
-    <!-- 颜色选择菜单 -->
+    <!-- 颜色菜单 -->
     <div v-if="showColorMenu" class="color-menu" :style="colorMenuStyle">
       <div class="color-list">
         <button
@@ -480,7 +486,8 @@ import {
   AlignTextBoth,
   ParagraphTriangle,
   Format,
-  Platte
+  Platte,
+  Plus
 } from '@icon-park/vue-next'
 import TiptapImage from '@renderer/components/tiptap/TiptapImage.vue'
 import TaskItem from '@tiptap/extension-task-item'
@@ -535,7 +542,7 @@ const editorInstance = computed(() => editor.value)
 
 const editorRootRef = ref(null)
 
-// 更多菜单
+// 更菜单
 const bubbleMenuRef = ref(null)
 const showMoreMenu = ref(false)
 const moreButton = ref(null)
@@ -677,7 +684,7 @@ const showLinkInput = ref(false)
 const linkText = ref('')
 const linkUrl = ref('')
 const linkMenuPosition = ref({ x: 0, y: 0 })
-// 链接设置菜单样式
+// 接设置菜单样式
 const linkMenuStyle = computed(() => ({
   position: 'absolute',
   top: `${linkMenuPosition.value.y}px`,
@@ -757,7 +764,7 @@ const setLink = async () => {
       })
       .run()
   } else {
-    // 处理普通链接
+    // 处普通链接
     editorInstance.value
       .chain()
       .focus()
@@ -983,7 +990,7 @@ const deleteParagraph = () => {
     const currentNode = $pos.node()
     const nodeType = currentNode?.type.name
 
-    // 处理表格节点
+    // ��理表格节点
     if (
       nodeType === 'table' ||
       nodeType === 'tableRow' ||
@@ -1418,6 +1425,59 @@ const clearColor = () => {
   editorInstance.value.chain().focus().unsetMark('textStyle').run()
   currentColor.value = null
   showColorMenu.value = false
+}
+
+// 添加插入段落的方法
+const insertParagraphBelow = () => {
+  if (!editor.value || !currentParagraph.value) {
+    console.log('无法插入：编辑器或当前段落未定义')
+    return
+  }
+
+  try {
+    const { state } = editor.value
+    const { selection } = state
+    const { from } = selection
+    const $pos = state.doc.resolve(from)
+
+    // 处理表格的特殊情况
+    let depth = $pos.depth
+    let tablePos = -1
+
+    // 查找表格节点
+    while (depth > 0) {
+      const node = $pos.node(depth)
+      if (node.type.name === 'table') {
+        tablePos = $pos.before(depth)
+        break
+      }
+      depth--
+    }
+
+    if (tablePos !== -1) {
+      // 如果是表格，保持原有的处理逻辑
+      const tableNode = $pos.node(depth)
+      const tableEnd = tablePos + tableNode.nodeSize
+
+      editor.value
+        .chain()
+        .focus()
+        .insertContentAt(tableEnd, {
+          type: 'paragraph',
+          content: []
+        })
+        .focus(tableEnd + 1)
+        .run()
+    } else {
+      // 非表格节点使用 createParagraphNear 命令
+      editor.value.chain().focus().createParagraphNear().run()
+    }
+
+    showContextMenu.value = false
+    currentParagraph.value = null
+  } catch (error) {
+    console.error('插入段落时出错:', error)
+  }
 }
 </script>
 
