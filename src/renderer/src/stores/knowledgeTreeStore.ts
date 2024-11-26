@@ -207,7 +207,7 @@ export const useKnowledgeTreeStore = defineStore('knowledgeTree', () => {
       const focusedTree: KnowledgeTreeNode = {
         ...node,
         id: node.address, // 确保 id 存在且与 address 一致
-        children: childNodes.map(child => ({
+        children: childNodes.map((child) => ({
           ...child,
           id: child.address, // 确保子节点的 id 存在且与 address 一致
           isExpanded: true,
@@ -218,7 +218,7 @@ export const useKnowledgeTreeStore = defineStore('knowledgeTree', () => {
 
       // 确保当前节点和所有子节点都被添加到展开集合中
       expandedNodes.value.add(focusedTree.address)
-      childNodes.forEach(child => {
+      childNodes.forEach((child) => {
         expandedNodes.value.add(child.address)
       })
 

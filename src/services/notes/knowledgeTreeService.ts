@@ -171,16 +171,23 @@ export async function getChildNodes(parentAddress: string): Promise<KnowledgeTre
         throw new Error(`Invalid address level: ${level}`)
     }
 
-    console.log('查询模式:', pattern)
-
     const notes = await db('notes')
       .select('*')
       .where('address', 'like', pattern)
       .whereNot('address', parentAddress)
       .where('isDeleted', false)
+      .whereRaw('(address NOT LIKE ? OR address = ?)', [
+        `${parentAddress}-%-%`,
+        `${parentAddress}-1`
+      ])
       .orderBy('address', 'asc')
 
-    console.log('数据库查询结果:', notes)
+    console.log('SQL查询条件:', {
+      pattern,
+      parentAddress,
+      level
+    })
+    console.log('查询到的笔记:', notes)
 
     const nodes = await Promise.all(
       notes.map(async (note) => {

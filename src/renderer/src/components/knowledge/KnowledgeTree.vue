@@ -212,7 +212,7 @@ const initJsMind = async () => {
   }
 }
 
-// 添加双击处理函数
+// 修改双击处理函数
 const handleNodeDblClick = (e: MouseEvent) => {
   console.log('handleNodeDblClick 被调用')
   if (!jm.value) return
@@ -231,10 +231,20 @@ const handleNodeDblClick = (e: MouseEvent) => {
   console.log('找到的 nodeId:', nodeId)
 
   if (nodeId) {
-    const treeNode = knowledgeTreeStore.findNodeByAddress(nodeId)
-    if (treeNode) {
-      console.log('找到对应的树节点:', treeNode)
-      knowledgeTreeStore.focusNodeWithChildren(treeNode)
+    // 如果是当前聚焦的根节点，则返回上一层
+    if (
+      knowledgeTreeStore.viewState.isInFocusMode &&
+      nodeId === knowledgeTreeStore.focusedNode?.address
+    ) {
+      console.log('双击根节点，返回上一层')
+      knowledgeTreeStore.backToParent()
+    } else {
+      // 其他节点保持原有的聚焦行为
+      const treeNode = knowledgeTreeStore.findNodeByAddress(nodeId)
+      if (treeNode) {
+        console.log('找到对应的树节点:', treeNode)
+        knowledgeTreeStore.focusNodeWithChildren(treeNode)
+      }
     }
   }
 }
@@ -269,7 +279,7 @@ watch(
       console.log('节点数据更新:', knowledgeTreeStore.nodes)
       const jsMindData = transformToJsMindData(knowledgeTreeStore.nodes)
       console.log('转换后的 jsMind 数据:', jsMindData)
-      
+
       // 直接显示新数据，jsMind 会自动清除旧数据
       jm.value.show(jsMindData)
 

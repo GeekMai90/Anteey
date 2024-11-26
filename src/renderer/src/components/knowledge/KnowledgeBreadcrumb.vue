@@ -1,5 +1,5 @@
 <template>
-  <div class="breadcrumb" v-if="parentPath.length > 0">
+  <div v-if="parentPath.length > 0" class="breadcrumb">
     <span
       v-for="(node, index) in parentPath"
       :key="node.id"
@@ -9,7 +9,7 @@
       {{ node.address }} - {{ node.title }}
       <span v-if="index < parentPath.length - 1" class="separator">/</span>
     </span>
-    <button v-if="parentPath.length > 1" @click="handleBack" class="back-button">返回上层</button>
+    <button v-if="parentPath.length > 1" class="back-button" @click="handleBack">返回上层</button>
   </div>
 </template>
 
