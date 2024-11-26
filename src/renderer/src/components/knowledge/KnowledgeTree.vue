@@ -1,12 +1,6 @@
 <template>
   <div class="knowledge-tree-container">
-    <KnowledgeBreadcrumb />
-    <KnowledgeTreeToolbar
-      :scale="scale"
-      @zoom-in="handleZoomIn"
-      @zoom-out="handleZoomOut"
-      @reset-view="handleResetView"
-    />
+    <AppToolbar />
     <div ref="container" class="jsmind-container"></div>
   </div>
 </template>
@@ -18,8 +12,7 @@ import '../../styles/jsmind-antinet-theme.css'
 import jsMind from 'jsmind'
 import { useKnowledgeTreeStore } from '@renderer/stores/knowledgeTreeStore'
 import type { KnowledgeTreeNode } from '@renderer/types/knowledgeTree'
-import KnowledgeTreeToolbar from './KnowledgeTreeToolbar.vue'
-import KnowledgeBreadcrumb from './KnowledgeBreadcrumb.vue'
+import AppToolbar from '../layout/AppToolbar.vue'
 
 // 直接在组件中定义类型
 interface JsMindOptions {
@@ -67,7 +60,6 @@ interface JsMindData {
 const knowledgeTreeStore = useKnowledgeTreeStore()
 const container = ref<HTMLDivElement>()
 const jm = ref<any>(null)
-const scale = ref(1)
 
 // 转换数据为 JsMind 格式
 const transformToJsMindData = (nodes: KnowledgeTreeNode[]): JsMindData => {
@@ -250,26 +242,26 @@ const handleNodeDblClick = (e: MouseEvent) => {
 }
 
 // 缩放控制
-const handleZoomIn = () => {
-  if (jm.value) {
-    scale.value *= 1.1
-    jm.value.view.zoom_in()
-  }
-}
+// const handleZoomIn = () => {
+//   if (jm.value) {
+//     scale.value *= 1.1
+//     jm.value.view.zoom_in()
+//   }
+// }
 
-const handleZoomOut = () => {
-  if (jm.value) {
-    scale.value *= 0.9
-    jm.value.view.zoom_out()
-  }
-}
+// const handleZoomOut = () => {
+//   if (jm.value) {
+//     scale.value *= 0.9
+//     jm.value.view.zoom_out()
+//   }
+// }
 
-const handleResetView = () => {
-  if (jm.value) {
-    scale.value = 1
-    jm.value.view.reset()
-  }
-}
+// const handleResetView = () => {
+//   if (jm.value) {
+//     scale.value = 1
+//     jm.value.view.reset()
+//   }
+// }
 
 // 修改 watch 部分
 watch(

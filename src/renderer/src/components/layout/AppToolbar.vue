@@ -21,6 +21,7 @@
           />
         </div>
       </div>
+
       <div
         v-if="showBackButton"
         v-tooltip.bottom="{
@@ -54,6 +55,25 @@
         <div class="icon">
           <Right theme="outline" size="20" fill="var(--color-icon-default)" :stroke-width="3" />
         </div>
+      </div>
+      <div v-if="showBreadcrumb" class="breadcrumb-container">
+        <span class="breadcrumb-item root-item" @click="handleRootClick">
+          Antinet Zettelkasten
+        </span>
+        <span class="separator">/</span>
+
+        <span
+          v-for="(node, index) in parentPath"
+          :key="node.id"
+          class="breadcrumb-item"
+          @click="handleBreadcrumbClick(node)"
+        >
+          {{ node.address }} - {{ node.title }}
+          <span v-if="index < parentPath.length - 1" class="separator">/</span>
+        </span>
+        <button v-if="parentPath.length > 0" class="back-button-breadcrumb" @click="handleBack">
+          返回上层
+        </button>
       </div>
       <div v-if="whiteboardName" class="whiteboard-name">
         <span v-if="!isEditing" @click="startEditing">{{ whiteboardName }}</span>
@@ -96,12 +116,16 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed, nextTick } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { Left, Right, ExpandLeft, ExpandRight } from '@icon-park/vue-next'
 import { useUIStore } from '@renderer/stores/useUIStore'
+import { useKnowledgeTreeStore } from '@renderer/stores/knowledgeTreeStore'
+import type { KnowledgeTreeNode } from '@renderer/types/knowledgeTree'
 
 const uiStore = useUIStore()
 const router = useRouter()
+const route = useRoute()
+const knowledgeTreeStore = useKnowledgeTreeStore()
 
 const toolbarStyle = computed(() => {
   return {
@@ -170,6 +194,42 @@ const finishEditing = () => {
   if (editingName.value !== props.whiteboardName) {
     emit('update:whiteboardName', editingName.value)
   }
+}
+
+// 控制面包屑显示
+const showBreadcrumb = computed(() => {
+  return route.path === '/knowledge-tree' // 根据实际路由路径调整
+})
+
+// 获取面包屑数据
+const parentPath = computed(() => knowledgeTreeStore.parentPath)
+
+// 面包屑点击处理
+const handleBreadcrumbClick = (node: KnowledgeTreeNode) => {
+  // 如果点击的是当前聚焦的节点，则返回上一层
+  if (
+    knowledgeTreeStore.viewState.isInFocusMode &&
+    node.address === knowledgeTreeStore.focusedNode?.address
+  ) {
+    knowledgeTreeStore.backToParent()
+  } else {
+    // 聚焦到新节点
+    knowledgeTreeStore.focusNodeWithChildren(node)
+  }
+}
+
+// 返回上层处理
+const handleBack = () => {
+  knowledgeTreeStore.backToParent()
+}
+
+// 添加根节点点击处理函数
+const handleRootClick = async () => {
+  // 重置所有状态
+  knowledgeTreeStore.viewState.isInFocusMode = false
+  knowledgeTreeStore.focusedNode = null
+  knowledgeTreeStore.parentPath = [] // 清空面包屑路径
+  await knowledgeTreeStore.fetchTopLevelNodes()
 }
 </script>
 
@@ -297,6 +357,43 @@ const finishEditing = () => {
     &:focus {
       background-color: var(--color-hover-button);
     }
+  }
+}
+
+.breadcrumb-container {
+  display: flex;
+  align-items: center;
+  margin-left: 16px;
+  -webkit-app-region: no-drag;
+}
+
+.breadcrumb-item {
+  cursor: pointer;
+  color: var(--color-text-secondary);
+  font-size: 14px;
+
+  &:hover {
+    color: var(--color-primary);
+  }
+}
+
+.separator {
+  margin: 0 8px;
+  color: var(--color-border);
+}
+
+.back-button-breadcrumb {
+  margin-left: 16px;
+  padding: 4px 8px;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  background: transparent;
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--color-text-secondary);
+
+  &:hover {
+    background: var(--color-hover-button);
   }
 }
 </style>
