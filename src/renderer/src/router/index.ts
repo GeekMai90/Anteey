@@ -105,6 +105,11 @@ const routes = [
     path: '/temp',
     component: () => import('../components/common/EmptyComponent.vue'),
     meta: { keepAlive: false }
+  },
+  {
+    name: 'knowledgeTree',
+    path: '/knowledge-tree',
+    component: () => import('../components/knowledge/KnowledgeTree.vue')
   }
 ]
 

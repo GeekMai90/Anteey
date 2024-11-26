@@ -163,7 +163,7 @@ onMounted(async () => {
 
   // 路由初始化
   if (router.currentRoute.value.path === '/') {
-    router.push('/timeline')
+    router.push('/knowledge-tree')
   }
 
   // 移除加载动画

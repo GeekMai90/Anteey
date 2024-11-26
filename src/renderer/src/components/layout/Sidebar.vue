@@ -181,7 +181,8 @@ const menuItems = [
   { name: '时间线', path: '/timeline', icon: Time },
   { name: '卡片盒', path: '/cardbox', icon: Box },
   { name: 'AI助手', path: '/aiassistant', icon: Robot },
-  { name: '思维板', path: '/whiteboard', icon: Workbench }
+  { name: '思维板', path: '/whiteboard', icon: Workbench },
+  { name: '知识树', path: '/knowledge-tree', icon: Workbench }
 ]
 
 const isActive = (path: string) => {

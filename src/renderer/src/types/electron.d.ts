@@ -27,6 +27,7 @@ import { ChatMessage, ChatSession, RAGContext, RAGHistoryRecord } from './assist
 import { LLMConfig } from './llm'
 import { LocalTreeData, LocalTreeWithReferencesData } from './localTree'
 import { AppearanceSettings } from '../../../services/appearance/appearanceService'
+import { KnowledgeTreeNode } from './knowledgeTree'
 
 export interface ElectronAPI {
   createNote: () => Promise<Note>
@@ -193,7 +194,7 @@ export interface ElectronAPI {
   // 获取笔记的标签
   getNoteTags: (noteId: string) => Promise<Tag[]>
 
-  // 筛选规则相关���方法
+  // 筛选规则相关的方法
   // 创建自定义筛选规则
   createCustomFilter: (input: CreateCustomFilterInput) => Promise<CustomFilter>
 
@@ -399,6 +400,12 @@ export interface ElectronAPI {
   updateAppearanceSettings: (settings: Partial<AppearanceSettings>) => Promise<AppearanceSettings>
 
   updateGlobalHotkey: (hotkey: string) => Promise<{ success: boolean; error?: string }>
+
+  // 知识树相关的方法
+  getTopLevelNodes: () => Promise<KnowledgeTreeNode[]>
+  getChildNodes: (parentAddress: string) => Promise<KnowledgeTreeNode[]>
+  getChildCount: (parentAddress: string) => Promise<number>
+  getNodePath: (address: string) => Promise<KnowledgeTreeNode[]>
 }
 
 declare global {
