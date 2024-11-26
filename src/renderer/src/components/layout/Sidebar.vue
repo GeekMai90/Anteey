@@ -151,7 +151,8 @@ import {
   Clear,
   Moon,
   SunOne,
-  Robot
+  Robot,
+  Sapling
 } from '@icon-park/vue-next'
 import { useNoteStore } from '@renderer/stores/noteStores'
 import SettingDropdownMenu from '@renderer/components/settings/SettingDropdownMenu.vue'
@@ -180,9 +181,9 @@ const menuItems = [
   { name: '主页', path: '/home', icon: Home },
   { name: '时间线', path: '/timeline', icon: Time },
   { name: '卡片盒', path: '/cardbox', icon: Box },
-  { name: 'AI助手', path: '/aiassistant', icon: Robot },
+  { name: '知识树', path: '/knowledge-tree', icon: Sapling },
   { name: '思维板', path: '/whiteboard', icon: Workbench },
-  { name: '知识树', path: '/knowledge-tree', icon: Workbench }
+  { name: 'AI助手', path: '/aiassistant', icon: Robot }
 ]
 
 const isActive = (path: string) => {
