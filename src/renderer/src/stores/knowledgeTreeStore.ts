@@ -38,6 +38,7 @@ export const useKnowledgeTreeStore = defineStore('knowledgeTree', () => {
   const fetchTopLevelNodes = async () => {
     try {
       nodes.value = await window.electronAPI.getTopLevelNodes()
+      console.log('获取到的顶层节点:', nodes.value)
     } catch (error) {
       console.error('获取顶层节点失败:', error)
       throw error

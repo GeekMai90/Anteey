@@ -137,6 +137,7 @@ $dark-mode-text: $gray-100;
   --color-pink: #f72585;
   --color-pink-rgb: 247, 37, 133;
   --color-danger: #ff4d4f;
+  --color-warning: #ff9f1c;
   --color-danger-rgb: 255, 76, 76;
   // 主题文字色
   --color-text-primary: #252525;
@@ -242,6 +243,10 @@ $dark-mode-text: $gray-100;
   --color-text-cyan: #5cd9cf;
   --color-text-blue: #69b5ff;
   --color-text-purple: #b37feb;
+
+  //连接线颜色
+  --color-line: rgba(0, 0, 0, 0.3);
+  --color-node-bg: #f2f2f2;
 }
 
 .theme-dark {
@@ -352,4 +357,8 @@ $dark-mode-text: $gray-100;
   --color-text-cyan: #87ede5;
   --color-text-blue: #91caff;
   --color-text-purple: #d3adf7;
+
+  //连接线颜色
+  --color-line: rgba(255, 255, 255, 0.3);
+  --color-node-bg: #242424;
 }

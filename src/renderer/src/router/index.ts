@@ -107,9 +107,16 @@ const routes = [
     meta: { keepAlive: false }
   },
   {
-    name: 'knowledgeTree',
     path: '/knowledge-tree',
-    component: () => import('../components/knowledge/KnowledgeTree.vue')
+    name: 'KnowledgeTree',
+    component: () => import('../views/KnowledgeTree.vue'),
+    children: [
+      {
+        path: 'node/:address', // 使用 address 作为参数
+        name: 'KnowledgeTreeNode',
+        component: () => import('../views/KnowledgeTree.vue')
+      }
+    ]
   }
 ]
 

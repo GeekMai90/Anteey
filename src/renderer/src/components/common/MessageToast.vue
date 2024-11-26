@@ -11,7 +11,7 @@ import { ref, onMounted } from 'vue'
 
 const props = defineProps<{
   message: string
-  type?: 'success' | 'error'
+  type?: 'success' | 'error' | 'warning'
   duration?: number
 }>()
 
@@ -45,6 +45,10 @@ onMounted(() => {
 
   &.error {
     background: var(--color-danger);
+  }
+
+  &.warning {
+    background: var(--color-warning);
   }
 }
 

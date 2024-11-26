@@ -398,6 +398,10 @@ const handleKeyDown = (event: KeyboardEvent) => {
           // Alt+Enter: 在卡片盒中查看上下文
           viewNoteContext(selectedNote.value.id)
           hide()
+        } else if (event.shiftKey) {
+          // Shift+Enter: 在知识树中查看节点
+          router.push(`/knowledge-tree/node/${selectedNote.value.address}`)
+          hide()
         } else {
           // 普通 Enter: 打开小窗编辑器
           noteStore.openNoteEditor(selectedNote.value.id)

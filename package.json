@@ -27,7 +27,6 @@
     "migrate:rollback": "knex migrate:rollback --knexfile ./knexfile.ts"
   },
   "dependencies": {
-    "@antv/g6": "^5.0.32",
     "@electron-toolkit/preload": "^3.0.0",
     "@electron-toolkit/utils": "^3.0.0",
     "@electron/remote": "^2.1.2",
@@ -93,7 +92,6 @@
     "date-fns": "^4.1.0",
     "dompurify": "^3.1.7",
     "dotenv": "^16.4.5",
-    "echarts": "^5.5.1",
     "electron-dl": "^4.0.0",
     "electron-log": "^5.2.0",
     "electron-updater": "^6.1.7",

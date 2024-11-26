@@ -57,23 +57,28 @@
         </div>
       </div>
       <div v-if="showBreadcrumb" class="breadcrumb-container">
-        <span class="breadcrumb-item root-item" @click="handleRootClick">
-          Antinet Zettelkasten
-        </span>
-        <span class="separator">/</span>
+        <div class="breadcrumb-group">
+          <span class="breadcrumb-item root-item" @click="handleRootClick">
+            <div class="breadcrumb-content">
+              <div class="address">Antinet</div>
+              <div class="title">Zettelkasten</div>
+            </div>
+          </span>
+        </div>
 
-        <span
-          v-for="(node, index) in parentPath"
-          :key="node.id"
-          class="breadcrumb-item"
-          @click="handleBreadcrumbClick(node)"
-        >
-          {{ node.address }} - {{ node.title }}
-          <span v-if="index < parentPath.length - 1" class="separator">/</span>
-        </span>
-        <button v-if="parentPath.length > 0" class="back-button-breadcrumb" @click="handleBack">
-          返回上层
-        </button>
+        <div class="separator">/</div>
+
+        <template v-for="(node, index) in parentPath" :key="node.id">
+          <div class="breadcrumb-group">
+            <span class="breadcrumb-item" @click="handleBreadcrumbClick(node)">
+              <div class="breadcrumb-content">
+                <div class="address">{{ node.address }}</div>
+                <div class="title">{{ node.title }}</div>
+              </div>
+            </span>
+          </div>
+          <div v-if="index < parentPath.length - 1" class="separator">/</div>
+        </template>
       </div>
       <div v-if="whiteboardName" class="whiteboard-name">
         <span v-if="!isEditing" @click="startEditing">{{ whiteboardName }}</span>
@@ -206,7 +211,7 @@ const parentPath = computed(() => knowledgeTreeStore.parentPath)
 
 // 面包屑点击处理
 const handleBreadcrumbClick = (node: KnowledgeTreeNode) => {
-  // 如果点击的是当前聚焦的节点，则返回上一层
+  // 如果点击的是当前聚的节点，则返回上一层
   if (
     knowledgeTreeStore.viewState.isInFocusMode &&
     node.address === knowledgeTreeStore.focusedNode?.address
@@ -219,9 +224,9 @@ const handleBreadcrumbClick = (node: KnowledgeTreeNode) => {
 }
 
 // 返回上层处理
-const handleBack = () => {
-  knowledgeTreeStore.backToParent()
-}
+// const handleBack = () => {
+//   knowledgeTreeStore.backToParent()
+// }
 
 // 添加根节点点击处理函数
 const handleRootClick = async () => {
@@ -253,7 +258,7 @@ const handleRootClick = async () => {
 
   &.left {
     justify-content: flex-start;
-    flex: 2;
+    flex: 3;
   }
 
   &.center {
@@ -365,21 +370,82 @@ const handleRootClick = async () => {
   align-items: center;
   margin-left: 16px;
   -webkit-app-region: no-drag;
+  height: 40px;
+  flex: 1;
+  overflow-x: auto;
+}
+
+.breadcrumb-group {
+  display: flex;
+  align-items: center;
 }
 
 .breadcrumb-item {
+  display: flex;
+  align-items: center;
   cursor: pointer;
-  color: var(--color-text-secondary);
-  font-size: 14px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
 
   &:hover {
-    color: var(--color-primary);
+    background-color: var(--color-hover-button);
+
+    .breadcrumb-content {
+      .address {
+        color: var(--color-primary);
+      }
+      .title {
+        color: var(--color-primary);
+      }
+    }
+  }
+
+  .breadcrumb-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    line-height: 1.2;
+    // min-width: 80px;
+
+    .address {
+      font-size: 12px;
+      color: var(--color-text-secondary);
+      transition: color 0.2s ease;
+    }
+
+    .title {
+      font-size: 13px;
+      color: var(--color-text-secondary);
+      transition: color 0.2s ease;
+      white-space: nowrap; /* 不换行 */
+      overflow: hidden; /* 超出隐藏 */
+      text-overflow: ellipsis; /* 显示省略号 */
+      max-width: 100px; /* 留出一些内边距的空间 */
+    }
   }
 }
 
 .separator {
-  margin: 0 8px;
+  display: flex;
+  align-items: center;
+  margin: 0 4px;
   color: var(--color-border);
+  height: 100%;
+  font-size: 14px;
+  align-self: center;
+  user-select: none;
+}
+
+.root-item {
+  .breadcrumb-content {
+    .address {
+      color: var(--color-text-secondary);
+    }
+    .title {
+      color: var(--color-text-secondary);
+    }
+  }
 }
 
 .back-button-breadcrumb {

@@ -9,6 +9,7 @@ export interface KnowledgeTreeNode {
   level: number // 节点层级
   isExpanded?: boolean
   isFocused?: boolean
+  noteId?: string | null // 可以为 null（根节点的情况）
 }
 
 // 视图状态

@@ -22,7 +22,8 @@ function convertToTreeNode(note: Note, level: number): KnowledgeTreeNode {
     childCount: 0,
     level,
     isExpanded: false,
-    isFocused: false
+    isFocused: false,
+    noteId: note.id
   }
 
   console.log('转换后的节点:', node)
@@ -87,6 +88,7 @@ export async function getTopLevelNodes(): Promise<KnowledgeTreeNode[]> {
       .select('*')
       .where('address', 'like', '%000')
       .where('isDeleted', false)
+      .where('cardType', 'Maincard')
       .orderBy('address', 'asc')
 
     console.log('获取到的顶层笔记数据:', notes)
@@ -176,6 +178,7 @@ export async function getChildNodes(parentAddress: string): Promise<KnowledgeTre
       .where('address', 'like', pattern)
       .whereNot('address', parentAddress)
       .where('isDeleted', false)
+      .where('cardType', 'Maincard')
       .whereRaw('(address NOT LIKE ? OR address = ?)', [
         `${parentAddress}-%-%`,
         `${parentAddress}-1`
@@ -220,6 +223,7 @@ export async function getNodePath(address: string): Promise<KnowledgeTreeNode[]>
         .select('*')
         .where('address', currentAddress)
         .where('isDeleted', false)
+        .where('cardType', 'Maincard')
         .first()
 
       if (note) {

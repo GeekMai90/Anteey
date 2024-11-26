@@ -10,7 +10,12 @@ export const message = {
     this.show(message, 'error', duration)
   },
 
-  show(message: string, type: 'success' | 'error', duration: number) {
+  warning(message: string, duration = 2000) {
+    // 添加 warning 方法
+    this.show(message, 'warning', duration)
+  },
+
+  show(message: string, type: 'success' | 'error' | 'warning', duration: number) {
     const container = document.createElement('div')
     document.body.appendChild(container)
 
