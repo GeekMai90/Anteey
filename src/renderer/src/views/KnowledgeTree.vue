@@ -75,40 +75,70 @@ const jm = ref<any>(null)
 
 // 转换数据为 JsMind 格式
 // const transformToJsMindData = (nodes: KnowledgeTreeNode[]): JsMindData => {
-//   const processNode = (node: KnowledgeTreeNode): JsMindNode | null => {
-//     if (!node) return null
+//   const processNode = (node: KnowledgeTreeNode): JsMindNode => {
+//     if (!node) {
+//       throw new Error('Node cannot be null')
+//     }
 
-//     console.log('处理节点:', node)
+//     // 处理子节点
+//     const processedChildren = (node.children || []).map((child) => {
+//       if (!child) {
+//         throw new Error('Child node cannot be null')
+//       }
+//       return {
+//         id: child.address,
+//         topic: `<div class="node-content">
+//                   <div class="node-address">${child.address || ''}</div>
+//                   <div class="node-title">${child.title || ''}</div>
+//                 </div>`,
+//         children: (child.children || []).map((grandChild) => processNode(grandChild)),
+//         expanded: knowledgeTreeStore.viewState.isInFocusMode || child.isExpanded === true,
+//         direction: 'right',
+//         data: {
+//           childCount: child.childCount || 0,
+//           level: child.level || 0,
+//           noteId: child.noteId
+//         }
+//       } as JsMindNode
+//     })
 
-//     const jsMindNode: JsMindNode = {
+//     return {
 //       id: node.address,
 //       topic: `<div class="node-content">
 //               <div class="node-address">${node.address || ''}</div>
 //               <div class="node-title">${node.title || ''}</div>
 //             </div>`,
-//       children: (node.children || [])
-//         .map((child) => processNode(child))
-//         .filter((node): node is JsMindNode => node !== null),
+//       children: processedChildren,
 //       expanded: knowledgeTreeStore.viewState.isInFocusMode || node.isExpanded === true,
 //       direction: 'right',
 //       data: {
 //         childCount: node.childCount || 0,
 //         level: node.level || 0,
-//         noteId: node.id
+//         noteId: node.noteId
 //       }
 //     }
+//   }
 
-//     return jsMindNode
+//   // 非聚焦模式的根节点
+//   const rootNode: JsMindNode = {
+//     id: 'root',
+//     topic: `<div class="node-content">
+//             <div class="node-address">Antinet</div>
+//             <div class="node-title">Zettelkasten</div>
+//           </div>`,
+//     children: nodes.map((node) => processNode(node)),
+//     expanded: true,
+//     direction: 'right',
+//     data: {
+//       childCount: 0, // 添加必需的 childCount
+//       level: -1,
+//       noteId: null
+//     }
 //   }
 
 //   // 检查是否在聚焦模式
 //   if (knowledgeTreeStore.viewState.isInFocusMode && knowledgeTreeStore.focusedNode) {
-//     console.log('聚焦模式下的节点:', knowledgeTreeStore.focusedNode)
 //     const processedNode = processNode(knowledgeTreeStore.focusedNode)
-//     if (!processedNode) {
-//       throw new Error('Failed to process focused node')
-//     }
-
 //     return {
 //       meta: {
 //         name: 'knowledge-tree',
@@ -126,21 +156,7 @@ const jm = ref<any>(null)
 //       version: '1.0'
 //     },
 //     format: 'node_tree',
-//     data: {
-//       id: 'root',
-//       topic: `<div class="node-content">
-//               <div class="node-address">Antinet</div>
-//               <div class="node-title">Zettelkasten</div>
-//             </div>`,
-//       children: nodes
-//         .map((node) => processNode(node))
-//         .filter((node): node is JsMindNode => node !== null),
-//       expanded: true,
-//       direction: 'right',
-//       data: {
-//         level: -1
-//       }
-//     }
+//     data: rootNode
 //   }
 // }
 const transformToJsMindData = (nodes: KnowledgeTreeNode[]): JsMindData => {
@@ -154,11 +170,13 @@ const transformToJsMindData = (nodes: KnowledgeTreeNode[]): JsMindData => {
       if (!child) {
         throw new Error('Child node cannot be null')
       }
+      const hasChildren = child.childCount > 0
       return {
         id: child.address,
-        topic: `<div class="node-content">
+        topic: `<div class="node-content ${hasChildren ? 'has-children' : ''}">
                   <div class="node-address">${child.address || ''}</div>
                   <div class="node-title">${child.title || ''}</div>
+                  ${hasChildren ? '<div class="children-indicator"></div>' : ''}
                 </div>`,
         children: (child.children || []).map((grandChild) => processNode(grandChild)),
         expanded: knowledgeTreeStore.viewState.isInFocusMode || child.isExpanded === true,
@@ -171,11 +189,13 @@ const transformToJsMindData = (nodes: KnowledgeTreeNode[]): JsMindData => {
       } as JsMindNode
     })
 
+    const hasChildren = node.childCount > 0
     return {
       id: node.address,
-      topic: `<div class="node-content">
+      topic: `<div class="node-content ${hasChildren ? 'has-children' : ''}">
               <div class="node-address">${node.address || ''}</div>
               <div class="node-title">${node.title || ''}</div>
+              ${hasChildren ? '<div class="children-indicator"></div>' : ''}
             </div>`,
       children: processedChildren,
       expanded: knowledgeTreeStore.viewState.isInFocusMode || node.isExpanded === true,
@@ -191,15 +211,16 @@ const transformToJsMindData = (nodes: KnowledgeTreeNode[]): JsMindData => {
   // 非聚焦模式的根节点
   const rootNode: JsMindNode = {
     id: 'root',
-    topic: `<div class="node-content">
+    topic: `<div class="node-content root-node">
             <div class="node-address">Antinet</div>
             <div class="node-title">Zettelkasten</div>
+            <div class="children-indicator"></div>
           </div>`,
     children: nodes.map((node) => processNode(node)),
     expanded: true,
     direction: 'right',
     data: {
-      childCount: 0, // 添加必需的 childCount
+      childCount: nodes.length,
       level: -1,
       noteId: null
     }
@@ -610,20 +631,32 @@ onMounted(() => {
   height: 100% !important;
 }
 /* 节点地址样式 */
-:deep(.node-address) {
+/* :deep(.node-address) {
   font-size: 0.9em;
-  color: var(--color-text-primary); /* 使用变量或直接使用颜色值 */
+  color: var(--color-text-primary); 
   text-align: center;
-}
+} */
 
 /* 节点标题样式 */
 :deep(.node-title) {
   color: var(--color-text-primary);
 }
 
-/* 根节点特殊样式 */
-:deep(jmnode.root .node-address),
-:deep(jmnode.root .node-title) {
-  color: white;
+/* 有子节点的节点样式 */
+:deep(.node-content.has-children) {
+  position: relative;
+  /* padding-right: 10px;  */
+}
+
+/* 子节点指示器 - 使用小圆点 */
+:deep(.children-indicator) {
+  position: absolute;
+  right: 0px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background-color: var(--color-primary);
 }
 </style>

@@ -4,7 +4,7 @@ jmnodes.theme-antinet jmnode {
   background-color: var(--color-node-bg);
   color: var(--color-text-primary);
   border: none;
-  border-radius: 4px;
+  border-radius: 6px;
   min-width: 120px;
   box-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
   cursor: pointer;
@@ -19,6 +19,9 @@ jmnodes.theme-antinet jmnode:hover {
 jmnodes.theme-antinet jmnode .node-address,
 jmnodes.theme-antinet jmnode .node-title {
   text-align: center;
+}
+jmnodes.theme-antinet jmnode .node-address {
+  padding-bottom: 4px;
 }
 /* 标题文本截断 */
 jmnodes.theme-antinet jmnode .node-title {
@@ -52,6 +55,12 @@ jmnodes.theme-antinet jmnode.root {
   padding: 12px 20px;
   color: var(--color-text-white);
   min-width: 140px;
+}
+
+/* 根节点特殊样式 */
+jmnode.root .node-address,
+jmnode.root .node-title {
+  color: var(--color-text-white);
 }
 
 /* 特定节点样式 */
