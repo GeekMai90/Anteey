@@ -77,7 +77,7 @@ const transformToJsMindData = (nodes: KnowledgeTreeNode[]): JsMindData => {
     console.log('处理节点:', node)
 
     const jsMindNode: JsMindNode = {
-      id: node.address || 'root',
+      id: node.address,
       topic: `<div class="node-content">
               <div class="node-address">${node.address || ''}</div>
               <div class="node-title">${node.title || ''}</div>
@@ -85,7 +85,7 @@ const transformToJsMindData = (nodes: KnowledgeTreeNode[]): JsMindData => {
       children: (node.children || [])
         .map((child) => processNode(child))
         .filter((node): node is JsMindNode => node !== null),
-      expanded: true,
+      expanded: knowledgeTreeStore.viewState.isInFocusMode || node.isExpanded === true,
       direction: 'right',
       data: {
         childCount: node.childCount || 0,

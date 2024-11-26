@@ -34,7 +34,7 @@ export const useKnowledgeTreeStore = defineStore('knowledgeTree', () => {
   const isNodeFocused = computed(() => (nodeId: string) => focusedNode.value?.id === nodeId)
 
   // ==================== 方法 ====================
-  // 顶层节点
+  // ���层节点
   const fetchTopLevelNodes = async () => {
     try {
       nodes.value = await window.electronAPI.getTopLevelNodes()
@@ -203,11 +203,13 @@ export const useKnowledgeTreeStore = defineStore('knowledgeTree', () => {
       const childNodes = await window.electronAPI.getChildNodes(node.address)
       console.log('获取到的子节点:', childNodes)
 
-      // 创建聚焦的树节点
+      // 创建聚焦的树节点，确保 id 属性存在
       const focusedTree: KnowledgeTreeNode = {
         ...node,
+        id: node.address, // 确保 id 存在且与 address 一致
         children: childNodes.map(child => ({
           ...child,
+          id: child.address, // 确保子节点的 id 存在且与 address 一致
           isExpanded: true,
           children: [] // 初始化空的子节点数组
         })),
@@ -215,18 +217,18 @@ export const useKnowledgeTreeStore = defineStore('knowledgeTree', () => {
       }
 
       // 确保当前节点和所有子节点都被添加到展开集合中
-      expandedNodes.value.add(node.id)
+      expandedNodes.value.add(focusedTree.address)
       childNodes.forEach(child => {
-        expandedNodes.value.add(child.id)
+        expandedNodes.value.add(child.address)
       })
 
       // 更新状态
       nodes.value = [focusedTree]
-      focusedNode.value = node
+      focusedNode.value = focusedTree // 使用更新后的节点
       viewState.value.isInFocusMode = true
 
       // 保存到历史记录
-      focusHistory.value.nodes.push(node)
+      focusHistory.value.nodes.push(focusedTree)
       focusHistory.value.currentIndex = focusHistory.value.nodes.length - 1
 
       // 保存父节点路径，用于返回上层
