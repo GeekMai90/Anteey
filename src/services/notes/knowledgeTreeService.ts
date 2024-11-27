@@ -2,12 +2,21 @@ import { db } from '../../db/config'
 import { Note } from '../../renderer/src/types/Note'
 import { KnowledgeTreeNode, AddressLevel } from '../../renderer/src/types/knowledgeTree'
 
+// 定义 metadata 的接口
+interface NoteMetadata {
+  title: string
+  content?: string
+  tags?: string[]
+  createdAt?: string
+  updatedAt?: string
+  // ... 其他可能的 metadata 字段
+}
 // 工具函数：将笔记数据转换为树节点
 function convertToTreeNode(note: Note, level: number): KnowledgeTreeNode {
   console.log('转换节点的原始数据:', note)
 
   // 解析 metadata JSON 字符串
-  let metadata = null
+  let metadata: NoteMetadata | null = null
   try {
     metadata = note.metadata ? JSON.parse(note.metadata as string) : null
     console.log('解析后的 metadata:', metadata)

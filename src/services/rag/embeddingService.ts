@@ -7,34 +7,65 @@ import path from 'path'
 import { app } from 'electron'
 import { getKeywordExtractor } from './keywordExtractor'
 import { Keyword, NoteEmbedding } from '../../renderer/src/types/Embedding'
+import fs from 'fs'
 
 let embeddings: any = null
 
-const cachePath = path.join(app.getPath('userData'), 'UserData', 'cache', 'embeddings.cache.json')
+// 缓存相关配置
+const userDataPath = app.getPath('userData')
+const cacheDirPath = path.join(userDataPath, 'UserData', 'cache')
+const cachePath = path.join(cacheDirPath, 'embeddings.cache.json')
+
+// 确保缓存目录存在
+function ensureCacheDirectory() {
+  try {
+    if (!fs.existsSync(cacheDirPath)) {
+      fs.mkdirSync(cacheDirPath, { recursive: true })
+      log.info('创建缓存目录成功:', cacheDirPath)
+    }
+
+    // 如果缓存文件不存在，创建一个空的缓存文件
+    if (!fs.existsSync(cachePath)) {
+      fs.writeFileSync(cachePath, '{}', 'utf-8')
+      log.info('创建缓存文件成功:', cachePath)
+    }
+  } catch (error) {
+    log.error('创建缓存目录或文件失败:', error)
+    throw error
+  }
+}
 
 // 初始化 embeddings
 // 初始化向量模型
 export async function initEmbeddings() {
   if (!embeddings) {
     try {
+      // 确保缓存目录存在
+      ensureCacheDirectory()
       // 直接使用默认导出
       const embeddingsModule = (await import('@themaximalist/embeddings.js')).default
 
       // 测试初始化并配置缓存
       await embeddingsModule('测试文本', {
-        cache_file: cachePath
+        cache_file: cachePath,
+        fallbackOnError: true
       })
 
       // 保存配置好的函数
       embeddings = (text: string) =>
         embeddingsModule(text, {
-          cache_file: cachePath
+          cache_file: cachePath,
+          fallbackOnError: true
         })
 
       log.info('向量模型初始化成功')
     } catch (error) {
       log.error('向量模型初始化失败:', error)
-      throw error
+      // 返回一个降级的向量化函数
+      embeddings = (text: string) => {
+        log.warn('使用降级向量化方法:', { text: text.substring(0, 100) })
+        return new Float32Array(384).fill(0) // 返回零向量作为降级方案
+      }
     }
   }
   return embeddings
@@ -311,6 +342,72 @@ export async function generateEmbeddingsBatch(noteIds: string[]): Promise<void> 
 //     throw error
 //   }
 // }
+// export async function updateNoteEmbedding(
+//   noteId: string,
+//   content: any,
+//   trx?: Knex.Transaction
+// ): Promise<void> {
+//   try {
+//     log.info('开始更新笔记向量和关键词:', { noteId })
+
+//     const embedder = await initEmbeddings()
+//     const textContent = extractTextContent(content)
+
+//     if (!textContent) {
+//       log.warn('笔记内容为空，跳过处理:', noteId)
+//       return
+//     }
+
+//     // 并行处理向量生成和关键词提取
+//     const keywordExtractor = await getKeywordExtractor()
+//     const [vector, keywords] = await Promise.all([
+//       // 生成向量
+//       embedder(textContent),
+//       // 提取关键词
+//       await keywordExtractor.extract(content)
+//     ])
+
+//     log.debug('处理结果:', {
+//       noteId,
+//       vectorLength: vector.length,
+//       keywordsCount: keywords.length,
+//       keywords
+//     })
+
+//     const embedding = Buffer.from(new Float32Array(vector).buffer)
+//     const now = Math.floor(Date.now() / 1000)
+
+//     const query = {
+//       note_id: noteId,
+//       embedding: embedding,
+//       keywords: JSON.stringify(keywords.map((k) => k.word)), // 只存储关键词文本
+//       created_at: now,
+//       updated_at: now,
+//       model_version: 'minilm-l6-v2'
+//     }
+
+//     // 使用传入的事务对象或默认数据库连接
+//     const dbConnection = trx || db
+//     await dbConnection('note_embeddings')
+//       .insert(query)
+//       .onConflict('note_id')
+//       .merge(['embedding', 'keywords', 'updated_at'])
+
+//     log.info('更新笔记向量和关键词成功:', {
+//       noteId,
+//       keywordsCount: keywords.length,
+//       keywordsList: keywords.map((k) => k.word)
+//     })
+//   } catch (error) {
+//     log.error('更新笔记向量和关键词失败:', {
+//       noteId,
+//       error,
+//       errorMessage: (error as Error).message,
+//       stack: (error as Error).stack
+//     })
+//     throw error
+//   }
+// }
 export async function updateNoteEmbedding(
   noteId: string,
   content: any,
@@ -327,54 +424,89 @@ export async function updateNoteEmbedding(
       return
     }
 
-    // 并行处理向量生成和关键词提取
-    const keywordExtractor = await getKeywordExtractor()
-    const [vector, keywords] = await Promise.all([
-      // 生成向量
-      embedder(textContent),
-      // 提取关键词
-      await keywordExtractor.extract(content)
-    ])
+    // 初始化默认值
+    const defaultVector = new Float32Array(384).fill(0)
+    let currentVector: Float32Array = defaultVector
+    let currentKeywords: Array<{ word: string; weight: number }> = []
 
-    log.debug('处理结果:', {
-      noteId,
-      vectorLength: vector.length,
-      keywordsCount: keywords.length,
-      keywords
-    })
+    try {
+      // 并行处理向量生成和关键词提取
+      const keywordExtractor = await getKeywordExtractor()
+      const [vectorResult, keywordsResult] = await Promise.all([
+        // 生成向量
+        embedder(textContent).catch((error: Error) => {
+          log.error('向量生成失败，使用降级方案:', error)
+          return defaultVector
+        }),
+        // 提取关键词
+        keywordExtractor.extract(content).catch((error: Error) => {
+          log.error('关键词提取失败，使用空数组:', error)
+          return []
+        })
+      ])
 
-    const embedding = Buffer.from(new Float32Array(vector).buffer)
-    const now = Math.floor(Date.now() / 1000)
+      currentVector = vectorResult
+      currentKeywords = keywordsResult
 
-    const query = {
-      note_id: noteId,
-      embedding: embedding,
-      keywords: JSON.stringify(keywords.map((k) => k.word)), // 只存储关键词文本
-      created_at: now,
-      updated_at: now,
-      model_version: 'minilm-l6-v2'
+      log.debug('处理结果:', {
+        noteId,
+        vectorLength: currentVector.length,
+        keywordsCount: currentKeywords.length,
+        keywords: currentKeywords
+      })
+    } catch (processError: unknown) {
+      log.error('内容处理失败，使用降级方案:', {
+        noteId,
+        error: processError,
+        textLength: textContent.length
+      })
+      // 使用默认值
+      currentVector = defaultVector
+      currentKeywords = []
     }
 
-    // 使用传入的事务对象或默认数据库连接
-    const dbConnection = trx || db
-    await dbConnection('note_embeddings')
-      .insert(query)
-      .onConflict('note_id')
-      .merge(['embedding', 'keywords', 'updated_at'])
+    try {
+      // 修复 Buffer 创建的问题
+      const embedding = Buffer.from(new Uint8Array(currentVector.buffer))
+      const now = Math.floor(Date.now() / 1000)
 
-    log.info('更新笔记向量和关键词成功:', {
-      noteId,
-      keywordsCount: keywords.length,
-      keywordsList: keywords.map((k) => k.word)
-    })
-  } catch (error) {
+      const query = {
+        note_id: noteId,
+        embedding: embedding,
+        keywords: JSON.stringify(currentKeywords.map((k) => k.word)).slice(0, 1000),
+        created_at: now,
+        updated_at: now,
+        model_version: 'minilm-l6-v2'
+      }
+
+      // 使用传入的事务对象或默认数据库连接
+      const dbConnection = trx || db
+      await dbConnection('note_embeddings')
+        .insert(query)
+        .onConflict('note_id')
+        .merge(['embedding', 'keywords', 'updated_at'])
+
+      log.info('更新笔记向量和关键词成功:', {
+        noteId,
+        keywordsCount: currentKeywords.length,
+        keywordsList: currentKeywords.map((k) => k.word).slice(0, 10)
+      })
+    } catch (dbError: unknown) {
+      log.error('数据库操作失败:', {
+        noteId,
+        error: dbError,
+        errorMessage: dbError instanceof Error ? dbError.message : String(dbError)
+      })
+      throw dbError
+    }
+  } catch (error: unknown) {
     log.error('更新笔记向量和关键词失败:', {
       noteId,
       error,
-      errorMessage: (error as Error).message,
-      stack: (error as Error).stack
+      errorMessage: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined
     })
-    throw error
+    log.warn('操作失败，但允许应用继续运行')
   }
 }
 // 计算余弦相似度的 SQL 辅助函数

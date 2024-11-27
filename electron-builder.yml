@@ -15,6 +15,11 @@ asarUnpack:
   - resources/**
   - node_modules/sqlite3/**/*
   - node_modules/better-sqlite3/**/*
+  - node_modules/@xenova/**/*
+  - node_modules/@themaximalist/**/*
+  - node_modules/sharp/**/*
+  # 添加所有可能需要的原生模块
+  - '**/*.node'
 extraResources:
   - from: node_modules/better-sqlite3/build/Release
     to: better-sqlite3
