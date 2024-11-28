@@ -29,6 +29,13 @@ import { LocalTreeData, LocalTreeWithReferencesData } from './localTree'
 import { AppearanceSettings } from '../../../services/appearance/appearanceService'
 import { KnowledgeTreeNode } from './knowledgeTree'
 
+// 添加图片相关的类型定义
+interface ImageInfo {
+  id: string
+  path: string
+  filename: string
+}
+
 export interface ElectronAPI {
   createNote: () => Promise<Note>
   getNote: (id: string) => Promise<Note | undefined>
@@ -406,6 +413,26 @@ export interface ElectronAPI {
   getChildNodes: (parentAddress: string) => Promise<KnowledgeTreeNode[]>
   getChildCount: (parentAddress: string) => Promise<number>
   getNodePath: (address: string) => Promise<KnowledgeTreeNode[]>
+
+  // 图片相关的方法
+  uploadImage: (filePath: string, noteId: string) => Promise<{ path: string; isExisting: boolean }>
+
+  getNoteImages: (noteId: string) => Promise<ImageInfo[]>
+
+  getImagePath: (imageId: string) => Promise<string>
+
+  copyImage: (imageId: string) => Promise<{
+    success: boolean
+    message: string
+  }>
+
+  downloadImage: (url: string, filename: string) => Promise<{ path: string }>
+
+  cleanupUnusedImages: () => Promise<{
+    count: number
+    message: string
+  }>
+  removeImageFromNote: (noteId: string, imageId: string) => Promise<void>
 }
 
 declare global {

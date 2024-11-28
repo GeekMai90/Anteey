@@ -849,16 +849,17 @@ onBeforeUnmount(() => {
 // 图片上传
 const handleFileUpload = async (file) => {
   if (!file) {
-    console.error('没有件被上传')
+    console.error('没有文件被上传')
     return null
   }
+
   try {
-    const result = await window.electronAPI.uploadImage(file.path)
-    if (result.success && result.path) {
-      // 直接使用返回的 path，它现在应该是 file:// 协议的 URL
+    // 使用新的 API，传入 noteId
+    const result = await window.electronAPI.uploadImage(file.path, props.noteId)
+    if (result.path) {
       return result.path
     } else {
-      console.error('上传图片失败:', result.error)
+      console.error('上传图片失败')
       return null
     }
   } catch (error) {
@@ -887,7 +888,20 @@ const CustomImage = Image.extend({
     }
   },
   addNodeView() {
-    return VueNodeViewRenderer(TiptapImage)
+    return VueNodeViewRenderer(TiptapImage, {
+      props: {
+        noteId: props.noteId,
+        onDelete: async (imageId) => {
+          try {
+            await window.electronAPI.removeImageFromNote(props.noteId, imageId)
+            return true
+          } catch (error) {
+            console.error('删除图片失败:', error)
+            return false
+          }
+        }
+      }
+    })
   }
 })
 
@@ -1211,14 +1225,12 @@ const editorExtensions = computed(() => {
                   type: 'image',
                   attrs: {
                     src: imageUrl,
-                    width: '100%', // 设置默认宽度
-                    align: 'center' // 设置默认对齐方式
+                    width: '100%',
+                    align: 'center'
                   }
                 })
                 .focus()
                 .run()
-            } else {
-              console.error('Failed to upload image:', file.name)
             }
           } catch (error) {
             console.error('Error handling dropped file:', file.name, error)
@@ -1235,13 +1247,13 @@ const editorExtensions = computed(() => {
                 .insertContentAt(currentEditor.state.selection.anchor, {
                   type: 'image',
                   attrs: {
-                    src: imageUrl
+                    src: imageUrl,
+                    width: '100%',
+                    align: 'center'
                   }
                 })
                 .focus()
                 .run()
-            } else {
-              console.error('Failed to upload pasted image:', file.name)
             }
           } catch (error) {
             console.error('Error handling pasted file:', file.name, error)
@@ -1285,6 +1297,7 @@ onMounted(() => {
     extensions: editorExtensions.value,
     content: props.content,
     editable: props.editable,
+    noteId: props.noteId,
     onUpdate: ({ editor }) => {
       emit('update:content', editor.getJSON())
     },

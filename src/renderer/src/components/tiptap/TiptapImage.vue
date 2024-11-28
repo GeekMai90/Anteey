@@ -94,7 +94,14 @@ import {
   AlignTextRight
 } from '@icon-park/vue-next'
 
-const props = defineProps(nodeViewProps)
+const props = defineProps({
+  ...nodeViewProps,
+  noteId: {
+    type: String,
+    required: false, // 改为 false
+    default: '' // 添加默认值
+  }
+})
 
 const containerStyle = computed(() => ({
   width: props.node.attrs.width || '100%',
@@ -171,17 +178,13 @@ const downloadImage = async () => {
 
   try {
     const result = await window.electronAPI.downloadImage(imageUrl, fileName)
-
-    if (result.success) {
+    if (result.path) {
       console.log('图片下载成功:', result.path)
-      // 可以在这里添加一个成功提示
-    } else {
-      console.error('图片下载失败:', result.message)
-      // 可以在这里添加一个错误提示
+      // TODO: 可以添加一个成功提示，比如使用 message.success('图片已下载')
     }
   } catch (error) {
     console.error('下载过程中发生错误:', error)
-    // 可以在这里添加一个错误提示
+    // TODO: 可以添加一个错误提示，比如使用 message.error('下载失败')
   }
 
   showMenu.value = false
@@ -215,28 +218,76 @@ const getFileNameFromUrl = (url) => {
 }
 
 const copyImage = async () => {
-  const imageUrl = props.node.attrs.src
-
   try {
-    const result = await window.electronAPI.copyImage(imageUrl)
+    // 从 src 中提取图片 ID
+    const imageUrl = props.node.attrs.src
+    const imageId = extractImageId(imageUrl)
+
+    if (!imageId) {
+      throw new Error('无效的图片ID')
+    }
+
+    const result = await window.electronAPI.copyImage(imageId)
     if (result.success) {
+      // TODO: 可以添加一个成功提示
       console.log(result.message)
-      // 可以在这里添加一个成功提示
-    } else {
-      console.error('复制图片失败:', result.message)
-      // 可以在这里添加一个错误提示
     }
   } catch (error) {
     console.error('复制过程中发生错误:', error)
-    // 可以在这里添加一个错误提示
+    // TODO: 可以添加一个错误提示
   }
 
   showMenu.value = false
 }
 
-const deleteImage = () => {
-  props.deleteNode()
-  showMenu.value = false
+// 辅助函数：从图片 URL 中提取 ID
+const extractImageId = (url) => {
+  try {
+    // 从路径中提取 UUID 格式的图片 ID
+    // 例如：file:///path/to/UserData/images/{uuid}-filename.png
+    const match = url.match(
+      /images\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})-/
+    )
+    if (!match) {
+      console.error('无法从URL提取图片ID:', url)
+      return null
+    }
+    return match[1]
+  } catch (error) {
+    console.error('提取图片ID时出错:', error)
+    return null
+  }
+}
+
+// const deleteImage = () => {
+//   props.deleteNode()
+//   showMenu.value = false
+// }
+const deleteImage = async () => {
+  try {
+    const imageUrl = props.node.attrs.src
+    const imageId = extractImageId(imageUrl)
+
+    // 从 props 直接获取 noteId
+    const noteId = props.editor.options.noteId
+
+    if (!imageId) {
+      console.error('无法获取图片ID')
+      return
+    }
+
+    if (!noteId) {
+      console.error('无法获取笔记ID')
+      return
+    }
+
+    console.log('正在删除图片:', { noteId, imageId })
+    await window.electronAPI.removeImageFromNote(noteId, imageId)
+    props.deleteNode()
+    showMenu.value = false
+  } catch (error) {
+    console.error('删除图片失败:', error)
+  }
 }
 
 const alignImage = (alignment) => {

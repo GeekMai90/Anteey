@@ -504,6 +504,47 @@ export async function initDatabase(db: Knex): Promise<void> {
 
     console.log('appearance_settings 表创建成功')
   }
+
+  // 创建 image_references 表
+  if (!(await db.schema.hasTable('image_references'))) {
+    await db.schema.createTable('image_references', (table) => {
+      table.string('id').primary()
+      table.string('path').notNullable() // 图片存储路径
+      table.string('filename').notNullable() // 原始文件名
+      table.string('hash').notNullable().unique() // 图片内容哈希值,用于去重
+      table.integer('size').notNullable() // 文件大小(字节)
+      table.datetime('createdAt').notNullable()
+      table.datetime('lastUsed').nullable() // 最后使用时间
+
+      // 索引
+      table.index('hash')
+      table.index('createdAt')
+      table.index('lastUsed')
+    })
+    console.log('image_references 表创建成功')
+  }
+
+  // 创建 note_images 表 (笔记和图片的关联表)
+  if (!(await db.schema.hasTable('note_images'))) {
+    await db.schema.createTable('note_images', (table) => {
+      table.string('noteId').notNullable()
+      table.string('imageId').notNullable()
+      table.datetime('createdAt').notNullable()
+
+      // 复合主键
+      table.primary(['noteId', 'imageId'])
+
+      // 外键约束
+      table.foreign('noteId').references('notes.id').onDelete('CASCADE')
+      table.foreign('imageId').references('image_references.id').onDelete('CASCADE')
+
+      // 索引
+      table.index('noteId')
+      table.index('imageId')
+      table.index('createdAt')
+    })
+    console.log('note_images 表创建成功')
+  }
 }
 
 export async function down(db: Knex): Promise<void> {
@@ -526,5 +567,8 @@ export async function down(db: Knex): Promise<void> {
   await db.schema.dropTableIfExists('rag_history')
   await db.schema.dropTableIfExists('llm_configs')
   await db.schema.dropTableIfExists('appearance_settings')
+  // 注意删除顺序：先删除有外键约束的表
+  await db.schema.dropTableIfExists('note_images')
+  await db.schema.dropTableIfExists('image_references')
   console.log('所有表已删除')
 }
