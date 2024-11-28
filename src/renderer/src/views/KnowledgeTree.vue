@@ -170,7 +170,7 @@ const transformToJsMindData = (nodes: KnowledgeTreeNode[]): JsMindData => {
       if (!child) {
         throw new Error('Child node cannot be null')
       }
-      const hasChildren = child.childCount > 0
+      const hasChildren = child.childCount > 1
       return {
         id: child.address,
         topic: `<div class="node-content ${hasChildren ? 'has-children' : ''}">
@@ -189,7 +189,7 @@ const transformToJsMindData = (nodes: KnowledgeTreeNode[]): JsMindData => {
       } as JsMindNode
     })
 
-    const hasChildren = node.childCount > 0
+    const hasChildren = node.childCount > 1
     return {
       id: node.address,
       topic: `<div class="node-content ${hasChildren ? 'has-children' : ''}">
