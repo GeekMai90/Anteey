@@ -1527,11 +1527,11 @@ function buildAskQuestionPrompt(
         const textContent = extractTextFromContent(doc.content)
 
         // 添加更多的日志
-        log.info(`文档 ${index} 处理结果:`, {
-          hasContent: !!doc.content,
-          extractedText: textContent,
-          textLength: textContent?.length
-        })
+        // log.info(`文档 ${index} 处理结果:`, {
+        //   hasContent: !!doc.content,
+        //   extractedText: textContent,
+        //   textLength: textContent?.length
+        // })
 
         // 放宽条件，只要有内容就接受
         if (!textContent && textContent !== '') {

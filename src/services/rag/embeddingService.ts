@@ -202,18 +202,18 @@ export async function generateEmbedding(noteId: string): Promise<NoteEmbedding> 
       .slice(0, KEYWORDS_LIMIT)
       .map((k: Keyword) => k.word)
 
-    console.log('关键词提取结果:', {
-      笔记ID: noteId,
-      原始关键词数: keywordObjects.length,
-      筛选后关键词数: keywords.length,
-      关键词列表: keywords
-    })
-    log.info('关键词提取结果:', {
-      笔记ID: noteId,
-      原始关键词数: keywordObjects.length,
-      筛选后关键词数: keywords.length,
-      关键词列表: keywords
-    })
+    // console.log('关键词提取结果:', {
+    //   笔记ID: noteId,
+    //   原始关键词数: keywordObjects.length,
+    //   筛选后关键词数: keywords.length,
+    //   关键词列表: keywords
+    // })
+    // log.info('关键词提取结果:', {
+    //   笔记ID: noteId,
+    //   原始关键词数: keywordObjects.length,
+    //   筛选后关键词数: keywords.length,
+    //   关键词列表: keywords
+    // })
 
     // 5. 准备数据
     const now = Math.floor(Date.now() / 1000)
@@ -408,6 +408,7 @@ export async function generateEmbeddingsBatch(noteIds: string[]): Promise<void> 
 //     throw error
 //   }
 // }
+
 export async function updateNoteEmbedding(
   noteId: string,
   content: any,
@@ -432,27 +433,32 @@ export async function updateNoteEmbedding(
     try {
       // 并行处理向量生成和关键词提取
       const keywordExtractor = await getKeywordExtractor()
-      const [vectorResult, keywordsResult] = await Promise.all([
-        // 生成向量
-        embedder(textContent).catch((error: Error) => {
-          log.error('向量生成失败，使用降级方案:', error)
-          return defaultVector
-        }),
-        // 提取关键词
-        keywordExtractor.extract(content).catch((error: Error) => {
-          log.error('关键词提取失败，使用空数组:', error)
-          return []
-        })
-      ])
 
-      currentVector = vectorResult
-      currentKeywords = keywordsResult
+      log.debug('开始生成向量...', { textLength: textContent.length })
+      const vectorResult = await embedder(textContent)
+
+      // 检查向量结果的类型和结构
+      log.debug('向量生成结果:', {
+        type: typeof vectorResult,
+        isArray: Array.isArray(vectorResult),
+        length: vectorResult?.length
+      })
+
+      // 确保向量结果是 Float32Array
+      currentVector =
+        vectorResult instanceof Float32Array
+          ? vectorResult
+          : new Float32Array(Array.isArray(vectorResult) ? vectorResult : defaultVector)
+
+      const keywordsResult = await keywordExtractor.extract(content)
+      currentKeywords = keywordsResult || []
 
       log.debug('处理结果:', {
         noteId,
         vectorLength: currentVector.length,
-        keywordsCount: currentKeywords.length,
-        keywords: currentKeywords
+        hasBuffer: !!currentVector.buffer,
+        bufferSize: currentVector.buffer?.byteLength,
+        sampleValues: Array.from(currentVector.slice(0, 5))
       })
     } catch (processError: unknown) {
       log.error('内容处理失败，使用降级方案:', {
@@ -460,55 +466,60 @@ export async function updateNoteEmbedding(
         error: processError,
         textLength: textContent.length
       })
-      // 使用默认值
       currentVector = defaultVector
-      currentKeywords = []
     }
 
-    try {
-      // 修复 Buffer 创建的问题
-      const embedding = Buffer.from(new Uint8Array(currentVector.buffer))
-      const now = Math.floor(Date.now() / 1000)
-
-      const query = {
-        note_id: noteId,
-        embedding: embedding,
-        keywords: JSON.stringify(currentKeywords.map((k) => k.word)).slice(0, 1000),
-        created_at: now,
-        updated_at: now,
-        model_version: 'minilm-l6-v2'
-      }
-
-      // 使用传入的事务对象或默认数据库连接
-      const dbConnection = trx || db
-      await dbConnection('note_embeddings')
-        .insert(query)
-        .onConflict('note_id')
-        .merge(['embedding', 'keywords', 'updated_at'])
-
-      log.info('更新笔记向量和关键词成功:', {
-        noteId,
-        keywordsCount: currentKeywords.length,
-        keywordsList: currentKeywords.map((k) => k.word).slice(0, 10)
-      })
-    } catch (dbError: unknown) {
-      log.error('数据库操作失败:', {
-        noteId,
-        error: dbError,
-        errorMessage: dbError instanceof Error ? dbError.message : String(dbError)
-      })
-      throw dbError
+    // 确保我们有有效的 Float32Array
+    if (!(currentVector instanceof Float32Array)) {
+      log.warn('向量不是 Float32Array，使用默认向量')
+      currentVector = defaultVector
     }
+
+    // 创建 Buffer 前进行检查
+    if (!currentVector.buffer) {
+      log.warn('向量 buffer 无效，使用默认向量')
+      currentVector = defaultVector
+    }
+
+    const embedding = Buffer.from(currentVector.buffer)
+    const now = Math.floor(Date.now() / 1000)
+
+    const query = {
+      note_id: noteId,
+      embedding: embedding,
+      keywords: JSON.stringify(currentKeywords.map((k) => k.word)).slice(0, 1000),
+      created_at: now,
+      updated_at: now,
+      model_version: 'minilm-l6-v2'
+    }
+
+    // 使用传入的事务对象或默认数据库连接
+    const dbConnection = trx || db
+    await dbConnection('note_embeddings')
+      .insert(query)
+      .onConflict('note_id')
+      .merge(['embedding', 'keywords', 'updated_at'])
+
+    log.info('更新笔记向量和关键词成功:', {
+      noteId,
+      keywordsCount: currentKeywords.length,
+      vectorLength: currentVector.length,
+      embeddingSize: embedding.length
+    })
   } catch (error: unknown) {
     log.error('更新笔记向量和关键词失败:', {
       noteId,
-      error,
+      error: error instanceof Error ? error.message : String(error),
       errorMessage: error instanceof Error ? error.message : String(error),
       stack: error instanceof Error ? error.stack : undefined
     })
-    log.warn('操作失败，但允许应用继续运行')
+    if (trx) {
+      throw error
+    }
+    log.warn('非事务操作失败，允许应用继续运行')
   }
 }
+
 // 计算余弦相似度的 SQL 辅助函数
 const cosineSimilarityQuery = `
   (CAST((embedding * :queryEmbedding) AS REAL)) / 

@@ -382,11 +382,11 @@ export class ImageService {
           try {
             // 删除物理文件
             await fs.unlink(image.path)
-            console.log('成功删除图片文件:', image.path)
+            // console.log('成功删除图片文件:', image.path)
 
             // 删除数据库记录
             await db('image_references').where('id', imageId).delete()
-            console.log('成功删除图片数据库记录:', imageId)
+            // console.log('成功删除图片数据库记录:', imageId)
           } catch (error) {
             console.error(`删除图片文件失败: ${image.path}`, error)
             throw error

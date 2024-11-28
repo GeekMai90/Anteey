@@ -847,6 +847,83 @@ export async function updateNoteContent(id: string, content: object): Promise<No
 }
 
 // 添加提取第一行文本的辅助函数
+// export async function updateNoteContent(id: string, content: object): Promise<Note> {
+//   let retries = 0
+
+//   while (retries < MAX_RETRIES) {
+//     try {
+//       // 1. 先更新笔记内容
+//       const updatedNote = await db.transaction(
+//         async (trx) => {
+//           // 设置事务超时
+//           await trx.raw('PRAGMA busy_timeout = 5000;')
+
+//           // 提取第一行文本作为标题
+//           const firstLineText = extractFirstLineText(content)
+
+//           // 准备更新数据
+//           const updateData: any = {
+//             content: JSON.stringify(content),
+//             updatedAt: new Date(),
+//             // 更新或创建 metadata，保留其他 metadata 字段
+//             metadata: db.raw(
+//               `
+//               json_patch(
+//                 COALESCE(metadata, '{}'),
+//                 json_object('title', ?)
+//               )
+//             `,
+//               [firstLineText]
+//             )
+//           }
+
+//           // 执行更新并返回更新后的笔记
+//           const [note] = await trx('notes').where('id', id).update(updateData).returning('*')
+
+//           if (!note) {
+//             throw new Error(`未找到ID为 ${id} 的笔记`)
+//           }
+
+//           console.log(`后端→ 笔记 ${id} 内容已更新`)
+//           return convertToNote(note)
+//         },
+//         {
+//           // 设置事务配置
+//           isolationLevel: 'read committed'
+//         }
+//       )
+
+//       // 2. 异步更新向量和关键词
+//       setTimeout(async () => {
+//         try {
+//           await updateNoteEmbedding(id, content)
+//           console.log(`后端→ 笔记 ${id} 向量更新完成`)
+//         } catch (error) {
+//           console.error('后端→ 异步更新笔记向量失败:', error)
+//         }
+//       }, 0)
+
+//       return updatedNote
+//     } catch (error) {
+//       retries++
+//       const isLockError = (error as Error).message.includes('database is locked')
+
+//       if (isLockError && retries < MAX_RETRIES) {
+//         // 使用指数退避策略
+//         const delay = RETRY_DELAY * Math.pow(2, retries - 1)
+//         console.warn(`后端→ 数据库锁定，正在重试 (${retries}/${MAX_RETRIES})，延迟: ${delay}ms`)
+//         await new Promise((resolve) => setTimeout(resolve, delay))
+//         continue
+//       }
+
+//       console.error('后端→ 更新笔记内容失败:', error)
+//       throw new Error(`更新笔记内容失败: ${isLockError ? '数据库锁定' : (error as Error).message}`)
+//     }
+//   }
+
+//   throw new Error('更新笔记内容失败: 达到最大重试次数')
+// }
+
 function extractFirstLineText(content: any): string {
   if (content?.content?.[0]?.content?.[0]?.text) {
     return content.content[0].content[0].text
