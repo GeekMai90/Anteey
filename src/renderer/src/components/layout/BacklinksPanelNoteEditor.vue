@@ -312,6 +312,7 @@ onMounted(() => {
   background-color: var(--sidebar-bg);
   width: 100%;
   position: relative;
+  overflow: hidden; // 防止出现双滚动条
 }
 
 .editor-content {
@@ -322,13 +323,14 @@ onMounted(() => {
   overflow-y: auto; // 让整个内容区可滚动
   max-width: 900px;
   width: 100%;
+  height: 100%;
   margin: 0 auto;
   .content-container {
     flex: 1;
     display: flex;
     flex-direction: column;
     position: relative;
-    min-height: min-content; // 确保容器可以根据内容增长
+    // min-height: min-content; // 确保容器可以根据内容增长
   }
 
   .content-area {
