@@ -23,6 +23,7 @@ import { llmConfigApi } from './api/llmConfigApi'
 import { localTreeApi } from './api/localTreeApi'
 import { appearanceApi } from './api/appearanceApi'
 import { knowledgeTreeApi } from './api/knowledgeTreeApi'
+import { imageApi } from './api/imageApi'
 // 添加日志 API
 contextBridge.exposeInMainWorld('electronLog', {
   info: (...args: any[]) => ipcRenderer.send('renderer-log', { level: 'info', args }),
@@ -42,6 +43,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   ...localTreeApi,
   ...appearanceApi,
   ...knowledgeTreeApi,
+  ...imageApi,
   getResourcePath: async (filename: string): Promise<string> => {
     try {
       return (await ipcRenderer.invoke('get-resource-path', filename)) as string
@@ -391,67 +393,67 @@ contextBridge.exposeInMainWorld('electronAPI', {
       throw error
     }
   },
-  getImagePath: async (relativePath: string): Promise<string> => {
-    try {
-      const imagePath = await ipcRenderer.invoke('get-image-path', relativePath)
-      if (typeof imagePath !== 'string') {
-        throw new Error('Invalid image path returned')
-      }
-      // 确保返回的路径以 file:// 开头
-      return imagePath.startsWith('file://') ? imagePath : `file://${imagePath}`
-    } catch (error) {
-      console.error('Preload: 获取图片路径时出错:', error)
-      throw error
-    }
-  },
+  // getImagePath: async (relativePath: string): Promise<string> => {
+  //   try {
+  //     const imagePath = await ipcRenderer.invoke('get-image-path', relativePath)
+  //     if (typeof imagePath !== 'string') {
+  //       throw new Error('Invalid image path returned')
+  //     }
+  //     // 确保返回的路径以 file:// 开头
+  //     return imagePath.startsWith('file://') ? imagePath : `file://${imagePath}`
+  //   } catch (error) {
+  //     console.error('Preload: 获取图片路径时出错:', error)
+  //     throw error
+  //   }
+  // },
 
-  uploadImage: async (
-    filePath: string
-  ): Promise<{ success: boolean; path?: string; error?: string }> => {
-    try {
-      const result = await ipcRenderer.invoke('upload-image', filePath)
-      if (typeof result !== 'object' || result === null) {
-        throw new Error('Invalid upload result')
-      }
-      // 确保返回的路径以 file:// 开头
-      if (result.success && result.path && !result.path.startsWith('file://')) {
-        result.path = `file://${result.path}`
-      }
-      return result as { success: boolean; path?: string; error?: string }
-    } catch (error) {
-      console.error('Preload: 上传图片时出错:', error)
-      throw error
-    }
-  },
-  downloadImage: async (
-    url: string,
-    filename: string
-  ): Promise<{ success: boolean; path?: string; error?: string }> => {
-    try {
-      return (await ipcRenderer.invoke('download-image', { url, filename })) as {
-        success: boolean
-        path?: string
-        error?: string
-      }
-    } catch (error) {
-      console.error('Preload: 下载图片时出错:', error)
-      throw error
-    }
-  },
-  copyImage: async (
-    imageUrl: string
-  ): Promise<{ success: boolean; message?: string; error?: string }> => {
-    try {
-      return (await ipcRenderer.invoke('copy-image', imageUrl)) as {
-        success: boolean
-        message?: string
-        error?: string
-      }
-    } catch (error) {
-      console.error('Preload: 复制图片时出错:', error)
-      throw error
-    }
-  },
+  // uploadImage: async (
+  //   filePath: string
+  // ): Promise<{ success: boolean; path?: string; error?: string }> => {
+  //   try {
+  //     const result = await ipcRenderer.invoke('upload-image', filePath)
+  //     if (typeof result !== 'object' || result === null) {
+  //       throw new Error('Invalid upload result')
+  //     }
+  //     // 确保返回的路径以 file:// 开头
+  //     if (result.success && result.path && !result.path.startsWith('file://')) {
+  //       result.path = `file://${result.path}`
+  //     }
+  //     return result as { success: boolean; path?: string; error?: string }
+  //   } catch (error) {
+  //     console.error('Preload: 上传图片时出错:', error)
+  //     throw error
+  //   }
+  // },
+  // downloadImage: async (
+  //   url: string,
+  //   filename: string
+  // ): Promise<{ success: boolean; path?: string; error?: string }> => {
+  //   try {
+  //     return (await ipcRenderer.invoke('download-image', { url, filename })) as {
+  //       success: boolean
+  //       path?: string
+  //       error?: string
+  //     }
+  //   } catch (error) {
+  //     console.error('Preload: 下载图片时出错:', error)
+  //     throw error
+  //   }
+  // },
+  // copyImage: async (
+  //   imageUrl: string
+  // ): Promise<{ success: boolean; message?: string; error?: string }> => {
+  //   try {
+  //     return (await ipcRenderer.invoke('copy-image', imageUrl)) as {
+  //       success: boolean
+  //       message?: string
+  //       error?: string
+  //     }
+  //   } catch (error) {
+  //     console.error('Preload: 复制图片时出错:', error)
+  //     throw error
+  //   }
+  // },
   removeAllListeners: async (channel: string) => {
     try {
       ipcRenderer.removeAllListeners(channel)

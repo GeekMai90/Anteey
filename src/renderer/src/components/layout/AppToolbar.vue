@@ -387,6 +387,7 @@ const handleRootClick = async () => {
   padding: 2px 8px;
   border-radius: 4px;
   transition: all 0.2s ease;
+  user-select: none;
 
   &:hover {
     background-color: var(--color-hover-button);

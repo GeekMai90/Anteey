@@ -1,13 +1,15 @@
 <template>
   <div class="knowledge-tree-container">
+    <!-- 顶部工具栏组件 -->
     <AppToolbar />
+    <!-- 思维导图容器 -->
     <div ref="container" class="jsmind-container"></div>
   </div>
 </template>
 
 <script setup lang="ts">
+// 导入必要的 Vue 组件和工具
 import { ref, onMounted, watch } from 'vue'
-// import 'jsmind/style/jsmind.css'
 import '../styles/jsmind-antinet-theme.css'
 import jsMind from 'jsmind'
 import { useKnowledgeTreeStore } from '@renderer/stores/knowledgeTreeStore'
@@ -21,7 +23,8 @@ import { useUIStore } from '../stores/useUIStore'
 const route = useRoute()
 const noteStore = useNoteStore()
 const uiStore = useUIStore()
-// 直接在组件中定义类型
+
+// 定义 jsMind 配置选项接口
 interface JsMindOptions {
   container: HTMLElement
   theme?: string
@@ -47,6 +50,7 @@ interface JsMindOptions {
   support_html?: boolean
 }
 
+// 定义思维导图节点接口
 interface JsMindNode {
   id: string
   topic: string
@@ -74,91 +78,6 @@ const container = ref<HTMLDivElement>()
 const jm = ref<any>(null)
 
 // 转换数据为 JsMind 格式
-// const transformToJsMindData = (nodes: KnowledgeTreeNode[]): JsMindData => {
-//   const processNode = (node: KnowledgeTreeNode): JsMindNode => {
-//     if (!node) {
-//       throw new Error('Node cannot be null')
-//     }
-
-//     // 处理子节点
-//     const processedChildren = (node.children || []).map((child) => {
-//       if (!child) {
-//         throw new Error('Child node cannot be null')
-//       }
-//       return {
-//         id: child.address,
-//         topic: `<div class="node-content">
-//                   <div class="node-address">${child.address || ''}</div>
-//                   <div class="node-title">${child.title || ''}</div>
-//                 </div>`,
-//         children: (child.children || []).map((grandChild) => processNode(grandChild)),
-//         expanded: knowledgeTreeStore.viewState.isInFocusMode || child.isExpanded === true,
-//         direction: 'right',
-//         data: {
-//           childCount: child.childCount || 0,
-//           level: child.level || 0,
-//           noteId: child.noteId
-//         }
-//       } as JsMindNode
-//     })
-
-//     return {
-//       id: node.address,
-//       topic: `<div class="node-content">
-//               <div class="node-address">${node.address || ''}</div>
-//               <div class="node-title">${node.title || ''}</div>
-//             </div>`,
-//       children: processedChildren,
-//       expanded: knowledgeTreeStore.viewState.isInFocusMode || node.isExpanded === true,
-//       direction: 'right',
-//       data: {
-//         childCount: node.childCount || 0,
-//         level: node.level || 0,
-//         noteId: node.noteId
-//       }
-//     }
-//   }
-
-//   // 非聚焦模式的根节点
-//   const rootNode: JsMindNode = {
-//     id: 'root',
-//     topic: `<div class="node-content">
-//             <div class="node-address">Antinet</div>
-//             <div class="node-title">Zettelkasten</div>
-//           </div>`,
-//     children: nodes.map((node) => processNode(node)),
-//     expanded: true,
-//     direction: 'right',
-//     data: {
-//       childCount: 0, // 添加必需的 childCount
-//       level: -1,
-//       noteId: null
-//     }
-//   }
-
-//   // 检查是否在聚焦模式
-//   if (knowledgeTreeStore.viewState.isInFocusMode && knowledgeTreeStore.focusedNode) {
-//     const processedNode = processNode(knowledgeTreeStore.focusedNode)
-//     return {
-//       meta: {
-//         name: 'knowledge-tree',
-//         version: '1.0'
-//       },
-//       format: 'node_tree',
-//       data: processedNode
-//     }
-//   }
-
-//   // 非聚焦模式
-//   return {
-//     meta: {
-//       name: 'knowledge-tree',
-//       version: '1.0'
-//     },
-//     format: 'node_tree',
-//     data: rootNode
-//   }
-// }
 const transformToJsMindData = (nodes: KnowledgeTreeNode[]): JsMindData => {
   const processNode = (node: KnowledgeTreeNode): JsMindNode => {
     if (!node) {
@@ -480,65 +399,6 @@ watch(
 )
 
 // 监听路由参数变化
-// 监听路由参数变化
-// watch(
-//   () => route.params.address,
-//   async (newAddress) => {
-//     if (newAddress) {
-//       console.log('路由参数变化:', newAddress)
-//       try {
-//         // 1. 先获取顶层节点
-//         await knowledgeTreeStore.fetchTopLevelNodes()
-
-//         // 2. 然后再聚焦到目标节点
-//         const node = await knowledgeTreeStore.findNodeByAddress(newAddress as string)
-//         if (node) {
-//           await knowledgeTreeStore.focusNodeWithChildren(node)
-//         }
-//       } catch (error) {
-//         console.error('导航到节点失败:', error)
-//       }
-//     }
-//   },
-//   { immediate: true }
-// )
-// watch(
-//   () => route.params.address,
-//   async (newAddress) => {
-//     if (newAddress) {
-//       try {
-//         const address = newAddress as string
-
-//         // 如果是分支节点（包含 '-'），先找到其父节点
-//         if (address.includes('-')) {
-//           const parentAddress = address.split('-')[0]
-//           console.log('找到父节点地址:', parentAddress)
-
-//           // 1. 先聚焦到父节点
-//           const parentNode = await knowledgeTreeStore.findNodeByAddress(parentAddress)
-//           if (parentNode) {
-//             await knowledgeTreeStore.focusNodeWithChildren(parentNode)
-
-//             // 2. 然后找到并聚焦到目标节点
-//             const targetNode = await knowledgeTreeStore.findNodeByAddress(address)
-//             if (targetNode) {
-//               await knowledgeTreeStore.focusNodeWithChildren(targetNode)
-//             }
-//           }
-//         } else {
-//           // 如果是普通节点，直接聚焦
-//           const node = await knowledgeTreeStore.findNodeByAddress(address)
-//           if (node) {
-//             await knowledgeTreeStore.focusNodeWithChildren(node)
-//           }
-//         }
-//       } catch (error) {
-//         console.error('导航到节点失败:', error)
-//       }
-//     }
-//   },
-//   { immediate: true }
-// )
 watch(
   () => route.params.address,
   async (newAddress) => {
