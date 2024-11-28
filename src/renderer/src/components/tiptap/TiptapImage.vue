@@ -79,6 +79,16 @@
       </div>
     </div>
   </node-view-wrapper>
+  <!-- 添加确认对话框 -->
+  <confirm-dialog
+    v-model:visible="showDeleteConfirm"
+    title="删除图片"
+    message="删除后图片将无法恢复，确定要删除吗？"
+    type="danger"
+    confirm-text="删除"
+    cancel-text="取消"
+    @confirm="confirmDelete"
+  />
 </template>
 
 <script setup>
@@ -93,6 +103,7 @@ import {
   AlignTextCenter,
   AlignTextRight
 } from '@icon-park/vue-next'
+import ConfirmDialog from '@renderer/components/common/ConfirmDialog.vue'
 
 const props = defineProps({
   ...nodeViewProps,
@@ -102,6 +113,8 @@ const props = defineProps({
     default: '' // 添加默认值
   }
 })
+// 添加确认对话框的状态
+const showDeleteConfirm = ref(false)
 
 const containerStyle = computed(() => ({
   width: props.node.attrs.width || '100%',
@@ -263,7 +276,12 @@ const extractImageId = (url) => {
 //   props.deleteNode()
 //   showMenu.value = false
 // }
-const deleteImage = async () => {
+// 修改删除图片的处理流程
+const deleteImage = () => {
+  showMenu.value = false
+  showDeleteConfirm.value = true
+}
+const confirmDelete = async () => {
   try {
     const imageUrl = props.node.attrs.src
     const imageId = extractImageId(imageUrl)
