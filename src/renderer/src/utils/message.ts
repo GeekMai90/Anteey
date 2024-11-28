@@ -15,7 +15,11 @@ export const message = {
     this.show(message, 'warning', duration)
   },
 
-  show(message: string, type: 'success' | 'error' | 'warning', duration: number) {
+  info(message: string, duration = 2000) {
+    this.show(message, 'info', duration)
+  },
+
+  show(message: string, type: 'success' | 'error' | 'warning' | 'info', duration: number) {
     const container = document.createElement('div')
     document.body.appendChild(container)
 

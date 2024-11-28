@@ -247,6 +247,9 @@ $dark-mode-text: $gray-100;
   //连接线颜色
   --color-line: rgba(0, 0, 0, 0.3);
   --color-node-bg: #f2f2f2;
+
+  // 消息提示框
+  --color-message-toast-bg: #fff;
 }
 
 .theme-dark {
@@ -361,4 +364,7 @@ $dark-mode-text: $gray-100;
   //连接线颜色
   --color-line: rgba(255, 255, 255, 0.3);
   --color-node-bg: #242424;
+
+  // 消息提示框
+  --color-message-toast-bg: #242424;
 }

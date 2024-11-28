@@ -7,6 +7,14 @@
       <!-- 工具栏 -->
       <AppToolbar :showBackButton="true" :showForwardButton="true"></AppToolbar>
 
+      <!-- 添加测试按钮 -->
+      <div class="test-buttons">
+        <button @click="() => message.success('复制成功')">测试成功提示</button>
+        <button @click="() => message.error('操作失败')">测试错误提示</button>
+        <button @click="() => message.warning('操作警告')">测试警告提示</button>
+        <button @click="() => message.info('信息提示')">测试信息提示</button>
+      </div>
+
       <!-- 头部内容区域 -->
       <div class="header-content">
         <div class="timeline-header">
@@ -112,6 +120,7 @@ import { useEventBus } from '@vueuse/core'
 import { debounce } from 'lodash-es'
 import DateDivider from '@renderer/components/timelineView/DateDivider.vue'
 import type { UseVirtualListOptions } from '@vueuse/core'
+import { message } from '@renderer/utils/message'
 
 // 状态管理初始化
 const noteStore = useNoteStore()

@@ -104,6 +104,7 @@ import {
   AlignTextRight
 } from '@icon-park/vue-next'
 import ConfirmDialog from '@renderer/components/common/ConfirmDialog.vue'
+import { message } from '@renderer/utils/message'
 
 const props = defineProps({
   ...nodeViewProps,
@@ -202,18 +203,7 @@ const downloadImage = async () => {
 
   showMenu.value = false
 }
-// const downloadImage = () => {
-//   const imageUrl = props.node.attrs.src
-//   const fileName = getFileNameFromUrl(imageUrl)
 
-//   const link = document.createElement('a')
-//   link.href = imageUrl
-//   link.download = fileName
-//   document.body.appendChild(link)
-//   link.click()
-//   document.body.removeChild(link)
-//   showMenu.value = false
-// }
 const getFileNameFromUrl = (url) => {
   // 从 URL 中提取文件名
   const pathArray = url.split('/')
@@ -243,10 +233,11 @@ const copyImage = async () => {
     const result = await window.electronAPI.copyImage(imageId)
     if (result.success) {
       // TODO: 可以添加一个成功提示
-      console.log(result.message)
+      message.success(result.message)
     }
   } catch (error) {
     console.error('复制过程中发生错误:', error)
+    message.error(result.message)
     // TODO: 可以添加一个错误提示
   }
 
@@ -272,10 +263,6 @@ const extractImageId = (url) => {
   }
 }
 
-// const deleteImage = () => {
-//   props.deleteNode()
-//   showMenu.value = false
-// }
 // 修改删除图片的处理流程
 const deleteImage = () => {
   showMenu.value = false
@@ -313,31 +300,6 @@ const alignImage = (alignment) => {
   showMenu.value = false
 }
 
-// const startResize = (side, event) => {
-//   event.preventDefault()
-//   const startX = event.clientX
-//   const startWidth = props.node.attrs.width ? parseInt(props.node.attrs.width) : 100
-//   const minWidth = 25
-//   const maxWidth = 100
-//   const step = 5 // 5% 的调整步长
-
-//   const resize = (e) => {
-//     const currentX = e.clientX
-//     const diff = currentX - startX
-//     const newWidth = side === 'left' ? startWidth - diff * 0.5 : startWidth + diff * 0.5
-//     const steppedWidth = Math.round(newWidth / step) * step // 将宽度调整为最接近的 5% 的倍数
-//     const clampedWidth = Math.max(minWidth, Math.min(maxWidth, steppedWidth))
-//     props.updateAttributes({ width: `${clampedWidth}%` })
-//   }
-
-//   const stopResize = () => {
-//     window.removeEventListener('mousemove', resize)
-//     window.removeEventListener('mouseup', stopResize)
-//   }
-
-//   window.addEventListener('mousemove', resize)
-//   window.addEventListener('mouseup', stopResize)
-// }
 const startResize = (side, event) => {
   event.preventDefault()
   const startX = event.clientX

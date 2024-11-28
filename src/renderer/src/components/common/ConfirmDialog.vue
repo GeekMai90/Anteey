@@ -121,22 +121,19 @@ const handleCancel = () => {
       color: var(--color-text-secondary);
 
       &:hover {
-        background: var(--color-hover-bg);
+        background: var(--color-button-bg);
+        opacity: 0.9;
       }
     }
 
     &.confirm-button {
       background: var(--color-primary);
-      color: white;
+      color: var(--color-text-white);
 
       &:hover {
         opacity: 0.9;
         background: var(--color-danger);
       }
-
-      // &.danger {
-      //   background: var(--color-danger);
-      // }
     }
   }
 }
