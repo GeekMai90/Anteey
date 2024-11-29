@@ -123,6 +123,40 @@ export async function getTopLevelNodes(): Promise<KnowledgeTreeNode[]> {
 }
 
 // 获取子节点数量
+// export async function getChildCount(parentAddress: string): Promise<number> {
+//   try {
+//     const level = getAddressLevel(parentAddress)
+//     let pattern: string
+
+//     switch (level) {
+//       case 'top':
+//         pattern = `${parentAddress[0]}___`
+//         break
+//       case 'second':
+//         pattern = `${parentAddress.slice(0, 2)}__`
+//         break
+//       case 'third':
+//         pattern = `${parentAddress}-_%`
+//         break
+//       case 'branch-1':
+//         pattern = `${parentAddress}-_%`
+//         break
+//       default:
+//         return 0
+//     }
+
+//     const result = (await db('notes')
+//       .where('address', 'like', pattern)
+//       .where('isDeleted', false)
+//       .count('* as count')
+//       .first()) as { count: number }
+
+//     return result ? Number(result.count) : 0
+//   } catch (error) {
+//     console.error('获取子节点数量失败:', error)
+//     throw error
+//   }
+// }
 export async function getChildCount(parentAddress: string): Promise<number> {
   try {
     const level = getAddressLevel(parentAddress)
@@ -130,9 +164,11 @@ export async function getChildCount(parentAddress: string): Promise<number> {
 
     switch (level) {
       case 'top':
-        pattern = `${parentAddress[0]}___`
+        // 修改匹配模式，排除当前地址
+        pattern = `${parentAddress[0]}%00`
         break
       case 'second':
+        // 修改匹配模式，排除当前地址
         pattern = `${parentAddress.slice(0, 2)}__`
         break
       case 'third':
@@ -147,7 +183,14 @@ export async function getChildCount(parentAddress: string): Promise<number> {
 
     const result = (await db('notes')
       .where('address', 'like', pattern)
+      .whereNot('address', parentAddress) // 添加这行，排除当前节点
       .where('isDeleted', false)
+      .where('cardType', 'Maincard')
+      // 对于分支节点，确保只计算直接子节点
+      .whereRaw('(address NOT LIKE ? OR address = ?)', [
+        `${parentAddress}-%-%`,
+        `${parentAddress}-1`
+      ])
       .count('* as count')
       .first()) as { count: number }
 
