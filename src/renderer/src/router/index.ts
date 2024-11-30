@@ -3,7 +3,7 @@ import { createRouter, createWebHashHistory, RouteLocationNormalized } from 'vue
 const routes = [
   {
     path: '/',
-    redirect: '/home'
+    redirect: '/timeline'
   },
   {
     name: 'home',
@@ -147,6 +147,7 @@ router.beforeEach((to, _from, next) => {
     return
   }
 
+  // 如果没有匹配到任何特殊情况，则正常导航
   next()
 })
 

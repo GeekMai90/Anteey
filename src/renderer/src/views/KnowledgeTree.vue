@@ -108,7 +108,7 @@ const transformToJsMindData = (nodes: KnowledgeTreeNode[]): JsMindData => {
       } as JsMindNode
     })
 
-    const hasChildren = node.childCount > 1
+    const hasChildren = node.childCount > 0
     return {
       id: node.address,
       topic: `<div class="node-content ${hasChildren ? 'has-children' : ''}">

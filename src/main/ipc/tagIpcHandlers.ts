@@ -31,10 +31,8 @@ export function setupTagHandlers() {
 
   // 获取所有标签（包含使用次数）
   ipcMain.handle('get-all-tags', async () => {
-    console.log('主进程→ 收到获取所有标签请求')
     try {
       const tags = await getAllTagsWithCount() // 改用带计数的方法
-      console.log('主进程→ 获取标签成功:', tags)
       return { success: true, tags }
     } catch (error) {
       console.error('主进程→ 获取所有标签失败:', error)

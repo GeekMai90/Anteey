@@ -377,14 +377,10 @@ interface GetNotesByDateResult {
 //获取都有哪些日期有笔记
 export async function getAllDatesWithNotes(): Promise<string[]> {
   try {
-    console.log('后端→ 开始获取有笔记的日期')
-
     const result = await db('notes')
       .distinct(db.raw("strftime('%Y-%m-%d', datetime(createdAt / 1000, 'unixepoch')) as date"))
       .where('isDeleted', 0)
       .orderBy('date', 'desc')
-
-    console.log('后端→ 原始查询结果:', result)
 
     if (!result || result.length === 0) {
       console.log('后端→ 查询结果为空')
@@ -392,7 +388,6 @@ export async function getAllDatesWithNotes(): Promise<string[]> {
     }
 
     const dates = result.map((row: { date: string }) => row.date)
-    console.log('后端→ 处理后的日期数组:', dates)
 
     return dates
   } catch (error) {

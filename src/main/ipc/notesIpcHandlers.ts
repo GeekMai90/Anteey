@@ -126,7 +126,6 @@ export function setupNotesHandlers() {
   ipcMain.handle('get-all-dates-with-notes', async () => {
     try {
       const result = await getAllDatesWithNotes()
-      console.log('主进程 → 获取都有哪些日期有笔记成功', result)
       return result
     } catch (error) {
       console.error('主进程 → 获取都有哪些日期有笔记失败:', error)

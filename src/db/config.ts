@@ -34,33 +34,6 @@ export function initializeDb() {
     dbPath = path.join(userDataPath, 'antinet.sqlite')
   }
 
-  console.log('数据库路径:', dbPath)
-
-  // const config = {
-  //   client: 'better-sqlite3',
-  //   connection: {
-  //     filename: dbPath,
-  //     options: {
-  //       pragma: {
-  //         journal_mode: 'WAL', // 启用 WAL 模式
-  //         busy_timeout: 10000, // 设置锁等待超时
-  //         synchronous: 'NORMAL', // 写入策略（NORMAL 比 FULL 快）
-  //         wal_autocheckpoint: 1000 // 每 1000 页自动检查点
-  //       }
-  //     }
-  //   },
-  //   pool: {
-  //     min: 2,
-  //     max: 20, // 增加最大连接数
-  //     acquireTimeoutMillis: 60000, // 增加获取连接的超时时间
-  //     createTimeoutMillis: 30000,
-  //     idleTimeoutMillis: 30000,
-  //     reapIntervalMillis: 1000,
-  //     createRetryIntervalMillis: 100,
-  //     propagateCreateError: false // 防止创建连接错误传播
-  //   },
-  //   useNullAsDefault: true
-  // }
   const config = {
     client: 'better-sqlite3',
     connection: {

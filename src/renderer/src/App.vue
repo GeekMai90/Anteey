@@ -67,7 +67,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, provide } from 'vue'
-import { RouterView, useRouter } from 'vue-router'
+import { RouterView } from 'vue-router'
 import { useDebounceFn } from '@vueuse/core'
 import { useUIStore } from './stores/useUIStore'
 import { useNoteStore } from './stores/noteStores'
@@ -88,7 +88,6 @@ import SharePreviewModal from './components/share/SharePreviewModal.vue'
 // 状态管理初始化
 const uiStore = useUIStore()
 const noteStore = useNoteStore()
-const router = useRouter()
 
 // 全局UI管理器引用
 const globalUIManager = ref<InstanceType<typeof GlobalUIManager> | null>(null)
@@ -162,9 +161,9 @@ onMounted(async () => {
   window.addEventListener('resize', debouncedCheckWindowSize)
 
   // 路由初始化
-  if (router.currentRoute.value.path === '/') {
-    router.push('/timeline')
-  }
+  // if (router.currentRoute.value.path === '/') {
+  //   router.push('/timeline')
+  // }
 
   // 移除加载动画
   const loadingWrapper = document.getElementById('loading-wrapper')

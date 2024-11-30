@@ -317,7 +317,7 @@ const handleClickOutside = (event: MouseEvent) => {
   border-right: 1px solid var(--color-border-sidebar);
 
   .sidebar-titlebar {
-    height: 35px;
+    height: 24px;
     -webkit-app-region: drag; /* 使区域可拖动 */
   }
 
@@ -362,7 +362,7 @@ const handleClickOutside = (event: MouseEvent) => {
     .search-area {
       display: flex;
       align-items: center;
-      padding: 10px;
+      padding: 6px 10px;
       gap: 10px;
       cursor: pointer;
       // margin-bottom: 5px;
@@ -695,7 +695,7 @@ const handleClickOutside = (event: MouseEvent) => {
     // margin-top: auto; // 将footer推到底部
     margin-top: 0; // 移除 margin-top: auto
     flex-shrink: 0; // 防止底部工具栏被压缩
-    padding: 10px;
+    padding: 6px 10px;
     display: flex;
     justify-content: space-between;
     align-items: center;

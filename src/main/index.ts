@@ -11,9 +11,9 @@ import {
   globalShortcut
 } from 'electron'
 import { join } from 'path'
-import { electronApp, optimizer, is } from '@electron-toolkit/utils'
+import { electronApp, is, optimizer } from '@electron-toolkit/utils'
 import { initDatabase } from '../db/init'
-import { db, dbPath } from '../db/config'
+import { db } from '../db/config'
 import { default as installExtension, VUEJS3_DEVTOOLS } from 'electron-devtools-installer'
 import path from 'path'
 import fs from 'fs/promises'
@@ -39,7 +39,6 @@ app.name = 'Antinet'
 
 // 设置日志
 log.transports.file.level = 'info'
-log.info('应用启动')
 
 // 错误处理
 process.on('uncaughtException', (error) => {
@@ -158,67 +157,109 @@ function createCustomMenu() {
   Menu.setApplicationMenu(menu)
 }
 
-function createWindow(): void {
-  log.info('Creating main window')
+function createWindow(): BrowserWindow {
   const mainWindow = new BrowserWindow({
+    // 设置窗口的默认宽度和高度（单位：像素）
     width: 900,
     height: 670,
+    // 先隐藏窗口，等待内容加载完成后再显示
     show: false,
+    // 隐藏默认菜单栏
     autoHideMenuBar: true,
-    titleBarStyle: 'hiddenInset', // 使用 hiddenInset 来保留控制按钮但隐藏标题栏
-    trafficLightPosition: { x: 12, y: 12 }, // 可选：调整控制按钮的位置
+    // macOS 专用：使用 hiddenInset 样式，保留红绿灯按钮但隐藏标题栏
+    titleBarStyle: 'hiddenInset',
+    // macOS 专用：设置红绿灯按钮的位置，x是距离左边距离，y是距离顶部距离
+    trafficLightPosition: { x: 10, y: 6 },
     ...(process.platform === 'linux' ? {} : {}),
+    // 网页功能和安全相关的配置
     webPreferences: {
+      // 指定预加载脚本的路径，用于在渲染进程中安全地调用主进程功能
       preload: join(__dirname, '../preload/index.js'),
+      // 禁用沙箱模式，允许使用 Node.js API
       sandbox: false,
+      // 启用上下文隔离，提高安全性，使渲染进程和主进程隔离
       contextIsolation: true,
+      // 禁用直接在渲染进程中使用 Node.js
       nodeIntegration: false,
-      devTools: true, // 仅在开发环境启用开发者工具
+      // 允许使用开发者工具（F12）
+      devTools: true,
+      // 禁用站点隔离试验特性
       additionalArguments: ['--disable-site-isolation-trials'],
-      webSecurity: false // 警告：这可能带来安全风险，仅在开发环境使用
-      // allowRunningInsecureContent: true // 警告：这可能来安全风险，仅在开发环境使用
+      // 禁用网页安全策略，允许跨域请求等（警告：仅建议在开发环境使用）
+      webSecurity: false
     }
   })
   // 启用 remote 模块
-
+  // 这个模块允许渲染进程（网页）安全地使用主进程的一些功能
   enable(mainWindow.webContents)
+
+  // 窗口创建后立即最大化
   mainWindow.maximize()
-
-  if (app.isPackaged) {
-    mainWindow.loadFile(path.join(__dirname, '../renderer/index.html'))
-  } else {
-    // 开发环境下的加载逻辑
-    const devServerUrl = process.env.VITE_DEV_SERVER_URL
-    if (devServerUrl) {
-      mainWindow.loadURL(devServerUrl)
-    } else {
-      console.error('VITE_DEV_SERVER_URL 未定义')
-      log.error('VITE_DEV_SERVER_URL 未定义')
-      // 可以加载一个默认页面或执行其他逻辑
-      mainWindow.loadFile(path.join(__dirname, '../renderer/index.html'))
-    }
-  }
-
-  // 添加这个事件监听器
-  mainWindow.webContents.on('did-finish-load', () => {
-    mainWindow.webContents.executeJavaScript(`
-      if (window.location.hash === '' || window.location.hash === '#/') {
-        window.location.hash = '#/home';
-      }
-    `)
+  // 等待内容加载完成后显示
+  mainWindow.on('ready-to-show', () => {
+    mainWindow.show()
   })
 
+  // 根据应用是否打包来决定如何加载页面
+  // if (app.isPackaged) {
+  //   // 生产环境：直接加载打包后的 HTML 文件
+  //   // __dirname 是当前文件所在目录
+  //   // '../renderer/index.html' 是相对于当前目录的 HTML 文件路径
+  //   mainWindow.loadFile(path.join(__dirname, '../renderer/index.html'))
+  // } else {
+  //   // 开发环境：从开发服务器加载页面
+  //   // 获取开发服务器的 URL（由 Vite 在启动时设置的环境变量）
+  //   const devServerUrl = process.env.VITE_DEV_SERVER_URL
+
+  //   if (devServerUrl) {
+  //     // 如果有开发服务器 URL，则从开发服务器加载页面
+  //     // 这样可以支持热更新等开发功能
+  //     mainWindow.loadURL(devServerUrl)
+  //   } else {
+  //     // 如果没有找到开发服务器 URL，记录错误
+  //     console.error('VITE_DEV_SERVER_URL 未定义')
+  //     log.error('VITE_DEV_SERVER_URL 未定义')
+
+  //     // 降级处理：加载本地 HTML 文件
+  //     // 这种情况通常不应该发生，除非开发环境配置出现问题
+  //     mainWindow.loadFile(path.join(__dirname, '../renderer/index.html'))
+  //   }
+  // }
+
+  // 监听页面加载完成事件
+  // mainWindow.webContents.on('did-finish-load', () => {
+  //   // 执行一段 JavaScript 代码来处理路由重定向
+  //   mainWindow.webContents.executeJavaScript(`
+  //      // 检查当前 URL 的 hash 部分
+  //      // 如果 hash 为空（''）或者是根路径（'#/'）
+  //     if (window.location.hash === '' || window.location.hash === '#/') {
+  //      // 将路由重定向到时间线（'/timeline'）
+  //       window.location.hash = '#/timeline';
+  //     }
+  //   `)
+  // })
+
+  // 设置内容安全策略 (CSP)
   mainWindow.webContents.session.webRequest.onHeadersReceived((details, callback) => {
     callback({
       responseHeaders: {
         ...details.responseHeaders,
+        // 定义内容安全策略规则
         'Content-Security-Policy': [
-          'default-src *; ' +
+          // 各种资源的访问控制规则
+          'default-src *; ' + // 默认允许所有来源
+            // 图片源：允许本地文件、base64数据、blob数据、http(s)和所有域名
             "img-src 'self' file: data: blob: https: http: *; " +
-            "script-src 'self' 'unsafe-inline' 'unsafe-eval' blob:; " + // 添加 blob:
+            // 脚本源：允许本地脚本、内联脚本、eval执行和blob数据
+            // 注意：unsafe-inline 和 unsafe-eval 在生产环境中可能存在安全风险
+            "script-src 'self' 'unsafe-inline' 'unsafe-eval' blob:; " +
+            // 样式源：允许本地样式和内联样式
             "style-src 'self' 'unsafe-inline'; " +
+            // 连接源：允许本地文件、https://api.tiptap.dev
             "connect-src 'self' file: https://api.tiptap.dev; " +
+            // 字体源：允许所有来源的字体
             'font-src *; ' +
+            // Web Worker源：允许本地worker、blob数据和base64数据
             "worker-src 'self' blob: data:;"
         ]
       }
@@ -226,45 +267,71 @@ function createWindow(): void {
   })
 
   // 在加载 URL 之前就创建并显示窗口
-  mainWindow.webContents.on('did-finish-load', () => {
-    mainWindow.webContents.executeJavaScript(`
-      if (window.location.pathname === '/' || window.location.pathname === '') {
-        window.history.pushState(null, '', '/home');
-        if (window.dispatchEvent) {
-          window.dispatchEvent(new Event('popstate'));
-        }
-      }
-    `)
-  })
+  // mainWindow.webContents.on('did-finish-load', () => {
+  //   mainWindow.webContents.executeJavaScript(`
+  //     if (window.location.pathname === '/' || window.location.pathname === '') {
+  //       window.history.pushState(null, '', '/home');
+  //       if (window.dispatchEvent) {
+  //         window.dispatchEvent(new Event('popstate'));
+  //       }
+  //     }
+  //   `)
+  // })
 
+  // 仅在开发环境（未打包状态）下自动打开开发者工具
   if (!app.isPackaged) {
+    // 打开 Chromium 开发者工具（DevTools）
     mainWindow.webContents.openDevTools()
   }
 
-  mainWindow.on('ready-to-show', () => {
-    mainWindow.show()
-    log.info('Main window shown')
-  })
-
+  // 处理窗口打开请求（例如：点击链接时）
   mainWindow.webContents.setWindowOpenHandler((details) => {
+    // 使用系统默认浏览器打开外部链接
     shell.openExternal(details.url)
+
+    // 返回 'deny' 表示阻止 Electron 创建新窗口
+    // 这样可以防止应用内创建多个窗口，保持单窗口模式
     return { action: 'deny' }
   })
 
-  // 在加载 URL 之前就创建并显示窗口
-  mainWindow.show()
-
+  // 加载页面
   if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
     mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL'])
   } else {
     mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
   }
 
-  log.info('Main window created and loaded')
+  return mainWindow
 }
 
 // 添加窗口显示状态追踪
 let isWindowVisible = true
+
+// 确保在任何环境下都注册这些快捷键
+function registerGlobalShortcuts() {
+  // 刷新快捷键
+  globalShortcut.register('CommandOrControl+R', () => {
+    const win = BrowserWindow.getFocusedWindow()
+    if (win) win.webContents.reload()
+  })
+
+  globalShortcut.register('F5', () => {
+    const win = BrowserWindow.getFocusedWindow()
+    if (win) win.webContents.reload()
+  })
+
+  // 开发者工具快捷键
+  globalShortcut.register('CommandOrControl+Shift+I', () => {
+    const win = BrowserWindow.getFocusedWindow()
+    if (win) win.webContents.toggleDevTools()
+  })
+
+  // 可选：添加强制重新加载快捷键
+  globalShortcut.register('CommandOrControl+Shift+R', () => {
+    const win = BrowserWindow.getFocusedWindow()
+    if (win) win.webContents.reloadIgnoringCache()
+  })
+}
 
 app.whenReady().then(async () => {
   const antinetPath = app.getPath('userData')
@@ -278,8 +345,6 @@ app.whenReady().then(async () => {
   } catch (error) {
     console.error('创建目录失败:', error)
   }
-  console.log('用户数据目录:', userDataPath)
-  console.log('图片目录:', imagesPath)
 
   // 初始化 remote 模块
   initialize()
@@ -291,16 +356,14 @@ app.whenReady().then(async () => {
 
     // 初始化数据库
     await initDatabase(db)
-    console.log('主进程→ 数据库初始化成功')
-    console.log('数据库路径:', db.client.connectionSettings.filename)
-    log.info('主进程→ 数据库初始化成功')
-    log.info('数据库路径:', dbPath)
     // 验证表是否创建成功
-    const hasNotesTable = await db.schema.hasTable('notes')
-    console.log('notes 表是否存在:', hasNotesTable)
-    log.info('notes 表是否存在:', hasNotesTable)
+    await db.schema.hasTable('notes')
 
-    electronApp.setAppUserModelId('com.electron')
+    // electronApp.setAppUserModelId('com.electron')
+    // 使用应用特定的 ID
+    if (process.platform === 'win32') {
+      electronApp.setAppUserModelId('com.antinet.app') // 使用反向域名格式
+    }
 
     ipcMain.handle('get-resource-path', (_event, filename) => {
       return path.join(app.getAppPath(), 'resources', filename)
@@ -335,20 +398,30 @@ app.whenReady().then(async () => {
 
     createWindow()
 
-    // 添加全局快捷键
-    globalShortcut.register('CommandOrControl+R', () => {
-      const focusedWindow = BrowserWindow.getFocusedWindow()
-      if (focusedWindow) {
-        focusedWindow.webContents.reload()
-      }
-    })
+    // 注册全局快捷键
+    registerGlobalShortcuts()
 
-    globalShortcut.register('F5', () => {
-      const focusedWindow = BrowserWindow.getFocusedWindow()
-      if (focusedWindow) {
-        focusedWindow.webContents.reload()
-      }
-    })
+    // 添加全局快捷键
+    // globalShortcut.register('CommandOrControl+R', () => {
+    //   const focusedWindow = BrowserWindow.getFocusedWindow()
+    //   if (focusedWindow) {
+    //     focusedWindow.webContents.reload()
+    //   }
+    // })
+
+    // globalShortcut.register('F5', () => {
+    //   const focusedWindow = BrowserWindow.getFocusedWindow()
+    //   if (focusedWindow) {
+    //     focusedWindow.webContents.reload()
+    //   }
+    // })
+
+    // globalShortcut.register('CommandOrControl+Shift+I', () => {
+    //   const win = BrowserWindow.getFocusedWindow()
+    //   if (win) {
+    //     win.webContents.toggleDevTools()
+    //   }
+    // })
 
     // 加载用户设置的快捷键
     const settings = await getUserSettings()
@@ -371,7 +444,6 @@ app.whenReady().then(async () => {
     app.on('activate', function () {
       if (BrowserWindow.getAllWindows().length === 0) createWindow()
     })
-    log.info('应用初始化完成')
   } catch (error) {
     console.error('主进程→ 应用初始化失败:', error)
     log.error('主进程→ 应用初始化失败:', error)

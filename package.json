@@ -1,6 +1,6 @@
 {
   "name": "antinet",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "description": "Antinet",
   "main": "./out/main/index.js",
   "author": "antinet.com",
@@ -24,7 +24,8 @@
     "build:linux": "npm run build && electron-builder --linux",
     "migrate:make": "knex migrate:make --knexfile ./knexfile.ts -x ts",
     "migrate:latest": "knex migrate:latest --knexfile ./knexfile.ts",
-    "migrate:rollback": "knex migrate:rollback --knexfile ./knexfile.ts"
+    "migrate:rollback": "knex migrate:rollback --knexfile ./knexfile.ts",
+    "preview:dmg": "electron-builder --mac dmg --dir"
   },
   "dependencies": {
     "@electron-toolkit/preload": "^3.0.0",
@@ -172,6 +173,7 @@
     "productName": "Antinet",
     "mac": {
       "category": "public.app-category.productivity",
+      "icon": "build/icon.icns",
       "extendInfo": {
         "CFBundleName": "Antinet",
         "CFBundleDisplayName": "Antinet"
@@ -186,6 +188,30 @@
         }
       ]
     },
+    "dmg": {
+      "background": "build/background.png",
+      "icon": "build/disk-icon.icns",
+      "iconSize": 100,
+      "contents": [
+        {
+          "x": 150,
+          "y": 160,
+          "type": "file"
+        },
+        {
+          "x": 390,
+          "y": 160,
+          "type": "link",
+          "path": "/Applications"
+        }
+      ],
+      "window": {
+        "width": 540,
+        "height": 380
+      },
+      "format": "ULFO",
+      "title": "Antinet"
+    },
     "win": {
       "target": [
         {
@@ -196,6 +222,12 @@
         }
       ],
       "icon": "build/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
     }
   },
   "packageManager": "pnpm@9.7.1+sha512.faf344af2d6ca65c4c5c8c2224ea77a81a5e8859cbc4e06b1511ddce2f0151512431dd19e6aff31f2c6a8f5f2aced9bd2273e1fed7dd4de1868984059d2c4247"

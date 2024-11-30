@@ -21,7 +21,6 @@ export function setupCardboxHandlers() {
   ipcMain.handle('get-all-card-boxes', async () => {
     try {
       const cardBoxes = await getAllCardBoxes()
-      console.log('主进程 → 获取所有卡片盒:', cardBoxes)
       return cardBoxes
     } catch (error) {
       console.error('主进程 → 获取所有卡片盒时出错:', error)
