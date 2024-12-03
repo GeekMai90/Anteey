@@ -309,27 +309,28 @@ let isWindowVisible = true
 
 // 确保在任何环境下都注册这些快捷键
 function registerGlobalShortcuts() {
-  // 刷新快捷键
-  globalShortcut.register('CommandOrControl+R', () => {
-    const win = BrowserWindow.getFocusedWindow()
-    if (win) win.webContents.reload()
-  })
+  // 移除全局快捷键注册
+  // 改为使用 localShortcut 或者通过菜单设置快捷键
+  const win = BrowserWindow.getFocusedWindow()
+  if (!win) return
 
-  globalShortcut.register('F5', () => {
-    const win = BrowserWindow.getFocusedWindow()
-    if (win) win.webContents.reload()
-  })
-
-  // 开发者工具快捷键
-  globalShortcut.register('CommandOrControl+Shift+I', () => {
-    const win = BrowserWindow.getFocusedWindow()
-    if (win) win.webContents.toggleDevTools()
-  })
-
-  // 可选：添加强制重新加载快捷键
-  globalShortcut.register('CommandOrControl+Shift+R', () => {
-    const win = BrowserWindow.getFocusedWindow()
-    if (win) win.webContents.reloadIgnoringCache()
+  // 在窗口的 webContents 上设置快捷键
+  win.webContents.on('before-input-event', (event, input) => {
+    // 刷新快捷键
+    if ((input.control || input.meta) && input.key === 'r') {
+      win.webContents.reload()
+      event.preventDefault()
+    }
+    // 开发者工具快捷键
+    if ((input.control || input.meta) && input.shift && input.key === 'i') {
+      win.webContents.toggleDevTools()
+      event.preventDefault()
+    }
+    // 强制重新加载快捷键
+    if ((input.control || input.meta) && input.shift && input.key === 'r') {
+      win.webContents.reloadIgnoringCache()
+      event.preventDefault()
+    }
   })
 }
 
@@ -382,6 +383,24 @@ app.whenReady().then(async () => {
 
     app.on('browser-window-created', (_, window) => {
       optimizer.watchWindowShortcuts(window)
+      // 为新窗口注册快捷键
+      window.webContents.on('before-input-event', (event, input) => {
+        // 仅当窗口处于焦点状态时处理快捷键
+        if (window.isFocused()) {
+          if ((input.control || input.meta) && input.key === 'r') {
+            window.webContents.reload()
+            event.preventDefault()
+          }
+          if ((input.control || input.meta) && input.shift && input.key === 'i') {
+            window.webContents.toggleDevTools()
+            event.preventDefault()
+          }
+          if ((input.control || input.meta) && input.shift && input.key === 'r') {
+            window.webContents.reloadIgnoringCache()
+            event.preventDefault()
+          }
+        }
+      })
     })
 
     ipcMain.on('window-click', (event) => {

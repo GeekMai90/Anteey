@@ -1756,17 +1756,17 @@ export async function getPaginatedNotesByCardbox({
   customFilterId
 }: GetPaginatedNotesParams): Promise<{ notes: Note[]; totalCount: number }> {
   try {
-    console.log('后端→ 开始获取卡片盒分页笔记', {
-      cardBoxId,
-      cardTypes,
-      tags,
-      keyword,
-      sortBy,
-      sortOrder,
-      page,
-      limit,
-      customFilterId
-    })
+    // console.log('后端→ 开始获取卡片盒分页笔记', {
+    //   cardBoxId,
+    //   cardTypes,
+    //   tags,
+    //   keyword,
+    //   sortBy,
+    //   sortOrder,
+    //   page,
+    //   limit,
+    //   customFilterId
+    // })
 
     let query = db('notes')
       .leftJoin('note_tags', 'notes.id', 'note_tags.noteId')

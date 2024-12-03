@@ -92,9 +92,6 @@
       </div>
       <slot name="left"></slot>
     </div>
-    <div class="toolbar-section center">
-      <slot name="center"></slot>
-    </div>
     <div class="toolbar-section right">
       <div
         v-tooltip.bottom="{
@@ -258,12 +255,7 @@ const handleRootClick = async () => {
 
   &.left {
     justify-content: flex-start;
-    flex: 3;
-  }
-
-  &.center {
-    justify-content: center;
-    flex: 1;
+    flex: 4;
   }
 
   &.right {
