@@ -1,93 +1,94 @@
 <template>
   <div class="license-settings">
-    <div class="settings-content-header">
-      <div class="icon">
-        <Api theme="outline" size="20" fill="var(--color-icon-menu-default)" :strokeWidth="3" />
+    <div class="license-settings-wrapper">
+      <div class="settings-content-header">
+        <div class="icon">
+          <CrownThree
+            theme="outline"
+            size="20"
+            fill="var(--color-icon-menu-default)"
+            :strokeWidth="3"
+          />
+        </div>
+        <div class="name">软件激活</div>
       </div>
-      <div class="name">软件激活</div>
-    </div>
-    <div class="shortcuts-settings-divider"></div>
+      <div class="shortcuts-settings-divider"></div>
+      <div class="license-settings-content">
+        <div class="license-content">
+          <div class="settings-section">
+            <div class="section-title">激活信息</div>
 
-    <div class="license-content">
-      <div class="settings-section">
-        <div class="section-title">激活信息</div>
-
-        <!-- 未激活状态：显示使用统计 -->
-        <div v-if="!licenseStore.license" class="usage-status-section">
-          <div class="setting-item">
-            <div class="setting-label">使用情况</div>
-            <div class="usage-info">
-              <div class="progress-bar">
-                <div
-                  class="progress"
-                  :class="{ exceed: noteCount >= 100 }"
-                  :style="{ width: `${(noteCount / 100) * 100}%` }"
-                ></div>
-              </div>
-              <div class="usage-details">
-                <div class="note-count">{{ noteCount }}/100</div>
-                <div class="usage-tip">免费版用户可创建 100 张卡片笔记</div>
-                <div class="activation-tip">激活软件后可无限制创建笔记</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- 已激活状态 -->
-        <div v-if="licenseStore.license" class="license-status-section">
-          <div class="setting-item">
-            <div class="setting-label">当前状态</div>
-            <div class="license-info">
-              <div
-                class="status-badge"
-                :class="{ active: licenseStore.license.status === 'active' }"
-              >
-                {{ licenseStore.license.status === 'active' ? '已激活' : '未激活' }}
-              </div>
-              <div class="license-details">
-                <div>
-                  授权等级：{{ licenseStore.license.level === 'pro' ? '专业版' : '基础版' }}
+            <!-- 未激活状态：显示使用统计 -->
+            <div v-if="!licenseStore.license" class="usage-status-section">
+              <div class="setting-item">
+                <div class="setting-label">使用情况</div>
+                <div class="usage-info">
+                  <div class="progress-bar">
+                    <div
+                      class="progress"
+                      :class="{ exceed: noteCount >= 100 }"
+                      :style="{ width: `${(noteCount / 100) * 100}%` }"
+                    ></div>
+                  </div>
+                  <div class="usage-details">
+                    <div class="note-count">{{ noteCount }}/100</div>
+                    <div class="usage-tip">免费版用户可创建 100 张卡片笔记</div>
+                    <div class="activation-tip">激活软件后可无限制创建笔记</div>
+                  </div>
                 </div>
-                <div>激活时间：{{ formatDate(licenseStore.license.activatedAt) }}</div>
-                <div>到期时间：{{ formatDate(licenseStore.license.expiresAt) }}</div>
               </div>
             </div>
-          </div>
-        </div>
 
-        <!-- 机器码部分 -->
-        <div class="machine-id-section">
-          <div class="setting-item">
-            <div class="setting-label">机器码</div>
-            <div class="machine-id-display">
-              <span>{{ formattedMachineId }}</span>
-              <button class="copy-button" @click="copyMachineId">复制</button>
+            <!-- 已激活状态显示 -->
+            <div v-if="licenseStore.license" class="license-status-section">
+              <div class="setting-item">
+                <div class="setting-label">当前状态</div>
+                <div class="license-info">
+                  <div class="license-details">
+                    <div class="status-line">
+                      激活状态：<span class="status-badge active">已激活</span>
+                    </div>
+                    <div>激活时间：{{ formatDate(licenseStore.license.activatedAt) }}</div>
+                    <div>到期时间：{{ formatDate(licenseStore.license.expiresAt) }}</div>
+                  </div>
+                </div>
+              </div>
             </div>
-            <div class="setting-desc">请将此机器码发送给客服获取激活码</div>
-          </div>
-        </div>
 
-        <!-- 激活码部分 -->
-        <div class="activation-section">
-          <div class="setting-item">
-            <div class="setting-label">激活码</div>
-            <div class="activation-input">
-              <input
-                v-model="activationCode"
-                type="text"
-                placeholder="请输入激活码"
-                :disabled="isActivating"
-              />
-              <button
-                class="activate-button"
-                :class="{ loading: isActivating }"
-                :disabled="!activationCode || isActivating"
-                @click="handleActivate"
-              >
-                {{ isActivating ? '激活中...' : '激活' }}
-              </button>
+            <!-- 机器码部分 -->
+            <div class="machine-id-section">
+              <div class="setting-item">
+                <div class="setting-label">机器码</div>
+                <div class="machine-id-display">
+                  <div class="machine-id">{{ formattedMachineId }}</div>
+                  <button class="copy-button" @click="copyMachineId">复制</button>
+                </div>
+                <div class="setting-desc">请将此机器码发送给客服获取激活码</div>
+              </div>
             </div>
-            <div v-if="error" class="error-message">{{ error }}</div>
+
+            <!-- 激活码部分 -->
+            <div class="activation-section">
+              <div class="setting-item">
+                <div class="setting-label">激活码</div>
+                <div class="activation-input">
+                  <input
+                    v-model="activationCode"
+                    type="text"
+                    placeholder="请输入激活码"
+                    :disabled="isActivating"
+                  />
+                  <button
+                    class="activate-button"
+                    :class="{ loading: isActivating }"
+                    :disabled="!activationCode || isActivating"
+                    @click="handleActivate"
+                  >
+                    {{ isActivating ? '激活中...' : '激活' }}
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -108,7 +109,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { Api } from '@icon-park/vue-next'
+import { CrownThree } from '@icon-park/vue-next'
 import { useLicenseStore } from '../../../stores/licenseStore'
 import { useNoteStore } from '../../../stores/noteStores'
 import Modal from '../../../components/common/Modal.vue'
@@ -122,7 +123,6 @@ const noteCount = ref(0)
 
 // 从 store 中获取状态
 const isActivating = computed(() => licenseStore.isActivating)
-const error = computed(() => licenseStore.error)
 
 const formattedMachineId = computed(() => {
   return licenseStore.machineId.match(/.{8}/g)?.join('-') || ''
@@ -252,6 +252,12 @@ onMounted(async () => {
   width: 100%;
   height: 100%;
 }
+.license-settings-wrapper {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
 
 .settings-content-header {
   display: flex;
@@ -270,6 +276,19 @@ onMounted(async () => {
     transition: all 0.2s ease;
     padding: 4px;
     border-radius: 6px;
+
+    :deep(.i-icon) {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      height: 100%;
+    }
+
+    svg {
+      width: 20px;
+      height: 20px;
+    }
   }
 
   .name {
@@ -290,7 +309,7 @@ onMounted(async () => {
   margin-bottom: 32px;
 
   .section-title {
-    font-size: 16px;
+    font-size: 18px;
     font-weight: 500;
     margin-bottom: 16px;
     color: var(--color-text-primary);
@@ -316,52 +335,106 @@ onMounted(async () => {
 .machine-id-display {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
   padding: 8px 12px;
   background-color: var(--color-bg-secondary);
   border-radius: 6px;
-  font-family: monospace;
+
+  .machine-id {
+    flex: 1;
+    font-family: monospace;
+    overflow-x: auto;
+    white-space: nowrap;
+    color: var(--color-text-primary);
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
 
   .copy-button {
-    padding: 4px 8px;
-    border-radius: 4px;
-    border: 1px solid var(--color-border);
-    background: var(--color-bg-primary);
+    flex-shrink: 0;
+    height: 32px;
+    padding: 0 16px;
+    border-radius: 6px;
+    border: none;
+    background: var(--color-primary);
+    color: #fff;
+    font-size: 13px;
     cursor: pointer;
+    transition: all 0.2s ease;
 
     &:hover {
-      border-color: var(--color-border-hover);
+      opacity: 0.9;
+    }
+
+    &:active {
+      transform: scale(0.98);
     }
   }
 }
 
+.setting-desc {
+  margin-top: 8px;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
+
 .activation-input {
   display: flex;
+  align-items: center;
   gap: 8px;
+  padding: 8px 12px;
 
   input {
     flex: 1;
-    padding: 8px 12px;
+    height: 32px;
+    padding: 0 12px;
     border-radius: 6px;
     border: 1px solid var(--color-border);
     background: var(--color-bg-secondary);
     color: var(--color-text-primary);
+    font-size: 13px;
+    transition: all 0.2s ease;
+
+    &::placeholder {
+      color: var(--color-text-placeholder);
+    }
+
+    &:hover {
+      border-color: var(--color-primary);
+    }
 
     &:focus {
       outline: none;
-      border-color: var(--color-border-hover);
+      border-color: var(--color-primary);
+    }
+
+    &:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
     }
   }
 
   .activate-button {
-    padding: 8px 16px;
+    height: 32px;
+    padding: 0 16px;
     border-radius: 6px;
-    border: 1px solid var(--color-border);
-    background: var(--color-bg-primary);
+    border: none;
+    background: var(--color-primary);
+    color: #fff;
+    font-size: 13px;
     cursor: pointer;
+    transition: all 0.2s ease;
 
     &:hover:not(:disabled) {
-      border-color: var(--color-border-hover);
+      opacity: 0.9;
+    }
+
+    &:active:not(:disabled) {
+      transform: scale(0.98);
     }
 
     &:disabled {
@@ -370,7 +443,6 @@ onMounted(async () => {
     }
 
     &.loading {
-      opacity: 0.8;
       cursor: wait;
     }
   }
@@ -378,27 +450,27 @@ onMounted(async () => {
 
 .error-message {
   margin-top: 8px;
-  color: var(--color-error);
-  font-size: 12px;
+  font-size: 13px;
+  color: var(--color-danger);
 }
 
 .license-status-section {
-  margin-bottom: 24px;
-
   .license-info {
     background-color: var(--color-bg-secondary);
     padding: 12px;
     border-radius: 6px;
   }
 
+  .status-line {
+    color: var(--color-text-primary);
+    margin-bottom: 4px;
+  }
+
   .status-badge {
     display: inline-block;
-    padding: 4px 12px;
-    border-radius: 12px;
+    padding: 2px 8px;
+    border-radius: 4px;
     font-size: 14px;
-    margin-bottom: 8px;
-    background-color: var(--color-error-bg);
-    color: var(--color-error);
 
     &.active {
       background-color: var(--color-success-bg);
@@ -408,7 +480,7 @@ onMounted(async () => {
 
   .license-details {
     font-size: 14px;
-    color: var(--color-text-secondary);
+    color: var(--color-text-primary);
 
     > div {
       margin-bottom: 4px;

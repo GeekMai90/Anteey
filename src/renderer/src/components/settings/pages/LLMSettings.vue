@@ -3,9 +3,9 @@
     <div class="llm-settings-wrapper">
       <div class="settings-content-header">
         <div class="icon">
-          <Api theme="outline" size="20" fill="var(--color-icon-menu-default)" :strokeWidth="3" />
+          <Robot theme="outline" size="20" fill="var(--color-icon-menu-default)" :strokeWidth="3" />
         </div>
-        <div class="name">AI 模型配置</div>
+        <div class="name">模型配置</div>
       </div>
       <div class="settings-divider"></div>
 
@@ -102,7 +102,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import { Api, Plus, Config, Close } from '@icon-park/vue-next'
+import { Robot, Plus, Config, Close } from '@icon-park/vue-next'
 import { useLLMConfigStore } from '@renderer/stores/llmConfigStore'
 import { LLM_MODELS } from '../../../../../services/rag/llm.config'
 import type { LLMConfig } from '@renderer/types/llm'
@@ -192,7 +192,6 @@ const handleDelete = async (id: string) => {
     display: flex;
     flex-direction: column;
   }
-
   .settings-content-header {
     display: flex;
     align-items: center;
@@ -210,12 +209,26 @@ const handleDelete = async (id: string) => {
       transition: all 0.2s ease;
       padding: 4px;
       border-radius: 6px;
+
+      :deep(.i-icon) {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        height: 100%;
+      }
+
+      svg {
+        width: 20px;
+        height: 20px;
+      }
     }
 
     .name {
       font-size: 20px;
       line-height: 1;
       font-weight: 500;
+      user-select: none;
     }
   }
 

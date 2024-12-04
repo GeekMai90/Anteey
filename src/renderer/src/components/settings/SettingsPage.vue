@@ -58,7 +58,9 @@ import {
   SettingTwo,
   Theme,
   Share,
-  BookOne
+  BookOne,
+  CrownThree,
+  Robot
 } from '@icon-park/vue-next'
 import BackupSettings from './pages/BackupSettings.vue'
 import ShortcutsSettings from './pages/ShortcutsSettings.vue'
@@ -74,9 +76,9 @@ const menuItems = [
   { key: 'share', label: '分享设置', icon: Share },
   { key: 'appearance', label: '外观', icon: Theme },
   { key: 'dictionary', label: '词库管理', icon: BookOne },
-  { key: 'api', label: '专属API', icon: Api },
-  { key: 'llm', label: 'LLM配置', icon: Api },
-  { key: 'license', label: '许可证', icon: Api }
+  { key: 'llm', label: '模型设置', icon: Robot },
+  { key: 'license', label: '软件激活', icon: CrownThree },
+  { key: 'api', label: '专属API', icon: Api }
 ]
 
 const currentMenuItem = ref('backup')
@@ -102,6 +104,7 @@ const selectMenuItem = (key: string) => {
   background-color: var(--sidebar-bg);
   padding: 16px 10px;
   overflow-y: auto;
+  flex-shrink: 0;
 }
 
 .settings-sidebar-header {
@@ -157,7 +160,7 @@ const selectMenuItem = (key: string) => {
 }
 
 .settings-sidebar li.active {
-  background-color: var(--sidebar-hover-bg);
+  background-color: var(--color-hover-sidebar);
   border-radius: 6px;
 }
 
@@ -171,11 +174,11 @@ const selectMenuItem = (key: string) => {
   margin-bottom: 2px;
 
   &:hover {
-    background-color: var(--sidebar-hover-bg);
+    background-color: var(--color-hover-sidebar);
   }
 
   &.active {
-    background-color: var(--sidebar-hover-bg);
+    background-color: var(--color-hover-sidebar);
   }
 
   .icon {
