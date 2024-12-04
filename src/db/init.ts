@@ -545,6 +545,21 @@ export async function initDatabase(db: Knex): Promise<void> {
     })
     console.log('note_images 表创建成功')
   }
+
+  // 创建激活许可证表
+  // 创建激活许可证表
+  if (!(await db.schema.hasTable('licenses'))) {
+    await db.schema.createTable('licenses', (table) => {
+      table.string('id').primary()
+      table.string('machineId').notNullable()
+      table.text('encryptedData').notNullable() // 新的加密数据字段
+      table.datetime('createdAt').notNullable()
+      table.datetime('updatedAt').notNullable()
+
+      table.index('machineId')
+    })
+    console.log('licenses 表创建成功')
+  }
 }
 
 export async function down(db: Knex): Promise<void> {

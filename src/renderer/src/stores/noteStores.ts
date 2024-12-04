@@ -7,6 +7,7 @@ import { GetPaginatedNotesParams } from '../../../services/notes/notesService'
 import { useEventBus } from '@vueuse/core'
 import { useUIStore } from './useUIStore'
 import { useTagStore } from './tagStore'
+import { message } from '../utils/message'
 
 // 常量定义
 const cardTypes = [
@@ -868,6 +869,7 @@ export const useNoteStore = defineStore(
         return newNote
       } catch (error) {
         console.error('noteStores.ts→ 创建新笔记失败:', error)
+        message.error('创建新笔记失败')
         throw error
       }
     }

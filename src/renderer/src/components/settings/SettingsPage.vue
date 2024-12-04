@@ -44,6 +44,7 @@
       <AppearanceSettings v-if="currentMenuItem === 'appearance'" />
       <DictionarySettings v-if="currentMenuItem === 'dictionary'" />
       <LLMSettings v-if="currentMenuItem === 'llm'" />
+      <LicenseSettings v-if="currentMenuItem === 'license'" />
     </div>
   </div>
 </template>
@@ -65,6 +66,7 @@ import ShareSettings from './pages/ShareSettings.vue'
 import AppearanceSettings from './pages/AppearanceSettings.vue'
 import DictionarySettings from './pages/DictionarySettings.vue'
 import LLMSettings from './pages/LLMSettings.vue'
+import LicenseSettings from './pages/LicenseSettings.vue'
 
 const menuItems = [
   { key: 'backup', label: '备份', icon: DatabaseDownload },
@@ -73,7 +75,8 @@ const menuItems = [
   { key: 'appearance', label: '外观', icon: Theme },
   { key: 'dictionary', label: '词库管理', icon: BookOne },
   { key: 'api', label: '专属API', icon: Api },
-  { key: 'llm', label: 'LLM配置', icon: Api }
+  { key: 'llm', label: 'LLM配置', icon: Api },
+  { key: 'license', label: '许可证', icon: Api }
 ]
 
 const currentMenuItem = ref('backup')

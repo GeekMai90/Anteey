@@ -28,6 +28,7 @@ import { LLMConfig } from './llm'
 import { LocalTreeData, LocalTreeWithReferencesData } from './localTree'
 import { AppearanceSettings } from '../../../services/appearance/appearanceService'
 import { KnowledgeTreeNode } from './knowledgeTree'
+import { ActivationResult, License } from './license'
 
 // 添加图片相关的类型定义
 interface ImageInfo {
@@ -433,6 +434,10 @@ export interface ElectronAPI {
     message: string
   }>
   removeImageFromNote: (noteId: string, imageId: string) => Promise<void>
+  // 激活相关
+  getMachineId: () => Promise<string>
+  activateLicense: (activationCode: string) => Promise<ActivationResult>
+  checkLicense: () => Promise<License | null>
 }
 
 declare global {

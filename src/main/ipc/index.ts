@@ -13,6 +13,7 @@ import { setupLLMConfigHandlers } from './llmConfigIpcHandlers'
 import { setupLocalTreeHandlers } from './localTreeIpcHandlers'
 import { setupAppearanceHandlers } from './appearanceIpcHandlers'
 import { setupKnowledgeTreeHandlers } from './knowledgeTreeIpcHandlers'
+import { setupLicenseHandlers } from './licenseIpcHandlers'
 export function setupIpcHandlers() {
   setupNotesHandlers()
   setupWhiteboardHandlers()
@@ -29,4 +30,5 @@ export function setupIpcHandlers() {
   setupLocalTreeHandlers()
   setupAppearanceHandlers()
   setupKnowledgeTreeHandlers()
+  setupLicenseHandlers()
 }
