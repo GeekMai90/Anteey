@@ -409,7 +409,7 @@ export async function initDatabase(db: Knex): Promise<void> {
         order: 3
       }
     ])
-    console.log('dictionary_categories 默认数据创建成功')
+    console.log('dictionary_categories 默认数据建成功')
   }
 
   // 创建 word_category_relations 表
@@ -559,6 +559,32 @@ export async function initDatabase(db: Knex): Promise<void> {
       table.index('machineId')
     })
     console.log('licenses 表创建成功')
+  }
+
+  // 创建备份设置表
+  if (!(await db.schema.hasTable('backup_settings'))) {
+    await db.schema.createTable('backup_settings', (table) => {
+      table.string('backup_path').notNullable()
+      table.boolean('auto_backup').defaultTo(false)
+      table.timestamp('created_at').defaultTo(db.fn.now())
+      table.timestamp('updated_at').defaultTo(db.fn.now())
+    })
+    console.log('backup_settings 表创建成功')
+  }
+
+  // 创建备份历史记录表
+  if (!(await db.schema.hasTable('backup_history'))) {
+    await db.schema.createTable('backup_history', (table) => {
+      table.increments('id')
+      table.string('backup_file_path').notNullable()
+      table.string('backup_file_name').notNullable()
+      table.integer('backup_size').notNullable()
+      table.string('created_at').notNullable()
+
+      // 添加索引以优化查询
+      table.index('created_at')
+    })
+    console.log('backup_history 表创建成功')
   }
 }
 

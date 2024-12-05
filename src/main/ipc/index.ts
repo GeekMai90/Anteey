@@ -14,6 +14,7 @@ import { setupLocalTreeHandlers } from './localTreeIpcHandlers'
 import { setupAppearanceHandlers } from './appearanceIpcHandlers'
 import { setupKnowledgeTreeHandlers } from './knowledgeTreeIpcHandlers'
 import { setupLicenseHandlers } from './licenseIpcHandlers'
+import { setupBackupHandlers } from './backupIpcHandlers'
 export function setupIpcHandlers() {
   setupNotesHandlers()
   setupWhiteboardHandlers()
@@ -31,4 +32,5 @@ export function setupIpcHandlers() {
   setupAppearanceHandlers()
   setupKnowledgeTreeHandlers()
   setupLicenseHandlers()
+  setupBackupHandlers()
 }

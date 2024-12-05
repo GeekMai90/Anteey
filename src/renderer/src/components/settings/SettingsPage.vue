@@ -71,17 +71,17 @@ import LLMSettings from './pages/LLMSettings.vue'
 import LicenseSettings from './pages/LicenseSettings.vue'
 
 const menuItems = [
-  { key: 'backup', label: '备份', icon: DatabaseDownload },
+  { key: 'appearance', label: '外观', icon: Theme },
   { key: 'shortcuts', label: '快捷键', icon: KeyboardOne },
   { key: 'share', label: '分享设置', icon: Share },
-  { key: 'appearance', label: '外观', icon: Theme },
   { key: 'dictionary', label: '词库管理', icon: BookOne },
   { key: 'llm', label: '模型设置', icon: Robot },
   { key: 'license', label: '软件激活', icon: CrownThree },
+  { key: 'backup', label: '备份', icon: DatabaseDownload },
   { key: 'api', label: '专属API', icon: Api }
 ]
 
-const currentMenuItem = ref('backup')
+const currentMenuItem = ref('appearance')
 
 const selectMenuItem = (key: string) => {
   currentMenuItem.value = key

@@ -29,6 +29,7 @@ import { LocalTreeData, LocalTreeWithReferencesData } from './localTree'
 import { AppearanceSettings } from '../../../services/appearance/appearanceService'
 import { KnowledgeTreeNode } from './knowledgeTree'
 import { ActivationResult, License } from './license'
+import type { BackupSettings, BackupHistory } from './backup'
 
 // 添加图片相关的类型定义
 interface ImageInfo {
@@ -438,6 +439,19 @@ export interface ElectronAPI {
   getMachineId: () => Promise<string>
   activateLicense: (activationCode: string) => Promise<ActivationResult>
   checkLicense: () => Promise<License | null>
+
+  // 备份相关API
+  getBackupSettings: () => Promise<BackupSettings | null>
+  updateBackupSettings: (settings: Partial<BackupSettings>) => Promise<void>
+  getBackupHistory: () => Promise<BackupHistory[]>
+  selectBackupDirectory: () => Promise<string | null>
+  createBackup: () => Promise<{
+    path: string
+    fileName: string
+    size: number
+  }>
+  selectBackupFile: () => Promise<string | null>
+  restoreBackup: (backupPath: string) => Promise<boolean>
 }
 
 declare global {

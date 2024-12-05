@@ -24,6 +24,7 @@ import log from './logger'
 import { config } from 'dotenv'
 import { getUserSettings } from '../services/user/userSettings'
 import { migrateLicenseTable } from '../db/migrations/licenseMigration'
+import { backupService } from '../services/backupService'
 
 // 加载环境变量
 config({
@@ -335,6 +336,16 @@ function registerGlobalShortcuts() {
   })
 }
 
+async function handleAutoBackup() {
+  try {
+    if (await backupService.shouldAutoBackup()) {
+      await backupService.performBackup(true)
+    }
+  } catch (error) {
+    console.error('自动备份失败:', error)
+  }
+}
+
 app.whenReady().then(async () => {
   const antinetPath = app.getPath('userData')
   const userDataPath = path.join(antinetPath, 'UserData')
@@ -465,6 +476,9 @@ app.whenReady().then(async () => {
     app.on('activate', function () {
       if (BrowserWindow.getAllWindows().length === 0) createWindow()
     })
+
+    // 应用启动时执行自动备份
+    await handleAutoBackup()
   } catch (error) {
     console.error('主进程→ 应用初始化失败:', error)
     log.error('主进程→ 应用初始化失败:', error)
@@ -482,4 +496,11 @@ app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit()
   }
+})
+
+app.on('before-quit', async (event) => {
+  event.preventDefault()
+  // 应用关闭前执行自动备份
+  await handleAutoBackup()
+  app.exit()
 })
