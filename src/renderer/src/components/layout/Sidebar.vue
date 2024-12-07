@@ -141,6 +141,7 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import {
+  Timeline,
   Time,
   Box,
   Workbench,
@@ -163,10 +164,12 @@ import RecentNotes from '@renderer/components/layout/RecentNotes.vue'
 import { storeToRefs } from 'pinia'
 import TagsTree from '@renderer/components/layout/TagsTree.vue'
 import QuickAccessMenu from '@renderer/components/layout/QuickAccessMenu.vue'
+import { useTimeBlockStore } from '@renderer/stores/timeBlockStore'
 
 const imageSrc = ref('')
 const uiStore = useUIStore()
 const route = useRoute()
+const timeBlockStore = useTimeBlockStore()
 
 const getIconFill = computed(
   () => (path: string) =>
@@ -176,15 +179,24 @@ const getIconFill = computed(
 
 onMounted(async () => {
   imageSrc.value = await window.electronAPI.getResourcePath('icon.png')
+  await timeBlockStore.fetchSettings()
 })
-const menuItems = [
-  { name: '主页', path: '/home', icon: Home },
-  { name: '时间线', path: '/timeline', icon: Time },
-  { name: '卡片盒', path: '/cardbox', icon: Box },
-  { name: '知识树', path: '/knowledge-tree', icon: Sapling },
-  { name: '思维板', path: '/whiteboard', icon: Workbench },
-  { name: 'AI助手', path: '/aiassistant', icon: Robot }
-]
+
+const menuItems = computed(() => {
+  const baseItems = [
+    { name: '主页', path: '/home', icon: Home },
+    // 根据设置决定是否显示时间块
+    ...(timeBlockStore.settings.enabled
+      ? [{ name: '时光记', path: '/timeblock', icon: Time }]
+      : []),
+    { name: '笔记流', path: '/timeline', icon: Timeline },
+    { name: '卡片盒', path: '/cardbox', icon: Box },
+    { name: '知识树', path: '/knowledge-tree', icon: Sapling },
+    { name: '思维板', path: '/whiteboard', icon: Workbench },
+    { name: 'AI助手', path: '/aiassistant', icon: Robot }
+  ]
+  return baseItems
+})
 
 const isActive = (path: string) => {
   return route.path === path || route.path.startsWith(path + '/')

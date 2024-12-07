@@ -117,6 +117,11 @@ const routes = [
         component: () => import('../views/KnowledgeTree.vue')
       }
     ]
+  },
+  {
+    name: 'timeBlock',
+    path: '/timeblock',
+    component: () => import('../views/TimeBlockView.vue')
   }
 ]
 

@@ -30,6 +30,7 @@ import { AppearanceSettings } from '../../../services/appearance/appearanceServi
 import { KnowledgeTreeNode } from './knowledgeTree'
 import { ActivationResult, License } from './license'
 import type { BackupSettings, BackupHistory } from './backup'
+import { TimeBlockDay } from './timeBlock'
 
 // 添加图片相关的类型定义
 interface ImageInfo {
@@ -452,6 +453,25 @@ export interface ElectronAPI {
   }>
   selectBackupFile: () => Promise<string | null>
   restoreBackup: (backupPath: string) => Promise<boolean>
+  // 时间块相关方法
+  getTimeBlockDay: (date: string) => Promise<TimeBlockDay>
+  updateTimeBlock: (dayId: string, hour: number, content: string) => Promise<void>
+  updateTimeBlockDayStatus: (id: string, data: { weather?: string; mood?: string }) => Promise<void>
+  // 新增时间块设置相关方法
+  getTimeBlockSettings: () => Promise<{
+    enabled: boolean
+    startTime: number
+    endTime: number
+  }>
+  updateTimeBlockSettings: (settings: {
+    enabled?: boolean
+    startTime?: number
+    endTime?: number
+  }) => Promise<{
+    enabled: boolean
+    startTime: number
+    endTime: number
+  }>
 }
 
 declare global {

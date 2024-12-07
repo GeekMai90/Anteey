@@ -586,6 +586,62 @@ export async function initDatabase(db: Knex): Promise<void> {
     })
     console.log('backup_history 表创建成功')
   }
+
+  // 时间块主表
+  if (!(await db.schema.hasTable('time_block_days'))) {
+    await db.schema.createTable('time_block_days', (table) => {
+      table.string('id').primary()
+      table.date('date').notNullable().unique() // YYYY-MM-DD
+      table.string('weather').nullable() // 天气状态
+      table.string('mood').nullable() // 心情状态
+      table.datetime('createdAt').notNullable()
+      table.datetime('updatedAt').notNullable()
+
+      // 索引
+      table.index('date')
+      table.index('createdAt')
+    })
+    console.log('time_block_days 表创建成功')
+  }
+
+  // 时间块内容表
+  if (!(await db.schema.hasTable('time_blocks'))) {
+    await db.schema.createTable('time_blocks', (table) => {
+      table.string('dayId').notNullable()
+      table.integer('hour').notNullable() // 0-23
+      table.text('content').notNullable() // 多行文本内容
+      table.datetime('createdAt').notNullable()
+      table.datetime('updatedAt').notNullable()
+
+      // 复合主键
+      table.primary(['dayId', 'hour'])
+
+      // 外键约束
+      table.foreign('dayId').references('time_block_days.id').onDelete('CASCADE')
+
+      // 索引
+      table.index('dayId')
+      table.index(['dayId', 'hour'])
+    })
+    console.log('time_blocks 表创建成功')
+  }
+  // 创建时间块设置表 - 简化版
+  if (!(await db.schema.hasTable('time_block_settings'))) {
+    await db.schema.createTable('time_block_settings', (table) => {
+      table.boolean('enabled').notNullable().defaultTo(true)
+      table.integer('startTime').notNullable().defaultTo(5) // 默认从早上5点开始
+      table.integer('endTime').notNullable().defaultTo(23) // 默认到晚上23点结束
+    })
+
+    // 插入默认设置
+    await db('time_block_settings').insert({
+      enabled: true,
+      startTime: 5,
+      endTime: 23
+    })
+
+    console.log('time_block_settings 表创建成功')
+  }
 }
 
 export async function down(db: Knex): Promise<void> {
@@ -611,5 +667,9 @@ export async function down(db: Knex): Promise<void> {
   // 注意删除顺序：先删除有外键约束的表
   await db.schema.dropTableIfExists('note_images')
   await db.schema.dropTableIfExists('image_references')
+  // 注意删除顺序：先删除有外键约束的表
+  await db.schema.dropTableIfExists('time_block_items')
+  await db.schema.dropTableIfExists('time_block_days')
+  await db.schema.dropTableIfExists('time_block_settings')
   console.log('所有表已删除')
 }

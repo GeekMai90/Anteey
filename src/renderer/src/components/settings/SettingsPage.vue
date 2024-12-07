@@ -45,6 +45,7 @@
       <DictionarySettings v-if="currentMenuItem === 'dictionary'" />
       <LLMSettings v-if="currentMenuItem === 'llm'" />
       <LicenseSettings v-if="currentMenuItem === 'license'" />
+      <TimeBlockSettings v-if="currentMenuItem === 'timeblock'" />
     </div>
   </div>
 </template>
@@ -60,7 +61,8 @@ import {
   Share,
   BookOne,
   CrownThree,
-  Robot
+  Robot,
+  Time
 } from '@icon-park/vue-next'
 import BackupSettings from './pages/BackupSettings.vue'
 import ShortcutsSettings from './pages/ShortcutsSettings.vue'
@@ -69,9 +71,11 @@ import AppearanceSettings from './pages/AppearanceSettings.vue'
 import DictionarySettings from './pages/DictionarySettings.vue'
 import LLMSettings from './pages/LLMSettings.vue'
 import LicenseSettings from './pages/LicenseSettings.vue'
+import TimeBlockSettings from './pages/TimeBlockSettings.vue'
 
 const menuItems = [
   { key: 'appearance', label: '外观', icon: Theme },
+  { key: 'timeblock', label: '时光记', icon: Time },
   { key: 'shortcuts', label: '快捷键', icon: KeyboardOne },
   { key: 'share', label: '分享设置', icon: Share },
   { key: 'dictionary', label: '词库管理', icon: BookOne },

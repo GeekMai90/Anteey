@@ -13,9 +13,9 @@
           <!-- 左侧标题 -->
           <div class="timeline-header-left">
             <div class="icon">
-              <TimeIcon theme="outline" size="20" fill="var(--color-primary)" :strokeWidth="3" />
+              <Timeline theme="outline" size="20" fill="var(--color-primary)" :strokeWidth="3" />
             </div>
-            <div class="name">时间线</div>
+            <div class="name">笔记流</div>
           </div>
 
           <!-- 右侧功能区 -->
@@ -101,7 +101,7 @@
 import { useNoteStore } from '@renderer/stores/noteStores'
 import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue'
 import { storeToRefs } from 'pinia'
-import { Time as TimeIcon, Calendar, RocketOne } from '@icon-park/vue-next'
+import { Timeline, Calendar, RocketOne } from '@icon-park/vue-next'
 import AppToolbar from '@renderer/components/layout/AppToolbar.vue'
 import CalendarPicker from '@renderer/components/timelineView/CalendarPicker.vue'
 import { useUIStore } from '@renderer/stores/useUIStore'
