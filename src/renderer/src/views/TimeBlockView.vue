@@ -169,6 +169,11 @@ import CalendarPicker from '@renderer/components/timelineView/CalendarPicker.vue
 import { useUIStore } from '@renderer/stores/useUIStore'
 import { isToday as isDateToday } from 'date-fns'
 
+interface TimeBlock {
+  hour: number
+  label: string
+}
+
 const timeBlockStore = useTimeBlockStore()
 const uiStore = useUIStore()
 const currentDate = ref(new Date())
@@ -176,9 +181,9 @@ const selectedDate = ref<string | null>(null)
 const noteDates = ref<string[]>([])
 
 // 修改为计算属性，根据设置的时间范围生成时间块
-const timeBlocks = computed(() => {
+const timeBlocks = computed<TimeBlock[]>(() => {
   const { startTime, endTime } = timeBlockStore.settings
-  const blocks = []
+  const blocks: TimeBlock[] = []
 
   // 从设置的开始时间到结束时间生成时间块
   for (let i = startTime; i <= endTime; i++) {

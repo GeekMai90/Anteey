@@ -1,6 +1,6 @@
 import { db } from '../db/config'
 import { v4 as uuidv4 } from 'uuid'
-import type { TimeBlockDay } from '@renderer/types/timeBlock'
+import type { TimeBlockDay } from '../renderer/src/types/timeBlock'
 
 // 获取某天的时间块数据
 export async function getTimeBlockDay(date: string): Promise<TimeBlockDay> {

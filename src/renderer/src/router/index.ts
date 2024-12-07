@@ -3,7 +3,7 @@ import { createRouter, createWebHashHistory, RouteLocationNormalized } from 'vue
 const routes = [
   {
     path: '/',
-    redirect: '/timeline'
+    redirect: '/timeblock'
   },
   {
     name: 'home',

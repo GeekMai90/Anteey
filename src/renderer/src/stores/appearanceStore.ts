@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import type { AppearanceSettings, TimeBlockSettings } from '../types/Appearance'
+import type { AppearanceSettings } from '../../../services/appearance/appearanceService'
 
 export const useAppearanceStore = defineStore('appearance', () => {
   // ==================== 状态 ====================
@@ -89,11 +89,6 @@ export const useAppearanceStore = defineStore('appearance', () => {
         id: '1',
         uiFont: 'system',
         editorFont: 'system',
-        timeBlock: {
-          enabled: true,
-          startHour: 6,
-          endHour: 23
-        },
         createdAt: new Date(),
         updatedAt: new Date()
       }

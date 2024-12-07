@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import type { TimeBlockDayWithBlocks } from '@renderer/types/timeBlock'
+import type { TimeBlockDayWithBlocks } from '../types/timeBlock'
 
 interface TimeBlockState {
   currentDay: TimeBlockDayWithBlocks | null
