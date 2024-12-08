@@ -165,11 +165,13 @@ import { storeToRefs } from 'pinia'
 import TagsTree from '@renderer/components/layout/TagsTree.vue'
 import QuickAccessMenu from '@renderer/components/layout/QuickAccessMenu.vue'
 import { useTimeBlockStore } from '@renderer/stores/timeBlockStore'
+import { useAppearanceStore } from '@renderer/stores/appearanceStore'
 
 const imageSrc = ref('')
 const uiStore = useUIStore()
 const route = useRoute()
 const timeBlockStore = useTimeBlockStore()
+const appearanceStore = useAppearanceStore()
 
 const getIconFill = computed(
   () => (path: string) =>
@@ -192,8 +194,14 @@ const menuItems = computed(() => {
     { name: '笔记流', path: '/timeline', icon: Timeline },
     { name: '卡片盒', path: '/cardbox', icon: Box },
     { name: '知识树', path: '/knowledge-tree', icon: Sapling },
-    { name: '思维板', path: '/whiteboard', icon: Workbench },
-    { name: 'AI助手', path: '/aiassistant', icon: Robot }
+    // 根据设置决定是否显示白板
+    ...(appearanceStore.settings?.enableWhiteboard
+      ? [{ name: '思维板', path: '/whiteboard', icon: Workbench }]
+      : []),
+    // 根据设置决定是否显示 AI 助手
+    ...(appearanceStore.settings?.enableAIAssistant
+      ? [{ name: 'AI助手', path: '/aiassistant', icon: Robot }]
+      : [])
   ]
   return baseItems
 })

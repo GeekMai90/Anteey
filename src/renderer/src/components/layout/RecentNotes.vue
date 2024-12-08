@@ -31,10 +31,12 @@ import { Down, Right } from '@icon-park/vue-next'
 import StarredNotesCard from '@renderer/components/layout/StarredNotesCard.vue'
 import { Note } from '@renderer/types/Note'
 import { storeToRefs } from 'pinia'
+import { useAppearanceStore } from '@renderer/stores/appearanceStore'
 
 const noteStore = useNoteStore()
 const router = useRouter()
-const isExpanded = ref(true)
+const appearanceStore = useAppearanceStore()
+const isExpanded = ref(appearanceStore.settings?.recentExpanded ?? true)
 
 const { recentNotes } = storeToRefs(noteStore)
 

@@ -472,6 +472,16 @@ export interface ElectronAPI {
     startTime: number
     endTime: number
   }>
+
+  // 更新默认页面
+  updateDefaultPage: (defaultPage: string) => Promise<AppearanceSettings>
+
+  // 更新侧边栏展开状态
+  updateStarredExpanded: (expanded: boolean) => Promise<AppearanceSettings>
+  updateTagsExpanded: (expanded: boolean) => Promise<AppearanceSettings>
+  updateRecentExpanded: (expanded: boolean) => Promise<AppearanceSettings>
+  updateWhiteboardEnabled: (enabled: boolean) => Promise<AppearanceSettings>
+  updateAIAssistantEnabled: (enabled: boolean) => Promise<AppearanceSettings>
 }
 
 declare global {

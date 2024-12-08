@@ -60,12 +60,14 @@ import StarredNotesCard from './StarredNotesCard.vue'
 import draggable from 'vuedraggable'
 import { useContextMenuStore } from '@renderer/stores/contextMenuStore'
 import { storeToRefs } from 'pinia'
+import { useAppearanceStore } from '@renderer/stores/appearanceStore'
 
 // 初始化必要的 store 和路由
 const noteStore = useNoteStore()
 const router = useRouter()
+const appearanceStore = useAppearanceStore()
 // 控制列表展开/折叠状态
-const isExpanded = ref(true)
+const isExpanded = ref(appearanceStore.settings?.starredExpanded ?? true)
 
 const localStarredNotes = ref<Note[]>([])
 

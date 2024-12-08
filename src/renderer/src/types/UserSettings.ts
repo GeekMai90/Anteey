@@ -7,6 +7,12 @@ export interface BaseUserSettings {
   authorName: string
   authorMotto: string
   qrcodeUrl: string
+  defaultPage: string
+  starredExpanded: boolean // 星标展开状态
+  tagsExpanded: boolean // 标签展开状态
+  recentExpanded: boolean // 最近展开状态
+  enableWhiteboard: boolean // 是否启用白板
+  enableAIAssistant: boolean // 是否启用 AI 助手
 }
 
 // 完整的用户设置记录

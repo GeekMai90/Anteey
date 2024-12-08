@@ -45,11 +45,12 @@ import TagTreeItem from './TagTreeItem.vue' // 需要创建
 import { useEventBus } from '@vueuse/core'
 import { storeToRefs } from 'pinia'
 import { useRouter } from 'vue-router/dist/vue-router'
-
+import { useAppearanceStore } from '@renderer/stores/appearanceStore'
 const tagStore = useTagStore()
+const appearanceStore = useAppearanceStore()
 // 使用 storeToRefs 来保持响应性
 const { tagTree: storeTagTree } = storeToRefs(tagStore)
-const isExpanded = ref(false)
+const isExpanded = ref(appearanceStore.settings?.tagsExpanded ?? true)
 const tagTree = ref<TagTreeNode[]>([])
 const router = useRouter()
 

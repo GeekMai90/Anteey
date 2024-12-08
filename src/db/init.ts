@@ -484,11 +484,39 @@ export async function initDatabase(db: Knex): Promise<void> {
   }
 
   // 创建 appearance_settings 表
+  // if (!(await db.schema.hasTable('appearance_settings'))) {
+  //   await db.schema.createTable('appearance_settings', (table) => {
+  //     table.string('id').primary()
+  //     table.string('uiFont').notNullable().defaultTo('system') // UI 界面字体
+  //     table.string('editorFont').notNullable().defaultTo('system') // 编辑器字体改为 system
+  //     table.datetime('createdAt').notNullable()
+  //     table.datetime('updatedAt').notNullable()
+  //   })
+
+  //   // 插入默认设置
+  //   await db('appearance_settings').insert({
+  //     id: uuidv4(),
+  //     uiFont: 'system',
+  //     editorFont: 'system', // 修改为 system
+  //     createdAt: new Date(),
+  //     updatedAt: new Date()
+  //   })
+
+  //   console.log('appearance_settings 表创建成功')
+  // }
   if (!(await db.schema.hasTable('appearance_settings'))) {
     await db.schema.createTable('appearance_settings', (table) => {
       table.string('id').primary()
-      table.string('uiFont').notNullable().defaultTo('system') // UI 界面字体
-      table.string('editorFont').notNullable().defaultTo('system') // 编辑器字体改为 system
+      table.string('uiFont').notNullable().defaultTo('system')
+      table.string('editorFont').notNullable().defaultTo('system')
+      table.string('defaultPage').notNullable().defaultTo('/home')
+      // 分开添加三个展开状态字段
+      table.boolean('starredExpanded').notNullable().defaultTo(true)
+      table.boolean('tagsExpanded').notNullable().defaultTo(true)
+      table.boolean('recentExpanded').notNullable().defaultTo(true)
+      // 添加功能开关
+      table.boolean('enableWhiteboard').notNullable().defaultTo(true)
+      table.boolean('enableAIAssistant').notNullable().defaultTo(true)
       table.datetime('createdAt').notNullable()
       table.datetime('updatedAt').notNullable()
     })
@@ -497,12 +525,42 @@ export async function initDatabase(db: Knex): Promise<void> {
     await db('appearance_settings').insert({
       id: uuidv4(),
       uiFont: 'system',
-      editorFont: 'system', // 修改为 system
+      editorFont: 'system',
+      defaultPage: '/home',
+      starredExpanded: true,
+      tagsExpanded: true,
+      recentExpanded: true,
+      enableWhiteboard: true,
+      enableAIAssistant: true,
       createdAt: new Date(),
       updatedAt: new Date()
     })
 
     console.log('appearance_settings 表创建成功')
+  } else {
+    // 检查并添加新列
+    const columns = [
+      { name: 'defaultPage', type: 'string', default: '/home' },
+      { name: 'starredExpanded', type: 'boolean', default: true },
+      { name: 'tagsExpanded', type: 'boolean', default: true },
+      { name: 'recentExpanded', type: 'boolean', default: true },
+      { name: 'enableWhiteboard', type: 'boolean', default: true },
+      { name: 'enableAIAssistant', type: 'boolean', default: true }
+    ]
+
+    for (const column of columns) {
+      const hasColumn = await db.schema.hasColumn('appearance_settings', column.name)
+      if (!hasColumn) {
+        await db.schema.alterTable('appearance_settings', (table) => {
+          if (column.type === 'boolean') {
+            table.boolean(column.name).notNullable().defaultTo(column.default)
+          } else if (column.type === 'string') {
+            table.string(column.name).notNullable().defaultTo(column.default)
+          }
+        })
+        console.log(`appearance_settings 表添加 ${column.name} 列成功`)
+      }
+    }
   }
 
   // 创建 image_references 表

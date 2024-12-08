@@ -84,11 +84,14 @@ import ContextMenu from './components/common/ContexMenu.vue'
 import Modal from './components/common/Modal.vue'
 import SettingsPage from './components/settings/SettingsPage.vue'
 import SharePreviewModal from './components/share/SharePreviewModal.vue'
+import { useAppearanceStore } from './stores/appearanceStore'
+import { useRouter } from 'vue-router'
 
 // 状态管理初始化
 const uiStore = useUIStore()
 const noteStore = useNoteStore()
-
+const appearanceStore = useAppearanceStore()
+const router = useRouter()
 // 全局UI管理器引用
 const globalUIManager = ref<InstanceType<typeof GlobalUIManager> | null>(null)
 
@@ -164,6 +167,12 @@ onMounted(async () => {
   // if (router.currentRoute.value.path === '/') {
   //   router.push('/timeline')
   // }
+  // 如果当前在根路径，则跳转到默认页面
+  if (router.currentRoute.value.path === '/') {
+    await appearanceStore.initializeSettings()
+    const defaultPage = appearanceStore.settings?.defaultPage || '/home'
+    router.push(defaultPage)
+  }
 
   // 移除加载动画
   const loadingWrapper = document.getElementById('loading-wrapper')
