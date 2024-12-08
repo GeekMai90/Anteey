@@ -32,6 +32,7 @@
             :note-id="currentNote?.id"
             :current-cardbox-id="currentNote?.cardBoxId"
             @close="closeCardboxMenu"
+            @update="handleCardboxUpdate"
           />
         </div>
         <!-- 更多功能菜单按钮 -->
@@ -173,26 +174,51 @@ watch(
 )
 
 // 使用防抖处理地址更新
+// const updateAddress = debounce(async (address: string) => {
+//   if (!currentNote.value) return
+
+//   try {
+//     const updatedNote = await noteStore.updateNoteAddress(currentNote.value.id, address)
+//     // 更新本地状态
+//     currentNote.value.address = updatedNote.address
+//   } catch (error) {
+//     console.error('更新地址失败:', error)
+//     message.error('更新地址失败')
+//     // 回滚到最后一个有效的地址
+//     localAddress.value = currentNote.value.address
+//   }
+// }, 500)
 const updateAddress = debounce(async (address: string) => {
   if (!currentNote.value) return
 
   try {
-    const updatedNote = await noteStore.updateNoteAddress(currentNote.value.id, address)
-    // 更新本地状态
-    currentNote.value.address = updatedNote.address
+    await noteStore.updateNoteAddress(currentNote.value.id, address)
+    // 不再在这里更新本地状态，避免与用户输入冲突
   } catch (error) {
     console.error('更新地址失败:', error)
     message.error('更新地址失败')
-    // 回滚到最后一个有效的地址
-    localAddress.value = currentNote.value.address
+    // 只在出错时回滚
+    localAddress.value = currentNote.value?.address || ''
   }
-}, 300)
+}, 500) // 增加防抖时间，减少更新频率
 
 // 处理地址输入
+// const handleAddressInput = (event: Event) => {
+//   const input = event.target as HTMLInputElement
+//   localAddress.value = input.value
+//   updateAddress(input.value)
+// }
 const handleAddressInput = (event: Event) => {
   const input = event.target as HTMLInputElement
-  localAddress.value = input.value
-  updateAddress(input.value)
+  const newValue = input.value
+
+  // 直接更新本地状态
+  localAddress.value = newValue
+
+  // 如果正在输入法输入，不触发更新
+  if (!isComposing.value) {
+    updateAddress(newValue)
+  }
 }
 
 // 添加一个状态来跟踪输入法状态
@@ -415,6 +441,16 @@ const {
     console.log('卡片盒菜单已关闭')
   }
 })
+
+// 处理卡片盒更新
+const handleCardboxUpdate = async (cardBoxId: string) => {
+  // 可以选择是否立即更新父组件状态
+  if (currentNote.value) {
+    currentNote.value.cardBoxId = cardBoxId
+  }
+  // // 后台刷新数据
+  // await refreshNoteData()
+}
 
 // 聚焦地址输入框
 const focusAddressInput = () => {

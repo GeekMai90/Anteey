@@ -37,6 +37,7 @@ import { computed, CSSProperties, onMounted, onUnmounted, ref, watch, nextTick }
 import { useNoteStore } from '@renderer/stores/noteStores'
 import { storeToRefs } from 'pinia'
 import router from '@renderer/router'
+import { message } from '@renderer/utils/message'
 
 const props = defineProps<{
   isOpen: boolean
@@ -45,7 +46,7 @@ const props = defineProps<{
   currentCardboxId?: string
 }>()
 
-const emit = defineEmits(['close'])
+const emit = defineEmits(['close', 'update'])
 
 const noteStore = useNoteStore()
 const { cardBoxes } = storeToRefs(noteStore)
@@ -117,30 +118,69 @@ const adjustMenuPosition = () => {
   }
 }
 
+// 添加本地状态来跟踪当前选中的卡片盒
+const localSelectedBoxId = ref(props.currentCardboxId)
+
+// 监听 props 变化，更新本地状态
+watch(
+  () => props.currentCardboxId,
+  (newId) => {
+    localSelectedBoxId.value = newId
+  }
+)
+
 // 处理点击事件
 const handleDocumentClick = (event: MouseEvent) => {
   if (menuRef.value && !menuRef.value.contains(event.target as Node)) {
     emit('close')
   }
 }
+// const isBoxSelected = (box: CardBox) => {
+//   return props.currentCardboxId === box.id
+// }
 
+// 修改 isBoxSelected 方法，使用本地状态
+const isBoxSelected = (box: CardBox) => {
+  return localSelectedBoxId.value === box.id
+}
+
+// const selectCardBox = async (box: CardBox) => {
+//   if (!props.noteId) {
+//     console.error('CardboxDropdownMenu.vue → 笔记ID为空')
+//     return
+//   }
+//   emit('close')
+//   try {
+//     await noteStore.updateNoteCardBox(props.noteId, box.id)
+//     console.log('CardboxDropdownMenu.vue → 卡片盒更新成功:', box.name)
+//   } catch (error) {
+//     console.error('CardboxDropdownMenu.vue → 更新卡片盒失败:', error)
+//     throw error
+//   }
+// }
+// 修改 selectCardBox 方法，实现乐观更新
 const selectCardBox = async (box: CardBox) => {
   if (!props.noteId) {
     console.error('CardboxDropdownMenu.vue → 笔记ID为空')
     return
   }
+
+  // 立即更新本地状态（乐观更新）
+  localSelectedBoxId.value = box.id
   emit('close')
+
   try {
+    // 后端更新
     await noteStore.updateNoteCardBox(props.noteId, box.id)
     console.log('CardboxDropdownMenu.vue → 卡片盒更新成功:', box.name)
+    emit('update', box.id)
   } catch (error) {
+    // 如果失败，回滚本地状态
+    localSelectedBoxId.value = props.currentCardboxId
     console.error('CardboxDropdownMenu.vue → 更新卡片盒失败:', error)
+    message.error('更新卡片盒失败') // 需要导入 message
     throw error
   }
-}
-
-const isBoxSelected = (box: CardBox) => {
-  return props.currentCardboxId === box.id
 }
 
 const goToCardboxPage = () => {

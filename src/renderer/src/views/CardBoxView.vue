@@ -655,14 +655,34 @@ noteUpdatedBus.on((updatedNote) => {
   updateSingleNote(updatedNote)
 })
 // 更新单个笔记的函数
+// const updateSingleNote = (updatedNote: Note) => {
+//   if (!updatedNote) return
+//   // 如果日历被选择了，则更新filteredNotes
+//   const index = displayedNotes.value.findIndex((note) => note.id === updatedNote.id)
+//   if (index !== -1) {
+//     displayedNotes.value[index] = { ...displayedNotes.value[index], ...updatedNote }
+//   }
+// }
+
 const updateSingleNote = (updatedNote: Note) => {
   if (!updatedNote) return
-  // 如果日历被选择了，则更新filteredNotes
-  const index = displayedNotes.value.findIndex((note) => note.id === updatedNote.id)
+
+  // 更新源数据
+  const index = notes.value.findIndex((note) => note.id === updatedNote.id)
   if (index !== -1) {
-    displayedNotes.value[index] = { ...displayedNotes.value[index], ...updatedNote }
+    notes.value[index] = { ...notes.value[index], ...updatedNote }
+
+    // 如果当前是按地址排序，且更新包含地址字段，则重新排序
+    if (filterState.sort.field === 'address' && 'address' in updatedNote) {
+      notes.value = [...notes.value].sort((a, b) => {
+        return filterState.sort.order === 'asc'
+          ? (a.address || '').localeCompare(b.address || '', 'zh-CN')
+          : (b.address || '').localeCompare(a.address || '', 'zh-CN')
+      })
+    }
   }
 }
+
 // 监听笔记创建事件
 eventBusCreated.on(() => {
   console.log('TimelineView.vue→ 监听到笔记创建事件', lastCreatedNote.value)
