@@ -398,7 +398,7 @@ export async function initDatabase(db: Knex): Promise<void> {
       },
       {
         id: uuidv4(),
-        name: '评估指标',
+        name: '评估���准',
         description: '评估和度量相关术语',
         order: 2
       },
@@ -645,7 +645,12 @@ export async function initDatabase(db: Knex): Promise<void> {
     console.log('backup_history 表创建成功')
   }
 
-  // 时间块主表
+  // 先删除旧表
+  // await db.schema.dropTableIfExists('bullet_items')
+  // await db.schema.dropTableIfExists('time_blocks')
+  // await db.schema.dropTableIfExists('time_block_days')
+
+  // 重新创建时间块主表
   if (!(await db.schema.hasTable('time_block_days'))) {
     await db.schema.createTable('time_block_days', (table) => {
       table.string('id').primary()
@@ -665,17 +670,18 @@ export async function initDatabase(db: Knex): Promise<void> {
   // 时间块内容表
   if (!(await db.schema.hasTable('time_blocks'))) {
     await db.schema.createTable('time_blocks', (table) => {
+      table.string('id').primary()
       table.string('dayId').notNullable()
       table.integer('hour').notNullable() // 0-23
-      table.text('content').notNullable() // 多行文本内容
+      table.text('content').nullable() // 存储编辑器的 HTML 内容
       table.datetime('createdAt').notNullable()
       table.datetime('updatedAt').notNullable()
 
-      // 复合主键
-      table.primary(['dayId', 'hour'])
-
       // 外键约束
       table.foreign('dayId').references('time_block_days.id').onDelete('CASCADE')
+
+      // 复合唯一约束
+      table.unique(['dayId', 'hour'])
 
       // 索引
       table.index('dayId')
@@ -683,12 +689,13 @@ export async function initDatabase(db: Knex): Promise<void> {
     })
     console.log('time_blocks 表创建成功')
   }
-  // 创建时间块设置表 - 简化版
+
+  // 创建时间块设置表
   if (!(await db.schema.hasTable('time_block_settings'))) {
     await db.schema.createTable('time_block_settings', (table) => {
       table.boolean('enabled').notNullable().defaultTo(true)
-      table.integer('startTime').notNullable().defaultTo(5) // 默认从早上5点开始
-      table.integer('endTime').notNullable().defaultTo(23) // 默认到晚上23点结束
+      table.integer('startTime').notNullable().defaultTo(5)
+      table.integer('endTime').notNullable().defaultTo(23)
     })
 
     // 插入默认设置
@@ -726,8 +733,11 @@ export async function down(db: Knex): Promise<void> {
   await db.schema.dropTableIfExists('note_images')
   await db.schema.dropTableIfExists('image_references')
   // 注意删除顺序：先删除有外键约束的表
-  await db.schema.dropTableIfExists('time_block_items')
-  await db.schema.dropTableIfExists('time_block_days')
   await db.schema.dropTableIfExists('time_block_settings')
+  await db.schema.dropTableIfExists('time_block_days')
+  await db.schema.dropTableIfExists('time_blocks')
+  await db.schema.dropTableIfExists('backup_history')
+  await db.schema.dropTableIfExists('backup_settings')
+  await db.schema.dropTableIfExists('licenses')
   console.log('所有表已删除')
 }

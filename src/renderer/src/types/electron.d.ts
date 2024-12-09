@@ -30,7 +30,13 @@ import { AppearanceSettings } from '../../../services/appearance/appearanceServi
 import { KnowledgeTreeNode } from './knowledgeTree'
 import { ActivationResult, License } from './license'
 import type { BackupSettings, BackupHistory } from './backup'
-import { TimeBlockDay } from './timeBlock'
+import type {
+  TimeBlockDay,
+  TimeBlockItemType,
+  TaskStatus,
+  TimeBlockItem,
+  TimeBlockSettings
+} from './timeBlock'
 
 // 添加图片相关的类型定义
 interface ImageInfo {
@@ -455,23 +461,24 @@ export interface ElectronAPI {
   restoreBackup: (backupPath: string) => Promise<boolean>
   // 时间块相关方法
   getTimeBlockDay: (date: string) => Promise<TimeBlockDay>
-  updateTimeBlock: (dayId: string, hour: number, content: string) => Promise<void>
+  updateTimeBlock: (dayId: string, hour: number, content: string) => Promise<string>
+  addTimeBlockItem: (
+    blockId: string,
+    data: {
+      type: TimeBlockItemType
+      content: string
+      status?: TaskStatus
+    }
+  ) => Promise<TimeBlockItem>
+  updateItemStatus: (itemId: string, status: TaskStatus) => Promise<void>
+  migrateItem: (itemId: string, targetBlockId: string) => Promise<TimeBlockItem>
   updateTimeBlockDayStatus: (id: string, data: { weather?: string; mood?: string }) => Promise<void>
-  // 新增时间块设置相关方法
-  getTimeBlockSettings: () => Promise<{
-    enabled: boolean
-    startTime: number
-    endTime: number
-  }>
+  getTimeBlockSettings: () => Promise<TimeBlockSettings>
   updateTimeBlockSettings: (settings: {
     enabled?: boolean
     startTime?: number
     endTime?: number
-  }) => Promise<{
-    enabled: boolean
-    startTime: number
-    endTime: number
-  }>
+  }) => Promise<TimeBlockSettings>
 
   // 更新默认页面
   updateDefaultPage: (defaultPage: string) => Promise<AppearanceSettings>

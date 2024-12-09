@@ -1,5 +1,5 @@
 <template>
-  <div class="time-block-view">
+  <div class="time-block-view" :class="{ 'compare-mode': timeBlockStore.compareMode }">
     <!-- 顶部固定区域 -->
     <div class="sticky-header">
       <!-- 工具栏 -->
@@ -16,7 +16,7 @@
             <div class="name">时光记</div>
           </div>
 
-          <!-- 中间日期导航 -->
+          <!-- 修改日期导航，添加对比模式切换 -->
           <div class="date-nav-wrapper">
             <div class="date-nav">
               <button class="nav-btn prev" @click="changeDate(-1)">
@@ -27,7 +27,7 @@
                 <span
                   class="current-date"
                   :class="{ 'is-not-today': !isToday }"
-                  @click="backToToday"
+                  @click="handleDateClick"
                 >
                   {{ format(currentDate, 'yyyy年MM月dd日 EEEE', { locale: zhCN }) }}
                 </span>
@@ -90,55 +90,58 @@
       </div>
     </div>
 
-    <!-- 时间块列表 -->
-    <div class="time-blocks-container">
-      <div class="time-blocks-wrapper">
-        <div v-for="block in timeBlocks" :key="block.hour" class="time-block">
-          <div class="time-label">{{ block.label }}</div>
-          <div class="time-content" :class="{ editing: editingHour === block.hour }">
-            <div class="time-block-content" :class="{ editing: editingHour === block.hour }">
-              <template v-if="editingHour === block.hour">
-                <div class="editor-wrapper">
-                  <textarea
-                    :ref="
-                      (el) => {
-                        if (el) textareaRefs[block.hour] = el as HTMLTextAreaElement
-                      }
-                    "
-                    v-model="editingContent"
-                    class="block-editor"
-                    rows="1"
-                    @input="(e: Event) => autoResizeTextarea(e)"
-                    @blur="finishEdit"
-                    @keydown.enter.prevent="handleEnter"
-                    @keydown.esc="cancelEdit"
-                  ></textarea>
+    <!-- 主要内容区域 -->
+    <div class="main-content">
+      <!-- 对比模式下的三栏布局 -->
+      <template v-if="timeBlockStore.compareMode">
+        <div class="blocks-container">
+          <div class="block-column">
+            <BlockViewer
+              :date="prevDate"
+              :blocks="timeBlockStore.prevDay?.blocks ?? {}"
+              :compare-mode="true"
+            />
+          </div>
+          <div class="block-column">
+            <BlockViewer
+              :date="format(currentDate, 'yyyy-MM-dd')"
+              :blocks="timeBlockStore.currentDay?.blocks ?? {}"
+              :compare-mode="true"
+            />
+          </div>
+          <div class="block-column">
+            <BlockViewer
+              :date="nextDate"
+              :blocks="timeBlockStore.nextDay?.blocks ?? {}"
+              :compare-mode="true"
+            />
+          </div>
+        </div>
+      </template>
+
+      <!-- 普通模式下的时间块列表 -->
+      <template v-else>
+        <div class="time-blocks-container">
+          <div class="time-blocks-wrapper">
+            <div v-for="block in timeBlocks" :key="block.hour" class="time-block">
+              <div class="time-label">{{ block.label }}</div>
+              <div class="time-content" :class="{ editing: editingHour === block.hour }">
+                <div class="time-block-content">
+                  <BulletEditor
+                    :content="getBlockContent(block.hour)"
+                    :hour="block.hour"
+                    :editable="editingHour === block.hour"
+                    @update:content="(content) => handleContentUpdate(block.hour, content)"
+                    @finish="handleFinishEdit"
+                    @cancel="handleCancelEdit"
+                    @click="startEdit(block.hour)"
+                  />
                 </div>
-              </template>
-              <template v-else>
-                <div class="block-content" @click="startEdit(block.hour)">
-                  <template v-if="timeBlockStore.currentDay?.blocks?.[block.hour]?.content">
-                    <div>
-                      <span
-                        v-for="(line, index) in timeBlockStore.currentDay.blocks[
-                          block.hour
-                        ].content.split('\n')"
-                        v-show="line.trim()"
-                        :key="index"
-                      >
-                        {{ line }}
-                      </span>
-                    </div>
-                  </template>
-                  <template v-else>
-                    <span class="placeholder">记录 {{ block.label }} 的事项...</span>
-                  </template>
-                </div>
-              </template>
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      </template>
     </div>
 
     <!-- 加载状态 -->
@@ -159,7 +162,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, nextTick, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { useTimeBlockStore } from '../stores/timeBlockStore'
 import { format } from 'date-fns'
 import { zhCN } from 'date-fns/locale'
@@ -168,8 +171,12 @@ import AppToolbar from '@renderer/components/layout/AppToolbar.vue'
 import CalendarPicker from '@renderer/components/timelineView/CalendarPicker.vue'
 import { useUIStore } from '@renderer/stores/useUIStore'
 import { isToday as isDateToday } from 'date-fns'
+import BulletEditor from '@renderer/components/timeblock/BulletEditor.vue'
+import BlockViewer from '@renderer/components/timeblock/BlockViewer.vue'
+import type { TimeBlock as TimeBlockData } from '../types/timeBlock'
 
-interface TimeBlock {
+// 重命名本地接口以避免冲突
+interface TimeBlockHour {
   hour: number
   label: string
 }
@@ -180,12 +187,11 @@ const currentDate = ref(new Date())
 const selectedDate = ref<string | null>(null)
 const noteDates = ref<string[]>([])
 
-// 修改为计算属性，根据设置的时间范围生成时间块
-const timeBlocks = computed<TimeBlock[]>(() => {
+// 修改计算属性的类型注解
+const timeBlocks = computed<TimeBlockHour[]>(() => {
   const { startTime, endTime } = timeBlockStore.settings
-  const blocks: TimeBlock[] = []
+  const blocks: TimeBlockHour[] = []
 
-  // 从设置的开始时间到结束时间生成时间块
   for (let i = startTime; i <= endTime; i++) {
     blocks.push({
       hour: i,
@@ -233,103 +239,73 @@ const moodOptions = [
   { value: 'focused', label: '🎯 专注' }
 ]
 
+// 监听日期变化
+watch(
+  () => currentDate.value,
+  async (newDate) => {
+    console.log('Date changed to:', format(newDate, 'yyyy-MM-dd'))
+    // 切换日期时，先清除编辑状态
+    editingHour.value = null
+
+    // 清除缓存中的旧数据，确保获取最新数据
+    const dateStr = format(newDate, 'yyyy-MM-dd')
+    timeBlockStore.cache.delete(dateStr)
+
+    // 重新加载数据
+    await loadCurrentDayData()
+
+    // 如果在对比模式下，也需要重新加载对比数据
+    if (timeBlockStore.compareMode) {
+      await timeBlockStore.loadCompareData(dateStr)
+    }
+  },
+  { immediate: true }
+)
+
 // 加载当天数据
 async function loadCurrentDayData() {
   const dateStr = format(currentDate.value, 'yyyy-MM-dd')
+  console.log('正在加载日期:', dateStr)
   await timeBlockStore.loadTimeBlockDay(dateStr)
+  console.log('加载完成的数据:', timeBlockStore.currentDay)
 }
 
 // 切换日期
-function changeDate(days: number) {
-  currentDate.value = new Date(currentDate.value.setDate(currentDate.value.getDate() + days))
-  loadCurrentDayData()
+async function changeDate(days: number) {
+  const newDate = new Date(currentDate.value)
+  newDate.setDate(newDate.getDate() + days)
+  currentDate.value = newDate
 }
 
 const editingHour = ref<number | null>(null)
-const editingContent = ref('')
-const textareaRefs = ref<{ [key: number]: HTMLTextAreaElement }>({})
-
-// 创建一个新的工具函数来处理高度调整
-function adjustTextareaHeight(textarea: HTMLTextAreaElement) {
-  // 临时设置一个很大的高度，确保能获取到完整的 scrollHeight
-  textarea.style.height = 'auto'
-  textarea.style.minHeight = '24px'
-  // 设置实际需要的高度
-  textarea.style.height = `${Math.max(textarea.scrollHeight, 24)}px`
-}
-
-// 保持原有的事件处理函数
-function autoResizeTextarea(e: Event) {
-  const textarea = e.target as HTMLTextAreaElement
-  adjustTextareaHeight(textarea)
-}
 
 // 开始编辑
-async function startEdit(hour: number) {
-  const content = timeBlockStore.currentDay?.blocks?.[hour]?.content || ''
-  editingContent.value = content || ''
-  editingHour.value = hour
-
-  await nextTick()
-  requestAnimationFrame(() => {
-    const textarea = textareaRefs.value[hour]
-    if (textarea) {
-      textarea.focus()
-      textarea.selectionStart = textarea.value.length
-      textarea.selectionEnd = textarea.value.length
-      adjustTextareaHeight(textarea)
-    }
-  })
-}
-
-// 处理回车事件
-function handleEnter(e: KeyboardEvent) {
-  const textarea = e.target as HTMLTextAreaElement
-  const start = textarea.selectionStart
-  const end = textarea.selectionEnd
-  const value = textarea.value
-
-  // 只插入换行符
-  const newValue = value.slice(0, start) + '\n' + value.slice(end)
-  editingContent.value = newValue
-
-  nextTick(() => {
-    if (textarea) {
-      const newPosition = start + 1 // 只跳过换行符
-      textarea.selectionStart = newPosition
-      textarea.selectionEnd = newPosition
-      adjustTextareaHeight(textarea)
-    }
-  })
-}
-
-// 完成编辑
-async function finishEdit() {
-  if (editingHour.value !== null) {
-    const content = editingContent.value
-      .split('\n')
-      .map((line) => line.trim())
-      .filter(Boolean)
-      .join('\n')
-
-    if (content) {
-      try {
-        await timeBlockStore.updateTimeBlock(editingHour.value, content)
-      } catch (error) {
-        console.error('更新时间块失败:', error)
-      }
-    } else {
-      await timeBlockStore.updateTimeBlock(editingHour.value, '')
-    }
+const startEdit = (hour: number) => {
+  // 如果已经在编辑其他时间块，先取消编辑
+  if (editingHour.value !== null && editingHour.value !== hour) {
+    handleFinishEdit()
   }
-  editingHour.value = null
-  editingContent.value = ''
+  editingHour.value = hour
 }
 
-// 取消编辑
-function cancelEdit() {
+// 处理内容更新
+const handleContentUpdate = async (hour: number, content: string) => {
+  try {
+    const dateStr = format(currentDate.value, 'yyyy-MM-dd')
+    await timeBlockStore.updateTimeBlock(dateStr, hour, content)
+  } catch (error) {
+    console.error('更新内容失败:', error)
+  }
+}
+
+// 处理完成编辑
+const handleFinishEdit = () => {
   editingHour.value = null
-  editingContent.value = ''
+}
+
+// 处理取消编辑
+const handleCancelEdit = () => {
+  editingHour.value = null
 }
 
 // 在组件挂载时获取设置
@@ -364,21 +340,19 @@ onMounted(() => {
 })
 
 // 添加日期选择相关函数
-const toggleDateFilter = () => {
+const toggleDateFilter = async () => {
   if (selectedDate.value) {
     selectedDate.value = null
     currentDate.value = new Date()
-    loadCurrentDayData()
   } else {
     uiStore.toggleCalendarPicker()
   }
 }
 
-const onDateSelected = (date: string | null) => {
+const onDateSelected = async (date: string | null) => {
   selectedDate.value = date
   if (date) {
     currentDate.value = new Date(date)
-    loadCurrentDayData()
   }
 }
 
@@ -386,14 +360,6 @@ const onDateSelected = (date: string | null) => {
 const isToday = computed(() => {
   return isDateToday(currentDate.value)
 })
-
-// 添加回到今天的方法
-const backToToday = () => {
-  if (!isToday.value) {
-    currentDate.value = new Date()
-    loadCurrentDayData()
-  }
-}
 
 // 添加计算属性
 const currentWeatherEmoji = computed(() => {
@@ -407,6 +373,84 @@ const currentMoodEmoji = computed(() => {
   if (!timeBlockStore.currentDay?.mood) return timeBlockStore.defaultMood
   return moodOptions.find((o) => o.value === timeBlockStore.currentDay?.mood)?.label.split(' ')[0]
 })
+
+// 获取文本内容
+const getTextContent = (block: TimeBlockData) => {
+  return block.content || ''
+}
+
+// 处理点击其他区域
+onMounted(() => {
+  document.addEventListener('click', (e) => {
+    const target = e.target as HTMLElement
+    // 如果点击的不是时间块内容区域，取消编辑
+    if (!target.closest('.time-block-content') && editingHour.value !== null) {
+      handleFinishEdit()
+    }
+  })
+})
+
+// 添加一个计算属性来获取时间块内容
+const getBlockContent = (hour: number) => {
+  const content = timeBlockStore.currentDay?.blocks[hour]
+    ? getTextContent(timeBlockStore.currentDay.blocks[hour])
+    : ''
+  console.log(`Getting content for hour ${hour}:`, content)
+  return content
+}
+
+// 添加前一天日期的计算属性
+const prevDate = computed(() => {
+  const date = new Date(currentDate.value)
+  date.setDate(date.getDate() - 1)
+  return format(date, 'yyyy-MM-dd')
+})
+
+// 添加后一天日期的计算属性
+const nextDate = computed(() => {
+  const date = new Date(currentDate.value)
+  date.setDate(date.getDate() + 1)
+  return format(date, 'yyyy-MM-dd')
+})
+
+// 修改日期点击处理
+const handleDateClick = async () => {
+  if (!isToday.value) {
+    currentDate.value = new Date()
+  } else {
+    await timeBlockStore.toggleCompareMode()
+    if (timeBlockStore.compareMode) {
+      // 进入对比模式时关闭侧边栏
+      uiStore.setIsSidebarCollapsed(true)
+      await timeBlockStore.loadCompareData(format(currentDate.value, 'yyyy-MM-dd'))
+    } else {
+      // 退出对比模式时恢复侧边栏
+      uiStore.setIsSidebarCollapsed(false)
+    }
+  }
+}
+
+// 监听对比模式变化
+watch(
+  () => timeBlockStore.compareMode,
+  async (newMode) => {
+    if (newMode) {
+      const dateStr = format(currentDate.value, 'yyyy-MM-dd')
+      console.log('Entering compare mode, loading data for date:', dateStr)
+      // 进入对比模式时关闭侧边栏
+      uiStore.setIsSidebarCollapsed(true)
+      await timeBlockStore.loadCompareData(dateStr)
+      console.log('Compare data loaded:', {
+        prev: timeBlockStore.prevDay?.blocks,
+        current: timeBlockStore.currentDay?.blocks,
+        next: timeBlockStore.nextDay?.blocks
+      })
+    } else {
+      // 退出对比模式时恢复侧边栏
+      uiStore.setIsSidebarCollapsed(false)
+    }
+  }
+)
 </script>
 
 <style lang="scss" scoped>
@@ -417,6 +461,41 @@ const currentMoodEmoji = computed(() => {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+
+  .sticky-header {
+    position: sticky;
+    top: 0;
+    z-index: 500;
+    background-color: var(--color-bg-primary);
+    width: 100%;
+    flex-shrink: 0;
+  }
+
+  .main-content {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    padding: 16px;
+    position: relative;
+  }
+
+  &.compare-mode {
+    .blocks-container {
+      display: flex;
+      gap: 16px;
+      height: 100%;
+      overflow: hidden;
+
+      .block-column {
+        flex: 1;
+        min-width: 0;
+        overflow: auto;
+        background: var(--color-bg-whiteboard);
+        border-radius: 8px;
+        box-shadow: var(--shadow-card);
+      }
+    }
+  }
 }
 
 .sticky-header {
@@ -708,7 +787,7 @@ const currentMoodEmoji = computed(() => {
 }
 
 .time-blocks-container {
-  flex: 1;
+  height: 100%;
   overflow-y: auto;
   padding: 0 40px 40px 0px;
 
@@ -722,7 +801,7 @@ const currentMoodEmoji = computed(() => {
     &::before {
       content: '';
       position: absolute;
-      left: 70px; // 向右移动
+      left: 70px;
       top: 0;
       bottom: 0;
       width: 1px;
@@ -736,9 +815,8 @@ const currentMoodEmoji = computed(() => {
   margin-bottom: 10px;
   transform: translateZ(0);
   will-change: transform;
-  padding-left: 90px; // 增加左侧padding
+  padding-left: 90px;
 
-  // 调整时间标签位置
   .time-label {
     position: absolute;
     left: 0;
@@ -746,15 +824,87 @@ const currentMoodEmoji = computed(() => {
     font-weight: 500;
     font-size: 13px;
     padding-top: 14px;
-    width: 60px; // 增加宽度
+    width: 60px;
     text-align: right;
   }
 
-  // 调整时间点位置
+  .time-content {
+    flex: 1;
+    background: var(--color-bg-2);
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    padding: 12px;
+    transition: all 0.2s;
+    min-height: 48px;
+
+    &.editing {
+      border-color: var(--color-primary);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    }
+  }
+
+  .time-block-content {
+    position: relative;
+    min-height: 24px;
+    border-radius: 8px;
+    background: var(--color-bg-2);
+    transition: all 0.2s;
+
+    .block-content {
+      white-space: pre-wrap;
+      line-height: 1.6;
+      padding: 8px 12px;
+      min-height: 24px;
+      cursor: text;
+
+      > div {
+        // 普通文本
+        > div:first-child {
+          white-space: pre-wrap;
+          line-height: 1.6;
+          margin-bottom: 8px;
+        }
+
+        // 子弹笔记项
+        .bullet-item {
+          margin: 4px 0;
+          padding-left: 20px;
+          position: relative;
+          line-height: 1.6;
+
+          &::before {
+            position: absolute;
+            left: 0;
+          }
+
+          &.task::before {
+            content: '•';
+          }
+
+          &.event::before {
+            content: '○';
+          }
+
+          &.note::before {
+            content: '-';
+          }
+        }
+      }
+
+      .placeholder {
+        color: var(--color-text-3);
+        opacity: 0.4;
+        font-size: 13px;
+        user-select: none;
+      }
+    }
+  }
+
+  // 添加时间点样式
   &::before {
     content: '';
     position: absolute;
-    left: 66.5px; // 对应时间线位置
+    left: 66.5px;
     top: 20px;
     width: 8px;
     height: 8px;
@@ -778,90 +928,6 @@ const currentMoodEmoji = computed(() => {
       border-color: var(--color-primary);
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
     }
-  }
-}
-
-.time-content {
-  flex: 1;
-  background: var(--color-bg-2);
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
-  padding: 12px;
-  transition: all 0.2s;
-
-  &.editing {
-    border-color: var(--color-primary);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-  }
-}
-
-.time-block-content {
-  position: relative;
-  min-height: 24px;
-  border-radius: 8px;
-  background: var(--color-bg-2);
-  transition: all 0.2s;
-
-  &.editing {
-    background: var(--color-bg-1);
-
-    .editor-wrapper {
-      position: relative;
-      display: flex;
-
-      .block-editor {
-        width: 100%;
-        min-height: 24px;
-        padding: 8px 12px;
-        background: transparent;
-        resize: none;
-        font-family: inherit;
-        font-size: inherit;
-        line-height: 1.6;
-        color: var(--color-text-1);
-        white-space: pre-wrap;
-        overflow-y: hidden;
-        box-sizing: border-box;
-        outline: none;
-        border: none;
-      }
-    }
-  }
-
-  .block-content {
-    white-space: pre-wrap;
-    line-height: 1.6;
-    padding: 8px 12px;
-    min-height: 24px;
-    cursor: text;
-
-    > div {
-      span {
-        display: block;
-        line-height: 1.6;
-      }
-    }
-
-    .placeholder {
-      color: var(--color-text-3);
-      font-size: 13px;
-      opacity: 0.4;
-      font-weight: 400;
-      user-select: none;
-      transition: opacity 0.2s ease;
-    }
-
-    &:hover {
-      background: var(--color-fill-2);
-
-      .placeholder {
-        opacity: 0.6;
-      }
-    }
-  }
-
-  &:hover {
-    cursor: text;
   }
 }
 
@@ -974,6 +1040,91 @@ const currentMoodEmoji = computed(() => {
 
   &:active {
     transform: translateY(0);
+  }
+}
+
+.editor-wrapper {
+  width: 100%;
+
+  textarea {
+    width: 100%;
+    min-height: 100px;
+    padding: 8px 12px;
+    background: transparent;
+    resize: vertical;
+    font-family: inherit;
+    font-size: inherit;
+    line-height: 1.6;
+    color: var(--color-text-1);
+    border: none;
+    outline: none;
+
+    &::placeholder {
+      color: var(--color-text-3);
+      opacity: 0.4;
+    }
+
+    &:focus {
+      &::placeholder {
+        opacity: 0.6;
+      }
+    }
+  }
+}
+
+// 添加子弹笔记项样式
+.bullet-item {
+  margin: 4px 0;
+  padding-left: 20px;
+  position: relative;
+
+  &::before {
+    position: absolute;
+    left: 0;
+  }
+
+  &.task::before {
+    content: '•';
+  }
+
+  &.event::before {
+    content: '○';
+  }
+
+  &.note::before {
+    content: '-';
+  }
+}
+
+.block-content {
+  .text-content {
+    white-space: pre-wrap;
+    line-height: 1.6;
+    margin-bottom: 8px;
+  }
+
+  .bullet-item {
+    margin: 4px 0;
+    padding-left: 20px;
+    position: relative;
+    line-height: 1.6;
+
+    &::before {
+      position: absolute;
+      left: 0;
+    }
+
+    &.task::before {
+      content: '•';
+    }
+
+    &.event::before {
+      content: '○';
+    }
+
+    &.note::before {
+      content: '-';
+    }
   }
 }
 </style>

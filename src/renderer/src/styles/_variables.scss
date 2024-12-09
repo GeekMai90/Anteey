@@ -250,6 +250,22 @@ $dark-mode-text: $gray-100;
 
   // 消息提示框
   --color-message-toast-bg: #fff;
+
+  // 状态颜色
+  --color-success: #28a745;
+  --color-success-rgb: 40, 167, 69;
+  --color-warning: #ff9f1c;
+  --color-warning-rgb: 255, 159, 28;
+  --color-danger: #ff4d4f;
+  --color-danger-rgb: 255, 77, 79;
+  --color-primary: #00c8a8;
+  --color-primary-rgb: 0, 200, 168;
+  --color-blue: #69b5ff;
+  --color-blue-rgb: 105, 181, 255;
+
+  // 文本颜色
+  --color-text-secondary: #949494;
+  --color-text-secondary-rgb: 148, 148, 148;
 }
 
 .theme-dark {
@@ -367,4 +383,20 @@ $dark-mode-text: $gray-100;
 
   // 消息提示框
   --color-message-toast-bg: #242424;
+
+  // 状态颜色
+  --color-success: #3ac858;
+  --color-success-rgb: 58, 200, 88;
+  --color-warning: #ffb23c;
+  --color-warning-rgb: 255, 178, 60;
+  --color-danger: #ff6b6b;
+  --color-danger-rgb: 255, 107, 107;
+  --color-primary: #20ceae;
+  --color-primary-rgb: 32, 206, 174;
+  --color-blue: #91caff;
+  --color-blue-rgb: 145, 202, 255;
+
+  // 文本颜色
+  --color-text-secondary: #a0a0a0;
+  --color-text-secondary-rgb: 160, 160, 160;
 }
