@@ -39,6 +39,12 @@ import BulletEditor from './BulletEditor.vue'
 import { useTimeBlockStore } from '@renderer/stores/timeBlockStore'
 import type { TimeBlock as TimeBlockData } from '@renderer/types/timeBlock'
 
+// 添加时间块小时接口
+interface TimeBlockHour {
+  hour: number
+  label: string
+}
+
 const props = withDefaults(
   defineProps<{
     date: string
@@ -53,10 +59,10 @@ const props = withDefaults(
 const timeBlockStore = useTimeBlockStore()
 const editingHour = ref<number | null>(null)
 
-// 生成时间块列表
-const timeBlocks = computed(() => {
+// 生成时间块列表，添加类型注解
+const timeBlocks = computed<TimeBlockHour[]>(() => {
   const { startTime, endTime } = timeBlockStore.settings
-  const blocks = []
+  const blocks: TimeBlockHour[] = []
 
   for (let i = startTime; i <= endTime; i++) {
     blocks.push({

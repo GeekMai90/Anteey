@@ -35,18 +35,7 @@ export async function getTimeBlockDay(date: string): Promise<TimeBlockDay> {
       .orderBy('hour', 'asc')
     console.log('Service: 查询到的时间块:', blocks)
 
-    // 获取所有时间块的 items
-    const blockIds = blocks.map((block) => block.id)
-    const items =
-      blockIds.length > 0
-        ? await db('time_block_items')
-            .whereIn('blockId', blockIds)
-            .orderBy('blockId', 'asc')
-            .orderBy('order', 'asc')
-        : []
-    console.log('Service: 查询到的 items:', items)
-
-    // 构建结果对象，确保每个时间块都有正确的数据
+    // 构建结果对象
     const result = {
       ...day,
       blocks: blocks.reduce(
@@ -54,7 +43,7 @@ export async function getTimeBlockDay(date: string): Promise<TimeBlockDay> {
           acc[block.hour] = {
             id: block.id,
             content: block.content || '',
-            items: items.filter((item) => item.blockId === block.id),
+            items: [], // 保持空数组以兼容类型定义
             createdAt: block.createdAt,
             updatedAt: block.updatedAt
           }
