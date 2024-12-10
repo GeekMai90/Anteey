@@ -17,8 +17,9 @@ import type { ChainedCommands } from '@tiptap/core'
 
 interface Props {
   content?: string
-  hour: number
+  hour?: number
   editable?: boolean
+  placeholder?: string
 }
 
 interface Emits {
@@ -30,7 +31,8 @@ interface Emits {
 
 const props = withDefaults(defineProps<Props>(), {
   content: '',
-  editable: false
+  editable: false,
+  placeholder: '输入 "- " 开始一个任务...'
 })
 
 const emit = defineEmits<Emits>()
@@ -54,11 +56,11 @@ const BulletInputRule = Extension.create({
 const editor = new Editor({
   extensions: [
     StarterKit.configure({
-      bulletList: false // 禁用默认的无序列表
+      bulletList: false
     }),
     Typography,
     Placeholder.configure({
-      placeholder: '输入 "- " 开始一个任务...'
+      placeholder: props.placeholder
     }),
     BulletInputRule,
     BulletTask
@@ -133,7 +135,7 @@ onBeforeUnmount(() => {
 
   .bullet-editor-content {
     width: 100%;
-    min-height: 24px; // 减小最小高度
+    min-height: 24px;
     padding: 8px 12px;
     background: transparent;
     font-family: inherit;
@@ -161,9 +163,20 @@ onBeforeUnmount(() => {
     &:not(.ProseMirror-focused):not(.editing) {
       cursor: pointer;
     }
+
+    &.future-log {
+      min-height: 200px;
+      background: var(--color-bg-2);
+      border-radius: 8px;
+      border: 1px solid var(--color-border);
+
+      &.editing {
+        border-color: var(--color-primary);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      }
+    }
   }
 
-  // 添加任务相关样式
   .bullet-task {
     &:first-child {
       margin-top: 0;

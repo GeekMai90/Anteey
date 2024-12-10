@@ -1,11 +1,5 @@
 import { ipcRenderer } from 'electron'
-import type {
-  TimeBlockDay,
-  TimeBlockItemType,
-  TaskStatus,
-  TimeBlockItem,
-  TimeBlockSettings
-} from '../../renderer/src/types/timeBlock'
+import type { TimeBlockDay, TimeBlockSettings, FutureLog } from '../../renderer/src/types/timeBlock'
 
 export const timeBlockApi = {
   // 获取某天的时间块数据
@@ -28,48 +22,6 @@ export const timeBlockApi = {
       return result.blockId
     } catch (error) {
       console.error('预加载脚本 → 更新时间块内容失败:', error)
-      throw error
-    }
-  },
-
-  // 添加时间块内容项
-  addTimeBlockItem: async (
-    blockId: string,
-    data: {
-      type: TimeBlockItemType
-      content: string
-      status?: TaskStatus
-    }
-  ): Promise<TimeBlockItem> => {
-    try {
-      const result = await ipcRenderer.invoke('addTimeBlockItem', blockId, data)
-      if (!result.success) throw new Error(result.error)
-      return result.item
-    } catch (error) {
-      console.error('预加载脚本 → 添加时间块内容项失败:', error)
-      throw error
-    }
-  },
-
-  // 更新内容项状态
-  updateItemStatus: async (itemId: string, status: TaskStatus): Promise<void> => {
-    try {
-      const result = await ipcRenderer.invoke('updateItemStatus', itemId, status)
-      if (!result.success) throw new Error(result.error)
-    } catch (error) {
-      console.error('预加载脚本 → 更新内容项状态失败:', error)
-      throw error
-    }
-  },
-
-  // 迁移内容项
-  migrateItem: async (itemId: string, targetBlockId: string): Promise<TimeBlockItem> => {
-    try {
-      const result = await ipcRenderer.invoke('migrateItem', itemId, targetBlockId)
-      if (!result.success) throw new Error(result.error)
-      return result.item
-    } catch (error) {
-      console.error('预加载脚本 → 迁移内容项失败:', error)
       throw error
     }
   },
@@ -112,6 +64,30 @@ export const timeBlockApi = {
       return result.settings
     } catch (error) {
       console.error('预加载脚本 → 更新时间块设置失败:', error)
+      throw error
+    }
+  },
+
+  // 获取未来日志
+  getFutureLog: async (): Promise<FutureLog | null> => {
+    try {
+      const result = await ipcRenderer.invoke('getFutureLog')
+      if (!result.success) throw new Error(result.error)
+      return result.log
+    } catch (error) {
+      console.error('预加载脚本 → 获取未来日志失败:', error)
+      throw error
+    }
+  },
+
+  // 更新未来日志
+  updateFutureLog: async (content: string): Promise<string> => {
+    try {
+      const result = await ipcRenderer.invoke('updateFutureLog', content)
+      if (!result.success) throw new Error(result.error)
+      return result.id
+    } catch (error) {
+      console.error('预加载脚本 → 更新未来日志失败:', error)
       throw error
     }
   }

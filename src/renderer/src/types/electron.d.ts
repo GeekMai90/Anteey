@@ -30,13 +30,7 @@ import { AppearanceSettings } from '../../../services/appearance/appearanceServi
 import { KnowledgeTreeNode } from './knowledgeTree'
 import { ActivationResult, License } from './license'
 import type { BackupSettings, BackupHistory } from './backup'
-import type {
-  TimeBlockDay,
-  TimeBlockItemType,
-  TaskStatus,
-  TimeBlockItem,
-  TimeBlockSettings
-} from './timeBlock'
+import type { FutureLog, TimeBlockDay, TimeBlockSettings } from './timeBlock'
 
 // 添加图片相关的类型定义
 interface ImageInfo {
@@ -462,16 +456,6 @@ export interface ElectronAPI {
   // 时间块相关方法
   getTimeBlockDay: (date: string) => Promise<TimeBlockDay>
   updateTimeBlock: (dayId: string, hour: number, content: string) => Promise<string>
-  addTimeBlockItem: (
-    blockId: string,
-    data: {
-      type: TimeBlockItemType
-      content: string
-      status?: TaskStatus
-    }
-  ) => Promise<TimeBlockItem>
-  updateItemStatus: (itemId: string, status: TaskStatus) => Promise<void>
-  migrateItem: (itemId: string, targetBlockId: string) => Promise<TimeBlockItem>
   updateTimeBlockDayStatus: (id: string, data: { weather?: string; mood?: string }) => Promise<void>
   getTimeBlockSettings: () => Promise<TimeBlockSettings>
   updateTimeBlockSettings: (settings: {
@@ -479,6 +463,9 @@ export interface ElectronAPI {
     startTime?: number
     endTime?: number
   }) => Promise<TimeBlockSettings>
+  // 未来日志相关方法
+  getFutureLog: () => Promise<FutureLog | null>
+  updateFutureLog: (content: string) => Promise<string>
 
   // 更新默认页面
   updateDefaultPage: (defaultPage: string) => Promise<AppearanceSettings>

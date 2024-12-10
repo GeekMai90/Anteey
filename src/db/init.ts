@@ -707,6 +707,21 @@ export async function initDatabase(db: Knex): Promise<void> {
 
     console.log('time_block_settings 表创建成功')
   }
+
+  // 创建未来日志表
+  if (!(await db.schema.hasTable('future_logs'))) {
+    await db.schema.createTable('future_logs', (table) => {
+      table.string('id').primary()
+      table.text('content').nullable() // 存储编辑器的 HTML 内容
+      table.datetime('createdAt').notNullable()
+      table.datetime('updatedAt').notNullable()
+
+      // 索引
+      table.index('createdAt')
+      table.index('updatedAt')
+    })
+    console.log('future_logs 表创建成功')
+  }
 }
 
 export async function down(db: Knex): Promise<void> {
@@ -739,5 +754,6 @@ export async function down(db: Knex): Promise<void> {
   await db.schema.dropTableIfExists('backup_history')
   await db.schema.dropTableIfExists('backup_settings')
   await db.schema.dropTableIfExists('licenses')
+  await db.schema.dropTableIfExists('future_logs')
   console.log('所有表已删除')
 }

@@ -1,11 +1,6 @@
 import { db } from '../db/config'
 import { v4 as uuidv4 } from 'uuid'
-import type {
-  TimeBlockDay,
-  TimeBlockItemType,
-  TaskStatus,
-  TimeBlockItem
-} from '../renderer/src/types/timeBlock'
+import type { FutureLog, TimeBlockDay } from '../renderer/src/types/timeBlock'
 
 // 获取某天的时间块数据
 export async function getTimeBlockDay(date: string): Promise<TimeBlockDay> {
@@ -43,7 +38,6 @@ export async function getTimeBlockDay(date: string): Promise<TimeBlockDay> {
           acc[block.hour] = {
             id: block.id,
             content: block.content || '',
-            items: [], // 保持空数组以兼容类型定义
             createdAt: block.createdAt,
             updatedAt: block.updatedAt
           }
@@ -98,89 +92,6 @@ export async function updateTimeBlock(
   }
 }
 
-// 添加时间块内容项
-export async function addTimeBlockItem(
-  blockId: string,
-  data: {
-    type: TimeBlockItemType
-    content: string
-    status?: TaskStatus
-  }
-): Promise<TimeBlockItem> {
-  try {
-    const now = new Date()
-
-    // 获取当前最大的 order
-    const maxOrder = await db('time_block_items')
-      .where('blockId', blockId)
-      .max('order as maxOrder')
-      .first()
-
-    const order = (maxOrder?.maxOrder || 0) + 1
-
-    const item: TimeBlockItem = {
-      id: uuidv4(),
-      ...data,
-      createdAt: now,
-      updatedAt: now
-    }
-
-    await db('time_block_items').insert({
-      ...item,
-      blockId,
-      order
-    })
-
-    return item
-  } catch (error) {
-    console.error('添加时间块内容项失败:', error)
-    throw error
-  }
-}
-
-// 更新内容项状态
-export async function updateItemStatus(itemId: string, status: TaskStatus): Promise<void> {
-  try {
-    await db('time_block_items').where('id', itemId).update({
-      status,
-      updatedAt: new Date()
-    })
-  } catch (error) {
-    console.error('更新内容项状态失败:', error)
-    throw error
-  }
-}
-
-// 迁移内容项
-export async function migrateItem(itemId: string, targetBlockId: string): Promise<TimeBlockItem> {
-  try {
-    const now = new Date()
-
-    // 获取目标时间块的最大 order
-    const maxOrder = await db('time_block_items')
-      .where('blockId', targetBlockId)
-      .max('order as maxOrder')
-      .first()
-
-    const order = (maxOrder?.maxOrder || 0) + 1
-
-    // 更新内容项
-    await db('time_block_items').where('id', itemId).update({
-      blockId: targetBlockId,
-      order,
-      updatedAt: now
-    })
-
-    // 返回更新后的内容项
-    const item = await db('time_block_items').where('id', itemId).first()
-
-    return item
-  } catch (error) {
-    console.error('迁移内容项失败:', error)
-    throw error
-  }
-}
-
 // 更新时间块日期状态（天气和心情）
 export async function updateTimeBlockDayStatus(
   id: string,
@@ -229,6 +140,70 @@ export async function updateTimeBlockSettings(settings: {
     return await getTimeBlockSettings()
   } catch (error) {
     console.error('更新时间块设置失败:', error)
+    throw error
+  }
+}
+
+// 获取未来日志内容
+export async function getFutureLog(): Promise<FutureLog | null> {
+  try {
+    // 按创建时间排序确保获取最早的那条记录
+    const log = await db('future_logs').orderBy('createdAt', 'asc').first()
+    console.log('Service: 获取到的未来日志:', log)
+    return log || null
+  } catch (error) {
+    console.error('获取未来日志失败:', error)
+    throw error
+  }
+}
+
+// 更新未来日志内容
+export async function updateFutureLog(content: string): Promise<string> {
+  try {
+    const now = new Date()
+    console.log('Service: 准备更新未来日志，内容:', content)
+
+    // 获取现有日志（如果存在）
+    const existingLog = await db('future_logs').orderBy('createdAt', 'asc').first()
+    console.log('Service: 现有日志:', existingLog)
+
+    let id: string
+    if (existingLog) {
+      // 更新现有记录
+      console.log('Service: 更新现有日志, id:', existingLog.id)
+      await db('future_logs').where('id', existingLog.id).update({
+        content,
+        updatedAt: now
+      })
+      id = existingLog.id
+    } else {
+      // 创建新记录
+      console.log('Service: 创建新日志')
+      id = uuidv4()
+      await db('future_logs').insert({
+        id,
+        content,
+        createdAt: now,
+        updatedAt: now
+      })
+    }
+
+    // 验证更新
+    const updatedLog = await db('future_logs').where('id', id).first()
+    console.log('Service: 更新后的日志:', updatedLog)
+
+    // 清理可能存在的多余记录
+    const result = await db('future_logs').count('* as count').first()
+    const count = result ? Number(result.count) : 0
+    if (count > 1) {
+      console.log('Service: 清理多余的日志记录')
+      // 保留最早创建的记录，删除其他记录
+      await db('future_logs').whereNot('id', id).delete()
+    }
+
+    return id
+  } catch (error) {
+    console.error('Service: 更新未来日志失败:', error)
     throw error
   }
 }

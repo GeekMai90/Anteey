@@ -1,20 +1,11 @@
 import { defineStore } from 'pinia'
 import { format } from 'date-fns'
-import type {
-  TimeBlockDayWithBlocks,
-  TimeBlockItemType,
-  TaskStatus,
-  TimeBlockItem
-} from '../types/timeBlock'
+import type { TimeBlockDayWithBlocks, TimeBlockSettings, FutureLog } from '../types/timeBlock'
 
 interface TimeBlockState {
   currentDay: TimeBlockDayWithBlocks | null
   isLoading: boolean
-  settings: {
-    enabled: boolean
-    startTime: number
-    endTime: number
-  }
+  settings: TimeBlockSettings
   defaultWeather: string
   defaultMood: string
   compareMode: boolean
@@ -22,6 +13,7 @@ interface TimeBlockState {
   prevDay: TimeBlockDayWithBlocks | null
   nextDay: TimeBlockDayWithBlocks | null
   cache: Map<string, TimeBlockDayWithBlocks>
+  futureLog: FutureLog | null
 }
 
 export const useTimeBlockStore = defineStore('timeBlock', {
@@ -39,7 +31,8 @@ export const useTimeBlockStore = defineStore('timeBlock', {
     compareDay: null,
     prevDay: null,
     nextDay: null,
-    cache: new Map()
+    cache: new Map(),
+    futureLog: null
   }),
 
   actions: {
@@ -52,7 +45,7 @@ export const useTimeBlockStore = defineStore('timeBlock', {
         // 先检查缓存
         if (this.cache.has(date)) {
           console.log('Store: 从缓存加载数据:', date)
-          this.currentDay = structuredClone(this.cache.get(date)!)
+          this.currentDay = JSON.parse(JSON.stringify(this.cache.get(date)!))
           return
         }
 
@@ -71,7 +64,7 @@ export const useTimeBlockStore = defineStore('timeBlock', {
         }
 
         // 更新缓存
-        this.cache.set(date, structuredClone(dayData))
+        this.cache.set(date, JSON.parse(JSON.stringify(dayData)))
         this.currentDay = dayData
       } catch (error) {
         console.error('加载时间块数据失败:', error)
@@ -102,7 +95,6 @@ export const useTimeBlockStore = defineStore('timeBlock', {
           targetDay.blocks[hour] = {
             id: blockId,
             content: content,
-            items: [],
             createdAt: new Date(),
             updatedAt: new Date()
           }
@@ -118,7 +110,6 @@ export const useTimeBlockStore = defineStore('timeBlock', {
             cachedDay.blocks[hour] = {
               id: blockId,
               content: content,
-              items: [],
               createdAt: new Date(),
               updatedAt: new Date()
             }
@@ -131,71 +122,6 @@ export const useTimeBlockStore = defineStore('timeBlock', {
         return blockId
       } catch (error) {
         console.error('更新时间块失败:', error)
-        throw error
-      }
-    },
-
-    // 添加内容项
-    async addTimeBlockItem(
-      hour: number,
-      data: {
-        type: TimeBlockItemType
-        content: string
-        status?: TaskStatus
-      }
-    ): Promise<TimeBlockItem> {
-      if (!this.currentDay?.blocks[hour]) {
-        await this.updateTimeBlock(this.currentDay?.date || '', hour, '')
-      }
-
-      try {
-        const block = this.currentDay!.blocks[hour]
-        const newItem = await window.electronAPI.addTimeBlockItem(block.id, data)
-        block.items.push(newItem)
-        block.updatedAt = new Date()
-        return newItem
-      } catch (error) {
-        console.error('添加内容项失败:', error)
-        throw error
-      }
-    },
-
-    // 更新内容项状态
-    async updateItemStatus(hour: number, itemId: string, status: TaskStatus) {
-      if (!this.currentDay?.blocks[hour]) return
-
-      try {
-        await window.electronAPI.updateItemStatus(itemId, status)
-        const item = this.currentDay.blocks[hour].items.find((item) => item.id === itemId)
-        if (item) {
-          item.status = status
-          item.updatedAt = new Date()
-        }
-      } catch (error) {
-        console.error('更新内容项状态失败:', error)
-        throw error
-      }
-    },
-
-    // 迁移内容项
-    async migrateItem(fromHour: number, toHour: number, itemId: string) {
-      if (!this.currentDay?.blocks[fromHour] || !this.currentDay?.blocks[toHour]) {
-        throw new Error('Invalid hours')
-      }
-
-      try {
-        const targetBlock = this.currentDay.blocks[toHour]
-        const newItem = await window.electronAPI.migrateItem(itemId, targetBlock.id)
-
-        // 更新状态
-        this.currentDay.blocks[fromHour].items = this.currentDay.blocks[fromHour].items.filter(
-          (item) => item.id !== itemId
-        )
-        this.currentDay.blocks[toHour].items.push(newItem)
-
-        return newItem
-      } catch (error) {
-        console.error('迁移内容项失败:', error)
         throw error
       }
     },
@@ -243,7 +169,7 @@ export const useTimeBlockStore = defineStore('timeBlock', {
         // 先检查缓存
         const loadDayData = async (date: string) => {
           if (this.cache.has(date)) {
-            return this.cache.get(date)!
+            return JSON.parse(JSON.stringify(this.cache.get(date)!))
           }
           const day = await window.electronAPI.getTimeBlockDay(date)
           const dayData = day || {
@@ -255,7 +181,7 @@ export const useTimeBlockStore = defineStore('timeBlock', {
             createdAt: new Date(),
             updatedAt: new Date()
           }
-          this.cache.set(date, dayData)
+          this.cache.set(date, JSON.parse(JSON.stringify(dayData)))
           return dayData
         }
 
@@ -321,6 +247,41 @@ export const useTimeBlockStore = defineStore('timeBlock', {
         return result
       } catch (error) {
         console.error('更新时间块设置失败:', error)
+        throw error
+      }
+    },
+
+    // 获取未来日志
+    async getFutureLog() {
+      try {
+        const log = await window.electronAPI.getFutureLog()
+        console.log('Store: 获取到的未来日志:', log)
+        this.futureLog = log
+        return log
+      } catch (error) {
+        console.error('获取未来日志失败:', error)
+        throw error
+      }
+    },
+
+    // 更新未来日志
+    async updateFutureLog(content: string) {
+      try {
+        const id = await window.electronAPI.updateFutureLog(content)
+        if (this.futureLog) {
+          this.futureLog.content = content
+          this.futureLog.updatedAt = new Date()
+        } else {
+          this.futureLog = {
+            id,
+            content,
+            createdAt: new Date(),
+            updatedAt: new Date()
+          }
+        }
+        return id
+      } catch (error) {
+        console.error('更新未来日志失败:', error)
         throw error
       }
     }

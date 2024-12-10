@@ -73,8 +73,17 @@
             </div>
           </div>
 
-          <!-- 添加右侧日期选择器 -->
+          <!-- 修改右侧日期选择器 -->
           <div class="time-block-header-right">
+            <!-- 添加未来日志按钮 -->
+            <div class="tool-button" :class="{ active: showFutureLog }" @click="toggleFutureLog">
+              <div class="icon">
+                <MagicWand theme="outline" size="16" :strokeWidth="3" />
+              </div>
+              <span class="text">未来日志</span>
+            </div>
+
+            <!-- 现有的日历按钮 -->
             <div
               class="calendar-button"
               :class="{ 'date-selected': selectedDate }"
@@ -92,8 +101,13 @@
 
     <!-- 主要内容区域 -->
     <div class="main-content">
+      <!-- 添加未来日志视图 -->
+      <template v-if="showFutureLog">
+        <FutureLog />
+      </template>
+
       <!-- 对比模式下的三栏布局 -->
-      <template v-if="timeBlockStore.compareMode">
+      <template v-else-if="timeBlockStore.compareMode">
         <div class="blocks-container">
           <div class="block-column">
             <BlockViewer
@@ -128,6 +142,7 @@
               <div class="time-content" :class="{ editing: editingHour === block.hour }">
                 <div class="time-block-content">
                   <BulletEditor
+                    v-if="timeBlockStore.currentDay"
                     :content="getBlockContent(block.hour)"
                     :hour="block.hour"
                     :editable="editingHour === block.hour"
@@ -136,6 +151,7 @@
                     @cancel="handleCancelEdit"
                     @click="startEdit(block.hour)"
                   />
+                  <div v-else class="loading-placeholder">加载中...</div>
                 </div>
               </div>
             </div>
@@ -166,14 +182,15 @@ import { ref, onMounted, computed, watch } from 'vue'
 import { useTimeBlockStore } from '../stores/timeBlockStore'
 import { format } from 'date-fns'
 import { zhCN } from 'date-fns/locale'
-import { Time as TimeIcon, Left, Right, Calendar } from '@icon-park/vue-next'
+import { Time as TimeIcon, Left, Right, Calendar, MagicWand } from '@icon-park/vue-next'
 import AppToolbar from '@renderer/components/layout/AppToolbar.vue'
 import CalendarPicker from '@renderer/components/timelineView/CalendarPicker.vue'
 import { useUIStore } from '@renderer/stores/useUIStore'
 import { isToday as isDateToday } from 'date-fns'
 import BulletEditor from '@renderer/components/timeblock/BulletEditor.vue'
 import BlockViewer from '@renderer/components/timeblock/BlockViewer.vue'
-import type { TimeBlock as TimeBlockData } from '../types/timeBlock'
+// import type { TimeBlock as TimeBlockData } from '../types/timeBlock'
+import FutureLog from '../components/timeblock/FutureLog.vue'
 
 // 重命名本地接口以避免冲突
 interface TimeBlockHour {
@@ -243,7 +260,7 @@ const moodOptions = [
 watch(
   () => currentDate.value,
   async (newDate) => {
-    console.log('Date changed to:', format(newDate, 'yyyy-MM-dd'))
+    // console.log('Date changed to:', format(newDate, 'yyyy-MM-dd'))
     // 切换日期时，先清除编辑状态
     editingHour.value = null
 
@@ -259,15 +276,17 @@ watch(
       await timeBlockStore.loadCompareData(dateStr)
     }
   },
-  { immediate: true }
+  {
+    immediate: true // 确保组件创建时就执行一次
+  }
 )
 
 // 加载当天数据
 async function loadCurrentDayData() {
   const dateStr = format(currentDate.value, 'yyyy-MM-dd')
-  console.log('正在加载日期:', dateStr)
+  // console.log('正在加载日期:', dateStr)
   await timeBlockStore.loadTimeBlockDay(dateStr)
-  console.log('加载完成的数据:', timeBlockStore.currentDay)
+  // console.log('加载完成的数据:', timeBlockStore.currentDay)
 }
 
 // 切换日期
@@ -310,8 +329,14 @@ const handleCancelEdit = () => {
 
 // 在组件挂载时获取设置
 onMounted(async () => {
-  await timeBlockStore.fetchSettings()
-  await loadCurrentDayData()
+  try {
+    // 先获取设置
+    await timeBlockStore.fetchSettings()
+    // 立即加载当天数据
+    await loadCurrentDayData()
+  } catch (error) {
+    console.error('初始化时间块视图失败:', error)
+  }
 })
 
 const showWeatherSelect = ref(false)
@@ -375,9 +400,9 @@ const currentMoodEmoji = computed(() => {
 })
 
 // 获取文本内容
-const getTextContent = (block: TimeBlockData) => {
-  return block.content || ''
-}
+// const getTextContent = (block: TimeBlockData) => {
+//   return block.content || ''
+// }
 
 // 处理点击其他区域
 onMounted(() => {
@@ -392,9 +417,10 @@ onMounted(() => {
 
 // 添加一个计算属性来获取时间块内容
 const getBlockContent = (hour: number) => {
-  const content = timeBlockStore.currentDay?.blocks[hour]
-    ? getTextContent(timeBlockStore.currentDay.blocks[hour])
-    : ''
+  if (!timeBlockStore.currentDay?.blocks) {
+    return ''
+  }
+  const content = timeBlockStore.currentDay.blocks[hour]?.content ?? ''
   console.log(`Getting content for hour ${hour}:`, content)
   return content
 }
@@ -451,6 +477,14 @@ watch(
     }
   }
 )
+
+// 添加未来日志状态
+const showFutureLog = ref(false)
+
+// 切换未来日志显示
+const toggleFutureLog = () => {
+  showFutureLog.value = !showFutureLog.value
+}
 </script>
 
 <style lang="scss" scoped>
@@ -477,6 +511,23 @@ watch(
     overflow: auto;
     padding: 16px;
     position: relative;
+
+    // 修改未来日志容器的样式
+    > :deep(.future-log) {
+      height: 100%;
+
+      .future-log-container {
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+
+        .future-log-editor {
+          flex: 1;
+          min-height: 0; // 关键：允许内容区域收缩
+          overflow: auto; // 修改这里：让整个编辑器区域可滚动
+        }
+      }
+    }
   }
 
   &.compare-mode {
@@ -710,6 +761,72 @@ watch(
         display: flex;
         align-items: center;
         gap: 5px;
+
+        .tool-button {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          padding: 6px 12px 6px 9px;
+          background: var(--color-bg-secondary);
+          border: 1px solid var(--color-border);
+          border-radius: 8px;
+          cursor: pointer;
+          transition: all 0.2s ease;
+
+          .text {
+            font-size: 13px;
+            color: var(--color-text-secondary);
+            font-weight: 500;
+            line-height: 1;
+          }
+
+          .icon {
+            background: none;
+            border: none;
+            cursor: pointer;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            padding: 0;
+            color: var(--color-text-secondary);
+
+            :deep(.i-icon) {
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              width: 100%;
+              height: 100%;
+            }
+
+            :deep(svg) {
+              width: 16px;
+              height: 16px;
+            }
+          }
+
+          &.active {
+            background: rgba(var(--color-primary-rgb), 0.1);
+            border-color: var(--color-primary);
+
+            .text,
+            .icon {
+              color: var(--color-primary);
+            }
+          }
+
+          &:hover {
+            background: var(--color-hover-button);
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+          }
+
+          &:active {
+            transform: translateY(0);
+          }
+        }
 
         .calendar-button {
           position: relative;
@@ -1126,5 +1243,11 @@ watch(
       content: '-';
     }
   }
+}
+
+.loading-placeholder {
+  padding: 8px 12px;
+  color: var(--color-text-3);
+  font-size: 13px;
 }
 </style>

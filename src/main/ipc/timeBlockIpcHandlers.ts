@@ -5,11 +5,9 @@ import {
   updateTimeBlockDayStatus,
   getTimeBlockSettings,
   updateTimeBlockSettings,
-  addTimeBlockItem,
-  updateItemStatus,
-  migrateItem
+  getFutureLog,
+  updateFutureLog
 } from '../../services/timeBlockService'
-import type { TimeBlockItemType, TaskStatus } from '../../renderer/src/types/timeBlock'
 import log from '../logger'
 
 export function setupTimeBlockHandlers() {
@@ -37,50 +35,6 @@ export function setupTimeBlockHandlers() {
       }
     }
   )
-
-  // 添加时间块内容项
-  ipcMain.handle(
-    'addTimeBlockItem',
-    async (
-      _event,
-      blockId: string,
-      data: {
-        type: TimeBlockItemType
-        content: string
-        status?: TaskStatus
-      }
-    ) => {
-      try {
-        const item = await addTimeBlockItem(blockId, data)
-        return { success: true, item }
-      } catch (error) {
-        log.error('主进程→ 添加时间块内容项失败:', error)
-        return { success: false, error: String(error) }
-      }
-    }
-  )
-
-  // 更新内容项状态
-  ipcMain.handle('updateItemStatus', async (_event, itemId: string, status: TaskStatus) => {
-    try {
-      await updateItemStatus(itemId, status)
-      return { success: true }
-    } catch (error) {
-      log.error('主进程→ 更新内容项状态失败:', error)
-      return { success: false, error: String(error) }
-    }
-  })
-
-  // 迁移内容项
-  ipcMain.handle('migrateItem', async (_event, itemId: string, targetBlockId: string) => {
-    try {
-      const item = await migrateItem(itemId, targetBlockId)
-      return { success: true, item }
-    } catch (error) {
-      log.error('主进程→ 迁移内容项失败:', error)
-      return { success: false, error: String(error) }
-    }
-  })
 
   // 更新时间块日期状态
   ipcMain.handle(
@@ -127,4 +81,27 @@ export function setupTimeBlockHandlers() {
       }
     }
   )
+
+  // 获取未来日志
+  ipcMain.handle('getFutureLog', async () => {
+    try {
+      const log = await getFutureLog()
+      console.log('IPC: 获取到的未来日志:', log)
+      return { success: true, log }
+    } catch (error) {
+      log.error('主进程→ 获取未来日志失败:', error)
+      return { success: false, error: String(error) }
+    }
+  })
+
+  // 更新未来日志
+  ipcMain.handle('updateFutureLog', async (_event, content: string) => {
+    try {
+      const id = await updateFutureLog(content)
+      return { success: true, id }
+    } catch (error) {
+      log.error('主进程→ 更新未来日志失败:', error)
+      return { success: false, error: String(error) }
+    }
+  })
 }
