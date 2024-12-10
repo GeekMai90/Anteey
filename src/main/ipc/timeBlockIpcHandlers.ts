@@ -6,7 +6,10 @@ import {
   getTimeBlockSettings,
   updateTimeBlockSettings,
   getFutureLog,
-  updateFutureLog
+  updateFutureLog,
+  getMonthlyLog,
+  updateMonthlyLog,
+  getYearMonthlyLogs
 } from '../../services/timeBlockService'
 import log from '../logger'
 
@@ -101,6 +104,42 @@ export function setupTimeBlockHandlers() {
       return { success: true, id }
     } catch (error) {
       log.error('主进程→ 更新未来日志失败:', error)
+      return { success: false, error: String(error) }
+    }
+  })
+
+  // 获取月度日志
+  ipcMain.handle('getMonthlyLog', async (_event, year: number, month: number) => {
+    try {
+      const log = await getMonthlyLog(year, month)
+      return { success: true, log }
+    } catch (error) {
+      log.error('主进程→ 获取月度日志失败:', error)
+      return { success: false, error: String(error) }
+    }
+  })
+
+  // 更新月度日志
+  ipcMain.handle(
+    'updateMonthlyLog',
+    async (_event, year: number, month: number, content: string) => {
+      try {
+        const id = await updateMonthlyLog(year, month, content)
+        return { success: true, id }
+      } catch (error) {
+        log.error('主进程→ 更新月度日志失败:', error)
+        return { success: false, error: String(error) }
+      }
+    }
+  )
+
+  // 获取指定年份的所有月度日志
+  ipcMain.handle('getYearMonthlyLogs', async (_event, year: number) => {
+    try {
+      const logs = await getYearMonthlyLogs(year)
+      return { success: true, logs }
+    } catch (error) {
+      log.error('主进程→ 获取年度月度日志失败:', error)
       return { success: false, error: String(error) }
     }
   })

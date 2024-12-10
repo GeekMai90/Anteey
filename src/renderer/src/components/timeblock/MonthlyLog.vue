@@ -1,0 +1,494 @@
+<template>
+  <div class="monthly-log">
+    <div class="controls">
+      <!-- 年度概览按钮 -->
+      <div class="tool-button" :class="{ active: showOverview }" @click="toggleOverview">
+        <div class="icon">
+          <Calendar theme="outline" size="16" :strokeWidth="3" />
+        </div>
+        <span>年度概览</span>
+      </div>
+
+      <!-- 年月选择器 -->
+      <div class="date-select">
+        <div class="selected" @click="showYearSelect = !showYearSelect">
+          {{ selectedYear }}年
+          <Down theme="outline" size="12" :strokeWidth="3" class="down-icon" />
+        </div>
+        <div v-show="showYearSelect" class="select-dropdown">
+          <div
+            v-for="year in yearOptions"
+            :key="year"
+            class="select-option"
+            @click="selectYear(year)"
+          >
+            {{ year }}年
+          </div>
+        </div>
+      </div>
+
+      <div class="date-select">
+        <div class="selected month-select" @click="showMonthSelect = !showMonthSelect">
+          {{ selectedMonth }}月
+          <Down theme="outline" size="12" :strokeWidth="3" class="down-icon" />
+        </div>
+        <div v-show="showMonthSelect" class="select-dropdown">
+          <div v-for="month in 12" :key="month" class="select-option" @click="selectMonth(month)">
+            {{ month }}月
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <template v-if="showOverview">
+      <div class="overview-grid">
+        <div
+          v-for="month in 12"
+          :key="month"
+          class="month-card"
+          :class="{ active: month === selectedMonth }"
+          @click="selectMonthFromOverview(month)"
+        >
+          <div class="month-header">
+            <span class="month-title">{{ month }}月</span>
+          </div>
+          <div class="month-content">
+            <MonthlyLogEditor
+              :content="monthlyLogs[month]?.content || ''"
+              :editable="false"
+              class="month-preview-editor"
+            />
+          </div>
+        </div>
+      </div>
+    </template>
+
+    <template v-else>
+      <div class="single-month-container">
+        <MonthlyLogEditor
+          v-model:content="content"
+          class="monthly-log-editor"
+          :placeholder="'开始记录本月计划...'"
+          @update:content="handleContentChange"
+        />
+      </div>
+    </template>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref, onMounted, watch } from 'vue'
+import { useTimeBlockStore } from '@renderer/stores/timeBlockStore'
+import MonthlyLogEditor from './MonthlyLogEditor.vue'
+import { Down, Calendar } from '@icon-park/vue-next'
+
+const store = useTimeBlockStore()
+const content = ref('')
+const showYearSelect = ref(false)
+const showMonthSelect = ref(false)
+const showOverview = ref(false)
+const monthlyLogs = ref<Record<number, { content: string }>>({})
+
+// 获取当前年份和月份
+const currentYear = new Date().getFullYear()
+const currentMonth = new Date().getMonth() + 1
+
+// 年份选项（前后 5 年）
+const yearOptions = Array.from({ length: 11 }, (_, i) => currentYear - 5 + i)
+
+const selectedYear = ref(currentYear)
+const selectedMonth = ref(currentMonth)
+
+// 选择年份
+const selectYear = (year: number) => {
+  selectedYear.value = year
+  showYearSelect.value = false
+}
+
+// 选择月份
+const selectMonth = (month: number) => {
+  selectedMonth.value = month
+  showMonthSelect.value = false
+}
+
+// 添加点击外部关闭下拉菜单
+onMounted(() => {
+  document.addEventListener('click', (e) => {
+    const target = e.target as HTMLElement
+    if (!target.closest('.date-select')) {
+      showYearSelect.value = false
+      showMonthSelect.value = false
+    }
+  })
+})
+
+// 加载月度日志内容
+const loadMonthlyLog = async () => {
+  try {
+    const log = await store.getMonthlyLog(selectedYear.value, selectedMonth.value)
+    console.log('Component: 获取到的月度日志:', log)
+    if (log) {
+      content.value = log.content || ''
+    } else {
+      content.value = ''
+    }
+  } catch (error) {
+    console.error('加载月度日志失败:', error)
+  }
+}
+
+// 处理内容更新
+const handleContentChange = async (newContent: string) => {
+  try {
+    console.log('Component: 准备更新内容:', newContent)
+    await store.updateMonthlyLog(selectedYear.value, selectedMonth.value, newContent)
+  } catch (error) {
+    console.error('更新月度日志失败:', error)
+  }
+}
+
+// 监听年月变化
+watch([selectedYear, selectedMonth], () => {
+  loadMonthlyLog()
+})
+
+onMounted(() => {
+  loadMonthlyLog()
+})
+
+// 切换概览模式
+const toggleOverview = async () => {
+  showOverview.value = !showOverview.value
+  if (showOverview.value) {
+    await loadAllMonthlyLogs()
+  }
+}
+
+// 加载所有月份的日志
+const loadAllMonthlyLogs = async () => {
+  try {
+    const logs: Record<number, { content: string }> = {}
+    for (let month = 1; month <= 12; month++) {
+      const log = await store.getMonthlyLog(selectedYear.value, month)
+      if (log) {
+        logs[month] = log
+      }
+    }
+    monthlyLogs.value = logs
+  } catch (error) {
+    console.error('加载年度概览失败:', error)
+  }
+}
+
+// 从概览中选择月份
+const selectMonthFromOverview = (month: number) => {
+  selectedMonth.value = month
+  showOverview.value = false
+}
+
+// 监听年份变化时重新加载概览
+watch(selectedYear, () => {
+  if (showOverview.value) {
+    loadAllMonthlyLogs()
+  }
+})
+</script>
+
+<style lang="scss" scoped>
+.monthly-log {
+  height: 100%;
+  padding: 0px 16px 0px 16px;
+  background-color: var(--color-bg-primary);
+  display: flex;
+  flex-direction: column;
+
+  .month-header {
+    .date-controls {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+    }
+  }
+
+  .overview-grid {
+    flex: 1;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    padding: 6px 20px 12px 20px;
+    overflow-y: auto;
+    min-height: 0;
+
+    .month-card {
+      height: 240px;
+      margin: 0;
+      background: var(--color-bg-2);
+      border: 1px solid var(--color-border);
+      border-radius: 12px;
+      padding: 12px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      flex-direction: column;
+
+      &:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-card);
+        border-color: var(--color-primary);
+      }
+
+      &.active {
+        border-color: var(--color-primary);
+        background: rgba(var(--color-primary-rgb), 0.05);
+      }
+
+      .month-header {
+        padding-bottom: 8px;
+        margin-bottom: 8px;
+        border-bottom: 1px solid var(--color-border);
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+
+        .month-title {
+          font-size: 18px;
+          font-weight: 600;
+          color: var(--color-text-primary);
+        }
+
+        .content-preview {
+          font-size: 14px;
+          color: var(--color-text-secondary);
+          opacity: 0.8;
+          overflow: hidden;
+          display: -webkit-box;
+          -webkit-line-clamp: 6;
+          line-clamp: 6;
+          -webkit-box-orient: vertical;
+          box-orient: vertical;
+          line-height: 1.5;
+        }
+      }
+
+      .month-content {
+        flex: 1;
+        overflow: hidden;
+
+        :deep(.month-preview-editor) {
+          height: 100%;
+          padding: 0;
+          background: none;
+          border: none;
+          box-shadow: none;
+
+          &:hover {
+            box-shadow: none;
+          }
+
+          .monthly-log-editor-content {
+            padding: 0;
+            font-size: 13px;
+
+            &.ProseMirror {
+              max-height: 180px;
+              overflow-y: auto;
+
+              &::-webkit-scrollbar {
+                width: 4px;
+              }
+
+              &::-webkit-scrollbar-track {
+                background: transparent;
+              }
+
+              &::-webkit-scrollbar-thumb {
+                background-color: var(--color-scrollbar-thumb-bg);
+                border-radius: 2px;
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  .single-month-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    overflow: hidden;
+
+    :deep(.monthly-log-editor) {
+      width: 100%;
+      max-width: 800px;
+      flex: 1;
+      min-height: 0;
+      background-color: var(--color-note-card-bg);
+      border-radius: 16px;
+      // box-shadow: var(--shadow-card);
+      padding: 20px;
+      transition: all 0.3s ease;
+      border: 1px solid var(--color-border);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+
+      .theme-dark & {
+        background-color: var(--color-bg-2);
+        border-color: var(--color-shape-primary);
+      }
+
+      &:hover {
+        // box-shadow: var(--shadow-primary);
+        // border-color: var(--color-primary);
+
+        .theme-dark & {
+          background-color: var(--color-note-card-bg);
+        }
+      }
+    }
+  }
+
+  .controls {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+    justify-content: center;
+    align-items: center;
+
+    .tool-button {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: 6px;
+      border: 1px solid var(--color-border);
+      background-color: var(--color-bg-primary);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-size: 14px;
+      color: var(--color-text-primary);
+
+      .icon {
+        width: 20px;
+        height: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s ease;
+        padding: 0;
+
+        :deep(.i-icon) {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 100%;
+          height: 100%;
+        }
+
+        :deep(svg) {
+          width: 18px;
+          height: 18px;
+        }
+      }
+
+      &:hover {
+        border-color: var(--color-primary);
+        background: var(--color-hover-bg);
+      }
+
+      &.active {
+        background: rgba(var(--color-primary-rgb), 0.1);
+        border-color: var(--color-primary);
+        color: var(--color-primary);
+
+        .icon {
+          color: var(--color-primary);
+        }
+      }
+    }
+
+    .date-select {
+      position: relative;
+
+      .selected {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        padding: 6px 12px;
+        border-radius: 6px;
+        border: 1px solid var(--color-border);
+        background-color: var(--color-bg-primary);
+        color: var(--color-text-primary);
+        font-size: 14px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        min-width: 90px;
+
+        .down-icon {
+          margin-left: auto;
+          opacity: 0.6;
+        }
+
+        &:hover {
+          border-color: var(--color-primary);
+          background: var(--color-hover-bg);
+        }
+
+        &.month-select {
+          min-width: 70px;
+        }
+      }
+
+      .select-dropdown {
+        position: absolute;
+        top: calc(100% + 4px);
+        left: 0;
+        min-width: 100%;
+        background: var(--color-dropdown-bg);
+        border: 1px solid var(--color-border);
+        border-radius: 8px;
+        padding: 4px;
+        box-shadow: var(--shadow-card);
+        z-index: 1000;
+        max-height: 280px;
+        overflow-y: auto;
+
+        &::-webkit-scrollbar {
+          width: 8px;
+        }
+
+        &::-webkit-scrollbar-track {
+          background: var(--color-scrollbar-track-bg);
+        }
+
+        &::-webkit-scrollbar-thumb {
+          background-color: var(--color-scrollbar-thumb-bg);
+          border-radius: 4px;
+          border: 2px solid transparent;
+          background-clip: padding-box;
+
+          &:hover {
+            background-color: var(--color-scrollbar-thumb-hover-bg);
+          }
+        }
+
+        .select-option {
+          padding: 8px 12px;
+          cursor: pointer;
+          white-space: nowrap;
+          border-radius: 4px;
+          transition: all 0.2s;
+          font-size: 14px;
+          color: var(--color-text-primary);
+
+          &:hover {
+            background: var(--color-hover-bg);
+          }
+        }
+      }
+    }
+  }
+}
+</style>

@@ -1,6 +1,6 @@
 import { db } from '../db/config'
 import { v4 as uuidv4 } from 'uuid'
-import type { FutureLog, TimeBlockDay } from '../renderer/src/types/timeBlock'
+import type { FutureLog, MonthlyLog, TimeBlockDay } from '../renderer/src/types/timeBlock'
 
 // 获取某天的时间块数据
 export async function getTimeBlockDay(date: string): Promise<TimeBlockDay> {
@@ -204,6 +204,80 @@ export async function updateFutureLog(content: string): Promise<string> {
     return id
   } catch (error) {
     console.error('Service: 更新未来日志失败:', error)
+    throw error
+  }
+}
+
+// 获取月度日志内容
+export async function getMonthlyLog(year: number, month: number): Promise<MonthlyLog | null> {
+  try {
+    console.log('Service: 开始查询月度日志:', year, month)
+    const log = await db('monthly_logs').where({ year, month }).first()
+    console.log('Service: 获取到的月度日志:', log)
+    return log || null
+  } catch (error) {
+    console.error('获取月度日志失败:', error)
+    throw error
+  }
+}
+
+// 更新月度日志内容
+export async function updateMonthlyLog(
+  year: number,
+  month: number,
+  content: string
+): Promise<string> {
+  try {
+    const now = new Date()
+    console.log('Service: 准备更新月度日志，年月:', year, month)
+
+    // 获取现有日志（如果存在）
+    const existingLog = await db('monthly_logs').where({ year, month }).first()
+    console.log('Service: 现有月度日志:', existingLog)
+
+    let id: string
+    if (existingLog) {
+      // 更新现有记录
+      console.log('Service: 更新现有月度日志, id:', existingLog.id)
+      await db('monthly_logs').where('id', existingLog.id).update({
+        content,
+        updatedAt: now
+      })
+      id = existingLog.id
+    } else {
+      // 创建新记录
+      console.log('Service: 创建新月度日志')
+      id = uuidv4()
+      await db('monthly_logs').insert({
+        id,
+        year,
+        month,
+        content,
+        createdAt: now,
+        updatedAt: now
+      })
+    }
+
+    // 验证更新
+    const updatedLog = await db('monthly_logs').where('id', id).first()
+    console.log('Service: 更新后的月度日志:', updatedLog)
+
+    return id
+  } catch (error) {
+    console.error('Service: 更新月度日志失败:', error)
+    throw error
+  }
+}
+
+// 获取指定年份的所有月度日志
+export async function getYearMonthlyLogs(year: number): Promise<MonthlyLog[]> {
+  try {
+    console.log('Service: 开始查询年度月度日志:', year)
+    const logs = await db('monthly_logs').where({ year }).orderBy('month', 'asc')
+    console.log('Service: 获取到的年度月度日志:', logs)
+    return logs
+  } catch (error) {
+    console.error('获取年度月度日志失败:', error)
     throw error
   }
 }

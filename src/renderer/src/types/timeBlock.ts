@@ -36,3 +36,13 @@ export interface FutureLog {
   createdAt: Date
   updatedAt: Date
 }
+
+// 添加 MonthlyLog 类型
+export interface MonthlyLog {
+  id: string
+  year: number // 年份
+  month: number // 月份（1-12）
+  content: string // 内容
+  createdAt: string
+  updatedAt: string
+}

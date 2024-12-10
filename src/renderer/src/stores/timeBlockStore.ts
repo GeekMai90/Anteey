@@ -1,6 +1,11 @@
 import { defineStore } from 'pinia'
 import { format } from 'date-fns'
-import type { TimeBlockDayWithBlocks, TimeBlockSettings, FutureLog } from '../types/timeBlock'
+import type {
+  TimeBlockDayWithBlocks,
+  TimeBlockSettings,
+  FutureLog,
+  MonthlyLog
+} from '../types/timeBlock'
 
 interface TimeBlockState {
   currentDay: TimeBlockDayWithBlocks | null
@@ -14,6 +19,8 @@ interface TimeBlockState {
   nextDay: TimeBlockDayWithBlocks | null
   cache: Map<string, TimeBlockDayWithBlocks>
   futureLog: FutureLog | null
+  currentMonthlyLog: MonthlyLog | null
+  monthlyLogs: MonthlyLog[]
 }
 
 export const useTimeBlockStore = defineStore('timeBlock', {
@@ -32,7 +39,9 @@ export const useTimeBlockStore = defineStore('timeBlock', {
     prevDay: null,
     nextDay: null,
     cache: new Map(),
-    futureLog: null
+    futureLog: null,
+    currentMonthlyLog: null,
+    monthlyLogs: []
   }),
 
   actions: {
@@ -284,6 +293,64 @@ export const useTimeBlockStore = defineStore('timeBlock', {
         console.error('更新未来日志失败:', error)
         throw error
       }
+    },
+
+    // 获取月度日志
+    async getMonthlyLog(year: number, month: number) {
+      try {
+        const log = await window.electronAPI.getMonthlyLog(year, month)
+        console.log('Store: 获取到的月度日志:', log)
+        this.currentMonthlyLog = log
+        return log
+      } catch (error) {
+        console.error('获取月度日志失败:', error)
+        throw error
+      }
+    },
+
+    // 更新月度日志
+    async updateMonthlyLog(year: number, month: number, content: string) {
+      try {
+        const id = await window.electronAPI.updateMonthlyLog(year, month, content)
+        const now = new Date().toISOString() // 转换为 ISO 字符串格式
+
+        if (this.currentMonthlyLog) {
+          this.currentMonthlyLog.content = content
+          this.currentMonthlyLog.updatedAt = now
+        } else {
+          this.currentMonthlyLog = {
+            id,
+            year,
+            month,
+            content,
+            createdAt: now,
+            updatedAt: now
+          }
+        }
+        return id
+      } catch (error) {
+        console.error('更新月度日志失败:', error)
+        throw error
+      }
+    },
+
+    // 获取指定年份的所有月度日志
+    async getYearMonthlyLogs(year: number) {
+      try {
+        const logs = await window.electronAPI.getYearMonthlyLogs(year)
+        console.log('Store: 获取到的年度月度日志:', logs)
+        this.monthlyLogs = logs
+        return logs
+      } catch (error) {
+        console.error('获取年度月度日志失败:', error)
+        throw error
+      }
+    },
+
+    // 清理月度日志状态
+    clearMonthlyLogState() {
+      this.currentMonthlyLog = null
+      this.monthlyLogs = []
     }
   }
 })

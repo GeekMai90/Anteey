@@ -30,7 +30,7 @@ import { AppearanceSettings } from '../../../services/appearance/appearanceServi
 import { KnowledgeTreeNode } from './knowledgeTree'
 import { ActivationResult, License } from './license'
 import type { BackupSettings, BackupHistory } from './backup'
-import type { FutureLog, TimeBlockDay, TimeBlockSettings } from './timeBlock'
+import type { FutureLog, MonthlyLog, TimeBlockDay, TimeBlockSettings } from './timeBlock'
 
 // 添加图片相关的类型定义
 interface ImageInfo {
@@ -466,6 +466,10 @@ export interface ElectronAPI {
   // 未来日志相关方法
   getFutureLog: () => Promise<FutureLog | null>
   updateFutureLog: (content: string) => Promise<string>
+  // 月度日志相关方法
+  getMonthlyLog: (year: number, month: number) => Promise<MonthlyLog | null>
+  updateMonthlyLog: (year: number, month: number, content: string) => Promise<string>
+  getYearMonthlyLogs: (year: number) => Promise<MonthlyLog[]>
 
   // 更新默认页面
   updateDefaultPage: (defaultPage: string) => Promise<AppearanceSettings>

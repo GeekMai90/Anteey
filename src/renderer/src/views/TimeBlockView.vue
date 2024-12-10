@@ -29,7 +29,10 @@
                   :class="{ 'is-not-today': !isToday }"
                   @click="handleDateClick"
                 >
-                  {{ format(currentDate, 'yyyy年MM月dd日 EEEE', { locale: zhCN }) }}
+                  <span class="date-text">{{
+                    format(currentDate, 'yyyy年MM月dd日 EEEE', { locale: zhCN })
+                  }}</span>
+                  <span class="week-number">W{{ weekNumber }}</span>
                 </span>
 
                 <div v-if="timeBlockStore.currentDay" class="status-selects">
@@ -75,14 +78,6 @@
 
           <!-- 修改右侧日期选择器 -->
           <div class="time-block-header-right">
-            <!-- 添加未来日志按钮 -->
-            <div class="tool-button" :class="{ active: showFutureLog }" @click="toggleFutureLog">
-              <div class="icon">
-                <MagicWand theme="outline" size="16" :strokeWidth="3" />
-              </div>
-              <span class="text">未来日志</span>
-            </div>
-
             <!-- 现有的日历按钮 -->
             <div
               class="calendar-button"
@@ -92,7 +87,22 @@
               <div class="icon">
                 <Calendar theme="outline" size="16" :strokeWidth="3" />
               </div>
-              <span class="date-text">{{ selectedDate || '选择日期' }}</span>
+              <span class="date-text">{{ selectedDate || '每日' }}</span>
+            </div>
+            <!-- 月度日志按钮 -->
+            <div class="tool-button" :class="{ active: showMonthlyLog }" @click="toggleMonthlyLog">
+              <div class="icon">
+                <Calendar theme="outline" size="16" :strokeWidth="3" />
+              </div>
+              <span class="text">月度</span>
+            </div>
+
+            <!-- 未来日志按钮 -->
+            <div class="tool-button" :class="{ active: showFutureLog }" @click="toggleFutureLog">
+              <div class="icon">
+                <MagicWand theme="outline" size="16" :strokeWidth="3" />
+              </div>
+              <span class="text">未来</span>
             </div>
           </div>
         </div>
@@ -101,8 +111,13 @@
 
     <!-- 主要内容区域 -->
     <div class="main-content">
-      <!-- 添加未来日志视图 -->
-      <template v-if="showFutureLog">
+      <!-- 添加月度日志视图 -->
+      <template v-if="showMonthlyLog">
+        <MonthlyLog />
+      </template>
+
+      <!-- 未来日志视图 -->
+      <template v-else-if="showFutureLog">
         <FutureLog />
       </template>
 
@@ -142,7 +157,6 @@
               <div class="time-content" :class="{ editing: editingHour === block.hour }">
                 <div class="time-block-content">
                   <BulletEditor
-                    v-if="timeBlockStore.currentDay"
                     :content="getBlockContent(block.hour)"
                     :hour="block.hour"
                     :editable="editingHour === block.hour"
@@ -151,19 +165,12 @@
                     @cancel="handleCancelEdit"
                     @click="startEdit(block.hour)"
                   />
-                  <div v-else class="loading-placeholder">加载中...</div>
                 </div>
               </div>
             </div>
           </div>
         </div>
       </template>
-    </div>
-
-    <!-- 加载状态 -->
-    <div v-if="timeBlockStore.isLoading" class="loading-overlay">
-      <div class="loading-spinner"></div>
-      <span>加载中...</span>
     </div>
 
     <!-- 添加日历选择器组件 -->
@@ -180,7 +187,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed, watch } from 'vue'
 import { useTimeBlockStore } from '../stores/timeBlockStore'
-import { format } from 'date-fns'
+import { format, getWeek } from 'date-fns'
 import { zhCN } from 'date-fns/locale'
 import { Time as TimeIcon, Left, Right, Calendar, MagicWand } from '@icon-park/vue-next'
 import AppToolbar from '@renderer/components/layout/AppToolbar.vue'
@@ -191,6 +198,7 @@ import BulletEditor from '@renderer/components/timeblock/BulletEditor.vue'
 import BlockViewer from '@renderer/components/timeblock/BlockViewer.vue'
 // import type { TimeBlock as TimeBlockData } from '../types/timeBlock'
 import FutureLog from '../components/timeblock/FutureLog.vue'
+import MonthlyLog from '../components/timeblock/MonthlyLog.vue'
 
 // 重命名本地接口以避免冲突
 interface TimeBlockHour {
@@ -484,7 +492,26 @@ const showFutureLog = ref(false)
 // 切换未来日志显示
 const toggleFutureLog = () => {
   showFutureLog.value = !showFutureLog.value
+  if (showFutureLog.value) {
+    showMonthlyLog.value = false
+  }
 }
+
+// 添加月度日志状态
+const showMonthlyLog = ref(false)
+
+// 添加切换月度日志的函数
+const toggleMonthlyLog = () => {
+  showMonthlyLog.value = !showMonthlyLog.value
+  if (showMonthlyLog.value) {
+    showFutureLog.value = false
+  }
+}
+
+// 添加一个计算属性来获取周数
+const weekNumber = computed(() => {
+  return getWeek(currentDate.value, { locale: zhCN })
+})
 </script>
 
 <style lang="scss" scoped>
@@ -519,12 +546,11 @@ const toggleFutureLog = () => {
       .future-log-container {
         height: 100%;
         display: flex;
-        flex-direction: column;
 
         .future-log-editor {
           flex: 1;
-          min-height: 0; // 关键：允许内容区域收缩
-          overflow: auto; // 修改这里：让整个编辑器区域可滚动
+          min-height: 0;
+          overflow: auto;
         }
       }
     }
@@ -573,6 +599,7 @@ const toggleFutureLog = () => {
       border-bottom: 1px solid var(--color-border);
 
       &-left {
+        width: 180px;
         position: relative;
         display: flex;
         align-items: center;
@@ -622,11 +649,11 @@ const toggleFutureLog = () => {
       }
 
       .date-nav-wrapper {
+        flex: 0 1 auto;
         display: flex;
         align-items: center;
         justify-content: center;
-        flex: 1;
-        padding: 0 20px;
+        gap: 8px;
 
         .date-nav {
           position: relative;
@@ -634,13 +661,12 @@ const toggleFutureLog = () => {
           align-items: center;
           justify-content: center;
           gap: 8px;
-          // padding: 8px 0;
 
           .current-date {
             font-size: 15px;
             font-weight: 500;
             color: var(--color-text-2);
-            min-width: 200px;
+            min-width: 180px;
             text-align: center;
             display: inline-flex;
             margin-right: -8px;
@@ -758,8 +784,10 @@ const toggleFutureLog = () => {
       }
 
       &-right {
+        width: 280px;
         display: flex;
         align-items: center;
+        justify-content: flex-end;
         gap: 5px;
 
         .tool-button {
@@ -772,7 +800,7 @@ const toggleFutureLog = () => {
           border-radius: 8px;
           cursor: pointer;
           transition: all 0.2s ease;
-
+          user-select: none;
           .text {
             font-size: 13px;
             color: var(--color-text-secondary);
@@ -839,6 +867,7 @@ const toggleFutureLog = () => {
           border-radius: 8px;
           cursor: pointer;
           transition: all 0.2s ease;
+          user-select: none;
 
           .date-text {
             font-size: 13px;
@@ -1052,114 +1081,6 @@ const toggleFutureLog = () => {
   display: none;
 }
 
-.loading-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(var(--color-bg-primary-rgb), 0.8);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  z-index: 1000;
-}
-
-.loading-spinner {
-  width: 32px;
-  height: 32px;
-  border: 3px solid var(--color-border);
-  border-top-color: var(--color-primary);
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-// 添加动画以支持多行小圆点
-@keyframes dots {
-  from {
-    clip-path: inset(0 0 0 0);
-  }
-  to {
-    clip-path: inset(0 0 0 0);
-  }
-}
-
-// 添加日历按钮样式
-.calendar-button {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 12px 6px 9px;
-  background: var(--color-bg-secondary);
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-
-  .date-text {
-    font-size: 13px;
-    color: var(--color-text-secondary);
-    font-weight: 500;
-    line-height: 1;
-  }
-
-  .icon {
-    background: none;
-    border: none;
-    cursor: pointer;
-    width: 24px;
-    height: 24px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s ease;
-    padding: 0;
-    color: var(--color-text-secondary);
-
-    :deep(.i-icon) {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 100%;
-      height: 100%;
-    }
-
-    :deep(svg) {
-      width: 16px;
-      height: 16px;
-    }
-  }
-
-  &.date-selected {
-    background: rgba(var(--color-primary-rgb), 0.1);
-    border-color: var(--color-primary);
-
-    .date-text,
-    .icon {
-      color: var(--color-primary);
-    }
-  }
-
-  &:hover {
-    background: var(--color-hover-button);
-    transform: translateY(-1px);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-  }
-
-  &:active {
-    transform: translateY(0);
-  }
-}
-
 .editor-wrapper {
   width: 100%;
 
@@ -1249,5 +1170,21 @@ const toggleFutureLog = () => {
   padding: 8px 12px;
   color: var(--color-text-3);
   font-size: 13px;
+}
+
+.current-date {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+
+  .date-text {
+    flex: 1;
+  }
+
+  .week-number {
+    font-size: 13px;
+    color: inherit;
+    font-weight: normal;
+  }
 }
 </style>

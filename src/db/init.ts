@@ -722,6 +722,27 @@ export async function initDatabase(db: Knex): Promise<void> {
     })
     console.log('future_logs 表创建成功')
   }
+
+  // 创建月度日志表
+  if (!(await db.schema.hasTable('monthly_logs'))) {
+    await db.schema.createTable('monthly_logs', (table) => {
+      table.string('id').primary()
+      table.integer('year').notNullable() // 年份
+      table.integer('month').notNullable() // 月份（1-12）
+      table.text('content').nullable() // 存储编辑器的 HTML 内容
+      table.datetime('createdAt').notNullable()
+      table.datetime('updatedAt').notNullable()
+
+      // 添加联合唯一索引确保每个月份只有一条记录
+      table.unique(['year', 'month'])
+
+      // 索引
+      table.index(['year', 'month'])
+      table.index('createdAt')
+      table.index('updatedAt')
+    })
+    console.log('monthly_logs 表创建成功')
+  }
 }
 
 export async function down(db: Knex): Promise<void> {
@@ -755,5 +776,6 @@ export async function down(db: Knex): Promise<void> {
   await db.schema.dropTableIfExists('backup_settings')
   await db.schema.dropTableIfExists('licenses')
   await db.schema.dropTableIfExists('future_logs')
+  await db.schema.dropTableIfExists('monthly_logs')
   console.log('所有表已删除')
 }

@@ -1,19 +1,67 @@
 <template>
   <div class="future-log">
-    <div class="future-log-container">
-      <div class="future-log-header">
-        <div class="text">
-          <div class="title">未来日志</div>
-          <div class="subtitle">记录未来要做的事情，规划你的时间...</div>
+    <div class="controls">
+      <!-- 分屏模式按钮 -->
+      <div class="tool-button" :class="{ active: splitMode }" @click="toggleSplitMode">
+        <div class="icon">
+          <Schedule theme="outline" size="16" :strokeWidth="3" />
+        </div>
+        <span>月度分配</span>
+      </div>
+
+      <!-- 年份选择器 -->
+      <div class="date-select">
+        <div class="selected" @click="showYearSelect = !showYearSelect">
+          {{ selectedYear }}年
+          <Down theme="outline" size="12" :strokeWidth="3" class="down-icon" />
+        </div>
+        <div v-show="showYearSelect" class="select-dropdown">
+          <div
+            v-for="year in yearOptions"
+            :key="year"
+            class="select-option"
+            @click="selectYear(year)"
+          >
+            {{ year }}年
+          </div>
         </div>
       </div>
 
-      <FutureLogEditor
-        v-model:content="content"
-        class="future-log-editor"
-        :placeholder="'开始记录未来的计划...'"
-        @update:content="handleContentChange"
-      />
+      <!-- 月份选择器 -->
+      <div class="date-select">
+        <div class="selected month-select" @click="showMonthSelect = !showMonthSelect">
+          {{ selectedMonth }}月
+          <Down theme="outline" size="12" :strokeWidth="3" class="down-icon" />
+        </div>
+        <div v-show="showMonthSelect" class="select-dropdown">
+          <div v-for="month in 12" :key="month" class="select-option" @click="selectMonth(month)">
+            {{ month }}月
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 主要内容区域 -->
+    <div class="future-log-container" :class="{ 'split-mode': splitMode }">
+      <!-- 左侧未来日志 -->
+      <div class="future-log-panel">
+        <FutureLogEditor
+          v-model:content="content"
+          class="future-log-editor"
+          :placeholder="'开始记录未来的计划...'"
+          @update:content="handleContentChange"
+        />
+      </div>
+
+      <!-- 右侧月度日志 -->
+      <div v-if="splitMode" class="monthly-log-panel">
+        <MonthlyLogEditor
+          v-model:content="monthlyContent"
+          class="monthly-log-editor"
+          :placeholder="'开始记录本月计划...'"
+          @update:content="handleMonthlyContentChange"
+        />
+      </div>
     </div>
   </div>
 </template>
@@ -22,9 +70,27 @@
 import { ref, onMounted } from 'vue'
 import { useTimeBlockStore } from '@renderer/stores/timeBlockStore'
 import FutureLogEditor from './FutureLogEditor.vue'
+import MonthlyLogEditor from './MonthlyLogEditor.vue'
+import { Down, Schedule } from '@icon-park/vue-next'
 
 const store = useTimeBlockStore()
 const content = ref('')
+
+// 添加分屏相关的状态
+const splitMode = ref(false)
+const showYearSelect = ref(false)
+const showMonthSelect = ref(false)
+const monthlyContent = ref('')
+
+// 获取当前年份和月份
+const currentYear = new Date().getFullYear()
+const currentMonth = new Date().getMonth() + 1
+
+// 年份选项（前后 5 年）
+const yearOptions = Array.from({ length: 11 }, (_, i) => currentYear - 5 + i)
+
+const selectedYear = ref(currentYear)
+const selectedMonth = ref(currentMonth)
 
 // 加载未来日志内容
 const loadFutureLog = async () => {
@@ -49,6 +115,62 @@ const handleContentChange = async (newContent: string) => {
   }
 }
 
+// 切换分屏模式
+const toggleSplitMode = () => {
+  splitMode.value = !splitMode.value
+  if (splitMode.value) {
+    loadMonthlyLog()
+  }
+}
+
+// 选择年份
+const selectYear = (year: number) => {
+  selectedYear.value = year
+  showYearSelect.value = false
+  loadMonthlyLog()
+}
+
+// 选择月份
+const selectMonth = (month: number) => {
+  selectedMonth.value = month
+  showMonthSelect.value = false
+  loadMonthlyLog()
+}
+
+// 加载月度日志
+const loadMonthlyLog = async () => {
+  try {
+    const log = await store.getMonthlyLog(selectedYear.value, selectedMonth.value)
+    if (log) {
+      monthlyContent.value = log.content || ''
+    } else {
+      monthlyContent.value = ''
+    }
+  } catch (error) {
+    console.error('加载月度日志失败:', error)
+  }
+}
+
+// 处理月度日志内容更新
+const handleMonthlyContentChange = async (newContent: string) => {
+  try {
+    await store.updateMonthlyLog(selectedYear.value, selectedMonth.value, newContent)
+  } catch (error) {
+    console.error('更新月度日志失败:', error)
+  }
+}
+
+// 添加点击外部关闭下拉菜单
+onMounted(() => {
+  document.addEventListener('click', (e) => {
+    const target = e.target as HTMLElement
+    if (!target.closest('.date-select')) {
+      showYearSelect.value = false
+      showMonthSelect.value = false
+    }
+  })
+})
+
 onMounted(() => {
   loadFutureLog()
 })
@@ -57,83 +179,210 @@ onMounted(() => {
 <style lang="scss" scoped>
 .future-log {
   height: 100%;
-  padding: 10px;
+  padding: 0px 16px 16px 16px;
   background-color: var(--color-bg-primary);
+  display: flex;
+  flex-direction: column;
+  // gap: 12px;
 
-  .future-log-container {
-    max-width: 800px;
-    margin: 0 auto;
-    height: 100%;
+  .controls {
     display: flex;
-    flex-direction: column;
-    gap: 1.25rem;
-  }
+    gap: 8px;
+    margin-bottom: 12px;
+    justify-content: center;
+    align-items: center;
 
-  .future-log-header {
-    flex: none;
-    display: flex;
-    padding: 8px 12px 8px 0;
-    margin-bottom: 0;
+    .tool-button {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: 6px;
+      border: 1px solid var(--color-border);
+      background-color: var(--color-bg-primary);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-size: 14px;
+      color: var(--color-text-primary);
 
-    .text {
-      flex: 1;
+      .icon {
+        width: 20px;
+        height: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s ease;
+        padding: 0;
 
-      .title {
-        font-size: 28px;
-        font-weight: 600;
-        color: var(--color-text-primary);
-        margin-bottom: 8px;
-        letter-spacing: 0.5px;
-        line-height: 1.2;
-        position: relative;
-        display: inline-block;
-
-        &::after {
-          content: '';
-          position: absolute;
-          bottom: -2px;
-          left: 0;
+        :deep(.i-icon) {
+          display: flex;
+          align-items: center;
+          justify-content: center;
           width: 100%;
-          height: 2px;
-          background: linear-gradient(90deg, var(--color-primary), transparent);
-          opacity: 0.5;
-          border-radius: 2px;
+          height: 100%;
+        }
+
+        :deep(svg) {
+          width: 18px;
+          height: 18px;
         }
       }
 
-      .subtitle {
-        color: var(--color-text-secondary);
-        font-size: 15px;
-        line-height: 1.5;
-        opacity: 0.85;
-        max-width: 480px;
+      &:hover {
+        border-color: var(--color-primary);
+        background: var(--color-hover-bg);
+      }
+
+      &.active {
+        background: rgba(var(--color-primary-rgb), 0.1);
+        border-color: var(--color-primary);
+        color: var(--color-primary);
+
+        .icon {
+          color: var(--color-primary);
+        }
+      }
+    }
+
+    .date-select {
+      position: relative;
+
+      .selected {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        padding: 6px 12px;
+        border-radius: 6px;
+        border: 1px solid var(--color-border);
+        background-color: var(--color-bg-primary);
+        color: var(--color-text-primary);
+        font-size: 14px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        min-width: 90px;
+
+        &.month-select {
+          min-width: 70px;
+        }
+
+        .down-icon {
+          margin-left: auto;
+          opacity: 0.6;
+        }
+
+        &:hover {
+          border-color: var(--color-primary);
+          background: var(--color-hover-bg);
+        }
+      }
+
+      .select-dropdown {
+        position: absolute;
+        top: calc(100% + 4px);
+        left: 0;
+        min-width: 100%;
+        background: var(--color-dropdown-bg);
+        border: 1px solid var(--color-border);
+        border-radius: 8px;
+        padding: 4px;
+        box-shadow: var(--shadow-card);
+        z-index: 1000;
+        max-height: 280px;
+        overflow-y: auto;
+
+        .select-option {
+          padding: 8px 12px;
+          cursor: pointer;
+          white-space: nowrap;
+          border-radius: 4px;
+          transition: all 0.2s;
+          font-size: 14px;
+          color: var(--color-text-primary);
+
+          &:hover {
+            background: var(--color-hover-bg);
+          }
+        }
       }
     }
   }
 
-  :deep(.future-log-editor) {
+  .future-log-container {
     flex: 1;
     min-height: 0;
-    background-color: var(--color-note-card-bg);
-    border-radius: 16px;
-    box-shadow: var(--shadow-card);
-    padding: 20px;
-    transition: all 0.3s ease;
-    border: 1px solid var(--color-border);
     display: flex;
-    flex-direction: column;
-    overflow: hidden;
+    gap: 16px;
 
-    .theme-dark & {
-      background-color: var(--color-bg-2);
-      border-color: var(--color-shape-primary);
+    // 非分屏模式下的样式
+    .future-log-panel {
+      flex: 1;
+      display: flex;
+      justify-content: center;
+
+      :deep(.future-log-editor) {
+        max-width: 800px;
+        width: 100%;
+      }
     }
 
-    &:hover {
-      box-shadow: var(--shadow-primary);
+    // 分屏模式下的样式
+    &.split-mode {
+      flex-direction: row !important;
+      height: 100%;
+
+      .future-log-panel,
+      .monthly-log-panel {
+        flex: 1;
+        height: 100%;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
+
+      .monthly-log-panel {
+        display: flex;
+        flex-direction: column;
+      }
+    }
+
+    // 编辑器通用样式
+    :deep(.future-log-editor),
+    :deep(.monthly-log-editor) {
+      flex: 1;
+      min-height: 0;
+      background-color: var(--color-note-card-bg);
+      border-radius: 12px;
+      // box-shadow: var(--shadow-card);
+      padding: 20px;
+      transition: all 0.3s ease;
+      border: 1px solid var(--color-border);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
 
       .theme-dark & {
-        background-color: var(--color-note-card-bg);
+        background-color: var(--color-bg-2);
+        border-color: var(--color-shape-primary);
+      }
+
+      &:hover {
+        // border-color: var(--color-primary);
+
+        .theme-dark & {
+          background-color: var(--color-note-card-bg);
+        }
+      }
+
+      .monthly-log-editor-content,
+      .future-log-editor-content {
+        height: 100%;
+        background: transparent;
+        font-family: var(--font-family);
+        font-size: 15px;
+        line-height: 1.7;
+        color: var(--color-text-primary);
+        outline: none;
       }
     }
   }

@@ -1,5 +1,10 @@
 import { ipcRenderer } from 'electron'
-import type { TimeBlockDay, TimeBlockSettings, FutureLog } from '../../renderer/src/types/timeBlock'
+import type {
+  TimeBlockDay,
+  TimeBlockSettings,
+  FutureLog,
+  MonthlyLog
+} from '../../renderer/src/types/timeBlock'
 
 export const timeBlockApi = {
   // 获取某天的时间块数据
@@ -88,6 +93,42 @@ export const timeBlockApi = {
       return result.id
     } catch (error) {
       console.error('预加载脚本 → 更新未来日志失败:', error)
+      throw error
+    }
+  },
+
+  // 获取月度日志
+  getMonthlyLog: async (year: number, month: number): Promise<MonthlyLog | null> => {
+    try {
+      const result = await ipcRenderer.invoke('getMonthlyLog', year, month)
+      if (!result.success) throw new Error(result.error)
+      return result.log
+    } catch (error) {
+      console.error('预加载脚本 → 获取月度日志失败:', error)
+      throw error
+    }
+  },
+
+  // 更新月度日志
+  updateMonthlyLog: async (year: number, month: number, content: string): Promise<string> => {
+    try {
+      const result = await ipcRenderer.invoke('updateMonthlyLog', year, month, content)
+      if (!result.success) throw new Error(result.error)
+      return result.id
+    } catch (error) {
+      console.error('预加载脚本 → 更新月度日志失败:', error)
+      throw error
+    }
+  },
+
+  // 获取指定年份的所有月度日志
+  getYearMonthlyLogs: async (year: number): Promise<MonthlyLog[]> => {
+    try {
+      const result = await ipcRenderer.invoke('getYearMonthlyLogs', year)
+      if (!result.success) throw new Error(result.error)
+      return result.logs
+    } catch (error) {
+      console.error('预加载脚本 → 获取年度月度日志失败:', error)
       throw error
     }
   }
