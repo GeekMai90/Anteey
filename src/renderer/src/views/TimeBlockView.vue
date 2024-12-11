@@ -78,6 +78,13 @@
 
           <!-- 修改右侧日期选择器 -->
           <div class="time-block-header-right">
+            <!-- 搜索按钮 -->
+            <div class="tool-button" @click="showSearch">
+              <div class="icon">
+                <Search theme="outline" size="16" :strokeWidth="3" />
+              </div>
+              <span class="text">搜索</span>
+            </div>
             <!-- 现有的日历按钮 -->
             <div
               class="calendar-button"
@@ -87,14 +94,14 @@
               <div class="icon">
                 <Calendar theme="outline" size="16" :strokeWidth="3" />
               </div>
-              <span class="date-text">{{ selectedDate || '每日' }}</span>
+              <span class="date-text">{{ selectedDate || '日历' }}</span>
             </div>
             <!-- 月度日志按钮 -->
             <div class="tool-button" :class="{ active: showMonthlyLog }" @click="toggleMonthlyLog">
               <div class="icon">
                 <Plan theme="outline" size="16" :strokeWidth="3" />
               </div>
-              <span class="text">月度</span>
+              <span class="text">月志</span>
             </div>
 
             <!-- 未来日志按钮 -->
@@ -103,14 +110,6 @@
                 <MagicWand theme="outline" size="16" :strokeWidth="3" />
               </div>
               <span class="text">未来</span>
-            </div>
-
-            <!-- 搜索按钮 -->
-            <div class="tool-button" @click="showSearch">
-              <div class="icon">
-                <Search theme="outline" size="16" :strokeWidth="3" />
-              </div>
-              <span class="text">搜索</span>
             </div>
           </div>
         </div>
@@ -682,21 +681,15 @@ const navigateToResult = async (result: { date: string; hour: number }) => {
   searchDialogVisible.value = false
   isExpanded.value = false
 
+  // 更新当前日期
+  currentDate.value = new Date(result.date)
+
   const hour = await timeBlockStore.navigateToTimeBlock(result.date, result.hour)
 
   nextTick(() => {
     scrollToHour(hour)
   })
 }
-
-// 在关闭搜索时重置选中索引
-// const closeSearch = () => {
-//   searchDialogVisible.value = false
-//   searchQuery.value = ''
-//   isExpanded.value = false
-//   selectedResultIndex.value = -1
-//   timeBlockStore.searchResults = []
-// }
 
 // 更新模态框状态
 const updateModalState = (value: boolean) => {
@@ -1050,7 +1043,7 @@ const highlightContent = (content: string) => {
       }
 
       &-right {
-        width: 320px;
+        width: 380px;
         display: flex;
         align-items: center;
         justify-content: flex-end;

@@ -9,6 +9,9 @@
 
 <script setup lang="ts">
 import { NodeViewContent, NodeViewWrapper } from '@tiptap/vue-3'
+import type { NodeViewProps } from '@tiptap/vue-3'
+
+defineProps<NodeViewProps>()
 </script>
 
 <style lang="scss" scoped>

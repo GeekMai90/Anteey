@@ -28,7 +28,7 @@
               <div class="icon">
                 <Calendar theme="outline" size="16" :strokeWidth="3" />
               </div>
-              <span class="date-text">{{ selectedDate || '选择日期' }}</span>
+              <span class="date-text">{{ selectedDate || '日历' }}</span>
             </div>
           </div>
         </div>
