@@ -92,7 +92,7 @@
             <!-- 月度日志按钮 -->
             <div class="tool-button" :class="{ active: showMonthlyLog }" @click="toggleMonthlyLog">
               <div class="icon">
-                <Calendar theme="outline" size="16" :strokeWidth="3" />
+                <Plan theme="outline" size="16" :strokeWidth="3" />
               </div>
               <span class="text">月度</span>
             </div>
@@ -189,7 +189,7 @@ import { ref, onMounted, computed, watch } from 'vue'
 import { useTimeBlockStore } from '../stores/timeBlockStore'
 import { format, getWeek } from 'date-fns'
 import { zhCN } from 'date-fns/locale'
-import { Time as TimeIcon, Left, Right, Calendar, MagicWand } from '@icon-park/vue-next'
+import { Time as TimeIcon, Left, Right, Calendar, MagicWand, Plan } from '@icon-park/vue-next'
 import AppToolbar from '@renderer/components/layout/AppToolbar.vue'
 import CalendarPicker from '@renderer/components/timelineView/CalendarPicker.vue'
 import { useUIStore } from '@renderer/stores/useUIStore'
