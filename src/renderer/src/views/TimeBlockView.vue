@@ -373,7 +373,7 @@ onMounted(() => {
 })
 
 // 添加日期选择相关函数
-const toggleDateFilter = async () => {
+const toggleDateFilter = () => {
   if (selectedDate.value) {
     selectedDate.value = null
     currentDate.value = new Date()
@@ -386,7 +386,10 @@ const onDateSelected = async (date: string | null) => {
   selectedDate.value = date
   if (date) {
     currentDate.value = new Date(date)
+  } else {
+    currentDate.value = new Date()
   }
+  // 日历选择器会自动关闭，不需要手动关闭
 }
 
 // 添加计算属性判断是否为今天
@@ -784,7 +787,7 @@ const weekNumber = computed(() => {
       }
 
       &-right {
-        width: 280px;
+        width: 320px;
         display: flex;
         align-items: center;
         justify-content: flex-end;
@@ -795,17 +798,20 @@ const weekNumber = computed(() => {
           align-items: center;
           gap: 6px;
           padding: 6px 12px 6px 9px;
+          min-width: 80px;
           background: var(--color-bg-secondary);
           border: 1px solid var(--color-border);
           border-radius: 8px;
           cursor: pointer;
           transition: all 0.2s ease;
           user-select: none;
+
           .text {
             font-size: 13px;
             color: var(--color-text-secondary);
             font-weight: 500;
             line-height: 1;
+            white-space: nowrap;
           }
 
           .icon {
@@ -862,6 +868,7 @@ const weekNumber = computed(() => {
           align-items: center;
           gap: 6px;
           padding: 6px 12px 6px 9px;
+          min-width: 80px;
           background: var(--color-bg-secondary);
           border: 1px solid var(--color-border);
           border-radius: 8px;
@@ -874,6 +881,7 @@ const weekNumber = computed(() => {
             color: var(--color-text-secondary);
             font-weight: 500;
             line-height: 1;
+            white-space: nowrap;
           }
 
           .icon {
