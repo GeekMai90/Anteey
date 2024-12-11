@@ -11,6 +11,7 @@ import StarterKit from '@tiptap/starter-kit'
 import Placeholder from '@tiptap/extension-placeholder'
 import Typography from '@tiptap/extension-typography'
 import { BulletTask } from '@renderer/extensions/BulletTask'
+import { BulletEvent } from '@renderer/extensions/BulletEvent'
 import { Extension } from '@tiptap/core'
 import type { Range } from '@tiptap/core'
 import type { ChainedCommands } from '@tiptap/core'
@@ -32,7 +33,7 @@ interface Emits {
 const props = withDefaults(defineProps<Props>(), {
   content: '',
   editable: false,
-  placeholder: '输入 "- " 开始一个任务...'
+  placeholder: '输入 " - " 开始一个任务，" = " 开始一个事件...'
 })
 
 const emit = defineEmits<Emits>()
@@ -47,6 +48,13 @@ const BulletInputRule = Extension.create({
         find: /^[-] $/,
         handler: ({ range, chain }: { range: Range; chain: () => ChainedCommands }) => {
           chain().deleteRange(range).setNode('bulletTask').run()
+        }
+      },
+      // 新增的事件规则
+      {
+        find: /^[=] $/,
+        handler: ({ range, chain }) => {
+          chain().deleteRange(range).setNode('bulletEvent').run()
         }
       }
     ]
@@ -63,7 +71,8 @@ const editor = new Editor({
       placeholder: props.placeholder
     }),
     BulletInputRule,
-    BulletTask
+    BulletTask,
+    BulletEvent
   ],
   content: props.content || '',
   editable: props.editable,
@@ -178,6 +187,17 @@ onBeforeUnmount(() => {
   }
 
   .bullet-task {
+    &:first-child {
+      margin-top: 0;
+    }
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+
+  // 添加事件相关样式
+  .bullet-event {
     &:first-child {
       margin-top: 0;
     }

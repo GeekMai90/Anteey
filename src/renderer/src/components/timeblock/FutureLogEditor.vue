@@ -11,6 +11,7 @@ import StarterKit from '@tiptap/starter-kit'
 import Placeholder from '@tiptap/extension-placeholder'
 import Typography from '@tiptap/extension-typography'
 import { BulletTask } from '@renderer/extensions/BulletTask'
+import { BulletEvent } from '@renderer/extensions/BulletEvent'
 import { Extension } from '@tiptap/core'
 import type { Range } from '@tiptap/core'
 import type { ChainedCommands } from '@tiptap/core'
@@ -42,6 +43,12 @@ const BulletInputRule = Extension.create({
         handler: ({ range, chain }: { range: Range; chain: () => ChainedCommands }) => {
           chain().deleteRange(range).setNode('bulletTask').run()
         }
+      },
+      {
+        find: /^[=] $/,
+        handler: ({ range, chain }: { range: Range; chain: () => ChainedCommands }) => {
+          chain().deleteRange(range).setNode('bulletEvent').run()
+        }
       }
     ]
   }
@@ -57,7 +64,8 @@ const editor = new Editor({
       placeholder: props.placeholder
     }),
     BulletInputRule,
-    BulletTask
+    BulletTask,
+    BulletEvent
   ],
   content: props.content,
   editable: true,
