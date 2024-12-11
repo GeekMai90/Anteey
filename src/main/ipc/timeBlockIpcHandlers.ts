@@ -9,7 +9,8 @@ import {
   updateFutureLog,
   getMonthlyLog,
   updateMonthlyLog,
-  getYearMonthlyLogs
+  getYearMonthlyLogs,
+  searchTimeBlocks
 } from '../../services/timeBlockService'
 import log from '../logger'
 
@@ -140,6 +141,17 @@ export function setupTimeBlockHandlers() {
       return { success: true, logs }
     } catch (error) {
       log.error('主进程→ 获取年度月度日志失败:', error)
+      return { success: false, error: String(error) }
+    }
+  })
+
+  // 搜索时光记
+  ipcMain.handle('searchTimeBlocks', async (_event, searchTerm: string) => {
+    try {
+      const results = await searchTimeBlocks(searchTerm)
+      return { success: true, results }
+    } catch (error) {
+      log.error('主进程→ 搜索时光记失败:', error)
       return { success: false, error: String(error) }
     }
   })

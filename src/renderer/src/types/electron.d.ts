@@ -480,6 +480,15 @@ export interface ElectronAPI {
   updateRecentExpanded: (expanded: boolean) => Promise<AppearanceSettings>
   updateWhiteboardEnabled: (enabled: boolean) => Promise<AppearanceSettings>
   updateAIAssistantEnabled: (enabled: boolean) => Promise<AppearanceSettings>
+  // 搜索时光记
+  searchTimeBlocks: (searchTerm: string) => Promise<
+    Array<{
+      date: string
+      hour: number
+      content: string
+      id: string
+    }>
+  >
 }
 
 declare global {

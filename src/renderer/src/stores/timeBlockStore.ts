@@ -21,6 +21,12 @@ interface TimeBlockState {
   futureLog: FutureLog | null
   currentMonthlyLog: MonthlyLog | null
   monthlyLogs: MonthlyLog[]
+  searchResults: Array<{
+    date: string
+    hour: number
+    content: string
+    id: string
+  }>
 }
 
 export const useTimeBlockStore = defineStore('timeBlock', {
@@ -41,7 +47,8 @@ export const useTimeBlockStore = defineStore('timeBlock', {
     cache: new Map(),
     futureLog: null,
     currentMonthlyLog: null,
-    monthlyLogs: []
+    monthlyLogs: [],
+    searchResults: []
   }),
 
   actions: {
@@ -351,6 +358,25 @@ export const useTimeBlockStore = defineStore('timeBlock', {
     clearMonthlyLogState() {
       this.currentMonthlyLog = null
       this.monthlyLogs = []
+    },
+
+    // 搜索时光记
+    async searchTimeBlocks(searchTerm: string) {
+      try {
+        const results = await window.electronAPI.searchTimeBlocks(searchTerm)
+        this.searchResults = results
+        return results
+      } catch (error) {
+        console.error('搜索时光记失败:', error)
+        throw error
+      }
+    },
+
+    // 跳转到指定的时光记录
+    async navigateToTimeBlock(date: string, hour: number) {
+      await this.loadTimeBlockDay(date)
+      // 可以返回小时数，方便视图层进行滚动定位
+      return hour
     }
   }
 })

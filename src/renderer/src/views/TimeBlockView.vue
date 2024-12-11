@@ -104,6 +104,14 @@
               </div>
               <span class="text">未来</span>
             </div>
+
+            <!-- 搜索按钮 -->
+            <div class="tool-button" @click="showSearch">
+              <div class="icon">
+                <Search theme="outline" size="16" :strokeWidth="3" />
+              </div>
+              <span class="text">搜索</span>
+            </div>
           </div>
         </div>
       </div>
@@ -152,7 +160,12 @@
       <template v-else>
         <div class="time-blocks-container">
           <div class="time-blocks-wrapper">
-            <div v-for="block in timeBlocks" :key="block.hour" class="time-block">
+            <div
+              v-for="block in timeBlocks"
+              :key="block.hour"
+              class="time-block"
+              data-hour="{{ block.hour }}"
+            >
               <div class="time-label">{{ block.label }}</div>
               <div class="time-content" :class="{ editing: editingHour === block.hour }">
                 <div class="time-block-content">
@@ -181,15 +194,114 @@
       triggerElementSelector=".calendar-button"
       @dateSelected="onDateSelected"
     />
+
+    <!-- 搜索弹窗 -->
+    <Modal
+      :modelValue="searchDialogVisible"
+      @update:modelValue="updateModalState"
+      @after-enter="focusInput"
+    >
+      <div class="search-container" :class="{ expanded: isExpanded }">
+        <div class="search-input-container">
+          <input
+            ref="searchInput"
+            v-model="searchQuery"
+            class="search-input"
+            placeholder="搜索时光记录..."
+            @input="handleSearchInput"
+            @keydown="handleKeyDown"
+          />
+        </div>
+
+        <transition name="expand">
+          <div v-if="isExpanded" class="search-results-container">
+            <div ref="searchResultsContainer" class="search-results">
+              <!-- 搜索结果部分 -->
+              <div v-if="timeBlockStore.searchResults.length === 0" class="no-results">
+                <div class="no-results-icon">
+                  <FileSearch theme="outline" size="48" fill="#888" :strokeWidth="2" />
+                </div>
+                <h3>未找到结果</h3>
+                <p>没有找到与"{{ searchQuery }}"相关的笔记</p>
+                <div class="suggestions">
+                  <h4>建议：</h4>
+                  <ul>
+                    <li>检查您的拼写</li>
+                    <li>尝试使用不同的关键词</li>
+                    <li>使用更通用的搜索词</li>
+                  </ul>
+                </div>
+              </div>
+
+              <!-- 搜索结果列表 -->
+              <div v-else>
+                <div
+                  v-for="(result, index) in timeBlockStore.searchResults"
+                  :key="result.id"
+                  class="search-result-item"
+                  :class="{ selected: index === selectedResultIndex }"
+                  @click="navigateToResult(result)"
+                  @mouseover="selectedResultIndex = index"
+                >
+                  <div class="result-date">
+                    <div class="date-icon">
+                      <Calendar theme="outline" size="14" :strokeWidth="3" />
+                    </div>
+                    {{ formatDate(result.date) }} {{ formatHour(result.hour) }}
+                  </div>
+                  <div class="result-preview">
+                    <div class="result-preview-icon">
+                      <div class="icon">
+                        <ParagraphRectangle
+                          theme="outline"
+                          size="14"
+                          fill="var(--color-text-secondary)"
+                          :strokeWidth="3"
+                        />
+                      </div>
+                    </div>
+                    <div class="result-content" v-html="highlightContent(result.content)"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </transition>
+
+        <!-- 操作提示 -->
+        <div v-if="isExpanded" class="action-hints">
+          <div class="hint-group">
+            <div class="hint">
+              <span class="key">↵</span>
+              <span class="description">跳转到记录</span>
+            </div>
+            <div class="hint">
+              <span class="key">ESC</span>
+              <span class="description">关闭</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Modal>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed, watch } from 'vue'
+import { ref, onMounted, computed, watch, nextTick } from 'vue'
 import { useTimeBlockStore } from '../stores/timeBlockStore'
 import { format, getWeek } from 'date-fns'
 import { zhCN } from 'date-fns/locale'
-import { Time as TimeIcon, Left, Right, Calendar, MagicWand, Plan } from '@icon-park/vue-next'
+import {
+  Time as TimeIcon,
+  Left,
+  Right,
+  Calendar,
+  MagicWand,
+  Plan,
+  Search,
+  FileSearch,
+  ParagraphRectangle
+} from '@icon-park/vue-next'
 import AppToolbar from '@renderer/components/layout/AppToolbar.vue'
 import CalendarPicker from '@renderer/components/timelineView/CalendarPicker.vue'
 import { useUIStore } from '@renderer/stores/useUIStore'
@@ -199,6 +311,8 @@ import BlockViewer from '@renderer/components/timeblock/BlockViewer.vue'
 // import type { TimeBlock as TimeBlockData } from '../types/timeBlock'
 import FutureLog from '../components/timeblock/FutureLog.vue'
 import MonthlyLog from '../components/timeblock/MonthlyLog.vue'
+import { useDebounceFn } from '@vueuse/core'
+import Modal from '@renderer/components/common/Modal.vue'
 
 // 重命名本地接口以避免冲突
 interface TimeBlockHour {
@@ -308,7 +422,7 @@ const editingHour = ref<number | null>(null)
 
 // 开始编辑
 const startEdit = (hour: number) => {
-  // 如果已经在编辑其他时间块，先取消编辑
+  // 如果已���在编辑其他时间块，先取消编辑
   if (editingHour.value !== null && editingHour.value !== hour) {
     handleFinishEdit()
   }
@@ -335,7 +449,7 @@ const handleCancelEdit = () => {
   editingHour.value = null
 }
 
-// 在组件挂载时获取设置
+// 在组件载时获取设置
 onMounted(async () => {
   try {
     // 先获取设置
@@ -389,7 +503,7 @@ const onDateSelected = async (date: string | null) => {
   } else {
     currentDate.value = new Date()
   }
-  // 日历选择器会自动关闭，不需要手动关闭
+  // 日历选择器自动关闭，不需要手动关闭
 }
 
 // 添加计算属性判断是否为今天
@@ -515,6 +629,155 @@ const toggleMonthlyLog = () => {
 const weekNumber = computed(() => {
   return getWeek(currentDate.value, { locale: zhCN })
 })
+
+const searchDialogVisible = ref(false)
+const searchQuery = ref('')
+const isExpanded = ref(false)
+const searchInput = ref<HTMLInputElement | null>(null)
+const searchResultsContainer = ref<HTMLDivElement | null>(null)
+
+// 添加选中结果的索引
+const selectedResultIndex = ref(-1)
+
+// 添加滚动选中项到视图的函数
+const scrollSelectedIntoView = () => {
+  nextTick(() => {
+    const selectedElement = document.querySelector('.search-result-item.selected')
+    if (selectedElement) {
+      selectedElement.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+    }
+  })
+}
+
+// 修改键盘事件处理函数
+const handleKeyDown = (event: KeyboardEvent) => {
+  if (event.key === 'Escape') {
+    closeSearch()
+  } else if (event.key === 'Enter' && timeBlockStore.searchResults.length > 0) {
+    // 如果有选中的结果,则导航到选中的结果
+    if (selectedResultIndex.value >= 0) {
+      navigateToResult(timeBlockStore.searchResults[selectedResultIndex.value])
+    } else {
+      // 否则导航到第一个结果
+      navigateToResult(timeBlockStore.searchResults[0])
+    }
+  } else if (event.key === 'ArrowDown') {
+    event.preventDefault()
+    if (selectedResultIndex.value < timeBlockStore.searchResults.length - 1) {
+      selectedResultIndex.value++
+      scrollSelectedIntoView()
+    }
+  } else if (event.key === 'ArrowUp') {
+    event.preventDefault()
+    if (selectedResultIndex.value > 0) {
+      selectedResultIndex.value--
+      scrollSelectedIntoView()
+    }
+  }
+}
+
+// 修改搜索结果项的点击处理
+const navigateToResult = async (result: { date: string; hour: number }) => {
+  selectedResultIndex.value = -1 // 重置选中索引
+  searchDialogVisible.value = false
+  isExpanded.value = false
+
+  const hour = await timeBlockStore.navigateToTimeBlock(result.date, result.hour)
+
+  nextTick(() => {
+    scrollToHour(hour)
+  })
+}
+
+// 在关闭搜索时重置选中索引
+// const closeSearch = () => {
+//   searchDialogVisible.value = false
+//   searchQuery.value = ''
+//   isExpanded.value = false
+//   selectedResultIndex.value = -1
+//   timeBlockStore.searchResults = []
+// }
+
+// 更新模态框状态
+const updateModalState = (value: boolean) => {
+  searchDialogVisible.value = value
+  if (!value) {
+    closeSearch()
+  }
+}
+
+// 聚焦搜索输入框
+const focusInput = () => {
+  searchInput.value?.focus()
+}
+
+// 处理搜索输入
+const handleSearchInput = useDebounceFn(async (event: Event) => {
+  const value = (event.target as HTMLInputElement).value
+  if (value.trim()) {
+    isExpanded.value = true
+    await timeBlockStore.searchTimeBlocks(value)
+  } else {
+    isExpanded.value = false
+    timeBlockStore.searchResults = []
+  }
+}, 300)
+
+// 跳转到搜索结果
+// const navigateToResult = async (result: { date: string; hour: number }) => {
+//   const hour = await timeBlockStore.navigateToTimeBlock(result.date, result.hour)
+//   searchDialogVisible.value = false
+//   isExpanded.value = false
+
+//   // 等待视图更新后滚动到对应时间块
+//   nextTick(() => {
+//     scrollToHour(hour)
+//   })
+// }
+
+// 滚动到指定时间块
+const scrollToHour = (hour: number) => {
+  nextTick(() => {
+    // 使用 data-hour 属性来定位时间块
+    const timeBlock = document.querySelector(`.time-block[data-hour="${hour}"]`)
+    if (timeBlock) {
+      timeBlock.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }
+  })
+}
+
+// 显示搜索弹窗
+const showSearch = () => {
+  searchDialogVisible.value = true
+  searchQuery.value = ''
+  isExpanded.value = false
+  timeBlockStore.searchResults = []
+}
+
+// 关闭搜索弹窗
+const closeSearch = () => {
+  searchDialogVisible.value = false
+  searchQuery.value = ''
+  isExpanded.value = false
+  timeBlockStore.searchResults = []
+}
+
+// 格式化日期
+const formatDate = (date: string) => {
+  return format(new Date(date), 'yyyy年MM月dd日 EEEE', { locale: zhCN })
+}
+
+// 格式化小时
+const formatHour = (hour: number) => {
+  return `${hour.toString().padStart(2, '0')}:00`
+}
+
+// 高亮搜索关键词
+const highlightContent = (content: string) => {
+  if (!searchQuery.value) return content
+  const regex = new RegExp(searchQuery.value, 'gi')
+  return content.replace(regex, (match) => `<mark>${match}</mark>`)
+}
 </script>
 
 <style lang="scss" scoped>
@@ -1193,6 +1456,391 @@ const weekNumber = computed(() => {
     font-size: 13px;
     color: inherit;
     font-weight: normal;
+  }
+}
+
+.search-container {
+  will-change: transform, opacity;
+  width: 640px;
+  max-width: 90vw;
+  background: var(--color-bg-primary);
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  height: 64px;
+  transition:
+    height 0.3s ease,
+    top 0.3s ease;
+  overflow: hidden;
+  position: absolute;
+  top: calc(50% - 225px);
+  left: 50%;
+  transform: translateX(-50%);
+
+  &.expanded {
+    height: 490px;
+  }
+}
+
+.search-input-container {
+  position: relative;
+  width: 100%;
+}
+
+.search-input {
+  width: 100%;
+  padding: 20px 16px;
+  font-size: 16px;
+  border: none;
+  outline: none;
+  background-color: var(--color-bg-primary);
+  transition: background-color 0.2s;
+  flex-shrink: 0;
+}
+
+.search-results-container {
+  display: flex;
+  flex-grow: 1;
+  overflow: hidden;
+  padding: 10px 0px 20px 20px;
+  border-top: var(--color-border) 1px solid;
+  position: relative;
+  height: calc(100% - 64px - 37px);
+}
+
+.search-results {
+  width: 100%;
+  height: 100%;
+  overflow-y: auto;
+  padding-right: 20px;
+
+  .search-result-item {
+    padding: 6px 0px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    // border: 1px solid var(--color-border);
+    margin-bottom: 8px;
+    background: var(--color-bg-secondary);
+
+    &:hover {
+      background: var(--color-bg-hover);
+      // border-color: var(--color-primary);
+      // transform: translateY(-1px);
+      // box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    }
+
+    .result-date {
+      font-size: 13px;
+      color: var(--color-text-secondary);
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+
+      .date-icon {
+        display: flex;
+        align-items: center;
+        color: var(--color-text-3);
+        :deep(.i-icon) {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 100%;
+          height: 100%;
+        }
+
+        :deep(svg) {
+          width: 14px;
+          height: 14px;
+        }
+      }
+    }
+
+    .result-preview {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      background: var(--color-bg-primary);
+      padding: 12px;
+      border-radius: 6px;
+      border: 1px solid var(--color-border);
+
+      .result-preview-icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 20px;
+        height: 20px;
+        flex-shrink: 0;
+
+        .icon {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: var(--color-text-secondary);
+          :deep(.i-icon) {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
+          }
+
+          :deep(svg) {
+            width: 14px;
+            height: 14px;
+          }
+        }
+      }
+
+      .result-content {
+        flex: 1;
+        font-size: 14px;
+        line-height: 1.6;
+        color: var(--color-text-primary);
+        word-break: break-word;
+
+        :deep(mark) {
+          background: rgba(var(--color-primary-rgb), 0.1);
+          color: var(--color-primary);
+          padding: 0 2px;
+          border-radius: 2px;
+          font-weight: 500;
+        }
+      }
+    }
+  }
+}
+
+.result-preview {
+  display: flex;
+  align-items: flex-start;
+  padding: 5px 0;
+  font-size: 0.9em;
+  line-height: 1.4;
+}
+
+.result-preview-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
+.no-results {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  width: 100%;
+  color: #666;
+  text-align: center;
+  padding: 20px;
+  position: absolute;
+  top: 0;
+  left: 0;
+  // transform: translate(-50%, -50%);
+  // margin-top: 25px;
+
+  .no-results-icon {
+    margin-bottom: 16px;
+  }
+
+  h3 {
+    font-size: 18px;
+    margin-bottom: 8px;
+    font-weight: 500;
+  }
+
+  p {
+    font-size: 14px;
+    margin-bottom: 24px;
+  }
+
+  .suggestions {
+    background-color: #f0f0f0;
+    border-radius: 8px;
+    padding: 16px;
+    text-align: left;
+    width: 100%;
+    max-width: 300px;
+
+    h4 {
+      font-size: 14px;
+      margin-bottom: 8px;
+      font-weight: 500;
+    }
+
+    ul {
+      list-style-type: none;
+      padding-left: 0;
+
+      li {
+        font-size: 13px;
+        margin-bottom: 4px;
+        position: relative;
+        padding-left: 20px;
+
+        &:before {
+          content: '•';
+          position: absolute;
+          left: 8px;
+          color: #888;
+        }
+      }
+    }
+  }
+}
+
+.action-hints {
+  display: flex;
+  justify-content: flex-end;
+  padding: 8px 20px;
+  background: var(--color-bg-secondary);
+  border-top: 1px solid var(--color-border);
+  font-size: 12px;
+  color: var(--color-text-secondary);
+
+  .hint-group {
+    display: flex;
+    gap: 16px;
+  }
+
+  .hint {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+
+    .key {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 20px;
+      height: 20px;
+      padding: 0 4px;
+      background: var(--color-bg-primary);
+      border: 1px solid var(--color-border);
+      border-radius: 4px;
+      font-family: system-ui;
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--color-text-2);
+    }
+
+    .description {
+      margin-left: 2px;
+      user-select: none;
+      color: var(--color-text-3);
+    }
+  }
+}
+
+.search-result-item {
+  padding: 6px 0px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  // border: 1px solid var(--color-border);
+  margin-bottom: 8px;
+  background: var(--color-bg-secondary);
+
+  &:hover {
+    background: var(--color-bg-hover);
+    // border-color: var(--color-primary);
+    // transform: translateY(-1px);
+    // box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  }
+
+  .result-date {
+    font-size: 13px;
+    color: var(--color-text-secondary);
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+
+    .date-icon {
+      display: flex;
+      align-items: center;
+      color: var(--color-text-3);
+      :deep(.i-icon) {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        height: 100%;
+      }
+
+      :deep(svg) {
+        width: 14px;
+        height: 14px;
+      }
+    }
+  }
+
+  .result-preview {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    background: var(--color-bg-primary);
+    padding: 12px;
+    border-radius: 6px;
+    border: 1px solid var(--color-border);
+
+    .result-preview-icon {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 20px;
+      height: 20px;
+      flex-shrink: 0;
+
+      .icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--color-text-secondary);
+        :deep(.i-icon) {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 100%;
+          height: 100%;
+        }
+
+        :deep(svg) {
+          width: 14px;
+          height: 14px;
+        }
+      }
+    }
+
+    .result-content {
+      flex: 1;
+      font-size: 14px;
+      line-height: 1.6;
+      color: var(--color-text-primary);
+      word-break: break-word;
+
+      :deep(mark) {
+        background: rgba(var(--color-primary-rgb), 0.1);
+        color: var(--color-primary);
+        padding: 0 2px;
+        border-radius: 2px;
+        font-weight: 500;
+      }
+    }
+  }
+
+  &.selected {
+    .result-preview {
+      border-color: var(--color-primary);
+    }
   }
 }
 </style>

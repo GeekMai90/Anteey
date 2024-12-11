@@ -281,3 +281,29 @@ export async function getYearMonthlyLogs(year: number): Promise<MonthlyLog[]> {
     throw error
   }
 }
+
+// 添加搜索时光记的函数
+export async function searchTimeBlocks(searchTerm: string): Promise<
+  Array<{
+    date: string
+    hour: number
+    content: string
+    id: string
+  }>
+> {
+  try {
+    const query = searchTerm.toLowerCase().trim()
+
+    // 从 time_blocks 表中搜索内容
+    const results = await db('time_blocks')
+      .join('time_block_days', 'time_blocks.dayId', 'time_block_days.id')
+      .whereRaw('LOWER(time_blocks.content) LIKE ?', [`%${query}%`])
+      .select('time_block_days.date', 'time_blocks.hour', 'time_blocks.content', 'time_blocks.id')
+      .orderBy(['time_block_days.date', 'time_blocks.hour'])
+
+    return results
+  } catch (error) {
+    console.error('搜索时光记失败:', error)
+    throw error
+  }
+}

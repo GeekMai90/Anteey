@@ -131,6 +131,27 @@ export const timeBlockApi = {
       console.error('预加载脚本 → 获取年度月度日志失败:', error)
       throw error
     }
+  },
+
+  // 添加搜索时光记的 API
+  searchTimeBlocks: async (
+    searchTerm: string
+  ): Promise<
+    Array<{
+      date: string
+      hour: number
+      content: string
+      id: string
+    }>
+  > => {
+    try {
+      const result = await ipcRenderer.invoke('searchTimeBlocks', searchTerm)
+      if (!result.success) throw new Error(result.error)
+      return result.results
+    } catch (error) {
+      console.error('预加载脚本 → 搜索时光记失败:', error)
+      throw error
+    }
   }
 }
 
