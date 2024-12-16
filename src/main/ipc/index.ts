@@ -16,6 +16,8 @@ import { setupKnowledgeTreeHandlers } from './knowledgeTreeIpcHandlers'
 import { setupLicenseHandlers } from './licenseIpcHandlers'
 import { setupBackupHandlers } from './backupIpcHandlers'
 import { setupTimeBlockHandlers } from './timeBlockIpcHandlers'
+import { setupMindBoardHandlers } from './mindboardIpcHandlers'
+
 export function setupIpcHandlers() {
   setupNotesHandlers()
   setupWhiteboardHandlers()
@@ -35,4 +37,5 @@ export function setupIpcHandlers() {
   setupLicenseHandlers()
   setupBackupHandlers()
   setupTimeBlockHandlers()
+  setupMindBoardHandlers()
 }

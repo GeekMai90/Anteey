@@ -31,6 +31,14 @@ import { KnowledgeTreeNode } from './knowledgeTree'
 import { ActivationResult, License } from './license'
 import type { BackupSettings, BackupHistory } from './backup'
 import type { FutureLog, MonthlyLog, TimeBlockDay, TimeBlockSettings } from './timeBlock'
+import type {
+  MindBoard,
+  TextCard,
+  NoteCard,
+  ImageCard,
+  Group,
+  MindBoardConnection
+} from './mindboard'
 
 // 添加图片相关的类型定义
 interface ImageInfo {
@@ -223,7 +231,7 @@ export interface ElectronAPI {
   // 更新筛选规则置顶状态
   updateFilterPinned: (id: string, isPinned: boolean, pinnedOrder?: number) => Promise<CustomFilter>
 
-  // 应用筛选规则获取笔记
+  // 应用筛选规则获取笔��
   getPaginatedNotesByFilter: (params: {
     customFilterId: string
     page: number
@@ -489,6 +497,31 @@ export interface ElectronAPI {
       id: string
     }>
   >
+
+  // 思维板相关方法
+  createMindBoard: (data: Partial<MindBoard>) => Promise<MindBoard>
+  getMindBoard: (id: string) => Promise<MindBoard | null>
+  createMindBoardElement: (
+    boardId: string,
+    element: TextCard | NoteCard | ImageCard | Group
+  ) => Promise<TextCard | NoteCard | ImageCard | Group>
+  createMindBoardConnection: (
+    boardId: string,
+    connection: Omit<MindBoardConnection, 'id'>
+  ) => Promise<MindBoardConnection>
+  updateMindBoard: (id: string, updateData: Partial<MindBoard>) => Promise<MindBoard>
+  updateMindBoardElement: (
+    id: string,
+    updateData: Partial<TextCard | NoteCard | ImageCard | Group>
+  ) => Promise<TextCard | NoteCard | ImageCard | Group>
+  updateMindBoardConnection: (
+    id: string,
+    updateData: Partial<MindBoardConnection>
+  ) => Promise<MindBoardConnection>
+  deleteMindBoard: (id: string) => Promise<void>
+  deleteMindBoardElement: (id: string) => Promise<void>
+  deleteMindBoardConnection: (id: string) => Promise<void>
+  getAllMindBoards: () => Promise<MindBoard[]>
 }
 
 declare global {

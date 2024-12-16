@@ -743,6 +743,110 @@ export async function initDatabase(db: Knex): Promise<void> {
     })
     console.log('monthly_logs 表创建成功')
   }
+
+  // 思维板主表
+  if (!(await db.schema.hasTable('mind_boards'))) {
+    await db.schema.createTable('mind_boards', (table) => {
+      table.string('id').primary()
+      table.string('name').notNullable()
+      table.text('description').nullable()
+      table
+        .json('viewState')
+        .notNullable()
+        .defaultTo(
+          JSON.stringify({
+            scale: 1,
+            translateX: 0,
+            translateY: 0
+          })
+        )
+      table.boolean('isStarred').notNullable().defaultTo(false)
+      table.integer('starredOrder').nullable()
+      table.datetime('createdAt').notNullable()
+      table.datetime('updatedAt').notNullable()
+
+      // 索引
+      table.index('createdAt')
+      table.index('updatedAt')
+      table.index(['isStarred', 'starredOrder'])
+    })
+  }
+
+  // 思维板元素表 - 存储所有类型的元素
+  if (!(await db.schema.hasTable('mind_board_elements'))) {
+    await db.schema.createTable('mind_board_elements', (table) => {
+      table.string('id').primary()
+      table.string('boardId').notNullable().index()
+      table.enum('type', ['text', 'note', 'image', 'group']).notNullable()
+      table.json('position').notNullable() // {x: number, y: number}
+      table.json('size').notNullable() // {width: number, height: number}
+      table.float('rotation').defaultTo(0)
+      table.integer('zIndex').notNullable()
+
+      // 元素特有属性
+      table.text('content').nullable() // text类型的内容
+      table.string('noteId').nullable() // note类型关联的笔记ID
+      table.string('imageId').nullable() // image类型关联的图片ID
+      table.json('style').nullable() // 样式配置
+
+      // 分组特有属性
+      table.string('name').nullable() // group类型的名称
+      table.json('memberIds').nullable() // group类型的成员ID列表
+
+      table.datetime('createdAt').notNullable()
+      table.datetime('updatedAt').notNullable()
+
+      // 外键约束
+      table.foreign('boardId').references('mind_boards.id').onDelete('CASCADE')
+
+      // 索引
+      table.index(['boardId', 'type'])
+      table.index('noteId')
+      table.index('imageId')
+    })
+  }
+
+  // 思维板连接表
+  if (!(await db.schema.hasTable('mind_board_connections'))) {
+    await db.schema.createTable('mind_board_connections', (table) => {
+      table.string('id').primary()
+      table.string('boardId').notNullable().index()
+      table.string('fromId').notNullable() // 起始元素ID
+      table.string('toId').notNullable() // 目标元素ID
+      table.string('label').nullable() // 连线说明文字
+      table.json('style').nullable() // 连线样式
+      table.datetime('createdAt').notNullable()
+      table.datetime('updatedAt').notNullable()
+
+      // 外键约束
+      table.foreign('boardId').references('mind_boards.id').onDelete('CASCADE')
+      table.foreign('fromId').references('mind_board_elements.id').onDelete('CASCADE')
+      table.foreign('toId').references('mind_board_elements.id').onDelete('CASCADE')
+
+      // 索引
+      table.index(['boardId', 'fromId'])
+      table.index(['boardId', 'toId'])
+    })
+  }
+
+  // 图片资源表(如果需要独立管理图片资源)
+  if (!(await db.schema.hasTable('mind_board_images'))) {
+    await db.schema.createTable('mind_board_images', (table) => {
+      table.string('id').primary()
+      table.string('url').notNullable()
+      table.string('alt').nullable()
+      table.integer('width').nullable()
+      table.integer('height').nullable()
+      table.integer('size').nullable() // 文件大小(bytes)
+      table.string('hash').nullable() // 文件hash，用于去重
+      table.datetime('createdAt').notNullable()
+      table.datetime('updatedAt').notNullable()
+
+      // 索引
+      table.index('hash')
+      table.index('createdAt')
+    })
+  }
 }
 
 export async function down(db: Knex): Promise<void> {
@@ -777,5 +881,9 @@ export async function down(db: Knex): Promise<void> {
   await db.schema.dropTableIfExists('licenses')
   await db.schema.dropTableIfExists('future_logs')
   await db.schema.dropTableIfExists('monthly_logs')
+  await db.schema.dropTableIfExists('mind_boards')
+  await db.schema.dropTableIfExists('mind_board_elements')
+  await db.schema.dropTableIfExists('mind_board_connections')
+  await db.schema.dropTableIfExists('mind_board_images')
   console.log('所有表已删除')
 }

@@ -170,7 +170,7 @@ onMounted(async () => {
   // 如果当前在根路径，则跳转到默认页面
   if (router.currentRoute.value.path === '/') {
     await appearanceStore.initializeSettings()
-    const defaultPage = appearanceStore.settings?.defaultPage || '/home'
+    const defaultPage = appearanceStore.settings?.defaultPage || '/mindboard'
     router.push(defaultPage)
   }
 

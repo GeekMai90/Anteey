@@ -122,6 +122,11 @@ const routes = [
     name: 'timeBlock',
     path: '/timeblock',
     component: () => import('../views/TimeBlockView.vue')
+  },
+  {
+    name: 'mindboard',
+    path: '/mindboard',
+    component: () => import('../views/MindboardView.vue')
   }
 ]
 

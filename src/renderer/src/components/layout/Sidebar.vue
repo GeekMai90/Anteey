@@ -194,6 +194,7 @@ const menuItems = computed(() => {
     { name: '笔记流', path: '/timeline', icon: Timeline },
     { name: '卡片盒', path: '/cardbox', icon: Box },
     { name: '知识树', path: '/knowledge-tree', icon: Sapling },
+    { name: '思维板', path: '/mindboard', icon: Workbench },
     // 根据设置决定是否显示白板
     ...(appearanceStore.settings?.enableWhiteboard
       ? [{ name: '思维板', path: '/whiteboard', icon: Workbench }]

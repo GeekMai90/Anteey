@@ -27,6 +27,7 @@ import { imageApi } from './api/imageApi'
 import { licenseApi } from './api/licenseApi'
 import { backupApi } from './api/backupApi'
 import { timeBlockApi } from './api/timeBlockApi'
+import { mindboardApi } from './api/mindboardApi'
 // 添加日志 API
 contextBridge.exposeInMainWorld('electronLog', {
   info: (...args: any[]) => ipcRenderer.send('renderer-log', { level: 'info', args }),
@@ -50,6 +51,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   ...licenseApi,
   ...backupApi,
   ...timeBlockApi,
+  ...mindboardApi,
   getResourcePath: async (filename: string): Promise<string> => {
     try {
       return (await ipcRenderer.invoke('get-resource-path', filename)) as string
@@ -464,7 +466,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     try {
       ipcRenderer.removeAllListeners(channel)
     } catch (error) {
-      console.error('Preload: 移除所有监听器时出错:', error)
+      console.error('Preload: 移除所有���听器时出错:', error)
       throw error
     }
   },
