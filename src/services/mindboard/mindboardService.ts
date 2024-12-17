@@ -58,6 +58,7 @@ export async function getMindBoard(id: string): Promise<MindBoard | null> {
       ...el,
       position: JSON.parse(el.position),
       size: JSON.parse(el.size),
+      content: el.content || '',
       style: el.style ? JSON.parse(el.style) : undefined,
       memberIds: el.memberIds ? JSON.parse(el.memberIds) : undefined
     })),
@@ -74,69 +75,42 @@ export async function createMindBoardElement(
   element: TextCard | NoteCard | ImageCard | Group
 ) {
   const now = Date.now()
-  const id = uuidv4()
 
   // 基础数据
-  const baseData = {
-    id,
-    boardId,
-    type: element.type,
+  const baseData: any = {
+    ...element,
     position: JSON.stringify(element.position),
     size: JSON.stringify(element.size),
-    rotation: element.rotation || 0,
-    zIndex: element.zIndex,
+    content: element.type === 'text' ? (element as TextCard).content : null,
     createdAt: now,
     updatedAt: now
   }
 
-  // 根据元素类型添加特定属性
-  let specificData = {}
+  // 根据元素类型处理特定属性
   switch (element.type) {
     case 'text':
-      specificData = {
-        content: (element as TextCard).content,
-        style: JSON.stringify((element as TextCard).style)
-      }
-      break
-    case 'note':
-      specificData = {
-        noteId: (element as NoteCard).noteId
-      }
-      break
-    case 'image':
-      specificData = {
-        imageId: (element as ImageCard).imageId
-      }
+      baseData.style = element.style ? JSON.stringify(element.style) : null
       break
     case 'group':
-      specificData = {
-        name: (element as Group).name,
-        memberIds: JSON.stringify((element as Group).memberIds),
-        style: JSON.stringify((element as Group).style)
-      }
+      baseData.style = element.style ? JSON.stringify(element.style) : null
+      break
+    case 'image':
+      // 图片特有属性处理
+      break
+    case 'note':
+      // 笔记特有属性处理
       break
   }
 
-  const elementData = {
-    ...baseData,
-    ...specificData
-  }
-
-  await db('mind_board_elements').insert(elementData)
+  await db('mind_board_elements').insert(baseData)
 
   // 返回处理后的数据
   return {
-    ...elementData,
-    position: JSON.parse(elementData.position) as { x: number; y: number },
-    size: JSON.parse(elementData.size) as { width: number; height: number },
-    style:
-      'style' in elementData
-        ? (JSON.parse(elementData.style as string) as Record<string, unknown>)
-        : undefined,
-    memberIds:
-      'memberIds' in elementData
-        ? (JSON.parse(elementData.memberIds as string) as string[])
-        : undefined
+    ...element,
+    position: JSON.parse(baseData.position),
+    size: JSON.parse(baseData.size),
+    content: baseData.content || '',
+    ...(baseData.style ? { style: JSON.parse(baseData.style) } : {})
   }
 }
 
@@ -195,12 +169,13 @@ export async function updateMindBoard(
 export async function updateMindBoardElement(
   id: string,
   updateData: Partial<TextCard | NoteCard | ImageCard | Group>
-): Promise<TextCard | NoteCard | ImageCard | Group> {
+) {
   const now = Date.now()
   const data = {
     ...updateData,
     position: updateData.position ? JSON.stringify(updateData.position) : undefined,
     size: updateData.size ? JSON.stringify(updateData.size) : undefined,
+    content: 'content' in updateData ? updateData.content : undefined,
     style: 'style' in updateData ? JSON.stringify(updateData.style) : undefined,
     memberIds: 'memberIds' in updateData ? JSON.stringify(updateData.memberIds) : undefined,
     updatedAt: now
@@ -216,6 +191,7 @@ export async function updateMindBoardElement(
     ...updatedElement,
     position: JSON.parse(updatedElement.position),
     size: JSON.parse(updatedElement.size),
+    content: updatedElement.content || '',
     style: updatedElement.style ? JSON.parse(updatedElement.style) : undefined,
     memberIds: updatedElement.memberIds ? JSON.parse(updatedElement.memberIds) : undefined
   }
@@ -262,6 +238,8 @@ export async function deleteMindBoardElement(id: string): Promise<void> {
   if (!deleted) {
     throw new Error(`元素不存在: ${id}`)
   }
+  // 如果有相关的连接，也需要删除
+  await db('mind_board_connections').where('fromId', id).orWhere('toId', id).delete()
 }
 
 // 删除连接

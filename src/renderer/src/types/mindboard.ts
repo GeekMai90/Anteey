@@ -1,6 +1,7 @@
 // 思维板元素的基础类型
 interface MindBoardElementBase {
   id: string
+  type: 'text' | 'note' | 'image' | 'group'
   position: {
     x: number
     y: number
@@ -11,13 +12,15 @@ interface MindBoardElementBase {
   }
   rotation?: number
   zIndex: number
+  boardId: string
 }
 
 // 文字卡片
-interface TextCard extends MindBoardElementBase {
+export interface TextCard extends MindBoardElementBase {
   type: 'text'
   content: string
   style?: {
+    color?: string
     backgroundColor?: string
     textColor?: string
     fontSize?: number
@@ -106,7 +109,6 @@ interface MindBoard {
 // 导出所有类型
 export type {
   MindBoardElementBase,
-  TextCard,
   NoteCard,
   ImageCard,
   MindBoardConnection,

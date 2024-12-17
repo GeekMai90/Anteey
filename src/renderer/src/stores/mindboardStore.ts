@@ -38,6 +38,7 @@ export const useMindBoardStore = defineStore('mindboard', () => {
       const board = await window.electronAPI.getMindBoard(id)
       if (board) {
         currentMindBoard.value = board
+        console.log('Updated currentMindBoard:', currentMindBoard.value)
       }
       return board
     } catch (error) {
@@ -96,7 +97,9 @@ export const useMindBoardStore = defineStore('mindboard', () => {
   ) => {
     try {
       const newElement = await window.electronAPI.createMindBoardElement(boardId, element)
-      await fetchMindBoard(boardId) // 刷新当前思维板
+      if (currentMindBoard.value) {
+        currentMindBoard.value.elements.push(newElement)
+      }
       return newElement
     } catch (error) {
       console.error('创建元素失败:', error)
@@ -104,14 +107,22 @@ export const useMindBoardStore = defineStore('mindboard', () => {
     }
   }
 
-  const updateElement = async (
-    id: string,
-    updateData: Partial<TextCard | NoteCard | ImageCard | Group>
-  ) => {
+  const updateElement = async (updateData: Partial<TextCard>) => {
+    if (!currentMindBoard.value || !updateData.id) return
     try {
-      const updatedElement = await window.electronAPI.updateMindBoardElement(id, updateData)
+      const updatedElement = await window.electronAPI.updateMindBoardElement(
+        updateData.id,
+        updateData
+      )
+      // 更新本地状态
       if (currentMindBoard.value) {
-        await fetchMindBoard(currentMindBoard.value.id) // 刷新当前思维板
+        const index = currentMindBoard.value.elements.findIndex((el) => el.id === updateData.id)
+        if (index !== -1) {
+          currentMindBoard.value.elements[index] = {
+            ...currentMindBoard.value.elements[index],
+            ...updatedElement
+          }
+        }
       }
       return updatedElement
     } catch (error) {
@@ -123,8 +134,10 @@ export const useMindBoardStore = defineStore('mindboard', () => {
   const deleteElement = async (id: string) => {
     try {
       await window.electronAPI.deleteMindBoardElement(id)
-      if (currentMindBoard.value) {
-        await fetchMindBoard(currentMindBoard.value.id) // 刷新当前思维板
+      if (currentMindBoard.value && currentMindBoard.value.elements) {
+        currentMindBoard.value.elements = currentMindBoard.value.elements.filter(
+          (el) => el.id !== id
+        )
       }
     } catch (error) {
       console.error('删除元素失败:', error)

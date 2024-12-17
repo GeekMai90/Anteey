@@ -1,4 +1,5 @@
 import { createRouter, createWebHashHistory, RouteLocationNormalized } from 'vue-router'
+import MindboardDetailView from '../views/MindboardDetailView.vue'
 
 const routes = [
   // {
@@ -127,6 +128,11 @@ const routes = [
     name: 'mindboard',
     path: '/mindboard',
     component: () => import('../views/MindboardView.vue')
+  },
+  {
+    path: '/mindboard/:id',
+    name: 'mindboardDetail',
+    component: MindboardDetailView
   }
 ]
 
