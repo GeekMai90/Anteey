@@ -21,12 +21,20 @@
       <div ref="transformLayerRef" class="transform-layer" :style="transformLayerStyle">
         <div class="grid-background"></div>
 
-        <ConnectionLine
-          v-for="connection in mindBoard?.connections"
-          :key="connection.id"
-          :connection="connection"
-          :scale="scale"
-        />
+        <template v-for="connection in validConnections" :key="connection.id">
+          <ConnectionLine
+            :startX="connection.points.start.x"
+            :startY="connection.points.start.y"
+            :endX="connection.points.end.x"
+            :endY="connection.points.end.y"
+            :label="connection.label"
+            :style="{
+              color: connection.style?.color,
+              width: connection.style?.size,
+              dashArray: connection.style?.dash ? [4, 4] : undefined
+            }"
+          />
+        </template>
 
         <TextCardElement
           v-for="element in textElements"
@@ -34,16 +42,14 @@
           :card="element"
           :scale="scale"
           :selected="element.id === selectedElementId"
-          :is-connecting="isConnecting"
-          :connecting-from-id="connectingFromId"
-          :connecting-anchor="connectingAnchor"
-          :target-anchor="targetAnchor"
-          @select="selectedElementId = element.id"
-          @delete="handleDeleteElement(element.id)"
+          :isConnectingSource="connectingSource?.elementId === element.id"
+          :isConnectingTarget="isConnecting && connectingSource?.elementId !== element.id"
+          @select="handleTextCardSelect"
+          @delete="handleDeleteElement"
           @focus="handleFocusElement"
           @update="updateElement"
-          @start-connection="handleStartConnection"
-          @end-connection="handleEndConnection"
+          @startConnection="startConnection"
+          @endConnection="finishConnection"
         />
       </div>
     </div>
@@ -76,21 +82,18 @@
     >
       <Notes theme="outline" size="20" :strokeWidth="3" />
     </div>
-
-    <div v-if="isConnecting" class="connection-preview" :style="connectionPreviewStyle"></div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed, watch, onUnmounted, nextTick } from 'vue'
+import { ref, onMounted, computed, watch, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
 import { useMindBoardStore } from '@renderer/stores/mindboardStore'
 import AppToolbar from '@renderer/components/layout/AppToolbar.vue'
 import { Notes, Book, Picture } from '@icon-park/vue-next'
 import TextCardElement from '@renderer/components/mindboard/TextCardElement.vue'
-import { TextCard } from '../types/mindboard'
 import ConnectionLine from '@renderer/components/mindboard/ConnectionLine.vue'
-import type { MindBoardConnection } from '@renderer/types/mindboard'
+import type { TextCard } from '../types/mindboard'
 
 const route = useRoute()
 const mindBoardStore = useMindBoardStore()
@@ -381,108 +384,104 @@ const handleFocusElement = (element: TextCard) => {
   translateY.value = containerCenterY - elementCenterY
 }
 
-const isConnecting = ref(false)
-const connectingFromId = ref<string | undefined>(undefined)
-const connectingAnchor = ref<'top' | 'right' | 'bottom' | 'left' | null>(null)
-const targetAnchor = ref<'top' | 'right' | 'bottom' | 'left' | null>(null)
-
-const handleStartConnection = (elementId: string, anchor: 'top' | 'right' | 'bottom' | 'left') => {
-  isConnecting.value = true
-  connectingFromId.value = elementId
-  connectingAnchor.value = anchor
-}
-
-const handleEndConnection = async (
-  elementId: string,
-  anchor: 'top' | 'right' | 'bottom' | 'left'
-) => {
-  if (!isConnecting.value || !connectingFromId.value || !mindBoard.value) return
-
-  const connection: Omit<MindBoardConnection, 'id'> = {
-    fromId: connectingFromId.value,
-    toId: elementId,
-    boardId: mindBoard.value.id,
-    fromAnchor: connectingAnchor.value!,
-    toAnchor: anchor,
-    style: {
-      color: 'var(--color-text-secondary)',
-      size: 2,
-      path: 'fluid',
-      startPlug: 'behind',
-      endPlug: 'arrow1'
-    }
-  }
-
-  try {
-    await mindBoardStore.createConnection(mindBoard.value.id, connection)
-  } catch (error) {
-    console.error('创建连线失败:', error)
-  }
-
-  isConnecting.value = false
-  connectingFromId.value = undefined
-  connectingAnchor.value = null
-  targetAnchor.value = null
-}
-
-const connectionPreviewStyle = ref({
-  display: 'none',
-  left: '0px',
-  top: '0px',
-  width: '0px',
-  height: '0px',
-  transform: 'rotate(0deg)'
-})
-
-const updateConnectionPreview = (e: MouseEvent) => {
-  if (!isConnecting.value || !connectingFromId.value) return
-
-  const sourceElement = document.querySelector(`[data-element-id="${connectingFromId.value}"]`)
-  if (!sourceElement) return
-
-  const sourceRect = sourceElement.getBoundingClientRect()
-  const sourceCenter = {
-    x: sourceRect.left + sourceRect.width / 2,
-    y: sourceRect.top + sourceRect.height / 2
-  }
-
-  const dx = e.clientX - sourceCenter.x
-  const dy = e.clientY - sourceCenter.y
-  const distance = Math.sqrt(dx * dx + dy * dy)
-  const angle = Math.atan2(dy, dx) * (180 / Math.PI)
-
-  connectionPreviewStyle.value = {
-    display: 'block',
-    left: `${sourceCenter.x}px`,
-    top: `${sourceCenter.y}px`,
-    width: `${distance}px`,
-    height: '2px',
-    transform: `rotate(${angle}deg)`
-  }
-}
-
-watch(isConnecting, (newValue) => {
-  if (newValue) {
-    document.addEventListener('mousemove', updateConnectionPreview)
-  } else {
-    document.removeEventListener('mousemove', updateConnectionPreview)
-    connectionPreviewStyle.value.display = 'none'
-  }
-})
-
-onUnmounted(() => {
-  document.removeEventListener('mousemove', updateConnectionPreview)
-  window.removeEventListener('resize', initializeView)
-})
-
 const transformLayerStyle = computed(() => ({
   transform: `scale(${scale.value}) translate(${translateX.value}px, ${translateY.value}px)`,
   transformOrigin: '0 0'
 }))
 
 const textElements = computed(() => {
-  if (!mindBoard.value) return []
-  return mindBoard.value.elements.filter((element): element is TextCard => element.type === 'text')
+  return (
+    mindBoard.value?.elements.filter((element): element is TextCard => element.type === 'text') ||
+    []
+  )
+})
+
+const isConnecting = ref(false)
+const connectingSource = ref<{
+  elementId: string
+  anchor: 'top' | 'right' | 'bottom' | 'left'
+} | null>(null)
+
+const startConnection = (elementId: string, anchor: 'top' | 'right' | 'bottom' | 'left') => {
+  isConnecting.value = true
+  connectingSource.value = {
+    elementId,
+    anchor
+  }
+}
+
+const finishConnection = async (
+  targetId: string,
+  targetAnchor: 'top' | 'right' | 'bottom' | 'left'
+) => {
+  if (!connectingSource.value || !mindBoard.value) return
+
+  try {
+    await mindBoardStore.createConnection(mindBoard.value.id, {
+      boardId: mindBoard.value.id,
+      fromId: connectingSource.value.elementId,
+      toId: targetId,
+      fromAnchor: connectingSource.value.anchor,
+      toAnchor: targetAnchor
+    })
+  } catch (error) {
+    console.error('创建连接失败:', error)
+  } finally {
+    isConnecting.value = false
+    connectingSource.value = null
+  }
+}
+
+const getConnectionPoint = (
+  elementId: string,
+  anchor: 'top' | 'right' | 'bottom' | 'left'
+): { x: number; y: number } | null => {
+  const element = textElements.value.find((el) => el.id === elementId)
+  if (!element) {
+    console.warn(`找不到元素: ${elementId}`)
+    return null
+  }
+
+  const { x, y } = element.position
+  const { width, height } = element.size
+
+  switch (anchor) {
+    case 'top':
+      return { x: x + width / 2, y }
+    case 'right':
+      return { x: x + width, y: y + height / 2 }
+    case 'bottom':
+      return { x: x + width / 2, y: y + height }
+    case 'left':
+      return { x, y: y + height / 2 }
+  }
+}
+
+const handleTextCardSelect = (elementId: string) => {
+  selectedElementId.value = elementId
+}
+
+const validConnections = computed(() => {
+  const allConnections = mindBoard.value?.connections || []
+  return allConnections
+    .map((connection) => {
+      const fromPoint = getConnectionPoint(connection.fromId, connection.fromAnchor)
+      const toPoint = getConnectionPoint(connection.toId, connection.toAnchor)
+
+      if (!fromPoint || !toPoint) {
+        console.warn(`找不到连接 ${connection.id} 的端点坐标`)
+        return null
+      }
+
+      return {
+        ...connection,
+        points: {
+          start: fromPoint,
+          end: toPoint
+        }
+      }
+    })
+    .filter((connection): connection is NonNullable<typeof connection> => connection !== null)
 })
 </script>
 
@@ -599,23 +598,6 @@ const textElements = computed(() => {
 }
 
 .connection-preview {
-  position: fixed;
-  pointer-events: none;
-  background-color: var(--color-primary);
-  transform-origin: left center;
-  opacity: 0.5;
-  z-index: 1000;
-
-  &::after {
-    content: '';
-    position: absolute;
-    right: -6px;
-    top: -4px;
-    width: 0;
-    height: 0;
-    border-left: 8px solid var(--color-primary);
-    border-top: 5px solid transparent;
-    border-bottom: 5px solid transparent;
-  }
+  display: none;
 }
 </style>

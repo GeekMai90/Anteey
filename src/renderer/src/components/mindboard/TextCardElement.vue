@@ -22,12 +22,12 @@
     }"
     @mousedown="startDrag"
     @dblclick="handleDoubleClick"
-    @click.stop="emit('select')"
+    @click.stop="handleSelect"
     @mouseenter="handleMouseEnter"
     @mouseleave="handleMouseLeave"
   >
     <div v-if="props.selected" class="card-menu">
-      <button class="menu-button" @click.stop="emit('delete')" v-tooltip.bottom="'删除'">
+      <button class="menu-button" @click.stop="handleDelete" v-tooltip.bottom="'删除'">
         <Delete theme="outline" size="16" :strokeWidth="3" />
       </button>
       <button class="menu-button" @click.stop="toggleColorPicker" v-tooltip.bottom="'设置颜色'">
@@ -104,17 +104,15 @@ const props = defineProps<{
   card: TextCard
   scale: number
   selected?: boolean
-  isConnecting?: boolean
-  connectingFromId?: string | null
-  connectingAnchor?: 'top' | 'right' | 'bottom' | 'left' | null
-  targetAnchor?: 'top' | 'right' | 'bottom' | 'left' | null
+  isConnectingSource?: boolean
+  isConnectingTarget?: boolean
 }>()
 
 const emit = defineEmits<{
-  update: [updateData: Partial<TextCard>]
-  select: []
-  delete: []
+  select: [elementId: string]
+  delete: [elementId: string]
   focus: [element: TextCard]
+  update: [updateData: Partial<TextCard>]
   startConnection: [elementId: string, anchor: 'top' | 'right' | 'bottom' | 'left']
   endConnection: [elementId: string, anchor: 'top' | 'right' | 'bottom' | 'left']
 }>()
@@ -180,12 +178,11 @@ onUnmounted(() => {
 
 // 处理双击事件
 const handleDoubleClick = (e: MouseEvent) => {
-  // 如果点击的是调整大小的手柄，不进入编辑模式
   if ((e.target as HTMLElement).classList.contains('resize-handle')) {
     return
   }
 
-  emit('select')
+  emit('select', props.card.id)
   isEditing.value = true
   // 等待 DOM 更新后聚焦
   nextTick(() => {
@@ -208,17 +205,10 @@ const handleDoubleClick = (e: MouseEvent) => {
 
 // 开始拖动
 const startDrag = (e: MouseEvent) => {
-  // 如果正在编辑，不启动拖动
-  if (isEditing.value) {
-    return
-  }
+  if (isEditing.value) return
+  if ((e.target as HTMLElement).classList.contains('resize-handle')) return
 
-  // 如果点击的是调整大小的手柄，不启动拖动
-  if ((e.target as HTMLElement).classList.contains('resize-handle')) {
-    return
-  }
-
-  emit('select')
+  emit('select', props.card.id)
   e.stopPropagation()
   e.preventDefault() // 阻止文本选择
   isDragging = true
@@ -291,7 +281,7 @@ const handleResizeStart = (e: MouseEvent) => {
   const handleResize = (e: MouseEvent) => {
     if (!isResizing) return
 
-    // 计算鼠标实际移动的距离（考虑缩放）
+    // 计算鼠标际移动的距离（考虑缩放）
     const deltaX = (e.clientX - startMouseX) / props.scale
     const deltaY = (e.clientY - startMouseY) / props.scale
 
@@ -339,14 +329,10 @@ onMounted(() => {
 })
 
 // 计算当前元素是否是连线的起点
-const isConnectingSource = computed(() => {
-  return props.isConnecting && props.connectingFromId === props.card.id
-})
+const isConnectingSource = computed(() => props.isConnectingSource)
 
 // 计算当前元素是否可以作为连线的终点
-const isConnectingTarget = computed(() => {
-  return props.isConnecting && props.connectingFromId !== props.card.id
-})
+const isConnectingTarget = computed(() => props.isConnectingTarget)
 
 // 添加新的 ref 变量
 const isHovering = ref(false)
@@ -357,20 +343,12 @@ const startConnection = (e: MouseEvent, anchor: 'top' | 'right' | 'bottom' | 'le
   e.stopPropagation()
   activeAnchor.value = anchor
   emit('startConnection', props.card.id, anchor)
-
-  const cleanup = () => {
-    activeAnchor.value = null
-    document.removeEventListener('mouseup', cleanup)
-  }
-
-  document.addEventListener('mouseup', cleanup)
 }
 
 // 修改 handleMouseEnter 函数
 const handleMouseEnter = (e: MouseEvent) => {
   isHovering.value = true
-  if (props.isConnecting && props.connectingFromId !== props.card.id) {
-    // 计算最近的锚点
+  if (props.isConnectingTarget) {
     const anchor = getNearestAnchor(e)
     emit('endConnection', props.card.id, anchor)
   }
@@ -408,6 +386,15 @@ const handleMouseLeave = () => {
 // 修改 focus 事件的触发
 const handleFocus = () => {
   emit('focus', props.card)
+}
+
+// 修改事件触发方式
+const handleSelect = () => {
+  emit('select', props.card.id)
+}
+
+const handleDelete = () => {
+  emit('delete', props.card.id)
 }
 </script>
 
