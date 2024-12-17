@@ -18,38 +18,36 @@
       @mouseup="stopPan"
       @mouseleave="stopPan"
     >
-      <div
-        class="canvas"
-        :style="{
-          transform: `scale(${scale}) translate(${translateX}px, ${translateY}px)`,
-          cursor: isPanning ? 'grabbing' : 'grab'
-        }"
-      >
-        <!-- 网格背景 -->
+      <div ref="transformLayerRef" class="transform-layer" :style="transformLayerStyle">
         <div class="grid-background"></div>
 
-        <!-- 元素容器 -->
-        <div class="elements-container">
-          <template v-if="mindBoard">
-            <template v-for="element in mindBoard.elements" :key="element.id">
-              <TextCardElement
-                v-if="element.type === 'text'"
-                :card="element"
-                :scale="scale"
-                :selected="element.id === selectedElementId"
-                @select="selectedElementId = element.id"
-                @delete="handleDeleteElement(element.id)"
-                @focus="handleFocusElement(element)"
-                @update="updateElement"
-              />
-              <!-- 后续添加其他类型的元素 -->
-            </template>
-          </template>
-        </div>
+        <ConnectionLine
+          v-for="connection in mindBoard?.connections"
+          :key="connection.id"
+          :connection="connection"
+          :scale="scale"
+        />
+
+        <TextCardElement
+          v-for="element in textElements"
+          :key="element.id"
+          :card="element"
+          :scale="scale"
+          :selected="element.id === selectedElementId"
+          :is-connecting="isConnecting"
+          :connecting-from-id="connectingFromId"
+          :connecting-anchor="connectingAnchor"
+          :target-anchor="targetAnchor"
+          @select="selectedElementId = element.id"
+          @delete="handleDeleteElement(element.id)"
+          @focus="handleFocusElement"
+          @update="updateElement"
+          @start-connection="handleStartConnection"
+          @end-connection="handleEndConnection"
+        />
       </div>
     </div>
 
-    <!-- 底部工具栏 -->
     <div class="bottom-toolbar">
       <div class="toolbar-buttons">
         <button
@@ -68,7 +66,6 @@
       </div>
     </div>
 
-    <!-- 拖动预览 -->
     <div
       v-if="draggingPreview"
       class="dragging-preview"
@@ -79,23 +76,27 @@
     >
       <Notes theme="outline" size="20" :strokeWidth="3" />
     </div>
+
+    <div v-if="isConnecting" class="connection-preview" :style="connectionPreviewStyle"></div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed, watch } from 'vue'
+import { ref, onMounted, computed, watch, onUnmounted, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
 import { useMindBoardStore } from '@renderer/stores/mindboardStore'
 import AppToolbar from '@renderer/components/layout/AppToolbar.vue'
 import { Notes, Book, Picture } from '@icon-park/vue-next'
 import TextCardElement from '@renderer/components/mindboard/TextCardElement.vue'
 import { TextCard } from '../types/mindboard'
+import ConnectionLine from '@renderer/components/mindboard/ConnectionLine.vue'
+import type { MindBoardConnection } from '@renderer/types/mindboard'
 
 const route = useRoute()
 const mindBoardStore = useMindBoardStore()
 const canvasRef = ref<HTMLDivElement | null>(null)
+const transformLayerRef = ref<HTMLDivElement | null>(null)
 
-// 画布状态
 const scale = ref(1)
 const translateX = ref(0)
 const translateY = ref(0)
@@ -103,22 +104,54 @@ const isPanning = ref(false)
 const lastX = ref(0)
 const lastY = ref(0)
 
-// 拖动相关状态
 const draggingPreview = ref(false)
 const previewPosition = ref({ x: 0, y: 0 })
 const draggingType = ref<'text' | 'note' | 'image' | null>(null)
 
-// 状态管理
 const selectedElementId = ref<string | null>(null)
 
-// 获取思维板数据
 const mindBoard = computed(() => mindBoardStore.currentMindBoard)
+
+const initializeView = () => {
+  if (!mindBoard.value || !canvasRef.value) return
+
+  if (mindBoard.value.elements.length === 0) return
+
+  const bounds = mindBoard.value.elements.reduce(
+    (acc, element) => {
+      acc.left = Math.min(acc.left, element.position.x)
+      acc.right = Math.max(acc.right, element.position.x + element.size.width)
+      acc.top = Math.min(acc.top, element.position.y)
+      acc.bottom = Math.max(acc.bottom, element.position.y + element.size.height)
+      return acc
+    },
+    {
+      left: Infinity,
+      right: -Infinity,
+      top: Infinity,
+      bottom: -Infinity
+    }
+  )
+
+  if (bounds.left === Infinity) return
+
+  const contentCenterX = (bounds.left + bounds.right) / 2
+  const contentCenterY = (bounds.top + bounds.bottom) / 2
+
+  const containerRect = canvasRef.value.getBoundingClientRect()
+  const containerCenterX = containerRect.width / 2
+  const containerCenterY = containerRect.height / 2
+
+  translateX.value = containerCenterX / scale.value - contentCenterX
+  translateY.value = containerCenterY / scale.value - contentCenterY
+}
 
 const loadMindBoard = async () => {
   const boardId = route.params.id as string
   try {
     await mindBoardStore.fetchMindBoard(boardId)
     console.log('Loaded mindboard:', mindBoardStore.currentMindBoard)
+    nextTick(initializeView)
   } catch (error) {
     console.error('Failed to load mindboard:', error)
   }
@@ -126,9 +159,9 @@ const loadMindBoard = async () => {
 
 onMounted(() => {
   loadMindBoard()
+  window.addEventListener('resize', initializeView)
 })
 
-// 监听路由变化，重新加载数据
 watch(
   () => route.params.id,
   (newId) => {
@@ -138,23 +171,34 @@ watch(
   }
 )
 
-// 画布缩放
 const handleWheel = (e: WheelEvent) => {
   if (e.ctrlKey || e.metaKey) {
     e.preventDefault()
+
+    const rect = canvasRef.value?.getBoundingClientRect()
+    if (!rect) return
+
+    const mouseX = e.clientX - rect.left
+    const mouseY = e.clientY - rect.top
+
+    const contentX = (mouseX - translateX.value * scale.value) / scale.value
+    const contentY = (mouseY - translateY.value * scale.value) / scale.value
+
     const delta = e.deltaY > 0 ? 0.9 : 1.1
-    scale.value = Math.min(Math.max(0.1, scale.value * delta), 5)
+    const newScale = Math.min(Math.max(0.1, scale.value * delta), 5)
+
+    scale.value = newScale
+    translateX.value = (mouseX - contentX * newScale) / newScale
+    translateY.value = (mouseY - contentY * newScale) / newScale
   }
 }
 
-// 重置缩放
 const resetZoom = () => {
   scale.value = 1
   translateX.value = 0
   translateY.value = 0
 }
 
-// 画布平移
 const pan = (e: MouseEvent) => {
   if (!isPanning.value) return
   const dx = e.clientX - lastX.value
@@ -169,24 +213,20 @@ const stopPan = () => {
   isPanning.value = false
 }
 
-// 辅助函数：计算画布坐标
 const calculateCanvasPosition = (clientX: number, clientY: number) => {
   const canvasRect = canvasRef.value?.getBoundingClientRect()
   if (!canvasRect) return null
 
-  // 计算相对于画布容器的位置
   const x = (clientX - canvasRect.left) / scale.value - translateX.value
   const y = (clientY - canvasRect.top) / scale.value - translateY.value
 
   return { x, y }
 }
 
-// 插入卡片方法
 const insertTextCard = () => {
   const canvasRect = canvasRef.value?.getBoundingClientRect()
   if (!canvasRect) return
 
-  // 计算画布中心位置
   const center = calculateCanvasPosition(
     canvasRect.left + canvasRect.width / 2,
     canvasRect.top + canvasRect.height / 2
@@ -198,43 +238,39 @@ const insertTextCard = () => {
 }
 
 const insertNoteCard = () => {
-  // TODO: 实现插入笔记卡片
   console.log('插入笔记卡片')
 }
 
 const insertImageCard = () => {
-  // TODO: 实现插入图片卡片
   console.log('插入图片卡片')
 }
 
-// 更新元素
 const updateElement = async (updateData: Partial<TextCard>) => {
   if (!mindBoard.value || !updateData.id) return
-  await mindBoardStore.updateElement(updateData)
+
+  try {
+    await mindBoardStore.updateElement(updateData)
+  } catch (error) {
+    console.error('更新元素失败:', error)
+  }
 }
 
-// 开始拖动
 const startDragging = (type: 'text' | 'note' | 'image', e: MouseEvent) => {
-  // 阻止点击事件
   e.preventDefault()
   e.stopPropagation()
 
-  // 记录初始位置
   const startX = e.clientX
   const startY = e.clientY
 
-  // 是否已经开始拖动
   let isDragging = false
 
   draggingType.value = type
-  // draggingPreview.value = true
+  draggingPreview.value = true
 
   const handleDrag = (e: MouseEvent) => {
-    // 计算移动距离
     const dx = e.clientX - startX
     const dy = e.clientY - startY
 
-    // 如果移动距离超过阈值，则认为是拖动
     if (!isDragging && (Math.abs(dx) > 5 || Math.abs(dy) > 5)) {
       isDragging = true
       draggingPreview.value = true
@@ -252,7 +288,6 @@ const startDragging = (type: 'text' | 'note' | 'image', e: MouseEvent) => {
     draggingPreview.value = false
     draggingType.value = null
 
-    // 如果没有拖动，则视为点击
     if (!isDragging) {
       switch (type) {
         case 'text':
@@ -265,9 +300,7 @@ const startDragging = (type: 'text' | 'note' | 'image', e: MouseEvent) => {
           insertImageCard()
           break
       }
-      // 后续可以添加其他类型的处理
     } else {
-      // 拖动结束，在释放位置创建元素
       const pos = calculateCanvasPosition(e.clientX, e.clientY)
       if (pos) {
         createElementAtPosition(pos.x, pos.y)
@@ -282,7 +315,6 @@ const startDragging = (type: 'text' | 'note' | 'image', e: MouseEvent) => {
   document.addEventListener('mouseup', handleDragEnd)
 }
 
-// 在指定位置创建元素
 const createElementAtPosition = async (x: number, y: number) => {
   if (!mindBoard.value) return
 
@@ -300,9 +332,7 @@ const createElementAtPosition = async (x: number, y: number) => {
   await mindBoardStore.createElement(mindBoard.value.id, element)
 }
 
-// 处理鼠标按下事件
 const handleMouseDown = (e: MouseEvent) => {
-  // 先处理取消选中
   const target = e.target as HTMLElement
   if (
     target.classList.contains('canvas-container') ||
@@ -313,7 +343,6 @@ const handleMouseDown = (e: MouseEvent) => {
     selectedElementId.value = null
   }
 
-  // 再处理画布拖动
   if (target.closest('.text-content[contenteditable="true"]')) {
     return
   }
@@ -323,13 +352,11 @@ const handleMouseDown = (e: MouseEvent) => {
   lastY.value = e.clientY
 }
 
-// 处理删除元素
 const handleDeleteElement = async (elementId: string) => {
   if (!mindBoard.value) return
 
   try {
     await mindBoardStore.deleteElement(elementId)
-    // 如果删除的是当前选中的元素，取消选中状态
     if (selectedElementId.value === elementId) {
       selectedElementId.value = null
     }
@@ -338,38 +365,125 @@ const handleDeleteElement = async (elementId: string) => {
   }
 }
 
-// 处理聚焦元素
 const handleFocusElement = (element: TextCard) => {
   if (!canvasRef.value) return
 
-  // 获取画布元素
-  const canvas = canvasRef.value.querySelector('.canvas') as HTMLElement
-  if (!canvas) return
-
-  // 添加过渡效果
-  canvas.style.transition = 'transform 0.3s ease'
-
-  // 先重置缩放
   scale.value = 1
 
-  // 获取画布容器的中心点
   const containerRect = canvasRef.value.getBoundingClientRect()
   const containerCenterX = containerRect.width / 2
   const containerCenterY = containerRect.height / 2
 
-  // 计算元素中心点到容器中心点的距离
   const elementCenterX = element.position.x + element.size.width / 2
   const elementCenterY = element.position.y + element.size.height / 2
 
-  // 计算需要的平移量，使元素中心与容器中心对齐
-  translateX.value = containerCenterX / scale.value - elementCenterX
-  translateY.value = containerCenterY / scale.value - elementCenterY
-
-  // 恢复默认过渡效果
-  setTimeout(() => {
-    canvas.style.transition = 'transform 0.1s ease'
-  }, 300)
+  translateX.value = containerCenterX - elementCenterX
+  translateY.value = containerCenterY - elementCenterY
 }
+
+const isConnecting = ref(false)
+const connectingFromId = ref<string | undefined>(undefined)
+const connectingAnchor = ref<'top' | 'right' | 'bottom' | 'left' | null>(null)
+const targetAnchor = ref<'top' | 'right' | 'bottom' | 'left' | null>(null)
+
+const handleStartConnection = (elementId: string, anchor: 'top' | 'right' | 'bottom' | 'left') => {
+  isConnecting.value = true
+  connectingFromId.value = elementId
+  connectingAnchor.value = anchor
+}
+
+const handleEndConnection = async (
+  elementId: string,
+  anchor: 'top' | 'right' | 'bottom' | 'left'
+) => {
+  if (!isConnecting.value || !connectingFromId.value || !mindBoard.value) return
+
+  const connection: Omit<MindBoardConnection, 'id'> = {
+    fromId: connectingFromId.value,
+    toId: elementId,
+    boardId: mindBoard.value.id,
+    fromAnchor: connectingAnchor.value!,
+    toAnchor: anchor,
+    style: {
+      color: 'var(--color-text-secondary)',
+      size: 2,
+      path: 'fluid',
+      startPlug: 'behind',
+      endPlug: 'arrow1'
+    }
+  }
+
+  try {
+    await mindBoardStore.createConnection(mindBoard.value.id, connection)
+  } catch (error) {
+    console.error('创建连线失败:', error)
+  }
+
+  isConnecting.value = false
+  connectingFromId.value = undefined
+  connectingAnchor.value = null
+  targetAnchor.value = null
+}
+
+const connectionPreviewStyle = ref({
+  display: 'none',
+  left: '0px',
+  top: '0px',
+  width: '0px',
+  height: '0px',
+  transform: 'rotate(0deg)'
+})
+
+const updateConnectionPreview = (e: MouseEvent) => {
+  if (!isConnecting.value || !connectingFromId.value) return
+
+  const sourceElement = document.querySelector(`[data-element-id="${connectingFromId.value}"]`)
+  if (!sourceElement) return
+
+  const sourceRect = sourceElement.getBoundingClientRect()
+  const sourceCenter = {
+    x: sourceRect.left + sourceRect.width / 2,
+    y: sourceRect.top + sourceRect.height / 2
+  }
+
+  const dx = e.clientX - sourceCenter.x
+  const dy = e.clientY - sourceCenter.y
+  const distance = Math.sqrt(dx * dx + dy * dy)
+  const angle = Math.atan2(dy, dx) * (180 / Math.PI)
+
+  connectionPreviewStyle.value = {
+    display: 'block',
+    left: `${sourceCenter.x}px`,
+    top: `${sourceCenter.y}px`,
+    width: `${distance}px`,
+    height: '2px',
+    transform: `rotate(${angle}deg)`
+  }
+}
+
+watch(isConnecting, (newValue) => {
+  if (newValue) {
+    document.addEventListener('mousemove', updateConnectionPreview)
+  } else {
+    document.removeEventListener('mousemove', updateConnectionPreview)
+    connectionPreviewStyle.value.display = 'none'
+  }
+})
+
+onUnmounted(() => {
+  document.removeEventListener('mousemove', updateConnectionPreview)
+  window.removeEventListener('resize', initializeView)
+})
+
+const transformLayerStyle = computed(() => ({
+  transform: `scale(${scale.value}) translate(${translateX.value}px, ${translateY.value}px)`,
+  transformOrigin: '0 0'
+}))
+
+const textElements = computed(() => {
+  if (!mindBoard.value) return []
+  return mindBoard.value.elements.filter((element): element is TextCard => element.type === 'text')
+})
 </script>
 
 <style lang="scss" scoped>
@@ -381,7 +495,6 @@ const handleFocusElement = (element: TextCard) => {
 }
 
 .toolbar {
-  // border-bottom: 1px solid var(--color-border);
   background-color: var(--color-bg-secondary);
 
   .board-title {
@@ -406,27 +519,24 @@ const handleFocusElement = (element: TextCard) => {
 
 .canvas-container {
   flex: 1;
-  overflow: hidden;
   position: relative;
+  overflow: hidden;
   background-color: var(--color-bg-secondary);
 }
 
-.canvas {
+.transform-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
   width: 100%;
   height: 100%;
-  position: absolute;
-  transform-origin: center;
-  transition: transform 0.1s ease;
+  will-change: transform;
 }
 
 .grid-background {
   position: absolute;
-  width: 100%;
-  height: 100%;
-}
-
-.elements-container {
-  position: relative;
+  top: 0;
+  left: 0;
   width: 100%;
   height: 100%;
 }
@@ -486,5 +596,26 @@ const handleFocusElement = (element: TextCard) => {
   transform: translate(-50%, -50%);
   box-shadow: var(--shadow-primary);
   opacity: 0.8;
+}
+
+.connection-preview {
+  position: fixed;
+  pointer-events: none;
+  background-color: var(--color-primary);
+  transform-origin: left center;
+  opacity: 0.5;
+  z-index: 1000;
+
+  &::after {
+    content: '';
+    position: absolute;
+    right: -6px;
+    top: -4px;
+    width: 0;
+    height: 0;
+    border-left: 8px solid var(--color-primary);
+    border-top: 5px solid transparent;
+    border-bottom: 5px solid transparent;
+  }
 }
 </style>

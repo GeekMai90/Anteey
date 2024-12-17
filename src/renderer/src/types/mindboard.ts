@@ -16,7 +16,7 @@ interface MindBoardElementBase {
 }
 
 // 文字卡片
-export interface TextCard extends MindBoardElementBase {
+interface TextCard extends MindBoardElementBase {
   type: 'text'
   content: string
   style?: {
@@ -50,7 +50,7 @@ interface ConnectionStyle {
   // Leader Line 的样式选项
   color?: string
   size?: number
-  dash?: boolean | number[]
+  dash?: boolean | [number, number]
   gradient?: {
     startColor: string
     endColor: string
@@ -72,8 +72,11 @@ interface ConnectionStyle {
 // 连接线
 interface MindBoardConnection {
   id: string
+  boardId: string // 添加 boardId 字段
   fromId: string // 起始元素ID
   toId: string // 目标元素ID
+  fromAnchor: 'top' | 'right' | 'bottom' | 'left'
+  toAnchor: 'top' | 'right' | 'bottom' | 'left'
   label?: string // 连线说明文字
   style?: ConnectionStyle
 }
@@ -109,6 +112,7 @@ interface MindBoard {
 // 导出所有类型
 export type {
   MindBoardElementBase,
+  TextCard,
   NoteCard,
   ImageCard,
   MindBoardConnection,

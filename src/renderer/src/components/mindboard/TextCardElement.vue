@@ -2,6 +2,7 @@
   <div
     class="text-card"
     ref="cardRef"
+    :data-element-id="card.id"
     :style="{
       left: `${card.position.x}px`,
       top: `${card.position.y}px`,
@@ -14,10 +15,16 @@
         ? `color-mix(in srgb, ${card.style.color} 5%, var(--color-bg-primary))`
         : 'var(--color-bg-primary)'
     }"
-    :class="{ selected: props.selected }"
+    :class="{
+      selected: props.selected,
+      'connecting-source': isConnectingSource,
+      'connecting-target': isConnectingTarget
+    }"
     @mousedown="startDrag"
     @dblclick="handleDoubleClick"
     @click.stop="emit('select')"
+    @mouseenter="handleMouseEnter"
+    @mouseleave="handleMouseLeave"
   >
     <div v-if="props.selected" class="card-menu">
       <button class="menu-button" @click.stop="emit('delete')" v-tooltip.bottom="'删除'">
@@ -26,7 +33,7 @@
       <button class="menu-button" @click.stop="toggleColorPicker" v-tooltip.bottom="'设置颜色'">
         <Paint theme="outline" size="16" :strokeWidth="3" />
       </button>
-      <button class="menu-button" @click.stop="emit('focus')" v-tooltip.bottom="'聚焦'">
+      <button class="menu-button" @click.stop="handleFocus" v-tooltip.bottom="'聚焦'">
         <Focus theme="outline" size="16" :strokeWidth="3" />
       </button>
     </div>
@@ -53,11 +60,43 @@
       ></div>
     </div>
     <div class="resize-handle bottom-right" @mousedown.stop="handleResizeStart($event)"></div>
+
+    <div class="connection-anchors" v-show="props.selected || isHovering">
+      <div
+        class="anchor top"
+        @mousedown.stop="startConnection($event, 'top')"
+        :class="{ active: isConnectingSource && activeAnchor === 'top' }"
+      ></div>
+      <div
+        class="anchor right"
+        @mousedown.stop="startConnection($event, 'right')"
+        :class="{ active: isConnectingSource && activeAnchor === 'right' }"
+      ></div>
+      <div
+        class="anchor bottom"
+        @mousedown.stop="startConnection($event, 'bottom')"
+        :class="{ active: isConnectingSource && activeAnchor === 'bottom' }"
+      ></div>
+      <div
+        class="anchor left"
+        @mousedown.stop="startConnection($event, 'left')"
+        :class="{ active: isConnectingSource && activeAnchor === 'left' }"
+      ></div>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { defineProps, defineEmits, ref, nextTick, watch, onMounted, onUnmounted } from 'vue'
+import {
+  defineProps,
+  defineEmits,
+  ref,
+  nextTick,
+  watch,
+  onMounted,
+  onUnmounted,
+  computed
+} from 'vue'
 import { Delete, Paint, Focus } from '@icon-park/vue-next'
 import type { TextCard } from '@renderer/types/mindboard'
 
@@ -65,13 +104,19 @@ const props = defineProps<{
   card: TextCard
   scale: number
   selected?: boolean
+  isConnecting?: boolean
+  connectingFromId?: string | null
+  connectingAnchor?: 'top' | 'right' | 'bottom' | 'left' | null
+  targetAnchor?: 'top' | 'right' | 'bottom' | 'left' | null
 }>()
 
 const emit = defineEmits<{
   update: [updateData: Partial<TextCard>]
   select: []
   delete: []
-  focus: []
+  focus: [element: TextCard]
+  startConnection: [elementId: string, anchor: 'top' | 'right' | 'bottom' | 'left']
+  endConnection: [elementId: string, anchor: 'top' | 'right' | 'bottom' | 'left']
 }>()
 
 const cardRef = ref<HTMLElement | null>(null)
@@ -292,6 +337,78 @@ onMounted(() => {
     textContentRef.value.innerHTML = props.card.content
   }
 })
+
+// 计算当前元素是否是连线的起点
+const isConnectingSource = computed(() => {
+  return props.isConnecting && props.connectingFromId === props.card.id
+})
+
+// 计算当前元素是否可以作为连线的终点
+const isConnectingTarget = computed(() => {
+  return props.isConnecting && props.connectingFromId !== props.card.id
+})
+
+// 添加新的 ref 变量
+const isHovering = ref(false)
+const activeAnchor = ref<'top' | 'right' | 'bottom' | 'left' | null>(null)
+
+// 修改 startConnection 函数
+const startConnection = (e: MouseEvent, anchor: 'top' | 'right' | 'bottom' | 'left') => {
+  e.stopPropagation()
+  activeAnchor.value = anchor
+  emit('startConnection', props.card.id, anchor)
+
+  const cleanup = () => {
+    activeAnchor.value = null
+    document.removeEventListener('mouseup', cleanup)
+  }
+
+  document.addEventListener('mouseup', cleanup)
+}
+
+// 修改 handleMouseEnter 函数
+const handleMouseEnter = (e: MouseEvent) => {
+  isHovering.value = true
+  if (props.isConnecting && props.connectingFromId !== props.card.id) {
+    // 计算最近的锚点
+    const anchor = getNearestAnchor(e)
+    emit('endConnection', props.card.id, anchor)
+  }
+}
+
+// 添加计算最近锚点的函数
+const getNearestAnchor = (e: MouseEvent) => {
+  if (!cardRef.value) return 'top' as const
+
+  const rect = cardRef.value.getBoundingClientRect()
+  const mouseX = e.clientX
+  const mouseY = e.clientY
+
+  // 计算到各个锚点的距离
+  const distances = {
+    top: Math.abs(mouseY - rect.top),
+    right: Math.abs(mouseX - rect.right),
+    bottom: Math.abs(mouseY - rect.bottom),
+    left: Math.abs(mouseX - rect.left)
+  }
+
+  // 返回距离最近的锚点
+  return Object.entries(distances).reduce((a, b) => (a[1] < b[1] ? a : b))[0] as
+    | 'top'
+    | 'right'
+    | 'bottom'
+    | 'left'
+}
+
+// 修改 handleMouseLeave 函数
+const handleMouseLeave = () => {
+  isHovering.value = false
+}
+
+// 修改 focus 事件的触发
+const handleFocus = () => {
+  emit('focus', props.card)
+}
 </script>
 
 <style lang="scss" scoped>
@@ -442,6 +559,87 @@ onMounted(() => {
 
       &.active {
         border-color: var(--color-primary);
+      }
+    }
+  }
+
+  &.connecting-source {
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-primary) 20%, transparent);
+  }
+
+  &.connecting-target {
+    border-style: dashed;
+    cursor: crosshair;
+
+    &:hover {
+      border-color: var(--color-success);
+      box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-success) 20%, transparent);
+    }
+  }
+
+  .connection-anchors {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+
+    .anchor {
+      position: absolute;
+      width: 12px;
+      height: 12px;
+      background-color: var(--color-bg-secondary);
+      border: 2px solid var(--color-primary);
+      border-radius: 50%;
+      pointer-events: auto;
+      cursor: crosshair;
+      opacity: 0.6;
+      transition: all 0.2s;
+
+      &:hover,
+      &.active {
+        opacity: 1;
+        transform: scale(1.2);
+      }
+
+      &.top {
+        top: -6px;
+        left: 50%;
+        transform: translateX(-50%);
+      }
+
+      &.right {
+        right: -6px;
+        top: 50%;
+        transform: translateY(-50%);
+      }
+
+      &.bottom {
+        bottom: -6px;
+        left: 50%;
+        transform: translateX(-50%);
+      }
+
+      &.left {
+        left: -6px;
+        top: 50%;
+        transform: translateY(-50%);
+      }
+    }
+  }
+
+  &.connecting-source {
+    .connection-anchors .anchor.active {
+      background-color: var(--color-primary);
+      border-color: var(--color-primary);
+    }
+  }
+
+  &.connecting-target {
+    .connection-anchors .anchor {
+      border-color: var(--color-success);
+
+      &:hover {
+        background-color: var(--color-success);
       }
     }
   }
