@@ -14,11 +14,15 @@ import LeaderLine from 'leader-line-new'
 const props = defineProps<{
   connection: MindBoardConnection
   scale: number
+  selected?: boolean
 }>()
 
 const labelRef = ref<HTMLElement | null>(null)
 let line: any = null
 const observer = ref<MutationObserver | null>(null)
+const emit = defineEmits<{
+  click: [e: MouseEvent]
+}>()
 
 // 创建连线
 const createLine = () => {
@@ -51,17 +55,28 @@ const createLine = () => {
             : false
     })
 
-    // 将 SVG 移动到 transform-layer 中
+    // 将 SVG 移动到连线容器中
     if (line.svg) {
-      const container = start.closest('.transform-layer')
+      const container = document.querySelector(`.connection-line[data-id="${props.connection.id}"]`)
       if (container) {
         container.appendChild(line.svg)
         line.svg.style.position = 'absolute'
         line.svg.style.zIndex = '1'
-        line.svg.style.pointerEvents = 'none'
-
-        // 添加这一行，确保连线的 SVG 跟随变换层
         line.svg.style.willChange = 'transform'
+
+        // 添加点击事件监听
+        line.svg.addEventListener('click', (e: MouseEvent) => {
+          emit('click', e)
+        })
+
+        // 添加选中状态的样式
+        if (props.selected) {
+          line.color = 'var(--color-primary)'
+          line.size = (props.connection.style?.size || 2) * 1.5
+        } else {
+          line.color = props.connection.style?.color || 'var(--color-text-secondary)'
+          line.size = props.connection.style?.size || 2
+        }
       }
     }
 
@@ -109,6 +124,22 @@ watch(
   { deep: true }
 )
 
+// 监听选中状态变化
+watch(
+  () => props.selected,
+  (selected) => {
+    if (!line) return
+
+    if (selected) {
+      line.color = 'var(--color-primary)'
+      line.size = (props.connection.style?.size || 2) * 1.5
+    } else {
+      line.color = props.connection.style?.color || 'var(--color-text-secondary)'
+      line.size = props.connection.style?.size || 2
+    }
+  }
+)
+
 // 在组件挂载时创建连线
 onMounted(() => {
   nextTick(() => {
@@ -129,10 +160,11 @@ onUnmounted(() => {
 
 <style lang="scss" scoped>
 .connection-line {
-  position: absolute;
-  pointer-events: none;
+  position: relative;
   overflow: visible;
   will-change: transform;
+  min-width: 10px;
+  min-height: 10px;
 }
 
 .connection-label {
