@@ -21,7 +21,12 @@ import {
   updateWhiteboardNoteAutoHeight,
   updateWhiteboardName,
   deleteWhiteboard,
-  getWhiteboardCount
+  getWhiteboardCount,
+  createWhiteboardTextCard,
+  getWhiteboardTextCards,
+  updateWhiteboardTextCard,
+  deleteWhiteboardTextCard,
+  updateTextCardsZIndex
 } from '../../services/notes/whiteboards'
 
 export function setupWhiteboardHandlers() {
@@ -265,6 +270,70 @@ export function setupWhiteboardHandlers() {
       return newWhiteboard
     } catch (error) {
       console.error('主进程 → 创建白板时出错:', error)
+      return { success: false, error: error }
+    }
+  })
+  // 创建文本卡片
+  ipcMain.handle('create-whiteboard-text-card', async (_, input) => {
+    try {
+      console.log('主进程 → 创建文本卡片:', input)
+      const newTextCard = await createWhiteboardTextCard(input)
+      console.log('主进程 → 创建文本卡片成功:', newTextCard)
+      return newTextCard
+    } catch (error) {
+      console.error('主进程 → 创建文本卡片时出错:', error)
+      return { success: false, error: error }
+    }
+  })
+
+  // 获取白板的所有文本卡片
+  ipcMain.handle('get-whiteboard-text-cards', async (_, whiteboardId) => {
+    try {
+      console.log('主进程 → 获取白板文本卡片:', whiteboardId)
+      const textCards = await getWhiteboardTextCards(whiteboardId)
+      console.log('主进程 → 获取白板文本卡片成功:', textCards)
+      return textCards
+    } catch (error) {
+      console.error('主进程 → 获取白板文本卡片时出错:', error)
+      return { success: false, error: error }
+    }
+  })
+
+  // 更新文本卡片
+  ipcMain.handle('update-whiteboard-text-card', async (_, id, updates) => {
+    try {
+      console.log('主进程 → 更新文本卡片:', id, updates)
+      const updatedCard = await updateWhiteboardTextCard(id, updates)
+      console.log('主进程 → 更新文本卡片成功:', updatedCard)
+      return updatedCard
+    } catch (error) {
+      console.error('主进程 → 更新文本卡片时出错:', error)
+      return { success: false, error: error }
+    }
+  })
+
+  // 删除文本卡片
+  ipcMain.handle('delete-whiteboard-text-card', async (_, id) => {
+    try {
+      console.log('主进程 → 删除文本卡片:', id)
+      const result = await deleteWhiteboardTextCard(id)
+      console.log('主进程 → 删除文本卡片成功:', result)
+      return { success: true }
+    } catch (error) {
+      console.error('主进程 → 删除文本卡片时出错:', error)
+      return { success: false, error: error }
+    }
+  })
+
+  // 批量更新文本卡片的 zIndex
+  ipcMain.handle('update-text-cards-zindex', async (_, updates) => {
+    try {
+      console.log('主进程 → 批量更新文本卡片 zIndex:', updates)
+      const result = await updateTextCardsZIndex(updates)
+      console.log('主进程 → 批量更新文本卡片 zIndex 成功:', result)
+      return { success: true }
+    } catch (error) {
+      console.error('主进程 → 批量更新文本卡片 zIndex 时出错:', error)
       return { success: false, error: error }
     }
   })

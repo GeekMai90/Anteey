@@ -27,6 +27,7 @@ import { imageApi } from './api/imageApi'
 import { licenseApi } from './api/licenseApi'
 import { backupApi } from './api/backupApi'
 import { timeBlockApi } from './api/timeBlockApi'
+import { whiteboardApi } from './api/whiteboardApi'
 // 添加日志 API
 contextBridge.exposeInMainWorld('electronLog', {
   info: (...args: any[]) => ipcRenderer.send('renderer-log', { level: 'info', args }),
@@ -50,6 +51,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   ...licenseApi,
   ...backupApi,
   ...timeBlockApi,
+  ...whiteboardApi,
   getResourcePath: async (filename: string): Promise<string> => {
     try {
       return (await ipcRenderer.invoke('get-resource-path', filename)) as string

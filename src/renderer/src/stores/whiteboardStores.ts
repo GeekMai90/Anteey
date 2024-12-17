@@ -7,7 +7,8 @@ import {
   CreateWhiteboardNoteInput,
   Note,
   ConnectionCreateData,
-  WhiteboardNote
+  WhiteboardNote,
+  WhiteboardTextCard
 } from '../types/Note'
 import { useNoteStore } from './noteStores'
 
@@ -19,7 +20,8 @@ export const useWhiteboardStore = defineStore('whiteboard', {
     currentWhiteboardId: undefined as string | undefined,
     isLoading: false,
     error: null as string | null,
-    whiteboardNotes: [] as WhiteboardNote[]
+    whiteboardNotes: [] as WhiteboardNote[],
+    whiteboardTextCards: [] as WhiteboardTextCard[]
   }),
   actions: {
     // 获取所有顶层白板
@@ -42,14 +44,15 @@ export const useWhiteboardStore = defineStore('whiteboard', {
       this.currentWhiteboardId = whiteboardId
 
       try {
-        // 假设这些是您的 API 方法
-        const [whiteboardNotes, connections] = await Promise.all([
+        const [whiteboardNotes, connections, textCards] = await Promise.all([
           this.getWhiteboardNotes(whiteboardId),
-          this.getConnections(whiteboardId)
+          this.getConnections(whiteboardId),
+          this.getWhiteboardTextCards(whiteboardId)
         ])
 
         this.whiteboardNotes = whiteboardNotes
         this.connections = connections
+        this.whiteboardTextCards = textCards
       } catch (error) {
         console.error('Failed to initialize whiteboard data:', error)
         this.error = 'Failed to load whiteboard data'
@@ -398,6 +401,106 @@ export const useWhiteboardStore = defineStore('whiteboard', {
         console.error('whiteboardStore→ 获取白板数量失败', error)
         throw error
       }
+    },
+    // 创建文本卡片
+    async createWhiteboardTextCard(input: {
+      whiteboardId: string
+      content: string
+      position: { x: number; y: number }
+      size: { width: number; height: number }
+      zIndex: number
+      style?: {
+        backgroundColor?: string
+        textColor?: string
+        fontSize?: number
+        fontFamily?: string
+      }
+    }) {
+      try {
+        console.log('whiteboardStore→ 开始创建文本卡片', input)
+        const newTextCard = await window.electronAPI.createWhiteboardTextCard(input)
+        this.whiteboardTextCards.push(newTextCard)
+        console.log('whiteboardStore→ 创建文本卡片成功', newTextCard)
+        return newTextCard
+      } catch (error) {
+        console.error('whiteboardStore→ 创建文本卡片失败', error)
+        throw error
+      }
+    },
+
+    // 获取白板的所有文本卡片
+    async getWhiteboardTextCards(whiteboardId: string) {
+      try {
+        console.log('whiteboardStore→ 开始获取白板文本卡片', whiteboardId)
+        const textCards = await window.electronAPI.getWhiteboardTextCards(whiteboardId)
+        this.whiteboardTextCards = textCards
+        console.log('whiteboardStore→ 获取白板文本卡片成功', textCards)
+        return textCards
+      } catch (error) {
+        console.error('whiteboardStore→ 获取白板文本卡片失败', error)
+        throw error
+      }
+    },
+
+    // 更新文本卡片
+    async updateWhiteboardTextCard(id: string, updates: Partial<WhiteboardTextCard>) {
+      try {
+        console.log('whiteboardStore→ 开始更新文本卡片', { id, updates })
+        const updatedCard = await window.electronAPI.updateWhiteboardTextCard(id, updates)
+        // 更新本地状态
+        const index = this.whiteboardTextCards.findIndex((card) => card.id === id)
+        if (index !== -1) {
+          this.whiteboardTextCards[index] = updatedCard
+        }
+        console.log('whiteboardStore→ 更新文本卡片成功', updatedCard)
+        return updatedCard
+      } catch (error) {
+        console.error('whiteboardStore→ 更新文本卡片失败', error)
+        throw error
+      }
+    },
+
+    // 删除文本卡片
+    async deleteWhiteboardTextCard(id: string) {
+      try {
+        console.log('whiteboardStore→ 开始删除文本卡片', id)
+        const result = await window.electronAPI.deleteWhiteboardTextCard(id)
+        if (result) {
+          // 更新本地状态
+          this.whiteboardTextCards = this.whiteboardTextCards.filter((card) => card.id !== id)
+          // 更新连接
+          this.connections = this.connections.filter(
+            (conn) => conn.startItemId !== id && conn.endItemId !== id
+          )
+        }
+        console.log('whiteboardStore→ 删除文本卡片成功')
+        return result
+      } catch (error) {
+        console.error('whiteboardStore→ 删除文本卡片失败', error)
+        throw error
+      }
+    },
+
+    // 批量更新文本卡片的 zIndex
+    async updateTextCardsZIndex(updates: { id: string; zIndex: number }[]) {
+      try {
+        console.log('whiteboardStore→ 开始批量更新文本卡片 zIndex', updates)
+        const result = await window.electronAPI.updateTextCardsZIndex(updates)
+        if (result) {
+          // 更新本地状态
+          updates.forEach((update) => {
+            const card = this.whiteboardTextCards.find((c) => c.id === update.id)
+            if (card) {
+              card.zIndex = update.zIndex
+            }
+          })
+        }
+        console.log('whiteboardStore→ 批量更新文本卡片 zIndex 成功')
+        return result
+      } catch (error) {
+        console.error('whiteboardStore→ 批量更新文本卡片 zIndex 失败', error)
+        throw error
+      }
     }
   },
   getters: {
@@ -416,6 +519,16 @@ export const useWhiteboardStore = defineStore('whiteboard', {
     },
     whiteboardCount: (state) => {
       return state.whiteboards.length
+    },
+    // 获取指定文本卡片
+    getTextCardById: (state) => {
+      return (id: string) => state.whiteboardTextCards.find((card) => card.id === id)
+    },
+
+    // 获取白板所有文本卡片
+    getTextCardsByWhiteboardId: (state) => {
+      return (whiteboardId: string) =>
+        state.whiteboardTextCards.filter((card) => card.whiteboardId === whiteboardId)
     }
   },
   persist: true

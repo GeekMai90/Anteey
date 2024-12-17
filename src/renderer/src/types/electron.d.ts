@@ -17,7 +17,8 @@ import {
   ConnectionCreateData,
   NoteReference,
   Tag,
-  SearchParams
+  SearchParams,
+  WhiteboardTextCard
 } from './Note'
 import { UpdateUserSettings, UserSettings } from './UserSettings'
 import { CreateCustomFilterInput, CustomFilter, UpdateCustomFilterInput } from './Filter'
@@ -489,6 +490,32 @@ export interface ElectronAPI {
       id: string
     }>
   >
+
+  // 文本卡片相关的方法
+  createWhiteboardTextCard: (input: {
+    whiteboardId: string
+    content: string
+    position: { x: number; y: number }
+    size: { width: number; height: number }
+    zIndex: number
+    style?: {
+      backgroundColor?: string
+      textColor?: string
+      fontSize?: number
+      fontFamily?: string
+    }
+  }) => Promise<WhiteboardTextCard>
+
+  getWhiteboardTextCards: (whiteboardId: string) => Promise<WhiteboardTextCard[]>
+
+  updateWhiteboardTextCard: (
+    id: string,
+    updates: Partial<WhiteboardTextCard>
+  ) => Promise<WhiteboardTextCard>
+
+  deleteWhiteboardTextCard: (id: string) => Promise<boolean>
+
+  updateTextCardsZIndex: (updates: { id: string; zIndex: number }[]) => Promise<boolean>
 }
 
 declare global {

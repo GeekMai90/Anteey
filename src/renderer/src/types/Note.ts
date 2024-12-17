@@ -241,6 +241,23 @@ export interface WhiteboardConnection {
   size: { width: number; height: number }
   rotation: number
 }
+
+// 文本卡片
+export interface WhiteboardTextCard {
+  id: string
+  whiteboardId: string
+  content: string
+  position: { x: number; y: number }
+  size: { width: number; height: number }
+  zIndex: number
+  rotation: number
+  style?: {
+    backgroundColor?: string
+    textColor?: string
+    fontSize?: number
+    fontFamily?: string
+  }
+}
 // 创建白板的输入
 export interface CreateWhiteboardInput {
   isTopLevel: boolean

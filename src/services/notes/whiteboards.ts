@@ -7,7 +7,8 @@ import type {
   WhiteboardNote,
   RootWhiteboard,
   WhiteboardGroup,
-  Connection
+  Connection,
+  WhiteboardTextCard
 } from '../../renderer/src/types/Note'
 import { createNote } from './notesService'
 
@@ -502,5 +503,143 @@ export async function deleteWhiteboard(id: string): Promise<{ success: boolean; 
   } catch (error) {
     console.error('后端→ 删除白板失败:', error)
     return { success: false, error: error as string }
+  }
+}
+
+// 创建文本卡片
+export async function createWhiteboardTextCard(input: {
+  whiteboardId: string
+  content: string
+  position: { x: number; y: number }
+  size: { width: number; height: number }
+  zIndex: number
+  style?: {
+    backgroundColor?: string
+    textColor?: string
+    fontSize?: number
+    fontFamily?: string
+  }
+}): Promise<WhiteboardTextCard> {
+  try {
+    const now = new Date()
+    const textCard = {
+      id: uuidv4(),
+      whiteboardId: input.whiteboardId,
+      content: input.content,
+      position: JSON.stringify(input.position),
+      size: JSON.stringify(input.size),
+      zIndex: input.zIndex,
+      rotation: 0,
+      style: input.style ? JSON.stringify(input.style) : null,
+      createdAt: now,
+      updatedAt: now
+    }
+
+    await db('whiteboard_text_cards').insert(textCard)
+
+    return {
+      ...textCard,
+      position: input.position,
+      size: input.size,
+      style: input.style
+    }
+  } catch (error) {
+    console.error('后端→ 创建文本卡片失败:', error)
+    throw error
+  }
+}
+
+// 获取白板的所有文本卡片
+export async function getWhiteboardTextCards(whiteboardId: string): Promise<WhiteboardTextCard[]> {
+  try {
+    const textCards = await db('whiteboard_text_cards')
+      .where({ whiteboardId })
+      .orderBy('zIndex', 'asc')
+
+    return textCards.map((card) => ({
+      ...card,
+      position: JSON.parse(card.position),
+      size: JSON.parse(card.size),
+      style: card.style ? JSON.parse(card.style) : undefined
+    }))
+  } catch (error) {
+    console.error('后端→ 获取白板文本卡片失败:', error)
+    throw error
+  }
+}
+
+// 更新文本卡片
+export async function updateWhiteboardTextCard(
+  id: string,
+  updates: Partial<WhiteboardTextCard>
+): Promise<WhiteboardTextCard> {
+  try {
+    const updateData: any = {
+      updatedAt: new Date()
+    }
+
+    if (updates.content !== undefined) {
+      updateData.content = updates.content
+    }
+    if (updates.position) {
+      updateData.position = JSON.stringify(updates.position)
+    }
+    if (updates.size) {
+      updateData.size = JSON.stringify(updates.size)
+    }
+    if (updates.zIndex !== undefined) {
+      updateData.zIndex = updates.zIndex
+    }
+    if (updates.rotation !== undefined) {
+      updateData.rotation = updates.rotation
+    }
+    if (updates.style !== undefined) {
+      updateData.style = updates.style ? JSON.stringify(updates.style) : null
+    }
+
+    const [updatedCard] = await db('whiteboard_text_cards')
+      .where({ id })
+      .update(updateData)
+      .returning('*')
+
+    return {
+      ...updatedCard,
+      position: JSON.parse(updatedCard.position),
+      size: JSON.parse(updatedCard.size),
+      style: updatedCard.style ? JSON.parse(updatedCard.style) : undefined
+    }
+  } catch (error) {
+    console.error('后端→ 更新文本卡片失败:', error)
+    throw error
+  }
+}
+
+// 删除文本卡片
+export async function deleteWhiteboardTextCard(id: string): Promise<boolean> {
+  try {
+    await db('whiteboard_text_cards').where({ id }).delete()
+    return true
+  } catch (error) {
+    console.error('后端→ 删除文本卡片失败:', error)
+    throw error
+  }
+}
+
+// 批量更新文本卡片的 zIndex
+export async function updateTextCardsZIndex(
+  updates: { id: string; zIndex: number }[]
+): Promise<boolean> {
+  try {
+    await db.transaction(async (trx) => {
+      for (const update of updates) {
+        await trx('whiteboard_text_cards')
+          .where({ id: update.id })
+          .update({ zIndex: update.zIndex })
+      }
+    })
+    return true
+  } catch (error) {
+    console.error('后端→ 批量更新文本卡片 zIndex 失败:', error)
+    throw error
   }
 }

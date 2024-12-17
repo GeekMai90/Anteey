@@ -743,6 +743,30 @@ export async function initDatabase(db: Knex): Promise<void> {
     })
     console.log('monthly_logs 表创建成功')
   }
+
+  // 创建白板文本卡片表
+  if (!(await db.schema.hasTable('whiteboard_text_cards'))) {
+    await db.schema.createTable('whiteboard_text_cards', (table) => {
+      table.string('id').primary()
+      table.string('whiteboardId').notNullable()
+      table.text('content').notNullable()
+      table.text('position').notNullable() // 存储为 JSON 字符串 {x: number, y: number}
+      table.text('size').notNullable() // 存储为 JSON 字符串 {width: number, height: number}
+      table.integer('zIndex').notNullable()
+      table.float('rotation').defaultTo(0)
+      table.text('style').nullable() // 存储为 JSON 字符串 {backgroundColor?, textColor?, fontSize?, fontFamily?}
+      table.datetime('createdAt').notNullable()
+      table.datetime('updatedAt').notNullable()
+
+      // 外键约束
+      table.foreign('whiteboardId').references('whiteboards.id').onDelete('CASCADE')
+
+      // 索引
+      table.index('whiteboardId')
+      table.index('createdAt')
+    })
+    console.log('whiteboard_text_cards 表创建成功')
+  }
 }
 
 export async function down(db: Knex): Promise<void> {
@@ -777,5 +801,6 @@ export async function down(db: Knex): Promise<void> {
   await db.schema.dropTableIfExists('licenses')
   await db.schema.dropTableIfExists('future_logs')
   await db.schema.dropTableIfExists('monthly_logs')
+  await db.schema.dropTableIfExists('whiteboard_text_cards')
   console.log('所有表已删除')
 }
