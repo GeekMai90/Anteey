@@ -16,18 +16,24 @@
     <div v-else class="content">{{ card.content }}</div>
 
     <!-- 调整大小的手柄 -->
-    <div class="resize-handles">
-      <div class="resize-handle top" @mousedown="startResize('top', $event)"></div>
-      <div class="resize-handle right" @mousedown="startResize('right', $event)"></div>
-      <div class="resize-handle bottom" @mousedown="startResize('bottom', $event)"></div>
-      <div class="resize-handle left" @mousedown="startResize('left', $event)"></div>
-      <div class="resize-handle top-left" @mousedown="startResize('top-left', $event)"></div>
-      <div class="resize-handle top-right" @mousedown="startResize('top-right', $event)"></div>
+    <div class="resize-handles" v-show="!isEditing">
+      <div class="resize-handle top" @mousedown.stop="(e) => startResize('top', e)"></div>
+      <div class="resize-handle right" @mousedown.stop="(e) => startResize('right', e)"></div>
+      <div class="resize-handle bottom" @mousedown.stop="(e) => startResize('bottom', e)"></div>
+      <div class="resize-handle left" @mousedown.stop="(e) => startResize('left', e)"></div>
+      <div class="resize-handle top-left" @mousedown.stop="(e) => startResize('top-left', e)"></div>
+      <div
+        class="resize-handle top-right"
+        @mousedown.stop="(e) => startResize('top-right', e)"
+      ></div>
       <div
         class="resize-handle bottom-right"
-        @mousedown="startResize('bottom-right', $event)"
+        @mousedown.stop="(e) => startResize('bottom-right', e)"
       ></div>
-      <div class="resize-handle bottom-left" @mousedown="startResize('bottom-left', $event)"></div>
+      <div
+        class="resize-handle bottom-left"
+        @mousedown.stop="(e) => startResize('bottom-left', e)"
+      ></div>
     </div>
   </div>
 </template>
@@ -52,11 +58,7 @@ const editingContent = ref(props.card.content)
 const textareaRef = ref<HTMLTextAreaElement | null>(null)
 
 const cardStyle = computed(() => ({
-  transform: `rotate(${props.card.rotation}deg)`,
-  width: `${props.card.size.width}px`,
-  height: `${props.card.size.height}px`,
-  backgroundColor: props.card.style?.backgroundColor || '#ffffff',
-  color: props.card.style?.textColor || '#000000',
+  color: props.card.style?.textColor || 'var(--color-text-primary)',
   fontSize: `${props.card.style?.fontSize || 14}px`,
   fontFamily: props.card.style?.fontFamily || 'inherit'
 }))
@@ -98,7 +100,7 @@ const startResize = (direction: string, event: MouseEvent) => {
 <style lang="scss" scoped>
 .whiteboard-text-card {
   position: absolute;
-  background-color: #ffffff;
+  background-color: var(--color-note-card-bg) !important;
   border-radius: 4px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   padding: 8px;
@@ -108,8 +110,12 @@ const startResize = (direction: string, event: MouseEvent) => {
   .content {
     width: 100%;
     height: 100%;
-    overflow: auto;
-    white-space: pre-wrap;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    line-height: 16px;
+    padding: 8px 12px;
+    color: var(--color-text-primary);
   }
 
   .edit-container {
@@ -124,10 +130,84 @@ const startResize = (direction: string, event: MouseEvent) => {
       resize: none;
       background: transparent;
       font: inherit;
-      color: inherit;
+      color: var(--color-text-primary);
+      line-height: 16px;
+      padding: 8px 12px;
     }
   }
-}
 
-// 复用现有的 resize-handle 样式
+  // 调整大小的手柄样式
+  .resize-handles {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    pointer-events: none;
+
+    .resize-handle {
+      position: absolute;
+      width: 8px;
+      height: 8px;
+      background-color: var(--color-primary);
+      border-radius: 50%;
+      pointer-events: auto;
+      opacity: 0;
+      transition: opacity 0.2s;
+
+      &:hover {
+        opacity: 1;
+      }
+    }
+
+    .top {
+      top: -4px;
+      left: 50%;
+      transform: translateX(-50%);
+      cursor: n-resize;
+    }
+    .right {
+      top: 50%;
+      right: -4px;
+      transform: translateY(-50%);
+      cursor: e-resize;
+    }
+    .bottom {
+      bottom: -4px;
+      left: 50%;
+      transform: translateX(-50%);
+      cursor: s-resize;
+    }
+    .left {
+      top: 50%;
+      left: -4px;
+      transform: translateY(-50%);
+      cursor: w-resize;
+    }
+    .top-left {
+      top: -4px;
+      left: -4px;
+      cursor: nw-resize;
+    }
+    .top-right {
+      top: -4px;
+      right: -4px;
+      cursor: ne-resize;
+    }
+    .bottom-right {
+      bottom: -4px;
+      right: -4px;
+      cursor: se-resize;
+    }
+    .bottom-left {
+      bottom: -4px;
+      left: -4px;
+      cursor: sw-resize;
+    }
+  }
+
+  &:hover .resize-handle {
+    opacity: 0.5;
+  }
+}
 </style>

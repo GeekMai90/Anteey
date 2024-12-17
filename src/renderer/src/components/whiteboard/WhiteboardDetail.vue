@@ -491,66 +491,68 @@ const onResizeItem = (event: MouseEvent) => {
   event.stopPropagation()
   if (!resizingItem.value || !containerRef.value) return
 
-  // 获取拖拽改变大小的信息
   const { id, direction, startX, startY, startWidth, startHeight } = resizingItem.value
-  // 计算拖拽改变大小的位置和大小
   const dx = (event.clientX - startX) / scale.value
   const dy = (event.clientY - startY) / scale.value
 
-  // 获取拖拽改变大小的 item
-  const item = whiteboardNotes.value.find((item) => item.id === id)
+  // 检查是否为文本卡片
+  const textCard = whiteboardTextCards.value.find((card) => card.id === id)
+  const item = textCard || whiteboardNotes.value.find((note) => note.id === id)
   if (!item) return
 
-  // 初始化新的宽度和高度
   let newWidth = startWidth
   let newHeight = startHeight
+
+  // 修改最小尺寸限制
+  const minWidth = 100
+  const minHeight = 48 // 修改为 48px
 
   // 根据拖拽改变大小的方向来计算新的宽度和高度
   switch (direction) {
     case 'right':
-      newWidth = Math.max(startWidth + dx, 100)
+      newWidth = Math.max(startWidth + dx, minWidth)
       break
     case 'bottom':
-      newHeight = Math.max(startHeight + dy, 100)
+      newHeight = Math.max(startHeight + dy, minHeight)
       break
     case 'left':
-      newWidth = Math.max(startWidth - dx, 100)
-      // 当拖拽改变大小的方向为左边时，因为会导致 item 的 position 发生变化，所以将需要调整的视觉偏移量存储到 visualAdjustment 中
+      newWidth = Math.max(startWidth - dx, minWidth)
       visualAdjustment.value.x = startWidth - newWidth
       break
     case 'top':
-      newHeight = Math.max(startHeight - dy, 100)
-      // 当拖拽改变大小的方向为顶边时，因为会导致 item 的 position 发生变化，所以将需要调整的视觉偏移量存储到 visualAdjustment 中
+      newHeight = Math.max(startHeight - dy, minHeight)
       visualAdjustment.value.y = startHeight - newHeight
       break
     case 'top-left':
-      newWidth = Math.max(startWidth - dx, 100)
-      newHeight = Math.max(startHeight - dy, 100)
-      // 当拖拽改变大小的方向为顶边和左边时，因为会导致 item 的 position 发生变化，所以将需要调整的视觉偏移量存储到 visualAdjustment 中
+      newWidth = Math.max(startWidth - dx, minWidth)
+      newHeight = Math.max(startHeight - dy, minHeight)
       visualAdjustment.value.x = startWidth - newWidth
       visualAdjustment.value.y = startHeight - newHeight
       break
     case 'top-right':
-      newWidth = Math.max(startWidth + dx, 100)
-      newHeight = Math.max(startHeight - dy, 100)
-      // 当拖拽改变大小的方向为顶边和右边时，因为会导致 item 的 position 发生变化，所以将需要调整的视觉偏移量存储到 visualAdjustment 中
+      newWidth = Math.max(startWidth + dx, minWidth)
+      newHeight = Math.max(startHeight - dy, minHeight)
       visualAdjustment.value.y = startHeight - newHeight
       break
     case 'bottom-right':
-      newWidth = Math.max(startWidth + dx, 100)
-      newHeight = Math.max(startHeight + dy, 100)
+      newWidth = Math.max(startWidth + dx, minWidth)
+      newHeight = Math.max(startHeight + dy, minHeight)
       break
     case 'bottom-left':
-      newWidth = Math.max(startWidth - dx, 100)
-      newHeight = Math.max(startHeight + dy, 100)
-      // 当拖拽改变大小的方向为底边和左边时，因为会导致 item 的 position 发生变化，所以将需要调整的视觉偏移量存储到 visualAdjustment 中
+      newWidth = Math.max(startWidth - dx, minWidth)
+      newHeight = Math.max(startHeight + dy, minHeight)
       visualAdjustment.value.x = startWidth - newWidth
       break
   }
 
-  // 更新 item 的 size，注意，这里不改变 item 的 position
-  item.size.width = newWidth
-  item.size.height = newHeight
+  // 更新大小
+  if (textCard) {
+    textCard.size.width = newWidth
+    textCard.size.height = newHeight
+  } else if (item) {
+    item.size.width = newWidth
+    item.size.height = newHeight
+  }
 }
 
 // 停止拖拽改变大小
@@ -558,19 +560,44 @@ const stopResizingItem = async (event: MouseEvent) => {
   event.preventDefault()
   event.stopPropagation()
   if (resizingItem.value) {
-    // 获取拖拽改变大小后的 item
-    const item = whiteboardNotes.value.find((item) => item.id === resizingItem.value?.id)
+    const textCard = whiteboardTextCards.value.find((card) => card.id === resizingItem.value?.id)
+    const item =
+      textCard || whiteboardNotes.value.find((note) => note.id === resizingItem.value?.id)
+
     if (item && whiteboardId.value) {
-      // 更新白板项的大小和位置
-      await whiteboardStore.updateWhiteboardNoteSize(item.id, item.size.width, item.size.height)
-      await whiteboardStore.updateWhiteboardNotePosition(item.id, item.position.x, item.position.y)
-      // 更新白板笔记的自动高度
-      console.log('更新白板笔记的自动高度', { id: item.id, isAutoHeight: false })
-      await whiteboardStore.updateWhiteboardNoteAutoHeight(item.id, false)
-      item.isAutoHeight = false
-      // 应用视觉调整到实际位置
-      item.position.x += visualAdjustment.value.x
-      item.position.y += visualAdjustment.value.y
+      try {
+        if (textCard) {
+          // 更新文本卡片
+          await whiteboardStore.updateWhiteboardTextCard(item.id, {
+            size: { width: item.size.width, height: item.size.height },
+            position: {
+              x: item.position.x + visualAdjustment.value.x,
+              y: item.position.y + visualAdjustment.value.y
+            }
+          })
+          // 应用视觉调整到实际位置
+          textCard.position.x += visualAdjustment.value.x
+          textCard.position.y += visualAdjustment.value.y
+        } else {
+          // 更新白板笔记
+          await whiteboardStore.updateWhiteboardNoteSize(item.id, item.size.width, item.size.height)
+          await whiteboardStore.updateWhiteboardNotePosition(
+            item.id,
+            item.position.x + visualAdjustment.value.x,
+            item.position.y + visualAdjustment.value.y
+          )
+          // 更新白板笔记的自动高度
+          await whiteboardStore.updateWhiteboardNoteAutoHeight(item.id, false)
+          if ('isAutoHeight' in item) {
+            item.isAutoHeight = false
+          }
+          // 应用视觉调整到实际位置
+          item.position.x += visualAdjustment.value.x
+          item.position.y += visualAdjustment.value.y
+        }
+      } catch (error) {
+        console.error('Failed to update item size:', error)
+      }
     }
   }
   // 重置视觉调整
@@ -838,6 +865,11 @@ const stopDraggingItem = async () => {
           })
         )
       ])
+
+      // 拖动结束后重新获取数据
+      if (whiteboardId.value) {
+        await initializeData(whiteboardId.value)
+      }
     } catch (error) {
       console.error('更新位置失败:', error)
     }
@@ -857,9 +889,13 @@ const updateItemPosition = (id: string, x: number, y: number, type: 'card' | 'te
       (item: WhiteboardTextCardType) => item.id === id
     )
     if (itemIndex !== -1) {
-      const updatedItem = { ...whiteboardTextCards.value[itemIndex] }
-      updatedItem.position = { x, y }
-      whiteboardTextCards.value.splice(itemIndex, 1, updatedItem)
+      // 创建新的数组以触发响应式更新
+      const updatedCards = [...whiteboardTextCards.value]
+      updatedCards[itemIndex] = {
+        ...updatedCards[itemIndex],
+        position: { x, y }
+      }
+      whiteboardTextCards.value = updatedCards
     }
   } else {
     const itemIndex = whiteboardNotes.value.findIndex((item) => item.id === id)
@@ -961,7 +997,7 @@ const createTextCard = async (x: number, y: number) => {
       whiteboardId: whiteboardId.value,
       content: '新建文本',
       position: { x, y },
-      size: { width: 200, height: 100 },
+      size: { width: 200, height: 48 },
       zIndex: 1,
       style: {
         backgroundColor: '#ffffff',
@@ -970,7 +1006,15 @@ const createTextCard = async (x: number, y: number) => {
       }
     })
 
-    whiteboardTextCards.value.push(newCard)
+    // 替换而不是追加，确保状态同步
+    whiteboardTextCards.value = [
+      ...whiteboardTextCards.value.filter((card) => card.id !== newCard.id),
+      newCard
+    ]
+
+    // 或者重新获取所有数据
+    // await initializeData(whiteboardId.value)
+
     contextMenuStore.closeMenu()
   } catch (error) {
     console.error('Failed to create text card:', error)
@@ -1184,8 +1228,10 @@ onUnmounted(() => {
 const getTextCardStyle = (card: WhiteboardTextCardType) => {
   return {
     position: 'absolute',
-    left: `${card.position.x}px`,
-    top: `${card.position.y}px`,
+    left: `${card.position.x + (resizingItem.value?.id === card.id ? visualAdjustment.value.x : 0)}px`,
+    top: `${card.position.y + (resizingItem.value?.id === card.id ? visualAdjustment.value.y : 0)}px`,
+    width: `${card.size.width}px`,
+    height: `${card.size.height}px`,
     zIndex: card.zIndex
   }
 }
