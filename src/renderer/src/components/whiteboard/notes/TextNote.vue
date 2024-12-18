@@ -1,19 +1,17 @@
 <template>
   <div class="text-note">
-    <div
-      v-if="isEditing"
-      class="text-editor"
-      contenteditable="true"
+    <textarea
+      v-model="localContent"
+      :readonly="!props.isEditing"
+      :placeholder="props.isEditing ? '输入文本内容...' : ''"
+      class="text-area"
       @input="handleInput"
-      v-text="content"
-      :style="textStyle"
-    ></div>
-    <div v-else class="text-content" v-text="content" :style="textStyle"></div>
+    ></textarea>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { ref, watch } from 'vue'
 
 const props = defineProps<{
   content?: string
@@ -26,21 +24,21 @@ const props = defineProps<{
   }
 }>()
 
-const textStyle = computed(() => ({
-  ...props.style,
-  backgroundColor: props.style?.backgroundColor,
-  color: props.style?.textColor,
-  fontSize: props.style?.fontSize ? `${props.style.fontSize}px` : undefined,
-  fontFamily: props.style?.fontFamily
-}))
-
 const emit = defineEmits<{
   (e: 'update:content', content: string): void
 }>()
 
-const handleInput = (event: Event) => {
-  const target = event.target as HTMLDivElement
-  emit('update:content', target.textContent || '')
+const localContent = ref(props.content || '')
+
+watch(
+  () => props.content,
+  (newContent) => {
+    localContent.value = newContent || ''
+  }
+)
+
+const handleInput = () => {
+  emit('update:content', localContent.value)
 }
 </script>
 
@@ -48,18 +46,36 @@ const handleInput = (event: Event) => {
 .text-note {
   width: 100%;
   height: 100%;
-  padding: 12px;
+  display: flex;
+  background-color: inherit;
+  border-radius: 10px;
 
-  .text-editor,
-  .text-content {
+  .text-area {
     width: 100%;
     height: 100%;
+    border: none;
     outline: none;
-    white-space: pre-wrap;
-  }
+    resize: none;
+    padding: 6px 10px;
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--color-text-primary);
+    background-color: inherit !important;
+    font-family: var(--font-family-ui);
+    border-radius: 10px;
 
-  .text-editor {
-    cursor: text;
+    &::placeholder {
+      color: var(--color-text-placeholder);
+      opacity: 0.7;
+    }
+
+    &:not(:read-only) {
+      cursor: text;
+    }
+
+    &:read-only {
+      cursor: inherit;
+    }
   }
 }
 </style>

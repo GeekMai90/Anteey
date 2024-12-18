@@ -485,6 +485,12 @@ export interface ElectronAPI {
       id: string
     }>
   >
+
+  // 添加更新白板笔记样式的方法定义
+  updateWhiteboardNoteStyle: (id: string, style: WhiteboardNote['style']) => Promise<WhiteboardNote>
+
+  // 添加更新白板笔记内容的方法定义
+  updateWhiteboardNoteContent: (id: string, content: string) => Promise<WhiteboardNote>
 }
 
 declare global {

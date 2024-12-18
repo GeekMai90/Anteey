@@ -18,7 +18,6 @@
         'mode-drag': currentMode === 'drag',
         'mode-select': currentMode === 'select'
       }"
-      @v-click-outside="handleContainerClickOutside"
       @mousedown="handleMouseDown"
       @mousemove="handleMouseMove"
       @mouseup="handleMouseUp"
@@ -39,13 +38,17 @@
             :key="item.id"
             :item="item"
             :scale="scale"
-            :is-hovered="isCreatingConnection && hoverNote?.id === item.id"
-            :is-selected="selectedNotes.includes(item.id)"
+            :is-hovered="isHoveringNote && hoverNote?.id === item.id"
+            :is-selected="selectedItems.includes(item.id)"
             @update:position="(x, y) => updateNotePosition(item.id, x, y)"
             @update:size="(width, height) => updateNoteSize(item.id, width, height)"
             @start-connection="startConnection"
             @note-interaction="handleNoteInteraction"
             @hover="handleNoteHover"
+            @stop-editing="handleStopEditing"
+            @select="handleItemSelect"
+            @start-drag="startDraggingItem"
+            @focus="handleNoteFocus"
           />
           <CardConnection
             v-for="connection in connections"
@@ -111,6 +114,38 @@
       ref="whiteboardSearchModalRef"
       :create-whiteboard-note="createWhiteboardNoteFromSearch"
     />
+
+    <!-- 添加底部创建菜单 -->
+    <div class="create-menu">
+      <div
+        v-tooltip.top="{ content: '新建文字卡片', delay: { show: 1000 } }"
+        class="create-button"
+        @click="createTextNote"
+      >
+        <div class="icon">
+          <FileText theme="outline" size="20" :stroke-width="3" />
+        </div>
+      </div>
+      <div
+        v-tooltip.top="{ content: '新建笔记卡片', delay: { show: 1000 } }"
+        class="create-button"
+        @click="openSearchModal"
+      >
+        <div class="icon">
+          <Notes theme="outline" size="20" :stroke-width="3" />
+        </div>
+      </div>
+      <div
+        v-tooltip.top="{ content: '新建图片卡片', delay: { show: 1000 } }"
+        class="create-button"
+        @click="createImageNote"
+      >
+        <div class="icon">
+          <PictureOne theme="outline" size="20" :stroke-width="3" />
+        </div>
+      </div>
+    </div>
+    <ImageUploadModal ref="imageUploadModalRef" @confirm="handleImageConfirm" />
   </div>
 </template>
 
@@ -126,7 +161,7 @@ import {
   Whiteboard
 } from '@renderer/types/Whiteboard'
 import WhiteboardNoteComponent from '@renderer/components/whiteboard/WhiteboardNoteComponent.vue'
-import { Add, Aiming } from '@icon-park/vue-next'
+import { Add, Aiming, FileText, Notes, PictureOne } from '@icon-park/vue-next'
 import WhiteboardZoomControl from '@renderer/components/whiteboard/WhiteboardZoomControl.vue'
 import CardConnection from './CardConnection.vue'
 import { useContextMenuStore } from '@renderer/stores/contextMenuStore'
@@ -136,6 +171,8 @@ import WhiteboardSearchModal from '@renderer/components/whiteboard/WhiteboardSea
 import { useConnection } from '@renderer/composables/whiteboard/useConnection'
 import { useSelection } from '@renderer/composables/whiteboard/useSelection'
 import { useWhiteboardViewState } from '@renderer/composables/whiteboard/useWhiteboardViewState'
+import { message } from '@renderer/utils/message'
+import ImageUploadModal from './ImageUploadModal.vue'
 
 const containerRef = ref<HTMLElement | null>(null)
 const route = useRoute()
@@ -184,18 +221,14 @@ const createWhiteboardNoteFromSearch = async (note: any) => {
 
 // 拖拽项
 const draggingItem = ref<{
-  ids: string[]
-  startPositions: { id: string; x: number; y: number }[]
+  startPositions: {
+    id: string
+    x: number
+    y: number
+    mouseOffsetX: number // 添加鼠标相对元素的偏移量
+    mouseOffsetY: number
+  }[]
 } | null>(null)
-
-const alignmentGuides = ref<{ direction: 'horizontal' | 'vertical'; position: number }[]>([])
-
-const SNAP_THRESHOLD = 5
-
-// 连线相关状态
-
-const descriptionInputRef = ref<HTMLInputElement | null>(null)
-const measureSpan = ref<HTMLSpanElement | null>(null)
 
 const isHoveringNote = ref(false)
 
@@ -240,8 +273,7 @@ const {
   selectionBoxStyle,
   startSelection,
   updateSelection,
-  endSelection,
-  handleContainerClickOutside
+  endSelection
 } = useSelection(whiteboardNotes, scale, translateX, translateY, containerRef)
 
 const updateWhiteboardName = async (newName: string) => {
@@ -335,54 +367,6 @@ const handleNoteInteraction = (interacting: boolean) => {
   isNoteInteracting.value = interacting
 }
 
-const adjustInputWidth = () => {
-  if (measureSpan.value && descriptionInputRef.value) {
-    const contentWidth = measureSpan.value.offsetWidth
-    descriptionInputRef.value.style.width = `${Math.max(30, contentWidth + 10)}px`
-  }
-}
-onMounted(() => {
-  nextTick(() => {
-    adjustInputWidth()
-  })
-})
-
-// 计算连线两端的点
-// const calculateConnectionPoints = (startNote: WhiteboardNote, endNote: WhiteboardNote) => {
-//   const getEdgeCenterPoint = (note: WhiteboardNote, angle: number) => {
-//     const center = {
-//       x: note.position.x + note.size.width / 2,
-//       y: note.position.y + note.size.height / 2
-//     }
-//     const w = note.size.width / 2
-//     const h = note.size.height / 2
-
-//     // 确定连接边并返回其中心点
-//     if (Math.abs(Math.tan(angle)) < h / w) {
-//       // 连接到左边或右边
-//       return {
-//         x: center.x + w * Math.sign(Math.cos(angle)),
-//         y: center.y
-//       }
-//     } else {
-//       // 连接到上边或下边
-//       return {
-//         x: center.x,
-//         y: center.y + h * Math.sign(Math.sin(angle))
-//       }
-//     }
-//   }
-
-//   const dx = endNote.position.x - startNote.position.x
-//   const dy = endNote.position.y - startNote.position.y
-//   const angle = Math.atan2(dy, dx)
-
-//   const startPoint = getEdgeCenterPoint(startNote, angle)
-//   const endPoint = getEdgeCenterPoint(endNote, angle + Math.PI)
-
-//   return { startPoint, endPoint }
-// }
-
 // 监听白板笔记的变化来更新所有连线的位置
 watch(
   () => whiteboardNotes.value,
@@ -415,7 +399,7 @@ const initializeData = async (whiteboardId: string) => {
 // 组件挂载时获取白板内容
 onMounted(async () => {
   const id = route.params.whiteboardId
-  console.log('WhiteboardDetail 组件挂载时获取白板内容', id)
+  console.log('WhiteboardDetail 组件挂载时取白板内容', id)
   if (id && typeof id === 'string') {
     whiteboardId.value = id
     await initializeData(whiteboardId.value)
@@ -434,159 +418,134 @@ const transformLayerStyle = computed(() => ({
 // 拖拽白板笔记的功能
 const hasMoved = ref(false)
 
+// 删除对齐辅助线相关的状态，但保留吸附阈值
+const SNAP_THRESHOLD = 5
+
+// 修改 onDragItem 函数，移除辅助线相关代码但保留磁性吸附
 const onDragItem = (event: MouseEvent) => {
-  // 如果 draggingItem 不存在，则不启动拖拽
   if (!draggingItem.value || !containerRef.value) return
 
-  // 获取 containerRef 的边界矩形
   const rect = containerRef.value.getBoundingClientRect()
-  const { ids, startPositions } = draggingItem.value
+  const { startPositions } = draggingItem.value
 
-  // 遍历所有拖拽的项，更新它们的位置
-  ids.forEach((id, index) => {
-    const { x: startX, y: startY } = startPositions[index]
-    let newX = (event.clientX - rect.left - translateX.value) / scale.value - startX
-    let newY = (event.clientY - rect.top - translateY.value) / scale.value - startY
-    const currentItem = whiteboardNotes.value.find((item) => item.id === id)
-    if (!currentItem) return
+  // 计算鼠标移动的距离，考虑鼠标偏移量
+  const mouseX = (event.clientX - rect.left - translateX.value) / scale.value
+  const mouseY = (event.clientY - rect.top - translateY.value) / scale.value
 
-    // 如果位置有变化，设置 hasMoved 为 true
-    if (newX !== currentItem.position.x || newY !== currentItem.position.y) {
-      hasMoved.value = true
-    }
+  // 获取所有未选中的笔记的边界位置
+  const otherNotes = whiteboardNotes.value.filter(
+    (note) => !startPositions.some((pos) => pos.id === note.id)
+  )
 
-    // 计算对齐阈值
-    const snapThreshold = SNAP_THRESHOLD / scale.value
-    // 计算当前项的中心点
-    const currentCenterX = newX + currentItem.size.width / 2
-    const currentCenterY = newY + currentItem.size.height / 2
-    // 定义缩略图之间的间距
-    const SPACING = 5
-    // 遍历所有项，检查是否与其他项对齐
-    whiteboardNotes.value.forEach((otherItem) => {
-      if (otherItem.id !== id) {
-        const otherCenterX = otherItem.position.x + otherItem.size.width / 2
-        const otherCenterY = otherItem.position.y + otherItem.size.height / 2
+  // 更新所有选中项的位置
+  startPositions.forEach((startPos) => {
+    const note = whiteboardNotes.value.find((n) => n.id === startPos.id)
+    if (!note) return
 
-        // 左边对齐
-        if (Math.abs(newX - otherItem.position.x) < snapThreshold) {
-          newX = otherItem.position.x
-          alignmentGuides.value.push({ direction: 'vertical', position: newX })
-        }
-        // 右边对齐
-        if (
-          Math.abs(newX + currentItem.size.width - (otherItem.position.x + otherItem.size.width)) <
-          snapThreshold
-        ) {
-          newX = otherItem.position.x + otherItem.size.width - currentItem.size.width
-          alignmentGuides.value.push({
-            direction: 'vertical',
-            position: newX + currentItem.size.width
-          })
-        }
-        // 顶边对齐
-        if (Math.abs(newY - otherItem.position.y) < snapThreshold) {
-          newY = otherItem.position.y
-          alignmentGuides.value.push({ direction: 'horizontal', position: newY })
-        }
-        // 底���对齐
-        if (
-          Math.abs(
-            newY + currentItem.size.height - (otherItem.position.y + otherItem.size.height)
-          ) < snapThreshold
-        ) {
-          newY = otherItem.position.y + otherItem.size.height - currentItem.size.height
-          alignmentGuides.value.push({
-            direction: 'horizontal',
-            position: newY + currentItem.size.height
-          })
-        }
+    let newX = mouseX - startPos.mouseOffsetX
+    let newY = mouseY - startPos.mouseOffsetY
+    const width = note.size.width
+    const height = note.size.height
 
-        // 中间对齐（水平和垂直）
-        if (Math.abs(currentCenterX - otherCenterX) < snapThreshold) {
-          newX = otherCenterX - currentItem.size.width / 2
-          alignmentGuides.value.push({ direction: 'vertical', position: otherCenterX })
-        }
-        if (Math.abs(currentCenterY - otherCenterY) < snapThreshold) {
-          newY = otherCenterY - currentItem.size.height / 2
-          alignmentGuides.value.push({ direction: 'horizontal', position: otherCenterY })
-        }
-        // 左边相邻
-        if (
-          Math.abs(newX - (otherItem.position.x + otherItem.size.width + SPACING)) < snapThreshold
-        ) {
-          newX = otherItem.position.x + otherItem.size.width + SPACING
-          alignmentGuides.value.push({ direction: 'vertical', position: newX - SPACING })
-        }
-        // 右边相邻
-        if (
-          Math.abs(newX + otherItem.size.width + SPACING - otherItem.position.x) < snapThreshold
-        ) {
-          newX = otherItem.position.x - otherItem.size.width - SPACING
-          alignmentGuides.value.push({
-            direction: 'vertical',
-            position: newX + otherItem.size.width + SPACING
-          })
-        }
-        // 顶边相邻
-        if (
-          Math.abs(newY - (otherItem.position.y + otherItem.size.height + SPACING)) < snapThreshold
-        ) {
-          newY = otherItem.position.y + otherItem.size.height + SPACING
-          alignmentGuides.value.push({ direction: 'horizontal', position: newY - SPACING })
-        }
-        // 底边相邻（修正）
-        if (
-          Math.abs(newY + otherItem.size.height + SPACING - otherItem.position.y) < snapThreshold
-        ) {
-          newY = otherItem.position.y - otherItem.size.height - SPACING
-          alignmentGuides.value.push({
-            direction: 'horizontal',
-            position: newY + otherItem.size.height + SPACING
-          })
-        }
-        // 顶边与左边中间对齐
-        if (Math.abs(newY - otherCenterY) < snapThreshold) {
-          newY = otherCenterY
-          alignmentGuides.value.push({ direction: 'horizontal', position: newY })
-        }
-        // 底边与左边中间对齐
-        if (Math.abs(newY + otherItem.size.height - otherCenterY) < snapThreshold) {
-          newY = otherCenterY - otherItem.size.height
-          alignmentGuides.value.push({
-            direction: 'horizontal',
-            position: otherCenterY
-          })
-        }
-        // 左边与顶边中间对齐
-        if (Math.abs(newX - otherCenterX) < snapThreshold) {
-          newX = otherCenterX
-          alignmentGuides.value.push({ direction: 'vertical', position: newX })
-        }
-        // 右边与顶边中间对齐
-        if (Math.abs(newX + otherItem.size.width - otherCenterX) < snapThreshold) {
-          newX = otherCenterX - otherItem.size.width
-          alignmentGuides.value.push({
-            direction: 'vertical',
-            position: otherCenterX
-          })
-        }
+    // 计算当前笔记的边界和中心线
+    const currentLeft = newX
+    const currentRight = newX + width
+    const currentTop = newY
+    const currentBottom = newY + height
+    const currentCenterX = newX + width / 2
+    const currentCenterY = newY + height / 2
+
+    // 检查与每个其他笔记的对齐
+    otherNotes.forEach((otherNote) => {
+      const boundaries = {
+        left: otherNote.position.x,
+        right: otherNote.position.x + otherNote.size.width,
+        top: otherNote.position.y,
+        bottom: otherNote.position.y + otherNote.size.height,
+        centerX: otherNote.position.x + otherNote.size.width / 2,
+        centerY: otherNote.position.y + otherNote.size.height / 2
+      }
+
+      // 水平对齐检查
+      if (Math.abs(currentLeft - boundaries.left) < SNAP_THRESHOLD) {
+        newX = boundaries.left
+      }
+      if (Math.abs(currentRight - boundaries.right) < SNAP_THRESHOLD) {
+        newX = boundaries.right - width
+      }
+      if (Math.abs(currentCenterX - boundaries.centerX) < SNAP_THRESHOLD) {
+        newX = boundaries.centerX - width / 2
+      }
+
+      // 垂直对齐检查
+      if (Math.abs(currentTop - boundaries.top) < SNAP_THRESHOLD) {
+        newY = boundaries.top
+      }
+      if (Math.abs(currentBottom - boundaries.bottom) < SNAP_THRESHOLD) {
+        newY = boundaries.bottom - height
+      }
+      if (Math.abs(currentCenterY - boundaries.centerY) < SNAP_THRESHOLD) {
+        newY = boundaries.centerY - height / 2
       }
     })
-    // 更新连线位置
-    updateConnectionPositions(id, { x: newX, y: newY })
-    updateItemPosition(id, newX, newY)
+
+    updateItemPosition(startPos.id, newX, newY)
   })
+
+  hasMoved.value = true
+}
+
+const startDraggingItem = (id: string, event: MouseEvent) => {
+  if (!containerRef.value) return
+
+  const rect = containerRef.value.getBoundingClientRect()
+  const mouseX = (event.clientX - rect.left - translateX.value) / scale.value
+  const mouseY = (event.clientY - rect.top - translateY.value) / scale.value
+
+  // 如果点击的项目不在选中列表中，则只拖动当前项目
+  const dragIds = selectedItems.value.includes(id) ? selectedItems.value : [id]
+
+  // 记录所有要拖动的项目的初始位置和鼠标偏移量
+  const startPositions = dragIds.map((dragId) => {
+    const note = whiteboardNotes.value.find((n) => n.id === dragId)
+    if (!note)
+      return {
+        id: dragId,
+        x: mouseX,
+        y: mouseY,
+        mouseOffsetX: 0,
+        mouseOffsetY: 0
+      }
+
+    // 计算鼠标相对于元素的偏移量
+    const mouseOffsetX = mouseX - note.position.x
+    const mouseOffsetY = mouseY - note.position.y
+
+    return {
+      id: dragId,
+      x: note.position.x,
+      y: note.position.y,
+      mouseOffsetX,
+      mouseOffsetY
+    }
+  })
+
+  draggingItem.value = {
+    startPositions
+  }
+
+  document.addEventListener('mousemove', onDragItem)
+  document.addEventListener('mouseup', stopDraggingItem)
 }
 
 // 停止拖拽
 const stopDraggingItem = async () => {
   if (draggingItem.value) {
-    const { ids } = draggingItem.value
+    const { startPositions } = draggingItem.value
     const updatedItems: WhiteboardNote[] = []
 
-    for (const id of ids) {
-      const itemIndex = whiteboardNotes.value.findIndex((item) => item.id === id)
+    for (const startPos of startPositions) {
+      const itemIndex = whiteboardNotes.value.findIndex((item) => item.id === startPos.id)
       if (itemIndex !== -1 && whiteboardId.value) {
         const item = whiteboardNotes.value[itemIndex]
 
@@ -717,12 +676,16 @@ const currentMode = ref<'select' | 'drag'>('select')
 const handleMouseDown = (event: MouseEvent) => {
   if (event.button === 0) {
     // 左键
-    if (currentMode.value === 'select') {
-      startSelection(event)
-    } else if (currentMode.value === 'drag') {
-      isDragging = true
-      lastX = event.clientX
-      lastY = event.clientY
+    // 如果点击的是画布本身，清除选中状态
+    if (event.target === containerRef.value) {
+      if (currentMode.value === 'select') {
+        startSelection(event) // 开始框选
+      } else if (currentMode.value === 'drag') {
+        selectedItems.value = [] // 清除选中状态
+        isDragging = true
+        lastX = event.clientX
+        lastY = event.clientY
+      }
     }
   } else if (event.button === 2) {
     // 右键
@@ -739,11 +702,10 @@ const handleMouseMove = (event: MouseEvent) => {
   }
 
   if (currentMode.value === 'select' && isSelecting.value) {
-    // 使用 useSelection 提供的方法处理选择框更新
     updateSelection(event)
   } else if (isCreatingConnection.value) {
     handleConnectionMouseMove(event)
-  } else if (currentMode.value === 'drag' && isDragging) {
+  } else if (isDragging) {
     const deltaX = event.clientX - lastX
     const deltaY = event.clientY - lastY
     translateX.value += deltaX
@@ -763,8 +725,6 @@ const handleMouseUp = async (event: MouseEvent) => {
   }
 
   isDragging = false
-  document.removeEventListener('mousemove', handleMouseMove)
-  document.removeEventListener('mouseup', handleMouseUp)
 }
 
 const handleWheel = (event: WheelEvent) => {
@@ -924,6 +884,157 @@ const updateNoteSize = async (id: string, width: number, height: number) => {
     updateAllConnectionPositions()
   }
 }
+
+const selectedItems = ref<string[]>([])
+
+// 添加点击处理函数
+const handleItemSelect = (itemId: string, event: MouseEvent) => {
+  // 如果按住 Ctrl/Cmd 键，则进行多选
+  if (event.ctrlKey || event.metaKey) {
+    if (selectedItems.value.includes(itemId)) {
+      selectedItems.value = selectedItems.value.filter((id) => id !== itemId)
+    } else {
+      selectedItems.value.push(itemId)
+    }
+  } else {
+    // 单选
+    selectedItems.value = [itemId]
+  }
+  event.stopPropagation() // 阻止事件冒泡
+}
+
+// 添加停止编辑处理函数
+const handleStopEditing = () => {
+  // 可以在这里添加任何需要的清理逻辑
+  console.log('Note stopped editing')
+}
+
+// 监听 selectedNotes 的变化，同步到 selectedItems
+watch(selectedNotes, (newSelectedNotes) => {
+  selectedItems.value = newSelectedNotes
+})
+
+// 处理笔记聚焦
+const handleNoteFocus = (noteInfo: {
+  position: { x: number; y: number }
+  size: { width: number; height: number }
+}) => {
+  // 重置缩放比例为 100%
+  scale.value = 1
+
+  // 计算画布中心点
+  const containerWidth = containerRef.value?.clientWidth || 0
+  const containerHeight = containerRef.value?.clientHeight || 0
+
+  // 计算笔记中心点
+  const noteCenterX = noteInfo.position.x + noteInfo.size.width / 2
+  const noteCenterY = noteInfo.position.y + noteInfo.size.height / 2
+
+  // 计算需要的偏移量，使笔记居中
+  const newTranslateX = containerWidth / 2 - noteCenterX
+  const newTranslateY = containerHeight / 2 - noteCenterY
+
+  // 使用动画平滑过渡到新位置
+  translateX.value = newTranslateX
+  translateY.value = newTranslateY
+
+  // 保存新的视图状态
+  if (whiteboardId.value) {
+    debouncedSaveViewState(whiteboardId.value)
+  }
+}
+
+// 添加新的创建方法
+const createNote = async (type: 'text' | 'card' | 'image') => {
+  if (!containerRef.value || !whiteboardId.value) return
+
+  const rect = containerRef.value.getBoundingClientRect()
+  const centerX = (rect.width / 2 - translateX.value) / scale.value
+  const centerY = (rect.height / 2 - translateY.value) / scale.value
+
+  // 调整文本卡片的默认高度为 55px
+  const defaultSize =
+    type === 'text'
+      ? { width: 240, height: 55 } // 修改为 55px
+      : { width: 350, height: 300 }
+
+  const input: CreateWhiteboardNoteInput = {
+    whiteboardId: whiteboardId.value,
+    noteId: '',
+    position: { x: centerX, y: centerY },
+    size: defaultSize,
+    zIndex: 1,
+    rotation: 0,
+    isAutoHeight: false,
+    type
+  }
+
+  try {
+    const newNote = await whiteboardStore.createWhiteboardNote(input)
+    if (newNote && newNote.id) {
+      whiteboardNotes.value = [...whiteboardNotes.value, newNote]
+    }
+  } catch (error) {
+    console.error('Failed to create whiteboard note:', error)
+    message.error('创建失败')
+  }
+}
+
+const createTextNote = () => createNote('text')
+const createImageNote = () => {
+  imageUploadModalRef.value?.show()
+}
+
+const handleImageConfirm = async (imageData: { url: string; width: number; height: number }) => {
+  if (!containerRef.value || !whiteboardId.value) return
+
+  const rect = containerRef.value.getBoundingClientRect()
+  const centerX = (rect.width / 2 - translateX.value) / scale.value
+  const centerY = (rect.height / 2 - translateY.value) / scale.value
+
+  // 计算合的显示尺寸
+  const maxWidth = 500
+  const maxHeight = 400
+  let width = imageData.width
+  let height = imageData.height
+
+  if (width > maxWidth) {
+    const ratio = maxWidth / width
+    width = maxWidth
+    height = Math.round(height * ratio)
+  }
+
+  if (height > maxHeight) {
+    const ratio = maxHeight / height
+    height = maxHeight
+    width = Math.round(width * ratio)
+  }
+
+  const input: CreateWhiteboardNoteInput = {
+    whiteboardId: whiteboardId.value,
+    noteId: '',
+    position: { x: centerX, y: centerY },
+    size: { width, height },
+    zIndex: 1,
+    rotation: 0,
+    isAutoHeight: false,
+    type: 'image',
+    imageUrl: imageData.url,
+    originalSize: { width: imageData.width, height: imageData.height }
+  }
+
+  try {
+    const newNote = await whiteboardStore.createWhiteboardNote(input)
+    if (newNote && newNote.id) {
+      whiteboardNotes.value = [...whiteboardNotes.value, newNote]
+    }
+  } catch (error) {
+    console.error('Failed to create image note:', error)
+    message.error('创建失败')
+  }
+}
+
+const imageUploadModalRef = ref<InstanceType<typeof ImageUploadModal> | null>(null)
 </script>
 
 <style lang="scss" scoped>
@@ -1129,7 +1240,7 @@ const updateNoteSize = async (id: string, width: number, height: number) => {
   border: 1px solid var(--color-primary);
   background-color: rgba(0, 123, 255, 0.1);
   pointer-events: none;
-  transition: all 0.05s linear; // 添加这行
+  z-index: 1000;
 }
 
 .whiteboard-item.selected {
@@ -1162,6 +1273,75 @@ const updateNoteSize = async (id: string, width: number, height: number) => {
 
   &:hover {
     background-color: var(--color-hover-button);
+  }
+}
+
+// 添加平滑过渡效果
+.whiteboard-canvas {
+  transition: transform 0.3s ease;
+}
+
+.create-menu {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 8px;
+  padding: 8px;
+  background-color: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  z-index: 100;
+
+  .create-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+
+    &:hover {
+      background-color: var(--color-primary-light);
+      transform: translateY(-4px);
+
+      .icon {
+        :deep(.i-icon) {
+          color: var(--color-primary);
+        }
+      }
+    }
+
+    &:active {
+      background-color: var(--color-active-button);
+      transform: translateY(-2px);
+    }
+
+    .icon {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 24px;
+      height: 24px;
+      transition: all 0.2s ease;
+
+      :deep(.i-icon) {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        height: 100%;
+        color: var(--color-text-secondary);
+      }
+      :deep(svg) {
+        width: 24px;
+        height: 24px;
+        transition: fill 0.2s ease;
+      }
+    }
   }
 }
 </style>

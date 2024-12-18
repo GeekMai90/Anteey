@@ -12,20 +12,20 @@
       <defs>
         <marker
           :id="arrowheadId"
-          markerWidth="6"
-          markerHeight="4"
-          refX="5"
-          refY="2"
+          markerWidth="7"
+          markerHeight="5"
+          refX="6"
+          refY="2.5"
           orient="auto-start-reverse"
         >
-          <polygon points="0 0, 6 2, 0 4" :fill="lineColor" />
+          <polygon points="0 0, 7 2.5, 0 5" :fill="lineColor" />
         </marker>
       </defs>
       <!-- 实际的连接线路径 -->
       <path
         :d="pathData"
         :stroke="lineColor"
-        stroke-width="1.5"
+        stroke-width="2"
         fill="none"
         :marker-end="`url(#${arrowheadId})`"
         class="actual-path"
@@ -35,7 +35,7 @@
       <path
         :d="pathData"
         stroke="transparent"
-        stroke-width="10"
+        stroke-width="12"
         fill="none"
         class="hover-path"
         :style="{ zIndex: zIndex }"
@@ -43,7 +43,7 @@
         @mouseleave="handleMouseLeave"
       />
       <!-- 起点标记（小圆圈） -->
-      <circle :cx="startPoint.x" :cy="startPoint.y" :r="2" :fill="lineColor" />
+      <circle :cx="startPoint.x" :cy="startPoint.y" :r="3" :fill="lineColor" />
     </svg>
     <!-- 连接线描述文本 -->
     <div
@@ -267,7 +267,13 @@ const startPoint = computed(() => {
   cursor: pointer;
 }
 .actual-path {
-  transition: stroke 0.3s ease;
+  transition:
+    stroke 0.3s ease,
+    stroke-width 0.3s ease;
+
+  &:hover {
+    stroke-width: 2.5;
+  }
 }
 
 .hover-path {

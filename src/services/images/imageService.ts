@@ -9,7 +9,7 @@ export class ImageService {
   // 上传图片并保存到数据库
   async uploadImage(
     filePath: string,
-    noteId: string
+    noteId?: string
   ): Promise<{ path: string; isExisting: boolean }> {
     try {
       // 1. 读取文件并计算哈希
@@ -20,8 +20,10 @@ export class ImageService {
       const existingImage = await db('image_references').where({ hash }).first()
 
       if (existingImage) {
-        // 3. 如果图片已存在，创建新的关联
-        await this.createImageNoteRelation(existingImage.id, noteId)
+        // 3. 如果图片已存在且有 noteId，创建新的关联
+        if (noteId) {
+          await this.createImageNoteRelation(existingImage.id, noteId)
+        }
 
         // 4. 更新最后使用时间
         await db('image_references')
@@ -43,7 +45,6 @@ export class ImageService {
       await fs.copyFile(filePath, destPath)
 
       // 6. 保存图片信息到数据库
-
       await db('image_references').insert({
         id: imageId,
         path: destPath,
@@ -54,8 +55,10 @@ export class ImageService {
         lastUsed: new Date()
       })
 
-      // 7. 创建笔记和图片的关联
-      await this.createImageNoteRelation(imageId, noteId)
+      // 7. 如果有 noteId，创建笔记和图片的关联
+      if (noteId) {
+        await this.createImageNoteRelation(imageId, noteId)
+      }
 
       return {
         path: `file://${destPath.replace(/\\/g, '/')}`,

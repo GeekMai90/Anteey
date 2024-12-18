@@ -1,132 +1,77 @@
-import { ref } from 'vue'
+export type ResizeDirection = 'right' | 'bottom' | 'bottom-right'
 
-interface UseResizeOptions {
+export const useResize = ({
+  onResizeStart,
+  onResize,
+  onResizeEnd
+}: {
   onResizeStart?: (event: MouseEvent) => void
-  onResize?: (newSize: { width: number; height: number }, offset: { x: number; y: number }) => void
+  onResize: (newSize: { width: number; height: number }, offset: { x: number; y: number }) => void
   onResizeEnd?: () => void
-}
+}) => {
+  let isResizing = false
+  let startX = 0
+  let startY = 0
+  let startWidth = 0
+  let startHeight = 0
+  let direction: ResizeDirection | null = null
 
-interface InitialSize {
-  width: number
-  height: number
-}
+  const startResize = (
+    event: MouseEvent,
+    resizeDirection: ResizeDirection,
+    initialSize: { width: number; height: number }
+  ) => {
+    isResizing = true
+    direction = resizeDirection
+    startX = event.clientX
+    startY = event.clientY
+    startWidth = initialSize.width
+    startHeight = initialSize.height
 
-export type ResizeDirection =
-  | 'top'
-  | 'right'
-  | 'bottom'
-  | 'left'
-  | 'top-left'
-  | 'top-right'
-  | 'bottom-right'
-  | 'bottom-left'
+    onResizeStart?.(event)
 
-export function useResize(options: UseResizeOptions) {
-  const isResizing = ref(false)
-  const startX = ref(0)
-  const startY = ref(0)
-  const startWidth = ref(0)
-  const startHeight = ref(0)
-  const currentDirection = ref<ResizeDirection>('top')
-
-  const startResize = (event: MouseEvent, direction: ResizeDirection, initialSize: InitialSize) => {
-    event.preventDefault()
-    event.stopPropagation()
-
-    isResizing.value = true
-    currentDirection.value = direction
-    startX.value = event.clientX
-    startY.value = event.clientY
-    startWidth.value = initialSize.width
-    startHeight.value = initialSize.height
-
-    options.onResizeStart?.(event)
-
-    document.addEventListener('mousemove', onResize)
-    document.addEventListener('mouseup', stopResize)
+    document.addEventListener('mousemove', handleMouseMove)
+    document.addEventListener('mouseup', handleMouseUp)
   }
 
-  const onResize = (event: MouseEvent) => {
-    if (!isResizing.value) return
+  const handleMouseMove = (event: MouseEvent) => {
+    if (!isResizing || !direction) return
 
-    const deltaX = event.clientX - startX.value
-    const deltaY = event.clientY - startY.value
+    const deltaX = event.clientX - startX
+    const deltaY = event.clientY - startY
 
-    const { newSize, offset } = calculateNewSizeAndOffset(
-      currentDirection.value,
-      deltaX,
-      deltaY,
-      startWidth.value,
-      startHeight.value
-    )
+    let newWidth = startWidth
+    let newHeight = startHeight
+    const offsetX = 0
+    const offsetY = 0
 
-    options.onResize?.(newSize, offset)
+    // 根据调整方向计算新的尺寸
+    switch (direction) {
+      case 'right':
+        newWidth = startWidth + deltaX
+        break
+      case 'bottom':
+        newHeight = startHeight + deltaY
+        break
+      case 'bottom-right':
+        newWidth = startWidth + deltaX
+        newHeight = startHeight + deltaY
+        break
+    }
+
+    // 调用回调函数更新尺寸
+    onResize({ width: newWidth, height: newHeight }, { x: offsetX, y: offsetY })
   }
 
-  const stopResize = () => {
-    isResizing.value = false
-    options.onResizeEnd?.()
-    document.removeEventListener('mousemove', onResize)
-    document.removeEventListener('mouseup', stopResize)
+  const handleMouseUp = () => {
+    isResizing = false
+    direction = null
+    document.removeEventListener('mousemove', handleMouseMove)
+    document.removeEventListener('mouseup', handleMouseUp)
+    onResizeEnd?.()
   }
 
   return {
-    isResizing,
     startResize
-  }
-}
-
-function calculateNewSizeAndOffset(
-  direction: ResizeDirection,
-  deltaX: number,
-  deltaY: number,
-  startWidth: number,
-  startHeight: number
-): { newSize: { width: number; height: number }; offset: { x: number; y: number } } {
-  let width = startWidth
-  let height = startHeight
-  let offsetX = 0
-  let offsetY = 0
-
-  switch (direction) {
-    case 'right':
-      width = startWidth + deltaX
-      break
-    case 'left':
-      width = startWidth - deltaX
-      offsetX = deltaX
-      break
-    case 'bottom':
-      height = startHeight + deltaY
-      break
-    case 'top':
-      height = startHeight - deltaY
-      offsetY = deltaY
-      break
-    case 'top-left':
-      width = startWidth - deltaX
-      height = startHeight - deltaY
-      offsetX = deltaX
-      offsetY = deltaY
-      break
-    case 'top-right':
-      width = startWidth + deltaX
-      height = startHeight - deltaY
-      offsetY = deltaY
-      break
-    case 'bottom-right':
-      width = startWidth + deltaX
-      height = startHeight + deltaY
-      break
-    case 'bottom-left':
-      width = startWidth - deltaX
-      height = startHeight + deltaY
-      offsetX = deltaX
-      break
-  }
-
-  return {
-    newSize: { width, height },
-    offset: { x: offsetX, y: offsetY }
   }
 }

@@ -121,8 +121,9 @@ export const useWhiteboardStore = defineStore('whiteboard', {
     async createWhiteboardNote(input: CreateWhiteboardNoteInput) {
       console.log('whiteboardStore→ 开始创建白板笔记', input)
       const newWhiteboardNote = await window.electronAPI.createWhiteboardNote(input)
-      const noteId = newWhiteboardNote.noteId
-      await this.noteStore.addNoteToNoteList(noteId)
+      if (newWhiteboardNote.noteId) {
+        await this.noteStore.addNoteToNoteList(newWhiteboardNote.noteId)
+      }
       console.log('whiteboardStore→ 创建白板笔记成功', newWhiteboardNote)
       return newWhiteboardNote
     },
@@ -169,13 +170,11 @@ export const useWhiteboardStore = defineStore('whiteboard', {
       try {
         console.log('whiteboardStore→ 开始获取白板中的所有白板笔记', whiteboardId)
         const whiteboardNotes = await window.electronAPI.getWhiteboardNotes(whiteboardId)
-        // 将获取到的白板笔记存储在 state 中
         this.whiteboardNotes = whiteboardNotes
-        // 先获取所有的笔记 id
-        const noteIds = whiteboardNotes.map((note) => note.noteId)
-        // 获取所有的笔记
+        const noteIds = whiteboardNotes
+          .map((note) => note.noteId)
+          .filter((id): id is string => id !== undefined)
         const notes = await this.noteStore.getNotesByIds(noteIds)
-        // 以笔记 id 和笔记的形式，存储在 whiteboardNotes 中
         this.referenceNotes = Object.fromEntries(notes.map((note) => [note.id, note]))
         console.log('whiteboardStore→ 获取白板中的所有白板笔记成功', this.referenceNotes)
         return whiteboardNotes
@@ -397,6 +396,45 @@ export const useWhiteboardStore = defineStore('whiteboard', {
         return await window.electronAPI.getWhiteboardCount()
       } catch (error) {
         console.error('whiteboardStore→ 获取白板数量失败', error)
+        throw error
+      }
+    },
+    // 添加更新白板笔记样式的方法
+    async updateWhiteboardNoteStyle(id: string, style: WhiteboardNote['style']) {
+      try {
+        console.log('whiteboardStore→ 开始更新白板笔记样式', { id, style })
+        // 调用 API 更新样式，传入两个参数而不是一个对象
+        const updatedNote = await window.electronAPI.updateWhiteboardNoteStyle(id, style)
+        // 更新本地状态
+        const index = this.whiteboardNotes.findIndex((n) => n.id === id)
+        if (index !== -1) {
+          this.whiteboardNotes[index] = {
+            ...this.whiteboardNotes[index],
+            style
+          }
+        }
+        return updatedNote
+      } catch (error) {
+        console.error('whiteboardStore→ 更新白板笔记样式失败', error)
+        throw error
+      }
+    },
+    // 添加更新白板笔记内容的方法
+    async updateWhiteboardNoteContent(id: string, content: string) {
+      try {
+        console.log('whiteboardStore→ 开始更新白板笔记内容', { id, content })
+        const updatedNote = await window.electronAPI.updateWhiteboardNoteContent(id, content)
+        // 更新本地状态
+        const index = this.whiteboardNotes.findIndex((n) => n.id === id)
+        if (index !== -1) {
+          this.whiteboardNotes[index] = {
+            ...this.whiteboardNotes[index],
+            content
+          }
+        }
+        return updatedNote
+      } catch (error) {
+        console.error('whiteboardStore→ 更新白板笔记内容失败', error)
         throw error
       }
     }

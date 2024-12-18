@@ -1,11 +1,12 @@
 <template>
-  <div class="image-note">
+  <div class="image-note" :style="containerStyle">
     <img :src="imageUrl" :style="imageStyle" @load="handleImageLoad" />
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import type { CSSProperties } from 'vue'
 
 const props = defineProps<{
   imageUrl?: string
@@ -18,15 +19,22 @@ const props = defineProps<{
   }
 }>()
 
-const imageStyle = computed(() => ({
-  maxWidth: '100%',
-  maxHeight: '100%',
-  objectFit: 'contain' as const,
-  ...props.style
+// 容器样式
+const containerStyle = computed(() => ({
+  backgroundColor: props.style?.backgroundColor || 'var(--color-bg-primary)'
 }))
 
+// 图片样式
+const imageStyle = computed(
+  (): CSSProperties => ({
+    maxWidth: '100%',
+    maxHeight: '100%',
+    objectFit: 'contain',
+    pointerEvents: 'none' as const
+  })
+)
+
 const handleImageLoad = () => {
-  // TODO: 实现图片加载完成后的处理逻辑
   console.log('Image loaded:', props.imageUrl)
 }
 </script>
@@ -38,11 +46,17 @@ const handleImageLoad = () => {
   display: flex;
   align-items: center;
   justify-content: center;
+  border-radius: 12px;
+  overflow: hidden;
+  background-color: var(--color-bg-primary);
 
   img {
     max-width: 100%;
     max-height: 100%;
     object-fit: contain;
+    display: block;
+    user-select: none;
+    -webkit-user-drag: none;
   }
 }
 </style>

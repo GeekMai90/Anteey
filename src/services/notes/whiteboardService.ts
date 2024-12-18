@@ -305,7 +305,7 @@ function processWhiteboardNoteData(item: any): WhiteboardNote {
     size: JSON.parse(item.size),
     zIndex: item.zIndex,
     rotation: item.rotation,
-    style: item.style ? JSON.parse(item.style) : null,
+    style: item.style ? JSON.parse(item.style) : undefined,
 
     // 根据类型处理特定属性
     noteId: item.type === 'card' ? item.noteId : undefined,
@@ -393,11 +393,8 @@ export async function deleteWhiteboardNote(id: string): Promise<void> {
 export async function getWhiteboardNotes(whiteboardId: string): Promise<WhiteboardNote[]> {
   try {
     const notes = await db('whiteboard_notes').where({ whiteboardId }).select('*')
-    return notes.map((note) => ({
-      ...note,
-      position: JSON.parse(note.position),
-      size: JSON.parse(note.size)
-    })) as WhiteboardNote[]
+    // 使用 processWhiteboardNoteData 处理每个笔记
+    return notes.map(processWhiteboardNoteData)
   } catch (error) {
     console.error('后端→ 获取白板笔记失败:', error)
     throw error
@@ -495,7 +492,7 @@ export async function updateWhiteboardName(id: string, name: string): Promise<Wh
 export async function deleteWhiteboard(id: string): Promise<{ success: boolean; error?: string }> {
   try {
     await db('whiteboards').where({ id }).del()
-    console.log('后端→ 删除白板成功', id)
+    console.log('后���→ 删除白板成功', id)
     // 删除白板中的所有笔记
     const notes = await db('whiteboard_notes').where({ whiteboardId: id }).select('*')
     for (const note of notes) {
