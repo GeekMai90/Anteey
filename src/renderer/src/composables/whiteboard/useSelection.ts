@@ -1,8 +1,10 @@
 import { ref, computed, type Ref } from 'vue'
-import type { WhiteboardNote } from '../../types/Note'
+import type { WhiteboardNote } from '@renderer/types/Whiteboard'
+import type { WhiteboardTextCard } from '@renderer/types/Whiteboard'
 
 export function useSelection(
   whiteboardNotes: Ref<WhiteboardNote[]>,
+  whiteboardTextCards: Ref<WhiteboardTextCard[]>,
   scale: Ref<number>,
   translateX: Ref<number>,
   translateY: Ref<number>,
@@ -11,16 +13,16 @@ export function useSelection(
   const isSelecting = ref(false)
   const selectionStart = ref({ x: 0, y: 0 })
   const selectionEnd = ref({ x: 0, y: 0 })
-  const selectedNotes = ref<string[]>([])
+  const selectedItems = ref<string[]>([])
   const rafId = ref<number | null>(null)
 
-  const updateSelectedNotes = () => {
+  const updateSelectedItems = () => {
     const selectionLeft = Math.min(selectionStart.value.x, selectionEnd.value.x)
     const selectionRight = Math.max(selectionStart.value.x, selectionEnd.value.x)
     const selectionTop = Math.min(selectionStart.value.y, selectionEnd.value.y)
     const selectionBottom = Math.max(selectionStart.value.y, selectionEnd.value.y)
 
-    selectedNotes.value = whiteboardNotes.value
+    const selectedNoteIds = whiteboardNotes.value
       .filter(
         (note) =>
           note.position.x < selectionRight &&
@@ -29,6 +31,18 @@ export function useSelection(
           note.position.y + note.size.height > selectionTop
       )
       .map((note) => note.id)
+
+    const selectedTextCardIds = whiteboardTextCards.value
+      .filter(
+        (card) =>
+          card.position.x < selectionRight &&
+          card.position.x + card.size.width > selectionLeft &&
+          card.position.y < selectionBottom &&
+          card.position.y + card.size.height > selectionTop
+      )
+      .map((card) => card.id)
+
+    selectedItems.value = [...selectedNoteIds, ...selectedTextCardIds]
   }
 
   const selectionBoxStyle = computed(() => {
@@ -66,7 +80,7 @@ export function useSelection(
         const currentX = (event.clientX - rect.left - translateX.value) / scale.value
         const currentY = (event.clientY - rect.top - translateY.value) / scale.value
         selectionEnd.value = { x: currentX, y: currentY }
-        updateSelectedNotes()
+        updateSelectedItems()
       }
     })
   }
@@ -77,18 +91,18 @@ export function useSelection(
       cancelAnimationFrame(rafId.value)
       rafId.value = null
     }
-    updateSelectedNotes()
+    updateSelectedItems()
   }
 
   const handleContainerClickOutside = (event: MouseEvent) => {
     if (event.target === containerRef.value) {
-      selectedNotes.value = []
+      selectedItems.value = []
     }
   }
 
   return {
     isSelecting,
-    selectedNotes,
+    selectedItems,
     selectionBoxStyle,
     startSelection,
     updateSelection,

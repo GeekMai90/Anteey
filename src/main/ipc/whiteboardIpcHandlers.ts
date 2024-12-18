@@ -1,5 +1,8 @@
 import { ipcMain } from 'electron'
-import { CreateWhiteboardInput, CreateWhiteboardNoteInput } from '../../renderer/src/types/Note'
+import {
+  CreateWhiteboardInput,
+  CreateWhiteboardNoteInput
+} from '../../renderer/src/types/Whiteboard'
 import {
   createWhiteboard,
   getTopLevelWhiteboards,
@@ -27,7 +30,7 @@ import {
   updateWhiteboardTextCard,
   deleteWhiteboardTextCard,
   updateTextCardsZIndex
-} from '../../services/notes/whiteboards'
+} from '../../services/notes/whiteboardService'
 
 export function setupWhiteboardHandlers() {
   // 获取白板数量

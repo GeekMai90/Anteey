@@ -48,7 +48,7 @@
 
 <script setup lang="ts">
 import { defineProps, nextTick, onMounted, ref } from 'vue'
-import type { Whiteboard } from '@renderer/types/Note'
+import type { Whiteboard } from '@renderer/types/Whiteboard'
 import { Workbench, More } from '@icon-park/vue-next'
 import { useWhiteboardStore } from '@renderer/stores/whiteboardStores'
 import router from '@renderer/router'

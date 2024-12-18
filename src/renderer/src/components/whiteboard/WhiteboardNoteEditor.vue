@@ -19,7 +19,6 @@
           <div v-tooltip.bottom="{ content: '设置卡片盒', delay: { show: 1000 } }" class="icon">
             <Install theme="outline" size="18" fill="var(--color-icon-default)" :stroke-width="3" />
           </div>
-          <!-- 添加卡片盒下拉菜单 -->
           <CardboxDropdownMenu
             ref="cardboxMenuRef"
             :is-open="cardboxMenuState.isOpen"

@@ -1,15 +1,15 @@
 // stores/whiteboard.ts
 import { defineStore } from 'pinia'
+import { Note } from '../types/Note'
 import {
   Whiteboard,
   Connection,
   CreateWhiteboardInput,
   CreateWhiteboardNoteInput,
-  Note,
   ConnectionCreateData,
   WhiteboardNote,
   WhiteboardTextCard
-} from '../types/Note'
+} from '../types/Whiteboard'
 import { useNoteStore } from './noteStores'
 
 export const useWhiteboardStore = defineStore('whiteboard', {

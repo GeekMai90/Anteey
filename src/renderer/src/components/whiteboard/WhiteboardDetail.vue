@@ -44,7 +44,7 @@
             :item="item"
             :note-id="item.noteId"
             :is-hovered="isCreatingConnection && hoverNote?.id === item.id"
-            :is-selected="selectedNotes.includes(item.id)"
+            :is-selected="selectedItems.includes(item.id)"
             @drag-start="startDraggingItem(item, $event)"
             @resize-start="startResizingItem(item, $event)"
             @start-connection="startConnection"
@@ -74,8 +74,11 @@
             :key="card.id"
             :card="card"
             :style="getTextCardStyle(card)"
+            :is-selected="selectedItems.includes(card.id)"
             @mousedown="startDraggingItem({ ...card, type: 'text' }, $event)"
             @resize-start="startResizingItem({ ...card, type: 'text' }, $event)"
+            @note-interaction="handleNoteInteraction"
+            @item-click="handleItemClick"
           />
         </template>
         <!-- 选择框 -->
@@ -109,7 +112,7 @@
     <!-- 新增：顶端对齐按钮 -->
     <SelectionToolbar
       v-if="showSelectionToolbar"
-      :selected-notes="selectedNotes"
+      :selected-notes="selectedItems"
       :whiteboard-notes="whiteboardNotes"
       @update:notes="updateNotes"
       @update-connections="updateAllConnectionPositions"
@@ -132,7 +135,7 @@ import { ref, onMounted, onUnmounted, watch, computed, markRaw, nextTick } from 
 import { useRoute } from 'vue-router'
 import AppToolbar from '@renderer/components/layout/AppToolbar.vue'
 import { useWhiteboardStore } from '@renderer/stores/whiteboardStores'
-import { CreateWhiteboardNoteInput, WhiteboardNote, Connection } from '@renderer/types/Note'
+import { CreateWhiteboardNoteInput, WhiteboardNote, Connection } from '@renderer/types/Whiteboard'
 import WhiteboardNoteComponent from '@renderer/components/whiteboard/WhiteboardNoteComponent.vue'
 import { Add, Aiming } from '@icon-park/vue-next'
 import WhiteboardZoomControl from '@renderer/components/whiteboard/WhiteboardZoomControl.vue'
@@ -145,7 +148,7 @@ import { useConnection } from '@renderer/composables/whiteboard/useConnection'
 import { useSelection } from '@renderer/composables/whiteboard/useSelection'
 import { useWhiteboardViewState } from '@renderer/composables/whiteboard/useWhiteboardViewState'
 import WhiteboardTextCard from './WhiteboardTextCard.vue'
-import { WhiteboardTextCard as WhiteboardTextCardType } from '@renderer/types/Note'
+import { WhiteboardTextCard as WhiteboardTextCardType } from '@renderer/types/Whiteboard'
 
 const containerRef = ref<HTMLElement | null>(null)
 const route = useRoute()
@@ -210,7 +213,7 @@ const measureSpan = ref<HTMLSpanElement | null>(null)
 const isHoveringNote = ref(false)
 
 const showSelectionToolbar = computed(() => {
-  return selectedNotes.value.length > 1
+  return selectedItems.value.length > 1
 })
 
 const { scale, translateX, translateY, debouncedSaveViewState, loadViewState, fitView } =
@@ -244,15 +247,17 @@ const {
   containerRef
 )
 
+const whiteboardTextCards = ref<WhiteboardTextCardType[]>([])
+
 const {
   isSelecting,
-  selectedNotes,
+  selectedItems,
   selectionBoxStyle,
   startSelection,
   updateSelection,
   endSelection,
   handleContainerClickOutside
-} = useSelection(whiteboardNotes, scale, translateX, translateY, containerRef)
+} = useSelection(whiteboardNotes, whiteboardTextCards, scale, translateX, translateY, containerRef)
 
 const updateWhiteboardName = async (newName: string) => {
   const id = route.params.whiteboardId
@@ -312,20 +317,51 @@ const handleSearch = () => {
 
 const transformLayerRef = ref<HTMLDivElement | null>(null)
 
-const updateNotes = (updatedNotes: WhiteboardNote[]) => {
-  whiteboardNotes.value = updatedNotes
-  // 可能需要在这里添加保存到后端的逻辑
-  updatedNotes.forEach((note) => {
-    if (selectedNotes.value.includes(note.id)) {
-      whiteboardStore.updateWhiteboardNotePosition(note.id, note.position.x, note.position.y)
+const updateNotes = async (updatedItems: (WhiteboardNote | WhiteboardTextCardType)[]) => {
+  const updatedNotes: WhiteboardNote[] = []
+  const updatedTextCards: WhiteboardTextCardType[] = []
+
+  updatedItems.forEach((item) => {
+    if ('type' in item && item.type === 'text') {
+      updatedTextCards.push(item as WhiteboardTextCardType)
+    } else {
+      updatedNotes.push(item as WhiteboardNote)
     }
   })
+
+  // 更新白板笔记
+  whiteboardNotes.value = whiteboardNotes.value.map((note) => {
+    const updatedNote = updatedNotes.find((n) => n.id === note.id)
+    return updatedNote || note
+  })
+
+  // 更新文本卡片
+  whiteboardTextCards.value = whiteboardTextCards.value.map((card) => {
+    const updatedCard = updatedTextCards.find((c) => c.id === card.id)
+    return updatedCard || card
+  })
+
+  // 保存到后端
+  try {
+    await Promise.all([
+      ...updatedNotes.map((note) =>
+        whiteboardStore.updateWhiteboardNotePosition(note.id, note.position.x, note.position.y)
+      ),
+      ...updatedTextCards.map((card) =>
+        whiteboardStore.updateWhiteboardTextCard(card.id, {
+          position: { x: card.position.x, y: card.position.y }
+        })
+      )
+    ])
+  } catch (error) {
+    console.error('更新位置失败:', error)
+  }
 }
 
 // 数据是否加载完成
 const dataLoaded = ref(false)
 
-// 监听 whiteboardStore.whiteboardNotes 的变化，立刻更新视图
+// 监听 whiteboardStore.whiteboardNotes 的变化，立即更新视图
 watch(
   () => whiteboardStore.whiteboardNotes,
   (newNotes) => {
@@ -485,7 +521,7 @@ const startResizingItem = (
   document.addEventListener('mouseup', stopResizingItem)
 }
 
-// 计算拖拽改变大小的位置和大小
+// 计算拖拽改变大小位置和大小
 const onResizeItem = (event: MouseEvent) => {
   event.preventDefault()
   event.stopPropagation()
@@ -545,7 +581,7 @@ const onResizeItem = (event: MouseEvent) => {
       break
   }
 
-  // 更新大小
+  // 更���大小
   if (textCard) {
     textCard.size.width = newWidth
     textCard.size.height = newHeight
@@ -622,45 +658,47 @@ const startDraggingItem = (
   item: WhiteboardNote | (WhiteboardTextCardType & { type: 'text' }),
   event: MouseEvent
 ) => {
-  // 如果当前有白板项正在交互，则不启动拖拽
   if (isNoteInteracting.value) {
     event.preventDefault()
     return
   }
-  // 检查事件目标是否为连接按钮
   if ((event.target as HTMLElement).closest('.connection-button')) {
-    return // 如果是连接按钮，不启动拖拽
+    return
   }
-  event.preventDefault() // 添加这行
-  // 如果 containerRef 不存在，则不启动拖拽
+  event.preventDefault()
   if (!containerRef.value) return
 
-  // 获取 containerRef 的边界矩形
   const rect = containerRef.value.getBoundingClientRect()
 
   // 如果是文本卡片
   if ('type' in item && item.type === 'text') {
+    // 如果当前卡片不在选中状态，且不是按住 Ctrl/Command 键，则重置选择
+    if (!selectedItems.value.includes(item.id) && !(event.ctrlKey || event.metaKey)) {
+      selectedItems.value = [item.id]
+    }
+    // 获取所有选中的文本卡片
+    const selectedCards = whiteboardTextCards.value.filter((card) =>
+      selectedItems.value.includes(card.id)
+    )
     draggingItem.value = {
-      ids: [item.id],
-      startPositions: [
-        {
-          id: item.id,
-          x: (event.clientX - rect.left - translateX.value) / scale.value - item.position.x,
-          y: (event.clientY - rect.top - translateY.value) / scale.value - item.position.y
-        }
-      ]
+      ids: selectedCards.map((card) => card.id),
+      startPositions: selectedCards.map((card) => ({
+        id: card.id,
+        x: (event.clientX - rect.left - translateX.value) / scale.value - card.position.x,
+        y: (event.clientY - rect.top - translateY.value) / scale.value - card.position.y
+      }))
     }
   } else {
     // 原有的白板笔记逻辑
-    if (!selectedNotes.value.includes(item.id)) {
-      selectedNotes.value = [item.id]
+    if (!selectedItems.value.includes(item.id) && !(event.ctrlKey || event.metaKey)) {
+      selectedItems.value = [item.id]
     }
-    const selectedItems = whiteboardNotes.value.filter((note) =>
-      selectedNotes.value.includes(note.id)
+    const selectedNotesList = whiteboardNotes.value.filter((note) =>
+      selectedItems.value.includes(note.id)
     )
     draggingItem.value = {
-      ids: selectedItems.map((note) => note.id),
-      startPositions: selectedItems.map((note) => ({
+      ids: selectedNotesList.map((note) => note.id),
+      startPositions: selectedNotesList.map((note) => ({
         id: note.id,
         x: (event.clientX - rect.left - translateX.value) / scale.value - note.position.x,
         y: (event.clientY - rect.top - translateY.value) / scale.value - note.position.y
@@ -678,6 +716,8 @@ const onDragItem = (event: MouseEvent) => {
 
   const rect = containerRef.value.getBoundingClientRect()
   const { ids, startPositions } = draggingItem.value
+  const snapThreshold = SNAP_THRESHOLD / scale.value
+  const SPACING = 5 // 最小间距
 
   ids.forEach((id, index) => {
     const { x: startX, y: startY } = startPositions[index]
@@ -686,142 +726,111 @@ const onDragItem = (event: MouseEvent) => {
 
     // 检查是否为文本卡片
     const textCard = whiteboardTextCards.value.find((card) => card.id === id)
-    if (textCard) {
-      // 文本卡片的处理
-      if (newX !== textCard.position.x || newY !== textCard.position.y) {
-        hasMoved.value = true
+    const currentItem = textCard || whiteboardNotes.value.find((item) => item.id === id)
+
+    if (!currentItem) return
+
+    if (newX !== currentItem.position.x || newY !== currentItem.position.y) {
+      hasMoved.value = true
+    }
+
+    // 计算当前项的中心点
+    const currentCenterX = newX + currentItem.size.width / 2
+    const currentCenterY = newY + currentItem.size.height / 2
+
+    // 遍历所有可对齐的项（包括笔记和文本卡片）
+    const allItems = [...whiteboardNotes.value, ...whiteboardTextCards.value].filter(
+      (item) => item.id !== id
+    )
+
+    allItems.forEach((otherItem) => {
+      const otherCenterX = otherItem.position.x + otherItem.size.width / 2
+      const otherCenterY = otherItem.position.y + otherItem.size.height / 2
+
+      // 左边对齐
+      if (Math.abs(newX - otherItem.position.x) < snapThreshold) {
+        newX = otherItem.position.x
+        alignmentGuides.value.push({ direction: 'vertical', position: newX })
       }
+      // 右边对齐
+      if (
+        Math.abs(newX + currentItem.size.width - (otherItem.position.x + otherItem.size.width)) <
+        snapThreshold
+      ) {
+        newX = otherItem.position.x + otherItem.size.width - currentItem.size.width
+        alignmentGuides.value.push({
+          direction: 'vertical',
+          position: newX + currentItem.size.width
+        })
+      }
+      // 顶边对齐
+      if (Math.abs(newY - otherItem.position.y) < snapThreshold) {
+        newY = otherItem.position.y
+        alignmentGuides.value.push({ direction: 'horizontal', position: newY })
+      }
+      // 底边对齐
+      if (
+        Math.abs(newY + currentItem.size.height - (otherItem.position.y + otherItem.size.height)) <
+        snapThreshold
+      ) {
+        newY = otherItem.position.y + otherItem.size.height - currentItem.size.height
+        alignmentGuides.value.push({
+          direction: 'horizontal',
+          position: newY + currentItem.size.height
+        })
+      }
+
+      // 中心对齐（水平和垂直）
+      if (Math.abs(currentCenterX - otherCenterX) < snapThreshold) {
+        newX = otherCenterX - currentItem.size.width / 2
+        alignmentGuides.value.push({ direction: 'vertical', position: otherCenterX })
+      }
+      if (Math.abs(currentCenterY - otherCenterY) < snapThreshold) {
+        newY = otherCenterY - currentItem.size.height / 2
+        alignmentGuides.value.push({ direction: 'horizontal', position: otherCenterY })
+      }
+
+      // 相邻间距对齐
+      // 左边相邻
+      if (
+        Math.abs(newX - (otherItem.position.x + otherItem.size.width + SPACING)) < snapThreshold
+      ) {
+        newX = otherItem.position.x + otherItem.size.width + SPACING
+        alignmentGuides.value.push({ direction: 'vertical', position: newX - SPACING })
+      }
+      // 右边相邻
+      if (
+        Math.abs(newX + currentItem.size.width + SPACING - otherItem.position.x) < snapThreshold
+      ) {
+        newX = otherItem.position.x - currentItem.size.width - SPACING
+        alignmentGuides.value.push({
+          direction: 'vertical',
+          position: newX + currentItem.size.width + SPACING
+        })
+      }
+      // 顶边相邻
+      if (
+        Math.abs(newY - (otherItem.position.y + otherItem.size.height + SPACING)) < snapThreshold
+      ) {
+        newY = otherItem.position.y + otherItem.size.height + SPACING
+        alignmentGuides.value.push({ direction: 'horizontal', position: newY - SPACING })
+      }
+      // 底边相邻
+      if (
+        Math.abs(newY + currentItem.size.height + SPACING - otherItem.position.y) < snapThreshold
+      ) {
+        newY = otherItem.position.y - currentItem.size.height - SPACING
+        alignmentGuides.value.push({
+          direction: 'horizontal',
+          position: newY + currentItem.size.height + SPACING
+        })
+      }
+    })
+
+    // 更新位置
+    if (textCard) {
       updateItemPosition(id, newX, newY, 'text')
     } else {
-      // 原有的白板笔记处理逻辑
-      const currentItem = whiteboardNotes.value.find((item) => item.id === id)
-      if (!currentItem) return
-
-      if (newX !== currentItem.position.x || newY !== currentItem.position.y) {
-        hasMoved.value = true
-      }
-
-      // 计算对齐阈值
-      const snapThreshold = SNAP_THRESHOLD / scale.value
-      // 计算当前项的中心点
-      const currentCenterX = newX + currentItem.size.width / 2
-      const currentCenterY = newY + currentItem.size.height / 2
-      // 定义缩略图之间的间距
-      const SPACING = 5
-      // 遍历所有项，检查是否与其他项对齐
-      whiteboardNotes.value.forEach((otherItem) => {
-        if (otherItem.id !== id) {
-          const otherCenterX = otherItem.position.x + otherItem.size.width / 2
-          const otherCenterY = otherItem.position.y + otherItem.size.height / 2
-
-          // 左边对齐
-          if (Math.abs(newX - otherItem.position.x) < snapThreshold) {
-            newX = otherItem.position.x
-            alignmentGuides.value.push({ direction: 'vertical', position: newX })
-          }
-          // 右边对齐
-          if (
-            Math.abs(
-              newX + currentItem.size.width - (otherItem.position.x + otherItem.size.width)
-            ) < snapThreshold
-          ) {
-            newX = otherItem.position.x + otherItem.size.width - currentItem.size.width
-            alignmentGuides.value.push({
-              direction: 'vertical',
-              position: newX + currentItem.size.width
-            })
-          }
-          // 顶边对齐
-          if (Math.abs(newY - otherItem.position.y) < snapThreshold) {
-            newY = otherItem.position.y
-            alignmentGuides.value.push({ direction: 'horizontal', position: newY })
-          }
-          // 底边对齐
-          if (
-            Math.abs(
-              newY + currentItem.size.height - (otherItem.position.y + otherItem.size.height)
-            ) < snapThreshold
-          ) {
-            newY = otherItem.position.y + otherItem.size.height - currentItem.size.height
-            alignmentGuides.value.push({
-              direction: 'horizontal',
-              position: newY + currentItem.size.height
-            })
-          }
-
-          // 中间对齐（水平和垂直）
-          if (Math.abs(currentCenterX - otherCenterX) < snapThreshold) {
-            newX = otherCenterX - currentItem.size.width / 2
-            alignmentGuides.value.push({ direction: 'vertical', position: otherCenterX })
-          }
-          if (Math.abs(currentCenterY - otherCenterY) < snapThreshold) {
-            newY = otherCenterY - currentItem.size.height / 2
-            alignmentGuides.value.push({ direction: 'horizontal', position: otherCenterY })
-          }
-          // 左边相邻
-          if (
-            Math.abs(newX - (otherItem.position.x + otherItem.size.width + SPACING)) < snapThreshold
-          ) {
-            newX = otherItem.position.x + otherItem.size.width + SPACING
-            alignmentGuides.value.push({ direction: 'vertical', position: newX - SPACING })
-          }
-          // 右边相邻
-          if (
-            Math.abs(newX + otherItem.size.width + SPACING - otherItem.position.x) < snapThreshold
-          ) {
-            newX = otherItem.position.x - otherItem.size.width - SPACING
-            alignmentGuides.value.push({
-              direction: 'vertical',
-              position: newX + otherItem.size.width + SPACING
-            })
-          }
-          // 顶边相邻
-          if (
-            Math.abs(newY - (otherItem.position.y + otherItem.size.height + SPACING)) <
-            snapThreshold
-          ) {
-            newY = otherItem.position.y + otherItem.size.height + SPACING
-            alignmentGuides.value.push({ direction: 'horizontal', position: newY - SPACING })
-          }
-          // 底边相邻（修正）
-          if (
-            Math.abs(newY + otherItem.size.height + SPACING - otherItem.position.y) < snapThreshold
-          ) {
-            newY = otherItem.position.y - otherItem.size.height - SPACING
-            alignmentGuides.value.push({
-              direction: 'horizontal',
-              position: newY + otherItem.size.height + SPACING
-            })
-          }
-          // 顶边与左边中间对齐
-          if (Math.abs(newY - otherCenterY) < snapThreshold) {
-            newY = otherCenterY
-            alignmentGuides.value.push({ direction: 'horizontal', position: newY })
-          }
-          // 底边与左边中间对齐
-          if (Math.abs(newY + otherItem.size.height - otherCenterY) < snapThreshold) {
-            newY = otherCenterY - otherItem.size.height
-            alignmentGuides.value.push({
-              direction: 'horizontal',
-              position: otherCenterY
-            })
-          }
-          // 左边与顶边中间对齐
-          if (Math.abs(newX - otherCenterX) < snapThreshold) {
-            newX = otherCenterX
-            alignmentGuides.value.push({ direction: 'vertical', position: newX })
-          }
-          // 右边与顶边中间对齐
-          if (Math.abs(newX + otherItem.size.width - otherCenterX) < snapThreshold) {
-            newX = otherCenterX - otherItem.size.width
-            alignmentGuides.value.push({
-              direction: 'vertical',
-              position: otherCenterX
-            })
-          }
-        }
-      })
-      // 更新连线位置
       updateConnectionPositions(id, { x: newX, y: newY })
       updateItemPosition(id, newX, newY, 'card')
     }
@@ -880,8 +889,6 @@ const stopDraggingItem = async () => {
   document.removeEventListener('mousemove', onDragItem)
   document.removeEventListener('mouseup', stopDraggingItem)
 }
-
-const whiteboardTextCards = ref<WhiteboardTextCardType[]>([])
 
 const updateItemPosition = (id: string, x: number, y: number, type: 'card' | 'text' = 'card') => {
   if (type === 'text') {
@@ -1235,6 +1242,28 @@ const getTextCardStyle = (card: WhiteboardTextCardType) => {
     zIndex: card.zIndex
   }
 }
+
+// 新增处理点击事件的函数
+const handleItemClick = (id: string, event: MouseEvent) => {
+  // 如果按住 Ctrl/Command 键，则进行多选
+  if (event.ctrlKey || event.metaKey) {
+    if (selectedItems.value.includes(id)) {
+      selectedItems.value = selectedItems.value.filter((itemId) => itemId !== id)
+    } else {
+      selectedItems.value.push(id)
+    }
+  } else {
+    // 如果点击的项已经在选中状态，且当前有多个选中项，则保持多选状态
+    if (!(selectedItems.value.includes(id) && selectedItems.value.length > 1)) {
+      selectedItems.value = [id]
+    }
+  }
+}
+
+// 在 script setup 中添加
+defineEmits<{
+  'item-click': [id: string, event: MouseEvent]
+}>()
 </script>
 
 <style lang="scss" scoped>

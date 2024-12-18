@@ -377,6 +377,8 @@ const moodOptions = [
   { value: 'focused', label: '🎯 专注' }
 ]
 
+const editingHour = ref<number | null>(null)
+
 // 监听日期变化
 watch(
   () => currentDate.value,
@@ -416,8 +418,6 @@ async function changeDate(days: number) {
   newDate.setDate(newDate.getDate() + days)
   currentDate.value = newDate
 }
-
-const editingHour = ref<number | null>(null)
 
 // 开始编辑
 const startEdit = (hour: number) => {
@@ -545,7 +545,7 @@ const getBlockContent = (hour: number) => {
     return ''
   }
   const content = timeBlockStore.currentDay.blocks[hour]?.content ?? ''
-  console.log(`Getting content for hour ${hour}:`, content)
+  // console.log(`Getting content for hour ${hour}:`, content)
   return content
 }
 

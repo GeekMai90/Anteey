@@ -17,11 +17,10 @@
       </div>
       <div class="toolbar-right">
         <!-- 卡片盒设置按钮 -->
-        <div ref="cardboxBtnRef" class="install-btn" @click.stop="toggleCardboxMenu">
+        <!-- <div ref="cardboxBtnRef" class="install-btn" @click.stop="toggleCardboxMenu">
           <div v-tooltip.bottom="{ content: '设置卡片盒', delay: { show: 1000 } }" class="icon">
             <Install theme="outline" size="18" fill="var(--color-icon-default)" :stroke-width="3" />
           </div>
-          <!-- 添加卡片盒下拉菜单 -->
           <CardboxDropdownMenu
             ref="cardboxMenuRef"
             :is-open="cardboxMenuState.isOpen"
@@ -30,7 +29,7 @@
             :current-cardbox-id="currentCardboxId || ''"
             @close="closeCardboxMenu"
           />
-        </div>
+        </div> -->
         <div class="connect-btn" @click="$emit('start-connection', $event)">
           <div v-tooltip.bottom="{ content: '连线', delay: { show: 1000 } }" class="icon">
             <Connection
@@ -63,8 +62,8 @@
 
 <script setup lang="ts">
 import { ref, watchEffect } from 'vue'
-import { ExpandTextInput, Install, More, Connection } from '@icon-park/vue-next'
-import CardboxDropdownMenu from '@renderer/components/cardbox/CardboxDropdownMenu.vue'
+import { ExpandTextInput, More, Connection } from '@icon-park/vue-next'
+// import CardboxDropdownMenu from '@renderer/components/cardbox/CardboxDropdownMenu.vue'
 import PopupMenu from '@renderer/components/common/PopupMenu.vue'
 import type { MenuItem } from '@renderer/components/common/PopupMenu.vue'
 import { useNoteStore } from '@renderer/stores/noteStores'
@@ -115,19 +114,19 @@ const handleMenuItemClick = (item: MenuItem) => {
 }
 
 // === 卡片盒菜单管理 ===
-const cardboxBtnRef = ref<HTMLElement | null>(null)
-const cardboxMenuRef = ref<HTMLElement | null>(null)
-const {
-  menuState: cardboxMenuState,
-  toggleMenu: toggleCardboxMenu,
-  closeMenu: closeCardboxMenu
-} = useMenu({
-  buttonRef: cardboxBtnRef,
-  menuRef: cardboxMenuRef,
-  onClose: () => {
-    console.log('卡片盒菜单已关闭')
-  }
-})
+// const cardboxBtnRef = ref<HTMLElement | null>(null)
+// const cardboxMenuRef = ref<HTMLElement | null>(null)
+// const {
+//   menuState: cardboxMenuState,
+//   toggleMenu: toggleCardboxMenu,
+//   closeMenu: closeCardboxMenu
+// } = useMenu({
+//   buttonRef: cardboxBtnRef,
+//   menuRef: cardboxMenuRef,
+//   onClose: () => {
+//     console.log('卡片盒菜单已关闭')
+//   }
+// })
 </script>
 
 <style lang="scss" scoped>
