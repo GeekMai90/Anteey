@@ -110,8 +110,9 @@ import AppToolbar from '@renderer/components/layout/AppToolbar.vue'
 import { SortTwo, Workbench, Plus, Search, Close } from '@icon-park/vue-next'
 import { useWhiteboardStore } from '@renderer/stores/whiteboardStores'
 import WhiteboardCard from '@renderer/components/whiteboard/WhiteboardCard.vue'
-import { CreateWhiteboardInput } from '@renderer/types/Note'
+import { CreateWhiteboardInput } from '@renderer/types/Whiteboard'
 import { useSearch } from '@renderer/composables/useSearch'
+import { Whiteboard } from '@renderer/types/Whiteboard'
 
 const whiteboardStore = useWhiteboardStore()
 const showSortMenu = ref(false)
@@ -126,7 +127,7 @@ onMounted(async () => {
 const whiteboards = computed(() => whiteboardStore.topLevelWhiteboards)
 
 // 搜索功能
-const { searchQuery, handleSearch, filteredItems, clearSearch } = useSearch(whiteboards)
+const { searchQuery, handleSearch, filteredItems, clearSearch } = useSearch<Whiteboard>(whiteboards)
 
 const isSearchFocused = ref(false)
 
@@ -139,19 +140,19 @@ const handleBlur = () => {
 // 使用计算属性来获取白板数据
 // const whiteboards = computed(() => whiteboardStore.whiteboards)
 // 使用计算属性来获取并排序白板数据
-const sortedWhiteboards = computed(() => {
-  const boards = filteredItems.value
-  return boards.sort((a, b) => {
+const sortedWhiteboards = computed((): Whiteboard[] => {
+  const boards = filteredItems.value as Whiteboard[]
+  return boards.sort((a: Whiteboard, b: Whiteboard) => {
     let comparison = 0
     switch (currentSort.value) {
       case 'name':
-        comparison = a.name.localeCompare(b.name)
+        comparison = (a.name || '').localeCompare(b.name || '')
         break
       case 'createdAt':
-        comparison = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+        comparison = new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime()
         break
       case 'updatedAt':
-        comparison = new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime()
+        comparison = new Date(a.updatedAt || 0).getTime() - new Date(b.updatedAt || 0).getTime()
         break
     }
     return sortDirection.value === 'asc' ? comparison : -comparison

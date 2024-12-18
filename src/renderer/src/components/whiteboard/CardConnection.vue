@@ -70,7 +70,7 @@
 
 <script lang="ts" setup>
 import { computed, ComputedRef, CSSProperties, nextTick, ref, watch } from 'vue'
-import type { Connection } from '@renderer/types/Note'
+import type { Connection } from '@renderer/types/Whiteboard'
 
 // 组件属性定义
 const props = defineProps<{

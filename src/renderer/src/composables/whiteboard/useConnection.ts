@@ -1,5 +1,5 @@
 import { ref, computed, type Ref } from 'vue'
-import type { WhiteboardNote, Connection, ConnectionCreateData } from '../../types/Note'
+import type { WhiteboardNote, Connection, ConnectionCreateData } from '../../types/Whiteboard'
 import { useWhiteboardStore } from '../../stores/whiteboardStores'
 import { useContextMenuStore } from '../../stores/contextMenuStore'
 import { Delete } from '@icon-park/vue-next'

@@ -5,10 +5,11 @@ import {
   Connection,
   CreateWhiteboardInput,
   CreateWhiteboardNoteInput,
-  Note,
   ConnectionCreateData,
   WhiteboardNote
-} from '../types/Note'
+} from '../types/Whiteboard'
+import type { Note } from '../types/Note'
+
 import { useNoteStore } from './noteStores'
 
 export const useWhiteboardStore = defineStore('whiteboard', {

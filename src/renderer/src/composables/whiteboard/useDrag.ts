@@ -1,5 +1,5 @@
 import { ref } from 'vue'
-import type { WhiteboardNote } from '../../types/Note'
+import type { WhiteboardNote } from '../../types/Whiteboard'
 import { useWhiteboardStore } from '../../stores/whiteboardStores'
 import type { Ref } from 'vue'
 

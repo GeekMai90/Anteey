@@ -8,7 +8,7 @@ import type {
   RootWhiteboard,
   WhiteboardGroup,
   Connection
-} from '../../renderer/src/types/Note'
+} from '../../renderer/src/types/Whiteboard'
 import { createNote } from './notesService'
 
 // 辅助函数：处理白板数据

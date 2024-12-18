@@ -105,7 +105,8 @@ import {
   ref,
   watch
 } from 'vue'
-import { CardBox, CardType, Note, WhiteboardNote } from '@renderer/types/Note'
+import { CardBox, CardType, Note } from '@renderer/types/Note'
+import { WhiteboardNote } from '@renderer/types/Whiteboard'
 import { useNoteStore } from '@renderer/stores/noteStores'
 import TipTapEditor from '@renderer/components/tiptap/TipTapEditor.vue'
 import { useRouter } from 'vue-router'
@@ -245,7 +246,9 @@ onUnmounted(() => {
 
 // 使用计算属性获���最新的笔记大小
 const whiteboardNoteSize = computed(() => {
-  const note = whiteboardStore.whiteboardNotes.find((note) => note.id === props.item.id)
+  const note = whiteboardStore.whiteboardNotes.find(
+    (note: WhiteboardNote) => note.id === props.item.id
+  )
   return note?.size || { width: 350, height: minHeight }
 })
 

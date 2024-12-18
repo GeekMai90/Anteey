@@ -4,9 +4,8 @@ import {
   TimelineQueryParams,
   TimelineQueryResult
 } from '../../../services/notes/notesService'
+import { Note, CardBox, NoteReference, Tag, SearchParams } from './Note'
 import {
-  Note,
-  CardBox,
   Whiteboard,
   CreateWhiteboardInput,
   CreateWhiteboardNoteInput,
@@ -14,11 +13,8 @@ import {
   RootWhiteboard,
   Connection,
   WhiteboardGroup,
-  ConnectionCreateData,
-  NoteReference,
-  Tag,
-  SearchParams
-} from './Note'
+  ConnectionCreateData
+} from './Whiteboard'
 import { UpdateUserSettings, UserSettings } from './UserSettings'
 import { CreateCustomFilterInput, CustomFilter, UpdateCustomFilterInput } from './Filter'
 import { WordSuggestion } from '../../../services/dictionary/dictionaryService'

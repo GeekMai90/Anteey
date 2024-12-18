@@ -1,7 +1,9 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { Notes, Table, TransactionOrder, Deeplink } from '@icon-park/vue-next'
-import type { Note, Whiteboard, Connection, CardBox, CardType } from '../types/Note'
+import type { Note, CardBox, CardType } from '../types/Note'
+import type { Whiteboard, Connection } from '../types/Whiteboard'
+
 import type { Editor } from '@tiptap/vue-3'
 import { GetPaginatedNotesParams } from '../../../services/notes/notesService'
 import { useEventBus } from '@vueuse/core'

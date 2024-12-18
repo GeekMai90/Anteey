@@ -6,7 +6,7 @@ import {
   Connection,
   ConnectionCreateData,
   ConnectionUpdateData
-} from '../../renderer/src/types/Note'
+} from '../../renderer/src/types/Whiteboard'
 
 // 创建连线
 // 需要输入白板id，起点项目id，终点项目id，起点坐标，终点坐标，描述

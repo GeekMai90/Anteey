@@ -124,7 +124,12 @@ import { ref, onMounted, onUnmounted, watch, computed, markRaw, nextTick } from 
 import { useRoute } from 'vue-router'
 import AppToolbar from '@renderer/components/layout/AppToolbar.vue'
 import { useWhiteboardStore } from '@renderer/stores/whiteboardStores'
-import { CreateWhiteboardNoteInput, WhiteboardNote, Connection } from '@renderer/types/Note'
+import {
+  CreateWhiteboardNoteInput,
+  WhiteboardNote,
+  Connection,
+  Whiteboard
+} from '@renderer/types/Whiteboard'
 import WhiteboardNoteComponent from '@renderer/components/whiteboard/WhiteboardNoteComponent.vue'
 import { Add, Aiming } from '@icon-park/vue-next'
 import WhiteboardZoomControl from '@renderer/components/whiteboard/WhiteboardZoomControl.vue'
@@ -402,8 +407,8 @@ const initializeData = async (whiteboardId: string) => {
     whiteboardNotes.value = whiteboardStore.whiteboardNotes
     connections.value = whiteboardStore.connections
     whiteboardName.value =
-      whiteboardStore.whiteboards.find((whiteboard) => whiteboard.id === whiteboardId)?.name ||
-      '未命名白板'
+      whiteboardStore.whiteboards.find((whiteboard: Whiteboard) => whiteboard.id === whiteboardId)
+        ?.name || '未命名白板'
     // await preloadNotes()
     updateAllConnectionPositions()
     dataLoaded.value = true

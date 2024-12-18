@@ -1,5 +1,5 @@
 import { ipcMain } from 'electron'
-import { ConnectionCreateData, ConnectionUpdateData } from '../../renderer/src/types/Note'
+import { ConnectionCreateData, ConnectionUpdateData } from '../../renderer/src/types/Whiteboard'
 import {
   createConnection,
   updateConnection,
