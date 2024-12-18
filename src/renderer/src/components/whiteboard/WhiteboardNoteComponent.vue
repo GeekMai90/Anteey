@@ -513,7 +513,7 @@ onMounted(() => {
   flex-direction: column;
   overflow: visible;
   // padding: 10px;
-  border: 2px solid transparent;
+  border: 2px solid var(--color-border);
 
   // 添加位置和大小样式
   left: 0;
@@ -807,6 +807,17 @@ onMounted(() => {
         transform: translateY(-50%) scale(1.5);
       }
     }
+  }
+
+  backface-visibility: hidden;
+  transform-style: preserve-3d;
+  will-change: transform;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  &.editing {
+    // 编辑状态下强制使用 GPU 加速
+    transform: translateZ(0);
   }
 }
 .whiteboard-item.selected {

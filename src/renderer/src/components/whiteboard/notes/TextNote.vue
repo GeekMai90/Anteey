@@ -1,5 +1,5 @@
 <template>
-  <div class="text-note">
+  <div class="text-note" :style="computedStyle">
     <textarea
       v-model="localContent"
       :readonly="!props.isEditing"
@@ -11,7 +11,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref, watch, computed, nextTick } from 'vue'
 
 const props = defineProps<{
   content?: string
@@ -30,11 +30,68 @@ const emit = defineEmits<{
 
 const localContent = ref(props.content || '')
 
+const computedStyle = computed(() => {
+  if (!props.style) return {}
+
+  const style: Record<string, string> = {}
+
+  if (props.style.backgroundColor) {
+    const colorValue = getComputedStyle(document.documentElement)
+      .getPropertyValue(props.style.backgroundColor.replace('var(', '').replace(')', ''))
+      .trim()
+
+    const [r, g, b] = hexToRgb(colorValue)
+      .split(',')
+      .map((n) => parseInt(n))
+    const bgColor = `rgba(${r}, ${g}, ${b}, 0.1)`
+
+    style.background = `linear-gradient(${bgColor}, ${bgColor}), linear-gradient(white, white)`
+    style.borderColor = props.style.backgroundColor
+  }
+
+  if (props.style.textColor) {
+    style.color = props.style.textColor
+  }
+
+  if (props.style.fontSize) {
+    style.fontSize = `${props.style.fontSize}px`
+  }
+
+  if (props.style.fontFamily) {
+    style.fontFamily = props.style.fontFamily
+  }
+
+  return style
+})
+
+const hexToRgb = (hex: string) => {
+  hex = hex.replace('#', '')
+  const r = parseInt(hex.substring(0, 2), 16)
+  const g = parseInt(hex.substring(2, 4), 16)
+  const b = parseInt(hex.substring(4, 6), 16)
+  return `${r}, ${g}, ${b}`
+}
+
 watch(
   () => props.content,
   (newContent) => {
     localContent.value = newContent || ''
   }
+)
+
+watch(
+  () => props.style,
+  () => {
+    nextTick(() => {
+      const element = document.querySelector('.text-note') as HTMLElement
+      if (element) {
+        element.style.display = 'none'
+        element.offsetHeight
+        element.style.display = ''
+      }
+    })
+  },
+  { deep: true }
 )
 
 const handleInput = () => {
@@ -49,6 +106,9 @@ const handleInput = () => {
   display: flex;
   background-color: inherit;
   border-radius: 10px;
+  backface-visibility: hidden;
+  transform-style: preserve-3d;
+  will-change: transform;
 
   .text-area {
     width: 100%;
@@ -56,13 +116,16 @@ const handleInput = () => {
     border: none;
     outline: none;
     resize: none;
-    padding: 6px 10px;
-    font-size: 14px;
-    line-height: 1.5;
+    padding: 10px;
+    font-size: 16px;
+    line-height: 16px;
     color: var(--color-text-primary);
-    background-color: inherit !important;
+    background-color: transparent !important;
     font-family: var(--font-family-ui);
     border-radius: 10px;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
 
     &::placeholder {
       color: var(--color-text-placeholder);

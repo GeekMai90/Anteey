@@ -120,12 +120,18 @@ export const useWhiteboardStore = defineStore('whiteboard', {
     // 创建白板笔记
     async createWhiteboardNote(input: CreateWhiteboardNoteInput) {
       console.log('whiteboardStore→ 开始创建白板笔记', input)
-      const newWhiteboardNote = await window.electronAPI.createWhiteboardNote(input)
-      if (newWhiteboardNote.noteId) {
-        await this.noteStore.addNoteToNoteList(newWhiteboardNote.noteId)
+      try {
+        const newWhiteboardNote = await window.electronAPI.createWhiteboardNote(input)
+
+        // 更新 store 中的状态
+        this.whiteboardNotes = [...this.whiteboardNotes, newWhiteboardNote]
+
+        console.log('whiteboardStore→ 创建白板笔记成功', newWhiteboardNote)
+        return newWhiteboardNote
+      } catch (error) {
+        console.error('whiteboardStore→ 创建白板笔记失败:', error)
+        throw error
       }
-      console.log('whiteboardStore→ 创建白板笔记成功', newWhiteboardNote)
-      return newWhiteboardNote
     },
 
     // 保存视图状态到白板

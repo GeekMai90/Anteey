@@ -150,7 +150,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, watch, computed, markRaw, nextTick } from 'vue'
+import { ref, onMounted, onUnmounted, watch, computed, markRaw } from 'vue'
 import { useRoute } from 'vue-router'
 import AppToolbar from '@renderer/components/layout/AppToolbar.vue'
 import { useWhiteboardStore } from '@renderer/stores/whiteboardStores'
@@ -642,26 +642,13 @@ const createWhiteboardNote = async (x: number, y: number) => {
 
   try {
     const newNote = await whiteboardStore.createWhiteboardNote(input)
-    console.log('创建白板笔记成功', newNote)
-    // 确保 newNote 包含所有必要的属性
+    console.log('newNote', newNote)
     if (newNote && newNote.id) {
-      console.log('创建白板笔记成功, 添加到白板笔记列表中', newNote)
-      // whiteboardNotes.value.push(newNote)
-      whiteboardNotes.value = [...whiteboardNotes.value, newNote]
-      console.log('创建白板笔记成功, 添加到白板笔记列表中, 重新获取白板项', whiteboardNotes.value)
-      // await initializeData(whiteboardId.value)
-
-      await nextTick()
-      console.log('白板笔记列表更新后', whiteboardNotes.value)
-      contextMenuStore.closeMenu()
-
-      // 如果需要，可以在这里添加创建关联笔记的逻辑
-      // 例如：await whiteboardStore.createReferenceNote(newNote.id)
-    } else {
-      console.error('Created note is invalid:', newNote)
+      console.log('whiteboardNotes', whiteboardNotes.value)
     }
   } catch (error) {
     console.error('Failed to create whiteboard note:', error)
+    message.error('创建失败')
   }
 }
 
@@ -953,26 +940,48 @@ const createNote = async (type: 'text' | 'card' | 'image') => {
   const centerY = (rect.height / 2 - translateY.value) / scale.value
 
   // 调整文本卡片的默认高度为 55px
-  const defaultSize =
-    type === 'text'
-      ? { width: 240, height: 55 } // 修改为 55px
-      : { width: 350, height: 300 }
+  const defaultSize = type === 'text' ? { width: 240, height: 55 } : { width: 350, height: 300 }
 
-  const input: CreateWhiteboardNoteInput = {
+  // 基础属性
+  const baseInput = {
     whiteboardId: whiteboardId.value,
-    noteId: '',
     position: { x: centerX, y: centerY },
     size: defaultSize,
     zIndex: 1,
     rotation: 0,
-    isAutoHeight: false,
-    type
+    type,
+    style: {
+      backgroundColor: undefined,
+      textColor: undefined,
+      fontSize: undefined,
+      fontFamily: undefined
+    }
+  }
+
+  // 根据类型添加特定属性
+  const input: CreateWhiteboardNoteInput = {
+    ...baseInput,
+    ...(type === 'card' && {
+      noteId: '',
+      isAutoHeight: false
+    }),
+    ...(type === 'text' && {
+      content: '',
+      isAutoHeight: false
+    }),
+    ...(type === 'image' && {
+      imageUrl: '',
+      originalSize: undefined,
+      isAutoHeight: false
+    })
   }
 
   try {
     const newNote = await whiteboardStore.createWhiteboardNote(input)
+    console.log('newNote', newNote)
     if (newNote && newNote.id) {
       whiteboardNotes.value = [...whiteboardNotes.value, newNote]
+      console.log('whiteboardNotes', whiteboardNotes.value)
     }
   } catch (error) {
     console.error('Failed to create whiteboard note:', error)
@@ -992,7 +1001,7 @@ const handleImageConfirm = async (imageData: { url: string; width: number; heigh
   const centerX = (rect.width / 2 - translateX.value) / scale.value
   const centerY = (rect.height / 2 - translateY.value) / scale.value
 
-  // 计算合的显示尺寸
+  // 计算合适的���示尺寸
   const maxWidth = 500
   const maxHeight = 400
   let width = imageData.width
@@ -1012,12 +1021,10 @@ const handleImageConfirm = async (imageData: { url: string; width: number; heigh
 
   const input: CreateWhiteboardNoteInput = {
     whiteboardId: whiteboardId.value,
-    noteId: '',
     position: { x: centerX, y: centerY },
     size: { width, height },
     zIndex: 1,
     rotation: 0,
-    isAutoHeight: false,
     type: 'image',
     imageUrl: imageData.url,
     originalSize: { width: imageData.width, height: imageData.height }
@@ -1025,8 +1032,10 @@ const handleImageConfirm = async (imageData: { url: string; width: number; heigh
 
   try {
     const newNote = await whiteboardStore.createWhiteboardNote(input)
+    console.log('Created image note:', newNote)
     if (newNote && newNote.id) {
-      whiteboardNotes.value = [...whiteboardNotes.value, newNote]
+      // 不要直接修改本地数组，让 store 来处理状态更新
+      // whiteboardNotes.value = [...whiteboardNotes.value, newNote]
     }
   } catch (error) {
     console.error('Failed to create image note:', error)
