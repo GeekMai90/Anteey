@@ -36,16 +36,6 @@ const computedStyle = computed(() => {
   const style: Record<string, string> = {}
 
   if (props.style.backgroundColor) {
-    const colorValue = getComputedStyle(document.documentElement)
-      .getPropertyValue(props.style.backgroundColor.replace('var(', '').replace(')', ''))
-      .trim()
-
-    const [r, g, b] = hexToRgb(colorValue)
-      .split(',')
-      .map((n) => parseInt(n))
-    const bgColor = `rgba(${r}, ${g}, ${b}, 0.1)`
-
-    style.background = `linear-gradient(${bgColor}, ${bgColor}), linear-gradient(white, white)`
     style.borderColor = props.style.backgroundColor
   }
 
@@ -63,14 +53,6 @@ const computedStyle = computed(() => {
 
   return style
 })
-
-const hexToRgb = (hex: string) => {
-  hex = hex.replace('#', '')
-  const r = parseInt(hex.substring(0, 2), 16)
-  const g = parseInt(hex.substring(2, 4), 16)
-  const b = parseInt(hex.substring(4, 6), 16)
-  return `${r}, ${g}, ${b}`
-}
 
 watch(
   () => props.content,
@@ -121,7 +103,7 @@ const handleInput = () => {
     line-height: 16px;
     color: var(--color-text-primary);
     background-color: transparent !important;
-    font-family: var(--font-family-ui);
+    font-family: var(--font-family-editor);
     border-radius: 10px;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;

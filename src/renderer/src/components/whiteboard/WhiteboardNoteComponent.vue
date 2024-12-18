@@ -96,51 +96,17 @@ const noteStyle = computed(() => {
     width: `${props.item.size.width}px`,
     height: `${props.item.size.height}px`,
     transform: `translate(${props.item.position.x}px, ${props.item.position.y}px) rotate(${props.item.rotation}deg)`,
-    zIndex: props.item.zIndex
+    zIndex: props.item.zIndex,
+    backgroundColor: 'var(--color-bg-primary)' // 统一使用默认背景色
   }
 
-  // 添加背景色和边框色处理
+  // 只设置边框颜色
   if (props.item.style?.backgroundColor) {
-    const color = props.item.style.backgroundColor
-    // 使用 CSS 变量获取颜色值
-    const colorValue = getComputedStyle(document.documentElement)
-      .getPropertyValue(color.replace('var(', '').replace(')', ''))
-      .trim()
-
-    // 计算浅色背景，降低不透明度
-    const [r, g, b] = hexToRgb(colorValue)
-      .split(',')
-      .map((n) => parseInt(n))
-    const bgColor = `rgba(${r}, ${g}, ${b}, 0.1)` // 降低不透明度到 0.1
-
-    // 添加白色底色，确保完全不透明
-    const mixedBgColor = `linear-gradient(${bgColor}, ${bgColor}), linear-gradient(white, white)`
-
-    return {
-      ...style,
-      borderColor: color,
-      background: mixedBgColor
-    }
+    style.borderColor = props.item.style.backgroundColor
   }
 
-  return {
-    ...style,
-    backgroundColor: 'var(--color-bg-primary)' // 默认背景色
-  }
+  return style
 })
-
-// 辅助函数：将十六进制颜色转换为 RGB
-const hexToRgb = (hex: string) => {
-  // 移除 # 号（如果有）
-  hex = hex.replace('#', '')
-
-  // 解析 RGB 值
-  const r = parseInt(hex.substring(0, 2), 16)
-  const g = parseInt(hex.substring(2, 4), 16)
-  const b = parseInt(hex.substring(4, 6), 16)
-
-  return `${r}, ${g}, ${b}`
-}
 
 // 根据类型计算要渲染的组件
 const noteComponent = computed(() => noteComponents[props.item.type])

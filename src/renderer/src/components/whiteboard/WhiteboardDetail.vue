@@ -6,6 +6,9 @@
       <AppToolbar
         backgroundColor="var(--color-bg-whiteboard)"
         :whiteboardName="whiteboardName"
+        :showBackButton="false"
+        :showForwardButton="false"
+        :showRefreshButton="false"
         @update:whiteboardName="updateWhiteboardName"
       />
     </div>
@@ -1298,7 +1301,7 @@ const imageUploadModalRef = ref<InstanceType<typeof ImageUploadModal> | null>(nu
   display: flex;
   gap: 8px;
   padding: 8px;
-  background-color: var(--color-bg-primary);
+  background-color: var(--sidebar-bg);
   border: 1px solid var(--color-border);
   border-radius: 8px;
   z-index: 100;
