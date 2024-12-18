@@ -311,5 +311,33 @@ export const whiteboardApi = {
       console.error('Preload: 删除白板时出错:', error)
       throw error
     }
+  },
+  // 新增：更新白板笔记内容（用于文本类型）
+  updateWhiteboardNoteContent: async (id: string, content: string): Promise<WhiteboardNote> => {
+    try {
+      return (await ipcRenderer.invoke('update-whiteboard-note-content', {
+        id,
+        content
+      })) as WhiteboardNote
+    } catch (error) {
+      console.error('Preload: 更新白板笔记内容时出错:', error)
+      throw error
+    }
+  },
+
+  // 新增：更新白板笔记样式
+  updateWhiteboardNoteStyle: async (
+    id: string,
+    style: WhiteboardNote['style']
+  ): Promise<WhiteboardNote> => {
+    try {
+      return (await ipcRenderer.invoke('update-whiteboard-note-style', {
+        id,
+        style
+      })) as WhiteboardNote
+    } catch (error) {
+      console.error('Preload: 更新白板笔记样式时出错:', error)
+      throw error
+    }
   }
 }

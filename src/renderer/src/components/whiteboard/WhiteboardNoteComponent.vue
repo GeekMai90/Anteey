@@ -1,7 +1,7 @@
 <!-- src/components/WhiteNoteComponent.vue -->
 <template>
   <div
-    :id="`note-${props.noteId}`"
+    :id="`note-${props.item.id}`"
     ref="noteRef"
     class="whiteboard-note-component"
     :class="['whiteboard-note', { hovered: isHovered, editing: isEditing, selected: isSelected }]"
@@ -14,637 +14,232 @@
     @mouseenter="handleNoteHover(true)"
     @mouseleave="handleNoteHover(false)"
   >
-    <!-- 顶部工具栏 -->
-    <WhiteboardNoteToolbar
-      ref="toolbarRef"
-      :isCardBoxMenuOpen="showCardBoxMenu"
-      :cardBoxes="cardBoxes"
-      :selectedCardBox="selectedCardBox"
-      :noteId="noteId"
-      :whiteboardNoteId="props.item.id"
-      :moreMenuItems="whiteboardMenuItems"
-      @expand="handleExpand"
-      @toggle-cardbox-menu="toggleCardBoxMenu"
-      @start-connection="startConnection"
-      @select-card-box="selectCardBox"
-      @close-cardbox-menu="showCardBoxMenu = false"
-      @more-menu-item-click="handleMoreMenuItemClick"
+    <!-- 根据类型渲染不同的内容组件 -->
+    <component
+      :is="noteComponent"
+      v-bind="noteProps"
+      @update:content="handleContentUpdate"
+      @editor-mousedown="handleEditorMouseDown"
     />
 
-    <!-- 编辑器内容 -->
-    <div class="editor-content" :style="editorContentStyle" @mousedown.stop="handleEditorMouseDown">
-      <div
-        class="address-input"
-        :class="{ 'not-editing': !isEditing }"
-        @mousedown.stop="handleAddressMouseDown"
-      >
-        <!-- 笔记类型指示器，点击可切换笔记类型 -->
-        <div
-          ref="indicatorButton"
-          class="note-indicator"
-          :class="cardTypeClass"
-          @click="(e) => toggleCardTypeMenu(e)"
-        ></div>
-        <!-- 笔记类型下拉菜单组件 -->
-        <CardTypeDropdownMenu
-          ref="cardTypeDropdownMenuRef"
-          :is-open="cardTypeMenuState.isOpen"
-          :position="cardTypeMenuState.position"
-          :current-card-type="currentNote?.cardType"
-          @close="closeCardTypeMenu"
-          @select="handleCardTypeSelect"
-        />
-        <!-- 笔记地址输入框 -->
-        <input
-          v-if="currentNote"
-          ref="addressInput"
-          v-model="localAddress"
-          type="text"
-          placeholder="输入编码地址"
-          @input="handleAddressInput"
-          @keyup.enter="handleAddressEnter"
-        />
-      </div>
-      <div
-        ref="editorContainerRef"
-        class="content-area"
-        :style="contentAreaStyle"
-        @mousedown.stop="handleEditorMouseDown"
-      >
-        <TipTapEditor
-          v-if="currentNote"
-          ref="tiptapEditor"
-          v-model:content="currentNote.content"
-          :note-id="currentNote.id"
-          :editable="true"
-          :enableDragHandle="true"
-          @update:content="handleContentUpdate"
-        />
-      </div>
-    </div>
-    <div class="resize-handle top" @mousedown="startResize('top', $event)"></div>
-    <div class="resize-handle right" @mousedown="startResize('right', $event)"></div>
-    <div class="resize-handle bottom" @mousedown="startResize('bottom', $event)"></div>
-    <div class="resize-handle left" @mousedown="startResize('left', $event)"></div>
-    <div class="resize-handle top-left" @mousedown="startResize('top-left', $event)"></div>
-    <div class="resize-handle top-right" @mousedown="startResize('top-right', $event)"></div>
-    <div class="resize-handle bottom-right" @mousedown="startResize('bottom-right', $event)"></div>
-    <div class="resize-handle bottom-left" @mousedown="startResize('bottom-left', $event)"></div>
+    <!-- 调整大小的手柄 -->
+    <div
+      v-for="direction in resizeDirections"
+      :key="direction"
+      :class="['resize-handle', direction]"
+      @mousedown="(event) => handleResizeStart(direction, event)"
+    ></div>
   </div>
 </template>
 
 <script setup lang="ts">
-import {
-  computed,
-  ComputedRef,
-  CSSProperties,
-  nextTick,
-  onBeforeUnmount,
-  onMounted,
-  onUnmounted,
-  ref,
-  watch
-} from 'vue'
-import { CardBox, CardType, Note } from '@renderer/types/Note'
-import { WhiteboardNote } from '@renderer/types/Whiteboard'
-import { useNoteStore } from '@renderer/stores/noteStores'
-import TipTapEditor from '@renderer/components/tiptap/TipTapEditor.vue'
-import { useRouter } from 'vue-router'
-import { useNoteMenu } from '@renderer/composables/useNoteMenu'
-import { useWhiteboardStore } from '@renderer/stores/whiteboardStores'
-import { storeToRefs } from 'pinia'
-import { onClickOutside } from '@vueuse/core'
-import { useResizeObserver } from '@vueuse/core'
-import WhiteboardNoteToolbar from '@renderer/components/whiteboard/WhiteboardNoteToolbar.vue'
-import CardTypeDropdownMenu from '@renderer/components/note/CardTypeDropdownMenu.vue'
-import { MenuItem } from '@renderer/components/common/PopupMenu.vue'
-import { message } from '@renderer/utils/message'
-import { useMenu } from '@renderer/composables/useMenu'
-import { debounce } from 'lodash-es'
-import { EditorState } from '@tiptap/pm/state/dist'
+import { computed, ref } from 'vue'
+import type { WhiteboardNote } from '@renderer/types/Whiteboard'
+import CardNote from './notes/CardNote.vue'
+import TextNote from './notes/TextNote.vue'
+import ImageNote from './notes/ImageNote.vue'
+import { useDrag } from '@renderer/composables/whiteboard/useDrag'
+import { useResize, type ResizeDirection } from '@renderer/composables/whiteboard/useResize'
+
+// 组件映射
+const noteComponents = {
+  card: CardNote,
+  text: TextNote,
+  image: ImageNote
+}
+
+// 定义调整大小的方向
+const resizeDirections: ResizeDirection[] = [
+  'top',
+  'right',
+  'bottom',
+  'left',
+  'top-left',
+  'top-right',
+  'bottom-right',
+  'bottom-left'
+]
 
 const props = defineProps<{
-  noteId: string
-  width?: number
-  height?: number
   item: WhiteboardNote
   isHovered: boolean
   isSelected: boolean
+  scale: number
 }>()
 
-const router = useRouter()
-const addressInput = ref<HTMLInputElement | null>(null)
-const tiptapEditorRef = ref<InstanceType<any> | null>(null)
-// const emit = defineEmits(['close', 'save', 'expand', 'toggleOptions'])
-const noteStore = useNoteStore()
-const whiteboardStore = useWhiteboardStore()
-const isExpandingToExpandEditor = ref(false)
-const showCardBoxMenu = ref(false)
-const selectedCardBox = ref<CardBox | null>(null)
-const showMoreActions = ref<string | null>(null)
+const emit = defineEmits<{
+  (e: 'hover', value: boolean): void
+  (e: 'update:position', x: number, y: number): void
+  (e: 'update:size', width: number, height: number): void
+  (e: 'start-connection', item: WhiteboardNote): void
+  (e: 'note-interaction', value: boolean): void
+}>()
+
+const noteRef = ref<HTMLElement | null>(null)
 const isEditing = ref(false)
-
-const { getWhiteboardNoteById } = storeToRefs(whiteboardStore)
-const currentWhiteboardNote = computed(() => getWhiteboardNoteById.value(props.item.id))
-
-const minHeight = 150 // 设置最小高度
-const editorContainerRef = ref<HTMLElement | null>(null)
-const extraHeight = 150 // 工具栏和地址输入框的估计高度
-
-const noteRef = ref(null)
-
-const isHovering = ref(false)
-
-const isAutoHeight = ref(currentWhiteboardNote.value?.isAutoHeight)
-
-const emit = defineEmits([
-  'hover',
-  'resize-start',
-  'start-connection',
-  'note-interaction',
-  'drag-start',
-  'click'
-])
-
-const handleMoreMenuItemClick = (item: MenuItem) => {
-  item.action()
-}
-const handleEditorMouseDown = (event: MouseEvent) => {
-  if (!isEditing.value) {
-    event.preventDefault()
-    event.stopPropagation()
-    emit('drag-start', event)
-  }
-}
-
-const handleClick = (event: MouseEvent) => {
-  emit('click', event)
-}
-
-const handleMouseDown = (event: MouseEvent) => {
-  if (!isEditing.value) {
-    event.preventDefault()
-    emit('drag-start', event)
-  }
-}
-const handleTouchStart = (event: TouchEvent) => {
-  if (!isEditing.value) {
-    event.preventDefault()
-    emit('drag-start', event)
-  }
-}
-const handleAddressMouseDown = (event: MouseEvent) => {
-  if (!isEditing.value) {
-    event.preventDefault()
-    emit('drag-start', event)
-  }
-}
-
-const handleNoteHover = (hovering: boolean) => {
-  isHovering.value = hovering
-  emit('hover', hovering)
-}
-
-// 编辑状态下可以滚动
-const contentAreaStyle = computed(() => ({
-  flexGrow: 1,
-  overflowY: isAutoHeight.value ? ('hidden' as const) : ('visible' as const),
-  maxHeight: isAutoHeight.value ? '100%' : 'none'
+const noteStyle = computed(() => ({
+  width: `${props.item.size.width}px`,
+  height: `${props.item.size.height}px`,
+  transform: `translate(${props.item.position.x}px, ${props.item.position.y}px) rotate(${props.item.rotation}deg)`,
+  zIndex: props.item.zIndex
 }))
 
-onClickOutside(noteRef, () => {
-  if (isEditing.value) {
-    stopEditing()
+// 根据类型计算要渲染的组件
+const noteComponent = computed(() => noteComponents[props.item.type])
+
+// 根据类型计算要传递的props
+const noteProps = computed(() => {
+  const commonProps = {
+    isEditing: isEditing.value,
+    style: props.item.style
+  }
+
+  switch (props.item.type) {
+    case 'card':
+      return {
+        ...commonProps,
+        noteId: props.item.noteId,
+        isAutoHeight: Boolean(props.item.isAutoHeight)
+      }
+    case 'text':
+      return {
+        ...commonProps,
+        content: props.item.content
+      }
+    case 'image':
+      return {
+        ...commonProps,
+        imageUrl: props.item.imageUrl,
+        originalSize: props.item.originalSize
+      }
+    default:
+      return commonProps
   }
 })
 
-const emitNoteInteraction = (interacting: boolean) => {
-  emit('note-interaction', interacting)
+// 事件处理函数
+const handleClick = () => {
+  emit('note-interaction', true)
+}
+
+// 使用拖拽组合式函数
+const { startDrag } = useDrag({
+  onDragStart: () => {
+    if (isEditing.value) return
+    emit('note-interaction', true)
+  },
+  onDragMove: (deltaX: number, deltaY: number) => {
+    emit(
+      'update:position',
+      props.item.position.x + deltaX / props.scale,
+      props.item.position.y + deltaY / props.scale
+    )
+  },
+  onDragEnd: () => {
+    emit('note-interaction', false)
+  }
+})
+
+// 使用调整大小组合式函数
+const { startResize: initResize } = useResize({
+  onResizeStart: (event: MouseEvent) => {
+    // 设置初始大小和位置
+    event.stopPropagation()
+    emit('note-interaction', true)
+  },
+  onResize: (newSize: { width: number; height: number }, offset: { x: number; y: number }) => {
+    // 确保最小尺寸
+    const width = Math.max(100, newSize.width)
+    const height = Math.max(100, newSize.height)
+
+    // 更新大小
+    emit('update:size', width, height)
+
+    // 更新位置（考虑缩放比例）
+    if (offset.x !== 0 || offset.y !== 0) {
+      emit(
+        'update:position',
+        props.item.position.x + offset.x / props.scale,
+        props.item.position.y + offset.y / props.scale
+      )
+    }
+  },
+  onResizeEnd: () => {
+    emit('note-interaction', false)
+  }
+})
+
+const handleResizeStart = (direction: ResizeDirection, event: MouseEvent) => {
+  // 传入当前元素的尺寸信息
+  initResize(event, direction, {
+    width: props.item.size.width,
+    height: props.item.size.height
+  })
+}
+
+// 处理鼠标事件
+const handleMouseDown = (event: MouseEvent) => {
+  if (!isEditing.value) {
+    startDrag(event)
+  }
+}
+
+const handleTouchStart = (event: TouchEvent) => {
+  if (!isEditing.value) {
+    event.preventDefault()
+    const touch = event.touches[0]
+    startDrag(touch as unknown as MouseEvent)
+  }
+}
+
+const handleNoteHover = (value: boolean) => {
+  emit('hover', value)
+}
+
+const startEditing = () => {
+  isEditing.value = true
+  emit('note-interaction', true)
 }
 
 const stopEditing = () => {
   isEditing.value = false
-  emitNoteInteraction(false)
+  emit('note-interaction', false)
 }
 
-const startEditing = (event: MouseEvent) => {
-  event.stopPropagation()
-  isEditing.value = true
-  emitNoteInteraction(true)
-  nextTick(() => {
-    if (tiptapEditorRef.value) {
-      tiptapEditorRef.value.$forceUpdate()
-      focusEditor()
-    }
-  })
-}
-
-onUnmounted(() => {
-  isEditing.value = false
-  emitNoteInteraction(false)
-})
-
-// 使用计算属性获���最新的笔记大小
-const whiteboardNoteSize = computed(() => {
-  const note = whiteboardStore.whiteboardNotes.find(
-    (note: WhiteboardNote) => note.id === props.item.id
-  )
-  return note?.size || { width: 350, height: minHeight }
-})
-
-const noteStyle = computed(() => ({
-  width: `${whiteboardNoteSize.value.width}px`,
-  height: `${whiteboardNoteSize.value.height}px`, // 始终使用保存的高度
-  minHeight: `${minHeight}px`
-}))
-const editorContentStyle = computed(() => ({
-  height: isAutoHeight.value ? `${whiteboardNoteSize.value.height}px` : '100%',
-  overflowY: isAutoHeight.value ? 'hidden' : 'visible'
-})) as ComputedRef<CSSProperties>
-
-const contentHeight = ref(0)
-
-watch(tiptapEditorRef, (newValue) => {
-  if (newValue && newValue.$el instanceof HTMLElement) {
-    useResizeObserver(newValue.$el, async (entries) => {
-      const entry = entries[0]
-      if (entry && isAutoHeight.value) {
-        const newContentHeight = entry.contentRect.height
-        if (Math.abs(newContentHeight - contentHeight.value) > 5) {
-          contentHeight.value = newContentHeight
-          requestAnimationFrame(smoothUpdateHeight)
-        }
-      }
-    })
-  }
-})
-
-// 平滑地更新高度
-const smoothUpdateHeight = () => {
-  if (!isAutoHeight.value || !tiptapEditorRef.value) return
-
-  const currentHeight = editorContainerRef.value?.clientHeight || 0
-  const targetHeight = Math.max(contentHeight.value + extraHeight, minHeight)
-  if (editorContainerRef.value) {
-    if (Math.abs(targetHeight - currentHeight) > 1) {
-      const newHeight = currentHeight + (targetHeight - currentHeight) * 0.2
-      editorContainerRef.value.style.height = `${newHeight - extraHeight}px`
-      requestAnimationFrame(smoothUpdateHeight)
-    } else {
-      editorContainerRef.value.style.height = `${targetHeight - extraHeight}px`
-      whiteboardStore.updateWhiteboardNoteSize(
-        props.item.id,
-        whiteboardNoteSize.value.width,
-        targetHeight
-      )
-    }
+const handleEditorMouseDown = (event: MouseEvent) => {
+  if (!isEditing.value) {
+    event.preventDefault()
+    startDrag(event)
   }
 }
 
-const updateHeight = async () => {
-  if (!isAutoHeight.value) return
-
-  await nextTick()
-  if (editorContainerRef.value) {
-    const tiptapContainer = editorContainerRef.value.querySelector('.tiptap') as HTMLElement
-    if (tiptapContainer) {
-      const currentHeight = editorContainerRef.value.clientHeight
-      const contentHeight = tiptapContainer.scrollHeight
-      if (contentHeight > currentHeight - extraHeight) {
-        const newHeight = Math.max(contentHeight + extraHeight, minHeight)
-        await whiteboardStore.updateWhiteboardNoteSize(
-          props.item.id,
-          whiteboardNoteSize.value.width,
-          newHeight
-        )
-        editorContainerRef.value.style.height = `${newHeight - extraHeight}px`
-      }
-    }
+const handleContentUpdate = (content: string) => {
+  if (props.item.type === 'text') {
+    // 处理文本内容更新
+    console.log('Text content updated:', content)
   }
 }
-// 添加恢复默认高度的函数
-const restoreDefaultHeight = () => {
-  isAutoHeight.value = true
-  whiteboardStore.updateWhiteboardNoteAutoHeight(props.item.id, true)
-  updateHeight()
-}
-
-// 监听笔记大小的变化
-watch(
-  () => whiteboardNoteSize.value,
-  (newSize, oldSize) => {
-    console.log('Note size changed:', oldSize, '->', newSize)
-    if (newSize.height !== oldSize.height) {
-      nextTick(() => {
-        if (editorContainerRef.value) {
-          editorContainerRef.value.style.height = `${newSize.height}px`
-        }
-      })
-    }
-  },
-  { deep: true }
-)
-
-const startResize = (direction: string, event: MouseEvent) => {
-  console.log('开始调整大小', { id: props.item.id, isAutoHeight: false })
-  whiteboardStore.updateWhiteboardNoteAutoHeight(props.item.id, false)
-  isAutoHeight.value = false
-  emit('resize-start', {
-    direction,
-    event,
-    onResize: (newWidth: number, newHeight: number) => {
-      whiteboardStore.updateWhiteboardNoteSize(props.item.id, newWidth, newHeight)
-    }
-  })
-}
-const startConnection = (event: MouseEvent) => {
-  event.stopPropagation()
-  console.log('Start connection clicked') // 添加这行来调试
-  emit('start-connection', props.item)
-}
-
-// const { menuItems } = useNoteMenu(props.noteId)
-
-// 笔记的保存功能
-
-const currentNote = ref<Note | null>(null)
-// === 生命周期钩子 ===
-// 初始化笔记数据
-const initializeNote = async (noteId: string) => {
-  try {
-    const note = await noteStore.fetchNote(noteId)
-    if (note) {
-      currentNote.value = note
-      // 添加到最近笔记
-      noteStore.addToRecentNotes(noteId)
-      focusEditor()
-    } else {
-      message.error('笔记不存在')
-    }
-  } catch (error) {
-    console.error('加载笔记失败:', error)
-    message.error('加载笔记失败')
-  }
-}
-// 组件挂载时加载笔记
-onMounted(() => {
-  const noteId = props.noteId
-  if (noteId && typeof noteId === 'string') {
-    initializeNote(noteId)
-  }
-})
-
-// 监听路由参数变化，重新加载笔记
-watch(
-  () => props.noteId,
-  (newId) => {
-    if (newId && typeof newId === 'string') {
-      initializeNote(newId)
-    }
-  }
-)
-
-// === 地址输入处理 ===
-// 使用本地状态来管理输入
-const localAddress = ref('')
-const addressUpdateTimer = ref<any>(null)
-
-// 监听 currentNote 的变化，同步初始地址
-watch(
-  () => currentNote.value?.address,
-  (newAddress) => {
-    if (newAddress) {
-      localAddress.value = newAddress
-    }
-  },
-  { immediate: true }
-)
-
-// 使用防抖处理地址更新
-const updateAddress = debounce(async (address: string) => {
-  if (!currentNote.value) return
-
-  try {
-    const updatedNote = await noteStore.updateNoteAddress(currentNote.value.id, address)
-    // 更新本地状态
-    currentNote.value = updatedNote
-  } catch (error) {
-    console.error('更新地址失败:', error)
-    message.error('更新地址失败')
-    // 回滚到最后一个有效的地址
-    localAddress.value = currentNote.value.address
-  }
-}, 300)
-
-// 处理地址输入
-const handleAddressInput = (event: Event) => {
-  const input = event.target as HTMLInputElement
-  localAddress.value = input.value
-  updateAddress(input.value)
-}
-
-// 处理回车键
-const handleAddressEnter = (event: KeyboardEvent) => {
-  event.preventDefault() // 阻止默认行为
-  if (addressUpdateTimer.value) {
-    clearTimeout(addressUpdateTimer.value)
-    noteStore.updateNoteAddress(props.noteId, localAddress.value)
-  }
-  focusEditor() // 聚焦到编辑器
-}
-
-// === 内容更新处理 ===
-// 使用防抖保存内容
-const tiptapEditor = ref<any>(null)
-const saveContent = debounce(
-  async (noteId: string, content: any, selection?: EditorState['selection']) => {
-    try {
-      await noteStore.updateNoteContent(noteId, content)
-
-      // 恢复光标位置
-      nextTick(() => {
-        const editor = tiptapEditor.value?.editor
-        if (editor && selection) {
-          editor.commands.setTextSelection(selection.$head.pos)
-        }
-      })
-    } catch (error) {
-      console.error('保存笔记失败:', error)
-      message.error('保存失败')
-    }
-  },
-  2000
-) // 2秒的防抖时间
-
-// 处理编辑器内容更新
-const handleContentUpdate = (newContent: any) => {
-  if (!currentNote.value) return
-
-  // 1. 立即更新本地状态，保持编辑器响应
-  currentNote.value.content = newContent
-
-  // 2. 保存当前光标位置
-  const editor = tiptapEditor.value?.editor
-  const selection = editor?.state.selection
-
-  // 3. 使用防抖保存
-  saveContent(currentNote.value.id, newContent, selection)
-}
-
-// 在组件卸载前确保所有待保存的内容都已保存
-onBeforeUnmount(() => {
-  saveContent.flush()
-})
-
-// === 卡片类型菜单管理 ===
-const indicatorButton = ref<HTMLElement | null>(null)
-const cardTypeDropdownMenuRef = ref<HTMLElement | null>(null)
-
-// 使用 useMenu 时传入正确的类型
-const {
-  menuState: cardTypeMenuState,
-  toggleMenu: toggleCardTypeMenu,
-  closeMenu: closeCardTypeMenu
-} = useMenu({
-  buttonRef: indicatorButton, // 直接传入 ref
-  menuRef: cardTypeDropdownMenuRef,
-  onClose: () => {
-    console.log('卡片类型菜单已关闭')
-  }
-})
-
-// 卡片类型，根据当前笔记的卡片类型设置样式
-const cardTypeClass = computed(() => ({
-  maincard: currentNote.value?.cardType === 'Maincard',
-  bibcard: currentNote.value?.cardType === 'Bibcard',
-  indexcard: currentNote.value?.cardType === 'Indexcard'
-  // hoplinkcard: currentNote.value?.cardType === 'Hoplinkcard'
-}))
-
-// 处理卡片类型选择和更新
-const handleCardTypeSelect = async (newType: string) => {
-  if (currentNote.value) {
-    try {
-      currentNote.value.cardType = newType as CardType
-      await noteStore.updateNoteCardType(props.noteId, newType as CardType)
-      closeCardTypeMenu()
-    } catch (error) {
-      console.error('更新卡片类型失败:', error)
-      message.error('更新卡片类型失败')
-    }
-  }
-}
-
-// 白板笔记的菜单项
-const { menuItems: whiteboardMenuItems } = useNoteMenu({
-  noteId: props.noteId,
-  whiteboardNoteId: props.item.id,
-  onRestoreDefaultHeight: restoreDefaultHeight,
-  menuItems: ['star', 'sidebar', 'restoreDefaultHeight', 'trashFromWhiteboard']
-})
-
-// 卡片盒列表
-const cardBoxes = computed(() => {
-  return [...noteStore.cardBoxes].sort((a, b) => a.name.localeCompare(b.name, 'zh-CN'))
-})
-
-const toggleCardBoxMenu = () => {
-  showCardBoxMenu.value = !showCardBoxMenu.value
-}
-
-// 选择卡片盒
-const selectCardBox = async (box: CardBox) => {
-  if (!currentNote.value?.id) {
-    console.error('NoteEditor.vue → 编辑的笔记为空')
-    return
-  }
-  try {
-    selectedCardBox.value = box
-    const newCardBoxId = box.id
-    const updatedNote = await noteStore.updateNoteCardBox(currentNote.value.id, newCardBoxId)
-    if (updatedNote) {
-      // currentNote.value = updatedNote
-      console.log('NoteEditor.vue → 卡片盒更新成功:', box.name)
-    } else {
-      console.error('NoteEditor.vue → 更新卡片盒失败: 未能获取更新后的笔记')
-    }
-  } catch (error) {
-    console.error('NoteEditor.vue → 更新片盒失败:', error)
-  }
-}
-
-// 全局点击事件，关闭下拉菜单
-const handleGlobalClick = (event: MouseEvent) => {
-  if (
-    showCardBoxMenu.value &&
-    event.target instanceof Element &&
-    !event.target.closest('.install-btn') &&
-    !event.target.closest('.dropdown-menu')
-  ) {
-    showCardBoxMenu.value = false
-  }
-  showMoreActions.value = null
-}
-
-onMounted(() => {
-  document.addEventListener('click', handleGlobalClick)
-  if (currentNote.value && currentNote.value.cardBoxId) {
-    const currentCardBox = cardBoxes.value.find((box) => box.id === currentNote.value?.cardBoxId)
-    if (currentCardBox) {
-      selectedCardBox.value = currentCardBox
-    }
-  }
-})
-
-onUnmounted(() => {
-  document.removeEventListener('click', handleGlobalClick)
-})
-
-// 聚焦地址输入框
-const focusAddressInput = () => {
-  nextTick(() => {
-    addressInput.value?.focus()
-  })
-}
-
-const focusEditor = () => {
-  nextTick(() => {
-    if (tiptapEditorRef.value && isEditing.value) {
-      tiptapEditorRef.value.focus()
-    }
-  })
-}
-
-// 展开编辑器
-const handleExpand = async () => {
-  isExpandingToExpandEditor.value = true
-  if (currentNote.value?.id) {
-    router.push({ name: 'NoteExpandEditor', params: { id: currentNote.value.id } })
-  }
-  noteStore.closeNoteEditor()
-}
-
-defineExpose({ focusAddressInput, restoreDefaultHeight })
 </script>
 
 <style lang="scss" scoped>
 .whiteboard-note-component {
+  position: absolute;
   background-color: var(--color-note-card-bg);
   border-radius: 12px;
   display: flex;
   flex-direction: column;
-  position: relative;
   box-shadow: var(--color-shadow-primary);
-  transition: height 0.2s ease; // 添加平滑过渡效果
+  transition: height 0.2s ease;
   overflow: visible;
+  padding: 10px;
+
+  // 添加位置和大小样式
+  left: 0;
+  top: 0;
+  transform-origin: 0 0;
+
   &.editing {
     border: 1px solid var(--color-primary);
-    .content-area,
-    .content-wrapper,
-    :deep(.tiptap),
-    :deep(.tiptap *) {
-      cursor: default !important; // 使用默认光标
-    }
   }
 
   .editor-content {

@@ -30,18 +30,49 @@ export interface Whiteboard {
 }
 
 // 白板笔记（用于在白板中引用笔记）
+// export interface WhiteboardNote {
+//   id: string
+//   whiteboardId: string // 所属白板的ID
+//   noteId: string // 引用实际卡片笔记的ID
+//   position: { x: number; y: number }
+//   size: { width: number; height: number }
+//   zIndex: number
+//   rotation: number
+//   isAutoHeight: boolean // 新增：控制是否自动调整高度
+//   type: 'card' | 'text' | 'image' // 新增类型字段
+//   content?: string // 文本内容
+//   imageUrl?: string // 图片链接
+// }
+
+// 白板笔记
 export interface WhiteboardNote {
   id: string
-  whiteboardId: string // 所属白板的ID
-  noteId: string // 引用实际卡片笔记的ID
+  whiteboardId: string
+  type: 'card' | 'text' | 'image' // 元素类型
   position: { x: number; y: number }
   size: { width: number; height: number }
   zIndex: number
   rotation: number
-  isAutoHeight: boolean // 新增：控制是否自动调整高度
-  type: 'card' | 'text' | 'image' // 新增类型字段
-  content?: string // 文本内容
-  imageUrl?: string // 图片链接
+  style?: {
+    backgroundColor?: string
+    textColor?: string
+    fontSize?: number
+    fontFamily?: string
+  }
+
+  // card类型特有属性
+  noteId?: string // 引用实际卡片笔记的ID (仅card类型)
+  isAutoHeight?: boolean // 是否自动调整高度 (仅card类型)
+
+  // text类型特有属性
+  content?: string // 文本内容 (仅text类型)
+
+  // image类型特有属性
+  imageUrl?: string // 图片URL (仅image类型)
+  originalSize?: {
+    width: number
+    height: number
+  }
 }
 // 分组
 export interface WhiteboardGroup {
@@ -60,27 +91,27 @@ export interface WhiteboardGroup {
   rotation: number
 }
 // 连线
-export interface WhiteboardConnection {
-  id: string
-  whiteboardId: string // 所属白板的ID
-  startItemId: string
-  endItemId: string
-  startEdge: 'top' | 'right' | 'bottom' | 'left'
-  endEdge: 'top' | 'right' | 'bottom' | 'left'
-  color?: string
-  thickness?: number
-  label?: string
-  labelPosition?: { x: number; y: number }
-  lineStyle?: 'solid' | 'dashed'
-  startArrow?: boolean
-  endArrow?: boolean
-  lineShape?: 'straight' | 'curved' | 'angled'
-  position: { x: number; y: number }
-  controlPoints?: { x: number; y: number }[]
-  zIndex: number
-  size: { width: number; height: number }
-  rotation: number
-}
+// export interface WhiteboardConnection {
+//   id: string
+//   whiteboardId: string // 所属白板的ID
+//   startItemId: string
+//   endItemId: string
+//   startEdge: 'top' | 'right' | 'bottom' | 'left'
+//   endEdge: 'top' | 'right' | 'bottom' | 'left'
+//   color?: string
+//   thickness?: number
+//   label?: string
+//   labelPosition?: { x: number; y: number }
+//   lineStyle?: 'solid' | 'dashed'
+//   startArrow?: boolean
+//   endArrow?: boolean
+//   lineShape?: 'straight' | 'curved' | 'angled'
+//   position: { x: number; y: number }
+//   controlPoints?: { x: number; y: number }[]
+//   zIndex: number
+//   size: { width: number; height: number }
+//   rotation: number
+// }
 // 创建白板的输入
 export interface CreateWhiteboardInput {
   isTopLevel: boolean
@@ -101,15 +132,31 @@ export interface CreateWhiteboardInput {
 // 创建白板笔记的输入
 export interface CreateWhiteboardNoteInput {
   whiteboardId: string
-  noteId: string
+  type: 'card' | 'text' | 'image'
   position: { x: number; y: number }
   size: { width: number; height: number }
   zIndex: number
   rotation: number
-  isAutoHeight: boolean // 新增：控制是否自动调整高度
-  type: 'card' | 'text' | 'image' // 新增类型字段
-  content?: string // 文本内容
-  imageUrl?: string // 图片链接
+  style?: {
+    backgroundColor?: string
+    textColor?: string
+    fontSize?: number
+    fontFamily?: string
+  }
+
+  // card类型特有属性
+  noteId?: string
+  isAutoHeight?: boolean
+
+  // text类型特有属性
+  content?: string
+
+  // image类型特有属性
+  imageUrl?: string
+  originalSize?: {
+    width: number
+    height: number
+  }
 }
 
 export interface Connection {

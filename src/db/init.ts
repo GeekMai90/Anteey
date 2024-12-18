@@ -189,19 +189,46 @@ export async function initDatabase(db: Knex): Promise<void> {
   }
 
   // 创建 whiteboard_notes 表
+  // if (!(await db.schema.hasTable('whiteboard_notes'))) {
+  //   await db.schema.createTable('whiteboard_notes', (table) => {
+  //     table.string('id').primary()
+  //     table.string('whiteboardId').notNullable().index()
+  //     table.string('noteId').notNullable().index()
+  //     table.json('position').notNullable()
+  //     table.json('size').notNullable()
+  //     table.integer('zIndex').notNullable()
+  //     table.float('rotation').notNullable().defaultTo(0)
+  //     table.boolean('isAutoHeight').notNullable().defaultTo(false)
+  //     table.string('type').notNullable().defaultTo('card')
+  //     table.string('content').nullable()
+  //     table.string('imageUrl').nullable()
+  //   })
+  //   console.log('whiteboard_notes 表创建成功')
+  // }
+
   if (!(await db.schema.hasTable('whiteboard_notes'))) {
     await db.schema.createTable('whiteboard_notes', (table) => {
       table.string('id').primary()
       table.string('whiteboardId').notNullable().index()
-      table.string('noteId').notNullable().index()
+      table.string('type').notNullable().defaultTo('card') // 新增：元素类型
       table.json('position').notNullable()
       table.json('size').notNullable()
       table.integer('zIndex').notNullable()
       table.float('rotation').notNullable().defaultTo(0)
-      table.boolean('isAutoHeight').notNullable().defaultTo(false)
-      table.string('type').notNullable().defaultTo('card')
-      table.string('content').nullable()
+
+      // 样式相关
+      table.json('style').nullable() // 新增：统一的样式配置
+
+      // card类型特有属性
+      table.string('noteId').nullable().index() // 改为可选
+      table.boolean('isAutoHeight').nullable() // 改为可选
+
+      // text类型特有属性
+      table.text('content').nullable()
+
+      // image类型特有属性
       table.string('imageUrl').nullable()
+      table.json('originalSize').nullable() // 新增：图片原始尺寸
     })
     console.log('whiteboard_notes 表创建成功')
   }

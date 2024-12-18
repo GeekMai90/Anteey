@@ -9,7 +9,7 @@ import type {
   WhiteboardGroup,
   Connection
 } from '../../renderer/src/types/Whiteboard'
-import { createNote } from './notesService'
+// import { createNote } from './notesService'
 
 // 辅助函数：处理白板数据
 function processWhiteboardData(whiteboard: any): Whiteboard {
@@ -295,58 +295,76 @@ export async function updateWhiteboardNoteSize(
     throw error
   }
 }
-// 白板笔记的辅助函数
+// 白板笔记的辅助函数需要更新，以处理新的字段
 function processWhiteboardNoteData(item: any): WhiteboardNote {
   return {
-    ...item,
+    id: item.id,
+    whiteboardId: item.whiteboardId,
+    type: item.type || 'card',
     position: JSON.parse(item.position),
-    size: JSON.parse(item.size)
+    size: JSON.parse(item.size),
+    zIndex: item.zIndex,
+    rotation: item.rotation,
+    style: item.style ? JSON.parse(item.style) : null,
+
+    // 根据类型处理特定属性
+    noteId: item.type === 'card' ? item.noteId : undefined,
+    isAutoHeight: item.type === 'card' ? item.isAutoHeight : undefined,
+    content: item.type === 'text' ? item.content : undefined,
+    imageUrl: item.type === 'image' ? item.imageUrl : undefined,
+    originalSize:
+      item.type === 'image' && item.originalSize ? JSON.parse(item.originalSize) : undefined
   }
 }
 
-// 创建白板笔记
-// 输入一个白板的 id，一个白板笔记的数据，白板笔记的数据包括位置，大小，zIndex，旋转
-// 分成两个步骤，首先是创建一个卡片笔记，得到这个卡片笔记的 id
-// 然后，将这个卡片笔记的 id 作为参数，创建一个白板笔记
+// 创建白板笔记方法需要更新
 export async function createWhiteboardNote(
   input: CreateWhiteboardNoteInput
 ): Promise<WhiteboardNote> {
-  let noteId: string
-  if (input.noteId) {
-    noteId = input.noteId
-  } else {
-    const note = await createNote()
-    noteId = note.id
-  }
-
   const newWhiteboardNote: WhiteboardNote = {
     id: uuidv4(),
     whiteboardId: input.whiteboardId,
-    noteId: noteId,
+    type: input.type,
     position: input.position,
     size: input.size,
     zIndex: input.zIndex,
-    rotation: input.rotation,
-    isAutoHeight: input.isAutoHeight || false,
-    type: input.type || 'card',
-    content: input.content || '',
-    imageUrl: input.imageUrl || ''
-  }
-  await db('whiteboard_notes').insert({
-    ...newWhiteboardNote,
-    position: JSON.stringify(newWhiteboardNote.position),
-    size: JSON.stringify(newWhiteboardNote.size)
-  })
-  // 从数据库中获取刚插入的记录
-  const [insertedNote] = await db('whiteboard_notes')
-    .where({ id: newWhiteboardNote.id })
-    .select('*')
+    rotation: input.rotation || 0,
+    style: input.style,
 
-  // 将 JSON 字符串转换回对象
-  return {
-    ...insertedNote,
-    position: JSON.parse(insertedNote.position),
-    size: JSON.parse(insertedNote.size)
+    // 根据类型设置特定属性
+    ...(input.type === 'card' && {
+      noteId: input.noteId,
+      isAutoHeight: input.isAutoHeight
+    }),
+    ...(input.type === 'text' && {
+      content: input.content
+    }),
+    ...(input.type === 'image' && {
+      imageUrl: input.imageUrl,
+      originalSize: input.originalSize
+    })
+  }
+
+  try {
+    await db('whiteboard_notes').insert({
+      ...newWhiteboardNote,
+      position: JSON.stringify(newWhiteboardNote.position),
+      size: JSON.stringify(newWhiteboardNote.size),
+      style: newWhiteboardNote.style ? JSON.stringify(newWhiteboardNote.style) : null,
+      originalSize: newWhiteboardNote.originalSize
+        ? JSON.stringify(newWhiteboardNote.originalSize)
+        : null
+    })
+
+    // 从数据库中获取刚插入的记录
+    const [insertedNote] = await db('whiteboard_notes')
+      .where({ id: newWhiteboardNote.id })
+      .select('*')
+
+    return processWhiteboardNoteData(insertedNote)
+  } catch (error) {
+    console.error('后端→ 创建白板笔记失败:', error)
+    throw error
   }
 }
 
@@ -502,5 +520,39 @@ export async function deleteWhiteboard(id: string): Promise<{ success: boolean; 
   } catch (error) {
     console.error('后端→ 删除白板失败:', error)
     return { success: false, error: error as string }
+  }
+}
+
+// 新增：更新白板笔记内容方法（用于文本类型）
+export async function updateWhiteboardNoteContent(
+  id: string,
+  content: string
+): Promise<WhiteboardNote> {
+  try {
+    const updatedWhiteboardNote = await db('whiteboard_notes')
+      .where({ id })
+      .update({ content })
+      .returning('*')
+    return processWhiteboardNoteData(updatedWhiteboardNote[0])
+  } catch (error) {
+    console.error('后端→ 更新白板笔记内容失败:', error)
+    throw error
+  }
+}
+
+// 新增：更新白板笔记样式方法
+export async function updateWhiteboardNoteStyle(
+  id: string,
+  style: WhiteboardNote['style']
+): Promise<WhiteboardNote> {
+  try {
+    const updatedWhiteboardNote = await db('whiteboard_notes')
+      .where({ id })
+      .update({ style: JSON.stringify(style) })
+      .returning('*')
+    return processWhiteboardNoteData(updatedWhiteboardNote[0])
+  } catch (error) {
+    console.error('后端→ 更新白板笔记样式失败:', error)
+    throw error
   }
 }

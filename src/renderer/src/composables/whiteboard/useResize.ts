@@ -1,143 +1,132 @@
-import { ref, type Ref } from 'vue'
-import type { WhiteboardNote } from '../../types/Whiteboard'
-import { useWhiteboardStore } from '../../stores/whiteboardStores'
+import { ref } from 'vue'
 
-export function useResize(
-  whiteboardNotes: Ref<WhiteboardNote[]>,
-  scale: Ref<number>,
-  whiteboardId: Ref<string | null>
-) {
-  const whiteboardStore = useWhiteboardStore()
-  const resizingItem = ref<{
-    id: string
-    direction: string
-    startX: number
-    startY: number
-    startWidth: number
-    startHeight: number
-  } | null>(null)
-  const visualAdjustment = ref({ x: 0, y: 0 })
+interface UseResizeOptions {
+  onResizeStart?: (event: MouseEvent) => void
+  onResize?: (newSize: { width: number; height: number }, offset: { x: number; y: number }) => void
+  onResizeEnd?: () => void
+}
 
-  const startResizingItem = ({
-    item,
-    direction,
-    event
-  }: {
-    item: WhiteboardNote
-    direction: string
-    event: MouseEvent
-  }) => {
+interface InitialSize {
+  width: number
+  height: number
+}
+
+export type ResizeDirection =
+  | 'top'
+  | 'right'
+  | 'bottom'
+  | 'left'
+  | 'top-left'
+  | 'top-right'
+  | 'bottom-right'
+  | 'bottom-left'
+
+export function useResize(options: UseResizeOptions) {
+  const isResizing = ref(false)
+  const startX = ref(0)
+  const startY = ref(0)
+  const startWidth = ref(0)
+  const startHeight = ref(0)
+  const currentDirection = ref<ResizeDirection>('top')
+
+  const startResize = (event: MouseEvent, direction: ResizeDirection, initialSize: InitialSize) => {
     event.preventDefault()
     event.stopPropagation()
 
-    resizingItem.value = {
-      id: item.id,
-      direction,
-      startX: event.clientX,
-      startY: event.clientY,
-      startWidth: item.size.width,
-      startHeight: item.size.height
-    }
+    isResizing.value = true
+    currentDirection.value = direction
+    startX.value = event.clientX
+    startY.value = event.clientY
+    startWidth.value = initialSize.width
+    startHeight.value = initialSize.height
 
-    window.addEventListener('mousemove', onResizeItem)
-    window.addEventListener('mouseup', stopResizingItem)
+    options.onResizeStart?.(event)
+
+    document.addEventListener('mousemove', onResize)
+    document.addEventListener('mouseup', stopResize)
   }
 
-  const onResizeItem = (event: MouseEvent) => {
-    event.preventDefault()
-    event.stopPropagation()
-    if (!resizingItem.value) return
+  const onResize = (event: MouseEvent) => {
+    if (!isResizing.value) return
 
-    const { id, direction, startX, startY, startWidth, startHeight } = resizingItem.value
-    const dx = (event.clientX - startX) / scale.value
-    const dy = (event.clientY - startY) / scale.value
+    const deltaX = event.clientX - startX.value
+    const deltaY = event.clientY - startY.value
 
-    const item = whiteboardNotes.value.find((item) => item.id === id)
-    if (!item) return
+    const { newSize, offset } = calculateNewSizeAndOffset(
+      currentDirection.value,
+      deltaX,
+      deltaY,
+      startWidth.value,
+      startHeight.value
+    )
 
-    let newWidth = startWidth
-    let newHeight = startHeight
-    visualAdjustment.value = { x: 0, y: 0 }
-
-    switch (direction) {
-      case 'e':
-        newWidth = Math.max(100, startWidth + dx)
-        break
-      case 'w':
-        newWidth = Math.max(100, startWidth - dx)
-        visualAdjustment.value.x = startWidth - newWidth
-        break
-      case 's':
-        newHeight = Math.max(100, startHeight + dy)
-        break
-      case 'n':
-        newHeight = Math.max(100, startHeight - dy)
-        visualAdjustment.value.y = startHeight - newHeight
-        break
-      case 'se':
-        newWidth = Math.max(100, startWidth + dx)
-        newHeight = Math.max(100, startHeight + dy)
-        break
-      case 'sw':
-        newWidth = Math.max(100, startWidth - dx)
-        newHeight = Math.max(100, startHeight + dy)
-        visualAdjustment.value.x = startWidth - newWidth
-        break
-      case 'ne':
-        newWidth = Math.max(100, startWidth + dx)
-        newHeight = Math.max(100, startHeight - dy)
-        visualAdjustment.value.y = startHeight - newHeight
-        break
-      case 'nw':
-        newWidth = Math.max(100, startWidth - dx)
-        newHeight = Math.max(100, startHeight - dy)
-        visualAdjustment.value.x = startWidth - newWidth
-        visualAdjustment.value.y = startHeight - newHeight
-        break
-    }
-
-    item.size.width = newWidth
-    item.size.height = newHeight
+    options.onResize?.(newSize, offset)
   }
 
-  const stopResizingItem = async (event: MouseEvent) => {
-    event.preventDefault()
-    event.stopPropagation()
-    if (resizingItem.value) {
-      const item = whiteboardNotes.value.find((item) => item.id === resizingItem.value?.id)
-      if (item && whiteboardId.value) {
-        await whiteboardStore.updateWhiteboardNoteSize(item.id, item.size.width, item.size.height)
-        if (visualAdjustment.value.x !== 0 || visualAdjustment.value.y !== 0) {
-          const newX = item.position.x + visualAdjustment.value.x
-          const newY = item.position.y + visualAdjustment.value.y
-          await whiteboardStore.updateWhiteboardNotePosition(item.id, newX, newY)
-          item.position.x = newX
-          item.position.y = newY
-        }
-      }
-    }
-
-    resizingItem.value = null
-    visualAdjustment.value = { x: 0, y: 0 }
-    window.removeEventListener('mousemove', onResizeItem)
-    window.removeEventListener('mouseup', stopResizingItem)
-  }
-
-  const getWhiteNoteStyle = (item: WhiteboardNote) => {
-    return {
-      left: `${item.position.x + (resizingItem.value?.id === item.id ? visualAdjustment.value.x : 0)}px`,
-      top: `${item.position.y + (resizingItem.value?.id === item.id ? visualAdjustment.value.y : 0)}px`,
-      width: `${item.size.width}px`,
-      height: `${item.size.height}px`,
-      zIndex: `${item.zIndex}`,
-      transform: `rotate(${item.rotation || 0}deg)`
-    }
+  const stopResize = () => {
+    isResizing.value = false
+    options.onResizeEnd?.()
+    document.removeEventListener('mousemove', onResize)
+    document.removeEventListener('mouseup', stopResize)
   }
 
   return {
-    startResizingItem,
-    onResizeItem,
-    stopResizingItem,
-    getWhiteNoteStyle
+    isResizing,
+    startResize
+  }
+}
+
+function calculateNewSizeAndOffset(
+  direction: ResizeDirection,
+  deltaX: number,
+  deltaY: number,
+  startWidth: number,
+  startHeight: number
+): { newSize: { width: number; height: number }; offset: { x: number; y: number } } {
+  let width = startWidth
+  let height = startHeight
+  let offsetX = 0
+  let offsetY = 0
+
+  switch (direction) {
+    case 'right':
+      width = startWidth + deltaX
+      break
+    case 'left':
+      width = startWidth - deltaX
+      offsetX = deltaX
+      break
+    case 'bottom':
+      height = startHeight + deltaY
+      break
+    case 'top':
+      height = startHeight - deltaY
+      offsetY = deltaY
+      break
+    case 'top-left':
+      width = startWidth - deltaX
+      height = startHeight - deltaY
+      offsetX = deltaX
+      offsetY = deltaY
+      break
+    case 'top-right':
+      width = startWidth + deltaX
+      height = startHeight - deltaY
+      offsetY = deltaY
+      break
+    case 'bottom-right':
+      width = startWidth + deltaX
+      height = startHeight + deltaY
+      break
+    case 'bottom-left':
+      width = startWidth - deltaX
+      height = startHeight + deltaY
+      offsetX = deltaX
+      break
+  }
+
+  return {
+    newSize: { width, height },
+    offset: { x: offsetX, y: offsetY }
   }
 }

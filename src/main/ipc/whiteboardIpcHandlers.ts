@@ -24,7 +24,9 @@ import {
   updateWhiteboardNoteAutoHeight,
   updateWhiteboardName,
   deleteWhiteboard,
-  getWhiteboardCount
+  getWhiteboardCount,
+  updateWhiteboardNoteContent,
+  updateWhiteboardNoteStyle
 } from '../../services/notes/whiteboardService'
 
 export function setupWhiteboardHandlers() {
@@ -268,6 +270,27 @@ export function setupWhiteboardHandlers() {
       return newWhiteboard
     } catch (error) {
       console.error('主进程 → 创建白板时出错:', error)
+      return { success: false, error: error }
+    }
+  })
+  // 新增：更新白板笔记内容（用于文本类型）
+  ipcMain.handle('update-whiteboard-note-content', async (_, { id, content }) => {
+    try {
+      const updatedWhiteboardNote = await updateWhiteboardNoteContent(id, content)
+      return updatedWhiteboardNote
+    } catch (error) {
+      console.error('主进程 → 更新白板笔记内容时出错:', error)
+      return { success: false, error: error }
+    }
+  })
+
+  // 新增：更新白板笔记样式
+  ipcMain.handle('update-whiteboard-note-style', async (_, { id, style }) => {
+    try {
+      const updatedWhiteboardNote = await updateWhiteboardNoteStyle(id, style)
+      return updatedWhiteboardNote
+    } catch (error) {
+      console.error('主进程 → 更新白板笔记样式时出错:', error)
       return { success: false, error: error }
     }
   })

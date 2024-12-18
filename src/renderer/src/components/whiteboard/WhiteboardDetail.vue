@@ -37,20 +37,15 @@
           <WhiteboardNoteComponent
             v-for="item in whiteboardNotes"
             :key="item.id"
-            :width="item.size.width"
-            :height="item.size.height"
-            :class="['whiteboard-item']"
-            :style="getWhiteNoteStyle(item)"
             :item="item"
-            :note-id="item.noteId"
+            :scale="scale"
             :is-hovered="isCreatingConnection && hoverNote?.id === item.id"
             :is-selected="selectedNotes.includes(item.id)"
-            @drag-start="startDraggingItem(item, $event)"
-            @resize-start="startResizingItem(item, $event)"
+            @update:position="(x, y) => updateNotePosition(item.id, x, y)"
+            @update:size="(width, height) => updateNoteSize(item.id, width, height)"
             @start-connection="startConnection"
             @note-interaction="handleNoteInteraction"
             @hover="handleNoteHover"
-            @click-outside="handleContainerClickOutside"
           />
           <CardConnection
             v-for="connection in connections"
@@ -274,7 +269,7 @@ const handleDrop = async (event: DragEvent) => {
 
   const input: CreateWhiteboardNoteInput = {
     whiteboardId: whiteboardId.value,
-    noteId: noteData.id, // 直接使用拖拽笔记�� id
+    noteId: noteData.id, // 直接使用拖拽笔记 id
     position: { x, y },
     size: { width: 350, height: 300 },
     zIndex: 1,
@@ -429,152 +424,6 @@ onMounted(async () => {
   updateAllConnectionPositions()
 })
 
-// 获取 item 的 style
-const getWhiteNoteStyle = (item: WhiteboardNote) => {
-  return {
-    // 当拖拽改变大小的时候，item 的 position 会加上 visualAdjustment 的值
-    left: `${item.position.x + (resizingItem.value?.id === item.id ? visualAdjustment.value.x : 0)}px`, // 适配拖拽改变大小
-    top: `${item.position.y + (resizingItem.value?.id === item.id ? visualAdjustment.value.y : 0)}px`, // 适配拖拽改变大小
-    width: `${item.size.width}px`,
-    height: `${item.size.height}px`,
-    zIndex: `${item.zIndex}`,
-    transform: `rotate(${item.rotation || 0}deg)`
-  }
-}
-
-//开始实现拖拽改变大小的能
-// 需要在模板中将 width 和 height 绑定到 item 的 size 上
-// resizingItem ref 来存储拖拽改变大小的信息
-const resizingItem = ref<{
-  id: string
-  direction: string
-  startX: number
-  startY: number
-  startWidth: number
-  startHeight: number
-} | null>(null)
-
-// visualAdjustment ref 来存储视觉调整
-const visualAdjustment = ref({ x: 0, y: 0 })
-
-// 开始拖拽改变大小
-const startResizingItem = (
-  item: WhiteboardNote,
-  { direction, event }: { direction: string; event: MouseEvent }
-) => {
-  event.preventDefault()
-  event.stopPropagation()
-  if (!containerRef.value) return
-  // 存储开始拖拽之前的 item 信息
-  resizingItem.value = {
-    id: item.id,
-    direction,
-    startX: event.clientX,
-    startY: event.clientY,
-    startWidth: item.size.width,
-    startHeight: item.size.height
-  }
-  // 监听鼠标移动和抬起事件
-  document.addEventListener('mousemove', onResizeItem)
-  document.addEventListener('mouseup', stopResizingItem)
-}
-
-// 计算拖拽改变大小的位置和大小
-const onResizeItem = (event: MouseEvent) => {
-  event.preventDefault()
-  event.stopPropagation()
-  if (!resizingItem.value || !containerRef.value) return
-
-  // 获取拖拽改变大小的信息
-  const { id, direction, startX, startY, startWidth, startHeight } = resizingItem.value
-  // 计算拖拽改变大小的位置和大小
-  const dx = (event.clientX - startX) / scale.value
-  const dy = (event.clientY - startY) / scale.value
-
-  // 获取拖拽改变大小的 item
-  const item = whiteboardNotes.value.find((item) => item.id === id)
-  if (!item) return
-
-  // 初始化新的宽度和高度
-  let newWidth = startWidth
-  let newHeight = startHeight
-
-  // 根据拖拽改变大小的方向来计算新的宽度和高度
-  switch (direction) {
-    case 'right':
-      newWidth = Math.max(startWidth + dx, 100)
-      break
-    case 'bottom':
-      newHeight = Math.max(startHeight + dy, 100)
-      break
-    case 'left':
-      newWidth = Math.max(startWidth - dx, 100)
-      // 当拖拽改变大小的方向为左边时，因为会导致 item 的 position 发生变化，所以将需要调整的视觉偏移量存储到 visualAdjustment 中
-      visualAdjustment.value.x = startWidth - newWidth
-      break
-    case 'top':
-      newHeight = Math.max(startHeight - dy, 100)
-      // 当拖拽改变大小的方向为顶边时，因为会导致 item 的 position 发生变化，所以将需要调整的视觉偏移量存储到 visualAdjustment 中
-      visualAdjustment.value.y = startHeight - newHeight
-      break
-    case 'top-left':
-      newWidth = Math.max(startWidth - dx, 100)
-      newHeight = Math.max(startHeight - dy, 100)
-      // 当拖拽改变大小的方向为顶边和左边时，因为会导致 item 的 position 发生变化，所以将需要调整的视觉偏移量存储到 visualAdjustment 中
-      visualAdjustment.value.x = startWidth - newWidth
-      visualAdjustment.value.y = startHeight - newHeight
-      break
-    case 'top-right':
-      newWidth = Math.max(startWidth + dx, 100)
-      newHeight = Math.max(startHeight - dy, 100)
-      // 当拖拽改变大小的方向为顶边和右边时，因为会导致 item 的 position 发生变化，所以将需要调整的视觉偏移量存储到 visualAdjustment 中
-      visualAdjustment.value.y = startHeight - newHeight
-      break
-    case 'bottom-right':
-      newWidth = Math.max(startWidth + dx, 100)
-      newHeight = Math.max(startHeight + dy, 100)
-      break
-    case 'bottom-left':
-      newWidth = Math.max(startWidth - dx, 100)
-      newHeight = Math.max(startHeight + dy, 100)
-      // 当拖拽改变大小的方向为底边和左边时，因为会导致 item 的 position 发生变化，所以将需要调整的视觉偏移量存储到 visualAdjustment 中
-      visualAdjustment.value.x = startWidth - newWidth
-      break
-  }
-
-  // 更新 item 的 size，注意，这里不改变 item 的 position
-  item.size.width = newWidth
-  item.size.height = newHeight
-}
-
-// 停止拖拽改变大小
-const stopResizingItem = async (event: MouseEvent) => {
-  event.preventDefault()
-  event.stopPropagation()
-  if (resizingItem.value) {
-    // 获取拖拽改变大小后的 item
-    const item = whiteboardNotes.value.find((item) => item.id === resizingItem.value?.id)
-    if (item && whiteboardId.value) {
-      // 更新白板项的大小和位置
-      await whiteboardStore.updateWhiteboardNoteSize(item.id, item.size.width, item.size.height)
-      await whiteboardStore.updateWhiteboardNotePosition(item.id, item.position.x, item.position.y)
-      // 更新白板笔记的自动高度
-      console.log('更新白板笔记的自动高度', { id: item.id, isAutoHeight: false })
-      await whiteboardStore.updateWhiteboardNoteAutoHeight(item.id, false)
-      item.isAutoHeight = false
-      // 应用视觉调整到实际位置
-      item.position.x += visualAdjustment.value.x
-      item.position.y += visualAdjustment.value.y
-    }
-  }
-  // 重置视觉调整
-  resizingItem.value = null
-  visualAdjustment.value = { x: 0, y: 0 }
-  // 移除事件监听器
-  document.removeEventListener('mousemove', onResizeItem)
-  document.removeEventListener('mouseup', stopResizingItem)
-}
-
 // 拖拽改变大小的功能结束
 
 const transformLayerStyle = computed(() => ({
@@ -584,46 +433,6 @@ const transformLayerStyle = computed(() => ({
 
 // 拖拽白板笔记的功能
 const hasMoved = ref(false)
-
-const startDraggingItem = (item: WhiteboardNote, event: MouseEvent) => {
-  // 如果当前有白板项正在交互，则不启动拖拽
-  if (isNoteInteracting.value) {
-    event.preventDefault()
-    return
-  }
-  // 检查事件目标是否为连接按钮
-  if ((event.target as HTMLElement).closest('.connection-button')) {
-    return // 如果是连接按钮，不启动拖拽
-  }
-  event.preventDefault() // 添加这行
-  // 如果 containerRef 不存在，则不启动拖拽
-  if (!containerRef.value) return
-
-  // 获取 containerRef 的边界矩形
-  const rect = containerRef.value.getBoundingClientRect()
-
-  // 如果点击的笔记不在选中列表中,清空选中列表并只选中当前笔记
-  if (!selectedNotes.value.includes(item.id)) {
-    selectedNotes.value = [item.id]
-  }
-
-  // 记录所有选中笔记的初始位置
-  const selectedItems = whiteboardNotes.value.filter((note) =>
-    selectedNotes.value.includes(note.id)
-  )
-  draggingItem.value = {
-    ids: selectedItems.map((note) => note.id),
-    startPositions: selectedItems.map((note) => ({
-      id: note.id,
-      x: (event.clientX - rect.left - translateX.value) / scale.value - note.position.x,
-      y: (event.clientY - rect.top - translateY.value) / scale.value - note.position.y
-    }))
-  }
-  hasMoved.value = false // 初始化为未移动
-  // 监听鼠标移动和抬起事件
-  document.addEventListener('mousemove', onDragItem)
-  document.addEventListener('mouseup', stopDraggingItem)
-}
 
 const onDragItem = (event: MouseEvent) => {
   // 如果 draggingItem 不存在，则不启动拖拽
@@ -680,7 +489,7 @@ const onDragItem = (event: MouseEvent) => {
           newY = otherItem.position.y
           alignmentGuides.value.push({ direction: 'horizontal', position: newY })
         }
-        // 底边对齐
+        // 底���对齐
         if (
           Math.abs(
             newY + currentItem.size.height - (otherItem.position.y + otherItem.size.height)
@@ -821,6 +630,7 @@ const updateItemPosition = (id: string, x: number, y: number) => {
 }
 
 onUnmounted(() => {
+  debouncedSaveViewState.flush()
   document.removeEventListener('mousemove', onDragItem)
   document.removeEventListener('mouseup', stopDraggingItem)
 })
@@ -1092,12 +902,28 @@ watch(
 // 组件卸载时移除事件监听器
 onUnmounted(() => {
   debouncedSaveViewState.flush()
-
   document.removeEventListener('mousemove', onDragItem)
   document.removeEventListener('mouseup', stopDraggingItem)
-  document.removeEventListener('mousemove', onResizeItem)
-  document.removeEventListener('mouseup', stopResizingItem)
 })
+
+// 简化后的更新函数
+const updateNotePosition = async (id: string, x: number, y: number) => {
+  const note = whiteboardNotes.value.find((note) => note.id === id)
+  if (note) {
+    note.position = { x, y }
+    await whiteboardStore.updateWhiteboardNotePosition(id, x, y)
+    updateConnectionPositions(id, { x, y })
+  }
+}
+
+const updateNoteSize = async (id: string, width: number, height: number) => {
+  const note = whiteboardNotes.value.find((note) => note.id === id)
+  if (note) {
+    note.size = { width, height }
+    await whiteboardStore.updateWhiteboardNoteSize(id, width, height)
+    updateAllConnectionPositions()
+  }
+}
 </script>
 
 <style lang="scss" scoped>
