@@ -111,17 +111,41 @@ export function useConnection(
   }
 
   // 开始创建连线
-  const startConnection = (note: WhiteboardNote) => {
+  const startConnection = (
+    note: WhiteboardNote,
+    startAnchorPosition: 'top' | 'right' | 'bottom' | 'left'
+  ) => {
     console.log('Start connection', note)
     isCreatingConnection.value = true
     isConnecting.value = true
     hoverNote.value = null
     startNote.value = note
-    connectionStart.value = {
-      x: note.position.x + note.size.width,
-      y: note.position.y + note.size.height / 2
+
+    // 根据锚点位置计算起始点
+    const startPoint = {
+      x: note.position.x,
+      y: note.position.y
     }
-    connectionEnd.value = { ...connectionStart.value }
+
+    switch (startAnchorPosition) {
+      case 'top':
+        startPoint.x += note.size.width / 2
+        break
+      case 'right':
+        startPoint.x += note.size.width
+        startPoint.y += note.size.height / 2
+        break
+      case 'bottom':
+        startPoint.x += note.size.width / 2
+        startPoint.y += note.size.height
+        break
+      case 'left':
+        startPoint.y += note.size.height / 2
+        break
+    }
+
+    connectionStart.value = startPoint
+    connectionEnd.value = { ...startPoint }
   }
 
   // 查找鼠标下的笔记

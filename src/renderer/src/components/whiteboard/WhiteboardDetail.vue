@@ -45,7 +45,7 @@
             :is-selected="selectedItems.includes(item.id)"
             @update:position="(x, y) => updateNotePosition(item.id, x, y)"
             @update:size="(width, height) => updateNoteSize(item.id, width, height)"
-            @start-connection="startConnection"
+            @start-connection="handleStartConnection"
             @note-interaction="handleNoteInteraction"
             @hover="handleNoteHover"
             @stop-editing="handleStopEditing"
@@ -176,6 +176,7 @@ import { useSelection } from '@renderer/composables/whiteboard/useSelection'
 import { useWhiteboardViewState } from '@renderer/composables/whiteboard/useWhiteboardViewState'
 import { message } from '@renderer/utils/message'
 import ImageUploadModal from './ImageUploadModal.vue'
+import type { AnchorPosition } from '@renderer/types/Connection'
 
 const containerRef = ref<HTMLElement | null>(null)
 const route = useRoute()
@@ -1004,7 +1005,7 @@ const handleImageConfirm = async (imageData: { url: string; width: number; heigh
   const centerX = (rect.width / 2 - translateX.value) / scale.value
   const centerY = (rect.height / 2 - translateY.value) / scale.value
 
-  // 计算合适的���示尺寸
+  // 计算合适的示尺寸
   const maxWidth = 500
   const maxHeight = 400
   let width = imageData.width
@@ -1047,6 +1048,37 @@ const handleImageConfirm = async (imageData: { url: string; width: number; heigh
 }
 
 const imageUploadModalRef = ref<InstanceType<typeof ImageUploadModal> | null>(null)
+
+// 处理开始连接事件
+const handleStartConnection = (item: WhiteboardNote & { startAnchorPosition: AnchorPosition }) => {
+  const { startAnchorPosition, ...note } = item
+
+  // 根据锚点位置计算起始点
+  const startPoint = {
+    x: note.position.x,
+    y: note.position.y
+  }
+
+  switch (startAnchorPosition) {
+    case 'top':
+      startPoint.x += note.size.width / 2
+      break
+    case 'right':
+      startPoint.x += note.size.width
+      startPoint.y += note.size.height / 2
+      break
+    case 'bottom':
+      startPoint.x += note.size.width / 2
+      startPoint.y += note.size.height
+      break
+    case 'left':
+      startPoint.y += note.size.height / 2
+      break
+  }
+
+  // 调用 useConnection 中的 startConnection 方法
+  startConnection(note, startAnchorPosition)
+}
 </script>
 
 <style lang="scss" scoped>

@@ -47,8 +47,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, onMounted } from 'vue'
-import type { WhiteboardNote } from '@renderer/types/Whiteboard'
+import { computed, ref, onMounted, type CSSProperties } from 'vue'
+import type { WhiteboardNote, AnchorPosition, ConnectionAnchor } from '@renderer/types/Whiteboard'
 import CardNote from './notes/CardNote.vue'
 import TextNote from './notes/TextNote.vue'
 import ImageNote from './notes/ImageNote.vue'
@@ -74,11 +74,12 @@ const props = defineProps<{
   scale: number
 }>()
 
+// 修改 emit 的类型声明
 const emit = defineEmits<{
   (e: 'hover', value: boolean): void
   (e: 'update:position', x: number, y: number): void
   (e: 'update:size', width: number, height: number): void
-  (e: 'start-connection', item: WhiteboardNote & { startPoint: { x: number; y: number } }): void
+  (e: 'start-connection', item: WhiteboardNote & { startAnchorPosition: AnchorPosition }): void
   (e: 'note-interaction', value: boolean): void
   (e: 'stop-editing'): void
   (e: 'select', id: string, event: MouseEvent): void
@@ -91,16 +92,15 @@ const emit = defineEmits<{
 
 const noteRef = ref<HTMLElement | null>(null)
 const isEditing = ref(false)
-const noteStyle = computed(() => {
-  const style = {
+const noteStyle = computed<CSSProperties>(() => {
+  const style: CSSProperties = {
     width: `${props.item.size.width}px`,
     height: `${props.item.size.height}px`,
     transform: `translate(${props.item.position.x}px, ${props.item.position.y}px) rotate(${props.item.rotation}deg)`,
     zIndex: props.item.zIndex,
-    backgroundColor: 'var(--color-bg-primary)' // 统一使用默认背景色
+    backgroundColor: 'var(--color-bg-primary)'
   }
 
-  // 只设置边框颜色
   if (props.item.style?.backgroundColor) {
     style.borderColor = props.item.style.backgroundColor
   }
@@ -367,14 +367,6 @@ const handleResizeHover = (event: MouseEvent) => {
   }
 }
 
-// 定义锚点位置类型
-type AnchorPosition = 'top' | 'right' | 'bottom' | 'left'
-
-interface ConnectionAnchor {
-  position: AnchorPosition
-  isHovered: boolean
-}
-
 // 连线锚点状态
 const connectionAnchors = ref<ConnectionAnchor[]>([
   { position: 'top', isHovered: false },
@@ -385,39 +377,13 @@ const connectionAnchors = ref<ConnectionAnchor[]>([
 
 // 开始创建连接
 const startConnection = (position: AnchorPosition) => {
-  // 根据锚点位置计算起始点坐标
-  const rect = noteRef.value?.getBoundingClientRect()
-  if (!rect) return
+  if (!props.item) return
 
-  const startPoint = {
-    x: props.item.position.x,
-    y: props.item.position.y
-  }
-
-  switch (position) {
-    case 'top':
-      startPoint.x += props.item.size.width / 2
-      break
-    case 'right':
-      startPoint.x += props.item.size.width
-      startPoint.y += props.item.size.height / 2
-      break
-    case 'bottom':
-      startPoint.x += props.item.size.width / 2
-      startPoint.y += props.item.size.height
-      break
-    case 'left':
-      startPoint.y += props.item.size.height / 2
-      break
-  }
-
-  // 创建一个新对象，包含所有必要的属性
-  const connectionItem = {
+  // 触发连接开始事件，传递笔记和锚点位置
+  emit('start-connection', {
     ...props.item,
-    startPoint
-  }
-
-  emit('start-connection', connectionItem)
+    startAnchorPosition: position
+  })
 }
 
 // 工具栏事件处理函数（暂时为空，后续实现）
