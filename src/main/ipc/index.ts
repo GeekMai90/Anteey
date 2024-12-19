@@ -2,7 +2,6 @@ import { setupNotesHandlers } from './notesIpcHandlers'
 import { setupWhiteboardHandlers } from './whiteboardIpcHandlers'
 import { setupCardboxHandlers } from './cardboxIpcHandlers'
 import { setupUserSettingsHandlers } from './userSettingsIpcHandlers'
-import { setupConnectionsHandlers } from './connectionsIpcHandlers'
 import { setupImageHandlers } from './imageIpcHandlers'
 import { setupTagHandlers } from './tagIpcHandlers'
 import { setupFilterHandlers } from './filterIpcHandlers'
@@ -21,7 +20,6 @@ export function setupIpcHandlers() {
   setupWhiteboardHandlers()
   setupCardboxHandlers()
   setupUserSettingsHandlers()
-  setupConnectionsHandlers()
   setupImageHandlers()
   setupTagHandlers()
   setupFilterHandlers()

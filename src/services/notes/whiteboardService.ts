@@ -7,7 +7,9 @@ import type {
   WhiteboardNote,
   RootWhiteboard,
   WhiteboardGroup,
-  Connection
+  Connection,
+  ConnectionCreateData,
+  ConnectionUpdateData
 } from '../../renderer/src/types/Whiteboard'
 // import { createNote } from './notesService'
 
@@ -370,21 +372,47 @@ export async function createWhiteboardNote(
 
 // 删除白板笔记
 // 删除白板笔记，同时删除连接该白板笔记的连线
+// export async function deleteWhiteboardNote(id: string): Promise<void> {
+//   try {
+//     console.log('后端→ 删除白板笔记', id)
+//     await db('whiteboard_notes').where({ id }).del()
+//     // 通过白板笔记的 id 去查找白板连线的  startItemId 或 endItemId 字段中是否包含该 id，如果包含，则删除该连线
+//     const connections = await db('connections')
+//       .where({ startItemId: id })
+//       .orWhere({ endItemId: id })
+//     for (const connection of connections) {
+//       await db('connections').where({ id: connection.id }).del()
+//     }
+//     console.log('后端→ 删除白板笔记成功', id)
+//     console.log('后端→ 删除白板连线成功', connections)
+//   } catch (error) {
+//     console.error('后端→ 删除白板笔记失败:', error)
+//     throw error
+//   }
+// }
 export async function deleteWhiteboardNote(id: string): Promise<void> {
   try {
-    console.log('后端→ 删除白板笔记', id)
-    await db('whiteboard_notes').where({ id }).del()
-    // 通过白板笔记的 id 去查找白板连线的  startItemId 或 endItemId 字段中是否包含该 id，如果包含，则删除该连线
-    const connections = await db('connections')
+    console.log('后端→ 开始删除白板笔记及其相关连线', id)
+
+    // 1. 先删除与该笔记相关的所有连线
+    const relatedConnections = await db('connections')
       .where({ startItemId: id })
       .orWhere({ endItemId: id })
-    for (const connection of connections) {
+      .select('*')
+
+    console.log('后端→ 找到相关连线:', relatedConnections)
+
+    // 删除相关连线
+    for (const connection of relatedConnections) {
       await db('connections').where({ id: connection.id }).del()
     }
-    console.log('后端→ 删除白板笔记成功', id)
-    console.log('后端→ 删除白板连线成功', connections)
+
+    // 2. 删除笔记本身
+    await db('whiteboard_notes').where({ id }).del()
+
+    console.log('后端→ 删除白板笔记及其相关连线成功')
   } catch (error) {
-    console.error('后端→ 删除白板笔记失败:', error)
+    console.error('后端→ 删除白板笔记及其相关连线失败:', error)
     throw error
   }
 }
@@ -550,6 +578,113 @@ export async function updateWhiteboardNoteStyle(
     return processWhiteboardNoteData(updatedWhiteboardNote[0])
   } catch (error) {
     console.error('后端→ 更新白板笔记样式失败:', error)
+    throw error
+  }
+}
+
+export async function createConnection(connection: ConnectionCreateData): Promise<Connection> {
+  try {
+    const newConnection = {
+      id: uuidv4(),
+      ...connection,
+      startPoint: JSON.stringify(connection.startPoint),
+      endPoint: JSON.stringify(connection.endPoint)
+    }
+    await db('connections').insert(newConnection)
+    return processConnectionData(newConnection)
+  } catch (error) {
+    console.error('Error creating connection:', error)
+    throw error
+  }
+}
+
+// 辅助处理函数
+function processConnectionData(item: any): Connection {
+  return {
+    ...item,
+    startPoint: JSON.parse(item.startPoint),
+    endPoint: JSON.parse(item.endPoint)
+  }
+}
+
+// 更新连线
+export async function updateConnection(connection: ConnectionUpdateData): Promise<Connection> {
+  try {
+    const updatedConnection = await db('connections')
+      .where({ id: connection.id })
+      .update({
+        startPoint: JSON.stringify(connection.startPoint),
+        endPoint: JSON.stringify(connection.endPoint),
+        description: connection.description || null
+      })
+      .returning('*')
+    return processConnectionData(updatedConnection[0])
+  } catch (error) {
+    console.error('Error updating connection:', error)
+    throw error
+  }
+}
+
+// 获取白板上的所有连线
+export async function getConnectionsByWhiteboardId(whiteboardId: string): Promise<Connection[]> {
+  try {
+    const connections = await db('connections').where({ whiteboardId })
+    return connections.map(processConnectionData)
+  } catch (error) {
+    console.error('Error getting connections by whiteboardId:', error)
+    throw error
+  }
+}
+
+// 删除连线
+export async function deleteConnection(id: string): Promise<boolean> {
+  try {
+    console.log('后端→ 删除连线', id)
+    await db('connections').where({ id }).del()
+    console.log('后端→ 删除连线成功')
+    return true
+  } catch (error) {
+    console.error('Error deleting connection:', error)
+    throw error
+  }
+}
+
+// 更新连线描述
+export async function updateConnectionDescription(
+  id: string,
+  description: string | null
+): Promise<Connection> {
+  try {
+    console.log('后端→ 开始更新连线描述', id, description)
+
+    // 首先检查连接是否存在
+    const existingConnection = await db('connections').where({ id }).first()
+    if (!existingConnection) {
+      throw new Error(`Connection with id ${id} not found`)
+    }
+
+    // 处理空字符串的情况
+    const updatedDescription = description === '' ? null : description
+
+    console.log('后端→ 执行更新操作', id, updatedDescription)
+
+    const updatedConnection = await db('connections')
+      .where({ id })
+      .update({ description: updatedDescription })
+      .returning('*')
+
+    console.log('后端→ 更新操作完成', updatedConnection)
+
+    if (!updatedConnection || updatedConnection.length === 0) {
+      throw new Error(`Failed to update connection with id ${id}`)
+    }
+
+    const processedConnection = processConnectionData(updatedConnection[0])
+    console.log('后端→ 返回处理后的连接数据', processedConnection)
+
+    return processedConnection
+  } catch (error) {
+    console.error('Error updating connection description:', error)
     throw error
   }
 }

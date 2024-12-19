@@ -37,25 +37,46 @@ export const useWhiteboardStore = defineStore('whiteboard', {
       }
     },
     // 初始化白板数据
+    // async initializeWhiteboardData(whiteboardId: string) {
+    //   this.isLoading = true
+    //   this.error = null
+    //   this.currentWhiteboardId = whiteboardId
+
+    //   try {
+    //     // 假设这些是您的 API 方法
+    //     const [whiteboardNotes, connections] = await Promise.all([
+    //       this.getWhiteboardNotes(whiteboardId),
+    //       this.getConnections(whiteboardId)
+    //     ])
+
+    //     this.whiteboardNotes = whiteboardNotes
+    //     this.connections = connections
+    //   } catch (error) {
+    //     console.error('Failed to initialize whiteboard data:', error)
+    //     this.error = 'Failed to load whiteboard data'
+    //   } finally {
+    //     this.isLoading = false
+    //   }
+    // },
     async initializeWhiteboardData(whiteboardId: string) {
-      this.isLoading = true
-      this.error = null
-      this.currentWhiteboardId = whiteboardId
-
       try {
-        // 假设这些是您的 API 方法
-        const [whiteboardNotes, connections] = await Promise.all([
-          this.getWhiteboardNotes(whiteboardId),
-          this.getConnections(whiteboardId)
-        ])
+        console.log('whiteboardStore→ 开始初始化白板数据')
 
-        this.whiteboardNotes = whiteboardNotes
+        // 获取白板笔记
+        const notes = await window.electronAPI.getWhiteboardNotes(whiteboardId)
+        this.whiteboardNotes = notes
+
+        // 获取连线
+        const connections = await window.electronAPI.getConnectionsByWhiteboardId(whiteboardId)
         this.connections = connections
+
+        console.log('whiteboardStore→ 初始化白板数据成功', {
+          notes: this.whiteboardNotes,
+          connections: this.connections
+        })
       } catch (error) {
-        console.error('Failed to initialize whiteboard data:', error)
-        this.error = 'Failed to load whiteboard data'
-      } finally {
-        this.isLoading = false
+        console.error('whiteboardStore→ 初始化白板数据失败', error)
+        throw error
       }
     },
 
@@ -335,18 +356,42 @@ export const useWhiteboardStore = defineStore('whiteboard', {
       }
     },
     // 删除白板笔记
-    async deleteWhiteboardNote(id: string) {
+    // async deleteWhiteboardNote(id: string) {
+    //   try {
+    //     console.log('whiteboardStore→ 开始删除白板笔记', id)
+    //     const result = await window.electronAPI.deleteWhiteboardNote(id)
+    //     console.log('whiteboardStore→ 删除白板笔记成功', result)
+    //     // 更新本地状态
+    //     this.whiteboardNotes = this.whiteboardNotes.filter((note) => note.id !== id)
+    //     // 更新连接
+    //     this.connections = this.connections.filter(
+    //       (conn) => conn.startItemId !== id && conn.endItemId !== id
+    //     )
+    //     return result
+    //   } catch (error) {
+    //     console.error('whiteboardStore→ 删除白板笔记失败', error)
+    //     throw error
+    //   }
+    // },
+    // 删除白板笔记
+    async deleteWhiteboardNote(noteId: string) {
       try {
-        console.log('whiteboardStore→ 开始删除白板笔记', id)
-        const result = await window.electronAPI.deleteWhiteboardNote(id)
-        console.log('whiteboardStore→ 删除白板笔记成功', result)
-        // 更新本地状态
-        this.whiteboardNotes = this.whiteboardNotes.filter((note) => note.id !== id)
-        // 更新连接
+        console.log('whiteboardStore→ 开始删除白板笔记', noteId)
+
+        // 1. 调用后端 API 删除笔记及其相关连线
+        await window.electronAPI.deleteWhiteboardNote(noteId)
+
+        // 2. 更新本地笔记状态
+        this.whiteboardNotes = this.whiteboardNotes.filter((note) => note.id !== noteId)
+
+        // 3. 只删除与被删除笔记相关的连线
         this.connections = this.connections.filter(
-          (conn) => conn.startItemId !== id && conn.endItemId !== id
+          (connection) => connection.startItemId !== noteId && connection.endItemId !== noteId
         )
-        return result
+
+        console.log('whiteboardStore→ 删除白板笔记及相关连线成功')
+        console.log('剩余连线:', this.connections)
+        return true
       } catch (error) {
         console.error('whiteboardStore→ 删除白板笔记失败', error)
         throw error
