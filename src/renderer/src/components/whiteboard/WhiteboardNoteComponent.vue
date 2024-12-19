@@ -40,6 +40,7 @@
     <component
       :is="noteComponent"
       v-bind="noteProps"
+      :id="props.item.id"
       @update:content="handleContentUpdate"
       @editor-mousedown="handleEditorMouseDown"
     />

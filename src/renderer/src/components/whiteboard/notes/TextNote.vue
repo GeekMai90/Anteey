@@ -12,8 +12,10 @@
 
 <script setup lang="ts">
 import { ref, watch, computed, nextTick } from 'vue'
+import { useWhiteboardStore } from '@renderer/stores/whiteboardStores'
 
 const props = defineProps<{
+  id: string
   content?: string
   isEditing: boolean
   style?: {
@@ -24,9 +26,7 @@ const props = defineProps<{
   }
 }>()
 
-const emit = defineEmits<{
-  (e: 'update:content', content: string): void
-}>()
+const whiteboardStore = useWhiteboardStore()
 
 const localContent = ref(props.content || '')
 
@@ -76,8 +76,17 @@ watch(
   { deep: true }
 )
 
-const handleInput = () => {
-  emit('update:content', localContent.value)
+const handleInput = async () => {
+  try {
+    // 确保 content 存在且为字符串
+    if (props.content !== undefined) {
+      await whiteboardStore.updateWhiteboardNoteContent(props.id, localContent.value)
+    } else {
+      console.error('Content ID is undefined')
+    }
+  } catch (error) {
+    console.error('更新文本内容失败:', error)
+  }
 }
 </script>
 
