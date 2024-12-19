@@ -214,18 +214,35 @@ export const useWhiteboardStore = defineStore('whiteboard', {
       }
     },
     // 更新白板笔记的位置
+    // async updateWhiteboardNotePosition(id: string, x: number, y: number) {
+    //   try {
+    //     console.log('whiteboardStore→ 开始更新白板笔记位置', { id, x, y })
+    //     const updatedWhiteboardNote = await window.electronAPI.updateWhiteboardNotePosition(
+    //       id,
+    //       x,
+    //       y
+    //     )
+    //     console.log('whiteboardStore→ 更新白板笔记位置成功', updatedWhiteboardNote)
+    //     return updatedWhiteboardNote
+    //   } catch (error) {
+    //     console.error('whiteboardStore→ 更新白板笔记位置失败', error)
+    //     throw error
+    //   }
+    // },
     async updateWhiteboardNotePosition(id: string, x: number, y: number) {
       try {
-        console.log('whiteboardStore→ 开始更新白板笔记位置', { id, x, y })
-        const updatedWhiteboardNote = await window.electronAPI.updateWhiteboardNotePosition(
-          id,
-          x,
-          y
-        )
-        console.log('whiteboardStore→ 更新白板笔记位置成功', updatedWhiteboardNote)
-        return updatedWhiteboardNote
+        const result = await window.electronAPI.updateWhiteboardNotePosition(id, x, y)
+        // 更新 store 中的状态
+        const index = this.whiteboardNotes.findIndex((note) => note.id === id)
+        if (index !== -1) {
+          this.whiteboardNotes[index] = {
+            ...this.whiteboardNotes[index],
+            position: { x, y }
+          }
+        }
+        return result
       } catch (error) {
-        console.error('whiteboardStore→ 更新白板笔记位置失败', error)
+        console.error('Failed to update note position:', error)
         throw error
       }
     },

@@ -861,7 +861,7 @@ onUnmounted(() => {
 const updateNotePosition = async (id: string, x: number, y: number) => {
   const note = whiteboardNotes.value.find((note) => note.id === id)
   if (note) {
-    note.position = { x, y }
+    // note.position = { x, y }
     await whiteboardStore.updateWhiteboardNotePosition(id, x, y)
     updateConnectionPositions(id, { x, y })
   }
@@ -983,10 +983,10 @@ const createNote = async (type: 'text' | 'card' | 'image') => {
   try {
     const newNote = await whiteboardStore.createWhiteboardNote(input)
     console.log('newNote', newNote)
-    if (newNote && newNote.id) {
-      whiteboardNotes.value = [...whiteboardNotes.value, newNote]
-      console.log('whiteboardNotes', whiteboardNotes.value)
-    }
+    // if (newNote && newNote.id) {
+    //   whiteboardNotes.value = [...whiteboardNotes.value, newNote]
+    //   console.log('whiteboardNotes', whiteboardNotes.value)
+    // }
   } catch (error) {
     console.error('Failed to create whiteboard note:', error)
     message.error('创建失败')
