@@ -11,7 +11,7 @@ import {
   updateMonthlyLog,
   getYearMonthlyLogs,
   searchTimeBlocks
-} from '../../services/timeBlockService'
+} from '../../services/timeBlock/timeBlockService'
 import log from '../logger'
 
 export function setupTimeBlockHandlers() {

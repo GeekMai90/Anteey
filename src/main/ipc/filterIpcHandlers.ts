@@ -7,7 +7,7 @@ import {
   deleteCustomFilter,
   updateFilterPinned,
   toggleFilterStar
-} from '../../services/rag/filterService'
+} from '../../services/notes/filterService'
 import type {
   CreateCustomFilterInput,
   UpdateCustomFilterInput

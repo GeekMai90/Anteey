@@ -152,7 +152,6 @@ import {
   Clear,
   Moon,
   SunOne,
-  Robot,
   Sapling
 } from '@icon-park/vue-next'
 import { useNoteStore } from '@renderer/stores/noteStores'
@@ -175,7 +174,6 @@ const appearanceStore = useAppearanceStore()
 
 const getIconFill = computed(
   () => (path: string) =>
-    // route.path === path ? 'var(--color-primary)' : 'var(--color-text-primary)'
     route.path === path ? 'var(--color-text-primary)' : 'var(--color-text-primary)'
 )
 
@@ -197,10 +195,6 @@ const menuItems = computed(() => {
     // 根据设置决定是否显示白板
     ...(appearanceStore.settings?.enableWhiteboard
       ? [{ name: '思维板', path: '/whiteboard', icon: Workbench }]
-      : []),
-    // 根据设置决定是否显示 AI 助手
-    ...(appearanceStore.settings?.enableAIAssistant
-      ? [{ name: 'AI助手', path: '/aiassistant', icon: Robot }]
       : [])
   ]
   return baseItems

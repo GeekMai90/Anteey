@@ -53,8 +53,7 @@
                       '/timeline': '笔记流',
                       '/cardbox': '卡片盒',
                       '/knowledge-tree': '知识树',
-                      '/whiteboard': '思维板',
-                      '/aiassistant': 'AI助手'
+                      '/whiteboard': '思维板'
                     }"
                     v-show="path !== '/timeblock' || timeBlockStore.settings.enabled"
                     :key="path"
@@ -121,10 +120,6 @@
             <div class="setting-item">
               <div class="setting-label">启用思维板</div>
               <Switch v-model="enableWhiteboard" @change="handleWhiteboardChange" />
-            </div>
-            <div class="setting-item">
-              <div class="setting-label">启用 AI 助手</div>
-              <Switch v-model="enableAIAssistant" @change="handleAIAssistantChange" />
             </div>
           </div>
         </div>
@@ -223,8 +218,7 @@ const getPageName = (path: string) => {
     '/timeline': '笔记流',
     '/cardbox': '卡片盒',
     '/knowledge-tree': '知识树',
-    '/whiteboard': '思维板',
-    '/aiassistant': 'AI助手'
+    '/whiteboard': '思维板'
   }
   return pageMap[path] || '主页'
 }
@@ -283,7 +277,6 @@ onMounted(async () => {
 
 // 功能开关状态
 const enableWhiteboard = ref(appearanceStore.settings?.enableWhiteboard ?? true)
-const enableAIAssistant = ref(appearanceStore.settings?.enableAIAssistant ?? true)
 
 // 处理状态变更
 const handleWhiteboardChange = async (value: boolean) => {
@@ -293,16 +286,6 @@ const handleWhiteboardChange = async (value: boolean) => {
     console.error('更新白板功能开关失败:', error)
     // 恢复原状态
     enableWhiteboard.value = !value
-  }
-}
-
-const handleAIAssistantChange = async (value: boolean) => {
-  try {
-    await appearanceStore.updateAIAssistantEnabled(value)
-  } catch (error) {
-    console.error('更新 AI 助手功能开关失败:', error)
-    // 恢复原状态
-    enableAIAssistant.value = !value
   }
 }
 </script>

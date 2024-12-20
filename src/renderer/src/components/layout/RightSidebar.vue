@@ -38,9 +38,8 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useRoute } from 'vue-router'
-import { Split, Concern, LinkTwo } from '@icon-park/vue-next'
+import { Split, LinkTwo } from '@icon-park/vue-next'
 import MultiNotes from '@renderer/components/layout/MultiNotes.vue'
-import RelatedNotes from '@renderer/components/layout/RelatedNotes.vue'
 import BacklinksPanelNoteEditor from '@renderer/components/layout/BacklinksPanelNoteEditor.vue'
 import { useUIStore } from '@renderer/stores/useUIStore'
 
@@ -65,12 +64,6 @@ const tabs = [
     label: '多开笔记',
     icon: Split,
     component: MultiNotes
-  },
-  {
-    key: 'related',
-    label: '相关笔记',
-    icon: Concern,
-    component: RelatedNotes
   },
   {
     key: 'backlink',

@@ -5,10 +5,6 @@ import { setupUserSettingsHandlers } from './userSettingsIpcHandlers'
 import { setupImageHandlers } from './imageIpcHandlers'
 import { setupTagHandlers } from './tagIpcHandlers'
 import { setupFilterHandlers } from './filterIpcHandlers'
-import { setupEmbeddingHandlers } from './embeddingIpcHandlers'
-import { setupDictionaryHandlers } from './dictionaryIpcHandlers'
-import { setupRAGHandlers } from './ragIpcHandlers'
-import { setupLLMConfigHandlers } from './llmConfigIpcHandlers'
 import { setupLocalTreeHandlers } from './localTreeIpcHandlers'
 import { setupAppearanceHandlers } from './appearanceIpcHandlers'
 import { setupKnowledgeTreeHandlers } from './knowledgeTreeIpcHandlers'
@@ -23,10 +19,6 @@ export function setupIpcHandlers() {
   setupImageHandlers()
   setupTagHandlers()
   setupFilterHandlers()
-  setupEmbeddingHandlers()
-  setupDictionaryHandlers()
-  setupRAGHandlers()
-  setupLLMConfigHandlers()
   setupLocalTreeHandlers()
   setupAppearanceHandlers()
   setupKnowledgeTreeHandlers()

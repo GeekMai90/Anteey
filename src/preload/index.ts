@@ -4,10 +4,6 @@ import { UpdateUserSettings, UserSettings } from '../renderer/src/types/UserSett
 import { notesApi } from './api/notesApi'
 import { tagApi } from './api/tagApi'
 import { filterApi } from './api/filterApi'
-import { embeddingApi } from './api/embeddingApi'
-import { dictionaryApi } from './api/dictionaryApi'
-import { ragApi } from './api/ragApi'
-import { llmConfigApi } from './api/llmConfigApi'
 import { localTreeApi } from './api/localTreeApi'
 import { appearanceApi } from './api/appearanceApi'
 import { knowledgeTreeApi } from './api/knowledgeTreeApi'
@@ -28,10 +24,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   ...notesApi,
   ...tagApi,
   ...filterApi,
-  ...embeddingApi,
-  ...dictionaryApi,
-  ...ragApi,
-  ...llmConfigApi,
   ...localTreeApi,
   ...appearanceApi,
   ...knowledgeTreeApi,
