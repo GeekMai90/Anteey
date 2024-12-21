@@ -2,7 +2,7 @@
 <html>
   <head>
     <meta charset="UTF-8" />
-    <title>Antinet</title>
+    <title>AntiThink</title>
     <!-- https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP -->
     <style>
       #loading-wrapper {
@@ -18,13 +18,13 @@
         align-items: center;
         z-index: 9999;
       }
-    
+
       .loading-placeholder {
         position: relative;
         width: 40px;
         height: 40px;
       }
-    
+
       .loading-placeholder::before,
       .loading-placeholder::after {
         content: '';
@@ -38,11 +38,11 @@
         transform: translate(-50%, -50%) scale(0);
         animation: ripple 2s ease-in-out infinite;
       }
-    
+
       .loading-placeholder::after {
         animation-delay: -0.5s;
       }
-    
+
       @keyframes ripple {
         0% {
           transform: translate(-50%, -50%) scale(0);
@@ -53,11 +53,14 @@
           opacity: 0;
         }
       }
-    
+
       /* 可选：添加品牌名称 */
       .loading-text {
         margin-top: 20px;
-        font-family: system-ui, -apple-system, sans-serif;
+        font-family:
+          system-ui,
+          -apple-system,
+          sans-serif;
         font-size: 16px;
         color: #20ceae;
         letter-spacing: 0.5px;
@@ -65,14 +68,14 @@
       }
     </style>
     <meta
-    http-equiv="Content-Security-Policy"
-    content="default-src *; 
+      http-equiv="Content-Security-Policy"
+      content="default-src *; 
            img-src 'self' file: data: blob: https: http: *; 
            script-src 'self' 'unsafe-inline' 'unsafe-eval' blob:; 
            style-src 'self' 'unsafe-inline'; 
            connect-src 'self' file: https://api.tiptap.dev; 
            worker-src 'self' blob: data:;"
-  />
+    />
   </head>
 
   <body>
