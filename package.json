@@ -1,10 +1,10 @@
 {
-  "name": "antinet",
-  "version": "0.2.35",
-  "description": "Antinet",
+  "name": "antithink",
+  "version": "1.2.41",
+  "description": "AntiThink",
   "main": "./out/main/index.js",
-  "author": "antinet.com",
-  "homepage": "https://antinet.com",
+  "author": "GeekMai",
+  "homepage": "https://www.antithink.cc",
   "scripts": {
     "format": "prettier --write .",
     "lint": "eslint . --ext .js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts,.vue --fix",
@@ -42,7 +42,7 @@
     "@tiptap-pro/extension-details-content": "^2.11.9",
     "@tiptap-pro/extension-details-summary": "^2.11.9",
     "@tiptap-pro/extension-drag-handle": "^2.11.2",
-    "@tiptap-pro/extension-emoji": "^2.11.9",
+    "@tiptap-pro/extension-emoji": "^2.16.3",
     "@tiptap-pro/extension-export": "^2.11.9",
     "@tiptap-pro/extension-file-handler": "^2.11.2",
     "@tiptap-pro/extension-node-range": "^2.11.2",
@@ -106,7 +106,6 @@
     "jsmind": "^0.8.6",
     "jszip": "^3.10.1",
     "knex": "^3.1.0",
-    "leader-line": "^1.0.7",
     "less": "^4.2.0",
     "lodash": "^4.17.21",
     "lodash-es": "^4.17.21",
@@ -170,14 +169,14 @@
     "vue3-calendar-heatmap": "^2.0.5"
   },
   "build": {
-    "appId": "com.geekmai.antinet",
-    "productName": "Antinet",
+    "appId": "com.geekmai.antithink",
+    "productName": "AntiThink",
     "mac": {
       "category": "public.app-category.productivity",
       "icon": "build/icon.icns",
       "extendInfo": {
-        "CFBundleName": "Antinet",
-        "CFBundleDisplayName": "Antinet"
+        "CFBundleName": "AntiThink",
+        "CFBundleDisplayName": "AntiThink"
       },
       "target": [
         {
@@ -211,7 +210,7 @@
         "height": 380
       },
       "format": "ULFO",
-      "title": "Antinet"
+      "title": "AntiThink"
     },
     "win": {
       "target": [

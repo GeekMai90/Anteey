@@ -4,8 +4,8 @@
     <div class="sidebar-header">
       <div class="sidebar-titlebar"></div>
       <div class="antinet-button" @click.stop="uiStore.toggleSettingDropdown">
-        <img src="@resources/icon.png" alt="Antinet" class="antinet-icon" />
-        <div class="antinet-text">Antinet</div>
+        <img src="@resources/icon.png" alt="AntiThink" class="antinet-icon" />
+        <div class="antinet-text">AntiThink</div>
         <div class="status-icon" :class="saveStatusClass"></div>
         <SettingDropdownMenu />
       </div>
@@ -262,7 +262,8 @@ const openSearch = () => {
 
 const openHelp = () => {
   // 实现打开帮助的逻辑
-  console.log('打开帮助')
+
+  window.electronAPI.openExternal('https://www.yuque.com/geekmai/antithink')
 }
 
 const isQuickAccessVisible = ref(false)

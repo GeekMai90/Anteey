@@ -36,8 +36,8 @@ importers:
         specifier: ^2.11.2
         version: 2.11.9(@tiptap-pro/extension-node-range@2.11.9(@tiptap/core@2.9.1(@tiptap/pm@2.9.1))(@tiptap/pm@2.9.1))(@tiptap/core@2.9.1(@tiptap/pm@2.9.1))(@tiptap/extension-collaboration@2.9.1(@tiptap/core@2.9.1(@tiptap/pm@2.9.1))(@tiptap/pm@2.9.1)(y-prosemirror@1.2.12(prosemirror-model@1.23.0)(prosemirror-state@1.4.3)(prosemirror-view@1.34.3)(y-protocols@1.0.6(yjs@13.6.20))(yjs@13.6.20)))(@tiptap/pm@2.9.1)(y-prosemirror@1.2.12(prosemirror-model@1.23.0)(prosemirror-state@1.4.3)(prosemirror-view@1.34.3)(y-protocols@1.0.6(yjs@13.6.20))(yjs@13.6.20))
       '@tiptap-pro/extension-emoji':
-        specifier: ^2.11.9
-        version: 2.11.9(@tiptap/core@2.9.1(@tiptap/pm@2.9.1))(@tiptap/pm@2.9.1)(@tiptap/suggestion@2.9.1(@tiptap/core@2.9.1(@tiptap/pm@2.9.1))(@tiptap/pm@2.9.1))(emojibase@15.3.1)
+        specifier: ^2.16.3
+        version: 2.16.3(@tiptap/core@2.9.1(@tiptap/pm@2.9.1))(@tiptap/pm@2.9.1)(@tiptap/suggestion@2.9.1(@tiptap/core@2.9.1(@tiptap/pm@2.9.1))(@tiptap/pm@2.9.1))(emojibase@16.0.0)
       '@tiptap-pro/extension-export':
         specifier: ^2.11.9
         version: 2.11.9(@tiptap/core@2.9.1(@tiptap/pm@2.9.1))(@tiptap/pm@2.9.1)
@@ -227,9 +227,6 @@ importers:
       knex:
         specifier: ^3.1.0
         version: 3.1.0(better-sqlite3@11.5.0)
-      leader-line:
-        specifier: ^1.0.7
-        version: 1.0.7
       less:
         specifier: ^4.2.0
         version: 4.2.0
@@ -1285,8 +1282,8 @@ packages:
       '@tiptap/pm': ^2.0.0
       y-prosemirror: ^1.2.5
 
-  '@tiptap-pro/extension-emoji@2.11.9':
-    resolution: {integrity: sha512-xe3kYOlI1sYc6LXpO0Jw8UDvyyBqdJjkLO7AcFpBuAyD9GkCNIi8HyqjvNo2fMRUwkvPXACogWjKUR2b7pnGzQ==}
+  '@tiptap-pro/extension-emoji@2.16.3':
+    resolution: {integrity: sha512-CDHtXzQSUHMMBZl4D0L+Ot1Qs9swVJCLT5Ck+zTvvvOPsZwlew/RiWYz8fX/ifVd7clnXBjd8SuG2xhb9zY6Kw==}
     peerDependencies:
       '@tiptap/core': ^2.0.0
       '@tiptap/pm': ^2.0.0
@@ -2757,8 +2754,9 @@ packages:
     peerDependencies:
       emojibase: '*'
 
-  emojibase@15.3.1:
-    resolution: {integrity: sha512-GNsjHnG2J3Ktg684Fs/vZR/6XpOSkZPMAv85EHrr6br2RN2cJNwdS4am/3YSK3y+/gOv2kmoK3GGdahXdMxg2g==}
+  emojibase@16.0.0:
+    resolution: {integrity: sha512-Nw2m7JLIO4Ou2X/yZPRNscHQXVbbr6SErjkJ7EooG7MbR3yDZszCv9KTizsXFc7yZl0n3WF+qUKIC/Lw6H9xaQ==}
+    engines: {node: '>=18.12.0'}
 
   end-of-stream@1.4.4:
     resolution: {integrity: sha512-+uw1inIHVPQoaVuHzRyXd21icM+cnt4CzD5rW+NC1wjOUSTOs+Te7FOv7AhN7vS9x/oIyhLP5PR1H+phQAHu5Q==}
@@ -3624,9 +3622,6 @@ packages:
   lazystream@1.0.1:
     resolution: {integrity: sha512-b94GiNHQNy6JNTrt5w6zNyffMrNkXZb3KTkCZJb2V1xaEGCk093vkZ2jk3tpaeP33/OiXC+WvK9AxUebnf5nbw==}
     engines: {node: '>= 0.6.3'}
-
-  leader-line@1.0.7:
-    resolution: {integrity: sha512-PhJpQLV7XychSIuGPD0TEqR9PgRYBbrhReaOcmHFOVtTw4dWKfUMAtOb7UP7xTsoib6sFzq2giQeOUHy7LCuJQ==}
 
   less@4.2.0:
     resolution: {integrity: sha512-P3b3HJDBtSzsXUl0im2L7gTO5Ubg8mEN6G8qoTS77iXxXX4Hvu4Qj540PZDvQ8V6DmX6iXo98k7Md0Cm1PrLaA==}
@@ -6112,13 +6107,13 @@ snapshots:
       tippy.js: 6.3.7
       y-prosemirror: 1.2.12(prosemirror-model@1.23.0)(prosemirror-state@1.4.3)(prosemirror-view@1.34.3)(y-protocols@1.0.6(yjs@13.6.20))(yjs@13.6.20)
 
-  '@tiptap-pro/extension-emoji@2.11.9(@tiptap/core@2.9.1(@tiptap/pm@2.9.1))(@tiptap/pm@2.9.1)(@tiptap/suggestion@2.9.1(@tiptap/core@2.9.1(@tiptap/pm@2.9.1))(@tiptap/pm@2.9.1))(emojibase@15.3.1)':
+  '@tiptap-pro/extension-emoji@2.16.3(@tiptap/core@2.9.1(@tiptap/pm@2.9.1))(@tiptap/pm@2.9.1)(@tiptap/suggestion@2.9.1(@tiptap/core@2.9.1(@tiptap/pm@2.9.1))(@tiptap/pm@2.9.1))(emojibase@16.0.0)':
     dependencies:
       '@tiptap/core': 2.9.1(@tiptap/pm@2.9.1)
       '@tiptap/pm': 2.9.1
       '@tiptap/suggestion': 2.9.1(@tiptap/core@2.9.1(@tiptap/pm@2.9.1))(@tiptap/pm@2.9.1)
       emoji-regex: 10.4.0
-      emojibase-data: 7.0.1(emojibase@15.3.1)
+      emojibase-data: 7.0.1(emojibase@16.0.0)
       is-emoji-supported: 0.0.5
     transitivePeerDependencies:
       - emojibase
@@ -7843,11 +7838,11 @@ snapshots:
 
   emoji-regex@9.2.2: {}
 
-  emojibase-data@7.0.1(emojibase@15.3.1):
+  emojibase-data@7.0.1(emojibase@16.0.0):
     dependencies:
-      emojibase: 15.3.1
+      emojibase: 16.0.0
 
-  emojibase@15.3.1: {}
+  emojibase@16.0.0: {}
 
   end-of-stream@1.4.4:
     dependencies:
@@ -8971,8 +8966,6 @@ snapshots:
   lazystream@1.0.1:
     dependencies:
       readable-stream: 2.3.8
-
-  leader-line@1.0.7: {}
 
   less@4.2.0:
     dependencies:

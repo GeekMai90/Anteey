@@ -19,8 +19,6 @@ import { UpdateUserSettings, UserSettings } from './UserSettings'
 import { CreateCustomFilterInput, CustomFilter, UpdateCustomFilterInput } from './Filter'
 import { WordSuggestion } from '../../../services/dictionary/dictionaryService'
 import { DictWord } from '../../../services/dictionary/dictionaryService'
-import { ChatMessage, ChatSession, RAGContext, RAGHistoryRecord } from './assistant'
-import { LLMConfig } from './llm'
 import { LocalTreeData, LocalTreeWithReferencesData } from './localTree'
 import { AppearanceSettings } from '../../../services/appearance/appearanceService'
 import { KnowledgeTreeNode } from './knowledgeTree'
@@ -264,69 +262,6 @@ export interface ElectronAPI {
   searchWords: (query: string) => Promise<DictWord[]>
   updateWordStatus: (word: string, enabled: boolean) => Promise<void>
 
-  // RAG 相关的方法
-  retrieveContext: (params: { query: string; session?: ChatSession }) => Promise<RAGContext>
-
-  generateAnswer: (
-    query: string,
-    sessionId: string | null,
-    currentMessages: ChatMessage[],
-    currentContexts: RAGContext[]
-  ) => Promise<{
-    answer: string
-    context: RAGContext
-    messages: ChatMessage[]
-  }>
-
-  updateRAGHistory: (params: {
-    sessionId: string
-    messages: ChatMessage[]
-    contexts: RAGContext[]
-    metadata?: any // 添加可选的元数据
-  }) => Promise<void>
-
-  updateRAGHistoryTitle: (id: string, title: string) => Promise<void>
-
-  toggleRAGHistoryPin: (id: string) => Promise<void>
-
-  deleteRAGHistory: (id: string) => Promise<void>
-
-  clearAllRAGHistory: () => Promise<void>
-
-  getRAGHistory: () => Promise<RAGHistoryRecord[]>
-
-  getRAGHistoryDetail: (id: string) => Promise<RAGHistoryRecord | null>
-
-  // 新增的批量操作方法
-  batchGetRAGHistory: (ids: string[]) => Promise<(RAGHistoryRecord | null)[]>
-
-  // 新增的会话管理方法
-  cleanupExpiredSessions: () => Promise<void>
-
-  // 新增的性能监控方法
-  trackRAGPerformance: (
-    sessionId: string,
-    method: string,
-    duration: number,
-    options: {
-      success: boolean
-      error?: string
-      metadata?: Record<string, any>
-    }
-  ) => Promise<void>
-
-  generateAnswerWithReferences: (
-    query: string,
-    noteReferences: NoteReference[],
-    sessionId: string | null,
-    currentMessages: ChatMessage[],
-    currentContexts: RAGContext[]
-  ) => Promise<{
-    answer: string
-    context: RAGContext
-    messages: ChatMessage[]
-  }>
-
   // 获取最近编辑的 10 篇笔记
   getRecentEditedNotes: () => Promise<
     {
@@ -336,59 +271,6 @@ export interface ElectronAPI {
       cardType: string
     }[]
   >
-
-  // 问一问模式
-  handleAskQuestion: (
-    query: string,
-    noteReferences: NoteReference[],
-    sessionId: string | null,
-    currentMessages: ChatMessage[],
-    currentContexts: RAGContext[]
-  ) => Promise<{ answer: string; context: RAGContext; messages: ChatMessage[] }>
-
-  // 聊一聊模式
-  handleChat: (
-    query: string,
-    sessionId: string | null,
-    currentMessages: ChatMessage[],
-    currentContexts: RAGContext[]
-  ) => Promise<{
-    answer: string
-    context: RAGContext
-    messages: ChatMessage[]
-  }>
-
-  // LLM 配置相关的方法
-
-  // 获取所有配置
-  getAllConfigs: () => Promise<LLMConfig[]>
-
-  // 获取默认配置
-  getDefaultConfig: () => Promise<LLMConfig | null>
-
-  // 添加新配置
-  addConfig: (model: string, apiKey: string) => Promise<LLMConfig>
-
-  // 更新配置
-  updateConfig: (id: string, apiKey: string) => Promise<LLMConfig>
-
-  // 删除配置
-  deleteConfig: (id: string) => Promise<void>
-
-  // 设置默认配置
-  setDefaultConfig: (id: string) => Promise<void>
-
-  // 找一找模式
-  handleFindNotes: (
-    query: string,
-    sessionId: string | null,
-    currentMessages: ChatMessage[],
-    currentContexts: RAGContext[]
-  ) => Promise<{
-    answer: string
-    context: RAGContext
-    messages: ChatMessage[]
-  }>
 
   // 获取本地树数据
   getLocalTree: (noteId: string) => Promise<LocalTreeData>
@@ -491,6 +373,9 @@ export interface ElectronAPI {
 
   // 添加更新白板笔记内容的方法定义
   updateWhiteboardNoteContent: (id: string, content: string) => Promise<WhiteboardNote>
+
+  // 添加 openExternal 方法的类型定义
+  openExternal: (url: string) => Promise<void>
 }
 
 declare global {

@@ -452,7 +452,6 @@ import NodeRange from '@tiptap-pro/extension-node-range'
 import StarterKit from '@tiptap/starter-kit'
 import Hightlight from '@tiptap/extension-highlight'
 import Underline from '@tiptap/extension-underline'
-import Emoji, { gitHubEmojis } from '@tiptap-pro/extension-emoji'
 import { Markdown } from 'tiptap-markdown'
 import Dropcursor from '@tiptap/extension-dropcursor'
 import Placeholder from '@tiptap/extension-placeholder'
@@ -490,17 +489,14 @@ import {
   Plus
 } from '@icon-park/vue-next'
 import TiptapImage from '@renderer/components/tiptap/TiptapImage.vue'
-// import TaskItem from '@tiptap/extension-task-item'
-// import TaskList from '@tiptap/extension-task-list'
-import { emojiSuggestion } from '@renderer/utils/tiptap/EmojiSuggestion'
 import { SlashCommands } from '@renderer/utils/tiptap/SlashCommands'
 import { slashCommandSuggestion } from '@renderer/utils/tiptap/slashCommandSuggestion'
-// import UniqueID from '@tiptap-pro/extension-unique-id'
 import { CustomLink } from '@renderer/utils/tiptap/CustomLink'
 import Subscript from '@tiptap/extension-subscript'
 import Superscript from '@tiptap/extension-superscript'
 import TextAlign from '@tiptap/extension-text-align'
 import Details from '@tiptap-pro/extension-details'
+import Emoji from '@tiptap-pro/extension-emoji'
 import DetailsContent from '@tiptap-pro/extension-details-content'
 import DetailsSummary from '@tiptap-pro/extension-details-summary'
 import Export from '@tiptap-pro/extension-export'
@@ -1093,6 +1089,7 @@ const editorExtensions = computed(() => {
       blockquote: false
     }),
     BubbleMenu,
+    Emoji,
     CustomBlockquote,
     CustomTable.configure({
       resizable: true,
@@ -1158,11 +1155,6 @@ const editorExtensions = computed(() => {
     Underline,
     Subscript,
     Superscript,
-    Emoji.configure({
-      emojis: gitHubEmojis,
-      enableEmoticons: true,
-      suggestion: emojiSuggestion
-    }),
     // 斜杠命令菜单
     SlashCommands.configure({
       suggestion: slashCommandSuggestion

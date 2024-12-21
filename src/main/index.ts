@@ -37,7 +37,7 @@ ipcMain.on('renderer-log', (_, { level, args }) => {
 })
 
 // 设置应用名称
-app.name = 'Antinet'
+app.name = 'AntiThink'
 
 // 设置日志
 log.transports.file.level = 'info'
@@ -54,10 +54,10 @@ process.on('unhandledRejection', (reason, promise) => {
 function createCustomMenu() {
   const template = [
     {
-      label: 'Antinet',
+      label: 'AntiThink',
       submenu: [
         {
-          label: '关于Antinet',
+          label: '关于AntiThink',
           role: 'about'
         },
         { type: 'separator' },
@@ -148,7 +148,7 @@ function createCustomMenu() {
         {
           label: '官网',
           click: async () => {
-            await shell.openExternal('https://your-website.com')
+            await shell.openExternal('https://www.antithink.cc')
           }
         }
       ]
@@ -490,7 +490,7 @@ app.whenReady().then(async () => {
   })
 })
 
-app.setName('Antinet')
+app.setName('AntiThink')
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
@@ -503,4 +503,14 @@ app.on('before-quit', async (event) => {
   // 应用关闭前执行自动备份
   await handleAutoBackup()
   app.exit()
+})
+
+// 添加 IPC 处理器
+ipcMain.handle('open-external', async (_event, url: string) => {
+  try {
+    await shell.openExternal(url)
+  } catch (error) {
+    console.error('打开外部链接失败:', error)
+    throw error
+  }
 })

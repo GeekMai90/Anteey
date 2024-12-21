@@ -1,5 +1,5 @@
-appId: com.antinet.app
-productName: Antinet
+appId: com.antithink.app
+productName: AntiThink
 directories:
   buildResources: build
 files:
@@ -27,7 +27,7 @@ extraResources:
       - '**/*'
 afterSign: electron-builder-notarize
 win:
-  executableName: antinet-app
+  executableName: antithink-app
   icon: build/icon.ico
   target:
     - target: nsis

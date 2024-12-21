@@ -142,6 +142,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getUserDataPath: async (): Promise<string> => {
     return await ipcRenderer.invoke('get-user-data-path')
   },
+  // 添加 openExternal 方法
+  openExternal: (url: string): Promise<void> => {
+    return ipcRenderer.invoke('open-external', url)
+  },
   updateGlobalHotkey: async (
     newHotkey: string
   ): Promise<{ success: boolean; settings?: UserSettings }> => {

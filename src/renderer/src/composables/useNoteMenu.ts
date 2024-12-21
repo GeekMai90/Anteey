@@ -367,7 +367,7 @@ export function useNoteMenu(params: NoteMenuParams) {
       const content = await zip.generateAsync({ type: 'blob' })
       const link = document.createElement('a')
       link.href = URL.createObjectURL(content)
-      link.download = `Antinet_all_notes_export_${format(new Date(), 'yyyyMMddHHmm')}.zip`
+      link.download = `AntiThink_all_notes_export_${format(new Date(), 'yyyyMMddHHmm')}.zip`
       link.click()
       URL.revokeObjectURL(link.href)
       console.log(`${allNotes.length} 条笔记已导出到 zip 文件`)

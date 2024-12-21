@@ -11,11 +11,11 @@ import NodeRange from '@tiptap-pro/extension-node-range'
 import StarterKit from '@tiptap/starter-kit'
 import Hightlight from '@tiptap/extension-highlight'
 import Underline from '@tiptap/extension-underline'
-import Emoji, { gitHubEmojis } from '@tiptap-pro/extension-emoji'
 import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight'
 import { all, createLowlight } from 'lowlight'
 import Typography from '@tiptap/extension-typography'
 import Image from '@tiptap/extension-image'
+import Emoji from '@tiptap-pro/extension-emoji'
 import TiptapImage from '@renderer/components/tiptap/TiptapImage.vue'
 import TaskItem from '@tiptap/extension-task-item'
 import TaskList from '@tiptap/extension-task-list'
@@ -93,6 +93,7 @@ const editorExtensions = computed(() => {
     Underline,
     Subscript,
     Superscript,
+    Emoji,
     CustomTable.configure({
       resizable: true,
       handleWidth: 4,
@@ -102,10 +103,6 @@ const editorExtensions = computed(() => {
     TableRow,
     TableHeader,
     TableCell,
-    Emoji.configure({
-      emojis: gitHubEmojis,
-      enableEmoticons: true
-    }),
     CodeBlockLowlight.configure({
       lowlight,
       defaultLanguage: 'plaintext'

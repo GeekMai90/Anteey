@@ -63,7 +63,9 @@
                   <div class="machine-id">{{ formattedMachineId }}</div>
                   <button class="copy-button" @click="copyMachineId">复制</button>
                 </div>
-                <div class="setting-desc">请将此机器码发送给客服获取激活码</div>
+                <div class="setting-desc">
+                  添加开发者微信：GeekMai，将此机器码发送给开发者获取激活码
+                </div>
               </div>
             </div>
 
