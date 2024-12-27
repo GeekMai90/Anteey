@@ -16,7 +16,7 @@ import { useKnowledgeTreeStore } from '@renderer/stores/knowledgeTreeStore'
 import type { KnowledgeTreeNode } from '@renderer/types/knowledgeTree'
 import AppToolbar from '../components/layout/AppToolbar.vue'
 import { useRoute } from 'vue-router'
-import { message } from '../utils/message'
+// import { message } from '../utils/message'
 import { useNoteStore } from '../stores/noteStores'
 import { useUIStore } from '../stores/useUIStore'
 
@@ -292,20 +292,30 @@ const handleNodeDblClick = (e: MouseEvent) => {
   console.log('找到的 nodeId:', nodeId)
 
   if (nodeId) {
-    // 检查是否是最底层节点（包含两个'-'）
-    if (nodeId.split('-').length > 2) {
-      message.warning('已经是最底层节点了')
-      return
-    }
     // 如果是当前聚焦的根节点，则返回上一层
-    if (
-      knowledgeTreeStore.viewState.isInFocusMode &&
-      nodeId === knowledgeTreeStore.focusedNode?.address
-    ) {
-      console.log('双击根节点，返回上一层')
-      knowledgeTreeStore.backToParent()
+    if (knowledgeTreeStore.viewState.isInFocusMode) {
+      if (nodeId === knowledgeTreeStore.focusedNode?.address) {
+        console.log('双击根节点，返回上一层')
+        // 如果是第一层级节点（如1000），则返回到 Antinet Zettelkasten 根节点
+        if (nodeId.endsWith('000')) {
+          console.log('返回到 Antinet Zettelkasten 根节点')
+          knowledgeTreeStore.viewState.isInFocusMode = false
+          knowledgeTreeStore.focusedNode = null
+          knowledgeTreeStore.parentPath = []
+          knowledgeTreeStore.fetchTopLevelNodes()
+        } else {
+          knowledgeTreeStore.backToParent()
+        }
+      } else {
+        // 其他节点保持原有的聚焦行为
+        const treeNode = knowledgeTreeStore.findNodeByAddress(nodeId)
+        if (treeNode) {
+          console.log('找到对应的树节点:', treeNode)
+          knowledgeTreeStore.focusNodeWithChildren(treeNode)
+        }
+      }
     } else {
-      // 其他节点保持原有的聚焦行为
+      // 非聚焦模式下，聚焦到点击的节点
       const treeNode = knowledgeTreeStore.findNodeByAddress(nodeId)
       if (treeNode) {
         console.log('找到对应的树节点:', treeNode)
@@ -398,6 +408,22 @@ watch(
   { deep: true }
 )
 
+// 添加导航辅助函数
+const navigateToNode = async (address: string) => {
+  console.log('开始导航到节点:', address)
+  const node = await knowledgeTreeStore.findNodeByAddress(address)
+  if (node) {
+    // 确保节点有正确的 id
+    const nodeWithId = {
+      ...node,
+      id: node.address
+    }
+    await knowledgeTreeStore.focusNodeWithChildren(nodeWithId)
+    return true
+  }
+  return false
+}
+
 // 监听路由参数变化
 watch(
   () => route.params.address,
@@ -407,56 +433,52 @@ watch(
         const address = newAddress as string
         console.log('准备导航到地址:', address)
 
-        // 如果是分支节点（包含 '-'）
+        // 重置视图状态
+        await knowledgeTreeStore.resetViewState()
+
+        // 构建导航路径
+        const navigationPath = []
         if (address.includes('-')) {
-          // 1. 先聚焦到顶层节点（如 1000）
-          const topLevelAddress = `${address[0]}000`
-          console.log('聚焦顶层节点:', topLevelAddress)
-          const topNode = await knowledgeTreeStore.findNodeByAddress(topLevelAddress)
-          if (topNode) {
-            await knowledgeTreeStore.focusNodeWithChildren(topNode)
-          }
+          // 分支编码 (如 1212-1 或 1212-1-1)
+          const parts = address.split('-')
+          const baseAddress = parts[0]
 
-          // 2. 再聚焦到二级节点（如 1100）
-          const secondLevelAddress = `${address.slice(0, 2)}00`
-          console.log('聚焦二级节点:', secondLevelAddress)
-          const secondNode = await knowledgeTreeStore.findNodeByAddress(secondLevelAddress)
-          if (secondNode) {
-            await knowledgeTreeStore.focusNodeWithChildren(secondNode)
-          }
+          // 添加顶层节点 (1000)
+          navigationPath.push(`${baseAddress[0]}000`)
+          // 添加二级节点 (1200)
+          navigationPath.push(`${baseAddress.slice(0, 2)}00`)
+          // 添加基础节点 (1212)
+          navigationPath.push(baseAddress)
 
-          // 3. 聚焦到三级节点（如 1101）
-          const thirdLevelAddress = address.split('-')[0]
-          console.log('聚焦三级节点:', thirdLevelAddress)
-          const thirdNode = await knowledgeTreeStore.findNodeByAddress(thirdLevelAddress)
-          if (thirdNode) {
-            await knowledgeTreeStore.focusNodeWithChildren(thirdNode)
-          }
-
-          // 4. 如果有第一层分支节点（如 1101-1），聚焦到它
-          if (address.split('-').length > 1) {
-            const firstBranchAddress = `${thirdLevelAddress}-${address.split('-')[1]}`
-            console.log('聚焦第一层分支节点:', firstBranchAddress)
-            const firstBranchNode = await knowledgeTreeStore.findNodeByAddress(firstBranchAddress)
-            if (firstBranchNode) {
-              await knowledgeTreeStore.focusNodeWithChildren(firstBranchNode)
-            }
-
-            // 5. 如果还有更深层的分支节点（如 1101-1-1），继续聚焦
-            if (address.split('-').length > 2) {
-              console.log('聚焦最终目标节点:', address)
-              const targetNode = await knowledgeTreeStore.findNodeByAddress(address)
-              if (targetNode) {
-                await knowledgeTreeStore.focusNodeWithChildren(targetNode)
-              }
-            }
+          // 逐步构建分支路径
+          let currentPath = baseAddress
+          for (let i = 1; i < parts.length; i++) {
+            currentPath += `-${parts[i]}`
+            navigationPath.push(currentPath)
           }
         } else {
-          // 如果是普通节点，直接聚焦
-          const node = await knowledgeTreeStore.findNodeByAddress(address)
-          if (node) {
-            await knowledgeTreeStore.focusNodeWithChildren(node)
+          // 基础编码 (如 1212)
+          if (address.length === 4) {
+            // 添加顶层节点 (1000)
+            navigationPath.push(`${address[0]}000`)
+            // 添加二级节点 (1200)
+            navigationPath.push(`${address.slice(0, 2)}00`)
+            // 添加目标节点 (1212)
+            navigationPath.push(address)
           }
+        }
+
+        console.log('导航路径:', navigationPath)
+
+        // 按顺序执行导航
+        for (const pathAddress of navigationPath) {
+          const success = await navigateToNode(pathAddress)
+          if (!success) {
+            console.error('导航失败，找不到节点:', pathAddress)
+            break
+          }
+          // 等待一小段时间确保节点加载完成
+          await new Promise((resolve) => setTimeout(resolve, 100))
         }
       } catch (error) {
         console.error('导航到节点失败:', error)

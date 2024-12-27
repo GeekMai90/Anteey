@@ -220,54 +220,40 @@ const refreshNoteData = async () => {
 // === 地址输入处理 ===
 // 使用本地状态来管理输入
 const localAddress = ref('')
-const addressUpdateTimer = ref<any>(null)
+const isComposing = ref(false)
 
 // 监听 currentNote 的变化，同步初始地址
 watch(
   () => currentNote.value?.address,
   (newAddress) => {
-    if (newAddress) {
+    if (newAddress !== undefined) {
       localAddress.value = newAddress
     }
   },
   { immediate: true }
 )
 
-// 使用防抖处理地址更��
-// const updateAddress = debounce(async (address: string) => {
-//   if (!currentNote.value) return
-
-//   try {
-//     const updatedNote = await noteStore.updateNoteAddress(currentNote.value.id, address)
-//     // 更新本地状态
-//     currentNote.value.address = updatedNote.address
-//   } catch (error) {
-//     console.error('更新地址失败:', error)
-//     message.error('更新地址失败')
-//     // 回滚到最后一个有效的地址
-//     localAddress.value = currentNote.value.address
-//   }
-// }, 300)
+// 使用防抖处理地址更新
 const updateAddress = debounce(async (address: string) => {
   if (!currentNote.value) return
 
   try {
+    console.log('NoteExpandEditor.vue→ 更新笔记地址:', { noteId: currentNote.value.id, address })
+    // 直接更新数据库
     await noteStore.updateNoteAddress(currentNote.value.id, address)
-    // 不再在这里更新本地状态，避免与用户输入冲突
+    // 更新本地状态
+    if (currentNote.value) {
+      currentNote.value.address = address
+    }
   } catch (error) {
     console.error('更新地址失败:', error)
     message.error('更新地址失败')
     // 只在出错时回滚
     localAddress.value = currentNote.value?.address || ''
   }
-}, 500) // 增加防抖时间，减少更新频率
+}, 500)
 
 // 处理地址输入
-// const handleAddressInput = (event: Event) => {
-//   const input = event.target as HTMLInputElement
-//   localAddress.value = input.value
-//   updateAddress(input.value)
-// }
 const handleAddressInput = (event: Event) => {
   const input = event.target as HTMLInputElement
   const newValue = input.value
@@ -275,14 +261,11 @@ const handleAddressInput = (event: Event) => {
   // 直接更新本地状态
   localAddress.value = newValue
 
-  // 如果正在输入法输入，不触发更新
+  // 如果不是在输入法编辑状态，则触发更新
   if (!isComposing.value) {
     updateAddress(newValue)
   }
 }
-
-// 添加一个状态来跟踪输入法状态
-const isComposing = ref(false)
 
 // 处理输入法开始
 const handleCompositionStart = () => {
@@ -290,8 +273,11 @@ const handleCompositionStart = () => {
 }
 
 // 处理输入法结束
-const handleCompositionEnd = () => {
+const handleCompositionEnd = (event: CompositionEvent) => {
   isComposing.value = false
+  // 在输入法结束后，手动触发一次更新
+  const input = event.target as HTMLInputElement
+  updateAddress(input.value)
 }
 
 // 处理回车键
@@ -302,130 +288,27 @@ const handleAddressEnter = (event: KeyboardEvent) => {
   }
 
   event.preventDefault()
-  if (addressUpdateTimer.value) {
-    clearTimeout(addressUpdateTimer.value)
-    noteStore.updateNoteAddress(noteId, localAddress.value)
-  }
+  // 强制执行一次更新
+  updateAddress.flush()
   focusEditor()
 }
 
 // === 内容更新处理 ===
-// 编辑器内容更新状态管理
-// const updateState = reactive({
-//   pending: false,
-//   lastContent: null as any,
-//   updateTimer: null as any,
-//   saveTimeout: 2000 // 保存延迟时间，可以根据实际需求调整
-// })
-
-// 处理编辑器内容更新
-// const handleContentUpdate = (newContent: any) => {
-//   if (!currentNote.value) return
-
-//   // 立即更新本地状态
-//   currentNote.value.content = newContent
-//   updateState.lastContent = newContent
-
-//   // 保存当前光标位置
-//   const editor = tiptapEditor.value?.editor
-//   const selection = editor?.state.selection
-
-//   // 使用防抖进行保存
-//   if (updateState.updateTimer) {
-//     clearTimeout(updateState.updateTimer)
-//   }
-
-//   updateState.updateTimer = setTimeout(async () => {
-//     try {
-//       await noteStore.updateNoteContent(currentNote.value.id, newContent)
-
-//       // 恢复光标位置
-//       nextTick(() => {
-//         if (editor && selection) {
-//           editor.commands.setTextSelection(selection.$head.pos)
-//         }
-//       })
-//     } catch (error) {
-//       console.error('内容更新失败:', error)
-//       message.error('保存失败')
-//     }
-//   }, updateState.saveTimeout)
-// }
-// // 使用防抖保存内容
-// const saveContent = debounce(
-//   async (noteId: string, content: any, selection?: EditorState['selection']) => {
-//     try {
-//       await noteStore.updateNoteContent(noteId, content)
-
-//       // 恢复光标位置
-//       nextTick(() => {
-//         const editor = tiptapEditor.value?.editor
-//         if (editor && selection) {
-//           editor.commands.setTextSelection(selection.$head.pos)
-//         }
-//       })
-//     } catch (error) {
-//       console.error('保存笔记失败:', error)
-//       message.error('保存失败')
-//     }
-//   },
-//   2000
-// ) // 2秒的防抖时间
-
-// // 处理编辑器内容更新
-// const handleContentUpdate = (newContent: any) => {
-//   if (!currentNote.value) return
-
-//   // 1. 立即更新本地状态，保持编辑器响应
-//   currentNote.value.content = newContent
-
-//   // 2. 保存当前光标位置
-//   const editor = tiptapEditor.value?.editor
-//   const selection = editor?.state.selection
-
-//   // 3. 使用防抖保存
-//   saveContent(currentNote.value.id, newContent, selection)
-// }
-// 使用一个更保守的保存策略
+// 使用防抖保存内容
 const saveContent = debounce(
   async (noteId: string, content: any) => {
     try {
       await noteStore.updateNoteContent(noteId, content)
     } catch (error) {
-      console.log('保存笔记失败:', error)
-      message.error('saveContent保存失败')
+      console.error('保存笔记失败:', error)
+      message.error('保存失败')
     }
   },
   2000,
   { trailing: true }
 )
-// const saveContent = debounce(
-//   async (noteId: string, content: any) => {
-//     try {
-//       // 确保内容是纯净的 JSON 对象
-//       const safeContent =
-//         typeof content === 'string' ? JSON.parse(content) : JSON.parse(JSON.stringify(content))
-
-//       await noteStore.updateNoteContent(noteId, safeContent)
-//     } catch (error) {
-//       console.error('保存笔记失败:', error)
-//       message.error('保存失败')
-//     }
-//   },
-//   2000,
-//   { trailing: true }
-// )
 
 // 处理编辑器内容更新
-// const handleContentUpdate = (newContent: any) => {
-//   if (!currentNote.value) return
-
-//   // 只更新本地状态
-//   currentNote.value.content = newContent
-
-//   // 触发防抖保存，不传递光标位置
-//   saveContent(currentNote.value.id, newContent)
-// }
 const handleContentUpdate = (newContent: any) => {
   if (!currentNote.value) return
 

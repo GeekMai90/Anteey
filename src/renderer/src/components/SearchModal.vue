@@ -76,7 +76,8 @@
                 :class="{
                   selected: noteIndex === selectedNoteIndex && blockIndex === selectedBlockIndex
                 }"
-                @click="selectResult(noteIndex, blockIndex, true)"
+                @click="(event) => handleResultClick(event, note, noteIndex, blockIndex)"
+                @dblclick="openNoteInEditor(note.id)"
                 @mouseover="hoverResult(noteIndex, blockIndex)"
               >
                 <div class="result-preview">
@@ -285,16 +286,15 @@ const handleSearchInput = (event: Event) => {
 }
 
 // 选择搜索结果
-const selectResult = (noteIndex: number, blockIndex: number, openEditor = false) => {
+const selectResult = (noteIndex: number, blockIndex: number) => {
   selectedNoteIndex.value = noteIndex
   selectedBlockIndex.value = blockIndex
-  if (openEditor) {
-    const note = searchResults.value[noteIndex]
-    if (note) {
-      noteStore.openNoteEditor(note.id)
-      hide()
-    }
-  }
+}
+
+// 添加新的打开笔记函数
+const openNoteInEditor = (noteId: string) => {
+  noteStore.openNoteEditor(noteId)
+  hide()
 }
 
 // 鼠标悬停在搜索结果上时的处理
@@ -400,7 +400,11 @@ const handleKeyDown = (event: KeyboardEvent) => {
           hide()
         } else if (event.shiftKey) {
           // Shift+Enter: 在知识树中查看节点
-          router.push(`/knowledge-tree/node/${selectedNote.value.address}`)
+          router.push({
+            name: 'KnowledgeTreeNode',
+            params: { address: selectedNote.value.address },
+            replace: true
+          })
           hide()
         } else {
           // 普通 Enter: 打开小窗编辑器
@@ -470,6 +474,37 @@ const searchPlaceholder = computed(() => {
       return '搜索笔记...'
   }
 })
+
+// 修改点击处理函数
+const handleResultClick = (event: MouseEvent, note: any, noteIndex: number, blockIndex: number) => {
+  // 阻止事件冒泡，防止触发父元素的点击事件
+  event.preventDefault()
+  event.stopPropagation()
+
+  if (event.shiftKey) {
+    // Shift+单击：在知识树中查看节点
+    router.push({
+      name: 'KnowledgeTree',
+      params: { address: note.address }
+    })
+    hide()
+  } else if (event.altKey) {
+    // Alt+单击：在卡片盒中查看上下文
+    viewNoteContext(note.id)
+    hide()
+  } else if (event.metaKey) {
+    // Command+单击：全屏查看
+    router.push({ name: 'NoteExpandEditor', params: { id: note.id } })
+    hide()
+  } else {
+    // 普通单击：只选中
+    selectResult(noteIndex, blockIndex)
+    // 重新聚焦到搜索输入框
+    nextTick(() => {
+      searchInput.value?.focus()
+    })
+  }
+}
 
 // 暴露组件的方法
 defineExpose({ show, hide })
@@ -610,7 +645,7 @@ defineExpose({ show, hide })
   align-items: center;
   justify-content: center;
   width: 20px; // 给图标一个固定宽度
-  height: 20px; // 给图标一个���定高度
+  height: 20px; // 给图标一个固定高度
   flex-shrink: 0; // 防止图标被压缩
   .icon {
     background: none;

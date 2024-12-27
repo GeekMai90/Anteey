@@ -200,7 +200,12 @@ const finishEditing = () => {
 
 // 控制面包屑显示
 const showBreadcrumb = computed(() => {
-  return route.path === '/knowledge-tree' // 根据实际路由路径调整
+  // 检查当前路由是否是知识树相关的路由
+  return (
+    route.path.startsWith('/knowledge-tree') ||
+    route.name === 'KnowledgeTree' ||
+    route.name === 'KnowledgeTreeNode'
+  )
 })
 
 // 获取面包屑数据

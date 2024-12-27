@@ -44,4 +44,4 @@ export interface G6TreeData {
   children?: G6TreeData[]
 }
 
-export type AddressLevel = 'top' | 'second' | 'third' | 'branch-1' | 'branch-2'
+export type AddressLevel = 'top' | 'second' | 'third' | `branch-${number}` // 支持任意层级的分支

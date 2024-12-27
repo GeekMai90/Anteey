@@ -41,20 +41,17 @@ function convertToTreeNode(note: Note, level: number): KnowledgeTreeNode {
 
 // 添加 getNextLevel 函数
 function getNextLevel(level: AddressLevel): number {
-  switch (level) {
-    case 'top':
-      return 1
-    case 'second':
-      return 2
-    case 'third':
-      return 3
-    case 'branch-1':
-      return 4
-    case 'branch-2':
-      return 5
-    default:
-      return 0
+  if (level === 'top') return 1
+  if (level === 'second') return 2
+  if (level === 'third') return 3
+
+  // 修改分支层级的下一级计算逻辑
+  if (level.startsWith('branch-')) {
+    const currentLevel = parseInt(level.split('-')[1])
+    return currentLevel + 3 // 基础层级(3) + 分支层级
   }
+
+  return 0
 }
 
 // 获取地址层级
@@ -65,7 +62,9 @@ function getAddressLevel(address: string): AddressLevel {
     return 'third'
   }
   if (address.includes('-')) {
-    return address.split('-').length === 2 ? 'branch-1' : 'branch-2'
+    // 修改分支层级判断逻辑
+    const branchLevel = address.split('-').length - 1
+    return `branch-${branchLevel}` as AddressLevel
   }
   throw new Error(`Invalid address format: ${address}`)
 }
@@ -74,20 +73,17 @@ function getAddressLevel(address: string): AddressLevel {
 function getParentAddress(address: string): string | null {
   const level = getAddressLevel(address)
 
-  switch (level) {
-    case 'top':
-      return null
-    case 'second':
-      return `${address[0]}000`
-    case 'third':
-      return `${address.slice(0, 2)}00`
-    case 'branch-1':
-      return address.split('-')[0]
-    case 'branch-2':
-      return address.split('-').slice(0, 2).join('-')
-    default:
-      return null
+  if (level === 'top') return null
+  if (level === 'second') return `${address[0]}000`
+  if (level === 'third') return `${address.slice(0, 2)}00`
+
+  // 修改分支地址的父地址获取逻辑
+  if (level.startsWith('branch-')) {
+    const parts = address.split('-')
+    return parts.slice(0, -1).join('-')
   }
+
+  return null
 }
 
 // 获取顶层节点
@@ -164,26 +160,26 @@ export async function getChildCount(parentAddress: string): Promise<number> {
 
     switch (level) {
       case 'top':
-        // 修改匹配模式，排除当前地址
         pattern = `${parentAddress[0]}%00`
         break
       case 'second':
-        // 修改匹配模式，排除当前地址
         pattern = `${parentAddress.slice(0, 2)}__`
         break
       case 'third':
         pattern = `${parentAddress}-_%`
         break
-      case 'branch-1':
-        pattern = `${parentAddress}-_%`
-        break
       default:
-        return 0
+        if (level.startsWith('branch-')) {
+          // 对于任意层级的分支节点，只匹配直接子节点
+          pattern = `${parentAddress}-%`
+        } else {
+          return 0
+        }
     }
 
     const result = (await db('notes')
       .where('address', 'like', pattern)
-      .whereNot('address', parentAddress) // 添加这行，排除当前节点
+      .whereNot('address', parentAddress)
       .where('isDeleted', false)
       .where('cardType', 'Maincard')
       // 对于分支节点，确保只计算直接子节点
@@ -218,11 +214,13 @@ export async function getChildNodes(parentAddress: string): Promise<KnowledgeTre
       case 'third':
         pattern = `${parentAddress}-%`
         break
-      case 'branch-1':
-        pattern = `${parentAddress}-%`
-        break
       default:
-        throw new Error(`Invalid address level: ${level}`)
+        if (level.startsWith('branch-')) {
+          // 对于任意层级的分支节点，只匹配直接子节点
+          pattern = `${parentAddress}-%`
+        } else {
+          throw new Error(`Invalid address level: ${level}`)
+        }
     }
 
     const notes = await db('notes')
@@ -231,6 +229,7 @@ export async function getChildNodes(parentAddress: string): Promise<KnowledgeTre
       .whereNot('address', parentAddress)
       .where('isDeleted', false)
       .where('cardType', 'Maincard')
+      // 对于分支节点，确保只获取直接子节点
       .whereRaw('(address NOT LIKE ? OR address = ?)', [
         `${parentAddress}-%-%`,
         `${parentAddress}-1`

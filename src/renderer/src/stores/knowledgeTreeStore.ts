@@ -232,9 +232,16 @@ export const useKnowledgeTreeStore = defineStore('knowledgeTree', () => {
       focusHistory.value.nodes.push(focusedTree)
       focusHistory.value.currentIndex = focusHistory.value.nodes.length - 1
 
-      // 保存父节点路径，用于返回上层
+      // 获取并更新父节点路径
       const path = await window.electronAPI.getNodePath(node.address)
-      parentPath.value = path
+      if (path && path.length > 0) {
+        // 确保路径中的每个节点都有正确的 id
+        parentPath.value = path.map((pathNode) => ({
+          ...pathNode,
+          id: pathNode.address
+        }))
+        console.log('更新后的面包屑路径:', parentPath.value)
+      }
 
       console.log('聚焦后的树结构:', focusedTree)
     } catch (error) {
@@ -257,6 +264,19 @@ export const useKnowledgeTreeStore = defineStore('knowledgeTree', () => {
       viewState.value.isInFocusMode = false
       parentPath.value = []
     }
+  }
+
+  // 重置视图状态
+  const resetViewState = async () => {
+    viewState.value = {
+      scale: 1,
+      translateX: 0,
+      translateY: 0,
+      isInFocusMode: false
+    }
+    focusedNode.value = null
+    parentPath.value = []
+    await fetchTopLevelNodes()
   }
 
   return {
@@ -284,6 +304,7 @@ export const useKnowledgeTreeStore = defineStore('knowledgeTree', () => {
     reset,
     findNodeByAddress,
     focusNodeWithChildren,
-    backToParent
+    backToParent,
+    resetViewState
   }
 })

@@ -195,6 +195,7 @@ export async function searchNotes(params: SearchParams): Promise<
   Array<{
     id: string
     title: string
+    address: string
     blocks: Array<{ content: string }>
   }>
 > {
@@ -308,13 +309,19 @@ export async function searchNotes(params: SearchParams): Promise<
           results.push({
             id: note.id,
             title: note.address || metadata.title || '无标题',
+            address: note.address,
             blocks: matchingBlocks
           })
         }
 
         return results
       },
-      [] as Array<{ id: string; title: string; blocks: Array<{ content: string }> }>
+      [] as Array<{
+        id: string
+        title: string
+        address: string
+        blocks: Array<{ content: string }>
+      }>
     )
   } catch (error) {
     console.error('后端→ 搜索笔记失败:', error)
@@ -1094,7 +1101,7 @@ export async function restoreNote(id: string): Promise<void> {
   }
 }
 
-// 获取所有已删除的笔记
+// 获取所有已删除���笔记
 export async function getDeletedNotes(): Promise<Note[]> {
   try {
     const notes = await db('notes').where('isDeleted', true).orderBy('updatedAt', 'desc')

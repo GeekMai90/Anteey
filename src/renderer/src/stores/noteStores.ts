@@ -308,6 +308,7 @@ export const useNoteStore = defineStore(
     // 更新笔记地址
     const updateNoteAddress = async (noteId: string, address: string) => {
       try {
+        console.log('noteStores.ts→ 更新笔记地址:', { noteId, address })
         // 1. 直接更新数据库
         const updatedNote = await window.electronAPI.updateNoteAddress(noteId, address)
 
