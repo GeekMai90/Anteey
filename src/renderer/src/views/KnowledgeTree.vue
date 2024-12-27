@@ -9,7 +9,7 @@
 
 <script setup lang="ts">
 // 导入必要的 Vue 组件和工具
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted, onBeforeUnmount, watch } from 'vue'
 import '../styles/jsmind-antinet-theme.css'
 import jsMind from 'jsmind'
 import { useKnowledgeTreeStore } from '@renderer/stores/knowledgeTreeStore'
@@ -131,7 +131,7 @@ const transformToJsMindData = (nodes: KnowledgeTreeNode[]): JsMindData => {
   const rootNode: JsMindNode = {
     id: 'root',
     topic: `<div class="node-content root-node">
-            <div class="node-address">Antinet</div>
+            <div class="node-address">AntiThink</div>
             <div class="node-title">Zettelkasten</div>
             <div class="children-indicator"></div>
           </div>`,
@@ -491,6 +491,12 @@ watch(
 // 生命周期钩子
 onMounted(() => {
   initJsMind()
+})
+
+// 添加组件卸载前的清理工作
+onBeforeUnmount(() => {
+  // 关闭右侧边栏
+  uiStore.closeRightSidebar()
 })
 </script>
 

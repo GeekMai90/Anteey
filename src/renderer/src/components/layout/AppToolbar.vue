@@ -57,28 +57,26 @@
         </div>
       </div>
       <div v-if="showBreadcrumb" class="breadcrumb-container">
-        <div class="breadcrumb-group">
-          <span class="breadcrumb-item root-item" @click="handleRootClick">
-            <div class="breadcrumb-content">
-              <div class="address">Antinet</div>
-              <div class="title">Zettelkasten</div>
-            </div>
-          </span>
+        <div class="breadcrumb-items" :class="{ 'has-overflow': hasOverflow }">
+          <template v-for="(item, index) in processedBreadcrumbs" :key="index">
+            <template v-if="item.type === 'ellipsis'">
+              <span class="breadcrumb-ellipsis">...</span>
+            </template>
+            <template v-else>
+              <span
+                class="breadcrumb-item"
+                :class="{ active: index === breadcrumbs.length - 1 }"
+                @click="handleBreadcrumbClick(item)"
+              >
+                <span class="address">{{ item.text }}</span>
+                <span v-if="item.secondaryText" class="title">{{ item.secondaryText }}</span>
+              </span>
+              <span v-if="index < processedBreadcrumbs.length - 1" class="breadcrumb-separator"
+                >/</span
+              >
+            </template>
+          </template>
         </div>
-
-        <div class="separator">/</div>
-
-        <template v-for="(node, index) in parentPath" :key="node.id">
-          <div class="breadcrumb-group">
-            <span class="breadcrumb-item" @click="handleBreadcrumbClick(node)">
-              <div class="breadcrumb-content">
-                <div class="address">{{ node.address }}</div>
-                <div class="title">{{ node.title }}</div>
-              </div>
-            </span>
-          </div>
-          <div v-if="index < parentPath.length - 1" class="separator">/</div>
-        </template>
       </div>
       <div v-if="whiteboardName" class="whiteboard-name">
         <span v-if="!isEditing" @click="startEditing">{{ whiteboardName }}</span>
@@ -122,7 +120,6 @@ import { useRouter, useRoute } from 'vue-router'
 import { Left, Right, ExpandLeft, ExpandRight } from '@icon-park/vue-next'
 import { useUIStore } from '@renderer/stores/useUIStore'
 import { useKnowledgeTreeStore } from '@renderer/stores/knowledgeTreeStore'
-import type { KnowledgeTreeNode } from '@renderer/types/knowledgeTree'
 
 const uiStore = useUIStore()
 const router = useRouter()
@@ -211,24 +208,70 @@ const showBreadcrumb = computed(() => {
 // 获取面包屑数据
 const parentPath = computed(() => knowledgeTreeStore.parentPath)
 
-// 面包屑点击处理
-const handleBreadcrumbClick = (node: KnowledgeTreeNode) => {
-  // 如果点击的是当前聚的节点，则返回上一层
-  if (
-    knowledgeTreeStore.viewState.isInFocusMode &&
-    node.address === knowledgeTreeStore.focusedNode?.address
-  ) {
-    knowledgeTreeStore.backToParent()
-  } else {
-    // 聚焦到新节点
+// 定义面包屑数据结构
+interface Breadcrumb {
+  type?: 'ellipsis'
+  text: string
+  secondaryText?: string
+  address?: string
+  title?: string
+}
+
+// 计算面包屑数据
+const breadcrumbs = computed<Breadcrumb[]>(() => {
+  const items: Breadcrumb[] = [{ text: 'AntiThink' }]
+
+  if (parentPath.value) {
+    parentPath.value.forEach((node) => {
+      items.push({
+        text: node.address,
+        secondaryText: node.title?.slice(0, 6),
+        address: node.address,
+        title: node.title
+      })
+    })
+  }
+
+  return items
+})
+
+// 处理面包屑，如果层级过多则显示省略号
+const processedBreadcrumbs = computed<Breadcrumb[]>(() => {
+  const items = breadcrumbs.value
+  if (items.length <= 8) {
+    return items
+  }
+
+  // 当层级超过8个时，保留前4个和后4个，中间显示省略号
+  const processed: Breadcrumb[] = [
+    items[0],
+    items[1],
+    items[2],
+    items[3],
+    { type: 'ellipsis', text: '...' } as Breadcrumb,
+    ...items.slice(-4)
+  ]
+  return processed
+})
+
+const hasOverflow = computed(() => {
+  return breadcrumbs.value.length > 8
+})
+
+// 处理面包屑点击
+const handleBreadcrumbClick = (item: Breadcrumb) => {
+  if (item.type === 'ellipsis') return
+  if (!item.address) {
+    // 点击根节点
+    handleRootClick()
+    return
+  }
+  // 点击其他节点
+  const node = parentPath.value.find((n) => n.address === item.address)
+  if (node) {
     knowledgeTreeStore.focusNodeWithChildren(node)
   }
 }
-
-// 返回上层处理
-// const handleBack = () => {
-//   knowledgeTreeStore.backToParent()
-// }
 
 // 添加根节点点击处理函数
 const handleRootClick = async () => {
@@ -365,99 +408,104 @@ const handleRootClick = async () => {
 .breadcrumb-container {
   display: flex;
   align-items: center;
-  margin-left: 16px;
+  overflow-x: auto;
+  flex-shrink: 1;
+  min-width: 0;
+  margin-left: 12px;
   -webkit-app-region: no-drag;
   height: 40px;
-  flex: 1;
-  overflow-x: auto;
 }
 
-.breadcrumb-group {
+.breadcrumb-items {
   display: flex;
   align-items: center;
+  white-space: nowrap;
+  padding: 0 4px;
+  height: 100%;
 }
 
 .breadcrumb-item {
-  display: flex;
-  align-items: center;
+  color: var(--color-text-secondary);
+  font-size: 12px;
   cursor: pointer;
-  padding: 2px 8px;
+  padding: 3px 6px;
   border-radius: 4px;
   transition: all 0.2s ease;
   user-select: none;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  line-height: 1.3;
+  background-color: transparent;
+  border: 1px solid transparent;
+
+  .address {
+    color: var(--color-text-secondary);
+    font-size: 12px;
+    opacity: 0.9;
+  }
+
+  .title {
+    color: var(--color-text-secondary);
+    font-size: 11px;
+    opacity: 0.7;
+    margin-top: -1px;
+  }
 
   &:hover {
     background-color: var(--color-hover-button);
+    border-color: var(--color-primary);
 
-    .breadcrumb-content {
-      .address {
-        color: var(--color-primary);
-      }
+    .address,
+    .title {
+      color: var(--color-text-primary);
+      opacity: 1;
+    }
+  }
+
+  &.active {
+    cursor: default;
+    opacity: 0.5;
+
+    &:hover {
+      background-color: transparent;
+      border-color: transparent;
+
+      .address,
       .title {
-        color: var(--color-primary);
+        color: var(--color-text-secondary);
       }
     }
   }
-
-  .breadcrumb-content {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    line-height: 1.2;
-    // min-width: 80px;
-
-    .address {
-      font-size: 12px;
-      color: var(--color-text-secondary);
-      transition: color 0.2s ease;
-    }
-
-    .title {
-      font-size: 13px;
-      color: var(--color-text-secondary);
-      transition: color 0.2s ease;
-      white-space: nowrap; /* 不换行 */
-      overflow: hidden; /* 超出隐藏 */
-      text-overflow: ellipsis; /* 显示省略号 */
-      max-width: 100px; /* 留出一些内边距的空间 */
-    }
-  }
 }
 
-.separator {
-  display: flex;
-  align-items: center;
-  margin: 0 4px;
-  color: var(--color-border);
-  height: 100%;
-  font-size: 14px;
-  align-self: center;
-  user-select: none;
-}
-
-.root-item {
-  .breadcrumb-content {
-    .address {
-      color: var(--color-text-secondary);
-    }
-    .title {
-      color: var(--color-text-secondary);
-    }
-  }
-}
-
-.back-button-breadcrumb {
-  margin-left: 16px;
-  padding: 4px 8px;
-  border: 1px solid var(--color-border);
-  border-radius: 4px;
-  background: transparent;
-  cursor: pointer;
-  font-size: 12px;
+.breadcrumb-separator {
   color: var(--color-text-secondary);
+  margin: 0 1px;
+  opacity: 0.4;
+  align-self: center;
+  font-size: 12px;
+}
 
-  &:hover {
-    background: var(--color-hover-button);
-  }
+.breadcrumb-ellipsis {
+  color: var(--color-text-secondary);
+  margin: 0 3px;
+  opacity: 0.6;
+  align-self: center;
+  font-size: 12px;
+}
+
+/* 添加滚动条样式 */
+.breadcrumb-container::-webkit-scrollbar {
+  height: 2px;
+}
+
+.breadcrumb-container::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.breadcrumb-container::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 2px;
 }
 </style>
