@@ -489,8 +489,9 @@ const handleResultClick = (event: MouseEvent, note: any, noteIndex: number, bloc
   if (event.shiftKey) {
     // Shift+单击：在知识树中查看节点
     router.push({
-      name: 'KnowledgeTree',
-      params: { address: note.address }
+      name: 'KnowledgeTreeNode',
+      params: { address: note.address },
+      replace: true
     })
     hide()
   } else if (event.altKey) {
