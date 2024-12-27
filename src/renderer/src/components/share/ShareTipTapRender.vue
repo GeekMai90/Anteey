@@ -186,6 +186,44 @@ onBeforeUnmount(destroyEditor)
       color: #666666;
     }
 
+    // 无序列表样式
+    ul {
+      list-style: none;
+      padding-left: 1.2em;
+      li {
+        position: relative;
+        margin: 0.2em 0;
+        p {
+          margin: 0;
+        }
+        &::before {
+          content: '';
+          position: absolute;
+          left: -1.2em;
+          top: 0.75em;
+          transform: translateY(-50%);
+          width: 5px;
+          height: 5px;
+          background-color: var(--color-primary);
+          border-radius: 50%;
+        }
+      }
+      ul {
+        li::before {
+          border: 1px solid var(--color-primary);
+          background-color: transparent;
+        }
+        ul {
+          li::before {
+            width: 5px;
+            height: 5px;
+            border-radius: 0;
+            transform: translateY(-50%);
+          }
+        }
+      }
+    }
+
     // 任务列表样式
     .task-list-item {
       input[type='checkbox'] {

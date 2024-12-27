@@ -437,7 +437,7 @@ watch(
         await knowledgeTreeStore.resetViewState()
 
         // 构建导航路径
-        const navigationPath = []
+        const navigationPath: string[] = []
         if (address.includes('-')) {
           // 分支编码 (如 1212-1 或 1212-1-1)
           const parts = address.split('-')
