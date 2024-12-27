@@ -124,15 +124,20 @@
           <div class="hint">
             <span class="key">⌥</span>
             <span class="key">↵</span>
-            <span class="description">在卡片盒中定位查看</span>
+            <span class="description">卡片盒查看</span>
+          </div>
+          <div class="hint">
+            <span class="key">⇧</span>
+            <span class="key">↵</span>
+            <span class="description">知识树查看</span>
           </div>
         </div>
         <div class="hint-group">
-          <div class="hint">
+          <!-- <div class="hint">
             <span class="key">↑</span>
             <span class="key">↓</span>
             <span class="description">选择</span>
-          </div>
+          </div> -->
           <div class="hint">
             <span class="key">ESC</span>
             <span class="description">关闭</span>
