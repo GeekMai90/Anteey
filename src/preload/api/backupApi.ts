@@ -3,25 +3,27 @@ import type { BackupSettings, BackupHistory } from '../../renderer/src/types/bac
 
 export const backupApi = {
   getBackupSettings: () =>
-    ipcRenderer.invoke('get-backup-settings') as Promise<BackupSettings | null>,
+    ipcRenderer.invoke('getBackupSettings') as Promise<BackupSettings | null>,
 
   updateBackupSettings: (settings: Partial<BackupSettings>) =>
-    ipcRenderer.invoke('update-backup-settings', settings) as Promise<void>,
+    ipcRenderer.invoke('updateBackupSettings', settings) as Promise<void>,
 
-  getBackupHistory: () => ipcRenderer.invoke('get-backup-history') as Promise<BackupHistory[]>,
+  getBackupHistory: () => ipcRenderer.invoke('getBackupHistory') as Promise<BackupHistory[]>,
 
   selectBackupDirectory: () =>
-    ipcRenderer.invoke('select-backup-directory') as Promise<string | null>,
+    ipcRenderer.invoke('selectBackupDirectory') as Promise<string | null>,
 
   createBackup: () =>
-    ipcRenderer.invoke('create-backup') as Promise<{
+    ipcRenderer.invoke('createBackup') as Promise<{
       path: string
       fileName: string
       size: number
     }>,
 
-  selectBackupFile: () => ipcRenderer.invoke('select-backup-file') as Promise<string | null>,
+  selectBackupFile: () => ipcRenderer.invoke('selectBackupFile') as Promise<string | null>,
 
   restoreBackup: (backupPath: string) =>
-    ipcRenderer.invoke('restore-backup', backupPath) as Promise<boolean>
+    ipcRenderer.invoke('restoreBackup', backupPath) as Promise<boolean>,
+
+  clearBackupHistory: () => ipcRenderer.invoke('clearBackupHistory') as Promise<void>
 }

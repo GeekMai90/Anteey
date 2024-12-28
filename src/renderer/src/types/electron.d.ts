@@ -333,6 +333,7 @@ export interface ElectronAPI {
   }>
   selectBackupFile: () => Promise<string | null>
   restoreBackup: (backupPath: string) => Promise<boolean>
+  clearBackupHistory: () => Promise<void>
   // 时间块相关方法
   getTimeBlockDay: (date: string) => Promise<TimeBlockDay>
   updateTimeBlock: (dayId: string, hour: number, content: string) => Promise<string>

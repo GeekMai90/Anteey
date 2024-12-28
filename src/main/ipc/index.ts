@@ -9,10 +9,11 @@ import { setupLocalTreeHandlers } from './localTreeIpcHandlers'
 import { setupAppearanceHandlers } from './appearanceIpcHandlers'
 import { setupKnowledgeTreeHandlers } from './knowledgeTreeIpcHandlers'
 import { setupLicenseHandlers } from './licenseIpcHandlers'
-import { setupBackupHandlers } from './backupIpcHandlers'
+import { setupBackupIpcHandlers } from './backupIpcHandlers'
 import { setupTimeBlockHandlers } from './timeBlockIpcHandlers'
 import { setupWebDAVHandlers } from './webdavIpcHandlers'
-export function setupIpcHandlers() {
+
+export function setupIpcHandlers(): void {
   setupNotesHandlers()
   setupWhiteboardHandlers()
   setupCardboxHandlers()
@@ -24,7 +25,7 @@ export function setupIpcHandlers() {
   setupAppearanceHandlers()
   setupKnowledgeTreeHandlers()
   setupLicenseHandlers()
-  setupBackupHandlers()
+  setupBackupIpcHandlers()
   setupTimeBlockHandlers()
   setupWebDAVHandlers()
 }
