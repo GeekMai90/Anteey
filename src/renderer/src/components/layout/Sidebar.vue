@@ -4,10 +4,36 @@
     <div class="sidebar-header">
       <div class="sidebar-titlebar"></div>
       <div class="antinet-button" @click.stop="uiStore.toggleSettingDropdown">
-        <img src="@resources/icon.png" alt="AntiThink" class="antinet-icon" />
-        <div class="antinet-text">AntiThink</div>
-        <div class="status-icon" :class="saveStatusClass"></div>
-        <SettingDropdownMenu />
+        <div class="left-section">
+          <img src="@resources/icon.png" alt="AntiThink" class="antinet-icon" />
+          <div class="antinet-text">AntiThink</div>
+        </div>
+        <div class="right-section">
+          <!-- 同步按钮 -->
+          <div
+            v-if="webdavStore.config?.url && webdavStore.config?.username"
+            v-tooltip.top="{
+              content: getSyncStatusText,
+              delay: { show: 1000 },
+              html: true
+            }"
+            class="sync-button"
+            :class="syncStatusClass"
+            @click.stop="handleSync"
+          >
+            <div class="icon">
+              <component
+                :is="syncStatusIcon"
+                theme="outline"
+                size="16"
+                fill="var(--color-icon-menu-default)"
+                :strokeWidth="2"
+              />
+            </div>
+          </div>
+          <div class="status-icon" :class="saveStatusClass"></div>
+          <SettingDropdownMenu />
+        </div>
       </div>
       <!-- 新增搜索区域 -->
       <div class="search-area">
@@ -152,7 +178,10 @@ import {
   Clear,
   Moon,
   SunOne,
-  Sapling
+  Sapling,
+  LinkCloud,
+  LinkCloudFaild,
+  LinkCloudSucess
 } from '@icon-park/vue-next'
 import { useNoteStore } from '@renderer/stores/noteStores'
 import SettingDropdownMenu from '@renderer/components/settings/SettingDropdownMenu.vue'
@@ -165,12 +194,15 @@ import TagsTree from '@renderer/components/layout/TagsTree.vue'
 import QuickAccessMenu from '@renderer/components/layout/QuickAccessMenu.vue'
 import { useTimeBlockStore } from '@renderer/stores/timeBlockStore'
 import { useAppearanceStore } from '@renderer/stores/appearanceStore'
+import { useWebDAVStore } from '@renderer/stores/webdavStore'
+import { message } from '@renderer/utils/message'
 
 const imageSrc = ref('')
 const uiStore = useUIStore()
 const route = useRoute()
 const timeBlockStore = useTimeBlockStore()
 const appearanceStore = useAppearanceStore()
+const webdavStore = useWebDAVStore()
 
 const getIconFill = computed(
   () => (path: string) =>
@@ -180,6 +212,8 @@ const getIconFill = computed(
 onMounted(async () => {
   imageSrc.value = await window.electronAPI.getResourcePath('icon.png')
   await timeBlockStore.fetchSettings()
+  await webdavStore.loadConfig()
+  await webdavStore.loadSyncHistory()
 })
 
 const menuItems = computed(() => {
@@ -317,6 +351,95 @@ const handleClickOutside = (event: MouseEvent) => {
     isQuickAccessVisible.value = false
   }
 }
+
+const syncStatusClass = computed(() => {
+  const status = webdavStore.syncState.status
+  return {
+    'is-syncing': status === 'syncing',
+    'is-error': status === 'error',
+    'is-completed': status === 'completed'
+  }
+})
+
+// 添加一个变量来保存消息实例
+let syncMessageInstance: { close: () => void } | null = null
+
+const handleSync = async () => {
+  try {
+    // 显示同步中的消息，设置一个很长的持续时间（比如1小时），并保存消息实例
+    syncMessageInstance = message.info('开始同步...', 3600000)
+
+    await webdavStore.sync('manual')
+    // 同步成功时，先关闭同步中的消息
+    syncMessageInstance?.close()
+    // 然后显示成功消息
+    message.success('同步完成，正在刷新...')
+    // 同步完成后重新加载历史记录
+    await webdavStore.loadSyncHistory()
+    // 延迟一秒刷新页面，让用户看到成功提示
+    setTimeout(() => {
+      window.location.reload()
+    }, 1000)
+  } catch (error) {
+    // 同步失败时，也要先关闭同步中的消息
+    syncMessageInstance?.close()
+    // 然后显示错误消息
+    console.error('同步失败:', error)
+    message.error(error instanceof Error ? error.message : '同步失败')
+  } finally {
+    // 确保清理消息实例
+    syncMessageInstance = null
+  }
+}
+
+const syncStatusIcon = computed(() => {
+  const status = webdavStore.syncState.status
+  switch (status) {
+    case 'syncing':
+      return LinkCloud
+    case 'error':
+      return LinkCloudFaild
+    case 'completed':
+      return LinkCloudSucess
+    default:
+      return LinkCloud
+  }
+})
+
+const getSyncStatusText = computed(() => {
+  const status = webdavStore.syncState.status
+  const type = webdavStore.syncState.type
+  const lastSync = webdavStore.lastSuccessfulSync
+
+  switch (status) {
+    case 'syncing':
+      return `${type === 'auto' ? '自动' : '手动'}同步中...`
+    case 'error':
+      return '同步失败'
+    case 'completed':
+      if (lastSync) {
+        const formattedTime = new Date(lastSync).toLocaleString('zh-CN', {
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit'
+        })
+        return `同步成功<br>最后同步：${formattedTime}`
+      }
+      return '同步成功'
+    default:
+      if (lastSync) {
+        const formattedTime = new Date(lastSync).toLocaleString('zh-CN', {
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit'
+        })
+        return `立即同步<br>最后同步：${formattedTime}`
+      }
+      return '立即同步'
+  }
+})
 </script>
 
 <style lang="scss" scoped>
@@ -344,13 +467,26 @@ const handleClickOutside = (event: MouseEvent) => {
     .antinet-button {
       display: flex;
       align-items: center;
-      justify-content: flex-start;
       width: 100%;
       padding: 2px 10px 2px 6px;
       background-color: transparent;
       border: none;
       cursor: pointer;
       position: relative;
+
+      .left-section {
+        display: flex;
+        align-items: center;
+      }
+
+      .right-section {
+        margin-left: auto;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding-right: 16px;
+      }
+
       .antinet-icon {
         width: 40px;
         height: 40px;
@@ -363,6 +499,7 @@ const handleClickOutside = (event: MouseEvent) => {
         font-weight: bold;
         color: var(--color-text-primary);
         user-select: none;
+        margin-right: 8px;
       }
 
       .down-arrow {
@@ -837,7 +974,7 @@ const handleClickOutside = (event: MouseEvent) => {
   height: 7px;
   border-radius: 50%;
   position: absolute;
-  top: 19px;
+  top: 18px;
   right: 22px;
   box-shadow: 0 0 5px 1px currentColor;
   transition: all 0.3s ease;
@@ -929,6 +1066,90 @@ const handleClickOutside = (event: MouseEvent) => {
         }
       }
     }
+  }
+}
+
+.sync-button {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-radius: 6px;
+  cursor: pointer;
+  position: relative;
+  margin-right: 10px;
+
+  .icon {
+    width: 18px;
+    height: 18px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: all 0.3s ease;
+
+    :deep(.i-icon) {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      height: 100%;
+    }
+
+    :deep(svg) {
+      width: 18px;
+      height: 18px;
+    }
+  }
+
+  &:hover {
+    background-color: var(--color-hover-sidebar);
+  }
+
+  &.is-syncing {
+    .icon {
+      animation: sync-pulse 1.5s ease infinite;
+    }
+  }
+
+  &.is-error {
+    .icon {
+      fill: var(--color-error);
+    }
+  }
+
+  &.is-completed {
+    .icon {
+      fill: var(--color-success);
+      animation: pulse 0.3s ease;
+    }
+  }
+}
+
+@keyframes sync-pulse {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(0.92);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
   }
 }
 </style>

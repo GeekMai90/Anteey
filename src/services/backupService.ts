@@ -70,7 +70,7 @@ export const backupService = {
       backup_file_path: history.backup_file_path,
       backup_file_name: history.backup_file_name,
       backup_size: history.backup_size,
-      created_at: new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' })
+      created_at: new Date().toISOString()
     })
   },
 
@@ -80,6 +80,11 @@ export const backupService = {
     fifteenDaysAgo.setDate(fifteenDaysAgo.getDate() - 15)
 
     await db('backup_history').where('created_at', '<', fifteenDaysAgo).delete()
+  },
+
+  // 清空所有备份历史
+  async clearBackupHistory(): Promise<void> {
+    await db('backup_history').delete()
   },
 
   // 执行备份操作

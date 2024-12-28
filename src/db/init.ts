@@ -425,7 +425,7 @@ export async function initDatabase(db: Knex): Promise<void> {
       },
       {
         id: uuidv4(),
-        name: '评估���准',
+        name: '评估标准',
         description: '评估和度量相关术语',
         order: 2
       },
@@ -770,6 +770,42 @@ export async function initDatabase(db: Knex): Promise<void> {
     })
     console.log('monthly_logs 表创建成功')
   }
+
+  // 创建 webdav_config 表
+  if (!(await db.schema.hasTable('webdav_config'))) {
+    await db.schema.createTable('webdav_config', (table) => {
+      table.string('id').primary()
+      table.boolean('enabled').notNullable().defaultTo(false)
+      table.string('serverType').notNullable()
+      table.string('url').notNullable()
+      table.string('username').notNullable()
+      table.string('password').notNullable()
+      table.integer('syncInterval').notNullable().defaultTo(15)
+      table.boolean('autoSync').notNullable().defaultTo(false)
+      table.string('syncDirection').notNullable().defaultTo('bidirectional')
+      table
+        .json('syncFileTypes')
+        .notNullable()
+        .defaultTo(JSON.stringify(['all']))
+      table.datetime('lastSyncTime').nullable()
+      table.datetime('createdAt').notNullable()
+      table.datetime('updatedAt').notNullable()
+    })
+    console.log('webdav_config 表创建成功')
+  }
+
+  // 创建 webdav_sync_history 表
+  if (!(await db.schema.hasTable('webdav_sync_history'))) {
+    await db.schema.createTable('webdav_sync_history', (table) => {
+      table.string('id').primary()
+      table.datetime('timestamp').notNullable()
+      table.string('type').notNullable() // 'auto' | 'manual'
+      table.string('status').notNullable() // 'success' | 'failed'
+      table.text('details').notNullable() // JSON 字符串
+      table.datetime('createdAt').notNullable().defaultTo(db.fn.now())
+    })
+    console.log('webdav_sync_history 表创建成功')
+  }
 }
 
 export async function down(db: Knex): Promise<void> {
@@ -804,5 +840,7 @@ export async function down(db: Knex): Promise<void> {
   await db.schema.dropTableIfExists('licenses')
   await db.schema.dropTableIfExists('future_logs')
   await db.schema.dropTableIfExists('monthly_logs')
+  await db.schema.dropTableIfExists('webdav_sync_history')
+  await db.schema.dropTableIfExists('webdav_config')
   console.log('所有表已删除')
 }

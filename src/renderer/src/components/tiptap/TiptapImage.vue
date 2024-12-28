@@ -193,12 +193,11 @@ const downloadImage = async () => {
   try {
     const result = await window.electronAPI.downloadImage(imageUrl, fileName)
     if (result.path) {
-      console.log('图片下载成功:', result.path)
-      // TODO: 可以添加一个成功提示，比如使用 message.success('图片已下载')
+      message.success('图片下载成功')
     }
   } catch (error) {
     console.error('下载过程中发生错误:', error)
-    // TODO: 可以添加一个错误提示，比如使用 message.error('下载失败')
+    message.error('图片下载失败')
   }
 
   showMenu.value = false

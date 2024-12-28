@@ -72,7 +72,10 @@
       </div>
 
       <div class="backup-item">
-        <div class="title">备份历史</div>
+        <div class="title-row">
+          <div class="title">备份历史</div>
+          <div class="clear-history" @click="handleClearHistory">清空历史</div>
+        </div>
         <div class="backup-history">
           <div v-if="backupStore.history.length === 0" class="history-empty">
             <div class="empty-text">暂无备份历史</div>
@@ -96,7 +99,16 @@
                 <div class="history-item-name">{{ item.backup_file_name }}</div>
                 <div class="history-item-meta">
                   <span class="time">{{
-                    new Date(item.created_at).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' })
+                    new Date(item.created_at).toLocaleString('zh-CN', {
+                      timeZone: 'Asia/Shanghai',
+                      year: 'numeric',
+                      month: '2-digit',
+                      day: '2-digit',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                      second: '2-digit',
+                      hour12: false
+                    })
                   }}</span>
                   <span class="dot">·</span>
                   <span class="size">{{ formatBytes(item.backup_size) }}</span>
@@ -196,6 +208,15 @@ async function handleRestoreConfirm() {
     await backupStore.restoreBackup(selectedBackupPath.value)
   } finally {
     isRestoring.value = false
+  }
+}
+
+async function handleClearHistory() {
+  try {
+    await window.electronAPI.clearBackupHistory()
+    await backupStore.getHistory()
+  } catch (error) {
+    console.error('清空备份历史失败:', error)
   }
 }
 </script>
@@ -518,6 +539,33 @@ async function handleRestoreConfirm() {
   .auto-backup-description {
     font-size: 12px;
     color: var(--color-text-secondary);
+  }
+}
+
+.title-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 15px 0;
+
+  .title {
+    font-size: 18px;
+    line-height: 1;
+    color: var(--color-text-primary);
+    font-weight: 500;
+    user-select: none;
+  }
+
+  .clear-history {
+    font-size: 13px;
+    color: var(--color-warning);
+    cursor: pointer;
+    user-select: none;
+
+    &:hover {
+      color: var(--color-warning-hover);
+    }
   }
 }
 </style>

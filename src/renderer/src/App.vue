@@ -73,6 +73,8 @@ import { useUIStore } from './stores/useUIStore'
 import { useNoteStore } from './stores/noteStores'
 import { useNoteMenu } from './composables/useNoteMenu'
 import { useGlobalHotkeys } from './composables/useGlobalHotkeys'
+import { useWebDAVStore } from './stores/webdavStore'
+import type { SyncState } from './types/WebDAV'
 
 // 组件导入
 import Sidebar from './components/layout/Sidebar.vue'
@@ -92,6 +94,7 @@ const uiStore = useUIStore()
 const noteStore = useNoteStore()
 const appearanceStore = useAppearanceStore()
 const router = useRouter()
+const webdavStore = useWebDAVStore()
 // 全局UI管理器引用
 const globalUIManager = ref<InstanceType<typeof GlobalUIManager> | null>(null)
 
@@ -189,6 +192,17 @@ onMounted(async () => {
   window.electronAPI.onMenuExportNotes(async () => {
     await handleBulkExport()
   })
+
+  // 监听同步状态变化
+  window.electronAPI.syncStateChanged((state: SyncState) => {
+    webdavStore.updateSyncState(state)
+  })
+
+  // 加载配置并启动自动同步
+  await webdavStore.loadConfig()
+  if (webdavStore.config?.autoSync) {
+    await window.electronAPI.startWebDAVAutoSync()
+  }
 })
 
 onUnmounted(() => {
@@ -196,6 +210,7 @@ onUnmounted(() => {
   window.removeEventListener('resize', debouncedCheckWindowSize)
   window.electronAPI.removeAllListeners('menu-new-note')
   window.electronAPI.removeAllListeners('menu-export-notes')
+  window.electronAPI.removeAllListeners('sync-state-changed')
 })
 
 // 全局方法注入

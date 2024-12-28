@@ -1,26 +1,23 @@
-import { ipcMain, dialog } from 'electron'
+import { ipcMain, dialog, BrowserWindow } from 'electron'
 import { backupService } from '../../services/backupService'
 
-export function setupBackupHandlers(): void {
-  // 获取备份设置
-  ipcMain.handle('get-backup-settings', async () => {
+export function setupBackupIpcHandlers(): void {
+  ipcMain.handle('getBackupSettings', async () => {
     return await backupService.getBackupSettings()
   })
 
-  // 更新备份设置
-  ipcMain.handle('update-backup-settings', async (_, settings) => {
+  ipcMain.handle('updateBackupSettings', async (_, settings) => {
     await backupService.updateBackupSettings(settings)
   })
 
-  // 获取备份历史
-  ipcMain.handle('get-backup-history', async () => {
+  ipcMain.handle('getBackupHistory', async () => {
     return await backupService.getBackupHistory()
   })
 
-  // 选择备份目录
-  ipcMain.handle('select-backup-directory', async () => {
-    const result = await dialog.showOpenDialog({
-      properties: ['openDirectory']
+  ipcMain.handle('selectBackupDirectory', async (event) => {
+    const window = BrowserWindow.fromWebContents(event.sender)
+    const result = await dialog.showOpenDialog(window!, {
+      properties: ['openDirectory', 'createDirectory']
     })
     if (!result.canceled && result.filePaths.length > 0) {
       return result.filePaths[0]
@@ -28,36 +25,28 @@ export function setupBackupHandlers(): void {
     return null
   })
 
-  // 执行备份
-  ipcMain.handle('create-backup', async () => {
-    const settings = await backupService.getBackupSettings()
-    if (!settings?.backup_path) {
-      throw new Error('未设置备份路径')
-    }
-
-    const result = await backupService.performBackup()
-    if (!result) {
-      throw new Error('备份失败')
-    }
-
-    return result
+  ipcMain.handle('createBackup', async () => {
+    return await backupService.performBackup()
   })
 
-  // 恢复备份
-  ipcMain.handle('restore-backup', async (_, backupPath: string) => {
+  ipcMain.handle('selectBackupFile', async (event) => {
+    const window = BrowserWindow.fromWebContents(event.sender)
+    const result = await dialog.showOpenDialog(window!, {
+      properties: ['openFile'],
+      filters: [{ name: 'Database Files', extensions: ['db'] }]
+    })
+    if (!result.canceled && result.filePaths.length > 0) {
+      return result.filePaths[0]
+    }
+    return null
+  })
+
+  ipcMain.handle('restoreBackup', async (_, backupPath) => {
     await backupService.restoreBackup(backupPath)
     return true
   })
 
-  // 选择备份文件
-  ipcMain.handle('select-backup-file', async () => {
-    const result = await dialog.showOpenDialog({
-      properties: ['openFile'],
-      filters: [{ name: 'SQLite Database', extensions: ['db'] }]
-    })
-    if (!result.canceled && result.filePaths.length > 0) {
-      return result.filePaths[0]
-    }
-    return null
+  ipcMain.handle('clearBackupHistory', async () => {
+    await backupService.clearBackupHistory()
   })
 }

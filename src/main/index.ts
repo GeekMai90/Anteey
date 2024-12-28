@@ -16,7 +16,8 @@ import { initDatabase } from '../db/init'
 import { db } from '../db/config'
 import { default as installExtension, VUEJS3_DEVTOOLS } from 'electron-devtools-installer'
 import path from 'path'
-import fs from 'fs/promises'
+import fs from 'fs'
+import fsPromises from 'fs/promises'
 import { URL } from 'url'
 import { initialize, enable } from '@electron/remote/main'
 import { setupIpcHandlers } from './ipc'
@@ -251,14 +252,14 @@ function createWindow(): BrowserWindow {
           // 各种资源的访问控制规则
           'default-src *; ' + // 默认允许所有来源
             // 图片源：允许本地文件、base64数据、blob数据、http(s)和所有域名
-            "img-src 'self' file: data: blob: https: http: *; " +
+            "img-src 'self' file: data: blob: https: http: app-image: *; " +
             // 脚本源：允许本地脚本、内联脚本、eval执行和blob数据
             // 注意：unsafe-inline 和 unsafe-eval 在生产环境中可能存在安全风险
             "script-src 'self' 'unsafe-inline' 'unsafe-eval' blob:; " +
             // 样式源：允许本地样式和内联样式
             "style-src 'self' 'unsafe-inline'; " +
             // 连接源：允许本地文件、https://api.tiptap.dev
-            "connect-src 'self' file: https://api.tiptap.dev; " +
+            "connect-src 'self' file: app-image: https://api.tiptap.dev; " +
             // 字体源：允许所有来源的字体
             'font-src *; ' +
             // Web Worker源：允许本地worker、blob数据和base64数据
@@ -346,6 +347,20 @@ async function handleAutoBackup() {
   }
 }
 
+// 在 app.whenReady() 之前注册协议
+protocol.registerSchemesAsPrivileged([
+  {
+    scheme: 'app-image',
+    privileges: {
+      standard: true,
+      supportFetchAPI: true,
+      stream: true,
+      secure: true,
+      corsEnabled: true
+    }
+  }
+])
+
 app.whenReady().then(async () => {
   const antinetPath = app.getPath('userData')
   const userDataPath = path.join(antinetPath, 'UserData')
@@ -353,8 +368,8 @@ app.whenReady().then(async () => {
 
   // 确保 UserData 和 images 目录存在
   try {
-    await fs.mkdir(userDataPath, { recursive: true })
-    await fs.mkdir(imagesPath, { recursive: true })
+    await fsPromises.mkdir(userDataPath, { recursive: true })
+    await fsPromises.mkdir(imagesPath, { recursive: true })
   } catch (error) {
     console.error('创建目录失败:', error)
   }
@@ -385,10 +400,36 @@ app.whenReady().then(async () => {
 
     // 注册自定义协议
     protocol.handle('app-image', (request) => {
-      const url = new URL(request.url)
-      const decodedPath = decodeURIComponent(url.pathname)
-      const filePath = path.join(app.getPath('userData'), decodedPath)
-      return net.fetch('file://' + filePath)
+      try {
+        const url = new URL(request.url)
+        const imagePath = decodeURIComponent(url.pathname)
+        const fullPath = path.join(
+          app.getPath('userData'),
+          'UserData',
+          'images',
+          path.basename(imagePath)
+        )
+
+        // 添加更多日志用于调试
+        console.log('Request URL:', request.url)
+        console.log('Image Path:', imagePath)
+        console.log('Full Path:', fullPath)
+        console.log('File exists:', fs.existsSync(fullPath))
+
+        // 检查文件是否存在
+        if (!fs.existsSync(fullPath)) {
+          console.error('Image file not found:', fullPath)
+          return new Response('', { status: 404 })
+        }
+
+        return net.fetch('file://' + fullPath)
+      } catch (error: unknown) {
+        console.error('加载图片失败:', error)
+        if (error instanceof Error) {
+          console.error('Error details:', error.message)
+        }
+        return new Response('', { status: 404 })
+      }
     })
 
     // 设置 IPC 处理程序

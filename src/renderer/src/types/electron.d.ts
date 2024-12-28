@@ -25,6 +25,8 @@ import { KnowledgeTreeNode } from './knowledgeTree'
 import { ActivationResult, License } from './license'
 import type { BackupSettings, BackupHistory } from './backup'
 import type { FutureLog, MonthlyLog, TimeBlockDay, TimeBlockSettings } from './timeBlock'
+import { SyncState, WebDAVConfig } from './WebDAV'
+import { SyncHistory } from './WebDAV'
 
 // 添加图片相关的类型定义
 interface ImageInfo {
@@ -331,6 +333,7 @@ export interface ElectronAPI {
   }>
   selectBackupFile: () => Promise<string | null>
   restoreBackup: (backupPath: string) => Promise<boolean>
+  clearBackupHistory: () => Promise<void>
   // 时间块相关方法
   getTimeBlockDay: (date: string) => Promise<TimeBlockDay>
   updateTimeBlock: (dayId: string, hour: number, content: string) => Promise<string>
@@ -376,6 +379,25 @@ export interface ElectronAPI {
 
   // 添加 openExternal 方法的类型定义
   openExternal: (url: string) => Promise<void>
+
+  syncStateChanged: (callback: (state: SyncState) => void) => void
+
+  // 测试 WebDAV 连接
+  testWebDAVConnection: (config: Partial<WebDAVConfig>) => Promise<boolean>
+
+  // 同步 WebDAV
+  syncWebDAV: (type?: 'auto' | 'manual') => Promise<void>
+
+  // 获取 WebDAV 配置
+  getWebDAVConfig: () => Promise<WebDAVConfig | null>
+
+  // 更新 WebDAV 配置
+  updateWebDAVConfig: (config: Partial<WebDAVConfig>) => Promise<WebDAVConfig>
+
+  // WebDAV 相关方法
+  getWebDAVSyncHistory: () => Promise<SyncHistory[]>
+  // 启动自动同步
+  startWebDAVAutoSync: () => Promise<void>
 }
 
 declare global {
