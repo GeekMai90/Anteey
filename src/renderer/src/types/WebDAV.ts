@@ -68,3 +68,26 @@ export interface WebDAVAPI {
   // 执行同步
   syncWebDAV: () => Promise<void>
 }
+
+export interface ServerTypeOption {
+  value: WebDAVServerType
+  label: string
+}
+
+export interface SyncIntervalOption {
+  value: number
+  label: string
+}
+
+export const SERVER_TYPES: ServerTypeOption[] = [
+  { value: 'jianguoyun', label: '坚果云' },
+  { value: 'aliyundrive', label: '阿里云盘' },
+  { value: 'custom', label: '自定义' }
+]
+
+export const SYNC_INTERVALS: SyncIntervalOption[] = [
+  { value: 5, label: '5分钟' },
+  { value: 15, label: '15分钟' },
+  { value: 30, label: '30分钟' },
+  { value: 60, label: '1小时' }
+]

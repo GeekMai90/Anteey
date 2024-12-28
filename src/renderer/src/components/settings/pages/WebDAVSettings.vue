@@ -16,16 +16,30 @@
       <!-- WebDAV 服务配置 -->
       <div class="webdav-item">
         <div class="title">WebDAV 服务</div>
-        <div class="description">配置 WebDAV 服务器信息，支持坚果云、阿里云盘等 WebDAV 服务。</div>
+        <div class="description">配置 WebDAV 服务器信息，目前支持坚果云 WebDAV 服务。</div>
         <div class="webdav-settings-form">
           <div class="form-item">
             <div class="label">服务类型</div>
             <div class="value">
-              <select v-model="serverType">
-                <option value="jianguoyun">坚果云</option>
-                <option value="aliyundrive">阿里云盘</option>
-                <option value="custom">自定义</option>
-              </select>
+              <div class="select-wrapper">
+                <div class="select" @click="showServerTypeSelect = !showServerTypeSelect">
+                  <span class="selected-value">{{ getServerTypeName(serverType) }}</span>
+                  <div class="select-arrow">
+                    <Down theme="outline" size="16" :strokeWidth="3" />
+                  </div>
+                </div>
+                <div v-show="showServerTypeSelect" class="select-dropdown">
+                  <div
+                    v-for="type in serverTypes"
+                    :key="type.value"
+                    class="select-option"
+                    :class="{ active: serverType === type.value }"
+                    @click="selectServerType(type.value)"
+                  >
+                    {{ type.label }}
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
           <div class="form-item">
@@ -41,9 +55,9 @@
             </div>
           </div>
           <div class="form-item">
-            <div class="label">密码</div>
+            <div class="label">应用密码</div>
             <div class="value">
-              <input v-model="password" type="password" placeholder="请输入密码" />
+              <input v-model="password" type="password" placeholder="请输入应用密码" />
             </div>
           </div>
           <div class="webdav-actions">
@@ -90,12 +104,25 @@
           <div v-if="autoSync" class="form-item">
             <div class="label">同步间隔</div>
             <div class="value">
-              <select v-model="syncInterval">
-                <option :value="5">5分钟</option>
-                <option :value="15">15分钟</option>
-                <option :value="30">30分钟</option>
-                <option :value="60">1小时</option>
-              </select>
+              <div class="select-wrapper sync-interval-select">
+                <div class="select" @click="showIntervalSelect = !showIntervalSelect">
+                  <span class="selected-value">{{ getSyncIntervalText(syncInterval) }}</span>
+                  <div class="select-arrow">
+                    <Down theme="outline" size="16" :strokeWidth="3" />
+                  </div>
+                </div>
+                <div v-show="showIntervalSelect" class="select-dropdown">
+                  <div
+                    v-for="interval in syncIntervals"
+                    :key="interval.value"
+                    class="select-option"
+                    :class="{ active: syncInterval === interval.value }"
+                    @click="selectInterval(interval.value)"
+                  >
+                    {{ interval.label }}
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
           <div class="webdav-actions">
@@ -150,7 +177,7 @@
 </template>
 
 <script setup lang="ts">
-import { CloudStorage } from '@icon-park/vue-next'
+import { CloudStorage, Down } from '@icon-park/vue-next'
 import { useWebDAVStore } from '@renderer/stores/webdavStore'
 import { ref, onMounted, computed, watch } from 'vue'
 import type { WebDAVServerType } from '../../../types/WebDAV'
@@ -179,6 +206,56 @@ const syncInterval = computed({
   }
 })
 
+// 添加状态
+const showServerTypeSelect = ref(false)
+const showIntervalSelect = ref(false)
+
+// 添加类型定义
+interface ServerTypeOption {
+  value: WebDAVServerType
+  label: string
+}
+
+// 修改选项数据的定义
+const serverTypes: ServerTypeOption[] = [
+  { value: 'jianguoyun' as const, label: '坚果云' }
+  // { value: 'aliyundrive' as const, label: '阿里云盘' },
+  // { value: 'custom' as const, label: '自定义' }
+]
+
+// 添加同步间隔选项的类型
+interface SyncIntervalOption {
+  value: number
+  label: string
+}
+
+// 修改同步间隔选项的定义
+const syncIntervals: SyncIntervalOption[] = [
+  { value: 5, label: '5分钟' },
+  { value: 15, label: '15分钟' },
+  { value: 30, label: '30分钟' },
+  { value: 60, label: '1小时' }
+]
+
+// 添加方法
+const getServerTypeName = (type: WebDAVServerType): string => {
+  return serverTypes.find((t) => t.value === type)?.label || '未知'
+}
+
+const getSyncIntervalText = (interval: number) => {
+  return syncIntervals.find((i) => i.value === interval)?.label || '未知'
+}
+
+const selectServerType = (type: WebDAVServerType): void => {
+  serverType.value = type
+  showServerTypeSelect.value = false
+}
+
+const selectInterval = async (value: number) => {
+  syncInterval.value = value
+  showIntervalSelect.value = false
+}
+
 onMounted(async () => {
   await webdavStore.loadConfig()
   await webdavStore.loadSyncHistory()
@@ -188,6 +265,15 @@ onMounted(async () => {
     username.value = webdavStore.config.username
     password.value = webdavStore.config.password
   }
+
+  // 添加点击外部关闭下拉菜单
+  document.addEventListener('click', (e) => {
+    const target = e.target as HTMLElement
+    if (!target.closest('.select-wrapper')) {
+      showServerTypeSelect.value = false
+      showIntervalSelect.value = false
+    }
+  })
 })
 
 async function handleTestConnection() {
@@ -369,7 +455,7 @@ watch(
       }
 
       &.test {
-        background-color: var(--color-success);
+        background-color: var(--color-primary);
       }
 
       &.is-loading {
@@ -397,6 +483,7 @@ watch(
 
     .value {
       flex: 1;
+      max-width: 300px;
 
       input,
       select {
@@ -550,6 +637,109 @@ watch(
     .empty-text {
       color: var(--color-text-secondary);
       font-size: 14px;
+    }
+  }
+}
+
+.select-wrapper {
+  position: relative;
+  width: 100%;
+  max-width: 300px;
+
+  &.sync-interval-select {
+    max-width: 120px;
+
+    .select-dropdown {
+      min-width: 120px;
+    }
+  }
+
+  .select {
+    width: 100%;
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--color-border);
+    background: var(--color-bg-secondary);
+    color: var(--color-text-primary);
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 36px;
+
+    &:hover {
+      border-color: var(--color-primary);
+      background: var(--color-hover-bg);
+    }
+
+    // .selected-value {
+    //   font-weight: 500;
+    // }
+
+    .select-arrow {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 20px;
+      height: 100%;
+      :deep(.i-icon) {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      :deep(svg) {
+        width: 16px;
+        height: 16px;
+      }
+    }
+  }
+
+  .select-dropdown {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    width: 100%;
+    background: var(--color-dropdown-bg);
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    padding: 4px;
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 1000;
+    box-shadow: var(--shadow-card);
+
+    .select-option {
+      padding: 8px 12px;
+      cursor: pointer;
+      border-radius: 4px;
+      transition: all 0.2s;
+      font-size: 14px;
+      color: var(--color-text-primary);
+
+      &:hover {
+        background: var(--color-hover-bg);
+      }
+
+      &.active {
+        color: var(--color-primary);
+        background: var(--color-primary-bg);
+      }
+    }
+
+    &::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    &::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: var(--color-scrollbar);
+      border-radius: 4px;
     }
   }
 }
