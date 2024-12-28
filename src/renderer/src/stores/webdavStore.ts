@@ -14,7 +14,8 @@ export const useWebDAVStore = defineStore('webdav', {
     config: null,
     syncState: {
       status: 'idle',
-      progress: 0
+      progress: 0,
+      type: 'manual'
     },
     syncHistory: [],
     loading: false,
@@ -63,10 +64,11 @@ export const useWebDAVStore = defineStore('webdav', {
       }
     },
 
-    async sync() {
+    async sync(type: 'auto' | 'manual' = 'manual') {
       try {
         this.loading = true
         this.error = null
+        this.syncState.type = type
         await window.electronAPI.syncWebDAV()
       } catch (error) {
         this.error = error instanceof Error ? error.message : '同步失败'
@@ -78,7 +80,11 @@ export const useWebDAVStore = defineStore('webdav', {
     },
 
     updateSyncState(state: SyncState) {
-      this.syncState = state
+      const type = state.type || this.syncState.type
+      this.syncState = {
+        ...state,
+        type
+      }
     },
 
     async loadSyncHistory() {

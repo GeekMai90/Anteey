@@ -22,8 +22,8 @@ export function setupWebDAVHandlers(): void {
   })
 
   // 执行同步
-  ipcMain.handle('sync-webdav', async () => {
-    return await webdavService.sync()
+  ipcMain.handle('sync-webdav', async (_, type: 'auto' | 'manual' = 'manual') => {
+    return await webdavService.sync(type)
   })
 
   // 获取同步历史

@@ -42,8 +42,6 @@
       <ShortcutsSettings v-if="currentMenuItem === 'shortcuts'" />
       <ShareSettings v-if="currentMenuItem === 'share'" />
       <AppearanceSettings v-if="currentMenuItem === 'appearance'" />
-      <DictionarySettings v-if="currentMenuItem === 'dictionary'" />
-      <LLMSettings v-if="currentMenuItem === 'llm'" />
       <LicenseSettings v-if="currentMenuItem === 'license'" />
       <TimeBlockSettings v-if="currentMenuItem === 'timeblock'" />
       <WebDAVSettings v-if="currentMenuItem === 'webdav'" />

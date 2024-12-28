@@ -9,6 +9,9 @@ export type SyncDirection = 'upload' | 'download' | 'bidirectional'
 // 同步文件类型
 export type SyncFileType = 'database' | 'images' | 'all'
 
+// 同步类型
+export type SyncType = 'auto' | 'manual' | 'backup' | 'webdav'
+
 // WebDAV 配置
 export interface WebDAVConfig {
   id: string // 配置ID
@@ -31,6 +34,7 @@ export interface SyncStatus {
   status: 'idle' | 'syncing' | 'error' | 'completed' // 增加completed状态
   progress: number // 同步进度(0-100)
   lastSync: Date | null // 最后同步时间
+  type: 'auto' | 'manual' // 同步类型:自动/手动
   error?: string // 错误信息
   currentTask?: string // 当前同步任务描述
 }
@@ -49,6 +53,7 @@ export interface SyncHistory {
 export interface SyncState {
   status: 'idle' | 'syncing' | 'completed' | 'error'
   progress: number
+  type: SyncType
   currentFile?: string
   error?: string
   message?: string

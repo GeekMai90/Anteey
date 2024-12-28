@@ -42,7 +42,8 @@ export class WebDAVService extends EventEmitter {
   private client: any = null
   private syncState: SyncState = {
     status: 'idle',
-    progress: 0
+    progress: 0,
+    type: 'manual'
   }
   private autoSyncTimer: NodeJS.Timeout | null = null
 
@@ -161,7 +162,12 @@ export class WebDAVService extends EventEmitter {
   // 修改 sync 方法，添加历史记录
   async sync(type: 'auto' | 'manual' = 'manual'): Promise<void> {
     try {
-      this.updateState({ status: 'syncing', progress: 0 })
+      this.updateState({
+        status: 'syncing',
+        progress: 0,
+        type,
+        message: '开始同步...'
+      })
 
       // 0. 确保远程根目录存在
       const client = await this.getClient()
@@ -201,6 +207,7 @@ export class WebDAVService extends EventEmitter {
       this.updateState({
         status: 'error',
         error: errorMessage,
+        type,
         message: '同步失败'
       })
       await this.addSyncHistory(type, 'failed', errorMessage)
@@ -320,7 +327,12 @@ export class WebDAVService extends EventEmitter {
   }
 
   private updateState(update: Partial<SyncState>): void {
-    this.syncState = { ...this.syncState, ...update }
+    const type = update.type || this.syncState.type
+    this.syncState = {
+      ...this.syncState,
+      ...update,
+      type
+    }
     this.notifyStateChange()
   }
 

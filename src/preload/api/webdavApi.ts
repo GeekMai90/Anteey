@@ -33,9 +33,9 @@ export const webdavApi = {
   },
 
   // 执行同步
-  syncWebDAV: async (): Promise<void> => {
+  syncWebDAV: async (type: 'auto' | 'manual' = 'manual'): Promise<void> => {
     try {
-      await ipcRenderer.invoke('sync-webdav')
+      await ipcRenderer.invoke('sync-webdav', type)
     } catch (error) {
       console.error('预加载脚本 → WebDAV 同步失败:', error)
       throw error

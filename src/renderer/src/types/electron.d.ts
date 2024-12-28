@@ -385,7 +385,7 @@ export interface ElectronAPI {
   testWebDAVConnection: (config: Partial<WebDAVConfig>) => Promise<boolean>
 
   // 同步 WebDAV
-  syncWebDAV: () => Promise<void>
+  syncWebDAV: (type?: 'auto' | 'manual') => Promise<void>
 
   // 获取 WebDAV 配置
   getWebDAVConfig: () => Promise<WebDAVConfig | null>
