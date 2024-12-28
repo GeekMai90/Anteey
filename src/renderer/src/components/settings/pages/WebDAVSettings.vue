@@ -319,9 +319,13 @@ async function handleSync() {
   isSyncing.value = true
   try {
     await webdavStore.sync()
-    message.success('同步完成')
+    message.success('同步完成，正在刷新...')
     // 同步完成后重新加载历史记录
     await webdavStore.loadSyncHistory()
+    // 延迟一秒刷新页面，让用户看到成功提示
+    setTimeout(() => {
+      window.location.reload()
+    }, 1000)
   } finally {
     isSyncing.value = false
   }
