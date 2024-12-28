@@ -1,4 +1,4 @@
-# antinet-app
+# AntiThink
 
 An Electron application with Vue and TypeScript
 
