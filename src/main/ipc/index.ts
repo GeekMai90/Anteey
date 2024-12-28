@@ -11,6 +11,7 @@ import { setupKnowledgeTreeHandlers } from './knowledgeTreeIpcHandlers'
 import { setupLicenseHandlers } from './licenseIpcHandlers'
 import { setupBackupHandlers } from './backupIpcHandlers'
 import { setupTimeBlockHandlers } from './timeBlockIpcHandlers'
+import { setupWebDAVHandlers } from './webdavIpcHandlers'
 export function setupIpcHandlers() {
   setupNotesHandlers()
   setupWhiteboardHandlers()
@@ -25,4 +26,5 @@ export function setupIpcHandlers() {
   setupLicenseHandlers()
   setupBackupHandlers()
   setupTimeBlockHandlers()
+  setupWebDAVHandlers()
 }

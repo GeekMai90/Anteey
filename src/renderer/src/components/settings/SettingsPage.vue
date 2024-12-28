@@ -46,6 +46,7 @@
       <LLMSettings v-if="currentMenuItem === 'llm'" />
       <LicenseSettings v-if="currentMenuItem === 'license'" />
       <TimeBlockSettings v-if="currentMenuItem === 'timeblock'" />
+      <WebDAVSettings v-if="currentMenuItem === 'webdav'" />
     </div>
   </div>
 </template>
@@ -60,7 +61,8 @@ import {
   Theme,
   Share,
   CrownThree,
-  Time
+  Time,
+  CloudStorage
 } from '@icon-park/vue-next'
 import BackupSettings from './pages/BackupSettings.vue'
 import ShortcutsSettings from './pages/ShortcutsSettings.vue'
@@ -68,6 +70,7 @@ import ShareSettings from './pages/ShareSettings.vue'
 import AppearanceSettings from './pages/AppearanceSettings.vue'
 import LicenseSettings from './pages/LicenseSettings.vue'
 import TimeBlockSettings from './pages/TimeBlockSettings.vue'
+import WebDAVSettings from './pages/WebDAVSettings.vue'
 
 const menuItems = [
   { key: 'appearance', label: '外观', icon: Theme },
@@ -76,6 +79,7 @@ const menuItems = [
   { key: 'share', label: '分享设置', icon: Share },
   { key: 'license', label: '软件激活', icon: CrownThree },
   { key: 'backup', label: '备份', icon: DatabaseDownload },
+  { key: 'webdav', label: '同步', icon: CloudStorage },
   { key: 'api', label: '专属API', icon: Api }
 ]
 

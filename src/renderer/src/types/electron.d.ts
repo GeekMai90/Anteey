@@ -25,6 +25,7 @@ import { KnowledgeTreeNode } from './knowledgeTree'
 import { ActivationResult, License } from './license'
 import type { BackupSettings, BackupHistory } from './backup'
 import type { FutureLog, MonthlyLog, TimeBlockDay, TimeBlockSettings } from './timeBlock'
+import { SyncState, WebDAVConfig } from './WebDAV'
 
 // 添加图片相关的类型定义
 interface ImageInfo {
@@ -376,6 +377,20 @@ export interface ElectronAPI {
 
   // 添加 openExternal 方法的类型定义
   openExternal: (url: string) => Promise<void>
+
+  syncStateChanged: (callback: (state: SyncState) => void) => void
+
+  // 测试 WebDAV 连接
+  testWebDAVConnection: (config: Partial<WebDAVConfig>) => Promise<boolean>
+
+  // 同步 WebDAV
+  syncWebDAV: () => Promise<void>
+
+  // 获取 WebDAV 配置
+  getWebDAVConfig: () => Promise<WebDAVConfig>
+
+  // 更新 WebDAV 配置
+  updateWebDAVConfig: (config: Partial<WebDAVConfig>) => Promise<WebDAVConfig>
 }
 
 declare global {
