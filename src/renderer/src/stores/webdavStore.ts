@@ -7,6 +7,7 @@ interface WebDAVStore {
   syncHistory: SyncHistory[]
   loading: boolean
   error: string | null
+  lastSuccessfulSync: Date | null
 }
 
 export const useWebDAVStore = defineStore('webdav', {
@@ -19,7 +20,8 @@ export const useWebDAVStore = defineStore('webdav', {
     },
     syncHistory: [],
     loading: false,
-    error: null
+    error: null,
+    lastSuccessfulSync: null
   }),
 
   actions: {
@@ -85,6 +87,9 @@ export const useWebDAVStore = defineStore('webdav', {
         ...state,
         type
       }
+      if (state.status === 'completed') {
+        this.lastSuccessfulSync = new Date()
+      }
     },
 
     async loadSyncHistory() {
@@ -92,6 +97,10 @@ export const useWebDAVStore = defineStore('webdav', {
         this.loading = true
         this.error = null
         this.syncHistory = await window.electronAPI.getWebDAVSyncHistory()
+        const lastSuccess = this.syncHistory.find((record) => record.status === 'success')
+        if (lastSuccess) {
+          this.lastSuccessfulSync = new Date(lastSuccess.timestamp)
+        }
       } catch (error) {
         this.error = error instanceof Error ? error.message : '加载同步历史失败'
         console.error('加载同步历史失败:', error)

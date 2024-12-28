@@ -14,7 +14,8 @@
             v-if="webdavStore.config?.url && webdavStore.config?.username"
             v-tooltip.top="{
               content: getSyncStatusText,
-              delay: { show: 1000 }
+              delay: { show: 1000 },
+              html: true
             }"
             class="sync-button"
             :class="syncStatusClass"
@@ -212,6 +213,7 @@ onMounted(async () => {
   imageSrc.value = await window.electronAPI.getResourcePath('icon.png')
   await timeBlockStore.fetchSettings()
   await webdavStore.loadConfig()
+  await webdavStore.loadSyncHistory()
 })
 
 const menuItems = computed(() => {
@@ -371,7 +373,13 @@ const handleSync = async () => {
     // 同步成功时，先关闭同步中的消息
     syncMessageInstance?.close()
     // 然后显示成功消息
-    message.success('同步成功')
+    message.success('同步完成，正在刷新...')
+    // 同步完成后重新加载历史记录
+    await webdavStore.loadSyncHistory()
+    // 延迟一秒刷新页面，让用户看到成功提示
+    setTimeout(() => {
+      window.location.reload()
+    }, 1000)
   } catch (error) {
     // 同步失败时，也要先关闭同步中的消息
     syncMessageInstance?.close()
@@ -401,14 +409,34 @@ const syncStatusIcon = computed(() => {
 const getSyncStatusText = computed(() => {
   const status = webdavStore.syncState.status
   const type = webdavStore.syncState.type
+  const lastSync = webdavStore.lastSuccessfulSync
+
   switch (status) {
     case 'syncing':
       return `${type === 'auto' ? '自动' : '手动'}同步中...`
     case 'error':
       return '同步失败'
     case 'completed':
+      if (lastSync) {
+        const formattedTime = new Date(lastSync).toLocaleString('zh-CN', {
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit'
+        })
+        return `同步成功<br>最后同步：${formattedTime}`
+      }
       return '同步成功'
     default:
+      if (lastSync) {
+        const formattedTime = new Date(lastSync).toLocaleString('zh-CN', {
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit'
+        })
+        return `立即同步<br>最后同步：${formattedTime}`
+      }
       return '立即同步'
   }
 })
@@ -946,7 +974,7 @@ const getSyncStatusText = computed(() => {
   height: 7px;
   border-radius: 50%;
   position: absolute;
-  top: 19px;
+  top: 18px;
   right: 22px;
   box-shadow: 0 0 5px 1px currentColor;
   transition: all 0.3s ease;
