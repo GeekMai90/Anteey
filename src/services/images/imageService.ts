@@ -1,9 +1,12 @@
-import { app, nativeImage, clipboard, BrowserWindow } from 'electron'
+import { app, nativeImage, clipboard, BrowserWindow, dialog } from 'electron'
 import path from 'path'
 import fs from 'fs/promises'
+import fsSync from 'fs'
 import crypto from 'crypto'
 import { db } from '../../db/config'
 import { v4 as uuidv4 } from 'uuid'
+import https from 'https'
+import http from 'http'
 
 export class ImageService {
   // 上传图片并保存到数据库
@@ -137,41 +140,100 @@ export class ImageService {
         throw new Error('图片不存在')
       }
 
-      const buffer = await fs.readFile(image.path)
-      const nativeImg = nativeImage.createFromBuffer(buffer)
-      clipboard.writeImage(nativeImg)
+      // 构建完整的图片路径
+      const imagePath = path.join(app.getPath('userData'), 'UserData', 'images', image.filename)
 
-      // 更新最后使用时间
-      await db('image_references').where({ id: imageId }).update({ lastUsed: new Date() })
+      try {
+        const buffer = await fs.readFile(imagePath)
+        const nativeImg = nativeImage.createFromBuffer(buffer)
+        clipboard.writeImage(nativeImg)
 
-      return { success: true, message: '图片已复制到剪贴板' }
+        // 更新最后使用时间
+        await db('image_references').where({ id: imageId }).update({ lastUsed: new Date() })
+
+        return { success: true, message: '图片已复制到剪贴板' }
+      } catch (error) {
+        console.error('读取图片失败:', error)
+        throw new Error('复制图片失败：无法读取图片文件')
+      }
     } catch (error) {
       console.error('复制图片失败:', error)
-      throw error
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : '复制图片失败'
+      }
     }
   }
 
   // 下载图片
   async downloadImage(url: string, filename: string): Promise<{ path: string }> {
-    const downloadPath = app.getPath('downloads')
-    const filePath = path.join(downloadPath, filename)
-
     try {
-      const { download } = await import('electron-dl')
       const win = BrowserWindow.getFocusedWindow()
       if (!win) {
         throw new Error('No focused window found')
       }
-      await download(win, url, {
-        directory: downloadPath,
-        filename: filename,
-        saveAs: true
+
+      // 打开保存文件对话框
+      const { canceled, filePath } = await dialog.showSaveDialog(win, {
+        defaultPath: path.join(app.getPath('downloads'), filename),
+        filters: [
+          { name: 'Images', extensions: ['jpg', 'jpeg', 'png', 'gif', 'webp'] },
+          { name: 'All Files', extensions: ['*'] }
+        ]
       })
+
+      if (canceled || !filePath) {
+        throw new Error('User cancelled download')
+      }
+
+      // 如果是本地图片（app-image:/// 开头）
+      if (url.startsWith('app-image:///')) {
+        const imagePath = url.replace('app-image:///', '')
+        const sourcePath = path.join(app.getPath('userData'), 'UserData', imagePath)
+        await fs.copyFile(sourcePath, filePath)
+      } else {
+        // 下载网络图片
+        await this.downloadFile(url, filePath)
+      }
+
       return { path: filePath }
     } catch (error) {
       console.error('下载图片失败:', error)
       throw error
     }
+  }
+
+  // 下载文件的辅助方法
+  private downloadFile(url: string, destPath: string): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const protocol = url.startsWith('https') ? https : http
+
+      protocol
+        .get(url, (response) => {
+          if (response.statusCode !== 200) {
+            reject(new Error(`Failed to download: ${response.statusCode}`))
+            return
+          }
+
+          const file = fsSync.createWriteStream(destPath)
+          response.pipe(file)
+
+          file.on('finish', () => {
+            file.close()
+            resolve()
+          })
+
+          file.on('error', async (err) => {
+            try {
+              await fs.unlink(destPath)
+            } catch (unlinkError) {
+              console.error('Failed to delete incomplete file:', unlinkError)
+            }
+            reject(err)
+          })
+        })
+        .on('error', reject)
+    })
   }
 
   // 清理未使用的图片
