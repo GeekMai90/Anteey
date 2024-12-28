@@ -198,8 +198,11 @@ onMounted(async () => {
     webdavStore.updateSyncState(state)
   })
 
-  // 初始化加载配置
+  // 加载配置并启动自动同步
   await webdavStore.loadConfig()
+  if (webdavStore.config?.autoSync) {
+    await window.electronAPI.startWebDAVAutoSync()
+  }
 })
 
 onUnmounted(() => {

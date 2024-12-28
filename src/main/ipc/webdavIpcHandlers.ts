@@ -37,4 +37,12 @@ export function setupWebDAVHandlers(): void {
       window.webContents.send('sync-state-changed', state)
     })
   })
+
+  ipcMain.handle('start-webdav-auto-sync', async () => {
+    await webdavService.startAutoSync()
+  })
+
+  ipcMain.handle('stop-webdav-auto-sync', async () => {
+    webdavService.stopAutoSync()
+  })
 }

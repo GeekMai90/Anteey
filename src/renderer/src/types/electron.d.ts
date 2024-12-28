@@ -395,6 +395,8 @@ export interface ElectronAPI {
 
   // WebDAV 相关方法
   getWebDAVSyncHistory: () => Promise<SyncHistory[]>
+  // 启动自动同步
+  startWebDAVAutoSync: () => Promise<void>
 }
 
 declare global {

@@ -27,6 +27,7 @@ import { v4 as uuidv4 } from 'uuid'
 import { WebDAVConfig, SyncState, SyncHistory } from '../../renderer/src/types/WebDAV'
 import { db } from '../../db/config'
 import { encrypt, decrypt } from '../utils/crypto'
+import { dialog } from 'electron'
 
 // WebDAV 模块动态导入
 let webdavModule: any = null
@@ -43,6 +44,7 @@ export class WebDAVService extends EventEmitter {
     status: 'idle',
     progress: 0
   }
+  private autoSyncTimer: NodeJS.Timeout | null = null
 
   constructor() {
     super()
@@ -68,22 +70,26 @@ export class WebDAVService extends EventEmitter {
     const id = config.id || uuidv4()
     const now = new Date()
 
+    // 先获取现有配置
+    const existingConfig = await db('webdav_config').first()
+
     const updateData = {
-      ...config,
+      ...(existingConfig || {}), // 保留现有配置
+      ...config, // 合并新配置
       id,
-      enabled: config.enabled ?? false,
-      serverType: config.serverType || 'jianguoyun',
-      syncInterval: config.syncInterval || 15,
-      autoSync: config.autoSync ?? false,
-      syncDirection: config.syncDirection || 'bidirectional',
+      updatedAt: now,
+      // 只在提供新值时才更新这些字段
+      enabled: config.enabled ?? existingConfig?.enabled ?? false,
+      serverType: config.serverType || existingConfig?.serverType || 'jianguoyun',
+      syncInterval: config.syncInterval ?? existingConfig?.syncInterval ?? 15,
+      autoSync: config.autoSync ?? existingConfig?.autoSync ?? false,
+      syncDirection: config.syncDirection || existingConfig?.syncDirection || 'bidirectional',
       syncFileTypes: config.syncFileTypes
         ? JSON.stringify(config.syncFileTypes)
-        : JSON.stringify(['all']),
-      updatedAt: now,
-      password: config.password ? encrypt(config.password) : undefined
+        : existingConfig?.syncFileTypes || JSON.stringify(['all']),
+      password: config.password ? encrypt(config.password) : existingConfig?.password
     }
 
-    const existingConfig = await db('webdav_config').first()
     if (existingConfig) {
       await db('webdav_config').update(updateData)
     } else {
@@ -91,6 +97,11 @@ export class WebDAVService extends EventEmitter {
         ...updateData,
         createdAt: now
       })
+    }
+
+    // 根据新配置更新自动同步状态
+    if (config.autoSync !== undefined || config.syncInterval !== undefined) {
+      await this.startAutoSync()
     }
 
     return this.getConfig() as Promise<WebDAVConfig>
@@ -154,25 +165,43 @@ export class WebDAVService extends EventEmitter {
 
       // 0. 确保远程根目录存在
       const client = await this.getClient()
+      this.updateState({ status: 'syncing', progress: 10, message: '检查远程目录...' })
       if (!(await client.exists('/antinet'))) {
         await client.createDirectory('/antinet')
       }
 
-      // 1. 同步数据库
-      this.updateState({ currentFile: 'antinet.sqlite', progress: 25 })
-      await this.syncDatabase()
+      // 检查是否是首次同步
+      const isFirstSync = !(await db('webdav_sync_history').first())
+      const remoteExists = await client.exists('/antinet/antinet.sqlite')
 
-      // 2. 同步图片文件夹
-      this.updateState({ currentFile: 'images/', progress: 50 })
+      // 如果是首次同步且远程已有数据，优先使用远程数据
+      if (isFirstSync && remoteExists) {
+        const shouldUseRemote = await this.confirmUseRemoteData()
+        if (shouldUseRemote) {
+          this.updateState({ status: 'syncing', progress: 30, message: '下载数据库...' })
+          await this.downloadDatabase()
+          this.updateState({ status: 'syncing', progress: 60, message: '下载图片...' })
+          await this.downloadImages()
+          this.updateState({ status: 'completed', progress: 100, message: '同步完成' })
+          await this.addSyncHistory(type, 'success')
+          return
+        }
+      }
+
+      // 正常同步流程
+      this.updateState({ status: 'syncing', progress: 30, message: '同步数据库...' })
+      await this.syncDatabase()
+      this.updateState({ status: 'syncing', progress: 60, message: '同步图片...' })
       await this.syncImages()
 
-      this.updateState({ status: 'completed', progress: 100 })
+      this.updateState({ status: 'completed', progress: 100, message: '同步完成' })
       await this.addSyncHistory(type, 'success')
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : String(error)
       this.updateState({
         status: 'error',
-        error: errorMessage
+        error: errorMessage,
+        message: '同步失败'
       })
       await this.addSyncHistory(type, 'failed', errorMessage)
       throw error
@@ -230,11 +259,20 @@ export class WebDAVService extends EventEmitter {
     const remoteFiles = await this.getRemoteImageFiles()
 
     // 同步文件
+    let completed = 0
+    const total = localFiles.length
+
     for (const file of localFiles) {
       const remotePath = path.join(remoteImagesPath, file.name).replace(/\\/g, '/')
       if (!remoteFiles.has(file.name) || file.mtime > remoteFiles.get(file.name)!) {
+        this.updateState({
+          status: 'syncing',
+          progress: 60 + Math.floor((completed / total) * 30),
+          message: `同步图片 (${completed + 1}/${total}): ${file.name}`
+        })
         await this.uploadFile(file.path, remotePath)
       }
+      completed++
     }
   }
 
@@ -347,6 +385,112 @@ export class WebDAVService extends EventEmitter {
       fileInfo.props?.['d:getlastmodified'] ||
       new Date().toISOString()
     )
+  }
+
+  // 添加确认对话框
+  private async confirmUseRemoteData(): Promise<boolean> {
+    return new Promise((resolve) => {
+      const options: Electron.MessageBoxOptions = {
+        type: 'question' as const,
+        buttons: ['使用远程数据', '使用本地数据'],
+        defaultId: 0,
+        title: '同步确认',
+        message: '检测到云端已有数据，如何处理？',
+        detail:
+          '选择"使用远程数据"将下载云端数据覆盖本地数据。\n选择"使用本地数据"将上传本地数据覆盖云端数据。'
+      }
+
+      dialog.showMessageBox(options).then(({ response }) => {
+        resolve(response === 0)
+      })
+    })
+  }
+
+  // 添加专门的下载方法
+  private async downloadDatabase(): Promise<void> {
+    // const client = await this.getClient()
+    const localPath = path.join(this.getLocalBasePath(), 'antinet.sqlite')
+    const remotePath = '/antinet/antinet.sqlite'
+
+    // 备份本地数据库
+    const backupPath = `${localPath}.backup`
+    await fs.copyFile(localPath, backupPath)
+
+    try {
+      await this.downloadFile(remotePath, localPath)
+    } catch (error) {
+      // 如果下载失败，恢复备份
+      await fs.copyFile(backupPath, localPath)
+      throw error
+    } finally {
+      // 清理备份
+      await fs.unlink(backupPath).catch(() => {})
+    }
+  }
+
+  private async downloadImages(): Promise<void> {
+    const client = await this.getClient()
+    const localImagesPath = path.join(this.getLocalBasePath(), 'images')
+    const remoteImagesPath = '/antinet/images'
+
+    // 确保本地目录存在
+    try {
+      await fs.access(localImagesPath)
+    } catch {
+      await fs.mkdir(localImagesPath, { recursive: true })
+    }
+
+    // 获取远程文件列表
+    const response = await client.getDirectoryContents(remoteImagesPath)
+    const files = Array.isArray(response) ? response : response.data
+
+    // 下载所有图片
+    let completed = 0
+    const total = files.length
+
+    for (const file of files) {
+      const localPath = path.join(localImagesPath, path.basename(file.filename))
+      const remotePath = path
+        .join(remoteImagesPath, path.basename(file.filename))
+        .replace(/\\/g, '/')
+      this.updateState({
+        status: 'syncing',
+        progress: 60 + Math.floor((completed / total) * 30),
+        message: `下载图片 (${completed + 1}/${total}): ${path.basename(file.filename)}`
+      })
+      await this.downloadFile(remotePath, localPath)
+      completed++
+    }
+  }
+
+  // 启动自动同步
+  async startAutoSync(): Promise<void> {
+    const config = await this.getConfig()
+    if (!config || !config.autoSync) return
+
+    // 清除已有的定时器
+    this.stopAutoSync()
+
+    // 设置新的定时器
+    const interval = config.syncInterval || 15
+    this.autoSyncTimer = setInterval(
+      async () => {
+        try {
+          await this.sync('auto')
+        } catch (error) {
+          console.error('自动同步失败:', error)
+        }
+      },
+      interval * 60 * 1000
+    ) // 转换为毫秒
+  }
+
+  // 停止自动同步
+  stopAutoSync(): void {
+    if (this.autoSyncTimer) {
+      clearInterval(this.autoSyncTimer)
+      this.autoSyncTimer = null
+    }
   }
 }
 

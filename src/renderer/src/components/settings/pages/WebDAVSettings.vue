@@ -172,7 +172,12 @@ const autoSync = computed({
     await webdavStore.updateConfig({ autoSync: value })
   }
 })
-const syncInterval = ref(15)
+const syncInterval = computed({
+  get: () => webdavStore.config?.syncInterval ?? 15,
+  set: async (value) => {
+    await webdavStore.updateConfig({ syncInterval: value })
+  }
+})
 
 onMounted(async () => {
   await webdavStore.loadConfig()
@@ -182,7 +187,6 @@ onMounted(async () => {
     url.value = webdavStore.config.url
     username.value = webdavStore.config.username
     password.value = webdavStore.config.password
-    syncInterval.value = webdavStore.config.syncInterval
   }
 })
 

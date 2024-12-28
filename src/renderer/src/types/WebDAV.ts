@@ -47,10 +47,11 @@ export interface SyncHistory {
 }
 
 export interface SyncState {
-  status: 'idle' | 'syncing' | 'error' | 'completed'
+  status: 'idle' | 'syncing' | 'completed' | 'error'
   progress: number
   currentFile?: string
   error?: string
+  message?: string
 }
 
 // WebDAV API 方法接口

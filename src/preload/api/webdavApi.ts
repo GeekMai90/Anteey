@@ -55,5 +55,23 @@ export const webdavApi = {
   // 添加同步状态变更监听
   syncStateChanged: (callback: (state: SyncState) => void) => {
     ipcRenderer.on('sync-state-changed', (_, state) => callback(state))
+  },
+
+  startWebDAVAutoSync: async (): Promise<void> => {
+    try {
+      await ipcRenderer.invoke('start-webdav-auto-sync')
+    } catch (error) {
+      console.error('预加载脚本 → 启动自动同步失败:', error)
+      throw error
+    }
+  },
+
+  stopWebDAVAutoSync: async (): Promise<void> => {
+    try {
+      await ipcRenderer.invoke('stop-webdav-auto-sync')
+    } catch (error) {
+      console.error('预加载脚本 → 停止自动同步失败:', error)
+      throw error
+    }
   }
 }
