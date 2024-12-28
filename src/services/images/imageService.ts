@@ -31,7 +31,7 @@ export class ImageService {
           .update({ lastUsed: new Date() })
 
         return {
-          path: `file://${existingImage.path.replace(/\\/g, '/')}`,
+          path: `app-image:///images/${path.basename(existingImage.path)}`,
           isExisting: true
         }
       }
@@ -61,7 +61,7 @@ export class ImageService {
       }
 
       return {
-        path: `file://${destPath.replace(/\\/g, '/')}`,
+        path: `app-image:///images/${fileName}`,
         isExisting: false
       }
     } catch (error) {
@@ -118,12 +118,10 @@ export class ImageService {
   async getImagePath(imageId: string): Promise<string> {
     try {
       const image = await db('image_references').where({ id: imageId }).first()
-
       if (!image) {
         throw new Error('图片不存在')
       }
-
-      return `file://${image.path}`
+      return `app-image:///images/${path.basename(image.path)}`
     } catch (error) {
       console.error('获取图片路径失败:', error)
       throw error
