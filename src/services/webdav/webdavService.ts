@@ -249,7 +249,6 @@ export class WebDAVService extends EventEmitter {
       await fs.mkdir(localImagesPath, { recursive: true })
     }
 
-    // 确保远程目录存在
     if (!(await client.exists(remoteImagesPath))) {
       await client.createDirectory(remoteImagesPath)
     }
@@ -258,21 +257,45 @@ export class WebDAVService extends EventEmitter {
     const localFiles = await this.getLocalImageFiles()
     const remoteFiles = await this.getRemoteImageFiles()
 
-    // 同步文件
-    let completed = 0
-    const total = localFiles.length
+    // 创建文件映射，用于快速查找
+    const localFileMap = new Map(localFiles.map((f) => [f.name, f]))
 
+    // 计算总任务数
+    const totalTasks = localFiles.length + remoteFiles.size
+    let completedTasks = 0
+
+    // 1. 处理本地文件上传
     for (const file of localFiles) {
       const remotePath = path.join(remoteImagesPath, file.name).replace(/\\/g, '/')
-      if (!remoteFiles.has(file.name) || file.mtime > remoteFiles.get(file.name)!) {
+      const remoteModTime = remoteFiles.get(file.name)
+
+      if (!remoteModTime || file.mtime > remoteModTime) {
         this.updateState({
           status: 'syncing',
-          progress: 60 + Math.floor((completed / total) * 30),
-          message: `同步图片 (${completed + 1}/${total}): ${file.name}`
+          progress: 60 + Math.floor((completedTasks / totalTasks) * 30),
+          message: `上传图片: ${file.name}`
         })
         await this.uploadFile(file.path, remotePath)
       }
-      completed++
+      completedTasks++
+    }
+
+    // 2. 处理远程文件下载
+    for (const [fileName, remoteModTime] of remoteFiles) {
+      const localFile = localFileMap.get(fileName)
+      const localPath = path.join(localImagesPath, fileName)
+      const remotePath = path.join(remoteImagesPath, fileName).replace(/\\/g, '/')
+
+      // 如果本地没有该文件，或远程文件更新，则下载
+      if (!localFile || remoteModTime > localFile.mtime) {
+        this.updateState({
+          status: 'syncing',
+          progress: 60 + Math.floor((completedTasks / totalTasks) * 30),
+          message: `下载图片: ${fileName}`
+        })
+        await this.downloadFile(remotePath, localPath)
+      }
+      completedTasks++
     }
   }
 
@@ -357,15 +380,22 @@ export class WebDAVService extends EventEmitter {
 
   private async getRemoteImageFiles(): Promise<Map<string, Date>> {
     const client = await this.getClient()
-    const response = await client.getDirectoryContents('/antinet/images')
-    const files = Array.isArray(response) ? response : response.data
+    try {
+      const response = await client.getDirectoryContents('/antinet/images')
+      const files = Array.isArray(response) ? response : response.data
 
-    return new Map(
-      files.map((file: FileStat) => [
-        path.basename(file.filename),
-        new Date(this.getLastModified(file))
-      ])
-    )
+      return new Map(
+        files
+          .filter((file: FileStat) => file.type === 'file') // 只处理文件，忽略目录
+          .map((file: FileStat) => [
+            path.basename(file.filename),
+            new Date(this.getLastModified(file))
+          ])
+      )
+    } catch (error) {
+      console.error('获取远程图片列表失败:', error)
+      throw error
+    }
   }
 
   private getLastModified(fileInfo: FileStat | ResponseDataDetailed<FileStat>): string {
@@ -379,12 +409,15 @@ export class WebDAVService extends EventEmitter {
       )
     }
 
-    return (
-      fileInfo.lastmod ||
-      fileInfo.props?.getlastmodified ||
-      fileInfo.props?.['d:getlastmodified'] ||
-      new Date().toISOString()
-    )
+    const lastMod =
+      fileInfo.lastmod || fileInfo.props?.getlastmodified || fileInfo.props?.['d:getlastmodified']
+
+    if (!lastMod) {
+      console.warn('无法获取文件修改时间:', fileInfo.filename)
+      return new Date().toISOString()
+    }
+
+    return lastMod
   }
 
   // 添加确认对话框
