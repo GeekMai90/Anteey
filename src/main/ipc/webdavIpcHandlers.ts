@@ -26,6 +26,11 @@ export function setupWebDAVHandlers(): void {
     return await webdavService.sync()
   })
 
+  // 获取同步历史
+  ipcMain.handle('get-webdav-sync-history', async () => {
+    return await webdavService.getSyncHistory()
+  })
+
   // 监听服务端的状态变更
   webdavService.on('sync-state-changed', (state: SyncState) => {
     BrowserWindow.getAllWindows().forEach((window) => {

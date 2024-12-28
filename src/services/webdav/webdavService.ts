@@ -24,7 +24,7 @@ import { app } from 'electron'
 import path from 'path'
 import fs from 'fs/promises'
 import { v4 as uuidv4 } from 'uuid'
-import { WebDAVConfig, SyncState } from '../../renderer/src/types/WebDAV'
+import { WebDAVConfig, SyncState, SyncHistory } from '../../renderer/src/types/WebDAV'
 import { db } from '../../db/config'
 import { encrypt, decrypt } from '../utils/crypto'
 
@@ -119,8 +119,36 @@ export class WebDAVService extends EventEmitter {
     }
   }
 
-  // 执行同步
-  async sync(): Promise<void> {
+  // 添加记录同步历史的方法
+  private async addSyncHistory(
+    type: 'auto' | 'manual',
+    status: 'success' | 'failed',
+    error?: string
+  ) {
+    try {
+      await db('webdav_sync_history').insert({
+        id: uuidv4(),
+        timestamp: new Date(),
+        type,
+        status,
+        details: JSON.stringify({
+          error,
+          syncedFiles: status === 'success' ? 1 : 0 // 这里可以统计实际同步的文件数
+        })
+      })
+    } catch (err) {
+      console.error('记录同步历史失败:', err)
+    }
+  }
+
+  // 获取同步历史
+  async getSyncHistory(): Promise<SyncHistory[]> {
+    const history = await db('webdav_sync_history').orderBy('timestamp', 'desc').limit(10) // 只显示最近10条记录
+    return history
+  }
+
+  // 修改 sync 方法，添加历史记录
+  async sync(type: 'auto' | 'manual' = 'manual'): Promise<void> {
     try {
       this.updateState({ status: 'syncing', progress: 0 })
 
@@ -139,11 +167,14 @@ export class WebDAVService extends EventEmitter {
       await this.syncImages()
 
       this.updateState({ status: 'completed', progress: 100 })
+      await this.addSyncHistory(type, 'success')
     } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error)
       this.updateState({
         status: 'error',
-        error: error instanceof Error ? error.message : String(error)
+        error: errorMessage
       })
+      await this.addSyncHistory(type, 'failed', errorMessage)
       throw error
     }
   }

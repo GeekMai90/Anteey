@@ -79,6 +79,19 @@ export const useWebDAVStore = defineStore('webdav', {
 
     updateSyncState(state: SyncState) {
       this.syncState = state
+    },
+
+    async loadSyncHistory() {
+      try {
+        this.loading = true
+        this.error = null
+        this.syncHistory = await window.electronAPI.getWebDAVSyncHistory()
+      } catch (error) {
+        this.error = error instanceof Error ? error.message : '加载同步历史失败'
+        console.error('加载同步历史失败:', error)
+      } finally {
+        this.loading = false
+      }
     }
   }
 })

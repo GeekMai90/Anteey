@@ -31,19 +31,19 @@
           <div class="form-item">
             <div class="label">服务地址</div>
             <div class="value">
-              <input type="text" v-model="url" placeholder="请输入 WebDAV 服务器地址" />
+              <input v-model="url" type="text" placeholder="请输入 WebDAV 服务器地址" />
             </div>
           </div>
           <div class="form-item">
             <div class="label">用户名</div>
             <div class="value">
-              <input type="text" v-model="username" placeholder="请输入用户名" />
+              <input v-model="username" type="text" placeholder="请输入用户名" />
             </div>
           </div>
           <div class="form-item">
             <div class="label">密码</div>
             <div class="value">
-              <input type="password" v-model="password" placeholder="请输入密码" />
+              <input v-model="password" type="password" placeholder="请输入密码" />
             </div>
           </div>
           <div class="webdav-actions">
@@ -87,7 +87,7 @@
               </div>
             </div>
           </div>
-          <div class="form-item" v-if="autoSync">
+          <div v-if="autoSync" class="form-item">
             <div class="label">同步间隔</div>
             <div class="value">
               <select v-model="syncInterval">
@@ -152,7 +152,7 @@
 <script setup lang="ts">
 import { CloudStorage } from '@icon-park/vue-next'
 import { useWebDAVStore } from '@renderer/stores/webdavStore'
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import type { WebDAVServerType } from '../../../types/WebDAV'
 import { message } from '../../../utils/message'
 
@@ -176,6 +176,7 @@ const syncInterval = ref(15)
 
 onMounted(async () => {
   await webdavStore.loadConfig()
+  await webdavStore.loadSyncHistory()
   if (webdavStore.config) {
     serverType.value = webdavStore.config.serverType
     url.value = webdavStore.config.url
@@ -229,10 +230,21 @@ async function handleSync() {
   try {
     await webdavStore.sync()
     message.success('同步完成')
+    // 同步完成后重新加载历史记录
+    await webdavStore.loadSyncHistory()
   } finally {
     isSyncing.value = false
   }
 }
+
+// 添加调试代码
+watch(
+  () => webdavStore.syncHistory,
+  (history) => {
+    console.log('同步历史更新:', history)
+  },
+  { deep: true }
+)
 </script>
 
 <style scoped lang="scss">

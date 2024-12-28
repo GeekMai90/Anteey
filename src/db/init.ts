@@ -801,14 +801,8 @@ export async function initDatabase(db: Knex): Promise<void> {
       table.datetime('timestamp').notNullable()
       table.string('type').notNullable() // 'auto' | 'manual'
       table.string('status').notNullable() // 'success' | 'failed'
-      table.text('details').notNullable() // JSON字符串
-      table.text('errorMessage').nullable()
-      table.integer('syncedFiles').nullable()
-
-      // 索引
-      table.index('timestamp')
-      table.index('type')
-      table.index('status')
+      table.text('details').notNullable() // JSON 字符串
+      table.datetime('createdAt').notNullable().defaultTo(db.fn.now())
     })
     console.log('webdav_sync_history 表创建成功')
   }

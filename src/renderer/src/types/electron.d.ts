@@ -26,6 +26,7 @@ import { ActivationResult, License } from './license'
 import type { BackupSettings, BackupHistory } from './backup'
 import type { FutureLog, MonthlyLog, TimeBlockDay, TimeBlockSettings } from './timeBlock'
 import { SyncState, WebDAVConfig } from './WebDAV'
+import { SyncHistory } from './WebDAV'
 
 // 添加图片相关的类型定义
 interface ImageInfo {
@@ -387,10 +388,13 @@ export interface ElectronAPI {
   syncWebDAV: () => Promise<void>
 
   // 获取 WebDAV 配置
-  getWebDAVConfig: () => Promise<WebDAVConfig>
+  getWebDAVConfig: () => Promise<WebDAVConfig | null>
 
   // 更新 WebDAV 配置
   updateWebDAVConfig: (config: Partial<WebDAVConfig>) => Promise<WebDAVConfig>
+
+  // WebDAV 相关方法
+  getWebDAVSyncHistory: () => Promise<SyncHistory[]>
 }
 
 declare global {

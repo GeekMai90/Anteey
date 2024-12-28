@@ -1,5 +1,5 @@
 import { ipcRenderer } from 'electron'
-import type { WebDAVConfig, SyncState } from '../../renderer/src/types/WebDAV'
+import type { WebDAVConfig, SyncState, SyncHistory } from '../../renderer/src/types/WebDAV'
 
 export const webdavApi = {
   // 获取 WebDAV 配置
@@ -38,6 +38,16 @@ export const webdavApi = {
       await ipcRenderer.invoke('sync-webdav')
     } catch (error) {
       console.error('预加载脚本 → WebDAV 同步失败:', error)
+      throw error
+    }
+  },
+
+  // 获取同步历史
+  getWebDAVSyncHistory: async (): Promise<SyncHistory[]> => {
+    try {
+      return await ipcRenderer.invoke('get-webdav-sync-history')
+    } catch (error) {
+      console.error('预加载脚本 → 获取同步历史失败:', error)
       throw error
     }
   },
