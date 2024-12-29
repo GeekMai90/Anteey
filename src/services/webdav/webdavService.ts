@@ -246,6 +246,9 @@ export class WebDAVService extends EventEmitter {
   // 同步图片文件夹
   private async syncImages(): Promise<void> {
     const client = await this.getClient()
+    const config = await this.getConfig()
+    if (!config) throw new Error('WebDAV 配置不存在')
+
     const localImagesPath = path.join(this.getLocalBasePath(), 'images')
     const remoteImagesPath = '/antinet/images'
 
@@ -266,42 +269,77 @@ export class WebDAVService extends EventEmitter {
 
     // 创建文件映射，用于快速查找
     const localFileMap = new Map(localFiles.map((f) => [f.name, f]))
+    const remoteFileNames = Array.from(remoteFiles.keys())
+
+    // 根据同步方向处理文件
+    const syncDirection = config.syncDirection || 'bidirectional'
+
+    // 计算需要处理的文件
+    let filesToDelete: string[] = []
+    let filesToDownload: string[] = []
+
+    if (syncDirection === 'upload' || syncDirection === 'bidirectional') {
+      // 如果是上传或双向同步，删除远程多余的文件
+      filesToDelete = remoteFileNames.filter((fileName) => !localFileMap.has(fileName))
+    }
+
+    if (syncDirection === 'download') {
+      // 如果是下载同步，则下载所有远程文件
+      filesToDownload = remoteFileNames.filter((fileName) => !localFileMap.has(fileName))
+    } else if (syncDirection === 'bidirectional') {
+      // 如果是双向同步，则只下载比本地新的文件
+      filesToDownload = remoteFileNames.filter((fileName) => {
+        const localFile = localFileMap.get(fileName)
+        const remoteModTime = remoteFiles.get(fileName)
+        return localFile && remoteModTime && remoteModTime > localFile.mtime
+      })
+    }
 
     // 计算总任务数
-    const totalTasks = localFiles.length + remoteFiles.size
+    const totalTasks = localFiles.length + filesToDownload.length + filesToDelete.length
     let completedTasks = 0
 
     // 1. 处理本地文件上传
-    for (const file of localFiles) {
-      const remotePath = path.join(remoteImagesPath, file.name).replace(/\\/g, '/')
-      const remoteModTime = remoteFiles.get(file.name)
+    if (syncDirection === 'upload' || syncDirection === 'bidirectional') {
+      for (const file of localFiles) {
+        const remotePath = path.join(remoteImagesPath, file.name).replace(/\\/g, '/')
+        const remoteModTime = remoteFiles.get(file.name)
 
-      if (!remoteModTime || file.mtime > remoteModTime) {
-        this.updateState({
-          status: 'syncing',
-          progress: 60 + Math.floor((completedTasks / totalTasks) * 30),
-          message: `上传图片: ${file.name}`
-        })
-        await this.uploadFile(file.path, remotePath)
+        if (!remoteModTime || file.mtime > remoteModTime) {
+          this.updateState({
+            status: 'syncing',
+            progress: 60 + Math.floor((completedTasks / totalTasks) * 30),
+            message: `上传图片: ${file.name}`
+          })
+          await this.uploadFile(file.path, remotePath)
+        }
+        completedTasks++
       }
-      completedTasks++
     }
 
-    // 2. 处理远程文件下载
-    for (const [fileName, remoteModTime] of remoteFiles) {
-      const localFile = localFileMap.get(fileName)
+    // 2. 处理需要下载的文件
+    for (const fileName of filesToDownload) {
       const localPath = path.join(localImagesPath, fileName)
       const remotePath = path.join(remoteImagesPath, fileName).replace(/\\/g, '/')
 
-      // 如果本地没有该文件，或远程文件更新，则下载
-      if (!localFile || remoteModTime > localFile.mtime) {
-        this.updateState({
-          status: 'syncing',
-          progress: 60 + Math.floor((completedTasks / totalTasks) * 30),
-          message: `下载图片: ${fileName}`
-        })
-        await this.downloadFile(remotePath, localPath)
-      }
+      this.updateState({
+        status: 'syncing',
+        progress: 60 + Math.floor((completedTasks / totalTasks) * 30),
+        message: `下载图片: ${fileName}`
+      })
+      await this.downloadFile(remotePath, localPath)
+      completedTasks++
+    }
+
+    // 3. 处理需要删除的远程文件
+    for (const fileName of filesToDelete) {
+      const remotePath = path.join(remoteImagesPath, fileName).replace(/\\/g, '/')
+      this.updateState({
+        status: 'syncing',
+        progress: 60 + Math.floor((completedTasks / totalTasks) * 30),
+        message: `删除远程图片: ${fileName}`
+      })
+      await client.deleteFile(remotePath)
       completedTasks++
     }
   }
