@@ -7,6 +7,7 @@ import { db } from '../../db/config'
 import { v4 as uuidv4 } from 'uuid'
 import https from 'https'
 import http from 'http'
+import { ImageQueryParams, ImageQueryResult } from '../../renderer/src/types/Image'
 
 export class ImageService {
   // 上传图片并保存到数据库
@@ -464,6 +465,152 @@ export class ImageService {
       return
     } catch (error) {
       console.error('删除图片关联失败:', error)
+      throw error
+    }
+  }
+
+  // 获取图片列表
+  async getImages(params: ImageQueryParams): Promise<ImageQueryResult> {
+    try {
+      console.log('imageService → 开始获取图片列表，参数:', params)
+
+      // 1. 构建基础查询
+      const baseQuery = db('image_references as ir').select(
+        'ir.id',
+        'ir.filename',
+        'ir.path',
+        'ir.hash',
+        'ir.size',
+        'ir.createdAt',
+        'ir.lastUsed'
+      )
+
+      // 2. 获取引用计数
+      const imageRefs = await db('note_images')
+        .select('imageId')
+        .count('noteId as count')
+        .groupBy('imageId')
+      console.log('imageService → 获取到图片引用计数:', imageRefs)
+
+      // 将引用计数转换为 Map
+      const refCountMap = new Map(imageRefs.map((ref) => [ref.imageId, Number(ref.count)]))
+      console.log('imageService → 引用计数 Map:', Object.fromEntries(refCountMap))
+
+      // 3. 应用状态过滤
+      if (params.status === 'orphaned') {
+        const usedImageIds = Array.from(refCountMap.keys())
+        baseQuery.whereNotIn('ir.id', usedImageIds)
+      } else if (params.status === 'linked') {
+        const usedImageIds = Array.from(refCountMap.keys())
+        baseQuery.whereIn('ir.id', usedImageIds)
+      }
+
+      // 4. 应用排序
+      if (params.sortBy) {
+        const order = params.sortOrder || 'desc'
+        baseQuery.orderBy(`ir.${params.sortBy}`, order)
+      }
+
+      // 5. 获取总数和总大小
+      const [{ total, totalSize }] = await db('image_references')
+        .count('* as total')
+        .sum('size as totalSize')
+      console.log('imageService → 总数和总大小:', { total, totalSize })
+
+      // 6. 应用分页
+      if (params.page !== undefined && params.pageSize !== undefined) {
+        const offset = (params.page - 1) * params.pageSize
+        baseQuery.offset(offset).limit(params.pageSize)
+      }
+
+      // 7. 执行主查询
+      const rawImages = await baseQuery
+      console.log('imageService → 原始图片数据:', rawImages)
+
+      // 8. 处理结果
+      const images = await Promise.all(
+        rawImages.map(async (img) => {
+          console.log('imageService → 处理单个图片:', img)
+          const usageCount = refCountMap.get(img.id) || 0
+          const isOrphan = usageCount === 0
+
+          interface NoteRef {
+            id: string
+            title: string
+          }
+
+          let notes: NoteRef[] = []
+          if (!isOrphan) {
+            notes = await db('note_images as ni')
+              .join('notes as n', 'ni.noteId', 'n.id')
+              .where('ni.imageId', img.id)
+              .select('n.id', db.raw("json_extract(n.metadata, '$.title') as title"))
+          }
+
+          // 直接使用数据库中的时间戳
+          const createdAt = img.createdAt ? Number(img.createdAt) : null
+          const lastUsed = img.lastUsed ? Number(img.lastUsed) : null
+          console.log('imageService → 处理时间戳:', {
+            createdAt,
+            lastUsed,
+            original: { createdAt: img.createdAt, lastUsed: img.lastUsed }
+          })
+
+          const processed = {
+            id: img.id,
+            filename: img.filename,
+            path: img.path,
+            hash: img.hash,
+            size: Number(img.size),
+            createdAt,
+            lastUsed,
+            isOrphan,
+            usageCount,
+            notes: notes.length > 0 ? notes : undefined
+          }
+          console.log('imageService → 处理后的图片数据:', processed)
+          return processed
+        })
+      )
+
+      const result = {
+        images,
+        total: Number(total || 0),
+        totalSize: Number(totalSize || 0),
+        orphanedCount: images.filter((img) => img.isOrphan).length
+      }
+      console.log('imageService → 最终返回数据:', result)
+      return result
+    } catch (error) {
+      console.error('imageService → 获取图片列表失败:', error)
+      throw error
+    }
+  }
+
+  // 批量删除图片
+  async deleteImages(imageIds: string[]): Promise<{ success: boolean; deletedCount: number }> {
+    const trx = await db.transaction()
+    try {
+      // 1. 删除文件
+      for (const id of imageIds) {
+        const image = await trx('image_references').where({ id }).first()
+        if (image) {
+          const imagePath = path.join(app.getPath('userData'), 'UserData', 'images', image.filename)
+          await fs.unlink(imagePath)
+        }
+      }
+
+      // 2. 删除关联关系
+      await trx('note_images').whereIn('imageId', imageIds).delete()
+
+      // 3. 删除数据库记录
+      const deletedCount = await trx('image_references').whereIn('id', imageIds).delete()
+
+      await trx.commit()
+      return { success: true, deletedCount }
+    } catch (error) {
+      await trx.rollback()
+      console.error('删除图片失败:', error)
       throw error
     }
   }

@@ -7,6 +7,17 @@
       v-click-outside="closeSettingDropdown"
       class="setting-dropdown-menu"
     >
+      <div class="image-manager setting-dropdown-item" @click.stop="handleImageManagerClick">
+        <div class="icon">
+          <ImageFiles
+            theme="outline"
+            size="20"
+            fill="var(--color-icon-menu-default)"
+            :strokeWidth="3"
+          />
+        </div>
+        <div class="name">图片管理</div>
+      </div>
       <div class="recycle-bin setting-dropdown-item" @click.stop="handleRecycleBinClick">
         <div class="icon">
           <RecycleBin
@@ -35,7 +46,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch } from 'vue'
-import { RecycleBin, SettingTwo } from '@icon-park/vue-next'
+import { RecycleBin, SettingTwo, ImageFiles } from '@icon-park/vue-next'
 import { useRouter } from 'vue-router'
 import { useUIStore } from '@renderer/stores/useUIStore'
 
@@ -54,6 +65,11 @@ const handleRecycleBinClick = () => {
 
 const handleSettingsClick = () => {
   uiStore.openSettingsPage()
+  uiStore.closeSettingDropdown()
+}
+
+const handleImageManagerClick = () => {
+  router.push('/image-manager')
   uiStore.closeSettingDropdown()
 }
 

@@ -1,5 +1,6 @@
 import { ipcMain } from 'electron'
 import { ImageService } from '../../services/images/imageService'
+import { ImageQueryParams } from '../../renderer/src/types/Image'
 
 const imageService = new ImageService()
 
@@ -93,4 +94,42 @@ export function setupImageHandlers() {
       }
     }
   )
+
+  // 获取图片列表
+  ipcMain.handle('get-images', async (_event, params: ImageQueryParams) => {
+    try {
+      console.log('ipcHandler → 接收到获取图片列表请求，参数:', params)
+      const result = await imageService.getImages(params)
+      console.log('ipcHandler → 从 imageService 获取到数据:', result)
+
+      const response = {
+        success: true,
+        data: {
+          images: result.images,
+          total: result.total,
+          totalSize: result.totalSize,
+          orphanedCount: result.orphanedCount
+        }
+      }
+      console.log('ipcHandler → 返回给渲染进程的数据:', response)
+      return response
+    } catch (error) {
+      console.error('ipcHandler → 获取图片列表失败:', error)
+      return { success: false, error: String(error) }
+    }
+  })
+
+  // 删除图片
+  ipcMain.handle('delete-images', async (_event, imageIds: string[]) => {
+    try {
+      const result = await imageService.deleteImages(imageIds)
+      return {
+        success: true,
+        deletedCount: result.deletedCount
+      }
+    } catch (error) {
+      console.error('主进程→ 删除图片失败:', error)
+      return { success: false, error: String(error) }
+    }
+  })
 }

@@ -1,4 +1,5 @@
 import { ipcRenderer } from 'electron'
+import { ImageQueryParams, ImageQueryResult, ImageWithStatus } from '../../renderer/src/types/Image'
 
 interface ImageInfo {
   id: string
@@ -94,6 +95,61 @@ export const imageApi = {
       if (!result.success) throw new Error(result.error)
     } catch (error) {
       console.error('预加载脚本 → 删除笔记图片失败:', error)
+      throw error
+    }
+  },
+
+  // 获取图片列表
+  getImages: async (params: ImageQueryParams): Promise<ImageQueryResult> => {
+    try {
+      console.log('imageApi → 开始调用 IPC 获取图片列表，参数:', params)
+      const result = await ipcRenderer.invoke('get-images', params)
+      console.log('imageApi → IPC 返回原始数据:', result)
+
+      if (!result.success) {
+        console.error('imageApi → IPC 调用失败:', result.error)
+        throw new Error(result.error)
+      }
+
+      // 确保返回的数据符合 ImageQueryResult 类型
+      const { images, total, totalSize, orphanedCount } = result.data
+      console.log('imageApi → 解构后的数据:', { images, total, totalSize, orphanedCount })
+
+      const processedImages = images.map((img: ImageWithStatus) => {
+        console.log('imageApi → 处理单个图片数据:', img)
+        const processed = {
+          ...img,
+          createdAt: Number(img.createdAt),
+          lastUsed: Number(img.lastUsed)
+        }
+        console.log('imageApi → 处理后的图片数据:', processed)
+        return processed
+      })
+
+      const response = {
+        images: processedImages,
+        total,
+        totalSize,
+        orphanedCount
+      }
+      console.log('imageApi → 最终返回数据:', response)
+      return response
+    } catch (error) {
+      console.error('imageApi → 获取图片列表失败:', error)
+      throw error
+    }
+  },
+
+  // 删除图片
+  deleteImages: async (imageIds: string[]): Promise<{ deletedCount: number }> => {
+    try {
+      const result = await ipcRenderer.invoke('delete-images', imageIds)
+      if (!result.success) {
+        throw new Error(result.error)
+      }
+      return { deletedCount: result.deletedCount }
+    } catch (error) {
+      console.error('预加载脚本 → 删除图片失败:', error)
       throw error
     }
   }

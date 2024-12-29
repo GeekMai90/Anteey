@@ -27,13 +27,7 @@ import type { BackupSettings, BackupHistory } from './backup'
 import type { FutureLog, MonthlyLog, TimeBlockDay, TimeBlockSettings } from './timeBlock'
 import { SyncState, WebDAVConfig } from './WebDAV'
 import { SyncHistory } from './WebDAV'
-
-// 添加图片相关的类型定义
-interface ImageInfo {
-  id: string
-  path: string
-  filename: string
-}
+import { ImageQueryParams, ImageQueryResult, ImageInfo } from './Image'
 
 export interface ElectronAPI {
   createNote: () => Promise<Note>
@@ -299,22 +293,11 @@ export interface ElectronAPI {
 
   // 图片相关的方法
   uploadImage: (filePath: string, noteId: string) => Promise<{ path: string; isExisting: boolean }>
-
   getNoteImages: (noteId: string) => Promise<ImageInfo[]>
-
   getImagePath: (imageId: string) => Promise<string>
-
-  copyImage: (imageId: string) => Promise<{
-    success: boolean
-    message: string
-  }>
-
+  copyImage: (imageId: string) => Promise<{ success: boolean; message: string }>
   downloadImage: (url: string, filename: string) => Promise<{ path: string }>
-
-  cleanupUnusedImages: () => Promise<{
-    count: number
-    message: string
-  }>
+  cleanupUnusedImages: () => Promise<{ count: number; message: string }>
   removeImageFromNote: (noteId: string, imageId: string) => Promise<void>
   // 激活相关
   getMachineId: () => Promise<string>
@@ -398,6 +381,10 @@ export interface ElectronAPI {
   getWebDAVSyncHistory: () => Promise<SyncHistory[]>
   // 启动自动同步
   startWebDAVAutoSync: () => Promise<void>
+
+  // 添加新的图片管理方法
+  getImages: (params: ImageQueryParams) => Promise<ImageQueryResult>
+  deleteImages: (imageIds: string[]) => Promise<{ deletedCount: number }>
 }
 
 declare global {
