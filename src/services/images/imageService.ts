@@ -1,4 +1,4 @@
-import { app, nativeImage, clipboard, BrowserWindow, dialog } from 'electron'
+import { app, nativeImage, clipboard, BrowserWindow, dialog, shell } from 'electron'
 import path from 'path'
 import fs from 'fs/promises'
 import fsSync from 'fs'
@@ -238,28 +238,6 @@ export class ImageService {
   }
 
   // 清理未使用的图片
-  // async cleanupUnusedImages(): Promise<number> {
-  //   try {
-  //     const unusedImages = await db('image_references as ir')
-  //       .leftJoin('note_images as ni', 'ir.id', 'ni.imageId')
-  //       .whereNull('ni.noteId')
-  //       .select('ir.*')
-
-  //     for (const image of unusedImages) {
-  //       try {
-  //         await fs.unlink(image.path) // 删除物理文件
-  //         await db('image_references').where('id', image.id).delete()
-  //       } catch (error) {
-  //         console.error(`清理图片失败: ${image.path}`, error)
-  //       }
-  //     }
-
-  //     return unusedImages.length
-  //   } catch (error) {
-  //     console.error('清理未使用图片失败:', error)
-  //     throw error
-  //   }
-  // }
   async cleanupUnusedImages(): Promise<{ deleted: number; errors: string[] }> {
     try {
       console.log('开始清理未使用的图片')
@@ -277,8 +255,8 @@ export class ImageService {
       let deletedCount = 0
       for (const image of unusedImages) {
         try {
-          // 删除物理文件
-          await fs.unlink(image.path)
+          // 将文件移动到回收站
+          await shell.trashItem(image.path)
           // 删除数据库记录
           await db('image_references').where('id', image.id).delete()
           deletedCount++
@@ -302,7 +280,7 @@ export class ImageService {
       for (const file of files) {
         if (!dbFilenames.has(file)) {
           try {
-            await fs.unlink(path.join(imagesDir, file))
+            await shell.trashItem(path.join(imagesDir, file))
             deletedCount++
             console.log(`删除孤立文件: ${file}`)
           } catch (error: unknown) {
@@ -324,82 +302,8 @@ export class ImageService {
   }
 
   // 删除笔记和图片的关联
-  // async removeImageFromNote(noteId: string, imageId: string): Promise<void> {
-  //   try {
-  //     // 修改 SQL 查询的写法，使用对象形式传递参数
-  //     await db('note_images')
-  //       .where({
-  //         noteId: noteId,
-  //         imageId: imageId
-  //       })
-  //       .delete()
-
-  //     // 检查这个图片是否还被其他笔记引用
-  //     const result = await db('note_images').where({ imageId }).count('* as count').first()
-
-  //     // 确保 result 存在且有 count 属性
-  //     if (result && result.count === 0) {
-  //       await this.cleanupUnusedImages()
-  //     }
-  //   } catch (error) {
-  //     console.error('删除图片关联失败:', error)
-  //     throw error
-  //   }
-  // }
-  // async removeImageFromNote(noteId: string, imageId: string): Promise<void> {
-  //   try {
-  //     // 添加参数验证
-  //     if (!noteId || !imageId) {
-  //       console.error('参数无效:', { noteId, imageId })
-  //       throw new Error('Invalid parameters: noteId and imageId are required')
-  //     }
-
-  //     console.log('开始删除图片关联:', { noteId, imageId }) // 添加日志
-
-  //     // 先检查关联是否存在
-  //     const existingRelation = await db('note_images')
-  //       .where({
-  //         noteId: noteId,
-  //         imageId: imageId
-  //       })
-  //       .first()
-
-  //     if (!existingRelation) {
-  //       console.log('关联记录不存在:', { noteId, imageId })
-  //       return
-  //     }
-
-  //     // 删除关联
-  //     const deleteResult = await db('note_images')
-  //       .where({
-  //         noteId: noteId,
-  //         imageId: imageId
-  //       })
-  //       .delete()
-
-  //     console.log('删除关联结果:', { deleteResult }) // 添加日志
-
-  //     // 检查这个图片是否还被其他笔记引用
-  //     const result = await db('note_images').where({ imageId }).count('* as count').first()
-
-  //     console.log('引用计数结果:', result) // 添加日志
-
-  //     // 确保 result 存在且有 count 属性
-  //     if (result && Number(result.count) === 0) {
-  //       console.log('开始清理未使用的图片') // 添加日志
-  //       await this.cleanupUnusedImages()
-  //     }
-
-  //     return
-  //   } catch (error) {
-  //     console.error('删除图片关联失败:', error)
-  //     throw error
-  //   }
-  // }
-
   async removeImageFromNote(noteId: string, imageId: string): Promise<void> {
     try {
-      // 添加参数验证
       if (!noteId || !imageId) {
         console.error('参数无效:', { noteId, imageId })
         throw new Error('Invalid parameters: noteId and imageId are required')
@@ -444,13 +348,13 @@ export class ImageService {
 
         if (image) {
           try {
-            // 删除物理文件
-            await fs.unlink(image.path)
-            // console.log('成功删除图片文件:', image.path)
+            // 将文件移动到回收站而不是直接删除
+            await shell.trashItem(image.path)
+            console.log('成功将图片移动到回收站:', image.path)
 
             // 删除数据库记录
             await db('image_references').where('id', imageId).delete()
-            // console.log('成功删除图片数据库记录:', imageId)
+            console.log('成功删除图片数据库记录:', imageId)
           } catch (error) {
             console.error(`删除图片文件失败: ${image.path}`, error)
             throw error
@@ -591,12 +495,12 @@ export class ImageService {
   async deleteImages(imageIds: string[]): Promise<{ success: boolean; deletedCount: number }> {
     const trx = await db.transaction()
     try {
-      // 1. 删除文件
+      // 1. 将文件移动到回收站
       for (const id of imageIds) {
         const image = await trx('image_references').where({ id }).first()
         if (image) {
           const imagePath = path.join(app.getPath('userData'), 'UserData', 'images', image.filename)
-          await fs.unlink(imagePath)
+          await shell.trashItem(imagePath)
         }
       }
 
