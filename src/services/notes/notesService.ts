@@ -1101,7 +1101,7 @@ export async function restoreNote(id: string): Promise<void> {
   }
 }
 
-// 获取所有已删除���笔记
+// 获取所有已删除的笔记
 export async function getDeletedNotes(): Promise<Note[]> {
   try {
     const notes = await db('notes').where('isDeleted', true).orderBy('updatedAt', 'desc')
@@ -1122,17 +1122,6 @@ export async function permanentDeleteNote(id: string): Promise<void> {
     throw error
   }
 }
-
-// //添加笔记到卡片盒
-// export async function addNoteToCardBox(cardBoxId: string, noteId: string): Promise<void> {
-//   try {
-//     await db('notes').where('id', noteId).update({ cardBoxId: cardBoxId })
-//     console.log(`后端→ 添加笔记到卡片盒: ${noteId}`)
-//   } catch (error) {
-//     console.error(`后端→ 添加笔记到卡片盒失败: ${noteId}:`, error)
-//     throw error
-//   }
-// }
 
 // 添加星标收藏
 export async function addStarToNote(id: string): Promise<Note> {
