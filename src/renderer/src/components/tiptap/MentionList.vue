@@ -209,7 +209,7 @@ defineExpose({
   }
 
   .suggestions {
-    background-color: #f0f0f0;
+    background-color: var(--sidebar-bg);
     border-radius: 8px;
     padding: 16px;
     text-align: left;
@@ -318,7 +318,7 @@ defineExpose({
 
 .preview-container {
   width: 40%;
-  background-color: white;
+  background-color: var(--color-bg-primary);
   border: var(--color-border) 1px solid;
   border-radius: 8px;
   overflow-y: auto;

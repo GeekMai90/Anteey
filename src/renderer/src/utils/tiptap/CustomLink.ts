@@ -1,30 +1,43 @@
+/**
+ * CustomLink 扩展
+ * 这是一个基于 Tiptap Link 扩展的自定义链接组件
+ * 主要功能：
+ * 1. 支持笔记间的双向链接（通过 @提及 或 [[id:title]] 语法）
+ * 2. 支持外部链接（http/https）
+ * 3. 支持 DevonThink 链接
+ * 4. 自动维护笔记间的引用关系
+ */
+
 import { Link } from '@tiptap/extension-link'
 import { mergeAttributes } from '@tiptap/core'
 import { Node as ProsemirrorNode, Mark } from 'prosemirror-model'
 import { useNoteStore } from '../../stores/noteStores'
 import { useEventBus } from '@vueuse/core'
+import { TextSelection } from '@tiptap/pm/state'
 
-// 创建一个事件总线实例
+// 创建一个事件总线实例，用于在引用关系更新时通知相关组件
 const referencesUpdatedBus = useEventBus('references-updated')
 
-// 扩展 LinkOptions 类型
+// 定义链接扩展的配置选项接口
 interface CustomLinkOptions {
-  noteId?: string
-  openOnClick: boolean
-  linkOnPaste: boolean
-  validate: (url: string) => boolean
+  noteId?: string // 当前笔记的 ID
+  openOnClick: boolean // 是否在点击时打开链接
+  linkOnPaste: boolean // 是否在粘贴时自动创建链接
+  validate: (url: string) => boolean // 链接验证函数
 }
 
 export const CustomLink = Link.extend<CustomLinkOptions>({
   name: 'link',
-  inclusive: true, // 设置为 true，使链接作为一个整体
+  inclusive: false, // 设置为 false，防止链接吸收后续文本
 
+  // 配置选项
   addOptions() {
     return {
       ...this.parent?.(),
       openOnClick: false,
       linkOnPaste: true,
       noteId: '',
+      // 验证链接格式：支持 http/https、note://、devonthink 链接和 [[id:title]] 格式
       validate: (url: string) => {
         return (
           /^(https?:\/\/|note:\/\/|x-devonthink-item:\/\/)/.test(url) ||
@@ -34,14 +47,16 @@ export const CustomLink = Link.extend<CustomLinkOptions>({
     }
   },
 
+  // 添加存储，用于跟踪链接的变化
   addStorage() {
     return {
-      previousLinks: new Set<string>()
+      previousLinks: new Set<string>() // 存储上一次的链接集合，用于检测变化
     }
   },
 
+  // 组件创建时的处理
   onCreate() {
-    // 初始化时收集当前文档中的所有链接
+    // 初始化时收集当前文档中的所有笔记链接
     const links = new Set<string>()
     this.editor.state.doc.descendants((node: ProsemirrorNode) => {
       if (node.type.name === 'text' && node.marks.length > 0) {
@@ -58,8 +73,9 @@ export const CustomLink = Link.extend<CustomLinkOptions>({
     this.storage.previousLinks = links
   },
 
+  // 内容更新时的处理
   onUpdate() {
-    // 获取当前文档中所有的引用链接
+    // 获取当前文档中所有的笔记链接
     const currentLinks = new Set<string>()
     this.editor.state.doc.descendants((node: ProsemirrorNode) => {
       if (node.type.name === 'text' && node.marks.length > 0) {
@@ -74,10 +90,8 @@ export const CustomLink = Link.extend<CustomLinkOptions>({
       }
     })
 
-    // 找出新增的链接
+    // 对比找出新增和删除的链接
     const addedLinks = Array.from(currentLinks).filter((id) => !this.storage.previousLinks.has(id))
-
-    // 找出被删除的链接
     const deletedLinks = Array.from(this.storage.previousLinks).filter(
       (id) => !currentLinks.has(id as string)
     )
@@ -86,44 +100,71 @@ export const CustomLink = Link.extend<CustomLinkOptions>({
       const noteStore = useNoteStore()
       const currentNoteId = this.options.noteId
 
-      // 处理新增的链接
+      // 处理新增的链接：创建引用关系
       addedLinks.forEach((targetNoteId) => {
         setTimeout(async () => {
           try {
-            // 获取当前节点的文本内容作为上下文
-            let context = ''
+            // 获取目标笔记的信息
+            const targetNote = await noteStore.fetchNote(targetNoteId)
+            if (!targetNote) return
+
+            // 构造显示文本：编码地址 + 标题
+            const displayText = `${targetNote.address || '未设置编码地址'} ${targetNote.metadata?.title || '未命名笔记'}`
+
+            // 更新链接文本
             let position = 0
             this.editor.state.doc.descendants((node: ProsemirrorNode, pos: number) => {
               if (node.type.name === 'text' && node.marks.length > 0) {
                 node.marks.forEach((mark: Mark) => {
                   if (mark.type.name === 'link' && mark.attrs['data-note-id'] === targetNoteId) {
-                    context = node.text || ''
                     position = pos
+                    // 创建文本选区并更新链接文本，保持链接标记
+                    const transaction = this.editor.state.tr
+
+                    // 创建带有链接标记的新文本节点
+                    const text = this.editor.state.schema.text(displayText)
+                    const linkMark = mark.type.create({
+                      ...mark.attrs,
+                      href: `note://${targetNoteId}`,
+                      class: 'note-reference-link',
+                      'data-note-id': targetNoteId
+                    })
+                    const newNode = text.mark([linkMark])
+
+                    // 替换原有节点
+                    transaction.replaceWith(pos, pos + node.nodeSize, newNode)
+
+                    // 先应用替换操作
+                    this.editor.view.dispatch(transaction)
+
+                    // 然后创建新的 transaction 来设置光标位置
+                    const moveSelection = this.editor.state.tr.setSelection(
+                      TextSelection.create(this.editor.state.doc, pos + displayText.length)
+                    )
+                    this.editor.view.dispatch(moveSelection)
                   }
                 })
               }
             })
 
-            // 获取目标笔记的信息
-            const targetNote = await noteStore.fetchNote(targetNoteId)
-
+            // 创建笔记引用关系
             await noteStore.createNoteReference({
               sourceNoteId: currentNoteId,
               targetNoteId: targetNoteId,
               type: 'reference',
               context: {
-                text: context,
+                text: displayText,
                 position: position
               },
               metadata: {
-                title: targetNote?.title || context,
-                preview: context,
-                cardType: targetNote?.cardType,
-                address: targetNote?.address
+                title: targetNote.title || '未命名笔记',
+                preview: displayText,
+                cardType: targetNote.cardType,
+                address: targetNote.address
               }
             })
 
-            // 创建引用关系后触发更新事件
+            // 通知其他组件引用关系已更新
             referencesUpdatedBus.emit(currentNoteId)
           } catch (error) {
             console.error('创建引用关系失败:', error)
@@ -131,7 +172,7 @@ export const CustomLink = Link.extend<CustomLinkOptions>({
         }, 0)
       })
 
-      // 处理删除的链接
+      // 处理删除的链接：删除引用关系
       deletedLinks.forEach((targetNoteId) => {
         setTimeout(async () => {
           try {
@@ -141,7 +182,7 @@ export const CustomLink = Link.extend<CustomLinkOptions>({
             })
             console.log('引用关系删除成功:', targetNoteId)
 
-            // 删除引用关系后触发更新事件
+            // 通知其他组件引用关系已更新
             referencesUpdatedBus.emit(currentNoteId)
           } catch (error) {
             console.error('删除引用关系失败:', error)
@@ -154,12 +195,14 @@ export const CustomLink = Link.extend<CustomLinkOptions>({
     this.storage.previousLinks = currentLinks
   },
 
+  // 添加链接属性
   addAttributes() {
     return {
       ...this.parent?.(),
       href: { default: null },
       target: { default: null },
       class: { default: null },
+      // 添加笔记 ID 属性，用于标识链接对应的笔记
       'data-note-id': {
         default: null,
         parseHTML: (element) => element.getAttribute('data-note-id'),
@@ -173,10 +216,11 @@ export const CustomLink = Link.extend<CustomLinkOptions>({
     }
   },
 
+  // 添加粘贴规则
   addPasteRules() {
     return [
       {
-        // 添加 DevonThink 链接的识别规则
+        // DevonThink 链接的识别规则
         find: /(x-devonthink-item:\/\/[A-F0-9-]+)/g,
         handler: ({ state, range, match }) => {
           const [url] = match
@@ -191,13 +235,14 @@ export const CustomLink = Link.extend<CustomLinkOptions>({
         }
       },
       {
+        // 笔记链接的识别规则：[[id:title]] 格式
         find: /\[\[([0-9a-f-]+):(.+?)\]\]/g,
         handler: ({ state, range, match }) => {
           // 解构匹配结果
           const [, noteId, title] = match
           const currentNoteId = this.options.noteId
 
-          // 1. 创建链接节点
+          // 创建链接节点
           const href = `note://${noteId}`
           const mark = this.type.create({
             href,
@@ -205,22 +250,21 @@ export const CustomLink = Link.extend<CustomLinkOptions>({
             'data-note-id': noteId
           })
 
-          // 2. 获取当前节点的文本内容作为上下文
+          // 获取上下文
           const $pos = state.doc.resolve(range.from)
           const currentNode = $pos.node()
-          const context = currentNode.textContent || title // 如果节点没有文本内容，就使用标题作为上下文
+          const context = currentNode.textContent || title
 
-          // 3. 创建并插入节点
+          // 创建并插入节点
           const text = state.schema.text(title)
           const node = text.mark([mark])
           state.tr.replaceWith(range.from, range.to, node)
 
-          // 4. 创建引用关系（异步操作移到外部）
+          // 创建引用关系
           if (currentNoteId) {
             setTimeout(async () => {
               try {
                 const noteStore = useNoteStore()
-                // 先获取目标笔记的信息
                 const targetNote = await noteStore.fetchNote(noteId)
 
                 await noteStore.createNoteReference({
@@ -234,12 +278,11 @@ export const CustomLink = Link.extend<CustomLinkOptions>({
                   metadata: {
                     title,
                     preview: context,
-                    cardType: targetNote?.cardType, // 使用目标笔记的类型
-                    address: targetNote?.address // 同时也添加地址
+                    cardType: targetNote?.cardType,
+                    address: targetNote?.address
                   }
                 })
 
-                // 使用外部创建的事件总线实例
                 referencesUpdatedBus.emit(currentNoteId)
               } catch (error) {
                 console.error('创建引用关系失败:', error)
@@ -252,15 +295,16 @@ export const CustomLink = Link.extend<CustomLinkOptions>({
     ]
   },
 
+  // HTML 解析规则
   parseHTML() {
     return [{ tag: 'a[href]:not([href *= "javascript:" i])' }]
   },
 
+  // HTML 渲染规则
   renderHTML({ HTMLAttributes }) {
-    // 处理不同类型的链接
+    // 根据链接类型添加不同的样式和交互提示
     if (HTMLAttributes.href?.startsWith('note://')) {
       HTMLAttributes.class = (HTMLAttributes.class || '') + ' note-reference-link'
-      // 添加交互属性
       HTMLAttributes['data-tooltip'] = `
       点击: 在右侧边栏查看
       Alt + 点击: 在主编辑器打开
@@ -276,24 +320,23 @@ export const CustomLink = Link.extend<CustomLinkOptions>({
     return ['a', mergeAttributes(HTMLAttributes), 0]
   },
 
+  // 添加键盘快捷键
   addKeyboardShortcuts() {
     return {
       ...this.parent?.(),
       'Mod-k': () => {
-        // 这里可以添加自定义的链接插入逻辑
+        // 可以添加自定义的链接插入逻辑
         return true
       },
-      // 添加退格键处理
+      // 处理退格键：在链接末尾时删除整个链接
       Backspace: () => {
         const { empty, $anchor } = this.editor.state.selection
         if (!empty) return false
 
-        // 检查光标前面的标记
         const marks = $anchor.nodeBefore?.marks || []
         const linkMark = marks.find((mark) => mark.type.name === 'link')
 
         if (linkMark) {
-          // 如果光标在链接的末尾，删除整个链接
           const pos = $anchor.pos
           const resolvedPos = this.editor.state.doc.resolve(pos)
           const before = resolvedPos.nodeBefore
@@ -311,17 +354,15 @@ export const CustomLink = Link.extend<CustomLinkOptions>({
 
         return false
       },
-      // 添加删除键处理
+      // 处理删除键：在链接开始时删除整个链接
       Delete: () => {
         const { empty, $anchor } = this.editor.state.selection
         if (!empty) return false
 
-        // 检查光标后面的标记
         const marks = $anchor.nodeAfter?.marks || []
         const linkMark = marks.find((mark) => mark.type.name === 'link')
 
         if (linkMark) {
-          // 如果光标在链接的开始，删除整个链接
           const pos = $anchor.pos
           const resolvedPos = this.editor.state.doc.resolve(pos)
           const after = resolvedPos.nodeAfter
@@ -342,19 +383,3 @@ export const CustomLink = Link.extend<CustomLinkOptions>({
     }
   }
 })
-
-// 添加样式
-// const style = document.createElement('style')
-// style.textContent = `
-//   .note-reference-link {
-//     color: var(--note-link-color, #3b82f6);
-//     text-decoration: none;
-//     border-bottom: 1px dashed currentColor;
-//     cursor: pointer;
-//   }
-
-//   .note-reference-link:hover {
-//     background-color: rgba(59, 130, 246, 0.1);
-//   }
-// `
-// document.head.appendChild(style)

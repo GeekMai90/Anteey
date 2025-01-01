@@ -33,7 +33,7 @@ const noteContent = ref<HTMLDivElement | null>(null)
 
 <style lang="scss" scoped>
 .note-preview-card {
-  background-color: #fff;
+  background-color: var(--color-note-card-bg);
   border-radius: 8px;
   padding: 14px 12px 8px 12px;
   display: flex;
@@ -51,7 +51,7 @@ const noteContent = ref<HTMLDivElement | null>(null)
 .note-indicator {
   width: 4px;
   height: 10px;
-  background-color: #00c8a8;
+  background-color: var(--color-primary);
   border-radius: 2px;
   margin-right: 6px;
 }
@@ -60,15 +60,12 @@ const noteContent = ref<HTMLDivElement | null>(null)
   margin: 0;
   font-size: 0.9rem;
   font-weight: bold;
-  color: #333;
   line-height: 1;
 }
 
 .note-content {
   flex-grow: 1;
-  color: #444;
   text-align: left;
-  // margin-bottom: 10px;
   overflow-y: auto;
   max-height: calc(100% - 40px); // 调整这个值以适应你的布局
   font-size: 0.8rem;

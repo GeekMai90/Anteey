@@ -314,6 +314,7 @@ const leave = (element: Element) => {
     .filters {
       display: flex;
       gap: 12px;
+      user-select: none;
 
       .filter-item {
         font-size: 13px;

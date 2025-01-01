@@ -32,6 +32,9 @@ export const CustomMention = Extension.create<MentionOptions>({
       suggestion: {
         char: '@',
         pluginKey: MentionPluginKey,
+        allowSpaces: true,
+        startOfLine: false,
+        allowedPrefixes: [' ', '\n'],
         command: async ({ editor, range, props }) => {
           console.log('Mention command triggered with props:', props)
 
