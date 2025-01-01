@@ -2,7 +2,7 @@
   <div class="backlinks-panel">
     <div class="panel-header">
       <div class="title" @click="togglePanel">
-        <div class="icon" :class="{ collapsed: isCollapsed }">
+        <div class="icon">
           <LinkTwo
             theme="outline"
             size="16"
@@ -12,77 +12,81 @@
         </div>
         <div class="name">关联 ({{ totalLinks }})</div>
       </div>
-      <div v-show="!isCollapsed" class="filters">
-        <span
-          v-for="type in linkTypes"
-          :key="type.value"
-          :class="['filter-item', { active: activeFilter === type.value }]"
-          @click="setFilter(type.value)"
-        >
-          {{ type.label }}
-        </span>
-      </div>
+      <transition name="fade">
+        <div v-show="!isCollapsed" class="filters">
+          <span
+            v-for="type in linkTypes"
+            :key="type.value"
+            :class="['filter-item', { active: activeFilter === type.value }]"
+            @click="setFilter(type.value)"
+          >
+            {{ type.label }}
+          </span>
+        </div>
+      </transition>
     </div>
 
-    <div v-show="!isCollapsed" class="links-container">
-      <!-- 直接引用 -->
-      <div v-if="showDirectLinks" class="links-section">
-        <div class="section-title">
-          <span>直接引用</span>
-          <span class="count">{{ directLinks.length }}</span>
+    <transition name="expand" @enter="enter" @after-enter="afterEnter" @leave="leave">
+      <div v-show="!isCollapsed" class="links-container">
+        <!-- 直接引用 -->
+        <div v-if="showDirectLinks" class="links-section">
+          <div class="section-title">
+            <span>直接引用</span>
+            <span class="count">{{ directLinks.length }}</span>
+          </div>
+          <div class="links-list">
+            <div
+              v-for="link in directLinksData"
+              :key="link.id"
+              class="link-item"
+              @click="(e) => handleLinkClick(link, e)"
+            >
+              <div class="link-header">
+                <div class="note-type" :class="link.cardType || 'Maincard'"></div>
+                <span class="note-title">{{ link.address || '未设置编码地址' }}</span>
+              </div>
+              <div class="note-title-text">
+                <span>{{ link.metadata?.title || '未命名笔记' }}</span>
+              </div>
+              <div class="link-meta">
+                <span class="timestamp">{{
+                  formatDate(new Date(link.createdAt || Date.now()))
+                }}</span>
+              </div>
+            </div>
+          </div>
         </div>
-        <div class="links-list">
-          <div
-            v-for="link in directLinksData"
-            :key="link.id"
-            class="link-item"
-            @click="(e) => handleLinkClick(link, e)"
-          >
-            <div class="link-header">
-              <div class="note-type" :class="link.cardType || 'Maincard'"></div>
-              <span class="note-title">{{ link.address || '未设置编码地址' }}</span>
-            </div>
-            <div class="note-title-text">
-              <span>{{ link.metadata?.title || '未命名笔记' }}</span>
-            </div>
-            <div class="link-meta">
-              <span class="timestamp">{{
-                formatDate(new Date(link.createdAt || Date.now()))
-              }}</span>
+
+        <!-- 反向引用 -->
+        <div v-if="showBacklinks" class="links-section">
+          <div class="section-title">
+            <span>反向引用</span>
+            <span class="count">{{ backlinks.length }}</span>
+          </div>
+          <div class="links-list">
+            <div
+              v-for="link in backlinksData"
+              :key="link.id"
+              class="link-item"
+              @click="(e) => handleLinkClick(link, e)"
+            >
+              <div class="link-header">
+                <div class="note-type" :class="link.cardType || 'Maincard'"></div>
+                <span class="note-title">{{ link.address || '未设置编码地址' }}</span>
+              </div>
+              <div class="note-title-text">
+                <span>{{ link.metadata?.title || '未命名笔记' }}</span>
+              </div>
+              <div class="link-meta">
+                <span class="timestamp">{{
+                  formatDate(new Date(link.createdAt || Date.now()))
+                }}</span>
+              </div>
             </div>
           </div>
         </div>
       </div>
-
-      <!-- 反向引用 -->
-      <div v-if="showBacklinks" class="links-section">
-        <div class="section-title">
-          <span>反向引用</span>
-          <span class="count">{{ backlinks.length }}</span>
-        </div>
-        <div class="links-list">
-          <div
-            v-for="link in backlinksData"
-            :key="link.id"
-            class="link-item"
-            @click="(e) => handleLinkClick(link, e)"
-          >
-            <div class="link-header">
-              <div class="note-type" :class="link.cardType || 'Maincard'"></div>
-              <span class="note-title">{{ link.address || '未设置编码地址' }}</span>
-            </div>
-            <div class="note-title-text">
-              <span>{{ link.metadata?.title || '未命名笔记' }}</span>
-            </div>
-            <div class="link-meta">
-              <span class="timestamp">{{
-                formatDate(new Date(link.createdAt || Date.now()))
-              }}</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+    </transition>
   </div>
 </template>
 
@@ -226,6 +230,30 @@ onMounted(() => {
     }
   })
 })
+
+// 添加展开/折叠动画的处理函数
+const enter = (element: Element) => {
+  const el = element as HTMLElement
+  el.style.height = 'auto'
+  const height = el.scrollHeight
+  el.style.height = '0px'
+  // 触发重绘
+  el.offsetHeight
+  el.style.height = `${height}px`
+}
+
+const afterEnter = (element: Element) => {
+  const el = element as HTMLElement
+  el.style.height = 'auto'
+}
+
+const leave = (element: Element) => {
+  const el = element as HTMLElement
+  el.style.height = `${el.scrollHeight}px`
+  // 触发重绘
+  el.offsetHeight
+  el.style.height = '0px'
+}
 </script>
 
 <style scoped lang="scss">
@@ -411,5 +439,32 @@ onMounted(() => {
       }
     }
   }
+}
+
+// 添加淡入淡出动画
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+// 添加展开/折叠动画
+.expand-enter-active,
+.expand-leave-active {
+  transition: height 0.3s ease;
+  overflow: hidden;
+}
+
+.expand-enter-from,
+.expand-leave-to {
+  height: 0;
+}
+
+.links-container {
+  overflow: hidden;
 }
 </style>
