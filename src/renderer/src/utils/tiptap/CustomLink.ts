@@ -279,11 +279,9 @@ export const CustomLink = Link.extend<CustomLinkOptions>({
         // 笔记链接的识别规则：[[id:title]] 格式
         find: /\[\[([0-9a-f-]+):(.+?)\]\]/g,
         handler: ({ state, range, match }) => {
-          // 解构匹配结果
           const [, noteId, title] = match
-          const currentNoteId = this.options.noteId
 
-          // 创建链接节点
+          // 只创建链接节点,不创建引用关系
           const href = `note://${noteId}`
           const mark = this.type.create({
             href,
@@ -291,45 +289,9 @@ export const CustomLink = Link.extend<CustomLinkOptions>({
             'data-note-id': noteId
           })
 
-          // 获取上下文
-          const $pos = state.doc.resolve(range.from)
-          const currentNode = $pos.node()
-          const context = currentNode.textContent || title
-
-          // 创建并插入节点
           const text = state.schema.text(title)
           const node = text.mark([mark])
           state.tr.replaceWith(range.from, range.to, node)
-
-          // 创建引用关系
-          if (currentNoteId) {
-            setTimeout(async () => {
-              try {
-                const noteStore = useNoteStore()
-                const targetNote = await noteStore.fetchNote(noteId)
-
-                await noteStore.createNoteReference({
-                  sourceNoteId: currentNoteId,
-                  targetNoteId: noteId,
-                  type: 'reference',
-                  context: {
-                    text: context,
-                    position: range.from
-                  },
-                  metadata: {
-                    title,
-                    preview: context,
-                    cardType: targetNote?.cardType,
-                    address: targetNote?.address
-                  }
-                })
-
-                referencesUpdatedBus.emit(currentNoteId)
-              } catch (error) {
-                console.error('创建引用关系失败:', error)
-              }
-            }, 0)
-          }
         }
       },
       ...(this.parent?.() || [])
