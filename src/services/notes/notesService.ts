@@ -190,7 +190,7 @@ interface SearchParams {
   term: string
 }
 
-// 修改搜索笔记函数
+// 搜索笔记
 export async function searchNotes(params: SearchParams): Promise<
   Array<{
     id: string

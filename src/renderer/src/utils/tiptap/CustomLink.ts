@@ -74,15 +74,64 @@ export const CustomLink = Link.extend<CustomLinkOptions>({
       }
     })
 
-    // 对比找出被删除的链接
+    // 找出新增的链接
+    const addedLinks = Array.from(currentLinks).filter((id) => !this.storage.previousLinks.has(id))
+
+    // 找出被删除的链接
     const deletedLinks = Array.from(this.storage.previousLinks).filter(
       (id) => !currentLinks.has(id as string)
     )
-    // 处理删除的链接
-    if (deletedLinks.length > 0 && this.options.noteId) {
+
+    if (this.options.noteId) {
       const noteStore = useNoteStore()
       const currentNoteId = this.options.noteId
 
+      // 处理新增的链接
+      addedLinks.forEach((targetNoteId) => {
+        setTimeout(async () => {
+          try {
+            // 获取当前节点的文本内容作为上下文
+            let context = ''
+            let position = 0
+            this.editor.state.doc.descendants((node: ProsemirrorNode, pos: number) => {
+              if (node.type.name === 'text' && node.marks.length > 0) {
+                node.marks.forEach((mark: Mark) => {
+                  if (mark.type.name === 'link' && mark.attrs['data-note-id'] === targetNoteId) {
+                    context = node.text || ''
+                    position = pos
+                  }
+                })
+              }
+            })
+
+            // 获取目标笔记的信息
+            const targetNote = await noteStore.fetchNote(targetNoteId)
+
+            await noteStore.createNoteReference({
+              sourceNoteId: currentNoteId,
+              targetNoteId: targetNoteId,
+              type: 'reference',
+              context: {
+                text: context,
+                position: position
+              },
+              metadata: {
+                title: targetNote?.title || context,
+                preview: context,
+                cardType: targetNote?.cardType,
+                address: targetNote?.address
+              }
+            })
+
+            // 创建引用关系后触发更新事件
+            referencesUpdatedBus.emit(currentNoteId)
+          } catch (error) {
+            console.error('创建引用关系失败:', error)
+          }
+        }, 0)
+      })
+
+      // 处理删除的链接
       deletedLinks.forEach((targetNoteId) => {
         setTimeout(async () => {
           try {

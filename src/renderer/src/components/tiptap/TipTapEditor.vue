@@ -510,6 +510,7 @@ import TableBubbleMenu from './TableBubbleMenu.vue'
 import { CustomBlockquote } from '@renderer/utils/tiptap/CustomBlockquote'
 import { CustomTaskList } from '@renderer/utils/tiptap/CustomTaskList'
 import { CustomTaskItem } from '@renderer/utils/tiptap/CustomTaskItem'
+import { CustomMention } from '@renderer/utils/tiptap/CustomMention'
 
 const noteStore = useNoteStore()
 const uiStore = useUIStore()
@@ -1003,7 +1004,7 @@ const deleteParagraph = () => {
     const currentNode = $pos.node()
     const nodeType = currentNode?.type.name
 
-    // ��理表格节点
+    // 理表格节点
     if (
       nodeType === 'table' ||
       nodeType === 'tableRow' ||
@@ -1257,7 +1258,36 @@ const editorExtensions = computed(() => {
       key: null,
       depth: undefined
     }),
-    CustomTextStyle
+    CustomTextStyle,
+    // 添加 Mention 扩展
+    CustomMention.configure({
+      suggestion: {
+        char: '@',
+        command: ({ editor, range, props }) => {
+          editor.chain().focus().deleteRange(range).run()
+          const linkText = props.title || props.address
+          editor
+            .chain()
+            .focus()
+            .insertContent({
+              type: 'text',
+              text: linkText,
+              marks: [
+                {
+                  type: 'link',
+                  attrs: {
+                    href: `note://${props.id}`,
+                    class: 'note-reference-link',
+                    'data-note-id': props.id
+                  }
+                }
+              ]
+            })
+            .run()
+        }
+      },
+      noteId: props.noteId
+    })
   ]
   if (props.enableDragHandle) {
     extensions.push(
@@ -1309,7 +1339,8 @@ onMounted(() => {
           return true // 阻止事件进一步传播
         }
         return false // 允许其他键盘事件正常处理
-      }
+      },
+      noteId: props.noteId
     }
   })
   noteStore.setEditor(editor.value)
