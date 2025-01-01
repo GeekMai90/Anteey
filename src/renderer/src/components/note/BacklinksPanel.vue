@@ -32,7 +32,7 @@
         <div v-if="showDirectLinks" class="links-section">
           <div class="section-title">
             <span>直接引用</span>
-            <span class="count">{{ directLinks.length }}</span>
+            <span class="count">{{ directLinksData.length }}</span>
           </div>
           <div class="links-list">
             <div
@@ -61,7 +61,7 @@
         <div v-if="showBacklinks" class="links-section">
           <div class="section-title">
             <span>反向引用</span>
-            <span class="count">{{ backlinks.length }}</span>
+            <span class="count">{{ backlinksData.length }}</span>
           </div>
           <div class="links-list">
             <div
@@ -126,7 +126,7 @@ const parsedReferences = computed<References>(() => referenceData.value)
 
 const directLinks = computed<InternalNoteReference[]>(() => parsedReferences.value.outgoing || [])
 const backlinks = computed<InternalNoteReference[]>(() => parsedReferences.value.incoming || [])
-const totalLinks = computed(() => directLinks.value.length + backlinks.value.length)
+const totalLinks = computed(() => directLinksData.value.length + backlinksData.value.length)
 
 const showDirectLinks = computed(
   () => activeFilter.value === 'all' || activeFilter.value === 'direct'
@@ -174,17 +174,35 @@ const fetchFullNotesData = async () => {
   try {
     // 获取直接引用的笔记数据
     const directNotes = await Promise.all(
-      directLinks.value.map((link) => noteStore.fetchNote(link.targetNoteId || ''))
+      directLinks.value.map(async (link) => {
+        try {
+          const note = await noteStore.fetchNote(link.targetNoteId || '')
+          // 如果笔记不存在或已删除,返回 null
+          return note || null
+        } catch (error) {
+          console.error(`获取笔记 ${link.targetNoteId} 失败:`, error)
+          return null
+        }
+      })
     )
-    // 过滤掉 undefined 的结果
-    directLinksData.value = directNotes.filter((note): note is Note => note !== undefined)
+    // 过滤掉 null 的结果
+    directLinksData.value = directNotes.filter((note): note is Note => note !== null)
 
     // 获取反向引用的笔记数据
     const backNotes = await Promise.all(
-      backlinks.value.map((link) => noteStore.fetchNote(link.sourceNoteId || ''))
+      backlinks.value.map(async (link) => {
+        try {
+          const note = await noteStore.fetchNote(link.sourceNoteId || '')
+          // 如果笔记不存在或已删除,返回 null
+          return note || null
+        } catch (error) {
+          console.error(`获取笔记 ${link.sourceNoteId} 失败:`, error)
+          return null
+        }
+      })
     )
-    // 过滤掉 undefined 的结果
-    backlinksData.value = backNotes.filter((note): note is Note => note !== undefined)
+    // 过滤掉 null 的结果
+    backlinksData.value = backNotes.filter((note): note is Note => note !== null)
   } catch (error) {
     console.error('获取笔记数据失败:', error)
   }

@@ -1114,13 +1114,23 @@ export async function getDeletedNotes(): Promise<Note[]> {
 
 // 永久删除笔记
 export async function permanentDeleteNote(id: string): Promise<void> {
-  try {
-    await db('notes').where('id', id).delete()
-    console.log(`后端→ 永久删除笔记: ${id}`)
-  } catch (error) {
-    console.error(`后端→ 永久删除笔记失败: ${id}:`, error)
-    throw error
-  }
+  return db.transaction(async (trx) => {
+    try {
+      // 1. 删除所有以该笔记为源的引用关系
+      await trx('note_references').where('sourceNoteId', id).delete()
+
+      // 2. 删除所有以该笔记为目标的引用关系
+      await trx('note_references').where('targetNoteId', id).delete()
+
+      // 3. 删除笔记本身
+      await trx('notes').where('id', id).delete()
+
+      console.log(`后端→ 永久删除笔记及其相关引用: ${id}`)
+    } catch (error) {
+      console.error(`后端→ 永久删除笔记失败: ${id}:`, error)
+      throw error
+    }
+  })
 }
 
 // 添加星标收藏
@@ -1157,7 +1167,7 @@ export async function addStarToNote(id: string): Promise<Note> {
 export async function removeStarFromNote(
   id: string
 ): Promise<{ updatedNote: Note; reorderedNotes: Note[] }> {
-  console.log(`开始取消笔记 ${id} ��星标状态`)
+  console.log(`开始取消笔记 ${id} 的星标状态`)
 
   return db
     .transaction(async (trx) => {
@@ -1276,7 +1286,7 @@ export async function updateStarredNotesOrder(
 
     return updatedNotes.map(convertToNote)
   } catch (error) {
-    console.error('后端→ 更新星标��记顺序失败:', error)
+    console.error('后端→ 更新星标笔记顺序失败:', error)
     throw error
   }
 }
@@ -1324,7 +1334,7 @@ export async function updateNoteCardType(id: string, cardType: string): Promise<
     console.log('后端→ 笔记类型更新成功:', updatedNote)
     return convertToNote(updatedNote)
   } catch (error) {
-    console.error('后���→ 更新笔记类型失败:', error)
+    console.error('后端→ 更新笔记类型失败:', error)
     throw error
   }
 }
@@ -1943,7 +1953,7 @@ function applyFilterRule(query: Knex.QueryBuilder, rule: FilterRule): Knex.Query
       console.log('最终标签ID数组:', tagIds)
 
       if (rule.operator === 'contains') {
-        // 修改为使用子查询，确保笔记同时包含所有指定标��
+        // 修改为使用子查询，确保笔记同时包含所有指定标签
         return query.whereIn('notes.id', function () {
           this.select('noteId')
             .from('note_tags')
