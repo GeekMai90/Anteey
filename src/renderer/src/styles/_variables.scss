@@ -266,6 +266,8 @@ $dark-mode-text: $gray-100;
   // 文本颜色
   --color-text-secondary: #949494;
   --color-text-secondary-rgb: 148, 148, 148;
+
+  --color-obsidian: #483699; // Obsidian 的主题色
 }
 
 .theme-dark {
@@ -399,4 +401,6 @@ $dark-mode-text: $gray-100;
   // 文本颜色
   --color-text-secondary: #a0a0a0;
   --color-text-secondary-rgb: 160, 160, 160;
+
+  --color-obsidian: #9088e2; // 暗色主题下的 Obsidian 颜色
 }

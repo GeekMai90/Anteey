@@ -235,6 +235,47 @@ export const CustomLink = Link.extend<CustomLinkOptions>({
         }
       },
       {
+        // Obsidian 链接的识别规则 - 支持 open 和 advanced-uri 两种格式
+        find: /(obsidian:\/\/(open|advanced-uri)\?[^"\s]+)/g,
+        handler: ({ state, range, match }) => {
+          const [url] = match
+
+          // 从 URL 中提取文件名或标题作为显示文本
+          let displayText = url
+          try {
+            const urlObj = new URL(url)
+            if (urlObj.protocol === 'obsidian:') {
+              if (urlObj.pathname === '/open') {
+                // 处理 open 格式链接
+                const file = urlObj.searchParams.get('file')
+                if (file) {
+                  displayText = decodeURIComponent(file).split('/').pop() || url
+                }
+              } else if (urlObj.pathname === '/advanced-uri') {
+                // 处理 advanced-uri 格式链接
+                const uid = urlObj.searchParams.get('uid')
+                if (uid) {
+                  displayText = `Obsidian Note: ${uid}`
+                }
+              }
+            }
+          } catch (e) {
+            console.error('解析 Obsidian URL 失败:', e)
+          }
+
+          const mark = this.type.create({
+            href: url,
+            class: 'obsidian-link',
+            target: '_blank',
+            rel: 'noopener noreferrer'
+          })
+
+          const text = state.schema.text(displayText)
+          const node = text.mark([mark])
+          state.tr.replaceWith(range.from, range.to, node)
+        }
+      },
+      {
         // 笔记链接的识别规则：[[id:title]] 格式
         find: /\[\[([0-9a-f-]+):(.+?)\]\]/g,
         handler: ({ state, range, match }) => {
@@ -315,6 +356,12 @@ export const CustomLink = Link.extend<CustomLinkOptions>({
       HTMLAttributes.class = (HTMLAttributes.class || '') + ' devonthink-link'
       HTMLAttributes['data-tooltip'] = '点击打开 DevonThink 中的项目'
       HTMLAttributes['role'] = 'button'
+    } else if (HTMLAttributes.href?.startsWith('obsidian://')) {
+      HTMLAttributes.class = (HTMLAttributes.class || '') + ' obsidian-link'
+      HTMLAttributes['data-tooltip'] = '点击打开 Obsidian 中的笔记'
+      HTMLAttributes['role'] = 'button'
+      HTMLAttributes.target = '_blank'
+      HTMLAttributes.rel = 'noopener noreferrer'
     }
 
     return ['a', mergeAttributes(HTMLAttributes), 0]
