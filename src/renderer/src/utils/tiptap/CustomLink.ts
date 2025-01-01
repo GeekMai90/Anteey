@@ -2,6 +2,10 @@ import { Link } from '@tiptap/extension-link'
 import { mergeAttributes } from '@tiptap/core'
 import { Node as ProsemirrorNode, Mark } from 'prosemirror-model'
 import { useNoteStore } from '../../stores/noteStores'
+import { useEventBus } from '@vueuse/core'
+
+// 创建一个事件总线实例
+const referencesUpdatedBus = useEventBus('references-updated')
 
 // 扩展 LinkOptions 类型
 interface CustomLinkOptions {
@@ -13,7 +17,7 @@ interface CustomLinkOptions {
 
 export const CustomLink = Link.extend<CustomLinkOptions>({
   name: 'link',
-  inclusive: false, // 设置为 false，这样新输入的文本不会继承链接标记
+  inclusive: true, // 设置为 true，使链接作为一个整体
 
   addOptions() {
     return {
@@ -77,15 +81,19 @@ export const CustomLink = Link.extend<CustomLinkOptions>({
     // 处理删除的链接
     if (deletedLinks.length > 0 && this.options.noteId) {
       const noteStore = useNoteStore()
+      const currentNoteId = this.options.noteId
 
       deletedLinks.forEach((targetNoteId) => {
         setTimeout(async () => {
           try {
             await noteStore.deleteNoteReference({
-              sourceNoteId: this.options.noteId!,
+              sourceNoteId: currentNoteId,
               targetNoteId: targetNoteId as string
             })
             console.log('引用关系删除成功:', targetNoteId)
+
+            // 删除引用关系后触发更新事件
+            referencesUpdatedBus.emit(currentNoteId)
           } catch (error) {
             console.error('删除引用关系失败:', error)
           }
@@ -181,6 +189,9 @@ export const CustomLink = Link.extend<CustomLinkOptions>({
                     address: targetNote?.address // 同时也添加地址
                   }
                 })
+
+                // 使用外部创建的事件总线实例
+                referencesUpdatedBus.emit(currentNoteId)
               } catch (error) {
                 console.error('创建引用关系失败:', error)
               }
@@ -222,6 +233,62 @@ export const CustomLink = Link.extend<CustomLinkOptions>({
       'Mod-k': () => {
         // 这里可以添加自定义的链接插入逻辑
         return true
+      },
+      // 添加退格键处理
+      Backspace: () => {
+        const { empty, $anchor } = this.editor.state.selection
+        if (!empty) return false
+
+        // 检查光标前面的标记
+        const marks = $anchor.nodeBefore?.marks || []
+        const linkMark = marks.find((mark) => mark.type.name === 'link')
+
+        if (linkMark) {
+          // 如果光标在链接的末尾，删除整个链接
+          const pos = $anchor.pos
+          const resolvedPos = this.editor.state.doc.resolve(pos)
+          const before = resolvedPos.nodeBefore
+
+          if (before) {
+            this.editor
+              .chain()
+              .focus()
+              .deleteRange({ from: pos - before.nodeSize, to: pos })
+              .run()
+
+            return true
+          }
+        }
+
+        return false
+      },
+      // 添加删除键处理
+      Delete: () => {
+        const { empty, $anchor } = this.editor.state.selection
+        if (!empty) return false
+
+        // 检查光标后面的标记
+        const marks = $anchor.nodeAfter?.marks || []
+        const linkMark = marks.find((mark) => mark.type.name === 'link')
+
+        if (linkMark) {
+          // 如果光标在链接的开始，删除整个链接
+          const pos = $anchor.pos
+          const resolvedPos = this.editor.state.doc.resolve(pos)
+          const after = resolvedPos.nodeAfter
+
+          if (after) {
+            this.editor
+              .chain()
+              .focus()
+              .deleteRange({ from: pos, to: pos + after.nodeSize })
+              .run()
+
+            return true
+          }
+        }
+
+        return false
       }
     }
   }

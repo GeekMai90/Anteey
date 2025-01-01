@@ -33,21 +33,22 @@
         </div>
         <div class="links-list">
           <div
-            v-for="link in directLinks"
+            v-for="link in directLinksData"
             :key="link.id"
             class="link-item"
-            @click="handleLinkClick(link)"
+            @click="(e) => handleLinkClick(link, e)"
           >
             <div class="link-header">
-              <div class="note-type" :class="link.metadata?.cardType || 'Maincard'"></div>
-              <span class="note-title">{{ link.metadata?.address || '未命名笔记' }}</span>
+              <div class="note-type" :class="link.cardType || 'Maincard'"></div>
+              <span class="note-title">{{ link.address || '未设置编码地址' }}</span>
             </div>
-            <div v-if="link.context" class="link-context">
-              <!-- eslint-disable-next-line vue/no-v-html -->
-              <p v-html="formatLinkContext(link.context.text)"></p>
+            <div class="note-title-text">
+              <span>{{ link.metadata?.title || '未命名笔记' }}</span>
             </div>
             <div class="link-meta">
-              <span class="timestamp">{{ formatDate(new Date(link.createdAt)) }}</span>
+              <span class="timestamp">{{
+                formatDate(new Date(link.createdAt || Date.now()))
+              }}</span>
             </div>
           </div>
         </div>
@@ -61,21 +62,22 @@
         </div>
         <div class="links-list">
           <div
-            v-for="link in backlinks"
+            v-for="link in backlinksData"
             :key="link.id"
             class="link-item"
-            @click="handleLinkClick(link)"
+            @click="(e) => handleLinkClick(link, e)"
           >
             <div class="link-header">
-              <div class="note-type" :class="link.metadata?.cardType || 'Maincard'"></div>
-              <span class="note-title">{{ link.metadata?.address || '未命名笔记' }}</span>
+              <div class="note-type" :class="link.cardType || 'Maincard'"></div>
+              <span class="note-title">{{ link.address || '未设置编码地址' }}</span>
             </div>
-            <div v-if="link.context" class="link-context">
-              <!-- eslint-disable-next-line vue/no-v-html -->
-              <p v-html="formatLinkContext(link.context.text)"></p>
+            <div class="note-title-text">
+              <span>{{ link.metadata?.title || '未命名笔记' }}</span>
             </div>
             <div class="link-meta">
-              <span class="timestamp">{{ formatDate(new Date(link.createdAt)) }}</span>
+              <span class="timestamp">{{
+                formatDate(new Date(link.createdAt || Date.now()))
+              }}</span>
             </div>
           </div>
         </div>
@@ -85,11 +87,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { LinkTwo } from '@icon-park/vue-next'
 import { formatDate } from '@renderer/utils/noteHelpers'
 import { useRouter } from 'vue-router'
-import type { References, InternalNoteReference } from '@renderer/types/Note'
+import type { References, InternalNoteReference, Note } from '@renderer/types/Note'
+import { useNoteStore } from '@renderer/stores/noteStores'
+import { useUIStore } from '@renderer/stores/useUIStore'
+import { useEventBus } from '@vueuse/core'
 
 const props = defineProps<{
   noteId: string
@@ -99,23 +104,21 @@ const props = defineProps<{
 const router = useRouter()
 const activeFilter = ref('all')
 
+const noteStore = useNoteStore()
+
 const linkTypes = [
   { label: '全部', value: 'all' },
   { label: '直接引用', value: 'direct' },
   { label: '反向引用', value: 'backlink' }
 ]
 
-const parsedReferences = computed<References>(() => {
-  if (typeof props.references === 'string') {
-    try {
-      return JSON.parse(props.references)
-    } catch (e) {
-      console.error('解析 references 失败:', e)
-      return { incoming: [], outgoing: [] }
-    }
-  }
-  return props.references
-})
+// 存储引用数据
+const referenceData = ref<References>(
+  typeof props.references === 'string' ? JSON.parse(props.references) : props.references
+)
+
+// 计算属性现在基于 referenceData
+const parsedReferences = computed<References>(() => referenceData.value)
 
 const directLinks = computed<InternalNoteReference[]>(() => parsedReferences.value.outgoing || [])
 const backlinks = computed<InternalNoteReference[]>(() => parsedReferences.value.incoming || [])
@@ -132,19 +135,17 @@ const setFilter = (filter: string) => {
   activeFilter.value = filter
 }
 
-const handleLinkClick = (link: InternalNoteReference) => {
-  // 根据引用类型选择正确的ID
-  const noteId = link.targetNoteId || link.sourceNoteId
-  if (noteId) {
-    router.push(`/note/${noteId}`)
+const handleLinkClick = (note: Note, event: MouseEvent) => {
+  // Command/Ctrl + 点击: 全屏打开笔记
+  if (event.metaKey || event.ctrlKey) {
+    router.push(`/note/${note.id}`)
+    return
   }
-}
-const formatLinkContext = (text: string | undefined) => {
-  if (!text) return ''
-  // 将特殊标记转换为 Heptabase 风格的引用链接
-  return text.replace(/\[\[([0-9a-f-]+):(.+?)\]\]/g, (_, _id, text) => {
-    return `<span class="reference-link"><span class="reference-text">${text}</span></span>`
-  })
+
+  // 普通点击: 在右侧边栏打开
+  noteStore.openBacklinkPreview(note.id)
+  const uiStore = useUIStore()
+  uiStore.openRightSidebarWithTab('backlink')
 }
 
 // 添加折叠状态
@@ -160,6 +161,71 @@ const togglePanel = async () => {
     emit('refresh')
   }
 }
+
+const directLinksData = ref<Note[]>([])
+const backlinksData = ref<Note[]>([])
+
+// 简化数据获取方法
+const fetchFullNotesData = async () => {
+  try {
+    // 获取直接引用的笔记数据
+    const directNotes = await Promise.all(
+      directLinks.value.map((link) => noteStore.fetchNote(link.targetNoteId || ''))
+    )
+    // 过滤掉 undefined 的结果
+    directLinksData.value = directNotes.filter((note): note is Note => note !== undefined)
+
+    // 获取反向引用的笔记数据
+    const backNotes = await Promise.all(
+      backlinks.value.map((link) => noteStore.fetchNote(link.sourceNoteId || ''))
+    )
+    // 过滤掉 undefined 的结果
+    backlinksData.value = backNotes.filter((note): note is Note => note !== undefined)
+  } catch (error) {
+    console.error('获取笔记数据失败:', error)
+  }
+}
+
+// 监听 props 变化
+watch(
+  () => props.references,
+  (newRefs) => {
+    referenceData.value = typeof newRefs === 'string' ? JSON.parse(newRefs) : newRefs
+  }
+)
+
+// 监听引用更新事件
+const referencesUpdatedBus = useEventBus('references-updated')
+
+// 获取最新的引用数据
+const refreshReferences = async () => {
+  try {
+    // 获取最新的笔记数据（包含最新的引用关系）
+    const updatedNote = await noteStore.fetchNote(props.noteId)
+    if (updatedNote?.references) {
+      // 更新引用数据
+      referenceData.value = updatedNote.references
+      // 重新获取完整的笔记数据
+      await fetchFullNotesData()
+    }
+  } catch (error) {
+    console.error('刷新引用数据失败:', error)
+  }
+}
+
+// 组件挂载时获取数据
+onMounted(() => {
+  // 初始加载数据
+  fetchFullNotesData()
+
+  // 监听引用更新事件
+  referencesUpdatedBus.on((updatedNoteId) => {
+    // 如果更新的是当前笔记，则刷新数据
+    if (updatedNoteId === props.noteId) {
+      refreshReferences()
+    }
+  })
+})
 </script>
 
 <style scoped lang="scss">
