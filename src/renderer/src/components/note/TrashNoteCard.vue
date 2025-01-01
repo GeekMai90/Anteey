@@ -58,7 +58,7 @@ const handleMoreClick = (event: MouseEvent) => {
 
 <style lang="scss" scoped>
 .trash-note-card {
-  background-color: var(--timeline-card-bg);
+  background-color: var(--color-note-card-bg);
   border: 1px solid var(--border-color);
   border-radius: 8px;
   padding: 10px;

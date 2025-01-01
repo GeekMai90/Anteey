@@ -624,7 +624,7 @@ defineExpose({ show, hide })
 }
 .result-preview {
   font-size: 0.9em;
-  color: #333;
+  color: var(--color-text-primary);
   line-height: 1.4;
   display: flex;
   align-items: flex-start;
@@ -716,10 +716,10 @@ defineExpose({ show, hide })
 .preview-container {
   width: 40%;
   padding: 0px;
-  background-color: white;
+  background-color: var(--color-note-card-bg);
   overflow-y: auto;
   height: 100%;
-  border: #e0e0e0 1px solid;
+  border: var(--color-border) 1px solid;
   border-radius: 12px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
   transition: all 0.2s ease;
@@ -757,7 +757,7 @@ defineExpose({ show, hide })
   }
 
   .suggestions {
-    background-color: #f0f0f0;
+    background-color: var(--sidebar-bg);
     border-radius: 8px;
     padding: 16px;
     text-align: left;

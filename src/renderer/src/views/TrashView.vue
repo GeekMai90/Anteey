@@ -389,9 +389,9 @@ const handleCancelEmptyTrash = () => {
             position: absolute;
             top: 100%;
             right: 0;
-            background-color: var(--color-bg-primary);
+            background-color: var(--color-dropdown-bg);
             border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            box-shadow: var(--shadow-primary);
             z-index: 1000;
             min-width: 200px;
             width: auto;
@@ -495,50 +495,14 @@ const handleCancelEmptyTrash = () => {
 
   .note-menu {
     position: fixed;
-    background-color: #fff;
+    background-color: var(--color-dropdown-bg);
     border-radius: 8px;
-    box-shadow:
-      0 3px 6px -4px rgb(0 0 0 / 12%),
-      0 6px 16px 0 rgb(0 0 0 / 8%),
-      0 9px 28px 8px rgb(0 0 0 / 5%);
+    box-shadow: var(--shadow-primary);
     z-index: 1000;
     width: 140px; // 增加宽度以适应内容
     padding: 8px 12px;
     white-space: nowrap;
 
-    // .menu-item {
-    //   display: flex;
-    //   align-items: center;
-    //   width: 100%; // 使用100%宽度
-    //   padding: 8px 16px; // 左右padding相等
-    //   cursor: pointer;
-    //   transition: background-color 0.2s;
-    //   font-size: 14px;
-    //   color: var(--text-default-color);
-    //   gap: 8px;
-    //   border-radius: 8px;
-
-    //   &:hover {
-    //     background-color: var(--sidebar-hover-bg);
-    //   }
-
-    //   &.delete {
-    //     color: var(--error-color);
-    //   }
-
-    //   .i-icon {
-    //     display: flex;
-    //     align-items: center;
-    //     justify-content: center;
-    //     width: 18px;
-    //     height: 18px;
-    //     flex-shrink: 0; // 防止图标缩小
-    //   }
-
-    //   span {
-    //     flex-grow: 1; // 让文字占据剩余空间
-    //   }
-    // }
     .menu-item {
       position: relative;
       display: flex;
