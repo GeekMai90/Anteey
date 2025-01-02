@@ -13,19 +13,76 @@ export async function findNoteById(id: string) {
   }
 }
 
+// 辅助函数：解析地址
+function parseAddress(address: string) {
+  const parts = address.split('-')
+  const base = parts[0] // 基础编码
+  const branches = parts.slice(1) // 分支编码
+  return { base, branches }
+}
+
+// 辅助函数：判断是否是有效的基础编码
+function isValidBaseAddress(address: string): boolean {
+  // 必须是4位数字
+  if (!/^\d{4}$/.test(address)) return false
+
+  const num = parseInt(address)
+
+  // 顶级编码 (X000)
+  if (address.endsWith('000')) {
+    return num >= 1000 && num <= 5000 && num % 1000 === 0
+  }
+
+  // 二级编码 (XX00)
+  if (address.endsWith('00')) {
+    const firstDigit = Math.floor(num / 1000)
+    const secondDigit = Math.floor((num % 1000) / 100)
+    return firstDigit >= 1 && firstDigit <= 5 && secondDigit >= 1 && secondDigit <= 9
+  }
+
+  // 三级编码 (XXXX)
+  const firstTwoDigits = Math.floor(num / 100)
+  const lastTwoDigits = num % 100
+  return firstTwoDigits >= 11 && firstTwoDigits <= 59 && lastTwoDigits >= 1 && lastTwoDigits <= 99
+}
+
+// 辅助函数：判断是否是有效的分支编码
+function isValidBranchPart(part: string): boolean {
+  // 数字分支：1-99
+  if (/^\d+$/.test(part)) {
+    const num = parseInt(part)
+    return num >= 1 && num <= 99
+  }
+
+  // 字母分支：数字+小写字母
+  return /^\d+[a-z]$/.test(part)
+}
+
 // 获取本地树相关笔记
 export async function getLocalTreeNotes(noteId: string) {
   try {
-    // 1. 先获取当前笔记
     const currentNote = await findNoteById(noteId)
-    if (!currentNote) {
-      throw new Error('笔记不存在')
+    if (!currentNote) throw new Error('笔记不存在')
+
+    // 验证当前笔记地址的有效性
+    const { base: currentBase, branches: currentBranches } = parseAddress(currentNote.address)
+
+    // 验证基础编码
+    if (!isValidBaseAddress(currentBase)) {
+      throw new Error(`无效的基础编码: ${currentBase}`)
     }
 
-    // 2. 在数据库中查找所有笔记
+    // 验证分支编码
+    if (currentBranches.length > 0) {
+      for (const branch of currentBranches) {
+        if (!isValidBranchPart(branch)) {
+          throw new Error(`无效的分支编码: ${branch}`)
+        }
+      }
+    }
+
     const allNotes = await db('notes').where('isDeleted', false).select('*')
 
-    // 3. 根据地址规则筛选出相关笔记
     const result = {
       current: currentNote,
       parent: null as Note | null,
@@ -33,42 +90,73 @@ export async function getLocalTreeNotes(noteId: string) {
       children: [] as Note[]
     }
 
-    // 获取当前笔记的层级和父级地址
-    const currentParts = currentNote.address.split('-')
-    const parentAddress = currentParts.slice(0, -1).join('-')
+    // 1. 处理基础编码关系
+    if (currentBranches.length === 0) {
+      // 如果是基础编码
+      if (currentBase.endsWith('00')) {
+        // 如果是顶级或二级编码，父节点是上一级
+        const parentBase = currentBase.endsWith('000')
+          ? null
+          : `${Math.floor(parseInt(currentBase) / 1000)}000`
 
-    allNotes.forEach((note) => {
-      // 父级：当前地址是否以某个笔记地址为前缀，且层级差为1
-      if (
-        currentNote.address.startsWith(note.address + '-') &&
-        note.address.split('-').length === currentParts.length - 1
-      ) {
-        result.parent = note
-      }
-
-      // 兄弟级：如果是顶级节点，就找同层级的，如果不是，就找当前地址有相同的父级前缀
-
-      if (note.id !== noteId && note.address.split('-').length === currentParts.length) {
-        // 如果是顶级节点（没有父级地址），直接添加同层级节点
-        if (!parentAddress) {
-          result.siblings.push(note)
+        if (parentBase) {
+          result.parent = allNotes.find((n) => n.address === parentBase) || null
         }
-        // 如果有父级地址，则检查是否有相同的父级前缀
-        else if (note.address.startsWith(parentAddress + '-')) {
-          result.siblings.push(note)
+      } else {
+        // 如果是三级编码，父节点是对应的二级编码
+        const parentBase = `${currentBase.slice(0, 2)}00`
+        result.parent = allNotes.find((n) => n.address === parentBase) || null
+      }
+    } else {
+      // 2. 处理分支编码关系
+      const parentAddress = currentNote.address.split('-').slice(0, -1).join('-')
+      result.parent = allNotes.find((n) => n.address === parentAddress) || null
+    }
+
+    // 3. 查找兄弟节点
+    result.siblings = allNotes.filter((note) => {
+      if (note.id === noteId) return false
+
+      const { base: noteBase, branches: noteBranches } = parseAddress(note.address)
+
+      // 基础编码的兄弟规则
+      if (currentBranches.length === 0 && noteBranches.length === 0) {
+        if (currentBase.endsWith('000')) {
+          // 顶级编码的兄弟
+          return noteBase.endsWith('000')
+        } else if (currentBase.endsWith('00')) {
+          // 二级编码的兄弟
+          return (
+            noteBase.endsWith('00') &&
+            Math.floor(parseInt(noteBase) / 1000) === Math.floor(parseInt(currentBase) / 1000)
+          )
+        } else {
+          // 三级编码的兄弟
+          return noteBase.slice(0, 2) === currentBase.slice(0, 2) && !noteBase.endsWith('00')
         }
       }
 
-      // 子级：以当前地址为前缀，且层级差为1
-      if (
-        note.address.startsWith(currentNote.address + '-') &&
-        note.address.split('-').length === currentParts.length + 1
-      ) {
-        result.children.push(note)
-      }
+      // 分支编码的兄弟规则
+      const parentAddress = currentNote.address.split('-').slice(0, -1).join('-')
+      return (
+        note.address.startsWith(parentAddress + '-') &&
+        note.address.split('-').length === currentNote.address.split('-').length
+      )
     })
 
-    // 对兄弟节点进行排序
+    // 4. 查找子节点
+    result.children = allNotes.filter((note) => {
+      const noteParts = note.address.split('-')
+      const currentParts = currentNote.address.split('-')
+
+      // 必须比当前地址多一层
+      if (noteParts.length !== currentParts.length + 1) return false
+
+      // 必须以当前地址为前缀
+      return note.address.startsWith(currentNote.address + '-')
+    })
+
+    // 5. 对兄弟节点进行排序
     result.siblings.sort((a, b) => {
       const aLast = a.address.split('-').pop() || ''
       const bLast = b.address.split('-').pop() || ''
@@ -92,36 +180,21 @@ export async function getLocalTreeNotes(noteId: string) {
       return aAlpha.localeCompare(bAlpha)
     })
 
-    // 找到当前节点在排序后的数组中的位置
+    // 6. 只保留当前节点的前后兄弟节点
     const currentIndex = result.siblings.findIndex((note) => {
       const noteLast = note.address.split('-').pop() || ''
-      const noteMatch = noteLast.match(/^(\d+)([a-z]*)$/)
       const currentLast = currentNote.address.split('-').pop() || ''
-      const currentMatch = currentLast.match(/^(\d+)([a-z]*)$/)
 
-      if (!noteMatch || !currentMatch) return false
-
-      const noteNum = parseInt(noteMatch[1])
-      const currentNum = parseInt(currentMatch[1])
-
-      if (noteNum !== currentNum) return noteNum > currentNum
-
-      const noteAlpha = noteMatch[2]
-      const currentAlpha = currentMatch[2]
-
-      if (!noteAlpha && !currentAlpha) return false
-      if (!noteAlpha) return false
-      if (!currentAlpha) return true
-      return noteAlpha.localeCompare(currentAlpha) > 0
+      return noteLast.localeCompare(currentLast) > 0
     })
 
-    // 获取前一个和后一个节点
     const prevSibling =
       currentIndex > 0
         ? result.siblings[currentIndex - 1]
         : currentIndex === -1
           ? result.siblings[result.siblings.length - 1]
           : null
+
     const nextSibling =
       currentIndex !== -1
         ? result.siblings[currentIndex]

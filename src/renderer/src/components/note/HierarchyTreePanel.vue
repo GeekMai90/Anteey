@@ -1,3 +1,4 @@
+<!-- 局部知识树 -->
 <template>
   <div class="hierarchy-tree-panel">
     <div v-if="!hideHeader" class="panel-header">
@@ -16,13 +17,6 @@
     <div v-show="!isCollapsed" ref="containerRef" class="tree-container">
       <svg ref="svgRef" class="tree-graph" :width="svgWidth" :height="height"></svg>
     </div>
-
-    <!-- <NoteListDialog
-      :visible="showNoteList"
-      :notes="allChildren"
-      @close="showNoteList = false"
-      @select="handleListSelect"
-    /> -->
 
     <NotePreviewPopup
       v-if="showPreview && previewNoteId"
@@ -579,14 +573,40 @@ const renderHierarchyTree = () => {
   }
 }
 
+// 在 script setup 中添加 viewNoteContext 函数
+const viewNoteContext = (noteId: string) => {
+  router.push({
+    name: 'cardbox',
+    query: {
+      mode: 'context',
+      noteId: noteId
+    }
+  })
+}
+
+// 修改 handleNodeClick 函数
 const handleNodeClick = (event: MouseEvent, note: Note | undefined | null) => {
   if (!note || !note.id) {
     console.warn('无效的笔记节点:', note)
     return
   }
 
-  // Command/Ctrl + 点击 使用展开编辑器
-  if (event.metaKey || event.ctrlKey) {
+  // 阻止事件冒泡
+  event.preventDefault()
+  event.stopPropagation()
+
+  if (event.shiftKey) {
+    // Shift+点击：在知识树中查看节点
+    router.push({
+      name: 'KnowledgeTreeNode',
+      params: { address: note.address },
+      replace: true
+    })
+  } else if (event.altKey) {
+    // Option/Alt+点击：在卡片盒中查看上下文
+    viewNoteContext(note.id)
+  } else if (event.metaKey || event.ctrlKey) {
+    // Command/Ctrl+点击：使用展开编辑器
     router.push({
       name: 'NoteExpandEditor',
       params: { id: note.id }

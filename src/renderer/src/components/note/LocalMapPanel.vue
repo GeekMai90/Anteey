@@ -1,3 +1,4 @@
+// 局部图谱
 <template>
   <div class="local-tree-panel">
     <div v-if="!hideHeader" class="panel-header">
@@ -499,9 +500,37 @@ const findNoteInData = (id: string, treeData: any): Note | null => {
   return null
 }
 
+// 添加 viewNoteContext 函数
+const viewNoteContext = (noteId: string) => {
+  router.push({
+    name: 'cardbox',
+    query: {
+      mode: 'context',
+      noteId: noteId
+    }
+  })
+}
+
+// 修改 handleNodeClick 函数
 const handleNodeClick = (event: MouseEvent, note: Note) => {
-  // Command/Ctrl + 点击使用展开编辑器
-  if (event.metaKey || event.ctrlKey) {
+  if (!note.id) return
+
+  // 阻止事件冒泡
+  event.preventDefault()
+  event.stopPropagation()
+
+  if (event.shiftKey) {
+    // Shift+点击：在知识树中查看节点
+    router.push({
+      name: 'KnowledgeTreeNode',
+      params: { address: note.address },
+      replace: true
+    })
+  } else if (event.altKey) {
+    // Option/Alt+点击：在卡片盒中查看上下文
+    viewNoteContext(note.id)
+  } else if (event.metaKey || event.ctrlKey) {
+    // Command/Ctrl+点击：使用展开编辑器
     router.push({
       name: 'NoteExpandEditor',
       params: { id: note.id }
@@ -509,6 +538,7 @@ const handleNodeClick = (event: MouseEvent, note: Note) => {
   }
 }
 
+// 保持原有的双击处理函数不变
 const handleNodeDblClick = (note: Note) => {
   if (!note.id) return
   useNoteStore().openNoteEditor(note.id)

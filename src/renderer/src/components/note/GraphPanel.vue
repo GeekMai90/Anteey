@@ -26,7 +26,7 @@
           :class="{ active: currentView === 'hierarchy' }"
           @click="switchView('hierarchy')"
         >
-          笔记树
+          局部知识树
         </button>
       </div>
     </div>
