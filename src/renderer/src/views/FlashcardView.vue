@@ -1,5 +1,8 @@
 <template>
   <div v-if="isLoaded" class="flashcard-view">
+    <!-- 添加上下文菜单组件 -->
+    <ContextMenu />
+
     <!-- 顶部固定区域 -->
     <div class="sticky-header">
       <!-- 工具栏 -->
@@ -91,7 +94,7 @@
               <Play theme="outline" size="16" :strokeWidth="3" />
               练习
             </button>
-            <button class="more-btn">
+            <button class="more-btn" @click="(event) => handleMoreClick(event, null, true)">
               <More theme="outline" size="16" :strokeWidth="3" />
             </button>
           </div>
@@ -117,7 +120,7 @@
               <Play theme="outline" size="16" :strokeWidth="3" />
               练习
             </button>
-            <button class="more-btn">
+            <button class="more-btn" @click="(event) => handleMoreClick(event, null, false)">
               <More theme="outline" size="16" :strokeWidth="3" />
             </button>
           </div>
@@ -143,7 +146,7 @@
               <Play theme="outline" size="16" :strokeWidth="3" />
               练习
             </button>
-            <button class="more-btn">
+            <button class="more-btn" @click="(event) => handleMoreClick(event, deck.tagId, false)">
               <More theme="outline" size="16" :strokeWidth="3" />
             </button>
           </div>
@@ -163,16 +166,30 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { StorageCardOne, Tag, Time, CheckOne, Play, More, Notes } from '@icon-park/vue-next'
+import {
+  StorageCardOne,
+  Tag,
+  Time,
+  CheckOne,
+  Play,
+  More,
+  Notes,
+  FileSearch
+} from '@icon-park/vue-next'
+import { useRouter } from 'vue-router'
 import AppToolbar from '@renderer/components/layout/AppToolbar.vue'
 import FlashcardReviewModal from '../components/flashcard/FlashcardReviesModal.vue'
+import ContextMenu from '@renderer/components/common/ContexMenu.vue'
 import { useFlashcardStore } from '@renderer/stores/flashcardStore'
+import { useContextMenuStore } from '@renderer/stores/contextMenuStore'
 import type { FlashcardStats } from '@renderer/types/flashcard'
 import type { ReviewFeedback } from '@renderer/types/flashcard'
 
 // 状态
+const router = useRouter()
 const isLoaded = ref(false)
 const flashcardStore = useFlashcardStore()
+const contextMenuStore = useContextMenuStore()
 const stats = ref<FlashcardStats | null>(null)
 const untaggedDeck = ref({
   dueCount: 0,
@@ -244,6 +261,36 @@ const initializeData = async () => {
   } catch (error) {
     console.error('加载闪卡数据失败:', error)
   }
+}
+
+// 处理更多按钮点击
+const handleMoreClick = (event: MouseEvent, tagId: string | null, isAll = false) => {
+  event.stopPropagation()
+
+  const menuItems = [
+    {
+      label: '查看卡组',
+      icon: FileSearch,
+      action: () => {
+        // 跳转到卡片盒页面，带上标签和闪卡筛选条件
+        router.push({
+          name: 'cardbox',
+          query: {
+            // 如果是所有记忆卡则不传 tags，如果是暂无分类则传 none，如果是标签卡组则传 tagId
+            ...(isAll ? {} : tagId === null ? { tags: 'none' } : { tags: tagId }),
+            box: 'all',
+            isFlashcard: 'true',
+            page: '1'
+          }
+        })
+        // 关闭上下文菜单
+        contextMenuStore.closeMenu()
+      }
+    }
+  ]
+
+  // 显示上下文菜单
+  contextMenuStore.showMenu(event.clientX, event.clientY, menuItems)
 }
 
 onMounted(initializeData)
@@ -348,7 +395,7 @@ onMounted(initializeData)
 }
 
 .stats-section {
-  margin-bottom: 40px;
+  margin-bottom: 20px;
 
   .stats-cards {
     display: grid;
