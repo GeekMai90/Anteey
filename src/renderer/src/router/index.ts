@@ -116,6 +116,11 @@ const routes = [
     name: 'ImageManager',
     path: '/image-manager',
     component: () => import('../views/ImageManagerView.vue')
+  },
+  {
+    name: 'FlashcardView',
+    path: '/flashcard',
+    component: () => import('../views/FlashcardView.vue')
   }
 ]
 

@@ -6,7 +6,7 @@ import { FilterRule } from '../../renderer/src/types/Filter'
 import { db } from '../../db/config'
 import { checkLicenseStatus } from '../activation/licenseService'
 // 辅助函数：将数据库记录转换为 Note 对象
-function convertToNote(record: any): Note {
+export function convertToNote(record: any): Note {
   return {
     id: record.id,
     type: 'note',
@@ -34,7 +34,10 @@ function convertToNote(record: any): Note {
     rightBarOrder: record.rightBarOrder,
 
     // 元数据
-    metadata: record.metadata ? JSON.parse(record.metadata) : undefined
+    metadata: record.metadata ? JSON.parse(record.metadata) : undefined,
+    isFlashcard: record.isFlashcard,
+    flashcard: record.flashcard ? JSON.parse(record.flashcard) : undefined,
+    nextReviewAt: record.nextReviewAt ? new Date(record.nextReviewAt) : undefined
   }
 }
 
@@ -660,7 +663,12 @@ export async function createNote(): Promise<Note> {
     metadata: {
       title: '',
       summary: ''
-    }
+    },
+
+    // 新增：闪卡相关属性
+    isFlashcard: false,
+    flashcard: undefined,
+    nextReviewAt: undefined
   }
 
   try {

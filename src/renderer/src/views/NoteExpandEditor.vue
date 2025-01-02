@@ -446,7 +446,7 @@ const handleCardboxUpdate = async (cardBoxId: string) => {
 // === 更多功能菜单管理 ===
 const { menuItems: noteMenuItems, resetDeleteState } = useNoteMenu({
   noteId: noteId,
-  menuItems: ['star', 'sidebar', 'copyQuote', 'share', 'exportNote', 'delete']
+  menuItems: ['star', 'convertToFlashcard', 'sidebar', 'copyQuote', 'share', 'exportNote', 'delete']
 })
 
 const moreBtnRef = ref<HTMLElement | null>(null)

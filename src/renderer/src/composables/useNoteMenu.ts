@@ -12,7 +12,8 @@ import {
   Export as ExportIcon,
   SettingTwo,
   Share,
-  AdjacentItem
+  AdjacentItem,
+  StorageCardOne
 } from '@icon-park/vue-next'
 import { useWhiteboardStore } from '../stores/whiteboardStores'
 import { useUIStore } from '../stores/useUIStore'
@@ -24,6 +25,7 @@ import { useNoteStore } from '../stores/noteStores'
 import { useRoute, useRouter } from 'vue-router'
 import { Note } from '../types/Note'
 import { message } from '../utils/message'
+import { useFlashcardStore } from '../stores/flashcardStore'
 
 interface NoteMenuParams {
   noteId: string
@@ -42,6 +44,9 @@ export function useNoteMenu(params: NoteMenuParams) {
   const router = useRouter()
   const isPopupMenuVisible = ref(false)
   const isStarred = ref(false)
+  const flashcardStore = useFlashcardStore()
+  // 在 useNoteMenu 函数中添加状态
+  const isFlashcard = ref(false)
 
   // 关闭弹出菜单
   const closePopupMenu = () => {
@@ -51,6 +56,24 @@ export function useNoteMenu(params: NoteMenuParams) {
   const handleShare = async () => {
     await noteStore.handleShare(params.noteId)
     closePopupMenu()
+  }
+
+  // 将笔记标记为闪卡
+  const handleConvertToFlashcard = async () => {
+    try {
+      if (!isFlashcard.value) {
+        await flashcardStore.convertToFlashcard(params.noteId)
+        message.success('已将笔记标记为闪卡')
+      } else {
+        await flashcardStore.removeFlashcard(params.noteId)
+        message.success('已取消闪卡标记')
+      }
+      isFlashcard.value = !isFlashcard.value
+      closePopupMenu()
+    } catch (error) {
+      console.error('操作闪卡失败:', error)
+      message.error('操作失败')
+    }
   }
 
   // 复制笔记引用链接
@@ -73,9 +96,18 @@ export function useNoteMenu(params: NoteMenuParams) {
     // 立即更新 isStarred 的值
     isStarred.value = !isStarred.value
   }
-  watchEffect(() => {
-    const note = noteStore.starredNotes.find((note) => note.id === params.noteId)
-    isStarred.value = note?.isStarred || false
+  // watchEffect(() => {
+  //   const note = noteStore.starredNotes.find((note) => note.id === params.noteId)
+  //   isStarred.value = note?.isStarred || false
+  //   isFlashcard.value = note?.isFlashcard || false
+  // })
+  watchEffect(async () => {
+    // 获取完整的笔记信息来更新状态
+    const note = await noteStore.fetchNote(params.noteId)
+    if (note) {
+      isStarred.value = note.isStarred || false
+      isFlashcard.value = note.isFlashcard || false
+    }
   })
 
   // 添加或移除右侧显示
@@ -527,6 +559,13 @@ export function useNoteMenu(params: NoteMenuParams) {
       label: '复制引用',
       icon: AdjacentItem,
       action: handleCopyQuote
+    },
+    convertToFlashcard: {
+      name: 'convertToFlashcard',
+      label: isFlashcard.value ? '取消闪卡标记' : '标记为闪卡',
+      icon: StorageCardOne, // 可以选择一个合适的图标
+      action: handleConvertToFlashcard,
+      fill: isFlashcard.value ? 'var(--color-primary)' : 'var(--color-icon-menu-default)'
     }
   }))
 

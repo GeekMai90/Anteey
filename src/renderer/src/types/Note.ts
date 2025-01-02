@@ -1,4 +1,5 @@
 // src/types/Note.ts
+import type { FlashcardData } from './flashcard'
 
 // 定义卡片类型
 export type CardType = 'Maincard' | 'Bibcard' | 'Indexcard' | 'Hoplinkcard'
@@ -43,6 +44,10 @@ export interface Note {
     references?: string[]
     attachments?: string[]
   }
+
+  // 新增：闪卡相关属性
+  isFlashcard: boolean
+  flashcard?: FlashcardData
 }
 
 // 引用类型和关系树接口保持不变

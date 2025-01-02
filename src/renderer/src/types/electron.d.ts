@@ -28,6 +28,7 @@ import type { FutureLog, MonthlyLog, TimeBlockDay, TimeBlockSettings } from './t
 import { SyncState, WebDAVConfig } from './WebDAV'
 import { SyncHistory } from './WebDAV'
 import { ImageQueryParams, ImageQueryResult, ImageInfo } from './Image'
+import { FlashcardDecks, FlashcardStats, ReviewFeedback } from './flashcard'
 
 export interface ElectronAPI {
   createNote: () => Promise<Note>
@@ -385,6 +386,25 @@ export interface ElectronAPI {
   // 添加新的图片管理方法
   getImages: (params: ImageQueryParams) => Promise<ImageQueryResult>
   deleteImages: (imageIds: string[]) => Promise<{ deletedCount: number }>
+
+  // 闪卡相关的方法
+  // 将笔记转换为闪卡
+  convertToFlashcard: (noteId: string) => Promise<void>
+
+  // 取消闪卡标记
+  removeFlashcard: (noteId: string) => Promise<void>
+
+  // 更新闪卡复习状态
+  updateFlashcardStatus: (params: { noteId: string; feedback: ReviewFeedback }) => Promise<void>
+
+  // 获取待复习的闪卡
+  getDueFlashcards: (tags?: string[]) => Promise<Note[]>
+
+  // 获取闪卡统计信息
+  getFlashcardStats: () => Promise<FlashcardStats>
+
+  // 添加获取闪卡卡组数据的方法类型
+  getFlashcardDecks: () => Promise<FlashcardDecks>
 }
 
 declare global {

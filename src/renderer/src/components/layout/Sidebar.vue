@@ -181,7 +181,8 @@ import {
   Sapling,
   LinkCloud,
   LinkCloudFaild,
-  LinkCloudSucess
+  LinkCloudSucess,
+  StorageCardOne
 } from '@icon-park/vue-next'
 import { useNoteStore } from '@renderer/stores/noteStores'
 import SettingDropdownMenu from '@renderer/components/settings/SettingDropdownMenu.vue'
@@ -226,6 +227,7 @@ const menuItems = computed(() => {
     { name: '笔记流', path: '/timeline', icon: Timeline },
     { name: '卡片盒', path: '/cardbox', icon: Box },
     { name: '知识树', path: '/knowledge-tree', icon: Sapling },
+    { name: '记忆卡', path: '/flashcard', icon: StorageCardOne },
     // 根据设置决定是否显示白板
     ...(appearanceStore.settings?.enableWhiteboard
       ? [{ name: '思维板', path: '/whiteboard', icon: Workbench }]

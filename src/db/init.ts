@@ -35,6 +35,11 @@ export async function initDatabase(db: Knex): Promise<void> {
       table.integer('rightBarOrder').nullable()
       table.json('metadata').nullable()
 
+      // 新增：闪卡相关字段
+      table.boolean('isFlashcard').notNullable().defaultTo(false).index()
+      table.json('flashcard').nullable() // 存储闪卡的所有相关数据
+      table.datetime('nextReviewAt').nullable().index() // 将重要的查询字段单独存储
+
       // 保持现有的索引
       table.index(['cardBoxId', 'updatedAt'])
       table.index(['cardBoxId', 'createdAt'])
@@ -42,8 +47,29 @@ export async function initDatabase(db: Knex): Promise<void> {
       table.index(['cardBoxId', 'isDeleted', 'updatedAt'])
       table.index(['cardBoxId', 'isDeleted', 'createdAt'])
       table.index(['isStarred', 'starredOrder', 'updatedAt'])
+      // 新增：用于闪卡查询的索引
+      table.index(['isFlashcard', 'nextReviewAt']) // 用于查询待复习的卡片
     })
     console.log('notes 表创建成功')
+  } // 如果表已存在，需要添加新字段
+  else {
+    // 检查是否需要添加新列
+    const hasFlashcardColumn = await db.schema.hasColumn('notes', 'isFlashcard')
+    if (!hasFlashcardColumn) {
+      await db.schema.alterTable('notes', (table) => {
+        table.boolean('isFlashcard').notNullable().defaultTo(false)
+        table.json('flashcard').nullable()
+        table.datetime('nextReviewAt').nullable()
+      })
+
+      // 添加新索引
+      await db.schema.table('notes', (table) => {
+        table.index('isFlashcard')
+        table.index(['isFlashcard', 'nextReviewAt'])
+      })
+
+      console.log('闪卡相关字段添加成功')
+    }
   }
 
   // 2. 创建 tags 表
