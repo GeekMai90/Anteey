@@ -569,14 +569,13 @@ export const useNoteStore = defineStore(
     const fetchPaginatedNotesByCardbox = async (params: GetPaginatedNotesParams) => {
       console.log('noteStores.ts→ 开始获取卡片盒分页笔记', params)
       try {
-        // 解构并转换 Proxy 对象为普通数组
         const { cardTypes = [], tags = [], ...otherParams } = params
 
-        // 确保传递给后端的是普通数组而不是 Proxy
         const sanitizedParams = {
           ...otherParams,
           cardTypes: Array.from(cardTypes),
-          tags: Array.from(tags)
+          tags: Array.from(tags),
+          isFlashcard: params.isFlashcard
         }
 
         const { notes: fetchedNotes, totalCount } =

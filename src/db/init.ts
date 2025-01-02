@@ -348,7 +348,7 @@ export async function initDatabase(db: Knex): Promise<void> {
     await db.schema.createTable('filter_rules', (table) => {
       table.string('id').primary()
       table.string('filterId').notNullable().index()
-      table.enum('field', ['tag', 'cardBox', 'keyword', 'cardType']).notNullable()
+      table.enum('field', ['tag', 'cardBox', 'keyword', 'cardType', 'isFlashcard']).notNullable()
       table.enum('operator', ['contains', 'doesNotContain', 'is', 'isNot']).notNullable()
       table.json('value').notNullable() // 使用 json 类型来存储 string | string[]
       table.datetime('createdAt').notNullable()

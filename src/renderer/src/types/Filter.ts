@@ -1,7 +1,7 @@
 import { Note } from './Note'
 
 // 筛选规则的字段类型
-export type FilterField = 'tag' | 'cardBox' | 'keyword' | 'cardType'
+export type FilterField = 'tag' | 'cardBox' | 'keyword' | 'cardType' | 'isFlashcard'
 
 // 筛选规则的操作符
 export type FilterOperator = 'contains' | 'doesNotContain' | 'is' | 'isNot'

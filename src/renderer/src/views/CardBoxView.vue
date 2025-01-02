@@ -14,7 +14,8 @@
                   !filterStore.activeFilter &&
                   !filterState.keyword &&
                   filterState.tags.length === 0 &&
-                  filterState.cardTypes.length === 0
+                  filterState.cardTypes.length === 0 &&
+                  !filterState.isFlashcard
               }"
               @click="selectAll"
             >
@@ -28,6 +29,11 @@
               </div>
               <div class="name">全部</div>
             </div>
+            <!-- 闪卡筛选 -->
+            <FlashcardFilter
+              v-model="filterState.isFlashcard"
+              @update:modelValue="handleFlashcardFilterChange"
+            />
             <!-- 卡片盒下拉菜单 -->
             <CardBoxDropdown
               v-model="filterState.cardBoxId"
@@ -46,6 +52,7 @@
             />
             <!-- 卡片类型下拉菜单 -->
             <CardTypeDropdown v-model="filterState.cardTypes" />
+
             <!-- 添加自定义筛选组件 -->
             <CustomFilterDropdown @filter="handleCustomFilter" @reset="handleResetFilter" />
           </div>
@@ -219,6 +226,7 @@ import { useFilterStore } from '@renderer/stores/filterStore'
 import FilterDialog from '@renderer/components/cardbox/FilterDialog.vue'
 import { CreateCustomFilterInput, UpdateCustomFilterInput } from '@renderer/types/Filter'
 import { message } from '@renderer/utils/message'
+import FlashcardFilter from '@renderer/components/cardbox/FlashcardFilter.vue'
 
 const noteStore = useNoteStore()
 const filterStore = useFilterStore()
@@ -329,6 +337,7 @@ const filterState = reactive({
   cardTypes: ((route.query.type as string)?.split(',') || []) as string[],
   tags: ((route.query.tags as string)?.split(',') || []) as string[],
   keyword: (route.query.keyword as string) || '',
+  isFlashcard: route.query.isFlashcard === 'true' || false,
   sort: {
     field: (route.query.sort as string) || 'address',
     order: (route.query.order as 'asc' | 'desc') || 'asc'
@@ -351,6 +360,7 @@ watch(
     filterState.cardTypes = (query.type as string)?.split(',') || []
     filterState.tags = (query.tags as string)?.split(',') || []
     filterState.keyword = (query.keyword as string) || ''
+    filterState.isFlashcard = query.isFlashcard === 'true' || false // 添加闪卡状态更新
     filterState.sort.field = (query.sort as string) || 'updatedAt'
     filterState.sort.order = (query.order as 'asc' | 'desc') || 'desc'
   }
@@ -361,6 +371,7 @@ interface QueryParams {
   type?: string
   tags?: string
   keyword?: string
+  isFlashcard?: string // 添加闪卡参数类型
   sort?: string
   order?: 'asc' | 'desc'
   page?: string
@@ -375,6 +386,7 @@ const updateRouteQuery = () => {
     type: filterState.cardTypes?.length ? filterState.cardTypes.join(',') : undefined,
     tags: filterState.tags?.length ? filterState.tags.join(',') : undefined,
     keyword: filterState.keyword || undefined,
+    isFlashcard: filterState.isFlashcard ? 'true' : undefined, // 添加闪卡参数
     sort: filterState.sort.field,
     order: filterState.sort.order,
     page: currentPage.value.toString()
@@ -400,45 +412,6 @@ const resetAndFetch = async () => {
 }
 
 // 7. 获取笔记数据
-// const fetchNotes = async () => {
-//   if (isLoading.value) return
-
-//   isLoading.value = true
-//   try {
-//     console.log('获取笔记数据，当前筛选状态:', {
-//       cardBoxId: filterState.cardBoxId,
-//       cardTypes: filterState.cardTypes,
-//       tags: filterState.tags,
-//       page: currentPage.value
-//     })
-//     const params: GetPaginatedNotesParams = {
-//       page: currentPage.value,
-//       limit: pageSize.value,
-//       cardBoxId: filterState.cardBoxId,
-//       cardTypes: filterState.cardTypes,
-//       tags: filterState.tags,
-//       keyword: filterState.keyword,
-//       sortBy: filterState.sort.field,
-//       sortOrder: filterState.sort.order
-//     }
-
-//     const result = await noteStore.fetchPaginatedNotesByCardbox(params)
-
-//     if (currentPage.value === 1) {
-//       notes.value = result.notes
-//     } else {
-//       notes.value = [...notes.value, ...result.notes]
-//     }
-
-//     totalCount.value = result.totalCount
-//     hasMoreNotes.value = notes.value.length < totalCount.value
-//     currentPage.value++
-//   } catch (error) {
-//     console.error('获取笔记失败:', error)
-//   } finally {
-//     isLoading.value = false
-//   }
-// }
 const fetchNotes = async () => {
   if (isLoading.value) return
 
@@ -463,6 +436,7 @@ const fetchNotes = async () => {
       keyword: filterState.keyword,
       sortBy: filterState.sort.field,
       sortOrder: filterState.sort.order,
+      isFlashcard: filterState.isFlashcard, // 添加闪卡筛选参数
       // 如果有激活的自定义筛选规则，添加 customFilterId
       customFilterId: activeFilter?.id
     }
@@ -522,6 +496,7 @@ const selectAll = async () => {
   filterState.tags = []
   filterState.cardTypes = []
   filterState.keyword = ''
+  filterState.isFlashcard = false // 重置闪卡筛选
   searchQuery.value = ''
 
   selectedCardBox.value = null
@@ -975,6 +950,12 @@ const handleCustomFilter = async () => {
 // 处理重置筛选
 const handleResetFilter = async () => {
   await resetAndFetch()
+}
+
+// 处理闪卡筛选变化
+const handleFlashcardFilterChange = (value: boolean) => {
+  filterState.isFlashcard = value
+  resetAndFetch()
 }
 </script>
 

@@ -483,100 +483,6 @@ export async function getPaginatedNotes(
     throw new Error('后端→ 获取分页笔记失败')
   }
 }
-// export interface GetPaginatedNotesParams {
-//   page: number
-//   limit: number
-//   cardBoxId?: string // 'all' | 'inbox' | string
-//   cardTypes?: string[] // ['Maincard', 'Bibcard', 'Indexcard']
-//   tags?: string[] // 标签ID数组
-//   keyword?: string // 搜索关键词
-//   sortBy: string // 排序字段
-//   sortOrder: 'asc' | 'desc'
-// }
-
-// export async function getPaginatedNotesByCardbox({
-//   page,
-//   limit,
-//   cardBoxId,
-//   cardTypes,
-//   tags,
-//   keyword,
-//   sortBy = 'updatedAt',
-//   sortOrder = 'desc'
-// }: GetPaginatedNotesParams): Promise<{ notes: Note[]; totalCount: number }> {
-//   try {
-//     console.log('后端→ 开始获取卡片盒分页笔记', {
-//       cardBoxId,
-//       cardTypes,
-//       tags,
-//       keyword,
-//       sortBy,
-//       sortOrder,
-//       page,
-//       limit
-//     })
-
-//     let query = db('notes')
-//       .leftJoin('note_tags', 'notes.id', 'note_tags.noteId')
-//       .where('notes.isDeleted', false)
-//       .distinct('notes.*')
-
-//     // 基础筛选：卡片盒
-//     if (cardBoxId === 'inbox') {
-//       query = query.whereNull('notes.cardBoxId')
-//     } else if (cardBoxId && cardBoxId !== 'all') {
-//       query = query.where('notes.cardBoxId', cardBoxId)
-//     }
-
-//     // 卡片类型筛选
-//     if (cardTypes && cardTypes.length > 0) {
-//       query = query.whereIn('notes.cardType', cardTypes)
-//     }
-
-//     // 标签筛选
-//     if (tags && tags.length > 0) {
-//       if (tags.includes('none')) {
-//         // 筛选无标签的笔记
-//         query = query.whereNotExists(function () {
-//           this.select('*').from('note_tags').whereRaw('note_tags.noteId = notes.id')
-//         })
-//       } else {
-//         // 筛选有特定标签的笔记
-//         query = query.whereIn('note_tags.tagId', tags)
-//       }
-//     }
-
-//     // 关键词搜索
-//     if (keyword) {
-//       const searchKeyword = `%${keyword}%`
-//       query = query.where((builder) => {
-//         builder
-//           .where('notes.title', 'like', searchKeyword)
-//           .orWhere('notes.content', 'like', searchKeyword)
-//           .orWhere('notes.address', 'like', searchKeyword)
-//       })
-//     }
-
-//     // 计算总数
-//     const countResult = await query.clone().count('* as count').first()
-//     const totalCount = countResult ? (countResult.count as number) : 0
-
-//     // 获取分页数据
-//     const offset = (page - 1) * limit
-//     const notes = await query.orderBy(`notes.${sortBy}`, sortOrder).limit(limit).offset(offset)
-
-//     console.log('后端→ 查询结果数量:', notes.length)
-//     console.log('后端→ 总计数:', totalCount)
-
-//     return {
-//       notes: notes.map(convertToNote),
-//       totalCount
-//     }
-//   } catch (error) {
-//     console.error('后端→ 获取分页笔记失败:', error)
-//     throw new Error('获取分页笔记失败')
-//   }
-// }
 
 async function canCreateNote(): Promise<{ allowed: boolean; message?: string }> {
   try {
@@ -694,101 +600,6 @@ export async function createNote(): Promise<Note> {
   }
 }
 
-// 在文件顶部添加一个计数器
-// let noteCounter = 0
-// const startDate = new Date('2024-11-01')
-
-// // 修改创建笔记函数
-// export async function createNote(): Promise<Note> {
-//   const id = uuidv4()
-
-//   // 每创建两个笔记，日期加一天
-//   const daysToAdd = Math.floor(noteCounter / 2)
-//   const now = new Date(startDate.getTime() + daysToAdd * 24 * 60 * 60 * 1000)
-
-//   // 增加计数器
-//   noteCounter++
-
-//   const newNote: Note = {
-//     id,
-//     type: 'note',
-//     address: '',
-//     cardType: 'Maincard',
-//     content: {
-//       type: 'doc',
-//       content: [
-//         {
-//           attrs: {
-//             textAlign: 'left'
-//           },
-//           content: [
-//             {
-//               type: 'text',
-//               text: `${now.toLocaleDateString()} 的笔记 #${noteCounter}`
-//             }
-//           ],
-//           type: 'paragraph'
-//         }
-//       ]
-//     },
-//     createdAt: now,
-//     updatedAt: now,
-//     references: {
-//       outgoing: [],
-//       incoming: []
-//     },
-
-//     // 关系树（初始为空）
-//     relationshipTree: {
-//       parents: [],
-//       children: [],
-//       siblings: []
-//     },
-
-//     // 图谱数据（初始为空）
-//     graphData: {
-//       x: 0,
-//       y: 0
-//     },
-
-//     // 基础字段
-//     cardBoxId: undefined,
-//     parentId: undefined,
-//     isDeleted: false,
-//     isStarred: false,
-//     starredOrder: undefined,
-//     rightBarOrder: undefined,
-
-//     // 语义相关（初始为空）
-//     keywords: [],
-//     semanticVector: undefined,
-
-//     // 元数据（初始为空）
-//     metadata: {
-//       title: '',
-//       summary: ''
-//     }
-//   }
-
-//   try {
-//     await db('notes').insert({
-//       ...newNote,
-//       content: JSON.stringify(newNote.content),
-//       references: JSON.stringify(newNote.references),
-//       relationshipTree: JSON.stringify(newNote.relationshipTree),
-//       graphData: JSON.stringify(newNote.graphData),
-//       keywords: JSON.stringify(newNote.keywords),
-//       metadata: JSON.stringify(newNote.metadata)
-//     })
-
-//     console.log('后端→ 创建笔记成功:', id, '创建时间:', now.toLocaleString())
-//     return newNote
-//   } catch (error) {
-//     console.error('后端→ 创建笔记失败:', error)
-//     throw error
-//   }
-// }
-
 // 获取单条笔记
 export async function getNoteById(id: string): Promise<Note | null> {
   try {
@@ -824,74 +635,6 @@ export async function getAllNotes(includeDeleted: boolean = false): Promise<Note
 const MAX_RETRIES = 3
 const RETRY_DELAY = 100 // 毫秒
 
-// export async function updateNoteContent(id: string, content: object): Promise<Note> {
-//   let retries = 0
-
-//   while (retries < MAX_RETRIES) {
-//     try {
-//       // 1. 先保存笔记内容
-//       const updatedNote = await db.transaction(
-//         async (trx) => {
-//           // 设置事务超时
-//           await trx.raw('PRAGMA busy_timeout = 5000;')
-
-//           // 提取第一行文本作为标题
-//           const firstLineText = extractFirstLineText(content)
-
-//           // 准备更新数据
-//           const updateData: any = {
-//             content: JSON.stringify(content),
-//             updatedAt: new Date(),
-//             metadata: db.raw(
-//               `
-//               json_patch(
-//                 COALESCE(metadata, '{}'),
-//                 json_object('title', ?)
-//               )
-//             `,
-//               [firstLineText]
-//             )
-//           }
-
-//           // 执行更新并返回更新后的笔记
-//           const [note] = await trx('notes').where('id', id).update(updateData).returning('*')
-//           console.log(`后端→ 笔记 ${id} 内容已更新`)
-//           return convertToNote(note)
-//         },
-//         {
-//           isolationLevel: 'read committed'
-//         }
-//       )
-
-//       // 2. 异步更新向量
-//       setTimeout(async () => {
-//         try {
-//           await updateNoteEmbedding(id, content)
-//           console.log(`后端→ 笔记 ${id} 向量异步更新完成`)
-//         } catch (error) {
-//           console.error(`后端→ 笔记 ${id} 向量异步更新失败:`, error)
-//         }
-//       }, 0)
-
-//       return updatedNote
-//     } catch (error) {
-//       retries++
-//       const isLockError = (error as Error).message.includes('database is locked')
-
-//       if (isLockError && retries < MAX_RETRIES) {
-//         const delay = RETRY_DELAY * Math.pow(2, retries - 1)
-//         console.warn(`后端→ 数据库锁定，正在重试 (${retries}/${MAX_RETRIES})，延迟: ${delay}ms`)
-//         await new Promise((resolve) => setTimeout(resolve, delay))
-//         continue
-//       }
-
-//       console.error('后端→ 更新笔记内容失败:', error)
-//       throw new Error(`更新笔记内容失败: ${isLockError ? '数据库锁定' : (error as Error).message}`)
-//     }
-//   }
-
-//   throw new Error('更新笔记内容失败: 达到最大重试次数')
-// }
 export async function updateNoteContent(id: string, content: object): Promise<Note> {
   let retries = 0
 
@@ -1762,7 +1505,7 @@ export async function updateNoteTags(noteId: string, tagIds: string[]): Promise<
   }
 }
 
-// 更新参数接口
+// 卡片盒筛选笔记
 export interface GetPaginatedNotesParams {
   page: number
   limit: number
@@ -1770,6 +1513,7 @@ export interface GetPaginatedNotesParams {
   cardTypes?: string[] // ['Maincard', 'Bibcard', 'Indexcard']
   tags?: string[] // 标签ID数组
   keyword?: string // 搜索关键词
+  isFlashcard?: boolean // 添加闪卡参数
   sortBy: string // 排序字段
   sortOrder: 'asc' | 'desc'
   customFilterId?: string // 新增：自定义筛选规则ID
@@ -1782,23 +1526,12 @@ export async function getPaginatedNotesByCardbox({
   cardTypes,
   tags,
   keyword,
+  isFlashcard,
   sortBy = 'address',
   sortOrder = 'asc',
   customFilterId
 }: GetPaginatedNotesParams): Promise<{ notes: Note[]; totalCount: number }> {
   try {
-    // console.log('后端→ 开始获取卡片盒分页笔记', {
-    //   cardBoxId,
-    //   cardTypes,
-    //   tags,
-    //   keyword,
-    //   sortBy,
-    //   sortOrder,
-    //   page,
-    //   limit,
-    //   customFilterId
-    // })
-
     let query = db('notes')
       .leftJoin('note_tags', 'notes.id', 'note_tags.noteId')
       .where('notes.isDeleted', false)
@@ -1880,6 +1613,11 @@ export async function getPaginatedNotesByCardbox({
             .orWhere('notes.address', 'like', searchKeyword)
         })
       }
+    }
+
+    // 添加闪卡筛选
+    if (isFlashcard !== undefined) {
+      query = query.where('notes.isFlashcard', isFlashcard)
     }
 
     // 计算总数
@@ -2020,6 +1758,16 @@ function applyFilterRule(query: Knex.QueryBuilder, rule: FilterRule): Knex.Query
             .where('notes.content', 'like', searchKeyword)
             .orWhere('notes.address', 'like', searchKeyword)
         })
+      }
+      break
+    }
+
+    case 'isFlashcard': {
+      const isFlashcard = Boolean(value)
+      if (rule.operator === 'is') {
+        return query.where('notes.isFlashcard', isFlashcard)
+      } else if (rule.operator === 'isNot') {
+        return query.where('notes.isFlashcard', !isFlashcard)
       }
       break
     }

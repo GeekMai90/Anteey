@@ -29,6 +29,11 @@ const routes = [
         component: () => import('../views/CardBoxView.vue')
       },
       {
+        name: 'cardboxFlashcard',
+        path: 'flashcard', // 闪卡筛选
+        component: () => import('../views/CardBoxView.vue')
+      },
+      {
         name: 'cardboxBox',
         path: 'box/:boxId', // 特定卡片盒
         component: () => import('../views/CardBoxView.vue')
@@ -58,6 +63,7 @@ const routes = [
       keyword: route.query.keyword,
       sort: route.query.sort,
       order: route.query.order,
+      isFlashcard: route.query.isFlashcard === 'false', // 添加闪卡筛选参数
       page: parseInt(route.query.page as string) || 1
     })
   },
@@ -146,6 +152,15 @@ router.beforeEach((to, _from, next) => {
     next({
       name: 'cardboxBox',
       params: { boxId: to.query.box as string },
+      query: { ...to.query }
+    })
+    return
+  }
+
+  // 处理闪卡筛选的跳转
+  if (to.name === 'cardbox' && to.query.isFlashcard === 'true') {
+    next({
+      name: 'cardboxFlashcard',
       query: { ...to.query }
     })
     return
