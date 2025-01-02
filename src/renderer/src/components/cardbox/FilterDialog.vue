@@ -202,7 +202,8 @@ const fieldOptions = [
   { label: '标签', value: 'tag' },
   { label: '卡片盒', value: 'cardBox' },
   { label: '关键词', value: 'keyword' },
-  { label: '卡片类型', value: 'cardType' }
+  { label: '卡片类型', value: 'cardType' },
+  { label: '闪卡', value: 'isFlashcard' }
 ]
 
 // 表单数据
@@ -269,6 +270,7 @@ const getOperatorOptions = (field: FilterField) => {
       ]
     case 'cardBox':
     case 'cardType':
+    case 'isFlashcard':
       return [
         { label: '是', value: 'is' },
         { label: '不是', value: 'isNot' }
@@ -297,6 +299,8 @@ const getValueOptions = (field: FilterField) => {
         { label: '参考卡片', value: 'Bibcard' },
         { label: '索引卡片', value: 'Indexcard' }
       ]
+    case 'isFlashcard':
+      return [{ label: '闪卡', value: '闪卡' }]
     default:
       return []
   }
@@ -313,6 +317,8 @@ const getValuePlaceholder = (field: FilterField) => {
       return '输入关键词'
     case 'cardType':
       return '选择卡片类型'
+    case 'isFlashcard':
+      return '选择是否为闪卡'
     default:
       return '输入值'
   }

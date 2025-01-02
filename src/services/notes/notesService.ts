@@ -1763,11 +1763,12 @@ function applyFilterRule(query: Knex.QueryBuilder, rule: FilterRule): Knex.Query
     }
 
     case 'isFlashcard': {
-      const isFlashcard = Boolean(value)
       if (rule.operator === 'is') {
-        return query.where('notes.isFlashcard', isFlashcard)
+        return query.where('notes.isFlashcard', 1)
       } else if (rule.operator === 'isNot') {
-        return query.where('notes.isFlashcard', !isFlashcard)
+        return query.where(function () {
+          this.where('notes.isFlashcard', 0).orWhereNull('notes.isFlashcard')
+        })
       }
       break
     }
