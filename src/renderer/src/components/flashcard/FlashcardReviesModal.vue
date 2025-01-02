@@ -41,7 +41,7 @@
       </div>
 
       <!-- 顶部进度条 -->
-      <div class="review-header">
+      <div v-if="!isCompleted" class="review-header">
         <div class="progress-wrapper">
           <div class="progress-bar">
             <div
@@ -54,7 +54,7 @@
       </div>
 
       <!-- 中间内容区域（只有这部分会翻转） -->
-      <div class="card-container">
+      <div v-if="!isCompleted" class="card-container">
         <div class="card" :class="{ 'is-flipped': isFlipped }">
           <!-- 正面：问题 -->
           <div class="card-front">
@@ -77,9 +77,14 @@
       </div>
 
       <!-- 底部按钮区域（不翻转） -->
-      <div class="button-area">
+      <div v-if="!isCompleted" class="button-area">
         <!-- 未翻转时显示"显示答案"按钮 -->
-        <button v-if="!isFlipped" class="show-answer-btn" @click="flipCard">
+        <button
+          v-if="!isFlipped"
+          v-tooltip.top="{ content: '空格键', delay: { show: 1000 }, html: true }"
+          class="show-answer-btn"
+          @click="flipCard"
+        >
           <Eyes theme="outline" size="16" :strokeWidth="3" />
           显示答案
         </button>
@@ -88,6 +93,11 @@
           <button
             v-for="feedback in feedbackOptions"
             :key="feedback.value"
+            v-tooltip.top="{
+              content: feedback.shortcut,
+              delay: { show: 1000 },
+              html: true
+            }"
             class="feedback-btn"
             :class="feedback.class"
             @click="handleFeedback(feedback.value)"
@@ -100,19 +110,25 @@
 
       <!-- 学习完成状态 -->
       <div v-if="isCompleted" class="completion-state">
-        <div class="completion-icon">
-          <CheckOne theme="outline" size="48" :strokeWidth="3" />
+        <div class="completion-content">
+          <div class="completion-icon">
+            <CheckOne theme="outline" size="64" :strokeWidth="3" fill="var(--color-primary)" />
+          </div>
+          <div class="completion-text">
+            <h2>今日学习完成！</h2>
+            <p>你已经完成了所有待复习的卡片</p>
+          </div>
+          <button class="close-btn" @click="handleClose">
+            <span>完成</span>
+          </button>
         </div>
-        <h2>今日学习完成！</h2>
-        <p>你已经完成了所有待复习的卡片</p>
-        <button class="close-btn" @click="handleClose">关闭</button>
       </div>
     </div>
   </FlashcardModal>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import {
   Close,
   CheckOne,
@@ -132,6 +148,7 @@ import PopupMenu from '../common/PopupMenu.vue'
 import { useMenu } from '@renderer/composables/useMenu'
 import { useNoteMenu } from '@renderer/composables/useNoteMenu'
 import type { MenuItem } from '@renderer/components/common/PopupMenu.vue'
+import confetti from 'canvas-confetti'
 
 const props = defineProps<{
   modelValue: boolean
@@ -141,6 +158,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   'update:modelValue': [value: boolean]
   feedback: [noteId: string, feedback: ReviewFeedback]
+  complete: []
 }>()
 
 // 状态
@@ -168,31 +186,36 @@ const feedbackOptions = [
     label: '稍后复习',
     value: 'skip' as ReviewFeedback,
     class: 'skip',
-    icon: Next
+    icon: Next,
+    shortcut: 'H'
   },
   {
     label: '需要重学',
     value: 'forgot' as ReviewFeedback,
     class: 'forgot',
-    icon: CloseSmall
+    icon: CloseSmall,
+    shortcut: 'J'
   },
   {
     label: '模糊印象',
     value: 'partially_recalled' as ReviewFeedback,
     class: 'partial',
-    icon: ThinkingProblem
+    icon: ThinkingProblem,
+    shortcut: 'K'
   },
   {
     label: '想起来了',
     value: 'recalled_effort' as ReviewFeedback,
     class: 'recalled',
-    icon: Check
+    icon: Check,
+    shortcut: 'L'
   },
   {
     label: '非常熟悉',
     value: 'easily_recalled' as ReviewFeedback,
     class: 'mastered',
-    icon: CheckOne
+    icon: CheckOne,
+    shortcut: ';'
   }
 ]
 
@@ -224,11 +247,42 @@ const handleFeedback = async (feedback: ReviewFeedback) => {
     isFlipped.value = false
   } else {
     isCompleted.value = true
+    // 触发烟花效果
+    const myCanvas = document.createElement('canvas')
+    myCanvas.style.position = 'fixed'
+    myCanvas.style.top = '0'
+    myCanvas.style.left = '0'
+    myCanvas.style.width = '100%'
+    myCanvas.style.height = '100%'
+    myCanvas.style.pointerEvents = 'none'
+    myCanvas.style.zIndex = '9999'
+    document.body.appendChild(myCanvas)
+
+    const myConfetti = confetti.create(myCanvas, {
+      resize: true,
+      useWorker: true
+    })
+
+    myConfetti({
+      particleCount: 150,
+      spread: 100,
+      origin: { y: 0.6 },
+      colors: ['#FF69B4', '#4169E1', '#7B68EE', '#32CD32', '#FFD700', '#FF6347'],
+      ticks: 300,
+      disableForReducedMotion: true
+    }).then(() => {
+      // 动画完成后移除 canvas
+      document.body.removeChild(myCanvas)
+    })
   }
 }
 
 const handleClose = () => {
   emit('update:modelValue', false)
+  // 如果是学习完成状态，触发完成事件
+
+  emit('complete')
+
   // 重置状态
   currentIndex.value = 0
   isFlipped.value = false
@@ -260,6 +314,41 @@ const handleMenuItemClick = (item: MenuItem) => {
   item.action()
   closeMoreMenu()
 }
+
+// 添加键盘事件处理
+const handleKeydown = (e: KeyboardEvent) => {
+  // 如果正在输入，不处理快捷键
+  if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+    return
+  }
+
+  // 空格键显示答案
+  if (e.code === 'Space' && !isFlipped.value) {
+    e.preventDefault() // 防止空格键滚动页面
+    flipCard()
+    return
+  }
+
+  // 处理反馈快捷键
+  if (isFlipped.value) {
+    const key = e.key.toUpperCase()
+    const feedbackOption = feedbackOptions.find((option) => option.shortcut.toUpperCase() === key)
+    if (feedbackOption) {
+      e.preventDefault()
+      handleFeedback(feedbackOption.value)
+    }
+  }
+}
+
+// 在组件挂载时添加键盘事件监听
+onMounted(() => {
+  window.addEventListener('keydown', handleKeydown)
+})
+
+// 在组件卸载时移除键盘事件监听
+onUnmounted(() => {
+  window.removeEventListener('keydown', handleKeydown)
+})
 </script>
 
 <style lang="scss" scoped>
@@ -651,42 +740,104 @@ const handleMenuItemClick = (item: MenuItem) => {
 }
 
 .completion-state {
-  text-align: center;
-  padding: 40px 0;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-bg-primary);
+  border-radius: 12px;
+  padding: 40px;
+
+  .completion-content {
+    text-align: center;
+    animation: fadeInUp 0.6s ease;
+  }
 
   .completion-icon {
-    color: var(--color-green);
-    margin-bottom: 16px;
+    color: var(--color-primary);
+    margin-bottom: 24px;
+    animation: scaleIn 0.6s ease 0.2s both;
+
+    :deep(svg) {
+      filter: drop-shadow(0 4px 12px rgba(var(--color-primary-rgb), 0.2));
+    }
+  }
+
+  .completion-text {
+    animation: fadeIn 0.6s ease 0.4s both;
   }
 
   h2 {
-    font-size: 24px;
+    font-size: 28px;
     font-weight: 600;
     color: var(--color-text-primary);
-    margin-bottom: 8px;
+    margin-bottom: 12px;
   }
 
   p {
     font-size: 16px;
     color: var(--color-text-secondary);
-    margin-bottom: 24px;
+    margin-bottom: 32px;
   }
 
   .close-btn {
-    padding: 8px 24px;
+    padding: 12px 32px;
     background: var(--color-primary);
     color: white;
     border: none;
-    border-radius: 6px;
-    font-size: 14px;
+    border-radius: 8px;
+    font-size: 16px;
     font-weight: 500;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    animation: fadeIn 0.6s ease 0.6s both;
 
     &:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 2px 8px rgba(var(--color-primary-rgb), 0.3);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(var(--color-primary-rgb), 0.3);
     }
+
+    &:active {
+      transform: translateY(-1px);
+    }
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
   }
 }
 </style>

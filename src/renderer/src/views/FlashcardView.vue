@@ -156,6 +156,7 @@
       v-model="flashcardStore.isReviewModalOpen"
       :cards="flashcardStore.dueFlashcards"
       @feedback="handleReviewFeedback"
+      @complete="initializeData"
     />
   </div>
 </template>
@@ -550,6 +551,11 @@ onMounted(initializeData)
 
     &.all {
       background: var(--color-bg-tertiary);
+
+      &:hover {
+        background: var(--color-hover-bg);
+      }
+
       .deck-icon {
         background: rgba(var(--color-primary-rgb), 0.1);
         color: var(--color-primary);
