@@ -16,11 +16,11 @@
 import { StorageCardOne } from '@icon-park/vue-next'
 
 const props = defineProps<{
-  modelValue: boolean
+  modelValue: boolean | undefined
 }>()
 
 const emit = defineEmits<{
-  'update:modelValue': [value: boolean]
+  'update:modelValue': [value: boolean | undefined]
 }>()
 
 const toggleFilter = () => {

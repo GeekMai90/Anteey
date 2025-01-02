@@ -63,7 +63,7 @@ const routes = [
       keyword: route.query.keyword,
       sort: route.query.sort,
       order: route.query.order,
-      isFlashcard: route.query.isFlashcard === 'false', // 添加闪卡筛选参数
+      isFlashcard: route.query.isFlashcard === 'true' ? true : undefined, // 只有明确设置为 'true' 时才筛选闪卡
       page: parseInt(route.query.page as string) || 1
     })
   },

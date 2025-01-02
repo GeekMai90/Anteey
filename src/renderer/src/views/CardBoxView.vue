@@ -337,7 +337,7 @@ const filterState = reactive({
   cardTypes: ((route.query.type as string)?.split(',') || []) as string[],
   tags: ((route.query.tags as string)?.split(',') || []) as string[],
   keyword: (route.query.keyword as string) || '',
-  isFlashcard: route.query.isFlashcard === 'true' || false,
+  isFlashcard: route.query.isFlashcard === 'true' || undefined,
   sort: {
     field: (route.query.sort as string) || 'address',
     order: (route.query.order as 'asc' | 'desc') || 'asc'
@@ -360,7 +360,7 @@ watch(
     filterState.cardTypes = (query.type as string)?.split(',') || []
     filterState.tags = (query.tags as string)?.split(',') || []
     filterState.keyword = (query.keyword as string) || ''
-    filterState.isFlashcard = query.isFlashcard === 'true' || false // 添加闪卡状态更新
+    filterState.isFlashcard = query.isFlashcard === 'true' || undefined // 添加闪卡状态更新
     filterState.sort.field = (query.sort as string) || 'updatedAt'
     filterState.sort.order = (query.order as 'asc' | 'desc') || 'desc'
   }
@@ -496,7 +496,7 @@ const selectAll = async () => {
   filterState.tags = []
   filterState.cardTypes = []
   filterState.keyword = ''
-  filterState.isFlashcard = false // 重置闪卡筛选
+  filterState.isFlashcard = undefined
   searchQuery.value = ''
 
   selectedCardBox.value = null
@@ -953,8 +953,8 @@ const handleResetFilter = async () => {
 }
 
 // 处理闪卡筛选变化
-const handleFlashcardFilterChange = (value: boolean) => {
-  filterState.isFlashcard = value
+const handleFlashcardFilterChange = (value: boolean | undefined) => {
+  filterState.isFlashcard = value ? true : undefined
   resetAndFetch()
 }
 </script>
