@@ -26,7 +26,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { Note } from '../types/Note'
 import { message } from '../utils/message'
 import { useFlashcardStore } from '../stores/flashcardStore'
-
+import { useNoteVersionStore } from '../stores/noteVersionStore'
 interface NoteMenuParams {
   noteId: string
   whiteboardNoteId?: string
@@ -47,7 +47,7 @@ export function useNoteMenu(params: NoteMenuParams) {
   const flashcardStore = useFlashcardStore()
   // 在 useNoteMenu 函数中添加状态
   const isFlashcard = ref(false)
-
+  const versionStore = useNoteVersionStore()
   // 关闭弹出菜单
   const closePopupMenu = () => {
     isPopupMenuVisible.value = false
@@ -125,6 +125,7 @@ export function useNoteMenu(params: NoteMenuParams) {
   // 显示历史记录
   const handleShowHistory = () => {
     console.log('显示历史记录', params.noteId)
+    versionStore.openVersionModal(params.noteId)
   }
 
   // 删除笔记
@@ -566,6 +567,12 @@ export function useNoteMenu(params: NoteMenuParams) {
       icon: StorageCardOne,
       action: handleConvertToFlashcard,
       fill: isFlashcard.value ? 'var(--color-primary)' : 'var(--color-icon-menu-default)'
+    },
+    historyVersion: {
+      name: 'historyVersion',
+      label: '历史版本',
+      icon: History,
+      action: handleShowHistory
     }
   }))
 

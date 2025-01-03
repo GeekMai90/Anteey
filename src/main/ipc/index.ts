@@ -13,6 +13,7 @@ import { setupBackupIpcHandlers } from './backupIpcHandlers'
 import { setupTimeBlockHandlers } from './timeBlockIpcHandlers'
 import { setupWebDAVHandlers } from './webdavIpcHandlers'
 import { setupFlashcardHandlers } from './flashcardIpcHandlers'
+import { setupNoteVersionHandlers } from './noteVersionIpcHandlers'
 export function setupIpcHandlers(): void {
   setupNotesHandlers()
   setupWhiteboardHandlers()
@@ -29,4 +30,5 @@ export function setupIpcHandlers(): void {
   setupTimeBlockHandlers()
   setupWebDAVHandlers()
   setupFlashcardHandlers()
+  setupNoteVersionHandlers()
 }

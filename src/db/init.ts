@@ -832,6 +832,34 @@ export async function initDatabase(db: Knex): Promise<void> {
     })
     console.log('webdav_sync_history 表创建成功')
   }
+
+  // 创建版本表
+  if (!(await db.schema.hasTable('note_versions'))) {
+    await db.schema.createTable('note_versions', (table) => {
+      // 版本标识
+      table.string('id').primary()
+      table.string('noteId').notNullable().index() // 关联的笔记ID
+      table.integer('versionNumber').notNullable() // 版本号
+
+      // 笔记核心信息
+      table.json('content').notNullable() // 版本内容
+      table.string('address').notNullable() // 笔记地址
+      table.string('cardType').notNullable() // 笔记类型
+      table.datetime('createdAt').notNullable() // 笔记创建时间
+
+      // 版本信息
+      table.datetime('versionCreatedAt').notNullable() // 版本创建时间
+
+      // 外键约束
+      table.foreign('noteId').references('notes.id').onDelete('CASCADE')
+
+      // 索引
+      table.index(['noteId', 'versionNumber']) // 用于按版本号查询
+      table.index('versionCreatedAt') // 用于按时间查询
+    })
+
+    console.log('note_versions 表创建成功')
+  }
 }
 
 export async function down(db: Knex): Promise<void> {
@@ -868,5 +896,6 @@ export async function down(db: Knex): Promise<void> {
   await db.schema.dropTableIfExists('monthly_logs')
   await db.schema.dropTableIfExists('webdav_sync_history')
   await db.schema.dropTableIfExists('webdav_config')
+  await db.schema.dropTableIfExists('note_versions')
   console.log('所有表已删除')
 }

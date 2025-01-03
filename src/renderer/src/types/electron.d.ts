@@ -29,6 +29,7 @@ import { SyncState, WebDAVConfig } from './WebDAV'
 import { SyncHistory } from './WebDAV'
 import { ImageQueryParams, ImageQueryResult, ImageInfo } from './Image'
 import { FlashcardDecks, FlashcardStats, ReviewFeedback } from './flashcard'
+import type { NoteVersion, CreateVersionParams, GetVersionsParams } from './NoteVersion'
 
 export interface ElectronAPI {
   createNote: () => Promise<Note>
@@ -405,6 +406,31 @@ export interface ElectronAPI {
 
   // 添加获取闪卡卡组数据的方法类型
   getFlashcardDecks: () => Promise<FlashcardDecks>
+
+  // 版本历史相关方法
+  // 创建版本
+  createNoteVersion: (params: CreateVersionParams) => Promise<NoteVersion>
+
+  // 获取版本列表
+  getNoteVersions: (params: GetVersionsParams) => Promise<NoteVersion[]>
+
+  // 获取指定版本
+  getNoteVersion: (noteId: string, versionId: string) => Promise<NoteVersion | null>
+
+  // 恢复到指定版本
+  restoreNoteVersion: (noteId: string, versionId: string) => Promise<void>
+
+  // 获取版本总数
+  getNoteVersionCount: (noteId: string) => Promise<number>
+
+  // 获取最新版本
+  getLatestVersion: (noteId: string) => Promise<NoteVersion | null>
+
+  // 获取版本时间范围
+  getVersionTimeRange: (noteId: string) => Promise<{
+    earliest: Date
+    latest: Date
+  } | null>
 }
 
 declare global {

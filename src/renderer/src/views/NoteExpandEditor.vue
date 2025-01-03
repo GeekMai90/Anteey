@@ -115,6 +115,12 @@
         <GraphPanel v-if="currentNote" :note-id="currentNote.id" />
       </div>
     </div>
+    <NoteVersionModal
+      v-if="currentNote"
+      v-model="versionStore.isVersionModalOpen"
+      :note-id="currentNote.id"
+      @version-restored="handleVersionRestored"
+    />
   </div>
 </template>
 
@@ -140,6 +146,9 @@ import { debounce } from 'lodash-es'
 import TagsPanel from '@renderer/components/note/TagsPanel.vue'
 import { useTagStore } from '@renderer/stores/tagStore'
 import GraphPanel from '@renderer/components/note/GraphPanel.vue'
+import NoteVersionModal from '@renderer/components/note/NoteVersionModal.vue'
+import { useNoteVersionStore } from '@renderer/stores/noteVersionStore'
+
 // === 组件状态管理 ===
 const tiptapEditor = ref<any>(null)
 const route = useRoute()
@@ -151,6 +160,45 @@ const currentNote = ref<Note | null>(null)
 const noteTags = ref<{ id: string; name: string }[]>([])
 
 const tagStore = useTagStore()
+
+const versionStore = useNoteVersionStore()
+
+// 添加版本创建的状态控制
+const lastVersionTime = ref<Date | null>(null)
+const VERSION_INTERVAL = 5 * 60 * 1000 // 5分钟
+
+// 创建版本的方法
+const createVersion = async () => {
+  if (!currentNote.value) return
+
+  // 检查是否达到创建间隔
+  const now = new Date()
+  if (lastVersionTime.value && now.getTime() - lastVersionTime.value.getTime() < VERSION_INTERVAL) {
+    return
+  }
+
+  const safeContent = JSON.parse(JSON.stringify(currentNote.value.content))
+
+  try {
+    await window.electronAPI.createNoteVersion({
+      noteId: currentNote.value.id,
+      content: safeContent,
+      address: currentNote.value.address,
+      cardType: currentNote.value.cardType,
+      createdAt: currentNote.value.createdAt
+    })
+    lastVersionTime.value = now
+  } catch (error) {
+    console.error('创建版本失败:', error)
+  }
+}
+
+// 处理版本恢复后的回调
+const handleVersionRestored = async () => {
+  // 刷新笔记数据
+  await refreshNoteData()
+  message.success('笔记已恢复到选定版本')
+}
 
 // 2. 添加获取笔记标签的方法
 const fetchNoteTags = async (noteId: string) => {
@@ -309,7 +357,7 @@ const saveContent = debounce(
 )
 
 // 处理编辑器内容更新
-const handleContentUpdate = (newContent: any) => {
+const handleContentUpdate = async (newContent: any) => {
   if (!currentNote.value) return
 
   try {
@@ -321,6 +369,8 @@ const handleContentUpdate = (newContent: any) => {
 
     // 触发防抖保存
     saveContent(currentNote.value.id, safeContent)
+    // 处理版本创建
+    await createVersion()
   } catch (error) {
     console.error('Content serialization error:', error)
   }
@@ -446,7 +496,16 @@ const handleCardboxUpdate = async (cardBoxId: string) => {
 // === 更多功能菜单管理 ===
 const { menuItems: noteMenuItems, resetDeleteState } = useNoteMenu({
   noteId: noteId,
-  menuItems: ['star', 'convertToFlashcard', 'sidebar', 'copyQuote', 'share', 'exportNote', 'delete']
+  menuItems: [
+    'star',
+    'convertToFlashcard',
+    'sidebar',
+    'copyQuote',
+    'share',
+    'exportNote',
+    'delete',
+    'historyVersion'
+  ]
 })
 
 const moreBtnRef = ref<HTMLElement | null>(null)
@@ -478,20 +537,20 @@ const focusEditor = () => {
   })
 }
 
-// 组件卸载时清理
-// onBeforeUnmount(async () => {
-//   // 如果有未保存的内容，立即保存
-//   if (currentNote.value && updateState.lastContent) {
-//     try {
-//       // 确保内容是编辑器的最终状态
-//       const finalContent = tiptapEditor.value?.editor?.getJSON() || updateState.lastContent
-//       await noteStore.saveNoteContentImmediately(currentNote.value.id, finalContent)
-//     } catch (error) {
-//       console.error('保存失败:', error)
-//       message.error('保存失败')
-//     }
-//   }
-// })
+// 路由离开时创建版本
+onBeforeRouteLeave(async (to, from, next) => {
+  if (currentNote.value) {
+    await createVersion()
+  }
+  next()
+})
+
+// 页面关闭时创建版本
+onBeforeUnmount(async () => {
+  if (currentNote.value) {
+    await createVersion()
+  }
+})
 </script>
 
 <style scoped lang="scss">
