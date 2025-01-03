@@ -152,7 +152,7 @@ const togglePanel = () => {
   }
 
   .panel-content {
-    background: var(--color-bg-secondary);
+    // background: var(--color-bg-secondary);
     border-radius: 8px;
     overflow: visible;
     position: relative;

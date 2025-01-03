@@ -482,7 +482,7 @@ const handleWhiteboardChange = async (value: boolean) => {
         padding: 8px 12px;
         border-radius: 6px;
         border: 1px solid var(--color-border);
-        background-color: var(--color-bg-secondary);
+        // background-color: var(--color-bg-secondary);
         color: var(--color-text-primary);
         font-size: 14px;
         cursor: pointer;
@@ -503,7 +503,7 @@ const handleWhiteboardChange = async (value: boolean) => {
         margin-top: 8px;
         padding: 12px;
         border-radius: 6px;
-        background-color: var(--color-bg-secondary);
+        // background-color: var(--color-bg-secondary);
         color: var(--color-text-primary);
         font-size: 16px;
         line-height: 1.5;
@@ -559,7 +559,7 @@ const handleWhiteboardChange = async (value: boolean) => {
           padding: 8px 12px;
           border-radius: 8px;
           border: 1px solid var(--color-border);
-          background: var(--color-bg-secondary);
+          // background: var(--color-bg-secondary);
           color: var(--color-text-primary);
           font-size: 14px;
           cursor: pointer;

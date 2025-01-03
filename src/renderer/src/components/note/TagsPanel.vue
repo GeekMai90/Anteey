@@ -304,7 +304,7 @@ const handleKeydown = (e: KeyboardEvent) => {
         align-items: center;
         gap: 4px;
         padding: 4px 12px;
-        background: var(--color-bg-secondary);
+        // background: var(--color-bg-secondary);
         border-radius: 16px;
         border: 1px solid var(--color-border);
         transition: all 0.2s ease;
@@ -391,7 +391,7 @@ const handleKeydown = (e: KeyboardEvent) => {
       width: 28px;
       height: 28px;
       border-radius: 14px;
-      background: var(--color-bg-secondary);
+      // background: var(--color-bg-secondary);
       border: 1px solid var(--color-border);
       display: flex;
       align-items: center;
@@ -445,7 +445,7 @@ const handleKeydown = (e: KeyboardEvent) => {
       height: 28px;
       display: inline-flex;
       align-items: center;
-      background: var(--color-bg-secondary);
+      // background: var(--color-bg-secondary);
       border: 1px solid var(--color-border);
       border-radius: 14px;
       padding: 0 12px;

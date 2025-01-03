@@ -1703,7 +1703,7 @@ const insertParagraphBelow = () => {
   .link-input-field {
     display: flex;
     align-items: center;
-    background-color: var(--color-bg-secondary);
+    // background-color: var(--color-bg-secondary);
     border-radius: 6px;
     overflow: hidden;
 
@@ -1769,7 +1769,7 @@ const insertParagraphBelow = () => {
       font-size: 14px;
 
       &:last-child {
-        background-color: var(--color-bg-secondary);
+        // background-color: var(--color-bg-secondary);
         border: 1px solid var(--color-border);
         color: var(--color-text-primary);
       }

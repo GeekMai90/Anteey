@@ -347,7 +347,7 @@ onMounted(() => {
     width: 100%;
     margin-top: 40px; // 添加一些间距
     flex-shrink: 0; // 防止面板被压缩
-    background: var(--color-bg-secondary);
+    // background: var(--color-bg-secondary);
   }
 
   :deep(.tiptap-container) {

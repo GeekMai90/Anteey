@@ -532,7 +532,7 @@ const handleSave = async () => {
   label {
     display: block;
     margin-bottom: 8px;
-    color: var(--color-text-secondary);
+    // color: var(--color-text-secondary);
     font-size: 14px;
   }
 
@@ -541,7 +541,7 @@ const handleSave = async () => {
     padding: 8px 12px;
     border: 1px solid var(--color-border);
     border-radius: 8px;
-    background: var(--color-bg-secondary);
+    // background: var(--color-bg-secondary);
     color: var(--color-text-primary);
     font-size: 14px;
 
@@ -616,7 +616,7 @@ const handleSave = async () => {
 
 .rule-item {
   position: relative;
-  background: var(--color-bg-secondary);
+  // background: var(--color-bg-secondary);
   border-radius: 8px;
   display: flex; // 修改为 flex 布局
   align-items: center; // 垂直居中
@@ -766,7 +766,7 @@ const handleSave = async () => {
     padding: 8px 12px;
     border: 1px solid var(--color-border);
     border-radius: 8px;
-    background: var(--color-bg-secondary);
+    // background: var(--color-bg-secondary);
     color: var(--color-text-primary);
     font-size: 14px;
 

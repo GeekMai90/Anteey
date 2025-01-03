@@ -1249,7 +1249,7 @@ const handleFlashcardFilterChange = (value: boolean | undefined) => {
     width: 200px;
     display: flex;
     align-items: center;
-    background-color: var(--color-bg-secondary);
+    // background-color: var(--color-bg-secondary);
     border: 1px solid var(--color-border);
     border-radius: 8px;
     padding: 1.5px 8px;

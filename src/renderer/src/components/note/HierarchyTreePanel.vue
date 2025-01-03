@@ -777,7 +777,7 @@ const handleNodeMouseLeave = () => {
 
   .tree-container {
     // padding: 12px 0;
-    background: var(--color-bg-secondary);
+    // background: var(--color-bg-secondary);
     border-radius: 8px;
     margin-bottom: 16px;
     display: flex;

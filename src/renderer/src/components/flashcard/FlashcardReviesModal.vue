@@ -59,6 +59,7 @@
           <!-- 正面：问题 -->
           <div class="card-front">
             <div class="content-box">
+              <div class="note-address">{{ currentCard?.address || '无编码' }}</div>
               <h2 class="card-title">{{ currentCard?.metadata?.title }}</h2>
             </div>
           </div>
@@ -132,13 +133,13 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import {
   Close,
   CheckOne,
-  CloseSmall,
   ThinkingProblem,
-  Check,
   Eyes,
   More,
+  GrinningFaceWithSquintingEyes,
   StorageCardOne,
-  Next
+  CloseOne,
+  CircleDoubleRight
 } from '@icon-park/vue-next'
 import FlashcardModal from './FlashcardModal.vue'
 import TipTapEditor from '../tiptap/TipTapEditor.vue'
@@ -186,14 +187,14 @@ const feedbackOptions = [
     label: '稍后复习',
     value: 'skip' as ReviewFeedback,
     class: 'skip',
-    icon: Next,
+    icon: CircleDoubleRight,
     shortcut: 'H'
   },
   {
     label: '需要重学',
     value: 'forgot' as ReviewFeedback,
     class: 'forgot',
-    icon: CloseSmall,
+    icon: CloseOne,
     shortcut: 'J'
   },
   {
@@ -207,14 +208,14 @@ const feedbackOptions = [
     label: '想起来了',
     value: 'recalled_effort' as ReviewFeedback,
     class: 'recalled',
-    icon: Check,
+    icon: CheckOne,
     shortcut: 'L'
   },
   {
     label: '非常熟悉',
     value: 'easily_recalled' as ReviewFeedback,
     class: 'mastered',
-    icon: CheckOne,
+    icon: GrinningFaceWithSquintingEyes,
     shortcut: ';'
   }
 ]
@@ -295,7 +296,7 @@ const moreMenuRef = ref<HTMLElement | null>(null)
 
 const { menuItems: noteMenuItems, resetDeleteState } = useNoteMenu({
   noteId: currentCard.value?.id || '',
-  menuItems: ['star', 'convertToFlashcard', 'copyQuote', 'exportNote']
+  menuItems: ['star', 'convertToFlashcard']
 })
 
 const {
@@ -372,7 +373,7 @@ onUnmounted(() => {
     justify-content: space-between;
     align-items: center;
     padding: 0 4px;
-    margin-bottom: 12px;
+    // margin-bottom: 12px;
     position: relative;
 
     .title-content {
@@ -483,8 +484,8 @@ onUnmounted(() => {
         }
 
         :deep(svg) {
-          width: 20px;
-          height: 20px;
+          width: 18px;
+          height: 18px;
         }
       }
 
@@ -505,6 +506,7 @@ onUnmounted(() => {
     align-items: center;
     gap: 12px;
     flex: 1;
+    padding: 0 4px;
 
     .progress-bar {
       flex: 1;
@@ -516,13 +518,15 @@ onUnmounted(() => {
       .progress-value {
         height: 100%;
         background: var(--color-primary);
-        transition: width 0.3s ease;
+        transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
       }
     }
 
     .progress-text {
-      font-size: 14px;
+      font-size: 13px;
       color: var(--color-text-secondary);
+      min-width: 45px;
+      text-align: right;
     }
   }
 
@@ -557,7 +561,7 @@ onUnmounted(() => {
     transition: transform 0.6s;
 
     &.is-flipped {
-      transform: rotateY(180deg);
+      transform: rotateY(180deg) scale(1.02);
     }
 
     .card-front,
@@ -583,6 +587,7 @@ onUnmounted(() => {
       align-items: center;
       justify-content: center;
       overflow-y: auto;
+      position: relative;
     }
   }
 }
@@ -652,6 +657,10 @@ onUnmounted(() => {
       font-weight: 500;
       cursor: pointer;
       transition: all 0.2s ease;
+      // 添加玻璃拟态效果
+      backdrop-filter: blur(8px);
+      // 优化悬浮动画
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 
       .i-icon {
         width: 24px;
@@ -839,5 +848,14 @@ onUnmounted(() => {
   to {
     opacity: 1;
   }
+}
+
+.note-address {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  opacity: 0.8;
 }
 </style>

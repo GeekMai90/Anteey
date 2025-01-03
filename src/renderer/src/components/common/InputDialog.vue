@@ -191,7 +191,7 @@ const handleConfirm = () => {
         align-items: center;
         justify-content: center;
         cursor: pointer;
-        background: var(--color-bg-secondary);
+        // background: var(--color-bg-secondary);
         :deep(.i-icon) {
           display: flex;
           align-items: center;
@@ -234,7 +234,7 @@ const handleConfirm = () => {
       border-radius: 6px;
       font-size: 14px;
       color: var(--color-text-primary);
-      background: var(--color-bg-secondary);
+      // background: var(--color-bg-secondary);
       transition: all 0.2s ease;
       height: 36px; // 使用 min-height 而不是 height
 

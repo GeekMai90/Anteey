@@ -383,7 +383,7 @@ const handleCardTypeSelect = async (newType: string) => {
 // === 更多功能菜单管理 ===
 const { menuItems: noteMenuItems, resetDeleteState } = useNoteMenu({
   noteId: props.noteId,
-  menuItems: ['star', 'sidebar', 'copyQuote', 'exportNote', 'delete']
+  menuItems: ['star', 'convertToFlashcard', 'sidebar', 'copyQuote', 'exportNote', 'delete']
 })
 
 const moreBtnRef = ref<HTMLElement | null>(null)

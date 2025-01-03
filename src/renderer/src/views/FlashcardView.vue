@@ -404,7 +404,7 @@ onMounted(initializeData)
     margin-top: 20px;
 
     .stats-card {
-      background: var(--color-bg-secondary);
+      // background: var(--color-bg-secondary);
       border: 1px solid var(--color-border);
       border-radius: 12px;
       padding: 20px;
@@ -553,7 +553,7 @@ onMounted(initializeData)
 // 新增卡组列表样式
 .deck-list-section {
   margin-top: 20px;
-  background: var(--color-bg-secondary);
+  // background: var(--color-bg-secondary);
   border: 1px solid var(--color-border);
   border-radius: 12px;
   overflow: hidden;
@@ -562,7 +562,7 @@ onMounted(initializeData)
     display: grid;
     grid-template-columns: 2fr 100px 100px 1fr 150px;
     padding: 12px 20px;
-    background: var(--color-bg-tertiary);
+    // background: var(--color-bg-tertiary);
     border-bottom: 1px solid var(--color-border);
     font-size: 13px;
     color: var(--color-text-secondary);
@@ -597,7 +597,7 @@ onMounted(initializeData)
     }
 
     &.all {
-      background: var(--color-bg-tertiary);
+      // background: var(--color-bg-tertiary);
 
       &:hover {
         background: var(--color-hover-bg);

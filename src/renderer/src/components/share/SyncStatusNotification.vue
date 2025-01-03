@@ -81,7 +81,7 @@ const message = computed(() => {
   position: fixed;
   bottom: 20px;
   right: 20px;
-  background: var(--color-bg-secondary);
+  // background: var(--color-bg-secondary);
   border: 1px solid var(--color-border);
   border-radius: 8px;
   padding: 12px;

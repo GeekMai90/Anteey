@@ -469,7 +469,7 @@ const selectSortOption = (option: { value: string; label: string }) => {
     width: 200px;
     display: flex;
     align-items: center;
-    background-color: var(--color-bg-secondary);
+    // background-color: var(--color-bg-secondary);
     border: 1px solid var(--color-border);
     border-radius: 8px;
     padding: 1px 8px;
@@ -685,7 +685,7 @@ const selectSortOption = (option: { value: string; label: string }) => {
   width: 200px;
   display: flex;
   align-items: center;
-  background-color: var(--color-bg-secondary);
+  // background-color: var(--color-bg-secondary);
   border: 1px solid var(--color-border);
   border-radius: 8px;
   padding: 0 8px;

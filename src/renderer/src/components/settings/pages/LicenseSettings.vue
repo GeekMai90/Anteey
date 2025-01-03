@@ -339,7 +339,7 @@ onMounted(async () => {
   align-items: center;
   gap: 12px;
   padding: 8px 12px;
-  background-color: var(--color-bg-secondary);
+  // background-color: var(--color-bg-secondary);
   border-radius: 6px;
 
   .machine-id {
@@ -396,7 +396,7 @@ onMounted(async () => {
     padding: 0 12px;
     border-radius: 6px;
     border: 1px solid var(--color-border);
-    background: var(--color-bg-secondary);
+    // background: var(--color-bg-secondary);
     color: var(--color-text-primary);
     font-size: 13px;
     transition: all 0.2s ease;
@@ -458,7 +458,7 @@ onMounted(async () => {
 
 .license-status-section {
   .license-info {
-    background-color: var(--color-bg-secondary);
+    // background-color: var(--color-bg-secondary);
     padding: 12px;
     border-radius: 6px;
   }

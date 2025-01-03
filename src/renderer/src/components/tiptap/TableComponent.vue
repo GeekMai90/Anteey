@@ -77,7 +77,7 @@ defineProps<NodeViewProps>()
       }
 
       th {
-        background-color: var(--color-bg-secondary);
+        // background-color: var(--color-bg-secondary);
         font-weight: bold;
         text-align: left;
       }

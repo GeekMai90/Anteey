@@ -243,7 +243,7 @@ defineExpose({
     padding: 6px 16px;
     border-radius: 4px;
     border: 1px solid var(--color-border);
-    background-color: var(--color-bg-secondary);
+    // background-color: var(--color-bg-secondary);
     color: var(--color-text-primary);
     cursor: pointer;
     transition: all 0.2s ease;

@@ -499,7 +499,7 @@ watch(
         padding: 0 12px;
         font-size: 14px;
         color: var(--color-text-primary);
-        background-color: var(--color-bg-secondary);
+        // background-color: var(--color-bg-secondary);
         outline: none;
         transition: all 0.2s ease;
 
@@ -573,7 +573,7 @@ watch(
     align-items: center;
     justify-content: space-between;
     padding: 16px;
-    background: var(--color-bg-secondary);
+    // background: var(--color-bg-secondary);
     border-bottom: 1px solid var(--color-border);
     transition: all 0.2s ease;
 
@@ -636,7 +636,7 @@ watch(
     display: flex;
     align-items: center;
     justify-content: center;
-    background: var(--color-bg-secondary);
+    // background: var(--color-bg-secondary);
 
     .empty-text {
       color: var(--color-text-secondary);
@@ -663,7 +663,7 @@ watch(
     padding: 8px 12px;
     border-radius: 8px;
     border: 1px solid var(--color-border);
-    background: var(--color-bg-secondary);
+    // background: var(--color-bg-secondary);
     color: var(--color-text-primary);
     font-size: 14px;
     cursor: pointer;

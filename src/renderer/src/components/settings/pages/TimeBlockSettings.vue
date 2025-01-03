@@ -242,7 +242,7 @@ onMounted(async () => {
       padding: 8px 12px;
       border-radius: 8px;
       border: 1px solid var(--color-border);
-      background: var(--color-bg-secondary);
+      // background: var(--color-bg-secondary);
       color: var(--color-text-primary);
       font-size: 14px;
       cursor: pointer;

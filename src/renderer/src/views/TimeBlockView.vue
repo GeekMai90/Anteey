@@ -1011,7 +1011,7 @@ const highlightContent = (content: string) => {
             padding: 0;
             border: 1px solid var(--color-border);
             border-radius: 8px;
-            background: var(--color-bg-secondary);
+            // background: var(--color-bg-secondary);
             color: var(--color-text-2);
             cursor: pointer;
             transition: all 0.2s;
@@ -1055,7 +1055,7 @@ const highlightContent = (content: string) => {
           gap: 6px;
           padding: 6px 12px 6px 9px;
           min-width: 80px;
-          background: var(--color-bg-secondary);
+          // background: var(--color-bg-secondary);
           border: 1px solid var(--color-border);
           border-radius: 8px;
           cursor: pointer;
@@ -1125,7 +1125,7 @@ const highlightContent = (content: string) => {
           gap: 6px;
           padding: 6px 12px 6px 9px;
           min-width: 80px;
-          background: var(--color-bg-secondary);
+          // background: var(--color-bg-secondary);
           border: 1px solid var(--color-border);
           border-radius: 8px;
           cursor: pointer;
@@ -1515,7 +1515,7 @@ const highlightContent = (content: string) => {
     transition: all 0.2s;
     // border: 1px solid var(--color-border);
     margin-bottom: 8px;
-    background: var(--color-bg-secondary);
+    // background: var(--color-bg-secondary);
 
     &:hover {
       background: var(--color-bg-hover);
@@ -1694,7 +1694,7 @@ const highlightContent = (content: string) => {
   display: flex;
   justify-content: flex-end;
   padding: 8px 20px;
-  background: var(--color-bg-secondary);
+  // background: var(--color-bg-secondary);
   border-top: 1px solid var(--color-border);
   font-size: 12px;
   color: var(--color-text-secondary);
@@ -1740,7 +1740,7 @@ const highlightContent = (content: string) => {
   transition: all 0.2s;
   // border: 1px solid var(--color-border);
   margin-bottom: 8px;
-  background: var(--color-bg-secondary);
+  // background: var(--color-bg-secondary);
 
   &:hover {
     background: var(--color-bg-hover);

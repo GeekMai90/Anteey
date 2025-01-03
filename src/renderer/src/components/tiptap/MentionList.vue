@@ -333,7 +333,7 @@ defineExpose({
 
 .action-hints {
   padding: 8px 12px;
-  background: var(--color-bg-secondary);
+  // background: var(--color-bg-secondary);
   border-top: 1px solid var(--color-border);
   font-size: 12px;
   color: var(--color-text-secondary);

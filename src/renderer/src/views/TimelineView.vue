@@ -424,7 +424,7 @@ const shouldShowDateDivider = (currentNote: Note, index: number) => {
           align-items: center;
           gap: 6px;
           padding: 6px 12px 6px 9px;
-          background: var(--color-bg-secondary);
+          // background: var(--color-bg-secondary);
           border: 1px solid var(--color-border);
           border-radius: 8px;
           cursor: pointer;

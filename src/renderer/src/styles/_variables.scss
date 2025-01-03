@@ -153,6 +153,8 @@ $dark-mode-text: $gray-100;
   --color-shape-tertiary: #f2f2f2;
   // 主题背景色
   --color-bg-primary: #fff;
+  --color-bg-secondary: #f8f9fb;
+  --color-bg-tertiary: rgba(0, 0, 0, 0.05);
   --color-bg-whiteboard: #f3f5f7;
   --color-bg-ai-assistant: #fafafa;
 
@@ -232,9 +234,6 @@ $dark-mode-text: $gray-100;
   --color-icon-image-more: rgba(0, 0, 0, 0.5);
   --color-icon-image-more-hover: rgba(0, 0, 0, 0.6);
 
-  // 主题菜单
-  --color-button-bg: #f2f2f2;
-
   // 主题文字颜色
   --color-text-pink: #ff6b8b;
   --color-text-orange: #ff9f69;
@@ -295,6 +294,8 @@ $dark-mode-text: $gray-100;
 
   // 主题背景色
   --color-bg-primary: #191919;
+  --color-bg-secondary: #242424;
+  --color-bg-tertiary: rgba(255, 255, 255, 0.08);
   --color-bg-whiteboard: #2d2d2d;
   --color-bg-ai-assistant: #242424;
 

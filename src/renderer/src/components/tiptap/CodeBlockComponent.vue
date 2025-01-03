@@ -227,7 +227,7 @@ watch(showLanguageSelect, (newValue) => {
     .language-button {
       font-size: 12px;
       color: var(--color-text-tertiary);
-      background-color: var(--color-bg-secondary);
+      // background-color: var(--color-bg-secondary);
       padding: 2px 6px;
       border-radius: 4px;
       border: none;
@@ -243,7 +243,7 @@ watch(showLanguageSelect, (newValue) => {
       display: flex;
       align-items: center;
       justify-content: center;
-      background: var(--color-bg-secondary);
+      // background: var(--color-bg-secondary);
       border: none;
       border-radius: 4px;
       padding: 4px;
@@ -276,7 +276,7 @@ watch(showLanguageSelect, (newValue) => {
 
   pre {
     margin: 0;
-    background: var(--color-bg-secondary);
+    // background: var(--color-bg-secondary);
     border-radius: 8px;
     padding: 1em;
     overflow-x: auto;

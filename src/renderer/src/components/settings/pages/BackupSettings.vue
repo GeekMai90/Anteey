@@ -411,7 +411,7 @@ async function handleClearHistory() {
     align-items: center;
     justify-content: space-between;
     padding: 16px;
-    background: var(--color-bg-secondary);
+    // background: var(--color-bg-secondary);
     border-bottom: 1px solid var(--color-border);
     transition: all 0.2s ease;
     cursor: pointer;
@@ -493,7 +493,7 @@ async function handleClearHistory() {
     display: flex;
     align-items: center;
     justify-content: center;
-    background: var(--color-bg-secondary);
+    // background: var(--color-bg-secondary);
 
     .empty-text {
       color: var(--color-text-secondary);

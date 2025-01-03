@@ -1156,7 +1156,7 @@ const handleStartConnection = (item: WhiteboardNote & { startAnchorPosition: Anc
   transition: all 0.3s ease;
   border-radius: 6px;
   padding: 4px 8px;
-  background-color: var(--color-bg-secondary);
+  // background-color: var(--color-bg-secondary);
   color: var(--color-text-primary);
 
   .icon {
@@ -1304,7 +1304,7 @@ const handleStartConnection = (item: WhiteboardNote & { startAnchorPosition: Anc
   transition: all 0.3s ease;
   border-radius: 6px;
   padding: 8px;
-  background-color: var(--color-bg-secondary);
+  // background-color: var(--color-bg-secondary);
   color: var(--color-text-primary);
 
   .icon {
