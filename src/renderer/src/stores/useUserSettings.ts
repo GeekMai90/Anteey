@@ -1,6 +1,6 @@
 import { ref } from 'vue'
 import { defineStore } from 'pinia'
-import type { UserSettings, UpdateUserSettings } from '../types/UserSettings'
+import type { UserSettings, UpdateUserSettings } from '@shared/types'
 
 export const useUserSettingsStore = defineStore('userSettings', () => {
   const settings = ref<UserSettings | null>(null)

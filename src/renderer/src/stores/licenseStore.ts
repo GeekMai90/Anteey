@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import type { License } from '../types/license'
+import type { License } from '@shared/types'
 
 export const useLicenseStore = defineStore('license', () => {
   const license = ref<License | null>(null)

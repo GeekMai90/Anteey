@@ -1,10 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import type {
-  KnowledgeTreeNode,
-  KnowledgeTreeViewState,
-  FocusHistory
-} from '../types/knowledgeTree'
+import type { KnowledgeTreeNode, KnowledgeTreeViewState, FocusHistory } from '@shared/types'
 
 export const useKnowledgeTreeStore = defineStore('knowledgeTree', () => {
   // ==================== 状态 ====================

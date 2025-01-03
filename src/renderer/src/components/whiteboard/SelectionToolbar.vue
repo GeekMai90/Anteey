@@ -153,7 +153,7 @@ import {
   WaterfallsV,
   WaterfallsH
 } from '@icon-park/vue-next'
-import { WhiteboardNote } from '@renderer/types/Whiteboard'
+import { WhiteboardNote } from '@shared/types'
 
 const props = defineProps<{
   selectedNotes: string[]

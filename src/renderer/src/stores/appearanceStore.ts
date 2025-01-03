@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import type { AppearanceSettings } from '../../../services/appearance/appearanceService'
+import type { AppearanceSettings } from '@shared/types'
 
 export const useAppearanceStore = defineStore(
   'appearance',

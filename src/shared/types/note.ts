@@ -1,5 +1,5 @@
 // src/types/Note.ts
-import type { FlashcardData } from './flashcard'
+import type { FlashcardData } from '@shared/types'
 
 // 定义卡片类型
 export type CardType = 'Maincard' | 'Bibcard' | 'Indexcard' | 'Hoplinkcard'
@@ -200,4 +200,33 @@ export interface VectorSearchResponse {
 export interface SearchParams {
   mode: 'all' | 'address' | 'title'
   term: string
+}
+
+// 创建引用关系参数
+export interface CreateNoteReferenceParams {
+  sourceNoteId: string
+  targetNoteId: string
+  type: 'reference'
+  context: {
+    text: string
+    position: number
+  }
+  metadata: {
+    title: string
+    preview: string
+    cardType?: CardType // 使用 CardType 类型
+  }
+}
+
+export interface GetPaginatedNotesParams {
+  page: number
+  limit: number
+  cardBoxId?: string // 'all' | 'inbox' | string
+  cardTypes?: string[] // ['Maincard', 'Bibcard', 'Indexcard']
+  tags?: string[] // 标签ID数组
+  keyword?: string // 搜索关键词
+  isFlashcard?: boolean // 添加闪卡参数
+  sortBy: string // 排序字段
+  sortOrder: 'asc' | 'desc'
+  customFilterId?: string // 新增：自定义筛选规则ID
 }

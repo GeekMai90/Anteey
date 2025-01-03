@@ -8,7 +8,7 @@ import {
   getLatestVersion,
   getVersionTimeRange
 } from '../../services/notes/noteVersionService'
-import type { CreateVersionParams, GetVersionsParams } from '../../renderer/src/types/NoteVersion'
+import type { CreateVersionParams, GetVersionsParams } from '@shared/types'
 
 export function setupNoteVersionHandlers() {
   // 创建版本

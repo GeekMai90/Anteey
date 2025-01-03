@@ -75,7 +75,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { format } from 'date-fns'
 import ShareTipTapRender from '@renderer/components/share/ShareTipTapRender.vue'
-import { Note } from '@renderer/types/Note'
+import { Note } from '@shared/types'
 import { exportNoteImage, copyNoteToClipboard } from '@renderer/utils/shareNoteImage'
 import { message } from '@renderer/utils/message'
 import QRCode from 'qrcode'

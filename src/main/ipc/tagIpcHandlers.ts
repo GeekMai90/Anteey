@@ -9,10 +9,9 @@ import {
   updateTagPinned,
   updateTagPinOrder,
   searchTagsAdvanced,
-  type TagSearchParams,
   getNoteTags
 } from '../../services/notes/tagService'
-import type { Tag } from '../../renderer/src/types/Note'
+import type { Tag, TagSearchParams } from '@shared/types'
 
 export function setupTagHandlers() {
   // 创建标签

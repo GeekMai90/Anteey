@@ -32,7 +32,7 @@ import { BranchTwo } from '@icon-park/vue-next'
 import { useRouter } from 'vue-router'
 import { useLocalTreeStore } from '@renderer/stores/localTreeStore'
 import * as d3 from 'd3'
-import type { Note } from '@renderer/types/Note'
+import type { Note } from '@shared/types'
 import type { SimulationNodeDatum } from 'd3'
 import { useNoteStore } from '@renderer/stores/noteStores'
 import NotePreviewPopup from './NotePreviewPopup.vue'
@@ -167,7 +167,7 @@ const renderGraph = () => {
   }
 
   // 弟节点在左侧
-  treeData.siblings.forEach((sibling, index) => {
+  treeData.siblings.forEach((sibling: any, index: any) => {
     data.children?.push({
       ...sibling,
       x: padding + 100,
@@ -177,7 +177,7 @@ const renderGraph = () => {
   })
 
   // 子节点在右侧
-  treeData.children.forEach((child, index) => {
+  treeData.children.forEach((child: any, index: any) => {
     data.children?.push({
       ...child,
       x: width - padding - 100,
@@ -188,7 +188,7 @@ const renderGraph = () => {
 
   // 添加引用节点
   // 引用我的节点在左上
-  treeData.references.incoming.forEach((note, index) => {
+  treeData.references.incoming.forEach((note: any, index: any) => {
     data.children?.push({
       ...note,
       x: padding + 50,
@@ -198,7 +198,7 @@ const renderGraph = () => {
   })
 
   // 我引用的节点在右上
-  treeData.references.outgoing.forEach((note, index) => {
+  treeData.references.outgoing.forEach((note: any, index: any) => {
     data.children?.push({
       ...note,
       x: width - padding - 50,

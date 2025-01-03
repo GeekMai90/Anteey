@@ -19,7 +19,13 @@
         "src/*"
       ],
       "@renderer/*": [
-        "./src/renderer/src/*"
+        "src/renderer/src/*"
+      ],
+      "@shared/*": [
+        "src/shared/*"
+      ],
+      "@resources/*": [
+        "resources/*"
       ],
       "*": [
         "node_modules/*",
@@ -40,13 +46,10 @@
   "include": [
     "src/**/*.ts",
     "src/**/*.d.ts",
-    "tests/**/*.ts",
+    "src/**/*.tsx",
     "src/**/*.vue",
-    "src/renderer/src/types/electron.d.ts",
-    "src/renderer/src/utils/tiptap/CustomDragHandle.js",
-    "src/renderer/src/stores/noteStorests",
-    "src/renderer/src/utils/tiptap/tagSuggestion.js",
-    "src/renderer/src/components/aiassistant/constants/noteActions"
+    "src/shared/**/*",
+    "tests/**/*.ts"
   ],
   "exclude": [
     "node_modules"

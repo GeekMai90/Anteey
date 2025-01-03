@@ -1,6 +1,6 @@
-import { Note } from '../../renderer/src/types/Note'
+import { Note } from '@shared/types'
 import { db } from '../../db/config'
-import { KnowledgeTreeNode } from '../../renderer/src/types/knowledgeTree'
+import { KnowledgeTreeNode } from '@shared/types'
 
 // 根据 ID 查找笔记
 export async function findNoteById(id: string) {

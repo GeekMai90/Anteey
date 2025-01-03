@@ -1,5 +1,5 @@
 import { db } from '../../db/config'
-import { License, ActivationResult } from '../../renderer/src/types/license'
+import { License, ActivationResult } from '@shared/types'
 import { v4 as uuidv4 } from 'uuid'
 import { machineIdSync } from 'node-machine-id'
 import crypto from 'crypto'

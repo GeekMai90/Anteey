@@ -1,19 +1,19 @@
-import { defineStore } from "pinia";
+import { defineStore } from 'pinia'
 
-export const useThemeStore = defineStore("theme", {
+export const useThemeStore = defineStore('theme', {
   state: () => ({
-    currentTheme: "light",
+    currentTheme: 'light'
   }),
   actions: {
     toggleTheme() {
-      this.currentTheme = this.currentTheme === "light" ? "dark" : "light";
-      localStorage.setItem("theme", this.currentTheme);
+      this.currentTheme = this.currentTheme === 'light' ? 'dark' : 'light'
+      localStorage.setItem('theme', this.currentTheme)
     },
     initTheme() {
-      const savedTheme = localStorage.getItem("theme");
+      const savedTheme = localStorage.getItem('theme')
       if (savedTheme) {
-        this.currentTheme = savedTheme;
+        this.currentTheme = savedTheme
       }
-    },
-  },
-});
+    }
+  }
+})

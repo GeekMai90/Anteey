@@ -74,7 +74,7 @@ import { useNoteStore } from './stores/noteStores'
 import { useNoteMenu } from './composables/useNoteMenu'
 import { useGlobalHotkeys } from './composables/useGlobalHotkeys'
 import { useWebDAVStore } from './stores/webdavStore'
-import type { SyncState } from './types/WebDAV'
+import type { SyncState } from '@shared/types'
 
 // 组件导入
 import Sidebar from './components/layout/Sidebar.vue'

@@ -1,6 +1,6 @@
 import { db } from '../../db/config'
-import { Note } from '../../renderer/src/types/Note'
-import { KnowledgeTreeNode, AddressLevel } from '../../renderer/src/types/knowledgeTree'
+import { Note } from '@shared/types'
+import { KnowledgeTreeNode, AddressLevel } from '@shared/types'
 
 // 定义 metadata 的接口
 interface NoteMetadata {

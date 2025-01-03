@@ -1,5 +1,5 @@
 import { ipcRenderer } from 'electron'
-import type { WebDAVConfig, SyncState, SyncHistory } from '../../renderer/src/types/WebDAV'
+import type { WebDAVConfig, SyncState, SyncHistory } from '@shared/types'
 
 export const webdavApi = {
   // 获取 WebDAV 配置

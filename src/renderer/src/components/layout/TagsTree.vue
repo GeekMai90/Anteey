@@ -40,7 +40,7 @@
 import { ref, onMounted, watch } from 'vue'
 import { Down, Right } from '@icon-park/vue-next'
 import { useTagStore } from '@renderer/stores/tagStore' // 需要创建
-import { TagTreeNode } from '@renderer/types/Note'
+import { TagTreeNode } from '@shared/types'
 import TagTreeItem from './TagTreeItem.vue' // 需要创建
 import { useEventBus } from '@vueuse/core'
 import { storeToRefs } from 'pinia'

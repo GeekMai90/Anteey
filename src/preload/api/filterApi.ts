@@ -1,9 +1,5 @@
 import { ipcRenderer } from 'electron'
-import type {
-  CustomFilter,
-  CreateCustomFilterInput,
-  UpdateCustomFilterInput
-} from '../../renderer/src/types/Filter'
+import type { CustomFilter, CreateCustomFilterInput, UpdateCustomFilterInput } from '@shared/types'
 
 export const filterApi = {
   // 创建自定义筛选规则

@@ -54,7 +54,7 @@
 import { markRaw, onMounted, ref, watch } from 'vue'
 import { Right, Down, Star } from '@icon-park/vue-next'
 import { useNoteStore } from '@renderer/stores/noteStores'
-import { Note } from '@renderer/types/Note'
+import type { Note } from '@shared/types'
 import { useRouter } from 'vue-router'
 import StarredNotesCard from './StarredNotesCard.vue'
 import draggable from 'vuedraggable'

@@ -90,7 +90,7 @@ import { Afferent } from '@icon-park/vue-next'
 import { useRouter } from 'vue-router/dist/vue-router'
 import { useUIStore } from '@renderer/stores/useUIStore'
 import { debounce } from 'lodash-es'
-import { CardType, Note } from '@renderer/types/Note'
+import { CardType, Note } from '@shared/types'
 import { EditorState } from '@tiptap/pm/state/dist'
 
 // === 组件状态管理 ===

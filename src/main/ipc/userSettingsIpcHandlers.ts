@@ -1,5 +1,5 @@
 import { ipcMain, globalShortcut } from 'electron'
-import { UpdateUserSettings } from '../../renderer/src/types/UserSettings'
+import type { UpdateUserSettings } from '@shared/types'
 import { getUserSettings, updateUserSettings } from '../../services/user/userSettings'
 import { BrowserWindow } from 'electron'
 

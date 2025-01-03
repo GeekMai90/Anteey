@@ -1,10 +1,6 @@
 import { db } from '../../db/config'
 import { v4 as uuidv4 } from 'uuid'
-import type {
-  NoteVersion,
-  CreateVersionParams,
-  GetVersionsParams
-} from '@/renderer/src/types/NoteVersion'
+import type { NoteVersion, CreateVersionParams, GetVersionsParams } from '@shared/types'
 
 // 配置 SQLite 数据库连接
 db.client.pool.max = 1 // 限制连接池大小

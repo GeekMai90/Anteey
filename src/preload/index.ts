@@ -1,6 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import { Note, CardBox } from '../renderer/src/types/Note'
-import { UpdateUserSettings, UserSettings } from '../renderer/src/types/UserSettings'
+import type { Note, CardBox, UpdateUserSettings, UserSettings } from '@shared/types'
 import { notesApi } from './api/notesApi'
 import { tagApi } from './api/tagApi'
 import { filterApi } from './api/filterApi'

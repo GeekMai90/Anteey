@@ -1,4 +1,4 @@
-import { CardType } from './Note'
+import type { CardType } from '@shared/types'
 
 // 笔记版本的类型定义
 export interface NoteVersion {

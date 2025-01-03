@@ -5,7 +5,7 @@ import type {
   TimeBlockSettings,
   FutureLog,
   MonthlyLog
-} from '../types/timeBlock'
+} from '@shared/types'
 
 interface TimeBlockState {
   currentDay: TimeBlockDayWithBlocks | null

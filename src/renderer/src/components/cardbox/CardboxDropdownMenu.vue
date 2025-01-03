@@ -32,7 +32,7 @@
 
 <script setup lang="ts">
 import { FileCabinet, Box } from '@icon-park/vue-next'
-import { CardBox } from '@renderer/types/Note'
+import { CardBox } from '@shared/types'
 import { computed, CSSProperties, onMounted, onUnmounted, ref, watch, nextTick } from 'vue'
 import { useNoteStore } from '@renderer/stores/noteStores'
 import { storeToRefs } from 'pinia'
@@ -135,29 +135,11 @@ const handleDocumentClick = (event: MouseEvent) => {
     emit('close')
   }
 }
-// const isBoxSelected = (box: CardBox) => {
-//   return props.currentCardboxId === box.id
-// }
-
 // 修改 isBoxSelected 方法，使用本地状态
 const isBoxSelected = (box: CardBox) => {
   return localSelectedBoxId.value === box.id
 }
 
-// const selectCardBox = async (box: CardBox) => {
-//   if (!props.noteId) {
-//     console.error('CardboxDropdownMenu.vue → 笔记ID为空')
-//     return
-//   }
-//   emit('close')
-//   try {
-//     await noteStore.updateNoteCardBox(props.noteId, box.id)
-//     console.log('CardboxDropdownMenu.vue → 卡片盒更新成功:', box.name)
-//   } catch (error) {
-//     console.error('CardboxDropdownMenu.vue → 更新卡片盒失败:', error)
-//     throw error
-//   }
-// }
 // 修改 selectCardBox 方法，实现乐观更新
 const selectCardBox = async (box: CardBox) => {
   if (!props.noteId) {

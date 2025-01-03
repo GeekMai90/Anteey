@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import type { Note } from '../../types/Note'
+import type { Note } from '@shared/types'
 
 export type BaseStore = ReturnType<typeof useBaseStore>
 // 基础 store，包含共享状态

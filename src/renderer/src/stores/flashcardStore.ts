@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import type { Note } from '../types/Note'
-import type { FlashcardStats, FlashcardDecks, ReviewFeedback } from '../types/flashcard'
+import type { Note } from '@shared/types'
+import type { FlashcardStats, FlashcardDecks, ReviewFeedback } from '@shared/types'
 
 export const useFlashcardStore = defineStore('flashcard', () => {
   // ==================== 状态 ====================

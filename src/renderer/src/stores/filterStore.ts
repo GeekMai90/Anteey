@@ -5,7 +5,7 @@ import type {
   CreateCustomFilterInput,
   UpdateCustomFilterInput,
   FilterRule
-} from '../types/Filter'
+} from '@shared/types'
 
 export const useFilterStore = defineStore('filter', () => {
   const customFilters = ref<CustomFilter[]>([])

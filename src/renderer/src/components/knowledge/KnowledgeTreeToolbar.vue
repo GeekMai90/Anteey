@@ -1,14 +1,14 @@
 <template>
   <div class="toolbar">
     <div class="tool-group">
-      <button class="tool-btn" @click="$emit('zoom-in')" title="放大">
+      <button class="tool-btn" title="放大" @click="$emit('zoom-in')">
         <Plus theme="outline" size="18" />
       </button>
       <span class="scale-text">{{ Math.round(scale * 100) }}%</span>
-      <button class="tool-btn" @click="$emit('zoom-out')" title="缩小">
+      <button class="tool-btn" title="缩小" @click="$emit('zoom-out')">
         <Minus theme="outline" size="18" />
       </button>
-      <button class="tool-btn" @click="$emit('reset-view')" title="重置视图">
+      <button class="tool-btn" title="重置视图" @click="$emit('reset-view')">
         <Refresh theme="outline" size="18" />
       </button>
     </div>

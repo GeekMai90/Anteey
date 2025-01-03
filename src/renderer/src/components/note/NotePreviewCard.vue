@@ -18,7 +18,7 @@
 </template>
 
 <script setup lang="ts">
-import { Note } from '@renderer/types/Note'
+import { Note } from '@shared/types'
 import { formatDate } from '@renderer/utils/noteHelpers'
 import { ref } from 'vue'
 import TipTapRender from '@renderer/components/tiptap/TipTapRender.vue'

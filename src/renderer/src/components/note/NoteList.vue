@@ -25,7 +25,7 @@
 
 <script setup lang="ts">
 import NoteCard from '@renderer/components/NoteCard.vue'
-import { Note } from '@renderer/types/Note'
+import { Note } from '@shared/types'
 
 defineProps<{
   notes: Note[]

@@ -65,7 +65,7 @@
 import { ref, watch, onMounted } from 'vue'
 import { useNoteStore } from '@renderer/stores/noteStores'
 import NotePreviewCard from '@renderer/components/note/NotePreviewCard.vue'
-import type { Note } from '@renderer/types/Note'
+import type { Note } from '@shared/types'
 import { FileSearch } from '@icon-park/vue-next'
 
 interface MentionItem {

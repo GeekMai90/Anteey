@@ -110,9 +110,9 @@ import AppToolbar from '@renderer/components/layout/AppToolbar.vue'
 import { SortTwo, Workbench, Plus, Search, Close } from '@icon-park/vue-next'
 import { useWhiteboardStore } from '@renderer/stores/whiteboardStores'
 import WhiteboardCard from '@renderer/components/whiteboard/WhiteboardCard.vue'
-import { CreateWhiteboardInput } from '@renderer/types/Whiteboard'
+import { CreateWhiteboardInput } from '@shared/types'
 import { useSearch } from '@renderer/composables/useSearch'
-import { Whiteboard } from '@renderer/types/Whiteboard'
+import { Whiteboard } from '@shared/types'
 
 const whiteboardStore = useWhiteboardStore()
 const showSortMenu = ref(false)

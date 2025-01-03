@@ -1,5 +1,5 @@
 import { ipcRenderer } from 'electron'
-import type { KnowledgeTreeNode } from '../../renderer/src/types/knowledgeTree'
+import type { KnowledgeTreeNode } from '@shared/types'
 
 export const knowledgeTreeApi = {
   // 获取顶层节点

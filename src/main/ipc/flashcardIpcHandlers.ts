@@ -1,6 +1,6 @@
 import { ipcMain } from 'electron'
 import { flashcardService } from '../../services/notes/flashcardService'
-import type { ReviewFeedback } from '../../renderer/src/types/flashcard'
+import type { ReviewFeedback } from '@shared/types'
 
 export function setupFlashcardHandlers() {
   // 将笔记转换为闪卡

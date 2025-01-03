@@ -15,7 +15,7 @@
 
 <script setup lang="ts">
 import { useKnowledgeTreeStore } from '@renderer/stores/knowledgeTreeStore'
-import type { KnowledgeTreeNode } from '@renderer/types/knowledgeTree'
+import type { KnowledgeTreeNode } from '@shared/types'
 import { computed } from 'vue'
 
 const store = useKnowledgeTreeStore()

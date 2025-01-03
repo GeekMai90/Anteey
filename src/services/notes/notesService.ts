@@ -1,8 +1,14 @@
-import { CardType, Note } from '../../renderer/src/types/Note'
 import { v4 as uuidv4 } from 'uuid'
-import type { NoteReference, InternalNoteReference } from '../../renderer/src/types/Note'
+import type {
+  NoteReference,
+  InternalNoteReference,
+  Note,
+  CardType,
+  CreateNoteReferenceParams,
+  GetPaginatedNotesParams
+} from '@shared/types'
 import { Knex } from 'knex/types'
-import { FilterRule } from '../../renderer/src/types/Filter'
+import { FilterRule } from '@shared/types'
 import { db } from '../../db/config'
 import { checkLicenseStatus } from '../activation/licenseService'
 // 辅助函数：将数据库记录转换为 Note 对象
@@ -1239,20 +1245,6 @@ export async function getTimelineNotes(params: TimelineQueryParams): Promise<Tim
 }
 
 // 创建引用关系
-export interface CreateNoteReferenceParams {
-  sourceNoteId: string
-  targetNoteId: string
-  type: 'reference'
-  context: {
-    text: string
-    position: number
-  }
-  metadata: {
-    title: string
-    preview: string
-    cardType?: CardType // 使用 CardType 类型
-  }
-}
 
 export async function createNoteReference(
   params: CreateNoteReferenceParams
@@ -1506,18 +1498,6 @@ export async function updateNoteTags(noteId: string, tagIds: string[]): Promise<
 }
 
 // 卡片盒筛选笔记
-export interface GetPaginatedNotesParams {
-  page: number
-  limit: number
-  cardBoxId?: string // 'all' | 'inbox' | string
-  cardTypes?: string[] // ['Maincard', 'Bibcard', 'Indexcard']
-  tags?: string[] // 标签ID数组
-  keyword?: string // 搜索关键词
-  isFlashcard?: boolean // 添加闪卡参数
-  sortBy: string // 排序字段
-  sortOrder: 'asc' | 'desc'
-  customFilterId?: string // 新增：自定义筛选规则ID
-}
 
 export async function getPaginatedNotesByCardbox({
   page,

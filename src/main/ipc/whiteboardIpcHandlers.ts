@@ -1,10 +1,10 @@
 import { ipcMain } from 'electron'
-import {
+import type {
   ConnectionCreateData,
   ConnectionUpdateData,
   CreateWhiteboardInput,
   CreateWhiteboardNoteInput
-} from '../../renderer/src/types/Whiteboard'
+} from '@shared/types'
 import {
   createWhiteboard,
   getTopLevelWhiteboards,

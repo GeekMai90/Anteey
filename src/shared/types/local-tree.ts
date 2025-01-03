@@ -1,4 +1,4 @@
-import type { Note } from './Note'
+import type { Note } from '@shared/types'
 
 export interface LocalTreeData {
   current: Note

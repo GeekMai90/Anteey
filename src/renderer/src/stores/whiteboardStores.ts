@@ -7,8 +7,8 @@ import {
   CreateWhiteboardNoteInput,
   ConnectionCreateData,
   WhiteboardNote
-} from '../types/Whiteboard'
-import type { Note } from '../types/Note'
+} from '@shared/types'
+import type { Note } from '@shared/types'
 
 import { useNoteStore } from './noteStores'
 

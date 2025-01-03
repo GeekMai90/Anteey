@@ -1,6 +1,6 @@
 import { ipcMain, BrowserWindow } from 'electron'
 import { webdavService } from '../../services/webdav/webdavService'
-import type { WebDAVConfig, SyncState } from '../../renderer/src/types/WebDAV'
+import type { WebDAVConfig, SyncState } from '@shared/types'
 
 export function setupWebDAVHandlers(): void {
   // 获取 WebDAV 配置

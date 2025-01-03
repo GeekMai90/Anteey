@@ -105,7 +105,7 @@ import { message } from '@renderer/utils/message'
 import { useMenu } from '@renderer/composables/useMenu'
 import { MenuItem } from '../common/PopupMenu.vue'
 import { useNoteMenu } from '@renderer/composables/useNoteMenu'
-import { CardType, Note } from '@renderer/types/Note'
+import { CardType, Note } from '@shared/types'
 import { debounce } from 'lodash-es'
 import { EditorState } from '@tiptap/pm/state/dist'
 

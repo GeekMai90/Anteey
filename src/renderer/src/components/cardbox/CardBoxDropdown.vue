@@ -104,7 +104,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { Box, FileCabinet, InboxIn, More, Plus, Down } from '@icon-park/vue-next'
-import type { CardBox } from '@renderer/types/Note'
+import type { CardBox } from '@shared/types'
 
 const props = defineProps<{
   modelValue: string

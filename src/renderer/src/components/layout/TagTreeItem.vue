@@ -128,7 +128,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { Down, Right, Pound, Edit, Delete, Pushpin } from '@icon-park/vue-next'
-import { TagTreeNode } from '@renderer/types/Note'
+import { TagTreeNode } from '@shared/types'
 import ConfirmDialog from '@renderer/components/common/ConfirmDialog.vue'
 import InputDialog from '@renderer/components/common/InputDialog.vue'
 import { useTagStore } from '@renderer/stores/tagStore'

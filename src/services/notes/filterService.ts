@@ -1,10 +1,6 @@
 import { db } from '../../db/config'
 import { v4 as uuidv4 } from 'uuid'
-import {
-  CustomFilter,
-  CreateCustomFilterInput,
-  UpdateCustomFilterInput
-} from '../../renderer/src/types/Filter'
+import { CustomFilter, CreateCustomFilterInput, UpdateCustomFilterInput } from '@shared/types'
 
 // 工具函数：将数据库记录转换为 CustomFilter 对象
 async function convertToCustomFilter(

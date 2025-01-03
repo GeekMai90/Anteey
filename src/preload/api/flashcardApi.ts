@@ -1,10 +1,6 @@
 import { ipcRenderer } from 'electron'
-import type { Note } from '../../renderer/src/types/Note'
-import type {
-  ReviewFeedback,
-  FlashcardStats,
-  FlashcardDecks
-} from '../../renderer/src/types/flashcard'
+import type { Note } from '@shared/types'
+import type { ReviewFeedback, FlashcardStats, FlashcardDecks } from '@shared/types'
 
 export const flashcardApi = {
   // 将笔记转换为闪卡

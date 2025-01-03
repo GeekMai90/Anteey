@@ -1,6 +1,6 @@
 import { ref, computed, Ref, onMounted, onUnmounted, nextTick } from 'vue'
 import { debounce } from 'lodash-es'
-import { Note } from '../types/Note'
+import { Note } from '@shared/types'
 
 export function useCardBoxSearch(allNotes: Ref<Note[]>) {
   const searchQuery = ref('')

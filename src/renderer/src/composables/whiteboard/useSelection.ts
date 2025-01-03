@@ -1,5 +1,5 @@
 import { ref, computed, type Ref } from 'vue'
-import type { WhiteboardNote } from '../../types/Whiteboard'
+import type { WhiteboardNote } from '@shared/types'
 
 export function useSelection(
   whiteboardNotes: Ref<WhiteboardNote[]>,

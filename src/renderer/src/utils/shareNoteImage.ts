@@ -2,7 +2,7 @@ import { createApp } from 'vue'
 import html2canvas from 'html2canvas'
 import { format } from 'date-fns'
 import ShareNoteCard from '@renderer/components/share/ShareNotedCard.vue'
-import type { Note } from '../types/Note'
+import type { Note } from '@shared/types'
 
 interface ShareNoteImageOptions {
   note: Note

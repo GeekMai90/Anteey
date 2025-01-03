@@ -81,7 +81,7 @@ import { computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useNoteStore } from '@renderer/stores/noteStores'
 import { useFilterStore } from '@renderer/stores/filterStore'
-import { CustomFilter } from '@renderer/types/Filter'
+import { CustomFilter } from '@shared/types'
 
 const props = defineProps<{
   visible: boolean
@@ -183,7 +183,7 @@ const handleCardBoxSelect = (boxId: string) => {
 
 // 获取收藏的筛选规则
 const starredFilters = computed(() => {
-  return filterStore.customFilters.filter((filter) => filter.isStarred)
+  return filterStore.customFilters.filter((filter: any) => filter.isStarred)
 })
 
 // 处理筛选规则选择

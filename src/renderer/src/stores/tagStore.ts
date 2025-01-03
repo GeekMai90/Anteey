@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import { Tag, TagTreeNode } from '../types/Note'
-import type { TagSearchParams } from '../../../services/notes/tagService'
+import { Tag, TagTreeNode } from '@shared/types'
+import type { TagSearchParams } from '@shared/types'
 
 export const useTagStore = defineStore('tag', () => {
   // ==================== 状态 ====================

@@ -1,5 +1,5 @@
 import { ipcRenderer } from 'electron'
-import type { BackupSettings, BackupHistory } from '../../renderer/src/types/backup'
+import type { BackupSettings, BackupHistory } from '@shared/types'
 
 export const backupApi = {
   getBackupSettings: () =>

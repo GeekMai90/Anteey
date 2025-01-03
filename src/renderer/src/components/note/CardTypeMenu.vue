@@ -26,7 +26,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { Notes, BookOpen, ViewList, Link } from '@icon-park/vue-next'
-import type { CardType } from '@renderer/types/Note'
+import type { CardType } from '@shared/types'
 
 const props = defineProps<{
   show: boolean

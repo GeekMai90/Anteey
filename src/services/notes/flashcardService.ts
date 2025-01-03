@@ -1,5 +1,5 @@
 import { db } from '../../db/config'
-import type { Note } from '../../renderer/src/types/Note'
+import type { Note } from '@shared/types'
 import type {
   FlashcardData,
   ReviewFeedback,
@@ -7,7 +7,7 @@ import type {
   FlashcardDecks,
   UntaggedDeck,
   TaggedDeck
-} from '../../renderer/src/types/flashcard'
+} from '@shared/types'
 import { convertToNote } from '../notes/notesService'
 export class FlashcardService {
   // 将笔记转换为闪卡

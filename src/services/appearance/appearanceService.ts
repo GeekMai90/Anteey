@@ -1,18 +1,5 @@
 import { db } from '../../db/config'
-
-export interface AppearanceSettings {
-  id: string
-  uiFont: string
-  editorFont: string
-  defaultPage: string
-  starredExpanded: boolean
-  tagsExpanded: boolean
-  recentExpanded: boolean
-  enableWhiteboard: boolean
-  enableAIAssistant: boolean
-  createdAt: Date
-  updatedAt: Date
-}
+import { AppearanceSettings } from '@shared/types'
 
 // 获取外观设置
 export async function getAppearanceSettings(): Promise<AppearanceSettings> {

@@ -1,10 +1,5 @@
 import { ipcRenderer } from 'electron'
-import type {
-  TimeBlockDay,
-  TimeBlockSettings,
-  FutureLog,
-  MonthlyLog
-} from '../../renderer/src/types/timeBlock'
+import type { TimeBlockDay, TimeBlockSettings, FutureLog, MonthlyLog } from '@shared/types'
 
 export const timeBlockApi = {
   // 获取某天的时间块数据

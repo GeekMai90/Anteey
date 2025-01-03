@@ -19,7 +19,7 @@
 
 <script setup lang="ts">
 import { Close, Right } from '@icon-park/vue-next'
-import type { Note } from '@renderer/types/Note'
+import type { Note } from '@shared/types'
 
 // @ts-ignore - props are used in template
 defineProps<{

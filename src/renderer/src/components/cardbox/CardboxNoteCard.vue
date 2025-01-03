@@ -56,7 +56,7 @@
 </template>
 
 <script setup lang="ts">
-import { Note } from '@renderer/types/Note'
+import { Note } from '@shared/types'
 import { formatDate } from '@renderer/utils/noteHelpers'
 import { More, ExpandTextInput, StorageCardOne } from '@icon-park/vue-next'
 import { computed, onUnmounted, ref, toRef, watch } from 'vue'

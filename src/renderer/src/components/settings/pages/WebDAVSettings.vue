@@ -180,7 +180,7 @@
 import { CloudStorage, Down } from '@icon-park/vue-next'
 import { useWebDAVStore } from '@renderer/stores/webdavStore'
 import { ref, onMounted, computed, watch } from 'vue'
-import type { WebDAVServerType } from '../../../types/WebDAV'
+import type { WebDAVServerType } from '@shared/types'
 import { message } from '../../../utils/message'
 
 const webdavStore = useWebDAVStore()

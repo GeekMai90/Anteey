@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import type { BackupSettings, BackupHistory } from '../types/backup'
+import type { BackupSettings, BackupHistory } from '@shared/types'
 import { ref } from 'vue'
 
 export const useBackupStore = defineStore('backup', () => {

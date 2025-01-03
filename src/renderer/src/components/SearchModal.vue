@@ -155,7 +155,7 @@ import { useRouter } from 'vue-router'
 import NotePreviewCard from '@renderer/components/note/NotePreviewCard.vue'
 import { BankCard, ParagraphRectangle, FileSearch } from '@icon-park/vue-next'
 import { useDebounceFn } from '@vueuse/core'
-import { Note } from '@renderer/types/Note'
+import { Note } from '@shared/types'
 import { useUIStore } from '@renderer/stores/useUIStore'
 
 // 初始化 store 和 router

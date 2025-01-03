@@ -1,6 +1,6 @@
 {
   "name": "antithink",
-  "version": "1.2.71",
+  "version": "1.3.0",
   "description": "AntiThink",
   "main": "./out/main/index.js",
   "author": "GeekMai",
@@ -30,7 +30,8 @@
     "migrate:make": "knex migrate:make --knexfile ./knexfile.ts -x ts",
     "migrate:latest": "knex migrate:latest --knexfile ./knexfile.ts",
     "migrate:rollback": "knex migrate:rollback --knexfile ./knexfile.ts",
-    "preview:dmg": "electron-builder --mac dmg --dir"
+    "preview:dmg": "electron-builder --mac dmg --dir",
+    "clean": "rm -rf node_modules dist && pnpm store prune"
   },
   "dependencies": {
     "@electron-toolkit/preload": "^3.0.0",

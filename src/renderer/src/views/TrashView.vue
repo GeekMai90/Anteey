@@ -97,7 +97,7 @@ import AppToolbar from '@renderer/components/layout/AppToolbar.vue'
 import TrashNoteCard from '@renderer/components/note/TrashNoteCard.vue'
 import ConfirmDialog from '@renderer/components/common/ConfirmDialog.vue'
 import { SortTwo, Recycling, Delete, Clear, RecycleBin } from '@icon-park/vue-next'
-import { Note } from '@renderer/types/Note'
+import { Note } from '@shared/types'
 
 const noteStore = useNoteStore()
 const deletedNotes = ref<Note[]>([])

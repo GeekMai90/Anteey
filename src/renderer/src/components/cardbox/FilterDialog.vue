@@ -178,7 +178,7 @@ import type {
   FilterOperator,
   CreateCustomFilterInput,
   UpdateCustomFilterInput
-} from '@renderer/types/Filter'
+} from '@shared/types'
 import { useTagStore } from '@renderer/stores/tagStore'
 import { useNoteStore } from '@renderer/stores/noteStores'
 import { message } from '@renderer/utils/message'

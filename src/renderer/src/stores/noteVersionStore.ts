@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import type { NoteVersion } from '../types/NoteVersion'
-import { CardType } from '../types/Note'
+import type { NoteVersion } from '@shared/types'
+import { CardType } from '@shared/types'
 
 export const useNoteVersionStore = defineStore('noteVersion', () => {
   // ==================== 状态 ====================

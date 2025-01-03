@@ -10,7 +10,7 @@ import type {
   Connection,
   ConnectionCreateData,
   ConnectionUpdateData
-} from '../../renderer/src/types/Whiteboard'
+} from '@shared/types'
 // import { createNote } from './notesService'
 
 // 辅助函数：处理白板数据

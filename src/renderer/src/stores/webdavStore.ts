@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import type { WebDAVConfig, SyncState, SyncHistory } from '../types/WebDAV'
+import type { WebDAVConfig, SyncState, SyncHistory } from '@shared/types'
 
 interface WebDAVStore {
   config: WebDAVConfig | null

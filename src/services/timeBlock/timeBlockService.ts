@@ -1,6 +1,6 @@
 import { db } from '../../db/config'
 import { v4 as uuidv4 } from 'uuid'
-import type { FutureLog, MonthlyLog, TimeBlockDay } from '../../renderer/src/types/timeBlock'
+import type { FutureLog, MonthlyLog, TimeBlockDay } from '@shared/types'
 
 // 获取某天的时间块数据
 export async function getTimeBlockDay(date: string): Promise<TimeBlockDay> {

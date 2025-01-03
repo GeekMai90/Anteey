@@ -18,7 +18,7 @@
 import { useNoteStore } from '@renderer/stores/noteStores'
 import { ref, onMounted, computed, watchEffect } from 'vue'
 import confetti from 'canvas-confetti'
-import { Note } from '@renderer/types/Note'
+import { Note } from '@shared/types'
 import NoteCard from '@renderer/components/note/NoteCard.vue'
 
 interface Card {

@@ -1,9 +1,5 @@
 import { ipcRenderer } from 'electron'
-import type {
-  NoteVersion,
-  CreateVersionParams,
-  GetVersionsParams
-} from '../../renderer/src/types/NoteVersion'
+import type { NoteVersion, CreateVersionParams, GetVersionsParams } from '@shared/types'
 
 export const noteVersionApi = {
   // 创建版本

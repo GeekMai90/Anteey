@@ -113,7 +113,7 @@
 import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { Filter, Plus, Down, Pushpin, Edit, Delete, More, Star } from '@icon-park/vue-next'
 import { useFilterStore } from '@renderer/stores/filterStore'
-import type { CustomFilter } from '@renderer/types/Filter'
+import type { CustomFilter } from '@shared/types'
 import { message } from '@renderer/utils/message'
 
 const filterStore = useFilterStore()
@@ -139,7 +139,7 @@ const filteredRules = computed(() => {
 
   if (!searchQuery.value) return rules
   const query = searchQuery.value.toLowerCase()
-  return rules.filter((filter) => filter.name.toLowerCase().includes(query))
+  return rules.filter((filter: CustomFilter) => filter.name.toLowerCase().includes(query))
 })
 
 // 获取当前活动的筛选规则

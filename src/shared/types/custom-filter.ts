@@ -1,4 +1,4 @@
-import { Note } from './Note'
+import type { Note } from '@shared/types'
 
 // 筛选规则的字段类型
 export type FilterField = 'tag' | 'cardBox' | 'keyword' | 'cardType' | 'isFlashcard'

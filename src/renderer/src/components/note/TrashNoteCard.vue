@@ -17,7 +17,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { Note } from '@renderer/types/Note'
+import { Note } from '@shared/types'
 import { More } from '@icon-park/vue-next'
 import TipTapRender from '@renderer/components/tiptap/TipTapRender.vue'
 

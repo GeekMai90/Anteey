@@ -157,12 +157,7 @@ import { ref, onMounted, onUnmounted, watch, computed, markRaw } from 'vue'
 import { useRoute } from 'vue-router'
 import AppToolbar from '@renderer/components/layout/AppToolbar.vue'
 import { useWhiteboardStore } from '@renderer/stores/whiteboardStores'
-import {
-  CreateWhiteboardNoteInput,
-  WhiteboardNote,
-  Connection,
-  Whiteboard
-} from '@renderer/types/Whiteboard'
+import { CreateWhiteboardNoteInput, WhiteboardNote, Connection, Whiteboard } from '@shared/types'
 import WhiteboardNoteComponent from '@renderer/components/whiteboard/WhiteboardNoteComponent.vue'
 import { Add, Aiming, FileText, Notes, PictureOne } from '@icon-park/vue-next'
 import WhiteboardZoomControl from '@renderer/components/whiteboard/WhiteboardZoomControl.vue'
@@ -176,7 +171,7 @@ import { useSelection } from '@renderer/composables/whiteboard/useSelection'
 import { useWhiteboardViewState } from '@renderer/composables/whiteboard/useWhiteboardViewState'
 import { message } from '@renderer/utils/message'
 import ImageUploadModal from './ImageUploadModal.vue'
-import type { AnchorPosition } from '@renderer/types/Connection'
+import type { AnchorPosition } from '@shared/types'
 
 const containerRef = ref<HTMLElement | null>(null)
 const route = useRoute()

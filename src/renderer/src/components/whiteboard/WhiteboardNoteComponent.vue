@@ -49,7 +49,7 @@
 
 <script setup lang="ts">
 import { computed, ref, onMounted, type CSSProperties } from 'vue'
-import type { WhiteboardNote, AnchorPosition, ConnectionAnchor } from '@renderer/types/Whiteboard'
+import type { WhiteboardNote, AnchorPosition, ConnectionAnchor } from '@shared/types'
 import CardNote from './notes/CardNote.vue'
 import TextNote from './notes/TextNote.vue'
 import ImageNote from './notes/ImageNote.vue'

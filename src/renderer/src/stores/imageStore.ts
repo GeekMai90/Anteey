@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { ImageQueryParams, ImageWithStatus } from '../types/Image'
+import { ImageQueryParams, ImageWithStatus } from '@shared/types'
 import { message } from '../utils/message'
 
 export const useImageStore = defineStore('image', () => {

@@ -1,6 +1,6 @@
 import { ipcMain } from 'electron'
 import { ImageService } from '../../services/images/imageService'
-import { ImageQueryParams } from '../../renderer/src/types/Image'
+import type { ImageQueryParams } from '@shared/types'
 
 const imageService = new ImageService()
 

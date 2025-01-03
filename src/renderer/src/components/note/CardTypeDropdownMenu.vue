@@ -33,7 +33,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, CSSProperties, watch, nextTick } from 'vue'
-import { CardType } from '@renderer/types/Note'
+import { CardType } from '@shared/types'
 import { Notes, ListAlphabet, Bookshelf } from '@icon-park/vue-next'
 
 const props = defineProps<{

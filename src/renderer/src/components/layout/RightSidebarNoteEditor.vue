@@ -117,7 +117,7 @@ import { MenuItem } from '../common/PopupMenu.vue'
 import { useNoteMenu } from '@renderer/composables/useNoteMenu'
 import PopupMenu from '@renderer/components/common/PopupMenu.vue'
 import CardTypeDropdownMenu from '@renderer/components/note/CardTypeDropdownMenu.vue'
-import { CardType, Note } from '@renderer/types/Note'
+import { CardType, Note } from '@shared/types'
 import { debounce } from 'lodash-es'
 import { EditorState } from '@tiptap/pm/state/dist'
 

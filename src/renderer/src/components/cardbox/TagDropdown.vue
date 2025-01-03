@@ -71,7 +71,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { Tag, TagOne, Down } from '@icon-park/vue-next'
-import type { Tag as TagType } from '@renderer/types/Note'
+import type { Tag as TagType } from '@shared/types'
 
 const props = defineProps<{
   modelValue: string[]

@@ -12,7 +12,7 @@
 </template>
 
 <script setup lang="ts">
-import { Note } from '@renderer/types/Note'
+import { Note } from '@shared/types'
 import { computed } from 'vue'
 import TipTapRender from '@renderer/components/tiptap/TipTapRender.vue'
 

@@ -9,7 +9,7 @@ import type {
   CreateWhiteboardNoteInput,
   ConnectionUpdateData,
   ConnectionCreateData
-} from '../../renderer/src/types/Whiteboard'
+} from '@shared/types'
 
 export const whiteboardApi = {
   createWhiteboard: async (input: CreateWhiteboardInput): Promise<Whiteboard> => {

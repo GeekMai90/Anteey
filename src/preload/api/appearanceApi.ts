@@ -1,5 +1,5 @@
 import { ipcRenderer } from 'electron'
-import type { AppearanceSettings } from '../../services/appearance/appearanceService'
+import type { AppearanceSettings } from '@shared/types'
 
 export const appearanceApi = {
   // 获取外观设置

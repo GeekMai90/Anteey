@@ -1,10 +1,10 @@
-import { TagSearchParams } from '../../../services/notes/tagService'
+import { TagSearchParams } from '../../services/notes/tagService'
 import {
   GetPaginatedNotesParams,
   TimelineQueryParams,
   TimelineQueryResult
-} from '../../../services/notes/notesService'
-import { Note, CardBox, NoteReference, Tag, SearchParams } from './Note'
+} from '../../services/notes/notesService'
+import { Note, CardBox, NoteReference, Tag, SearchParams } from '@shared/types'
 import {
   Whiteboard,
   CreateWhiteboardInput,
@@ -14,22 +14,21 @@ import {
   Connection,
   WhiteboardGroup,
   ConnectionCreateData
-} from './Whiteboard'
-import { UpdateUserSettings, UserSettings } from './UserSettings'
-import { CreateCustomFilterInput, CustomFilter, UpdateCustomFilterInput } from './Filter'
-import { WordSuggestion } from '../../../services/dictionary/dictionaryService'
-import { DictWord } from '../../../services/dictionary/dictionaryService'
-import { LocalTreeData, LocalTreeWithReferencesData } from './localTree'
-import { AppearanceSettings } from '../../../services/appearance/appearanceService'
-import { KnowledgeTreeNode } from './knowledgeTree'
-import { ActivationResult, License } from './license'
-import type { BackupSettings, BackupHistory } from './backup'
-import type { FutureLog, MonthlyLog, TimeBlockDay, TimeBlockSettings } from './timeBlock'
-import { SyncState, WebDAVConfig } from './WebDAV'
-import { SyncHistory } from './WebDAV'
-import { ImageQueryParams, ImageQueryResult, ImageInfo } from './Image'
-import { FlashcardDecks, FlashcardStats, ReviewFeedback } from './flashcard'
-import type { NoteVersion, CreateVersionParams, GetVersionsParams } from './NoteVersion'
+} from '@shared/types'
+import { UpdateUserSettings, UserSettings } from '@shared/types'
+import { CreateCustomFilterInput, CustomFilter, UpdateCustomFilterInput } from '@shared/types'
+import { WordSuggestion } from '../../services/dictionary/dictionaryService'
+import { DictWord } from '../../services/dictionary/dictionaryService'
+import { LocalTreeData, LocalTreeWithReferencesData } from '@shared/types'
+import { AppearanceSettings } from '../../services/appearance/appearanceService'
+import { KnowledgeTreeNode } from '@shared/types'
+import { ActivationResult, License } from '@shared/types'
+import type { BackupSettings, BackupHistory } from '@shared/types'
+import type { FutureLog, MonthlyLog, TimeBlockDay, TimeBlockSettings } from '@shared/types'
+import { SyncState, WebDAVConfig, SyncHistory } from '@shared/types'
+import { ImageQueryParams, ImageQueryResult, ImageInfo } from '@shared/types'
+import { FlashcardDecks, FlashcardStats, ReviewFeedback } from '@shared/types'
+import type { NoteVersion, CreateVersionParams, GetVersionsParams } from '@shared/types'
 
 export interface ElectronAPI {
   createNote: () => Promise<Note>

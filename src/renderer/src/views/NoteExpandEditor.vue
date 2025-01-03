@@ -138,7 +138,7 @@ import CardTypeDropdownMenu from '@renderer/components/note/CardTypeDropdownMenu
 import { message } from '@renderer/utils/message'
 import { useMenu } from '@renderer/composables/useMenu'
 import BacklinksPanel from '@renderer/components/note/BacklinksPanel.vue'
-import { CardType, Note } from '@renderer/types/Note'
+import { CardType, Note } from '@shared/types'
 import { debounce } from 'lodash-es'
 // import { EditorState } from '@tiptap/pm/state/dist'
 import TagsPanel from '@renderer/components/note/TagsPanel.vue'
@@ -536,7 +536,7 @@ const focusEditor = () => {
 }
 
 // 路由离开时创建版本
-onBeforeRouteLeave(async (to, from, next) => {
+onBeforeRouteLeave(async (_to, _from, next) => {
   if (currentNote.value) {
     await createVersion()
   }

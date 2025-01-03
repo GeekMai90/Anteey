@@ -186,8 +186,7 @@ import FlashcardReviewModal from '../components/flashcard/FlashcardReviesModal.v
 import ContextMenu from '@renderer/components/common/ContexMenu.vue'
 import { useFlashcardStore } from '@renderer/stores/flashcardStore'
 import { useContextMenuStore } from '@renderer/stores/contextMenuStore'
-import type { FlashcardStats } from '@renderer/types/flashcard'
-import type { ReviewFeedback } from '@renderer/types/flashcard'
+import type { FlashcardStats, ReviewFeedback } from '@shared/types'
 
 // 状态
 const router = useRouter()

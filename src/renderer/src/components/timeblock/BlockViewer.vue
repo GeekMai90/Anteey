@@ -37,7 +37,7 @@ import { format } from 'date-fns'
 import { zhCN } from 'date-fns/locale'
 import BulletEditor from './BulletEditor.vue'
 import { useTimeBlockStore } from '@renderer/stores/timeBlockStore'
-import type { TimeBlock as TimeBlockData } from '@renderer/types/timeBlock'
+import type { TimeBlock as TimeBlockData } from '@shared/types'
 
 // 添加时间块小时接口
 interface TimeBlockHour {

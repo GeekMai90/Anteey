@@ -222,7 +222,7 @@ const breadcrumbs = computed<Breadcrumb[]>(() => {
   const items: Breadcrumb[] = [{ text: 'AntiThink' }]
 
   if (parentPath.value) {
-    parentPath.value.forEach((node) => {
+    parentPath.value.forEach((node: any) => {
       items.push({
         text: node.address,
         secondaryText: node.title?.slice(0, 6),
@@ -267,7 +267,7 @@ const handleBreadcrumbClick = (item: Breadcrumb) => {
     return
   }
   // 点击其他节点
-  const node = parentPath.value.find((n) => n.address === item.address)
+  const node = parentPath.value.find((n: any) => n.address === item.address)
   if (node) {
     knowledgeTreeStore.focusNodeWithChildren(node)
   }

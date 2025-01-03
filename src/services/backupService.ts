@@ -1,5 +1,5 @@
 import { db } from '../db/config'
-import type { BackupSettings, BackupHistory } from '../renderer/src/types/backup'
+import type { BackupSettings, BackupHistory } from '@shared/types'
 import fs from 'fs'
 import path from 'path'
 import { dbPath } from '../db/config'

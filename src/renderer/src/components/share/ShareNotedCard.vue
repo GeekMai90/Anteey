@@ -23,7 +23,7 @@
 <script setup lang="ts">
 import { format } from 'date-fns'
 import ShareTipTapRender from '@renderer/components/share/ShareTipTapRender.vue'
-import { Note } from '@renderer/types/Note'
+import { Note } from '@shared/types'
 import { computed, onMounted, ref } from 'vue'
 import QRCode from 'qrcode'
 import { useUserSettingsStore } from '@renderer/stores/useUserSettings'

@@ -29,7 +29,7 @@ import { useNoteStore } from '@renderer/stores/noteStores'
 import { useRouter } from 'vue-router'
 import { Down, Right } from '@icon-park/vue-next'
 import StarredNotesCard from '@renderer/components/layout/StarredNotesCard.vue'
-import { Note } from '@renderer/types/Note'
+import { Note } from '@shared/types'
 import { storeToRefs } from 'pinia'
 import { useAppearanceStore } from '@renderer/stores/appearanceStore'
 

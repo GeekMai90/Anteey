@@ -7,7 +7,7 @@ import { db } from '../../db/config'
 import { v4 as uuidv4 } from 'uuid'
 import https from 'https'
 import http from 'http'
-import { ImageQueryParams, ImageQueryResult } from '../../renderer/src/types/Image'
+import { ImageQueryParams, ImageQueryResult } from '@shared/types'
 
 export class ImageService {
   // 上传图片并保存到数据库

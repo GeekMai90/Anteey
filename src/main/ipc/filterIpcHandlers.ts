@@ -8,10 +8,7 @@ import {
   updateFilterPinned,
   toggleFilterStar
 } from '../../services/notes/filterService'
-import type {
-  CreateCustomFilterInput,
-  UpdateCustomFilterInput
-} from '../../renderer/src/types/Filter'
+import type { CreateCustomFilterInput, UpdateCustomFilterInput } from '@shared/types'
 
 export function setupFilterHandlers() {
   // 创建自定义筛选规则

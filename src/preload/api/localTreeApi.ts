@@ -1,6 +1,5 @@
 import { ipcRenderer } from 'electron'
-import type { Note } from '../../renderer/src/types/Note'
-import type { LocalTreeData, LocalTreeWithReferencesData } from '../../renderer/src/types/localTree'
+import type { Note, LocalTreeData, LocalTreeWithReferencesData } from '@shared/types'
 
 export const localTreeApi = {
   // 获取本地树数据

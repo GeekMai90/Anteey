@@ -113,7 +113,7 @@ import type { MenuItem } from '@renderer/components/common/PopupMenu.vue'
 import CardTypeDropdownMenu from '@renderer/components/note/CardTypeDropdownMenu.vue'
 import { useMenu } from '@renderer/composables/useMenu'
 import { message } from '@renderer/utils/message'
-import { CardType, Note } from '@renderer/types/Note'
+import { CardType, Note } from '@shared/types'
 import { debounce } from 'lodash-es'
 
 const props = defineProps<{

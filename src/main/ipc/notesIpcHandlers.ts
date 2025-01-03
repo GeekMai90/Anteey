@@ -19,7 +19,6 @@ import {
   getNotesByOneDate,
   getAllDatesWithNotes,
   getPaginatedNotesByCardbox,
-  GetPaginatedNotesParams,
   searchNotes,
   searchNotesList,
   getHeatmapData,
@@ -39,8 +38,7 @@ import {
   updateNoteTag,
   getRecentEditedNotes
 } from '../../services/notes/notesService'
-
-import type { SearchParams } from '../../renderer/src/types/Note'
+import type { GetPaginatedNotesParams, SearchParams } from '@shared/types'
 
 export function setupNotesHandlers() {
   // 获取所有已删除的笔记

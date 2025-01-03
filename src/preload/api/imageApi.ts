@@ -1,5 +1,5 @@
 import { ipcRenderer } from 'electron'
-import { ImageQueryParams, ImageQueryResult, ImageWithStatus } from '../../renderer/src/types/Image'
+import type { ImageQueryParams, ImageQueryResult, ImageWithStatus } from '@shared/types'
 
 interface ImageInfo {
   id: string
