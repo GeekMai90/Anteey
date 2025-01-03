@@ -2,21 +2,18 @@
 <!-- 笔记展开编辑器组件 - 用于编辑单个笔记的主要界面 -->
 <template>
   <div class="note-expand-editor">
-    <!-- 顶部工具栏，包含返回和前进按钮 -->
-    <AppToolbar :showBackButton="true" :showForwardButton="true"></AppToolbar>
-    <!-- 编辑器内容 -->
-    <div class="editor-content">
+    <!-- 固定区域：包含工具栏和编码地址 -->
+    <div class="fixed-header">
+      <AppToolbar :showBackButton="true" :showForwardButton="true"></AppToolbar>
       <div class="editor-header">
         <!-- 地址输入区域 -->
         <div class="address-input">
-          <!-- 笔记类型指示器，点击可切换笔记类型 -->
           <div
             ref="indicatorButton"
             class="note-indicator"
             :class="cardTypeClass"
             @click="(e: any) => toggleCardTypeMenu(e)"
           ></div>
-          <!-- 笔记类型下拉菜单组件 -->
           <CardTypeDropdownMenu
             ref="cardTypeDropdownMenuRef"
             :is-open="cardTypeMenuState.isOpen"
@@ -25,7 +22,6 @@
             @close="closeCardTypeMenu"
             @select="handleCardTypeSelect"
           />
-          <!-- 笔记地址输入框 -->
           <input
             v-if="currentNote"
             ref="addressInput"
@@ -78,41 +74,43 @@
           </div>
         </div>
       </div>
-      <!-- 笔记创建时间显示 -->
+      <!-- 时间戳 -->
       <div v-if="currentNote" class="note-timestamp">
         {{ formatDate(currentNote.createdAt) }}
       </div>
-      <!-- 编辑器内容 -->
-      <div class="content-container">
-        <div class="editor-area">
-          <TipTapEditor
+    </div>
+
+    <!-- 可滚动的内容区域 -->
+    <div class="scrollable-content">
+      <div class="editor-content">
+        <div class="content-container">
+          <div class="editor-area">
+            <TipTapEditor
+              v-if="currentNote"
+              ref="tiptapEditor"
+              v-model:content="currentNote.content"
+              :note-id="currentNote.id"
+              :editable="true"
+              :enableDragHandle="true"
+              @update:content="handleContentUpdate"
+            />
+          </div>
+          <div class="backlinks-area">
+            <BacklinksPanel
+              v-if="currentNote"
+              :note-id="currentNote.id"
+              :references="currentNote.references"
+              @refresh="refreshNoteData"
+            />
+          </div>
+          <TagsPanel
             v-if="currentNote"
-            ref="tiptapEditor"
-            v-model:content="currentNote.content"
             :note-id="currentNote.id"
-            :editable="true"
-            :enableDragHandle="true"
-            @update:content="handleContentUpdate"
-          />
-        </div>
-        <!-- 添加反向链接面板 -->
-        <div class="backlinks-area">
-          <BacklinksPanel
-            v-if="currentNote"
-            :note-id="currentNote.id"
-            :references="currentNote.references"
+            :tags="noteTags"
             @refresh="refreshNoteData"
           />
+          <GraphPanel v-if="currentNote" :note-id="currentNote.id" />
         </div>
-        <!-- 标签面板 -->
-        <TagsPanel
-          v-if="currentNote"
-          :note-id="currentNote.id"
-          :tags="noteTags"
-          @refresh="refreshNoteData"
-        />
-        <!-- 替换为新的图谱面板 -->
-        <GraphPanel v-if="currentNote" :note-id="currentNote.id" />
       </div>
     </div>
     <NoteVersionModal
@@ -501,10 +499,10 @@ const { menuItems: noteMenuItems, resetDeleteState } = useNoteMenu({
     'convertToFlashcard',
     'sidebar',
     'copyQuote',
+    'historyVersion',
     'share',
     'exportNote',
-    'delete',
-    'historyVersion'
+    'delete'
   ]
 })
 
@@ -557,71 +555,43 @@ onBeforeUnmount(async () => {
 .note-expand-editor {
   display: flex;
   flex-direction: column;
-  // height: 100%;
   height: 100vh;
   background-color: var(--color-bg-primary);
   width: 100%;
   position: relative;
 }
 
-.editor-content {
+/* 新增：固定头部区域 */
+.fixed-header {
+  flex-shrink: 0;
+  background-color: var(--color-bg-primary);
+  z-index: 10;
+}
+
+/* 可滚动内容区域 */
+.scrollable-content {
   flex: 1;
-  display: flex;
-  flex-direction: column;
-  // flex-grow: 1;
-  /* padding: 20px calc((100% - 900px)/2); */
-  padding: 20px;
-  overflow-y: auto; // 让整个内容区可滚动
+  overflow-y: auto;
+  min-height: 0;
+  padding-bottom: 20px;
+}
+
+.editor-content {
   max-width: 900px;
   width: 100%;
   margin: 0 auto;
-  .content-container {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    position: relative;
-    min-height: min-content; // 确保容器可以根据内容增长
-  }
-
-  .content-area {
-    flex-grow: 1;
-    display: flex;
-    // overflow: hidden;
-    position: relative;
-    min-height: 0;
-  }
-  .editor-area {
-    width: 100%;
-  }
-  .backlinks-area {
-    width: 100%;
-    margin-top: 40px; // 添加一些间距
-    flex-shrink: 0; // 防止面板被压缩
-    // background: var(--color-bg-secondary);
-  }
-
-  :deep(.tiptap-container) {
-    width: 100%;
-    padding: 0 10px;
-    position: relative;
-  }
-
-  :deep(.tiptap) {
-    width: 100%;
-    min-width: calc(100% - 40px);
-    min-height: 300px;
-  }
-}
-
-.more-menu-container {
-  position: relative;
+  padding: 0 20px;
+  min-height: calc(100vh - 200px);
 }
 
 .editor-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-left: 24px;
+  max-width: 900px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 0 29px;
   z-index: 500;
 }
 
@@ -634,13 +604,12 @@ onBeforeUnmount(async () => {
 }
 
 .address-input {
-  /* margin-bottom: 20px; */
   display: flex;
   align-items: center;
   height: 40px;
   width: 100%;
-  position: relative; // 添加相对定位作为参考
-  margin-left: 10px;
+  position: relative;
+  padding-left: 15px;
 
   input {
     display: flex;
@@ -677,10 +646,10 @@ onBeforeUnmount(async () => {
   }
 }
 .note-indicator {
-  position: absolute; // 改为绝对定位
-  left: -10px;
-  top: 52%;
-  transform: translateY(-50%); // 垂直居中
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
   width: 4px;
   height: 15px;
   border-radius: 2px;
@@ -824,10 +793,13 @@ onBeforeUnmount(async () => {
 }
 
 .note-timestamp {
+  max-width: 900px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 0 44px;
   font-size: 12px;
   color: var(--color-text-tertiary);
-  margin-bottom: 20px;
-  margin-left: 34px;
+  // margin-top: 8px;
   user-select: none;
 }
 
@@ -902,5 +874,23 @@ onBeforeUnmount(async () => {
 
 .dropdown-container {
   position: relative;
+}
+
+.content-container {
+  background: var(--color-bg-primary);
+  border-radius: 12px;
+  padding: 20px 0;
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+
+  .editor-area {
+    flex: 1;
+    min-height: 500px;
+  }
+
+  .backlinks-area {
+    margin-top: auto;
+  }
 }
 </style>

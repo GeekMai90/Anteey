@@ -1,51 +1,62 @@
 <template>
   <Modal v-model="isOpen" @outside-click="handleClose">
     <div class="version-modal">
-      <!-- 标题栏 -->
-      <div class="modal-header">
-        <h2>版本历史</h2>
-        <div class="close-btn" @click="handleClose">×</div>
-      </div>
-
-      <!-- 版本列表和预览区域 -->
       <div class="modal-content">
-        <!-- 左侧版本列表 -->
-        <div class="version-list">
-          <div
-            v-for="version in versions"
-            :key="version.id"
-            class="version-item"
-            :class="{ active: currentVersion?.id === version.id }"
-            @click="selectVersion(version)"
-          >
-            <div class="version-info">
-              <span class="version-number">v{{ version.versionNumber }}</span>
-              <span class="version-time">{{ formatDate(version.versionCreatedAt) }}</span>
+        <!-- 左侧预览区域 -->
+        <div class="preview-area">
+          <div v-if="currentVersion" class="preview-content">
+            <div class="preview-header">
+              <div class="address">{{ currentVersion.address }}</div>
+              <div class="created-time">{{ formatDate(currentVersion.createdAt) }}</div>
+            </div>
+
+            <div class="editor-wrapper">
+              <TipTapEditor
+                :content="currentVersion.content"
+                :editable="false"
+                :enableDragHandle="false"
+                :noteId="props.noteId"
+              />
             </div>
           </div>
         </div>
 
-        <!-- 右侧预览区域 -->
-        <div class="version-preview" v-if="currentVersion">
-          <!-- 地址和创建时间 -->
-          <div class="preview-header">
-            <div class="address">{{ currentVersion.address }}</div>
-            <div class="created-time">创建于 {{ formatDate(currentVersion.createdAt) }}</div>
+        <!-- 右侧版本历史区域 -->
+        <div class="version-history">
+          <div class="history-header">
+            <h2>历史版本</h2>
+            <button class="close-button" @click="handleClose">
+              <div class="icon">
+                <Close
+                  theme="outline"
+                  size="16"
+                  fill="var(--color-icon-default)"
+                  :strokeWidth="3"
+                />
+              </div>
+            </button>
           </div>
 
-          <!-- 笔记内容 -->
-          <div class="preview-content">
-            <TipTapEditor
-              :content="currentVersion.content"
-              :editable="false"
-              :enableDragHandle="false"
-              :noteId="props.noteId"
-            />
+          <div class="version-list">
+            <div
+              v-for="version in versions"
+              :key="version.id"
+              class="version-item"
+              :class="{ active: currentVersion?.id === version.id }"
+              @click="selectVersion(version)"
+            >
+              <div class="version-info">
+                <span class="version-title">
+                  {{ formatDate(version.versionCreatedAt, 'full') }}
+                </span>
+              </div>
+            </div>
           </div>
 
-          <!-- 恢复按钮 -->
-          <div class="preview-actions">
-            <button class="restore-btn" @click="handleRestore">恢复到此版本</button>
+          <div class="history-footer">
+            <button class="restore-btn" :disabled="!currentVersion" @click="handleRestore">
+              恢复到此版本
+            </button>
           </div>
         </div>
       </div>
@@ -60,6 +71,7 @@ import TipTapEditor from '../tiptap/TipTapEditor.vue'
 import { useNoteVersionStore } from '../../stores/noteVersionStore'
 import { formatDate } from '../../utils/noteHelpers'
 import { message } from '../../utils/message'
+import { Close } from '@icon-park/vue-next'
 
 const props = defineProps<{
   noteId: string
@@ -141,47 +153,117 @@ onMounted(() => {
 
 <style scoped lang="scss">
 .version-modal {
+  width: 1000px;
+  height: 80vh;
   background: var(--color-bg-primary);
   border-radius: 12px;
-  width: 900px;
-  max-height: 80vh;
-  display: flex;
-  flex-direction: column;
   overflow: hidden;
 }
 
-.modal-header {
+.modal-content {
+  display: flex;
+  height: 100%;
+}
+
+/* 左侧预览区域 */
+.preview-area {
+  flex: 1;
+  border-right: 1px solid var(--color-border);
+  // background: var(--color-bg-secondary);
+  display: flex;
+
+  .preview-content {
+    flex: 1;
+    background: var(--color-bg-primary);
+    padding: 0;
+    margin: 24px;
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+
+    .preview-header {
+      padding: 20px 24px;
+
+      .address {
+        font-size: 16px;
+        font-weight: 500;
+        color: var(--color-text-primary);
+        margin-bottom: 4px;
+      }
+
+      .created-time {
+        font-size: 12px;
+        color: var(--color-text-tertiary);
+      }
+    }
+
+    .editor-wrapper {
+      flex: 1;
+      overflow-y: auto;
+    }
+  }
+}
+
+/* 右侧版本历史区域 */
+.version-history {
+  width: 320px;
+  display: flex;
+  flex-direction: column;
+}
+
+.history-header {
+  padding: 20px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px 24px;
   border-bottom: 1px solid var(--color-border);
 
   h2 {
     margin: 0;
     font-size: 18px;
+    font-weight: 600;
     color: var(--color-text-primary);
   }
 
-  .close-btn {
+  .close-button {
+    display: flex;
+    align-items: center;
+    border: none;
+    background: none;
     cursor: pointer;
-    font-size: 24px;
-    color: var(--color-text-secondary);
+    transition: all 0.2s ease;
+    border-radius: 6px;
+    padding: 4px;
+
+    .icon {
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      :deep(.i-icon) {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        height: 100%;
+      }
+
+      :deep(svg) {
+        width: 18px;
+        height: 18px;
+      }
+    }
+
     &:hover {
-      color: var(--color-text-primary);
+      background-color: var(--color-hover-button);
     }
   }
 }
 
-.modal-content {
-  display: flex;
-  height: calc(80vh - 60px);
-  overflow: hidden;
-}
-
 .version-list {
-  width: 250px;
-  border-right: 1px solid var(--color-border);
+  flex: 1;
   overflow-y: auto;
   padding: 12px;
 }
@@ -191,79 +273,49 @@ onMounted(() => {
   border-radius: 8px;
   cursor: pointer;
   margin-bottom: 8px;
+  transition: all 0.2s;
 
   &:hover {
     background: var(--color-hover-bg);
   }
 
   &.active {
-    background: var(--color-menu-active-bg);
+    background: var(--color-hover-bg);
   }
 
   .version-info {
     display: flex;
     flex-direction: column;
-    gap: 4px;
   }
 
-  .version-number {
-    font-weight: 500;
+  .version-title {
+    font-size: 14px;
     color: var(--color-text-primary);
-  }
-
-  .version-time {
-    font-size: 12px;
-    color: var(--color-text-secondary);
   }
 }
 
-.version-preview {
-  flex: 1;
-  padding: 20px;
-  display: flex;
-  flex-direction: column;
-  overflow-y: auto;
+.history-footer {
+  padding: 16px;
+  // border-top: 1px solid var(--color-border);
 
-  .preview-header {
-    margin-bottom: 20px;
+  .restore-btn {
+    width: 100%;
+    padding: 8px 0;
+    border-radius: 6px;
+    background: var(--color-primary);
+    color: white;
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.2s;
 
-    .address {
-      font-size: 16px;
-      font-weight: 500;
-      color: var(--color-text-primary);
-      margin-bottom: 8px;
+    &:hover {
+      opacity: 0.8;
     }
 
-    .created-time {
-      font-size: 12px;
-      color: var(--color-text-tertiary);
-    }
-  }
-
-  .preview-content {
-    flex: 1;
-    overflow-y: auto;
-    margin-bottom: 20px;
-  }
-
-  .preview-actions {
-    display: flex;
-    justify-content: flex-end;
-    padding: 16px 0;
-    border-top: 1px solid var(--color-border);
-
-    .restore-btn {
-      padding: 8px 16px;
-      border-radius: 6px;
-      background: var(--color-primary);
-      color: white;
-      border: none;
-      cursor: pointer;
-      font-size: 14px;
-
-      &:hover {
-        background: var(--color-primary-dark);
-      }
+    &:disabled {
+      background: var(--color-disabled);
+      cursor: not-allowed;
     }
   }
 }

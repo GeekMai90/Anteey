@@ -122,6 +122,36 @@ const props = defineProps<{
 const noteStore = useNoteStore()
 const currentNote = ref<Note | null>(null)
 
+// 添加版本创建的状态控制
+const lastVersionTime = ref<Date | null>(null)
+const VERSION_INTERVAL = 5 * 60 * 1000 // 5分钟
+
+// 创建历史版本的方法
+const createVersion = async () => {
+  if (!currentNote.value) return
+
+  // 检查是否达到创建间隔
+  const now = new Date()
+  if (lastVersionTime.value && now.getTime() - lastVersionTime.value.getTime() < VERSION_INTERVAL) {
+    return
+  }
+
+  const safeContent = JSON.parse(JSON.stringify(currentNote.value.content))
+
+  try {
+    await window.electronAPI.createNoteVersion({
+      noteId: currentNote.value.id,
+      content: safeContent,
+      address: currentNote.value.address,
+      cardType: currentNote.value.cardType,
+      createdAt: currentNote.value.createdAt
+    })
+    lastVersionTime.value = now
+  } catch (error) {
+    console.error('创建版本失败:', error)
+  }
+}
+
 // === 生命周期钩子 ===
 
 // 初始化笔记数据
@@ -234,46 +264,6 @@ const handleAddressEnter = (event: KeyboardEvent) => {
 }
 
 // === 内容更新处理 ===
-// 使用防抖保存内容
-// const saveContent = debounce(
-//   async (noteId: string, content: any, selection?: EditorState['selection']) => {
-//     try {
-//       await noteStore.updateNoteContent(noteId, content)
-
-//       // 恢复光标位置
-//       nextTick(() => {
-//         const editor = tiptapEditor.value?.editor
-//         if (editor && selection) {
-//           editor.commands.setTextSelection(selection.$head.pos)
-//         }
-//       })
-//     } catch (error) {
-//       console.error('保存笔记失败:', error)
-//       message.error('保存失败')
-//     }
-//   },
-//   2000
-// ) // 2秒的防抖时间
-
-// // 处理编辑器内容更新
-// const handleContentUpdate = (newContent: any) => {
-//   if (!currentNote.value) return
-
-//   // 1. 立即更新本地状态，保持编辑器响应
-//   currentNote.value.content = newContent
-
-//   // 2. 保存当前光标位置
-//   const editor = tiptapEditor.value?.editor
-//   const selection = editor?.state.selection
-
-//   // 3. 使用防抖保存
-//   saveContent(currentNote.value.id, newContent, selection)
-// }
-
-// // 在组件卸载前确保所有待保存的内容都已保存
-// onBeforeUnmount(() => {
-//   saveContent.flush()
-// })
 
 // 使用一个更保守的保存策略
 const saveContent = debounce(
@@ -290,16 +280,8 @@ const saveContent = debounce(
 )
 
 // 处理编辑器内容更新
-// const handleContentUpdate = (newContent: any) => {
-//   if (!currentNote.value) return
 
-//   // 只更新本地状态
-//   currentNote.value.content = newContent
-
-//   // 触发防抖保存，不传递光标位置
-//   saveContent(currentNote.value.id, newContent)
-// }
-const handleContentUpdate = (newContent: any) => {
+const handleContentUpdate = async (newContent: any) => {
   if (!currentNote.value) return
 
   try {
@@ -311,37 +293,25 @@ const handleContentUpdate = (newContent: any) => {
 
     // 触发防抖保存
     saveContent(currentNote.value.id, safeContent)
+    // 处理版本创建
+    await createVersion()
   } catch (error) {
     console.error('Content serialization error:', error)
   }
 }
 
 // === 尝试一下增加新的保存功能 ===
-// 保存当前笔记内容的通用函数
-// const saveCurrentNote = async () => {
-//   if (!currentNote.value) return
-
-//   try {
-//     // 立即执行所有待保存的内容
-//     saveContent.flush()
-
-//     const editor = tiptapEditor.value?.editor
-//     if (editor) {
-//       const content = editor.getJSON()
-//       await noteStore.updateNoteContent(currentNote.value.id, content)
-//     }
-//   } catch (error) {
-//     console.error('保存笔记失败:', error)
-//     message.error('保存失败')
-//     throw error // 可以选择是否抛出错误
-//   }
-// }
 
 // 在组件卸载前确保所有待保存的内容都已保存
-onBeforeUnmount(() => {
+onBeforeUnmount(async () => {
   saveContent.flush()
+
   // 添加到最近笔记
   noteStore.addToRecentNotes(props.noteId)
+  // 创建版本
+  if (currentNote.value) {
+    await createVersion()
+  }
 })
 
 // === 卡片类型菜单管理 ===

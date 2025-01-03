@@ -42,6 +42,9 @@ export async function createNoteVersion(params: CreateVersionParams): Promise<No
       })
       .returning('*')
 
+    // 清理旧版本，保留最新的 20 个版本
+    await cleanupOldVersions(params.noteId, 20)
+
     // 返回时解析 content
     return {
       ...savedVersion,
