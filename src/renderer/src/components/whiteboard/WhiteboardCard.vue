@@ -145,6 +145,7 @@ const handleMenuItemClick = (item: MenuItem) => {
     0 4px 6px rgba(0, 0, 0, 0.1),
     0 1px 3px rgba(0, 0, 0, 0.08);
   transition: box-shadow 0.3s ease-in-out;
+  border: 1px solid var(--color-border);
 
   &:hover {
     box-shadow:
