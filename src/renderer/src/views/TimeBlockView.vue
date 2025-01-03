@@ -1047,7 +1047,7 @@ const highlightContent = (content: string) => {
         display: flex;
         align-items: center;
         justify-content: flex-end;
-        gap: 5px;
+        gap: 10px;
 
         .tool-button {
           display: flex;
@@ -1061,6 +1061,7 @@ const highlightContent = (content: string) => {
           cursor: pointer;
           transition: all 0.2s ease;
           user-select: none;
+          height: 36px;
 
           .text {
             font-size: 13px;
@@ -1131,6 +1132,7 @@ const highlightContent = (content: string) => {
           cursor: pointer;
           transition: all 0.2s ease;
           user-select: none;
+          height: 36px;
 
           .date-text {
             font-size: 13px;

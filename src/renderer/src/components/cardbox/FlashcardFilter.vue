@@ -37,7 +37,7 @@ const toggleFilter = () => {
   border-radius: 8px;
   cursor: pointer;
   user-select: none;
-
+  height: 36px;
   &:hover {
     background-color: var(--color-hover-bg);
   }

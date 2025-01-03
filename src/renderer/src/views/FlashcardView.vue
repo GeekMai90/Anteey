@@ -169,7 +169,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, reactive } from 'vue'
+import { ref, onMounted, reactive, markRaw } from 'vue'
 import {
   StorageCardOne,
   Tag,
@@ -283,7 +283,7 @@ const handleMoreClick = (event: MouseEvent, tagId: string | null, isAll = false)
   const menuItems = reactive([
     {
       label: '查看卡组',
-      icon: FileSearch,
+      icon: markRaw(FileSearch),
       action: () => {
         // 跳转到卡片盒页面，带上标签和闪卡筛选条件
         router.push({

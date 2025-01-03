@@ -52,7 +52,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import {
-  Api,
   DatabaseDownload,
   KeyboardOne,
   SettingTwo,
@@ -74,11 +73,10 @@ const menuItems = [
   { key: 'appearance', label: '外观', icon: Theme },
   { key: 'timeblock', label: '时光记', icon: Time },
   { key: 'shortcuts', label: '快捷键', icon: KeyboardOne },
-  { key: 'share', label: '分享设置', icon: Share },
-  { key: 'license', label: '软件激活', icon: CrownThree },
+  { key: 'share', label: '分享', icon: Share },
   { key: 'backup', label: '备份', icon: DatabaseDownload },
   { key: 'webdav', label: '同步', icon: CloudStorage },
-  { key: 'api', label: '专属API', icon: Api }
+  { key: 'license', label: '软件激活', icon: CrownThree }
 ]
 
 const currentMenuItem = ref('appearance')

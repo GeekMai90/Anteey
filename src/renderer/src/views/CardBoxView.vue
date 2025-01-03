@@ -1010,7 +1010,7 @@ const handleFlashcardFilterChange = (value: boolean | undefined) => {
     border-radius: 8px;
     border: 1px solid var(--color-border);
     user-select: none;
-
+    height: 36px;
     &:hover {
       background-color: var(--color-hover-bg);
     }
@@ -1155,7 +1155,7 @@ const handleFlashcardFilterChange = (value: boolean | undefined) => {
     border-radius: 8px;
     border: 1px solid var(--color-border);
     user-select: none;
-
+    height: 36px;
     .icon {
       background: none;
       border: none;
@@ -1254,6 +1254,8 @@ const handleFlashcardFilterChange = (value: boolean | undefined) => {
     border-radius: 8px;
     padding: 1.5px 8px;
     overflow: hidden;
+    height: 36px;
+
     &.is-focused {
       border-color: var(--color-primary);
       box-shadow: 0 0 0 2px rgba(var(--color-primary-rgb), 0.2);

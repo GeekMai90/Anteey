@@ -295,6 +295,7 @@ const selectSortOption = (option: { value: string; label: string }) => {
     border-radius: 8px;
     border: 1px solid var(--color-border);
     user-select: none;
+    height: 36px;
 
     .icon {
       background: none;
@@ -366,6 +367,7 @@ const selectSortOption = (option: { value: string; label: string }) => {
     border-radius: 8px;
     border: 1px solid var(--color-border);
     user-select: none;
+    height: 36px;
 
     .icon {
       background: none;
@@ -690,6 +692,7 @@ const selectSortOption = (option: { value: string; label: string }) => {
   border-radius: 8px;
   padding: 0 8px;
   overflow: hidden;
+  height: 36px;
   &.is-focused {
     border-color: var(--color-primary);
     box-shadow: 0 0 0 2px rgba(var(--color-primary-rgb), 0.2);

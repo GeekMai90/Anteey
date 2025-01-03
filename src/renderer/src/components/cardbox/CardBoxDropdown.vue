@@ -204,7 +204,7 @@ onUnmounted(() => {
   border: 1px solid var(--color-border);
   user-select: none;
   margin-left: 2px;
-
+  height: 36px;
   .icon {
     background: none;
     border: none;

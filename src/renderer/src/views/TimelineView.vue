@@ -429,6 +429,7 @@ const shouldShowDateDivider = (currentNote: Note, index: number) => {
           border-radius: 8px;
           cursor: pointer;
           transition: all 0.2s ease;
+          height: 36px;
 
           .date-text {
             font-size: 13px;

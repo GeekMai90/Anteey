@@ -53,6 +53,7 @@
                       '/timeline': '笔记流',
                       '/cardbox': '卡片盒',
                       '/knowledge-tree': '知识树',
+                      '/flashcard': '记忆卡',
                       '/whiteboard': '思维板'
                     }"
                     v-show="path !== '/timeblock' || timeBlockStore.settings.enabled"
@@ -218,6 +219,7 @@ const getPageName = (path: string) => {
     '/timeline': '笔记流',
     '/cardbox': '卡片盒',
     '/knowledge-tree': '知识树',
+    '/flashcard': '记忆卡',
     '/whiteboard': '思维板'
   }
   return pageMap[path] || '主页'
