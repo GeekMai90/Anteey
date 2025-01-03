@@ -93,14 +93,8 @@ export const useFlashcardStore = defineStore('flashcard', () => {
   // 开始复习会话
   const startReviewSession = async (tags?: string[]) => {
     try {
-      // 如果是暂无分类，需要特殊处理
-      if (tags && tags.length === 0) {
-        const cards = await window.electronAPI.getDueFlashcards(undefined)
-        dueFlashcards.value = cards
-      } else {
-        const cards = await window.electronAPI.getDueFlashcards(tags)
-        dueFlashcards.value = cards
-      }
+      const cards = await window.electronAPI.getDueFlashcards(tags)
+      dueFlashcards.value = cards
       isReviewModalOpen.value = true
     } catch (error) {
       console.error('Failed to start review session:', error)

@@ -90,7 +90,11 @@
           <div class="deck-total">{{ stats?.totalCards || 0 }}</div>
           <div class="deck-progress">{{ stats?.masteredCards || 0 }}</div>
           <div class="deck-actions">
-            <button class="practice-btn" :disabled="!stats?.dueCards" @click="startReview(null)">
+            <button
+              class="practice-btn"
+              :disabled="!stats?.dueCards"
+              @click="startReview(null, true)"
+            >
               <Play theme="outline" size="16" :strokeWidth="3" />
               练习
             </button>
@@ -115,7 +119,7 @@
             <button
               class="practice-btn"
               :disabled="!untaggedDeck.dueCount"
-              @click="startReview(null)"
+              @click="startReview(null, false)"
             >
               <Play theme="outline" size="16" :strokeWidth="3" />
               练习
@@ -165,7 +169,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, reactive } from 'vue'
 import {
   StorageCardOne,
   Tag,
@@ -229,9 +233,18 @@ const handleReviewFeedback = async (noteId: string, feedback: ReviewFeedback) =>
 }
 
 // 修改开始复习方法
-const startReview = async (tagId: string | null) => {
+const startReview = async (tagId: string | null, isAll = false) => {
   try {
-    await flashcardStore.startReviewSession(tagId ? [tagId] : [])
+    if (isAll) {
+      // 所有记忆卡：传 undefined
+      await flashcardStore.startReviewSession(undefined)
+    } else if (tagId === null) {
+      // 暂无分类：传空数组
+      await flashcardStore.startReviewSession([])
+    } else {
+      // 特定标签：传标签ID数组
+      await flashcardStore.startReviewSession([tagId])
+    }
   } catch (error) {
     console.error('开始复习失败:', error)
   }
@@ -267,7 +280,7 @@ const initializeData = async () => {
 const handleMoreClick = (event: MouseEvent, tagId: string | null, isAll = false) => {
   event.stopPropagation()
 
-  const menuItems = [
+  const menuItems = reactive([
     {
       label: '查看卡组',
       icon: FileSearch,
@@ -287,7 +300,7 @@ const handleMoreClick = (event: MouseEvent, tagId: string | null, isAll = false)
         contextMenuStore.closeMenu()
       }
     }
-  ]
+  ])
 
   // 显示上下文菜单
   contextMenuStore.showMenu(event.clientX, event.clientY, menuItems)

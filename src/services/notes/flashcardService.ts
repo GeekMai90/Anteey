@@ -116,18 +116,20 @@ export class FlashcardService {
         .andWhere('notes.nextReviewAt', '<=', new Date())
 
       if (tags && tags.length > 0) {
+        // 有标签：获取指定标签的闪卡
         query = query
           .join('note_tags', 'notes.id', 'note_tags.noteId')
           .whereIn('note_tags.tagId', tags)
           .groupBy('notes.id')
-      } else {
-        // 如果没有指定标签，则获取所有卡片
-        // 不需要添加额外的条件
+      } else if (tags && tags.length === 0) {
+        // 空数组：获取暂无分类的闪卡
+        query = query.whereNotExists(function () {
+          this.select('*').from('note_tags').whereRaw('note_tags.noteId = notes.id')
+        })
       }
+      // undefined: 获取所有闪卡（不添加任何标签相关的条件）
 
       const notes = await query.orderBy('notes.nextReviewAt', 'asc')
-
-      // 使用 convertToNote 函数转换数据库记录
       return notes.map(convertToNote)
     } catch (error) {
       console.error('后端→ 获取待复习闪卡失败:', error)
