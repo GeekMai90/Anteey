@@ -45,9 +45,11 @@
         :editable="false"
         :enable-drag-handle="isDragHandleEnabled"
       />
-      <!-- <div v-if="isOverflowing" class="fade-out"></div> -->
     </div>
     <div class="note-timestamp">
+      <div v-if="note.isFlashcard" class="flashcard-indicator">
+        <StorageCardOne theme="outline" size="14" fill="var(--color-primary)" :strokeWidth="3" />
+      </div>
       {{ formatDate(note.updatedAt) }}
     </div>
   </div>
@@ -56,7 +58,7 @@
 <script setup lang="ts">
 import { Note } from '@renderer/types/Note'
 import { formatDate } from '@renderer/utils/noteHelpers'
-import { More, ExpandTextInput } from '@icon-park/vue-next'
+import { More, ExpandTextInput, StorageCardOne } from '@icon-park/vue-next'
 import { computed, onUnmounted, ref, toRef, watch } from 'vue'
 import { useNoteStore } from '@renderer/stores/noteStores'
 import { useRouter } from 'vue-router'
@@ -71,10 +73,6 @@ const props = defineProps<{
   highlightedNoteId: string | null
 }>()
 
-// const isHighlighted = computed(() => props.highlightedNoteId === props.note.id)
-// const isHighlighted = computed(() => {
-//   return props.highlightedNoteId === props.note.id
-// })
 // 本地控制高亮状态
 const localHighlight = ref(false)
 let highlightTimer: NodeJS.Timeout | null = null
@@ -120,7 +118,7 @@ const isDragHandleEnabled = ref(false)
 
 const { menuItems: noteMenuItems, resetDeleteState } = useNoteMenu({
   noteId: props.note.id,
-  menuItems: ['star', 'sidebar', 'delete']
+  menuItems: ['star', 'convertToFlashcard', 'sidebar', 'copyQuote', 'share', 'delete']
 })
 
 const moreBtnRef = ref<HTMLElement | null>(null)
@@ -144,17 +142,8 @@ const handleMenuItemClick = (item: MenuItem) => {
   }
 }
 
-// const localNote = toRef(props, 'note')
-
 // 处理内容超高时底部出现模糊效果
 const noteContent = ref<HTMLDivElement | null>(null)
-// const isOverflowing = ref(false)
-
-// const checkOverflow = () => {
-//   if (noteContent.value) {
-//     isOverflowing.value = noteContent.value.scrollHeight > noteContent.value.clientHeight
-//   }
-// }
 
 const router = useRouter()
 
@@ -183,7 +172,7 @@ const cardTypeClass = computed(() => {
   background-color: var(--color-note-card-bg);
   border: 1px solid var(--color-border);
   border-radius: 8px;
-  padding: 10px 0px 0px 0;
+  padding: 10px 0px 10px 0;
   // margin-bottom: 15px;
   display: flex;
   flex-direction: column;
@@ -392,11 +381,33 @@ const cardTypeClass = computed(() => {
 }
 
 .note-timestamp {
-  font-size: 10px;
+  font-size: 0.8em;
   color: var(--color-text-secondary);
   align-self: flex-end;
-  margin-right: 10px;
-  margin-bottom: 5px;
+  margin-right: 15px;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+
+  .flashcard-indicator {
+    display: flex;
+    align-items: center;
+    color: var(--color-primary);
+
+    :deep(.i-icon) {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      height: 100%;
+    }
+
+    :deep(svg) {
+      width: 14px;
+      height: 14px;
+    }
+  }
 }
 
 :deep(.tiptap) {

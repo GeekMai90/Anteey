@@ -48,10 +48,11 @@
         :editable="false"
         :enable-drag-handle="false"
       />
-      <!-- 内容超出时，显示模糊效果 -->
-      <!-- <div v-if="isOverflowing" class="fade-out"></div> -->
     </div>
     <div class="note-timestamp">
+      <div v-if="note.isFlashcard" class="flashcard-indicator">
+        <StorageCardOne theme="outline" size="14" fill="var(--color-primary)" :strokeWidth="3" />
+      </div>
       {{ formatDate(note.createdAt) }}
     </div>
   </div>
@@ -60,7 +61,7 @@
 <script setup lang="ts">
 import { Note } from '@renderer/types/Note'
 import { formatDate } from '@renderer/utils/noteHelpers'
-import { More, ExpandTextInput } from '@icon-park/vue-next'
+import { More, ExpandTextInput, StorageCardOne } from '@icon-park/vue-next'
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 // import TipTapEditor from '@renderer/components/TipTapEditor.vue'
@@ -79,7 +80,7 @@ const props = defineProps<{
 
 const { menuItems: noteMenuItems, resetDeleteState } = useNoteMenu({
   noteId: props.note.id,
-  menuItems: ['star', 'sidebar', 'copyQuote', 'share', 'exportNote', 'delete']
+  menuItems: ['star', 'convertToFlashcard', 'sidebar', 'copyQuote', 'share', 'exportNote', 'delete']
 })
 const moreBtnRef = ref<HTMLElement | null>(null)
 const moreMenuRef = ref<HTMLElement | null>(null)
@@ -346,5 +347,27 @@ const cardTypeClass = computed(() => {
   align-self: flex-end;
   margin-right: 15px;
   user-select: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+
+  .flashcard-indicator {
+    display: flex;
+    align-items: center;
+    color: var(--color-primary);
+
+    :deep(.i-icon) {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      height: 100%;
+    }
+
+    :deep(svg) {
+      width: 14px;
+      height: 14px;
+    }
+  }
 }
 </style>

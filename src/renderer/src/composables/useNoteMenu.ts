@@ -562,8 +562,8 @@ export function useNoteMenu(params: NoteMenuParams) {
     },
     convertToFlashcard: {
       name: 'convertToFlashcard',
-      label: isFlashcard.value ? '取消闪卡标记' : '标记为闪卡',
-      icon: StorageCardOne, // 可以选择一个合适的图标
+      label: isFlashcard.value ? '取消闪卡' : '标记闪卡',
+      icon: StorageCardOne,
       action: handleConvertToFlashcard,
       fill: isFlashcard.value ? 'var(--color-primary)' : 'var(--color-icon-menu-default)'
     }
