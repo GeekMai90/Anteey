@@ -155,13 +155,13 @@ export class FlashcardService {
           isFlashcard: true,
           isDeleted: false
         })
-        .whereRaw('JSON_EXTRACT(flashcard, "$.lastReviewedAt") >= ?', [todayStart.toISOString()])
+        .whereRaw("JSON_EXTRACT(flashcard, '$.lastReviewedAt') >= ?", [todayStart.toISOString()])
         .select([
           db.raw(`SUM(CASE 
-            WHEN JSON_EXTRACT(flashcard, '$.fsrs.state') = 0 THEN 1 
+            WHEN JSON_EXTRACT(flashcard, '$.fsrs.state') = '0' THEN 1 
             ELSE 0 END) as new_cards_reviewed`),
           db.raw(`SUM(CASE 
-            WHEN JSON_EXTRACT(flashcard, '$.fsrs.state') != 0 THEN 1 
+            WHEN JSON_EXTRACT(flashcard, '$.fsrs.state') != '0' THEN 1 
             ELSE 0 END) as review_cards_reviewed`)
         ])
         .first()
@@ -188,18 +188,15 @@ export class FlashcardService {
           'notes.isDeleted': false
         })
         .andWhere((builder) => {
-          builder
-            .where('notes.nextReviewAt', '<=', now) // 到期的卡片
-            .orWhere((subBuilder) => {
-              // 已复习过且满足超前学习时间的卡片
-              const reviewAgainTime = new Date(now)
-              reviewAgainTime.setMinutes(reviewAgainTime.getMinutes() - settings.reviewAgainAfter)
-              subBuilder
-                .whereNotNull('notes.flashcard->$.lastReviewedAt')
-                .andWhereRaw('JSON_EXTRACT(flashcard, "$.lastReviewedAt") <= ?', [
-                  reviewAgainTime.toISOString()
-                ])
-            })
+          builder.where('notes.nextReviewAt', '<=', now).orWhere((subBuilder) => {
+            const reviewAgainTime = new Date(now)
+            reviewAgainTime.setMinutes(reviewAgainTime.getMinutes() - settings.reviewAgainAfter)
+            subBuilder
+              .whereRaw("JSON_EXTRACT(flashcard, '$.lastReviewedAt') IS NOT NULL")
+              .andWhereRaw("JSON_EXTRACT(flashcard, '$.lastReviewedAt') <= ?", [
+                reviewAgainTime.toISOString()
+              ])
+          })
         })
 
       if (tags && tags.length > 0) {
@@ -222,7 +219,7 @@ export class FlashcardService {
           // 新卡片优先：先按状态排序（新卡在前），再按到期时间排序
           query = query.orderByRaw(`
             CASE 
-              WHEN JSON_EXTRACT(flashcard, '$.fsrs.state') = 0 THEN 0 
+              WHEN JSON_EXTRACT(flashcard, '$.fsrs.state') = '0' THEN 0 
               ELSE 1 
             END,
             nextReviewAt ASC
@@ -232,7 +229,7 @@ export class FlashcardService {
           // 新卡片最后：先按状态排序（新卡在后），再按到期时间排序
           query = query.orderByRaw(`
             CASE 
-              WHEN JSON_EXTRACT(flashcard, '$.fsrs.state') = 0 THEN 1 
+              WHEN JSON_EXTRACT(flashcard, '$.fsrs.state') = '0' THEN 1 
               ELSE 0 
             END,
             nextReviewAt ASC
@@ -267,13 +264,13 @@ export class FlashcardService {
         .select([
           db.raw('COUNT(*) as total'),
           db.raw(`SUM(CASE 
-            WHEN CAST(JSON_EXTRACT(flashcard, '$.fsrs.state') AS INTEGER) = 0 THEN 1 
+            WHEN JSON_EXTRACT(flashcard, '$.fsrs.state') = '0' THEN 1 
             ELSE 0 END) as new_cards`),
           db.raw(`SUM(CASE 
-            WHEN CAST(JSON_EXTRACT(flashcard, '$.fsrs.state') AS INTEGER) IN (1, 3) THEN 1 
+            WHEN JSON_EXTRACT(flashcard, '$.fsrs.state') IN ('1', '3') THEN 1 
             ELSE 0 END) as learning_cards`),
           db.raw(`SUM(CASE 
-            WHEN CAST(JSON_EXTRACT(flashcard, '$.fsrs.state') AS INTEGER) = 2 THEN 1 
+            WHEN JSON_EXTRACT(flashcard, '$.fsrs.state') = '2' THEN 1 
             ELSE 0 END) as mastered_cards`),
           db.raw(
             `SUM(CASE 
