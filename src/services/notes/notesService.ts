@@ -3,9 +3,10 @@ import type {
   NoteReference,
   InternalNoteReference,
   Note,
-  CardType,
   CreateNoteReferenceParams,
-  GetPaginatedNotesParams
+  GetPaginatedNotesParams,
+  TimelineQueryParams,
+  TimelineQueryResult
 } from '@shared/types'
 import { Knex } from 'knex/types'
 import { FilterRule } from '@shared/types'
@@ -1118,31 +1119,6 @@ export async function updateNoteCardBox(noteId: string, cardBoxId: string): Prom
     console.error('后端→ 更新笔记卡片盒失败:', error)
     throw error
   }
-}
-
-// 时间线查询参数接口
-export interface TimelineQueryParams {
-  mode: 'all' | 'date' | 'range' // 查询模式
-  page?: number // 分页模式参数
-  limit?: number
-  date?: string // 具体日期查询参数
-  dateRange?: {
-    // 日期范围查询参数
-    start: Date
-    end: Date
-  }
-  cardTypes?: CardType[] // 卡片类型过滤
-  sortOrder?: 'asc' | 'desc' // 排序方向
-  searchTerm?: string // 搜索关键词
-  searchFields?: ('content' | 'address' | 'metadata')[] // 搜索字段
-}
-
-// 时间线查询结果接口
-export interface TimelineQueryResult {
-  notes: Note[] // 笔记列表
-  totalCount: number // 总数
-  currentPage?: number // 当前页码（仅在 mode='all' 时返回）
-  hasMore?: boolean // 是否还有更多（仅在 mode='all' 时返回）
 }
 
 // 获取时间线笔记

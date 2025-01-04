@@ -1,9 +1,9 @@
-import { TagSearchParams } from '../../services/notes/tagService'
 import {
+  TagSearchParams,
   GetPaginatedNotesParams,
   TimelineQueryParams,
   TimelineQueryResult
-} from '../../services/notes/notesService'
+} from '@shared/types'
 import { Note, CardBox, NoteReference, Tag, SearchParams } from '@shared/types'
 import {
   Whiteboard,
@@ -17,10 +17,9 @@ import {
 } from '@shared/types'
 import { UpdateUserSettings, UserSettings } from '@shared/types'
 import { CreateCustomFilterInput, CustomFilter, UpdateCustomFilterInput } from '@shared/types'
-import { WordSuggestion } from '../../services/dictionary/dictionaryService'
-import { DictWord } from '../../services/dictionary/dictionaryService'
+
 import { LocalTreeData, LocalTreeWithReferencesData } from '@shared/types'
-import { AppearanceSettings } from '../../services/appearance/appearanceService'
+import { AppearanceSettings } from '@shared/types'
 import { KnowledgeTreeNode } from '@shared/types'
 import { ActivationResult, License } from '@shared/types'
 import type { BackupSettings, BackupHistory } from '@shared/types'
@@ -245,19 +244,6 @@ export interface ElectronAPI {
       similarity: number
     }[]
   >
-
-  // 词相关的方法
-  getPendingSuggestions: () => Promise<WordSuggestion[]>
-  processSuggestion: (word: string, status: 'accepted' | 'rejected') => Promise<void>
-  processSuggestionBatch: (words: string[], status: 'accepted' | 'rejected') => Promise<void>
-  getDictionary: () => Promise<DictWord[]>
-  cleanupDictionary: (days: number) => Promise<void>
-  getAllWords: () => Promise<DictWord[]>
-  addWord: (word: string) => Promise<DictWord>
-  deleteWord: (word: string) => Promise<void>
-  deleteWords: (words: string[]) => Promise<void>
-  searchWords: (query: string) => Promise<DictWord[]>
-  updateWordStatus: (word: string, enabled: boolean) => Promise<void>
 
   // 获取最近编辑的 10 篇笔记
   getRecentEditedNotes: () => Promise<

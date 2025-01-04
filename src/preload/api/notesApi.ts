@@ -1,6 +1,13 @@
 import { ipcRenderer } from 'electron'
-import type { Note, NoteReference, SearchParams, GetPaginatedNotesParams } from '@shared/types'
-import { TimelineQueryParams, TimelineQueryResult } from '../../services/notes/notesService'
+import type {
+  Note,
+  NoteReference,
+  SearchParams,
+  GetPaginatedNotesParams,
+  TimelineQueryParams,
+  TimelineQueryResult
+} from '@shared/types'
+
 export const notesApi = {
   createNote: async (): Promise<Note> => {
     try {

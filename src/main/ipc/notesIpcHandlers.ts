@@ -31,14 +31,17 @@ import {
   updateNoteAddress,
   updateNoteCardType,
   getTimelineNotes,
-  TimelineQueryParams,
-  TimelineQueryResult,
   createNoteReference,
   deleteNoteReference,
   updateNoteTag,
   getRecentEditedNotes
 } from '../../services/notes/notesService'
-import type { GetPaginatedNotesParams, SearchParams } from '@shared/types'
+import type {
+  GetPaginatedNotesParams,
+  SearchParams,
+  TimelineQueryParams,
+  TimelineQueryResult
+} from '@shared/types'
 
 export function setupNotesHandlers() {
   // 获取所有已删除的笔记

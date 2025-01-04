@@ -1,6 +1,18 @@
+# 基础忽略
 node_modules
 dist
 out
 .DS_Store
 *.log*
-devDb
+
+# 数据库文件
+/devDb/
+/devDb/**/*
+*.sqlite
+*.sqlite-journal
+**/devDb/
+**/testDb/
+
+# 开发环境
+.env.local
+.env.*.local
