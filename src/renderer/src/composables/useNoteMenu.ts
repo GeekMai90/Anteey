@@ -96,17 +96,14 @@ export function useNoteMenu(params: NoteMenuParams) {
     // 立即更新 isStarred 的值
     isStarred.value = !isStarred.value
   }
-  // watchEffect(() => {
-  //   const note = noteStore.starredNotes.find((note) => note.id === params.noteId)
-  //   isStarred.value = note?.isStarred || false
-  //   isFlashcard.value = note?.isFlashcard || false
-  // })
   watchEffect(async () => {
     // 获取完整的笔记信息来更新状态
-    const note = await noteStore.fetchNote(params.noteId)
-    if (note) {
-      isStarred.value = note.isStarred || false
-      isFlashcard.value = note.isFlashcard || false
+    if (params.noteId) {
+      const note = await noteStore.fetchNote(params.noteId)
+      if (note) {
+        isStarred.value = note.isStarred || false
+        isFlashcard.value = note.isFlashcard || false
+      }
     }
   })
 

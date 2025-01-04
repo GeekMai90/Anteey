@@ -266,6 +266,8 @@ const feedbackOptions = computed(() => {
 
 // 方法
 const flipCard = () => {
+  if (!currentCard.value) return
+
   console.log('翻转卡片，当前状态:', {
     isFlipped: isFlipped.value,
     currentCard: currentCard.value,
@@ -484,8 +486,12 @@ const showNextReviewTime = computed(() => flashcardStore.settings?.showNextRevie
 
 // 在组件挂载时开始计时
 onMounted(() => {
-  if (props.cards.length > 0) {
+  if (props.cards && props.cards.length > 0) {
     startTimer()
+    console.log('初始化卡片数据:', props.cards)
+  } else {
+    console.warn('没有可用的卡片数据')
+    handleClose()
   }
 })
 

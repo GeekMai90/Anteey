@@ -160,6 +160,7 @@
 
     <!-- 添加复习模态框 -->
     <FlashcardReviewModal
+      v-if="flashcardStore.isReviewModalOpen && flashcardStore.dueFlashcards.length > 0"
       v-model="flashcardStore.isReviewModalOpen"
       :cards="flashcardStore.dueFlashcards"
       @feedback="handleReviewFeedback"
