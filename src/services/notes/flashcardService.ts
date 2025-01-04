@@ -1,26 +1,41 @@
 import { db } from '../../db/config'
-import type { Note } from '@shared/types'
-import type {
-  FlashcardData,
-  ReviewFeedback,
-  FlashcardStats,
-  FlashcardDecks,
-  UntaggedDeck,
-  TaggedDeck
-} from '@shared/types'
+import type { Note, TaggedDeck, UntaggedDeck } from '@shared/types'
+import type { FlashcardData, ReviewFeedback, FlashcardStats, FlashcardDecks } from '@shared/types'
+import type { StateType as FSRSStateType } from 'ts-fsrs'
 import { convertToNote } from '../notes/notesService'
+import { fsrs, createEmptyCard, Rating, State, type Grade } from 'ts-fsrs'
+
 export class FlashcardService {
+  private f = fsrs() // 创建 FSRS 实例
+
+  // 将反馈转换为 FSRS Rating
+  private feedbackToRating(feedback: ReviewFeedback): Grade {
+    switch (feedback) {
+      case 'forgot':
+        return Rating.Again
+      case 'partially_recalled':
+        return Rating.Hard
+      case 'recalled_effort':
+        return Rating.Good
+      case 'easily_recalled':
+        return Rating.Easy
+      case 'skip':
+      default:
+        return Rating.Good // 默认使用 Good
+    }
+  }
+
   // 将笔记转换为闪卡
   async convertToFlashcard(noteId: string): Promise<void> {
     try {
+      const now = new Date()
+      const fsrsCard = createEmptyCard(now) // 创建新的 FSRS 卡片
+
       const flashcardData: FlashcardData = {
         reviewCount: 0,
-        proficiency: 'new',
-        sm2: {
-          repetitions: 0,
-          easiness: 2.5,
-          interval: 0
-        }
+        proficiency: 'New',
+        fsrs: fsrsCard,
+        nextReviewAt: fsrsCard.due
       }
 
       await db('notes')
@@ -28,9 +43,8 @@ export class FlashcardService {
         .update({
           isFlashcard: true,
           flashcard: JSON.stringify(flashcardData),
-          nextReviewAt: new Date()
+          nextReviewAt: fsrsCard.due
         })
-        .returning('*')
 
       console.log('后端→ 笔记转换为闪卡成功:', noteId)
     } catch (error) {
@@ -42,14 +56,11 @@ export class FlashcardService {
   // 取消闪卡标记
   async removeFlashcard(noteId: string): Promise<void> {
     try {
-      await db('notes')
-        .where({ id: noteId })
-        .update({
-          isFlashcard: false,
-          flashcard: null,
-          nextReviewAt: null
-        })
-        .returning('*')
+      await db('notes').where({ id: noteId }).update({
+        isFlashcard: false,
+        flashcard: null,
+        nextReviewAt: null
+      })
 
       console.log('后端→ 取消闪卡标记成功:', noteId)
     } catch (error) {
@@ -73,29 +84,31 @@ export class FlashcardService {
       }
 
       const flashcardData: FlashcardData = JSON.parse(note.flashcard || '{}')
-      const sm2Data = this.calculateSM2(flashcardData.sm2, feedback)
+      if (!flashcardData.fsrs) {
+        throw new Error('闪卡数据不完整')
+      }
+
+      // 使用 FSRS 计算下一次复习
+      const scheduling = this.f.repeat(flashcardData.fsrs, new Date())
+      const rating = this.feedbackToRating(feedback)
+      const result = scheduling[rating]
 
       const updatedData: FlashcardData = {
         ...flashcardData,
         lastReviewedAt: new Date(),
-        nextReviewAt: sm2Data.nextReviewAt,
+        nextReviewAt: result.card.due,
         reviewCount: (flashcardData.reviewCount || 0) + 1,
         lastFeedback: feedback,
-        proficiency: this.calculateProficiency(sm2Data),
-        sm2: {
-          repetitions: sm2Data.repetitions,
-          easiness: sm2Data.easiness,
-          interval: sm2Data.interval
-        }
+        proficiency: State[result.card.state] as FSRSStateType,
+        fsrs: result.card
       }
 
       await db('notes')
         .where({ id: noteId })
         .update({
           flashcard: JSON.stringify(updatedData),
-          nextReviewAt: updatedData.nextReviewAt
+          nextReviewAt: result.card.due
         })
-        .returning('*')
 
       console.log('后端→ 更新闪卡状态成功:', noteId)
     } catch (error) {
@@ -148,13 +161,13 @@ export class FlashcardService {
         .select([
           db.raw('COUNT(*) as total'),
           db.raw(`SUM(CASE 
-            WHEN JSON_EXTRACT(flashcard, '$.proficiency') = 'new' THEN 1 
+            WHEN CAST(JSON_EXTRACT(flashcard, '$.fsrs.state') AS INTEGER) = 0 THEN 1 
             ELSE 0 END) as new_cards`),
           db.raw(`SUM(CASE 
-            WHEN JSON_EXTRACT(flashcard, '$.proficiency') = 'learning' THEN 1 
+            WHEN CAST(JSON_EXTRACT(flashcard, '$.fsrs.state') AS INTEGER) IN (1, 3) THEN 1 
             ELSE 0 END) as learning_cards`),
           db.raw(`SUM(CASE 
-            WHEN JSON_EXTRACT(flashcard, '$.proficiency') = 'mastered' THEN 1 
+            WHEN CAST(JSON_EXTRACT(flashcard, '$.fsrs.state') AS INTEGER) = 2 THEN 1 
             ELSE 0 END) as mastered_cards`),
           db.raw(
             `SUM(CASE 
@@ -194,12 +207,12 @@ export class FlashcardService {
           db.raw('COUNT(DISTINCT notes.id) as totalCount'),
           db.raw(
             `SUM(CASE 
-            WHEN nextReviewAt <= ? AND JSON_EXTRACT(flashcard, '$.proficiency') != 'mastered' THEN 1 
+            WHEN nextReviewAt <= ? AND JSON_EXTRACT(flashcard, '$.fsrs.state') != ${State.Review} THEN 1 
             ELSE 0 END) as dueCount`,
             [new Date()]
           ),
           db.raw(`SUM(CASE 
-            WHEN JSON_EXTRACT(flashcard, '$.proficiency') = 'mastered' THEN 1 
+            WHEN JSON_EXTRACT(flashcard, '$.fsrs.state') = ${State.Review} THEN 1 
             ELSE 0 END) as masteredCount`)
         ])
         .first()
@@ -219,12 +232,12 @@ export class FlashcardService {
           db.raw('COUNT(DISTINCT notes.id) as totalCount'),
           db.raw(
             `SUM(CASE 
-            WHEN notes.nextReviewAt <= ? THEN 1 
+            WHEN notes.nextReviewAt <= ? AND JSON_EXTRACT(notes.flashcard, '$.fsrs.state') != ${State.Review} THEN 1 
             ELSE 0 END) as dueCount`,
             [new Date()]
           ),
           db.raw(`SUM(CASE 
-            WHEN JSON_EXTRACT(notes.flashcard, '$.proficiency') = 'mastered' THEN 1 
+            WHEN JSON_EXTRACT(notes.flashcard, '$.fsrs.state') = ${State.Review} THEN 1 
             ELSE 0 END) as masteredCount`)
         ])
 

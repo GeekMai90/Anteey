@@ -47,8 +47,16 @@
       />
     </div>
     <div class="note-timestamp">
-      <div v-if="note.isFlashcard" class="flashcard-indicator">
-        <StorageCardOne theme="outline" size="14" fill="var(--color-primary)" :strokeWidth="3" />
+      <div
+        v-if="note.isFlashcard"
+        v-tooltip.top="{
+          content: flashcardTooltip,
+          delay: { show: 1000 },
+          html: true
+        }"
+        class="flashcard-indicator"
+      >
+        <StorageCardOne theme="outline" size="14" :fill="flashcardColor" :strokeWidth="3" />
       </div>
       {{ formatDate(note.updatedAt) }}
     </div>
@@ -67,6 +75,7 @@ import PopupMenu from '@renderer/components/common/PopupMenu.vue'
 import { useNoteMenu } from '@renderer/composables/useNoteMenu'
 import type { MenuItem } from '@renderer/components/common/PopupMenu.vue'
 import { useMenu } from '@renderer/composables/useMenu'
+import { State } from 'ts-fsrs/dist'
 
 const props = defineProps<{
   note: Note
@@ -163,6 +172,44 @@ const cardTypeClass = computed(() => {
       return 'hoplinkcard'
     default:
       return ''
+  }
+})
+
+// 计算闪卡状态颜色
+const flashcardColor = computed(() => {
+  const state = props.note.flashcard?.fsrs?.state as State | undefined
+  if (!state) return 'var(--color-text-secondary)'
+
+  switch (state as State) {
+    case State.New:
+      return 'var(--color-fsrs-new)'
+    case State.Learning:
+      return 'var(--color-fsrs-learning)'
+    case State.Review:
+      return 'var(--color-fsrs-review)'
+    case State.Relearning:
+      return 'var(--color-fsrs-relearning)'
+    default:
+      return 'var(--color-text-secondary)'
+  }
+})
+
+// 计算闪卡图标提示文本
+const flashcardTooltip = computed(() => {
+  const state = props.note.flashcard?.fsrs?.state as State | undefined
+  if (!state) return '新卡片' // 刚创建的闪卡，还未开始学习
+
+  switch (state as State) {
+    case State.New: // 新创建，未学习
+      return '新卡片'
+    case State.Learning: // 首次学习中
+      return '学习中'
+    case State.Review: // 复习阶段
+      return '复习中'
+    case State.Relearning: // 遗忘后重新学习
+      return '重新学习'
+    default:
+      return '记忆卡'
   }
 })
 </script>

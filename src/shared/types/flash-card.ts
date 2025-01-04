@@ -1,35 +1,29 @@
 // src/renderer/src/types/flashcard.ts
 
+import type { Card as FSRSCard, StateType as FSRSStateType } from 'ts-fsrs'
+import { State } from 'ts-fsrs'
+
 // 复习反馈的类型定义
 export type ReviewFeedback =
-  | 'skip' // 跳过
-  | 'forgot' // 完全不会
-  | 'partially_recalled' // 部分记住
-  | 'recalled_effort' // 费力记住
-  | 'easily_recalled' // 轻松记住
+  | 'skip' // Manual
+  | 'forgot' // Again
+  | 'partially_recalled' // Hard
+  | 'recalled_effort' // Good
+  | 'easily_recalled' // Easy
 
-// 熟练度的类型定义
-export type ProficiencyLevel =
-  | 'new' // 新卡片
-  | 'learning' // 学习中
-  | 'familiar' // 熟悉
-  | 'mastered' // 已掌握
-
-// SM2 算法数据
-export interface SM2Data {
-  repetitions: number // 连续正确的次数
-  easiness: number // 难度因子
-  interval: number // 间隔天数
-}
+// 熟练度的类型定义（直接使用 FSRS 的状态）
+export type ProficiencyLevel = FSRSStateType // 'New' | 'Learning' | 'Review' | 'Relearning'
 
 // 闪卡数据
 export interface FlashcardData {
-  lastReviewedAt?: Date // 上次复习时间
-  nextReviewAt?: Date // 下次复习时间
-  reviewCount?: number // 复习次数
-  lastFeedback?: ReviewFeedback // 上次复习的反馈结果
-  proficiency?: ProficiencyLevel // 当前熟练度
-  sm2?: SM2Data // SM2 算法数据
+  lastReviewedAt?: Date
+  nextReviewAt?: Date
+  reviewCount?: number
+  lastFeedback?: ReviewFeedback
+  proficiency?: ProficiencyLevel
+  fsrs?: FSRSCard & {
+    state: State // 确保这里是 State 枚举类型
+  }
 }
 
 // 闪卡统计信息

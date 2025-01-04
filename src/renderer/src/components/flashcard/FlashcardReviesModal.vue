@@ -57,14 +57,14 @@
       <div v-if="!isCompleted" class="card-container">
         <div class="card" :class="{ 'is-flipped': isFlipped }">
           <!-- 正面：问题 -->
-          <div class="card-front">
+          <div class="card-front" :class="{ hide: isFlipped }">
             <div class="content-box">
               <div class="note-address">{{ currentCard?.address || '无编码' }}</div>
               <h2 class="card-title">{{ currentCard?.metadata?.title }}</h2>
             </div>
           </div>
           <!-- 背面：答案 -->
-          <div class="card-back">
+          <div class="card-back" :class="{ show: isFlipped }">
             <div class="content-box">
               <TipTapEditor
                 :content="currentCard?.content"
@@ -103,8 +103,17 @@
             :class="feedback.class"
             @click="handleFeedback(feedback.value)"
           >
-            <component :is="feedback.icon" theme="outline" size="16" :strokeWidth="3" />
-            {{ feedback.label }}
+            <div class="btn-content">
+              <div class="btn-main">
+                <div class="icon">
+                  <component :is="feedback.icon" theme="outline" size="16" :strokeWidth="3" />
+                </div>
+                <span class="label">{{ feedback.label }}</span>
+              </div>
+              <div class="next-review-time">
+                {{ formatInterval(getExpectedDueTime(feedback.value)) }}
+              </div>
+            </div>
           </button>
         </div>
       </div>
@@ -150,6 +159,9 @@ import { useMenu } from '@renderer/composables/useMenu'
 import { useNoteMenu } from '@renderer/composables/useNoteMenu'
 import type { MenuItem } from '@renderer/components/common/PopupMenu.vue'
 import confetti from 'canvas-confetti'
+import { formatDistanceToNow } from 'date-fns'
+import { zhCN } from 'date-fns/locale'
+import { fsrs, Rating, type Grade } from 'ts-fsrs'
 
 const props = defineProps<{
   modelValue: boolean
@@ -191,28 +203,28 @@ const feedbackOptions = [
     shortcut: 'H'
   },
   {
-    label: '需要重学',
+    label: '完全不会',
     value: 'forgot' as ReviewFeedback,
     class: 'forgot',
     icon: CloseOne,
     shortcut: 'J'
   },
   {
-    label: '模糊印象',
+    label: '有点困难',
     value: 'partially_recalled' as ReviewFeedback,
     class: 'partial',
     icon: ThinkingProblem,
     shortcut: 'K'
   },
   {
-    label: '想起来了',
+    label: '记住了',
     value: 'recalled_effort' as ReviewFeedback,
     class: 'recalled',
     icon: CheckOne,
     shortcut: 'L'
   },
   {
-    label: '非常熟悉',
+    label: '很容易',
     value: 'easily_recalled' as ReviewFeedback,
     class: 'mastered',
     icon: GrinningFaceWithSquintingEyes,
@@ -350,6 +362,40 @@ onMounted(() => {
 onUnmounted(() => {
   window.removeEventListener('keydown', handleKeydown)
 })
+
+const f = fsrs()
+
+// 计算预期复习时间
+const getExpectedDueTime = (feedback: ReviewFeedback) => {
+  if (!currentCard.value?.flashcard?.fsrs) return null
+
+  const scheduling = f.repeat(currentCard.value.flashcard.fsrs, new Date())
+  const rating = feedbackToRating(feedback)
+  return scheduling[rating].card.due
+}
+
+// 格式化时间间隔
+const formatInterval = (date: Date | null) => {
+  if (!date) return ''
+  return formatDistanceToNow(date, { addSuffix: true, locale: zhCN })
+}
+
+// 反馈到评分的映射
+const feedbackToRating = (feedback: ReviewFeedback): Grade => {
+  switch (feedback) {
+    case 'forgot':
+      return Rating.Again
+    case 'partially_recalled':
+      return Rating.Hard
+    case 'recalled_effort':
+      return Rating.Good
+    case 'easily_recalled':
+      return Rating.Easy
+    case 'skip':
+    default:
+      return Rating.Good
+  }
+}
 </script>
 
 <style lang="scss" scoped>
@@ -551,29 +597,33 @@ onUnmounted(() => {
 
 .card-container {
   flex: 1;
-  perspective: 1000px;
+  position: relative;
 
   .card {
     position: relative;
     width: 100%;
     height: 100%;
-    transform-style: preserve-3d;
-    transition: transform 0.6s;
-
-    &.is-flipped {
-      transform: rotateY(180deg) scale(1.02);
-    }
 
     .card-front,
     .card-back {
       position: absolute;
       width: 100%;
       height: 100%;
-      backface-visibility: hidden;
+      transition: opacity 0.3s ease;
+    }
+
+    .card-front {
+      opacity: 1;
+      &.hide {
+        opacity: 0;
+      }
     }
 
     .card-back {
-      transform: rotateY(180deg);
+      opacity: 0;
+      &.show {
+        opacity: 1;
+      }
     }
 
     .content-box {
@@ -645,41 +695,58 @@ onUnmounted(() => {
 
     .feedback-btn {
       min-width: 120px;
-      height: 40px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      padding: 0 20px 0 14px;
+      height: 64px; // 增加按钮高度
+      padding: 8px 20px;
       border: none;
       border-radius: 8px;
       font-size: 14px;
       font-weight: 500;
       cursor: pointer;
-      transition: all 0.2s ease;
-      // 添加玻璃拟态效果
-      backdrop-filter: blur(8px);
-      // 优化悬浮动画
       transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      backdrop-filter: blur(8px);
 
-      .i-icon {
-        width: 24px;
-        height: 24px;
+      .btn-content {
+        height: 100%;
         display: flex;
+        flex-direction: column;
         align-items: center;
         justify-content: center;
+        gap: 4px;
 
-        :deep(.i-icon) {
+        .btn-main {
           display: flex;
           align-items: center;
-          justify-content: center;
-          width: 100%;
-          height: 100%;
+          gap: 2px;
+
+          .icon {
+            background: none;
+            border: none;
+            cursor: pointer;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+
+            :deep(.i-icon) {
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              width: 100%;
+              height: 100%;
+            }
+
+            :deep(svg) {
+              width: 16px;
+              height: 16px;
+            }
+          }
         }
 
-        :deep(svg) {
-          width: 18px;
-          height: 18px;
+        .next-review-time {
+          font-size: 12px;
+          opacity: 0.8;
         }
       }
 

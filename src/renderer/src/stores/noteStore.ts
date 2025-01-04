@@ -130,7 +130,7 @@ export const useNoteStore = defineStore(
     // 为笔记添加标签
     const addTagToNote = async (noteId: string, tagId: string) => {
       try {
-        await window.electronAPI.tag.updateNoteTag({
+        await window.electronAPI.note.updateNoteTag({
           noteId,
           tagId, // 使用 tagId 替代 tagName
           action: 'add'
@@ -148,7 +148,7 @@ export const useNoteStore = defineStore(
     // 从笔记中移除标签
     const removeTagFromNote = async (noteId: string, tagId: string) => {
       try {
-        await window.electronAPI.tag.updateNoteTag({
+        await window.electronAPI.note.updateNoteTag({
           noteId,
           tagId, // 使用 tagId 替代 tagName
           action: 'remove'

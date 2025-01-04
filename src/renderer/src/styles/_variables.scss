@@ -266,6 +266,12 @@ $dark-mode-text: $gray-100;
   --color-text-secondary-rgb: 148, 148, 148;
 
   --color-obsidian: #483699; // Obsidian 的主题色
+
+  // 闪卡状态颜色
+  --color-fsrs-new: #666; // 新卡片：灰色
+  --color-fsrs-learning: #ff9f1c; // 学习中：黄色
+  --color-fsrs-review: #69b5ff; // 复习中：紫色
+  --color-fsrs-relearning: #00c8a8; // 重新学习：蓝色
 }
 
 .theme-dark {
@@ -403,4 +409,10 @@ $dark-mode-text: $gray-100;
   --color-text-secondary-rgb: 160, 160, 160;
 
   --color-obsidian: #9088e2; // 暗色主题下的 Obsidian 颜色
+
+  // 闪卡状态颜色
+  --color-fsrs-new: #a0a0a0; // 新卡片：灰色
+  --color-fsrs-learning: #ff9f1c; // 学习中：黄色
+  --color-fsrs-review: #69b5ff; // 复习中：紫色
+  --color-fsrs-relearning: #00c8a8; // 重新学习：蓝色
 }

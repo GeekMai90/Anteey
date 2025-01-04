@@ -16,6 +16,10 @@ AntiThink 是一个基于卢曼卡片盒笔记法理念的现代化桌面笔记�
 - Electron
 - SQLite (BetterSQLite3)
 
+### 闪卡算法
+
+- ts-fsrs (Free Spaced Repetition Scheduler)
+
 ## 项目特性
 
 - 📝 卡片式笔记管理

@@ -140,6 +140,12 @@ export interface ElectronAPI {
     // 添加根据地址获取笔记
     getNoteByAddress: (address: string) => Promise<Note | null>
     updateNoteContent: (id: string, content: any) => Promise<Note>
+    // 更新笔记标签
+    updateNoteTag: (params: {
+      noteId: string
+      tagId: string // 改用 tagId 替代 tagName
+      action: 'add' | 'remove'
+    }) => Promise<void> // 不再返回整个笔记对象
   }
   whiteboard: {
     createWhiteboard: (input: CreateWhiteboardInput) => Promise<Whiteboard>
@@ -252,12 +258,7 @@ export interface ElectronAPI {
     updateTagPinned: (id: string, pinned: boolean, pinOrder?: number) => Promise<Tag>
     // 更新标签置顶顺序
     updateTagPinOrder: (id: string, pinOrder: number) => Promise<Tag>
-    // 更新笔记标签
-    updateNoteTag: (params: {
-      noteId: string
-      tagId: string // 改用 tagId 替代 tagName
-      action: 'add' | 'remove'
-    }) => Promise<void> // 不再返回整个笔记对象
+
     // 获取笔记的标签
     getNoteTags: (noteId: string) => Promise<Tag[]>
   }
