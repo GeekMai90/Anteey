@@ -33,7 +33,7 @@ export const useKnowledgeTreeStore = defineStore('knowledgeTree', () => {
   // ���层节点
   const fetchTopLevelNodes = async () => {
     try {
-      nodes.value = await window.electronAPI.getTopLevelNodes()
+      nodes.value = await window.electronAPI.knowledgeTree.getTopLevelNodes()
       console.log('获取到的顶层节点:', nodes.value)
     } catch (error) {
       console.error('获取顶层节点失败:', error)
@@ -44,7 +44,7 @@ export const useKnowledgeTreeStore = defineStore('knowledgeTree', () => {
   // 获取子节点
   const fetchChildNodes = async (parentAddress: string) => {
     try {
-      const childNodes = await window.electronAPI.getChildNodes(parentAddress)
+      const childNodes = await window.electronAPI.knowledgeTree.getChildNodes(parentAddress)
       // 找到父节点并添加子节点
       const updateNodeChildren = (node: KnowledgeTreeNode) => {
         if (node.address === parentAddress) {
@@ -100,7 +100,7 @@ export const useKnowledgeTreeStore = defineStore('knowledgeTree', () => {
         console.log('正在展开节点')
         // 展开节点
         expandedNodes.value.add(node.id)
-        const childNodes = await window.electronAPI.getChildNodes(node.address)
+        const childNodes = await window.electronAPI.knowledgeTree.getChildNodes(node.address)
         console.log('获取到的子节点:', childNodes)
 
         updateNodeInTree(nodes.value, node.address, (targetNode) => {
@@ -118,7 +118,7 @@ export const useKnowledgeTreeStore = defineStore('knowledgeTree', () => {
   // 聚焦节点
   const focusNode = async (address: string) => {
     try {
-      const path = await window.electronAPI.getNodePath(address)
+      const path = await window.electronAPI.knowledgeTree.getNodePath(address)
       parentPath.value = path
       focusedNode.value = path[path.length - 1]
       viewState.value.isInFocusMode = true
@@ -197,7 +197,7 @@ export const useKnowledgeTreeStore = defineStore('knowledgeTree', () => {
       console.log('开始聚焦节点:', node)
 
       // 获取子节点
-      const childNodes = await window.electronAPI.getChildNodes(node.address)
+      const childNodes = await window.electronAPI.knowledgeTree.getChildNodes(node.address)
       console.log('获取到的子节点:', childNodes)
 
       // 创建聚焦的树节点，确保 id 属性存在
@@ -229,7 +229,7 @@ export const useKnowledgeTreeStore = defineStore('knowledgeTree', () => {
       focusHistory.value.currentIndex = focusHistory.value.nodes.length - 1
 
       // 获取并更新父节点路径
-      const path = await window.electronAPI.getNodePath(node.address)
+      const path = await window.electronAPI.knowledgeTree.getNodePath(node.address)
       if (path && path.length > 0) {
         // 确保路径中的每个节点都有正确的 id
         parentPath.value = path.map((pathNode) => ({

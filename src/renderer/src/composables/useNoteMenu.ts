@@ -15,13 +15,13 @@ import {
   AdjacentItem,
   StorageCardOne
 } from '@icon-park/vue-next'
-import { useWhiteboardStore } from '../stores/whiteboardStores'
-import { useUIStore } from '../stores/useUIStore'
+import { useWhiteboardStore } from '../stores/whiteboardStore'
+import { useUIStore } from '../stores/UIStore'
 import TurndownService from 'turndown'
 import { format } from 'date-fns'
 import JSZip from 'jszip'
 import { ref, computed } from 'vue'
-import { useNoteStore } from '../stores/noteStores'
+import { useNoteStore } from '../stores/noteStore'
 import { useRoute, useRouter } from 'vue-router'
 import type { Note } from '@shared/types'
 import { message } from '../utils/message'

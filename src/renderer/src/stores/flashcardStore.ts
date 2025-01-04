@@ -15,7 +15,7 @@ export const useFlashcardStore = defineStore('flashcard', () => {
   // 获取待复习的闪卡
   const fetchDueFlashcards = async (tags?: string[]) => {
     try {
-      dueFlashcards.value = await window.electronAPI.getDueFlashcards(tags)
+      dueFlashcards.value = await window.electronAPI.flashcard.getDueFlashcards(tags)
       return dueFlashcards.value
     } catch (error) {
       console.error('获取待复习闪卡失败:', error)
@@ -26,7 +26,7 @@ export const useFlashcardStore = defineStore('flashcard', () => {
   // 获取闪卡统计信息
   const fetchFlashcardStats = async () => {
     try {
-      stats.value = await window.electronAPI.getFlashcardStats()
+      stats.value = await window.electronAPI.flashcard.getFlashcardStats()
       return stats.value
     } catch (error) {
       console.error('获取闪卡统计信息失败:', error)
@@ -37,7 +37,7 @@ export const useFlashcardStore = defineStore('flashcard', () => {
   // 将笔记转换为闪卡
   const convertToFlashcard = async (noteId: string) => {
     try {
-      await window.electronAPI.convertToFlashcard(noteId)
+      await window.electronAPI.flashcard.convertToFlashcard(noteId)
       await fetchFlashcardStats()
     } catch (error) {
       console.error('转换闪卡失败:', error)
@@ -48,7 +48,7 @@ export const useFlashcardStore = defineStore('flashcard', () => {
   // 取消闪卡标记
   const removeFlashcard = async (noteId: string) => {
     try {
-      await window.electronAPI.removeFlashcard(noteId)
+      await window.electronAPI.flashcard.removeFlashcard(noteId)
       await fetchFlashcardStats()
     } catch (error) {
       console.error('取消闪卡标记失败:', error)
@@ -59,7 +59,7 @@ export const useFlashcardStore = defineStore('flashcard', () => {
   // 更新闪卡复习状态
   const updateFlashcardStatus = async (noteId: string, feedback: ReviewFeedback) => {
     try {
-      await window.electronAPI.updateFlashcardStatus({ noteId, feedback })
+      await window.electronAPI.flashcard.updateFlashcardStatus({ noteId, feedback })
       // 更新状态
       await fetchDueFlashcards()
       await fetchFlashcardStats()
@@ -82,7 +82,7 @@ export const useFlashcardStore = defineStore('flashcard', () => {
   // 获取闪卡卡组数据
   const fetchFlashcardDecks = async () => {
     try {
-      decks.value = await window.electronAPI.getFlashcardDecks()
+      decks.value = await window.electronAPI.flashcard.getFlashcardDecks()
       return decks.value
     } catch (error) {
       console.error('获取闪卡卡组数据失败:', error)
@@ -93,7 +93,7 @@ export const useFlashcardStore = defineStore('flashcard', () => {
   // 开始复习会话
   const startReviewSession = async (tags?: string[]) => {
     try {
-      const cards = await window.electronAPI.getDueFlashcards(tags)
+      const cards = await window.electronAPI.flashcard.getDueFlashcards(tags)
       dueFlashcards.value = cards
       isReviewModalOpen.value = true
     } catch (error) {

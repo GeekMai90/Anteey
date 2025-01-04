@@ -208,7 +208,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch, nextTick, onActivated, reactive } from 'vue'
-import { useNoteStore } from '@renderer/stores/noteStores'
+import { useNoteStore } from '@renderer/stores/noteStore'
 import AppToolbar from '@renderer/components/layout/AppToolbar.vue'
 import { SortTwo, Box, EditTwo, Delete, Close, Search } from '@icon-park/vue-next'
 import type { CardBox, Note, Tag } from '@shared/types'
@@ -261,7 +261,7 @@ const highlightedNoteId = ref<string | null>(null)
 const loadAllNotes = async () => {
   try {
     isLoading.value = true
-    notes.value = await window.electronAPI.getAllNotes(false)
+    notes.value = await window.electronAPI.note.getAllNotes(false)
     await nextTick()
 
     if (targetNoteId.value) {

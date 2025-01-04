@@ -17,7 +17,7 @@
 
 <script setup lang="ts">
 import { Star } from '@icon-park/vue-next'
-import { useNoteStore } from '@renderer/stores/noteStores'
+import { useNoteStore } from '@renderer/stores/noteStore'
 
 const props = defineProps<{
   show: boolean

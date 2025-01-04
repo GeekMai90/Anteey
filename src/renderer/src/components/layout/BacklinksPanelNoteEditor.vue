@@ -79,7 +79,7 @@
 </template>
 <script setup lang="ts">
 import { ref, onMounted, computed, nextTick, onBeforeUnmount, watch } from 'vue'
-import { useNoteStore } from '@renderer/stores/noteStores'
+import { useNoteStore } from '@renderer/stores/noteStore'
 import { formatDate } from '@renderer/utils/noteHelpers'
 import TipTapEditor from '@renderer/components/tiptap/TipTapEditor.vue'
 import CardTypeDropdownMenu from '@renderer/components/note/CardTypeDropdownMenu.vue'
@@ -88,7 +88,7 @@ import { useMenu } from '@renderer/composables/useMenu'
 import BacklinksPanel from '@renderer/components/note/BacklinksPanel.vue'
 import { Afferent } from '@icon-park/vue-next'
 import { useRouter } from 'vue-router/dist/vue-router'
-import { useUIStore } from '@renderer/stores/useUIStore'
+import { useUIStore } from '@renderer/stores/UIStore'
 import { debounce } from 'lodash-es'
 import { CardType, Note } from '@shared/types'
 import { EditorState } from '@tiptap/pm/state/dist'
@@ -189,7 +189,7 @@ const updateAddress = debounce(async (address: string) => {
     console.error('更新地址失败:', error)
     message.error('更新地址失败')
     // 回滚到最后一个有效的地址
-    localAddress.value = currentNote.value.address
+    localAddress.value = currentNote.value?.address || ''
   }
 }, 300)
 

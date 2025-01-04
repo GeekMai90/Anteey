@@ -34,7 +34,7 @@ export const useFilterStore = defineStore('filter', () => {
     isLoading.value = true
     error.value = null
     try {
-      const filters = await window.electronAPI.getAllCustomFilters()
+      const filters = await window.electronAPI.customFilter.getAllCustomFilters()
       customFilters.value = filters.sort((a, b) => {
         // 先按置顶状态排序
         if (a.isPinned && !b.isPinned) return -1
@@ -76,7 +76,7 @@ export const useFilterStore = defineStore('filter', () => {
       }
 
       console.log('创建筛选规则，处理后的输入:', sanitizedInput)
-      const result = await window.electronAPI.createCustomFilter(sanitizedInput)
+      const result = await window.electronAPI.customFilter.createCustomFilter(sanitizedInput)
 
       const filterToAdd: CustomFilter = {
         ...result,
@@ -137,7 +137,7 @@ export const useFilterStore = defineStore('filter', () => {
 
       console.log('更新筛选规则，处理后的输入:', sanitizedInput)
 
-      const updatedFilter = await window.electronAPI.updateCustomFilter(id, {
+      const updatedFilter = await window.electronAPI.customFilter.updateCustomFilter(id, {
         id,
         ...sanitizedInput
       })
@@ -180,7 +180,7 @@ export const useFilterStore = defineStore('filter', () => {
     isLoading.value = true
     error.value = null
     try {
-      await window.electronAPI.deleteCustomFilter(id)
+      await window.electronAPI.customFilter.deleteCustomFilter(id)
       customFilters.value = customFilters.value.filter((f) => f.id !== id)
       if (activeFilter.value?.id === id) {
         activeFilter.value = null
@@ -208,7 +208,11 @@ export const useFilterStore = defineStore('filter', () => {
       : undefined
 
     try {
-      const updatedFilter = await window.electronAPI.updateFilterPinned(id, isPinned, pinnedOrder)
+      const updatedFilter = await window.electronAPI.customFilter.updateFilterPinned(
+        id,
+        isPinned,
+        pinnedOrder
+      )
       const index = customFilters.value.findIndex((f) => f.id === id)
       if (index !== -1) {
         customFilters.value[index] = updatedFilter
@@ -228,7 +232,7 @@ export const useFilterStore = defineStore('filter', () => {
   // 切换筛选规则的收藏状态
   const toggleFilterStar = async (id: string) => {
     try {
-      const updatedFilter = await window.electronAPI.toggleFilterStar(id)
+      const updatedFilter = await window.electronAPI.customFilter.toggleFilterStar(id)
       const index = customFilters.value.findIndex((f) => f.id === id)
       if (index !== -1) {
         customFilters.value[index] = updatedFilter

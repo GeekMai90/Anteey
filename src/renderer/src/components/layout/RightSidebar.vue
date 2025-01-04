@@ -41,7 +41,7 @@ import { useRoute } from 'vue-router'
 import { Split, LinkTwo } from '@icon-park/vue-next'
 import MultiNotes from '@renderer/components/layout/MultiNotes.vue'
 import BacklinksPanelNoteEditor from '@renderer/components/layout/BacklinksPanelNoteEditor.vue'
-import { useUIStore } from '@renderer/stores/useUIStore'
+import { useUIStore } from '@renderer/stores/UIStore'
 
 const props = defineProps<{
   initialWidth?: number

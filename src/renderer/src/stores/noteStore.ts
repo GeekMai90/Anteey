@@ -7,7 +7,7 @@ import type { Whiteboard, Connection } from '@shared/types'
 import type { Editor } from '@tiptap/vue-3'
 import type { GetPaginatedNotesParams } from '@shared/types'
 import { useEventBus } from '@vueuse/core'
-import { useUIStore } from './useUIStore'
+import { useUIStore } from './UIStore'
 import { useTagStore } from './tagStore'
 import { message } from '../utils/message'
 
@@ -118,17 +118,6 @@ export const useNoteStore = defineStore(
         .slice(0, count)
     }
 
-    const getRecentEditedNotes = async () => {
-      try {
-        const notes = await window.electronAPI.getRecentEditedNotes()
-        console.log('noteStores.ts→ 获取最近编辑的笔记:', notes)
-        return notes
-      } catch (error) {
-        console.error('获取最近编辑的笔记失败:', error)
-        throw error
-      }
-    }
-
     // ==================== 右侧边栏反向链接笔记 ====================
     // 打开反向链接预览
     const openBacklinkPreview = async (noteId: string) => {
@@ -141,7 +130,7 @@ export const useNoteStore = defineStore(
     // 为笔记添加标签
     const addTagToNote = async (noteId: string, tagId: string) => {
       try {
-        await window.electronAPI.updateNoteTag({
+        await window.electronAPI.tag.updateNoteTag({
           noteId,
           tagId, // 使用 tagId 替代 tagName
           action: 'add'
@@ -159,7 +148,7 @@ export const useNoteStore = defineStore(
     // 从笔记中移除标签
     const removeTagFromNote = async (noteId: string, tagId: string) => {
       try {
-        await window.electronAPI.updateNoteTag({
+        await window.electronAPI.tag.updateNoteTag({
           noteId,
           tagId, // 使用 tagId 替代 tagName
           action: 'remove'
@@ -220,7 +209,7 @@ export const useNoteStore = defineStore(
     // 获取笔记
     const fetchNote = async (noteId: string) => {
       try {
-        return await window.electronAPI.getNote(noteId)
+        return await window.electronAPI.note.getNote(noteId)
       } catch (error) {
         console.error('获取笔记失败:', error)
         throw error
@@ -260,7 +249,7 @@ export const useNoteStore = defineStore(
         currentNoteSaveStatus.value = 'saving'
 
         // 2. 直接保存到数据库
-        const updatedNote = await window.electronAPI.updateNoteContent(noteId, content)
+        const updatedNote = await window.electronAPI.note.updateNoteContent(noteId, content)
 
         // 3. 更新收藏笔记列表中的笔记内容
         const starredIndex = starredNotes.value.findIndex((note) => note.id === noteId)
@@ -310,7 +299,7 @@ export const useNoteStore = defineStore(
       try {
         console.log('noteStores.ts→ 更新笔记地址:', { noteId, address })
         // 1. 直接更新数据库
-        const updatedNote = await window.electronAPI.updateNoteAddress(noteId, address)
+        const updatedNote = await window.electronAPI.note.updateNoteAddress(noteId, address)
 
         // 2. 更新收藏笔记列表中的笔记地址
         const starredIndex = starredNotes.value.findIndex((note) => note.id === noteId)
@@ -337,7 +326,7 @@ export const useNoteStore = defineStore(
     // 更新笔记类型
     // const updateNoteCardType = async (noteId: string, cardType: CardType) => {
     //   try {
-    //     // 1. 更���保存状态
+    //     // 1. 更新保存状态
     //     currentNoteSaveStatus.value = 'saving'
 
     //     // 2. 直接更新数据库
@@ -360,11 +349,11 @@ export const useNoteStore = defineStore(
     // }
     const updateNoteCardType = async (noteId: string, cardType: CardType) => {
       try {
-        // 1. 更���保存状态
+        // 1. 更新保存状态
         currentNoteSaveStatus.value = 'saving'
 
         // 2. 直接更新数据库
-        const updatedNote = await window.electronAPI.updateNoteCardType(noteId, cardType)
+        const updatedNote = await window.electronAPI.note.updateNoteCardType(noteId, cardType)
 
         // 3. 发送更新事件通知
         const noteUpdatedBus = useEventBus<Note>('note-updated')
@@ -389,7 +378,7 @@ export const useNoteStore = defineStore(
         currentNoteSaveStatus.value = 'saving'
 
         // 2. 直接更新数据库
-        const updatedNote = await window.electronAPI.updateNoteCardBox(noteId, cardBoxId)
+        const updatedNote = await window.electronAPI.note.updateNoteCardBox(noteId, cardBoxId)
 
         // 3. 发送更新事件通知
         const noteUpdatedBus = useEventBus<Note>('note-updated')
@@ -429,12 +418,12 @@ export const useNoteStore = defineStore(
 
       try {
         // 1. 创建引用关系
-        await window.electronAPI.createNoteReference(referenceData)
+        await window.electronAPI.note.createNoteReference(referenceData)
 
         // 2. 获取更新后的笔记数据
         const [updatedSourceNote, updatedTargetNote] = await Promise.all([
-          window.electronAPI.getNote(sourceNoteId),
-          window.electronAPI.getNote(targetNoteId)
+          window.electronAPI.note.getNote(sourceNoteId),
+          window.electronAPI.note.getNote(targetNoteId)
         ])
 
         updateSaveStatus('saved')
@@ -454,12 +443,12 @@ export const useNoteStore = defineStore(
 
       try {
         // 1. 删除引用关系
-        await window.electronAPI.deleteNoteReference(params)
+        await window.electronAPI.note.deleteNoteReference(params)
 
         // 2. 获取更新后的笔记数据
         const [updatedSourceNote, updatedTargetNote] = await Promise.all([
-          window.electronAPI.getNote(sourceNoteId),
-          window.electronAPI.getNote(targetNoteId)
+          window.electronAPI.note.getNote(sourceNoteId),
+          window.electronAPI.note.getNote(targetNoteId)
         ])
 
         updateSaveStatus('saved')
@@ -544,20 +533,31 @@ export const useNoteStore = defineStore(
     }
 
     const initializeStore = async () => {
-      currentNoteSaveStatus.value = 'saved' // 确保初始状态为 saved
-      await preloadFirstPage() // 预加载第一页笔记
-      await initializeCardBoxes() // 初始化卡片盒
-      await fetchStarredNotes() // 获取星标收藏的笔记
+      try {
+        currentNoteSaveStatus.value = 'saved' // 确保初始状态为 saved
 
-      setTimeout(() => {
+        // 先初始化卡片盒
+        await initializeCardBoxes()
+
+        // 再预加载第一页笔记
+        await preloadFirstPage()
+
+        // 获取星标收藏的笔记
+        await fetchStarredNotes()
+
+        setTimeout(() => {
+          isLoading.value = false
+        }, 2000)
+      } catch (error) {
+        console.error('初始化 store 失败:', error)
         isLoading.value = false
-      }, 2000)
+      }
     }
 
     const searchNotesList = async (query: string) => {
       console.log('noteStores.ts→ 开始搜索笔记列表', query)
       try {
-        const notes = await window.electronAPI.searchNotesList(query)
+        const notes = await window.electronAPI.note.searchNotesList(query)
         console.log('noteStores.ts→ 搜索笔记列表成功', notes)
         return notes
       } catch (error) {
@@ -579,7 +579,7 @@ export const useNoteStore = defineStore(
         }
 
         const { notes: fetchedNotes, totalCount } =
-          await window.electronAPI.getPaginatedNotesByCardbox(sanitizedParams)
+          await window.electronAPI.note.getPaginatedNotesByCardbox(sanitizedParams)
 
         return { notes: fetchedNotes, totalCount }
       } catch (error) {
@@ -591,7 +591,7 @@ export const useNoteStore = defineStore(
     const fetchNotesByOneDate = async (date: string) => {
       console.log('noteStores.ts→ 开始获取某一天的笔记', date)
       try {
-        const fetchedNotes = await window.electronAPI.getNotesByOneDate(date)
+        const fetchedNotes = await window.electronAPI.note.getNotesByOneDate(date)
         console.log('noteStores.ts→ 获取某一天的笔记成功', fetchedNotes)
         return fetchedNotes
       } catch (error) {
@@ -602,7 +602,7 @@ export const useNoteStore = defineStore(
     // 获取都有哪些日期有笔记
     const fetchAllDatesWithNotes = async () => {
       try {
-        const dates = await window.electronAPI.getAllDatesWithNotes()
+        const dates = await window.electronAPI.note.getAllDatesWithNotes()
         return dates
       } catch (error) {
         console.error('noteStores.ts→ 获取都有哪些日期有笔记失败:', error)
@@ -628,7 +628,7 @@ export const useNoteStore = defineStore(
       try {
         const referenceDate =
           direction === 'older' ? oldestLoadedDate.value : newestLoadedDate.value
-        const { notes: fetchedNotes, totalCount } = await window.electronAPI.getNotesByDate(
+        const { notes: fetchedNotes, totalCount } = await window.electronAPI.note.getNotesByDate(
           direction,
           referenceDate,
           limit
@@ -705,13 +705,10 @@ export const useNoteStore = defineStore(
     }
     // 获取分页笔记
     const fetchPaginatedNotes = async (page: number, pageSize: number) => {
-      // if (isLoading.value) return null
-      // console.log('noteStores.ts→ 获取分页笔记', page, pageSize)
-
       isLoading.value = true
 
       try {
-        const { notes: fetchedNotes, totalCount } = await window.electronAPI.getPaginatedNotes(
+        const { notes: fetchedNotes, totalCount } = await window.electronAPI.note.getPaginatedNotes(
           page,
           pageSize
         )
@@ -736,7 +733,7 @@ export const useNoteStore = defineStore(
 
     const moveEmptyNotesToTrash = async () => {
       try {
-        await window.electronAPI.moveEmptyNotesToTrash()
+        await window.electronAPI.note.moveEmptyNotesToTrash()
         const emptyNotesMovedToTrashEventBus = useEventBus('empty-notes-moved-to-trash')
         emptyNotesMovedToTrashEventBus.emit()
       } catch (error) {
@@ -798,7 +795,7 @@ export const useNoteStore = defineStore(
     // 获取所有笔记
     const fetchAllNotes = async (includeDeleted: boolean = true) => {
       try {
-        const allNotes = await window.electronAPI.getAllNotes(includeDeleted)
+        const allNotes = await window.electronAPI.note.getAllNotes(includeDeleted)
         return allNotes
       } catch (error) {
         console.error('noteStores.ts→ 获取所有笔记失败:', error)
@@ -814,7 +811,7 @@ export const useNoteStore = defineStore(
     // 获取单个笔记
     const fetchNoteById = async (id: string): Promise<Note> => {
       try {
-        const note = await window.electronAPI.getNote(id)
+        const note = await window.electronAPI.note.getNote(id)
         if (!note) {
           throw new Error(`Note with id ${id} not found`)
         }
@@ -863,7 +860,7 @@ export const useNoteStore = defineStore(
       console.log('noteStores.ts→ 创建新笔记')
       const eventBus = useEventBus('note-created')
       try {
-        const newNote = await window.electronAPI.createNote()
+        const newNote = await window.electronAPI.note.createNote()
         notes.value.push(newNote)
         updateLocalNote(newNote.id, newNote)
         lastCreatedNote.value = newNote
@@ -887,7 +884,7 @@ export const useNoteStore = defineStore(
     const moveToTrash = async (id: string) => {
       console.log('noteStores.ts→ 移动到回收站:', id)
       try {
-        const result = await window.electronAPI.softDeleteNote(id)
+        const result = await window.electronAPI.note.softDeleteNote(id)
         if (result) {
           lastDeletedNote.value = result
           console.log('noteStores.ts→ 移动到回收站结果:', result)
@@ -915,7 +912,7 @@ export const useNoteStore = defineStore(
 
     const restoreFromTrash = async (id: string) => {
       try {
-        const result = await window.electronAPI.restoreNote(id)
+        const result = await window.electronAPI.note.restoreNote(id)
         const noteRestoredEventBus = useEventBus('note-restored')
         noteRestoredEventBus.emit()
         return result
@@ -927,7 +924,7 @@ export const useNoteStore = defineStore(
 
     const permanentlyDelete = async (id: string) => {
       try {
-        await window.electronAPI.permanentDeleteNote(id)
+        await window.electronAPI.note.permanentDeleteNote(id)
         // notes.value = notes.value.filter((note) => note.id !== id)
         // console.log(`noteStores.ts→ 永久删除笔记: ${id}`)
         if (currentNoteId.value === id) {
@@ -945,12 +942,11 @@ export const useNoteStore = defineStore(
 
     const fetchCardBoxes = async () => {
       try {
-        const fetchedCardBoxes = await window.electronAPI.getAllCardBoxes()
+        const fetchedCardBoxes = await window.electronAPI.note.getAllCardBoxes()
         cardBoxes.value = fetchedCardBoxes.map((box) => ({
           ...box,
           noteIds: box.noteIds || []
         }))
-        // console.log(`noteStores.ts→ 获取卡片盒`, cardBoxes.value)
       } catch (error) {
         console.error('noteStores.ts→ 获取卡片盒失败:', error)
         throw error
@@ -959,7 +955,7 @@ export const useNoteStore = defineStore(
 
     const createCardBox = async (name: string) => {
       try {
-        const newCardBox = await window.electronAPI.createCardBox(name)
+        const newCardBox = await window.electronAPI.note.createCardBox(name)
         console.log('noteStores.ts→ 创建卡片盒', newCardBox)
         cardBoxes.value.push({
           ...newCardBox,
@@ -975,7 +971,7 @@ export const useNoteStore = defineStore(
 
     const updateCardBox = async (id: string, name: string) => {
       try {
-        const updatedCardBox = await window.electronAPI.updateCardBox(id, name)
+        const updatedCardBox = await window.electronAPI.note.updateCardBox(id, name)
         if (updatedCardBox) {
           const index = cardBoxes.value.findIndex((box) => box.id === id)
           if (index !== -1) {
@@ -995,7 +991,7 @@ export const useNoteStore = defineStore(
 
     const deleteCardBox = async (id: string) => {
       try {
-        await window.electronAPI.deleteCardBox(id)
+        await window.electronAPI.note.deleteCardBox(id)
         cardBoxes.value = cardBoxes.value.filter((box) => box.id !== id)
         console.log(`noteStores.ts→ 删除卡片盒: ${id}`)
         await fetchCardBoxes()
@@ -1042,7 +1038,7 @@ export const useNoteStore = defineStore(
         const searchParams =
           typeof params === 'string' ? { mode: 'all' as const, term: params } : params
 
-        const results = await window.electronAPI.searchNotes(searchParams)
+        const results = await window.electronAPI.note.searchNotes(searchParams)
         return results
       } catch (error) {
         console.error('搜索笔记失败:', error)
@@ -1086,7 +1082,7 @@ export const useNoteStore = defineStore(
     // 添加星标收藏
     const addStarToNote = async (id: string) => {
       try {
-        const updatedNote = await window.electronAPI.addStarToNote(id)
+        const updatedNote = await window.electronAPI.note.addStarToNote(id)
         if (updatedNote) {
           starredNotes.value.push(updatedNote)
         } else {
@@ -1105,7 +1101,7 @@ export const useNoteStore = defineStore(
     // 移除星标收藏
     const removeStarFromNote = async (id: string) => {
       try {
-        const result = await window.electronAPI.removeStarFromNote(id)
+        const result = await window.electronAPI.note.removeStarFromNote(id)
 
         // 从 starredNotes 中移除取消收藏的笔记
         starredNotes.value = starredNotes.value.filter((note) => note.id !== id)
@@ -1135,7 +1131,7 @@ export const useNoteStore = defineStore(
     // 获取收藏的笔记
     const fetchStarredNotes = async () => {
       try {
-        const fetchedStarredNotes = await window.electronAPI.getStarredNotes()
+        const fetchedStarredNotes = await window.electronAPI.note.getStarredNotes()
         // console.log(`noteStores.ts→ 获取收藏的笔记`, fetchedStarredNotes)
         starredNotes.value = fetchedStarredNotes
         return fetchedStarredNotes
@@ -1180,7 +1176,7 @@ export const useNoteStore = defineStore(
           }
         })
         // 调用后端 API 更新顺序
-        const result = await window.electronAPI.updateStarredNotesOrder(orders)
+        const result = await window.electronAPI.note.updateStarredNotesOrder(orders)
         console.log('noteStores.ts→ 收到后端返回的结果:', result)
 
         if (!Array.isArray(result)) {
@@ -1220,7 +1216,7 @@ export const useNoteStore = defineStore(
     // 获取热力图数据
     const getHeatmapData = async () => {
       try {
-        return await window.electronAPI.getHeatmapData()
+        return await window.electronAPI.analytics.getHeatmapData()
       } catch (error) {
         console.error('noteStores.ts→ 获取热力图数据失败:', error)
         throw error
@@ -1230,7 +1226,7 @@ export const useNoteStore = defineStore(
     // 获取笔记总数量
     const getNoteCount = async () => {
       try {
-        return await window.electronAPI.getNoteCount()
+        return await window.electronAPI.analytics.getNoteCount()
       } catch (error) {
         console.error('noteStores.ts→ 获取笔记总数量失败:', error)
         throw error
@@ -1240,7 +1236,7 @@ export const useNoteStore = defineStore(
     // 获取昨日笔记数量
     const getLastDayNoteCount = async () => {
       try {
-        return await window.electronAPI.getLastDayNoteCount()
+        return await window.electronAPI.analytics.getLastDayNoteCount()
       } catch (error) {
         console.error('noteStores.ts→ 获取昨日笔记数量失败:', error)
         throw error
@@ -1250,7 +1246,7 @@ export const useNoteStore = defineStore(
     // 获取用户使用天数
     const getUserUsageDays = async () => {
       try {
-        return await window.electronAPI.getUserUsageDays()
+        return await window.electronAPI.analytics.getUserUsageDays()
       } catch (error) {
         console.error('noteStores.ts→ 获取用户使用天数失败:', error)
         throw error
@@ -1260,7 +1256,7 @@ export const useNoteStore = defineStore(
     // 获取随机笔记
     const getRandomNotes = async () => {
       try {
-        return await window.electronAPI.getRandomNotes()
+        return await window.electronAPI.note.getRandomNotes()
       } catch (error) {
         console.error('noteStores.ts→ 获取随机笔记失败:', error)
         throw error
@@ -1270,7 +1266,7 @@ export const useNoteStore = defineStore(
     // 获取所有已删除的笔记
     const getAllDeletedNotes = async () => {
       try {
-        return await window.electronAPI.getAllDeletedNotes()
+        return await window.electronAPI.note.getAllDeletedNotes()
       } catch (error) {
         console.error('noteStores.ts→ 获取所有已删除的笔记失败:', error)
         throw error
@@ -1425,8 +1421,7 @@ export const useNoteStore = defineStore(
       addTagToNote,
       removeTagFromNote,
       openTaggedNotes,
-      getRecentNotes,
-      getRecentEditedNotes
+      getRecentNotes
     }
   },
   {

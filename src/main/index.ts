@@ -23,7 +23,7 @@ import { initialize, enable } from '@electron/remote/main'
 import { setupIpcHandlers } from './ipc'
 import log from './logger'
 import { config } from 'dotenv'
-import { getUserSettings } from '../services/user/userSettings'
+import { getUserSettings } from '../services/user/userSettingsService'
 import { migrateLicenseTable } from '../db/migrations/licenseMigration'
 import { backupService } from '../services/backupService'
 

@@ -47,7 +47,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { Share } from '@icon-park/vue-next'
-import { useUserSettingsStore } from '@renderer/stores/useUserSettings'
+import { useUserSettingsStore } from '@renderer/stores/userSettingsStore'
 import ShareNoteCard from '@renderer/components/share/ShareNotedCard.vue'
 import { UpdateUserSettings } from '@shared/types'
 import { message } from '@renderer/utils/message'

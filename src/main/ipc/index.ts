@@ -6,7 +6,6 @@ import { setupImageHandlers } from './imageIpcHandlers'
 import { setupTagHandlers } from './tagIpcHandlers'
 import { setupFilterHandlers } from './filterIpcHandlers'
 import { setupLocalTreeHandlers } from './localTreeIpcHandlers'
-import { setupAppearanceHandlers } from './appearanceIpcHandlers'
 import { setupKnowledgeTreeHandlers } from './knowledgeTreeIpcHandlers'
 import { setupLicenseHandlers } from './licenseIpcHandlers'
 import { setupBackupIpcHandlers } from './backupIpcHandlers'
@@ -14,16 +13,16 @@ import { setupTimeBlockHandlers } from './timeBlockIpcHandlers'
 import { setupWebDAVHandlers } from './webdavIpcHandlers'
 import { setupFlashcardHandlers } from './flashcardIpcHandlers'
 import { setupNoteVersionHandlers } from './noteVersionIpcHandlers'
+import { setupAnalyticsHandlers } from './analyticsIpcHandlers'
+
 export function setupIpcHandlers(): void {
   setupNotesHandlers()
   setupWhiteboardHandlers()
   setupCardboxHandlers()
-  setupUserSettingsHandlers()
   setupImageHandlers()
   setupTagHandlers()
   setupFilterHandlers()
   setupLocalTreeHandlers()
-  setupAppearanceHandlers()
   setupKnowledgeTreeHandlers()
   setupLicenseHandlers()
   setupBackupIpcHandlers()
@@ -31,4 +30,6 @@ export function setupIpcHandlers(): void {
   setupWebDAVHandlers()
   setupFlashcardHandlers()
   setupNoteVersionHandlers()
+  setupAnalyticsHandlers()
+  setupUserSettingsHandlers()
 }

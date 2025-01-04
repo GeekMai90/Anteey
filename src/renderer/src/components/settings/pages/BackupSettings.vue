@@ -213,7 +213,7 @@ async function handleRestoreConfirm() {
 
 async function handleClearHistory() {
   try {
-    await window.electronAPI.clearBackupHistory()
+    await window.electronAPI.backup.clearBackupHistory()
     await backupStore.getHistory()
   } catch (error) {
     console.error('清空备份历史失败:', error)

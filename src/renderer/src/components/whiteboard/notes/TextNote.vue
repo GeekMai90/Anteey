@@ -12,7 +12,7 @@
 
 <script setup lang="ts">
 import { ref, watch, computed, nextTick } from 'vue'
-import { useWhiteboardStore } from '@renderer/stores/whiteboardStores'
+import { useWhiteboardStore } from '@renderer/stores/whiteboardStore'
 
 const props = defineProps<{
   id: string

@@ -156,7 +156,7 @@
 import { ref, onMounted, onUnmounted, watch, computed, markRaw } from 'vue'
 import { useRoute } from 'vue-router'
 import AppToolbar from '@renderer/components/layout/AppToolbar.vue'
-import { useWhiteboardStore } from '@renderer/stores/whiteboardStores'
+import { useWhiteboardStore } from '@renderer/stores/whiteboardStore'
 import { CreateWhiteboardNoteInput, WhiteboardNote, Connection, Whiteboard } from '@shared/types'
 import WhiteboardNoteComponent from '@renderer/components/whiteboard/WhiteboardNoteComponent.vue'
 import { Add, Aiming, FileText, Notes, PictureOne } from '@icon-park/vue-next'

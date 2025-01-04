@@ -1,6 +1,6 @@
 import { VueRenderer } from '@tiptap/vue-3'
 import tippy, { Instance as TippyInstance, Props, GetReferenceClientRect } from 'tippy.js'
-import { useNoteStore } from '../../stores/noteStores'
+import { useNoteStore } from '../../stores/noteStore'
 import MentionList from '@renderer/components/tiptap/MentionList.vue'
 
 import type { SuggestionProps } from '@tiptap/suggestion'

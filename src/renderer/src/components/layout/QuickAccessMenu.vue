@@ -79,7 +79,7 @@
 import { Notes, ListAlphabet, Bookshelf, Box, Filter } from '@icon-park/vue-next'
 import { computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { useNoteStore } from '@renderer/stores/noteStores'
+import { useNoteStore } from '@renderer/stores/noteStore'
 import { useFilterStore } from '@renderer/stores/filterStore'
 import { CustomFilter } from '@shared/types'
 

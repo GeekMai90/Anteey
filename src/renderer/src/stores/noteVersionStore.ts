@@ -21,7 +21,13 @@ export const useNoteVersionStore = defineStore('noteVersion', () => {
     createdAt: Date
   ) => {
     try {
-      await window.electronAPI.createNoteVersion({ noteId, content, address, cardType, createdAt })
+      await window.electronAPI.noteVersion.createNoteVersion({
+        noteId,
+        content,
+        address,
+        cardType,
+        createdAt
+      })
     } catch (error) {
       console.error('创建版本失败:', error)
       throw error
@@ -31,7 +37,7 @@ export const useNoteVersionStore = defineStore('noteVersion', () => {
   const fetchNoteVersions = async (noteId: string, limit = 10, offset = 0) => {
     try {
       currentNoteId.value = noteId
-      const fetchedVersions = await window.electronAPI.getNoteVersions({
+      const fetchedVersions = await window.electronAPI.noteVersion.getNoteVersions({
         noteId,
         limit,
         offset
@@ -39,7 +45,7 @@ export const useNoteVersionStore = defineStore('noteVersion', () => {
       versions.value = fetchedVersions
 
       // 获取总数
-      totalCount.value = await window.electronAPI.getNoteVersionCount(noteId)
+      totalCount.value = await window.electronAPI.noteVersion.getNoteVersionCount(noteId)
 
       return fetchedVersions
     } catch (error) {
@@ -51,7 +57,7 @@ export const useNoteVersionStore = defineStore('noteVersion', () => {
   // 获取指定版本
   const fetchNoteVersion = async (noteId: string, versionId: string) => {
     try {
-      const version = await window.electronAPI.getNoteVersion(noteId, versionId)
+      const version = await window.electronAPI.noteVersion.getNoteVersion(noteId, versionId)
       if (version) {
         currentVersion.value = version
       }
@@ -65,7 +71,7 @@ export const useNoteVersionStore = defineStore('noteVersion', () => {
   // 恢复到指定版本
   const restoreVersion = async (noteId: string, versionId: string) => {
     try {
-      await window.electronAPI.restoreNoteVersion(noteId, versionId)
+      await window.electronAPI.noteVersion.restoreNoteVersion(noteId, versionId)
       // 恢复后刷新版本列表
       await fetchNoteVersions(noteId)
     } catch (error) {
@@ -77,7 +83,7 @@ export const useNoteVersionStore = defineStore('noteVersion', () => {
   // 获取最新版本
   const fetchLatestVersion = async (noteId: string) => {
     try {
-      const version = await window.electronAPI.getLatestVersion(noteId)
+      const version = await window.electronAPI.noteVersion.getLatestVersion(noteId)
       if (version) {
         currentVersion.value = version
       }
@@ -91,7 +97,7 @@ export const useNoteVersionStore = defineStore('noteVersion', () => {
   // 获取版本时间范围
   const fetchVersionTimeRange = async (noteId: string) => {
     try {
-      return await window.electronAPI.getVersionTimeRange(noteId)
+      return await window.electronAPI.noteVersion.getVersionTimeRange(noteId)
     } catch (error) {
       console.error('获取版本时间范围失败:', error)
       throw error

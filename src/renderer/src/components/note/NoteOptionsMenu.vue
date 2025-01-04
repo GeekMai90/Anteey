@@ -29,7 +29,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { useNoteStore } from '@renderer/stores/noteStores'
+import { useNoteStore } from '@renderer/stores/noteStore'
 import { Info, Star, Copy, History, DeleteOne, RightBar } from '@icon-park/vue-next'
 
 const props = defineProps<{

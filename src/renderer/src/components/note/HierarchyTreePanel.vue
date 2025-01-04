@@ -35,7 +35,7 @@ import * as d3 from 'd3'
 import type { Note } from '@shared/types'
 // import NoteListDialog from './NoteListDialog.vue'
 import NotePreviewPopup from './NotePreviewPopup.vue'
-import { useNoteStore } from '@renderer/stores/noteStores'
+import { useNoteStore } from '@renderer/stores/noteStore'
 
 const props = defineProps<{
   noteId: string

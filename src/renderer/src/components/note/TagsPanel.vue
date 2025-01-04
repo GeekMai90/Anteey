@@ -88,7 +88,7 @@
 <script setup lang="ts">
 import { ref, computed, nextTick } from 'vue'
 import { TagOne, Close, Plus } from '@icon-park/vue-next'
-import { useNoteStore } from '@renderer/stores/noteStores'
+import { useNoteStore } from '@renderer/stores/noteStore'
 import { useTagStore } from '@renderer/stores/tagStore'
 import { useEventBus } from '@vueuse/core'
 

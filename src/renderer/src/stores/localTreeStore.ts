@@ -30,7 +30,7 @@ export const useLocalTreeStore = defineStore('localTree', () => {
   const fetchLocalTree = async (noteId: string) => {
     try {
       console.group('开始获取树形数据')
-      const data = await window.electronAPI.getLocalTree(noteId)
+      const data = await window.electronAPI.knowledgeTree.getLocalTree(noteId)
 
       if (data) {
         if (!data.current?.id || !data.current?.address) {
@@ -59,7 +59,7 @@ export const useLocalTreeStore = defineStore('localTree', () => {
             console.log('使用后端返回的父节点:', data.parent)
           } else {
             try {
-              const result = await window.electronAPI.getNoteByAddress(parentAddress)
+              const result = await window.electronAPI.note.getNoteByAddress(parentAddress)
               if (result?.id) {
                 console.log('从后端获取到的父节点:', result)
                 data.parent = result
@@ -108,7 +108,7 @@ export const useLocalTreeStore = defineStore('localTree', () => {
   const fetchLocalTreeWithRefs = async (noteId: string) => {
     try {
       console.group('开始获取树形数据与引用')
-      const data = await window.electronAPI.getLocalTreeWithReferences(noteId)
+      const data = await window.electronAPI.knowledgeTree.getLocalTreeWithReferences(noteId)
 
       if (data) {
         if (!data.current?.id || !data.current?.address) {

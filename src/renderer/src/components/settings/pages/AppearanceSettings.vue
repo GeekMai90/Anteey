@@ -132,7 +132,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { Theme, Down } from '@icon-park/vue-next'
-import { useUIStore } from '@renderer/stores/useUIStore'
+import { useUIStore } from '@renderer/stores/UIStore'
 import { useAppearanceStore } from '@renderer/stores/appearanceStore'
 import { useTimeBlockStore } from '@renderer/stores/timeBlockStore'
 import Switch from '@renderer/components/ui/Switch.vue'

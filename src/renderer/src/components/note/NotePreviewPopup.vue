@@ -20,7 +20,7 @@ import { computed, ref, watch } from 'vue'
 import type { Note } from '@shared/types'
 import { formatDate } from '@renderer/utils/noteHelpers'
 import TipTapRender from '@renderer/components/tiptap/TipTapRender.vue'
-import { useNoteStore } from '@renderer/stores/noteStores'
+import { useNoteStore } from '@renderer/stores/noteStore'
 
 const props = defineProps<{
   noteId: string

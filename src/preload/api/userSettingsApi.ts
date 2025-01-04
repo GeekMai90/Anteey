@@ -1,7 +1,7 @@
 import { ipcRenderer } from 'electron'
-import type { AppearanceSettings } from '@shared/types'
+import type { AppearanceSettings, UpdateUserSettings, UserSettings } from '@shared/types'
 
-export const appearanceApi = {
+export const userSettingsApi = {
   // 获取外观设置
   getAppearanceSettings: async (): Promise<AppearanceSettings> => {
     try {
@@ -94,6 +94,41 @@ export const appearanceApi = {
       return result.settings
     } catch (error) {
       console.error('预加载脚本 → 更新 AI 助手功能开关失败:', error)
+      throw error
+    }
+  },
+
+  // 用户设置相关 API
+  getUserSettings: async (): Promise<UserSettings> => {
+    try {
+      return await ipcRenderer.invoke('get-user-settings')
+    } catch (error) {
+      console.error('Preload: 获取用户设置失败:', error)
+      throw error
+    }
+  },
+
+  updateUserSettings: async (settings: UpdateUserSettings): Promise<UserSettings> => {
+    try {
+      return await ipcRenderer.invoke('update-user-settings', settings)
+    } catch (error) {
+      console.error('Preload: 更新用户设置失败:', error)
+      throw error
+    }
+  },
+
+  // 获取用户数据目录
+  getUserDataPath: async (): Promise<string> => {
+    return await ipcRenderer.invoke('get-user-data-path')
+  },
+
+  updateGlobalHotkey: async (
+    newHotkey: string
+  ): Promise<{ success: boolean; settings?: UserSettings }> => {
+    try {
+      return await ipcRenderer.invoke('update-global-hotkey', newHotkey)
+    } catch (error) {
+      console.error('Preload: 更新全局快捷键时出错:', error)
       throw error
     }
   }

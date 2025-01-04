@@ -56,7 +56,7 @@ import ImageNote from './notes/ImageNote.vue'
 import { useDrag } from '@renderer/composables/whiteboard/useDrag'
 import { useResize, type ResizeDirection } from '@renderer/composables/whiteboard/useResize'
 import WhiteboardNoteToolbar from './WhiteboardNoteToolbar.vue'
-import { useWhiteboardStore } from '@renderer/stores/whiteboardStores'
+import { useWhiteboardStore } from '@renderer/stores/whiteboardStore'
 import { message } from '@renderer/utils/message'
 
 const whiteboardStore = useWhiteboardStore()

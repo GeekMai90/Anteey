@@ -10,7 +10,7 @@ import {
 } from '@shared/types'
 import type { Note } from '@shared/types'
 
-import { useNoteStore } from './noteStores'
+import { useNoteStore } from './noteStore'
 
 export const useWhiteboardStore = defineStore('whiteboard', {
   state: () => ({
@@ -27,7 +27,7 @@ export const useWhiteboardStore = defineStore('whiteboard', {
     async getTopLevelWhiteboards() {
       try {
         console.log('whiteboardStore→ 开始获取顶层白板')
-        const whiteboards = await window.electronAPI.getTopLevelWhiteboards()
+        const whiteboards = await window.electronAPI.whiteboard.getTopLevelWhiteboards()
         console.log('whiteboardStore→ 获取顶层白板成功', whiteboards)
         this.whiteboards = whiteboards
         return whiteboards
@@ -37,37 +37,18 @@ export const useWhiteboardStore = defineStore('whiteboard', {
       }
     },
     // 初始化白板数据
-    // async initializeWhiteboardData(whiteboardId: string) {
-    //   this.isLoading = true
-    //   this.error = null
-    //   this.currentWhiteboardId = whiteboardId
 
-    //   try {
-    //     // 假设这些是您的 API 方法
-    //     const [whiteboardNotes, connections] = await Promise.all([
-    //       this.getWhiteboardNotes(whiteboardId),
-    //       this.getConnections(whiteboardId)
-    //     ])
-
-    //     this.whiteboardNotes = whiteboardNotes
-    //     this.connections = connections
-    //   } catch (error) {
-    //     console.error('Failed to initialize whiteboard data:', error)
-    //     this.error = 'Failed to load whiteboard data'
-    //   } finally {
-    //     this.isLoading = false
-    //   }
-    // },
     async initializeWhiteboardData(whiteboardId: string) {
       try {
         console.log('whiteboardStore→ 开始初始化白板数据')
 
         // 获取白板笔记
-        const notes = await window.electronAPI.getWhiteboardNotes(whiteboardId)
+        const notes = await window.electronAPI.whiteboard.getWhiteboardNotes(whiteboardId)
         this.whiteboardNotes = notes
 
         // 获取连线
-        const connections = await window.electronAPI.getConnectionsByWhiteboardId(whiteboardId)
+        const connections =
+          await window.electronAPI.whiteboard.getConnectionsByWhiteboardId(whiteboardId)
         this.connections = connections
 
         console.log('whiteboardStore→ 初始化白板数据成功', {
@@ -83,7 +64,7 @@ export const useWhiteboardStore = defineStore('whiteboard', {
     // 获取根白板的视图状态
     async getRootWhiteboardViewState() {
       console.log('whiteboardStore→ 开始获取根白板的视图状态')
-      const viewState = await window.electronAPI.getRootWhiteboardViewState()
+      const viewState = await window.electronAPI.whiteboard.getRootWhiteboardViewState()
       console.log('whiteboardStore→ 获取根白板的视图状态成功', viewState)
       return viewState
     },
@@ -91,7 +72,7 @@ export const useWhiteboardStore = defineStore('whiteboard', {
     // 保存视图状态到根白板
     async saveViewStateToRootWhiteboard(scale: number, translateX: number, translateY: number) {
       console.log('whiteboardStore→ 开始保存视图状态到根白板', { scale, translateX, translateY })
-      const result = await window.electronAPI.saveViewStateToRootWhiteboard(
+      const result = await window.electronAPI.whiteboard.saveViewStateToRootWhiteboard(
         scale,
         translateX,
         translateY
@@ -102,21 +83,21 @@ export const useWhiteboardStore = defineStore('whiteboard', {
     // 获取根白板
     async getRootWhiteboard() {
       console.log('whiteboardStore→ 开始获取根白板')
-      const rootWhiteboard = await window.electronAPI.getRootWhiteboard()
+      const rootWhiteboard = await window.electronAPI.whiteboard.getRootWhiteboard()
       console.log('whiteboardStore→ 获取根白板成功', rootWhiteboard)
       return rootWhiteboard
     },
     // 创建根白板
     async createRootWhiteboard() {
       console.log('whiteboardStore→ 开始创建根白板')
-      const newRootWhiteboard = await window.electronAPI.createRootWhiteboard()
+      const newRootWhiteboard = await window.electronAPI.whiteboard.createRootWhiteboard()
       console.log('whiteboardStore→ 创建根白板成功', newRootWhiteboard)
       return newRootWhiteboard
     },
     // 创建白板
     async createWhiteboard(input: CreateWhiteboardInput) {
       console.log('whiteboardStore→ 开始创建白板', input)
-      const newWhiteboard = await window.electronAPI.createWhiteboard(input)
+      const newWhiteboard = await window.electronAPI.whiteboard.createWhiteboard(input)
       if (newWhiteboard) {
         this.whiteboards.push(newWhiteboard)
         console.log('whiteboardStore→ 创建白板成功', this.whiteboards)
@@ -131,7 +112,11 @@ export const useWhiteboardStore = defineStore('whiteboard', {
     // 更新白板位置
     async updateWhiteboardPosition(id: string, x: number, y: number) {
       console.log('whiteboardStore→ 开始更新白板位置', { id, x, y })
-      const updatedWhiteboard = await window.electronAPI.updateWhiteboardPosition(id, x, y)
+      const updatedWhiteboard = await window.electronAPI.whiteboard.updateWhiteboardPosition(
+        id,
+        x,
+        y
+      )
       console.log('whiteboardStore→ 更新白板位置成功', updatedWhiteboard)
       this.whiteboards = this.whiteboards.map((whiteboard) =>
         whiteboard.id === updatedWhiteboard.id ? updatedWhiteboard : whiteboard
@@ -142,7 +127,7 @@ export const useWhiteboardStore = defineStore('whiteboard', {
     async createWhiteboardNote(input: CreateWhiteboardNoteInput) {
       console.log('whiteboardStore→ 开始创建白板笔记', input)
       try {
-        const newWhiteboardNote = await window.electronAPI.createWhiteboardNote(input)
+        const newWhiteboardNote = await window.electronAPI.whiteboard.createWhiteboardNote(input)
 
         // 更新 store 中的状态
         this.whiteboardNotes = [...this.whiteboardNotes, newWhiteboardNote]
@@ -168,7 +153,7 @@ export const useWhiteboardStore = defineStore('whiteboard', {
         translateX,
         translateY
       })
-      const result = await window.electronAPI.saveViewStateToWhiteboard(
+      const result = await window.electronAPI.whiteboard.saveViewStateToWhiteboard(
         whiteboardId,
         scale,
         translateX,
@@ -180,14 +165,14 @@ export const useWhiteboardStore = defineStore('whiteboard', {
     // 获取白板视图状态
     async getWhiteboardViewState(whiteboardId: string) {
       console.log('whiteboardStore→ 开始获取白板视图状态', whiteboardId)
-      const viewState = await window.electronAPI.getWhiteboardViewState(whiteboardId)
+      const viewState = await window.electronAPI.whiteboard.getWhiteboardViewState(whiteboardId)
       console.log('whiteboardStore→ 获取白板视图状态成功', viewState)
       return viewState
     },
     // 获取白板中的卡片数量
     async getCardCount(whiteboardId: string) {
       console.log('whiteboardStore→ 开始获取白板中的卡片数量', whiteboardId)
-      const cardCount = await window.electronAPI.getCardCount(whiteboardId)
+      const cardCount = await window.electronAPI.whiteboard.getCardCount(whiteboardId)
       console.log('whiteboardStore→ 获取白板中的卡片数量成功', cardCount)
       return cardCount
     },
@@ -196,7 +181,7 @@ export const useWhiteboardStore = defineStore('whiteboard', {
     async getWhiteboardNotes(whiteboardId: string) {
       try {
         console.log('whiteboardStore→ 开始获取白板中的所有白板笔记', whiteboardId)
-        const whiteboardNotes = await window.electronAPI.getWhiteboardNotes(whiteboardId)
+        const whiteboardNotes = await window.electronAPI.whiteboard.getWhiteboardNotes(whiteboardId)
         this.whiteboardNotes = whiteboardNotes
         const noteIds = whiteboardNotes
           .map((note) => note.noteId)
@@ -214,7 +199,8 @@ export const useWhiteboardStore = defineStore('whiteboard', {
     async getWhiteboardGroups(whiteboardId: string) {
       try {
         console.log('whiteboardStore→ 开始获取白板中的所有分组', whiteboardId)
-        const whiteboardGroups = await window.electronAPI.getWhiteboardGroups(whiteboardId)
+        const whiteboardGroups =
+          await window.electronAPI.whiteboard.getWhiteboardGroups(whiteboardId)
         console.log('whiteboardStore→ 获取白板中的所有分组成功', whiteboardGroups)
         return whiteboardGroups
       } catch (error) {
@@ -226,7 +212,8 @@ export const useWhiteboardStore = defineStore('whiteboard', {
     async getWhiteboardSubboards(whiteboardId: string) {
       try {
         console.log('whiteboardStore→ 开始获取白板中的所有白板', whiteboardId)
-        const whiteboardSubboards = await window.electronAPI.getWhiteboardSubboards(whiteboardId)
+        const whiteboardSubboards =
+          await window.electronAPI.whiteboard.getWhiteboardSubboards(whiteboardId)
         console.log('whiteboardStore→ 获取白板中的所有白板成功', whiteboardSubboards)
         return whiteboardSubboards
       } catch (error) {
@@ -235,24 +222,10 @@ export const useWhiteboardStore = defineStore('whiteboard', {
       }
     },
     // 更新白板笔记的位置
-    // async updateWhiteboardNotePosition(id: string, x: number, y: number) {
-    //   try {
-    //     console.log('whiteboardStore→ 开始更新白板笔记位置', { id, x, y })
-    //     const updatedWhiteboardNote = await window.electronAPI.updateWhiteboardNotePosition(
-    //       id,
-    //       x,
-    //       y
-    //     )
-    //     console.log('whiteboardStore→ 更新白板笔记位置成功', updatedWhiteboardNote)
-    //     return updatedWhiteboardNote
-    //   } catch (error) {
-    //     console.error('whiteboardStore→ 更新白板笔记位置失败', error)
-    //     throw error
-    //   }
-    // },
+
     async updateWhiteboardNotePosition(id: string, x: number, y: number) {
       try {
-        const result = await window.electronAPI.updateWhiteboardNotePosition(id, x, y)
+        const result = await window.electronAPI.whiteboard.updateWhiteboardNotePosition(id, x, y)
         // 更新 store 中的状态
         const index = this.whiteboardNotes.findIndex((note) => note.id === id)
         if (index !== -1) {
@@ -271,7 +244,7 @@ export const useWhiteboardStore = defineStore('whiteboard', {
     async updateWhiteboardNoteSize(id: string, width: number, height: number) {
       try {
         console.log('whiteboardStore→ 开始更新白板笔记大小', { id, width, height })
-        const updatedWhiteboardNote = await window.electronAPI.updateWhiteboardNoteSize(
+        const updatedWhiteboardNote = await window.electronAPI.whiteboard.updateWhiteboardNoteSize(
           id,
           width,
           height
@@ -295,7 +268,7 @@ export const useWhiteboardStore = defineStore('whiteboard', {
     async createConnection(connection: ConnectionCreateData) {
       try {
         console.log('whiteboardStore→ 开始创建连线', connection)
-        const newConnection = await window.electronAPI.createConnection(connection)
+        const newConnection = await window.electronAPI.whiteboard.createConnection(connection)
         console.log('whiteboardStore→ 创建连线成功', newConnection)
         return newConnection
       } catch (error) {
@@ -307,7 +280,7 @@ export const useWhiteboardStore = defineStore('whiteboard', {
     async updateConnection(connection: Connection) {
       try {
         console.log('whiteboardStore→ 开始更新连线', connection)
-        const updatedConnection = await window.electronAPI.updateConnection(connection)
+        const updatedConnection = await window.electronAPI.whiteboard.updateConnection(connection)
         console.log('whiteboardStore→ 更新连线成功', updatedConnection)
         return updatedConnection
       } catch (error) {
@@ -319,7 +292,7 @@ export const useWhiteboardStore = defineStore('whiteboard', {
     async deleteConnection(id: string) {
       console.log('whiteboardStore→ 开始删除连线', id)
       try {
-        await window.electronAPI.deleteConnection(id)
+        await window.electronAPI.whiteboard.deleteConnection(id)
         console.log('whiteboardStore→ 删除连线成功')
       } catch (error) {
         console.error('whiteboardStore→ 删除连线失败', error)
@@ -330,7 +303,10 @@ export const useWhiteboardStore = defineStore('whiteboard', {
     async updateConnectionDescription(id: string, description: string) {
       try {
         console.log('whiteboardStore→ 开始更新连线描述', { id, description })
-        const result = await window.electronAPI.updateConnectionDescription(id, description)
+        const result = await window.electronAPI.whiteboard.updateConnectionDescription(
+          id,
+          description
+        )
         if (result.success) {
           const updatedConnection = result.connection
           return updatedConnection
@@ -347,7 +323,8 @@ export const useWhiteboardStore = defineStore('whiteboard', {
     async getConnections(whiteboardId: string) {
       try {
         console.log('whiteboardStore→ 开始获取白板中的所有连线', whiteboardId)
-        const connections = await window.electronAPI.getConnectionsByWhiteboardId(whiteboardId)
+        const connections =
+          await window.electronAPI.whiteboard.getConnectionsByWhiteboardId(whiteboardId)
         console.log('whiteboardStore→ 获取白板中的所有连线成功', connections)
         return connections
       } catch (error) {
@@ -355,31 +332,14 @@ export const useWhiteboardStore = defineStore('whiteboard', {
         throw error
       }
     },
-    // 删除白板笔记
-    // async deleteWhiteboardNote(id: string) {
-    //   try {
-    //     console.log('whiteboardStore→ 开始删除白板笔记', id)
-    //     const result = await window.electronAPI.deleteWhiteboardNote(id)
-    //     console.log('whiteboardStore→ 删除白板笔记成功', result)
-    //     // 更新本地状态
-    //     this.whiteboardNotes = this.whiteboardNotes.filter((note) => note.id !== id)
-    //     // 更新连接
-    //     this.connections = this.connections.filter(
-    //       (conn) => conn.startItemId !== id && conn.endItemId !== id
-    //     )
-    //     return result
-    //   } catch (error) {
-    //     console.error('whiteboardStore→ 删除白板笔记失败', error)
-    //     throw error
-    //   }
-    // },
+
     // 删除白板笔记
     async deleteWhiteboardNote(noteId: string) {
       try {
         console.log('whiteboardStore→ 开始删除白板笔记', noteId)
 
         // 1. 调用后端 API 删除笔记及其相关连线
-        await window.electronAPI.deleteWhiteboardNote(noteId)
+        await window.electronAPI.whiteboard.deleteWhiteboardNote(noteId)
 
         // 2. 更新本地笔记状态
         this.whiteboardNotes = this.whiteboardNotes.filter((note) => note.id !== noteId)
@@ -402,7 +362,9 @@ export const useWhiteboardStore = defineStore('whiteboard', {
       try {
         console.log('whiteboardStore→ 开始删除白板笔记', noteId)
         const whiteboardNotes = this.whiteboardNotes.filter((note) => note.noteId === noteId)
-        const result = await window.electronAPI.deleteWhiteboardNote(whiteboardNotes[0].id)
+        const result = await window.electronAPI.whiteboard.deleteWhiteboardNote(
+          whiteboardNotes[0].id
+        )
         console.log('whiteboardStore→ 删除白板笔记成功', result)
         return result
       } catch (error) {
@@ -414,10 +376,8 @@ export const useWhiteboardStore = defineStore('whiteboard', {
     async updateWhiteboardNoteAutoHeight(id: string, isAutoHeight: boolean) {
       try {
         console.log('whiteboardStore→ 开始更新白板笔记自动高度', { id, isAutoHeight })
-        const updatedWhiteboardNote = await window.electronAPI.updateWhiteboardNoteAutoHeight(
-          id,
-          isAutoHeight
-        )
+        const updatedWhiteboardNote =
+          await window.electronAPI.whiteboard.updateWhiteboardNoteAutoHeight(id, isAutoHeight)
         // 更新 Pinia 状态
         const index = this.whiteboardNotes.findIndex((note) => note.id === id)
         if (index !== -1) {
@@ -437,7 +397,7 @@ export const useWhiteboardStore = defineStore('whiteboard', {
     async updateWhiteboardName(id: string, name: string) {
       try {
         console.log('whiteboardStore→ 开始更新白板名称', { id, name })
-        const updatedWhiteboard = await window.electronAPI.updateWhiteboardName(id, name)
+        const updatedWhiteboard = await window.electronAPI.whiteboard.updateWhiteboardName(id, name)
         console.log('whiteboardStore→ 更新白板名称成功', updatedWhiteboard)
         return updatedWhiteboard
       } catch (error) {
@@ -449,7 +409,7 @@ export const useWhiteboardStore = defineStore('whiteboard', {
     async deleteWhiteboard(id: string) {
       try {
         console.log('whiteboardStore→ 开始删除白板', id)
-        const result = await window.electronAPI.deleteWhiteboard(id)
+        const result = await window.electronAPI.whiteboard.deleteWhiteboard(id)
         this.whiteboards = this.whiteboards.filter((whiteboard) => whiteboard.id !== id)
         console.log('whiteboardStore→ 删除白板成功', result)
         return result
@@ -461,7 +421,7 @@ export const useWhiteboardStore = defineStore('whiteboard', {
     // 获取白板数量
     async getWhiteboardCount() {
       try {
-        return await window.electronAPI.getWhiteboardCount()
+        return await window.electronAPI.whiteboard.getWhiteboardCount()
       } catch (error) {
         console.error('whiteboardStore→ 获取白板数量失败', error)
         throw error
@@ -472,7 +432,7 @@ export const useWhiteboardStore = defineStore('whiteboard', {
       try {
         console.log('whiteboardStore→ 开始更新白板笔记样式', { id, style })
         // 调用 API 更新样式，传入两个参数而不是一个对象
-        const updatedNote = await window.electronAPI.updateWhiteboardNoteStyle(id, style)
+        const updatedNote = await window.electronAPI.whiteboard.updateWhiteboardNoteStyle(id, style)
         // 更新本地状态
         const index = this.whiteboardNotes.findIndex((n) => n.id === id)
         if (index !== -1) {
@@ -491,7 +451,10 @@ export const useWhiteboardStore = defineStore('whiteboard', {
     async updateWhiteboardNoteContent(id: string, content: string) {
       try {
         console.log('whiteboardStore→ 开始更新白板笔记内容', { id, content })
-        const updatedNote = await window.electronAPI.updateWhiteboardNoteContent(id, content)
+        const updatedNote = await window.electronAPI.whiteboard.updateWhiteboardNoteContent(
+          id,
+          content
+        )
         // 更新本地状态
         const index = this.whiteboardNotes.findIndex((n) => n.id === id)
         if (index !== -1) {

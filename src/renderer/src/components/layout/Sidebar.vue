@@ -184,10 +184,10 @@ import {
   LinkCloudSucess,
   StorageCardOne
 } from '@icon-park/vue-next'
-import { useNoteStore } from '@renderer/stores/noteStores'
+import { useNoteStore } from '@renderer/stores/noteStore'
 import SettingDropdownMenu from '@renderer/components/settings/SettingDropdownMenu.vue'
 import StarredNotes from '@renderer/components/layout/StarredNotes.vue'
-import { useUIStore } from '@renderer/stores/useUIStore'
+import { useUIStore } from '@renderer/stores/UIStore'
 import { useRoute } from 'vue-router'
 import RecentNotes from '@renderer/components/layout/RecentNotes.vue'
 import { storeToRefs } from 'pinia'
@@ -211,7 +211,7 @@ const getIconFill = computed(
 )
 
 onMounted(async () => {
-  imageSrc.value = await window.electronAPI.getResourcePath('icon.png')
+  imageSrc.value = await window.electronAPI.shell.getResourcePath('icon.png')
   await timeBlockStore.fetchSettings()
   await webdavStore.loadConfig()
   await webdavStore.loadSyncHistory()
@@ -299,7 +299,7 @@ const openSearch = () => {
 const openHelp = () => {
   // 实现打开帮助的逻辑
 
-  window.electronAPI.openExternal('https://www.yuque.com/geekmai/antithink')
+  window.electronAPI.shell.openExternal('https://www.yuque.com/geekmai/antithink')
 }
 
 const isQuickAccessVisible = ref(false)

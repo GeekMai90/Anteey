@@ -34,7 +34,7 @@ import { useLocalTreeStore } from '@renderer/stores/localTreeStore'
 import * as d3 from 'd3'
 import type { Note } from '@shared/types'
 import type { SimulationNodeDatum } from 'd3'
-import { useNoteStore } from '@renderer/stores/noteStores'
+import { useNoteStore } from '@renderer/stores/noteStore'
 import NotePreviewPopup from './NotePreviewPopup.vue'
 
 // 扩展 d3 的类型定义

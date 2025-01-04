@@ -8,20 +8,20 @@ export const useBackupStore = defineStore('backup', () => {
   const isLoading = ref(false)
 
   async function getSettings() {
-    settings.value = await window.electronAPI.getBackupSettings()
+    settings.value = await window.electronAPI.backup.getBackupSettings()
   }
 
   async function getHistory() {
-    history.value = await window.electronAPI.getBackupHistory()
+    history.value = await window.electronAPI.backup.getBackupHistory()
   }
 
   async function updateSettings(newSettings: Partial<BackupSettings>) {
-    await window.electronAPI.updateBackupSettings(newSettings)
+    await window.electronAPI.backup.updateBackupSettings(newSettings)
     await getSettings()
   }
 
   async function selectBackupDirectory() {
-    const path = await window.electronAPI.selectBackupDirectory()
+    const path = await window.electronAPI.backup.selectBackupDirectory()
     if (path) {
       await updateSettings({ backup_path: path })
     }
@@ -31,7 +31,7 @@ export const useBackupStore = defineStore('backup', () => {
   async function createBackup() {
     isLoading.value = true
     try {
-      const result = await window.electronAPI.createBackup()
+      const result = await window.electronAPI.backup.createBackup()
       await getHistory()
       return result
     } finally {
@@ -40,13 +40,13 @@ export const useBackupStore = defineStore('backup', () => {
   }
 
   async function selectBackupFile() {
-    return await window.electronAPI.selectBackupFile()
+    return await window.electronAPI.backup.selectBackupFile()
   }
 
   async function restoreBackup(backupPath: string) {
     isLoading.value = true
     try {
-      await window.electronAPI.restoreBackup(backupPath)
+      await window.electronAPI.backup.restoreBackup(backupPath)
       // 重新加载页面以应用恢复的数据
       window.location.reload()
     } finally {

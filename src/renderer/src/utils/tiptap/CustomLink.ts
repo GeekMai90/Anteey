@@ -11,7 +11,7 @@
 import { Link } from '@tiptap/extension-link'
 import { mergeAttributes } from '@tiptap/core'
 import { Node as ProsemirrorNode, Mark } from 'prosemirror-model'
-import { useNoteStore } from '../../stores/noteStores'
+import { useNoteStore } from '../../stores/noteStore'
 import { useEventBus } from '@vueuse/core'
 import { TextSelection } from '@tiptap/pm/state'
 

@@ -125,7 +125,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed, nextTick, onBeforeUnmount, watch } from 'vue'
 import { onBeforeRouteLeave, onBeforeRouteUpdate, useRoute } from 'vue-router'
-import { useNoteStore } from '@renderer/stores/noteStores'
+import { useNoteStore } from '@renderer/stores/noteStore'
 import { formatDate } from '@renderer/utils/noteHelpers'
 import { More, Install } from '@icon-park/vue-next'
 import TipTapEditor from '@renderer/components/tiptap/TipTapEditor.vue'
@@ -178,7 +178,7 @@ const createVersion = async () => {
   const safeContent = JSON.parse(JSON.stringify(currentNote.value.content))
 
   try {
-    await window.electronAPI.createNoteVersion({
+    await window.electronAPI.noteVersion.createNoteVersion({
       noteId: currentNote.value.id,
       content: safeContent,
       address: currentNote.value.address,

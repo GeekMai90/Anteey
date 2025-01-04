@@ -98,13 +98,13 @@
 
 <script setup lang="ts">
 // 导入依赖
-import { useNoteStore } from '@renderer/stores/noteStores'
+import { useNoteStore } from '@renderer/stores/noteStore'
 import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue'
 import { storeToRefs } from 'pinia'
 import { Timeline, Calendar, RocketOne } from '@icon-park/vue-next'
 import AppToolbar from '@renderer/components/layout/AppToolbar.vue'
 import CalendarPicker from '@renderer/components/timelineView/CalendarPicker.vue'
-import { useUIStore } from '@renderer/stores/useUIStore'
+import { useUIStore } from '@renderer/stores/UIStore'
 import { Note } from '@shared/types'
 import NoteCard from '@renderer/components/note/NoteCard.vue'
 import { useVirtualList } from '@vueuse/core'

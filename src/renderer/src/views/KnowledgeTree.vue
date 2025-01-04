@@ -16,9 +16,8 @@ import { useKnowledgeTreeStore } from '@renderer/stores/knowledgeTreeStore'
 import type { KnowledgeTreeNode } from '@shared/types'
 import AppToolbar from '../components/layout/AppToolbar.vue'
 import { useRoute } from 'vue-router'
-// import { message } from '../utils/message'
-import { useNoteStore } from '../stores/noteStores'
-import { useUIStore } from '../stores/useUIStore'
+import { useNoteStore } from '@renderer/stores/noteStore'
+import { useUIStore } from '@renderer/stores/UIStore'
 
 const route = useRoute()
 const noteStore = useNoteStore()

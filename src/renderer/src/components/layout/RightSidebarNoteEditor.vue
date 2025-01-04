@@ -107,7 +107,7 @@
 
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { useNoteStore } from '@renderer/stores/noteStores'
+import { useNoteStore } from '@renderer/stores/noteStore'
 import TipTapEditor from '@renderer/components/tiptap/TipTapEditor.vue'
 import { Right, Down, More, CloseOne, Install } from '@icon-park/vue-next'
 import CardboxDropdownMenu from '@renderer/components/cardbox/CardboxDropdownMenu.vue'
@@ -191,7 +191,7 @@ const updateAddress = debounce(async (address: string) => {
     console.error('更新地址失败:', error)
     message.error('更新地址失败')
     // 回滚到最后一个有效的地址
-    localAddress.value = currentNote.value.address
+    localAddress.value = currentNote.value?.address || ''
   }
 }, 300)
 

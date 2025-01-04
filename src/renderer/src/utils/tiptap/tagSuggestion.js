@@ -1,7 +1,7 @@
 import { VueRenderer } from '@tiptap/vue-3'
 import tippy from 'tippy.js'
 import TagList from '@renderer/components/tiptap/TagList.vue'
-import { useNoteStore } from '@renderer/stores/noteStores'
+import { useNoteStore } from '@renderer/stores/noteStore'
 import { Tag as TagIcon, AddOne } from '@icon-park/vue-next'
 import { markRaw } from 'vue'
 

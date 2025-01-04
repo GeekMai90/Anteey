@@ -34,7 +34,7 @@
 import { FileCabinet, Box } from '@icon-park/vue-next'
 import { CardBox } from '@shared/types'
 import { computed, CSSProperties, onMounted, onUnmounted, ref, watch, nextTick } from 'vue'
-import { useNoteStore } from '@renderer/stores/noteStores'
+import { useNoteStore } from '@renderer/stores/noteStore'
 import { storeToRefs } from 'pinia'
 import router from '@renderer/router'
 import { message } from '@renderer/utils/message'

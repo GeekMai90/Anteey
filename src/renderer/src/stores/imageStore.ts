@@ -43,7 +43,7 @@ export const useImageStore = defineStore('image', () => {
         pageSize: queryParams.value.pageSize
       }
       console.log('imageStore → 开始获取图片列表，参数:', params)
-      const result = await window.electronAPI.getImages(params)
+      const result = await window.electronAPI.image.getImages(params)
       console.log('imageStore → 获取到原始数据:', result)
 
       images.value = result.images.map((img) => {
@@ -85,7 +85,7 @@ export const useImageStore = defineStore('image', () => {
       // 将响应式数组转换为普通数组
       const imageIdsToDelete = [...selectedImageIds.value]
       console.log('imageStore → 准备删除的图片ID:', imageIdsToDelete)
-      const result = await window.electronAPI.deleteImages(imageIdsToDelete)
+      const result = await window.electronAPI.image.deleteImages(imageIdsToDelete)
       console.log('imageStore → 删除结果:', result)
       selectedImageIds.value = [] // 清空选择
       await fetchImages() // 重新加载列表
@@ -137,7 +137,7 @@ export const useImageStore = defineStore('image', () => {
   const cleanOrphanedImages = async () => {
     try {
       isLoading.value = true
-      const result = await window.electronAPI.cleanupUnusedImages()
+      const result = await window.electronAPI.image.cleanupUnusedImages()
       console.log('imageStore → 清理结果:', result)
       await fetchImages() // 重新加载列表
 

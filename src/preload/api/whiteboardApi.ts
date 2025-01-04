@@ -339,5 +339,10 @@ export const whiteboardApi = {
       console.error('Preload: 更新白板笔记样式时出错:', error)
       throw error
     }
+  },
+
+  // 获取白板数量
+  getWhiteboardCount: async (): Promise<number> => {
+    return (await ipcRenderer.invoke('get-whiteboard-count')) as number
   }
 }

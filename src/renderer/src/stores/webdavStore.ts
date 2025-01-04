@@ -29,7 +29,7 @@ export const useWebDAVStore = defineStore('webdav', {
       try {
         this.loading = true
         this.error = null
-        this.config = await window.electronAPI.getWebDAVConfig()
+        this.config = await window.electronAPI.webDAV.getWebDAVConfig()
       } catch (error) {
         this.error = error instanceof Error ? error.message : '加载配置失败'
         console.error('加载 WebDAV 配置失败:', error)
@@ -42,7 +42,7 @@ export const useWebDAVStore = defineStore('webdav', {
       try {
         this.loading = true
         this.error = null
-        this.config = await window.electronAPI.updateWebDAVConfig(config)
+        this.config = await window.electronAPI.webDAV.updateWebDAVConfig(config)
       } catch (error) {
         this.error = error instanceof Error ? error.message : '更新配置失败'
         console.error('更新 WebDAV 配置失败:', error)
@@ -56,7 +56,7 @@ export const useWebDAVStore = defineStore('webdav', {
       try {
         this.loading = true
         this.error = null
-        return await window.electronAPI.testWebDAVConnection(config)
+        return await window.electronAPI.webDAV.testWebDAVConnection(config)
       } catch (error) {
         this.error = error instanceof Error ? error.message : '测试连接失败'
         console.error('测试 WebDAV 连接失败:', error)
@@ -71,7 +71,7 @@ export const useWebDAVStore = defineStore('webdav', {
         this.loading = true
         this.error = null
         this.syncState.type = type
-        await window.electronAPI.syncWebDAV()
+        await window.electronAPI.webDAV.syncWebDAV()
       } catch (error) {
         this.error = error instanceof Error ? error.message : '同步失败'
         console.error('WebDAV 同步失败:', error)
@@ -96,7 +96,7 @@ export const useWebDAVStore = defineStore('webdav', {
       try {
         this.loading = true
         this.error = null
-        this.syncHistory = await window.electronAPI.getWebDAVSyncHistory()
+        this.syncHistory = await window.electronAPI.webDAV.getWebDAVSyncHistory()
         const lastSuccess = this.syncHistory.find((record) => record.status === 'success')
         if (lastSuccess) {
           this.lastSuccessfulSync = new Date(lastSuccess.timestamp)

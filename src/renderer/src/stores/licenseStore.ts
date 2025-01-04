@@ -11,7 +11,7 @@ export const useLicenseStore = defineStore('license', () => {
   // 获取机器码
   async function getMachineId() {
     try {
-      machineId.value = await window.electronAPI.getMachineId()
+      machineId.value = await window.electronAPI.activation.getMachineId()
     } catch (err) {
       error.value = '获取机器码失败'
       console.error('获取机器码失败:', err)
@@ -25,7 +25,7 @@ export const useLicenseStore = defineStore('license', () => {
     error.value = ''
 
     try {
-      const result = await window.electronAPI.activateLicense(activationCode)
+      const result = await window.electronAPI.activation.activateLicense(activationCode)
       if (result.success && result.license) {
         // 添加 result.license 检查
         license.value = result.license
@@ -46,7 +46,7 @@ export const useLicenseStore = defineStore('license', () => {
   // 检查激活状态
   async function checkLicenseStatus() {
     try {
-      const result = await window.electronAPI.checkLicense()
+      const result = await window.electronAPI.activation.checkLicense()
       license.value = result
       return result !== null
     } catch (err) {

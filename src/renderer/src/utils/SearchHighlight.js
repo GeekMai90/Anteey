@@ -1,28 +1,24 @@
-import { Extension, Mark } from "@tiptap/core";
+import { Mark } from '@tiptap/core'
 
 const SearchHighlight = Mark.create({
-  name: "searchHighlight",
+  name: 'searchHighlight',
 
   addOptions() {
     return {
-      HTMLAttributes: {},
-    };
+      HTMLAttributes: {}
+    }
   },
 
   parseHTML() {
     return [
       {
-        tag: "mark[data-search-highlight]",
-      },
-    ];
+        tag: 'mark[data-search-highlight]'
+      }
+    ]
   },
 
-  renderHTML({ HTMLAttributes }) {
-    return [
-      "mark",
-      { ...this.options.HTMLAttributes, "data-search-highlight": "" },
-      0,
-    ];
+  renderHTML() {
+    return ['mark', { ...this.options.HTMLAttributes, 'data-search-highlight': '' }, 0]
   },
 
   addCommands() {
@@ -30,15 +26,15 @@ const SearchHighlight = Mark.create({
       setSearchHighlight:
         () =>
         ({ commands }) => {
-          return commands.setMark(this.name);
+          return commands.setMark(this.name)
         },
       unsetSearchHighlight:
         () =>
         ({ commands }) => {
-          return commands.unsetMark(this.name);
-        },
-    };
-  },
-});
+          return commands.unsetMark(this.name)
+        }
+    }
+  }
+})
 
-export default SearchHighlight;
+export default SearchHighlight

@@ -149,14 +149,14 @@
 </template>
 <script setup lang="ts">
 import { ref, watch, nextTick, computed } from 'vue'
-import { useNoteStore } from '@renderer/stores/noteStores'
+import { useNoteStore } from '@renderer/stores/noteStore'
 import Modal from '@renderer/components/common/Modal.vue'
 import { useRouter } from 'vue-router'
 import NotePreviewCard from '@renderer/components/note/NotePreviewCard.vue'
 import { BankCard, ParagraphRectangle, FileSearch } from '@icon-park/vue-next'
 import { useDebounceFn } from '@vueuse/core'
 import { Note } from '@shared/types'
-import { useUIStore } from '@renderer/stores/useUIStore'
+import { useUIStore } from '@renderer/stores/UIStore'
 
 // 初始化 store 和 router
 const noteStore = useNoteStore()

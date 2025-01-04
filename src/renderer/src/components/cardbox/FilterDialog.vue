@@ -180,7 +180,7 @@ import type {
   UpdateCustomFilterInput
 } from '@shared/types'
 import { useTagStore } from '@renderer/stores/tagStore'
-import { useNoteStore } from '@renderer/stores/noteStores'
+import { useNoteStore } from '@renderer/stores/noteStore'
 import { message } from '@renderer/utils/message'
 
 const props = defineProps<{

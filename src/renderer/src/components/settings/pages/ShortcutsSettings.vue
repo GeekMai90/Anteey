@@ -180,7 +180,7 @@ const handleKeyDown = async (event: KeyboardEvent) => {
   console.log('尝试设置快捷键:', newHotkey)
 
   try {
-    const result = await window.electronAPI.updateGlobalHotkey(newHotkey)
+    const result = await window.electronAPI.userSettings.updateGlobalHotkey(newHotkey)
     if (result.success) {
       currentHotkey.value = newHotkey
       message.success('快捷键设置成功')
@@ -214,7 +214,7 @@ const stopRecording = () => {
 // 删除快捷键
 const removeHotkey = async () => {
   try {
-    await window.electronAPI.updateGlobalHotkey('')
+    await window.electronAPI.userSettings.updateGlobalHotkey('')
     currentHotkey.value = ''
     message.success('快捷键已删除')
   } catch (error) {
@@ -225,7 +225,7 @@ const removeHotkey = async () => {
 // 重置快捷键
 const resetHotkey = async () => {
   try {
-    const result = await window.electronAPI.updateGlobalHotkey(DEFAULT_HOTKEY)
+    const result = await window.electronAPI.userSettings.updateGlobalHotkey(DEFAULT_HOTKEY)
     if (result.success) {
       currentHotkey.value = DEFAULT_HOTKEY
       message.success('已重置为默认快捷键')
@@ -237,7 +237,7 @@ const resetHotkey = async () => {
 
 onMounted(async () => {
   try {
-    const settings = await window.electronAPI.getUserSettings()
+    const settings = await window.electronAPI.userSettings.getUserSettings()
     if (settings?.globalHotkey) {
       currentHotkey.value = settings.globalHotkey
     }

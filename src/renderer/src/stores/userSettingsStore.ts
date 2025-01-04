@@ -9,7 +9,7 @@ export const useUserSettingsStore = defineStore('userSettings', () => {
   const fetchSettings = async () => {
     loading.value = true
     try {
-      const result = await window.electronAPI.getUserSettings()
+      const result = await window.electronAPI.userSettings.getUserSettings()
       // 确保日期字段是字符串
       settings.value = {
         ...result,
@@ -39,7 +39,7 @@ export const useUserSettingsStore = defineStore('userSettings', () => {
         settingsToUpdate.qrcodeUrl = newSettings.qrcodeUrl
       }
 
-      const result = await window.electronAPI.updateUserSettings(settingsToUpdate)
+      const result = await window.electronAPI.userSettings.updateUserSettings(settingsToUpdate)
 
       // 更新本地状态
       if (settings.value) {

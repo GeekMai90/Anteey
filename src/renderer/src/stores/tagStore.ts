@@ -82,7 +82,7 @@ export const useTagStore = defineStore('tag', () => {
   // 获取标签树
   const fetchTagTree = async () => {
     try {
-      const fetchedTags = await window.electronAPI.getAllTags()
+      const fetchedTags = await window.electronAPI.tag.getAllTags()
       tags.value = fetchedTags
       tagTree.value = buildTagTree(fetchedTags)
     } catch (error) {
@@ -94,7 +94,7 @@ export const useTagStore = defineStore('tag', () => {
   // 获取所有标签（扁平列表）
   const fetchAllTags = async () => {
     try {
-      const fetchedTags = await window.electronAPI.getAllTags()
+      const fetchedTags = await window.electronAPI.tag.getAllTags()
       tags.value = fetchedTags
       return fetchedTags
     } catch (error) {
@@ -106,7 +106,7 @@ export const useTagStore = defineStore('tag', () => {
   // 创建新标签
   const createTag = async (params: { name: string; color?: string; icon?: string }) => {
     try {
-      const newTag = await window.electronAPI.createTag(params)
+      const newTag = await window.electronAPI.tag.createTag(params)
       await fetchTagTree()
       return newTag
     } catch (error) {
@@ -118,7 +118,7 @@ export const useTagStore = defineStore('tag', () => {
   // 更新标签
   const updateTag = async (id: string, updateData: Partial<Tag>) => {
     try {
-      const updatedTag = await window.electronAPI.updateTag(id, updateData)
+      const updatedTag = await window.electronAPI.tag.updateTag(id, updateData)
       await fetchTagTree()
       return updatedTag
     } catch (error) {
@@ -130,7 +130,7 @@ export const useTagStore = defineStore('tag', () => {
   // 删除标签
   const deleteTag = async (id: string) => {
     try {
-      await window.electronAPI.deleteTag(id)
+      await window.electronAPI.tag.deleteTag(id)
       if (currentTag.value?.id === id) {
         currentTag.value = null
       }
@@ -148,7 +148,7 @@ export const useTagStore = defineStore('tag', () => {
       if (!query.trim()) {
         return tags.value
       }
-      return await window.electronAPI.searchTags(query)
+      return await window.electronAPI.tag.searchTags(query)
     } catch (error) {
       console.error('搜索标签失败:', error)
       throw error
@@ -158,7 +158,7 @@ export const useTagStore = defineStore('tag', () => {
   // 高级搜索标签
   const searchTagsAdvanced = async (params: TagSearchParams) => {
     try {
-      return await window.electronAPI.searchTagsAdvanced(params)
+      return await window.electronAPI.tag.searchTagsAdvanced(params)
     } catch (error) {
       console.error('高级搜索标签失败:', error)
       throw error
@@ -168,7 +168,7 @@ export const useTagStore = defineStore('tag', () => {
   // 更新标签置顶状态
   const toggleTagPin = async (tagId: string, pinned: boolean, pinOrder?: number) => {
     try {
-      await window.electronAPI.updateTagPinned(tagId, pinned, pinOrder)
+      await window.electronAPI.tag.updateTagPinned(tagId, pinned, pinOrder)
       await fetchTagTree()
     } catch (error) {
       console.error('更新标签置顶状态失败:', error)
@@ -179,7 +179,7 @@ export const useTagStore = defineStore('tag', () => {
   // 更新标签置顶顺序
   const updateTagPinOrder = async (tagId: string, pinOrder: number) => {
     try {
-      await window.electronAPI.updateTagPinOrder(tagId, pinOrder)
+      await window.electronAPI.tag.updateTagPinOrder(tagId, pinOrder)
       await fetchTagTree()
     } catch (error) {
       console.error('更新标签置顶顺序失败:', error)
@@ -194,7 +194,7 @@ export const useTagStore = defineStore('tag', () => {
   // 获取笔记的标签
   const getNoteTags = async (noteId: string) => {
     try {
-      return await window.electronAPI.getNoteTags(noteId)
+      return await window.electronAPI.tag.getNoteTags(noteId)
     } catch (error) {
       console.error('获取笔记标签失败:', error)
       throw error

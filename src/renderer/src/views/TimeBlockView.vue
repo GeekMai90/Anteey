@@ -303,7 +303,7 @@ import {
 } from '@icon-park/vue-next'
 import AppToolbar from '@renderer/components/layout/AppToolbar.vue'
 import CalendarPicker from '@renderer/components/timelineView/CalendarPicker.vue'
-import { useUIStore } from '@renderer/stores/useUIStore'
+import { useUIStore } from '@renderer/stores/UIStore'
 import { isToday as isDateToday } from 'date-fns'
 import BulletEditor from '@renderer/components/timeblock/BulletEditor.vue'
 import BlockViewer from '@renderer/components/timeblock/BlockViewer.vue'

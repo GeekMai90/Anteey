@@ -15,7 +15,7 @@
 </template>
 
 <script setup lang="ts">
-import { useNoteStore } from '@renderer/stores/noteStores'
+import { useNoteStore } from '@renderer/stores/noteStore'
 import { ref, onMounted, computed, watchEffect } from 'vue'
 import confetti from 'canvas-confetti'
 import { Note } from '@shared/types'
@@ -96,7 +96,7 @@ const fetchDailyCards = async () => {
   // 获取随机笔记
   const randomNotes = await noteStore.getRandomNotes()
 
-  const selectedNotes: Card[] = randomNotes.map((note) => ({
+  const selectedNotes: Card[] = randomNotes.map((note: any) => ({
     id: note.id,
     address: note.address,
     background: dailyBackground

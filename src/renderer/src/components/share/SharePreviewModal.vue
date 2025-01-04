@@ -79,7 +79,7 @@ import { Note } from '@shared/types'
 import { exportNoteImage, copyNoteToClipboard } from '@renderer/utils/shareNoteImage'
 import { message } from '@renderer/utils/message'
 import QRCode from 'qrcode'
-import { useUserSettingsStore } from '@renderer/stores/useUserSettings'
+import { useUserSettingsStore } from '@renderer/stores/userSettingsStore'
 import { CloseOne } from '@icon-park/vue-next'
 
 const props = defineProps<{

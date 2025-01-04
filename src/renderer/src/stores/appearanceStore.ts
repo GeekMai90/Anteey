@@ -21,7 +21,7 @@ export const useAppearanceStore = defineStore(
     const fetchSettings = async () => {
       try {
         isLoading.value = true
-        const fetchedSettings = await window.electronAPI.getAppearanceSettings()
+        const fetchedSettings = await window.electronAPI.userSettings.getAppearanceSettings()
         settings.value = fetchedSettings
         applySettings(fetchedSettings)
       } catch (error) {
@@ -36,7 +36,8 @@ export const useAppearanceStore = defineStore(
     const updateSettings = async (updateData: Partial<AppearanceSettings>) => {
       try {
         isLoading.value = true
-        const updatedSettings = await window.electronAPI.updateAppearanceSettings(updateData)
+        const updatedSettings =
+          await window.electronAPI.userSettings.updateAppearanceSettings(updateData)
         settings.value = updatedSettings
         applySettings(updatedSettings)
         return updatedSettings
@@ -71,7 +72,7 @@ export const useAppearanceStore = defineStore(
     // 更新默认页面
     const updateDefaultPage = async (page: string) => {
       try {
-        await window.electronAPI.updateDefaultPage(page)
+        await window.electronAPI.userSettings.updateDefaultPage(page)
       } catch (error) {
         console.error('更新默认页面失败:', error)
         throw error
@@ -81,7 +82,7 @@ export const useAppearanceStore = defineStore(
     // 更新侧边栏展开状态
     const updateStarredExpanded = async (expanded: boolean) => {
       try {
-        await window.electronAPI.updateStarredExpanded(expanded)
+        await window.electronAPI.userSettings.updateStarredExpanded(expanded)
       } catch (error) {
         console.error('更新星标展开状态失败:', error)
         throw error
@@ -90,7 +91,7 @@ export const useAppearanceStore = defineStore(
 
     const updateTagsExpanded = async (expanded: boolean) => {
       try {
-        await window.electronAPI.updateTagsExpanded(expanded)
+        await window.electronAPI.userSettings.updateTagsExpanded(expanded)
       } catch (error) {
         console.error('更新标签展开状态失败:', error)
         throw error
@@ -99,7 +100,7 @@ export const useAppearanceStore = defineStore(
 
     const updateRecentExpanded = async (expanded: boolean) => {
       try {
-        await window.electronAPI.updateRecentExpanded(expanded)
+        await window.electronAPI.userSettings.updateRecentExpanded(expanded)
       } catch (error) {
         console.error('更新最近展开状态失败:', error)
         throw error
@@ -110,26 +111,12 @@ export const useAppearanceStore = defineStore(
     const updateWhiteboardEnabled = async (enabled: boolean) => {
       try {
         isLoading.value = true
-        const updatedSettings = await window.electronAPI.updateWhiteboardEnabled(enabled)
+        const updatedSettings =
+          await window.electronAPI.userSettings.updateWhiteboardEnabled(enabled)
         settings.value = updatedSettings
         return updatedSettings
       } catch (error) {
         console.error('更新白板功能开关失败:', error)
-        throw error
-      } finally {
-        isLoading.value = false
-      }
-    }
-
-    // 更新 AI 助手功能开关
-    const updateAIAssistantEnabled = async (enabled: boolean) => {
-      try {
-        isLoading.value = true
-        const updatedSettings = await window.electronAPI.updateAIAssistantEnabled(enabled)
-        settings.value = updatedSettings
-        return updatedSettings
-      } catch (error) {
-        console.error('更新 AI 助手功能开关失败:', error)
         throw error
       } finally {
         isLoading.value = false
@@ -192,8 +179,7 @@ export const useAppearanceStore = defineStore(
       updateRecentExpanded,
       initializeSettings,
       defaultRoute,
-      updateWhiteboardEnabled,
-      updateAIAssistantEnabled
+      updateWhiteboardEnabled
     }
   },
   { persist: true }

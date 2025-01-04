@@ -69,11 +69,11 @@
 import { ref, computed, onMounted, onUnmounted, provide } from 'vue'
 import { RouterView } from 'vue-router'
 import { useDebounceFn } from '@vueuse/core'
-import { useUIStore } from './stores/useUIStore'
-import { useNoteStore } from './stores/noteStores'
-import { useNoteMenu } from './composables/useNoteMenu'
-import { useGlobalHotkeys } from './composables/useGlobalHotkeys'
-import { useWebDAVStore } from './stores/webdavStore'
+import { useUIStore } from '@renderer/stores/UIStore'
+import { useNoteStore } from '@renderer/stores/noteStore'
+import { useNoteMenu } from '@renderer/composables/useNoteMenu'
+import { useGlobalHotkeys } from '@renderer/composables/useGlobalHotkeys'
+import { useWebDAVStore } from '@renderer/stores/webdavStore'
 import type { SyncState } from '@shared/types'
 
 // 组件导入
@@ -186,31 +186,31 @@ onMounted(async () => {
   }
 
   // 设置菜单事件监听
-  window.electronAPI.onMenuNewNote(async () => {
+  window.electronAPI.systemMenu.onMenuNewNote(async () => {
     await noteStore.createAndOpenNewNote()
   })
-  window.electronAPI.onMenuExportNotes(async () => {
+  window.electronAPI.systemMenu.onMenuExportNotes(async () => {
     await handleBulkExport()
   })
 
   // 监听同步状态变化
-  window.electronAPI.syncStateChanged((state: SyncState) => {
+  window.electronAPI.webDAV.syncStateChanged((state: SyncState) => {
     webdavStore.updateSyncState(state)
   })
 
   // 加载配置并启动自动同步
   await webdavStore.loadConfig()
   if (webdavStore.config?.autoSync) {
-    await window.electronAPI.startWebDAVAutoSync()
+    await window.electronAPI.webDAV.startWebDAVAutoSync()
   }
 })
 
 onUnmounted(() => {
   // 清理事件监听
   window.removeEventListener('resize', debouncedCheckWindowSize)
-  window.electronAPI.removeAllListeners('menu-new-note')
-  window.electronAPI.removeAllListeners('menu-export-notes')
-  window.electronAPI.removeAllListeners('sync-state-changed')
+  window.electronAPI.systemMenu.removeAllListeners('menu-new-note')
+  window.electronAPI.systemMenu.removeAllListeners('menu-export-notes')
+  window.electronAPI.systemMenu.removeAllListeners('sync-state-changed')
 })
 
 // 全局方法注入

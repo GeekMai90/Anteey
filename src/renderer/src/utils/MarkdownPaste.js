@@ -8,23 +8,13 @@ import Underline from '@tiptap/extension-underline'
 import { Plugin, PluginKey } from 'prosemirror-state' // 添加这一行
 
 // 定义自定义粘贴规则的正则表达式
-const boldPasteRegex = /(?:^|\s)((?:\*\*)((?:[^\*]+))(?:\*\*))/g
-const italicPasteRegex = /(?:^|\s)((?:\*)((?:[^\*]+))(?:\*))/g
+const boldPasteRegex = /(?:^|\s)((?:\*\*)((?:[^*]+))(?:\*\*))/g
+const italicPasteRegex = /(?:^|\s)((?:\*)((?:[^*]+))(?:\*))/g
 const strikePasteRegex = /(?:^|\s)((?:~~)((?:[^~]+))(?:~~))/g
 const codePasteRegex = /(?:^|\s)((?:`)((?:[^`]+))(?:`))/g
 const underlinePasteRegex = /(?:^|\s)((?:__)((?:[^_]+))(?:__))/g
 
 // 扩展每个插件
-// const CustomBold = Bold.extend({
-//   addPasteRules() {
-//     return [
-//       markPasteRule({
-//         find: boldPasteRegex,
-//         type: this.type,
-//       }),
-//     ];
-//   },
-// });
 const CustomBold = Bold.extend({
   addOptions() {
     return {

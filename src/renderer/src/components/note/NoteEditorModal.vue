@@ -11,7 +11,7 @@
 
 <script setup lang="ts">
 import { shallowRef, nextTick, onMounted, onUnmounted, ref } from 'vue'
-import { useNoteStore } from '@renderer/stores/noteStores'
+import { useNoteStore } from '@renderer/stores/noteStore'
 import Modal from '@renderer/components/common/Modal.vue'
 import NoteEditor from '@renderer/components/note/NoteEditor.vue'
 

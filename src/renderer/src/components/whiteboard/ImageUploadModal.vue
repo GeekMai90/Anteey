@@ -106,7 +106,7 @@ const processFile = async (file: File) => {
     reader.readAsDataURL(file)
 
     // 直接上传图片
-    const { path: imagePath } = await window.electronAPI.uploadImage(file.path, '')
+    const { path: imagePath } = await window.electronAPI.image.uploadImage(file.path, '')
 
     // 获取图片实际尺寸
     const img = new Image()

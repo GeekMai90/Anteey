@@ -96,8 +96,8 @@ import { LinkTwo } from '@icon-park/vue-next'
 import { formatDate } from '@renderer/utils/noteHelpers'
 import { useRouter } from 'vue-router'
 import type { References, InternalNoteReference, Note } from '@shared/types'
-import { useNoteStore } from '@renderer/stores/noteStores'
-import { useUIStore } from '@renderer/stores/useUIStore'
+import { useNoteStore } from '@renderer/stores/noteStore'
+import { useUIStore } from '@renderer/stores/UIStore'
 import { useEventBus } from '@vueuse/core'
 
 const props = defineProps<{
@@ -186,7 +186,7 @@ const fetchFullNotesData = async () => {
       })
     )
     // 过滤掉 null 的结果
-    directLinksData.value = directNotes.filter((note): note is Note => note !== null)
+    directLinksData.value = directNotes.filter((note: any): note is Note => note !== null)
 
     // 获取反向引用的笔记数据
     const backNotes = await Promise.all(
@@ -202,7 +202,7 @@ const fetchFullNotesData = async () => {
       })
     )
     // 过滤掉 null 的结果
-    backlinksData.value = backNotes.filter((note): note is Note => note !== null)
+    backlinksData.value = backNotes.filter((note: any): note is Note => note !== null)
   } catch (error) {
     console.error('获取笔记数据失败:', error)
   }

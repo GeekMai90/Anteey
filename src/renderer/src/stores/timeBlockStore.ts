@@ -66,7 +66,7 @@ export const useTimeBlockStore = defineStore('timeBlock', {
         }
 
         console.log('Store: 开始加载日期数据:', date)
-        const day = await window.electronAPI.getTimeBlockDay(date)
+        const day = await window.electronAPI.timeBlock.getTimeBlockDay(date)
         console.log('Store: 获取到的数据:', day)
 
         const dayData = day || {
@@ -105,7 +105,11 @@ export const useTimeBlockStore = defineStore('timeBlock', {
 
         if (!targetDay) throw new Error('No target day')
 
-        const blockId = await window.electronAPI.updateTimeBlock(targetDay.id, hour, content)
+        const blockId = await window.electronAPI.timeBlock.updateTimeBlock(
+          targetDay.id,
+          hour,
+          content
+        )
 
         if (!targetDay.blocks[hour]) {
           targetDay.blocks[hour] = {
@@ -145,7 +149,7 @@ export const useTimeBlockStore = defineStore('timeBlock', {
     // 新增：加载对比日期数据
     async loadCompareDay(date: string) {
       try {
-        const day = await window.electronAPI.getTimeBlockDay(date)
+        const day = await window.electronAPI.timeBlock.getTimeBlockDay(date)
         this.compareDay = day
         this.compareMode = true
       } catch (error) {
@@ -187,7 +191,7 @@ export const useTimeBlockStore = defineStore('timeBlock', {
           if (this.cache.has(date)) {
             return JSON.parse(JSON.stringify(this.cache.get(date)!))
           }
-          const day = await window.electronAPI.getTimeBlockDay(date)
+          const day = await window.electronAPI.timeBlock.getTimeBlockDay(date)
           const dayData = day || {
             id: '',
             date: date,
@@ -229,7 +233,7 @@ export const useTimeBlockStore = defineStore('timeBlock', {
     async updateDayStatus(status: { weather?: string; mood?: string }) {
       if (!this.currentDay) return
       try {
-        await window.electronAPI.updateTimeBlockDayStatus(this.currentDay.id, status)
+        await window.electronAPI.timeBlock.updateTimeBlockDayStatus(this.currentDay.id, status)
         if (status.weather !== undefined) {
           this.currentDay.weather = status.weather
         }
@@ -246,7 +250,7 @@ export const useTimeBlockStore = defineStore('timeBlock', {
     // 获取时间块设置
     async fetchSettings() {
       try {
-        const result = await window.electronAPI.getTimeBlockSettings()
+        const result = await window.electronAPI.timeBlock.getTimeBlockSettings()
         this.settings = result
         return result
       } catch (error) {
@@ -258,7 +262,7 @@ export const useTimeBlockStore = defineStore('timeBlock', {
     // 更新时间块设置
     async updateSettings(newSettings: { enabled?: boolean; startTime?: number; endTime?: number }) {
       try {
-        const result = await window.electronAPI.updateTimeBlockSettings(newSettings)
+        const result = await window.electronAPI.timeBlock.updateTimeBlockSettings(newSettings)
         this.settings = result
         return result
       } catch (error) {
@@ -270,7 +274,7 @@ export const useTimeBlockStore = defineStore('timeBlock', {
     // 获取未来日志
     async getFutureLog() {
       try {
-        const log = await window.electronAPI.getFutureLog()
+        const log = await window.electronAPI.timeBlock.getFutureLog()
         console.log('Store: 获取到的未来日志:', log)
         this.futureLog = log
         return log
@@ -283,7 +287,7 @@ export const useTimeBlockStore = defineStore('timeBlock', {
     // 更新未来日志
     async updateFutureLog(content: string) {
       try {
-        const id = await window.electronAPI.updateFutureLog(content)
+        const id = await window.electronAPI.timeBlock.updateFutureLog(content)
         if (this.futureLog) {
           this.futureLog.content = content
           this.futureLog.updatedAt = new Date()
@@ -305,7 +309,7 @@ export const useTimeBlockStore = defineStore('timeBlock', {
     // 获取月度日志
     async getMonthlyLog(year: number, month: number) {
       try {
-        const log = await window.electronAPI.getMonthlyLog(year, month)
+        const log = await window.electronAPI.timeBlock.getMonthlyLog(year, month)
         console.log('Store: 获取到的月度日志:', log)
         this.currentMonthlyLog = log
         return log
@@ -318,7 +322,7 @@ export const useTimeBlockStore = defineStore('timeBlock', {
     // 更新月度日志
     async updateMonthlyLog(year: number, month: number, content: string) {
       try {
-        const id = await window.electronAPI.updateMonthlyLog(year, month, content)
+        const id = await window.electronAPI.timeBlock.updateMonthlyLog(year, month, content)
         const now = new Date().toISOString() // 转换为 ISO 字符串格式
 
         if (this.currentMonthlyLog) {
@@ -344,7 +348,7 @@ export const useTimeBlockStore = defineStore('timeBlock', {
     // 获取指定年份的所有月度日志
     async getYearMonthlyLogs(year: number) {
       try {
-        const logs = await window.electronAPI.getYearMonthlyLogs(year)
+        const logs = await window.electronAPI.timeBlock.getYearMonthlyLogs(year)
         console.log('Store: 获取到的年度月度日志:', logs)
         this.monthlyLogs = logs
         return logs
@@ -363,7 +367,7 @@ export const useTimeBlockStore = defineStore('timeBlock', {
     // 搜索时光记
     async searchTimeBlocks(searchTerm: string) {
       try {
-        const results = await window.electronAPI.searchTimeBlocks(searchTerm)
+        const results = await window.electronAPI.timeBlock.searchTimeBlocks(searchTerm)
         this.searchResults = results
         return results
       } catch (error) {

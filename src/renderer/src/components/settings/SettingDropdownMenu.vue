@@ -48,7 +48,7 @@
 import { ref, onMounted, onUnmounted, watch } from 'vue'
 import { RecycleBin, SettingTwo, ImageFiles } from '@icon-park/vue-next'
 import { useRouter } from 'vue-router'
-import { useUIStore } from '@renderer/stores/useUIStore'
+import { useUIStore } from '@renderer/stores/UIStore'
 
 const router = useRouter()
 const uiStore = useUIStore()

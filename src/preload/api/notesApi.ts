@@ -5,7 +5,8 @@ import type {
   SearchParams,
   GetPaginatedNotesParams,
   TimelineQueryParams,
-  TimelineQueryResult
+  TimelineQueryResult,
+  CardBox
 } from '@shared/types'
 
 export const notesApi = {
@@ -168,18 +169,7 @@ export const notesApi = {
   searchNotesList: async (query: string): Promise<Note[]> => {
     return (await ipcRenderer.invoke('search-notes-list', query)) as Note[]
   },
-  // 获取热力图数据
-  getHeatmapData: async (): Promise<{ date: string; count: number }[]> => {
-    return (await ipcRenderer.invoke('get-heatmap-data')) as { date: string; count: number }[]
-  },
-  // 获取笔记总数量
-  getNoteCount: async (): Promise<number> => {
-    return (await ipcRenderer.invoke('get-note-count')) as number
-  },
-  // 获取昨日笔记数量
-  getLastDayNoteCount: async (): Promise<number> => {
-    return (await ipcRenderer.invoke('get-last-day-note-count')) as number
-  },
+
   // 获取相关笔记
   // getRelatedNotes: async (noteId: string, limit: number): Promise<RelatedNotesResult> => {
   //   return await ipcRenderer.invoke('get-related-notes', { noteId, limit })
@@ -319,5 +309,58 @@ export const notesApi = {
       title: string
       cardType: string
     }[]
+  },
+  createCardBox: async (name: string): Promise<CardBox> => {
+    try {
+      return (await ipcRenderer.invoke('create-card-box', name)) as CardBox
+    } catch (error) {
+      console.error('Preload: 创建卡片盒时出错:', error)
+      throw error
+    }
+  },
+  getAllCardBoxes: async (): Promise<CardBox[]> => {
+    try {
+      return (await ipcRenderer.invoke('get-all-card-boxes')) as CardBox[]
+    } catch (error) {
+      console.error('Preload: 获取所有卡片盒时出错:', error)
+      throw error
+    }
+  },
+  updateCardBox: async (id: string, name: string): Promise<CardBox | undefined> => {
+    try {
+      return (await ipcRenderer.invoke('update-card-box', { id, name })) as CardBox | undefined
+    } catch (error) {
+      console.error('Preload: 更新卡片盒时出错:', error)
+      throw error
+    }
+  },
+  deleteCardBox: async (id: string): Promise<void> => {
+    try {
+      return (await ipcRenderer.invoke('delete-card-box', id)) as void
+    } catch (error) {
+      console.error('Preload: 删除卡片盒时出错:', error)
+      throw error
+    }
+  },
+
+  updateNoteContent: async (id: string, content: any): Promise<Note> => {
+    try {
+      return (await ipcRenderer.invoke('update-note-content', id, content)) as Note
+    } catch (error) {
+      console.error('Preload: 更新笔记内容时出错:', error)
+      throw error
+    }
+  },
+  // 获取随机笔记
+  getRandomNotes: async (): Promise<Note[]> => {
+    return (await ipcRenderer.invoke('get-random-notes')) as Note[]
+  },
+  // 将空笔记移到回收站
+  moveEmptyNotesToTrash: async (): Promise<void> => {
+    await ipcRenderer.invoke('move-empty-notes-to-trash')
+  },
+  // 获取所有已删除的笔记
+  getAllDeletedNotes: async (): Promise<Note[]> => {
+    return (await ipcRenderer.invoke('get-all-deleted-notes')) as Note[]
   }
 }

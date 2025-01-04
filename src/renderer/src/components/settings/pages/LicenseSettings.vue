@@ -113,10 +113,10 @@
 import { ref, computed, onMounted } from 'vue'
 import { CrownThree } from '@icon-park/vue-next'
 import { useLicenseStore } from '../../../stores/licenseStore'
-import { useNoteStore } from '../../../stores/noteStores'
+import { useNoteStore } from '../../../stores/noteStore'
 import Modal from '../../../components/common/Modal.vue'
 import confetti from 'canvas-confetti'
-import { useUIStore } from '../../../stores/useUIStore'
+import { useUIStore } from '../../../stores/UIStore'
 const licenseStore = useLicenseStore()
 const noteStore = useNoteStore()
 const uiStore = useUIStore()

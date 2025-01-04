@@ -26,7 +26,7 @@ import ShareTipTapRender from '@renderer/components/share/ShareTipTapRender.vue'
 import { Note } from '@shared/types'
 import { computed, onMounted, ref } from 'vue'
 import QRCode from 'qrcode'
-import { useUserSettingsStore } from '@renderer/stores/useUserSettings'
+import { useUserSettingsStore } from '@renderer/stores/userSettingsStore'
 
 defineProps<{
   note: Note

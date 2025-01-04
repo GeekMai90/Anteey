@@ -118,7 +118,7 @@
 import { ref, onMounted, onUnmounted, computed, nextTick } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { Left, Right, ExpandLeft, ExpandRight } from '@icon-park/vue-next'
-import { useUIStore } from '@renderer/stores/useUIStore'
+import { useUIStore } from '@renderer/stores/UIStore'
 import { useKnowledgeTreeStore } from '@renderer/stores/knowledgeTreeStore'
 
 const uiStore = useUIStore()

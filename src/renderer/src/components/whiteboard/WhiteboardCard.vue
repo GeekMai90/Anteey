@@ -50,7 +50,7 @@
 import { defineProps, nextTick, onMounted, ref } from 'vue'
 import type { Whiteboard } from '@shared/types'
 import { Workbench, More } from '@icon-park/vue-next'
-import { useWhiteboardStore } from '@renderer/stores/whiteboardStores'
+import { useWhiteboardStore } from '@renderer/stores/whiteboardStore'
 import router from '@renderer/router'
 import PopupMenu from '@renderer/components/common/PopupMenu.vue'
 import { useNoteMenu } from '@renderer/composables/useNoteMenu'

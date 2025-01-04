@@ -27,7 +27,7 @@
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { DatePicker } from 'v-calendar'
 import 'v-calendar/style.css'
-import { useUIStore } from '@renderer/stores/useUIStore'
+import { useUIStore } from '@renderer/stores/UIStore'
 
 const uiStore = useUIStore()
 

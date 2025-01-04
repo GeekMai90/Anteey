@@ -18,7 +18,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { useNoteStore } from '@renderer/stores/noteStores'
+import { useNoteStore } from '@renderer/stores/noteStore'
 import RightSidebarNoteEditor from '@renderer/components/layout/RightSidebarNoteEditor.vue'
 // import { Clear } from '@icon-park/vue-next'
 
