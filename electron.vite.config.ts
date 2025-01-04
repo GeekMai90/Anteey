@@ -8,7 +8,8 @@ const sharedAliases = {
   '@shared': path.resolve(__dirname, 'src/shared'),
   '@': path.resolve(__dirname, 'src'),
   '@renderer': path.resolve(__dirname, 'src/renderer/src'),
-  '@resources': path.resolve(__dirname, 'resources')
+  '@resources': path.resolve(__dirname, 'resources'),
+  '@services': path.resolve(__dirname, 'src/services')
 }
 
 export default defineConfig({

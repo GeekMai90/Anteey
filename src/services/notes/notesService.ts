@@ -509,7 +509,7 @@ export async function createNote(): Promise<Note> {
       metadata: JSON.stringify(newNote.metadata)
     })
 
-    console.log('后端→ 创建笔记成功:', id)
+    // console.log('后端→ 创建笔记成功:', id)
     return newNote
   } catch (error) {
     console.error('后端→ 创建笔记失败:', error)
@@ -583,7 +583,7 @@ export async function updateNoteContent(id: string, content: object): Promise<No
 
           // 执行更新并返回更新后的笔记
           const [note] = await trx('notes').where('id', id).update(updateData).returning('*')
-          console.log(`后端→ 笔记 ${id} 内容已更新`)
+          // console.log(`后端→ 笔记 ${id} 内容已更新`)
           return convertToNote(note)
         },
         {
@@ -961,7 +961,7 @@ export async function updateStarredNotesOrder(
 // 更新笔记地址
 export async function updateNoteAddress(id: string, address: string): Promise<Note> {
   try {
-    console.log('后端→ 开始更新笔记地址:', { id, address })
+    // console.log('后端→ 开始更新笔记地址:', { id, address })
 
     const [updatedNote] = await db('notes')
       .where({ id })

@@ -1,5 +1,4 @@
-// 导入变量
-@import "variables";
+@use "variables" as *;
 
 // 基础样式
 html {

@@ -102,15 +102,24 @@
           <div class="sidebar-settings">
             <div class="setting-item">
               <div class="setting-label">星标默认展开</div>
-              <Switch v-model="starredExpanded" @change="handleStarredExpandedChange" />
+              <Switch
+                :model-value="!!starredExpanded"
+                @update:model-value="handleStarredExpandedChange"
+              />
             </div>
             <div class="setting-item">
               <div class="setting-label">标签默认展开</div>
-              <Switch v-model="tagsExpanded" @change="handleTagsExpandedChange" />
+              <Switch
+                :model-value="!!tagsExpanded"
+                @update:model-value="handleTagsExpandedChange"
+              />
             </div>
             <div class="setting-item">
               <div class="setting-label">最近默认展开</div>
-              <Switch v-model="recentExpanded" @change="handleRecentExpandedChange" />
+              <Switch
+                :model-value="!!recentExpanded"
+                @update:model-value="handleRecentExpandedChange"
+              />
             </div>
           </div>
         </div>
@@ -120,7 +129,10 @@
           <div class="feature-settings">
             <div class="setting-item">
               <div class="setting-label">启用思维板</div>
-              <Switch v-model="enableWhiteboard" @change="handleWhiteboardChange" />
+              <Switch
+                :model-value="!!enableWhiteboard"
+                @update:model-value="handleWhiteboardChange"
+              />
             </div>
           </div>
         </div>
@@ -173,37 +185,54 @@ const handleEditorFontChange = async () => {
   await appearanceStore.updateEditorFont(editorFont.value)
 }
 
-// 侧边栏展开状态
-const starredExpanded = ref(true)
-const tagsExpanded = ref(true)
-const recentExpanded = ref(true)
+// 状态定义
+const starredExpanded = ref(false)
+const tagsExpanded = ref(false)
+const recentExpanded = ref(false)
+const enableWhiteboard = ref(false)
 
-// 处理状态变更
+// 初始化数据
+onMounted(() => {
+  starredExpanded.value = Boolean(appearanceStore.settings?.starredExpanded ?? true)
+  tagsExpanded.value = Boolean(appearanceStore.settings?.tagsExpanded ?? false)
+  recentExpanded.value = Boolean(appearanceStore.settings?.recentExpanded ?? true)
+  enableWhiteboard.value = Boolean(appearanceStore.settings?.enableWhiteboard ?? true)
+})
+
+// 处理函数
 const handleStarredExpandedChange = async (value: boolean) => {
   try {
     await appearanceStore.updateStarredExpanded(value)
+    starredExpanded.value = value
   } catch (error) {
     console.error('更新星标展开状态失败:', error)
-    // 恢复原状态
-    starredExpanded.value = !value
   }
 }
 
 const handleTagsExpandedChange = async (value: boolean) => {
   try {
     await appearanceStore.updateTagsExpanded(value)
+    tagsExpanded.value = value
   } catch (error) {
     console.error('更新标签展开状态失败:', error)
-    tagsExpanded.value = !value
   }
 }
 
 const handleRecentExpandedChange = async (value: boolean) => {
   try {
     await appearanceStore.updateRecentExpanded(value)
+    recentExpanded.value = value
   } catch (error) {
     console.error('更新最近展开状态失败:', error)
-    recentExpanded.value = !value
+  }
+}
+
+const handleWhiteboardChange = async (value: boolean) => {
+  try {
+    await appearanceStore.updateWhiteboardEnabled(value)
+    enableWhiteboard.value = value
+  } catch (error) {
+    console.error('更新白板功能开关失败:', error)
   }
 }
 
@@ -276,20 +305,6 @@ onMounted(async () => {
     }
   }
 })
-
-// 功能开关状态
-const enableWhiteboard = ref(appearanceStore.settings?.enableWhiteboard ?? true)
-
-// 处理状态变更
-const handleWhiteboardChange = async (value: boolean) => {
-  try {
-    await appearanceStore.updateWhiteboardEnabled(value)
-  } catch (error) {
-    console.error('更新白板功能开关失败:', error)
-    // 恢复原状态
-    enableWhiteboard.value = !value
-  }
-}
 </script>
 
 <style scoped lang="scss">

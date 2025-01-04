@@ -21,6 +21,9 @@
       ],
       "@resources/*": [
         "resources/*"
+      ],
+      "@services/*": [ // 添加 services 别名
+        "src/services/*"
       ]
     }
   }

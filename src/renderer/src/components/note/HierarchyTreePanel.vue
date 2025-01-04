@@ -622,8 +622,8 @@ const handleNodeDblClick = (note: Note | undefined | null) => {
 
 watch(
   () => localTreeStore.treeData,
-  (newData) => {
-    console.log('Tree data updated:', newData) // 检查树形数据更新
+  () => {
+    // console.log('Tree data updated:', newData) // 检查树形数据更新
     renderHierarchyTree()
   }
 )

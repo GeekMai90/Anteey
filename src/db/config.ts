@@ -64,7 +64,7 @@ export function initializeDb() {
     },
     useNullAsDefault: true,
     // 添加查询日志（仅在开发环境）
-    debug: isDev,
+    // debug: isDev,
     // 添加连接后的配置
     afterCreate: (conn: any, done: any) => {
       // 设置内存管理
