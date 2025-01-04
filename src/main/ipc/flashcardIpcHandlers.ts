@@ -33,11 +33,22 @@ export function setupFlashcardHandlers() {
       {
         noteId,
         feedback,
+        reviewTime,
         isSimplified
-      }: { noteId: string; feedback: ReviewFeedback; isSimplified?: boolean }
+      }: {
+        noteId: string
+        feedback: ReviewFeedback
+        reviewTime: number
+        isSimplified?: boolean
+      }
     ) => {
       try {
-        await flashcardService.updateFlashcardStatus({ noteId, feedback, isSimplified })
+        await flashcardService.updateFlashcardStatus({
+          noteId,
+          feedback,
+          reviewTime,
+          isSimplified
+        })
         return { success: true }
       } catch (error) {
         console.error('主进程→ 更新闪卡状态失败:', error)

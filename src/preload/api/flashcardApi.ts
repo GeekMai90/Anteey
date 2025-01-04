@@ -34,6 +34,7 @@ export const flashcardApi = {
   updateFlashcardStatus: async (params: {
     noteId: string
     feedback: ReviewFeedback
+    reviewTime: number
     isSimplified?: boolean
   }): Promise<void> => {
     try {

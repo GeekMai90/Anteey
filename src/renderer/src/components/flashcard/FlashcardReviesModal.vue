@@ -38,6 +38,9 @@
             </div>
           </button>
         </div>
+        <div class="timer-display" :style="timerStyles">
+          <span class="time-value">{{ Math.floor(elapsedTime / 1000) }}</span>
+        </div>
       </div>
 
       <!-- 顶部进度条 -->
@@ -110,7 +113,7 @@
                 </div>
                 <span class="label">{{ feedback.label }}</span>
               </div>
-              <div class="next-review-time">
+              <div v-if="showNextReviewTime" class="next-review-time">
                 {{ formatInterval(getExpectedDueTime(feedback.value)) }}
               </div>
             </div>
@@ -138,7 +141,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import {
   Close,
   CheckOne,
@@ -162,6 +165,7 @@ import confetti from 'canvas-confetti'
 import { formatDistanceToNow } from 'date-fns'
 import { zhCN } from 'date-fns/locale'
 import { fsrs, Rating, type Grade } from 'ts-fsrs'
+import { useFlashcardStore } from '@renderer/stores/flashcardStore'
 
 const props = defineProps<{
   modelValue: boolean
@@ -170,7 +174,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   'update:modelValue': [value: boolean]
-  feedback: [noteId: string, feedback: ReviewFeedback]
+  feedback: [noteId: string, feedback: ReviewFeedback, reviewTime: number, isSimplified: boolean]
   complete: []
 }>()
 
@@ -193,44 +197,72 @@ const currentCard = computed(() => {
   return card
 })
 
-// 反馈选项
-const feedbackOptions = [
-  {
-    label: '稍后复习',
-    value: 'skip' as ReviewFeedback,
-    class: 'skip',
-    icon: CircleDoubleRight,
-    shortcut: 'H'
-  },
-  {
-    label: '完全不会',
-    value: 'forgot' as ReviewFeedback,
-    class: 'forgot',
-    icon: CloseOne,
-    shortcut: 'J'
-  },
-  {
-    label: '有点困难',
-    value: 'partially_recalled' as ReviewFeedback,
-    class: 'partial',
-    icon: ThinkingProblem,
-    shortcut: 'K'
-  },
-  {
-    label: '记住了',
-    value: 'recalled_effort' as ReviewFeedback,
-    class: 'recalled',
-    icon: CheckOne,
-    shortcut: 'L'
-  },
-  {
-    label: '很容易',
-    value: 'easily_recalled' as ReviewFeedback,
-    class: 'mastered',
-    icon: GrinningFaceWithSquintingEyes,
-    shortcut: ';'
+const flashcardStore = useFlashcardStore()
+
+// 获取设置中的简化按钮状态
+const isSimplifiedMode = computed(() => flashcardStore.settings?.simplifyButtons ?? false)
+
+// 修改反馈选项，根据简化模式显示不同的选项
+const feedbackOptions = computed(() => {
+  if (isSimplifiedMode.value) {
+    // 简化模式：只显示两个按钮
+    return [
+      {
+        label: '完全不会',
+        value: 'forgot' as ReviewFeedback,
+        class: 'forgot',
+        icon: CloseOne,
+        shortcut: 'J'
+      },
+      {
+        label: '有点印象',
+        value: 'recalled_effort' as ReviewFeedback,
+        class: 'recalled',
+        icon: CheckOne,
+        shortcut: 'L'
+      }
+    ]
   }
-]
+
+  // 完整模式：显示所有按钮
+  return [
+    {
+      label: '稍后复习',
+      value: 'skip' as ReviewFeedback,
+      class: 'skip',
+      icon: CircleDoubleRight,
+      shortcut: 'H'
+    },
+    {
+      label: '完全不会',
+      value: 'forgot' as ReviewFeedback,
+      class: 'forgot',
+      icon: CloseOne,
+      shortcut: 'J'
+    },
+    {
+      label: '有点困难',
+      value: 'partially_recalled' as ReviewFeedback,
+      class: 'partial',
+      icon: ThinkingProblem,
+      shortcut: 'K'
+    },
+    {
+      label: '记住了',
+      value: 'recalled_effort' as ReviewFeedback,
+      class: 'recalled',
+      icon: CheckOne,
+      shortcut: 'L'
+    },
+    {
+      label: '很容易',
+      value: 'easily_recalled' as ReviewFeedback,
+      class: 'mastered',
+      icon: GrinningFaceWithSquintingEyes,
+      shortcut: ';'
+    }
+  ]
+})
 
 // 方法
 const flipCard = () => {
@@ -245,19 +277,48 @@ const flipCard = () => {
   }
 }
 
+// 添加计时相关的状态
+const startTime = ref<number>(0) // 开始时间戳
+const elapsedTime = ref<number>(0) // 已用时间
+const timerInterval = ref<number>() // 计时器间隔
+
+// 格式化时间显示
+// const formatTime = (ms: number) => {
+//   const seconds = Math.floor(ms / 1000)
+//   return `${seconds}秒`
+// }
+
+// 开始计时
+const startTimer = () => {
+  startTime.value = Date.now()
+  timerInterval.value = window.setInterval(() => {
+    elapsedTime.value = Date.now() - startTime.value
+  }, 1000)
+}
+
+// 停止计时
+const stopTimer = () => {
+  if (timerInterval.value) {
+    clearInterval(timerInterval.value)
+  }
+}
+
 const handleFeedback = async (feedback: ReviewFeedback) => {
-  console.log('提交反馈:', {
-    feedback,
-    noteId: currentCard.value?.id,
-    currentIndex: currentIndex.value,
-    totalCards: totalCards.value
-  })
-  emit('feedback', currentCard.value.id, feedback)
+  if (!currentCard.value) return
+
+  // 停止当前计时
+  stopTimer()
+  const reviewTime = Date.now() - startTime.value
+
+  // 发送反馈时带上用时
+  emit('feedback', currentCard.value.id, feedback, reviewTime, isSimplifiedMode.value)
 
   // 移动到下一张卡片
   if (currentIndex.value < totalCards.value - 1) {
     currentIndex.value++
     isFlipped.value = false
+    // 重新开始计时
+    startTimer()
   } else {
     isCompleted.value = true
     // 触发烟花效果
@@ -291,9 +352,13 @@ const handleFeedback = async (feedback: ReviewFeedback) => {
 }
 
 const handleClose = () => {
+  // 停止计时
+  stopTimer()
+  // 重置计时状态
+  elapsedTime.value = 0
+
   emit('update:modelValue', false)
   // 如果是学习完成状态，触发完成事件
-
   emit('complete')
 
   // 重置状态
@@ -301,6 +366,21 @@ const handleClose = () => {
   isFlipped.value = false
   isCompleted.value = false
 }
+
+// 监听 modelValue 的变化，当模态框打开时开始计时
+watch(
+  () => props.modelValue,
+  (newValue) => {
+    if (newValue && props.cards.length > 0) {
+      // 模态框打开，开始计时
+      startTimer()
+    } else {
+      // 模态框关闭，停止计时并重置
+      stopTimer()
+      elapsedTime.value = 0
+    }
+  }
+)
 
 // 新增：更多菜单相关逻辑
 const moreBtnRef = ref<HTMLElement | null>(null)
@@ -345,7 +425,9 @@ const handleKeydown = (e: KeyboardEvent) => {
   // 处理反馈快捷键
   if (isFlipped.value) {
     const key = e.key.toUpperCase()
-    const feedbackOption = feedbackOptions.find((option) => option.shortcut.toUpperCase() === key)
+    const feedbackOption = feedbackOptions.value.find(
+      (option) => option.shortcut.toUpperCase() === key
+    )
     if (feedbackOption) {
       e.preventDefault()
       handleFeedback(feedbackOption.value)
@@ -396,6 +478,39 @@ const feedbackToRating = (feedback: ReviewFeedback): Grade => {
       return Rating.Good
   }
 }
+
+// 添加一个计算属性来获取是否显示下次复习时间的设置
+const showNextReviewTime = computed(() => flashcardStore.settings?.showNextReview ?? true)
+
+// 在组件挂载时开始计时
+onMounted(() => {
+  if (props.cards.length > 0) {
+    startTimer()
+  }
+})
+
+// 在组件卸载时清理计时器
+onUnmounted(() => {
+  stopTimer()
+})
+
+// 添加一个计算属性来判断是否超时
+const isOverTime = computed(() => {
+  const maxTime = (flashcardStore.settings?.maxAnswerTime ?? 20) * 1000 // 转换为毫秒
+  return elapsedTime.value > maxTime
+})
+
+// 添加一个计算属性来设置 CSS 变量
+const timerStyles = computed(() => ({
+  '--timer-gradient': isOverTime.value
+    ? 'linear-gradient(135deg, rgba(var(--color-danger-rgb), 0.05), rgba(var(--color-danger-rgb), 0.1))'
+    : 'linear-gradient(135deg, rgba(var(--color-primary-rgb), 0.05), rgba(var(--color-primary-rgb), 0.1))',
+  '--timer-border-color': isOverTime.value
+    ? 'rgba(var(--color-danger-rgb), 0.1)'
+    : 'rgba(var(--color-primary-rgb), 0.1)',
+  '--timer-text-color': isOverTime.value ? 'var(--color-danger)' : 'var(--color-primary)',
+  '--timer-animation': isOverTime.value ? 'timerPulseDanger' : 'timerPulse'
+}))
 </script>
 
 <style lang="scss" scoped>
@@ -747,6 +862,8 @@ const feedbackToRating = (feedback: ReviewFeedback): Grade => {
         .next-review-time {
           font-size: 12px;
           opacity: 0.8;
+          transition: all 0.3s ease;
+          height: 16px; // 固定高度以保持按钮大小一致
         }
       }
 
@@ -924,5 +1041,87 @@ const feedbackToRating = (feedback: ReviewFeedback): Grade => {
   font-size: 12px;
   color: var(--color-text-secondary);
   opacity: 0.8;
+}
+
+.timer-display {
+  position: absolute;
+  left: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  padding: 6px 12px;
+  border-radius: 6px;
+  background: var(--timer-gradient);
+  border: 1px solid var(--timer-border-color);
+  font-size: 14px;
+  color: var(--timer-text-color);
+  font-weight: 500;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+
+  &::before {
+    content: '用时';
+    font-family:
+      system-ui,
+      -apple-system,
+      sans-serif;
+    font-size: 13px;
+    color: var(--timer-text-color);
+    opacity: 0.8;
+  }
+
+  .time-value {
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--timer-text-color);
+    min-width: 40px;
+    text-align: center;
+    position: relative;
+
+    &::after {
+      content: '秒';
+      font-family:
+        system-ui,
+        -apple-system,
+        sans-serif;
+      font-size: 13px;
+      margin-left: 2px;
+      opacity: 0.8;
+    }
+  }
+
+  &:hover {
+    transform: translateY(-50%) translateX(2px);
+    box-shadow: 0 4px 12px rgba(var(--color-primary-rgb), 0.1);
+  }
+
+  animation: var(--timer-animation) 2s infinite;
+}
+
+@keyframes timerPulse {
+  0% {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  }
+  50% {
+    box-shadow: 0 2px 12px rgba(var(--color-primary-rgb), 0.15);
+  }
+  100% {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  }
+}
+
+// 添加超时状态的脉动动画
+@keyframes timerPulseDanger {
+  0% {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  }
+  50% {
+    box-shadow: 0 2px 12px rgba(var(--color-danger-rgb), 0.2);
+  }
+  100% {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  }
 }
 </style>

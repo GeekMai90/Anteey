@@ -68,12 +68,14 @@ export const useFlashcardStore = defineStore(
     const updateFlashcardStatus = async (
       noteId: string,
       feedback: ReviewFeedback,
+      reviewTime: number,
       isSimplified?: boolean
     ) => {
       try {
         await window.electronAPI.flashcard.updateFlashcardStatus({
           noteId,
           feedback,
+          reviewTime,
           isSimplified
         })
         // 更新状态

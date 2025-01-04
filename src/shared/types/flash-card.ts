@@ -14,6 +14,12 @@ export type ReviewFeedback =
 // 熟练度的类型定义（直接使用 FSRS 的状态）
 export type ProficiencyLevel = FSRSStateType // 'New' | 'Learning' | 'Review' | 'Relearning'
 
+// 时间统计数据
+export interface TimeStats {
+  totalTime: number // 总用时（毫秒）
+  lastReviewTime: number // 最近一次复习用时（毫秒）
+}
+
 // 闪卡数据
 export interface FlashcardData {
   lastReviewedAt?: Date
@@ -24,6 +30,7 @@ export interface FlashcardData {
   fsrs?: FSRSCard & {
     state: State // 确保这里是 State 枚举类型
   }
+  timeStats?: TimeStats // 新增时间统计数据
 }
 
 // 闪卡统计信息

@@ -210,9 +210,14 @@ const tagDecks = ref<
 >([])
 
 // 处理复习反馈
-const handleReviewFeedback = async (noteId: string, feedback: ReviewFeedback) => {
+const handleReviewFeedback = async (
+  noteId: string,
+  feedback: ReviewFeedback,
+  reviewTime: number,
+  isSimplified: boolean
+) => {
   try {
-    await flashcardStore.updateFlashcardStatus(noteId, feedback)
+    await flashcardStore.updateFlashcardStatus(noteId, feedback, reviewTime, isSimplified)
     // 更新卡组数据和进度
     const decks = await flashcardStore.fetchFlashcardDecks()
 

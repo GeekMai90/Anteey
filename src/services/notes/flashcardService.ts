@@ -75,10 +75,12 @@ export class FlashcardService {
   async updateFlashcardStatus({
     noteId,
     feedback,
-    isSimplified = false // 添加参数标识是否使用简化按钮
+    reviewTime,
+    isSimplified = false
   }: {
     noteId: string
     feedback: ReviewFeedback
+    reviewTime: number
     isSimplified?: boolean
   }): Promise<void> {
     try {
@@ -112,6 +114,12 @@ export class FlashcardService {
       const rating = this.feedbackToRating(actualFeedback)
       const result = scheduling[rating]
 
+      // 更新时间统计数据
+      const timeStats = flashcardData.timeStats || {
+        totalTime: 0,
+        lastReviewTime: 0
+      }
+
       const updatedData: FlashcardData = {
         ...flashcardData,
         lastReviewedAt: new Date(),
@@ -119,7 +127,11 @@ export class FlashcardService {
         reviewCount: (flashcardData.reviewCount || 0) + 1,
         lastFeedback: actualFeedback,
         proficiency: State[result.card.state] as FSRSStateType,
-        fsrs: result.card
+        fsrs: result.card,
+        timeStats: {
+          totalTime: timeStats.totalTime + reviewTime,
+          lastReviewTime: reviewTime
+        }
       }
 
       await db('notes')

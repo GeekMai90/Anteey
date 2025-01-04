@@ -406,6 +406,7 @@ export interface ElectronAPI {
     updateFlashcardStatus: (params: {
       noteId: string
       feedback: ReviewFeedback
+      reviewTime: number // 新增：本次复习用时（毫秒）
       isSimplified?: boolean
     }) => Promise<void>
     getDueFlashcards: (tags?: string[]) => Promise<Note[]>
