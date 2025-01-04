@@ -69,7 +69,8 @@ import type {
   FlashcardDecks,
   FlashcardStats,
   ReviewFeedback,
-  CardBox
+  CardBox,
+  FlashcardSettings
 } from '@shared/types'
 
 export interface ElectronAPI {
@@ -396,18 +397,26 @@ export interface ElectronAPI {
   }
 
   flashcard: {
-    // 将笔记转换为闪卡
+    // 基础操作
     convertToFlashcard: (noteId: string) => Promise<void>
-    // 取消闪卡标记
     removeFlashcard: (noteId: string) => Promise<void>
-    // 更新闪卡复习状态
-    updateFlashcardStatus: (params: { noteId: string; feedback: ReviewFeedback }) => Promise<void>
-    // 获取待复习的闪卡
+    resetFlashcardProgress: (noteId: string) => Promise<void>
+
+    // 复习相关
+    updateFlashcardStatus: (params: {
+      noteId: string
+      feedback: ReviewFeedback
+      isSimplified?: boolean
+    }) => Promise<void>
     getDueFlashcards: (tags?: string[]) => Promise<Note[]>
-    // 获取闪卡统计信息
+
+    // 统计相关
     getFlashcardStats: () => Promise<FlashcardStats>
-    // 添加获取闪卡卡组数据的方法类型
     getFlashcardDecks: () => Promise<FlashcardDecks>
+
+    // 设置相关
+    getSettings: () => Promise<FlashcardSettings>
+    updateSettings: (settings: Partial<FlashcardSettings>) => Promise<void>
   }
 
   noteVersion: {

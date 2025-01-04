@@ -70,3 +70,40 @@ export type DeckSortBy =
   | 'totalCount' // 按总卡片数
   | 'progress' // 按进度
   | 'lastReviewed' // 按最后复习时间
+
+// 记忆卡设置
+export interface FlashcardSettings {
+  // 学习计划
+  dailyGoal: number // 每日目标数量
+  newCardsPerDay: number // 每日新卡片数量
+  reviewsPerDay: number // 每日复习上限
+  dayStartsAt: number // 新的一天开始时间(0-23小时)
+  // 学习顺序
+  newCardPosition: 'mix' | 'front' | 'end' // 新卡片顺序
+  // 算法参数
+  requestRetention: number // 目标记忆率
+  maximumInterval: number // 最大间隔天数
+  // 界面设置
+  simplifyButtons: boolean // 简化反馈按钮
+  showNextReview: boolean // 显示下次复习时间
+  // 统计设置
+  maxAnswerTime: number // 最大记忆卡片回答时间(秒)
+  forgetThreshold: number // 遗忘阈值(次数)
+  reviewAgainAfter: number // 超前学习时间(分钟)
+}
+
+// 默认设置
+export const DEFAULT_FLASHCARD_SETTINGS: FlashcardSettings = {
+  dailyGoal: 30, // 默认每日目标 30 张卡片
+  newCardsPerDay: 20,
+  reviewsPerDay: 100,
+  dayStartsAt: 4, // 默认凌晨 4 点开始新的一天
+  newCardPosition: 'mix',
+  requestRetention: 0.9,
+  maximumInterval: 180,
+  simplifyButtons: false, // 默认显示完整按钮
+  showNextReview: true, // 默认显示下次复习时间
+  maxAnswerTime: 20, // 默认 20 秒
+  forgetThreshold: 4, // 默认 4 次
+  reviewAgainAfter: 15 // 默认 15 分钟
+}

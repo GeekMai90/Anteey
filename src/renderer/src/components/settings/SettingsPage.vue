@@ -45,6 +45,7 @@
       <LicenseSettings v-if="currentMenuItem === 'license'" />
       <TimeBlockSettings v-if="currentMenuItem === 'timeblock'" />
       <WebDAVSettings v-if="currentMenuItem === 'webdav'" />
+      <FlashcardSettings v-if="currentMenuItem === 'flashcard'" />
     </div>
   </div>
 </template>
@@ -59,7 +60,8 @@ import {
   Share,
   CrownThree,
   Time,
-  CloudStorage
+  CloudStorage,
+  StorageCardOne
 } from '@icon-park/vue-next'
 import BackupSettings from './pages/BackupSettings.vue'
 import ShortcutsSettings from './pages/ShortcutsSettings.vue'
@@ -68,10 +70,12 @@ import AppearanceSettings from './pages/AppearanceSettings.vue'
 import LicenseSettings from './pages/LicenseSettings.vue'
 import TimeBlockSettings from './pages/TimeBlockSettings.vue'
 import WebDAVSettings from './pages/WebDAVSettings.vue'
+import FlashcardSettings from './pages/FlashcardSettings.vue'
 
 const menuItems = [
   { key: 'appearance', label: '外观', icon: Theme },
   { key: 'timeblock', label: '时光记', icon: Time },
+  { key: 'flashcard', label: '记忆卡', icon: StorageCardOne },
   { key: 'shortcuts', label: '快捷键', icon: KeyboardOne },
   { key: 'share', label: '分享', icon: Share },
   { key: 'backup', label: '备份', icon: DatabaseDownload },

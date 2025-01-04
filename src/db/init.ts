@@ -860,6 +860,54 @@ export async function initDatabase(db: Knex): Promise<void> {
 
     console.log('note_versions 表创建成功')
   }
+
+  // 创建记忆卡设置表
+  if (!(await db.schema.hasTable('flashcard_settings'))) {
+    await db.schema.createTable('flashcard_settings', (table) => {
+      table.string('id').primary()
+      // 学习计划
+      table.integer('dailyGoal').notNullable().defaultTo(30) // 每日目标数量
+      table.integer('newCardsPerDay').notNullable().defaultTo(20) // 新卡片数量
+      table.integer('reviewsPerDay').notNullable().defaultTo(100) // 复习上限
+      table.integer('dayStartsAt').notNullable().defaultTo(4) // 新的一天开始时间
+      // 学习顺序
+      table.enum('newCardPosition', ['mix', 'front', 'end']).notNullable().defaultTo('mix')
+      // 算法参数
+      table.float('requestRetention').notNullable().defaultTo(0.9)
+      table.integer('maximumInterval').notNullable().defaultTo(180)
+      // 界面设置
+      table.boolean('simplifyButtons').notNullable().defaultTo(false)
+      table.boolean('showNextReview').notNullable().defaultTo(true)
+      // 统计设置
+      table.integer('maxAnswerTime').notNullable().defaultTo(20) // 秒
+      table.integer('forgetThreshold').notNullable().defaultTo(4) // 次数
+      table.integer('reviewAgainAfter').notNullable().defaultTo(15) // 分钟
+      // 时间戳
+      table.datetime('createdAt').notNullable()
+      table.datetime('updatedAt').notNullable()
+    })
+
+    // 插入默认设置
+    await db('flashcard_settings').insert({
+      id: uuidv4(),
+      dailyGoal: 30,
+      newCardsPerDay: 20,
+      reviewsPerDay: 100,
+      dayStartsAt: 4,
+      newCardPosition: 'mix',
+      requestRetention: 0.9,
+      maximumInterval: 180,
+      simplifyButtons: false,
+      showNextReview: true,
+      maxAnswerTime: 20,
+      forgetThreshold: 4,
+      reviewAgainAfter: 15,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    })
+
+    console.log('flashcard_settings 表创建成功')
+  }
 }
 
 export async function down(db: Knex): Promise<void> {
@@ -897,5 +945,6 @@ export async function down(db: Knex): Promise<void> {
   await db.schema.dropTableIfExists('webdav_sync_history')
   await db.schema.dropTableIfExists('webdav_config')
   await db.schema.dropTableIfExists('note_versions')
+  await db.schema.dropTableIfExists('flashcard_settings')
   console.log('所有表已删除')
 }

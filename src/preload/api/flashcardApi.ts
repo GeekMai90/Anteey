@@ -1,6 +1,11 @@
 import { ipcRenderer } from 'electron'
 import type { Note } from '@shared/types'
-import type { ReviewFeedback, FlashcardStats, FlashcardDecks } from '@shared/types'
+import type {
+  ReviewFeedback,
+  FlashcardStats,
+  FlashcardDecks,
+  FlashcardSettings
+} from '@shared/types'
 
 export const flashcardApi = {
   // 将笔记转换为闪卡
@@ -29,6 +34,7 @@ export const flashcardApi = {
   updateFlashcardStatus: async (params: {
     noteId: string
     feedback: ReviewFeedback
+    isSimplified?: boolean
   }): Promise<void> => {
     try {
       const result = await ipcRenderer.invoke('update-flashcard-status', params)
@@ -71,6 +77,40 @@ export const flashcardApi = {
       return result.decks // 从 result 中取出 decks
     } catch (error) {
       console.error('预加载脚本 → 获取闪卡卡组数据失败:', error)
+      throw error
+    }
+  },
+
+  // 重置闪卡进度
+  resetFlashcardProgress: async (noteId: string): Promise<void> => {
+    try {
+      const result = await ipcRenderer.invoke('reset-flashcard', noteId)
+      if (!result.success) throw new Error(result.error)
+    } catch (error) {
+      console.error('预加载脚本 → 重置闪卡进度失败:', error)
+      throw error
+    }
+  },
+
+  // 获取记忆卡设置
+  getSettings: async (): Promise<FlashcardSettings> => {
+    try {
+      const result = await ipcRenderer.invoke('get-flashcard-settings')
+      if (!result.success) throw new Error(result.error)
+      return result.settings
+    } catch (error) {
+      console.error('预加载脚本 → 获取记忆卡设置失败:', error)
+      throw error
+    }
+  },
+
+  // 更新记忆卡设置
+  updateSettings: async (settings: Partial<FlashcardSettings>): Promise<void> => {
+    try {
+      const result = await ipcRenderer.invoke('update-flashcard-settings', settings)
+      if (!result.success) throw new Error(result.error)
+    } catch (error) {
+      console.error('预加载脚本 → 更新记忆卡设置失败:', error)
       throw error
     }
   }

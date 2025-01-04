@@ -1,9 +1,11 @@
 import { db } from '../../db/config'
-import type { Note, TaggedDeck, UntaggedDeck } from '@shared/types'
+import type { Note, TaggedDeck, UntaggedDeck, FlashcardSettings } from '@shared/types'
 import type { FlashcardData, ReviewFeedback, FlashcardStats, FlashcardDecks } from '@shared/types'
 import type { StateType as FSRSStateType } from 'ts-fsrs'
 import { convertToNote } from '../notes/notesService'
 import { fsrs, createEmptyCard, Rating, State, type Grade } from 'ts-fsrs'
+import { DEFAULT_FLASHCARD_SETTINGS } from '@shared/types'
+import { v4 as uuidv4 } from 'uuid'
 
 export class FlashcardService {
   private f = fsrs() // 创建 FSRS 实例
@@ -72,10 +74,12 @@ export class FlashcardService {
   // 更新闪卡复习状态
   async updateFlashcardStatus({
     noteId,
-    feedback
+    feedback,
+    isSimplified = false // 添加参数标识是否使用简化按钮
   }: {
     noteId: string
     feedback: ReviewFeedback
+    isSimplified?: boolean
   }): Promise<void> {
     try {
       const note = await db('notes').where({ id: noteId }).first()
@@ -88,9 +92,24 @@ export class FlashcardService {
         throw new Error('闪卡数据不完整')
       }
 
+      // 如果是简化模式，转换反馈
+      let actualFeedback = feedback
+      if (isSimplified) {
+        switch (feedback) {
+          case 'forgot':
+            actualFeedback = 'forgot' // 保持不变
+            break
+          case 'partially_recalled':
+            actualFeedback = 'partially_recalled' // 保持不变
+            break
+          default:
+            actualFeedback = 'recalled_effort' // 其他情况都转为 recalled_effort
+        }
+      }
+
       // 使用 FSRS 计算下一次复习
       const scheduling = this.f.repeat(flashcardData.fsrs, new Date())
-      const rating = this.feedbackToRating(feedback)
+      const rating = this.feedbackToRating(actualFeedback)
       const result = scheduling[rating]
 
       const updatedData: FlashcardData = {
@@ -98,7 +117,7 @@ export class FlashcardService {
         lastReviewedAt: new Date(),
         nextReviewAt: result.card.due,
         reviewCount: (flashcardData.reviewCount || 0) + 1,
-        lastFeedback: feedback,
+        lastFeedback: actualFeedback,
         proficiency: State[result.card.state] as FSRSStateType,
         fsrs: result.card
       }
@@ -120,13 +139,68 @@ export class FlashcardService {
   // 获取待复习的闪卡
   async getDueFlashcards(tags?: string[]): Promise<Note[]> {
     try {
+      const settings = await this.getSettings()
+
+      // 计算今天的开始时间
+      const now = new Date()
+      const todayStart = new Date(now)
+      todayStart.setHours(settings.dayStartsAt, 0, 0, 0)
+      if (now.getHours() < settings.dayStartsAt) {
+        todayStart.setDate(todayStart.getDate() - 1)
+      }
+
+      // 获取今天已学习的卡片统计
+      const todayStats = await db('notes')
+        .where({
+          isFlashcard: true,
+          isDeleted: false
+        })
+        .whereRaw('JSON_EXTRACT(flashcard, "$.lastReviewedAt") >= ?', [todayStart.toISOString()])
+        .select([
+          db.raw(`SUM(CASE 
+            WHEN JSON_EXTRACT(flashcard, '$.fsrs.state') = 0 THEN 1 
+            ELSE 0 END) as new_cards_reviewed`),
+          db.raw(`SUM(CASE 
+            WHEN JSON_EXTRACT(flashcard, '$.fsrs.state') != 0 THEN 1 
+            ELSE 0 END) as review_cards_reviewed`)
+        ])
+        .first()
+
+      // 计算剩余可学习数量
+      const newCardsReviewed = Number(todayStats?.new_cards_reviewed || 0)
+      const reviewCardsReviewed = Number(todayStats?.review_cards_reviewed || 0)
+      const remainingNewCards = Math.max(0, settings.newCardsPerDay - newCardsReviewed)
+      const remainingReviews = Math.max(0, settings.reviewsPerDay - reviewCardsReviewed)
+      const totalRemaining = Math.min(
+        settings.dailyGoal - (newCardsReviewed + reviewCardsReviewed),
+        remainingNewCards + remainingReviews
+      )
+
+      if (totalRemaining <= 0) {
+        return []
+      }
+
+      // 基础查询
       let query = db('notes')
         .select('notes.*')
         .where({
           'notes.isFlashcard': true,
           'notes.isDeleted': false
         })
-        .andWhere('notes.nextReviewAt', '<=', new Date())
+        .andWhere((builder) => {
+          builder
+            .where('notes.nextReviewAt', '<=', now) // 到期的卡片
+            .orWhere((subBuilder) => {
+              // 已复习过且满足超前学习时间的卡片
+              const reviewAgainTime = new Date(now)
+              reviewAgainTime.setMinutes(reviewAgainTime.getMinutes() - settings.reviewAgainAfter)
+              subBuilder
+                .whereNotNull('notes.flashcard->$.lastReviewedAt')
+                .andWhereRaw('JSON_EXTRACT(flashcard, "$.lastReviewedAt") <= ?', [
+                  reviewAgainTime.toISOString()
+                ])
+            })
+        })
 
       if (tags && tags.length > 0) {
         // 有标签：获取指定标签的闪卡
@@ -142,7 +216,39 @@ export class FlashcardService {
       }
       // undefined: 获取所有闪卡（不添加任何标签相关的条件）
 
-      const notes = await query.orderBy('notes.nextReviewAt', 'asc')
+      // 根据设置决定排序方式
+      switch (settings.newCardPosition) {
+        case 'front':
+          // 新卡片优先：先按状态排序（新卡在前），再按到期时间排序
+          query = query.orderByRaw(`
+            CASE 
+              WHEN JSON_EXTRACT(flashcard, '$.fsrs.state') = 0 THEN 0 
+              ELSE 1 
+            END,
+            nextReviewAt ASC
+          `)
+          break
+        case 'end':
+          // 新卡片最后：先按状态排序（新卡在后），再按到期时间排序
+          query = query.orderByRaw(`
+            CASE 
+              WHEN JSON_EXTRACT(flashcard, '$.fsrs.state') = 0 THEN 1 
+              ELSE 0 
+            END,
+            nextReviewAt ASC
+          `)
+          break
+        case 'mix':
+        default:
+          // 混合：只按到期时间排序
+          query = query.orderBy('notes.nextReviewAt', 'asc')
+          break
+      }
+
+      // 限制返回数量
+      query = query.limit(totalRemaining)
+
+      const notes = await query
       return notes.map(convertToNote)
     } catch (error) {
       console.error('后端→ 获取待复习闪卡失败:', error)
@@ -276,48 +382,97 @@ export class FlashcardService {
     }
   }
 
-  // 私有方法：计算 SM2 算法结果
-  private calculateSM2(currentSM2: any, feedback: ReviewFeedback) {
-    const score = this.feedbackToScore(feedback)
-    const easiness = Math.max(
-      1.3,
-      currentSM2.easiness + (0.1 - (5 - score) * (0.08 + (5 - score) * 0.02))
-    )
-
-    let interval = 0
-    let repetitions = 0
-
-    if (score >= 3) {
-      repetitions = currentSM2.repetitions + 1
-      if (repetitions === 1) interval = 1
-      else if (repetitions === 2) interval = 6
-      else interval = Math.round(currentSM2.interval * easiness)
+  // 获取记忆卡设置
+  async getSettings(): Promise<FlashcardSettings> {
+    try {
+      const settings = await db('flashcard_settings').first()
+      if (!settings) {
+        return DEFAULT_FLASHCARD_SETTINGS
+      }
+      return {
+        dailyGoal: settings.dailyGoal,
+        newCardsPerDay: settings.newCardsPerDay,
+        reviewsPerDay: settings.reviewsPerDay,
+        dayStartsAt: settings.dayStartsAt,
+        newCardPosition: settings.newCardPosition,
+        requestRetention: settings.requestRetention,
+        maximumInterval: settings.maximumInterval,
+        simplifyButtons: settings.simplifyButtons,
+        showNextReview: settings.showNextReview,
+        maxAnswerTime: settings.maxAnswerTime,
+        forgetThreshold: settings.forgetThreshold,
+        reviewAgainAfter: settings.reviewAgainAfter
+      }
+    } catch (error) {
+      console.error('后端→ 获取记忆卡设置失败:', error)
+      throw error
     }
-
-    const nextReviewAt = new Date()
-    nextReviewAt.setDate(nextReviewAt.getDate() + interval)
-
-    return { easiness, interval, repetitions, nextReviewAt }
   }
 
-  // 私有方法：将反馈转换为分数
-  private feedbackToScore(feedback: ReviewFeedback): number {
-    const scoreMap = {
-      skip: 0,
-      forgot: 1,
-      partially_recalled: 3,
-      recalled_effort: 4,
-      easily_recalled: 5
+  // 更新记忆卡设置
+  async updateSettings(settings: Partial<FlashcardSettings>): Promise<void> {
+    try {
+      const currentSettings = await db('flashcard_settings').first()
+      if (!currentSettings) {
+        // 如果没有设置记录，创建一个
+        await db('flashcard_settings').insert({
+          id: uuidv4(),
+          ...DEFAULT_FLASHCARD_SETTINGS,
+          ...settings,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        })
+      } else {
+        // 更新现有设置
+        await db('flashcard_settings')
+          .where({ id: currentSettings.id })
+          .update({
+            ...settings,
+            updatedAt: new Date()
+          })
+      }
+      console.log('后端→ 更新记忆卡设置成功')
+    } catch (error) {
+      console.error('后端→ 更新记忆卡设置失败:', error)
+      throw error
     }
-    return scoreMap[feedback]
   }
 
-  // 私有方法：计算熟练度
-  private calculateProficiency(sm2Data: any) {
-    if (sm2Data.repetitions === 0) return 'new'
-    if (sm2Data.repetitions < 3) return 'learning'
-    if (sm2Data.interval >= 21) return 'mastered'
-    return 'familiar'
+  // 重置闪卡学习进度
+  async resetFlashcardProgress(noteId: string): Promise<void> {
+    try {
+      const note = await db('notes').where({ id: noteId }).first()
+      if (!note || !note.isFlashcard) {
+        throw new Error(`笔记不存在或不是闪卡: ${noteId}`)
+      }
+
+      const now = new Date()
+      const fsrsCard = createEmptyCard(now) // 创建新的 FSRS 卡片
+
+      const flashcardData: FlashcardData = {
+        reviewCount: 0,
+        proficiency: 'New',
+        fsrs: fsrsCard,
+        nextReviewAt: fsrsCard.due,
+        // 保留原有的其他数据（如果有的话）
+        ...JSON.parse(note.flashcard || '{}'),
+        // 但覆盖学习相关的数据
+        lastReviewedAt: undefined,
+        lastFeedback: undefined
+      }
+
+      await db('notes')
+        .where({ id: noteId })
+        .update({
+          flashcard: JSON.stringify(flashcardData),
+          nextReviewAt: fsrsCard.due
+        })
+
+      console.log('后端→ 重置闪卡进度成功:', noteId)
+    } catch (error) {
+      console.error('后端→ 重置闪卡进度失败:', error)
+      throw error
+    }
   }
 }
 

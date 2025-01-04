@@ -1,6 +1,6 @@
 import { ipcMain } from 'electron'
 import { flashcardService } from '../../services/notes/flashcardService'
-import type { ReviewFeedback } from '@shared/types'
+import type { ReviewFeedback, FlashcardSettings } from '@shared/types'
 
 export function setupFlashcardHandlers() {
   // 将笔记转换为闪卡
@@ -28,9 +28,16 @@ export function setupFlashcardHandlers() {
   // 更新闪卡复习状态
   ipcMain.handle(
     'update-flashcard-status',
-    async (_event, { noteId, feedback }: { noteId: string; feedback: ReviewFeedback }) => {
+    async (
+      _event,
+      {
+        noteId,
+        feedback,
+        isSimplified
+      }: { noteId: string; feedback: ReviewFeedback; isSimplified?: boolean }
+    ) => {
       try {
-        await flashcardService.updateFlashcardStatus({ noteId, feedback })
+        await flashcardService.updateFlashcardStatus({ noteId, feedback, isSimplified })
         return { success: true }
       } catch (error) {
         console.error('主进程→ 更新闪卡状态失败:', error)
@@ -71,4 +78,40 @@ export function setupFlashcardHandlers() {
       return { success: false, error: String(error) }
     }
   })
+
+  // 重置闪卡进度
+  ipcMain.handle('reset-flashcard', async (_event, noteId: string) => {
+    try {
+      await flashcardService.resetFlashcardProgress(noteId)
+      return { success: true }
+    } catch (error) {
+      console.error('主进程→ 重置闪卡进度失败:', error)
+      return { success: false, error: String(error) }
+    }
+  })
+
+  // 获取记忆卡设置
+  ipcMain.handle('get-flashcard-settings', async () => {
+    try {
+      const settings = await flashcardService.getSettings()
+      return { success: true, settings }
+    } catch (error) {
+      console.error('主进程→ 获取记忆卡设置失败:', error)
+      return { success: false, error: String(error) }
+    }
+  })
+
+  // 更新记忆卡设置
+  ipcMain.handle(
+    'update-flashcard-settings',
+    async (_event, settings: Partial<FlashcardSettings>) => {
+      try {
+        await flashcardService.updateSettings(settings)
+        return { success: true }
+      } catch (error) {
+        console.error('主进程→ 更新记忆卡设置失败:', error)
+        return { success: false, error: String(error) }
+      }
+    }
+  )
 }
