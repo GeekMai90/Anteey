@@ -169,6 +169,20 @@ import type { DailyStats } from '@shared/types'
 import * as echarts from 'echarts'
 import { Info } from '@icon-park/vue-next'
 
+interface DayData {
+  date: string
+  totalReviews: number
+  uniqueCards: number
+  totalTime: number
+  feedbackStats: {
+    skip: number
+    forgot: number
+    partially_recalled: number
+    recalled_effort: number
+    easily_recalled: number
+  }
+}
+
 const props = defineProps<{
   weeklyStats: DailyStats[]
   dailyGoal: number
@@ -213,9 +227,9 @@ watch(
 )
 
 // 获取最近7天的数据
-const weeklyData = computed(() => {
+const weeklyData = computed<DayData[]>(() => {
   const today = new Date()
-  const result = []
+  const result: DayData[] = []
 
   // 生成最近7天的日期
   for (let i = 6; i >= 0; i--) {
@@ -264,7 +278,7 @@ const weeklyData = computed(() => {
 
 // 修改其他计算属性使用 weeklyData
 const totalCards = computed(() => {
-  return weeklyData.value.reduce((sum, day) => {
+  return weeklyData.value.reduce((sum, day: DayData) => {
     // 确保 feedbackStats 是对象而不是字符串
     const feedbackStats =
       typeof day.feedbackStats === 'string' ? JSON.parse(day.feedbackStats) : day.feedbackStats
