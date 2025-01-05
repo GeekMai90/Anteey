@@ -908,6 +908,53 @@ export async function initDatabase(db: Knex): Promise<void> {
 
     console.log('flashcard_settings 表创建成功')
   }
+
+  // 创建复习记录表
+  if (!(await db.schema.hasTable('review_records'))) {
+    await db.schema.createTable('review_records', (table) => {
+      table.string('id').primary()
+      table.string('noteId').notNullable().index()
+      table.datetime('reviewedAt').notNullable()
+      table.string('feedback').notNullable() // ReviewFeedback 类型
+      table.integer('reviewTime').notNullable() // 毫秒
+
+      // 外键约束
+      table.foreign('noteId').references('notes.id').onDelete('CASCADE')
+
+      // 索引
+      table.index('reviewedAt')
+      table.index(['noteId', 'reviewedAt'])
+    })
+    console.log('review_records 表创建成功')
+  }
+
+  // 创建每日统计表
+  if (!(await db.schema.hasTable('daily_stats'))) {
+    await db.schema.createTable('daily_stats', (table) => {
+      table.string('date').primary() // YYYY-MM-DD 格式
+      table.integer('uniqueCards').notNullable().defaultTo(0)
+      table.integer('totalReviews').notNullable().defaultTo(0)
+      table.integer('totalTime').notNullable().defaultTo(0) // 毫秒
+      table
+        .json('feedbackStats')
+        .notNullable()
+        .defaultTo(
+          JSON.stringify({
+            skip: 0,
+            forgot: 0,
+            partially_recalled: 0,
+            recalled_effort: 0,
+            easily_recalled: 0
+          })
+        )
+      table.datetime('createdAt').notNullable()
+      table.datetime('updatedAt').notNullable()
+
+      // 索引
+      table.index('date')
+    })
+    console.log('daily_stats 表创建成功')
+  }
 }
 
 export async function down(db: Knex): Promise<void> {
@@ -946,5 +993,7 @@ export async function down(db: Knex): Promise<void> {
   await db.schema.dropTableIfExists('webdav_config')
   await db.schema.dropTableIfExists('note_versions')
   await db.schema.dropTableIfExists('flashcard_settings')
+  await db.schema.dropTableIfExists('review_records')
+  await db.schema.dropTableIfExists('daily_stats')
   console.log('所有表已删除')
 }

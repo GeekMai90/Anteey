@@ -40,6 +40,18 @@ export interface FlashcardStats {
   newCards: number // 新卡片数量
   learningCards: number // 学习中的卡片
   masteredCards: number // 已掌握的卡片
+  todayStats: DailyStats // 新增今日统计
+  weeklyStats: DailyStats[] // 新增周统计
+  history: {
+    daysStudied: number
+    currentStreak: number
+    bestStreak: number
+    heatmap: Array<{
+      date: string
+      count: number
+      level: 'none' | 'few' | 'target' | 'above_target'
+    }>
+  }
 }
 
 // 卡组基础统计信息
@@ -113,4 +125,45 @@ export const DEFAULT_FLASHCARD_SETTINGS: FlashcardSettings = {
   maxAnswerTime: 20, // 默认 20 秒
   forgetThreshold: 4, // 默认 4 次
   reviewAgainAfter: 15 // 默认 15 分钟
+}
+
+// 复习记录
+export interface ReviewRecord {
+  id: string
+  noteId: string
+  reviewedAt: Date
+  feedback: ReviewFeedback
+  reviewTime: number // 毫秒
+}
+
+// 每日统计
+export interface DailyStats {
+  date: string
+  uniqueCards: number // 去重后的卡片数
+  totalReviews: number // 总复习次数
+  totalTime: number // 总复习时间(毫秒)
+  feedbackStats: {
+    // 各类反馈的统计
+    skip: number
+    forgot: number
+    partially_recalled: number
+    recalled_effort: number
+    easily_recalled: number
+  }
+}
+
+// 学习历史热力图数据
+export interface StudyHeatmap {
+  date: string // 日期 YYYY-MM-DD
+  count: number // 学习卡片数量
+  level: 'none' | 'few' | 'target' | 'above_target' // 学习量级别
+}
+
+// 学习历史统计
+export interface StudyHistory {
+  daysStudied: number // 总学习天数
+  currentStreak: number // 当前连续学习天数
+  bestStreak: number // 最佳连续学习天数
+  heatmap: StudyHeatmap[] // 最近6个月的每日学习数据(展示用)
+  allRecords?: StudyHeatmap[] // 可选:所有历史记录
 }

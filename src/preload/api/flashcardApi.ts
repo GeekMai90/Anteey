@@ -4,7 +4,8 @@ import type {
   ReviewFeedback,
   FlashcardStats,
   FlashcardDecks,
-  FlashcardSettings
+  FlashcardSettings,
+  StudyHistory
 } from '@shared/types'
 
 export const flashcardApi = {
@@ -63,7 +64,17 @@ export const flashcardApi = {
     try {
       const result = await ipcRenderer.invoke('get-flashcard-stats')
       if (!result.success) throw new Error(result.error)
-      return result.stats
+      return {
+        ...result.stats,
+        todayStats: result.stats.todayStats || null,
+        weeklyStats: result.stats.weeklyStats || [],
+        history: result.stats.history || {
+          daysStudied: 0,
+          currentStreak: 0,
+          bestStreak: 0,
+          heatmap: []
+        }
+      }
     } catch (error) {
       console.error('预加载脚本 → 获取闪卡统计信息失败:', error)
       throw error
@@ -112,6 +123,18 @@ export const flashcardApi = {
       if (!result.success) throw new Error(result.error)
     } catch (error) {
       console.error('预加载脚本 → 更新记忆卡设置失败:', error)
+      throw error
+    }
+  },
+
+  // 获取学习历史数据
+  getStudyHistory: async (days?: number): Promise<StudyHistory> => {
+    try {
+      const result = await ipcRenderer.invoke('get-study-history', days)
+      if (!result.success) throw new Error(result.error)
+      return result.history
+    } catch (error) {
+      console.error('预加载脚本 → 获取学习历史失败:', error)
       throw error
     }
   }

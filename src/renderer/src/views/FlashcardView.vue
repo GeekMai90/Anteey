@@ -23,6 +23,19 @@
             </div>
             <div class="name">记忆卡</div>
           </div>
+
+          <!-- 添加右侧操作区 -->
+          <div class="flashcard-header-right">
+            <button
+              class="practice-today-btn"
+              :disabled="!stats?.dueCards"
+              @click="startReview(null, true)"
+            >
+              <Brain theme="outline" size="16" :strokeWidth="3" />
+              练习今日卡片
+              <span class="card-count">{{ stats?.dueCards || 0 }}</span>
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -66,6 +79,21 @@
           </div>
         </div>
       </div>
+
+      <!-- 添加周统计图表 -->
+      <WeeklyProgress
+        v-if="stats?.weeklyStats"
+        :weeklyStats="stats.weeklyStats"
+        :dailyGoal="settings?.dailyGoal ?? 30"
+        :currentStreak="stats.history?.currentStreak || 0"
+        :stats="{
+          skipRate: calculateRate(stats.weeklyStats, 'skip'),
+          forgotRate: calculateRate(stats.weeklyStats, 'forgot'),
+          partiallyRate: calculateRate(stats.weeklyStats, 'partially_recalled'),
+          effortRate: calculateRate(stats.weeklyStats, 'recalled_effort'),
+          easyRate: calculateRate(stats.weeklyStats, 'easily_recalled')
+        }"
+      />
 
       <!-- 新增：卡组列表区域 -->
       <div class="deck-list-section">
@@ -170,7 +198,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, reactive, markRaw } from 'vue'
+import { ref, onMounted, reactive, markRaw, computed } from 'vue'
 import {
   StorageCardOne,
   Tag,
@@ -179,7 +207,8 @@ import {
   Play,
   More,
   Notes,
-  FileSearch
+  FileSearch,
+  Brain
 } from '@icon-park/vue-next'
 import { useRouter } from 'vue-router'
 import AppToolbar from '@renderer/components/layout/AppToolbar.vue'
@@ -187,7 +216,9 @@ import FlashcardReviewModal from '../components/flashcard/FlashcardReviesModal.v
 import ContextMenu from '@renderer/components/common/ContexMenu.vue'
 import { useFlashcardStore } from '@renderer/stores/flashcardStore'
 import { useContextMenuStore } from '@renderer/stores/contextMenuStore'
-import type { FlashcardStats, Note, ReviewFeedback } from '@shared/types'
+import type { FlashcardStats, Note, ReviewFeedback, DailyStats } from '@shared/types'
+import { useEventBus } from '@vueuse/core'
+import WeeklyProgress from '../components/flashcard/WeeklyProgress.vue'
 
 // 状态
 const router = useRouter()
@@ -195,6 +226,7 @@ const isLoaded = ref(false)
 const flashcardStore = useFlashcardStore()
 const contextMenuStore = useContextMenuStore()
 const stats = ref<FlashcardStats | null>(null)
+const settings = computed(() => flashcardStore.settings)
 const untaggedDeck = ref({
   dueCount: 0,
   totalCount: 0,
@@ -210,6 +242,17 @@ const tagDecks = ref<
   }>
 >([])
 const reviewCards = ref<Note[]>([])
+
+// 监听闪卡转换事件
+const flashcardConvertedBus = useEventBus<string>('flashcard-converted')
+flashcardConvertedBus.on(async () => {
+  try {
+    // 重新初始化所有数据
+    await initializeData()
+  } catch (error) {
+    console.error('更新闪卡数据失败:', error)
+  }
+})
 
 // 处理复习反馈
 const handleReviewFeedback = async (
@@ -243,14 +286,25 @@ const startReview = async (tagId: string | null, isAll = false) => {
   try {
     let cards: Note[]
     if (isAll) {
-      // 所有记忆卡：传 undefined
+      // 获取所有待复习的卡片
       cards = await flashcardStore.fetchDueFlashcards()
     } else if (tagId === null) {
-      // 暂无分类：传空数组
+      // 获取无标签的待复习卡片
       cards = await flashcardStore.fetchDueFlashcards([])
     } else {
-      // 特定标签：传标签ID数组
+      // 获取特定标签的待复习卡片
       cards = await flashcardStore.fetchDueFlashcards([tagId])
+    }
+
+    console.log('获取到的复习卡片:', {
+      totalDueCards: cards.length,
+      cards
+    })
+
+    // 检查是否有卡片
+    if (!cards || cards.length === 0) {
+      console.log('没有待复习的卡片')
+      return
     }
 
     // 保存复习卡片的副本
@@ -268,6 +322,12 @@ const initializeData = async () => {
   try {
     // 获取统计数据
     stats.value = await flashcardStore.fetchFlashcardStats()
+    console.log('从 store 获取的统计数据:', {
+      weeklyStats: stats.value?.weeklyStats,
+      todayStats: stats.value?.todayStats
+    })
+    // 获取设置
+    await flashcardStore.fetchSettings()
 
     // 获取卡组数据
     const decks = await flashcardStore.fetchFlashcardDecks()
@@ -319,6 +379,50 @@ const handleMoreClick = (event: MouseEvent, tagId: string | null, isAll = false)
   contextMenuStore.showMenu(event.clientX, event.clientY, menuItems)
 }
 
+// 计算各种反馈的比率
+const calculateRate = (weeklyStats: DailyStats[], type: keyof DailyStats['feedbackStats']) => {
+  if (!weeklyStats?.length) return 0
+
+  // 只计算本周的总反馈次数
+  const total = weeklyStats.reduce((sum, day) => {
+    // 确保 feedbackStats 是对象而不是字符串
+    const feedbackStats =
+      typeof day.feedbackStats === 'string' ? JSON.parse(day.feedbackStats) : day.feedbackStats
+
+    const dayTotal = Object.values(feedbackStats as Record<string, number>).reduce(
+      (a: number, b: number) => a + b,
+      0
+    )
+    return sum + dayTotal
+  }, 0)
+
+  // 计算特定类型的反馈次数
+  const typeCount = weeklyStats.reduce((sum, day) => {
+    // 确保 feedbackStats 是对象而不是字符串
+    const feedbackStats =
+      typeof day.feedbackStats === 'string' ? JSON.parse(day.feedbackStats) : day.feedbackStats
+
+    return sum + (feedbackStats[type] || 0)
+  }, 0)
+
+  console.log(`计算 ${type} 比率:`, {
+    total,
+    typeCount,
+    dailyStats: weeklyStats.map((day) => {
+      const feedbackStats =
+        typeof day.feedbackStats === 'string' ? JSON.parse(day.feedbackStats) : day.feedbackStats
+      return {
+        date: day.date,
+        [type]: feedbackStats[type]
+      }
+    })
+  })
+
+  if (total === 0) return 0
+
+  return Math.round((typeCount / total) * 100)
+}
+
 onMounted(initializeData)
 </script>
 
@@ -329,7 +433,6 @@ onMounted(initializeData)
   height: 100vh;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
 }
 
 .sticky-header {
@@ -341,6 +444,7 @@ onMounted(initializeData)
   display: flex;
   flex-direction: column;
   align-items: center;
+  // box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 
   .header-content {
     width: 100%;
@@ -405,32 +509,85 @@ onMounted(initializeData)
           line-height: 1;
         }
       }
+
+      .flashcard-header-right {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+
+        .practice-today-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          height: 36px;
+          padding: 0 16px;
+          background: var(--color-primary);
+          color: white;
+          border: none;
+          border-radius: 8px;
+          font-size: 14px;
+          font-weight: 500;
+          cursor: pointer;
+          transition: all 0.2s ease;
+
+          .i-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          }
+
+          .card-count {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 13px;
+          }
+
+          &:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(var(--color-primary-rgb), 0.2);
+          }
+
+          &:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+          }
+        }
+      }
     }
   }
 }
 
 .flashcard-container {
-  flex-grow: 1;
+  flex: 1;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow-y: auto;
   padding: 20px;
-  max-width: 900px;
-  width: 100%;
-  margin: 0 auto;
+  gap: 20px;
+
+  > * {
+    max-width: 900px;
+    width: 100%;
+    margin: 0 auto;
+  }
+
+  padding-bottom: 40px;
 }
 
 .stats-section {
-  margin-bottom: 20px;
+  // margin-bottom: 20px;
 
   .stats-cards {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
     gap: 20px;
-    margin-top: 20px;
+    // margin-top: 20px;
 
     .stats-card {
-      // background: var(--color-bg-secondary);
+      background: var(--color-bg-flashcard);
       border: 1px solid var(--color-border);
       border-radius: 12px;
       padding: 20px;
@@ -578,11 +735,12 @@ onMounted(initializeData)
 
 // 新增卡组列表样式
 .deck-list-section {
-  margin-top: 20px;
-  // background: var(--color-bg-secondary);
+  // margin-top: 20px;
   border: 1px solid var(--color-border);
   border-radius: 12px;
   overflow: hidden;
+  background: var(--color-bg-flashcard);
+  flex-shrink: 0;
 
   .deck-list-header {
     display: grid;
@@ -615,7 +773,7 @@ onMounted(initializeData)
     align-items: center;
 
     &:hover {
-      background: var(--color-hover-bg);
+      background: var(--color-bg-secondary);
     }
 
     &:last-child {
@@ -626,7 +784,7 @@ onMounted(initializeData)
       // background: var(--color-bg-tertiary);
 
       &:hover {
-        background: var(--color-hover-bg);
+        background: var(--color-bg-secondary);
       }
 
       .deck-icon {

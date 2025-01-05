@@ -1,6 +1,14 @@
 import { db } from '../../db/config'
 import type { Note, TaggedDeck, UntaggedDeck, FlashcardSettings } from '@shared/types'
-import type { FlashcardData, ReviewFeedback, FlashcardStats, FlashcardDecks } from '@shared/types'
+import type {
+  FlashcardData,
+  ReviewFeedback,
+  FlashcardStats,
+  FlashcardDecks,
+  StudyHistory,
+  StudyHeatmap,
+  DailyStats
+} from '@shared/types'
 import type { StateType as FSRSStateType } from 'ts-fsrs'
 import { convertToNote } from '../notes/notesService'
 import { fsrs, createEmptyCard, Rating, State, type Grade } from 'ts-fsrs'
@@ -141,9 +149,15 @@ export class FlashcardService {
           nextReviewAt: result.card.due
         })
 
-      console.log('后端→ 更新闪卡状态成功:', noteId)
+      // 添加统计记录
+      await Promise.all([
+        this.saveReviewRecord(noteId, actualFeedback, reviewTime),
+        this.updateDailyStats(actualFeedback, reviewTime)
+      ])
+
+      console.log('后端→ 更新闪卡状态和统计数据成功:', noteId)
     } catch (error) {
-      console.error('后端→ 更新闪卡状态失败:', error)
+      console.error('后端→ 更新闪卡状态和统计数据失败:', error)
       throw error
     }
   }
@@ -152,6 +166,7 @@ export class FlashcardService {
   async getDueFlashcards(tags?: string[]): Promise<Note[]> {
     try {
       const settings = await this.getSettings()
+      console.log('后端→ 获取到的设置:', settings)
 
       // 计算今天的开始时间
       const now = new Date()
@@ -160,6 +175,7 @@ export class FlashcardService {
       if (now.getHours() < settings.dayStartsAt) {
         todayStart.setDate(todayStart.getDate() - 1)
       }
+      console.log('后端→ 今天开始时间:', todayStart)
 
       // 获取今天已学习的卡片统计
       const todayStats = await db('notes')
@@ -178,17 +194,28 @@ export class FlashcardService {
         ])
         .first()
 
+      console.log('后端→ 今日学习统计:', todayStats)
+
       // 计算剩余可学习数量
       const newCardsReviewed = Number(todayStats?.new_cards_reviewed || 0)
       const reviewCardsReviewed = Number(todayStats?.review_cards_reviewed || 0)
       const remainingNewCards = Math.max(0, settings.newCardsPerDay - newCardsReviewed)
       const remainingReviews = Math.max(0, settings.reviewsPerDay - reviewCardsReviewed)
-      const totalRemaining = Math.min(
-        settings.dailyGoal - (newCardsReviewed + reviewCardsReviewed),
-        remainingNewCards + remainingReviews
-      )
 
-      if (totalRemaining <= 0) {
+      // 移除每日目标的限制,只保留新卡和复习卡的各自限制
+      const totalRemaining = remainingNewCards + remainingReviews
+
+      console.log('后端→ 学习数量计算:', {
+        newCardsReviewed,
+        reviewCardsReviewed,
+        remainingNewCards,
+        remainingReviews,
+        totalRemaining
+      })
+
+      // 如果新卡和复习卡都达到上限,才返回空
+      if (remainingNewCards === 0 && remainingReviews === 0) {
+        console.log('后端→ 新卡和复习卡都已达到上限')
         return []
       }
 
@@ -223,12 +250,10 @@ export class FlashcardService {
           this.select('*').from('note_tags').whereRaw('note_tags.noteId = notes.id')
         })
       }
-      // undefined: 获取所有闪卡（不添加任何标签相关的条件）
 
       // 根据设置决定排序方式
       switch (settings.newCardPosition) {
         case 'front':
-          // 新卡片优先：先按状态排序（新卡在前），再按到期时间排序
           query = query.orderByRaw(`
             CASE 
               WHEN JSON_EXTRACT(flashcard, '$.fsrs.state') = '0' THEN 0 
@@ -238,7 +263,6 @@ export class FlashcardService {
           `)
           break
         case 'end':
-          // 新卡片最后：先按状态排序（新卡在后），再按到期时间排序
           query = query.orderByRaw(`
             CASE 
               WHEN JSON_EXTRACT(flashcard, '$.fsrs.state') = '0' THEN 1 
@@ -249,16 +273,24 @@ export class FlashcardService {
           break
         case 'mix':
         default:
-          // 混合：只按到期时间排序
           query = query.orderBy('notes.nextReviewAt', 'asc')
           break
       }
 
-      // 限制返回数量
+      // 限制返回数量为剩余的新卡和复习卡数量之和
       query = query.limit(totalRemaining)
 
+      // 输出最终的 SQL 查询语句
+      console.log('后端→ 最终查询 SQL:', query.toString())
+
       const notes = await query
-      return notes.map(convertToNote)
+      console.log('后端→ 查询到的卡片数量:', notes.length)
+      console.log('后端→ 查询到的卡片:', notes)
+
+      const convertedNotes = notes.map(convertToNote)
+      console.log('后端→ 转换后的卡片:', convertedNotes)
+
+      return convertedNotes
     } catch (error) {
       console.error('后端→ 获取待复习闪卡失败:', error)
       throw error
@@ -268,6 +300,8 @@ export class FlashcardService {
   // 获取闪卡统计信息
   async getFlashcardStats(): Promise<FlashcardStats> {
     try {
+      console.log('从数据库获取的统计数据')
+      // 获取基础统计数据
       const result = await db('notes')
         .where({
           isFlashcard: true,
@@ -282,7 +316,7 @@ export class FlashcardService {
             WHEN JSON_EXTRACT(flashcard, '$.fsrs.state') IN ('1', '3') THEN 1 
             ELSE 0 END) as learning_cards`),
           db.raw(`SUM(CASE 
-            WHEN JSON_EXTRACT(flashcard, '$.fsrs.state') = '2' THEN 1 
+            WHEN JSON_EXTRACT(flashcard, '$.fsrs.state') = ${State.Review} THEN 1 
             ELSE 0 END) as mastered_cards`),
           db.raw(
             `SUM(CASE 
@@ -293,12 +327,47 @@ export class FlashcardService {
         ])
         .first()
 
+      // 获取今日统计
+      const today = new Date().toISOString().split('T')[0]
+      const todayStats = (await db('daily_stats').where({ date: today }).first()) as DailyStats
+
+      // 获取最近7天的统计
+      const weekAgo = new Date()
+      weekAgo.setDate(weekAgo.getDate() - 7)
+      const weeklyStats = (await db('daily_stats')
+        .where('date', '>=', weekAgo.toISOString().split('T')[0])
+        .orderBy('date', 'desc')
+        .select('*')) as DailyStats[]
+
+      // 获取学习历史
+      const history = await this.getStudyHistory()
+
+      console.log('weeklyStats:', weeklyStats)
+      console.log('todayStats:', todayStats)
+
       return {
         totalCards: Number(result?.total || 0),
         newCards: Number(result?.new_cards || 0),
         learningCards: Number(result?.learning_cards || 0),
         masteredCards: Number(result?.mastered_cards || 0),
-        dueCards: Number(result?.due_cards || 0)
+        dueCards: Number(result?.due_cards || 0),
+        todayStats: todayStats || {
+          date: today,
+          uniqueCards: 0,
+          totalReviews: 0,
+          totalTime: 0,
+          feedbackStats: {
+            skip: 0,
+            forgot: 0,
+            partially_recalled: 0,
+            recalled_effort: 0,
+            easily_recalled: 0
+          },
+          createdAt: new Date(),
+          updatedAt: new Date()
+        },
+        weeklyStats,
+        history
       }
     } catch (error) {
       console.error('后端→ 获取闪卡统计信息失败:', error)
@@ -480,6 +549,137 @@ export class FlashcardService {
       console.log('后端→ 重置闪卡进度成功:', noteId)
     } catch (error) {
       console.error('后端→ 重置闪卡进度失败:', error)
+      throw error
+    }
+  }
+
+  // 记录复习记录
+  private async saveReviewRecord(
+    noteId: string,
+    feedback: ReviewFeedback,
+    reviewTime: number
+  ): Promise<void> {
+    try {
+      await db('review_records').insert({
+        id: uuidv4(),
+        noteId,
+        reviewedAt: new Date(),
+        feedback,
+        reviewTime
+      })
+    } catch (error) {
+      console.error('保存复习记录失败:', error)
+      throw error
+    }
+  }
+
+  // 更新每日统计
+  private async updateDailyStats(feedback: ReviewFeedback, reviewTime: number): Promise<void> {
+    try {
+      const today = new Date().toISOString().split('T')[0] // YYYY-MM-DD
+
+      // 获取或创建今日统计
+      let stats = await db('daily_stats').where({ date: today }).first()
+      if (!stats) {
+        stats = {
+          date: today,
+          uniqueCards: 0,
+          totalReviews: 0,
+          totalTime: 0,
+          feedbackStats: {
+            skip: 0,
+            forgot: 0,
+            partially_recalled: 0,
+            recalled_effort: 0,
+            easily_recalled: 0
+          },
+          createdAt: new Date(),
+          updatedAt: new Date()
+        }
+      } else {
+        stats.feedbackStats = JSON.parse(stats.feedbackStats)
+      }
+
+      // 更新统计数据
+      stats.totalReviews += 1
+      stats.totalTime += reviewTime
+      stats.feedbackStats[feedback] += 1
+      stats.updatedAt = new Date()
+
+      // 保存或更新
+      await db('daily_stats')
+        .insert(stats)
+        .onConflict('date')
+        .merge(['totalReviews', 'totalTime', 'feedbackStats', 'updatedAt'])
+    } catch (error) {
+      console.error('更新每日统计失败:', error)
+      throw error
+    }
+  }
+
+  // 获取学习历史数据
+  async getStudyHistory(days: number = 180): Promise<StudyHistory> {
+    try {
+      // 计算日期范围
+      const startDate = new Date()
+      startDate.setDate(startDate.getDate() - days)
+
+      // 获取历史记录
+      const records = await db('daily_stats')
+        .where('date', '>=', startDate.toISOString().split('T')[0])
+        .orderBy('date', 'asc')
+
+      // 计算连续学习天数
+      let currentStreak = 0
+      let bestStreak = 0
+      let tempStreak = 0
+      let lastDate: string | null = null
+
+      const heatmap: StudyHeatmap[] = records.map((record) => {
+        const count = record.totalReviews
+        const date = record.date
+
+        // 计算连续天数
+        if (lastDate) {
+          const dayDiff = Math.floor(
+            (new Date(date).getTime() - new Date(lastDate).getTime()) / (1000 * 60 * 60 * 24)
+          )
+          if (dayDiff === 1) {
+            tempStreak++
+          } else {
+            tempStreak = 1
+          }
+        } else {
+          tempStreak = 1
+        }
+
+        bestStreak = Math.max(bestStreak, tempStreak)
+        lastDate = date
+
+        // 计算当前连续天数
+        const today = new Date().toISOString().split('T')[0]
+        if (date === today) {
+          currentStreak = tempStreak
+        }
+
+        // 确定热力图等级
+        let level: 'none' | 'few' | 'target' | 'above_target'
+        if (count === 0) level = 'none'
+        else if (count < 10) level = 'few'
+        else if (count < 30) level = 'target'
+        else level = 'above_target'
+
+        return { date, count, level }
+      })
+
+      return {
+        daysStudied: records.length,
+        currentStreak,
+        bestStreak,
+        heatmap
+      }
+    } catch (error) {
+      console.error('获取学习历史失败:', error)
       throw error
     }
   }

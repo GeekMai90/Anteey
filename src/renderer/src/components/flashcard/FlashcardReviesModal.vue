@@ -128,7 +128,7 @@
             <CheckOne theme="outline" size="64" :strokeWidth="3" fill="var(--color-primary)" />
           </div>
           <div class="completion-text">
-            <h2>今日学习完成！</h2>
+            <h2>复习完成！</h2>
             <p>你已经完成了所有待复习的卡片</p>
           </div>
           <button class="close-btn" @click="handleClose">
@@ -184,15 +184,22 @@ const isFlipped = ref(false)
 const isCompleted = ref(false)
 
 // 计算属性
-const totalCards = computed(() => props.cards.length)
+const totalCards = computed(() => {
+  // 只计算待复习的卡片数量
+  return props.cards.filter(
+    (card) => card.flashcard?.fsrs?.due && new Date(card.flashcard.fsrs.due) <= new Date()
+  ).length
+})
+
 const currentCard = computed(() => {
   const card = props.cards[currentIndex.value]
   console.log('当前卡片数据:', {
     card,
     title: card?.metadata?.title,
     content: card?.content,
-    totalCards: props.cards.length,
-    currentIndex: currentIndex.value
+    totalCards: totalCards.value,
+    currentIndex: currentIndex.value,
+    due: card?.flashcard?.fsrs?.due
   })
   return card
 })
@@ -318,18 +325,10 @@ const handleFeedback = async (feedback: ReviewFeedback) => {
   // 检查是否还有下一张卡片
   const nextIndex = currentIndex.value + 1
   if (nextIndex < props.cards.length) {
-    // 修改这里：使用 props.cards.length 而不是 totalCards.value
-    // 确保下一张卡片存在
-    const nextCard = props.cards[nextIndex]
-    if (nextCard) {
-      currentIndex.value = nextIndex
-      isFlipped.value = false
-      // 重新开始计时
-      startTimer()
-    } else {
-      // 如果下一张卡片不存在，直接完成
-      isCompleted.value = true
-    }
+    currentIndex.value = nextIndex
+    isFlipped.value = false
+    // 重新开始计时
+    startTimer()
   } else {
     isCompleted.value = true
     // 触发烟花效果
@@ -528,6 +527,16 @@ const timerStyles = computed(() => ({
   '--timer-text-color': isOverTime.value ? 'var(--color-danger)' : 'var(--color-primary)',
   '--timer-animation': isOverTime.value ? 'timerPulseDanger' : 'timerPulse'
 }))
+
+// 添加 watch 来处理完成状态
+watch(
+  () => currentIndex.value,
+  (newIndex) => {
+    if (newIndex >= props.cards.length) {
+      isCompleted.value = true
+    }
+  }
+)
 </script>
 
 <style lang="scss" scoped>
@@ -766,10 +775,33 @@ const timerStyles = computed(() => ({
       border-radius: 12px;
       padding: 24px;
       display: flex;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
       overflow-y: auto;
       position: relative;
+
+      // 正面内容区域特殊处理
+      .card-front & {
+        justify-content: center;
+        align-items: center;
+      }
+
+      // 背面内容区域特殊处理
+      .card-back & {
+        justify-content: flex-start;
+        align-items: stretch;
+      }
+
+      :deep(.tiptap-editor) {
+        flex: 1;
+        width: 100%;
+        overflow-y: auto;
+        padding-right: 12px;
+      }
+      :deep(.ProseMirror) {
+        padding-bottom: 24px;
+      }
     }
   }
 }
@@ -946,7 +978,8 @@ const timerStyles = computed(() => ({
   color: var(--color-text-primary);
   text-align: center;
   margin: 0;
-  width: 90%;
+  max-width: 90%;
+  word-break: break-word;
 }
 
 .completion-state {

@@ -5,7 +5,8 @@ import type {
   FlashcardStats,
   FlashcardDecks,
   ReviewFeedback,
-  FlashcardSettings
+  FlashcardSettings,
+  StudyHistory
 } from '@shared/types'
 import { useEventBus } from '@vueuse/core'
 
@@ -19,6 +20,7 @@ export const useFlashcardStore = defineStore(
     const decks = ref<FlashcardDecks | null>(null)
     const settings = ref<FlashcardSettings | null>(null)
     const isReviewModalOpen = ref(false)
+    const studyHistory = ref<StudyHistory | null>(null)
 
     // ==================== 操作方法 ====================
     // 获取待复习的闪卡
@@ -36,6 +38,7 @@ export const useFlashcardStore = defineStore(
     const fetchFlashcardStats = async () => {
       try {
         stats.value = await window.electronAPI.flashcard.getFlashcardStats()
+        console.log('Store 从服务获取的原始统计数据:', stats.value)
         return stats.value
       } catch (error) {
         console.error('获取闪卡统计信息失败:', error)
@@ -86,8 +89,8 @@ export const useFlashcardStore = defineStore(
           isSimplified
         })
 
-        // 只更新统计信息
-        await fetchFlashcardStats()
+        // 更新所有相关数据
+        await Promise.all([fetchFlashcardStats(), fetchStudyHistory()])
 
         // 从当前复习列表中移除已复习的卡片
         const index = dueFlashcards.value.findIndex((card) => card.id === noteId)
@@ -166,6 +169,17 @@ export const useFlashcardStore = defineStore(
       }
     }
 
+    // 获取学习历史数据
+    const fetchStudyHistory = async (days?: number) => {
+      try {
+        studyHistory.value = await window.electronAPI.flashcard.getStudyHistory(days)
+        return studyHistory.value
+      } catch (error) {
+        console.error('获取学习历史失败:', error)
+        throw error
+      }
+    }
+
     return {
       // 状态
       dueFlashcards,
@@ -174,6 +188,7 @@ export const useFlashcardStore = defineStore(
       decks,
       settings,
       isReviewModalOpen,
+      studyHistory,
 
       // 方法
       fetchDueFlashcards,
@@ -187,7 +202,8 @@ export const useFlashcardStore = defineStore(
       closeReviewModal,
       resetFlashcardProgress,
       fetchSettings,
-      updateSettings
+      updateSettings,
+      fetchStudyHistory
     }
   },
   {

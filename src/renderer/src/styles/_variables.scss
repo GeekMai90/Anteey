@@ -157,6 +157,7 @@ $dark-mode-text: $gray-100;
   --color-bg-tertiary: rgba(0, 0, 0, 0.05);
   --color-bg-whiteboard: #f3f5f7;
   --color-bg-ai-assistant: #fafafa;
+  --color-bg-flashcard: #fff;
 
   // 模态框背景色
   --color-modal-bg: rgba(0, 0, 0, 0.32);
@@ -183,7 +184,7 @@ $dark-mode-text: $gray-100;
   --color-scroll-thumb: rgba(0, 0, 0, 0.2);
 
   // 主题边框色
-  --color-border: #e7e5e4;
+  --color-border: rgba(134, 142, 150, 0.15);
   --color-border-sidebar: #e1e1e1;
   --time-card-border-color: rgba(173, 181, 188, 0.3);
 
@@ -272,6 +273,16 @@ $dark-mode-text: $gray-100;
   --color-fsrs-learning: #ff9f1c; // 学习中：黄色
   --color-fsrs-review: #69b5ff; // 复习中：紫色
   --color-fsrs-relearning: #00c8a8; // 重新学习：蓝色
+
+  // 图表渐变色
+  --color-chart-primary: var(--color-primary);
+  --color-chart-primary-light: rgba(var(--color-primary-rgb), 0.3);
+  --color-chart-primary-hover: rgba(var(--color-primary-rgb), 0.5);
+
+  --color-chart-yellow: var(--color-yellow);
+  --color-chart-yellow-light: rgba(var(--color-yellow-rgb), 0.3);
+  --color-chart-yellow-area: rgba(var(--color-yellow-rgb), 0.2);
+  --color-chart-yellow-area-light: rgba(var(--color-yellow-rgb), 0);
 }
 
 .theme-dark {
@@ -304,6 +315,7 @@ $dark-mode-text: $gray-100;
   --color-bg-tertiary: rgba(255, 255, 255, 0.08);
   --color-bg-whiteboard: #2d2d2d;
   --color-bg-ai-assistant: #242424;
+  --color-bg-flashcard: #242424;
 
   // 模态框背景色
   --color-modal-bg: rgba(0, 0, 0, 0.8);
@@ -330,7 +342,7 @@ $dark-mode-text: $gray-100;
   --color-scroll-thumb: rgba(255, 255, 255, 0.2);
 
   // 主题边框色
-  --color-border: #2f2f2f;
+  --color-border: rgba(134, 142, 150, 0.15);
   --color-border-sidebar: #3b3b3b;
   --time-card-border-color: rgba(255, 255, 255, 0.12);
 
@@ -415,4 +427,14 @@ $dark-mode-text: $gray-100;
   --color-fsrs-learning: #ff9f1c; // 学习中：黄色
   --color-fsrs-review: #69b5ff; // 复习中：紫色
   --color-fsrs-relearning: #00c8a8; // 重新学习：蓝色
+
+  // 图表渐变色 - 暗色主题
+  --color-chart-primary: var(--color-primary);
+  --color-chart-primary-light: rgba(var(--color-primary-rgb), 0.3);
+  --color-chart-primary-hover: rgba(var(--color-primary-rgb), 0.5);
+
+  --color-chart-yellow: var(--color-yellow);
+  --color-chart-yellow-light: rgba(var(--color-yellow-rgb), 0.3);
+  --color-chart-yellow-area: rgba(var(--color-yellow-rgb), 0.2);
+  --color-chart-yellow-area-light: rgba(var(--color-yellow-rgb), 0);
 }

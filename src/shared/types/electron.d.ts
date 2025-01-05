@@ -70,7 +70,10 @@ import type {
   FlashcardStats,
   ReviewFeedback,
   CardBox,
-  FlashcardSettings
+  FlashcardSettings,
+
+  // 学习历史相关
+  StudyHistory
 } from '@shared/types'
 
 export interface ElectronAPI {
@@ -414,6 +417,8 @@ export interface ElectronAPI {
     // 统计相关
     getFlashcardStats: () => Promise<FlashcardStats>
     getFlashcardDecks: () => Promise<FlashcardDecks>
+    // 新增：获取学习历史数据
+    getStudyHistory: (days?: number) => Promise<StudyHistory>
 
     // 设置相关
     getSettings: () => Promise<FlashcardSettings>

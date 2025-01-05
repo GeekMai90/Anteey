@@ -68,11 +68,35 @@ export function setupFlashcardHandlers() {
     }
   })
 
+  // 获取学习历史数据
+  ipcMain.handle('get-study-history', async (_event, days?: number) => {
+    try {
+      const history = await flashcardService.getStudyHistory(days)
+      return { success: true, history }
+    } catch (error) {
+      console.error('主进程→ 获取学习历史失败:', error)
+      return { success: false, error: String(error) }
+    }
+  })
+
   // 获取闪卡统计信息
   ipcMain.handle('get-flashcard-stats', async () => {
     try {
       const stats = await flashcardService.getFlashcardStats()
-      return { success: true, stats }
+      return {
+        success: true,
+        stats: {
+          ...stats,
+          todayStats: stats.todayStats || null,
+          weeklyStats: stats.weeklyStats || [],
+          history: stats.history || {
+            daysStudied: 0,
+            currentStreak: 0,
+            bestStreak: 0,
+            heatmap: []
+          }
+        }
+      }
     } catch (error) {
       console.error('主进程→ 获取闪卡统计信息失败:', error)
       return { success: false, error: String(error) }
