@@ -1,5 +1,5 @@
-appId: com.antithink.app
-productName: AntiThink
+appId: com.Anteey.app
+productName: Anteey
 directories:
   buildResources: build
 files:
@@ -27,7 +27,7 @@ extraResources:
       - '**/*'
 afterSign: electron-builder-notarize
 win:
-  executableName: antithink-app
+  executableName: Anteey-app
   icon: build/icon.ico
   target:
     - target: nsis

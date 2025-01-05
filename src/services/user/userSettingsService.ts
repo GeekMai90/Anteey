@@ -117,7 +117,7 @@ export async function initializeUserSettings(): Promise<void> {
     const now = Date.now() // 使用时间戳
     await db('user_settings').insert({
       id: uuidv4(), // 使用固定的 ID
-      authorName: 'AntiThink',
+      authorName: 'Anteey',
       authorMotto: '一起践行终身成长',
       qrcodeUrl: '',
       createdAt: now,

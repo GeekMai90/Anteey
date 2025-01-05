@@ -130,7 +130,7 @@ const transformToJsMindData = (nodes: KnowledgeTreeNode[]): JsMindData => {
   const rootNode: JsMindNode = {
     id: 'root',
     topic: `<div class="node-content root-node">
-            <div class="node-address">AntiThink</div>
+            <div class="node-address">Anteey</div>
             <div class="node-title">Zettelkasten</div>
             <div class="children-indicator"></div>
           </div>`,

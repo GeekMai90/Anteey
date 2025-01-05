@@ -1,6 +1,6 @@
-# AntiThink
+# Anteey
 
-AntiThink 是一个基于卢曼卡片盒笔记法理念的现代化桌面笔记应用。
+Anteey 是一个基于卢曼卡片盒笔记法理念的现代化桌面笔记应用。
 
 ## 技术栈
 
@@ -140,4 +140,4 @@ pnpm run build:proxyLinuxFinal
 
 ## 联系方式
 
-- 官网：https://www.antithink.cc
+- 官网：https://www.Anteey.cc

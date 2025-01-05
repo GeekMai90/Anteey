@@ -5,8 +5,8 @@
       <div class="sidebar-titlebar"></div>
       <div class="antinet-button" @click.stop="uiStore.toggleSettingDropdown">
         <div class="left-section">
-          <img src="@resources/icon.png" alt="AntiThink" class="antinet-icon" />
-          <div class="antinet-text">AntiThink</div>
+          <img src="@resources/icon.png" alt="Anteey" class="antinet-icon" />
+          <div class="antinet-text">Anteey</div>
         </div>
         <div class="right-section">
           <!-- 同步按钮 -->
@@ -299,7 +299,7 @@ const openSearch = () => {
 const openHelp = () => {
   // 实现打开帮助的逻辑
 
-  window.electronAPI.shell.openExternal('https://www.yuque.com/geekmai/antithink')
+  window.electronAPI.shell.openExternal('https://www.yuque.com/geekmai/Anteey')
 }
 
 const isQuickAccessVisible = ref(false)

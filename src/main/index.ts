@@ -38,7 +38,7 @@ ipcMain.on('renderer-log', (_, { level, args }) => {
 })
 
 // 设置应用名称
-app.name = 'AntiThink'
+app.name = 'Anteey'
 
 // 设置日志
 log.transports.file.level = 'info'
@@ -55,10 +55,10 @@ process.on('unhandledRejection', (reason, promise) => {
 function createCustomMenu() {
   const template = [
     {
-      label: 'AntiThink',
+      label: 'Anteey',
       submenu: [
         {
-          label: '关于AntiThink',
+          label: '关于Anteey',
           role: 'about'
         },
         { type: 'separator' },
@@ -149,7 +149,7 @@ function createCustomMenu() {
         {
           label: '官网',
           click: async () => {
-            await shell.openExternal('https://www.antithink.cc')
+            await shell.openExternal('https://www.Anteey.cc')
           }
         }
       ]
@@ -531,7 +531,7 @@ app.whenReady().then(async () => {
   })
 })
 
-app.setName('AntiThink')
+app.setName('Anteey')
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {

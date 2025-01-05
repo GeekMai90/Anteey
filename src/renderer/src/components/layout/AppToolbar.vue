@@ -219,7 +219,7 @@ interface Breadcrumb {
 
 // 计算面包屑数据
 const breadcrumbs = computed<Breadcrumb[]>(() => {
-  const items: Breadcrumb[] = [{ text: 'AntiThink' }]
+  const items: Breadcrumb[] = [{ text: 'Anteey' }]
 
   if (parentPath.value) {
     parentPath.value.forEach((node: any) => {
