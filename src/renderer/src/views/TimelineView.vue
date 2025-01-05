@@ -143,6 +143,7 @@ const noteCreatedBus = useEventBus('note-created')
 const eventBusDeleted = useEventBus('note-deleted')
 const eventBusEmptyNotesMovedToTrash = useEventBus('empty-notes-moved-to-trash')
 const eventBusNoteRestored = useEventBus('note-restored')
+// const flashcardConvertedBus = useEventBus('flashcard-converted')
 
 // 事件监听器设置
 noteUpdatedBus.on((updatedNote) => {
@@ -171,6 +172,41 @@ eventBusDeleted.on(() => {
     nextTick(() => {
       virtualList.value = [...virtualList.value]
     })
+  }
+})
+
+// 监听闪卡转换事件
+// flashcardConvertedBus.on((noteId) => {
+//   // 找到对应的笔记并更新
+//   const noteToUpdate = notes.value.find((note) => note.id === noteId)
+//   if (noteToUpdate) {
+//     // 重新获取该笔记的最新数据
+//     noteStore.fetchNoteById(noteId as string).then((updatedNote) => {
+//       if (updatedNote) {
+//         updateSingleNote(updatedNote)
+//       }
+//     })
+//   }
+// })
+// 监听闪卡转换事件
+const flashcardConvertedBus = useEventBus<string>('flashcard-converted')
+flashcardConvertedBus.on(async (noteId) => {
+  // 找到对应的笔记并更新
+  const noteToUpdate = notes.value.find((note) => note.id === noteId)
+  if (noteToUpdate) {
+    try {
+      // 重新获取该笔记的最新数据
+      const updatedNote = await noteStore.fetchNoteById(noteId)
+      if (updatedNote) {
+        updateSingleNote(updatedNote)
+        // 强制更新虚拟列表
+        nextTick(() => {
+          virtualList.value = [...virtualList.value]
+        })
+      }
+    } catch (error) {
+      console.error('更新笔记失败:', error)
+    }
   }
 })
 

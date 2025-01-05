@@ -7,6 +7,7 @@ import type {
   ReviewFeedback,
   FlashcardSettings
 } from '@shared/types'
+import { useEventBus } from '@vueuse/core'
 
 export const useFlashcardStore = defineStore(
   'flashcard',
@@ -47,6 +48,9 @@ export const useFlashcardStore = defineStore(
       try {
         await window.electronAPI.flashcard.convertToFlashcard(noteId)
         await fetchFlashcardStats()
+        // 发送事件通知
+        const flashcardConvertedBus = useEventBus('flashcard-converted')
+        flashcardConvertedBus.emit(noteId)
       } catch (error) {
         console.error('转换闪卡失败:', error)
         throw error
@@ -58,6 +62,9 @@ export const useFlashcardStore = defineStore(
       try {
         await window.electronAPI.flashcard.removeFlashcard(noteId)
         await fetchFlashcardStats()
+        // 发送事件通知
+        const flashcardConvertedBus = useEventBus('flashcard-converted')
+        flashcardConvertedBus.emit(noteId)
       } catch (error) {
         console.error('取消闪卡标记失败:', error)
         throw error
