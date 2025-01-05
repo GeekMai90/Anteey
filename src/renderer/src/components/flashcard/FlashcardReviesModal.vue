@@ -315,12 +315,21 @@ const handleFeedback = async (feedback: ReviewFeedback) => {
   // 发送反馈时带上用时
   emit('feedback', currentCard.value.id, feedback, reviewTime, isSimplifiedMode.value)
 
-  // 移动到下一张卡片
-  if (currentIndex.value < totalCards.value - 1) {
-    currentIndex.value++
-    isFlipped.value = false
-    // 重新开始计时
-    startTimer()
+  // 检查是否还有下一张卡片
+  const nextIndex = currentIndex.value + 1
+  if (nextIndex < props.cards.length) {
+    // 修改这里：使用 props.cards.length 而不是 totalCards.value
+    // 确保下一张卡片存在
+    const nextCard = props.cards[nextIndex]
+    if (nextCard) {
+      currentIndex.value = nextIndex
+      isFlipped.value = false
+      // 重新开始计时
+      startTimer()
+    } else {
+      // 如果下一张卡片不存在，直接完成
+      isCompleted.value = true
+    }
   } else {
     isCompleted.value = true
     // 触发烟花效果
@@ -388,9 +397,11 @@ watch(
 const moreBtnRef = ref<HTMLElement | null>(null)
 const moreMenuRef = ref<HTMLElement | null>(null)
 
+const currentNoteId = computed(() => currentCard.value?.id || '')
+
 const { menuItems: noteMenuItems, resetDeleteState } = useNoteMenu({
-  noteId: currentCard.value?.id || '',
-  menuItems: ['star', 'convertToFlashcard']
+  noteId: currentNoteId.value,
+  menuItems: ['convertToFlashcard', 'star', 'flashcardSidebar']
 })
 
 const {

@@ -78,18 +78,14 @@ export const useFlashcardStore = defineStore(
           reviewTime,
           isSimplified
         })
-        // 更新状态
-        await fetchDueFlashcards()
+
+        // 只更新统计信息
         await fetchFlashcardStats()
 
         // 从当前复习列表中移除已复习的卡片
-        if (currentFlashcard.value?.id === noteId) {
-          const index = dueFlashcards.value.findIndex((card) => card.id === noteId)
-          if (index > -1) {
-            dueFlashcards.value.splice(index, 1)
-          }
-          // 设置下一张卡片
-          currentFlashcard.value = dueFlashcards.value[0] || null
+        const index = dueFlashcards.value.findIndex((card) => card.id === noteId)
+        if (index > -1) {
+          dueFlashcards.value.splice(index, 1)
         }
       } catch (error) {
         console.error('更新闪卡状态失败:', error)
@@ -114,6 +110,7 @@ export const useFlashcardStore = defineStore(
         const cards = await window.electronAPI.flashcard.getDueFlashcards(tags)
         dueFlashcards.value = cards
         isReviewModalOpen.value = true
+        return cards // 返回卡片数据
       } catch (error) {
         console.error('Failed to start review session:', error)
         throw error

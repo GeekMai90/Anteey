@@ -114,6 +114,12 @@ export function useNoteMenu(params: NoteMenuParams) {
     noteStore.closeNoteEditor()
   }
 
+  //闪卡笔记暂存到右侧
+  const handleFlashcardToRightSidebar = async () => {
+    console.log('闪卡笔记暂存到右侧', params.noteId)
+    await noteStore.addNoteToRightSidebar(params.noteId)
+  }
+
   // 复制笔记
   const handleCopy = () => {
     console.log('复制笔记', params.noteId)
@@ -491,6 +497,12 @@ export function useNoteMenu(params: NoteMenuParams) {
       label: '右侧显示',
       icon: RightBar,
       action: handleAddToRightSidebar
+    },
+    flashcardSidebar: {
+      name: 'flashcardSidebar',
+      label: '稍后查看',
+      icon: RightBar,
+      action: handleFlashcardToRightSidebar
     },
     copy: { name: 'copy', label: '复制', icon: Copy, action: handleCopy },
     history: { name: 'history', label: '历史记录', icon: History, action: handleShowHistory },

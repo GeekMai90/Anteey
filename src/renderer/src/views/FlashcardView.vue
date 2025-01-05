@@ -160,9 +160,9 @@
 
     <!-- 添加复习模态框 -->
     <FlashcardReviewModal
-      v-if="flashcardStore.isReviewModalOpen && flashcardStore.dueFlashcards.length > 0"
+      v-if="flashcardStore.isReviewModalOpen && reviewCards.length > 0"
       v-model="flashcardStore.isReviewModalOpen"
-      :cards="flashcardStore.dueFlashcards"
+      :cards="reviewCards"
       @feedback="handleReviewFeedback"
       @complete="initializeData"
     />
@@ -187,7 +187,7 @@ import FlashcardReviewModal from '../components/flashcard/FlashcardReviesModal.v
 import ContextMenu from '@renderer/components/common/ContexMenu.vue'
 import { useFlashcardStore } from '@renderer/stores/flashcardStore'
 import { useContextMenuStore } from '@renderer/stores/contextMenuStore'
-import type { FlashcardStats, ReviewFeedback } from '@shared/types'
+import type { FlashcardStats, Note, ReviewFeedback } from '@shared/types'
 
 // 状态
 const router = useRouter()
@@ -209,6 +209,7 @@ const tagDecks = ref<
     masteredCount: number
   }>
 >([])
+const reviewCards = ref<Note[]>([])
 
 // 处理复习反馈
 const handleReviewFeedback = async (
@@ -240,16 +241,23 @@ const handleReviewFeedback = async (
 // 修改开始复习方法
 const startReview = async (tagId: string | null, isAll = false) => {
   try {
+    let cards: Note[]
     if (isAll) {
       // 所有记忆卡：传 undefined
-      await flashcardStore.startReviewSession(undefined)
+      cards = await flashcardStore.fetchDueFlashcards()
     } else if (tagId === null) {
       // 暂无分类：传空数组
-      await flashcardStore.startReviewSession([])
+      cards = await flashcardStore.fetchDueFlashcards([])
     } else {
       // 特定标签：传标签ID数组
-      await flashcardStore.startReviewSession([tagId])
+      cards = await flashcardStore.fetchDueFlashcards([tagId])
     }
+
+    // 保存复习卡片的副本
+    reviewCards.value = [...cards]
+
+    // 打开复习模态框
+    flashcardStore.isReviewModalOpen = true
   } catch (error) {
     console.error('开始复习失败:', error)
   }
