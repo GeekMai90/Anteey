@@ -123,11 +123,19 @@ export async function activateLicense(activationCode: string): Promise<Activatio
     if (existingLicense) {
       try {
         const decrypted = decrypt(existingLicense.encryptedData)
-        if (decrypted.license.status === 'active') {
+        // 修改这里：即使许可证存在，只要状态不是 active 或已过期，就允许重新激活
+        if (
+          decrypted.license.status === 'active' &&
+          new Date(decrypted.license.expiresAt) > new Date()
+        ) {
           return { success: false, message: '该设备已经激活' }
         }
+        // 如果许可证已过期或状态不是 active，删除旧的许可证记录
+        await db('licenses').where({ machineId }).delete()
       } catch (error) {
         console.error('解密现有许可证失败:', error)
+        // 如果解密失败，也删除旧的许可证记录
+        await db('licenses').where({ machineId }).delete()
       }
     }
 
@@ -154,7 +162,7 @@ export async function activateLicense(activationCode: string): Promise<Activatio
       expiresAt,
       status: 'active',
       version: '1.0',
-      level: 'pro' // 统一使用 pro 级别
+      level: 'pro'
     }
 
     // 生成数据哈希
@@ -175,7 +183,10 @@ export async function activateLicense(activationCode: string): Promise<Activatio
     return { success: true, message: '激活成功', license }
   } catch (error) {
     console.error('激活失败:', error)
-    return { success: false, message: String(error) }
+    return {
+      success: false,
+      message: '激活过程中发生错误'
+    }
   }
 }
 

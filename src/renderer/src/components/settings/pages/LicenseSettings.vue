@@ -111,7 +111,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { CrownThree } from '@icon-park/vue-next'
+import { CrownThree, Check } from '@icon-park/vue-next'
 import { useLicenseStore } from '../../../stores/licenseStore'
 import { useNoteStore } from '../../../stores/noteStore'
 import Modal from '../../../components/common/Modal.vue'
