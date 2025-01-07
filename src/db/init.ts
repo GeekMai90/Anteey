@@ -955,6 +955,17 @@ export async function initDatabase(db: Knex): Promise<void> {
     })
     console.log('daily_stats 表创建成功')
   }
+
+  // 在 initDatabase 函数中添加以下代码
+  if (!(await db.schema.hasTable('drafts'))) {
+    await db.schema.createTable('drafts', (table) => {
+      table.string('id').primary()
+      table.text('content').notNullable().defaultTo('')
+      table.datetime('createdAt').notNullable()
+      table.datetime('updatedAt').notNullable()
+    })
+    console.log('drafts 表创建成功')
+  }
 }
 
 export async function down(db: Knex): Promise<void> {
