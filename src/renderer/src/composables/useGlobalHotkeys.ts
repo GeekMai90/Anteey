@@ -11,6 +11,9 @@ export function useGlobalHotkeys() {
   const uiStore = useUIStore()
 
   const setupHotkeys = () => {
+    // 配置 hotkeys，让它在所有元素上都生效，包括输入框和编辑器
+    hotkeys.filter = () => true
+
     // 添加笔记快捷键
     hotkeys('ctrl+n, command+n', (event) => {
       event.preventDefault()
@@ -24,37 +27,32 @@ export function useGlobalHotkeys() {
     // 打开主页的快捷键
     hotkeys('command+shift+h, ctrl+shift+h', (event) => {
       event.preventDefault()
-      router.push('/home') // 假设主页的路由是 '/'
+      router.push('/home')
     })
-    // 打开时间线页面
+    // 打开时光记的快捷键
     hotkeys('command+j, ctrl+j', (event) => {
       event.preventDefault()
-      router.push('/timeline') // 假设时间线页面的路由是 '/timeline'
+      router.push('/timeblock')
+    })
+    // 打开笔记流页面
+    hotkeys('command+l, ctrl+l', (event) => {
+      event.preventDefault()
+      router.push('/timeline')
+    })
+    // 打开草稿纸页面
+    hotkeys('command+;, ctrl+;', (event) => {
+      event.preventDefault()
+      router.push('/drafts')
     })
     // 打开卡片盒
-    hotkeys('command+shift+b, ctrl+shift+b', (event) => {
+    hotkeys('command+o, ctrl+o', (event) => {
       event.preventDefault()
-      router.push('/cardbox') // 假设时间线页面的路由是 '/timeline'
-    })
-    // 打开主要卡片盒
-    hotkeys('command+shift+m, ctrl+shift+m', (event) => {
-      event.preventDefault()
-      router.push('/maincard') // 假设时间线页面的路由是 '/timeline'
-    })
-    // 打开索引卡片盒
-    hotkeys('command+shift+i, ctrl+shift+i', (event) => {
-      event.preventDefault()
-      router.push('/indexcard') // 假设时间线页面的路由是 '/timeline'
-    })
-    // 打开文献卡片盒
-    hotkeys('command+shift+l, ctrl+shift+l', (event) => {
-      event.preventDefault()
-      router.push('/bibcard') // 假设时间线页面的路由是 '/timeline'
+      router.push('/cardbox')
     })
     // 打开思维板
     hotkeys('command+shift+w, ctrl+shift+w', (event) => {
       event.preventDefault()
-      router.push('/whiteboard') // 假设时间线页面的路由是 '/timeline'
+      router.push('/whiteboard')
     })
     // 打开设置
     hotkeys('command+,, ctrl+,', (event) => {
@@ -76,6 +74,36 @@ export function useGlobalHotkeys() {
       event.preventDefault()
       uiStore.toggleTheme()
     })
+    // 打开/关闭右侧边栏多开笔记
+    hotkeys('command+shift+m, ctrl+shift+m', (event) => {
+      event.preventDefault()
+
+      // 如果右侧边栏已打开且当前是多开笔记标签，则关闭右侧边栏
+      if (uiStore.isRightSidebarOpen && uiStore.rightSidebarTab === 'multi') {
+        uiStore.toggleRightSidebar()
+      } else {
+        // 否则，确保右侧边栏打开并切换到多开笔记标签
+        if (!uiStore.isRightSidebarOpen) {
+          uiStore.toggleRightSidebar()
+        }
+        uiStore.rightSidebarTab = 'multi'
+      }
+    })
+    // 打开/关闭右侧边栏草稿纸
+    hotkeys('command+shift+;, ctrl+shift+;', (event) => {
+      event.preventDefault()
+
+      // 如果右侧边栏已打开且当前是草稿纸标签，则关闭右侧边栏
+      if (uiStore.isRightSidebarOpen && uiStore.rightSidebarTab === 'drafts') {
+        uiStore.toggleRightSidebar()
+      } else {
+        // 否则，确保右侧边栏打开并切换到草稿纸标签
+        if (!uiStore.isRightSidebarOpen) {
+          uiStore.toggleRightSidebar()
+        }
+        uiStore.rightSidebarTab = 'drafts'
+      }
+    })
   }
 
   onMounted(() => {
@@ -83,6 +111,12 @@ export function useGlobalHotkeys() {
   })
 
   onUnmounted(() => {
+    // 重置 hotkeys 的过滤器
+    hotkeys.filter = function (event) {
+      const target = event.target as HTMLElement
+      const { tagName } = target
+      return !(target.isContentEditable || tagName === 'INPUT' || tagName === 'TEXTAREA')
+    }
     hotkeys.unbind()
   })
 }
