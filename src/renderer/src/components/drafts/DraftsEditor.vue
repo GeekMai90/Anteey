@@ -94,7 +94,7 @@ defineExpose({
 })
 </script>
 
-<style lang="scss">
+<style lang="scss" scoped>
 .editor-wrapper {
   position: relative;
   height: 100%;

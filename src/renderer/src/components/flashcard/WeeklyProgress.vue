@@ -166,8 +166,14 @@
 <script setup lang="ts">
 import { ref, onMounted, computed, watch, onUnmounted } from 'vue'
 import type { DailyStats } from '@shared/types'
-import * as echarts from 'echarts'
+import { init, use, type EChartsType, type LinearGradientObject } from 'echarts/core'
+import { BarChart } from 'echarts/charts'
+import { GridComponent, TooltipComponent, TitleComponent } from 'echarts/components'
+import { CanvasRenderer } from 'echarts/renderers'
 import { Info } from '@icon-park/vue-next'
+
+// 注册必需的组件
+use([BarChart, GridComponent, TooltipComponent, TitleComponent, CanvasRenderer])
 
 interface DayData {
   date: string
@@ -298,12 +304,12 @@ const averagePerDay = computed(() => {
 
 // 图表相关
 const chartRef = ref<HTMLElement>()
-let chart: echarts.ECharts | null = null
+let chart: EChartsType | null = null
 
 const initChart = () => {
   if (!chartRef.value) return
 
-  chart = echarts.init(chartRef.value)
+  chart = init(chartRef.value)
   updateChart()
 }
 
@@ -396,10 +402,17 @@ const updateChart = () => {
         type: 'bar',
         barWidth: '50%',
         itemStyle: {
-          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-            { offset: 1, color: primaryColor },
-            { offset: 0, color: `rgba(${primaryRgb}, 0.7)` }
-          ]),
+          color: {
+            type: 'linear',
+            x: 0,
+            y: 0,
+            x2: 0,
+            y2: 1,
+            colorStops: [
+              { offset: 1, color: primaryColor },
+              { offset: 0, color: `rgba(${primaryRgb}, 0.7)` }
+            ]
+          } as LinearGradientObject,
           borderRadius: [4, 4, 0, 0]
         }
       }
