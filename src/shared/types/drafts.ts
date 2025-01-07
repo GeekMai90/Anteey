@@ -19,7 +19,8 @@ export interface UpdateDraftInput {
 
 // 快速添加内容的输入
 export interface AppendDraftInput {
-  content: string // 这里保持 string 因为是纯文本输入
+  content: string
+  hasMoreLines?: boolean // 是否还有更多行要添加
 }
 
 // 草稿纸的响应结构

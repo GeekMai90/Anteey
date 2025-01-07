@@ -217,11 +217,13 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  padding: 0 40px;
   box-sizing: border-box;
   width: 100%;
   max-width: 900px;
   margin: 0 auto;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  margin: 30px auto;
 
   .drafts-editor {
     flex-grow: 1;

@@ -62,6 +62,8 @@
       :note="noteStore.shareNote"
       @close="noteStore.showShareModal = false"
     />
+    <!-- 添加快速添加组件 -->
+    <QuickAddModal :is-visible="isQuickAddVisible" @close="closeQuickAdd" />
   </div>
 </template>
 
@@ -88,6 +90,8 @@ import SettingsPage from './components/settings/SettingsPage.vue'
 import SharePreviewModal from './components/share/SharePreviewModal.vue'
 import { useAppearanceStore } from './stores/appearanceStore'
 import { useRouter } from 'vue-router'
+import QuickAddModal from '@renderer/components/drafts/QuickAddModal.vue'
+import { useDraftsStore } from '@renderer/stores/draftsStore'
 
 // 状态管理初始化
 const uiStore = useUIStore()
@@ -95,6 +99,7 @@ const noteStore = useNoteStore()
 const appearanceStore = useAppearanceStore()
 const router = useRouter()
 const webdavStore = useWebDAVStore()
+const draftsStore = useDraftsStore()
 // 全局UI管理器引用
 const globalUIManager = ref<InstanceType<typeof GlobalUIManager> | null>(null)
 
@@ -159,6 +164,36 @@ const { handleBulkExport } = useNoteMenu({
   menuItems: ['star']
 })
 
+// 快速添加状态管理
+const isQuickAddVisible = ref(false)
+
+// 处理快捷键
+const handleKeydown = (event: KeyboardEvent) => {
+  // 支持 Windows(Ctrl) 和 Mac(Cmd) 的快捷键
+  const isCmdOrCtrl = event.metaKey || event.ctrlKey
+
+  // 检查是否是需要排除的输入框
+  const isExcludedInput =
+    // 搜索框、标题输入等场景
+    ((event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) &&
+      !event.target.closest('.ProseMirror')) || // 排除编辑器内的输入
+    // 其他需要排除的可编辑元素
+    (event.target instanceof HTMLElement &&
+      event.target.isContentEditable &&
+      !event.target.closest('.ProseMirror')) // 排除编辑器内的可编辑元素
+
+  if (isCmdOrCtrl && event.key.toLowerCase() === 'd' && !isExcludedInput) {
+    console.log('Quick add shortcut triggered!')
+    event.preventDefault()
+    isQuickAddVisible.value = true
+  }
+}
+
+// 关闭快速添加窗口
+const closeQuickAdd = () => {
+  isQuickAddVisible.value = false
+}
+
 // ===== 生命周期钩子 =====
 onMounted(async () => {
   // 初始化主题和布局
@@ -203,6 +238,19 @@ onMounted(async () => {
   if (webdavStore.config?.autoSync) {
     await window.electronAPI.webDAV.startWebDAVAutoSync()
   }
+
+  window.addEventListener('keydown', handleKeydown)
+  console.log('Keydown event listener added')
+
+  // 初始化草稿纸
+  try {
+    await draftsStore.fetchDraft()
+    if (!draftsStore.currentDraft) {
+      await draftsStore.createDraft()
+    }
+  } catch (error) {
+    console.error('Failed to initialize draft:', error)
+  }
 })
 
 onUnmounted(() => {
@@ -211,6 +259,7 @@ onUnmounted(() => {
   window.electronAPI.systemMenu.removeAllListeners('menu-new-note')
   window.electronAPI.systemMenu.removeAllListeners('menu-export-notes')
   window.electronAPI.systemMenu.removeAllListeners('sync-state-changed')
+  window.removeEventListener('keydown', handleKeydown)
 })
 
 // 全局方法注入
@@ -221,7 +270,6 @@ provide('openOptionsMenu', (event: MouseEvent, noteId: string) => {
 // 初始化全局热键
 useGlobalHotkeys()
 </script>
-
 <style lang="scss">
 /* 基础布局样式 */
 .app-container {

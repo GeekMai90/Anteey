@@ -89,20 +89,40 @@ export async function appendDraft(input: AppendDraftInput): Promise<Draft> {
     const currentContent =
       typeof draft.content === 'string' ? JSON.parse(draft.content) : draft.content
 
-    const now = new Date()
+    // 找到最后一个非空段落的索引
+    const paragraphs = currentContent.content || []
+    let lastNonEmptyIndex = paragraphs.length - 1
+    while (lastNonEmptyIndex >= 0) {
+      const paragraph = paragraphs[lastNonEmptyIndex]
+      if (paragraph.type === 'paragraph' && paragraph.content && paragraph.content.length > 0) {
+        break
+      }
+      lastNonEmptyIndex--
+    }
+
+    // 构建新的内容数组
+    const newParagraphs = [
+      ...paragraphs.slice(0, lastNonEmptyIndex + 1), // 保留到最后一个非空段落
+      {
+        type: 'paragraph',
+        content: [{ type: 'text', text: input.content }]
+      }
+    ]
+
+    // 如果这是最后一行，添加一个空段落
+    if (!input.hasMoreLines) {
+      newParagraphs.push({
+        type: 'paragraph' // 添加一个空段落
+      })
+    }
 
     // 构建新的内容
     const newContent = {
       type: 'doc',
-      content: [
-        ...(currentContent.content || []),
-        {
-          type: 'paragraph',
-          content: [{ type: 'text', text: input.content }]
-        }
-      ]
+      content: newParagraphs
     }
 
+    const now = new Date()
     const [updatedDraft] = await db('drafts')
       .where({ id: draft.id })
       .update({

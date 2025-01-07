@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import type { Draft } from '@shared/types'
+import type { Draft, AppendDraftInput } from '@shared/types'
 import { message } from '../utils/message'
 
 export const useDraftsStore = defineStore('drafts', () => {
@@ -61,14 +61,17 @@ export const useDraftsStore = defineStore('drafts', () => {
   }
 
   // 追加内容到草稿纸
-  const appendDraft = async (content: string) => {
+  const appendDraft = async (input: AppendDraftInput | string) => {
     if (!currentDraft.value) {
       console.error('draftsStore.ts→ 没有当前草稿纸')
       return
     }
 
     try {
-      const draft = await window.electronAPI.drafts.appendDraft({ content })
+      // 处理不同类型的输入
+      const appendInput: AppendDraftInput = typeof input === 'string' ? { content: input } : input
+
+      const draft = await window.electronAPI.drafts.appendDraft(appendInput)
       currentDraft.value = draft
       return draft
     } catch (error) {
