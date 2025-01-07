@@ -219,7 +219,7 @@ onBeforeUnmount(() => {
   overflow: hidden;
   box-sizing: border-box;
   width: 100%;
-  max-width: 900px;
+  max-width: 800px;
   margin: 0 auto;
   border: 1px solid var(--color-border);
   border-radius: 10px;
