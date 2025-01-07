@@ -73,7 +73,12 @@ import type {
   FlashcardSettings,
 
   // 学习历史相关
-  StudyHistory
+  StudyHistory,
+
+  // 草稿纸相关
+  Draft,
+  UpdateDraftInput,
+  AppendDraftInput
 } from '@shared/types'
 
 export interface ElectronAPI {
@@ -449,6 +454,17 @@ export interface ElectronAPI {
       earliest: Date
       latest: Date
     } | null>
+  }
+
+  drafts: {
+    // 获取草稿纸内容
+    getDraft: () => Promise<Draft | null>
+    // 创建草稿纸
+    createDraft: () => Promise<Draft>
+    // 更新草稿纸内容
+    updateDraft: (input: UpdateDraftInput) => Promise<Draft>
+    // 追加内容到草稿纸
+    appendDraft: (input: AppendDraftInput) => Promise<Draft>
   }
 }
 

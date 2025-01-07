@@ -127,6 +127,11 @@ const routes = [
     name: 'FlashcardView',
     path: '/flashcard',
     component: () => import('../views/FlashcardView.vue')
+  },
+  {
+    name: 'DraftsView',
+    path: '/drafts',
+    component: () => import('../views/DraftsView.vue')
   }
 ]
 

@@ -1,26 +1,25 @@
 // 草稿纸数据结构
 export interface Draft {
   id: string
-  content: string
+  content: object // 包含 TipTap 编辑器的内容
   createdAt: Date
   updatedAt: Date
 }
 
 // 创建草稿纸的输入
 export interface CreateDraftInput {
-  content: string
+  content: object
 }
 
 // 更新草稿纸的输入
 export interface UpdateDraftInput {
   id: string
-  content: string
+  content: object
 }
 
-// 追加内容的输入
+// 快速添加内容的输入
 export interface AppendDraftInput {
-  id: string
-  content: string
+  content: string // 这里保持 string 因为是纯文本输入
 }
 
 // 草稿纸的响应结构
@@ -32,24 +31,3 @@ export interface DraftResponse {
 
 // 草稿纸的操作类型
 export type DraftOperation = 'create' | 'update' | 'append'
-
-// 草稿纸的 Window API 接口
-export interface DraftApi {
-  // 获取草稿纸内容
-  getDraft: () => Promise<Draft>
-  // 创建草稿纸
-  createDraft: (input: CreateDraftInput) => Promise<DraftResponse>
-  // 更新草稿纸内容
-  updateDraft: (input: UpdateDraftInput) => Promise<DraftResponse>
-  // 追加内容到草稿纸
-  appendDraft: (input: AppendDraftInput) => Promise<DraftResponse>
-}
-
-// 声明全局 Window 接口
-declare global {
-  interface Window {
-    electronAPI: {
-      draft: DraftApi
-    }
-  }
-}

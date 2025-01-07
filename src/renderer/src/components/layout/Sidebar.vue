@@ -182,7 +182,8 @@ import {
   LinkCloud,
   LinkCloudFaild,
   LinkCloudSucess,
-  StorageCardOne
+  StorageCardOne,
+  Write
 } from '@icon-park/vue-next'
 import { useNoteStore } from '@renderer/stores/noteStore'
 import SettingDropdownMenu from '@renderer/components/settings/SettingDropdownMenu.vue'
@@ -224,6 +225,7 @@ const menuItems = computed(() => {
     ...(timeBlockStore.settings.enabled
       ? [{ name: '时光记', path: '/timeblock', icon: Time }]
       : []),
+    { name: '草稿纸', path: '/drafts', icon: Write },
     { name: '笔记流', path: '/timeline', icon: Timeline },
     { name: '卡片盒', path: '/cardbox', icon: Box },
     { name: '知识树', path: '/knowledge-tree', icon: Sapling },

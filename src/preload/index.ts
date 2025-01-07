@@ -14,6 +14,7 @@ import { webdavApi } from './api/webdavApi'
 import { flashcardApi } from './api/flashcardApi'
 import { noteVersionApi } from './api/noteVersionApi'
 import { analyticsApi } from './api/analyticsApi'
+import { draftsApi } from './api/draftsApi'
 // 添加日志 API
 contextBridge.exposeInMainWorld('electronLog', {
   info: (...args: any[]) => ipcRenderer.send('renderer-log', { level: 'info', args }),
@@ -97,5 +98,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
   noteVersion: {
     ...noteVersionApi
+  },
+  drafts: {
+    ...draftsApi
   }
 })

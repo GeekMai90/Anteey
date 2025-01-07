@@ -960,9 +960,12 @@ export async function initDatabase(db: Knex): Promise<void> {
   if (!(await db.schema.hasTable('drafts'))) {
     await db.schema.createTable('drafts', (table) => {
       table.string('id').primary()
-      table.text('content').notNullable().defaultTo('')
+      table.json('content').notNullable().defaultTo('{}')
       table.datetime('createdAt').notNullable()
       table.datetime('updatedAt').notNullable()
+
+      // 添加索引
+      table.index('updatedAt')
     })
     console.log('drafts 表创建成功')
   }
@@ -1006,5 +1009,6 @@ export async function down(db: Knex): Promise<void> {
   await db.schema.dropTableIfExists('flashcard_settings')
   await db.schema.dropTableIfExists('review_records')
   await db.schema.dropTableIfExists('daily_stats')
+  await db.schema.dropTableIfExists('drafts')
   console.log('所有表已删除')
 }

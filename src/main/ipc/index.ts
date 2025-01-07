@@ -14,6 +14,7 @@ import { setupWebDAVHandlers } from './webdavIpcHandlers'
 import { setupFlashcardHandlers } from './flashcardIpcHandlers'
 import { setupNoteVersionHandlers } from './noteVersionIpcHandlers'
 import { setupAnalyticsHandlers } from './analyticsIpcHandlers'
+import { setupDraftHandlers } from './draftsIpcHandlers'
 
 export function setupIpcHandlers(): void {
   setupNotesHandlers()
@@ -32,4 +33,5 @@ export function setupIpcHandlers(): void {
   setupNoteVersionHandlers()
   setupAnalyticsHandlers()
   setupUserSettingsHandlers()
+  setupDraftHandlers()
 }
