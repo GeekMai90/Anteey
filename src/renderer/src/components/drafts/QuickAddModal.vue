@@ -131,7 +131,7 @@ watch(content, () => {
   justify-content: center;
   align-items: flex-start;
   padding-top: 100px;
-  z-index: 9999;
+  z-index: 10000;
 
   .modal-content {
     background-color: var(--color-bg-primary);
@@ -248,7 +248,7 @@ watch(content, () => {
         font-weight: 500;
 
         &:hover {
-          background-color: var(--color-primary-dark);
+          opacity: 0.8;
         }
       }
     }
