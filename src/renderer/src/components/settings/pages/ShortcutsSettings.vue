@@ -259,13 +259,13 @@ const shortcuts = [
       { action: '打开设置', keys: ['⌘', ','] },
       { action: '切换主题', keys: ['⌘', '⇧', 'T'] },
       { action: '打开主页', keys: ['⌘', '⇧', 'H'] },
-      { action: '打开时间线', keys: ['⌘', 'J'] },
-      { action: '打开卡片盒', keys: ['⌘', '⇧', 'B'] },
-      { action: '打开主要卡片盒', keys: ['⌘', '⇧', 'M'] },
-      { action: '打开索引卡片盒', keys: ['⌘', '⇧', 'I'] },
-      { action: '打开文献卡片盒', keys: ['⌘', '⇧', 'L'] },
+      { action: '打开时光记', keys: ['⌘', ';'] },
+      { action: '打开草稿纸', keys: ['⌘', 'J'] },
+      { action: '打开笔记流', keys: ['⌘', 'L'] },
+      { action: '打开卡片盒', keys: ['⌘', 'O'] },
       { action: '打开思维板', keys: ['⌘', '⇧', 'W'] },
       { action: '添加新卡片笔记', keys: ['⌘', 'N'] },
+      { action: '快速添加草稿', keys: ['⌘', 'D'] },
       { action: '搜索', keys: ['⌘', 'S'] },
       { action: '折叠/展开左侧边栏', keys: ['⌘', '/'] },
       { action: '折叠/展开右侧边栏', keys: ['⌘', '⇧', '/'] },
@@ -279,6 +279,14 @@ const shortcuts = [
     shortcuts: [
       { action: '搜索新增白板笔记', keys: ['⌘', '⇧', 'N'] },
       { action: '新增空白白板笔记', keys: ['双击空白处'] }
+    ]
+  },
+  {
+    name: '右侧边栏',
+    shortcuts: [
+      { action: '折叠/展开右侧边栏', keys: ['⌘', '⇧', '/'] },
+      { action: '打开/关闭右侧边栏多开笔记', keys: ['⌘', '⇧', 'M'] },
+      { action: '打开/关闭右侧边栏草稿纸', keys: ['⌘', '⇧', ';'] }
     ]
   }
 ]
