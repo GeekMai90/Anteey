@@ -38,7 +38,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useRoute } from 'vue-router'
-import { Split, LinkTwo, Write } from '@icon-park/vue-next'
+import { Split, LinkTwo, Pencil } from '@icon-park/vue-next'
 import MultiNotes from '@renderer/components/layout/MultiNotes.vue'
 import BacklinksPanelNoteEditor from '@renderer/components/layout/BacklinksPanelNoteEditor.vue'
 import RightSidebarDraftsEditor from '@renderer/components/layout/RightSidebarDraftsEditor.vue'
@@ -75,7 +75,7 @@ const tabs = [
   {
     key: 'drafts',
     label: '草稿纸',
-    icon: Write,
+    icon: Pencil,
     component: RightSidebarDraftsEditor
   }
 ]

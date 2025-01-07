@@ -167,7 +167,6 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import {
-  Timeline,
   Time,
   Box,
   Workbench,
@@ -183,7 +182,8 @@ import {
   LinkCloudFaild,
   LinkCloudSucess,
   StorageCardOne,
-  Write
+  NotebookOne,
+  Pencil
 } from '@icon-park/vue-next'
 import { useNoteStore } from '@renderer/stores/noteStore'
 import SettingDropdownMenu from '@renderer/components/settings/SettingDropdownMenu.vue'
@@ -225,8 +225,8 @@ const menuItems = computed(() => {
     ...(timeBlockStore.settings.enabled
       ? [{ name: '时光记', path: '/timeblock', icon: Time }]
       : []),
-    { name: '草稿纸', path: '/drafts', icon: Write },
-    { name: '笔记流', path: '/timeline', icon: Timeline },
+    { name: '草稿纸', path: '/drafts', icon: Pencil },
+    { name: '笔记流', path: '/timeline', icon: NotebookOne },
     { name: '卡片盒', path: '/cardbox', icon: Box },
     { name: '知识树', path: '/knowledge-tree', icon: Sapling },
     { name: '记忆卡', path: '/flashcard', icon: StorageCardOne },

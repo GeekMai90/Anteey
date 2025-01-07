@@ -11,7 +11,7 @@
           <!-- 左侧标题 -->
           <div class="drafts-header-left">
             <div class="icon">
-              <Write theme="outline" size="20" fill="var(--color-primary)" :strokeWidth="3" />
+              <Pencil theme="outline" size="20" fill="var(--color-primary)" :strokeWidth="3" />
             </div>
             <div class="name">草稿纸</div>
           </div>
@@ -34,7 +34,7 @@
 
 <script setup lang="ts">
 import { onMounted, onBeforeUnmount, ref, nextTick } from 'vue'
-import { Write } from '@icon-park/vue-next'
+import { Pencil } from '@icon-park/vue-next'
 import AppToolbar from '@renderer/components/layout/AppToolbar.vue'
 import DraftsEditor from '@renderer/components/drafts/DraftsEditor.vue'
 import { useDraftsStore } from '@renderer/stores/draftsStore'

@@ -6,7 +6,7 @@
           <!-- 标题区域 -->
           <div class="title-area">
             <div class="icon">
-              <Write theme="outline" size="18" fill="var(--color-primary)" :strokeWidth="3" />
+              <Pencil theme="outline" size="18" fill="var(--color-primary)" :strokeWidth="3" />
             </div>
             <span class="title">草稿纸</span>
           </div>
@@ -47,7 +47,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount } from 'vue'
-import { Write, Afferent } from '@icon-park/vue-next'
+import { Pencil, Afferent } from '@icon-park/vue-next'
 import { useDraftsStore } from '@renderer/stores/draftsStore'
 import { useRouter } from 'vue-router'
 import { useUIStore } from '@renderer/stores/UIStore'

@@ -13,7 +13,7 @@
           <!-- 左侧标题 -->
           <div class="timeline-header-left">
             <div class="icon">
-              <Timeline theme="outline" size="20" fill="var(--color-primary)" :strokeWidth="3" />
+              <NotebookOne theme="outline" size="20" fill="var(--color-primary)" :strokeWidth="3" />
             </div>
             <div class="name">笔记流</div>
           </div>
@@ -101,7 +101,7 @@
 import { useNoteStore } from '@renderer/stores/noteStore'
 import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue'
 import { storeToRefs } from 'pinia'
-import { Timeline, Calendar, RocketOne } from '@icon-park/vue-next'
+import { NotebookOne, Calendar, RocketOne } from '@icon-park/vue-next'
 import AppToolbar from '@renderer/components/layout/AppToolbar.vue'
 import CalendarPicker from '@renderer/components/timelineView/CalendarPicker.vue'
 import { useUIStore } from '@renderer/stores/UIStore'
