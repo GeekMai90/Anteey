@@ -736,8 +736,10 @@ export const useNoteStore = defineStore(
         await window.electronAPI.note.moveEmptyNotesToTrash()
         const emptyNotesMovedToTrashEventBus = useEventBus('empty-notes-moved-to-trash')
         emptyNotesMovedToTrashEventBus.emit()
+        message.success('清除空笔记成功')
       } catch (error) {
         console.error('noteStores.ts→ 将空笔记移到回收站失败:', error)
+        message.error('清除空笔记失败')
         throw error
       }
     }

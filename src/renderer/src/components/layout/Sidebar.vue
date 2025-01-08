@@ -37,27 +37,76 @@
       </div>
       <!-- 新增搜索区域 -->
       <div class="search-area">
-        <div class="search-input" @click="openSearch">
-          <div class="search-icon">
-            <div class="icon">
-              <Search
-                theme="outline"
-                size="16"
-                fill="var(--color-icon-secondary)"
-                :strokeWidth="3"
-              />
-            </div>
-            <div class="name">搜索</div>
-          </div>
-          <div class="search-input-text">⌘ S</div>
-        </div>
+        <!-- 主页按钮 -->
         <button
           v-tooltip.top="{
-            content: '添加笔记<br>Cmd+N',
+            content: '主页',
+            delay: { show: 1000 }
+          }"
+          class="action-btn"
+          @click="$router.push('/home')"
+        >
+          <div class="icon">
+            <Home theme="outline" size="16" fill="var(--color-icon-secondary)" :strokeWidth="3" />
+          </div>
+        </button>
+
+        <!-- 草稿纸按钮 -->
+        <button
+          v-tooltip.top="{
+            content: '草稿纸',
+            delay: { show: 1000 }
+          }"
+          class="action-btn"
+          @click="$router.push('/drafts')"
+        >
+          <div class="icon">
+            <Pencil theme="outline" size="16" fill="var(--color-icon-secondary)" :strokeWidth="3" />
+          </div>
+        </button>
+        <!-- 搜索按钮 -->
+        <button
+          v-tooltip.top="{
+            content: '搜索<br>⌘ S',
             delay: { show: 1000 },
             html: true
           }"
-          class="new-note-btn"
+          class="action-btn"
+          @click="openSearch"
+        >
+          <div class="icon">
+            <Search theme="outline" size="16" fill="var(--color-icon-secondary)" :strokeWidth="3" />
+          </div>
+        </button>
+
+        <!-- 主题切换按钮 -->
+        <button
+          v-tooltip.top="{
+            content: uiStore.isDarkTheme ? '切换亮色主题' : '切换暗色主题',
+            delay: { show: 1000 }
+          }"
+          class="action-btn"
+          @click="uiStore.setThemeMode(uiStore.isDarkTheme ? 'light' : 'dark')"
+        >
+          <div class="icon">
+            <component
+              :is="uiStore.isDarkTheme ? SunOne : Moon"
+              theme="outline"
+              size="16"
+              fill="var(--color-icon-secondary)"
+              :strokeWidth="3"
+            />
+          </div>
+        </button>
+
+        <!-- 新建笔记按钮 -->
+        <button
+          v-tooltip.top="{
+            content: '新建笔记<br>⌘ N',
+            delay: { show: 1000 },
+            html: true
+          }"
+          class="action-btn"
           @click="createNewCard"
         >
           <div class="icon">
@@ -115,32 +164,6 @@
     <div class="resize-handle" @mousedown="startResize"></div>
     <div class="sidebar-footer">
       <div class="new-card-wrapper"></div>
-      <!-- 主题切换按钮 -->
-      <div
-        v-tooltip.top="{
-          content: uiStore.isDarkTheme ? '切换亮色主题' : '切换暗色主题',
-          delay: { show: 1000 }
-        }"
-        class="theme-toggle"
-        @click="uiStore.setThemeMode(uiStore.isDarkTheme ? 'light' : 'dark')"
-      >
-        <div class="icon">
-          <Moon
-            v-if="!uiStore.isDarkTheme"
-            theme="outline"
-            size="20"
-            fill="var(--color-icon-menu-default)"
-            :strokeWidth="2"
-          />
-          <SunOne
-            v-else
-            theme="outline"
-            size="20"
-            fill="var(--color-icon-menu-default)"
-            :strokeWidth="2"
-          />
-        </div>
-      </div>
       <!-- 清除空笔记 -->
       <div
         v-tooltip.top="{ content: '清除空笔记', delay: { show: 1000 } }"
@@ -220,12 +243,12 @@ onMounted(async () => {
 
 const menuItems = computed(() => {
   const baseItems = [
-    { name: '主页', path: '/home', icon: Home },
+    // { name: '主页', path: '/home', icon: Home },
     // 根据设置决定是否显示时间块
     ...(timeBlockStore.settings.enabled
       ? [{ name: '时光记', path: '/timeblock', icon: Time }]
       : []),
-    { name: '草稿纸', path: '/drafts', icon: Pencil },
+    // { name: '草稿纸', path: '/drafts', icon: Pencil },
     { name: '笔记流', path: '/timeline', icon: NotebookOne },
     { name: '卡片盒', path: '/cardbox', icon: Box },
     { name: '知识树', path: '/knowledge-tree', icon: Sapling },
@@ -294,7 +317,7 @@ const createNewCard = () => {
 
 const openSearch = () => {
   // 实现打开搜索的逻辑
-  noteStore.openSearchModal()
+  uiStore.openSearchModal()
   console.log('打开搜索')
 }
 
@@ -518,94 +541,34 @@ const getSyncStatusText = computed(() => {
     .search-area {
       display: flex;
       align-items: center;
-      padding: 6px 10px;
-      gap: 10px;
-      cursor: pointer;
-      // margin-bottom: 5px;
+      padding: 10px 10px;
+      gap: 8px;
+      justify-content: space-between;
+      width: 100%;
 
-      .search-input {
-        flex-grow: 1;
-        height: 32px;
-        border: 1px solid var(--color-border-sidebar);
-        border-radius: 8px;
-        background-color: var(--color-shape-tertiary);
-        color: var(--color-text-primary);
-        font-size: 14px;
-        display: flex;
-        align-items: center;
-        padding: 0 5px;
-        justify-content: space-between; // 添加这行
-
-        .search-icon {
-          position: relative;
-          display: flex;
-          align-items: center;
-          border: none;
-          background: none;
-          border-radius: 6px;
-
-          .icon {
-            background: none;
-            border: none;
-            width: 24px;
-            height: 24px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 0;
-
-            :deep(.i-icon) {
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              width: 100%;
-              height: 100%;
-            }
-
-            :deep(svg) {
-              width: 16px;
-              height: 16px;
-            }
-          }
-
-          .name {
-            flex-grow: 0;
-            text-align: left;
-            color: var(--color-text-secondary);
-            font-size: 14px;
-            font-weight: 400;
-            white-space: nowrap;
-            writing-mode: horizontal-tb;
-            line-height: 1;
-          }
-        }
-        .search-input-text {
-          margin-left: auto; // 添加这行
-          color: var(--color-text-secondary); // 可选：设置文字颜色
-          font-size: 14px; // 可选：设置字体大小
-        }
-      }
-
-      .new-note-btn {
-        display: flex;
-        align-items: center;
-        justify-content: center;
+      .action-btn {
         width: 32px;
         height: 32px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid var(--color-border-sidebar);
         border-radius: 8px;
         background-color: var(--color-shape-tertiary);
         cursor: pointer;
-        transition: background-color 0.2s;
-        border: 1px solid var(--color-border-sidebar);
+        transition: all 0.2s ease;
+        flex: 0 0 auto;
 
         .icon {
           background: none;
           border: none;
+          cursor: pointer;
           width: 24px;
           height: 24px;
           display: flex;
           align-items: center;
           justify-content: center;
+          transition: all 0.2s ease;
           padding: 0;
 
           :deep(.i-icon) {
@@ -617,8 +580,8 @@ const getSyncStatusText = computed(() => {
           }
 
           :deep(svg) {
-            width: 18px;
-            height: 18px;
+            width: 16px;
+            height: 16px;
           }
         }
 
