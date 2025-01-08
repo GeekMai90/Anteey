@@ -13,7 +13,8 @@ export const useAppearanceStore = defineStore(
     const fontFamilyMap = {
       system:
         '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
-      wenkai: '"LXGW WenKai", sans-serif'
+      wenkai: '"LXGW WenKai", sans-serif',
+      neoxihei: '"LXGW NeoXiHei", sans-serif'
     }
 
     // ==================== 操作方法 ====================

@@ -7,14 +7,15 @@
 
 @font-face {
   font-family: "LXGW WenKai";
-  src: url("../assets/fonts/LXGWWenKai-Light.ttf") format("truetype");
-  font-weight: 300;
+  src: url("../assets/fonts/LXGWWenKai-Medium.ttf") format("truetype");
+  font-weight: 500;
   font-style: normal;
 }
 
 @font-face {
-  font-family: "LXGW WenKai";
-  src: url("../assets/fonts/LXGWWenKai-Medium.ttf") format("truetype");
-  font-weight: 500;
+  font-family: "LXGW NeoXiHei";
+  src: url("../assets/fonts/LXGWNeoXiHei-Regular.ttf") format("truetype");
+  font-weight: 400;
   font-style: normal;
+  font-synthesis: weight style;
 }

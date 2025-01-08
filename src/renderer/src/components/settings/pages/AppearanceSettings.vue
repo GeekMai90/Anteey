@@ -168,7 +168,8 @@ const handleThemeChange = (theme: string) => {
 
 const fontOptions = [
   { label: '系统默认', value: 'system' },
-  { label: '霞鹜文楷', value: 'wenkai' }
+  { label: '霞鹜文楷', value: 'wenkai' },
+  { label: '霞鹜新晰黑', value: 'neoxihei' }
 ]
 
 const uiFont = ref('system')
