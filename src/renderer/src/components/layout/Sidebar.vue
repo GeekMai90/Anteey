@@ -671,7 +671,7 @@ const isDarkMode = computed(() => {
           width: 100%;
           padding: 6px 8px;
           border-radius: 8px;
-          transition: all 0.2s ease;
+          // transition: all 0.2s ease;
           user-select: none;
           position: relative;
           background: transparent;

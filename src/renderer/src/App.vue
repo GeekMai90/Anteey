@@ -138,10 +138,7 @@ const handleGradientUpdate = (gradient: {
 // 初始化主题
 const initializeTheme = async () => {
   await themeStore.initializeTheme()
-  // 如果有当前渐变，应用它
-  if (themeStore.currentGradient) {
-    baseLayout.value?.updateGradient(themeStore.currentGradient)
-  }
+  themeStore.applyTheme()
 }
 
 // 修改暗色主题的计算属性
@@ -216,12 +213,9 @@ onMounted(async () => {
 
   // 监听系统主题变化
   const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
-  mediaQuery.addEventListener('change', async () => {
+  mediaQuery.addEventListener('change', () => {
     if (themeStore.themeSettings?.themeMode === 'system') {
-      // 如果是系统主题，则需要重新应用主题
-      await themeStore.updateThemeSettings({
-        themeMode: themeStore.themeSettings.themeMode
-      })
+      themeStore.applyTheme()
     }
   })
 })

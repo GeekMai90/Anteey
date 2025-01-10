@@ -102,16 +102,32 @@ export const useThemeStore = defineStore('theme', () => {
   const toggleThemeMode = async () => {
     if (!themeSettings.value) return
 
-    let newMode = themeSettings.value.themeMode
-    if (newMode === 'light') {
-      newMode = 'dark'
-    } else if (newMode === 'dark') {
-      newMode = 'light'
-    } else if (newMode === 'system') {
-      newMode = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'light' : 'dark'
+    const currentMode = themeSettings.value.themeMode
+    let newMode: 'light' | 'dark' | 'system'
+
+    // 在 light/dark/system 之间循环切换
+    switch (currentMode) {
+      case 'light':
+        newMode = 'dark'
+        break
+      case 'dark':
+        newMode = 'system'
+        break
+      case 'system':
+        newMode = 'light'
+        break
+      default:
+        newMode = 'light'
     }
 
     await updateThemeSettings({ themeMode: newMode })
+
+    // 应用主题
+    const isDark =
+      newMode === 'dark' ||
+      (newMode === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)
+
+    document.documentElement.classList.toggle('theme-dark', isDark)
   }
 
   // 切换渐变模式
@@ -162,6 +178,18 @@ export const useThemeStore = defineStore('theme', () => {
     isThemePickerOpen.value = false
   }
 
+  // 添加新方法：应用主题
+  const applyTheme = () => {
+    if (!themeSettings.value) return
+
+    const isDark =
+      themeSettings.value.themeMode === 'dark' ||
+      (themeSettings.value.themeMode === 'system' &&
+        window.matchMedia('(prefers-color-scheme: dark)').matches)
+
+    document.documentElement.classList.toggle('theme-dark', isDark)
+  }
+
   return {
     // 状态
     themeSettings,
@@ -182,6 +210,9 @@ export const useThemeStore = defineStore('theme', () => {
     isThemePickerOpen,
     themePickerPosition,
     openThemePicker,
-    closeThemePicker
+    closeThemePicker,
+
+    // 新方法
+    applyTheme
   }
 })

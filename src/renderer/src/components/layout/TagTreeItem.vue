@@ -360,7 +360,7 @@ const getIconComponent = (iconName: string) => {
     .tag-name {
       flex-grow: 1;
       font-size: 13px;
-      color: var(--color-text-primary);
+      color: var(--color-sidebar-text);
       user-select: none;
       line-height: 1;
     }

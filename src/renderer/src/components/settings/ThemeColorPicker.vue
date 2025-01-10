@@ -105,7 +105,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { Like } from '@icon-park/vue-next'
 import { useThemeStore } from '@renderer/stores/themeStore'
 import type { GradientPreset, ThemeSettings } from '@shared/types'
@@ -169,73 +169,73 @@ const colorStyles: ColorStyle[] = [
     presets: [
       {
         id: 1,
-        startColor: '#fad0c4',
-        endColor: '#ffd1ff',
+        startColor: '#cdfed0',
+        endColor: '#ddd1fa',
         angle: 45,
         noiseAmount: 15,
         type: 'universal' as const
       },
       {
         id: 2,
-        startColor: '#a8edea',
-        endColor: '#fed6e3',
-        angle: 45,
+        startColor: '#fbd0ef',
+        endColor: '#cffcfa',
+        angle: 0,
         noiseAmount: 18,
         type: 'universal'
       },
       {
         id: 3,
-        startColor: '#d4fc79',
-        endColor: '#96e6a1',
-        angle: 45,
+        startColor: '#fad1f2',
+        endColor: '#cefddb',
+        angle: 180,
         noiseAmount: 12,
         type: 'universal'
       },
       {
         id: 4,
-        startColor: '#fbc2eb',
-        endColor: '#a6c1ee',
-        angle: 45,
+        startColor: '#cdfeee',
+        endColor: '#ccd1ff',
+        angle: 135,
         noiseAmount: 20,
         type: 'universal'
       },
       {
         id: 5,
-        startColor: '#ffecd2',
-        endColor: '#fcb69f',
+        startColor: '#cdeefe',
+        endColor: '#cdfee1',
         angle: 45,
         noiseAmount: 15,
         type: 'universal'
       },
       {
         id: 6,
-        startColor: '#a1c4fd',
-        endColor: '#c2e9fb',
-        angle: 45,
+        startColor: '#efd0fb',
+        endColor: '#cdf2fe',
+        angle: 90,
         noiseAmount: 18,
         type: 'universal'
       },
       {
         id: 7,
-        startColor: '#e9defa',
-        endColor: '#fbfcdb',
-        angle: 45,
+        startColor: '#cef3fd',
+        endColor: '#f6fccf',
+        angle: 90,
         noiseAmount: 15,
         type: 'universal'
       },
       {
         id: 8,
-        startColor: '#c1dfc4',
-        endColor: '#deecdd',
-        angle: 45,
+        startColor: '#cef1fd',
+        endColor: '#f1cffc',
+        angle: 135,
         noiseAmount: 12,
         type: 'universal'
       },
       {
         id: 9,
-        startColor: '#fbdae9',
-        endColor: '#fff1eb',
-        angle: 45,
+        startColor: '#fef8cd',
+        endColor: '#f1ccff',
+        angle: 0,
         noiseAmount: 15,
         type: 'universal'
       }
@@ -247,73 +247,73 @@ const colorStyles: ColorStyle[] = [
     presets: [
       {
         id: 1,
-        startColor: '#FA8BFF',
-        endColor: '#2BD2FF',
-        angle: 45,
+        startColor: '#9effea',
+        endColor: '#9eb6ff',
+        angle: 90,
         noiseAmount: 20,
         type: 'universal'
       },
       {
         id: 2,
-        startColor: '#FF3CAC',
-        endColor: '#784BA0',
-        angle: 45,
+        startColor: '#b3ffb8',
+        endColor: '#a8ffd1',
+        angle: 135,
         noiseAmount: 25,
         type: 'universal'
       },
       {
         id: 3,
-        startColor: '#08AEEA',
-        endColor: '#2AF598',
+        startColor: '#f8c2ff',
+        endColor: '#bde3ff',
         angle: 45,
         noiseAmount: 22,
         type: 'universal'
       },
       {
         id: 4,
-        startColor: '#FEE140',
-        endColor: '#FA709A',
-        angle: 45,
+        startColor: '#fffc9e',
+        endColor: '#f8ffb8',
+        angle: 135,
         noiseAmount: 18,
         type: 'universal'
       },
       {
         id: 5,
-        startColor: '#3B41C5',
-        endColor: '#A981BB',
-        angle: 45,
+        startColor: '#add5ff',
+        endColor: '#d4a3ff',
+        angle: 135,
         noiseAmount: 20,
         type: 'universal'
       },
       {
         id: 6,
-        startColor: '#00dbde',
-        endColor: '#fc00ff',
-        angle: 45,
+        startColor: '#caff9e',
+        endColor: '#99ffee',
+        angle: 280,
         noiseAmount: 25,
         type: 'universal'
       },
       {
         id: 7,
-        startColor: '#f83600',
-        endColor: '#f9d423',
-        angle: 45,
+        startColor: '#ffbdf8',
+        endColor: '#ffd9bd',
+        angle: 90,
         noiseAmount: 22,
         type: 'universal'
       },
       {
         id: 8,
-        startColor: '#4facfe',
-        endColor: '#00f2fe',
-        angle: 45,
+        startColor: '#c7f6ff',
+        endColor: '#ffe0c2',
+        angle: 180,
         noiseAmount: 20,
         type: 'universal'
       },
       {
         id: 9,
-        startColor: '#6713d2',
-        endColor: '#cc208e',
-        angle: 45,
+        startColor: '#ff9ef9',
+        endColor: '#a3f4ff',
+        angle: 0,
         noiseAmount: 25,
         type: 'universal'
       }
@@ -325,73 +325,73 @@ const colorStyles: ColorStyle[] = [
     presets: [
       {
         id: 1,
-        startColor: '#89f7fe',
-        endColor: '#66a6ff',
-        angle: 45,
+        startColor: '#39cff9',
+        endColor: '#eb60fb',
+        angle: 130,
         noiseAmount: 15,
         type: 'universal'
       },
       {
         id: 2,
-        startColor: '#f6d365',
-        endColor: '#fda085',
-        angle: 45,
+        startColor: '#85a6fe',
+        endColor: '#63f5f8',
+        angle: 180,
         noiseAmount: 18,
         type: 'universal'
       },
       {
         id: 3,
-        startColor: '#81fbb8',
-        endColor: '#28c76f',
-        angle: 45,
+        startColor: '#ec8efa',
+        endColor: '#7bd7fe',
+        angle: 0,
         noiseAmount: 20,
         type: 'universal'
       },
       {
         id: 4,
-        startColor: '#4facfe',
-        endColor: '#00f2fe',
-        angle: 45,
+        startColor: '#8efafa',
+        endColor: '#44f865',
+        angle: 90,
         noiseAmount: 15,
         type: 'universal'
       },
       {
         id: 5,
-        startColor: '#43e97b',
-        endColor: '#38f9d7',
-        angle: 45,
+        startColor: '#76f9d8',
+        endColor: '#fad88f',
+        angle: 135,
         noiseAmount: 18,
         type: 'universal'
       },
       {
         id: 6,
-        startColor: '#fa709a',
-        endColor: '#fee140',
-        angle: 45,
+        startColor: '#88fcfa',
+        endColor: '#7ed6fc',
+        angle: 180,
         noiseAmount: 20,
         type: 'universal'
       },
       {
         id: 7,
-        startColor: '#0ba360',
-        endColor: '#3cba92',
+        startColor: '#ebff6b',
+        endColor: '#3cfbe8',
         angle: 45,
         noiseAmount: 18,
         type: 'universal'
       },
       {
         id: 8,
-        startColor: '#00c6fb',
-        endColor: '#005bea',
+        startColor: '#8eccfb',
+        endColor: '#fe90fe',
         angle: 45,
         noiseAmount: 15,
         type: 'universal'
       },
       {
         id: 9,
-        startColor: '#f77062',
-        endColor: '#fe5196',
-        angle: 45,
+        startColor: '#f9e594',
+        endColor: '#fc82f8',
+        angle: 90,
         noiseAmount: 20,
         type: 'universal'
       }
@@ -625,6 +625,13 @@ onMounted(async () => {
   if (!themeStore.themeSettings) {
     await themeStore.initializeTheme()
   }
+
+  // 初始化进度条
+  const rangeInput = document.querySelector('.noise-label input[type="range"]') as HTMLInputElement
+  if (rangeInput) {
+    rangeInput.style.setProperty('--range-progress', `${noiseAmount.value}%`)
+  }
+
   document.addEventListener('mousedown', handleClickOutside)
   updateGradient()
 })
@@ -633,6 +640,14 @@ onUnmounted(() => {
   document.removeEventListener('mousemove', handleAngleDrag)
   document.removeEventListener('mouseup', stopAngleDrag)
   document.removeEventListener('mousedown', handleClickOutside)
+})
+
+// 监听 noiseAmount 变化，更新进度条
+watch(noiseAmount, (value) => {
+  const rangeInput = document.querySelector('.noise-label input[type="range"]') as HTMLInputElement
+  if (rangeInput) {
+    rangeInput.style.setProperty('--range-progress', `${value}%`)
+  }
 })
 </script>
 
@@ -815,26 +830,58 @@ onUnmounted(() => {
 .style-selector {
   margin: 20px 0;
   display: flex;
-  gap: 10px;
+  background: var(--color-bg-secondary);
+  padding: 4px;
+  border-radius: 8px;
+  gap: 0;
+  position: relative;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 4px;
+    left: 4px;
+    width: calc((100% - 8px) / 4);
+    height: calc(100% - 8px);
+    background: var(--color-primary);
+    border-radius: 6px;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 0;
+  }
+
+  &:has(.style-btn:nth-child(1).active)::before {
+    transform: translateX(0);
+  }
+  &:has(.style-btn:nth-child(2).active)::before {
+    transform: translateX(calc(100%));
+  }
+  &:has(.style-btn:nth-child(3).active)::before {
+    transform: translateX(calc(200%));
+  }
+  &:has(.style-btn:nth-child(4).active)::before {
+    transform: translateX(calc(300%));
+  }
 
   .style-btn {
     flex: 1;
     padding: 8px 12px;
     border: none;
-    border-radius: 8px;
-    background: rgba(0, 0, 0, 0.05);
+    border-radius: 6px;
+    background: transparent;
     color: var(--color-text-secondary);
     font-size: 14px;
     cursor: pointer;
-    transition: all 0.2s ease;
+    position: relative;
+    z-index: 1;
+    transition: color 0.3s ease;
 
-    &:hover {
-      background: rgba(0, 0, 0, 0.08);
+    &:hover:not(.active) {
+      color: var(--color-text-primary);
     }
 
     &.active {
-      background: var(--color-primary);
       color: white;
+      font-weight: 500;
     }
   }
 }
@@ -874,41 +921,58 @@ onUnmounted(() => {
 
     input[type='range'] {
       flex: 1;
-      height: 2px;
-      background: var(--color-border);
+      height: 4px;
+      // background: var(--color-border);
       border-radius: 2px;
       appearance: none;
       -webkit-appearance: none;
       cursor: pointer;
+      position: relative;
       transition: all 0.2s ease;
+      border: none;
+
+      &::-webkit-slider-runnable-track {
+        height: 4px;
+        background: linear-gradient(
+          to right,
+          var(--color-primary) 0%,
+          var(--color-primary) var(--range-progress, 50%),
+          var(--color-border) var(--range-progress, 50%),
+          var(--color-border) 100%
+        );
+        border-radius: 2px;
+      }
 
       &::-webkit-slider-thumb {
         -webkit-appearance: none;
-        width: 14px;
-        height: 14px;
-        background: var(--color-primary);
+        width: 16px;
+        height: 16px;
+        background: white;
+        border: 2px solid var(--color-primary);
         border-radius: 50%;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        margin-top: -6px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         transition: all 0.2s ease;
-        border: 2px solid white;
       }
 
       &:hover::-webkit-slider-thumb {
         transform: scale(1.1);
-        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
       }
 
       &:active::-webkit-slider-thumb {
         transform: scale(0.95);
+        background: var(--color-primary);
+        border-color: var(--color-primary);
       }
     }
 
     .noise-value {
-      min-width: 48px;
+      min-width: 28px;
       text-align: right;
       font-variant-numeric: tabular-nums;
       font-weight: 500;
-      color: var(--color-text-primary);
+      color: var(--color-text-secondary);
     }
   }
 }
