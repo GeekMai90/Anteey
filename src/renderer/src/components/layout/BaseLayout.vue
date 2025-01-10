@@ -4,8 +4,8 @@
     <div
       class="theme-overlay"
       :style="{
-        opacity: isDarkMode ? 0.4 : 0,
-        backgroundColor: 'rgba(0, 0, 0, 0.8)'
+        opacity: isDarkMode ? 0.3 : 0,
+        backgroundColor: 'rgba(0, 0, 0, 0.5)'
       }"
     ></div>
 
@@ -324,7 +324,7 @@ defineExpose({
   overflow: hidden;
   background: var(--color-bg-primary);
   border-radius: 12px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   backdrop-filter: blur(10px);
   display: flex;
   flex-direction: column;
@@ -343,7 +343,7 @@ defineExpose({
   transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
   background: var(--color-bg-primary);
   border-radius: 12px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   backdrop-filter: blur(10px);
   opacity: v-bind('uiStore.isRightSidebarOpen ? "1" : "0"');
   transform-origin: right center;

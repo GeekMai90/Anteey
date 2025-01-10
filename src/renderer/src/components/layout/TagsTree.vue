@@ -9,15 +9,15 @@
             v-if="isExpanded"
             theme="outline"
             size="18"
-            fill="var(--color-icon-default)"
-            :stroke-width="4"
+            fill="var(--color-sidebar-text)"
+            :stroke-width="2"
           />
           <Right
             v-else
             theme="outline"
             size="18"
-            fill="var(--color-icon-default)"
-            :stroke-width="4"
+            fill="var(--color-sidebar-text)"
+            :stroke-width="2"
           />
         </div>
       </div>
@@ -100,7 +100,7 @@ onMounted(async () => {
 
 <style scoped lang="scss">
 .tags-tree {
-  padding: 0 10px;
+  padding: 0 6px;
   border-radius: 8px;
   margin-top: 5px;
 
@@ -112,10 +112,12 @@ onMounted(async () => {
     border-radius: 8px;
     margin-bottom: 5px;
     user-select: none;
-    color: var(--color-text-secondary);
+    color: var(--color-sidebar-text);
 
     &:hover {
-      background-color: var(--color-hover-sidebar);
+      background: rgba(var(--color-sidebar-icon-bg), 0.04);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
     }
 
     span {

@@ -1,11 +1,36 @@
 <template>
   <div class="theme-color-picker">
     <!-- 关闭按钮 -->
-    <button class="close-btn" @click="$emit('close')">
+    <!-- <button class="close-btn" @click="$emit('close')">
       <Close theme="outline" size="16" :strokeWidth="3" />
-    </button>
+    </button> -->
 
     <div class="picker-arrow"></div>
+
+    <!-- 添加模式切换按钮组 -->
+    <div class="mode-switcher">
+      <button
+        class="mode-btn"
+        :class="{ active: currentMode === 'universal' }"
+        @click="switchMode('universal')"
+      >
+        通用
+      </button>
+      <button
+        class="mode-btn"
+        :class="{ active: currentMode === 'light' }"
+        @click="switchMode('light')"
+      >
+        亮色
+      </button>
+      <button
+        class="mode-btn"
+        :class="{ active: currentMode === 'dark' }"
+        @click="switchMode('dark')"
+      >
+        暗色
+      </button>
+    </div>
 
     <!-- 渐变预览区域 -->
     <div class="gradient-preview" :style="gradientStyle">
@@ -14,7 +39,7 @@
         <Like
           theme="outline"
           size="20"
-          :fill="isFavorite ? 'var(--color-primary)' : 'white'"
+          :fill="isFavorite ? 'var(--color-danger)' : 'white'"
           :strokeWidth="3"
         />
       </button>
@@ -40,7 +65,7 @@
     <!-- 添加噪点控制 -->
     <div class="noise-control">
       <label class="noise-label">
-        <span>Noise</span>
+        <span>噪点</span>
         <input v-model="noiseAmount" type="range" min="0" max="100" @input="updateGradient" />
         <span class="noise-value">{{ noiseAmount }}%</span>
       </label>
@@ -81,9 +106,9 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { Close, Like } from '@icon-park/vue-next'
+import { Like } from '@icon-park/vue-next'
 import { useThemeStore } from '@renderer/stores/themeStore'
-import type { GradientPreset } from '@shared/types'
+import type { GradientPreset, ThemeSettings } from '@shared/types'
 
 const emit = defineEmits<{
   (e: 'close'): void
@@ -296,7 +321,7 @@ const colorStyles: ColorStyle[] = [
   },
   {
     id: 'bright',
-    name: '明亮',
+    name: '鲜亮',
     presets: [
       {
         id: 1,
@@ -458,11 +483,16 @@ const handleAngleDrag = (e: MouseEvent) => {
   const centerX = rect.left + rect.width / 2
   const centerY = rect.top + rect.height / 2
 
+  // 计算鼠标相对于中心点的位置
   const dx = e.clientX - centerX
   const dy = e.clientY - centerY
 
+  // 计算角度（弧度）并转换为度数
   let newAngle = Math.atan2(dy, dx) * (180 / Math.PI) + 90
+
+  // 确保角度在 0-360 范围内
   if (newAngle < 0) newAngle += 360
+  if (newAngle >= 360) newAngle -= 360
 
   angle.value = Math.round(newAngle)
   updateGradient()
@@ -474,6 +504,61 @@ const stopAngleDrag = () => {
   document.removeEventListener('mouseup', stopAngleDrag)
 }
 
+// 添加当前模式状态
+const currentMode = ref<'universal' | 'light' | 'dark'>('universal')
+
+// 初始化时根据当前主题设置加载对应的渐变
+onMounted(async () => {
+  if (!themeStore.themeSettings) {
+    await themeStore.initializeTheme()
+  }
+
+  // 根据当前渐变模式初始化颜色
+  if (themeStore.themeSettings) {
+    const settings = themeStore.themeSettings
+    if (settings.gradientMode === 'universal') {
+      loadGradient(settings.universalGradient)
+    } else {
+      // 根据当前系统主题加载对应渐变
+      const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches
+      loadGradient(isDark ? settings.darkGradient : settings.lightGradient)
+    }
+  }
+
+  updateGradient()
+})
+
+// 切换模式
+const switchMode = (mode: 'universal' | 'light' | 'dark') => {
+  currentMode.value = mode
+
+  // 切换模式时加载对应的渐变设置
+  if (themeStore.themeSettings) {
+    const settings = themeStore.themeSettings
+    switch (mode) {
+      case 'universal':
+        loadGradient(settings.universalGradient)
+        break
+      case 'light':
+        loadGradient(settings.lightGradient)
+        break
+      case 'dark':
+        loadGradient(settings.darkGradient)
+        break
+    }
+  }
+}
+
+// 加载渐变设置
+const loadGradient = (gradient: any) => {
+  if (!gradient) return
+  startColor.value = gradient.startColor
+  endColor.value = gradient.endColor
+  angle.value = gradient.angle
+  noiseAmount.value = gradient.noiseAmount
+}
+
+// 修改 updateGradient 方法
 const updateGradient = async () => {
   const gradient = {
     startColor: startColor.value,
@@ -484,15 +569,22 @@ const updateGradient = async () => {
 
   emit('update', gradient)
 
-  // 根据当前的渐变模式更新对应的设置
+  // 根据当前模式更新对应的设置
   if (themeStore.themeSettings) {
-    const settings = {
-      ...(themeStore.themeSettings.gradientMode === 'universal'
-        ? { universalGradient: gradient }
-        : window.matchMedia('(prefers-color-scheme: dark)').matches
-          ? { darkGradient: gradient }
-          : { lightGradient: gradient })
+    let settings: Partial<ThemeSettings> = {}
+
+    if (currentMode.value === 'universal') {
+      settings = {
+        gradientMode: 'universal',
+        universalGradient: gradient
+      }
+    } else {
+      settings = {
+        gradientMode: 'specific',
+        [currentMode.value === 'dark' ? 'darkGradient' : 'lightGradient']: gradient
+      }
     }
+
     await themeStore.updateThemeSettings(settings)
   }
 }
@@ -548,10 +640,12 @@ onUnmounted(() => {
 .theme-color-picker {
   background: var(--color-note-card-bg);
   box-shadow: var(--shadow-card);
+  border: 1px solid var(--color-border);
   backdrop-filter: blur(10px);
   border-radius: 16px;
   padding: 20px;
   width: 360px;
+  height: 630px;
   position: relative;
 }
 
@@ -610,8 +704,7 @@ onUnmounted(() => {
     height: 32px;
     border: none;
     border-radius: 8px;
-    background: rgba(255, 255, 255, 0.2);
-    backdrop-filter: blur(4px);
+    background: transparent;
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -619,12 +712,12 @@ onUnmounted(() => {
     transition: all 0.2s ease;
 
     &:hover {
-      background: rgba(255, 255, 255, 0.3);
+      background: transparent;
       transform: scale(1.05);
     }
 
     &.active {
-      background: rgba(255, 255, 255, 0.4);
+      background: transparent;
 
       &:hover {
         transform: scale(0.95);
@@ -674,11 +767,25 @@ onUnmounted(() => {
 
   .angle-indicator {
     position: absolute;
-    top: 0;
+    top: 50%;
     left: 50%;
     width: 2px;
-    height: 100%;
+    height: 50%;
+    background: transparent;
     transform-origin: bottom center;
+    margin-top: -50%;
+
+    &::before {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 4px;
+      height: 4px;
+      background: white;
+      border-radius: 50%;
+    }
 
     .angle-handle {
       width: 12px;
@@ -701,6 +808,7 @@ onUnmounted(() => {
     font-size: 12px;
     font-weight: bold;
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+    user-select: none;
   }
 }
 
@@ -753,7 +861,7 @@ onUnmounted(() => {
 .noise-control {
   margin-top: 20px;
   padding: 15px;
-  background: rgba(0, 0, 0, 0.05);
+  background: var(--color-bg-secondary);
   border-radius: 12px;
 
   .noise-label {
@@ -762,29 +870,72 @@ onUnmounted(() => {
     gap: 12px;
     color: var(--color-text-secondary);
     font-size: 14px;
+    user-select: none;
 
     input[type='range'] {
       flex: 1;
-      height: 4px;
-      background: #ddd;
+      height: 2px;
+      background: var(--color-border);
       border-radius: 2px;
       appearance: none;
       -webkit-appearance: none;
+      cursor: pointer;
+      transition: all 0.2s ease;
 
       &::-webkit-slider-thumb {
         -webkit-appearance: none;
-        width: 16px;
-        height: 16px;
-        background: white;
+        width: 14px;
+        height: 14px;
+        background: var(--color-primary);
         border-radius: 50%;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        cursor: pointer;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        transition: all 0.2s ease;
+        border: 2px solid white;
+      }
+
+      &:hover::-webkit-slider-thumb {
+        transform: scale(1.1);
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+      }
+
+      &:active::-webkit-slider-thumb {
+        transform: scale(0.95);
       }
     }
 
     .noise-value {
-      min-width: 40px;
+      min-width: 48px;
       text-align: right;
+      font-variant-numeric: tabular-nums;
+      font-weight: 500;
+      color: var(--color-text-primary);
+    }
+  }
+}
+
+.mode-switcher {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+
+  .mode-btn {
+    flex: 1;
+    padding: 8px 12px;
+    border: none;
+    border-radius: 8px;
+    background: rgba(0, 0, 0, 0.05);
+    color: var(--color-text-secondary);
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &:hover {
+      background: rgba(0, 0, 0, 0.08);
+    }
+
+    &.active {
+      background: var(--color-primary);
+      color: white;
     }
   }
 }

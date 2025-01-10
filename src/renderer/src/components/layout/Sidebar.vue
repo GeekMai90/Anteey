@@ -26,7 +26,7 @@
                 :is="syncStatusIcon"
                 theme="outline"
                 size="16"
-                fill="var(--color-icon-menu-default)"
+                fill="var(--color-sidebar-text)"
                 :strokeWidth="2"
               />
             </div>
@@ -47,7 +47,7 @@
           @click="$router.push('/home')"
         >
           <div class="icon">
-            <Home theme="outline" size="16" fill="var(--color-icon-secondary)" :strokeWidth="3" />
+            <Home theme="outline" size="16" fill="var(--color-sidebar-icon)" :strokeWidth="3" />
           </div>
         </button>
 
@@ -61,7 +61,7 @@
           @click="$router.push('/drafts')"
         >
           <div class="icon">
-            <Pencil theme="outline" size="16" fill="var(--color-icon-secondary)" :strokeWidth="3" />
+            <Pencil theme="outline" size="16" fill="var(--color-sidebar-icon)" :strokeWidth="3" />
           </div>
         </button>
         <!-- 搜索按钮 -->
@@ -75,7 +75,7 @@
           @click="openSearch"
         >
           <div class="icon">
-            <Search theme="outline" size="16" fill="var(--color-icon-secondary)" :strokeWidth="3" />
+            <Search theme="outline" size="16" fill="var(--color-sidebar-icon)" :strokeWidth="3" />
           </div>
         </button>
 
@@ -93,7 +93,7 @@
               :is="isDarkMode ? SunOne : Moon"
               theme="outline"
               size="16"
-              fill="var(--color-icon-secondary)"
+              fill="var(--color-sidebar-icon)"
               :strokeWidth="3"
             />
           </div>
@@ -110,7 +110,7 @@
           @click="createNewCard"
         >
           <div class="icon">
-            <Plus theme="outline" size="16" fill="var(--color-icon-secondary)" :strokeWidth="3" />
+            <Plus theme="outline" size="16" fill="var(--color-sidebar-icon)" :strokeWidth="3" />
           </div>
         </button>
       </div>
@@ -171,7 +171,22 @@
         @click="noteStore.moveEmptyNotesToTrash"
       >
         <div class="icon">
-          <Clear theme="outline" size="20" fill="var(--color-icon-menu-default)" :strokeWidth="2" />
+          <Clear theme="outline" size="20" fill="var(--color-sidebar-text)" :strokeWidth="2" />
+        </div>
+      </div>
+
+      <!-- <button class="theme-button" @click="handleThemeButtonClick">
+        <div class="icon">
+          <Theme theme="outline" size="20" :strokeWidth="2" fill="var(--color-sidebar-text)" />
+        </div>
+      </button> -->
+      <div
+        v-tooltip.top="{ content: '主题设置', delay: { show: 1000 } }"
+        class="theme-button"
+        @click="handleThemeButtonClick"
+      >
+        <div class="icon">
+          <Theme theme="outline" size="20" :strokeWidth="2" fill="var(--color-sidebar-text)" />
         </div>
       </div>
       <div
@@ -180,12 +195,9 @@
         @click="openHelp"
       >
         <div class="icon">
-          <Help theme="outline" size="20" fill="var(--color-icon-menu-default)" :strokeWidth="2" />
+          <Help theme="outline" size="20" fill="var(--color-sidebar-text)" :strokeWidth="2" />
         </div>
       </div>
-      <button class="theme-button" @click="handleThemeButtonClick">
-        <Theme theme="outline" size="18" :strokeWidth="2" fill="var(--color-icon-menu-default)" />
-      </button>
     </div>
   </div>
 </template>
@@ -237,7 +249,7 @@ const themeStore = useThemeStore()
 
 const getIconFill = computed(
   () => (path: string) =>
-    route.path === path ? 'var(--color-text-primary)' : 'var(--color-text-primary)'
+    route.path === path ? 'var(--color-sidebar-text)' : 'var(--color-sidebar-text)'
 )
 
 onMounted(async () => {
@@ -523,7 +535,7 @@ const isDarkMode = computed(() => {
       display: flex;
       align-items: center;
       width: 100%;
-      padding: 2px 10px 2px 6px;
+      padding: 2px 6px 2px 3px;
       background-color: transparent;
       border: none;
       cursor: pointer;
@@ -552,7 +564,7 @@ const isDarkMode = computed(() => {
       .antinet-text {
         font-size: 16px;
         font-weight: bold;
-        color: var(--color-text-primary);
+        color: var(--color-sidebar-text);
         user-select: none;
         margin-right: 8px;
       }
@@ -563,26 +575,31 @@ const isDarkMode = computed(() => {
       }
 
       &:hover {
-        background-color: var(--color-hover-sidebar);
+        background: rgba(var(--color-sidebar-icon-bg), 0.04);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border-radius: 8px;
       }
     }
     .search-area {
       display: flex;
       align-items: center;
-      padding: 10px 10px;
-      gap: 8px;
+      padding: 12px 6px;
+      gap: 10px;
       justify-content: space-between;
       width: 100%;
 
       .action-btn {
-        width: 32px;
-        height: 32px;
+        width: 38px;
+        height: 38px;
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        border: 1px solid var(--color-border-sidebar);
-        border-radius: 8px;
-        background-color: var(--color-shape-tertiary);
+        border-radius: 12px;
+        background: rgba(var(--color-sidebar-icon-bg), 0.04);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        box-shadow: inset 0 0 0 1px rgba(var(--color-sidebar-icon-bg), 0.05);
         cursor: pointer;
         transition: all 0.2s ease;
         flex: 0 0 auto;
@@ -591,8 +608,8 @@ const isDarkMode = computed(() => {
           background: none;
           border: none;
           cursor: pointer;
-          width: 24px;
-          height: 24px;
+          width: 26px;
+          height: 26px;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -608,26 +625,36 @@ const isDarkMode = computed(() => {
           }
 
           :deep(svg) {
-            width: 16px;
-            height: 16px;
+            width: 18px;
+            height: 18px;
           }
         }
 
         &:hover {
-          background-color: var(--color-hover-sidebar);
+          background: rgba(var(--color-sidebar-icon-bg), 0.08);
+          transform: translateY(-1px);
+          box-shadow:
+            inset 0 0 0 1px rgba(var(--color-sidebar-icon-bg), 0.08),
+            0 4px 16px -8px rgba(0, 0, 0, 0.1);
+        }
+
+        &:active {
+          transform: translateY(0);
+          background: rgba(var(--color-sidebar-icon-bg), 0.08);
+          box-shadow: inset 0 0 0 1px rgba(var(--color-sidebar-icon-bg), 0.08);
         }
       }
     }
   }
 
   .sidebar-header-divider {
-    border-bottom: 1px solid var(--color-border-sidebar);
+    border-bottom: 1px solid var(--color-sidebar-divider);
     flex-shrink: 0; // 防止分割线被压缩
     margin: 6px;
   }
 
   .sidebar-nav {
-    padding: 0px 10px;
+    padding: 0px 6px;
     flex-shrink: 0; // 防止导航菜单被压缩
 
     nav {
@@ -644,75 +671,73 @@ const isDarkMode = computed(() => {
           width: 100%;
           padding: 6px 8px;
           border-radius: 8px;
-          transition: background-color 0.2s;
+          transition: all 0.2s ease;
           user-select: none;
-          position: relative; // 添加这行
+          position: relative;
+          background: transparent;
 
           &:hover {
-            background-color: var(--color-hover-sidebar);
+            background: rgba(var(--color-sidebar-icon-bg), 0.04);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
           }
-          &.active {
-            background-color: var(--color-hover-sidebar);
-          }
-          // 专门针对卡片盒导航项的样式
-          &[data-type='cardbox'] {
-            .quick-access-trigger {
-              position: absolute;
-              right: 0;
-              top: 0;
-              bottom: 0;
-              width: 50%;
-              z-index: 1;
-              cursor: pointer;
-            }
-          }
-        }
 
-        .nav-link {
-          display: flex;
-          align-items: center;
-          flex-grow: 1;
-          text-decoration: none;
-          color: inherit;
-          position: relative; // 添加这行
-          z-index: 2;
-          .icon {
-            background: none;
-            border: none;
-            cursor: pointer;
-            width: 20px;
-            height: 20px;
+          &.active {
+            background: rgba(var(--color-sidebar-icon-bg), 0.04);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+          }
+
+          .nav-link {
             display: flex;
             align-items: center;
-            justify-content: center;
-            border-radius: 6px;
-            transition: background-color 0.2s;
-            padding: 0;
-            margin-right: 8px;
+            flex-grow: 1;
+            text-decoration: none;
+            color: inherit;
+            position: relative;
+            z-index: 2;
 
-            // 新增以下样式来处理 i-icon 类
-            :deep(.i-icon) {
+            .icon {
+              background: none;
+              border: none;
+              cursor: pointer;
+              width: 20px;
+              height: 20px;
               display: flex;
               align-items: center;
               justify-content: center;
-              width: 100%;
-              height: 100%;
+              border-radius: 6px;
+              transition: background-color 0.2s;
+              padding: 0;
+              margin-right: 8px;
+
+              // 新增以下样式来处理 i-icon 类
+              :deep(.i-icon) {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                width: 100%;
+                height: 100%;
+              }
+
+              svg {
+                width: 16px;
+                height: 16px;
+                fill: var(--color-sidebar-icon);
+                transition: fill 0.2s ease;
+              }
             }
 
-            svg {
-              width: 16px; // 或者您想要的大小
-              height: 12px; // 或者您想要的大小
+            .name {
+              flex-grow: 0;
+              text-align: left;
+              color: var(--color-sidebar-text);
+              font-weight: 400;
+              font-size: 14px;
+              white-space: nowrap;
+              writing-mode: horizontal-tb;
+              transition: all 0.2s ease;
             }
-          }
-
-          .name {
-            flex-grow: 0;
-            text-align: left;
-            color: var(--color-text-primary);
-            font-size: 14px;
-            white-space: nowrap; // 防止文字换行
-            writing-mode: horizontal-tb; // 确保文字是水平排列的
-            font-weight: 400;
           }
 
           // &:hover {
@@ -846,7 +871,7 @@ const isDarkMode = computed(() => {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    border-top: 1px solid var(--color-border-sidebar);
+    border-top: 1px solid var(--color-sidebar-divider);
 
     .new-card-wrapper {
       flex-grow: 1;
@@ -889,6 +914,7 @@ const isDarkMode = computed(() => {
 
     .clear-empty-note,
     .theme-toggle,
+    .theme-button,
     .help {
       width: 30px;
       height: 30px;
@@ -920,7 +946,9 @@ const isDarkMode = computed(() => {
       }
 
       &:hover {
-        background-color: var(--color-hover-sidebar);
+        background: rgba(var(--color-sidebar-icon-bg), 0.04);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
       }
     }
     .theme-toggle {
@@ -970,7 +998,7 @@ const isDarkMode = computed(() => {
   border-radius: 50%;
   position: absolute;
   top: 18px;
-  right: 22px;
+  right: 15px;
   box-shadow: 0 0 5px 1px currentColor;
   transition: all 0.3s ease;
 }

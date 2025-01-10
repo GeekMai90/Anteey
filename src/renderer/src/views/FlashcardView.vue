@@ -499,7 +499,7 @@ onMounted(initializeData)
         .name {
           flex-grow: 0;
           text-align: left;
-          color: var(--default-text-color);
+          color: var(--color-text-primary);
           font-size: 20px;
           font-weight: 600;
           margin-left: 8px;

@@ -9,15 +9,15 @@
               v-if="isExpanded"
               theme="outline"
               size="16"
-              fill="var(--color-icon-default)"
-              :stroke-width="3"
+              fill="var(--color-sidebar-text)"
+              :stroke-width="2"
             />
             <Right
               v-else
               theme="outline"
               size="16"
-              fill="var(--color-icon-default)"
-              :stroke-width="3"
+              fill="var(--color-sidebar-text)"
+              :stroke-width="2"
             />
           </div>
         </div>
@@ -30,13 +30,13 @@
             v-if="tag.icon"
             theme="outline"
             size="16"
-            :fill="tag.color || 'var(--color-icon-default)'"
+            :fill="tag.color || 'var(--color-sidebar-text)'"
           />
           <Pound
             v-else
             theme="outline"
             size="16"
-            :fill="tag.color || 'var(--color-icon-default)'"
+            :fill="tag.color || 'var(--color-sidebar-text)'"
           />
         </div>
       </div>
@@ -45,7 +45,7 @@
       <div class="tag-indicators">
         <!-- 添加置顶图标 -->
         <div v-if="tag.pinned" class="pin-indicator">
-          <Pushpin theme="outline" size="12" fill="var(--color-icon-default)" :stroke-width="3" />
+          <Pushpin theme="outline" size="12" fill="var(--color-sidebar-text)" :stroke-width="2" />
         </div>
         <span class="tag-count">{{ tag.noteCount }}</span>
       </div>
@@ -267,7 +267,9 @@ const getIconComponent = (iconName: string) => {
     gap: 4px;
 
     &:hover {
-      background-color: var(--color-hover-sidebar);
+      background: rgba(var(--color-sidebar-icon-bg), 0.04);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
     }
 
     // 添加固定宽度的展开图标包装器
@@ -400,7 +402,7 @@ const getIconComponent = (iconName: string) => {
 
       .tag-count {
         font-size: 12px;
-        color: var(--color-text-tertiary);
+        color: var(--color-sidebar-text);
         user-select: none;
         line-height: 1;
       }

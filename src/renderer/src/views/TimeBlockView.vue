@@ -774,6 +774,11 @@ const highlightContent = (content: string) => {
 </script>
 
 <style lang="scss" scoped>
+.time-block-header-left {
+  .name {
+    color: var(--color-text-primary) !important;
+  }
+}
 .time-block-view {
   background-color: var(--color-bg-primary);
   width: 100%;
@@ -924,7 +929,7 @@ const highlightContent = (content: string) => {
           .current-date {
             font-size: 15px;
             font-weight: 500;
-            color: var(--color-text-2);
+            color: var(--color-text-primary);
             min-width: 180px;
             text-align: center;
             display: inline-flex;

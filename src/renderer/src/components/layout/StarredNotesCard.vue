@@ -38,8 +38,8 @@ const cardTypeClass = computed(() => {
 
 <style lang="scss" scoped>
 .starred-note-card {
-  background-color: var(--body-bg);
-  border: 1px solid var(--time-card-border-color);
+  // background-color: var(--body-bg);
+  border: 1px solid var(--color-sidebar-divider);
   border-radius: 8px;
   padding: 2px 0;
   display: flex;
@@ -107,12 +107,12 @@ const cardTypeClass = computed(() => {
       margin: 0;
       font-size: 12px;
       font-weight: bold;
-      color: var(--color-text-primary);
+      color: var(--color-sidebar-text);
     }
   }
   .note-content {
     flex-grow: 1;
-    color: var(--color-text-primary);
+    color: var(--color-sidebar-text);
     text-align: left;
     height: 20px;
     overflow: hidden;

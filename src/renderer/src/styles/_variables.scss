@@ -283,6 +283,15 @@ $dark-mode-text: $gray-100;
   --color-chart-yellow-light: rgba(var(--color-yellow-rgb), 0.3);
   --color-chart-yellow-area: rgba(var(--color-yellow-rgb), 0.2);
   --color-chart-yellow-area-light: rgba(var(--color-yellow-rgb), 0);
+
+  // 添加 RGB 格式的变量
+  --color-shape-tertiary-rgb: 255, 255, 255; // 浅色模式
+
+  //新侧边栏
+  --color-sidebar-icon: #555;
+  --color-sidebar-icon-bg: 0, 0, 0;
+  --color-sidebar-divider: #7878782a;
+  --color-sidebar-text: #252525;
 }
 
 .theme-dark {
@@ -437,4 +446,11 @@ $dark-mode-text: $gray-100;
   --color-chart-yellow-light: rgba(var(--color-yellow-rgb), 0.3);
   --color-chart-yellow-area: rgba(var(--color-yellow-rgb), 0.2);
   --color-chart-yellow-area-light: rgba(var(--color-yellow-rgb), 0);
+
+  // 修改暗色模式下的 RGB 值
+  --color-shape-tertiary-rgb: 180, 180, 180; // 暗色模式,使用更柔和的灰色
+
+  // 修改暗色模式下的侧边栏图标颜色
+  // --color-sidebar-icon: #bbb;
+  // --color-sidebar-icon-bg: 255, 255, 255;
 }

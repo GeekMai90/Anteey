@@ -150,7 +150,7 @@ onBeforeUnmount(() => {
     font-family: inherit;
     font-size: inherit;
     line-height: 1.6;
-    color: var(--color-text-1);
+    color: var(--color-text-primary);
     outline: none;
 
     p {

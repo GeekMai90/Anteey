@@ -5,8 +5,20 @@
       <span>最近</span>
       <div class="toggle-icon">
         <div class="icon">
-          <Down v-if="isExpanded" theme="outline" size="18" fill="var(--color-icon-default)" />
-          <Right v-else theme="outline" size="18" fill="var(--color-icon-default)" />
+          <Down
+            v-if="isExpanded"
+            theme="outline"
+            size="18"
+            fill="var(--color-sidebar-text)"
+            :stroke-width="2"
+          />
+          <Right
+            v-else
+            theme="outline"
+            size="18"
+            fill="var(--color-sidebar-text)"
+            :stroke-width="2"
+          />
         </div>
       </div>
     </div>
@@ -57,7 +69,7 @@ const openNote = (note: Note) => {
 <style scoped lang="scss">
 .recent-notes {
   margin-top: 5px;
-  padding: 0 10px;
+  padding: 0 6px;
   border-radius: 8px;
 
   .recent-header {
@@ -68,9 +80,11 @@ const openNote = (note: Note) => {
     border-radius: 8px;
     margin-bottom: 5px;
     user-select: none;
-    color: var(--color-text-secondary);
+    color: var(--color-sidebar-text);
     &:hover {
-      background-color: var(--color-hover-sidebar);
+      background: rgba(var(--color-sidebar-icon-bg), 0.04);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
     }
 
     span {
@@ -139,6 +153,12 @@ const openNote = (note: Note) => {
   .recent-note-card {
     transition: all 0.3s;
     cursor: pointer;
+    border-radius: 8px;
+    &:hover {
+      background: rgba(var(--color-sidebar-icon-bg), 0.04);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+    }
   }
 }
 </style>

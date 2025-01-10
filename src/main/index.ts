@@ -172,7 +172,7 @@ function createWindow(): BrowserWindow {
     // macOS 专用：使用 hiddenInset 样式，保留红绿灯按钮但隐藏标题栏
     titleBarStyle: 'hiddenInset',
     // macOS 专用：设置红绿灯按钮的位置，x是距离左边距离，y是距离顶部距离
-    trafficLightPosition: { x: 10, y: 6 },
+    trafficLightPosition: { x: 16, y: 16 },
     ...(process.platform === 'linux' ? {} : {}),
     // 网页功能和安全相关的配置
     webPreferences: {
