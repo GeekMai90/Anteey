@@ -147,8 +147,8 @@ export const useThemeStore = defineStore('theme', () => {
     // 主题选择器的预估尺寸
     const PICKER_HEIGHT = 500
     const PICKER_WIDTH = 300
-    const OFFSET_Y = 80 // 向上偏移量
-    const OFFSET_X = 55 // 向右偏移量
+    const OFFSET_Y = 85 // 向上偏移量
+    const OFFSET_X = 85 // 向右偏移量
 
     // 计算合适的位置，确保不会超出窗口
     let x = position.x + OFFSET_X
