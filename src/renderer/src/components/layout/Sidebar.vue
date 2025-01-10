@@ -82,15 +82,15 @@
         <!-- 主题切换按钮 -->
         <button
           v-tooltip.top="{
-            content: uiStore.isDarkTheme ? '切换亮色主题' : '切换暗色主题',
+            content: isDarkMode ? '切换亮色主题' : '切换暗色主题',
             delay: { show: 1000 }
           }"
           class="action-btn"
-          @click="uiStore.setThemeMode(uiStore.isDarkTheme ? 'light' : 'dark')"
+          @click="themeStore.toggleThemeMode()"
         >
           <div class="icon">
             <component
-              :is="uiStore.isDarkTheme ? SunOne : Moon"
+              :is="isDarkMode ? SunOne : Moon"
               theme="outline"
               size="16"
               fill="var(--color-icon-secondary)"
@@ -183,6 +183,9 @@
           <Help theme="outline" size="20" fill="var(--color-icon-menu-default)" :strokeWidth="2" />
         </div>
       </div>
+      <button class="theme-button" @click="handleThemeButtonClick">
+        <Theme theme="outline" size="18" :strokeWidth="2" fill="var(--color-icon-menu-default)" />
+      </button>
     </div>
   </div>
 </template>
@@ -206,7 +209,8 @@ import {
   LinkCloudSucess,
   StorageCardOne,
   NotebookOne,
-  Pencil
+  Pencil,
+  Theme
 } from '@icon-park/vue-next'
 import { useNoteStore } from '@renderer/stores/noteStore'
 import SettingDropdownMenu from '@renderer/components/settings/SettingDropdownMenu.vue'
@@ -221,6 +225,7 @@ import { useTimeBlockStore } from '@renderer/stores/timeBlockStore'
 import { useAppearanceStore } from '@renderer/stores/appearanceStore'
 import { useWebDAVStore } from '@renderer/stores/webdavStore'
 import { message } from '@renderer/utils/message'
+import { useThemeStore } from '@renderer/stores/themeStore'
 
 const imageSrc = ref('')
 const uiStore = useUIStore()
@@ -228,6 +233,7 @@ const route = useRoute()
 const timeBlockStore = useTimeBlockStore()
 const appearanceStore = useAppearanceStore()
 const webdavStore = useWebDAVStore()
+const themeStore = useThemeStore()
 
 const getIconFill = computed(
   () => (path: string) =>
@@ -282,7 +288,10 @@ const saveStatusClass = computed(() => {
 })
 
 // 侧边栏宽度调节
-const emit = defineEmits(['resize'])
+const emit = defineEmits<{
+  (e: 'resize', width: number): void
+}>()
+
 const sidebarWidth = ref(250)
 const MIN_WIDTH = 250
 const MAX_WIDTH = 400
@@ -467,6 +476,25 @@ const getSyncStatusText = computed(() => {
       return '立即同步'
   }
 })
+
+const handleThemeButtonClick = (event: MouseEvent) => {
+  event.stopPropagation()
+  const rect = (event.currentTarget as HTMLElement).getBoundingClientRect()
+  themeStore.openThemePicker({
+    x: rect.left,
+    y: rect.top
+  })
+}
+
+// 添加暗色模式计算属性
+const isDarkMode = computed(() => {
+  if (!themeStore.themeSettings) return false
+  return (
+    themeStore.themeSettings.themeMode === 'dark' ||
+    (themeStore.themeSettings.themeMode === 'system' &&
+      window.matchMedia('(prefers-color-scheme: dark)').matches)
+  )
+})
 </script>
 
 <style lang="scss" scoped>
@@ -479,7 +507,7 @@ const getSyncStatusText = computed(() => {
   flex-direction: column;
   transition: width 0.3s ease;
   z-index: 1000;
-  border-right: 1px solid var(--color-border-sidebar);
+  // border-right: 1px solid var(--color-border-sidebar);
 
   .sidebar-titlebar {
     height: 24px;
@@ -1118,5 +1146,40 @@ const getSyncStatusText = computed(() => {
   100% {
     transform: scale(1);
   }
+}
+
+.theme-button {
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &:hover {
+    background-color: rgba(var(--color-border-rgb), 0.1);
+  }
+}
+
+.theme-picker-wrapper {
+  position: fixed;
+  z-index: 1000;
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.1));
+}
+
+// 弹出动画
+.fade-scale-enter-active,
+.fade-scale-leave-active {
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.fade-scale-enter-from,
+.fade-scale-leave-to {
+  opacity: 0;
+  transform: scale(0.95);
 }
 </style>

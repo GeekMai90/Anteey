@@ -78,7 +78,12 @@ import type {
   // 草稿纸相关
   Draft,
   UpdateDraftInput,
-  AppendDraftInput
+  AppendDraftInput,
+
+  // 主题相关
+  ThemeSettings,
+  FavoriteGradients,
+  GradientPreset
 } from '@shared/types'
 
 export interface ElectronAPI {
@@ -465,6 +470,30 @@ export interface ElectronAPI {
     updateDraft: (input: UpdateDraftInput) => Promise<Draft>
     // 追加内容到草稿纸
     appendDraft: (input: AppendDraftInput) => Promise<Draft>
+  }
+
+  // 添加主题相关的方法定义
+  theme: {
+    // 获取主题设置
+    getThemeSettings: () => Promise<ThemeSettings>
+
+    // 更新主题设置
+    updateThemeSettings: (settings: Partial<ThemeSettings>) => Promise<ThemeSettings>
+
+    // 获取收藏的渐变
+    getFavoriteGradients: () => Promise<FavoriteGradients>
+
+    // 添加收藏的渐变
+    addFavoriteGradient: (
+      gradient: GradientPreset,
+      type: 'universal' | 'light' | 'dark'
+    ) => Promise<FavoriteGradients>
+
+    // 移除收藏的渐变
+    removeFavoriteGradient: (
+      gradient: Omit<GradientPreset, 'id'>,
+      type: 'universal' | 'light' | 'dark'
+    ) => Promise<FavoriteGradients>
   }
 }
 

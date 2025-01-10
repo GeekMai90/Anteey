@@ -969,6 +969,72 @@ export async function initDatabase(db: Knex): Promise<void> {
     })
     console.log('drafts 表创建成功')
   }
+
+  // 创建主题设置表
+  if (!(await db.schema.hasTable('theme_settings'))) {
+    await db.schema.createTable('theme_settings', (table) => {
+      table.string('id').primary()
+      // 通用渐变设置
+      table.json('universalGradient').nullable()
+      // 明暗模式特定的渐变设置
+      table.json('lightGradient').nullable()
+      table.json('darkGradient').nullable()
+      // 渐变模式
+      table.enum('gradientMode', ['universal', 'specific']).notNullable().defaultTo('universal')
+      // 主题模式
+      table.enum('themeMode', ['system', 'light', 'dark']).notNullable().defaultTo('system')
+      // 是否启用渐变背景
+      table.boolean('enableGradient').notNullable().defaultTo(true)
+      // 时间戳
+      table.datetime('createdAt').notNullable()
+      table.datetime('updatedAt').notNullable()
+    })
+
+    // 插入默认设置
+    await db('theme_settings').insert({
+      id: uuidv4(),
+      universalGradient: JSON.stringify({
+        startColor: '#89f7fe',
+        endColor: '#66a6ff',
+        angle: 45,
+        noiseAmount: 15
+      }),
+      gradientMode: 'universal',
+      themeMode: 'system',
+      enableGradient: true,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    })
+
+    console.log('theme_settings 表创建成功')
+  }
+
+  // 创建收藏的渐变表
+  if (!(await db.schema.hasTable('favorite_gradients'))) {
+    await db.schema.createTable('favorite_gradients', (table) => {
+      table.string('id').primary()
+      // 通用渐变
+      table.json('universalGradients').notNullable().defaultTo('[]')
+      // 明暗模式特定的渐变
+      table.json('lightGradients').notNullable().defaultTo('[]')
+      table.json('darkGradients').notNullable().defaultTo('[]')
+      // 时间戳
+      table.datetime('createdAt').notNullable()
+      table.datetime('updatedAt').notNullable()
+    })
+
+    // 插入默认记录
+    await db('favorite_gradients').insert({
+      id: uuidv4(),
+      universalGradients: '[]',
+      lightGradients: '[]',
+      darkGradients: '[]',
+      createdAt: new Date(),
+      updatedAt: new Date()
+    })
+
+    console.log('favorite_gradients 表创建成功')
+  }
 }
 
 export async function down(db: Knex): Promise<void> {
@@ -1010,5 +1076,7 @@ export async function down(db: Knex): Promise<void> {
   await db.schema.dropTableIfExists('review_records')
   await db.schema.dropTableIfExists('daily_stats')
   await db.schema.dropTableIfExists('drafts')
+  await db.schema.dropTableIfExists('theme_settings')
+  await db.schema.dropTableIfExists('favorite_gradients')
   console.log('所有表已删除')
 }

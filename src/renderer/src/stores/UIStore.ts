@@ -152,6 +152,42 @@ export const useUIStore = defineStore(
       isSettingDropdownOpen.value = false
     }
 
+    // 主题颜色选择器状态
+    const isThemePickerOpen = ref(false)
+    const themePickerPosition = ref({
+      left: '0px',
+      top: '0px'
+    })
+
+    // 打开主题颜色选择器
+    const openThemePicker = (event: MouseEvent) => {
+      const button = event.currentTarget as HTMLElement
+      const rect = button.getBoundingClientRect()
+      const viewportHeight = window.innerHeight
+      const pickerHeight = 500
+
+      let top = rect.top - pickerHeight / 2 + rect.height / 2 - 300 // 向上偏移100px
+
+      // 确保不会超出视口
+      if (top + pickerHeight > viewportHeight) {
+        top = viewportHeight - pickerHeight - 20
+      }
+      if (top < 20) {
+        top = 20
+      }
+
+      themePickerPosition.value = {
+        left: `${rect.right + 16}px`,
+        top: `${top}px`
+      }
+      isThemePickerOpen.value = true
+    }
+
+    // 关闭主题颜色选择器
+    const closeThemePicker = () => {
+      isThemePickerOpen.value = false
+    }
+
     return {
       isEditorOpen,
       isSearchModalOpen,
@@ -186,7 +222,11 @@ export const useUIStore = defineStore(
       openRightSidebar,
       closeRightSidebar,
       openRightSidebarWithTab,
-      rightSidebarTab
+      rightSidebarTab,
+      isThemePickerOpen,
+      themePickerPosition,
+      openThemePicker,
+      closeThemePicker
     }
   },
   {

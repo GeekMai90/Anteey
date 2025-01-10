@@ -15,7 +15,7 @@ import { setupFlashcardHandlers } from './flashcardIpcHandlers'
 import { setupNoteVersionHandlers } from './noteVersionIpcHandlers'
 import { setupAnalyticsHandlers } from './analyticsIpcHandlers'
 import { setupDraftHandlers } from './draftsIpcHandlers'
-
+import { setupThemeHandlers } from './themeIpcHandlers'
 export function setupIpcHandlers(): void {
   setupNotesHandlers()
   setupWhiteboardHandlers()
@@ -34,4 +34,5 @@ export function setupIpcHandlers(): void {
   setupAnalyticsHandlers()
   setupUserSettingsHandlers()
   setupDraftHandlers()
+  setupThemeHandlers()
 }

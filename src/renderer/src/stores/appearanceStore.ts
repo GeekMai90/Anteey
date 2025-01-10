@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import type { AppearanceSettings } from '@shared/types'
+import type { AppearanceSettings, GradientPreset } from '@shared/types'
 
 export const useAppearanceStore = defineStore(
   'appearance',
@@ -8,6 +8,7 @@ export const useAppearanceStore = defineStore(
     // ==================== 状态 ====================
     const settings = ref<AppearanceSettings | null>(null)
     const isLoading = ref(false)
+    const favoriteGradients = ref<GradientPreset[]>([])
 
     // ==================== 字体映射 ====================
     const fontFamilyMap = {
@@ -164,10 +165,60 @@ export const useAppearanceStore = defineStore(
     // 添加计算属性
     const defaultRoute = computed(() => settings.value?.defaultPage || '/home')
 
+    // 添加收藏渐变
+    const addFavoriteGradient = (gradient: Omit<GradientPreset, 'id'>) => {
+      const newId = favoriteGradients.value.length + 1
+      favoriteGradients.value.push({
+        id: newId,
+        ...gradient
+      })
+      saveFavorites()
+    }
+
+    // 移除收藏渐变
+    const removeFavoriteGradient = (gradient: Omit<GradientPreset, 'id'>) => {
+      favoriteGradients.value = favoriteGradients.value.filter(
+        (g: GradientPreset) =>
+          g.startColor !== gradient.startColor ||
+          g.endColor !== gradient.endColor ||
+          g.angle !== gradient.angle ||
+          g.noiseAmount !== gradient.noiseAmount
+      )
+      saveFavorites()
+    }
+
+    // 检查渐变是否已收藏
+    const isGradientFavorite = (gradient: Omit<GradientPreset, 'id'>) => {
+      return favoriteGradients.value.some(
+        (g: GradientPreset) =>
+          g.startColor === gradient.startColor &&
+          g.endColor === gradient.endColor &&
+          g.angle === gradient.angle &&
+          g.noiseAmount === gradient.noiseAmount
+      )
+    }
+
+    // 保存收藏到本地存储
+    const saveFavorites = () => {
+      localStorage.setItem('favorite-gradients', JSON.stringify(favoriteGradients.value))
+    }
+
+    // 加载收藏
+    const loadFavorites = () => {
+      const saved = localStorage.getItem('favorite-gradients')
+      if (saved) {
+        favoriteGradients.value = JSON.parse(saved)
+      }
+    }
+
+    // 初始化时加载收藏
+    loadFavorites()
+
     return {
       // 状态
       settings,
       isLoading,
+      favoriteGradients,
 
       // 方法
       fetchSettings,
@@ -180,7 +231,10 @@ export const useAppearanceStore = defineStore(
       updateRecentExpanded,
       initializeSettings,
       defaultRoute,
-      updateWhiteboardEnabled
+      updateWhiteboardEnabled,
+      addFavoriteGradient,
+      removeFavoriteGradient,
+      isGradientFavorite
     }
   },
   { persist: true }

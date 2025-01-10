@@ -145,16 +145,18 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { Theme, Down } from '@icon-park/vue-next'
-import { useUIStore } from '@renderer/stores/UIStore'
 import { useAppearanceStore } from '@renderer/stores/appearanceStore'
 import { useTimeBlockStore } from '@renderer/stores/timeBlockStore'
+import { useThemeStore } from '@renderer/stores/themeStore'
 import Switch from '@renderer/components/ui/Switch.vue'
 
-const uiStore = useUIStore()
 const appearanceStore = useAppearanceStore()
 const timeBlockStore = useTimeBlockStore()
+const themeStore = useThemeStore()
 
-const currentTheme = computed(() => uiStore.themeMode)
+const currentTheme = computed(() => {
+  return themeStore.themeSettings?.themeMode || 'system'
+})
 
 const themeOptions = [
   { label: '浅色', value: 'light' },
@@ -162,8 +164,15 @@ const themeOptions = [
   { label: '跟随系统', value: 'system' }
 ]
 
-const handleThemeChange = (theme: string) => {
-  uiStore.setThemeMode(theme as 'light' | 'dark' | 'system')
+const handleThemeChange = async (theme: string) => {
+  try {
+    await themeStore.updateThemeSettings({
+      themeMode: theme as 'light' | 'dark' | 'system'
+    })
+    console.log('主题已更新:', theme)
+  } catch (error) {
+    console.error('更新主题失败:', error)
+  }
 }
 
 const fontOptions = [
