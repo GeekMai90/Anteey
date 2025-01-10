@@ -26,6 +26,7 @@ export interface ThemeSettings {
   enableGradient: boolean
   createdAt: Date
   updatedAt: Date
+  styleMode: 'modern' | 'classic'
 }
 
 export interface FavoriteGradients {

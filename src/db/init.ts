@@ -985,6 +985,8 @@ export async function initDatabase(db: Knex): Promise<void> {
       table.enum('themeMode', ['system', 'light', 'dark']).notNullable().defaultTo('system')
       // 是否启用渐变背景
       table.boolean('enableGradient').notNullable().defaultTo(true)
+      // 新增：主题风格模式
+      table.enum('styleMode', ['modern', 'classic']).notNullable().defaultTo('modern')
       // 时间戳
       table.datetime('createdAt').notNullable()
       table.datetime('updatedAt').notNullable()
@@ -1002,11 +1004,21 @@ export async function initDatabase(db: Knex): Promise<void> {
       gradientMode: 'universal',
       themeMode: 'system',
       enableGradient: true,
+      styleMode: 'modern',
       createdAt: new Date(),
       updatedAt: new Date()
     })
 
     console.log('theme_settings 表创建成功')
+  } else {
+    // 检查是否需要添加 styleMode 列
+    const hasStyleModeColumn = await db.schema.hasColumn('theme_settings', 'styleMode')
+    if (!hasStyleModeColumn) {
+      await db.schema.alterTable('theme_settings', (table) => {
+        table.enum('styleMode', ['modern', 'classic']).notNullable().defaultTo('modern')
+      })
+      console.log('theme_settings 表添加 styleMode 列成功')
+    }
   }
 
   // 创建收藏的渐变表

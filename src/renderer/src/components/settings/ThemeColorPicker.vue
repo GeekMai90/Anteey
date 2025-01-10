@@ -1,5 +1,29 @@
 <template>
   <div class="theme-color-picker">
+    <!-- 添加风格切换按钮组 -->
+    <div class="style-mode-switcher">
+      <div
+        class="slider"
+        :style="{
+          transform: `translateX(${themeStore.themeSettings?.styleMode === 'classic' ? 'calc(100% + 4px)' : '0'})`
+        }"
+      ></div>
+      <button
+        class="style-btn"
+        :class="{ active: themeStore.themeSettings?.styleMode === 'modern' }"
+        @click="themeStore.toggleStyleMode('modern')"
+      >
+        <span>现代</span>
+      </button>
+      <button
+        class="style-btn"
+        :class="{ active: themeStore.themeSettings?.styleMode === 'classic' }"
+        @click="themeStore.toggleStyleMode('classic')"
+      >
+        <span>经典</span>
+      </button>
+    </div>
+
     <!-- 关闭按钮 -->
     <!-- <button class="close-btn" @click="$emit('close')">
       <Close theme="outline" size="16" :strokeWidth="3" />
@@ -660,7 +684,7 @@ watch(noiseAmount, (value) => {
   border-radius: 16px;
   padding: 20px;
   width: 360px;
-  height: 630px;
+  height: 700px;
   position: relative;
 }
 
@@ -1000,6 +1024,51 @@ watch(noiseAmount, (value) => {
     &.active {
       background: var(--color-primary);
       color: white;
+    }
+  }
+}
+
+.style-mode-switcher {
+  margin: 0 0 16px 0;
+  display: flex;
+  background: var(--color-bg-secondary);
+  padding: 4px;
+  border-radius: 8px;
+  gap: 4px;
+  position: relative;
+
+  .slider {
+    position: absolute;
+    top: 4px;
+    left: 4px;
+    width: calc((100% - 12px) / 2);
+    height: calc(100% - 8px);
+    background: var(--color-primary);
+    border-radius: 6px;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 0;
+  }
+
+  .style-btn {
+    flex: 1;
+    padding: 8px 12px;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--color-text-secondary);
+    font-size: 14px;
+    cursor: pointer;
+    position: relative;
+    z-index: 1;
+    transition: color 0.3s ease;
+
+    &:hover:not(.active) {
+      color: var(--color-text-primary);
+    }
+
+    &.active {
+      color: white;
+      font-weight: 500;
     }
   }
 }

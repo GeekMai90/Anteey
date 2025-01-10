@@ -249,7 +249,7 @@ const themeStore = useThemeStore()
 
 const getIconFill = computed(
   () => (path: string) =>
-    route.path === path ? 'var(--color-sidebar-text)' : 'var(--color-sidebar-text)'
+    route.path === path ? 'var(--color-sidebar-nav-icon)' : 'var(--color-sidebar-nav-icon)'
 )
 
 onMounted(async () => {

@@ -102,31 +102,12 @@ export const useThemeStore = defineStore('theme', () => {
   const toggleThemeMode = async () => {
     if (!themeSettings.value) return
 
-    const currentMode = themeSettings.value.themeMode
-    let newMode: 'light' | 'dark' | 'system'
-
-    // 在 light/dark/system 之间循环切换
-    switch (currentMode) {
-      case 'light':
-        newMode = 'dark'
-        break
-      case 'dark':
-        newMode = 'system'
-        break
-      case 'system':
-        newMode = 'light'
-        break
-      default:
-        newMode = 'light'
-    }
-
+    // 只在 light 和 dark 之间切换
+    const newMode = themeSettings.value.themeMode === 'light' ? 'dark' : 'light'
     await updateThemeSettings({ themeMode: newMode })
 
     // 应用主题
-    const isDark =
-      newMode === 'dark' ||
-      (newMode === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)
-
+    const isDark = newMode === 'dark'
     document.documentElement.classList.toggle('theme-dark', isDark)
   }
 
@@ -147,7 +128,7 @@ export const useThemeStore = defineStore('theme', () => {
     // 主题选择器的预估尺寸
     const PICKER_HEIGHT = 500
     const PICKER_WIDTH = 300
-    const OFFSET_Y = 85 // 向上偏移量
+    const OFFSET_Y = 155 // 向上偏移量
     const OFFSET_X = 85 // 向右偏移量
 
     // 计算合适的位置，确保不会超出窗口
@@ -178,7 +159,26 @@ export const useThemeStore = defineStore('theme', () => {
     isThemePickerOpen.value = false
   }
 
-  // 添加新方法：应用主题
+  // 切换主题风格
+  const toggleStyleMode = async (mode: 'modern' | 'classic') => {
+    if (!themeSettings.value) return
+
+    // 如果点击的是当前模式，不做任何操作
+    if (themeSettings.value.styleMode === mode) return
+
+    await updateThemeSettings({ styleMode: mode })
+    applyStyleMode() // 应用新的风格
+  }
+
+  // 应用主题风格
+  const applyStyleMode = () => {
+    if (!themeSettings.value) return
+
+    const isClassic = themeSettings.value.styleMode === 'classic'
+    document.documentElement.classList.toggle('theme-classic', isClassic)
+  }
+
+  // 修改 applyTheme 方法，添加风格应用
   const applyTheme = () => {
     if (!themeSettings.value) return
 
@@ -188,6 +188,7 @@ export const useThemeStore = defineStore('theme', () => {
         window.matchMedia('(prefers-color-scheme: dark)').matches)
 
     document.documentElement.classList.toggle('theme-dark', isDark)
+    applyStyleMode() // 同时应用风格
   }
 
   return {
@@ -213,6 +214,8 @@ export const useThemeStore = defineStore('theme', () => {
     closeThemePicker,
 
     // 新方法
-    applyTheme
+    applyTheme,
+    toggleStyleMode,
+    applyStyleMode
   }
 })
