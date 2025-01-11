@@ -4,12 +4,12 @@ import hotkeys from 'hotkeys-js'
 import { useNoteStore } from '../stores/noteStore'
 import { useRouter } from 'vue-router'
 import { useUIStore } from '../stores/UIStore'
-
+import { useThemeStore } from '../stores/themeStore'
 export function useGlobalHotkeys() {
   const noteStore = useNoteStore()
   const router = useRouter()
   const uiStore = useUIStore()
-
+  const themeStore = useThemeStore()
   const setupHotkeys = () => {
     // 配置 hotkeys，让它在所有元素上都生效，包括输入框和编辑器
     hotkeys.filter = () => true
@@ -72,7 +72,7 @@ export function useGlobalHotkeys() {
     // 切换主题
     hotkeys('command+shift+t, ctrl+shift+t', (event) => {
       event.preventDefault()
-      uiStore.toggleTheme()
+      themeStore.toggleThemeMode()
     })
     // 打开/关闭右侧边栏多开笔记
     hotkeys('command+shift+m, ctrl+shift+m', (event) => {

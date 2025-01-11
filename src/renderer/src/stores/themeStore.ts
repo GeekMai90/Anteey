@@ -29,6 +29,12 @@ export const useThemeStore = defineStore('theme', () => {
     return isDark ? themeSettings.value.darkGradient : themeSettings.value.lightGradient
   })
 
+  // 添加 isDarkMode 计算属性
+  const isDarkMode = computed(() => {
+    if (!themeSettings.value) return false
+    return themeSettings.value.themeMode === 'dark'
+  })
+
   // ==================== 操作方法 ====================
   // 初始化主题设置
   const initializeTheme = async () => {
@@ -197,6 +203,7 @@ export const useThemeStore = defineStore('theme', () => {
     favoriteGradients,
     isLoading,
     currentGradient,
+    isDarkMode,
 
     // 方法
     initializeTheme,

@@ -6,7 +6,7 @@
       v-show="isVisible"
       ref="calendarRef"
       class="calendar-popup"
-      :class="{ 'theme-dark': uiStore.isDarkTheme }"
+      :class="{ 'theme-dark': themeStore.isDarkMode }"
     >
       <!-- v-calendar 的 DatePicker 组件 -->
       <DatePicker
@@ -15,7 +15,7 @@
         :model-config="{ type: 'string', mask: 'YYYY-MM-DD' }"
         :masks="{ title: 'YYYY年MM月' }"
         :attributes="attributes"
-        :is-dark="uiStore.isDarkTheme"
+        :is-dark="themeStore.isDarkMode"
         transparent
         @dayclick="onDayClick"
       />
@@ -28,7 +28,9 @@ import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { DatePicker } from 'v-calendar'
 import 'v-calendar/style.css'
 import { useUIStore } from '@renderer/stores/UIStore'
+import { useThemeStore } from '@renderer/stores/themeStore'
 
+const themeStore = useThemeStore()
 const uiStore = useUIStore()
 
 // 定义组件的 props
