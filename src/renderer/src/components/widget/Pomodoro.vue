@@ -21,7 +21,7 @@
         <!-- 按钮区域 -->
         <div class="button-section">
           <!-- 未开始状态 -->
-          <template v-if="!pomodoroStore.isRunning && !pomodoroStore.isInBreak">
+          <template v-if="pomodoroStore.status === 'idle'">
             <div class="button-group">
               <div class="control-btn primary" @click="pomodoroStore.start">
                 <div class="icon">
@@ -35,18 +35,28 @@
               </div>
               <div class="control-btn" @click="toggleSoundMenu">
                 <div class="icon">
-                  <Music theme="outline" size="20" fill="var(--color-text-secondary)" />
+                  <component
+                    :is="pomodoroStore.settings.sound === 'none' ? VolumeMute : Music"
+                    theme="outline"
+                    size="20"
+                    fill="var(--color-text-secondary)"
+                  />
                 </div>
               </div>
             </div>
           </template>
 
-          <!-- 运行状态或休息状态 -->
+          <!-- 运行状态、暂停状态或休息状态 -->
           <template v-else>
             <div class="button-group">
-              <div class="control-btn" @click="pomodoroStore.pause">
+              <div class="control-btn" @click="handlePauseResume">
                 <div class="icon">
-                  <Pause theme="outline" size="20" fill="var(--color-text-secondary)" />
+                  <component
+                    :is="pomodoroStore.isPaused ? ReplayMusic : Pause"
+                    theme="outline"
+                    size="20"
+                    fill="var(--color-text-secondary)"
+                  />
                 </div>
               </div>
               <div class="control-btn" @click="pomodoroStore.stop">
@@ -56,7 +66,12 @@
               </div>
               <div class="control-btn" @click="toggleSoundMenu">
                 <div class="icon">
-                  <Music theme="outline" size="20" fill="var(--color-text-secondary)" />
+                  <component
+                    :is="pomodoroStore.settings.sound === 'none' ? VolumeMute : Music"
+                    theme="outline"
+                    size="20"
+                    fill="var(--color-text-secondary)"
+                  />
                 </div>
               </div>
             </div>
@@ -73,7 +88,17 @@
           :class="{ active: pomodoroStore.settings.sound === sound.value }"
           @click="selectSound(sound.value)"
         >
-          {{ sound.label }}
+          <component
+            :is="getSoundIcon(sound.value)"
+            theme="outline"
+            size="16"
+            :fill="
+              pomodoroStore.settings.sound === sound.value
+                ? 'var(--color-primary)'
+                : 'var(--color-text-primary)'
+            "
+          />
+          <span>{{ sound.label }}</span>
         </div>
       </div>
     </div>
@@ -81,8 +106,19 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
-import { Play, Pause, Power, Music, Resting } from '@icon-park/vue-next'
+import { ref, onMounted } from 'vue'
+import {
+  Play,
+  Pause,
+  Power,
+  Music,
+  Resting,
+  ReplayMusic,
+  VolumeMute,
+  Ship,
+  LightRain,
+  FireTwo
+} from '@icon-park/vue-next'
 import { usePomodoroStore } from '@renderer/stores/pomodoroStore'
 import type { BackgroundSound } from '@shared/types'
 import { onClickOutside } from '@vueuse/core'
@@ -91,6 +127,11 @@ import FlipClock from './FlipClock.vue'
 const pomodoroStore = usePomodoroStore()
 const showSoundMenu = ref(false)
 const soundMenuRef = ref<HTMLElement | null>(null)
+
+// 组件挂载时初始化
+onMounted(async () => {
+  await pomodoroStore.initialize()
+})
 
 const soundOptions: Array<{ label: string; value: BackgroundSound }> = [
   { label: '海浪', value: 'ocean' },
@@ -113,6 +154,36 @@ onClickOutside(soundMenuRef, () => {
 const selectSound = (sound: BackgroundSound) => {
   pomodoroStore.updateSettings({ sound })
   showSoundMenu.value = false
+}
+
+// 添加处理暂停/继续的方法
+const handlePauseResume = () => {
+  console.log('点击暂停/继续按钮')
+  console.log('详细状态:', {
+    isPaused: pomodoroStore.isPaused,
+    isRunning: pomodoroStore.isRunning,
+    currentTime: pomodoroStore.currentTime,
+    status: pomodoroStore.status
+  })
+
+  if (pomodoroStore.isPaused) {
+    console.log('尝试继续...')
+    pomodoroStore.resume()
+  } else {
+    console.log('尝试暂停...')
+    pomodoroStore.pause()
+  }
+}
+
+// 获取声音对应的图标
+const getSoundIcon = (sound: BackgroundSound) => {
+  const iconMap = {
+    ocean: Ship,
+    rain: LightRain,
+    fire: FireTwo,
+    none: VolumeMute
+  }
+  return iconMap[sound]
 }
 </script>
 
@@ -210,17 +281,38 @@ const selectSound = (sound: BackgroundSound) => {
   border-radius: 6px;
   padding: 4px;
   box-shadow: var(--shadow-primary);
-
   z-index: 1000;
-  min-width: 120px;
+  min-width: 100px;
 
   .sound-option {
-    padding: 8px 12px;
+    padding: 6px 8px;
     cursor: pointer;
     border-radius: 4px;
     font-size: 13px;
     color: var(--color-text-primary);
     transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    .i-icon {
+      flex: none;
+      width: 20px;
+      height: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    :deep(svg) {
+      width: 16px;
+      height: 16px;
+    }
+
+    span {
+      flex: 1;
+      white-space: nowrap;
+    }
 
     &:hover {
       background: var(--color-hover-button);

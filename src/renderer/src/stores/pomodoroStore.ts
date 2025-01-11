@@ -41,12 +41,30 @@ export const usePomodoroStore = defineStore('pomodoro', () => {
     }
   }
 
+  // 初始化番茄钟数据
+  const initPomodoroData = async () => {
+    try {
+      const todayRecord = await window.electronAPI.pomodoro.getTodayPomodoro()
+      if (todayRecord) {
+        todayCount.value = todayRecord.count
+        // 如果有需要，也可以更新其他状态
+      }
+    } catch (error) {
+      console.error('初始化番茄钟数据失败:', error)
+    }
+  }
+
+  // 在 store 定义的开头调用初始化
+  initPomodoroData()
+
   // 开始番茄钟
   const start = async () => {
-    if (status.value === 'idle') {
-      currentTime.value = settings.value.defaultDuration * 60
-      currentCount.value++
+    if (status.value !== 'idle') {
+      return
     }
+
+    currentTime.value = settings.value.defaultDuration * 60
+    currentCount.value++
     status.value = 'running'
     startTimer()
     await playSound()
@@ -54,16 +72,29 @@ export const usePomodoroStore = defineStore('pomodoro', () => {
 
   // 暂停
   const pause = () => {
-    status.value = 'paused'
+    console.log('执行暂停...')
     stopTimer()
     stopSound()
+    status.value = 'paused'
+    console.log('暂停完成，当前状态:', status.value)
   }
 
   // 继续
   const resume = async () => {
+    console.log('执行继续...当前状态:', {
+      status: status.value,
+      currentTime: currentTime.value,
+      timer: timer.value
+    })
+
     status.value = 'running'
     startTimer()
     await playSound()
+
+    console.log('继续完成,新状态:', {
+      status: status.value,
+      timer: timer.value
+    })
   }
 
   // 停止
@@ -85,12 +116,14 @@ export const usePomodoroStore = defineStore('pomodoro', () => {
   }
 
   // 完成休息
-  const completeBreak = () => {
+  const completeBreak = async () => {
     status.value = 'break_completed'
     stopTimer()
     stopSound()
     isBreakTime.value = false
     currentTime.value = 0
+    await playCompleteSound()
+    status.value = 'idle'
   }
 
   // 完成
@@ -100,11 +133,12 @@ export const usePomodoroStore = defineStore('pomodoro', () => {
       stopTimer()
       stopSound()
       todayCount.value++
-      // 更新数据库记录
+      await playCompleteSound()
       await window.electronAPI.pomodoro.updateTodayPomodoro(
         todayCount.value,
         settings.value.defaultDuration
       )
+      status.value = 'idle'
     } catch (error) {
       console.error('更新番茄钟记录失败:', error)
     }
@@ -134,7 +168,13 @@ export const usePomodoroStore = defineStore('pomodoro', () => {
 
   // ==================== 内部方法 ====================
   const startTimer = () => {
-    if (timer.value) return
+    console.log('开始计时器...')
+    // 如果已有计时器，先清除
+    if (timer.value) {
+      console.log('已有计时器，先清除')
+      clearInterval(timer.value)
+      timer.value = null
+    }
 
     timer.value = setInterval(() => {
       if (currentTime.value > 0) {
@@ -147,12 +187,15 @@ export const usePomodoroStore = defineStore('pomodoro', () => {
         }
       }
     }, 1000)
+    console.log('计时器已创建:', timer.value)
   }
 
   const stopTimer = () => {
+    console.log('停止计时器, 当前timer:', timer.value)
     if (timer.value) {
       clearInterval(timer.value)
       timer.value = null
+      console.log('计时器已清除')
     }
   }
 
@@ -200,6 +243,19 @@ export const usePomodoroStore = defineStore('pomodoro', () => {
     }
   }
 
+  // 播放完成音效
+  const playCompleteSound = async () => {
+    try {
+      const soundPath = await window.electronAPI.pomodoro.getSoundFilePath('complete')
+      if (!soundPath) return
+
+      const completeAudio = new Audio(`file://${soundPath}`)
+      await completeAudio.play()
+    } catch (error) {
+      console.error('播放完成音效失败:', error)
+    }
+  }
+
   return {
     // 状态
     status,
@@ -228,6 +284,7 @@ export const usePomodoroStore = defineStore('pomodoro', () => {
     getStats,
     cleanup,
     playSound,
-    stopSound
+    stopSound,
+    playCompleteSound
   }
 })

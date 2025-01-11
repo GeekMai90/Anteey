@@ -104,6 +104,21 @@ export function useGlobalHotkeys() {
         uiStore.rightSidebarTab = 'drafts'
       }
     })
+    // 打开/关闭右侧边栏小组件
+    hotkeys('command+shift+w, ctrl+shift+w', (event) => {
+      event.preventDefault()
+
+      // 如果右侧边栏已打开且当前是小组件标签，则关闭右侧边栏
+      if (uiStore.isRightSidebarOpen && uiStore.rightSidebarTab === 'widgets') {
+        uiStore.toggleRightSidebar()
+      } else {
+        // 否则，确保右侧边栏打开并切换到小组件标签
+        if (!uiStore.isRightSidebarOpen) {
+          uiStore.toggleRightSidebar()
+        }
+        uiStore.rightSidebarTab = 'widgets'
+      }
+    })
   }
 
   onMounted(() => {

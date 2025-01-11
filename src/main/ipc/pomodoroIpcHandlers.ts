@@ -85,12 +85,17 @@ export function setupPomodoroHandlers() {
   })
 
   // 获取音频文件路径
-  ipcMain.handle('get-sound-file-path', async (_event, soundType: BackgroundSound) => {
+  ipcMain.handle('get-sound-file-path', async (_event, soundType: BackgroundSound | 'complete') => {
     try {
       if (soundType === 'none') return null
+
+      // 根据音频类型选择不同的扩展名
+      const extension = soundType === 'complete' ? 'mp3' : 'wav'
+
       const resourcePath = app.isPackaged
-        ? join(process.resourcesPath, 'sounds', `${soundType}.wav`)
-        : join(app.getAppPath(), 'resources', 'sounds', `${soundType}.wav`)
+        ? join(process.resourcesPath, 'sounds', `${soundType}.${extension}`)
+        : join(app.getAppPath(), 'resources', 'sounds', `${soundType}.${extension}`)
+
       return { success: true, path: resourcePath }
     } catch (error) {
       console.error('主进程→ 获取音频文件路径失败:', error)

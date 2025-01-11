@@ -571,7 +571,7 @@ export interface ElectronAPI {
     }>
 
     // 获取音频文件路径
-    getSoundFilePath: (soundType: BackgroundSound) => Promise<string | null>
+    getSoundFilePath: (soundType: BackgroundSound | 'complete') => Promise<string | null>
   }
 }
 

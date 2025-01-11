@@ -93,6 +93,24 @@
     <div class="toolbar-section right">
       <div
         v-tooltip.bottom="{
+          content: '小组件<br>Cmd + shift + W',
+          delay: { show: 1000 },
+          html: true
+        }"
+        class="toggle-widgets"
+        @click="toggleWidgets"
+      >
+        <div class="icon">
+          <Components
+            theme="outline"
+            size="20"
+            fill="var(--color-icon-default)"
+            :stroke-width="3"
+          />
+        </div>
+      </div>
+      <div
+        v-tooltip.bottom="{
           content: '折叠/展开右侧边栏<br>Cmd + shift + /',
           delay: { show: 1000 },
           html: true
@@ -117,7 +135,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed, nextTick } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { Left, Right, ExpandLeft, ExpandRight } from '@icon-park/vue-next'
+import { Left, Right, ExpandLeft, ExpandRight, Components } from '@icon-park/vue-next'
 import { useUIStore } from '@renderer/stores/UIStore'
 import { useKnowledgeTreeStore } from '@renderer/stores/knowledgeTreeStore'
 
@@ -281,6 +299,20 @@ const handleRootClick = async () => {
   knowledgeTreeStore.parentPath = [] // 清空面包屑路径
   await knowledgeTreeStore.fetchTopLevelNodes()
 }
+
+// 添加小组件切换方法
+const toggleWidgets = () => {
+  // 如果右侧边栏已打开且当前是小组件标签，则关闭右侧边栏
+  if (uiStore.isRightSidebarOpen && uiStore.rightSidebarTab === 'widgets') {
+    uiStore.toggleRightSidebar()
+  } else {
+    // 否则，确保右侧边栏打开并切换到小组件标签
+    if (!uiStore.isRightSidebarOpen) {
+      uiStore.toggleRightSidebar()
+    }
+    uiStore.rightSidebarTab = 'widgets'
+  }
+}
 </script>
 
 <style lang="scss" scoped>
@@ -326,7 +358,7 @@ const handleRootClick = async () => {
   transition: all 0.2s ease;
   border-radius: 6px;
   padding: 4px 4px;
-  margin: 2px;
+  // margin: 2px;
   -webkit-app-region: no-drag; /* 使按钮不可拖动，从而可以点击 */
 
   .icon {
@@ -508,5 +540,11 @@ const handleRootClick = async () => {
 .breadcrumb-container::-webkit-scrollbar-thumb {
   background: var(--color-border);
   border-radius: 2px;
+}
+
+// 复用已有的按钮样式
+.toggle-widgets {
+  @extend .toggle-right-sidebar;
+  // margin-right: 4px; // 添加一点间距
 }
 </style>
