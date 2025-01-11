@@ -367,6 +367,9 @@ const handleExpand = () => {
 <style lang="scss" scoped>
 .right-sidebar-note-editor {
   background-color: var(--color-bg-primary);
+  border: 1px solid var(--time-card-border-color);
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
   border-radius: 12px;
   display: flex;
   flex-direction: column;

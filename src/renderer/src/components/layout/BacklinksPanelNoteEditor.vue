@@ -309,7 +309,8 @@ onMounted(() => {
 <style scoped lang="scss">
 .backlinks-panel {
   height: 100%;
-  background-color: var(--sidebar-bg);
+  // background-color: var(--sidebar-bg);
+  background-color: var(--color-bg-primary);
   width: 100%;
   position: relative;
   overflow: hidden; // 防止出现双滚动条

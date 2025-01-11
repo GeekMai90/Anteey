@@ -2,31 +2,8 @@
 <!-- 用于显示和管理用户收藏的笔记列表，支持展开/折叠、拖拽排序和右键菜单操作 -->
 <template>
   <div class="starred-notes">
-    <!-- 星标区域头部，点击可展开/折叠列表 -->
-    <div class="starred-header" @click="toggleStarredNotes">
-      <span>星标</span>
-      <div class="toggle-icon">
-        <div class="icon">
-          <Down
-            v-if="isExpanded"
-            theme="outline"
-            size="18"
-            fill="var(--color-sidebar-text)"
-            :stroke-width="2"
-          />
-          <Right
-            v-else
-            theme="outline"
-            size="18"
-            fill="var(--color-sidebar-text)"
-            :stroke-width="2"
-          />
-        </div>
-      </div>
-    </div>
     <!-- 可拖拽的笔记列表容器 -->
     <draggable
-      v-if="isExpanded"
       v-model="localStarredNotes"
       class="starred-notes-container"
       item-key="id"
@@ -52,7 +29,7 @@
 
 <script setup lang="ts">
 import { markRaw, onMounted, ref, watch } from 'vue'
-import { Right, Down, Star } from '@icon-park/vue-next'
+import { Star } from '@icon-park/vue-next'
 import { useNoteStore } from '@renderer/stores/noteStore'
 import type { Note } from '@shared/types'
 import { useRouter } from 'vue-router'
@@ -60,14 +37,10 @@ import StarredNotesCard from './StarredNotesCard.vue'
 import draggable from 'vuedraggable'
 import { useContextMenuStore } from '@renderer/stores/contextMenuStore'
 import { storeToRefs } from 'pinia'
-import { useAppearanceStore } from '@renderer/stores/appearanceStore'
 
 // 初始化必要的 store 和路由
 const noteStore = useNoteStore()
 const router = useRouter()
-const appearanceStore = useAppearanceStore()
-// 控制列表展开/折叠状态
-const isExpanded = ref(appearanceStore.settings?.starredExpanded ?? true)
 
 const localStarredNotes = ref<Note[]>([])
 
@@ -112,11 +85,6 @@ const openContextMenu = (event: MouseEvent, note: Note) => {
   contextMenuStore.showMenu(event.clientX, event.clientY, menuItems)
 }
 
-// 切换列表展开/折叠状态
-const toggleStarredNotes = () => {
-  isExpanded.value = !isExpanded.value
-}
-
 // 拖拽结束后更新笔记顺序
 const onDragEnd = () => {
   // 生成新的顺序数据
@@ -145,70 +113,34 @@ const onDragEnd = () => {
 const openNote = (note: Note) => {
   router.push({ name: 'NoteExpandEditor', params: { id: note.id.toString() } })
 }
+
+// 添加 props 定义
+const props = defineProps<{
+  active: boolean
+}>()
+
+// 监听 active 变化
+watch(
+  () => props.active,
+  async (newActive) => {
+    if (newActive) {
+      // 当组件被激活时，刷新数据
+      await fetchStarredNotes()
+    }
+  }
+)
 </script>
 
 <style scoped lang="scss">
 .starred-notes {
-  padding: 0 6px;
   border-radius: 8px;
-
-  .starred-header {
-    display: flex;
-    align-items: center;
-    cursor: pointer;
-    padding: 6px 8px 6px 10px;
-    border-radius: 8px;
-    margin-bottom: 5px;
-    user-select: none;
-    color: var(--color-sidebar-text);
-
-    &:hover {
-      background: rgba(var(--color-sidebar-icon-bg), 0.04);
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
-    }
-
-    span {
-      flex-grow: 1;
-      font-size: 12px;
-      color: var(--color-sidebar-text);
-    }
-
-    .toggle-icon {
-      transition: transform 0.3s ease;
-      .icon {
-        background: none;
-        border: none;
-        width: 24px;
-        height: 24px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        transition: all 0.2s ease;
-        padding: 0;
-
-        :deep(.i-icon) {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          width: 100%;
-          height: 100%;
-        }
-
-        :deep(svg) {
-          width: 16px;
-          height: 16px;
-        }
-      }
-    }
-  }
 }
 
 .starred-notes-container {
   display: flex;
   flex-direction: column;
   gap: 5px;
-  padding-left: 10px;
+  padding: 0;
   border-radius: 8px;
 
   .starred-note-card {

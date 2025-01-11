@@ -53,7 +53,7 @@ export const useNoteStore = defineStore(
 
     // ==================== 最近笔记相关状态 ====================
     const recentNotes = ref<Note[]>([])
-    const maxRecentNotes = ref(6)
+    const maxRecentNotes = ref(10)
 
     // ==================== 右侧边栏反向链接笔记 ====================
     const rightSidebarBacklinkNoteId = ref<string | null>(null)

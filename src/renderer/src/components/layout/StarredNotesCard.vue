@@ -3,7 +3,7 @@
   <div class="starred-note-card">
     <div class="note-header">
       <span class="note-indicator" :class="cardTypeClass"></span>
-      <h3 class="note-title">{{ note.address }}</h3>
+      <h3 class="note-title">{{ note.address || '无编码地址' }}</h3>
     </div>
     <div ref="noteContent" class="note-content">
       <TipTapRender :key="note.id" :content="note.content" />
@@ -39,7 +39,8 @@ const cardTypeClass = computed(() => {
 <style lang="scss" scoped>
 .starred-note-card {
   // background-color: var(--body-bg);
-  border: 1px solid var(--color-sidebar-divider);
+  // border: 1px solid var(--color-sidebar-divider);
+  box-shadow: inset 0 0 0 1px rgba(var(--color-sidebar-icon-bg), 0.05);
   border-radius: 8px;
   padding: 2px 0;
   display: flex;

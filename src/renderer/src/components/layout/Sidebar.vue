@@ -169,9 +169,56 @@
     </div>
     <div class="sidebar-header-divider"></div>
     <div class="scrollable-content">
-      <StarredNotes />
-      <TagsTree />
-      <RecentNotes />
+      <!-- 添加分段控制器 -->
+      <div class="segment-control">
+        <!-- 添加背景滑块 -->
+        <div
+          class="segment-slider"
+          :style="{
+            transform: `translateX(${activeSegment === 'starred' ? 0 : activeSegment === 'tags' ? 100 : 200}%)`,
+            width: 'calc(33.333% - 2.67px)'
+          }"
+        ></div>
+
+        <!-- 原有的按钮 -->
+        <button
+          class="segment-button"
+          :class="{ active: activeSegment === 'starred' }"
+          @click="switchSegment('starred')"
+        >
+          <div class="icon">
+            <Star theme="outline" size="16" fill="var(--color-sidebar-text)" :strokeWidth="2" />
+          </div>
+          <span>星标</span>
+        </button>
+        <button
+          class="segment-button"
+          :class="{ active: activeSegment === 'tags' }"
+          @click="switchSegment('tags')"
+        >
+          <div class="icon">
+            <Tag theme="outline" size="16" fill="var(--color-sidebar-text)" :strokeWidth="2" />
+          </div>
+          <span>标签</span>
+        </button>
+        <button
+          class="segment-button"
+          :class="{ active: activeSegment === 'recent' }"
+          @click="switchSegment('recent')"
+        >
+          <div class="icon">
+            <Time theme="outline" size="16" fill="var(--color-sidebar-text)" :strokeWidth="2" />
+          </div>
+          <span>最近</span>
+        </button>
+      </div>
+
+      <!-- 内容区域 -->
+      <div class="segment-content">
+        <StarredNotes v-show="activeSegment === 'starred'" :active="activeSegment === 'starred'" />
+        <TagsTree v-show="activeSegment === 'tags'" :active="activeSegment === 'tags'" />
+        <RecentNotes v-show="activeSegment === 'recent'" :active="activeSegment === 'recent'" />
+      </div>
     </div>
     <div class="resize-handle" @mousedown="startResize"></div>
     <div class="sidebar-footer">
@@ -234,7 +281,9 @@ import {
   StorageCardOne,
   NotebookOne,
   Pencil,
-  Theme
+  Theme,
+  Star,
+  Tag
 } from '@icon-park/vue-next'
 import { useNoteStore } from '@renderer/stores/noteStore'
 import SettingDropdownMenu from '@renderer/components/settings/SettingDropdownMenu.vue'
@@ -535,6 +584,12 @@ const handleMinimize = () => {
 const handleMaximize = async () => {
   await window.electronAPI.window.maximize()
   isMaximized.value = await window.electronAPI.window.isMaximized()
+}
+
+const activeSegment = ref('recent')
+
+const switchSegment = (segment: string) => {
+  activeSegment.value = segment
 }
 </script>
 
@@ -1129,6 +1184,82 @@ const handleMaximize = async () => {
   flex: 1;
   overflow-y: auto;
   min-height: 0; // 重要：确保内容可以正确滚动
+
+  .segment-control {
+    position: relative;
+    display: flex;
+    margin: 8px 6px;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    padding: 4px;
+    border-radius: 8px;
+    gap: 4px;
+    box-shadow: inset 0 0 0 1px rgba(var(--color-sidebar-icon-bg), 0.05);
+
+    .segment-slider {
+      position: absolute;
+      top: 4px;
+      left: 4px;
+      height: calc(100% - 8px);
+      background-color: rgba(var(--color-sidebar-icon-bg), 0.05);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border-radius: 6px;
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      z-index: 0;
+    }
+
+    .segment-button {
+      position: relative;
+      z-index: 1;
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      padding: 6px 8px;
+      border: none;
+      border-radius: 8px;
+      background: transparent;
+      color: var(--color-sidebar-text);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-size: 12px;
+
+      .icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 20px;
+        height: 20px;
+
+        :deep(.i-icon) {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 100%;
+          height: 100%;
+        }
+
+        :deep(svg) {
+          width: 16px;
+          height: 16px;
+          transition: all 0.2s ease;
+        }
+      }
+
+      &:active {
+        transform: translateY(0);
+        background: rgba(var(--color-sidebar-icon-bg), 0.08);
+        box-shadow: inset 0 0 0 1px rgba(var(--color-sidebar-icon-bg), 0.08);
+      }
+    }
+  }
+
+  .segment-content {
+    padding: 0 6px;
+    margin-top: 8px;
+  }
 }
 
 .quick-access-menu {

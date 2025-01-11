@@ -1,30 +1,7 @@
 <template>
   <div class="tags-tree">
-    <!-- 标签区域头部 -->
-    <div class="tags-header" @click="toggleTagsTree">
-      <span>标签</span>
-      <div class="toggle-icon">
-        <div class="icon">
-          <Down
-            v-if="isExpanded"
-            theme="outline"
-            size="18"
-            fill="var(--color-sidebar-text)"
-            :stroke-width="2"
-          />
-          <Right
-            v-else
-            theme="outline"
-            size="18"
-            fill="var(--color-sidebar-text)"
-            :stroke-width="2"
-          />
-        </div>
-      </div>
-    </div>
-
     <!-- 标签树内容 -->
-    <div v-if="isExpanded" class="tags-tree-container">
+    <div class="tags-tree-container">
       <TagTreeItem
         v-for="tag in tagTree"
         :key="tag.id"
@@ -38,37 +15,41 @@
 
 <script setup lang="ts">
 import { ref, onMounted, watch } from 'vue'
-import { Down, Right } from '@icon-park/vue-next'
-import { useTagStore } from '@renderer/stores/tagStore' // 需要创建
+import { useTagStore } from '@renderer/stores/tagStore'
 import { TagTreeNode } from '@shared/types'
-import TagTreeItem from './TagTreeItem.vue' // 需要创建
+import TagTreeItem from './TagTreeItem.vue'
 import { useEventBus } from '@vueuse/core'
 import { storeToRefs } from 'pinia'
 import { useRouter } from 'vue-router/dist/vue-router'
-import { useAppearanceStore } from '@renderer/stores/appearanceStore'
+
 const tagStore = useTagStore()
-const appearanceStore = useAppearanceStore()
-// 使用 storeToRefs 来保持响应性
 const { tagTree: storeTagTree } = storeToRefs(tagStore)
-const isExpanded = ref(appearanceStore.settings?.tagsExpanded ?? true)
 const tagTree = ref<TagTreeNode[]>([])
 const router = useRouter()
 
-// 切换展开/折叠
-const toggleTagsTree = () => {
-  isExpanded.value = !isExpanded.value
-}
+// 添加 props 定义
+const props = defineProps<{
+  active: boolean
+}>()
+
+// 监听 active 变化
+watch(
+  () => props.active,
+  async (newActive) => {
+    if (newActive) {
+      // 当组件被激活时，刷新数据
+      await refreshTagTree()
+    }
+  }
+)
 
 // 处理标签选择
 const handleTagSelect = (tag: TagTreeNode) => {
-  console.log('Selected tag:', tag)
-
-  // 跳转到卡片盒页面，并设置标签筛选参数
   router.push({
-    name: 'cardbox', // 确保这是卡片盒页面的路由名称
+    name: 'cardbox',
     query: {
-      tags: tag.id, // 设置选中的标签ID
-      box: 'all' // 默认显示所有卡片盒
+      tags: tag.id,
+      box: 'all'
     }
   })
 }
@@ -81,11 +62,11 @@ watch(
   },
   { deep: true }
 )
-// 获取标签树数据的函数
+
 const refreshTagTree = async () => {
   await tagStore.fetchTagTree()
-  // 不需要手动赋值，watch 会处理
 }
+
 // 监听标签变化事件
 const tagChangeEventBus = useEventBus('tagChange')
 tagChangeEventBus.on(async () => {
@@ -100,64 +81,13 @@ onMounted(async () => {
 
 <style scoped lang="scss">
 .tags-tree {
-  padding: 0 6px;
   border-radius: 8px;
-  margin-top: 5px;
+}
 
-  .tags-header {
-    display: flex;
-    align-items: center;
-    cursor: pointer;
-    padding: 6px 8px 6px 10px;
-    border-radius: 8px;
-    margin-bottom: 5px;
-    user-select: none;
-    color: var(--color-sidebar-text);
-
-    &:hover {
-      background: rgba(var(--color-sidebar-icon-bg), 0.04);
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
-    }
-
-    span {
-      flex-grow: 1;
-      font-size: 12px;
-    }
-
-    .toggle-icon {
-      transition: transform 0.3s ease;
-      .icon {
-        background: none;
-        border: none;
-        width: 24px;
-        height: 24px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 0;
-
-        :deep(.i-icon) {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          width: 100%;
-          height: 100%;
-        }
-
-        :deep(svg) {
-          width: 16px;
-          height: 16px;
-        }
-      }
-    }
-  }
-
-  .tags-tree-container {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    padding-left: 10px;
-  }
+.tags-tree-container {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 0;
 }
 </style>

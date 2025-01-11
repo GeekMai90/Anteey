@@ -203,6 +203,7 @@ const startResize = (e: MouseEvent) => {
   .sidebar-content {
     flex: 1;
     overflow: hidden;
+    border-radius: 0 0 8px 8px;
   }
 
   @media (max-width: 768px) {

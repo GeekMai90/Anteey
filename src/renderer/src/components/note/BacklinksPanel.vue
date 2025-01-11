@@ -279,6 +279,7 @@ const leave = (element: Element) => {
   margin-top: 40px;
   padding: 20px 20px 0px 20px;
   border-top: 1px solid var(--color-border);
+  border-radius: 0 0 8px 8px;
 
   .panel-header {
     display: flex;
