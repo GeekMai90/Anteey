@@ -332,6 +332,10 @@ export interface ElectronAPI {
     removeImageFromNote: (noteId: string, imageId: string) => Promise<void>
     getImages: (params: ImageQueryParams) => Promise<ImageQueryResult>
     deleteImages: (imageIds: string[]) => Promise<{ deletedCount: number }>
+    uploadImageData: (
+      imageData: ArrayBuffer,
+      noteId?: string
+    ) => Promise<{ path: string; isExisting: boolean }>
   }
 
   activation: {

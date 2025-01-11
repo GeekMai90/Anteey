@@ -851,8 +851,11 @@ const handleFileUpload = async (file) => {
   }
 
   try {
+    // 先转换为 ArrayBuffer
+    const arrayBuffer = await file.arrayBuffer()
     // 使用新的 API，传入 noteId
-    const result = await window.electronAPI.image.uploadImage(file.path, props.noteId)
+    // const result = await window.electronAPI.image.uploadImage(file.path, props.noteId)
+    const result = await window.electronAPI.image.uploadImageData(arrayBuffer, props.noteId)
     if (result.path) {
       return result.path
     } else {
@@ -890,7 +893,7 @@ const CustomImage = Image.extend({
         noteId: props.noteId,
         onDelete: async (imageId) => {
           try {
-            await window.electronAPI.removeImageFromNote(props.noteId, imageId)
+            await window.electronAPI.image.removeImageFromNote(props.noteId, imageId)
             return true
           } catch (error) {
             console.error('删除图片失败:', error)

@@ -191,7 +191,7 @@ const downloadImage = async () => {
   const fileName = getFileNameFromUrl(imageUrl)
 
   try {
-    const result = await window.electronAPI.downloadImage(imageUrl, fileName)
+    const result = await window.electronAPI.image.downloadImage(imageUrl, fileName)
     if (result.path) {
       message.success('图片下载成功')
     }
@@ -229,7 +229,7 @@ const copyImage = async () => {
       throw new Error('无效的图片ID')
     }
 
-    const result = await window.electronAPI.copyImage(imageId)
+    const result = await window.electronAPI.image.copyImage(imageId)
     if (result.success) {
       // TODO: 可以添加一个成功提示
       message.success(result.message)
@@ -286,7 +286,7 @@ const confirmDelete = async () => {
     }
 
     console.log('正在删除图片:', { noteId, imageId })
-    await window.electronAPI.removeImageFromNote(noteId, imageId)
+    await window.electronAPI.image.removeImageFromNote(noteId, imageId)
     props.deleteNode()
     showMenu.value = false
   } catch (error) {

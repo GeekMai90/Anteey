@@ -518,4 +518,66 @@ export class ImageService {
       throw error
     }
   }
+
+  // 上传图片数据
+  async uploadImageData(
+    imageData: ArrayBuffer,
+    noteId?: string
+  ): Promise<{ path: string; isExisting: boolean }> {
+    try {
+      // 1. 将 Blob 转换为 Buffer
+      const buffer = Buffer.from(imageData)
+
+      // 2. 计算哈希值
+      const hash = crypto.createHash('sha256').update(buffer).digest('hex')
+
+      // 3. 检查是否存在相同图片
+      const existingImage = await db('image_references').where({ hash }).first()
+
+      if (existingImage) {
+        if (noteId) {
+          await this.createImageNoteRelation(existingImage.id, noteId)
+        }
+        await db('image_references')
+          .where({ id: existingImage.id })
+          .update({ lastUsed: new Date() })
+
+        return {
+          path: `app-image:///images/${path.basename(existingImage.path)}`,
+          isExisting: true
+        }
+      }
+
+      // 4. 保存新图片
+      const imageId = uuidv4()
+      const fileName = `${imageId}.png` // 或根据 mime type 选择合适的扩展名
+      const destPath = path.join(app.getPath('userData'), 'UserData', 'images', fileName)
+
+      await fs.mkdir(path.dirname(destPath), { recursive: true })
+      await fs.writeFile(destPath, buffer)
+
+      // 5. 保存到数据库
+      await db('image_references').insert({
+        id: imageId,
+        path: destPath,
+        filename: fileName,
+        hash,
+        size: buffer.length,
+        createdAt: new Date(),
+        lastUsed: new Date()
+      })
+
+      if (noteId) {
+        await this.createImageNoteRelation(imageId, noteId)
+      }
+
+      return {
+        path: `app-image:///images/${fileName}`,
+        isExisting: false
+      }
+    } catch (error) {
+      console.error('上传图片数据失败:', error)
+      throw error
+    }
+  }
 }

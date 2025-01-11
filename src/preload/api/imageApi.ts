@@ -152,5 +152,23 @@ export const imageApi = {
       console.error('预加载脚本 → 删除图片失败:', error)
       throw error
     }
+  },
+
+  // 上传图片数据
+  uploadImageData: async (
+    imageData: ArrayBuffer,
+    noteId?: string
+  ): Promise<{ path: string; isExisting: boolean }> => {
+    try {
+      const result = await ipcRenderer.invoke('upload-image-data', { imageData, noteId })
+      if (!result.success) throw new Error(result.error)
+      return {
+        path: result.path,
+        isExisting: result.isExisting
+      }
+    } catch (error) {
+      console.error('预加载脚本 → 上传图片数据失败:', error)
+      throw error
+    }
   }
 }

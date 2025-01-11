@@ -132,4 +132,18 @@ export function setupImageHandlers() {
       return { success: false, error: String(error) }
     }
   })
+
+  // 处理图片数据上传
+  ipcMain.handle(
+    'upload-image-data',
+    async (_event, { imageData, noteId }: { imageData: ArrayBuffer; noteId?: string }) => {
+      try {
+        const result = await imageService.uploadImageData(imageData, noteId)
+        return { success: true, ...result }
+      } catch (error) {
+        console.error('主进程 → 上传图片数据失败:', error)
+        return { success: false, error: String(error) }
+      }
+    }
+  )
 }
