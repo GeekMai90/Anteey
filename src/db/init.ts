@@ -591,7 +591,7 @@ export async function initDatabase(db: Knex): Promise<void> {
 
     console.log('appearance_settings 表创建成功')
   } else {
-    // 检查并添加新列
+    // 检查是否需要添加新列
     const columns = [
       { name: 'defaultPage', type: 'string', default: '/home' },
       { name: 'starredExpanded', type: 'boolean', default: true },
@@ -1070,6 +1070,7 @@ export async function initDatabase(db: Knex): Promise<void> {
     await db.schema.createTable('pomodoro_settings', (table) => {
       table.string('id').primary()
       table.integer('defaultDuration').notNullable().defaultTo(25) // 默认时长(分钟)
+      table.integer('breakDuration').notNullable().defaultTo(5) // 休息时长(分钟)
       table.enum('sound', ['ocean', 'rain', 'fire', 'none']).notNullable().defaultTo('none')
       table.datetime('createdAt').notNullable()
       table.datetime('updatedAt').notNullable()
@@ -1079,12 +1080,22 @@ export async function initDatabase(db: Knex): Promise<void> {
     await db('pomodoro_settings').insert({
       id: uuidv4(),
       defaultDuration: 25,
+      breakDuration: 5,
       sound: 'none',
       createdAt: new Date(),
       updatedAt: new Date()
     })
 
     console.log('pomodoro_settings 表创建成功')
+  } else {
+    // 检查是否需要添加 breakDuration 列
+    const hasBreakDurationColumn = await db.schema.hasColumn('pomodoro_settings', 'breakDuration')
+    if (!hasBreakDurationColumn) {
+      await db.schema.alterTable('pomodoro_settings', (table) => {
+        table.integer('breakDuration').notNullable().defaultTo(5)
+      })
+      console.log('pomodoro_settings 表添加 breakDuration 列成功')
+    }
   }
 }
 

@@ -8,8 +8,10 @@ export const usePomodoroStore = defineStore('pomodoro', () => {
   const currentTime = ref(0) // 当前剩余时间(秒)
   const todayCount = ref(0) // 今日完成数量
   const currentCount = ref(0) // 当前是第几个番茄
+  const isBreakTime = ref(false) // 是否处于休息时间
   const settings = ref<PomodoroConfig>({
     defaultDuration: 25,
+    breakDuration: 5,
     sound: 'none'
   })
   const timer = ref<ReturnType<typeof setInterval> | null>(null)
@@ -18,6 +20,7 @@ export const usePomodoroStore = defineStore('pomodoro', () => {
   // ==================== 计算属性 ====================
   const isRunning = computed(() => status.value === 'running')
   const isPaused = computed(() => status.value === 'paused')
+  const isInBreak = computed(() => status.value === 'break')
   const formattedTime = computed(() => {
     const minutes = Math.floor(currentTime.value / 60)
     const seconds = currentTime.value % 60
@@ -72,11 +75,30 @@ export const usePomodoroStore = defineStore('pomodoro', () => {
     currentCount.value = 0
   }
 
+  // 开始休息
+  const startBreak = async () => {
+    isBreakTime.value = true
+    currentTime.value = settings.value.breakDuration * 60
+    status.value = 'break'
+    startTimer()
+    await playSound()
+  }
+
+  // 完成休息
+  const completeBreak = () => {
+    status.value = 'break_completed'
+    stopTimer()
+    stopSound()
+    isBreakTime.value = false
+    currentTime.value = 0
+  }
+
   // 完成
   const complete = async () => {
     try {
       status.value = 'completed'
       stopTimer()
+      stopSound()
       todayCount.value++
       // 更新数据库记录
       await window.electronAPI.pomodoro.updateTodayPomodoro(
@@ -118,7 +140,11 @@ export const usePomodoroStore = defineStore('pomodoro', () => {
       if (currentTime.value > 0) {
         currentTime.value--
       } else {
-        complete()
+        if (status.value === 'break') {
+          completeBreak()
+        } else {
+          complete()
+        }
       }
     }, 1000)
   }
@@ -181,10 +207,12 @@ export const usePomodoroStore = defineStore('pomodoro', () => {
     todayCount,
     currentCount,
     settings,
+    isBreakTime,
 
     // 计算属性
     isRunning,
     isPaused,
+    isInBreak,
     formattedTime,
 
     // 方法
@@ -194,6 +222,8 @@ export const usePomodoroStore = defineStore('pomodoro', () => {
     resume,
     stop,
     complete,
+    startBreak,
+    completeBreak,
     updateSettings,
     getStats,
     cleanup,

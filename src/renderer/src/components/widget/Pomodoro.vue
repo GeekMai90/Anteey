@@ -10,19 +10,27 @@
       <div class="info-and-controls">
         <!-- 番茄计数 -->
         <div class="tomato-count">
-          {{ pomodoroStore.isRunning ? '正在吃第' : '今日已吃' }}
-          {{ pomodoroStore.isRunning ? pomodoroStore.currentCount : pomodoroStore.todayCount }}
-          个番茄
+          <template v-if="pomodoroStore.isInBreak"> 休息时间 </template>
+          <template v-else>
+            {{ pomodoroStore.isRunning ? '正在吃第' : '今日已吃' }}
+            {{ pomodoroStore.isRunning ? pomodoroStore.currentCount : pomodoroStore.todayCount }}
+            个番茄
+          </template>
         </div>
 
         <!-- 按钮区域 -->
         <div class="button-section">
           <!-- 未开始状态 -->
-          <template v-if="!pomodoroStore.isRunning">
+          <template v-if="!pomodoroStore.isRunning && !pomodoroStore.isInBreak">
             <div class="button-group">
               <div class="control-btn primary" @click="pomodoroStore.start">
                 <div class="icon">
                   <Play theme="outline" size="20" fill="var(--color-text-secondary)" />
+                </div>
+              </div>
+              <div class="control-btn" @click="pomodoroStore.startBreak">
+                <div class="icon">
+                  <Resting theme="outline" size="20" fill="var(--color-text-secondary)" />
                 </div>
               </div>
               <div class="control-btn" @click="toggleSoundMenu">
@@ -33,7 +41,7 @@
             </div>
           </template>
 
-          <!-- 运行状态 -->
+          <!-- 运行状态或休息状态 -->
           <template v-else>
             <div class="button-group">
               <div class="control-btn" @click="pomodoroStore.pause">
@@ -74,7 +82,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import { Play, Pause, Power, Music } from '@icon-park/vue-next'
+import { Play, Pause, Power, Music, Resting } from '@icon-park/vue-next'
 import { usePomodoroStore } from '@renderer/stores/pomodoroStore'
 import type { BackgroundSound } from '@shared/types'
 import { onClickOutside } from '@vueuse/core'

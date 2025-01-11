@@ -65,6 +65,7 @@ export async function getPomodoroSettings(): Promise<PomodoroConfig> {
 
     return {
       defaultDuration: settings.defaultDuration,
+      breakDuration: settings.breakDuration,
       sound: settings.sound
     }
   } catch (error) {
@@ -87,6 +88,7 @@ export async function updatePomodoroSettings(
 
     return {
       defaultDuration: settings.defaultDuration,
+      breakDuration: settings.breakDuration,
       sound: settings.sound
     }
   } catch (error) {
