@@ -254,6 +254,8 @@ function createWindow(): BrowserWindow {
           'default-src *; ' + // 默认允许所有来源
             // 图片源：允许本地文件、base64数据、blob数据、http(s)和所有域名
             "img-src 'self' file: data: blob: https: http: app-image: *; " +
+            // 媒体源：允许本地文件和所有来源
+            "media-src 'self' file: *; " +
             // 脚本源：允许本地脚本、内联脚本、eval执行和blob数据
             // 注意：unsafe-inline 和 unsafe-eval 在生产环境中可能存在安全风险
             "script-src 'self' 'unsafe-inline' 'unsafe-eval' blob:; " +

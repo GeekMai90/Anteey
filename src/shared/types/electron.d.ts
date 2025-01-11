@@ -83,7 +83,11 @@ import type {
   // 主题相关
   ThemeSettings,
   FavoriteGradients,
-  GradientPreset
+  GradientPreset,
+
+  // 番茄钟相关
+  PomodoroConfig,
+  BackgroundSound
 } from '@shared/types'
 
 export interface ElectronAPI {
@@ -512,6 +516,62 @@ export interface ElectronAPI {
 
     // 获取窗口最大化状态
     isMaximized: () => Promise<boolean>
+  }
+
+  pomodoro: {
+    // 获取今日番茄钟记录
+    getTodayPomodoro: () => Promise<{
+      id: string
+      date: string
+      count: number
+      totalMinutes: number
+      createdAt: Date
+      updatedAt: Date
+    }>
+
+    // 更新今日番茄钟记录
+    updateTodayPomodoro: (
+      count: number,
+      minutes: number
+    ) => Promise<{
+      id: string
+      date: string
+      count: number
+      totalMinutes: number
+      updatedAt: Date
+    }>
+
+    // 获取番茄钟设置
+    getPomodoroSettings: () => Promise<PomodoroConfig>
+
+    // 更新番茄钟设置
+    updatePomodoroSettings: (config: Partial<PomodoroConfig>) => Promise<PomodoroConfig>
+
+    // 获取日期范围内的番茄钟记录
+    getPomodoroRecords: (
+      startDate: string,
+      endDate: string
+    ) => Promise<
+      Array<{
+        id: string
+        date: string
+        count: number
+        totalMinutes: number
+        createdAt: Date
+        updatedAt: Date
+      }>
+    >
+
+    // 获取番茄钟统计数据
+    getPomodoroStats: () => Promise<{
+      totalCount: number
+      totalMinutes: number
+      avgDailyCount: number
+      totalDays: number
+    }>
+
+    // 获取音频文件路径
+    getSoundFilePath: (soundType: BackgroundSound) => Promise<string | null>
   }
 }
 

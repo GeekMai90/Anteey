@@ -17,6 +17,7 @@ import { setupAnalyticsHandlers } from './analyticsIpcHandlers'
 import { setupDraftHandlers } from './draftsIpcHandlers'
 import { setupThemeHandlers } from './themeIpcHandlers'
 import { setupWindowHandlers } from './windowIpcHandlers'
+import { setupPomodoroHandlers } from './pomodoroIpcHandlers'
 
 export function setupIpcHandlers(): void {
   setupNotesHandlers()
@@ -38,4 +39,5 @@ export function setupIpcHandlers(): void {
   setupDraftHandlers()
   setupThemeHandlers()
   setupWindowHandlers()
+  setupPomodoroHandlers()
 }

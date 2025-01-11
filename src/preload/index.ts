@@ -17,6 +17,7 @@ import { analyticsApi } from './api/analyticsApi'
 import { draftsApi } from './api/draftsApi'
 import { themeApi } from './api/themeApi'
 import { windowApi } from './api/windowApi'
+import { pomodoroApi } from './api/pomodoroApi'
 // 添加日志 API
 contextBridge.exposeInMainWorld('electronLog', {
   info: (...args: any[]) => ipcRenderer.send('renderer-log', { level: 'info', args }),
@@ -107,5 +108,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   theme: {
     ...themeApi
   },
-  window: windowApi
+  window: windowApi,
+  pomodoro: {
+    ...pomodoroApi
+  }
 })

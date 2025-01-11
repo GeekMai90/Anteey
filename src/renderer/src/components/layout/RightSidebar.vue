@@ -38,10 +38,11 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useRoute } from 'vue-router'
-import { Split, LinkTwo, Pencil } from '@icon-park/vue-next'
+import { Split, LinkTwo, Pencil, Components } from '@icon-park/vue-next'
 import MultiNotes from '@renderer/components/layout/MultiNotes.vue'
 import BacklinksPanelNoteEditor from '@renderer/components/layout/BacklinksPanelNoteEditor.vue'
 import RightSidebarDraftsEditor from '@renderer/components/layout/RightSidebarDraftsEditor.vue'
+import RightSidebarWidgets from '@renderer/components/layout/RightSidebarWidgets.vue'
 import { useUIStore } from '@renderer/stores/UIStore'
 
 const props = defineProps<{
@@ -77,6 +78,12 @@ const tabs = [
     label: '草稿纸',
     icon: Pencil,
     component: RightSidebarDraftsEditor
+  },
+  {
+    key: 'widgets',
+    label: '小组件',
+    icon: Components,
+    component: RightSidebarWidgets
   }
 ]
 
@@ -137,7 +144,7 @@ const startResize = (e: MouseEvent) => {
   .sidebar-header {
     height: 40px;
     padding: 2px 8px;
-    // border-bottom: 1px solid var(--color-border);
+    border-bottom: 1px solid var(--color-border);
   }
 
   .tabs-container {

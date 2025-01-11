@@ -1047,6 +1047,45 @@ export async function initDatabase(db: Knex): Promise<void> {
 
     console.log('favorite_gradients 表创建成功')
   }
+
+  // 创建番茄钟记录表
+  if (!(await db.schema.hasTable('pomodoro_records'))) {
+    await db.schema.createTable('pomodoro_records', (table) => {
+      table.string('id').primary()
+      table.date('date').notNullable() // YYYY-MM-DD 格式
+      table.integer('count').notNullable().defaultTo(0) // 当天完成的番茄数
+      table.integer('totalMinutes').notNullable().defaultTo(0) // 总专注时间(分钟)
+      table.datetime('createdAt').notNullable()
+      table.datetime('updatedAt').notNullable()
+
+      // 索引
+      table.index('date')
+      table.index('createdAt')
+    })
+    console.log('pomodoro_records 表创建成功')
+  }
+
+  // 创建番茄钟设置表
+  if (!(await db.schema.hasTable('pomodoro_settings'))) {
+    await db.schema.createTable('pomodoro_settings', (table) => {
+      table.string('id').primary()
+      table.integer('defaultDuration').notNullable().defaultTo(25) // 默认时长(分钟)
+      table.enum('sound', ['ocean', 'rain', 'fire', 'none']).notNullable().defaultTo('none')
+      table.datetime('createdAt').notNullable()
+      table.datetime('updatedAt').notNullable()
+    })
+
+    // 插入默认设置
+    await db('pomodoro_settings').insert({
+      id: uuidv4(),
+      defaultDuration: 25,
+      sound: 'none',
+      createdAt: new Date(),
+      updatedAt: new Date()
+    })
+
+    console.log('pomodoro_settings 表创建成功')
+  }
 }
 
 export async function down(db: Knex): Promise<void> {
@@ -1090,5 +1129,7 @@ export async function down(db: Knex): Promise<void> {
   await db.schema.dropTableIfExists('drafts')
   await db.schema.dropTableIfExists('theme_settings')
   await db.schema.dropTableIfExists('favorite_gradients')
+  await db.schema.dropTableIfExists('pomodoro_records')
+  await db.schema.dropTableIfExists('pomodoro_settings')
   console.log('所有表已删除')
 }
