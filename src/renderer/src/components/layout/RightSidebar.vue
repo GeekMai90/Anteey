@@ -123,7 +123,6 @@ const startResize = (e: MouseEvent) => {
   flex-direction: column;
   transition: width 0.3s ease;
   position: relative;
-  // border-left: 1px solid var(--color-border);
 
   .resize-handle {
     position: absolute;
@@ -138,12 +137,13 @@ const startResize = (e: MouseEvent) => {
   .sidebar-header {
     height: 40px;
     padding: 2px 8px;
+    // border-bottom: 1px solid var(--color-border);
   }
 
   .tabs-container {
     display: flex;
     gap: 8px;
-    border-bottom: 1px solid var(--color-border);
+    // border-bottom: 1px solid var(--color-border);
 
     .tab-item {
       display: flex;

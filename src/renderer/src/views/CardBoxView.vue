@@ -1005,7 +1005,7 @@ flashcardConvertedBus.on(async (noteId) => {
     width: 100%;
     justify-content: space-between;
     align-items: center;
-    padding: 8px 0;
+    padding-bottom: 8px;
     border-bottom: 1px solid var(--color-border);
     flex-wrap: wrap; // 关键:允许元素换行
     gap: 8px; // 设置行间距

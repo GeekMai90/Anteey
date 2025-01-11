@@ -16,6 +16,8 @@ import { setupNoteVersionHandlers } from './noteVersionIpcHandlers'
 import { setupAnalyticsHandlers } from './analyticsIpcHandlers'
 import { setupDraftHandlers } from './draftsIpcHandlers'
 import { setupThemeHandlers } from './themeIpcHandlers'
+import { setupWindowHandlers } from './windowIpcHandlers'
+
 export function setupIpcHandlers(): void {
   setupNotesHandlers()
   setupWhiteboardHandlers()
@@ -35,4 +37,5 @@ export function setupIpcHandlers(): void {
   setupUserSettingsHandlers()
   setupDraftHandlers()
   setupThemeHandlers()
+  setupWindowHandlers()
 }

@@ -394,7 +394,7 @@ const shouldShowDateDivider = (currentNote: Note, index: number) => {
       align-items: center;
       justify-content: space-between;
       width: 100%;
-      padding: 8px 0;
+      padding-bottom: 8px;
       border-bottom: 1px solid var(--color-border);
 
       // 左侧标题区域

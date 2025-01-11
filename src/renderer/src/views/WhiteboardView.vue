@@ -225,7 +225,7 @@ const selectSortOption = (option: { value: string; label: string }) => {
     width: 100%;
     justify-content: space-between;
     align-items: center;
-    padding: 8px 0;
+    padding-bottom: 8px;
     border-bottom: 1px solid var(--color-border);
   }
 }

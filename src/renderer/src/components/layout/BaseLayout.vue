@@ -323,16 +323,16 @@ defineExpose({
   height: 100%;
   overflow: hidden;
   background: var(--color-bg-primary);
-  border-radius: 12px;
+  border-radius: 8px;
   box-shadow:
-    0 2px 4px rgba(0, 0, 0, 0.09),
-    0 4px 8px rgba(0, 0, 0, 0.02),
-    0 8px 16px rgba(0, 0, 0, 0.03);
+    0 0 4px rgba(0, 0, 0, 0.09),
+    0 0 8px rgba(0, 0, 0, 0.02),
+    0 0 16px rgba(0, 0, 0, 0.03);
   .theme-dark & {
     box-shadow:
-      0 2px 4px rgba(0, 0, 0, 0.15),
-      0 4px 8px rgba(0, 0, 0, 0.12),
-      0 8px 16px rgba(0, 0, 0, 0.1);
+      0 0 4px rgba(0, 0, 0, 0.15),
+      0 0 8px rgba(0, 0, 0, 0.12),
+      0 0 16px rgba(0, 0, 0, 0.1);
   }
   backdrop-filter: blur(10px);
   display: flex;
@@ -352,7 +352,7 @@ defineExpose({
   height: 100%;
   transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
   background: var(--color-bg-primary);
-  border-radius: 12px;
+  border-radius: 8px;
   box-shadow:
     0 2px 4px rgba(0, 0, 0, 0.09),
     0 4px 8px rgba(0, 0, 0, 0.02),

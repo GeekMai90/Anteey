@@ -1,7 +1,7 @@
 // src/components/AppToolbar.vue
 
 <template>
-  <div class="app-toolbar" :style="computedStyle">
+  <div class="app-toolbar">
     <div class="toolbar-section left">
       <div
         v-tooltip.bottom="{
@@ -126,11 +126,11 @@ const router = useRouter()
 const route = useRoute()
 const knowledgeTreeStore = useKnowledgeTreeStore()
 
-const toolbarStyle = computed(() => {
-  return {
-    paddingLeft: uiStore.isSidebarCollapsed ? '76px' : '13px' // Adjust these values as needed
-  }
-})
+// const toolbarStyle = computed(() => {
+//   return {
+//     paddingLeft: uiStore.isSidebarCollapsed ? '76px' : '13px' // Adjust these values as needed
+//   }
+// })
 
 const props = defineProps({
   showBackButton: { type: Boolean, default: true },
@@ -140,13 +140,13 @@ const props = defineProps({
   whiteboardName: { type: String, required: false }
 })
 
-const computedStyle = computed(() => {
-  const style: any = { ...toolbarStyle.value }
-  if (props.backgroundColor) {
-    style.backgroundColor = props.backgroundColor
-  }
-  return style
-})
+// const computedStyle = computed(() => {
+//   const style: any = { ...toolbarStyle.value }
+//   if (props.backgroundColor) {
+//     style.backgroundColor = props.backgroundColor
+//   }
+//   return style
+// })
 
 const canGoBack = ref(false)
 const canGoForward = ref(false)
@@ -288,13 +288,14 @@ const handleRootClick = async () => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  // padding: 0 16px;
-  padding-right: 16px;
+  padding: 0 12px;
+  // padding-right: 16px;
   background-color: var(--color-bg-primary);
   width: 100%;
   box-sizing: border-box;
   height: 40px;
   -webkit-app-region: drag; /* 使区域可拖动 */
+  // border-bottom: 1px solid var(--color-border);
 }
 
 .toolbar-section {

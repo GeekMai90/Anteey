@@ -495,6 +495,20 @@ export interface ElectronAPI {
       type: 'universal' | 'light' | 'dark'
     ) => Promise<FavoriteGradients>
   }
+
+  window: {
+    // 最小化窗口
+    minimize: () => Promise<void>
+
+    // 最大化/还原窗口
+    maximize: () => Promise<void>
+
+    // 关闭窗口
+    close: () => Promise<void>
+
+    // 获取窗口最大化状态
+    isMaximized: () => Promise<boolean>
+  }
 }
 
 declare global {

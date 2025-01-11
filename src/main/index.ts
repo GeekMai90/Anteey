@@ -167,13 +167,14 @@ function createWindow(): BrowserWindow {
     height: 670,
     // 先隐藏窗口，等待内容加载完成后再显示
     show: false,
+    frame: false, // 完全无边框
     // 隐藏默认菜单栏
     autoHideMenuBar: true,
     // macOS 专用：使用 hiddenInset 样式，保留红绿灯按钮但隐藏标题栏
-    titleBarStyle: 'hiddenInset',
-    // macOS 专用：设置红绿灯按钮的位置，x是距离左边距离，y是距离顶部距离
-    trafficLightPosition: { x: 16, y: 16 },
-    ...(process.platform === 'linux' ? {} : {}),
+    // titleBarStyle: 'hiddenInset',
+    // // macOS 专用：设置红绿灯按钮的位置，x是距离左边距离，y是距离顶部距离
+    // trafficLightPosition: { x: 16, y: 16 },
+    // ...(process.platform === 'linux' ? {} : {}),
     // 网页功能和安全相关的配置
     webPreferences: {
       // 指定预加载脚本的路径，用于在渲染进程中安全地调用主进程功能

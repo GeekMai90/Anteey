@@ -31,9 +31,10 @@
     border-radius: 0;
     backdrop-filter: none;
     padding: 0 4px;
-    .antinet-button {
-      margin-top: 8px;
+    .sidebar-titlebar {
+      margin-top: 10px !important;
     }
+
     .action-btn {
       background: var(--color-shape-tertiary) !important;
     }

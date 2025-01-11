@@ -2,7 +2,19 @@
 <template>
   <div class="sidebar" :style="{ width: `${sidebarWidth}px` }">
     <div class="sidebar-header">
-      <div class="sidebar-titlebar"></div>
+      <div class="sidebar-titlebar">
+        <div class="window-controls">
+          <button class="window-button close" @click="handleClose">
+            <div class="icon"></div>
+          </button>
+          <button class="window-button minimize" @click="handleMinimize">
+            <div class="icon"></div>
+          </button>
+          <button class="window-button maximize" @click="handleMaximize">
+            <div class="icon"></div>
+          </button>
+        </div>
+      </div>
       <div class="antinet-button" @click.stop="uiStore.toggleSettingDropdown">
         <div class="left-section">
           <img src="@resources/icon.png" alt="Anteey" class="antinet-icon" />
@@ -36,7 +48,7 @@
         </div>
       </div>
       <!-- 新增搜索区域 -->
-      <div class="search-area">
+      <div class="action-btn-area">
         <!-- 主页按钮 -->
         <button
           v-tooltip.top="{
@@ -257,6 +269,7 @@ onMounted(async () => {
   await timeBlockStore.fetchSettings()
   await webdavStore.loadConfig()
   await webdavStore.loadSyncHistory()
+  isMaximized.value = await window.electronAPI.window.isMaximized()
 })
 
 const menuItems = computed(() => {
@@ -507,6 +520,22 @@ const isDarkMode = computed(() => {
       window.matchMedia('(prefers-color-scheme: dark)').matches)
   )
 })
+
+// 窗口控制相关
+const isMaximized = ref(false)
+
+const handleClose = () => {
+  window.electronAPI.window.close()
+}
+
+const handleMinimize = () => {
+  window.electronAPI.window.minimize()
+}
+
+const handleMaximize = async () => {
+  await window.electronAPI.window.maximize()
+  isMaximized.value = await window.electronAPI.window.isMaximized()
+}
 </script>
 
 <style lang="scss" scoped>
@@ -522,8 +551,69 @@ const isDarkMode = computed(() => {
   // border-right: 1px solid var(--color-border-sidebar);
 
   .sidebar-titlebar {
-    height: 24px;
-    -webkit-app-region: drag; /* 使区域可拖动 */
+    height: 18px;
+    -webkit-app-region: drag;
+    position: relative;
+    display: flex;
+    align-items: center;
+    padding: 0 8px;
+
+    .window-controls {
+      position: absolute;
+      left: 8px;
+      top: 0px;
+      display: flex;
+      gap: 8px;
+      -webkit-app-region: no-drag;
+      z-index: 100;
+    }
+
+    .window-button {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      border: none;
+      padding: 0;
+      position: relative;
+      cursor: pointer;
+      transition: all 0.2s ease;
+
+      &.close {
+        background: #ff5f57;
+        &:hover {
+          background: #ff4343;
+        }
+      }
+
+      &.minimize {
+        background: #febc2e;
+        &:hover {
+          background: #fead1c;
+        }
+      }
+
+      &.maximize {
+        background: #28c840;
+        &:hover {
+          background: #24b539;
+        }
+      }
+
+      // 添加图标
+      .icon {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        transition: opacity 0.2s;
+      }
+
+      &:hover .icon {
+        opacity: 0.5;
+      }
+    }
   }
 
   .sidebar-header {
@@ -581,17 +671,17 @@ const isDarkMode = computed(() => {
         border-radius: 8px;
       }
     }
-    .search-area {
+    .action-btn-area {
       display: flex;
       align-items: center;
-      padding: 12px 6px;
+      padding: 6px 6px;
       gap: 10px;
       justify-content: space-between;
       width: 100%;
 
       .action-btn {
-        width: 38px;
-        height: 38px;
+        width: 36px;
+        height: 36px;
         display: inline-flex;
         align-items: center;
         justify-content: center;
@@ -625,8 +715,8 @@ const isDarkMode = computed(() => {
           }
 
           :deep(svg) {
-            width: 18px;
-            height: 18px;
+            width: 16px;
+            height: 16px;
           }
         }
 
@@ -867,7 +957,7 @@ const isDarkMode = computed(() => {
     // margin-top: auto; // 将footer推到底部
     margin-top: 0; // 移除 margin-top: auto
     flex-shrink: 0; // 防止底部工具栏被压缩
-    padding: 6px 10px;
+    padding: 6px 10px 0 10px;
     display: flex;
     justify-content: space-between;
     align-items: center;
