@@ -87,7 +87,10 @@ import type {
 
   // 番茄钟相关
   PomodoroConfig,
-  BackgroundSound
+  BackgroundSound,
+
+  // 每日金句相关
+  DailyQuote
 } from '@shared/types'
 
 export interface ElectronAPI {
@@ -572,6 +575,28 @@ export interface ElectronAPI {
 
     // 获取音频文件路径
     getSoundFilePath: (soundType: BackgroundSound | 'complete') => Promise<string | null>
+  }
+
+  dailyQuotes: {
+    // 获取今日金句
+    getTodayQuote: () => Promise<DailyQuote>
+
+    // 添加新金句
+    addQuote: (content: string, author: string) => Promise<DailyQuote>
+
+    // 获取所有金句
+    getAllQuotes: () => Promise<DailyQuote[]>
+
+    // 删除金句
+    deleteQuote: (id: string) => Promise<void>
+
+    // 更新金句
+    updateQuote: (id: string, data: { content?: string; author?: string }) => Promise<DailyQuote>
+  }
+
+  lifeGuide: {
+    // 获取随机人生指南笔记
+    getRandomLifeGuideNote: () => Promise<Note | null>
   }
 }
 

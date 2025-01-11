@@ -21,7 +21,7 @@ export const useUIStore = defineStore(
 
     //右侧边栏状态
     const isRightSidebarOpen = ref(false)
-    const rightSidebarTab = ref('multi') // 当前激活的标签页
+    const rightSidebarTab = ref('widgets') // 当前激活的标签页
     // 打开右侧边栏并设置标签页
     const openRightSidebarWithTab = (tab: string) => {
       isRightSidebarOpen.value = true

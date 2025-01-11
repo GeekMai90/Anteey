@@ -13,7 +13,10 @@
 
         <!-- 小组件列表 -->
         <div class="widgets-list">
+          <DailyQuotes />
           <Pomodoro />
+          <LifeGuide />
+
           <!-- 后续可以添加更多小组件 -->
         </div>
       </div>
@@ -23,6 +26,8 @@
 
 <script setup lang="ts">
 import Pomodoro from '@renderer/components/widget/Pomodoro.vue'
+import DailyQuotes from '@renderer/components/widget/DailyQuotes.vue'
+import LifeGuide from '@renderer/components/widget/LifeGuide.vue'
 </script>
 
 <style lang="scss" scoped>

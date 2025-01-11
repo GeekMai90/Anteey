@@ -1,0 +1,964 @@
+{
+  "quotes": [
+    {
+      "content": "生命的意义在于付出，而不是索取。",
+      "author": "甘地"
+    },
+    {
+      "content": "教育不是灌满一桶水，而是点燃一把火。",
+      "author": "叶芝"
+    },
+    {
+      "content": "最大的敌人是内心的恐惧。",
+      "author": "罗斯福"
+    },
+    {
+      "content": "知识就是力量，行动才是生命。",
+      "author": "培根"
+    },
+    {
+      "content": "人的一生可以平凡，但不可以庸俗。",
+      "author": "列夫·托尔斯泰"
+    },
+    {
+      "content": "生活中最美好的事物都是免费的。",
+      "author": "柯尔律治"
+    },
+    {
+      "content": "种一棵树最好的时间是十年前，其次是现在。",
+      "author": "中国谚语"
+    },
+    {
+      "content": "成功不是终点，失败也不是终结。",
+      "author": "丘吉尔"
+    },
+    {
+      "content": "真正的智慧是承认自己的无知。",
+      "author": "苏格拉底"
+    },
+    {
+      "content": "不要问国家能为你做什么，要问你能为国家做什么。",
+      "author": "肯尼迪"
+    },
+    {
+      "content": "Imagination is more important than knowledge. Knowledge is limited, imagination encircles the world.",
+      "author": "Einstein"
+    },
+    {
+      "content": "The best way to find yourself is to lose yourself in the service of others.",
+      "author": "Gandhi"
+    },
+    {
+      "content": "Success is not final, failure is not fatal: it is the courage to continue that counts.",
+      "author": "Churchill"
+    },
+    {
+      "content": "Be the change you wish to see in the world.",
+      "author": "Gandhi"
+    },
+    {
+      "content": "Those who cannot remember the past are condemned to repeat it.",
+      "author": "Santayana"
+    },
+    {
+      "content": "It does not matter how slowly you go as long as you do not stop.",
+      "author": "Confucius"
+    },
+    {
+      "content": "The only true wisdom is in knowing you know nothing.",
+      "author": "Socrates"
+    },
+    {
+      "content": "The journey of a thousand miles begins with one step.",
+      "author": "Lao Tzu"
+    },
+    {
+      "content": "To live is the rarest thing in the world. Most people exist, that is all.",
+      "author": "Oscar Wilde"
+    },
+    {
+      "content": "Life is really simple, but we insist on making it complicated.",
+      "author": "Confucius"
+    },
+    {
+      "content": "把每一天都当作生命的最后一天去生活。",
+      "author": "海伦·凯勒"
+    },
+    {
+      "content": "没有比人更高的山，没有比心更深的海。",
+      "author": "雨果"
+    },
+    {
+      "content": "时间是最好的老师，但遗憾的是，它最终会杀死所有的学生。",
+      "author": "柏拉图"
+    },
+    {
+      "content": "人生就像一面镜子，你对它笑，它就对你笑。",
+      "author": "萨克雷"
+    },
+    {
+      "content": "世界上最快乐的事，莫过于为理想而奋斗。",
+      "author": "苏格拉底"
+    },
+    {
+      "content": "不要等待机会，而要创造机会。",
+      "author": "培根"
+    },
+    {
+      "content": "读书是在别人思想中发现自己。",
+      "author": "歌德"
+    },
+    {
+      "content": "宁可做完美的普通人，不要做普通的完美人。",
+      "author": "契诃夫"
+    },
+    {
+      "content": "生活不可能像你想象得那么好，但也不会像你想象得那么糟。",
+      "author": "莫泊桑"
+    },
+    {
+      "content": "人的价值，在于他贡献了什么，而不在于他获得了什么。",
+      "author": "爱因斯坦"
+    },
+    {
+      "content": "The greatest glory in living lies not in never falling, but in rising every time we fall.",
+      "author": "Nelson Mandela"
+    },
+    {
+      "content": "In three words I can sum up everything I've learned about life: it goes on.",
+      "author": "Robert Frost"
+    },
+    {
+      "content": "The only impossible journey is the one you never begin.",
+      "author": "Tony Robbins"
+    },
+    {
+      "content": "What lies behind us and what lies before us are tiny matters compared to what lies within us.",
+      "author": "Ralph Waldo Emerson"
+    },
+    {
+      "content": "Everything you've ever wanted is on the other side of fear.",
+      "author": "George Addair"
+    },
+    {
+      "content": "The way to get started is to quit talking and begin doing.",
+      "author": "Walt Disney"
+    },
+    {
+      "content": "Life is what happens when you're busy making other plans.",
+      "author": "John Lennon"
+    },
+    {
+      "content": "The purpose of our lives is to be happy.",
+      "author": "Dalai Lama"
+    },
+    {
+      "content": "You must be the change you wish to see in the world.",
+      "author": "Mahatma Gandhi"
+    },
+    {
+      "content": "The best revenge is massive success.",
+      "author": "Frank Sinatra"
+    },
+    {
+      "content": "一个人的价值，应该看他贡献什么，而不应当看他取得什么。",
+      "author": "爱因斯坦"
+    },
+    {
+      "content": "与其用华丽的外衣装饰自己，不如用知识充实自己。",
+      "author": "莎士比亚"
+    },
+    {
+      "content": "成功的秘诀是坚持一个目标不动摇。",
+      "author": "本杰明·迪斯雷利"
+    },
+    {
+      "content": "人生如同写文章，离不开标点符号，快乐是逗号，痛苦是句号。",
+      "author": "巴尔扎克"
+    },
+    {
+      "content": "信念是一种强大的武器，它能把不可能变成可能。",
+      "author": "南丁格尔"
+    },
+    {
+      "content": "生活中最重要的不是你置身何处，而是你朝着什么方向前进。",
+      "author": "霍姆斯"
+    },
+    {
+      "content": "没有人能回到过去重新开始，但谁都可以从现在开始，书写一个全新的结局。",
+      "author": "玛丽·罗宾逊"
+    },
+    {
+      "content": "智者不会去羡慕别人，而是不断完善自己。",
+      "author": "亚里士多德"
+    },
+    {
+      "content": "生命的价值在于付出，而不是索取。",
+      "author": "德莱塞"
+    },
+    {
+      "content": "人的一生最重要的不是价值的累积，而是品格的完善。",
+      "author": "卢梭"
+    },
+    {
+      "content": "The future belongs to those who believe in the beauty of their dreams.",
+      "author": "Eleanor Roosevelt"
+    },
+    {
+      "content": "Don't judge each day by the harvest you reap but by the seeds that you plant.",
+      "author": "Robert Louis Stevenson"
+    },
+    {
+      "content": "The only way to do great work is to love what you do.",
+      "author": "Steve Jobs"
+    },
+    {
+      "content": "Twenty years from now you will be more disappointed by the things you didn't do than by the ones you did.",
+      "author": "Mark Twain"
+    },
+    {
+      "content": "The difference between ordinary and extraordinary is that little extra.",
+      "author": "Jimmy Johnson"
+    },
+    {
+      "content": "Life is not measured by the number of breaths we take, but by the moments that take our breath away.",
+      "author": "Maya Angelou"
+    },
+    {
+      "content": "Success usually comes to those who are too busy to be looking for it.",
+      "author": "Henry David Thoreau"
+    },
+    {
+      "content": "The only limit to our realization of tomorrow will be our doubts of today.",
+      "author": "Franklin D. Roosevelt"
+    },
+    {
+      "content": "What we think, we become.",
+      "author": "Buddha"
+    },
+    {
+      "content": "Happiness is not something ready made. It comes from your own actions.",
+      "author": "Dalai Lama"
+    },
+    {
+      "content": "每一个不曾起舞的日子，都是对生命的辜负。",
+      "author": "尼采"
+    },
+    {
+      "content": "天才是百分之一的灵感加上百分之九十九的汗水。",
+      "author": "爱迪生"
+    },
+    {
+      "content": "不要问生命的意义是什么，应该让生命赋予你意义。",
+      "author": "维克多·弗兰克"
+    },
+    {
+      "content": "真正的朋友是在你做了傻事之后，仍然能够懂你的人。",
+      "author": "泰戈尔"
+    },
+    {
+      "content": "你若要喜爱你自己的价值，你就得给世界创造价值。",
+      "author": "歌德"
+    },
+    {
+      "content": "生活就像骑自行车，为了保持平衡，你必须持续前进。",
+      "author": "爱因斯坦"
+    },
+    {
+      "content": "不要因为走得太远，而忘记为什么出发。",
+      "author": "纪伯伦"
+    },
+    {
+      "content": "人生最大的错误是不断担心会犯错。",
+      "author": "丘吉尔"
+    },
+    {
+      "content": "幸福不是得到你想要的一切，而是欣赏你所拥有的一切。",
+      "author": "罗素"
+    },
+    {
+      "content": "生命如同寓言，其价值不在长短，而在内容。",
+      "author": "塞内加"
+    },
+    {
+      "content": "The greatest pleasure in life is doing what people say you cannot do.",
+      "author": "Walter Bagehot"
+    },
+    {
+      "content": "Life shrinks or expands in proportion to one's courage.",
+      "author": "Anais Nin"
+    },
+    {
+      "content": "The two most important days in your life are the day you are born and the day you find out why.",
+      "author": "Mark Twain"
+    },
+    {
+      "content": "Your time is limited, don't waste it living someone else's life.",
+      "author": "Steve Jobs"
+    },
+    {
+      "content": "The secret of getting ahead is getting started.",
+      "author": "Mark Twain"
+    },
+    {
+      "content": "Do not wait to strike till the iron is hot; but make it hot by striking.",
+      "author": "William Butler Yeats"
+    },
+    {
+      "content": "The only person you are destined to become is the person you decide to be.",
+      "author": "Ralph Waldo Emerson"
+    },
+    {
+      "content": "What we achieve inwardly will change outer reality.",
+      "author": "Plutarch"
+    },
+    {
+      "content": "Everything has beauty, but not everyone sees it.",
+      "author": "Confucius"
+    },
+    {
+      "content": "Believe you can and you're halfway there.",
+      "author": "Theodore Roosevelt"
+    },
+    {
+      "content": "只有在人群中间，才能认识自己。",
+      "author": "德国谚语"
+    },
+    {
+      "content": "人生最大的幸福是坚信自己被爱。",
+      "author": "雨果"
+    },
+    {
+      "content": "命运给予我们的不是失望之酒，而是机会之杯。",
+      "author": "雪莱"
+    },
+    {
+      "content": "世界上最宽阔的是海洋，比海洋更宽阔的是天空，比天空更宽阔的是人的胸怀。",
+      "author": "雨果"
+    },
+    {
+      "content": "最可怕的敌人是没有坚强的信念。",
+      "author": "罗曼·罗兰"
+    },
+    {
+      "content": "理想的书籍是智慧的钥匙。",
+      "author": "莎士比亚"
+    },
+    {
+      "content": "人生最困难的是认识自己。",
+      "author": "泰利斯"
+    },
+    {
+      "content": "有志者事竟成，破釜沉舟，百二秦关终属楚。",
+      "author": "李白"
+    },
+    {
+      "content": "时间是一切财富中最宝贵的财富。",
+      "author": "德奥弗拉斯多"
+    },
+    {
+      "content": "成功的秘诀是努力，失败的根源是放弃。",
+      "author": "马克思"
+    },
+    {
+      "content": "The best time to plant a tree was 20 years ago. The second best time is now.",
+      "author": "Chinese Proverb"
+    },
+    {
+      "content": "Whether you think you can or you think you can't, you're right.",
+      "author": "Henry Ford"
+    },
+    {
+      "content": "It is never too late to be what you might have been.",
+      "author": "George Eliot"
+    },
+    {
+      "content": "The mind is everything. What you think you become.",
+      "author": "Buddha"
+    },
+    {
+      "content": "Everything you can imagine is real.",
+      "author": "Pablo Picasso"
+    },
+    {
+      "content": "Change your thoughts and you change your world.",
+      "author": "Norman Vincent Peale"
+    },
+    {
+      "content": "All our dreams can come true if we have the courage to pursue them.",
+      "author": "Walt Disney"
+    },
+    {
+      "content": "If you want to lift yourself up, lift up someone else.",
+      "author": "Booker T. Washington"
+    },
+    {
+      "content": "You miss 100% of the shots you don't take.",
+      "author": "Wayne Gretzky"
+    },
+    {
+      "content": "The only way to achieve the impossible is to believe it is possible.",
+      "author": "Charles Kingsleigh"
+    },
+    {
+      "content": "生命的长短不在于时间的长短，而在于你如何使用。",
+      "author": "蒙田"
+    },
+    {
+      "content": "永远年轻，永远热泪盈眶。",
+      "author": "北岛"
+    },
+    {
+      "content": "人的一生可以平凡，但不可以虚度。",
+      "author": "季羡林"
+    },
+    {
+      "content": "自信是成功的第一秘诀。",
+      "author": "爱默生"
+    },
+    {
+      "content": "勇气是控制恐惧，而不是没有恐惧。",
+      "author": "马克·吐温"
+    },
+    {
+      "content": "人生最大的挑战是克服自己。",
+      "author": "富兰克林"
+    },
+    {
+      "content": "困难是人生的老师，它能使人坚强。",
+      "author": "马克思"
+    },
+    {
+      "content": "真正的快乐不是狂喜，而是内心的宁静。",
+      "author": "亚里士多德"
+    },
+    {
+      "content": "人的价值不在于他拥有什么，而在于他成为什么。",
+      "author": "王阳明"
+    },
+    {
+      "content": "成功的花，人们只惊羡它现时的明艳，然而它的根却扎在过去的努力里。",
+      "author": "冰心"
+    },
+    {
+      "content": "The only true wisdom is in knowing you know nothing.",
+      "author": "Socrates"
+    },
+    {
+      "content": "Life is not about finding yourself. Life is about creating yourself.",
+      "author": "George Bernard Shaw"
+    },
+    {
+      "content": "Do what you can, with what you have, where you are.",
+      "author": "Theodore Roosevelt"
+    },
+    {
+      "content": "The harder I work, the luckier I get.",
+      "author": "Samuel Goldwyn"
+    },
+    {
+      "content": "If opportunity doesn't knock, build a door.",
+      "author": "Milton Berle"
+    },
+    {
+      "content": "Success is walking from failure to failure with no loss of enthusiasm.",
+      "author": "Winston Churchill"
+    },
+    {
+      "content": "The best revenge is massive success.",
+      "author": "Frank Sinatra"
+    },
+    {
+      "content": "Try not to become a person of success, but rather try to become a person of value.",
+      "author": "Albert Einstein"
+    },
+    {
+      "content": "The only way to do great work is to love what you do.",
+      "author": "Steve Jobs"
+    },
+    {
+      "content": "Happiness is not something readymade. It comes from your own actions.",
+      "author": "Dalai Lama"
+    },
+    {
+      "content": "最大的骄傲于最大的自卑都表示心灵的最软弱无力。",
+      "author": "斯宾诺莎"
+    },
+    {
+      "content": "只要功夫深，铁杵磨成针。",
+      "author": "中国谚语"
+    },
+    {
+      "content": "人的一生应当这样度过：当回忆往事时，不因虚度年华而悔恨。",
+      "author": "奥斯特洛夫斯基"
+    },
+    {
+      "content": "把自己的事情做好，就是对社会最大的贡献。",
+      "author": "华罗庚"
+    },
+    {
+      "content": "真正的爱，应该超越生命的长度、心灵的宽度、灵魂的深度。",
+      "author": "卡夫卡"
+    },
+    {
+      "content": "我们必须拿我们所有的，去换我们所没有的。",
+      "author": "稻盛和夫"
+    },
+    {
+      "content": "不要等待完美的时机，你只需要开始行动。",
+      "author": "拿破仑·希尔"
+    },
+    {
+      "content": "人生最大的幸福是确信自己被爱。",
+      "author": "雨果"
+    },
+    {
+      "content": "做人如果没有梦想，那跟咸鱼有什么区别。",
+      "author": "李小龙"
+    },
+    {
+      "content": "生活不能等待别人来安排，要自己去争取和奋斗。",
+      "author": "罗曼·罗兰"
+    },
+    {
+      "content": "The greatest glory in living lies not in never falling, but in rising every time we fall.",
+      "author": "Nelson Mandela"
+    },
+    {
+      "content": "Life is either a daring adventure or nothing at all.",
+      "author": "Helen Keller"
+    },
+    {
+      "content": "The purpose of life is not to be happy. It is to be useful.",
+      "author": "Ralph Waldo Emerson"
+    },
+    {
+      "content": "You must expect great things of yourself before you can do them.",
+      "author": "Michael Jordan"
+    },
+    {
+      "content": "Success is not the key to happiness. Happiness is the key to success.",
+      "author": "Albert Schweitzer"
+    },
+    {
+      "content": "The only person you should try to be better than is the person you were yesterday.",
+      "author": "Anonymous"
+    },
+    {
+      "content": "Don't count the days, make the days count.",
+      "author": "Muhammad Ali"
+    },
+    {
+      "content": "Everything negative - pressure, challenges - is all an opportunity for me to rise.",
+      "author": "Kobe Bryant"
+    },
+    {
+      "content": "What you get by achieving your goals is not as important as what you become.",
+      "author": "Zig Ziglar"
+    },
+    {
+      "content": "Be yourself; everyone else is already taken.",
+      "author": "Oscar Wilde"
+    },
+    {
+      "content": "人生如同写一本书，每个人都是自己的作者。",
+      "author": "但丁"
+    },
+    {
+      "content": "与其诅咒黑暗，不如燃起蜡烛。",
+      "author": "印度谚语"
+    },
+    {
+      "content": "生活中最重要的不是你所处的位置，而是你所朝的方向。",
+      "author": "霍姆斯"
+    },
+    {
+      "content": "不要问你的国家能为你做什么，而要问你能为国家做什么。",
+      "author": "肯尼迪"
+    },
+    {
+      "content": "人生就像弈棋，一步失误，全盘皆输。",
+      "author": "德国谚语"
+    },
+    {
+      "content": "成功的关键在于相信自己有成功的能力。",
+      "author": "爱迪生"
+    },
+    {
+      "content": "没有比脚更长的路，没有比人更高的山。",
+      "author": "屠格涅夫"
+    },
+    {
+      "content": "人的一生，总是为了追求幸福而努力。",
+      "author": "亚里士多德"
+    },
+    {
+      "content": "知识给人力量，信念给人希望。",
+      "author": "培根"
+    },
+    {
+      "content": "最美的风景是在远处，最好的机会是在当下。",
+      "author": "歌德"
+    },
+    {
+      "content": "The best preparation for tomorrow is doing your best today.",
+      "author": "H. Jackson Brown Jr."
+    },
+    {
+      "content": "The only impossible journey is the one you never begin.",
+      "author": "Tony Robbins"
+    },
+    {
+      "content": "Life is about making an impact, not making an income.",
+      "author": "Kevin Kruse"
+    },
+    {
+      "content": "Every moment is a fresh beginning.",
+      "author": "T.S. Eliot"
+    },
+    {
+      "content": "The past cannot be changed. The future is yet in your power.",
+      "author": "Mary Pickford"
+    },
+    {
+      "content": "It always seems impossible until it's done.",
+      "author": "Nelson Mandela"
+    },
+    {
+      "content": "Wherever you go, go with all your heart.",
+      "author": "Confucius"
+    },
+    {
+      "content": "The journey of a thousand miles begins with one step.",
+      "author": "Lao Tzu"
+    },
+    {
+      "content": "Turn your wounds into wisdom.",
+      "author": "Oprah Winfrey"
+    },
+    {
+      "content": "Action is the foundational key to all success.",
+      "author": "Pablo Picasso"
+    },
+    {
+      "content": "生活中最大的幸福是坚信自己有能力去爱。",
+      "author": "雨果"
+    },
+    {
+      "content": "读书使人充实，思考使人深邃，交谈使人清醒。",
+      "author": "培根"
+    },
+    {
+      "content": "人生的价值在于奉献，而不在于索取。",
+      "author": "爱因斯坦"
+    },
+    {
+      "content": "智者创造机会，而不是等待机会。",
+      "author": "培根"
+    },
+    {
+      "content": "人的一生可以有所作为的时机只有一次，那就是现在。",
+      "author": "马克·吐温"
+    },
+    {
+      "content": "不要为已消逝之年华叹息，必须正视匆匆溜走的时光。",
+      "author": "但丁"
+    },
+    {
+      "content": "生活的真谛不在于拥有什么，而在于经历什么。",
+      "author": "杜拉斯"
+    },
+    {
+      "content": "一个人的快乐不是因为他拥有的多，而是因为他计较的少。",
+      "author": "富兰克林"
+    },
+    {
+      "content": "当你的才华还撑不起你的野心时，你就应该静下心来学习。",
+      "author": "马云"
+    },
+    {
+      "content": "人的价值不在于他的地位有多高，而在于他对社会有多大贡献。",
+      "author": "马丁·路德·金"
+    },
+    {
+      "content": "The greatest pleasure in life is doing what people say you cannot do.",
+      "author": "Walter Bagehot"
+    },
+    {
+      "content": "Life is either a great adventure or nothing at all.",
+      "author": "Helen Keller"
+    },
+    {
+      "content": "The way to get started is to quit talking and begin doing.",
+      "author": "Walt Disney"
+    },
+    {
+      "content": "If you want to live a happy life, tie it to a goal, not to people or things.",
+      "author": "Albert Einstein"
+    },
+    {
+      "content": "Success is not final, failure is not fatal: it is the courage to continue that counts.",
+      "author": "Winston Churchill"
+    },
+    {
+      "content": "The only limit to our realization of tomorrow will be our doubts of today.",
+      "author": "Franklin D. Roosevelt"
+    },
+    {
+      "content": "Don't watch the clock; do what it does. Keep going.",
+      "author": "Sam Levenson"
+    },
+    {
+      "content": "The future depends on what you do today.",
+      "author": "Mahatma Gandhi"
+    },
+    {
+      "content": "Believe you can and you're halfway there.",
+      "author": "Theodore Roosevelt"
+    },
+    {
+      "content": "The secret of getting ahead is getting started.",
+      "author": "Mark Twain"
+    },
+    {
+      "content": "人生最大的喜悦是每个人都说你做不到，你却完成了它。",
+      "author": "贝多芬"
+    },
+    {
+      "content": "不要让昨天占据太多的今天。",
+      "author": "威尔·罗杰斯"
+    },
+    {
+      "content": "你若不想做，总能找到借口；你若想做，总会找到方法。",
+      "author": "阿拉伯谚语"
+    },
+    {
+      "content": "生活不是等待暴风雨过去，而是要学会在雨中翩翩起舞。",
+      "author": "甘地"
+    },
+    {
+      "content": "一个人的价值，应该看他贡献什么，而不应当看他取得什么。",
+      "author": "爱因斯坦"
+    },
+    {
+      "content": "在必要时候沉默是一种智慧，在适当时候说话是一种力量。",
+      "author": "苏格拉底"
+    },
+    {
+      "content": "生命的意义在于付出，在于给予，而不是在于索取。",
+      "author": "泰戈尔"
+    },
+    {
+      "content": "人的一生不在于行走多远，而在于走过的路给别人留下了什么。",
+      "author": "卢梭"
+    },
+    {
+      "content": "不要问别人为你做了什么，要问你为别人做了什么。",
+      "author": "孔子"
+    },
+    {
+      "content": "人生如同故事，精彩与否，关键在于你如何书写。",
+      "author": "莎士比亚"
+    },
+    {
+      "content": "没有人可以回到过去重新开始，但谁都可以从现在开始，书写一个全新的结局。",
+      "author": "梭罗"
+    },
+    {
+      "content": "一个人最大的敌人是自己的懒惰。",
+      "author": "苏轼"
+    },
+    {
+      "content": "人的价值，在遭受诱惑的一瞬间被决定。",
+      "author": "歌德"
+    },
+    {
+      "content": "成功不是将来才有的，而是从决定去做的那一刻起，持续累积而成。",
+      "author": "车尔尼雪夫斯基"
+    },
+    {
+      "content": "不要等待机会，而要创造机会。",
+      "author": "培根"
+    },
+    {
+      "content": "人生最困难的是认识自己，最勇敢的是超越自己。",
+      "author": "亚里士多德"
+    },
+    {
+      "content": "生活不可能像你想象得那么好，但也不会像你想象得那么糟。",
+      "author": "莫泊桑"
+    },
+    {
+      "content": "智者不会因为小的挫折而放弃自己的追求。",
+      "author": "柏拉图"
+    },
+    {
+      "content": "人生最大的错误是不断担心会犯错。",
+      "author": "丘吉尔"
+    },
+    {
+      "content": "真正的快乐不是狂喜，而是内心的平静。",
+      "author": "富兰克林"
+    },
+    {
+      "content": "所谓成功，就是不断地超越自己，超越自己所设定的界限。",
+      "author": "卡耐基"
+    },
+    {
+      "content": "人生最重要的不是所站的位置，而是所朝的方向。",
+      "author": "奥利弗·霍姆斯"
+    },
+    {
+      "content": "时光不会辜负每一个努力向上的人。",
+      "author": "徐志摩"
+    },
+    {
+      "content": "人生最曼妙的风景，是内心的淡定与从容。",
+      "author": "杨绛"
+    },
+    {
+      "content": "做一个快乐的人，把欢乐带给他人。",
+      "author": "冰心"
+    },
+    {
+      "content": "人的一生，总要为理想而努力一次。",
+      "author": "梁启超"
+    },
+    {
+      "content": "最可怕的不是失败，而是失去追求的勇气。",
+      "author": "罗曼·罗兰"
+    },
+    {
+      "content": "成功的秘诀是坚持一个目标不动摇。",
+      "author": "本杰明·迪斯雷利"
+    },
+    {
+      "content": "人生如画，笔墨由己。",
+      "author": "林语堂"
+    },
+    {
+      "content": "不要轻言放弃，否则对不起自己本可以成功的人生。",
+      "author": "松下幸之助"
+    },
+    {
+      "content": "生命的价值在于你能给别人带来什么，而不是你能得到什么。",
+      "author": "爱因斯坦"
+    },
+    {
+      "content": "人生最大的财富是善良。",
+      "author": "老子"
+    },
+    {
+      "content": "你要努力，不是为了证明给别人看，而是为了让自己过得更好。",
+      "author": "周国平"
+    },
+    {
+      "content": "人生的意义不在于拥有什么，而在于经历什么。",
+      "author": "叔本华"
+    },
+    {
+      "content": "没有人陪你走一辈子，所以你必须学会独立。",
+      "author": "余华"
+    },
+    {
+      "content": "生活不是用来妥协的，而是用来经历的。",
+      "author": "居里夫人"
+    },
+    {
+      "content": "真正的修养，是看到别人的好处。",
+      "author": "胡适"
+    },
+    {
+      "content": "人生最大的挑战，是把信念转化为行动。",
+      "author": "歌德"
+    },
+    {
+      "content": "与其咒骂黑暗，不如燃起一根蜡烛。",
+      "author": "季羡林"
+    },
+    {
+      "content": "心若向阳，无谓悲伤。",
+      "author": "张爱玲"
+    },
+    {
+      "content": "人生如同一本书，愚蠢的人草草翻过，聪明的人细细阅读。",
+      "author": "萧伯纳"
+    },
+    {
+      "content": "不要低估你的能力，不要高估你的毅力。",
+      "author": "梁实秋"
+    },
+    {
+      "content": "生活不能等待别人来安排，要自己去争取和奋斗。",
+      "author": "罗素"
+    },
+    {
+      "content": "命运掌握在自己手中，不要等待机遇，而要创造机遇。",
+      "author": "孟子"
+    },
+    {
+      "content": "人的价值不在于身份的高低，而在于是否善尽本分。",
+      "author": "朱熹"
+    },
+    {
+      "content": "今天做的最好，比明天做的完美更重要。",
+      "author": "王阳明"
+    },
+    {
+      "content": "成功不是将来才有的，而是从决定去做的那一刻起就开始的。",
+      "author": "海伦·凯勒"
+    },
+    {
+      "content": "人生最大的遗憾，是不能以完整的自我去生活。",
+      "author": "三毛"
+    },
+    {
+      "content": "不要因为走得太远，而忘记为什么出发。",
+      "author": "陈果"
+    },
+    {
+      "content": "人生最重要的不是所站的位置，而是内心所朝的方向。",
+      "author": "刘墉"
+    },
+    {
+      "content": "最困难的时候，也是离成功最近的时候。",
+      "author": "曾国藩"
+    },
+    {
+      "content": "与其用华丽的外衣装饰自己，不如用知识充实自己。",
+      "author": "莫言"
+    },
+    {
+      "content": "人生的道路虽然漫长，但紧要处常常只有几步。",
+      "author": "曾国藩"
+    },
+    {
+      "content": "做人要心存善念，做事要尽己所能。",
+      "author": "弘一法师"
+    },
+    {
+      "content": "自信人生二百年，会当水击三千里。",
+      "author": "李白"
+    },
+    {
+      "content": "人生的真谛不在于拥有什么，而在于追求什么。",
+      "author": "马克思"
+    },
+    {
+      "content": "读万卷书不如行万里路，行万里路不如阅人无数。",
+      "author": "顾随"
+    },
+    {
+      "content": "人生没有彩排，每一天都是现场直播。",
+      "author": "梁启超"
+    },
+    {
+      "content": "最美的风景是在远处，最好的机会是在当下。",
+      "author": "钱钟书"
+    },
+    {
+      "content": "宁可做过了后悔，也不要错过了后悔。",
+      "author": "张瑞敏"
+    }
+  ]
+}

@@ -1,5 +1,6 @@
 import { Knex } from 'knex'
 import { v4 as uuidv4 } from 'uuid'
+import { importQuotes } from '../services/widget/quotesImporter'
 
 export async function initDatabase(db: Knex): Promise<void> {
   // 创建 notes 表
@@ -1097,6 +1098,22 @@ export async function initDatabase(db: Knex): Promise<void> {
       console.log('pomodoro_settings 表添加 breakDuration 列成功')
     }
   }
+
+  // 创建每日金句表
+  if (!(await db.schema.hasTable('daily_quotes'))) {
+    await db.schema.createTable('daily_quotes', (table) => {
+      table.string('id').primary()
+      table.text('content').notNullable()
+      table.string('author').notNullable()
+      table.datetime('createdAt').notNullable()
+      table.datetime('updatedAt').notNullable()
+    })
+    console.log('daily_quotes 表创建完成，开始导入金句...')
+
+    // 导入默认金句
+    await importQuotes()
+    console.log('daily_quotes 表创建和数据导入完成')
+  }
 }
 
 export async function down(db: Knex): Promise<void> {
@@ -1142,5 +1159,6 @@ export async function down(db: Knex): Promise<void> {
   await db.schema.dropTableIfExists('favorite_gradients')
   await db.schema.dropTableIfExists('pomodoro_records')
   await db.schema.dropTableIfExists('pomodoro_settings')
+  await db.schema.dropTableIfExists('daily_quotes')
   console.log('所有表已删除')
 }

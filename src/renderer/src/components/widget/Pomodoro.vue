@@ -1,104 +1,111 @@
 <template>
   <div class="pomodoro-widget">
-    <!-- 左侧翻页时钟 -->
-    <div class="clock-section">
-      <FlipClock :value="pomodoroStore.formattedTime" />
+    <!-- 标题 -->
+    <div class="widget-header">
+      <span class="widget-title">番茄时钟</span>
     </div>
 
-    <!-- 右侧控制区域 -->
-    <div class="control-section">
-      <div class="info-and-controls">
-        <!-- 番茄计数 -->
-        <div class="tomato-count">
-          <template v-if="pomodoroStore.isInBreak"> 休息时间 </template>
-          <template v-else>
-            {{ pomodoroStore.isRunning ? '正在吃第' : '今日已吃' }}
-            {{ pomodoroStore.isRunning ? pomodoroStore.currentCount : pomodoroStore.todayCount }}
-            个番茄
-          </template>
-        </div>
-
-        <!-- 按钮区域 -->
-        <div class="button-section">
-          <!-- 未开始状态 -->
-          <template v-if="pomodoroStore.status === 'idle'">
-            <div class="button-group">
-              <div class="control-btn primary" @click="pomodoroStore.start">
-                <div class="icon">
-                  <Play theme="outline" size="20" fill="var(--color-text-secondary)" />
-                </div>
-              </div>
-              <div class="control-btn" @click="pomodoroStore.startBreak">
-                <div class="icon">
-                  <Resting theme="outline" size="20" fill="var(--color-text-secondary)" />
-                </div>
-              </div>
-              <div class="control-btn" @click="toggleSoundMenu">
-                <div class="icon">
-                  <component
-                    :is="pomodoroStore.settings.sound === 'none' ? VolumeMute : Music"
-                    theme="outline"
-                    size="20"
-                    fill="var(--color-text-secondary)"
-                  />
-                </div>
-              </div>
-            </div>
-          </template>
-
-          <!-- 运行状态、暂停状态或休息状态 -->
-          <template v-else>
-            <div class="button-group">
-              <div class="control-btn" @click="handlePauseResume">
-                <div class="icon">
-                  <component
-                    :is="pomodoroStore.isPaused ? ReplayMusic : Pause"
-                    theme="outline"
-                    size="20"
-                    fill="var(--color-text-secondary)"
-                  />
-                </div>
-              </div>
-              <div class="control-btn" @click="pomodoroStore.stop">
-                <div class="icon">
-                  <Power theme="outline" size="20" fill="var(--color-text-secondary)" />
-                </div>
-              </div>
-              <div class="control-btn" @click="toggleSoundMenu">
-                <div class="icon">
-                  <component
-                    :is="pomodoroStore.settings.sound === 'none' ? VolumeMute : Music"
-                    theme="outline"
-                    size="20"
-                    fill="var(--color-text-secondary)"
-                  />
-                </div>
-              </div>
-            </div>
-          </template>
-        </div>
+    <div class="widget-content">
+      <!-- 左侧翻页时钟 -->
+      <div class="clock-section">
+        <FlipClock :value="pomodoroStore.formattedTime" />
       </div>
 
-      <!-- 音乐选择菜单 -->
-      <div v-if="showSoundMenu" ref="soundMenuRef" class="sound-menu">
-        <div
-          v-for="sound in soundOptions"
-          :key="sound.value"
-          class="sound-option"
-          :class="{ active: pomodoroStore.settings.sound === sound.value }"
-          @click="selectSound(sound.value)"
-        >
-          <component
-            :is="getSoundIcon(sound.value)"
-            theme="outline"
-            size="16"
-            :fill="
-              pomodoroStore.settings.sound === sound.value
-                ? 'var(--color-primary)'
-                : 'var(--color-text-primary)'
-            "
-          />
-          <span>{{ sound.label }}</span>
+      <!-- 右侧控制区域 -->
+      <div class="control-section">
+        <div class="info-and-controls">
+          <!-- 番茄计数 -->
+          <div class="tomato-count">
+            <template v-if="pomodoroStore.isInBreak"> 休息时间 </template>
+            <template v-else>
+              {{ pomodoroStore.isRunning ? '正在吃第' : '今日已吃' }}
+              {{ pomodoroStore.isRunning ? pomodoroStore.currentCount : pomodoroStore.todayCount }}
+              个番茄
+            </template>
+          </div>
+
+          <!-- 按钮区域 -->
+          <div class="button-section">
+            <!-- 未开始状态 -->
+            <template v-if="pomodoroStore.status === 'idle'">
+              <div class="button-group">
+                <div class="control-btn primary" @click="pomodoroStore.start">
+                  <div class="icon">
+                    <Play theme="outline" size="20" fill="var(--color-text-secondary)" />
+                  </div>
+                </div>
+                <div class="control-btn" @click="pomodoroStore.startBreak">
+                  <div class="icon">
+                    <Resting theme="outline" size="20" fill="var(--color-text-secondary)" />
+                  </div>
+                </div>
+                <div class="control-btn" @click="toggleSoundMenu">
+                  <div class="icon">
+                    <component
+                      :is="pomodoroStore.settings.sound === 'none' ? VolumeMute : Music"
+                      theme="outline"
+                      size="20"
+                      fill="var(--color-text-secondary)"
+                    />
+                  </div>
+                </div>
+              </div>
+            </template>
+
+            <!-- 运行状态、暂停状态或休息状态 -->
+            <template v-else>
+              <div class="button-group">
+                <div class="control-btn" @click="handlePauseResume">
+                  <div class="icon">
+                    <component
+                      :is="pomodoroStore.isPaused ? ReplayMusic : Pause"
+                      theme="outline"
+                      size="20"
+                      fill="var(--color-text-secondary)"
+                    />
+                  </div>
+                </div>
+                <div class="control-btn" @click="pomodoroStore.stop">
+                  <div class="icon">
+                    <Power theme="outline" size="20" fill="var(--color-text-secondary)" />
+                  </div>
+                </div>
+                <div class="control-btn" @click="toggleSoundMenu">
+                  <div class="icon">
+                    <component
+                      :is="pomodoroStore.settings.sound === 'none' ? VolumeMute : Music"
+                      theme="outline"
+                      size="20"
+                      fill="var(--color-text-secondary)"
+                    />
+                  </div>
+                </div>
+              </div>
+            </template>
+          </div>
+        </div>
+
+        <!-- 音乐选择菜单 -->
+        <div v-if="showSoundMenu" ref="soundMenuRef" class="sound-menu">
+          <div
+            v-for="sound in soundOptions"
+            :key="sound.value"
+            class="sound-option"
+            :class="{ active: pomodoroStore.settings.sound === sound.value }"
+            @click="selectSound(sound.value)"
+          >
+            <component
+              :is="getSoundIcon(sound.value)"
+              theme="outline"
+              size="16"
+              :fill="
+                pomodoroStore.settings.sound === sound.value
+                  ? 'var(--color-primary)'
+                  : 'var(--color-text-primary)'
+              "
+            />
+            <span>{{ sound.label }}</span>
+          </div>
         </div>
       </div>
     </div>
@@ -189,13 +196,32 @@ const getSoundIcon = (sound: BackgroundSound) => {
 
 <style lang="scss" scoped>
 .pomodoro-widget {
-  display: flex;
-  align-items: center;
-  gap: 16px;
   padding: 16px;
   background: var(--color-bg-secondary);
   border-radius: 8px;
   box-shadow: inset 0 0 0 1px rgba(var(--color-sidebar-icon-bg), 0.05);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+// 添加标题样式
+.widget-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 4px;
+
+  .widget-title {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--color-text-secondary);
+  }
+}
+
+.widget-content {
+  display: flex;
+  align-items: center;
+  gap: 16px;
 }
 
 .clock-section {

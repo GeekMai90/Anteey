@@ -62,6 +62,12 @@ const route = useRoute()
 // 定义可用的 tabs
 const tabs = [
   {
+    key: 'widgets',
+    label: '小组件',
+    icon: Components,
+    component: RightSidebarWidgets
+  },
+  {
     key: 'multi',
     label: '多开笔记',
     icon: Split,
@@ -78,12 +84,6 @@ const tabs = [
     label: '草稿纸',
     icon: Pencil,
     component: RightSidebarDraftsEditor
-  },
-  {
-    key: 'widgets',
-    label: '小组件',
-    icon: Components,
-    component: RightSidebarWidgets
   }
 ]
 

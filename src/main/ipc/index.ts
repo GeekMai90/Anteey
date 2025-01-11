@@ -18,6 +18,8 @@ import { setupDraftHandlers } from './draftsIpcHandlers'
 import { setupThemeHandlers } from './themeIpcHandlers'
 import { setupWindowHandlers } from './windowIpcHandlers'
 import { setupPomodoroHandlers } from './pomodoroIpcHandlers'
+import { setupDailyQuotesHandlers } from './dailyquotesIpcHandlers'
+import { setupLifeGuideHandlers } from './lifeGuideIpcHandlers'
 
 export function setupIpcHandlers(): void {
   setupNotesHandlers()
@@ -40,4 +42,6 @@ export function setupIpcHandlers(): void {
   setupThemeHandlers()
   setupWindowHandlers()
   setupPomodoroHandlers()
+  setupDailyQuotesHandlers()
+  setupLifeGuideHandlers()
 }
