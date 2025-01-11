@@ -40,7 +40,8 @@
     ],
     "types": [
       "jest",
-      "node"
+      "node",
+      "echarts"
     ]
   },
   "include": [

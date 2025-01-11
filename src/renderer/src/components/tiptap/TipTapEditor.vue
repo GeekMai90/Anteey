@@ -852,7 +852,7 @@ const handleFileUpload = async (file) => {
 
   try {
     // 使用新的 API，传入 noteId
-    const result = await window.electronAPI.uploadImage(file.path, props.noteId)
+    const result = await window.electronAPI.image.uploadImage(file.path, props.noteId)
     if (result.path) {
       return result.path
     } else {

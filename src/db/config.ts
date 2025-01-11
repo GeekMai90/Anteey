@@ -67,10 +67,10 @@ export function initializeDb() {
     // debug: isDev,
     // 添加连接后的配置
     afterCreate: (conn: any, done: any) => {
-      // 设置内存管理
+      // SQLite 只支持 SERIALIZABLE 隔离级别
       conn.pragma('optimize')
       conn.pragma('analysis_limit=1000')
-      conn.pragma('threads=4') // 如果 CPU 核心数大于 4，可以适当增加
+      conn.pragma('threads=4')
       done(null, conn)
     }
   }

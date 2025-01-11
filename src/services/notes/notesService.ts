@@ -558,38 +558,33 @@ export async function updateNoteContent(id: string, content: object): Promise<No
   while (retries < MAX_RETRIES) {
     try {
       // 保存笔记内容
-      const updatedNote = await db.transaction(
-        async (trx) => {
-          // 设置事务超时
-          await trx.raw('PRAGMA busy_timeout = 5000;')
+      const updatedNote = await db.transaction(async (trx) => {
+        // 设置事务超时
+        await trx.raw('PRAGMA busy_timeout = 5000;')
 
-          // 提取第一行文本作为标题
-          const firstLineText = extractFirstLineText(content)
+        // 提取第一行文本作为标题
+        const firstLineText = extractFirstLineText(content)
 
-          // 准备更新数据
-          const updateData: any = {
-            content: JSON.stringify(content),
-            updatedAt: new Date(),
-            metadata: db.raw(
-              `
-              json_patch(
-                COALESCE(metadata, '{}'),
-                json_object('title', ?)
-              )
-            `,
-              [firstLineText]
+        // 准备更新数据
+        const updateData: any = {
+          content: JSON.stringify(content),
+          updatedAt: new Date(),
+          metadata: db.raw(
+            `
+            json_patch(
+              COALESCE(metadata, '{}'),
+              json_object('title', ?)
             )
-          }
-
-          // 执行更新并返回更新后的笔记
-          const [note] = await trx('notes').where('id', id).update(updateData).returning('*')
-          // console.log(`后端→ 笔记 ${id} 内容已更新`)
-          return convertToNote(note)
-        },
-        {
-          isolationLevel: 'read committed'
+          `,
+            [firstLineText]
+          )
         }
-      )
+
+        // 执行更新并返回更新后的笔记
+        const [note] = await trx('notes').where('id', id).update(updateData).returning('*')
+        // console.log(`后端→ 笔记 ${id} 内容已更新`)
+        return convertToNote(note)
+      })
 
       return updatedNote
     } catch (error) {

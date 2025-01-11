@@ -110,71 +110,69 @@ export async function restoreNoteVersion(noteId: string, versionId: string): Pro
 
   while (retries > 0) {
     try {
-      await db.transaction(
-        async (trx) => {
-          // 使用 FOR UPDATE 锁定相关记录
-          const version = await trx('note_versions')
-            .where({
-              noteId,
-              id: versionId
-            })
-            .forUpdate()
-            .first()
-            .then((v) => (v ? { ...v, content: JSON.parse(v.content) } : null))
+      await db.transaction(async (trx) => {
+        // 设置事务超时
+        await trx.raw('PRAGMA busy_timeout = 5000;')
 
-          if (!version) {
-            throw new Error('版本不存在')
-          }
-
-          const currentNote = await trx('notes').where('id', noteId).forUpdate().first()
-
-          if (!currentNote) {
-            throw new Error('笔记不存在')
-          }
-
-          // 其他代码保持不变...
-          const currentContent =
-            typeof currentNote.content === 'string'
-              ? JSON.parse(currentNote.content)
-              : currentNote.content
-
-          const newVersionId = uuidv4()
-          await trx('note_versions').insert({
-            id: newVersionId,
+        // 使用 FOR UPDATE 锁定相关记录
+        const version = await trx('note_versions')
+          .where({
             noteId,
-            content: JSON.stringify(currentContent),
-            address: currentNote.address,
-            cardType: currentNote.cardType,
-            createdAt: currentNote.createdAt,
-            versionCreatedAt: new Date(),
-            versionNumber: await getNextVersionNumber(noteId, trx)
+            id: versionId
           })
+          .forUpdate()
+          .first()
+          .then((v) => (v ? { ...v, content: JSON.parse(v.content) } : null))
 
-          await trx('notes')
-            .where('id', noteId)
-            .update({
-              content: JSON.stringify(version.content),
-              address: version.address,
-              cardType: version.cardType,
-              updatedAt: new Date()
-            })
+        if (!version) {
+          throw new Error('版本不存在')
+        }
 
-          const restoredVersionId = uuidv4()
-          await trx('note_versions').insert({
-            id: restoredVersionId,
-            noteId,
+        const currentNote = await trx('notes').where('id', noteId).forUpdate().first()
+
+        if (!currentNote) {
+          throw new Error('笔记不存在')
+        }
+
+        // 其他代码保持不变...
+        const currentContent =
+          typeof currentNote.content === 'string'
+            ? JSON.parse(currentNote.content)
+            : currentNote.content
+
+        const newVersionId = uuidv4()
+        await trx('note_versions').insert({
+          id: newVersionId,
+          noteId,
+          content: JSON.stringify(currentContent),
+          address: currentNote.address,
+          cardType: currentNote.cardType,
+          createdAt: currentNote.createdAt,
+          versionCreatedAt: new Date(),
+          versionNumber: await getNextVersionNumber(noteId, trx)
+        })
+
+        await trx('notes')
+          .where('id', noteId)
+          .update({
             content: JSON.stringify(version.content),
             address: version.address,
             cardType: version.cardType,
-            createdAt: version.createdAt,
-            versionCreatedAt: new Date(),
-            versionNumber: await getNextVersionNumber(noteId, trx)
+            updatedAt: new Date()
           })
-        },
-        {
-          isolationLevel: 'serializable'
-        }
-      )
+
+        const restoredVersionId = uuidv4()
+        await trx('note_versions').insert({
+          id: restoredVersionId,
+          noteId,
+          content: JSON.stringify(version.content),
+          address: version.address,
+          cardType: version.cardType,
+          createdAt: version.createdAt,
+          versionCreatedAt: new Date(),
+          versionNumber: await getNextVersionNumber(noteId, trx)
+        })
+      })
 
       // 如果成功执行，直接返回
       return
