@@ -3,9 +3,9 @@
     <BaseLayout ref="baseLayout">
       <router-view v-slot="{ Component }">
         <keep-alive>
-          <component :is="Component" v-if="$route.meta.keepAlive" :key="$route.fullPath" />
+          <component :is="Component" v-if="route.meta.keepAlive" :key="route.fullPath" />
         </keep-alive>
-        <component :is="Component" v-if="!$route.meta.keepAlive" :key="$route.fullPath" />
+        <component :is="Component" v-if="!route.meta.keepAlive" :key="route.fullPath" />
       </router-view>
     </BaseLayout>
 
@@ -43,7 +43,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, provide, computed } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useNoteStore } from '@renderer/stores/noteStore'
 import { useNoteMenu } from '@renderer/composables/useNoteMenu'
 import { useGlobalHotkeys } from '@renderer/composables/useGlobalHotkeys'
@@ -70,6 +70,7 @@ import { useUIStore } from '@renderer/stores/UIStore'
 const noteStore = useNoteStore()
 const appearanceStore = useAppearanceStore()
 const router = useRouter()
+const route = useRoute()
 const webdavStore = useWebDAVStore()
 const draftsStore = useDraftsStore()
 const themeStore = useThemeStore()

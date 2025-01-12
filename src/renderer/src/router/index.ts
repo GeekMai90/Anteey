@@ -132,6 +132,26 @@ const routes = [
     name: 'DraftsView',
     path: '/drafts',
     component: () => import('../views/DraftsView.vue')
+  },
+  {
+    name: 'ExcalidrawTest',
+    path: '/excalidraw-test',
+    component: () => import('../views/ExcalidrawTest.vue')
+  },
+  {
+    name: 'TldrawTest',
+    path: '/tldraw-test',
+    component: () => import('../views/TldrawTest.vue')
+  },
+  {
+    name: 'EdWhiteboardView',
+    path: '/ed-whiteboard',
+    component: () => import('../views/EdWhiteboardView.vue')
+  },
+  {
+    path: '/ed-whiteboard/:id',
+    name: 'EdWhiteboardDetail',
+    component: () => import('@renderer/components/edWhiteboard/EdWhiteboardDetail.vue')
   }
 ]
 

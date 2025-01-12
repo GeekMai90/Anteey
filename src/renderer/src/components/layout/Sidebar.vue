@@ -56,7 +56,7 @@
             delay: { show: 1000 }
           }"
           class="action-btn"
-          @click="$router.push('/home')"
+          @click="router.push('/home')"
         >
           <div class="icon">
             <Home theme="outline" size="16" fill="var(--color-sidebar-icon)" :strokeWidth="3" />
@@ -70,7 +70,7 @@
             delay: { show: 1000 }
           }"
           class="action-btn"
-          @click="$router.push('/drafts')"
+          @click="router.push('/drafts')"
         >
           <div class="icon">
             <Pencil theme="outline" size="16" fill="var(--color-sidebar-icon)" :strokeWidth="3" />
@@ -289,7 +289,7 @@ import { useNoteStore } from '@renderer/stores/noteStore'
 import SettingDropdownMenu from '@renderer/components/settings/SettingDropdownMenu.vue'
 import StarredNotes from '@renderer/components/layout/StarredNotes.vue'
 import { useUIStore } from '@renderer/stores/UIStore'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import RecentNotes from '@renderer/components/layout/RecentNotes.vue'
 import { storeToRefs } from 'pinia'
 import TagsTree from '@renderer/components/layout/TagsTree.vue'
@@ -303,6 +303,7 @@ import { useThemeStore } from '@renderer/stores/themeStore'
 const imageSrc = ref('')
 const uiStore = useUIStore()
 const route = useRoute()
+const router = useRouter()
 const timeBlockStore = useTimeBlockStore()
 const appearanceStore = useAppearanceStore()
 const webdavStore = useWebDAVStore()
@@ -333,6 +334,10 @@ const menuItems = computed(() => {
     { name: '卡片盒', path: '/cardbox', icon: Box },
     { name: '知识树', path: '/knowledge-tree', icon: Sapling },
     { name: '记忆卡', path: '/flashcard', icon: StorageCardOne },
+    { name: 'Ed白板', path: '/ed-whiteboard', icon: Workbench },
+    { name: 'Excalidraw 画板', path: '/excalidraw-test', icon: Workbench },
+    { name: 'Tldraw 画板', path: '/tldraw-test', icon: Workbench },
+
     // 根据设置决定是否显示白板
     ...(appearanceStore.settings?.enableWhiteboard
       ? [{ name: '思维板', path: '/whiteboard', icon: Workbench }]

@@ -256,16 +256,15 @@ function createWindow(): BrowserWindow {
             "img-src 'self' file: data: blob: https: http: app-image: *; " +
             // 媒体源：允许本地文件和所有来源
             "media-src 'self' file: *; " +
-            // 脚本源：允许本地脚本、内联脚本、eval执行和blob数据
-            // 注意：unsafe-inline 和 unsafe-eval 在生产环境中可能存在安全风险
-            "script-src 'self' 'unsafe-inline' 'unsafe-eval' blob:; " +
-            // 样式源：允许本地样式和内联样式
-            "style-src 'self' 'unsafe-inline'; " +
-            // 连接源：允许本地文件、https://api.tiptap.dev
-            "connect-src 'self' file: app-image: https://api.tiptap.dev; " +
-            // 字体源：允许所有来源的字体
-            'font-src *; ' +
-            // Web Worker源：允许本地worker、blob数据和base64数据
+            // 脚本源：添加 cdn.tldraw.com
+            "script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: https://unpkg.com https://cdn.tldraw.com; " +
+            // 样式源：添加 cdn.tldraw.com
+            "style-src 'self' 'unsafe-inline' https://unpkg.com https://cdn.tldraw.com; " +
+            // 连接源：添加 cdn.tldraw.com
+            "connect-src 'self' file: app-image: https://api.tiptap.dev https://unpkg.com https://cdn.tldraw.com; " +
+            // 字体源：添加 cdn.tldraw.com
+            'font-src * https://cdn.tldraw.com; ' +
+            // Web Worker源
             "worker-src 'self' blob: data:;"
         ]
       }

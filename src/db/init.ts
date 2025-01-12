@@ -1114,6 +1114,47 @@ export async function initDatabase(db: Knex): Promise<void> {
     await importQuotes()
     console.log('daily_quotes 表创建和数据导入完成')
   }
+
+  // 创建 ed_whiteboards 表
+  if (!(await db.schema.hasTable('ed_whiteboards'))) {
+    await db.schema.createTable('ed_whiteboards', (table) => {
+      table.string('id').primary()
+      table.string('name').notNullable()
+      table.text('content').notNullable() // 使用 text 类型存储 JSON 字符串
+      table.datetime('created_at').notNullable()
+      table.datetime('updated_at').notNullable()
+      table.string('folder_id').nullable()
+      table.json('tags').nullable() // 存储标签数组
+
+      // 索引
+      table.index('folder_id')
+      table.index('created_at')
+      table.index('updated_at')
+    })
+    console.log('ed_whiteboards 表创建成功')
+  }
+
+  // 创建 ed_whiteboard_note_refs 表
+  if (!(await db.schema.hasTable('ed_whiteboard_note_refs'))) {
+    await db.schema.createTable('ed_whiteboard_note_refs', (table) => {
+      table.string('id').primary()
+      table.string('note_id').notNullable()
+      table.string('whiteboard_id').notNullable()
+      table.json('position').notNullable() // 存储位置信息
+      table.datetime('created_at').notNullable()
+
+      // 外键约束
+      table.foreign('note_id').references('notes.id').onDelete('CASCADE')
+      table.foreign('whiteboard_id').references('ed_whiteboards.id').onDelete('CASCADE')
+
+      // 索引
+      table.index('note_id')
+      table.index('whiteboard_id')
+      table.index(['whiteboard_id', 'note_id']) // 组合索引
+      table.index('created_at')
+    })
+    console.log('ed_whiteboard_note_refs 表创建成功')
+  }
 }
 
 export async function down(db: Knex): Promise<void> {
@@ -1160,5 +1201,7 @@ export async function down(db: Knex): Promise<void> {
   await db.schema.dropTableIfExists('pomodoro_records')
   await db.schema.dropTableIfExists('pomodoro_settings')
   await db.schema.dropTableIfExists('daily_quotes')
+  await db.schema.dropTableIfExists('ed_whiteboard_note_refs')
+  await db.schema.dropTableIfExists('ed_whiteboards')
   console.log('所有表已删除')
 }

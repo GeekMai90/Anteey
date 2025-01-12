@@ -21,6 +21,7 @@ import { setupPomodoroHandlers } from './pomodoroIpcHandlers'
 import { setupDailyQuotesHandlers } from './dailyquotesIpcHandlers'
 import { setupLifeGuideHandlers } from './lifeGuideIpcHandlers'
 import { setupReviewHandlers } from './reviewIpcHandlers'
+import { setupEdWhiteboardHandlers } from './edWhiteboardIpcHandlers'
 
 export function setupIpcHandlers(): void {
   setupNotesHandlers()
@@ -46,4 +47,5 @@ export function setupIpcHandlers(): void {
   setupDailyQuotesHandlers()
   setupLifeGuideHandlers()
   setupReviewHandlers()
+  setupEdWhiteboardHandlers()
 }
