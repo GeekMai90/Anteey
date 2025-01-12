@@ -17,9 +17,9 @@
         />
       </div>
     </div>
-    <div class="whiteboard-card-content" @dblclick.stop="openWhiteboard(whiteboard.id)">
+    <div class="whiteboard-card-content">
       <div class="whiteboard-name">
-        <div class="icon">
+        <div class="icon" @click="openWhiteboard(whiteboard.id)">
           <Workbench
             theme="outline"
             size="20"
@@ -27,12 +27,21 @@
             :strokeWidth="3"
           />
         </div>
-        <div class="name">
+        <div v-if="!isEditing" class="name" @dblclick.stop="startEditing" @click.stop>
           {{ whiteboard.name }}
         </div>
+        <input
+          v-else
+          ref="nameInput"
+          v-model="editingName"
+          class="name-input"
+          @blur="finishEditing"
+          @keyup.enter="finishEditing"
+          @click.stop
+        />
       </div>
     </div>
-    <div class="whiteboard-card-footer">
+    <div class="whiteboard-card-footer" @click="openWhiteboard(whiteboard.id)">
       <div class="update-time">{{ formatTime }}</div>
     </div>
     <ConfirmModal
@@ -46,7 +55,7 @@
 </template>
 
 <script setup lang="ts">
-import { defineProps, ref, computed } from 'vue'
+import { defineProps, ref, computed, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import type { EdWhiteboard } from '@shared/types/edWhiteboard'
 import { Workbench, More } from '@icon-park/vue-next'
@@ -74,7 +83,10 @@ const formatTime = computed(() => {
 })
 
 // 打开白板
-const openWhiteboard = (id: string) => {
+const openWhiteboard = (id: string, event?: Event) => {
+  if (event) {
+    event.stopPropagation()
+  }
   router.push(`/ed-whiteboard/${id}`)
 }
 
@@ -88,7 +100,7 @@ const menuItems = ref<MenuItem[]>([
     name: 'rename',
     label: '重命名',
     action: () => {
-      // TODO: 实现重命名功能
+      startEditing()
     }
   },
   {
@@ -131,6 +143,43 @@ const confirmDelete = async () => {
 const cancelDelete = () => {
   showConfirmModal.value = false
 }
+
+// 重命名功能相关
+const isEditing = ref(false)
+const editingName = ref('')
+const nameInput = ref<HTMLInputElement | null>(null)
+
+const startEditing = (event?: Event) => {
+  if (event) {
+    event.stopPropagation()
+  }
+  isEditing.value = true
+  editingName.value = props.whiteboard.name
+  nextTick(() => {
+    nameInput.value?.focus()
+  })
+}
+
+const finishEditing = async (event?: Event) => {
+  if (event) {
+    event.stopPropagation()
+  }
+  isEditing.value = false
+  if (editingName.value.trim() === '') {
+    editingName.value = props.whiteboard.name
+    return
+  }
+  if (editingName.value !== props.whiteboard.name) {
+    try {
+      await edWhiteboardStore.updateWhiteboard({
+        id: props.whiteboard.id,
+        name: editingName.value.trim()
+      })
+    } catch (error) {
+      console.error('重命名白板失败:', error)
+    }
+  }
+}
 </script>
 
 <style lang="scss" scoped>
@@ -155,6 +204,20 @@ const cancelDelete = () => {
     .whiteboard-card-header {
       opacity: 1;
     }
+  }
+
+  .whiteboard-name {
+    .name {
+      cursor: text;
+    }
+
+    .icon {
+      cursor: pointer;
+    }
+  }
+
+  .whiteboard-card-footer {
+    cursor: pointer;
   }
 }
 
@@ -247,6 +310,19 @@ const cancelDelete = () => {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+  }
+
+  .name-input {
+    flex-grow: 1;
+    font-size: 18px;
+    color: var(--color-text-primary);
+    background: transparent;
+    outline: none;
+    border: none;
+    padding: 2px 4px;
+    margin-left: 6px;
+    width: 100%;
+    box-sizing: border-box;
   }
 }
 

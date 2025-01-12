@@ -67,7 +67,7 @@ const themeStore = useThemeStore()
 // ===== 侧边栏状态管理 =====
 const isTemporaryVisible = ref(false)
 let hideSidebarTimeout: number | undefined = undefined
-const sidebarWidth = ref(250)
+const sidebarWidth = ref(230)
 const rightSidebarWidth = ref(400)
 
 // ===== 侧边栏控制方法 =====

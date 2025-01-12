@@ -8,7 +8,7 @@
             <div class="icon">
               <Workbench theme="outline" size="20" fill="var(--color-primary)" :strokeWidth="3" />
             </div>
-            <div class="name">Excalidraw 白板</div>
+            <div class="name">手绘板</div>
           </div>
           <div class="topToolBar-right">
             <!-- 新增白板按钮 -->
@@ -21,7 +21,7 @@
                   :strokeWidth="3"
                 />
               </div>
-              <div class="name">新增白板</div>
+              <div class="name">新增手绘板</div>
             </div>
             <!-- 排序按钮 -->
             <div class="sort-button-container" @click.stop="toggleSortMenu">

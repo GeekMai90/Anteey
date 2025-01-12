@@ -1,12 +1,9 @@
 <template>
   <div class="ed-whiteboard-detail">
-    <div class="toolbar">
-      <div class="left">
-        <div class="whiteboard-name">
-          {{ currentWhiteboard?.name || '未命名白板' }}
-        </div>
-      </div>
-    </div>
+    <AppToolbar
+      :whiteboardName="currentWhiteboard?.name || '未命名白板'"
+      @update:whiteboardName="updateWhiteboardName"
+    />
     <div class="excalidraw-container">
       <ExcalidrawComponent
         :excalidrawAPI="setExcalidrawAPI"
@@ -45,6 +42,7 @@ import { Excalidraw } from '@excalidraw/excalidraw'
 import type { ExcalidrawImperativeAPI } from '@excalidraw/excalidraw/types/types'
 import { useEdWhiteboardStore } from '@renderer/stores/EdWhiteboardStore'
 import { debounce } from 'lodash-es'
+import AppToolbar from '../layout/AppToolbar.vue'
 
 const ExcalidrawComponent = applyPureReactInVue(Excalidraw)
 
@@ -54,6 +52,16 @@ const excalidrawAPI = ref<ExcalidrawImperativeAPI | null>(null)
 
 // 获取当前白板数据
 const currentWhiteboard = computed(() => edWhiteboardStore.currentWhiteboard)
+
+// 更新白板名称
+const updateWhiteboardName = (newName: string) => {
+  if (currentWhiteboard.value) {
+    edWhiteboardStore.updateWhiteboard({
+      id: currentWhiteboard.value.id,
+      name: newName
+    })
+  }
+}
 
 // 设置 API 实例
 const setExcalidrawAPI = (api: ExcalidrawImperativeAPI) => {

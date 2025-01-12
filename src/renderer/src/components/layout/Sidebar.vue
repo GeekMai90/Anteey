@@ -283,7 +283,8 @@ import {
   Pencil,
   Theme,
   Star,
-  Tag
+  Tag,
+  HandPaintedPlate
 } from '@icon-park/vue-next'
 import { useNoteStore } from '@renderer/stores/noteStore'
 import SettingDropdownMenu from '@renderer/components/settings/SettingDropdownMenu.vue'
@@ -334,14 +335,12 @@ const menuItems = computed(() => {
     { name: '卡片盒', path: '/cardbox', icon: Box },
     { name: '知识树', path: '/knowledge-tree', icon: Sapling },
     { name: '记忆卡', path: '/flashcard', icon: StorageCardOne },
-    { name: 'Ed白板', path: '/ed-whiteboard', icon: Workbench },
-    { name: 'Excalidraw 画板', path: '/excalidraw-test', icon: Workbench },
-    { name: 'Tldraw 画板', path: '/tldraw-test', icon: Workbench },
 
     // 根据设置决定是否显示白板
     ...(appearanceStore.settings?.enableWhiteboard
       ? [{ name: '思维板', path: '/whiteboard', icon: Workbench }]
-      : [])
+      : []),
+    { name: '手绘板', path: '/ed-whiteboard', icon: HandPaintedPlate }
   ]
   return baseItems
 })
@@ -371,8 +370,8 @@ const emit = defineEmits<{
   (e: 'resize', width: number): void
 }>()
 
-const sidebarWidth = ref(250)
-const MIN_WIDTH = 250
+const sidebarWidth = ref(230)
+const MIN_WIDTH = 230
 const MAX_WIDTH = 400
 
 watch(sidebarWidth, (newWidth) => {
