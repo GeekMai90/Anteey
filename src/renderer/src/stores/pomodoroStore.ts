@@ -207,17 +207,15 @@ export const usePomodoroStore = defineStore('pomodoro', () => {
         return
       }
 
-      const soundPath = await window.electronAPI.pomodoro.getSoundFilePath(settings.value.sound)
-      if (!soundPath) return
-
-      // 添加 file:// 协议
-      const audioUrl = `file://${soundPath}`
+      // 直接使用相对路径
+      const soundPath = new URL(`../assets/sounds/${settings.value.sound}.wav`, import.meta.url)
+        .href
 
       if (!audio.value) {
-        audio.value = new Audio(audioUrl)
-        audio.value.loop = true // 循环播放
+        audio.value = new Audio(soundPath)
+        audio.value.loop = true
       } else {
-        audio.value.src = audioUrl
+        audio.value.src = soundPath
       }
 
       await audio.value.play()
@@ -246,10 +244,8 @@ export const usePomodoroStore = defineStore('pomodoro', () => {
   // 播放完成音效
   const playCompleteSound = async () => {
     try {
-      const soundPath = await window.electronAPI.pomodoro.getSoundFilePath('complete')
-      if (!soundPath) return
-
-      const completeAudio = new Audio(`file://${soundPath}`)
+      const soundPath = new URL('../assets/sounds/complete.mp3', import.meta.url).href
+      const completeAudio = new Audio(soundPath)
       await completeAudio.play()
     } catch (error) {
       console.error('播放完成音效失败:', error)
