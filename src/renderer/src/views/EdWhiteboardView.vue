@@ -121,7 +121,7 @@ const sortedWhiteboards = computed(() => {
 const addWhiteboard = async () => {
   try {
     const newWhiteboard = await edWhiteboardStore.createWhiteboard({
-      name: '新白板'
+      name: '新手绘板'
     })
     // 创建成功后直接进入编辑页面
     router.push(`/ed-whiteboard/${newWhiteboard.id}`)
