@@ -248,23 +248,17 @@ function createWindow(): BrowserWindow {
     callback({
       responseHeaders: {
         ...details.responseHeaders,
-        // 定义内容安全策略规则
         'Content-Security-Policy': [
-          // 各种资源的访问控制规则
-          'default-src *; ' + // 默认允许所有来源
-            // 图片源：允许本地文件、base64数据、blob数据、http(s)和所有域名
-            "img-src 'self' file: data: blob: https: http: app-image: *; " +
-            // 媒体源：允许本地文件和所有来源
+          'default-src *; ' +
+            // 修改 img-src，确保支持所有需要的图片源
+            "img-src 'self' data: blob: file: https: http: app-image: * 'unsafe-inline'; " +
             "media-src 'self' file: *; " +
-            // 脚本源：添加 cdn.tldraw.com
+            // 确保脚本源包含所有需要的域名
             "script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: https://unpkg.com https://cdn.tldraw.com; " +
-            // 样式源：添加 cdn.tldraw.com
             "style-src 'self' 'unsafe-inline' https://unpkg.com https://cdn.tldraw.com; " +
-            // 连接源：添加 cdn.tldraw.com
-            "connect-src 'self' file: app-image: https://api.tiptap.dev https://unpkg.com https://cdn.tldraw.com; " +
-            // 字体源：添加 cdn.tldraw.com
+            // 修改 connect-src，允许更多连接
+            "connect-src 'self' data: blob: file: app-image: https://api.tiptap.dev https://unpkg.com https://cdn.tldraw.com; " +
             'font-src * https://cdn.tldraw.com; ' +
-            // Web Worker源
             "worker-src 'self' blob: data:;"
         ]
       }

@@ -23,9 +23,14 @@
         :langCode="'zh-CN'"
         :initialData="{
           elements: [],
-          appState: {},
-          scrollToContent: true,
-          collaborators: new Map()
+          appState: {
+            viewBackgroundColor: '#ffffff',
+            currentItemFontFamily: 1,
+            scrollX: 0,
+            scrollY: 0,
+            zoom: 1
+          },
+          scrollToContent: true
         }"
       />
     </div>
@@ -65,24 +70,66 @@ const loadWhiteboard = async () => {
     const whiteboard = await edWhiteboardStore.fetchWhiteboardById(id)
     if (whiteboard?.content) {
       const data = JSON.parse(whiteboard.content)
+
+      // 先更新场景
       excalidrawAPI.value.updateScene({
-        ...data,
-        collaborators: new Map(),
-        commitToHistory: true
+        elements: data.elements || [],
+        appState: {
+          ...data.appState,
+          viewBackgroundColor: data.appState?.viewBackgroundColor || '#ffffff',
+          currentItemFontFamily: data.appState?.currentItemFontFamily || 1,
+          scrollX: data.appState?.scrollX || 0,
+          scrollY: data.appState?.scrollY || 0,
+          zoom: data.appState?.zoom || 1
+        }
       })
+
+      // 处理文件数据
+      if (data.files) {
+        const fileMap = new Map()
+        for (const [id, file] of Object.entries(data.files)) {
+          const { dataURL, mimeType } = file as any
+          if (dataURL && mimeType) {
+            // 将 base64 转换为 Blob
+            const response = await fetch(dataURL)
+            const blob = await response.blob()
+            // 创建 File 对象
+            const newFile = new File([blob], id, { type: mimeType })
+            fileMap.set(id, {
+              id,
+              dataURL,
+              mimeType,
+              file: newFile
+            })
+          }
+        }
+        // 添加文件到画布
+        await excalidrawAPI.value.addFiles(Array.from(fileMap.values()))
+      }
     }
   } catch (error) {
     console.error('加载白板失败:', error)
   }
 }
 
-// 简化保存函数
+// 保存白板数据
 const saveWhiteboard = debounce(async () => {
   if (!currentWhiteboard.value || !excalidrawAPI.value) return
 
   try {
     const elements = excalidrawAPI.value.getSceneElements()
     const appState = excalidrawAPI.value.getAppState()
+    const files = excalidrawAPI.value.getFiles()
+
+    // 处理文件数据
+    const processedFiles: Record<string, any> = {}
+    for (const [id, file] of Object.entries(files)) {
+      processedFiles[id] = {
+        id: file.id,
+        dataURL: file.dataURL,
+        mimeType: file.mimeType
+      }
+    }
 
     const sceneData = {
       elements,
@@ -92,7 +139,8 @@ const saveWhiteboard = debounce(async () => {
         scrollX: appState.scrollX,
         scrollY: appState.scrollY,
         zoom: appState.zoom
-      }
+      },
+      files: processedFiles
     }
 
     await edWhiteboardStore.updateWhiteboard({
