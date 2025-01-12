@@ -13,10 +13,10 @@
 
         <!-- 小组件列表 -->
         <div class="widgets-list">
-          <DailyQuotes />
           <Pomodoro />
+          <DailyQuotes />
           <LifeGuide />
-
+          <Review />
           <!-- 后续可以添加更多小组件 -->
         </div>
       </div>
@@ -28,6 +28,7 @@
 import Pomodoro from '@renderer/components/widget/Pomodoro.vue'
 import DailyQuotes from '@renderer/components/widget/DailyQuotes.vue'
 import LifeGuide from '@renderer/components/widget/LifeGuide.vue'
+import Review from '@renderer/components/widget/Review.vue'
 </script>
 
 <style lang="scss" scoped>

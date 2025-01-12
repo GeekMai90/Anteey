@@ -90,7 +90,8 @@ import type {
   BackgroundSound,
 
   // 每日金句相关
-  DailyQuote
+  DailyQuote,
+  ReviewResponse
 } from '@shared/types'
 
 export interface ElectronAPI {
@@ -597,6 +598,11 @@ export interface ElectronAPI {
   lifeGuide: {
     // 获取随机人生指南笔记
     getRandomLifeGuideNote: () => Promise<Note | null>
+  }
+
+  review: {
+    // 获取智能回顾数据
+    getReviewData: () => Promise<ReviewResponse>
   }
 }
 

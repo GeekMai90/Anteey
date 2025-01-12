@@ -20,6 +20,7 @@ import { windowApi } from './api/windowApi'
 import { pomodoroApi } from './api/pomodoroApi'
 import { dailyQuotesApi } from './api/dailyquotesApi'
 import { lifeGuideApi } from './api/lifeGuideApi'
+import { reviewApi } from './api/reviewApi'
 // 添加日志 API
 contextBridge.exposeInMainWorld('electronLog', {
   info: (...args: any[]) => ipcRenderer.send('renderer-log', { level: 'info', args }),
@@ -119,5 +120,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
   lifeGuide: {
     ...lifeGuideApi
+  },
+  review: {
+    ...reviewApi
   }
 })
