@@ -22,6 +22,7 @@ import { dailyQuotesApi } from './api/dailyquotesApi'
 import { lifeGuideApi } from './api/lifeGuideApi'
 import { reviewApi } from './api/reviewApi'
 import { edWhiteboardApi } from './api/EdWhiteboardApi'
+import { writingApi } from './api/writingApi'
 // 添加日志 API
 contextBridge.exposeInMainWorld('electronLog', {
   info: (...args: any[]) => ipcRenderer.send('renderer-log', { level: 'info', args }),
@@ -127,5 +128,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
   edWhiteboard: {
     ...edWhiteboardApi
+  },
+  writing: {
+    ...writingApi
   }
 })

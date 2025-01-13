@@ -1155,6 +1155,77 @@ export async function initDatabase(db: Knex): Promise<void> {
     })
     console.log('ed_whiteboard_note_refs 表创建成功')
   }
+
+  // 创建合集表
+  if (!(await db.schema.hasTable('collections'))) {
+    await db.schema.createTable('collections', (table) => {
+      table.string('id').primary()
+      table.string('name').notNullable()
+      table.text('description').nullable()
+      table.datetime('created_at').notNullable()
+      table.datetime('updated_at').notNullable()
+      table.boolean('is_deleted').notNullable().defaultTo(false)
+      table.string('parent_id').nullable().index() // 支持合集嵌套
+      table.integer('order').nullable() // 同级合集的排序
+
+      // 索引
+      table.index('created_at')
+      table.index('updated_at')
+      table.index(['parent_id', 'order']) // 用于排序查询
+      table.index(['is_deleted', 'parent_id']) // 用于过滤查询
+    })
+    console.log('collections 表创建成功')
+  }
+
+  // 创建文章表
+  if (!(await db.schema.hasTable('articles'))) {
+    await db.schema.createTable('articles', (table) => {
+      table.string('id').primary()
+      table.string('title').notNullable()
+      table.text('description').nullable()
+      table.datetime('created_at').notNullable()
+      table.datetime('updated_at').notNullable()
+      table.enum('status', ['draft', 'published', 'archived']).notNullable().defaultTo('draft')
+      table.json('tags').nullable() // 存储标签数组
+      table.boolean('is_deleted').notNullable().defaultTo(false)
+      table.json('collection_ids').nullable() // 存储合集ID数组
+      table.integer('word_count').nullable()
+
+      // 索引
+      table.index('created_at')
+      table.index('updated_at')
+      table.index('status')
+      table.index(['is_deleted', 'status']) // 用于过滤查询
+    })
+    console.log('articles 表创建成功')
+  }
+
+  // 创建文章卡片表
+  if (!(await db.schema.hasTable('article_cards'))) {
+    await db.schema.createTable('article_cards', (table) => {
+      table.string('id').primary()
+      table.string('article_id').notNullable().index()
+      table.enum('card_type', ['writing', 'note']).notNullable()
+      table.string('card_id').nullable().index() // 关联的笔记ID
+      table.text('content').nullable() // 写作卡片的内容
+      table.string('parent_id').nullable().index()
+      table.integer('level').notNullable()
+      table.integer('order').notNullable()
+      table.datetime('created_at').notNullable()
+      table.datetime('updated_at').notNullable()
+      table.string('prev_id').nullable().index()
+      table.string('next_id').nullable().index()
+
+      // 外键约束
+      table.foreign('article_id').references('articles.id').onDelete('CASCADE')
+      table.foreign('card_id').references('notes.id').onDelete('SET NULL') // 引用笔记被删除时设为null
+
+      // 索引
+      table.index(['article_id', 'level', 'order']) // 用于层级查询和排序
+      table.index(['parent_id', 'order']) // 用于同级排序
+    })
+    console.log('article_cards 表创建成功')
+  }
 }
 
 export async function down(db: Knex): Promise<void> {
@@ -1203,5 +1274,8 @@ export async function down(db: Knex): Promise<void> {
   await db.schema.dropTableIfExists('daily_quotes')
   await db.schema.dropTableIfExists('ed_whiteboard_note_refs')
   await db.schema.dropTableIfExists('ed_whiteboards')
+  await db.schema.dropTableIfExists('collections')
+  await db.schema.dropTableIfExists('articles')
+  await db.schema.dropTableIfExists('article_cards')
   console.log('所有表已删除')
 }

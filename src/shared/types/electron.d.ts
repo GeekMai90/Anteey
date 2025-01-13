@@ -101,7 +101,13 @@ import type {
   UpdateEdWhiteboardParams,
   CreateEdWhiteboardNoteRefParams,
   EdWhiteboardNoteRef,
-  UpdateEdWhiteboardNoteRefPositionParams
+  UpdateEdWhiteboardNoteRefPositionParams,
+
+  // 合集相关
+  Collection,
+  Article,
+  ArticleCard,
+  WritingCardType
 } from '@shared/types'
 
 export interface ElectronAPI {
@@ -646,6 +652,58 @@ export interface ElectronAPI {
 
     // 获取白板中的所有笔记引用
     getEdWhiteboardNoteRefs: (whiteboardId: string) => Promise<EdWhiteboardNoteRef[]>
+  }
+
+  writing: {
+    // === 合集相关方法 ===
+    createCollection: (params: {
+      name: string
+      description?: string
+      parentId?: string
+    }) => Promise<Collection>
+
+    getCollections: (parentId?: string | null) => Promise<Collection[]>
+
+    updateCollection: (id: string, data: Partial<Collection>) => Promise<Collection>
+
+    deleteCollection: (id: string) => Promise<void>
+
+    // === 文章相关方法 ===
+    createArticle: (params: {
+      title: string
+      description?: string
+      collectionIds?: string[]
+    }) => Promise<Article>
+
+    getArticles: (collectionId?: string) => Promise<Article[]>
+
+    updateArticle: (id: string, data: Partial<Article>) => Promise<Article>
+
+    deleteArticle: (id: string) => Promise<void>
+
+    // === 卡片相关方法 ===
+    createArticleCard: (params: {
+      articleId: string
+      cardType: WritingCardType
+      parentId: string | null
+      content?: string
+      cardId?: string
+    }) => Promise<ArticleCard>
+
+    getArticleCards: (articleId: string) => Promise<ArticleCard[]>
+
+    updateArticleCard: (id: string, data: Partial<ArticleCard>) => Promise<ArticleCard>
+
+    deleteArticleCard: (id: string) => Promise<void>
+
+    updateCardOrder: (params: {
+      cardId: string
+      newOrder: number
+      newParentId?: string | null
+    }) => Promise<void>
+
+    // 获取单个文章
+    getArticleById: (id: string) => Promise<Article | null>
   }
 }
 

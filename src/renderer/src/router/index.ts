@@ -152,6 +152,22 @@ const routes = [
     path: '/ed-whiteboard/:id',
     name: 'EdWhiteboardDetail',
     component: () => import('@renderer/components/edWhiteboard/EdWhiteboardDetail.vue')
+  },
+  {
+    name: 'WritingView',
+    path: '/writing',
+    component: () => import('../views/WritingView.vue'),
+    meta: { keepAlive: true }
+  },
+  {
+    name: 'WritingDetail',
+    path: '/writing/:id',
+    component: () => import('../components/writing/WritingDetail.vue'),
+    props: true,
+    meta: {
+      keepAlive: false,
+      parent: 'writing' // 添加父级关系，方便导航
+    }
   }
 ]
 
