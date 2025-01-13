@@ -27,6 +27,8 @@ interface TimeBlockState {
     content: string
     id: string
   }>
+  currentDate: Date
+  targetDate: string | null
 }
 
 export const useTimeBlockStore = defineStore('timeBlock', {
@@ -48,7 +50,9 @@ export const useTimeBlockStore = defineStore('timeBlock', {
     futureLog: null,
     currentMonthlyLog: null,
     monthlyLogs: [],
-    searchResults: []
+    searchResults: [],
+    currentDate: new Date(),
+    targetDate: null
   }),
 
   actions: {
@@ -378,9 +382,28 @@ export const useTimeBlockStore = defineStore('timeBlock', {
 
     // 跳转到指定的时光记录
     async navigateToTimeBlock(date: string, hour: number) {
-      await this.loadTimeBlockDay(date)
-      // 可以返回小时数，方便视图层进行滚动定位
-      return hour
+      try {
+        // 先检查当前是否已经加载了目标日期
+        if (!this.currentDay || this.currentDay.date !== date) {
+          // 如果没有加载或日期不匹配，则加载目标日期
+          await this.loadTimeBlockDay(date)
+
+          // 添加检查确保数据已加载
+          if (!this.currentDay) {
+            throw new Error('Failed to load time block data')
+          }
+        }
+
+        // 确保目标小时的数据存在
+        if (!this.currentDay.blocks[hour]) {
+          console.warn(`Hour ${hour} not found in blocks, but continuing...`)
+        }
+
+        return hour
+      } catch (error) {
+        console.error('导航到时间块失败:', error)
+        throw error
+      }
     }
   }
 })

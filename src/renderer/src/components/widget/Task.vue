@@ -29,7 +29,7 @@
             <div
               class="task-text"
               :class="{ completed: task.isChecked }"
-              @click="handleTaskClick(task.noteId)"
+              @click="handleTaskClick(task)"
             >
               {{ task.text }}
             </div>
@@ -58,9 +58,13 @@ import { useTaskStore } from '@renderer/stores/taskStore'
 import { useNoteStore } from '@renderer/stores/noteStore'
 import { Refresh } from '@icon-park/vue-next'
 import type { Task } from '@shared/types'
+import { useTimeBlockStore } from '@renderer/stores/timeBlockStore'
+import { useRouter } from 'vue-router'
 
 const taskStore = useTaskStore()
 const noteStore = useNoteStore()
+const timeBlockStore = useTimeBlockStore()
+const router = useRouter()
 const isLoading = ref(false)
 
 // 处理任务勾选
@@ -84,11 +88,38 @@ const handleRefresh = async () => {
 }
 
 // 处理任务点击
-const handleTaskClick = async (noteId: string) => {
+const handleTaskClick = async (task: Task) => {
   try {
-    await noteStore.openNoteEditor(noteId)
+    if (task.path[0] === 'timeBlock' && task.timeBlock) {
+      // 设置目标日期到 store
+      timeBlockStore.targetDate = task.timeBlock.date
+      timeBlockStore.$patch({ currentDay: null }) // 清空当前数据
+
+      // 跳转到时光记页面
+      await router.push('/timeblock')
+
+      // 等待时光记页面加载对应日期的数据
+      const hour = await timeBlockStore.navigateToTimeBlock(
+        task.timeBlock.date,
+        task.timeBlock.hour
+      )
+
+      // 添加一个延时确保数据已加载完成
+      await new Promise((resolve) => setTimeout(resolve, 100))
+
+      // 查找并滚动到对应的时间块
+      const timeBlock = document.querySelector(`.time-block[data-hour="${hour}"]`)
+      if (timeBlock) {
+        timeBlock.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      } else {
+        console.warn('未找到对应的时间块元素:', hour)
+      }
+    } else {
+      // 普通笔记任务
+      await noteStore.openNoteEditor(task.noteId)
+    }
   } catch (error) {
-    console.error('打开笔记失败:', error)
+    console.error('打开任务失败:', error)
   }
 }
 

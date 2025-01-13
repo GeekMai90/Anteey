@@ -4,7 +4,11 @@ export interface Task {
   address: string
   text: string
   isChecked: boolean
-  path: string[] // JSON路径,用于定位和更新任务
+  path: string[]
+  timeBlock?: {
+    date: string
+    hour: number
+  }
 }
 
 // 任务服务接口

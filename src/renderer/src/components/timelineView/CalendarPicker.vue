@@ -112,16 +112,20 @@ const updateCalendarPosition = () => {
 }
 
 // 处理点击日历外部的事件，用于关闭日历
+
 const handleClickOutside = (event: MouseEvent) => {
   const calendar = calendarRef.value
   const triggerElement = document.querySelector(props.triggerElementSelector)
 
-  if (
-    calendar &&
-    !calendar.contains(event.target as Node) &&
-    triggerElement &&
-    !triggerElement.contains(event.target as Node)
-  ) {
+  // 检查点击事件是否来自日历内部元素
+  const isClickInsideCalendar = calendar?.contains(event.target as Node)
+  // 检查点击事件是否来自触发按钮
+  const isClickOnTrigger = triggerElement?.contains(event.target as Node)
+
+  // 添加对 v-calendar 组件的特殊处理
+  const isClickOnVCalendar = (event.target as Element)?.closest('.vc-container')
+
+  if (!isClickInsideCalendar && !isClickOnTrigger && !isClickOnVCalendar) {
     uiStore.closeCalendarPicker()
   }
 }

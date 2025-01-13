@@ -39,21 +39,18 @@ function findTasks(node: any, note: any, tasks: Task[], path: string[] = []) {
 export async function getAllTasks(includeCompleted: boolean = false): Promise<Task[]> {
   try {
     console.log('服务端→ 开始获取任务:', { includeCompleted })
+    const tasks: Task[] = []
 
-    // 获取所有笔记
+    // 1. 获取笔记中的任务
     const notes = await db('notes')
       .select(['id', 'address', 'content'])
       .where('isDeleted', false)
       .whereRaw('json_valid(content) = 1')
 
-    const tasks: Task[] = []
-
-    // 遍历每个笔记的内容
+    // 遍历笔记内容
     notes.forEach((note) => {
       try {
         const content = JSON.parse(note.content)
-
-        // 开始遍历笔记内容
         if (Array.isArray(content.content)) {
           content.content.forEach((block: any, index: number) => {
             findTasks(block, note, tasks, ['content', index.toString()])
@@ -63,6 +60,45 @@ export async function getAllTasks(includeCompleted: boolean = false): Promise<Ta
         console.error('解析笔记内容失败:', error)
       }
     })
+
+    // 2. 获取时间块中的任务
+    const timeBlocks = await db('time_blocks')
+      .select(['id', 'dayId', 'hour', 'content'])
+      .whereNotNull('content')
+
+    // 遍历时间块内容
+    for (const block of timeBlocks) {
+      try {
+        if (block.content) {
+          // 使用正则表达式匹配任务项
+          const taskRegex =
+            /<div[^>]*data-type="bullet-task"[^>]*data-status="(pending|completed)"[^>]*class="[^"]*"[^>]*>(.*?)<\/div>/g
+          let match
+
+          while ((match = taskRegex.exec(block.content)) !== null) {
+            const status = match[1]
+            const text = match[2].replace(/<[^>]*>/g, '').trim() // 移除可能的HTML标签
+
+            // 获取时间块对应的日期
+            const day = await db('time_block_days').select('date').where('id', block.dayId).first()
+
+            tasks.push({
+              noteId: block.id,
+              address: `${day?.date} ${block.hour}:00`,
+              text: text,
+              isChecked: status === 'completed',
+              path: ['timeBlock'],
+              timeBlock: {
+                date: day?.date,
+                hour: block.hour
+              }
+            })
+          }
+        }
+      } catch (error) {
+        console.error('解析时间块内容失败:', error)
+      }
+    }
 
     // 根据参数决定是否过滤已完成任务
     const filteredTasks = includeCompleted ? tasks : tasks.filter((task) => !task.isChecked)
@@ -84,44 +120,67 @@ export async function updateTaskStatus(
   try {
     console.log('服务端→ 开始更新任务状态:', { noteId, path, isChecked })
 
-    // 1. 获取笔记内容
-    const note = await db('notes').where('id', noteId).first()
-    if (!note) {
-      throw new Error(`笔记不存在: ${noteId}`)
-    }
-
-    // 2. 解析内容
-    const content = JSON.parse(note.content)
-
-    // 3. 根据路径更新任务状态
-    let current = content
-    for (let i = 0; i < path.length - 1; i++) {
-      const key = path[i]
-      if (current[key] === undefined) {
-        throw new Error(`无效的路径: ${path.join('.')}`)
+    // 判断是否是时光记任务
+    if (path[0] === 'timeBlock') {
+      // 获取时间块内容
+      const timeBlock = await db('time_blocks').where('id', noteId).first()
+      if (!timeBlock) {
+        throw new Error(`时间块不存在: ${noteId}`)
       }
-      current = current[key]
-    }
 
-    // 获取最后一个节点
-    const lastKey = path[path.length - 1]
-    if (!current[lastKey]) {
-      throw new Error(`无效的路径: ${path.join('.')}`)
-    }
+      // 更新 HTML 内容中的任务状态
+      const content = timeBlock.content
+      const newStatus = isChecked ? 'completed' : 'pending'
+      const updatedContent = content.replace(
+        /(data-type="bullet-task"[^>]*data-status=")[^"]*(")/,
+        `$1${newStatus}$2`
+      )
 
-    // 更新checked状态
-    if (!current[lastKey].attrs) {
-      current[lastKey].attrs = {}
-    }
-    current[lastKey].attrs.checked = isChecked
-
-    // 4. 保存更新后的内容
-    await db('notes')
-      .where('id', noteId)
-      .update({
-        content: JSON.stringify(content),
+      // 保存更新后的内容
+      await db('time_blocks').where('id', noteId).update({
+        content: updatedContent,
         updatedAt: new Date()
       })
+    } else {
+      // 处理普通笔记任务
+      const note = await db('notes').where('id', noteId).first()
+      if (!note) {
+        throw new Error(`笔记不存在: ${noteId}`)
+      }
+
+      // 解析内容
+      const content = JSON.parse(note.content)
+
+      // 根据路径更新任务状态
+      let current = content
+      for (let i = 0; i < path.length - 1; i++) {
+        const key = path[i]
+        if (current[key] === undefined) {
+          throw new Error(`无效的路径: ${path.join('.')}`)
+        }
+        current = current[key]
+      }
+
+      // 获取最后一个节点
+      const lastKey = path[path.length - 1]
+      if (!current[lastKey]) {
+        throw new Error(`无效的路径: ${path.join('.')}`)
+      }
+
+      // 更新checked状态
+      if (!current[lastKey].attrs) {
+        current[lastKey].attrs = {}
+      }
+      current[lastKey].attrs.checked = isChecked
+
+      // 保存更新后的内容
+      await db('notes')
+        .where('id', noteId)
+        .update({
+          content: JSON.stringify(content),
+          updatedAt: new Date()
+        })
+    }
 
     console.log('任务状态更新成功')
   } catch (error) {

@@ -33,6 +33,9 @@ export const useTaskStore = defineStore('task', () => {
 
   // 创建事件总线
   const taskUpdatedBus = useEventBus<string>('task-updated')
+  const timeBlockTaskUpdatedBus = useEventBus<{ date: string; hour: number }>(
+    'timeblock-task-updated'
+  )
 
   // 更新任务状态
   const updateTaskStatus = async (noteId: string, path: string[], isChecked: boolean) => {
@@ -42,8 +45,18 @@ export const useTaskStore = defineStore('task', () => {
       await window.electronAPI.task.updateTaskStatus(noteId, pathArray, isChecked)
       await fetchAllTasks() // 重新获取所有任务以保持同步
 
-      // 发送事件通知
-      taskUpdatedBus.emit(noteId)
+      // 根据任务类型发送不同的事件通知
+      if (path[0] === 'timeBlock') {
+        const task = tasks.value.find((t) => t.noteId === noteId)
+        if (task?.timeBlock) {
+          timeBlockTaskUpdatedBus.emit({
+            date: task.timeBlock.date,
+            hour: task.timeBlock.hour
+          })
+        }
+      } else {
+        taskUpdatedBus.emit(noteId)
+      }
     } catch (error) {
       console.error('更新任务状态失败:', error)
       throw error

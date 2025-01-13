@@ -312,6 +312,7 @@ import FutureLog from '../components/timeblock/FutureLog.vue'
 import MonthlyLog from '../components/timeblock/MonthlyLog.vue'
 import { useDebounceFn } from '@vueuse/core'
 import Modal from '@renderer/components/common/Modal.vue'
+import { useEventBus } from '@vueuse/core'
 
 // 重命名本地接口以避免冲突
 interface TimeBlockHour {
@@ -377,6 +378,17 @@ const moodOptions = [
   { value: 'focused', label: '🎯 专注' }
 ]
 
+const timeBlockTaskUpdatedBus = useEventBus<{ date: string; hour: number }>(
+  'timeblock-task-updated'
+)
+
+timeBlockTaskUpdatedBus.on(async ({ date }) => {
+  const currentDateStr = format(currentDate.value, 'yyyy-MM-dd')
+  if (date === currentDateStr) {
+    await loadCurrentDayData()
+  }
+})
+
 // 监听日期变化
 watch(
   () => currentDate.value,
@@ -396,9 +408,6 @@ watch(
     if (timeBlockStore.compareMode) {
       await timeBlockStore.loadCompareData(dateStr)
     }
-  },
-  {
-    immediate: true // 确保组件创建时就执行一次
   }
 )
 
@@ -421,7 +430,7 @@ const editingHour = ref<number | null>(null)
 
 // 开始编辑
 const startEdit = (hour: number) => {
-  // 如果已���在编辑其他时间块，先取消编辑
+  // 如果已在编辑其他时间块，先取消编辑
   if (editingHour.value !== null && editingHour.value !== hour) {
     handleFinishEdit()
   }
@@ -453,8 +462,15 @@ onMounted(async () => {
   try {
     // 先获取设置
     await timeBlockStore.fetchSettings()
-    // 立即加载当天数据
-    await loadCurrentDayData()
+    // 如果没有目标日期，设置为今天
+    if (!timeBlockStore.targetDate) {
+      currentDate.value = new Date()
+    } else {
+      // 如果有目标日期，使用目标日期
+      currentDate.value = new Date(timeBlockStore.targetDate)
+      // 使用后清除目标日期
+      timeBlockStore.targetDate = null
+    }
   } catch (error) {
     console.error('初始化时间块视图失败:', error)
   }
@@ -717,17 +733,6 @@ const handleSearchInput = useDebounceFn(async (event: Event) => {
 }, 300)
 
 // 跳转到搜索结果
-// const navigateToResult = async (result: { date: string; hour: number }) => {
-//   const hour = await timeBlockStore.navigateToTimeBlock(result.date, result.hour)
-//   searchDialogVisible.value = false
-//   isExpanded.value = false
-
-//   // 等待视图更新后滚动到对应时间块
-//   nextTick(() => {
-//     scrollToHour(hour)
-//   })
-// }
-
 // 滚动到指定时间块
 const scrollToHour = (hour: number) => {
   nextTick(() => {
@@ -1609,6 +1614,12 @@ const highlightContent = (content: string) => {
           border-radius: 2px;
           font-weight: 500;
         }
+      }
+    }
+
+    &.selected {
+      .result-preview {
+        border-color: var(--color-primary);
       }
     }
   }
