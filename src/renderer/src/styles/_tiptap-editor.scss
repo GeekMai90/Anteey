@@ -354,6 +354,7 @@
       transition: all 0.3s ease;
       margin: 3.5px 0;
       flex-shrink: 0;
+      background: transparent;
 
       &:hover {
         border-color: var(--color-primary);
@@ -362,6 +363,7 @@
       &:checked {
         // background-color: #ccc;
         border-color: var(--color-primary);
+        background: transparent;
 
         &::after {
           content: "\2713";

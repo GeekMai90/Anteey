@@ -163,7 +163,7 @@
               v-for="block in timeBlocks"
               :key="block.hour"
               class="time-block"
-              data-hour="{{ block.hour }}"
+              :data-hour="block.hour"
             >
               <div class="time-label">{{ block.label }}</div>
               <div class="time-content" :class="{ editing: editingHour === block.hour }">
@@ -313,6 +313,8 @@ import MonthlyLog from '../components/timeblock/MonthlyLog.vue'
 import { useDebounceFn } from '@vueuse/core'
 import Modal from '@renderer/components/common/Modal.vue'
 import { useEventBus } from '@vueuse/core'
+import { useRouter, useRoute } from 'vue-router'
+import { parseISO } from 'date-fns'
 
 // 重命名本地接口以避免冲突
 interface TimeBlockHour {
@@ -322,7 +324,30 @@ interface TimeBlockHour {
 
 const timeBlockStore = useTimeBlockStore()
 const uiStore = useUIStore()
-const currentDate = ref(new Date())
+const router = useRouter()
+const route = useRoute()
+
+// 添加 props 定义
+const props = defineProps<{
+  date?: string
+}>()
+
+// 修改 currentDate 的初始化逻辑
+const currentDate = ref(props.date ? parseISO(props.date) : new Date())
+
+// 监听路由参数变化
+watch(
+  () => route.params.date,
+  async (newDate) => {
+    if (newDate) {
+      currentDate.value = parseISO(newDate as string)
+    } else {
+      // 如果没有日期参数，设置为今天
+      currentDate.value = new Date()
+    }
+  }
+)
+
 const selectedDate = ref<string | null>(null)
 const noteDates = ref<string[]>([])
 
@@ -410,6 +435,17 @@ watch(
     }
   }
 )
+// 处理从任务列表跳转
+watch(
+  () => timeBlockStore.targetDate,
+  async (newDate) => {
+    if (newDate) {
+      currentDate.value = new Date(newDate)
+      timeBlockStore.targetDate = null
+    }
+  },
+  { immediate: true }
+)
 
 // 加载当天数据
 async function loadCurrentDayData() {
@@ -423,7 +459,14 @@ async function loadCurrentDayData() {
 async function changeDate(days: number) {
   const newDate = new Date(currentDate.value)
   newDate.setDate(newDate.getDate() + days)
-  currentDate.value = newDate
+
+  // 更新路由
+  await router.push({
+    name: 'timeBlock',
+    params: {
+      date: format(newDate, 'yyyy-MM-dd')
+    }
+  })
 }
 
 const editingHour = ref<number | null>(null)
@@ -462,15 +505,19 @@ onMounted(async () => {
   try {
     // 先获取设置
     await timeBlockStore.fetchSettings()
-    // 如果没有目标日期，设置为今天
-    if (!timeBlockStore.targetDate) {
-      currentDate.value = new Date()
-    } else {
-      // 如果有目标日期，使用目标日期
+
+    // 根据路由参数或目标日期初始化
+    if (props.date) {
+      currentDate.value = parseISO(props.date)
+    } else if (timeBlockStore.targetDate) {
       currentDate.value = new Date(timeBlockStore.targetDate)
-      // 使用后清除目标日期
       timeBlockStore.targetDate = null
+    } else {
+      currentDate.value = new Date()
     }
+
+    // 加载数据
+    await loadCurrentDayData()
   } catch (error) {
     console.error('初始化时间块视图失败:', error)
   }
@@ -505,21 +552,45 @@ onMounted(() => {
 const toggleDateFilter = () => {
   if (selectedDate.value) {
     selectedDate.value = null
-    currentDate.value = new Date()
+    router.push({
+      name: 'timeBlock'
+    })
   } else {
     uiStore.toggleCalendarPicker()
   }
 }
 
 const onDateSelected = async (date: string | null) => {
-  selectedDate.value = date
   if (date) {
-    currentDate.value = new Date(date)
+    // 更新选中日期
+    selectedDate.value = date
+    // 跳转到选中日期
+    await router.push({
+      name: 'timeBlock',
+      params: {
+        date
+      }
+    })
   } else {
-    currentDate.value = new Date()
+    // 清除选中日期
+    selectedDate.value = null
+    // 如果没有选择日期，跳转到今天
+    await router.push({
+      name: 'timeBlock'
+    })
   }
-  // 日历选择器自动关闭，不需要手动关闭
+  // 关闭日历选择器
+  // uiStore.isCalendarPickerOpen = false
 }
+
+// 监听路由参数变化，同步更新选中日期
+watch(
+  () => route.params.date,
+  (newDate) => {
+    selectedDate.value = (newDate as string) || null
+  },
+  { immediate: true }
+)
 
 // 添加计算属性判断是否为今天
 const isToday = computed(() => {
@@ -538,11 +609,6 @@ const currentMoodEmoji = computed(() => {
   if (!timeBlockStore.currentDay?.mood) return timeBlockStore.defaultMood
   return moodOptions.find((o) => o.value === timeBlockStore.currentDay?.mood)?.label.split(' ')[0]
 })
-
-// 获取文本内容
-// const getTextContent = (block: TimeBlockData) => {
-//   return block.content || ''
-// }
 
 // 处理点击其他区域
 onMounted(() => {
@@ -582,15 +648,16 @@ const nextDate = computed(() => {
 // 修改日期点击处理
 const handleDateClick = async () => {
   if (!isToday.value) {
-    currentDate.value = new Date()
+    // 跳转到今天
+    await router.push({
+      name: 'timeBlock'
+    })
   } else {
     await timeBlockStore.toggleCompareMode()
     if (timeBlockStore.compareMode) {
-      // 进入对比模式时关闭侧边栏
       uiStore.setIsSidebarCollapsed(true)
       await timeBlockStore.loadCompareData(format(currentDate.value, 'yyyy-MM-dd'))
     } else {
-      // 退出对比模式时恢复侧边栏
       uiStore.setIsSidebarCollapsed(false)
     }
   }
@@ -697,13 +764,17 @@ const navigateToResult = async (result: { date: string; hour: number }) => {
   searchDialogVisible.value = false
   isExpanded.value = false
 
-  // 更新当前日期
-  currentDate.value = new Date(result.date)
+  // 更新路由和日期
+  await router.push({
+    name: 'timeBlock',
+    params: {
+      date: result.date
+    }
+  })
 
-  const hour = await timeBlockStore.navigateToTimeBlock(result.date, result.hour)
-
+  // 等待路由更新后滚动到指定时间
   nextTick(() => {
-    scrollToHour(hour)
+    scrollToHour(result.hour)
   })
 }
 
@@ -868,7 +939,7 @@ const highlightContent = (content: string) => {
       border-bottom: 1px solid var(--color-border);
 
       &-left {
-        width: 180px;
+        width: 100px;
         position: relative;
         display: flex;
         align-items: center;
@@ -929,7 +1000,7 @@ const highlightContent = (content: string) => {
           display: flex;
           align-items: center;
           justify-content: center;
-          gap: 8px;
+          gap: 4px;
 
           .current-date {
             font-size: 15px;
@@ -1053,18 +1124,18 @@ const highlightContent = (content: string) => {
       }
 
       &-right {
-        width: 380px;
+        width: 350px;
         display: flex;
         align-items: center;
         justify-content: flex-end;
-        gap: 10px;
+        gap: 8px;
 
         .tool-button {
           display: flex;
           align-items: center;
-          gap: 6px;
+          gap: 2px;
           padding: 6px 12px 6px 9px;
-          min-width: 80px;
+          min-width: 75px;
           // background: var(--color-bg-secondary);
           border: 1px solid var(--color-border);
           border-radius: 8px;
@@ -1133,9 +1204,9 @@ const highlightContent = (content: string) => {
           position: relative;
           display: flex;
           align-items: center;
-          gap: 6px;
+          gap: 2px;
           padding: 6px 12px 6px 9px;
-          min-width: 80px;
+          min-width: 75px;
           // background: var(--color-bg-secondary);
           border: 1px solid var(--color-border);
           border-radius: 8px;
@@ -1144,12 +1215,25 @@ const highlightContent = (content: string) => {
           user-select: none;
           height: 36px;
 
+          &.date-selected {
+            min-width: 130px;
+            width: auto;
+            padding-right: 16px;
+
+            .date-text {
+              max-width: 100px;
+            }
+          }
+
           .date-text {
             font-size: 13px;
             color: var(--color-text-secondary);
             font-weight: 500;
             line-height: 1;
             white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            flex: 1;
           }
 
           .icon {

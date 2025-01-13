@@ -114,8 +114,9 @@ const routes = [
   },
   {
     name: 'timeBlock',
-    path: '/timeblock',
-    component: () => import('../views/TimeBlockView.vue')
+    path: '/timeblock/:date?',
+    component: () => import('../views/TimeBlockView.vue'),
+    props: true
   },
   // 添加图片管理页面路由
   {
