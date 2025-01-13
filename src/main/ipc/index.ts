@@ -22,7 +22,7 @@ import { setupDailyQuotesHandlers } from './dailyquotesIpcHandlers'
 import { setupLifeGuideHandlers } from './lifeGuideIpcHandlers'
 import { setupReviewHandlers } from './reviewIpcHandlers'
 import { setupEdWhiteboardHandlers } from './edWhiteboardIpcHandlers'
-
+import { setupTaskHandlers } from './taskIpcHandlers'
 export function setupIpcHandlers(): void {
   setupNotesHandlers()
   setupWhiteboardHandlers()
@@ -48,4 +48,5 @@ export function setupIpcHandlers(): void {
   setupLifeGuideHandlers()
   setupReviewHandlers()
   setupEdWhiteboardHandlers()
+  setupTaskHandlers()
 }

@@ -611,6 +611,7 @@ const eventBusCreated = useEventBus('note-created')
 const eventBusDeleted = useEventBus('note-deleted')
 const eventBusEmptyNotesMovedToTrash = useEventBus('empty-notes-moved-to-trash')
 const eventBusNoteRestored = useEventBus('note-restored')
+const taskUpdatedBus = useEventBus<string>('task-updated')
 eventBusNoteRestored.on(() => {
   console.log('CardBoxView.vue→ 监听到笔记从回收站恢复事件')
   resetPagination()
@@ -629,15 +630,23 @@ noteUpdatedBus.on((updatedNote) => {
   if (!updatedNote) return
   updateSingleNote(updatedNote)
 })
+
+taskUpdatedBus.on(async (noteId) => {
+  // 找到对应的笔记并更新
+  const noteToUpdate = displayedNotes.value.find((note) => note.id === noteId)
+  if (noteToUpdate) {
+    try {
+      // 重新获取该笔记的最新数据
+      const updatedNote = await noteStore.fetchNoteById(noteId)
+      if (updatedNote) {
+        updateSingleNote(updatedNote)
+      }
+    } catch (error) {
+      console.error('更新笔记失败:', error)
+    }
+  }
+})
 // 更新单个笔记的函数
-// const updateSingleNote = (updatedNote: Note) => {
-//   if (!updatedNote) return
-//   // 如果日历被选择了，则更新filteredNotes
-//   const index = displayedNotes.value.findIndex((note) => note.id === updatedNote.id)
-//   if (index !== -1) {
-//     displayedNotes.value[index] = { ...displayedNotes.value[index], ...updatedNote }
-//   }
-// }
 
 const updateSingleNote = (updatedNote: Note) => {
   if (!updatedNote) return

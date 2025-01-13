@@ -101,7 +101,10 @@ import type {
   UpdateEdWhiteboardParams,
   CreateEdWhiteboardNoteRefParams,
   EdWhiteboardNoteRef,
-  UpdateEdWhiteboardNoteRefPositionParams
+  UpdateEdWhiteboardNoteRefPositionParams,
+
+  // 任务相关
+  Task
 } from '@shared/types'
 
 export interface ElectronAPI {
@@ -646,6 +649,23 @@ export interface ElectronAPI {
 
     // 获取白板中的所有笔记引用
     getEdWhiteboardNoteRefs: (whiteboardId: string) => Promise<EdWhiteboardNoteRef[]>
+  }
+
+  task: {
+    // 获取所有任务
+    getAllTasks: () => Promise<Task[]>
+
+    // 更新任务状态
+    updateTaskStatus: (noteId: string, path: string[], isChecked: boolean) => Promise<void>
+
+    // 获取未完成的任务
+    getUncompletedTasks: () => Promise<Task[]>
+
+    // 获取已完成的任务
+    getCompletedTasks: () => Promise<Task[]>
+
+    // 按笔记分组获取任务
+    getTasksByNote: () => Promise<{ [noteId: string]: Task[] }>
   }
 }
 

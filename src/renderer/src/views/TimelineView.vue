@@ -210,6 +210,27 @@ flashcardConvertedBus.on(async (noteId) => {
   }
 })
 
+// 监听任务更新事件
+const taskUpdatedBus = useEventBus<string>('task-updated')
+taskUpdatedBus.on(async (noteId) => {
+  try {
+    // 找到对应的笔记并更新
+    const noteToUpdate = notes.value.find((note) => note.id === noteId)
+    if (noteToUpdate) {
+      const updatedNote = await noteStore.fetchNoteById(noteId)
+      if (updatedNote) {
+        updateSingleNote(updatedNote)
+        // 强制更新虚拟列表
+        nextTick(() => {
+          virtualList.value = [...virtualList.value]
+        })
+      }
+    }
+  } catch (error) {
+    console.error('更新笔记失败:', error)
+  }
+})
+
 // 笔记更新函数
 const updateSingleNote = (updatedNote: Note) => {
   if (!updatedNote) return
