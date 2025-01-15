@@ -246,10 +246,9 @@ const copyImage = async () => {
 // 辅助函数：从图片 URL 中提取 ID
 const extractImageId = (url) => {
   try {
-    // 从路径中提取 UUID 格式的图片 ID
-    // 例如：file:///path/to/UserData/images/{uuid}-filename.png
+    // 处理 app-image:// 协议的 URL
     const match = url.match(
-      /images\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})-/
+      /images\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/
     )
     if (!match) {
       console.error('无法从URL提取图片ID:', url)
