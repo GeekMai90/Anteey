@@ -3,7 +3,7 @@
 <template>
   <div class="note-expand-editor">
     <!-- 固定区域：包含工具栏和编码地址 -->
-    <div class="fixed-header">
+    <div ref="fixedHeaderRef" class="fixed-header">
       <AppToolbar :showBackButton="true" :showForwardButton="true"></AppToolbar>
       <div class="editor-header">
         <!-- 地址输入区域 -->
@@ -154,6 +154,26 @@ const noteStore = useNoteStore()
 const noteId = route.params.id as string
 const addressInput = ref<HTMLInputElement | null>(null)
 const currentNote = ref<Note | null>(null)
+const fixedHeaderRef = ref<HTMLElement | null>(null)
+
+// 添加计算 header 高度的方法
+const updateHeaderHeight = () => {
+  if (fixedHeaderRef.value) {
+    const height = fixedHeaderRef.value.offsetHeight
+    document.documentElement.style.setProperty('--header-height', `${height}px`)
+  }
+}
+
+// 在组件挂载和更新时计算 header 高度
+onMounted(() => {
+  updateHeaderHeight()
+  window.addEventListener('resize', updateHeaderHeight)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('resize', updateHeaderHeight)
+})
+
 // 1. 添加一个 ref 来存储笔记的标签
 const noteTags = ref<{ id: string; name: string }[]>([])
 
@@ -559,13 +579,19 @@ onBeforeUnmount(async () => {
   background-color: var(--color-bg-primary);
   width: 100%;
   position: relative;
+  overflow: hidden;
 }
 
-/* 新增：固定头部区域 */
+/* 固定头部区域 */
 .fixed-header {
   flex-shrink: 0;
   background-color: var(--color-bg-primary);
   z-index: 10;
+  position: sticky;
+  top: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
 }
 
 /* 可滚动内容区域 */
@@ -574,6 +600,8 @@ onBeforeUnmount(async () => {
   overflow-y: auto;
   min-height: 0;
   padding-bottom: 20px;
+  position: relative;
+  height: calc(100vh - var(--header-height));
 }
 
 .editor-content {

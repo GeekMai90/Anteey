@@ -343,6 +343,7 @@ defineExpose({
     box-shadow 0.3s ease;
   margin-left: v-bind('uiStore.isSidebarCollapsed ? "0" : "10px"');
   margin-right: v-bind('uiStore.isRightSidebarOpen ? "10px" : "0"');
+  position: relative;
 }
 
 /* 右侧边栏样式 */
