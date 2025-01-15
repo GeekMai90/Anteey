@@ -18,77 +18,82 @@
         <div class="icon">
           <More theme="outline" size="18" fill="white" />
         </div>
+        <div v-if="showMenu" class="popup-menu" @click.stop>
+          <div class="popup-menu-item" @click="alignImage('left')">
+            <div class="icon">
+              <AlignTextLeft
+                theme="outline"
+                size="18"
+                fill="var(--color-icon-menu-default)"
+                :strokeWidth="3"
+              />
+            </div>
+            <div class="name">左对齐</div>
+          </div>
+          <div class="popup-menu-item" @click="alignImage('center')">
+            <div class="icon">
+              <AlignTextCenter
+                theme="outline"
+                size="18"
+                fill="var(--color-icon-menu-default)"
+                :strokeWidth="3"
+              />
+            </div>
+            <div class="name">居中对齐</div>
+          </div>
+          <div class="popup-menu-item" @click="alignImage('right')">
+            <div class="icon">
+              <AlignTextRight
+                theme="outline"
+                size="18"
+                fill="var(--color-icon-menu-default)"
+                :strokeWidth="3"
+              />
+            </div>
+            <div class="name">右对齐</div>
+          </div>
+          <div class="popup-menu-item" @click="downloadImage">
+            <div class="icon">
+              <Download
+                theme="outline"
+                size="18"
+                fill="var(--color-icon-menu-default)"
+                :strokeWidth="3"
+              />
+            </div>
+            <div class="name">下载</div>
+          </div>
+          <div class="popup-menu-item" @click="copyImage">
+            <div class="icon">
+              <Copy
+                theme="outline"
+                size="18"
+                fill="var(--color-icon-menu-default)"
+                :strokeWidth="3"
+              />
+            </div>
+            <div class="name">复制</div>
+          </div>
+          <div class="popup-menu-item popup-menu-item-danger" @click="deleteImage">
+            <div class="icon">
+              <Delete theme="outline" size="18" fill="#ff4d4f" :strokeWidth="3" />
+            </div>
+            <div class="name">删除</div>
+          </div>
+        </div>
       </div>
     </div>
-    <div v-if="showMenu" class="popup-menu" :style="menuStyle" @click.stop>
-      <div class="popup-menu-item" @click="alignImage('left')">
-        <div class="icon">
-          <AlignTextLeft
-            theme="outline"
-            size="18"
-            fill="var(--color-icon-menu-default)"
-            :strokeWidth="3"
-          />
-        </div>
-        <div class="name">左对齐</div>
-      </div>
-      <div class="popup-menu-item" @click="alignImage('center')">
-        <div class="icon">
-          <AlignTextCenter
-            theme="outline"
-            size="18"
-            fill="var(--color-icon-menu-default)"
-            :strokeWidth="3"
-          />
-        </div>
-        <div class="name">居中对齐</div>
-      </div>
-      <div class="popup-menu-item" @click="alignImage('right')">
-        <div class="icon">
-          <AlignTextRight
-            theme="outline"
-            size="18"
-            fill="var(--color-icon-menu-default)"
-            :strokeWidth="3"
-          />
-        </div>
-        <div class="name">右对齐</div>
-      </div>
-      <div class="popup-menu-item" @click="downloadImage">
-        <div class="icon">
-          <Download
-            theme="outline"
-            size="18"
-            fill="var(--color-icon-menu-default)"
-            :strokeWidth="3"
-          />
-        </div>
-        <div class="name">下载</div>
-      </div>
-      <div class="popup-menu-item" @click="copyImage">
-        <div class="icon">
-          <Copy theme="outline" size="18" fill="var(--color-icon-menu-default)" :strokeWidth="3" />
-        </div>
-        <div class="name">复制</div>
-      </div>
-      <div class="popup-menu-item popup-menu-item-danger" @click="deleteImage">
-        <div class="icon">
-          <Delete theme="outline" size="18" fill="#ff4d4f" :strokeWidth="3" />
-        </div>
-        <div class="name">删除</div>
-      </div>
-    </div>
+    <!-- 添加确认对话框 -->
+    <confirm-dialog
+      v-model:visible="showDeleteConfirm"
+      title="删除图片"
+      message="删除后图片将无法恢复，确定要删除吗？"
+      type="danger"
+      confirm-text="删除"
+      cancel-text="取消"
+      @confirm="confirmDelete"
+    />
   </node-view-wrapper>
-  <!-- 添加确认对话框 -->
-  <confirm-dialog
-    v-model:visible="showDeleteConfirm"
-    title="删除图片"
-    message="删除后图片将无法恢复，确定要删除吗？"
-    type="danger"
-    confirm-text="删除"
-    cancel-text="取消"
-    @confirm="confirmDelete"
-  />
 </template>
 
 <script setup>
@@ -130,17 +135,6 @@ const imageStyle = computed(() => ({
 const showMenu = ref(false)
 const moreButton = ref(null)
 
-const menuStyle = computed(() => {
-  if (!moreButton.value) return {}
-  const rect = moreButton.value.getBoundingClientRect()
-  return {
-    position: 'fixed',
-    top: `${rect.bottom}px`,
-    left: `${rect.right - 10}px`,
-    transform: 'translateX(-100%)'
-  }
-})
-
 watch(
   () => props.node.attrs.width,
   () => {
@@ -154,29 +148,6 @@ watch(
 
 const toggleMenu = () => {
   showMenu.value = !showMenu.value
-  if (showMenu.value) {
-    nextTick(() => {
-      updateMenuPosition()
-    })
-  }
-}
-
-const updateMenuPosition = () => {
-  const menu = document.querySelector('.popup-menu')
-  if (menu && moreButton.value) {
-    const rect = moreButton.value.getBoundingClientRect()
-    menu.style.top = `${rect.bottom}px`
-    menu.style.left = `${rect.right}px`
-    menu.style.transform = 'translateX(-100%)'
-
-    const menuRect = menu.getBoundingClientRect()
-    if (menuRect.right > window.innerWidth) {
-      menu.style.left = `${window.innerWidth - menuRect.width - 5}px`
-    }
-    if (menuRect.bottom > window.innerHeight) {
-      menu.style.top = `${rect.top - menuRect.height - moreButton.value.offsetHeight - 10}px`
-    }
-  }
 }
 
 const wrapperStyle = computed(() => ({
@@ -411,6 +382,7 @@ const startResize = (side, event) => {
   border-radius: 6px;
   padding: 4px 4px;
   margin: 2px;
+  transform: none;
 
   &:hover {
     background-color: var(--color-icon-image-more-hover);
@@ -459,7 +431,9 @@ const startResize = (side, event) => {
 }
 
 .popup-menu {
-  position: fixed;
+  position: absolute;
+  top: 100%;
+  right: 0;
   background-color: var(--color-bg-primary);
   border: 1px solid var(--color-border-primary);
   border-radius: 8px;
@@ -471,6 +445,7 @@ const startResize = (side, event) => {
   overflow-y: auto;
   padding: 6px 8px;
   white-space: nowrap;
+  margin-top: 4px;
 }
 
 .popup-menu-item {
