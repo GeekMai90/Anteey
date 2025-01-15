@@ -1,6 +1,6 @@
 {
   "name": "anteey",
-  "version": "1.3.35",
+  "version": "1.3.36",
   "description": "Anteey",
   "main": "./out/main/index.js",
   "author": "GeekMai",
@@ -207,6 +207,7 @@
       ]
     },
     "dmg": {
+      "artifactName": "Anteey-${version}-${arch}.${ext}",
       "background": "build/background.png",
       "icon": "build/disk-icon.icns",
       "iconSize": 100,
@@ -242,6 +243,7 @@
       "icon": "build/icon.ico"
     },
     "nsis": {
+      "artifactName": "Anteey-${version}.${ext}",
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
