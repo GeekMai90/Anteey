@@ -97,7 +97,7 @@
 </template>
 
 <script setup>
-import { ref, computed, nextTick, watch } from 'vue'
+import { ref, computed } from 'vue'
 import { NodeViewWrapper, nodeViewProps } from '@tiptap/vue-3'
 import {
   Download,
@@ -135,16 +135,16 @@ const imageStyle = computed(() => ({
 const showMenu = ref(false)
 const moreButton = ref(null)
 
-watch(
-  () => props.node.attrs.width,
-  () => {
-    if (showMenu.value) {
-      nextTick(() => {
-        updateMenuPosition()
-      })
-    }
-  }
-)
+// watch(
+//   () => props.node.attrs.width,
+//   () => {
+//     if (showMenu.value) {
+//       nextTick(() => {
+//         updateMenuPosition()
+//       })
+//     }
+//   }
+// )
 
 const toggleMenu = () => {
   showMenu.value = !showMenu.value
