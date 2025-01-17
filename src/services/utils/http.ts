@@ -17,10 +17,20 @@ http.interceptors.request.use(
     // 获取当前认证状态
     const authState = await getCurrentAuthState()
 
+    // 确保 config.headers 存在
+    config.headers = config.headers || {}
+
     // 如果有 token，添加到请求头
     if (authState?.accessToken) {
       config.headers.Authorization = `Bearer ${authState.accessToken}`
     }
+
+    // 添加请求日志
+    console.log('http.ts→ 发送请求:', {
+      url: config.url,
+      method: config.method,
+      headers: config.headers
+    })
 
     return config
   },
@@ -80,7 +90,6 @@ http.interceptors.response.use(
     return Promise.reject(new Error(errorMessage))
   }
 )
-
 // 导出类型安全的请求方法
 export const request = {
   get: <T>(url: string, config = {}) => http.get<T, T>(url, config),

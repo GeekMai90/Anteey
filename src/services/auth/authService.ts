@@ -79,7 +79,7 @@ export async function login(email: string, password: string): Promise<AuthState>
       deviceId: deviceInfo.deviceIdentifier,
       deviceName: deviceInfo.deviceName,
       lastVerified: new Date().toISOString(),
-      expiresAt: new Date(Date.now() + 180 * 24 * 60 * 60 * 1000).toISOString()
+      expiresAt: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString()
     }
 
     const encryptedData = encrypt(JSON.stringify(authState))
@@ -140,18 +140,41 @@ export async function logout(): Promise<void> {
   try {
     const currentState = await getCurrentAuthState()
     if (!currentState) {
+      console.log('authService.ts→ 当前没有登录状态，直接清除本地数据')
+      await db('auth_state').delete()
       return
     }
 
     console.log('authService.ts→ 登出前的认证状态:', {
       deviceId: currentState.deviceId,
-      user: currentState.user
+      accessToken: currentState.accessToken ? '存在' : '不存在'
     })
 
-    await request.post('/auth/logout', {
-      deviceId: currentState.deviceId
-    })
+    try {
+      // 确保请求头中包含 token
+      const config = {
+        headers: {
+          Authorization: `Bearer ${currentState.accessToken}`
+        }
+      }
 
+      // 尝试调用登出 API
+      await request.post(
+        '/auth/logout',
+        {
+          deviceId: currentState.deviceId
+        },
+        config
+      )
+
+      // 尝试删除设备
+      await request.delete(`/devices/identifier/${currentState.deviceId}`, config)
+    } catch (error) {
+      console.log('authService.ts→ 登出或删除设备失败:', error)
+      // 即使 API 调用失败，也继续清除本地状态
+    }
+
+    // 无论如何都清除本地认证状态
     await db('auth_state').delete()
   } catch (error) {
     console.error('后端→ 登出失败:', error)

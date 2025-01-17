@@ -283,8 +283,8 @@
 
 ### 删除设备
 
-- 路径: DELETE /devices/:id
-- 描述: 删除指定设备
+- 路径: DELETE /devices/identifier/:deviceIdentifier
+- 描述: 通过设备标识符删除指定设备
 - 认证: Bearer Token
 - 响应: 200 OK
 
