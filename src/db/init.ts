@@ -1155,6 +1155,17 @@ export async function initDatabase(db: Knex): Promise<void> {
     })
     console.log('ed_whiteboard_note_refs 表创建成功')
   }
+
+  // 创建认证状态表
+  if (!(await db.schema.hasTable('auth_state'))) {
+    await db.schema.createTable('auth_state', (table) => {
+      table.string('id').primary()
+      table.text('encryptedData').notNullable() // 加密存储的认证状态数据
+      table.datetime('createdAt').notNullable()
+      table.datetime('updatedAt').notNullable()
+    })
+    console.log('auth_state 表创建成功')
+  }
 }
 
 export async function down(db: Knex): Promise<void> {
@@ -1203,5 +1214,6 @@ export async function down(db: Knex): Promise<void> {
   await db.schema.dropTableIfExists('daily_quotes')
   await db.schema.dropTableIfExists('ed_whiteboard_note_refs')
   await db.schema.dropTableIfExists('ed_whiteboards')
+  await db.schema.dropTableIfExists('auth_state')
   console.log('所有表已删除')
 }

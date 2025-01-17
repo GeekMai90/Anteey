@@ -104,7 +104,10 @@ import type {
   UpdateEdWhiteboardNoteRefPositionParams,
 
   // 任务相关
-  Task
+  Task,
+
+  // 认证相关
+  AuthState
 } from '@shared/types'
 
 export interface ElectronAPI {
@@ -666,6 +669,23 @@ export interface ElectronAPI {
 
     // 按笔记分组获取任务
     getTasksByNote: () => Promise<{ [noteId: string]: Task[] }>
+  }
+
+  auth: {
+    // 登录
+    login: (params: { email: string; password: string }) => Promise<AuthState>
+
+    // 登出
+    logout: () => Promise<void>
+
+    // 获取当前认证状态
+    getCurrentAuthState: () => Promise<AuthState | null>
+
+    // 刷新 token
+    refreshToken: (token: string) => Promise<AuthState>
+
+    // 验证认证状态
+    verifyAuth: () => Promise<boolean>
   }
 }
 

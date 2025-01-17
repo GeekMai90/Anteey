@@ -23,6 +23,7 @@ import { lifeGuideApi } from './api/lifeGuideApi'
 import { reviewApi } from './api/reviewApi'
 import { edWhiteboardApi } from './api/EdWhiteboardApi'
 import { taskApi } from './api/taskApi'
+import { authApi } from './api/authApi'
 // 添加日志 API
 contextBridge.exposeInMainWorld('electronLog', {
   info: (...args: any[]) => ipcRenderer.send('renderer-log', { level: 'info', args }),
@@ -131,5 +132,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
   task: {
     ...taskApi
+  },
+  auth: {
+    ...authApi
   }
 })

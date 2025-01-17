@@ -10,6 +10,7 @@ import { useEventBus } from '@vueuse/core'
 import { useUIStore } from './UIStore'
 import { useTagStore } from './tagStore'
 import { message } from '../utils/message'
+import { useAuthStore } from './authStore'
 
 // 常量定义
 const cardTypes = [
@@ -828,6 +829,12 @@ export const useNoteStore = defineStore(
 
     // 将白板中创建的笔记添加到笔记列表中
     const addNoteToNoteList = async (id: string) => {
+      // 添加许可证检查
+      const canCreate = await checkCanCreateNote()
+      if (!canCreate) {
+        throw new Error('无法创建新笔记')
+      }
+
       const note = await fetchNoteById(id)
       const index = notes.value.findIndex((n) => n.id === id)
       if (index === -1) {
@@ -857,10 +864,36 @@ export const useNoteStore = defineStore(
       return foundNotes
     }
 
+    // 检查是否可以创建笔记
+    const checkCanCreateNote = async () => {
+      const authStore = useAuthStore()
+
+      // 如果是永久授权用户，直接允许
+      if (authStore.isDesktopPermanent) {
+        return true
+      }
+
+      // 获取当前笔记数量
+      const count = await getNoteCount()
+      if (count >= 30) {
+        message.error('免费版用户最多可创建 100 张笔记，请升级到永久授权版本')
+        return false
+      }
+
+      return true
+    }
+
     // 创建新笔记
     const createNote = async () => {
       console.log('noteStores.ts→ 创建新笔记')
       const eventBus = useEventBus('note-created')
+
+      // 添加许可证检查
+      const canCreate = await checkCanCreateNote()
+      if (!canCreate) {
+        throw new Error('无法创建新笔记')
+      }
+
       try {
         const newNote = await window.electronAPI.note.createNote()
         notes.value.push(newNote)
@@ -1423,7 +1456,8 @@ export const useNoteStore = defineStore(
       addTagToNote,
       removeTagFromNote,
       openTaggedNotes,
-      getRecentNotes
+      getRecentNotes,
+      checkCanCreateNote
     }
   },
   {

@@ -52,6 +52,7 @@ import { useAppearanceStore } from './stores/appearanceStore'
 import { useDraftsStore } from '@renderer/stores/draftsStore'
 import type { SyncState } from '@shared/types'
 import { useThemeStore } from '@renderer/stores/themeStore'
+import { useAuthStore } from './stores/authStore'
 
 // 组件导入
 import BaseLayout from './components/layout/BaseLayout.vue'
@@ -75,6 +76,7 @@ const webdavStore = useWebDAVStore()
 const draftsStore = useDraftsStore()
 const themeStore = useThemeStore()
 const uiStore = useUIStore()
+const authStore = useAuthStore()
 
 interface BaseLayoutInstance {
   checkWindowSize: () => void
@@ -219,6 +221,8 @@ onMounted(async () => {
       themeStore.applyTheme()
     }
   })
+
+  await authStore.initAuth()
 })
 
 onUnmounted(() => {

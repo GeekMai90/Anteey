@@ -23,6 +23,7 @@ import { setupLifeGuideHandlers } from './lifeGuideIpcHandlers'
 import { setupReviewHandlers } from './reviewIpcHandlers'
 import { setupEdWhiteboardHandlers } from './edWhiteboardIpcHandlers'
 import { setupTaskHandlers } from './taskIpcHandlers'
+import { setupAuthHandlers } from './authIpcHandlers'
 export function setupIpcHandlers(): void {
   setupNotesHandlers()
   setupWhiteboardHandlers()
@@ -49,4 +50,5 @@ export function setupIpcHandlers(): void {
   setupReviewHandlers()
   setupEdWhiteboardHandlers()
   setupTaskHandlers()
+  setupAuthHandlers()
 }

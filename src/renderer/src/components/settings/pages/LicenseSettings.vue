@@ -16,6 +16,62 @@
       <div class="license-settings-content">
         <div class="license-content">
           <div class="settings-section">
+            <div class="section-title">账号登录</div>
+            <div class="account-section">
+              <!-- 未登录状态 -->
+              <div v-if="!authStore.isAuthenticated" class="setting-item">
+                <div class="setting-label">登录账号</div>
+                <div class="login-form">
+                  <input
+                    v-model="email"
+                    type="email"
+                    placeholder="请输入邮箱"
+                    :disabled="authStore.loading"
+                  />
+                  <input
+                    v-model="password"
+                    type="password"
+                    placeholder="请输入密码"
+                    :disabled="authStore.loading"
+                  />
+                  <button
+                    class="login-button"
+                    :class="{ loading: authStore.loading }"
+                    :disabled="!email || !password || authStore.loading"
+                    @click="handleLogin"
+                  >
+                    {{ authStore.loading ? '登录中...' : '登录' }}
+                  </button>
+                </div>
+                <div v-if="authStore.error" class="error-message">
+                  {{ authStore.error }}
+                </div>
+              </div>
+
+              <!-- 已登录状态 -->
+              <div v-else class="setting-item">
+                <div class="setting-label">账号信息</div>
+                <div class="account-info">
+                  <div class="info-details">
+                    <div class="status-line">
+                      登录状态：<span class="status-badge active">已登录</span>
+                    </div>
+                    <div>用户名：{{ authStore.user?.username }}</div>
+                    <div>邮箱：{{ authStore.user?.email }}</div>
+                    <div>
+                      许可类型：
+                      <span :class="['license-type', authStore.user?.licenseType]">
+                        {{ authStore.isDesktopPermanent ? '永久授权' : '免费版' }}
+                      </span>
+                    </div>
+                  </div>
+                  <button class="logout-button" @click="handleLogout">退出登录</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="settings-section">
             <div class="section-title">激活信息</div>
 
             <!-- 未激活状态：显示使用统计 -->
@@ -117,11 +173,15 @@ import { useNoteStore } from '../../../stores/noteStore'
 import Modal from '../../../components/common/Modal.vue'
 import confetti from 'canvas-confetti'
 import { useUIStore } from '../../../stores/UIStore'
+import { useAuthStore } from '../../../stores/authStore'
 const licenseStore = useLicenseStore()
 const noteStore = useNoteStore()
 const uiStore = useUIStore()
+const authStore = useAuthStore()
 const activationCode = ref('')
 const noteCount = ref(0)
+const email = ref('')
+const password = ref('')
 
 // 从 store 中获取状态
 const isActivating = computed(() => licenseStore.isActivating)
@@ -240,6 +300,31 @@ const handleSuccessModalClose = () => {
   // 返回到主页面或其他指定页面
   uiStore.showSettingsPage = false
 }
+
+// 登录处理
+const handleLogin = async () => {
+  try {
+    await authStore.login(email.value, password.value)
+    email.value = ''
+    password.value = ''
+  } catch (error) {
+    // 错误已在 store 中处理
+  }
+}
+
+// 登出处理
+const handleLogout = async () => {
+  try {
+    await authStore.logout()
+  } catch (error) {
+    // 错误已在 store 中处理
+  }
+}
+
+// 初始化认证状态
+onMounted(async () => {
+  await authStore.initAuth()
+})
 
 // 组件挂载时获取机器码、许可证状态和笔记数量
 onMounted(async () => {
@@ -579,6 +664,111 @@ onMounted(async () => {
 
     &:hover {
       opacity: 0.9;
+    }
+  }
+}
+
+.account-section {
+  .login-form {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px;
+    border-radius: 6px;
+
+    input {
+      height: 32px;
+      padding: 0 12px;
+      border-radius: 6px;
+      border: 1px solid var(--color-border);
+      color: var(--color-text-primary);
+      font-size: 13px;
+      transition: all 0.2s ease;
+
+      &::placeholder {
+        color: var(--color-text-placeholder);
+      }
+
+      &:hover:not(:disabled) {
+        border-color: var(--color-primary);
+      }
+
+      &:focus {
+        outline: none;
+        border-color: var(--color-primary);
+      }
+
+      &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+    }
+
+    .login-button {
+      height: 32px;
+      padding: 0 16px;
+      border-radius: 6px;
+      border: none;
+      background: var(--color-primary);
+      color: #fff;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+
+      &:hover:not(:disabled) {
+        opacity: 0.9;
+      }
+
+      &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+
+      &.loading {
+        cursor: wait;
+      }
+    }
+  }
+
+  .account-info {
+    padding: 12px;
+    border-radius: 6px;
+    background-color: var(--color-bg-secondary);
+
+    .info-details {
+      margin-bottom: 12px;
+
+      > div {
+        margin-bottom: 4px;
+        font-size: 14px;
+        color: var(--color-text-primary);
+      }
+
+      .license-type {
+        &.desktop_permanent {
+          color: var(--color-success);
+        }
+        &.free {
+          color: var(--color-warning);
+        }
+      }
+    }
+
+    .logout-button {
+      height: 32px;
+      padding: 0 16px;
+      border-radius: 6px;
+      border: 1px solid var(--color-border);
+      background: transparent;
+      color: var(--color-text-primary);
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+
+      &:hover {
+        border-color: var(--color-danger);
+        color: var(--color-danger);
+      }
     }
   }
 }
