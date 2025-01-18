@@ -9,6 +9,7 @@ import 'floating-vue/dist/style.css'
 import { useNoteStore } from './stores/noteStore'
 import ShortKey from 'vue3-shortkey'
 import { useAppearanceStore } from './stores/appearanceStore'
+import { useAuthStore } from './stores/authStore'
 
 async function initializeApp() {
   const app = createApp(App)
@@ -17,11 +18,9 @@ async function initializeApp() {
   const pinia = createPinia()
   pinia.use(piniaPluginPersistedstate)
   app.use(pinia)
-
-  // 初始化路由
   app.use(router)
 
-  // 注册指令
+  // 注册 click-outside 指令
   app.directive('click-outside', {
     mounted(el, binding) {
       el.clickOutsideEvent = (event: Event) => {
@@ -39,26 +38,25 @@ async function initializeApp() {
   // 注册插件
   app.use(ShortKey, { prevent: ['input', 'textarea'] })
   app.use(FloatingVue, {
-    delay: {
-      show: 10000,
-      hide: 0
-    }
+    delay: { show: 10000, hide: 0 }
   })
 
-  if (process.env.NODE_ENV === 'development') {
-    ;(app.config as any).devtools = true
-  }
+  // 并行初始化 stores
+  const initPromises = [
+    useNoteStore().initializeStore(),
+    useAppearanceStore().initializeSettings(),
+    useAuthStore().initStore() // 添加认证初始化
+  ]
 
-  // 初始化 stores
-  const noteStore = useNoteStore()
-  await noteStore.initializeStore()
-
-  // 初始化外观设置
-  const appearanceStore = useAppearanceStore()
-  await appearanceStore.initializeSettings()
-
-  // 挂载应用
+  // 挂载应用不等待初始化完成
   app.mount('#app')
+
+  // 异步等待所有初始化完成
+  try {
+    await Promise.all(initPromises)
+  } catch (error) {
+    console.error('Store 初始化失败:', error)
+  }
 }
 
 // 启动应用

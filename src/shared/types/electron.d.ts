@@ -686,6 +686,9 @@ export interface ElectronAPI {
 
     // 验证认证状态
     verifyAuth: () => Promise<boolean>
+
+    // 检查网络状态
+    checkNetworkStatus: () => Promise<boolean>
   }
 }
 

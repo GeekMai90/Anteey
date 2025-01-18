@@ -59,5 +59,17 @@ export const authApi = {
       console.error('预加载脚本 → 验证认证状态失败:', error)
       throw error
     }
+  },
+
+  // 检查网络状态
+  checkNetworkStatus: async (): Promise<boolean> => {
+    try {
+      const result = await ipcRenderer.invoke('check-network-status')
+      if (!result.success) throw new Error(result.error)
+      return result.data
+    } catch (error) {
+      console.error('预加载脚本 → 检查网络状态失败:', error)
+      throw error
+    }
   }
 }

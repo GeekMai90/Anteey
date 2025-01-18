@@ -156,73 +156,68 @@ const isDarkMode = computed(() => {
 
 // ===== 生命周期钩子 =====
 onMounted(async () => {
-  // 初始化主题设置
-  await initializeTheme()
-  // 初始化主题和布局
-  // uiStore.initTheme()
-  baseLayout.value?.checkWindowSize()
-  window.addEventListener('resize', () => baseLayout.value?.handleResize())
-
-  // 路由初始化
-  // if (router.currentRoute.value.path === '/') {
-  //   router.push('/timeline')
-  // }
-  // 如果当前在根路径，则跳转到默认页面
-  if (router.currentRoute.value.path === '/') {
-    await appearanceStore.initializeSettings()
-    const defaultPage = appearanceStore.settings?.defaultPage || '/home'
-    router.push(defaultPage)
-  }
-
-  // 移除加载动画
+  // 1. 立即移除加载动画
   const loadingWrapper = document.getElementById('loading-wrapper')
   if (loadingWrapper) {
     loadingWrapper.style.opacity = '0'
-    loadingWrapper.style.transition = 'opacity 0.3s'
-    setTimeout(() => loadingWrapper?.remove(), 300)
+    loadingWrapper.style.transition = 'opacity 0.2s'
+    setTimeout(() => loadingWrapper?.remove(), 50)
   }
 
-  // 设置菜单事件监听
-  window.electronAPI.systemMenu.onMenuNewNote(async () => {
-    await noteStore.createAndOpenNewNote()
-  })
-  window.electronAPI.systemMenu.onMenuExportNotes(async () => {
-    await handleBulkExport()
-  })
-
-  // 监听同步状态变化
-  window.electronAPI.webDAV.syncStateChanged((state: SyncState) => {
-    webdavStore.updateSyncState(state)
-  })
-
-  // 加载配置并启动自动同步
-  await webdavStore.loadConfig()
-  if (webdavStore.config?.autoSync) {
-    await window.electronAPI.webDAV.startWebDAVAutoSync()
-  }
-
+  // 2. 必要的初始化放在这里
+  await initializeTheme()
+  baseLayout.value?.checkWindowSize()
+  window.addEventListener('resize', () => baseLayout.value?.handleResize())
   window.addEventListener('keydown', handleKeydown)
-  console.log('Keydown event listener added')
 
-  // 初始化草稿纸
-  try {
-    await draftsStore.fetchDraft()
-    if (!draftsStore.currentDraft) {
-      await draftsStore.createDraft()
+  // 3. 非关键初始化放在 queueMicrotask 中
+  queueMicrotask(async () => {
+    // 路由初始化
+    if (router.currentRoute.value.path === '/') {
+      const defaultPage = appearanceStore.settings?.defaultPage || '/home'
+      router.push(defaultPage)
     }
-  } catch (error) {
-    console.error('Failed to initialize draft:', error)
-  }
 
-  // 监听系统主题变化
-  const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
-  mediaQuery.addEventListener('change', () => {
-    if (themeStore.themeSettings?.themeMode === 'system') {
-      themeStore.applyTheme()
+    // 设置菜单事件监听
+    window.electronAPI.systemMenu.onMenuNewNote(async () => {
+      await noteStore.createAndOpenNewNote()
+    })
+    window.electronAPI.systemMenu.onMenuExportNotes(async () => {
+      await handleBulkExport()
+    })
+
+    // 监听同步状态变化
+    window.electronAPI.webDAV.syncStateChanged((state: SyncState) => {
+      webdavStore.updateSyncState(state)
+    })
+
+    // 加载配置并启动自动同步
+    await webdavStore.loadConfig()
+    if (webdavStore.config?.autoSync) {
+      await window.electronAPI.webDAV.startWebDAVAutoSync()
     }
   })
 
-  await authStore.initAuth()
+  // 4. 延迟初始化放在 setTimeout 中
+  setTimeout(async () => {
+    // 初始化草稿纸
+    try {
+      await draftsStore.fetchDraft()
+      if (!draftsStore.currentDraft) {
+        await draftsStore.createDraft()
+      }
+    } catch (error) {
+      console.error('Failed to initialize draft:', error)
+    }
+
+    // 监听系统主题变化
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
+    mediaQuery.addEventListener('change', () => {
+      if (themeStore.themeSettings?.themeMode === 'system') {
+        themeStore.applyTheme()
+      }
+    })
+  }, 1000)
 })
 
 onUnmounted(() => {
@@ -232,6 +227,7 @@ onUnmounted(() => {
   window.electronAPI.systemMenu.removeAllListeners('menu-export-notes')
   window.electronAPI.systemMenu.removeAllListeners('sync-state-changed')
   window.removeEventListener('keydown', handleKeydown)
+  authStore.cleanup()
 })
 
 // 全局方法注入

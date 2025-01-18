@@ -4,7 +4,8 @@ import {
   logout,
   getCurrentAuthState,
   refreshToken,
-  verifyAuthState
+  verifyAuthState,
+  checkNetworkStatus
 } from '../../services/auth/authService'
 
 export function setupAuthHandlers() {
@@ -102,6 +103,17 @@ export function setupAuthHandlers() {
         success: false,
         error: error instanceof Error ? error.message : '验证认证状态失败'
       }
+    }
+  })
+
+  // 添加网络状态检查处理器
+  ipcMain.handle('check-network-status', async () => {
+    try {
+      const isOnline = await checkNetworkStatus()
+      return { success: true, data: isOnline }
+    } catch (error) {
+      console.error('主进程→ 检查网络状态失败:', error)
+      return { success: false, error: String(error) }
     }
   })
 }

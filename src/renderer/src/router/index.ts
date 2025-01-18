@@ -22,6 +22,7 @@ const routes = [
     path: '/cardbox',
     component: () => import('../views/CardBoxView.vue'),
     // 添加子路由用于处理不同的筛选场景
+    meta: { keepAlive: true },
     children: [
       {
         name: 'cardboxAll',
@@ -127,7 +128,8 @@ const routes = [
   {
     name: 'FlashcardView',
     path: '/flashcard',
-    component: () => import('../views/FlashcardView.vue')
+    component: () => import('../views/FlashcardView.vue'),
+    meta: { keepAlive: true }
   },
   {
     name: 'DraftsView',

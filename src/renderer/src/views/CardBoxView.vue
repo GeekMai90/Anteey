@@ -361,8 +361,8 @@ watch(
     filterState.tags = (query.tags as string)?.split(',') || []
     filterState.keyword = (query.keyword as string) || ''
     filterState.isFlashcard = query.isFlashcard === 'true' || undefined // 添加闪卡状态更新
-    filterState.sort.field = (query.sort as string) || 'updatedAt'
-    filterState.sort.order = (query.order as 'asc' | 'desc') || 'desc'
+    filterState.sort.field = (query.sort as string) || 'address'
+    filterState.sort.order = (query.order as 'asc' | 'desc') || 'asc'
   }
 )
 

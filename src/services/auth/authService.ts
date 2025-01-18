@@ -56,47 +56,73 @@ function convertToAuthState(record: any): AuthState {
   }
 }
 
+// 添加保存认证状态的函数
+async function saveAuthState(state: AuthState): Promise<void> {
+  try {
+    // 加密认证状态
+    const encryptedData = encrypt(JSON.stringify(state))
+
+    // 先删除现有记录（如果有的话）
+    await db('auth_state').delete()
+
+    // 插入新记录
+    await db('auth_state').insert({
+      id: state.deviceId, // 使用设备ID作为主键
+      encryptedData,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    })
+
+    console.log('authService.ts→ 认证状态保存成功')
+  } catch (error) {
+    console.error('保存认证状态失败:', error)
+    throw error
+  }
+}
+
+// 添加离线状态检测函数
+export async function checkNetworkStatus(): Promise<boolean> {
+  try {
+    await request.get('/ping', { timeout: 3000 }) // 快速检查网络连接
+    return true
+  } catch (error) {
+    return false
+  }
+}
+
 // 登录
 export async function login(email: string, password: string): Promise<AuthState> {
   try {
     const deviceInfo = getDeviceInfo()
-
-    console.log('authService.ts→ 登录', deviceInfo)
-
-    const data = await request.post<LoginResponse>('/auth/login', {
+    const { data } = await request.post<LoginResponse>('/auth/login', {
+      ...deviceInfo,
       email,
-      password,
-      deviceType: deviceInfo.deviceType,
-      deviceName: deviceInfo.deviceName,
-      deviceIdentifier: deviceInfo.deviceIdentifier,
-      ipAddress: deviceInfo.ipAddress
+      password
     })
 
+    // 添加调试日志
+    console.log('authService.ts→ 登录响应数据:', data)
+
+    // 从 data 中获取数据
+    const { user, access_token, refresh_token } = data
+
     const authState: AuthState = {
-      user: data.user,
-      accessToken: data.access_token,
-      refreshToken: data.refresh_token,
+      user,
+      accessToken: access_token,
+      refreshToken: refresh_token,
       deviceId: deviceInfo.deviceIdentifier,
       deviceName: deviceInfo.deviceName,
       lastVerified: new Date().toISOString(),
-      expiresAt: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString()
+      expiresAt:
+        user.licenseExpiredAt || new Date(Date.now() + 180 * 24 * 60 * 60 * 1000).toISOString()
     }
 
-    const encryptedData = encrypt(JSON.stringify(authState))
-    await db('auth_state')
-      .delete()
-      .then(() =>
-        db('auth_state').insert({
-          id: deviceInfo.deviceIdentifier,
-          encryptedData,
-          createdAt: new Date(),
-          updatedAt: new Date()
-        })
-      )
+    // 加密存储认证状态
+    await saveAuthState(authState)
 
     return authState
   } catch (error) {
-    console.error('后端→ 登录失败:', error)
+    console.error('登录失败:', error)
     throw error
   }
 }
@@ -104,33 +130,32 @@ export async function login(email: string, password: string): Promise<AuthState>
 // 刷新 token
 export async function refreshToken(token: string): Promise<AuthState> {
   try {
-    const data = await request.post<RefreshTokenResponse>('/auth/refresh', {
+    const { data } = await request.post<RefreshTokenResponse>('/auth/refresh', {
       refresh_token: token
     })
 
+    // 从 data 中获取数据
+    const { access_token, refresh_token } = data
+
+    // 获取当前认证状态
     const currentState = await getCurrentAuthState()
     if (!currentState) {
-      throw new Error('未找到认证状态')
+      throw new Error('无法获取当前认证状态')
     }
 
-    const newState: AuthState = {
+    const authState: AuthState = {
       ...currentState,
-      accessToken: data.access_token,
-      refreshToken: data.refresh_token,
+      accessToken: access_token,
+      refreshToken: refresh_token,
       lastVerified: new Date().toISOString()
     }
 
-    const encryptedData = encrypt(JSON.stringify(newState))
-    await db('auth_state')
-      .update({
-        encryptedData,
-        updatedAt: new Date()
-      })
-      .where('id', currentState.deviceId)
+    // 加密存储更新后的认证状态
+    await saveAuthState(authState)
 
-    return newState
+    return authState
   } catch (error) {
-    console.error('后端→ 刷新 token 失败:', error)
+    console.error('刷新 token 失败:', error)
     throw error
   }
 }
@@ -193,24 +218,59 @@ export async function getCurrentAuthState(): Promise<AuthState | null> {
   }
 }
 
-// 验证认证状态
-export async function verifyAuthState(): Promise<boolean> {
+// 添加网络验证函数
+async function checkNetworkAndVerify(state: AuthState): Promise<boolean> {
   try {
-    const state = await getCurrentAuthState()
-    if (!state) {
+    // 检查网络状态
+    const isOnline = await checkNetworkStatus()
+    if (!isOnline) {
       return false
     }
 
-    // 检查是否过期
+    // 验证 token
+    await request.post('/auth/verify', null, {
+      headers: { Authorization: `Bearer ${state.accessToken}` }
+    })
+
+    // 更新最后验证时间
+    await saveAuthState({
+      ...state,
+      lastVerified: new Date().toISOString()
+    })
+
+    return true
+  } catch (error) {
+    console.error('网络验证失败:', error)
+    return false
+  }
+}
+
+// 修改验证状态函数
+export async function verifyAuthState(): Promise<boolean> {
+  try {
+    const state = await getCurrentAuthState()
+    if (!state) return false
+
+    // 先检查本地过期时间
+    const now = new Date()
+    const lastVerified = new Date(state.lastVerified)
     const expiresAt = new Date(state.expiresAt)
-    if (expiresAt < new Date()) {
+
+    // 如果已过期，直接返回 false
+    if (expiresAt < now) {
       await db('auth_state').delete()
       return false
     }
 
-    return true
+    // 如果在30天内验证过，直接返回true
+    if (now.getTime() - lastVerified.getTime() < 30 * 24 * 60 * 60 * 1000) {
+      return true
+    }
+
+    // 否则进行网络验证
+    return await checkNetworkAndVerify(state)
   } catch (error) {
-    console.error('后端→ 验证认证状态失败:', error)
+    console.error('验证失败:', error)
     return false
   }
 }

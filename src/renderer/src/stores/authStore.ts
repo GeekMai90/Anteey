@@ -1,17 +1,56 @@
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import type { AuthState } from '@shared/types'
+import { useRouter } from 'vue-router'
+import { message } from '../utils/message'
 
 export const useAuthStore = defineStore('auth', () => {
   // ==================== 状态 ====================
   const authState = ref<AuthState | null>(null)
   const loading = ref(false)
   const error = ref<string | null>(null)
+  const router = useRouter()
+
+  // 存储定时器引用
+  let refreshInterval: NodeJS.Timeout | null = null
+
+  const isInitialized = ref(false)
+
+  // 添加离线状态
+  const isOffline = ref(false)
+  const offlineExpiresIn = ref<number | null>(null)
+
+  // 存储离线监控定时器
+  let offlineMonitorInterval: NodeJS.Timeout | null = null
 
   // ==================== 计算属性 ====================
   const isAuthenticated = computed(() => !!authState.value)
   const user = computed(() => authState.value?.user)
   const isDesktopPermanent = computed(() => user.value?.licenseType === 'desktop_permanent')
+  const checkOfflineValidity = computed(() => {
+    if (!authState.value) return false
+    const lastVerified = new Date(authState.value.lastVerified)
+    const expiresAt = new Date(authState.value.expiresAt)
+    return (
+      expiresAt > new Date() &&
+      new Date().getTime() - lastVerified.getTime() < 180 * 24 * 60 * 60 * 1000
+    )
+  })
+  const canCreateNote = computed(() => {
+    if (!user.value) return false
+    if (isDesktopPermanent.value) return true
+    return user.value.licenseType === 'free' // 可以添加更多条件
+  })
+
+  // 计算离线剩余时间
+  const remainingOfflineDays = computed(() => {
+    if (!authState.value?.lastVerified) return 0
+    const lastVerified = new Date(authState.value.lastVerified)
+    const now = new Date()
+    const diffDays =
+      30 - Math.floor((now.getTime() - lastVerified.getTime()) / (1000 * 60 * 60 * 24))
+    return Math.max(0, diffDays)
+  })
 
   // ==================== 操作方法 ====================
   // 初始化认证状态
@@ -19,9 +58,11 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       loading.value = true
       error.value = null
-      const state = await window.electronAPI.auth.getCurrentAuthState()
+      const state = await retryOperation(
+        async () => await window.electronAPI.auth.getCurrentAuthState()
+      )
       if (state) {
-        const isValid = await window.electronAPI.auth.verifyAuth()
+        const isValid = await retryOperation(async () => await window.electronAPI.auth.verifyAuth())
         if (!isValid) {
           await logout()
           return
@@ -41,8 +82,15 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       loading.value = true
       error.value = null
-      const state = await window.electronAPI.auth.login({ email, password })
+      const state = await retryOperation(
+        async () => await window.electronAPI.auth.login({ email, password })
+      )
       authState.value = state
+
+      // 登录成功后设置
+      setupAutoRefresh()
+      setupAuthStateListener()
+      persistAuthState()
     } catch (err) {
       console.error('登录失败:', err)
       error.value = err instanceof Error ? err.message : '登录失败'
@@ -58,7 +106,25 @@ export const useAuthStore = defineStore('auth', () => {
       loading.value = true
       error.value = null
       await window.electronAPI.auth.logout()
+
+      // 清理状态和定时器
       authState.value = null
+      if (refreshInterval) {
+        clearInterval(refreshInterval)
+        refreshInterval = null
+      }
+      if (offlineMonitorInterval) {
+        clearInterval(offlineMonitorInterval)
+        offlineMonitorInterval = null
+      }
+
+      // 清理本地存储
+      localStorage.removeItem('lastAuthState')
+
+      // 跳转到设置页面
+      if (router?.currentRoute?.value?.path !== '/timeline') {
+        router.push('/timeline')
+      }
     } catch (err) {
       console.error('登出失败:', err)
       error.value = err instanceof Error ? err.message : '登出失败'
@@ -71,10 +137,13 @@ export const useAuthStore = defineStore('auth', () => {
   // 刷新 token
   const refreshToken = async () => {
     try {
-      if (!authState.value?.refreshToken) {
+      const currentRefreshToken = authState.value?.refreshToken
+      if (!currentRefreshToken) {
         throw new Error('没有可用的刷新令牌')
       }
-      const state = await window.electronAPI.auth.refreshToken(authState.value.refreshToken)
+      const state = await retryOperation(
+        async () => await window.electronAPI.auth.refreshToken(currentRefreshToken)
+      )
       authState.value = state
     } catch (err) {
       console.error('刷新令牌失败:', err)
@@ -88,6 +157,175 @@ export const useAuthStore = defineStore('auth', () => {
     error.value = null
   }
 
+  // 修改自动刷新机制
+  const setupAutoRefresh = () => {
+    // 清理已存在的定时器
+    if (refreshInterval) {
+      clearInterval(refreshInterval)
+    }
+
+    refreshInterval = setInterval(
+      async () => {
+        if (authState.value?.accessToken) {
+          try {
+            await refreshToken()
+          } catch (err) {
+            console.error('自动刷新 token 失败:', err)
+          }
+        }
+      },
+      14 * 24 * 60 * 60 * 1000
+    )
+  }
+
+  // 建议添加重试机制
+  const retryOperation = async (operation: () => Promise<any>, maxRetries = 3) => {
+    let retries = 0
+    while (retries < maxRetries) {
+      try {
+        return await operation()
+      } catch (err) {
+        retries++
+        if (retries === maxRetries) throw err
+        await new Promise((resolve) => setTimeout(resolve, 1000 * retries))
+      }
+    }
+  }
+
+  // 建议添加状态持久化
+  const persistAuthState = () => {
+    watch(
+      () => authState.value,
+      (newState) => {
+        if (newState) {
+          localStorage.setItem(
+            'lastAuthState',
+            JSON.stringify({
+              lastVerified: newState.lastVerified,
+              expiresAt: newState.expiresAt
+            })
+          )
+        } else {
+          localStorage.removeItem('lastAuthState')
+        }
+      },
+      { deep: true }
+    )
+  }
+
+  // 建议添加登录状态监听
+  const setupAuthStateListener = () => {
+    watch(
+      () => authState.value,
+      (newState) => {
+        if (!newState && router?.currentRoute?.value?.path !== '/settings') {
+          // 只有在非设置页面时才跳转
+          router.push('/settings')
+        }
+      }
+    )
+  }
+
+  // 修改监控离线状态函数
+  const monitorOfflineStatus = () => {
+    // 清理已存在的定时器
+    if (offlineMonitorInterval) {
+      clearInterval(offlineMonitorInterval)
+    }
+
+    // 立即执行一次检查
+    checkOfflineStatus()
+
+    // 设置定时检查
+    offlineMonitorInterval = setInterval(checkOfflineStatus, 5 * 60 * 1000)
+  }
+
+  // 分离检查逻辑
+  const checkOfflineStatus = async () => {
+    try {
+      const networkStatus = await window.electronAPI.auth.checkNetworkStatus()
+      isOffline.value = !networkStatus
+
+      if (!networkStatus && authState.value) {
+        const lastVerified = new Date(authState.value.lastVerified)
+        const now = new Date()
+        const remainingTime = 90 * 24 * 60 * 60 * 1000 - (now.getTime() - lastVerified.getTime())
+        offlineExpiresIn.value = Math.max(0, remainingTime)
+
+        if (remainingTime < 7 * 24 * 60 * 60 * 1000) {
+          message.warning(
+            `离线使用即将过期，请在 ${Math.ceil(remainingTime / (24 * 60 * 60 * 1000))} 天内连接网络验证授权`
+          )
+        }
+      }
+    } catch (error) {
+      console.error('检查离线状态失败:', error)
+    }
+  }
+
+  // 初始化时启动监控
+  // onMounted(() => {
+  //   monitorOfflineStatus()
+  // })
+
+  // 修改 initStore 函数
+  const initStore = async () => {
+    if (isInitialized.value) return
+
+    try {
+      loading.value = true
+
+      // 1. 先从本地加载状态
+      const localState = await window.electronAPI.auth.getCurrentAuthState()
+      if (localState) {
+        // 检查是否过期
+        const now = new Date()
+        const expiresAt = new Date(localState.expiresAt)
+
+        if (expiresAt > now) {
+          authState.value = localState
+          setupAutoRefresh()
+          setupAuthStateListener()
+        }
+      }
+
+      // 2. 异步进行网络验证
+      queueMicrotask(async () => {
+        try {
+          if (authState.value) {
+            const isValid = await window.electronAPI.auth.verifyAuth()
+            if (!isValid) {
+              await logout()
+            } else {
+              monitorOfflineStatus()
+            }
+          }
+        } catch (err) {
+          console.error('异步验证失败:', err)
+        }
+      })
+
+      isInitialized.value = true
+    } catch (err) {
+      console.error('初始化失败:', err)
+      error.value = err instanceof Error ? err.message : '初始化失败'
+    } finally {
+      loading.value = false
+    }
+  }
+
+  // 修改 cleanup 函数
+  const cleanup = () => {
+    if (refreshInterval) {
+      clearInterval(refreshInterval)
+      refreshInterval = null
+    }
+    if (offlineMonitorInterval) {
+      clearInterval(offlineMonitorInterval)
+      offlineMonitorInterval = null
+    }
+  }
+
   return {
     // 状态
     authState,
@@ -98,12 +336,24 @@ export const useAuthStore = defineStore('auth', () => {
     isAuthenticated,
     user,
     isDesktopPermanent,
+    checkOfflineValidity,
+    canCreateNote,
 
     // 方法
     initAuth,
     login,
     logout,
     refreshToken,
-    clearError
+    clearError,
+    setupAutoRefresh,
+    setupAuthStateListener,
+    initStore,
+    cleanup,
+    isInitialized,
+
+    // 离线状态
+    isOffline,
+    offlineExpiresIn,
+    remainingOfflineDays
   }
 })

@@ -875,7 +875,7 @@ export const useNoteStore = defineStore(
 
       // 获取当前笔记数量
       const count = await getNoteCount()
-      if (count >= 30) {
+      if (count >= 100) {
         message.error('免费版用户最多可创建 100 张笔记，请升级到永久授权版本')
         return false
       }

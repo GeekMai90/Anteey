@@ -34,14 +34,17 @@
                     placeholder="请输入密码"
                     :disabled="authStore.loading"
                   />
-                  <button
-                    class="login-button"
-                    :class="{ loading: authStore.loading }"
-                    :disabled="!email || !password || authStore.loading"
-                    @click="handleLogin"
-                  >
-                    {{ authStore.loading ? '登录中...' : '登录' }}
-                  </button>
+                  <div class="button-group">
+                    <button
+                      class="login-button"
+                      :class="{ loading: authStore.loading }"
+                      :disabled="!email || !password || authStore.loading"
+                      @click="handleLogin"
+                    >
+                      {{ authStore.loading ? '登录中...' : '登录' }}
+                    </button>
+                    <button class="register-button" @click="handleRegister">注册账号</button>
+                  </div>
                 </div>
                 <div v-if="authStore.error" class="error-message">
                   {{ authStore.error }}
@@ -53,15 +56,11 @@
                 <div class="setting-label">账号信息</div>
                 <div class="account-info">
                   <div class="info-details">
-                    <div class="status-line">
-                      登录状态：<span class="status-badge active">已登录</span>
-                    </div>
-                    <div>用户名：{{ authStore.user?.username }}</div>
-                    <div>邮箱：{{ authStore.user?.email }}</div>
-                    <div>
-                      许可类型：
+                    <div data-label="用户名">{{ authStore.user?.username }}</div>
+                    <div data-label="邮箱">{{ authStore.user?.email }}</div>
+                    <div data-label="许可类型">
                       <span :class="['license-type', authStore.user?.licenseType]">
-                        {{ authStore.isDesktopPermanent ? '永久授权' : '免费版' }}
+                        {{ authStore.isDesktopPermanent ? '桌面端永久授权' : '免费版' }}
                       </span>
                     </div>
                   </div>
@@ -70,85 +69,49 @@
               </div>
             </div>
           </div>
-
-          <div class="settings-section">
-            <div class="section-title">激活信息</div>
-
-            <!-- 未激活状态：显示使用统计 -->
-            <div v-if="!licenseStore.license" class="usage-status-section">
-              <div class="setting-item">
-                <div class="setting-label">使用情况</div>
-                <div class="usage-info">
-                  <div class="progress-bar">
-                    <div
-                      class="progress"
-                      :class="{ exceed: noteCount >= 100 }"
-                      :style="{ width: `${(noteCount / 100) * 100}%` }"
-                    ></div>
-                  </div>
-                  <div class="usage-details">
-                    <div class="note-count">{{ noteCount }}/100</div>
-                    <div class="usage-tip">免费版用户可创建 100 张卡片笔记</div>
-                    <div class="activation-tip">激活软件后可无限制创建笔记</div>
-                  </div>
-                </div>
-              </div>
+          <!-- 会员感谢区域 -->
+          <div
+            v-if="authStore.isAuthenticated && authStore.isDesktopPermanent"
+            class="premium-member-section"
+          >
+            <div class="decoration-line">
+              <div class="line"></div>
+              <CrownThree theme="filled" size="20" fill="var(--color-primary)" :strokeWidth="3" />
+              <div class="line"></div>
             </div>
-
-            <!-- 已激活状态显示 -->
-            <div v-if="licenseStore.license" class="license-status-section">
-              <div class="setting-item">
-                <div class="setting-label">当前状态</div>
-                <div class="license-info">
-                  <div class="license-details">
-                    <div class="status-line">
-                      激活状态：<span class="status-badge active">已激活</span>
-                    </div>
-                    <div>激活时间：{{ formatDate(licenseStore.license.activatedAt) }}</div>
-                    <div>到期时间：{{ formatDate(licenseStore.license.expiresAt) }}</div>
-                  </div>
+            <div class="thank-you-content">
+              <h3>感谢您的支持 ❤️</h3>
+              <p>因为有您的支持，Anteey 才能继续前行，与您相伴</p>
+              <div class="benefits">
+                <div class="benefit-item">
+                  <Check theme="filled" size="16" fill="var(--color-success)" />
+                  <span>无限制创建笔记</span>
                 </div>
-              </div>
-            </div>
-
-            <!-- 机器码部分 -->
-            <div class="machine-id-section">
-              <div class="setting-item">
-                <div class="setting-label">机器码</div>
-                <div class="machine-id-display">
-                  <div class="machine-id">{{ formattedMachineId }}</div>
-                  <button class="copy-button" @click="copyMachineId">复制</button>
+                <div class="benefit-item">
+                  <Check theme="filled" size="16" fill="var(--color-success)" />
+                  <span>优先体验新功能</span>
                 </div>
-                <div class="setting-desc">
-                  添加开发者微信：GeekMai，将此机器码发送给开发者获取激活码
-                </div>
-              </div>
-            </div>
-
-            <!-- 激活码部分 -->
-            <div class="activation-section">
-              <div class="setting-item">
-                <div class="setting-label">激活码</div>
-                <div class="activation-input">
-                  <input
-                    v-model="activationCode"
-                    type="text"
-                    placeholder="请输入激活码"
-                    :disabled="isActivating"
-                  />
-                  <button
-                    class="activate-button"
-                    :class="{ loading: isActivating }"
-                    :disabled="!activationCode || isActivating"
-                    @click="handleActivate"
-                  >
-                    {{ isActivating ? '激活中...' : '激活' }}
-                  </button>
+                <div class="benefit-item">
+                  <Check theme="filled" size="16" fill="var(--color-success)" />
+                  <span>专属技术支持</span>
                 </div>
               </div>
             </div>
           </div>
         </div>
+      </div>
+    </div>
+    <!-- 离线状态提示 -->
+    <div v-if="authStore.isOffline" class="offline-status-warning">
+      <div class="warning-icon">
+        <Attention theme="filled" size="24" fill="#ff9800" />
+      </div>
+      <div class="warning-content">
+        <h4>当前处于离线状态</h4>
+        <p v-if="authStore.remainingOfflineDays > 0">
+          离线使用期限还剩 {{ authStore.remainingOfflineDays }} 天
+        </p>
+        <p v-else class="error-text">离线使用期限已过，请连接网络重新验证</p>
       </div>
     </div>
   </div>
@@ -166,8 +129,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
-import { CrownThree, Check } from '@icon-park/vue-next'
+import { ref, onMounted } from 'vue'
+import { CrownThree, Check, Attention } from '@icon-park/vue-next'
 import { useLicenseStore } from '../../../stores/licenseStore'
 import { useNoteStore } from '../../../stores/noteStore'
 import Modal from '../../../components/common/Modal.vue'
@@ -178,42 +141,42 @@ const licenseStore = useLicenseStore()
 const noteStore = useNoteStore()
 const uiStore = useUIStore()
 const authStore = useAuthStore()
-const activationCode = ref('')
+// const activationCode = ref('')
 const noteCount = ref(0)
 const email = ref('')
 const password = ref('')
 
 // 从 store 中获取状态
-const isActivating = computed(() => licenseStore.isActivating)
+// const isActivating = computed(() => licenseStore.isActivating)
 
-const formattedMachineId = computed(() => {
-  return licenseStore.machineId.match(/.{8}/g)?.join('-') || ''
-})
+// const formattedMachineId = computed(() => {
+//   return licenseStore.machineId.match(/.{8}/g)?.join('-') || ''
+// })
 
-const copyMachineId = async () => {
-  try {
-    await navigator.clipboard.writeText(licenseStore.machineId)
-    // 可以添加一个简单的提示
-  } catch (err) {
-    console.error('复制失败:', err)
-  }
-}
+// const copyMachineId = async () => {
+//   try {
+//     await navigator.clipboard.writeText(licenseStore.machineId)
+//     // 可以添加一个简单的提示
+//   } catch (err) {
+//     console.error('复制失败:', err)
+//   }
+// }
 
 // 添加日期格式化函数
-const formatDate = (date: Date | number) => {
-  return new Date(date).toLocaleString('zh-CN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit'
-  })
-}
+// const formatDate = (date: Date | number) => {
+//   return new Date(date).toLocaleString('zh-CN', {
+//     year: 'numeric',
+//     month: '2-digit',
+//     day: '2-digit',
+//     hour: '2-digit',
+//     minute: '2-digit'
+//   })
+// }
 const showSuccessModal = ref(false)
 
 // 烟花效果函数
 const fireConfetti = () => {
-  const count = 200 // 每次发射的数量
+  const count = 200
   const defaults = {
     origin: { y: 0.7 },
     zIndex: 9999
@@ -283,17 +246,17 @@ const fireConfetti = () => {
   }, 400)
 }
 
-const handleActivate = async () => {
-  if (!activationCode.value) return
-  const success = await licenseStore.activateLicense(activationCode.value)
-  if (success) {
-    activationCode.value = ''
-    showSuccessModal.value = true
-    setTimeout(() => {
-      fireConfetti()
-    }, 100)
-  }
-}
+// const handleActivate = async () => {
+//   if (!activationCode.value) return
+//   const success = await licenseStore.activateLicense(activationCode.value)
+//   if (success) {
+//     activationCode.value = ''
+//     showSuccessModal.value = true
+//     setTimeout(() => {
+//       fireConfetti()
+//     }, 100)
+//   }
+// }
 
 const handleSuccessModalClose = () => {
   showSuccessModal.value = false
@@ -307,6 +270,12 @@ const handleLogin = async () => {
     await authStore.login(email.value, password.value)
     email.value = ''
     password.value = ''
+    // 如果是桌面端永久会员，显示烟花效果
+    if (authStore.isDesktopPermanent) {
+      setTimeout(() => {
+        fireConfetti()
+      }, 100)
+    }
   } catch (error) {
     // 错误已在 store 中处理
   }
@@ -319,6 +288,11 @@ const handleLogout = async () => {
   } catch (error) {
     // 错误已在 store 中处理
   }
+}
+
+// 添加注册处理函数
+const handleRegister = () => {
+  window.open('https://member.anteey.com', '_blank')
 }
 
 // 初始化认证状态
@@ -672,18 +646,21 @@ onMounted(async () => {
   .login-form {
     display: flex;
     flex-direction: column;
-    gap: 8px;
-    padding: 12px;
-    border-radius: 6px;
+    gap: 16px;
+    padding: 24px;
+    border-radius: 12px;
+    background: var(--color-bg-secondary);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 
     input {
-      height: 32px;
-      padding: 0 12px;
-      border-radius: 6px;
-      border: 1px solid var(--color-border);
+      height: 40px;
+      padding: 0 16px;
+      border-radius: 8px;
+      border: 1.5px solid var(--color-border);
       color: var(--color-text-primary);
-      font-size: 13px;
-      transition: all 0.2s ease;
+      font-size: 14px;
+      background: var(--color-bg-primary);
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 
       &::placeholder {
         color: var(--color-text-placeholder);
@@ -691,84 +668,358 @@ onMounted(async () => {
 
       &:hover:not(:disabled) {
         border-color: var(--color-primary);
+        box-shadow: 0 0 0 2px rgba(var(--color-primary-rgb), 0.1);
       }
 
       &:focus {
         outline: none;
         border-color: var(--color-primary);
+        box-shadow: 0 0 0 3px rgba(var(--color-primary-rgb), 0.15);
       }
 
       &:disabled {
         opacity: 0.6;
         cursor: not-allowed;
+        background: var(--color-bg-secondary);
       }
     }
 
-    .login-button {
-      height: 32px;
-      padding: 0 16px;
-      border-radius: 6px;
-      border: none;
-      background: var(--color-primary);
-      color: #fff;
-      font-size: 13px;
-      cursor: pointer;
-      transition: all 0.2s ease;
+    .button-group {
+      display: flex;
+      gap: 12px;
+      margin-top: 8px;
 
-      &:hover:not(:disabled) {
-        opacity: 0.9;
-      }
+      button {
+        flex: 1;
+        height: 40px;
+        padding: 0 24px;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 
-      &:disabled {
-        opacity: 0.6;
-        cursor: not-allowed;
-      }
+        &.login-button {
+          background: var(--color-primary);
+          color: #fff;
+          border: none;
 
-      &.loading {
-        cursor: wait;
+          &:hover:not(:disabled) {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(var(--color-primary-rgb), 0.3);
+          }
+
+          &:active:not(:disabled) {
+            transform: translateY(0);
+            box-shadow: 0 2px 6px rgba(var(--color-primary-rgb), 0.2);
+          }
+
+          &:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+          }
+
+          &.loading {
+            cursor: wait;
+            position: relative;
+            padding-left: 40px;
+
+            &::before {
+              content: '';
+              position: absolute;
+              left: 16px;
+              top: 50%;
+              transform: translateY(-50%);
+              width: 16px;
+              height: 16px;
+              border: 2px solid rgba(255, 255, 255, 0.3);
+              border-top-color: #fff;
+              border-radius: 50%;
+              animation: spin 0.8s linear infinite;
+            }
+          }
+        }
+
+        &.register-button {
+          background: transparent;
+          border: 1.5px solid var(--color-border);
+          color: var(--color-text-primary);
+
+          &:hover {
+            border-color: var(--color-primary);
+            color: var(--color-primary);
+            background: rgba(var(--color-primary-rgb), 0.04);
+            transform: translateY(-1px);
+          }
+
+          &:active {
+            transform: translateY(0);
+          }
+        }
       }
     }
   }
 
-  .account-info {
-    padding: 12px;
+  .error-message {
+    margin-top: 12px;
+    padding: 8px 12px;
     border-radius: 6px;
-    background-color: var(--color-bg-secondary);
+    background: rgba(var(--color-danger-rgb), 0.08);
+    color: var(--color-danger);
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    &::before {
+      content: '!';
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 16px;
+      height: 16px;
+      background: var(--color-danger);
+      color: #fff;
+      border-radius: 50%;
+      font-size: 12px;
+      font-weight: bold;
+    }
+  }
+
+  .account-info {
+    padding: 24px;
+    border-radius: 12px;
+    background: var(--color-bg-secondary);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 
     .info-details {
-      margin-bottom: 12px;
+      margin-bottom: 24px;
 
       > div {
-        margin-bottom: 4px;
+        display: flex;
+        align-items: center;
+        margin-bottom: 16px;
         font-size: 14px;
-        color: var(--color-text-primary);
+        color: var(--color-text-secondary);
+
+        &:last-child {
+          margin-bottom: 0;
+        }
+
+        // 标签样式
+        &::before {
+          content: attr(data-label);
+          width: 70px;
+          color: var(--color-text-secondary);
+        }
+      }
+
+      .status-line {
+        margin-bottom: 16px;
+
+        .status-badge {
+          display: inline-flex;
+          align-items: center;
+          padding: 4px 12px;
+          border-radius: 6px;
+          font-size: 13px;
+          font-weight: 500;
+
+          &.active {
+            background: rgba(var(--color-success-rgb), 0.1);
+            color: var(--color-success);
+
+            &::before {
+              content: '';
+              display: inline-block;
+              width: 6px;
+              height: 6px;
+              margin-right: 6px;
+              background: var(--color-success);
+              border-radius: 50%;
+              animation: pulse 2s infinite;
+            }
+          }
+        }
       }
 
       .license-type {
+        font-weight: 500;
+
         &.desktop_permanent {
           color: var(--color-success);
+          background: rgba(var(--color-success-rgb), 0.1);
+          padding: 2px 8px;
+          border-radius: 4px;
+          font-size: 13px;
         }
+
         &.free {
           color: var(--color-warning);
+          background: rgba(var(--color-warning-rgb), 0.1);
+          padding: 2px 8px;
+          border-radius: 4px;
+          font-size: 13px;
         }
       }
     }
 
     .logout-button {
-      height: 32px;
+      width: 100%;
+      height: 40px;
       padding: 0 16px;
-      border-radius: 6px;
-      border: 1px solid var(--color-border);
-      background: transparent;
-      color: var(--color-text-primary);
-      font-size: 13px;
+      border-radius: 8px;
+      border: none;
+      background: var(--color-primary);
+      color: #fff;
+      font-size: 14px;
+      font-weight: 500;
       cursor: pointer;
-      transition: all 0.2s ease;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 
       &:hover {
-        border-color: var(--color-danger);
-        color: var(--color-danger);
+        opacity: 0.9;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(var(--color-primary-rgb), 0.3);
       }
+
+      &:active {
+        transform: translateY(0);
+        box-shadow: 0 2px 6px rgba(var(--color-primary-rgb), 0.2);
+      }
+    }
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: translateY(-50%) rotate(360deg);
+  }
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(var(--color-success-rgb), 0.4);
+  }
+
+  70% {
+    transform: scale(1);
+    box-shadow: 0 0 0 6px rgba(var(--color-success-rgb), 0);
+  }
+
+  100% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(var(--color-success-rgb), 0);
+  }
+}
+
+.offline-status-warning {
+  display: flex;
+  align-items: center;
+  padding: 12px;
+  background: rgba(255, 152, 0, 0.1);
+  border: 1px solid #ff9800;
+  border-radius: 6px;
+  margin: 16px 0;
+
+  .warning-content {
+    margin-left: 12px;
+
+    h4 {
+      margin: 0;
+      color: #ff9800;
+    }
+
+    p {
+      margin: 4px 0 0;
+      font-size: 14px;
+    }
+
+    .error-text {
+      color: #f44336;
+    }
+  }
+}
+
+.premium-member-section {
+  margin-top: 32px;
+  padding: 24px;
+  border-radius: 12px;
+  background: linear-gradient(
+    135deg,
+    rgba(var(--color-primary-rgb), 0.05) 0%,
+    rgba(var(--color-primary-rgb), 0.02) 100%
+  );
+  text-align: center;
+
+  .decoration-line {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    margin-bottom: 20px;
+
+    .line {
+      height: 1px;
+      width: 80px;
+      background: linear-gradient(
+        90deg,
+        transparent 0%,
+        rgba(var(--color-primary-rgb), 0.3) 50%,
+        transparent 100%
+      );
+    }
+  }
+
+  .thank-you-content {
+    h3 {
+      color: var(--color-primary);
+      font-size: 18px;
+      font-weight: 500;
+      margin: 0 0 8px 0;
+    }
+
+    p {
+      color: var(--color-text-secondary);
+      font-size: 14px;
+      margin: 0 0 20px 0;
+    }
+
+    .benefits {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      max-width: 200px;
+      margin: 0 auto;
+
+      .benefit-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 14px;
+        color: var(--color-text-primary);
+
+        :deep(.i-icon) {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+      }
+    }
+  }
+
+  // 添加微妙的悬浮效果
+  @media (hover: hover) {
+    transition:
+      transform 0.3s ease,
+      box-shadow 0.3s ease;
+
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 20px rgba(var(--color-primary-rgb), 0.1);
     }
   }
 }
