@@ -98,7 +98,7 @@
           </div>
         </div>
 
-        <div class="settings-section">
+        <!-- <div class="settings-section">
           <div class="section-title">侧边栏</div>
           <div class="sidebar-settings">
             <div class="setting-item">
@@ -123,7 +123,7 @@
               />
             </div>
           </div>
-        </div>
+        </div> -->
 
         <div class="settings-section">
           <div class="section-title">功能开关</div>
@@ -211,32 +211,32 @@ onMounted(() => {
 })
 
 // 处理函数
-const handleStarredExpandedChange = async (value: boolean) => {
-  try {
-    await appearanceStore.updateStarredExpanded(value)
-    starredExpanded.value = value
-  } catch (error) {
-    console.error('更新星标展开状态失败:', error)
-  }
-}
+// const handleStarredExpandedChange = async (value: boolean) => {
+//   try {
+//     await appearanceStore.updateStarredExpanded(value)
+//     starredExpanded.value = value
+//   } catch (error) {
+//     console.error('更新星标展开状态失败:', error)
+//   }
+// }
 
-const handleTagsExpandedChange = async (value: boolean) => {
-  try {
-    await appearanceStore.updateTagsExpanded(value)
-    tagsExpanded.value = value
-  } catch (error) {
-    console.error('更新标签展开状态失败:', error)
-  }
-}
+// const handleTagsExpandedChange = async (value: boolean) => {
+//   try {
+//     await appearanceStore.updateTagsExpanded(value)
+//     tagsExpanded.value = value
+//   } catch (error) {
+//     console.error('更新标签展开状态失败:', error)
+//   }
+// }
 
-const handleRecentExpandedChange = async (value: boolean) => {
-  try {
-    await appearanceStore.updateRecentExpanded(value)
-    recentExpanded.value = value
-  } catch (error) {
-    console.error('更新最近展开状态失败:', error)
-  }
-}
+// const handleRecentExpandedChange = async (value: boolean) => {
+//   try {
+//     await appearanceStore.updateRecentExpanded(value)
+//     recentExpanded.value = value
+//   } catch (error) {
+//     console.error('更新最近展开状态失败:', error)
+//   }
+// }
 
 const handleWhiteboardChange = async (value: boolean) => {
   try {
