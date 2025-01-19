@@ -93,6 +93,19 @@
     <div class="toolbar-section right">
       <div
         v-tooltip.bottom="{
+          content: '草稿纸<br>Cmd + shift + D',
+          delay: { show: 1000 },
+          html: true
+        }"
+        class="toggle-draft"
+        @click="toggleDraft"
+      >
+        <div class="icon">
+          <Notepad theme="outline" size="20" fill="var(--color-icon-default)" :stroke-width="3" />
+        </div>
+      </div>
+      <div
+        v-tooltip.bottom="{
           content: '小组件<br>Cmd + shift + W',
           delay: { show: 1000 },
           html: true
@@ -135,7 +148,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed, nextTick } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { Left, Right, ExpandLeft, ExpandRight, Components } from '@icon-park/vue-next'
+import { Left, Right, ExpandLeft, ExpandRight, Components, Notepad } from '@icon-park/vue-next'
 import { useUIStore } from '@renderer/stores/UIStore'
 import { useKnowledgeTreeStore } from '@renderer/stores/knowledgeTreeStore'
 
@@ -311,6 +324,20 @@ const toggleWidgets = () => {
       uiStore.toggleRightSidebar()
     }
     uiStore.rightSidebarTab = 'widgets'
+  }
+}
+
+// 添加草稿纸切换方法
+const toggleDraft = () => {
+  // 如果右侧边栏已打开且当前是草稿纸标签，则关闭右侧边栏
+  if (uiStore.isRightSidebarOpen && uiStore.rightSidebarTab === 'drafts') {
+    uiStore.toggleRightSidebar()
+  } else {
+    // 否则，确保右侧边栏打开并切换到草稿纸标签
+    if (!uiStore.isRightSidebarOpen) {
+      uiStore.toggleRightSidebar()
+    }
+    uiStore.rightSidebarTab = 'drafts'
   }
 }
 </script>
@@ -545,6 +572,11 @@ const toggleWidgets = () => {
 // 复用已有的按钮样式
 .toggle-widgets {
   @extend .toggle-right-sidebar;
-  // margin-right: 4px; // 添加一点间距
+  margin-right: 4px; // 添加一点间距
+}
+
+.toggle-draft {
+  @extend .toggle-right-sidebar;
+  margin-right: 4px; // 添加一点间距
 }
 </style>

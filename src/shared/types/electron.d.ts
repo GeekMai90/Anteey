@@ -619,6 +619,8 @@ export interface ElectronAPI {
   review: {
     // 获取智能回顾数据
     getReviewData: () => Promise<ReviewResponse>
+    // 获取单条随机笔记
+    getOneRandomNote: () => Promise<Note | null>
   }
 
   edWhiteboard: {

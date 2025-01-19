@@ -38,7 +38,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useRoute } from 'vue-router'
-import { Split, LinkTwo, Pencil, Components } from '@icon-park/vue-next'
+import { Split, LinkTwo, Notepad, Components } from '@icon-park/vue-next'
 import MultiNotes from '@renderer/components/layout/MultiNotes.vue'
 import BacklinksPanelNoteEditor from '@renderer/components/layout/BacklinksPanelNoteEditor.vue'
 import RightSidebarDraftsEditor from '@renderer/components/layout/RightSidebarDraftsEditor.vue'
@@ -62,12 +62,6 @@ const route = useRoute()
 // 定义可用的 tabs
 const tabs = [
   {
-    key: 'widgets',
-    label: '小组件',
-    icon: Components,
-    component: RightSidebarWidgets
-  },
-  {
     key: 'multi',
     label: '多开笔记',
     icon: Split,
@@ -80,9 +74,15 @@ const tabs = [
     component: BacklinksPanelNoteEditor
   },
   {
+    key: 'widgets',
+    label: '小组件',
+    icon: Components,
+    component: RightSidebarWidgets
+  },
+  {
     key: 'drafts',
     label: '草稿纸',
-    icon: Pencil,
+    icon: Notepad,
     component: RightSidebarDraftsEditor
   }
 ]

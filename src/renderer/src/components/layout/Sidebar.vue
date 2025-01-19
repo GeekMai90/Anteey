@@ -64,7 +64,7 @@
         </button>
 
         <!-- 草稿纸按钮 -->
-        <button
+        <!-- <button
           v-tooltip.top="{
             content: '草稿纸',
             delay: { show: 1000 }
@@ -74,6 +74,19 @@
         >
           <div class="icon">
             <Pencil theme="outline" size="16" fill="var(--color-sidebar-icon)" :strokeWidth="3" />
+          </div>
+        </button> -->
+        <!-- 草稿纸按钮 -->
+        <button
+          v-tooltip.top="{
+            content: '随机回顾',
+            delay: { show: 1000 }
+          }"
+          class="action-btn"
+          @click="uiStore.openReviewModal"
+        >
+          <div class="icon">
+            <Cup theme="outline" size="16" fill="var(--color-sidebar-icon)" :strokeWidth="3" />
           </div>
         </button>
         <!-- 搜索按钮 -->
@@ -280,11 +293,11 @@ import {
   LinkCloudSucess,
   StorageCardOne,
   NotebookOne,
-  Pencil,
   Theme,
   Star,
   Tag,
-  HandPaintedPlate
+  HandPaintedPlate,
+  Cup
 } from '@icon-park/vue-next'
 import { useNoteStore } from '@renderer/stores/noteStore'
 import SettingDropdownMenu from '@renderer/components/settings/SettingDropdownMenu.vue'

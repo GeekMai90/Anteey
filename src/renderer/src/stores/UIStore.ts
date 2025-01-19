@@ -21,7 +21,7 @@ export const useUIStore = defineStore(
 
     //右侧边栏状态
     const isRightSidebarOpen = ref(false)
-    const rightSidebarTab = ref('widgets') // 当前激活的标签页
+    const rightSidebarTab = ref('multi') // 当前激活的标签页
     // 打开右侧边栏并设置标签页
     const openRightSidebarWithTab = (tab: string) => {
       isRightSidebarOpen.value = true
@@ -129,6 +129,30 @@ export const useUIStore = defineStore(
       isThemePickerOpen.value = false
     }
 
+    // 随机回顾模态框状态
+    const isReviewModalOpen = ref(false)
+
+    // 打开随机回顾模态框
+    const openReviewModal = () => {
+      isReviewModalOpen.value = true
+    }
+
+    // 关闭随机回顾模态框
+    const closeReviewModal = () => {
+      isReviewModalOpen.value = false
+    }
+
+    // 切换随机回顾模态框状态
+    const toggleReviewModal = () => {
+      isReviewModalOpen.value = !isReviewModalOpen.value
+    }
+
+    const isMarioStyle = ref(false)
+
+    const toggleButtonStyle = () => {
+      isMarioStyle.value = !isMarioStyle.value
+    }
+
     return {
       isEditorOpen,
       isSearchModalOpen,
@@ -162,13 +186,28 @@ export const useUIStore = defineStore(
       isThemePickerOpen,
       themePickerPosition,
       openThemePicker,
-      closeThemePicker
+      closeThemePicker,
+
+      // 随机回顾相关
+      isReviewModalOpen,
+      openReviewModal,
+      closeReviewModal,
+      toggleReviewModal,
+      isMarioStyle,
+      toggleButtonStyle
     }
   },
   {
     persist: {
       // 指定需要持久化的state
-      pick: ['isSidebarCollapsed', 'isRightSidebarOpen', 'showSettingsPage', 'isDarkTheme'],
+      pick: [
+        'isSidebarCollapsed',
+        'isRightSidebarOpen',
+        'showSettingsPage',
+        'isDarkTheme',
+        'isMarioStyle'
+        // 不需要持久化 isReviewModalOpen，每次打开应用都应该是关闭状态
+      ],
       // 使用 localStorage 存储
       storage: localStorage,
       // 自定义存储的 key

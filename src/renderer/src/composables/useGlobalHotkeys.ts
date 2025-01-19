@@ -40,10 +40,10 @@ export function useGlobalHotkeys() {
       router.push('/timeline')
     })
     // 打开草稿纸页面
-    hotkeys('command+;, ctrl+;', (event) => {
-      event.preventDefault()
-      router.push('/drafts')
-    })
+    // hotkeys('command+;, ctrl+;', (event) => {
+    //   event.preventDefault()
+    //   router.push('/drafts')
+    // })
     // 打开卡片盒
     hotkeys('command+o, ctrl+o', (event) => {
       event.preventDefault()
@@ -90,7 +90,7 @@ export function useGlobalHotkeys() {
       }
     })
     // 打开/关闭右侧边栏草稿纸
-    hotkeys('command+shift+;, ctrl+shift+;', (event) => {
+    hotkeys('command+;, ctrl+;', (event) => {
       event.preventDefault()
 
       // 如果右侧边栏已打开且当前是草稿纸标签，则关闭右侧边栏

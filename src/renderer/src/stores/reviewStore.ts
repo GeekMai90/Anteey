@@ -15,6 +15,11 @@ export const useReviewStore = defineStore('review', () => {
   const remainingCount = computed(() => Math.max(notes.value.length - currentIndex.value - 1, 0))
   const hasMore = computed(() => remainingCount.value > 0)
 
+  // ==================== 单条随机笔记相关 ====================
+  const randomNote = ref<Note | null>(null)
+  const isLoadingRandom = ref(false)
+  const randomError = ref<string | null>(null)
+
   // ==================== 从本地存储加载状态 ====================
   const loadFromStorage = () => {
     try {
@@ -117,6 +122,23 @@ export const useReviewStore = defineStore('review', () => {
     localStorage.removeItem('review-state')
   }
 
+  // 获取单条随机笔记
+  const fetchRandomNote = async () => {
+    try {
+      isLoadingRandom.value = true
+      randomError.value = null
+      const note = await window.electronAPI.review.getOneRandomNote()
+      randomNote.value = note
+      return note
+    } catch (err) {
+      console.error('获取单条随机笔记失败:', err)
+      randomError.value = err instanceof Error ? err.message : '获取随机笔记失败'
+      throw err
+    } finally {
+      isLoadingRandom.value = false
+    }
+  }
+
   return {
     // 状态
     notes,
@@ -133,6 +155,12 @@ export const useReviewStore = defineStore('review', () => {
     getState,
     fetchReviewNotes,
     showNextNote,
-    reset
+    reset,
+
+    // 单条随机笔记相关
+    randomNote,
+    isLoadingRandom,
+    randomError,
+    fetchRandomNote
   }
 })

@@ -38,3 +38,26 @@ export async function getReviewData() {
     throw error
   }
 }
+
+// 获取单条随机笔记
+export async function getOneRandomNote(): Promise<Note | null> {
+  try {
+    // 从数据库中随机选择1条未删除的笔记
+    const note = await db('notes')
+      .where('isDeleted', false)
+      .orderByRaw('RANDOM()') // 随机排序
+      .limit(1)
+      .first()
+
+    // 如果没有找到笔记,返回 null
+    if (!note) {
+      return null
+    }
+
+    // 使用 convertToNote 处理笔记数据
+    return convertToNote(note)
+  } catch (error) {
+    console.error('获取单条随机笔记失败:', error)
+    throw error
+  }
+}

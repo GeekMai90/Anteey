@@ -38,6 +38,7 @@
         />
       </Transition>
     </Teleport>
+    <ReviewModal v-model="uiStore.isReviewModalOpen" />
   </div>
 </template>
 
@@ -66,6 +67,7 @@ import SharePreviewModal from './components/share/SharePreviewModal.vue'
 import QuickAddModal from '@renderer/components/drafts/QuickAddModal.vue'
 import ThemeColorPicker from '@renderer/components/settings/ThemeColorPicker.vue'
 import { useUIStore } from '@renderer/stores/UIStore'
+import ReviewModal from './components/review/ReviewModal.vue'
 
 // 状态管理初始化
 const noteStore = useNoteStore()
