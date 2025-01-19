@@ -67,7 +67,7 @@ const themeStore = useThemeStore()
 // ===== 侧边栏状态管理 =====
 const isTemporaryVisible = ref(false)
 let hideSidebarTimeout: number | undefined = undefined
-const sidebarWidth = ref(230)
+const sidebarWidth = ref(250)
 const rightSidebarWidth = ref(400)
 
 // ===== 侧边栏控制方法 =====
@@ -272,7 +272,7 @@ defineExpose({
     position: absolute;
     top: 20px;
     left: 0;
-    width: v-bind(sidebarWidth + 'px');
+    width: 250px !important;
     height: calc(100% - 40px);
     background: rgba(255, 255, 255, 0.3);
     backdrop-filter: blur(12px);
