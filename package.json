@@ -1,6 +1,10 @@
 {
   "name": "anteey",
+<<<<<<< HEAD
   "version": "1.3.45",
+=======
+  "version": "1.3.43",
+>>>>>>> checkbox0119
   "description": "Anteey",
   "main": "./out/main/index.js",
   "author": "GeekMai",

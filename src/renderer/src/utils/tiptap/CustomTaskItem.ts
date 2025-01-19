@@ -1,5 +1,5 @@
 import TaskItem from '@tiptap/extension-task-item'
-import confetti from 'canvas-confetti'
+// import confetti from 'canvas-confetti'
 import { Plugin } from 'prosemirror-state'
 
 export const CustomTaskItem = TaskItem.extend({
@@ -28,21 +28,19 @@ export const CustomTaskItem = TaskItem.extend({
 
               if (event.target.checked) {
                 // 获取点击元素的位置
-                const rect = event.target.getBoundingClientRect()
-
+                // const rect = event.target.getBoundingClientRect()
                 // 计算相对于窗口的位置
-                const x = rect.left / window.innerWidth
-                const y = rect.top / window.innerHeight
-
+                // const x = rect.left / window.innerWidth
+                // const y = rect.top / window.innerHeight
                 // 触发礼花效果，禁用 Web Worker
-                confetti({
-                  particleCount: 100,
-                  spread: 70,
-                  origin: { x, y },
-                  gravity: 2,
-                  scalar: 0.7,
-                  useWorker: false // 禁用 Web Worker
-                })
+                // confetti({
+                //   particleCount: 100,
+                //   spread: 70,
+                //   origin: { x, y },
+                //   gravity: 2,
+                //   scalar: 0.7,
+                //   useWorker: false // 禁用 Web Worker
+                // })
               }
 
               return false

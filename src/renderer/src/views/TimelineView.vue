@@ -1,5 +1,13 @@
 <!-- TimelineView.vue - 时间线视图组件 -->
 <template>
+  <!-- MessageToast 移到外层 -->
+  <!-- <MessageToast
+    v-if="messageConfig.show"
+    :message="messageConfig.text"
+    :type="messageConfig.type"
+    dev
+  /> -->
+
   <!-- 当数据加载完成时显示时间线视图 -->
   <div v-if="isLoaded" class="timeline-view">
     <!-- 顶部固定区域 -->
@@ -20,6 +28,12 @@
 
           <!-- 右侧功能区 -->
           <div class="timeline-header-right">
+            <!-- <div class="test-buttons">
+              <button class="test-button" @click="showMessage('success')">成功消息</button>
+              <button class="test-button" @click="showMessage('error')">错误消息</button>
+              <button class="test-button" @click="showMessage('warning')">警告消息</button>
+              <button class="test-button" @click="showMessage('info')">提示消息</button>
+            </div> -->
             <div
               class="calendar-button"
               :class="{ 'date-selected': selectedDate }"
@@ -112,6 +126,7 @@ import { useEventBus } from '@vueuse/core'
 import { debounce } from 'lodash-es'
 import DateDivider from '@renderer/components/timelineView/DateDivider.vue'
 import type { UseVirtualListOptions } from '@vueuse/core'
+// import MessageToast from '@renderer/components/common/MessageToast.vue'
 
 // 状态管理初始化
 const noteStore = useNoteStore()
@@ -381,6 +396,20 @@ const shouldShowDateDivider = (currentNote: Note, index: number) => {
   const prevDate = new Date(prevNote.createdAt).toDateString()
   return currentDate !== prevDate
 }
+
+// const messageConfig = reactive({
+//   show: false,
+//   text: '',
+//   type: 'success' as 'success' | 'error' | 'warning' | 'info'
+// })
+
+// const showMessage = (type: 'success' | 'error' | 'warning' | 'info') => {
+//   messageConfig.show = true
+//   messageConfig.type = type
+//   messageConfig.text = `这是一条${
+//     type === 'success' ? '成功' : type === 'error' ? '错误' : type === 'warning' ? '警告' : '提示'
+//   }消息`
+// }
 </script>
 
 <style lang="scss" scoped>
@@ -474,6 +503,32 @@ const shouldShowDateDivider = (currentNote: Note, index: number) => {
         display: flex;
         align-items: center;
         gap: 5px;
+
+        .test-buttons {
+          display: flex;
+          gap: 8px;
+        }
+
+        .test-button {
+          padding: 6px 12px;
+          border-radius: 8px;
+          border: 1px solid var(--color-border);
+          background: var(--color-bg-secondary);
+          cursor: pointer;
+          font-size: 13px;
+          color: var(--color-text-secondary);
+          transition: all 0.2s ease;
+
+          &:hover {
+            background: var(--color-hover-button);
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+          }
+
+          &:active {
+            transform: translateY(0);
+          }
+        }
 
         .calendar-button {
           position: relative;
