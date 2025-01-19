@@ -5,13 +5,40 @@
       <div class="sidebar-titlebar">
         <div class="window-controls">
           <button class="window-button close" @click="handleClose">
-            <div class="icon"></div>
+            <div class="icon">
+              <svg width="6" height="6" viewBox="0 0 8 8" fill="none">
+                <path
+                  d="M1.5 1.5L6.5 6.5M1.5 6.5L6.5 1.5"
+                  stroke="currentColor"
+                  stroke-width="1"
+                  stroke-linecap="round"
+                />
+              </svg>
+            </div>
           </button>
           <button class="window-button minimize" @click="handleMinimize">
-            <div class="icon"></div>
+            <div class="icon">
+              <svg width="6" height="6" viewBox="0 0 8 8" fill="none">
+                <path
+                  d="M1.5 4H6.5"
+                  stroke="currentColor"
+                  stroke-width="1"
+                  stroke-linecap="round"
+                />
+              </svg>
+            </div>
           </button>
           <button class="window-button maximize" @click="handleMaximize">
-            <div class="icon"></div>
+            <div class="icon">
+              <svg width="8" height="8" viewBox="0 0 8 8" fill="none">
+                <path
+                  d="M1.5 1.5H6.5V6.5H1.5V1.5Z"
+                  stroke="currentColor"
+                  stroke-width="1"
+                  stroke-linecap="round"
+                />
+              </svg>
+            </div>
           </button>
         </div>
       </div>
@@ -411,7 +438,7 @@ const openSearch = () => {
 const openHelp = () => {
   // 实现打开帮助的逻辑
 
-  window.electronAPI.shell.openExternal('https://www.yuque.com/geekmai/Anteey')
+  window.electronAPI.shell.openExternal('https://docs.anteey.com/')
 }
 
 const isQuickAccessVisible = ref(false)
@@ -667,10 +694,24 @@ const switchSegment = (segment: string) => {
         justify-content: center;
         opacity: 0;
         transition: opacity 0.2s;
+
+        svg {
+          width: 6px;
+          height: 6px;
+        }
       }
 
       &:hover .icon {
-        opacity: 0.5;
+        opacity: 0.7;
+      }
+
+      &.close .icon {
+        color: #4d0000; // 深红色
+      }
+
+      &.minimize .icon,
+      &.maximize .icon {
+        color: #006500; // 深绿色
       }
     }
   }

@@ -230,7 +230,7 @@ onMounted(() => {
 
   &.success {
     .icon-container {
-      background-color: rgba(var(--color-success-rgb), 0.1);
+      background-color: rgba(var(--color-success-rgb), 0.2);
       svg {
         color: var(--color-success);
       }
@@ -239,13 +239,13 @@ onMounted(() => {
       color: var(--color-success);
     }
     .wave {
-      fill: rgba(var(--color-success-rgb), 0.1);
+      fill: rgba(var(--color-success-rgb), 0.2);
     }
   }
 
   &.error {
     .icon-container {
-      background-color: rgba(var(--color-danger-rgb), 0.1);
+      background-color: rgba(var(--color-danger-rgb), 0.2);
       svg {
         color: var(--color-danger);
       }
@@ -254,13 +254,13 @@ onMounted(() => {
       color: var(--color-danger);
     }
     .wave {
-      fill: rgba(var(--color-danger-rgb), 0.1);
+      fill: rgba(var(--color-danger-rgb), 0.2);
     }
   }
 
   &.warning {
     .icon-container {
-      background-color: rgba(var(--color-warning-rgb), 0.1);
+      background-color: rgba(var(--color-warning-rgb), 0.2);
       svg {
         color: var(--color-warning);
       }
@@ -269,13 +269,13 @@ onMounted(() => {
       color: var(--color-warning);
     }
     .wave {
-      fill: rgba(var(--color-warning-rgb), 0.1);
+      fill: rgba(var(--color-warning-rgb), 0.2);
     }
   }
 
   &.info {
     .icon-container {
-      background-color: rgba(var(--color-blue-rgb), 0.1);
+      background-color: rgba(var(--color-blue-rgb), 0.2);
       svg {
         color: var(--color-blue);
       }
@@ -284,7 +284,7 @@ onMounted(() => {
       color: var(--color-blue);
     }
     .wave {
-      fill: rgba(var(--color-blue-rgb), 0.1);
+      fill: rgba(var(--color-blue-rgb), 0.2);
     }
   }
 
