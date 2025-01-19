@@ -53,7 +53,7 @@ const svgRef = ref<SVGElement>()
 const width = 800
 const height = 500
 const nodeWidth = 120
-const nodeHeight = 50
+const nodeHeight = 70
 const cornerRadius = 6
 const horizontalGap = 200
 const verticalGap = 80
@@ -136,8 +136,42 @@ const compareAddresses = (a: Note, b: Note) => {
   return addrA.alpha.localeCompare(addrB.alpha)
 }
 
+// 添加一个工具函数来截断文本
+const truncateText = (text: string, maxLength: number = 6): string => {
+  if (!text) return ''
+  return text.length > maxLength ? text.slice(0, maxLength) + '...' : text
+}
+
+// 修改获取标题的函数
+const getNodeTitle = (note: Note): string => {
+  try {
+    let title = '无标题'
+    // 如果 metadata 是字符串,尝试解析它
+    if (typeof note.metadata === 'string') {
+      const metadata = JSON.parse(note.metadata)
+      title = metadata.title || '无标题'
+    }
+    // 如果 metadata 已经是对象
+    else if (note.metadata && typeof note.metadata === 'object') {
+      title = note.metadata.title || '无标题'
+    }
+    // 截断标题
+    return truncateText(title)
+  } catch (error) {
+    console.warn('解析笔记标题失败:', error)
+    return '无标题'
+  }
+}
+
 const renderHierarchyTree = () => {
   if (!svgRef.value || !localTreeStore.treeData) return
+
+  // 添加日志查看整个树数据
+  console.log('整个树数据:', localTreeStore.treeData)
+  console.log('当前节点:', localTreeStore.treeData.current)
+  console.log('父节点:', localTreeStore.treeData.parent)
+  console.log('兄弟节点:', localTreeStore.treeData.siblings)
+  console.log('子节点:', localTreeStore.treeData.children)
 
   const svg = d3.select(svgRef.value)
   svg.selectAll('*').remove()
@@ -239,14 +273,31 @@ const renderHierarchyTree = () => {
   currentNode
     .append('text')
     .attr('text-anchor', 'middle')
-    .attr('dy', '0.3em')
+    .attr('dy', '-0.5em')
     .attr('fill', colors.current.text)
     .attr('fill-opacity', colors.current.opacity)
     .attr('font-weight', '500')
     .text(currentNote.address)
 
-  // 绘制父节点（在左侧）
+  currentNode
+    .append('text')
+    .attr('text-anchor', 'middle')
+    .attr('dy', '1.2em')
+    .attr('fill', colors.current.text)
+    .attr('fill-opacity', colors.current.opacity)
+    .attr('font-size', '0.9em')
+    .text(getNodeTitle(currentNote))
+
+  // 在渲染各个节点时也添加日志
+  // 当前节点
+  console.log('渲染当前节点:', currentNote)
+  console.log('当前节点标题:', getNodeTitle(currentNote))
+
+  // 父节点
   if (treeData.parent) {
+    console.log('渲染父节点:', treeData.parent)
+    console.log('父节点标题:', treeData.parent ? getNodeTitle(treeData.parent) : null)
+
     // 画连接线
     linesGroup
       .append('line')
@@ -297,11 +348,20 @@ const renderHierarchyTree = () => {
     parentNode
       .append('text')
       .attr('text-anchor', 'middle')
-      .attr('dy', '0.3em')
+      .attr('dy', '-0.5em')
       .attr('fill', colors.parent.text)
       .attr('fill-opacity', colors.parent.opacity)
       .attr('font-weight', '500')
       .text(treeData.parent.address)
+
+    parentNode
+      .append('text')
+      .attr('text-anchor', 'middle')
+      .attr('dy', '1.2em')
+      .attr('fill', colors.parent.text)
+      .attr('fill-opacity', colors.parent.opacity)
+      .attr('font-size', '0.9em')
+      .text(getNodeTitle(treeData.parent))
   }
 
   // 修改兄弟节点的渲染部分
@@ -354,6 +414,9 @@ const renderHierarchyTree = () => {
 
     // 绘制前一个节点（上方）
     if (prevSibling) {
+      console.log('渲染前一个兄弟节点:', prevSibling)
+      console.log('前一个兄弟节点标题:', prevSibling ? getNodeTitle(prevSibling) : null)
+
       // 画连接线
       linesGroup
         .append('line')
@@ -392,15 +455,27 @@ const renderHierarchyTree = () => {
       prevNode
         .append('text')
         .attr('text-anchor', 'middle')
-        .attr('dy', '0.3em')
+        .attr('dy', '-0.5em')
         .attr('fill', colors.sibling.text)
         .attr('fill-opacity', colors.sibling.opacity)
         .attr('font-weight', '500')
         .text(prevSibling.address)
+
+      prevNode
+        .append('text')
+        .attr('text-anchor', 'middle')
+        .attr('dy', '1.2em')
+        .attr('fill', colors.sibling.text)
+        .attr('fill-opacity', colors.sibling.opacity)
+        .attr('font-size', '0.9em')
+        .text(getNodeTitle(prevSibling))
     }
 
     // 绘制后一个节点（下方）
     if (nextSibling) {
+      console.log('渲染后一个兄弟节点:', nextSibling)
+      console.log('后一个兄弟节点标题:', nextSibling ? getNodeTitle(nextSibling) : null)
+
       // 画连接线
       linesGroup
         .append('line')
@@ -439,11 +514,20 @@ const renderHierarchyTree = () => {
       nextNode
         .append('text')
         .attr('text-anchor', 'middle')
-        .attr('dy', '0.3em')
+        .attr('dy', '-0.5em')
         .attr('fill', colors.sibling.text)
         .attr('fill-opacity', colors.sibling.opacity)
         .attr('font-weight', '500')
         .text(nextSibling.address)
+
+      nextNode
+        .append('text')
+        .attr('text-anchor', 'middle')
+        .attr('dy', '1.2em')
+        .attr('fill', colors.sibling.text)
+        .attr('fill-opacity', colors.sibling.opacity)
+        .attr('font-size', '0.9em')
+        .text(getNodeTitle(nextSibling))
     }
   }
 
@@ -461,6 +545,9 @@ const renderHierarchyTree = () => {
 
     // 绘制当前列的子节点
     columnChildren.forEach((child, index) => {
+      console.log(`渲染第 ${index + 1} 个子节点:`, child)
+      console.log(`第 ${index + 1} 个子节点标题:`, getNodeTitle(child))
+
       if (!child || !child.address) {
         console.warn('无效的子节点:', child)
         return
@@ -514,11 +601,20 @@ const renderHierarchyTree = () => {
       childNode
         .append('text')
         .attr('text-anchor', 'middle')
-        .attr('dy', '0.3em')
+        .attr('dy', '-0.5em')
         .attr('fill', colors.child.text)
         .attr('fill-opacity', colors.child.opacity)
         .attr('font-weight', '500')
         .text(child.address)
+
+      childNode
+        .append('text')
+        .attr('text-anchor', 'middle')
+        .attr('dy', '1.2em')
+        .attr('fill', colors.child.text)
+        .attr('fill-opacity', colors.child.opacity)
+        .attr('font-size', '0.9em')
+        .text(getNodeTitle(child))
     })
 
     // 在最后一列添加"更多"按钮（如还有更多节点）
