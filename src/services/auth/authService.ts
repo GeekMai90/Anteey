@@ -7,6 +7,16 @@ import { encrypt, decrypt } from '../utils/crypto'
 import { AuthState } from '@shared/types'
 import { request } from '../utils/http'
 
+/**
+ * 认证服务模块
+ *
+ * 主要功能：
+ * 1. 处理用户登录、登出
+ * 2. 管理认证状态
+ * 3. 处理离线验证
+ * 4. Token 刷新
+ */
+
 // API 响应类型定义
 interface LoginResponse {
   access_token: string
@@ -26,7 +36,16 @@ interface RefreshTokenResponse {
   refresh_token: string
 }
 
-// 工具函数：获取设备信息
+/**
+ * 获取设备信息
+ *
+ * 功能：
+ * 1. 获取机器唯一标识符
+ * 2. 使用 UUID v5 生成标准设备 ID
+ * 3. 获取设备名称（主机名）
+ *
+ * @returns {Object} 设备信息对象，包含设备类型、名称、标识符和IP
+ */
 function getDeviceInfo() {
   const machineId = machineIdSync()
   // 使用 UUID v5 将 machineId 转换为标准 UUID
@@ -45,7 +64,17 @@ function getDeviceInfo() {
   }
 }
 
-// 工具函数：将数据库记录转换为 AuthState
+/**
+ * 将数据库记录转换为认证状态对象
+ *
+ * 功能：
+ * 1. 解密存储的认证数据
+ * 2. 将解密后的 JSON 转换为 AuthState 对象
+ *
+ * @param record 数据库记录
+ * @returns {AuthState} 认证状态对象
+ * @throws 解密失败时抛出错误
+ */
 function convertToAuthState(record: any): AuthState {
   try {
     const decrypted = decrypt(record.encryptedData)
@@ -56,7 +85,17 @@ function convertToAuthState(record: any): AuthState {
   }
 }
 
-// 添加保存认证状态的函数
+/**
+ * 保存认证状态到本地数据库
+ *
+ * 功能：
+ * 1. 加密认证状态数据
+ * 2. 清除旧的认证记录
+ * 3. 保存新的认证状态
+ *
+ * @param state 要保存的认证状态
+ * @throws 保存失败时抛出错误
+ */
 async function saveAuthState(state: AuthState): Promise<void> {
   try {
     // 加密认证状态
@@ -80,17 +119,49 @@ async function saveAuthState(state: AuthState): Promise<void> {
   }
 }
 
-// 添加离线状态检测函数
+/**
+ * 检查网络连接状态
+ *
+ * 功能：
+ * 1. 通过 /auth/status 接口检测网络连接
+ * 2. 即使接口返回错误也视为网络正常（只要有响应）
+ * 3. 只有完全无法连接时才判定为离线
+ *
+ * @returns {Promise<boolean>} true 表示网络正常，false 表示离线
+ */
 export async function checkNetworkStatus(): Promise<boolean> {
   try {
-    await request.get('/ping', { timeout: 3000 }) // 快速检查网络连接
+    console.log('authService→ 开始检查网络状态')
+    const start = Date.now()
+    await request.get('/auth/status', { timeout: 3000 })
+    const duration = Date.now() - start
+    console.log(`authService→ 网络检查成功, 耗时: ${duration}ms`)
     return true
   } catch (error) {
+    console.log('authService→ 网络检查失败:', error)
+    // 即使接口返回错误，只要有响应就说明网络是通的
+    if ((error as any).response) {
+      console.log('authService→ 网络正常,但接口返回错误:', (error as any).response.status)
+      return true
+    }
     return false
   }
 }
 
-// 登录
+/**
+ * 用户登录
+ *
+ * 功能：
+ * 1. 获取设备信息
+ * 2. 调用登录 API
+ * 3. 保存认证状态
+ * 4. 处理永久授权和过期时间
+ *
+ * @param email 用户邮箱
+ * @param password 用户密码
+ * @returns {Promise<AuthState>} 认证状态对象
+ * @throws 登录失败时抛出错误
+ */
 export async function login(email: string, password: string): Promise<AuthState> {
   try {
     const deviceInfo = getDeviceInfo()
@@ -127,7 +198,18 @@ export async function login(email: string, password: string): Promise<AuthState>
   }
 }
 
-// 刷新 token
+/**
+ * 刷新访问令牌
+ *
+ * 功能：
+ * 1. 使用刷新令牌获取新的访问令牌
+ * 2. 更新本地存储的认证状态
+ * 3. 更新最后验证时间
+ *
+ * @param token 刷新令牌
+ * @returns {Promise<AuthState>} 更新后的认证状态
+ * @throws 刷新失败时抛出错误
+ */
 export async function refreshToken(token: string): Promise<AuthState> {
   try {
     const { data } = await request.post<RefreshTokenResponse>('/auth/refresh', {
@@ -160,7 +242,17 @@ export async function refreshToken(token: string): Promise<AuthState> {
   }
 }
 
-// 登出
+/**
+ * 用户登出
+ *
+ * 功能：
+ * 1. 调用登出 API
+ * 2. 删除设备记录
+ * 3. 清除本地认证状态
+ * 4. 即使 API 调用失败也会清除本地状态
+ *
+ * @throws 清除本地状态失败时抛出错误
+ */
 export async function logout(): Promise<void> {
   try {
     const currentState = await getCurrentAuthState()
@@ -207,7 +299,16 @@ export async function logout(): Promise<void> {
   }
 }
 
-// 获取当前认证状态
+/**
+ * 获取当前认证状态
+ *
+ * 功能：
+ * 1. 从本地数据库获取认证记录
+ * 2. 解密并转换为认证状态对象
+ *
+ * @returns {Promise<AuthState | null>} 认证状态对象，不存在时返回 null
+ * @throws 获取或解密失败时抛出错误
+ */
 export async function getCurrentAuthState(): Promise<AuthState | null> {
   try {
     const record = await db('auth_state').first()
@@ -218,38 +319,85 @@ export async function getCurrentAuthState(): Promise<AuthState | null> {
   }
 }
 
-// 添加网络验证函数
+/**
+ * 验证网络连接和认证状态
+ *
+ * 功能：
+ * 1. 检查网络连接状态
+ * 2. 验证访问令牌
+ * 3. 更新用户信息和最后验证时间
+ * 4. 处理 token 刷新
+ *
+ * @param state 当前认证状态
+ * @returns {Promise<boolean>} true 表示验证成功，false 表示验证失败
+ */
 async function checkNetworkAndVerify(state: AuthState): Promise<boolean> {
   try {
     // 检查网络状态
     const isOnline = await checkNetworkStatus()
     if (!isOnline) {
+      console.log('authService→ 网络离线，跳过验证')
       return false
     }
 
     // 验证 token
-    await request.post('/auth/verify', null, {
+    const response = await request.get('/auth/verify', {
       headers: { Authorization: `Bearer ${state.accessToken}` }
     })
 
-    // 更新最后验证时间
-    await saveAuthState({
-      ...state,
-      lastVerified: new Date().toISOString()
-    })
+    // 更新用户信息和最后验证时间
+    const verifyData = response.data
+    if (verifyData.valid && verifyData.user) {
+      await saveAuthState({
+        ...state,
+        user: verifyData.user,
+        lastVerified: new Date().toISOString()
+      })
+      console.log('authService→ 验证成功，已更新用户信息')
+      return true
+    }
 
-    return true
+    return false
   } catch (error) {
-    console.error('网络验证失败:', error)
+    console.log('authService→ 验证失败，尝试刷新 token')
+    // 如果是认证错误，尝试刷新 token
+    if ((error as any).response?.status === 401) {
+      try {
+        if (!state.refreshToken) {
+          throw new Error('刷新 token 不存在')
+        }
+        await refreshToken(state.refreshToken)
+        return true
+      } catch (refreshError) {
+        console.error('authService→ 刷新 token 失败:', refreshError)
+        return false
+      }
+    }
+
     return false
   }
 }
 
-// 修改验证状态函数
+/**
+ * 验证认证状态
+ *
+ * 功能：
+ * 1. 检查本地认证状态是否存在
+ * 2. 验证许可证是否过期
+ * 3. 对永久授权用户提供30天的离线使用期
+ * 4. 其他情况需要网络验证
+ *
+ * 验证流程：
+ * 1. 先检查本地状态和过期时间
+ * 2. 永久授权用户30天内验证过则直接通过
+ * 3. 其他情况进行网络验证
+ *
+ * @returns {Promise<boolean>} true 表示验证通过，false 表示验证失败
+ */
 export async function verifyAuthState(): Promise<boolean> {
   try {
     const state = await getCurrentAuthState()
-    if (!state) return false
+    if (!state || !state.user) return false
 
     // 先检查本地过期时间
     const now = new Date()
@@ -258,19 +406,22 @@ export async function verifyAuthState(): Promise<boolean> {
 
     // 如果已过期，直接返回 false
     if (expiresAt < now) {
+      console.log('authService→ 许可证已过期')
       await db('auth_state').delete()
       return false
     }
 
-    // 如果在30天内验证过，直接返回true
-    if (now.getTime() - lastVerified.getTime() < 30 * 24 * 60 * 60 * 1000) {
+    // 如果在30天内验证过，且是永久授权，直接返回 true
+    const isRecentlyVerified = now.getTime() - lastVerified.getTime() < 30 * 24 * 60 * 60 * 1000
+    if (isRecentlyVerified && state.user.licenseType === 'desktop_permanent') {
+      console.log('authService→ 最近已验证过，且是永久授权')
       return true
     }
 
     // 否则进行网络验证
     return await checkNetworkAndVerify(state)
   } catch (error) {
-    console.error('验证失败:', error)
+    console.error('authService→ 验证失败:', error)
     return false
   }
 }

@@ -45,6 +45,12 @@ export const useAuthStore = defineStore('auth', () => {
   // 计算离线剩余时间
   const remainingOfflineDays = computed(() => {
     if (!authState.value?.lastVerified) return 0
+
+    // 如果不是永久授权用户，返回0
+    if (authState.value.user?.licenseType !== 'desktop_permanent') {
+      return 0
+    }
+
     const lastVerified = new Date(authState.value.lastVerified)
     const now = new Date()
     const diffDays =
@@ -236,30 +242,35 @@ export const useAuthStore = defineStore('auth', () => {
     // 立即执行一次检查
     checkOfflineStatus()
 
-    // 设置定时检查
+    // 设置定时检查 (每5分钟)
     offlineMonitorInterval = setInterval(checkOfflineStatus, 5 * 60 * 1000)
   }
 
-  // 分离检查逻辑
+  // 修改检查逻辑
   const checkOfflineStatus = async () => {
     try {
       const networkStatus = await window.electronAPI.auth.checkNetworkStatus()
       isOffline.value = !networkStatus
 
-      if (!networkStatus && authState.value) {
+      // 只有永久授权用户才显示离线剩余时间
+      if (!networkStatus && authState.value?.user?.licenseType === 'desktop_permanent') {
         const lastVerified = new Date(authState.value.lastVerified)
         const now = new Date()
-        const remainingTime = 90 * 24 * 60 * 60 * 1000 - (now.getTime() - lastVerified.getTime())
+        const remainingTime = 30 * 24 * 60 * 60 * 1000 - (now.getTime() - lastVerified.getTime())
         offlineExpiresIn.value = Math.max(0, remainingTime)
 
-        if (remainingTime < 7 * 24 * 60 * 60 * 1000) {
+        // 只在剩余时间少于7天时显示警告
+        if (remainingTime < 7 * 24 * 60 * 60 * 1000 && remainingTime > 0) {
           message.warning(
             `离线使用即将过期，请在 ${Math.ceil(remainingTime / (24 * 60 * 60 * 1000))} 天内连接网络验证授权`
           )
         }
+      } else {
+        // 非永久授权用户或在线状态下清除离线过期时间
+        offlineExpiresIn.value = null
       }
     } catch (error) {
-      console.error('检查离线状态失败:', error)
+      console.error('authStore→ 检查离线状态失败:', error)
     }
   }
 
@@ -286,6 +297,11 @@ export const useAuthStore = defineStore('auth', () => {
           authState.value = localState
           setupAutoRefresh()
           setupAuthStateListener()
+
+          // 只为永久授权用户启动离线监控
+          if (localState.user?.licenseType === 'desktop_permanent') {
+            monitorOfflineStatus()
+          }
         }
       }
 
@@ -296,18 +312,16 @@ export const useAuthStore = defineStore('auth', () => {
             const isValid = await window.electronAPI.auth.verifyAuth()
             if (!isValid) {
               await logout()
-            } else {
-              monitorOfflineStatus()
             }
           }
         } catch (err) {
-          console.error('异步验证失败:', err)
+          console.error('authStore→ 异步验证失败:', err)
         }
       })
 
       isInitialized.value = true
     } catch (err) {
-      console.error('初始化失败:', err)
+      console.error('authStore→ 初始化失败:', err)
       error.value = err instanceof Error ? err.message : '初始化失败'
     } finally {
       loading.value = false

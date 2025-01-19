@@ -161,7 +161,7 @@ onMounted(async () => {
   if (loadingWrapper) {
     loadingWrapper.style.opacity = '0'
     loadingWrapper.style.transition = 'opacity 0.2s'
-    setTimeout(() => loadingWrapper?.remove(), 50)
+    setTimeout(() => loadingWrapper?.remove(), 10)
   }
 
   // 2. 必要的初始化放在这里

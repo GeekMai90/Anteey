@@ -250,6 +250,47 @@
   ```
 - 响应: 200 OK
 
+### 检查服务状态
+
+- 路径: GET /auth/status
+- 描述: 检查服务状态和认证状态
+- 认证: 可选 Bearer Token
+- 响应: 200 OK
+  ```json
+  {
+    "status": "ok",
+    "serverTime": "2024-01-19T00:33:32.863Z",
+    "authenticated": true // 如果提供了有效token
+  }
+  ```
+- 错误响应:
+  - 401 Unauthorized: token无效（但服务正常）
+
+### 验证认证状态
+
+- 路径: GET /auth/verify
+- 描述: 验证当前认证状态
+- 认证: Bearer Token
+- 响应: 200 OK
+  ```json
+  {
+    "valid": true,
+    "user": {
+      "id": "uuid",
+      "email": "user@example.com",
+      "username": "username",
+      "licenseType": "free",
+      "maxDevices": 1,
+      "licenseExpiredAt": null,
+      "lastVerified": "2024-01-19T00:33:32.863Z"
+    }
+  }
+  ```
+- 错误响应:
+  - 401 Unauthorized: 未认证或认证已过期
+  - 401 Unauthorized: 用户不存在或已被禁用
+  - 401 Unauthorized: 许可证已过期
+
 ## 设备模块 (devices)
 
 ### 获取用户设备列表
