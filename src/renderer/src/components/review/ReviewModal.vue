@@ -3,6 +3,7 @@
     :model-value="modelValue"
     :close-on-outside-click="false"
     @update:model-value="emit('update:modelValue', $event)"
+    @keydown="handleKeydown"
   >
     <div class="review-modal">
       <!-- 标题区域 -->
@@ -137,12 +138,7 @@ const handleTitleClick = () => {
   uiStore.toggleButtonStyle()
 }
 
-// 修改键盘事件处理
 const handleKeydown = (e: KeyboardEvent) => {
-  if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
-    return
-  }
-
   // 回车键或空格键触发下一条
   if (e.code === 'Enter' || e.code === 'Space') {
     e.preventDefault()
@@ -155,12 +151,11 @@ const handleKeydown = (e: KeyboardEvent) => {
 }
 
 onMounted(async () => {
-  window.addEventListener('keydown', handleKeydown)
   await reviewStore.fetchRandomNote()
 })
 
 onUnmounted(() => {
-  window.removeEventListener('keydown', handleKeydown)
+  // 删除 window.removeEventListener('keydown', handleKeydown)
 })
 </script>
 
