@@ -695,7 +695,7 @@ const handleNodeMouseEnter = (event: MouseEvent, note: Note) => {
   const rect = (event.target as Element).getBoundingClientRect()
   const windowWidth = window.innerWidth
   const previewWidth = 300 // 预览窗口的宽度
-  const padding = 10 // 边距
+  const padding = 250 // 边距
 
   // 检查是否靠近右边界
   if (rect.right + previewWidth + padding > windowWidth) {
@@ -707,7 +707,7 @@ const handleNodeMouseEnter = (event: MouseEvent, note: Note) => {
   } else {
     // 否则显示在右侧
     previewPosition.value = {
-      x: rect.right + padding,
+      x: rect.right - padding,
       y: rect.top
     }
   }
