@@ -38,6 +38,8 @@
         />
       </Transition>
     </Teleport>
+    <!-- 添加一个消息容器 -->
+    <div class="message-container"></div>
   </div>
 </template>
 
@@ -245,6 +247,7 @@ useGlobalHotkeys()
   height: 100vh;
   width: 100vw;
   overflow: hidden;
+  position: relative;
 
   // 添加主题切换过渡
   transition:
@@ -268,5 +271,20 @@ useGlobalHotkeys()
 .fade-scale-leave-to {
   opacity: 0;
   transform: scale(0.95);
+}
+
+// 添加消息容器样式
+.message-container {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 99999;
+  pointer-events: none; // 允许点击穿透
+
+  // 确保消息堆叠时的间距
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 </style>

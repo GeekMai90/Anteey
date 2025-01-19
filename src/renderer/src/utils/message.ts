@@ -20,7 +20,14 @@ export const message = {
 
   show(message: string, type: 'success' | 'error' | 'warning' | 'info', duration: number) {
     const container = document.createElement('div')
-    document.body.appendChild(container)
+
+    // 找到消息容器并添加
+    const messageContainer = document.querySelector('.message-container')
+    if (!messageContainer) {
+      console.error('Message container not found')
+      return
+    }
+    messageContainer.appendChild(container)
 
     const app = createApp(MessageToast, {
       message,
@@ -32,14 +39,14 @@ export const message = {
 
     const timer = setTimeout(() => {
       app.unmount()
-      document.body.removeChild(container)
+      messageContainer.removeChild(container)
     }, duration + 300) // 加300ms确保动画完成
 
     return {
       close: () => {
         clearTimeout(timer)
         app.unmount()
-        document.body.removeChild(container)
+        messageContainer.removeChild(container)
       }
     }
   }
