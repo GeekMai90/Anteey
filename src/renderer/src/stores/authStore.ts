@@ -219,14 +219,14 @@ export const useAuthStore = defineStore('auth', () => {
     )
   }
 
-  // 建议添加登录状态监听
+  // 修改登录状态监听
   const setupAuthStateListener = () => {
     watch(
       () => authState.value,
       (newState) => {
-        if (!newState && router?.currentRoute?.value?.path !== '/settings') {
-          // 只有在非设置页面时才跳转
-          router.push('/settings')
+        if (!newState && router?.currentRoute?.value?.path !== '/timeline') {
+          // 改为跳转到 timeline 页面,因为这是我们已有的路由
+          router.push('/timeline')
         }
       }
     )

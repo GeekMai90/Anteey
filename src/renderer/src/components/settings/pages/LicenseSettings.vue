@@ -45,6 +45,9 @@
                     </button>
                     <button class="register-button" @click="handleRegister">注册账号</button>
                   </div>
+                  <div class="register-tip">
+                    👋🏻 请先注册账号，然后将注册邮箱发送至开发者微信 GeekMai 进行激活
+                  </div>
                 </div>
                 <div v-if="authStore.error" class="error-message">
                   {{ authStore.error }}
@@ -761,6 +764,17 @@ onMounted(async () => {
           }
         }
       }
+    }
+
+    .register-tip {
+      margin-top: 16px;
+      padding: 12px;
+      background: rgba(var(--color-primary-rgb), 0.05);
+      border-radius: 8px;
+      color: var(--color-text-secondary);
+      font-size: 13px;
+      line-height: 1.5;
+      text-align: center;
     }
   }
 
