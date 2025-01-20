@@ -3,9 +3,8 @@
     :model-value="modelValue"
     :close-on-outside-click="false"
     @update:model-value="emit('update:modelValue', $event)"
-    @keydown="handleKeydown"
   >
-    <div class="review-modal">
+    <div ref="modalRef" autofocus class="review-modal" tabindex="-1" @keydown="handleKeydown">
       <!-- 标题区域 -->
       <div class="title-bar">
         <div class="title-content" @click="handleTitleClick">
@@ -80,7 +79,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref } from 'vue'
+import { onMounted, onUnmounted, ref, watch, nextTick } from 'vue'
 import { Close, CircleDoubleRight, Cup } from '@icon-park/vue-next'
 import FlashcardModal from '../flashcard/FlashcardModal.vue'
 import TipTapEditor from '../tiptap/TipTapEditor.vue'
@@ -89,7 +88,7 @@ import { useUIStore } from '@renderer/stores/UIStore'
 import { storeToRefs } from 'pinia'
 import powerUpSound from '@renderer/assets/sounds/powerup.mp3'
 
-defineProps<{
+const props = defineProps<{
   modelValue: boolean
 }>()
 
@@ -107,12 +106,30 @@ const audio = new Audio()
 audio.src = powerUpSound
 audio.volume = 0.2
 
+const modalRef = ref<HTMLElement | null>(null)
+
+// 监听 modelValue 的变化
+watch(
+  () => props.modelValue,
+  (newValue) => {
+    if (newValue) {
+      nextTick(() => {
+        // 使用 querySelector 直接获取 modal 元素
+        const modalElement = document.querySelector('.flashcard-modal') as HTMLElement
+        if (modalElement) {
+          modalElement.focus()
+        }
+      })
+    }
+  }
+)
+
 const handleNext = async () => {
   await reviewStore.fetchRandomNote()
 }
 
 const handleClose = () => {
-  emit('update:modelValue', false)
+  uiStore.closeReviewModal()
 }
 
 const handleMarioClick = async () => {
@@ -139,6 +156,9 @@ const handleTitleClick = () => {
 }
 
 const handleKeydown = (e: KeyboardEvent) => {
+  // 只有当模态框打开时才处理键盘事件
+  if (!props.modelValue) return
+
   // 回车键或空格键触发下一条
   if (e.code === 'Enter' || e.code === 'Space') {
     e.preventDefault()
@@ -152,10 +172,13 @@ const handleKeydown = (e: KeyboardEvent) => {
 
 onMounted(async () => {
   await reviewStore.fetchRandomNote()
+  // 添加全局事件监听
+  window.addEventListener('keydown', handleKeydown)
 })
 
 onUnmounted(() => {
-  // 删除 window.removeEventListener('keydown', handleKeydown)
+  // 清理事件监听
+  window.removeEventListener('keydown', handleKeydown)
 })
 </script>
 
@@ -375,6 +398,10 @@ onUnmounted(() => {
         }
       }
     }
+  }
+
+  &:focus {
+    outline: none;
   }
 }
 
