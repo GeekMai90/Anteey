@@ -155,6 +155,11 @@ const routes = [
     path: '/ed-whiteboard/:id',
     name: 'EdWhiteboardDetail',
     component: () => import('@renderer/components/edWhiteboard/EdWhiteboardDetail.vue')
+  },
+  {
+    name: 'ReviewView',
+    path: '/review',
+    component: () => import('../views/ReviewView.vue')
   }
 ]
 

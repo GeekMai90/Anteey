@@ -135,6 +135,20 @@
                 @update:model-value="handleWhiteboardChange"
               />
             </div>
+            <div class="setting-item">
+              <div class="setting-label">随机回顾启用趣味按钮</div>
+              <Switch
+                :model-value="enableMarioStyle"
+                @update:model-value="handleMarioStyleChange"
+              />
+            </div>
+            <div class="setting-item">
+              <div class="setting-label">随机回顾趣味按钮音效</div>
+              <Switch
+                :model-value="enableMarioSound"
+                @update:model-value="handleMarioSoundChange"
+              />
+            </div>
           </div>
         </div>
       </div>
@@ -149,10 +163,12 @@ import { useAppearanceStore } from '@renderer/stores/appearanceStore'
 import { useTimeBlockStore } from '@renderer/stores/timeBlockStore'
 import { useThemeStore } from '@renderer/stores/themeStore'
 import Switch from '@renderer/components/ui/Switch.vue'
+import { useReviewStore } from '@renderer/stores/reviewStore'
 
 const appearanceStore = useAppearanceStore()
 const timeBlockStore = useTimeBlockStore()
 const themeStore = useThemeStore()
+const reviewStore = useReviewStore()
 
 const currentTheme = computed(() => {
   return themeStore.themeSettings?.themeMode || 'system'
@@ -201,6 +217,8 @@ const starredExpanded = ref(false)
 const tagsExpanded = ref(false)
 const recentExpanded = ref(false)
 const enableWhiteboard = ref(false)
+const enableMarioSound = ref(reviewStore.enableMarioSound)
+const enableMarioStyle = ref(reviewStore.enableMarioStyle)
 
 // 初始化数据
 onMounted(() => {
@@ -208,6 +226,8 @@ onMounted(() => {
   tagsExpanded.value = Boolean(appearanceStore.settings?.tagsExpanded ?? false)
   recentExpanded.value = Boolean(appearanceStore.settings?.recentExpanded ?? true)
   enableWhiteboard.value = Boolean(appearanceStore.settings?.enableWhiteboard ?? true)
+  enableMarioSound.value = reviewStore.enableMarioSound
+  enableMarioStyle.value = reviewStore.enableMarioStyle
 })
 
 // 处理函数
@@ -317,6 +337,16 @@ onMounted(async () => {
     }
   }
 })
+
+const handleMarioSoundChange = (value: boolean) => {
+  reviewStore.updateMarioSoundEnabled(value)
+  enableMarioSound.value = value
+}
+
+const handleMarioStyleChange = (value: boolean) => {
+  reviewStore.updateMarioStyleEnabled(value)
+  enableMarioStyle.value = value
+}
 </script>
 
 <style scoped lang="scss">

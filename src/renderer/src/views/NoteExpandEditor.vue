@@ -36,6 +36,22 @@
         </div>
         <!-- 右侧工具栏 -->
         <div class="toolbar-right">
+          <!-- 添加随机回顾按钮 -->
+          <div
+            v-tooltip.bottom="{ content: '随机回顾', delay: { show: 1000 } }"
+            class="review-btn"
+            :class="{ active: isReviewMode }"
+            @click="toggleReviewMode"
+          >
+            <div class="icon">
+              <Cup
+                theme="outline"
+                size="18"
+                :fill="isReviewMode ? 'var(--color-primary)' : 'var(--color-icon-default)'"
+                :strokeWidth="3"
+              />
+            </div>
+          </div>
           <!-- 卡片盒设置按钮 -->
           <div ref="cardboxBtnRef" class="install-btn" @click.stop="toggleCardboxMenu">
             <div v-tooltip.bottom="{ content: '设置卡片盒', delay: { show: 1000 } }" class="icon">
@@ -83,6 +99,35 @@
     <!-- 可滚动的内容区域 -->
     <div class="scrollable-content">
       <div class="editor-content">
+        <!-- 使用 transition-group 包裹按钮 -->
+        <transition-group name="review-nav" tag="div" class="review-nav-container">
+          <template v-if="isReviewMode">
+            <div class="review-nav-buttons">
+              <DoubleArrowButton
+                class="nav-btn prev"
+                :model-value="isReviewMode"
+                label="上一条笔记"
+                @click="handlePrevNote"
+              />
+              <template v-if="reviewStore.enableMarioStyle">
+                <MarioQuestionBox
+                  class="nav-btn mario-next"
+                  :model-value="isReviewMode"
+                  label="下一条笔记"
+                  @click="handleNextNote"
+                />
+              </template>
+              <template v-else>
+                <DoubleArrowButton
+                  class="nav-btn arrow-next"
+                  :model-value="isReviewMode"
+                  label="下一条笔记"
+                  @click="handleNextNote"
+                />
+              </template>
+            </div>
+          </template>
+        </transition-group>
         <div class="content-container">
           <div class="editor-area">
             <TipTapEditor
@@ -124,10 +169,10 @@
 
 <script setup lang="ts">
 import { ref, onMounted, computed, nextTick, onBeforeUnmount, watch } from 'vue'
-import { onBeforeRouteLeave, onBeforeRouteUpdate, useRoute } from 'vue-router'
+import { onBeforeRouteLeave, onBeforeRouteUpdate, useRoute, useRouter } from 'vue-router'
 import { useNoteStore } from '@renderer/stores/noteStore'
 import { formatDate } from '@renderer/utils/noteHelpers'
-import { More, Install } from '@icon-park/vue-next'
+import { More, Install, Cup } from '@icon-park/vue-next'
 import TipTapEditor from '@renderer/components/tiptap/TipTapEditor.vue'
 import CardboxDropdownMenu from '@renderer/components/cardbox/CardboxDropdownMenu.vue'
 import AppToolbar from '@renderer/components/layout/AppToolbar.vue'
@@ -146,15 +191,20 @@ import { useTagStore } from '@renderer/stores/tagStore'
 import GraphPanel from '@renderer/components/note/GraphPanel.vue'
 import NoteVersionModal from '@renderer/components/note/NoteVersionModal.vue'
 import { useNoteVersionStore } from '@renderer/stores/noteVersionStore'
-
+import { useReviewStore } from '@renderer/stores/reviewStore'
+import { useReviewModeStore } from '@renderer/stores/reviewModeStore'
+import MarioQuestionBox from '@renderer/components/ui/MarioQuestionBox.vue'
+import DoubleArrowButton from '@renderer/components/ui/DoubleArrowButton.vue'
 // === 组件状态管理 ===
 const tiptapEditor = ref<any>(null)
 const route = useRoute()
+const router = useRouter()
 const noteStore = useNoteStore()
 const noteId = route.params.id as string
 const addressInput = ref<HTMLInputElement | null>(null)
 const currentNote = ref<Note | null>(null)
 const fixedHeaderRef = ref<HTMLElement | null>(null)
+const reviewStore = useReviewStore()
 
 // 添加计算 header 高度的方法
 const updateHeaderHeight = () => {
@@ -569,6 +619,100 @@ onBeforeUnmount(async () => {
     await createVersion()
   }
 })
+
+// 使用 store 管理状态
+const reviewModeStore = useReviewModeStore()
+const isReviewMode = computed({
+  get: () => reviewModeStore.isReviewMode,
+  set: (value) => {
+    reviewModeStore.setReviewMode(value)
+  }
+})
+
+// 监听路由参数变化
+watch(
+  () => route.query.review,
+  (newValue) => {
+    // 同步路由参数到状态
+    reviewModeStore.setReviewMode(newValue === 'true')
+  },
+  { immediate: true } // 确保组件加载时就执行一次
+)
+
+// 切换随机回顾模式
+const toggleReviewMode = () => {
+  const newValue = !reviewModeStore.isReviewMode
+  // 先更新路由
+  router
+    .replace({
+      query: {
+        ...route.query,
+        review: newValue.toString()
+      }
+    })
+    .then(() => {
+      // 路由更新后再更新状态
+      reviewModeStore.setReviewMode(newValue)
+    })
+}
+
+// 处理上一条笔记
+const handlePrevNote = async () => {
+  try {
+    const prevNote = await reviewStore.fetchPreviousNote()
+    if (prevNote) {
+      router.push({
+        name: 'NoteExpandEditor',
+        params: { id: prevNote.id },
+        query: { review: 'true' }
+      })
+    } else {
+      message.info('没有更多历史记录')
+    }
+  } catch (error) {
+    console.error('获取上一条笔记失败:', error)
+    message.error('获取上一条笔记失败')
+  }
+}
+
+// 处理下一条笔记
+const handleNextNote = async () => {
+  try {
+    const nextNote = await reviewStore.fetchRandomNote()
+    if (nextNote) {
+      router.push({
+        name: 'NoteExpandEditor',
+        params: { id: nextNote.id },
+        query: { review: 'true' }
+      })
+    }
+  } catch (error) {
+    console.error('获取下一条笔记失败:', error)
+    message.error('获取下一条笔记失败')
+  }
+}
+
+// 添加键盘事件处理
+const handleKeydown = (e: KeyboardEvent) => {
+  if (!reviewModeStore.isReviewMode) return
+
+  if (e.key === 'ArrowLeft') {
+    e.preventDefault()
+    handlePrevNote()
+  } else if (e.key === 'ArrowRight') {
+    e.preventDefault()
+    handleNextNote()
+  }
+}
+
+// 监听键盘事件
+onMounted(() => {
+  window.addEventListener('keydown', handleKeydown)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('keydown', handleKeydown)
+})
 </script>
 
 <style scoped lang="scss">
@@ -920,5 +1064,139 @@ onBeforeUnmount(async () => {
   .backlinks-area {
     margin-top: auto;
   }
+}
+
+/* 添加随机回顾按钮样式 */
+.review-btn {
+  position: relative;
+  display: flex;
+  align-items: center;
+  border: none;
+  background: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border-radius: 6px;
+  padding: 4px 4px;
+  margin: 2px;
+
+  .icon {
+    background: none;
+    border: none;
+    cursor: pointer;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    padding: 0;
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    :deep(.i-icon) {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      height: 100%;
+    }
+
+    :deep(svg) {
+      width: 20px;
+      height: 20px;
+    }
+  }
+  &:hover {
+    background-color: var(--color-hover-button);
+  }
+
+  &.active {
+    background: var(--color-primary-bg);
+
+    .icon {
+      color: var(--color-primary);
+    }
+  }
+
+  // 复用原有的 icon 样式...
+}
+
+/* 添加左右切换按钮样式 */
+.review-nav-container {
+  position: relative;
+}
+
+/* 修改导航按钮的样式 */
+.review-nav-buttons {
+  position: fixed;
+  top: 50%;
+  transform: translateY(-50%);
+  left: 5%;
+  right: 5%;
+  pointer-events: none;
+  z-index: 100;
+
+  .nav-btn {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--color-bg-primary);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    pointer-events: auto;
+    color: var(--color-text-secondary);
+    border: none;
+    background: transparent;
+
+    &.prev {
+      left: 5%;
+      transform: translateY(-50%);
+      width: 76px;
+      height: 76px;
+    }
+
+    // 马里奥按钮样式
+    &.mario-next {
+      right: 5%;
+      transform: translateY(-50%);
+      width: 4rem;
+      height: 4rem;
+    }
+
+    // 箭头按钮样式
+    &.arrow-next {
+      right: 12%;
+      transform: rotate(180deg) translateY(50%);
+      width: 76px;
+      height: 76px;
+    }
+  }
+}
+
+/* 修改过渡动画 */
+.review-nav-enter-active,
+.review-nav-leave-active {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.review-nav-enter-from {
+  opacity: 0;
+  transform: scale(0.9) translateY(-50%);
+}
+
+.review-nav-leave-to {
+  opacity: 0;
+  transform: scale(0.9) translateY(-50%);
+}
+
+.review-nav-enter-to,
+.review-nav-leave-from {
+  opacity: 1;
+  transform: scale(1) translateY(-50%);
 }
 </style>

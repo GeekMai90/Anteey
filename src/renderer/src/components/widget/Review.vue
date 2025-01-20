@@ -96,6 +96,7 @@ onMounted(async () => {
   flex-direction: column;
   gap: 12px;
   max-height: 300px;
+  z-index: 1000;
 }
 
 :deep(.tiptap) {

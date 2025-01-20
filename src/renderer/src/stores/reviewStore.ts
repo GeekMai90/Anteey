@@ -9,6 +9,8 @@ export const useReviewStore = defineStore('review', () => {
   const isLoading = ref(false)
   const error = ref<string | null>(null)
   const lastRefreshDate = ref<string>('')
+  const enableMarioSound = ref(true) // 默认开启音效
+  const enableMarioStyle = ref(true) // 默认启用马里奥按钮样式
 
   // ==================== 计算属性 ====================
   const currentNote = computed<Note | null>(() => notes.value[currentIndex.value] || null)
@@ -19,6 +21,10 @@ export const useReviewStore = defineStore('review', () => {
   const randomNote = ref<Note | null>(null)
   const isLoadingRandom = ref(false)
   const randomError = ref<string | null>(null)
+
+  // ==================== 添加历史记录相关状态 ====================
+  const MAX_HISTORY = 3 // 最多保留3条历史记录
+  const reviewHistory = ref<Note[]>([])
 
   // ==================== 从本地存储加载状态 ====================
   const loadFromStorage = () => {
@@ -129,6 +135,16 @@ export const useReviewStore = defineStore('review', () => {
       randomError.value = null
       const note = await window.electronAPI.review.getOneRandomNote()
       randomNote.value = note
+
+      if (note) {
+        // 添加到历史记录
+        reviewHistory.value.push(note)
+        // 如果超出最大数量,移除最早的记录
+        if (reviewHistory.value.length > MAX_HISTORY) {
+          reviewHistory.value.shift()
+        }
+      }
+
       return note
     } catch (err) {
       console.error('获取单条随机笔记失败:', err)
@@ -138,6 +154,59 @@ export const useReviewStore = defineStore('review', () => {
       isLoadingRandom.value = false
     }
   }
+
+  // 获取上一条笔记
+  const fetchPreviousNote = async () => {
+    try {
+      // 如果历史记录少于2条,说明没有上一条笔记
+      if (reviewHistory.value.length < 2) {
+        return null
+      }
+
+      // 移除当前笔记
+      reviewHistory.value.pop()
+      // 获取新的当前笔记(即原来的上一条笔记)
+      const previousNote = reviewHistory.value[reviewHistory.value.length - 1]
+      randomNote.value = previousNote
+
+      return previousNote
+    } catch (err) {
+      console.error('获取上一条笔记失败:', err)
+      throw err
+    }
+  }
+
+  // 清空历史记录
+  const clearHistory = () => {
+    reviewHistory.value = []
+  }
+
+  // 更新音效状态
+  const updateMarioSoundEnabled = (value: boolean) => {
+    enableMarioSound.value = value
+    localStorage.setItem('review-mario-sound', value.toString())
+  }
+
+  // 更新马里奥样式开关
+  const updateMarioStyleEnabled = (value: boolean) => {
+    enableMarioStyle.value = value
+    localStorage.setItem('review-mario-style', value.toString())
+  }
+
+  // 初始化马里奥相关设置
+  const initializeMarioSettings = () => {
+    const savedSound = localStorage.getItem('review-mario-sound')
+    if (savedSound !== null) {
+      enableMarioSound.value = savedSound === 'true'
+    }
+    const savedStyle = localStorage.getItem('review-mario-style')
+    if (savedStyle !== null) {
+      enableMarioStyle.value = savedStyle === 'true'
+    }
+  }
+
+  // 在初始化时读取设置
+  initializeMarioSettings()
 
   return {
     // 状态
@@ -161,6 +230,15 @@ export const useReviewStore = defineStore('review', () => {
     randomNote,
     isLoadingRandom,
     randomError,
-    fetchRandomNote
+    fetchRandomNote,
+    fetchPreviousNote,
+    clearHistory,
+
+    // 历史记录
+    reviewHistory: computed(() => reviewHistory.value),
+    enableMarioSound: computed(() => enableMarioSound.value),
+    updateMarioSoundEnabled,
+    enableMarioStyle: computed(() => enableMarioStyle.value),
+    updateMarioStyleEnabled
   }
 })

@@ -45,6 +45,41 @@
             :note-id="currentNote?.id"
           />
         </div>
+
+        <!-- 新增关系图谱区域 -->
+        <div class="note-relations">
+          <div class="relations-tabs">
+            <div
+              class="tab-item"
+              :class="{ active: activeTab === 'local' }"
+              @click="activeTab = 'local'"
+            >
+              局部关系
+            </div>
+            <div
+              class="tab-item"
+              :class="{ active: activeTab === 'hierarchy' }"
+              @click="activeTab = 'hierarchy'"
+            >
+              层级关系
+            </div>
+          </div>
+
+          <div class="relations-content">
+            <LocalMapPanel
+              v-if="activeTab === 'local' && currentNote?.id"
+              :note-id="currentNote.id"
+              :hide-header="true"
+              :is-collapsed="false"
+            />
+            <HierarchyTreePanel
+              v-if="activeTab === 'hierarchy' && currentNote?.id"
+              :note-id="currentNote.id"
+              :hide-header="true"
+              :is-collapsed="false"
+            />
+          </div>
+        </div>
       </div>
 
       <!-- 底部按钮区域 -->
@@ -87,6 +122,8 @@ import { useReviewStore } from '@renderer/stores/reviewStore'
 import { useUIStore } from '@renderer/stores/UIStore'
 import { storeToRefs } from 'pinia'
 import powerUpSound from '@renderer/assets/sounds/powerup.mp3'
+import LocalMapPanel from '../note/LocalMapPanel.vue'
+import HierarchyTreePanel from '../note/HierarchyTreePanel.vue'
 
 const props = defineProps<{
   modelValue: boolean
@@ -107,6 +144,9 @@ audio.src = powerUpSound
 audio.volume = 0.2
 
 const modalRef = ref<HTMLElement | null>(null)
+
+// 新增 tab 切换状态
+const activeTab = ref('local')
 
 // 监听 modelValue 的变化
 watch(
@@ -185,11 +225,11 @@ onUnmounted(() => {
 <style lang="scss" scoped>
 .review-modal {
   width: 75vw;
-  height: 75vh;
-  max-width: 1000px;
-  max-height: 700px;
+  height: 100vh;
+  max-width: 1200px;
+  // max-height: 900px;
   min-width: 800px;
-  min-height: 600px;
+  min-height: 800px;
   background: var(--color-bg-primary);
   border-radius: 12px;
   padding: 24px;
@@ -311,10 +351,12 @@ onUnmounted(() => {
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    gap: 16px;
 
     .note-header {
       padding: 16px 24px 0 24px;
       position: relative;
+      flex-shrink: 0;
 
       .note-address {
         font-size: 12px;
@@ -325,12 +367,77 @@ onUnmounted(() => {
     }
 
     .note-content {
-      flex: 1;
+      height: 200px;
+      min-height: 200px;
+      flex-shrink: 0;
       overflow-y: auto;
       padding: 24px;
 
       :deep(.tiptap-editor) {
         height: 100%;
+      }
+    }
+
+    // 新增关系图谱区域样式
+    .note-relations {
+      flex: 1;
+      min-height: 400px;
+      border-top: 1px solid var(--color-border);
+      padding-top: 16px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+
+      .relations-tabs {
+        display: flex;
+        gap: 16px;
+        margin-bottom: 16px;
+        padding: 0 16px;
+        flex-shrink: 0;
+
+        .tab-item {
+          padding: 6px 12px;
+          border-radius: 6px;
+          font-size: 13px;
+          color: var(--color-text-secondary);
+          cursor: pointer;
+          transition: all 0.2s ease;
+
+          &:hover {
+            background: var(--color-hover-bg);
+          }
+
+          &.active {
+            color: var(--color-primary);
+            background: var(--color-primary-bg);
+          }
+        }
+      }
+
+      .relations-content {
+        flex: 1;
+        overflow: hidden;
+        position: relative;
+
+        :deep(.local-tree-panel),
+        :deep(.hierarchy-tree-panel) {
+          margin-top: 0;
+          height: 100%;
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+
+          .tree-container {
+            height: 100%;
+            min-height: 0;
+
+            .tree-graph {
+              height: 100%;
+            }
+          }
+        }
       }
     }
   }
@@ -576,7 +683,7 @@ onUnmounted(() => {
     10px 22px 0px #cc3300,
     12px 22px 0px #cc3300,
     14px 22px 0px #cc3300,
-    16px 22px 0px #000,
+    16px 22px 0px #cc3300,
     18px 22px 0px #cc3300,
     20px 22px 0px #cc3300,
     22px 22px 0px #cc3300,
@@ -665,7 +772,9 @@ onUnmounted(() => {
     28px 32px 0px #000,
     30px 32px 0px #000,
     32px 32px 0px #000;
-  transform: translateX(30px);
+  transform: translate(-0px, -0px);
+  z-index: -1;
+  opacity: 0;
 }
 
 .brick.one {
@@ -755,7 +864,6 @@ onUnmounted(() => {
     24px 14px 0px #fc9838,
     26px 14px 0px #fc9838,
     28px 14px 0px #fc9838,
-    30px 14px 0px #fc9838,
     2px 16px 0px #fc9838,
     4px 16px 0px #fc9838,
     6px 16px 0px #d82800,
@@ -1087,7 +1195,7 @@ onUnmounted(() => {
     26px 24px 0px #ff9c31,
     28px 24px 0px #ff9c31,
     30px 24px 0px #ff9c31,
-    32px 24px 0px #000,
+    32px 24px 0px #ff9c31,
     2px 26px 0px #ce3100,
     4px 26px 0px #ff9c31,
     6px 26px 0px #ff9c31,

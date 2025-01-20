@@ -110,7 +110,7 @@
             delay: { show: 1000 }
           }"
           class="action-btn"
-          @click="uiStore.openReviewModal"
+          @click="handleReviewClick"
         >
           <div class="icon">
             <Cup theme="outline" size="16" fill="var(--color-sidebar-icon)" :strokeWidth="3" />
@@ -339,6 +339,7 @@ import { useAppearanceStore } from '@renderer/stores/appearanceStore'
 import { useWebDAVStore } from '@renderer/stores/webdavStore'
 import { message } from '@renderer/utils/message'
 import { useThemeStore } from '@renderer/stores/themeStore'
+import { useReviewStore } from '@renderer/stores/reviewStore'
 
 const imageSrc = ref('')
 const uiStore = useUIStore()
@@ -348,6 +349,7 @@ const timeBlockStore = useTimeBlockStore()
 const appearanceStore = useAppearanceStore()
 const webdavStore = useWebDAVStore()
 const themeStore = useThemeStore()
+const reviewStore = useReviewStore()
 
 const getIconFill = computed(
   () => (path: string) =>
@@ -633,6 +635,27 @@ const activeSegment = ref('recent')
 
 const switchSegment = (segment: string) => {
   activeSegment.value = segment
+}
+
+// 处理随机回顾点击
+const handleReviewClick = async () => {
+  try {
+    // 先获取一个随机笔记
+    const randomNote = await reviewStore.fetchRandomNote()
+    if (randomNote) {
+      // 跳转到这个笔记的编辑页面,并开启随机回顾模式
+      router.push({
+        name: 'NoteExpandEditor',
+        params: { id: randomNote.id },
+        query: { review: 'true' }
+      })
+    } else {
+      message.warning('没有可回顾的笔记')
+    }
+  } catch (error) {
+    console.error('进入随机回顾模式失败:', error)
+    message.error('进入随机回顾模式失败')
+  }
 }
 </script>
 

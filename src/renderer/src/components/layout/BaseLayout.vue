@@ -175,7 +175,7 @@ watch(
 
 // 添加暗色模式判断
 const isDarkMode = computed(() => {
-  console.log('themeStore.themeSettings', themeStore.themeSettings?.themeMode)
+  // console.log('themeStore.themeSettings', themeStore.themeSettings?.themeMode)
   if (!themeStore.themeSettings) return false
   return (
     themeStore.themeSettings.themeMode === 'dark' ||

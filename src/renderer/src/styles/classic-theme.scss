@@ -100,6 +100,10 @@
   .help:hover {
     background: var(--color-hover-sidebar) !important;
   }
+  .action-btn-area {
+    gap: 0 !important;
+  }
+
   // 主内容区域
   .main-content {
     background: var(--color-bg-primary) !important;
