@@ -15,10 +15,25 @@
             <ExpandTextInput
               theme="outline"
               size="18"
-              fill="var(--color-icon-secondary)"
+              fill="var(--color-icon-default)"
               :strokeWidth="3"
             />
           </div>
+        </div>
+        <!-- 添加卡片盒设置按钮 -->
+        <div ref="cardboxBtnRef" class="note-button" @click.stop="toggleCardboxMenu">
+          <div v-tooltip.bottom="{ content: '设置卡片盒', delay: { show: 1000 } }" class="icon">
+            <Install theme="outline" size="16" fill="var(--color-icon-default)" :strokeWidth="3" />
+          </div>
+          <CardboxDropdownMenu
+            ref="cardboxMenuRef"
+            :is-open="cardboxMenuState.isOpen"
+            :position="cardboxMenuState.position"
+            :note-id="note.id"
+            :current-cardbox-id="note.cardBoxId"
+            @close="closeCardboxMenu"
+            @update="handleCardboxUpdate"
+          />
         </div>
         <!-- 更多功能菜单按钮 -->
         <div ref="moreBtnRef" class="note-button" @click.stop="toggleMoreMenu">
@@ -66,7 +81,7 @@
 <script setup lang="ts">
 import { Note } from '@shared/types'
 import { formatDate } from '@renderer/utils/noteHelpers'
-import { More, ExpandTextInput, StorageCardOne } from '@icon-park/vue-next'
+import { More, ExpandTextInput, StorageCardOne, Install } from '@icon-park/vue-next'
 import { computed, onUnmounted, ref, toRef, watch } from 'vue'
 import { useNoteStore } from '@renderer/stores/noteStore'
 import { useRouter } from 'vue-router'
@@ -76,6 +91,7 @@ import { useNoteMenu } from '@renderer/composables/useNoteMenu'
 import type { MenuItem } from '@renderer/components/common/PopupMenu.vue'
 import { useMenu } from '@renderer/composables/useMenu'
 import { State } from 'ts-fsrs/dist'
+import CardboxDropdownMenu from '@renderer/components/cardbox/CardboxDropdownMenu.vue'
 
 const props = defineProps<{
   note: Note
@@ -212,6 +228,32 @@ const flashcardTooltip = computed(() => {
       return '记忆卡'
   }
 })
+
+// 添加卡片盒菜单相关逻辑
+const cardboxBtnRef = ref<HTMLElement | null>(null)
+const cardboxMenuRef = ref<HTMLElement | null>(null)
+const {
+  menuState: cardboxMenuState,
+  toggleMenu: toggleCardboxMenu,
+  closeMenu: closeCardboxMenu
+} = useMenu({
+  buttonRef: cardboxBtnRef,
+  menuRef: cardboxMenuRef,
+  onClose: () => {
+    console.log('卡片盒菜单已关闭')
+  }
+})
+
+// 处理卡片盒更新
+const handleCardboxUpdate = async (cardBoxId: string) => {
+  if (props.note) {
+    // 可以选择是否发出事件通知父组件更新
+    emit('cardbox-update', { noteId: props.note.id, cardBoxId })
+  }
+}
+
+// 添加 emit 定义
+const emit = defineEmits(['cardbox-update'])
 </script>
 
 <style lang="scss" scoped>
