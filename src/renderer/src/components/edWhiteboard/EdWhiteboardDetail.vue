@@ -2,6 +2,8 @@
   <div class="ed-whiteboard-detail">
     <AppToolbar
       :whiteboardName="currentWhiteboard?.name || '未命名白板'"
+      :showBackButton="false"
+      :showForwardButton="false"
       @update:whiteboardName="updateWhiteboardName"
     />
     <div class="excalidraw-container">
