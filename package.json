@@ -38,6 +38,7 @@
     "@electron-toolkit/utils": "^3.0.0",
     "@electron/remote": "^2.1.2",
     "@excalidraw/excalidraw": "^0.17.6",
+    "@floating-ui/vue": "^1.1.6",
     "@icon-park/vue-next": "^1.4.2",
     "@pqina/flip": "^1.8.4",
     "@prosemirror-adapter/vue": "^0.2.6",

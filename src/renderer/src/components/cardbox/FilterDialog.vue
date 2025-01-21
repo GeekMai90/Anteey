@@ -446,6 +446,7 @@ const handleSave = async () => {
   background: var(--color-bg-primary);
   border-radius: 16px;
   width: 700px;
+  min-height: 700px;
   max-width: 90vw;
   max-height: 90vh;
   display: flex;

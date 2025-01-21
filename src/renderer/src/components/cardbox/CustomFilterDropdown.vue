@@ -1,7 +1,7 @@
 <template>
-  <div ref="filterDropdown" class="custom-filter-container">
+  <div class="custom-filter-container">
     <!-- Custom 下拉按钮 -->
-    <div class="custom-filter-dropdown" @click.stop="toggleMenu">
+    <div ref="reference" class="custom-filter-dropdown" @click.stop="toggleMenu">
       <div class="icon">
         <Filter theme="outline" size="18" fill="var(--color-icon-menu-default)" :strokeWidth="3" />
       </div>
@@ -12,115 +12,154 @@
     </div>
 
     <!-- 筛选规则下拉菜单 -->
-    <div
-      v-if="showMenu"
-      v-click-outside="closeMenu"
-      class="filter-menu"
-      :class="{ show: showMenu }"
-      :style="menuStyle"
-    >
-      <!-- 筛选规则列表 -->
-      <div class="filter-list">
-        <div
-          v-for="filter in filteredRules"
-          :key="filter.id"
-          class="filter-item"
-          :class="{ active: activeFilter?.id === filter.id }"
-          @click="selectFilter(filter)"
-        >
-          <div class="filter-info">
-            <div class="icon">
-              <Filter
-                theme="outline"
-                size="16"
-                fill="var(--color-icon-menu-default)"
-                :strokeWidth="3"
-              />
-            </div>
-            <div class="filter-name">{{ filter.name }}</div>
-          </div>
-          <div class="filter-actions">
-            <div class="icon" @click.stop="togglePin(filter)">
-              <Pushpin
-                theme="outline"
-                size="16"
-                :fill="filter.isPinned ? 'var(--color-primary)' : 'var(--color-icon-menu-default)'"
-                :strokeWidth="3"
-              />
-            </div>
-            <div class="icon" @click.stop="showMoreMenu(filter, $event)">
-              <More
-                theme="outline"
-                size="16"
-                fill="var(--color-icon-menu-default)"
-                :strokeWidth="3"
-              />
-            </div>
-            <!-- 更多操作菜单 -->
-            <div
-              v-if="showMoreMenuId === filter.id"
-              class="more-menu"
-              :class="{ show: showMoreMenuId === filter.id }"
-              :style="moreMenuPosition"
-            >
-              <div class="more-menu-item" @click="toggleStar(filter)">
-                <div class="icon">
-                  <Star
-                    theme="outline"
-                    size="16"
-                    :fill="
-                      filter.isStarred ? 'var(--color-primary)' : 'var(--color-icon-menu-default)'
-                    "
-                    :strokeWidth="3"
-                  />
-                </div>
-                <div class="name">{{ filter.isStarred ? '取消收藏' : '收藏' }}</div>
+    <Teleport to="body">
+      <div
+        v-if="showMenu"
+        ref="floating"
+        v-click-outside="closeMenu"
+        class="filter-menu"
+        :class="{ show: showMenu }"
+        :style="menuStyle"
+      >
+        <!-- 筛选规则列表 -->
+        <div class="filter-list">
+          <div
+            v-for="filter in filteredRules"
+            :key="filter.id"
+            class="filter-item"
+            :class="{ active: activeFilter?.id === filter.id }"
+            @click="selectFilter(filter)"
+          >
+            <div class="filter-info">
+              <div class="icon">
+                <Filter
+                  theme="outline"
+                  size="16"
+                  fill="var(--color-icon-menu-default)"
+                  :strokeWidth="3"
+                />
               </div>
-              <div class="more-menu-item" @click="editFilter(filter)">
-                <div class="icon">
-                  <Edit
-                    theme="outline"
-                    size="16"
-                    fill="var(--color-icon-menu-default)"
-                    :strokeWidth="3"
-                  />
-                </div>
-                <div class="name">编辑</div>
+              <div class="filter-name">{{ filter.name }}</div>
+            </div>
+            <div class="filter-actions">
+              <div class="icon" @click.stop="togglePin(filter)">
+                <Pushpin
+                  theme="outline"
+                  size="16"
+                  :fill="
+                    filter.isPinned ? 'var(--color-primary)' : 'var(--color-icon-menu-default)'
+                  "
+                  :strokeWidth="3"
+                />
               </div>
-              <div class="more-menu-item delete" @click="deleteFilter(filter)">
-                <div class="icon">
-                  <Delete theme="outline" size="16" fill="var(--color-danger)" :strokeWidth="3" />
+              <div class="icon" @click.stop="showMoreMenu(filter, $event)">
+                <More
+                  theme="outline"
+                  size="16"
+                  fill="var(--color-icon-menu-default)"
+                  :strokeWidth="3"
+                />
+              </div>
+              <!-- 更多操作菜单 -->
+              <div
+                v-if="showMoreMenuId === filter.id"
+                class="more-menu"
+                :class="{ show: showMoreMenuId === filter.id }"
+                :style="moreMenuPosition"
+              >
+                <div class="more-menu-item" @click="toggleStar(filter)">
+                  <div class="icon">
+                    <Star
+                      theme="outline"
+                      size="16"
+                      :fill="
+                        filter.isStarred ? 'var(--color-primary)' : 'var(--color-icon-menu-default)'
+                      "
+                      :strokeWidth="3"
+                    />
+                  </div>
+                  <div class="name">{{ filter.isStarred ? '取消收藏' : '收藏' }}</div>
                 </div>
-                <div class="name">删除</div>
+                <div class="more-menu-item" @click="editFilter(filter)">
+                  <div class="icon">
+                    <Edit
+                      theme="outline"
+                      size="16"
+                      fill="var(--color-icon-menu-default)"
+                      :strokeWidth="3"
+                    />
+                  </div>
+                  <div class="name">编辑</div>
+                </div>
+                <div class="more-menu-item delete" @click="deleteFilter(filter)">
+                  <div class="icon">
+                    <Delete theme="outline" size="16" fill="var(--color-danger)" :strokeWidth="3" />
+                  </div>
+                  <div class="name">删除</div>
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
-      <div class="divider"></div>
-      <!-- 添加筛选规则按钮 -->
-      <div class="add-filter-button" @click="handleAddFilter">
-        <div class="icon">
-          <Plus theme="outline" size="18" fill="var(--color-icon-menu-default)" :strokeWidth="3" />
+        <div class="divider"></div>
+        <!-- 添加筛选规则按钮 -->
+        <div class="add-filter-button" @click="handleAddFilter">
+          <div class="icon">
+            <Plus
+              theme="outline"
+              size="18"
+              fill="var(--color-icon-menu-default)"
+              :strokeWidth="3"
+            />
+          </div>
+          <div class="name">添加筛选规则</div>
         </div>
-        <div class="name">添加筛选规则</div>
       </div>
-    </div>
+    </Teleport>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
+import type { CSSProperties } from 'vue'
 import { Filter, Plus, Down, Pushpin, Edit, Delete, More, Star } from '@icon-park/vue-next'
 import { useFilterStore } from '@renderer/stores/filterStore'
 import type { CustomFilter } from '@shared/types'
 import { message } from '@renderer/utils/message'
+import { useFloating } from '@floating-ui/vue'
+import { flip, offset, shift, autoUpdate } from '@floating-ui/dom'
 
 const filterStore = useFilterStore()
-const filterDropdown = ref<HTMLElement | null>(null)
+const reference = ref<HTMLElement | null>(null)
+const floating = ref<HTMLElement | null>(null)
 const showMenu = ref(false)
 const searchQuery = ref('')
-const menuStyle = ref({})
+
+// 使用 floating-ui 的定位逻辑
+const { x, y, update } = useFloating(reference, floating, {
+  placement: 'bottom-start',
+  middleware: [
+    offset(8),
+    flip({
+      padding: 8,
+      fallbackPlacements: ['top-start']
+    }),
+    shift({
+      padding: 8,
+      boundary: window
+    })
+  ],
+  whileElementsMounted: autoUpdate
+})
+
+// 计算菜单样式
+const menuStyle = computed<CSSProperties>(() => ({
+  position: 'fixed' as const,
+  top: y.value ? `${y.value}px` : '0',
+  left: x.value ? `${x.value}px` : '0',
+  width: '280px',
+  zIndex: 9999
+}))
 
 // 计算筛选后的规则列表
 const filteredRules = computed(() => {
@@ -145,26 +184,19 @@ const filteredRules = computed(() => {
 // 获取当前活动的筛选规则
 const activeFilter = computed(() => filterStore.activeFilter)
 
-// 更新菜单位置
-const updateMenuPosition = () => {
-  if (!filterDropdown.value) return
-  const rect = filterDropdown.value.getBoundingClientRect()
-  const scrollTop = window.scrollY || document.documentElement.scrollTop
-  menuStyle.value = {
-    top: `${rect.bottom + scrollTop + 8}px`,
-    left: `${rect.left}px`
+// 切换菜单显示状态
+const toggleMenu = async () => {
+  showMenu.value = !showMenu.value
+  if (showMenu.value) {
+    await nextTick()
+    await update()
   }
 }
 
-// 切换菜单显示状态
-const toggleMenu = () => {
-  showMenu.value = !showMenu.value
-  if (showMenu.value) {
-    nextTick(() => {
-      updateMenuPosition()
-    })
-  }
-}
+// 添加 watch 来监听位置变化
+watch([x, y], ([newX, newY]) => {
+  console.log('Position updated:', { x: newX, y: newY })
+})
 
 const closeMenu = () => {
   showMenu.value = false
@@ -239,7 +271,11 @@ const closeMoreMenu = () => {
 const toggleStar = async (filter: CustomFilter) => {
   try {
     await filterStore.toggleFilterStar(filter.id)
-    message.success('操作成功')
+    if (filter.isStarred) {
+      message.success('已取消收藏')
+    } else {
+      message.success('已收藏')
+    }
   } catch (error) {
     message.error('操作失败')
   }
@@ -262,21 +298,20 @@ filterStore.fetchCustomFilters()
 
 const handleAddFilter = () => {
   filterStore.openFilterDialog()
+  closeMenu()
 }
 
 const editFilter = (filter: CustomFilter) => {
   filterStore.openFilterDialog(filter)
 }
 
-// 添加事件监听
+// 监听窗口大小变化
 onMounted(() => {
-  window.addEventListener('scroll', updateMenuPosition)
-  window.addEventListener('resize', updateMenuPosition)
+  window.addEventListener('resize', update)
 })
 
 onUnmounted(() => {
-  window.removeEventListener('scroll', updateMenuPosition)
-  window.removeEventListener('resize', updateMenuPosition)
+  window.removeEventListener('resize', update)
 })
 </script>
 
@@ -343,23 +378,19 @@ onUnmounted(() => {
 
 .filter-menu {
   position: fixed;
-  background-color: var(--color-bg-primary, #ffffff);
-  border: 1px solid var(--color-border, #dcdfe6);
+  background-color: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
   border-radius: 8px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
   z-index: 9999;
   width: 280px;
   max-height: 400px;
   overflow: hidden;
-  display: flex;
+  display: none;
   flex-direction: column;
-  opacity: 0;
-  visibility: hidden;
-  transition: all 0.2s ease;
 
   &.show {
-    opacity: 1;
-    visibility: visible;
+    display: flex;
   }
 
   &::-webkit-scrollbar {
@@ -401,6 +432,7 @@ onUnmounted(() => {
   flex: 1;
   overflow-y: auto;
   padding: 8px;
+  z-index: 9999;
 }
 
 .filter-item {

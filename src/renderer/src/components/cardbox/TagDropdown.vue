@@ -1,5 +1,5 @@
 <template>
-  <div ref="tagDropdown" class="tag-dropdown" @click.stop="toggleMenu">
+  <div ref="reference" class="tag-dropdown" @click.stop="toggleMenu">
     <div class="icon">
       <Tag theme="outline" size="18" fill="var(--color-icon-menu-default)" :strokeWidth="3" />
     </div>
@@ -8,63 +8,86 @@
       <Down theme="outline" size="14" fill="var(--color-text-secondary)" :strokeWidth="3" />
     </div>
     <!-- 标签下拉菜单 -->
-    <div v-if="showMenu" class="dropdown-menu" :class="{ show: showMenu }" :style="menuStyle">
-      <!-- 固定选项：所有标签 -->
+    <Transition
+      name="dropdown"
+      enter-active-class="animate-enter"
+      leave-active-class="animate-leave"
+      enter-from-class="animate-enter-from"
+      leave-to-class="animate-leave-to"
+    >
       <div
-        class="dropdown-item"
-        :class="{ active: modelValue.includes('all') }"
-        @click.stop="select({ id: 'all', name: '所有标签' })"
-      >
-        <div class="dropdown-item-content">
-          <div class="icon">
-            <Tag theme="outline" size="18" fill="var(--color-icon-menu-default)" :strokeWidth="3" />
-          </div>
-          <div class="name">所有标签</div>
-        </div>
-      </div>
-      <!-- 固定选项：无标签 -->
-      <div
-        class="dropdown-item"
-        :class="{ active: modelValue.includes('none') }"
-        @click.stop="select({ id: 'none', name: '无标签' })"
-      >
-        <div class="dropdown-item-content">
-          <div class="icon">
-            <TagOne
-              theme="outline"
-              size="18"
-              fill="var(--color-icon-menu-default)"
-              :strokeWidth="3"
-            />
-          </div>
-          <div class="name">无标签</div>
-        </div>
-      </div>
-      <!-- 分隔线 -->
-      <div class="dropdown-divider"></div>
-
-      <!-- 用户标签列表 -->
-      <div
-        v-for="tag in tags"
-        :key="tag.id"
-        class="dropdown-item"
-        :class="{
-          active: !modelValue.includes('all') && modelValue.includes(tag.id)
+        v-if="showMenu"
+        ref="floating"
+        class="dropdown-menu"
+        :style="{
+          position: strategy,
+          top: `${y ?? 0}px`,
+          left: `${x ?? 0}px`,
+          minWidth: referenceWidth + 'px'
         }"
       >
-        <div class="dropdown-item-content" @click.stop="select(tag)">
-          <div class="icon">
-            <TagOne
-              theme="outline"
-              size="18"
-              fill="var(--color-icon-menu-default)"
-              :strokeWidth="3"
-            />
+        <!-- 固定选项：所有标签 -->
+        <div
+          class="dropdown-item"
+          :class="{ active: modelValue.includes('all') }"
+          @click.stop="select({ id: 'all', name: '所有标签' })"
+        >
+          <div class="dropdown-item-content">
+            <div class="icon">
+              <Tag
+                theme="outline"
+                size="18"
+                fill="var(--color-icon-menu-default)"
+                :strokeWidth="3"
+              />
+            </div>
+            <div class="name">所有标签</div>
           </div>
-          <div class="name">{{ tag.name }}</div>
+        </div>
+        <!-- 固定选项：无标签 -->
+        <div
+          class="dropdown-item"
+          :class="{ active: modelValue.includes('none') }"
+          @click.stop="select({ id: 'none', name: '无标签' })"
+        >
+          <div class="dropdown-item-content">
+            <div class="icon">
+              <TagOne
+                theme="outline"
+                size="18"
+                fill="var(--color-icon-menu-default)"
+                :strokeWidth="3"
+              />
+            </div>
+            <div class="name">无标签</div>
+          </div>
+        </div>
+        <!-- 分隔线 -->
+        <div class="dropdown-divider"></div>
+
+        <!-- 用户标签列表 -->
+        <div
+          v-for="tag in tags"
+          :key="tag.id"
+          class="dropdown-item"
+          :class="{
+            active: !modelValue.includes('all') && modelValue.includes(tag.id)
+          }"
+        >
+          <div class="dropdown-item-content" @click.stop="select(tag)">
+            <div class="icon">
+              <TagOne
+                theme="outline"
+                size="18"
+                fill="var(--color-icon-menu-default)"
+                :strokeWidth="3"
+              />
+            </div>
+            <div class="name">{{ tag.name }}</div>
+          </div>
         </div>
       </div>
-    </div>
+    </Transition>
   </div>
 </template>
 
@@ -72,6 +95,8 @@
 import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { Tag, TagOne, Down } from '@icon-park/vue-next'
 import type { Tag as TagType } from '@shared/types'
+import { useFloating } from '@floating-ui/vue'
+import { flip, offset, shift } from '@floating-ui/dom'
 
 const props = defineProps<{
   modelValue: string[]
@@ -86,8 +111,19 @@ const emit = defineEmits<{
 
 // 下拉菜单状态
 const showMenu = ref(false)
-const tagDropdown = ref<HTMLElement | null>(null)
-const menuStyle = ref({})
+const reference = ref<HTMLElement | null>(null)
+const floating = ref<HTMLElement | null>(null)
+const referenceWidth = ref(0)
+
+// 使用 floating-ui 的定位逻辑
+const { x, y, strategy, update } = useFloating(reference, floating, {
+  placement: 'bottom-start',
+  middleware: [
+    offset(8), // 设置偏移量
+    flip(), // 自动翻转位置
+    shift() // 防止溢出视窗
+  ]
+})
 
 // 选中的标签名称
 const selectedTagName = computed(() => {
@@ -113,10 +149,15 @@ const selectedTagName = computed(() => {
 })
 
 // 切换菜单显示状态
-const toggleMenu = () => {
+const toggleMenu = async () => {
   showMenu.value = !showMenu.value
   if (showMenu.value) {
-    updateMenuPosition()
+    await nextTick()
+    // 更新参考元素宽度
+    if (reference.value) {
+      referenceWidth.value = reference.value.getBoundingClientRect().width
+    }
+    update() // 更新位置
   }
 }
 
@@ -127,23 +168,9 @@ const select = async (tag: TagType | { id: string; name: string }) => {
   showMenu.value = false
 }
 
-// 更新菜单位置
-const updateMenuPosition = () => {
-  if (!tagDropdown.value) return
-
-  const rect = tagDropdown.value.getBoundingClientRect()
-  const scrollTop = window.pageYOffset || document.documentElement.scrollTop
-
-  menuStyle.value = {
-    top: `${rect.bottom + scrollTop + 8}px`,
-    left: `${rect.left}px`,
-    minWidth: `${rect.width}px`
-  }
-}
-
 // 点击外部关闭菜单
 const handleClickOutside = (event: MouseEvent) => {
-  if (tagDropdown.value && !tagDropdown.value.contains(event.target as Node)) {
+  if (reference.value && !reference.value.contains(event.target as Node)) {
     showMenu.value = false
   }
 }
@@ -151,14 +178,10 @@ const handleClickOutside = (event: MouseEvent) => {
 // 监听器
 onMounted(() => {
   document.addEventListener('click', handleClickOutside)
-  window.addEventListener('scroll', updateMenuPosition)
-  window.addEventListener('resize', updateMenuPosition)
 })
 
 onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside)
-  window.removeEventListener('scroll', updateMenuPosition)
-  window.removeEventListener('resize', updateMenuPosition)
 })
 </script>
 
@@ -219,35 +242,15 @@ onUnmounted(() => {
 }
 
 .dropdown-menu {
-  position: fixed;
   background-color: var(--color-bg-primary);
   border-radius: 8px;
   box-shadow: var(--shadow-primary);
   z-index: 1000;
   padding: 8px 12px 8px 8px;
-  opacity: 0;
-  visibility: hidden;
-  transition: all 0.2s ease;
   max-height: 400px;
   overflow-y: auto;
-
-  &::-webkit-scrollbar {
-    width: 6px;
-  }
-
-  &::-webkit-scrollbar-thumb {
-    background-color: #d0d0d0;
-    border-radius: 3px;
-  }
-
-  &::-webkit-scrollbar-track {
-    background-color: #f0f0f0;
-  }
-
-  &.show {
-    opacity: 1;
-    visibility: visible;
-  }
+  transform-origin: top;
+  will-change: transform, opacity;
 
   .dropdown-item {
     display: flex;
@@ -311,6 +314,7 @@ onUnmounted(() => {
     }
   }
 }
+
 .dropdown-divider {
   display: block;
   width: 100%;
@@ -320,5 +324,20 @@ onUnmounted(() => {
   margin: 6px 0;
   padding: 0;
   border: none;
+}
+
+// 优化的苹果风格动画
+.animate-enter-from,
+.animate-leave-to {
+  opacity: 0;
+  transform: scale(0.95);
+}
+
+.animate-enter-active {
+  transition: all 0.2s cubic-bezier(0.3, 1, 0.3, 1);
+}
+
+.animate-leave-active {
+  transition: all 0.15s cubic-bezier(0.3, 1, 0.3, 1);
 }
 </style>

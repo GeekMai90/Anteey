@@ -1,5 +1,5 @@
 <template>
-  <div ref="cardTypeDropdown" class="cardtype-dropdown" @click.stop="toggleMenu">
+  <div ref="reference" class="cardtype-dropdown" @click.stop="toggleMenu">
     <div class="icon">
       <CategoryManagement
         theme="outline"
@@ -13,56 +13,76 @@
       <Down theme="outline" size="14" fill="var(--color-text-secondary)" :strokeWidth="3" />
     </div>
     <!-- 下拉菜单 -->
-    <div v-if="showMenu" class="dropdown-menu" :class="{ show: showMenu }" :style="menuStyle">
-      <!-- 固定选项：所有类型 -->
+    <Transition
+      name="dropdown"
+      enter-active-class="animate-enter"
+      leave-active-class="animate-leave"
+      enter-from-class="animate-enter-from"
+      leave-to-class="animate-leave-to"
+    >
       <div
-        class="dropdown-item"
-        :class="{ active: modelValue.length === 0 }"
-        @click.stop="select([])"
+        v-if="showMenu"
+        ref="floating"
+        class="dropdown-menu"
+        :style="{
+          position: strategy,
+          top: `${y ?? 0}px`,
+          left: `${x ?? 0}px`,
+          minWidth: referenceWidth + 'px'
+        }"
       >
-        <div class="dropdown-item-content">
-          <div class="icon">
-            <CategoryManagement
-              theme="outline"
-              size="18"
-              fill="var(--color-icon-menu-default)"
-              :strokeWidth="3"
-            />
+        <!-- 固定选项：所有类型 -->
+        <div
+          class="dropdown-item"
+          :class="{ active: modelValue.length === 0 }"
+          @click.stop="select([])"
+        >
+          <div class="dropdown-item-content">
+            <div class="icon">
+              <CategoryManagement
+                theme="outline"
+                size="18"
+                fill="var(--color-icon-menu-default)"
+                :strokeWidth="3"
+              />
+            </div>
+            <div class="name">所有类型</div>
           </div>
-          <div class="name">所有类型</div>
+        </div>
+
+        <div class="dropdown-divider"></div>
+
+        <!-- 卡片类型列表 -->
+        <div
+          v-for="type in cardTypes"
+          :key="type.id"
+          class="dropdown-item"
+          :class="{ active: modelValue.includes(type.id) }"
+          @click.stop="toggleType(type.id)"
+        >
+          <div class="dropdown-item-content">
+            <div class="icon">
+              <component
+                :is="type.icon"
+                theme="outline"
+                size="18"
+                fill="var(--color-icon-menu-default)"
+                :strokeWidth="3"
+              />
+            </div>
+            <div class="name">{{ type.name }}</div>
+          </div>
         </div>
       </div>
-
-      <div class="dropdown-divider"></div>
-
-      <!-- 卡片类型列表 -->
-      <div
-        v-for="type in cardTypes"
-        :key="type.id"
-        class="dropdown-item"
-        :class="{ active: modelValue.includes(type.id) }"
-        @click.stop="toggleType(type.id)"
-      >
-        <div class="dropdown-item-content">
-          <div class="icon">
-            <component
-              :is="type.icon"
-              theme="outline"
-              size="18"
-              fill="var(--color-icon-menu-default)"
-              :strokeWidth="3"
-            />
-          </div>
-          <div class="name">{{ type.name }}</div>
-        </div>
-      </div>
-    </div>
+    </Transition>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { CategoryManagement, Notes, Bookshelf, ListAlphabet, Down } from '@icon-park/vue-next'
+import { useFloating } from '@floating-ui/vue'
+import { flip, offset, shift } from '@floating-ui/dom'
 
 const props = defineProps<{
   modelValue: string[]
@@ -72,9 +92,21 @@ const emit = defineEmits<{
   'update:modelValue': [value: string[]]
 }>()
 
+// 下拉菜单状态
 const showMenu = ref(false)
-const cardTypeDropdown = ref<HTMLElement | null>(null)
-const menuStyle = ref({})
+const reference = ref<HTMLElement | null>(null)
+const floating = ref<HTMLElement | null>(null)
+const referenceWidth = ref(0)
+
+// 使用 floating-ui 的定位逻辑
+const { x, y, strategy, update } = useFloating(reference, floating, {
+  placement: 'bottom-start',
+  middleware: [
+    offset(8), // 设置偏移量
+    flip(), // 自动翻转位置
+    shift() // 防止溢出视窗
+  ]
+})
 
 // 固定的卡片类型列表
 const cardTypes = [
@@ -94,10 +126,15 @@ const selectedTypesName = computed(() => {
 })
 
 // 切换菜单显示状态
-const toggleMenu = () => {
+const toggleMenu = async () => {
   showMenu.value = !showMenu.value
   if (showMenu.value) {
-    updateMenuPosition()
+    await nextTick()
+    // 更新参考元素宽度
+    if (reference.value) {
+      referenceWidth.value = reference.value.getBoundingClientRect().width
+    }
+    update() // 更新位置
   }
 }
 
@@ -119,34 +156,20 @@ const toggleType = (typeId: string) => {
   emit('update:modelValue', newTypes)
 }
 
-// 更新菜单位置
-const updateMenuPosition = () => {
-  if (!cardTypeDropdown.value) return
-  const rect = cardTypeDropdown.value.getBoundingClientRect()
-  const scrollTop = window.scrollY || document.documentElement.scrollTop
-  menuStyle.value = {
-    top: `${rect.bottom + scrollTop + 8}px`,
-    left: `${rect.left}px`
-  }
-}
-
-// 全局点击事件处理
-const handleGlobalClick = (event: MouseEvent) => {
-  if (cardTypeDropdown.value && !cardTypeDropdown.value.contains(event.target as Node)) {
+// 点击外部关闭菜单
+const handleClickOutside = (event: MouseEvent) => {
+  if (reference.value && !reference.value.contains(event.target as Node)) {
     showMenu.value = false
   }
 }
 
+// 监听器
 onMounted(() => {
-  document.addEventListener('click', handleGlobalClick)
-  window.addEventListener('scroll', updateMenuPosition)
-  window.addEventListener('resize', updateMenuPosition)
+  document.addEventListener('click', handleClickOutside)
 })
 
 onUnmounted(() => {
-  document.removeEventListener('click', handleGlobalClick)
-  window.removeEventListener('scroll', updateMenuPosition)
-  window.removeEventListener('resize', updateMenuPosition)
+  document.removeEventListener('click', handleClickOutside)
 })
 </script>
 
@@ -208,17 +231,15 @@ onUnmounted(() => {
 }
 
 .dropdown-menu {
-  position: fixed;
   background-color: var(--color-bg-primary);
   border-radius: 8px;
   box-shadow: var(--shadow-primary);
   z-index: 1000;
   padding: 8px;
-  opacity: 0;
-  visibility: hidden;
-  transition: all 0.2s ease;
   max-height: 400px;
   overflow-y: auto;
+  transform-origin: top;
+  will-change: transform, opacity;
 
   &::-webkit-scrollbar {
     width: 6px;
@@ -231,11 +252,6 @@ onUnmounted(() => {
 
   &::-webkit-scrollbar-track {
     background-color: #f0f0f0;
-  }
-
-  &.show {
-    opacity: 1;
-    visibility: visible;
   }
 
   .dropdown-item {
@@ -309,5 +325,20 @@ onUnmounted(() => {
     background-color: var(--color-border);
     margin: 6px 0;
   }
+}
+
+// 优化的苹果风格动画
+.animate-enter-from,
+.animate-leave-to {
+  opacity: 0;
+  transform: scale(0.95);
+}
+
+.animate-enter-active {
+  transition: all 0.2s cubic-bezier(0.3, 1, 0.3, 1);
+}
+
+.animate-leave-active {
+  transition: all 0.15s cubic-bezier(0.3, 1, 0.3, 1);
 }
 </style>

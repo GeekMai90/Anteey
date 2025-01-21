@@ -1,5 +1,5 @@
 <template>
-  <div ref="cardboxDropdown" class="cardbox-dropdown" @click.stop="toggleMenu">
+  <div ref="reference" class="cardbox-dropdown" @click.stop="toggleMenu">
     <div class="icon">
       <FileCabinet
         theme="outline"
@@ -13,91 +13,114 @@
       <Down theme="outline" size="14" fill="var(--color-text-secondary)" :strokeWidth="3" />
     </div>
     <!-- 卡片柜下拉菜单 -->
-    <div v-if="showMenu" class="dropdown-menu" :class="{ show: showMenu }" :style="menuStyle">
-      <!-- 固定选项：全部卡片盒 -->
+    <Transition
+      name="dropdown"
+      enter-active-class="animate-enter"
+      leave-active-class="animate-leave"
+      enter-from-class="animate-enter-from"
+      leave-to-class="animate-leave-to"
+    >
       <div
-        class="dropdown-item"
-        :class="{ active: modelValue === 'all' }"
-        @click.stop="select({ id: 'all', name: '全部卡片盒' })"
+        v-if="showMenu"
+        ref="floating"
+        class="dropdown-menu"
+        :style="{
+          position: strategy,
+          top: `${y ?? 0}px`,
+          left: `${x ?? 0}px`,
+          minWidth: referenceWidth + 'px'
+        }"
       >
-        <div class="dropdown-item-content">
-          <div class="icon">
-            <FileCabinet
-              theme="outline"
-              size="18"
-              fill="var(--color-icon-menu-default)"
-              :strokeWidth="3"
-            />
+        <!-- 固定选项：全部卡片盒 -->
+        <div
+          class="dropdown-item"
+          :class="{ active: modelValue === 'all' }"
+          @click.stop="select({ id: 'all', name: '全部卡片盒' })"
+        >
+          <div class="dropdown-item-content">
+            <div class="icon">
+              <FileCabinet
+                theme="outline"
+                size="18"
+                fill="var(--color-icon-menu-default)"
+                :strokeWidth="3"
+              />
+            </div>
+            <div class="name">全部卡片盒</div>
           </div>
-          <div class="name">全部卡片盒</div>
         </div>
-      </div>
-      <!-- 固定选项：无卡片盒 (Inbox) -->
-      <div
-        class="dropdown-item"
-        :class="{ active: modelValue === 'inbox' }"
-        @click.stop="select({ id: 'inbox', name: '无卡片盒' })"
-      >
-        <div class="dropdown-item-content">
-          <div class="icon">
-            <InboxIn
-              theme="outline"
-              size="18"
-              fill="var(--color-icon-menu-default)"
-              :strokeWidth="3"
-            />
+        <!-- 固定选项：无卡片盒 (Inbox) -->
+        <div
+          class="dropdown-item"
+          :class="{ active: modelValue === 'inbox' }"
+          @click.stop="select({ id: 'inbox', name: '无卡片盒' })"
+        >
+          <div class="dropdown-item-content">
+            <div class="icon">
+              <InboxIn
+                theme="outline"
+                size="18"
+                fill="var(--color-icon-menu-default)"
+                :strokeWidth="3"
+              />
+            </div>
+            <div class="name">无卡片盒</div>
           </div>
-          <div class="name">无卡片盒</div>
         </div>
-      </div>
-      <!-- 分隔线 -->
-      <div class="dropdown-divider"></div>
+        <!-- 分隔线 -->
+        <div class="dropdown-divider"></div>
 
-      <div
-        v-for="box in cardBoxes"
-        :key="box.id"
-        class="dropdown-item"
-        :class="{ active: modelValue === box.id }"
-      >
-        <div class="dropdown-item-content" @click.stop="select(box)">
-          <div class="icon">
-            <Box theme="outline" size="18" fill="var(--color-icon-menu-default)" :strokeWidth="3" />
-          </div>
-          <div class="name">
-            {{ box.name }}
-          </div>
-          <div class="dropdown-item-actions">
-            <div class="more-actions-btn" @click.stop="$emit('more', box.id, $event)">
-              <div class="icon">
-                <More
-                  theme="outline"
-                  size="18"
-                  fill="var(--color-icon-menu-default)"
-                  :strokeWidth="3"
-                />
+        <div
+          v-for="box in cardBoxes"
+          :key="box.id"
+          class="dropdown-item"
+          :class="{ active: modelValue === box.id }"
+        >
+          <div class="dropdown-item-content" @click.stop="select(box)">
+            <div class="icon">
+              <Box
+                theme="outline"
+                size="18"
+                fill="var(--color-icon-menu-default)"
+                :strokeWidth="3"
+              />
+            </div>
+            <div class="name">
+              {{ box.name }}
+            </div>
+            <div class="dropdown-item-actions">
+              <div class="more-actions-btn" @click.stop="$emit('more', box.id, $event)">
+                <div class="icon">
+                  <More
+                    theme="outline"
+                    size="18"
+                    fill="var(--color-icon-menu-default)"
+                    :strokeWidth="3"
+                  />
+                </div>
               </div>
             </div>
           </div>
+          <!-- 更多操作按钮 -->
         </div>
-        <!-- 更多操作按钮 -->
-      </div>
-      <!-- 分隔线 -->
-      <div class="dropdown-divider"></div>
-      <!-- 新增卡片盒按钮 -->
-      <div class="dropdown-item add-cardbox" @click.stop="$emit('add')">
-        <div class="dropdown-item-content">
-          <div class="icon">
-            <Plus
-              theme="outline"
-              size="18"
-              fill="var(--color-icon-menu-default)"
-              :strokeWidth="3"
-            />
+        <!-- 分隔线 -->
+        <div class="dropdown-divider"></div>
+        <!-- 新增卡片盒按钮 -->
+        <div class="dropdown-item add-cardbox" @click.stop="$emit('add')">
+          <div class="dropdown-item-content">
+            <div class="icon">
+              <Plus
+                theme="outline"
+                size="18"
+                fill="var(--color-icon-menu-default)"
+                :strokeWidth="3"
+              />
+            </div>
+            <div class="name">新增卡片盒</div>
           </div>
-          <div class="name">新增卡片盒</div>
         </div>
       </div>
-    </div>
+    </Transition>
   </div>
 </template>
 
@@ -105,6 +128,8 @@
 import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { Box, FileCabinet, InboxIn, More, Plus, Down } from '@icon-park/vue-next'
 import type { CardBox } from '@shared/types'
+import { useFloating } from '@floating-ui/vue'
+import { flip, offset, shift } from '@floating-ui/dom'
 
 const props = defineProps<{
   modelValue: string
@@ -121,15 +146,21 @@ const emit = defineEmits<{
 
 // 下拉菜单状态
 const showMenu = ref(false)
-const cardboxDropdown = ref<HTMLElement | null>(null)
-const menuStyle = ref({})
+const reference = ref<HTMLElement | null>(null)
+const floating = ref<HTMLElement | null>(null)
 
-// 选中的卡片盒名称
-// const selectedCardBoxName = computed(() => {
-//   if (props.modelValue === 'all') return '全部卡片盒'
-//   if (props.modelValue === 'inbox') return '无卡片盒'
-//   return props.selectedBox?.name || '卡片盒'
-// })
+// 添加 referenceWidth ref
+const referenceWidth = ref(0)
+
+// 使用 floating-ui 的定位逻辑
+const { x, y, strategy, update } = useFloating(reference, floating, {
+  placement: 'bottom-start',
+  middleware: [
+    offset(8), // 设置偏移量
+    flip(), // 自动翻转位置
+    shift() // 防止溢出视窗
+  ]
+})
 
 // 选中的卡片盒名称
 const selectedCardBoxName = computed(() => {
@@ -143,10 +174,15 @@ const selectedCardBoxName = computed(() => {
 })
 
 // 切换菜单显示状态
-const toggleMenu = () => {
+const toggleMenu = async () => {
   showMenu.value = !showMenu.value
   if (showMenu.value) {
-    updateMenuPosition()
+    await nextTick()
+    // 更新参考元素宽度
+    if (reference.value) {
+      referenceWidth.value = reference.value.getBoundingClientRect().width
+    }
+    update() // 更新位置
   }
 }
 
@@ -157,23 +193,9 @@ const select = async (box: CardBox | { id: string; name: string }) => {
   showMenu.value = false
 }
 
-// 更新菜单位置
-const updateMenuPosition = () => {
-  if (!cardboxDropdown.value) return
-
-  const rect = cardboxDropdown.value.getBoundingClientRect()
-  const scrollTop = window.pageYOffset || document.documentElement.scrollTop
-
-  menuStyle.value = {
-    top: `${rect.bottom + scrollTop + 8}px`,
-    left: `${rect.left}px`,
-    minWidth: `${rect.width}px`
-  }
-}
-
 // 点击外部关闭菜单
 const handleClickOutside = (event: MouseEvent) => {
-  if (cardboxDropdown.value && !cardboxDropdown.value.contains(event.target as Node)) {
+  if (reference.value && !reference.value.contains(event.target as Node)) {
     showMenu.value = false
   }
 }
@@ -181,14 +203,10 @@ const handleClickOutside = (event: MouseEvent) => {
 // 监听器
 onMounted(() => {
   document.addEventListener('click', handleClickOutside)
-  window.addEventListener('scroll', updateMenuPosition)
-  window.addEventListener('resize', updateMenuPosition)
 })
 
 onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside)
-  window.removeEventListener('scroll', updateMenuPosition)
-  window.removeEventListener('resize', updateMenuPosition)
 })
 </script>
 
@@ -249,171 +267,179 @@ onUnmounted(() => {
 }
 
 .dropdown-menu {
-  position: fixed;
   background-color: var(--color-bg-primary);
   border-radius: 8px;
   box-shadow: var(--shadow-primary);
   z-index: 1000;
   padding: 8px;
-  opacity: 0;
-  visibility: hidden;
-  transition: all 0.2s ease;
   max-height: 400px;
   overflow-y: auto;
+  transform-origin: top;
+  will-change: transform, opacity;
+}
 
-  &.show {
-    opacity: 1;
-    visibility: visible;
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-radius: 6px;
+  cursor: pointer;
+
+  &:hover {
+    background-color: var(--color-hover-bg);
   }
 
-  .dropdown-item {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    border-radius: 6px;
-    cursor: pointer;
-
-    &:hover {
-      background-color: var(--color-hover-bg);
-    }
-
-    &.active .dropdown-item-content {
-      background-color: var(--color-hover-bg);
-    }
+  &.active .dropdown-item-content {
+    background-color: var(--color-hover-bg);
   }
+}
 
-  .dropdown-item-content {
-    display: flex;
-    align-items: center;
-    padding: 8px;
-    border-radius: 6px;
-    flex-grow: 1;
+.dropdown-item-content {
+  display: flex;
+  align-items: center;
+  padding: 8px;
+  border-radius: 6px;
+  flex-grow: 1;
 
-    .icon {
-      background: none;
-      border: none;
-      cursor: pointer;
-      width: 20px;
-      height: 20px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: all 0.2s ease;
-      padding: 0;
-
-      :deep(.i-icon) {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        width: 100%;
-        height: 100%;
-      }
-
-      :deep(svg) {
-        width: 16px;
-        height: 16px;
-      }
-    }
-
-    .name {
-      flex-grow: 0;
-      text-align: left;
-      color: var(--default-text-color);
-      font-size: 13px;
-      font-weight: 400;
-      margin-left: 6px;
-      white-space: nowrap;
-      writing-mode: horizontal-tb;
-      line-height: 1;
-    }
-  }
-
-  .dropdown-divider {
-    height: 1px;
-    background-color: var(--color-border);
-    margin: 6px 0;
-  }
-
-  .more-actions-btn {
+  .icon {
     background: none;
     border: none;
-    border-radius: 4px;
     cursor: pointer;
-    margin-left: 8px;
-
-    &:hover {
-      background-color: var(--color-hover-bg);
-    }
-    .icon {
-      background: none;
-      border: none;
-      cursor: pointer;
-      width: 20px;
-      height: 20px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: all 0.2s ease;
-      padding: 0;
-
-      :deep(.i-icon) {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        width: 100%;
-        height: 100%;
-      }
-
-      :deep(svg) {
-        width: 16px;
-        height: 16px;
-      }
-    }
-  }
-
-  .add-cardbox {
+    width: 20px;
+    height: 20px;
     display: flex;
-    align-items: center; // 保持垂直居中
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    padding: 0;
 
-    .icon {
-      background: none;
-      border: none;
-      cursor: pointer;
-      width: 20px;
-      height: 20px;
+    :deep(.i-icon) {
       display: flex;
       align-items: center;
       justify-content: center;
-      transition: all 0.2s ease;
-      padding: 0;
-
-      :deep(.i-icon) {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        width: 100%;
-        height: 100%;
-      }
-
-      :deep(svg) {
-        width: 18px;
-        height: 18px;
-      }
+      width: 100%;
+      height: 100%;
     }
 
-    .name {
-      flex-grow: 0;
-      text-align: left;
-      color: var(--default-text-color);
-      font-size: 13px;
-      font-weight: 400;
-      margin-left: 6px;
-      white-space: nowrap;
-      writing-mode: horizontal-tb;
-      line-height: 20px; // 添加行高，与图标高度一致
-      display: flex; // 添加 flex 布局
-      align-items: center; // 确保文字垂直居中
+    :deep(svg) {
+      width: 16px;
+      height: 16px;
     }
   }
+
+  .name {
+    flex-grow: 0;
+    text-align: left;
+    color: var(--default-text-color);
+    font-size: 13px;
+    font-weight: 400;
+    margin-left: 6px;
+    white-space: nowrap;
+    writing-mode: horizontal-tb;
+    line-height: 1;
+  }
+}
+
+.dropdown-divider {
+  height: 1px;
+  background-color: var(--color-border);
+  margin: 6px 0;
+}
+
+.more-actions-btn {
+  background: none;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-left: 8px;
+
+  &:hover {
+    background-color: var(--color-hover-bg);
+  }
+  .icon {
+    background: none;
+    border: none;
+    cursor: pointer;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    padding: 0;
+
+    :deep(.i-icon) {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      height: 100%;
+    }
+
+    :deep(svg) {
+      width: 16px;
+      height: 16px;
+    }
+  }
+}
+
+.add-cardbox {
+  display: flex;
+  align-items: center; // 保持垂直居中
+
+  .icon {
+    background: none;
+    border: none;
+    cursor: pointer;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    padding: 0;
+
+    :deep(.i-icon) {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      height: 100%;
+    }
+
+    :deep(svg) {
+      width: 18px;
+      height: 18px;
+    }
+  }
+
+  .name {
+    flex-grow: 0;
+    text-align: left;
+    color: var(--default-text-color);
+    font-size: 13px;
+    font-weight: 400;
+    margin-left: 6px;
+    white-space: nowrap;
+    writing-mode: horizontal-tb;
+    line-height: 20px; // 添加行高，与图标高度一致
+    display: flex; // 添加 flex 布局
+    align-items: center; // 确保文字垂直居中
+  }
+}
+
+// 优化的苹果风格动画
+.animate-enter-from,
+.animate-leave-to {
+  opacity: 0;
+  transform: scale(0.95);
+}
+
+.animate-enter-active {
+  transition: all 0.2s cubic-bezier(0.3, 1, 0.3, 1);
+}
+
+.animate-leave-active {
+  transition: all 0.15s cubic-bezier(0.3, 1, 0.3, 1);
 }
 </style>
