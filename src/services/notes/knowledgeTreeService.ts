@@ -119,40 +119,6 @@ export async function getTopLevelNodes(): Promise<KnowledgeTreeNode[]> {
 }
 
 // 获取子节点数量
-// export async function getChildCount(parentAddress: string): Promise<number> {
-//   try {
-//     const level = getAddressLevel(parentAddress)
-//     let pattern: string
-
-//     switch (level) {
-//       case 'top':
-//         pattern = `${parentAddress[0]}___`
-//         break
-//       case 'second':
-//         pattern = `${parentAddress.slice(0, 2)}__`
-//         break
-//       case 'third':
-//         pattern = `${parentAddress}-_%`
-//         break
-//       case 'branch-1':
-//         pattern = `${parentAddress}-_%`
-//         break
-//       default:
-//         return 0
-//     }
-
-//     const result = (await db('notes')
-//       .where('address', 'like', pattern)
-//       .where('isDeleted', false)
-//       .count('* as count')
-//       .first()) as { count: number }
-
-//     return result ? Number(result.count) : 0
-//   } catch (error) {
-//     console.error('获取子节点数量失败:', error)
-//     throw error
-//   }
-// }
 export async function getChildCount(parentAddress: string): Promise<number> {
   try {
     const level = getAddressLevel(parentAddress)
@@ -229,12 +195,10 @@ export async function getChildNodes(parentAddress: string): Promise<KnowledgeTre
       .whereNot('address', parentAddress)
       .where('isDeleted', false)
       .where('cardType', 'Maincard')
-      // 对于分支节点，确保只获取直接子节点
       .whereRaw('(address NOT LIKE ? OR address = ?)', [
         `${parentAddress}-%-%`,
         `${parentAddress}-1`
       ])
-      .orderBy('address', 'asc')
 
     console.log('SQL查询条件:', {
       pattern,
@@ -242,6 +206,30 @@ export async function getChildNodes(parentAddress: string): Promise<KnowledgeTre
       level
     })
     console.log('查询到的笔记:', notes)
+
+    // 对笔记进行排序
+    notes.sort((a, b) => {
+      const aLast = a.address.split('-').pop() || ''
+      const bLast = b.address.split('-').pop() || ''
+
+      const aMatch = aLast.match(/^(\d+)([a-z]*)$/)
+      const bMatch = bLast.match(/^(\d+)([a-z]*)$/)
+
+      if (!aMatch || !bMatch) return 0
+
+      const aNum = parseInt(aMatch[1])
+      const bNum = parseInt(bMatch[1])
+
+      // 先比较数字部分
+      if (aNum !== bNum) return aNum - bNum
+
+      // 如果数字相同，比较字母部分
+      const aAlpha = aMatch[2]
+      const bAlpha = bMatch[2]
+      if (!aAlpha && bAlpha) return -1
+      if (aAlpha && !bAlpha) return 1
+      return aAlpha.localeCompare(bAlpha)
+    })
 
     const nodes = await Promise.all(
       notes.map(async (note) => {

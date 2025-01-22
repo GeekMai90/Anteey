@@ -83,40 +83,24 @@ const transformToJsMindData = (nodes: KnowledgeTreeNode[]): JsMindData => {
       throw new Error('Node cannot be null')
     }
 
-    // 处理子节点
-    const processedChildren = (node.children || []).map((child) => {
-      if (!child) {
-        throw new Error('Child node cannot be null')
-      }
-      const hasChildren = child.childCount > 0
-      return {
-        id: child.address,
-        topic: `<div class="node-content ${hasChildren ? 'has-children' : ''}">
-                  <div class="node-address">${child.address || ''}</div>
-                  <div class="node-title">${child.title || ''}</div>
-                  ${hasChildren ? '<div class="children-indicator"></div>' : ''}
-                </div>`,
-        children: (child.children || []).map((grandChild) => processNode(grandChild)),
-        expanded: knowledgeTreeStore.viewState.isInFocusMode || child.isExpanded === true,
-        direction: 'right',
-        data: {
-          childCount: child.childCount || 0,
-          level: child.level || 0,
-          noteId: child.noteId
-        }
-      } as JsMindNode
-    })
-
     const hasChildren = node.childCount > 0
     return {
       id: node.address,
-      topic: `<div class="node-content ${hasChildren ? 'has-children' : ''}">
-              <div class="node-address">${node.address || ''}</div>
-              <div class="node-title">${node.title || ''}</div>
-              ${hasChildren ? '<div class="children-indicator"></div>' : ''}
-            </div>`,
-      children: processedChildren,
-      expanded: knowledgeTreeStore.viewState.isInFocusMode || node.isExpanded === true,
+      topic: `<div class="node-content">
+                <div class="node-content-wrapper">
+                  <div class="node-address">${node.address || ''}</div>
+                  <div class="node-title">${node.title || ''}</div>
+                </div>
+                ${
+                  hasChildren
+                    ? `<div class="node-expand-btn" data-address="${node.address}">
+                            +
+                       </div>`
+                    : ''
+                }
+              </div>`,
+      children: node.isExpanded ? (node.children || []).map((child) => processNode(child)) : [],
+      expanded: node.isExpanded || false,
       direction: 'right',
       data: {
         childCount: node.childCount || 0,
@@ -129,11 +113,12 @@ const transformToJsMindData = (nodes: KnowledgeTreeNode[]): JsMindData => {
   // 非聚焦模式的根节点
   const rootNode: JsMindNode = {
     id: 'root',
-    topic: `<div class="node-content root-node">
-            <div class="node-address">Anteey</div>
-            <div class="node-title">Zettelkasten</div>
-            <div class="children-indicator"></div>
-          </div>`,
+    topic: `<div class="node-content">
+              <div class="node-content-wrapper">
+                <div class="node-address">Anteey</div>
+                <div class="node-title">Zettelkasten</div>
+              </div>
+            </div>`,
     children: nodes.map((node) => processNode(node)),
     expanded: true,
     direction: 'right',
@@ -247,27 +232,59 @@ const initJsMind = async () => {
   }
 }
 
-// 添加单击处理函数
-const handleNodeClick = (e: MouseEvent) => {
-  console.log('handleNodeClick 被调用')
+// 修改事件处理函数
+const handleNodeClick = async (e: MouseEvent) => {
   if (!jm.value) return
 
   const element = e.target as HTMLElement
-  const jmnodeElement = element.closest('jmnode')
-  console.log('找到的 jmnode 元素:', jmnodeElement)
-  if (!jmnodeElement) return
 
-  const nodeId = jmnodeElement.getAttribute('nodeid')
-  console.log('找到的 nodeId:', nodeId)
-  if (nodeId) {
-    // 从 jsMind 实例中获取节点数据
-    const node = jm.value.get_node(nodeId)
-    console.log('获取到的节点数据:', node)
-    if (node && node.data && node.data.data.noteId) {
-      console.log('找到的 noteId:', node.data.data.noteId)
-      // 使用 noteId 打开预览
-      noteStore.openBacklinkPreview(node.data.data.noteId)
-      uiStore.openRightSidebarWithTab('backlink')
+  // 处理展开/折叠按钮点击
+  if (element.classList.contains('node-expand-btn')) {
+    e.stopPropagation()
+    const address = element.getAttribute('data-address')
+    if (address) {
+      const node = knowledgeTreeStore.findNodeByAddress(address)
+      if (node) {
+        if (!node.isExpanded) {
+          // 加载并展开节点
+          const childNodes = await knowledgeTreeStore.fetchChildNodes(address)
+          node.children = childNodes
+          node.isExpanded = true
+
+          // 更新视图并展开节点
+          const jsMindData = transformToJsMindData(knowledgeTreeStore.nodes)
+          jm.value.show(jsMindData)
+
+          // 只展开当前点击的节点
+          requestAnimationFrame(() => {
+            const clickedNode = jm.value.get_node(address)
+            if (clickedNode) {
+              jm.value.expand_node(address)
+              // 将视图中心移动到展开的节点
+              jm.value.select_node(address)
+            }
+          })
+        } else {
+          // 折叠节点
+          node.isExpanded = false
+          // 直接折叠当前节点
+          jm.value.collapse_node(address)
+        }
+      }
+    }
+    return
+  }
+
+  // 原有的节点点击预览逻辑
+  const jmnodeElement = element.closest('jmnode')
+  if (jmnodeElement) {
+    const nodeId = jmnodeElement.getAttribute('nodeid')
+    if (nodeId) {
+      const node = jm.value.get_node(nodeId)
+      if (node && node.data && node.data.data.noteId) {
+        noteStore.openBacklinkPreview(node.data.data.noteId)
+        uiStore.openRightSidebarWithTab('backlink')
+      }
     }
   }
 }
@@ -517,33 +534,65 @@ onBeforeUnmount(() => {
   width: 100% !important;
   height: 100% !important;
 }
-/* 节点地址样式 */
-/* :deep(.node-address) {
-  font-size: 0.9em;
-  color: var(--color-text-primary); 
-  text-align: center;
-} */
 
-/* 节点标题样式 */
+/* 节点样式 */
+:deep(.node-wrapper) {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+:deep(.node-content) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+
+:deep(.node-content-wrapper) {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 4px 8px;
+}
+
+:deep(.node-address) {
+  font-size: 0.9em;
+  color: var(--color-text-primary);
+  text-align: center;
+}
+
 :deep(.node-title) {
   color: var(--color-text-primary);
+  text-align: center;
 }
 
-/* 有子节点的节点样式 */
-:deep(.node-content.has-children) {
+/* 展开按钮样式 */
+:deep(.node-expand-btn) {
   position: relative;
-  /* padding-right: 10px;  */
+  width: 14px;
+  height: 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 50%;
+  background: var(--color-bg-secondary);
+  cursor: pointer;
+  font-size: 10px;
+  line-height: 1;
+  color: var(--color-text-primary);
+  padding: 0;
+  opacity: 0.8;
+  transition: all 0.2s ease;
+  user-select: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding-bottom: 2px;
 }
 
-/* 子节点指示器 - 使用小圆点 */
-:deep(.children-indicator) {
-  position: absolute;
-  right: 0px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
-  background-color: var(--color-primary);
+:deep(.node-expand-btn:hover) {
+  /* background: var(--color-primary-light); */
+  color: var(--color-primary);
+  opacity: 1;
+  transform: scale(1.1);
 }
 </style>
