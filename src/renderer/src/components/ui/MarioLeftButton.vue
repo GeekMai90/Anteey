@@ -11,7 +11,7 @@
 </template>
 
 <script setup lang="ts">
-import powerUpSound from '@renderer/assets/sounds/jump.mp3'
+import powerUpSound from '@renderer/assets/sounds/stomp.wav'
 import { onMounted } from 'vue'
 import { useReviewStore } from '@renderer/stores/reviewStore'
 
