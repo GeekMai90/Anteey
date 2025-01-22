@@ -3,7 +3,10 @@ import type { Note } from '@shared/types'
 export interface LocalTreeData {
   current: Note
   parent: Note | null
-  siblings: Note[]
+  siblings: {
+    all: Note[] // 所有同级节点
+    adjacent: Note[] // 前后兄弟节点
+  }
   children: Note[]
 }
 

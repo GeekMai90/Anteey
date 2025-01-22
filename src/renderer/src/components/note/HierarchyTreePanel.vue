@@ -1,6 +1,6 @@
 <!-- 局部知识树 -->
 <template>
-  <div class="hierarchy-tree-panel">
+  <div ref="panelRef" class="hierarchy-tree-panel">
     <div v-if="!hideHeader" class="panel-header">
       <div class="title" @click="togglePanel">
         <div class="icon" :class="{ collapsed: isCollapsed }">
@@ -21,7 +21,7 @@
     <NotePreviewPopup
       v-if="showPreview && previewNoteId"
       :noteId="previewNoteId"
-      :position="previewPosition"
+      :reference-el="referenceEl"
     />
   </div>
 </template>
@@ -365,9 +365,9 @@ const renderHierarchyTree = () => {
   }
 
   // 修改兄弟节点的渲染部分
-  if (treeData.siblings.length > 0) {
+  if (treeData.siblings.adjacent.length > 0) {
     // 对兄弟节点进行排序，创建新数组避免修改原组
-    const sortedSiblings = [...treeData.siblings].sort(compareAddresses)
+    const sortedSiblings = [...treeData.siblings.adjacent].sort(compareAddresses)
     console.log('排序后的兄弟节点:', sortedSiblings)
 
     // 获取当前节点的数字和字母部分
@@ -782,32 +782,18 @@ const svgWidth = computed(() => {
 // 修改预览相关的响应式变量
 const showPreview = ref(false)
 const previewNoteId = ref<string | null>(null)
-const previewPosition = ref({ x: 0, y: 0 })
 
 // 修改预览相关的方法
+const panelRef = ref<HTMLElement | null>(null)
+
+// 添加 referenceEl 用于定位
+const referenceEl = ref<HTMLElement | null>(null)
+
 const handleNodeMouseEnter = (event: MouseEvent, note: Note) => {
   if (!note.id) return
 
-  const rect = (event.target as Element).getBoundingClientRect()
-  const windowWidth = window.innerWidth
-  const previewWidth = 300 // 预览窗口的宽度
-  const padding = 250 // 边距
-
-  // 检查是否靠近右边界
-  if (rect.right + previewWidth + padding > windowWidth) {
-    // 如果靠近右边界，显示在左侧
-    previewPosition.value = {
-      x: rect.left - previewWidth - padding,
-      y: rect.top
-    }
-  } else {
-    // 否则显示在右侧
-    previewPosition.value = {
-      x: rect.right - padding,
-      y: rect.top
-    }
-  }
-
+  // 保存当前悬浮的元素引用
+  referenceEl.value = event.target as HTMLElement
   previewNoteId.value = note.id
   showPreview.value = true
 }
@@ -829,6 +815,7 @@ const handleNodeMouseLeave = () => {
 
 <style lang="scss" scoped>
 .hierarchy-tree-panel {
+  position: relative; // 添加相对定位
   margin-top: 24px;
   padding: 0 24px;
   user-select: none;

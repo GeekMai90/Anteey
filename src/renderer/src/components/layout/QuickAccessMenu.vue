@@ -31,7 +31,7 @@
             <div class="icon">
               <Bookshelf theme="outline" size="16" :strokeWidth="2" />
             </div>
-            <div class="name">文献卡片</div>
+            <div class="name">参考卡片</div>
           </div>
         </div>
       </div>

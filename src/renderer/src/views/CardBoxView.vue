@@ -257,6 +257,50 @@ const isContextMode = ref(false)
 const targetNoteId = ref<string | null>(null)
 const highlightedNoteId = ref<string | null>(null)
 
+// 添加地址比较函数
+const compareAddress = (a: string, b: string) => {
+  // 将地址分割成数组
+  // 例如:
+  // "5101" => ["5101"]
+  // "5101-1" => ["5101", "1"]
+  // "5101-1-1" => ["5101", "1", "1"]
+  // "5101-1-1-1" => ["5101", "1", "1", "1"]
+  // "5101-1a" => ["5101", "1a"]
+  const splitAddress = (addr: string = '') => {
+    return addr.split('-').map((part) => {
+      // 处理数字部分
+      const num = parseInt(part)
+      // 如果不是纯数字（可能包含字母），或者解析失败，则保持原样
+      // 这样可以正确处理类似 "1a" 这样的分支编码
+      return isNaN(num) ? part : num
+    })
+  }
+
+  const aParts = splitAddress(a)
+  const bParts = splitAddress(b)
+
+  // 逐段比较，支持无限层级的分支
+  for (let i = 0; i < Math.max(aParts.length, bParts.length); i++) {
+    // 如果某个地址段不存在，认为它更小
+    // 例如: "5101" < "5101-1"
+    if (aParts[i] === undefined) return -1
+    if (bParts[i] === undefined) return 1
+
+    // 如果两个部分不相等，返回它们的差
+    if (aParts[i] !== bParts[i]) {
+      // 如果都是数字，直接相减
+      // 例如: "5101-1" < "5101-2"
+      if (typeof aParts[i] === 'number' && typeof bParts[i] === 'number') {
+        return (aParts[i] as number) - (bParts[i] as number)
+      }
+      // 否则按字符串比较，这样可以处理包含字母的情况
+      // 例如: "5101-1" < "5101-1a" < "5101-1b" < "5101-2"
+      return String(aParts[i]).localeCompare(String(bParts[i]), 'zh-CN')
+    }
+  }
+  return 0
+}
+
 // 修改 loadAllNotes 函数
 const loadAllNotes = async () => {
   try {
@@ -436,12 +480,19 @@ const fetchNotes = async () => {
       keyword: filterState.keyword,
       sortBy: filterState.sort.field,
       sortOrder: filterState.sort.order,
-      isFlashcard: filterState.isFlashcard, // 添加闪卡筛选参数
-      // 如果有激活的自定义筛选规则，添加 customFilterId
+      isFlashcard: filterState.isFlashcard,
       customFilterId: activeFilter?.id
     }
 
     const result = await noteStore.fetchPaginatedNotesByCardbox(params)
+
+    // 如果是按地址排序，使用我们的自定义排序函数
+    if (filterState.sort.field === 'address') {
+      result.notes.sort((a, b) => {
+        const result = compareAddress(a.address, b.address)
+        return filterState.sort.order === 'asc' ? result : -result
+      })
+    }
 
     if (currentPage.value === 1) {
       notes.value = result.notes
@@ -659,9 +710,8 @@ const updateSingleNote = (updatedNote: Note) => {
     // 如果当前是按地址排序，且更新包含地址字段，则重新排序
     if (filterState.sort.field === 'address' && 'address' in updatedNote) {
       notes.value = [...notes.value].sort((a, b) => {
-        return filterState.sort.order === 'asc'
-          ? (a.address || '').localeCompare(b.address || '', 'zh-CN')
-          : (b.address || '').localeCompare(a.address || '', 'zh-CN')
+        const result = compareAddress(a.address, b.address)
+        return filterState.sort.order === 'asc' ? result : -result
       })
     }
   }

@@ -60,12 +60,12 @@ export function useGlobalHotkeys() {
       uiStore.openSettingsPage()
     })
     // 折叠/展开左侧边栏
-    hotkeys('command+/, ctrl+/', (event) => {
+    hotkeys('command+shift+/, ctrl+shift+/', (event) => {
       event.preventDefault()
       uiStore.toggleSidebar()
     })
     // 折叠/展开右侧边栏
-    hotkeys('command+shift+/, ctrl+shift+/', (event) => {
+    hotkeys('command+/, ctrl+/', (event) => {
       event.preventDefault()
       uiStore.toggleRightSidebar()
     })
@@ -75,7 +75,7 @@ export function useGlobalHotkeys() {
       themeStore.toggleThemeMode()
     })
     // 打开/关闭右侧边栏多开笔记
-    hotkeys('command+shift+m, ctrl+shift+m', (event) => {
+    hotkeys("command+', ctrl+'", (event) => {
       event.preventDefault()
 
       // 如果右侧边栏已打开且当前是多开笔记标签，则关闭右侧边栏
@@ -105,7 +105,7 @@ export function useGlobalHotkeys() {
       }
     })
     // 打开/关闭右侧边栏小组件
-    hotkeys('command+shift+w, ctrl+shift+w', (event) => {
+    hotkeys('command+., ctrl+.', (event) => {
       event.preventDefault()
 
       // 如果右侧边栏已打开且当前是小组件标签，则关闭右侧边栏

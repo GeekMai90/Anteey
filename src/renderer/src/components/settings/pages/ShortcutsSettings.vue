@@ -259,16 +259,15 @@ const shortcuts = [
       { action: '打开设置', keys: ['⌘', ','] },
       { action: '切换主题', keys: ['⌘', '⇧', 'T'] },
       { action: '打开主页', keys: ['⌘', '⇧', 'H'] },
-      { action: '打开时光记', keys: ['⌘', ';'] },
-      { action: '打开草稿纸', keys: ['⌘', 'J'] },
+      { action: '打开时光记', keys: ['⌘', 'J'] },
       { action: '打开笔记流', keys: ['⌘', 'L'] },
       { action: '打开卡片盒', keys: ['⌘', 'O'] },
       { action: '打开思维板', keys: ['⌘', '⇧', 'W'] },
       { action: '添加新卡片笔记', keys: ['⌘', 'N'] },
       { action: '快速添加草稿', keys: ['⌘', 'D'] },
       { action: '搜索', keys: ['⌘', 'S'] },
-      { action: '折叠/展开左侧边栏', keys: ['⌘', '/'] },
-      { action: '折叠/展开右侧边栏', keys: ['⌘', '⇧', '/'] },
+      { action: '折叠/展开左侧边栏', keys: ['⌘', '⇧', '/'] },
+      { action: '折叠/展开右侧边栏', keys: ['⌘', '/'] },
       { action: '后退', keys: ['⌘', '['] },
       { action: '前进', keys: ['⌘', ']'] },
       { action: '刷新', keys: ['⌘', 'R'] }
@@ -284,9 +283,10 @@ const shortcuts = [
   {
     name: '右侧边栏',
     shortcuts: [
-      { action: '折叠/展开右侧边栏', keys: ['⌘', '⇧', '/'] },
-      { action: '打开/关闭右侧边栏多开笔记', keys: ['⌘', '⇧', 'M'] },
-      { action: '打开/关闭右侧边栏草稿纸', keys: ['⌘', '⇧', ';'] }
+      { action: '折叠/展开右侧边栏', keys: ['⌘', '/'] },
+      { action: '打开/关闭右侧边栏多开笔记', keys: ['⌘', "'"] },
+      { action: '打开/关闭右侧边栏草稿纸', keys: ['⌘', ';'] },
+      { action: '打开/关闭右侧边栏小组件', keys: ['⌘', '.'] }
     ]
   }
 ]

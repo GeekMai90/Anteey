@@ -111,7 +111,7 @@ const { x, y, strategy, update } = useFloating(reference, floating, {
 // 固定的卡片类型列表
 const cardTypes = [
   { id: 'Maincard', name: '主要卡片', icon: Notes },
-  { id: 'Bibcard', name: '文献卡片', icon: Bookshelf },
+  { id: 'Bibcard', name: '参考卡片', icon: Bookshelf },
   { id: 'Indexcard', name: '索引卡片', icon: ListAlphabet }
 ]
 

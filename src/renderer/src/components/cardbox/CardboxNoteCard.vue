@@ -7,7 +7,7 @@
   >
     <div class="note-header">
       <span class="note-indicator" :class="cardTypeClass"></span>
-      <h3 class="note-title">{{ note.address }}</h3>
+      <h3 class="note-title">{{ note.address ? note.address : '无编码地址' }}</h3>
 
       <div class="note-buttons">
         <div class="note-button" @click.stop="expandNote">

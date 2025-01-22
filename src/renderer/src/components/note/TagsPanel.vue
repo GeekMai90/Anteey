@@ -2,20 +2,40 @@
   <div class="tags-panel">
     <div class="panel-header">
       <div class="title" @click="togglePanel">
-        <div class="icon" :class="{ collapsed: isCollapsed }">
+        <Motion
+          as="div"
+          class="icon"
+          :initial="{ rotate: 0 }"
+          :animate="{ rotate: isCollapsed ? 0 : -45 }"
+          :transition="{ duration: 0.3, ease: 'easeInOut' }"
+        >
           <TagOne
             theme="outline"
             size="16"
             :fill="isCollapsed ? 'var(--color-icon-secondary)' : 'var(--color-primary)'"
             :stroke-width="3"
           />
-        </div>
+        </Motion>
         <div class="name">标签 ({{ tags?.length || 0 }})</div>
       </div>
     </div>
 
-    <div v-show="!isCollapsed" class="tags-container">
-      <div class="tags-list">
+    <Motion
+      v-show="!isCollapsed"
+      as="div"
+      class="tags-container"
+      :initial="{ height: 0, opacity: 0, scale: 0.98 }"
+      :animate="{
+        height: isCollapsed ? 0 : contentHeight,
+        opacity: isCollapsed ? 0 : 1,
+        scale: isCollapsed ? 0.98 : 1
+      }"
+      :transition="{
+        duration: 0.3,
+        ease: 'easeInOut'
+      }"
+    >
+      <div ref="tagsListRef" class="tags-list">
         <div v-for="tag in tags" :key="tag.id" class="tag-pill">
           <span class="tag-symbol">#</span>
           <span class="tag-name">{{ tag.name }}</span>
@@ -81,13 +101,14 @@
           </div>
         </div>
       </div>
-    </div>
+    </Motion>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, nextTick } from 'vue'
+import { ref, computed, nextTick, watch, onMounted } from 'vue'
 import { TagOne, Close, Plus } from '@icon-park/vue-next'
+import { Motion } from 'motion-v'
 import { useNoteStore } from '@renderer/stores/noteStore'
 import { useTagStore } from '@renderer/stores/tagStore'
 import { useEventBus } from '@vueuse/core'
@@ -105,6 +126,8 @@ const newTagInput = ref('')
 const showSuggestions = ref(false)
 const suggestions = ref<any[]>([])
 const tagInput = ref<HTMLInputElement | null>(null)
+const tagsListRef = ref<HTMLElement | null>(null)
+const contentHeight = ref(0)
 
 const emit = defineEmits(['refresh'])
 
@@ -237,11 +260,40 @@ const handleKeydown = (e: KeyboardEvent) => {
       break
   }
 }
+
+// 更新内容高度
+const updateContentHeight = () => {
+  if (tagsListRef.value) {
+    contentHeight.value = tagsListRef.value.scrollHeight
+  }
+}
+
+// 监听标签数量变化
+watch(
+  () => props.tags?.length,
+  () => {
+    nextTick(updateContentHeight)
+  }
+)
+
+// 监听折叠状态变化
+watch(isCollapsed, (newVal) => {
+  if (!newVal) {
+    nextTick(updateContentHeight)
+  }
+})
+
+// 组件挂载后初始化高度
+onMounted(() => {
+  updateContentHeight()
+})
 </script>
 
 <style scoped lang="scss">
 .tags-panel {
   padding: 0 20px 10px 20px;
+  position: relative; // 添加相对定位
+  z-index: 10; // 确保标签面板在其他内容之上
 
   .panel-header {
     display: flex;
@@ -265,9 +317,8 @@ const handleKeydown = (e: KeyboardEvent) => {
         display: flex;
         align-items: center;
         justify-content: center;
-        // transform: rotate(0deg);
-        transition: all 0.2s ease;
         padding: 0;
+        transform-origin: center;
         :deep(.i-icon) {
           display: flex;
           align-items: center;
@@ -291,9 +342,13 @@ const handleKeydown = (e: KeyboardEvent) => {
   }
 
   .tags-container {
-    padding: 12px 6px;
+    position: relative;
+    transform-origin: top;
+    will-change: transform, height, opacity;
+    // overflow: hidden; // 移除这个限制
 
     .tags-list {
+      padding: 12px 6px;
       display: flex;
       flex-wrap: wrap;
       gap: 8px;
@@ -491,12 +546,12 @@ const handleKeydown = (e: KeyboardEvent) => {
         top: calc(100% + 4px);
         left: 0;
         right: 0;
+        z-index: 1000; // 确保建议列表在最上层
         background: var(--color-bg-primary);
         border: 1px solid var(--color-border);
         border-radius: 6px;
         max-height: 200px;
         overflow-y: auto;
-        z-index: 1000;
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
         padding: 8px;
         min-width: 100%; // 至少与输入框一样宽

@@ -38,15 +38,9 @@ export const useLocalTreeStore = defineStore('localTree', () => {
           return
         }
 
-        data.siblings = data.siblings || []
+        // 初始化 siblings 结构
+        data.siblings = data.siblings || { all: [], adjacent: [] }
         data.children = data.children || []
-
-        // console.log('原始数据:', {
-        //   current: data.current,
-        //   parent: data.parent,
-        //   siblings: data.siblings,
-        //   children: data.children
-        // })
 
         const currentAddress = data.current.address
         // console.log('当前节点地址:', currentAddress)
@@ -76,8 +70,9 @@ export const useLocalTreeStore = defineStore('localTree', () => {
           data.parent = null
         }
 
-        data.siblings = data.siblings.filter((note) => note?.id && note?.address)
-        // console.log('处理后的兄弟节点:', data.siblings)
+        // 修改 siblings 的过滤逻辑
+        data.siblings.all = data.siblings.all.filter((note) => note?.id && note?.address)
+        data.siblings.adjacent = data.siblings.adjacent.filter((note) => note?.id && note?.address)
 
         // console.log('开始处理子节点')
         const validChildren = data.children.filter((note) => {
@@ -116,11 +111,55 @@ export const useLocalTreeStore = defineStore('localTree', () => {
           return
         }
 
-        data.siblings = data.siblings || []
+        // 初始化 siblings 结构
+        data.siblings = data.siblings || { all: [], adjacent: [] }
         data.children = data.children || []
         data.references = data.references || { incoming: [], outgoing: [] }
 
-        // console.log('获取到的完整数据:', data)
+        const currentAddress = data.current.address
+        // console.log('当前节点地址:', currentAddress)
+
+        const parentAddress = getParentAddress(currentAddress)
+        // console.log('计算得到的父节点地址:', parentAddress)
+
+        if (parentAddress) {
+          if (data.parent?.id && data.parent?.address === parentAddress) {
+            // console.log('使用后端返回的父节点:', data.parent)
+          } else {
+            try {
+              const result = await window.electronAPI.note.getNoteByAddress(parentAddress)
+              if (result?.id) {
+                // console.log('从后端获取到的父节点:', result)
+                data.parent = result
+              } else {
+                // console.log('未找到父节点:', parentAddress)
+                data.parent = null
+              }
+            } catch (error) {
+              console.error('获取父节点失败:', error)
+              data.parent = null
+            }
+          }
+        } else {
+          data.parent = null
+        }
+
+        // 修改 siblings 的过滤逻辑
+        data.siblings.all = data.siblings.all.filter((note) => note?.id && note?.address)
+        data.siblings.adjacent = data.siblings.adjacent.filter((note) => note?.id && note?.address)
+
+        // console.log('开始处理子节点')
+        const validChildren = data.children.filter((note) => {
+          if (!note?.id || !note?.address) return false
+          const isValid = isValidAddress(note.address)
+          // console.log(`检查子节点 ${note.address}: 地址有效=${isValid}`)
+          return isValid
+        })
+
+        data.children = validChildren
+        // console.log('处理后的子节点:', validChildren)
+
+        // console.log('最终处理后的数据:', data)
         treeDataWithRefs.value = data
       } else {
         console.error('获取到的数据无效:', data)

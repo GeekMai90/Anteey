@@ -1,18 +1,30 @@
 <template>
-  <div v-if="note" class="note-preview-popup" :style="positionStyle">
-    <div class="preview-card">
-      <div class="note-header">
-        <span class="note-indicator" :class="cardTypeClass"></span>
-        <h3 class="note-title">{{ note.address }}</h3>
-      </div>
-      <div class="note-content">
-        <TipTapRender :content="note.content" :editable="false" :enable-drag-handle="false" />
-      </div>
-      <div class="note-timestamp">
-        {{ formatDate(note.createdAt) }}
+  <Teleport to="body">
+    <div
+      v-if="note"
+      ref="floating"
+      class="note-preview-popup"
+      :style="{
+        position: strategy,
+        top: `${y}px`,
+        left: `${x}px`,
+        zIndex: 1000
+      }"
+    >
+      <div class="preview-card">
+        <div class="note-header">
+          <span class="note-indicator" :class="cardTypeClass"></span>
+          <h3 class="note-title">{{ note.address }}</h3>
+        </div>
+        <div class="note-content">
+          <TipTapRender :content="note.content" :editable="false" :enable-drag-handle="false" />
+        </div>
+        <div class="note-timestamp">
+          {{ formatDate(note.createdAt) }}
+        </div>
       </div>
     </div>
-  </div>
+  </Teleport>
 </template>
 
 <script setup lang="ts">
@@ -21,14 +33,24 @@ import type { Note } from '@shared/types'
 import { formatDate } from '@renderer/utils/noteHelpers'
 import TipTapRender from '@renderer/components/tiptap/TipTapRender.vue'
 import { useNoteStore } from '@renderer/stores/noteStore'
+import { useFloating, offset, shift, flip } from '@floating-ui/vue'
 
 const props = defineProps<{
   noteId: string
-  position: { x: number; y: number }
+  referenceEl: HTMLElement | null
 }>()
 
 const note = ref<Note | null>(null)
 const noteStore = useNoteStore()
+const floating = ref<HTMLElement | null>(null)
+
+// 修复类型问题
+const reference = computed(() => props.referenceEl)
+
+const { x, y, strategy } = useFloating(reference, floating, {
+  placement: 'right-start',
+  middleware: [offset(10), shift(), flip()]
+})
 
 // 监听 noteId 变化，获取笔记数据
 watch(
@@ -42,11 +64,6 @@ watch(
   },
   { immediate: true }
 )
-
-const positionStyle = computed(() => ({
-  left: `${props.position.x}px`,
-  top: `${props.position.y}px`
-}))
 
 const cardTypeClass = computed(() => {
   if (!note.value) return ''
@@ -67,8 +84,6 @@ const cardTypeClass = computed(() => {
 
 <style lang="scss" scoped>
 .note-preview-popup {
-  position: fixed;
-  z-index: 1000;
   pointer-events: none;
 
   .preview-card {

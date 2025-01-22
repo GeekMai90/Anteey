@@ -21,7 +21,7 @@
     <NotePreviewPopup
       v-if="showPreview && previewNoteId"
       :noteId="previewNoteId"
-      :position="previewPosition"
+      :reference-el="referenceEl"
     />
   </div>
 </template>
@@ -55,10 +55,10 @@ interface LinkDatum {
   type: 'address' | 'reference'
 }
 
-// 在 props 声明之前添加预览相关的响应式变量
+// 修改预览相关的响应式变量
 const showPreview = ref(false)
 const previewNoteId = ref<string | null>(null)
-const previewPosition = ref({ x: 0, y: 0 })
+const referenceEl = ref<HTMLElement | null>(null)
 
 const props = defineProps<{
   noteId: string
@@ -167,11 +167,11 @@ const renderGraph = () => {
   }
 
   // 弟节点在左侧
-  treeData.siblings.forEach((sibling: any, index: any) => {
+  treeData.siblings.all.forEach((sibling: any, index: any) => {
     data.children?.push({
       ...sibling,
       x: padding + 100,
-      y: height / 2 + (index - treeData.siblings.length / 2) * 50,
+      y: height / 2 + (index - treeData.siblings.all.length / 2) * 50,
       type: 'sibling'
     } as TreeNode)
   })
@@ -489,7 +489,7 @@ const renderGraph = () => {
 // 辅助函数：在树数据中查找笔记
 const findNoteInData = (id: string, treeData: any): Note | null => {
   if (treeData.parent?.id === id) return treeData.parent
-  const sibling = treeData.siblings.find((n: Note) => n.id === id)
+  const sibling = treeData.siblings.all.find((n: Note) => n.id === id)
   if (sibling) return sibling
   const child = treeData.children.find((n: Note) => n.id === id)
   if (child) return child
@@ -547,26 +547,8 @@ const handleNodeDblClick = (note: Note) => {
 const handleNodeMouseEnter = (event: MouseEvent, note: Note) => {
   if (!note.id) return
 
-  const rect = (event.target as Element).getBoundingClientRect()
-  const windowWidth = window.innerWidth
-  const previewWidth = 300 // 预览窗口的宽度
-  const padding = 250 // 边距
-
-  // 检查是否靠近右边界
-  if (rect.right + previewWidth + padding > windowWidth) {
-    // 如果靠近右边界，显示在左侧
-    previewPosition.value = {
-      x: rect.left - previewWidth - padding,
-      y: rect.top
-    }
-  } else {
-    // 否则显示在右侧
-    previewPosition.value = {
-      x: rect.right - padding,
-      y: rect.top
-    }
-  }
-
+  // 保存当前悬浮的元素引用
+  referenceEl.value = event.target as HTMLElement
   previewNoteId.value = note.id
   showPreview.value = true
 }

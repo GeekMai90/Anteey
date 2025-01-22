@@ -327,12 +327,12 @@ defineExpose({
   box-shadow:
     0 0 4px rgba(0, 0, 0, 0.09),
     0 0 8px rgba(0, 0, 0, 0.02),
-    0 0 16px rgba(0, 0, 0, 0.03);
+    0 0 12px rgba(0, 0, 0, 0.03);
   .theme-dark & {
     box-shadow:
       0 0 4px rgba(0, 0, 0, 0.15),
       0 0 8px rgba(0, 0, 0, 0.12),
-      0 0 16px rgba(0, 0, 0, 0.1);
+      0 0 12px rgba(0, 0, 0, 0.1);
   }
   backdrop-filter: blur(10px);
   display: flex;
@@ -357,12 +357,12 @@ defineExpose({
   box-shadow:
     0 2px 4px rgba(0, 0, 0, 0.09),
     0 4px 8px rgba(0, 0, 0, 0.02),
-    0 8px 16px rgba(0, 0, 0, 0.03);
+    0 8px 12px rgba(0, 0, 0, 0.03);
   .theme-dark & {
     box-shadow:
       0 2px 4px rgba(0, 0, 0, 0.15),
       0 4px 8px rgba(0, 0, 0, 0.12),
-      0 8px 16px rgba(0, 0, 0, 0.1);
+      0 8px 12px rgba(0, 0, 0, 0.1);
   }
   backdrop-filter: blur(10px);
   opacity: v-bind('uiStore.isRightSidebarOpen ? "1" : "0"');

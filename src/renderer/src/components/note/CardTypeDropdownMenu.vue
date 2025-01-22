@@ -130,7 +130,7 @@ const getTypeLabel = (type: CardType): string => {
     case 'Maincard':
       return '主要卡片'
     case 'Bibcard':
-      return '文献卡片'
+      return '参考卡片'
     case 'Indexcard':
       return '索引卡片'
     default:

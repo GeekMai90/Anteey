@@ -2,14 +2,20 @@
   <div class="graph-panel">
     <div class="panel-header">
       <div class="title" @click="togglePanel">
-        <div class="icon" :class="{ collapsed: isCollapsed }">
+        <Motion
+          as="div"
+          class="icon"
+          :initial="{ rotate: 0 }"
+          :animate="{ rotate: isCollapsed ? 0 : -90 }"
+          :transition="{ duration: 0.3, ease: 'easeInOut' }"
+        >
           <GraphicStitchingThree
             theme="outline"
             size="16"
             :fill="isCollapsed ? 'var(--color-icon-secondary)' : 'var(--color-primary)'"
             :stroke-width="3"
           />
-        </div>
+        </Motion>
         <div class="name">图谱</div>
       </div>
       <!-- 切换按钮 -->
@@ -31,7 +37,21 @@
       </div>
     </div>
 
-    <div v-show="!isCollapsed" class="panel-content">
+    <Motion
+      as="div"
+      class="panel-content"
+      :initial="{ height: 0, opacity: 0, scale: 0.98 }"
+      :animate="{
+        height: isCollapsed ? 0 : 600,
+        opacity: isCollapsed ? 0 : 1,
+        scale: isCollapsed ? 0.98 : 1
+      }"
+      :transition="{
+        duration: 0.3,
+        ease: 'easeInOut'
+      }"
+      @animationComplete="onAnimationComplete"
+    >
       <!-- 使用 v-show 来切换显示不同的视图 -->
       <div v-show="currentView === 'local'" class="view-container">
         <LocalMapPanel v-if="noteId" :note-id="noteId" :hide-header="true" :is-collapsed="false" />
@@ -44,13 +64,14 @@
           :is-collapsed="false"
         />
       </div>
-    </div>
+    </Motion>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref } from 'vue'
 import { GraphicStitchingThree } from '@icon-park/vue-next'
+import { Motion } from 'motion-v'
 import LocalMapPanel from './LocalMapPanel.vue'
 import HierarchyTreePanel from './HierarchyTreePanel.vue'
 
@@ -58,9 +79,7 @@ defineProps<{
   noteId: string
 }>()
 
-// 当前视图类型
 const currentView = ref<'local' | 'hierarchy'>('local')
-// 是否折叠面板
 const isCollapsed = ref(true)
 
 // 切换视图
@@ -72,11 +91,15 @@ const switchView = (view: 'local' | 'hierarchy') => {
 const togglePanel = () => {
   isCollapsed.value = !isCollapsed.value
 }
+
+// 动画完成回调
+const onAnimationComplete = () => {
+  // 如果需要在动画完成后执行一些操作
+}
 </script>
 
 <style lang="scss" scoped>
 .graph-panel {
-  // margin-top: 24px;
   padding: 0 20px 10px 20px;
   user-select: none;
 
@@ -102,8 +125,9 @@ const togglePanel = () => {
         display: flex;
         align-items: center;
         justify-content: center;
-        transition: all 0.2s ease;
         padding: 0;
+        transform-origin: center;
+
         :deep(.i-icon) {
           display: flex;
           align-items: center;
@@ -152,11 +176,11 @@ const togglePanel = () => {
   }
 
   .panel-content {
-    // background: var(--color-bg-secondary);
     border-radius: 8px;
-    overflow: visible;
+    overflow: hidden;
     position: relative;
-    height: 600px;
+    transform-origin: top;
+    will-change: transform, height, opacity;
 
     .view-container {
       width: 100%;

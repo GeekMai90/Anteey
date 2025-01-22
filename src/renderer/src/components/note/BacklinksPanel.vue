@@ -2,14 +2,20 @@
   <div class="backlinks-panel">
     <div class="panel-header">
       <div class="title" @click="togglePanel">
-        <div class="icon">
+        <Motion
+          as="div"
+          class="icon"
+          :initial="{ rotate: 0 }"
+          :animate="{ rotate: isCollapsed ? 0 : -45 }"
+          :transition="{ duration: 0.3, ease: 'easeInOut' }"
+        >
           <LinkTwo
             theme="outline"
             size="16"
             :fill="isCollapsed ? 'var(--color-icon-secondary)' : 'var(--color-primary)'"
             :stroke-width="3"
           />
-        </div>
+        </Motion>
         <div class="name">关联 ({{ totalLinks }})</div>
       </div>
       <transition name="fade">
@@ -99,6 +105,7 @@ import type { References, InternalNoteReference, Note } from '@shared/types'
 import { useNoteStore } from '@renderer/stores/noteStore'
 import { useUIStore } from '@renderer/stores/UIStore'
 import { useEventBus } from '@vueuse/core'
+import { Motion } from 'motion-v'
 
 const props = defineProps<{
   noteId: string
@@ -303,9 +310,8 @@ const leave = (element: Element) => {
         display: flex;
         align-items: center;
         justify-content: center;
-        // transform: rotate(-45deg);
-        transition: all 0.2s ease;
         padding: 0;
+        transform-origin: center;
 
         :deep(.i-icon) {
           display: flex;
@@ -464,7 +470,7 @@ const leave = (element: Element) => {
 // 添加淡入淡出动画
 .fade-enter-active,
 .fade-leave-active {
-  transition: opacity 0.3s ease;
+  transition: opacity 0.3s ease-in-out;
 }
 
 .fade-enter-from,
@@ -475,7 +481,7 @@ const leave = (element: Element) => {
 // 添加展开/折叠动画
 .expand-enter-active,
 .expand-leave-active {
-  transition: height 0.3s ease;
+  transition: height 0.3s ease-in-out;
   overflow: hidden;
 }
 

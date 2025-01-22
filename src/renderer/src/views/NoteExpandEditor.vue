@@ -103,12 +103,22 @@
         <transition-group name="review-nav" tag="div" class="review-nav-container">
           <template v-if="isReviewMode">
             <div class="review-nav-buttons">
-              <DoubleArrowButton
-                class="nav-btn prev"
-                :model-value="isReviewMode"
-                label="上一条笔记"
-                @click="handlePrevNote"
-              />
+              <template v-if="reviewStore.enableMarioStyle">
+                <MarioLeftButton
+                  class="nav-btn mario-prev"
+                  :model-value="isReviewMode"
+                  label="上一条笔记"
+                  @click="handlePrevNote"
+                />
+              </template>
+              <template v-else>
+                <DoubleArrowButton
+                  class="nav-btn prev"
+                  :model-value="isReviewMode"
+                  label="上一条笔记"
+                  @click="handlePrevNote"
+                />
+              </template>
               <template v-if="reviewStore.enableMarioStyle">
                 <MarioQuestionBox
                   class="nav-btn mario-next"
@@ -195,6 +205,7 @@ import { useReviewStore } from '@renderer/stores/reviewStore'
 import { useReviewModeStore } from '@renderer/stores/reviewModeStore'
 import MarioQuestionBox from '@renderer/components/ui/MarioQuestionBox.vue'
 import DoubleArrowButton from '@renderer/components/ui/DoubleArrowButton.vue'
+import MarioLeftButton from '@renderer/components/ui/MarioLeftButton.vue'
 // === 组件状态管理 ===
 const tiptapEditor = ref<any>(null)
 const route = useRoute()
@@ -1170,10 +1181,18 @@ onBeforeUnmount(() => {
 
     // 箭头按钮样式
     &.arrow-next {
-      right: 12%;
+      right: 5%;
       transform: rotate(180deg) translateY(50%);
       width: 76px;
       height: 76px;
+    }
+
+    // 添加 Mario 风格左箭头按钮样式
+    &.mario-prev {
+      left: 5%;
+      transform: translateY(-50%);
+      width: 4rem;
+      height: 4rem;
     }
   }
 }

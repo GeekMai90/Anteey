@@ -121,13 +121,33 @@ function createCustomMenu() {
     {
       label: '视图',
       submenu: [
-        { label: '重新加载', role: 'reload' },
-        { label: '强制重新加载', role: 'forceReload' },
+        {
+          label: '重新加载',
+          role: 'reload',
+          accelerator: process.platform === 'darwin' ? 'Command+R' : 'F5'
+        },
+        {
+          label: '强制重新加载',
+          role: 'forceReload',
+          accelerator: process.platform === 'darwin' ? 'Command+Shift+R' : 'Ctrl+F5'
+        },
         { label: '切换开发者工具', role: 'toggleDevTools' },
         { type: 'separator' },
-        { label: '重置缩放', role: 'resetZoom' },
-        { label: '放大', role: 'zoomIn' },
-        { label: '缩小', role: 'zoomOut' },
+        {
+          label: '重置缩放',
+          role: 'resetZoom',
+          accelerator: 'CmdOrCtrl+0'
+        },
+        {
+          label: '放大',
+          role: 'zoomIn',
+          accelerator: process.platform === 'darwin' ? 'Command+=' : 'Control+='
+        },
+        {
+          label: '缩小',
+          role: 'zoomOut',
+          accelerator: process.platform === 'darwin' ? 'Command+-' : 'Control+-'
+        },
         { type: 'separator' },
         { label: '全屏', role: 'togglefullscreen' }
       ]
@@ -149,7 +169,13 @@ function createCustomMenu() {
         {
           label: '官网',
           click: async () => {
-            await shell.openExternal('https://www.Anteey.cc')
+            await shell.openExternal('https://www.anteey.com')
+          }
+        },
+        {
+          label: '帮助文档',
+          click: async () => {
+            await shell.openExternal('https://docs.anteey.com/')
           }
         }
       ]
@@ -308,16 +334,19 @@ let isWindowVisible = true
 
 // 确保在任何环境下都注册这些快捷键
 function registerGlobalShortcuts() {
-  // 移除全局快捷键注册
-  // 改为使用 localShortcut 或者通过菜单设置快捷键
   const win = BrowserWindow.getFocusedWindow()
   if (!win) return
 
   // 在窗口的 webContents 上设置快捷键
   win.webContents.on('before-input-event', (event, input) => {
     // 刷新快捷键
-    if ((input.control || input.meta) && input.key === 'r') {
+    if ((input.control || input.meta) && input.key === 'r' && !input.shift) {
       win.webContents.reload()
+      event.preventDefault()
+    }
+    // 强制刷新快捷键
+    if ((input.control || input.meta) && input.shift && input.key === 'r') {
+      win.webContents.reloadIgnoringCache()
       event.preventDefault()
     }
     // 开发者工具快捷键
@@ -325,11 +354,26 @@ function registerGlobalShortcuts() {
       win.webContents.toggleDevTools()
       event.preventDefault()
     }
-    // 强制重新加载快捷键
-    if ((input.control || input.meta) && input.shift && input.key === 'r') {
-      win.webContents.reloadIgnoringCache()
-      event.preventDefault()
-    }
+  })
+
+  // 为所有新创建的窗口注册这些快捷键
+  app.on('browser-window-created', (_, window) => {
+    window.webContents.on('before-input-event', (event, input) => {
+      if (window.isFocused()) {
+        if ((input.control || input.meta) && input.key === 'r' && !input.shift) {
+          window.webContents.reload()
+          event.preventDefault()
+        }
+        if ((input.control || input.meta) && input.shift && input.key === 'r') {
+          window.webContents.reloadIgnoringCache()
+          event.preventDefault()
+        }
+        if ((input.control || input.meta) && input.shift && input.key === 'i') {
+          window.webContents.toggleDevTools()
+          event.preventDefault()
+        }
+      }
+    })
   })
 }
 
@@ -437,16 +481,16 @@ app.whenReady().then(async () => {
       window.webContents.on('before-input-event', (event, input) => {
         // 仅当窗口处于焦点状态时处理快捷键
         if (window.isFocused()) {
-          if ((input.control || input.meta) && input.key === 'r') {
+          if ((input.control || input.meta) && input.key === 'r' && !input.shift) {
             window.webContents.reload()
-            event.preventDefault()
-          }
-          if ((input.control || input.meta) && input.shift && input.key === 'i') {
-            window.webContents.toggleDevTools()
             event.preventDefault()
           }
           if ((input.control || input.meta) && input.shift && input.key === 'r') {
             window.webContents.reloadIgnoringCache()
+            event.preventDefault()
+          }
+          if ((input.control || input.meta) && input.shift && input.key === 'i') {
+            window.webContents.toggleDevTools()
             event.preventDefault()
           }
         }
@@ -469,28 +513,6 @@ app.whenReady().then(async () => {
 
     // 注册全局快捷键
     registerGlobalShortcuts()
-
-    // 添加全局快捷键
-    // globalShortcut.register('CommandOrControl+R', () => {
-    //   const focusedWindow = BrowserWindow.getFocusedWindow()
-    //   if (focusedWindow) {
-    //     focusedWindow.webContents.reload()
-    //   }
-    // })
-
-    // globalShortcut.register('F5', () => {
-    //   const focusedWindow = BrowserWindow.getFocusedWindow()
-    //   if (focusedWindow) {
-    //     focusedWindow.webContents.reload()
-    //   }
-    // })
-
-    // globalShortcut.register('CommandOrControl+Shift+I', () => {
-    //   const win = BrowserWindow.getFocusedWindow()
-    //   if (win) {
-    //     win.webContents.toggleDevTools()
-    //   }
-    // })
 
     // 加载用户设置的快捷键
     const settings = await getUserSettings()
