@@ -90,13 +90,60 @@
           />
         </div>
       </button>
+      <div class="divider"></div>
+      <button
+        v-tooltip.top="{ content: '切换标题行', delay: { show: 1000 } }"
+        @click="editor.chain().focus().toggleHeaderRow().run()"
+      >
+        <div class="icon">
+          <FreezeLine
+            theme="outline"
+            size="16"
+            fill="var(--color-icon-menu-default)"
+            :strokeWidth="3"
+          />
+        </div>
+      </button>
+      <button
+        v-tooltip.top="{ content: '切换标题列', delay: { show: 1000 } }"
+        @click="editor.chain().focus().toggleHeaderColumn().run()"
+      >
+        <div class="icon">
+          <FreezeColumn
+            theme="outline"
+            size="16"
+            fill="var(--color-icon-menu-default)"
+            :strokeWidth="3"
+          />
+        </div>
+      </button>
+      <button
+        v-tooltip.top="{ content: '合并/拆分单元格', delay: { show: 1000 } }"
+        @click="editor.chain().focus().mergeOrSplit().run()"
+      >
+        <div class="icon">
+          <MergeCells
+            theme="outline"
+            size="16"
+            fill="var(--color-icon-menu-default)"
+            :strokeWidth="3"
+          />
+        </div>
+      </button>
     </div>
   </bubble-menu>
 </template>
 
 <script setup lang="ts">
 import { BubbleMenu } from '@tiptap/vue-3'
-import { Delete, LinkLeft, LinkRight } from '@icon-park/vue-next'
+import {
+  Delete,
+  LinkLeft,
+  LinkRight,
+  MergeCells,
+  FreezeLine,
+  FreezeColumn
+} from '@icon-park/vue-next'
 import type { Editor } from '@tiptap/core'
 import type { EditorState } from '@tiptap/pm/state'
 import type { EditorView } from '@tiptap/pm/view'
@@ -169,6 +216,7 @@ const shouldShow = (props: {
     gap: 2px;
     box-shadow: var(--shadow-primary);
     margin-top: -8px;
+    z-index: 1100;
 
     button {
       padding: 4px;

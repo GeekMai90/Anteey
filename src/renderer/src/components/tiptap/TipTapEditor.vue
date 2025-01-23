@@ -905,9 +905,30 @@ const CustomImage = Image.extend({
   }
 })
 
-// 判是否应该显示文字样式菜单
+// 判断是否应该显示文字样式菜单
 const shouldShowTextStyleMenu = ({ editor }) => {
-  // 检查是否有文本选择，并且不是图片
+  const { state } = editor
+  const { selection } = state
+  const { $anchor } = selection
+
+  // 检查是否在表格内且处于表格选择状态
+  let depth = $anchor.depth
+  while (depth > 0) {
+    const node = $anchor.node(depth)
+    if (node.type.name === 'table') {
+      // 如果是表格选择状态，不显示文本样式菜单
+      if (
+        (selection.ranges && selection.ranges.length > 1) || // 选中多个单元格
+        Object.prototype.hasOwnProperty.call(selection, 'isRowSelection') || // 选中整行
+        Object.prototype.hasOwnProperty.call(selection, 'isColSelection') // 选中整列
+      ) {
+        return false
+      }
+    }
+    depth--
+  }
+
+  // 其他情况保持原有逻辑
   return (
     editor.isEditable &&
     editor.state.selection.content().content.size > 0 &&
@@ -1539,6 +1560,7 @@ const insertParagraphBelow = () => {
   gap: 2px;
   max-width: 500px;
   width: max-content;
+  z-index: 1000;
 
   button {
     background-color: unset;
