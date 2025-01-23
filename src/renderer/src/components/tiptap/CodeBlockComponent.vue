@@ -3,7 +3,7 @@
     <div class="code-block-header">
       <div class="language-selector">
         <button v-tooltip="'选择编程语言'" class="language-button" @click="toggleLanguageSelect">
-          {{ node.attrs.language || 'plaintext' }}
+          {{ languageDisplayNames[node.attrs.language] || node.attrs.language || 'Plain Text' }}
         </button>
       </div>
       <button
@@ -12,14 +12,15 @@
         @click="copyCode"
       >
         <div class="icon">
-          <Copy v-if="!copied" theme="outline" fill="var(--color-icon-default)" :strokeWidth="3" />
-          <CheckOne v-else theme="outline" :strokeWidth="3" fill="var(--color-primary)" />
+          <Copy v-if="!copied" theme="outline" fill="var(--color-text-white)" :strokeWidth="2" />
+          <CheckOne v-else theme="outline" :strokeWidth="2" fill="var(--color-primary)" />
         </div>
       </button>
     </div>
     <pre
       ref="preElement"
       :class="{ 'has-focus': isFocused }"
+      spellcheck="false"
     ><code><node-view-content /></code></pre>
   </node-view-wrapper>
 
@@ -33,16 +34,35 @@
             type="text"
             placeholder="搜索语言..."
             @input="filterLanguages"
+            @keydown.down.prevent="handleKeyDown"
+            @keydown.up.prevent="handleKeyUp"
+            @keydown.enter.prevent="selectHighlightedLanguage"
+            @keydown.esc="closeLanguageSelect"
+            @blur="handleInputBlur"
           />
         </div>
-        <div class="language-list">
+        <div
+          ref="languageListRef"
+          class="language-list"
+          tabindex="-1"
+          @keydown.down.prevent="handleKeyDown"
+          @keydown.up.prevent="handleKeyUp"
+          @keydown.enter.prevent="selectHighlightedLanguage"
+        >
           <button
-            v-for="lang in filteredLanguages"
+            v-for="(lang, index) in filteredLanguages"
             :key="lang"
+            :ref="
+              (el) => {
+                if (el) languageButtons[index] = el as HTMLButtonElement
+              }
+            "
             class="language-option"
+            :class="{ 'is-highlighted': highlightedIndex === index }"
             @click="selectLanguage(lang)"
+            @mouseover="highlightedIndex = index"
           >
-            {{ lang }}
+            {{ languageDisplayNames[lang] || lang }}
           </button>
         </div>
       </div>
@@ -55,6 +75,7 @@ import { NodeViewWrapper, NodeViewContent } from '@tiptap/vue-3'
 import { ref, computed, nextTick, watch } from 'vue'
 import { Copy, CheckOne } from '@icon-park/vue-next'
 import type { CSSProperties } from 'vue'
+import { message } from '@renderer/utils/message'
 
 // Props 定义
 const props = defineProps({
@@ -86,7 +107,40 @@ const searchQuery = ref('')
 const searchInput = ref<HTMLInputElement | null>(null)
 const buttonPosition = ref({ x: 0, y: 0 })
 const copied = ref(false)
-const preElement = ref(null)
+const preElement = ref<HTMLPreElement | null>(null)
+const highlightedIndex = ref(-1)
+const languageButtons = ref<HTMLButtonElement[]>([])
+const languageListRef = ref<HTMLDivElement | null>(null)
+
+// 添加一个语言显示名称的映射
+const languageDisplayNames: Record<string, string> = {
+  javascript: 'JavaScript',
+  typescript: 'TypeScript',
+  python: 'Python',
+  java: 'Java',
+  html: 'HTML',
+  css: 'CSS',
+  scss: 'SCSS',
+  php: 'PHP',
+  cpp: 'C++',
+  csharp: 'C#',
+  golang: 'Go',
+  ruby: 'Ruby',
+  rust: 'Rust',
+  sql: 'SQL',
+  xml: 'XML',
+  yaml: 'YAML',
+  json: 'JSON',
+  markdown: 'Markdown',
+  plaintext: 'Plain Text',
+  // 别名
+  js: 'JavaScript',
+  ts: 'TypeScript',
+  jsx: 'JSX',
+  tsx: 'TSX',
+  vue: 'Vue'
+  // ... 其他语言映射
+}
 
 // 支持的语言列表
 // 支持的语言列表 - 基于 lowlight 支持的语言
@@ -180,6 +234,10 @@ const toggleLanguageSelect = (event: MouseEvent) => {
     y: rect.top
   }
   showLanguageSelect.value = true
+  highlightedIndex.value = -1
+  nextTick(() => {
+    searchInput.value?.focus()
+  })
 }
 
 const handleOverlayClick = () => {
@@ -192,6 +250,7 @@ const copyCode = async () => {
   const code = props.node.textContent
   await navigator.clipboard.writeText(code)
   copied.value = true
+  message.success('已将代码复制到剪贴板')
   setTimeout(() => {
     copied.value = false
   }, 2000)
@@ -205,98 +264,63 @@ watch(showLanguageSelect, (newValue) => {
     })
   }
 })
-</script>
 
-<style lang="scss">
-.code-block {
-  position: relative;
-  margin: 1em 0;
-
-  .code-block-header {
-    position: absolute;
-    top: 0.5rem;
-    right: 0.5rem;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    z-index: 2;
-    opacity: 0; // 默认隐藏
-    transition: opacity 0.2s ease; // 添加过渡效果
-    pointer-events: none; // 默认不响应鼠标事件
-
-    .language-button {
-      font-size: 12px;
-      color: var(--color-text-tertiary);
-      // background-color: var(--color-bg-secondary);
-      padding: 2px 6px;
-      border-radius: 4px;
-      border: none;
-      cursor: pointer;
-      text-transform: lowercase;
-
-      &:hover {
-        background: var(--color-hover-button);
-      }
-    }
-
-    .copy-button {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      // background: var(--color-bg-secondary);
-      border: none;
-      border-radius: 4px;
-      padding: 4px;
-      cursor: pointer;
-      transition: all 0.2s;
-      height: 22px;
-      line-height: 1;
-
-      &:hover {
-        background: var(--color-hover-button);
-      }
-
-      .icon {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        line-height: 0;
-        height: 14px;
-        svg {
-          width: 14px;
-          height: 14px;
-        }
-      }
-    }
-  }
-  &:hover .code-block-header {
-    opacity: 1; // hover 时显示
-    pointer-events: auto; // hover 时恢复鼠标事件
+// 处理键盘导航
+const handleKeyDown = () => {
+  if (highlightedIndex.value === -1) {
+    highlightedIndex.value = 0
+  } else {
+    highlightedIndex.value = Math.min(
+      highlightedIndex.value + 1,
+      filteredLanguages.value.length - 1
+    )
   }
 
-  pre {
-    margin: 0;
-    // background: var(--color-bg-secondary);
-    border-radius: 8px;
-    padding: 1em;
-    overflow-x: auto;
-
-    &.has-focus {
-      outline: 2px solid var(--color-primary);
-      outline-offset: 2px;
-    }
-
-    code {
-      font-family: var(--font-mono);
-      font-size: 0.9em;
-      line-height: 1.5;
-      tab-size: 2;
-      background: none !important;
-      padding: 0 !important;
-    }
+  if (highlightedIndex.value >= 0) {
+    languageButtons.value[highlightedIndex.value]?.scrollIntoView({
+      block: 'nearest'
+    })
+    languageListRef.value?.focus()
   }
 }
 
+const handleKeyUp = () => {
+  if (highlightedIndex.value === -1) {
+    highlightedIndex.value = filteredLanguages.value.length - 1
+  } else {
+    highlightedIndex.value = Math.max(highlightedIndex.value - 1, 0)
+  }
+
+  if (highlightedIndex.value >= 0) {
+    languageButtons.value[highlightedIndex.value]?.scrollIntoView({
+      block: 'nearest'
+    })
+    languageListRef.value?.focus()
+  }
+}
+
+const selectHighlightedLanguage = () => {
+  if (highlightedIndex.value >= 0) {
+    selectLanguage(filteredLanguages.value[highlightedIndex.value])
+  }
+}
+
+const closeLanguageSelect = () => {
+  showLanguageSelect.value = false
+  searchQuery.value = ''
+  filteredLanguages.value = languages
+  highlightedIndex.value = -1
+}
+
+const handleInputBlur = (event: FocusEvent) => {
+  if (!languageListRef.value?.contains(event.relatedTarget as Node)) {
+    searchInput.value?.focus()
+  }
+}
+</script>
+
+<style lang="scss">
+// 全局样式，用于 Teleport 的内容
 .language-popup-overlay {
   position: fixed;
   top: 0;
@@ -340,6 +364,7 @@ watch(showLanguageSelect, (newValue) => {
 
   .language-list {
     padding: 4px;
+    outline: none;
 
     .language-option {
       display: block;
@@ -351,10 +376,153 @@ watch(showLanguageSelect, (newValue) => {
       background: none;
       color: var(--color-text-primary);
       cursor: pointer;
+      border-radius: 4px;
+      transition: all 0.2s ease;
 
       &:hover {
-        background: var(--color-hover);
+        background: var(--color-hover-button);
       }
+
+      &:active {
+        background: var(--color-active-button);
+      }
+
+      &.is-highlighted {
+        background: var(--color-hover-button);
+        color: var(--color-text-primary);
+      }
+    }
+  }
+}
+
+// 添加全局选择器来处理代码块内的文本选择
+.ProseMirror {
+  .code-block {
+    pre {
+      *::selection {
+        background-color: var(--color-selection) !important;
+        color: #fff !important;
+      }
+
+      *::-moz-selection {
+        background-color: var(--color-selection) !important;
+        color: #fff !important;
+      }
+    }
+  }
+}
+</style>
+
+<style lang="scss" scoped>
+.code-block {
+  position: relative;
+  margin: 1em 0;
+
+  .code-block-header {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    z-index: 2;
+    // opacity: 0; // 默认隐藏
+    transition: opacity 0.2s ease; // 添加过渡效果
+    pointer-events: none; // 默认不响应鼠标事件
+
+    .language-selector {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .language-button {
+      font-size: 12px;
+      color: var(--color-text-white);
+      // background-color: var(--color-bg-secondary);
+      background: none;
+      padding: 2px 6px;
+      border-radius: 4px;
+      border: 1px solid var(--color-code-block-border);
+      cursor: pointer;
+      text-transform: lowercase;
+
+      &:hover {
+        // background: var(--color-hover-button);
+        border: 1px solid var(--color-primary);
+      }
+    }
+
+    .copy-button {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: none;
+      border: 1px solid var(--color-code-block-border);
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.2s;
+      height: 24px;
+      line-height: 1;
+
+      &:hover {
+        border: 1px solid var(--color-primary);
+      }
+
+      .icon {
+        background: none;
+        border: none;
+        cursor: pointer;
+        width: 24px;
+        height: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s ease;
+        padding: 0;
+
+        :deep(.i-icon) {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 100%;
+          height: 100%;
+        }
+
+        :deep(svg) {
+          width: 14px;
+          height: 14px;
+        }
+      }
+    }
+  }
+  &:hover .code-block-header {
+    opacity: 1; // hover 时显示
+    pointer-events: auto; // hover 时恢复鼠标事件
+  }
+
+  pre {
+    margin: 0;
+    background: var(--color-code-block-bg); // GitHub Dark style
+    border-radius: 8px;
+    padding: 1em;
+    overflow-x: auto;
+    color: var(--color-code-text); // 确保基础文本颜色设置在这里
+    // spellcheck: false;
+    -webkit-spellcheck: false;
+
+    &.has-focus {
+      outline: 2px solid var(--color-primary);
+      outline-offset: 2px;
+    }
+
+    code {
+      font-family: var(--font-mono);
+      font-size: 0.9em;
+      line-height: 1.5;
+      tab-size: 4;
+      background: none !important;
+      padding: 0 !important;
     }
   }
 }
