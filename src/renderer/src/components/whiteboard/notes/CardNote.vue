@@ -289,7 +289,7 @@ const handleCardboxUpdate = async (cardBoxId: string) => {
 // === 更多功能菜单管理 ===
 const { menuItems: noteMenuItems, resetDeleteState } = useNoteMenu({
   noteId: props.noteId,
-  menuItems: ['star', 'sidebar', 'copyQuote', 'exportNote', 'delete']
+  menuItems: ['star', 'sidebar']
 })
 
 const moreBtnRef = ref<HTMLElement | null>(null)

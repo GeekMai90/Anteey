@@ -25,7 +25,6 @@
       @mousemove="handleMouseMove"
       @mouseup="handleMouseUp"
       @wheel="handleWheel"
-      @dblclick="handleContainerDoubleClick"
       @touchstart="handleTouchStart"
       @touchmove="handleTouchMove"
       @touchend="handleTouchEnd"
@@ -153,16 +152,15 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, watch, computed, markRaw } from 'vue'
+import { ref, onMounted, onUnmounted, watch, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import AppToolbar from '@renderer/components/layout/AppToolbar.vue'
 import { useWhiteboardStore } from '@renderer/stores/whiteboardStore'
 import { CreateWhiteboardNoteInput, WhiteboardNote, Connection, Whiteboard } from '@shared/types'
 import WhiteboardNoteComponent from '@renderer/components/whiteboard/WhiteboardNoteComponent.vue'
-import { Add, Aiming, FileText, Notes, PictureOne } from '@icon-park/vue-next'
+import { Aiming, FileText, Notes, PictureOne } from '@icon-park/vue-next'
 import WhiteboardZoomControl from '@renderer/components/whiteboard/WhiteboardZoomControl.vue'
 import CardConnection from './CardConnection.vue'
-import { useContextMenuStore } from '@renderer/stores/contextMenuStore'
 import SelectionToolbar from '@renderer/components/whiteboard/SelectionToolbar.vue'
 import WhiteboardToolbarLeft from '@renderer/components/whiteboard/WhiteboardToolbarLeft.vue'
 import WhiteboardSearchModal from '@renderer/components/whiteboard/WhiteboardSearchModal.vue'
@@ -179,7 +177,6 @@ const whiteboardId = ref<string | null>(null)
 const whiteboardStore = useWhiteboardStore()
 const whiteboardNotes = ref<WhiteboardNote[]>([])
 const connections = ref<Connection[]>([])
-const contextMenuStore = useContextMenuStore()
 const whiteboardSearchModalRef = ref<InstanceType<typeof WhiteboardSearchModal> | null>(null)
 const isHovered = ref(false)
 
@@ -594,62 +591,62 @@ onUnmounted(() => {
 })
 
 // 双击空白处新增白板笔记
-const handleContainerDoubleClick = (event: MouseEvent) => {
-  console.log('handleContainerDoubleClick', event)
-  event.preventDefault()
-  event.stopPropagation()
+// const handleContainerDoubleClick = (event: MouseEvent) => {
+//   console.log('handleContainerDoubleClick', event)
+//   event.preventDefault()
+//   event.stopPropagation()
 
-  if (!containerRef.value) {
-    console.error('containerRef is null')
-    return
-  }
-  // 检查事件目标是否是 contentRef 或其子元素
-  if (event.target === containerRef.value) {
-    const rect = containerRef.value.getBoundingClientRect()
+//   if (!containerRef.value) {
+//     console.error('containerRef is null')
+//     return
+//   }
+//   // 检查事件目标是否是 contentRef 或其子元素
+//   if (event.target === containerRef.value) {
+//     const rect = containerRef.value.getBoundingClientRect()
 
-    // const x = (event.clientX - rect.left) / scale.value - translateX.value
-    // const y = (event.clientY - rect.top) / scale.value - translateY.value
-    const x = (event.clientX - rect.left - translateX.value) / scale.value
-    const y = (event.clientY - rect.top - translateY.value) / scale.value
+//     // const x = (event.clientX - rect.left) / scale.value - translateX.value
+//     // const y = (event.clientY - rect.top) / scale.value - translateY.value
+//     const x = (event.clientX - rect.left - translateX.value) / scale.value
+//     const y = (event.clientY - rect.top - translateY.value) / scale.value
 
-    contextMenuStore.showMenu(event.clientX, event.clientY, [
-      {
-        label: '新建笔记',
-        icon: markRaw(Add),
-        action: () => createWhiteboardNote(x, y)
-      }
-    ])
-  } else {
-    console.log('双击事件的目标不是 contentRef 或其子元素')
-  }
-}
+//     contextMenuStore.showMenu(event.clientX, event.clientY, [
+//       {
+//         label: '新建笔记',
+//         icon: markRaw(Add),
+//         action: () => createWhiteboardNote(x, y)
+//       }
+//     ])
+//   } else {
+//     console.log('双击事件的目标不是 contentRef 或其子元素')
+//   }
+// }
 
 // 创建白板笔记的函数
-const createWhiteboardNote = async (x: number, y: number) => {
-  if (!whiteboardId.value) return
-  console.log('创建白板笔记', whiteboardId.value)
-  const input: CreateWhiteboardNoteInput = {
-    whiteboardId: whiteboardId.value,
-    noteId: '',
-    position: { x, y }, // 默认位置，你可以根据需要调整
-    size: { width: 350, height: 300 }, // 默认大小，你可以根据需要调整
-    zIndex: 1,
-    rotation: 0,
-    isAutoHeight: false,
-    type: 'card'
-  }
+// const createWhiteboardNote = async (x: number, y: number) => {
+//   if (!whiteboardId.value) return
+//   console.log('创建白板笔记', whiteboardId.value)
+//   const input: CreateWhiteboardNoteInput = {
+//     whiteboardId: whiteboardId.value,
+//     noteId: '',
+//     position: { x, y }, // 默认位置，你可以根据需要调整
+//     size: { width: 350, height: 300 }, // 默认大小，你可以根据需要调整
+//     zIndex: 1,
+//     rotation: 0,
+//     isAutoHeight: false,
+//     type: 'card'
+//   }
 
-  try {
-    const newNote = await whiteboardStore.createWhiteboardNote(input)
-    console.log('newNote', newNote)
-    if (newNote && newNote.id) {
-      console.log('whiteboardNotes', whiteboardNotes.value)
-    }
-  } catch (error) {
-    console.error('Failed to create whiteboard note:', error)
-    message.error('创建失败')
-  }
-}
+//   try {
+//     const newNote = await whiteboardStore.createWhiteboardNote(input)
+//     console.log('newNote', newNote)
+//     if (newNote && newNote.id) {
+//       console.log('whiteboardNotes', whiteboardNotes.value)
+//     }
+//   } catch (error) {
+//     console.error('Failed to create whiteboard note:', error)
+//     message.error('创建失败')
+//   }
+// }
 
 // 拖动状态变量
 let isDragging = false

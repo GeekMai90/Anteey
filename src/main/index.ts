@@ -26,6 +26,7 @@ import { config } from 'dotenv'
 import { getUserSettings } from '../services/user/userSettingsService'
 import { migrateLicenseTable } from '../db/migrations/licenseMigration'
 import { backupService } from '../services/backupService'
+import { debounce } from 'lodash'
 
 // 加载环境变量
 config({
@@ -186,22 +187,19 @@ function createCustomMenu() {
   Menu.setApplicationMenu(menu)
 }
 
-function createWindow(): BrowserWindow {
+async function createWindow(): Promise<BrowserWindow> {
+  // 先获取保存的窗口设置
+  const settings = await db('user_settings').first()
+
   const mainWindow = new BrowserWindow({
-    // 设置窗口的默认宽度和高度（单位：像素）
-    width: 900,
-    height: 670,
-    // 先隐藏窗口，等待内容加载完成后再显示
+    // 使用保存的窗口大小，如果没有则使用默认值
+    width: settings?.window_width || 900,
+    height: settings?.window_height || 670,
+    x: settings?.window_x,
+    y: settings?.window_y,
     show: false,
-    frame: false, // 完全无边框
-    // 隐藏默认菜单栏
+    frame: false,
     autoHideMenuBar: true,
-    // macOS 专用：使用 hiddenInset 样式，保留红绿灯按钮但隐藏标题栏
-    // titleBarStyle: 'hiddenInset',
-    // // macOS 专用：设置红绿灯按钮的位置，x是距离左边距离，y是距离顶部距离
-    // trafficLightPosition: { x: 16, y: 16 },
-    // ...(process.platform === 'linux' ? {} : {}),
-    // 网页功能和安全相关的配置
     webPreferences: {
       // 指定预加载脚本的路径，用于在渲染进程中安全地调用主进程功能
       preload: join(__dirname, '../preload/index.js'),
@@ -223,51 +221,138 @@ function createWindow(): BrowserWindow {
   // 这个模块允许渲染进程（网页）安全地使用主进程的一些功能
   enable(mainWindow.webContents)
 
-  // 窗口创建后立即最大化
-  mainWindow.maximize()
-  // 等待内容加载完成后显示
-  mainWindow.on('ready-to-show', () => {
-    mainWindow.show()
+  // 恢复窗口状态
+  mainWindow.on('ready-to-show', async () => {
+    try {
+      // 恢复缩放比例
+      const zoomFactor = settings?.zoom_factor ?? 1.0
+      mainWindow.webContents.setZoomFactor(zoomFactor)
+
+      // 如果之前是最大化状态，则最大化窗口
+      if (settings?.is_maximized) {
+        mainWindow.maximize()
+      }
+
+      mainWindow.show()
+    } catch (error) {
+      console.error('恢复窗口状态失败:', error)
+      mainWindow.maximize()
+      mainWindow.show()
+    }
   })
 
-  // 根据应用是否打包来决定如何加载页面
-  // if (app.isPackaged) {
-  //   // 生产环境：直接加载打包后的 HTML 文件
-  //   // __dirname 是当前文件所在目录
-  //   // '../renderer/index.html' 是相对于当前目录的 HTML 文件路径
-  //   mainWindow.loadFile(path.join(__dirname, '../renderer/index.html'))
-  // } else {
-  //   // 开发环境：从开发服务器加载页面
-  //   // 获取开发服务器的 URL（由 Vite 在启动时设置的环境变量）
-  //   const devServerUrl = process.env.VITE_DEV_SERVER_URL
+  // 保存窗口状态
+  async function saveWindowState() {
+    try {
+      const settings = await db('user_settings').first()
+      if (settings) {
+        const isMaximized = mainWindow.isMaximized()
+        const bounds = mainWindow.getBounds()
 
-  //   if (devServerUrl) {
-  //     // 如果有开发服务器 URL，则从开发服务器加载页面
-  //     // 这样可以支持热更新等开发功能
-  //     mainWindow.loadURL(devServerUrl)
-  //   } else {
-  //     // 如果没有找到开发服务器 URL，记录错误
-  //     console.error('VITE_DEV_SERVER_URL 未定义')
-  //     log.error('VITE_DEV_SERVER_URL 未定义')
+        await db('user_settings').where('id', settings.id).update({
+          window_width: bounds.width,
+          window_height: bounds.height,
+          window_x: bounds.x,
+          window_y: bounds.y,
+          is_maximized: isMaximized,
+          updatedAt: new Date()
+        })
+        console.log('窗口状态已保存')
+      }
+    } catch (error) {
+      console.error('保存窗口状态失败:', error)
+    }
+  }
 
-  //     // 降级处理：加载本地 HTML 文件
-  //     // 这种情况通常不应该发生，除非开发环境配置出现问题
-  //     mainWindow.loadFile(path.join(__dirname, '../renderer/index.html'))
-  //   }
-  // }
+  // 创建一个防抖版本的保存函数
+  const debouncedSaveWindowState = debounce(saveWindowState, 500)
 
-  // 监听页面加载完成事件
-  // mainWindow.webContents.on('did-finish-load', () => {
-  //   // 执行一段 JavaScript 代码来处理路由重定向
-  //   mainWindow.webContents.executeJavaScript(`
-  //      // 检查当前 URL 的 hash 部分
-  //      // 如果 hash 为空（''）或者是根路径（'#/'）
-  //     if (window.location.hash === '' || window.location.hash === '#/') {
-  //      // 将路由重定向到时间线（'/timeline'）
-  //       window.location.hash = '#/timeline';
-  //     }
-  //   `)
-  // })
+  // 使用防抖版本
+  mainWindow.on('resize', () => {
+    if (!mainWindow.isMaximized()) {
+      debouncedSaveWindowState()
+    }
+  })
+
+  mainWindow.on('move', () => {
+    if (!mainWindow.isMaximized()) {
+      debouncedSaveWindowState()
+    }
+  })
+
+  mainWindow.on('maximize', () => {
+    debouncedSaveWindowState()
+  })
+
+  mainWindow.on('unmaximize', () => {
+    debouncedSaveWindowState()
+  })
+
+  // 创建一个函数来处理缩放更新
+  async function handleZoomUpdate(zoomFactor: number) {
+    console.log('正在更新缩放级别:', zoomFactor)
+    try {
+      const settings = await db('user_settings').first()
+      if (settings) {
+        await db('user_settings').where('id', settings.id).update({
+          zoom_factor: zoomFactor,
+          updatedAt: new Date()
+        })
+        console.log('缩放级别已保存到数据库')
+      }
+    } catch (error) {
+      console.error('保存缩放级别失败:', error)
+    }
+  }
+
+  // 监听具体的缩放操作
+  mainWindow.webContents.on('before-input-event', async (_event, input) => {
+    // Command/Control + 加号
+    if ((input.control || input.meta) && (input.key === '=' || input.key === 'plus')) {
+      console.log('检测到放大快捷键')
+      const currentZoom = mainWindow.webContents.getZoomFactor()
+      const newZoom = currentZoom + 0.1
+      mainWindow.webContents.setZoomFactor(newZoom)
+      await handleZoomUpdate(newZoom)
+    }
+    // Command/Control + 减号
+    if ((input.control || input.meta) && (input.key === '-' || input.key === 'minus')) {
+      console.log('检测到缩小快捷键')
+      const currentZoom = mainWindow.webContents.getZoomFactor()
+      const newZoom = currentZoom - 0.1
+      mainWindow.webContents.setZoomFactor(newZoom)
+      await handleZoomUpdate(newZoom)
+    }
+    // Command/Control + 0
+    if ((input.control || input.meta) && input.key === '0') {
+      console.log('检测到重置快捷键')
+      mainWindow.webContents.setZoomFactor(1.0)
+      await handleZoomUpdate(1.0)
+    }
+  })
+
+  // 监听菜单项的缩放操作
+  ipcMain.on('zoom-in', async () => {
+    console.log('菜单: 放大')
+    const currentZoom = mainWindow.webContents.getZoomFactor()
+    const newZoom = currentZoom + 0.1
+    mainWindow.webContents.setZoomFactor(newZoom)
+    await handleZoomUpdate(newZoom)
+  })
+
+  ipcMain.on('zoom-out', async () => {
+    console.log('菜单: 缩小')
+    const currentZoom = mainWindow.webContents.getZoomFactor()
+    const newZoom = currentZoom - 0.1
+    mainWindow.webContents.setZoomFactor(newZoom)
+    await handleZoomUpdate(newZoom)
+  })
+
+  ipcMain.on('zoom-reset', async () => {
+    console.log('菜单: 重置缩放')
+    mainWindow.webContents.setZoomFactor(1.0)
+    await handleZoomUpdate(1.0)
+  })
 
   // 设置内容安全策略 (CSP)
   mainWindow.webContents.session.webRequest.onHeadersReceived((details, callback) => {
@@ -290,18 +375,6 @@ function createWindow(): BrowserWindow {
       }
     })
   })
-
-  // 在加载 URL 之前就创建并显示窗口
-  // mainWindow.webContents.on('did-finish-load', () => {
-  //   mainWindow.webContents.executeJavaScript(`
-  //     if (window.location.pathname === '/' || window.location.pathname === '') {
-  //       window.history.pushState(null, '', '/home');
-  //       if (window.dispatchEvent) {
-  //         window.dispatchEvent(new Event('popstate'));
-  //       }
-  //     }
-  //   `)
-  // })
 
   // 仅在开发环境（未打包状态）下自动打开开发者工具
   if (!app.isPackaged) {
@@ -509,7 +582,7 @@ app.whenReady().then(async () => {
     // 创建自定义菜单
     createCustomMenu()
 
-    createWindow()
+    await createWindow() // 等待窗口创建完成
 
     // 注册全局快捷键
     registerGlobalShortcuts()
@@ -533,7 +606,11 @@ app.whenReady().then(async () => {
     }
 
     app.on('activate', function () {
-      if (BrowserWindow.getAllWindows().length === 0) createWindow()
+      if (BrowserWindow.getAllWindows().length === 0) {
+        createWindow().catch((error) => {
+          console.error('创建窗口失败:', error)
+        })
+      }
     })
 
     // 应用启动时执行自动备份

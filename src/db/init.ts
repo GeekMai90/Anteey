@@ -296,6 +296,12 @@ export async function initDatabase(db: Knex): Promise<void> {
       table.string('authorMotto').notNullable().defaultTo('一起践行终身成长')
       table.string('qrcodeUrl').notNullable().defaultTo('')
       table.string('globalHotkey').nullable()
+      table.float('zoom_factor').notNullable().defaultTo(1.0)
+      table.integer('window_width').nullable()
+      table.integer('window_height').nullable()
+      table.integer('window_x').nullable()
+      table.integer('window_y').nullable()
+      table.boolean('is_maximized').notNullable().defaultTo(true)
       table.datetime('createdAt').notNullable()
       table.datetime('updatedAt').notNullable()
     })
@@ -308,18 +314,50 @@ export async function initDatabase(db: Knex): Promise<void> {
       authorMotto: '一起践行终身成长',
       qrcodeUrl: '',
       globalHotkey: 'Alt+CommandOrControl+U',
+      zoom_factor: 1.0, // 设置默认值
+      window_width: null,
+      window_height: null,
+      window_x: null,
+      window_y: null,
+      is_maximized: true,
       createdAt: new Date(),
       updatedAt: new Date()
     })
     console.log('user_settings 默认数据创建成功')
   } else {
-    // 检查是否需要添加 globalHotkey 列
-    const hasGlobalHotkeyColumn = await db.schema.hasColumn('user_settings', 'globalHotkey')
-    if (!hasGlobalHotkeyColumn) {
+    // 检查并添加新列
+    const hasWindowColumns = await Promise.all([
+      db.schema.hasColumn('user_settings', 'window_width'),
+      db.schema.hasColumn('user_settings', 'window_height'),
+      db.schema.hasColumn('user_settings', 'window_x'),
+      db.schema.hasColumn('user_settings', 'window_y'),
+      db.schema.hasColumn('user_settings', 'is_maximized')
+    ])
+
+    if (!hasWindowColumns[0]) {
       await db.schema.alterTable('user_settings', (table) => {
-        table.string('globalHotkey').nullable()
+        table.integer('window_width').nullable()
       })
-      console.log('user_settings 表添加 globalHotkey 列成功')
+    }
+    if (!hasWindowColumns[1]) {
+      await db.schema.alterTable('user_settings', (table) => {
+        table.integer('window_height').nullable()
+      })
+    }
+    if (!hasWindowColumns[2]) {
+      await db.schema.alterTable('user_settings', (table) => {
+        table.integer('window_x').nullable()
+      })
+    }
+    if (!hasWindowColumns[3]) {
+      await db.schema.alterTable('user_settings', (table) => {
+        table.integer('window_y').nullable()
+      })
+    }
+    if (!hasWindowColumns[4]) {
+      await db.schema.alterTable('user_settings', (table) => {
+        table.boolean('is_maximized').notNullable().defaultTo(true)
+      })
     }
   }
   // 创建 custom_filters 表
@@ -592,433 +630,13 @@ export async function initDatabase(db: Knex): Promise<void> {
 
     console.log('appearance_settings 表创建成功')
   } else {
-    // 检查是否需要添加新列
-    const columns = [
-      { name: 'defaultPage', type: 'string', default: '/home' },
-      { name: 'starredExpanded', type: 'boolean', default: true },
-      { name: 'tagsExpanded', type: 'boolean', default: true },
-      { name: 'recentExpanded', type: 'boolean', default: true },
-      { name: 'enableWhiteboard', type: 'boolean', default: true },
-      { name: 'enableAIAssistant', type: 'boolean', default: true }
-    ]
-
-    for (const column of columns) {
-      const hasColumn = await db.schema.hasColumn('appearance_settings', column.name)
-      if (!hasColumn) {
-        await db.schema.alterTable('appearance_settings', (table) => {
-          if (column.type === 'boolean') {
-            table.boolean(column.name).notNullable().defaultTo(column.default)
-          } else if (column.type === 'string') {
-            table.string(column.name).notNullable().defaultTo(column.default)
-          }
-        })
-        console.log(`appearance_settings 表添加 ${column.name} 列成功`)
-      }
-    }
-  }
-
-  // 创建 image_references 表
-  if (!(await db.schema.hasTable('image_references'))) {
-    await db.schema.createTable('image_references', (table) => {
-      table.string('id').primary()
-      table.string('path').notNullable() // 图片存储路径
-      table.string('filename').notNullable() // 原始文件名
-      table.string('hash').notNullable().unique() // 图片内容哈希值,用于去重
-      table.integer('size').notNullable() // 文件大小(字节)
-      table.datetime('createdAt').notNullable()
-      table.datetime('lastUsed').nullable() // 最后使用时间
-
-      // 索引
-      table.index('hash')
-      table.index('createdAt')
-      table.index('lastUsed')
-    })
-    console.log('image_references 表创建成功')
-  }
-
-  // 创建 note_images 表 (笔记和图片的关联表)
-  if (!(await db.schema.hasTable('note_images'))) {
-    await db.schema.createTable('note_images', (table) => {
-      table.string('noteId').notNullable()
-      table.string('imageId').notNullable()
-      table.datetime('createdAt').notNullable()
-
-      // 复合主键
-      table.primary(['noteId', 'imageId'])
-
-      // 外键约束
-      table.foreign('noteId').references('notes.id').onDelete('CASCADE')
-      table.foreign('imageId').references('image_references.id').onDelete('CASCADE')
-
-      // 索引
-      table.index('noteId')
-      table.index('imageId')
-      table.index('createdAt')
-    })
-    console.log('note_images 表创建成功')
-  }
-
-  // 创建激活许可证表
-  // 创建激活许可证表
-  if (!(await db.schema.hasTable('licenses'))) {
-    await db.schema.createTable('licenses', (table) => {
-      table.string('id').primary()
-      table.string('machineId').notNullable()
-      table.text('encryptedData').notNullable() // 新的加密数据字段
-      table.datetime('createdAt').notNullable()
-      table.datetime('updatedAt').notNullable()
-
-      table.index('machineId')
-    })
-    console.log('licenses 表创建成功')
-  }
-
-  // 创建备份设置表
-  if (!(await db.schema.hasTable('backup_settings'))) {
-    await db.schema.createTable('backup_settings', (table) => {
-      table.string('backup_path').notNullable()
-      table.boolean('auto_backup').defaultTo(false)
-      table.timestamp('created_at').defaultTo(db.fn.now())
-      table.timestamp('updated_at').defaultTo(db.fn.now())
-    })
-    console.log('backup_settings 表创建成功')
-  }
-
-  // 创建备份历史记录表
-  if (!(await db.schema.hasTable('backup_history'))) {
-    await db.schema.createTable('backup_history', (table) => {
-      table.increments('id')
-      table.string('backup_file_path').notNullable()
-      table.string('backup_file_name').notNullable()
-      table.integer('backup_size').notNullable()
-      table.string('created_at').notNullable()
-
-      // 添加索引以优化查询
-      table.index('created_at')
-    })
-    console.log('backup_history 表创建成功')
-  }
-
-  // 先删除旧表
-  // await db.schema.dropTableIfExists('bullet_items')
-  // await db.schema.dropTableIfExists('time_blocks')
-  // await db.schema.dropTableIfExists('time_block_days')
-
-  // 重新创建时间块主表
-  if (!(await db.schema.hasTable('time_block_days'))) {
-    await db.schema.createTable('time_block_days', (table) => {
-      table.string('id').primary()
-      table.date('date').notNullable().unique() // YYYY-MM-DD
-      table.string('weather').nullable() // 天气状态
-      table.string('mood').nullable() // 心情状态
-      table.datetime('createdAt').notNullable()
-      table.datetime('updatedAt').notNullable()
-
-      // 索引
-      table.index('date')
-      table.index('createdAt')
-    })
-    console.log('time_block_days 表创建成功')
-  }
-
-  // 时间块内容表
-  if (!(await db.schema.hasTable('time_blocks'))) {
-    await db.schema.createTable('time_blocks', (table) => {
-      table.string('id').primary()
-      table.string('dayId').notNullable()
-      table.integer('hour').notNullable() // 0-23
-      table.text('content').nullable() // 存储编辑器的 HTML 内容
-      table.datetime('createdAt').notNullable()
-      table.datetime('updatedAt').notNullable()
-
-      // 外键约束
-      table.foreign('dayId').references('time_block_days.id').onDelete('CASCADE')
-
-      // 复合唯一约束
-      table.unique(['dayId', 'hour'])
-
-      // 索引
-      table.index('dayId')
-      table.index(['dayId', 'hour'])
-    })
-    console.log('time_blocks 表创建成功')
-  }
-
-  // 创建时间块设置表
-  if (!(await db.schema.hasTable('time_block_settings'))) {
-    await db.schema.createTable('time_block_settings', (table) => {
-      table.boolean('enabled').notNullable().defaultTo(true)
-      table.integer('startTime').notNullable().defaultTo(5)
-      table.integer('endTime').notNullable().defaultTo(23)
-    })
-
-    // 插入默认设置
-    await db('time_block_settings').insert({
-      enabled: true,
-      startTime: 5,
-      endTime: 23
-    })
-
-    console.log('time_block_settings 表创建成功')
-  }
-
-  // 创建未来日志表
-  if (!(await db.schema.hasTable('future_logs'))) {
-    await db.schema.createTable('future_logs', (table) => {
-      table.string('id').primary()
-      table.text('content').nullable() // 存储编辑器的 HTML 内容
-      table.datetime('createdAt').notNullable()
-      table.datetime('updatedAt').notNullable()
-
-      // 索引
-      table.index('createdAt')
-      table.index('updatedAt')
-    })
-    console.log('future_logs 表创建成功')
-  }
-
-  // 创建月度日志表
-  if (!(await db.schema.hasTable('monthly_logs'))) {
-    await db.schema.createTable('monthly_logs', (table) => {
-      table.string('id').primary()
-      table.integer('year').notNullable() // 年份
-      table.integer('month').notNullable() // 月份（1-12）
-      table.text('content').nullable() // 存储编辑器的 HTML 内容
-      table.datetime('createdAt').notNullable()
-      table.datetime('updatedAt').notNullable()
-
-      // 添加联合唯一索引确保每个月份只有一条记录
-      table.unique(['year', 'month'])
-
-      // 索引
-      table.index(['year', 'month'])
-      table.index('createdAt')
-      table.index('updatedAt')
-    })
-    console.log('monthly_logs 表创建成功')
-  }
-
-  // 创建 webdav_config 表
-  if (!(await db.schema.hasTable('webdav_config'))) {
-    await db.schema.createTable('webdav_config', (table) => {
-      table.string('id').primary()
-      table.boolean('enabled').notNullable().defaultTo(false)
-      table.string('serverType').notNullable()
-      table.string('url').notNullable()
-      table.string('username').notNullable()
-      table.string('password').notNullable()
-      table.integer('syncInterval').notNullable().defaultTo(15)
-      table.boolean('autoSync').notNullable().defaultTo(false)
-      table.string('syncDirection').notNullable().defaultTo('bidirectional')
-      table
-        .json('syncFileTypes')
-        .notNullable()
-        .defaultTo(JSON.stringify(['all']))
-      table.datetime('lastSyncTime').nullable()
-      table.datetime('createdAt').notNullable()
-      table.datetime('updatedAt').notNullable()
-    })
-    console.log('webdav_config 表创建成功')
-  }
-
-  // 创建 webdav_sync_history 表
-  if (!(await db.schema.hasTable('webdav_sync_history'))) {
-    await db.schema.createTable('webdav_sync_history', (table) => {
-      table.string('id').primary()
-      table.datetime('timestamp').notNullable()
-      table.string('type').notNullable() // 'auto' | 'manual'
-      table.string('status').notNullable() // 'success' | 'failed'
-      table.text('details').notNullable() // JSON 字符串
-      table.datetime('createdAt').notNullable().defaultTo(db.fn.now())
-    })
-    console.log('webdav_sync_history 表创建成功')
-  }
-
-  // 创建版本表
-  if (!(await db.schema.hasTable('note_versions'))) {
-    await db.schema.createTable('note_versions', (table) => {
-      // 版本标识
-      table.string('id').primary()
-      table.string('noteId').notNullable().index() // 关联的笔记ID
-      table.integer('versionNumber').notNullable() // 版本号
-
-      // 笔记核心信息
-      table.json('content').notNullable() // 版本内容
-      table.string('address').notNullable() // 笔记地址
-      table.string('cardType').notNullable() // 笔记类型
-      table.datetime('createdAt').notNullable() // 笔记创建时间
-
-      // 版本信息
-      table.datetime('versionCreatedAt').notNullable() // 版本创建时间
-
-      // 外键约束
-      table.foreign('noteId').references('notes.id').onDelete('CASCADE')
-
-      // 索引
-      table.index(['noteId', 'versionNumber']) // 用于按版本号查询
-      table.index('versionCreatedAt') // 用于按时间查询
-    })
-
-    console.log('note_versions 表创建成功')
-  }
-
-  // 创建记忆卡设置表
-  if (!(await db.schema.hasTable('flashcard_settings'))) {
-    await db.schema.createTable('flashcard_settings', (table) => {
-      table.string('id').primary()
-      // 学习计划
-      table.integer('dailyGoal').notNullable().defaultTo(30) // 每日目标数量
-      table.integer('newCardsPerDay').notNullable().defaultTo(20) // 新卡片数量
-      table.integer('reviewsPerDay').notNullable().defaultTo(100) // 复习上限
-      table.integer('dayStartsAt').notNullable().defaultTo(4) // 新的一天开始时间
-      // 学习顺序
-      table.enum('newCardPosition', ['mix', 'front', 'end']).notNullable().defaultTo('mix')
-      // 算法参数
-      table.float('requestRetention').notNullable().defaultTo(0.9)
-      table.integer('maximumInterval').notNullable().defaultTo(180)
-      // 界面设置
-      table.boolean('simplifyButtons').notNullable().defaultTo(false)
-      table.boolean('showNextReview').notNullable().defaultTo(true)
-      // 统计设置
-      table.integer('maxAnswerTime').notNullable().defaultTo(20) // 秒
-      table.integer('forgetThreshold').notNullable().defaultTo(4) // 次数
-      table.integer('reviewAgainAfter').notNullable().defaultTo(15) // 分钟
-      // 时间戳
-      table.datetime('createdAt').notNullable()
-      table.datetime('updatedAt').notNullable()
-    })
-
-    // 插入默认设置
-    await db('flashcard_settings').insert({
-      id: uuidv4(),
-      dailyGoal: 30,
-      newCardsPerDay: 20,
-      reviewsPerDay: 100,
-      dayStartsAt: 4,
-      newCardPosition: 'mix',
-      requestRetention: 0.9,
-      maximumInterval: 180,
-      simplifyButtons: false,
-      showNextReview: true,
-      maxAnswerTime: 20,
-      forgetThreshold: 4,
-      reviewAgainAfter: 15,
-      createdAt: new Date(),
-      updatedAt: new Date()
-    })
-
-    console.log('flashcard_settings 表创建成功')
-  }
-
-  // 创建复习记录表
-  if (!(await db.schema.hasTable('review_records'))) {
-    await db.schema.createTable('review_records', (table) => {
-      table.string('id').primary()
-      table.string('noteId').notNullable().index()
-      table.datetime('reviewedAt').notNullable()
-      table.string('feedback').notNullable() // ReviewFeedback 类型
-      table.integer('reviewTime').notNullable() // 毫秒
-
-      // 外键约束
-      table.foreign('noteId').references('notes.id').onDelete('CASCADE')
-
-      // 索引
-      table.index('reviewedAt')
-      table.index(['noteId', 'reviewedAt'])
-    })
-    console.log('review_records 表创建成功')
-  }
-
-  // 创建每日统计表
-  if (!(await db.schema.hasTable('daily_stats'))) {
-    await db.schema.createTable('daily_stats', (table) => {
-      table.string('date').primary() // YYYY-MM-DD 格式
-      table.integer('uniqueCards').notNullable().defaultTo(0)
-      table.integer('totalReviews').notNullable().defaultTo(0)
-      table.integer('totalTime').notNullable().defaultTo(0) // 毫秒
-      table
-        .json('feedbackStats')
-        .notNullable()
-        .defaultTo(
-          JSON.stringify({
-            skip: 0,
-            forgot: 0,
-            partially_recalled: 0,
-            recalled_effort: 0,
-            easily_recalled: 0
-          })
-        )
-      table.datetime('createdAt').notNullable()
-      table.datetime('updatedAt').notNullable()
-
-      // 索引
-      table.index('date')
-    })
-    console.log('daily_stats 表创建成功')
-  }
-
-  // 在 initDatabase 函数中添加以下代码
-  if (!(await db.schema.hasTable('drafts'))) {
-    await db.schema.createTable('drafts', (table) => {
-      table.string('id').primary()
-      table.json('content').notNullable().defaultTo('{}')
-      table.datetime('createdAt').notNullable()
-      table.datetime('updatedAt').notNullable()
-
-      // 添加索引
-      table.index('updatedAt')
-    })
-    console.log('drafts 表创建成功')
-  }
-
-  // 创建主题设置表
-  if (!(await db.schema.hasTable('theme_settings'))) {
-    await db.schema.createTable('theme_settings', (table) => {
-      table.string('id').primary()
-      // 通用渐变设置
-      table.json('universalGradient').nullable()
-      // 明暗模式特定的渐变设置
-      table.json('lightGradient').nullable()
-      table.json('darkGradient').nullable()
-      // 渐变模式
-      table.enum('gradientMode', ['universal', 'specific']).notNullable().defaultTo('universal')
-      // 主题模式
-      table.enum('themeMode', ['system', 'light', 'dark']).notNullable().defaultTo('system')
-      // 是否启用渐变背景
-      table.boolean('enableGradient').notNullable().defaultTo(true)
-      // 新增：主题风格模式
-      table.enum('styleMode', ['modern', 'classic']).notNullable().defaultTo('modern')
-      // 时间戳
-      table.datetime('createdAt').notNullable()
-      table.datetime('updatedAt').notNullable()
-    })
-
-    // 插入默认设置
-    await db('theme_settings').insert({
-      id: uuidv4(),
-      universalGradient: JSON.stringify({
-        startColor: '#89f7fe',
-        endColor: '#66a6ff',
-        angle: 45,
-        noiseAmount: 15
-      }),
-      gradientMode: 'universal',
-      themeMode: 'system',
-      enableGradient: true,
-      styleMode: 'modern',
-      createdAt: new Date(),
-      updatedAt: new Date()
-    })
-
-    console.log('theme_settings 表创建成功')
-  } else {
     // 检查是否需要添加 styleMode 列
-    const hasStyleModeColumn = await db.schema.hasColumn('theme_settings', 'styleMode')
+    const hasStyleModeColumn = await db.schema.hasColumn('appearance_settings', 'styleMode')
     if (!hasStyleModeColumn) {
-      await db.schema.alterTable('theme_settings', (table) => {
+      await db.schema.alterTable('appearance_settings', (table) => {
         table.enum('styleMode', ['modern', 'classic']).notNullable().defaultTo('modern')
       })
-      console.log('theme_settings 表添加 styleMode 列成功')
+      console.log('appearance_settings 表添加 styleMode 列成功')
     }
   }
 

@@ -64,41 +64,47 @@
             @blur="handleBlur"
           />
 
-          <div v-if="showSuggestions" class="tag-suggestions">
+          <Teleport to="body">
             <div
-              v-if="!existingTag && newTagInput.trim()"
-              class="suggestion-item new-tag"
-              :class="{ 'is-selected': selectedIndex === 0 }"
-              @mousedown.prevent="addTag"
-              @mouseover="selectedIndex = 0"
+              v-if="showSuggestions"
+              ref="floating"
+              class="tag-suggestions"
+              :style="floatingStyles"
             >
-              <div class="icon">
-                <Plus theme="outline" size="14" :stroke-width="3" />
+              <div
+                v-if="!existingTag && newTagInput.trim()"
+                class="suggestion-item new-tag"
+                :class="{ 'is-selected': selectedIndex === 0 }"
+                @mousedown.prevent="addTag"
+                @mouseover="selectedIndex = 0"
+              >
+                <div class="icon">
+                  <Plus theme="outline" size="14" :stroke-width="3" />
+                </div>
+                <div class="name">
+                  新建标签 "<span class="tag-value">{{ newTagInput }}</span
+                  >"
+                </div>
               </div>
-              <div class="name">
-                新建标签 "<span class="tag-value">{{ newTagInput }}</span
-                >"
+              <div
+                v-if="!existingTag && newTagInput.trim() && filteredSuggestions.length > 0"
+                class="divider"
+              ></div>
+              <div
+                v-for="(tag, index) in filteredSuggestions"
+                :key="tag.id"
+                class="suggestion-item"
+                :class="{
+                  'is-selected':
+                    selectedIndex === (!existingTag && newTagInput.trim() ? index + 1 : index)
+                }"
+                @mousedown.prevent="selectSuggestion(tag)"
+                @mouseover="selectedIndex = !existingTag && newTagInput.trim() ? index + 1 : index"
+              >
+                {{ tag.name }}
               </div>
             </div>
-            <!-- 分隔线 -->
-            <div
-              v-if="!existingTag && newTagInput.trim() && filteredSuggestions.length > 0"
-              class="divider"
-            ></div>
-            <div
-              v-for="(tag, index) in filteredSuggestions"
-              :key="tag.id"
-              class="suggestion-item"
-              :class="{
-                'is-selected':
-                  selectedIndex === (!existingTag && newTagInput.trim() ? index + 1 : index)
-              }"
-              @mousedown.prevent="selectSuggestion(tag)"
-              @mouseover="selectedIndex = !existingTag && newTagInput.trim() ? index + 1 : index"
-            >
-              {{ tag.name }}
-            </div>
-          </div>
+          </Teleport>
         </div>
       </div>
     </Motion>
@@ -106,12 +112,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, nextTick, watch, onMounted } from 'vue'
+import { ref, computed, nextTick, watch, onMounted, onBeforeUnmount } from 'vue'
 import { TagOne, Close, Plus } from '@icon-park/vue-next'
 import { Motion } from 'motion-v'
 import { useNoteStore } from '@renderer/stores/noteStore'
 import { useTagStore } from '@renderer/stores/tagStore'
 import { useEventBus } from '@vueuse/core'
+import { useFloating } from '@floating-ui/vue'
+import { flip, offset, shift } from '@floating-ui/dom'
 
 const props = defineProps<{
   noteId: string
@@ -132,6 +140,17 @@ const contentHeight = ref(0)
 const emit = defineEmits(['refresh'])
 
 const tagChangeEventBus = useEventBus('tagChange')
+
+// 修改 ref 定义
+const floating = ref(null)
+
+// 使用计算属性获取 reference 元素
+const reference = computed(() => tagInput.value)
+
+const { floatingStyles } = useFloating(reference, floating, {
+  placement: 'bottom-start',
+  middleware: [offset(4), flip(), shift({ padding: 8 })]
+})
 
 // 添加切换面板的方法
 const togglePanel = () => {
@@ -283,9 +302,12 @@ watch(isCollapsed, (newVal) => {
   }
 })
 
-// 组件挂载后初始化高度
 onMounted(() => {
   updateContentHeight()
+})
+
+onBeforeUnmount(() => {
+  // 移除 floating 相关的监听逻辑
 })
 </script>
 
@@ -540,97 +562,98 @@ onMounted(() => {
           color: var(--color-text-tertiary);
         }
       }
+    }
+  }
+}
+</style>
 
-      .tag-suggestions {
-        position: absolute;
-        top: calc(100% + 4px);
-        left: 0;
-        right: 0;
-        z-index: 1000; // 确保建议列表在最上层
-        background: var(--color-bg-primary);
-        border: 1px solid var(--color-border);
-        border-radius: 6px;
-        max-height: 200px;
-        overflow-y: auto;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-        padding: 8px;
-        min-width: 100%; // 至少与输入框一样宽
-        width: max-content; // 根据内容自动调整宽度
-        max-width: 300px; // 最大宽度限制
+<!-- 添加一个非 scoped 的样式块用于建议菜单 -->
+<style lang="scss">
+.tag-suggestions {
+  // 移除定位相关样式
+  // position: fixed;
+  z-index: 9999;
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  max-height: 200px;
+  overflow-y: auto;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  padding: 8px;
+  width: max-content;
 
-        .divider {
-          height: 1px;
-          background-color: var(--color-border);
-          margin: 4px 0;
+  .divider {
+    height: 1px;
+    background-color: var(--color-border);
+    margin: 4px 0;
+  }
+
+  .suggestion-item {
+    padding: 8px 12px;
+    cursor: pointer;
+    font-size: 13px;
+    color: var(--color-text-primary);
+    transition: all 0.2s ease;
+    border-radius: 8px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+
+    &.is-selected {
+      background: var(--color-hover-bg);
+    }
+
+    &.new-tag {
+      display: flex;
+      align-items: center;
+      color: var(--color-primary);
+      padding-left: 4px;
+
+      .icon {
+        background: none;
+        border: none;
+        cursor: pointer;
+        width: 16px;
+        height: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s ease;
+        padding: 0;
+
+        .i-icon {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 100%;
+          height: 100%;
         }
 
-        .suggestion-item {
-          padding: 8px 12px;
-          cursor: pointer;
-          font-size: 13px;
-          color: var(--color-text-primary);
-          transition: all 0.2s ease;
-          border-radius: 8px;
-          white-space: nowrap; // 防止文字换行
-          overflow: hidden;
-          text-overflow: ellipsis; // 文字过长时显示省略号
-
-          &.is-selected {
-            background: var(--color-hover-bg);
-          }
-
-          &.new-tag {
-            display: flex;
-            align-items: center;
-            color: var(--color-primary);
-            padding-left: 4px;
-
-            .icon {
-              background: none;
-              border: none;
-              cursor: pointer;
-              width: 16px;
-              height: 16px;
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              transition: all 0.2s ease;
-              padding: 0;
-              :deep(.i-icon) {
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                width: 100%;
-                height: 100%;
-              }
-
-              :deep(svg) {
-                width: 16px;
-                height: 16px;
-              }
-            }
-
-            .name {
-              flex-grow: 0;
-              text-align: left;
-              color: var(--default-text-color);
-              font-size: 13px;
-              font-weight: 400;
-              white-space: nowrap;
-              writing-mode: horizontal-tb;
-              line-height: 1;
-              margin-left: 4px;
-              .tag-value {
-                color: var(--color-text-primary); // 标签名称使用主题色
-              }
-            }
-          }
-
-          &:hover {
-            background: var(--color-hover-bg);
-          }
+        svg {
+          width: 16px;
+          height: 16px;
         }
       }
+
+      .name {
+        flex-grow: 0;
+        text-align: left;
+        color: var(--default-text-color);
+        font-size: 13px;
+        font-weight: 400;
+        white-space: nowrap;
+        writing-mode: horizontal-tb;
+        line-height: 1;
+        margin-left: 4px;
+
+        .tag-value {
+          color: var(--color-text-primary);
+        }
+      }
+    }
+
+    &:hover {
+      background: var(--color-hover-bg);
     }
   }
 }

@@ -2,7 +2,7 @@
   <div class="note-toolbar">
     <div class="toolbar-buttons">
       <div
-        v-tooltip.bottom="{ content: '删除', delay: { show: 1000 } }"
+        v-tooltip.top="{ content: '从白板移除', delay: { show: 1000 } }"
         class="toolbar-button"
         @click="$emit('delete')"
       >
@@ -13,7 +13,7 @@
 
       <div class="toolbar-button color-button">
         <div
-          v-tooltip.bottom="{ content: '颜色', delay: { show: 1000 } }"
+          v-tooltip.top="{ content: '设置边框颜色', delay: { show: 1000 } }"
           class="icon"
           @click="toggleColorPicker"
         >
@@ -43,7 +43,7 @@
       </div>
 
       <div
-        v-tooltip.bottom="{ content: '聚焦', delay: { show: 1000 } }"
+        v-tooltip.top="{ content: '聚焦显示', delay: { show: 1000 } }"
         class="toolbar-button"
         @click="$emit('focus')"
       >

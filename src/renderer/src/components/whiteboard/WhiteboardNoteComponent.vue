@@ -392,7 +392,7 @@ const handleDelete = async () => {
   try {
     await whiteboardStore.deleteWhiteboardNote(props.item.id)
     // 删除成功后，可以添加一些反馈
-    message.success('删除成功')
+    message.success('成功从白板移除')
   } catch (error) {
     console.error('删除白板笔记失败:', error)
     message.error('删除失败')

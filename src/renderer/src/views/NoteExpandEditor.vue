@@ -1069,7 +1069,7 @@ onBeforeUnmount(() => {
 
   .editor-area {
     flex: 1;
-    min-height: 500px;
+    min-height: 450px;
   }
 
   .backlinks-area {
