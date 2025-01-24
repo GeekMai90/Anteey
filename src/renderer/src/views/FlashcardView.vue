@@ -358,25 +358,23 @@ const handleMoreClick = (event: MouseEvent, tagId: string | null, isAll = false)
       label: '查看卡组',
       icon: markRaw(FileSearch),
       action: () => {
-        // 跳转到卡片盒页面，带上标签和闪卡筛选条件
         router.push({
           name: 'cardbox',
           query: {
-            // 如果是所有记忆卡则不传 tags，如果是暂无分类则传 none，如果是标签卡组则传 tagId
             ...(isAll ? {} : tagId === null ? { tags: 'none' } : { tags: tagId }),
             box: 'all',
             isFlashcard: 'true',
             page: '1'
           }
         })
-        // 关闭上下文菜单
         contextMenuStore.closeMenu()
       }
     }
   ])
 
-  // 显示上下文菜单
-  contextMenuStore.showMenu(event.clientX, event.clientY, menuItems)
+  // 使用按钮元素作为参考点
+  const buttonElement = event.currentTarget as HTMLElement
+  contextMenuStore.showMenu(buttonElement, menuItems)
 }
 
 // 计算各种反馈的比率

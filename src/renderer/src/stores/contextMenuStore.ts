@@ -1,6 +1,8 @@
 // src/stores/contextMenuStore.ts
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+import { ref, computed, nextTick } from 'vue'
+import { computePosition, flip, shift, offset } from '@floating-ui/dom'
+import type { CSSProperties } from 'vue'
 
 export const useContextMenuStore = defineStore('contextMenu', () => {
   const show = ref(false)
@@ -8,33 +10,42 @@ export const useContextMenuStore = defineStore('contextMenu', () => {
   const y = ref(0)
   const items = ref<{ label: string; action: () => void; icon: any }[]>([])
 
-  const menuStyle = computed(() => {
-    const style: { [key: string]: string } = {
-      position: 'fixed',
-      top: `${y.value}px`,
-      left: `${x.value}px`
-    }
+  const menuStyle = computed<CSSProperties>(() => ({
+    position: 'fixed' as const,
+    top: `${y.value}px`,
+    left: `${x.value}px`
+  }))
 
-    // 检查是否靠近屏幕右边缘
-    if (window.innerWidth - x.value < 200) {
-      style.right = `${window.innerWidth - x.value}px`
-      delete style.left
-    }
-
-    // 检查是否靠近屏幕底部
-    if (window.innerHeight - y.value < 100) {
-      style.bottom = `${window.innerHeight - y.value}px`
-      delete style.top
-    }
-
-    return style
-  })
-
-  function showMenu(newX: number, newY: number, newItems: typeof items.value) {
-    x.value = newX
-    y.value = newY
+  async function showMenu(buttonElement: HTMLElement, newItems: typeof items.value) {
+    // 先设置初始位置（使用按钮的位置）
+    const buttonRect = buttonElement.getBoundingClientRect()
+    x.value = buttonRect.left
+    y.value = buttonRect.bottom
     items.value = newItems
     show.value = true
+
+    // 等待 DOM 更新
+    await nextTick()
+
+    // 获取菜单元素
+    const menuEl = document.querySelector('.global-context-menu') as HTMLElement
+    if (!menuEl) return
+
+    // 计算最终位置
+    const { x: floatingX, y: floatingY } = await computePosition(buttonElement, menuEl, {
+      placement: 'bottom-start',
+      middleware: [
+        offset(4),
+        flip({
+          fallbackPlacements: ['top-start', 'left-start', 'right-start']
+        }),
+        shift({ padding: 8 })
+      ]
+    })
+
+    // 更新到最终位置
+    x.value = floatingX
+    y.value = floatingY
   }
 
   function closeMenu() {

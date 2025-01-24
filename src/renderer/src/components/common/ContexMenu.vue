@@ -1,24 +1,26 @@
 <!-- src/components/GlobalContextMenu.vue -->
 <template>
   <Teleport to="body">
-    <div
-      v-if="contextMenuStore.show"
-      :style="contextMenuStore.menuStyle"
-      class="global-context-menu"
-      @click.stop
-    >
+    <Transition name="fade-zoom">
       <div
-        v-for="(item, index) in contextMenuStore.items"
-        :key="index"
-        class="context-menu-item"
-        @click="item.action"
+        v-if="contextMenuStore.show"
+        :style="contextMenuStore.menuStyle"
+        class="global-context-menu"
+        @click.stop
       >
-        <div class="icon">
-          <component :is="item.icon" theme="outline" size="20" fill="#b6b6b6" />
+        <div
+          v-for="(item, index) in contextMenuStore.items"
+          :key="index"
+          class="context-menu-item"
+          @click="item.action"
+        >
+          <div class="icon">
+            <component :is="item.icon" theme="outline" size="20" fill="#b6b6b6" />
+          </div>
+          <div class="name">{{ item.label }}</div>
         </div>
-        <div class="name">{{ item.label }}</div>
       </div>
-    </div>
+    </Transition>
   </Teleport>
 </template>
 
@@ -119,5 +121,25 @@ onUnmounted(() => {
   &:active {
     background-color: rgba(0, 0, 0, 0.1);
   }
+}
+
+// 添加过渡动画
+.fade-zoom-enter-active,
+.fade-zoom-leave-active {
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
+}
+
+.fade-zoom-enter-from,
+.fade-zoom-leave-to {
+  opacity: 0;
+  transform: scale(0.95);
+}
+
+.fade-zoom-enter-to,
+.fade-zoom-leave-from {
+  opacity: 1;
+  transform: scale(1);
 }
 </style>
