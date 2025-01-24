@@ -48,6 +48,9 @@ export function useNoteMenu(params: NoteMenuParams) {
   // 在 useNoteMenu 函数中添加状态
   const isFlashcard = ref(false)
   const versionStore = useNoteVersionStore()
+  const isConfirmingPermanentDelete = ref(false)
+  let permanentDeleteTimeout: number | null = null
+
   // 关闭弹出菜单
   const closePopupMenu = () => {
     isPopupMenuVisible.value = false
@@ -190,9 +193,14 @@ export function useNoteMenu(params: NoteMenuParams) {
   const resetDeleteState = () => {
     isConfirmingDelete.value = false
     isDeleting.value = false
+    isConfirmingPermanentDelete.value = false
     if (deleteTimeout !== null) {
       clearTimeout(deleteTimeout)
       deleteTimeout = null
+    }
+    if (permanentDeleteTimeout !== null) {
+      clearTimeout(permanentDeleteTimeout)
+      permanentDeleteTimeout = null
     }
   }
 
@@ -567,7 +575,7 @@ export function useNoteMenu(params: NoteMenuParams) {
       name: 'share',
       label: '分享',
       icon: Share,
-      action: handleShare
+      action: handleShareView
     },
     shareView: {
       name: 'shareView',
@@ -593,6 +601,58 @@ export function useNoteMenu(params: NoteMenuParams) {
       label: '历史版本',
       icon: History,
       action: handleShowHistory
+    },
+    // 添加恢复笔记功能
+    restore: {
+      name: 'restore',
+      label: '恢复笔记',
+      icon: Refresh,
+      action: async () => {
+        try {
+          await noteStore.restoreFromTrash(params.noteId)
+          message.success('笔记已恢复')
+          closePopupMenu()
+          const eventBus = useEventBus('note-restored')
+          eventBus.emit()
+        } catch (error) {
+          console.error('恢复笔记失败:', error)
+          message.error('恢复失败')
+        }
+      }
+    },
+    // 添加永久删除功能
+    permanentDelete: {
+      name: 'permanentDelete',
+      label: isConfirmingPermanentDelete.value ? '确认删除' : '永久删除',
+      icon: DeleteOne,
+      action: async () => {
+        if (isConfirmingPermanentDelete.value) {
+          try {
+            await noteStore.permanentlyDelete(params.noteId)
+            message.success('笔记已永久删除')
+            closePopupMenu()
+            const eventBus = useEventBus('note-permanent-deleted')
+            eventBus.emit()
+          } catch (error) {
+            console.error('永久删除笔记失败:', error)
+            message.error('删除失败')
+          } finally {
+            isConfirmingPermanentDelete.value = false
+            if (permanentDeleteTimeout) {
+              clearTimeout(permanentDeleteTimeout)
+              permanentDeleteTimeout = null
+            }
+          }
+        } else {
+          isConfirmingPermanentDelete.value = true
+          permanentDeleteTimeout = window.setTimeout(() => {
+            isConfirmingPermanentDelete.value = false
+          }, 3000)
+          return false
+        }
+      },
+      isDangerous: isConfirmingPermanentDelete.value,
+      fill: isConfirmingPermanentDelete.value ? '#ff4d4f' : 'var(--color-icon-menu-default)'
     }
   }))
 

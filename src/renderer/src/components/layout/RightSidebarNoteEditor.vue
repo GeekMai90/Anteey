@@ -24,7 +24,7 @@
           <CardboxDropdownMenu
             ref="cardboxMenuRef"
             :is-open="cardboxMenuState.isOpen"
-            :position="cardboxMenuState.position"
+            :button-ref="cardboxBtnRef"
             :note-id="currentNote?.id"
             :current-cardbox-id="currentNote?.cardBoxId"
             @close="closeCardboxMenu"
@@ -40,7 +40,7 @@
           <PopupMenu
             ref="moreMenuRef"
             :show="moreMenuState.isOpen"
-            :position="moreMenuState.position"
+            :button-ref="moreBtnRef"
             :menuItems="noteMenuItems"
             @close="closeMoreMenu"
             @itemClick="handleMenuItemClick"

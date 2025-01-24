@@ -31,6 +31,7 @@
             theme="outline"
             size="16"
             :fill="tag.color || 'var(--color-sidebar-text)'"
+            :stroke-width="3"
           />
           <Pound
             v-else
@@ -45,7 +46,7 @@
       <div class="tag-indicators">
         <!-- 添加置顶图标 -->
         <div v-if="tag.pinned" class="pin-indicator">
-          <Pushpin theme="outline" size="12" fill="var(--color-sidebar-text)" :stroke-width="2" />
+          <Pushpin theme="outline" size="12" fill="var(--color-sidebar-text)" :stroke-width="3" />
         </div>
         <span class="tag-count">{{ tag.noteCount }}</span>
       </div>
@@ -62,44 +63,49 @@
       />
     </div>
     <!-- 右键菜单 -->
-    <div v-if="showMenu" class="context-menu" :style="menuPosition">
-      <!-- 修改右键菜单项 -->
-      <div class="menu-item" @click="handlePin">
-        <div class="icon">
-          <Pushpin
-            theme="outline"
-            :fill="tag.pinned ? 'var(--color-primary)' : 'var(--color-icon-menu-default)'"
-          />
-        </div>
-        <div class="name">{{ tag.pinned ? '取消置顶' : '标签置顶' }}</div>
-      </div>
+    <Teleport to="body">
+      <Transition name="fade-zoom">
+        <div v-if="showMenu" class="context-menu" :style="menuPosition">
+          <!-- 修改右键菜单项 -->
+          <div class="menu-item" @click="handlePin">
+            <div class="icon">
+              <Pushpin
+                theme="outline"
+                :fill="tag.pinned ? 'var(--color-primary)' : 'var(--color-icon-menu-default)'"
+                :stroke-width="3"
+              />
+            </div>
+            <div class="name">{{ tag.pinned ? '取消置顶' : '标签置顶' }}</div>
+          </div>
 
-      <div class="menu-item" @click="handleEdit">
-        <div class="icon">
-          <Edit
-            theme="outline"
-            :fill="'var(--color-icon-menu-default)'"
-            size="16"
-            :stroke-width="3"
-          />
-        </div>
-        <div class="name">编辑标签</div>
-      </div>
+          <div class="menu-item" @click="handleEdit">
+            <div class="icon">
+              <Edit
+                theme="outline"
+                :fill="'var(--color-icon-menu-default)'"
+                size="16"
+                :stroke-width="3"
+              />
+            </div>
+            <div class="name">编辑标签</div>
+          </div>
 
-      <div class="menu-divider"></div>
+          <div class="menu-divider"></div>
 
-      <div class="menu-item delete" @click="handleDelete">
-        <div class="icon">
-          <Delete
-            theme="outline"
-            :fill="'var(--color-icon-menu-default)'"
-            size="16"
-            :stroke-width="3"
-          />
+          <div class="menu-item delete" @click="handleDelete">
+            <div class="icon">
+              <Delete
+                theme="outline"
+                :fill="'var(--color-icon-menu-default)'"
+                size="16"
+                :stroke-width="3"
+              />
+            </div>
+            <div class="name">删除标签</div>
+          </div>
         </div>
-        <div class="name">删除标签</div>
-      </div>
-    </div>
+      </Transition>
+    </Teleport>
     <!-- 确认删除对话框 -->
     <ConfirmDialog
       v-model:visible="showDeleteConfirm"
@@ -412,90 +418,112 @@ const getIconComponent = (iconName: string) => {
   .children {
     margin-top: 2px;
   }
+}
 
-  .context-menu {
-    position: fixed;
-    background: var(--color-bg-primary);
-    border: 1px solid var(--color-border);
-    border-radius: 8px;
-    padding: 4px;
-    width: fit-content; // 宽度跟随内容
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-    z-index: 1000;
+// 将右键菜单样式移到外面，不要嵌套在 .tag-tree-item 内
+.context-menu {
+  position: fixed;
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 4px;
+  width: fit-content;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  z-index: 9999;
 
-    .menu-item {
+  .menu-item {
+    display: flex;
+    align-items: center;
+    padding: 8px 12px;
+    cursor: pointer;
+    border-radius: 6px;
+    color: var(--color-text-primary);
+    font-size: 13px;
+    gap: 4px;
+    white-space: nowrap;
+
+    .icon {
       display: flex;
       align-items: center;
-      padding: 8px 12px;
+      color: var(--color-text-secondary);
+      background: none;
+      border: none;
       cursor: pointer;
-      border-radius: 6px;
-      color: var(--color-text-primary);
-      font-size: 13px;
-      gap: 4px;
-      white-space: nowrap; // 防止文字换行
+      width: 16px;
+      height: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+      padding: 0;
 
-      .icon {
-        display: flex;
-        align-items: center;
-        color: var(--color-text-secondary);
-        background: none;
-        border: none;
-        cursor: pointer;
-        width: 16px;
-        height: 16px;
+      &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      :deep(.i-icon) {
         display: flex;
         align-items: center;
         justify-content: center;
-        transition: all 0.2s ease;
-        padding: 0;
-
-        &:disabled {
-          opacity: 0.5;
-          cursor: not-allowed;
-        }
-
-        :deep(.i-icon) {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          width: 100%;
-          height: 100%;
-        }
-
-        :deep(svg) {
-          width: 14px;
-          height: 14px;
-        }
-      }
-      .name {
-        flex-grow: 0;
-        text-align: left;
-        color: var(--color-text-primary);
-        font-size: 13px;
-        font-weight: 400;
-        margin-left: 6px;
-        white-space: nowrap;
-        writing-mode: horizontal-tb;
+        width: 100%;
+        height: 100%;
       }
 
-      &:hover {
-        background: var(--color-hover-bg);
-      }
-
-      &.delete {
-        color: var(--color-danger);
-
-        .icon {
-          color: var(--color-danger);
-        }
+      :deep(svg) {
+        width: 14px;
+        height: 14px;
       }
     }
 
-    .menu-divider {
-      height: 1px;
-      background: var(--color-border);
-      margin: 4px 0;
+    .name {
+      flex-grow: 0;
+      text-align: left;
+      color: var(--color-text-primary);
+      font-size: 13px;
+      font-weight: 400;
+      margin-left: 6px;
+      white-space: nowrap;
+      writing-mode: horizontal-tb;
+    }
+
+    &:hover {
+      background: var(--color-hover-bg);
+    }
+
+    &.delete {
+      color: var(--color-danger);
+
+      .icon {
+        color: var(--color-danger);
+      }
     }
   }
+
+  .menu-divider {
+    height: 1px;
+    background: var(--color-border);
+    margin: 4px 0;
+  }
+}
+
+// 过渡动画样式也移到外面
+.fade-zoom-enter-active,
+.fade-zoom-leave-active {
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
+}
+
+.fade-zoom-enter-from,
+.fade-zoom-leave-to {
+  opacity: 0;
+  transform: scale(0.95);
+}
+
+.fade-zoom-enter-to,
+.fade-zoom-leave-from {
+  opacity: 1;
+  transform: scale(1);
 }
 </style>

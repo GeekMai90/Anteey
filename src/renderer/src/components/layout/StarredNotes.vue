@@ -18,7 +18,7 @@
             <StarredNotesCard
               :key="`${element.id}-${element.updatedAt}`"
               :note="element"
-              @dblclick="openNote(element)"
+              @click="openNote(element)"
             />
           </div>
         </div>

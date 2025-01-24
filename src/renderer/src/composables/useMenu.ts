@@ -97,27 +97,18 @@ export function useMenu(options: MenuOptions) {
     options.onClose?.()
   }
 
-  // 添加点击外部关闭菜单的处理
+  // 修改 handleDocumentClick 函数
   const handleDocumentClick = (event: MouseEvent) => {
     // 如果菜单未打开，不处理
     if (!menuState.isOpen) return
 
     const target = event.target as Node
     const buttonEl = options.buttonRef?.value
-    const menuEl = options.menuRef?.value
 
-    // 如果点击的是按钮本身或其子元素，不处理（让 toggleMenu 处理）
-    if (buttonEl && buttonEl.contains(target)) {
+    // 只处理按钮的点击，其他的交给 PopupMenu 组件处理
+    if (buttonEl?.contains(target)) {
       return
     }
-
-    // 如果点击的是菜单本身或其子元素，不关闭
-    if (menuEl && menuEl.contains(target)) {
-      return
-    }
-
-    // 其他情况，关闭菜单
-    closeMenu()
   }
 
   // 添加 ESC 键关闭菜单

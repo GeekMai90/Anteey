@@ -37,35 +37,67 @@
 
                 <div v-if="timeBlockStore.currentDay" class="status-selects">
                   <div class="emoji-select">
-                    <div class="selected-emoji" @click="showWeatherSelect = !showWeatherSelect">
+                    <div
+                      ref="weatherBtnRef"
+                      class="selected-emoji"
+                      @click.stop="toggleWeatherSelect"
+                    >
                       {{ currentWeatherEmoji }}
                     </div>
-                    <div v-show="showWeatherSelect" class="select-dropdown">
-                      <div
-                        v-for="option in weatherOptions.filter((o) => o.value)"
-                        :key="option.value"
-                        class="select-option"
-                        @click="selectWeather(option.value)"
-                      >
-                        {{ option.label }}
-                      </div>
-                    </div>
+                    <Teleport to="body">
+                      <Transition name="fade-zoom">
+                        <div
+                          v-if="showWeatherSelect"
+                          ref="weatherMenuRef"
+                          class="select-dropdown"
+                          :style="{
+                            position: weatherStrategy,
+                            top: `${weatherY ?? 0}px`,
+                            left: `${weatherX ?? 0}px`
+                          }"
+                        >
+                          <div
+                            v-for="option in weatherOptions.filter((o) => o.value)"
+                            :key="option.value"
+                            class="select-option"
+                            @click="selectWeather(option.value)"
+                          >
+                            <span class="emoji">{{ option.label }}</span>
+                            <span class="text">{{ option.text }}</span>
+                          </div>
+                        </div>
+                      </Transition>
+                    </Teleport>
                   </div>
 
                   <div class="emoji-select">
-                    <div class="selected-emoji" @click="showMoodSelect = !showMoodSelect">
+                    <div ref="moodBtnRef" class="selected-emoji" @click.stop="toggleMoodSelect">
                       {{ currentMoodEmoji }}
                     </div>
-                    <div v-show="showMoodSelect" class="select-dropdown">
-                      <div
-                        v-for="option in moodOptions.filter((o) => o.value)"
-                        :key="option.value"
-                        class="select-option"
-                        @click="selectMood(option.value)"
-                      >
-                        {{ option.label }}
-                      </div>
-                    </div>
+                    <Teleport to="body">
+                      <Transition name="fade-zoom">
+                        <div
+                          v-if="showMoodSelect"
+                          ref="moodMenuRef"
+                          class="select-dropdown"
+                          :style="{
+                            position: moodStrategy,
+                            top: `${moodY ?? 0}px`,
+                            left: `${moodX ?? 0}px`
+                          }"
+                        >
+                          <div
+                            v-for="option in moodOptions.filter((o) => o.value)"
+                            :key="option.value"
+                            class="select-option"
+                            @click="selectMood(option.value)"
+                          >
+                            <span class="emoji">{{ option.label }}</span>
+                            <span class="text">{{ option.text }}</span>
+                          </div>
+                        </div>
+                      </Transition>
+                    </Teleport>
                   </div>
                 </div>
               </div>
@@ -286,7 +318,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed, watch, nextTick } from 'vue'
+import { ref, onMounted, computed, watch, nextTick, onUnmounted } from 'vue'
 import { useTimeBlockStore } from '../stores/timeBlockStore'
 import { format, getWeek } from 'date-fns'
 import { zhCN } from 'date-fns/locale'
@@ -315,6 +347,8 @@ import Modal from '@renderer/components/common/Modal.vue'
 import { useEventBus } from '@vueuse/core'
 import { useRouter, useRoute } from 'vue-router'
 import { parseISO } from 'date-fns'
+import { useFloating } from '@floating-ui/vue'
+import { flip, offset, shift } from '@floating-ui/dom'
 
 // 重命名本地接口以避免冲突
 interface TimeBlockHour {
@@ -368,39 +402,34 @@ const timeBlocks = computed<TimeBlockHour[]>(() => {
 
 // 修改天气选项，增加更多选择
 const weatherOptions = [
-  { value: '', label: '选择天气' },
-  { value: 'sunny', label: '☀️ 晴朗' },
-  { value: 'cloudy', label: '☁️ 多云' },
-  { value: 'overcast', label: '🌥️ 阴天' },
-  { value: 'foggy', label: '🌫️ 雾天' },
-  { value: 'light_rain', label: '🌦️ 小雨' },
-  { value: 'moderate_rain', label: '🌧️ 中雨' },
-  { value: 'heavy_rain', label: '⛈️ 大雨' },
-  { value: 'thunderstorm', label: '🌩️ 雷雨' },
-  { value: 'light_snow', label: '🌨️ 小雪' },
-  { value: 'moderate_snow', label: '❄️ 中雪' },
-  { value: 'heavy_snow', label: '🌨️ 大雪' },
-  { value: 'windy', label: '🌪️ 大风' },
-  { value: 'haze', label: '😷 雾霾' }
+  { value: '', label: '🌤️', text: '选择天气' },
+  { value: 'sunny', label: '☀️', text: '晴朗' },
+  { value: 'cloudy', label: '☁️', text: '多云' },
+  { value: 'overcast', label: '🌥️', text: '阴天' },
+  { value: 'foggy', label: '🌫️', text: '雾天' },
+  { value: 'light_rain', label: '🌦️', text: '小雨' },
+  { value: 'moderate_rain', label: '🌧️', text: '中雨' },
+  { value: 'heavy_rain', label: '⛈️', text: '大雨' },
+  { value: 'thunderstorm', label: '🌩️', text: '雷雨' },
+  { value: 'light_snow', label: '🌨️', text: '小雪' },
+  { value: 'moderate_snow', label: '❄️', text: '中雪' },
+  { value: 'heavy_snow', label: '🌨️', text: '大雪' },
+  { value: 'windy', label: '🌪️', text: '大风' },
+  { value: 'haze', label: '😷', text: '雾霾' }
 ]
 
 // 修改心情选项，增加更多选择
 const moodOptions = [
-  { value: '', label: '选择心情' },
-  { value: 'happy', label: '😊 开心' },
-  { value: 'excited', label: '🤗 兴奋' },
-  { value: 'peaceful', label: '😌 平静' },
-  { value: 'satisfied', label: '😏 满意' },
-  { value: 'neutral', label: '😐 一般' },
-  { value: 'tired', label: '😪 疲惫' },
-  { value: 'anxious', label: '😰 焦虑' },
-  { value: 'frustrated', label: '😤 烦躁' },
-  { value: 'sad', label: '😢 难过' },
-  { value: 'angry', label: '😠 生气' },
-  { value: 'sick', label: '🤒 不适' },
-  { value: 'motivated', label: '💪 干劲' },
-  { value: 'creative', label: '🎨 灵感' },
-  { value: 'focused', label: '🎯 专注' }
+  { value: '', label: '😊', text: '选择心情' },
+  { value: 'happy', label: '😄', text: '开心' },
+  { value: 'excited', label: '🤩', text: '兴奋' },
+  { value: 'peaceful', label: '😌', text: '平静' },
+  { value: 'satisfied', label: '😊', text: '满意' },
+  { value: 'normal', label: '😐', text: '一般' },
+  { value: 'tired', label: '😫', text: '疲惫' },
+  { value: 'sad', label: '😢', text: '难过' },
+  { value: 'angry', label: '😠', text: '生气' },
+  { value: 'anxious', label: '😰', text: '焦虑' }
 ]
 
 const timeBlockTaskUpdatedBus = useEventBus<{ date: string; hour: number }>(
@@ -537,15 +566,55 @@ function selectMood(value: string) {
   showMoodSelect.value = false
 }
 
-// 添加点击外部关闭下拉菜单
+// 天气选择器相关
+const weatherBtnRef = ref<HTMLElement | null>(null)
+const weatherMenuRef = ref<HTMLElement | null>(null)
+const toggleWeatherSelect = () => {
+  showWeatherSelect.value = !showWeatherSelect.value
+  showMoodSelect.value = false
+}
+
+const {
+  x: weatherX,
+  y: weatherY,
+  strategy: weatherStrategy
+} = useFloating(weatherBtnRef, weatherMenuRef, {
+  placement: 'bottom-start',
+  middleware: [offset(4), flip(), shift()]
+})
+
+// 心情选择器相关
+const moodBtnRef = ref<HTMLElement | null>(null)
+const moodMenuRef = ref<HTMLElement | null>(null)
+const toggleMoodSelect = () => {
+  showMoodSelect.value = !showMoodSelect.value
+  showWeatherSelect.value = false
+}
+
+const {
+  x: moodX,
+  y: moodY,
+  strategy: moodStrategy
+} = useFloating(moodBtnRef, moodMenuRef, {
+  placement: 'bottom-start',
+  middleware: [offset(4), flip(), shift()]
+})
+
+// 处理点击外部关闭下拉菜单
+const handleDocumentClick = (e: MouseEvent) => {
+  const target = e.target as HTMLElement
+  if (!target.closest('.emoji-select')) {
+    showWeatherSelect.value = false
+    showMoodSelect.value = false
+  }
+}
+
 onMounted(() => {
-  document.addEventListener('click', (e) => {
-    const target = e.target as HTMLElement
-    if (!target.closest('.emoji-select')) {
-      showWeatherSelect.value = false
-      showMoodSelect.value = false
-    }
-  })
+  document.addEventListener('click', handleDocumentClick)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('click', handleDocumentClick)
 })
 
 // 添加日期选择相关函数
@@ -1047,37 +1116,6 @@ const highlightContent = (content: string) => {
 
               &:hover {
                 transform: scale(1.1);
-              }
-            }
-
-            .select-dropdown {
-              position: absolute;
-              top: calc(100% + 4px);
-              left: 50%;
-              transform: translateX(-50%);
-              background: var(--color-dropdown-bg);
-              border: 1px solid var(--color-border);
-              border-radius: 8px;
-              padding: 4px;
-              min-width: 120px;
-              box-shadow: var(--shadow-card);
-              z-index: 1000;
-
-              .select-option {
-                padding: 8px 12px;
-                cursor: pointer;
-                white-space: nowrap;
-                border-radius: 4px;
-                transition: all 0.2s;
-                font-size: 14px;
-                display: flex;
-                align-items: center;
-                gap: 8px;
-                color: var(--color-text-primary);
-
-                &:hover {
-                  background: var(--color-hover-bg);
-                }
               }
             }
           }
@@ -1935,6 +1973,70 @@ const highlightContent = (content: string) => {
   &.selected {
     .result-preview {
       border-color: var(--color-primary);
+    }
+  }
+}
+
+// 添加过渡动画样式
+.fade-zoom-enter-active,
+.fade-zoom-leave-active {
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
+}
+
+.fade-zoom-enter-from,
+.fade-zoom-leave-to {
+  opacity: 0;
+  transform: scale(0.95);
+}
+
+.fade-zoom-enter-to,
+.fade-zoom-leave-from {
+  opacity: 1;
+  transform: scale(1);
+}
+
+// 修改下拉菜单样式
+.select-dropdown {
+  position: fixed;
+  background: var(--color-dropdown-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 4px;
+  min-width: 120px;
+  box-shadow: var(--shadow-card);
+  z-index: 9999;
+
+  .select-option {
+    padding: 8px 12px;
+    cursor: pointer;
+    white-space: nowrap;
+    border-radius: 4px;
+    transition: all 0.2s;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--color-text-primary);
+
+    .emoji {
+      font-size: 16px;
+      width: 20px;
+      height: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .text {
+      flex: 1;
+      font-size: 14px;
+      line-height: 1;
+    }
+
+    &:hover {
+      background: var(--color-hover-bg);
     }
   }
 }

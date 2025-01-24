@@ -199,7 +199,7 @@
     <!-- 表格工具菜单 -->
     <table-bubble-menu v-if="editorInstance" :editor="editorInstance" />
     <!-- 更多菜单 -->
-    <div v-if="showMoreMenu" class="more-menu" :style="moreMenuStyle">
+    <div v-if="showMoreMenu" ref="moreMenu" class="more-menu" :style="moreFloatingStyles">
       <button
         v-tooltip.top="{ content: '下标', delay: { show: 1000 }, html: true }"
         @click="applySubscript"
@@ -349,7 +349,12 @@
       </div>
     </div>
     <!-- 下拉菜单 -->
-    <div v-if="showDropdown" class="style-dropdown-menu" :style="dropdownMenuStyle">
+    <div
+      v-if="showDropdown"
+      ref="dropdownMenu"
+      class="style-dropdown-menu"
+      :style="dropdownFloatingStyles"
+    >
       <button @click="setNodeType('paragraph')">
         <div class="icon">
           <ParagraphAlphabet
@@ -414,7 +419,7 @@
       </button>
     </div>
     <!-- 颜色菜单 -->
-    <div v-if="showColorMenu" class="color-menu" :style="colorMenuStyle">
+    <div v-if="showColorMenu" ref="colorMenu" class="color-menu" :style="colorFloatingStyles">
       <div class="color-list">
         <button
           v-for="color in colors"
@@ -511,6 +516,8 @@ import { CustomBlockquote } from '@renderer/utils/tiptap/CustomBlockquote'
 import { CustomTaskList } from '@renderer/utils/tiptap/CustomTaskList'
 import { CustomTaskItem } from '@renderer/utils/tiptap/CustomTaskItem'
 import { CustomMention } from '@renderer/utils/tiptap/CustomMention'
+import { useFloating } from '@floating-ui/vue'
+import { flip, offset, shift } from '@floating-ui/dom'
 
 const noteStore = useNoteStore()
 const uiStore = useUIStore()
@@ -542,27 +549,35 @@ const editorInstance = computed(() => editor.value)
 
 const editorRootRef = ref(null)
 
-// 更菜单
+// 更多菜单相关
 const bubbleMenuRef = ref(null)
 const showMoreMenu = ref(false)
 const moreButton = ref(null)
-const moreMenuStyle = ref({})
+const moreMenu = ref(null)
+
+// 创建 floating 实例
+const { floatingStyles: moreFloatingStyles, update: updateMoreFloating } = useFloating(
+  moreButton,
+  moreMenu,
+  {
+    placement: 'bottom-end',
+    middleware: [
+      offset({
+        mainAxis: 6,
+        crossAxis: 0
+      }),
+      flip(),
+      shift()
+    ]
+  }
+)
+
+// 修改方法名，避免命名冲突
 const toggleMoreMenu = () => {
   showMoreMenu.value = !showMoreMenu.value
   if (showMoreMenu.value) {
     nextTick(() => {
-      const bubbleMenuRect = bubbleMenuRef.value.$el.getBoundingClientRect()
-      const moreButtonRect = moreButton.value.getBoundingClientRect()
-      const editorRect = editorContainer.value.getBoundingClientRect()
-
-      // 修改定位逻辑,使用 right 对齐
-      moreMenuStyle.value = {
-        position: 'absolute',
-        top: `${moreButtonRect.bottom - editorRect.top + 10}px`,
-        // 计算右侧距离,与气泡菜单右对齐
-        right: `${editorRect.right - bubbleMenuRect.right - 50}px`, // 移除额外的 10px 偏移
-        zIndex: 1000
-      }
+      updateMoreFloating()
     })
   }
 }
@@ -617,22 +632,22 @@ onBeforeUnmount(() => {
 
 const showDropdown = ref(false)
 const dropdownButton = ref(null)
-const dropdownMenuStyle = ref({})
+const dropdownMenu = ref(null)
+
+const { floatingStyles: dropdownFloatingStyles, update: updateDropdown } = useFloating(
+  dropdownButton,
+  dropdownMenu,
+  {
+    placement: 'bottom-start',
+    middleware: [offset(6), flip(), shift()]
+  }
+)
 
 const toggleDropdown = () => {
   showDropdown.value = !showDropdown.value
   if (showDropdown.value) {
     nextTick(() => {
-      const buttonRect = dropdownButton.value.getBoundingClientRect()
-      // const bubbleMenuRect = dropdownButton.value.closest('.bubble-menu').getBoundingClientRect()
-
-      dropdownMenuStyle.value = {
-        position: 'fixed',
-        top: `${buttonRect.bottom + 15}px`,
-        left: `${buttonRect.left - 10}px`,
-        // minWidth: `${bubbleMenuRect.width}px`,
-        zIndex: 1000
-      }
+      updateDropdown()
     })
   }
 }
@@ -657,7 +672,7 @@ const setNodeType = (type, attrs = {}) => {
     default:
       editorInstance.value.chain().focus().setNode(type, attrs).run()
   }
-  showDropdown.value = false
+  showMoreMenu.value = false
 }
 
 // 关闭下拉菜单的数
@@ -1414,10 +1429,10 @@ defineExpose({
   editor: editorInstance
 })
 
-// 添加颜色相关的响应式变
+// 添加颜色相关的响应式变量
 const showColorMenu = ref(false)
 const colorButton = ref(null)
-const colorMenuStyle = ref({})
+const colorMenu = ref(null)
 const currentColor = ref(null)
 
 // 修改颜色数组用 CSS 变量来适应不同主题
@@ -1431,19 +1446,22 @@ const colors = [
   { name: '紫色', value: 'var(--color-text-purple)' }
 ]
 
-// 添加颜色菜单相关方法
+// 创建新的 floating 实例
+const { floatingStyles: colorFloatingStyles, update: updateColorMenu } = useFloating(
+  colorButton,
+  colorMenu,
+  {
+    placement: 'bottom-start',
+    middleware: [offset(6), flip(), shift()]
+  }
+)
+
+// 修改 toggleColorMenu 方法
 const toggleColorMenu = () => {
   showColorMenu.value = !showColorMenu.value
   if (showColorMenu.value) {
     nextTick(() => {
-      const buttonRect = colorButton.value.getBoundingClientRect()
-      const editorRect = editorContainer.value.getBoundingClientRect()
-
-      colorMenuStyle.value = {
-        position: 'absolute',
-        top: `${buttonRect.bottom - editorRect.top + 10}px`,
-        left: `${buttonRect.left - editorRect.left}px`
-      }
+      updateColorMenu()
     })
   }
 }
@@ -1817,9 +1835,8 @@ const insertParagraphBelow = () => {
   box-shadow: var(--shadow-primary);
   list-style-type: none;
   z-index: 9999;
-  // width: max-content;
-  min-width: auto;
   width: fit-content;
+  min-width: 160px;
   max-width: 200px;
   max-height: 350px;
   overflow-y: auto;

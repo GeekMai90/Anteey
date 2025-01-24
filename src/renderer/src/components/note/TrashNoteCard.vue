@@ -4,9 +4,19 @@
       <span class="note-indicator" :class="cardTypeClass"></span>
       <h3 class="note-title">{{ note.address }}</h3>
       <div class="note-buttons">
-        <button class="note-button" @click.stop="handleMoreClick">
-          <More theme="outline" size="18" fill="#444" />
-        </button>
+        <div ref="moreBtnRef" class="note-button" @click.stop="toggleMoreMenu">
+          <div v-tooltip.bottom="{ content: '更多', delay: { show: 1000 } }" class="icon">
+            <More theme="outline" size="16" fill="var(--color-icon-default)" :stroke-width="3" />
+          </div>
+          <PopupMenu
+            ref="moreMenuRef"
+            :show="moreMenuState.isOpen"
+            :button-ref="moreBtnRef"
+            :menuItems="menuItems"
+            @close="closeMoreMenu"
+            @itemClick="handleMenuItemClick"
+          />
+        </div>
       </div>
     </div>
     <div ref="noteContent" class="note-content">
@@ -20,14 +30,37 @@ import { ref, computed } from 'vue'
 import { Note } from '@shared/types'
 import { More } from '@icon-park/vue-next'
 import TipTapRender from '@renderer/components/tiptap/TipTapRender.vue'
+import PopupMenu from '@renderer/components/common/PopupMenu.vue'
+import type { MenuItem } from '@renderer/components/common/PopupMenu.vue'
+import { useMenu } from '@renderer/composables/useMenu'
+import { useNoteMenu } from '@renderer/composables/useNoteMenu'
 
 const props = defineProps<{
   note: Note
 }>()
 
-const emit = defineEmits(['toggleMenu'])
-
 const noteContent = ref<HTMLDivElement | null>(null)
+
+const moreBtnRef = ref<HTMLElement | null>(null)
+const moreMenuRef = ref<HTMLElement | null>(null)
+
+const { menuItems } = useNoteMenu({
+  noteId: props.note.id,
+  menuItems: ['restore', 'permanentDelete']
+})
+
+const {
+  menuState: moreMenuState,
+  toggleMenu: toggleMoreMenu,
+  closeMenu: closeMoreMenu
+} = useMenu({
+  buttonRef: moreBtnRef,
+  menuRef: moreMenuRef
+})
+
+const handleMenuItemClick = (item: MenuItem) => {
+  item.action()
+}
 
 const cardTypeClass = computed(() => {
   switch (props.note.cardType) {
@@ -43,17 +76,6 @@ const cardTypeClass = computed(() => {
       return ''
   }
 })
-
-const handleMoreClick = (event: MouseEvent) => {
-  const target = event.currentTarget as HTMLElement
-  const rect = target.getBoundingClientRect()
-  emit('toggleMenu', props.note.id, {
-    x: rect.left,
-    y: rect.bottom,
-    width: rect.width,
-    height: rect.height
-  })
-}
 </script>
 
 <style lang="scss" scoped>
@@ -117,10 +139,38 @@ const handleMoreClick = (event: MouseEvent) => {
 }
 
 .note-button {
-  background: none;
+  position: relative;
+  display: flex;
+  align-items: center;
   border: none;
+  background: none;
   cursor: pointer;
-  padding: 4px;
+  transition: all 0.2s ease;
+  border-radius: 6px;
+  padding: 4px 4px;
+  margin: 2px;
+
+  .icon {
+    background: none;
+    border: none;
+    cursor: pointer;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    padding: 0;
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+  }
+
+  &:hover {
+    background-color: var(--color-hover-button);
+  }
 }
 
 .note-content {

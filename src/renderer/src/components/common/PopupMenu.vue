@@ -1,26 +1,33 @@
 <template>
   <Teleport to="body">
     <Transition name="fade-zoom">
-      <div v-if="show" ref="menuRef" :style="computedMenuStyle" class="popup-menu" @click.stop>
+      <div
+        v-if="show"
+        ref="floating"
+        class="popup-menu"
+        :style="{
+          position: strategy,
+          top: `${y ?? 0}px`,
+          left: `${x ?? 0}px`
+        }"
+      >
         <div
           v-for="item in menuItems"
           :key="item.name"
-          class="popup-menu-item"
-          :class="{ 'popup-menu-item-danger': item.isDangerous }"
+          class="menu-item"
+          :class="{ 'is-dangerous': item.isDangerous }"
           @click="handleItemClick(item)"
         >
-          <div v-if="item.icon" class="icon">
+          <div class="icon">
             <component
               :is="item.icon"
               theme="outline"
               size="18"
-              :fill="item.isDangerous ? '#ff4d4f' : item.fill || 'var(--color-icon-menu-default)'"
+              :fill="getItemFill(item)"
               :strokeWidth="3"
             />
           </div>
-          <div class="name" :class="{ 'popup-menu-item-danger': item.isDangerous }">
-            {{ item.label }}
-          </div>
+          <div class="name">{{ item.label }}</div>
         </div>
       </div>
     </Transition>
@@ -28,7 +35,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, CSSProperties, watch, nextTick } from 'vue'
+import { useFloating } from '@floating-ui/vue'
+import { flip, offset, shift } from '@floating-ui/dom'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 
 export interface MenuItem {
   name: string
@@ -39,60 +48,49 @@ export interface MenuItem {
   isDangerous?: boolean
 }
 
-interface Position {
-  x: number
-  y: number
-}
-
 const props = defineProps<{
   menuItems: MenuItem[]
-  position: Position
+  buttonRef: HTMLElement | null
   show: boolean
 }>()
 
 const emit = defineEmits(['close', 'itemClick'])
 
-const menuRef = ref<HTMLElement | null>(null)
-const menuPosition = ref(props.position)
+// floating-ui 相关
+const floating = ref<HTMLElement | null>(null)
 
-watch(
-  () => props.position,
-  (newPosition) => {
-    menuPosition.value = newPosition
-    if (props.show) {
-      nextTick(() => {
-        adjustMenuPosition()
-      })
-    }
-  },
-  { deep: true }
-)
-
-watch(
-  () => props.show,
-  (newValue) => {
-    if (newValue) {
-      menuPosition.value = props.position
-      nextTick(() => {
-        adjustMenuPosition()
-      })
-    }
+const { x, y, strategy } = useFloating(
+  computed(() => props.buttonRef),
+  floating,
+  {
+    placement: 'bottom-start',
+    middleware: [offset(8), flip(), shift()]
   }
 )
 
-const computedMenuStyle = computed((): CSSProperties => {
-  const { x, y } = menuPosition.value
-  const maxWidth = Math.min(300, window.innerWidth - 20)
-  return {
-    position: 'fixed',
-    top: `${y}px`,
-    left: `${x}px`,
-    maxWidth: `${maxWidth}px`
+// 修改获取图标填充颜色的方法
+const getItemFill = (item: MenuItem) => {
+  // 只有在确认删除状态时才显示红色
+  if (item.isDangerous) {
+    return '#ff4d4f'
   }
-})
+  // 使用 item.fill 如果存在，否则使用默认颜色
+  return item.fill || 'var(--color-icon-menu-default)'
+}
 
+// 处理点击事件
 const handleDocumentClick = (event: MouseEvent) => {
-  if (menuRef.value && !menuRef.value.contains(event.target as Node)) {
+  // 如果菜单未显示，不处理
+  if (!props.show) return
+
+  // 先检查按钮元素（不处理按钮点击）
+  if (props.buttonRef?.contains(event.target as Node)) {
+    return
+  }
+
+  // 检查菜单元素
+  const menuEl = floating.value
+  if (!menuEl?.contains(event.target as Node)) {
     emit('close')
   }
 }
@@ -101,46 +99,35 @@ const handleItemClick = (item: MenuItem) => {
   emit('itemClick', item)
 }
 
-const adjustMenuPosition = () => {
-  if (menuRef.value) {
-    const rect = menuRef.value.getBoundingClientRect()
-    const windowWidth = window.innerWidth
-    if (rect.right > windowWidth) {
-      const overflowX = rect.right - windowWidth
-      menuPosition.value.x -= overflowX + 10
-    }
-  }
-}
-
 onMounted(() => {
-  document.addEventListener('click', handleDocumentClick)
-  window.addEventListener('resize', adjustMenuPosition)
+  // 使用 setTimeout 确保在 useMenu 的处理器之后执行
+  setTimeout(() => {
+    document.addEventListener('click', handleDocumentClick)
+  }, 0)
 })
 
 onUnmounted(() => {
   document.removeEventListener('click', handleDocumentClick)
-  window.removeEventListener('resize', adjustMenuPosition)
 })
 </script>
 
 <style scoped lang="scss">
 .popup-menu {
   background-color: var(--color-dropdown-bg);
-  border: 1px solid var(--color-border-primary);
+  border-color: var(--color-border-primary);
   border-radius: 8px;
   box-shadow: var(--shadow-primary);
   z-index: 9999;
-  min-width: 180px;
+  min-width: 160px;
   width: max-content;
   max-width: 300px;
   overflow-y: auto;
+  overflow-x: hidden;
   padding: 6px 12px;
   white-space: nowrap;
-  max-width: 100vw;
-  overflow-x: hidden;
 }
 
-.popup-menu-item {
+.menu-item {
   position: relative;
   display: flex;
   align-items: center;
@@ -158,11 +145,6 @@ onUnmounted(() => {
 
   &:active {
     background-color: rgba(0, 0, 0, 0.1);
-  }
-
-  &.popup-menu-item-danger,
-  &.popup-menu-item-danger .name {
-    color: #ff4d4f;
   }
 
   .icon {
@@ -211,19 +193,10 @@ onUnmounted(() => {
     user-select: none;
   }
 
-  &:hover {
-    background-color: var(--color-hover-button);
-  }
-
-  &:active {
-    background-color: rgba(0, 0, 0, 0.1);
-  }
-  &.popup-menu-item-danger {
-    color: #ff4d4f;
-  }
-
-  &.delete {
-    color: #ff4d4f;
+  &.is-dangerous {
+    .name {
+      color: #ff4d4f !important;
+    }
   }
 }
 

@@ -10,7 +10,7 @@
         <PopupMenu
           ref="moreMenuRef"
           :show="moreMenuState.isOpen"
-          :position="moreMenuState.position"
+          :button-ref="moreBtnRef"
           :menuItems="noteMenuItems"
           @close="closeMoreMenu"
           @itemClick="handleMenuItemClick"

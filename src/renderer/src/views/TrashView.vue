@@ -93,11 +93,12 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useNoteStore } from '@renderer/stores/noteStore'
+import { useEventBus } from '@vueuse/core'
 import AppToolbar from '@renderer/components/layout/AppToolbar.vue'
 import TrashNoteCard from '@renderer/components/note/TrashNoteCard.vue'
 import ConfirmDialog from '@renderer/components/common/ConfirmDialog.vue'
 import { SortTwo, Recycling, Delete, Clear, RecycleBin } from '@icon-park/vue-next'
-import { Note } from '@shared/types'
+import type { Note } from '@shared/types'
 
 const noteStore = useNoteStore()
 const deletedNotes = ref<Note[]>([])
@@ -115,15 +116,7 @@ const sortOptions = [
   { value: 'address', label: '按标题排序' }
 ]
 
-onMounted(async () => {
-  await fetchDeletedNotes()
-  document.addEventListener('click', closeMenu)
-})
-
-onUnmounted(() => {
-  document.removeEventListener('click', closeMenu)
-})
-
+// 获取回收站笔记
 const fetchDeletedNotes = async () => {
   try {
     const fetchedNotes = await noteStore.getAllDeletedNotes()
@@ -135,6 +128,33 @@ const fetchDeletedNotes = async () => {
     deletedNotes.value = []
   }
 }
+
+// 监听笔记恢复事件
+const noteRestoredBus = useEventBus('note-restored')
+const noteRestoredHandler = () => {
+  fetchDeletedNotes() // 重新获取回收站笔记
+}
+
+// 监听笔记永久删除事件
+const notePermanentDeletedBus = useEventBus('note-permanent-deleted')
+const notePermanentDeletedHandler = () => {
+  fetchDeletedNotes() // 重新获取回收站笔记
+}
+
+onMounted(async () => {
+  await fetchDeletedNotes()
+  document.addEventListener('click', closeMenu)
+  // 添加事件监听
+  noteRestoredBus.on(noteRestoredHandler)
+  notePermanentDeletedBus.on(notePermanentDeletedHandler)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('click', closeMenu)
+  // 移除事件监听
+  noteRestoredBus.off(noteRestoredHandler)
+  notePermanentDeletedBus.off(notePermanentDeletedHandler)
+})
 
 const toggleSortMenu = (event: MouseEvent) => {
   event.stopPropagation()

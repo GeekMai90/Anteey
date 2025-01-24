@@ -10,7 +10,7 @@
         <PopupMenu
           ref="moreMenuRef"
           :show="moreMenuState.isOpen"
-          :position="moreMenuState.position"
+          :button-ref="moreBtnRef"
           :menuItems="menuItems"
           @close="closeMoreMenu"
           @itemClick="handleMenuItemClick"
@@ -58,7 +58,7 @@
 import { defineProps, ref, computed, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import type { EdWhiteboard } from '@shared/types/edWhiteboard'
-import { Workbench, More } from '@icon-park/vue-next'
+import { Workbench, More, Edit, DeleteOne } from '@icon-park/vue-next'
 import { useEdWhiteboardStore } from '@renderer/stores/EdWhiteboardStore'
 import PopupMenu from '@renderer/components/common/PopupMenu.vue'
 import type { MenuItem } from '@renderer/components/common/PopupMenu.vue'
@@ -98,6 +98,7 @@ const showConfirmModal = ref(false)
 const menuItems = ref<MenuItem[]>([
   {
     name: 'rename',
+    icon: Edit,
     label: '重命名',
     action: () => {
       startEditing()
@@ -105,10 +106,12 @@ const menuItems = ref<MenuItem[]>([
   },
   {
     name: 'delete',
+    icon: DeleteOne,
     label: '删除',
     action: () => {
       showConfirmModal.value = true
-    }
+    },
+    isDangerous: true
   }
 ])
 

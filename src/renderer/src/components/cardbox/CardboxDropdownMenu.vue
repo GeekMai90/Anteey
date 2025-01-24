@@ -1,7 +1,16 @@
 <template>
   <Teleport to="body">
     <Transition name="fade-zoom">
-      <div v-if="isOpen" ref="menuRef" :style="computedMenuStyle" class="cardbox-dropdown-menu">
+      <div
+        v-if="isOpen"
+        ref="floating"
+        class="cardbox-dropdown-menu"
+        :style="{
+          position: strategy,
+          top: `${y ?? 0}px`,
+          left: `${x ?? 0}px`
+        }"
+      >
         <template v-if="sortedCardBoxes.length > 0">
           <div
             v-for="box in sortedCardBoxes"
@@ -33,17 +42,19 @@
 <script setup lang="ts">
 import { FileCabinet, Box } from '@icon-park/vue-next'
 import { CardBox } from '@shared/types'
-import { computed, CSSProperties, onMounted, onUnmounted, ref, watch, nextTick } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch, nextTick } from 'vue'
 import { useNoteStore } from '@renderer/stores/noteStore'
 import { storeToRefs } from 'pinia'
 import router from '@renderer/router'
 import { message } from '@renderer/utils/message'
+import { useFloating } from '@floating-ui/vue'
+import { flip, offset, shift } from '@floating-ui/dom'
 
 const props = defineProps<{
   isOpen: boolean
-  position: { x: number; y: number }
   noteId?: string
   currentCardboxId?: string
+  buttonRef: HTMLElement | null
 }>()
 
 const emit = defineEmits(['close', 'update'])
@@ -55,68 +66,30 @@ const sortedCardBoxes = computed(() => {
   return [...cardBoxes.value].sort((a, b) => a.name.localeCompare(b.name, 'zh-CN'))
 })
 
-const menuRef = ref<HTMLElement | null>(null)
-const menuPosition = ref(props.position)
+// floating-ui 相关
+const floating = ref<HTMLElement | null>(null)
 
-// 监听位置变化
-watch(
-  () => props.position,
-  (newPosition) => {
-    menuPosition.value = newPosition
-    if (props.isOpen) {
-      nextTick(() => {
-        adjustMenuPosition()
-      })
-    }
-  },
-  { deep: true }
+// 使用传入的 buttonRef 作为参考元素
+const { x, y, strategy, update } = useFloating(
+  computed(() => props.buttonRef), // 使用 computed 包装 buttonRef
+  floating,
+  {
+    placement: 'bottom-start',
+    middleware: [offset(8), flip(), shift()]
+  }
 )
 
-// 监听打开状态
+// 监听 isOpen 变化，更新位置
 watch(
   () => props.isOpen,
   (newValue) => {
     if (newValue) {
-      menuPosition.value = props.position
       nextTick(() => {
-        adjustMenuPosition()
+        update()
       })
     }
   }
 )
-
-// 计算菜单样式
-const computedMenuStyle = computed((): CSSProperties => {
-  const { x, y } = menuPosition.value
-  const maxWidth = Math.min(300, window.innerWidth - 20)
-  return {
-    position: 'fixed',
-    top: `${y}px`,
-    left: `${x}px`,
-    maxWidth: `${maxWidth}px`
-  }
-})
-
-// 调整菜单位置
-const adjustMenuPosition = () => {
-  if (menuRef.value) {
-    const rect = menuRef.value.getBoundingClientRect()
-    const windowWidth = window.innerWidth
-    const windowHeight = window.innerHeight
-
-    // 处理水平方向溢出
-    if (rect.right > windowWidth) {
-      const overflowX = rect.right - windowWidth
-      menuPosition.value.x -= overflowX + 10
-    }
-
-    // 处理垂直方向溢出
-    if (rect.bottom > windowHeight) {
-      const overflowY = rect.bottom - windowHeight
-      menuPosition.value.y -= overflowY + 10
-    }
-  }
-}
 
 // 添加本地状态来跟踪当前选中的卡片盒
 const localSelectedBoxId = ref(props.currentCardboxId)
@@ -131,7 +104,7 @@ watch(
 
 // 处理点击事件
 const handleDocumentClick = (event: MouseEvent) => {
-  if (menuRef.value && !menuRef.value.contains(event.target as Node)) {
+  if (floating.value && !floating.value.contains(event.target as Node)) {
     emit('close')
   }
 }
@@ -171,25 +144,24 @@ const goToCardboxPage = () => {
 
 onMounted(() => {
   document.addEventListener('click', handleDocumentClick)
-  window.addEventListener('resize', adjustMenuPosition)
+  window.addEventListener('resize', update)
 })
 
 onUnmounted(() => {
   document.removeEventListener('click', handleDocumentClick)
-  window.removeEventListener('resize', adjustMenuPosition)
+  window.removeEventListener('resize', update)
 })
 </script>
 
 <style scoped lang="scss">
 .cardbox-dropdown-menu {
-  position: fixed;
   background-color: var(--color-dropdown-bg);
   border-radius: 8px;
   box-shadow: var(--shadow-primary);
   z-index: 9999;
   min-width: 200px;
   width: max-content;
-  max-width: 100vw;
+  max-width: 300px;
   overflow-y: auto;
   overflow-x: hidden;
   padding: 6px 12px;
