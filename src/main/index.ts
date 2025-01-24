@@ -366,10 +366,10 @@ async function createWindow(): Promise<BrowserWindow> {
             "media-src 'self' file: *; " +
             // 确保脚本源包含所有需要的域名
             "script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: https://unpkg.com https://cdn.tldraw.com; " +
-            "style-src 'self' 'unsafe-inline' https://unpkg.com https://cdn.tldraw.com; " +
+            "style-src 'self' 'unsafe-inline' https://unpkg.com https://cdn.tldraw.com https://fonts.googleapis.com; " +
             // 修改 connect-src，允许更多连接
             "connect-src 'self' data: blob: file: app-image: https://api.tiptap.dev https://unpkg.com https://cdn.tldraw.com; " +
-            'font-src * https://cdn.tldraw.com; ' +
+            'font-src * https://cdn.tldraw.com https://fonts.gstatic.com; ' +
             "worker-src 'self' blob: data:;"
         ]
       }

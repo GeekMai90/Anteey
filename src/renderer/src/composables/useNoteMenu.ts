@@ -57,6 +57,11 @@ export function useNoteMenu(params: NoteMenuParams) {
     await noteStore.handleShare(params.noteId)
     closePopupMenu()
   }
+  // 分享视图
+  const handleShareView = async () => {
+    await noteStore.handleShareView(params.noteId)
+    closePopupMenu()
+  }
 
   // 将笔记标记为闪卡
   const handleConvertToFlashcard = async () => {
@@ -563,6 +568,12 @@ export function useNoteMenu(params: NoteMenuParams) {
       label: '分享',
       icon: Share,
       action: handleShare
+    },
+    shareView: {
+      name: 'shareView',
+      label: '分享视图',
+      icon: Share,
+      action: handleShareView
     },
     copyQuote: {
       name: 'copyQuote',

@@ -19,3 +19,13 @@
   font-style: normal;
   font-synthesis: weight style;
 }
+
+@import url("https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500;600;700&display=swap");
+
+/* 或者自托管字体文件 */
+@font-face {
+  font-family: "Noto Serif SC";
+  src: url("@/assets/fonts/NotoSerifSC-Regular.otf") format("opentype");
+  font-weight: normal;
+  font-style: normal;
+}

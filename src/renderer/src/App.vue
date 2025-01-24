@@ -22,6 +22,11 @@
       :note="noteStore.shareNote"
       @close="noteStore.showShareModal = false"
     />
+    <ShareViewModal
+      v-if="noteStore.showShareViewModal"
+      :note="noteStore.shareNote"
+      @close="noteStore.showShareViewModal = false"
+    />
     <QuickAddModal :is-visible="isQuickAddVisible" @close="closeQuickAdd" />
     <!-- 主题颜色选择器 -->
     <Teleport to="body">
@@ -70,6 +75,7 @@ import QuickAddModal from '@renderer/components/drafts/QuickAddModal.vue'
 import ThemeColorPicker from '@renderer/components/settings/ThemeColorPicker.vue'
 import { useUIStore } from '@renderer/stores/UIStore'
 import ReviewModal from '@renderer/components/review/ReviewModal.vue'
+import ShareViewModal from '@renderer/components/share/ShareViewModal.vue'
 
 // 状态管理初始化
 const noteStore = useNoteStore()

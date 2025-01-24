@@ -89,7 +89,16 @@ const props = defineProps<{
 
 const { menuItems: noteMenuItems, resetDeleteState } = useNoteMenu({
   noteId: props.note.id,
-  menuItems: ['star', 'convertToFlashcard', 'sidebar', 'copyQuote', 'share', 'exportNote', 'delete']
+  menuItems: [
+    'star',
+    'convertToFlashcard',
+    'sidebar',
+    'copyQuote',
+    'share',
+    'shareView',
+    'exportNote',
+    'delete'
+  ]
 })
 const moreBtnRef = ref<HTMLElement | null>(null)
 const moreMenuRef = ref<HTMLElement | null>(null)

@@ -95,6 +95,8 @@ export const useNoteStore = defineStore(
     const starredNotes = ref<Note[]>([])
     const showShareModal = ref(false)
     const shareNote = ref<any>(null)
+    const showShareViewModal = ref(false)
+    const shareViewNote = ref<any>(null)
 
     // 最近更新的状态
     const pendingUpdates = ref(
@@ -531,6 +533,13 @@ export const useNoteStore = defineStore(
 
       shareNote.value = note
       showShareModal.value = true
+    }
+
+    const handleShareView = async (noteId: string) => {
+      const note = await fetchNoteById(noteId)
+      if (!note) return
+      shareViewNote.value = note
+      showShareViewModal.value = true
     }
 
     const initializeStore = async () => {
@@ -1457,7 +1466,11 @@ export const useNoteStore = defineStore(
       removeTagFromNote,
       openTaggedNotes,
       getRecentNotes,
-      checkCanCreateNote
+      checkCanCreateNote,
+      // 分享视图相关
+      showShareViewModal,
+      shareViewNote,
+      handleShareView
     }
   },
   {
