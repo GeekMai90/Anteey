@@ -20,7 +20,7 @@
     <div class="whiteboard-card-content">
       <div class="whiteboard-name">
         <div class="icon" @click="openWhiteboard(whiteboard.id)">
-          <Workbench
+          <HandPaintedPlate
             theme="outline"
             size="20"
             fill="var(--color-icon-menu-default)"
@@ -58,7 +58,7 @@
 import { defineProps, ref, computed, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import type { EdWhiteboard } from '@shared/types/edWhiteboard'
-import { Workbench, More, Edit, DeleteOne } from '@icon-park/vue-next'
+import { HandPaintedPlate, More, Edit, DeleteOne } from '@icon-park/vue-next'
 import { useEdWhiteboardStore } from '@renderer/stores/EdWhiteboardStore'
 import PopupMenu from '@renderer/components/common/PopupMenu.vue'
 import type { MenuItem } from '@renderer/components/common/PopupMenu.vue'
