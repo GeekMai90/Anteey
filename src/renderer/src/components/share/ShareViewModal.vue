@@ -20,18 +20,38 @@
         <!-- 左侧模板导航栏 -->
         <div class="template-sidebar">
           <h3 class="sidebar-title">模板</h3>
-          <div class="template-grid">
-            <div
-              v-for="template in templates"
-              :key="template.id"
-              class="template-item"
-              :class="{ active: currentTemplateId === template.id }"
-              @click="switchTemplate(template.id)"
-            >
-              <div class="template-icon">
-                <img :src="template.icon" :alt="template.name" />
+          <div class="template-group">
+            <div class="group-title">长文模板</div>
+            <div class="template-grid">
+              <div
+                v-for="template in longTemplates"
+                :key="template.id"
+                class="template-item"
+                :class="{ active: currentTemplateId === template.id }"
+                @click="switchTemplate(template.id)"
+              >
+                <div class="template-icon">
+                  <img :src="template.icon" :alt="template.name" />
+                </div>
+                <span class="template-name">{{ template.name }}</span>
               </div>
-              <span class="template-name">{{ template.name }}</span>
+            </div>
+          </div>
+          <div class="template-group">
+            <div class="group-title">短句模板</div>
+            <div class="template-grid">
+              <div
+                v-for="template in shortTemplates"
+                :key="template.id"
+                class="template-item"
+                :class="{ active: currentTemplateId === template.id }"
+                @click="switchTemplate(template.id)"
+              >
+                <div class="template-icon">
+                  <img :src="template.icon" :alt="template.name" />
+                </div>
+                <span class="template-name">{{ template.name }}</span>
+              </div>
             </div>
           </div>
         </div>
@@ -85,7 +105,7 @@
                   @click="toggleLockRatio"
                 >
                   <div class="icon">
-                    <component :is="lockRatio ? Lock : Unlock" />
+                    <component :is="lockRatio ? Lock : Unlock" fill="var(--color-icon-default)" />
                   </div>
                 </button>
               </div>
@@ -109,25 +129,79 @@
               <div class="property-item">
                 <label>内边距</label>
                 <div class="size-control">
-                  <button @click="adjustPadding(-1)">-</button>
+                  <button class="minus-button" @click="adjustPadding(-1)">
+                    <div class="icon">
+                      <Minus
+                        theme="outline"
+                        size="20"
+                        fill="var(--color-icon-default)"
+                        :stroke-width="3"
+                      />
+                    </div>
+                  </button>
                   <span>{{ config.padding }}</span>
-                  <button @click="adjustPadding(1)">+</button>
+                  <button class="plus-button" @click="adjustPadding(1)">
+                    <div class="icon">
+                      <Plus
+                        theme="outline"
+                        size="20"
+                        fill="var(--color-icon-default)"
+                        :stroke-width="3"
+                      />
+                    </div>
+                  </button>
                 </div>
               </div>
               <div class="property-item">
                 <label>圆角半径</label>
                 <div class="size-control">
-                  <button @click="adjustRadius(-1)">-</button>
+                  <button class="minus-button" @click="adjustRadius(-1)">
+                    <div class="icon">
+                      <Minus
+                        theme="outline"
+                        size="20"
+                        fill="var(--color-icon-default)"
+                        :stroke-width="3"
+                      />
+                    </div>
+                  </button>
                   <span>{{ config.radius }}</span>
-                  <button @click="adjustRadius(1)">+</button>
+                  <button class="plus-button" @click="adjustRadius(1)">
+                    <div class="icon">
+                      <Plus
+                        theme="outline"
+                        size="20"
+                        fill="var(--color-icon-default)"
+                        :stroke-width="3"
+                      />
+                    </div>
+                  </button>
                 </div>
               </div>
               <div class="property-item">
                 <label>字体大小</label>
                 <div class="size-control">
-                  <button @click="adjustFontSize(-0.1)">-</button>
+                  <button class="minus-button" @click="adjustFontSize(-0.1)">
+                    <div class="icon">
+                      <Minus
+                        theme="outline"
+                        size="20"
+                        fill="var(--color-icon-default)"
+                        :stroke-width="3"
+                      />
+                    </div>
+                  </button>
                   <span>{{ config.fontSize }}</span>
-                  <button @click="adjustFontSize(0.1)">+</button>
+                  <button class="plus-button" @click="adjustFontSize(0.1)">
+                    <div class="icon">
+                      <Plus
+                        theme="outline"
+                        size="20"
+                        fill="var(--color-icon-default)"
+                        :stroke-width="3"
+                      />
+                    </div>
+                  </button>
                 </div>
               </div>
             </div>
@@ -135,7 +209,7 @@
             <!-- 背景设置区域 -->
             <div class="property-section">
               <h4>背景</h4>
-              <!-- 浅色系列 -->
+              <!-- 浅色渐变预设 -->
               <div class="gradient-group">
                 <div class="gradient-group-title">浅色系列</div>
                 <div class="gradient-list">
@@ -203,13 +277,21 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, nextTick, onMounted } from 'vue'
-import { CloseOne, Lock, Unlock } from '@icon-park/vue-next'
+import { CloseOne, Lock, Unlock, Minus, Plus } from '@icon-park/vue-next'
 import DefaultTemplate from './templates/DefaultTemplate.vue'
 import TransparentTemplate from './templates/TransparentTemplate.vue'
 import CalendarTemplate from './templates/CalendarTemplate.vue'
+import ChalkTemplate from './templates/ChalkTemplate.vue'
+import BookTemplate from './templates/BookTemplate.vue'
+import QuoteTemplate from './templates/QuoteTemplate.vue'
+import SmartisanTemplate from './templates/SmartisanTemplate.vue'
 import defaultIcon from '@renderer/assets/share/default.png'
 import transparentIcon from '@renderer/assets/share/transparent.png'
 import calendarIcon from '@renderer/assets/share/calendar.png'
+import chalkIcon from '@renderer/assets/share/chalk.png'
+import quoteIcon from '@renderer/assets/share/quote.png'
+import bookIcon from '@renderer/assets/share/book.png'
+import smartisanIcon from '@renderer/assets/share/smartisan.png'
 import { useNoteStore } from '@renderer/stores/noteStore'
 import { message } from '@renderer/utils/message'
 import SizeInput from './SizeInput.vue'
@@ -275,27 +357,56 @@ const templates = [
     id: 'default',
     name: '默认',
     icon: defaultIcon,
-    component: DefaultTemplate
+    component: DefaultTemplate,
+    type: 'long'
   },
   {
     id: 'transparent',
     name: '毛玻璃',
     icon: transparentIcon,
-    component: TransparentTemplate
+    component: TransparentTemplate,
+    type: 'long'
+  },
+  {
+    id: 'smartisan',
+    name: '便签',
+    icon: smartisanIcon,
+    component: SmartisanTemplate,
+    type: 'long'
   },
   {
     id: 'calendar',
     name: '日历',
     icon: calendarIcon,
-    component: CalendarTemplate
+    component: CalendarTemplate,
+    type: 'short'
   },
-  { id: 'quote', name: '金句', icon: '' },
-  { id: 'book', name: '书摘', icon: '' },
-  { id: 'memo', name: '备忘录', icon: '' },
-  { id: 'code', name: '代码', icon: '' },
-  { id: 'dark', name: '黑夜', icon: '' },
-  { id: 'handwriting', name: '手写', icon: '' }
+  {
+    id: 'chalk',
+    name: '粉笔',
+    icon: chalkIcon,
+    component: ChalkTemplate,
+    type: 'short'
+  },
+  {
+    id: 'book',
+    name: '书摘',
+    icon: bookIcon,
+    component: BookTemplate,
+    type: 'short'
+  },
+  {
+    id: 'quote',
+    name: '金句',
+    icon: quoteIcon,
+    component: QuoteTemplate,
+    type: 'short'
+  }
 ]
+
+// 分类模板
+const longTemplates = computed(() => templates.filter((t) => t.type === 'long'))
+const shortTemplates = computed(() => templates.filter((t) => t.type === 'short'))
 
 // 当前选中的模板组件
 const currentTemplate = computed(() => {
@@ -574,6 +685,32 @@ defineEmits<{
   padding: 4px;
   border-radius: 4px;
 
+  .icon {
+    background: none;
+    border: none;
+    cursor: pointer;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    padding: 0;
+
+    :deep(.i-icon) {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      height: 100%;
+    }
+
+    :deep(svg) {
+      width: 18px;
+      height: 18px;
+    }
+  }
+
   &:hover {
     background: var(--color-hover-bg);
   }
@@ -586,24 +723,44 @@ defineEmits<{
 }
 
 .template-sidebar {
-  width: 280px; // 加宽左侧边栏
+  width: 280px;
   background: var(--color-bg-secondary);
   border-right: 1px solid var(--color-border);
   display: flex;
   flex-direction: column;
+  overflow-y: auto;
 }
 
 .sidebar-title {
   padding: 16px;
   margin: 0;
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 500;
   color: var(--color-text-secondary);
+  text-align: center;
+}
+
+.template-group {
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+
+  &:last-child {
+    margin-bottom: 0;
+    padding-bottom: 0;
+  }
+
+  .group-title {
+    padding: 0 16px;
+    margin-bottom: 12px;
+    font-size: 13px;
+    color: var(--color-text-secondary);
+    font-weight: 500;
+  }
 }
 
 .template-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr); // 两列布局
+  grid-template-columns: repeat(2, 1fr);
   gap: 12px;
   padding: 0 12px;
 }
@@ -651,7 +808,7 @@ defineEmits<{
   overflow: auto;
   display: flex;
   justify-content: center;
-  align-items: flex-start; // 改为顶部对齐
+  align-items: top; // 改为顶部对齐
 }
 
 .preview-wrapper {
@@ -676,11 +833,10 @@ defineEmits<{
 .tab-btn {
   flex: 1;
   height: 32px;
-  border: none;
   border-radius: 6px;
-  background: none;
   font-size: 13px;
-  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border);
+  background: none;
   cursor: pointer;
 
   &:hover {
@@ -757,8 +913,31 @@ defineEmits<{
   }
 
   .icon {
-    width: 16px;
-    height: 16px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    padding: 0;
+
+    :deep(.i-icon) {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      height: 100%;
+    }
+
+    :deep(svg) {
+      width: 14px;
+      height: 14px;
+      display: block;
+      line-height: 1;
+    }
   }
 }
 
@@ -767,22 +946,63 @@ defineEmits<{
   align-items: center;
   gap: 8px;
 
-  button {
-    width: 24px;
-    height: 24px;
+  .minus-button,
+  .plus-button {
+    width: 20px;
+    height: 20px;
     border: 1px solid var(--color-border);
     border-radius: 4px;
     background: none;
     cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    font-size: 16px;
+    line-height: 1;
+
+    .icon {
+      background: none;
+      border: none;
+      cursor: pointer;
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+      padding: 0;
+
+      :deep(.i-icon) {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        height: 100%;
+      }
+
+      :deep(svg) {
+        width: 14px;
+        height: 14px;
+      }
+    }
 
     &:hover {
       background: var(--color-hover-bg);
+    }
+
+    &:active {
+      background: var(--color-active-bg);
     }
   }
 
   span {
     min-width: 32px;
     text-align: center;
+    font-size: 13px;
+    line-height: 24px;
+    color: var(--color-text);
+    user-select: none;
   }
 }
 

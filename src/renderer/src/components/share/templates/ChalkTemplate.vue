@@ -1,9 +1,9 @@
 <template>
-  <div class="book-template" :style="[cardStyle, { backgroundImage: `url(${backgroundImage})` }]">
+  <div class="chalk-template" :style="[cardStyle, { backgroundImage: `url(${backgroundImage})` }]">
     <div class="template-content" :class="{ 'dark-mode': isDarkGradient }">
-      <!-- <div v-if="config.showDate" class="note-header">
+      <div v-if="config.showDate" class="note-header">
         <div class="note-date">{{ currentDate }}</div>
-      </div> -->
+      </div>
       <div class="content-wrapper">
         <div class="note-content">
           <ShareTipTapRender :content="note.content" :editable="false" />
@@ -19,6 +19,7 @@
 </template>
 
 <script setup lang="ts">
+import { format } from 'date-fns'
 import ShareTipTapRender from '@renderer/components/share/ShareTipTapRender.vue'
 import { Note } from '@shared/types'
 import { computed, onMounted, ref, getCurrentInstance } from 'vue'
@@ -26,11 +27,11 @@ import QRCode from 'qrcode'
 import { useUserSettingsStore } from '@renderer/stores/userSettingsStore'
 import { exportNoteImage, copyNoteToClipboard } from '@renderer/utils/shareViewUtils'
 import type { Component } from 'vue'
-import backgroundImage from '@renderer/assets/share/bookBackground.png'
+import backgroundImage from '@renderer/assets/share/chalkBackground.png'
 
 // 固定尺寸常量
-const DISPLAY_WIDTH = 450
-const DISPLAY_HEIGHT = 700
+const DISPLAY_WIDTH = 400
+const DISPLAY_HEIGHT = 544
 
 const props = defineProps<{
   note: Note
@@ -76,6 +77,7 @@ const cardStyle = computed(() => {
 // }))
 
 const userSettingsStore = useUserSettingsStore()
+const currentDate = format(new Date(), 'yyyy.MM.dd')
 const qrCodeUrl = ref('')
 
 // 从 store 中获取用户设置
@@ -184,7 +186,7 @@ const isDarkGradient = computed(() => {
 </script>
 
 <style lang="scss" scoped>
-.book-template {
+.chalk-template {
   overflow: hidden;
   position: relative;
   background-size: cover; // 确保背景图填充整个容器
@@ -200,8 +202,8 @@ const isDarkGradient = computed(() => {
   padding-left: 0.5rem;
   padding-right: 0.5rem;
   background-color: transparent !important;
-  font-size: 1em;
-  // font-family: 'Noto Serif SC', serif;
+  font-size: 1.2em;
+  font-family: 'Noto Serif SC', serif;
 
   blockquote {
     border-left: none !important;
@@ -288,6 +290,20 @@ const isDarkGradient = computed(() => {
       background: none !important;
     }
   }
+
+  p {
+    font-family: 'Noto Serif SC', serif;
+    font-weight: bold;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: 'Noto Serif SC', serif;
+  }
 }
 
 .template-content {
@@ -296,7 +312,7 @@ const isDarkGradient = computed(() => {
   display: flex;
   flex-direction: column;
   background: transparent;
-  padding: 40px; // 给内容添加一些内边距
+  padding: 25px; // 给内容添加一些内边距
   color: #252525;
   transition: all 0.3s ease;
 
@@ -306,26 +322,25 @@ const isDarkGradient = computed(() => {
     // align-items: center;
     justify-content: center;
     padding: 0; // 重置内边距
-    margin-top: 80px;
-    margin-right: 12px;
+    margin-top: 128px;
   }
 
   .note-content {
     // margin-top: 200px;
     // text-align: center;
-    font-size: 1em;
-    line-height: 1.3;
-    padding: 0 30px;
-    // font-family: 'Noto Serif SC', serif;
+    font-size: 1.2em;
+    line-height: 1.8;
+    padding: 0 10px;
+    font-family: 'Noto Serif SC', serif;
   }
 
   .note-date {
-    font-size: 16px;
+    font-size: 16px !important;
     color: #4a5568;
-    font-weight: 500;
+    font-weight: 400 !important;
     position: absolute;
-    top: 190px;
-    left: 50%;
+    top: 20px;
+    left: 82%;
     transform: translateX(-50%);
     font-size: 24px;
     font-weight: bold;
@@ -336,13 +351,13 @@ const isDarkGradient = computed(() => {
     border-top: none;
     justify-content: flex-end;
     position: absolute;
-    bottom: 130px;
-    right: 95px;
+    bottom: 86px;
+    right: 36px;
   }
 
   .footer-author {
-    font-size: 18px;
-    color: #555555;
+    font-size: 20px;
+    color: #2a2a2a;
   }
 
   // 深色模式样式
