@@ -155,7 +155,7 @@ const handleSaveSettings = async () => {
   .shortcuts-settings-divider {
     height: 1px;
     background-color: var(--color-border);
-    margin: 4px 0;
+    // margin: 4px 0;
     width: 100%;
     margin-bottom: 10px;
   }

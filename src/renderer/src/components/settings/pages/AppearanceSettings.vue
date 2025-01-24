@@ -1,14 +1,14 @@
 <template>
   <div class="appearance-settings">
-    <div class="appearance-settings-content">
-      <div class="settings-content-header">
-        <div class="icon">
-          <Theme theme="outline" size="20" fill="var(--color-icon-menu-default)" :strokeWidth="3" />
-        </div>
-        <div class="name">外观</div>
+    <div class="settings-content-header">
+      <div class="icon">
+        <Theme theme="outline" size="20" fill="var(--color-icon-menu-default)" :strokeWidth="3" />
       </div>
-      <div class="shortcuts-settings-divider"></div>
+      <div class="name">外观</div>
+    </div>
+    <div class="shortcuts-settings-divider"></div>
 
+    <div class="appearance-settings-content">
       <div class="appearance-content">
         <div class="settings-section">
           <div class="section-title">主题模式</div>
@@ -76,21 +76,49 @@
           <div class="font-settings">
             <div class="setting-item">
               <div class="setting-label">界面字体</div>
-              <select v-model="uiFont" class="font-select" @change="handleUIFontChange">
-                <option v-for="font in fontOptions" :key="font.value" :value="font.value">
-                  {{ font.label }}
-                </option>
-              </select>
+              <div class="select-wrapper">
+                <div class="font-select" @click="toggleUIFontDropdown">
+                  <span class="selected-font">{{ getFontLabel(uiFont) }}</span>
+                  <div class="select-arrow">
+                    <Down theme="outline" size="16" :strokeWidth="3" />
+                  </div>
+                </div>
+                <div v-show="showUIFontSelect" class="select-dropdown">
+                  <div
+                    v-for="font in fontOptions"
+                    :key="font.value"
+                    class="select-option"
+                    :class="{ active: uiFont === font.value }"
+                    @click="handleUIFontSelect(font.value)"
+                  >
+                    {{ font.label }}
+                  </div>
+                </div>
+              </div>
               <div class="font-preview">预览文本 Preview Text</div>
             </div>
 
             <div class="setting-item">
               <div class="setting-label">编辑器字体</div>
-              <select v-model="editorFont" class="font-select" @change="handleEditorFontChange">
-                <option v-for="font in fontOptions" :key="font.value" :value="font.value">
-                  {{ font.label }}
-                </option>
-              </select>
+              <div class="select-wrapper">
+                <div class="font-select" @click="toggleEditorFontDropdown">
+                  <span class="selected-font">{{ getFontLabel(editorFont) }}</span>
+                  <div class="select-arrow">
+                    <Down theme="outline" size="16" :strokeWidth="3" />
+                  </div>
+                </div>
+                <div v-show="showEditorFontSelect" class="select-dropdown">
+                  <div
+                    v-for="font in fontOptions"
+                    :key="font.value"
+                    class="select-option"
+                    :class="{ active: editorFont === font.value }"
+                    @click="handleEditorFontSelect(font.value)"
+                  >
+                    {{ font.label }}
+                  </div>
+                </div>
+              </div>
               <div class="font-preview" :style="{ fontFamily: previewEditorFont }">
                 预览文本 Preview Text
               </div>
@@ -347,66 +375,116 @@ const handleMarioStyleChange = (value: boolean) => {
   reviewStore.updateMarioStyleEnabled(value)
   enableMarioStyle.value = value
 }
+
+// 添加新的状态
+const showUIFontSelect = ref(false)
+const showEditorFontSelect = ref(false)
+
+// 添加新的方法
+const toggleUIFontDropdown = (e: Event) => {
+  e.stopPropagation()
+  showUIFontSelect.value = !showUIFontSelect.value
+  showEditorFontSelect.value = false
+}
+
+const toggleEditorFontDropdown = (e: Event) => {
+  e.stopPropagation()
+  showEditorFontSelect.value = !showEditorFontSelect.value
+  showUIFontSelect.value = false
+}
+
+const handleUIFontSelect = async (value: string) => {
+  uiFont.value = value
+  showUIFontSelect.value = false
+  await handleUIFontChange()
+}
+
+const handleEditorFontSelect = async (value: string) => {
+  editorFont.value = value
+  showEditorFontSelect.value = false
+  await handleEditorFontChange()
+}
+
+const getFontLabel = (value: string) => {
+  return fontOptions.find((font) => font.value === value)?.label || '系统默认'
+}
+
+// 添加点击外部关闭下拉菜单
+onMounted(() => {
+  document.addEventListener('click', (e) => {
+    const target = e.target as HTMLElement
+    if (!target.closest('.select-wrapper')) {
+      showUIFontSelect.value = false
+      showEditorFontSelect.value = false
+    }
+  })
+})
 </script>
 
 <style scoped lang="scss">
 .appearance-settings {
   width: 100%;
   height: 100%;
-  overflow-y: auto;
-  padding-bottom: 48px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+}
 
-  .appearance-settings-content {
-    width: 100%;
-  }
+.settings-content-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 10px;
 
-  .settings-content-header {
+  .icon {
+    background: none;
+    border: 1px solid var(--color-border);
+    width: 40px;
+    height: 40px;
     display: flex;
     align-items: center;
-    gap: 6px;
-    margin-bottom: 10px;
+    justify-content: center;
+    transition: all 0.2s ease;
+    padding: 4px;
+    border-radius: 6px;
 
-    .icon {
-      background: none;
-      border: 1px solid var(--color-border);
-      width: 40px;
-      height: 40px;
+    :deep(.i-icon) {
       display: flex;
       align-items: center;
       justify-content: center;
-      transition: all 0.2s ease;
-      padding: 4px;
-      border-radius: 6px;
-
-      :deep(.i-icon) {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        width: 100%;
-        height: 100%;
-      }
-
-      svg {
-        width: 20px;
-        height: 20px;
-      }
+      width: 100%;
+      height: 100%;
     }
 
-    .name {
-      font-size: 20px;
-      line-height: 1;
-      font-weight: 500;
-      user-select: none;
+    svg {
+      width: 20px;
+      height: 20px;
     }
   }
 
-  .shortcuts-settings-divider {
-    height: 1px;
-    background-color: var(--color-border);
-    margin: 4px 0;
-    width: 100%;
-    margin-bottom: 10px;
+  .name {
+    font-size: 20px;
+    line-height: 1;
+    font-weight: 500;
+    user-select: none;
   }
+}
+
+.shortcuts-settings-divider {
+  height: 1px;
+  background-color: var(--color-border);
+  margin-bottom: 10px;
+  width: 100%;
+  opacity: 1;
+  flex-shrink: 0;
+}
+
+.appearance-settings-content {
+  width: 100%;
+  height: 100%;
+  overflow-y: auto;
+  padding-bottom: 58px;
 
   .appearance-content {
     padding-right: 10px;
@@ -536,25 +614,96 @@ const handleMarioStyleChange = (value: boolean) => {
         color: var(--color-text-secondary);
       }
 
-      .font-select {
+      .select-wrapper {
+        position: relative;
         width: 200px;
-        padding: 8px 12px;
-        border-radius: 6px;
-        border: 1px solid var(--color-border);
-        // background-color: var(--color-bg-secondary);
-        color: var(--color-text-primary);
-        font-size: 14px;
-        cursor: pointer;
-        transition: all 0.2s;
 
-        &:hover {
-          border-color: var(--color-border-hover);
+        .font-select {
+          width: 100%;
+          padding: 8px 12px;
+          border-radius: 8px;
+          border: 1px solid var(--color-border);
+          color: var(--color-text-primary);
+          font-size: 14px;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          height: 36px;
+
+          &:hover {
+            border-color: var(--color-primary);
+            background: var(--color-hover-bg);
+          }
+
+          .selected-font {
+            font-weight: 400;
+          }
+
+          .select-arrow {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 20px;
+            height: 100%;
+
+            :deep(.i-icon) {
+              display: flex;
+              align-items: center;
+              justify-content: center;
+            }
+
+            :deep(svg) {
+              width: 16px;
+              height: 16px;
+            }
+          }
         }
 
-        &:focus {
-          outline: none;
-          border-color: var(--color-primary);
-          box-shadow: 0 0 0 2px var(--color-primary-alpha);
+        .select-dropdown {
+          position: absolute;
+          top: calc(100% + 4px);
+          left: 0;
+          width: 100%;
+          background: var(--color-dropdown-bg);
+          border: 1px solid var(--color-border);
+          border-radius: 8px;
+          padding: 4px;
+          overflow-y: auto;
+          z-index: 1000;
+          box-shadow: var(--shadow-card);
+
+          .select-option {
+            padding: 8px 12px;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: all 0.2s;
+            font-size: 14px;
+            color: var(--color-text-primary);
+
+            &:hover {
+              background: var(--color-hover-bg);
+            }
+
+            &.active {
+              color: var(--color-primary);
+              background: var(--color-primary-bg);
+            }
+          }
+
+          &::-webkit-scrollbar {
+            width: 8px;
+          }
+
+          &::-webkit-scrollbar-track {
+            background: transparent;
+          }
+
+          &::-webkit-scrollbar-thumb {
+            background: var(--color-scrollbar);
+            border-radius: 4px;
+          }
         }
       }
 
@@ -562,7 +711,6 @@ const handleMarioStyleChange = (value: boolean) => {
         margin-top: 8px;
         padding: 12px;
         border-radius: 6px;
-        // background-color: var(--color-bg-secondary);
         color: var(--color-text-primary);
         font-size: 16px;
         line-height: 1.5;
@@ -618,7 +766,6 @@ const handleMarioStyleChange = (value: boolean) => {
           padding: 8px 12px;
           border-radius: 8px;
           border: 1px solid var(--color-border);
-          // background: var(--color-bg-secondary);
           color: var(--color-text-primary);
           font-size: 14px;
           cursor: pointer;
@@ -634,7 +781,7 @@ const handleMarioStyleChange = (value: boolean) => {
           }
 
           .selected-page {
-            font-weight: 500;
+            font-weight: 400;
           }
 
           .select-arrow {
@@ -666,7 +813,6 @@ const handleMarioStyleChange = (value: boolean) => {
           border: 1px solid var(--color-border);
           border-radius: 8px;
           padding: 4px;
-          // max-height: 200px;
           overflow-y: auto;
           z-index: 1000;
           box-shadow: var(--shadow-card);

@@ -258,7 +258,7 @@ onMounted(async () => {
       }
 
       .selected-time {
-        font-weight: 500;
+        font-weight: 400;
       }
 
       .select-arrow {

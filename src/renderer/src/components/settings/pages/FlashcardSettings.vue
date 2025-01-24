@@ -254,34 +254,21 @@
           <div class="form-item">
             <div class="label">简化按钮</div>
             <div class="value">
-              <div class="switch-setting">
-                <div
-                  class="switch"
-                  :class="{ 'is-active': simplifyButtons }"
-                  @click="simplifyButtons = !simplifyButtons"
-                >
-                  <div class="switch-handle"></div>
-                </div>
-                <div class="switch-description">
-                  {{ simplifyButtons ? '使用简化按钮' : '使用完整按钮' }}
-                </div>
+              <Switch
+                :model-value="simplifyButtons"
+                @update:model-value="simplifyButtons = $event"
+              />
+              <div class="switch-description">
+                {{ simplifyButtons ? '使用简化按钮' : '使用完整按钮' }}
               </div>
             </div>
           </div>
           <div class="form-item">
             <div class="label">显示下次复习时间</div>
             <div class="value">
-              <div class="switch-setting">
-                <div
-                  class="switch"
-                  :class="{ 'is-active': showNextReview }"
-                  @click="showNextReview = !showNextReview"
-                >
-                  <div class="switch-handle"></div>
-                </div>
-                <div class="switch-description">
-                  {{ showNextReview ? '显示复习时间' : '隐藏复习时间' }}
-                </div>
+              <Switch :model-value="showNextReview" @update:model-value="showNextReview = $event" />
+              <div class="switch-description">
+                {{ showNextReview ? '显示复习时间' : '隐藏复习时间' }}
               </div>
             </div>
           </div>
@@ -368,6 +355,7 @@ import { StorageCardOne, Down, Up, Plus, Minus, Help } from '@icon-park/vue-next
 import { useFlashcardStore } from '@renderer/stores/flashcardStore'
 import type { FlashcardSettings } from '@shared/types'
 import { debounce } from 'lodash-es'
+import Switch from '@renderer/components/ui/Switch.vue'
 
 const flashcardStore = useFlashcardStore()
 
@@ -588,7 +576,7 @@ const handleInputChange = (min: number, max: number, value: number) => {
 .flashcard-settings-divider {
   height: 1px;
   background-color: var(--color-border);
-  margin: 4px 0;
+  margin-bottom: 10px;
   width: 100%;
   opacity: 1;
   flex-shrink: 0;
@@ -610,6 +598,7 @@ const handleInputChange = (min: number, max: number, value: number) => {
     flex-direction: column;
     align-items: flex-start;
     justify-content: flex-start;
+    margin-top: 4px;
     margin-bottom: 24px;
 
     .title {
@@ -621,7 +610,7 @@ const handleInputChange = (min: number, max: number, value: number) => {
       display: flex;
       align-items: center;
       justify-content: flex-start;
-      margin: 15px 0 8px 0;
+      margin-bottom: 10px;
     }
 
     .description {
@@ -717,7 +706,7 @@ const handleInputChange = (min: number, max: number, value: number) => {
           flex: 1;
           display: flex;
           align-items: center;
-          gap: 8px;
+          gap: 12px;
 
           .number-input-wrapper {
             display: flex;
@@ -885,6 +874,11 @@ const handleInputChange = (min: number, max: number, value: number) => {
           select {
             display: none;
           }
+
+          .switch-description {
+            font-size: 12px;
+            color: var(--color-text-secondary);
+          }
         }
       }
     }
@@ -916,46 +910,6 @@ const handleInputChange = (min: number, max: number, value: number) => {
 @keyframes spin {
   to {
     transform: rotate(360deg);
-  }
-}
-
-.switch-setting {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-
-  .switch {
-    position: relative;
-    width: 36px;
-    height: 20px;
-    background-color: var(--color-slider-track);
-    border-radius: 10px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-
-    &.is-active {
-      background-color: var(--color-primary);
-
-      .switch-handle {
-        transform: translateX(16px);
-      }
-    }
-
-    .switch-handle {
-      position: absolute;
-      top: 2px;
-      left: 2px;
-      width: 16px;
-      height: 16px;
-      background-color: #fff;
-      border-radius: 50%;
-      transition: all 0.2s ease;
-    }
-  }
-
-  .switch-description {
-    font-size: 12px;
-    color: var(--color-text-secondary);
   }
 }
 

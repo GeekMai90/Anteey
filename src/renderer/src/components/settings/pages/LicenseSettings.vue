@@ -1,103 +1,101 @@
 <template>
   <div class="license-settings">
-    <div class="license-settings-wrapper">
-      <div class="settings-content-header">
-        <div class="icon">
-          <CrownThree
-            theme="outline"
-            size="20"
-            fill="var(--color-icon-menu-default)"
-            :strokeWidth="3"
-          />
-        </div>
-        <div class="name">软件激活</div>
+    <div class="settings-content-header">
+      <div class="icon">
+        <CrownThree
+          theme="outline"
+          size="20"
+          fill="var(--color-icon-menu-default)"
+          :strokeWidth="3"
+        />
       </div>
-      <div class="shortcuts-settings-divider"></div>
-      <div class="license-settings-content">
-        <div class="license-content">
-          <div class="settings-section">
-            <div class="section-title">账号登录</div>
-            <div class="account-section">
-              <!-- 未登录状态 -->
-              <div v-if="!authStore.isAuthenticated" class="setting-item">
-                <div class="setting-label">登录账号</div>
-                <div class="login-form">
-                  <input
-                    v-model="email"
-                    type="email"
-                    placeholder="请输入邮箱"
-                    :disabled="authStore.loading"
-                  />
-                  <input
-                    v-model="password"
-                    type="password"
-                    placeholder="请输入密码"
-                    :disabled="authStore.loading"
-                  />
-                  <div class="button-group">
-                    <button
-                      class="login-button"
-                      :class="{ loading: authStore.loading }"
-                      :disabled="!email || !password || authStore.loading"
-                      @click="handleLogin"
-                    >
-                      {{ authStore.loading ? '登录中...' : '登录' }}
-                    </button>
-                    <button class="register-button" @click="handleRegister">注册账号</button>
-                  </div>
-                  <div class="register-tip">
-                    👋🏻 请先注册账号，然后将注册邮箱发送至开发者微信 GeekMai 进行激活
-                  </div>
+      <div class="name">软件激活</div>
+    </div>
+    <div class="shortcuts-settings-divider"></div>
+    <div class="license-settings-content">
+      <div class="license-content">
+        <div class="settings-section">
+          <div class="section-title">账号登录</div>
+          <div class="account-section">
+            <!-- 未登录状态 -->
+            <div v-if="!authStore.isAuthenticated" class="setting-item">
+              <div class="setting-label">登录账号</div>
+              <div class="login-form">
+                <input
+                  v-model="email"
+                  type="email"
+                  placeholder="请输入邮箱"
+                  :disabled="authStore.loading"
+                />
+                <input
+                  v-model="password"
+                  type="password"
+                  placeholder="请输入密码"
+                  :disabled="authStore.loading"
+                />
+                <div class="button-group">
+                  <button
+                    class="login-button"
+                    :class="{ loading: authStore.loading }"
+                    :disabled="!email || !password || authStore.loading"
+                    @click="handleLogin"
+                  >
+                    {{ authStore.loading ? '登录中...' : '登录' }}
+                  </button>
+                  <button class="register-button" @click="handleRegister">注册账号</button>
                 </div>
-                <div v-if="authStore.error" class="error-message">
-                  {{ authStore.error }}
+                <div class="register-tip">
+                  👋🏻 请先注册账号，然后将注册邮箱发送至开发者微信 GeekMai 进行激活
                 </div>
               </div>
+              <div v-if="authStore.error" class="error-message">
+                {{ authStore.error }}
+              </div>
+            </div>
 
-              <!-- 已登录状态 -->
-              <div v-else class="setting-item">
-                <div class="setting-label">账号信息</div>
-                <div class="account-info">
-                  <div class="info-details">
-                    <div data-label="用户名">{{ authStore.user?.username }}</div>
-                    <div data-label="邮箱">{{ authStore.user?.email }}</div>
-                    <div data-label="许可类型">
-                      <span :class="['license-type', authStore.user?.licenseType]">
-                        {{ authStore.isDesktopPermanent ? '桌面端永久授权' : '免费版' }}
-                      </span>
-                    </div>
+            <!-- 已登录状态 -->
+            <div v-else class="setting-item">
+              <div class="setting-label">账号信息</div>
+              <div class="account-info">
+                <div class="info-details">
+                  <div data-label="用户名">{{ authStore.user?.username }}</div>
+                  <div data-label="邮箱">{{ authStore.user?.email }}</div>
+                  <div data-label="许可类型">
+                    <span :class="['license-type', authStore.user?.licenseType]">
+                      {{ authStore.isDesktopPermanent ? '桌面端永久授权' : '免费版' }}
+                    </span>
                   </div>
-                  <button class="logout-button" @click="handleLogout">退出登录</button>
                 </div>
+                <button class="logout-button" @click="handleLogout">退出登录</button>
               </div>
             </div>
           </div>
-          <!-- 会员感谢区域 -->
-          <div
-            v-if="authStore.isAuthenticated && authStore.isDesktopPermanent"
-            class="premium-member-section"
-          >
-            <div class="decoration-line">
-              <div class="line"></div>
-              <CrownThree theme="filled" size="20" fill="var(--color-primary)" :strokeWidth="3" />
-              <div class="line"></div>
-            </div>
-            <div class="thank-you-content">
-              <h3>感谢您的支持 ❤️</h3>
-              <p>因为有您的支持，Anteey 才能继续前行，与您相伴</p>
-              <div class="benefits">
-                <div class="benefit-item">
-                  <Check theme="filled" size="16" fill="var(--color-success)" />
-                  <span>无限制创建笔记</span>
-                </div>
-                <div class="benefit-item">
-                  <Check theme="filled" size="16" fill="var(--color-success)" />
-                  <span>优先体验新功能</span>
-                </div>
-                <div class="benefit-item">
-                  <Check theme="filled" size="16" fill="var(--color-success)" />
-                  <span>专属技术支持</span>
-                </div>
+        </div>
+        <!-- 会员感谢区域 -->
+        <div
+          v-if="authStore.isAuthenticated && authStore.isDesktopPermanent"
+          class="premium-member-section"
+        >
+          <div class="decoration-line">
+            <div class="line"></div>
+            <CrownThree theme="filled" size="20" fill="var(--color-primary)" :strokeWidth="3" />
+            <div class="line"></div>
+          </div>
+          <div class="thank-you-content">
+            <h3>感谢您的支持 ❤️</h3>
+            <p>因为有您的支持，Anteey 才能继续前行，与您相伴</p>
+            <div class="benefits">
+              <div class="benefit-item">
+                <Check theme="filled" size="16" fill="var(--color-success)" />
+                <span>无限制创建笔记</span>
+              </div>
+              <div class="benefit-item">
+                <Check theme="filled" size="16" fill="var(--color-success)" />
+                <span>优先体验新功能</span>
+              </div>
+              <div class="benefit-item">
+                <Check theme="filled" size="16" fill="var(--color-success)" />
+                <span>专属技术支持</span>
               </div>
             </div>
           </div>
@@ -317,12 +315,10 @@ onMounted(async () => {
 .license-settings {
   width: 100%;
   height: 100%;
-}
-.license-settings-wrapper {
-  width: 100%;
-  height: 100%;
   display: flex;
   flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
 }
 
 .settings-content-header {
@@ -368,17 +364,31 @@ onMounted(async () => {
 .shortcuts-settings-divider {
   height: 1px;
   background-color: var(--color-border);
-  margin: 4px 0 10px 0;
+  margin-bottom: 10px;
+  width: 100%;
+  opacity: 1;
+  flex-shrink: 0;
 }
 
-.settings-section {
-  margin-bottom: 32px;
+.license-settings-content {
+  width: 100%;
+  height: 100%;
+  overflow-y: auto;
+  padding-bottom: 58px;
 
-  .section-title {
-    font-size: 18px;
-    font-weight: 500;
-    margin-bottom: 16px;
-    color: var(--color-text-primary);
+  .license-content {
+    padding-right: 10px;
+
+    .settings-section {
+      margin-bottom: 30px;
+
+      .section-title {
+        font-size: 18px;
+        font-weight: 500;
+        margin-bottom: 16px;
+        color: var(--color-text-primary);
+      }
+    }
   }
 }
 
@@ -933,13 +943,22 @@ onMounted(async () => {
 }
 
 .offline-status-warning {
+  position: fixed; // 让离线提示固定在底部
+  bottom: 0;
+  left: 0;
+  right: 0;
+  margin: 16px;
+  z-index: 100;
   display: flex;
   align-items: center;
   padding: 12px;
   background: rgba(255, 152, 0, 0.1);
   border: 1px solid #ff9800;
   border-radius: 6px;
-  margin: 16px 0;
+
+  .warning-icon {
+    margin-right: 12px;
+  }
 
   .warning-content {
     margin-left: 12px;

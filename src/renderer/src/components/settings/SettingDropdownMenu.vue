@@ -6,8 +6,9 @@
       ref="dropdownRef"
       v-click-outside="closeSettingDropdown"
       class="setting-dropdown-menu"
+      :style="menuStyle"
     >
-      <div class="image-manager setting-dropdown-item" @click.stop="handleImageManagerClick">
+      <!-- <div class="image-manager setting-dropdown-item" @click.stop="handleImageManagerClick">
         <div class="icon">
           <ImageFiles
             theme="outline"
@@ -17,7 +18,7 @@
           />
         </div>
         <div class="name">图片管理</div>
-      </div>
+      </div> -->
       <div class="recycle-bin setting-dropdown-item" @click.stop="handleRecycleBinClick">
         <div class="icon">
           <RecycleBin
@@ -45,14 +46,24 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, watch } from 'vue'
-import { RecycleBin, SettingTwo, ImageFiles } from '@icon-park/vue-next'
+import { ref, onMounted, onUnmounted, watch, computed, nextTick } from 'vue'
+import { RecycleBin, SettingTwo } from '@icon-park/vue-next'
 import { useRouter } from 'vue-router'
 import { useUIStore } from '@renderer/stores/UIStore'
+import { computePosition, flip, shift, offset } from '@floating-ui/dom'
+import type { CSSProperties } from 'vue'
 
 const router = useRouter()
 const uiStore = useUIStore()
 const dropdownRef = ref<HTMLDivElement | null>(null)
+const x = ref(0)
+const y = ref(0)
+
+const menuStyle = computed<CSSProperties>(() => ({
+  position: 'fixed',
+  top: `${y.value}px`,
+  left: `${x.value}px`
+}))
 
 const closeSettingDropdown = () => {
   uiStore.closeSettingDropdown()
@@ -68,18 +79,30 @@ const handleSettingsClick = () => {
   uiStore.closeSettingDropdown()
 }
 
-const handleImageManagerClick = () => {
-  router.push('/image-manager')
-  uiStore.closeSettingDropdown()
-}
+// const handleImageManagerClick = () => {
+//   router.push('/image-manager')
+//   uiStore.closeSettingDropdown()
+// }
 
-const updateDropdownPosition = () => {
-  const button = document.querySelector('.antinet-button')
+const updateDropdownPosition = async () => {
+  const button = document.querySelector('.antinet-button') as HTMLElement
   const dropdown = dropdownRef.value
   if (button && dropdown) {
-    const rect = button.getBoundingClientRect()
-    dropdown.style.top = `${rect.bottom + 5}px`
-    dropdown.style.left = `${rect.left + 30}px`
+    // 使用 floating-ui 计算位置
+    const { x: floatingX, y: floatingY } = await computePosition(button, dropdown, {
+      placement: 'bottom-start',
+      middleware: [
+        offset(4),
+        flip({
+          fallbackPlacements: ['top-start', 'left-start', 'right-start']
+        }),
+        shift({ padding: 8 })
+      ]
+    })
+
+    // 更新位置
+    x.value = floatingX
+    y.value = floatingY
   }
 }
 
@@ -87,9 +110,11 @@ onMounted(() => {
   window.addEventListener('resize', updateDropdownPosition)
   watch(
     () => uiStore.isSettingDropdownOpen,
-    (isOpen) => {
+    async (isOpen) => {
       if (isOpen) {
-        updateDropdownPosition()
+        // 等待 DOM 更新后再计算位置
+        await nextTick()
+        await updateDropdownPosition()
       }
     }
   )
@@ -102,7 +127,6 @@ onUnmounted(() => {
 
 <style scoped lang="scss">
 .setting-dropdown-menu {
-  position: fixed; // 改为 fixed 定位
   background-color: var(--color-dropdown-bg);
   border-radius: 8px;
   box-shadow: var(--shadow-primary);
@@ -113,6 +137,23 @@ onUnmounted(() => {
   overflow-y: auto;
   padding: 6px 12px;
   white-space: nowrap;
+  // 添加过渡动画
+  transition:
+    transform 0.2s ease,
+    opacity 0.2s ease;
+  transform-origin: top left;
+  animation: dropdown-in 0.2s ease;
+}
+
+@keyframes dropdown-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 .setting-dropdown-item {

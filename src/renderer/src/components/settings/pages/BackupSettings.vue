@@ -13,110 +13,106 @@
     </div>
     <div class="backup-settings-divider"></div>
     <div class="backup-settings-content">
-      <div class="backup-item">
-        <div class="title">导出数据</div>
-        <div class="description">
-          将所有卡片笔记以 Markdown 格式导出，保留原有结构和内容的完整性。
+      <div class="backup-content">
+        <div class="backup-item">
+          <div class="title">导出数据</div>
+          <div class="description">
+            将所有卡片笔记以 Markdown 格式导出，保留原有结构和内容的完整性。
+          </div>
+          <div class="backup-item-button" @click="handleBulkExport">立即导出</div>
         </div>
-        <div class="backup-item-button" @click="handleBulkExport">立即导出</div>
-      </div>
 
-      <div class="backup-item">
-        <div class="title">数据库备份</div>
-        <div class="description">
-          备份整个数据库，包括所有笔记、标签、关系等数据。建议定期备份以防数据丢失。
+        <div class="backup-item">
+          <div class="title">数据库备份</div>
+          <div class="description">
+            备份整个数据库，包括所有笔记、标签、关系等数据。建议定期备份以防数据丢失。
+          </div>
+          <div class="backup-settings-form">
+            <div class="form-item">
+              <div class="label">备份路径</div>
+              <div class="value">
+                <div class="path" @click="handleSelectBackupPath">
+                  {{ backupStore.settings?.backup_path || '点击选择备份路径' }}
+                </div>
+              </div>
+            </div>
+            <div class="form-item">
+              <div class="label">自动备份</div>
+              <div class="value">
+                <div class="auto-backup-setting">
+                  <Switch :model-value="autoBackup" @update:model-value="autoBackup = $event" />
+                  <div class="auto-backup-description">
+                    {{ autoBackup ? '应用启动和关闭时自动备份' : '仅支持手动备份' }}
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="backup-actions">
+              <div
+                class="backup-item-button"
+                :class="{ 'is-loading': isBackingUp }"
+                @click="handleCreateBackup"
+              >
+                {{ isBackingUp ? '备份中...' : '立即备份' }}
+              </div>
+              <div
+                class="backup-item-button restore"
+                :class="{ 'is-loading': isRestoring }"
+                @click="handleRestoreClick"
+              >
+                {{ isRestoring ? '恢复中...' : '备份恢复' }}
+              </div>
+            </div>
+          </div>
         </div>
-        <div class="backup-settings-form">
-          <div class="form-item">
-            <div class="label">备份路径</div>
-            <div class="value">
-              <div class="path" @click="handleSelectBackupPath">
-                {{ backupStore.settings?.backup_path || '点击选择备份路径' }}
-              </div>
-            </div>
+
+        <div class="backup-item">
+          <div class="title-row">
+            <div class="title">备份历史</div>
+            <div class="clear-history" @click="handleClearHistory">清空历史</div>
           </div>
-          <div class="form-item">
-            <div class="label">自动备份</div>
-            <div class="value">
-              <div class="auto-backup-setting">
-                <div
-                  class="switch"
-                  :class="{ 'is-active': autoBackup }"
-                  @click="autoBackup = !autoBackup"
-                >
-                  <div class="switch-handle"></div>
-                </div>
-                <div class="auto-backup-description">
-                  {{ autoBackup ? '应用启动和关闭时自动备份' : '仅支持手动备份' }}
-                </div>
-              </div>
-            </div>
-          </div>
-          <div class="backup-actions">
-            <div
-              class="backup-item-button"
-              :class="{ 'is-loading': isBackingUp }"
-              @click="handleCreateBackup"
-            >
-              {{ isBackingUp ? '备份中...' : '立即备份' }}
+          <div class="backup-history">
+            <div v-if="backupStore.history.length === 0" class="history-empty">
+              <div class="empty-text">暂无备份历史</div>
             </div>
             <div
-              class="backup-item-button restore"
-              :class="{ 'is-loading': isRestoring }"
+              v-for="item in backupStore.history"
+              :key="item.id"
+              class="history-item"
               @click="handleRestoreClick"
             >
-              {{ isRestoring ? '恢复中...' : '备份恢复' }}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="backup-item">
-        <div class="title-row">
-          <div class="title">备份历史</div>
-          <div class="clear-history" @click="handleClearHistory">清空历史</div>
-        </div>
-        <div class="backup-history">
-          <div v-if="backupStore.history.length === 0" class="history-empty">
-            <div class="empty-text">暂无备份历史</div>
-          </div>
-          <div
-            v-for="item in backupStore.history"
-            :key="item.id"
-            class="history-item"
-            @click="handleRestoreClick"
-          >
-            <div class="history-item-left">
-              <div class="history-item-icon">
-                <DatabaseDownload
-                  theme="outline"
-                  size="16"
-                  :strokeWidth="3"
-                  fill="var(--color-text-secondary)"
-                />
-              </div>
-              <div class="history-item-info">
-                <div class="history-item-name">{{ item.backup_file_name }}</div>
-                <div class="history-item-meta">
-                  <span class="time">{{
-                    new Date(item.created_at).toLocaleString('zh-CN', {
-                      timeZone: 'Asia/Shanghai',
-                      year: 'numeric',
-                      month: '2-digit',
-                      day: '2-digit',
-                      hour: '2-digit',
-                      minute: '2-digit',
-                      second: '2-digit',
-                      hour12: false
-                    })
-                  }}</span>
-                  <span class="dot">·</span>
-                  <span class="size">{{ formatBytes(item.backup_size) }}</span>
+              <div class="history-item-left">
+                <div class="history-item-icon">
+                  <DatabaseDownload
+                    theme="outline"
+                    size="16"
+                    :strokeWidth="3"
+                    fill="var(--color-text-secondary)"
+                  />
+                </div>
+                <div class="history-item-info">
+                  <div class="history-item-name">{{ item.backup_file_name }}</div>
+                  <div class="history-item-meta">
+                    <span class="time">{{
+                      new Date(item.created_at).toLocaleString('zh-CN', {
+                        timeZone: 'Asia/Shanghai',
+                        year: 'numeric',
+                        month: '2-digit',
+                        day: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit',
+                        hour12: false
+                      })
+                    }}</span>
+                    <span class="dot">·</span>
+                    <span class="size">{{ formatBytes(item.backup_size) }}</span>
+                  </div>
                 </div>
               </div>
-            </div>
-            <div class="history-item-action">
-              <div class="restore-button">从此备份恢复</div>
+              <div class="history-item-action">
+                <div class="restore-button">从此备份恢复</div>
+              </div>
             </div>
           </div>
         </div>
@@ -142,6 +138,7 @@ import { useBackupStore } from '@renderer/stores/backupStore'
 import { ref, onMounted, computed } from 'vue'
 import { formatBytes } from '@renderer/utils/format'
 import ConfirmDialog from '@renderer/components/common/ConfirmDialog.vue'
+import Switch from '@renderer/components/ui/Switch.vue'
 
 const noteId = ref('')
 const { handleBulkExport } = useNoteMenu({
@@ -274,7 +271,7 @@ async function handleClearHistory() {
 .backup-settings-divider {
   height: 1px;
   background-color: var(--color-border);
-  margin: 4px 0;
+  margin-bottom: 10px;
   width: 100%;
   opacity: 1;
   flex-shrink: 0;
@@ -283,59 +280,62 @@ async function handleClearHistory() {
 .backup-settings-content {
   width: 100%;
   height: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  justify-content: flex-start;
+  overflow-y: auto;
+  padding-bottom: 58px;
 
-  .backup-item {
-    width: 100%;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    justify-content: flex-start;
-    margin-bottom: 12px;
+  .backup-content {
+    padding-right: 10px;
 
-    .title {
-      font-size: 18px;
-      line-height: 1;
-      color: var(--color-text-primary);
-      font-weight: 500;
-      user-select: none;
+    .backup-item {
+      width: 100%;
       display: flex;
-      align-items: center;
+      flex-direction: column;
+      align-items: flex-start;
       justify-content: flex-start;
-      margin: 15px 0;
-      user-select: none;
-    }
+      margin-top: 4px;
+      margin-bottom: 30px;
 
-    .description {
-      font-size: 14px;
-      line-height: 1;
-      color: var(--color-text-secondary);
-      display: flex;
-      align-items: center;
-      justify-content: flex-start;
-      margin-bottom: 15px;
-      user-select: none;
-    }
+      .title {
+        font-size: 18px;
+        line-height: 1;
+        color: var(--color-text-primary);
+        font-weight: 500;
+        user-select: none;
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+        margin-bottom: 15px;
+        user-select: none;
+      }
 
-    .backup-item-button {
-      width: 80px;
-      height: 35px;
-      background-color: var(--color-primary);
-      color: var(--color-text-inversion);
-      border-radius: 8px;
-      font-size: 14px;
-      font-weight: 500;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      user-select: none;
+      .description {
+        font-size: 14px;
+        line-height: 1;
+        color: var(--color-text-secondary);
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+        margin-bottom: 15px;
+        user-select: none;
+      }
 
-      &:hover {
-        opacity: 0.9;
+      .backup-item-button {
+        width: 80px;
+        height: 35px;
+        background-color: var(--color-primary);
+        color: var(--color-text-inversion);
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        user-select: none;
+
+        &:hover {
+          opacity: 0.9;
+        }
       }
     }
   }
@@ -507,35 +507,6 @@ async function handleClearHistory() {
   align-items: center;
   gap: 12px;
 
-  .switch {
-    position: relative;
-    width: 36px;
-    height: 20px;
-    background-color: var(--color-slider-track);
-    border-radius: 10px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-
-    &.is-active {
-      background-color: var(--color-primary);
-
-      .switch-handle {
-        transform: translateX(16px);
-      }
-    }
-
-    .switch-handle {
-      position: absolute;
-      top: 2px;
-      left: 2px;
-      width: 16px;
-      height: 16px;
-      background-color: #fff;
-      border-radius: 50%;
-      transition: all 0.2s ease;
-    }
-  }
-
   .auto-backup-description {
     font-size: 12px;
     color: var(--color-text-secondary);
@@ -547,7 +518,7 @@ async function handleClearHistory() {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin: 15px 0;
+  margin-bottom: 10px;
 
   .title {
     font-size: 18px;

@@ -1427,7 +1427,7 @@ const handleReviewClick = async () => {
   }
 
   &:hover {
-    background-color: var(--color-hover-sidebar);
+    background-color: rgba(var(--color-sidebar-icon-bg), 0.04);
   }
 
   &.is-syncing {

@@ -94,8 +94,8 @@ const selectMenuItem = (key: string) => {
 .settings-page {
   display: flex;
   background-color: var(--color-bg-primary);
-  width: 60vw;
-  height: 80vh;
+  width: 70vw;
+  height: 90vh;
   max-width: 1000px;
   max-height: 820px;
   z-index: 9999;
@@ -219,7 +219,7 @@ const selectMenuItem = (key: string) => {
 
 .settings-content {
   flex-grow: 1;
-  padding: 16px;
+  padding: 16px 25px;
   background-color: var(--color-background-primary);
   overflow-y: auto;
 }

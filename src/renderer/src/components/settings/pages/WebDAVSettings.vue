@@ -13,159 +13,157 @@
     </div>
     <div class="webdav-settings-divider"></div>
     <div class="webdav-settings-content">
-      <!-- WebDAV 服务配置 -->
-      <div class="webdav-item">
-        <div class="title">WebDAV 服务</div>
-        <div class="description">配置 WebDAV 服务器信息，目前支持坚果云 WebDAV 服务。</div>
-        <div class="webdav-settings-form">
-          <div class="form-item">
-            <div class="label">服务类型</div>
-            <div class="value">
-              <div class="select-wrapper">
-                <div class="select" @click="showServerTypeSelect = !showServerTypeSelect">
-                  <span class="selected-value">{{ getServerTypeName(serverType) }}</span>
-                  <div class="select-arrow">
-                    <Down theme="outline" size="16" :strokeWidth="3" />
+      <div class="webdav-content">
+        <!-- WebDAV 服务配置 -->
+        <div class="webdav-item">
+          <div class="title">WebDAV 服务</div>
+          <div class="description">配置 WebDAV 服务器信息，目前支持坚果云 WebDAV 服务。</div>
+          <div class="webdav-settings-form">
+            <div class="form-item">
+              <div class="label">服务类型</div>
+              <div class="value">
+                <div class="select-wrapper">
+                  <div class="select" @click="showServerTypeSelect = !showServerTypeSelect">
+                    <span class="selected-value">{{ getServerTypeName(serverType) }}</span>
+                    <div class="select-arrow">
+                      <Down theme="outline" size="16" :strokeWidth="3" />
+                    </div>
                   </div>
-                </div>
-                <div v-show="showServerTypeSelect" class="select-dropdown">
-                  <div
-                    v-for="type in serverTypes"
-                    :key="type.value"
-                    class="select-option"
-                    :class="{ active: serverType === type.value }"
-                    @click="selectServerType(type.value)"
-                  >
-                    {{ type.label }}
+                  <div v-show="showServerTypeSelect" class="select-dropdown">
+                    <div
+                      v-for="type in serverTypes"
+                      :key="type.value"
+                      class="select-option"
+                      :class="{ active: serverType === type.value }"
+                      @click="selectServerType(type.value)"
+                    >
+                      {{ type.label }}
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
-          <div class="form-item">
-            <div class="label">服务地址</div>
-            <div class="value">
-              <input v-model="url" type="text" placeholder="请输入 WebDAV 服务器地址" />
+            <div class="form-item">
+              <div class="label">服务地址</div>
+              <div class="value">
+                <input v-model="url" type="text" placeholder="请输入 WebDAV 服务器地址" />
+              </div>
             </div>
-          </div>
-          <div class="form-item">
-            <div class="label">用户名</div>
-            <div class="value">
-              <input v-model="username" type="text" placeholder="请输入用户名" />
+            <div class="form-item">
+              <div class="label">用户名</div>
+              <div class="value">
+                <input v-model="username" type="text" placeholder="请输入用户名" />
+              </div>
             </div>
-          </div>
-          <div class="form-item">
-            <div class="label">应用密码</div>
-            <div class="value">
-              <input v-model="password" type="password" placeholder="请输入应用密码" />
+            <div class="form-item">
+              <div class="label">应用密码</div>
+              <div class="value">
+                <input v-model="password" type="password" placeholder="请输入应用密码" />
+              </div>
             </div>
-          </div>
-          <div class="webdav-actions">
-            <div
-              class="webdav-item-button test"
-              :class="{ 'is-loading': isTesting }"
-              @click="handleTestConnection"
-            >
-              {{ isTesting ? '测试中...' : '测试连接' }}
-            </div>
-            <div
-              class="webdav-item-button"
-              :class="{ 'is-loading': isSaving }"
-              @click="handleSaveConfig"
-            >
-              {{ isSaving ? '保存中...' : '保存配置' }}
+            <div class="webdav-actions">
+              <div
+                class="webdav-item-button test"
+                :class="{ 'is-loading': isTesting }"
+                @click="handleTestConnection"
+              >
+                {{ isTesting ? '测试中...' : '测试连接' }}
+              </div>
+              <div
+                class="webdav-item-button"
+                :class="{ 'is-loading': isSaving }"
+                @click="handleSaveConfig"
+              >
+                {{ isSaving ? '保存中...' : '保存配置' }}
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
-      <!-- 同步设置 -->
-      <div class="webdav-item">
-        <div class="title">同步设置</div>
-        <div class="description">配置自动同步和同步方式，确保数据的安全性和一致性。</div>
-        <div class="webdav-settings-form">
-          <div class="form-item">
-            <div class="label">自动同步</div>
-            <div class="value">
-              <div class="auto-sync-setting">
-                <div
-                  class="switch"
-                  :class="{ 'is-active': autoSync }"
-                  @click="autoSync = !autoSync"
-                >
-                  <div class="switch-handle"></div>
-                </div>
-                <div class="auto-sync-description">
-                  {{ autoSync ? '定时自动同步' : '仅支持手动同步' }}
-                </div>
-              </div>
-            </div>
-          </div>
-          <div v-if="autoSync" class="form-item">
-            <div class="label">同步间隔</div>
-            <div class="value">
-              <div class="select-wrapper sync-interval-select">
-                <div class="select" @click="showIntervalSelect = !showIntervalSelect">
-                  <span class="selected-value">{{ getSyncIntervalText(syncInterval) }}</span>
-                  <div class="select-arrow">
-                    <Down theme="outline" size="16" :strokeWidth="3" />
-                  </div>
-                </div>
-                <div v-show="showIntervalSelect" class="select-dropdown">
-                  <div
-                    v-for="interval in syncIntervals"
-                    :key="interval.value"
-                    class="select-option"
-                    :class="{ active: syncInterval === interval.value }"
-                    @click="selectInterval(interval.value)"
-                  >
-                    {{ interval.label }}
+        <!-- 同步设置 -->
+        <div class="webdav-item">
+          <div class="title">同步设置</div>
+          <div class="description">配置自动同步和同步方式，确保数据的安全性和一致性。</div>
+          <div class="webdav-settings-form">
+            <div class="form-item">
+              <div class="label">自动同步</div>
+              <div class="value">
+                <div class="auto-sync-setting">
+                  <Switch :model-value="autoSync" @update:model-value="autoSync = $event" />
+                  <div class="auto-sync-description">
+                    {{ autoSync ? '定时自动同步' : '仅支持手动同步' }}
                   </div>
                 </div>
               </div>
             </div>
-          </div>
-          <div class="webdav-actions">
-            <div
-              class="webdav-item-button"
-              :class="{ 'is-loading': isSyncing }"
-              @click="handleSync"
-            >
-              {{ isSyncing ? '同步中...' : '立即同步' }}
+            <div v-if="autoSync" class="form-item">
+              <div class="label">同步间隔</div>
+              <div class="value">
+                <div class="select-wrapper sync-interval-select">
+                  <div class="select" @click="showIntervalSelect = !showIntervalSelect">
+                    <span class="selected-value">{{ getSyncIntervalText(syncInterval) }}</span>
+                    <div class="select-arrow">
+                      <Down theme="outline" size="16" :strokeWidth="3" />
+                    </div>
+                  </div>
+                  <div v-show="showIntervalSelect" class="select-dropdown">
+                    <div
+                      v-for="interval in syncIntervals"
+                      :key="interval.value"
+                      class="select-option"
+                      :class="{ active: syncInterval === interval.value }"
+                      @click="selectInterval(interval.value)"
+                    >
+                      {{ interval.label }}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="webdav-actions">
+              <div
+                class="webdav-item-button"
+                :class="{ 'is-loading': isSyncing }"
+                @click="handleSync"
+              >
+                {{ isSyncing ? '同步中...' : '立即同步' }}
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
-      <!-- 同步历史 -->
-      <div class="webdav-item">
-        <div class="title">同步历史</div>
-        <div class="sync-history">
-          <div v-if="webdavStore.syncHistory.length === 0" class="history-empty">
-            <div class="empty-text">暂无同步历史</div>
-          </div>
-          <div v-for="item in webdavStore.syncHistory" :key="item.id" class="history-item">
-            <div class="history-item-left">
-              <div class="history-item-icon">
-                <CloudStorage
-                  theme="outline"
-                  size="16"
-                  :strokeWidth="3"
-                  fill="var(--color-text-secondary)"
-                />
-              </div>
-              <div class="history-item-info">
-                <div class="history-item-name">
-                  {{ item.type === 'auto' ? '自动同步' : '手动同步' }}
+        <!-- 同步历史 -->
+        <div class="webdav-item">
+          <div class="title">同步历史</div>
+          <div class="sync-history">
+            <div v-if="webdavStore.syncHistory.length === 0" class="history-empty">
+              <div class="empty-text">暂无同步历史</div>
+            </div>
+            <div v-for="item in webdavStore.syncHistory" :key="item.id" class="history-item">
+              <div class="history-item-left">
+                <div class="history-item-icon">
+                  <CloudStorage
+                    theme="outline"
+                    size="16"
+                    :strokeWidth="3"
+                    fill="var(--color-text-secondary)"
+                  />
                 </div>
-                <div class="history-item-meta">
-                  <span class="time">{{
-                    new Date(item.timestamp).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' })
-                  }}</span>
-                  <span class="dot">·</span>
-                  <span class="status" :class="item.status">
-                    {{ item.status === 'success' ? '成功' : '失败' }}
-                  </span>
+                <div class="history-item-info">
+                  <div class="history-item-name">
+                    {{ item.type === 'auto' ? '自动同步' : '手动同步' }}
+                  </div>
+                  <div class="history-item-meta">
+                    <span class="time">{{
+                      new Date(item.timestamp).toLocaleString('zh-CN', {
+                        timeZone: 'Asia/Shanghai'
+                      })
+                    }}</span>
+                    <span class="dot">·</span>
+                    <span class="status" :class="item.status">
+                      {{ item.status === 'success' ? '成功' : '失败' }}
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -182,6 +180,7 @@ import { useWebDAVStore } from '@renderer/stores/webdavStore'
 import { ref, onMounted, computed, watch } from 'vue'
 import type { WebDAVServerType } from '@shared/types'
 import { message } from '../../../utils/message'
+import Switch from '@renderer/components/ui/Switch.vue'
 
 const webdavStore = useWebDAVStore()
 const isTesting = ref(false)
@@ -394,7 +393,7 @@ watch(
 .webdav-settings-divider {
   height: 1px;
   background-color: var(--color-border);
-  margin: 4px 0;
+  margin-bottom: 10px;
   width: 100%;
   opacity: 1;
   flex-shrink: 0;
@@ -403,68 +402,71 @@ watch(
 .webdav-settings-content {
   width: 100%;
   height: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  justify-content: flex-start;
+  overflow-y: auto;
+  padding-bottom: 58px;
 
-  .webdav-item {
-    width: 100%;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    justify-content: flex-start;
-    margin-bottom: 12px;
+  .webdav-content {
+    padding-right: 10px;
 
-    .title {
-      font-size: 18px;
-      line-height: 1;
-      color: var(--color-text-primary);
-      font-weight: 500;
-      user-select: none;
+    .webdav-item {
+      width: 100%;
       display: flex;
-      align-items: center;
+      flex-direction: column;
+      align-items: flex-start;
       justify-content: flex-start;
-      margin: 15px 0;
-      user-select: none;
-    }
+      margin-top: 4px;
+      margin-bottom: 30px;
 
-    .description {
-      font-size: 14px;
-      line-height: 1;
-      color: var(--color-text-secondary);
-      display: flex;
-      align-items: center;
-      justify-content: flex-start;
-      margin-bottom: 15px;
-      user-select: none;
-    }
-
-    .webdav-item-button {
-      width: 80px;
-      height: 35px;
-      background-color: var(--color-primary);
-      color: var(--color-text-inversion);
-      border-radius: 8px;
-      font-size: 14px;
-      font-weight: 500;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      user-select: none;
-
-      &:hover {
-        opacity: 0.9;
+      .title {
+        font-size: 18px;
+        line-height: 1;
+        color: var(--color-text-primary);
+        font-weight: 500;
+        user-select: none;
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+        margin-bottom: 15px;
+        user-select: none;
       }
 
-      &.test {
+      .description {
+        font-size: 14px;
+        line-height: 1;
+        color: var(--color-text-secondary);
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+        margin-bottom: 15px;
+        user-select: none;
+      }
+
+      .webdav-item-button {
+        width: 80px;
+        height: 35px;
         background-color: var(--color-primary);
-      }
+        color: var(--color-text-inversion);
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        user-select: none;
 
-      &.is-loading {
-        opacity: 0.7;
-        cursor: not-allowed;
+        &:hover {
+          opacity: 0.9;
+        }
+
+        &.test {
+          background-color: var(--color-primary);
+        }
+
+        &.is-loading {
+          opacity: 0.7;
+          cursor: not-allowed;
+        }
       }
     }
   }
@@ -525,35 +527,6 @@ watch(
   display: flex;
   align-items: center;
   gap: 12px;
-
-  .switch {
-    position: relative;
-    width: 36px;
-    height: 20px;
-    background-color: var(--color-slider-track);
-    border-radius: 10px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-
-    &.is-active {
-      background-color: var(--color-primary);
-
-      .switch-handle {
-        transform: translateX(16px);
-      }
-    }
-
-    .switch-handle {
-      position: absolute;
-      top: 2px;
-      left: 2px;
-      width: 16px;
-      height: 16px;
-      background-color: #fff;
-      border-radius: 50%;
-      transition: all 0.2s ease;
-    }
-  }
 
   .auto-sync-description {
     font-size: 12px;
@@ -745,6 +718,47 @@ watch(
       background: var(--color-scrollbar);
       border-radius: 4px;
     }
+  }
+}
+
+.title-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+
+  .icon {
+    background: none;
+    border: 1px solid var(--color-border);
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    padding: 4px;
+    border-radius: 6px;
+
+    :deep(.i-icon) {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      height: 100%;
+    }
+
+    svg {
+      width: 20px;
+      height: 20px;
+    }
+  }
+
+  .name {
+    font-size: 20px;
+    line-height: 1;
+    font-weight: 500;
+    user-select: none;
   }
 }
 </style>

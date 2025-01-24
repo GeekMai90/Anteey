@@ -275,10 +275,7 @@ const shortcuts = [
   },
   {
     name: '思维板',
-    shortcuts: [
-      { action: '搜索新增白板笔记', keys: ['⌘', '⇧', 'N'] },
-      { action: '新增空白白板笔记', keys: ['双击空白处'] }
-    ]
+    shortcuts: [{ action: '搜索新增白板笔记', keys: ['⌘', '⇧', 'N'] }]
   },
   {
     name: '右侧边栏',
