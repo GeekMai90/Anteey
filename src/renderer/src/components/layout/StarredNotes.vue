@@ -78,11 +78,11 @@ const openContextMenu = (event: MouseEvent, note: Note) => {
         await noteStore.removeStarFromNote(note.id)
         contextMenuStore.closeMenu()
       },
-      icon: markRaw(Star) // 使用 markRaw 包装图标组件
+      icon: markRaw(Star)
     }
   ]
 
-  contextMenuStore.showMenu(event.clientX, event.clientY, menuItems)
+  contextMenuStore.showMenuAtPosition(event.clientX, event.clientY, menuItems)
 }
 
 // 拖拽结束后更新笔记顺序

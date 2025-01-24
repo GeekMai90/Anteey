@@ -590,64 +590,6 @@ onUnmounted(() => {
   document.removeEventListener('mouseup', stopDraggingItem)
 })
 
-// 双击空白处新增白板笔记
-// const handleContainerDoubleClick = (event: MouseEvent) => {
-//   console.log('handleContainerDoubleClick', event)
-//   event.preventDefault()
-//   event.stopPropagation()
-
-//   if (!containerRef.value) {
-//     console.error('containerRef is null')
-//     return
-//   }
-//   // 检查事件目标是否是 contentRef 或其子元素
-//   if (event.target === containerRef.value) {
-//     const rect = containerRef.value.getBoundingClientRect()
-
-//     // const x = (event.clientX - rect.left) / scale.value - translateX.value
-//     // const y = (event.clientY - rect.top) / scale.value - translateY.value
-//     const x = (event.clientX - rect.left - translateX.value) / scale.value
-//     const y = (event.clientY - rect.top - translateY.value) / scale.value
-
-//     contextMenuStore.showMenu(event.clientX, event.clientY, [
-//       {
-//         label: '新建笔记',
-//         icon: markRaw(Add),
-//         action: () => createWhiteboardNote(x, y)
-//       }
-//     ])
-//   } else {
-//     console.log('双击事件的目标不是 contentRef 或其子元素')
-//   }
-// }
-
-// 创建白板笔记的函数
-// const createWhiteboardNote = async (x: number, y: number) => {
-//   if (!whiteboardId.value) return
-//   console.log('创建白板笔记', whiteboardId.value)
-//   const input: CreateWhiteboardNoteInput = {
-//     whiteboardId: whiteboardId.value,
-//     noteId: '',
-//     position: { x, y }, // 默认位置，你可以根据需要调整
-//     size: { width: 350, height: 300 }, // 默认大小，你可以根据需要调整
-//     zIndex: 1,
-//     rotation: 0,
-//     isAutoHeight: false,
-//     type: 'card'
-//   }
-
-//   try {
-//     const newNote = await whiteboardStore.createWhiteboardNote(input)
-//     console.log('newNote', newNote)
-//     if (newNote && newNote.id) {
-//       console.log('whiteboardNotes', whiteboardNotes.value)
-//     }
-//   } catch (error) {
-//     console.error('Failed to create whiteboard note:', error)
-//     message.error('创建失败')
-//   }
-// }
-
 // 拖动状态变量
 let isDragging = false
 let lastX = 0

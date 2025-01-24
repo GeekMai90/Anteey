@@ -16,6 +16,7 @@ export const useContextMenuStore = defineStore('contextMenu', () => {
     left: `${x.value}px`
   }))
 
+  // 从按钮显示菜单
   async function showMenu(buttonElement: HTMLElement, newItems: typeof items.value) {
     // 先设置初始位置（使用按钮的位置）
     const buttonRect = buttonElement.getBoundingClientRect()
@@ -48,9 +49,61 @@ export const useContextMenuStore = defineStore('contextMenu', () => {
     y.value = floatingY
   }
 
+  // 在指定位置显示菜单（用于右键菜单）
+  async function showMenuAtPosition(
+    clientX: number,
+    clientY: number,
+    newItems: typeof items.value
+  ) {
+    // 创建一个虚拟参考元素
+    const virtualEl = {
+      getBoundingClientRect() {
+        return {
+          width: 0,
+          height: 0,
+          x: clientX,
+          y: clientY,
+          top: clientY,
+          left: clientX,
+          right: clientX,
+          bottom: clientY
+        }
+      }
+    }
+
+    // 先设置初始位置
+    x.value = clientX
+    y.value = clientY
+    items.value = newItems
+    show.value = true
+
+    // 等待 DOM 更新
+    await nextTick()
+
+    // 获取菜单元素
+    const menuEl = document.querySelector('.global-context-menu') as HTMLElement
+    if (!menuEl) return
+
+    // 计算最终位置
+    const { x: floatingX, y: floatingY } = await computePosition(virtualEl, menuEl, {
+      placement: 'bottom-start',
+      middleware: [
+        offset(4),
+        flip({
+          fallbackPlacements: ['top-start', 'left-start', 'right-start']
+        }),
+        shift({ padding: 8 })
+      ]
+    })
+
+    // 更新到最终位置
+    x.value = floatingX
+    y.value = floatingY
+  }
+
   function closeMenu() {
     show.value = false
   }
 
-  return { show, x, y, items, menuStyle, showMenu, closeMenu }
+  return { show, x, y, items, menuStyle, showMenu, showMenuAtPosition, closeMenu }
 })
