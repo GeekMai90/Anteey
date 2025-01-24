@@ -239,7 +239,7 @@ export function useConnection(
   // 显示连线上下文菜单
   const showConnectionContextMenu = (event: MouseEvent, connection: Connection) => {
     selectedConnectionId.value = connection.id
-    contextMenuStore.showMenu(event.clientX, event.clientY, [
+    contextMenuStore.showMenuAtPosition(event.clientX, event.clientY, [
       {
         label: '删除连线',
         icon: markRaw(Delete),

@@ -633,9 +633,11 @@ export function useNoteMenu(params: NoteMenuParams) {
             closePopupMenu()
             const eventBus = useEventBus('note-permanent-deleted')
             eventBus.emit()
+            return true
           } catch (error) {
             console.error('永久删除笔记失败:', error)
             message.error('删除失败')
+            return false
           } finally {
             isConfirmingPermanentDelete.value = false
             if (permanentDeleteTimeout) {

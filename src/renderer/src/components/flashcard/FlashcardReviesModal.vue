@@ -26,7 +26,7 @@
             <PopupMenu
               ref="moreMenuRef"
               :show="moreMenuState.isOpen"
-              :position="moreMenuState.position"
+              :buttonRef="moreBtnRef"
               :menuItems="noteMenuItems"
               @close="closeMoreMenu"
               @itemClick="handleMenuItemClick"
