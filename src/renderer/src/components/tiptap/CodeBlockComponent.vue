@@ -426,7 +426,7 @@ const handleInputBlur = (event: FocusEvent) => {
     align-items: center;
     gap: 8px;
     z-index: 2;
-    // opacity: 0; // 默认隐藏
+    opacity: 0; // 默认隐藏
     transition: opacity 0.2s ease; // 添加过渡效果
     pointer-events: none; // 默认不响应鼠标事件
 

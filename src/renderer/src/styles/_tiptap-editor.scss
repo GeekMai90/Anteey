@@ -169,8 +169,7 @@
   // 笔记引用链接
   a[href^="note://"]
   {
-    display: inline-flex;
-    align-items: center;
+    display: inline;
     text-decoration: none;
     font-size: inherit;
     line-height: inherit;
@@ -178,26 +177,27 @@
     position: relative;
     color: var(--color-link-backlink);
     transition: all 0.2s ease;
-    height: 1.2em;
     margin: 0 4px;
-
-    &::after {
-      content: "";
-      position: absolute;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      height: 1px;
-      background-color: currentColor;
-      opacity: 0.5;
-    }
+    white-space: normal;
+    word-break: break-word;
+    background-image: linear-gradient(to right, currentColor 100%, transparent 0);
+    background-position: 0 100%;
+    background-repeat: repeat-x;
+    background-size: 1px 1px;
+    text-shadow:
+      0.03em 0 var(--color-bg-primary),
+      -0.03em 0 var(--color-bg-primary),
+      0 0.03em var(--color-bg-primary),
+      0 -0.03em var(--color-bg-primary);
 
     &:hover {
       text-decoration: none;
+      background-image: linear-gradient(to right, currentColor 100%, transparent 0);
+      opacity: 0.8;
+    }
 
-      &::after {
-        opacity: 1;
-      }
+    &::after {
+      display: none;
     }
   }
 

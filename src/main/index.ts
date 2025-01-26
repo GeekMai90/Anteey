@@ -214,7 +214,9 @@ async function createWindow(): Promise<BrowserWindow> {
       // 禁用站点隔离试验特性
       additionalArguments: ['--disable-site-isolation-trials'],
       // 禁用网页安全策略，允许跨域请求等（警告：仅建议在开发环境使用）
-      webSecurity: false
+      webSecurity: false,
+      backgroundThrottling: true
+      // 当窗口在后台时限制性能,降低资源占用
     }
   })
   // 启用 remote 模块

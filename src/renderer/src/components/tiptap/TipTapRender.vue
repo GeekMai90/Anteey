@@ -26,7 +26,7 @@ import TextAlign from '@tiptap/extension-text-align'
 import Details from '@tiptap-pro/extension-details'
 import DetailsContent from '@tiptap-pro/extension-details-content'
 import DetailsSummary from '@tiptap-pro/extension-details-summary'
-import { CustomTextStyle } from '@renderer/utils/tiptap/CustomTextStyle' // 添加这行
+import { CustomTextStyle } from '@renderer/utils/tiptap/CustomTextStyle'
 import { CustomTable, TableRow, TableHeader, TableCell } from '@renderer/utils/tiptap/CustomTable'
 
 const props = defineProps({
@@ -49,7 +49,7 @@ const editorInstance = computed(() => editor.value)
 
 const editorRootRef = ref(null)
 
-// 扩展 Image 扩展
+// 修改 CustomImage 扩展，在预览模式下禁用交互
 const CustomImage = Image.extend({
   addAttributes() {
     return {
@@ -57,13 +57,13 @@ const CustomImage = Image.extend({
       width: {
         default: '100%',
         renderHTML: (attributes) => ({
-          style: `width: ${attributes.width}`
+          style: `width: ${attributes.width}; pointer-events: none;`
         })
       },
       align: {
         default: 'center',
         renderHTML: (attributes) => ({
-          style: `display: block; margin: ${attributes.align === 'center' ? '0 auto' : attributes.align === 'left' ? '0 auto 0 0' : '0 0 0 auto'}`
+          style: `display: block; margin: ${attributes.align === 'center' ? '0 auto' : attributes.align === 'left' ? '0 auto 0 0' : '0 0 0 auto'}; pointer-events: none;`
         })
       }
     }
@@ -88,7 +88,10 @@ const editorExtensions = computed(() => {
     CustomLink.configure({
       openOnClick: false,
       parseMarkdown: true,
-      validate: (url) => /^(https?:\/\/|note:\/\/)/.test(url)
+      validate: (url) => /^(https?:\/\/|note:\/\/)/.test(url),
+      HTMLAttributes: {
+        style: 'pointer-events: none;'
+      }
     }),
     Underline,
     Subscript,
@@ -136,7 +139,10 @@ onMounted(() => {
   editor.value = new Editor({
     extensions: editorExtensions.value,
     content: props.content,
-    editable: false
+    editable: false,
+    enableInputRules: false,
+    enablePasteRules: false,
+    updateInterval: 300
   })
 })
 
@@ -150,11 +156,51 @@ const destroyEditor = () => {
 onBeforeUnmount(destroyEditor)
 </script>
 
-<style lang="scss">
+<style lang="scss" scoped>
 .editor-wrapper {
   position: relative;
   width: 100%;
   height: 100%;
   user-select: none;
+}
+
+:deep(.tiptap) {
+  * {
+    pointer-events: none !important;
+    user-select: none !important;
+  }
+
+  .tiptap-image-wrapper {
+    .image-popover,
+    .resize-handle {
+      display: none !important;
+    }
+  }
+
+  a {
+    pointer-events: none !important;
+    cursor: default !important;
+
+    &:hover {
+      opacity: 1 !important;
+      text-decoration: none !important;
+    }
+  }
+
+  .task-list-item {
+    input[type='checkbox'] {
+      pointer-events: none !important;
+    }
+  }
+
+  pre {
+    pointer-events: none !important;
+  }
+
+  table {
+    .column-resize-handle {
+      display: none !important;
+    }
+  }
 }
 </style>

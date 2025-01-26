@@ -242,8 +242,8 @@ export const useAuthStore = defineStore('auth', () => {
     // 立即执行一次检查
     checkOfflineStatus()
 
-    // 设置定时检查 (每5分钟)
-    offlineMonitorInterval = setInterval(checkOfflineStatus, 5 * 60 * 1000)
+    // 设置定时检查 (每 4小时)
+    offlineMonitorInterval = setInterval(checkOfflineStatus, 4 * 60 * 60 * 1000) // 2小时 = 2 * 60 * 60 * 1000 毫秒
   }
 
   // 修改检查逻辑

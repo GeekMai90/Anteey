@@ -724,7 +724,7 @@ defineEmits<{
 
 .template-sidebar {
   width: 280px;
-  background: var(--color-bg-secondary);
+  background: var(--color-bg-primary);
   border-right: 1px solid var(--color-border);
   display: flex;
   flex-direction: column;
@@ -775,6 +775,9 @@ defineEmits<{
   border-radius: 8px;
 
   &.active {
+    background: var(--color-hover-bg);
+  }
+  &:hover {
     background: var(--color-hover-bg);
   }
 

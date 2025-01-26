@@ -26,6 +26,12 @@ interface CustomLinkOptions {
   validate: (url: string) => boolean // 链接验证函数
 }
 
+// 添加一个辅助函数用于文本截断
+function truncateText(text: string, maxLength: number = 50): string {
+  if (text.length <= maxLength) return text
+  return text.slice(0, maxLength - 3) + '...'
+}
+
 export const CustomLink = Link.extend<CustomLinkOptions>({
   name: 'link',
   inclusive: false, // 设置为 false，防止链接吸收后续文本
@@ -104,12 +110,12 @@ export const CustomLink = Link.extend<CustomLinkOptions>({
       addedLinks.forEach((targetNoteId) => {
         setTimeout(async () => {
           try {
-            // 获取目标笔记的信息
             const targetNote = await noteStore.fetchNote(targetNoteId)
             if (!targetNote) return
 
-            // 构造显示文本：编码地址 + 标题
-            const displayText = `${targetNote.address || '未设置编码地址'} ${targetNote.metadata?.title || '未命名笔记'}`
+            // 修改显示文本的生成逻辑
+            const fullText = `${targetNote.address || '未设置编码地址'} ${targetNote.metadata?.title || '未命名笔记'}`
+            const displayText = truncateText(fullText, 50) // 限制显示长度为50个字符
 
             // 更新链接文本
             let position = 0

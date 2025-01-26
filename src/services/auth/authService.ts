@@ -7,6 +7,16 @@ import { encrypt, decrypt } from '../utils/crypto'
 import { AuthState } from '@shared/types'
 import { request } from '../utils/http'
 
+// 网络状态缓存
+interface NetworkStatusCache {
+  isOnline: boolean
+  timestamp: number
+}
+
+let networkStatusCache: NetworkStatusCache | null = null
+// 设置缓存时间为4小时
+const NETWORK_CHECK_INTERVAL = 24 * 60 * 60 * 1000
+
 /**
  * 认证服务模块
  *
@@ -123,28 +133,50 @@ async function saveAuthState(state: AuthState): Promise<void> {
  * 检查网络连接状态
  *
  * 功能：
- * 1. 通过 /auth/status 接口检测网络连接
- * 2. 即使接口返回错误也视为网络正常（只要有响应）
- * 3. 只有完全无法连接时才判定为离线
+ * 1. 优先使用缓存的网络状态（4小时内有效）
+ * 2. 通过 /auth/status 接口检测网络连接
+ * 3. 即使接口返回错误也视为网络正常（只要有响应）
+ * 4. 只有完全无法连接时才判定为离线
  *
  * @returns {Promise<boolean>} true 表示网络正常，false 表示离线
  */
 export async function checkNetworkStatus(): Promise<boolean> {
+  const now = Date.now()
+
+  // 如果缓存存在且未过期，直接返回缓存的结果
+  if (networkStatusCache && now - networkStatusCache.timestamp < NETWORK_CHECK_INTERVAL) {
+    console.log('authService→ 使用缓存的网络状态:', networkStatusCache.isOnline)
+    return networkStatusCache.isOnline
+  }
+
   try {
     console.log('authService→ 开始检查网络状态')
     const start = Date.now()
     await request.get('/auth/status', { timeout: 3000 })
     const duration = Date.now() - start
     console.log(`authService→ 网络检查成功, 耗时: ${duration}ms`)
+
+    // 更新缓存
+    networkStatusCache = {
+      isOnline: true,
+      timestamp: now
+    }
     return true
   } catch (error) {
     console.log('authService→ 网络检查失败:', error)
     // 即使接口返回错误，只要有响应就说明网络是通的
-    if ((error as any).response) {
-      console.log('authService→ 网络正常,但接口返回错误:', (error as any).response.status)
-      return true
+    const isOnline = !!(error as any).response
+
+    // 更新缓存
+    networkStatusCache = {
+      isOnline,
+      timestamp: now
     }
-    return false
+
+    if (isOnline) {
+      console.log('authService→ 网络正常,但接口返回错误:', (error as any).response.status)
+    }
+    return isOnline
   }
 }
 
