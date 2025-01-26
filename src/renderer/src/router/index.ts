@@ -116,7 +116,8 @@ const routes = [
     name: 'timeBlock',
     path: '/timeblock/:date?',
     component: () => import('../views/TimeBlockView.vue'),
-    props: true
+    props: true,
+    meta: { keepAlive: true }
   },
   // 添加图片管理页面路由
   {

@@ -24,7 +24,7 @@ import { setupIpcHandlers } from './ipc'
 import log from './logger'
 import { config } from 'dotenv'
 import { getUserSettings } from '../services/user/userSettingsService'
-import { migrateLicenseTable } from '../db/migrations/licenseMigration'
+// import { migrateLicenseTable } from '../db/migrations/licenseMigration'
 import { backupService } from '../services/backupService'
 import { debounce } from 'lodash'
 
@@ -499,7 +499,7 @@ app.whenReady().then(async () => {
 
     // 初始化数据库
     await initDatabase(db)
-    await migrateLicenseTable() // 添加这行
+    // await migrateLicenseTable() // 添加这行
     // 验证表是否创建成功
     await db.schema.hasTable('notes')
 
