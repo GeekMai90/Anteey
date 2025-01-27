@@ -127,10 +127,6 @@ const addNote = () => {
     transition: all 0.2s ease;
     padding: 0;
 
-    // &:hover:not(:disabled) {
-    //   background-color: rgba(0, 0, 0, 0.05);
-    // }
-
     &:disabled {
       opacity: 0.5;
       cursor: not-allowed;

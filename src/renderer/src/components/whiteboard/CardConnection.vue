@@ -224,10 +224,10 @@ const pathData = computed(() => {
 
   // 对于其他情况，使用曲线
   const distance = Math.sqrt(dx * dx + dy * dy)
-  const offset = Math.min(distance * 0.4, 100) // 动态计算偏移量，但最大不超过100
+  const offset = Math.min(distance * 0.5, 160) // 增加偏移量，最大不超过150
 
   // 确定主要方向
-  const isHorizontal = Math.abs(dx) > Math.abs(dy)
+  const isHorizontal = Math.abs(dx) > Math.abs(dy) * 3 // 调整判断条件
 
   let controlX1, controlY1, controlX2, controlY2
 

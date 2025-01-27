@@ -282,40 +282,51 @@ const updateWhiteboardName = async (newName: string) => {
 
 const handleDragOver = (event: DragEvent) => {
   event.preventDefault()
-  event.dataTransfer!.dropEffect = 'copy'
+  if (event.dataTransfer) {
+    event.dataTransfer.dropEffect = 'copy'
+  }
 }
 
 const handleDrop = async (event: DragEvent) => {
   event.preventDefault()
-  const noteData = JSON.parse(event.dataTransfer!.getData('application/json'))
-
-  if (!containerRef.value || !whiteboardId.value) return
-
-  const rect = containerRef.value.getBoundingClientRect()
-  const x = (event.clientX - rect.left - translateX.value) / scale.value
-  const y = (event.clientY - rect.top - translateY.value) / scale.value
-
-  const input: CreateWhiteboardNoteInput = {
-    whiteboardId: whiteboardId.value,
-    noteId: noteData.id, // 直接使用拖拽笔记 id
-    position: { x, y },
-    size: { width: 350, height: 300 },
-    zIndex: 1,
-    rotation: 0,
-    isAutoHeight: false,
-    type: 'card'
-  }
+  if (!event.dataTransfer || !containerRef.value || !whiteboardId.value) return
 
   try {
-    const newNote = await whiteboardStore.createWhiteboardNote(input)
-    if (newNote && newNote.id) {
-      whiteboardNotes.value.push(newNote)
-      await initializeData(whiteboardId.value)
-    } else {
-      console.error('Created note is invalid:', newNote)
+    const data = JSON.parse(event.dataTransfer.getData('application/json'))
+    if (!data.id) return
+
+    // 计算放置位置（考虑缩放和平移）
+    const rect = containerRef.value.getBoundingClientRect()
+    const x = (event.clientX - rect.left - translateX.value) / scale.value
+    const y = (event.clientY - rect.top - translateY.value) / scale.value
+
+    // 创建白板笔记
+    const input: CreateWhiteboardNoteInput = {
+      whiteboardId: whiteboardId.value,
+      noteId: data.id,
+      position: { x, y },
+      size: { width: 350, height: 300 },
+      zIndex: 1,
+      rotation: 0,
+      isAutoHeight: false,
+      type: 'card'
+    }
+
+    try {
+      const newNote = await whiteboardStore.createWhiteboardNote(input)
+      if (newNote && newNote.id) {
+        whiteboardNotes.value.push(newNote)
+        await initializeData(whiteboardId.value)
+      } else {
+        console.error('Created note is invalid:', newNote)
+      }
+    } catch (error) {
+      console.error('Failed to create whiteboard note:', error)
+      message.error('创建失败')
     }
   } catch (error) {
-    console.error('Failed to create whiteboard note:', error)
+    console.error('Failed to parse drop data:', error)
+    message.error('创建失败')
   }
 }
 
@@ -1267,10 +1278,11 @@ const handleStartConnection = (item: WhiteboardNote & { startAnchorPosition: Anc
   display: flex;
   gap: 8px;
   padding: 8px;
-  background-color: var(--sidebar-bg);
+  background-color: var(--color-bg-whiteboard);
   border: 1px solid var(--color-border);
   border-radius: 8px;
   z-index: 100;
+  transition: all 0.3s ease-in-out;
 
   .create-button {
     display: flex;
@@ -1283,7 +1295,7 @@ const handleStartConnection = (item: WhiteboardNote & { startAnchorPosition: Anc
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 
     &:hover {
-      background-color: var(--color-primary-light);
+      background-color: var(--color-hover-button);
       transform: translateY(-4px);
 
       .icon {

@@ -83,7 +83,7 @@
     </div>
     <div class="content-area">
       <div class="content-wrapper">
-        <TipTapEditor
+        <WhiteboardTipTapEditor
           v-if="note"
           ref="tiptapEditor"
           v-model:content="note.content"
@@ -100,7 +100,7 @@
 <script setup lang="ts">
 import { computed, nextTick, ref, watch } from 'vue'
 import { useNoteStore } from '@renderer/stores/noteStore'
-import TipTapEditor from '@renderer/components/tiptap/TipTapEditor.vue'
+import WhiteboardTipTapEditor from '@renderer/components/whiteboard/notes/WhiteboardTipTapEditor.vue'
 import CardTypeDropdownMenu from '@renderer/components/note/CardTypeDropdownMenu.vue'
 import { useMenu } from '@renderer/composables/useMenu'
 import { message } from '@renderer/utils/message'

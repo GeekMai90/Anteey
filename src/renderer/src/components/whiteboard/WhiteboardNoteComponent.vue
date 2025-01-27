@@ -98,11 +98,15 @@ const noteStyle = computed<CSSProperties>(() => {
     height: `${props.item.size.height}px`,
     transform: `translate(${props.item.position.x}px, ${props.item.position.y}px) rotate(${props.item.rotation}deg)`,
     zIndex: props.item.zIndex,
-    backgroundColor: 'var(--color-bg-primary)'
-  }
+    backgroundColor: 'var(--color-bg-primary)', // 保持不透明的主背景色
+    '--note-color': 'transparent' // 默认的颜色层为透明
+  } as CSSProperties
 
+  // 如果有设置背景色，设置边框和颜色层
   if (props.item.style?.backgroundColor) {
-    style.borderColor = props.item.style.backgroundColor
+    const color = props.item.style.backgroundColor
+    style.borderColor = color
+    style['--note-color'] = color // 设置自定义属性
   }
 
   return style
@@ -391,6 +395,7 @@ const handleColor = async (color: string | null) => {
       style: {
         ...props.item.style,
         backgroundColor: color || undefined
+        // 可以在这里添加其他样式属性
       }
     }
     await whiteboardStore.updateWhiteboardNoteStyle(props.item.id, updatedNote.style)
@@ -425,13 +430,30 @@ onMounted(() => {
 <style lang="scss" scoped>
 .whiteboard-note {
   position: absolute;
-  background-color: var(--color-bg-primary); // 默认背景色
+  background-color: var(--color-bg-primary); // 不透明的主背景色
   border-radius: 12px;
   display: flex;
   flex-direction: column;
   overflow: visible;
-  // padding: 10px;
   border: 2px solid var(--color-border);
+  transition:
+    background-color 0.3s ease,
+    border-color 0.3s ease;
+
+  // 添加一个伪元素作为颜色层
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: var(--note-color);
+    opacity: 0.1; // 控制颜色层的透明度
+    pointer-events: none; // 确保不影响交互
+    border-radius: 10px; // 稍微小于卡片的圆角，避免边缘露出
+    transition: background-color 0.3s ease;
+  }
 
   // 添加位置和大小样式
   left: 0;
@@ -574,7 +596,10 @@ onMounted(() => {
     :deep(.tiptap-container),
     :deep(.tiptap),
     :deep(.editor-content) {
-      background-color: inherit !important; // 强制继承父元素背景色
+      background-color: inherit !important;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      text-rendering: optimizeLegibility;
     }
   }
 
@@ -727,15 +752,12 @@ onMounted(() => {
     }
   }
 
-  backface-visibility: hidden;
-  transform-style: preserve-3d;
-  will-change: transform;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 
   &.editing {
-    // 编辑状态下强制使用 GPU 加速
-    transform: translateZ(0);
+    text-rendering: optimizeLegibility;
   }
 }
 .whiteboard-item.selected {

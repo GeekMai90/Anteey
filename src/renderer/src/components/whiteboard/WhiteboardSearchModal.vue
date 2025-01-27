@@ -43,6 +43,7 @@
               v-else
               :key="note.id"
               class="search-result-note"
+              @dblclick="handleDoubleClick(noteIndex)"
             >
               <!-- ... 笔记标题和内容块的渲染逻辑 ... -->
               <div class="note-title">
@@ -66,7 +67,7 @@
                 :class="{
                   selected: noteIndex === selectedNoteIndex && blockIndex === selectedBlockIndex
                 }"
-                @click="selectResult(noteIndex, blockIndex, true)"
+                @click="selectResult(noteIndex, blockIndex)"
                 @mouseover="hoverResult(noteIndex, blockIndex)"
               >
                 <div class="result-preview">
@@ -98,6 +99,29 @@
           </div>
         </div>
       </transition>
+      <!-- 添加操作指令区域 -->
+      <div v-if="isExpanded" class="action-hints">
+        <div class="hint-group">
+          <div class="hint">
+            <span class="key">↵</span>
+            <span class="description">添加到白板</span>
+          </div>
+          <div class="hint">
+            <span class="key">双击</span>
+            <span class="description">添加到白板</span>
+          </div>
+          <div class="hint">
+            <span class="key">单击</span>
+            <span class="description">预览笔记</span>
+          </div>
+        </div>
+        <div class="hint-group">
+          <div class="hint">
+            <span class="key">ESC</span>
+            <span class="description">关闭</span>
+          </div>
+        </div>
+      </div>
     </div>
   </Modal>
 </template>
@@ -189,15 +213,17 @@ const performSearch = () => {
 // }
 
 // 选择搜索结果
-const selectResult = (noteIndex: number, blockIndex: number, openEditor = false) => {
+const selectResult = (noteIndex: number, blockIndex: number) => {
   selectedNoteIndex.value = noteIndex
   selectedBlockIndex.value = blockIndex
-  if (openEditor) {
-    const note = searchResults.value[noteIndex]
-    if (note) {
-      noteStore.openNoteEditor(note.id)
-      uiStore.closeSearchModal()
-    }
+}
+
+// 添加双击处理函数
+const handleDoubleClick = (noteIndex: number) => {
+  const note = searchResults.value[noteIndex]
+  if (note) {
+    props.createWhiteboardNote(selectedNote.value)
+    hide()
   }
 }
 
@@ -221,9 +247,15 @@ const focusInput = () => {
   searchInput.value?.focus()
 }
 
-// 显示搜索模态框
+// 添加显示搜索模态框的函数
 const show = () => {
   uiStore.openSearchModal()
+  // 重置状态
+  searchQuery.value = ''
+  searchResults.value = []
+  selectedNoteIndex.value = -1
+  selectedBlockIndex.value = -1
+  isExpanded.value = false
 }
 
 // 隐藏搜索模态框并重置状态
@@ -235,9 +267,8 @@ const hide = () => {
   selectedBlockIndex.value = -1
 }
 
-// 处理键盘事件
+// 修改键盘事件处理
 const handleKeyDown = (event: KeyboardEvent) => {
-  // const totalBlocks = searchResults.value.reduce((sum, note) => sum + note.blocks.length, 0)
   switch (event.key) {
     case 'ArrowDown':
       event.preventDefault()
@@ -266,7 +297,7 @@ const handleKeyDown = (event: KeyboardEvent) => {
       scrollToSelectedItem()
       break
     case 'Enter':
-      event.preventDefault() // 阻止默认行为
+      event.preventDefault()
       if (selectedNote.value) {
         props.createWhiteboardNote(selectedNote.value)
         hide()
@@ -359,8 +390,8 @@ defineExpose({ show, hide })
 }
 
 .search-container.expanded {
-  height: 450px; // 展开后的高度
-  top: calc(50% - 225px); // 展开后的位置保持不变
+  height: 490px; // 增加高度以容纳操作提示
+  top: calc(50% - 225px);
 }
 
 .search-input {
@@ -385,6 +416,7 @@ defineExpose({ show, hide })
   padding: 10px 20px 20px 20px;
   border-top: var(--color-border) 1px solid;
   position: relative;
+  height: calc(100% - 64px - 37px); // 减去输入框和操作提示的高度
 }
 
 .search-results {
@@ -627,5 +659,46 @@ defineExpose({ show, hide })
   color: inherit;
   padding: 0 2px;
   border-radius: 2px;
+}
+
+.action-hints {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 20px;
+  background: var(--color-bg-secondary);
+  border-top: 1px solid var(--color-border);
+  font-size: 12px;
+  color: var(--color-text-secondary);
+
+  .hint-group {
+    display: flex;
+    gap: 16px;
+  }
+
+  .hint {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+
+    .key {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 20px;
+      height: 20px;
+      padding: 0 4px;
+      background: var(--color-bg-primary);
+      border: 1px solid var(--color-border);
+      border-radius: 4px;
+      font-family: system-ui;
+      font-size: 11px;
+      font-weight: 500;
+    }
+
+    .description {
+      margin-left: 2px;
+      user-select: none;
+    }
+  }
 }
 </style>
