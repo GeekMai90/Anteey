@@ -243,8 +243,8 @@ export interface ElectronAPI {
       style: WhiteboardNote['style']
     ) => Promise<WhiteboardNote>
 
-    // 添加更新白板笔记内容的方法定义
-    updateWhiteboardNoteContent: (id: string, content: string) => Promise<WhiteboardNote>
+    // 更新白板笔记内容的方法定义
+    updateWhiteboardNoteContent: (id: string, content: object) => Promise<WhiteboardNote>
     getWhiteboardCount: () => Promise<number>
   }
   systemMenu: {

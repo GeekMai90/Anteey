@@ -312,8 +312,8 @@ export const whiteboardApi = {
       throw error
     }
   },
-  // 新增：更新白板笔记内容（用于文本类型）
-  updateWhiteboardNoteContent: async (id: string, content: string): Promise<WhiteboardNote> => {
+  // 更新白板笔记内容
+  updateWhiteboardNoteContent: async (id: string, content: object): Promise<WhiteboardNote> => {
     try {
       return (await ipcRenderer.invoke('update-whiteboard-note-content', {
         id,

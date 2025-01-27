@@ -1,22 +1,31 @@
 <template>
-  <div class="text-note" :style="computedStyle">
-    <textarea
-      v-model="localContent"
-      :readonly="!props.isEditing"
-      :placeholder="props.isEditing ? '输入文本内容...' : ''"
-      class="text-area"
-      @input="handleInput"
-    ></textarea>
+  <div class="text-note" :class="{ 'not-editing': !props.isEditing }">
+    <!-- 内容区域 -->
+    <div class="content-area">
+      <div class="content-wrapper">
+        <TipTapEditor
+          v-if="note"
+          ref="tiptapEditor"
+          v-model:content="note.content"
+          :note-id="note.id"
+          :editable="props.isEditing"
+          :enable-drag-handle="false"
+          @update:content="handleContentUpdate"
+        />
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, watch, computed, nextTick } from 'vue'
+import { ref, computed } from 'vue'
 import { useWhiteboardStore } from '@renderer/stores/whiteboardStore'
+import TipTapEditor from '@renderer/components/tiptap/TipTapEditor.vue'
+import { debounce } from 'lodash-es'
 
 const props = defineProps<{
   id: string
-  content?: string
+  content?: object
   isEditing: boolean
   style?: {
     backgroundColor?: string
@@ -27,67 +36,22 @@ const props = defineProps<{
 }>()
 
 const whiteboardStore = useWhiteboardStore()
+const tiptapEditor = ref()
 
-const localContent = ref(props.content || '')
-
-const computedStyle = computed(() => {
-  if (!props.style) return {}
-
-  const style: Record<string, string> = {}
-
-  if (props.style.backgroundColor) {
-    style.borderColor = props.style.backgroundColor
-  }
-
-  if (props.style.textColor) {
-    style.color = props.style.textColor
-  }
-
-  if (props.style.fontSize) {
-    style.fontSize = `${props.style.fontSize}px`
-  }
-
-  if (props.style.fontFamily) {
-    style.fontFamily = props.style.fontFamily
-  }
-
-  return style
+// 计算属性获取笔记数据
+const note = computed(() => {
+  return whiteboardStore.getWhiteboardNoteById(props.id)
 })
 
-watch(
-  () => props.content,
-  (newContent) => {
-    localContent.value = newContent || ''
-  }
-)
-
-watch(
-  () => props.style,
-  () => {
-    nextTick(() => {
-      const element = document.querySelector('.text-note') as HTMLElement
-      if (element) {
-        element.style.display = 'none'
-        element.offsetHeight
-        element.style.display = ''
-      }
-    })
-  },
-  { deep: true }
-)
-
-const handleInput = async () => {
+// 使用防抖处理内容更新
+const handleContentUpdate = debounce(async (newContent: object) => {
   try {
-    // 确保 content 存在且为字符串
-    if (props.content !== undefined) {
-      await whiteboardStore.updateWhiteboardNoteContent(props.id, localContent.value)
-    } else {
-      console.error('Content ID is undefined')
-    }
+    if (!note.value) return
+    await whiteboardStore.updateWhiteboardNoteContent(props.id, newContent)
   } catch (error) {
     console.error('更新文本内容失败:', error)
   }
-}
+}, 500)
 </script>
 
 <style lang="scss" scoped>
@@ -95,41 +59,68 @@ const handleInput = async () => {
   width: 100%;
   height: 100%;
   display: flex;
+  flex-direction: column;
   background-color: inherit;
   border-radius: 10px;
-  backface-visibility: hidden;
-  transform-style: preserve-3d;
-  will-change: transform;
+  // 性能优化，但可能导致模糊，让我们调整一下
+  // backface-visibility: hidden;
+  // // transform-style: preserve-3d; // 移除这个属性
+  // will-change: transform; // 只在真正需要的时候使用
 
-  .text-area {
+  &.not-editing {
+    .content-area {
+      overflow: hidden;
+      pointer-events: none;
+    }
+
+    :deep(.tiptap-container) {
+      overflow: hidden;
+      pointer-events: none;
+    }
+
+    :deep(.tiptap) {
+      overflow: hidden;
+      pointer-events: none;
+    }
+  }
+
+  .content-area {
+    flex-grow: 1;
+    display: flex;
+    overflow-y: auto;
+    min-height: 0;
     width: 100%;
     height: 100%;
-    border: none;
-    outline: none;
-    resize: none;
-    padding: 10px;
-    font-size: 16px;
-    line-height: 16px;
-    color: var(--color-text-primary);
-    background-color: transparent !important;
-    font-family: var(--font-family-editor);
-    border-radius: 10px;
+    // 添加以下属性来提高文本渲染质量
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+
+    .content-wrapper {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-height: 100%;
+      width: 100%;
+    }
+  }
+
+  :deep(.tiptap-container) {
+    width: 100%;
+    height: 100%;
+    overflow-y: auto;
+    padding: 10px;
+    position: relative;
+  }
+
+  :deep(.tiptap) {
+    padding-left: 10px;
+    padding-right: 10px;
+    p {
+      margin-block-start: 5px;
+      margin-block-end: 5px;
+    }
+    // 添加以下属性来提高文本渲染质量
     text-rendering: optimizeLegibility;
-
-    &::placeholder {
-      color: var(--color-text-placeholder);
-      opacity: 0.7;
-    }
-
-    &:not(:read-only) {
-      cursor: text;
-    }
-
-    &:read-only {
-      cursor: inherit;
-    }
   }
 }
 </style>

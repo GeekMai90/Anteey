@@ -447,22 +447,24 @@ export const useWhiteboardStore = defineStore('whiteboard', {
         throw error
       }
     },
-    // 添加更新白板笔记内容的方法
-    async updateWhiteboardNoteContent(id: string, content: string) {
+    // 更新白板笔记内容
+    async updateWhiteboardNoteContent(id: string, content: object) {
       try {
         console.log('whiteboardStore→ 开始更新白板笔记内容', { id, content })
         const updatedNote = await window.electronAPI.whiteboard.updateWhiteboardNoteContent(
           id,
           content
         )
+
         // 更新本地状态
         const index = this.whiteboardNotes.findIndex((n) => n.id === id)
         if (index !== -1) {
           this.whiteboardNotes[index] = {
             ...this.whiteboardNotes[index],
-            content
+            content // 直接使用传入的 content 对象
           }
         }
+
         return updatedNote
       } catch (error) {
         console.error('whiteboardStore→ 更新白板笔记内容失败', error)

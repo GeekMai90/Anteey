@@ -216,46 +216,29 @@ export async function initDatabase(db: Knex): Promise<void> {
   }
 
   // 创建 whiteboard_notes 表
-  // if (!(await db.schema.hasTable('whiteboard_notes'))) {
-  //   await db.schema.createTable('whiteboard_notes', (table) => {
-  //     table.string('id').primary()
-  //     table.string('whiteboardId').notNullable().index()
-  //     table.string('noteId').notNullable().index()
-  //     table.json('position').notNullable()
-  //     table.json('size').notNullable()
-  //     table.integer('zIndex').notNullable()
-  //     table.float('rotation').notNullable().defaultTo(0)
-  //     table.boolean('isAutoHeight').notNullable().defaultTo(false)
-  //     table.string('type').notNullable().defaultTo('card')
-  //     table.string('content').nullable()
-  //     table.string('imageUrl').nullable()
-  //   })
-  //   console.log('whiteboard_notes 表创建成功')
-  // }
-
   if (!(await db.schema.hasTable('whiteboard_notes'))) {
     await db.schema.createTable('whiteboard_notes', (table) => {
       table.string('id').primary()
       table.string('whiteboardId').notNullable().index()
-      table.string('type').notNullable().defaultTo('card') // 新增：元素类型
+      table.string('type').notNullable().defaultTo('card')
       table.json('position').notNullable()
       table.json('size').notNullable()
       table.integer('zIndex').notNullable()
       table.float('rotation').notNullable().defaultTo(0)
 
       // 样式相关
-      table.json('style').nullable() // 新增：统一的样式配置
+      table.json('style').nullable()
 
       // card类型特有属性
-      table.string('noteId').nullable().index() // 改为可选
-      table.boolean('isAutoHeight').nullable() // 改为可选
+      table.string('noteId').nullable().index()
+      table.boolean('isAutoHeight').nullable()
 
       // text类型特有属性
-      table.text('content').nullable()
+      table.json('content').nullable()
 
       // image类型特有属性
       table.string('imageUrl').nullable()
-      table.json('originalSize').nullable() // 新增：图片原始尺寸
+      table.json('originalSize').nullable()
     })
     console.log('whiteboard_notes 表创建成功')
   }
@@ -538,26 +521,6 @@ export async function initDatabase(db: Knex): Promise<void> {
   }
 
   // 创建 appearance_settings 表
-  // if (!(await db.schema.hasTable('appearance_settings'))) {
-  //   await db.schema.createTable('appearance_settings', (table) => {
-  //     table.string('id').primary()
-  //     table.string('uiFont').notNullable().defaultTo('system') // UI 界面字体
-  //     table.string('editorFont').notNullable().defaultTo('system') // 编辑器字体改为 system
-  //     table.datetime('createdAt').notNullable()
-  //     table.datetime('updatedAt').notNullable()
-  //   })
-
-  //   // 插入默认设置
-  //   await db('appearance_settings').insert({
-  //     id: uuidv4(),
-  //     uiFont: 'system',
-  //     editorFont: 'system', // 修改为 system
-  //     createdAt: new Date(),
-  //     updatedAt: new Date()
-  //   })
-
-  //   console.log('appearance_settings 表创建成功')
-  // }
   if (!(await db.schema.hasTable('appearance_settings'))) {
     await db.schema.createTable('appearance_settings', (table) => {
       table.string('id').primary()

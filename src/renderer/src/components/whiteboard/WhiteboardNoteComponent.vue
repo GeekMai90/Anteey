@@ -41,7 +41,6 @@
       :is="noteComponent"
       v-bind="noteProps"
       :id="props.item.id"
-      @update:content="handleContentUpdate"
       @editor-mousedown="handleEditorMouseDown"
     />
   </div>
@@ -116,7 +115,8 @@ const noteComponent = computed(() => noteComponents[props.item.type])
 const noteProps = computed(() => {
   const commonProps = {
     isEditing: isEditing.value,
-    style: props.item.style
+    style: props.item.style,
+    id: props.item.id // 直接传入 id
   }
 
   switch (props.item.type) {
@@ -127,10 +127,7 @@ const noteProps = computed(() => {
         isAutoHeight: Boolean(props.item.isAutoHeight)
       }
     case 'text':
-      return {
-        ...commonProps,
-        content: props.item.content
-      }
+      return commonProps // 只需要传递通用属性即可
     case 'image':
       return {
         ...commonProps,
@@ -331,18 +328,6 @@ const handleEditorMouseDown = (event: MouseEvent) => {
   if (!isEditing.value) {
     event.preventDefault()
     startDrag(event)
-  }
-}
-
-const handleContentUpdate = async (content: string) => {
-  if (props.item.type === 'text') {
-    try {
-      // 直接保存到数据库
-      await whiteboardStore.updateWhiteboardNoteContent(props.item.id, content)
-    } catch (error) {
-      console.error('更新文本内容失败:', error)
-      message.error('保存失败')
-    }
   }
 }
 

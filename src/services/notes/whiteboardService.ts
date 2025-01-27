@@ -312,7 +312,7 @@ function processWhiteboardNoteData(item: any): WhiteboardNote {
     // 根据类型处理特定属性
     noteId: item.type === 'card' ? item.noteId : undefined,
     isAutoHeight: item.type === 'card' ? item.isAutoHeight : undefined,
-    content: item.type === 'text' ? item.content : undefined,
+    content: item.type === 'text' && item.content ? JSON.parse(item.content) : undefined,
     imageUrl: item.type === 'image' ? item.imageUrl : undefined,
     originalSize:
       item.type === 'image' && item.originalSize ? JSON.parse(item.originalSize) : undefined
@@ -339,7 +339,17 @@ export async function createWhiteboardNote(
       isAutoHeight: input.isAutoHeight
     }),
     ...(input.type === 'text' && {
-      content: input.content
+      // 如果是新建的文本笔记，初始化一个空的 TipTap 文档结构
+      content: {
+        type: 'doc',
+        content: [
+          {
+            type: 'paragraph',
+            attrs: { textAlign: 'left' },
+            content: []
+          }
+        ]
+      }
     }),
     ...(input.type === 'image' && {
       imageUrl: input.imageUrl,
@@ -353,12 +363,13 @@ export async function createWhiteboardNote(
       position: JSON.stringify(newWhiteboardNote.position),
       size: JSON.stringify(newWhiteboardNote.size),
       style: newWhiteboardNote.style ? JSON.stringify(newWhiteboardNote.style) : null,
+      // 序列化 content
+      content: newWhiteboardNote.content ? JSON.stringify(newWhiteboardNote.content) : null,
       originalSize: newWhiteboardNote.originalSize
         ? JSON.stringify(newWhiteboardNote.originalSize)
         : null
     })
 
-    // 从数据库中获取刚插入的记录
     const [insertedNote] = await db('whiteboard_notes')
       .where({ id: newWhiteboardNote.id })
       .select('*')
@@ -372,24 +383,7 @@ export async function createWhiteboardNote(
 
 // 删除白板笔记
 // 删除白板笔记，同时删除连接该白板笔记的连线
-// export async function deleteWhiteboardNote(id: string): Promise<void> {
-//   try {
-//     console.log('后端→ 删除白板笔记', id)
-//     await db('whiteboard_notes').where({ id }).del()
-//     // 通过白板笔记的 id 去查找白板连线的  startItemId 或 endItemId 字段中是否包含该 id，如果包含，则删除该连线
-//     const connections = await db('connections')
-//       .where({ startItemId: id })
-//       .orWhere({ endItemId: id })
-//     for (const connection of connections) {
-//       await db('connections').where({ id: connection.id }).del()
-//     }
-//     console.log('后端→ 删除白板笔记成功', id)
-//     console.log('后端→ 删除白板连线成功', connections)
-//   } catch (error) {
-//     console.error('后端→ 删除白板笔记失败:', error)
-//     throw error
-//   }
-// }
+
 export async function deleteWhiteboardNote(id: string): Promise<void> {
   try {
     console.log('后端→ 开始删除白板笔记及其相关连线', id)
@@ -520,7 +514,7 @@ export async function updateWhiteboardName(id: string, name: string): Promise<Wh
 export async function deleteWhiteboard(id: string): Promise<{ success: boolean; error?: string }> {
   try {
     await db('whiteboards').where({ id }).del()
-    console.log('后���→ 删除白板成功', id)
+    console.log('后端→ 删除白板成功', id)
     // 删除白板中的所有笔记
     const notes = await db('whiteboard_notes').where({ whiteboardId: id }).select('*')
     for (const note of notes) {
@@ -551,13 +545,25 @@ export async function deleteWhiteboard(id: string): Promise<{ success: boolean; 
 // 新增：更新白板笔记内容方法（用于文本类型）
 export async function updateWhiteboardNoteContent(
   id: string,
-  content: string
+  content: object
 ): Promise<WhiteboardNote> {
   try {
+    // 序列化内容
+    const serializedContent = JSON.stringify(content)
+
     const updatedWhiteboardNote = await db('whiteboard_notes')
       .where({ id })
-      .update({ content })
+      .update({
+        content: serializedContent
+        // 同时更新修改时间
+        // updatedAt: new Date()
+      })
       .returning('*')
+
+    if (!updatedWhiteboardNote || updatedWhiteboardNote.length === 0) {
+      throw new Error(`Failed to update whiteboard note with id ${id}`)
+    }
+
     return processWhiteboardNoteData(updatedWhiteboardNote[0])
   } catch (error) {
     console.error('后端→ 更新白板笔记内容失败:', error)

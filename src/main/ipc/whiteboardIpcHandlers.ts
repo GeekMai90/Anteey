@@ -280,7 +280,7 @@ export function setupWhiteboardHandlers() {
       return { success: false, error: error }
     }
   })
-  // 新增：更新白板笔记内容（用于文本类型）
+  // 更新白板笔记内容
   ipcMain.handle('update-whiteboard-note-content', async (_, { id, content }) => {
     try {
       const updatedWhiteboardNote = await updateWhiteboardNoteContent(id, content)

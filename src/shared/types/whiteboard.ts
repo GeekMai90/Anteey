@@ -65,7 +65,7 @@ export interface WhiteboardNote {
   isAutoHeight?: boolean // 是否自动调整高度 (仅card类型)
 
   // text类型特有属性
-  content?: string // 文本内容 (仅text类型)
+  content?: object // 改动: 从 string 改为 object,以支持 TipTap 的 JSON 内容
 
   // image类型特有属性
   imageUrl?: string // 图片URL (仅image类型)
