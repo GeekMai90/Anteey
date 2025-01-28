@@ -93,6 +93,19 @@
     <div class="toolbar-section right">
       <div
         v-tooltip.bottom="{
+          content: 'AI 助手<br>Cmd + shift + A',
+          delay: { show: 1000 },
+          html: true
+        }"
+        class="toggle-assistant"
+        @click="toggleAssistant"
+      >
+        <div class="icon">
+          <Robot theme="outline" size="20" fill="var(--color-icon-default)" :stroke-width="3" />
+        </div>
+      </div>
+      <div
+        v-tooltip.bottom="{
           content: '草稿纸<br>Cmd + shift + D',
           delay: { show: 1000 },
           html: true
@@ -148,7 +161,15 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed, nextTick } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { Left, Right, ExpandLeft, ExpandRight, Components, Notepad } from '@icon-park/vue-next'
+import {
+  Left,
+  Right,
+  ExpandLeft,
+  ExpandRight,
+  Components,
+  Notepad,
+  Robot
+} from '@icon-park/vue-next'
 import { useUIStore } from '@renderer/stores/UIStore'
 import { useKnowledgeTreeStore } from '@renderer/stores/knowledgeTreeStore'
 
@@ -338,6 +359,18 @@ const toggleDraft = () => {
       uiStore.toggleRightSidebar()
     }
     uiStore.rightSidebarTab = 'drafts'
+  }
+}
+
+// 添加 AI 助手切换方法
+const toggleAssistant = () => {
+  if (uiStore.isRightSidebarOpen && uiStore.rightSidebarTab === 'assistant') {
+    uiStore.toggleRightSidebar()
+  } else {
+    if (!uiStore.isRightSidebarOpen) {
+      uiStore.toggleRightSidebar()
+    }
+    uiStore.rightSidebarTab = 'assistant'
   }
 }
 </script>
@@ -578,5 +611,11 @@ const toggleDraft = () => {
 .toggle-draft {
   @extend .toggle-right-sidebar;
   margin-right: 4px; // 添加一点间距
+}
+
+// 添加 AI 助手按钮样式
+.toggle-assistant {
+  @extend .toggle-right-sidebar;
+  margin-right: 4px;
 }
 </style>

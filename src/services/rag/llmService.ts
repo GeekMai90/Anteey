@@ -1,8 +1,8 @@
 import log from 'electron-log'
 import axios from 'axios'
 import { LLMConfigService } from './llmConfigService'
-import { LLM_MODELS, LLMModelType, LLMProvider } from './llm.config'
-import type { LLMConfig, LLMResponse } from '@shared/types'
+import { LLM_MODELS, LLMProvider } from './llm.config'
+import type { LLMConfig } from '@shared/types'
 
 export class LLMService {
   private configService: LLMConfigService
@@ -203,67 +203,67 @@ export class LLMService {
   }
 
   // 添加 DeepSeek 的请求体处理
-  private async buildRequestBody(
-    messages: any[],
-    model: LLMModelType,
-    provider: LLMProvider
-  ): Promise<any> {
-    switch (provider) {
-      case 'zhipu':
-        // 智谱的处理逻辑...
-        return {
-          model,
-          messages,
-          stream: false
-        }
-      case 'moonshot':
-        // Moonshot的处理逻辑...
-        return {
-          model,
-          messages,
-          stream: false
-        }
-      case 'deepseek':
-        // DeepSeek的处理逻辑
-        return {
-          model,
-          messages,
-          stream: false,
-          temperature: 0.7,
-          max_tokens: 2000
-        }
-      default:
-        throw new Error(`Unsupported provider: ${provider}`)
-    }
-  }
+  // private async buildRequestBody(
+  //   messages: any[],
+  //   model: LLMModelType,
+  //   provider: LLMProvider
+  // ): Promise<any> {
+  //   switch (provider) {
+  //     case 'zhipu':
+  //       // 智谱的处理逻辑...
+  //       return {
+  //         model,
+  //         messages,
+  //         stream: false
+  //       }
+  //     case 'moonshot':
+  //       // Moonshot的处理逻辑...
+  //       return {
+  //         model,
+  //         messages,
+  //         stream: false
+  //       }
+  //     case 'deepseek':
+  //       // DeepSeek的处理逻辑
+  //       return {
+  //         model,
+  //         messages,
+  //         stream: false,
+  //         temperature: 0.7,
+  //         max_tokens: 2000
+  //       }
+  //     default:
+  //       throw new Error(`Unsupported provider: ${provider}`)
+  //   }
+  // }
 
-  // 添加 DeepSeek 的响应处理
-  private parseResponse(response: any, provider: LLMProvider): LLMResponse {
-    switch (provider) {
-      case 'zhipu':
-        // 智谱的响应处理...
-        return {
-          content: response.choices[0].message.content,
-          usage: response.usage
-        }
-      case 'moonshot':
-        // Moonshot的响应处理...
-        return {
-          content: response.choices[0].message.content,
-          usage: response.usage
-        }
-      case 'deepseek':
-        // DeepSeek的响应处理
-        return {
-          content: response.choices[0].message.content,
-          usage: {
-            promptTokens: response.usage?.prompt_tokens || 0,
-            completionTokens: response.usage?.completion_tokens || 0,
-            totalTokens: response.usage?.total_tokens || 0
-          }
-        }
-      default:
-        throw new Error(`Unsupported provider: ${provider}`)
-    }
-  }
+  // // 添加 DeepSeek 的响应处理
+  // private parseResponse(response: any, provider: LLMProvider): LLMResponse {
+  //   switch (provider) {
+  //     case 'zhipu':
+  //       // 智谱的响应处理...
+  //       return {
+  //         content: response.choices[0].message.content,
+  //         usage: response.usage
+  //       }
+  //     case 'moonshot':
+  //       // Moonshot的响应处理...
+  //       return {
+  //         content: response.choices[0].message.content,
+  //         usage: response.usage
+  //       }
+  //     case 'deepseek':
+  //       // DeepSeek的响应处理
+  //       return {
+  //         content: response.choices[0].message.content,
+  //         usage: {
+  //           promptTokens: response.usage?.prompt_tokens || 0,
+  //           completionTokens: response.usage?.completion_tokens || 0,
+  //           totalTokens: response.usage?.total_tokens || 0
+  //         }
+  //       }
+  //     default:
+  //       throw new Error(`Unsupported provider: ${provider}`)
+  //   }
+  // }
 }

@@ -836,6 +836,12 @@ export interface ElectronAPI {
       context: RAGContext
       messages: ChatMessage[]
     }>
+
+    // 添加初始化向量化方法
+    initializeEmbeddings: () => Promise<{
+      total: number
+      processed: number
+    }>
   }
 }
 

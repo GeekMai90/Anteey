@@ -22,6 +22,8 @@ export const useAssistantStore = defineStore('assistant', () => {
   const currentSessionId = ref<string | null>(null) // 新增：当前会话ID
   const currentSessionStartTime = ref<number | null>(null) // 新增：当前会话开始时间
   const isLoadingHistory = ref(false) // 新增：是否正在加载历史记录
+  const isInitializingEmbeddings = ref(false)
+  const embeddingsProgress = ref({ total: 0, processed: 0 })
 
   const llmConfigStore = useLLMConfigStore()
 
@@ -960,6 +962,22 @@ export const useAssistantStore = defineStore('assistant', () => {
     }
   }
 
+  // 添加初始化向量化方法
+  const initializeEmbeddings = async () => {
+    if (isInitializingEmbeddings.value) return
+
+    try {
+      isInitializingEmbeddings.value = true
+      const result = await window.electronAPI.rag.initializeEmbeddings()
+      embeddingsProgress.value = result
+    } catch (error) {
+      console.error('初始化向量化失败:', error)
+      throw error
+    } finally {
+      isInitializingEmbeddings.value = false
+    }
+  }
+
   return {
     messages,
     isProcessing,
@@ -985,6 +1003,9 @@ export const useAssistantStore = defineStore('assistant', () => {
     searchContent,
     handleAskQuestion,
     handleChat,
-    handleFindNotes
+    handleFindNotes,
+    isInitializingEmbeddings,
+    embeddingsProgress,
+    initializeEmbeddings
   }
 })

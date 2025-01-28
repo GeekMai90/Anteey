@@ -81,9 +81,9 @@ const typeSegment = (text: string, startFrom: number) => {
     let index = startFrom
     const getTypeSpeed = (char: string) => {
       if (char.match(/[，。！？,.!?]/)) {
-        return 50
+        return 20
       }
-      return 10
+      return 5
     }
 
     const type = () => {
@@ -112,7 +112,7 @@ const updateText = async () => {
     await typeSegment(newText, startIndex)
     startIndex = newText.length
     emit('segmentComplete')
-    await new Promise((resolve) => setTimeout(resolve, 150))
+    await new Promise((resolve) => setTimeout(resolve, 50))
   }
 
   isComplete.value = true

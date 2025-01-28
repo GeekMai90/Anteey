@@ -18,6 +18,7 @@ import {
   handleChat,
   handleFindNotes
 } from '@services/rag/ragService'
+import { checkAndInitializeEmbeddings } from '@services/rag/embeddingService'
 import log from 'electron-log'
 import { AssistantNoteReference, ChatMessage, ChatSession, RAGContext } from '@shared/types'
 
@@ -335,4 +336,15 @@ export function setupRAGHandlers() {
       }
     }
   )
+
+  // 添加新的 IPC 处理器
+  ipcMain.handle('initialize-embeddings', async () => {
+    try {
+      const result = await checkAndInitializeEmbeddings()
+      return { success: true, ...result }
+    } catch (error) {
+      log.error('初始化向量化失败:', error)
+      return { success: false, error: String(error) }
+    }
+  })
 }

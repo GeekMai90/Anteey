@@ -5,13 +5,67 @@
         <!-- 头部区域 -->
         <div class="assistant-header">
           <div class="title-area">
-            <div class="icon">
-              <Robot theme="outline" size="18" fill="var(--color-primary)" :strokeWidth="3" />
+            <div
+              v-tooltip.top="{
+                content: isInitializingEmbeddings ? `正在向量化` : '初始化向量库',
+                delay: { show: 1000 }
+              }"
+              class="tool-btn"
+              :class="{ 'is-processing': isInitializingEmbeddings }"
+              @click="handleInitializeEmbeddings"
+            >
+              <div class="icon">
+                <Loading
+                  v-if="isInitializingEmbeddings"
+                  theme="outline"
+                  size="18"
+                  fill="var(--color-primary)"
+                  :strokeWidth="3"
+                  class="loading-icon"
+                />
+                <Robot
+                  v-else
+                  theme="outline"
+                  size="18"
+                  fill="var(--color-primary)"
+                  :strokeWidth="3"
+                />
+              </div>
             </div>
             <span class="title">AI 助手</span>
           </div>
           <!-- 右侧工具栏 -->
           <div class="toolbar-right">
+            <!-- 添加向量化按钮 -->
+            <!-- <div
+              v-tooltip.top="{
+                content: isInitializingEmbeddings ? `正在向量化` : '初始化向量库',
+                delay: { show: 1000 }
+              }"
+              class="tool-btn"
+              :class="{ 'is-processing': isInitializingEmbeddings }"
+              @click="handleInitializeEmbeddings"
+            >
+              <div class="icon">
+                <Loading
+                  v-if="isInitializingEmbeddings"
+                  theme="outline"
+                  size="18"
+                  fill="var(--color-primary)"
+                  :strokeWidth="3"
+                  class="loading-icon"
+                />
+                <Robot
+                  v-else
+                  theme="outline"
+                  size="18"
+                  fill="var(--color-icon-default)"
+                  :strokeWidth="3"
+                />
+              </div>
+            </div> -->
+
+            <!-- 现有的主面板打开按钮 -->
             <div
               v-tooltip.top="{ content: '在主面板打开', delay: { show: 1000 } }"
               class="tool-btn"
@@ -253,7 +307,8 @@ import {
   Plus,
   History,
   Close,
-  Copy
+  Copy,
+  Loading
 } from '@icon-park/vue-next'
 import type { Suggestion } from '@shared/types'
 import TypewriterText from '@renderer/components/aiassistant/TypewriterText.vue'
@@ -265,7 +320,7 @@ import { message } from '@renderer/utils/message'
 
 // Store
 const assistantStore = useAssistantStore()
-const { messages, isProcessing } = storeToRefs(assistantStore)
+const { messages, isProcessing, isInitializingEmbeddings } = storeToRefs(assistantStore)
 const router = useRouter()
 const uiStore = useUIStore()
 
@@ -547,6 +602,10 @@ const copyMessageContent = async (content: string) => {
   }
 }
 
+const handleInitializeEmbeddings = () => {
+  assistantStore.initializeEmbeddings()
+}
+
 onMounted(() => {
   window.addEventListener('resize', updatePosition)
   window.addEventListener('resize', updateNoteSelectorPosition)
@@ -601,23 +660,38 @@ onMounted(() => {
     .title-area {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 2px;
 
-      .icon {
+      .tool-btn {
         display: flex;
         align-items: center;
-        justify-content: center;
-        :deep(.i-icon) {
+        border: none;
+        background: none;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        border-radius: 6px;
+        padding: 4px;
+
+        .icon {
           display: flex;
           align-items: center;
           justify-content: center;
-          width: 100%;
-          height: 100%;
+          :deep(.i-icon) {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
+          }
+
+          :deep(svg) {
+            width: 18px;
+            height: 18px;
+          }
         }
 
-        :deep(svg) {
-          width: 18px;
-          height: 18px;
+        &:hover {
+          background-color: var(--color-hover-button);
         }
       }
 
@@ -625,10 +699,14 @@ onMounted(() => {
         font-size: 16px;
         font-weight: 600;
         color: var(--color-text);
+        user-select: none;
       }
     }
 
     .toolbar-right {
+      display: flex;
+      gap: 4px;
+      align-items: center;
       .tool-btn {
         display: flex;
         align-items: center;

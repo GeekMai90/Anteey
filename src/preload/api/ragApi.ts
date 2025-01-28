@@ -330,5 +330,22 @@ export const ragApi = {
       console.error('预加载脚本 → 找一找模式失败:', error)
       throw error
     }
+  },
+  // 添加初始化向量化方法
+  initializeEmbeddings: async (): Promise<{
+    total: number
+    processed: number
+  }> => {
+    try {
+      const result = await ipcRenderer.invoke('initialize-embeddings')
+      if (!result.success) throw new Error(result.error)
+      return {
+        total: result.total,
+        processed: result.processed
+      }
+    } catch (error) {
+      console.error('预加载脚本 → 初始化向量化失败:', error)
+      throw error
+    }
   }
 }
