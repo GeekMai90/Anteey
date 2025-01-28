@@ -24,6 +24,7 @@ import { setupReviewHandlers } from './reviewIpcHandlers'
 import { setupEdWhiteboardHandlers } from './edWhiteboardIpcHandlers'
 import { setupTaskHandlers } from './taskIpcHandlers'
 import { setupAuthHandlers } from './authIpcHandlers'
+import { setupLLMConfigHandlers } from './llmConfigIpcHandlers'
 export function setupIpcHandlers(): void {
   setupNotesHandlers()
   setupWhiteboardHandlers()
@@ -51,4 +52,5 @@ export function setupIpcHandlers(): void {
   setupEdWhiteboardHandlers()
   setupTaskHandlers()
   setupAuthHandlers()
+  setupLLMConfigHandlers()
 }

@@ -107,7 +107,8 @@ import type {
   Task,
 
   // 认证相关
-  AuthState
+  AuthState,
+  LLMConfig
 } from '@shared/types'
 
 export interface ElectronAPI {
@@ -691,6 +692,26 @@ export interface ElectronAPI {
 
     // 检查网络状态
     checkNetworkStatus: () => Promise<boolean>
+  }
+
+  llmConfig: {
+    // 获取所有配置
+    getAllConfigs: () => Promise<LLMConfig[]>
+
+    // 获取默认配置
+    getDefaultConfig: () => Promise<LLMConfig | null>
+
+    // 添加配置
+    addConfig: (model: string, apiKey: string) => Promise<LLMConfig>
+
+    // 更新配置
+    updateConfig: (id: string, apiKey: string) => Promise<LLMConfig>
+
+    // 删除配置
+    deleteConfig: (id: string) => Promise<void>
+
+    // 设置默认配置
+    setDefaultConfig: (id: string) => Promise<void>
   }
 }
 

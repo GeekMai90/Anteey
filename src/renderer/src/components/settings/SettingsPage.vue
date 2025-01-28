@@ -46,6 +46,7 @@
       <TimeBlockSettings v-if="currentMenuItem === 'timeblock'" />
       <WebDAVSettings v-if="currentMenuItem === 'webdav'" />
       <FlashcardSettings v-if="currentMenuItem === 'flashcard'" />
+      <LLMSettings v-if="currentMenuItem === 'llm'" />
     </div>
   </div>
 </template>
@@ -71,6 +72,7 @@ import LicenseSettings from './pages/LicenseSettings.vue'
 import TimeBlockSettings from './pages/TimeBlockSettings.vue'
 import WebDAVSettings from './pages/WebDAVSettings.vue'
 import FlashcardSettings from './pages/FlashcardSettings.vue'
+import LLMSettings from './pages/LLMSettings.vue'
 
 const menuItems = [
   { key: 'appearance', label: '外观', icon: Theme },
@@ -80,7 +82,8 @@ const menuItems = [
   { key: 'share', label: '分享', icon: Share },
   { key: 'backup', label: '备份', icon: DatabaseDownload },
   { key: 'webdav', label: '同步', icon: CloudStorage },
-  { key: 'license', label: '软件激活', icon: CrownThree }
+  { key: 'license', label: '软件激活', icon: CrownThree },
+  { key: 'llm', label: 'LLM 配置', icon: CrownThree }
 ]
 
 const currentMenuItem = ref('appearance')
