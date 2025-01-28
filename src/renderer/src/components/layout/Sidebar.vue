@@ -323,7 +323,8 @@ import {
   Star,
   Tag,
   HandPaintedPlate,
-  Cup
+  Cup,
+  Robot
 } from '@icon-park/vue-next'
 import { useNoteStore } from '@renderer/stores/noteStore'
 import SettingDropdownMenu from '@renderer/components/settings/SettingDropdownMenu.vue'
@@ -381,7 +382,8 @@ const menuItems = computed(() => {
     ...(appearanceStore.settings?.enableWhiteboard
       ? [{ name: '思维板', path: '/whiteboard', icon: Workbench }]
       : []),
-    { name: '手绘板', path: '/ed-whiteboard', icon: HandPaintedPlate }
+    { name: '手绘板', path: '/ed-whiteboard', icon: HandPaintedPlate },
+    { name: 'AI助手', path: '/ai-assistant', icon: Robot }
   ]
   return baseItems
 })

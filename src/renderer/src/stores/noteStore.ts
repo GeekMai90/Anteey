@@ -121,6 +121,17 @@ export const useNoteStore = defineStore(
         .slice(0, count)
     }
 
+    const getRecentEditedNotes = async () => {
+      try {
+        const notes = await window.electronAPI.note.getRecentEditedNotes()
+        console.log('noteStores.ts→ 获取最近编辑的笔记:', notes)
+        return notes
+      } catch (error) {
+        console.error('获取最近编辑的笔记失败:', error)
+        throw error
+      }
+    }
+
     // ==================== 右侧边栏反向链接笔记 ====================
     // 打开反向链接预览
     const openBacklinkPreview = async (noteId: string) => {
@@ -1470,7 +1481,10 @@ export const useNoteStore = defineStore(
       // 分享视图相关
       showShareViewModal,
       shareViewNote,
-      handleShareView
+      handleShareView,
+
+      // 获取最近编辑的笔记
+      getRecentEditedNotes
     }
   },
   {

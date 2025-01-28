@@ -25,6 +25,7 @@ import { setupEdWhiteboardHandlers } from './edWhiteboardIpcHandlers'
 import { setupTaskHandlers } from './taskIpcHandlers'
 import { setupAuthHandlers } from './authIpcHandlers'
 import { setupLLMConfigHandlers } from './llmConfigIpcHandlers'
+import { setupRAGHandlers } from './ragIpcHandlers'
 export function setupIpcHandlers(): void {
   setupNotesHandlers()
   setupWhiteboardHandlers()
@@ -53,4 +54,5 @@ export function setupIpcHandlers(): void {
   setupTaskHandlers()
   setupAuthHandlers()
   setupLLMConfigHandlers()
+  setupRAGHandlers()
 }

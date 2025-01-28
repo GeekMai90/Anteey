@@ -1,4 +1,4 @@
-export type LLMProvider = 'zhipu' | 'moonshot'
+export type LLMProvider = 'zhipu' | 'moonshot' | 'deepseek'
 
 interface LLMModelConfig {
   name: string
@@ -17,6 +17,16 @@ export const LLM_MODELS: Record<string, LLMModelConfig> = {
     name: 'Moonshot Kimi',
     baseURL: 'https://api.moonshot.cn/v1/chat/completions',
     provider: 'moonshot'
+  },
+  'deepseek-chat': {
+    name: 'DeepSeek Chat V3',
+    baseURL: 'https://api.deepseek.com/v1/chat/completions',
+    provider: 'deepseek'
+  },
+  'deepseek-reasoner': {
+    name: 'DeepSeek Reasoner R1',
+    baseURL: 'https://api.deepseek.com/v1/chat/completions',
+    provider: 'deepseek'
   }
 } as const
 

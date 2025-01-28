@@ -119,6 +119,11 @@ const routes = [
     props: true,
     meta: { keepAlive: true }
   },
+  {
+    name: 'AIAssistant',
+    path: '/ai-assistant',
+    component: () => import('../views/AIAssistant.vue')
+  },
   // 添加图片管理页面路由
   {
     name: 'ImageManager',

@@ -108,7 +108,13 @@ import type {
 
   // 认证相关
   AuthState,
-  LLMConfig
+  LLMConfig,
+  ChatSession,
+  RAGContext,
+  RAGHistoryRecord,
+  ChatMessage,
+  AssistantNoteReference,
+  DeepSeekConfig
 } from '@shared/types'
 
 export interface ElectronAPI {
@@ -185,6 +191,15 @@ export interface ElectronAPI {
       tagId: string // 改用 tagId 替代 tagName
       action: 'add' | 'remove'
     }) => Promise<void> // 不再返回整个笔记对象
+    // 获取最近编辑的 10 篇笔记
+    getRecentEditedNotes: () => Promise<
+      Array<{
+        id: string
+        address: string
+        title: string
+        cardType: string
+      }>
+    >
   }
   whiteboard: {
     createWhiteboard: (input: CreateWhiteboardInput) => Promise<Whiteboard>
@@ -702,16 +717,125 @@ export interface ElectronAPI {
     getDefaultConfig: () => Promise<LLMConfig | null>
 
     // 添加配置
-    addConfig: (model: string, apiKey: string) => Promise<LLMConfig>
+    addConfig: (
+      model: string,
+      apiKey: string,
+      deepseekConfig?: DeepSeekConfig
+    ) => Promise<LLMConfig>
 
     // 更新配置
-    updateConfig: (id: string, apiKey: string) => Promise<LLMConfig>
+    updateConfig: (
+      id: string,
+      apiKey: string,
+      deepseekConfig?: DeepSeekConfig
+    ) => Promise<LLMConfig>
 
     // 删除配置
     deleteConfig: (id: string) => Promise<void>
 
     // 设置默认配置
     setDefaultConfig: (id: string) => Promise<void>
+  }
+
+  rag: {
+    retrieveContext: (params: { query: string; session?: ChatSession }) => Promise<RAGContext>
+
+    generateAnswer: (
+      query: string,
+      sessionId: string | null,
+      currentMessages: ChatMessage[],
+      currentContexts: RAGContext[]
+    ) => Promise<{
+      answer: string
+      context: RAGContext
+      messages: ChatMessage[]
+    }>
+
+    updateRAGHistory: (params: {
+      sessionId: string
+      messages: ChatMessage[]
+      contexts: RAGContext[]
+      metadata?: any // 添加可选的元数据
+    }) => Promise<void>
+
+    updateRAGHistoryTitle: (id: string, title: string) => Promise<void>
+
+    toggleRAGHistoryPin: (id: string) => Promise<void>
+
+    deleteRAGHistory: (id: string) => Promise<void>
+
+    clearAllRAGHistory: () => Promise<void>
+
+    getRAGHistory: () => Promise<RAGHistoryRecord[]>
+
+    getRAGHistoryDetail: (id: string) => Promise<RAGHistoryRecord | null>
+
+    // 新增的批量操作方法
+    batchGetRAGHistory: (ids: string[]) => Promise<(RAGHistoryRecord | null)[]>
+
+    // 新增的会话管理方法
+    cleanupExpiredSessions: () => Promise<void>
+
+    // 新增的性能监控方法
+    trackRAGPerformance: (
+      sessionId: string,
+      method: string,
+      duration: number,
+      options: {
+        success: boolean
+        error?: string
+        metadata?: Record<string, any>
+      }
+    ) => Promise<void>
+
+    generateAnswerWithReferences: (
+      query: string,
+      noteReferences: NoteReference[],
+      sessionId: string | null,
+      currentMessages: ChatMessage[],
+      currentContexts: RAGContext[]
+    ) => Promise<{
+      answer: string
+      context: RAGContext
+      messages: ChatMessage[]
+    }>
+
+    // 问一问模式
+    handleAskQuestion: (
+      query: string,
+      assistantNoteReferences: AssistantNoteReference[],
+      sessionId: string | null,
+      currentMessages: ChatMessage[],
+      currentContexts: RAGContext[]
+    ) => Promise<{ answer: string; context: RAGContext; messages: ChatMessage[] }>
+
+    // 聊一聊模式
+    handleChat: (
+      query: string,
+      sessionId: string | null,
+      currentMessages: ChatMessage[],
+      currentContexts: RAGContext[],
+      deepseekConfig?: {
+        temperature?: number
+        maxTokens?: number
+      }
+    ) => Promise<{
+      answer: string
+      context: RAGContext
+      messages: ChatMessage[]
+    }>
+
+    // 找一找模式
+    handleFindNotes: (
+      query: string,
+      sessionId: string | null,
+      currentMessages: ChatMessage[],
+      currentContexts: RAGContext[]
+    ) => Promise<{
+      answer: string
+      context: RAGContext
+      messages: ChatMessage[]
+    }>
   }
 }
 

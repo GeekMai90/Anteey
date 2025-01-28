@@ -12,6 +12,7 @@ import { Knex } from 'knex/types'
 import { FilterRule } from '@shared/types'
 import { db } from '../../db/config'
 import { checkLicenseStatus } from '../activation/licenseService'
+import { updateNoteEmbedding } from '../rag/embeddingService'
 // 辅助函数：将数据库记录转换为 Note 对象
 export function convertToNote(record: any): Note {
   return {
@@ -552,39 +553,107 @@ export async function getAllNotes(includeDeleted: boolean = false): Promise<Note
 const MAX_RETRIES = 3
 const RETRY_DELAY = 100 // 毫秒
 
+// export async function updateNoteContent(id: string, content: object): Promise<Note> {
+//   let retries = 0
+
+//   while (retries < MAX_RETRIES) {
+//     try {
+//       // 保存笔记内容
+//       const updatedNote = await db.transaction(async (trx) => {
+//         // 设置事务超时
+//         await trx.raw('PRAGMA busy_timeout = 5000;')
+
+//         // 提取第一行文本作为标题
+//         const firstLineText = extractFirstLineText(content)
+
+//         // 准备更新数据
+//         const updateData: any = {
+//           content: JSON.stringify(content),
+//           updatedAt: new Date(),
+//           metadata: db.raw(
+//             `
+//             json_patch(
+//               COALESCE(metadata, '{}'),
+//               json_object('title', ?)
+//             )
+//           `,
+//             [firstLineText]
+//           )
+//         }
+
+//         // 执行更新并返回更新后的笔记
+//         const [note] = await trx('notes').where('id', id).update(updateData).returning('*')
+//         // console.log(`后端→ 笔记 ${id} 内容已更新`)
+//         return convertToNote(note)
+//       })
+
+//       return updatedNote
+//     } catch (error) {
+//       retries++
+//       const isLockError = (error as Error).message.includes('database is locked')
+
+//       if (isLockError && retries < MAX_RETRIES) {
+//         const delay = RETRY_DELAY * Math.pow(2, retries - 1)
+//         console.warn(`后端→ 数据库锁定，正在重试 (${retries}/${MAX_RETRIES})，延迟: ${delay}ms`)
+//         await new Promise((resolve) => setTimeout(resolve, delay))
+//         continue
+//       }
+
+//       console.error('后端→ 更新笔记内容失败:', error)
+//       throw new Error(`更新笔记内容失败: ${isLockError ? '数据库锁定' : (error as Error).message}`)
+//     }
+//   }
+
+//   throw new Error('更新笔记内容失败: 达到最大重试次数')
+// }
 export async function updateNoteContent(id: string, content: object): Promise<Note> {
   let retries = 0
 
   while (retries < MAX_RETRIES) {
     try {
-      // 保存笔记内容
-      const updatedNote = await db.transaction(async (trx) => {
-        // 设置事务超时
-        await trx.raw('PRAGMA busy_timeout = 5000;')
+      // 1. 先保存笔记内容
+      const updatedNote = await db.transaction(
+        async (trx) => {
+          // 设置事务超时
+          await trx.raw('PRAGMA busy_timeout = 5000;')
 
-        // 提取第一行文本作为标题
-        const firstLineText = extractFirstLineText(content)
+          // 提取第一行文本作为标题
+          const firstLineText = extractFirstLineText(content)
 
-        // 准备更新数据
-        const updateData: any = {
-          content: JSON.stringify(content),
-          updatedAt: new Date(),
-          metadata: db.raw(
-            `
-            json_patch(
-              COALESCE(metadata, '{}'),
-              json_object('title', ?)
+          // 准备更新数据
+          const updateData: any = {
+            content: JSON.stringify(content),
+            updatedAt: new Date(),
+            metadata: db.raw(
+              `
+              json_patch(
+                COALESCE(metadata, '{}'),
+                json_object('title', ?)
+              )
+            `,
+              [firstLineText]
             )
-          `,
-            [firstLineText]
-          )
-        }
+          }
 
-        // 执行更新并返回更新后的笔记
-        const [note] = await trx('notes').where('id', id).update(updateData).returning('*')
-        // console.log(`后端→ 笔记 ${id} 内容已更新`)
-        return convertToNote(note)
-      })
+          // 执行更新并返回更新后的笔记
+          const [note] = await trx('notes').where('id', id).update(updateData).returning('*')
+          console.log(`后端→ 笔记 ${id} 内容已更新`)
+          return convertToNote(note)
+        },
+        {
+          isolationLevel: 'read committed'
+        }
+      )
+
+      // 2. 异步更新向量
+      setTimeout(async () => {
+        try {
+          await updateNoteEmbedding(id, content)
+          console.log(`后端→ 笔记 ${id} 向量异步更新完成`)
+        } catch (error) {
+          console.error(`后端→ 笔记 ${id} 向量异步更新失败:`, error)
+        }
+      }, 0)
 
       return updatedNote
     } catch (error) {

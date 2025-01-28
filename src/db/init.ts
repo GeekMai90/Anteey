@@ -511,6 +511,7 @@ export async function initDatabase(db: Knex): Promise<void> {
       table.boolean('isDefault').notNullable().defaultTo(false) // 是否为默认模型
       table.datetime('createdAt').notNullable()
       table.datetime('updatedAt').notNullable()
+      table.json('deepseekConfig').nullable() // 添加 DeepSeek 配置字段
 
       // 索引
       table.index('model')
@@ -518,6 +519,15 @@ export async function initDatabase(db: Knex): Promise<void> {
     })
 
     console.log('llm_configs 表创建成功')
+  } else {
+    // 检查是否需要添加 deepseekConfig 列
+    const hasDeepseekConfig = await db.schema.hasColumn('llm_configs', 'deepseekConfig')
+    if (!hasDeepseekConfig) {
+      await db.schema.table('llm_configs', (table) => {
+        table.json('deepseekConfig').nullable()
+      })
+      console.log('llm_configs 表添加 deepseekConfig 列成功')
+    }
   }
 
   // 创建 appearance_settings 表

@@ -1,5 +1,5 @@
 import { ipcRenderer } from 'electron'
-import type { LLMConfig } from '@shared/types'
+import type { LLMConfig, DeepSeekConfig } from '@shared/types'
 
 export const llmConfigApi = {
   // 获取所有配置
@@ -27,9 +27,17 @@ export const llmConfigApi = {
   },
 
   // 添加配置
-  addConfig: async (model: string, apiKey: string): Promise<LLMConfig> => {
+  addConfig: async (
+    model: string,
+    apiKey: string,
+    deepseekConfig?: DeepSeekConfig
+  ): Promise<LLMConfig> => {
     try {
-      const result = await ipcRenderer.invoke('add-llm-config', { model, apiKey })
+      const result = await ipcRenderer.invoke('add-llm-config', {
+        model,
+        apiKey,
+        deepseekConfig
+      })
       if (!result.success) throw new Error(result.error)
       return result.config
     } catch (error) {
@@ -39,9 +47,17 @@ export const llmConfigApi = {
   },
 
   // 更新配置
-  updateConfig: async (id: string, apiKey: string): Promise<LLMConfig> => {
+  updateConfig: async (
+    id: string,
+    apiKey: string,
+    deepseekConfig?: DeepSeekConfig
+  ): Promise<LLMConfig> => {
     try {
-      const result = await ipcRenderer.invoke('update-llm-config', { id, apiKey })
+      const result = await ipcRenderer.invoke('update-llm-config', {
+        id,
+        apiKey,
+        deepseekConfig
+      })
       if (!result.success) throw new Error(result.error)
       return result.config
     } catch (error) {

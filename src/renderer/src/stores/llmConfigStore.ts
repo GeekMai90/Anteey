@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import type { LLMConfig } from '@shared/types'
+import type { LLMConfig, DeepSeekConfig } from '@shared/types'
 import { LLM_MODELS } from '@services/rag/llm.config'
 
 export const useLLMConfigStore = defineStore('llmConfig', () => {
@@ -27,18 +27,34 @@ export const useLLMConfigStore = defineStore('llmConfig', () => {
   }
 
   // 添加新配置
-  const addConfig = async (model: string, apiKey: string) => {
+  const addConfig = async (model: string, apiKey: string, deepseekConfig?: DeepSeekConfig) => {
     try {
       error.value = null
-      const newConfig = await window.electronAPI.llmConfig.addConfig(model, apiKey)
-      configs.value.push(newConfig)
+      // 确保 deepseekConfig 是一个普通对象
+      const configToSend = {
+        model,
+        apiKey,
+        deepseekConfig: deepseekConfig
+          ? {
+              temperature: Number(deepseekConfig.temperature),
+              maxTokens: Number(deepseekConfig.maxTokens)
+            }
+          : undefined
+      }
+
+      const config = await window.electronAPI.llmConfig.addConfig(
+        configToSend.model,
+        configToSend.apiKey,
+        configToSend.deepseekConfig
+      )
+      configs.value.push(config)
 
       // 如果是第一个配置，设为默认
       if (configs.value.length === 1) {
-        defaultConfig.value = newConfig
+        defaultConfig.value = config
       }
 
-      return newConfig
+      return config
     } catch (err) {
       error.value = err instanceof Error ? err.message : '添加配置失败'
       console.error('添加 LLM 配置失败:', err)
@@ -47,18 +63,34 @@ export const useLLMConfigStore = defineStore('llmConfig', () => {
   }
 
   // 更新配置
-  const updateConfig = async (id: string, apiKey: string) => {
+  const updateConfig = async (id: string, apiKey: string, deepseekConfig?: DeepSeekConfig) => {
     try {
       error.value = null
-      const updatedConfig = await window.electronAPI.llmConfig.updateConfig(id, apiKey)
+      // 确保 deepseekConfig 是一个普通对象
+      const configToSend = {
+        id,
+        apiKey,
+        deepseekConfig: deepseekConfig
+          ? {
+              temperature: Number(deepseekConfig.temperature),
+              maxTokens: Number(deepseekConfig.maxTokens)
+            }
+          : undefined
+      }
+
+      const config = await window.electronAPI.llmConfig.updateConfig(
+        configToSend.id,
+        configToSend.apiKey,
+        configToSend.deepseekConfig
+      )
       const index = configs.value.findIndex((c) => c.id === id)
       if (index !== -1) {
-        configs.value[index] = updatedConfig
+        configs.value[index] = config
         if (defaultConfig.value?.id === id) {
-          defaultConfig.value = updatedConfig
+          defaultConfig.value = config
         }
       }
-      return updatedConfig
+      return config
     } catch (err) {
       error.value = err instanceof Error ? err.message : '更新配置失败'
       console.error('更新 LLM 配置失败:', err)

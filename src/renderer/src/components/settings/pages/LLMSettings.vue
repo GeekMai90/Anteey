@@ -83,6 +83,31 @@
             <label>API Key</label>
             <input v-model="formData.apiKey" type="password" placeholder="请输入 API Key" />
           </div>
+
+          <!-- DeepSeek 特有配置 -->
+          <template v-if="formData.model.startsWith('deepseek')">
+            <div class="form-group">
+              <label>Temperature</label>
+              <input
+                v-model.number="formData.deepseekConfig.temperature"
+                type="number"
+                min="0"
+                max="1"
+                step="0.1"
+                placeholder="设置温度 (0-1)"
+              />
+            </div>
+            <div class="form-group">
+              <label>Max Tokens</label>
+              <input
+                v-model.number="formData.deepseekConfig.maxTokens"
+                type="number"
+                min="1"
+                max="4096"
+                placeholder="设置最大 token 数"
+              />
+            </div>
+          </template>
         </div>
 
         <div class="modal-footer">
@@ -104,16 +129,29 @@
 import { ref } from 'vue'
 import { Robot, Plus, Config, Close } from '@icon-park/vue-next'
 import { useLLMConfigStore } from '@renderer/stores/llmConfigStore'
-import { LLM_MODELS } from '../../../../../services/rag/llm.config'
-import type { LLMConfig } from '@shared/types'
+import { LLM_MODELS } from '@services/rag/llm.config'
+import type { LLMConfig, DeepSeekConfig } from '@shared/types'
 import { message } from '@renderer/utils/message'
+
+// 定义表单数据的类型
+interface FormData {
+  model: string
+  apiKey: string
+  deepseekConfig: DeepSeekConfig
+}
 
 const llmConfigStore = useLLMConfigStore()
 const showAddModal = ref(false)
 const editingConfig = ref<LLMConfig | null>(null)
-const formData = ref({
+
+// 使用类型注解
+const formData = ref<FormData>({
   model: '',
-  apiKey: ''
+  apiKey: '',
+  deepseekConfig: {
+    temperature: 0.7,
+    maxTokens: 2000
+  }
 })
 
 // 初始化加载配置
@@ -129,7 +167,11 @@ const handleEdit = (config: LLMConfig) => {
   editingConfig.value = config
   formData.value = {
     model: config.model,
-    apiKey: config.apiKey
+    apiKey: config.apiKey,
+    deepseekConfig: {
+      temperature: config.deepseekConfig?.temperature ?? 0.7,
+      maxTokens: config.deepseekConfig?.maxTokens ?? 2000
+    }
   }
   showAddModal.value = true
 }
@@ -140,22 +182,43 @@ const closeModal = () => {
   editingConfig.value = null
   formData.value = {
     model: '',
-    apiKey: ''
+    apiKey: '',
+    deepseekConfig: {
+      temperature: 0.7,
+      maxTokens: 2000
+    }
   }
 }
 
 // 提交表单
 const handleSubmit = async () => {
   try {
+    // 确保数值类型正确
+    const deepseekConfigToSend = formData.value.model.startsWith('deepseek')
+      ? {
+          temperature: Number(formData.value.deepseekConfig.temperature),
+          maxTokens: Number(formData.value.deepseekConfig.maxTokens)
+        }
+      : undefined
+
     if (editingConfig.value) {
-      await llmConfigStore.updateConfig(editingConfig.value.id, formData.value.apiKey)
+      await llmConfigStore.updateConfig(
+        editingConfig.value.id,
+        formData.value.apiKey,
+        deepseekConfigToSend
+      )
       message.success('配置已更新')
     } else {
-      await llmConfigStore.addConfig(formData.value.model, formData.value.apiKey)
+      await llmConfigStore.addConfig(
+        formData.value.model,
+        formData.value.apiKey,
+        deepseekConfigToSend
+      )
       message.success('配置已添加')
     }
     closeModal()
   } catch (error) {
+    console.error('操作失败:', error)
     message.error('操作失败')
   }
 }
@@ -487,7 +550,6 @@ const handleDelete = async (id: string) => {
       display: block;
       margin-bottom: 8px;
       color: var(--color-text-primary);
-      font-size: 14px;
     }
 
     select,
@@ -498,7 +560,6 @@ const handleDelete = async (id: string) => {
       border-radius: 6px;
       background: var(--color-background-primary);
       color: var(--color-text-primary);
-      font-size: 14px;
 
       &:focus {
         border-color: var(--color-primary);
