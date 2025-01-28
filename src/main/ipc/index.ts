@@ -27,6 +27,7 @@ import { setupAuthHandlers } from './authIpcHandlers'
 import { setupLLMConfigHandlers } from './llmConfigIpcHandlers'
 import { setupRAGHandlers } from './ragIpcHandlers'
 import { setupEmbeddingHandlers } from './embeddingIpcHandlers'
+import { setupDictionaryHandlers } from './dictionaryIpcHandlers'
 export function setupIpcHandlers(): void {
   setupNotesHandlers()
   setupWhiteboardHandlers()
@@ -57,4 +58,5 @@ export function setupIpcHandlers(): void {
   setupLLMConfigHandlers()
   setupRAGHandlers()
   setupEmbeddingHandlers()
+  setupDictionaryHandlers()
 }

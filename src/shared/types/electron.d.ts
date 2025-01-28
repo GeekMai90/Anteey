@@ -114,7 +114,9 @@ import type {
   RAGHistoryRecord,
   ChatMessage,
   AssistantNoteReference,
-  DeepSeekConfig
+  DeepSeekConfig,
+  WordSuggestion,
+  DictWord
 } from '@shared/types'
 
 export interface ElectronAPI {
@@ -861,6 +863,21 @@ export interface ElectronAPI {
         similarity: number
       }[]
     >
+  }
+
+  dictionary: {
+    // 词相关的方法
+    getPendingSuggestions: () => Promise<WordSuggestion[]>
+    processSuggestion: (word: string, status: 'accepted' | 'rejected') => Promise<void>
+    processSuggestionBatch: (words: string[], status: 'accepted' | 'rejected') => Promise<void>
+    getDictionary: () => Promise<DictWord[]>
+    cleanupDictionary: (days: number) => Promise<void>
+    getAllWords: () => Promise<DictWord[]>
+    addWord: (word: string) => Promise<DictWord>
+    deleteWord: (word: string) => Promise<void>
+    deleteWords: (words: string[]) => Promise<void>
+    searchWords: (query: string) => Promise<DictWord[]>
+    updateWordStatus: (word: string, enabled: boolean) => Promise<void>
   }
 }
 

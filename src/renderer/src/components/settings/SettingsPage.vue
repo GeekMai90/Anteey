@@ -47,6 +47,7 @@
       <WebDAVSettings v-if="currentMenuItem === 'webdav'" />
       <FlashcardSettings v-if="currentMenuItem === 'flashcard'" />
       <LLMSettings v-if="currentMenuItem === 'llm'" />
+      <DictionarySettings v-if="currentMenuItem === 'dictionary'" />
     </div>
   </div>
 </template>
@@ -72,6 +73,7 @@ import LicenseSettings from './pages/LicenseSettings.vue'
 import TimeBlockSettings from './pages/TimeBlockSettings.vue'
 import WebDAVSettings from './pages/WebDAVSettings.vue'
 import FlashcardSettings from './pages/FlashcardSettings.vue'
+import DictionarySettings from './pages/DictionarySettings.vue'
 import LLMSettings from './pages/LLMSettings.vue'
 
 const menuItems = [
@@ -83,7 +85,8 @@ const menuItems = [
   { key: 'backup', label: '备份', icon: DatabaseDownload },
   { key: 'webdav', label: '同步', icon: CloudStorage },
   { key: 'license', label: '软件激活', icon: CrownThree },
-  { key: 'llm', label: 'LLM 配置', icon: CrownThree }
+  { key: 'llm', label: 'LLM 配置', icon: CrownThree },
+  { key: 'dictionary', label: '词库管理', icon: CrownThree }
 ]
 
 const currentMenuItem = ref('appearance')

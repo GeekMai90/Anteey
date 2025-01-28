@@ -1,7 +1,6 @@
 // 向量服务
 import { db } from '../../db/config'
 import log from 'electron-log'
-// import { Knex } from 'knex/types'
 import { SimilarityService } from './calculateSimilarity'
 import path from 'path'
 import { app } from 'electron'
@@ -11,12 +10,27 @@ import fs from 'fs'
 
 let embeddings: any = null
 
-// 缓存相关配置
+/**
+ * 向量服务模块
+ * 该模块负责处理笔记的向量化、存储和相似度搜索等功能
+ * 使用 embeddings.js 进行文本向量化
+ * 使用 SQLite 存储向量数据
+ */
+
+/**
+ * 缓存相关配置
+ * userDataPath: Electron 应用数据目录
+ * cacheDirPath: 向量缓存目录
+ * cachePath: 向量缓存文件路径
+ */
 const userDataPath = app.getPath('userData')
 const cacheDirPath = path.join(userDataPath, 'UserData', 'cache')
 const cachePath = path.join(cacheDirPath, 'embeddings.cache.json')
 
-// 确保缓存目录存在
+/**
+ * 确保缓存目录和文件存在
+ * 如果目录或文件不存在，则创建它们
+ */
 function ensureCacheDirectory() {
   try {
     if (!fs.existsSync(cacheDirPath)) {
@@ -35,8 +49,12 @@ function ensureCacheDirectory() {
   }
 }
 
-// 初始化 embeddings
-// 初始化向量模型
+/**
+ * 初始化向量模型
+ * 加载并配置 embeddings.js 模型
+ * 如果初始化失败，将使用降级方案（零向量）
+ * @returns 向量化函数
+ */
 export async function initEmbeddings() {
   if (!embeddings) {
     try {
@@ -72,7 +90,9 @@ export async function initEmbeddings() {
 }
 
 /**
- * 转换数据库结果为 NoteEmbedding 类型
+ * 将数据库查询结果转换为 NoteEmbedding 类型
+ * @param result 数据库查询结果
+ * @returns NoteEmbedding 对象
  */
 function convertToEmbedding(result: any): NoteEmbedding {
   try {
@@ -97,7 +117,12 @@ function convertToEmbedding(result: any): NoteEmbedding {
   }
 }
 
-// 提取笔记的纯文本内容
+/**
+ * 从笔记内容中提取纯文本
+ * 递归处理笔记内容的节点结构，提取所有文本内容
+ * @param content 笔记内容（可能包含富文本结构）
+ * @returns 提取的纯文本内容
+ */
 function extractTextContent(content: any): string {
   const processNode = (node: any): string => {
     if (typeof node === 'string') return node
@@ -122,10 +147,18 @@ function extractTextContent(content: any): string {
 }
 
 // 配置常量
-const KEYWORDS_LIMIT = 10
+const KEYWORDS_LIMIT = 15
 const MIN_KEYWORD_WEIGHT = 0.05
 
-// 生成并保存笔记的向量
+/**
+ * 为指定笔记生成向量表示
+ * 1. 提取笔记文本内容
+ * 2. 生成文本向量
+ * 3. 提取关键词
+ * 4. 将结果保存到数据库
+ * @param noteId 笔记ID
+ * @returns 生成的向量表示
+ */
 export async function generateEmbedding(noteId: string): Promise<NoteEmbedding> {
   try {
     // 1. 获取笔记内容
@@ -160,19 +193,6 @@ export async function generateEmbedding(noteId: string): Promise<NoteEmbedding> 
       .slice(0, KEYWORDS_LIMIT)
       .map((k: Keyword) => k.word)
 
-    // console.log('关键词提取结果:', {
-    //   笔记ID: noteId,
-    //   原始关键词数: keywordObjects.length,
-    //   筛选后关键词数: keywords.length,
-    //   关键词列表: keywords
-    // })
-    // log.info('关键词提取结果:', {
-    //   笔记ID: noteId,
-    //   原始关键词数: keywordObjects.length,
-    //   筛选后关键词数: keywords.length,
-    //   关键词列表: keywords
-    // })
-
     // 5. 准备数据
     const now = Math.floor(Date.now() / 1000)
     const embeddingData = {
@@ -202,7 +222,12 @@ export async function generateEmbedding(noteId: string): Promise<NoteEmbedding> 
     throw error
   }
 }
-// 获取笔记的向量
+
+/**
+ * 获取指定笔记的向量表示
+ * @param noteId 笔记ID
+ * @returns 笔记的向量表示，如果不存在则返回 null
+ */
 export async function getNoteEmbedding(noteId: string): Promise<NoteEmbedding | null> {
   try {
     const record = await db('note_embeddings').where({ note_id: noteId }).first()
@@ -214,7 +239,10 @@ export async function getNoteEmbedding(noteId: string): Promise<NoteEmbedding | 
   }
 }
 
-// 删除笔记的向量
+/**
+ * 删除指定笔记的向量表示
+ * @param noteId 笔记ID
+ */
 export async function deleteEmbedding(noteId: string): Promise<void> {
   try {
     await db('note_embeddings').where({ note_id: noteId }).delete()
@@ -224,7 +252,10 @@ export async function deleteEmbedding(noteId: string): Promise<void> {
   }
 }
 
-// 获取所有没有向量的笔记ID
+/**
+ * 获取所有未生成向量的笔记ID列表
+ * @returns 笔记ID数组
+ */
 export async function getNotesWithoutEmbeddings(): Promise<string[]> {
   try {
     const results = await db('notes')
@@ -239,7 +270,11 @@ export async function getNotesWithoutEmbeddings(): Promise<string[]> {
   }
 }
 
-// 批量生成向量
+/**
+ * 批量为多个笔记生成向量表示
+ * 如果某个笔记处理失败，将继续处理其他笔记
+ * @param noteIds 笔记ID数组
+ */
 export async function generateEmbeddingsBatch(noteIds: string[]): Promise<void> {
   try {
     for (const noteId of noteIds) {
@@ -258,8 +293,13 @@ export async function generateEmbeddingsBatch(noteIds: string[]): Promise<void> 
   }
 }
 
-// 添加事务参数
-
+/**
+ * 异步更新笔记的向量表示和关键词
+ * 当笔记内容更新时调用此函数
+ * 包含错误处理和降级方案
+ * @param noteId 笔记ID
+ * @param content 笔记新内容
+ */
 export async function updateNoteEmbedding(noteId: string, content: any): Promise<void> {
   try {
     log.info('开始异步更新笔记向量和关键词:', { noteId })
@@ -362,6 +402,7 @@ export async function updateNoteEmbedding(noteId: string, content: any): Promise
     })
   }
 }
+
 // 计算余弦相似度的 SQL 辅助函数
 const cosineSimilarityQuery = `
   (CAST((embedding * :queryEmbedding) AS REAL)) / 
@@ -371,7 +412,13 @@ const cosineSimilarityQuery = `
   ) as similarity
 `
 
-// 搜索相似笔记
+/**
+ * 基于文本查询搜索相似笔记
+ * 使用余弦相似度计算文本相似度
+ * @param query 查询文本
+ * @param limit 返回结果数量限制
+ * @returns 相似笔记列表，包含相似度分数
+ */
 export async function searchSimilarNotes(
   query: string,
   limit: number = 10
@@ -401,7 +448,13 @@ export async function searchSimilarNotes(
   }
 }
 
-// 获取特定笔记的相似笔记
+/**
+ * 获取与指定笔记相似的其他笔记
+ * 使用增强版相似度计算（考虑向量和关键词）
+ * @param noteId 源笔记ID
+ * @param limit 返回结果数量限制
+ * @returns 相似笔记列表，包含相似度分数
+ */
 export async function getSimilarNotesForNote(
   noteId: string,
   limit: number = 10
@@ -469,7 +522,11 @@ export async function getSimilarNotesForNote(
   }
 }
 
-// 添加新函数：检查是否需要初始化向量化
+/**
+ * 检查并初始化所有未向量化的笔记
+ * 批量处理未向量化的笔记
+ * @returns 处理统计信息：总数和已处理数量
+ */
 export async function checkAndInitializeEmbeddings(): Promise<{
   total: number
   processed: number

@@ -496,19 +496,22 @@ const historyPanelStyle = ref({
   right: '0px'
 })
 
-// 监听窗口大小变化以更新位置
+// 更新位置计算方法
 const updatePosition = () => {
   if (historyBtnRef.value) {
     const rect = historyBtnRef.value.getBoundingClientRect()
-    historyPanelStyle.value = Object.assign({}, historyPanelStyle.value, {
+    const panelHeight = 400 // 面板高度
+    const margin = 8 // 面板与按钮之间的间距
+
+    historyPanelStyle.value = {
       position: 'fixed',
-      top: `${rect.top - 400 - 8}px`,
+      top: `${rect.top - panelHeight - margin}px`, // 从按钮顶部减去面板高度和间距
       right: `${window.innerWidth - rect.right}px`
-    })
+    }
   }
 }
 
-// 监听历史面板显示状态变化时更新位置
+// 监听窗口大小变化以更新位置
 watch(
   () => showHistory.value,
   (newValue) => {

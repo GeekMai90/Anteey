@@ -1,5 +1,10 @@
 <template>
-  <div class="history-panel" :class="{ 'is-open': show }" :style="style">
+  <div
+    v-show="show && isPositionReady"
+    class="history-panel"
+    :class="{ 'is-open': show }"
+    :style="panelStyle"
+  >
     <div class="history-panel-content">
       <!-- 顶部区域 -->
       <div class="panel-header">
@@ -71,7 +76,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, onMounted } from 'vue'
+import { ref, computed, watch, onMounted, nextTick } from 'vue'
 import { Delete, Close } from '@icon-park/vue-next'
 import { useAssistantStore } from '@renderer/stores/assistantStore'
 import type { RAGHistoryRecord } from '@shared/types'
@@ -91,6 +96,21 @@ const hoveredItem = ref<string | null>(null)
 const showDeleteConfirm = ref(false)
 const pendingDeleteId = ref<string | null>(null)
 const isLoading = ref(false)
+const isPositionReady = ref(false)
+
+// 计算面板样式
+const panelStyle = computed(() => {
+  const baseStyle = props.style || {}
+  const panelHeight = 400 // 面板固定高度
+
+  return {
+    ...baseStyle,
+    height: `${panelHeight}px`, // 设置固定高度
+    opacity: isPositionReady.value ? 1 : 0,
+    transform: isPositionReady.value ? 'translateY(0)' : 'translateY(10px)',
+    transition: 'all 0.3s ease'
+  }
+})
 
 // 选择历史记录
 const handleSelectHistory = async (id: string) => {
@@ -133,11 +153,18 @@ onMounted(async () => {
   await assistantStore.loadHistory()
 })
 
+// 监听显示状态变化
 watch(
   () => props.show,
-  async (newValue) => {
+  (newValue) => {
     if (newValue) {
-      await assistantStore.loadHistory()
+      // 先重置位置准备状态
+      isPositionReady.value = false
+      // 使用 nextTick 确保 DOM 更新后再设置准备状态
+      nextTick(() => {
+        isPositionReady.value = true
+      })
+      assistantStore.loadHistory()
     }
   }
 )
@@ -147,16 +174,10 @@ watch(
 .history-panel {
   position: fixed;
   z-index: 1000;
-  transition: all 0.3s ease;
-  height: 400px;
-  opacity: 0;
-  transform: translateY(10px);
   pointer-events: none;
   visibility: hidden;
 
   &.is-open {
-    opacity: 1;
-    transform: translateY(0);
     pointer-events: auto;
     visibility: visible;
   }
@@ -164,7 +185,7 @@ watch(
 
 .history-panel-content {
   width: 280px;
-  height: 100%;
+  height: 400px; // 设置固定高度
   background: var(--color-bg-primary);
   border-radius: 12px;
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.1);

@@ -2,30 +2,7 @@
 import { Knex } from 'knex/types'
 import { db } from '../../db/config'
 import log from 'electron-log/renderer'
-
-// 接口定义
-export interface DictWord {
-  word: string
-  weight: number
-  frequency: number
-  documents: number
-  lastSeen: number
-  cooccurrences: string // JSON 字符串
-  source: 'auto' | 'manual'
-  enabled: boolean
-  createdAt: Date
-  updatedAt: Date
-}
-
-export interface WordSuggestion {
-  word: string
-  weight: number
-  score: number
-  reason: string // JSON 字符串
-  status: 'pending' | 'accepted' | 'rejected'
-  createdAt: Date
-  processedAt?: Date
-}
+import { DictWord, WordSuggestion } from '@shared/types'
 
 // 工具函数：转换 cooccurrences
 function convertCooccurrences(record: DictWord) {
