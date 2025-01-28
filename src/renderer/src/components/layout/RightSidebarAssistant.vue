@@ -239,6 +239,26 @@
                 ></textarea>
               </div>
               <div class="input-actions">
+                <div class="model-switcher">
+                  <button class="model-switch-btn" @click="showModelMenu = !showModelMenu">
+                    <Receiver theme="outline" size="16" :strokeWidth="3" />
+                  </button>
+
+                  <!-- 模型选择菜单 -->
+                  <div v-if="showModelMenu" class="model-menu">
+                    <div
+                      v-for="config in llmConfigStore.configs"
+                      :key="config.id"
+                      class="model-option"
+                      :class="{ active: config.isDefault }"
+                      @click="handleModelSwitch(config.id)"
+                    >
+                      <span class="model-name">{{ LLM_MODELS[config.model].name }}</span>
+                      <Check v-if="config.isDefault" theme="outline" size="14" :strokeWidth="3" />
+                    </div>
+                  </div>
+                </div>
+
                 <button
                   class="send-btn"
                   :disabled="!inputMessage.trim() || isProcessing"
@@ -279,7 +299,9 @@ import {
   History,
   Close,
   Copy,
-  Loading
+  Loading,
+  Check,
+  Receiver
 } from '@icon-park/vue-next'
 import type { Suggestion } from '@shared/types'
 import TypewriterText from '@renderer/components/aiassistant/TypewriterText.vue'
@@ -288,12 +310,15 @@ import { useUIStore } from '@renderer/stores/UIStore'
 import RightSidebarAIChatHistory from '@renderer/components/layout/RightSidebarAIChatHistory.vue'
 import RightSidebarNoteSelector from '@renderer/components/layout/RightSidebarNoteSelector.vue'
 import { message } from '@renderer/utils/message'
+import { useLLMConfigStore } from '@renderer/stores/llmConfigStore'
+import { LLM_MODELS } from '@services/rag/llm.config'
 
 // Store
 const assistantStore = useAssistantStore()
 const { messages, isProcessing, isInitializingEmbeddings } = storeToRefs(assistantStore)
 const router = useRouter()
 const uiStore = useUIStore()
+const llmConfigStore = useLLMConfigStore()
 
 // 建议列表
 const suggestions: Suggestion[] = [
@@ -328,6 +353,7 @@ const selectedNotes = ref<{ id: string; title: string }[]>([])
 const showNoteSelector = ref(false)
 const lastAtPosition = ref(-1)
 const noteSelectorRef = ref<{ focusSearchInput: () => void } | null>(null)
+const showModelMenu = ref(false)
 
 // 计算属性
 const getPlaceholder = computed(() => {
@@ -579,6 +605,24 @@ const handleInitializeEmbeddings = () => {
   assistantStore.initializeEmbeddings()
 }
 
+// 获取当前默认模型名称的计算属性
+// const getCurrentModelName = computed(() => {
+//   const defaultConfig = llmConfigStore.configs.find((config) => config.isDefault)
+//   return defaultConfig ? LLM_MODELS[defaultConfig.model].name : '选择模型'
+// })
+
+// 处理模型切换
+const handleModelSwitch = async (modelId: string) => {
+  try {
+    await llmConfigStore.setDefaultConfig(modelId)
+    showModelMenu.value = false
+    message.success('已切换模型')
+  } catch (error) {
+    message.error('切换模型失败')
+  }
+}
+
+// 初始化加载配置
 onMounted(() => {
   window.addEventListener('resize', updatePosition)
   window.addEventListener('resize', updateNoteSelectorPosition)
@@ -589,6 +633,9 @@ onMounted(() => {
     if (!target.closest('.note-selector') && !target.closest('.input-container')) {
       showNoteSelector.value = false
     }
+    if (!target.closest('.model-switcher')) {
+      showModelMenu.value = false
+    }
   }
 
   document.addEventListener('click', handleClickOutside)
@@ -598,6 +645,8 @@ onMounted(() => {
     window.removeEventListener('resize', updateNoteSelectorPosition)
     document.removeEventListener('click', handleClickOutside)
   })
+
+  llmConfigStore.loadConfigs()
 })
 </script>
 
@@ -1001,6 +1050,9 @@ onMounted(() => {
     position: absolute;
     right: 12px;
     bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
   }
 
   .send-btn {
@@ -1139,6 +1191,87 @@ onMounted(() => {
       font-size: 13px;
       line-height: 1.5;
       color: var(--color-text-secondary);
+    }
+  }
+
+  .model-switcher {
+    position: absolute;
+    right: 0px;
+    bottom: 30px;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+
+    &:hover {
+      opacity: 1;
+    }
+  }
+
+  // .input-container:hover .model-switcher {
+  //   opacity: 1;
+  // }
+
+  .model-switch-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    padding: 0;
+    border-radius: 8px;
+    background-color: transparent;
+    color: var(--color-text-secondary);
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    :deep(.i-icon) {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      height: 100%;
+    }
+
+    :deep(svg) {
+      width: 16px;
+      height: 16px;
+    }
+  }
+
+  .model-menu {
+    position: absolute;
+    bottom: 100%;
+    right: 0;
+    margin-bottom: 8px;
+    width: 200px;
+    background: var(--color-bg-primary);
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    box-shadow: var(--shadow-primary);
+    z-index: 1000;
+  }
+
+  .model-option {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    color: var(--color-text-secondary);
+    font-size: 13px;
+    white-space: nowrap;
+
+    &:hover {
+      background: var(--color-hover-bg);
+    }
+
+    &.active {
+      color: var(--color-primary);
+      background: rgba(var(--color-primary-rgb), 0.1);
+    }
+
+    .model-name {
+      margin-right: 8px;
     }
   }
 }

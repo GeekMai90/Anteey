@@ -26,9 +26,9 @@ export const useWhiteboardStore = defineStore('whiteboard', {
     // 获取所有顶层白板
     async getTopLevelWhiteboards() {
       try {
-        console.log('whiteboardStore→ 开始获取顶层白板')
+        // console.log('whiteboardStore→ 开始获取顶层白板')
         const whiteboards = await window.electronAPI.whiteboard.getTopLevelWhiteboards()
-        console.log('whiteboardStore→ 获取顶层白板成功', whiteboards)
+        // console.log('whiteboardStore→ 获取顶层白板成功', whiteboards)
         this.whiteboards = whiteboards
         return whiteboards
       } catch (error) {
@@ -164,23 +164,23 @@ export const useWhiteboardStore = defineStore('whiteboard', {
     },
     // 获取白板视图状态
     async getWhiteboardViewState(whiteboardId: string) {
-      console.log('whiteboardStore→ 开始获取白板视图状态', whiteboardId)
+      // console.log('whiteboardStore→ 开始获取白板视图状态', whiteboardId)
       const viewState = await window.electronAPI.whiteboard.getWhiteboardViewState(whiteboardId)
-      console.log('whiteboardStore→ 获取白板视图状态成功', viewState)
+      // console.log('whiteboardStore→ 获取白板视图状态成功', viewState)
       return viewState
     },
     // 获取白板中的卡片数量
     async getCardCount(whiteboardId: string) {
-      console.log('whiteboardStore→ 开始获取白板中的卡片数量', whiteboardId)
+      // console.log('whiteboardStore→ 开始获取白板中的卡片数量', whiteboardId)
       const cardCount = await window.electronAPI.whiteboard.getCardCount(whiteboardId)
-      console.log('whiteboardStore→ 获取白板中的卡片数量成功', cardCount)
+      // console.log('whiteboardStore→ 获取白板中的卡片数量成功', cardCount)
       return cardCount
     },
 
     // 获取白板中的所有白板笔记
     async getWhiteboardNotes(whiteboardId: string) {
       try {
-        console.log('whiteboardStore→ 开始获取白板中的所有白板笔记', whiteboardId)
+        // console.log('whiteboardStore→ 开始获取白板中的所有白板笔记', whiteboardId)
         const whiteboardNotes = await window.electronAPI.whiteboard.getWhiteboardNotes(whiteboardId)
         this.whiteboardNotes = whiteboardNotes
         const noteIds = whiteboardNotes
@@ -188,7 +188,7 @@ export const useWhiteboardStore = defineStore('whiteboard', {
           .filter((id): id is string => id !== undefined)
         const notes = await this.noteStore.getNotesByIds(noteIds)
         this.referenceNotes = Object.fromEntries(notes.map((note) => [note.id, note]))
-        console.log('whiteboardStore→ 获取白板中的所有白板笔记成功', this.referenceNotes)
+        // console.log('whiteboardStore→ 获取白板中的所有白板笔记成功', this.referenceNotes)
         return whiteboardNotes
       } catch (error) {
         console.error('whiteboardStore→ 获取白板中的所有白板笔记失败', error)

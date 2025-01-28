@@ -1,11 +1,12 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import type { LLMConfig, DeepSeekConfig } from '@shared/types'
+import type { LLMConfig, DeepSeekConfig, SystemPromptConfig } from '@shared/types'
 import { LLM_MODELS } from '@services/rag/llm.config'
 
 export const useLLMConfigStore = defineStore('llmConfig', () => {
   const configs = ref<LLMConfig[]>([])
   const defaultConfig = ref<LLMConfig | null>(null)
+  const systemPrompt = ref<SystemPromptConfig | null>(null)
   const isLoading = ref(false)
   const error = ref<string | null>(null)
 
@@ -15,14 +16,53 @@ export const useLLMConfigStore = defineStore('llmConfig', () => {
       isLoading.value = true
       error.value = null
       configs.value = await window.electronAPI.llmConfig.getAllConfigs()
-
-      // 获取默认配置
       defaultConfig.value = configs.value.find((config) => config.isDefault) || null
     } catch (err) {
       error.value = err instanceof Error ? err.message : '加载配置失败'
       console.error('加载 LLM 配置失败:', err)
     } finally {
       isLoading.value = false
+    }
+  }
+
+  // 加载系统提示词配置
+  const loadSystemPrompt = async () => {
+    try {
+      isLoading.value = true
+      error.value = null
+      systemPrompt.value = await window.electronAPI.llmConfig.getSystemPrompt()
+      // console.log('store中加载的系统提示词:', systemPrompt.value)
+    } catch (err) {
+      error.value = err instanceof Error ? err.message : '加载系统提示词失败'
+      console.error('加载系统提示词失败:', err)
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  // 更新系统提示词
+  const updateSystemPrompt = async (prompt: string) => {
+    try {
+      error.value = null
+      systemPrompt.value = await window.electronAPI.llmConfig.updateSystemPrompt(prompt)
+      return systemPrompt.value
+    } catch (err) {
+      error.value = err instanceof Error ? err.message : '更新系统提示词失败'
+      console.error('更新系统提示词失败:', err)
+      throw err
+    }
+  }
+
+  // 重置系统提示词
+  const resetSystemPrompt = async () => {
+    try {
+      error.value = null
+      systemPrompt.value = await window.electronAPI.llmConfig.resetSystemPrompt()
+      return systemPrompt.value
+    } catch (err) {
+      error.value = err instanceof Error ? err.message : '重置系统提示词失败'
+      console.error('重置系统提示词失败:', err)
+      throw err
     }
   }
 
@@ -140,10 +180,14 @@ export const useLLMConfigStore = defineStore('llmConfig', () => {
   return {
     configs,
     defaultConfig,
+    systemPrompt,
     isLoading,
     error,
     availableModels,
     loadConfigs,
+    loadSystemPrompt,
+    updateSystemPrompt,
+    resetSystemPrompt,
     addConfig,
     updateConfig,
     deleteConfig,

@@ -22,6 +22,7 @@ import { LLMService } from './llmService'
 import { SimilarityService } from './calculateSimilarity'
 import { Note } from '@shared/types'
 import { getKeywordExtractor } from './keywordExtractor'
+import { LLMConfigService } from './llmConfigService'
 
 /**
  * 系统配置常量
@@ -55,6 +56,9 @@ export const TOPIC_CONFIG = {
 
 // 初始化 LLM 服务
 const llm = new LLMService()
+
+// 创建 LLMConfigService 实例
+const llmConfigService = new LLMConfigService()
 
 /**
  * 核心检索功能
@@ -1665,7 +1669,7 @@ export async function handleChat(
 
     // 4. 构建聊天提示词 - 根据是否是新会话来决定
     const isNewChat = currentMessages.length === 0
-    const prompt = buildChatPrompt(query, currentMessages, isNewChat)
+    const prompt = await buildChatPrompt(query, currentMessages, isNewChat)
 
     // 5. 调用大模型时传入 deepseekConfig
     const answer = await llm.generateResponse(prompt, deepseekConfig)
@@ -1731,11 +1735,11 @@ export async function handleChat(
 /**
  * 构建聊天模式的提示词
  */
-function buildChatPrompt(
+async function buildChatPrompt(
   query: string,
   messages: ChatMessage[] = [],
   isNewChat: boolean = false
-): string {
+): Promise<string> {
   try {
     const recentMessages = messages
       .slice(-RAG_CONFIG.similarity.contextWindowSize * 2)
@@ -1748,47 +1752,17 @@ function buildChatPrompt(
       .join('\n')
 
     // 只在新会话时添加角色定位
-    const rolePrompt = isNewChat
-      ? `# 角色定位：智慧顾问
-
-## 核心定位
-- 专业知识分享者
-- 思维引导者
-- 平等对话者
-
-## 回应准则
-1. 内容质量
-   - 保持专业性与准确性
-   - 适度引用可靠来源
-   - 分层次展示观点
-
-2. 表达风格
-   - 使用清晰的逻辑结构
-   - 运用恰当的类比和比喻
-   - 保持语言的优雅与自然
-   - 避免过度情感化表达
-
-3. 知识边界
-   - 明确表达确定性信息
-   - 对不确定内容保持谨慎
-   - 适时承认知识局限
-   - 引导用户深入思考
-
-4. 互动原则
-   - 始终保持Markdown格式
-   - 注重双向思维交流
-   - 适时提出启发性问题
-   - 营造专业而友好的氛围
-
-## 错误处理
-- 及时承认并纠正错误
-- 提供修正的理由和依据
-- 保持开放和谦逊的态度
-
----
-*专业、理性、温和，以知识和智慧为核心的对话体验。*
-`
-      : ''
+    let rolePrompt = ''
+    if (isNewChat) {
+      try {
+        const config = await llmConfigService.getSystemPrompt()
+        rolePrompt = config.systemPrompt
+      } catch (error) {
+        log.error('获取系统提示词失败，使用默认提示词:', error)
+        // 如果获取失败，使用默认提示词
+        rolePrompt = `# 角色定位：智慧顾问\n\n## 核心定位\n- 专业知识分享者\n- 思维引导者\n- 平等对话者\n\n...`
+      }
+    }
 
     return `${rolePrompt}${recentMessages ? `历史对话记录：\n${recentMessages}\n\n` : ''}用户的问题是：\n${query}`
   } catch (error) {

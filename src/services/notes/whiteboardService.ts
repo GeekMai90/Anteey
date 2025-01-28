@@ -226,11 +226,11 @@ export async function createWhiteboard(input: CreateWhiteboardInput): Promise<Wh
 // 顶层白板是指没有父白板的白板，isTopLevel 为 true
 export async function getTopLevelWhiteboards(): Promise<Whiteboard[]> {
   try {
-    console.log('开始获取顶层白板')
+    // console.log('开始获取顶层白板')
     const whiteboards = await db('whiteboards').where({ isTopLevel: true })
     const processedWhiteboards = whiteboards.map(processWhiteboardData)
 
-    console.log('获取顶层白板成功', processedWhiteboards)
+    // console.log('获取顶层白板成功', processedWhiteboards)
     return processedWhiteboards
   } catch (error) {
     console.error('后端→ 获取顶层白板失败:', error)

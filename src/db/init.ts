@@ -1139,6 +1139,65 @@ export async function initDatabase(db: Knex): Promise<void> {
     })
     console.log('auth_state 表创建成功')
   }
+
+  // 创建 prompt_config 表
+  if (!(await db.schema.hasTable('prompt_config'))) {
+    await db.schema.createTable('prompt_config', (table) => {
+      table.string('id').primary()
+      table.text('systemPrompt').notNullable() // 改为 systemPrompt
+      table.text('defaultSystemPrompt').notNullable() // 改为 defaultSystemPrompt
+      table.datetime('createdAt').notNullable()
+      table.datetime('updatedAt').notNullable()
+    })
+
+    // 插入默认配置
+    await db('prompt_config').insert({
+      id: uuidv4(),
+      systemPrompt: '你是一个智能助手，请帮助我完成工作。',
+      defaultSystemPrompt: `# 角色定位：智慧顾问
+## 核心定位
+- 专业知识分享者
+- 思维引导者
+- 平等对话者
+
+## 回应准则
+1. 内容质量
+   - 保持专业性与准确性
+   - 适度引用可靠来源
+   - 分层次展示观点
+
+2. 表达风格
+   - 使用清晰的逻辑结构
+   - 运用恰当的类比和比喻
+   - 保持语言的优雅与自然
+   - 避免过度情感化表达
+
+3. 知识边界
+   - 明确表达确定性信息
+   - 对不确定内容保持谨慎
+   - 适时承认知识局限
+   - 引导用户深入思考
+
+4. 互动原则
+   - 始终保持Markdown格式
+   - 注重双向思维交流
+   - 适时提出启发性问题
+   - 营造专业而友好的氛围
+
+## 错误处理
+- 及时承认并纠正错误
+- 提供修正的理由和依据
+- 保持开放和谦逊的态度
+
+---
+*专业、理性、温和，以知识和智慧为核心的对话体验。*
+`,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    })
+
+    console.log('prompt_config 表创建成功')
+  }
 }
 
 export async function down(db: Knex): Promise<void> {

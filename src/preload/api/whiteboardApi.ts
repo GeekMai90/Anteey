@@ -14,7 +14,7 @@ import type {
 export const whiteboardApi = {
   createWhiteboard: async (input: CreateWhiteboardInput): Promise<Whiteboard> => {
     try {
-      console.log('Preload: 正在创建白板:', input)
+      // console.log('Preload: 正在创建白板:', input)
       return (await ipcRenderer.invoke('create-whiteboard', input)) as Whiteboard
     } catch (error) {
       console.error('Preload: 创建白板时出错:', error)
@@ -23,7 +23,7 @@ export const whiteboardApi = {
   },
   getTopLevelWhiteboards: async (): Promise<Whiteboard[]> => {
     try {
-      console.log('Preload: 正在获取顶层白板')
+      // console.log('Preload: 正在获取顶层白板')
       return (await ipcRenderer.invoke('get-top-level-whiteboards')) as Whiteboard[]
     } catch (error) {
       console.error('Preload: 获取顶层白板时出错:', error)
@@ -32,7 +32,7 @@ export const whiteboardApi = {
   },
   updateWhiteboardPosition: async (id: string, x: number, y: number): Promise<Whiteboard> => {
     try {
-      console.log('Preload: 正在更新白板位置:', { id, x, y })
+      // console.log('Preload: 正在更新白板位置:', { id, x, y })
       return (await ipcRenderer.invoke('update-whiteboard-position', { id, x, y })) as Whiteboard
     } catch (error) {
       console.error('Preload: 更新白板位置时出错:', error)
@@ -41,7 +41,7 @@ export const whiteboardApi = {
   },
   createWhiteboardNote: async (input: CreateWhiteboardNoteInput): Promise<WhiteboardNote> => {
     try {
-      console.log('Preload: 正在创建白板笔记:', input)
+      // console.log('Preload: 正在创建白板笔记:', input)
       return (await ipcRenderer.invoke('create-whiteboard-note', input)) as WhiteboardNote
     } catch (error) {
       console.error('Preload: 创建白板笔记时出错:', error)
@@ -50,7 +50,7 @@ export const whiteboardApi = {
   },
   createRootWhiteboard: async (): Promise<RootWhiteboard> => {
     try {
-      console.log('Preload: 正在创建根白板')
+      // console.log('Preload: 正在创建根白板')
       return (await ipcRenderer.invoke('create-root-whiteboard')) as RootWhiteboard
     } catch (error) {
       console.error('Preload: 创建根白板时出错:', error)
@@ -59,7 +59,7 @@ export const whiteboardApi = {
   },
   getRootWhiteboard: async (): Promise<RootWhiteboard> => {
     try {
-      console.log('Preload: 正在获取根白板')
+      // console.log('Preload: 正在获取根白板')
       return (await ipcRenderer.invoke('get-root-whiteboard')) as RootWhiteboard
     } catch (error) {
       console.error('Preload: 获取根白板时出错:', error)
@@ -68,7 +68,7 @@ export const whiteboardApi = {
   },
   saveViewStateToRootWhiteboard: async (scale: number, translateX: number, translateY: number) => {
     try {
-      console.log('Preload: 正在保存视图状态到根白板:', { scale, translateX, translateY })
+      // console.log('Preload: 正在保存视图状态到根白板:', { scale, translateX, translateY })
       return (await ipcRenderer.invoke('save-view-state-to-root-whiteboard', {
         scale,
         translateX,
@@ -103,12 +103,12 @@ export const whiteboardApi = {
     translateY: number
   ) => {
     try {
-      console.log('Preload: 正在保存视图状态到白板:', {
-        whiteboardId,
-        scale,
-        translateX,
-        translateY
-      })
+      // console.log('Preload: 正在保存视图状态到白板:', {
+      //   whiteboardId,
+      //   scale,
+      //   translateX,
+      //   translateY
+      // })
       return (await ipcRenderer.invoke('save-view-state-to-whiteboard', {
         whiteboardId,
         scale,

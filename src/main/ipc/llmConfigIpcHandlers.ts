@@ -99,4 +99,37 @@ export function setupLLMConfigHandlers() {
       return { success: false, error: String(error) }
     }
   })
+
+  // 获取系统提示词配置
+  ipcMain.handle('get-system-prompt', async () => {
+    try {
+      const config = await llmConfigService.getSystemPrompt()
+      return { success: true, config }
+    } catch (error) {
+      log.error('获取系统提示词配置失败:', error)
+      return { success: false, error: String(error) }
+    }
+  })
+
+  // 更新系统提示词
+  ipcMain.handle('update-system-prompt', async (_event, systemPrompt: string) => {
+    try {
+      const config = await llmConfigService.updateSystemPrompt(systemPrompt)
+      return { success: true, config }
+    } catch (error) {
+      log.error('更新系统提示词失败:', error)
+      return { success: false, error: String(error) }
+    }
+  })
+
+  // 重置系统提示词
+  ipcMain.handle('reset-system-prompt', async () => {
+    try {
+      const config = await llmConfigService.resetSystemPrompt()
+      return { success: true, config }
+    } catch (error) {
+      log.error('重置系统提示词失败:', error)
+      return { success: false, error: String(error) }
+    }
+  })
 }

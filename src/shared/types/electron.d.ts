@@ -116,7 +116,8 @@ import type {
   AssistantNoteReference,
   DeepSeekConfig,
   WordSuggestion,
-  DictWord
+  DictWord,
+  SystemPromptConfig
 } from '@shared/types'
 
 export interface ElectronAPI {
@@ -737,6 +738,15 @@ export interface ElectronAPI {
 
     // 设置默认配置
     setDefaultConfig: (id: string) => Promise<void>
+
+    // 获取系统提示词配置
+    getSystemPrompt: () => Promise<SystemPromptConfig>
+
+    // 更新系统提示词
+    updateSystemPrompt: (systemPrompt: string) => Promise<SystemPromptConfig>
+
+    // 重置系统提示词
+    resetSystemPrompt: () => Promise<SystemPromptConfig>
   }
 
   rag: {

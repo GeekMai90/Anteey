@@ -15,8 +15,10 @@
           <div class="section-header">
             <div class="section-title">已配置的模型</div>
             <button class="add-btn" @click="showAddModal = true">
-              <Plus theme="outline" size="16" />
-              添加配置
+              <div class="add-btn-icon">
+                <Plus theme="outline" size="16" />
+              </div>
+              <div class="add-btn-text">添加配置</div>
             </button>
           </div>
 
@@ -55,6 +57,22 @@
             </div>
             <div class="empty-text">暂无配置的模型</div>
             <button class="add-btn" @click="showAddModal = true">添加配置</button>
+          </div>
+        </div>
+
+        <!-- 添加提示词设置区域 -->
+        <div class="llm-section">
+          <div class="section-header">
+            <div class="section-title">聊一聊模式提示词</div>
+            <button class="setting-btn" @click="showPromptSettings">
+              <div class="setting-btn-icon">
+                <Setting theme="outline" size="16" />
+              </div>
+              <div class="setting-btn-text">设置提示词</div>
+            </button>
+          </div>
+          <div class="section-desc">
+            设置与 AI 助手聊天时的系统提示词，这将影响 AI 助手的角色定位和行为方式。
           </div>
         </div>
       </div>
@@ -122,15 +140,48 @@
         </div>
       </div>
     </div>
+
+    <!-- 提示词配置模态框 -->
+    <div v-if="showPromptModal" class="modal-overlay" @click.self="closePromptModal">
+      <div class="modal-container">
+        <div class="modal-header">
+          <h3>聊一聊模式提示词设置</h3>
+          <button class="close-btn" @click="closePromptModal">
+            <Close theme="outline" size="16" />
+          </button>
+        </div>
+
+        <div class="modal-body">
+          <div class="form-group">
+            <label>系统提示词</label>
+            <textarea
+              v-model="systemPrompt"
+              rows="6"
+              placeholder="请输入系统提示词，用于定义 AI 助手的角色和行为"
+            ></textarea>
+            <div class="form-help">
+              <button class="reset-btn" @click="resetToDefault">重置为默认提示词</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button class="cancel-btn" @click="closePromptModal">取消</button>
+          <button class="confirm-btn" :disabled="!systemPrompt" @click="handlePromptSubmit">
+            确认
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
-import { Robot, Plus, Config, Close } from '@icon-park/vue-next'
+import { ref, onMounted, computed } from 'vue'
+import { Robot, Plus, Config, Close, Setting } from '@icon-park/vue-next'
 import { useLLMConfigStore } from '@renderer/stores/llmConfigStore'
 import { LLM_MODELS } from '@services/rag/llm.config'
-import type { LLMConfig, DeepSeekConfig } from '@shared/types'
+import type { LLMConfig, DeepSeekConfig, SystemPromptConfig } from '@shared/types'
 import { message } from '@renderer/utils/message'
 
 // 定义表单数据的类型
@@ -154,8 +205,36 @@ const formData = ref<FormData>({
   }
 })
 
+// 提示词配置相关
+const showPromptModal = ref(false)
+const promptFormData = ref<SystemPromptConfig | null>(null)
+const systemPrompt = computed({
+  get: () => promptFormData.value?.systemPrompt ?? '',
+  set: (value: string) => {
+    if (promptFormData.value) {
+      promptFormData.value.systemPrompt = value
+    }
+  }
+})
+
 // 初始化加载配置
 llmConfigStore.loadConfigs()
+
+// 初始化时加载提示词配置
+const initPromptConfig = async () => {
+  try {
+    await llmConfigStore.loadSystemPrompt()
+    if (llmConfigStore.systemPrompt) {
+      promptFormData.value = llmConfigStore.systemPrompt
+      // console.log('加载的提示词配置:', llmConfigStore.systemPrompt)
+    } else {
+      console.warn('未找到提示词配置')
+    }
+  } catch (error) {
+    console.error('初始化提示词配置失败:', error)
+    message.error('加载提示词配置失败')
+  }
+}
 
 // 遮掩 API Key
 const maskApiKey = (key: string) => {
@@ -242,6 +321,61 @@ const handleDelete = async (id: string) => {
     message.error('删除失败')
   }
 }
+
+// 关闭提示词配置模态框
+const closePromptModal = () => {
+  showPromptModal.value = false
+  promptFormData.value = llmConfigStore.systemPrompt
+}
+
+// 重置为默认提示词
+const resetToDefault = async () => {
+  try {
+    await llmConfigStore.resetSystemPrompt()
+    promptFormData.value = llmConfigStore.systemPrompt
+    message.success('已重置为默认提示词')
+  } catch (error) {
+    console.error('重置提示词失败:', error)
+    message.error('重置提示词失败')
+  }
+}
+
+// 提交提示词配置
+const handlePromptSubmit = async () => {
+  try {
+    if (!systemPrompt.value) {
+      message.error('请输入系统提示词')
+      return
+    }
+    await llmConfigStore.updateSystemPrompt(systemPrompt.value)
+    message.success('提示词配置已更新')
+    closePromptModal()
+  } catch (error) {
+    console.error('更新提示词配置失败:', error)
+    message.error('更新提示词配置失败')
+  }
+}
+
+// 打开提示词配置模态框
+const showPromptSettings = async () => {
+  try {
+    await llmConfigStore.loadSystemPrompt()
+    if (llmConfigStore.systemPrompt) {
+      promptFormData.value = llmConfigStore.systemPrompt
+      showPromptModal.value = true
+    } else {
+      message.error('加载提示词配置失败')
+    }
+  } catch (error) {
+    console.error('加载提示词配置失败:', error)
+    message.error('加载提示词配置失败')
+  }
+}
+
+// 在组件挂载时初始化
+onMounted(() => {
+  initPromptConfig()
+})
 </script>
 
 <style scoped lang="scss">
@@ -298,7 +432,7 @@ const handleDelete = async (id: string) => {
   .settings-divider {
     height: 1px;
     background-color: var(--color-border);
-    margin: 4px 0 10px;
+    margin: 4px 0 0px;
   }
 
   .llm-section {
@@ -306,6 +440,7 @@ const handleDelete = async (id: string) => {
       display: flex;
       justify-content: space-between;
       align-items: center;
+      margin-top: 16px;
       margin-bottom: 16px;
 
       .section-title {
@@ -389,6 +524,19 @@ const handleDelete = async (id: string) => {
     border-radius: 6px;
     cursor: pointer;
     font-size: 14px;
+
+    :deep(.i-icon) {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      height: 100%;
+    }
+
+    :deep(svg) {
+      width: 16px;
+      height: 16px;
+    }
 
     &:hover {
       opacity: 0.9;
@@ -504,7 +652,8 @@ const handleDelete = async (id: string) => {
 .modal-container {
   background: var(--color-bg-primary);
   border-radius: 8px;
-  width: 480px;
+  width: 580px;
+
   max-width: 90vw;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
@@ -606,6 +755,80 @@ const handleDelete = async (id: string) => {
         cursor: not-allowed;
       }
     }
+  }
+}
+
+// 添加提示词配置相关样式
+.form-group {
+  textarea {
+    width: 100%;
+    min-height: 120px;
+    padding: 8px 12px;
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    background: var(--color-background-primary);
+    color: var(--color-text-primary);
+    resize: vertical;
+
+    &:focus {
+      border-color: var(--color-primary);
+      outline: none;
+    }
+  }
+
+  .form-help {
+    margin-top: 8px;
+    display: flex;
+    justify-content: flex-end;
+
+    .reset-btn {
+      font-size: 12px;
+      color: var(--color-primary);
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 4px 8px;
+
+      &:hover {
+        text-decoration: underline;
+      }
+    }
+  }
+}
+
+.section-desc {
+  font-size: 14px;
+  color: var(--color-text-secondary);
+  margin-top: 4px;
+}
+
+.setting-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  background: var(--color-bg-secondary);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+
+  :deep(.i-icon) {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+  }
+
+  :deep(svg) {
+    width: 16px;
+    height: 16px;
+  }
+
+  &:hover {
+    background: var(--color-hover-bg);
   }
 }
 </style>

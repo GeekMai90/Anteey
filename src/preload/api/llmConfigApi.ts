@@ -1,5 +1,5 @@
 import { ipcRenderer } from 'electron'
-import type { LLMConfig, DeepSeekConfig } from '@shared/types'
+import type { LLMConfig, DeepSeekConfig, SystemPromptConfig } from '@shared/types'
 
 export const llmConfigApi = {
   // 获取所有配置
@@ -84,6 +84,42 @@ export const llmConfigApi = {
       if (!result.success) throw new Error(result.error)
     } catch (error) {
       console.error('预加载脚本 → 设置默认 LLM 配置失败:', error)
+      throw error
+    }
+  },
+
+  // 获取系统提示词配置
+  getSystemPrompt: async (): Promise<SystemPromptConfig> => {
+    try {
+      const result = await ipcRenderer.invoke('get-system-prompt')
+      if (!result.success) throw new Error(result.error)
+      return result.config
+    } catch (error) {
+      console.error('预加载脚本 → 获取系统提示词配置失败:', error)
+      throw error
+    }
+  },
+
+  // 更新系统提示词
+  updateSystemPrompt: async (systemPrompt: string): Promise<SystemPromptConfig> => {
+    try {
+      const result = await ipcRenderer.invoke('update-system-prompt', systemPrompt)
+      if (!result.success) throw new Error(result.error)
+      return result.config
+    } catch (error) {
+      console.error('预加载脚本 → 更新系统提示词失败:', error)
+      throw error
+    }
+  },
+
+  // 重置系统提示词
+  resetSystemPrompt: async (): Promise<SystemPromptConfig> => {
+    try {
+      const result = await ipcRenderer.invoke('reset-system-prompt')
+      if (!result.success) throw new Error(result.error)
+      return result.config
+    } catch (error) {
+      console.error('预加载脚本 → 重置系统提示词失败:', error)
       throw error
     }
   }

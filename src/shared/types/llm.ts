@@ -36,3 +36,12 @@ export interface LLMError {
   message: string
   details?: any
 }
+
+// 全局提示词配置接口
+export interface SystemPromptConfig {
+  id: string
+  systemPrompt: string // 系统提示词
+  defaultSystemPrompt: string // 默认系统提示词
+  createdAt: string
+  updatedAt: string
+}

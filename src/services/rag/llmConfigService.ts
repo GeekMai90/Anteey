@@ -1,6 +1,6 @@
 import { db } from '../../db/config'
 import { v4 as uuidv4 } from 'uuid'
-import { DeepSeekConfig, LLMConfig, LLMModelType } from '@shared/types'
+import { DeepSeekConfig, LLMConfig, LLMModelType, SystemPromptConfig } from '@shared/types'
 import { LLM_MODELS } from './llm.config'
 
 // 数据库层的配置接口
@@ -145,5 +145,47 @@ export class LLMConfigService {
       console.error('API Key 验证失败:', error)
       return false
     }
+  }
+
+  // 获取系统提示词配置
+  async getSystemPrompt(): Promise<SystemPromptConfig> {
+    const config = await db<SystemPromptConfig>('prompt_config').first()
+    if (!config) {
+      throw new Error('系统提示词配置不存在')
+    }
+    return config
+  }
+
+  // 更新系统提示词
+  async updateSystemPrompt(systemPrompt: string): Promise<SystemPromptConfig> {
+    const [config] = await db<SystemPromptConfig>('prompt_config')
+      .update({
+        systemPrompt: systemPrompt.trim(),
+        updatedAt: new Date().toISOString()
+      })
+      .returning('*')
+
+    if (!config) {
+      throw new Error('更新系统提示词失败')
+    }
+
+    return config
+  }
+
+  // 重置系统提示词为默认值
+  async resetSystemPrompt(): Promise<SystemPromptConfig> {
+    const config = await db<SystemPromptConfig>('prompt_config').first()
+    if (!config) {
+      throw new Error('系统提示词配置不存在')
+    }
+
+    const [updatedConfig] = await db<SystemPromptConfig>('prompt_config')
+      .update({
+        systemPrompt: config.defaultSystemPrompt,
+        updatedAt: new Date().toISOString()
+      })
+      .returning('*')
+
+    return updatedConfig
   }
 }
