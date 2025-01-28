@@ -3,17 +3,30 @@ import { v4 as uuidv4 } from 'uuid'
 import { DeepSeekConfig, LLMConfig, LLMModelType } from '@shared/types'
 import { LLM_MODELS } from './llm.config'
 
+// 数据库层的配置接口
+interface DBLLMConfig extends Omit<LLMConfig, 'deepseekConfig'> {
+  deepseekConfig: string | null
+}
+
 export class LLMConfigService {
   // 获取所有配置
   async getAllConfigs(): Promise<LLMConfig[]> {
-    const configs = await db<LLMConfig>('llm_configs').select('*').orderBy('createdAt', 'desc')
-    return configs
+    const dbConfigs = await db<DBLLMConfig>('llm_configs').select('*').orderBy('createdAt', 'desc')
+    return dbConfigs.map((config) => ({
+      ...config,
+      deepseekConfig: config.deepseekConfig ? JSON.parse(config.deepseekConfig) : undefined
+    }))
   }
 
   // 获取默认配置
   async getDefaultConfig(): Promise<LLMConfig | null> {
-    const config = await db<LLMConfig>('llm_configs').where('isDefault', true).first()
-    return config || null
+    const dbConfig = await db<DBLLMConfig>('llm_configs').where('isDefault', true).first()
+    if (!dbConfig) return null
+
+    return {
+      ...dbConfig,
+      deepseekConfig: dbConfig.deepseekConfig ? JSON.parse(dbConfig.deepseekConfig) : undefined
+    }
   }
 
   // 添加新配置
@@ -29,19 +42,25 @@ export class LLMConfigService {
     const isFirst = result ? (result.count as number) === 0 : true
 
     const id = uuidv4()
-    const config: Partial<LLMConfig> = {
+    const config: Partial<DBLLMConfig> = {
       id,
       model: model as LLMModelType,
       apiKey,
       isDefault: isFirst, // 如果是第一个配置，设为默认
       createdAt: now,
       updatedAt: now,
-      deepseekConfig // 添加 DeepSeek 配置
+      deepseekConfig: deepseekConfig ? JSON.stringify(deepseekConfig) : null
     }
 
     await db('llm_configs').insert(config)
-    return (await db<LLMConfig>('llm_configs').where('id', id).first())!
+    const dbConfig = await db<DBLLMConfig>('llm_configs').where('id', id).first()
+
+    return {
+      ...dbConfig!,
+      deepseekConfig: dbConfig?.deepseekConfig ? JSON.parse(dbConfig.deepseekConfig) : undefined
+    }
   }
+
   // 更新配置
   async updateConfig(
     id: string,
@@ -50,14 +69,20 @@ export class LLMConfigService {
   ): Promise<LLMConfig> {
     const now = new Date().toISOString()
 
-    const updateData: Partial<LLMConfig> = {
+    const updateData: Partial<DBLLMConfig> = {
       apiKey,
       updatedAt: now,
-      deepseekConfig // 添加 DeepSeek 配置
+      deepseekConfig: deepseekConfig ? JSON.stringify(deepseekConfig) : null
     }
 
     await db('llm_configs').where('id', id).update(updateData)
-    return (await db<LLMConfig>('llm_configs').where('id', id).first())!
+    const dbConfig = await db<DBLLMConfig>('llm_configs').where('id', id).first()
+
+    // 转换回应用层类型
+    return {
+      ...dbConfig!,
+      deepseekConfig: dbConfig?.deepseekConfig ? JSON.parse(dbConfig.deepseekConfig) : undefined
+    }
   }
 
   // 删除配置

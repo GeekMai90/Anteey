@@ -1333,7 +1333,6 @@ export async function handleAskQuestion(
   sessionId: string | null,
   currentMessages: ChatMessage[] = [],
   currentContexts: RAGContext[] = [],
-  // 添加 DeepSeek 配置参数
   deepseekConfig?: {
     temperature?: number
     maxTokens?: number
@@ -1373,6 +1372,7 @@ export async function handleAskQuestion(
 
     let context: RAGContext
     let answer: string
+    const isNewChat = currentMessages.length === 0
 
     if (assistantNoteReferences.length > 0) {
       // 3a. 处理有引用笔记的情况
@@ -1400,14 +1400,14 @@ export async function handleAskQuestion(
         processingType: 'qa'
       }
 
-      // 使用问一问模式的提示词
-      const prompt = buildAskQuestionPrompt(query, context, currentMessages)
+      // 使用问一问模式的提示词，传入 isNewChat
+      const prompt = buildAskQuestionPrompt(query, context, currentMessages, isNewChat)
       answer = await llm.generateResponse(prompt, deepseekConfig)
     } else {
       // 3b. 处理无引用笔记的情况
       // 获取相关上下文
       context = await retrieveContext(query, session)
-      const prompt = buildAskQuestionPrompt(query, context, currentMessages)
+      const prompt = buildAskQuestionPrompt(query, context, currentMessages, isNewChat)
       answer = await llm.generateResponse(prompt, deepseekConfig)
     }
 
@@ -1526,7 +1526,8 @@ function extractTextFromContent(content: any): string {
 function buildAskQuestionPrompt(
   query: string,
   context: RAGContext,
-  messages: ChatMessage[] = []
+  messages: ChatMessage[] = [],
+  isNewChat: boolean = messages.length === 0 // 添加参数判断是否是新对话
 ): string {
   // 添加类型检查
   if (!context || !Array.isArray(context.relevantDocs)) {
@@ -1538,26 +1539,16 @@ function buildAskQuestionPrompt(
     // 格式化相关文档
     const contextText = context.relevantDocs
       .map((doc, index) => {
-        // 从富文本内容中提取纯文本
         const textContent = extractTextFromContent(doc.content)
-
-        // 添加更多的日志
-        // log.info(`文档 ${index} 处理结果:`, {
-        //   hasContent: !!doc.content,
-        //   extractedText: textContent,
-        //   textLength: textContent?.length
-        // })
-
-        // 放宽条件，只要有内容就接受
         if (!textContent && textContent !== '') {
           log.error(`文档 ${index} 内容为空:`, doc.content)
           throw new Error(`文档 ${index} 内容为空`)
         }
-
         const title = doc.title || ''
         return `【笔记内容】${textContent}${title ? `\n【笔记标题】${title}` : ''}`
       })
       .join('\n\n')
+
     // 格式化历史对话
     const recentMessages = messages
       .slice(-RAG_CONFIG.similarity.contextWindowSize * 2)
@@ -1569,9 +1560,9 @@ function buildAskQuestionPrompt(
       })
       .join('\n')
 
-    // 返回问一问模式的特定提示词
-    return `
-# Role: RAG笔记应用AI助手安安
+    // 只在新对话时添加角色定位
+    const rolePrompt = isNewChat
+      ? `# Role: RAG笔记应用AI助手安安
 
 ## Profile
 - 名字：安安
@@ -1599,14 +1590,10 @@ function buildAskQuestionPrompt(
 3. 组织核心信息
 4. 生成清晰答案
 
-## Input Variables
-### 历史对话
-${recentMessages}
-### 相关笔记
-${contextText}
-### 用户问题
-${query}
 `
+      : ''
+
+    return `${rolePrompt}${recentMessages ? `历史对话：\n${recentMessages}\n\n` : ''}相关笔记：\n${contextText}\n\n用户问题：\n${query}`
   } catch (error) {
     log.error('构建问一问提示词失败:', error)
     throw error
@@ -1643,7 +1630,8 @@ export async function handleChat(
       query,
       sessionId,
       messagesCount: currentMessages.length,
-      contextsCount: currentContexts.length
+      contextsCount: currentContexts.length,
+      deepseekConfig
     })
 
     // 2. 获取或创建会话
@@ -1676,8 +1664,9 @@ export async function handleChat(
       processingType: 'chat'
     }
 
-    // 4. 构建聊天提示词
-    const prompt = buildChatPrompt(query, currentMessages)
+    // 4. 构建聊天提示词 - 根据是否是新会话来决定
+    const isNewChat = currentMessages.length === 0
+    const prompt = buildChatPrompt(query, currentMessages, isNewChat)
 
     // 5. 调用大模型时传入 deepseekConfig
     const answer = await llm.generateResponse(prompt, deepseekConfig)
@@ -1743,7 +1732,11 @@ export async function handleChat(
 /**
  * 构建聊天模式的提示词
  */
-function buildChatPrompt(query: string, messages: ChatMessage[] = []): string {
+function buildChatPrompt(
+  query: string,
+  messages: ChatMessage[] = [],
+  isNewChat: boolean = false
+): string {
   try {
     const recentMessages = messages
       .slice(-RAG_CONFIG.similarity.contextWindowSize * 2)
@@ -1755,33 +1748,32 @@ function buildChatPrompt(query: string, messages: ChatMessage[] = []): string {
       })
       .join('\n')
 
-    return `你是一位睿智而幽默的思想导师，既有深邃的洞察力，又懂得用轻松自然的方式分享智慧。就像苏格拉底与柏拉图的对话，严肃中带着智慧的戏谑。
+    // 只在新会话时添加角色定位
+    const rolePrompt = isNewChat
+      ? `# 角色定位：智者对话家
 
-你的思维特质：
-- 善于以多棱镜式的视角观察世界，看见常人所未见
-- 能在知识的海洋中自由遨游，编织出令人惊叹的思维之网
-- 像一位睿智的长者，却又像一位知心的朋友
-- 懂得适时撒一把"智慧的调味料"，让严肃的话题也能妙趣横生
+## 核心特质
+- 睿智而幽默，严肃中见智趣
+- 多维思考，善于发现常人未见
+- 亦师亦友，温暖而不失深度
 
-你的表达应当：
-- 像品一杯好茶，既有清香的回甘，又有沉淀的韵味
-- 如同一场精心策划却不失自然的即兴演出
-- 在谈笑间播撒思想的种子，让思考如春风化雨
-- 用生动的比喻和恰到好处的幽默，让智慧更有温度
+## 表达风格
+- 自然流畅，如品茗般韵味悠长
+- 善用比喻，让抽象具象化
+- 谈笑间启迪思考，春风化雨般润物无声
 
-虽然对话要保持优雅的形式美（使用 Markdown），但更重要的是：
-- 让智慧如同清泉般自然流淌
-- 在谈笑间启迪心智
-- 用温暖的智慧之光照亮思考的道路
+## 互动原则
+- 保持对话的优雅（Markdown格式）
+- 注重思维启发而非简单解答
+- 营造真诚共鸣的交流氛围
 
-记住，你不是一台冰冷的答案机器，而是一位能与人产生真实共鸣的智者。让我们一起在知识的花园里，寻找智慧的芬芳。
+---
+*以智者之心，解答世间疑；以友人之情，共享思维乐。*
 
-以下是对话记录：
-${recentMessages}
-
-用户的问题是：
-${query}
 `
+      : ''
+
+    return `${rolePrompt}${recentMessages ? `历史对话记录：\n${recentMessages}\n\n` : ''}用户的问题是：\n${query}`
   } catch (error) {
     log.error('构建聊天提示词失败:', error)
     throw error
