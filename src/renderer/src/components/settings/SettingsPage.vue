@@ -63,7 +63,9 @@ import {
   CrownThree,
   Time,
   CloudStorage,
-  StorageCardOne
+  StorageCardOne,
+  RobotOne,
+  BookOne
 } from '@icon-park/vue-next'
 import BackupSettings from './pages/BackupSettings.vue'
 import ShortcutsSettings from './pages/ShortcutsSettings.vue'
@@ -84,9 +86,9 @@ const menuItems = [
   { key: 'share', label: '分享', icon: Share },
   { key: 'backup', label: '备份', icon: DatabaseDownload },
   { key: 'webdav', label: '同步', icon: CloudStorage },
-  { key: 'license', label: '软件激活', icon: CrownThree },
-  { key: 'llm', label: 'LLM 配置', icon: CrownThree },
-  { key: 'dictionary', label: '词库管理', icon: CrownThree }
+  { key: 'llm', label: '大模型配置', icon: RobotOne },
+  { key: 'dictionary', label: '词库管理', icon: BookOne },
+  { key: 'license', label: '软件激活', icon: CrownThree }
 ]
 
 const currentMenuItem = ref('appearance')

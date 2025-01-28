@@ -78,76 +78,190 @@ function transformDBResult(result: any): RAGResult {
 }
 
 /**
- * 检索相关上下文
- * @param query - 用户查询
- * @param session - 当前会话信息(可选)
- * @param limit - 最大返回文档数
- * @returns 包含相关文档的上下文
+ * 问一问模式处理函数
+ * 根据用户输入查询相关笔记并生成回答
+ *
+ * 处理流程：
+ * 1. 如果用户指定了笔记引用，直接使用这些笔记
+ * 2. 如果没有指定引用，则通过语义搜索找到相关笔记
+ * 3. 结合笔记内容和用户问题生成回答
+ *
+ * @param query - 用户的问题
+ * @param assistantNoteReferences - 用户指定的笔记引用列表
+ * @param sessionId - 会话ID，用于维护会话状态和历史记录
+ * @param currentMessages - 当前会话的消息历史
+ * @param currentContexts - 当前会话的上下文历史
+ * @param deepseekConfig - 大模型配置参数
+ * @returns 包含答案、上下文和更新后消息列表的对象
  */
-// export async function retrieveContext(
-//   query: string,
-//   session?: ChatSession,
-//   limit: number = 5
-// ): Promise<RAGContext> {
-//   try {
-//     // 输入验证
-//     if (typeof query !== 'string') {
-//       log.error('检索上下文失败: 查询必须是字符串类型', {
-//         receivedType: typeof query,
-//         receivedValue: query
-//       })
-//       throw new Error('查询必须是字符串类型')
-//     }
+export async function handleAskQuestion(
+  query: string,
+  assistantNoteReferences: AssistantNoteReference[],
+  sessionId: string | null,
+  currentMessages: ChatMessage[] = [],
+  currentContexts: RAGContext[] = [],
+  deepseekConfig?: {
+    temperature?: number // 控制答案的随机性
+    maxTokens?: number // 控制答案的最大长度
+  }
+): Promise<{
+  answer: string // 生成的回答
+  context: RAGContext // 相关的上下文信息
+  messages: ChatMessage[] // 更新后的消息列表
+}> {
+  try {
+    // 1. 参数验证：确保查询是字符串类型
+    if (typeof query !== 'string') {
+      throw new Error('查询必须是字符串类型')
+    }
 
-//     // 初始化向量模型并生成查询向量
-//     const embedder = await initEmbeddings()
-//     const queryVector = await embedder(query)
-//     const queryFloat32Array = new Float32Array(queryVector)
+    // 2. 获取或创建会话：如果有sessionId，尝试恢复会话状态
+    let session: ChatSession | undefined
+    if (sessionId) {
+      const history = await getRAGHistoryDetail(sessionId)
+      if (history) {
+        session = {
+          id: sessionId,
+          messages: currentMessages,
+          currentContext: currentContexts[currentContexts.length - 1],
+          conversationTracker: history.metadata?.conversationTracker,
+          metadata: {
+            startTime: history.createdAt,
+            lastUpdateTime: history.updatedAt,
+            messageCount: history.metadata.messageCount,
+            hasReferences: assistantNoteReferences.length > 0,
+            currentTopicId: history.metadata.currentTopicId,
+            topicStartTime: history.metadata.topicStartTime
+          }
+        }
+      }
+    }
 
-//     // 根据会话状态处理检索
-//     let relevantDocs: RAGResult[] = []
-//     if (session?.conversationTracker) {
-//       // 检查话题相关性
-//       const { isRelatedTopic } = await checkTopicSimilarity(
-//         query,
-//         queryVector,
-//         session.conversationTracker
-//       )
+    let context: RAGContext
+    let answer: string
+    // 判断是否是新会话
+    const isNewChat = currentMessages.length === 0
 
-//       if (isRelatedTopic) {
-//         // 同话题处理: 优先使用现有文档
-//         relevantDocs = await handleSameTopicRetrieval(
-//           queryFloat32Array,
-//           session.conversationTracker,
-//           limit
-//         )
-//       } else {
-//         // 新话题处理: 重新检索
-//         relevantDocs = await handleNewTopicRetrieval(queryFloat32Array, limit)
-//         session.conversationTracker = createNewTopicTracker(query, queryVector)
-//       }
-//     } else {
-//       // 无会话上下文时的处理
-//       relevantDocs = await handleNewTopicRetrieval(queryFloat32Array, limit)
-//     }
+    // 3. 处理笔记引用和生成回答
+    if (assistantNoteReferences.length > 0) {
+      // 3a. 处理有引用笔记的情况：直接使用用户指定的笔记
+      const notes = await db('notes').whereIn(
+        'id',
+        assistantNoteReferences.map((ref) => ref.id)
+      )
+      if (notes.length === 0) {
+        throw new Error('未找到引用的笔记')
+      }
 
-//     return {
-//       query,
-//       timestamp: new Date().toISOString(),
-//       relevantDocs
-//     }
-//   } catch (error) {
-//     log.error('RAG检索失败:', error)
-//     throw error
-//   }
-// }
+      // 构建上下文：将引用的笔记转换为标准格式
+      context = {
+        query,
+        timestamp: new Date().toISOString(),
+        relevantDocs: notes.map((note: Note) => ({
+          noteId: note.id,
+          address: note.address || '',
+          title: note.metadata?.title || '',
+          content: note.content,
+          similarity: 1, // 用户指定的笔记相似度设为1
+          createdAt: new Date(Number(note.createdAt)).toISOString()
+        })),
+        processingType: 'qa'
+      }
+
+      // 生成回答
+      const prompt = buildAskQuestionPrompt(query, context, currentMessages, isNewChat)
+      answer = await llm.generateResponse(prompt, deepseekConfig)
+    } else {
+      // 3b. 处理无引用笔记的情况：通过语义搜索找到相关笔记
+      context = await retrieveContext(query, session)
+      const prompt = buildAskQuestionPrompt(query, context, currentMessages, isNewChat)
+      answer = await llm.generateResponse(prompt, deepseekConfig)
+    }
+
+    // 4. 构建新的消息：记录用户问题和AI回答
+    const userMessage: UserMessage = {
+      id: uuidv4(),
+      role: 'user',
+      content: query,
+      timestamp: Date.now()
+    }
+
+    const assistantMessage: AIAssistantMessage = {
+      id: uuidv4(),
+      role: 'assistant',
+      content: answer,
+      timestamp: Date.now(),
+      sourceType: context.relevantDocs.length > 0 ? 'notes' : 'ai',
+      references: context.relevantDocs.length > 0 ? context.relevantDocs : undefined
+    }
+
+    const updatedMessages = [...currentMessages, userMessage, assistantMessage]
+    const updatedContexts = [...currentContexts, context]
+
+    // 5. 更新会话状态：维护对话历史和话题追踪
+    if (session?.conversationTracker) {
+      const queryVector = await getQueryVector(query)
+      session.conversationTracker.questionHistory.push({
+        content: query,
+        vector: Array.from(queryVector),
+        timestamp: Date.now()
+      })
+
+      // 维护固定大小的历史窗口
+      if (
+        session.conversationTracker.questionHistory.length > RAG_CONFIG.similarity.contextWindowSize
+      ) {
+        session.conversationTracker.questionHistory.shift()
+      }
+
+      session.metadata.messageCount += 2
+      session.metadata.lastUpdateTime = new Date().toISOString()
+    }
+
+    // 6. 更新历史记录：持久化会话状态
+    if (sessionId) {
+      await updateRAGHistory(sessionId, updatedMessages, updatedContexts, {
+        ...session?.metadata,
+        conversationTracker: session?.conversationTracker
+      })
+    }
+
+    // 7. 返回结果
+    return {
+      answer,
+      context,
+      messages: updatedMessages
+    }
+  } catch (error) {
+    log.error('问一问模式处理失败:', error)
+    throw error
+  }
+}
+
+/**
+ * 检索相关上下文函数
+ * 根据用户查询检索相关笔记，支持会话上下文和话题追踪
+ *
+ * 处理流程：
+ * 1. 并行处理用户查询：生成向量表示和提取关键词
+ * 2. 根据会话状态选择检索策略：
+ *    - 有会话且话题相关：优先使用现有文档
+ *    - 有会话但话题不相关：作为新话题处理
+ *    - 无会话：直接检索新文档
+ * 3. 返回检索结果和相关上下文
+ *
+ * @param query - 用户的查询文本
+ * @param session - 当前会话信息，包含会话状态和话题追踪器
+ * @param limit - 最大返回文档数量，默认为5
+ * @returns 包含查询相关文档的上下文对象
+ */
 export async function retrieveContext(
   query: string,
   session?: ChatSession,
   limit: number = 5
 ): Promise<RAGContext> {
   try {
-    // 输入验证
+    // 1. 输入验证：确保查询是字符串类型
     if (typeof query !== 'string') {
       log.error('检索上下文失败: 查询必须是字符串类型', {
         receivedType: typeof query,
@@ -156,15 +270,15 @@ export async function retrieveContext(
       throw new Error('查询必须是字符串类型')
     }
 
-    // 并行处理：生成向量和提取关键词
+    // 2. 并行处理：同时进行向量生成和关键词提取以提高性能
     const [queryVector, queryKeywords] = await Promise.all([
-      // 初始化向量模型并生成查询向量
+      // 2.1 初始化向量模型并生成查询向量
       (async () => {
         const embedder = await initEmbeddings()
         const vector = await embedder(query)
         return new Float32Array(vector)
       })(),
-      // 提取查询关键词
+      // 2.2 提取查询关键词
       (async () => {
         const keywordExtractor = await getKeywordExtractor()
         const keywords = await keywordExtractor.extract(query)
@@ -172,10 +286,10 @@ export async function retrieveContext(
       })()
     ])
 
-    // 根据会话状态处理检索
+    // 3. 根据会话状态处理检索
     let relevantDocs: RAGResult[] = []
     if (session?.conversationTracker) {
-      // 检查话题相关性
+      // 3.1 检查当前查询与会话话题的相关性
       const { isRelatedTopic } = await checkTopicSimilarity(
         query,
         queryVector,
@@ -183,7 +297,7 @@ export async function retrieveContext(
       )
 
       if (isRelatedTopic) {
-        // 同话题处理: 优先使用现有文档
+        // 3.2 同话题处理：优先复用现有文档，可能补充新文档
         relevantDocs = await handleSameTopicRetrieval(
           queryVector,
           queryKeywords,
@@ -191,26 +305,161 @@ export async function retrieveContext(
           limit
         )
       } else {
-        // 新话题处理: 重新检索
+        // 3.3 新话题处理：重新检索文档并创建新的话题追踪器
         relevantDocs = await handleNewTopicRetrieval(queryVector, queryKeywords, limit)
         session.conversationTracker = createNewTopicTracker(query, queryVector, queryKeywords)
       }
     } else {
-      // 无会话上下文时的处理
+      // 3.4 无会话上下文：直接执行新文档检索
       relevantDocs = await handleNewTopicRetrieval(queryVector, queryKeywords, limit)
     }
 
+    // 4. 构建并返回上下文对象
     return {
-      query,
-      queryKeywords, // 添加查询关键词到返回结果
-      timestamp: new Date().toISOString(),
-      relevantDocs
+      query, // 原始查询文本
+      queryKeywords, // 查询关键词，用于前端展示和后续处理
+      timestamp: new Date().toISOString(), // 检索时间戳
+      relevantDocs // 相关文档列表
     }
   } catch (error) {
+    // 5. 错误处理：记录错误并向上抛出
     log.error('RAG检索失败:', error)
     throw error
   }
 }
+
+/**
+ * 处理新话题的文档检索函数
+ * 执行全新的文档检索和相似度计算，不考虑历史上下文
+ *
+ * 处理流程：
+ * 1. 检查数据库中的笔记数量
+ * 2. 获取所有笔记及其向量和关键词
+ * 3. 计算每个笔记与查询的相似度
+ * 4. 筛选并排序相关笔记
+ *
+ * @param queryVector - 查询文本的向量表示
+ * @param queryKeywords - 查询文本的关键词列表
+ * @param limit - 最大返回文档数量
+ * @returns 相关笔记列表，按相似度降序排序
+ */
+async function handleNewTopicRetrieval(
+  queryVector: Float32Array,
+  queryKeywords: string[],
+  limit: number
+): Promise<RAGResult[]> {
+  try {
+    // 1. 检查数据库中是否有数据
+    const noteCount = await db('note_embeddings').count('* as count').first()
+    log.info('数据库笔记数量:', noteCount)
+
+    // 2. 获取笔记数据
+    // 联表查询获取完整的笔记信息，包括向量、关键词和元数据
+    const notes = await db('note_embeddings')
+      .join('notes', 'note_embeddings.note_id', 'notes.id')
+      .select('notes.*', 'note_embeddings.embedding', 'note_embeddings.keywords', 'notes.metadata')
+
+    // 3. 计算相似度并处理每个笔记
+    const results = notes
+      .map((note) => {
+        try {
+          // 3.1 检查向量是否存在
+          if (!note.embedding) {
+            log.warn('笔记缺少向量:', { noteId: note.id })
+            return null
+          }
+
+          // 3.2 转换笔记向量和关键词
+          const noteVector = SimilarityService.blobToFloat32Array(note.embedding)
+          const noteKeywords = note.keywords ? JSON.parse(note.keywords) : []
+
+          // 3.3 定义和解析元数据结构
+          interface NoteMetadata {
+            title?: string
+            summary?: string
+          }
+
+          // 3.4 解析元数据
+          let metadata: NoteMetadata = {}
+          try {
+            metadata = note.metadata ? JSON.parse(note.metadata) : {}
+            log.debug('笔记元数据:', {
+              noteId: note.id,
+              title: metadata.title,
+              rawMetadata: note.metadata?.slice(0, 100) // 调试用，只记录前100字符
+            })
+          } catch (e) {
+            log.error('解析元数据失败:', {
+              noteId: note.id,
+              rawMetadata: note.metadata,
+              error: e
+            })
+          }
+
+          // 3.5 计算综合相似度
+          const similarity = SimilarityService.calculateFullSimilarity(queryVector, noteVector, {
+            sourceKeywords: new Set(queryKeywords), // 查询关键词集合
+            targetKeywords: new Set(noteKeywords), // 笔记关键词集合
+            title: metadata.title, // 标题匹配
+            content: note.content, // 内容匹配
+            weights: {
+              // 各维度权重
+              vector: 0.35, // 向量相似度权重
+              keyword: 0.35, // 关键词匹配权重
+              title: 0.2, // 标题匹配权重
+              content: 0.1 // 内容匹配权重
+            }
+          })
+
+          // 3.6 记录详细的相似度计算日志
+          // log.debug('笔记相似度:', {
+          //   noteId: note.id,
+          //   similarity,
+          //   hasTitle: !!note.metadata?.title,
+          //   contentLength: note.content?.length,
+          //   keywordsCount: noteKeywords.length,
+          //   keywords: noteKeywords,
+          //   queryKeywords: queryKeywords,
+          //   title: note.metadata?.title
+          // })
+
+          // 3.7 返回处理结果
+          return {
+            ...note,
+            similarity,
+            title: metadata.title,
+            matchedKeywords: noteKeywords.filter((k: string) => queryKeywords.includes(k))
+          }
+        } catch (error) {
+          // 3.8 错误处理
+          log.error('处理笔记相似度失败:', {
+            id: note.id,
+            error,
+            errorMessage: error instanceof Error ? error.message : String(error)
+          })
+          return null
+        }
+      })
+      // 4. 筛选和排序结果
+      .filter((result): result is NonNullable<typeof result> => {
+        // 4.1 筛选条件：非空且相似度超过阈值
+        const isValid = result !== null && result.similarity > RAG_CONFIG.retrieval.minSimilarity
+        return isValid
+      })
+      // 4.2 按相似度降序排序
+      .sort((a, b) => b.similarity - a.similarity)
+      // 4.3 限制返回数量
+      .slice(0, limit)
+
+    // 5. 转换并返回最终结果
+    return results.map(transformDBResult)
+  } catch (error) {
+    // 6. 错误处理
+    log.error('检索相关文档失败:', error)
+    throw error
+  }
+}
+
 /**
  * 话题管理相关功能
  */
@@ -322,125 +571,6 @@ async function handleSameTopicRetrieval(
 }
 
 /**
- * 处理新话题的文档检索
- * 执行全新的文档检索和相似度计算
- */
-async function handleNewTopicRetrieval(
-  queryVector: Float32Array,
-  queryKeywords: string[], // 添加查询关键词参数
-  limit: number
-): Promise<RAGResult[]> {
-  try {
-    // 1. 检查数据库中是否有数据
-    const noteCount = await db('note_embeddings').count('* as count').first()
-    log.info('数据库笔记数量:', noteCount)
-
-    // 2. 获取笔记数据，包括关键词
-    // 获取笔记数据时包含 metadata
-    const notes = await db('note_embeddings')
-      .join('notes', 'note_embeddings.note_id', 'notes.id')
-      .select('notes.*', 'note_embeddings.embedding', 'note_embeddings.keywords', 'notes.metadata')
-
-    // 3. 计算相似度
-    const results = notes
-      .map((note) => {
-        try {
-          if (!note.embedding) {
-            log.warn('笔记缺少向量:', { noteId: note.id })
-            return null
-          }
-
-          const noteVector = SimilarityService.blobToFloat32Array(note.embedding)
-          // 解析关键词
-          const noteKeywords = note.keywords ? JSON.parse(note.keywords) : []
-
-          // 1. 首先定义 metadata 的类型
-          interface NoteMetadata {
-            title?: string
-            summary?: string
-            // 其他可能的元数据字段...
-          }
-          // 解析 metadata JSON 字符串
-          let metadata: NoteMetadata = {}
-          try {
-            metadata = note.metadata ? JSON.parse(note.metadata) : {}
-            log.debug('笔记元数据:', {
-              noteId: note.id,
-              title: metadata.title,
-              rawMetadata: note.metadata?.slice(0, 100) // 记录前100个字符用于调试
-            })
-          } catch (e) {
-            log.error('解析元数据失败:', {
-              noteId: note.id,
-              rawMetadata: note.metadata,
-              error: e
-            })
-          }
-
-          // 使用增强版相似度计算
-          const similarity = SimilarityService.calculateEnhancedSimilarity(
-            queryVector,
-            noteVector,
-            {
-              sourceKeywords: queryKeywords,
-              targetKeywords: noteKeywords
-            }
-          )
-
-          log.debug('笔记相似度:', {
-            noteId: note.id,
-            similarity,
-            hasTitle: !!note.metadata?.title,
-            contentLength: note.content?.length,
-            keywordsCount: noteKeywords.length,
-            keywords: noteKeywords,
-            queryKeywords: queryKeywords,
-            title: note.metadata?.title
-          })
-
-          return {
-            ...note,
-            similarity,
-            title: metadata.title,
-            matchedKeywords: noteKeywords.filter((k: string) => queryKeywords.includes(k))
-          }
-        } catch (error) {
-          log.error('处理笔记相似度失败:', {
-            id: note.id,
-            error,
-            errorMessage: error instanceof Error ? error.message : String(error)
-          })
-          return null
-        }
-      })
-      .filter((result): result is NonNullable<typeof result> => {
-        const isValid =
-          result !== null &&
-          // result.similarity > RAG_CONFIG.retrieval.minSimilarity &&
-          // result.matchedKeywords.length > 0 // 要求至少有一个关键词匹配
-          result.similarity > RAG_CONFIG.retrieval.minSimilarity
-        if (!isValid && result) {
-          log.debug('笔记被过滤:', {
-            noteId: result.id,
-            similarity: result.similarity,
-            threshold: RAG_CONFIG.retrieval.minSimilarity,
-            matchedKeywords: result.matchedKeywords,
-            reason: result.matchedKeywords.length === 0 ? '无关键词匹配' : '相似度过低'
-          })
-        }
-        return isValid
-      })
-      .sort((a, b) => b.similarity - a.similarity)
-      .slice(0, limit)
-
-    return results.map(transformDBResult)
-  } catch (error) {
-    log.error('检索相关文档失败:', error)
-    throw error
-  }
-}
-
-/**
  * 计算向量相似度
  * 使用余弦相似度计算两个向量的相似程度
  */
@@ -507,9 +637,17 @@ async function filterAndReweightExistingDocs(
 
     // 计算新的相似度（使用增强版计算）
     const noteVector = SimilarityService.blobToFloat32Array(note.embedding)
-    const similarity = SimilarityService.calculateEnhancedSimilarity(queryVector, noteVector, {
-      sourceKeywords: queryKeywords,
-      targetKeywords: noteKeywords
+    const similarity = SimilarityService.calculateFullSimilarity(queryVector, noteVector, {
+      sourceKeywords: new Set(queryKeywords),
+      targetKeywords: new Set(noteKeywords),
+      title: note.title,
+      content: note.content,
+      weights: {
+        vector: 0.35,
+        keyword: 0.35,
+        title: 0.2,
+        content: 0.1
+      }
     })
 
     // 应用使用频率和时间衰减因子
@@ -557,9 +695,17 @@ async function retrieveSupplementaryDocs(
         const noteKeywords = note.keywords ? JSON.parse(note.keywords) : []
 
         // 使用增强版相似度计算
-        const similarity = SimilarityService.calculateEnhancedSimilarity(queryVector, noteVector, {
-          sourceKeywords: queryKeywords,
-          targetKeywords: noteKeywords
+        const similarity = SimilarityService.calculateFullSimilarity(queryVector, noteVector, {
+          sourceKeywords: new Set(queryKeywords),
+          targetKeywords: new Set(noteKeywords),
+          title: note.title,
+          content: note.content,
+          weights: {
+            vector: 0.35,
+            keyword: 0.35,
+            title: 0.2,
+            content: 0.1
+          }
         })
 
         return {
@@ -1323,153 +1469,6 @@ export async function generateAnswerWithReferences(
   }
 }
 
-/**
- * 问一问模式
- * 从笔记中搜索相关内容并回答问题
- */
-export async function handleAskQuestion(
-  query: string,
-  assistantNoteReferences: AssistantNoteReference[],
-  sessionId: string | null,
-  currentMessages: ChatMessage[] = [],
-  currentContexts: RAGContext[] = [],
-  deepseekConfig?: {
-    temperature?: number
-    maxTokens?: number
-  }
-): Promise<{
-  answer: string
-  context: RAGContext
-  messages: ChatMessage[]
-}> {
-  try {
-    // 1. 参数验证
-    if (typeof query !== 'string') {
-      throw new Error('查询必须是字符串类型')
-    }
-
-    // 2. 获取或创建会话
-    let session: ChatSession | undefined
-    if (sessionId) {
-      const history = await getRAGHistoryDetail(sessionId)
-      if (history) {
-        session = {
-          id: sessionId,
-          messages: currentMessages,
-          currentContext: currentContexts[currentContexts.length - 1],
-          conversationTracker: history.metadata?.conversationTracker,
-          metadata: {
-            startTime: history.createdAt,
-            lastUpdateTime: history.updatedAt,
-            messageCount: history.metadata.messageCount,
-            hasReferences: assistantNoteReferences.length > 0,
-            currentTopicId: history.metadata.currentTopicId,
-            topicStartTime: history.metadata.topicStartTime
-          }
-        }
-      }
-    }
-
-    let context: RAGContext
-    let answer: string
-    const isNewChat = currentMessages.length === 0
-
-    if (assistantNoteReferences.length > 0) {
-      // 3a. 处理有引用笔记的情况
-      // 获取被引用笔记的完整内容
-      const notes = await db('notes').whereIn(
-        'id',
-        assistantNoteReferences.map((ref) => ref.id)
-      )
-      if (notes.length === 0) {
-        throw new Error('未找到引用的笔记')
-      }
-
-      // 构建上下文
-      context = {
-        query,
-        timestamp: new Date().toISOString(),
-        relevantDocs: notes.map((note: Note) => ({
-          noteId: note.id,
-          address: note.address || '',
-          title: note.metadata?.title || '',
-          content: note.content,
-          similarity: 1,
-          createdAt: new Date(Number(note.createdAt)).toISOString()
-        })),
-        processingType: 'qa'
-      }
-
-      // 使用问一问模式的提示词，传入 isNewChat
-      const prompt = buildAskQuestionPrompt(query, context, currentMessages, isNewChat)
-      answer = await llm.generateResponse(prompt, deepseekConfig)
-    } else {
-      // 3b. 处理无引用笔记的情况
-      // 获取相关上下文
-      context = await retrieveContext(query, session)
-      const prompt = buildAskQuestionPrompt(query, context, currentMessages, isNewChat)
-      answer = await llm.generateResponse(prompt, deepseekConfig)
-    }
-
-    // 4. 构建新的消息
-    const userMessage: UserMessage = {
-      id: uuidv4(),
-      role: 'user',
-      content: query,
-      timestamp: Date.now()
-    }
-
-    const assistantMessage: AIAssistantMessage = {
-      id: uuidv4(),
-      role: 'assistant',
-      content: answer,
-      timestamp: Date.now(),
-      sourceType: context.relevantDocs.length > 0 ? 'notes' : 'ai',
-      references: context.relevantDocs.length > 0 ? context.relevantDocs : undefined
-    }
-
-    const updatedMessages = [...currentMessages, userMessage, assistantMessage]
-    const updatedContexts = [...currentContexts, context]
-
-    // 5. 更新会话状态
-    if (session?.conversationTracker) {
-      const queryVector = await getQueryVector(query)
-      session.conversationTracker.questionHistory.push({
-        content: query,
-        vector: Array.from(queryVector),
-        timestamp: Date.now()
-      })
-
-      if (
-        session.conversationTracker.questionHistory.length > RAG_CONFIG.similarity.contextWindowSize
-      ) {
-        session.conversationTracker.questionHistory.shift()
-      }
-
-      session.metadata.messageCount += 2
-      session.metadata.lastUpdateTime = new Date().toISOString()
-    }
-
-    // 6. 更新历史记录
-    if (sessionId) {
-      await updateRAGHistory(sessionId, updatedMessages, updatedContexts, {
-        ...session?.metadata,
-        conversationTracker: session?.conversationTracker
-      })
-    }
-
-    // 7. 返回结果
-    return {
-      answer,
-      context,
-      messages: updatedMessages
-    }
-  } catch (error) {
-    log.error('问一问模式处理失败:', error)
-    throw error
-  }
-}
-
 // 提取单个节点的文本
 function extractNodeText(node: any): string {
   if (!node) return ''
@@ -1750,26 +1749,44 @@ function buildChatPrompt(
 
     // 只在新会话时添加角色定位
     const rolePrompt = isNewChat
-      ? `# 角色定位：智者对话家
+      ? `# 角色定位：智慧顾问
 
-## 核心特质
-- 睿智而幽默，严肃中见智趣
-- 多维思考，善于发现常人未见
-- 亦师亦友，温暖而不失深度
+## 核心定位
+- 专业知识分享者
+- 思维引导者
+- 平等对话者
 
-## 表达风格
-- 自然流畅，如品茗般韵味悠长
-- 善用比喻，让抽象具象化
-- 谈笑间启迪思考，春风化雨般润物无声
+## 回应准则
+1. 内容质量
+   - 保持专业性与准确性
+   - 适度引用可靠来源
+   - 分层次展示观点
 
-## 互动原则
-- 保持对话的优雅（Markdown格式）
-- 注重思维启发而非简单解答
-- 营造真诚共鸣的交流氛围
+2. 表达风格
+   - 使用清晰的逻辑结构
+   - 运用恰当的类比和比喻
+   - 保持语言的优雅与自然
+   - 避免过度情感化表达
+
+3. 知识边界
+   - 明确表达确定性信息
+   - 对不确定内容保持谨慎
+   - 适时承认知识局限
+   - 引导用户深入思考
+
+4. 互动原则
+   - 始终保持Markdown格式
+   - 注重双向思维交流
+   - 适时提出启发性问题
+   - 营造专业而友好的氛围
+
+## 错误处理
+- 及时承认并纠正错误
+- 提供修正的理由和依据
+- 保持开放和谦逊的态度
 
 ---
-*以智者之心，解答世间疑；以友人之情，共享思维乐。*
-
+*专业、理性、温和，以知识和智慧为核心的对话体验。*
 `
       : ''
 
@@ -1896,11 +1913,14 @@ async function handleEnhancedSemanticSearch(
   }
 ): Promise<RAGResult[]> {
   try {
+    // 1. 获取查询的关键词
+    const keywordExtractor = await getKeywordExtractor()
+    const queryKeywords = await keywordExtractor.extract(queryText)
+    const queryKeywordSet = new Set(queryKeywords.map((k) => k.word.toLowerCase()))
+
     const notes = await db('note_embeddings')
       .join('notes', 'note_embeddings.note_id', 'notes.id')
-      .select('notes.*', 'note_embeddings.embedding')
-
-    const queryTerms = queryText.toLowerCase().split(/\s+/)
+      .select('notes.*', 'note_embeddings.embedding', 'note_embeddings.keywords')
 
     const results = notes
       .map((note) => {
@@ -1908,38 +1928,21 @@ async function handleEnhancedSemanticSearch(
           if (!note.embedding) return null
 
           const noteVector = SimilarityService.blobToFloat32Array(note.embedding)
-          const similarity = SimilarityService.vectorSimilarity(queryVector, noteVector)
+          const noteKeywords: Set<string> = note.keywords
+            ? new Set(JSON.parse(note.keywords).map((k: { word: string }) => k.word.toLowerCase()))
+            : new Set()
 
-          // 计算标题匹配分数
-          let titleScore = 0
-          if (note.title) {
-            const titleLower = note.title.toLowerCase()
-            // 完全匹配加分最高
-            if (titleLower === queryText.toLowerCase()) {
-              titleScore = 0.3
-            }
-            // 部分匹配按匹配词数加分
-            else {
-              const matchedTerms = queryTerms.filter((term) => titleLower.includes(term))
-              titleScore = (matchedTerms.length / queryTerms.length) * 0.2
-            }
-          }
-
-          // 计算内容匹配分数
-          let contentScore = 0
-          if (note.content) {
-            const contentLower = note.content.toLowerCase()
-            const matchedTerms = queryTerms.filter((term) => contentLower.includes(term))
-            contentScore = (matchedTerms.length / queryTerms.length) * 0.1
-          }
-
-          // 综合评分
-          const finalSimilarity = similarity + titleScore + contentScore
+          const similarity = SimilarityService.calculateFullSimilarity(queryVector, noteVector, {
+            sourceKeywords: queryKeywordSet,
+            targetKeywords: noteKeywords,
+            title: note.title,
+            content: note.content
+          })
 
           return {
             ...note,
-            similarity: finalSimilarity,
-            debug: { base: similarity, title: titleScore, content: contentScore }
+            similarity,
+            keywords: noteKeywords
           }
         } catch (error) {
           log.error('处理笔记相似度失败:', { id: note.id, error })
@@ -1947,23 +1950,21 @@ async function handleEnhancedSemanticSearch(
         }
       })
       .filter((result): result is NonNullable<typeof result> => {
-        if (!result) return false
-        return result.similarity > 0.3 // 降低基础阈值
+        return result !== null && result.similarity > config.minSimilarity
       })
       .sort((a, b) => b.similarity - a.similarity)
       .slice(0, config.maxResults)
 
-    // 记录详细的评分信息
-    if (results.length > 0) {
-      log.debug(
-        '搜索结果评分详情:',
-        results.map((r) => ({
-          title: r.title,
-          scores: r.debug,
-          final: r.similarity.toFixed(3)
-        }))
-      )
-    }
+    // 添加最终结果的详细日志
+    log.info(
+      '搜索最终结果:',
+      results.map((r) => ({
+        title: r.title || '无标题',
+        similarity: (r.similarity * 100).toFixed(1) + '%',
+        keywords: Array.from(r.keywords),
+        queryKeywords: Array.from(queryKeywordSet)
+      }))
+    )
 
     return results.map(transformDBResult)
   } catch (error) {

@@ -900,8 +900,9 @@ const handleEnter = (event: KeyboardEvent) => {
 }
 
 .message-wrapper.user .message {
-  background: var(--color-primary);
-  color: var(--color-text-inversion);
+  background: rgba(var(--color-primary-rgb), 0.15);
+  color: var(--color-primary);
+  font-weight: 500;
   border-radius: 1rem 0 1rem 1rem;
 }
 

@@ -32,6 +32,7 @@ marked.setOptions({
 const props = defineProps<{
   content: string
   instant?: boolean
+  isHistoryMessage?: boolean
 }>()
 
 const emit = defineEmits(['complete', 'segmentComplete'])
@@ -119,7 +120,7 @@ const updateText = async () => {
   emit('complete')
 }
 
-// 监听内容变化
+// 更新监听逻辑
 watch(
   () => props.content,
   () => {
@@ -142,6 +143,7 @@ watch(
 .markdown-body {
   color: inherit;
   background: none;
+  max-width: 100%;
 }
 
 .markdown-body p {
@@ -152,7 +154,7 @@ watch(
 
 .markdown-body code {
   background: var(--color-code-bg);
-  color: white;
+  color: var(--color-text-primary);
   padding: 0.2em 0.4em;
   border-radius: 3px;
   font-size: 0.9em;
@@ -164,11 +166,17 @@ watch(
   padding: 1em;
   border-radius: 6px;
   overflow-x: auto;
+  max-width: 100%;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
 .markdown-body pre code {
   background: none;
   padding: 0;
+  display: block;
+  width: 100%;
+  color: white;
 }
 
 .markdown-body strong {
@@ -196,10 +204,13 @@ watch(
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
+  max-width: 100%;
+  overflow-wrap: break-word;
 }
 
 .segment {
   animation: fadeIn 0.2s ease-out forwards;
+  max-width: 100%;
 }
 
 @keyframes fadeIn {

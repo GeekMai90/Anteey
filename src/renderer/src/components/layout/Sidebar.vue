@@ -383,7 +383,7 @@ const menuItems = computed(() => {
       ? [{ name: '思维板', path: '/whiteboard', icon: Workbench }]
       : []),
     { name: '手绘板', path: '/ed-whiteboard', icon: HandPaintedPlate },
-    { name: 'AI助手', path: '/ai-assistant', icon: Robot }
+    { name: 'AI 助手', path: '/ai-assistant', icon: Robot }
   ]
   return baseItems
 })

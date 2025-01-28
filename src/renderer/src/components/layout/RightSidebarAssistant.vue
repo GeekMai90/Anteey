@@ -96,8 +96,8 @@
                     <TypewriterText
                       :key="msg.id"
                       :content="msg.content"
-                      :instant="isHistoryMessage"
-                      @complete="onTypewriterComplete"
+                      :instant="isMessageDisplayed(msg.id)"
+                      @complete="() => handleTypewriterComplete(msg.id)"
                       @segment-complete="onSegmentComplete"
                     />
                     <!-- 引用信息 -->
@@ -336,13 +336,16 @@ const getPlaceholder = computed(() => {
   return '提问、思考、聊天...'
 })
 
-// 判断是否是历史消息
-const isHistoryMessage = computed(() => {
-  if (messages.value.length === 0) return false
-  if (!assistantStore.currentSessionStartTime) return false
-  const lastMessageTimestamp = messages.value[messages.value.length - 1].timestamp
-  return lastMessageTimestamp < assistantStore.currentSessionStartTime
-})
+// 修改计算属性
+const isMessageDisplayed = (messageId: string) => {
+  return assistantStore.displayedMessageIds.has(messageId)
+}
+
+// 添加处理完成的回调方法
+const handleTypewriterComplete = (messageId: string) => {
+  assistantStore.markMessageAsDisplayed(messageId)
+  requestAnimationFrame(scrollToBottom)
+}
 
 // 方法
 const selectMode = (suggestion: Suggestion) => {
@@ -391,10 +394,6 @@ const scrollToBottom = () => {
 }
 
 const onSegmentComplete = () => {
-  requestAnimationFrame(scrollToBottom)
-}
-
-const onTypewriterComplete = () => {
   requestAnimationFrame(scrollToBottom)
 }
 
@@ -720,6 +719,8 @@ onMounted(() => {
     flex: 1;
     overflow-y: auto;
     padding: 1rem;
+    width: 100%;
+    max-width: 100%;
   }
 
   .welcome-section {
@@ -792,14 +793,17 @@ onMounted(() => {
   .message-wrapper {
     display: flex;
     max-width: 100%;
+    width: 100%;
     animation: messageSlide 0.3s ease-out forwards;
 
     &.user {
       justify-content: flex-end;
 
       .message {
-        background: var(--color-primary);
-        color: var(--color-text-inversion);
+        background: rgba(var(--color-primary-rgb), 0.15);
+        color: var(--color-primary);
+        font-weight: 500;
+        // color: var(--color-text-inversion);
         border-radius: 1rem 0 1rem 1rem;
       }
     }
@@ -808,6 +812,7 @@ onMounted(() => {
       background: var(--color-bg-ai-assistant);
       color: var(--color-text-primary);
       border-radius: 0 1rem 1rem 1rem;
+      max-width: calc(100% - 2rem);
     }
   }
 
@@ -816,6 +821,8 @@ onMounted(() => {
     font-size: 0.875rem;
     line-height: 1.6;
     word-break: break-word;
+    max-width: 100%;
+    overflow-wrap: break-word;
   }
 
   .input-section {

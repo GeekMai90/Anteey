@@ -25,22 +25,15 @@ export class KeywordExtractor {
    * value: { standard: 标准写法, weight: 权重 }
    */
   private readonly TECH_TERMS = new Map([
-    // 编程语言
+    // 编程语言和框架
     ['javascript', { standard: 'JavaScript', weight: 1.5 }],
     ['typescript', { standard: 'TypeScript', weight: 1.5 }],
     ['python', { standard: 'Python', weight: 1.5 }],
-
-    // 前端框架
-    ['react', { standard: 'React', weight: 1.5 }],
+    ['vue3', { standard: 'Vue3', weight: 1.5 }],
     ['vue', { standard: 'Vue', weight: 1.5 }],
+    ['react', { standard: 'React', weight: 1.5 }],
     ['angular', { standard: 'Angular', weight: 1.5 }],
-    ['nextjs', { standard: 'Next.js', weight: 1.5 }],
-    ['nuxt', { standard: 'Nuxt.js', weight: 1.5 }],
-
-    // 后端框架
-    ['nodejs', { standard: 'Node.js', weight: 1.5 }],
-    ['express', { standard: 'Express', weight: 1.5 }],
-    ['nestjs', { standard: 'NestJS', weight: 1.5 }],
+    ['electron', { standard: 'Electron', weight: 1.5 }],
 
     // 数据库
     ['mysql', { standard: 'MySQL', weight: 1.5 }],
@@ -48,12 +41,26 @@ export class KeywordExtractor {
     ['mongodb', { standard: 'MongoDB', weight: 1.5 }],
     ['sqlite', { standard: 'SQLite', weight: 1.5 }],
 
-    // 开发工具
+    // 开发工具和平台
     ['vscode', { standard: 'VS Code', weight: 1.4 }],
     ['git', { standard: 'Git', weight: 1.4 }],
     ['github', { standard: 'GitHub', weight: 1.4 }],
     ['webpack', { standard: 'Webpack', weight: 1.4 }],
-    ['vite', { standard: 'Vite', weight: 1.4 }]
+    ['vite', { standard: 'Vite', weight: 1.4 }],
+    ['markdown', { standard: 'Markdown', weight: 1.4 }],
+    ['obsidian', { standard: 'Obsidian', weight: 1.4 }],
+
+    // AI 相关
+    ['chatgpt', { standard: 'ChatGPT', weight: 1.6 }],
+    ['gpt', { standard: 'GPT', weight: 1.6 }],
+    ['ai', { standard: 'AI', weight: 1.6 }],
+
+    // 概念术语
+    ['双链', { standard: '双链', weight: 1.5 }],
+    ['双向链接', { standard: '双向链接', weight: 1.5 }],
+    ['类型安全', { standard: '类型安全', weight: 1.5 }],
+    ['开源', { standard: '开源', weight: 1.4 }],
+    ['智能写作', { standard: '智能写作', weight: 1.4 }]
   ])
 
   /**
@@ -91,6 +98,7 @@ export class KeywordExtractor {
     'false',
     'ffc',
     'hardBreak',
+    'hardbreak',
     'heading',
     'hearts',
     'highlight',
@@ -140,13 +148,26 @@ export class KeywordExtractor {
     'textAlign',
     'textalign',
     'textStyle',
+    'textstyle',
     'tight',
     'title',
     'true',
     'type',
     'underline',
     'width',
-    'with'
+    'with',
+    'var',
+    '一款',
+    '基于',
+    '采用',
+    '支持',
+    '实现',
+    '提供',
+    '确保',
+    '建立',
+    '集成',
+    '使用',
+    '托管'
   ])
 
   /**
@@ -190,24 +211,44 @@ export class KeywordExtractor {
 
       // 2. 加载用户自定义词典
       const dictWords = await getAllDictionaryWords()
-      const customDictText = dictWords
+
+      // 修改：对于英文词，统一使用原始形式，避免大小写重复
+      const normalizedDictWords = dictWords
         .filter((word) => word.enabled)
+        .reduce(
+          (acc, word) => {
+            if (/[a-zA-Z]/.test(word.word)) {
+              // 对于英文词，保持原始大小写形式
+              const existingWord = acc.find((w) => w.word.toLowerCase() === word.word.toLowerCase())
+              if (!existingWord || word.word === word.word.toLowerCase()) {
+                acc.push(word)
+              }
+            } else {
+              acc.push(word)
+            }
+            return acc
+          },
+          [] as typeof dictWords
+        )
+
+      const customDictText = normalizedDictWords
         .map((word) => {
-          // 使用最高词频和原始权重
-          return `${word.word} 9999 n ${word.weight}`
+          // 修改：增加词频和权重，确保自定义词优先级最高
+          return `${word.word} 999999 nz ${word.weight * 5}`
         })
         .join('\n')
 
       // 3. 加载自定义词典
       if (customDictText) {
         this.segment.loadDict(customDictText)
+        log.info('已加载自定义词典:', {
+          词条数: normalizedDictWords.length,
+          样例: normalizedDictWords,
+          词典内容: customDictText
+        })
       }
 
       this.initialized = true
-      log.info('分词器初始化成功', {
-        dictSize: dictWords.filter((w) => w.enabled).length,
-        sampleDict: customDictText.slice(0, 100)
-      })
     } catch (error) {
       log.error('分词器初始化失败:', error)
       this.segment = null
@@ -253,17 +294,31 @@ export class KeywordExtractor {
    */
   private preProcessText(text: string): string {
     try {
-      let processedText = text.toLowerCase().trim()
+      let processedText = text.trim()
 
-      // 处理技术术语
+      // 1. 先获取自定义词典中的词
+      const customWords = Array.from(this.segment.DICT as Map<string, any>)
+        .filter(([word]: [string, any]) => typeof word === 'string' && word.length > 1)
+        .map(([word]: [string, any]) => word)
+
+      // 2. 保护所有自定义词典中的词
+      customWords.forEach((word: string) => {
+        // 对于英文词，同时匹配大小写形式
+        if (/[a-zA-Z]/.test(word)) {
+          const pattern = new RegExp(word, 'gi')
+          processedText = processedText.replace(pattern, word)
+        }
+      })
+
+      // 3. 处理技术术语
       this.TECH_TERMS.forEach(({ standard }, term) => {
         const pattern = new RegExp(term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi')
         processedText = processedText.replace(pattern, standard.replace(/\s+/g, '_'))
       })
 
-      // 清理特殊字符
+      // 4. 清理特殊字符，但保留自定义词
       return processedText
-        .replace(/[^\u4e00-\u9fa5a-z0-9\s.,!?，。！？、_]/g, ' ')
+        .replace(/[^\u4e00-\u9fa5a-zA-Z0-9\s.,!?，。！？、_]/g, ' ')
         .replace(/\s+/g, ' ')
         .trim()
     } catch (error) {
@@ -324,28 +379,44 @@ export class KeywordExtractor {
       tokens.forEach((token: any) => {
         const { w: word, p: pos, t: termWeight = 1 } = token
 
-        // 过滤规则：
-        // 1. 过滤技术字段名
-        // 2. 过滤过短的词
-        // 3. 过滤纯数字和短英文词
-        if (this.FILTER_WORDS.has(word.toLowerCase()) || word.length < 2) {
-          return
-        }
-        if (word.length < 3 && /^[a-zA-Z0-9]+$/.test(word)) {
+        // 修改过滤规则：
+        // 1. 过滤纯数字
+        if (/^\d+$/.test(word)) {
           return
         }
 
-        // 累计词频和权重
+        // 2. 检查是否是自定义词典中的词（不区分大小写）
+        const isCustomWord = Array.from(this.segment.DICT as Map<string, any>).some(
+          ([dictWord]: [string, any]) =>
+            typeof dictWord === 'string' && dictWord.toLowerCase() === word.toLowerCase()
+        )
+
+        // 3. 如果是自定义词或者不在过滤列表中，则保留
+        if (!isCustomWord && this.FILTER_WORDS.has(word.toLowerCase())) {
+          return
+        }
+
+        // 4. 长度检查（对自定义词放宽限制）
+        if (!isCustomWord) {
+          if (/[\u4e00-\u9fa5]/.test(word) && word.length < 2) {
+            return
+          }
+          if (!/[\u4e00-\u9fa5]/.test(word) && word.length < 2) {
+            return
+          }
+        }
+
+        // 5. 累计词频和权重（提高自定义词的权重）
         const current = wordStats.get(word) || {
           freq: 0,
           pos,
-          weight: termWeight
+          weight: isCustomWord ? termWeight * 2 : termWeight // 提高自定义词的权重
         }
 
         wordStats.set(word, {
           freq: current.freq + 1,
           pos: current.pos,
-          weight: current.weight
+          weight: Math.max(current.weight, isCustomWord ? termWeight * 2 : termWeight)
         })
         totalWords++
       })
@@ -353,18 +424,25 @@ export class KeywordExtractor {
       // 4. 生成关键词列表
       const keywords = Array.from(wordStats.entries())
         .map(([word, { freq, pos, weight }]) => {
-          // 基础权重：词频/总词数
           let finalWeight = freq / totalWords
 
-          // 词性加权：名词、动词等重要词性权重提升
+          // 提高词性权重
           if (['n', 'v', 'vn', 'nz'].includes(pos)) {
-            finalWeight *= 1.2
+            finalWeight *= 1.8 // 进一步提高名词权重
           }
 
-          // 中文词加权：优先考虑中文关键词
+          // 提高中文词权重
           if (/[\u4e00-\u9fa5]/.test(word)) {
-            finalWeight *= 1.3
+            finalWeight *= 1.6 // 提高中文词权重
           }
+
+          // 技术术语加权
+          if (this.TECH_TERMS.has(word.toLowerCase())) {
+            finalWeight *= 2.0 // 显著提高技术术语权重
+          }
+
+          // 词长度权重：优先选择较长的词
+          finalWeight *= 1 + word.length * 0.15 // 增加长词的权重
 
           // 应用词典权重
           finalWeight *= weight
@@ -372,9 +450,17 @@ export class KeywordExtractor {
           return { word, weight: finalWeight }
         })
         .sort((a, b) => b.weight - a.weight)
-        .slice(0, 15) // 只保留权重最高的15个关键词
+        .filter((k) => k.word.length >= 2 || /[\u4e00-\u9fa5]/.test(k.word)) // 再次过滤掉短词
+        .slice(0, 15)
 
+      // 添加更详细的日志
       log.debug('关键词提取结果:', {
+        原始文本: rawText.slice(0, 100),
+        分词结果: tokens.slice(0, 10).map((t: any) => ({
+          词: t.w,
+          词性: t.p,
+          权重: t.t
+        })),
         分词数: tokens.length,
         唯一词数: wordStats.size,
         关键词: keywords.map((k) => ({

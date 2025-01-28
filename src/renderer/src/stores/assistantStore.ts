@@ -24,6 +24,7 @@ export const useAssistantStore = defineStore('assistant', () => {
   const isLoadingHistory = ref(false) // 新增：是否正在加载历史记录
   const isInitializingEmbeddings = ref(false)
   const embeddingsProgress = ref({ total: 0, processed: 0 })
+  const displayedMessageIds = ref<Set<string>>(new Set()) // 新增：记录已显示的消息ID
 
   const llmConfigStore = useLLMConfigStore()
 
@@ -392,8 +393,8 @@ export const useAssistantStore = defineStore('assistant', () => {
     messages.value = []
     contexts.value = []
     currentContext.value = null
-    currentSessionId.value = null // 重置会话ID
-    currentSessionStartTime.value = null
+    currentSessionId.value = null
+    displayedMessageIds.value.clear() // 清空已显示消息记录
   }
 
   // 开始新对话
@@ -495,9 +496,13 @@ export const useAssistantStore = defineStore('assistant', () => {
         contexts.value = historyDetail.contexts
         currentContext.value = contexts.value[contexts.value.length - 1] || null
         currentSessionId.value = id
-        // 设置会话开始时间为最新消息的时间戳，这样所有历史消息都会立即显示
-        const latestMessage = historyDetail.messages[historyDetail.messages.length - 1]
-        currentSessionStartTime.value = latestMessage ? latestMessage.timestamp + 1 : Date.now()
+
+        // 将所有历史消息标记为已显示
+        historyDetail.messages.forEach((msg) => {
+          if (msg.role === 'assistant') {
+            displayedMessageIds.value.add(msg.id)
+          }
+        })
       }
     } catch (error) {
       console.error('加载历史对话失败:', error)
@@ -978,6 +983,11 @@ export const useAssistantStore = defineStore('assistant', () => {
     }
   }
 
+  // 添加新的 action 来记录已显示的消息
+  const markMessageAsDisplayed = (messageId: string) => {
+    displayedMessageIds.value.add(messageId)
+  }
+
   return {
     messages,
     isProcessing,
@@ -1006,6 +1016,8 @@ export const useAssistantStore = defineStore('assistant', () => {
     handleFindNotes,
     isInitializingEmbeddings,
     embeddingsProgress,
-    initializeEmbeddings
+    initializeEmbeddings,
+    markMessageAsDisplayed,
+    displayedMessageIds
   }
 })
