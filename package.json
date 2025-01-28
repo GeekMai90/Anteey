@@ -133,6 +133,7 @@
     "react": "18",
     "react-dom": "18",
     "segmentit": "^2.0.3",
+    "textarea-caret-position": "^0.1.1",
     "tiptap-extension-global-drag-handle": "^0.1.12",
     "tiptap-markdown": "^0.8.10",
     "ts-fsrs": "^4.5.1",

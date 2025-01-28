@@ -152,6 +152,7 @@ watch(
 
 .markdown-body code {
   background: var(--color-code-bg);
+  color: white;
   padding: 0.2em 0.4em;
   border-radius: 3px;
   font-size: 0.9em;

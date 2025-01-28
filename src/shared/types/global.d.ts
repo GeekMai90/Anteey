@@ -8,6 +8,14 @@ declare module 'qrcode'
 declare module 'segmentit'
 declare module '@themaximalist/embeddings.js'
 declare module '@themaximalist/embeddings'
+declare module 'textarea-caret-position' {
+  function getCaretCoordinates(
+    element: HTMLElement,
+    position: number,
+    options?: { debug?: boolean; useClone?: boolean }
+  ): { top: number; left: number }
+  export default getCaretCoordinates
+}
 // 为 slashCommandSuggestion 添加类型声明
 declare module 'tiptap/slashCommandSuggestion' {
   import { Editor, Range } from '@tiptap/core'
