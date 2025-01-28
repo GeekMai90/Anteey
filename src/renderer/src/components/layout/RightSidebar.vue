@@ -45,6 +45,7 @@ import RightSidebarDraftsEditor from '@renderer/components/layout/RightSidebarDr
 import RightSidebarWidgets from '@renderer/components/layout/RightSidebarWidgets.vue'
 import RightSidebarCardbox from '@renderer/components/layout/RightSidebarCardbox.vue'
 import RightSidebarAssistant from '@renderer/components/layout/RightSidebarAssistant.vue'
+import RelatedNotes from '@renderer/components/layout/RelatedNotes.vue'
 import { useUIStore } from '@renderer/stores/UIStore'
 
 const props = defineProps<{
@@ -98,6 +99,12 @@ const tabs = [
     label: '智能助手',
     icon: Robot,
     component: RightSidebarAssistant
+  },
+  {
+    key: 'related',
+    label: '相关笔记',
+    icon: LinkTwo,
+    component: RelatedNotes
   }
 ]
 

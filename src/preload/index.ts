@@ -26,6 +26,7 @@ import { taskApi } from './api/taskApi'
 import { authApi } from './api/authApi'
 import { llmConfigApi } from './api/llmConfigApi'
 import { ragApi } from './api/ragApi'
+import { embeddingApi } from './api/embeddingApi'
 // 添加日志 API
 contextBridge.exposeInMainWorld('electronLog', {
   info: (...args: any[]) => ipcRenderer.send('renderer-log', { level: 'info', args }),
@@ -143,5 +144,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
   rag: {
     ...ragApi
+  },
+  embedding: {
+    ...embeddingApi
   }
 })

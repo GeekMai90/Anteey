@@ -36,35 +36,6 @@
           </div>
           <!-- 右侧工具栏 -->
           <div class="toolbar-right">
-            <!-- 添加向量化按钮 -->
-            <!-- <div
-              v-tooltip.top="{
-                content: isInitializingEmbeddings ? `正在向量化` : '初始化向量库',
-                delay: { show: 1000 }
-              }"
-              class="tool-btn"
-              :class="{ 'is-processing': isInitializingEmbeddings }"
-              @click="handleInitializeEmbeddings"
-            >
-              <div class="icon">
-                <Loading
-                  v-if="isInitializingEmbeddings"
-                  theme="outline"
-                  size="18"
-                  fill="var(--color-primary)"
-                  :strokeWidth="3"
-                  class="loading-icon"
-                />
-                <Robot
-                  v-else
-                  theme="outline"
-                  size="18"
-                  fill="var(--color-icon-default)"
-                  :strokeWidth="3"
-                />
-              </div>
-            </div> -->
-
             <!-- 现有的主面板打开按钮 -->
             <div
               v-tooltip.top="{ content: '在主面板打开', delay: { show: 1000 } }"

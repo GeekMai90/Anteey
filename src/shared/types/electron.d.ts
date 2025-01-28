@@ -843,6 +843,25 @@ export interface ElectronAPI {
       processed: number
     }>
   }
+
+  embedding: {
+    // 向量搜索
+    searchSimilarNotes: (
+      query: string,
+      limit: number
+    ) => Promise<{ noteId: string; similarity: number }[]>
+
+    // 获取特定笔记的相似笔记
+    getSimilarNotesForNote: (
+      noteId: string,
+      limit: number
+    ) => Promise<
+      {
+        noteId: string
+        similarity: number
+      }[]
+    >
+  }
 }
 
 declare global {

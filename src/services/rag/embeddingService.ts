@@ -121,48 +121,6 @@ function extractTextContent(content: any): string {
   return processNode(content).trim()
 }
 
-// 生成并保存笔记的向量
-// export async function generateEmbedding(noteId: string): Promise<NoteEmbedding> {
-//   try {
-//     // 1. 获取笔记内容
-//     const note = await db('notes').where({ id: noteId }).first()
-
-//     if (!note) {
-//       throw new Error(`笔记不存在: ${noteId}`)
-//     }
-
-//     // 2. 提取文本内容
-//     const textContent = extractTextContent(note.content)
-
-//     // 3. 生成向量
-//     const embedder = await initEmbeddings()
-//     const vector = await embedder(textContent)
-//     const embedding = Buffer.from(new Float32Array(vector).buffer)
-
-//     // 4. 准备数据
-//     const now = Math.floor(Date.now() / 1000)
-//     const embeddingData = {
-//       note_id: noteId,
-//       embedding: embedding,
-//       created_at: now,
-//       updated_at: now,
-//       model_version: 'minilm-l6-v2'
-//     }
-
-//     // 5. 保存或更新向量
-//     const [result] = await db('note_embeddings')
-//       .insert(embeddingData)
-//       .onConflict('note_id')
-//       .merge(['embedding', 'updated_at'])
-//       .returning('*')
-
-//     return convertToEmbedding(result)
-//   } catch (error) {
-//     console.error('生成向量失败:', { noteId, error })
-//     throw error
-//   }
-// }
-
 // 配置常量
 const KEYWORDS_LIMIT = 10
 const MIN_KEYWORD_WEIGHT = 0.05
@@ -413,7 +371,6 @@ const cosineSimilarityQuery = `
   ) as similarity
 `
 
-// 搜索相似笔记
 // 搜索相似笔记
 export async function searchSimilarNotes(
   query: string,
