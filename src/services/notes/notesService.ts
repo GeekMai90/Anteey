@@ -11,7 +11,7 @@ import type {
 import { Knex } from 'knex/types'
 import { FilterRule } from '@shared/types'
 import { db } from '../../db/config'
-import { updateNoteEmbedding } from '../rag/embeddingService'
+// import { updateNoteEmbedding } from '../rag/embeddingService'
 import { getCurrentAuthState } from '../auth/authService'
 // 辅助函数：将数据库记录转换为 Note 对象
 export function convertToNote(record: any): Note {
@@ -653,14 +653,14 @@ export async function updateNoteContent(id: string, content: object): Promise<No
       )
 
       // 2. 异步更新向量
-      setTimeout(async () => {
-        try {
-          await updateNoteEmbedding(id, content)
-          // console.log(`后端→ 笔记 ${id} 向量异步更新完成`)
-        } catch (error) {
-          console.error(`后端→ 笔记 ${id} 向量异步更新失败:`, error)
-        }
-      }, 0)
+      // setTimeout(async () => {
+      //   try {
+      //     await updateNoteEmbedding(id, content)
+      //     // console.log(`后端→ 笔记 ${id} 向量异步更新完成`)
+      //   } catch (error) {
+      //     console.error(`后端→ 笔记 ${id} 向量异步更新失败:`, error)
+      //   }
+      // }, 0)
 
       return updatedNote
     } catch (error) {

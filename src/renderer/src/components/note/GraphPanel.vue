@@ -69,27 +69,55 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, nextTick } from 'vue'
 import { GraphicStitchingThree } from '@icon-park/vue-next'
 import { Motion } from 'motion-v'
 import LocalMapPanel from './LocalMapPanel.vue'
 import HierarchyTreePanel from './HierarchyTreePanel.vue'
+import { useLocalTreeStore } from '@renderer/stores/localTreeStore'
 
-defineProps<{
+const props = defineProps<{
   noteId: string
 }>()
 
 const currentView = ref<'local' | 'hierarchy'>('local')
 const isCollapsed = ref(true)
-
-// 切换视图
-const switchView = (view: 'local' | 'hierarchy') => {
-  currentView.value = view
-}
+const localTreeStore = useLocalTreeStore()
 
 // 切换面板展开/折叠
-const togglePanel = () => {
-  isCollapsed.value = !isCollapsed.value
+const togglePanel = async () => {
+  const newState = !isCollapsed.value
+  isCollapsed.value = newState
+
+  // 只在展开面板时获取数据
+  if (!newState) {
+    if (currentView.value === 'local') {
+      await localTreeStore.fetchLocalTreeWithRefs(props.noteId)
+    } else {
+      await localTreeStore.fetchLocalTree(props.noteId)
+    }
+  }
+}
+
+// 切换视图
+const switchView = async (view: 'local' | 'hierarchy') => {
+  // 先获取新视图的数据
+  if (!isCollapsed.value) {
+    if (view === 'local') {
+      await localTreeStore.fetchLocalTreeWithRefs(props.noteId)
+    } else {
+      await localTreeStore.fetchLocalTree(props.noteId)
+    }
+  }
+
+  // 然后再切换视图
+  currentView.value = view
+
+  // 给下一个 tick 一个机会重新渲染
+  nextTick(() => {
+    // 不需要在这里清理 SVG，因为组件会自动重新渲染
+    // 让子组件通过自己的 watch 和 render 函数来处理渲染
+  })
 }
 
 // 动画完成回调

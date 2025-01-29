@@ -2,9 +2,20 @@ import { db } from '../../db/config'
 import { Note } from '@shared/types'
 import { convertToNote } from '../notes/notesService'
 
+// 添加节流控制
+let lastFetchTime = 0
+const THROTTLE_DELAY = 300 // 300ms 的节流延迟
+
 // 获取今日随机回顾笔记
 export async function getRandomReviewNotes(): Promise<Note[]> {
   try {
+    // 添加节流控制
+    const now = Date.now()
+    if (now - lastFetchTime < THROTTLE_DELAY) {
+      throw new Error('操作太频繁，请稍后再试')
+    }
+    lastFetchTime = now
+
     // 1. 从数据库中随机选择3条未删除的笔记
     const notes = await db('notes')
       .where('isDeleted', false)
@@ -42,6 +53,13 @@ export async function getReviewData() {
 // 获取单条随机笔记
 export async function getOneRandomNote(): Promise<Note | null> {
   try {
+    // 添加节流控制
+    const now = Date.now()
+    if (now - lastFetchTime < THROTTLE_DELAY) {
+      throw new Error('操作太频繁，请稍后再试')
+    }
+    lastFetchTime = now
+
     // 从数据库中随机选择1条未删除的笔记
     const note = await db('notes')
       .where('isDeleted', false)

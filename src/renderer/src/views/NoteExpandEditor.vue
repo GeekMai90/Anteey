@@ -206,6 +206,7 @@ import { useReviewModeStore } from '@renderer/stores/reviewModeStore'
 import MarioQuestionBox from '@renderer/components/ui/MarioQuestionBox.vue'
 import DoubleArrowButton from '@renderer/components/ui/DoubleArrowButton.vue'
 import MarioLeftButton from '@renderer/components/ui/MarioLeftButton.vue'
+import * as d3 from 'd3'
 // === 组件状态管理 ===
 const tiptapEditor = ref<any>(null)
 const route = useRoute()
@@ -482,6 +483,11 @@ const saveCurrentNote = async () => {
 onBeforeRouteLeave(async (_to, _from, next) => {
   try {
     await saveCurrentNote()
+    // 清理图谱组件
+    const svgElements = document.querySelectorAll('.tree-graph')
+    svgElements.forEach((svg) => {
+      d3.select(svg).selectAll('*').remove()
+    })
     next()
   } catch (error) {
     // 可以选择是否阻止路由切换
@@ -507,6 +513,11 @@ onBeforeUnmount(() => {
   saveContent.flush()
   // 添加到最近笔记
   noteStore.addToRecentNotes(noteId)
+  // 清理图谱组件
+  const svgElements = document.querySelectorAll('.tree-graph')
+  svgElements.forEach((svg) => {
+    d3.select(svg).selectAll('*').remove()
+  })
 })
 
 // === 卡片类型菜单管理 ===
@@ -686,9 +697,14 @@ const handlePrevNote = async () => {
   }
 }
 
-// 处理下一条笔记
+// 添加节流控制
+let isLoading = false
+
 const handleNextNote = async () => {
+  if (isLoading) return
+
   try {
+    isLoading = true
     const nextNote = await reviewStore.fetchRandomNote()
     if (nextNote) {
       router.push({
@@ -697,9 +713,17 @@ const handleNextNote = async () => {
         query: { review: 'true' }
       })
     }
-  } catch (error) {
-    console.error('获取下一条笔记失败:', error)
-    message.error('获取下一条笔记失败')
+  } catch (error: any) {
+    if (error.message === '操作太频繁，请稍后再试') {
+      // 可以显示一个提示
+      message.info('请不要太快点击哦~')
+    } else {
+      console.error('获取下一条笔记失败:', error)
+    }
+  } finally {
+    setTimeout(() => {
+      isLoading = false
+    }, 300)
   }
 }
 

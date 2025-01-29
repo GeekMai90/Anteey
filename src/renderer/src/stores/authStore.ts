@@ -300,7 +300,7 @@ export const useAuthStore = defineStore('auth', () => {
 
     try {
       loading.value = true
-      console.log('authStore→ 开始初始化')
+      // console.log('authStore→ 开始初始化')
 
       // 1. 先从本地加载状态
       const localState = await window.electronAPI.auth.getCurrentAuthState()

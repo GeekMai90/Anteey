@@ -27,7 +27,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, watch, computed, nextTick } from 'vue'
+import { ref, watch, computed, nextTick, onBeforeUnmount } from 'vue'
 import { BranchTwo } from '@icon-park/vue-next'
 import { useRouter } from 'vue-router'
 import { useLocalTreeStore } from '@renderer/stores/localTreeStore'
@@ -716,37 +716,53 @@ const handleNodeDblClick = (note: Note | undefined | null) => {
   useNoteStore().openNoteEditor(note.id)
 }
 
+// 添加清理函数
+const cleanup = () => {
+  if (svgRef.value) {
+    d3.select(svgRef.value).selectAll('*').remove()
+  }
+}
+
+// 监听数据变化时重新渲染
 watch(
   () => localTreeStore.treeData,
-  () => {
-    // console.log('Tree data updated:', newData) // 检查树形数据更新
-    renderHierarchyTree()
+  (newData) => {
+    if (newData && !isCollapsed.value) {
+      // 只在有数据且展开状态时渲染
+      renderHierarchyTree()
+    }
   }
 )
 
+// 监听 props 变化时也要清理
 watch(
   () => props.noteId,
   async (newId) => {
-    if (newId) {
-      currentVisibleCount.value = MAX_VISIBLE_CHILDREN // 重置显示数量
+    cleanup()
+    if (newId && !props.isCollapsed) {
+      // 只在展开状态时获取数据
+      currentVisibleCount.value = MAX_VISIBLE_CHILDREN
       await localTreeStore.fetchLocalTree(newId)
-    }
-  },
-  { immediate: true }
-)
-
-watch(
-  () => props.isCollapsed,
-  (newValue) => {
-    if (newValue !== undefined) {
-      isCollapsed.value = newValue
+      renderHierarchyTree()
     }
   }
 )
 
-onMounted(() => {
-  renderHierarchyTree()
-})
+// 监听折叠状态变化
+watch(
+  () => props.isCollapsed,
+  async (newValue) => {
+    if (newValue !== undefined) {
+      isCollapsed.value = newValue
+      // 在展开时获取数据并渲染
+      if (!newValue && props.noteId) {
+        currentVisibleCount.value = MAX_VISIBLE_CHILDREN
+        await localTreeStore.fetchLocalTree(props.noteId)
+        renderHierarchyTree()
+      }
+    }
+  }
+)
 
 // 修改节点悬停效果的样式
 const style = document.createElement('style')
@@ -811,6 +827,11 @@ const handleNodeMouseLeave = () => {
 //     params: { id: note.id }
 //   })
 // }
+
+// 组件卸载时清理
+onBeforeUnmount(() => {
+  cleanup()
+})
 </script>
 
 <style lang="scss" scoped>
