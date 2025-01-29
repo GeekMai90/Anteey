@@ -26,7 +26,7 @@ import { setupTaskHandlers } from './taskIpcHandlers'
 import { setupAuthHandlers } from './authIpcHandlers'
 import { setupLLMConfigHandlers } from './llmConfigIpcHandlers'
 import { setupRAGHandlers } from './ragIpcHandlers'
-import { setupEmbeddingHandlers } from './embeddingIpcHandlers'
+import { setupSimilarNotesHandlers } from './similarNotesIpcHandlers'
 import { setupDictionaryHandlers } from './dictionaryIpcHandlers'
 export function setupIpcHandlers(): void {
   setupNotesHandlers()
@@ -57,6 +57,6 @@ export function setupIpcHandlers(): void {
   setupAuthHandlers()
   setupLLMConfigHandlers()
   setupRAGHandlers()
-  setupEmbeddingHandlers()
+  setupSimilarNotesHandlers()
   setupDictionaryHandlers()
 }

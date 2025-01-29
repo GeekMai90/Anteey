@@ -856,7 +856,7 @@ export interface ElectronAPI {
     }>
   }
 
-  embedding: {
+  similarNotes: {
     // 向量搜索
     searchSimilarNotes: (
       query: string,

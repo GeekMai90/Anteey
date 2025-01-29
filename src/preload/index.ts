@@ -26,7 +26,7 @@ import { taskApi } from './api/taskApi'
 import { authApi } from './api/authApi'
 import { llmConfigApi } from './api/llmConfigApi'
 import { ragApi } from './api/ragApi'
-import { embeddingApi } from './api/embeddingApi'
+import { similarNotesApi } from './api/similarNotesApi'
 import { dictionaryApi } from './api/dictionaryApi'
 // 添加日志 API
 contextBridge.exposeInMainWorld('electronLog', {
@@ -146,8 +146,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   rag: {
     ...ragApi
   },
-  embedding: {
-    ...embeddingApi
+  similarNotes: {
+    ...similarNotesApi
   },
   dictionary: {
     ...dictionaryApi

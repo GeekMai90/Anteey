@@ -1,8 +1,8 @@
-import { db } from '../db/config'
+import { db } from '../../db/config'
 import type { BackupSettings, BackupHistory } from '@shared/types'
 import fs from 'fs'
 import path from 'path'
-import { dbPath } from '../db/config'
+import { dbPath } from '../../db/config'
 import { app } from 'electron'
 
 // 检查是否为开发环境

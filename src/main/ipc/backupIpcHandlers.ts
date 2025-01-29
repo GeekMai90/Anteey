@@ -1,5 +1,5 @@
 import { ipcMain, dialog, BrowserWindow } from 'electron'
-import { backupService } from '../../services/backupService'
+import { backupService } from '@services/backup/backupService'
 
 export function setupBackupIpcHandlers(): void {
   ipcMain.handle('getBackupSettings', async () => {

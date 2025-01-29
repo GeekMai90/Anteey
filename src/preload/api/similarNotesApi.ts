@@ -1,6 +1,6 @@
 import { ipcRenderer } from 'electron'
 
-export const embeddingApi = {
+export const similarNotesApi = {
   searchSimilarNotes: async (query: string, limit: number = 10) => {
     try {
       const result = await ipcRenderer.invoke('search-similar-notes', query, limit)

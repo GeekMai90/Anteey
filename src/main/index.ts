@@ -23,9 +23,9 @@ import { initialize, enable } from '@electron/remote/main'
 import { setupIpcHandlers } from './ipc'
 import log from './logger'
 import { config } from 'dotenv'
-import { getUserSettings } from '../services/user/userSettingsService'
+import { getUserSettings } from '@services/user/userSettingsService'
 // import { migrateLicenseTable } from '../db/migrations/licenseMigration'
-import { backupService } from '../services/backupService'
+import { backupService } from '@services/backup/backupService'
 import { debounce } from 'lodash'
 
 // 加载环境变量

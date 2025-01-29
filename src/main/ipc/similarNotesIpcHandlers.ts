@@ -1,6 +1,6 @@
 import { ipcMain } from 'electron'
-import { getSimilarNotesForNote, searchSimilarNotes } from '../../services/rag/embeddingService'
-export function setupEmbeddingHandlers() {
+import { getSimilarNotesForNote, searchSimilarNotes } from '@services/similar/similarService'
+export function setupSimilarNotesHandlers() {
   // 向量相似度搜索
   ipcMain.handle('search-similar-notes', async (_, query: string, limit: number = 10) => {
     try {

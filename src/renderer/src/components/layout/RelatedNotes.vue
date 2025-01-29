@@ -38,7 +38,7 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 import { useNoteStore } from '@renderer/stores/noteStore'
-import { useSemanticStore } from '@renderer/stores/semanticStore' // 新增
+import { useSimilarNotesStore } from '@renderer/stores/similarNotesStore'
 import { useRouter } from 'vue-router'
 import { formatDate } from '@renderer/utils/noteHelpers'
 import type { Note } from '@shared/types'
@@ -52,7 +52,7 @@ const props = defineProps<{
 }>()
 
 const noteStore = useNoteStore()
-const semanticStore = useSemanticStore() // 新增
+const similarNotesStore = useSimilarNotesStore() // 新增
 const router = useRouter()
 const isLoading = ref(false)
 const relatedNotes = ref<Array<{ note: Note; similarity: number }>>([])
@@ -68,7 +68,7 @@ const fetchRelatedNotes = async () => {
     }
 
     // 使用新的语义搜索方法
-    const similarResults = await semanticStore.getSimilarNotesForNote(props.noteId, 10)
+    const similarResults = await similarNotesStore.getSimilarNotesForNote(props.noteId, 10)
 
     // 获取完整的笔记信息
     const notesWithDetails = await Promise.all(

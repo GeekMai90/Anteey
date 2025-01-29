@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import log from 'electron-log'
 
-export const useSemanticStore = defineStore('semantic', () => {
+export const useSimilarNotesStore = defineStore('similarNotes', () => {
   // ==================== 状态定义 ====================
   const isSearching = ref(false)
   const searchResults = ref<Array<{ noteId: string; similarity: number }>>([])
@@ -20,7 +20,7 @@ export const useSemanticStore = defineStore('semantic', () => {
       searchQuery.value = query
       searchError.value = null
 
-      const results = await window.electronAPI.embedding.searchSimilarNotes(query, limit)
+      const results = await window.electronAPI.similarNotes.searchSimilarNotes(query, limit)
       searchResults.value = results
 
       log.info('语义搜索结果:', results)
@@ -43,7 +43,7 @@ export const useSemanticStore = defineStore('semantic', () => {
   // 获取特定笔记的相似笔记
   const getSimilarNotesForNote = async (noteId: string, limit: number = 5) => {
     try {
-      const results = await window.electronAPI.embedding.getSimilarNotesForNote(noteId, limit)
+      const results = await window.electronAPI.similarNotes.getSimilarNotesForNote(noteId, limit)
       return results
     } catch (error) {
       log.error('获取相似笔记失败:', error)
