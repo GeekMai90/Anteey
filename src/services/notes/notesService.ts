@@ -11,8 +11,8 @@ import type {
 import { Knex } from 'knex/types'
 import { FilterRule } from '@shared/types'
 import { db } from '../../db/config'
-import { checkLicenseStatus } from '../activation/licenseService'
 import { updateNoteEmbedding } from '../rag/embeddingService'
+import { getCurrentAuthState } from '../auth/authService'
 // 辅助函数：将数据库记录转换为 Note 对象
 export function convertToNote(record: any): Note {
   return {
@@ -404,20 +404,27 @@ export async function getPaginatedNotes(
 
 async function canCreateNote(): Promise<{ allowed: boolean; message?: string }> {
   try {
-    // 检查激活状态
-    const license = await checkLicenseStatus()
-    if (license) {
+    // 获取当前认证状态
+    const authState = await getCurrentAuthState()
+    console.log('notesService→ 检查创建权限:', {
+      hasAuth: !!authState,
+      licenseType: authState?.user?.licenseType
+    })
+
+    // 如果是永久授权用户，直接允许
+    if (authState?.user?.licenseType === 'desktop_permanent') {
       return { allowed: true }
     }
 
-    // 未激活时检查免费额度
+    // 未授权或免费用户检查笔记数量
     const count = await db('notes').where('isDeleted', false).count('* as count').first()
     const noteCount = count ? (count.count as number) : 0
+    console.log('notesService→ 当前笔记数量:', noteCount)
 
     if (noteCount >= 100) {
       return {
         allowed: false,
-        message: '已达到免费版100张笔记的限制，请激活软件继续使用'
+        message: '已达到免费版100张笔记的限制，请升级到永久授权版本继续使用'
       }
     }
 
@@ -426,7 +433,7 @@ async function canCreateNote(): Promise<{ allowed: boolean; message?: string }> 
       message: `免费版还可以创建${100 - noteCount}张笔记`
     }
   } catch (error) {
-    console.error('后端→ 检查笔记创建权限失败:', error)
+    console.error('notesService→ 检查笔记创建权限失败:', error)
     throw error
   }
 }

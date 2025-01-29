@@ -58,7 +58,7 @@ const isLoading = ref(false)
 const relatedNotes = ref<Array<{ note: Note; similarity: number }>>([])
 
 const fetchRelatedNotes = async () => {
-  log.info('开始获取相关笔记，noteId:', props.noteId)
+  // log.info('开始获取相关笔记，noteId:', props.noteId)
   isLoading.value = true
 
   try {

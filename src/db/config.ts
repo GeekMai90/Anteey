@@ -43,22 +43,24 @@ export function initializeDb() {
           journal_mode: 'WAL',
           busy_timeout: 5000, // 降低锁等待超时，避免长时间阻塞
           synchronous: 'NORMAL',
-          wal_autocheckpoint: 2000, // 增加检查点间隔，减少写入次数
-          cache_size: -64000, // 增加缓存大小到 64MB (-64000 KB)
-          page_size: 4096, // 优化页面大小
-          temp_store: 'MEMORY', // 临时表存储在内存中
-          mmap_size: 268435456, // 设置内存映射大小为 256MB
+          wal_autocheckpoint: 1000, // 降低检查点间隔，更频繁地写入
+          cache_size: -128000, // 增加缓存到 128MB
+          page_size: 8192, // 增加页面大小
+          mmap_size: 536870912, // 增加内存映射到 512MB
+          read_uncommitted: 'ON', // 允许读未提交，提高并发性
+          recursive_triggers: 'OFF', // 关闭递归触发器
+          secure_delete: 'OFF', // 关闭安全删除
           foreign_keys: 'ON' // 显式启用外键约束
         }
       }
     },
     pool: {
       min: 1, // 减少最小连接数，因为 SQLite 是单文件数据库
-      max: 10, // 降低最大连接数，避免过多连接竞争
-      acquireTimeoutMillis: 30000,
-      createTimeoutMillis: 15000,
-      idleTimeoutMillis: 15000, // 降低空闲超时
-      reapIntervalMillis: 5000, // 增加清理间隔
+      max: 5, // 减少最大连接数
+      acquireTimeoutMillis: 20000, // 减少获取超时
+      createTimeoutMillis: 10000,
+      idleTimeoutMillis: 10000, // 降低空闲超时
+      reapIntervalMillis: 1000, // 增加清理间隔
       createRetryIntervalMillis: 200,
       propagateCreateError: false
     },

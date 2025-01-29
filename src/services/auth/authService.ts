@@ -344,9 +344,20 @@ export async function logout(): Promise<void> {
 export async function getCurrentAuthState(): Promise<AuthState | null> {
   try {
     const record = await db('auth_state').first()
-    return record ? convertToAuthState(record) : null
+    console.log('authService→ 从数据库获取的认证记录:', record)
+
+    if (record) {
+      const state = convertToAuthState(record)
+      console.log('authService→ 转换后的认证状态:', {
+        hasUser: !!state.user,
+        licenseType: state.user?.licenseType,
+        expiresAt: state.expiresAt
+      })
+      return state
+    }
+    return null
   } catch (error) {
-    console.error('后端→ 获取认证状态失败:', error)
+    console.error('authService→ 获取认证状态失败:', error)
     throw error
   }
 }
@@ -429,16 +440,27 @@ async function checkNetworkAndVerify(state: AuthState): Promise<boolean> {
 export async function verifyAuthState(): Promise<boolean> {
   try {
     const state = await getCurrentAuthState()
+    console.log('authService→ 当前认证状态:', {
+      hasState: !!state,
+      hasUser: !!state?.user,
+      licenseType: state?.user?.licenseType,
+      lastVerified: state?.lastVerified,
+      expiresAt: state?.expiresAt
+    })
+
     if (!state || !state.user) return false
 
-    // 先检查本地过期时间
     const now = new Date()
     const lastVerified = new Date(state.lastVerified)
     const expiresAt = new Date(state.expiresAt)
 
     // 如果已过期，直接返回 false
     if (expiresAt < now) {
-      console.log('authService→ 许可证已过期')
+      console.log('authService→ 许可证已过期:', {
+        now,
+        expiresAt,
+        diff: expiresAt.getTime() - now.getTime()
+      })
       await db('auth_state').delete()
       return false
     }
@@ -446,12 +468,18 @@ export async function verifyAuthState(): Promise<boolean> {
     // 如果在30天内验证过，且是永久授权，直接返回 true
     const isRecentlyVerified = now.getTime() - lastVerified.getTime() < 30 * 24 * 60 * 60 * 1000
     if (isRecentlyVerified && state.user.licenseType === 'desktop_permanent') {
-      console.log('authService→ 最近已验证过，且是永久授权')
+      console.log('authService→ 最近已验证过，且是永久授权:', {
+        lastVerified,
+        timeSinceLastVerification: now.getTime() - lastVerified.getTime(),
+        licenseType: state.user.licenseType
+      })
       return true
     }
 
     // 否则进行网络验证
-    return await checkNetworkAndVerify(state)
+    const networkVerifyResult = await checkNetworkAndVerify(state)
+    console.log('authService→ 网络验证结果:', networkVerifyResult)
+    return networkVerifyResult
   } catch (error) {
     console.error('authService→ 验证失败:', error)
     return false

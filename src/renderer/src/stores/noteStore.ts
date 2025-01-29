@@ -888,14 +888,33 @@ export const useNoteStore = defineStore(
     const checkCanCreateNote = async () => {
       const authStore = useAuthStore()
 
+      // 确保 authStore 已经初始化
+      if (!authStore.isInitialized) {
+        console.log('noteStore→ authStore 未初始化，执行初始化')
+        await authStore.initStore()
+      }
+
+      // 添加更详细的日志
+      // console.log('noteStore→ 检查创建笔记权限:', {
+      //   isInitialized: authStore.isInitialized,
+      //   isAuthenticated: authStore.isAuthenticated,
+      //   isDesktopPermanent: authStore.isDesktopPermanent,
+      //   user: authStore.user,
+      //   authState: authStore.authState
+      // })
+
       // 如果是永久授权用户，直接允许
       if (authStore.isDesktopPermanent) {
+        console.log('noteStore→ 永久授权用户，允许创建笔记')
         return true
       }
 
       // 获取当前笔记数量
       const count = await getNoteCount()
+      console.log('noteStore→ 当前笔记数量:', count)
+
       if (count >= 100) {
+        console.log('noteStore→ 超过免费版限制')
         message.error('免费版用户最多可创建 100 张笔记，请升级到永久授权版本')
         return false
       }

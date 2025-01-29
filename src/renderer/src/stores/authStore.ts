@@ -23,10 +23,21 @@ export const useAuthStore = defineStore('auth', () => {
   // 存储离线监控定时器
   let offlineMonitorInterval: NodeJS.Timeout | null = null
 
+  // 添加一个新的状态来缓存用户类型
+  const userLicenseType = ref<string | null>(null)
+
   // ==================== 计算属性 ====================
   const isAuthenticated = computed(() => !!authState.value)
   const user = computed(() => authState.value?.user)
-  const isDesktopPermanent = computed(() => user.value?.licenseType === 'desktop_permanent')
+  const isDesktopPermanent = computed(() => {
+    const isPermanent = userLicenseType.value === 'desktop_permanent'
+    console.log('authStore→ isDesktopPermanent 计算结果:', {
+      userLicenseType: userLicenseType.value,
+      isPermanent,
+      authState: authState.value
+    })
+    return isPermanent
+  })
   const checkOfflineValidity = computed(() => {
     if (!authState.value) return false
     const lastVerified = new Date(authState.value.lastVerified)
@@ -115,6 +126,7 @@ export const useAuthStore = defineStore('auth', () => {
 
       // 清理状态和定时器
       authState.value = null
+      userLicenseType.value = null // 清除缓存的用户类型
       if (refreshInterval) {
         clearInterval(refreshInterval)
         refreshInterval = null
@@ -281,45 +293,56 @@ export const useAuthStore = defineStore('auth', () => {
 
   // 修改 initStore 函数
   const initStore = async () => {
-    if (isInitialized.value) return
+    if (isInitialized.value) {
+      // console.log('authStore→ 已经初始化过，跳过初始化')
+      return
+    }
 
     try {
       loading.value = true
+      console.log('authStore→ 开始初始化')
 
       // 1. 先从本地加载状态
       const localState = await window.electronAPI.auth.getCurrentAuthState()
+      // console.log('authStore→ 本地状态:', localState)
+
       if (localState) {
-        // 检查是否过期
         const now = new Date()
         const expiresAt = new Date(localState.expiresAt)
 
+        // console.log('authStore→ 检查过期状态:', {
+        //   now,
+        //   expiresAt,
+        //   isExpired: expiresAt <= now
+        // })
+
         if (expiresAt > now) {
           authState.value = localState
+          // 缓存用户类型
+          userLicenseType.value = localState.user?.licenseType || null
           setupAutoRefresh()
           setupAuthStateListener()
 
-          // 只为永久授权用户启动离线监控
           if (localState.user?.licenseType === 'desktop_permanent') {
+            // console.log('authStore→ 永久授权用户，启动离线监控')
             monitorOfflineStatus()
           }
         }
       }
 
-      // 2. 异步进行网络验证
-      queueMicrotask(async () => {
-        try {
-          if (authState.value) {
-            const isValid = await window.electronAPI.auth.verifyAuth()
-            if (!isValid) {
-              await logout()
-            }
-          }
-        } catch (err) {
-          console.error('authStore→ 异步验证失败:', err)
+      // 2. 立即进行网络验证
+      if (authState.value) {
+        const isValid = await window.electronAPI.auth.verifyAuth()
+        // console.log('authStore→ 网络验证结果:', isValid)
+
+        if (!isValid) {
+          console.log('authStore→ 验证失败，执行登出')
+          await logout()
         }
-      })
+      }
 
       isInitialized.value = true
+      // console.log('authStore→ 初始化完成，当前用户类型:', userLicenseType.value)
     } catch (err) {
       console.error('authStore→ 初始化失败:', err)
       error.value = err instanceof Error ? err.message : '初始化失败'
