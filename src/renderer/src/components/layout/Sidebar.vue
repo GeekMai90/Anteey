@@ -91,19 +91,18 @@
         </button>
 
         <!-- 草稿纸按钮 -->
-        <!-- <button
+        <button
           v-tooltip.top="{
-            content: '草稿纸',
+            content: 'AI 助手',
             delay: { show: 1000 }
           }"
           class="action-btn"
-          @click="router.push('/drafts')"
+          @click="router.push('/ai-assistant')"
         >
           <div class="icon">
-            <Pencil theme="outline" size="16" fill="var(--color-sidebar-icon)" :strokeWidth="3" />
+            <Robot theme="outline" size="16" fill="var(--color-sidebar-icon)" :strokeWidth="3" />
           </div>
-        </button> -->
-        <!-- 草稿纸按钮 -->
+        </button>
         <button
           v-tooltip.top="{
             content: '随机回顾',
@@ -128,26 +127,6 @@
         >
           <div class="icon">
             <Search theme="outline" size="16" fill="var(--color-sidebar-icon)" :strokeWidth="3" />
-          </div>
-        </button>
-
-        <!-- 主题切换按钮 -->
-        <button
-          v-tooltip.top="{
-            content: isDarkMode ? '切换亮色主题' : '切换暗色主题',
-            delay: { show: 1000 }
-          }"
-          class="action-btn"
-          @click="themeStore.toggleThemeMode()"
-        >
-          <div class="icon">
-            <component
-              :is="isDarkMode ? SunOne : Moon"
-              theme="outline"
-              size="16"
-              fill="var(--color-sidebar-icon)"
-              :strokeWidth="3"
-            />
           </div>
         </button>
 
@@ -287,6 +266,27 @@
           <Theme theme="outline" size="20" :strokeWidth="2" fill="var(--color-sidebar-text)" />
         </div>
       </div>
+
+      <!-- 添加主题切换按钮 -->
+      <div
+        v-tooltip.top="{
+          content: isDarkMode ? '切换亮色主题' : '切换暗色主题',
+          delay: { show: 1000 }
+        }"
+        class="theme-toggle"
+        @click="themeStore.toggleThemeMode()"
+      >
+        <div class="icon">
+          <component
+            :is="isDarkMode ? SunOne : Moon"
+            theme="outline"
+            size="20"
+            fill="var(--color-sidebar-text)"
+            :strokeWidth="2"
+          />
+        </div>
+      </div>
+
       <div
         v-tooltip.top="{ content: '帮助中心', delay: { show: 1000 } }"
         class="help"
@@ -382,8 +382,7 @@ const menuItems = computed(() => {
     ...(appearanceStore.settings?.enableWhiteboard
       ? [{ name: '思维板', path: '/whiteboard', icon: Workbench }]
       : []),
-    { name: '手绘板', path: '/ed-whiteboard', icon: HandPaintedPlate },
-    { name: 'AI 助手', path: '/ai-assistant', icon: Robot }
+    { name: '手绘板', path: '/ed-whiteboard', icon: HandPaintedPlate }
   ]
   return baseItems
 })

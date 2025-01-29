@@ -135,7 +135,7 @@ export const useThemeStore = defineStore('theme', () => {
     const PICKER_HEIGHT = 500
     const PICKER_WIDTH = 300
     const OFFSET_Y = 155 // 向上偏移量
-    const OFFSET_X = 85 // 向右偏移量
+    const OFFSET_X = 115 // 向右偏移量
 
     // 计算合适的位置，确保不会超出窗口
     let x = position.x + OFFSET_X
