@@ -126,7 +126,7 @@ onMounted(() => {
 const loadMonthlyLog = async () => {
   try {
     const log = await store.getMonthlyLog(selectedYear.value, selectedMonth.value)
-    console.log('Component: 获取到的月度日志:', log)
+    // console.log('Component: 获取到的月度日志:', log)
     if (log) {
       content.value = log.content || ''
     } else {

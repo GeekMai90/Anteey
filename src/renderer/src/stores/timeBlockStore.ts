@@ -64,14 +64,14 @@ export const useTimeBlockStore = defineStore('timeBlock', {
       try {
         // 先检查缓存
         if (this.cache.has(date)) {
-          console.log('Store: 从缓存加载数据:', date)
+          // console.log('Store: 从缓存加载数据:', date)
           this.currentDay = JSON.parse(JSON.stringify(this.cache.get(date)!))
           return
         }
 
-        console.log('Store: 开始加载日期数据:', date)
+        // console.log('Store: 开始加载日期数据:', date)
         const day = await window.electronAPI.timeBlock.getTimeBlockDay(date)
-        console.log('Store: 获取到的数据:', day)
+        // console.log('Store: 获取到的数据:', day)
 
         const dayData = day || {
           id: '',
@@ -314,7 +314,7 @@ export const useTimeBlockStore = defineStore('timeBlock', {
     async getMonthlyLog(year: number, month: number) {
       try {
         const log = await window.electronAPI.timeBlock.getMonthlyLog(year, month)
-        console.log('Store: 获取到的月度日志:', log)
+        // console.log('Store: 获取到的月度日志:', log)
         this.currentMonthlyLog = log
         return log
       } catch (error) {

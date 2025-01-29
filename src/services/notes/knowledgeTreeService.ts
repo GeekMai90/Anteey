@@ -13,13 +13,13 @@ interface NoteMetadata {
 }
 // 工具函数：将笔记数据转换为树节点
 function convertToTreeNode(note: Note, level: number): KnowledgeTreeNode {
-  console.log('转换节点的原始数据:', note)
+  // console.log('转换节点的原始数据:', note)
 
   // 解析 metadata JSON 字符串
   let metadata: NoteMetadata | null = null
   try {
     metadata = note.metadata ? JSON.parse(note.metadata as string) : null
-    console.log('解析后的 metadata:', metadata)
+    // console.log('解析后的 metadata:', metadata)
   } catch (error) {
     console.error('解析 metadata 失败:', error)
   }
@@ -96,7 +96,7 @@ export async function getTopLevelNodes(): Promise<KnowledgeTreeNode[]> {
       .where('cardType', 'Maincard')
       .orderBy('address', 'asc')
 
-    console.log('获取到的顶层笔记数据:', notes)
+    // console.log('获取到的顶层笔记数据:', notes)
 
     const nodes = await Promise.all(
       notes.map(async (note) => {
@@ -105,12 +105,12 @@ export async function getTopLevelNodes(): Promise<KnowledgeTreeNode[]> {
           ...convertToTreeNode(note, 0),
           childCount
         }
-        console.log('转换后的节点数据:', node)
+        // console.log('转换后的节点数据:', node)
         return node
       })
     )
 
-    console.log('最终返回的节点数组:', nodes)
+    // console.log('最终返回的节点数组:', nodes)
     return nodes
   } catch (error) {
     console.error('获取顶层节点失败:', error)

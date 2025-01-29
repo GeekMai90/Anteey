@@ -78,7 +78,7 @@ export async function getWhiteboardViewState(whiteboardId: string): Promise<{
 }> {
   try {
     const whiteboard = await db('whiteboards').where({ id: whiteboardId }).select('*').first()
-    console.log('后端→ 获取白板的视图状态成功', whiteboard)
+    // console.log('后端→ 获取白板的视图状态成功', whiteboard)
     return {
       scale: whiteboard.scale as number,
       translateX: whiteboard.translateX as number,
@@ -472,7 +472,7 @@ export async function getCardCount(whiteboardId: string): Promise<number> {
   try {
     const items = await db('whiteboard_notes').where({ whiteboardId }).select('*')
     const cardCount = items.length
-    console.log('后端→ 获取白板中的卡片数量成功', cardCount)
+    // console.log('后端→ 获取白板中的卡片数量成功', cardCount)
     return cardCount
   } catch (error) {
     console.error('后端→ 获取白板中的卡片数量失败:', error)

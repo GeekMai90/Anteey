@@ -261,11 +261,11 @@ const weeklyData = computed<DayData[]>(() => {
       .split('T')[0]
 
     // 调试日期匹配
-    console.log('Looking for date:', dateStr)
-    console.log(
-      'Available dates:',
-      props.weeklyStats.map((s) => s.date)
-    )
+    // console.log('Looking for date:', dateStr)
+    // console.log(
+    //   'Available dates:',
+    //   props.weeklyStats.map((s) => s.date)
+    // )
 
     // 查找这一天的数据
     const dayData = props.weeklyStats.find((stat) => {

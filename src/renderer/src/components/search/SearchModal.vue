@@ -458,7 +458,7 @@ const scrollToSelectedItem = () => {
 watch(
   () => uiStore.isSearchModalOpen,
   (newValue) => {
-    console.log('isSearchModalOpen changed:', newValue)
+    // console.log('isSearchModalOpen changed:', newValue)
     if (newValue) {
       resetSearchState() // 重置所有状态
       nextTick(() => {

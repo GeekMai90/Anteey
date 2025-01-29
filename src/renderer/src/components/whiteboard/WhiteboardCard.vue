@@ -55,7 +55,7 @@ import router from '@renderer/router'
 import PopupMenu from '@renderer/components/common/PopupMenu.vue'
 import { useNoteMenu } from '@renderer/composables/useNoteMenu'
 import type { MenuItem } from '@renderer/components/common/PopupMenu.vue'
-import ConfirmModal from '@renderer/components/ConfirmModal.vue'
+import ConfirmModal from '@renderer/components/common/ConfirmModal.vue'
 import { useMenu } from '@renderer/composables/useMenu'
 
 const props = defineProps<{

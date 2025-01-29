@@ -40,7 +40,7 @@ export const useWhiteboardStore = defineStore('whiteboard', {
 
     async initializeWhiteboardData(whiteboardId: string) {
       try {
-        console.log('whiteboardStore→ 开始初始化白板数据')
+        // console.log('whiteboardStore→ 开始初始化白板数据')
 
         // 获取白板笔记
         const notes = await window.electronAPI.whiteboard.getWhiteboardNotes(whiteboardId)
@@ -51,10 +51,10 @@ export const useWhiteboardStore = defineStore('whiteboard', {
           await window.electronAPI.whiteboard.getConnectionsByWhiteboardId(whiteboardId)
         this.connections = connections
 
-        console.log('whiteboardStore→ 初始化白板数据成功', {
-          notes: this.whiteboardNotes,
-          connections: this.connections
-        })
+        // console.log('whiteboardStore→ 初始化白板数据成功', {
+        //   notes: this.whiteboardNotes,
+        //   connections: this.connections
+        // })
       } catch (error) {
         console.error('whiteboardStore→ 初始化白板数据失败', error)
         throw error
@@ -147,12 +147,12 @@ export const useWhiteboardStore = defineStore('whiteboard', {
       translateX: number,
       translateY: number
     ) {
-      console.log('whiteboardStore→ 开始保存视图状态到白板', {
-        whiteboardId,
-        scale,
-        translateX,
-        translateY
-      })
+      // console.log('whiteboardStore→ 开始保存视图状态到白板', {
+      //   whiteboardId,
+      //   scale,
+      //   translateX,
+      //   translateY
+      // })
       const result = await window.electronAPI.whiteboard.saveViewStateToWhiteboard(
         whiteboardId,
         scale,

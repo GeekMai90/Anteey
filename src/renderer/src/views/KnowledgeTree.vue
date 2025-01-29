@@ -210,7 +210,7 @@ const initJsMind = async () => {
 
       // 添加事件监听器
       const jmnodes = container.value.querySelectorAll('jmnode')
-      console.log('找到的节点数量:', jmnodes.length)
+      // console.log('找到的节点数量:', jmnodes.length)
 
       jmnodes.forEach((node) => {
         // 添加单击事件
@@ -220,7 +220,7 @@ const initJsMind = async () => {
           }
         }) as EventListener)
         node.addEventListener('dblclick', ((e: Event) => {
-          console.log('节点被双击:', e.target)
+          // console.log('节点被双击:', e.target)
           if (e instanceof MouseEvent) {
             handleNodeDblClick(e)
           }
@@ -368,9 +368,9 @@ watch(
   () => knowledgeTreeStore.nodes,
   () => {
     if (jm.value) {
-      console.log('节点数据更新:', knowledgeTreeStore.nodes)
+      // console.log('节点数据更新:', knowledgeTreeStore.nodes)
       const jsMindData = transformToJsMindData(knowledgeTreeStore.nodes)
-      console.log('转换后的 jsMind 数据:', jsMindData)
+      // console.log('转换后的 jsMind 数据:', jsMindData)
 
       // 直接显示新数据，jsMind 会自动清除旧数据
       jm.value.show(jsMindData)

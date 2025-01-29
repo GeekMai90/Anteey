@@ -87,7 +87,7 @@ const formatHour = (hour: number) => {
 // 获取时间块内容
 const getBlockContent = (hour: number) => {
   const content = props.blocks[hour]?.content ?? ''
-  console.log(`BlockViewer: Getting content for hour ${hour} on date ${props.date}:`, content)
+  // console.log(`BlockViewer: Getting content for hour ${hour} on date ${props.date}:`, content)
   return content
 }
 

@@ -696,7 +696,7 @@ const getBlockContent = (hour: number) => {
     return ''
   }
   const content = timeBlockStore.currentDay.blocks[hour]?.content ?? ''
-  console.log(`Getting content for hour ${hour}:`, content)
+  // console.log(`Getting content for hour ${hour}:`, content)
   return content
 }
 

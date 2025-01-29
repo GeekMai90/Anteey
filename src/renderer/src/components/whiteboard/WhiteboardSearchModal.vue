@@ -343,7 +343,7 @@ const scrollToSelectedItem = () => {
 watch(
   () => noteStore.isSearchModalOpen,
   (newValue) => {
-    console.log('isSearchModalOpen changed:', newValue)
+    // console.log('isSearchModalOpen changed:', newValue)
     if (newValue) {
       searchQuery.value = ''
       searchResults.value = []

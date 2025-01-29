@@ -1,6 +1,6 @@
 import { db } from '../../db/config'
 import log from 'electron-log'
-import { SimilarityService } from '@services/rag/calculateSimilarity'
+import { SimilarityService } from './calculateSimilarity'
 import { initEmbeddings } from '@services/rag/embeddingService'
 
 // 计算余弦相似度的 SQL 辅助函数

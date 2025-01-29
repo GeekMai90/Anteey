@@ -358,7 +358,7 @@ const dataLoaded = ref(false)
 watch(
   () => whiteboardStore.whiteboardNotes,
   (newNotes) => {
-    console.log('更新后的白板笔记:', newNotes)
+    // console.log('更新后的白板笔记:', newNotes)
     whiteboardNotes.value = newNotes
   },
   { deep: true }
@@ -406,7 +406,7 @@ const initializeData = async (whiteboardId: string) => {
 // 组件挂载时获取白板内容
 onMounted(async () => {
   const id = route.params.whiteboardId
-  console.log('WhiteboardDetail 组件挂载时取白板内容', id)
+  // console.log('WhiteboardDetail 组件挂载时取白板内容', id)
   if (id && typeof id === 'string') {
     whiteboardId.value = id
     await initializeData(whiteboardId.value)

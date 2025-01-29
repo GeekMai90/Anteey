@@ -147,7 +147,7 @@ export async function getLocalTreeNotes(noteId: string): Promise<LocalTreeResult
 
       // 必须是相同层级
       if (noteLevel !== level) {
-        console.log('层级不匹配，跳过:', note.address)
+        // console.log('层级不匹配，跳过:', note.address)
         return false
       }
 
@@ -185,14 +185,14 @@ export async function getLocalTreeNotes(noteId: string): Promise<LocalTreeResult
       const aMatch = aLast.match(/^(\d+)([a-z]*)$/)
       const bMatch = bLast.match(/^(\d+)([a-z]*)$/)
 
-      console.log('排序比较:', {
-        aAddress: a.address,
-        bAddress: b.address,
-        aLast,
-        bLast,
-        aMatch,
-        bMatch
-      })
+      // console.log('排序比较:', {
+      //   aAddress: a.address,
+      //   bAddress: b.address,
+      //   aLast,
+      //   bLast,
+      //   aMatch,
+      //   bMatch
+      // })
 
       if (!aMatch || !bMatch) return 0
 

@@ -36,9 +36,9 @@ export const useReviewStore = defineStore('review', () => {
         const today = new Date().toDateString()
 
         // 打印调试信息
-        console.log('存储的日期:', storedDate)
-        console.log('今天的日期:', today)
-        console.log('日期是否相同:', storedDate === today)
+        // console.log('存储的日期:', storedDate)
+        // console.log('今天的日期:', today)
+        // console.log('日期是否相同:', storedDate === today)
 
         if (storedDate === today && Array.isArray(data.notes) && data.notes.length > 0) {
           notes.value = data.notes
@@ -64,7 +64,7 @@ export const useReviewStore = defineStore('review', () => {
         lastRefreshDate: today
       }
       localStorage.setItem('review-state', JSON.stringify(data))
-      console.log('保存数据到本地:', data)
+      // console.log('保存数据到本地:', data)
     } catch (err) {
       console.error('保存回顾状态失败:', err)
     }
@@ -83,7 +83,7 @@ export const useReviewStore = defineStore('review', () => {
     try {
       // 先尝试从本地存储加载
       if (loadFromStorage()) {
-        console.log('从本地存储加载数据成功')
+        // console.log('从本地存储加载数据成功')
         return
       }
 
@@ -97,7 +97,7 @@ export const useReviewStore = defineStore('review', () => {
 
       // 保存到本地存储
       saveToStorage()
-      console.log('从服务器获取新数据并保存到本地')
+      // console.log('从服务器获取新数据并保存到本地')
 
       return response
     } catch (err) {

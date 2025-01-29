@@ -134,7 +134,7 @@ export function setupNotesHandlers() {
   // 创建笔记
   ipcMain.handle('create-note', async () => {
     try {
-      console.log('主进程→ 创建笔记')
+      // console.log('主进程→ 创建笔记')
       const newNote = await createNote()
       return newNote
     } catch (error) {

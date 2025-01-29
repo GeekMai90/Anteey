@@ -75,7 +75,7 @@ export async function initEmbeddings() {
           fallbackOnError: true
         })
 
-      log.info('向量模型初始化成功')
+      // log.info('向量模型初始化成功')
     } catch (error) {
       log.error('向量模型初始化失败:', error)
       // 返回一个降级的向量化函数
@@ -301,13 +301,13 @@ export async function generateEmbeddingsBatch(noteIds: string[]): Promise<void> 
  */
 export async function updateNoteEmbedding(noteId: string, content: any): Promise<void> {
   try {
-    log.info('开始异步更新笔记向量和关键词:', { noteId })
+    // log.info('开始异步更新笔记向量和关键词:', { noteId })
 
     const embedder = await initEmbeddings()
     const textContent = extractTextContent(content)
 
     if (!textContent) {
-      log.warn('笔记内容为空，跳过处理:', noteId)
+      // log.warn('笔记内容为空，跳过处理:', noteId)
       return
     }
 

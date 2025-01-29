@@ -5,9 +5,9 @@ import type { FutureLog, MonthlyLog, TimeBlockDay } from '@shared/types'
 // 获取某天的时间块数据
 export async function getTimeBlockDay(date: string): Promise<TimeBlockDay> {
   try {
-    console.log('Service: 开始查询日期:', date)
+    // console.log('Service: 开始查询日期:', date)
     let day = await db('time_block_days').where('date', date).first()
-    console.log('Service: 查询到的日期数据:', day)
+    // console.log('Service: 查询到的日期数据:', day)
 
     if (!day) {
       // 创建新的一天
@@ -28,7 +28,7 @@ export async function getTimeBlockDay(date: string): Promise<TimeBlockDay> {
       .where('dayId', day.id)
       .select('id', 'hour', 'content', 'createdAt', 'updatedAt')
       .orderBy('hour', 'asc')
-    console.log('Service: 查询到的时间块:', blocks)
+    // console.log('Service: 查询到的时间块:', blocks)
 
     // 构建结果对象
     const result = {
@@ -46,7 +46,7 @@ export async function getTimeBlockDay(date: string): Promise<TimeBlockDay> {
         {} as TimeBlockDay['blocks']
       )
     }
-    console.log('Service: 返回的完整数据:', result)
+    // console.log('Service: 返回的完整数据:', result)
     return result
   } catch (error) {
     console.error('获取时间块数据失败:', error)
@@ -161,7 +161,7 @@ export async function getFutureLog(): Promise<FutureLog | null> {
 export async function updateFutureLog(content: string): Promise<string> {
   try {
     const now = new Date()
-    console.log('Service: 准备更新未来日志，内容:', content)
+    // console.log('Service: 准备更新未来日志，内容:', content)
 
     // 获取现有日志（如果存在）
     const existingLog = await db('future_logs').orderBy('createdAt', 'asc').first()
@@ -170,7 +170,7 @@ export async function updateFutureLog(content: string): Promise<string> {
     let id: string
     if (existingLog) {
       // 更新现有记录
-      console.log('Service: 更新现有日志, id:', existingLog.id)
+      // console.log('Service: 更新现有日志, id:', existingLog.id)
       await db('future_logs').where('id', existingLog.id).update({
         content,
         updatedAt: now
@@ -178,7 +178,7 @@ export async function updateFutureLog(content: string): Promise<string> {
       id = existingLog.id
     } else {
       // 创建新记录
-      console.log('Service: 创建新日志')
+      // console.log('Service: 创建新日志')
       id = uuidv4()
       await db('future_logs').insert({
         id,
@@ -211,9 +211,9 @@ export async function updateFutureLog(content: string): Promise<string> {
 // 获取月度日志内容
 export async function getMonthlyLog(year: number, month: number): Promise<MonthlyLog | null> {
   try {
-    console.log('Service: 开始查询月度日志:', year, month)
+    // console.log('Service: 开始查询月度日志:', year, month)
     const log = await db('monthly_logs').where({ year, month }).first()
-    console.log('Service: 获取到的月度日志:', log)
+    // console.log('Service: 获取到的月度日志:', log)
     return log || null
   } catch (error) {
     console.error('获取月度日志失败:', error)
@@ -229,7 +229,7 @@ export async function updateMonthlyLog(
 ): Promise<string> {
   try {
     const now = new Date()
-    console.log('Service: 准备更新月度日志，年月:', year, month)
+    // console.log('Service: 准备更新月度日志，年月:', year, month)
 
     // 获取现有日志（如果存在）
     const existingLog = await db('monthly_logs').where({ year, month }).first()

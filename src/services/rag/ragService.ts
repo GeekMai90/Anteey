@@ -19,7 +19,7 @@ import {
 } from '@shared/types'
 import { v4 as uuidv4 } from 'uuid'
 import { LLMService } from './llmService'
-import { SimilarityService } from './calculateSimilarity'
+import { SimilarityService } from '@services/similar/calculateSimilarity'
 import { Note } from '@shared/types'
 import { getKeywordExtractor } from './keywordExtractor'
 import { LLMConfigService } from './llmConfigService'

@@ -38,7 +38,7 @@ export const useFlashcardStore = defineStore(
     const fetchFlashcardStats = async () => {
       try {
         stats.value = await window.electronAPI.flashcard.getFlashcardStats()
-        console.log('Store 从服务获取的原始统计数据:', stats.value)
+        // console.log('Store 从服务获取的原始统计数据:', stats.value)
         return stats.value
       } catch (error) {
         console.error('获取闪卡统计信息失败:', error)
@@ -149,7 +149,7 @@ export const useFlashcardStore = defineStore(
     const fetchSettings = async () => {
       try {
         const newSettings = await window.electronAPI.flashcard.getSettings()
-        console.log('获取到的设置:', newSettings)
+        // console.log('获取到的设置:', newSettings)
         settings.value = newSettings
         return settings.value
       } catch (error) {

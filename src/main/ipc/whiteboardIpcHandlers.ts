@@ -83,9 +83,9 @@ export function setupWhiteboardHandlers() {
   // 删除白板笔记
   ipcMain.handle('delete-whiteboard-note', async (_, id: string) => {
     try {
-      console.log('主进程 → 删除白板笔记:', id)
+      // console.log('主进程 → 删除白板笔记:', id)
       await deleteWhiteboardNote(id)
-      console.log('主进程 → 删除白板笔记成功:', id)
+      // console.log('主进程 → 删除白板笔记成功:', id)
       return { success: true }
     } catch (error) {
       console.error('主进程 → 删除白板笔记时出错:', error)
@@ -156,9 +156,9 @@ export function setupWhiteboardHandlers() {
   //获取白板视图状态
   ipcMain.handle('get-whiteboard-view-state', async (_, { whiteboardId }) => {
     try {
-      console.log('主进程 → 获取白板视图状态:', whiteboardId)
+      // console.log('主进程 → 获取白板视图状态:', whiteboardId)
       const viewState = await getWhiteboardViewState(whiteboardId)
-      console.log('主进程 → 获取白板视图状态成功:', viewState)
+      // console.log('主进程 → 获取白板视图状态成功:', viewState)
       return viewState
     } catch (error) {
       console.error('主进程 → 获取白板视图状态时出错:', error)
@@ -170,9 +170,9 @@ export function setupWhiteboardHandlers() {
     'save-view-state-to-whiteboard',
     async (_, { whiteboardId, scale, translateX, translateY }) => {
       try {
-        console.log('主进程 → 保存视图状态到白板:', { whiteboardId, scale, translateX, translateY })
+        // console.log('主进程 → 保存视图状态到白板:', { whiteboardId, scale, translateX, translateY })
         const result = await saveViewStateToWhiteboard(whiteboardId, scale, translateX, translateY)
-        console.log('主进程 → 保存视图状态到白板成功:', result)
+        // console.log('主进程 → 保存视图状态到白板成功:', result)
         return result
       } catch (error) {
         console.error('主进程 → 保存视图状态到白板时出错:', error)
@@ -183,9 +183,9 @@ export function setupWhiteboardHandlers() {
   // 获取根白板的视图状态
   ipcMain.handle('get-root-whiteboard-view-state', async () => {
     try {
-      console.log('主进程 → 获取根白板的视图状态')
+      // console.log('主进程 → 获取根白板的视图状态')
       const viewState = await getRootWhiteboardViewState()
-      console.log('主进程 → 获取根白板的视图状态成功:', viewState)
+      // console.log('主进程 → 获取根白板的视图状态成功:', viewState)
       return viewState
     } catch (error) {
       console.error('主进程 → 获取根白板的视图状态时出错:', error)
@@ -198,9 +198,9 @@ export function setupWhiteboardHandlers() {
     'save-view-state-to-root-whiteboard',
     async (_, { scale, translateX, translateY }) => {
       try {
-        console.log('主进程 → 保存视图状态到根白板:', { scale, translateX, translateY })
+        // console.log('主进程 → 保存视图状态到根白板:', { scale, translateX, translateY })
         const result = await saveViewStateToRootWhiteboard(scale, translateX, translateY)
-        console.log('主进程 → 保存视图状态到根白板成功:', result)
+        // console.log('主进程 → 保存视图状态到根白板成功:', result)
         return result
       } catch (error) {
         console.error('主进程 → 保存视图状态到根白板时出错:', error)
@@ -211,9 +211,9 @@ export function setupWhiteboardHandlers() {
   // 获取根白板
   ipcMain.handle('get-root-whiteboard', async () => {
     try {
-      console.log('主进程 → 获取根白板')
+      // console.log('主进程 → 获取根白板')
       const rootWhiteboard = await getRootWhiteboard()
-      console.log('主进程 → 获取根白板成功:', rootWhiteboard)
+      // console.log('主进程 → 获取根白板成功:', rootWhiteboard)
       return rootWhiteboard
     } catch (error) {
       console.error('主进程 → 获取根白板时出错:', error)
@@ -223,9 +223,9 @@ export function setupWhiteboardHandlers() {
   // 创建根白板
   ipcMain.handle('create-root-whiteboard', async () => {
     try {
-      console.log('主进程 → 创建根白板')
+      // console.log('主进程 → 创建根白板')
       const newRootWhiteboard = await createRootWhiteboard()
-      console.log('主进程 → 创建根白板成功:', newRootWhiteboard)
+      // console.log('主进程 → 创建根白板成功:', newRootWhiteboard)
       return newRootWhiteboard
     } catch (error) {
       console.error('主进程 → 创建根白板时出错:', error)
@@ -235,9 +235,9 @@ export function setupWhiteboardHandlers() {
   // 创建白板笔记
   ipcMain.handle('create-whiteboard-note', async (_, input: CreateWhiteboardNoteInput) => {
     try {
-      console.log('主进程 → 创建白板笔记:', input)
+      // console.log('主进程 → 创建白板笔记:', input)
       const newWhiteboardNote = await createWhiteboardNote(input)
-      console.log('主进程 → 创建白板笔记成功:', newWhiteboardNote)
+      // console.log('主进程 → 创建白板笔记成功:', newWhiteboardNote)
       return newWhiteboardNote
     } catch (error) {
       console.error('主进程 → 创建白板笔记时出错:', error)
@@ -247,9 +247,9 @@ export function setupWhiteboardHandlers() {
   // 更新白板位置
   ipcMain.handle('update-whiteboard-position', async (_, { id, x, y }) => {
     try {
-      console.log('主进程 → 更新白板位置:', { id, x, y })
+      // console.log('主进程 → 更新白板位置:', { id, x, y })
       const updatedWhiteboard = await updateWhiteboardPosition(id, x, y)
-      console.log('主进程 → 更新白板位置成功:', updatedWhiteboard)
+      // console.log('主进程 → 更新白板位置成功:', updatedWhiteboard)
       return updatedWhiteboard
     } catch (error) {
       console.error('主进程 → 更新白板位置时出错:', error)
@@ -259,9 +259,9 @@ export function setupWhiteboardHandlers() {
   // 获取所有顶层白板
   ipcMain.handle('get-top-level-whiteboards', async () => {
     try {
-      console.log('主进程 → 获取顶层白板')
+      // console.log('主进程 → 获取顶层白板')
       const whiteboards = await getTopLevelWhiteboards()
-      console.log('主进程 → 获取顶层白板成功:', whiteboards)
+      // console.log('主进程 → 获取顶层白板成功:', whiteboards)
       return whiteboards
     } catch (error) {
       console.error('主进程 → 获取顶层白板时出错:', error)
@@ -271,9 +271,9 @@ export function setupWhiteboardHandlers() {
   // 创建白板
   ipcMain.handle('create-whiteboard', async (_, input: CreateWhiteboardInput) => {
     try {
-      console.log('主进程 → 创建白板:', input)
+      // console.log('主进程 → 创建白板:', input)
       const newWhiteboard = await createWhiteboard(input)
-      console.log('主进程 → 创建白板成功:', newWhiteboard)
+      // console.log('主进程 → 创建白板成功:', newWhiteboard)
       return newWhiteboard
     } catch (error) {
       console.error('主进程 → 创建白板时出错:', error)

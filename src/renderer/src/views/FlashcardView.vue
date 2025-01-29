@@ -322,10 +322,10 @@ const initializeData = async () => {
   try {
     // 获取统计数据
     stats.value = await flashcardStore.fetchFlashcardStats()
-    console.log('从 store 获取的统计数据:', {
-      weeklyStats: stats.value?.weeklyStats,
-      todayStats: stats.value?.todayStats
-    })
+    // console.log('从 store 获取的统计数据:', {
+    //   weeklyStats: stats.value?.weeklyStats,
+    //   todayStats: stats.value?.todayStats
+    // })
     // 获取设置
     await flashcardStore.fetchSettings()
 

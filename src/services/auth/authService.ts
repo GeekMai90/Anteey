@@ -150,7 +150,7 @@ export async function checkNetworkStatus(): Promise<boolean> {
   }
 
   try {
-    console.log('authService→ 开始检查网络状态')
+    // console.log('authService→ 开始检查网络状态')
     const start = Date.now()
     await request.get('/auth/status', { timeout: 3000 })
     const duration = Date.now() - start
@@ -344,15 +344,15 @@ export async function logout(): Promise<void> {
 export async function getCurrentAuthState(): Promise<AuthState | null> {
   try {
     const record = await db('auth_state').first()
-    console.log('authService→ 从数据库获取的认证记录:', record)
+    // console.log('authService→ 从数据库获取的认证记录:', record)
 
     if (record) {
       const state = convertToAuthState(record)
-      console.log('authService→ 转换后的认证状态:', {
-        hasUser: !!state.user,
-        licenseType: state.user?.licenseType,
-        expiresAt: state.expiresAt
-      })
+      // console.log('authService→ 转换后的认证状态:', {
+      //   hasUser: !!state.user,
+      //   licenseType: state.user?.licenseType,
+      //   expiresAt: state.expiresAt
+      // })
       return state
     }
     return null
@@ -440,13 +440,13 @@ async function checkNetworkAndVerify(state: AuthState): Promise<boolean> {
 export async function verifyAuthState(): Promise<boolean> {
   try {
     const state = await getCurrentAuthState()
-    console.log('authService→ 当前认证状态:', {
-      hasState: !!state,
-      hasUser: !!state?.user,
-      licenseType: state?.user?.licenseType,
-      lastVerified: state?.lastVerified,
-      expiresAt: state?.expiresAt
-    })
+    // console.log('authService→ 当前认证状态:', {
+    //   hasState: !!state,
+    //   hasUser: !!state?.user,
+    //   licenseType: state?.user?.licenseType,
+    //   lastVerified: state?.lastVerified,
+    //   expiresAt: state?.expiresAt
+    // })
 
     if (!state || !state.user) return false
 
@@ -468,11 +468,11 @@ export async function verifyAuthState(): Promise<boolean> {
     // 如果在30天内验证过，且是永久授权，直接返回 true
     const isRecentlyVerified = now.getTime() - lastVerified.getTime() < 30 * 24 * 60 * 60 * 1000
     if (isRecentlyVerified && state.user.licenseType === 'desktop_permanent') {
-      console.log('authService→ 最近已验证过，且是永久授权:', {
-        lastVerified,
-        timeSinceLastVerification: now.getTime() - lastVerified.getTime(),
-        licenseType: state.user.licenseType
-      })
+      // console.log('authService→ 最近已验证过，且是永久授权:', {
+      //   lastVerified,
+      //   timeSinceLastVerification: now.getTime() - lastVerified.getTime(),
+      //   licenseType: state.user.licenseType
+      // })
       return true
     }
 

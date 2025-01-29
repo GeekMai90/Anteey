@@ -526,10 +526,10 @@ app.whenReady().then(async () => {
         )
 
         // 添加更多日志用于调试
-        console.log('Request URL:', request.url)
-        console.log('Image Path:', imagePath)
-        console.log('Full Path:', fullPath)
-        console.log('File exists:', fs.existsSync(fullPath))
+        // console.log('Request URL:', request.url)
+        // console.log('Image Path:', imagePath)
+        // console.log('Full Path:', fullPath)
+        // console.log('File exists:', fs.existsSync(fullPath))
 
         // 检查文件是否存在
         if (!fs.existsSync(fullPath)) {

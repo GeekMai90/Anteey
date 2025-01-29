@@ -5,16 +5,24 @@ import { LLM_MODELS, LLMProvider } from './llm.config'
 import type { LLMConfig } from '@shared/types'
 
 export class LLMService {
+  // LLM配置服务实例
   private configService: LLMConfigService
 
   constructor() {
     this.configService = new LLMConfigService()
   }
 
+  /**
+   * 生成LLM响应
+   * @param prompt - 用户输入的提示文本
+   * @param deepseekConfig - DeepSeek模型的可选配置参数
+   * @returns 返回LLM生成的响应文本
+   */
   async generateResponse(
     prompt: string,
     deepseekConfig?: { temperature?: number; maxTokens?: number }
   ): Promise<string> {
+    // 记录请求开始时间
     const startTime = Date.now()
     let config: LLMConfig | null = null
     let requestStartTime: number
@@ -22,28 +30,29 @@ export class LLMService {
     let response: any
 
     try {
-      // 先获取配置
+      // 获取默认LLM配置
       config = await this.configService.getDefaultConfig()
       if (!config) {
         throw new Error('未配置默认的 LLM 模型，请在设置中配置')
       }
 
-      // 记录请求开始 - 移到获取配置之后
+      // 记录请求开始的详细信息
       log.info('LLM请求开始:', {
         timestamp: new Date().toISOString(),
         promptLength: prompt.length,
-        model: config.model // 现在可以安全访问 model
+        model: config.model
       })
 
-      // 获取模型配置
+      // 获取并验证模型配置
       const modelConfig = LLM_MODELS[config.model]
       if (!modelConfig) {
         throw new Error(`不支持的模型类型: ${config.model}`)
       }
 
-      // 根据不同提供商处理请求
+      // 根据不同的AI提供商发送对应的API请求
       switch (modelConfig.provider) {
         case 'zhipu':
+          // 智谱AI的请求处理
           response = await axios.post(
             modelConfig.baseURL,
             {
@@ -63,6 +72,7 @@ export class LLMService {
           break
 
         case 'moonshot':
+          // Moonshot AI的请求处理
           response = await axios.post(
             modelConfig.baseURL,
             {
@@ -87,6 +97,7 @@ export class LLMService {
           break
 
         case 'deepseek':
+          // DeepSeek的请求处理
           requestStartTime = Date.now()
           response = await axios.post(
             modelConfig.baseURL,
@@ -108,6 +119,7 @@ export class LLMService {
             }
           )
 
+          // 记录DeepSeek API的详细响应信息
           requestDuration = Date.now() - requestStartTime
           log.info('DeepSeek API响应:', {
             model: config.model,
@@ -119,6 +131,7 @@ export class LLMService {
             responseLength: response.data?.choices?.[0]?.message?.content?.length
           })
 
+          // 验证DeepSeek响应格式
           if (!response.data?.choices?.[0]?.message?.content) {
             log.error('DeepSeek API 响应异常:', {
               model: config.model,
@@ -134,7 +147,7 @@ export class LLMService {
           throw new Error(`不支持的模型提供商: ${modelConfig.provider}`)
       }
 
-      // 根据不同提供商处理响应
+      // 统一处理不同提供商的响应格式
       let content: string
       switch (modelConfig.provider) {
         case 'zhipu':
@@ -147,7 +160,7 @@ export class LLMService {
           throw new Error(`不支持的模型提供商: ${modelConfig.provider}`)
       }
 
-      // 记录总耗时
+      // 记录请求完成的统计信息
       const totalDuration = Date.now() - startTime
       log.info('LLM请求完成:', {
         model: config.model,
@@ -157,8 +170,10 @@ export class LLMService {
 
       return content
     } catch (error) {
+      // 错误处理和日志记录
       const duration = Date.now() - startTime
       if (axios.isAxiosError(error)) {
+        // 处理Axios特定的错误
         log.error('LLM API 调用失败:', {
           model: config?.model,
           duration: `${duration}ms`,
@@ -167,6 +182,7 @@ export class LLMService {
           message: error.response?.data?.error?.message || error.message
         })
       } else {
+        // 处理其他类型的错误
         log.error('LLM 调用失败:', {
           model: config?.model,
           duration: `${duration}ms`,
@@ -177,25 +193,34 @@ export class LLMService {
     }
   }
 
-  // 添加 DeepSeek 的请求头处理
+  /**
+   * 根据不同的AI提供商生成对应的请求头
+   * @param provider - AI提供商类型
+   * @param apiKey - API密钥
+   * @returns 返回包含认证信息的请求头对象
+   */
   private getHeaders(provider: LLMProvider, apiKey: string): Record<string, string> {
     switch (provider) {
       case 'zhipu':
+        // 智谱AI的认证头
         return {
           'Content-Type': 'application/json',
           Authorization: apiKey
         }
       case 'moonshot':
+        // Moonshot AI的认证头
         return {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${apiKey}`
         }
       case 'deepseek':
+        // DeepSeek的认证头
         return {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${apiKey}`
         }
       default:
+        // 默认请求头
         return {
           'Content-Type': 'application/json'
         }

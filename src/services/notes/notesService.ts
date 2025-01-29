@@ -406,10 +406,10 @@ async function canCreateNote(): Promise<{ allowed: boolean; message?: string }> 
   try {
     // 获取当前认证状态
     const authState = await getCurrentAuthState()
-    console.log('notesService→ 检查创建权限:', {
-      hasAuth: !!authState,
-      licenseType: authState?.user?.licenseType
-    })
+    // console.log('notesService→ 检查创建权限:', {
+    //   hasAuth: !!authState,
+    //   licenseType: authState?.user?.licenseType
+    // })
 
     // 如果是永久授权用户，直接允许
     if (authState?.user?.licenseType === 'desktop_permanent') {
@@ -644,7 +644,7 @@ export async function updateNoteContent(id: string, content: object): Promise<No
 
           // 执行更新并返回更新后的笔记
           const [note] = await trx('notes').where('id', id).update(updateData).returning('*')
-          console.log(`后端→ 笔记 ${id} 内容已更新`)
+          // console.log(`后端→ 笔记 ${id} 内容已更新`)
           return convertToNote(note)
         },
         {
@@ -656,7 +656,7 @@ export async function updateNoteContent(id: string, content: object): Promise<No
       setTimeout(async () => {
         try {
           await updateNoteEmbedding(id, content)
-          console.log(`后端→ 笔记 ${id} 向量异步更新完成`)
+          // console.log(`后端→ 笔记 ${id} 向量异步更新完成`)
         } catch (error) {
           console.error(`后端→ 笔记 ${id} 向量异步更新失败:`, error)
         }

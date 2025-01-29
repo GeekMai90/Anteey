@@ -82,7 +82,7 @@ const fetchRelatedNotes = async () => {
     )
 
     relatedNotes.value = notesWithDetails as Array<{ note: Note; similarity: number }>
-    log.info('获取相关笔记成功:', notesWithDetails.length)
+    // log.info('获取相关笔记成功:', notesWithDetails.length)
   } catch (error) {
     log.error('获取相关笔记失败:', error)
   } finally {
