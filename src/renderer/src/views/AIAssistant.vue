@@ -21,6 +21,7 @@
               v-for="suggestion in suggestions"
               :key="suggestion.id"
               class="suggestion-btn"
+              :class="{ active: suggestion.id === 'ask' }"
               @click="selectMode(suggestion)"
             >
               <div class="icon">
@@ -168,7 +169,12 @@
             </template>
             <template v-else>
               <!-- 建议功能栏 -->
-              <SuggestionBar :current-mode="currentMode" @select="selectMode" />
+              <SuggestionBar
+                :current-mode="currentMode"
+                @select="selectMode"
+                @new-chat="startNewChat"
+                @toggle-history="toggleHistoryPanel"
+              />
             </template>
           </div>
 
@@ -178,6 +184,7 @@
             <Transition name="slide-fade">
               <NoteSelector
                 v-if="showNoteSelector"
+                ref="noteSelectorRef"
                 class="note-selector"
                 @select="handleNoteSelect"
                 @close="showNoteSelector = false"
@@ -186,23 +193,24 @@
 
             <!-- 输入区域 -->
             <div class="input-content">
-              <input
+              <textarea
                 ref="inputRef"
                 v-model="inputMessage"
                 :placeholder="getPlaceholder"
                 :disabled="isProcessing"
+                rows="1"
                 @input="handleInput"
-                @keydown.enter="handleEnter"
+                @keydown.enter.exact.prevent="handleEnter"
                 @keydown.esc="showNoteSelector = false"
                 @compositionstart="handleCompositionStart"
                 @compositionend="handleCompositionEnd"
-              />
+              ></textarea>
             </div>
 
             <div class="input-actions">
-              <button class="action-icon link-btn" @click="toggleHistoryPanel">
+              <!-- <button class="action-icon link-btn" @click="toggleHistoryPanel">
                 <History theme="outline" size="18" :stroke-width="3" />
-              </button>
+              </button> -->
               <button class="action-icon send-btn" @click="handleSend">
                 <Send theme="outline" size="18" :stroke-width="3" />
               </button>
@@ -223,16 +231,7 @@
 import { ref, computed, watch, markRaw, onMounted, onUnmounted, nextTick } from 'vue'
 import { useAssistantStore } from '@renderer/stores/assistantStore'
 import { storeToRefs } from 'pinia'
-import {
-  ThinkingProblem,
-  MessageEmoji,
-  Brain,
-  Notes,
-  History,
-  Send,
-  Copy,
-  Close
-} from '@icon-park/vue-next'
+import { ThinkingProblem, MessageEmoji, Brain, Notes, Send, Copy, Close } from '@icon-park/vue-next'
 import type { Suggestion } from '@shared/types'
 import TypewriterText from '@renderer/components/aiassistant/TypewriterText.vue'
 import AppToolbar from '@renderer/components/layout/AppToolbar.vue'
@@ -243,9 +242,30 @@ import { message } from '@renderer/utils/message'
 import AIChatHistoryPanel from '@renderer/components/aiassistant/AIChatHistoryPanel.vue'
 import NoteSelector from '@renderer/components/aiassistant/NoteSelector.vue'
 import SuggestionBar from '@renderer/components/aiassistant/SuggestionBar.vue'
+
 // Store
 const assistantStore = useAssistantStore()
 const { messages, isProcessing } = storeToRefs(assistantStore)
+
+// 建议列表
+const suggestions: Suggestion[] = [
+  {
+    id: 'ask',
+    text: '问一问',
+    icon: markRaw(ThinkingProblem),
+    mode: 'ask',
+    prompt: '',
+    description: '基于个人知识的精准解答，就像与了解您所有笔记的私人助理对话。'
+  },
+  {
+    id: 'chat',
+    text: '聊一聊',
+    icon: markRaw(MessageEmoji),
+    mode: 'chat',
+    prompt: '',
+    description: '智能 AI 助手随时恭候，解答疑惑、分享见解，让对话充满趣味与智慧。'
+  }
+]
 
 // Refs
 const inputMessage = ref('')
@@ -256,7 +276,7 @@ const uiStore = useUIStore()
 const router = useRouter()
 
 const showHistoryPanel = ref(false)
-const inputRef = ref<HTMLInputElement | null>(null)
+const inputRef = ref<HTMLTextAreaElement | null>(null)
 
 // 添加笔记选择器的状态控制
 const showNoteSelector = ref(false)
@@ -267,11 +287,26 @@ const selectedNotes = ref<Array<{ id: string; title: string }>>([])
 // 1. 添加输入法状态
 const isComposing = ref(false)
 
+// 添加 ref
+const noteSelectorRef = ref<{ focusSearchInput: () => void } | null>(null)
+
 // 监听输入内容变化
+const adjustTextareaHeight = () => {
+  if (inputRef.value) {
+    // 先将高度设为 auto，以便重新计算
+    inputRef.value.style.height = 'auto'
+    // 设置新的高度
+    inputRef.value.style.height = inputRef.value.scrollHeight + 'px'
+  }
+}
+
 const handleInput = (event: Event) => {
-  const input = event.target as HTMLInputElement
-  const value = input.value
-  const cursorPosition = input.selectionStart || 0
+  const textarea = event.target as HTMLTextAreaElement
+  const value = textarea.value
+  const cursorPosition = textarea.selectionStart || 0
+
+  // 调整高度
+  adjustTextareaHeight()
 
   // 检查是否输入了 @
   if (value[cursorPosition - 1] === '@') {
@@ -324,6 +359,7 @@ onMounted(() => {
       showNoteSelector.value = false
     }
   })
+  adjustTextareaHeight()
 })
 
 onUnmounted(() => {
@@ -362,26 +398,6 @@ const toggleHistoryPanel = () => {
   showHistoryPanel.value = !showHistoryPanel.value
 }
 
-// 建议列表
-const suggestions: Suggestion[] = [
-  {
-    id: 'ask',
-    text: '问一问',
-    icon: markRaw(ThinkingProblem),
-    mode: 'ask',
-    prompt: '',
-    description: '基于个人知识的精准解答，就像与了解您所有笔记的私人助理对话。'
-  },
-  {
-    id: 'chat',
-    text: '聊一聊',
-    icon: markRaw(MessageEmoji),
-    mode: 'chat',
-    prompt: '',
-    description: '智能 AI 助手随时恭候，解答疑惑、分享见解，让对话充满趣味与智慧。'
-  }
-]
-
 // 计算属性
 const getPlaceholder = computed(() => {
   if (isProcessing.value) return 'Processing...'
@@ -397,7 +413,7 @@ const selectMode = (suggestion: Suggestion) => {
 }
 
 const startNewChat = () => {
-  currentMode.value = null
+  currentMode.value = null // 改回原来的逻辑
   assistantStore.clearMessages()
   inputMessage.value = ''
 }
@@ -569,6 +585,26 @@ const handleEnter = (event: KeyboardEvent) => {
   event.preventDefault()
   handleSend()
 }
+
+// 在 watch 中监听 inputMessage 的变化
+watch(inputMessage, () => {
+  nextTick(() => {
+    adjustTextareaHeight()
+  })
+})
+
+// 修改显示笔记选择器的逻辑
+watch(
+  () => showNoteSelector.value,
+  (newValue) => {
+    if (newValue) {
+      nextTick(() => {
+        // 调用聚焦方法
+        noteSelectorRef.value?.focusSearchInput()
+      })
+    }
+  }
+)
 </script>
 
 <style scoped lang="scss">
@@ -811,6 +847,19 @@ const handleEnter = (event: KeyboardEvent) => {
   &:hover {
     background: var(--color-shape-secondary);
   }
+
+  // &.active {
+  //   background: var(--color-primary-light);
+  //   border-color: var(--color-primary);
+
+  //   .icon {
+  //     color: var(--color-primary);
+  //   }
+
+  //   .name {
+  //     color: var(--color-primary);
+  //   }
+  // }
 }
 
 /* 8. 对话区域 */
@@ -832,7 +881,8 @@ const handleEnter = (event: KeyboardEvent) => {
   align-items: center;
   gap: 0.5rem;
   padding: 8px 16px 8px 12px;
-  background: var(--color-shape-secondary);
+  background: var(--color-bg-secondary);
+  color: var(--color-text-secondary);
   border-radius: 2rem;
   .icon {
     background: none;
@@ -862,7 +912,7 @@ const handleEnter = (event: KeyboardEvent) => {
   .name {
     flex-grow: 0;
     text-align: left;
-    color: var(--color-text-primary);
+    color: var(--color-text-secondary);
     font-size: 14px;
     font-weight: 400;
     white-space: nowrap;
@@ -981,7 +1031,7 @@ const handleEnter = (event: KeyboardEvent) => {
   margin-top: 8px;
   padding: 8px;
   border-radius: 8px;
-  background: var(--color-bg-secondary);
+  // background: var(--color-bg-secondary);
 }
 
 .reference-item {
@@ -1188,19 +1238,30 @@ const handleEnter = (event: KeyboardEvent) => {
   flex: 1;
   display: flex;
   align-items: center;
-  background: var(--color-bg-secondary);
   border-radius: 8px;
-  // padding: 8px 12px;
   min-height: 30px;
 
-  input {
+  textarea {
     width: 100%;
     border: none;
     outline: none;
     background: transparent;
     font-size: 14px;
     line-height: 1.5;
-    padding: 0 8px;
+    padding: 8px;
+    resize: none; // 禁用手动调整大小
+    max-height: 150px; // 设置最大高度
+    overflow-y: auto; // 超过最大高度时显示滚动条
+
+    // 设置滚动条样式
+    &::-webkit-scrollbar {
+      width: 4px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background-color: var(--color-shape-secondary);
+      border-radius: 2px;
+    }
 
     &::placeholder {
       color: var(--color-text-secondary);

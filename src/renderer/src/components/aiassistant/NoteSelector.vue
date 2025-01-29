@@ -202,10 +202,35 @@ const fetchRecentNotes = async () => {
   }
 }
 
-// 在组件挂载时获取最近笔记
+// 添加聚焦方法
+const focusSearchInput = () => {
+  if (searchInput.value) {
+    searchInput.value.focus()
+  }
+}
+
+// 暴露方法给父组件
+defineExpose({
+  focusSearchInput
+})
+
+// 在组件挂载时自动聚焦
 onMounted(() => {
   fetchRecentNotes()
+  focusSearchInput()
 })
+
+// 监听搜索框显示状态，当显示时聚焦
+watch(
+  () => isExpanded.value,
+  (newValue) => {
+    if (newValue) {
+      nextTick(() => {
+        focusSearchInput()
+      })
+    }
+  }
+)
 
 // 获取选中笔记的详细信息
 const fetchSelectedNote = async () => {
