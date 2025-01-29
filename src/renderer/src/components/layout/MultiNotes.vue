@@ -32,10 +32,6 @@ import type { Note } from '@shared/types'
 const noteStore = useNoteStore()
 const sidebarNotes = computed(() => noteStore.rightSidebarNotes)
 
-// const clearSidebarNotes = () => {
-//   noteStore.clearRightSidebarNotes()
-// }
-
 const handleDragStart = (event: DragEvent, note: Note) => {
   if (!event.dataTransfer) return
 
