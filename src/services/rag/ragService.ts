@@ -19,7 +19,7 @@ import {
 } from '@shared/types'
 import { v4 as uuidv4 } from 'uuid'
 import { LLMService } from './llmService'
-import { SimilarityService } from '@services/similar/calculateSimilarity'
+import { blobToFloat32Array, calculateFullSimilarity } from '@services/similar/similarService'
 import { Note } from '@shared/types'
 import { getKeywordExtractor } from './keywordExtractor'
 import { LLMConfigService } from './llmConfigService'
@@ -374,7 +374,7 @@ async function handleNewTopicRetrieval(
           }
 
           // 3.2 转换笔记向量和关键词
-          const noteVector = SimilarityService.blobToFloat32Array(note.embedding)
+          const noteVector = blobToFloat32Array(note.embedding)
           const noteKeywords = note.keywords ? JSON.parse(note.keywords) : []
 
           // 3.3 定义和解析元数据结构
@@ -401,7 +401,7 @@ async function handleNewTopicRetrieval(
           }
 
           // 3.5 计算综合相似度
-          const similarity = SimilarityService.calculateFullSimilarity(queryVector, noteVector, {
+          const similarity = calculateFullSimilarity(queryVector, noteVector, {
             sourceKeywords: new Set(queryKeywords), // 查询关键词集合
             targetKeywords: new Set(noteKeywords), // 笔记关键词集合
             title: metadata.title, // 标题匹配
@@ -640,8 +640,8 @@ async function filterAndReweightExistingDocs(
     const noteKeywords = note.keywords ? JSON.parse(note.keywords) : []
 
     // 计算新的相似度（使用增强版计算）
-    const noteVector = SimilarityService.blobToFloat32Array(note.embedding)
-    const similarity = SimilarityService.calculateFullSimilarity(queryVector, noteVector, {
+    const noteVector = blobToFloat32Array(note.embedding)
+    const similarity = calculateFullSimilarity(queryVector, noteVector, {
       sourceKeywords: new Set(queryKeywords),
       targetKeywords: new Set(noteKeywords),
       title: note.title,
@@ -695,11 +695,11 @@ async function retrieveSupplementaryDocs(
       try {
         if (!note.embedding) return null
 
-        const noteVector = SimilarityService.blobToFloat32Array(note.embedding)
+        const noteVector = blobToFloat32Array(note.embedding)
         const noteKeywords = note.keywords ? JSON.parse(note.keywords) : []
 
         // 使用增强版相似度计算
-        const similarity = SimilarityService.calculateFullSimilarity(queryVector, noteVector, {
+        const similarity = calculateFullSimilarity(queryVector, noteVector, {
           sourceKeywords: new Set(queryKeywords),
           targetKeywords: new Set(noteKeywords),
           title: note.title,
@@ -1901,12 +1901,12 @@ async function handleEnhancedSemanticSearch(
         try {
           if (!note.embedding) return null
 
-          const noteVector = SimilarityService.blobToFloat32Array(note.embedding)
+          const noteVector = blobToFloat32Array(note.embedding)
           const noteKeywords: Set<string> = note.keywords
             ? new Set(JSON.parse(note.keywords).map((k: { word: string }) => k.word.toLowerCase()))
             : new Set()
 
-          const similarity = SimilarityService.calculateFullSimilarity(queryVector, noteVector, {
+          const similarity = calculateFullSimilarity(queryVector, noteVector, {
             sourceKeywords: queryKeywordSet,
             targetKeywords: noteKeywords,
             title: note.title,

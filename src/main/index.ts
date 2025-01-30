@@ -27,6 +27,7 @@ import { getUserSettings } from '@services/user/userSettingsService'
 // import { migrateLicenseTable } from '../db/migrations/licenseMigration'
 import { backupService } from '@services/backup/backupService'
 import { debounce } from 'lodash'
+import { LanceService } from '../db/vector/lanceService'
 
 // 加载环境变量
 config({
@@ -493,15 +494,19 @@ app.whenReady().then(async () => {
   initialize()
   try {
     // 安装 Vue 3 Devtools
-    installExtension(VUEJS3_DEVTOOLS)
-      .then((name) => console.log(`Added Extension:  ${name}`))
-      .catch((err) => console.log('An error occurred: ', err))
+    try {
+      await installExtension(VUEJS3_DEVTOOLS)
+      log.info('Vue Devtools 安装成功')
+    } catch (error) {
+      log.warn('Vue Devtools 安装失败，这不会影响应用的正常使用:', error)
+      // 继续执行，不要中断应用启动
+    }
 
     // 初始化数据库
     await initDatabase(db)
-    // await migrateLicenseTable() // 添加这行
-    // 验证表是否创建成功
-    await db.schema.hasTable('notes')
+
+    // 初始化向量数据库
+    await LanceService.getInstance()
 
     // electronApp.setAppUserModelId('com.electron')
     // 使用应用特定的 ID
@@ -617,6 +622,17 @@ app.whenReady().then(async () => {
 
     // 应用启动时执行自动备份
     await handleAutoBackup()
+
+    // try {
+    //   const testResult = await testLanceDB()
+    //   if (testResult) {
+    //     log.info('LanceDB 测试通过')
+    //   } else {
+    //     log.error('LanceDB 测试失败')
+    //   }
+    // } catch (error) {
+    //   log.error('LanceDB 测试出错:', error)
+    // }
   } catch (error) {
     console.error('主进程→ 应用初始化失败:', error)
     log.error('主进程→ 应用初始化失败:', error)
