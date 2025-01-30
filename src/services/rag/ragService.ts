@@ -263,7 +263,7 @@ export async function handleAskQuestion(
 export async function retrieveContext(
   query: string,
   session?: ChatSession,
-  limit: number = 10
+  limit: number = 5
 ): Promise<RAGContext> {
   try {
     // 1. 输入验证：确保查询是字符串类型
@@ -353,26 +353,26 @@ async function handleNewTopicRetrieval(
     // 2. 使用 LanceDB 的混合搜索功能
     const searchResults = await lanceService.searchNotes(queryVector, queryKeywords, limit * 2)
 
-    // 打印原始搜索结果，用于调试
-    log.debug('LanceDB 搜索结果:', {
-      totalResults: searchResults.length,
-      scores: searchResults.slice(0, 3).map((r: any) => ({
-        id: r.id,
-        score: r.score,
-        distance: r._distance,
-        keywordMatchCount: r.keywordMatchCount,
-        keywords: r.keywords
-      }))
-    })
-
     // 3. 获取检索到的笔记完整信息
     const noteIds = searchResults.map((result: any) => result.id)
-    const notes = await db('notes').whereIn('id', noteIds).select('*')
+
+    // 分批获取笔记信息
+    const BATCH_SIZE = 5
+    const allNotes: any[] = []
+
+    for (let i = 0; i < noteIds.length; i += BATCH_SIZE) {
+      const batchIds = noteIds.slice(i, i + BATCH_SIZE)
+      const batchNotes = await db('notes').whereIn('id', batchIds).select('*')
+      allNotes.push(...batchNotes)
+
+      // 添加小延迟，避免资源竞争
+      await new Promise((resolve) => setTimeout(resolve, 50))
+    }
 
     // 4. 整合搜索结果和笔记信息
     const results = searchResults
       .map((searchResult: any) => {
-        const note = notes.find((n: any) => n.id === searchResult.id)
+        const note = allNotes.find((n: any) => n.id === searchResult.id)
         if (!note) return null
 
         try {
@@ -393,7 +393,7 @@ async function handleNewTopicRetrieval(
       })
       .filter(
         (result: any): result is NonNullable<typeof result> =>
-          result !== null && result.similarity > 0.1 // 保持较低的过滤阈值
+          result !== null && result.similarity > 0.1
       )
       .sort((a: any, b: any) => b.similarity - a.similarity)
       .slice(0, limit)

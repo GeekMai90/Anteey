@@ -7,7 +7,14 @@
   >
     <div class="image-container" :style="containerStyle">
       <div class="resize-handle left" @mousedown="startResize('left', $event)"></div>
-      <img :src="props.node.attrs.src" :alt="props.node.attrs.alt" :style="imageStyle" />
+      <img
+        :key="retryKey"
+        :src="props.node.attrs.src"
+        :alt="props.node.attrs.alt"
+        :style="imageStyle"
+        @error="handleImageError"
+        @load="handleImageLoad"
+      />
       <div class="resize-handle right" @mousedown="startResize('right', $event)"></div>
       <div
         ref="moreButton"
@@ -121,6 +128,12 @@ const props = defineProps({
 })
 // 添加确认对话框的状态
 const showDeleteConfirm = ref(false)
+
+// 添加重试相关的状态
+const retryKey = ref(0)
+const retryCount = ref(0)
+const MAX_RETRIES = 3
+const RETRY_DELAY = 1000 // 1秒后重试
 
 const containerStyle = computed(() => ({
   width: props.node.attrs.width || '100%',
@@ -263,6 +276,32 @@ const startResize = (side, event) => {
 
   window.addEventListener('mousemove', resize)
   window.addEventListener('mouseup', stopResize)
+}
+
+// 处理图片加载错误
+const handleImageError = async () => {
+  if (retryCount.value < MAX_RETRIES) {
+    console.log(`图片加载失败，第 ${retryCount.value + 1} 次重试...`)
+
+    // 等待一段时间后重试
+    await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY))
+
+    // 增加重试次数
+    retryCount.value++
+
+    // 通过改变 key 来强制重新加载图片
+    retryKey.value = Date.now()
+  } else {
+    console.error('图片加载失败，已达到最大重试次数')
+    // 可以在这里添加失败后的处理逻辑，比如显示占位图
+  }
+}
+
+// 处理图片加载成功
+const handleImageLoad = () => {
+  // 重置重试计数
+  retryCount.value = 0
+  console.log('图片加载成功')
 }
 </script>
 
@@ -463,6 +502,18 @@ const startResize = (side, event) => {
     text-overflow: ellipsis;
     justify-content: center;
     margin-top: 0px;
+  }
+}
+
+// 添加加载失败时的样式
+.image-container {
+  img {
+    &[src=''] {
+      // 添加占位图样式
+      min-height: 100px;
+      background: var(--color-bg-secondary);
+      border: 1px dashed var(--color-border);
+    }
   }
 }
 </style>

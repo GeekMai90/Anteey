@@ -519,8 +519,10 @@ app.whenReady().then(async () => {
       return path.join(app.getAppPath(), 'resources', filename)
     })
 
-    // 注册自定义协议
-    protocol.handle('app-image', (request) => {
+    // 添加请求队列管理
+    const imageRequestQueue = new Map<string, Promise<Response>>()
+
+    protocol.handle('app-image', async (request) => {
       try {
         const url = new URL(request.url)
         const imagePath = decodeURIComponent(url.pathname)
@@ -531,25 +533,34 @@ app.whenReady().then(async () => {
           path.basename(imagePath)
         )
 
-        // 添加更多日志用于调试
-        // console.log('Request URL:', request.url)
-        // console.log('Image Path:', imagePath)
-        // console.log('Full Path:', fullPath)
-        // console.log('File exists:', fs.existsSync(fullPath))
-
-        // 检查文件是否存在
-        if (!fs.existsSync(fullPath)) {
-          console.error('Image file not found:', fullPath)
-          return new Response('', { status: 404 })
+        // 检查是否已有相同请求在处理中
+        const existingRequest = imageRequestQueue.get(fullPath)
+        if (existingRequest) {
+          return existingRequest
         }
 
-        return net.fetch('file://' + fullPath)
-      } catch (error: unknown) {
+        // 创建新的请求
+        const newRequest = (async () => {
+          try {
+            if (!fs.existsSync(fullPath)) {
+              console.error('图片文件不存在:', fullPath)
+              return new Response('', { status: 404 })
+            }
+
+            const response = await net.fetch('file://' + fullPath)
+            return response
+          } finally {
+            // 请求完成后从队列中移除
+            imageRequestQueue.delete(fullPath)
+          }
+        })()
+
+        // 将请求添加到队列
+        imageRequestQueue.set(fullPath, newRequest)
+        return newRequest
+      } catch (error) {
         console.error('加载图片失败:', error)
-        if (error instanceof Error) {
-          console.error('Error details:', error.message)
-        }
-        return new Response('', { status: 404 })
+        return new Response('', { status: 500 })
       }
     })
 
@@ -645,6 +656,23 @@ app.whenReady().then(async () => {
   // 在应用退出时注销快捷键
   app.on('will-quit', () => {
     globalShortcut.unregisterAll()
+  })
+  // 添加全局错误处理
+  app.on('render-process-gone', (_event, _webContents, details) => {
+    console.error('渲染进程崩溃:', details)
+  })
+
+  app.on('child-process-gone', (_event, details) => {
+    console.error('子进程异常:', details)
+  })
+
+  // 监听未捕获的异常
+  process.on('uncaughtException', (error) => {
+    console.error('未捕获的异常:', error)
+  })
+
+  process.on('unhandledRejection', (reason) => {
+    console.error('未处理的 Promise 拒绝:', reason)
   })
 })
 

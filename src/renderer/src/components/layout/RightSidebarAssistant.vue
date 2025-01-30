@@ -105,6 +105,8 @@
                           v-for="reference in msg.references"
                           :key="reference.noteId"
                           class="reference-item"
+                          @click="handleReferenceClick($event, reference.noteId)"
+                          @dblclick.stop="handleReferenceDoubleClick(reference.noteId)"
                         >
                           <div class="reference-header">
                             <span class="reference-address">{{ reference.address }}</span>
@@ -289,6 +291,7 @@ import RightSidebarNoteSelector from '@renderer/components/layout/RightSidebarNo
 import { message } from '@renderer/utils/message'
 import { useLLMConfigStore } from '@renderer/stores/llmConfigStore'
 import { LLM_MODELS } from '@services/rag/llm.config'
+import { useNoteStore } from '@renderer/stores/noteStore'
 
 // Store
 const assistantStore = useAssistantStore()
@@ -296,6 +299,7 @@ const { messages, isProcessing } = storeToRefs(assistantStore)
 const router = useRouter()
 const uiStore = useUIStore()
 const llmConfigStore = useLLMConfigStore()
+const noteStore = useNoteStore()
 
 // 建议列表
 const suggestions: Suggestion[] = [
@@ -587,6 +591,27 @@ const handleModelSwitch = async (modelId: string) => {
   } catch (error) {
     message.error('切换模型失败')
   }
+}
+
+// 添加处理引用点击和双击的方法
+const handleReferenceClick = (event: MouseEvent, noteId: string) => {
+  // Command/Ctrl + 点击: 在展开编辑器中打开
+  if (event.metaKey || event.ctrlKey) {
+    router.push({ name: 'NoteExpandEditor', params: { id: noteId } })
+    return
+  }
+
+  // Alt + 点击: 在右侧边栏打开
+  if (event.altKey) {
+    noteStore.addNoteToRightSidebar(noteId)
+    uiStore.openRightSidebarWithTab('multi')
+    return
+  }
+}
+
+const handleReferenceDoubleClick = (noteId: string) => {
+  // 双击: 小窗打开
+  noteStore.openNoteEditor(noteId)
 }
 
 // 初始化加载配置
@@ -1127,6 +1152,7 @@ onMounted(() => {
       background: var(--color-bg-primary);
       cursor: pointer;
       transition: background-color 0.2s ease;
+      user-select: none;
 
       & + .reference-item {
         margin-top: 8px;
@@ -1158,6 +1184,14 @@ onMounted(() => {
       font-size: 13px;
       line-height: 1.5;
       color: var(--color-text-secondary);
+      margin-bottom: 8px;
+      user-select: none;
+    }
+
+    .reference-meta {
+      font-size: 12px;
+      color: var(--color-text-tertiary);
+      user-select: none;
     }
   }
 

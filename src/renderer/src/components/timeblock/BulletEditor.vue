@@ -107,7 +107,7 @@ const editor = new Editor({
 watch(
   () => props.content,
   (newContent) => {
-    console.log('BulletEditor content changed:', newContent)
+    // console.log('BulletEditor content changed:', newContent)
     // 确保编辑器内容与传入的内容同步
     if (newContent !== editor.getHTML()) {
       editor.commands.setContent(newContent || '')
@@ -120,7 +120,7 @@ watch(
 watch(
   () => props.editable,
   (editable) => {
-    console.log('BulletEditor editable changed:', editable)
+    // console.log('BulletEditor editable changed:', editable)
     editor.setEditable(editable)
   },
   { immediate: true }
