@@ -124,12 +124,6 @@ const routes = [
     path: '/ai-assistant',
     component: () => import('../views/AIAssistant.vue')
   },
-  // 添加图片管理页面路由
-  {
-    name: 'ImageManager',
-    path: '/image-manager',
-    component: () => import('../views/ImageManagerView.vue')
-  },
   {
     name: 'FlashcardView',
     path: '/flashcard',

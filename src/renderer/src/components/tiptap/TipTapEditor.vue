@@ -866,19 +866,13 @@ const handleFileUpload = async (file) => {
   }
 
   try {
-    // 先转换为 ArrayBuffer
+    // 转换为 ArrayBuffer 并上传
     const arrayBuffer = await file.arrayBuffer()
-    // 使用新的 API，传入 noteId
-    // const result = await window.electronAPI.image.uploadImage(file.path, props.noteId)
-    const result = await window.electronAPI.image.uploadImageData(arrayBuffer, props.noteId)
-    if (result.path) {
-      return result.path
-    } else {
-      console.error('上传图片失败')
-      return null
-    }
+    const imagePath = await window.electronAPI.image.uploadImageData(arrayBuffer)
+    return imagePath
   } catch (error) {
     console.error('处理文件上传时出错:', error)
+    message.error('上传图片失败')
     return null
   }
 }
@@ -897,26 +891,19 @@ const CustomImage = Image.extend({
       align: {
         default: 'center',
         renderHTML: (attributes) => ({
-          style: `display: block; margin: ${attributes.align === 'center' ? '0 auto' : attributes.align === 'left' ? '0 auto 0 0' : '0 0 0 auto'}`
+          style: `display: block; margin: ${
+            attributes.align === 'center'
+              ? '0 auto'
+              : attributes.align === 'left'
+                ? '0 auto 0 0'
+                : '0 0 0 auto'
+          }`
         })
       }
     }
   },
   addNodeView() {
-    return VueNodeViewRenderer(TiptapImage, {
-      props: {
-        noteId: props.noteId,
-        onDelete: async (imageId) => {
-          try {
-            await window.electronAPI.image.removeImageFromNote(props.noteId, imageId)
-            return true
-          } catch (error) {
-            console.error('删除图片失败:', error)
-            return false
-          }
-        }
-      }
-    })
+    return VueNodeViewRenderer(TiptapImage)
   }
 })
 

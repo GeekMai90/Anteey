@@ -14,6 +14,7 @@ import { db } from '../../db/config'
 
 import { getCurrentAuthState } from '../auth/authService'
 import { updateNoteEmbedding } from '../rag/embeddingService'
+import { LanceService } from '../../db/vector/lanceService'
 // 辅助函数：将数据库记录转换为 Note 对象
 export function convertToNote(record: any): Note {
   return {
@@ -1725,14 +1726,36 @@ export async function batchUpdateVectors(): Promise<void> {
 
     console.log(`开始批量更新向量，共 ${notesToUpdate.length} 条笔记`)
 
-    // 批量处理
-    for (const note of notesToUpdate) {
-      try {
-        await updateNoteEmbedding(note.id, JSON.parse(note.content))
-        await db('notes').where('id', note.id).update({ lastVectorizedAt: new Date() })
-      } catch (error) {
-        console.error('单条笔记向量更新失败:', { noteId: note.id, error })
+    // 获取 LanceDB 实例并暂时禁用自动索引
+    const lanceService = await LanceService.getInstance()
+    await lanceService.disableAutoIndex()
+
+    try {
+      // 批量处理
+      for (const note of notesToUpdate) {
+        try {
+          // 1. 先删除旧的向量（如果存在）
+          try {
+            await lanceService.deleteVector(note.id)
+            console.log('已删除旧向量:', note.id)
+          } catch (error) {
+            console.log('删除旧向量失败（可能不存在）:', note.id)
+          }
+
+          // 2. 添加新向量
+          await updateNoteEmbedding(note.id, JSON.parse(note.content))
+          await db('notes').where('id', note.id).update({ lastVectorizedAt: new Date() })
+        } catch (error) {
+          console.error('单条笔记向量更新失败:', { noteId: note.id, error })
+        }
       }
+
+      // 3. 重建索引
+      await lanceService.rebuildIndex()
+      console.log('向量索引重建完成')
+    } finally {
+      // 恢复自动索引
+      await lanceService.enableAutoIndex()
     }
 
     console.log('批量更新向量完成')

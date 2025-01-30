@@ -50,7 +50,6 @@ const emit = defineEmits<{
 
 const show = () => {
   visible.value = true
-  // 监听粘贴事件
   document.addEventListener('paste', handlePaste)
 }
 
@@ -75,7 +74,6 @@ const handlePaste = (event: ClipboardEvent) => {
   const items = event.clipboardData?.items
   if (!items) return
 
-  // 将 DataTransferItemList 转换为数组
   Array.from(items).forEach((item) => {
     if (item.type.indexOf('image') !== -1) {
       const file = item.getAsFile()
@@ -95,7 +93,7 @@ const handleDrop = (event: DragEvent) => {
 
 const processFile = async (file: File) => {
   try {
-    // 创建预览
+    // 创建本地预览
     const reader = new FileReader()
     reader.onload = (e) => {
       const result = e.target?.result
@@ -105,20 +103,18 @@ const processFile = async (file: File) => {
     }
     reader.readAsDataURL(file)
 
+    // 上传图片
     const arrayBuffer = await file.arrayBuffer()
-
-    // 直接上传图片
-    const { path: imagePath } = await window.electronAPI.image.uploadImageData(arrayBuffer, '')
+    const imagePath = await window.electronAPI.image.uploadImageData(arrayBuffer)
 
     // 获取图片实际尺寸
     const img = new Image()
     img.onload = () => {
-      const imageData = {
+      currentImageData.value = {
         url: imagePath,
         width: img.width,
         height: img.height
       }
-      currentImageData.value = imageData
     }
     img.src = imagePath
   } catch (error) {
@@ -133,6 +129,8 @@ const handleConfirm = () => {
   if (currentImageData.value) {
     emit('confirm', currentImageData.value)
     hide()
+  } else {
+    message.warning('请等待图片处理完成')
   }
 }
 

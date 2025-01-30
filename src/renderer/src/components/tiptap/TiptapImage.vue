@@ -162,15 +162,12 @@ const downloadImage = async () => {
   const fileName = getFileNameFromUrl(imageUrl)
 
   try {
-    const result = await window.electronAPI.image.downloadImage(imageUrl, fileName)
-    if (result.path) {
-      message.success('图片下载成功')
-    }
+    await window.electronAPI.image.downloadImage(imageUrl, fileName)
+    message.success('图片下载成功')
   } catch (error) {
-    console.error('下载过程中发生错误:', error)
+    console.error('下载图片失败:', error)
     message.error('图片下载失败')
   }
-
   showMenu.value = false
 }
 
@@ -192,44 +189,14 @@ const getFileNameFromUrl = (url) => {
 
 const copyImage = async () => {
   try {
-    // 从 src 中提取图片 ID
     const imageUrl = props.node.attrs.src
-    const imageId = extractImageId(imageUrl)
-
-    if (!imageId) {
-      throw new Error('无效的图片ID')
-    }
-
-    const result = await window.electronAPI.image.copyImage(imageId)
-    if (result.success) {
-      // TODO: 可以添加一个成功提示
-      message.success(result.message)
-    }
+    await window.electronAPI.image.copyImage(imageUrl)
+    message.success('图片已复制到剪贴板')
   } catch (error) {
-    console.error('复制过程中发生错误:', error)
-    message.error(result.message)
-    // TODO: 可以添加一个错误提示
+    console.error('复制图片失败:', error)
+    message.error('复制图片失败')
   }
-
   showMenu.value = false
-}
-
-// 辅助函数：从图片 URL 中提取 ID
-const extractImageId = (url) => {
-  try {
-    // 处理 app-image:// 协议的 URL
-    const match = url.match(
-      /images\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/
-    )
-    if (!match) {
-      console.error('无法从URL提取图片ID:', url)
-      return null
-    }
-    return match[1]
-  } catch (error) {
-    console.error('提取图片ID时出错:', error)
-    return null
-  }
 }
 
 // 修改删除图片的处理流程
@@ -240,27 +207,12 @@ const deleteImage = () => {
 const confirmDelete = async () => {
   try {
     const imageUrl = props.node.attrs.src
-    const imageId = extractImageId(imageUrl)
-
-    // 从 props 直接获取 noteId
-    const noteId = props.editor.options.noteId
-
-    if (!imageId) {
-      console.error('无法获取图片ID')
-      return
-    }
-
-    if (!noteId) {
-      console.error('无法获取笔记ID')
-      return
-    }
-
-    console.log('正在删除图片:', { noteId, imageId })
-    await window.electronAPI.image.removeImageFromNote(noteId, imageId)
+    await window.electronAPI.image.deleteImage(imageUrl)
     props.deleteNode()
-    showMenu.value = false
+    message.success('图片删除成功')
   } catch (error) {
     console.error('删除图片失败:', error)
+    message.error('删除图片失败')
   }
 }
 

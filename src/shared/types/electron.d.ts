@@ -60,11 +60,6 @@ import type {
   WebDAVConfig,
   SyncHistory,
 
-  // 图片相关
-  ImageQueryParams,
-  ImageQueryResult,
-  ImageInfo,
-
   // 闪卡相关
   FlashcardDecks,
   FlashcardStats,
@@ -367,22 +362,11 @@ export interface ElectronAPI {
   }
 
   image: {
-    uploadImage: (
-      filePath: string,
-      noteId: string
-    ) => Promise<{ path: string; isExisting: boolean }>
-    getNoteImages: (noteId: string) => Promise<ImageInfo[]>
-    getImagePath: (imageId: string) => Promise<string>
+    uploadImage: (filePath: string) => Promise<string>
     copyImage: (imageId: string) => Promise<{ success: boolean; message: string }>
     downloadImage: (url: string, filename: string) => Promise<{ path: string }>
-    cleanupUnusedImages: () => Promise<{ count: number; message: string }>
-    removeImageFromNote: (noteId: string, imageId: string) => Promise<void>
-    getImages: (params: ImageQueryParams) => Promise<ImageQueryResult>
-    deleteImages: (imageIds: string[]) => Promise<{ deletedCount: number }>
-    uploadImageData: (
-      imageData: ArrayBuffer,
-      noteId?: string
-    ) => Promise<{ path: string; isExisting: boolean }>
+    deleteImage: (imagePath: string) => Promise<void>
+    uploadImageData: (imageData: ArrayBuffer, noteId?: string) => Promise<string>
   }
 
   activation: {
