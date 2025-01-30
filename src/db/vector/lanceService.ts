@@ -300,14 +300,15 @@ export class LanceService {
         totalVectors
       })
 
-      // 修改搜索参数
+      // 修改搜索参数，大幅增加探测数量
       let query = this.table.vectorSearch(Array.from(vector), {
-        probeCount: Math.max(Math.floor(totalVectors * 0.1), 10),
-        refineFactor: 10,
-        nlist: Math.max(Math.floor(Math.sqrt(totalVectors)), 10)
+        probeCount: Math.max(Math.floor(totalVectors * 0.9), 20), // 探测 90% 的向量
+        refineFactor: 40, // 增加精细化因子
+        nlist: Math.max(Math.floor(Math.sqrt(totalVectors)), 20), // 增加聚类数量
+        metric: 'cosine' // 明确指定使用余弦相似度
       })
 
-      // 如果有关键词，添加关键词过滤条件
+      // 如果有关键词，添加关键词过滤
       if (keywords && keywords.length > 0) {
         const keywordFilters = keywords.map((k) => `array_contains(keywords, '${k}')`).join(' OR ')
         query = query.where(`(${keywordFilters})`)
@@ -315,42 +316,33 @@ export class LanceService {
 
       const results = await query.select(['id', 'keywords', 'metadata']).limit(limit).toArray()
 
-      // 转换结果格式，处理相似度分数
+      // 转换结果格式，优化相似度计算
       const processedResults = results.map((result: any) => {
-        // 将距离转换为相似度分数，并调整分数分布
-        const rawSimilarity = result._distance !== undefined ? 1 - result._distance : 0
-        let similarity = 0
+        // 计算余弦相似度
+        const cosineSimilarity =
+          result._distance !== undefined ? Math.max(0, 1 - result._distance) : 0
 
-        // 分段函数调整相似度分布
-        if (rawSimilarity > 0.95) {
-          similarity = 1.0 // 完全匹配
-        } else if (rawSimilarity > 0.8) {
-          similarity = 0.8 + (rawSimilarity - 0.8) * 1.5 // 高相似度区间
-        } else if (rawSimilarity > 0.5) {
-          similarity = 0.4 + (rawSimilarity - 0.5) * 1.0 // 中等相似度区间
+        // 优化相似度分数分布
+        let similarity = 0
+        if (cosineSimilarity > 0.8) {
+          similarity = 0.8 + (cosineSimilarity - 0.8) * 2.5 // 高相似度区间
+        } else if (cosineSimilarity > 0.5) {
+          similarity = 0.5 + (cosineSimilarity - 0.5) * 1.5 // 中等相似度区间
+        } else if (cosineSimilarity > 0.2) {
+          similarity = 0.2 + (cosineSimilarity - 0.2) * 1.2 // 低相似度区间
         } else {
-          similarity = rawSimilarity * 0.6 // 低相似度区间
+          similarity = cosineSimilarity
         }
 
-        // 处理 Arrow 格式的 keywords
+        // 处理关键词
         const processedKeywords: string[] = []
         try {
           if (result.keywords?.data?.[0]) {
             for (let i = 0; i < result.keywords.length; i++) {
               const keyword = result.keywords.get(i)
-              if (keyword) {
-                processedKeywords.push(keyword)
-              }
+              if (keyword) processedKeywords.push(keyword)
             }
           }
-          log.debug('处理关键词:', {
-            noteId: result.id,
-            processedKeywords,
-            keywordsLength: result.keywords?.length,
-            distance: result._distance,
-            rawSimilarity,
-            adjustedSimilarity: similarity
-          })
         } catch (error) {
           log.warn('处理关键词失败:', {
             noteId: result.id,
@@ -358,36 +350,27 @@ export class LanceService {
           })
         }
 
+        // 关键词匹配加权
+        const keywordMatchCount = processedKeywords.filter((k) => keywords.includes(k)).length
+        if (keywordMatchCount > 0) {
+          const keywordBonus = (keywordMatchCount / keywords.length) * 0.5 // 增加关键词权重
+          similarity = Math.min(1, similarity + keywordBonus)
+        }
+
         return {
           ...result,
           keywords: processedKeywords,
-          score: similarity
+          score: similarity,
+          _distance: result._distance,
+          keywordMatchCount
         }
       })
 
-      // 根据相似度和关键词匹配度重新排序
+      // 根据综合分数重新排序
       const rerankedResults = processedResults
-        .map((result: any) => {
-          // 计算关键词匹配度
-          const keywordMatchScore =
-            keywords.length > 0
-              ? result.keywords.filter((k: string) => keywords.includes(k)).length / keywords.length
-              : 0
-
-          // 综合分数 = 向量相似度 * 0.7 + 关键词匹配度 * 0.3
-          const finalScore =
-            keywords.length > 0 ? result.score * 0.7 + keywordMatchScore * 0.3 : result.score
-
-          return {
-            ...result,
-            score: finalScore,
-            vectorScore: result.score,
-            keywordScore: keywordMatchScore,
-            distance: result._distance
-          }
-        })
+        .filter((r: any) => r.score > 0.1) // 保持较低的过滤阈值
         .sort((a: any, b: any) => b.score - a.score)
-        .filter((r: any) => r.score > 0.3) // 提高相似度阈值
+        .slice(0, limit)
 
       log.debug('混合搜索完成:', {
         resultCount: results.length,
@@ -395,10 +378,8 @@ export class LanceService {
         sampleScores: rerankedResults.slice(0, 2).map((r: any) => ({
           id: r.id,
           score: r.score,
-          vectorScore: r.vectorScore,
-          keywordScore: r.keywordScore,
-          keywords: r.keywords,
-          distance: r.distance
+          distance: r._distance,
+          keywordMatchCount: r.keywordMatchCount
         }))
       })
 

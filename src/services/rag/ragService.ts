@@ -23,6 +23,7 @@ import { blobToFloat32Array, calculateFullSimilarity } from '@services/similar/s
 import { Note } from '@shared/types'
 import { getKeywordExtractor } from './keywordExtractor'
 import { LLMConfigService } from './llmConfigService'
+import { LanceService } from '../../db/vector/lanceService'
 
 /**
  * 系统配置常量
@@ -262,7 +263,7 @@ export async function handleAskQuestion(
 export async function retrieveContext(
   query: string,
   session?: ChatSession,
-  limit: number = 5
+  limit: number = 10
 ): Promise<RAGContext> {
   try {
     // 1. 输入验证：确保查询是字符串类型
@@ -334,18 +335,7 @@ export async function retrieveContext(
 
 /**
  * 处理新话题的文档检索函数
- * 执行全新的文档检索和相似度计算，不考虑历史上下文
- *
- * 处理流程：
- * 1. 检查数据库中的笔记数量
- * 2. 获取所有笔记及其向量和关键词
- * 3. 计算每个笔记与查询的相似度
- * 4. 筛选并排序相关笔记
- *
- * @param queryVector - 查询文本的向量表示
- * @param queryKeywords - 查询文本的关键词列表
- * @param limit - 最大返回文档数量
- * @returns 相关笔记列表，按相似度降序排序
+ * 使用 LanceDB 进行向量检索
  */
 async function handleNewTopicRetrieval(
   queryVector: Float32Array,
@@ -353,113 +343,74 @@ async function handleNewTopicRetrieval(
   limit: number
 ): Promise<RAGResult[]> {
   try {
-    // 1. 检查数据库中是否有数据
-    const noteCount = await db('note_embeddings').count('* as count').first()
-    log.info('数据库笔记数量:', noteCount)
+    // 1. 获取 LanceDB 实例
+    const lanceService = await LanceService.getInstance()
+    log.info('开始向量检索:', {
+      keywordsCount: queryKeywords.length,
+      limit
+    })
 
-    // 2. 获取笔记数据
-    // 联表查询获取完整的笔记信息，包括向量、关键词和元数据
-    const notes = await db('note_embeddings')
-      .join('notes', 'note_embeddings.note_id', 'notes.id')
-      .select('notes.*', 'note_embeddings.embedding', 'note_embeddings.keywords', 'notes.metadata')
+    // 2. 使用 LanceDB 的混合搜索功能
+    const searchResults = await lanceService.searchNotes(queryVector, queryKeywords, limit * 2)
 
-    // 3. 计算相似度并处理每个笔记
-    const results = notes
-      .map((note) => {
+    // 打印原始搜索结果，用于调试
+    log.debug('LanceDB 搜索结果:', {
+      totalResults: searchResults.length,
+      scores: searchResults.slice(0, 3).map((r: any) => ({
+        id: r.id,
+        score: r.score,
+        distance: r._distance,
+        keywordMatchCount: r.keywordMatchCount,
+        keywords: r.keywords
+      }))
+    })
+
+    // 3. 获取检索到的笔记完整信息
+    const noteIds = searchResults.map((result: any) => result.id)
+    const notes = await db('notes').whereIn('id', noteIds).select('*')
+
+    // 4. 整合搜索结果和笔记信息
+    const results = searchResults
+      .map((searchResult: any) => {
+        const note = notes.find((n: any) => n.id === searchResult.id)
+        if (!note) return null
+
         try {
-          // 3.1 检查向量是否存在
-          if (!note.embedding) {
-            log.warn('笔记缺少向量:', { noteId: note.id })
-            return null
-          }
-
-          // 3.2 转换笔记向量和关键词
-          const noteVector = blobToFloat32Array(note.embedding)
-          const noteKeywords = note.keywords ? JSON.parse(note.keywords) : []
-
-          // 3.3 定义和解析元数据结构
-          interface NoteMetadata {
-            title?: string
-            summary?: string
-          }
-
-          // 3.4 解析元数据
-          let metadata: NoteMetadata = {}
-          try {
-            metadata = note.metadata ? JSON.parse(note.metadata) : {}
-            log.debug('笔记元数据:', {
-              noteId: note.id,
-              title: metadata.title,
-              rawMetadata: note.metadata?.slice(0, 100) // 调试用，只记录前100字符
-            })
-          } catch (e) {
-            log.error('解析元数据失败:', {
-              noteId: note.id,
-              rawMetadata: note.metadata,
-              error: e
-            })
-          }
-
-          // 3.5 计算综合相似度
-          const similarity = calculateFullSimilarity(queryVector, noteVector, {
-            sourceKeywords: new Set(queryKeywords), // 查询关键词集合
-            targetKeywords: new Set(noteKeywords), // 笔记关键词集合
-            title: metadata.title, // 标题匹配
-            content: note.content, // 内容匹配
-            weights: {
-              // 各维度权重
-              vector: 0.35, // 向量相似度权重
-              keyword: 0.35, // 关键词匹配权重
-              title: 0.2, // 标题匹配权重
-              content: 0.1 // 内容匹配权重
-            }
-          })
-
-          // 3.6 记录详细的相似度计算日志
-          // log.debug('笔记相似度:', {
-          //   noteId: note.id,
-          //   similarity,
-          //   hasTitle: !!note.metadata?.title,
-          //   contentLength: note.content?.length,
-          //   keywordsCount: noteKeywords.length,
-          //   keywords: noteKeywords,
-          //   queryKeywords: queryKeywords,
-          //   title: note.metadata?.title
-          // })
-
-          // 3.7 返回处理结果
+          const metadata = note.metadata ? JSON.parse(note.metadata) : {}
           return {
-            ...note,
-            similarity,
-            title: metadata.title,
-            matchedKeywords: noteKeywords.filter((k: string) => queryKeywords.includes(k))
+            noteId: note.id,
+            address: note.address || '',
+            title: metadata.title || '',
+            content: note.content,
+            similarity: searchResult.score, // 直接使用 LanceDB 计算的分数
+            createdAt: new Date(Number(note.createdAt)).toISOString(),
+            matchedKeywords: searchResult.keywords || []
           }
-        } catch (error) {
-          // 3.8 错误处理
-          log.error('处理笔记相似度失败:', {
-            id: note.id,
-            error,
-            errorMessage: error instanceof Error ? error.message : String(error)
-          })
+        } catch (e) {
+          log.error('解析笔记元数据失败:', { noteId: note.id, error: e })
           return null
         }
       })
-      // 4. 筛选和排序结果
-      .filter((result): result is NonNullable<typeof result> => {
-        // 4.1 筛选条件：非空且相似度超过阈值
-        const isValid = result !== null && result.similarity > RAG_CONFIG.retrieval.minSimilarity
-        return isValid
-      })
-      // 4.2 按相似度降序排序
-      .sort((a, b) => b.similarity - a.similarity)
-      // 4.3 限制返回数量
+      .filter(
+        (result: any): result is NonNullable<typeof result> =>
+          result !== null && result.similarity > 0.1 // 保持较低的过滤阈值
+      )
+      .sort((a: any, b: any) => b.similarity - a.similarity)
       .slice(0, limit)
 
-    // 5. 转换并返回最终结果
-    return results.map(transformDBResult)
+    log.info('向量检索完成:', {
+      queryKeywords,
+      resultCount: results.length,
+      topSimilarities: results.slice(0, 3).map((r: any) => ({
+        similarity: r.similarity,
+        title: r.title,
+        matchedKeywords: r.matchedKeywords
+      }))
+    })
+
+    return results
   } catch (error) {
-    // 6. 错误处理
-    log.error('检索相关文档失败:', error)
+    log.error('向量检索失败:', error)
     throw error
   }
 }

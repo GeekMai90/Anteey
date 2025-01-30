@@ -5,31 +5,9 @@
         <!-- 头部区域 -->
         <div class="assistant-header">
           <div class="title-area">
-            <div
-              v-tooltip.top="{
-                content: isInitializingEmbeddings ? `正在向量化` : '初始化向量库',
-                delay: { show: 1000 }
-              }"
-              class="tool-btn"
-              :class="{ 'is-processing': isInitializingEmbeddings }"
-              @click="handleInitializeEmbeddings"
-            >
+            <div class="tool-btn">
               <div class="icon">
-                <Loading
-                  v-if="isInitializingEmbeddings"
-                  theme="outline"
-                  size="18"
-                  fill="var(--color-primary)"
-                  :strokeWidth="3"
-                  class="loading-icon"
-                />
-                <Robot
-                  v-else
-                  theme="outline"
-                  size="18"
-                  fill="var(--color-primary)"
-                  :strokeWidth="3"
-                />
+                <Robot theme="outline" size="18" fill="var(--color-primary)" :strokeWidth="3" />
               </div>
             </div>
             <span class="title">AI 助手</span>
@@ -299,7 +277,6 @@ import {
   History,
   Close,
   Copy,
-  Loading,
   Check,
   Receiver
 } from '@icon-park/vue-next'
@@ -315,7 +292,7 @@ import { LLM_MODELS } from '@services/rag/llm.config'
 
 // Store
 const assistantStore = useAssistantStore()
-const { messages, isProcessing, isInitializingEmbeddings } = storeToRefs(assistantStore)
+const { messages, isProcessing } = storeToRefs(assistantStore)
 const router = useRouter()
 const uiStore = useUIStore()
 const llmConfigStore = useLLMConfigStore()
@@ -600,16 +577,6 @@ const copyMessageContent = async (content: string) => {
     message.error('复制失败')
   }
 }
-
-const handleInitializeEmbeddings = () => {
-  assistantStore.initializeEmbeddings()
-}
-
-// 获取当前默认模型名称的计算属性
-// const getCurrentModelName = computed(() => {
-//   const defaultConfig = llmConfigStore.configs.find((config) => config.isDefault)
-//   return defaultConfig ? LLM_MODELS[defaultConfig.model].name : '选择模型'
-// })
 
 // 处理模型切换
 const handleModelSwitch = async (modelId: string) => {

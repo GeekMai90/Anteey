@@ -701,12 +701,23 @@ const handlePrevNote = async () => {
 
 // 添加节流控制
 let isLoading = false
+const CLICK_INTERVAL = 5000 // 5秒间隔
 
 const handleNextNote = async () => {
+  // 检查是否在加载中
   if (isLoading) return
+
+  // 检查点击间隔
+  const now = Date.now()
+  if (now - reviewStore.lastClickTime < CLICK_INTERVAL) {
+    message.info('你太快啦，请等待5秒后再试~')
+    return
+  }
 
   try {
     isLoading = true
+    reviewStore.updateLastClickTime(now) // 更新存储在 store 中的时间
+
     const nextNote = await reviewStore.fetchRandomNote()
     if (nextNote) {
       router.push({
@@ -717,7 +728,6 @@ const handleNextNote = async () => {
     }
   } catch (error: any) {
     if (error.message === '操作太频繁，请稍后再试') {
-      // 可以显示一个提示
       message.info('请不要太快点击哦~')
     } else {
       console.error('获取下一条笔记失败:', error)

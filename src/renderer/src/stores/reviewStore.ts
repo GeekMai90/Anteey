@@ -11,6 +11,7 @@ export const useReviewStore = defineStore('review', () => {
   const lastRefreshDate = ref<string>('')
   const enableMarioSound = ref(true) // 默认开启音效
   const enableMarioStyle = ref(true) // 默认启用马里奥按钮样式
+  const lastClickTime = ref(0)
 
   // ==================== 计算属性 ====================
   const currentNote = computed<Note | null>(() => notes.value[currentIndex.value] || null)
@@ -208,6 +209,10 @@ export const useReviewStore = defineStore('review', () => {
   // 在初始化时读取设置
   initializeMarioSettings()
 
+  const updateLastClickTime = (time: number) => {
+    lastClickTime.value = time
+  }
+
   return {
     // 状态
     notes,
@@ -239,6 +244,8 @@ export const useReviewStore = defineStore('review', () => {
     enableMarioSound: computed(() => enableMarioSound.value),
     updateMarioSoundEnabled,
     enableMarioStyle: computed(() => enableMarioStyle.value),
-    updateMarioStyleEnabled
+    updateMarioStyleEnabled,
+    lastClickTime,
+    updateLastClickTime
   }
 })

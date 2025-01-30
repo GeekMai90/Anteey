@@ -20,7 +20,7 @@
         >
           <div class="note-header">
             <div class="note-address">{{ note.address }}</div>
-            <div class="similarity">相似度: {{ similarity.toFixed(1) }}%</div>
+            <div class="similarity">相关度: {{ similarity.toFixed(1) }}%</div>
           </div>
           <div class="note-preview">
             <TipTapRender :content="note.content" />
