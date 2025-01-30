@@ -97,6 +97,7 @@ export const useNoteStore = defineStore(
     const shareNote = ref<any>(null)
     const showShareViewModal = ref(false)
     const shareViewNote = ref<any>(null)
+    const isReviewMode = ref(false)
 
     // 最近更新的状态
     const pendingUpdates = ref(
@@ -276,9 +277,12 @@ export const useNoteStore = defineStore(
           starredNotes.value = [...starredNotes.value]
         }
 
-        // 4. 发送更新事件通知
-        const noteUpdatedBus = useEventBus<Note>('note-updated')
-        noteUpdatedBus.emit(updatedNote)
+        if (!isReviewMode.value) {
+          console.log('noteStores.ts→ 非随机查看模式，发送更新事件通知')
+          // 4. 发送更新事件通知
+          const noteUpdatedBus = useEventBus<Note>('note-updated')
+          noteUpdatedBus.emit(updatedNote)
+        }
 
         // 5. 更新保存状态
         currentNoteSaveStatus.value = 'saved'
@@ -1347,6 +1351,28 @@ export const useNoteStore = defineStore(
       }
     }
 
+    // 在笔记编辑器关闭时更新向量
+    const updateNoteVectorOnClose = async (id: string, content: object) => {
+      try {
+        await window.electronAPI.note.updateNoteVectorOnClose(id, content)
+        console.log('noteStore.ts → 笔记向量更新成功:', id)
+      } catch (error) {
+        console.error('noteStore.ts → 更新笔记向量失败:', error)
+        throw error
+      }
+    }
+
+    // 批量更新向量
+    const batchUpdateVectors = async () => {
+      try {
+        await window.electronAPI.note.batchUpdateVectors()
+        console.log('noteStore.ts → 批量更新向量成功')
+      } catch (error) {
+        console.error('noteStore.ts → 批量更新向量失败:', error)
+        throw error
+      }
+    }
+
     // 返回所有状态和方法
     return {
       // 状态
@@ -1503,7 +1529,13 @@ export const useNoteStore = defineStore(
       handleShareView,
 
       // 获取最近编辑的笔记
-      getRecentEditedNotes
+      getRecentEditedNotes,
+
+      // 新方法
+      updateNoteVectorOnClose,
+      batchUpdateVectors,
+
+      isReviewMode
     }
   },
   {

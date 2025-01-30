@@ -167,11 +167,11 @@ const renderHierarchyTree = () => {
   if (!svgRef.value || !localTreeStore.treeData) return
 
   // 添加日志查看整个树数据
-  console.log('整个树数据:', localTreeStore.treeData)
-  console.log('当前节点:', localTreeStore.treeData.current)
-  console.log('父节点:', localTreeStore.treeData.parent)
-  console.log('兄弟节点:', localTreeStore.treeData.siblings)
-  console.log('子节点:', localTreeStore.treeData.children)
+  // console.log('整个树数据:', localTreeStore.treeData)
+  // console.log('当前节点:', localTreeStore.treeData.current)
+  // console.log('父节点:', localTreeStore.treeData.parent)
+  // console.log('兄弟节点:', localTreeStore.treeData.siblings)
+  // console.log('子节点:', localTreeStore.treeData.children)
 
   const svg = d3.select(svgRef.value)
   svg.selectAll('*').remove()
@@ -290,13 +290,13 @@ const renderHierarchyTree = () => {
 
   // 在渲染各个节点时也添加日志
   // 当前节点
-  console.log('渲染当前节点:', currentNote)
-  console.log('当前节点标题:', getNodeTitle(currentNote))
+  // console.log('渲染当前节点:', currentNote)
+  // console.log('当前节点标题:', getNodeTitle(currentNote))
 
   // 父节点
   if (treeData.parent) {
-    console.log('渲染父节点:', treeData.parent)
-    console.log('父节点标题:', treeData.parent ? getNodeTitle(treeData.parent) : null)
+    // console.log('渲染父节点:', treeData.parent)
+    // console.log('父节点标题:', treeData.parent ? getNodeTitle(treeData.parent) : null)
 
     // 画连接线
     linesGroup
@@ -368,7 +368,7 @@ const renderHierarchyTree = () => {
   if (treeData.siblings.adjacent.length > 0) {
     // 对兄弟节点进行排序，创建新数组避免修改原组
     const sortedSiblings = [...treeData.siblings.adjacent].sort(compareAddresses)
-    console.log('排序后的兄弟节点:', sortedSiblings)
+    // console.log('排序后的兄弟节点:', sortedSiblings)
 
     // 获取当前节点的数字和字母部分
     const currentMatch = currentNote.address
@@ -409,13 +409,13 @@ const renderHierarchyTree = () => {
       }
     }
 
-    console.log('前一个节点:', prevSibling)
-    console.log('后一个节点:', nextSibling)
+    // console.log('前一个节点:', prevSibling)
+    // console.log('后一个节点:', nextSibling)
 
     // 绘制前一个节点（上方）
     if (prevSibling) {
-      console.log('渲染前一个兄弟节点:', prevSibling)
-      console.log('前一个兄弟节点标题:', prevSibling ? getNodeTitle(prevSibling) : null)
+      // console.log('渲染前一个兄弟节点:', prevSibling)
+      // console.log('前一个兄弟节点标题:', prevSibling ? getNodeTitle(prevSibling) : null)
 
       // 画连接线
       linesGroup
@@ -473,8 +473,8 @@ const renderHierarchyTree = () => {
 
     // 绘制后一个节点（下方）
     if (nextSibling) {
-      console.log('渲染后一个兄弟节点:', nextSibling)
-      console.log('后一个兄弟节点标题:', nextSibling ? getNodeTitle(nextSibling) : null)
+      // console.log('渲染后一个兄弟节点:', nextSibling)
+      // console.log('后一个兄弟节点标题:', nextSibling ? getNodeTitle(nextSibling) : null)
 
       // 画连接线
       linesGroup
@@ -545,8 +545,8 @@ const renderHierarchyTree = () => {
 
     // 绘制当前列的子节点
     columnChildren.forEach((child, index) => {
-      console.log(`渲染第 ${index + 1} 个子节点:`, child)
-      console.log(`第 ${index + 1} 个子节点标题:`, getNodeTitle(child))
+      // console.log(`渲染第 ${index + 1} 个子节点:`, child)
+      // console.log(`第 ${index + 1} 个子节点标题:`, getNodeTitle(child))
 
       if (!child || !child.address) {
         console.warn('无效的子节点:', child)

@@ -362,5 +362,25 @@ export const notesApi = {
   // 获取所有已删除的笔记
   getAllDeletedNotes: async (): Promise<Note[]> => {
     return (await ipcRenderer.invoke('get-all-deleted-notes')) as Note[]
+  },
+
+  // 在笔记编辑器关闭时更新向量
+  updateNoteVectorOnClose: async (id: string, content: object): Promise<void> => {
+    try {
+      await ipcRenderer.invoke('update-note-vector-on-close', id, content)
+    } catch (error) {
+      console.error('预加载脚本 → 更新笔记向量失败:', error)
+      throw error
+    }
+  },
+
+  // 批量更新向量
+  batchUpdateVectors: async (): Promise<void> => {
+    try {
+      await ipcRenderer.invoke('batch-update-vectors')
+    } catch (error) {
+      console.error('预加载脚本 → 批量更新向量失败:', error)
+      throw error
+    }
   }
 }

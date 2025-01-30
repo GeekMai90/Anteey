@@ -13,6 +13,7 @@ export async function initDatabase(db: Knex): Promise<void> {
       table.json('content').notNullable()
       table.datetime('createdAt').notNullable().index()
       table.datetime('updatedAt').notNullable().index()
+      table.datetime('lastVectorizedAt').nullable().index()
 
       // 引用关系
       table
@@ -70,6 +71,21 @@ export async function initDatabase(db: Knex): Promise<void> {
       })
 
       console.log('闪卡相关字段添加成功')
+    }
+
+    // 检查是否需要添加 lastVectorizedAt 字段
+    const hasLastVectorizedAtColumn = await db.schema.hasColumn('notes', 'lastVectorizedAt')
+    if (!hasLastVectorizedAtColumn) {
+      await db.schema.alterTable('notes', (table) => {
+        table.datetime('lastVectorizedAt').nullable()
+      })
+
+      // 添加索引
+      await db.schema.table('notes', (table) => {
+        table.index('lastVectorizedAt')
+      })
+
+      console.log('lastVectorizedAt 字段添加成功')
     }
   }
 

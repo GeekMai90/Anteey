@@ -30,7 +30,9 @@ import {
   createNoteReference,
   deleteNoteReference,
   updateNoteTag,
-  getRecentEditedNotes
+  getRecentEditedNotes,
+  updateNoteVectorOnClose,
+  batchUpdateVectors
 } from '../../services/notes/notesService'
 import type {
   GetPaginatedNotesParams,
@@ -362,6 +364,26 @@ export function setupNotesHandlers() {
         success: false,
         error: error instanceof Error ? error.message : String(error)
       }
+    }
+  })
+
+  // 在笔记编辑器关闭时更新向量
+  ipcMain.handle('update-note-vector-on-close', async (_event, id: string, content: object) => {
+    try {
+      await updateNoteVectorOnClose(id, content)
+    } catch (error) {
+      console.error('主进程 → 更新笔记向量失败:', error)
+      throw error
+    }
+  })
+
+  // 批量更新向量
+  ipcMain.handle('batch-update-vectors', async () => {
+    try {
+      await batchUpdateVectors()
+    } catch (error) {
+      console.error('主进程 → 批量更新向量失败:', error)
+      throw error
     }
   })
 }

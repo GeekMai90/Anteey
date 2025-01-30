@@ -14,6 +14,7 @@ export interface Note {
   content: object // 包含标题和正文
   createdAt: Date
   updatedAt: Date
+  lastVectorizedAt?: Date
 
   // 引用关系
   references: References

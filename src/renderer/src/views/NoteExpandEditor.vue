@@ -663,7 +663,9 @@ watch(
 
 // 切换随机回顾模式
 const toggleReviewMode = () => {
+  noteStore.isReviewMode = !noteStore.isReviewMode
   const newValue = !reviewModeStore.isReviewMode
+
   // 先更新路由
   router
     .replace({

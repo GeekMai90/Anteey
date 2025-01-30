@@ -11,8 +11,9 @@ import type {
 import { Knex } from 'knex/types'
 import { FilterRule } from '@shared/types'
 import { db } from '../../db/config'
-import { updateNoteEmbedding } from '../rag/embeddingService'
+
 import { getCurrentAuthState } from '../auth/authService'
+import { updateNoteEmbedding } from '../rag/embeddingService'
 // 辅助函数：将数据库记录转换为 Note 对象
 export function convertToNote(record: any): Note {
   return {
@@ -598,20 +599,6 @@ export async function updateNoteContent(id: string, content: object): Promise<No
           isolationLevel: 'read committed'
         }
       )
-
-      // 2. 异步更新向量，使用 Promise 处理
-      Promise.resolve().then(async () => {
-        try {
-          await updateNoteEmbedding(id, content)
-          console.log(`后端→ 笔记 ${id} 向量更新成功`)
-        } catch (error) {
-          // 记录错误但不影响主流程
-          console.error(`后端→ 笔记 ${id} 向量更新失败:`, error)
-
-          // 可以考虑添加重试队列
-          // await addToRetryQueue({ id, content })
-        }
-      })
 
       return updatedNote
     } catch (error) {
@@ -1699,5 +1686,57 @@ export async function getRecentEditedNotes(): Promise<
   } catch (error) {
     console.error('后端→ 获取最近编辑的笔记失败:', error)
     throw new Error('获取最近编辑的笔记失败')
+  }
+}
+
+/**
+ * 在笔记编辑器关闭时更新向量
+ */
+export async function updateNoteVectorOnClose(id: string, content: object): Promise<void> {
+  try {
+    // 直接更新向量，不需要比较内容
+    await updateNoteEmbedding(id, content)
+
+    // 更新向量化时间
+    await db('notes').where('id', id).update({ lastVectorizedAt: new Date() })
+
+    console.log('笔记向量更新成功:', { noteId: id })
+  } catch (error) {
+    console.error('笔记向量更新失败:', { noteId: id, error })
+  }
+}
+
+/**
+ * 定期检查和更新向量
+ * 可以通过定时任务调用此函数
+ */
+export async function batchUpdateVectors(): Promise<void> {
+  try {
+    // 获取所有需要更新向量的笔记
+    const notesToUpdate = await db('notes')
+      .where('isDeleted', false)
+      .whereRaw('(lastVectorizedAt IS NULL OR updatedAt > lastVectorizedAt)')
+      .select('id', 'content')
+
+    if (notesToUpdate.length === 0) {
+      console.log('没有需要更新向量的笔记')
+      return
+    }
+
+    console.log(`开始批量更新向量，共 ${notesToUpdate.length} 条笔记`)
+
+    // 批量处理
+    for (const note of notesToUpdate) {
+      try {
+        await updateNoteEmbedding(note.id, JSON.parse(note.content))
+        await db('notes').where('id', note.id).update({ lastVectorizedAt: new Date() })
+      } catch (error) {
+        console.error('单条笔记向量更新失败:', { noteId: note.id, error })
+      }
+    }
+
+    console.log('批量更新向量完成')
+  } catch (error) {
+    console.error('批量更新向量失败:', error)
   }
 }

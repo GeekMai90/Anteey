@@ -19,6 +19,17 @@
         </div>
         <div class="name">图片管理</div>
       </div> -->
+      <div class="vector-update setting-dropdown-item" @click.stop="handleVectorUpdate">
+        <div class="icon">
+          <Refresh
+            theme="outline"
+            size="20"
+            fill="var(--color-icon-menu-default)"
+            :strokeWidth="3"
+          />
+        </div>
+        <div class="name">更新向量索引</div>
+      </div>
       <div class="recycle-bin setting-dropdown-item" @click.stop="handleRecycleBinClick">
         <div class="icon">
           <RecycleBin
@@ -47,9 +58,11 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch, computed, nextTick } from 'vue'
-import { RecycleBin, SettingTwo } from '@icon-park/vue-next'
+import { RecycleBin, SettingTwo, Refresh } from '@icon-park/vue-next'
 import { useRouter } from 'vue-router'
 import { useUIStore } from '@renderer/stores/UIStore'
+import { useNoteStore } from '@renderer/stores/noteStore'
+import { message } from '@renderer/utils/message'
 import { computePosition, flip, shift, offset } from '@floating-ui/dom'
 import type { CSSProperties } from 'vue'
 
@@ -64,6 +77,8 @@ const menuStyle = computed<CSSProperties>(() => ({
   top: `${y.value}px`,
   left: `${x.value}px`
 }))
+
+const noteStore = useNoteStore()
 
 const closeSettingDropdown = () => {
   uiStore.closeSettingDropdown()
@@ -83,6 +98,28 @@ const handleSettingsClick = () => {
 //   router.push('/image-manager')
 //   uiStore.closeSettingDropdown()
 // }
+
+// 添加一个变量来保存消息实例
+let vectorUpdateMessageInstance: { close: () => void } | null = null
+const handleVectorUpdate = async () => {
+  // 显示开始更新提示
+  vectorUpdateMessageInstance = message.info('正在更新向量索引...', 3600000)
+
+  // 调用批量更新向量的方法
+  await noteStore.batchUpdateVectors()
+
+  vectorUpdateMessageInstance?.close()
+
+  // setTimeout(() => {
+  //   window.location.reload()
+  // }, 500)
+
+  // 显示更新成功提示
+  message.success('向量索引更新完成')
+
+  // 关闭下拉菜单
+  uiStore.closeSettingDropdown()
+}
 
 const updateDropdownPosition = async () => {
   const button = document.querySelector('.antinet-button') as HTMLElement

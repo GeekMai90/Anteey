@@ -28,6 +28,7 @@ import { getUserSettings } from '@services/user/userSettingsService'
 import { backupService } from '@services/backup/backupService'
 import { debounce } from 'lodash'
 import { LanceService } from '../db/vector/lanceService'
+import { setupScheduledTasks } from './services/scheduledTasks'
 
 // 加载环境变量
 config({
@@ -622,6 +623,9 @@ app.whenReady().then(async () => {
 
     // 应用启动时执行自动备份
     await handleAutoBackup()
+
+    // 设置定时任务
+    setupScheduledTasks()
 
     // try {
     //   const testResult = await testLanceDB()

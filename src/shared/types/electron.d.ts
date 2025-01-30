@@ -203,6 +203,10 @@ export interface ElectronAPI {
         cardType: string
       }>
     >
+    // 在笔记编辑器关闭时更新向量
+    updateNoteVectorOnClose: (id: string, content: object) => Promise<void>
+    // 批量更新向量
+    batchUpdateVectors: () => Promise<void>
   }
   whiteboard: {
     createWhiteboard: (input: CreateWhiteboardInput) => Promise<Whiteboard>
