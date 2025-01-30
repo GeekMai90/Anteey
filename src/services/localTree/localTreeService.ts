@@ -1,7 +1,6 @@
 import { Note } from '@shared/types'
 import { db } from '../../db/config'
 import { KnowledgeTreeNode } from '@shared/types'
-import { convertToNote } from '../notes/notesService'
 
 /**
  * 本地树结果的数据结构
@@ -23,10 +22,6 @@ interface LocalTreeResult {
   children: Note[]
 }
 
-// 添加缓存机制
-const noteCache = new Map<string, Note>()
-const cacheTimeout = 5 * 60 * 1000 // 5分钟缓存
-
 /**
  * 根据笔记 ID 查找笔记
  * @param {string} id - 笔记 ID
@@ -34,22 +29,7 @@ const cacheTimeout = 5 * 60 * 1000 // 5分钟缓存
  */
 export async function findNoteById(id: string) {
   try {
-    // 检查缓存
-    const cachedNote = noteCache.get(id)
-    if (cachedNote) {
-      return cachedNote
-    }
-
     const note = await db('notes').where('id', id).where('isDeleted', false).first()
-
-    if (note) {
-      // 添加到缓存
-      noteCache.set(id, note)
-      // 设置缓存过期
-      setTimeout(() => {
-        noteCache.delete(id)
-      }, cacheTimeout)
-    }
 
     return note || null
   } catch (error) {
@@ -114,20 +94,12 @@ function getAddressLevel(address: string): 'top' | 'second' | 'third' | 'branch'
  */
 export async function getLocalTreeNotes(noteId: string): Promise<LocalTreeResult> {
   try {
-    // 使用单次查询获取所有需要的笔记
-    const [currentNote, allNotes] = await Promise.all([
-      findNoteById(noteId),
-      db('notes').where('isDeleted', false).select('*')
-    ])
-
+    const currentNote = await findNoteById(noteId)
     if (!currentNote) throw new Error('笔记不存在')
+    // console.log('当前笔记:', currentNote)
 
-    // 将笔记添加到缓存
-    allNotes.forEach((note) => {
-      if (!noteCache.has(note.id)) {
-        noteCache.set(note.id, note)
-      }
-    })
+    const allNotes = await db('notes').where('isDeleted', false).select('*')
+    // console.log('所有笔记:', allNotes)
 
     const result: LocalTreeResult = {
       current: currentNote,
@@ -175,7 +147,7 @@ export async function getLocalTreeNotes(noteId: string): Promise<LocalTreeResult
 
       // 必须是相同层级
       if (noteLevel !== level) {
-        // console.log('层级不匹配，跳过:', note.address)
+        console.log('层级不匹配，跳过:', note.address)
         return false
       }
 
@@ -213,14 +185,14 @@ export async function getLocalTreeNotes(noteId: string): Promise<LocalTreeResult
       const aMatch = aLast.match(/^(\d+)([a-z]*)$/)
       const bMatch = bLast.match(/^(\d+)([a-z]*)$/)
 
-      // console.log('排序比较:', {
-      //   aAddress: a.address,
-      //   bAddress: b.address,
-      //   aLast,
-      //   bLast,
-      //   aMatch,
-      //   bMatch
-      // })
+      console.log('排序比较:', {
+        aAddress: a.address,
+        bAddress: b.address,
+        aLast,
+        bLast,
+        aMatch,
+        bMatch
+      })
 
       if (!aMatch || !bMatch) return 0
 
@@ -587,99 +559,5 @@ function getNextLevel(level: 'top' | 'second' | 'third' | 'branch'): number {
       return 4
     default:
       return 0
-  }
-}
-
-// 添加事务和错误处理
-async function withTransaction<T>(callback: (trx: any) => Promise<T>): Promise<T> {
-  const trx = await db.transaction()
-  try {
-    const result = await callback(trx)
-    await trx.commit()
-    return result
-  } catch (error) {
-    await trx.rollback()
-    throw error
-  }
-}
-
-// 获取局部知识树数据
-export async function getLocalTree(noteId: string) {
-  try {
-    return await withTransaction(async (trx) => {
-      // 获取当前笔记
-      const currentNote = await trx('notes')
-        .where('id', noteId)
-        .andWhere('isDeleted', false)
-        .first()
-
-      if (!currentNote) return null
-
-      // 获取父级笔记
-      const parentNotes = await trx('notes')
-        .where('address', '<', currentNote.address)
-        .andWhere('isDeleted', false)
-        .orderBy('address', 'desc')
-        .limit(1)
-        .select('*')
-
-      // 获取同级笔记
-      const siblingNotes = await trx('notes')
-        .whereRaw('length(address) = ?', [currentNote.address.length])
-        .andWhere('address', '!=', currentNote.address)
-        .andWhere('isDeleted', false)
-        .orderBy('address')
-        .select('*')
-
-      // 获取子级笔记
-      const childNotes = await trx('notes')
-        .where('address', 'like', `${currentNote.address}-%`)
-        .andWhere('isDeleted', false)
-        .orderBy('address')
-        .select('*')
-
-      return {
-        current: convertToNote(currentNote),
-        parents: parentNotes.map(convertToNote),
-        siblings: siblingNotes.map(convertToNote),
-        children: childNotes.map(convertToNote)
-      }
-    })
-  } catch (error) {
-    console.error('获取局部知识树失败:', error)
-    throw error
-  }
-}
-
-// 获取带引用关系的局部知识树数据
-export async function getLocalTreeWithRefs(noteId: string) {
-  try {
-    return await withTransaction(async (trx) => {
-      // 获取基本的局部知识树数据
-      const treeData = await getLocalTree(noteId)
-      if (!treeData) return null
-
-      // 获取引用关系
-      const incomingRefs = await trx('note_references')
-        .join('notes', 'note_references.source_note_id', 'notes.id')
-        .where('note_references.target_note_id', noteId)
-        .andWhere('notes.isDeleted', false)
-        .select('notes.*')
-
-      const outgoingRefs = await trx('note_references')
-        .join('notes', 'note_references.target_note_id', 'notes.id')
-        .where('note_references.source_note_id', noteId)
-        .andWhere('notes.isDeleted', false)
-        .select('notes.*')
-
-      return {
-        ...treeData,
-        incomingRefs: incomingRefs.map(convertToNote),
-        outgoingRefs: outgoingRefs.map(convertToNote)
-      }
-    })
-  } catch (error) {
-    console.error('获取带引用关系的局部知识树失败:', error)
-    throw error
   }
 }

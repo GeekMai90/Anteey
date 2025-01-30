@@ -27,7 +27,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, watch, onBeforeUnmount } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { BranchTwo } from '@icon-park/vue-next'
 import { useRouter } from 'vue-router'
 import { useLocalTreeStore } from '@renderer/stores/localTreeStore'
@@ -71,20 +71,12 @@ const localTreeStore = useLocalTreeStore()
 const isCollapsed = ref(props.isCollapsed ?? true)
 const svgRef = ref<SVGElement>()
 
-// 添加 simulation 变量声明
-let simulation: d3.Simulation<TreeNode, undefined> | null = null
-
 const togglePanel = () => {
   isCollapsed.value = !isCollapsed.value
 }
 
 const renderGraph = () => {
   if (!svgRef.value || !localTreeStore.treeDataWithRefs) return
-
-  // 如果存在之前的 simulation，先停止它
-  if (simulation) {
-    simulation.stop()
-  }
 
   const svg = d3.select(svgRef.value)
   const width = svgRef.value.clientWidth || 800
@@ -216,7 +208,7 @@ const renderGraph = () => {
   })
 
   // 创建力导向图布局
-  simulation = d3
+  const simulation = d3
     .forceSimulation<TreeNode>()
     .force(
       'link',
@@ -453,7 +445,6 @@ const renderGraph = () => {
     })
 
   function dragstarted(event: d3.D3DragEvent<SVGGElement, TreeNode, TreeNode>) {
-    if (!simulation) return
     if (!event.active) simulation.alphaTarget(0.3).restart()
     event.subject.fx = event.subject.x
     event.subject.fy = event.subject.y
@@ -465,7 +456,6 @@ const renderGraph = () => {
   }
 
   function dragended(event: d3.D3DragEvent<SVGGElement, TreeNode, TreeNode>) {
-    if (!simulation) return
     if (!event.active) simulation.alphaTarget(0)
     event.subject.fx = null
     event.subject.fy = null
@@ -568,88 +558,32 @@ const handleNodeMouseLeave = () => {
   previewNoteId.value = null
 }
 
-// 添加清理函数
-const cleanup = () => {
-  if (svgRef.value) {
-    d3.select(svgRef.value).selectAll('*').remove()
-  }
-  // 清理 simulation
-  if (simulation) {
-    simulation.stop()
-    simulation = null
-  }
-}
-
-// 组件卸载时清理
-onBeforeUnmount(() => {
-  try {
-    // 停止模拟
-    if (simulation) {
-      simulation.stop()
-      simulation = null
-    }
-
-    // 清理 SVG
-    if (svgRef.value) {
-      const svg = d3.select(svgRef.value)
-      svg.selectAll('*').remove()
-      svg.remove()
-    }
-
-    // 清理数据
-    localTreeStore.$reset()
-  } catch (error) {
-    console.error('清理局部图谱资源失败:', error)
-  }
-})
-
-// 监听数据变化时重新渲染
 watch(
   () => localTreeStore.treeDataWithRefs,
-  (newData) => {
-    if (newData && !isCollapsed.value) {
-      console.log('局部图谱展开并获取数据', newData)
-      // 只在有数据且展开状态时渲染
-      renderGraph()
-    }
-  }
+  () => renderGraph()
 )
 
-// 监听 props 变化时也要清理
 watch(
   () => props.noteId,
   async (newId) => {
-    // 确保 simulation 存在时才调用 stop
-    if (simulation) {
-      simulation.stop()
-    }
-    cleanup()
-    if (newId && !props.isCollapsed) {
-      // 只在展开状态时获取数据
+    if (newId) {
       await localTreeStore.fetchLocalTreeWithRefs(newId)
-      // 数据获取后重新渲染
-      renderGraph()
     }
-  }
+  },
+  { immediate: true }
 )
 
-// 监听折叠状态变化
 watch(
   () => props.isCollapsed,
-  async (newValue) => {
+  (newValue) => {
     if (newValue !== undefined) {
       isCollapsed.value = newValue
-      // 在展开时获取数据并渲染
-      if (!newValue && props.noteId) {
-        await localTreeStore.fetchLocalTreeWithRefs(props.noteId)
-        renderGraph()
-      }
     }
   }
 )
 
 onMounted(() => {
-  // 不再在这里调用 renderGraph()
+  renderGraph()
 })
 </script>
 
