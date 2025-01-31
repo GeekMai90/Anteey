@@ -25,6 +25,10 @@
       @nodeClick="onNodeClick"
       @nodeDragStop="onNodeDragStop"
       @edge-double-click="handleEdgeDoubleClick"
+      @edge-click="onEdgeClick"
+      @dragover="onDragOver"
+      @dragleave="onDragLeave"
+      @drop="onDrop"
     >
       <Background />
       <Controls />
@@ -57,6 +61,29 @@
           @keyup.esc="cancelEditing"
         />
       </div>
+
+      <!-- 拖拽时的背景提示 -->
+      <div class="drag-overlay" :class="{ active: isDragOver }">
+        <p>拖放到任意处添加卡片</p>
+      </div>
+
+      <!-- 底部工具栏 -->
+      <div class="bottom-toolbar">
+        <div class="tool-buttons">
+          <div class="tool-button" draggable="true" @dragstart="onDragStart($event, 'text')">
+            <span class="icon">📝</span>
+            <span class="label">文字卡片</span>
+          </div>
+          <div class="tool-button">
+            <span class="icon">🔗</span>
+            <span class="label">连接</span>
+          </div>
+          <div class="tool-button">
+            <span class="icon">📌</span>
+            <span class="label">标记</span>
+          </div>
+        </div>
+      </div>
     </VueFlow>
   </div>
 </template>
@@ -71,6 +98,7 @@ import TextNode from './nodes/TextNode.vue'
 import CustomEdge from './custom/CustomEdge.vue'
 import AppToolbar from '@renderer/components/layout/AppToolbar.vue'
 import { v4 as uuidv4 } from 'uuid'
+import useDragAndDrop from './composables/useDragAndDrop'
 
 // 当前笔记ID
 const currentNoteId = ref('')
@@ -81,6 +109,7 @@ const edges = ref([])
 // 设置默认边的样式
 const defaultEdgeOptions = {
   type: 'custom',
+  selected: false,
   animated: false
 }
 
@@ -95,6 +124,8 @@ const editingEdgeId = ref(null)
 const edgeLabelEditorStyle = ref({})
 const labelInputRef = ref(null)
 
+const { onDragStart, onDragOver, onDrop, onDragLeave, isDragOver } = useDragAndDrop()
+
 // 添加文字节点
 const addTextNode = () => {
   const newNode = {
@@ -107,8 +138,10 @@ const addTextNode = () => {
       toolbarPosition: Position.Top,
       toolbarVisible: false,
       action: null,
-      height: 0,
-      width: 0
+      width: 250,
+      height: 50,
+      backgroundColor: 'transparent',
+      borderColor: 'var(--color-border)'
     },
     draggable: true
   }
@@ -138,10 +171,20 @@ const onConnect = (params) => {
     sourceHandle: params.sourceHandle,
     targetHandle: params.targetHandle,
     type: 'custom',
-    animated: false
+    animated: false,
+    selected: false
   }
   edges.value.push(newEdge)
   addEdges([newEdge])
+}
+
+// 添加边的选中状态处理
+const onEdgeClick = (event, edge) => {
+  // 更新边的选中状态
+  edges.value = edges.value.map((e) => ({
+    ...e,
+    selected: e.id === edge.id
+  }))
 }
 
 // 节点变化处理
@@ -188,7 +231,7 @@ const handleEdgeDoubleClick = ({ edge }) => {
     position: 'absolute',
     left: `${midX * zoom + viewportX - containerRect.left}px`,
     top: `${midY * zoom + viewportY - containerRect.top}px`,
-    transform: 'translate(120%, -20%)',
+    transform: 'translate(120%, 120%)',
     zIndex: 1000
   }
 
@@ -279,40 +322,74 @@ onMounted(() => {
     }
   }
 }
-.vue-flow__node-toolbar {
+
+.drag-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(67, 97, 238, 0.05);
   display: flex;
-  gap: 0.5rem;
   align-items: center;
-  background-color: #2d3748;
+  justify-content: center;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s;
+
+  &.active {
+    opacity: 1;
+  }
+
+  p {
+    padding: 16px 24px;
+    background: var(--color-bg-primary);
+    border-radius: 8px;
+    box-shadow: var(--shadow-card);
+    color: var(--color-primary);
+  }
+}
+
+.bottom-toolbar {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 4;
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
   padding: 8px;
-  border-radius: 8px;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
-}
+  box-shadow: var(--shadow-card);
 
-.vue-flow__node-toolbar button {
-  background: #4a5568;
-  color: white;
-  border: none;
-  padding: 0.5rem 1rem;
-  border-radius: 8px;
-  cursor: pointer;
-}
+  .tool-buttons {
+    display: flex;
+    gap: 12px;
 
-.vue-flow__node-toolbar button.selected {
-  background: #2563eb;
-}
+    .tool-button {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      padding: 8px 16px;
+      border-radius: 6px;
+      cursor: grab;
+      user-select: none;
+      transition: background-color 0.2s;
 
-.vue-flow__node-toolbar button:hover {
-  background: #2563eb;
-}
+      &:hover {
+        background: var(--color-hover);
+      }
 
-.vue-flow__node-menu {
-  padding: 16px 24px;
-  border-radius: 8px;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
-}
+      .icon {
+        font-size: 24px;
+      }
 
-.vue-flow__node-menu.selected {
-  box-shadow: 0 0 0 2px #2563eb;
+      .label {
+        font-size: 12px;
+        color: var(--color-text);
+      }
+    }
+  }
 }
 </style>

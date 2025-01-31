@@ -28,6 +28,7 @@ import { llmConfigApi } from './api/llmConfigApi'
 import { ragApi } from './api/ragApi'
 import { similarNotesApi } from './api/similarNotesApi'
 import { dictionaryApi } from './api/dictionaryApi'
+import { mindboardApi } from './api/mindboardApi'
 // 添加日志 API
 contextBridge.exposeInMainWorld('electronLog', {
   info: (...args: any[]) => ipcRenderer.send('renderer-log', { level: 'info', args }),
@@ -151,5 +152,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
   dictionary: {
     ...dictionaryApi
+  },
+  mindboard: {
+    ...mindboardApi
   }
 })

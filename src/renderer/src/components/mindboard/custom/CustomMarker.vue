@@ -11,12 +11,12 @@ defineProps({
   stroke: {
     type: String,
     required: false,
-    default: '#b1b1b7'
+    default: 'var(--color-border)'
   },
   fill: {
     type: String,
     required: false,
-    default: '#b1b1b7'
+    default: 'var(--color-border)'
   },
   strokeWidth: {
     type: Number,

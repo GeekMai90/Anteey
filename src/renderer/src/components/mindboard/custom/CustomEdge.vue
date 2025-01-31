@@ -48,6 +48,10 @@ const props = defineProps({
   data: {
     type: Object,
     required: false
+  },
+  selected: {
+    type: Boolean,
+    default: false
   }
 })
 
@@ -57,6 +61,13 @@ const path = computed(() => getBezierPath(props))
 
 const sourceMarkerId = computed(() => `${props.id}-source-marker`)
 const targetMarkerId = computed(() => `${props.id}-target-marker`)
+
+const edgeWidth = computed(() => {
+  if (props.selected) {
+    return '3px' // 边被选中时的颜色
+  }
+  return '2px'
+})
 
 const markerColor = computed(() => {
   const sourceNode = findNode(props.source)
@@ -70,7 +81,7 @@ const markerColor = computed(() => {
     return '#00c8a8'
   }
 
-  return '#4a5568'
+  return '#C0C0C0'
 })
 </script>
 
@@ -89,6 +100,10 @@ export default {
     :label="label"
     :label-x="path[1]"
     :label-y="path[2]"
+    :style="{
+      strokeWidth: edgeWidth,
+      stroke: markerColor // 添加这行，使用相同的颜色
+    }"
     :label-style="{
       fill: '#4a5568',
       fontSize: '12px'
@@ -107,9 +122,9 @@ export default {
     type="circle"
     :stroke="markerColor"
     :fill="markerColor"
-    :stroke-width="2"
-    :width="20"
-    :height="20"
+    :stroke-width="1"
+    :width="8"
+    :height="8"
   />
 
   <!-- 终点箭头标记 -->
@@ -118,8 +133,8 @@ export default {
     type="arrow"
     :stroke="markerColor"
     :fill="markerColor"
-    :stroke-width="2"
-    :width="20"
-    :height="20"
+    :stroke-width="1"
+    :width="12"
+    :height="12"
   />
 </template>

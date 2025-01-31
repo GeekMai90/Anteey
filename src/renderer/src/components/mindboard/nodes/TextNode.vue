@@ -1,21 +1,37 @@
 <template>
   <div
     class="text-node"
-    :class="{ selected: selected }"
+    :class="{ selected: selected, resizing: isResizing }"
+    :style="nodeStyle"
     @click="handleNodeClick"
     @dblclick="handleDoubleClick"
   >
+    <div class="text-node-background">
+      <div class="background-base"></div>
+      <div class="background-theme" :style="{ backgroundColor: nodeStyle.backgroundColor }"></div>
+    </div>
+
     <NodeToolbar :is-visible="selected" :position="data.toolbarPosition || Position.Top">
       <div class="toolbar-buttons">
-        <button
-          v-for="action in actions"
-          :key="action"
-          type="button"
-          :class="{ selected: action === data.action }"
-          @click="updateNodeData(id, { action })"
-        >
-          {{ action }}
-        </button>
+        <!-- 合并后的颜色选择器 -->
+        <div class="color-picker-wrapper">
+          <button title="卡片颜色" @click="showColorPicker = !showColorPicker">🎨</button>
+          <div v-if="showColorPicker" class="color-picker-panel">
+            <div
+              v-for="color in themeColors"
+              :key="color.border"
+              class="color-item"
+              :style="{
+                backgroundColor: color.bg,
+                borderColor: color.border
+              }"
+              @click="handleColorSelect(color)"
+            />
+          </div>
+        </div>
+
+        <!-- 添加聚焦按钮 -->
+        <button title="聚焦节点" @click="handleFocus">🔍</button>
         <button @click="handleDelete">🗑️</button>
         <button @click="handleEdit">✏️</button>
       </div>
@@ -38,14 +54,18 @@
         @click="handleEditorClick"
       />
     </div>
+
+    <NodeResizer :width="250" min-width="250" min-height="50" />
   </div>
 </template>
 
 <script setup>
-import { ref, watch, nextTick } from 'vue'
+import { ref, watch, nextTick, onMounted, onUnmounted } from 'vue'
 import { Position, Handle, useVueFlow } from '@vue-flow/core'
 import { NodeToolbar } from '@vue-flow/node-toolbar'
 import TipTapEditor from '@renderer/components/tiptap/TipTapEditor.vue'
+import { NodeResizer } from '@vue-flow/node-resizer'
+// import '@vue-flow/node-resizer/dist/style.css'
 
 const props = defineProps({
   id: {
@@ -66,14 +86,54 @@ const props = defineProps({
   }
 })
 
+// 定义工具栏按钮
+// const actions = ['👍', '👎', '⭐'] // 你可以根据需要修改这些图标
+
 const isEditing = ref(false)
+const isResizing = ref(false)
+const nodeStyle = ref({
+  width: props.data.width || '250px',
+  height: props.data.height || '50px',
+  backgroundColor: props.data.backgroundColor || 'var(--color-bg-primary)',
+  borderColor: props.data.borderColor || 'var(--color-border)'
+})
 const editor = ref(null)
 const nodeContent = ref(props.data.content || '')
 const { updateNodeData, removeNodes } = useVueFlow()
+const vueFlowInstance = useVueFlow()
 
 const emit = defineEmits(['update'])
 
-const actions = ['👎', '✋', '👍']
+// 颜色选择器状态
+const showColorPicker = ref(false)
+
+// 主题颜色配置
+const themeColors = [
+  {
+    border: 'var(--color-border)',
+    bg: 'transparent'
+  },
+  {
+    border: 'var(--color-primary)',
+    bg: 'rgba(var(--color-primary-rgb), 0.1)'
+  },
+  {
+    border: 'var(--color-yellow)',
+    bg: 'rgba(var(--color-yellow-rgb), 0.1)'
+  },
+  {
+    border: 'var(--color-blue)',
+    bg: 'rgba(var(--color-blue-rgb), 0.1)'
+  },
+  {
+    border: 'var(--color-pink)',
+    bg: 'rgba(var(--color-pink-rgb), 0.1)'
+  },
+  {
+    border: 'var(--color-danger)',
+    bg: 'rgba(var(--color-danger-rgb), 0.1)'
+  }
+]
 
 // 处理编辑器点击
 const handleEditorClick = (event) => {
@@ -148,6 +208,44 @@ const handleEdit = () => {
   enterEditMode()
 }
 
+// 处理颜色选择
+const handleColorSelect = (color) => {
+  nodeStyle.value.borderColor = color.border
+  nodeStyle.value.backgroundColor = color.bg
+  updateNodeData(props.id, {
+    borderColor: color.border,
+    backgroundColor: color.bg
+  })
+  showColorPicker.value = false
+}
+
+// 点击外部关闭颜色选择器
+const handleClickOutside = (event) => {
+  const target = event.target
+  if (!target.closest('.color-picker-wrapper')) {
+    showColorPicker.value = false
+  }
+}
+
+// 处理聚焦
+const handleFocus = () => {
+  const node = vueFlowInstance.findNode(props.id)
+  if (node) {
+    vueFlowInstance.setCenter(node.position.x + 100, node.position.y + 100, {
+      duration: 800,
+      zoom: 1
+    })
+  }
+}
+
+onMounted(() => {
+  document.addEventListener('click', handleClickOutside)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutside)
+})
+
 watch(
   () => props.data.content,
   (newContent) => {
@@ -170,48 +268,85 @@ watch(
 </script>
 
 <style lang="scss" scoped>
-.vue-flow__node-toolbar {
-  display: flex;
-  gap: 0.5rem;
-  align-items: center;
-  background-color: #2d3748;
-  padding: 8px;
-  border-radius: 8px;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
-}
-
-.vue-flow__node-toolbar button {
-  background: #4a5568;
-  color: white;
-  border: none;
-  padding: 0.5rem 1rem;
-  border-radius: 8px;
-  cursor: pointer;
-
-  &:hover {
-    background: #2563eb;
-  }
-
-  &.selected {
-    background: #2563eb;
-  }
-}
 .text-node {
-  background: var(--color-bg-primary);
+  position: relative;
   border: 1px solid var(--color-border);
   border-radius: 8px;
-  width: 300px;
-  min-width: 300px;
-  max-width: 400px;
   padding: 12px;
-  position: relative;
   cursor: grab;
   box-shadow: var(--shadow-card);
+  display: flex;
+  flex-direction: column;
+
+  // 背景层
+  .text-node-background {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    border-radius: 7px;
+    pointer-events: none;
+    z-index: -1;
+    overflow: hidden; // 确保背景不会溢出圆角
+
+    // 白色底层背景
+    .background-base {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: white;
+    }
+
+    // 半透明主题色背景
+    .background-theme {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+    }
+  }
 
   &.selected {
     border: 2px solid var(--color-primary);
+    padding: 11px;
+
+    .text-node-background {
+      border-radius: 6px;
+    }
   }
 
+  // 内容区域
+  .text-node-content {
+    cursor: inherit;
+    min-height: 26px;
+    max-height: 400px;
+    overflow-y: auto;
+    width: 100%;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    position: relative; // 确保在背景层之上
+
+    &:has(:deep(.ProseMirror[contenteditable='true'])) {
+      cursor: text;
+    }
+
+    :deep(.ProseMirror) {
+      cursor: grab;
+      flex: 1;
+      min-height: 26px;
+
+      &[contenteditable='true'] {
+        cursor: text;
+      }
+    }
+  }
+
+  // 连接点样式
   :deep(.handle) {
     width: 10px;
     height: 10px;
@@ -220,6 +355,7 @@ watch(
     border-radius: 50%;
     opacity: 0;
     transition: opacity 0.2s;
+    z-index: 2; // 确保在最上层
 
     &.top {
       top: -5px;
@@ -238,26 +374,6 @@ watch(
   &:hover {
     :deep(.handle) {
       opacity: 1;
-    }
-  }
-
-  .text-node-content {
-    cursor: inherit;
-    min-height: 100px;
-    max-height: 400px;
-    overflow-y: auto;
-    width: 100%;
-
-    &:has(:deep(.ProseMirror[contenteditable='true'])) {
-      cursor: text;
-    }
-
-    :deep(.ProseMirror) {
-      cursor: grab;
-
-      &[contenteditable='true'] {
-        cursor: text;
-      }
     }
   }
 }
@@ -288,5 +404,154 @@ watch(
 :deep(.tiptap) {
   padding-left: 8px;
   padding-right: 8px;
+  min-height: 26px; // 添加这行
+  flex: 1; // 添加这行
+
+  p {
+    margin-block-start: 4px;
+    margin-block-end: 4px;
+  }
+}
+
+// 工具栏样式
+.vue-flow__node-toolbar {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  background-color: #2d3748;
+  padding: 8px;
+  border-radius: 8px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+}
+
+.vue-flow__node-toolbar button {
+  background: #4a5568;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  cursor: pointer;
+
+  &:hover {
+    background: #2563eb;
+  }
+
+  &.selected {
+    background: #2563eb;
+  }
+}
+:deep(.vue-flow__resize-control) {
+  position: absolute;
+}
+
+:deep(.vue-flow__resize-control.left),
+:deep(.vue-flow__resize-control.right) {
+  cursor: ew-resize;
+}
+
+:deep(.vue-flow__resize-control.top),
+:deep(.vue-flow__resize-control.bottom) {
+  cursor: ns-resize;
+}
+
+:deep(.vue-flow__resize-control.top.left),
+:deep(.vue-flow__resize-control.bottom.right) {
+  cursor: nwse-resize;
+}
+
+:deep(.vue-flow__resize-control.bottom.left),
+:deep(.vue-flow__resize-control.top.right) {
+  cursor: nesw-resize;
+}
+
+/* handle styles */
+:deep(.vue-flow__resize-control.handle) {
+  width: 4px;
+  height: 4px;
+  border: 1px solid var(--color-primary);
+  border-radius: 1px;
+  background-color: var(--color-primary);
+  transform: translate(-50%, -50%);
+}
+:deep(.vue-flow__resize-control.handle.top.left),
+:deep(.vue-flow__resize-control.handle.top.right),
+:deep(.vue-flow__resize-control.handle.bottom.left),
+:deep(.vue-flow__resize-control.handle.bottom.right) {
+  display: none; // 隐藏四个角的控制点
+}
+
+/* line styles */
+:deep(.vue-flow__resize-control.line) {
+  border-color: transparent;
+  border-width: 0;
+  border-style: solid;
+}
+
+:deep(.vue-flow__resize-control.line.left),
+:deep(.vue-flow__resize-control.line.right) {
+  width: 1px;
+  transform: translate(-50%, 0);
+  top: 0;
+  height: 100%;
+}
+
+:deep(.vue-flow__resize-control.line.left) {
+  left: 0;
+  border-left-width: 1px;
+}
+:deep(.vue-flow__resize-control.line.right) {
+  left: 100%;
+  border-right-width: 1px;
+}
+
+:deep(.vue-flow__resize-control.line.top),
+:deep(.vue-flow__resize-control.line.bottom) {
+  height: 1px;
+  transform: translate(0, -50%);
+  left: 0;
+  width: 100%;
+}
+
+:deep(.vue-flow__resize-control.line.top) {
+  top: 0;
+  border-top-width: 1px;
+}
+:deep(.vue-flow__resize-control.line.bottom) {
+  border-bottom-width: 1px;
+  top: 100%;
+}
+
+.color-picker-wrapper {
+  position: relative;
+  display: inline-block;
+
+  .color-picker-panel {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    margin-top: 4px;
+    padding: 8px;
+    background: var(--color-bg-primary);
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    box-shadow: var(--shadow-card);
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 4px;
+    z-index: 1000;
+
+    .color-item {
+      width: 24px;
+      height: 24px;
+      border-radius: 4px;
+      border: 2px solid; // 使用 borderColor 来显示主题色
+      cursor: pointer;
+      transition: transform 0.2s;
+
+      &:hover {
+        transform: scale(1.1);
+      }
+    }
+  }
 }
 </style>

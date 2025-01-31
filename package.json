@@ -100,6 +100,7 @@
     "@vue-flow/controls": "^1.1.2",
     "@vue-flow/core": "^1.41.2",
     "@vue-flow/minimap": "^1.5.2",
+    "@vue-flow/node-resizer": "^1.4.0",
     "@vue-flow/node-toolbar": "^1.1.0",
     "@vueuse/core": "^11.0.3",
     "@xenova/transformers": "^2.17.2",

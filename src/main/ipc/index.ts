@@ -28,6 +28,7 @@ import { setupLLMConfigHandlers } from './llmConfigIpcHandlers'
 import { setupRAGHandlers } from './ragIpcHandlers'
 import { setupSimilarNotesHandlers } from './similarNotesIpcHandlers'
 import { setupDictionaryHandlers } from './dictionaryIpcHandlers'
+import { setupMindboardHandlers } from './mindboardIpcHandlers'
 export function setupIpcHandlers(): void {
   setupNotesHandlers()
   setupWhiteboardHandlers()
@@ -59,4 +60,5 @@ export function setupIpcHandlers(): void {
   setupRAGHandlers()
   setupSimilarNotesHandlers()
   setupDictionaryHandlers()
+  setupMindboardHandlers()
 }
