@@ -382,7 +382,8 @@ const menuItems = computed(() => {
     ...(appearanceStore.settings?.enableWhiteboard
       ? [{ name: '思维板', path: '/whiteboard', icon: Workbench }]
       : []),
-    { name: '手绘板', path: '/ed-whiteboard', icon: HandPaintedPlate }
+    { name: '手绘板', path: '/ed-whiteboard', icon: HandPaintedPlate },
+    { name: '思维板', path: '/mindboard', icon: HandPaintedPlate }
   ]
   return baseItems
 })

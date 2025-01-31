@@ -1190,10 +1190,8 @@ const editorExtensions = computed(() => {
       color: 'var(--color-primary)',
       width: 2
     }),
-    // Placeholder.configure({
-    //   placeholder: '记录考，或输入 / 命令'
-    // }),
     Placeholder.configure({
+      showOnlyWhenEditable: false, // 在非编辑状态下也显示占位符
       placeholder: ({ node }) => {
         if (node.type.name === 'heading') {
           return '输入标题'

@@ -159,6 +159,11 @@ const routes = [
     name: 'DictionaryManage',
     path: '/dictionary-manage',
     component: () => import('../views/DictionaryManageView.vue')
+  },
+  {
+    name: 'cardboxMindboard',
+    path: '/mindboard', // 思维板
+    component: () => import('../components/mindboard/MindboardDetail.vue')
   }
 ]
 
