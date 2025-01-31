@@ -3,7 +3,6 @@
     class="text-node"
     :class="{ selected: selected, resizing: isResizing }"
     :style="nodeStyle"
-    @click="handleNodeClick"
     @dblclick="handleDoubleClick"
   >
     <div class="text-node-background">
@@ -15,7 +14,13 @@
       <div class="toolbar-buttons">
         <!-- 合并后的颜色选择器 -->
         <div class="color-picker-wrapper">
-          <button title="卡片颜色" @click="showColorPicker = !showColorPicker">🎨</button>
+          <button
+            v-tooltip.top="{ content: '卡片颜色', delay: { show: 1000 } }"
+            title="卡片颜色"
+            @click="showColorPicker = !showColorPicker"
+          >
+            <Platte theme="outline" size="18" fill="var(--color-icon-default)" :stroke-width="3" />
+          </button>
           <div v-if="showColorPicker" class="color-picker-panel">
             <div
               v-for="color in themeColors"
@@ -31,9 +36,22 @@
         </div>
 
         <!-- 添加聚焦按钮 -->
-        <button title="聚焦节点" @click="handleFocus">🔍</button>
-        <button @click="handleDelete">🗑️</button>
-        <button @click="handleEdit">✏️</button>
+        <button
+          v-tooltip.top="{ content: '聚焦卡片', delay: { show: 1000 } }"
+          title="聚焦节点"
+          @click="handleFocus"
+        >
+          <Aiming theme="outline" size="18" fill="var(--color-icon-default)" :stroke-width="3" />
+        </button>
+        <button
+          v-tooltip.top="{ content: '删除卡片', delay: { show: 1000 } }"
+          @click="handleDelete"
+        >
+          <Delete theme="outline" size="18" fill="var(--color-icon-default)" :stroke-width="3" />
+        </button>
+        <button v-tooltip.top="{ content: '编辑卡片', delay: { show: 1000 } }" @click="handleEdit">
+          <Edit theme="outline" size="18" fill="var(--color-icon-default)" :stroke-width="3" />
+        </button>
       </div>
     </NodeToolbar>
 
@@ -55,13 +73,14 @@
       />
     </div>
 
-    <NodeResizer :width="250" min-width="250" min-height="50" />
+    <NodeResizer :width="250" :min-width="250" :min-height="50" />
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, watch, nextTick, onMounted, onUnmounted } from 'vue'
 import { Position, Handle, useVueFlow } from '@vue-flow/core'
+import { Aiming, Platte, Delete, Edit } from '@icon-park/vue-next'
 import { NodeToolbar } from '@vue-flow/node-toolbar'
 import TipTapEditor from '@renderer/components/tiptap/TipTapEditor.vue'
 import { NodeResizer } from '@vue-flow/node-resizer'
@@ -115,40 +134,38 @@ const themeColors = [
   },
   {
     border: 'var(--color-primary)',
-    bg: 'rgba(var(--color-primary-rgb), 0.1)'
+    bg: 'rgba(var(--color-primary-rgb), 0.04)'
   },
   {
     border: 'var(--color-yellow)',
-    bg: 'rgba(var(--color-yellow-rgb), 0.1)'
+    bg: 'rgba(var(--color-yellow-rgb), 0.04)'
   },
   {
     border: 'var(--color-blue)',
-    bg: 'rgba(var(--color-blue-rgb), 0.1)'
-  },
-  {
-    border: 'var(--color-pink)',
-    bg: 'rgba(var(--color-pink-rgb), 0.1)'
+    bg: 'rgba(var(--color-blue-rgb), 0.04)'
   },
   {
     border: 'var(--color-danger)',
-    bg: 'rgba(var(--color-danger-rgb), 0.1)'
+    bg: 'rgba(var(--color-danger-rgb), 0.04)'
   }
 ]
 
 // 处理编辑器点击
-const handleEditorClick = (event) => {
+const handleEditorClick = (event: any) => {
   if (!isEditing.value) {
     // 非编辑状态下，手动触发节点的点击事件
     event.stopPropagation()
-    const nodeElement = event.target.closest('.text-node')
-    if (nodeElement) {
-      nodeElement.click()
+    if (event.target) {
+      const nodeElement = event.target.closest('.text-node')
+      if (nodeElement) {
+        nodeElement.click()
+      }
     }
   }
 }
 
 // 处理内容区域点击
-const handleContentClick = (event) => {
+const handleContentClick = (event: any) => {
   // event.stopPropagation()
   // 如果不是编辑模式，阻止 TipTap 的默认行为
   if (!isEditing.value) {
@@ -157,7 +174,7 @@ const handleContentClick = (event) => {
 }
 
 // 处理节点双击
-const handleDoubleClick = (event) => {
+const handleDoubleClick = (event: any) => {
   event.stopPropagation()
   if (props.selected && !isEditing.value) {
     enterEditMode()
@@ -170,7 +187,7 @@ const enterEditMode = () => {
   updateNodeData(props.id, { draggable: false })
   nextTick(() => {
     if (editor.value) {
-      editor.value.focus()
+      ;(editor.value as any).focus()
     }
   })
 }
@@ -182,7 +199,7 @@ const exitEditMode = () => {
 }
 
 // 处理内容区域的鼠标按下事件
-const handleContentMouseDown = (event) => {
+const handleContentMouseDown = (event: any) => {
   if (isEditing.value) {
     event.stopPropagation() // 编辑模式下阻止事件冒泡，防止拖动
   }
@@ -193,7 +210,7 @@ const handleEditorBlur = () => {
   exitEditMode()
 }
 
-const onContentUpdate = (content) => {
+const onContentUpdate = (content: any) => {
   emit('update', {
     id: props.id,
     content
@@ -209,7 +226,7 @@ const handleEdit = () => {
 }
 
 // 处理颜色选择
-const handleColorSelect = (color) => {
+const handleColorSelect = (color: any) => {
   nodeStyle.value.borderColor = color.border
   nodeStyle.value.backgroundColor = color.bg
   updateNodeData(props.id, {
@@ -220,7 +237,7 @@ const handleColorSelect = (color) => {
 }
 
 // 点击外部关闭颜色选择器
-const handleClickOutside = (event) => {
+const handleClickOutside = (event: any) => {
   const target = event.target
   if (!target.closest('.color-picker-wrapper')) {
     showColorPicker.value = false
@@ -414,26 +431,41 @@ watch(
 }
 
 // 工具栏样式
-.vue-flow__node-toolbar {
+:deep(.vue-flow__node-toolbar) {
   display: flex;
   gap: 0.5rem;
   align-items: center;
-  background-color: #2d3748;
+  background-color: var(--color-bg-primary);
   padding: 8px;
   border-radius: 8px;
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
 }
 
 .vue-flow__node-toolbar button {
-  background: #4a5568;
-  color: white;
-  border: none;
-  padding: 0.5rem 1rem;
+  background-color: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-primary);
+  width: 40px;
+  height: 40px;
+  padding: 10px;
   border-radius: 8px;
   cursor: pointer;
 
+  :deep(.i-icon) {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+  }
+
+  :deep(svg) {
+    width: 18px;
+    height: 18px;
+  }
+
   &:hover {
-    background: #2563eb;
+    background-color: var(--sidebar-hover-bg);
   }
 
   &.selected {
