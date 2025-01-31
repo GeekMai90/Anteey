@@ -52,6 +52,18 @@ const props = defineProps({
   selected: {
     type: Boolean,
     default: false
+  },
+  updatable: {
+    type: Boolean,
+    default: true
+  },
+  sourceHandleId: {
+    type: String,
+    default: null
+  },
+  targetHandleId: {
+    type: String,
+    default: null
   }
 })
 
@@ -102,7 +114,7 @@ export default {
     :label-y="path[2]"
     :style="{
       strokeWidth: edgeWidth,
-      stroke: markerColor // 添加这行，使用相同的颜色
+      stroke: markerColor
     }"
     :label-style="{
       fill: '#4a5568',
@@ -114,7 +126,8 @@ export default {
       rx: 4,
       ry: 4
     }"
-  />
+  >
+  </BaseEdge>
 
   <!-- 起始端圆形标记 -->
   <CustomMarker

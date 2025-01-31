@@ -115,9 +115,7 @@ import type {
   SystemPromptConfig,
 
   // 思维板相关
-  Mindboard,
-  MindboardNode,
-  MindboardEdge
+  Mindboard
 } from '@shared/types'
 
 export interface ElectronAPI {
@@ -893,22 +891,7 @@ export interface ElectronAPI {
     getMindboard: (id: string) => Promise<Mindboard>
     updateMindboard: (id: string, data: Partial<Mindboard>) => Promise<Mindboard>
     deleteMindboard: (id: string) => Promise<void>
-
-    // 节点操作
-    createNode: (
-      data: Omit<MindboardNode, 'id' | 'created_at' | 'updated_at'>
-    ) => Promise<MindboardNode>
-    getNodes: (mindboardId: string) => Promise<MindboardNode[]>
-    updateNode: (id: string, data: Partial<MindboardNode>) => Promise<MindboardNode>
-    deleteNode: (id: string) => Promise<void>
-
-    // 连线操作
-    createEdge: (
-      data: Omit<MindboardEdge, 'id' | 'created_at' | 'updated_at'>
-    ) => Promise<MindboardEdge>
-    getEdges: (mindboardId: string) => Promise<MindboardEdge[]>
-    updateEdge: (id: string, data: Partial<MindboardEdge>) => Promise<MindboardEdge>
-    deleteEdge: (id: string) => Promise<void>
+    updateMindboardName: (id: string, name: string) => Promise<void>
   }
 }
 

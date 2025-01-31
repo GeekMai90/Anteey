@@ -1221,7 +1221,7 @@ export async function initDatabase(db: Knex): Promise<void> {
       table.string('id').primary()
       table.string('name').notNullable()
       table.text('description').nullable()
-      table.json('viewport').notNullable() // 存储 x, y, zoom
+      table.json('flow_data').notNullable() // 存储 VueFlow 的完整状态
       table.datetime('created_at').notNullable()
       table.datetime('updated_at').notNullable()
 
@@ -1230,58 +1230,6 @@ export async function initDatabase(db: Knex): Promise<void> {
       table.index('updated_at')
     })
     console.log('mindboards 表创建成功')
-  }
-
-  // 创建 mindboard_nodes 表
-  if (!(await db.schema.hasTable('mindboard_nodes'))) {
-    await db.schema.createTable('mindboard_nodes', (table) => {
-      table.string('id').primary()
-      table.string('mindboard_id').notNullable()
-      table.string('parent_id').nullable()
-      table.string('type').notNullable() // TEXT, NOTE, IMAGE
-      table.json('position').notNullable() // 存储 x, y
-      table.boolean('draggable').defaultTo(true)
-      table.boolean('selected').defaultTo(false)
-      table.json('data').notNullable() // 存储节点特定数据
-      table.datetime('created_at').notNullable()
-      table.datetime('updated_at').notNullable()
-
-      // 外键约束
-      table.foreign('mindboard_id').references('mindboards.id').onDelete('CASCADE')
-
-      // 索引
-      table.index('mindboard_id')
-      table.index('type')
-      table.index(['mindboard_id', 'type'])
-    })
-    console.log('mindboard_nodes 表创建成功')
-  }
-
-  // 创建 mindboard_edges 表
-  if (!(await db.schema.hasTable('mindboard_edges'))) {
-    await db.schema.createTable('mindboard_edges', (table) => {
-      table.string('id').primary()
-      table.string('mindboard_id').notNullable()
-      table.string('source').notNullable()
-      table.string('target').notNullable()
-      table.string('source_handle').nullable()
-      table.string('target_handle').nullable()
-      table.string('label').nullable()
-      table.string('type').notNullable()
-      table.json('style').nullable() // 存储 animated, selected 等样式
-      table.datetime('created_at').notNullable()
-      table.datetime('updated_at').notNullable()
-
-      // 外键约束
-      table.foreign('mindboard_id').references('mindboards.id').onDelete('CASCADE')
-      table.foreign('source').references('mindboard_nodes.id').onDelete('CASCADE')
-      table.foreign('target').references('mindboard_nodes.id').onDelete('CASCADE')
-
-      // 索引
-      table.index('mindboard_id')
-      table.index(['source', 'target'])
-    })
-    console.log('mindboard_edges 表创建成功')
   }
 }
 
@@ -1332,8 +1280,6 @@ export async function down(db: Knex): Promise<void> {
   await db.schema.dropTableIfExists('ed_whiteboard_note_refs')
   await db.schema.dropTableIfExists('ed_whiteboards')
   await db.schema.dropTableIfExists('auth_state')
-  await db.schema.dropTableIfExists('mindboard_nodes')
-  await db.schema.dropTableIfExists('mindboard_edges')
   await db.schema.dropTableIfExists('mindboards')
   console.log('所有表已删除')
 }

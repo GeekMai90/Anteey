@@ -4,14 +4,15 @@
     <div class="fixed-header">
       <AppToolbar
         backgroundColor="var(--color-bg-whiteboard)"
-        :whiteboardName="whiteboardName"
+        :whiteboardName="mindboardName"
         :showBackButton="false"
         :showForwardButton="false"
         :showRefreshButton="false"
-        @update:whiteboardName="updateWhiteboardName"
+        @update:whiteboardName="updateMindboardName"
       />
     </div>
     <VueFlow
+      fit-view-on-init
       :nodes="nodes"
       :edges="edges"
       :default-edge-options="defaultEdgeOptions"
@@ -29,15 +30,13 @@
       @dragover="onDragOver"
       @dragleave="onDragLeave"
       @drop="onDrop"
+      @edge-update="onEdgeUpdate"
+      @edge-update-start="onEdgeUpdateStart"
+      @edge-update-end="onEdgeUpdateEnd"
     >
       <Background />
       <Controls />
       <MiniMap />
-
-      <!-- 工具栏 -->
-      <div class="mindboard-tools">
-        <button @click="addTextNode">添加文字卡片</button>
-      </div>
 
       <!-- 注册自定义节点 -->
       <template #node-text="nodeProps">
@@ -89,8 +88,9 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
-import { VueFlow, ConnectionMode, useVueFlow, Position } from '@vue-flow/core'
+import { ref, onMounted, computed } from 'vue'
+import { useRoute } from 'vue-router'
+import { VueFlow, ConnectionMode, useVueFlow } from '@vue-flow/core'
 import { Background } from '@vue-flow/background'
 import { MiniMap } from '@vue-flow/minimap'
 import { Controls } from '@vue-flow/controls'
@@ -99,6 +99,12 @@ import CustomEdge from './custom/CustomEdge.vue'
 import AppToolbar from '@renderer/components/layout/AppToolbar.vue'
 import { v4 as uuidv4 } from 'uuid'
 import useDragAndDrop from './composables/useDragAndDrop'
+import { useMindboardStore } from '@renderer/stores/mindboardStore'
+
+const route = useRoute()
+const mindboardStore = useMindboardStore()
+const currentMindboard = computed(() => mindboardStore.currentMindboard)
+const mindboardName = ref('')
 
 // 当前笔记ID
 const currentNoteId = ref('')
@@ -110,12 +116,21 @@ const edges = ref([])
 const defaultEdgeOptions = {
   type: 'custom',
   selected: false,
-  animated: false
+  animated: false,
+  updatable: true
 }
 
 // 初始化 VueFlow
-const { addNodes, addEdges, applyNodeChanges, applyEdgeChanges, findEdge, getViewport } =
-  useVueFlow()
+const {
+  addEdges,
+  toObject,
+  fromObject,
+  getViewport,
+  applyNodeChanges,
+  applyEdgeChanges,
+  findEdge,
+  updateEdge
+} = useVueFlow()
 
 // 边标签编辑相关的状态
 const showEdgeLabelEditor = ref(false)
@@ -126,83 +141,95 @@ const labelInputRef = ref(null)
 
 const { onDragStart, onDragOver, onDrop, onDragLeave, isDragOver } = useDragAndDrop()
 
-// 添加文字节点
-const addTextNode = () => {
-  const newNode = {
-    id: `text-${uuidv4()}`,
-    type: 'text',
-    position: { x: 100, y: 100 },
-    data: {
-      content: '',
-      label: '新建文字卡片',
-      toolbarPosition: Position.Top,
-      toolbarVisible: false,
-      action: null,
-      width: 250,
-      height: 50,
-      backgroundColor: 'transparent',
-      borderColor: 'var(--color-border)'
-    },
-    draggable: true
-  }
-  addNodes([newNode])
+// 保存思维板状态
+const saveFlowState = async () => {
+  if (!currentMindboard.value) return
+
+  const flow = toObject()
+  await mindboardStore.updateMindboard(currentMindboard.value.id, {
+    flow_data: flow
+  })
 }
 
+// 恢复思维板状态
+const restoreFlowState = () => {
+  // 恢复完整状态
+  fromObject(currentMindboard.value?.flow_data)
+  mindboardName.value = currentMindboard.value?.name
+}
+
+// 更新思维板名称
+const updateMindboardName = async (newName) => {
+  await mindboardStore.updateMindboardName(currentMindboard.value.id, newName)
+  mindboardName.value = newName
+}
+
+function onEdgeUpdateStart(edge) {
+  console.log('start update', edge)
+}
+
+function onEdgeUpdateEnd(edge) {
+  console.log('end update', edge)
+}
+
+function onEdgeUpdate({ edge, connection }) {
+  updateEdge(edge, connection)
+}
 // 节点更新处理
 const onNodeUpdate = ({ id, content }) => {
   const node = nodes.value.find((n) => n.id === id)
   if (node) {
     node.data.content = content
   }
+  saveFlowState() // 保存状态
 }
 
 // 节点点击处理
-const onNodeClick = (event, node) => {
-  console.log('onNodeClick', event, node)
+const onNodeClick = (nodeDragEvent) => {
+  console.log('Node clicked:', nodeDragEvent)
 }
 
 // 连线处理
-const onConnect = (params) => {
-  console.log('onConnect', params)
+const onConnect = async (connection) => {
   const newEdge = {
     id: `edge-${uuidv4()}`,
-    source: params.source,
-    target: params.target,
-    sourceHandle: params.sourceHandle,
-    targetHandle: params.targetHandle,
+    source: connection.source,
+    target: connection.target,
+    sourceHandle: connection.sourceHandle,
+    targetHandle: connection.targetHandle,
     type: 'custom',
     animated: false,
-    selected: false
+    selected: false,
+    updatable: true
   }
-  edges.value.push(newEdge)
   addEdges([newEdge])
+  await saveFlowState()
 }
 
-// 添加边的选中状态处理
-const onEdgeClick = (event, edge) => {
-  // 更新边的选中状态
-  edges.value = edges.value.map((e) => ({
-    ...e,
-    selected: e.id === edge.id
-  }))
+// 边点击处理
+const onEdgeClick = (edgeMouseEvent) => {
+  console.log('Edge clicked:', edgeMouseEvent)
 }
 
 // 节点变化处理
 const onNodesChange = (changes) => {
   console.log('nodes changed', changes)
-  const updatedNodes = applyNodeChanges(changes, nodes.value)
+  const updatedNodes = applyNodeChanges(changes)
   nodes.value = [...updatedNodes]
+  saveFlowState()
 }
 
 // 边变化处理
 const onEdgesChange = (changes) => {
   console.log('edges changed', changes)
-  edges.value = applyEdgeChanges(changes, edges.value)
+  edges.value = applyEdgeChanges(changes)
+  saveFlowState()
 }
 
 // 拖拽结束处理
-const onNodeDragStop = (event, node) => {
-  console.log('onNodeDragStop', event, node)
+const onNodeDragStop = (NodeDragEvent) => {
+  console.log('onNodeDragStop', NodeDragEvent)
+  saveFlowState()
 }
 
 // 处理边的双击事件
@@ -243,6 +270,7 @@ const handleEdgeDoubleClick = ({ edge }) => {
   setTimeout(() => {
     labelInputRef.value?.focus()
   }, 0)
+  saveFlowState() // 保存状态
 }
 
 // 保存边标签
@@ -257,6 +285,7 @@ const saveEdgeLabel = () => {
   showEdgeLabelEditor.value = false
   editingEdgeId.value = null
   editingLabel.value = ''
+  saveFlowState() // 保存状态
 }
 
 // 取消编辑
@@ -266,9 +295,11 @@ const cancelEditing = () => {
   editingLabel.value = ''
 }
 
-onMounted(() => {
-  // 初始化一个节点用于测试
-  addTextNode()
+// 初始化数据
+onMounted(async () => {
+  const mindboardId = route.params.id
+  await mindboardStore.loadMindboardData(mindboardId)
+  restoreFlowState()
 })
 </script>
 

@@ -114,7 +114,7 @@ const addMindboard = async () => {
     await mindboardStore.createMindboard({
       name: '新思维板',
       description: '',
-      viewport: { x: 0, y: 0, zoom: 1 }
+      flow_data: {}
     })
   } catch (error) {
     console.error('创建思维板失败:', error)
