@@ -40,6 +40,7 @@ export default function useDragAndDrop() {
   }
 
   function onDrop(event: DragEvent) {
+    event.preventDefault()
     const position = screenToFlowCoordinate({
       x: event.clientX,
       y: event.clientY
@@ -63,14 +64,31 @@ export default function useDragAndDrop() {
         }
       }
       addNodes([newNode])
-    } else if (draggedType.value === 'card') {
-      // 卡片节点先保存位置
+    } else if (draggedType.value === 'card' || draggedType.value === 'image') {
+      // 保存位置，等待后续处理
       dropPosition.value = position
     }
 
     isDragging.value = false
     isDragOver.value = false
-    draggedType.value = null
+  }
+
+  // 创建图片节点的函数
+  const createImageNode = (imageUrl: string, position: XYPosition) => {
+    const newNode = {
+      id: `image-${uuidv4()}`,
+      type: 'image',
+      position,
+      data: {
+        imageUrl,
+        toolbarPosition: 'top',
+        width: 350, // 默认宽度
+        height: 300, // 默认高度
+        backgroundColor: 'transparent',
+        borderColor: 'var(--color-border)'
+      }
+    }
+    addNodes([newNode])
   }
 
   return {
@@ -81,6 +99,7 @@ export default function useDragAndDrop() {
     onDragStart,
     onDragOver,
     onDragLeave,
-    onDrop
+    onDrop,
+    createImageNode // 导出创建图片节点的函数
   }
 }

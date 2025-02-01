@@ -57,6 +57,11 @@
         <CustomEdge v-bind="edgeProps" />
       </template>
 
+      <!-- 注册图片节点 -->
+      <template #node-image="nodeProps">
+        <ImageNode v-bind="nodeProps" />
+      </template>
+
       <!-- 添加边标签编辑器 -->
       <div v-if="showEdgeLabelEditor" class="edge-label-editor" :style="edgeLabelEditorStyle">
         <input
@@ -83,7 +88,16 @@
             v-tooltip.top="{ content: '新建文字卡片', delay: { show: 1000 } }"
             class="tool-button"
             draggable="true"
-            @dragstart="onDragStart($event, 'text')"
+            @dragstart="
+              (event) => {
+                if (event.dataTransfer) {
+                  event.dataTransfer.setData('application/vueflow', 'text')
+                  event.dataTransfer.effectAllowed = 'move'
+                  draggedType = 'text'
+                  isDragOver = false
+                }
+              }
+            "
           >
             <FileText theme="outline" size="18" :stroke-width="3" />
           </div>
@@ -100,6 +114,18 @@
           <div
             v-tooltip.top="{ content: '新建图片卡片', delay: { show: 1000 } }"
             class="tool-button"
+            draggable="true"
+            @dragstart="
+              (event) => {
+                if (event.dataTransfer) {
+                  event.dataTransfer.setData('application/vueflow', 'image')
+                  event.dataTransfer.effectAllowed = 'move'
+                  draggedType = 'image'
+                  isDragOver = false
+                }
+              }
+            "
+            @click="handleImageClick"
           >
             <PictureOne theme="outline" size="18" :stroke-width="3" />
           </div>
@@ -121,6 +147,9 @@
 
     <!-- 添加搜索模态框组件 -->
     <MindboardSearchModal ref="searchModalRef" @select-note="handleNoteSelected" />
+
+    <!-- 添加图片上传模态框 -->
+    <ImageUploadModal ref="imageUploadModalRef" @confirm="handleImageConfirm" />
   </div>
 </template>
 
@@ -133,6 +162,7 @@ import { MiniMap } from '@vue-flow/minimap'
 import { Controls } from '@vue-flow/controls'
 import TextNode from './nodes/TextNode.vue'
 import CardNode from './nodes/CardNode.vue'
+import ImageNode from './nodes/ImageNode.vue'
 import CustomEdge from './custom/CustomEdge.vue'
 import AppToolbar from '@renderer/components/layout/AppToolbar.vue'
 import { v4 as uuidv4 } from 'uuid'
@@ -142,6 +172,8 @@ import EdgeContextMenu from './custom/EdgeContextMenu.vue'
 import { FileText, PictureOne, Notes } from '@icon-park/vue-next'
 import ToolbarLeft from './custom/ToolbarLeft.vue'
 import MindboardSearchModal from './MindboardSearchModal.vue'
+import ImageUploadModal from '@renderer/components/whiteboard/ImageUploadModal.vue'
+import { message } from '@renderer/utils/message'
 
 const route = useRoute()
 const mindboardStore = useMindboardStore()
@@ -184,7 +216,8 @@ const editingEdgeId = ref(null)
 const edgeLabelEditorStyle = ref({})
 const labelInputRef = ref(null)
 
-const { onDragStart, onDragOver, onDrop, onDragLeave, isDragOver, dropPosition } = useDragAndDrop()
+const { isDragOver, draggedType, dropPosition, onDragOver, onDragLeave, onDrop, createImageNode } =
+  useDragAndDrop()
 
 // 添加边菜单相关的状态
 const showEdgeMenu = ref(false)
@@ -199,6 +232,9 @@ const backgroundVariant = ref('dots')
 
 // 搜索模态框引用
 const searchModalRef = ref(null)
+
+// 图片上传模态框引用
+const imageUploadModalRef = ref(null)
 
 // 切换背景样式
 const toggleBackground = () => {
@@ -521,14 +557,27 @@ const handleColorUpdate = (colorValue) => {
 
 // 处理笔记卡片拖拽开始
 const handleCardDragStart = (event) => {
-  onDragStart(event, 'card')
+  if (event.dataTransfer) {
+    event.dataTransfer.setData('application/vueflow', 'card')
+    event.dataTransfer.effectAllowed = 'move'
+    draggedType.value = 'card'
+    isDragOver.value = false
+  }
 }
 
 // 监听拖拽位置变化
 watch(dropPosition, (position) => {
   if (position) {
-    // 打开搜索模态框
-    searchModalRef.value?.show()
+    // 根据拖拽类型决定显示哪个模态框
+    if (draggedType.value === 'card') {
+      // 如果是笔记卡片,显示笔记搜索框
+      searchModalRef.value?.show()
+    } else if (draggedType.value === 'image') {
+      // 如果是图片卡片,显示图片上传框
+      imageUploadModalRef.value?.show()
+    }
+    // 重置拖拽类型
+    draggedType.value = null
   }
 })
 
@@ -541,19 +590,6 @@ const handleNoteSelected = (noteId) => {
     dropPosition.value = null
   }
 }
-
-// 获取视口中心位置
-// const getViewportCenter = () => {
-//   const { x, y, zoom } = getViewport()
-//   const container = document.querySelector('.vue-flow')
-//   if (!container) return { x: 0, y: 0 }
-
-//   const rect = container.getBoundingClientRect()
-//   return {
-//     x: (rect.width / 2 - x) / zoom,
-//     y: (rect.height / 2 - y) / zoom
-//   }
-// }
 
 // 创建卡片节点函数
 const createCardNode = (noteId, position) => {
@@ -572,6 +608,33 @@ const createCardNode = (noteId, position) => {
   }
   addNodes([newNode])
   saveFlowState()
+}
+
+// 处理图片按钮点击
+const handleImageClick = () => {
+  imageUploadModalRef.value?.show()
+}
+
+// 处理图片上传确认
+const handleImageConfirm = async (imageData) => {
+  try {
+    if (dropPosition.value) {
+      // 如果有拖放位置，在拖放位置创建节点
+      createImageNode(imageData.url, dropPosition.value)
+      // 重置拖拽位置
+      dropPosition.value = null
+    } else {
+      // 如果没有拖放位置，在画布中心创建节点
+      const center = {
+        x: window.innerWidth / 2,
+        y: window.innerHeight / 2
+      }
+      createImageNode(imageData.url, center)
+    }
+  } catch (error) {
+    console.error('创建图片节点失败:', error)
+    message.error('创建图片节点失败')
+  }
 }
 
 // 初始化数据
