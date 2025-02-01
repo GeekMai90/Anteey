@@ -1,6 +1,7 @@
 import { useVueFlow } from '@vue-flow/core'
 import { ref } from 'vue'
 import { v4 as uuidv4 } from 'uuid'
+import type { XYPosition } from '@vue-flow/core'
 
 const state = {
   draggedType: ref<string | null>(null),
@@ -11,6 +12,9 @@ const state = {
 export default function useDragAndDrop() {
   const { draggedType, isDragOver, isDragging } = state
   const { addNodes, screenToFlowCoordinate } = useVueFlow()
+
+  // 保存拖拽释放的位置
+  const dropPosition = ref<XYPosition | null>(null)
 
   function onDragStart(event: DragEvent, type: string) {
     if (event.dataTransfer) {
@@ -42,6 +46,7 @@ export default function useDragAndDrop() {
     })
 
     if (draggedType.value === 'text') {
+      // 文本节点直接创建
       const newNode = {
         id: `text-${uuidv4()}`,
         type: 'text',
@@ -58,6 +63,9 @@ export default function useDragAndDrop() {
         }
       }
       addNodes([newNode])
+    } else if (draggedType.value === 'card') {
+      // 卡片节点先保存位置
+      dropPosition.value = position
     }
 
     isDragging.value = false
@@ -69,6 +77,7 @@ export default function useDragAndDrop() {
     draggedType,
     isDragOver,
     isDragging,
+    dropPosition,
     onDragStart,
     onDragOver,
     onDragLeave,

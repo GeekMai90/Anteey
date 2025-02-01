@@ -42,9 +42,14 @@
       <Controls />
       <MiniMap />
 
-      <!-- 注册自定义节点 -->
+      <!-- 注册文本卡片节点 -->
       <template #node-text="nodeProps">
         <TextNode v-bind="nodeProps" :note-id="currentNoteId" @update="onNodeUpdate" />
+      </template>
+
+      <!-- 注册笔记卡片节点 -->
+      <template #node-card="nodeProps">
+        <CardNode v-bind="nodeProps" />
       </template>
 
       <!-- 注册自定义边组件 -->
@@ -73,6 +78,7 @@
       <!-- 底部工具栏 -->
       <div class="bottom-toolbar">
         <div class="tool-buttons">
+          <!-- 文本节点按钮 -->
           <div
             v-tooltip.top="{ content: '新建文字卡片', delay: { show: 1000 } }"
             class="tool-button"
@@ -81,9 +87,13 @@
           >
             <FileText theme="outline" size="18" :stroke-width="3" />
           </div>
+
+          <!-- 笔记卡片按钮 - 只需要拖拽功能 -->
           <div
             v-tooltip.top="{ content: '新建笔记卡片', delay: { show: 1000 } }"
             class="tool-button"
+            draggable="true"
+            @dragstart="handleCardDragStart"
           >
             <Notes theme="outline" size="18" :stroke-width="3" />
           </div>
@@ -108,17 +118,21 @@
       @updateMarker="handleMarkerUpdate"
       @updateColor="handleColorUpdate"
     />
+
+    <!-- 添加搜索模态框组件 -->
+    <MindboardSearchModal ref="searchModalRef" @select-note="handleNoteSelected" />
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, computed, onUnmounted } from 'vue'
+import { ref, onMounted, computed, onUnmounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { VueFlow, ConnectionMode, useVueFlow } from '@vue-flow/core'
 import { Background } from '@vue-flow/background'
 import { MiniMap } from '@vue-flow/minimap'
 import { Controls } from '@vue-flow/controls'
 import TextNode from './nodes/TextNode.vue'
+import CardNode from './nodes/CardNode.vue'
 import CustomEdge from './custom/CustomEdge.vue'
 import AppToolbar from '@renderer/components/layout/AppToolbar.vue'
 import { v4 as uuidv4 } from 'uuid'
@@ -127,6 +141,7 @@ import { useMindboardStore } from '@renderer/stores/mindboardStore'
 import EdgeContextMenu from './custom/EdgeContextMenu.vue'
 import { FileText, PictureOne, Notes } from '@icon-park/vue-next'
 import ToolbarLeft from './custom/ToolbarLeft.vue'
+import MindboardSearchModal from './MindboardSearchModal.vue'
 
 const route = useRoute()
 const mindboardStore = useMindboardStore()
@@ -157,7 +172,9 @@ const {
   applyEdgeChanges,
   findEdge,
   updateEdge,
-  removeEdges
+  removeEdges,
+  addNodes
+  // updateNode
 } = useVueFlow()
 
 // 边标签编辑相关的状态
@@ -167,7 +184,7 @@ const editingEdgeId = ref(null)
 const edgeLabelEditorStyle = ref({})
 const labelInputRef = ref(null)
 
-const { onDragStart, onDragOver, onDrop, onDragLeave, isDragOver } = useDragAndDrop()
+const { onDragStart, onDragOver, onDrop, onDragLeave, isDragOver, dropPosition } = useDragAndDrop()
 
 // 添加边菜单相关的状态
 const showEdgeMenu = ref(false)
@@ -179,6 +196,9 @@ const edgeContextMenuRef = ref(null)
 
 // 背景样式状态
 const backgroundVariant = ref('dots')
+
+// 搜索模态框引用
+const searchModalRef = ref(null)
 
 // 切换背景样式
 const toggleBackground = () => {
@@ -497,6 +517,61 @@ const handleColorUpdate = (colorValue) => {
     // 关闭菜单
     closeEdgeMenu()
   }
+}
+
+// 处理笔记卡片拖拽开始
+const handleCardDragStart = (event) => {
+  onDragStart(event, 'card')
+}
+
+// 监听拖拽位置变化
+watch(dropPosition, (position) => {
+  if (position) {
+    // 打开搜索模态框
+    searchModalRef.value?.show()
+  }
+})
+
+// 处理笔记选择
+const handleNoteSelected = (noteId) => {
+  if (dropPosition.value) {
+    // 在拖拽的位置创建节点
+    createCardNode(noteId, dropPosition.value)
+    // 重置拖拽位置
+    dropPosition.value = null
+  }
+}
+
+// 获取视口中心位置
+// const getViewportCenter = () => {
+//   const { x, y, zoom } = getViewport()
+//   const container = document.querySelector('.vue-flow')
+//   if (!container) return { x: 0, y: 0 }
+
+//   const rect = container.getBoundingClientRect()
+//   return {
+//     x: (rect.width / 2 - x) / zoom,
+//     y: (rect.height / 2 - y) / zoom
+//   }
+// }
+
+// 创建卡片节点函数
+const createCardNode = (noteId, position) => {
+  const newNode = {
+    id: `card-${uuidv4()}`,
+    type: 'card',
+    position,
+    data: {
+      noteId,
+      toolbarPosition: 'top',
+      width: 250,
+      height: 300, // 确保与组件中的最小高度一致
+      backgroundColor: 'transparent',
+      borderColor: 'var(--color-border)'
+    }
+  }
+  addNodes([newNode])
+  saveFlowState()
 }
 
 // 初始化数据

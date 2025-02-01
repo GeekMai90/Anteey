@@ -73,7 +73,7 @@
       />
     </div>
 
-    <NodeResizer :width="250" :min-width="250" :min-height="50" />
+    <NodeResizer :width="250" :min-width="250" :min-height="55" />
   </div>
 </template>
 
@@ -105,14 +105,11 @@ const props = defineProps({
   }
 })
 
-// 定义工具栏按钮
-// const actions = ['👍', '👎', '⭐'] // 你可以根据需要修改这些图标
-
 const isEditing = ref(false)
 const isResizing = ref(false)
 const nodeStyle = ref({
-  width: props.data.width || '250px',
-  height: props.data.height || '50px',
+  width: props.data.width,
+  height: props.data.height,
   backgroundColor: props.data.backgroundColor || 'var(--color-bg-primary)',
   borderColor: props.data.borderColor || 'var(--color-border)'
 })
@@ -294,6 +291,8 @@ watch(
   box-shadow: var(--shadow-card);
   display: flex;
   flex-direction: column;
+  width: 100%;
+  height: 100%;
 
   // 背景层
   .text-node-background {
