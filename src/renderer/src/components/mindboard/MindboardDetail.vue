@@ -34,6 +34,10 @@
       :nodes-selection-active="true"
       :selectable="true"
       :nodes-draggable="true"
+      :snap-to-lines="true"
+      :snap-to-grid="true"
+      :snap-to-grid-size="10"
+      :snap-to-grid-offset="10"
       class="vue-flow-instance"
       @connect="onConnect"
       @nodesChange="onNodesChange"
@@ -832,10 +836,10 @@ onUnmounted(() => {
     border-radius: 4px;
   }
 
-  .vue-flow__node {
-    &.selected {
-      outline: 2px solid var(--color-primary);
-    }
-  }
+  // .vue-flow__node {
+  //   &.selected {
+  //     outline: 2px solid var(--color-primary);
+  //   }
+  // }
 }
 </style>
