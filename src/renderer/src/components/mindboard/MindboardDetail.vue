@@ -22,8 +22,19 @@
       :default-edge-options="defaultEdgeOptions"
       :connection-mode="ConnectionMode.Loose"
       :connect-on-click="false"
-      :selectable="true"
       :connectable="true"
+      :pan-on-drag="[0, 2]"
+      :pan-on-scroll="true"
+      :zoom-on-scroll="false"
+      :zoom-on-pinch="true"
+      :selection-key-code="'Shift'"
+      :multi-selection-key="'Shift'"
+      :selection-on-drag="true"
+      :select-nodes-on-drag="true"
+      :nodes-selection-active="true"
+      :selectable="true"
+      :nodes-draggable="true"
+      class="vue-flow-instance"
       @connect="onConnect"
       @nodesChange="onNodesChange"
       @edgesChange="onEdgesChange"
@@ -90,7 +101,7 @@
         <div class="tool-buttons">
           <!-- 文本节点按钮 -->
           <div
-            v-tooltip.top="{ content: '新建文字卡片', delay: { show: 1000 } }"
+            v-tooltip.top="{ content: '拖拽添加文字卡片', delay: { show: 1000 } }"
             class="tool-button"
             draggable="true"
             @dragstart="handleTextDragStart"
@@ -100,17 +111,15 @@
 
           <!-- 便签节点按钮 -->
           <div
-            v-tooltip.top="{ content: '新建便签卡片', delay: { show: 1000 } }"
+            v-tooltip.top="{ content: '拖拽添加便签卡片', delay: { show: 1000 } }"
             class="tool-button"
             draggable="true"
             @dragstart="handleMemoDragStart"
           >
             <Bookmark theme="outline" size="18" :stroke-width="3" />
           </div>
-
-          <!-- 笔记卡片按钮 - 只需要拖拽功能 -->
           <div
-            v-tooltip.top="{ content: '新建笔记卡片', delay: { show: 1000 } }"
+            v-tooltip.top="{ content: '拖拽添加笔记卡片', delay: { show: 1000 } }"
             class="tool-button"
             draggable="true"
             @dragstart="handleCardDragStart"
@@ -118,11 +127,10 @@
             <Notes theme="outline" size="18" :stroke-width="3" />
           </div>
           <div
-            v-tooltip.top="{ content: '新建图片卡片', delay: { show: 1000 } }"
+            v-tooltip.top="{ content: '拖拽添加图片卡片', delay: { show: 1000 } }"
             class="tool-button"
             draggable="true"
             @dragstart="handleImageDragStart"
-            @click="handleImageClick"
           >
             <PictureOne theme="outline" size="18" :stroke-width="3" />
           </div>
@@ -608,11 +616,6 @@ const createCardNode = (noteId, position) => {
   saveFlowState()
 }
 
-// 处理图片按钮点击
-const handleImageClick = () => {
-  imageUploadModalRef.value?.show()
-}
-
 // 处理图片上传确认
 const handleImageConfirm = async (imageData) => {
   try {
@@ -818,6 +821,20 @@ onUnmounted(() => {
         font-size: 12px;
         color: var(--color-text);
       }
+    }
+  }
+}
+
+:deep(.vue-flow-instance) {
+  .vue-flow__selection {
+    background: rgba(0, 89, 220, 0.08);
+    border: 1px solid rgba(0, 89, 220, 0.4);
+    border-radius: 4px;
+  }
+
+  .vue-flow__node {
+    &.selected {
+      outline: 2px solid var(--color-primary);
     }
   }
 }

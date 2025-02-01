@@ -153,7 +153,7 @@
       </div>
 
       <div class="note-content">
-        <TipTapEditor
+        <MindboardTipTapEditor
           v-if="note"
           ref="editor"
           v-model:content="note.content"
@@ -177,7 +177,7 @@ import { Position, Handle, useVueFlow } from '@vue-flow/core'
 import { NodeToolbar } from '@vue-flow/node-toolbar'
 import { NodeResizer } from '@vue-flow/node-resizer'
 import { Aiming, Platte, Delete, Edit, Install, More, ExpandTextInput } from '@icon-park/vue-next'
-import TipTapEditor from '@renderer/components/tiptap/TipTapEditor.vue'
+import MindboardTipTapEditor from '@renderer/components/mindboard/custom/MindboardTipTapEditor.vue'
 import { useNoteStore } from '@renderer/stores/noteStore'
 import type { CardType, Note } from '@shared/types'
 import CardTypeDropdownMenu from '@renderer/components/note/CardTypeDropdownMenu.vue'
@@ -189,7 +189,7 @@ import CardboxDropdownMenu from '@renderer/components/cardbox/CardboxDropdownMen
 import { useNoteMenu } from '@renderer/composables/useNoteMenu'
 import type { MenuItem } from '@renderer/components/common/PopupMenu.vue'
 import { useRouter } from 'vue-router'
-
+import './customResizer.css'
 const isResizing = ref(false)
 
 const props = defineProps({
@@ -636,16 +636,16 @@ const handleExpand = async () => {
     z-index: 2;
 
     &.top {
-      top: -5px;
+      top: -7px;
     }
     &.right {
-      right: -5px;
+      right: -7px;
     }
     &.bottom {
-      bottom: -5px;
+      bottom: -7px;
     }
     &.left {
-      left: -5px;
+      left: -7px;
     }
   }
 
@@ -776,91 +776,6 @@ const handleExpand = async () => {
       }
     }
   }
-}
-
-/* NodeResizer styles */
-:deep(.vue-flow__resize-control) {
-  position: absolute;
-}
-
-:deep(.vue-flow__resize-control.left),
-:deep(.vue-flow__resize-control.right) {
-  cursor: ew-resize;
-}
-
-:deep(.vue-flow__resize-control.top),
-:deep(.vue-flow__resize-control.bottom) {
-  cursor: ns-resize;
-}
-
-:deep(.vue-flow__resize-control.top.left),
-:deep(.vue-flow__resize-control.bottom.right) {
-  cursor: nwse-resize;
-}
-
-:deep(.vue-flow__resize-control.bottom.left),
-:deep(.vue-flow__resize-control.top.right) {
-  cursor: nesw-resize;
-}
-
-/* handle styles */
-:deep(.vue-flow__resize-control.handle) {
-  width: 4px;
-  height: 4px;
-  border: 1px solid var(--color-primary);
-  border-radius: 1px;
-  background-color: var(--color-primary);
-  transform: translate(-50%, -50%);
-}
-
-:deep(.vue-flow__resize-control.handle.top.left),
-:deep(.vue-flow__resize-control.handle.top.right),
-:deep(.vue-flow__resize-control.handle.bottom.left),
-:deep(.vue-flow__resize-control.handle.bottom.right) {
-  display: none; // 隐藏四个角的控制点
-}
-
-/* line styles */
-:deep(.vue-flow__resize-control.line) {
-  border-color: transparent;
-  border-width: 0;
-  border-style: solid;
-}
-
-:deep(.vue-flow__resize-control.line.left),
-:deep(.vue-flow__resize-control.line.right) {
-  width: 1px;
-  transform: translate(-50%, 0);
-  top: 0;
-  height: 100%;
-}
-
-:deep(.vue-flow__resize-control.line.left) {
-  left: 0;
-  border-left-width: 1px;
-}
-
-:deep(.vue-flow__resize-control.line.right) {
-  left: 100%;
-  border-right-width: 1px;
-}
-
-:deep(.vue-flow__resize-control.line.top),
-:deep(.vue-flow__resize-control.line.bottom) {
-  height: 1px;
-  transform: translate(0, -50%);
-  left: 0;
-  width: 100%;
-}
-
-:deep(.vue-flow__resize-control.line.top) {
-  top: 0;
-  border-top-width: 1px;
-}
-
-:deep(.vue-flow__resize-control.line.bottom) {
-  border-bottom-width: 1px;
-  top: 100%;
 }
 
 // 添加新的样式
