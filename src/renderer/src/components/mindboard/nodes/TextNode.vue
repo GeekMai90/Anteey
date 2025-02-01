@@ -115,7 +115,7 @@ const nodeStyle = ref({
 })
 const editor = ref(null)
 const nodeContent = ref(props.data.content || '')
-const { updateNodeData, removeNodes, zoomOnScroll } = useVueFlow()
+const { updateNodeData, removeNodes, zoomOnScroll, panOnScroll } = useVueFlow()
 const vueFlowInstance = useVueFlow()
 
 const emit = defineEmits(['update'])
@@ -184,6 +184,7 @@ const enterEditMode = () => {
   updateNodeData(props.id, { draggable: false })
   // 禁用画布缩放
   zoomOnScroll.value = false
+  panOnScroll.value = false
   nextTick(() => {
     if (editor.value) {
       ;(editor.value as any).focus()
@@ -197,6 +198,7 @@ const exitEditMode = () => {
   updateNodeData(props.id, { draggable: true })
   // 恢复画布缩放
   zoomOnScroll.value = true
+  panOnScroll.value = true
 }
 
 // 处理内容区域的鼠标按下事件
@@ -317,7 +319,7 @@ watch(
       left: 0;
       right: 0;
       bottom: 0;
-      background-color: white;
+      background-color: var(--color-bg-primary);
     }
 
     // 半透明主题色背景

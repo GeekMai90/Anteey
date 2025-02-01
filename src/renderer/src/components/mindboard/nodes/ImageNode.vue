@@ -205,7 +205,7 @@ onUnmounted(() => {
       left: 0;
       right: 0;
       bottom: 0;
-      background-color: white;
+      background-color: var(--color-bg-primary);
     }
 
     .background-theme {
