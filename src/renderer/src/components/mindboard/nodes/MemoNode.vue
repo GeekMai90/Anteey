@@ -1,22 +1,17 @@
 <template>
   <div
-    class="text-node"
+    class="memo-node"
     :class="{ selected: selected, resizing: isResizing }"
     :style="nodeStyle"
     @dblclick="handleDoubleClick"
   >
-    <div class="text-node-background">
-      <div class="background-base"></div>
-      <div class="background-theme" :style="{ backgroundColor: nodeStyle.backgroundColor }"></div>
-    </div>
-
     <NodeToolbar :is-visible="selected" :position="data.toolbarPosition || Position.Top">
       <div class="toolbar-buttons">
-        <!-- 合并后的颜色选择器 -->
+        <!-- 颜色选择器 -->
         <div class="color-picker-wrapper">
           <button
-            v-tooltip.top="{ content: '卡片颜色', delay: { show: 1000 } }"
-            title="卡片颜色"
+            v-tooltip.top="{ content: '便签颜色', delay: { show: 1000 } }"
+            title="便签颜色"
             @click="showColorPicker = !showColorPicker"
           >
             <Platte theme="outline" size="18" fill="var(--color-icon-default)" :stroke-width="3" />
@@ -24,32 +19,35 @@
           <div v-if="showColorPicker" class="color-picker-panel">
             <div
               v-for="color in themeColors"
-              :key="color.border"
+              :key="color"
               class="color-item"
               :style="{
-                backgroundColor: color.bg,
-                borderColor: color.border
+                backgroundColor: color
               }"
               @click="handleColorSelect(color)"
             />
           </div>
         </div>
 
-        <!-- 添加聚焦按钮 -->
+        <!-- 聚焦按钮 -->
         <button
-          v-tooltip.top="{ content: '聚焦卡片', delay: { show: 1000 } }"
+          v-tooltip.top="{ content: '聚焦便签', delay: { show: 1000 } }"
           title="聚焦节点"
           @click="handleFocus"
         >
           <Aiming theme="outline" size="18" fill="var(--color-icon-default)" :stroke-width="3" />
         </button>
+
+        <!-- 删除按钮 -->
         <button
-          v-tooltip.top="{ content: '删除卡片', delay: { show: 1000 } }"
+          v-tooltip.top="{ content: '删除便签', delay: { show: 1000 } }"
           @click="handleDelete"
         >
           <Delete theme="outline" size="18" fill="var(--color-icon-default)" :stroke-width="3" />
         </button>
-        <button v-tooltip.top="{ content: '编辑卡片', delay: { show: 1000 } }" @click="handleEdit">
+
+        <!-- 编辑按钮 -->
+        <button v-tooltip.top="{ content: '编辑便签', delay: { show: 1000 } }" @click="handleEdit">
           <Edit theme="outline" size="18" fill="var(--color-icon-default)" :stroke-width="3" />
         </button>
       </div>
@@ -60,7 +58,7 @@
     <Handle id="bottom-source" type="source" :position="Position.Bottom" class="handle bottom" />
     <Handle id="left-source" type="source" :position="Position.Left" class="handle left" />
 
-    <div class="text-node-content" @mousedown="handleContentMouseDown" @click="handleContentClick">
+    <div class="memo-content" @mousedown="handleContentMouseDown" @click="handleContentClick">
       <TipTapEditor
         ref="editor"
         v-model:content="nodeContent"
@@ -73,18 +71,18 @@
       />
     </div>
 
-    <NodeResizer :width="250" :min-width="250" :min-height="55" />
+    <NodeResizer :width="250" :min-width="250" :min-height="100" />
   </div>
 </template>
 
 <script setup lang="ts">
+// 复用 TextNode 的大部分逻辑，只修改颜色配置
 import { ref, watch, nextTick, onMounted, onUnmounted } from 'vue'
 import { Position, Handle, useVueFlow } from '@vue-flow/core'
 import { Aiming, Platte, Delete, Edit } from '@icon-park/vue-next'
 import { NodeToolbar } from '@vue-flow/node-toolbar'
 import TipTapEditor from '@renderer/components/tiptap/TipTapEditor.vue'
 import { NodeResizer } from '@vue-flow/node-resizer'
-// import '@vue-flow/node-resizer/dist/style.css'
 
 const props = defineProps({
   id: {
@@ -107,12 +105,7 @@ const props = defineProps({
 
 const isEditing = ref(false)
 const isResizing = ref(false)
-const nodeStyle = ref({
-  width: props.data.width,
-  height: props.data.height,
-  backgroundColor: props.data.backgroundColor || 'var(--color-bg-primary)',
-  borderColor: props.data.borderColor || 'var(--color-border)'
-})
+
 const editor = ref(null)
 const nodeContent = ref(props.data.content || '')
 const { updateNodeData, removeNodes, zoomOnScroll } = useVueFlow()
@@ -123,29 +116,30 @@ const emit = defineEmits(['update'])
 // 颜色选择器状态
 const showColorPicker = ref(false)
 
-// 主题颜色配置
+// 修改颜色配置
 const themeColors = [
-  {
-    border: 'var(--color-border)',
-    bg: 'transparent'
-  },
-  {
-    border: 'var(--color-primary)',
-    bg: 'rgba(var(--color-primary-rgb), 0.04)'
-  },
-  {
-    border: 'var(--color-yellow)',
-    bg: 'rgba(var(--color-yellow-rgb), 0.04)'
-  },
-  {
-    border: 'var(--color-blue)',
-    bg: 'rgba(var(--color-blue-rgb), 0.04)'
-  },
-  {
-    border: 'var(--color-danger)',
-    bg: 'rgba(var(--color-danger-rgb), 0.04)'
-  }
+  '#FEF3A4', // 默认黄色
+  '#FFD5D5', // 粉色
+  '#D4F5FF', // 蓝色
+  '#E8FFD4', // 绿色
+  '#FFE4C8' // 橙色
 ]
+
+// 节点样式 - 修改默认背景色和去掉边框
+const nodeStyle = ref({
+  width: props.data.width,
+  height: props.data.height,
+  backgroundColor: props.data.backgroundColor || '#FEF3A4'
+})
+
+// 处理颜色选择 - 只改变背景色
+const handleColorSelect = (color: string) => {
+  nodeStyle.value.backgroundColor = color
+  updateNodeData(props.id, {
+    backgroundColor: color
+  })
+  showColorPicker.value = false
+}
 
 // 处理编辑器点击
 const handleEditorClick = (event: any) => {
@@ -153,7 +147,7 @@ const handleEditorClick = (event: any) => {
     // 非编辑状态下，手动触发节点的点击事件
     event.stopPropagation()
     if (event.target) {
-      const nodeElement = event.target.closest('.text-node')
+      const nodeElement = event.target.closest('.memo-node')
       if (nodeElement) {
         nodeElement.click()
       }
@@ -163,7 +157,6 @@ const handleEditorClick = (event: any) => {
 
 // 处理内容区域点击
 const handleContentClick = (event: any) => {
-  // event.stopPropagation()
   // 如果不是编辑模式，阻止 TipTap 的默认行为
   if (!isEditing.value) {
     event.preventDefault()
@@ -226,17 +219,6 @@ const handleEdit = () => {
   enterEditMode()
 }
 
-// 处理颜色选择
-const handleColorSelect = (color: any) => {
-  nodeStyle.value.borderColor = color.border
-  nodeStyle.value.backgroundColor = color.bg
-  updateNodeData(props.id, {
-    borderColor: color.border,
-    backgroundColor: color.bg
-  })
-  showColorPicker.value = false
-}
-
 // 点击外部关闭颜色选择器
 const handleClickOutside = (event: any) => {
   const target = event.target
@@ -286,17 +268,17 @@ watch(
 </script>
 
 <style lang="scss" scoped>
-.text-node {
+.memo-node {
   position: relative;
-  border: 1px solid var(--color-border);
   border-radius: 8px;
   padding: 12px;
   cursor: grab;
-  box-shadow: var(--shadow-card);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   display: flex;
   flex-direction: column;
   width: 100%;
   height: 100%;
+  background-color: #fef3a4;
 
   // 背景层
   .text-node-background {
@@ -331,16 +313,11 @@ watch(
   }
 
   &.selected {
-    border: 2px solid var(--color-primary);
-    padding: 11px;
-
-    .text-node-background {
-      border-radius: 6px;
-    }
+    box-shadow: 0 0 0 2px var(--color-primary);
   }
 
   // 内容区域
-  .text-node-content {
+  .memo-content {
     cursor: inherit;
     min-height: 26px;
     max-height: 400px;
@@ -560,6 +537,7 @@ watch(
   position: relative;
   display: inline-block;
 
+  // 修改颜色选择器样式
   .color-picker-panel {
     position: absolute;
     top: 100%;
@@ -574,14 +552,13 @@ watch(
     grid-template-columns: repeat(5, 1fr);
     gap: 4px;
     z-index: 1000;
-
     .color-item {
       width: 24px;
       height: 24px;
       border-radius: 4px;
-      border: 2px solid; // 使用 borderColor 来显示主题色
       cursor: pointer;
       transition: transform 0.2s;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 
       &:hover {
         transform: scale(1.1);

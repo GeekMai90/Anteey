@@ -64,6 +64,23 @@ export default function useDragAndDrop() {
         }
       }
       addNodes([newNode])
+    } else if (draggedType.value === 'memo') {
+      // 便签节点直接创建
+      const newNode = {
+        id: `memo-${uuidv4()}`,
+        type: 'memo',
+        position,
+        data: {
+          content: '',
+          label: '新建便签卡片',
+          toolbarPosition: 'top',
+          toolbarVisible: false,
+          width: 250,
+          height: 150,
+          backgroundColor: '#FEF3A4'
+        }
+      }
+      addNodes([newNode])
     } else if (draggedType.value === 'card' || draggedType.value === 'image') {
       // 保存位置，等待后续处理
       dropPosition.value = position

@@ -253,7 +253,7 @@ const cardTypeClass = computed(() => ({
 }))
 
 // Vue Flow 相关
-const { updateNodeData, removeNodes } = useVueFlow()
+const { updateNodeData, removeNodes, zoomOnScroll } = useVueFlow()
 const vueFlowInstance = useVueFlow()
 
 // 颜色选择器相关
@@ -438,6 +438,8 @@ const focusEditor = () => {
 const enterEditMode = () => {
   isEditing.value = true
   updateNodeData(props.id, { draggable: false })
+  // 禁用画布缩放
+  zoomOnScroll.value = false
   nextTick(() => {
     if (editor.value) {
       editor.value.focus()
@@ -448,6 +450,8 @@ const enterEditMode = () => {
 const exitEditMode = () => {
   isEditing.value = false
   updateNodeData(props.id, { draggable: true })
+  // 恢复画布缩放
+  zoomOnScroll.value = true
 }
 
 // 事件处理函数

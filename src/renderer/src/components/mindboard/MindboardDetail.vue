@@ -52,14 +52,19 @@
         <CardNode v-bind="nodeProps" />
       </template>
 
-      <!-- 注册自定义边组件 -->
-      <template #edge-custom="edgeProps">
-        <CustomEdge v-bind="edgeProps" />
-      </template>
-
       <!-- 注册图片节点 -->
       <template #node-image="nodeProps">
         <ImageNode v-bind="nodeProps" />
+      </template>
+
+      <!-- 注册便签节点组件 -->
+      <template #node-memo="nodeProps">
+        <MemoNode v-bind="nodeProps" :note-id="currentNoteId" @update="onNodeUpdate" />
+      </template>
+
+      <!-- 注册自定义边组件 -->
+      <template #edge-custom="edgeProps">
+        <CustomEdge v-bind="edgeProps" />
       </template>
 
       <!-- 添加边标签编辑器 -->
@@ -88,18 +93,19 @@
             v-tooltip.top="{ content: '新建文字卡片', delay: { show: 1000 } }"
             class="tool-button"
             draggable="true"
-            @dragstart="
-              (event) => {
-                if (event.dataTransfer) {
-                  event.dataTransfer.setData('application/vueflow', 'text')
-                  event.dataTransfer.effectAllowed = 'move'
-                  draggedType = 'text'
-                  isDragOver = false
-                }
-              }
-            "
+            @dragstart="handleTextDragStart"
           >
             <FileText theme="outline" size="18" :stroke-width="3" />
+          </div>
+
+          <!-- 便签节点按钮 -->
+          <div
+            v-tooltip.top="{ content: '新建便签卡片', delay: { show: 1000 } }"
+            class="tool-button"
+            draggable="true"
+            @dragstart="handleMemoDragStart"
+          >
+            <Bookmark theme="outline" size="18" :stroke-width="3" />
           </div>
 
           <!-- 笔记卡片按钮 - 只需要拖拽功能 -->
@@ -115,16 +121,7 @@
             v-tooltip.top="{ content: '新建图片卡片', delay: { show: 1000 } }"
             class="tool-button"
             draggable="true"
-            @dragstart="
-              (event) => {
-                if (event.dataTransfer) {
-                  event.dataTransfer.setData('application/vueflow', 'image')
-                  event.dataTransfer.effectAllowed = 'move'
-                  draggedType = 'image'
-                  isDragOver = false
-                }
-              }
-            "
+            @dragstart="handleImageDragStart"
             @click="handleImageClick"
           >
             <PictureOne theme="outline" size="18" :stroke-width="3" />
@@ -169,11 +166,12 @@ import { v4 as uuidv4 } from 'uuid'
 import useDragAndDrop from './composables/useDragAndDrop'
 import { useMindboardStore } from '@renderer/stores/mindboardStore'
 import EdgeContextMenu from './custom/EdgeContextMenu.vue'
-import { FileText, PictureOne, Notes } from '@icon-park/vue-next'
+import { FileText, PictureOne, Notes, Bookmark } from '@icon-park/vue-next'
 import ToolbarLeft from './custom/ToolbarLeft.vue'
 import MindboardSearchModal from './MindboardSearchModal.vue'
 import ImageUploadModal from '@renderer/components/whiteboard/ImageUploadModal.vue'
 import { message } from '@renderer/utils/message'
+import MemoNode from './nodes/MemoNode.vue'
 
 const route = useRoute()
 const mindboardStore = useMindboardStore()
@@ -634,6 +632,34 @@ const handleImageConfirm = async (imageData) => {
   } catch (error) {
     console.error('创建图片节点失败:', error)
     message.error('创建图片节点失败')
+  }
+}
+
+// 在 script 部分添加事件处理函数
+const handleTextDragStart = (event) => {
+  if (event.dataTransfer) {
+    event.dataTransfer.setData('application/vueflow', 'text')
+    event.dataTransfer.effectAllowed = 'move'
+    draggedType.value = 'text'
+    isDragOver.value = false
+  }
+}
+
+const handleMemoDragStart = (event) => {
+  if (event.dataTransfer) {
+    event.dataTransfer.setData('application/vueflow', 'memo')
+    event.dataTransfer.effectAllowed = 'move'
+    draggedType.value = 'memo'
+    isDragOver.value = false
+  }
+}
+
+const handleImageDragStart = (event) => {
+  if (event.dataTransfer) {
+    event.dataTransfer.setData('application/vueflow', 'image')
+    event.dataTransfer.effectAllowed = 'move'
+    draggedType.value = 'image'
+    isDragOver.value = false
   }
 }
 
