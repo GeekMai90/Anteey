@@ -38,12 +38,15 @@
       :snap-to-grid="true"
       :snap-to-grid-size="10"
       :snap-to-grid-offset="10"
+      :zoom-on-double-click="false"
       class="vue-flow-instance"
       @connect="onConnect"
       @nodesChange="onNodesChange"
       @edgesChange="onEdgesChange"
       @nodeClick="onNodeClick"
-      @nodeDragStop="onNodeDragStop"
+      @nodeDrag="onNodeDrag"
+      @node-drag-start="onNodeDragStart"
+      @node-drag-stop="onNodeDragStop"
       @edge-double-click="handleEdgeDoubleClick"
       @edge-click="onEdgeClick"
       @dragover="onDragOver"
@@ -52,6 +55,8 @@
       @edge-update="onEdgeUpdate"
       @edge-update-start="onEdgeUpdateStart"
       @edge-update-end="onEdgeUpdateEnd"
+      @selection-change="onSelectionChange"
+      @pane-click="onPaneClick"
     >
       <Background :variant="backgroundVariant" :gap="20" :size="1" />
       <Controls />
@@ -140,6 +145,16 @@
           </div>
         </div>
       </div>
+
+      <!-- 添加选中工具栏 -->
+      <div v-if="selectedNodes.length > 1" class="selection-toolbar">
+        <button @click="createGroup">创建分组</button>
+      </div>
+
+      <!-- 注册分组节点 -->
+      <template #node-group="nodeProps">
+        <GroupNode v-bind="nodeProps" />
+      </template>
     </VueFlow>
 
     <EdgeContextMenu
@@ -163,7 +178,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed, onUnmounted, watch } from 'vue'
+import { ref, onMounted, computed, onUnmounted, watch, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
 import { VueFlow, ConnectionMode, useVueFlow } from '@vue-flow/core'
 import { Background } from '@vue-flow/background'
@@ -184,6 +199,7 @@ import MindboardSearchModal from './MindboardSearchModal.vue'
 import ImageUploadModal from '@renderer/components/whiteboard/ImageUploadModal.vue'
 import { message } from '@renderer/utils/message'
 import MemoNode from './nodes/MemoNode.vue'
+import GroupNode from './nodes/GroupNode.vue'
 
 const route = useRoute()
 const mindboardStore = useMindboardStore()
@@ -215,8 +231,10 @@ const {
   findEdge,
   updateEdge,
   removeEdges,
-  addNodes
-  // updateNode
+  addNodes,
+  getIntersectingNodes,
+  findNode,
+  screenToFlowCoordinate
 } = useVueFlow()
 
 // 边标签编辑相关的状态
@@ -245,6 +263,15 @@ const searchModalRef = ref(null)
 
 // 图片上传模态框引用
 const imageUploadModalRef = ref(null)
+
+// 选择菜单状态
+const selectedNodes = computed(() => nodes.value.filter((node) => node.selected))
+
+// 在 script setup 中添加状态变量
+const initialMouseOffset = ref({ x: 0, y: 0 })
+const originalPosition = ref({ x: 0, y: 0 })
+const parentPosition = ref({ x: 0, y: 0 })
+const isInitialMove = ref(false)
 
 // 切换背景样式
 const toggleBackground = () => {
@@ -670,6 +697,181 @@ const handleImageDragStart = (event) => {
   }
 }
 
+// 修改选择处理函数
+const onSelectionChange = ({ nodes: selectedNodesList }) => {
+  console.log('Selection changed:', selectedNodesList)
+}
+
+// 创建分组
+
+const createGroup = async () => {
+  await nextTick()
+
+  // 修改选择框的选择器
+  const selectionElement = document.querySelector('.vue-flow__nodesselection-rect')
+
+  if (!selectionElement || selectedNodes.value.length < 2) {
+    console.log('No selection or less than 2 nodes selected')
+    message.warning('请至少选择两个节点')
+    return
+  }
+
+  // 获取 Vue Flow 容器元素
+  const flowElement = document.querySelector('.vue-flow')
+  if (!flowElement) {
+    console.log('Flow element not found')
+    return
+  }
+
+  // 直接从 style 属性获取位置和尺寸
+  const width = parseFloat(selectionElement.style.width)
+  const height = parseFloat(selectionElement.style.height)
+  const top = parseFloat(selectionElement.style.top)
+  const left = parseFloat(selectionElement.style.left)
+
+  console.log('Selection style:', {
+    width,
+    height,
+    top,
+    left
+  })
+
+  const padding = 40
+  const groupNode = {
+    id: `group-${uuidv4()}`,
+    type: 'group',
+    position: {
+      x: left - padding / 2,
+      y: top - padding / 2
+    },
+    style: {
+      width: `${width + padding}px`, // 添加 px 单位
+      height: `${height + padding}px` // 添加 px 单位
+    },
+    data: {
+      label: '新建分组',
+      childNodes: [],
+      width: width + padding,
+      height: height + padding,
+      backgroundColor: 'rgba(147, 197, 253, 0.3)'
+    }
+  }
+
+  // 更新选中节点的位置和父节点
+  selectedNodes.value.forEach((node) => {
+    const relativeX = node.position.x - left + padding / 2
+    const relativeY = node.position.y - top + padding / 2
+
+    node.position = {
+      x: relativeX,
+      y: relativeY
+    }
+
+    node.parentNode = groupNode.id
+    groupNode.data.childNodes.push(node.id)
+  })
+
+  console.log('Created group node:', groupNode)
+
+  addNodes([groupNode])
+  saveFlowState()
+}
+
+// 添加节点拖动开始处理函数
+const onNodeDragStart = ({ event, node }) => {
+  const parentNode = node.parentNode ? findNode(node.parentNode) : null
+  originalPosition.value = { ...node.position }
+  parentPosition.value = parentNode ? parentNode.position : { x: 0, y: 0 }
+  isInitialMove.value = true
+
+  // 将屏幕坐标转换为画布坐标
+  const flowCoords = screenToFlowCoordinate({ x: event.clientX, y: event.clientY })
+
+  if (parentNode) {
+    // 计算节点在父节点内的初始偏移量
+    initialMouseOffset.value = {
+      x: originalPosition.value.x + parentPosition.value.x - flowCoords.x,
+      y: originalPosition.value.y + parentPosition.value.y - flowCoords.y
+    }
+  } else {
+    // 对于没有父节点的节点，计算绝对偏移量
+    initialMouseOffset.value = {
+      x: originalPosition.value.x - flowCoords.x,
+      y: originalPosition.value.y - flowCoords.y
+    }
+  }
+}
+
+// 修改节点拖动处理函数
+const onNodeDrag = ({ node: draggedNode, event }) => {
+  if (draggedNode.type === 'group') return
+
+  const intersections = getIntersectingNodes(draggedNode)
+  const intersectingParentNode = intersections.find((node) => node.type === 'group')
+
+  // 将屏幕坐标转换为画布坐标
+  const flowCoords = screenToFlowCoordinate({ x: event.clientX, y: event.clientY })
+
+  if (intersectingParentNode) {
+    // 如果与分组节点相交，计算相对位置
+    const parentNodePos = intersectingParentNode.position
+    draggedNode.parentNode = intersectingParentNode.id
+    draggedNode.position = {
+      x: flowCoords.x + initialMouseOffset.value.x - parentNodePos.x,
+      y: flowCoords.y + initialMouseOffset.value.y - parentNodePos.y
+    }
+
+    // 更新分组的子节点列表
+    if (!intersectingParentNode.data.childNodes.includes(draggedNode.id)) {
+      intersectingParentNode.data.childNodes.push(draggedNode.id)
+    }
+  } else {
+    // 如果没有相交的分组节点，重置为绝对位置
+    if (draggedNode.parentNode) {
+      const oldParent = findNode(draggedNode.parentNode)
+      if (oldParent) {
+        oldParent.data.childNodes = oldParent.data.childNodes.filter((id) => id !== draggedNode.id)
+      }
+    }
+
+    draggedNode.parentNode = undefined
+    draggedNode.position = {
+      x: flowCoords.x + initialMouseOffset.value.x,
+      y: flowCoords.y + initialMouseOffset.value.y
+    }
+  }
+
+  isInitialMove.value = false
+  saveFlowState()
+}
+
+// 在 VueFlow 组件上添加 paneClick 事件处理
+const onPaneClick = () => {
+  // 实现分组逻辑
+}
+
+// 计算分组边界
+// const calculateGroupBounds = (nodes) => {
+//   const positions = nodes.map((node) => ({
+//     x: node.position.x,
+//     y: node.position.y,
+//     width: node.width || 200,
+//     height: node.height || 100
+//   }))
+
+//   const minX = Math.min(...positions.map((p) => p.x))
+//   const minY = Math.min(...positions.map((p) => p.y))
+//   const maxX = Math.max(...positions.map((p) => p.x + p.width))
+//   const maxY = Math.max(...positions.map((p) => p.y + p.height))
+
+//   return {
+//     x: minX - 20,
+//     y: minY - 20,
+//     width: maxX - minX,
+//     height: maxY - minY
+//   }
+// }
+
 // 初始化数据
 onMounted(async () => {
   const mindboardId = route.params.id
@@ -831,15 +1033,34 @@ onUnmounted(() => {
 
 :deep(.vue-flow-instance) {
   .vue-flow__selection {
-    background: rgba(0, 89, 220, 0.08);
-    border: 1px solid rgba(0, 89, 220, 0.4);
+    background: rgba(var(--color-primary-rgb), 0.08);
+    border: 1px solid rgba(var(--color-primary-rgb), 0.4);
     border-radius: 4px;
   }
+}
 
-  // .vue-flow__node {
-  //   &.selected {
-  //     outline: 2px solid var(--color-primary);
-  //   }
-  // }
+.selection-toolbar {
+  position: absolute;
+  top: 50px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 4;
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 8px;
+  box-shadow: var(--shadow-card);
+
+  button {
+    padding: 8px 16px;
+    background: var(--color-bg-primary);
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    cursor: pointer;
+
+    &:hover {
+      background: var(--color-hover-button);
+    }
+  }
 }
 </style>
