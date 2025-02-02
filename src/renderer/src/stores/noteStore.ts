@@ -2,7 +2,6 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { Notes, Table, TransactionOrder, Deeplink } from '@icon-park/vue-next'
 import type { Note, CardBox, CardType } from '@shared/types'
-import type { Whiteboard, Connection } from '@shared/types'
 
 import type { Editor } from '@tiptap/vue-3'
 import type { GetPaginatedNotesParams } from '@shared/types'
@@ -62,8 +61,6 @@ export const useNoteStore = defineStore(
     // State
     const notes = ref<Note[]>([])
     const cardBoxes = ref<CardBox[]>([])
-    const whiteboards = ref<Whiteboard[]>([])
-    const connections = ref<Connection[]>([])
     const isEditorOpen = ref(false)
     const currentNoteId = ref<string | undefined>(undefined)
     const currentNote = ref<Note | null>(null)
@@ -1378,8 +1375,6 @@ export const useNoteStore = defineStore(
       // 状态
       notes,
       cardBoxes,
-      whiteboards,
-      connections,
       isEditorOpen,
       currentNoteId,
       currentNote,
