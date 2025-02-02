@@ -1,340 +1,399 @@
 <template>
-  <div class="mindboard-card" @dblclick="openMindboard(mindboard.id)">
-    <div class="mindboard-card-header">
-      <!-- 更多功能菜单按钮 -->
-      <div ref="moreBtnRef" class="more-btn" @click.stop="toggleMoreMenu">
-        <div v-tooltip.bottom="{ content: '更多', delay: { show: 1000 } }" class="icon">
-          <More theme="outline" size="16" fill="var(--color-icon-default)" :stroke-width="3" />
-        </div>
-        <!-- 更多功能菜单 -->
-        <PopupMenu
-          ref="moreMenuRef"
-          :show="moreMenuState.isOpen"
-          :button-ref="moreBtnRef"
-          :menuItems="menuItems"
-          @close="closeMoreMenu"
-          @itemClick="handleMenuItemClick"
-        />
+  <div class="mindboard-card" @dblclick="handleDblClick">
+    <!-- 预览区域 -->
+    <div class="preview-area">
+      <div v-if="mindboard.preview_image" class="preview-image">
+        <img :src="mindboard.preview_image" alt="思维板预览" />
+      </div>
+      <div v-else class="preview-placeholder">
+        <svg viewBox="0 0 400 300" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path
+            d="M193.392 229.952c48.903 0 88.546-8.679 88.546-19.384s-39.643-19.383-88.546-19.383c-48.903 0-88.546 8.678-88.546 19.383 0 10.705 39.643 19.384 88.546 19.384Z"
+            fill="url(#a)"
+          />
+          <path
+            opacity=".302"
+            d="M219.968 172.123c9.45-1.518 13.275-2.66 22.501-11.528 9.227-8.868 18.582 4.07 32.458-1.124 13.875-5.195 15.143-11.484 36.366 7.781 9.783 8.188 17.564 4.946 22.359 8.188 3.196 2.161 6.278 7.487 9.244 15.98H219.968c-9.788-3.397-14.682-6.219-14.682-8.464 0-3.369 5.232-9.316 14.682-10.833Z"
+            fill="url(#b)"
+          />
+          <path
+            opacity=".302"
+            d="M288.024 78.5c7.753 0 14.399 4.065 17.198 9.845h1.438c7.608 0 13.776 6.168 13.776 13.777v1.368c0 7.609-6.168 13.777-13.776 13.777h-35.884c-7.608 0-13.776-6.168-13.776-13.777v-1.368c0-7.609 6.168-13.776 13.776-13.776h.05c2.799-5.781 9.445-9.846 17.198-9.846Z"
+            fill="url(#c)"
+          />
+          <path
+            opacity=".302"
+            d="M82.523 135.118c9.45-1.517 13.275-2.659 22.501-11.527 9.227-8.868 18.582 4.07 32.458-1.125 13.875-5.194 15.143-11.483 36.366 7.782 9.783 8.187 17.564 4.946 22.359 8.187 3.196 2.161 6.278 7.488 9.244 15.981H82.523c-9.788-3.398-14.682-6.219-14.682-8.465 0-3.368 5.232-9.315 14.682-10.833Z"
+            fill="url(#d)"
+          />
+          <path
+            d="M118.062 85.458V203.52h69.065l15.516-33.056-18.904-44.411 18.904-40.595h-84.581Z"
+            fill="url(#e)"
+          />
+          <path
+            d="m241.507 89.724-29.141 40.005 11.582 41.36-18.69 25.182 53.494 9.578 22.977-106.326-40.222-9.8Z"
+            fill="url(#f)"
+          />
+          <path
+            fill-rule="evenodd"
+            clip-rule="evenodd"
+            d="M203.918 124.067c-.772 3.815-.409 6.058 1.089 6.73 1.96.808.068 2.695-.329 2.9-.264.137-.03.528.702 1.173 1.24.649 2.151.907 2.733.775.583-.132 1.293-.781 2.131-1.948-1.561-1.111-2.105-2.002-1.63-2.674.474-.671 1.195-1.372 2.162-2.101.939-.711.902-1.253-.109-1.624.245-.673.335-1.441.272-2.303l-3.291-.928-3.35-.723-.38.723Z"
+            fill="url(#g)"
+          />
+          <path
+            fill-rule="evenodd"
+            clip-rule="evenodd"
+            d="M206.463 124.704c3.313-.912 4.193.489 4.193 1.081 0 .395-.104 1.049-.313 1.964a11.4 11.4 0 0 0 .86-.399c1.016-.555 1.689-1.54 1.928-2.307.448-1.433-.868-4.473-4.279-4.019-1.19-.218-1.378-1.91-3.445-.869s-2.764.241-2.764 1.308c0 1.067.086 4.356 3.82 3.241Z"
+            fill="#353564"
+          />
+          <path
+            fill-rule="evenodd"
+            clip-rule="evenodd"
+            d="M199.569 199.533c-1.793 1.098-3.045 1.646-3.757 1.646-1.068 0-1.645.947-.652 1.458s4.174-.226 4.989-.226c.815 0 2.912.292 2.109-2.021-.536-1.542-1.028-2.198-1.477-1.968l-1.212.325v.786ZM211.875 199.424c-1.239 1.703-2.182 2.658-2.828 2.867-.968.312-1.159 1.497-.078 1.756 1.08.258 3.705-1.464 4.444-1.702.739-.238 2.743-.538 1.201-2.787-1.028-1.5-1.705-2.061-2.03-1.683l-.985.704.276.845Z"
+            fill="#3E3E6E"
+          />
+          <path
+            fill-rule="evenodd"
+            clip-rule="evenodd"
+            d="M210.187 159.026c-1.167 7.695-2.812 13.709-4.937 18.043-1.161 5.398-1.904 21.738-3.447 22.357-1.544.618-2.643.248-2.587-.543.056-.791-2.055-22.696-1.815-26.102.16-2.271.183-6.776.07-13.516l12.716-.239Z"
+            fill="url(#h)"
+          />
+          <path
+            fill-rule="evenodd"
+            clip-rule="evenodd"
+            d="M215.612 158.149c.166 7.388-.262 15.319-1.283 23.793-.955 10.562 1.105 16.412-.35 17.213-1.456.801-2.592.566-2.634-.226-.042-.792-4.476-22.171-4.656-25.581-.12-2.273-.651-6.748-1.591-13.424l10.514-1.775Z"
+            fill="url(#i)"
+          />
+          <path
+            fill-rule="evenodd"
+            clip-rule="evenodd"
+            d="M198.258 138.609c-2.036 4.435-3.278 7.237-3.727 8.404-.209.485-2.902 1.691-8.078 3.618-1.736.148-2.728.65-2.977 1.505-.141.549-.078 1.49.805 1.568.589.052 1.429-.38 2.519-1.295 5.782.202 9.222-.736 10.317-2.814 1.096-2.079 2.765-5.295 5.007-9.651l-3.597-1.708-.269.373Z"
+            fill="url(#j)"
+          />
+          <path
+            fill-rule="evenodd"
+            clip-rule="evenodd"
+            d="M204.667 133.012c1.739 1.868 3.337 1.868 4.795 0 .253-.169 5.606-.433 9.4 5.671.039.231-1.026 1.49-3.193 3.775h-.663c1.473 7.509 1.694 13.492.663 17.947-.135.463-6.219.724-18.253.781-.031-10.047.641-15.987 2.015-17.821-.168-.338-1.416-1.44-3.744-3.308.733-1.562 1.836-3.063 3.308-4.504 1.471-1.441 3.362-2.288 5.672-2.541Z"
+            fill="#5B5BEA"
+          />
+          <path
+            fill-rule="evenodd"
+            clip-rule="evenodd"
+            d="M214.2 141.754c.106.851 3.424 3.757 4.658 4.799.307.014-6.299 5.13-6.811 5.726-1.399 1.624-.912 3.386.616 3.386 1.527 0 1.049-2.685 1.304-2.825 4.44-2.439 4.891-2.439 7.829-4.095 2.557-1.358-.862-5.467-4.158-9.998-3.296-4.532-3.543 2.156-3.438 3.007Z"
+            fill="url(#k)"
+          />
+          <path
+            fill-rule="evenodd"
+            clip-rule="evenodd"
+            d="M212.965 133.533c.906.429 1.537.749 1.893.961.929.553 1.565 1.098 1.974 1.426 1.27 1.017 1.91 2.061 2.277 2.843.307.542-2.952 5.446-6.144 4.89-.436-.017-1.13-1.029-2.083-3.036l2.083-7.084Z"
+            fill="#5B5BEA"
+          />
+          <defs>
+            <linearGradient
+              id="a"
+              x1="145.165"
+              y1="210.048"
+              x2="254.934"
+              y2="220.811"
+              gradientUnits="userSpaceOnUse"
+            >
+              <stop stop-color="#F8F8FB" />
+              <stop offset="1" stop-color="#F1F1F5" />
+            </linearGradient>
+            <linearGradient
+              id="b"
+              x1="274.091"
+              y1="154.181"
+              x2="274.091"
+              y2="191.42"
+              gradientUnits="userSpaceOnUse"
+            >
+              <stop stop-color="#DCDCE4" />
+              <stop offset="1" stop-color="#DEDEE6" stop-opacity="0" />
+            </linearGradient>
+            <linearGradient
+              id="c"
+              x1="288.718"
+              y1="78.5"
+              x2="288.718"
+              y2="117.267"
+              gradientUnits="userSpaceOnUse"
+            >
+              <stop stop-color="#DCDCE4" />
+              <stop offset="1" stop-color="#DEDEE6" stop-opacity="0" />
+            </linearGradient>
+            <linearGradient
+              id="d"
+              x1="136.646"
+              y1="117.176"
+              x2="136.646"
+              y2="154.416"
+              gradientUnits="userSpaceOnUse"
+            >
+              <stop stop-color="#DCDCE4" />
+              <stop offset="1" stop-color="#DEDEE6" stop-opacity="0" />
+            </linearGradient>
+            <linearGradient
+              id="e"
+              x1="168.174"
+              y1="103.668"
+              x2="138.112"
+              y2="203.034"
+              gradientUnits="userSpaceOnUse"
+            >
+              <stop stop-color="#F4F4F9" />
+              <stop offset="1" stop-color="#E3E3EA" />
+            </linearGradient>
+            <linearGradient
+              id="f"
+              x1="235.365"
+              y1="114.665"
+              x2="239.547"
+              y2="209.425"
+              gradientUnits="userSpaceOnUse"
+            >
+              <stop stop-color="#F4F4F9" />
+              <stop offset="1" stop-color="#E3E3EA" />
+            </linearGradient>
+            <linearGradient
+              id="g"
+              x1="205.089"
+              y1="125.334"
+              x2="211.253"
+              y2="132.128"
+              gradientUnits="userSpaceOnUse"
+            >
+              <stop stop-color="#FFD2C4" />
+              <stop offset="1" stop-color="#FFB8A3" />
+            </linearGradient>
+            <linearGradient
+              id="h"
+              x1="201.445"
+              y1="197.841"
+              x2="200.676"
+              y2="160.243"
+              gradientUnits="userSpaceOnUse"
+            >
+              <stop stop-color="#7878C3" />
+              <stop offset="1" stop-color="#5C5CBB" />
+            </linearGradient>
+            <linearGradient
+              id="i"
+              x1="212.568"
+              y1="197.671"
+              x2="207.769"
+              y2="160.362"
+              gradientUnits="userSpaceOnUse"
+            >
+              <stop stop-color="#7878C3" />
+              <stop offset="1" stop-color="#5C5CBB" />
+            </linearGradient>
+            <linearGradient
+              id="j"
+              x1="192.771"
+              y1="141.611"
+              x2="195.457"
+              y2="149.08"
+              gradientUnits="userSpaceOnUse"
+            >
+              <stop stop-color="#FFD2C4" />
+              <stop offset="1" stop-color="#FFB8A3" />
+            </linearGradient>
+            <linearGradient
+              id="k"
+              x1="216.954"
+              y1="138.813"
+              x2="219.194"
+              y2="150.945"
+              gradientUnits="userSpaceOnUse"
+            >
+              <stop stop-color="#FFD2C4" />
+              <stop offset="1" stop-color="#FFB8A3" />
+            </linearGradient>
+          </defs>
+        </svg>
       </div>
     </div>
-    <div class="mindboard-card-content" @click="openMindboard(mindboard.id)">
-      <div class="mindboard-name">
-        <div class="icon">
-          <Workbench
+
+    <!-- 信息区域 -->
+    <div class="info-area">
+      <div class="title-row">
+        <h3 class="title" :class="{ untitled: !mindboard.name }">
+          {{ mindboard.name || '未命名文件' }}
+        </h3>
+        <div class="favorite-button" @click.stop="toggleFavorite">
+          <Star
             theme="outline"
-            size="20"
-            fill="var(--color-icon-menu-default)"
+            size="16"
+            :fill="mindboard.is_favorite ? 'var(--color-primary)' : 'var(--color-text-secondary)'"
             :strokeWidth="3"
           />
         </div>
-        <div v-if="!isEditing" class="name" @dblclick.stop="startEditing" @click.stop>
-          {{ mindboard.name }}
-        </div>
-        <input
-          v-else
-          ref="nameInput"
-          v-model="editingName"
-          class="name-input"
-          @blur="finishEditing"
-          @keyup.enter="finishEditing"
-          @click.stop
-        />
+      </div>
+      <div class="time">
+        {{ formatTime(mindboard.updated_at) }}
       </div>
     </div>
-    <div class="mindboard-card-footer">
-      <div class="update-time">{{ formatTime }}</div>
-    </div>
-    <ConfirmModal
-      :show="showConfirmModal"
-      title="删除思维板"
-      message="确定要删除这个思维板吗？此操作不可撤销。"
-      @confirm="confirmDelete"
-      @cancel="cancelDelete"
-    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { defineProps, ref, computed, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
-import type { Mindboard } from '@shared/types'
-import { Workbench, More, Edit, DeleteOne } from '@icon-park/vue-next'
+import type { Mindboard } from '@shared/types/mindboard'
 import { useMindboardStore } from '@renderer/stores/mindboardStore'
-import PopupMenu from '@renderer/components/common/PopupMenu.vue'
-import type { MenuItem } from '@renderer/components/common/PopupMenu.vue'
-import ConfirmModal from '@renderer/components/common/ConfirmModal.vue'
-import { useMenu } from '@renderer/composables/useMenu'
-import { formatDistanceToNow } from 'date-fns'
-import { zhCN } from 'date-fns/locale'
+import dayjs from 'dayjs'
+import { Star } from '@icon-park/vue-next'
+
+const router = useRouter()
+const mindboardStore = useMindboardStore()
 
 const props = defineProps<{
   mindboard: Mindboard
 }>()
 
-const router = useRouter()
-const mindboardStore = useMindboardStore()
-
-// 格式化更新时间
-const formatTime = computed(() => {
-  return formatDistanceToNow(new Date(props.mindboard.updated_at), {
-    addSuffix: true,
-    locale: zhCN
-  })
-})
+// 格式化时间
+const formatTime = (time: string) => {
+  return dayjs(time).format('YYYY-MM-DD HH:mm')
+}
 
 // 打开思维板
-const openMindboard = (id: string, event?: Event) => {
-  if (event) {
-    event.stopPropagation()
-  }
-  if (isEditing.value) {
-    return
-  }
+const openMindboard = (id: string) => {
   router.push(`/mindboard/${id}`)
 }
 
-// 更多菜单相关
-const moreBtnRef = ref<HTMLElement | null>(null)
-const moreMenuRef = ref<HTMLElement | null>(null)
-const showConfirmModal = ref(false)
-
-const menuItems = ref<MenuItem[]>([
-  {
-    name: 'rename',
-    icon: Edit,
-    label: '重命名',
-    action: () => {
-      startEditing()
-    }
-  },
-  {
-    name: 'delete',
-    icon: DeleteOne,
-    label: '删除',
-    action: () => {
-      showConfirmModal.value = true
-    },
-    isDangerous: true
-  }
-])
-
-const {
-  menuState: moreMenuState,
-  toggleMenu: toggleMoreMenu,
-  closeMenu: closeMoreMenu
-} = useMenu({
-  buttonRef: moreBtnRef,
-  menuRef: moreMenuRef
-})
-
-// 处理菜单项点击
-const handleMenuItemClick = (item: MenuItem) => {
-  item.action()
-  if (item.name !== 'delete') {
-    closeMoreMenu()
-  }
+// 处理双击事件
+const handleDblClick = () => {
+  openMindboard(props.mindboard.id)
 }
 
-// 删除确认
-const confirmDelete = async () => {
+// 切换收藏状态
+const toggleFavorite = async (event: MouseEvent) => {
+  event.stopPropagation()
   try {
-    await mindboardStore.deleteMindboard(props.mindboard.id)
-    showConfirmModal.value = false
-    closeMoreMenu()
+    await mindboardStore.toggleFavorite(props.mindboard.id)
   } catch (error) {
-    console.error('删除思维板失败:', error)
-  }
-}
-
-const cancelDelete = () => {
-  showConfirmModal.value = false
-}
-
-// 重命名功能相关
-const isEditing = ref(false)
-const editingName = ref('')
-const nameInput = ref<HTMLInputElement | null>(null)
-
-const startEditing = (event?: Event) => {
-  if (event) {
-    event.stopPropagation()
-  }
-  isEditing.value = true
-  editingName.value = props.mindboard.name
-  nextTick(() => {
-    nameInput.value?.focus()
-  })
-}
-
-const finishEditing = async (event?: Event) => {
-  if (event) {
-    event.stopPropagation()
-  }
-  isEditing.value = false
-  if (editingName.value.trim() === '') {
-    editingName.value = props.mindboard.name
-    return
-  }
-  if (editingName.value !== props.mindboard.name) {
-    try {
-      await mindboardStore.updateMindboard(props.mindboard.id, {
-        name: editingName.value.trim()
-      })
-    } catch (error) {
-      console.error('重命名思维板失败:', error)
-    }
+    console.error('切换收藏状态失败:', error)
   }
 }
 </script>
 
 <style lang="scss" scoped>
-// 复用 WhiteboardCard 的样式,只需要修改类名
 .mindboard-card {
-  // ... 复用 .whiteboard-card 的样式
-  width: 100%;
-  height: 100%;
+  background: var(--color-bg-primary);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+  cursor: pointer;
+  border: 1px solid var(--color-border);
+  height: 200px; // 减小高度
   display: flex;
   flex-direction: column;
-  background-color: var(--color-note-card-bg);
-  border-radius: 12px;
-  padding: 16px;
-  box-shadow:
-    0 4px 6px rgba(0, 0, 0, 0.1),
-    0 1px 3px rgba(0, 0, 0, 0.08);
-  transition: box-shadow 0.3s ease-in-out;
-  border: 1px solid var(--color-border);
 
   &:hover {
-    box-shadow:
-      0 10px 15px rgba(0, 0, 0, 0.1),
-      0 4px 6px rgba(0, 0, 0, 0.05);
-    .mindboard-card-header {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  }
+
+  .preview-area {
+    flex: 1;
+    background: var(--color-mindboard-card-image-bg);
+    overflow: hidden;
+    position: relative;
+    padding: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    .preview-image {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--color-mindboard-card-image-bg);
+
+      img {
+        max-width: 100%;
+        max-height: 100%;
+        width: auto;
+        height: auto;
+        object-fit: contain;
+      }
+    }
+
+    .preview-placeholder {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+
+      svg {
+        // width: 100%;
+        // height: 100%;
+        width: 200px;
+        height: 200px;
+        opacity: 1;
+      }
+    }
+  }
+
+  .info-area {
+    padding: 8px 12px;
+    background: var(--color-bg-primary);
+    border-top: 1px solid var(--color-border);
+
+    .title-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2px;
+
+      .title {
+        margin: 0;
+        font-size: 14px;
+        font-weight: 500;
+        color: var(--color-text-primary);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        flex: 1;
+        margin-right: 8px;
+
+        &.untitled {
+          color: var(--color-text-secondary);
+        }
+      }
+
+      .favorite-button {
+        cursor: pointer;
+        padding: 4px;
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0.6;
+        transition: all 0.2s ease;
+
+        &:hover {
+          opacity: 1;
+          background-color: var(--color-hover-bg);
+        }
+      }
+    }
+
+    .time {
+      font-size: 12px;
+      color: var(--color-text-secondary);
+    }
+  }
+
+  &:hover {
+    .info-area .title-row .favorite-button {
       opacity: 1;
     }
-  }
-}
-
-// ... 其他样式保持不变,只需要修改对应的类名
-.mindboard-card-header {
-  // ... 复用 .whiteboard-card-header 的样式
-  display: flex;
-  width: 100%;
-  height: 24px;
-  align-items: center;
-  justify-content: flex-end;
-  opacity: 0;
-  transition: opacity 0.2s ease-in-out;
-
-  .icon {
-    background: none;
-    border: none;
-    width: 24px;
-    height: 24px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s ease;
-    padding: 0;
-    cursor: pointer;
-    border-radius: 4px;
-
-    &:hover {
-      background-color: var(--color-hover-button);
-    }
-
-    :deep(.i-icon) {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 100%;
-      height: 100%;
-    }
-
-    :deep(svg) {
-      width: 16px;
-      height: 16px;
-    }
-  }
-}
-
-.mindboard-card-content {
-  // ... 复用 .whiteboard-card-content 的样式
-  flex-grow: 1;
-  display: flex;
-  align-items: center;
-  cursor: pointer;
-  user-select: none;
-}
-
-.mindboard-name {
-  // ... 复用 .whiteboard-name 的样式
-  display: flex;
-  align-items: center;
-  width: 100%;
-
-  .icon {
-    background: none;
-    border: none;
-    width: 24px;
-    height: 24px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s ease;
-    padding: 0;
-
-    :deep(.i-icon) {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 100%;
-      height: 100%;
-    }
-
-    :deep(svg) {
-      width: 18px;
-      height: 18px;
-    }
-  }
-
-  .name {
-    flex-grow: 1;
-    text-align: left;
-    color: var(--color-text-primary);
-    font-size: 18px;
-    font-weight: 400;
-    margin-left: 6px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .name-input {
-    flex-grow: 1;
-    font-size: 18px;
-    color: var(--color-text-primary);
-    background: transparent;
-    outline: none;
-    border: none;
-    padding: 2px 4px;
-    margin-left: 6px;
-    width: 100%;
-    box-sizing: border-box;
-  }
-}
-
-.mindboard-card-footer {
-  // ... 复用 .whiteboard-card-footer 的样式
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  margin-top: auto;
-  user-select: none;
-
-  .update-time {
-    font-size: 12px;
-    color: var(--color-text-secondary);
   }
 }
 </style>

@@ -47,13 +47,14 @@ const props = defineProps({
     required: true
   },
   label: {
-    type: String,
+    type: [String, Object],
     required: false,
     default: ''
   },
   data: {
     type: Object,
-    required: false
+    required: false,
+    default: () => ({})
   },
   selected: {
     type: Boolean,
@@ -74,6 +75,14 @@ const props = defineProps({
   type: {
     type: String,
     default: 'default'
+  },
+  sourceNode: {
+    type: Object,
+    required: false
+  },
+  targetNode: {
+    type: Object,
+    required: false
   }
 })
 

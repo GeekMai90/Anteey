@@ -5,7 +5,10 @@ import {
   getAllMindboards,
   updateMindboard,
   deleteMindboard,
-  updateMindboardName
+  updateMindboardName,
+  updatePreviewImage,
+  toggleFavorite,
+  getFavoriteMindboards
 } from '../../services/mindboard/mindboardService'
 import type { Mindboard } from '@shared/types'
 
@@ -83,4 +86,40 @@ export function setupMindboardHandlers() {
       }
     }
   )
+
+  // 添加更新预览图的处理器
+  ipcMain.handle(
+    'update-mindboard-preview',
+    async (_event, { id, previewImage }: { id: string; previewImage: string }) => {
+      try {
+        await updatePreviewImage(id, previewImage)
+        return { success: true }
+      } catch (error) {
+        console.error('主进程→ 更新思维板预览图失败:', error)
+        return { success: false, error: String(error) }
+      }
+    }
+  )
+
+  // 切换思维板收藏状态
+  ipcMain.handle('toggle-mindboard-favorite', async (_event, id: string) => {
+    try {
+      await toggleFavorite(id)
+      return { success: true }
+    } catch (error) {
+      console.error('主进程→ 切换思维板收藏状态失败:', error)
+      return { success: false, error: String(error) }
+    }
+  })
+
+  // 获取收藏的思维板
+  ipcMain.handle('get-favorite-mindboards', async () => {
+    try {
+      const mindboards = await getFavoriteMindboards()
+      return { success: true, mindboards }
+    } catch (error) {
+      console.error('主进程→ 获取收藏的思维板失败:', error)
+      return { success: false, error: String(error) }
+    }
+  })
 }

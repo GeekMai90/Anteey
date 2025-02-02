@@ -112,9 +112,10 @@ const sortedMindboards = computed((): Mindboard[] => {
 const addMindboard = async () => {
   try {
     await mindboardStore.createMindboard({
-      name: '新思维板',
+      name: '未命名思维板',
       description: '',
-      flow_data: {}
+      flow_data: {},
+      is_favorite: false
     })
   } catch (error) {
     console.error('创建思维板失败:', error)
@@ -163,11 +164,73 @@ onUnmounted(() => {
 <style lang="scss" scoped>
 .mindboard-view {
   height: 100vh;
+  background-color: #ffffff;
   display: flex;
   flex-direction: column;
-  background-color: var(--color-bg-primary);
-  overflow: hidden;
+
+  .header {
+    padding: 16px 24px;
+    background: #ffffff;
+    border-bottom: 1px solid #e9ecef;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    .title {
+      font-size: 20px;
+      font-weight: 500;
+      color: #495057;
+    }
+
+    .actions {
+      display: flex;
+      gap: 12px;
+
+      .sort-btn {
+        padding: 6px 12px;
+        border-radius: 6px;
+        background: #ffffff;
+        border: 1px solid #e9ecef;
+        color: #495057;
+        font-size: 14px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+
+        &:hover {
+          background: #f8f9fa;
+        }
+
+        &.active {
+          background: #e7f5ff;
+          border-color: #74c0fc;
+          color: #1971c2;
+        }
+      }
+    }
+  }
+
+  .content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 24px;
+    background: var(--color-bg-primary);
+  }
+
+  .card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 24px;
+    align-content: start;
+    justify-content: center;
+
+    @media (max-width: 768px) {
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 16px;
+      padding: 16px;
+    }
+  }
 }
+
 .fixed-header {
   position: sticky;
   top: 0;
@@ -242,7 +305,7 @@ onUnmounted(() => {
   gap: 10px;
   align-items: center;
 
-  .add-whiteboard-button {
+  .add-mindboard-button {
     display: flex;
     align-items: center;
     // width: 100px;
@@ -427,33 +490,30 @@ onUnmounted(() => {
 }
 
 .mindboard-view-container {
-  // height: 100%;
-  // width: 100%;
-  // padding: 0px 0px 10px 0px;
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 100px); // 假设顶部工具栏高度为100px，请根据实际情况调整
-  overflow: hidden; // 防止整个页面滚动
+  height: calc(100vh - 100px);
+  overflow: hidden;
 
   .card-grid-container {
     flex: 1;
-    // height: 100%;
-    overflow-y: auto; // 允许卡片网格容器滚动
-    // padding: 0 16px 16px 16px;
+    overflow-y: auto;
+    padding: 20px;
+    background: var(--color-bg-primary);
   }
 
   .card-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-    gap: 16px;
-    padding: 16px 20px;
-    align-content: start; // 让内容从顶部开始排列
-    justify-content: center; // 水平居中对齐
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 20px;
+    align-content: start;
+    justify-content: center;
 
-    // 使用视口单位和 clamp 函数来控制卡片高度
-    --card-height: clamp(150px, calc(20vw - 32px), 150px);
-    grid-auto-rows: var(--card-height);
-    --cards-per-row: calc((100% - 32px) / (300px + 16px));
+    @media (max-width: 768px) {
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 16px;
+      padding: 16px;
+    }
   }
 
   .modal-overlay {
@@ -542,5 +602,13 @@ onUnmounted(() => {
 .sort-direction {
   font-size: 12px;
   margin-left: 5px;
+}
+
+@media (max-width: 768px) {
+  .card-grid {
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 16px;
+    padding: 16px;
+  }
 }
 </style>

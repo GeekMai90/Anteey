@@ -177,10 +177,23 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, onMounted, computed, onUnmounted, watch, nextTick } from 'vue'
-import { useRoute } from 'vue-router'
-import { VueFlow, ConnectionMode, useVueFlow } from '@vue-flow/core'
+import { onBeforeRouteLeave, useRoute } from 'vue-router'
+import {
+  VueFlow,
+  ConnectionMode,
+  useVueFlow,
+  Edge,
+  GraphNode,
+  Connection,
+  GraphEdge,
+  NodeMouseEvent,
+  EdgeMouseEvent,
+  NodeChange,
+  EdgeChange,
+  NodeDragEvent
+} from '@vue-flow/core'
 import { Background } from '@vue-flow/background'
 import { MiniMap } from '@vue-flow/minimap'
 import { Controls } from '@vue-flow/controls'
@@ -200,17 +213,36 @@ import ImageUploadModal from '@renderer/components/whiteboard/ImageUploadModal.v
 import { message } from '@renderer/utils/message'
 import MemoNode from './nodes/MemoNode.vue'
 import GroupNode from './nodes/GroupNode.vue'
+import html2canvas from 'html2canvas'
 
 const route = useRoute()
 const mindboardStore = useMindboardStore()
 const currentMindboard = computed(() => mindboardStore.currentMindboard)
-const mindboardName = ref('')
+const mindboardName = ref<string>('')
 
 // 当前笔记ID
 const currentNoteId = ref('')
 
-const nodes = ref([])
-const edges = ref([])
+interface NodeData {
+  content?: string
+  noteId?: string
+  width?: number
+  height?: number
+  backgroundColor?: string
+  borderColor?: string
+  toolbarPosition?: string
+}
+
+interface GroupNodeData {
+  label: string
+  childNodes: string[]
+  width: number
+  height: number
+  backgroundColor: string
+}
+
+const nodes = ref<GraphNode<NodeData>[]>([])
+const edges = ref<Edge[]>([])
 
 // 设置默认边的样式
 const defaultEdgeOptions = {
@@ -234,15 +266,16 @@ const {
   addNodes,
   getIntersectingNodes,
   findNode,
-  screenToFlowCoordinate
+  screenToFlowCoordinate,
+  vueFlowRef
 } = useVueFlow()
 
 // 边标签编辑相关的状态
 const showEdgeLabelEditor = ref(false)
-const editingLabel = ref('')
-const editingEdgeId = ref(null)
+const editingLabel = ref<string>('')
+const editingEdgeId = ref<string | null>(null)
 const edgeLabelEditorStyle = ref({})
-const labelInputRef = ref(null)
+const labelInputRef = ref<HTMLInputElement | null>(null)
 
 const { isDragOver, draggedType, dropPosition, onDragOver, onDragLeave, onDrop, createImageNode } =
   useDragAndDrop()
@@ -250,19 +283,26 @@ const { isDragOver, draggedType, dropPosition, onDragOver, onDragLeave, onDrop, 
 // 添加边菜单相关的状态
 const showEdgeMenu = ref(false)
 const edgeMenuPosition = ref({ x: 0, y: 0 })
-const selectedEdgeId = ref(null)
+const selectedEdgeId = ref<string | null>(null)
 
 //处理边上下文菜单
-const edgeContextMenuRef = ref(null)
+interface EdgeContextMenuInstance {
+  closeStyleMenu: () => void
+  show?: () => void
+}
+const edgeContextMenuRef = ref<EdgeContextMenuInstance | null>(null)
 
 // 背景样式状态
-const backgroundVariant = ref('dots')
+const backgroundVariant = ref<'dots' | 'lines'>('dots')
 
 // 搜索模态框引用
-const searchModalRef = ref(null)
+interface ModalInstance {
+  show: () => void
+}
+const searchModalRef = ref<ModalInstance | null>(null)
 
 // 图片上传模态框引用
-const imageUploadModalRef = ref(null)
+const imageUploadModalRef = ref<ModalInstance | null>(null)
 
 // 选择菜单状态
 const selectedNodes = computed(() => nodes.value.filter((node) => node.selected))
@@ -276,7 +316,7 @@ const isInitialMove = ref(false)
 // 切换背景样式
 const toggleBackground = () => {
   // 循环切换背景样式
-  const variants = ['dots', 'lines', 'cross']
+  const variants: Array<'dots' | 'lines'> = ['dots', 'lines']
   const currentIndex = variants.indexOf(backgroundVariant.value)
   const nextIndex = (currentIndex + 1) % variants.length
   backgroundVariant.value = variants[nextIndex]
@@ -301,7 +341,7 @@ const saveFlowState = async () => {
 // 修改 restoreFlowState 函数，恢复背景样式
 const restoreFlowState = () => {
   fromObject(currentMindboard.value?.flow_data)
-  mindboardName.value = currentMindboard.value?.name
+  mindboardName.value = currentMindboard.value?.name || ''
   // 恢复背景样式
   if (currentMindboard.value?.flow_data?.backgroundVariant) {
     backgroundVariant.value = currentMindboard.value.flow_data.backgroundVariant
@@ -309,24 +349,25 @@ const restoreFlowState = () => {
 }
 
 // 更新思维板名称
-const updateMindboardName = async (newName) => {
+const updateMindboardName = async (newName: string) => {
+  if (!currentMindboard.value) return
   await mindboardStore.updateMindboardName(currentMindboard.value.id, newName)
   mindboardName.value = newName
 }
 
-function onEdgeUpdateStart(edge) {
-  console.log('start update', edge)
+function onEdgeUpdateStart(edgeMouseEvent: EdgeMouseEvent) {
+  console.log('start update', edgeMouseEvent)
 }
 
-function onEdgeUpdateEnd(edge) {
-  console.log('end update', edge)
+function onEdgeUpdateEnd(edgeMouseEvent: EdgeMouseEvent) {
+  console.log('end update', edgeMouseEvent)
 }
 
-function onEdgeUpdate({ edge, connection }) {
+function onEdgeUpdate({ edge, connection }: { edge: GraphEdge; connection: Connection }) {
   updateEdge(edge, connection)
 }
 // 节点更新处理
-const onNodeUpdate = ({ id, content }) => {
+const onNodeUpdate = ({ id, content }: { id: string; content: string }) => {
   const node = nodes.value.find((n) => n.id === id)
   if (node) {
     node.data.content = content
@@ -335,12 +376,12 @@ const onNodeUpdate = ({ id, content }) => {
 }
 
 // 节点点击处理
-const onNodeClick = (nodeDragEvent) => {
-  console.log('Node clicked:', nodeDragEvent)
+const onNodeClick = (nodeMouseEvent: NodeMouseEvent) => {
+  console.log('Node clicked:', nodeMouseEvent)
 }
 
 // 连线处理
-const onConnect = async (connection) => {
+const onConnect = async (connection: Connection) => {
   const newEdge = {
     id: `edge-${uuidv4()}`,
     source: connection.source,
@@ -357,7 +398,7 @@ const onConnect = async (connection) => {
 }
 
 // 边点击处理
-const onEdgeClick = (event) => {
+const onEdgeClick = (event: EdgeMouseEvent) => {
   // 阻止事件冒泡
   event.event.preventDefault()
   event.event.stopPropagation()
@@ -368,9 +409,17 @@ const onEdgeClick = (event) => {
   selectedEdgeId.value = edge.id
 
   // 计算菜单位置
-  edgeMenuPosition.value = {
-    x: mouseEvent.clientX - 350,
-    y: mouseEvent.clientY - 100
+  if (mouseEvent instanceof MouseEvent) {
+    edgeMenuPosition.value = {
+      x: mouseEvent.clientX - 350,
+      y: mouseEvent.clientY - 100
+    }
+  } else if ((mouseEvent as TouchEvent).touches) {
+    const touch = (mouseEvent as TouchEvent).touches[0]
+    edgeMenuPosition.value = {
+      x: touch.clientX - 350,
+      y: touch.clientY - 100
+    }
   }
 
   // 显示菜单
@@ -378,7 +427,7 @@ const onEdgeClick = (event) => {
 }
 
 // 节点变化处理
-const onNodesChange = (changes) => {
+const onNodesChange = (changes: NodeChange[]) => {
   console.log('nodes changed', changes)
   const updatedNodes = applyNodeChanges(changes)
   nodes.value = [...updatedNodes]
@@ -386,15 +435,15 @@ const onNodesChange = (changes) => {
 }
 
 // 边变化处理
-const onEdgesChange = (changes) => {
+const onEdgesChange = (changes: EdgeChange[]) => {
   console.log('edges changed', changes)
   edges.value = applyEdgeChanges(changes)
   saveFlowState()
 }
 
 // 拖拽结束处理
-const onNodeDragStop = (NodeDragEvent) => {
-  console.log('onNodeDragStop', NodeDragEvent)
+const onNodeDragStop = (nodeDragEvent: NodeDragEvent) => {
+  console.log('onNodeDragStop', nodeDragEvent)
   saveFlowState()
 }
 
@@ -431,7 +480,7 @@ const handleEdgeEdit = () => {
     }
 
     editingEdgeId.value = edge.id
-    editingLabel.value = edge.label || ''
+    editingLabel.value = typeof edge.label === 'string' ? edge.label : ''
     showEdgeLabelEditor.value = true
     closeEdgeMenu() // 关闭菜单
 
@@ -443,7 +492,7 @@ const handleEdgeEdit = () => {
 }
 
 // 处理边的双击事件
-const handleEdgeDoubleClick = ({ edge, event }) => {
+const handleEdgeDoubleClick = ({ edge, event }: EdgeMouseEvent) => {
   // 阻止事件冒泡
   event.preventDefault()
   event.stopPropagation()
@@ -477,7 +526,7 @@ const handleEdgeDoubleClick = ({ edge, event }) => {
   }
 
   editingEdgeId.value = edge.id
-  editingLabel.value = edge.label || ''
+  editingLabel.value = typeof edge.label === 'string' ? edge.label : ''
   showEdgeLabelEditor.value = true
 
   // 等待 DOM 更新后聚焦输入框
@@ -525,7 +574,7 @@ const handleEdgeDelete = () => {
 }
 
 // 处理边样式更新
-const handleEdgeStyleUpdate = (styleType) => {
+const handleEdgeStyleUpdate = (styleType: string) => {
   if (selectedEdgeId.value) {
     const edge = findEdge(selectedEdgeId.value)
     if (edge) {
@@ -557,7 +606,7 @@ const handleEdgeAnimationToggle = () => {
 }
 
 // 处理标记样式更新
-const handleMarkerUpdate = (markerType) => {
+const handleMarkerUpdate = (markerType: string) => {
   if (selectedEdgeId.value) {
     const edge = findEdge(selectedEdgeId.value)
     if (edge) {
@@ -575,7 +624,7 @@ const handleMarkerUpdate = (markerType) => {
 }
 
 // 处理边颜色更新
-const handleColorUpdate = (colorValue) => {
+const handleColorUpdate = (colorValue: string) => {
   if (selectedEdgeId.value) {
     const edge = findEdge(selectedEdgeId.value)
     if (edge) {
@@ -593,7 +642,7 @@ const handleColorUpdate = (colorValue) => {
 }
 
 // 处理笔记卡片拖拽开始
-const handleCardDragStart = (event) => {
+const handleCardDragStart = (event: DragEvent) => {
   if (event.dataTransfer) {
     event.dataTransfer.setData('application/vueflow', 'card')
     event.dataTransfer.effectAllowed = 'move'
@@ -619,7 +668,7 @@ watch(dropPosition, (position) => {
 })
 
 // 处理笔记选择
-const handleNoteSelected = (noteId) => {
+const handleNoteSelected = (noteId: string) => {
   if (dropPosition.value) {
     // 在拖拽的位置创建节点
     createCardNode(noteId, dropPosition.value)
@@ -629,7 +678,7 @@ const handleNoteSelected = (noteId) => {
 }
 
 // 创建卡片节点函数
-const createCardNode = (noteId, position) => {
+const createCardNode = (noteId: string, position: { x: number; y: number }) => {
   const newNode = {
     id: `card-${uuidv4()}`,
     type: 'card',
@@ -637,7 +686,7 @@ const createCardNode = (noteId, position) => {
     data: {
       noteId,
       toolbarPosition: 'top',
-      width: 250,
+      width: 350,
       height: 300, // 确保与组件中的最小高度一致
       backgroundColor: 'transparent',
       borderColor: 'var(--color-border)'
@@ -648,7 +697,7 @@ const createCardNode = (noteId, position) => {
 }
 
 // 处理图片上传确认
-const handleImageConfirm = async (imageData) => {
+const handleImageConfirm = async (imageData: { url: string }) => {
   try {
     if (dropPosition.value) {
       // 如果有拖放位置，在拖放位置创建节点
@@ -670,7 +719,7 @@ const handleImageConfirm = async (imageData) => {
 }
 
 // 在 script 部分添加事件处理函数
-const handleTextDragStart = (event) => {
+const handleTextDragStart = (event: DragEvent) => {
   if (event.dataTransfer) {
     event.dataTransfer.setData('application/vueflow', 'text')
     event.dataTransfer.effectAllowed = 'move'
@@ -679,7 +728,7 @@ const handleTextDragStart = (event) => {
   }
 }
 
-const handleMemoDragStart = (event) => {
+const handleMemoDragStart = (event: DragEvent) => {
   if (event.dataTransfer) {
     event.dataTransfer.setData('application/vueflow', 'memo')
     event.dataTransfer.effectAllowed = 'move'
@@ -688,7 +737,7 @@ const handleMemoDragStart = (event) => {
   }
 }
 
-const handleImageDragStart = (event) => {
+const handleImageDragStart = (event: DragEvent) => {
   if (event.dataTransfer) {
     event.dataTransfer.setData('application/vueflow', 'image')
     event.dataTransfer.effectAllowed = 'move'
@@ -698,7 +747,7 @@ const handleImageDragStart = (event) => {
 }
 
 // 修改选择处理函数
-const onSelectionChange = ({ nodes: selectedNodesList }) => {
+const onSelectionChange = ({ nodes: selectedNodesList }: { nodes: Node[] }) => {
   console.log('Selection changed:', selectedNodesList)
 }
 
@@ -708,7 +757,7 @@ const createGroup = async () => {
   await nextTick()
 
   // 修改选择框的选择器
-  const selectionElement = document.querySelector('.vue-flow__nodesselection-rect')
+  const selectionElement = document.querySelector('.vue-flow__nodesselection-rect') as HTMLElement
 
   if (!selectionElement || selectedNodes.value.length < 2) {
     console.log('No selection or less than 2 nodes selected')
@@ -737,7 +786,15 @@ const createGroup = async () => {
   })
 
   const padding = 40
-  const groupNode = {
+  interface GroupNodeData {
+    label: string
+    childNodes: string[]
+    width: number
+    height: number
+    backgroundColor: string
+  }
+
+  const groupNodeData = {
     id: `group-${uuidv4()}`,
     type: 'group',
     position: {
@@ -750,12 +807,12 @@ const createGroup = async () => {
     },
     data: {
       label: '新建分组',
-      childNodes: [],
+      childNodes: [] as string[],
       width: width + padding,
       height: height + padding,
       backgroundColor: 'rgba(147, 197, 253, 0.3)'
     }
-  }
+  } satisfies Partial<GraphNode<GroupNodeData>>
 
   // 更新选中节点的位置和父节点
   selectedNodes.value.forEach((node) => {
@@ -767,25 +824,27 @@ const createGroup = async () => {
       y: relativeY
     }
 
-    node.parentNode = groupNode.id
-    groupNode.data.childNodes.push(node.id)
+    node.parentNode = groupNodeData.id
+    groupNodeData.data.childNodes.push(node.id)
   })
 
-  console.log('Created group node:', groupNode)
+  console.log('Created group node:', groupNodeData)
 
-  addNodes([groupNode])
+  addNodes([groupNodeData])
   saveFlowState()
 }
 
 // 添加节点拖动开始处理函数
-const onNodeDragStart = ({ event, node }) => {
+const onNodeDragStart = ({ event, node }: NodeDragEvent) => {
   const parentNode = node.parentNode ? findNode(node.parentNode) : null
   originalPosition.value = { ...node.position }
   parentPosition.value = parentNode ? parentNode.position : { x: 0, y: 0 }
   isInitialMove.value = true
 
   // 将屏幕坐标转换为画布坐标
-  const flowCoords = screenToFlowCoordinate({ x: event.clientX, y: event.clientY })
+  const clientX = event instanceof MouseEvent ? event.clientX : event.touches[0].clientX
+  const clientY = event instanceof MouseEvent ? event.clientY : event.touches[0].clientY
+  const flowCoords = screenToFlowCoordinate({ x: clientX, y: clientY })
 
   if (parentNode) {
     // 计算节点在父节点内的初始偏移量
@@ -803,14 +862,25 @@ const onNodeDragStart = ({ event, node }) => {
 }
 
 // 修改节点拖动处理函数
-const onNodeDrag = ({ node: draggedNode, event }) => {
+const onNodeDrag = (nodeDragEvent: NodeDragEvent) => {
+  const draggedNode = nodeDragEvent.node as GraphNode<NodeData>
+  const event = nodeDragEvent.event
+
   if (draggedNode.type === 'group') return
 
   const intersections = getIntersectingNodes(draggedNode)
-  const intersectingParentNode = intersections.find((node) => node.type === 'group')
+  const intersectingParentNode = intersections.find((node) => node.type === 'group') as
+    | GraphNode<GroupNodeData>
+    | undefined
+
+  // 获取事件坐标
+  const eventCoords = {
+    x: event instanceof MouseEvent ? event.clientX : event.touches[0].clientX,
+    y: event instanceof MouseEvent ? event.clientY : event.touches[0].clientY
+  }
 
   // 将屏幕坐标转换为画布坐标
-  const flowCoords = screenToFlowCoordinate({ x: event.clientX, y: event.clientY })
+  const flowCoords = screenToFlowCoordinate(eventCoords)
 
   if (intersectingParentNode) {
     // 如果与分组节点相交，计算相对位置
@@ -828,7 +898,7 @@ const onNodeDrag = ({ node: draggedNode, event }) => {
   } else {
     // 如果没有相交的分组节点，重置为绝对位置
     if (draggedNode.parentNode) {
-      const oldParent = findNode(draggedNode.parentNode)
+      const oldParent = findNode(draggedNode.parentNode) as GraphNode<GroupNodeData> | null
       if (oldParent) {
         oldParent.data.childNodes = oldParent.data.childNodes.filter((id) => id !== draggedNode.id)
       }
@@ -850,37 +920,16 @@ const onPaneClick = () => {
   // 实现分组逻辑
 }
 
-// 计算分组边界
-// const calculateGroupBounds = (nodes) => {
-//   const positions = nodes.map((node) => ({
-//     x: node.position.x,
-//     y: node.position.y,
-//     width: node.width || 200,
-//     height: node.height || 100
-//   }))
-
-//   const minX = Math.min(...positions.map((p) => p.x))
-//   const minY = Math.min(...positions.map((p) => p.y))
-//   const maxX = Math.max(...positions.map((p) => p.x + p.width))
-//   const maxY = Math.max(...positions.map((p) => p.y + p.height))
-
-//   return {
-//     x: minX - 20,
-//     y: minY - 20,
-//     width: maxX - minX,
-//     height: maxY - minY
-//   }
-// }
-
 // 初始化数据
 onMounted(async () => {
-  const mindboardId = route.params.id
+  const mindboardId = route.params.id as string
   await mindboardStore.loadMindboardData(mindboardId)
   restoreFlowState()
 
-  document.addEventListener('click', (event) => {
+  document.addEventListener('click', (event: MouseEvent) => {
     // 如果点击的不是边菜单内部和子菜单内部，则关闭菜单
-    if (!event.target.closest('.edge-context-menu') && !event.target.closest('.style-submenu')) {
+    const target = event.target as HTMLElement
+    if (!target.closest('.edge-context-menu') && !target.closest('.style-submenu')) {
       closeEdgeMenu()
     }
   })
@@ -888,6 +937,40 @@ onMounted(async () => {
 
 onUnmounted(() => {
   document.removeEventListener('click', () => {})
+})
+
+// 在路由离开前保存预览图
+onBeforeRouteLeave(async (to, from, next) => {
+  if (!vueFlowRef.value || !currentMindboard.value) {
+    next()
+    return
+  }
+
+  try {
+    // 截取当前画布
+    const canvas = await html2canvas(vueFlowRef.value, {
+      backgroundColor: '#f4f4f5', // 保持背景透明
+      scale: 1, // 使用较低的缩放比例
+      useCORS: true, // 允许跨域图片
+      logging: false, // 关闭日志
+      ignoreElements: (element) => {
+        // 忽略一些不需要截图的元素
+        return (
+          element.classList.contains('vue-flow__minimap') ||
+          element.classList.contains('vue-flow__controls') ||
+          element.classList.contains('bottom-toolbar') ||
+          element.classList.contains('fixed-header')
+        )
+      }
+    })
+
+    // 保存预览图
+    await mindboardStore.saveMindboardPreview(currentMindboard.value.id, canvas)
+  } catch (error) {
+    console.error('保存预览图失败:', error)
+  }
+
+  next()
 })
 </script>
 

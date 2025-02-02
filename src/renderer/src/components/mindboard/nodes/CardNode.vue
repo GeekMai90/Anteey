@@ -42,7 +42,7 @@
           <Aiming theme="outline" size="18" fill="var(--color-icon-default)" :stroke-width="3" />
         </button>
         <button
-          v-tooltip.top="{ content: '删除卡片', delay: { show: 1000 } }"
+          v-tooltip.top="{ content: '移出思维板', delay: { show: 1000 } }"
           @click="handleDelete"
         >
           <Delete theme="outline" size="18" fill="var(--color-icon-default)" :stroke-width="3" />
@@ -167,7 +167,7 @@
       </div>
     </div>
 
-    <NodeResizer :width="250" :min-width="250" :min-height="250" />
+    <NodeResizer :width="350" :min-width="350" :min-height="300" />
   </div>
 </template>
 

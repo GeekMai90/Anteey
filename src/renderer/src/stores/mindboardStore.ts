@@ -106,6 +106,118 @@ export const useMindboardStore = defineStore('mindboard', () => {
     }
   }
 
+  // 更新思维板预览图
+  const updatePreviewImage = async (id: string, previewImage: string) => {
+    try {
+      // 调用 API 更新预览图
+      await window.electronAPI.mindboard.updatePreviewImage(id, previewImage)
+
+      // 更新本地状态
+      const index = mindboards.value.findIndex((m) => m.id === id)
+      if (index !== -1) {
+        mindboards.value[index] = {
+          ...mindboards.value[index],
+          preview_image: previewImage
+        }
+      }
+
+      // 如果是当前打开的思维板,也更新 currentMindboard
+      if (currentMindboard.value?.id === id) {
+        currentMindboard.value = {
+          ...currentMindboard.value,
+          preview_image: previewImage
+        }
+      }
+    } catch (error) {
+      console.error('更新思维板预览图失败:', error)
+      throw error
+    }
+  }
+
+  // 添加图片压缩工具方法
+  const compressImage = async (canvas: HTMLCanvasElement): Promise<string> => {
+    // 设置压缩参数
+    const MAX_WIDTH = 300
+    const MAX_HEIGHT = 200
+    const QUALITY = 0.6
+
+    // 创建临时 canvas 用于压缩
+    const tempCanvas = document.createElement('canvas')
+    const ctx = tempCanvas.getContext('2d')
+
+    // 计算压缩后的尺寸
+    let width = canvas.width
+    let height = canvas.height
+
+    if (width > MAX_WIDTH) {
+      height = Math.round((height * MAX_WIDTH) / width)
+      width = MAX_WIDTH
+    }
+    if (height > MAX_HEIGHT) {
+      width = Math.round((width * MAX_HEIGHT) / height)
+      height = MAX_HEIGHT
+    }
+
+    // 设置压缩后的尺寸
+    tempCanvas.width = width
+    tempCanvas.height = height
+
+    // 绘制压缩后的图像
+    ctx?.drawImage(canvas, 0, 0, width, height)
+
+    // 转换为 base64,使用 jpeg 格式和较低质量
+    return tempCanvas.toDataURL('image/jpeg', QUALITY)
+  }
+
+  // 保存思维板预览图
+  const saveMindboardPreview = async (id: string, canvas: HTMLCanvasElement) => {
+    try {
+      // 压缩图片
+      const compressedImage = await compressImage(canvas)
+
+      // 更新预览图
+      await updatePreviewImage(id, compressedImage)
+    } catch (error) {
+      console.error('保存思维板预览图失败:', error)
+      throw error
+    }
+  }
+
+  // 切换思维板收藏状态
+  const toggleFavorite = async (id: string) => {
+    try {
+      await window.electronAPI.mindboard.toggleFavorite(id)
+      // 更新本地状态
+      const index = mindboards.value.findIndex((m) => m.id === id)
+      if (index !== -1) {
+        mindboards.value[index] = {
+          ...mindboards.value[index],
+          is_favorite: !mindboards.value[index].is_favorite
+        }
+      }
+      // 如果是当前打开的思维板，也更新 currentMindboard
+      if (currentMindboard.value?.id === id) {
+        currentMindboard.value = {
+          ...currentMindboard.value,
+          is_favorite: !currentMindboard.value.is_favorite
+        }
+      }
+    } catch (error) {
+      console.error('切换思维板收藏状态失败:', error)
+      throw error
+    }
+  }
+
+  // 获取所有收藏的思维板
+  const getFavoriteMindboards = async () => {
+    try {
+      return await window.electronAPI.mindboard.getFavoriteMindboards()
+    } catch (error) {
+      console.error('获取收藏的思维板失败:', error)
+      throw error
+    }
+  }
+
   return {
     // 状态
     mindboards,
@@ -121,6 +233,15 @@ export const useMindboardStore = defineStore('mindboard', () => {
     updateMindboardName,
 
     // 加载数据
-    loadMindboardData
+    loadMindboardData,
+
+    // 添加新方法
+    updatePreviewImage,
+    saveMindboardPreview,
+    compressImage,
+
+    // 收藏相关
+    toggleFavorite,
+    getFavoriteMindboards
   }
 })

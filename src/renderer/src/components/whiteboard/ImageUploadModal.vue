@@ -10,7 +10,12 @@
 
       <div class="upload-area" @paste="handlePaste" @drop.prevent="handleDrop" @dragover.prevent>
         <div v-if="!previewUrl" class="upload-hint">
-          <PictureOne theme="outline" size="48" fill="var(--color-text-secondary)" />
+          <PictureOne
+            theme="outline"
+            size="48"
+            fill="var(--color-text-secondary)"
+            :stroke-width="3"
+          />
           <p>将图片拖放到此处，或点击选择图片</p>
           <p class="sub-hint">支持粘贴图片 (Ctrl + V)</p>
           <button class="select-button" @click="triggerFileSelect">选择图片</button>
@@ -158,7 +163,8 @@ defineExpose({
   background-color: rgba(0, 0, 0, 0.5);
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
+  padding-left: 30%;
   z-index: 1000;
 
   .modal-content {
@@ -187,6 +193,19 @@ defineExpose({
         padding: 4px;
         border-radius: 4px;
 
+        :deep(.i-icon) {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 100%;
+          height: 100%;
+        }
+
+        :deep(svg) {
+          width: 14px;
+          height: 14px;
+        }
+
         &:hover {
           background-color: var(--color-hover-button);
         }
@@ -211,6 +230,19 @@ defineExpose({
       .upload-hint {
         text-align: center;
         color: var(--color-text-secondary);
+
+        :deep(.i-icon) {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 100%;
+          height: 100%;
+        }
+
+        :deep(svg) {
+          width: 48px;
+          height: 48px;
+        }
 
         .sub-hint {
           font-size: 12px;
@@ -246,6 +278,7 @@ defineExpose({
     // background-color: var(--color-bg-secondary);
     color: var(--color-text-primary);
     cursor: pointer;
+    margin-top: 10px;
     transition: all 0.2s ease;
 
     &:hover {

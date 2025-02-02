@@ -892,6 +892,9 @@ export interface ElectronAPI {
     updateMindboard: (id: string, data: Partial<Mindboard>) => Promise<Mindboard>
     deleteMindboard: (id: string) => Promise<void>
     updateMindboardName: (id: string, name: string) => Promise<void>
+    updatePreviewImage: (id: string, previewImage: string) => Promise<void>
+    toggleFavorite: (id: string) => Promise<void>
+    getFavoriteMindboards: () => Promise<Mindboard[]>
   }
 }
 

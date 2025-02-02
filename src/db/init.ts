@@ -1222,14 +1222,35 @@ export async function initDatabase(db: Knex): Promise<void> {
       table.string('name').notNullable()
       table.text('description').nullable()
       table.json('flow_data').notNullable() // 存储 VueFlow 的完整状态
+      table.text('preview_image').nullable() // 添加预览图字段,存储 base64 格式的图片数据
+      table.boolean('is_favorite').notNullable().defaultTo(false) // 添加收藏标记字段
       table.datetime('created_at').notNullable()
       table.datetime('updated_at').notNullable()
 
       // 索引
       table.index('created_at')
       table.index('updated_at')
+      table.index('is_favorite') // 添加收藏字段的索引
     })
     console.log('mindboards 表创建成功')
+  } else {
+    // 检查是否需要添加 preview_image 列
+    const hasPreviewImageColumn = await db.schema.hasColumn('mindboards', 'preview_image')
+    if (!hasPreviewImageColumn) {
+      await db.schema.alterTable('mindboards', (table) => {
+        table.text('preview_image').nullable()
+      })
+      console.log('mindboards 表添加 preview_image 列成功')
+    }
+
+    // 检查是否需要添加 is_favorite 列
+    const hasFavoriteColumn = await db.schema.hasColumn('mindboards', 'is_favorite')
+    if (!hasFavoriteColumn) {
+      await db.schema.alterTable('mindboards', (table) => {
+        table.boolean('is_favorite').notNullable().defaultTo(false)
+      })
+      console.log('mindboards 表添加 is_favorite 列成功')
+    }
   }
 }
 

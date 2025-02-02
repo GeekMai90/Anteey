@@ -72,5 +72,39 @@ export const mindboardApi = {
       console.error('预加载脚本 → 更新思维板名称失败:', error)
       throw error
     }
+  },
+
+  // 更新预览图
+  updatePreviewImage: async (id: string, previewImage: string): Promise<void> => {
+    try {
+      const result = await ipcRenderer.invoke('update-mindboard-preview', { id, previewImage })
+      if (!result.success) throw new Error(result.error)
+    } catch (error) {
+      console.error('预加载脚本 → 更新思维板预览图失败:', error)
+      throw error
+    }
+  },
+
+  // 切换收藏状态
+  toggleFavorite: async (id: string): Promise<void> => {
+    try {
+      const result = await ipcRenderer.invoke('toggle-mindboard-favorite', id)
+      if (!result.success) throw new Error(result.error)
+    } catch (error) {
+      console.error('预加载脚本 → 切换思维板收藏状态失败:', error)
+      throw error
+    }
+  },
+
+  // 获取收藏的思维板
+  getFavoriteMindboards: async (): Promise<Mindboard[]> => {
+    try {
+      const result = await ipcRenderer.invoke('get-favorite-mindboards')
+      if (!result.success) throw new Error(result.error)
+      return result.mindboards
+    } catch (error) {
+      console.error('预加载脚本 → 获取收藏思维板失败:', error)
+      throw error
+    }
   }
 }
