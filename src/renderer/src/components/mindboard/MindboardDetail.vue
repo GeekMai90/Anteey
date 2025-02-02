@@ -940,7 +940,7 @@ onUnmounted(() => {
 })
 
 // 在路由离开前保存预览图
-onBeforeRouteLeave(async (to, from, next) => {
+onBeforeRouteLeave(async (_to, _from, next) => {
   if (!vueFlowRef.value || !currentMindboard.value) {
     next()
     return
