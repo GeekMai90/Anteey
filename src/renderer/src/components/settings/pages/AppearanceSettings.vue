@@ -55,7 +55,7 @@
                       '/cardbox': '卡片盒',
                       '/knowledge-tree': '知识树',
                       '/flashcard': '记忆卡',
-                      '/whiteboard': '思维板'
+                      '/mindboard': '思维板'
                     }"
                     v-show="path !== '/timeblock' || timeBlockStore.settings.enabled"
                     :key="path"
@@ -126,38 +126,11 @@
           </div>
         </div>
 
-        <!-- <div class="settings-section">
-          <div class="section-title">侧边栏</div>
-          <div class="sidebar-settings">
-            <div class="setting-item">
-              <div class="setting-label">星标默认展开</div>
-              <Switch
-                :model-value="!!starredExpanded"
-                @update:model-value="handleStarredExpandedChange"
-              />
-            </div>
-            <div class="setting-item">
-              <div class="setting-label">标签默认展开</div>
-              <Switch
-                :model-value="!!tagsExpanded"
-                @update:model-value="handleTagsExpandedChange"
-              />
-            </div>
-            <div class="setting-item">
-              <div class="setting-label">最近默认展开</div>
-              <Switch
-                :model-value="!!recentExpanded"
-                @update:model-value="handleRecentExpandedChange"
-              />
-            </div>
-          </div>
-        </div> -->
-
         <div class="settings-section">
           <div class="section-title">功能开关</div>
           <div class="feature-settings">
             <div class="setting-item">
-              <div class="setting-label">启用思维板</div>
+              <div class="setting-label">启用手绘板</div>
               <Switch
                 :model-value="!!enableWhiteboard"
                 @update:model-value="handleWhiteboardChange"

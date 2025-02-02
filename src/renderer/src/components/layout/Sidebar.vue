@@ -367,23 +367,18 @@ onMounted(async () => {
 
 const menuItems = computed(() => {
   const baseItems = [
-    // { name: '主页', path: '/home', icon: Home },
-    // 根据设置决定是否显示时间块
     ...(timeBlockStore.settings.enabled
       ? [{ name: '时光记', path: '/timeblock', icon: Time }]
       : []),
-    // { name: '草稿纸', path: '/drafts', icon: Pencil },
     { name: '笔记流', path: '/timeline', icon: NotebookOne },
     { name: '卡片盒', path: '/cardbox', icon: Box },
     { name: '知识树', path: '/knowledge-tree', icon: Sapling },
     { name: '记忆卡', path: '/flashcard', icon: StorageCardOne },
-
-    // 根据设置决定是否显示白板
+    { name: '思维板', path: '/mindboard', icon: Workbench },
+    // 根据设置决定是否显示手绘板
     ...(appearanceStore.settings?.enableWhiteboard
-      ? [{ name: '思维板', path: '/whiteboard', icon: Workbench }]
-      : []),
-    { name: '手绘板', path: '/ed-whiteboard', icon: HandPaintedPlate },
-    { name: '思维板', path: '/mindboard', icon: HandPaintedPlate }
+      ? [{ name: '手绘板', path: '/ed-whiteboard', icon: HandPaintedPlate }]
+      : [])
   ]
   return baseItems
 })

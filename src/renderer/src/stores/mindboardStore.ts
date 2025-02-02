@@ -87,6 +87,14 @@ export const useMindboardStore = defineStore('mindboard', () => {
   const updateMindboardName = async (id: string, name: string) => {
     try {
       await window.electronAPI.mindboard.updateMindboardName(id, name)
+      // 更新本地状态
+      const index = mindboards.value.findIndex((board) => board.id === id)
+      if (index !== -1) {
+        mindboards.value[index] = {
+          ...mindboards.value[index],
+          name
+        }
+      }
     } catch (error) {
       console.error('更新思维板名称失败:', error)
       throw error

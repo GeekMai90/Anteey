@@ -11,6 +11,23 @@
             <div class="name">思维板</div>
           </div>
           <div class="topToolBar-right">
+            <!-- 分段按钮 -->
+            <div class="segment-control">
+              <div
+                class="segment-button"
+                :class="{ active: displayMode === 'all' }"
+                @click="displayMode = 'all'"
+              >
+                全部
+              </div>
+              <div
+                class="segment-button"
+                :class="{ active: displayMode === 'favorite' }"
+                @click="displayMode = 'favorite'"
+              >
+                收藏
+              </div>
+            </div>
             <!-- 新增思维板 -->
             <div class="add-mindboard-button" @click="addMindboard">
               <div class="icon">
@@ -23,15 +40,30 @@
               </div>
               <div class="name">新增思维板</div>
             </div>
+            <!-- 搜索框 -->
+            <div class="search-container">
+              <div class="search-input-wrapper">
+                <Search
+                  theme="outline"
+                  size="16"
+                  :strokeWidth="3"
+                  class="search-icon"
+                  fill="var(--color-text-secondary)"
+                />
+                <input
+                  v-model="searchQuery"
+                  type="text"
+                  class="search-input"
+                  placeholder="搜索思维板..."
+                  @input="handleSearch"
+                />
+              </div>
+            </div>
+
             <!-- 排序 -->
             <div class="sort-button-container" @click.stop="toggleSortMenu">
               <div class="icon">
-                <SortTwo
-                  theme="outline"
-                  size="18"
-                  fill="var(--color-icon-menu-default)"
-                  :strokeWidth="3"
-                />
+                <SortTwo theme="outline" fill="var(--color-icon-menu-default)" :strokeWidth="3" />
               </div>
               <div class="name">排序</div>
               <div v-if="showSortMenu" class="sort-dropdown-menu">
@@ -50,36 +82,174 @@
                 </div>
               </div>
             </div>
+            <!-- 视图切换 -->
+            <div class="view-mode-control">
+              <div
+                class="view-mode-button"
+                :class="{ active: viewMode === 'grid' }"
+                @click="viewMode = 'grid'"
+              >
+                <ViewGridCard theme="outline" size="18" :strokeWidth="3" />
+              </div>
+              <div
+                class="view-mode-button"
+                :class="{ active: viewMode === 'list' }"
+                @click="viewMode = 'list'"
+              >
+                <ViewList theme="outline" size="18" :strokeWidth="3" />
+              </div>
+            </div>
           </div>
         </div>
       </div>
     </div>
     <div class="mindboard-view-container">
-      <div class="card-grid-container">
-        <div class="card-grid">
-          <MindboardCard
-            v-for="mindboard in sortedMindboards"
-            :key="mindboard.id"
-            :mindboard="mindboard"
-          />
+      <div v-if="sortedMindboards.length === 0" class="empty-state">
+        <img src="@renderer/assets/images/empty.svg" alt="暂无内容" class="empty-icon" />
+        <div class="empty-text">暂无思维板，点击右上角"新增思维板"开始创建</div>
+      </div>
+      <div v-else class="card-grid-container">
+        <div class="card-grid-container">
+          <!-- 网格视图 -->
+          <div v-if="viewMode === 'grid'" class="card-grid">
+            <MindboardCard
+              v-for="mindboard in sortedMindboards"
+              :key="mindboard.id"
+              :mindboard="mindboard"
+            />
+          </div>
+          <!-- 列表视图 -->
+          <div v-else class="list-view">
+            <!-- 表头 -->
+            <div class="list-header">
+              <div class="header-preview"></div>
+              <div class="header-name">文件名</div>
+              <div class="header-time">最近编辑时间</div>
+              <div class="header-favorite">收藏</div>
+              <div class="header-actions">操作</div>
+            </div>
+            <!-- 列表内容 -->
+            <div v-for="mindboard in sortedMindboards" :key="mindboard.id" class="list-item">
+              <div class="item-preview">
+                <img v-if="mindboard.preview_image" :src="mindboard.preview_image" alt="预览图" />
+                <div v-else class="no-preview">
+                  <MindmapMap theme="outline" size="24" :strokeWidth="3" />
+                </div>
+              </div>
+              <div class="item-name">
+                <template v-if="editingId === mindboard.id">
+                  <input
+                    :ref="
+                      (el) => {
+                        if (el) nameInputRefs[mindboard.id] = el as HTMLInputElement
+                      }
+                    "
+                    v-model="editingName"
+                    class="name-input"
+                    @blur="finishEditing"
+                    @keyup.enter="finishEditing"
+                    @keyup.esc="cancelEditing"
+                  />
+                </template>
+                <template v-else>
+                  {{ mindboard.name }}
+                </template>
+              </div>
+              <div class="item-time">{{ formatFullTime(mindboard.updated_at) }}</div>
+              <div class="item-favorite">
+                <Star
+                  theme="outline"
+                  size="18"
+                  :fill="
+                    mindboard.is_favorite ? 'var(--color-primary)' : 'var(--color-text-secondary)'
+                  "
+                  :strokeWidth="3"
+                  class="favorite-icon"
+                  @click.stop="toggleFavorite(mindboard.id)"
+                />
+              </div>
+              <div class="item-actions">
+                <div ref="moreBtnRef" class="more-button-container">
+                  <More
+                    theme="outline"
+                    size="18"
+                    :fill="'var(--color-text-secondary)'"
+                    :strokeWidth="3"
+                    class="more-icon"
+                    @click.stop="handleMoreClick($event, mindboard)"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
+    <!-- 删除确认对话框 -->
+    <ConfirmDialog
+      v-model:visible="showDeleteConfirm"
+      title="删除思维板"
+      message="确定要删除这个思维板吗？此操作不可撤销。"
+      type="danger"
+      cancel-text="取消"
+      confirm-text="删除"
+      @confirm="handleConfirmDelete"
+      @cancel="handleCancelDelete"
+    />
+    <!-- 更多操作菜单 -->
+    <PopupMenu
+      :show="!!activeMoreMenu"
+      :button-ref="currentMoreBtnRef"
+      :menuItems="menuItems"
+      @close="closeMoreMenu"
+      @itemClick="handleMenuItemClick"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed, onUnmounted } from 'vue'
+import { ref, onMounted, computed, onUnmounted, nextTick, markRaw } from 'vue'
 import AppToolbar from '@renderer/components/layout/AppToolbar.vue'
-import { SortTwo, Workbench, Plus } from '@icon-park/vue-next'
+import {
+  SortTwo,
+  Workbench,
+  Plus,
+  Search,
+  Star,
+  More,
+  MindmapMap,
+  Edit,
+  Delete,
+  ViewGridCard,
+  ViewList
+} from '@icon-park/vue-next'
 import { useMindboardStore } from '@renderer/stores/mindboardStore'
 import MindboardCard from '@renderer/components/mindboard/MindboardCard.vue'
 import type { Mindboard } from '@shared/types'
+import { format } from 'date-fns'
+import PopupMenu from '@renderer/components/common/PopupMenu.vue'
+import type { MenuItem } from '@renderer/components/common/PopupMenu.vue'
+import ConfirmDialog from '@renderer/components/common/ConfirmDialog.vue'
 
 const mindboardStore = useMindboardStore()
 const showSortMenu = ref(false)
-const currentSort = ref('name')
-const sortDirection = ref('asc')
+const currentSort = ref('updated_at')
+const sortDirection = ref('desc')
+const searchQuery = ref('')
+const displayMode = ref('all')
+const viewMode = ref('grid')
+
+// 添加编辑相关的状态
+const editingId = ref<string | null>(null)
+const editingName = ref('')
+const nameInputRefs = ref<{ [key: string]: HTMLInputElement | null }>({})
+const activeMoreMenu = ref<string | null>(null)
+const showDeleteConfirm = ref(false)
+const pendingDeleteMindboard = ref<Mindboard | null>(null)
+
+// 添加 ref 用于存储当前点击的按钮
+const moreBtnRef = ref<HTMLElement | null>(null)
+const currentMoreBtnRef = ref<HTMLElement | null>(null)
 
 // 初始加载数据
 onMounted(async () => {
@@ -88,9 +258,25 @@ onMounted(async () => {
 
 const mindboards = computed(() => mindboardStore.mindboards)
 
-// 排序后的思维板列表
+// 过滤后的思维板列表
 const sortedMindboards = computed((): Mindboard[] => {
-  const boards = mindboards.value
+  let boards = mindboards.value
+
+  // 根据显示模式过滤
+  if (displayMode.value === 'favorite') {
+    boards = boards.filter((board) => board.is_favorite)
+  }
+
+  // 先按搜索关键词过滤
+  if (searchQuery.value) {
+    const query = searchQuery.value.toLowerCase()
+    boards = boards.filter(
+      (board) =>
+        board.name.toLowerCase().includes(query) || board.description?.toLowerCase().includes(query)
+    )
+  }
+
+  // 再按排序条件排序
   return boards.sort((a: Mindboard, b: Mindboard) => {
     let comparison = 0
     switch (currentSort.value) {
@@ -158,6 +344,130 @@ onMounted(() => {
 
 onUnmounted(() => {
   document.removeEventListener('click', closeDropdown)
+})
+
+// 处理搜索
+const handleSearch = () => {
+  // 这里可以添加防抖逻辑如果需要
+  // 目前使用计算属性自动过滤即可
+}
+
+// 格式化完整时间
+const formatFullTime = (time: string) => {
+  return format(new Date(time), 'yyyy-MM-dd HH:mm:ss')
+}
+
+// 切换收藏状态
+const toggleFavorite = async (id: string) => {
+  await mindboardStore.toggleFavorite(id)
+}
+
+// 添加菜单相关状态
+const menuItems = ref<MenuItem[]>([
+  {
+    name: 'rename',
+    icon: markRaw(Edit),
+    label: '修改名称',
+    action: () => {
+      if (pendingDeleteMindboard.value) {
+        startEditing(pendingDeleteMindboard.value)
+      }
+    }
+  },
+  {
+    name: 'delete',
+    icon: markRaw(Delete),
+    label: '删除',
+    action: () => {
+      showDeleteConfirm.value = true
+    },
+    isDangerous: true
+  }
+])
+
+// 处理更多按钮点击
+const handleMoreClick = (event: MouseEvent, mindboard: Mindboard) => {
+  event.stopPropagation()
+  // 保存当前点击的按钮元素
+  currentMoreBtnRef.value = event.currentTarget as HTMLElement
+  pendingDeleteMindboard.value = mindboard
+  activeMoreMenu.value = mindboard.id
+}
+
+// 关闭菜单
+const closeMoreMenu = () => {
+  activeMoreMenu.value = null
+  pendingDeleteMindboard.value = null
+  currentMoreBtnRef.value = null
+}
+
+// 处理菜单项点击
+const handleMenuItemClick = (item: MenuItem) => {
+  item.action()
+  if (item.name !== 'delete') {
+    closeMoreMenu()
+  }
+}
+
+// 处理删除确认
+const handleConfirmDelete = async () => {
+  if (pendingDeleteMindboard.value) {
+    await mindboardStore.deleteMindboard(pendingDeleteMindboard.value.id)
+    showDeleteConfirm.value = false
+    closeMoreMenu()
+  }
+}
+
+// 取消删除
+const handleCancelDelete = () => {
+  showDeleteConfirm.value = false
+  pendingDeleteMindboard.value = null
+}
+
+// 开始编辑
+const startEditing = (mindboard: Mindboard) => {
+  editingId.value = mindboard.id
+  editingName.value = mindboard.name
+  closeMoreMenu()
+  // 等待 DOM 更新后聚焦输入框
+  nextTick(() => {
+    const input = nameInputRefs.value[mindboard.id]
+    if (input) {
+      input.focus()
+      input.select()
+    }
+  })
+}
+
+// 完成编辑
+const finishEditing = async () => {
+  if (editingId.value && editingName.value.trim()) {
+    await mindboardStore.updateMindboardName(editingId.value, editingName.value.trim())
+    editingId.value = null
+    editingName.value = ''
+  }
+}
+
+// 取消编辑
+const cancelEditing = () => {
+  editingId.value = null
+  editingName.value = ''
+}
+
+// 点击其他地方关闭菜单
+const closeMenus = (event: MouseEvent) => {
+  const target = event.target as HTMLElement
+  if (!target.closest('.more-button-container')) {
+    activeMoreMenu.value = null
+  }
+}
+
+onMounted(() => {
+  document.addEventListener('click', closeMenus)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('click', closeMenus)
 })
 </script>
 
@@ -305,6 +615,98 @@ onUnmounted(() => {
   gap: 10px;
   align-items: center;
 
+  .search-container {
+    .search-input-wrapper {
+      position: relative;
+      width: 150px;
+      height: 36px;
+      display: flex;
+      align-items: center; // 确保垂直居中
+      border: 1px solid var(--color-border);
+      border-radius: 8px;
+      padding: 0 12px;
+      background: var(--color-bg-primary);
+      transition: all 0.2s ease;
+
+      :deep(.i-icon) {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        height: 100%;
+      }
+
+      :deep(svg) {
+        width: 16px;
+        height: 16px;
+      }
+
+      &:focus-within {
+        border-color: var(--color-primary);
+        box-shadow: 0 0 0 2px var(--color-primary-shadow);
+      }
+
+      .search-icon {
+        opacity: 0.6;
+      }
+
+      .search-input {
+        flex: 1;
+        height: 100%;
+        border: none;
+        outline: none;
+        background: none;
+        margin-left: 8px;
+        color: var(--color-text-primary);
+        font-size: 14px;
+        padding: 0;
+        display: flex; // 添加这行
+        align-items: center; // 添加这行
+
+        &::placeholder {
+          color: var(--color-text-secondary);
+          transform: translateY(-1px);
+        }
+      }
+    }
+  }
+
+  .segment-control {
+    display: flex;
+    align-items: center;
+    height: 36px;
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    overflow: hidden;
+    background: var(--color-bg-primary);
+
+    .segment-button {
+      padding: 0 16px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 14px;
+      color: var(--color-text-primary);
+      transition: all 0.2s ease;
+      user-select: none;
+
+      &:first-child {
+        border-right: 1px solid var(--color-border);
+      }
+
+      &:hover {
+        background-color: var(--color-hover-bg);
+      }
+
+      &.active {
+        background-color: var(--color-primary);
+        color: var(--color-bg-primary);
+      }
+    }
+  }
+
   .add-mindboard-button {
     display: flex;
     align-items: center;
@@ -424,8 +826,8 @@ onUnmounted(() => {
       }
 
       :deep(svg) {
-        width: 16px; // 或者您想要的大小
-        height: 16px; // 或者您想要的大小
+        width: 14px; // 或者您想要的大小
+        height: 14px; // 或者您想要的大小
       }
     }
 
@@ -484,6 +886,53 @@ onUnmounted(() => {
 
       &.active {
         background-color: var(--color-menu-active-bg);
+      }
+    }
+  }
+
+  .view-mode-control {
+    display: flex;
+    align-items: center;
+    height: 36px;
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    overflow: hidden;
+    background: var(--color-bg-primary);
+
+    .view-mode-button {
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      color: var(--color-text-secondary);
+
+      :deep(.i-icon) {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        height: 100%;
+      }
+
+      :deep(svg) {
+        width: 16px;
+        height: 16px;
+      }
+
+      &:first-child {
+        border-right: 1px solid var(--color-border);
+      }
+
+      &:hover {
+        background-color: var(--color-hover-bg);
+      }
+
+      &.active {
+        background-color: var(--color-primary);
+        color: var(--color-bg-primary);
       }
     }
   }
@@ -584,6 +1033,27 @@ onUnmounted(() => {
       }
     }
   }
+
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    padding: 20px;
+
+    .empty-icon {
+      width: 300px;
+      height: 300px;
+      margin-bottom: 20px;
+    }
+
+    .empty-text {
+      color: var(--color-text-secondary);
+      font-size: 14px;
+      text-align: center;
+    }
+  }
 }
 
 .dropdown-menu::-webkit-scrollbar {
@@ -609,6 +1079,182 @@ onUnmounted(() => {
     grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
     gap: 16px;
     padding: 16px;
+  }
+}
+
+.list-view {
+  width: 100%;
+
+  .list-header {
+    display: flex;
+    align-items: center;
+    padding: 0 16px 12px 16px;
+    border-bottom: 1px solid var(--color-border);
+    font-weight: 500;
+    color: var(--color-text-secondary);
+    font-size: 14px;
+
+    .header-preview {
+      width: 40px;
+      margin-right: 16px;
+    }
+
+    .header-name {
+      flex: 1;
+      margin-right: 16px;
+    }
+
+    .header-time {
+      width: 180px;
+      margin-right: 16px;
+    }
+
+    .header-favorite {
+      width: 40px;
+      margin-right: 16px;
+      text-align: center;
+    }
+
+    .header-actions {
+      width: 40px;
+      text-align: center;
+    }
+  }
+
+  .list-item {
+    display: flex;
+    align-items: center;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--color-border);
+    transition: background-color 0.2s;
+
+    &:hover {
+      background-color: var(--color-hover-bg);
+    }
+
+    .item-preview {
+      width: 40px;
+      height: 40px;
+      border-radius: 6px;
+      overflow: hidden;
+      margin-right: 16px;
+      border: 1px solid var(--color-border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+
+      .no-preview {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: var(--color-bg-secondary);
+        color: var(--color-text-secondary);
+      }
+    }
+
+    .item-name {
+      flex: 1;
+      font-size: 14px;
+      color: var(--color-text-primary);
+      margin-right: 16px;
+
+      .name-input {
+        width: 100%;
+        height: 28px;
+        padding: 0 8px;
+        border: 1px solid var(--color-primary);
+        border-radius: 4px;
+        font-size: 14px;
+        color: var(--color-text-primary);
+        background: var(--color-bg-primary);
+
+        &:focus {
+          outline: none;
+          box-shadow: 0 0 0 2px var(--color-primary-shadow);
+        }
+      }
+    }
+
+    .item-time {
+      width: 180px;
+      font-size: 13px;
+      color: var(--color-text-secondary);
+      margin-right: 16px;
+      font-family: var(--font-mono);
+    }
+
+    .item-favorite {
+      width: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-right: 16px;
+
+      .favorite-icon {
+        cursor: pointer;
+        padding: 6px;
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        :deep(.i-icon) {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 100%;
+          height: 100%;
+        }
+
+        :deep(svg) {
+          width: 16px;
+          height: 16px;
+        }
+
+        &:hover {
+          transform: scale(1.1);
+        }
+      }
+    }
+
+    .item-actions {
+      width: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      .more-button-container {
+        cursor: pointer;
+        padding: 6px;
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        :deep(.i-icon) {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 100%;
+          height: 100%;
+        }
+
+        :deep(svg) {
+          width: 16px;
+          height: 16px;
+        }
+
+        &:hover {
+          transform: scale(1.1);
+        }
+      }
+    }
   }
 }
 </style>
