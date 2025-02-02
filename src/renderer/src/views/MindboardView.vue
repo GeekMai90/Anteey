@@ -12,60 +12,55 @@
           </div>
           <div class="topToolBar-right">
             <!-- 分段按钮 -->
-            <div class="segment-control">
-              <div
-                class="segment-button"
-                :class="{ active: displayMode === 'all' }"
-                @click="displayMode = 'all'"
-              >
-                全部
-              </div>
-              <div
-                class="segment-button"
-                :class="{ active: displayMode === 'favorite' }"
-                @click="displayMode = 'favorite'"
-              >
-                收藏
-              </div>
-            </div>
+            <SegmentedButton
+              v-model="displayMode"
+              :options="displayOptions"
+              width="140px"
+              height="36px"
+              name="display-mode"
+              tooltipPlacement="top"
+              class="display-mode-button"
+            />
             <!-- 新增思维板 -->
-            <div class="add-mindboard-button" @click="addMindboard">
-              <div class="icon">
-                <Plus
-                  theme="outline"
-                  size="18"
-                  fill="var(--color-icon-menu-default)"
-                  :strokeWidth="3"
-                />
-              </div>
-              <div class="name">新增思维板</div>
-            </div>
+            <SpreadButton
+              :icon="Plus"
+              type="default"
+              :height="36"
+              :tooltip="{
+                content: '新建思维板',
+                delay: { show: 1000 }
+              }"
+              tooltipPlacement="top"
+              @click="addMindboard"
+            >
+              新增思维板
+            </SpreadButton>
+
             <!-- 搜索框 -->
             <div class="search-container">
-              <div class="search-input-wrapper">
-                <Search
-                  theme="outline"
-                  size="16"
-                  :strokeWidth="3"
-                  class="search-icon"
-                  fill="var(--color-text-secondary)"
-                />
-                <input
-                  v-model="searchQuery"
-                  type="text"
-                  class="search-input"
-                  placeholder="搜索思维板..."
-                  @input="handleSearch"
-                />
-              </div>
+              <SearchInput
+                v-model="searchQuery"
+                :width="150"
+                :height="36"
+                placeholder="搜索思维板..."
+                @input="handleSearch"
+              />
             </div>
 
             <!-- 排序 -->
             <div class="sort-button-container" @click.stop="toggleSortMenu">
-              <div class="icon">
-                <SortTwo theme="outline" fill="var(--color-icon-menu-default)" :strokeWidth="3" />
-              </div>
-              <div class="name">排序</div>
+              <SpreadButton
+                :icon="SortTwo"
+                :height="36"
+                :tooltip="{
+                  content: '选择排序方式',
+                  delay: { show: 1000 }
+                }"
+                tooltipPlacement="top"
+                @click.stop="toggleSortMenu"
+              >
+                排序
+              </SpreadButton>
               <div v-if="showSortMenu" class="sort-dropdown-menu">
                 <div
                   v-for="option in sortOptions"
@@ -84,20 +79,15 @@
             </div>
             <!-- 视图切换 -->
             <div class="view-mode-control">
-              <div
-                class="view-mode-button"
-                :class="{ active: viewMode === 'grid' }"
-                @click="viewMode = 'grid'"
-              >
-                <ViewGridCard theme="outline" size="18" :strokeWidth="3" />
-              </div>
-              <div
-                class="view-mode-button"
-                :class="{ active: viewMode === 'list' }"
-                @click="viewMode = 'list'"
-              >
-                <ViewList theme="outline" size="18" :strokeWidth="3" />
-              </div>
+              <SegmentedButton
+                v-model="viewMode"
+                :options="viewModeOptions"
+                width="80px"
+                height="36px"
+                :iconOnly="true"
+                name="view-mode"
+                tooltipPlacement="top"
+              />
             </div>
           </div>
         </div>
@@ -214,12 +204,11 @@ import {
   SortTwo,
   Workbench,
   Plus,
-  Search,
+  Delete,
+  Edit,
   Star,
   More,
   MindmapMap,
-  Edit,
-  Delete,
   ViewGridCard,
   ViewList
 } from '@icon-park/vue-next'
@@ -230,6 +219,9 @@ import { format } from 'date-fns'
 import PopupMenu from '@renderer/components/common/PopupMenu.vue'
 import type { MenuItem } from '@renderer/components/common/PopupMenu.vue'
 import ConfirmDialog from '@renderer/components/common/ConfirmDialog.vue'
+import SegmentedButton from '@renderer/components/ui/SegmentedButton.vue'
+import SpreadButton from '@renderer/components/ui/SpreadButton.vue'
+import SearchInput from '@renderer/components/ui/SearchInput.vue'
 
 const mindboardStore = useMindboardStore()
 const showSortMenu = ref(false)
@@ -250,6 +242,46 @@ const pendingDeleteMindboard = ref<Mindboard | null>(null)
 // 添加 ref 用于存储当前点击的按钮
 const moreBtnRef = ref<HTMLElement | null>(null)
 const currentMoreBtnRef = ref<HTMLElement | null>(null)
+
+const displayOptions = [
+  {
+    value: 'all',
+    label: '全部',
+    tooltip: {
+      content: '显示所有思维板',
+      delay: { show: 1000 }
+    }
+  },
+  {
+    value: 'favorite',
+    label: '收藏',
+    tooltip: {
+      content: '只显示收藏的思维板',
+      delay: { show: 1000 }
+    }
+  }
+]
+
+const viewModeOptions = [
+  {
+    value: 'grid',
+    icon: markRaw(ViewGridCard),
+    tooltip: {
+      content: '网格视图<br>以卡片形式展示',
+      delay: { show: 1000 },
+      html: true
+    }
+  },
+  {
+    value: 'list',
+    icon: markRaw(ViewList),
+    tooltip: {
+      content: '列表视图<br>以列表形式展示',
+      delay: { show: 1000 },
+      html: true
+    }
+  }
+]
 
 // 初始加载数据
 onMounted(async () => {
@@ -616,245 +648,18 @@ onUnmounted(() => {
   align-items: center;
 
   .search-container {
-    .search-input-wrapper {
-      position: relative;
-      width: 150px;
-      height: 36px;
-      display: flex;
-      align-items: center; // 确保垂直居中
-      border: 1px solid var(--color-border);
-      border-radius: 8px;
-      padding: 0 12px;
-      background: var(--color-bg-primary);
-      transition: all 0.2s ease;
-
-      :deep(.i-icon) {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        width: 100%;
-        height: 100%;
-      }
-
-      :deep(svg) {
-        width: 16px;
-        height: 16px;
-      }
-
-      &:focus-within {
-        border-color: var(--color-primary);
-        box-shadow: 0 0 0 2px var(--color-primary-shadow);
-      }
-
-      .search-icon {
-        opacity: 0.6;
-      }
-
-      .search-input {
-        flex: 1;
-        height: 100%;
-        border: none;
-        outline: none;
-        background: none;
-        margin-left: 8px;
-        color: var(--color-text-primary);
-        font-size: 14px;
-        padding: 0;
-        display: flex; // 添加这行
-        align-items: center; // 添加这行
-
-        &::placeholder {
-          color: var(--color-text-secondary);
-          transform: translateY(-1px);
-        }
-      }
-    }
-  }
-
-  .segment-control {
-    display: flex;
-    align-items: center;
-    height: 36px;
-    border: 1px solid var(--color-border);
-    border-radius: 8px;
-    overflow: hidden;
-    background: var(--color-bg-primary);
-
-    .segment-button {
-      padding: 0 16px;
-      height: 36px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      font-size: 14px;
-      color: var(--color-text-primary);
-      transition: all 0.2s ease;
-      user-select: none;
-
-      &:first-child {
-        border-right: 1px solid var(--color-border);
-      }
-
-      &:hover {
-        background-color: var(--color-hover-bg);
-      }
-
-      &.active {
-        background-color: var(--color-primary);
-        color: var(--color-bg-primary);
-      }
-    }
-  }
-
-  .add-mindboard-button {
-    display: flex;
-    align-items: center;
-    // width: 100px;
-    padding: 2px 12px 2px 7px;
-    border: none;
-    background: none;
-    cursor: pointer;
-    transition: background-color 0.2s;
-    border-radius: 8px;
-    border: 1px solid var(--color-border);
-    user-select: none;
-    height: 36px;
-
-    .icon {
-      background: none;
-      border: none;
-      cursor: pointer;
-      width: 28px;
-      height: 28px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 6px;
-      transition: background-color 0.2s;
-      padding: 0;
-      // margin-right: 3px;
-
-      &:hover:not(:disabled) {
-        background-color: var(--color-hover-bg);
-      }
-
-      &:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-      }
-
-      // 新增以下样式来处理 i-icon 类
-      :deep(.i-icon) {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        width: 100%;
-        height: 100%;
-      }
-
-      :deep(svg) {
-        width: 16px; // 或者您想要的大小
-        height: 16px; // 或者您想要的大小
-      }
-    }
-
-    .name {
-      flex-grow: 0;
-      text-align: left;
-      color: var(--color-text-primary);
-      font-size: 14px;
-      white-space: nowrap; // 防止文字换行
-      writing-mode: horizontal-tb; // 确保文字是水平排列的
-      line-height: 1;
-    }
-
-    &:hover {
-      background-color: var(--color-hover-bg);
-    }
-
-    &.active {
-      background-color: var(--color-menu-active-bg);
-      // border: 1px solid var(--color-primary);
-    }
+    width: 150px;
   }
 
   .sort-button-container {
+    position: relative;
     display: flex;
     align-items: center;
-    // width: 100px;
-    padding: 2px 12px 2px 7px;
-    border: none;
-    background: none;
-    cursor: pointer;
-    transition: background-color 0.2s;
-    border-radius: 8px;
-    border: 1px solid var(--color-border);
-    user-select: none;
-    height: 36px;
-
-    .icon {
-      background: none;
-      border: none;
-      cursor: pointer;
-      width: 28px;
-      height: 28px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 6px;
-      transition: background-color 0.2s;
-      padding: 0;
-      // margin-right: 3px;
-
-      &:hover:not(:disabled) {
-        background-color: var(--color-hover-bg);
-      }
-
-      &:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-      }
-
-      // 新增以下样式来处理 i-icon 类
-      :deep(.i-icon) {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        width: 100%;
-        height: 100%;
-      }
-
-      :deep(svg) {
-        width: 14px; // 或者您想要的大小
-        height: 14px; // 或者您想要的大小
-      }
-    }
-
-    .name {
-      flex-grow: 0;
-      text-align: left;
-      color: var(--color-text-primary);
-      font-size: 14px;
-      white-space: nowrap; // 防止文字换行
-      writing-mode: horizontal-tb; // 确保文字是水平排列的
-      line-height: 1;
-    }
-
-    &:hover {
-      background-color: var(--color-hover-bg);
-    }
-
-    &.active {
-      background-color: var(--color-menu-active-bg);
-      // border: 1px solid var(--color-primary);
-    }
 
     .sort-dropdown-menu {
       position: absolute;
-      top: 90%;
-      // left: -10px;
-      right: 20px;
+      top: calc(100% + 4px);
+      right: 0;
       background-color: var(--color-dropdown-bg);
       border-radius: 8px;
       box-shadow: var(--shadow-primary);
@@ -894,7 +699,7 @@ onUnmounted(() => {
     display: flex;
     align-items: center;
     height: 36px;
-    border: 1px solid var(--color-border);
+    // border: 1px solid var(--color-border);
     border-radius: 8px;
     overflow: hidden;
     background: var(--color-bg-primary);
@@ -1041,6 +846,7 @@ onUnmounted(() => {
     justify-content: center;
     height: 100%;
     padding: 20px;
+    background-color: var(--color-bg-primary);
 
     .empty-icon {
       width: 300px;

@@ -378,7 +378,8 @@ const menuItems = computed(() => {
     // 根据设置决定是否显示手绘板
     ...(appearanceStore.settings?.enableWhiteboard
       ? [{ name: '手绘板', path: '/ed-whiteboard', icon: HandPaintedPlate }]
-      : [])
+      : []),
+    { name: 'UI 测试', path: '/ui-test', icon: Workbench }
   ]
   return baseItems
 })

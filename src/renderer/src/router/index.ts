@@ -143,6 +143,11 @@ const routes = [
     name: 'MindboardDetail',
     path: '/mindboard/:id',
     component: () => import('../components/mindboard/MindboardDetail.vue')
+  },
+  {
+    name: 'UITest',
+    path: '/ui-test',
+    component: () => import('../components/ui/UITest.vue')
   }
 ]
 

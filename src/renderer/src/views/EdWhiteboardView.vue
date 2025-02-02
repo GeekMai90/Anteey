@@ -11,29 +11,44 @@
             <div class="name">手绘板</div>
           </div>
           <div class="topToolBar-right">
-            <!-- 新增白板按钮 -->
-            <div class="add-whiteboard-button" @click="addWhiteboard">
-              <div class="icon">
-                <Plus
-                  theme="outline"
-                  size="18"
-                  fill="var(--color-icon-menu-default)"
-                  :strokeWidth="3"
-                />
-              </div>
-              <div class="name">新增手绘板</div>
+            <!-- 搜索框 -->
+            <div class="search-container">
+              <SearchInput
+                v-model="searchQuery"
+                :width="150"
+                :height="36"
+                placeholder="搜索手绘板..."
+                @input="handleSearch"
+              />
             </div>
+            <!-- 新增白板按钮 -->
+            <SpreadButton
+              :icon="Plus"
+              type="default"
+              :height="36"
+              :tooltip="{
+                content: '新建手绘板',
+                delay: { show: 1000 }
+              }"
+              tooltipPlacement="top"
+              @click="addWhiteboard"
+            >
+              新增手绘板
+            </SpreadButton>
             <!-- 排序按钮 -->
             <div class="sort-button-container" @click.stop="toggleSortMenu">
-              <div class="icon">
-                <SortTwo
-                  theme="outline"
-                  size="18"
-                  fill="var(--color-icon-menu-default)"
-                  :strokeWidth="3"
-                />
-              </div>
-              <div class="name">排序</div>
+              <SpreadButton
+                :icon="SortTwo"
+                :height="36"
+                :tooltip="{
+                  content: '选择排序方式',
+                  delay: { show: 1000 }
+                }"
+                tooltipPlacement="top"
+                @click.stop="toggleSortMenu"
+              >
+                排序
+              </SpreadButton>
               <div v-if="showSortMenu" class="sort-dropdown-menu">
                 <div
                   v-for="option in sortOptions"
@@ -77,12 +92,15 @@ import { SortTwo, Workbench, Plus } from '@icon-park/vue-next'
 import { useEdWhiteboardStore } from '@renderer/stores/EdWhiteboardStore'
 import EdWhiteboardCard from '@renderer/components/edWhiteboard/EdWhiteboardCard.vue'
 import type { EdWhiteboard } from '@shared/types/edWhiteboard'
+import SpreadButton from '@renderer/components/ui/SpreadButton.vue'
+import SearchInput from '@renderer/components/ui/SearchInput.vue'
 
 const router = useRouter()
 const edWhiteboardStore = useEdWhiteboardStore()
 const showSortMenu = ref(false)
 const currentSort = ref('updated_at')
 const sortDirection = ref('desc')
+const searchQuery = ref('')
 
 // 初始加载数据
 onMounted(async () => {
@@ -99,7 +117,14 @@ const fetchWhiteboards = async () => {
 
 // 排序后的白板列表
 const sortedWhiteboards = computed(() => {
-  const boards = edWhiteboardStore.whiteboards
+  let boards = edWhiteboardStore.whiteboards
+
+  // 先按搜索关键词过滤
+  if (searchQuery.value) {
+    const query = searchQuery.value.toLowerCase()
+    boards = boards.filter((board) => board.name.toLowerCase().includes(query))
+  }
+
   return [...boards].sort((a: EdWhiteboard, b: EdWhiteboard) => {
     let comparison = 0
     switch (currentSort.value) {
@@ -171,6 +196,11 @@ onMounted(() => {
 onUnmounted(() => {
   document.removeEventListener('click', closeMenuOnClickOutside)
 })
+
+// 添加搜索处理函数
+const handleSearch = () => {
+  // 这里可以添加防抖逻辑如果需要
+}
 </script>
 
 <style lang="scss" scoped>
@@ -257,154 +287,19 @@ onUnmounted(() => {
   gap: 10px;
   align-items: center;
 
-  .add-whiteboard-button {
-    display: flex;
-    align-items: center;
-    // width: 100px;
-    padding: 2px 12px 2px 7px;
-    border: none;
-    background: none;
-    cursor: pointer;
-    transition: background-color 0.2s;
-    border-radius: 8px;
-    border: 1px solid var(--color-border);
-    user-select: none;
-    height: 36px;
-
-    .icon {
-      background: none;
-      border: none;
-      cursor: pointer;
-      width: 28px;
-      height: 28px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 6px;
-      transition: background-color 0.2s;
-      padding: 0;
-      // margin-right: 3px;
-
-      &:hover:not(:disabled) {
-        background-color: var(--color-hover-bg);
-      }
-
-      &:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-      }
-
-      // 新增以下样式来处理 i-icon 类
-      :deep(.i-icon) {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        width: 100%;
-        height: 100%;
-      }
-
-      :deep(svg) {
-        width: 16px; // 或者您想要的大小
-        height: 16px; // 或者您想要的大小
-      }
-    }
-
-    .name {
-      flex-grow: 0;
-      text-align: left;
-      color: var(--color-text-primary);
-      font-size: 14px;
-      white-space: nowrap; // 防止文字换行
-      writing-mode: horizontal-tb; // 确保文字是水平排列的
-      line-height: 1;
-    }
-
-    &:hover {
-      background-color: var(--color-hover-bg);
-    }
-
-    &.active {
-      background-color: var(--color-menu-active-bg);
-      // border: 1px solid var(--color-primary);
-    }
+  .search-container {
+    width: 150px;
   }
 
   .sort-button-container {
+    position: relative;
     display: flex;
     align-items: center;
-    // width: 100px;
-    padding: 2px 12px 2px 7px;
-    border: none;
-    background: none;
-    cursor: pointer;
-    transition: background-color 0.2s;
-    border-radius: 8px;
-    border: 1px solid var(--color-border);
-    user-select: none;
-    height: 36px;
-
-    .icon {
-      background: none;
-      border: none;
-      cursor: pointer;
-      width: 28px;
-      height: 28px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 6px;
-      transition: background-color 0.2s;
-      padding: 0;
-      // margin-right: 3px;
-
-      &:hover:not(:disabled) {
-        background-color: var(--color-hover-bg);
-      }
-
-      &:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-      }
-
-      // 新增以下样式来处理 i-icon 类
-      :deep(.i-icon) {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        width: 100%;
-        height: 100%;
-      }
-
-      :deep(svg) {
-        width: 16px; // 或者您想要的大小
-        height: 16px; // 或者您想要的大小
-      }
-    }
-
-    .name {
-      flex-grow: 0;
-      text-align: left;
-      color: var(--color-text-primary);
-      font-size: 14px;
-      white-space: nowrap; // 防止文字换行
-      writing-mode: horizontal-tb; // 确保文字是水平排列的
-      line-height: 1;
-    }
-
-    &:hover {
-      background-color: var(--color-hover-bg);
-    }
-
-    &.active {
-      background-color: var(--color-menu-active-bg);
-      // border: 1px solid var(--color-primary);
-    }
 
     .sort-dropdown-menu {
       position: absolute;
-      top: 90%;
-      // left: -10px;
-      right: 20px;
+      top: calc(100% + 4px);
+      right: 0;
       background-color: var(--color-dropdown-bg);
       border-radius: 8px;
       box-shadow: var(--shadow-primary);

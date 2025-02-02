@@ -308,9 +308,24 @@ $dark-mode-text: $gray-100;
 
   //思维板
   --color-mindboard-card-image-bg: #f4f4f5;
+
+  // 分段按钮
+  --color-segmented-button-bg: #f5f5f5;
+  --color-segmented-button-checked-bg: #fff;
+  --color-segmented-button-hover-bg: rgba(255, 255, 255, 0.8);
+  --color-segmented-button-border: #e0e0e0;
+  --color-segmented-button-text: #334155;
+  --color-segmented-button-active-bg: #00c8a8;
+  --color-segmented-button-active-text: #fff;
 }
 
 .theme-dark {
+  // 分段按钮
+  --color-segmented-button-bg: #000000;
+  --color-segmented-button-checked-bg: #1f1f1f;
+  --color-segmented-button-hover-bg: rgba(31, 31, 31, 0.6);
+  --color-segmented-button-text: #dedede;
+
   // 主题基础色（保持原色调，但可能需要调整亮度）
   --color-primary: #20ceae;
   --color-primary-rgb: 32, 206, 174;
