@@ -157,3 +157,14 @@ export async function getFavoriteMindboards(): Promise<Mindboard[]> {
     throw error
   }
 }
+
+// 获取思维板数量
+export async function getMindboardCount(): Promise<number> {
+  try {
+    const count = await db('mindboards').count('id as count').first()
+    return count ? Number(count.count) : 0
+  } catch (error) {
+    console.error('获取思维板数量失败:', error)
+    throw error
+  }
+}

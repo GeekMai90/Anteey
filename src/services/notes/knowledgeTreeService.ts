@@ -55,18 +55,92 @@ function getNextLevel(level: AddressLevel): number {
 }
 
 // 获取地址层级
+// function getAddressLevel(address: string): AddressLevel {
+//   if (/^\d{4}$/.test(address)) {
+//     if (address.endsWith('000')) return 'top'
+//     if (address.endsWith('00')) return 'second'
+//     return 'third'
+//   }
+//   if (address.includes('-')) {
+//     // 修改分支层级判断逻辑
+//     const branchLevel = address.split('-').length - 1
+//     return `branch-${branchLevel}` as AddressLevel
+//   }
+//   throw new Error(`Invalid address format: ${address}`)
+// }
 function getAddressLevel(address: string): AddressLevel {
+  // 1. 基础验证：检查地址是否为空或非字符串
+  if (!address || typeof address !== 'string') {
+    throw new Error('地址不能为空且必须是字符串类型')
+  }
+
+  // 2. 移除可能的空白字符
+  address = address.trim()
+
+  // 3. 基础层级验证（4位数字）
   if (/^\d{4}$/.test(address)) {
-    if (address.endsWith('000')) return 'top'
-    if (address.endsWith('00')) return 'second'
+    // 检查是否是有效的数字（不能全为0）
+    if (parseInt(address) === 0) {
+      throw new Error(`无效的地址格式：地址不能全为0，当前地址：${address}`)
+    }
+
+    // 检查各层级
+    if (address.endsWith('000')) {
+      // 验证第一位不能为0
+      if (address[0] === '0') {
+        throw new Error(`无效的顶层地址：第一位不能为0，当前地址：${address}`)
+      }
+      return 'top'
+    }
+
+    if (address.endsWith('00')) {
+      // 验证前两位不能为0
+      if (address.slice(0, 2) === '00') {
+        throw new Error(`无效的二级地址：前两位不能为0，当前地址：${address}`)
+      }
+      return 'second'
+    }
+
+    // 验证前三位不能为0
+    if (address.slice(0, 3) === '000') {
+      throw new Error(`无效的三级地址：前三位不能为0，当前地址：${address}`)
+    }
     return 'third'
   }
+
+  // 4. 分支层级验证
   if (address.includes('-')) {
-    // 修改分支层级判断逻辑
+    // 验证分支格式：基础地址-分支号
+    const pattern = /^\d{4}(-[1-9]\d*)+$/
+    if (!pattern.test(address)) {
+      throw new Error(
+        `无效的分支地址格式：应为"基础地址-分支号"格式，且分支号必须为正整数，当前地址：${address}`
+      )
+    }
+
+    // 验证基础地址部分
+    const baseAddress = address.split('-')[0]
+    if (parseInt(baseAddress) === 0) {
+      throw new Error(`无效的分支地址：基础地址不能全为0，当前地址：${address}`)
+    }
+
+    // 计算分支层级
     const branchLevel = address.split('-').length - 1
+    // 限制最大分支层级（可以根据需求调整）
+    const MAX_BRANCH_LEVEL = 10
+    if (branchLevel > MAX_BRANCH_LEVEL) {
+      throw new Error(
+        `分支层级超出限制：最大支持${MAX_BRANCH_LEVEL}层分支，当前层级：${branchLevel}，地址：${address}`
+      )
+    }
+
     return `branch-${branchLevel}` as AddressLevel
   }
-  throw new Error(`Invalid address format: ${address}`)
+
+  // 5. 如果所有验证都未通过，抛出通用错误
+  throw new Error(
+    `无效的地址格式：${address}，地址必须是4位数字（如1000）或带分支号的格式（如1100-1）`
+  )
 }
 
 // 获取父地址

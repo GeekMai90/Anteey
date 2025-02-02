@@ -7,6 +7,7 @@ export const useMindboardStore = defineStore('mindboard', () => {
   const mindboards = ref<Mindboard[]>([])
   const currentMindboard = ref<Mindboard | null>(null)
   const isLoading = ref(false)
+  const mindboardCount = ref(0)
 
   // ==================== 思维板操作 ====================
   // 获取所有思维板
@@ -226,6 +227,18 @@ export const useMindboardStore = defineStore('mindboard', () => {
     }
   }
 
+  // 获取思维板数量
+  const getMindboardCount = async () => {
+    try {
+      const count = await window.electronAPI.mindboard.getMindboardCount()
+      mindboardCount.value = count
+      return count
+    } catch (error) {
+      console.error('获取思维板数量失败:', error)
+      throw error
+    }
+  }
+
   return {
     // 状态
     mindboards,
@@ -250,6 +263,10 @@ export const useMindboardStore = defineStore('mindboard', () => {
 
     // 收藏相关
     toggleFavorite,
-    getFavoriteMindboards
+    getFavoriteMindboards,
+
+    // 获取思维板数量
+    getMindboardCount,
+    mindboardCount
   }
 })

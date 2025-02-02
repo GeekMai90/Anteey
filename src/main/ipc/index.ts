@@ -1,5 +1,4 @@
 import { setupNotesHandlers } from './notesIpcHandlers'
-import { setupWhiteboardHandlers } from './whiteboardIpcHandlers'
 import { setupCardboxHandlers } from './cardboxIpcHandlers'
 import { setupUserSettingsHandlers } from './userSettingsIpcHandlers'
 import { setupImageHandlers } from './imageIpcHandlers'
@@ -31,7 +30,6 @@ import { setupDictionaryHandlers } from './dictionaryIpcHandlers'
 import { setupMindboardHandlers } from './mindboardIpcHandlers'
 export function setupIpcHandlers(): void {
   setupNotesHandlers()
-  setupWhiteboardHandlers()
   setupCardboxHandlers()
   setupImageHandlers()
   setupTagHandlers()

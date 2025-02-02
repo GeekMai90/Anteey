@@ -68,22 +68,6 @@ const routes = [
     })
   },
   {
-    name: 'whiteboard',
-    path: '/whiteboard',
-    component: () => import('../views/WhiteboardView.vue'),
-    meta: { keepAlive: false }
-  },
-  {
-    name: 'whiteboardDetail',
-    path: '/whiteboard/:whiteboardId', // 修改路径，保持一致性
-    component: () => import('../components/whiteboard/WhiteboardDetail.vue'),
-    props: true, // 添加 props
-    meta: {
-      keepAlive: false,
-      parent: 'whiteboard' // 添加父级关系
-    }
-  },
-  {
     name: 'NoteExpandEditor',
     path: '/note/:id?',
     component: () => import('../views/NoteExpandEditor.vue')
@@ -134,16 +118,6 @@ const routes = [
     name: 'DraftsView',
     path: '/drafts',
     component: () => import('../views/DraftsView.vue')
-  },
-  {
-    name: 'ExcalidrawTest',
-    path: '/excalidraw-test',
-    component: () => import('../views/ExcalidrawTest.vue')
-  },
-  {
-    name: 'TldrawTest',
-    path: '/tldraw-test',
-    component: () => import('../views/TldrawTest.vue')
   },
   {
     name: 'EdWhiteboardView',

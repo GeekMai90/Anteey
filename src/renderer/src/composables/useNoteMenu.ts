@@ -15,7 +15,7 @@ import {
   AdjacentItem,
   StorageCardOne
 } from '@icon-park/vue-next'
-import { useWhiteboardStore } from '../stores/whiteboardStore'
+
 import { useUIStore } from '../stores/UIStore'
 import TurndownService from 'turndown'
 import { format } from 'date-fns'
@@ -29,16 +29,13 @@ import { useFlashcardStore } from '../stores/flashcardStore'
 import { useNoteVersionStore } from '../stores/noteVersionStore'
 interface NoteMenuParams {
   noteId: string
-  whiteboardNoteId?: string
-  whiteboardId?: string
   menuItems?: string[] // 新增：用于指定要显示的菜单项
-  onRestoreDefaultHeight?: () => void // 新增：用于处理恢复默认高度的回调函数
 }
 
 export function useNoteMenu(params: NoteMenuParams) {
   const noteStore = useNoteStore()
   const uiStore = useUIStore()
-  const whiteboardStore = useWhiteboardStore()
+
   const showConfirmModal = ref(false)
   const route = useRoute()
   const router = useRouter()
@@ -202,37 +199,6 @@ export function useNoteMenu(params: NoteMenuParams) {
       clearTimeout(permanentDeleteTimeout)
       permanentDeleteTimeout = null
     }
-  }
-
-  const handleTrashFromWhiteboard = () => {
-    console.log('移出白板', params.whiteboardNoteId)
-    if (params.whiteboardNoteId) {
-      whiteboardStore.deleteWhiteboardNote(params.whiteboardNoteId)
-    }
-    closePopupMenu()
-  }
-
-  const handleRestoreDefaultHeight = () => {
-    if (params.onRestoreDefaultHeight) {
-      params.onRestoreDefaultHeight()
-    }
-    closePopupMenu()
-  }
-
-  // 删除白板
-  const handleDeleteWhiteboard = () => {
-    showConfirmModal.value = true
-  }
-
-  const confirmDeleteWhiteboard = async () => {
-    if (params.whiteboardId) {
-      await whiteboardStore.deleteWhiteboard(params.whiteboardId)
-    }
-    showConfirmModal.value = false
-  }
-
-  const cancelDeleteWhiteboard = () => {
-    showConfirmModal.value = false
   }
 
   // 导出单个笔记
@@ -527,26 +493,7 @@ export function useNoteMenu(params: NoteMenuParams) {
       isDangerous: isConfirmingDelete.value,
       fill: isConfirmingDelete.value ? '#ff4d4f' : 'var(--color-icon-menu-default)'
     },
-    trashFromWhiteboard: {
-      name: 'trashFromWhiteboard',
-      label: '移出白板',
-      icon: DeleteOne,
-      action: handleTrashFromWhiteboard,
-      isDangerous: true
-    },
-    restoreDefaultHeight: {
-      name: 'restoreDefaultHeight',
-      label: '恢复默认高度',
-      icon: Refresh,
-      action: handleRestoreDefaultHeight
-    },
-    deleteWhiteboard: {
-      name: 'deleteWhiteboard',
-      label: '删除思维板',
-      icon: DeleteOne,
-      action: handleDeleteWhiteboard,
-      isDangerous: true
-    },
+
     copyNoteLink: {
       name: 'copyNoteLink',
       label: '拷贝链接',
@@ -664,12 +611,8 @@ export function useNoteMenu(params: NoteMenuParams) {
     if (params.menuItems && params.menuItems.length > 0) {
       items = params.menuItems.map((itemName) => allMenuItems.value[itemName]).filter(Boolean)
     } else {
-      items = Object.values(allMenuItems.value).filter((item: any) => {
-        if (item.name === 'trashFromWhiteboard' || item.name === 'restoreDefaultHeight') {
-          return !!params.whiteboardNoteId
-        }
-        return true
-      })
+      items = Object.values(allMenuItems.value)
+
       // 确保 delete 项随 isConfirmingDelete 状态更新
       items = items.map((item: any) => {
         if (item.name === 'delete') {
@@ -692,9 +635,6 @@ export function useNoteMenu(params: NoteMenuParams) {
     isConfirmingDelete, // 暴露这个状态，以便在需要时可以在外部访问
     handleDelete,
     showConfirmModal,
-    handleDeleteWhiteboard,
-    confirmDeleteWhiteboard,
-    cancelDeleteWhiteboard,
     handleBulkExport
   }
 }

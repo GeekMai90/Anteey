@@ -8,7 +8,8 @@ import {
   updateMindboardName,
   updatePreviewImage,
   toggleFavorite,
-  getFavoriteMindboards
+  getFavoriteMindboards,
+  getMindboardCount
 } from '../../services/mindboard/mindboardService'
 import type { Mindboard } from '@shared/types'
 
@@ -119,6 +120,17 @@ export function setupMindboardHandlers() {
       return { success: true, mindboards }
     } catch (error) {
       console.error('主进程→ 获取收藏的思维板失败:', error)
+      return { success: false, error: String(error) }
+    }
+  })
+
+  // 获取思维板数量
+  ipcMain.handle('get-mindboard-count', async () => {
+    try {
+      const count = await getMindboardCount()
+      return { success: true, count }
+    } catch (error) {
+      console.error('主进程→ 获取思维板数量失败:', error)
       return { success: false, error: String(error) }
     }
   })

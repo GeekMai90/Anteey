@@ -16,16 +16,6 @@ import type {
   TimelineQueryParams,
   TimelineQueryResult,
 
-  // 白板相关
-  Whiteboard,
-  CreateWhiteboardInput,
-  CreateWhiteboardNoteInput,
-  WhiteboardNote,
-  RootWhiteboard,
-  Connection,
-  WhiteboardGroup,
-  ConnectionCreateData,
-
   // 设置相关
   UserSettings,
   UpdateUserSettings,
@@ -206,68 +196,7 @@ export interface ElectronAPI {
     // 批量更新向量
     batchUpdateVectors: () => Promise<void>
   }
-  whiteboard: {
-    createWhiteboard: (input: CreateWhiteboardInput) => Promise<Whiteboard>
-    getTopLevelWhiteboards: () => Promise<Whiteboard[]>
-    updateWhiteboardPosition: (id: string, x: number, y: number) => Promise<Whiteboard>
-    createWhiteboardNote: (input: CreateWhiteboardNoteInput) => Promise<WhiteboardNote>
-    createRootWhiteboard: () => Promise<RootWhiteboard>
-    getRootWhiteboard: () => Promise<RootWhiteboard>
-    saveViewStateToRootWhiteboard: (
-      scale: number,
-      translateX: number,
-      translateY: number
-    ) => Promise<boolean>
-    getRootWhiteboardViewState: () => Promise<{
-      scale: number
-      translateX: number
-      translateY: number
-    }>
-    saveViewStateToWhiteboard: (
-      whiteboardId: string,
-      scale: number,
-      translateX: number,
-      translateY: number
-    ) => Promise<boolean>
-    getWhiteboardViewState: (whiteboardId: string) => Promise<{
-      scale: number
-      translateX: number
-      translateY: number
-    }>
-    getCardCount: (whiteboardId: string) => Promise<number>
-    getWhiteboardNotes: (whiteboardId: string) => Promise<WhiteboardNote[]>
-    getWhiteboardGroups: (whiteboardId: string) => Promise<WhiteboardGroup[]>
-    getWhiteboardConnections: (whiteboardId: string) => Promise<Connection[]>
-    getWhiteboardSubboards: (whiteboardId: string) => Promise<Whiteboard[]>
-    updateWhiteboardNotePosition: (id: string, x: number, y: number) => Promise<WhiteboardNote>
-    updateWhiteboardNoteSize: (id: string, width: number, height: number) => Promise<WhiteboardNote>
-    updateConnection: (connection: Connection) => Promise<Connection>
-    deleteConnection: (id: string) => Promise<void>
-    getConnectionsByWhiteboardId: (whiteboardId: string) => Promise<Connection[]>
-    createConnection: (connection: ConnectionCreateData) => Promise<Connection>
-    updateConnectionDescription: (
-      id: string,
-      description: string
-    ) => Promise<{
-      success: boolean
-      connection: Connection | null
-      error: string | null
-    }>
-    deleteWhiteboardNote: (id: string) => Promise<boolean>
-    updateWhiteboardNoteAutoHeight: (id: string, isAutoHeight: boolean) => Promise<WhiteboardNote>
-    updateWhiteboardName: (id: string, name: string) => Promise<Whiteboard>
 
-    deleteWhiteboard: (id: string) => Promise<{ success: boolean; error?: string }>
-    // 添加更新白板笔记样式的方法定义
-    updateWhiteboardNoteStyle: (
-      id: string,
-      style: WhiteboardNote['style']
-    ) => Promise<WhiteboardNote>
-
-    // 更新白板笔记内容的方法定义
-    updateWhiteboardNoteContent: (id: string, content: object) => Promise<WhiteboardNote>
-    getWhiteboardCount: () => Promise<number>
-  }
   systemMenu: {
     onMenuNewNote: (callback: () => void) => void
     onMenuExportNotes: (callback: () => void) => void
@@ -895,6 +824,7 @@ export interface ElectronAPI {
     updatePreviewImage: (id: string, previewImage: string) => Promise<void>
     toggleFavorite: (id: string) => Promise<void>
     getFavoriteMindboards: () => Promise<Mindboard[]>
+    getMindboardCount: () => Promise<number>
   }
 }
 

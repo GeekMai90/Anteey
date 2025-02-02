@@ -106,5 +106,17 @@ export const mindboardApi = {
       console.error('预加载脚本 → 获取收藏思维板失败:', error)
       throw error
     }
+  },
+
+  // 获取思维板数量
+  getMindboardCount: async (): Promise<number> => {
+    try {
+      const result = await ipcRenderer.invoke('get-mindboard-count')
+      if (!result.success) throw new Error(result.error)
+      return result.count
+    } catch (error) {
+      console.error('预加载脚本 → 获取思维板数量失败:', error)
+      throw error
+    }
   }
 }

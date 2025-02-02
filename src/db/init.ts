@@ -192,102 +192,6 @@ export async function initDatabase(db: Knex): Promise<void> {
     console.log('cardboxes 表创建成功')
   }
 
-  // 创建 whiteboards 表
-  if (!(await db.schema.hasTable('whiteboards'))) {
-    await db.schema.createTable('whiteboards', (table) => {
-      table.string('id').primary()
-      table.string('name').notNullable()
-      table.text('description').nullable()
-      table.datetime('createdAt').notNullable()
-      table.datetime('updatedAt').notNullable()
-      table.json('position').notNullable()
-      table.json('size').notNullable()
-      table.string('parentId').notNullable()
-      table.boolean('isTopLevel').notNullable().defaultTo(true)
-      table.boolean('isStarred').notNullable().defaultTo(false)
-      table.integer('starredOrder').nullable()
-      table.float('zoomLevel').notNullable()
-      table.json('scrollPosition').notNullable()
-      table.float('scale').notNullable()
-      table.float('translateX').notNullable()
-      table.float('translateY').notNullable()
-    })
-    console.log('whiteboards 表创建成功')
-  }
-
-  //  创建 root_whiteboards 表
-  if (!(await db.schema.hasTable('root_whiteboards'))) {
-    await db.schema.createTable('root_whiteboards', (table) => {
-      table.string('id').primary()
-      table.datetime('createdAt').notNullable()
-      table.datetime('updatedAt').notNullable()
-      table.float('zoomLevel').notNullable()
-      table.json('scrollPosition').notNullable()
-      table.float('scale').notNullable()
-      table.float('translateX').notNullable()
-      table.float('translateY').notNullable()
-      table.unique(['id'])
-    })
-    console.log('root_whiteboards 表创建成功')
-  }
-
-  // 创建 whiteboard_notes 表
-  if (!(await db.schema.hasTable('whiteboard_notes'))) {
-    await db.schema.createTable('whiteboard_notes', (table) => {
-      table.string('id').primary()
-      table.string('whiteboardId').notNullable().index()
-      table.string('type').notNullable().defaultTo('card')
-      table.json('position').notNullable()
-      table.json('size').notNullable()
-      table.integer('zIndex').notNullable()
-      table.float('rotation').notNullable().defaultTo(0)
-
-      // 样式相关
-      table.json('style').nullable()
-
-      // card类型特有属性
-      table.string('noteId').nullable().index()
-      table.boolean('isAutoHeight').nullable()
-
-      // text类型特有属性
-      table.json('content').nullable()
-
-      // image类型特有属性
-      table.string('imageUrl').nullable()
-      table.json('originalSize').nullable()
-    })
-    console.log('whiteboard_notes 表创建成功')
-  }
-
-  // 创建 whiteboard_groups 表
-  if (!(await db.schema.hasTable('whiteboard_groups'))) {
-    await db.schema.createTable('whiteboard_groups', (table) => {
-      table.string('id').primary()
-      table.string('whiteboardId').notNullable().index()
-      table.string('name').notNullable()
-      table.json('itemIds').notNullable()
-      table.json('position').notNullable()
-      table.json('size').notNullable()
-      table.integer('zIndex').notNullable()
-      table.json('style').nullable()
-      table.float('rotation').notNullable().defaultTo(0)
-    })
-    console.log('whiteboard_groups 表创建成功')
-  }
-
-  // 创建 connections 表
-  if (!(await db.schema.hasTable('connections'))) {
-    await db.schema.createTable('connections', (table) => {
-      table.string('id').primary()
-      table.string('whiteboardId').notNullable().index()
-      table.string('startItemId').notNullable()
-      table.string('endItemId').notNullable()
-      table.string('startPoint').notNullable()
-      table.string('endPoint').notNullable()
-      table.string('description').nullable()
-    })
-    console.log('connections 表创建成功')
-  }
   if (!(await db.schema.hasTable('user_settings'))) {
     await db.schema.createTable('user_settings', (table) => {
       table.string('id').primary()
@@ -606,48 +510,6 @@ export async function initDatabase(db: Knex): Promise<void> {
     }
   }
 
-  // 创建 image_references 表
-  if (!(await db.schema.hasTable('image_references'))) {
-    await db.schema.createTable('image_references', (table) => {
-      table.string('id').primary()
-      table.string('path').notNullable() // 图片存储路径
-      table.string('filename').notNullable() // 原始文件名
-      table.string('hash').notNullable().unique() // 图片内容哈希值,用于去重
-      table.integer('size').notNullable() // 文件大小(字节)
-      table.datetime('createdAt').notNullable()
-      table.datetime('lastUsed').nullable() // 最后使用时间
-
-      // 索引
-      table.index('hash')
-      table.index('createdAt')
-      table.index('lastUsed')
-    })
-    console.log('image_references 表创建成功')
-  }
-
-  // 创建 note_images 表 (笔记和图片的关联表)
-  if (!(await db.schema.hasTable('note_images'))) {
-    await db.schema.createTable('note_images', (table) => {
-      table.string('noteId').notNullable()
-      table.string('imageId').notNullable()
-      table.datetime('createdAt').notNullable()
-
-      // 复合主键
-      table.primary(['noteId', 'imageId'])
-
-      // 外键约束
-      table.foreign('noteId').references('notes.id').onDelete('CASCADE')
-      table.foreign('imageId').references('image_references.id').onDelete('CASCADE')
-
-      // 索引
-      table.index('noteId')
-      table.index('imageId')
-      table.index('createdAt')
-    })
-    console.log('note_images 表创建成功')
-  }
-
-  // 创建激活许可证表
   // 创建激活许可证表
   if (!(await db.schema.hasTable('licenses'))) {
     await db.schema.createTable('licenses', (table) => {
@@ -687,11 +549,6 @@ export async function initDatabase(db: Knex): Promise<void> {
     })
     console.log('backup_history 表创建成功')
   }
-
-  // 先删除旧表
-  // await db.schema.dropTableIfExists('bullet_items')
-  // await db.schema.dropTableIfExists('time_blocks')
-  // await db.schema.dropTableIfExists('time_block_days')
 
   // 重新创建时间块主表
   if (!(await db.schema.hasTable('time_block_days'))) {

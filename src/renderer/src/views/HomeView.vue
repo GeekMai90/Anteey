@@ -47,7 +47,7 @@
             <div class="stat-label">卡片笔记</div>
           </div>
           <div class="stat-item">
-            <div class="stat-value">{{ whiteboardCount }}</div>
+            <div class="stat-value">{{ mindboardCount }}</div>
             <div class="stat-label">思维板</div>
           </div>
           <div class="stat-item">
@@ -73,12 +73,12 @@
 import { ref, onMounted, computed, watchEffect } from 'vue'
 import { CalendarHeatmap, TooltipFormatter, CalendarItem } from 'vue3-calendar-heatmap'
 import DailyCardPick from '@renderer/components/home/DailyCardPick.vue'
-import { useWhiteboardStore } from '@renderer/stores/whiteboardStore'
 import { useNoteStore } from '@renderer/stores/noteStore'
+import { useMindboardStore } from '@renderer/stores/mindboardStore'
 
 // Store 实例化
-const whiteboardStore = useWhiteboardStore()
 const noteStore = useNoteStore()
+const mindboardStore = useMindboardStore()
 
 // ===== 背景图片管理 =====
 const backgroundImage = ref('')
@@ -164,14 +164,14 @@ const changeBackground = async () => {
 // ===== 统计数据管理 =====
 const cardCount = ref(0)
 const lastDayNoteCount = ref(0)
-const whiteboardCount = ref(0)
+const mindboardCount = ref(0)
 const dayCount = ref(0)
 
 // 监听并更新统计数据
 watchEffect(async () => {
   cardCount.value = await noteStore.getNoteCount()
   lastDayNoteCount.value = await noteStore.getLastDayNoteCount()
-  whiteboardCount.value = await whiteboardStore.getWhiteboardCount()
+  mindboardCount.value = await mindboardStore.getMindboardCount()
   dayCount.value = await noteStore.getUserUsageDays()
 })
 

@@ -9,7 +9,6 @@ import { imageApi } from './api/imageApi'
 import { licenseApi } from './api/licenseApi'
 import { backupApi } from './api/backupApi'
 import { timeBlockApi } from './api/timeBlockApi'
-import { whiteboardApi } from './api/whiteboardApi'
 import { webdavApi } from './api/webdavApi'
 import { flashcardApi } from './api/flashcardApi'
 import { noteVersionApi } from './api/noteVersionApi'
@@ -40,9 +39,6 @@ contextBridge.exposeInMainWorld('electronLog', {
 contextBridge.exposeInMainWorld('electronAPI', {
   note: {
     ...notesApi
-  },
-  whiteboard: {
-    ...whiteboardApi
   },
   systemMenu: {
     removeAllListeners: async (channel: string) => {
