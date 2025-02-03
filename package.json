@@ -1,6 +1,6 @@
 {
   "name": "anteey",
-  "version": "1.4.83",
+  "version": "1.4.84",
   "description": "Anteey",
   "main": "./out/main/index.js",
   "author": "GeekMai",
@@ -41,6 +41,7 @@
     "@floating-ui/vue": "^1.1.6",
     "@icon-park/vue-next": "^1.4.2",
     "@lancedb/lancedb": "^0.15.0",
+    "@lancedb/lancedb-win32-x64-msvc": "^0.15.0",
     "@pqina/flip": "^1.8.4",
     "@prosemirror-adapter/vue": "^0.2.6",
     "@themaximalist/embeddings.js": "github:themaximalist/embeddings.js",

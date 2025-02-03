@@ -949,7 +949,7 @@ onBeforeRouteLeave(async (_to, _from, next) => {
   try {
     // 截取当前画布
     const canvas = await html2canvas(vueFlowRef.value, {
-      backgroundColor: '#f4f4f5', // 保持背景透明
+      backgroundColor: '#f8f9fa', // 保持背景透明
       scale: 1, // 使用较低的缩放比例
       useCORS: true, // 允许跨域图片
       logging: false, // 关闭日志

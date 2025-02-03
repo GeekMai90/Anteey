@@ -363,6 +363,7 @@ $shadow-card: 0 2px 6px rgba($black, 0.12);
   --color-text-brand: #{$color-text-brand};
   --color-text-placeholder: #{neutral(400)};
   --color-text-white: #{neutral(100)};
+  --color-text-black: #{$color-text-primary};
 
   // 4. 背景颜色
   --color-bg-primary: #{$white};
@@ -552,8 +553,8 @@ $shadow-card: 0 2px 6px rgba($black, 0.12);
   --color-primary-dark: #{darken(#20ceae, 10%)};
 
   // 2. 中性色（反转）
-  --color-neutral-100: #1f1f1f; // 最深
-  --color-neutral-200: #2c2f2f;
+  --color-neutral-100: #1a1b1b; // 最深
+  --color-neutral-200: #272a2a;
   --color-neutral-300: #404544;
   --color-neutral-400: #656b6a;
   --color-neutral-400-rgb: 77, 77, 77;
@@ -570,9 +571,10 @@ $shadow-card: 0 2px 6px rgba($black, 0.12);
   --color-text-brand: #20ceae; // 品牌文本色调亮
   --color-text-placeholder: var(--color-neutral-500);
   --color-text-white: #ffffff; // 保持纯白
+  --color-text-black: #{$color-text-primary};
 
   // 4. 背景颜色
-  --color-bg-primary: #191919; // 主背景色
+  --color-bg-primary: #1a1b1b; // 主背景色
   --color-bg-secondary: var(--color-neutral-100); // 次要背景
   --color-bg-tertiary: var(--color-neutral-200); // 第三级背景
   --color-bg-brand: #20ceae;
@@ -706,7 +708,7 @@ $shadow-card: 0 2px 6px rgba($black, 0.12);
 
   // 代码块
   --color-code-text: var(--color-neutral-700);
-  --color-code-block-bg: #000000;
+  --color-code-block-bg: var(--color-neutral-200);
   --color-code-block-border: #{rgba(255, 255, 255, 0.1)};
 
   // 分享视图

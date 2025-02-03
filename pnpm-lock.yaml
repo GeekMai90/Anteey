@@ -29,6 +29,9 @@ importers:
       '@lancedb/lancedb':
         specifier: ^0.15.0
         version: 0.15.0(apache-arrow@19.0.0)
+      '@lancedb/lancedb-win32-x64-msvc':
+        specifier: ^0.15.0
+        version: 0.15.0
       '@pqina/flip':
         specifier: ^1.8.4
         version: 1.8.4
@@ -7421,8 +7424,7 @@ snapshots:
   '@lancedb/lancedb-win32-arm64-msvc@0.15.0':
     optional: true
 
-  '@lancedb/lancedb-win32-x64-msvc@0.15.0':
-    optional: true
+  '@lancedb/lancedb-win32-x64-msvc@0.15.0': {}
 
   '@lancedb/lancedb@0.15.0(apache-arrow@19.0.0)':
     dependencies:

@@ -139,6 +139,10 @@ const cardTypeClass = computed(() => {
     p {
       line-height: 1.4 !important; /* 这会将行高设置为字体大小的 1.5 倍 */
     }
+    strong,
+    b {
+      color: var(--color-text-black) !important;
+    }
   }
 }
 </style>

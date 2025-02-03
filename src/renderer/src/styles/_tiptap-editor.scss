@@ -215,7 +215,7 @@
 
   // 代码块
   pre {
-    background: #2e2b29;
+    background: var(--color-code-block-bg);
     border-radius: 0.5rem;
     color: #fff;
     font-family: "JetBrainsMono", monospace;

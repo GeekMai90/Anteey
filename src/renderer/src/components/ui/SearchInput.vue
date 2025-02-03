@@ -51,13 +51,13 @@ const handleInput = (e: Event) => {
 
 <style lang="scss" scoped>
 .search-input-group {
-  display: flex !important;
+  display: flex;
   line-height: 28px;
-  align-items: center !important;
-  position: relative !important;
-  border-radius: 8px !important;
-  padding: 0 !important;
-  box-sizing: border-box !important;
+  align-items: center;
+  position: relative;
+  border-radius: 8px;
+  padding: 0;
+  box-sizing: border-box;
 }
 
 .search-input {
@@ -84,7 +84,7 @@ const handleInput = (e: Event) => {
 .search-input:focus,
 .search-input:hover {
   outline: none;
-  border-color: rgba(0, 200, 168, 0.4) !important;
+  border-color: rgba(0, 200, 168, 0.4);
   background-color: var(--color-bg-primary);
   box-shadow: 0 0 0 4px rgb(0 200 168 / 10%);
 }

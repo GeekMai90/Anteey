@@ -148,7 +148,7 @@ export const useMindboardStore = defineStore('mindboard', () => {
     // 设置压缩参数
     const MAX_WIDTH = 300
     const MAX_HEIGHT = 200
-    const QUALITY = 0.6
+    const QUALITY = 0.8
 
     // 创建临时 canvas 用于压缩
     const tempCanvas = document.createElement('canvas')
