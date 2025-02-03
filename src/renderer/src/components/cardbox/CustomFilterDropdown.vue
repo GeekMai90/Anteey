@@ -2,13 +2,9 @@
   <div class="custom-filter-container">
     <!-- Custom 下拉按钮 -->
     <div ref="reference" class="custom-filter-dropdown" @click.stop="toggleMenu">
-      <div class="icon">
-        <Filter theme="outline" size="18" fill="var(--color-icon-primary)" :strokeWidth="3" />
-      </div>
-      <div class="name">{{ activeFilter?.name || '自定义筛选' }}</div>
-      <div class="icon down-icon">
-        <Down theme="outline" size="14" fill="var(--color-text-secondary)" :strokeWidth="3" />
-      </div>
+      <Button :height="36" :icon="Filter" dropdown>
+        {{ activeFilter?.name || '自定义筛选' }}
+      </Button>
     </div>
 
     <!-- 筛选规则下拉菜单 -->
@@ -110,12 +106,13 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import type { CSSProperties } from 'vue'
-import { Filter, Plus, Down, Pushpin, Edit, Delete, More, Star } from '@icon-park/vue-next'
+import { Filter, Plus, Pushpin, Edit, Delete, More, Star } from '@icon-park/vue-next'
 import { useFilterStore } from '@renderer/stores/filterStore'
 import type { CustomFilter } from '@shared/types'
 import { message } from '@renderer/utils/message'
 import { useFloating } from '@floating-ui/vue'
 import { flip, offset, shift, autoUpdate } from '@floating-ui/dom'
+import Button from '@renderer/components/ui/Button.vue'
 
 const filterStore = useFilterStore()
 const reference = ref<HTMLElement | null>(null)
@@ -315,52 +312,10 @@ onUnmounted(() => {
 .custom-filter-dropdown {
   display: flex;
   align-items: center;
-  padding: 4px;
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
-  cursor: pointer;
-  user-select: none;
   height: 36px;
-  &:hover {
-    background-color: var(--color-hover-bg);
-  }
 
-  .icon {
-    background: none;
-    border: none;
-    cursor: pointer;
-    width: 24px;
-    height: 24px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s ease;
-    padding: 0;
-
-    :deep(.i-icon) {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 100%;
-      height: 100%;
-    }
-
-    :deep(svg) {
-      width: 15px;
-      height: 15px;
-    }
-  }
-
-  .name {
-    flex-grow: 0;
-    text-align: left;
-    color: var(--color-text-primary);
-    font-size: 14px;
-    font-weight: 400;
-    margin-left: 3px;
-    white-space: nowrap;
-    writing-mode: horizontal-tb;
-    line-height: 1;
+  :deep(.ant-btn) {
+    width: 100%;
   }
 }
 

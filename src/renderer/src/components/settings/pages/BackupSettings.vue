@@ -323,7 +323,7 @@ async function handleClearHistory() {
         width: 80px;
         height: 35px;
         background-color: var(--color-primary);
-        color: var(--color-text-inverse);
+        color: var(--color-text-white);
         border-radius: 8px;
         font-size: 14px;
         font-weight: 500;

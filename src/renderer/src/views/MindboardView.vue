@@ -49,18 +49,19 @@
 
             <!-- 排序 -->
             <div class="sort-button-container" @click.stop="toggleSortMenu">
-              <SpreadButton
+              <Button
                 :icon="SortTwo"
                 :height="36"
                 :tooltip="{
                   content: '选择排序方式',
                   delay: { show: 1000 }
                 }"
+                dropdown
                 tooltipPlacement="top"
                 @click.stop="toggleSortMenu"
               >
                 排序
-              </SpreadButton>
+              </Button>
               <div v-if="showSortMenu" class="sort-dropdown-menu">
                 <div
                   v-for="option in sortOptions"
@@ -222,6 +223,7 @@ import ConfirmDialog from '@renderer/components/common/ConfirmDialog.vue'
 import SegmentedButton from '@renderer/components/ui/SegmentedButton.vue'
 import SpreadButton from '@renderer/components/ui/SpreadButton.vue'
 import SearchInput from '@renderer/components/ui/SearchInput.vue'
+import Button from '@renderer/components/ui/Button.vue'
 
 const mindboardStore = useMindboardStore()
 const showSortMenu = ref(false)
@@ -749,6 +751,7 @@ onUnmounted(() => {
   height: calc(100vh - 100px);
   overflow: hidden;
   position: relative;
+  background-color: var(--color-bg-primary);
 
   .card-grid-container {
     flex: 1;
@@ -788,7 +791,6 @@ onUnmounted(() => {
     .empty-icon {
       width: 300px;
       height: 300px;
-      margin-bottom: 20px;
     }
 
     .empty-text {
@@ -900,6 +902,18 @@ onUnmounted(() => {
         justify-content: center;
         background-color: var(--color-bg-secondary);
         color: var(--color-text-secondary);
+        :deep(.i-icon) {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 100%;
+          height: 100%;
+        }
+
+        :deep(svg) {
+          width: 16px;
+          height: 16px;
+        }
       }
     }
 

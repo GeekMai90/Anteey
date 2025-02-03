@@ -6,8 +6,7 @@
         <div class="topToolBar-header">
           <div class="topToolBar-left">
             <!-- 全部按钮 -->
-            <div
-              class="all-button"
+            <Button
               :class="{
                 active:
                   filterState.cardBoxId === 'all' &&
@@ -17,13 +16,12 @@
                   filterState.cardTypes.length === 0 &&
                   !filterState.isFlashcard
               }"
+              :icon="Box"
+              :height="36"
               @click="selectAll"
             >
-              <div class="icon">
-                <Box theme="outline" size="18" fill="var(--color-icon-primary)" :strokeWidth="3" />
-              </div>
-              <div class="name">全部</div>
-            </div>
+              全部
+            </Button>
             <!-- 闪卡筛选 -->
             <FlashcardFilter
               v-model="filterState.isFlashcard"
@@ -54,40 +52,17 @@
 
           <div class="topToolBar-right">
             <!-- 搜索框 -->
-            <div
-              v-tooltip.bottom="{ content: 'Cmd+P', delay: { show: 1000 } }"
-              class="search-box"
-              :class="{ 'is-focused': isSearchFocused }"
-            >
-              <div class="search-icon">
-                <div class="icon">
-                  <Search
-                    theme="outline"
-                    size="16"
-                    fill="var(--color-icon-secondary)"
-                    :strokeWidth="3"
-                  />
-                </div>
-              </div>
-              <input
+            <div v-tooltip.top="{ content: 'Cmd+P', delay: { show: 1000 } }" class="search-box">
+              <SearchInput
                 ref="searchInput"
                 v-model="searchQuery"
-                type="text"
+                :width="200"
+                :height="36"
                 placeholder="搜索"
                 @input="debouncedSearch"
                 @focus="isSearchFocused = true"
                 @blur="handleBlur"
               />
-              <div v-if="searchQuery" class="clear-icon" @click="clearSearch">
-                <div class="icon">
-                  <Close
-                    theme="outline"
-                    size="16"
-                    fill="var(--color-icon-secondary)"
-                    :strokeWidth="3"
-                  />
-                </div>
-              </div>
             </div>
             <!-- 菜单项的编辑菜单 -->
             <div
@@ -121,17 +96,8 @@
             </div>
             <!-- 排序 -->
             <div class="sort-button-container" @click.stop="toggleSortMenu">
-              <div class="icon">
-                <SortTwo
-                  theme="outline"
-                  size="18"
-                  fill="var(--color-icon-primary)"
-                  :strokeWidth="3"
-                />
-              </div>
-              <!-- <div class="name">{{ currentSortLabel }}</div> -->
-              <div class="name">排序</div>
-
+              <Button :height="36" :icon="SortTwo" dropdown> 排序 </Button>
+              <!-- 排序下拉菜单 -->
               <div v-if="showSortMenu" class="sort-dropdown-menu">
                 <div
                   v-for="option in sortOptions"
@@ -155,7 +121,13 @@
     </div>
     <div class="cardbox-view-container">
       <div ref="cardGridContainer" class="card-grid-container">
-        <div name="card-list" tag="div" class="card-grid">
+        <!-- 空状态展示 -->
+        <div v-if="displayedNotes.length === 0" class="empty-state">
+          <img src="@renderer/assets/images/empty.svg" alt="暂无内容" class="empty-icon" />
+          <div class="empty-text">暂无笔记，点击左侧边栏"新建笔记"开始创建</div>
+        </div>
+        <!-- 卡片网格 -->
+        <div v-else name="card-list" tag="div" class="card-grid">
           <CardBoxNoteCard
             v-for="note in displayedNotes"
             :key="`${note.id}-${new Date(note.updatedAt).toISOString()}`"
@@ -200,7 +172,7 @@
 import { ref, computed, onMounted, onUnmounted, watch, nextTick, onActivated, reactive } from 'vue'
 import { useNoteStore } from '@renderer/stores/noteStore'
 import AppToolbar from '@renderer/components/layout/AppToolbar.vue'
-import { SortTwo, Box, EditTwo, Delete, Close, Search } from '@icon-park/vue-next'
+import { SortTwo, Box, EditTwo, Delete } from '@icon-park/vue-next'
 import type { CardBox, Note, Tag } from '@shared/types'
 import CardBoxNoteCard from '@renderer/components/cardbox/CardboxNoteCard.vue'
 import { storeToRefs } from 'pinia'
@@ -217,6 +189,8 @@ import FilterDialog from '@renderer/components/cardbox/FilterDialog.vue'
 import { CreateCustomFilterInput, UpdateCustomFilterInput } from '@shared/types'
 import { message } from '@renderer/utils/message'
 import FlashcardFilter from '@renderer/components/cardbox/FlashcardFilter.vue'
+import SearchInput from '@renderer/components/ui/SearchInput.vue'
+import Button from '@renderer/components/ui/Button.vue'
 
 const noteStore = useNoteStore()
 const filterStore = useFilterStore()
@@ -828,12 +802,12 @@ const toggleMoreActions = (id: string, event: MouseEvent) => {
     showMoreActions.value = id
     const target = event.currentTarget as HTMLElement
     const rect = target.getBoundingClientRect()
-    const scrollTop = window.pageYOffset || document.documentElement.scrollTop
-    const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft
 
     moreActionsMenuStyle.value = {
-      top: `${rect.bottom + scrollTop}px`,
-      left: `${rect.left + scrollLeft}px`
+      position: 'fixed',
+      top: `${rect.top - 16}px`,
+      left: `${rect.right - 230}px`,
+      zIndex: 1001
     }
   }
 }
@@ -1067,77 +1041,20 @@ flashcardConvertedBus.on(async (noteId) => {
   flex-wrap: nowrap;
   overflow-x: auto;
   min-width: 300px; // 设置最小宽度,防止过度挤压
+  padding: 4px;
 
   &::-webkit-scrollbar {
     display: none;
   }
-  .all-button {
-    display: flex;
-    align-items: center;
-    padding: 4px 10px 4px 4px;
-    border: none;
-    background: none;
-    cursor: pointer;
-    border-radius: 8px;
-    border: 1px solid var(--color-border);
-    user-select: none;
-    height: 36px;
-    &:hover {
-      background-color: var(--color-hover-bg);
-    }
-    .icon {
-      background: none;
-      border: none;
-      cursor: pointer;
-      width: 24px;
-      height: 24px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: all 0.2s ease;
-      padding: 0;
-
-      :deep(.i-icon) {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        width: 100%;
-        height: 100%;
-      }
-
-      :deep(svg) {
-        width: 15px;
-        height: 15px;
-      }
-    }
-
-    .name {
-      flex-grow: 0;
-      text-align: left;
-      color: var(---color-text-primary);
-      font-size: 14px;
-      font-weight: 400;
-      white-space: nowrap;
-      writing-mode: horizontal-tb;
-      line-height: 1;
-    }
-
+  :deep(.ant-btn) {
     &.active {
-      background-color: var(--color-hover-bg);
-    }
+      background: rgba(var(--color-primary-rgb), 0.1);
+      border-color: var(--color-primary);
+      color: var(--color-primary);
 
-    .icon {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 24px;
-      height: 24px;
-      margin-right: 4px;
-    }
-
-    .name {
-      font-size: 14px;
-      color: var(--color-text-primary);
+      .button-icon {
+        color: var(--color-primary);
+      }
     }
   }
 }
@@ -1219,67 +1136,16 @@ flashcardConvertedBus.on(async (noteId) => {
   .sort-button-container {
     display: flex;
     align-items: center;
-    padding: 4px 10px 4px 4px;
-    border: none;
-    background: none;
-    cursor: pointer;
-    border-radius: 8px;
-    border: 1px solid var(--color-border);
-    user-select: none;
-    height: 36px;
-    .icon {
-      background: none;
-      border: none;
-      cursor: pointer;
-      width: 24px;
-      height: 24px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 6px;
-      transition: all 0.2s ease;
-      padding: 0;
+    position: relative;
 
-      // 新增以下样式来处理 i-icon 类
-      :deep(.i-icon) {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        width: 100%;
-        height: 100%;
-      }
-
-      :deep(svg) {
-        width: 15px; // 或者您想要的大小
-        height: 15px; // 或者您想要的大小
-      }
-    }
-
-    .name {
-      flex-grow: 0;
-      text-align: left;
-      color: var(--color-text-primary);
-      font-size: 14px;
-      white-space: nowrap; // 防止文字换行
-      writing-mode: horizontal-tb; // 确保文字是水平排列的
-      margin-left: 3px;
-      line-height: 1;
-    }
-
-    &:hover {
-      background-color: var(--color-hover-bg);
-    }
-
-    &.active {
-      background-color: var(--color-menu-active-bg);
-      // border: 1px solid var(--color-primary);
+    :deep(.ant-btn) {
+      width: 100%;
     }
 
     .sort-dropdown-menu {
       position: absolute;
       top: 100%;
-      // left: -10px;
-      right: 20px;
+      right: 0;
       background-color: var(--color-bg-primary);
       border-radius: 8px;
       box-shadow: var(--shadow-primary);
@@ -1289,6 +1155,7 @@ flashcardConvertedBus.on(async (noteId) => {
       overflow-y: auto;
       padding: 6px 0;
       white-space: nowrap;
+      margin-top: 4px;
     }
 
     .sort-dropdown-item {
@@ -1314,126 +1181,53 @@ flashcardConvertedBus.on(async (noteId) => {
       }
     }
   }
-
-  .search-box {
-    position: relative;
-    width: 200px;
-    display: flex;
-    align-items: center;
-    // background-color: var(--color-bg-secondary);
-    border: 1px solid var(--color-border);
-    border-radius: 8px;
-    padding: 1.5px 8px;
-    overflow: hidden;
-    height: 36px;
-
-    &.is-focused {
-      border-color: var(--color-primary);
-      box-shadow: 0 0 0 2px rgba(var(--color-primary-rgb), 0.2);
-    }
-    .search-icon {
-      position: absolute;
-      left: 6px;
-      top: 50%;
-      transform: translateY(-50%);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 22px;
-      height: 22px;
-      pointer-events: none;
-      :deep(.i-icon) {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        width: 100%;
-        height: 100%;
-      }
-    }
-
-    .clear-icon {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 22px;
-      height: 22px;
-      cursor: pointer;
-      :deep(.i-icon) {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        width: 100%;
-        height: 100%;
-      }
-    }
-
-    input {
-      flex-grow: 1;
-      border: none;
-      background: transparent;
-      padding: 4px 4px 4px 25px;
-      color: var(--color-text-secondary);
-      font-size: 14px;
-      min-width: 0;
-      &::placeholder {
-        color: var(--color-text-placeholder);
-        opacity: 1;
-      }
-
-      &:focus {
-        outline: none;
-      }
-    }
-
-    .clear-icon {
-      cursor: pointer;
-    }
-
-    .search-results {
-      position: absolute;
-      top: 100%;
-      left: 0;
-      right: 0;
-      background-color: var(--color-bg-primary);
-      border: 1px solid var(--color-border);
-      border-radius: 8px;
-      box-shadow: var(--shadow-primary);
-      max-height: 300px;
-      overflow-y: auto;
-      z-index: 1000;
-    }
-
-    .search-result-item {
-      padding: 8px 12px;
-      cursor: pointer;
-      transition: background-color 0.2s;
-
-      &:hover {
-        background-color: var(--color-hover-bg);
-      }
-    }
-  }
 }
 
 .cardbox-view-container {
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 100px); // 假设顶部工具栏高度为100px，请根据实际情况调整
-  overflow: hidden; // 防止整个页面滚动
-  scroll-behavior: smooth; // 添加平滑滚动
+  height: calc(100vh - 100px);
+  overflow: hidden;
+  position: relative;
 
   .card-grid-container {
     flex: 1;
-    overflow-y: auto; // 允许卡片网格容器滚动
-    scroll-behavior: smooth; // 添加平滑滚动
+    overflow-y: auto;
+    position: relative;
   }
+
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -90%);
+    width: 100%;
+    text-align: center;
+    padding: 20px;
+
+    .empty-icon {
+      width: 300px;
+      height: 300px;
+    }
+
+    .empty-text {
+      color: var(--color-text-secondary);
+      font-size: 14px;
+      text-align: center;
+    }
+  }
+
   .card-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
     gap: 16px;
     padding: 16px 20px;
-    align-content: start; // 让内容从顶部开始排列
-    justify-content: center; // 水平居中对齐
+    align-content: start;
+    justify-content: center;
 
     // 使用视口单位和 clamp 函数来控制卡片高度
     --card-height: clamp(250px, calc(20vw - 32px), 350px);
@@ -1571,18 +1365,8 @@ flashcardConvertedBus.on(async (noteId) => {
       align-items: center;
       justify-content: center;
       border-radius: 6px;
-      transition: background-color 0.2s;
       padding: 0;
       margin-right: 2px;
-
-      &:hover:not(:disabled) {
-        background-color: var(--color-hover-bg);
-      }
-
-      &:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-      }
 
       // 新增以下样式来处理 i-icon 类
       :deep(.i-icon) {
@@ -1637,5 +1421,13 @@ flashcardConvertedBus.on(async (noteId) => {
   position: relative; /* 添加这行 */
   flex: 1;
   overflow: hidden;
+}
+
+.search-box {
+  position: relative;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  padding: 4px;
 }
 </style>

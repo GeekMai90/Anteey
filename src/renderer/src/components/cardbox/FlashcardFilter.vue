@@ -1,14 +1,12 @@
 <template>
-  <div class="filter-button" :class="{ active: modelValue }" @click="toggleFilter">
-    <div class="icon">
-      <StorageCardOne theme="outline" size="18" fill="var(--color-icon-primary)" :strokeWidth="3" />
-    </div>
-    <div class="name">闪卡</div>
-  </div>
+  <Button :class="{ active: modelValue }" :height="36" :icon="StorageCardOne" @click="toggleFilter">
+    闪卡
+  </Button>
 </template>
 
 <script setup lang="ts">
 import { StorageCardOne } from '@icon-park/vue-next'
+import Button from '@renderer/components/ui/Button.vue'
 
 const props = defineProps<{
   modelValue: boolean | undefined
@@ -24,47 +22,15 @@ const toggleFilter = () => {
 </script>
 
 <style lang="scss" scoped>
-.filter-button {
-  display: flex;
-  align-items: center;
-  padding: 4px 10px 4px 4px;
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
-  cursor: pointer;
-  user-select: none;
-  height: 36px;
-  &:hover {
-    background-color: var(--color-hover-bg);
-  }
-
+:deep(.ant-btn) {
   &.active {
-    background-color: var(--color-hover-bg);
-  }
+    background: rgba(var(--color-primary-rgb), 0.1);
+    border-color: var(--color-primary);
+    color: var(--color-primary);
 
-  .icon {
-    width: 24px;
-    height: 24px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-right: 4px;
-    :deep(.i-icon) {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 100%;
-      height: 100%;
+    .button-icon {
+      color: var(--color-primary);
     }
-
-    :deep(svg) {
-      width: 16px;
-      height: 16px;
-    }
-  }
-
-  .name {
-    font-size: 14px;
-    color: var(--color-text-primary);
   }
 }
 </style>

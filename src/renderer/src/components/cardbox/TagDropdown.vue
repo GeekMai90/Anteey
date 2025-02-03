@@ -1,12 +1,8 @@
 <template>
   <div ref="reference" class="tag-dropdown" @click.stop="toggleMenu">
-    <div class="icon">
-      <Tag theme="outline" size="18" fill="var(--color-icon-primary)" :strokeWidth="3" />
-    </div>
-    <div class="name">{{ selectedTagName || '标签' }}</div>
-    <div class="icon down-icon">
-      <Down theme="outline" size="14" fill="var(--color-text-secondary)" :strokeWidth="3" />
-    </div>
+    <Button :height="36" :icon="Tag" dropdown>
+      {{ selectedTagName || '标签' }}
+    </Button>
     <!-- 标签下拉菜单 -->
     <Transition
       name="dropdown"
@@ -78,10 +74,11 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
-import { Tag, TagOne, Down } from '@icon-park/vue-next'
+import { Tag, TagOne } from '@icon-park/vue-next'
 import type { Tag as TagType } from '@shared/types'
 import { useFloating } from '@floating-ui/vue'
 import { flip, offset, shift } from '@floating-ui/dom'
+import Button from '@renderer/components/ui/Button.vue'
 
 const props = defineProps<{
   modelValue: string[]
@@ -174,55 +171,10 @@ onUnmounted(() => {
 .tag-dropdown {
   display: flex;
   align-items: center;
-  padding: 4px;
-  border: none;
-  background: none;
-  cursor: pointer;
-  border-radius: 8px;
-  border: 1px solid var(--color-border);
-  user-select: none;
-  margin-left: 2px;
   height: 36px;
-  .icon {
-    background: none;
-    border: none;
-    cursor: pointer;
-    width: 24px;
-    height: 24px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s ease;
-    padding: 0;
 
-    :deep(.i-icon) {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 100%;
-      height: 100%;
-    }
-
-    :deep(svg) {
-      width: 15px;
-      height: 15px;
-    }
-  }
-
-  .name {
-    flex-grow: 0;
-    text-align: left;
-    color: var(--color-text-primary);
-    font-size: 14px;
-    font-weight: 400;
-    margin-left: 3px;
-    white-space: nowrap;
-    writing-mode: horizontal-tb;
-    line-height: 1;
-  }
-
-  &:hover {
-    background-color: var(--color-hover-bg);
+  :deep(.ant-btn) {
+    width: 100%;
   }
 }
 

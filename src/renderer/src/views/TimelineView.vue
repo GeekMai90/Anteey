@@ -540,7 +540,6 @@ const shouldShowDateDivider = (currentNote: Note, index: number) => {
   .empty-icon {
     width: 300px;
     height: 300px;
-    margin-bottom: 20px;
   }
 
   .empty-text {

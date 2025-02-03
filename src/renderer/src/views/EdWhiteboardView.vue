@@ -37,7 +37,7 @@
             </SpreadButton>
             <!-- 排序按钮 -->
             <div class="sort-button-container" @click.stop="toggleSortMenu">
-              <SpreadButton
+              <Button
                 :icon="SortTwo"
                 :height="36"
                 :tooltip="{
@@ -45,10 +45,11 @@
                   delay: { show: 1000 }
                 }"
                 tooltipPlacement="top"
+                dropdown
                 @click.stop="toggleSortMenu"
               >
                 排序
-              </SpreadButton>
+              </Button>
               <div v-if="showSortMenu" class="sort-dropdown-menu">
                 <div
                   v-for="option in sortOptions"
@@ -100,6 +101,7 @@ import EdWhiteboardCard from '@renderer/components/edWhiteboard/EdWhiteboardCard
 import type { EdWhiteboard } from '@shared/types/edWhiteboard'
 import SpreadButton from '@renderer/components/ui/SpreadButton.vue'
 import SearchInput from '@renderer/components/ui/SearchInput.vue'
+import Button from '@renderer/components/ui/Button.vue'
 
 const router = useRouter()
 const edWhiteboardStore = useEdWhiteboardStore()
@@ -373,7 +375,6 @@ const handleSearch = () => {
     .empty-icon {
       width: 300px;
       height: 300px;
-      margin-bottom: 20px;
     }
 
     .empty-text {

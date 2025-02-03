@@ -215,6 +215,19 @@ watch(
     color: var(--color-text-secondary);
     border-radius: 6px;
 
+    :deep(.i-icon) {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      height: 100%;
+    }
+
+    :deep(svg) {
+      width: 16px;
+      height: 16px;
+    }
+
     &:hover {
       background: var(--color-hover-bg);
     }

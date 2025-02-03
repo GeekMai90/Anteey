@@ -25,7 +25,7 @@ const handleInput = (e: Event) => {
 
 <template>
   <div
-    class="group"
+    class="search-input-group"
     :style="{
       maxWidth: `${width}px`,
       height: `${height}px`
@@ -39,7 +39,7 @@ const handleInput = (e: Event) => {
       </g>
     </svg>
     <input
-      class="input"
+      class="search-input"
       type="search"
       :placeholder="placeholder"
       :value="modelValue"
@@ -49,18 +49,18 @@ const handleInput = (e: Event) => {
   </div>
 </template>
 
-<style scoped>
-.group {
-  display: flex;
+<style lang="scss" scoped>
+.search-input-group {
+  display: flex !important;
   line-height: 28px;
-  align-items: center;
-  position: relative;
-  border-radius: 8px;
-  padding: 0;
-  box-sizing: border-box;
+  align-items: center !important;
+  position: relative !important;
+  border-radius: 8px !important;
+  padding: 0 !important;
+  box-sizing: border-box !important;
 }
 
-.input {
+.search-input {
   width: 100%;
   height: 40px;
   line-height: 28px;
@@ -75,23 +75,23 @@ const handleInput = (e: Event) => {
   box-sizing: border-box;
 }
 
-.input::placeholder {
+.search-input::placeholder {
   color: #9e9ea7;
   font-size: 14px;
   transform: translateY(-1px);
 }
 
-.input:focus,
-.input:hover {
+.search-input:focus,
+.search-input:hover {
   outline: none;
-  border-color: rgba(0, 200, 168, 0.4);
+  border-color: rgba(0, 200, 168, 0.4) !important;
   background-color: var(--color-bg-primary);
   box-shadow: 0 0 0 4px rgb(0 200 168 / 10%);
 }
 
 /* 修改这些规则 */
-.group:focus-within,
-.group:hover {
+.search-input-group:focus-within,
+.search-input-group:hover {
   border-color: transparent;
   box-shadow: 0 0 0 4px rgb(0 200 168 / 10%);
 }
