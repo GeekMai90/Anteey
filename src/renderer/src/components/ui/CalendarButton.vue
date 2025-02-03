@@ -70,6 +70,38 @@ const handleClick = (event: MouseEvent) => {
   user-select: none;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   transform: scale(1);
+  overflow: hidden; // 添加这行来限制水波纹在按钮内
+}
+
+/* 添加水波纹效果 */
+.calendar-button::after {
+  content: '';
+  display: block;
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  background-image: radial-gradient(circle, currentColor 10%, transparent 10.01%);
+  background-repeat: no-repeat;
+  background-position: 50%;
+  transform: scale(10, 10);
+  opacity: 0;
+  transition:
+    transform 0.3s,
+    opacity 0.5s;
+}
+
+.calendar-button:active::after {
+  transform: scale(0, 0);
+  opacity: 0.3;
+  transition: 0s;
+}
+
+/* 选中状态下的水波纹效果使用白色 */
+.calendar-button.date-selected::after {
+  background-image: radial-gradient(circle, #fff 10%, transparent 10.01%);
 }
 
 .calendar-button:hover {
@@ -115,7 +147,7 @@ const handleClick = (event: MouseEvent) => {
 
 .date-text {
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 400;
   line-height: 1;
 }
 </style>

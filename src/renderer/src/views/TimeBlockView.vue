@@ -111,38 +111,60 @@
           <!-- 修改右侧日期选择器 -->
           <div class="time-block-header-right">
             <!-- 搜索按钮 -->
-            <div class="tool-button" @click="showSearch">
-              <div class="icon">
-                <Search theme="outline" size="16" :strokeWidth="3" />
-              </div>
-              <span class="text">搜索</span>
-            </div>
-            <!-- 现有的日历按钮 -->
-            <div
-              class="calendar-button"
-              :class="{ 'date-selected': selectedDate }"
-              @click="toggleDateFilter"
+            <Button
+              :icon="Search"
+              type="default"
+              :height="36"
+              :tooltip="{
+                content: '搜索时光记录',
+                delay: { show: 1000 }
+              }"
+              tooltipPlacement="top"
+              @click="showSearch"
             >
-              <div class="icon">
-                <Calendar theme="outline" size="16" :strokeWidth="3" />
-              </div>
-              <span class="date-text">{{ selectedDate || '日历' }}</span>
-            </div>
+              搜索
+            </Button>
+            <!-- 使用新的日历按钮组件 -->
+            <CalendarButton
+              :selectedDate="selectedDate"
+              :height="36"
+              :tooltip="{
+                content: selectedDate ? '清除日期筛选' : '选择日期筛选',
+                delay: { show: 1000 }
+              }"
+              tooltipPlacement="top"
+              @click="toggleDateFilter"
+            />
             <!-- 月度日志按钮 -->
-            <div class="tool-button" :class="{ active: showMonthlyLog }" @click="toggleMonthlyLog">
-              <div class="icon">
-                <Plan theme="outline" size="16" :strokeWidth="3" />
-              </div>
-              <span class="text">月志</span>
-            </div>
-
+            <Button
+              :icon="Plan"
+              type="default"
+              :height="36"
+              :class="{ active: showMonthlyLog }"
+              :tooltip="{
+                content: '查看月度日志',
+                delay: { show: 1000 }
+              }"
+              tooltipPlacement="top"
+              @click="toggleMonthlyLog"
+            >
+              月志
+            </Button>
             <!-- 未来日志按钮 -->
-            <div class="tool-button" :class="{ active: showFutureLog }" @click="toggleFutureLog">
-              <div class="icon">
-                <MagicWand theme="outline" size="16" :strokeWidth="3" />
-              </div>
-              <span class="text">未来</span>
-            </div>
+            <Button
+              :icon="MagicWand"
+              type="default"
+              :height="36"
+              :class="{ active: showFutureLog }"
+              :tooltip="{
+                content: '查看未来日志',
+                delay: { show: 1000 }
+              }"
+              tooltipPlacement="top"
+              @click="toggleFutureLog"
+            >
+              未来
+            </Button>
           </div>
         </div>
       </div>
@@ -218,9 +240,9 @@
     </div>
 
     <!-- 添加日历选择器组件 -->
-    <CalendarPicker
+    <TimeBlockCalendarPicker
       :noteDates="noteDates"
-      :isVisible="uiStore.isCalendarPickerOpen"
+      :isVisible="uiStore.isTimeBlockCalendarPickerOpen"
       :selectedDate="selectedDate"
       triggerElementSelector=".calendar-button"
       @dateSelected="onDateSelected"
@@ -334,7 +356,7 @@ import {
   ParagraphRectangle
 } from '@icon-park/vue-next'
 import AppToolbar from '@renderer/components/layout/AppToolbar.vue'
-import CalendarPicker from '@renderer/components/timelineView/CalendarPicker.vue'
+import TimeBlockCalendarPicker from '@renderer/components/timeblock/TimeBlockCalendarPicker.vue'
 import { useUIStore } from '@renderer/stores/UIStore'
 import { isToday as isDateToday } from 'date-fns'
 import BulletEditor from '@renderer/components/timeblock/BulletEditor.vue'
@@ -349,6 +371,8 @@ import { useRouter, useRoute } from 'vue-router'
 import { parseISO } from 'date-fns'
 import { useFloating } from '@floating-ui/vue'
 import { flip, offset, shift } from '@floating-ui/dom'
+import CalendarButton from '@renderer/components/ui/CalendarButton.vue'
+import Button from '@renderer/components/ui/Button.vue'
 
 // 重命名本地接口以避免冲突
 interface TimeBlockHour {
@@ -615,6 +639,8 @@ onMounted(() => {
 
 onUnmounted(() => {
   document.removeEventListener('click', handleDocumentClick)
+  // 确保在组件卸载时关闭日历选择器
+  uiStore.isTimeBlockCalendarPickerOpen = false
 })
 
 // 添加日期选择相关函数
@@ -625,7 +651,7 @@ const toggleDateFilter = () => {
       name: 'timeBlock'
     })
   } else {
-    uiStore.toggleCalendarPicker()
+    uiStore.toggleTimeBlockCalendarPicker()
   }
 }
 
@@ -649,7 +675,7 @@ const onDateSelected = async (date: string | null) => {
     })
   }
   // 关闭日历选择器
-  // uiStore.isCalendarPickerOpen = false
+  uiStore.isTimeBlockCalendarPickerOpen = false
 }
 
 // 监听路由参数变化，同步更新选中日期
@@ -1162,163 +1188,21 @@ const highlightContent = (content: string) => {
       }
 
       &-right {
-        width: 350px;
+        width: 420px;
         display: flex;
         align-items: center;
         justify-content: flex-end;
         gap: 8px;
 
-        .tool-button {
-          display: flex;
-          align-items: center;
-          gap: 2px;
-          padding: 6px 12px 6px 9px;
-          min-width: 75px;
-          // background: var(--color-bg-secondary);
-          border: 1px solid var(--color-border);
-          border-radius: 8px;
-          cursor: pointer;
-          transition: all 0.2s ease;
-          user-select: none;
-          height: 36px;
-
-          .text {
-            font-size: 13px;
-            color: var(--color-text-secondary);
-            font-weight: 500;
-            line-height: 1;
-            white-space: nowrap;
-          }
-
-          .icon {
-            background: none;
-            border: none;
-            cursor: pointer;
-            width: 24px;
-            height: 24px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.2s ease;
-            padding: 0;
-            color: var(--color-text-secondary);
-
-            :deep(.i-icon) {
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              width: 100%;
-              height: 100%;
-            }
-
-            :deep(svg) {
-              width: 16px;
-              height: 16px;
-            }
-          }
-
+        :deep(.ant-btn) {
           &.active {
             background: rgba(var(--color-primary-rgb), 0.1);
             border-color: var(--color-primary);
+            color: var(--color-primary);
 
-            .text,
-            .icon {
+            .button-icon {
               color: var(--color-primary);
             }
-          }
-
-          &:hover {
-            background: var(--color-hover-button);
-            transform: translateY(-1px);
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-          }
-
-          &:active {
-            transform: translateY(0);
-          }
-        }
-
-        .calendar-button {
-          position: relative;
-          display: flex;
-          align-items: center;
-          gap: 2px;
-          padding: 6px 12px 6px 9px;
-          min-width: 75px;
-          // background: var(--color-bg-secondary);
-          border: 1px solid var(--color-border);
-          border-radius: 8px;
-          cursor: pointer;
-          transition: all 0.2s ease;
-          user-select: none;
-          height: 36px;
-
-          &.date-selected {
-            min-width: 130px;
-            width: auto;
-            padding-right: 16px;
-
-            .date-text {
-              max-width: 100px;
-            }
-          }
-
-          .date-text {
-            font-size: 13px;
-            color: var(--color-text-secondary);
-            font-weight: 500;
-            line-height: 1;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            flex: 1;
-          }
-
-          .icon {
-            background: none;
-            border: none;
-            cursor: pointer;
-            width: 24px;
-            height: 24px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.2s ease;
-            padding: 0;
-            color: var(--color-text-secondary);
-
-            :deep(.i-icon) {
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              width: 100%;
-              height: 100%;
-            }
-
-            :deep(svg) {
-              width: 16px;
-              height: 16px;
-            }
-          }
-
-          &.date-selected {
-            background: rgba(var(--color-primary-rgb), 0.1);
-            border-color: var(--color-primary);
-
-            .date-text,
-            .icon {
-              color: var(--color-primary);
-            }
-          }
-
-          &:hover {
-            background: var(--color-hover-button);
-            transform: translateY(-1px);
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-          }
-
-          &:active {
-            transform: translateY(0);
           }
         }
       }

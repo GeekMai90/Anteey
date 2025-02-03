@@ -71,7 +71,13 @@
     </div>
     <div class="whiteboard-view-container">
       <div class="card-grid-container">
-        <div class="card-grid">
+        <!-- 空状态展示 -->
+        <div v-if="sortedWhiteboards.length === 0" class="empty-state">
+          <img src="@renderer/assets/images/empty.svg" alt="暂无内容" class="empty-icon" />
+          <div class="empty-text">暂无手绘板，点击右上角"新增手绘板"开始创建</div>
+        </div>
+        <!-- 卡片网格 -->
+        <div v-else class="card-grid">
           <EdWhiteboardCard
             v-for="whiteboard in sortedWhiteboards"
             :key="whiteboard.id"
@@ -146,12 +152,12 @@ const sortedWhiteboards = computed(() => {
 const addWhiteboard = async () => {
   try {
     const newWhiteboard = await edWhiteboardStore.createWhiteboard({
-      name: '新手绘板'
+      name: '未命名手绘板'
     })
     // 创建成功后直接进入编辑页面
     router.push(`/ed-whiteboard/${newWhiteboard.id}`)
   } catch (error) {
-    console.error('创建白板失败:', error)
+    console.error('创建手绘板失败:', error)
   }
 }
 
@@ -337,19 +343,44 @@ const handleSearch = () => {
 }
 
 .whiteboard-view-container {
-  // height: 100%;
-  // width: 100%;
-  // padding: 0px 0px 10px 0px;
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 100px); // 假设顶部工具栏高度为100px，请根据实际情况调整
-  overflow: hidden; // 防止整个页面滚动
+  height: calc(100vh - 100px);
+  overflow: hidden;
+  position: relative;
 
   .card-grid-container {
     flex: 1;
-    // height: 100%;
-    overflow-y: auto; // 允许卡片网格容器滚动
-    // padding: 0 16px 16px 16px;
+    overflow-y: auto;
+    padding: 20px;
+    background: var(--color-bg-primary);
+    position: relative;
+  }
+
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -90%);
+    width: 100%;
+    text-align: center;
+    padding: 20px;
+
+    .empty-icon {
+      width: 300px;
+      height: 300px;
+      margin-bottom: 20px;
+    }
+
+    .empty-text {
+      color: var(--color-text-secondary);
+      font-size: 14px;
+      text-align: center;
+    }
   }
 
   .card-grid {
@@ -357,8 +388,8 @@ const handleSearch = () => {
     grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
     gap: 16px;
     padding: 16px 20px;
-    align-content: start; // 让内容从顶部开始排列
-    justify-content: center; // 水平居中对齐
+    align-content: start;
+    justify-content: center;
 
     // 使用视口单位和 clamp 函数来控制卡片高度
     --card-height: clamp(150px, calc(20vw - 32px), 150px);

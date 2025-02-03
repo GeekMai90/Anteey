@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import type { Component } from 'vue'
+import { Down } from '@icon-park/vue-next'
 
 interface TooltipConfig {
   content: string
@@ -21,6 +22,7 @@ interface Props {
   plain?: boolean
   tooltip?: TooltipConfig
   tooltipPlacement?: 'top' | 'bottom' | 'left' | 'right'
+  dropdown?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -33,7 +35,8 @@ const props = withDefaults(defineProps<Props>(), {
   shape: 'default',
   iconOnly: false,
   plain: false,
-  tooltipPlacement: 'bottom'
+  tooltipPlacement: 'bottom',
+  dropdown: false
 })
 
 const buttonRef = ref<HTMLButtonElement | null>(null)
@@ -67,7 +70,8 @@ const emit = defineEmits<{
       { 'ant-btn-loading': loading },
       { 'ant-btn-disabled': disabled },
       { 'ant-btn-icon-only': iconOnly || shape === 'circle' || shape === 'square' },
-      { 'ant-btn-plain': plain }
+      { 'ant-btn-plain': plain },
+      { 'ant-btn-dropdown': dropdown }
     ]"
     :style="
       height
@@ -89,10 +93,11 @@ const emit = defineEmits<{
     </span>
     <component :is="icon" v-if="icon && !loading" class="button-icon" />
     <slot v-if="!iconOnly && shape === 'default'"></slot>
+    <Down v-if="dropdown" theme="outline" size="12" :strokeWidth="3" class="dropdown-icon" />
   </button>
 </template>
 
-<style scoped>
+<style lang="scss" scoped>
 .ant-btn {
   position: relative;
   display: inline-flex;
@@ -106,7 +111,7 @@ const emit = defineEmits<{
   cursor: pointer;
   user-select: none;
   touch-action: manipulation;
-  height: 32px; /* 默认高度 */
+  height: 32px;
   padding: 0 15px;
   font-size: 14px;
   line-height: 1;
@@ -114,9 +119,52 @@ const emit = defineEmits<{
   color: var(--color-text-primary);
   background: var(--color-bg-primary);
   border-color: var(--color-border);
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  backdrop-filter: blur(8px);
   transform: scale(1);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden; /* 添加这行来限制水波纹在按钮内 */
+}
+
+/* 添加水波纹效果 */
+.ant-btn::after {
+  content: '';
+  display: block;
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  background-image: radial-gradient(circle, currentColor 10%, transparent 10.01%);
+  background-repeat: no-repeat;
+  background-position: 50%;
+  transform: scale(10, 10);
+  opacity: 0;
+  transition:
+    transform 0.3s,
+    opacity 0.5s;
+}
+
+.ant-btn:active::after {
+  transform: scale(0, 0);
+  opacity: 0.3;
+  transition: 0s;
+}
+
+/* 主要按钮的水波纹效果需要特殊处理 */
+.ant-btn-primary::after {
+  background-image: radial-gradient(circle, #fff 10%, transparent 10.01%);
+}
+
+/* 统一的悬停和激活效果 */
+.ant-btn:not(.ant-btn-disabled):not(.ant-btn-loading):hover {
+  transform: scale(1.02);
+}
+
+.ant-btn:not(.ant-btn-disabled):not(.ant-btn-loading):active {
+  transform: scale(0.98);
+  opacity: 0.8;
+  transition: all 0.1s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* 主要按钮 */
@@ -126,16 +174,9 @@ const emit = defineEmits<{
   border-color: var(--color-primary);
 }
 
-.ant-btn-primary:hover {
-  background: var(--color-primary-hover);
-  border-color: var(--color-primary-hover);
-  transform: scale(1.02);
-}
-
-.ant-btn-primary:active {
-  transform: scale(0.98);
-  opacity: 0.8;
-  transition: all 0.1s cubic-bezier(0.4, 0, 0.2, 1);
+.ant-btn-primary:not(.ant-btn-disabled):not(.ant-btn-loading):hover {
+  background: color-mix(in srgb, var(--color-primary) 85%, white);
+  border-color: color-mix(in srgb, var(--color-primary) 85%, white);
 }
 
 /* 文本按钮 */
@@ -144,14 +185,8 @@ const emit = defineEmits<{
   background: transparent;
 }
 
-.ant-btn-text:hover {
+.ant-btn-text:not(.ant-btn-disabled):not(.ant-btn-loading):hover {
   background: var(--color-hover-bg);
-  transform: scale(1.02);
-}
-
-.ant-btn-text:active {
-  transform: scale(0.98);
-  opacity: 0.8;
 }
 
 /* 链接按钮 */
@@ -159,16 +194,6 @@ const emit = defineEmits<{
   color: var(--color-primary);
   border-color: transparent;
   background: transparent;
-}
-
-.ant-btn-link:hover {
-  color: var(--color-primary-hover);
-  transform: scale(1.02);
-}
-
-.ant-btn-link:active {
-  transform: scale(0.98);
-  opacity: 0.8;
 }
 
 /* 按钮尺寸 */
@@ -230,17 +255,12 @@ const emit = defineEmits<{
   }
 }
 
-/* 悬停效果 */
-.ant-btn:not(.ant-btn-disabled):not(.ant-btn-loading):hover {
+/* 默认按钮悬停效果 */
+.ant-btn:not(.ant-btn-disabled):not(.ant-btn-loading):not(.ant-btn-primary):not(.ant-btn-text):not(
+    .ant-btn-link
+  ):hover {
   border-color: var(--color-primary);
   color: var(--color-primary);
-  transform: scale(1.02);
-}
-
-.ant-btn:not(.ant-btn-disabled):not(.ant-btn-loading):active {
-  transform: scale(0.98);
-  opacity: 0.8;
-  transition: all 0.1s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* 图标样式 */
@@ -301,7 +321,7 @@ const emit = defineEmits<{
   padding: 4px;
 }
 
-.ant-btn-plain:hover {
+.ant-btn-plain:not(.ant-btn-disabled):not(.ant-btn-loading):hover {
   background: var(--color-hover-bg);
   color: var(--color-primary);
   border: none;
@@ -330,7 +350,25 @@ const emit = defineEmits<{
   color: var(--color-primary);
 }
 
-.ant-btn-plain.ant-btn-primary:hover {
-  color: var(--color-primary-hover);
+/* 下拉按钮样式 */
+.ant-btn-dropdown {
+  padding-right: 28px;
+  position: relative;
+}
+
+.dropdown-icon {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: inherit;
+  transition: transform 0.2s ease;
+}
+
+.dropdown-icon {
+  :deep(svg) {
+    width: 12px;
+    height: 12px;
+  }
 }
 </style>

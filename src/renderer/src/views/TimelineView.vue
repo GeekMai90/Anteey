@@ -47,9 +47,8 @@
       <div v-bind="containerProps" class="note-list-container">
         <!-- 空状态展示 -->
         <div v-if="virtualList.length === 0" class="empty-state">
-          <div class="empty-state-icon">📝</div>
-          <h2 class="empty-state-title">暂无笔记</h2>
-          <p class="empty-state-description">开始创建新笔记</p>
+          <img src="@renderer/assets/images/empty.svg" alt="暂无内容" class="empty-icon" />
+          <div class="empty-text">暂无笔记，点击左侧边栏"新建笔记"开始创建</div>
         </div>
 
         <!-- 笔记列表 -->
@@ -116,7 +115,6 @@ import { Note } from '@shared/types'
 import NoteCard from '@renderer/components/note/NoteCard.vue'
 import { useVirtualList } from '@vueuse/core'
 import { useEventBus } from '@vueuse/core'
-import { debounce } from 'lodash-es'
 import DateDivider from '@renderer/components/timelineView/DateDivider.vue'
 import CalendarButton from '@renderer/components/ui/CalendarButton.vue'
 import type { UseVirtualListOptions } from '@vueuse/core'
@@ -284,6 +282,8 @@ onUnmounted(() => {
   if (observer) {
     observer.disconnect()
   }
+  // 确保在组件卸载时关闭日历选择器
+  uiStore.isCalendarPickerOpen = false
 })
 
 function setupInfiniteScroll() {
@@ -351,9 +351,11 @@ async function filterNotesByDate(date: string | null) {
   }
 }
 
-const onDateSelected = debounce((date: string | null) => {
-  filterNotesByDate(date)
-}, 300)
+const onDateSelected = async (date: string | null) => {
+  await filterNotesByDate(date)
+  // 关闭日历选择器
+  uiStore.isCalendarPickerOpen = false
+}
 
 const toggleDateFilter = () => {
   if (selectedDate.value) {
@@ -533,23 +535,18 @@ const shouldShowDateDivider = (currentNote: Note, index: number) => {
   transform: translate(-50%, -90%);
   width: 100%;
   text-align: center;
-  color: var(--color-text-primary);
+  padding: 20px;
 
-  &-icon {
-    font-size: 4rem;
-    margin-bottom: 1rem;
+  .empty-icon {
+    width: 300px;
+    height: 300px;
+    margin-bottom: 20px;
   }
 
-  &-title {
-    font-size: 1.5rem;
-    font-weight: 600;
-    margin-bottom: 0.5rem;
-    color: var(--color-text-primary);
-  }
-
-  &-description {
-    font-size: 1rem;
-    max-width: 300px;
+  .empty-text {
+    color: var(--color-text-secondary);
+    font-size: 14px;
+    text-align: center;
   }
 }
 

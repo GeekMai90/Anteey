@@ -2,19 +2,28 @@
   <div class="future-log">
     <div class="controls">
       <!-- 分屏模式按钮 -->
-      <div class="tool-button" :class="{ active: splitMode }" @click="toggleSplitMode">
-        <div class="icon">
-          <Schedule theme="outline" size="16" :strokeWidth="3" />
-        </div>
-        <span>月度分配</span>
-      </div>
+      <Button
+        :icon="Schedule"
+        :class="{ active: splitMode }"
+        type="default"
+        :height="36"
+        @click="toggleSplitMode"
+      >
+        月度分配
+      </Button>
 
       <!-- 年份选择器 -->
-      <div class="date-select">
-        <div class="selected" @click="showYearSelect = !showYearSelect">
+      <div ref="yearSelectRef" class="date-select">
+        <Button
+          :dropdown="true"
+          type="default"
+          :height="36"
+          @click="showYearSelect = !showYearSelect"
+        >
           {{ selectedYear }}年
-          <Down theme="outline" size="12" :strokeWidth="3" class="down-icon" />
-        </div>
+        </Button>
+
+        <!-- 年份下拉菜单 -->
         <div v-show="showYearSelect" class="select-dropdown">
           <div
             v-for="year in yearOptions"
@@ -28,11 +37,17 @@
       </div>
 
       <!-- 月份选择器 -->
-      <div class="date-select">
-        <div class="selected month-select" @click="showMonthSelect = !showMonthSelect">
+      <div ref="monthSelectRef" class="date-select">
+        <Button
+          :dropdown="true"
+          type="default"
+          :height="36"
+          @click="showMonthSelect = !showMonthSelect"
+        >
           {{ selectedMonth }}月
-          <Down theme="outline" size="12" :strokeWidth="3" class="down-icon" />
-        </div>
+        </Button>
+
+        <!-- 月份下拉菜单 -->
         <div v-show="showMonthSelect" class="select-dropdown">
           <div v-for="month in 12" :key="month" class="select-option" @click="selectMonth(month)">
             {{ month }}月
@@ -71,7 +86,8 @@ import { ref, onMounted } from 'vue'
 import { useTimeBlockStore } from '@renderer/stores/timeBlockStore'
 import FutureLogEditor from './FutureLogEditor.vue'
 import MonthlyLogEditor from './MonthlyLogEditor.vue'
-import { Down, Schedule } from '@icon-park/vue-next'
+import { Schedule } from '@icon-park/vue-next'
+import Button from '@renderer/components/ui/Button.vue'
 
 const store = useTimeBlockStore()
 const content = ref('')
@@ -91,6 +107,9 @@ const yearOptions = Array.from({ length: 11 }, (_, i) => currentYear - 5 + i)
 
 const selectedYear = ref(currentYear)
 const selectedMonth = ref(currentMonth)
+
+const yearSelectRef = ref<HTMLElement | null>(null)
+const monthSelectRef = ref<HTMLElement | null>(null)
 
 // 加载未来日志内容
 const loadFutureLog = async () => {
@@ -160,12 +179,14 @@ const handleMonthlyContentChange = async (newContent: string) => {
   }
 }
 
-// 添加点击外部关闭下拉菜单
+// 修改点击外部关闭下拉菜单的逻辑
 onMounted(() => {
   document.addEventListener('click', (e) => {
     const target = e.target as HTMLElement
-    if (!target.closest('.date-select')) {
+    if (!yearSelectRef.value?.contains(target)) {
       showYearSelect.value = false
+    }
+    if (!monthSelectRef.value?.contains(target)) {
       showMonthSelect.value = false
     }
   })
@@ -191,117 +212,20 @@ onMounted(() => {
     margin-bottom: 12px;
     justify-content: center;
     align-items: center;
+    position: relative;
 
-    .tool-button {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      padding: 6px 12px;
-      border-radius: 6px;
-      border: 1px solid var(--color-border);
-      background-color: var(--color-bg-primary);
-      cursor: pointer;
-      transition: all 0.2s ease;
-      font-size: 14px;
-      color: var(--color-text-primary);
+    .date-select {
+      position: relative;
+    }
 
-      .icon {
-        width: 20px;
-        height: 20px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        transition: all 0.2s ease;
-        padding: 0;
-
-        :deep(.i-icon) {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          width: 100%;
-          height: 100%;
-        }
-
-        :deep(svg) {
-          width: 18px;
-          height: 18px;
-        }
-      }
-
-      &:hover {
-        border-color: var(--color-primary);
-        background: var(--color-hover-bg);
-      }
-
+    :deep(.ant-btn) {
       &.active {
         background: rgba(var(--color-primary-rgb), 0.1);
         border-color: var(--color-primary);
         color: var(--color-primary);
 
-        .icon {
+        .button-icon {
           color: var(--color-primary);
-        }
-      }
-    }
-
-    .date-select {
-      position: relative;
-
-      .selected {
-        display: flex;
-        align-items: center;
-        gap: 4px;
-        padding: 6px 12px;
-        border-radius: 6px;
-        border: 1px solid var(--color-border);
-        background-color: var(--color-bg-primary);
-        color: var(--color-text-primary);
-        font-size: 14px;
-        cursor: pointer;
-        transition: all 0.2s ease;
-        min-width: 90px;
-
-        &.month-select {
-          min-width: 70px;
-        }
-
-        .down-icon {
-          margin-left: auto;
-          opacity: 0.6;
-        }
-
-        &:hover {
-          border-color: var(--color-primary);
-          background: var(--color-hover-bg);
-        }
-      }
-
-      .select-dropdown {
-        position: absolute;
-        top: calc(100% + 4px);
-        left: 0;
-        min-width: 100%;
-        background: var(--color-bg-primary);
-        border: 1px solid var(--color-border);
-        border-radius: 8px;
-        padding: 4px;
-        box-shadow: var(--shadow-card);
-        z-index: 1000;
-        max-height: 280px;
-        overflow-y: auto;
-
-        .select-option {
-          padding: 8px 12px;
-          cursor: pointer;
-          white-space: nowrap;
-          border-radius: 4px;
-          transition: all 0.2s;
-          font-size: 14px;
-          color: var(--color-text-primary);
-
-          &:hover {
-            background: var(--color-hover-bg);
-          }
         }
       }
     }
@@ -383,6 +307,54 @@ onMounted(() => {
         line-height: 1.7;
         color: var(--color-text-primary);
         outline: none;
+      }
+    }
+  }
+
+  .select-dropdown {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    min-width: 100%;
+    background: var(--color-bg-primary);
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    padding: 4px;
+    box-shadow: var(--shadow-card);
+    z-index: 1000;
+    max-height: 280px;
+    overflow-y: auto;
+
+    &::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    &::-webkit-scrollbar-track {
+      background: var(--color-scrollbar-track-bg);
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background-color: var(--color-scroll-thumb);
+      border-radius: 4px;
+      border: 2px solid transparent;
+      background-clip: padding-box;
+
+      &:hover {
+        background-color: var(--color-scrollbar-thumb-hover);
+      }
+    }
+
+    .select-option {
+      padding: 8px 12px;
+      cursor: pointer;
+      white-space: nowrap;
+      border-radius: 4px;
+      transition: all 0.2s;
+      font-size: 14px;
+      color: var(--color-text-primary);
+
+      &:hover {
+        background: var(--color-hover-bg);
       }
     }
   }

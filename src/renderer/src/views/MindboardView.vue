@@ -748,12 +748,14 @@ onUnmounted(() => {
   flex-direction: column;
   height: calc(100vh - 100px);
   overflow: hidden;
+  position: relative;
 
   .card-grid-container {
     flex: 1;
     overflow-y: auto;
     padding: 20px;
     background: var(--color-bg-primary);
+    position: relative;
   }
 
   .card-grid {
@@ -770,83 +772,18 @@ onUnmounted(() => {
     }
   }
 
-  .modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: rgba(0, 0, 0, 0.5);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 1000;
-
-    .modal-content {
-      background-color: var(--color-bg-primary);
-      padding: 20px;
-      border-radius: 10px;
-      width: 300px;
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-
-      h2 {
-        margin-top: 0;
-        margin-bottom: 20px;
-        font-size: 18px;
-        text-align: center;
-        color: var(--color-text-primary);
-      }
-
-      input {
-        width: 100%;
-        padding: 10px;
-        margin-bottom: 20px;
-        border: 1px solid var(--color-primary);
-        border-radius: 5px;
-        font-size: 16px;
-
-        &:focus {
-          outline: none;
-          border-color: var(--color-primary);
-          box-shadow: 0 0 0 2px rgba(var(--color-primary), 0.2);
-        }
-      }
-
-      .modal-actions {
-        display: flex;
-        justify-content: center;
-
-        button {
-          padding: 10px 20px;
-          border: none;
-          border-radius: 5px;
-          background-color: var(--color-primary);
-          color: var(--color-bg-primary);
-          font-size: 16px;
-          cursor: pointer;
-          transition: background-color 0.3s;
-
-          &:hover {
-            background-color: var(--color-menu-active-bg);
-          }
-
-          &:disabled {
-            background-color: #ccc;
-            cursor: not-allowed;
-          }
-        }
-      }
-    }
-  }
-
   .empty-state {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    height: 100%;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -90%);
+    width: 100%;
+    text-align: center;
     padding: 20px;
-    background-color: var(--color-bg-primary);
 
     .empty-icon {
       width: 300px;

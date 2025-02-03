@@ -47,7 +47,7 @@ $neutral: (
     @return "0, 200, 168";
   }
   @if $variant == "hover" {
-    @return darken($color, 3%);
+    @return darken($color, 5%);
   }
   @if $variant == "light" {
     @return rgba($color, 0.1);
@@ -321,6 +321,12 @@ $dark-mode-bg: $gray-900;
 $light-mode-text: $gray-900;
 $dark-mode-text: $gray-100;
 
+$shadow-primary:
+  0 3px 6px -4px rgba($black, 0.12),
+  0 6px 16px 0 rgba($black, 0.08),
+  0 9px 28px 8px rgba($black, 0.05);
+$shadow-card: 0 2px 6px rgba($black, 0.12);
+
 :root {
   // 字体变量
   --font-family-ui: #{$font-family-system};
@@ -366,7 +372,7 @@ $dark-mode-text: $gray-100;
   --color-bg-brand-light: #{rgba($primary-color, 0.1)};
   --color-bg-note-card: #{$white};
   --color-bg-backlink-note-card: #{neutral(100)};
-  --color-bg-modal: rgba($black, 0.32);
+  --color-bg-modal: #{rgba($black, 0.32)};
 
   // 5. 边框颜色
   --color-border-default: #{neutral(300)};
@@ -454,11 +460,9 @@ $dark-mode-text: $gray-100;
 
   // 12. 阴影系统
   // 多层阴影（用于弹出层、模态框等）
-  --shadow-primary: #{0 3px 6px -4px rgba($black, 0.12), 0 6px 16px 0 rgba($black, 0.08),
-    0 9px 28px 8px rgba($black, 0.05)};
 
-  // 单层阴影（用于卡片等）
-  --shadow-card: #{0 2px 6px rgba($black, 0.12)};
+  --shadow-primary: #{$shadow-primary};
+  --shadow-card: #{$shadow-card};
 
   // 13. z-index 系统
   --z-index-hightest: 9999;

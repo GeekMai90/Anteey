@@ -139,6 +139,34 @@
         />
       </div>
 
+      <div class="button-row">
+        <Button :icon="Search" :height="36">自定义高度</Button>
+      </div>
+
+      <!-- 添加下拉按钮测试 -->
+      <h3>下拉按钮</h3>
+      <div class="button-row">
+        <Button :dropdown="true"> 选择选项 </Button>
+        <Button type="primary" :dropdown="true"> 下拉菜单 </Button>
+        <Button :icon="FileSearch" :dropdown="true"> 高级搜索 </Button>
+        <Button type="primary" :icon="Filter" :dropdown="true"> 筛选 </Button>
+      </div>
+
+      <div class="button-row">
+        <Button
+          :icon="FileSearch"
+          :dropdown="true"
+          :tooltip="{
+            content: '点击展开高级搜索',
+            delay: { show: 1000 }
+          }"
+        >
+          高级搜索
+        </Button>
+        <Button type="primary" :dropdown="true" size="small"> 小型下拉 </Button>
+        <Button type="primary" :dropdown="true" size="large"> 大型下拉 </Button>
+      </div>
+
       <div class="block-button-section">
         <Button :block="true">块级按钮</Button>
         <Button type="primary" :block="true">主要块级按钮</Button>
@@ -176,7 +204,7 @@ import Button from './Button.vue'
 import SpreadButton from './SpreadButton.vue'
 import SearchInput from './SearchInput.vue'
 import AppToolbar from '../layout/AppToolbar.vue'
-import { Plus, Delete, Edit, Search } from '@icon-park/vue-next'
+import { Plus, Delete, Edit, Search, FileSearch, Filter } from '@icon-park/vue-next'
 import CalendarButton from './CalendarButton.vue'
 
 const selectedValue = ref('1')

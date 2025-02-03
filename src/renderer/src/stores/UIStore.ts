@@ -17,6 +17,7 @@ export const useUIStore = defineStore(
     const isSettingDropdownOpen = ref(false)
     const showCardBox = ref(false)
     const isCalendarPickerOpen = ref(false)
+    const isTimeBlockCalendarPickerOpen = ref(false)
     const showSettingsPage = ref(false)
 
     //右侧边栏状态
@@ -50,8 +51,16 @@ export const useUIStore = defineStore(
       isCalendarPickerOpen.value = !isCalendarPickerOpen.value
     }
 
+    function toggleTimeBlockCalendarPicker() {
+      isTimeBlockCalendarPickerOpen.value = !isTimeBlockCalendarPickerOpen.value
+    }
+
     function closeCalendarPicker() {
       isCalendarPickerOpen.value = false
+    }
+
+    function closeTimeBlockCalendarPicker() {
+      isTimeBlockCalendarPickerOpen.value = false
     }
 
     function toggleCardBox() {
@@ -187,6 +196,10 @@ export const useUIStore = defineStore(
       themePickerPosition,
       openThemePicker,
       closeThemePicker,
+
+      toggleTimeBlockCalendarPicker,
+      closeTimeBlockCalendarPicker,
+      isTimeBlockCalendarPickerOpen,
 
       // 随机回顾相关
       isReviewModalOpen,
