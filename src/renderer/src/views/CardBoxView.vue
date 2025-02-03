@@ -20,12 +20,7 @@
               @click="selectAll"
             >
               <div class="icon">
-                <Box
-                  theme="outline"
-                  size="18"
-                  fill="var(--color-icon-menu-default)"
-                  :strokeWidth="3"
-                />
+                <Box theme="outline" size="18" fill="var(--color-icon-primary)" :strokeWidth="3" />
               </div>
               <div class="name">全部</div>
             </div>
@@ -109,7 +104,7 @@
                   <EditTwo
                     theme="outline"
                     size="16"
-                    fill="var(--color-icon-menu-default)"
+                    fill="var(--color-icon-primary)"
                     :strokeWidth="3"
                   />
                 </div>
@@ -117,12 +112,7 @@
               </div>
               <div class="more-action-item delete" @click.stop="deleteCardBox(showMoreActions)">
                 <div class="icon">
-                  <Delete
-                    theme="outline"
-                    size="16"
-                    fill="var(--color-text-danger)"
-                    :strokeWidth="3"
-                  />
+                  <Delete theme="outline" size="16" fill="var(--color-danger)" :strokeWidth="3" />
                 </div>
                 <div class="name delete">
                   {{ isConfirmingDelete ? '确认删除' : '删除' }}
@@ -135,7 +125,7 @@
                 <SortTwo
                   theme="outline"
                   size="18"
-                  fill="var(--color-icon-menu-default)"
+                  fill="var(--color-icon-primary)"
                   :strokeWidth="3"
                 />
               </div>
@@ -1124,7 +1114,7 @@ flashcardConvertedBus.on(async (noteId) => {
     .name {
       flex-grow: 0;
       text-align: left;
-      color: var(--default-text-color);
+      color: var(---color-text-primary);
       font-size: 14px;
       font-weight: 400;
       white-space: nowrap;
@@ -1290,7 +1280,7 @@ flashcardConvertedBus.on(async (noteId) => {
       top: 100%;
       // left: -10px;
       right: 20px;
-      background-color: var(--color-dropdown-bg);
+      background-color: var(--color-bg-primary);
       border-radius: 8px;
       box-shadow: var(--shadow-primary);
       z-index: 1000;
@@ -1619,7 +1609,7 @@ flashcardConvertedBus.on(async (noteId) => {
       writing-mode: horizontal-tb; // 确保文字是水平排列的
 
       &.delete {
-        color: var(--color-text-danger);
+        color: var(--color-danger);
       }
     }
 
@@ -1628,7 +1618,7 @@ flashcardConvertedBus.on(async (noteId) => {
     }
 
     &.delete {
-      color: var(--color-text-danger);
+      color: var(--color-danger);
     }
   }
 }

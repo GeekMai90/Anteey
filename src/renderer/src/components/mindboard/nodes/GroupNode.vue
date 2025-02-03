@@ -247,7 +247,7 @@ const handleDelete = () => {
     cursor: pointer;
 
     &:hover {
-      background-color: var(--sidebar-hover-bg);
+      background-color: var(--color-sidebar-hover);
     }
   }
 }

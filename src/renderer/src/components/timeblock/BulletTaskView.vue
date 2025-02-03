@@ -102,7 +102,7 @@ const toggleStatus = () => {
   &--pending {
     .bullet-icon {
       color: var(--color-text-secondary);
-      background-color: rgba(var(--color-text-secondary-rgb), 0.1);
+      background-color: rgba(var(--color-text-secondary), 0.1);
 
       .icon-inner {
         transform: translateY(-0.05em);

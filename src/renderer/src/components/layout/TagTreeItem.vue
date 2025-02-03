@@ -71,7 +71,7 @@
             <div class="icon">
               <Pushpin
                 theme="outline"
-                :fill="tag.pinned ? 'var(--color-primary)' : 'var(--color-icon-menu-default)'"
+                :fill="tag.pinned ? 'var(--color-primary)' : 'var(--color-icon-primary)'"
                 :stroke-width="3"
               />
             </div>
@@ -82,7 +82,7 @@
             <div class="icon">
               <Edit
                 theme="outline"
-                :fill="'var(--color-icon-menu-default)'"
+                :fill="'var(--color-icon-primary)'"
                 size="16"
                 :stroke-width="3"
               />
@@ -96,7 +96,7 @@
             <div class="icon">
               <Delete
                 theme="outline"
-                :fill="'var(--color-icon-menu-default)'"
+                :fill="'var(--color-icon-primary)'"
                 size="16"
                 :stroke-width="3"
               />

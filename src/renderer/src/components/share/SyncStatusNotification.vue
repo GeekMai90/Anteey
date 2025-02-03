@@ -53,7 +53,7 @@ const iconColor = computed(() => {
     case 'completed':
       return 'var(--color-success)'
     default:
-      return 'var(--color-icon-menu-default)'
+      return 'var(--color-icon-primary)'
   }
 })
 

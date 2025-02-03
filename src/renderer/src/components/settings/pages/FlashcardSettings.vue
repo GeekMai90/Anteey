@@ -5,7 +5,7 @@
         <StorageCardOne
           theme="outline"
           size="20"
-          fill="var(--color-icon-menu-default)"
+          fill="var(--color-icon-primary)"
           :strokeWidth="3"
         />
       </div>
@@ -826,7 +826,7 @@ const handleInputChange = (min: number, max: number, value: number) => {
               top: calc(100% + 4px);
               left: 0;
               width: 100%;
-              background: var(--color-dropdown-bg);
+              background: var(--color-bg-primary);
               border: 1px solid var(--color-border);
               border-radius: 8px;
               padding: 4px;
@@ -965,7 +965,7 @@ const handleInputChange = (min: number, max: number, value: number) => {
     top: calc(100% + 4px);
     left: 0;
     width: 100%;
-    background: var(--color-dropdown-bg);
+    background: var(--color-bg-primary);
     border: 1px solid var(--color-border);
     border-radius: 8px;
     padding: 4px;

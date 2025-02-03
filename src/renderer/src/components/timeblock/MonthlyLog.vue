@@ -222,7 +222,7 @@ watch(selectedYear, () => {
     .month-card {
       height: 240px;
       margin: 0;
-      background: var(--color-bg-2);
+      background: var(--color-bg-note-card);
       border: 1px solid var(--color-border);
       border-radius: 12px;
       padding: 12px;
@@ -302,7 +302,7 @@ watch(selectedYear, () => {
               }
 
               &::-webkit-scrollbar-thumb {
-                background-color: var(--color-scrollbar-thumb-bg);
+                background-color: var(--color-scroll-thumb);
                 border-radius: 2px;
               }
             }
@@ -324,7 +324,7 @@ watch(selectedYear, () => {
       max-width: 800px;
       flex: 1;
       min-height: 0;
-      background-color: var(--color-note-card-bg);
+      background-color: var(--color-bg-note-card);
       border-radius: 16px;
       // box-shadow: var(--shadow-card);
       padding: 20px;
@@ -335,8 +335,8 @@ watch(selectedYear, () => {
       overflow: hidden;
 
       .theme-dark & {
-        background-color: var(--color-bg-2);
-        border-color: var(--color-shape-primary);
+        background-color: var(--color-bg-note-card);
+        border-color: var(--color-border-light);
       }
 
       &:hover {
@@ -344,7 +344,7 @@ watch(selectedYear, () => {
         // border-color: var(--color-primary);
 
         .theme-dark & {
-          background-color: var(--color-note-card-bg);
+          background-color: var(--color-bg-note-card);
         }
       }
     }
@@ -446,7 +446,7 @@ watch(selectedYear, () => {
         top: calc(100% + 4px);
         left: 0;
         min-width: 100%;
-        background: var(--color-dropdown-bg);
+        background: var(--color-bg-primary);
         border: 1px solid var(--color-border);
         border-radius: 8px;
         padding: 4px;
@@ -464,13 +464,13 @@ watch(selectedYear, () => {
         }
 
         &::-webkit-scrollbar-thumb {
-          background-color: var(--color-scrollbar-thumb-bg);
+          background-color: var(--color-scroll-thumb);
           border-radius: 4px;
           border: 2px solid transparent;
           background-clip: padding-box;
 
           &:hover {
-            background-color: var(--color-scrollbar-thumb-hover-bg);
+            background-color: var(--color-scrollbar-thumb-hover);
           }
         }
 

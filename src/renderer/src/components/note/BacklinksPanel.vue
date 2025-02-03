@@ -388,7 +388,7 @@ const leave = (element: Element) => {
   .link-item {
     padding: 12px;
     border-radius: 8px;
-    background: var(--color-backlink-note-card-bg);
+    background: var(--color-bg-backlink-note-card);
     cursor: pointer;
     transition: all 0.2s ease;
 
@@ -436,7 +436,7 @@ const leave = (element: Element) => {
 
       :deep(.reference-link) {
         border-radius: 0.125rem;
-        color: var(--color-link-backlink);
+        color: var(--color-primary);
         cursor: pointer;
         transition: all 0.1s ease-in;
         box-shadow: 0 0 0 3px transparent;
@@ -447,7 +447,7 @@ const leave = (element: Element) => {
         }
 
         .reference-text {
-          border-bottom: 1px solid var(--color-link-backlink);
+          border-bottom: 1px solid var(--color-primary);
           margin: 0 4px;
         }
       }

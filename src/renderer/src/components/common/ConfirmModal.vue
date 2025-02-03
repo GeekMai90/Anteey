@@ -106,7 +106,7 @@ const handleOverlayClick = () => {
     color: #fff;
 
     &:hover {
-      background-color: var(--color-text-danger);
+      background-color: var(--color-danger);
     }
   }
 }

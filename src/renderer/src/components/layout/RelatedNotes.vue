@@ -119,7 +119,7 @@ watch(
   .note-item {
     padding: 12px;
     border-radius: 8px;
-    background: var(--color-note-card-bg);
+    background: var(--color-bg-note-card);
     cursor: pointer;
     transition: all 0.2s ease;
     border: 1px solid var(--color-border);

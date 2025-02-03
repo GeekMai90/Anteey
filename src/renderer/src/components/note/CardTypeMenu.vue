@@ -13,7 +13,7 @@
             :is="getIcon(type)"
             theme="outline"
             size="16"
-            fill="var(--color-icon-menu-default)"
+            fill="var(--color-icon-primary)"
             :strokeWidth="3"
           />
         </div>

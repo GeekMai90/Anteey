@@ -20,7 +20,7 @@
               :is="getIcon(type)"
               theme="outline"
               size="18"
-              fill="var(--color-icon-menu-default)"
+              fill="var(--color-icon-primary)"
               :strokeWidth="3"
             />
           </div>
@@ -172,7 +172,7 @@ onUnmounted(() => {
 <style scoped lang="scss">
 .card-type-dropdown-menu {
   position: fixed;
-  background-color: var(--color-dropdown-bg);
+  background-color: var(--color-bg-primary);
   border: 1px solid var(--color-border-primary);
   border-radius: 8px;
   box-shadow: var(--shadow-primary);

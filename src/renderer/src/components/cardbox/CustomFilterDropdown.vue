@@ -3,7 +3,7 @@
     <!-- Custom 下拉按钮 -->
     <div ref="reference" class="custom-filter-dropdown" @click.stop="toggleMenu">
       <div class="icon">
-        <Filter theme="outline" size="18" fill="var(--color-icon-menu-default)" :strokeWidth="3" />
+        <Filter theme="outline" size="18" fill="var(--color-icon-primary)" :strokeWidth="3" />
       </div>
       <div class="name">{{ activeFilter?.name || '自定义筛选' }}</div>
       <div class="icon down-icon">
@@ -35,7 +35,7 @@
                 <Filter
                   theme="outline"
                   size="16"
-                  fill="var(--color-icon-menu-default)"
+                  fill="var(--color-icon-primary)"
                   :strokeWidth="3"
                 />
               </div>
@@ -46,19 +46,12 @@
                 <Pushpin
                   theme="outline"
                   size="16"
-                  :fill="
-                    filter.isPinned ? 'var(--color-primary)' : 'var(--color-icon-menu-default)'
-                  "
+                  :fill="filter.isPinned ? 'var(--color-primary)' : 'var(--color-icon-primary)'"
                   :strokeWidth="3"
                 />
               </div>
               <div class="icon" @click.stop="showMoreMenu(filter, $event)">
-                <More
-                  theme="outline"
-                  size="16"
-                  fill="var(--color-icon-menu-default)"
-                  :strokeWidth="3"
-                />
+                <More theme="outline" size="16" fill="var(--color-icon-primary)" :strokeWidth="3" />
               </div>
               <!-- 更多操作菜单 -->
               <div
@@ -73,7 +66,7 @@
                       theme="outline"
                       size="16"
                       :fill="
-                        filter.isStarred ? 'var(--color-primary)' : 'var(--color-icon-menu-default)'
+                        filter.isStarred ? 'var(--color-primary)' : 'var(--color-icon-primary)'
                       "
                       :strokeWidth="3"
                     />
@@ -85,7 +78,7 @@
                     <Edit
                       theme="outline"
                       size="16"
-                      fill="var(--color-icon-menu-default)"
+                      fill="var(--color-icon-primary)"
                       :strokeWidth="3"
                     />
                   </div>
@@ -105,12 +98,7 @@
         <!-- 添加筛选规则按钮 -->
         <div class="add-filter-button" @click="handleAddFilter">
           <div class="icon">
-            <Plus
-              theme="outline"
-              size="18"
-              fill="var(--color-icon-menu-default)"
-              :strokeWidth="3"
-            />
+            <Plus theme="outline" size="18" fill="var(--color-icon-primary)" :strokeWidth="3" />
           </div>
           <div class="name">添加筛选规则</div>
         </div>
@@ -486,7 +474,7 @@ onUnmounted(() => {
   .filter-name {
     flex-grow: 0;
     text-align: left;
-    color: var(--default-text-color);
+    color: var(---color-text-primary);
     font-size: 14px;
     font-weight: 400;
     margin-left: 4px;
@@ -591,7 +579,7 @@ onUnmounted(() => {
   .name {
     flex-grow: 0;
     text-align: left;
-    color: var(--default-text-color);
+    color: var(---color-text-primary);
     font-size: 13px;
     font-weight: 400;
     margin-left: 6px;
@@ -603,7 +591,7 @@ onUnmounted(() => {
 
 .more-menu {
   position: fixed;
-  background-color: var(--color-dropdown-bg, #ffffff);
+  background-color: var(--color-bg-primary, #ffffff);
   border: 1px solid var(--color-border-primary, #dcdfe6);
   border-radius: 8px;
   box-shadow: var(--shadow-primary, 0 2px 12px rgba(0, 0, 0, 0.1));

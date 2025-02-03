@@ -202,7 +202,7 @@ const handleFilterSelect = (filter: CustomFilter) => {
 
 <style lang="scss" scoped>
 .quick-access-menu {
-  background-color: var(--color-dropdown-bg);
+  background-color: var(--color-bg-primary);
   border-radius: 8px;
   box-shadow: var(--shadow-primary);
   padding: 8px;
@@ -270,7 +270,7 @@ const handleFilterSelect = (filter: CustomFilter) => {
         .name {
           flex-grow: 0;
           text-align: left;
-          color: var(--default-text-color);
+          color: var(---color-text-primary);
           font-size: 13px;
           font-weight: 400;
           margin-left: 6px;

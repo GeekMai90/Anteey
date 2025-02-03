@@ -826,7 +826,7 @@ const handleSave = async () => {
   .name {
     flex-grow: 0;
     text-align: left;
-    color: var(--default-text-color);
+    color: var(---color-text-primary);
     font-size: 14px;
     font-weight: 400;
     margin-left: 6px;
@@ -852,7 +852,7 @@ const handleSave = async () => {
 //     font-weight: 500;
 
 //     &.btn-cancel {
-//       background: var(--color-button-bg);
+//       background: var(--color-bg-secondary);
 //       color: var(--color-text-primary);
 
 //       &:hover {

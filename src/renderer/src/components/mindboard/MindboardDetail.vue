@@ -6,7 +6,7 @@
     <!-- 固定在顶部的工具栏 -->
     <div class="fixed-header">
       <AppToolbar
-        backgroundColor="var(--color-bg-whiteboard)"
+        backgroundColor="var(--color-bg-secondary)"
         :whiteboardName="mindboardName"
         :showBackButton="false"
         :showForwardButton="false"

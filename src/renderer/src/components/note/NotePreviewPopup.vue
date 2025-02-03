@@ -88,7 +88,7 @@ const cardTypeClass = computed(() => {
 
   .preview-card {
     width: 300px;
-    background-color: var(--color-note-card-bg);
+    background-color: var(--color-bg-note-card);
     border: 1px solid var(--color-border);
     border-radius: 8px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);

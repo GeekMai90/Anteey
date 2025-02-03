@@ -612,7 +612,7 @@ onUnmounted(() => {
     transition: all 0.2s ease;
     padding: 0;
     border-radius: 8px;
-    background-color: var(--color-menu-bg);
+    background-color: var(--color-primary-light);
     border: 1px solid var(--color-primary);
 
     :deep(.i-icon) {
@@ -660,7 +660,7 @@ onUnmounted(() => {
       position: absolute;
       top: calc(100% + 4px);
       right: 0;
-      background-color: var(--color-dropdown-bg);
+      background-color: var(--color-bg-primary);
       border-radius: 8px;
       box-shadow: var(--shadow-primary);
       z-index: 1000;

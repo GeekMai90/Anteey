@@ -209,7 +209,7 @@ defineExpose({
   }
 
   .suggestions {
-    background-color: var(--sidebar-bg);
+    background-color: var(--color-bg-secondary);
     border-radius: 8px;
     padding: 16px;
     text-align: left;
@@ -274,7 +274,7 @@ defineExpose({
 
   &:hover,
   &.is-selected {
-    background-color: var(--sidebar-hover-bg);
+    background-color: var(--color-sidebar-hover);
   }
 
   .item-header {

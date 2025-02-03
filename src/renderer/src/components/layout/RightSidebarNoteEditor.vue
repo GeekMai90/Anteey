@@ -367,7 +367,7 @@ const handleExpand = () => {
 <style lang="scss" scoped>
 .right-sidebar-note-editor {
   background-color: var(--color-bg-primary);
-  border: 1px solid var(--time-card-border-color);
+  border: 1px solid var(--color-border-card);
   border-radius: 12px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
   border-radius: 12px;
@@ -448,7 +448,7 @@ const handleExpand = () => {
       .name {
         flex-grow: 0;
         text-align: left;
-        color: var(--default-text-color);
+        color: var(---color-text-primary);
         font-size: 13px;
         font-weight: 400;
         margin-left: 6px;
@@ -519,7 +519,7 @@ const handleExpand = () => {
       .name {
         flex-grow: 0;
         text-align: left;
-        color: var(--default-text-color);
+        color: var(---color-text-primary);
         font-size: 13px;
         font-weight: 400;
         margin-left: 6px;
@@ -590,7 +590,7 @@ const handleExpand = () => {
       .name {
         flex-grow: 0;
         text-align: left;
-        color: var(--default-text-color);
+        color: var(---color-text-primary);
         font-size: 13px;
         font-weight: 400;
         margin-left: 6px;
@@ -660,7 +660,7 @@ const handleExpand = () => {
       .name {
         flex-grow: 0;
         text-align: left;
-        color: var(--default-text-color);
+        color: var(---color-text-primary);
         font-size: 13px;
         font-weight: 400;
         margin-left: 6px;

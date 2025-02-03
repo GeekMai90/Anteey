@@ -266,7 +266,7 @@ const handleConfirm = () => {
     border: none;
 
     &.cancel-button {
-      background: var(--color-button-bg);
+      background: var(--color-bg-secondary);
       color: var(--color-text-secondary);
 
       &:hover {

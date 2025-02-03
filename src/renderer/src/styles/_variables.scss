@@ -7,6 +7,210 @@
 // 1. 在你的 SCSS 文件中导入这个文件：@import 'path/to/variables';
 // 2. 使用变量：background-color: $primary-color;
 
+// 1. 基础颜色系统
+// ------------------
+// 品牌主色
+$primary-color: #00c8a8;
+
+// 纯白色和纯黑色（保留这两个用于特殊场景）
+$white: #f9fafb;
+$black: #111827;
+
+// 中性色系（带有品牌特征的灰度）
+$neutral: (
+  100: #f8f9fa,
+  // 更纯净的浅灰色，只带极微弱的青色
+  200: #e6e9e9,
+  // 浅灰色，青色调更淡
+  300: #c5cac9,
+  // 中浅灰色，减少绿色倾向
+  400: #939998,
+  // 中灰色，更中性
+  500: #666f6e,
+  // 深灰色，稍带青色
+  600: #434948,
+  // 深灰色，减少绿色感
+  700: #252827 // 最深的灰色，只保留微弱的青色调
+);
+
+@function neutral($key) {
+  @return map-get($neutral, $key);
+}
+
+@function primary($variant: "base") {
+  $color: #00c8a8; // 基础品牌色
+
+  @if $variant == "base" {
+    @return $color;
+  }
+  @if $variant == "rgb" {
+    @return "0, 200, 168";
+  }
+  @if $variant == "hover" {
+    @return darken($color, 3%);
+  }
+  @if $variant == "light" {
+    @return rgba($color, 0.1);
+  }
+  @if $variant == "dark" {
+    @return darken($color, 3%);
+  }
+
+  @return $color;
+}
+
+// 2. 语义化颜色变量
+// ------------------
+
+// A. 文本颜色
+$color-text-primary: neutral(700); // 主要文本，深青灰色
+$color-text-secondary: neutral(500); // 次要文本，中青灰色
+$color-text-tertiary: neutral(400); // 第三级文本，浅青灰色
+$color-text-disabled: neutral(400); // 禁用状态文本
+$color-text-inverse: $white; // 反色文本，用于深色背景
+$color-text-brand: $primary-color; // 品牌色文本
+
+// B. 背景颜色
+$color-bg-page: $white; // 页面背景
+$color-bg-card: $white; // 卡片背景
+$color-bg-secondary: neutral(100); // 次要背景，最浅的青灰色
+$color-bg-tertiary: neutral(200); // 第三级背景
+$color-bg-brand: $primary-color; // 品牌色背景
+$color-bg-brand-light: rgba($primary-color, 0.1); // 品牌色浅色背景，用于hover等状态
+
+// C. 边框颜色
+$color-border-default: neutral(300); // 默认边框
+$color-border-light: neutral(200); // 浅色边框
+$color-border-dark: neutral(400); // 深色边框
+$color-border-brand: $primary-color; // 品牌色边框
+
+// 3. 状态和交互颜色系统
+// ------------------
+
+// A. 状态颜色
+$color-success: #28a745;
+$color-success-light: #e6f4ea;
+$color-success-dark: #1e7e34;
+
+$color-warning: #ffc107;
+$color-warning-light: #fff3e0;
+$color-warning-dark: #d39e00;
+
+$color-danger: #dc3545;
+$color-danger-light: #ffeaea;
+$color-danger-dark: #bd2130;
+
+$color-info: #17a2b8;
+$color-info-light: #e8f4f8;
+$color-info-dark: #138496;
+
+// B. 交互状态颜色
+// 链接颜色
+$color-link: $primary-color;
+$color-link-hover: darken($primary-color, 10%);
+$color-link-visited: darken($primary-color, 15%);
+
+// 按钮悬浮状态
+$color-button-hover: rgba($primary-color, 0.08);
+$color-button-active: rgba($primary-color, 0.12);
+$color-button-disabled: neutral(200);
+$color-button-disabled-text: neutral(400);
+
+// 选中状态
+$color-selection-bg: rgba($primary-color, 0.1);
+$color-selection-text: neutral(700);
+
+// 4. 阴影系统
+// ------------------
+
+// 基础阴影
+$shadow-sm: 0 1px 2px rgba($black, 0.05);
+$shadow-md:
+  0 4px 6px -1px rgba($black, 0.1),
+  0 2px 4px -1px rgba($black, 0.06);
+$shadow-lg:
+  0 10px 15px -3px rgba($black, 0.1),
+  0 4px 6px -2px rgba($black, 0.05);
+$shadow-xl:
+  0 20px 25px -5px rgba($black, 0.1),
+  0 10px 10px -5px rgba($black, 0.04);
+
+// 组件专用阴影
+$shadow-card: $shadow-md;
+$shadow-dropdown: $shadow-lg;
+$shadow-modal: $shadow-xl;
+$shadow-tooltip: 0 3px 6px rgba($black, 0.15);
+
+// 特殊效果阴影
+$shadow-inner: inset 0 2px 4px rgba($black, 0.06);
+$shadow-outline: 0 0 0 3px rgba($primary-color, 0.2);
+
+// 5. 圆角和间距系统
+// ------------------
+
+// A. 圆角系统
+$radius-none: 0;
+$radius-sm: 0.125rem; // 2px
+$radius-md: 0.25rem; // 4px
+$radius-lg: 0.5rem; // 8px
+$radius-xl: 0.75rem; // 12px
+$radius-2xl: 1rem; // 16px
+$radius-full: 9999px; // 完全圆形
+
+// 组件专用圆角
+$radius-button: $radius-md;
+$radius-card: $radius-lg;
+$radius-modal: $radius-xl;
+$radius-pill: $radius-full;
+
+// B. 间距系统
+$spacing-0: 0;
+$spacing-1: 0.25rem; // 4px
+$spacing-2: 0.5rem; // 8px
+$spacing-3: 0.75rem; // 12px
+$spacing-4: 1rem; // 16px
+$spacing-5: 1.25rem; // 20px
+$spacing-6: 1.5rem; // 24px
+$spacing-8: 2rem; // 32px
+$spacing-10: 2.5rem; // 40px
+$spacing-12: 3rem; // 48px
+$spacing-16: 4rem; // 64px
+
+// 组件专用间距
+$spacing-card-padding: $spacing-4;
+$spacing-button-padding-x: $spacing-4;
+$spacing-button-padding-y: $spacing-2;
+$spacing-modal-padding: $spacing-6;
+$spacing-section: $spacing-8;
+
+// 6. Z-index层级和布局系统
+// ------------------
+
+// A. Z-index 层级系统
+$z-index-negative: -1; // 用于需要置于底层的元素
+$z-index-0: 0;
+$z-index-1: 100; // 基础浮动元素
+$z-index-2: 200; // 次要浮动元素
+$z-index-3: 300; // 重要浮动元素
+$z-index-4: 400; // 很重要的浮动元素
+$z-index-5: 500; // 最重要的浮动元素
+
+// 组件专用层级
+$z-index-dropdown: 1000; // 下拉菜单
+$z-index-sticky: 1020; // 粘性定位
+$z-index-fixed: 1030; // 固定定位
+$z-index-modal-backdrop: 1040; // 模态框背景
+$z-index-modal: 1050; // 模态框
+$z-index-popover: 1060; // 弹出框
+$z-index-tooltip: 1070; // 工具提示
+$z-index-toast: 1080; // 消息提示
+
+// 功能色（状态颜色）
+$success: #28a745;
+$warning: #ffc107;
+$danger: #dc3545;
+$info: #17a2b8;
+
 // 主题颜色
 $primary-color: #00c8a8;
 $secondary-color: #6c757d;
@@ -127,95 +331,136 @@ $dark-mode-text: $gray-100;
   --font-weight-medium: #{$font-weight-medium};
   --font-weight-bold: #{$font-weight-bold};
   --font-weight-title: 700;
-  // 主题基础色
-  --color-primary: #00c8a8;
-  --color-primary-rgb: 0, 200, 168;
-  --color-yellow: #ff9f1c;
-  --color-yellow-rgb: 255, 159, 28;
-  --color-blue: #4361ee;
-  --color-blue-rgb: 67, 97, 238;
-  --color-pink: #f72585;
-  --color-pink-rgb: 247, 37, 133;
-  --color-danger: #ff4d4f;
-  --color-warning: #ff9f1c;
-  --color-danger-rgb: 255, 76, 76;
-  // 主题文字色
-  --color-text-primary: #252525;
-  --color-text-secondary: #949494;
-  --color-text-tertiary: #bfbfbf;
-  --color-text-inversion: #fff;
-  --color-text-placeholder: #999;
-  --color-text-danger: #ff4d4f;
-  --color-text-white: #fff;
-  // 主题形状色
-  --color-shape-primary: #e3e3e3;
-  --color-shape-secondary: #ebebeb;
-  --color-shape-tertiary: #f2f2f2;
-  // 主题背景色
-  --color-bg-primary: #fff;
-  --color-bg-secondary: #f8f9fb;
-  --color-bg-tertiary: rgba(0, 0, 0, 0.05);
-  --color-bg-whiteboard: #f3f5f7;
-  --color-bg-ai-assistant: #f8f8f8;
-  --color-bg-flashcard: #fff;
 
-  // 模态框背景色
-  --color-modal-bg: rgba(0, 0, 0, 0.32);
-  // 弹出菜单的背景色
-  --color-dropdown-bg: #fff;
+  // 1. 品牌色
+  --color-primary: #{$primary-color};
+  --color-primary-rgb: 0, 200, 168; // RGB 格式用于 rgba()
+  --color-primary-hover: #{primary("hover")};
+  --color-primary-light: #{primary("light")};
+  --color-primary-dark: #{primary("dark")};
 
-  // 卡片笔记背景颜色
-  --color-note-card-bg: #fff;
-  --color-backlink-note-card-bg: #f8f9fb;
+  // 2. 中性色
+  --color-neutral-100: #{neutral(100)};
+  --color-neutral-200: #{neutral(200)};
+  --color-neutral-300: #{neutral(300)};
+  --color-neutral-400: #{neutral(400)};
+  --color-neutral-500: #{neutral(500)};
+  --color-neutral-600: #{neutral(600)};
+  --color-neutral-700: #{neutral(700)};
 
-  // 主题链接色
-  --color-link: #4361ee;
-  --color-link-hover: #4361ee;
-  --color-link-backlink: #0d7260;
+  // 3. 文本颜色
+  --color-text-primary: #{$color-text-primary};
+  --color-text-secondary: #{$color-text-secondary};
+  --color-text-tertiary: #{$color-text-tertiary};
+  --color-text-disabled: #{$color-text-disabled};
+  --color-text-inverse: #{$color-text-inverse};
+  --color-text-brand: #{$color-text-brand};
+  --color-text-placeholder: #{neutral(400)};
+  --color-text-white: #{neutral(100)};
 
-  // 主题系统选择色
-  --color-system-selection: rgba(24, 163, 241, 0.15);
-  --color-selection: #{rgba($primary-color, 0.1)};
+  // 4. 背景颜色
+  --color-bg-primary: #{$white};
+  --color-bg-secondary: #{neutral(100)}; // 使用 neutral-100 替代 #f8f9fb
+  --color-bg-tertiary: #{neutral(200)}; // 保持原来的透明度效果
+  --color-bg-brand: #{$primary-color};
+  --color-bg-brand-light: #{rgba($primary-color, 0.1)};
+  --color-bg-note-card: #{$white};
+  --color-bg-backlink-note-card: #{neutral(100)};
+  --color-bg-modal: rgba($black, 0.32);
 
-  // 主题滚动条色
-  --color-scrollbar-track-bg: transparent;
-  --color-scrollbar-thumb-bg: rgba(0, 0, 0, 0.2);
-  --color-scrollbar-thumb-hover-bg: rgba(0, 0, 0, 0.3);
-  --color-scroll-thumb: rgba(0, 0, 0, 0.2);
+  // 5. 边框颜色
+  --color-border-default: #{neutral(300)};
+  --color-border-light: #{neutral(200)};
+  --color-border-dark: #{neutral(400)};
+  --color-border-brand: #{$primary-color};
 
   // 主题边框色
-  --color-border: rgba(134, 142, 150, 0.2);
-  --color-border-sidebar: #e1e1e1;
-  --time-card-border-color: rgba(173, 181, 188, 0.3);
+  --color-border: #{neutral(200)};
+  --color-border-sidebar: #{neutral(200)};
+  --color-border-card: #{rgba(neutral(400), 0.3)};
 
-  // 主题字体权重
-  --font-weight-title: 700;
+  // 6. 状态颜色
+  --color-success: #{$color-success};
+  --color-success-rgb: 40, 167, 69; // 补充 RGB 值
+  --color-success-light: #{$color-success-light};
+  --color-success-dark: #{$color-success-dark};
 
-  // 主题悬浮色
-  --color-hover-bg: #{$gray-200};
-  --color-hover-button: rgba(0, 0, 0, 0.05);
-  --color-hover-sidebar: #e0e0e07f;
+  --color-warning: #{$color-warning};
+  --color-warning-rgb: 255, 159, 28; // 补充 RGB 值
+  --color-warning-light: #{$color-warning-light};
+  --color-warning-dark: #{$color-warning-dark};
 
-  // 主题菜单
-  --color-menu-bg: #{rgba($primary-color, 0.05)};
-  --color-button-active-bg: #{rgba($primary-color, 0.08)};
-  --color-disabled-bg: rgba(0, 0, 0, 0.04);
-  --color-disabled-text: rgba(0, 0, 0, 0.25);
+  --color-danger: #{$color-danger};
+  --color-danger-rgb: 255, 76, 76; // 补充 RGB 值
+  --color-danger-light: #{$color-danger-light};
+  --color-danger-dark: #{$color-danger-dark};
 
-  // 按钮
-  --color-button-bg: #f2f2f2;
+  --color-info: #{$color-info};
+  --color-info-rgb: 23, 162, 184; // 补充 RGB 值
+  --color-info-light: #{$color-info-light};
+  --color-info-dark: #{$color-info-dark};
 
-  // 主题侧边栏
-  --sidebar-bg: #f2f2f2;
-  --sidebar-hover-bg: #{$gray-200};
-  --color-sidebar-active-bg: #{rgba($primary-color, 0.09)};
-  --left-nav-tab-active-bg: #{rgba($primary-color, 0.05)};
+  // 7. 功能色和辅助色系统
+  // 黄色系
+  --color-yellow: #ff9f1c;
+  --color-yellow-rgb: 255, 159, 28;
+  --color-yellow-light: #{rgba(#ff9f1c, 0.1)};
+  --color-yellow-dark: #{darken(#ff9f1c, 10%)};
 
-  // 主题阴影
-  --shadow-primary: 0 3px 6px -4px rgb(0 0 0 / 12%), 0 6px 16px 0 rgb(0 0 0 / 8%), 0 9px 28px 8px rgb(0 0 0 / 5%);
-  --shadow-card: 0px 2px 6px rgb(0 0 0 / 12%);
+  // 蓝色系
+  --color-blue: #4361ee;
+  --color-blue-rgb: 67, 97, 238;
+  --color-blue-light: #{rgba(#4361ee, 0.1)};
+  --color-blue-dark: #{darken(#4361ee, 10%)};
 
-  // 主题z-index
+  // 粉色系
+  --color-pink: #f72585;
+  --color-pink-rgb: 247, 37, 133;
+  --color-pink-light: #{rgba(#f72585, 0.1)};
+  --color-pink-dark: #{darken(#f72585, 10%)};
+
+  // 红色系
+  --color-red: #ff4d4f;
+  --color-red-rgb: 255, 77, 79;
+  --color-red-light: #{rgba(#ff4d4f, 0.1)};
+  --color-red-dark: #{darken(#ff4d4f, 10%)};
+
+  // 8. 选中状态颜色系统
+  // 系统默认选中色（浅蓝）
+  --color-system-selection: rgba(#18a3f1, 0.15); // 保持原有的系统蓝色
+  // 品牌选中色（使用主色）
+  --color-selection: #{rgba($primary-color, 0.1)}; // 使用品牌主色的浅色版本
+
+  // 9. 滚动条颜色系统
+  // 滚动条轨道
+  --color-scrollbar-track-bg: transparent;
+  // 滚动条滑块
+  --color-scroll-thumb: rgba(0, 0, 0, 0.2);
+  --color-scrollbar-thumb-hover: rgba(0, 0, 0, 0.3);
+
+  // 10. 交互状态颜色系统
+  // 悬浮背景色
+  --color-hover-bg: #{neutral(200)}; // 使用 neutral-200 替代 $gray-200
+  --color-hover-button: #{rgba($black, 0.05)}; // 使用 $black 变量的透明版本
+  --color-hover-sidebar: #{rgba(neutral(200), 0.5)}; // 使用 neutral-200 的半透明版本替代 #e0e0e07f
+
+  // 11. 侧边栏颜色系统
+  // 悬浮状态
+  --color-sidebar-hover: #{neutral(200)}; // 使用 neutral-200 替代 $gray-200
+  // 激活状态
+  --color-sidebar-active: #{rgba($primary-color, 0.09)}; // 保持主色的微弱背景
+  // 导航标签激活状态
+  --color-sidebar-tab-active: #{rgba($primary-color, 0.05)}; // 保持主色的更微弱背景
+
+  // 12. 阴影系统
+  // 多层阴影（用于弹出层、模态框等）
+  --shadow-primary: #{0 3px 6px -4px rgba($black, 0.12), 0 6px 16px 0 rgba($black, 0.08),
+    0 9px 28px 8px rgba($black, 0.05)};
+
+  // 单层阴影（用于卡片等）
+  --shadow-card: #{0 2px 6px rgba($black, 0.12)};
+
+  // 13. z-index 系统
   --z-index-hightest: 9999;
   --z-index-base: 1000;
   --z-index-primary: 1500;
@@ -223,22 +468,33 @@ $dark-mode-text: $gray-100;
   --z-index-tertiary: 500;
   --z-index-quaternary: 100;
 
-  // 主题滑块
-  --color-slider-track: #e0e0e0;
+  // 14. 滑块组件颜色系统
+  --color-slider-track: #{neutral(200)};
 
-  // 主题表格
-  --color-table-border: rgba(61, 37, 20, 0.12);
-  --color-table-header-bg: rgba(61, 37, 20, 0.05);
-  --color-table-selected-cell-bg: rgba(61, 37, 20, 0.08);
+  // 15. 表格颜色系统
+  // 边框
+  --color-table-border: #{rgba(neutral(700), 0.12)}; // 使用 neutral-700 的透明版本
+  // 表头背景
+  --color-table-header-bg: #{rgba(neutral(700), 0.05)}; // 使用更浅的透明度
+  // 选中单元格背景
+  --color-table-cell-selected: #{rgba(neutral(700), 0.08)}; // 使用中等透明度
 
-  // 主题图标
-  --color-icon-default: #b6b6b6;
-  --color-icon-secondary: #949494;
-  --color-icon-menu-default: #252525;
-  --color-icon-image-more: rgba(0, 0, 0, 0.5);
-  --color-icon-image-more-hover: rgba(0, 0, 0, 0.6);
+  // 16. 图标颜色系统
+  // 基础图标颜色
+  --color-icon-default: #{neutral(300)}; // 替代 #b6b6b6
+  --color-icon-secondary: #{neutral(400)}; // 替代 #949494
+  --color-icon-primary: #{neutral(700)}; // 替代 #252525，重命名 menu-default 为更通用的 primary
 
-  // 主题文字颜色
+  // 图标悬浮态
+  --color-icon-hover: #{rgba($black, 0.5)}; // 替代 rgba(0, 0, 0, 0.5)
+  --color-icon-hover-dark: #{rgba($black, 0.6)}; // 替代 rgba(0, 0, 0, 0.6)
+
+  // 可以补充其他常用状态
+  --color-icon-disabled: #{neutral(200)};
+  --color-icon-brand: #{$primary-color}; // 品牌色图标
+  --color-icon-active: #{$primary-color}; // 激活状态
+
+  // 17. 主题文字颜色
   --color-text-pink: #ff6b8b;
   --color-text-orange: #ff9f69;
   --color-text-green: #7ec062;
@@ -246,38 +502,17 @@ $dark-mode-text: $gray-100;
   --color-text-blue: #69b5ff;
   --color-text-purple: #b37feb;
 
-  //连接线颜色
+  // 18. 连接线颜色
   --color-line: rgba(0, 0, 0, 0.3);
-  --color-node-bg: #f2f2f2;
+  --color-node-bg: #{neutral(100)};
 
-  // 消息提示框
-  --color-message-toast-bg: #fff;
-
-  // 状态颜色
-  --color-success: #28a745;
-  --color-success-rgb: 40, 167, 69;
-  --color-warning: #ff9f1c;
-  --color-warning-rgb: 255, 159, 28;
-  --color-danger: #ff4d4f;
-  --color-danger-rgb: 255, 77, 79;
-  --color-primary: #00c8a8;
-  --color-primary-rgb: 0, 200, 168;
-  --color-blue: #69b5ff;
-  --color-blue-rgb: 105, 181, 255;
-
-  // 文本颜色
-  --color-text-secondary: #949494;
-  --color-text-secondary-rgb: 148, 148, 148;
-
-  --color-obsidian: #483699; // Obsidian 的主题色
-
-  // 闪卡状态颜色
+  // 19. 闪卡状态颜色
   --color-fsrs-new: #666; // 新卡片：灰色
   --color-fsrs-learning: #ff9f1c; // 学习中：黄色
   --color-fsrs-review: #69b5ff; // 复习中：紫色
   --color-fsrs-relearning: #00c8a8; // 重新学习：蓝色
 
-  // 图表渐变色
+  // 20. 图表渐变色
   --color-chart-primary: var(--color-primary);
   --color-chart-primary-light: rgba(var(--color-primary-rgb), 0.3);
   --color-chart-primary-hover: rgba(var(--color-primary-rgb), 0.5);
@@ -286,9 +521,6 @@ $dark-mode-text: $gray-100;
   --color-chart-yellow-light: rgba(var(--color-yellow-rgb), 0.3);
   --color-chart-yellow-area: rgba(var(--color-yellow-rgb), 0.2);
   --color-chart-yellow-area-light: rgba(var(--color-yellow-rgb), 0);
-
-  // 添加 RGB 格式的变量
-  --color-shape-tertiary-rgb: 255, 255, 255; // 浅色模式
 
   //新侧边栏
   --color-sidebar-icon: #555;
@@ -305,131 +537,142 @@ $dark-mode-text: $gray-100;
   // 分享视图
   --color-share-text-white: #f2f2f2;
   --color-share-text-black: #252525;
-
-  //思维板
-  --color-mindboard-card-image-bg: #f4f4f5;
-
-  // 分段按钮
-  --color-segmented-button-bg: #f5f5f5;
-  --color-segmented-button-checked-bg: #fff;
-  --color-segmented-button-hover-bg: rgba(255, 255, 255, 0.8);
-  --color-segmented-button-border: #e0e0e0;
-  --color-segmented-button-text: #334155;
-  --color-segmented-button-active-bg: #00c8a8;
-  --color-segmented-button-active-text: #fff;
 }
 
 .theme-dark {
-  // 分段按钮
-  --color-segmented-button-bg: #000000;
-  --color-segmented-button-checked-bg: #1f1f1f;
-  --color-segmented-button-hover-bg: rgba(31, 31, 31, 0.6);
-  --color-segmented-button-text: #dedede;
-
-  // 主题基础色（保持原色调，但可能需要调整亮度）
-  --color-primary: #20ceae;
+  // 1. 品牌色（稍微调亮）
+  --color-primary: #20ceae; // 调亮的主色
   --color-primary-rgb: 32, 206, 174;
-  --color-yellow: #ff9f1c;
-  --color-yellow-rgb: 255, 159, 28;
-  --color-blue: #4361ee;
-  --color-blue-rgb: 67, 97, 238;
-  --color-pink: #f72585;
-  --color-pink-rgb: 247, 37, 133;
+  --color-primary-hover: #{lighten(#20ceae, 5%)};
+  --color-primary-light: #{rgba(#20ceae, 0.15)};
+  --color-primary-dark: #{darken(#20ceae, 10%)};
 
-  // 主题文字色
-  --color-text-primary: #f4f4f4;
-  --color-text-secondary: #a0a0a0;
-  --color-text-tertiary: #666666;
-  --color-text-inversion: #1f1f1f;
-  --color-text-placeholder: #666666;
-  --color-text-danger: #ff6b6b;
+  // 2. 中性色（反转）
+  --color-neutral-100: #1f1f1f; // 最深
+  --color-neutral-200: #2c2f2f;
+  --color-neutral-300: #404544;
+  --color-neutral-400: #656b6a;
+  --color-neutral-400-rgb: 77, 77, 77;
+  --color-neutral-500: #8a908f;
+  --color-neutral-600: #c1c4c4;
+  --color-neutral-700: #e6e8e8; // 最浅
 
-  // 主题形状色
-  --color-shape-primary: #2f2f2f;
-  --color-shape-secondary: #363636;
-  --color-shape-tertiary: #404040;
+  // 3. 文本颜色
+  --color-text-primary: var(--color-neutral-700); // 浅色文本
+  --color-text-secondary: var(--color-neutral-600);
+  --color-text-tertiary: var(--color-neutral-500);
+  --color-text-disabled: var(--color-neutral-400);
+  --color-text-inverse: #1f1f1f; // 反色文本变深色
+  --color-text-brand: #20ceae; // 品牌文本色调亮
+  --color-text-placeholder: var(--color-neutral-500);
+  --color-text-white: #ffffff; // 保持纯白
 
-  // 主题背景色
-  --color-bg-primary: #191919;
-  --color-bg-secondary: #242424;
-  --color-bg-tertiary: rgba(255, 255, 255, 0.08);
-  --color-bg-whiteboard: #2d2d2d;
-  --color-bg-ai-assistant: #242424;
-  --color-bg-flashcard: #242424;
+  // 4. 背景颜色
+  --color-bg-primary: #191919; // 主背景色
+  --color-bg-secondary: var(--color-neutral-100); // 次要背景
+  --color-bg-tertiary: var(--color-neutral-200); // 第三级背景
+  --color-bg-brand: #20ceae;
+  --color-bg-brand-light: #{rgba(#20ceae, 0.15)};
+  --color-bg-note-card: var(--color-neutral-100);
+  --color-bg-backlink-note-card: var(--color-neutral-200);
+  --color-bg-modal: rgba(0, 0, 0, 0.8); // 加深遮罩
 
-  // 模态框背景色
-  --color-modal-bg: rgba(0, 0, 0, 0.8);
+  // 5. 边框颜色
+  --color-border-default: var(--color-neutral-300);
+  --color-border-light: var(--color-neutral-200);
+  --color-border-dark: var(--color-neutral-400);
+  --color-border-brand: var(--color-primary);
+  --color-border: #{rgba(var(--color-neutral-400-rgb), 0.5)};
+  --color-border-sidebar: var(--color-neutral-300);
+  --color-border-card: #{rgba(var(--color-neutral-400), 0.4)};
 
-  // 弹出菜单的背景色
-  --color-dropdown-bg: #242424;
+  // 6. 状态颜色（调亮）
+  --color-success: #3ac858;
+  --color-success-rgb: 58, 200, 88;
+  --color-success-light: #{rgba(#3ac858, 0.2)};
+  --color-success-dark: #{darken(#3ac858, 10%)};
 
-  // 卡片笔记背景颜色
-  --color-note-card-bg: #242424;
-  --color-backlink-note-card-bg: #242424;
+  --color-warning: #ffb23c;
+  --color-warning-rgb: 255, 178, 60;
+  --color-warning-light: #{rgba(#ffb23c, 0.2)};
+  --color-warning-dark: #{darken(#ffb23c, 10%)};
 
-  // 主题链接色
-  --color-link: #5c7cff;
-  --color-link-hover: #7591ff;
+  --color-danger: #ff6b6b;
+  --color-danger-rgb: 255, 107, 107;
+  --color-danger-light: #{rgba(#ff6b6b, 0.2)};
+  --color-danger-dark: #{darken(#ff6b6b, 10%)};
 
-  // 主题系统选择色
-  --color-system-selection: rgba(67, 97, 238, 0.3);
-  --color-selection: rgba(0, 200, 168, 0.2);
+  --color-info: #5cbbf6;
+  --color-info-rgb: 92, 187, 246;
+  --color-info-light: #{rgba(#5cbbf6, 0.2)};
+  --color-info-dark: #{darken(#5cbbf6, 10%)};
 
-  // 主题滚动条色
+  // 7. 功能色和辅助色系统（调亮）
+  --color-yellow: #ffb23c;
+  --color-yellow-rgb: 255, 178, 60;
+  --color-yellow-light: #{rgba(#ffb23c, 0.15)};
+  --color-yellow-dark: #{darken(#ffb23c, 10%)};
+
+  --color-blue: #5c7cff;
+  --color-blue-rgb: 92, 124, 255;
+  --color-blue-light: #{rgba(#5c7cff, 0.15)};
+  --color-blue-dark: #{darken(#5c7cff, 10%)};
+
+  --color-pink: #ff8fa6;
+  --color-pink-rgb: 255, 143, 166;
+  --color-pink-light: #{rgba(#ff8fa6, 0.15)};
+  --color-pink-dark: #{darken(#ff8fa6, 10%)};
+
+  --color-red: #ff6b6b;
+  --color-red-rgb: 255, 107, 107;
+  --color-red-light: #{rgba(#ff6b6b, 0.15)};
+  --color-red-dark: #{darken(#ff6b6b, 10%)};
+
+  // 8. 选中状态颜色系统
+  --color-system-selection: rgba(#5c7cff, 0.3);
+  --color-selection: #{rgba(#20ceae, 0.2)};
+
+  // 9. 滚动条颜色系统
   --color-scrollbar-track-bg: transparent;
-  --color-scrollbar-thumb-bg: rgba(255, 255, 255, 0.2);
-  --color-scrollbar-thumb-hover-bg: rgba(255, 255, 255, 0.3);
   --color-scroll-thumb: rgba(255, 255, 255, 0.2);
+  --color-scrollbar-thumb-hover: rgba(255, 255, 255, 0.3);
 
-  // 主题边框色
-  --color-border: rgba(134, 142, 150, 0.26);
-  --color-border-sidebar: #3b3b3b;
-  --time-card-border-color: rgba(255, 255, 255, 0.12);
+  // 10. 交互状态颜色系统
+  --color-hover-bg: var(--color-neutral-200);
+  --color-hover-button: #{rgba(255, 255, 255, 0.1)};
+  --color-hover-sidebar: #{rgba(255, 255, 255, 0.05)};
 
-  // 主题悬浮色
-  --color-hover-bg: #2a2a2a;
-  --color-hover-button: rgba(255, 255, 255, 0.05);
-  --color-hover-sidebar: rgba(255, 255, 255, 0.05);
+  // 11. 侧边栏颜色系统
+  --color-sidebar-hover: var(--color-neutral-200);
+  --color-sidebar-active: #{rgba(#20ceae, 0.15)};
+  --color-sidebar-tab-active: #{rgba(#20ceae, 0.1)};
 
-  // 主题菜单
-  --color-menu-bg: rgba(0, 200, 168, 0.1);
-  --color-button-active-bg: rgba(0, 200, 168, 0.15);
+  // 12. 阴影系统（加深）
+  --shadow-primary: #{0 3px 6px -4px rgba(0, 0, 0, 0.48), 0 6px 16px 0 rgba(0, 0, 0, 0.32),
+    0 9px 28px 8px rgba(0, 0, 0, 0.2)};
+  --shadow-card: #{0 2px 6px rgba(0, 0, 0, 0.3)};
 
-  // 主题侧边栏
-  --sidebar-bg: #242424;
-  --sidebar-hover-bg: #2a2a2a;
-  --color-sidebar-active-bg: rgba(0, 200, 168, 0.15);
-  --left-nav-tab-active-bg: rgba(0, 200, 168, 0.1);
+  // 13. z-index 系统（保持不变）
 
-  // 主题阴影
-  --shadow-primary: 0 3px 6px -4px rgba(0, 0, 0, 0.48), 0 6px 16px 0 rgba(0, 0, 0, 0.32),
-    0 9px 28px 8px rgba(0, 0, 0, 0.2);
-  --shadow-card: 0px 2px 6px rgba(0, 0, 0, 0.3);
+  // 14. 滑块组件颜色系统
+  --color-slider-track: var(--color-neutral-300);
 
-  // z-index 保持不变
-  --z-index-hightest: 9999;
-  --z-index-base: 1000;
-  --z-index-primary: 1500;
-  --z-index-secondary: 1000;
-  --z-index-tertiary: 500;
-  --z-index-quaternary: 100;
+  // 15. 表格颜色系统
+  --color-table-border: #{rgba(255, 255, 255, 0.12)};
+  --color-table-header-bg: #{rgba(255, 255, 255, 0.05)};
+  --color-table-cell-selected: #{rgba(255, 255, 255, 0.08)};
 
-  // 主题滑块
-  --color-slider-track: #3a3a3a;
+  // 16. 图标颜色系统
+  --color-icon-default: var(--color-neutral-500);
+  --color-icon-secondary: var(--color-neutral-400);
+  --color-icon-primary: var(--color-neutral-600);
+  --color-icon-hover: #{rgba(255, 255, 255, 0.5)};
+  --color-icon-hover-dark: #{rgba(255, 255, 255, 0.6)};
+  --color-icon-disabled: var(--color-neutral-300);
+  --color-icon-brand: #20ceae;
+  --color-icon-active: #20ceae;
 
-  // 主题表格
-  --color-table-border: rgba(255, 255, 255, 0.12);
-  --color-table-header-bg: rgba(255, 255, 255, 0.05);
-  --color-table-selected-cell-bg: rgba(255, 255, 255, 0.08);
-
-  // 主题图标
-  --color-icon-default: #666666;
-  --color-icon-secondary: #808080;
-  --color-icon-menu-default: #ffffff;
-  --color-icon-image-more: rgba(255, 255, 255, 0.5);
-  --color-icon-image-more-hover: rgba(255, 255, 255, 0.6);
-
-  // 主题文字颜色
+  // 17. 主题文字颜色（调亮）
   --color-text-pink: #ff8fa6;
   --color-text-orange: #ffbb8c;
   --color-text-green: #a6e595;
@@ -437,38 +680,17 @@ $dark-mode-text: $gray-100;
   --color-text-blue: #91caff;
   --color-text-purple: #d3adf7;
 
-  //连接线颜色
+  // 18. 连接线颜色
   --color-line: rgba(255, 255, 255, 0.3);
-  --color-node-bg: #242424;
+  --color-node-bg: var(--color-neutral-200);
 
-  // 消息提示框
-  --color-message-toast-bg: #242424;
+  // 19. 闪卡状态颜色
+  --color-fsrs-new: var(--color-neutral-500);
+  --color-fsrs-learning: #ffb23c;
+  --color-fsrs-review: #91caff;
+  --color-fsrs-relearning: #20ceae;
 
-  // 状态颜色
-  --color-success: #3ac858;
-  --color-success-rgb: 58, 200, 88;
-  --color-warning: #ffb23c;
-  --color-warning-rgb: 255, 178, 60;
-  --color-danger: #ff6b6b;
-  --color-danger-rgb: 255, 107, 107;
-  --color-primary: #20ceae;
-  --color-primary-rgb: 32, 206, 174;
-  --color-blue: #91caff;
-  --color-blue-rgb: 145, 202, 255;
-
-  // 文本颜色
-  --color-text-secondary: #a0a0a0;
-  --color-text-secondary-rgb: 160, 160, 160;
-
-  --color-obsidian: #9088e2; // 暗色主题下的 Obsidian 颜色
-
-  // 闪卡状态颜色
-  --color-fsrs-new: #a0a0a0; // 新卡片：灰色
-  --color-fsrs-learning: #ff9f1c; // 学习中：黄色
-  --color-fsrs-review: #69b5ff; // 复习中：紫色
-  --color-fsrs-relearning: #00c8a8; // 重新学习：蓝色
-
-  // 图表渐变色 - 暗色主题
+  // 20. 图表渐变色（保持变量引用）
   --color-chart-primary: var(--color-primary);
   --color-chart-primary-light: rgba(var(--color-primary-rgb), 0.3);
   --color-chart-primary-hover: rgba(var(--color-primary-rgb), 0.5);
@@ -478,10 +700,181 @@ $dark-mode-text: $gray-100;
   --color-chart-yellow-area: rgba(var(--color-yellow-rgb), 0.2);
   --color-chart-yellow-area-light: rgba(var(--color-yellow-rgb), 0);
 
-  // 修改暗色模式下的 RGB 值
-  --color-shape-tertiary-rgb: 180, 180, 180; // 暗色模式,使用更柔和的灰色
+  // 代码块
+  --color-code-text: var(--color-neutral-700);
+  --color-code-block-bg: #000000;
+  --color-code-block-border: #{rgba(255, 255, 255, 0.1)};
 
-  // 修改暗色模式下的侧边栏图标颜色
-  // --color-sidebar-icon: #bbb;
-  // --color-sidebar-icon-bg: 255, 255, 255;
+  // 分享视图
+  --color-share-text-white: var(--color-neutral-700);
+  --color-share-text-black: var(--color-neutral-200);
 }
+
+// .theme-dark {
+//   // 分段按钮
+//   --color-segmented-button-bg: #000000;
+//   --color-segmented-button-checked-bg: #1f1f1f;
+//   --color-segmented-button-hover-bg: rgba(31, 31, 31, 0.6);
+//   --color-segmented-button-text: #dedede;
+
+//   // 主题基础色（保持原色调，但可能需要调整亮度）
+//   --color-primary: #20ceae;
+//   --color-primary-rgb: 32, 206, 174;
+//   --color-primary-hover: #1eb69a; /* 暗色主题下的 hover 颜色 */
+//   --color-yellow: #ff9f1c;
+//   --color-yellow-rgb: 255, 159, 28;
+//   --color-blue: #4361ee;
+//   --color-blue-rgb: 67, 97, 238;
+//   --color-pink: #f72585;
+//   --color-pink-rgb: 247, 37, 133;
+
+//   // 主题文字色
+//   --color-text-primary: #f4f4f4;
+//   --color-text-secondary: #a0a0a0;
+//   --color-text-tertiary: #666666;
+//   --color-text-inverse: #1f1f1f;
+//   --color-text-placeholder: #666666;
+//   --color-danger: #ff6b6b;
+
+//   // 主题形状色
+//   --color-border-light: #2f2f2f;
+//   --color-border-light: #363636;
+//   --color-bg-tertiary: #404040;
+
+//   // 主题背景色
+//   --color-bg-primary: #191919;
+//   --color-bg-secondary: #242424;
+//   --color-bg-tertiary: rgba(255, 255, 255, 0.08);
+//   --color-bg-secondary: #2d2d2d;
+//   --color-bg-secondary: #242424;
+//   --color-bg-primary: #242424;
+
+//   // 模态框背景色
+//   --color-bg-modal: rgba(0, 0, 0, 0.8);
+
+//   // 弹出菜单的背景色
+//   --color-bg-primary: #242424;
+
+//   // 卡片笔记背景颜色
+//   --color-bg-note-card: #242424;
+//   --color-bg-backlink-note-card: #242424;
+
+//   // 主题链接色
+//   --color-blue: #5c7cff;
+//   --color-blue: #7591ff;
+
+//   // 主题系统选择色
+//   --color-system-selection: rgba(67, 97, 238, 0.3);
+//   --color-selection: rgba(0, 200, 168, 0.2);
+
+//   // 主题滚动条色
+//   --color-scrollbar-track-bg: transparent;
+//   --color-scroll-thumb: rgba(255, 255, 255, 0.2);
+//   --color-scrollbar-thumb-hover: rgba(255, 255, 255, 0.3);
+//   --color-scroll-thumb: rgba(255, 255, 255, 0.2);
+
+//   // 主题边框色
+//   --color-border: rgba(134, 142, 150, 0.26);
+//   --color-border-sidebar: #3b3b3b;
+//   --color-border-card: rgba(255, 255, 255, 0.12);
+
+//   // 主题悬浮色
+//   --color-hover-bg: #2a2a2a;
+//   --color-hover-button: rgba(255, 255, 255, 0.05);
+//   --color-hover-sidebar: rgba(255, 255, 255, 0.05);
+
+//   // 主题菜单
+//   --color-primary-light: rgba(0, 200, 168, 0.1);
+//   --color-primary-light: rgba(0, 200, 168, 0.15);
+
+//   // 主题侧边栏
+//   --color-bg-secondary: #242424;
+//   --color-sidebar-hover: #2a2a2a;
+//   --color-sidebar-active-bg: rgba(0, 200, 168, 0.15);
+//   --left-nav-tab-active-bg: rgba(0, 200, 168, 0.1);
+
+//   // 主题阴影
+//   --shadow-primary: 0 3px 6px -4px rgba(0, 0, 0, 0.48), 0 6px 16px 0 rgba(0, 0, 0, 0.32),
+//     0 9px 28px 8px rgba(0, 0, 0, 0.2);
+//   --shadow-card: 0px 2px 6px rgba(0, 0, 0, 0.3);
+
+//   // z-index 保持不变
+//   --z-index-hightest: 9999;
+//   --z-index-base: 1000;
+//   --z-index-primary: 1500;
+//   --z-index-secondary: 1000;
+//   --z-index-tertiary: 500;
+//   --z-index-quaternary: 100;
+
+//   // 主题滑块
+//   --color-slider-track: #3a3a3a;
+
+//   // 主题表格
+//   --color-table-border: rgba(255, 255, 255, 0.12);
+//   --color-table-header-bg: rgba(255, 255, 255, 0.05);
+//   --color-table-selected-cell-bg: rgba(255, 255, 255, 0.08);
+
+//   // 主题图标
+//   --color-icon-default: #666666;
+//   --color-icon-secondary: #808080;
+//   --color-icon-primary: #ffffff;
+//   --color-icon-hover: rgba(255, 255, 255, 0.5);
+//   --color-icon-hover-dark: rgba(255, 255, 255, 0.6);
+
+//   // 主题文字颜色
+//   --color-text-pink: #ff8fa6;
+//   --color-text-orange: #ffbb8c;
+//   --color-text-green: #a6e595;
+//   --color-text-cyan: #87ede5;
+//   --color-text-blue: #91caff;
+//   --color-text-purple: #d3adf7;
+
+//   //连接线颜色
+//   --color-line: rgba(255, 255, 255, 0.3);
+//   --color-node-bg: #242424;
+
+//   // 消息提示框
+//   --color-bg-secondary: #242424;
+
+//   // 状态颜色
+//   --color-success: #3ac858;
+//   --color-success-rgb: 58, 200, 88;
+//   --color-warning: #ffb23c;
+//   --color-warning-rgb: 255, 178, 60;
+//   --color-danger: #ff6b6b;
+//   --color-danger-rgb: 255, 107, 107;
+//   --color-primary: #20ceae;
+//   --color-primary-rgb: 32, 206, 174;
+//   --color-primary-hover: #1eb69a; /* 暗色主题下的 hover 颜色 */
+//   --color-blue: #91caff;
+//   --color-blue-rgb: 145, 202, 255;
+
+//   // 文本颜色
+//   --color-text-secondary: #a0a0a0;
+//   --color-text-secondary: 160, 160, 160;
+
+//   --color-obsidian: #9088e2; // 暗色主题下的 Obsidian 颜色
+
+//   // 闪卡状态颜色
+//   --color-fsrs-new: #a0a0a0; // 新卡片：灰色
+//   --color-fsrs-learning: #ff9f1c; // 学习中：黄色
+//   --color-fsrs-review: #69b5ff; // 复习中：紫色
+//   --color-fsrs-relearning: #00c8a8; // 重新学习：蓝色
+
+//   // 图表渐变色 - 暗色主题
+//   --color-chart-primary: var(--color-primary);
+//   --color-chart-primary-light: rgba(var(--color-primary-rgb), 0.3);
+//   --color-chart-primary-hover: rgba(var(--color-primary-rgb), 0.5);
+
+//   --color-chart-yellow: var(--color-yellow);
+//   --color-chart-yellow-light: rgba(var(--color-yellow-rgb), 0.3);
+//   --color-chart-yellow-area: rgba(var(--color-yellow-rgb), 0.2);
+//   --color-chart-yellow-area-light: rgba(var(--color-yellow-rgb), 0);
+
+//   // 修改暗色模式下的 RGB 值
+//   --color-bg-tertiary-rgb: 180, 180, 180; // 暗色模式,使用更柔和的灰色
+
+//   // 修改暗色模式下的侧边栏图标颜色
+//   // --color-sidebar-icon: #bbb;
+//   // --color-sidebar-icon-bg: 255, 255, 255;
+// }

@@ -2,12 +2,7 @@
   <div class="license-settings">
     <div class="settings-content-header">
       <div class="icon">
-        <CrownThree
-          theme="outline"
-          size="20"
-          fill="var(--color-icon-menu-default)"
-          :strokeWidth="3"
-        />
+        <CrownThree theme="outline" size="20" fill="var(--color-icon-primary)" :strokeWidth="3" />
       </div>
       <div class="name">软件激活</div>
     </div>

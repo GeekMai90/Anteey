@@ -33,7 +33,7 @@ const noteContent = ref<HTMLDivElement | null>(null)
 
 <style lang="scss" scoped>
 .note-preview-card {
-  background-color: var(--color-note-card-bg);
+  background-color: var(--color-bg-note-card);
   border-radius: 8px;
   padding: 14px 12px 8px 12px;
   display: flex;

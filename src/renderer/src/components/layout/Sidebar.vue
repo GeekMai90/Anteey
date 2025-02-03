@@ -378,8 +378,8 @@ const menuItems = computed(() => {
     // 根据设置决定是否显示手绘板
     ...(appearanceStore.settings?.enableWhiteboard
       ? [{ name: '手绘板', path: '/ed-whiteboard', icon: HandPaintedPlate }]
-      : [])
-    // { name: 'UI 测试', path: '/ui-test', icon: Workbench }
+      : []),
+    { name: 'UI 测试', path: '/ui-test', icon: Workbench }
   ]
   return baseItems
 })
@@ -662,7 +662,7 @@ const handleReviewClick = async () => {
   height: 100%;
   position: relative;
   overflow: hidden;
-  background-color: var(--sidebar-bg);
+  background-color: var(--color-bg-secondary);
   display: flex;
   flex-direction: column;
   transition: width 0.3s ease;
@@ -1207,7 +1207,7 @@ const handleReviewClick = async () => {
     bottom: 30px;
     left: 0;
     z-index: 9000;
-    background-color: var(--color-shape-tertiary);
+    background-color: var(--color-bg-tertiary);
     padding: 12px 12px 10px 12px;
     width: 200px;
     min-width: 200px;
@@ -1342,7 +1342,7 @@ const handleReviewClick = async () => {
 
 .quick-access-menu {
   position: fixed;
-  background-color: var(--color-dropdown-bg);
+  background-color: var(--color-bg-primary);
   border-radius: 8px;
   box-shadow: var(--shadow-primary);
   padding: 8px;

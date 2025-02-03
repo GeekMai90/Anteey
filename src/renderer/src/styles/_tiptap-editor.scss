@@ -157,11 +157,11 @@
    * 链接样式
    * ------------------------------------ */
   a {
-    color: var(--color-link);
+    color: var(--color-blue);
     cursor: pointer;
 
     &:hover {
-      color: var(--color-link-hover);
+      color: var(--color-blue);
       text-decoration: underline;
     }
   }
@@ -175,7 +175,7 @@
     line-height: inherit;
     vertical-align: baseline;
     position: relative;
-    color: var(--color-link-backlink);
+    color: var(--color-primary);
     transition: all 0.2s ease;
     margin: 0 4px;
     white-space: normal;
@@ -206,7 +206,7 @@
    * ------------------------------------ */
   // 行内代码
   code {
-    background-color: var(--color-shape-tertiary);
+    background-color: var(--color-bg-tertiary);
     border-radius: 0.4rem;
     color: black;
     font-size: 0.85rem;

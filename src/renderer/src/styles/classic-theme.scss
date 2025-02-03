@@ -26,7 +26,7 @@
 
   // 侧边栏
   .sidebar {
-    background: var(--sidebar-bg);
+    background: var(--color-bg-secondary);
     border-right: 1px solid var(--color-border);
     border-radius: 0;
     backdrop-filter: none;
@@ -37,7 +37,7 @@
     }
 
     .action-btn {
-      background: var(--color-shape-tertiary) !important;
+      background: var(--color-bg-tertiary) !important;
     }
     .sidebar-nav {
       .nav-item {
@@ -122,18 +122,18 @@
   }
 
   .right-sidebar {
-    background-color: var(--sidebar-bg);
+    background-color: var(--color-bg-secondary);
     border-radius: 0;
     border-left: 1px solid var(--color-border);
     box-shadow: none;
   }
 
   .backlinks-panel {
-    background-color: var(--sidebar-bg);
+    background-color: var(--color-bg-secondary);
   }
 
   .drafts-editor-panel {
-    background-color: var(--sidebar-bg);
+    background-color: var(--color-bg-secondary);
   }
 }
 

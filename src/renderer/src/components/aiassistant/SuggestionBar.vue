@@ -216,7 +216,7 @@ onUnmounted(() => {
 
   &:hover {
     background: var(--color-hover-bg);
-    border-color: var(--color-shape-secondary);
+    border-color: var(--color-border-light);
     color: var(--color-primary);
   }
 
@@ -252,7 +252,7 @@ onUnmounted(() => {
 
   &:hover {
     background: var(--color-hover-bg);
-    border-color: var(--color-shape-secondary);
+    border-color: var(--color-border-light);
     color: var(--color-primary);
   }
 }

@@ -80,7 +80,7 @@ const cardTypeClass = computed(() => {
 
 <style lang="scss" scoped>
 .trash-note-card {
-  background-color: var(--color-note-card-bg);
+  background-color: var(--color-bg-note-card);
   border: 1px solid var(--border-color);
   border-radius: 8px;
   padding: 10px;

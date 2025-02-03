@@ -31,7 +31,7 @@
               <AlignTextLeft
                 theme="outline"
                 size="18"
-                fill="var(--color-icon-menu-default)"
+                fill="var(--color-icon-primary)"
                 :strokeWidth="3"
               />
             </div>
@@ -42,7 +42,7 @@
               <AlignTextCenter
                 theme="outline"
                 size="18"
-                fill="var(--color-icon-menu-default)"
+                fill="var(--color-icon-primary)"
                 :strokeWidth="3"
               />
             </div>
@@ -53,7 +53,7 @@
               <AlignTextRight
                 theme="outline"
                 size="18"
-                fill="var(--color-icon-menu-default)"
+                fill="var(--color-icon-primary)"
                 :strokeWidth="3"
               />
             </div>
@@ -64,7 +64,7 @@
               <Download
                 theme="outline"
                 size="18"
-                fill="var(--color-icon-menu-default)"
+                fill="var(--color-icon-primary)"
                 :strokeWidth="3"
               />
             </div>
@@ -72,12 +72,7 @@
           </div>
           <div class="popup-menu-item" @click="copyImage">
             <div class="icon">
-              <Copy
-                theme="outline"
-                size="18"
-                fill="var(--color-icon-menu-default)"
-                :strokeWidth="3"
-              />
+              <Copy theme="outline" size="18" fill="var(--color-icon-primary)" :strokeWidth="3" />
             </div>
             <div class="name">复制</div>
           </div>
@@ -363,7 +358,7 @@ const handleImageLoad = () => {
   position: absolute;
   top: 20px;
   right: 10px;
-  background-color: var(--color-icon-image-more);
+  background-color: var(--color-icon-hover);
   opacity: 0;
   display: flex;
   align-items: center;
@@ -376,7 +371,7 @@ const handleImageLoad = () => {
   transform: none;
 
   &:hover {
-    background-color: var(--color-icon-image-more-hover);
+    background-color: var(--color-icon-hover-dark);
   }
 
   .icon {
@@ -492,7 +487,7 @@ const handleImageLoad = () => {
   .name {
     flex-grow: 0;
     text-align: left;
-    color: var(--default-text-color);
+    color: var(---color-text-primary);
     font-size: 13px;
     font-weight: 400;
     margin-left: 6px;

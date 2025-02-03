@@ -144,6 +144,28 @@
         <Button type="primary" :block="true">主要块级按钮</Button>
       </div>
     </div>
+
+    <h2>日历按钮测试</h2>
+    <div class="demo-section">
+      <div class="button-row">
+        <CalendarButton
+          :selectedDate="selectedDate"
+          :tooltip="{
+            content: '选择日期',
+            delay: { show: 1000 }
+          }"
+          @click="toggleDateFilter"
+        />
+        <CalendarButton
+          :selectedDate="'2024-03-14'"
+          :width="150"
+          :tooltip="{
+            content: '自定义宽度',
+            delay: { show: 1000 }
+          }"
+        />
+      </div>
+    </div>
   </div>
 </template>
 
@@ -155,10 +177,12 @@ import SpreadButton from './SpreadButton.vue'
 import SearchInput from './SearchInput.vue'
 import AppToolbar from '../layout/AppToolbar.vue'
 import { Plus, Delete, Edit, Search } from '@icon-park/vue-next'
+import CalendarButton from './CalendarButton.vue'
 
 const selectedValue = ref('1')
 const loading = ref(false)
 const searchValue = ref('')
+const selectedDate = ref<string | null>(null)
 
 const options = [
   { value: '1', label: '选项一' },
@@ -171,6 +195,14 @@ const handleClick = () => {
   setTimeout(() => {
     loading.value = false
   }, 2000)
+}
+
+const toggleDateFilter = () => {
+  if (selectedDate.value) {
+    selectedDate.value = null
+  } else {
+    selectedDate.value = '2024-03-14'
+  }
 }
 </script>
 

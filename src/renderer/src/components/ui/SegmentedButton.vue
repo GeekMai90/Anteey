@@ -85,7 +85,7 @@ const handleChange = (value: string | number) => {
   display: flex;
   flex-wrap: wrap;
   border-radius: 0.5rem;
-  background-color: var(--color-segmented-button-bg);
+  background-color: var(--color-bg-secondary);
   box-sizing: border-box;
   box-shadow: 0 0 0px 1px rgba(0, 0, 0, 0.06);
   padding: 0.25rem;
@@ -111,7 +111,7 @@ const handleChange = (value: string | number) => {
   border-radius: 8px;
   border: none;
   height: 100%;
-  color: var(--color-segmented-button-text);
+  color: var(--color-text-primary);
   transition: all 0.15s ease-in-out;
   padding: 0 8px;
 }
@@ -135,7 +135,7 @@ const handleChange = (value: string | number) => {
 .radio-inputs .radio .name .icon :deep(svg) {
   width: 16px;
   height: 16px;
-  color: var(--color-segmented-button-text);
+  color: var(--color-text-primary);
 }
 
 .radio-inputs .radio .name .label {
@@ -143,15 +143,15 @@ const handleChange = (value: string | number) => {
 }
 
 .radio-inputs .radio input:checked + .name {
-  background-color: var(--color-segmented-button-checked-bg);
-  color: var(--color-segmented-button-text);
+  background-color: var(--color-bg-primary);
+  color: var(--color-text-primary);
   position: relative;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   animation: select 0.3s ease;
 }
 
 .radio-inputs .radio:hover .name {
-  background-color: var(--color-segmented-button-hover-bg);
+  background-color: var(--color-hover-bg);
 }
 
 @keyframes select {

@@ -309,7 +309,7 @@ onMounted(() => {
 <style scoped lang="scss">
 .backlinks-panel {
   height: 100%;
-  // background-color: var(--sidebar-bg);
+  // background-color: var(--color-bg-secondary);
   background-color: var(--color-bg-primary);
   width: 100%;
   position: relative;
@@ -634,7 +634,7 @@ onMounted(() => {
   .name {
     flex-grow: 0;
     text-align: left;
-    color: var(--default-text-color);
+    color: var(---color-text-primary);
     font-size: 13px;
     font-weight: 400;
     margin-left: 6px;

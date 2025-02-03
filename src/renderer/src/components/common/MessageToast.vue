@@ -194,7 +194,7 @@ onMounted(() => {
   border-radius: 8px;
   box-sizing: border-box;
   padding: 10px 15px;
-  background-color: var(--color-message-toast-bg);
+  background-color: var(--color-bg-secondary);
   box-shadow: rgba(149, 157, 165, 0.2) 0px 8px 24px;
   position: relative;
   overflow: hidden;

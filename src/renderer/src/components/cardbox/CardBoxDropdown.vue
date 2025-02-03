@@ -1,12 +1,7 @@
 <template>
   <div ref="reference" class="cardbox-dropdown" @click.stop="toggleMenu">
     <div class="icon">
-      <FileCabinet
-        theme="outline"
-        size="18"
-        fill="var(--color-icon-menu-default)"
-        :strokeWidth="3"
-      />
+      <FileCabinet theme="outline" size="18" fill="var(--color-icon-primary)" :strokeWidth="3" />
     </div>
     <div class="name">{{ selectedCardBoxName || '卡片盒' }}</div>
     <div class="icon down-icon">
@@ -42,7 +37,7 @@
               <FileCabinet
                 theme="outline"
                 size="18"
-                fill="var(--color-icon-menu-default)"
+                fill="var(--color-icon-primary)"
                 :strokeWidth="3"
               />
             </div>
@@ -60,7 +55,7 @@
               <InboxIn
                 theme="outline"
                 size="18"
-                fill="var(--color-icon-menu-default)"
+                fill="var(--color-icon-primary)"
                 :strokeWidth="3"
               />
             </div>
@@ -78,12 +73,7 @@
         >
           <div class="dropdown-item-content" @click.stop="select(box)">
             <div class="icon">
-              <Box
-                theme="outline"
-                size="18"
-                fill="var(--color-icon-menu-default)"
-                :strokeWidth="3"
-              />
+              <Box theme="outline" size="18" fill="var(--color-icon-primary)" :strokeWidth="3" />
             </div>
             <div class="name">
               {{ box.name }}
@@ -94,7 +84,7 @@
                   <More
                     theme="outline"
                     size="18"
-                    fill="var(--color-icon-menu-default)"
+                    fill="var(--color-icon-primary)"
                     :strokeWidth="3"
                   />
                 </div>
@@ -109,12 +99,7 @@
         <div class="dropdown-item add-cardbox" @click.stop="$emit('add')">
           <div class="dropdown-item-content">
             <div class="icon">
-              <Plus
-                theme="outline"
-                size="18"
-                fill="var(--color-icon-menu-default)"
-                :strokeWidth="3"
-              />
+              <Plus theme="outline" size="18" fill="var(--color-icon-primary)" :strokeWidth="3" />
             </div>
             <div class="name">新增卡片盒</div>
           </div>
@@ -330,7 +315,7 @@ onUnmounted(() => {
   .name {
     flex-grow: 0;
     text-align: left;
-    color: var(--default-text-color);
+    color: var(---color-text-primary);
     font-size: 13px;
     font-weight: 400;
     margin-left: 6px;
@@ -416,7 +401,7 @@ onUnmounted(() => {
   .name {
     flex-grow: 0;
     text-align: left;
-    color: var(--default-text-color);
+    color: var(---color-text-primary);
     font-size: 13px;
     font-weight: 400;
     margin-left: 6px;

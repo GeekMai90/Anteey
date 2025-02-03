@@ -466,7 +466,7 @@ defineExpose({ show, hide })
 
   &:hover,
   &.selected {
-    background-color: var(--sidebar-hover-bg);
+    background-color: var(--color-sidebar-hover);
     // box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   }
 }

@@ -13,9 +13,7 @@
           theme="outline"
           size="18"
           :fill="
-            item.title.startsWith('新建标签')
-              ? 'var(--color-primary)'
-              : 'var(--color-icon-menu-default)'
+            item.title.startsWith('新建标签') ? 'var(--color-primary)' : 'var(--color-icon-primary)'
           "
           :strokeWidth="3"
         />

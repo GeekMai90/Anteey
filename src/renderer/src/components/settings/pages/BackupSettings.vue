@@ -5,7 +5,7 @@
         <DatabaseDownload
           theme="outline"
           size="20"
-          fill="var(--color-icon-menu-default)"
+          fill="var(--color-icon-primary)"
           :strokeWidth="3"
         />
       </div>
@@ -323,7 +323,7 @@ async function handleClearHistory() {
         width: 80px;
         height: 35px;
         background-color: var(--color-primary);
-        color: var(--color-text-inversion);
+        color: var(--color-text-inverse);
         border-radius: 8px;
         font-size: 14px;
         font-weight: 500;

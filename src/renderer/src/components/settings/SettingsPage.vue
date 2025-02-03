@@ -3,12 +3,7 @@
     <div class="settings-sidebar">
       <div class="settings-sidebar-header">
         <div class="icon">
-          <SettingTwo
-            theme="outline"
-            size="20"
-            fill="var(--color-icon-menu-default)"
-            :strokeWidth="3"
-          />
+          <SettingTwo theme="outline" size="20" fill="var(--color-icon-primary)" :strokeWidth="3" />
         </div>
         <div class="name">基础设置</div>
       </div>
@@ -27,7 +22,7 @@
                   :is="item.icon"
                   theme="outline"
                   :size="20"
-                  fill="var(--color-icon-menu-default)"
+                  fill="var(--color-icon-primary)"
                   :strokeWidth="3"
                 ></component>
               </div>
@@ -111,7 +106,7 @@ const selectMenuItem = (key: string) => {
 
 .settings-sidebar {
   width: 200px;
-  background-color: var(--sidebar-bg);
+  background-color: var(--color-bg-secondary);
   padding: 16px 10px;
   overflow-y: auto;
   flex-shrink: 0;

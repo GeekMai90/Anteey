@@ -258,7 +258,7 @@ const emit = defineEmits(['cardbox-update'])
 
 <style lang="scss" scoped>
 .note-card {
-  background-color: var(--color-note-card-bg);
+  background-color: var(--color-bg-note-card);
   border: 1px solid var(--color-border);
   border-radius: 8px;
   padding: 10px 0px 10px 0;
@@ -407,7 +407,7 @@ const emit = defineEmits(['cardbox-update'])
         .name {
           flex-grow: 0;
           text-align: left;
-          color: var(--default-text-color);
+          color: var(---color-text-primary);
           font-size: 13px;
           font-weight: 400;
           margin-left: 6px;

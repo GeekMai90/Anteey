@@ -375,7 +375,7 @@ onMounted(() => {
             transition: all 0.2s ease;
             padding: 0;
             border-radius: 8px;
-            background-color: var(--color-menu-bg);
+            background-color: var(--color-primary-light);
             border: 1px solid var(--color-primary);
 
             :deep(.i-icon) {

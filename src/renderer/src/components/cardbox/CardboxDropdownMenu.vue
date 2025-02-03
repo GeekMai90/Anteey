@@ -24,7 +24,7 @@
                 :is="box.id === '0000' ? FileCabinet : Box"
                 theme="outline"
                 size="18"
-                fill="var(--color-icon-menu-default)"
+                fill="var(--color-icon-primary)"
                 :strokeWidth="3"
               />
             </div>
@@ -155,7 +155,7 @@ onUnmounted(() => {
 
 <style scoped lang="scss">
 .cardbox-dropdown-menu {
-  background-color: var(--color-dropdown-bg);
+  background-color: var(--color-bg-primary);
   border-radius: 8px;
   box-shadow: var(--shadow-primary);
   z-index: 9999;

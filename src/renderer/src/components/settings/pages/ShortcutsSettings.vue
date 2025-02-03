@@ -7,7 +7,7 @@
             <KeyboardOne
               theme="outline"
               size="20"
-              fill="var(--color-icon-menu-default)"
+              fill="var(--color-icon-primary)"
               :strokeWidth="3"
             />
           </div>

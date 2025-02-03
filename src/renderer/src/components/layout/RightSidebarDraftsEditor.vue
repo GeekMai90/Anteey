@@ -149,7 +149,7 @@ onBeforeUnmount(() => {
   height: 100%;
   display: flex;
   flex-direction: column;
-  // background-color: var(--sidebar-bg);
+  // background-color: var(--color-bg-secondary);
   background-color: var(--color-bg-primary);
   .drafts-editor-container {
     height: 100%;
@@ -158,7 +158,7 @@ onBeforeUnmount(() => {
     display: flex;
     flex-direction: column;
     background-color: var(--color-bg-primary);
-    border: 1px solid var(--time-card-border-color);
+    border: 1px solid var(--color-border-card);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
   }
 

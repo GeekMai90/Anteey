@@ -28,22 +28,15 @@
 
           <!-- 右侧功能区 -->
           <div class="timeline-header-right">
-            <!-- <div class="test-buttons">
-              <button class="test-button" @click="showMessage('success')">成功消息</button>
-              <button class="test-button" @click="showMessage('error')">错误消息</button>
-              <button class="test-button" @click="showMessage('warning')">警告消息</button>
-              <button class="test-button" @click="showMessage('info')">提示消息</button>
-            </div> -->
-            <div
-              class="calendar-button"
-              :class="{ 'date-selected': selectedDate }"
+            <CalendarButton
+              :selectedDate="selectedDate"
+              :height="36"
+              :tooltip="{
+                content: selectedDate ? '清除日期筛选' : '选择日期筛选',
+                delay: { show: 1000 }
+              }"
               @click="toggleDateFilter"
-            >
-              <div class="icon">
-                <Calendar theme="outline" size="16" :strokeWidth="3" />
-              </div>
-              <span class="date-text">{{ selectedDate || '日历' }}</span>
-            </div>
+            />
           </div>
         </div>
       </div>
@@ -115,7 +108,7 @@
 import { useNoteStore } from '@renderer/stores/noteStore'
 import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue'
 import { storeToRefs } from 'pinia'
-import { NotebookOne, Calendar, RocketOne } from '@icon-park/vue-next'
+import { NotebookOne, RocketOne } from '@icon-park/vue-next'
 import AppToolbar from '@renderer/components/layout/AppToolbar.vue'
 import CalendarPicker from '@renderer/components/timelineView/CalendarPicker.vue'
 import { useUIStore } from '@renderer/stores/UIStore'
@@ -125,6 +118,7 @@ import { useVirtualList } from '@vueuse/core'
 import { useEventBus } from '@vueuse/core'
 import { debounce } from 'lodash-es'
 import DateDivider from '@renderer/components/timelineView/DateDivider.vue'
+import CalendarButton from '@renderer/components/ui/CalendarButton.vue'
 import type { UseVirtualListOptions } from '@vueuse/core'
 // import MessageToast from '@renderer/components/common/MessageToast.vue'
 
@@ -190,19 +184,6 @@ eventBusDeleted.on(() => {
   }
 })
 
-// 监听闪卡转换事件
-// flashcardConvertedBus.on((noteId) => {
-//   // 找到对应的笔记并更新
-//   const noteToUpdate = notes.value.find((note) => note.id === noteId)
-//   if (noteToUpdate) {
-//     // 重新获取该笔记的最新数据
-//     noteStore.fetchNoteById(noteId as string).then((updatedNote) => {
-//       if (updatedNote) {
-//         updateSingleNote(updatedNote)
-//       }
-//     })
-//   }
-// })
 // 监听闪卡转换事件
 const flashcardConvertedBus = useEventBus<string>('flashcard-converted')
 flashcardConvertedBus.on(async (noteId) => {
@@ -396,20 +377,6 @@ const shouldShowDateDivider = (currentNote: Note, index: number) => {
   const prevDate = new Date(prevNote.createdAt).toDateString()
   return currentDate !== prevDate
 }
-
-// const messageConfig = reactive({
-//   show: false,
-//   text: '',
-//   type: 'success' as 'success' | 'error' | 'warning' | 'info'
-// })
-
-// const showMessage = (type: 'success' | 'error' | 'warning' | 'info') => {
-//   messageConfig.show = true
-//   messageConfig.type = type
-//   messageConfig.text = `这是一条${
-//     type === 'success' ? '成功' : type === 'error' ? '错误' : type === 'warning' ? '警告' : '提示'
-//   }消息`
-// }
 </script>
 
 <style lang="scss" scoped>
@@ -445,7 +412,7 @@ const shouldShowDateDivider = (currentNote: Note, index: number) => {
       justify-content: space-between;
       width: 100%;
       padding-bottom: 8px;
-      border-bottom: 1px solid var(--color-border);
+      border-bottom: 1px solid var(--color-border-light);
 
       // 左侧标题区域
       .timeline-header-left {
@@ -467,7 +434,7 @@ const shouldShowDateDivider = (currentNote: Note, index: number) => {
           transition: all 0.2s ease;
           padding: 0;
           border-radius: 8px;
-          background-color: var(--color-menu-bg);
+          background-color: var(--color-primary-light);
           border: 1px solid var(--color-primary);
 
           :deep(.i-icon) {
@@ -518,74 +485,6 @@ const shouldShowDateDivider = (currentNote: Note, index: number) => {
           font-size: 13px;
           color: var(--color-text-secondary);
           transition: all 0.2s ease;
-
-          &:hover {
-            background: var(--color-hover-button);
-            transform: translateY(-1px);
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-          }
-
-          &:active {
-            transform: translateY(0);
-          }
-        }
-
-        .calendar-button {
-          position: relative;
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          padding: 6px 12px 6px 9px;
-          // background: var(--color-bg-secondary);
-          border: 1px solid var(--color-border);
-          border-radius: 8px;
-          cursor: pointer;
-          transition: all 0.2s ease;
-          height: 36px;
-
-          .date-text {
-            font-size: 13px;
-            color: var(--color-text-secondary);
-            font-weight: 500;
-            line-height: 1;
-          }
-
-          .icon {
-            background: none;
-            border: none;
-            cursor: pointer;
-            width: 24px;
-            height: 24px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.2s ease;
-            padding: 0;
-            color: var(--color-text-secondary);
-
-            :deep(.i-icon) {
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              width: 100%;
-              height: 100%;
-            }
-
-            :deep(svg) {
-              width: 16px;
-              height: 16px;
-            }
-          }
-
-          &.date-selected {
-            background: rgba(var(--color-primary-rgb), 0.1);
-            border-color: var(--color-primary);
-
-            .date-text,
-            .icon {
-              color: var(--color-primary);
-            }
-          }
 
           &:hover {
             background: var(--color-hover-button);
@@ -732,7 +631,7 @@ const shouldShowDateDivider = (currentNote: Note, index: number) => {
   &:hover {
     transform: translateY(-5px);
     background-color: rgba(var(--color-primary-rgb), 0.3);
-    color: var(--color-text-inversion);
+    color: var(--color-text-inverse);
     opacity: 1;
     box-shadow: 0 5px 15px rgba(var(--color-primary-rgb), 0.3);
   }
@@ -756,7 +655,7 @@ const shouldShowDateDivider = (currentNote: Note, index: number) => {
     top: 0;
     bottom: 0;
     width: 1px;
-    border-left: 1.5px dashed var(--color-border);
+    border-left: 1.5px dashed var(--color-border-default);
   }
 }
 

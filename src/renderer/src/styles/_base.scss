@@ -94,11 +94,11 @@ table {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--color-scrollbar-thumb-bg);
+  background: var(--color-scroll-thumb);
   border-radius: 4px;
 
   &:hover {
-    background: var(--color-scrollbar-thumb-hover-bg);
+    background: var(--color-scrollbar-thumb-hover);
   }
 }
 

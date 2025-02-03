@@ -976,7 +976,7 @@ const highlightContent = (content: string) => {
         flex: 1;
         min-width: 0;
         overflow: auto;
-        background: var(--color-bg-whiteboard);
+        background: var(--color-bg-secondary);
         border-radius: 8px;
         box-shadow: var(--shadow-card);
       }
@@ -1027,7 +1027,7 @@ const highlightContent = (content: string) => {
           transition: all 0.2s ease;
           padding: 0;
           border-radius: 8px;
-          background-color: var(--color-menu-bg);
+          background-color: var(--color-primary-light);
           border: 1px solid var(--color-primary);
 
           :deep(.i-icon) {
@@ -1047,7 +1047,7 @@ const highlightContent = (content: string) => {
         .name {
           flex-grow: 0;
           text-align: left;
-          color: var(--default-text-color);
+          color: var(---color-text-primary);
           font-size: 20px;
           font-weight: 600;
           margin-left: 8px;
@@ -1130,12 +1130,12 @@ const highlightContent = (content: string) => {
             padding: 0;
             border: 1px solid var(--color-border);
             border-radius: 8px;
-            // background: var(--color-bg-secondary);
-            color: var(--color-text-2);
+            color: var(--color-text-secondary);
             cursor: pointer;
             transition: all 0.2s;
             opacity: 0;
             pointer-events: none;
+            background: var(--color-bg-secondary);
 
             :deep(.i-icon) {
               display: flex;
@@ -1374,7 +1374,7 @@ const highlightContent = (content: string) => {
 
   .time-content {
     flex: 1;
-    background: var(--color-bg-2);
+    background: var(--color-bg-note-card);
     border: 1px solid var(--color-border);
     border-radius: 8px;
     padding: 12px;
@@ -1391,7 +1391,7 @@ const highlightContent = (content: string) => {
     position: relative;
     min-height: 24px;
     border-radius: 8px;
-    background: var(--color-bg-2);
+    background: var(--color-bg-note-card);
     transition: all 0.2s;
 
     .block-content {
@@ -1862,7 +1862,7 @@ const highlightContent = (content: string) => {
       font-family: system-ui;
       font-size: 11px;
       font-weight: 500;
-      color: var(--color-text-2);
+      color: var(--color-text-secondary);
     }
 
     .description {
@@ -2000,7 +2000,7 @@ const highlightContent = (content: string) => {
 // 修改下拉菜单样式
 .select-dropdown {
   position: fixed;
-  background: var(--color-dropdown-bg);
+  background: var(--color-bg-primary);
   border: 1px solid var(--color-border);
   border-radius: 8px;
   padding: 4px;

@@ -223,7 +223,7 @@ const toggleFavorite = async (event: MouseEvent) => {
 
   .preview-area {
     flex: 1;
-    background: var(--color-mindboard-card-image-bg);
+    background: var(--color-bg-secondary);
     overflow: hidden;
     position: relative;
     padding: 12px;
@@ -237,7 +237,7 @@ const toggleFavorite = async (event: MouseEvent) => {
       display: flex;
       align-items: center;
       justify-content: center;
-      background: var(--color-mindboard-card-image-bg);
+      background: var(--color-bg-secondary);
 
       img {
         max-width: 100%;

@@ -4,7 +4,7 @@
       <CategoryManagement
         theme="outline"
         size="18"
-        fill="var(--color-icon-menu-default)"
+        fill="var(--color-icon-primary)"
         :strokeWidth="3"
       />
     </div>
@@ -42,7 +42,7 @@
               <CategoryManagement
                 theme="outline"
                 size="18"
-                fill="var(--color-icon-menu-default)"
+                fill="var(--color-icon-primary)"
                 :strokeWidth="3"
               />
             </div>
@@ -66,7 +66,7 @@
                 :is="type.icon"
                 theme="outline"
                 size="18"
-                fill="var(--color-icon-menu-default)"
+                fill="var(--color-icon-primary)"
                 :strokeWidth="3"
               />
             </div>
@@ -310,7 +310,7 @@ onUnmounted(() => {
     .name {
       flex-grow: 0;
       text-align: left;
-      color: var(--default-text-color);
+      color: var(---color-text-primary);
       font-size: 13px;
       font-weight: 400;
       margin-left: 6px;

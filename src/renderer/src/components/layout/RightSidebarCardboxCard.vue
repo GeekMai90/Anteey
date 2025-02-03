@@ -79,7 +79,7 @@ const handleDragStart = (event: DragEvent) => {
       position: absolute;
       width: 200px;
       height: 50px;
-      background: var(--color-note-card-bg);
+      background: var(--color-bg-note-card);
       border: 1px solid var(--color-border);
       border-radius: 8px;
       padding: 10px;
@@ -104,7 +104,7 @@ const handleDragStart = (event: DragEvent) => {
 
 <style lang="scss" scoped>
 .sidebar-note-card {
-  background-color: var(--color-note-card-bg);
+  background-color: var(--color-bg-note-card);
   border: 1px solid var(--color-border);
   border-radius: 8px;
   padding: 10px 0;

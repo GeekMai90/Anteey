@@ -555,7 +555,7 @@ const getCardTypeClass = (cardType?: string) => {
 
   &:hover,
   &.selected {
-    background-color: var(--sidebar-hover-bg);
+    background-color: var(--color-sidebar-hover);
   }
 }
 
@@ -748,7 +748,7 @@ const getCardTypeClass = (cardType?: string) => {
   cursor: pointer;
 
   &:hover {
-    background-color: var(--sidebar-hover-bg);
+    background-color: var(--color-sidebar-hover);
   }
 }
 

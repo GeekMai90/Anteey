@@ -117,11 +117,11 @@ const handleCancel = () => {
     border: none;
 
     &.cancel-button {
-      background: var(--color-button-bg);
+      background: var(--color-bg-secondary);
       color: var(--color-text-secondary);
 
       &:hover {
-        background: var(--color-button-bg);
+        background: var(--color-bg-secondary);
         opacity: 0.8;
       }
     }

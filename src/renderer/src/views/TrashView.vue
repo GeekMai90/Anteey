@@ -12,7 +12,7 @@
           </div>
           <div class="right-actions">
             <div class="sort-button-container" @click.stop="toggleSortMenu">
-              <SortTwo theme="outline" size="18" fill="var(--color-icon-menu-default)" />
+              <SortTwo theme="outline" size="18" fill="var(--color-icon-primary)" />
               <div v-if="showSortMenu" class="sort-dropdown-menu">
                 <div
                   v-for="option in sortOptions"
@@ -332,7 +332,7 @@ const handleCancelEmptyTrash = () => {
           transition: all 0.2s ease;
           padding: 0;
           border-radius: 8px;
-          background-color: var(--color-menu-bg);
+          background-color: var(--color-primary-light);
           border: 1px solid var(--color-primary);
 
           :deep(.i-icon) {
@@ -352,7 +352,7 @@ const handleCancelEmptyTrash = () => {
         .name {
           flex-grow: 0;
           text-align: left;
-          color: var(--default-text-color);
+          color: var(---color-text-primary);
           font-size: 20px;
           font-weight: 600;
           margin-left: 8px;
@@ -389,7 +389,7 @@ const handleCancelEmptyTrash = () => {
           position: relative;
 
           &:hover {
-            background-color: var(--sidebar-hover-bg);
+            background-color: var(--color-sidebar-hover);
           }
 
           &.active {
@@ -409,7 +409,7 @@ const handleCancelEmptyTrash = () => {
             position: absolute;
             top: 100%;
             right: 0;
-            background-color: var(--color-dropdown-bg);
+            background-color: var(--color-bg-primary);
             border-radius: 8px;
             box-shadow: var(--shadow-primary);
             z-index: 1000;
@@ -434,7 +434,7 @@ const handleCancelEmptyTrash = () => {
             margin: 2px 8px 2px 8px;
 
             &:hover {
-              background-color: var(--sidebar-hover-bg);
+              background-color: var(--color-sidebar-hover);
             }
 
             &.active {
@@ -448,7 +448,7 @@ const handleCancelEmptyTrash = () => {
           padding: 8px 12px;
           border: none;
           border-radius: 5px;
-          background-color: var(--color-text-danger);
+          background-color: var(--color-danger);
           color: white;
           font-size: 14px;
           cursor: pointer;
@@ -515,7 +515,7 @@ const handleCancelEmptyTrash = () => {
 
   .note-menu {
     position: fixed;
-    background-color: var(--color-dropdown-bg);
+    background-color: var(--color-bg-primary);
     border-radius: 8px;
     box-shadow: var(--shadow-primary);
     z-index: 1000;
@@ -564,7 +564,7 @@ const handleCancelEmptyTrash = () => {
       .name {
         flex-grow: 0;
         text-align: left;
-        color: var(--default-text-color);
+        color: var(---color-text-primary);
         font-size: 13px;
         font-weight: 400;
         margin-left: 6px;

@@ -812,7 +812,7 @@ onMounted(() => {
     align-items: center;
     gap: 0.5rem;
     padding: 0.75rem;
-    border: 1px solid var(--color-shape-secondary);
+    border: 1px solid var(--color-border-light);
     border-radius: 0.5rem;
     background: var(--color-bg-primary);
     cursor: pointer;
@@ -821,7 +821,7 @@ onMounted(() => {
     text-align: left;
 
     &:hover {
-      background: var(--color-shape-secondary);
+      background: var(--color-border-light);
     }
   }
 
@@ -844,13 +844,13 @@ onMounted(() => {
         background: rgba(var(--color-primary-rgb), 0.15);
         color: var(--color-primary);
         font-weight: 500;
-        // color: var(--color-text-inversion);
+        // color: var(--color-text-inverse);
         border-radius: 1rem 0 1rem 1rem;
       }
     }
 
     &.assistant .message {
-      background: var(--color-bg-ai-assistant);
+      background: var(--color-bg-secondary);
       color: var(--color-text-primary);
       border-radius: 0 1rem 1rem 1rem;
       max-width: calc(100% - 2rem);
@@ -995,14 +995,14 @@ onMounted(() => {
 
     &:hover {
       background: var(--color-hover-bg);
-      border-color: var(--color-shape-secondary);
+      border-color: var(--color-border-light);
     }
   }
 
   .input-container {
     display: flex;
     align-items: flex-start;
-    border: 1px solid var(--color-shape-secondary);
+    border: 1px solid var(--color-border-light);
     border-radius: 0.5rem;
     padding: 6px;
     background: var(--color-bg-secondary);

@@ -21,7 +21,7 @@
             <TextStyleOne
               theme="outline"
               size="16"
-              fill="var(--color-icon-menu-default)"
+              fill="var(--color-icon-primary)"
               :strokeWidth="3"
             />
           </div>
@@ -33,12 +33,7 @@
           @click="editorInstance.chain().focus().toggleBold().run()"
         >
           <div class="icon">
-            <TextBold
-              theme="outline"
-              size="16"
-              fill="var(--color-icon-menu-default)"
-              :strokeWidth="3"
-            />
+            <TextBold theme="outline" size="16" fill="var(--color-icon-primary)" :strokeWidth="3" />
           </div>
         </button>
         <!-- 斜体 -->
@@ -51,7 +46,7 @@
             <TextItalic
               theme="outline"
               size="16"
-              fill="var(--color-icon-menu-default)"
+              fill="var(--color-icon-primary)"
               :strokeWidth="3"
             />
           </div>
@@ -66,7 +61,7 @@
             <Strikethrough
               theme="outline"
               size="16"
-              fill="var(--color-icon-menu-default)"
+              fill="var(--color-icon-primary)"
               :strokeWidth="3"
             />
           </div>
@@ -81,7 +76,7 @@
             <TextUnderline
               theme="outline"
               size="16"
-              fill="var(--color-icon-menu-default)"
+              fill="var(--color-icon-primary)"
               :strokeWidth="3"
             />
           </div>
@@ -96,7 +91,7 @@
             <HighLight
               theme="outline"
               size="16"
-              fill="var(--color-icon-menu-default)"
+              fill="var(--color-icon-primary)"
               :strokeWidth="3"
             />
           </div>
@@ -109,12 +104,7 @@
           @click="toggleColorMenu"
         >
           <div class="icon">
-            <Platte
-              theme="outline"
-              size="16"
-              fill="var(--color-icon-menu-default)"
-              :strokeWidth="3"
-            />
+            <Platte theme="outline" size="16" fill="var(--color-icon-primary)" :strokeWidth="3" />
           </div>
         </button>
         <!-- 行内代码 -->
@@ -124,12 +114,7 @@
           @click="editorInstance.chain().focus().toggleCode().run()"
         >
           <div class="icon">
-            <CodeIcon
-              theme="outline"
-              size="16"
-              fill="var(--color-icon-menu-default)"
-              :strokeWidth="3"
-            />
+            <CodeIcon theme="outline" size="16" fill="var(--color-icon-primary)" :strokeWidth="3" />
           </div>
         </button>
         <!-- 链接 -->
@@ -139,12 +124,7 @@
           @click="showLinkMenu($event)"
         >
           <div class="icon">
-            <LinkTwo
-              theme="outline"
-              size="16"
-              fill="var(--color-icon-menu-default)"
-              :strokeWidth="3"
-            />
+            <LinkTwo theme="outline" size="16" fill="var(--color-icon-primary)" :strokeWidth="3" />
           </div>
         </button>
         <!-- 详情 -->
@@ -157,7 +137,7 @@
             <ParagraphTriangle
               theme="outline"
               size="16"
-              fill="var(--color-icon-menu-default)"
+              fill="var(--color-icon-primary)"
               :strokeWidth="3"
             />
           </div>
@@ -174,7 +154,7 @@
             <ParagraphAlphabet
               theme="outline"
               size="16"
-              fill="var(--color-icon-menu-default)"
+              fill="var(--color-icon-primary)"
               :strokeWidth="3"
             />
           </div>
@@ -186,12 +166,7 @@
           @click="toggleMoreMenu"
         >
           <div class="icon">
-            <More
-              theme="outline"
-              size="16"
-              fill="var(--color-icon-menu-default)"
-              :strokeWidth="3"
-            />
+            <More theme="outline" size="16" fill="var(--color-icon-primary)" :strokeWidth="3" />
           </div>
         </button>
       </div>
@@ -222,7 +197,7 @@
           <AlignTextLeft
             theme="outline"
             size="16"
-            fill="var(--color-icon-menu-default)"
+            fill="var(--color-icon-primary)"
             :strokeWidth="3"
           />
         </div>
@@ -236,7 +211,7 @@
           <AlignTextCenter
             theme="outline"
             size="16"
-            fill="var(--color-icon-menu-default)"
+            fill="var(--color-icon-primary)"
             :strokeWidth="3"
           />
         </div>
@@ -250,7 +225,7 @@
           <AlignTextRight
             theme="outline"
             size="16"
-            fill="var(--color-icon-menu-default)"
+            fill="var(--color-icon-primary)"
             :strokeWidth="3"
           />
         </div>
@@ -264,7 +239,7 @@
           <AlignTextBoth
             theme="outline"
             size="16"
-            fill="var(--color-icon-menu-default)"
+            fill="var(--color-icon-primary)"
             :strokeWidth="3"
           />
         </div>
@@ -278,12 +253,7 @@
     >
       <div class="context-menu-item" @click="clearFormatting">
         <div class="icon">
-          <Format
-            theme="outline"
-            size="16"
-            fill="var(--color-icon-menu-default)"
-            :strokeWidth="3"
-          />
+          <Format theme="outline" size="16" fill="var(--color-icon-primary)" :strokeWidth="3" />
         </div>
         <div class="name">清空格式</div>
       </div>
@@ -292,7 +262,7 @@
           <ClearFormat
             theme="outline"
             size="16"
-            fill="var(--color-icon-menu-default)"
+            fill="var(--color-icon-primary)"
             :strokeWidth="3"
           />
         </div>
@@ -300,19 +270,19 @@
       </div>
       <div class="context-menu-item" @click="copyToClipboard">
         <div class="icon">
-          <Copy theme="outline" size="16" fill="var(--color-icon-menu-default)" :strokeWidth="3" />
+          <Copy theme="outline" size="16" fill="var(--color-icon-primary)" :strokeWidth="3" />
         </div>
         <div class="name">复制到剪贴板</div>
       </div>
       <div class="context-menu-item" @click="insertParagraphBelow">
         <div class="icon">
-          <Plus theme="outline" size="16" fill="var(--color-icon-menu-default)" :strokeWidth="3" />
+          <Plus theme="outline" size="16" fill="var(--color-icon-primary)" :strokeWidth="3" />
         </div>
         <div class="name">在下方插入段落</div>
       </div>
       <div class="context-menu-item delete" @click="deleteParagraph">
         <div class="icon">
-          <Delete theme="outline" size="16" fill="var(--color-text-danger)" :strokeWidth="3" />
+          <Delete theme="outline" size="16" fill="var(--color-danger)" :strokeWidth="3" />
         </div>
         <div class="name">删除段落</div>
       </div>
@@ -322,23 +292,13 @@
       <div class="link-input-fields">
         <div class="link-input-field">
           <div class="icon">
-            <FontSize
-              theme="outline"
-              size="16"
-              fill="var(--color-icon-menu-default)"
-              :strokeWidth="3"
-            />
+            <FontSize theme="outline" size="16" fill="var(--color-icon-primary)" :strokeWidth="3" />
           </div>
           <input v-model="linkText" type="text" placeholder="链接文本" @keyup.enter="setLink" />
         </div>
         <div v-if="!isNoteReference" class="link-input-field">
           <div class="icon">
-            <LinkTwo
-              theme="outline"
-              size="16"
-              fill="var(--color-icon-menu-default)"
-              :strokeWidth="3"
-            />
+            <LinkTwo theme="outline" size="16" fill="var(--color-icon-primary)" :strokeWidth="3" />
           </div>
           <input v-model="linkUrl" type="text" placeholder="输入链接URL" @keyup.enter="setLink" />
         </div>
@@ -360,7 +320,7 @@
           <ParagraphAlphabet
             theme="outline"
             size="16"
-            fill="var(--color-icon-menu-default)"
+            fill="var(--color-icon-primary)"
             :strokeWidth="3"
           />
         </div>
@@ -368,30 +328,25 @@
       </button>
       <button @click="setNodeType('heading', { level: 1 })">
         <div class="icon">
-          <H1 theme="outline" size="16" fill="var(--color-icon-menu-default)" :strokeWidth="3" />
+          <H1 theme="outline" size="16" fill="var(--color-icon-primary)" :strokeWidth="3" />
         </div>
         <div class="name">标题1</div>
       </button>
       <button @click="setNodeType('heading', { level: 2 })">
         <div class="icon">
-          <H2 theme="outline" size="16" fill="var(--color-icon-menu-default)" :strokeWidth="3" />
+          <H2 theme="outline" size="16" fill="var(--color-icon-primary)" :strokeWidth="3" />
         </div>
         <div class="name">标题2</div>
       </button>
       <button @click="setNodeType('heading', { level: 3 })">
         <div class="icon">
-          <H3 theme="outline" size="16" fill="var(--color-icon-menu-default)" :strokeWidth="3" />
+          <H3 theme="outline" size="16" fill="var(--color-icon-primary)" :strokeWidth="3" />
         </div>
         <div class="name">标题3</div>
       </button>
       <button @click="setNodeType('bulletList')">
         <div class="icon">
-          <ListTwo
-            theme="outline"
-            size="16"
-            fill="var(--color-icon-menu-default)"
-            :strokeWidth="3"
-          />
+          <ListTwo theme="outline" size="16" fill="var(--color-icon-primary)" :strokeWidth="3" />
         </div>
         <div class="name">无序列表</div>
       </button>
@@ -400,7 +355,7 @@
           <OrderedList
             theme="outline"
             size="16"
-            fill="var(--color-icon-menu-default)"
+            fill="var(--color-icon-primary)"
             :strokeWidth="3"
           />
         </div>
@@ -411,7 +366,7 @@
           <ListSuccess
             theme="outline"
             size="16"
-            fill="var(--color-icon-menu-default)"
+            fill="var(--color-icon-primary)"
             :strokeWidth="3"
           />
         </div>
@@ -440,7 +395,7 @@
           <ClearFormat
             theme="outline"
             size="16"
-            fill="var(--color-icon-menu-default)"
+            fill="var(--color-icon-primary)"
             :strokeWidth="3"
           />
         </div>
@@ -1690,7 +1645,7 @@ const insertParagraphBelow = () => {
     flex-grow: 1;
     text-align: left;
     line-height: 1;
-    color: var(--default-text-color);
+    color: var(---color-text-primary);
     font-size: 13px;
     font-weight: 400;
     margin-left: 6px;
@@ -1702,7 +1657,7 @@ const insertParagraphBelow = () => {
     justify-content: center;
   }
   &.delete {
-    color: var(--color-text-danger);
+    color: var(--color-danger);
   }
 
   &:hover {
@@ -1880,7 +1835,7 @@ const insertParagraphBelow = () => {
     .name {
       // flex-grow: 1;
       text-align: left;
-      color: var(--default-text-color);
+      color: var(---color-text-primary);
       font-size: 13px;
       font-weight: 400;
       white-space: nowrap;
@@ -1960,7 +1915,7 @@ const insertParagraphBelow = () => {
 
     .name {
       text-align: left;
-      color: var(--default-text-color);
+      color: var(---color-text-primary);
       font-size: 13px;
       font-weight: 400;
       white-space: nowrap;

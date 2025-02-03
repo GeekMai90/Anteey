@@ -75,7 +75,7 @@ const getItemFill = (item: MenuItem) => {
     return '#ff4d4f'
   }
   // 使用 item.fill 如果存在，否则使用默认颜色
-  return item.fill || 'var(--color-icon-menu-default)'
+  return item.fill || 'var(--color-icon-primary)'
 }
 
 // 处理点击事件
@@ -113,7 +113,7 @@ onUnmounted(() => {
 
 <style scoped lang="scss">
 .popup-menu {
-  background-color: var(--color-dropdown-bg);
+  background-color: var(--color-bg-primary);
   border-color: var(--color-border-primary);
   border-radius: 8px;
   box-shadow: var(--shadow-primary);

@@ -1,12 +1,7 @@
 <template>
   <div class="filter-button" :class="{ active: modelValue }" @click="toggleFilter">
     <div class="icon">
-      <StorageCardOne
-        theme="outline"
-        size="18"
-        fill="var(--color-icon-menu-default)"
-        :strokeWidth="3"
-      />
+      <StorageCardOne theme="outline" size="18" fill="var(--color-icon-primary)" :strokeWidth="3" />
     </div>
     <div class="name">闪卡</div>
   </div>

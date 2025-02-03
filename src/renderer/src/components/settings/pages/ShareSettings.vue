@@ -3,7 +3,7 @@
     <div class="share-settings-wrapper">
       <div class="settings-content-header">
         <div class="icon">
-          <Share theme="outline" size="20" fill="var(--color-icon-menu-default)" :strokeWidth="3" />
+          <Share theme="outline" size="20" fill="var(--color-icon-primary)" :strokeWidth="3" />
         </div>
         <div class="name">分享设置</div>
       </div>

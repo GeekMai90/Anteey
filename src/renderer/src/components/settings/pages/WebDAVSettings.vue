@@ -2,12 +2,7 @@
   <div class="webdav-settings">
     <div class="settings-content-header">
       <div class="icon">
-        <CloudStorage
-          theme="outline"
-          size="20"
-          fill="var(--color-icon-menu-default)"
-          :strokeWidth="3"
-        />
+        <CloudStorage theme="outline" size="20" fill="var(--color-icon-primary)" :strokeWidth="3" />
       </div>
       <div class="name">同步</div>
     </div>
@@ -445,7 +440,7 @@ watch(
         width: 80px;
         height: 35px;
         background-color: var(--color-primary);
-        color: var(--color-text-inversion);
+        color: var(--color-text-inverse);
         border-radius: 8px;
         font-size: 14px;
         font-weight: 500;
@@ -679,7 +674,7 @@ watch(
     top: calc(100% + 4px);
     left: 0;
     width: 100%;
-    background: var(--color-dropdown-bg);
+    background: var(--color-bg-primary);
     border: 1px solid var(--color-border);
     border-radius: 8px;
     padding: 4px;

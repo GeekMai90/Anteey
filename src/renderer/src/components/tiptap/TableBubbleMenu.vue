@@ -16,12 +16,7 @@
         @click="editor.chain().focus().addRowBefore().run()"
       >
         <div class="icon top-icon">
-          <LinkLeft
-            theme="outline"
-            size="16"
-            fill="var(--color-icon-menu-default)"
-            :strokeWidth="3"
-          />
+          <LinkLeft theme="outline" size="16" fill="var(--color-icon-primary)" :strokeWidth="3" />
         </div>
       </button>
       <button
@@ -29,12 +24,7 @@
         @click="editor.chain().focus().addRowAfter().run()"
       >
         <div class="icon bottom-icon">
-          <LinkRight
-            theme="outline"
-            size="16"
-            fill="var(--color-icon-menu-default)"
-            :strokeWidth="3"
-          />
+          <LinkRight theme="outline" size="16" fill="var(--color-icon-primary)" :strokeWidth="3" />
         </div>
       </button>
       <button
@@ -42,12 +32,7 @@
         @click="editor.chain().focus().deleteRow().run()"
       >
         <div class="icon">
-          <Delete
-            theme="outline"
-            size="16"
-            fill="var(--color-icon-menu-default)"
-            :strokeWidth="3"
-          />
+          <Delete theme="outline" size="16" fill="var(--color-icon-primary)" :strokeWidth="3" />
         </div>
       </button>
       <div class="divider"></div>
@@ -56,12 +41,7 @@
         @click="editor.chain().focus().addColumnBefore().run()"
       >
         <div class="icon">
-          <LinkLeft
-            theme="outline"
-            size="16"
-            fill="var(--color-icon-menu-default)"
-            :strokeWidth="3"
-          />
+          <LinkLeft theme="outline" size="16" fill="var(--color-icon-primary)" :strokeWidth="3" />
         </div>
       </button>
       <button
@@ -69,12 +49,7 @@
         @click="editor.chain().focus().addColumnAfter().run()"
       >
         <div class="icon">
-          <LinkRight
-            theme="outline"
-            size="16"
-            fill="var(--color-icon-menu-default)"
-            :strokeWidth="3"
-          />
+          <LinkRight theme="outline" size="16" fill="var(--color-icon-primary)" :strokeWidth="3" />
         </div>
       </button>
       <button
@@ -82,12 +57,7 @@
         @click="editor.chain().focus().deleteColumn().run()"
       >
         <div class="icon">
-          <Delete
-            theme="outline"
-            size="16"
-            fill="var(--color-icon-menu-default)"
-            :strokeWidth="3"
-          />
+          <Delete theme="outline" size="16" fill="var(--color-icon-primary)" :strokeWidth="3" />
         </div>
       </button>
       <div class="divider"></div>
@@ -96,12 +66,7 @@
         @click="editor.chain().focus().toggleHeaderRow().run()"
       >
         <div class="icon">
-          <FreezeLine
-            theme="outline"
-            size="16"
-            fill="var(--color-icon-menu-default)"
-            :strokeWidth="3"
-          />
+          <FreezeLine theme="outline" size="16" fill="var(--color-icon-primary)" :strokeWidth="3" />
         </div>
       </button>
       <button
@@ -112,7 +77,7 @@
           <FreezeColumn
             theme="outline"
             size="16"
-            fill="var(--color-icon-menu-default)"
+            fill="var(--color-icon-primary)"
             :strokeWidth="3"
           />
         </div>
@@ -122,12 +87,7 @@
         @click="editor.chain().focus().mergeOrSplit().run()"
       >
         <div class="icon">
-          <MergeCells
-            theme="outline"
-            size="16"
-            fill="var(--color-icon-menu-default)"
-            :strokeWidth="3"
-          />
+          <MergeCells theme="outline" size="16" fill="var(--color-icon-primary)" :strokeWidth="3" />
         </div>
       </button>
     </div>

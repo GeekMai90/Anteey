@@ -499,7 +499,7 @@ const remainingMessage = computed(() => {
 
   // 共享的卡片样式
   %card-base {
-    background: var(--color-bg-flashcard);
+    background: var(--color-bg-primary);
     border-radius: 12px;
     border: 1px solid var(--color-border);
     padding: 24px;
@@ -705,7 +705,7 @@ const remainingMessage = computed(() => {
                 transition: width 0.3s ease;
 
                 &.skip {
-                  background: rgba(var(--color-text-secondary-rgb), 0.5);
+                  background: rgba(var(--color-text-secondary), 0.5);
                 }
 
                 &.forgot {

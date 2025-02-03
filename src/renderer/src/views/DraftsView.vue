@@ -177,7 +177,7 @@ onBeforeUnmount(() => {
           transition: all 0.2s ease;
           padding: 0;
           border-radius: 8px;
-          background-color: var(--color-menu-bg);
+          background-color: var(--color-primary-light);
           border: 1px solid var(--color-primary);
 
           :deep(.i-icon) {
@@ -197,7 +197,7 @@ onBeforeUnmount(() => {
         .name {
           flex-grow: 0;
           text-align: left;
-          color: var(--default-text-color);
+          color: var(---color-text-primary);
           font-size: 20px;
           font-weight: 600;
           margin-left: 8px;

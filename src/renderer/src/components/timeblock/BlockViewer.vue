@@ -134,7 +134,7 @@ const handleCancelEdit = () => {
     padding: 10px 16px;
     border-bottom: 1px solid var(--color-border);
     flex-shrink: 0;
-    background: var(--color-bg-2);
+    background: var(--color-bg-note-card);
     text-align: center;
 
     h3 {
@@ -149,7 +149,7 @@ const handleCancelEdit = () => {
       .date {
         font-size: 1rem;
         font-weight: 500;
-        color: var(--color-text-2);
+        color: var(--color-text-secondary);
       }
     }
   }
@@ -224,8 +224,8 @@ const handleCancelEdit = () => {
 
       .time-content {
         flex: 1;
-        background: var(--color-bg-2);
-        border: 1px solid var(--color-border);
+        background: var(--color-bg-note-card);
+        border: 1px solid var(--color-border-light);
         border-radius: 6px;
         padding: 8px 10px;
         transition: all 0.2s;
@@ -241,7 +241,7 @@ const handleCancelEdit = () => {
         position: relative;
         min-height: 24px;
         border-radius: 6px;
-        background: var(--color-bg-2);
+        background: var(--color-bg-note-card);
         transition: all 0.2s;
       }
     }

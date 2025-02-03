@@ -13,7 +13,7 @@
           <ImageFiles
             theme="outline"
             size="20"
-            fill="var(--color-icon-menu-default)"
+            fill="var(--color-icon-primary)"
             :strokeWidth="3"
           />
         </div>
@@ -21,34 +21,19 @@
       </div> -->
       <div class="vector-update setting-dropdown-item" @click.stop="handleVectorUpdate">
         <div class="icon">
-          <Refresh
-            theme="outline"
-            size="20"
-            fill="var(--color-icon-menu-default)"
-            :strokeWidth="3"
-          />
+          <Refresh theme="outline" size="20" fill="var(--color-icon-primary)" :strokeWidth="3" />
         </div>
         <div class="name">更新向量索引</div>
       </div>
       <div class="recycle-bin setting-dropdown-item" @click.stop="handleRecycleBinClick">
         <div class="icon">
-          <RecycleBin
-            theme="outline"
-            size="20"
-            fill="var(--color-icon-menu-default)"
-            :strokeWidth="3"
-          />
+          <RecycleBin theme="outline" size="20" fill="var(--color-icon-primary)" :strokeWidth="3" />
         </div>
         <div class="name">回收站</div>
       </div>
       <div class="settings setting-dropdown-item" @click.stop="handleSettingsClick">
         <div class="icon">
-          <SettingTwo
-            theme="outline"
-            size="20"
-            fill="var(--color-icon-menu-default)"
-            :strokeWidth="3"
-          />
+          <SettingTwo theme="outline" size="20" fill="var(--color-icon-primary)" :strokeWidth="3" />
         </div>
         <div class="name">设置</div>
       </div>
@@ -164,7 +149,7 @@ onUnmounted(() => {
 
 <style scoped lang="scss">
 .setting-dropdown-menu {
-  background-color: var(--color-dropdown-bg);
+  background-color: var(--color-bg-primary);
   border-radius: 8px;
   box-shadow: var(--shadow-primary);
   z-index: 1001;
@@ -243,7 +228,7 @@ onUnmounted(() => {
   .name {
     flex-grow: 0;
     text-align: left;
-    color: var(--default-text-color);
+    color: var(---color-text-primary);
     font-size: 13px;
     font-weight: 400;
     margin-left: 6px;

@@ -202,8 +202,8 @@ onMounted(async () => {
 .task-widget {
   padding: 16px;
   background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border-light);
   border-radius: 8px;
-  box-shadow: inset 0 0 0 1px rgba(var(--color-sidebar-icon-bg), 0.05);
   display: flex;
   flex-direction: column;
   gap: 12px;

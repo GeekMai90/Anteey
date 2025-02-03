@@ -677,7 +677,7 @@ watch(noiseAmount, (value) => {
 
 <style lang="scss" scoped>
 .theme-color-picker {
-  background: var(--color-note-card-bg);
+  background: var(--color-bg-note-card);
   box-shadow: var(--shadow-card);
   border: 1px solid var(--color-border);
   backdrop-filter: blur(10px);

@@ -175,7 +175,7 @@ onBeforeUnmount(() => {
 
     &.future-log {
       min-height: 200px;
-      background: var(--color-bg-2);
+      background: var(--color-bg-note-card);
       border-radius: 8px;
       border: 1px solid var(--color-border);
 

@@ -23,7 +23,7 @@
           <HandPaintedPlate
             theme="outline"
             size="20"
-            fill="var(--color-icon-menu-default)"
+            fill="var(--color-icon-primary)"
             :strokeWidth="3"
           />
         </div>
@@ -191,7 +191,7 @@ const finishEditing = async (event?: Event) => {
   height: 100%;
   display: flex;
   flex-direction: column;
-  background-color: var(--color-note-card-bg);
+  background-color: var(--color-bg-note-card);
   border-radius: 12px;
   padding: 16px;
   box-shadow:

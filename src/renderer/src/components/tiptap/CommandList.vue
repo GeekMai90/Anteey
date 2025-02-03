@@ -15,7 +15,7 @@
             :is="item.icon"
             theme="outline"
             size="18"
-            :fill="item.fill || 'var(--color-icon-menu-default)'"
+            :fill="item.fill || 'var(--color-icon-primary)'"
             :strokeWidth="3"
           />
         </div>
@@ -157,7 +157,7 @@ defineExpose({
   .name {
     flex-grow: 0;
     text-align: left;
-    color: var(--default-text-color);
+    color: var(---color-text-primary);
     font-size: 13px;
     font-weight: 400;
     margin-left: 6px;

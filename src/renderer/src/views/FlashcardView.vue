@@ -477,7 +477,7 @@ onMounted(initializeData)
           transition: all 0.2s ease;
           padding: 0;
           border-radius: 8px;
-          background-color: var(--color-menu-bg);
+          background-color: var(--color-primary-light);
           border: 1px solid var(--color-primary);
 
           :deep(.i-icon) {
@@ -585,7 +585,7 @@ onMounted(initializeData)
     // margin-top: 20px;
 
     .stats-card {
-      background: var(--color-bg-flashcard);
+      background: var(--color-bg-primary);
       border: 1px solid var(--color-border);
       border-radius: 12px;
       padding: 20px;
@@ -737,7 +737,7 @@ onMounted(initializeData)
   border: 1px solid var(--color-border);
   border-radius: 12px;
   overflow: hidden;
-  background: var(--color-bg-flashcard);
+  background: var(--color-bg-primary);
   flex-shrink: 0;
 
   .deck-list-header {
@@ -803,7 +803,7 @@ onMounted(initializeData)
         align-items: center;
         justify-content: center;
         border-radius: 8px;
-        background: var(--color-menu-bg);
+        background: var(--color-primary-light);
         color: var(--color-primary);
 
         :deep(.i-icon) {

@@ -539,7 +539,7 @@ const focusSearchInput = () => {
 
   &:hover,
   &.selected {
-    background-color: var(--sidebar-hover-bg);
+    background-color: var(--color-sidebar-hover);
   }
 }
 
@@ -732,7 +732,7 @@ const focusSearchInput = () => {
   cursor: pointer;
 
   &:hover {
-    background-color: var(--sidebar-hover-bg);
+    background-color: var(--color-sidebar-hover);
   }
 }
 

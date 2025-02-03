@@ -174,11 +174,10 @@ const flashcardTooltip = computed(() => {
 
 <style lang="scss" scoped>
 .note-card {
-  background-color: var(--color-note-card-bg);
-  border: 1px solid var(--time-card-border-color);
+  background-color: var(--color-bg-note-card);
   border-radius: 12px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--color-border-light);
   transition: all 0.3s ease;
   padding: 15px 0px 10px 0;
   margin-bottom: 15px;
@@ -319,7 +318,7 @@ const flashcardTooltip = computed(() => {
         .name {
           flex-grow: 0;
           text-align: left;
-          color: var(--default-text-color);
+          color: var(---color-text-primary);
           font-size: 13px;
           font-weight: 400;
           margin-left: 6px;

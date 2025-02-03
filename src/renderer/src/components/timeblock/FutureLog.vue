@@ -281,7 +281,7 @@ onMounted(() => {
         top: calc(100% + 4px);
         left: 0;
         min-width: 100%;
-        background: var(--color-dropdown-bg);
+        background: var(--color-bg-primary);
         border: 1px solid var(--color-border);
         border-radius: 8px;
         padding: 4px;
@@ -351,7 +351,7 @@ onMounted(() => {
     :deep(.monthly-log-editor) {
       flex: 1;
       min-height: 0;
-      background-color: var(--color-note-card-bg);
+      background-color: var(--color-bg-note-card);
       border-radius: 12px;
       // box-shadow: var(--shadow-card);
       padding: 20px;
@@ -362,15 +362,15 @@ onMounted(() => {
       overflow: hidden;
 
       .theme-dark & {
-        background-color: var(--color-bg-2);
-        border-color: var(--color-shape-primary);
+        background-color: var(--color-bg-note-card);
+        border-color: var(--color-border-light);
       }
 
       &:hover {
         // border-color: var(--color-primary);
 
         .theme-dark & {
-          background-color: var(--color-note-card-bg);
+          background-color: var(--color-bg-note-card);
         }
       }
 

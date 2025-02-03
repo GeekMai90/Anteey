@@ -2,7 +2,7 @@
   <div class="appearance-settings">
     <div class="settings-content-header">
       <div class="icon">
-        <Theme theme="outline" size="20" fill="var(--color-icon-menu-default)" :strokeWidth="3" />
+        <Theme theme="outline" size="20" fill="var(--color-icon-primary)" :strokeWidth="3" />
       </div>
       <div class="name">外观</div>
     </div>
@@ -639,7 +639,7 @@ onMounted(() => {
           top: calc(100% + 4px);
           left: 0;
           width: 100%;
-          background: var(--color-dropdown-bg);
+          background: var(--color-bg-primary);
           border: 1px solid var(--color-border);
           border-radius: 8px;
           padding: 4px;
@@ -782,7 +782,7 @@ onMounted(() => {
           top: calc(100% + 4px);
           left: 0;
           width: 100%;
-          background: var(--color-dropdown-bg);
+          background: var(--color-bg-primary);
           border: 1px solid var(--color-border);
           border-radius: 8px;
           padding: 4px;

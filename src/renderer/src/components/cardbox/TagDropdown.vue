@@ -1,7 +1,7 @@
 <template>
   <div ref="reference" class="tag-dropdown" @click.stop="toggleMenu">
     <div class="icon">
-      <Tag theme="outline" size="18" fill="var(--color-icon-menu-default)" :strokeWidth="3" />
+      <Tag theme="outline" size="18" fill="var(--color-icon-primary)" :strokeWidth="3" />
     </div>
     <div class="name">{{ selectedTagName || '标签' }}</div>
     <div class="icon down-icon">
@@ -34,12 +34,7 @@
         >
           <div class="dropdown-item-content">
             <div class="icon">
-              <Tag
-                theme="outline"
-                size="18"
-                fill="var(--color-icon-menu-default)"
-                :strokeWidth="3"
-              />
+              <Tag theme="outline" size="18" fill="var(--color-icon-primary)" :strokeWidth="3" />
             </div>
             <div class="name">所有标签</div>
           </div>
@@ -52,12 +47,7 @@
         >
           <div class="dropdown-item-content">
             <div class="icon">
-              <TagOne
-                theme="outline"
-                size="18"
-                fill="var(--color-icon-menu-default)"
-                :strokeWidth="3"
-              />
+              <TagOne theme="outline" size="18" fill="var(--color-icon-primary)" :strokeWidth="3" />
             </div>
             <div class="name">无标签</div>
           </div>
@@ -76,12 +66,7 @@
         >
           <div class="dropdown-item-content" @click.stop="select(tag)">
             <div class="icon">
-              <TagOne
-                theme="outline"
-                size="18"
-                fill="var(--color-icon-menu-default)"
-                :strokeWidth="3"
-              />
+              <TagOne theme="outline" size="18" fill="var(--color-icon-primary)" :strokeWidth="3" />
             </div>
             <div class="name">{{ tag.name }}</div>
           </div>
@@ -304,7 +289,7 @@ onUnmounted(() => {
     .name {
       flex-grow: 0;
       text-align: left;
-      color: var(--default-text-color);
+      color: var(---color-text-primary);
       font-size: 13px;
       font-weight: 400;
       margin-left: 6px;

@@ -146,7 +146,7 @@ const startResize = (e: MouseEvent) => {
 <style scoped lang="scss">
 .right-sidebar {
   height: 100vh;
-  background-color: var(--sidebar-bg);
+  background-color: var(--color-bg-secondary);
   display: flex;
   flex-direction: column;
   transition: width 0.3s ease;

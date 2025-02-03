@@ -135,13 +135,13 @@ onBeforeUnmount(() => {
       }
 
       &::-webkit-scrollbar-thumb {
-        background-color: var(--color-scrollbar-thumb-bg);
+        background-color: var(--color-scroll-thumb);
         border-radius: 4px;
         border: 2px solid transparent;
         background-clip: padding-box;
 
         &:hover {
-          background-color: var(--color-scrollbar-thumb-hover-bg);
+          background-color: var(--color-scrollbar-thumb-hover);
         }
       }
     }
@@ -191,7 +191,7 @@ onBeforeUnmount(() => {
         }
 
         &:hover::before {
-          background-color: var(--color-menu-bg);
+          background-color: var(--color-primary-light);
           transform: translateY(-50%) scale(1.1);
         }
 

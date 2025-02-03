@@ -618,7 +618,7 @@ defineExpose({ show, hide })
 
   &:hover,
   &.selected {
-    background-color: var(--sidebar-hover-bg);
+    background-color: var(--color-sidebar-hover);
     // box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   }
 }
@@ -716,7 +716,7 @@ defineExpose({ show, hide })
 .preview-container {
   width: 40%;
   padding: 0px;
-  background-color: var(--color-note-card-bg);
+  background-color: var(--color-bg-note-card);
   overflow-y: auto;
   height: 100%;
   border: var(--color-border) 1px solid;
@@ -757,7 +757,7 @@ defineExpose({ show, hide })
   }
 
   .suggestions {
-    background-color: var(--sidebar-bg);
+    background-color: var(--color-bg-secondary);
     border-radius: 8px;
     padding: 16px;
     text-align: left;

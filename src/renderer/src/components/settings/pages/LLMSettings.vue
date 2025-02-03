@@ -3,7 +3,7 @@
     <div class="llm-settings-wrapper">
       <div class="settings-content-header">
         <div class="icon">
-          <Robot theme="outline" size="20" fill="var(--color-icon-menu-default)" :strokeWidth="3" />
+          <Robot theme="outline" size="20" fill="var(--color-icon-primary)" :strokeWidth="3" />
         </div>
         <div class="name">模型配置</div>
       </div>
