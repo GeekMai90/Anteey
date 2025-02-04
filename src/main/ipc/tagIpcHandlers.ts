@@ -11,13 +11,13 @@ import {
   searchTagsAdvanced,
   getNoteTags
 } from '../../services/notes/tagService'
-import type { Tag, TagSearchParams } from '@shared/types'
+import type { Tag, TagSearchParams, IconName } from '@shared/types'
 
 export function setupTagHandlers() {
   // 创建标签
   ipcMain.handle(
     'create-tag',
-    async (_event, { name, color, icon }: { name: string; color?: string; icon?: string }) => {
+    async (_event, { name, color, icon }: { name: string; color?: string; icon?: IconName }) => {
       try {
         const newTag = await createTag(name, color, icon)
         return { success: true, tag: newTag }

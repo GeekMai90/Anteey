@@ -26,3 +26,82 @@ export * from './assistant'
 export * from './embedding'
 export * from './dictionary'
 export * from './mindboard'
+
+// 定义图标名称类型
+export type IconName =
+  // 文档类
+  | 'Book'
+  | 'Notes'
+  | 'FolderOne'
+  | 'FolderOpen'
+  | 'Bookmark'
+  | 'BookOne'
+  | 'Notebook'
+  | 'Bookshelf'
+  | 'FileText'
+  | 'FileFocus'
+
+  // 标记类
+  | 'Tag'
+  | 'TagOne'
+  | 'Flag'
+  | 'Star'
+  | 'Like'
+  | 'Heart'
+
+  // 列表和任务
+  | 'ListTwo'
+  | 'Checklist'
+
+  // 容器类
+  | 'Box'
+  | 'Inbox'
+  | 'Cube'
+  | 'FileCabinet'
+
+  // 场所和建筑
+  | 'Home'
+  | 'Bank'
+  | 'School'
+
+  // 工具和操作
+  | 'Write'
+  | 'Code'
+  | 'Bug'
+  | 'Link'
+  | 'Edit'
+  | 'Delete'
+  | 'Copy'
+  | 'Search'
+
+  // 时间类
+  | 'Time'
+  | 'Calendar'
+  | 'Alarm'
+  | 'Schedule'
+
+  // 思考和创意
+  | 'Brain'
+  | 'Lamp'
+  | 'Light'
+
+  // 游戏和娱乐
+  | 'GameHandle'
+  | 'Play'
+
+  // 其他常用
+  | 'Target'
+  | 'Plus'
+  | 'Minus'
+  | 'Close'
+  | 'More'
+  | 'Setting'
+  | 'Config'
+  | 'Help'
+  | 'Info'
+  | 'Refresh'
+  | 'Download'
+  | 'Upload'
+  | 'Share'
+  | 'Lock'
+  | 'Unlock'

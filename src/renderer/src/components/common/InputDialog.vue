@@ -13,7 +13,6 @@
                     <template v-if="selectedIcon">
                       <component
                         :is="getIconComponent(selectedIcon)"
-                        v-if="selectedIcon"
                         theme="outline"
                         size="20"
                         :fill="'var(--color-text-secondary)'"
@@ -58,7 +57,8 @@
 <script setup lang="ts">
 import { ref, watch, nextTick } from 'vue'
 import IconPicker from './IconPicker.vue'
-import * as IconPark from '@icon-park/vue-next'
+import { getIconComponent } from '@renderer/utils/iconMap'
+import type { IconName } from '@shared/types'
 import { onClickOutside } from '@vueuse/core'
 
 const props = defineProps<{
@@ -66,7 +66,7 @@ const props = defineProps<{
   title: string
   placeholder?: string
   initialValue?: string
-  initialIcon?: string
+  initialIcon?: IconName
   showIconPicker?: boolean
   cancelText?: string
   confirmText?: string
@@ -74,17 +74,20 @@ const props = defineProps<{
 
 interface DialogResult {
   name: string
-  icon?: string
+  icon?: IconName
 }
 
 const emit = defineEmits<{
   (e: 'update:visible', value: boolean): void
-  (e: 'confirm', value: DialogResult): void // 修改这里的类型
+  (e: 'confirm', value: DialogResult): void
   (e: 'cancel'): void
 }>()
 
 const inputRef = ref<HTMLInputElement | null>(null)
 const inputValue = ref(props.initialValue || '')
+const selectedIcon = ref<IconName | undefined>(props.initialIcon)
+const iconPickerRef = ref<HTMLElement | null>(null)
+const isPickerVisible = ref(false)
 
 // 监听visible变化，当显示时自动聚焦并选中文本
 watch(
@@ -92,6 +95,7 @@ watch(
   async (newValue) => {
     if (newValue) {
       inputValue.value = props.initialValue || ''
+      selectedIcon.value = props.initialIcon
       await nextTick()
       inputRef.value?.focus()
       inputRef.value?.select()
@@ -109,20 +113,10 @@ const handleCancel = () => {
   emit('update:visible', false)
 }
 
-const selectedIcon = ref(props.initialIcon || '')
-const iconPickerRef = ref<HTMLElement | null>(null)
-const isPickerVisible = ref(false)
-
 // 点击图标选择器外部时关闭
 onClickOutside(iconPickerRef, () => {
   isPickerVisible.value = false
 })
-
-const getIconComponent = (iconName: string) => {
-  // 确保组件存在
-  const IconComponent = IconPark[iconName as keyof typeof IconPark]
-  return IconComponent || null
-}
 
 const handleConfirm = () => {
   if (inputValue.value.trim()) {

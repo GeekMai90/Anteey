@@ -134,19 +134,19 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { Down, Right, Pound, Edit, Delete, Pushpin } from '@icon-park/vue-next'
-import { TagTreeNode } from '@shared/types'
+import { getIconComponent } from '@renderer/utils/iconMap'
+import { TagTreeNode, IconName } from '@shared/types'
 import ConfirmDialog from '@renderer/components/common/ConfirmDialog.vue'
 import InputDialog from '@renderer/components/common/InputDialog.vue'
 import { useTagStore } from '@renderer/stores/tagStore'
 import { message } from '@renderer/utils/message'
 import { useEventBus } from '@vueuse/core'
-import * as IconPark from '@icon-park/vue-next'
 
 const tagStore = useTagStore()
 const tagChangeEventBus = useEventBus('tagChange')
 
 const props = defineProps<{
-  tag: TagTreeNode
+  tag: TagTreeNode & { icon?: IconName }
   level: number
 }>()
 
@@ -218,7 +218,7 @@ const editingTagName = computed(() => {
 })
 
 // 确认编辑
-const handleEditConfirm = async (data: { name: string; icon?: string }) => {
+const handleEditConfirm = async (data: { name: string; icon?: IconName }) => {
   try {
     await tagStore.updateTag(props.tag.id, {
       name: data.name.trim(), // 直接使用用户输入的值
@@ -254,10 +254,6 @@ const confirmDelete = async () => {
     console.error('删除标签失败:', error)
     message.error('删除标签失败')
   }
-}
-// 添加获取图标组件的函数
-const getIconComponent = (iconName: string) => {
-  return IconPark[iconName as keyof typeof IconPark]
 }
 </script>
 

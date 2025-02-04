@@ -1,5 +1,5 @@
 import { ipcRenderer } from 'electron'
-import type { Tag, TagSearchParams } from '@shared/types'
+import type { Tag, TagSearchParams, IconName } from '@shared/types'
 
 export const tagApi = {
   // 创建标签
@@ -10,7 +10,7 @@ export const tagApi = {
   }: {
     name: string
     color?: string
-    icon?: string
+    icon?: IconName
   }): Promise<Tag> => {
     try {
       const result = await ipcRenderer.invoke('create-tag', { name, color, icon })

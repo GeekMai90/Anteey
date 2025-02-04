@@ -105,7 +105,8 @@ import type {
   SystemPromptConfig,
 
   // 思维板相关
-  Mindboard
+  Mindboard,
+  IconName
 } from '@shared/types'
 
 export interface ElectronAPI {
@@ -229,7 +230,7 @@ export interface ElectronAPI {
   }
   tag: {
     // 创建标签
-    createTag: (params: { name: string; color?: string; icon?: string }) => Promise<Tag>
+    createTag: (params: { name: string; color?: string; icon?: IconName }) => Promise<Tag>
     // 获取所有标签（包含使用次数）
     getAllTags: () => Promise<Tag[]>
     // 根据ID获取标签

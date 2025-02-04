@@ -1,12 +1,73 @@
 import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight'
 import { VueNodeViewRenderer } from '@tiptap/vue-3'
 import CodeBlockComponent from '@renderer/components/tiptap/CodeBlockComponent.vue'
-import { all, createLowlight } from 'lowlight'
+import { createLowlight } from 'lowlight'
 import { Component } from 'vue'
 import { TextSelection } from '@tiptap/pm/state'
 import { message } from '@renderer/utils/message'
 
-const lowlight = createLowlight(all)
+// 导入常用语言
+import javascript from 'highlight.js/lib/languages/javascript'
+import typescript from 'highlight.js/lib/languages/typescript'
+import python from 'highlight.js/lib/languages/python'
+import java from 'highlight.js/lib/languages/java'
+import go from 'highlight.js/lib/languages/go'
+import rust from 'highlight.js/lib/languages/rust'
+import cpp from 'highlight.js/lib/languages/cpp'
+import csharp from 'highlight.js/lib/languages/csharp'
+import php from 'highlight.js/lib/languages/php'
+import ruby from 'highlight.js/lib/languages/ruby'
+import swift from 'highlight.js/lib/languages/swift'
+import kotlin from 'highlight.js/lib/languages/kotlin'
+import html from 'highlight.js/lib/languages/xml'
+import css from 'highlight.js/lib/languages/css'
+import scss from 'highlight.js/lib/languages/scss'
+import sql from 'highlight.js/lib/languages/sql'
+import json from 'highlight.js/lib/languages/json'
+import yaml from 'highlight.js/lib/languages/yaml'
+import markdown from 'highlight.js/lib/languages/markdown'
+import bash from 'highlight.js/lib/languages/bash'
+import shell from 'highlight.js/lib/languages/shell'
+import plaintext from 'highlight.js/lib/languages/plaintext'
+
+const lowlight = createLowlight()
+
+// 注册语言
+lowlight.register('javascript', javascript)
+lowlight.register('js', javascript)
+lowlight.register('typescript', typescript)
+lowlight.register('ts', typescript)
+lowlight.register('python', python)
+lowlight.register('py', python)
+lowlight.register('java', java)
+lowlight.register('go', go)
+lowlight.register('rust', rust)
+lowlight.register('cpp', cpp)
+lowlight.register('c++', cpp)
+lowlight.register('csharp', csharp)
+lowlight.register('cs', csharp)
+lowlight.register('php', php)
+lowlight.register('ruby', ruby)
+lowlight.register('rb', ruby)
+lowlight.register('swift', swift)
+lowlight.register('kotlin', kotlin)
+lowlight.register('kt', kotlin)
+lowlight.register('html', html)
+lowlight.register('xml', html)
+lowlight.register('vue', html)
+lowlight.register('css', css)
+lowlight.register('scss', scss)
+lowlight.register('sql', sql)
+lowlight.register('json', json)
+lowlight.register('yaml', yaml)
+lowlight.register('yml', yaml)
+lowlight.register('markdown', markdown)
+lowlight.register('md', markdown)
+lowlight.register('bash', bash)
+lowlight.register('shell', shell)
+lowlight.register('sh', shell)
+lowlight.register('plaintext', plaintext)
+lowlight.register('text', plaintext)
 
 export const CustomCodeBlock = CodeBlockLowlight.extend({
   name: 'codeBlock',

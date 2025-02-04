@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { Tag, TagTreeNode } from '@shared/types'
-import type { TagSearchParams } from '@shared/types'
+import type { TagSearchParams, IconName } from '@shared/types'
 
 export const useTagStore = defineStore('tag', () => {
   // ==================== 状态 ====================
@@ -42,7 +42,7 @@ export const useTagStore = defineStore('tag', () => {
             noteCount: actualTag ? actualTag.useCount || 0 : 0,
             totalCount: 0,
             color: actualTag?.color,
-            icon: actualTag?.icon,
+            icon: actualTag?.icon as IconName | undefined,
             pinned: actualTag?.pinned || false,
             pinOrder: actualTag?.pinOrder
           }
@@ -104,7 +104,7 @@ export const useTagStore = defineStore('tag', () => {
   }
 
   // 创建新标签
-  const createTag = async (params: { name: string; color?: string; icon?: string }) => {
+  const createTag = async (params: { name: string; color?: string; icon?: IconName }) => {
     try {
       const newTag = await window.electronAPI.tag.createTag(params)
       await fetchTagTree()

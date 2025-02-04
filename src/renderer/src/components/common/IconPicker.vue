@@ -26,30 +26,29 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import * as IconPark from '@icon-park/vue-next'
+import { getIconComponent, getAvailableIcons } from '@renderer/utils/iconMap'
+import type { IconName } from '@shared/types'
 import { iconKeywords } from './iconKeywords'
-// 从 IconPark 中获取所有图标
-const icons = Object.entries(IconPark)
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  .filter(([name, component]) => typeof component === 'object' && name.length > 0)
-  .map(([name]) => ({
-    name,
-    component: IconPark[name as keyof typeof IconPark],
-    keywords: iconKeywords[name] || [] // 添加关键词数组
-  }))
+
+// 获取可用的图标列表
+const icons = getAvailableIcons().map((name: IconName) => ({
+  name,
+  component: getIconComponent(name),
+  keywords: iconKeywords[name] || []
+}))
 
 const props = defineProps<{
-  modelValue?: string
+  modelValue?: IconName
 }>()
 
 const emit = defineEmits<{
-  (e: 'update:modelValue', value: string): void
+  (e: 'update:modelValue', value: IconName): void
 }>()
 
 const searchQuery = ref('')
 const selectedIcon = computed({
   get: () => props.modelValue || '',
-  set: (value) => emit('update:modelValue', value)
+  set: (value: IconName) => emit('update:modelValue', value)
 })
 
 const filteredIcons = computed(() => {
@@ -64,7 +63,7 @@ const filteredIcons = computed(() => {
   )
 })
 
-const selectIcon = (iconName: string) => {
+const selectIcon = (iconName: IconName) => {
   selectedIcon.value = iconName
 }
 </script>

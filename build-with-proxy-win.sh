@@ -12,7 +12,7 @@ echo "SOCKS 代理: $all_proxy"
 
 # 清理之前的构建
 echo "清理之前的构建..."
-rm -rf dist
+# rm -rf dist
 rm -rf node_modules/.cache
 
 # 重新安装依赖
@@ -21,13 +21,13 @@ pnpm install
 
 # 重新构建原生模块
 echo "重新构建原生模块..."
-npm rebuild sharp --platform=win32 --arch=x64
+# npm rebuild sharp --platform=win32 --arch=x64
 npm rebuild better-sqlite3 --platform=win32 --arch=x64
 
 # 运行构建
 echo "开始构建..."
 npm run build && electron-builder --win \
-  --config.asarUnpack="node_modules/{sharp,@xenova,@themaximalist,better-sqlite3}/**/*" \
+  --config.asarUnpack="node_modules/{@xenova,@themaximalist,better-sqlite3}/**/*" \
   --config.asarUnpack="**/*.node"
 
 # 构建完成后清理代理设置

@@ -1,5 +1,5 @@
 import { db } from '../../db/config'
-import { Tag, TagSearchParams } from '@shared/types'
+import { Tag, TagSearchParams, IconName } from '@shared/types'
 import { v4 as uuidv4 } from 'uuid'
 
 interface TagRecord {
@@ -7,7 +7,7 @@ interface TagRecord {
   name: string
   path: string // 数据库中是 JSON 字符串
   color?: string
-  icon?: string
+  icon?: IconName
   pinned: boolean
   pinOrder?: number
   createdAt: Date
@@ -36,7 +36,7 @@ function convertToTag(record: TagRecord & { useCount?: number }): Tag {
 }
 
 // 创建标签
-export async function createTag(name: string, color?: string, icon?: string): Promise<Tag> {
+export async function createTag(name: string, color?: string, icon?: IconName): Promise<Tag> {
   try {
     const id = uuidv4()
     const now = new Date()

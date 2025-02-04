@@ -1,5 +1,5 @@
 // src/types/Note.ts
-import type { FlashcardData } from '@shared/types'
+import type { FlashcardData, IconName } from '@shared/types'
 
 // 定义卡片类型
 export type CardType = 'Maincard' | 'Bibcard' | 'Indexcard' | 'Hoplinkcard'
@@ -126,7 +126,7 @@ export interface Tag {
   name: string
   path: string[]
   color?: string
-  icon?: string
+  icon?: IconName
   pinned: boolean
   pinOrder?: number
   useCount?: number
@@ -143,7 +143,7 @@ export interface TagTreeNode {
   noteCount: number // 直接使用该标签的笔记数
   totalCount: number // 包含子标签的笔记总数
   color?: string
-  icon?: string
+  icon?: IconName
   pinned: boolean
   pinOrder?: number
 }
