@@ -242,18 +242,6 @@ const fireConfetti = () => {
   }, 400)
 }
 
-// const handleActivate = async () => {
-//   if (!activationCode.value) return
-//   const success = await licenseStore.activateLicense(activationCode.value)
-//   if (success) {
-//     activationCode.value = ''
-//     showSuccessModal.value = true
-//     setTimeout(() => {
-//       fireConfetti()
-//     }, 100)
-//   }
-// }
-
 const handleSuccessModalClose = () => {
   showSuccessModal.value = false
   // 返回到主页面或其他指定页面

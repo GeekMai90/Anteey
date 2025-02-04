@@ -103,6 +103,8 @@ export const useAuthStore = defineStore('auth', () => {
         async () => await window.electronAPI.auth.login({ email, password })
       )
       authState.value = state
+      // 设置用户许可证类型
+      userLicenseType.value = state.user?.licenseType || null
 
       // 登录成功后设置
       setupAutoRefresh()
