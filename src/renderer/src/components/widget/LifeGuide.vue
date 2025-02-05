@@ -9,7 +9,7 @@
     <div v-if="lifeGuideStore.currentNote" class="guide-content">
       <!-- 笔记内容 -->
       <div class="guide-text">
-        <TipTapRender
+        <JsonContentRenderer
           :content="lifeGuideStore.currentNote.content"
           :editable="false"
           :enable-drag-handle="false"
@@ -35,7 +35,7 @@
 <script setup lang="ts">
 import { onMounted } from 'vue'
 import { useLifeGuideStore } from '@renderer/stores/lifeGuideStore'
-import TipTapRender from '@renderer/components/tiptap/TipTapRender.vue'
+import JsonContentRenderer from '@renderer/components/note/JsonContentRenderer.vue'
 
 const lifeGuideStore = useLifeGuideStore()
 
@@ -86,13 +86,12 @@ onMounted(async () => {
 
 .guide-text {
   position: relative;
-  padding: 0 8px;
 
-  :deep(.tiptap-container) {
+  :deep(.json-content) {
     font-size: 15px;
     line-height: 1.6;
     color: var(--color-text-primary);
-    font-weight: 500;
+    font-weight: 400;
   }
 }
 

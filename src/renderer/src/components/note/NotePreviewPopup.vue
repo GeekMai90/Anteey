@@ -17,7 +17,7 @@
           <h3 class="note-title">{{ note.address }}</h3>
         </div>
         <div class="note-content">
-          <TipTapRender :content="note.content" :editable="false" :enable-drag-handle="false" />
+          <JsonContentRenderer :content="note.content" />
         </div>
         <div class="note-timestamp">
           {{ formatDate(note.createdAt) }}
@@ -31,7 +31,7 @@
 import { computed, ref, watch } from 'vue'
 import type { Note } from '@shared/types'
 import { formatDate } from '@renderer/utils/noteHelpers'
-import TipTapRender from '@renderer/components/tiptap/TipTapRender.vue'
+import JsonContentRenderer from '@renderer/components/note/JsonContentRenderer.vue'
 import { useNoteStore } from '@renderer/stores/noteStore'
 import { useFloating, offset, shift, flip } from '@floating-ui/vue'
 
@@ -133,7 +133,7 @@ const cardTypeClass = computed(() => {
     }
 
     .note-content {
-      padding: 0 12px;
+      padding: 0 20px;
       max-height: 200px;
       overflow: hidden;
       font-size: 13px;
@@ -148,7 +148,7 @@ const cardTypeClass = computed(() => {
     .note-timestamp {
       padding: 0 12px;
       font-size: 11px;
-      color: var(--color-text-secondary);
+      color: var(--color-text-tertiary);
       text-align: right;
       margin-top: 8px;
     }

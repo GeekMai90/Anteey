@@ -1,12 +1,6 @@
 <template>
   <div class="multi-notes">
-    <div class="toolbar">
-      <!-- <div class="clear-button" @click="clearSidebarNotes">
-        <div class="icon">
-          <Clear theme="outline" size="20" fill="#b6b6b6" :stroke-width="3" />
-        </div>
-      </div> -->
-    </div>
+    <div class="toolbar"></div>
 
     <div class="notes-container">
       <div

@@ -20,7 +20,7 @@
       </div>
     </div>
     <div ref="noteContent" class="note-content">
-      <TipTapRender :content="note.content" :editable="false" :enable-drag-handle="false" />
+      <JsonContentRenderer :content="note.content" />
     </div>
   </div>
 </template>
@@ -29,7 +29,7 @@
 import { ref, computed } from 'vue'
 import { Note } from '@shared/types'
 import { More } from '@icon-park/vue-next'
-import TipTapRender from '@renderer/components/tiptap/TipTapRender.vue'
+import JsonContentRenderer from '@renderer/components/note/JsonContentRenderer.vue'
 import PopupMenu from '@renderer/components/common/PopupMenu.vue'
 import type { MenuItem } from '@renderer/components/common/PopupMenu.vue'
 import { useMenu } from '@renderer/composables/useMenu'
@@ -177,6 +177,7 @@ const cardTypeClass = computed(() => {
   flex-grow: 1;
   overflow: hidden;
   position: relative;
+  padding: 0 10px;
 }
 
 :deep(.tiptap) {

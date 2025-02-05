@@ -451,18 +451,22 @@ const fetchNotes = async () => {
     const result = await noteStore.fetchPaginatedNotesByCardbox(params)
 
     // 如果是按地址排序，使用我们的自定义排序函数
+    const sortedNotes = [...result.notes]
     if (filterState.sort.field === 'address') {
-      result.notes.sort((a, b) => {
+      sortedNotes.sort((a, b) => {
         const result = compareAddress(a.address, b.address)
         return filterState.sort.order === 'asc' ? result : -result
       })
     }
 
-    if (currentPage.value === 1) {
-      notes.value = result.notes
-    } else {
-      notes.value = [...notes.value, ...result.notes]
-    }
+    // 使用 nextTick 来确保状态更新是同步的
+    await nextTick(() => {
+      if (currentPage.value === 1) {
+        notes.value = sortedNotes
+      } else {
+        notes.value = [...notes.value, ...sortedNotes]
+      }
+    })
 
     totalCount.value = result.totalCount
     hasMoreNotes.value = notes.value.length < totalCount.value
@@ -647,56 +651,59 @@ noteUpdatedBus.on((updatedNote) => {
 })
 
 taskUpdatedBus.on(async (noteId) => {
-  // 找到对应的笔记并更新
   const noteToUpdate = displayedNotes.value.find((note) => note.id === noteId)
-  if (noteToUpdate) {
-    try {
-      // 重新获取该笔记的最新数据
-      const updatedNote = await noteStore.fetchNoteById(noteId)
-      if (updatedNote) {
-        updateSingleNote(updatedNote)
-      }
-    } catch (error) {
-      console.error('更新笔记失败:', error)
+  if (!noteToUpdate) return
+
+  try {
+    const updatedNote = await noteStore.fetchNoteById(noteId)
+    if (updatedNote) {
+      await updateSingleNote(updatedNote)
     }
+  } catch (error) {
+    console.error('更新笔记失败:', error)
   }
 })
 // 更新单个笔记的函数
 
-const updateSingleNote = (updatedNote: Note) => {
+const updateSingleNote = async (updatedNote: Note) => {
   if (!updatedNote) return
 
-  // 更新源数据
-  const index = notes.value.findIndex((note) => note.id === updatedNote.id)
-  if (index !== -1) {
-    notes.value[index] = { ...notes.value[index], ...updatedNote }
+  await nextTick(() => {
+    // 更新源数据
+    const index = notes.value.findIndex((note) => note.id === updatedNote.id)
+    if (index !== -1) {
+      const updatedNotes = [...notes.value]
+      updatedNotes[index] = { ...updatedNotes[index], ...updatedNote }
 
-    // 如果当前是按地址排序，且更新包含地址字段，则重新排序
-    if (filterState.sort.field === 'address' && 'address' in updatedNote) {
-      notes.value = [...notes.value].sort((a, b) => {
-        const result = compareAddress(a.address, b.address)
-        return filterState.sort.order === 'asc' ? result : -result
-      })
+      // 如果当前是按地址排序，且更新包含地址字段，则重新排序
+      if (filterState.sort.field === 'address' && 'address' in updatedNote) {
+        updatedNotes.sort((a, b) => {
+          const result = compareAddress(a.address, b.address)
+          return filterState.sort.order === 'asc' ? result : -result
+        })
+      }
+
+      notes.value = updatedNotes
     }
-  }
+  })
 }
 
 // 监听笔记创建事件
-eventBusCreated.on(() => {
-  console.log('TimelineView.vue→ 监听到笔记创建事件', lastCreatedNote.value)
-  if (!lastCreatedNote.value) return
-  displayedNotes.value.push(lastCreatedNote.value)
+eventBusCreated.on(async () => {
+  const createdNote = lastCreatedNote.value
+  if (!createdNote) return
+  await nextTick(() => {
+    notes.value = [...notes.value, createdNote]
+  })
 })
 
 // 监听笔记删除事件
-eventBusDeleted.on(() => {
-  console.log('TimelineView.vue→ 监听到笔记删除事件', lastDeletedNote.value)
-  if (!lastDeletedNote.value) return
-  // 如果删除的笔记在notes中，则删除
-  const index = displayedNotes.value.findIndex((note) => note.id === lastDeletedNote.value?.id)
-  if (index !== -1) {
-    displayedNotes.value.splice(index, 1)
-  }
+eventBusDeleted.on(async () => {
+  const deletedNote = lastDeletedNote.value
+  if (!deletedNote) return
+  await nextTick(() => {
+    notes.value = notes.value.filter((note) => note.id !== deletedNote.id)
+  })
 })
 
 // 在组件挂载时，初始化笔记数据

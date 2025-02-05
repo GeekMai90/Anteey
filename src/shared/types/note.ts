@@ -4,6 +4,20 @@ import type { FlashcardData, IconName } from '@shared/types'
 // 定义卡片类型
 export type CardType = 'Maincard' | 'Bibcard' | 'Indexcard' | 'Hoplinkcard'
 
+export interface JsonContent {
+  type: string
+  content?: JsonContent[]
+  text?: string
+  marks?: { type: string }[]
+  attrs?: {
+    level?: number
+    textAlign?: string
+    src?: string
+    alt?: string
+    title?: string
+  }
+}
+
 // 卡片笔记
 export interface Note {
   [key: string]: any // 添加这行，允许字符串索引
@@ -11,7 +25,10 @@ export interface Note {
   type: 'note'
   address: string // Zettelkasten 编码地址
   cardType: CardType // 卡片类型
-  content: object // 包含标题和正文
+  content: {
+    type: string
+    content: JsonContent[]
+  }
   createdAt: Date
   updatedAt: Date
   lastVectorizedAt?: Date

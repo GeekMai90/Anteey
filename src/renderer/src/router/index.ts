@@ -148,6 +148,11 @@ const routes = [
     name: 'UITest',
     path: '/ui-test',
     component: () => import('../components/ui/UITest.vue')
+  },
+  {
+    path: '/json-renderer-test',
+    name: 'JsonRendererTest',
+    component: () => import('@renderer/views/JsonRendererTest.vue')
   }
 ]
 

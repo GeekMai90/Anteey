@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { ref } from 'vue'
+
 interface Props {
   placeholder?: string
   modelValue?: string
@@ -21,6 +23,13 @@ const handleInput = (e: Event) => {
   const target = e.target as HTMLInputElement
   emit('update:modelValue', target.value)
 }
+
+const inputRef = ref<HTMLInputElement | null>(null)
+
+// 暴露方法给父组件
+defineExpose({
+  focus: () => inputRef.value?.focus()
+})
 </script>
 
 <template>
@@ -39,6 +48,7 @@ const handleInput = (e: Event) => {
       </g>
     </svg>
     <input
+      ref="inputRef"
       class="search-input"
       type="search"
       :placeholder="placeholder"

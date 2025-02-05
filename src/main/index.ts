@@ -28,7 +28,7 @@ import { getUserSettings } from '@services/user/userSettingsService'
 import { backupService } from '@services/backup/backupService'
 import { debounce } from 'lodash'
 import { LanceService } from '../db/vector/lanceService'
-import { setupScheduledTasks } from './services/scheduledTasks'
+// import { setupScheduledTasks } from './services/scheduledTasks'
 
 // 加载环境变量
 config({
@@ -269,7 +269,7 @@ async function createWindow(): Promise<BrowserWindow> {
   }
 
   // 创建一个防抖版本的保存函数
-  const debouncedSaveWindowState = debounce(saveWindowState, 500)
+  const debouncedSaveWindowState = debounce(saveWindowState, 1000)
 
   // 使用防抖版本
   mainWindow.on('resize', () => {
@@ -636,7 +636,8 @@ app.whenReady().then(async () => {
     await handleAutoBackup()
 
     // 设置定时任务
-    setupScheduledTasks()
+    // 2025-02-05 暂使取消自动更新向量的功能
+    // setupScheduledTasks()
 
     // try {
     //   const testResult = await testLanceDB()

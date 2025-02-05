@@ -18,7 +18,7 @@
       <!-- 可滚动的笔记内容 -->
       <div class="review-content">
         <div class="review-text">
-          <TipTapRender
+          <JsonContentRenderer
             :key="reviewStore.currentNote.id"
             :content="reviewStore.currentNote.content"
             :editable="false"
@@ -49,7 +49,7 @@
 <script setup lang="ts">
 import { onMounted, ref, watch } from 'vue'
 import { useReviewStore } from '@renderer/stores/reviewStore'
-import TipTapRender from '@renderer/components/tiptap/TipTapRender.vue'
+import JsonContentRenderer from '@renderer/components/note/JsonContentRenderer.vue'
 import { Refresh } from '@icon-park/vue-next'
 
 const reviewStore = useReviewStore()
@@ -187,13 +187,12 @@ onMounted(async () => {
 
 .review-text {
   position: relative;
-  padding: 0 8px;
 
-  :deep(.tiptap-container) {
+  :deep(.json-content) {
     font-size: 15px;
     line-height: 1.6;
     color: var(--color-text-primary);
-    font-weight: 500;
+    font-weight: 400;
   }
 }
 

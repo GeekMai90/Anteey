@@ -5,7 +5,7 @@
       <h3 class="note-title">{{ note.address }}</h3>
     </div>
     <div ref="noteContent" class="note-content marked-content">
-      <TipTapRender
+      <JsonContentRenderer
         v-model:content="localNote.content"
         :editable="false"
         :enable-drag-handle="false"
@@ -21,7 +21,7 @@
 import { Note } from '@shared/types'
 import { formatDate } from '@renderer/utils/noteHelpers'
 import { ref } from 'vue'
-import TipTapRender from '@renderer/components/tiptap/TipTapRender.vue'
+import JsonContentRenderer from '@renderer/components/note/JsonContentRenderer.vue'
 
 const props = defineProps<{
   note: Note
@@ -69,6 +69,7 @@ const noteContent = ref<HTMLDivElement | null>(null)
   overflow-y: auto;
   max-height: calc(100% - 40px); // 调整这个值以适应你的布局
   font-size: 0.8rem;
+  padding: 0 10px;
 }
 
 .note-content::-webkit-scrollbar {

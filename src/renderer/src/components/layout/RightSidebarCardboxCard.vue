@@ -13,7 +13,7 @@
     </div>
 
     <div class="note-content">
-      <TipTapRender
+      <JsonContentRenderer
         v-if="note"
         :key="note.id"
         :content="note.content"
@@ -42,7 +42,7 @@ import { formatDate } from '@renderer/utils/noteHelpers'
 import { StorageCardOne } from '@icon-park/vue-next'
 import { computed } from 'vue'
 import { useNoteStore } from '@renderer/stores/noteStore'
-import TipTapRender from '@renderer/components/tiptap/TipTapRender.vue'
+import JsonContentRenderer from '@renderer/components/note/JsonContentRenderer.vue'
 
 const props = defineProps<{
   note: Note
@@ -107,7 +107,7 @@ const handleDragStart = (event: DragEvent) => {
   background-color: var(--color-bg-note-card);
   border: 1px solid var(--color-border);
   border-radius: 8px;
-  padding: 10px 0;
+  padding: 10px 0 6px 10px;
   display: flex;
   flex-direction: column;
   position: relative;
@@ -125,7 +125,7 @@ const handleDragStart = (event: DragEvent) => {
   .note-header {
     display: flex;
     align-items: center;
-    padding: 0 15px 0 25px;
+    padding: 0 15px 0 15px;
     height: 30px;
     pointer-events: none;
 
@@ -170,7 +170,7 @@ const handleDragStart = (event: DragEvent) => {
 
     :deep(.tiptap-content) {
       font-size: 13px;
-      line-height: 1.4;
+      // line-height: 1.4;
       color: var(--color-text-primary);
     }
 
@@ -181,12 +181,12 @@ const handleDragStart = (event: DragEvent) => {
   }
 
   .note-timestamp {
-    padding: 0 15px;
+    padding: 6px 15px 0px 15px;
     font-size: 0.8em;
-    color: var(--color-text-secondary);
+    align-self: flex-end;
+    color: var(--color-text-tertiary);
     display: flex;
     align-items: center;
-    gap: 6px;
     pointer-events: none;
   }
 

@@ -6,7 +6,7 @@
       <h3 class="note-title">{{ note.address || '无编码地址' }}</h3>
     </div>
     <div ref="noteContent" class="note-content">
-      <TipTapRender :key="note.id" :content="note.content" />
+      <JsonContentRenderer :key="note.id" :content="note.content" />
     </div>
   </div>
 </template>
@@ -14,7 +14,7 @@
 <script setup lang="ts">
 import { Note } from '@shared/types'
 import { computed } from 'vue'
-import TipTapRender from '@renderer/components/tiptap/TipTapRender.vue'
+import JsonContentRenderer from '@renderer/components/note/JsonContentRenderer.vue'
 
 const props = defineProps<{
   note: Note
@@ -38,8 +38,6 @@ const cardTypeClass = computed(() => {
 
 <style lang="scss" scoped>
 .starred-note-card {
-  // background-color: var(--body-bg);
-  // border: 1px solid var(--color-sidebar-divider);
   box-shadow: inset 0 0 0 1px rgba(var(--color-sidebar-icon-bg), 0.05);
   border-radius: 8px;
   padding: 2px 0;
@@ -54,7 +52,7 @@ const cardTypeClass = computed(() => {
     align-items: center;
     justify-content: space-between;
     position: relative;
-    padding: 0 15px 0 15px;
+    padding: 2px 15px 0 15px;
 
     .note-indicator {
       position: absolute;
@@ -119,6 +117,7 @@ const cardTypeClass = computed(() => {
     overflow: hidden;
     position: relative;
     font-size: 13px;
+    padding: 0 15px;
   }
 
   :deep(.tiptap) {

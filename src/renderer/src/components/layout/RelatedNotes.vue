@@ -23,7 +23,7 @@
             <div class="similarity">相关度: {{ similarity.toFixed(1) }}%</div>
           </div>
           <div class="note-preview">
-            <TipTapRender :content="note.content" />
+            <JsonContentRenderer :content="note.content" />
           </div>
           <div class="note-meta">
             <span>{{ formatDate(note.updatedAt) }}</span>
@@ -42,7 +42,7 @@ import { useSimilarNotesStore } from '@renderer/stores/similarNotesStore'
 import { useRouter } from 'vue-router'
 import { formatDate } from '@renderer/utils/noteHelpers'
 import type { Note } from '@shared/types'
-import TipTapRender from '@renderer/components/tiptap/TipTapRender.vue'
+import JsonContentRenderer from '@renderer/components/note/JsonContentRenderer.vue'
 import { Vue3Lottie } from 'vue3-lottie'
 import loadingAnimation from '@renderer/assets/loading.json'
 import log from 'electron-log'
@@ -181,6 +181,8 @@ watch(
     }
 
     .note-meta {
+      display: flex;
+      justify-content: flex-end;
       font-size: 12px;
       color: var(--color-text-tertiary);
     }

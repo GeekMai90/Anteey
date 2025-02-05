@@ -8,7 +8,6 @@
     <div class="note-header">
       <span class="note-indicator" :class="cardTypeClass"></span>
       <h3 class="note-title">{{ note.address ? note.address : '无编码地址' }}</h3>
-
       <div class="note-buttons">
         <div class="note-button" @click.stop="expandNote">
           <div class="icon">
@@ -53,13 +52,7 @@
       </div>
     </div>
     <div ref="noteContent" class="note-content">
-      <TipTapRender
-        v-if="localNote"
-        :key="localNote.id"
-        :content="localNote.content"
-        :editable="false"
-        :enable-drag-handle="isDragHandleEnabled"
-      />
+      <JsonContentRenderer v-if="localNote" :key="localNote.id" :content="localNote.content" />
     </div>
     <div class="note-timestamp">
       <div
@@ -82,10 +75,10 @@
 import { Note } from '@shared/types'
 import { formatDate } from '@renderer/utils/noteHelpers'
 import { More, ExpandTextInput, StorageCardOne, Install } from '@icon-park/vue-next'
-import { computed, onUnmounted, ref, toRef, watch } from 'vue'
+import { computed, onUnmounted, ref, watch } from 'vue'
 import { useNoteStore } from '@renderer/stores/noteStore'
 import { useRouter } from 'vue-router'
-import TipTapRender from '@renderer/components/tiptap/TipTapRender.vue'
+import JsonContentRenderer from '@renderer/components/note/JsonContentRenderer.vue'
 import PopupMenu from '@renderer/components/common/PopupMenu.vue'
 import { useNoteMenu } from '@renderer/composables/useNoteMenu'
 import type { MenuItem } from '@renderer/components/common/PopupMenu.vue'
@@ -136,10 +129,7 @@ onUnmounted(() => {
 // 修改计算属性
 const isHighlighted = computed(() => localHighlight.value)
 
-const localNote = toRef(props, 'note')
-
-// const emit = defineEmits(['edit'])
-const isDragHandleEnabled = ref(false)
+const localNote = ref(props.note)
 
 const { menuItems: noteMenuItems, resetDeleteState } = useNoteMenu({
   noteId: props.note.id,
@@ -166,9 +156,6 @@ const handleMenuItemClick = (item: MenuItem) => {
     closeMoreMenu()
   }
 }
-
-// 处理内容超高时底部出现模糊效果
-const noteContent = ref<HTMLDivElement | null>(null)
 
 const router = useRouter()
 
@@ -254,6 +241,13 @@ const handleCardboxUpdate = async (cardBoxId: string) => {
 
 // 添加 emit 定义
 const emit = defineEmits(['cardbox-update'])
+watch(
+  () => props.note,
+  (newNote) => {
+    localNote.value = newNote
+  },
+  { deep: true }
+)
 </script>
 
 <style lang="scss" scoped>
@@ -284,14 +278,13 @@ const emit = defineEmits(['cardbox-update'])
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 10px;
     position: relative;
-    padding: 0 15px 0 25px; // 调整左右内边距
+    padding: 0 15px 0 20px; // 调整左右内边距
     height: 30px;
 
     .note-indicator {
       position: absolute;
-      left: 15px;
+      left: 10px;
       top: 50%;
       transform: translateY(-50%);
       width: 4px;
@@ -340,7 +333,7 @@ const emit = defineEmits(['cardbox-update'])
     }
     .note-title {
       margin: 0;
-      font-size: 1.1rem;
+      font-size: 1rem;
       font-weight: bold;
       color: var(--color-text-primary);
       overflow: hidden;
@@ -352,7 +345,6 @@ const emit = defineEmits(['cardbox-update'])
       top: -5px;
       right: 0;
       display: flex;
-      // gap: 3px;
       opacity: 0; // 使用 opacity 代替 visibility
       transition: opacity 0.2s ease; // 添加过渡效果
       margin-right: 10px;
@@ -440,12 +432,13 @@ const emit = defineEmits(['cardbox-update'])
     flex-grow: 1;
     color: var(--color-text-primary);
     text-align: left;
-    margin-bottom: 10px;
+    // margin-bottom: 10px;
     min-height: 60px;
     max-height: 300px;
     overflow: hidden;
     position: relative;
     font-size: 15px;
+    padding: 0 20px;
   }
 }
 
@@ -468,13 +461,14 @@ const emit = defineEmits(['cardbox-update'])
 
 .note-timestamp {
   font-size: 0.8em;
-  color: var(--color-text-secondary);
+  color: var(--color-text-tertiary);
   align-self: flex-end;
   margin-right: 15px;
   user-select: none;
   display: flex;
   align-items: center;
   gap: 6px;
+  padding-top: 2px;
 
   .flashcard-indicator {
     display: flex;
@@ -494,13 +488,6 @@ const emit = defineEmits(['cardbox-update'])
       height: 14px;
     }
   }
-}
-
-:deep(.tiptap) {
-  margin-left: 0;
-  margin-right: 0;
-  padding-left: 15px;
-  padding-right: 15px;
 }
 
 .note-card {

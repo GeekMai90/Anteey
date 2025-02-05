@@ -42,7 +42,7 @@
       </div>
     </div>
     <div ref="noteContent" class="note-content" @dblclick="useNoteStore().openNoteEditor(note.id)">
-      <TipTapRender
+      <JsonContentRenderer
         :key="note.id"
         :content="note.content"
         :editable="false"
@@ -72,14 +72,13 @@ import { formatDate } from '@renderer/utils/noteHelpers'
 import { More, ExpandTextInput, StorageCardOne } from '@icon-park/vue-next'
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
-// import TipTapEditor from '@renderer/components/TipTapEditor.vue'
 import { useNoteStore } from '@renderer/stores/noteStore'
 import PopupMenu from '@renderer/components/common/PopupMenu.vue'
 import { useNoteMenu } from '@renderer/composables/useNoteMenu'
 import type { MenuItem } from '@renderer/components/common/PopupMenu.vue'
-import TipTapRender from '@renderer/components/tiptap/TipTapRender.vue'
 import { useMenu } from '@renderer/composables/useMenu'
 import { State } from 'ts-fsrs'
+import JsonContentRenderer from '@renderer/components/note/JsonContentRenderer.vue'
 
 const props = defineProps<{
   note: Note
@@ -354,6 +353,7 @@ const flashcardTooltip = computed(() => {
     color: var(--color-text-primary);
     text-align: left;
     margin-bottom: 10px;
+    padding: 0 25px;
     // min-height: 60px;
     // max-height: 300px;
     height: 230px;
@@ -389,7 +389,7 @@ const flashcardTooltip = computed(() => {
 
 .note-timestamp {
   font-size: 0.8em;
-  color: var(--color-text-secondary);
+  color: var(--color-text-tertiary);
   align-self: flex-end;
   margin-right: 15px;
   user-select: none;
