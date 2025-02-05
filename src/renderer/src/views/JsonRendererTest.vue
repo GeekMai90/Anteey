@@ -19,7 +19,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import JsonContentRenderer from '@renderer/components/common/JsonContentRenderer.vue'
+import JsonContentRenderer from '@renderer/components/note/JsonContentRenderer.vue'
 import { useNoteStore } from '@renderer/stores/noteStore'
 import TipTapEditor from '../components/tiptap/TipTapEditor.vue'
 

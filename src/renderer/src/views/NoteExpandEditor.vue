@@ -701,7 +701,7 @@ const handlePrevNote = async () => {
 
 // 添加节流控制
 let isLoading = false
-const CLICK_INTERVAL = 5000 // 5秒间隔
+const CLICK_INTERVAL = 2000 // 5秒间隔
 
 const handleNextNote = async () => {
   // 检查是否在加载中
@@ -710,7 +710,7 @@ const handleNextNote = async () => {
   // 检查点击间隔
   const now = Date.now()
   if (now - reviewStore.lastClickTime < CLICK_INTERVAL) {
-    message.info('你太快啦，请等待5秒后再试~')
+    message.info('你太快啦，请等待2秒后再试~')
     return
   }
 
@@ -758,7 +758,10 @@ onMounted(() => {
 })
 
 onBeforeUnmount(() => {
+  // 组件卸载时移除键盘事件监听
   window.removeEventListener('keydown', handleKeydown)
+  // 组件卸载前更新向量
+  noteStore.updateNoteVectorOnClose(noteId, tiptapEditor.value?.editor?.getJSON())
 })
 </script>
 

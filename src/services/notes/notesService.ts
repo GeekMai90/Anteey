@@ -1726,6 +1726,7 @@ export async function batchUpdateVectors(): Promise<void> {
 
     try {
       // 批量处理
+      const errors: Array<{ noteId: string; error: any }> = []
       for (const note of notesToUpdate) {
         try {
           // 1. 先删除旧的向量（如果存在）
@@ -1741,19 +1742,40 @@ export async function batchUpdateVectors(): Promise<void> {
           await db('notes').where('id', note.id).update({ lastVectorizedAt: new Date() })
         } catch (error) {
           console.error('单条笔记向量更新失败:', { noteId: note.id, error })
+          errors.push({ noteId: note.id, error })
         }
       }
 
-      // 3. 重建索引
-      await lanceService.rebuildIndex()
-      console.log('向量索引重建完成')
+      // 3. 尝试重建索引，但不让索引错误影响整体更新
+      try {
+        await lanceService.rebuildIndex()
+        console.log('向量索引重建完成')
+      } catch (error: any) {
+        // 如果是数据量不足导致的索引错误，只记录日志但不抛出错误
+        if (error.message?.includes('Not enough rows to train PQ')) {
+          console.log('向量数据量不足256条，暂时不建立索引')
+        } else {
+          console.error('向量索引重建失败:', error)
+        }
+      }
+
+      // 只有在有笔记更新失败时才抛出错误
+      if (errors.length > 0) {
+        throw new Error(`${errors.length} 条笔记更新失败：\n${JSON.stringify(errors, null, 2)}`)
+      }
     } finally {
       // 恢复自动索引
       await lanceService.enableAutoIndex()
     }
 
     console.log('批量更新向量完成')
-  } catch (error) {
+  } catch (error: any) {
+    // 如果是索引相关的错误，转换为友好的提示信息
+    if (error.message?.includes('Not enough rows to train PQ')) {
+      console.log('向量数据量不足，暂时不建立索引，但向量更新已完成')
+      return
+    }
     console.error('批量更新向量失败:', error)
+    throw error
   }
 }

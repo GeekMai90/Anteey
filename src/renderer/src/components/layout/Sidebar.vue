@@ -370,7 +370,7 @@ const menuItems = computed(() => {
     ...(timeBlockStore.settings.enabled
       ? [{ name: '时光记', path: '/timeblock', icon: Time }]
       : []),
-    { name: '样式测试', path: '/json-renderer-test', icon: NotebookOne },
+    // { name: '样式测试', path: '/json-renderer-test', icon: NotebookOne },
     { name: '笔记流', path: '/timeline', icon: NotebookOne },
     { name: '卡片盒', path: '/cardbox', icon: Box },
     { name: '知识树', path: '/knowledge-tree', icon: Sapling },

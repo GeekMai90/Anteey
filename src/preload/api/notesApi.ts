@@ -377,7 +377,10 @@ export const notesApi = {
   // 批量更新向量
   batchUpdateVectors: async (): Promise<void> => {
     try {
-      await ipcRenderer.invoke('batch-update-vectors')
+      const result = await ipcRenderer.invoke('batch-update-vectors')
+      if (!result.success) {
+        throw new Error(result.error)
+      }
     } catch (error) {
       console.error('预加载脚本 → 批量更新向量失败:', error)
       throw error

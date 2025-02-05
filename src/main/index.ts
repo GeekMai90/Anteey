@@ -495,12 +495,18 @@ app.whenReady().then(async () => {
   initialize()
   try {
     // 安装 Vue 3 Devtools
-    try {
-      await installExtension(VUEJS3_DEVTOOLS)
-      log.info('Vue Devtools 安装成功')
-    } catch (error) {
-      log.warn('Vue Devtools 安装失败，这不会影响应用的正常使用:', error)
-      // 继续执行，不要中断应用启动
+    if (!app.isPackaged) {
+      try {
+        await installExtension(VUEJS3_DEVTOOLS, {
+          loadExtensionOptions: {
+            allowFileAccess: true
+          }
+        })
+        log.info('Vue Devtools 安装成功')
+      } catch (error) {
+        log.warn('Vue Devtools 安装失败，这不会影响应用的正常使用:', error)
+        // 继续执行，不要中断应用启动
+      }
     }
 
     // 初始化数据库

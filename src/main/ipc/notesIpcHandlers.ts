@@ -381,9 +381,13 @@ export function setupNotesHandlers() {
   ipcMain.handle('batch-update-vectors', async () => {
     try {
       await batchUpdateVectors()
+      return { success: true }
     } catch (error) {
       console.error('主进程 → 批量更新向量失败:', error)
-      throw error
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : String(error)
+      }
     }
   })
 }

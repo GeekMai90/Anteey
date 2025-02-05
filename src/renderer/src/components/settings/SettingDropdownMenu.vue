@@ -90,17 +90,22 @@ const handleVectorUpdate = async () => {
   // 显示开始更新提示
   vectorUpdateMessageInstance = message.info('正在更新向量索引...', 3600000)
 
-  // 调用批量更新向量的方法
-  await noteStore.batchUpdateVectors()
+  try {
+    // 调用批量更新向量的方法
+    await noteStore.batchUpdateVectors()
 
-  vectorUpdateMessageInstance?.close()
+    vectorUpdateMessageInstance?.close()
 
-  // setTimeout(() => {
-  //   window.location.reload()
-  // }, 500)
-
-  // 显示更新成功提示
-  message.success('向量索引更新完成')
+    // 根据笔记数量显示不同的提示
+    if (noteStore.notes.length < 256) {
+      message.success('向量更新完成。笔记数量不足256条，暂不建立索引。')
+    } else {
+      message.success('向量索引更新完成')
+    }
+  } catch (error: any) {
+    vectorUpdateMessageInstance?.close()
+    message.error('向量更新失败：' + (error.message || '未知错误'))
+  }
 
   // 关闭下拉菜单
   uiStore.closeSettingDropdown()

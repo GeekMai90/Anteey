@@ -120,11 +120,7 @@ const cardTypeClass = computed(() => {
     padding: 0 15px;
   }
 
-  :deep(.tiptap) {
-    margin-left: 0 !important;
-    margin-right: 0 !important;
-    padding-left: 15px !important;
-    padding-right: 0rem !important;
+  :deep(.json-content) {
     height: 100%;
     h1,
     h2,
