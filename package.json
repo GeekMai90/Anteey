@@ -1,6 +1,6 @@
 {
   "name": "anteey",
-  "version": "1.5.19",
+  "version": "1.5.22",
   "description": "Anteey",
   "main": "./out/main/index.js",
   "author": "GeekMai",
@@ -24,7 +24,11 @@
     "build:proxyWin": "npm run version:patch && chmod +x ./build-with-proxy-win.sh && ./build-with-proxy-win.sh",
     "build:proxyWinFinal": "chmod +x ./build-with-proxy-win.sh && ./build-with-proxy-win.sh",
     "build:mac": "npm run build && electron-builder --mac",
-    "build:proxyMac": "npm run version:patch &&./build-with-proxy-mac.sh",
+    "build:mac-arm64": "npm run build && electron-builder --mac --arm64",
+    "build:mac-x64": "npm run build && electron-builder --mac --x64",
+    "build:proxyMac": "npm run version:patch && ./build-with-proxy-mac.sh",
+    "build:proxyMacArm64": "npm run version:patch && ./build-with-proxy-mac-arm64.sh",
+    "build:proxyMacX64": "npm run version:patch && ./build-with-proxy-mac-x64.sh",
     "build:proxyMacFinal": "./build-with-proxy-mac.sh",
     "build:linux": "npm run build && electron-builder --linux",
     "migrate:make": "knex migrate:make --knexfile ./knexfile.ts -x ts",
@@ -41,6 +45,8 @@
     "@floating-ui/vue": "^1.1.6",
     "@icon-park/vue-next": "^1.4.2",
     "@lancedb/lancedb": "^0.15.0",
+    "@lancedb/lancedb-darwin-x64": "^0.15.0",
+    "@lancedb/lancedb-win32-x64-msvc": "^0.15.0",
     "@pqina/flip": "^1.8.4",
     "@themaximalist/embeddings.js": "github:themaximalist/embeddings.js",
     "@tiptap-pro/extension-details": "^2.11.9",
@@ -147,9 +153,6 @@
     "vuedraggable": "^4.1.0",
     "webdav": "^5.7.1"
   },
-  "optionalDependencies": {
-    "@lancedb/lancedb-win32-x64-msvc": "^0.15.0"
-  },
   "devDependencies": {
     "@electron-toolkit/eslint-config": "^1.0.2",
     "@electron-toolkit/eslint-config-ts": "^2.0.0",
@@ -205,15 +208,9 @@
         "CFBundleName": "Anteey",
         "CFBundleDisplayName": "Anteey"
       },
-      "target": [
-        {
-          "target": "dmg",
-          "arch": [
-            "x64",
-            "arm64"
-          ]
-        }
-      ]
+      "target": {
+        "target": "dmg"
+      }
     },
     "dmg": {
       "artifactName": "Anteey-${version}-${arch}.${ext}",

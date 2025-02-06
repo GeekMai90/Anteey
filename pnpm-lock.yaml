@@ -29,6 +29,9 @@ importers:
       '@lancedb/lancedb':
         specifier: ^0.15.0
         version: 0.15.0(apache-arrow@18.1.0)
+      '@lancedb/lancedb-darwin-x64':
+        specifier: ^0.15.0
+        version: 0.15.0
       '@pqina/flip':
         specifier: ^1.8.4
         version: 1.8.4
@@ -6813,8 +6816,7 @@ snapshots:
   '@lancedb/lancedb-darwin-arm64@0.15.0':
     optional: true
 
-  '@lancedb/lancedb-darwin-x64@0.15.0':
-    optional: true
+  '@lancedb/lancedb-darwin-x64@0.15.0': {}
 
   '@lancedb/lancedb-linux-arm64-gnu@0.15.0':
     optional: true
