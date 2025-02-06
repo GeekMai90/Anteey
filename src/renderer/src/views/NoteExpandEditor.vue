@@ -761,7 +761,7 @@ onBeforeUnmount(() => {
   // 组件卸载时移除键盘事件监听
   window.removeEventListener('keydown', handleKeydown)
   // 组件卸载前更新向量
-  noteStore.updateNoteVectorOnClose(noteId, tiptapEditor.value?.editor?.getJSON())
+  //noteStore.updateNoteVectorOnClose(noteId, tiptapEditor.value?.editor?.getJSON())
 })
 </script>
 
