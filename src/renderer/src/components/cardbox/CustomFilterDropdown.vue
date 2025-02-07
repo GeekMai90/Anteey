@@ -131,7 +131,7 @@ const { x, y, update } = useFloating(reference, floating, {
     }),
     shift({
       padding: 8,
-      boundary: window
+      boundary: window.document.body
     })
   ],
   whileElementsMounted: autoUpdate

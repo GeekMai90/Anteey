@@ -27,8 +27,6 @@ import { getUserSettings } from '@services/user/userSettingsService'
 // import { migrateLicenseTable } from '../db/migrations/licenseMigration'
 import { backupService } from '@services/backup/backupService'
 import { debounce } from 'lodash'
-import { LanceService } from '../db/vector/lanceService'
-// import { setupScheduledTasks } from './services/scheduledTasks'
 
 // 加载环境变量
 config({
@@ -511,9 +509,6 @@ app.whenReady().then(async () => {
 
     // 初始化数据库
     await initDatabase(db)
-
-    // 初始化向量数据库
-    await LanceService.getInstance()
 
     // electronApp.setAppUserModelId('com.electron')
     // 使用应用特定的 ID

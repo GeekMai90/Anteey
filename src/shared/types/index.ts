@@ -21,10 +21,6 @@ export * from './review'
 export * from './edWhiteboard'
 export * from './task'
 export * from './auth'
-export * from './llm'
-export * from './assistant'
-export * from './embedding'
-export * from './dictionary'
 export * from './mindboard'
 
 // 定义图标名称类型

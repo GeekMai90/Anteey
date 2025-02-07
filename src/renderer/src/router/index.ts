@@ -104,11 +104,6 @@ const routes = [
     meta: { keepAlive: true }
   },
   {
-    name: 'AIAssistant',
-    path: '/ai-assistant',
-    component: () => import('../views/AIAssistant.vue')
-  },
-  {
     name: 'FlashcardView',
     path: '/flashcard',
     component: () => import('../views/FlashcardView.vue'),
@@ -128,11 +123,6 @@ const routes = [
     path: '/ed-whiteboard/:id',
     name: 'EdWhiteboardDetail',
     component: () => import('@renderer/components/edWhiteboard/EdWhiteboardDetail.vue')
-  },
-  {
-    name: 'DictionaryManage',
-    path: '/dictionary-manage',
-    component: () => import('../views/DictionaryManageView.vue')
   },
   {
     name: 'MindboardView',

@@ -23,10 +23,6 @@ import { reviewApi } from './api/reviewApi'
 import { edWhiteboardApi } from './api/EdWhiteboardApi'
 import { taskApi } from './api/taskApi'
 import { authApi } from './api/authApi'
-import { llmConfigApi } from './api/llmConfigApi'
-import { ragApi } from './api/ragApi'
-import { similarNotesApi } from './api/similarNotesApi'
-import { dictionaryApi } from './api/dictionaryApi'
 import { mindboardApi } from './api/mindboardApi'
 // 添加日志 API
 contextBridge.exposeInMainWorld('electronLog', {
@@ -136,18 +132,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
   auth: {
     ...authApi
-  },
-  llmConfig: {
-    ...llmConfigApi
-  },
-  rag: {
-    ...ragApi
-  },
-  similarNotes: {
-    ...similarNotesApi
-  },
-  dictionary: {
-    ...dictionaryApi
   },
   mindboard: {
     ...mindboardApi

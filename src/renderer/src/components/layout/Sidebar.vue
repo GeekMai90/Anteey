@@ -93,18 +93,6 @@
         <!-- 草稿纸按钮 -->
         <button
           v-tooltip.top="{
-            content: 'AI 助手',
-            delay: { show: 1000 }
-          }"
-          class="action-btn"
-          @click="router.push('/ai-assistant')"
-        >
-          <div class="icon">
-            <Robot theme="outline" size="16" fill="var(--color-sidebar-icon)" :strokeWidth="3" />
-          </div>
-        </button>
-        <button
-          v-tooltip.top="{
             content: '随机回顾',
             delay: { show: 1000 }
           }"
@@ -115,6 +103,7 @@
             <Cup theme="outline" size="16" fill="var(--color-sidebar-icon)" :strokeWidth="3" />
           </div>
         </button>
+
         <!-- 搜索按钮 -->
         <button
           v-tooltip.top="{
@@ -127,6 +116,26 @@
         >
           <div class="icon">
             <Search theme="outline" size="16" fill="var(--color-sidebar-icon)" :strokeWidth="3" />
+          </div>
+        </button>
+
+        <!-- 切换主题按钮 -->
+        <button
+          v-tooltip.top="{
+            content: isDarkMode ? '切换亮色主题' : '切换暗色主题',
+            delay: { show: 1000 }
+          }"
+          class="action-btn"
+          @click="themeStore.toggleThemeMode()"
+        >
+          <div class="icon">
+            <component
+              :is="isDarkMode ? SunOne : Moon"
+              theme="outline"
+              size="16"
+              fill="var(--color-sidebar-icon)"
+              :strokeWidth="3"
+            />
           </div>
         </button>
 
@@ -251,12 +260,6 @@
           <Clear theme="outline" size="20" fill="var(--color-sidebar-text)" :strokeWidth="2" />
         </div>
       </div>
-
-      <!-- <button class="theme-button" @click="handleThemeButtonClick">
-        <div class="icon">
-          <Theme theme="outline" size="20" :strokeWidth="2" fill="var(--color-sidebar-text)" />
-        </div>
-      </button> -->
       <div
         v-tooltip.top="{ content: '主题设置', delay: { show: 1000 } }"
         class="theme-button"
@@ -264,26 +267,6 @@
       >
         <div class="icon">
           <Theme theme="outline" size="20" :strokeWidth="2" fill="var(--color-sidebar-text)" />
-        </div>
-      </div>
-
-      <!-- 添加主题切换按钮 -->
-      <div
-        v-tooltip.top="{
-          content: isDarkMode ? '切换亮色主题' : '切换暗色主题',
-          delay: { show: 1000 }
-        }"
-        class="theme-toggle"
-        @click="themeStore.toggleThemeMode()"
-      >
-        <div class="icon">
-          <component
-            :is="isDarkMode ? SunOne : Moon"
-            theme="outline"
-            size="20"
-            fill="var(--color-sidebar-text)"
-            :strokeWidth="2"
-          />
         </div>
       </div>
 
@@ -323,8 +306,7 @@ import {
   Star,
   Tag,
   HandPaintedPlate,
-  Cup,
-  Robot
+  Cup
 } from '@icon-park/vue-next'
 import { useNoteStore } from '@renderer/stores/noteStore'
 import SettingDropdownMenu from '@renderer/components/settings/SettingDropdownMenu.vue'

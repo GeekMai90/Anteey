@@ -38,14 +38,12 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useRoute } from 'vue-router'
-import { Split, Notepad, Components, Box, Robot, Log, LinkTwo } from '@icon-park/vue-next'
+import { Split, Notepad, Components, Box, Log } from '@icon-park/vue-next'
 import MultiNotes from '@renderer/components/layout/MultiNotes.vue'
 import BacklinksPanelNoteEditor from '@renderer/components/layout/BacklinksPanelNoteEditor.vue'
 import RightSidebarDraftsEditor from '@renderer/components/layout/RightSidebarDraftsEditor.vue'
 import RightSidebarWidgets from '@renderer/components/layout/RightSidebarWidgets.vue'
 import RightSidebarCardbox from '@renderer/components/layout/RightSidebarCardbox.vue'
-import RightSidebarAssistant from '@renderer/components/layout/RightSidebarAssistant.vue'
-import RelatedNotes from '@renderer/components/layout/RelatedNotes.vue'
 import { useUIStore } from '@renderer/stores/UIStore'
 
 const props = defineProps<{
@@ -77,22 +75,10 @@ const tabs = [
     component: BacklinksPanelNoteEditor
   },
   {
-    key: 'related',
-    label: '相关笔记',
-    icon: LinkTwo,
-    component: RelatedNotes
-  },
-  {
     key: 'cardbox',
     label: '卡片盒',
     icon: Box,
     component: RightSidebarCardbox
-  },
-  {
-    key: 'assistant',
-    label: '智能助手',
-    icon: Robot,
-    component: RightSidebarAssistant
   },
   {
     key: 'drafts',
