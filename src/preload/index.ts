@@ -20,7 +20,6 @@ import { pomodoroApi } from './api/pomodoroApi'
 import { dailyQuotesApi } from './api/dailyquotesApi'
 import { lifeGuideApi } from './api/lifeGuideApi'
 import { reviewApi } from './api/reviewApi'
-import { edWhiteboardApi } from './api/EdWhiteboardApi'
 import { taskApi } from './api/taskApi'
 import { authApi } from './api/authApi'
 import { mindboardApi } from './api/mindboardApi'
@@ -123,9 +122,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
   review: {
     ...reviewApi
-  },
-  edWhiteboard: {
-    ...edWhiteboardApi
   },
   task: {
     ...taskApi
