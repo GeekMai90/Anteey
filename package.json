@@ -1,6 +1,6 @@
 {
   "name": "anteey",
-  "version": "1.5.36",
+  "version": "1.5.38",
   "description": "Anteey",
   "main": "./out/main/index.js",
   "author": "GeekMai",
@@ -125,6 +125,7 @@
     "lodash-es": "^4.17.21",
     "lowlight": "^3.1.0",
     "marked": "^15.0.6",
+    "minimatch": "^10.0.1",
     "motion-v": "^0.7.0",
     "node-machine-id": "^1.1.12",
     "node-schedule": "^2.1.1",
