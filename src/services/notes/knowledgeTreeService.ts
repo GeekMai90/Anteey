@@ -110,11 +110,11 @@ function getAddressLevel(address: string): AddressLevel {
 
   // 4. 分支层级验证
   if (address.includes('-')) {
-    // 验证分支格式：基础地址-分支号
-    const pattern = /^\d{4}(-[1-9]\d*)+$/
+    // 验证分支格式：基础地址-分支号（支持数字和字母）
+    const pattern = /^\d{4}(-([1-9]\d*[a-z]?|\d*[a-z]))+$/
     if (!pattern.test(address)) {
       throw new Error(
-        `无效的分支地址格式：应为"基础地址-分支号"格式，且分支号必须为正整数，当前地址：${address}`
+        `无效的分支地址格式：应为"基础地址-分支号"格式，分支号可以是正整数或带小写字母，当前地址：${address}`
       )
     }
 
