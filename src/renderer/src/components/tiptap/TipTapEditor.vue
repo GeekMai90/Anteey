@@ -1,5 +1,15 @@
 <template>
   <div ref="editorContainer" class="editor-wrapper">
+    <!-- 添加 drag-handle 组件 -->
+    <drag-handle
+      v-if="editorInstance && props.enableDragHandle"
+      :editor="editorInstance"
+      @nodeChange="handleNodeChange"
+      @click="handleDragHandleClick"
+    >
+      <div class="custom-drag-handle" />
+    </drag-handle>
+
     <editor-content ref="editorRootRef" :editor="editorInstance" class="tiptap-container" />
     <!-- 文字样式菜单 -->
     <bubble-menu
@@ -407,7 +417,7 @@
 <script setup>
 import { ref, watch, onMounted, onBeforeUnmount, computed, nextTick } from 'vue'
 import { Editor, EditorContent, BubbleMenu, VueNodeViewRenderer } from '@tiptap/vue-3'
-import DragHandle from '@tiptap-pro/extension-drag-handle'
+import DragHandle from '@tiptap-pro/extension-drag-handle-vue-3'
 import NodeRange from '@tiptap-pro/extension-node-range'
 import StarterKit from '@tiptap/starter-kit'
 import Hightlight from '@tiptap/extension-highlight'
@@ -938,7 +948,7 @@ const handleDragHandleClick = (event) => {
     return
   }
 
-  // 直接使用存储的位置
+  // 设置节点选择
   editor.value.commands.setNodeSelection(currentNodePos.value)
 
   // 设置上下文菜单位置
@@ -1267,29 +1277,8 @@ const editorExtensions = computed(() => {
       },
       noteId: props.noteId
     })
-  ]
-  if (props.enableDragHandle) {
-    extensions.push(
-      DragHandle.configure({
-        render() {
-          const element = document.createElement('div')
-          element.classList.add('custom-drag-handle')
-          element.addEventListener('click', handleDragHandleClick)
-          return element
-        },
-        onNodeChange: ({ node, pos }) => {
-          // 使用 pos 参数
-          if (!node || pos === -1) {
-            currentHoveredNode.value = null
-            currentNodePos.value = -1
-            return
-          }
-          currentHoveredNode.value = node
-          currentNodePos.value = pos
-        }
-      })
-    )
-  }
+  ].filter(Boolean) // 过滤掉 false 值
+
   return extensions
 })
 
@@ -1498,6 +1487,17 @@ const insertParagraphBelow = () => {
   } catch (error) {
     console.error('插入段落时出错:', error)
   }
+}
+
+// 节点变化处理函数
+const handleNodeChange = ({ node, pos }) => {
+  if (!node || pos === -1) {
+    currentHoveredNode.value = null
+    currentNodePos.value = -1
+    return
+  }
+  currentHoveredNode.value = node
+  currentNodePos.value = pos
 }
 </script>
 
