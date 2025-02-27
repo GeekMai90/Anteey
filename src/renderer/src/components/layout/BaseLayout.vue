@@ -59,7 +59,7 @@ import { useDebounceFn } from '@vueuse/core'
 import { useUIStore } from '@renderer/stores/UIStore'
 import { useThemeStore } from '@renderer/stores/themeStore'
 import Sidebar from './Sidebar.vue'
-import RightSidebar from './RightSidebar.vue'
+import RightSidebar from '../rightSidebar/RightSidebar.vue'
 
 const uiStore = useUIStore()
 const themeStore = useThemeStore()

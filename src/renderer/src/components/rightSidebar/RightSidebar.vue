@@ -39,15 +39,14 @@
 import { ref, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { Split, Notepad, Components, Box, Robot, Log, LinkTwo } from '@icon-park/vue-next'
-import MultiNotes from '@renderer/components/layout/MultiNotes.vue'
-import BacklinksPanelNoteEditor from '@renderer/components/layout/BacklinksPanelNoteEditor.vue'
-import RightSidebarDraftsEditor from '@renderer/components/layout/RightSidebarDraftsEditor.vue'
-import RightSidebarWidgets from '@renderer/components/layout/RightSidebarWidgets.vue'
-import RightSidebarCardbox from '@renderer/components/layout/RightSidebarCardbox.vue'
-import RightSidebarAssistant from '@renderer/components/layout/RightSidebarAssistant.vue'
-import RelatedNotes from '@renderer/components/layout/RelatedNotes.vue'
+import MultiNotes from '@renderer/components/rightSidebar/MultiNotes.vue'
+import BacklinksPanelNoteEditor from '@renderer/components/rightSidebar/BacklinksPanelNoteEditor.vue'
+import RightSidebarDraftsEditor from '@renderer/components/rightSidebar/RightSidebarDraftsEditor.vue'
+import RightSidebarWidgets from '@renderer/components/rightSidebar/RightSidebarWidgets.vue'
+import RightSidebarCardbox from '@renderer/components/rightSidebar/RightSidebarCardbox.vue'
+import RightSidebarAssistant from '@renderer/components/rightSidebar/RightSidebarAssistant.vue'
+import RelatedNotes from '@renderer/components/rightSidebar/RelatedNotes.vue'
 import { useUIStore } from '@renderer/stores/UIStore'
-
 const props = defineProps<{
   initialWidth?: number
 }>()
