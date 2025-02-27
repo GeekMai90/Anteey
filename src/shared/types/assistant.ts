@@ -36,6 +36,8 @@ export interface UserMessage extends AssistantMessage {
 // 系统消息接口
 export interface SystemMessage extends AssistantMessage {
   role: 'system'
+  error?: LLMError // 添加可选的错误信息
+  type?: 'error' | 'warning' | 'info' // 消息类型
 }
 
 // 建议操作接口
@@ -249,4 +251,13 @@ export interface RAGRequestParams {
     temperature?: number
     maxTokens?: number
   }
+}
+
+// 添加 LLM 错误类型定义
+export interface LLMError {
+  code: string // 错误码,如 402
+  message: string // 错误信息
+  details?: string // 详细错误信息
+  timestamp: string // 错误发生时间
+  type?: 'balance_insufficient' | 'api_error' | 'network_error' | 'unknown' // 错误类型
 }

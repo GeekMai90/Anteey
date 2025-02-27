@@ -257,6 +257,13 @@ export function setupRAGHandlers() {
         currentMessages,
         currentContexts
       )
+      if (result.error) {
+        return {
+          success: false,
+          error: result.error,
+          ...result
+        }
+      }
       return { success: true, ...result }
     } catch (error) {
       log.error('主进程→ 问一问模式失败:', error)
@@ -296,6 +303,13 @@ export function setupRAGHandlers() {
           currentContexts || []
         )
 
+        if (result.error) {
+          return {
+            success: false,
+            error: result.error,
+            ...result
+          }
+        }
         return { success: true, ...result }
       } catch (error) {
         log.error('主进程→ 聊一聊模式失败:', error)

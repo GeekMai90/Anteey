@@ -96,7 +96,8 @@ import type {
 
   // 思维板相关
   Mindboard,
-  IconName
+  IconName,
+  LLMError
 } from '@shared/types'
 
 export interface ElectronAPI {
@@ -690,16 +691,25 @@ export interface ElectronAPI {
       messages: ChatMessage[]
     }>
 
-    // 问一问模式
+    // 修改问一问模式接口
     handleAskQuestion: (
       query: string,
       assistantNoteReferences: AssistantNoteReference[],
       sessionId: string | null,
       currentMessages: ChatMessage[],
-      currentContexts: RAGContext[]
-    ) => Promise<{ answer: string; context: RAGContext; messages: ChatMessage[] }>
+      currentContexts: RAGContext[],
+      deepseekConfig?: {
+        temperature?: number
+        maxTokens?: number
+      }
+    ) => Promise<{
+      answer: string
+      context: RAGContext
+      messages: ChatMessage[]
+      error?: LLMError // 添加错误返回
+    }>
 
-    // 聊一聊模式
+    // 修改聊一聊模式接口
     handleChat: (
       query: string,
       sessionId: string | null,
@@ -713,6 +723,7 @@ export interface ElectronAPI {
       answer: string
       context: RAGContext
       messages: ChatMessage[]
+      error?: LLMError // 添加错误返回
     }>
 
     // 找一找模式

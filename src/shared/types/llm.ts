@@ -31,11 +31,11 @@ export interface LLMResponse {
 }
 
 // LLM 错误接口
-export interface LLMError {
-  code: string
-  message: string
-  details?: any
-}
+// export interface LLMError {
+//   code: string
+//   message: string
+//   details?: any
+// }
 
 // 全局提示词配置接口
 export interface SystemPromptConfig {

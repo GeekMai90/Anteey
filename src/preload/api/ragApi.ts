@@ -3,6 +3,7 @@ import { ipcRenderer } from 'electron'
 import type { RAGContext } from '@shared/types'
 import { ChatMessage, ChatSession, AssistantNoteReference, RAGHistoryRecord } from '@shared/types'
 import { RAGPerformanceData } from '../../services/rag/ragService'
+import { LLMError } from '@shared/types'
 
 export const ragApi = {
   // 检索相关上下文 - 支持会话
@@ -234,6 +235,7 @@ export const ragApi = {
     answer: string
     context: RAGContext
     messages: ChatMessage[]
+    error?: LLMError
   }> => {
     try {
       const result = await ipcRenderer.invoke('handle-ask-question', {
@@ -246,14 +248,13 @@ export const ragApi = {
       })
 
       if (!result.success) {
+        if (result.error?.code) {
+          return result
+        }
         throw new Error(result.error)
       }
 
-      return {
-        answer: result.answer,
-        context: result.context,
-        messages: result.messages
-      }
+      return result
     } catch (error) {
       console.error('预加载脚本 → 问一问模式失败:', error)
       throw error
@@ -273,16 +274,9 @@ export const ragApi = {
     answer: string
     context: RAGContext
     messages: ChatMessage[]
+    error?: LLMError
   }> => {
     try {
-      console.log('预加载脚本 - 聊一聊:', {
-        query,
-        sessionId,
-        messagesCount: currentMessages.length,
-        contextsCount: currentContexts.length,
-        deepseekConfig
-      })
-
       const result = await ipcRenderer.invoke('handle-chat', {
         query,
         sessionId,
@@ -292,14 +286,13 @@ export const ragApi = {
       })
 
       if (!result.success) {
+        if (result.error?.code) {
+          return result
+        }
         throw new Error(result.error)
       }
 
-      return {
-        answer: result.answer,
-        context: result.context,
-        messages: result.messages
-      }
+      return result
     } catch (error) {
       console.error('预加载脚本 → 聊一聊模式失败:', error)
       throw error

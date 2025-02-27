@@ -12,6 +12,7 @@ import type {
 } from '@shared/types'
 import { v4 as uuidv4 } from 'uuid'
 import { useLLMConfigStore } from '@renderer/stores/llmConfigStore'
+import { message } from '@renderer/utils/message'
 
 export const useAssistantStore = defineStore('assistant', () => {
   const messages = ref<ChatMessage[]>([])
@@ -569,8 +570,28 @@ export const useAssistantStore = defineStore('assistant', () => {
         contextsToSend
       )
 
-      if (!result) {
-        throw new Error('问一问失败：未收到响应')
+      // 检查是否有错误
+      if (result.error) {
+        const errorMessage: SystemMessage = {
+          id: uuidv4(),
+          role: 'system',
+          content: result.error.message,
+          timestamp: Date.now(),
+          type: 'error',
+          error: result.error
+        }
+        messages.value.push(markRaw(errorMessage))
+
+        // 添加错误提示
+        if (result.error.type === 'balance_insufficient') {
+          message.error('账户余额不足,请充值后重试')
+        } else if (result.error.type === 'network_error') {
+          message.error('网络连接失败,请检查网络设置')
+        } else {
+          message.error(result.error.message)
+        }
+
+        return result
       }
 
       const { context, answer } = result
@@ -645,9 +666,13 @@ export const useAssistantStore = defineStore('assistant', () => {
         id: uuidv4(),
         role: 'system',
         content: '抱歉，处理问题时出现错误，请稍后重试。',
-        timestamp: Date.now()
+        timestamp: Date.now(),
+        type: 'error'
       }
       messages.value.push(markRaw(errorMessage))
+
+      // 添加错误提示
+      message.error('处理问题时出现错误，请稍后重试')
 
       // 记录错误性能数据
       const duration = performance.now() - startTime
@@ -727,8 +752,28 @@ export const useAssistantStore = defineStore('assistant', () => {
         }
       )
 
-      if (!result) {
-        throw new Error('聊天失败：未收到响应')
+      // 检查是否有错误
+      if (result.error) {
+        const errorMessage: SystemMessage = {
+          id: uuidv4(),
+          role: 'system',
+          content: result.error.message,
+          timestamp: Date.now(),
+          type: 'error',
+          error: result.error
+        }
+        messages.value.push(markRaw(errorMessage))
+
+        // 添加错误提示
+        if (result.error.type === 'balance_insufficient') {
+          message.error('账户余额不足,请充值后重试')
+        } else if (result.error.type === 'network_error') {
+          message.error('网络连接失败,请检查网络设置')
+        } else {
+          message.error(result.error.message)
+        }
+
+        return result
       }
 
       const { context, answer } = result
@@ -797,9 +842,13 @@ export const useAssistantStore = defineStore('assistant', () => {
         id: uuidv4(),
         role: 'system',
         content: '抱歉，处理聊天时出现错误，请稍后重试。',
-        timestamp: Date.now()
+        timestamp: Date.now(),
+        type: 'error'
       }
       messages.value.push(markRaw(errorMessage))
+
+      // 添加错误提示
+      message.error('处理聊天时出现错误，请稍后重试')
 
       // 记录错误性能数据
       const duration = performance.now() - startTime

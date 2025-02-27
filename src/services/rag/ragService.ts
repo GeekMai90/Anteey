@@ -15,7 +15,8 @@ import {
   RAGContext,
   RAGHistoryRecord,
   RAGResult,
-  UserMessage
+  UserMessage,
+  LLMError
 } from '@shared/types'
 import { v4 as uuidv4 } from 'uuid'
 import { LLMService } from './llmService'
@@ -60,6 +61,55 @@ const llm = new LLMService()
 
 // 创建 LLMConfigService 实例
 const llmConfigService = new LLMConfigService()
+
+/**
+ * 添加错误处理辅助函数
+ */
+function handleLLMError(error: any): LLMError {
+  const now = new Date().toISOString()
+
+  // 处理 402 余额不足错误
+  if (error.response?.status === 402) {
+    return {
+      code: '402',
+      message: '账户余额不足,请充值后重试',
+      details: error.response.data?.message || error.message,
+      timestamp: now,
+      type: 'balance_insufficient'
+    }
+  }
+
+  // 处理网络错误
+  if (error.code === 'ECONNREFUSED' || error.code === 'ETIMEDOUT') {
+    return {
+      code: error.code,
+      message: '网络连接失败,请检查网络设置',
+      details: error.message,
+      timestamp: now,
+      type: 'network_error'
+    }
+  }
+
+  // 其他 API 错误
+  if (error.response) {
+    return {
+      code: String(error.response.status),
+      message: '服务调用失败',
+      details: error.response.data?.message || error.message,
+      timestamp: now,
+      type: 'api_error'
+    }
+  }
+
+  // 未知错误
+  return {
+    code: '500',
+    message: '发生未知错误',
+    details: error.message,
+    timestamp: now,
+    type: 'unknown'
+  }
+}
 
 /**
  * 核心检索功能
@@ -113,6 +163,7 @@ export async function handleAskQuestion(
   answer: string // 生成的回答
   context: RAGContext // 相关的上下文信息
   messages: ChatMessage[] // 更新后的消息列表
+  error?: LLMError // 添加错误返回
 }> {
   try {
     // 1. 参数验证：确保查询是字符串类型
@@ -235,11 +286,24 @@ export async function handleAskQuestion(
     return {
       answer,
       context,
-      messages: updatedMessages
+      messages: updatedMessages,
+      error: undefined
     }
   } catch (error) {
     log.error('问一问模式处理失败:', error)
-    throw error
+    const llmError = handleLLMError(error)
+
+    return {
+      answer: '',
+      context: {
+        query,
+        timestamp: new Date().toISOString(),
+        relevantDocs: [],
+        processingType: 'qa'
+      },
+      messages: currentMessages,
+      error: llmError
+    }
   }
 }
 
@@ -1572,6 +1636,7 @@ export async function handleChat(
   answer: string
   context: RAGContext
   messages: ChatMessage[]
+  error?: LLMError
 }> {
   try {
     // 1. 参数验证
@@ -1675,11 +1740,24 @@ export async function handleChat(
     return {
       answer,
       context,
-      messages: updatedMessages
+      messages: updatedMessages,
+      error: undefined
     }
   } catch (error) {
-    log.error('聊一聊模式处理失败:', error)
-    throw error
+    log.error('聊天模式处理失败:', error)
+    const llmError = handleLLMError(error)
+
+    return {
+      answer: '',
+      context: {
+        query,
+        timestamp: new Date().toISOString(),
+        relevantDocs: [],
+        processingType: 'chat'
+      },
+      messages: currentMessages,
+      error: llmError
+    }
   }
 }
 
