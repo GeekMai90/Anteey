@@ -1,7 +1,7 @@
 import { defineConfig, externalizeDepsPlugin } from 'electron-vite'
-import veauryVite from 'veaury/vite/index.js'
 import path from 'path'
 import { visualizer } from 'rollup-plugin-visualizer'
+import vue from '@vitejs/plugin-vue'
 
 // 修改共享的 alias 配置，使其与 tsconfig.json 保持一致
 const sharedAliases = {
@@ -30,9 +30,7 @@ export default defineConfig({
       alias: sharedAliases
     },
     plugins: [
-      veauryVite({
-        type: 'vue'
-      }),
+      vue(),
       visualizer({
         filename: './stats.html',
         open: true,
@@ -41,9 +39,6 @@ export default defineConfig({
         template: 'treemap'
       })
     ],
-    define: {
-      'process.env.IS_PREACT': JSON.stringify('true')
-    },
     build: {
       rollupOptions: {
         input: {

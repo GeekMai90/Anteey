@@ -322,7 +322,6 @@ import {
   Theme,
   Star,
   Tag,
-  HandPaintedPlate,
   Cup,
   Robot
 } from '@icon-park/vue-next'
@@ -336,7 +335,6 @@ import { storeToRefs } from 'pinia'
 import TagsTree from '@renderer/components/layout/TagsTree.vue'
 import QuickAccessMenu from '@renderer/components/layout/QuickAccessMenu.vue'
 import { useTimeBlockStore } from '@renderer/stores/timeBlockStore'
-import { useAppearanceStore } from '@renderer/stores/appearanceStore'
 import { useWebDAVStore } from '@renderer/stores/webdavStore'
 import { message } from '@renderer/utils/message'
 import { useThemeStore } from '@renderer/stores/themeStore'
@@ -347,7 +345,6 @@ const uiStore = useUIStore()
 const route = useRoute()
 const router = useRouter()
 const timeBlockStore = useTimeBlockStore()
-const appearanceStore = useAppearanceStore()
 const webdavStore = useWebDAVStore()
 const themeStore = useThemeStore()
 const reviewStore = useReviewStore()
@@ -375,11 +372,7 @@ const menuItems = computed(() => {
     { name: '卡片盒', path: '/cardbox', icon: Box },
     { name: '知识树', path: '/knowledge-tree', icon: Sapling },
     { name: '记忆卡', path: '/flashcard', icon: StorageCardOne },
-    { name: '思维板', path: '/mindboard', icon: Workbench },
-    // 根据设置决定是否显示手绘板
-    ...(appearanceStore.settings?.enableWhiteboard
-      ? [{ name: '手绘板', path: '/ed-whiteboard', icon: HandPaintedPlate }]
-      : [])
+    { name: '思维板', path: '/mindboard', icon: Workbench }
     // { name: 'UI 测试', path: '/ui-test', icon: Workbench }
   ]
   return baseItems

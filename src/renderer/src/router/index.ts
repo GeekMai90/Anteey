@@ -120,16 +120,6 @@ const routes = [
     component: () => import('../views/DraftsView.vue')
   },
   {
-    name: 'EdWhiteboardView',
-    path: '/ed-whiteboard',
-    component: () => import('../views/EdWhiteboardView.vue')
-  },
-  {
-    path: '/ed-whiteboard/:id',
-    name: 'EdWhiteboardDetail',
-    component: () => import('@renderer/components/edWhiteboard/EdWhiteboardDetail.vue')
-  },
-  {
     name: 'DictionaryManage',
     path: '/dictionary-manage',
     component: () => import('../views/DictionaryManageView.vue')

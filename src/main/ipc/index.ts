@@ -20,7 +20,6 @@ import { setupPomodoroHandlers } from './pomodoroIpcHandlers'
 import { setupDailyQuotesHandlers } from './dailyquotesIpcHandlers'
 import { setupLifeGuideHandlers } from './lifeGuideIpcHandlers'
 import { setupReviewHandlers } from './reviewIpcHandlers'
-import { setupEdWhiteboardHandlers } from './edWhiteboardIpcHandlers'
 import { setupTaskHandlers } from './taskIpcHandlers'
 import { setupAuthHandlers } from './authIpcHandlers'
 import { setupLLMConfigHandlers } from './llmConfigIpcHandlers'
@@ -51,7 +50,6 @@ export function setupIpcHandlers(): void {
   setupDailyQuotesHandlers()
   setupLifeGuideHandlers()
   setupReviewHandlers()
-  setupEdWhiteboardHandlers()
   setupTaskHandlers()
   setupAuthHandlers()
   setupLLMConfigHandlers()

@@ -78,16 +78,6 @@ import type {
   DailyQuote,
   ReviewResponse,
 
-  // 编辑白板相关
-  EdWhiteboard,
-  CreateEdWhiteboardParams,
-  EdWhiteboardQueryParams,
-  EdWhiteboardQueryResult,
-  UpdateEdWhiteboardParams,
-  CreateEdWhiteboardNoteRefParams,
-  EdWhiteboardNoteRef,
-  UpdateEdWhiteboardNoteRefPositionParams,
-
   // 任务相关
   Task,
 
@@ -561,39 +551,6 @@ export interface ElectronAPI {
     getReviewData: () => Promise<ReviewResponse>
     // 获取单条随机笔记
     getOneRandomNote: () => Promise<Note | null>
-  }
-
-  edWhiteboard: {
-    // 创建白板
-    createEdWhiteboard: (params: CreateEdWhiteboardParams) => Promise<EdWhiteboard>
-
-    // 获取白板列表
-    getEdWhiteboards: (params: EdWhiteboardQueryParams) => Promise<EdWhiteboardQueryResult>
-
-    // 获取单个白板
-    getEdWhiteboardById: (id: string) => Promise<EdWhiteboard | null>
-
-    // 更新白板
-    updateEdWhiteboard: (params: UpdateEdWhiteboardParams) => Promise<EdWhiteboard>
-
-    // 删除白板
-    deleteEdWhiteboard: (id: string) => Promise<void>
-
-    // 创建笔记引用
-    createEdWhiteboardNoteRef: (
-      params: CreateEdWhiteboardNoteRefParams
-    ) => Promise<EdWhiteboardNoteRef>
-
-    // 更新笔记引用位置
-    updateEdWhiteboardNoteRefPosition: (
-      params: UpdateEdWhiteboardNoteRefPositionParams
-    ) => Promise<EdWhiteboardNoteRef>
-
-    // 删除笔记引用
-    deleteEdWhiteboardNoteRef: (id: string) => Promise<void>
-
-    // 获取白板中的所有笔记引用
-    getEdWhiteboardNoteRefs: (whiteboardId: string) => Promise<EdWhiteboardNoteRef[]>
   }
 
   task: {
