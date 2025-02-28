@@ -197,10 +197,17 @@ export async function initDatabase(db: Knex): Promise<void> {
       table.string('id').primary()
       table.string('authorName').notNullable().defaultTo('麦先生的专栏')
       table.string('authorMotto').notNullable().defaultTo('一起践行终身成长')
-      table.string('qrcodeUrl').notNullable().defaultTo('')
       table.string('globalHotkey').nullable()
       table.datetime('createdAt').notNullable()
       table.datetime('updatedAt').notNullable()
+
+      // 添加窗口相关的列
+      table.integer('window_width')
+      table.integer('window_height')
+      table.integer('window_x')
+      table.integer('window_y')
+      table.boolean('is_maximized')
+      table.float('zoom_factor')
     })
     console.log('user_settings 表创建成功')
 
@@ -209,22 +216,44 @@ export async function initDatabase(db: Knex): Promise<void> {
       id: uuidv4(),
       authorName: '麦先生的专栏',
       authorMotto: '一起践行终身成长',
-      qrcodeUrl: '',
-      globalHotkey: 'Alt+CommandOrControl+U',
       createdAt: new Date(),
-      updatedAt: new Date()
+      updatedAt: new Date(),
+      window_width: 1280,
+      window_height: 800,
+      is_maximized: true,
+      zoom_factor: 1.0
     })
-    console.log('user_settings 默认数据创建成功')
   } else {
-    // 检查是否需要添加 globalHotkey 列
-    const hasGlobalHotkeyColumn = await db.schema.hasColumn('user_settings', 'globalHotkey')
-    if (!hasGlobalHotkeyColumn) {
-      await db.schema.alterTable('user_settings', (table) => {
-        table.string('globalHotkey').nullable()
-      })
-      console.log('user_settings 表添加 globalHotkey 列成功')
+    // 检查并添加缺失的列
+    const columns = [
+      { name: 'globalHotkey', type: 'string' },
+      { name: 'window_width', type: 'integer' },
+      { name: 'window_height', type: 'integer' },
+      { name: 'window_x', type: 'integer' },
+      { name: 'window_y', type: 'integer' },
+      { name: 'is_maximized', type: 'boolean' },
+      { name: 'zoom_factor', type: 'float' }
+    ]
+
+    for (const column of columns) {
+      const hasColumn = await db.schema.hasColumn('user_settings', column.name)
+      if (!hasColumn) {
+        await db.schema.alterTable('user_settings', (table) => {
+          if (column.type === 'string') {
+            table.string(column.name).nullable()
+          } else if (column.type === 'integer') {
+            table.integer(column.name).nullable()
+          } else if (column.type === 'boolean') {
+            table.boolean(column.name).defaultTo(true)
+          } else if (column.type === 'float') {
+            table.float(column.name).defaultTo(1.0)
+          }
+        })
+        console.log(`user_settings 表添加 ${column.name} 列成功`)
+      }
     }
   }
+
   // 创建 custom_filters 表
   if (!(await db.schema.hasTable('custom_filters'))) {
     await db.schema.createTable('custom_filters', (table) => {

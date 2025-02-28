@@ -379,7 +379,7 @@ const updateAddress = debounce(async (address: string) => {
     // 只在出错时回滚
     localAddress.value = currentNote.value?.address || ''
   }
-}, 500)
+}, 1000)
 
 // 处理地址输入
 const handleAddressInput = (event: Event) => {

@@ -68,27 +68,30 @@ function getNextLevel(level: AddressLevel): number {
 //   }
 //   throw new Error(`Invalid address format: ${address}`)
 // }
-function getAddressLevel(address: string): AddressLevel {
-  // 1. 基础验证：检查地址是否为空或非字符串
+function getAddressLevel(address: string): AddressLevel | null {
+  // 1. 基础验证
   if (!address || typeof address !== 'string') {
-    throw new Error('地址不能为空且必须是字符串类型')
+    console.warn('无效地址: 地址为空或非字符串类型')
+    return null
   }
 
-  // 2. 移除可能的空白字符
+  // 2. 移除空白字符
   address = address.trim()
 
   // 3. 基础层级验证（4位数字）
   if (/^\d{4}$/.test(address)) {
-    // 检查是否是有效的数字（不能全为0）
+    // 检查是否全为0
     if (parseInt(address) === 0) {
-      throw new Error(`无效的地址格式：地址不能全为0，当前地址：${address}`)
+      console.warn(`无效地址: 地址不能全为0，当前地址: ${address}`)
+      return null
     }
 
     // 检查各层级
     if (address.endsWith('000')) {
       // 验证第一位不能为0
       if (address[0] === '0') {
-        throw new Error(`无效的顶层地址：第一位不能为0，当前地址：${address}`)
+        console.warn(`无效地址: 顶层地址第一位不能为0，当前地址: ${address}`)
+        return null
       }
       return 'top'
     }
@@ -96,51 +99,54 @@ function getAddressLevel(address: string): AddressLevel {
     if (address.endsWith('00')) {
       // 验证前两位不能为0
       if (address.slice(0, 2) === '00') {
-        throw new Error(`无效的二级地址：前两位不能为0，当前地址：${address}`)
+        console.warn(`无效地址: 二级地址前两位不能为0，当前地址: ${address}`)
+        return null
       }
       return 'second'
     }
 
     // 验证前三位不能为0
     if (address.slice(0, 3) === '000') {
-      throw new Error(`无效的三级地址：前三位不能为0，当前地址：${address}`)
+      console.warn(`无效地址: 三级地址前三位不能为0，当前地址: ${address}`)
+      return null
     }
     return 'third'
   }
 
   // 4. 分支层级验证
   if (address.includes('-')) {
-    // 验证分支格式：基础地址-分支号（支持数字和字母）
+    // 验证分支格式
     const pattern = /^\d{4}(-([1-9]\d*[a-z]?|\d*[a-z]))+$/
     if (!pattern.test(address)) {
-      throw new Error(
-        `无效的分支地址格式：应为"基础地址-分支号"格式，分支号可以是正整数或带小写字母，当前地址：${address}`
+      console.warn(
+        `无效地址: 分支地址格式错误，应为"基础地址-分支号"格式，分支号可以是正整数或带小写字母，当前地址: ${address}`
       )
+      return null
     }
 
     // 验证基础地址部分
     const baseAddress = address.split('-')[0]
     if (parseInt(baseAddress) === 0) {
-      throw new Error(`无效的分支地址：基础地址不能全为0，当前地址：${address}`)
+      console.warn(`无效地址: 分支地址的基础地址不能全为0，当前地址: ${address}`)
+      return null
     }
 
     // 计算分支层级
     const branchLevel = address.split('-').length - 1
-    // 限制最大分支层级（可以根据需求调整）
-    const MAX_BRANCH_LEVEL = 10
-    if (branchLevel > MAX_BRANCH_LEVEL) {
-      throw new Error(
-        `分支层级超出限制：最大支持${MAX_BRANCH_LEVEL}层分支，当前层级：${branchLevel}，地址：${address}`
+    if (branchLevel > 10) {
+      console.warn(
+        `无效地址: 分支层级超出限制，最大支持10层分支，当前层级: ${branchLevel}，地址: ${address}`
       )
+      return null
     }
 
     return `branch-${branchLevel}` as AddressLevel
   }
 
-  // 5. 如果所有验证都未通过，抛出通用错误
-  throw new Error(
-    `无效的地址格式：${address}，地址必须是4位数字（如1000）或带分支号的格式（如1100-1）`
+  console.warn(
+    `无效地址: 地址格式不符合要求，地址必须是4位数字（如1000）或带分支号的格式（如1100-1），当前地址: ${address}`
   )
+  return null
 }
 
 // 获取父地址
@@ -152,7 +158,7 @@ function getParentAddress(address: string): string | null {
   if (level === 'third') return `${address.slice(0, 2)}00`
 
   // 修改分支地址的父地址获取逻辑
-  if (level.startsWith('branch-')) {
+  if (level && level.startsWith('branch-')) {
     const parts = address.split('-')
     return parts.slice(0, -1).join('-')
   }
@@ -170,21 +176,20 @@ export async function getTopLevelNodes(): Promise<KnowledgeTreeNode[]> {
       .where('cardType', 'Maincard')
       .orderBy('address', 'asc')
 
-    // console.log('获取到的顶层笔记数据:', notes)
+    // 过滤掉无效地址的节点
+    const validNotes = notes.filter((note) => getAddressLevel(note.address) !== null)
 
     const nodes = await Promise.all(
-      notes.map(async (note) => {
+      validNotes.map(async (note) => {
         const childCount = await getChildCount(note.address)
         const node = {
           ...convertToTreeNode(note, 0),
           childCount
         }
-        // console.log('转换后的节点数据:', node)
         return node
       })
     )
 
-    // console.log('最终返回的节点数组:', nodes)
     return nodes
   } catch (error) {
     console.error('获取顶层节点失败:', error)
@@ -209,7 +214,7 @@ export async function getChildCount(parentAddress: string): Promise<number> {
         pattern = `${parentAddress}-_%`
         break
       default:
-        if (level.startsWith('branch-')) {
+        if (level && level.startsWith('branch-')) {
           // 对于任意层级的分支节点，只匹配直接子节点
           pattern = `${parentAddress}-%`
         } else {
@@ -242,6 +247,11 @@ export async function getChildNodes(parentAddress: string): Promise<KnowledgeTre
   try {
     console.log('开始获取子节点, 父地址:', parentAddress)
     const level = getAddressLevel(parentAddress)
+    // 如果父节点地址无效,返回空数组
+    if (!level) {
+      return []
+    }
+
     let pattern: string
 
     switch (level) {
@@ -255,7 +265,7 @@ export async function getChildNodes(parentAddress: string): Promise<KnowledgeTre
         pattern = `${parentAddress}-%`
         break
       default:
-        if (level.startsWith('branch-')) {
+        if (level && level.startsWith('branch-')) {
           // 对于任意层级的分支节点，只匹配直接子节点
           pattern = `${parentAddress}-%`
         } else {
@@ -305,8 +315,11 @@ export async function getChildNodes(parentAddress: string): Promise<KnowledgeTre
       return aAlpha.localeCompare(bAlpha)
     })
 
+    // 过滤掉无效地址的节点
+    const validNotes = notes.filter((note) => getAddressLevel(note.address) !== null)
+
     const nodes = await Promise.all(
-      notes.map(async (note) => {
+      validNotes.map(async (note) => {
         const childCount = await getChildCount(note.address)
         const node = convertToTreeNode(note, getNextLevel(level))
         return {

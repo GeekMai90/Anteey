@@ -194,9 +194,9 @@ async function createWindow(): Promise<BrowserWindow> {
   const settings = await db('user_settings').first()
 
   const mainWindow = new BrowserWindow({
-    // 使用保存的窗口大小，如果没有则使用默认值
-    width: settings?.window_width || 900,
-    height: settings?.window_height || 670,
+    // 增大默认窗口大小
+    width: settings?.window_width || 1280, // 改大一点
+    height: settings?.window_height || 800, // 改大一点
     x: settings?.window_x,
     y: settings?.window_y,
     show: false,
@@ -232,8 +232,9 @@ async function createWindow(): Promise<BrowserWindow> {
       const zoomFactor = settings?.zoom_factor ?? 1.0
       mainWindow.webContents.setZoomFactor(zoomFactor)
 
-      // 如果之前是最大化状态，则最大化窗口
-      if (settings?.is_maximized) {
+      // 如果没有设置或者之前是最大化状态，则最大化窗口
+      if (!settings || settings.is_maximized) {
+        // 修改判断条件
         mainWindow.maximize()
       }
 
