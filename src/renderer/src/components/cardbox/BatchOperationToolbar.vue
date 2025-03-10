@@ -75,6 +75,17 @@
         @confirm="confirmConvertToFlashcard"
         @cancel="showFlashcardConfirm = false"
       />
+
+      <!-- 删除确认对话框 -->
+      <ConfirmDialog
+        v-model:visible="showDeleteConfirm"
+        title="删除确认"
+        :message="`确定要将选中的 ${noteStore.selectedNoteIds.length} 张卡片移到回收站吗？`"
+        confirm-text="确认"
+        cancel-text="取消"
+        @confirm="confirmDelete"
+        @cancel="showDeleteConfirm = false"
+      />
     </div>
   </div>
 </template>
@@ -102,6 +113,7 @@ const showCardBoxMenu = ref(false)
 const showCardTypeMenu = ref(false)
 const showTagMenu = ref(false)
 const showFlashcardConfirm = ref(false)
+const showDeleteConfirm = ref(false)
 
 // 添加 props 定义
 const props = defineProps<{
@@ -214,8 +226,19 @@ const confirmConvertToFlashcard = async () => {
 // 修改删除操作方法
 const handleDelete = async () => {
   if (checkSelectedNotes()) {
-    // TODO: 待实现
-    message.info('功能开发中')
+    showDeleteConfirm.value = true
+  }
+}
+
+// 确认删除
+const confirmDelete = async () => {
+  try {
+    await noteStore.batchSoftDeleteNotes(noteStore.selectedNoteIds)
+    message.success('批量删除笔记成功')
+    showDeleteConfirm.value = false
+    noteStore.toggleMultiSelectMode()
+  } catch (error) {
+    message.error('批量删除笔记失败')
   }
 }
 

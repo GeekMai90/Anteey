@@ -413,5 +413,14 @@ export const notesApi = {
       console.error('预加载脚本 → 批量设置卡片类型失败:', error)
       throw error
     }
+  },
+
+  batchSoftDeleteNotes: async (noteIds: string[]): Promise<Note[]> => {
+    try {
+      return (await ipcRenderer.invoke('batch-soft-delete-notes', noteIds)) as Note[]
+    } catch (error) {
+      console.error('预加载脚本 → 批量软删除笔记失败:', error)
+      throw error
+    }
   }
 }

@@ -1867,3 +1867,41 @@ export async function batchUpdateNotesCardType(
     throw error
   }
 }
+
+// 批量软删除笔记
+export async function batchSoftDeleteNotes(noteIds: string[]): Promise<Note[]> {
+  console.log(`后端→ 开始批量软删除笔记: ${noteIds.length} 条`)
+
+  return db.transaction(async (trx) => {
+    try {
+      // 1. 首先获取所有笔记
+      const notes = await trx('notes').whereIn('id', noteIds)
+      if (notes.length !== noteIds.length) {
+        const foundIds = notes.map((note) => note.id)
+        const missingIds = noteIds.filter((id) => !foundIds.includes(id))
+        throw new Error(`部分笔记不存在: ${missingIds.join(', ')}`)
+      }
+
+      // 2. 批量更新笔记状态
+      const updatedNotes = await trx('notes')
+        .whereIn('id', noteIds)
+        .update({
+          isDeleted: true,
+          updatedAt: new Date()
+        })
+        .returning('*')
+
+      if (!updatedNotes || updatedNotes.length === 0) {
+        throw new Error('批量更新笔记失败')
+      }
+
+      const convertedNotes = updatedNotes.map((note) => convertToNote(note))
+      console.log('后端→ 批量软删除笔记成功，更新数量:', convertedNotes.length)
+
+      return convertedNotes
+    } catch (error) {
+      console.error(`后端→ 批量软删除笔记失败:`, error)
+      throw error
+    }
+  })
+}

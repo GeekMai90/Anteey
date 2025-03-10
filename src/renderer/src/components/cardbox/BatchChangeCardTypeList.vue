@@ -33,7 +33,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, nextTick, onMounted } from 'vue'
-import { Notes, Table, TransactionOrder, Deeplink } from '@icon-park/vue-next'
+import { Notes, Bookshelf, ListAlphabet } from '@icon-park/vue-next'
 import type { CardType } from '@shared/types'
 import { useFloating } from '@floating-ui/vue'
 import { flip, offset, shift } from '@floating-ui/dom'
@@ -75,10 +75,9 @@ watch(
 
 // 卡片类型选项
 const cardTypes = [
-  { value: 'Maincard' as CardType, label: '主要卡', icon: Notes },
-  { value: 'Bibcard' as CardType, label: '书目卡', icon: Table },
-  { value: 'Indexcard' as CardType, label: '索引卡', icon: TransactionOrder },
-  { value: 'Hoplinkcard' as CardType, label: '跳转卡', icon: Deeplink }
+  { value: 'Maincard' as CardType, label: '主要卡片', icon: Notes },
+  { value: 'Bibcard' as CardType, label: '参考卡片', icon: Bookshelf },
+  { value: 'Indexcard' as CardType, label: '索引卡片', icon: ListAlphabet }
 ]
 
 // 选择卡片类型

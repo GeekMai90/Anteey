@@ -1441,6 +1441,55 @@ export const useNoteStore = defineStore(
       return selectedNoteIds.value.includes(noteId)
     }
 
+    // 批量软删除笔记
+    const batchSoftDeleteNotes = async (noteIds: string[]) => {
+      try {
+        // 检查参数
+        console.log('批量软删除笔记 - 参数检查:')
+        console.log('原始笔记ID数组:', noteIds)
+
+        // 将响应式数组转换为普通数组
+        const plainNoteIds = Array.from(noteIds)
+        console.log('转换后的笔记ID数组:', plainNoteIds)
+
+        // 确保是数组
+        if (!Array.isArray(plainNoteIds)) {
+          throw new Error('笔记ID参数必须是数组')
+        }
+
+        // 调用后端 API
+        const updatedNotes = await window.electronAPI.note.batchSoftDeleteNotes(plainNoteIds)
+
+        // 更新本地状态
+        updatedNotes.forEach((updatedNote) => {
+          // 从收藏列表中移除
+          starredNotes.value = starredNotes.value.filter((note) => note.id !== updatedNote.id)
+
+          // 从最近笔记列表中移除
+          recentNotes.value = recentNotes.value.filter((note) => note.id !== updatedNote.id)
+
+          // 如果是当前笔记，关闭编辑器
+          if (currentNote.value && currentNote.value.id === updatedNote.id) {
+            closeNoteEditor()
+          }
+        })
+
+        // 清空选择的笔记
+        selectedNoteIds.value = []
+        // 退出多选模式
+        isMultiSelectMode.value = false
+
+        // 发送事件通知
+        const notesDeletedBus = useEventBus('notes-deleted')
+        notesDeletedBus.emit(updatedNotes)
+
+        return updatedNotes
+      } catch (error) {
+        console.error('批量软删除笔记失败:', error)
+        throw error
+      }
+    }
+
     // 返回所有状态和方法
     return {
       // 状态
@@ -1613,7 +1662,10 @@ export const useNoteStore = defineStore(
       toggleMultiSelectMode,
       selectNote,
       clearSelectedNotes,
-      isNoteSelected
+      isNoteSelected,
+
+      // 批量软删除笔记
+      batchSoftDeleteNotes
     }
   },
   {

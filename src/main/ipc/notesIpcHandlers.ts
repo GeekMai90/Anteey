@@ -34,7 +34,8 @@ import {
   updateNoteVectorOnClose,
   batchUpdateVectors,
   batchMoveNotesToCardBox,
-  batchUpdateNotesCardType
+  batchUpdateNotesCardType,
+  batchSoftDeleteNotes
 } from '../../services/notes/notesService'
 import type {
   GetPaginatedNotesParams,
@@ -420,6 +421,18 @@ export function setupNotesHandlers() {
       }
     }
   )
+
+  // 批量软删除笔记
+  ipcMain.handle('batch-soft-delete-notes', async (_event, noteIds: string[]) => {
+    try {
+      const updatedNotes = await batchSoftDeleteNotes(noteIds)
+      console.log('主进程→ 批量软删除笔记成功:', updatedNotes.length)
+      return updatedNotes
+    } catch (error) {
+      console.error('主进程→ 批量软删除笔记失败:', error)
+      throw error
+    }
+  })
 }
 
 // 更新笔记标签

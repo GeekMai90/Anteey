@@ -191,6 +191,8 @@ export interface ElectronAPI {
     batchUpdateNotesCardType: (noteIds: string[], cardType: string) => Promise<Note[]>
     // 批量移动笔记到卡片盒
     batchMoveNotesToCardBox: (noteIds: string[], cardBoxId: string | null) => Promise<Note[]>
+    // 批量软删除笔记
+    batchSoftDeleteNotes: (noteIds: string[]) => Promise<Note[]>
   }
 
   systemMenu: {

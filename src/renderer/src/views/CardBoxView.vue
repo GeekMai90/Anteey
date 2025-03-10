@@ -646,6 +646,16 @@ const eventBusDeleted = useEventBus('note-deleted')
 const eventBusEmptyNotesMovedToTrash = useEventBus('empty-notes-moved-to-trash')
 const eventBusNoteRestored = useEventBus('note-restored')
 const taskUpdatedBus = useEventBus<string>('task-updated')
+const notesDeletedBus = useEventBus('notes-deleted')
+
+// 监听批量软删除事件
+notesDeletedBus.on(() => {
+  console.log('CardBoxView.vue→ 监听到笔记批量软删除事件')
+  resetPagination()
+  fetchNotes()
+  noteStore.toggleMultiSelectMode()
+})
+
 eventBusNoteRestored.on(() => {
   console.log('CardBoxView.vue→ 监听到笔记从回收站恢复事件')
   resetPagination()
