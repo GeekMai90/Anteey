@@ -15,17 +15,16 @@
           <div class="title">选择卡片类型</div>
         </div>
         <div class="type-list">
-          <div
+          <DropdownListItem
             v-for="type in cardTypes"
             :key="type.value"
-            class="type-item"
             @click="handleSelect(type.value)"
           >
-            <div class="icon">
+            <template #icon>
               <component :is="type.icon" theme="outline" size="16" />
-            </div>
-            <div class="name">{{ type.label }}</div>
-          </div>
+            </template>
+            {{ type.label }}
+          </DropdownListItem>
         </div>
       </div>
     </Transition>
@@ -38,6 +37,7 @@ import { Notes, Table, TransactionOrder, Deeplink } from '@icon-park/vue-next'
 import type { CardType } from '@shared/types'
 import { useFloating } from '@floating-ui/vue'
 import { flip, offset, shift } from '@floating-ui/dom'
+import DropdownListItem from '@renderer/components/ui/DropdownListItem.vue'
 
 const props = defineProps<{
   isOpen: boolean
@@ -101,7 +101,7 @@ onMounted(() => {
   border: 1px solid var(--color-border);
   border-radius: 8px;
   box-shadow: var(--shadow-primary);
-  min-width: 200px;
+  min-width: 150px;
   z-index: 1000;
   padding: 8px 0;
 
@@ -117,34 +117,7 @@ onMounted(() => {
   }
 
   .type-list {
-    padding: 4px 0;
-
-    .type-item {
-      display: flex;
-      align-items: center;
-      padding: 8px 16px;
-      cursor: pointer;
-      transition: all 0.2s;
-
-      &:hover {
-        background: var(--color-hover-bg);
-      }
-
-      .icon {
-        width: 24px;
-        height: 24px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        margin-right: 8px;
-        color: var(--color-text-secondary);
-      }
-
-      .name {
-        font-size: 14px;
-        color: var(--color-text-primary);
-      }
-    }
+    padding: 4px;
   }
 }
 

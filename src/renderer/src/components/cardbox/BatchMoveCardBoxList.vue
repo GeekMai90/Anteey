@@ -14,17 +14,16 @@
         <div class="list-header">选择目标卡片盒</div>
         <div class="list-content">
           <template v-if="sortedCardBoxes.length > 0">
-            <div
+            <DropdownListItem
               v-for="box in sortedCardBoxes"
               :key="box.id"
-              class="cardbox-item"
               @click="selectCardBox(box)"
             >
-              <div class="icon">
+              <template #icon>
                 <Box theme="outline" size="18" fill="var(--color-icon-primary)" :strokeWidth="3" />
-              </div>
-              <div class="name">{{ box.name }}</div>
-            </div>
+              </template>
+              {{ box.name }}
+            </DropdownListItem>
           </template>
           <div v-else class="empty-state">暂无卡片盒，请先创建</div>
         </div>
@@ -53,6 +52,7 @@ import { storeToRefs } from 'pinia'
 import ConfirmDialog from '@renderer/components/common/ConfirmDialog.vue'
 import { useFloating } from '@floating-ui/vue'
 import { flip, offset, shift } from '@floating-ui/dom'
+import DropdownListItem from '@renderer/components/ui/DropdownListItem.vue'
 
 const props = defineProps<{
   isOpen: boolean
@@ -168,37 +168,6 @@ onUnmounted(() => {
     padding: 4px;
     overflow-y: auto;
     max-height: calc(320px - 40px);
-
-    .cardbox-item {
-      display: flex;
-      align-items: center;
-      padding: 8px 12px;
-      cursor: pointer;
-      border-radius: 6px;
-      transition: all 0.2s;
-
-      &:hover {
-        background: var(--color-hover-bg);
-      }
-
-      .icon {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        width: 24px;
-        height: 24px;
-        margin-right: 8px;
-      }
-
-      .name {
-        flex: 1;
-        font-size: 14px;
-        color: var(--color-text-primary);
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-      }
-    }
   }
 
   .empty-state {
