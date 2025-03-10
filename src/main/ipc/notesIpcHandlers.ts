@@ -33,7 +33,8 @@ import {
   getRecentEditedNotes,
   updateNoteVectorOnClose,
   batchUpdateVectors,
-  batchMoveNotesToCardBox
+  batchMoveNotesToCardBox,
+  batchUpdateNotesCardType
 } from '../../services/notes/notesService'
 import type {
   GetPaginatedNotesParams,
@@ -401,6 +402,20 @@ export function setupNotesHandlers() {
         return { success: true, notes: updatedNotes }
       } catch (error) {
         console.error('主进程→ 批量移动笔记到卡片盒失败:', error)
+        return { success: false, error: String(error) }
+      }
+    }
+  )
+
+  // 批量设置卡片类型
+  ipcMain.handle(
+    'batch-update-notes-card-type',
+    async (_event, { noteIds, cardType }: { noteIds: string[]; cardType: string }) => {
+      try {
+        const updatedNotes = await batchUpdateNotesCardType(noteIds, cardType)
+        return { success: true, notes: updatedNotes }
+      } catch (error) {
+        console.error('主进程→ 批量设置卡片类型失败:', error)
         return { success: false, error: String(error) }
       }
     }

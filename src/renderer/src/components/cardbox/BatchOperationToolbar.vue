@@ -15,15 +15,15 @@
 
       <div class="operation-buttons">
         <!-- 设置卡片盒 -->
-        <Button ref="moveButtonRef" :icon="Install" @click="toggleCardBoxMenu">
-          移动到卡片盒
-        </Button>
+        <Button ref="moveButtonRef" :icon="Install" @click="toggleCardBoxMenu"> 设置卡片盒 </Button>
 
         <!-- 修改卡片类型 -->
-        <Button :icon="Notes" @click="showCardTypeMenu = true"> 修改类型 </Button>
+        <Button ref="changeTypeButtonRef" :icon="Notes" @click="toggleCardTypeMenu">
+          设置卡片类型
+        </Button>
 
         <!-- 标签管理 -->
-        <Button :icon="Tag" @click="showTagMenu = true"> 标签 </Button>
+        <Button :icon="Tag" @click="handleTagManage"> 标签 </Button>
 
         <!-- 闪卡转换 -->
         <Button :icon="StorageCardOne" @click="toggleFlashcard">
@@ -47,18 +47,15 @@
         @move="handleMoveToCardBox"
       />
 
-      <!-- 卡片类型下拉菜单 -->
-      <div v-if="showCardTypeMenu" class="dropdown-menu card-type-menu">
-        <div
-          v-for="type in cardTypes"
-          :key="type.value"
-          class="menu-item"
-          @click="handleChangeCardType(type.value)"
-        >
-          <component :is="type.icon" theme="outline" size="16" />
-          <span>{{ type.label }}</span>
-        </div>
-      </div>
+      <!-- 卡片类型列表 -->
+      <BatchChangeCardTypeList
+        v-if="showCardTypeMenu"
+        :is-open="showCardTypeMenu"
+        :selected-count="noteStore.selectedNoteIds.length"
+        :button-ref="changeTypeButtonRef.$el"
+        @close="showCardTypeMenu = false"
+        @change="handleChangeCardType"
+      />
     </div>
   </div>
 </template>
@@ -70,6 +67,7 @@ import { Install, Notes, Tag, StorageCardOne, Delete, Close } from '@icon-park/v
 import type { CardType, Note } from '@shared/types'
 import Button from '@renderer/components/ui/Button.vue'
 import BatchMoveCardBoxList from './BatchMoveCardBoxList.vue'
+import BatchChangeCardTypeList from './BatchChangeCardTypeList.vue'
 import { message } from '@renderer/utils/message'
 
 const noteStore = useNoteStore()
@@ -78,14 +76,6 @@ const noteStore = useNoteStore()
 const showCardBoxMenu = ref(false)
 const showCardTypeMenu = ref(false)
 const showTagMenu = ref(false)
-
-// 卡片类型选项
-const cardTypes = [
-  { value: 'Maincard' as CardType, label: '主要卡', icon: Notes },
-  { value: 'Bibcard' as CardType, label: '书目卡', icon: Notes },
-  { value: 'Indexcard' as CardType, label: '索引卡', icon: Notes },
-  { value: 'Hoplinkcard' as CardType, label: '跳转卡', icon: Notes }
-]
 
 // 计算是否包含闪卡
 const hasFlashcards = computed(() => {
@@ -142,30 +132,66 @@ const handleMoveToCardBox = async (cardBoxId: string) => {
   }
 }
 
-// 修改卡片类型 - 暂时留空
+// 修改卡片类型
 const handleChangeCardType = async (cardType: CardType) => {
-  // TODO: 待实现
-  message.info('功能开发中')
-  showCardTypeMenu.value = false
+  try {
+    await noteStore.batchUpdateNotesCardType(noteStore.selectedNoteIds, cardType)
+    message.success('批量修改卡片类型成功')
+    showCardTypeMenu.value = false
+    noteStore.toggleMultiSelectMode()
+  } catch (error) {
+    message.error('批量修改卡片类型失败')
+  }
 }
 
-// 切换闪卡状态 - 暂时留空
+// 检查是否有选中的卡片
+const checkSelectedNotes = () => {
+  if (noteStore.selectedNoteIds.length === 0) {
+    message.info('请先选择要处理的卡片')
+    return false
+  }
+  return true
+}
+
+// 修改卡片盒菜单切换方法
+const toggleCardBoxMenu = () => {
+  if (checkSelectedNotes()) {
+    showCardBoxMenu.value = !showCardBoxMenu.value
+  }
+}
+
+// 修改卡片类型菜单切换方法
+const toggleCardTypeMenu = () => {
+  if (checkSelectedNotes()) {
+    showCardTypeMenu.value = !showCardTypeMenu.value
+  }
+}
+
+// 修改标签管理方法
+const handleTagManage = () => {
+  if (checkSelectedNotes()) {
+    showTagMenu.value = true
+  }
+}
+
+// 修改闪卡转换方法
 const toggleFlashcard = async () => {
-  // TODO: 待实现
-  message.info('功能开发中')
+  if (checkSelectedNotes()) {
+    // TODO: 待实现
+    message.info('功能开发中')
+  }
 }
 
-// 删除操作 - 暂时留空
+// 修改删除操作方法
 const handleDelete = async () => {
-  // TODO: 待实现
-  message.info('功能开发中')
+  if (checkSelectedNotes()) {
+    // TODO: 待实现
+    message.info('功能开发中')
+  }
 }
 
 const moveButtonRef = ref<HTMLElement | null>(null)
-
-const toggleCardBoxMenu = () => {
-  showCardBoxMenu.value = !showCardBoxMenu.value
-}
+const changeTypeButtonRef = ref<any>(null)
 </script>
 
 <style lang="scss" scoped>

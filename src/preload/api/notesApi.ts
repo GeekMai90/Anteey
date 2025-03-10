@@ -399,5 +399,19 @@ export const notesApi = {
       console.error('预加载脚本 → 批量移动笔记到卡片盒失败:', error)
       throw error
     }
+  },
+
+  // 批量设置卡片类型
+  batchUpdateNotesCardType: async (noteIds: string[], cardType: string): Promise<Note[]> => {
+    try {
+      const result = await ipcRenderer.invoke('batch-update-notes-card-type', { noteIds, cardType })
+      if (!result.success) {
+        throw new Error(result.error)
+      }
+      return result.notes
+    } catch (error) {
+      console.error('预加载脚本 → 批量设置卡片类型失败:', error)
+      throw error
+    }
   }
 }

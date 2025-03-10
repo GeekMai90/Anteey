@@ -1280,6 +1280,74 @@ export const useNoteStore = defineStore(
       }
     }
 
+    // 批量设置卡片类型
+    const batchUpdateNotesCardType = async (noteIds: string[], cardType: string) => {
+      try {
+        // 1. 更新保存状态
+        currentNoteSaveStatus.value = 'saving'
+
+        // 检查参数
+        console.log('批量设置卡片类型 - 参数检查:')
+        console.log('原始笔记ID数组:', noteIds)
+
+        // 将响应式数组转换为普通数组
+        const plainNoteIds = Array.from(noteIds)
+        console.log('转换后的笔记ID数组:', plainNoteIds)
+        console.log('目标卡片类型:', cardType)
+
+        // 确保是数组
+        if (!Array.isArray(plainNoteIds)) {
+          throw new Error('笔记ID参数必须是数组')
+        }
+
+        // 2. 调用后端 API
+        const updatedNotes = await window.electronAPI.note.batchUpdateNotesCardType(
+          plainNoteIds,
+          cardType
+        )
+
+        // 3. 更新本地状态
+        updatedNotes.forEach((updatedNote) => {
+          // 更新收藏列表中的笔记
+          const starredIndex = starredNotes.value.findIndex((n) => n.id === updatedNote.id)
+          if (starredIndex !== -1) {
+            starredNotes.value[starredIndex] = updatedNote
+          }
+
+          // 更新最近笔记列表中的笔记
+          const recentIndex = recentNotes.value.findIndex((n) => n.id === updatedNote.id)
+          if (recentIndex !== -1) {
+            recentNotes.value[recentIndex] = updatedNote
+          }
+
+          // 如果是当前笔记，更新当前笔记状态
+          if (currentNote.value && currentNote.value.id === updatedNote.id) {
+            currentNote.value = updatedNote
+          }
+
+          // 发送更新事件通知
+          const noteUpdatedBus = useEventBus<Note>('note-updated')
+          noteUpdatedBus.emit(updatedNote)
+        })
+
+        // 4. 清空选择的笔记
+        selectedNoteIds.value = []
+        // 保持多选模式开启
+        isMultiSelectMode.value = true
+
+        // 5. 更新保存状态
+        currentNoteSaveStatus.value = 'saved'
+
+        return updatedNotes
+      } catch (error) {
+        // 6. 错误处理
+        currentNoteSaveStatus.value = 'error'
+        console.error('批量设置卡片类型失败:', error)
+        throw error
+      }
+    }
+
+    // 批量移动笔记到卡片盒
     const batchMoveNotesToCardBox = async (noteIds: string[], cardBoxId: string | null) => {
       try {
         // 1. 更新保存状态
@@ -1541,6 +1609,7 @@ export const useNoteStore = defineStore(
 
       // 批量移动笔记到卡片盒
       batchMoveNotesToCardBox,
+      batchUpdateNotesCardType,
       toggleMultiSelectMode,
       selectNote,
       clearSelectedNotes,

@@ -1813,22 +1813,57 @@ export async function batchMoveNotesToCardBox(
         })
         .returning('*')
 
-      // 4. 确保返回的数据是可序列化的
-      return notes.map((note) => ({
-        ...note,
-        content: typeof note.content === 'string' ? JSON.parse(note.content) : note.content,
-        references:
-          typeof note.references === 'string' ? JSON.parse(note.references) : note.references,
-        metadata: typeof note.metadata === 'string' ? JSON.parse(note.metadata) : note.metadata,
-        createdAt: new Date(note.createdAt).toISOString(),
-        updatedAt: new Date(note.updatedAt).toISOString()
-      }))
+      // 4. 使用 convertToNote 处理返回数据
+      return notes.map(convertToNote)
     })
 
     console.log('后端→ 批量移动笔记成功:', updatedNotes.length)
     return updatedNotes
   } catch (error) {
     console.error('后端→ 批量移动笔记失败:', error)
+    throw error
+  }
+}
+
+// 批量设置卡片类型
+export async function batchUpdateNotesCardType(
+  noteIds: string[],
+  cardType: string
+): Promise<Note[]> {
+  try {
+    console.log('后端→ 开始批量设置卡片类型:', { noteIds, cardType })
+
+    // 使用事务确保操作的原子性
+    const updatedNotes = await db.transaction(async (trx) => {
+      // 1. 验证所有笔记是否存在
+      const existingNotes = await trx('notes').whereIn('id', noteIds).select('id')
+      if (existingNotes.length !== noteIds.length) {
+        throw new Error('部分笔记不存在')
+      }
+
+      // 2. 验证卡片类型是否有效
+      const validCardTypes = ['Maincard', 'Bibcard', 'Indexcard', 'Hoplinkcard']
+      if (!validCardTypes.includes(cardType)) {
+        throw new Error('无效的卡片类型')
+      }
+
+      // 3. 更新笔记的卡片类型
+      const notes = await trx('notes')
+        .whereIn('id', noteIds)
+        .update({
+          cardType: cardType,
+          updatedAt: new Date()
+        })
+        .returning('*')
+
+      // 4. 使用 convertToNote 处理返回数据
+      return notes.map(convertToNote)
+    })
+
+    console.log('后端→ 批量设置卡片类型成功:', updatedNotes.length)
+    return updatedNotes
+  } catch (error) {
+    console.error('后端→ 批量设置卡片类型失败:', error)
     throw error
   }
 }
