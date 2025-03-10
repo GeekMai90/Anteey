@@ -23,7 +23,7 @@
         </Button>
 
         <!-- 标签管理 -->
-        <Button :icon="Tag" @click="handleTagManage"> 标签 </Button>
+        <Button ref="tagButtonRef" :icon="Tag" @click="handleTagManage"> 设置标签 </Button>
 
         <!-- 闪卡转换 -->
         <Button :icon="StorageCardOne" @click="toggleFlashcard">
@@ -56,6 +56,16 @@
         @close="showCardTypeMenu = false"
         @change="handleChangeCardType"
       />
+
+      <!-- 标签列表 -->
+      <BatchChangeTagList
+        v-if="showTagMenu"
+        :is-open="showTagMenu"
+        :selected-count="noteStore.selectedNoteIds.length"
+        :button-ref="tagButtonRef.$el"
+        @close="showTagMenu = false"
+        @add="handleAddTag"
+      />
     </div>
   </div>
 </template>
@@ -68,9 +78,12 @@ import type { CardType, Note } from '@shared/types'
 import Button from '@renderer/components/ui/Button.vue'
 import BatchMoveCardBoxList from './BatchMoveCardBoxList.vue'
 import BatchChangeCardTypeList from './BatchChangeCardTypeList.vue'
+import BatchChangeTagList from './BatchChangeTagList.vue'
 import { message } from '@renderer/utils/message'
+import { useTagStore } from '@renderer/stores/tagStore'
 
 const noteStore = useNoteStore()
+const tagStore = useTagStore()
 
 // 下拉菜单状态
 const showCardBoxMenu = ref(false)
@@ -170,7 +183,7 @@ const toggleCardTypeMenu = () => {
 // 修改标签管理方法
 const handleTagManage = () => {
   if (checkSelectedNotes()) {
-    showTagMenu.value = true
+    showTagMenu.value = !showTagMenu.value
   }
 }
 
@@ -190,8 +203,21 @@ const handleDelete = async () => {
   }
 }
 
+// 处理添加标签
+const handleAddTag = async (tagId: string) => {
+  try {
+    await tagStore.batchAddTagToNotes(noteStore.selectedNoteIds, tagId)
+    message.success('批量添加标签成功')
+    showTagMenu.value = false
+    noteStore.toggleMultiSelectMode()
+  } catch (error) {
+    message.error('批量添加标签失败')
+  }
+}
+
 const moveButtonRef = ref<HTMLElement | null>(null)
 const changeTypeButtonRef = ref<any>(null)
+const tagButtonRef = ref<any>(null)
 </script>
 
 <style lang="scss" scoped>

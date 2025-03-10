@@ -127,5 +127,16 @@ export const tagApi = {
       console.error('预加载脚本 → 获取笔记标签失败:', error)
       throw error
     }
+  },
+
+  // 批量为笔记添加标签
+  batchAddTagToNotes: async (noteIds: string[], tagId: string): Promise<void> => {
+    try {
+      const result = await ipcRenderer.invoke('batch-add-tag-to-notes', { noteIds, tagId })
+      if (!result.success) throw new Error(result.error)
+    } catch (error) {
+      console.error('预加载脚本 → 批量添加标签失败:', error)
+      throw error
+    }
   }
 }

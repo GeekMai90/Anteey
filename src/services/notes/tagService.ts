@@ -455,3 +455,56 @@ export async function getNoteTags(noteId: string): Promise<Tag[]> {
     throw new Error(`获取笔记标签失败: ${noteId}`)
   }
 }
+
+// 批量为笔记添加标签
+export async function batchAddTagToNotes(noteIds: string[], tagId: string): Promise<void> {
+  try {
+    await db.transaction(async (trx) => {
+      // 1. 验证标签是否存在
+      const tag = await trx('tags').where('id', tagId).first()
+      if (!tag) {
+        throw new Error(`标签不存在: ${tagId}`)
+      }
+
+      // 2. 验证所有笔记是否存在
+      const notes = await trx('notes').whereIn('id', noteIds).select('id')
+      const foundNoteIds = notes.map((n) => n.id)
+      const missingNoteIds = noteIds.filter((id) => !foundNoteIds.includes(id))
+      if (missingNoteIds.length > 0) {
+        throw new Error(`部分笔记不存在: ${missingNoteIds.join(', ')}`)
+      }
+
+      // 3. 获取已有的标签关联，避免重复添加
+      const existingRelations = await trx('note_tags')
+        .whereIn('noteId', noteIds)
+        .where('tagId', tagId)
+        .select('noteId')
+      const existingNoteIds = new Set(existingRelations.map((r) => r.noteId))
+
+      // 4. 构建需要插入的新关联数据
+      const now = new Date()
+      const newRelations = noteIds
+        .filter((noteId) => !existingNoteIds.has(noteId))
+        .map((noteId) => ({
+          noteId,
+          tagId,
+          createdAt: now
+        }))
+
+      // 5. 如果有新的关联需要创建，则批量插入
+      if (newRelations.length > 0) {
+        await trx('note_tags').insert(newRelations)
+      }
+
+      console.log('后端→ 批量添加标签成功:', {
+        tagId,
+        totalNotes: noteIds.length,
+        newRelations: newRelations.length,
+        existingRelations: existingNoteIds.size
+      })
+    })
+  } catch (error) {
+    console.error('后端→ 批量添加标签失败:', error)
+    throw error
+  }
+}

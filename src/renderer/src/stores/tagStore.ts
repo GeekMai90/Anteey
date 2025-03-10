@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { Tag, TagTreeNode } from '@shared/types'
 import type { TagSearchParams, IconName } from '@shared/types'
+import { useEventBus } from '@vueuse/core'
 
 export const useTagStore = defineStore('tag', () => {
   // ==================== 状态 ====================
@@ -201,6 +202,23 @@ export const useTagStore = defineStore('tag', () => {
     }
   }
 
+  // 批量为笔记添加标签
+  const batchAddTagToNotes = async (noteIds: string[], tagId: string) => {
+    try {
+      // 将响应式数组转换为普通数组
+      const plainNoteIds = Array.from(noteIds)
+      await window.electronAPI.tag.batchAddTagToNotes(plainNoteIds, tagId)
+      // 发送标签变更事件，触发标签树更新
+      const tagChangeEventBus = useEventBus('tagChange')
+      tagChangeEventBus.emit()
+      // 刷新标签树
+      await fetchTagTree()
+    } catch (error) {
+      console.error('批量添加标签失败:', error)
+      throw error
+    }
+  }
+
   return {
     // 状态
     tags,
@@ -221,6 +239,7 @@ export const useTagStore = defineStore('tag', () => {
     openTagModal,
     closeTagModal,
     getNoteTags,
-    fetchAllTags
+    fetchAllTags,
+    batchAddTagToNotes
   }
 })

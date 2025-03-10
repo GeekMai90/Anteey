@@ -245,6 +245,9 @@ export interface ElectronAPI {
 
     // 获取笔记的标签
     getNoteTags: (noteId: string) => Promise<Tag[]>
+
+    // 批量为笔记添加标签
+    batchAddTagToNotes: (noteIds: string[], tagId: string) => Promise<void>
   }
   customFilter: {
     // 创建自定义筛选规则

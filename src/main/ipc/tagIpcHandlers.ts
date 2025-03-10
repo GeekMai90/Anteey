@@ -9,7 +9,8 @@ import {
   updateTagPinned,
   updateTagPinOrder,
   searchTagsAdvanced,
-  getNoteTags
+  getNoteTags,
+  batchAddTagToNotes
 } from '../../services/notes/tagService'
 import type { Tag, TagSearchParams, IconName } from '@shared/types'
 
@@ -138,4 +139,18 @@ export function setupTagHandlers() {
       return { success: false, error: String(error) }
     }
   })
+
+  // 批量为笔记添加标签
+  ipcMain.handle(
+    'batch-add-tag-to-notes',
+    async (_event, { noteIds, tagId }: { noteIds: string[]; tagId: string }) => {
+      try {
+        await batchAddTagToNotes(noteIds, tagId)
+        return { success: true }
+      } catch (error) {
+        console.error('主进程→ 批量添加标签失败:', error)
+        return { success: false, error: String(error) }
+      }
+    }
+  )
 }
