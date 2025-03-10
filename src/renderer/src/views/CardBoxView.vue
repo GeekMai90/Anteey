@@ -170,7 +170,7 @@
       </div>
     </div>
     <!-- 添加批量操作工具条 -->
-    <BatchOperationToolbar />
+    <BatchOperationToolbar :displayed-notes="displayedNotes" />
 
     <!-- 添加 FilterDialog -->
     <FilterDialog

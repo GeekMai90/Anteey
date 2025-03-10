@@ -67,7 +67,7 @@
 import { ref, computed } from 'vue'
 import { useNoteStore } from '@renderer/stores/noteStore'
 import { Install, Notes, Tag, StorageCardOne, Delete, Close } from '@icon-park/vue-next'
-import type { CardType } from '@shared/types'
+import type { CardType, Note } from '@shared/types'
 import Button from '@renderer/components/ui/Button.vue'
 import BatchMoveCardBoxList from './BatchMoveCardBoxList.vue'
 import { message } from '@renderer/utils/message'
@@ -95,21 +95,30 @@ const hasFlashcards = computed(() => {
   })
 })
 
+// 添加 props 定义
+const props = defineProps<{
+  displayedNotes: Note[]
+}>()
+
 // 添加全选相关的计算属性和方法
 const isAllSelected = computed(() => {
-  const displayedNotes = noteStore.cardboxNotes
-  return displayedNotes.length > 0 && noteStore.selectedNoteIds.length === displayedNotes.length
+  if (!props.displayedNotes.length) return false
+  return props.displayedNotes.every((note) => noteStore.selectedNoteIds.includes(note.id))
 })
 
 const toggleSelectAll = () => {
   if (isAllSelected.value) {
-    // 取消全选
-    noteStore.clearSelectedNotes()
+    // 取消全选：只取消当前页面显示的笔记的选中状态
+    props.displayedNotes.forEach((note) => {
+      const index = noteStore.selectedNoteIds.indexOf(note.id)
+      if (index !== -1) {
+        noteStore.selectedNoteIds.splice(index, 1)
+      }
+    })
   } else {
-    // 全选当前显示的笔记
-    const displayedNotes = noteStore.cardboxNotes
-    displayedNotes.forEach((note) => {
-      if (!noteStore.isNoteSelected(note.id)) {
+    // 全选：将当前页面显示的笔记全部选中
+    props.displayedNotes.forEach((note) => {
+      if (!noteStore.selectedNoteIds.includes(note.id)) {
         noteStore.selectNote(note.id)
       }
     })
