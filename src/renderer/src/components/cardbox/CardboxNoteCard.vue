@@ -2,13 +2,29 @@
   <div
     :id="`note-${note.id}`"
     class="note-card"
-    :class="{ highlighted: isHighlighted }"
-    @dblclick="useNoteStore().openNoteEditor(note.id)"
+    :class="{
+      highlighted: isHighlighted,
+      'multi-select-mode': noteStore.isMultiSelectMode
+    }"
+    @click="handleCardClick"
+    @dblclick="handleDoubleClick"
   >
+    <!-- 添加复选框 -->
+    <div
+      v-if="noteStore.isMultiSelectMode"
+      class="checkbox-wrapper"
+      :class="{ checked: noteStore.isNoteSelected(note.id) }"
+      @click.stop="toggleSelect"
+    >
+      <div class="checkbox">
+        <CheckOne v-if="noteStore.isNoteSelected(note.id)" theme="filled" size="16" fill="#fff" />
+      </div>
+    </div>
+
     <div class="note-header">
       <span class="note-indicator" :class="cardTypeClass"></span>
       <h3 class="note-title">{{ note.address ? note.address : '无编码地址' }}</h3>
-      <div class="note-buttons">
+      <div v-if="!noteStore.isMultiSelectMode" class="note-buttons">
         <div class="note-button" @click.stop="expandNote">
           <div class="icon">
             <ExpandTextInput
@@ -74,7 +90,7 @@
 <script setup lang="ts">
 import { Note } from '@shared/types'
 import { formatDate } from '@renderer/utils/noteHelpers'
-import { More, ExpandTextInput, StorageCardOne, Install } from '@icon-park/vue-next'
+import { More, ExpandTextInput, StorageCardOne, Install, CheckOne } from '@icon-park/vue-next'
 import { computed, onUnmounted, ref, watch } from 'vue'
 import { useNoteStore } from '@renderer/stores/noteStore'
 import { useRouter } from 'vue-router'
@@ -90,6 +106,8 @@ const props = defineProps<{
   note: Note
   highlightedNoteId: string | null
 }>()
+
+const noteStore = useNoteStore()
 
 // 本地控制高亮状态
 const localHighlight = ref(false)
@@ -248,6 +266,25 @@ watch(
   },
   { deep: true }
 )
+
+// 处理卡片点击
+const handleCardClick = () => {
+  if (noteStore.isMultiSelectMode) {
+    toggleSelect()
+  }
+}
+
+// 处理双击事件
+const handleDoubleClick = () => {
+  if (!noteStore.isMultiSelectMode) {
+    noteStore.openNoteEditor(props.note.id)
+  }
+}
+
+// 切换选择状态
+const toggleSelect = () => {
+  noteStore.selectNote(props.note.id)
+}
 </script>
 
 <style lang="scss" scoped>
@@ -440,6 +477,21 @@ watch(
     font-size: 15px;
     padding: 0 20px;
   }
+
+  // 多选模式样式
+  &.multi-select-mode {
+    cursor: pointer;
+
+    &:hover {
+      border-color: var(--color-primary);
+      background-color: rgba(var(--color-primary-rgb), 0.02);
+    }
+
+    // 多选模式下隐藏功能按钮
+    .note-buttons {
+      display: none;
+    }
+  }
 }
 
 .note-card:hover .note-buttons {
@@ -506,6 +558,63 @@ watch(
   }
   100% {
     box-shadow: 0 0 0 0 rgba(var(--color-primary-rgb), 0);
+  }
+}
+
+// 复选框样式
+.checkbox-wrapper {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 2;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  margin: 0;
+
+  .checkbox {
+    width: 20px;
+    height: 20px;
+    border: 2px solid var(--color-border);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--color-bg-primary);
+    transition: all 0.2s ease;
+    padding: 0;
+    margin: 0;
+
+    :deep(.i-icon) {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      height: 100%;
+      padding: 0;
+      margin: 0;
+    }
+
+    &:hover {
+      border-color: var(--color-primary);
+      background-color: rgba(var(--color-primary-rgb), 0.1);
+    }
+  }
+
+  &.checked {
+    .checkbox {
+      background-color: var(--color-primary);
+      border-color: var(--color-primary);
+
+      &:hover {
+        background-color: var(--color-primary);
+        opacity: 0.9;
+      }
+    }
   }
 }
 </style>

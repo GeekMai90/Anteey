@@ -30,6 +30,10 @@ export const useNoteStore = defineStore(
   () => {
     // ==================== 基础状态 ====================
 
+    // 多选模式相关状态
+    const isMultiSelectMode = ref(false)
+    const selectedNoteIds = ref<string[]>([])
+
     // ==================== 编辑器相关 ====================
     // 保存状态相关
     const savingOperations = ref(0)
@@ -229,32 +233,6 @@ export const useNoteStore = defineStore(
     }
 
     // 更新笔记内容
-    // const updateNoteContent = async (noteId: string, content: any) => {
-    //   try {
-    //     // 1. 更新保存状态
-    //     currentNoteSaveStatus.value = 'saving'
-
-    //     // 2. 直接保存到数据库
-    //     // 由于是本地数据库，这个操作会很快
-    //     const updatedNote = await window.electronAPI.updateNoteContent(noteId, content)
-
-    //     // 3. 发送更新事件通知
-    //     const noteUpdatedBus = useEventBus<Note>('note-updated')
-    //     noteUpdatedBus.emit(updatedNote)
-
-    //     // 4. 更新保存状态
-    //     currentNoteSaveStatus.value = 'saved'
-
-    //     return updatedNote
-    //   } catch (error) {
-    //     // 5. 错误处理
-    //     currentNoteSaveStatus.value = 'error'
-    //     console.error('更新笔记内容失败:', error)
-    //     throw error
-    //   }
-    // }
-
-    // 更新笔记内容
     const updateNoteContent = async (noteId: string, content: any) => {
       try {
         // 1. 更新保存状态
@@ -294,22 +272,6 @@ export const useNoteStore = defineStore(
     }
 
     // 更新笔记地址
-    // const updateNoteAddress = async (noteId: string, address: string) => {
-    //   try {
-    //     // 1. 直接更新数据库
-    //     const updatedNote = await window.electronAPI.updateNoteAddress(noteId, address)
-
-    //     // 2. 发送更新事件通知
-    //     const noteUpdatedBus = useEventBus<Note>('note-updated')
-    //     noteUpdatedBus.emit(updatedNote)
-
-    //     return updatedNote
-    //   } catch (error) {
-    //     console.error('更新笔记地址失败:', error)
-    //     throw error
-    //   }
-    // }
-    // 更新笔记地址
     const updateNoteAddress = async (noteId: string, address: string) => {
       try {
         console.log('noteStores.ts→ 更新笔记地址:', { noteId, address })
@@ -339,29 +301,6 @@ export const useNoteStore = defineStore(
     }
 
     // 更新笔记类型
-    // const updateNoteCardType = async (noteId: string, cardType: CardType) => {
-    //   try {
-    //     // 1. 更新保存状态
-    //     currentNoteSaveStatus.value = 'saving'
-
-    //     // 2. 直接更新数据库
-    //     const updatedNote = await window.electronAPI.updateNoteCardType(noteId, cardType)
-
-    //     // 3. 发送更新事件通知
-    //     const noteUpdatedBus = useEventBus<Note>('note-updated')
-    //     noteUpdatedBus.emit(updatedNote)
-
-    //     // 4. 更新保存状态
-    //     currentNoteSaveStatus.value = 'saved'
-
-    //     return updatedNote
-    //   } catch (error) {
-    //     // 5. 错误处理
-    //     currentNoteSaveStatus.value = 'error'
-    //     console.error('更新笔记类型失败:', error)
-    //     throw error
-    //   }
-    // }
     const updateNoteCardType = async (noteId: string, cardType: CardType) => {
       try {
         // 1. 更新保存状态
@@ -895,15 +834,6 @@ export const useNoteStore = defineStore(
         await authStore.initStore()
       }
 
-      // 添加更详细的日志
-      // console.log('noteStore→ 检查创建笔记权限:', {
-      //   isInitialized: authStore.isInitialized,
-      //   isAuthenticated: authStore.isAuthenticated,
-      //   isDesktopPermanent: authStore.isDesktopPermanent,
-      //   user: authStore.user,
-      //   authState: authStore.authState
-      // })
-
       // 如果是永久授权用户，直接允许
       if (authStore.isDesktopPermanent) {
         console.log('noteStore→ 永久授权用户，允许创建笔记')
@@ -1075,26 +1005,6 @@ export const useNoteStore = defineStore(
         throw error
       }
     }
-
-    // const updateNoteCardBox = async (noteId: string, newCardBoxId: string): Promise<Note | null> => {
-    //   console.log(`noteStores.ts→ 更新笔记 ${noteId} 到卡片盒 ${newCardBoxId}`)
-    //   try {
-    //     const updatedNote = await window.electronAPI.updateNoteCardBox(noteId, newCardBoxId)
-
-    //     if (notes.value.some((note) => note.id === noteId)) {
-    //       // 更新本地存储的笔记
-    //       const note = notes.value.find((note) => note.id === noteId)!
-    //       note.cardBoxId = newCardBoxId
-    //       console.log(`noteStores.ts→ Note ${noteId} 成功更新卡片盒`)
-    //     } else {
-    //       console.warn(`noteStores.ts→ Note ${noteId} 未找到`)
-    //     }
-    //     return updatedNote
-    //   } catch (error) {
-    //     console.error('noteStores.ts→ 更新笔记卡片盒失败:', error)
-    //     throw error
-    //   }
-    // }
 
     // 辅助方法
     const parseNoteContent = (note: any): Note => {
@@ -1370,6 +1280,99 @@ export const useNoteStore = defineStore(
       }
     }
 
+    const batchMoveNotesToCardBox = async (noteIds: string[], cardBoxId: string | null) => {
+      try {
+        // 1. 更新保存状态
+        currentNoteSaveStatus.value = 'saving'
+
+        // 检查参数
+        console.log('批量移动笔记 - 参数检查:')
+        console.log('原始笔记ID数组:', noteIds)
+
+        // 将响应式数组转换为普通数组
+        const plainNoteIds = Array.from(noteIds)
+        console.log('转换后的笔记ID数组:', plainNoteIds)
+        console.log('笔记ID数组类型:', Object.prototype.toString.call(plainNoteIds))
+        console.log('笔记ID数组长度:', plainNoteIds.length)
+        console.log('目标卡片盒ID:', cardBoxId)
+
+        // 确保是数组
+        if (!Array.isArray(plainNoteIds)) {
+          throw new Error('笔记ID参数必须是数组')
+        }
+
+        // 2. 调用后端 API
+        const updatedNotes = await window.electronAPI.note.batchMoveNotesToCardBox(
+          plainNoteIds,
+          cardBoxId
+        )
+
+        // 3. 更新本地状态
+        updatedNotes.forEach((updatedNote) => {
+          // 更新收藏列表中的笔记
+          const starredIndex = starredNotes.value.findIndex((n) => n.id === updatedNote.id)
+          if (starredIndex !== -1) {
+            starredNotes.value[starredIndex] = updatedNote
+          }
+
+          // 更新最近笔记列表中的笔记
+          const recentIndex = recentNotes.value.findIndex((n) => n.id === updatedNote.id)
+          if (recentIndex !== -1) {
+            recentNotes.value[recentIndex] = updatedNote
+          }
+
+          // 如果是当前笔记，更新当前笔记状态
+          if (currentNote.value && currentNote.value.id === updatedNote.id) {
+            currentNote.value = updatedNote
+          }
+
+          // 发送更新事件通知
+          const noteUpdatedBus = useEventBus<Note>('note-updated')
+          noteUpdatedBus.emit(updatedNote)
+        })
+
+        // 4. 清空选择的笔记
+        selectedNoteIds.value = []
+        // 保持多选模式开启
+        isMultiSelectMode.value = true
+
+        // 5. 更新保存状态
+        currentNoteSaveStatus.value = 'saved'
+
+        return updatedNotes
+      } catch (error) {
+        // 6. 错误处理
+        currentNoteSaveStatus.value = 'error'
+        console.error('批量移动笔记到卡片盒失败:', error)
+        throw error
+      }
+    }
+
+    // 多选模式方法
+    const toggleMultiSelectMode = () => {
+      isMultiSelectMode.value = !isMultiSelectMode.value
+      if (!isMultiSelectMode.value) {
+        selectedNoteIds.value = [] // 退出多选模式时清空选择
+      }
+    }
+
+    const selectNote = (noteId: string) => {
+      const index = selectedNoteIds.value.indexOf(noteId)
+      if (index === -1) {
+        selectedNoteIds.value.push(noteId)
+      } else {
+        selectedNoteIds.value.splice(index, 1)
+      }
+    }
+
+    const clearSelectedNotes = () => {
+      selectedNoteIds.value = []
+    }
+
+    const isNoteSelected = (noteId: string) => {
+      return selectedNoteIds.value.includes(noteId)
+    }
+
     // 返回所有状态和方法
     return {
       // 状态
@@ -1530,7 +1533,18 @@ export const useNoteStore = defineStore(
       updateNoteVectorOnClose,
       batchUpdateVectors,
 
-      isReviewMode
+      isReviewMode,
+
+      // 多选模式相关
+      isMultiSelectMode,
+      selectedNoteIds,
+
+      // 批量移动笔记到卡片盒
+      batchMoveNotesToCardBox,
+      toggleMultiSelectMode,
+      selectNote,
+      clearSelectedNotes,
+      isNoteSelected
     }
   },
   {

@@ -1779,3 +1779,56 @@ export async function batchUpdateVectors(): Promise<void> {
     throw error
   }
 }
+
+// 批量移动笔记到卡片盒
+export async function batchMoveNotesToCardBox(
+  noteIds: string[],
+  cardBoxId: string | null
+): Promise<Note[]> {
+  try {
+    console.log('后端→ 开始批量移动笔记到卡片盒:', { noteIds, cardBoxId })
+
+    // 使用事务确保操作的原子性
+    const updatedNotes = await db.transaction(async (trx) => {
+      // 1. 如果指定了卡片盒ID，验证卡片盒是否存在
+      if (cardBoxId !== null) {
+        const cardBox = await trx('cardboxes').where('id', cardBoxId).first()
+        if (!cardBox) {
+          throw new Error('目标卡片盒不存在')
+        }
+      }
+
+      // 2. 验证所有笔记是否存在
+      const existingNotes = await trx('notes').whereIn('id', noteIds).select('id')
+      if (existingNotes.length !== noteIds.length) {
+        throw new Error('部分笔记不存在')
+      }
+
+      // 3. 更新笔记的卡片盒
+      const notes = await trx('notes')
+        .whereIn('id', noteIds)
+        .update({
+          cardBoxId: cardBoxId,
+          updatedAt: new Date()
+        })
+        .returning('*')
+
+      // 4. 确保返回的数据是可序列化的
+      return notes.map((note) => ({
+        ...note,
+        content: typeof note.content === 'string' ? JSON.parse(note.content) : note.content,
+        references:
+          typeof note.references === 'string' ? JSON.parse(note.references) : note.references,
+        metadata: typeof note.metadata === 'string' ? JSON.parse(note.metadata) : note.metadata,
+        createdAt: new Date(note.createdAt).toISOString(),
+        updatedAt: new Date(note.updatedAt).toISOString()
+      }))
+    })
+
+    console.log('后端→ 批量移动笔记成功:', updatedNotes.length)
+    return updatedNotes
+  } catch (error) {
+    console.error('后端→ 批量移动笔记失败:', error)
+    throw error
+  }
+}

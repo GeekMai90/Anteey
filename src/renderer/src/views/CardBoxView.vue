@@ -64,6 +64,17 @@
                 @blur="handleBlur"
               />
             </div>
+
+            <!-- 多选按钮 -->
+            <Button
+              :class="{ active: noteStore.isMultiSelectMode }"
+              :icon="Checkbox"
+              :height="36"
+              @click="toggleMultiSelect"
+            >
+              多选
+            </Button>
+
             <!-- 菜单项的编辑菜单 -->
             <div
               v-if="showMoreActions"
@@ -158,6 +169,9 @@
         </div>
       </div>
     </div>
+    <!-- 添加批量操作工具条 -->
+    <BatchOperationToolbar />
+
     <!-- 添加 FilterDialog -->
     <FilterDialog
       v-if="filterStore.dialogState.visible"
@@ -172,7 +186,7 @@
 import { ref, computed, onMounted, onUnmounted, watch, nextTick, onActivated, reactive } from 'vue'
 import { useNoteStore } from '@renderer/stores/noteStore'
 import AppToolbar from '@renderer/components/layout/AppToolbar.vue'
-import { SortTwo, Box, EditTwo, Delete } from '@icon-park/vue-next'
+import { SortTwo, Box, EditTwo, Delete, Checkbox } from '@icon-park/vue-next'
 import type { CardBox, Note, Tag } from '@shared/types'
 import CardBoxNoteCard from '@renderer/components/cardbox/CardboxNoteCard.vue'
 import { storeToRefs } from 'pinia'
@@ -191,6 +205,7 @@ import { message } from '@renderer/utils/message'
 import FlashcardFilter from '@renderer/components/cardbox/FlashcardFilter.vue'
 import SearchInput from '@renderer/components/ui/SearchInput.vue'
 import Button from '@renderer/components/ui/Button.vue'
+import BatchOperationToolbar from '@renderer/components/cardbox/BatchOperationToolbar.vue'
 
 const noteStore = useNoteStore()
 const filterStore = useFilterStore()
@@ -1009,6 +1024,11 @@ flashcardConvertedBus.on(async (noteId) => {
     }
   }
 })
+
+// 多选相关方法
+const toggleMultiSelect = () => {
+  noteStore.toggleMultiSelectMode()
+}
 </script>
 
 <style lang="scss" scoped>
@@ -1436,5 +1456,19 @@ flashcardConvertedBus.on(async (noteId) => {
   align-items: center;
   overflow: hidden;
   padding: 4px;
+}
+
+.topToolBar-right {
+  .ant-btn {
+    &.active {
+      background: rgba(var(--color-primary-rgb), 0.1);
+      border-color: var(--color-primary);
+      color: var(--color-primary);
+
+      .button-icon {
+        color: var(--color-primary);
+      }
+    }
+  }
 }
 </style>

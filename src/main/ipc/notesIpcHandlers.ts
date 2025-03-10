@@ -32,7 +32,8 @@ import {
   updateNoteTag,
   getRecentEditedNotes,
   updateNoteVectorOnClose,
-  batchUpdateVectors
+  batchUpdateVectors,
+  batchMoveNotesToCardBox
 } from '../../services/notes/notesService'
 import type {
   GetPaginatedNotesParams,
@@ -390,6 +391,20 @@ export function setupNotesHandlers() {
       }
     }
   })
+
+  // 批量移动笔记到卡片盒
+  ipcMain.handle(
+    'batch-move-notes-to-cardbox',
+    async (_event, { noteIds, cardBoxId }: { noteIds: string[]; cardBoxId: string | null }) => {
+      try {
+        const updatedNotes = await batchMoveNotesToCardBox(noteIds, cardBoxId)
+        return { success: true, notes: updatedNotes }
+      } catch (error) {
+        console.error('主进程→ 批量移动笔记到卡片盒失败:', error)
+        return { success: false, error: String(error) }
+      }
+    }
+  )
 }
 
 // 更新笔记标签

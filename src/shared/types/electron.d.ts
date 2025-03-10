@@ -187,6 +187,8 @@ export interface ElectronAPI {
     updateNoteVectorOnClose: (id: string, content: object) => Promise<void>
     // 批量更新向量
     batchUpdateVectors: () => Promise<void>
+    // 批量移动笔记到卡片盒
+    batchMoveNotesToCardBox: (noteIds: string[], cardBoxId: string | null) => Promise<Note[]>
   }
 
   systemMenu: {

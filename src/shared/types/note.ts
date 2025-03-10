@@ -4,6 +4,39 @@ import type { FlashcardData, IconName } from '@shared/types'
 // 定义卡片类型
 export type CardType = 'Maincard' | 'Bibcard' | 'Indexcard' | 'Hoplinkcard'
 
+// 批量操作类型
+export type BatchOperationType =
+  | 'moveToCardBox' // 移动到卡片盒
+  | 'delete' // 删除
+  | 'convertToFlashcard' // 转换为闪卡
+  | 'removeFlashcard' // 取消闪卡
+  | 'addTags' // 添加标签
+  | 'removeTags' // 移除标签
+  | 'changeCardType' // 修改卡片类型
+
+// 批量操作参数接口
+export interface BatchOperationParams {
+  noteIds: string[] // 要操作的笔记 ID 列表
+  operationType: BatchOperationType
+  payload?: {
+    cardBoxId?: string // 用于 moveToCardBox
+    cardType?: CardType // 用于 changeCardType
+    tagIds?: string[] // 用于 addTags 和 removeTags
+  }
+}
+
+// 批量操作结果接口
+export interface BatchOperationResult {
+  success: boolean
+  affectedNotes: string[] // 成功操作的笔记 ID 列表
+  failedNotes?: {
+    // 操作失败的笔记信息
+    id: string
+    error: string
+  }[]
+  message?: string // 操作结果消息
+}
+
 export interface JsonContent {
   type: string
   content?: JsonContent[]

@@ -385,5 +385,19 @@ export const notesApi = {
       console.error('预加载脚本 → 批量更新向量失败:', error)
       throw error
     }
+  },
+
+  // 批量移动笔记到卡片盒
+  batchMoveNotesToCardBox: async (noteIds: string[], cardBoxId: string | null): Promise<Note[]> => {
+    try {
+      const result = await ipcRenderer.invoke('batch-move-notes-to-cardbox', { noteIds, cardBoxId })
+      if (!result.success) {
+        throw new Error(result.error)
+      }
+      return result.notes
+    } catch (error) {
+      console.error('预加载脚本 → 批量移动笔记到卡片盒失败:', error)
+      throw error
+    }
   }
 }
