@@ -149,4 +149,15 @@ export function setupFlashcardHandlers() {
       }
     }
   )
+
+  // 批量转换为闪卡
+  ipcMain.handle('batch-convert-to-flashcards', async (_event, noteIds: string[]) => {
+    try {
+      await flashcardService.batchConvertToFlashcards(noteIds)
+      return { success: true }
+    } catch (error) {
+      console.error('主进程→ 批量转换闪卡失败:', error)
+      return { success: false, error: String(error) }
+    }
+  })
 }

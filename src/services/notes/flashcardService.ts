@@ -683,6 +683,54 @@ export class FlashcardService {
       throw error
     }
   }
+
+  // 批量将笔记转换为闪卡
+  async batchConvertToFlashcards(noteIds: string[]): Promise<void> {
+    try {
+      await db.transaction(async (trx) => {
+        // 1. 获取所有非闪卡的笔记
+        const notes = await trx('notes')
+          .whereIn('id', noteIds)
+          .where('isFlashcard', false)
+          .select('id')
+
+        if (notes.length === 0) {
+          console.log('后端→ 没有需要转换的笔记（可能都已经是闪卡）')
+          return
+        }
+
+        const now = new Date()
+        const nonFlashcardIds = notes.map((note) => note.id)
+
+        // 2. 为每个笔记创建闪卡数据
+        const fsrsCard = createEmptyCard(now)
+        const flashcardData: FlashcardData = {
+          reviewCount: 0,
+          proficiency: 'New',
+          fsrs: fsrsCard,
+          nextReviewAt: fsrsCard.due
+        }
+
+        // 3. 批量更新笔记
+        await trx('notes')
+          .whereIn('id', nonFlashcardIds)
+          .update({
+            isFlashcard: true,
+            flashcard: JSON.stringify(flashcardData),
+            nextReviewAt: fsrsCard.due
+          })
+
+        console.log('后端→ 批量转换闪卡成功:', {
+          totalNotes: noteIds.length,
+          convertedNotes: nonFlashcardIds.length,
+          skippedNotes: noteIds.length - nonFlashcardIds.length
+        })
+      })
+    } catch (error) {
+      console.error('后端→ 批量转换闪卡失败:', error)
+      throw error
+    }
+  }
 }
 
 export const flashcardService = new FlashcardService()

@@ -721,6 +721,28 @@ eventBusDeleted.on(async () => {
   })
 })
 
+// 监听闪卡转换事件
+const flashcardConvertedBus = useEventBus<string | 'batch'>('flashcard-converted')
+flashcardConvertedBus.on(async (payload) => {
+  if (payload === 'batch') {
+    // 批量转换，直接重新获取数据
+    await resetAndFetch()
+  } else {
+    // 单个笔记转换，更新单个笔记
+    const noteToUpdate = displayedNotes.value.find((note) => note.id === payload)
+    if (noteToUpdate) {
+      try {
+        const updatedNote = await noteStore.fetchNoteById(payload)
+        if (updatedNote) {
+          updateSingleNote(updatedNote)
+        }
+      } catch (error) {
+        console.error('更新笔记失败:', error)
+      }
+    }
+  }
+})
+
 // 在组件挂载时，初始化笔记数据
 onMounted(async () => {
   document.addEventListener('click', handleGlobalClick)
@@ -1002,28 +1024,6 @@ const handleFlashcardFilterChange = (value: boolean | undefined) => {
   filterState.isFlashcard = value ? true : undefined
   resetAndFetch()
 }
-
-// 在 script setup 中添加闪卡转换事件监听
-// 在其他事件总线监听器附近添加
-
-// 监听闪卡转换事件
-const flashcardConvertedBus = useEventBus<string>('flashcard-converted')
-flashcardConvertedBus.on(async (noteId) => {
-  // 找到对应的笔记并更新
-  const noteToUpdate = displayedNotes.value.find((note) => note.id === noteId)
-  if (noteToUpdate) {
-    try {
-      // 重新获取该笔记的最新数据
-      const updatedNote = await noteStore.fetchNoteById(noteId)
-      if (updatedNote) {
-        updateSingleNote(updatedNote)
-        // 由于 CardBoxView 使用的是网格布局，不需要强制更新虚拟列表
-      }
-    } catch (error) {
-      console.error('更新笔记失败:', error)
-    }
-  }
-})
 
 // 多选相关方法
 const toggleMultiSelect = () => {

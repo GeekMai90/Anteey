@@ -180,6 +180,22 @@ export const useFlashcardStore = defineStore(
       }
     }
 
+    // 批量转换为闪卡
+    const batchConvertToFlashcards = async (noteIds: string[]) => {
+      try {
+        // 将响应式数组转换为普通数组
+        const plainNoteIds = Array.from(noteIds)
+        await window.electronAPI.flashcard.batchConvertToFlashcards(plainNoteIds)
+        await fetchFlashcardStats() // 更新统计信息
+        // 发送事件通知
+        const flashcardConvertedBus = useEventBus('flashcard-converted')
+        flashcardConvertedBus.emit('batch')
+      } catch (error) {
+        console.error('批量转换闪卡失败:', error)
+        throw error
+      }
+    }
+
     return {
       // 状态
       dueFlashcards,
@@ -203,7 +219,8 @@ export const useFlashcardStore = defineStore(
       resetFlashcardProgress,
       fetchSettings,
       updateSettings,
-      fetchStudyHistory
+      fetchStudyHistory,
+      batchConvertToFlashcards
     }
   },
   {

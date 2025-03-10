@@ -137,5 +137,16 @@ export const flashcardApi = {
       console.error('预加载脚本 → 获取学习历史失败:', error)
       throw error
     }
+  },
+
+  // 批量转换为闪卡
+  batchConvertToFlashcards: async (noteIds: string[]): Promise<void> => {
+    try {
+      const result = await ipcRenderer.invoke('batch-convert-to-flashcards', noteIds)
+      if (!result.success) throw new Error(result.error)
+    } catch (error) {
+      console.error('预加载脚本 → 批量转换闪卡失败:', error)
+      throw error
+    }
   }
 }

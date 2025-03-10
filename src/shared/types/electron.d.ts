@@ -380,6 +380,8 @@ export interface ElectronAPI {
     convertToFlashcard: (noteId: string) => Promise<void>
     removeFlashcard: (noteId: string) => Promise<void>
     resetFlashcardProgress: (noteId: string) => Promise<void>
+    // 批量转换为闪卡
+    batchConvertToFlashcards: (noteIds: string[]) => Promise<void>
 
     // 复习相关
     updateFlashcardStatus: (params: {

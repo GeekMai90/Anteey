@@ -26,9 +26,7 @@
         <Button ref="tagButtonRef" :icon="Tag" @click="handleTagManage"> 设置标签 </Button>
 
         <!-- 闪卡转换 -->
-        <Button :icon="StorageCardOne" @click="toggleFlashcard">
-          {{ hasFlashcards ? '取消闪卡' : '转换为闪卡' }}
-        </Button>
+        <Button :icon="StorageCardOne" @click="toggleFlashcard"> 转换为闪卡 </Button>
 
         <!-- 删除 -->
         <Button :icon="Delete" class="danger" @click="handleDelete"> 删除 </Button>
@@ -66,6 +64,17 @@
         @close="showTagMenu = false"
         @add="handleAddTag"
       />
+
+      <!-- 闪卡转换确认对话框 -->
+      <ConfirmDialog
+        v-model:visible="showFlashcardConfirm"
+        title="转换为闪卡确认"
+        :message="`确定要将选中的 ${noteStore.selectedNoteIds.length} 张卡片转换为闪卡吗？`"
+        confirm-text="确认"
+        cancel-text="取消"
+        @confirm="confirmConvertToFlashcard"
+        @cancel="showFlashcardConfirm = false"
+      />
     </div>
   </div>
 </template>
@@ -81,22 +90,18 @@ import BatchChangeCardTypeList from './BatchChangeCardTypeList.vue'
 import BatchChangeTagList from './BatchChangeTagList.vue'
 import { message } from '@renderer/utils/message'
 import { useTagStore } from '@renderer/stores/tagStore'
+import { useFlashcardStore } from '@renderer/stores/flashcardStore'
+import ConfirmDialog from '@renderer/components/common/ConfirmDialog.vue'
 
 const noteStore = useNoteStore()
 const tagStore = useTagStore()
+const flashcardStore = useFlashcardStore()
 
 // 下拉菜单状态
 const showCardBoxMenu = ref(false)
 const showCardTypeMenu = ref(false)
 const showTagMenu = ref(false)
-
-// 计算是否包含闪卡
-const hasFlashcards = computed(() => {
-  return noteStore.selectedNoteIds.some((id) => {
-    const note = noteStore.notes.find((n) => n.id === id)
-    return note?.isFlashcard
-  })
-})
+const showFlashcardConfirm = ref(false)
 
 // 添加 props 定义
 const props = defineProps<{
@@ -188,10 +193,21 @@ const handleTagManage = () => {
 }
 
 // 修改闪卡转换方法
-const toggleFlashcard = async () => {
+const toggleFlashcard = () => {
   if (checkSelectedNotes()) {
-    // TODO: 待实现
-    message.info('功能开发中')
+    showFlashcardConfirm.value = true
+  }
+}
+
+// 确认转换为闪卡
+const confirmConvertToFlashcard = async () => {
+  try {
+    await flashcardStore.batchConvertToFlashcards(noteStore.selectedNoteIds)
+    message.success('批量转换闪卡成功')
+    showFlashcardConfirm.value = false
+    noteStore.toggleMultiSelectMode()
+  } catch (error) {
+    message.error('批量转换闪卡失败')
   }
 }
 
