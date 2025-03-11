@@ -7,7 +7,7 @@
         v-for="note in sidebarNotes"
         :key="note.id"
         class="note-item"
-        draggable="true"
+        :draggable="isDraggable"
         @dragstart="(e) => handleDragStart(e, note)"
       >
         <RightSidebarNoteEditor :noteId="note.id" @close="noteStore.closeNoteEditor" />
@@ -22,11 +22,21 @@ import { useNoteStore } from '@renderer/stores/noteStore'
 import RightSidebarNoteEditor from '@renderer/components/rightSidebar/RightSidebarNoteEditor.vue'
 // import { Clear } from '@icon-park/vue-next'
 import type { Note } from '@shared/types'
+import { useRoute } from 'vue-router'
 
+const route = useRoute()
 const noteStore = useNoteStore()
 const sidebarNotes = computed(() => noteStore.rightSidebarNotes)
 
+// 根据路由判断是否可拖动
+const isDraggable = computed(() => {
+  return route.name === 'MindboardDetail'
+})
+
 const handleDragStart = (event: DragEvent, note: Note) => {
+  // 如果不在思维板详情页面，则不执行拖动
+  if (!isDraggable.value) return
+
   if (!event.dataTransfer) return
 
   event.dataTransfer.setData('application/json', JSON.stringify({ id: note.id }))
@@ -89,10 +99,16 @@ const handleDragStart = (event: DragEvent, note: Note) => {
 
     .note-item {
       margin-bottom: 16px;
-      cursor: grab;
+      //默认鼠标样式
+      cursor: default;
 
-      &:active {
-        cursor: grabbing;
+      //当可以拖动时，鼠标样式为小手
+      &[draggable='true'] {
+        cursor: grab;
+
+        &:active {
+          cursor: grabbing;
+        }
       }
 
       &:last-child {
