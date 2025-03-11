@@ -162,22 +162,31 @@ export class FlashcardService {
     }
   }
 
-  // 获取待复习的闪卡
+  /**
+   * 获取待复习的闪卡
+   * 该方法会根据用户设置和学习进度，返回今天需要复习的卡片
+   *
+   * @param tags - 可选的标签数组，用于筛选特定标签的卡片
+   * @returns 返回待复习的卡片数组
+   */
   async getDueFlashcards(tags?: string[]): Promise<Note[]> {
     try {
+      // 1. 获取用户的记忆卡设置
       const settings = await this.getSettings()
       console.log('后端→ 获取到的设置:', settings)
 
-      // 计算今天的开始时间
+      // 2. 计算今天的开始时间（基于用户设置的每日开始时间）
       const now = new Date()
       const todayStart = new Date(now)
       todayStart.setHours(settings.dayStartsAt, 0, 0, 0)
+      // 如果当前时间早于设置的开始时间，则认为还在前一天
       if (now.getHours() < settings.dayStartsAt) {
         todayStart.setDate(todayStart.getDate() - 1)
       }
       console.log('后端→ 今天开始时间:', todayStart)
 
-      // 获取今天已学习的卡片统计
+      // 3. 获取今天已学习的卡片统计
+      // 分别统计新卡片和复习卡片的数量
       const todayStats = await db('notes')
         .where({
           isFlashcard: true,
@@ -185,9 +194,11 @@ export class FlashcardService {
         })
         .whereRaw("JSON_EXTRACT(flashcard, '$.lastReviewedAt') >= ?", [todayStart.toISOString()])
         .select([
+          // 统计新卡片数量（state = 0 表示新卡片）
           db.raw(`SUM(CASE 
             WHEN JSON_EXTRACT(flashcard, '$.fsrs.state') = '0' THEN 1 
             ELSE 0 END) as new_cards_reviewed`),
+          // 统计复习卡片数量（state != 0 表示复习卡片）
           db.raw(`SUM(CASE 
             WHEN JSON_EXTRACT(flashcard, '$.fsrs.state') != '0' THEN 1 
             ELSE 0 END) as review_cards_reviewed`)
@@ -196,13 +207,12 @@ export class FlashcardService {
 
       console.log('后端→ 今日学习统计:', todayStats)
 
-      // 计算剩余可学习数量
+      // 4. 计算今天还可以学习的卡片数量
       const newCardsReviewed = Number(todayStats?.new_cards_reviewed || 0)
       const reviewCardsReviewed = Number(todayStats?.review_cards_reviewed || 0)
+      // 根据设置的每日上限计算剩余可学习数量
       const remainingNewCards = Math.max(0, settings.newCardsPerDay - newCardsReviewed)
       const remainingReviews = Math.max(0, settings.reviewsPerDay - reviewCardsReviewed)
-
-      // 移除每日目标的限制,只保留新卡和复习卡的各自限制
       const totalRemaining = remainingNewCards + remainingReviews
 
       console.log('后端→ 学习数量计算:', {
@@ -213,31 +223,24 @@ export class FlashcardService {
         totalRemaining
       })
 
-      // 如果新卡和复习卡都达到上限,才返回空
+      // 5. 如果今天的学习量已达到上限，直接返回空数组
       if (remainingNewCards === 0 && remainingReviews === 0) {
         console.log('后端→ 新卡和复习卡都已达到上限')
         return []
       }
 
-      // 基础查询
+      // 6. 构建基础查询
+      // 查询条件：是闪卡、未删除、到期的卡片
       let query = db('notes')
         .select('notes.*')
         .where({
           'notes.isFlashcard': true,
           'notes.isDeleted': false
         })
-        .andWhere((builder) => {
-          builder.where('notes.nextReviewAt', '<=', now).orWhere((subBuilder) => {
-            const reviewAgainTime = new Date(now)
-            reviewAgainTime.setMinutes(reviewAgainTime.getMinutes() - settings.reviewAgainAfter)
-            subBuilder
-              .whereRaw("JSON_EXTRACT(flashcard, '$.lastReviewedAt') IS NOT NULL")
-              .andWhereRaw("JSON_EXTRACT(flashcard, '$.lastReviewedAt') <= ?", [
-                reviewAgainTime.toISOString()
-              ])
-          })
-        })
+        // 只获取到期的卡片
+        .where('notes.nextReviewAt', '<=', now)
 
+      // 7. 根据标签参数添加标签过滤条件
       if (tags && tags.length > 0) {
         // 有标签：获取指定标签的闪卡
         query = query
@@ -251,9 +254,9 @@ export class FlashcardService {
         })
       }
 
-      // 根据设置决定排序方式
+      // 8. 根据设置决定新卡片的排序方式
       switch (settings.newCardPosition) {
-        case 'front':
+        case 'front': // 新卡在前
           query = query.orderByRaw(`
             CASE 
               WHEN JSON_EXTRACT(flashcard, '$.fsrs.state') = '0' THEN 0 
@@ -262,7 +265,7 @@ export class FlashcardService {
             nextReviewAt ASC
           `)
           break
-        case 'end':
+        case 'end': // 新卡在后
           query = query.orderByRaw(`
             CASE 
               WHEN JSON_EXTRACT(flashcard, '$.fsrs.state') = '0' THEN 1 
@@ -271,23 +274,60 @@ export class FlashcardService {
             nextReviewAt ASC
           `)
           break
-        case 'mix':
+        case 'mix': // 混合排序
         default:
           query = query.orderBy('notes.nextReviewAt', 'asc')
           break
       }
 
-      // 限制返回数量为剩余的新卡和复习卡数量之和
-      query = query.limit(totalRemaining)
+      // 9. 分别获取新卡和复习卡
+      // 克隆基础查询，分别添加新卡和复习卡的条件
+      const newCardsQuery = query
+        .clone()
+        .andWhereRaw("JSON_EXTRACT(flashcard, '$.fsrs.state') = '0'")
+        .limit(remainingNewCards)
+      const reviewCardsQuery = query
+        .clone()
+        .andWhereRaw("JSON_EXTRACT(flashcard, '$.fsrs.state') != '0'")
+        .limit(remainingReviews)
 
-      // 输出最终的 SQL 查询语句
-      console.log('后端→ 最终查询 SQL:', query.toString())
+      // 10. 并行执行查询
+      const [newCards, reviewCards] = await Promise.all([newCardsQuery, reviewCardsQuery])
 
-      const notes = await query
-      console.log('后端→ 查询到的卡片数量:', notes.length)
-      console.log('后端→ 查询到的卡片:', notes)
+      // 11. 合并新卡和复习卡
+      const combinedCards = [...newCards, ...reviewCards]
 
-      const convertedNotes = notes.map(convertToNote)
+      // 12. 根据设置对合并后的卡片进行最终排序
+      if (settings.newCardPosition === 'front') {
+        // 新卡在前的排序
+        combinedCards.sort((a, b) => {
+          const aIsNew = JSON.parse(a.flashcard).fsrs.state === 0
+          const bIsNew = JSON.parse(b.flashcard).fsrs.state === 0
+          if (aIsNew && !bIsNew) return -1
+          if (!aIsNew && bIsNew) return 1
+          return new Date(a.nextReviewAt).getTime() - new Date(b.nextReviewAt).getTime()
+        })
+      } else if (settings.newCardPosition === 'end') {
+        // 新卡在后的排序
+        combinedCards.sort((a, b) => {
+          const aIsNew = JSON.parse(a.flashcard).fsrs.state === 0
+          const bIsNew = JSON.parse(b.flashcard).fsrs.state === 0
+          if (aIsNew && !bIsNew) return 1
+          if (!aIsNew && bIsNew) return -1
+          return new Date(a.nextReviewAt).getTime() - new Date(b.nextReviewAt).getTime()
+        })
+      } else {
+        // 混合排序，纯粹按照到期时间排序
+        combinedCards.sort(
+          (a, b) => new Date(a.nextReviewAt).getTime() - new Date(b.nextReviewAt).getTime()
+        )
+      }
+
+      console.log('后端→ 查询到的卡片数量:', combinedCards.length)
+      console.log('后端→ 查询到的卡片:', combinedCards)
+
+      // 13. 转换为Note类型并返回
+      const convertedNotes = combinedCards.map(convertToNote)
       console.log('后端→ 转换后的卡片:', convertedNotes)
 
       return convertedNotes

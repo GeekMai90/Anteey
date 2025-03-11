@@ -115,7 +115,7 @@ export function useNoteMenu(params: NoteMenuParams) {
   // 添加或移除右侧显示
   const handleAddToRightSidebar = async () => {
     await noteStore.addNoteToRightSidebar(params.noteId)
-    await uiStore.openRightSidebar()
+    await uiStore.openRightSidebarWithTab('multi')
     noteStore.closeNoteEditor()
   }
 
