@@ -1204,7 +1204,7 @@ onBeforeUnmount(() => {
     background: transparent;
 
     &.prev {
-      left: 5%;
+      left: 0%;
       transform: translateY(-50%);
       width: 76px;
       height: 76px;
@@ -1212,7 +1212,7 @@ onBeforeUnmount(() => {
 
     // 马里奥按钮样式
     &.mario-next {
-      right: 5%;
+      right: 0%;
       transform: translateY(-50%);
       width: 4rem;
       height: 4rem;
@@ -1220,7 +1220,7 @@ onBeforeUnmount(() => {
 
     // 箭头按钮样式
     &.arrow-next {
-      right: 5%;
+      right: 0%;
       transform: rotate(180deg) translateY(50%);
       width: 76px;
       height: 76px;
@@ -1228,7 +1228,7 @@ onBeforeUnmount(() => {
 
     // 添加 Mario 风格左箭头按钮样式
     &.mario-prev {
-      left: 5%;
+      left: 0%;
       transform: translateY(-50%);
       width: 4rem;
       height: 4rem;
