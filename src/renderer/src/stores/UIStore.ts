@@ -1,28 +1,137 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 
-// 用于管理 UI 状态的 Setup store
+/**
+ * UI 状态管理 Store
+ * @description 管理应用全局 UI 状态，包括：
+ * - 编辑器显示状态
+ * - 搜索模态窗状态
+ * - 侧边栏状态
+ * - 日历组件状态
+ * - 设置页面状态
+ * - 主题设置状态
+ * - 随机回顾状态
+ */
 export const useUIStore = defineStore(
   'ui',
   () => {
-    //state
+    // ==================== 编辑器相关 ====================
+    // 显示编辑器
     const isEditorOpen = ref(false)
+
+    // ==================== 搜索模态窗相关 ====================
+    // 显示搜索模态窗口
     const isSearchModalOpen = ref(false)
+    // 显示白板搜索模态窗口
     const isWhiteboardSearchModalOpen = ref(false)
-    // const isSidebarCollapsed = ref(false)
+
+    // 打开搜索模态框
+    function openSearchModal() {
+      isSearchModalOpen.value = true
+    }
+
+    // 关闭搜索模态窗
+    function closeSearchModal() {
+      isSearchModalOpen.value = false
+    }
+
+    // 打开白板搜索模态窗
+    function openWhiteboardSearchModal() {
+      isWhiteboardSearchModalOpen.value = true
+    }
+
+    // 关闭白板搜索模态窗
+    function closeWhiteboardSearchModal() {
+      isWhiteboardSearchModalOpen.value = false
+    }
+
+    // ==================== 左侧边栏相关 ====================
+
+    // 侧边栏折叠
     const isSidebarCollapsed = ref(
       JSON.parse(localStorage.getItem('ui-store') || '{}')?.isSidebarCollapsed || false
     )
-
+    // 显示设置下拉菜单
     const isSettingDropdownOpen = ref(false)
+    // 显示卡片盒
     const showCardBox = ref(false)
+
+    // 切换卡片盒的显示
+    function toggleCardBox() {
+      showCardBox.value = !showCardBox.value
+    }
+
+    // 显示卡片盒
+    function setShowCardBox(show: boolean) {
+      showCardBox.value = show
+    }
+
+    // 切换侧边栏的显示
+    function toggleSidebar() {
+      isSidebarCollapsed.value = !isSidebarCollapsed.value
+    }
+
+    // 设置侧边栏折叠状态
+    function setIsSidebarCollapsed(value: boolean) {
+      isSidebarCollapsed.value = value
+    }
+
+    // 切换设置下拉菜单显示
+    function toggleSettingDropdown() {
+      isSettingDropdownOpen.value = !isSettingDropdownOpen.value
+    }
+
+    // 关闭设置下拉菜单显示
+    function closeSettingDropdown() {
+      isSettingDropdownOpen.value = false
+    }
+
+    // ==================== 日历组件相关 ====================
+    // 显示日历选择组件
     const isCalendarPickerOpen = ref(false)
+    // 显示时间块页面的日历选择组件
     const isTimeBlockCalendarPickerOpen = ref(false)
+
+    // 切换日历选择器组件的显示
+    function toggleCalendarPicker() {
+      isCalendarPickerOpen.value = !isCalendarPickerOpen.value
+    }
+
+    // 切换时光记页面中日历选择器组件的显示
+    function toggleTimeBlockCalendarPicker() {
+      isTimeBlockCalendarPickerOpen.value = !isTimeBlockCalendarPickerOpen.value
+    }
+
+    // 关闭日历选择器
+    function closeCalendarPicker() {
+      isCalendarPickerOpen.value = false
+    }
+
+    // 关闭时光记页面中的日历选择器
+    function closeTimeBlockCalendarPicker() {
+      isTimeBlockCalendarPickerOpen.value = false
+    }
+
+    // ==================== 设置页面相关 ====================
+    // 显示设置页面
     const showSettingsPage = ref(false)
 
-    //右侧边栏状态
+    // 打开设置页面
+    function openSettingsPage() {
+      showSettingsPage.value = true
+    }
+
+    // 关闭设置页面
+    function closeSettingsPage() {
+      showSettingsPage.value = false
+    }
+
+    // ==================== 右侧边栏相关 ====================
+    //显示右侧边栏
     const isRightSidebarOpen = ref(false)
-    const rightSidebarTab = ref('widgets') // 当前激活的标签页
+    // 右侧边栏当前显示的标签页（参数是默认打开的标签页）
+    const rightSidebarTab = ref('widgets')
+
     // 打开右侧边栏并设置标签页
     const openRightSidebarWithTab = (tab: string) => {
       isRightSidebarOpen.value = true
@@ -32,75 +141,16 @@ export const useUIStore = defineStore(
     const closeRightSidebar = () => {
       isRightSidebarOpen.value = false
     }
+    // 打开右侧边栏
     function openRightSidebar() {
       isRightSidebarOpen.value = true
     }
+    // 切换显示右侧边栏
     function toggleRightSidebar() {
       isRightSidebarOpen.value = !isRightSidebarOpen.value
     }
-    //actions
-    function openSettingsPage() {
-      showSettingsPage.value = true
-    }
 
-    function closeSettingsPage() {
-      showSettingsPage.value = false
-    }
-
-    function toggleCalendarPicker() {
-      isCalendarPickerOpen.value = !isCalendarPickerOpen.value
-    }
-
-    function toggleTimeBlockCalendarPicker() {
-      isTimeBlockCalendarPickerOpen.value = !isTimeBlockCalendarPickerOpen.value
-    }
-
-    function closeCalendarPicker() {
-      isCalendarPickerOpen.value = false
-    }
-
-    function closeTimeBlockCalendarPicker() {
-      isTimeBlockCalendarPickerOpen.value = false
-    }
-
-    function toggleCardBox() {
-      showCardBox.value = !showCardBox.value
-    }
-
-    function setShowCardBox(show: boolean) {
-      showCardBox.value = show
-    }
-
-    function toggleSidebar() {
-      isSidebarCollapsed.value = !isSidebarCollapsed.value
-    }
-
-    function setIsSidebarCollapsed(value: boolean) {
-      isSidebarCollapsed.value = value
-    }
-
-    function openSearchModal() {
-      isSearchModalOpen.value = true
-    }
-    function closeSearchModal() {
-      isSearchModalOpen.value = false
-    }
-
-    function openWhiteboardSearchModal() {
-      isWhiteboardSearchModalOpen.value = true
-    }
-
-    function closeWhiteboardSearchModal() {
-      isWhiteboardSearchModalOpen.value = false
-    }
-
-    function toggleSettingDropdown() {
-      isSettingDropdownOpen.value = !isSettingDropdownOpen.value
-    }
-
-    function closeSettingDropdown() {
-      isSettingDropdownOpen.value = false
-    }
+    // ==================== 主题设置相关 ====================
 
     // 主题颜色选择器状态
     const isThemePickerOpen = ref(false)
@@ -138,8 +188,13 @@ export const useUIStore = defineStore(
       isThemePickerOpen.value = false
     }
 
+    // ==================== 随机回顾相关 ====================
+
     // 随机回顾模态框状态
     const isReviewModalOpen = ref(false)
+
+    // 是否使用马里奥风格的按钮
+    const isMarioStyle = ref(false)
 
     // 打开随机回顾模态框
     const openReviewModal = () => {
@@ -156,50 +211,60 @@ export const useUIStore = defineStore(
       isReviewModalOpen.value = !isReviewModalOpen.value
     }
 
-    const isMarioStyle = ref(false)
-
+    // 切换随机回顾按钮的样式
     const toggleButtonStyle = () => {
       isMarioStyle.value = !isMarioStyle.value
     }
 
     return {
+      // 编辑器相关
       isEditorOpen,
+
+      // 搜索模态窗相关
       isSearchModalOpen,
+      isWhiteboardSearchModalOpen,
+      openSearchModal,
+      closeSearchModal,
+      openWhiteboardSearchModal,
+      closeWhiteboardSearchModal,
+
+      // 左侧边栏相关
       isSidebarCollapsed,
-      isRightSidebarOpen,
       isSettingDropdownOpen,
       showCardBox,
       toggleCardBox,
       setShowCardBox,
       toggleSidebar,
       setIsSidebarCollapsed,
-      openSearchModal,
-      closeSearchModal,
       toggleSettingDropdown,
       closeSettingDropdown,
 
-      toggleCalendarPicker,
-      closeCalendarPicker,
+      // 日历组件相关
       isCalendarPickerOpen,
+      isTimeBlockCalendarPickerOpen,
+      toggleCalendarPicker,
+      toggleTimeBlockCalendarPicker,
+      closeCalendarPicker,
+      closeTimeBlockCalendarPicker,
+
+      // 设置页面相关
+      showSettingsPage,
       openSettingsPage,
       closeSettingsPage,
-      showSettingsPage,
-      openWhiteboardSearchModal,
-      closeWhiteboardSearchModal,
-      isWhiteboardSearchModalOpen,
-      toggleRightSidebar,
-      openRightSidebar,
-      closeRightSidebar,
-      openRightSidebarWithTab,
+
+      // 右侧边栏相关
+      isRightSidebarOpen,
       rightSidebarTab,
+      openRightSidebarWithTab,
+      closeRightSidebar,
+      openRightSidebar,
+      toggleRightSidebar,
+
+      // 主题设置相关
       isThemePickerOpen,
       themePickerPosition,
       openThemePicker,
       closeThemePicker,
-
-      toggleTimeBlockCalendarPicker,
-      closeTimeBlockCalendarPicker,
-      isTimeBlockCalendarPickerOpen,
 
       // 随机回顾相关
       isReviewModalOpen,
