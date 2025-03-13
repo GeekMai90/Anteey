@@ -26,7 +26,7 @@
       <h3 class="note-title">{{ note.address ? note.address : '无编码地址' }}</h3>
       <div v-if="!noteStore.isMultiSelectMode" class="note-buttons">
         <div class="note-button" @click.stop="expandNote">
-          <div class="icon">
+          <div v-tooltip.bottom="tooltipConfig.expandNoteTooltip" class="icon">
             <ExpandTextInput
               theme="outline"
               size="18"
@@ -37,7 +37,7 @@
         </div>
         <!-- 添加卡片盒设置按钮 -->
         <div ref="cardboxBtnRef" class="note-button" @click.stop="toggleCardboxMenu">
-          <div v-tooltip.bottom="{ content: '设置卡片盒', delay: { show: 1000 } }" class="icon">
+          <div v-tooltip.bottom="tooltipConfig.cardboxSettings" class="icon">
             <Install theme="outline" size="16" fill="var(--color-icon-default)" :strokeWidth="3" />
           </div>
           <CardboxDropdownMenu
@@ -52,7 +52,7 @@
         </div>
         <!-- 更多功能菜单按钮 -->
         <div ref="moreBtnRef" class="note-button" @click.stop="toggleMoreMenu">
-          <div v-tooltip.bottom="{ content: '更多', delay: { show: 1000 } }" class="icon">
+          <div v-tooltip.bottom="tooltipConfig.more" class="icon">
             <More theme="outline" size="16" fill="var(--color-icon-default)" :stroke-width="3" />
           </div>
           <!-- 更多功能菜单按钮 -->
@@ -73,11 +73,7 @@
     <div class="note-timestamp">
       <div
         v-if="note.isFlashcard"
-        v-tooltip.top="{
-          content: flashcardTooltip,
-          delay: { show: 1000 },
-          html: true
-        }"
+        v-tooltip.top="getFlashcardTooltipConfig(flashcardTooltip)"
         class="flashcard-indicator"
       >
         <StorageCardOne theme="outline" size="14" :fill="flashcardColor" :strokeWidth="3" />
@@ -101,6 +97,20 @@ import type { MenuItem } from '@renderer/components/common/PopupMenu.vue'
 import { useMenu } from '@renderer/composables/useMenu'
 import { State } from 'ts-fsrs/dist'
 import CardboxDropdownMenu from '@renderer/components/cardbox/CardboxDropdownMenu.vue'
+
+// 定义静态的 tooltip 配置
+const tooltipConfig = {
+  expandNoteTooltip: { content: '展开编辑', delay: { show: 1000 } },
+  cardboxSettings: { content: '设置卡片盒', delay: { show: 1000 } },
+  more: { content: '更多', delay: { show: 1000 } }
+}
+
+// 定义静态的闪卡 tooltip 配置函数
+const getFlashcardTooltipConfig = (tooltip: string) => ({
+  content: tooltip,
+  delay: { show: 1000 },
+  html: true
+})
 
 const props = defineProps<{
   note: Note

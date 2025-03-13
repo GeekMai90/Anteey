@@ -2,7 +2,6 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { Notes, Table, TransactionOrder, Deeplink } from '@icon-park/vue-next'
 import type { Note, CardBox, CardType } from '@shared/types'
-
 import type { Editor } from '@tiptap/vue-3'
 import type { GetPaginatedNotesParams } from '@shared/types'
 import { useEventBus } from '@vueuse/core'
@@ -878,11 +877,18 @@ export const useNoteStore = defineStore(
       }
     }
 
-    // 创建并打开新笔记
+    // 创建并用小窗打开新笔记
     const createAndOpenNewNote = async () => {
       console.log('noteStores.ts→ 创建并打开新笔记')
       const newNote = await createNote()
       openNoteEditor(newNote.id)
+    }
+
+    // 创建并展开打开新笔记
+    const createAndExpandNewNote = async () => {
+      console.log('noteStores.ts→ 创建并打开新笔记')
+      const newNote = await createNote()
+      return newNote?.id // 返回新笔记的 ID
     }
 
     //删除笔记，移动到回收站
@@ -1632,6 +1638,7 @@ export const useNoteStore = defineStore(
       deleteNoteReference,
       rightSidebarBacklinkNoteId,
       openBacklinkPreview,
+      createAndExpandNewNote,
       // 标签相关状态
       addTagToNote,
       removeTagFromNote,

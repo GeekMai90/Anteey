@@ -7,11 +7,7 @@
 
       <div class="note-buttons">
         <div
-          v-tooltip.bottom="{
-            content: '展开编辑',
-            delay: { show: 1000 },
-            html: true
-          }"
+          v-tooltip.bottom="tooltipConfig.expandNote"
           class="note-button"
           @click.stop="expandNote"
         >
@@ -26,7 +22,7 @@
         </div>
         <!-- 更多功能菜单按钮 -->
         <div ref="moreBtnRef" class="more-btn" @click.stop="toggleMoreMenu">
-          <div v-tooltip.bottom="{ content: '更多', delay: { show: 1000 } }" class="icon">
+          <div v-tooltip.bottom="tooltipConfig.more" class="icon">
             <More theme="outline" size="16" fill="var(--color-icon-default)" :stroke-width="3" />
           </div>
           <!-- 更多功能菜单按钮 -->
@@ -52,11 +48,7 @@
     <div class="note-timestamp">
       <div
         v-if="note.isFlashcard"
-        v-tooltip.top="{
-          content: flashcardTooltip,
-          delay: { show: 1000 },
-          html: true
-        }"
+        v-tooltip.top="getFlashcardTooltipConfig(flashcardTooltip)"
         class="flashcard-indicator"
       >
         <StorageCardOne theme="outline" size="14" :fill="flashcardColor" :strokeWidth="3" />
@@ -79,6 +71,19 @@ import type { MenuItem } from '@renderer/components/common/PopupMenu.vue'
 import { useMenu } from '@renderer/composables/useMenu'
 import { State } from 'ts-fsrs'
 import JsonContentRenderer from '@renderer/components/note/JsonContentRenderer.vue'
+
+// 定义静态的 tooltip 配置
+const tooltipConfig = {
+  expandNote: { content: '展开编辑', delay: { show: 1000 }, html: true },
+  more: { content: '更多', delay: { show: 1000 } }
+}
+
+// 定义静态的闪卡 tooltip 配置函数
+const getFlashcardTooltipConfig = (tooltip: string) => ({
+  content: tooltip,
+  delay: { show: 1000 },
+  html: true
+})
 
 const props = defineProps<{
   note: Note

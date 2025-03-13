@@ -58,10 +58,9 @@
                 v-model="searchQuery"
                 :width="200"
                 :height="36"
-                placeholder="搜索"
-                @input="debouncedSearch"
+                placeholder="输入关键词回车搜索"
+                @keyup.enter="handleSearch"
                 @focus="isSearchFocused = true"
-                @blur="handleBlur"
               />
             </div>
 
@@ -190,7 +189,7 @@ import { SortTwo, Box, EditTwo, Delete, Checkbox } from '@icon-park/vue-next'
 import type { CardBox, Note, Tag } from '@shared/types'
 import CardBoxNoteCard from '@renderer/components/cardbox/CardboxNoteCard.vue'
 import { storeToRefs } from 'pinia'
-import { useDebounceFn, useEventBus, useThrottleFn } from '@vueuse/core'
+import { useEventBus, useThrottleFn } from '@vueuse/core'
 import { useRoute, useRouter } from 'vue-router'
 import { GetPaginatedNotesParams } from '@shared/types'
 import CardBoxDropdown from '@renderer/components/cardbox/CardBoxDropdown.vue'
@@ -558,31 +557,19 @@ watch(
   }
 )
 
-// 使用防抖函数优化搜索性能
-const debouncedSearch = useDebounceFn(async () => {
+// 处理搜索
+const handleSearch = async () => {
   if (filterState.keyword !== searchQuery.value.trim()) {
     filterState.keyword = searchQuery.value.trim()
     await resetAndFetch()
   }
-}, 300)
-
-// 搜索框失去焦点
-const handleBlur = () => {
-  setTimeout(() => {
-    isSearchFocused.value = false
-  }, 100)
 }
+
 // 清空搜索
 const clearSearch = () => {
   searchQuery.value = ''
   filterState.keyword = ''
   resetAndFetch()
-  nextTick(() => {
-    const activeElement = document.activeElement as HTMLElement
-    if (activeElement && 'blur' in activeElement) {
-      activeElement.blur()
-    }
-  })
 }
 
 // 监听键盘事件，设置搜索框聚焦快捷键
@@ -596,17 +583,17 @@ const handleKeyDown = (event: KeyboardEvent) => {
         searchInput.focus()
       }
     })
-  } else if (event.key === 'Escape') {
+  } else if (event.key === 'Escape' && isSearchFocused.value) {
     clearSearch()
+    // 在清空搜索后让搜索框重新获得焦点
+    nextTick(() => {
+      const searchInput = document.querySelector('.search-box input') as HTMLInputElement
+      if (searchInput) {
+        searchInput.focus()
+      }
+    })
   }
 }
-onMounted(() => {
-  document.addEventListener('keydown', handleKeyDown)
-})
-
-onUnmounted(() => {
-  document.removeEventListener('keydown', handleKeyDown)
-})
 
 // 重置分页
 const resetPagination = () => {

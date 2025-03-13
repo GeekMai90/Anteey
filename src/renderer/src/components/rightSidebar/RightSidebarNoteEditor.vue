@@ -4,20 +4,26 @@
     <!-- 顶部工具栏 -->
     <div class="toolbar">
       <!-- 展开编辑器 -->
-      <div
-        v-tooltip.bottom="{ content: '折叠展开卡片', delay: { show: 1000 } }"
-        class="expand-btn"
-        @click="handleExpand"
-      >
+      <div v-tooltip.bottom="tooltipConfig.expandBtn" class="expand-btn" @click="handleExpand">
         <div class="icon">
           <Right v-if="isCollapsed" theme="outline" size="16" fill="#b6b6b6" />
           <Down v-else theme="outline" size="16" fill="#b6b6b6" />
         </div>
       </div>
       <div class="toolbar-right">
+        <div ref="openInMainPanelBtnRef" class="install-btn" @click.stop="openInMainPanel">
+          <div v-tooltip.bottom="tooltipConfig.openInMainPanel" class="icon">
+            <Afferent
+              theme="outline"
+              size="18"
+              fill="var(--color-icon-default)"
+              :stroke-width="3"
+            />
+          </div>
+        </div>
         <!-- 卡片盒设置按钮 -->
         <div ref="cardboxBtnRef" class="install-btn" @click.stop="toggleCardboxMenu">
-          <div v-tooltip.bottom="{ content: '设置卡片盒', delay: { show: 1000 } }" class="icon">
+          <div v-tooltip.bottom="tooltipConfig.cardboxSettings" class="icon">
             <Install theme="outline" size="18" fill="var(--color-icon-default)" :stroke-width="3" />
           </div>
           <!-- 添加卡片盒下拉菜单 -->
@@ -33,7 +39,7 @@
 
         <!-- 更多功能菜单按钮 -->
         <div ref="moreBtnRef" class="more-btn" @click.stop="toggleMoreMenu">
-          <div v-tooltip.bottom="{ content: '更多', delay: { show: 1000 } }" class="icon">
+          <div v-tooltip.bottom="tooltipConfig.more" class="icon">
             <More theme="outline" size="16" fill="var(--color-icon-default)" :stroke-width="3" />
           </div>
           <!-- 更多功能菜单按钮 -->
@@ -47,7 +53,7 @@
           />
         </div>
         <div class="remove-btn" @click.stop="handleRemoveNoteFromRightSidebar">
-          <div v-tooltip.bottom="{ content: '关闭', delay: { show: 1000 } }" class="icon">
+          <div v-tooltip.bottom="tooltipConfig.close" class="icon">
             <CloseOne
               theme="outline"
               size="16"
@@ -109,7 +115,7 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useNoteStore } from '@renderer/stores/noteStore'
 import TipTapEditor from '@renderer/components/tiptap/TipTapEditor.vue'
-import { Right, Down, More, CloseOne, Install } from '@icon-park/vue-next'
+import { Right, Down, More, CloseOne, Install, Afferent } from '@icon-park/vue-next'
 import CardboxDropdownMenu from '@renderer/components/cardbox/CardboxDropdownMenu.vue'
 import { useMenu } from '@renderer/composables/useMenu'
 import { message } from '@renderer/utils/message'
@@ -120,6 +126,7 @@ import CardTypeDropdownMenu from '@renderer/components/note/CardTypeDropdownMenu
 import { CardType, Note } from '@shared/types'
 import { debounce } from 'lodash-es'
 import { EditorState } from '@tiptap/pm/state/dist'
+import { useRouter } from 'vue-router/dist/vue-router'
 
 const props = defineProps<{
   noteId: string
@@ -129,6 +136,16 @@ const addressInput = ref<HTMLInputElement | null>(null)
 const tiptapEditor = ref<InstanceType<any> | null>(null)
 const noteStore = useNoteStore()
 const currentNote = ref<Note | null>(null)
+const router = useRouter()
+
+// 定义静态的 tooltip 配置
+const tooltipConfig = {
+  expandBtn: { content: '折叠展开卡片', delay: { show: 1000 } },
+  openInMainPanel: { content: '在主面板打开', delay: { show: 1000 } },
+  cardboxSettings: { content: '设置卡片盒', delay: { show: 1000 } },
+  more: { content: '更多', delay: { show: 1000 } },
+  close: { content: '关闭', delay: { show: 1000 } }
+}
 
 // 初始化笔记数据
 const initializeNote = async (noteId: string) => {
@@ -361,6 +378,12 @@ const isCollapsed = ref(false)
 
 const handleExpand = () => {
   isCollapsed.value = !isCollapsed.value
+}
+
+// 打开笔记到主面板
+const openInMainPanel = () => {
+  saveContent.flush()
+  router.push(`/note/${props.noteId}`)
 }
 </script>
 

@@ -1498,8 +1498,8 @@ export async function getPaginatedNotesByCardbox({
     const offset = (page - 1) * limit
     const notes = await query.orderBy(`notes.${sortBy}`, sortOrder).limit(limit).offset(offset)
 
-    console.log('后端→ 查询结果数量:', notes.length)
-    console.log('后端→ 总计数:', totalCount)
+    // console.log('后端→ 查询结果数量:', notes.length)
+    // console.log('后端→ 总计数:', totalCount)
 
     return {
       notes: notes.map(convertToNote),

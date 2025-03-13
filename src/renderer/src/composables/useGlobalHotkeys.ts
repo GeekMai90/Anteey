@@ -1,3 +1,20 @@
+/**
+ * @file useGlobalHotkeys.ts
+ * @description 全局快捷键管理组合式函数
+ *
+ * 主要功能：
+ * 1. 注册和管理全局快捷键
+ *    - 笔记操作相关快捷键（创建、搜索等）
+ *    - 导航相关快捷键（主页、时光记、笔记流等）
+ *    - UI 控制快捷键（侧边栏、主题切换等）
+ * 2. 快捷键生命周期管理
+ *    - 组件挂载时注册快捷键
+ *    - 组件卸载时清理快捷键
+ *
+ * @author AntNet Team
+ * @created 2024-03-20
+ */
+
 // src/composables/useGlobalHotkeys.ts
 import { onMounted, onUnmounted } from 'vue'
 import hotkeys from 'hotkeys-js'
@@ -5,19 +22,39 @@ import { useNoteStore } from '../stores/noteStore'
 import { useRouter } from 'vue-router'
 import { useUIStore } from '../stores/UIStore'
 import { useThemeStore } from '../stores/themeStore'
+
+/**
+ * 全局快捷键管理组合式函数
+ * @returns {void}
+ */
 export function useGlobalHotkeys() {
   const noteStore = useNoteStore()
   const router = useRouter()
   const uiStore = useUIStore()
   const themeStore = useThemeStore()
+
+  /**
+   * 设置全局快捷键
+   * @description 注册所有全局快捷键的处理函数
+   * @private
+   */
   const setupHotkeys = () => {
     // 配置 hotkeys，让它在所有元素上都生效，包括输入框和编辑器
     hotkeys.filter = () => true
 
-    // 添加笔记快捷键
+    // 创建笔记快捷键
     hotkeys('ctrl+n, command+n', (event) => {
       event.preventDefault()
       noteStore.createAndOpenNewNote()
+    })
+    // 创建笔记并展开编辑快捷键
+    hotkeys('ctrl+shift+n, command+shift+n', (event) => {
+      event.preventDefault()
+      noteStore.createAndExpandNewNote().then((newNoteId) => {
+        if (newNoteId) {
+          router.push(`/note/${newNoteId}`)
+        }
+      })
     })
     // 搜索笔记
     hotkeys('ctrl+s, command+s', (event) => {
@@ -50,9 +87,9 @@ export function useGlobalHotkeys() {
       router.push('/cardbox')
     })
     // 打开思维板
-    hotkeys('command+shift+w, ctrl+shift+w', (event) => {
+    hotkeys('command+shift+m, ctrl+shift+m', (event) => {
       event.preventDefault()
-      router.push('/whiteboard')
+      router.push('/mindboard')
     })
     // 打开设置
     hotkeys('command+,, ctrl+,', (event) => {

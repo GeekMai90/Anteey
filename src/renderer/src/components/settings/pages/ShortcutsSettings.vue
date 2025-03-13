@@ -128,14 +128,14 @@ const handleKeyDown = async (event: KeyboardEvent) => {
   event.stopPropagation()
 
   // 记录按键状态
-  console.log('键盘事件:', {
-    key: event.key,
-    code: event.code,
-    metaKey: event.metaKey,
-    ctrlKey: event.ctrlKey,
-    altKey: event.altKey,
-    shiftKey: event.shiftKey
-  })
+  // console.log('键盘事件:', {
+  //   key: event.key,
+  //   code: event.code,
+  //   metaKey: event.metaKey,
+  //   ctrlKey: event.ctrlKey,
+  //   altKey: event.altKey,
+  //   shiftKey: event.shiftKey
+  // })
 
   // 如果只按了修饰键，不处理
   if (['Meta', 'Control', 'Alt', 'Shift'].includes(event.key)) {
@@ -262,8 +262,9 @@ const shortcuts = [
       { action: '打开时光记', keys: ['⌘', 'J'] },
       { action: '打开笔记流', keys: ['⌘', 'L'] },
       { action: '打开卡片盒', keys: ['⌘', 'O'] },
-      { action: '打开思维板', keys: ['⌘', '⇧', 'W'] },
+      { action: '打开思维板', keys: ['⌘', '⇧', 'M'] },
       { action: '添加新卡片笔记', keys: ['⌘', 'N'] },
+      { action: '添加新卡片笔记并展开编辑', keys: ['⌘', '⇧', 'N'] },
       { action: '快速添加草稿', keys: ['⌘', 'D'] },
       { action: '搜索', keys: ['⌘', 'S'] },
       { action: '折叠/展开左侧边栏', keys: ['⌘', '⇧', '/'] },
@@ -274,8 +275,15 @@ const shortcuts = [
     ]
   },
   {
-    name: '思维板',
-    shortcuts: [{ action: '搜索新增白板笔记', keys: ['⌘', '⇧', 'N'] }]
+    name: '卡片盒页面',
+    shortcuts: [
+      { action: '搜索', keys: ['⌘', 'P'] },
+      { action: '清空搜索（在搜索框聚焦状态下）', keys: ['esc'] }
+    ]
+  },
+  {
+    name: '卡片编辑',
+    shortcuts: [{ action: '关闭笔记编辑小窗', keys: ['连按两次esc'] }]
   },
   {
     name: '右侧边栏',
