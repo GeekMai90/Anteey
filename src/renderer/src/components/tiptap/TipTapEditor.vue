@@ -473,6 +473,8 @@ import { CustomTaskItem } from '@renderer/utils/tiptap/CustomTaskItem'
 import { CustomMention } from '@renderer/utils/tiptap/CustomMention'
 import { useFloating } from '@floating-ui/vue'
 import { flip, offset, shift } from '@floating-ui/dom'
+import 'katex/dist/katex.min.css'
+import { Mathematics } from '@tiptap-pro/extension-mathematics'
 
 const noteStore = useNoteStore()
 const uiStore = useUIStore()
@@ -1266,6 +1268,13 @@ const editorExtensions = computed(() => {
         }
       },
       noteId: props.noteId
+    }),
+    // 数学公式扩展
+    Mathematics.configure({
+      katexOptions: {
+        throwOnError: false,
+        strict: false
+      }
     })
   ]
   if (props.enableDragHandle) {
@@ -1506,6 +1515,7 @@ const insertParagraphBelow = () => {
   width: 100%;
   height: 100%;
 }
+
 /* Bubble menu */
 .bubble-menu {
   background-color: var(--color-bg-primary);

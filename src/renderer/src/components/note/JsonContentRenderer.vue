@@ -18,7 +18,11 @@
               {{ child.text }}
             </a>
             <!-- 其他带标记的文本 -->
-            <span v-else :class="getTextClasses(child.marks)">{{ child.text }}</span>
+            <span
+              v-else
+              :class="getTextClasses(child.marks)"
+              v-html="renderMathFormula(child.text)"
+            ></span>
           </template>
           <!-- 加粗文本 -->
           <strong v-else-if="hasMarkType(child.marks, 'bold')">{{ child.text }}</strong>
@@ -48,7 +52,7 @@
         :style="getNodeStyle(node)"
       >
         <template v-for="(child, childIndex) in node.content" :key="childIndex">
-          {{ child.text }}
+          <span v-html="renderMathFormula(child.text)"></span>
         </template>
       </component>
 
@@ -61,7 +65,10 @@
               <template v-if="listContent.type === 'paragraph'">
                 <p :style="getNodeStyle(listContent)">
                   <template v-for="(text, _textIndex) in listContent.content" :key="_textIndex">
-                    <span :class="getTextClasses(text.marks)">{{ text.text }}</span>
+                    <span
+                      :class="getTextClasses(text.marks)"
+                      v-html="renderMathFormula(text.text)"
+                    ></span>
                   </template>
                 </p>
               </template>
@@ -85,7 +92,10 @@
               <template v-if="listContent.type === 'paragraph'">
                 <p :style="getNodeStyle(listContent)">
                   <template v-for="(text, _textIndex) in listContent.content" :key="_textIndex">
-                    <span :class="getTextClasses(text.marks)">{{ text.text }}</span>
+                    <span
+                      :class="getTextClasses(text.marks)"
+                      v-html="renderMathFormula(text.text)"
+                    ></span>
                   </template>
                 </p>
               </template>
@@ -116,7 +126,10 @@
           <template v-if="quoteContent.type === 'paragraph'">
             <p :style="getNodeStyle(quoteContent)">
               <template v-for="(text, _textIndex) in quoteContent.content" :key="_textIndex">
-                <span :class="getTextClasses(text.marks)">{{ text.text }}</span>
+                <span
+                  :class="getTextClasses(text.marks)"
+                  v-html="renderMathFormula(text.text)"
+                ></span>
               </template>
             </p>
           </template>
@@ -148,7 +161,10 @@
                 >
                   <template v-if="cellContent.type === 'paragraph'">
                     <template v-for="(text, _textIndex) in cellContent.content" :key="_textIndex">
-                      <span :class="getTextClasses(text.marks)">{{ text.text }}</span>
+                      <span
+                        :class="getTextClasses(text.marks)"
+                        v-html="renderMathFormula(text.text)"
+                      ></span>
                     </template>
                   </template>
                 </template>
@@ -169,7 +185,10 @@
                 >
                   <template v-if="cellContent.type === 'paragraph'">
                     <template v-for="(text, _textIndex) in cellContent.content" :key="_textIndex">
-                      <span :class="getTextClasses(text.marks)">{{ text.text }}</span>
+                      <span
+                        :class="getTextClasses(text.marks)"
+                        v-html="renderMathFormula(text.text)"
+                      ></span>
                     </template>
                   </template>
                 </template>
@@ -199,7 +218,10 @@
             >
               <template v-if="taskContent.type === 'paragraph'">
                 <template v-for="(text, _textIndex) in taskContent.content" :key="_textIndex">
-                  <span :class="getTextClasses(text.marks)">{{ text.text }}</span>
+                  <span
+                    :class="getTextClasses(text.marks)"
+                    v-html="renderMathFormula(text.text)"
+                  ></span>
                 </template>
               </template>
             </template>
@@ -249,8 +271,10 @@ import markdown from 'highlight.js/lib/languages/markdown'
 import bash from 'highlight.js/lib/languages/bash'
 import shell from 'highlight.js/lib/languages/shell'
 import plaintext from 'highlight.js/lib/languages/plaintext'
-
-import 'highlight.js/styles/github-dark.css' // 或者其他主题
+import 'highlight.js/styles/github-dark.css'
+import 'katex/dist/katex.min.css'
+// @ts-ignore - katex 模块使用 CommonJS 格式，在当前 TypeScript 设置下会报类型错误
+import katex from 'katex'
 
 // 初始化 highlight.js
 const initializeHighlight = () => {
@@ -431,7 +455,91 @@ const highlightCode = (code: string, language?: string) => {
     return code
   }
 }
+
+// 修改 renderMathFormula 函数
+const renderMathFormula = (text: string | undefined): string => {
+  if (!text) return ''
+
+  try {
+    // 使用非贪婪匹配来处理数学公式
+    const regex = /\$(.*?)\$/g
+    return text.replace(regex, (match, formula) => {
+      try {
+        return katex.renderToString(formula, {
+          throwOnError: false,
+          strict: false,
+          trust: true,
+          displayMode: false,
+          output: 'html',
+          macros: {
+            '\\LaTeX': '\\mathrm{\\LaTeX}'
+          }
+        })
+      } catch (err) {
+        console.warn('Failed to render math formula:', err)
+        return match
+      }
+    })
+  } catch (error) {
+    console.warn('Error in renderMathFormula:', error)
+    return text
+  }
+}
 </script>
+
+<style lang="scss">
+/* KaTeX 样式 - 仅在渲染组件中生效 */
+.json-content {
+  span {
+    display: inline;
+  }
+
+  .katex {
+    font-size: 1.1em;
+    line-height: inherit;
+    display: inline-block;
+  }
+
+  .katex-html {
+    line-height: inherit;
+    text-align: left;
+  }
+
+  // 修复运算符的对齐
+  .mbin,
+  .mrel {
+    margin: 0 0.15em;
+  }
+
+  // 标题中的数学公式样式
+  h1,
+  h2,
+  h3 {
+    overflow-wrap: break-word;
+
+    span {
+      display: inline;
+    }
+
+    .katex {
+      display: inline-block;
+      vertical-align: -0.1em;
+    }
+
+    .katex-html {
+      display: inline-block;
+    }
+
+    .base {
+      display: inline-block;
+    }
+
+    .mord {
+      display: inline-block;
+    }
+  }
+}
+</style>
 
 <style lang="scss" scoped>
 @import '@renderer/styles/_json-content-renderer.scss';

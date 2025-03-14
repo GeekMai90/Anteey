@@ -9,6 +9,52 @@
   font-family: var(--font-family-editor);
   line-height: 1.6;
 
+  /* 数学公式样式 */
+  .katex {
+    font-size: 1.1em;
+    line-height: 1.2;
+    text-indent: 0;
+    display: inline-block;
+    vertical-align: -0.1em;
+
+    .katex-html {
+      .base {
+        margin: 0;
+      }
+
+      // 添加斜体样式
+      .mathit,
+      .mathnormal {
+        font-style: italic;
+      }
+
+      // 调整字母间距
+      .mord {
+        margin-right: 0.05em;
+      }
+
+      // 调整操作符间距
+      .mbin,
+      .mrel {
+        margin: 0 0.15em;
+      }
+    }
+  }
+
+  .katex-display {
+    display: block;
+    margin: 1em 0;
+    text-align: center;
+    overflow-x: auto;
+    overflow-y: hidden;
+
+    > .katex {
+      display: inline-block;
+      text-align: center;
+      max-width: 100%;
+    }
+  }
+
   :first-child {
     margin-top: 0;
   }
@@ -16,6 +62,24 @@
   /* ------------------------------------
    * 标题样式
    * ------------------------------------ */
+
+  h1,
+  h2,
+  h3 {
+    overflow-wrap: break-word;
+
+    .katex {
+      font-size: inherit;
+      line-height: inherit;
+      vertical-align: -0.1em;
+      display: inline-block;
+    }
+
+    span {
+      vertical-align: middle;
+    }
+  }
+
   h1 {
     font-size: 1.4rem;
     font-weight: var(--font-weight-medium);
