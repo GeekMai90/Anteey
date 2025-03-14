@@ -11,7 +11,15 @@
       v-if="editorInstance"
       ref="bubbleMenuRef"
       :editor="editorInstance"
-      :tippy-options="{ duration: 100 }"
+      :tippy-options="{
+        duration: 100,
+        appendTo: 'parent',
+        interactive: true,
+        aria: {
+          content: 'auto',
+          expanded: 'auto'
+        }
+      }"
       :should-show="shouldShowTextStyleMenu"
     >
       <div class="bubble-menu">
