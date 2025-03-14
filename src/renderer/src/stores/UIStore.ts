@@ -1,6 +1,13 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 
+// 定义编辑器设置接口
+interface EditorSettings {
+  characterLimit: number
+  showCharacterCount: boolean
+  enforceLimit: boolean
+}
+
 /**
  * UI 状态管理 Store
  * @description 管理应用全局 UI 状态，包括：
@@ -11,6 +18,7 @@ import { ref } from 'vue'
  * - 设置页面状态
  * - 主题设置状态
  * - 随机回顾状态
+ * - 编辑器设置状态
  */
 export const useUIStore = defineStore(
   'ui',
@@ -18,6 +26,27 @@ export const useUIStore = defineStore(
     // ==================== 编辑器相关 ====================
     // 显示编辑器
     const isEditorOpen = ref(false)
+
+    // ==================== 编辑器设置相关 ====================
+    // 从本地存储获取编辑器设置，如果没有则使用默认值
+    const defaultEditorSettings: EditorSettings = {
+      characterLimit: 500,
+      showCharacterCount: true,
+      enforceLimit: false
+    }
+
+    const storedSettings = JSON.parse(localStorage.getItem('ui-store') || '{}')
+    const editorSettings = ref<EditorSettings>(
+      storedSettings.editorSettings || defaultEditorSettings
+    )
+
+    // 更新编辑器设置
+    function updateEditorSettings(settings: Partial<EditorSettings>) {
+      editorSettings.value = {
+        ...editorSettings.value,
+        ...settings
+      }
+    }
 
     // ==================== 搜索模态窗相关 ====================
     // 显示搜索模态窗口
@@ -220,6 +249,10 @@ export const useUIStore = defineStore(
       // 编辑器相关
       isEditorOpen,
 
+      // 编辑器设置相关
+      editorSettings,
+      updateEditorSettings,
+
       // 搜索模态窗相关
       isSearchModalOpen,
       isWhiteboardSearchModalOpen,
@@ -283,7 +316,8 @@ export const useUIStore = defineStore(
         'isRightSidebarOpen',
         'showSettingsPage',
         'isDarkTheme',
-        'isMarioStyle'
+        'isMarioStyle',
+        'editorSettings'
         // 不需要持久化 isReviewModalOpen，每次打开应用都应该是关闭状态
       ],
       // 使用 localStorage 存储

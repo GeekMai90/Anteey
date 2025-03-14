@@ -475,6 +475,7 @@ import { useFloating } from '@floating-ui/vue'
 import { flip, offset, shift } from '@floating-ui/dom'
 import 'katex/dist/katex.min.css'
 import { Mathematics } from '@tiptap-pro/extension-mathematics'
+import CharacterCount from '@tiptap/extension-character-count'
 
 const noteStore = useNoteStore()
 const uiStore = useUIStore()
@@ -1054,6 +1055,46 @@ const deleteParagraph = () => {
 // 添加一个新的 ref 来存储节点位置
 const currentNodePos = ref(-1)
 
+// 添加字数统计的响应式变量
+const characterCount = ref(0)
+const wordCount = ref(0)
+
+// 更新字数统计的函数
+const updateCount = () => {
+  if (editor.value) {
+    // 获取文本内容
+    const text = editor.value.getText()
+
+    // 更新字符数 - 一个汉字算一个字符，排除空格
+    const filteredText = text.replace(/\s+/g, '') // 移除所有空白字符
+    characterCount.value = [...filteredText].length
+
+    // 更新词数 - 优化中文分词逻辑
+    // 匹配中文字符、英文单词、数字
+    const matches = text.match(/[\u4e00-\u9fa5]+|[a-zA-Z]+|[0-9]+/g)
+    wordCount.value = matches ? matches.length : 0
+
+    // 更新百分比
+    percentage.value = Math.round((100 / characterLimit.value) * characterCount.value)
+  }
+}
+
+// 添加字符限制 - 从 UIStore 获取
+const characterLimit = computed(() => uiStore.editorSettings.characterLimit || 500)
+
+// 添加有效字符限制的计算属性
+const effectiveCharacterLimit = computed(() => {
+  // 如果启用了限制输入，返回设置的字符限制值
+  // 如果禁用了限制输入，返回 null（表示无限制）
+  return uiStore.editorSettings.enforceLimit ? characterLimit.value : null
+})
+
+// 添加百分比计算
+const percentage = computed(() => {
+  if (characterLimit.value === 0) return 0 // 如果限制为0（无限制），则百分比为0
+  return Math.round((100 / characterLimit.value) * characterCount.value)
+})
+
 // 在 editorExtensions computed 属性中修改 DragHandle 配置
 const editorExtensions = computed(() => {
   const extensions = [
@@ -1275,6 +1316,24 @@ const editorExtensions = computed(() => {
         throwOnError: false,
         strict: false
       }
+    }),
+    // 添加字数统计扩展
+    CharacterCount.configure({
+      // 使用有效字符限制计算属性
+      limit: effectiveCharacterLimit.value,
+      // 自定义计数函数，排除空格
+      textCounter: (text) => {
+        // 移除所有空白字符
+        const filteredText = text.replace(/\s+/g, '')
+        // 使用扩展运算符将字符串分割为字符数组，然后计算长度
+        return [...filteredText].length
+      },
+      // 自定义中文分词
+      wordCounter: (text) => {
+        // 匹配中文字符、英文单词和数字
+        const matches = text.match(/[\u4e00-\u9fa5]+|[a-zA-Z]+|[0-9]+/g)
+        return matches ? matches.length : 0
+      }
     })
   ]
   if (props.enableDragHandle) {
@@ -1310,6 +1369,8 @@ onMounted(() => {
     noteId: props.noteId,
     onUpdate: ({ editor }) => {
       emit('update:content', editor.getJSON())
+      // 添加字数统计更新
+      updateCount()
     },
     editorProps: {
       handleClick: (view, pos, event) => {
@@ -1332,6 +1393,8 @@ onMounted(() => {
     }
   })
   noteStore.setEditor(editor.value)
+  // 初始化字数统计
+  updateCount()
 })
 
 const destroyEditor = () => {
@@ -1373,9 +1436,38 @@ watch(
   },
   { deep: true }
 )
+
+// 替换为监听 uiStore.editorSettings 的变化
+watch(
+  [() => uiStore.editorSettings.enforceLimit, () => uiStore.editorSettings.characterLimit],
+  () => {
+    if (editor.value) {
+      // 直接更新编辑器的 CharacterCount 扩展配置
+      editor.value.extensionManager.extensions.forEach((extension) => {
+        if (extension.name === 'characterCount') {
+          // 更新 limit 配置
+          extension.options.limit = effectiveCharacterLimit.value
+
+          // 如果需要，可以在这里触发编辑器的更新
+          editor.value.view.dispatch(editor.value.state.tr)
+        }
+      })
+
+      // 更新字数统计
+      updateCount()
+    }
+  }
+)
+
 defineExpose({
   focus,
-  editor: editorInstance
+  editor: editorInstance,
+  // 暴露字数统计相关的属性和方法
+  characterCount,
+  wordCount,
+  characterLimit,
+  percentage,
+  updateCount
 })
 
 // 添加颜色相关的响应式变量
@@ -1514,6 +1606,11 @@ const insertParagraphBelow = () => {
 .editor-wrapper {
   width: 100%;
   height: 100%;
+  position: relative;
+
+  .tiptap-container {
+    padding-bottom: 40px; // 为字数统计留出空间
+  }
 }
 
 /* Bubble menu */
@@ -1577,12 +1674,6 @@ const insertParagraphBelow = () => {
       }
     }
   }
-}
-
-.editor-wrapper {
-  position: relative;
-  width: 100%;
-  height: 100%;
 }
 
 .context-menu {
