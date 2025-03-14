@@ -78,6 +78,24 @@
               </div>
             </div>
           </div>
+          <div class="form-item">
+            <div class="label">
+              <span>启用拼写检查</span>
+              <div class="help-icon-wrapper">
+                <Help theme="outline" size="14" :strokeWidth="3" class="help-icon" />
+                <div class="help-tooltip">开启后，编辑器将检查拼写错误并显示下划线</div>
+              </div>
+            </div>
+            <div class="value">
+              <Switch
+                :model-value="enableSpellcheck"
+                @update:model-value="enableSpellcheck = $event"
+              />
+              <div class="switch-description">
+                {{ enableSpellcheck ? '启用拼写检查' : '禁用拼写检查' }}
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -100,6 +118,7 @@ const isLoading = ref(true)
 const characterLimit = ref(500)
 const showCharacterCount = ref(true)
 const enforceLimit = ref(false)
+const enableSpellcheck = ref(false)
 
 // 初始化设置
 onMounted(async () => {
@@ -114,6 +133,7 @@ onMounted(async () => {
     }
     showCharacterCount.value = uiStore.editorSettings.showCharacterCount
     enforceLimit.value = uiStore.editorSettings.enforceLimit || false
+    enableSpellcheck.value = uiStore.editorSettings.enableSpellcheck || false
   } catch (error) {
     console.error('加载设置失败:', error)
   } finally {
@@ -127,6 +147,7 @@ const debouncedUpdateSettings = debounce(
     characterLimit: number
     showCharacterCount: boolean
     enforceLimit: boolean
+    enableSpellcheck: boolean
   }) => {
     try {
       // 保持其他设置不变
@@ -144,12 +165,13 @@ const debouncedUpdateSettings = debounce(
 
 // 监听设置变化并保存
 watch(
-  [characterLimit, showCharacterCount, enforceLimit],
-  async ([limit, showCount, enforce]) => {
+  [characterLimit, showCharacterCount, enforceLimit, enableSpellcheck],
+  async ([limit, showCount, enforce, spellcheck]) => {
     const settings = {
       characterLimit: limit,
       showCharacterCount: showCount,
-      enforceLimit: enforce
+      enforceLimit: enforce,
+      enableSpellcheck: spellcheck
     }
     debouncedUpdateSettings(settings)
   },

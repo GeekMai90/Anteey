@@ -1,6 +1,11 @@
 <template>
   <div ref="editorContainer" class="editor-wrapper">
-    <editor-content ref="editorRootRef" :editor="editorInstance" class="tiptap-container" />
+    <editor-content
+      ref="editorRootRef"
+      :editor="editorInstance"
+      class="tiptap-container"
+      :spellcheck="uiStore.editorSettings.enableSpellcheck"
+    />
     <!-- 文字样式菜单 -->
     <bubble-menu
       v-if="editorInstance"

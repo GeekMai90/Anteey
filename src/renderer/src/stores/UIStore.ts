@@ -6,6 +6,7 @@ interface EditorSettings {
   characterLimit: number
   showCharacterCount: boolean
   enforceLimit: boolean
+  enableSpellcheck: boolean
 }
 
 /**
@@ -32,7 +33,8 @@ export const useUIStore = defineStore(
     const defaultEditorSettings: EditorSettings = {
       characterLimit: 500,
       showCharacterCount: true,
-      enforceLimit: false
+      enforceLimit: false,
+      enableSpellcheck: false
     }
 
     const storedSettings = JSON.parse(localStorage.getItem('ui-store') || '{}')
