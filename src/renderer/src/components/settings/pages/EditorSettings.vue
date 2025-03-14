@@ -102,24 +102,6 @@
               </div>
             </div>
           </div>
-          <div class="form-item">
-            <div class="label">
-              <span>启用拼写检查</span>
-              <div class="help-icon-wrapper">
-                <Help theme="outline" size="14" :strokeWidth="3" class="help-icon" />
-                <div class="help-tooltip">开启后，编辑器将检查拼写错误并显示下划线</div>
-              </div>
-            </div>
-            <div class="value">
-              <Switch
-                :model-value="enableSpellcheck"
-                @update:model-value="enableSpellcheck = $event"
-              />
-              <div class="switch-description">
-                {{ enableSpellcheck ? '启用拼写检查' : '禁用拼写检查' }}
-              </div>
-            </div>
-          </div>
         </div>
       </div>
 

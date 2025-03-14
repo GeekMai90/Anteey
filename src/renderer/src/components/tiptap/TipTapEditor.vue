@@ -1079,8 +1079,9 @@ const updateCount = () => {
     const matches = text.match(/[\u4e00-\u9fa5]+|[a-zA-Z]+|[0-9]+/g)
     wordCount.value = matches ? matches.length : 0
 
-    // 更新百分比
-    percentage.value = Math.round((100 / characterLimit.value) * characterCount.value)
+    // 更新百分比 - 不要直接修改计算属性
+    // percentage.value = Math.round((100 / characterLimit.value) * characterCount.value)
+    // 计算属性 percentage 会自动根据 characterCount 和 characterLimit 更新
   }
 }
 
