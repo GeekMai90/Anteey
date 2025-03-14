@@ -86,7 +86,7 @@ const menuItems = [
   { key: 'webdav', label: '同步', icon: CloudStorage },
   { key: 'llm', label: '大模型配置', icon: RobotOne },
   { key: 'dictionary', label: '词库管理', icon: BookOne },
-  { key: 'editor', label: '编辑器设置', icon: Edit },
+  { key: 'editor', label: '编辑器', icon: Edit },
   { key: 'license', label: '软件激活', icon: CrownThree }
 ]
 

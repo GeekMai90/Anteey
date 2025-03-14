@@ -17,6 +17,30 @@
         <div class="description">设置编辑器的基本参数。</div>
         <div class="settings-form">
           <div class="form-item">
+            <div class="label">
+              <span>启用拼写检查</span>
+              <div class="help-icon-wrapper">
+                <Help theme="outline" size="14" :strokeWidth="3" class="help-icon" />
+                <div class="help-tooltip">开启后，编辑器将检查拼写错误并显示下划线</div>
+              </div>
+            </div>
+            <div class="value">
+              <Switch
+                :model-value="enableSpellcheck"
+                @update:model-value="enableSpellcheck = $event"
+              />
+              <div class="switch-description">
+                {{ enableSpellcheck ? '启用拼写检查' : '禁用拼写检查' }}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="settings-item">
+        <div class="title">字数统计</div>
+        <div class="description">设置字数统计功能的相关参数。</div>
+        <div class="settings-form">
+          <div class="form-item">
             <div class="label">显示字数统计</div>
             <div class="value">
               <Switch
@@ -98,6 +122,38 @@
           </div>
         </div>
       </div>
+
+      <!-- 随机回顾设置 -->
+      <div class="settings-item">
+        <div class="title">随机回顾</div>
+        <div class="description">设置随机回顾功能的相关参数。</div>
+        <div class="settings-form">
+          <div class="form-item">
+            <div class="label">启用趣味按钮</div>
+            <div class="value">
+              <Switch
+                :model-value="enableMarioStyle"
+                @update:model-value="handleMarioStyleChange"
+              />
+              <div class="switch-description">
+                {{ enableMarioStyle ? '使用趣味按钮样式' : '使用默认按钮样式' }}
+              </div>
+            </div>
+          </div>
+          <div class="form-item">
+            <div class="label">启用按钮音效</div>
+            <div class="value">
+              <Switch
+                :model-value="enableMarioSound"
+                @update:model-value="handleMarioSoundChange"
+              />
+              <div class="switch-description">
+                {{ enableMarioSound ? '播放按钮音效' : '静音按钮' }}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -108,8 +164,10 @@ import { Edit, Help, Plus, Minus } from '@icon-park/vue-next'
 import { useUIStore } from '@renderer/stores/UIStore'
 import { debounce } from 'lodash-es'
 import Switch from '@renderer/components/ui/Switch.vue'
+import { useReviewStore } from '@renderer/stores/reviewStore'
 
 const uiStore = useUIStore()
+const reviewStore = useReviewStore()
 
 // 加载状态
 const isLoading = ref(true)
@@ -119,6 +177,10 @@ const characterLimit = ref(500)
 const showCharacterCount = ref(true)
 const enforceLimit = ref(false)
 const enableSpellcheck = ref(false)
+
+// 随机回顾设置
+const enableMarioStyle = ref(false)
+const enableMarioSound = ref(false)
 
 // 初始化设置
 onMounted(async () => {
@@ -134,6 +196,10 @@ onMounted(async () => {
     showCharacterCount.value = uiStore.editorSettings.showCharacterCount
     enforceLimit.value = uiStore.editorSettings.enforceLimit || false
     enableSpellcheck.value = uiStore.editorSettings.enableSpellcheck || false
+
+    // 从 ReviewStore 获取设置
+    enableMarioStyle.value = reviewStore.enableMarioStyle
+    enableMarioSound.value = reviewStore.enableMarioSound
   } catch (error) {
     console.error('加载设置失败:', error)
   } finally {
@@ -197,6 +263,17 @@ const handleInputChange = (min: number, max: number, value: number) => {
   if (value < min) return min
   if (value > max) return max
   return value
+}
+
+// 处理随机回顾设置变化
+const handleMarioStyleChange = (value: boolean) => {
+  reviewStore.updateMarioStyleEnabled(value)
+  enableMarioStyle.value = value
+}
+
+const handleMarioSoundChange = (value: boolean) => {
+  reviewStore.updateMarioSoundEnabled(value)
+  enableMarioSound.value = value
 }
 </script>
 

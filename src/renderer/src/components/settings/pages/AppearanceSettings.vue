@@ -50,7 +50,6 @@
                     v-for="(name, path) in {
                       '/home': '主页',
                       '/timeblock': '时光记',
-                      '/drafts': '草稿纸',
                       '/timeline': '笔记流',
                       '/cardbox': '卡片盒',
                       '/knowledge-tree': '知识树',
@@ -125,33 +124,6 @@
             </div>
           </div>
         </div>
-
-        <div class="settings-section">
-          <div class="section-title">功能开关</div>
-          <div class="feature-settings">
-            <div class="setting-item">
-              <div class="setting-label">启用手绘板</div>
-              <Switch
-                :model-value="!!enableWhiteboard"
-                @update:model-value="handleWhiteboardChange"
-              />
-            </div>
-            <div class="setting-item">
-              <div class="setting-label">随机回顾启用趣味按钮</div>
-              <Switch
-                :model-value="enableMarioStyle"
-                @update:model-value="handleMarioStyleChange"
-              />
-            </div>
-            <div class="setting-item">
-              <div class="setting-label">随机回顾趣味按钮音效</div>
-              <Switch
-                :model-value="enableMarioSound"
-                @update:model-value="handleMarioSoundChange"
-              />
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   </div>
@@ -163,13 +135,10 @@ import { Theme, Down } from '@icon-park/vue-next'
 import { useAppearanceStore } from '@renderer/stores/appearanceStore'
 import { useTimeBlockStore } from '@renderer/stores/timeBlockStore'
 import { useThemeStore } from '@renderer/stores/themeStore'
-import Switch from '@renderer/components/ui/Switch.vue'
-import { useReviewStore } from '@renderer/stores/reviewStore'
 
 const appearanceStore = useAppearanceStore()
 const timeBlockStore = useTimeBlockStore()
 const themeStore = useThemeStore()
-const reviewStore = useReviewStore()
 
 const currentTheme = computed(() => {
   return themeStore.themeSettings?.themeMode || 'system'
@@ -218,8 +187,6 @@ const starredExpanded = ref(false)
 const tagsExpanded = ref(false)
 const recentExpanded = ref(false)
 const enableWhiteboard = ref(false)
-const enableMarioSound = ref(reviewStore.enableMarioSound)
-const enableMarioStyle = ref(reviewStore.enableMarioStyle)
 
 // 初始化数据
 onMounted(() => {
@@ -227,46 +194,7 @@ onMounted(() => {
   tagsExpanded.value = Boolean(appearanceStore.settings?.tagsExpanded ?? false)
   recentExpanded.value = Boolean(appearanceStore.settings?.recentExpanded ?? true)
   enableWhiteboard.value = Boolean(appearanceStore.settings?.enableWhiteboard ?? true)
-  enableMarioSound.value = reviewStore.enableMarioSound
-  enableMarioStyle.value = reviewStore.enableMarioStyle
 })
-
-// 处理函数
-// const handleStarredExpandedChange = async (value: boolean) => {
-//   try {
-//     await appearanceStore.updateStarredExpanded(value)
-//     starredExpanded.value = value
-//   } catch (error) {
-//     console.error('更新星标展开状态失败:', error)
-//   }
-// }
-
-// const handleTagsExpandedChange = async (value: boolean) => {
-//   try {
-//     await appearanceStore.updateTagsExpanded(value)
-//     tagsExpanded.value = value
-//   } catch (error) {
-//     console.error('更新标签展开状态失败:', error)
-//   }
-// }
-
-// const handleRecentExpandedChange = async (value: boolean) => {
-//   try {
-//     await appearanceStore.updateRecentExpanded(value)
-//     recentExpanded.value = value
-//   } catch (error) {
-//     console.error('更新最近展开状态失败:', error)
-//   }
-// }
-
-const handleWhiteboardChange = async (value: boolean) => {
-  try {
-    await appearanceStore.updateWhiteboardEnabled(value)
-    enableWhiteboard.value = value
-  } catch (error) {
-    console.error('更新白板功能开关失败:', error)
-  }
-}
 
 // 默认页面状态
 const defaultPage = ref('/home')
@@ -277,7 +205,6 @@ const getPageName = (path: string) => {
   const pageMap: Record<string, string> = {
     '/home': '主页',
     '/timeblock': '时光记',
-    '/drafts': '草稿纸',
     '/timeline': '笔记流',
     '/cardbox': '卡片盒',
     '/knowledge-tree': '知识树',
@@ -338,16 +265,6 @@ onMounted(async () => {
     }
   }
 })
-
-const handleMarioSoundChange = (value: boolean) => {
-  reviewStore.updateMarioSoundEnabled(value)
-  enableMarioSound.value = value
-}
-
-const handleMarioStyleChange = (value: boolean) => {
-  reviewStore.updateMarioStyleEnabled(value)
-  enableMarioStyle.value = value
-}
 
 // 添加新的状态
 const showUIFontSelect = ref(false)
