@@ -46,14 +46,27 @@
       />
     </div>
     <div class="note-timestamp">
-      <div
-        v-if="note.isFlashcard"
-        v-tooltip.top="getFlashcardTooltipConfig(flashcardTooltip)"
-        class="flashcard-indicator"
-      >
-        <StorageCardOne theme="outline" size="14" :fill="flashcardColor" :strokeWidth="3" />
+      <div class="note-tags">
+        <div
+          v-for="tag in noteTags"
+          :key="tag.id"
+          class="tag-item"
+          @click.stop="handleTagClick(tag.id)"
+        >
+          <span class="tag-symbol">#</span>
+          <span class="tag-name">{{ tag.name }}</span>
+        </div>
       </div>
-      {{ formatDate(note.createdAt) }}
+      <div class="timestamp-section">
+        <div
+          v-if="note.isFlashcard"
+          v-tooltip.top="getFlashcardTooltipConfig(flashcardTooltip)"
+          class="flashcard-indicator"
+        >
+          <StorageCardOne theme="outline" size="14" :fill="flashcardColor" :strokeWidth="3" />
+        </div>
+        {{ formatDate(note.createdAt) }}
+      </div>
     </div>
   </div>
 </template>
@@ -62,15 +75,17 @@
 import { Note } from '@shared/types'
 import { formatDate } from '@renderer/utils/noteHelpers'
 import { More, ExpandTextInput, StorageCardOne } from '@icon-park/vue-next'
-import { computed, ref } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useNoteStore } from '@renderer/stores/noteStore'
+import { useTagStore } from '@renderer/stores/tagStore'
 import PopupMenu from '@renderer/components/common/PopupMenu.vue'
 import { useNoteMenu } from '@renderer/composables/useNoteMenu'
 import type { MenuItem } from '@renderer/components/common/PopupMenu.vue'
 import { useMenu } from '@renderer/composables/useMenu'
 import { State } from 'ts-fsrs'
 import JsonContentRenderer from '@renderer/components/note/JsonContentRenderer.vue'
+import type { Tag } from '@shared/types'
 
 // 定义静态的 tooltip 配置
 const tooltipConfig = {
@@ -173,6 +188,29 @@ const flashcardTooltip = computed(() => {
     default:
       return '记忆卡'
   }
+})
+
+// 添加标签相关代码
+const tagStore = useTagStore()
+const noteTags = ref<Tag[]>([])
+
+const fetchNoteTags = async () => {
+  noteTags.value = await tagStore.getNoteTags(props.note.id)
+}
+
+// 标签点击处理
+const handleTagClick = (tagId: string) => {
+  router.push({
+    name: 'cardbox',
+    query: {
+      tags: tagId,
+      box: 'all'
+    }
+  })
+}
+
+onMounted(async () => {
+  await fetchNoteTags()
 })
 </script>
 
@@ -395,12 +433,62 @@ const flashcardTooltip = computed(() => {
 .note-timestamp {
   font-size: 0.8em;
   color: var(--color-text-tertiary);
-  align-self: flex-end;
-  margin-right: 15px;
+  padding: 8px 15px; // 增加上下内边距
+  margin-top: 10px; // 增加与内容区域的间距
   user-select: none;
   display: flex;
   align-items: center;
-  gap: 6px;
+  justify-content: space-between;
+  width: 100%;
+  min-height: 32px; // 设置最小高度
+
+  .note-tags {
+    display: flex;
+    gap: 6px;
+    flex: 0 1 auto; // 改为自动收缩
+    align-items: center;
+    margin-right: 12px;
+    max-width: 500px; // 设置最大宽度
+    overflow: hidden; // 超出隐藏
+    white-space: nowrap; // 不换行
+
+    .tag-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 2px;
+      height: 22px;
+      padding: 0 8px;
+      background: var(--color-primary-light);
+      border: 1px solid transparent;
+      border-radius: 11px;
+      font-size: 12px;
+      transition: all 0.2s ease;
+      cursor: pointer;
+      flex-shrink: 0; // 防止标签被压缩
+
+      &:hover {
+        border-color: var(--color-primary);
+      }
+
+      .tag-symbol {
+        color: var(--color-primary);
+        font-size: 12px;
+      }
+
+      .tag-name {
+        color: var(--color-primary);
+        font-weight: 400;
+      }
+    }
+  }
+
+  .timestamp-section {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+    flex-shrink: 0; // 防止时间戳被压缩
+  }
 
   .flashcard-indicator {
     display: flex;

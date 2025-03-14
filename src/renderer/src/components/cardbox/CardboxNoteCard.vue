@@ -71,14 +71,27 @@
       <JsonContentRenderer v-if="localNote" :key="localNote.id" :content="localNote.content" />
     </div>
     <div class="note-timestamp">
-      <div
-        v-if="note.isFlashcard"
-        v-tooltip.top="getFlashcardTooltipConfig(flashcardTooltip)"
-        class="flashcard-indicator"
-      >
-        <StorageCardOne theme="outline" size="14" :fill="flashcardColor" :strokeWidth="3" />
+      <div class="note-tags">
+        <div
+          v-for="tag in noteTags"
+          :key="tag.id"
+          class="tag-item"
+          @click.stop="handleTagClick(tag.id, $event)"
+        >
+          <span class="tag-symbol">#</span>
+          <span class="tag-name">{{ tag.name }}</span>
+        </div>
       </div>
-      {{ formatDate(note.updatedAt) }}
+      <div class="timestamp-section">
+        <div
+          v-if="note.isFlashcard"
+          v-tooltip.top="getFlashcardTooltipConfig(flashcardTooltip)"
+          class="flashcard-indicator"
+        >
+          <StorageCardOne theme="outline" size="14" :fill="flashcardColor" :strokeWidth="3" />
+        </div>
+        {{ formatDate(note.updatedAt) }}
+      </div>
     </div>
   </div>
 </template>
@@ -87,8 +100,9 @@
 import { Note } from '@shared/types'
 import { formatDate } from '@renderer/utils/noteHelpers'
 import { More, ExpandTextInput, StorageCardOne, Install, CheckOne } from '@icon-park/vue-next'
-import { computed, onUnmounted, ref, watch } from 'vue'
+import { computed, onUnmounted, ref, watch, onMounted } from 'vue'
 import { useNoteStore } from '@renderer/stores/noteStore'
+import { useTagStore } from '@renderer/stores/tagStore'
 import { useRouter } from 'vue-router'
 import JsonContentRenderer from '@renderer/components/note/JsonContentRenderer.vue'
 import PopupMenu from '@renderer/components/common/PopupMenu.vue'
@@ -97,6 +111,7 @@ import type { MenuItem } from '@renderer/components/common/PopupMenu.vue'
 import { useMenu } from '@renderer/composables/useMenu'
 import { State } from 'ts-fsrs/dist'
 import CardboxDropdownMenu from '@renderer/components/cardbox/CardboxDropdownMenu.vue'
+import type { Tag } from '@shared/types'
 
 // 定义静态的 tooltip 配置
 const tooltipConfig = {
@@ -118,6 +133,7 @@ const props = defineProps<{
 }>()
 
 const noteStore = useNoteStore()
+const tagStore = useTagStore()
 
 // 本地控制高亮状态
 const localHighlight = ref(false)
@@ -295,6 +311,29 @@ const handleDoubleClick = () => {
 const toggleSelect = () => {
   noteStore.selectNote(props.note.id)
 }
+
+// 添加标签相关代码
+const noteTags = ref<Tag[]>([])
+
+const fetchNoteTags = async () => {
+  noteTags.value = await tagStore.getNoteTags(props.note.id)
+}
+
+// 标签点击处理
+const handleTagClick = (tagId: string, event: Event) => {
+  event.stopPropagation()
+  router.push({
+    name: 'cardbox',
+    query: {
+      tags: tagId,
+      box: 'all'
+    }
+  })
+}
+
+onMounted(async () => {
+  await fetchNoteTags()
+})
 </script>
 
 <style lang="scss" scoped>
@@ -302,7 +341,7 @@ const toggleSelect = () => {
   background-color: var(--color-bg-note-card);
   border: 1px solid var(--color-border);
   border-radius: 8px;
-  padding: 10px 0px 10px 0;
+  padding: 10px 0px 6px 0;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -524,13 +563,60 @@ const toggleSelect = () => {
 .note-timestamp {
   font-size: 0.8em;
   color: var(--color-text-tertiary);
-  align-self: flex-end;
-  margin-right: 15px;
   user-select: none;
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding-top: 2px;
+  justify-content: space-between;
+  width: 100%;
+  padding: 6px 15px;
+
+  .note-tags {
+    display: flex;
+    gap: 6px;
+    flex: 0 1 auto;
+    align-items: center;
+    margin-right: 12px;
+    max-width: 200px;
+    overflow: hidden;
+    white-space: nowrap;
+
+    .tag-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 2px;
+      height: 22px;
+      padding: 0 8px;
+      background: var(--color-primary-light);
+      border: 1px solid transparent;
+      border-radius: 11px;
+      font-size: 12px;
+      transition: all 0.2s ease;
+      cursor: pointer;
+      flex-shrink: 0;
+
+      &:hover {
+        border-color: var(--color-primary);
+      }
+
+      .tag-symbol {
+        color: var(--color-primary);
+        font-size: 12px;
+      }
+
+      .tag-name {
+        color: var(--color-primary);
+        font-weight: 400;
+      }
+    }
+  }
+
+  .timestamp-section {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
 
   .flashcard-indicator {
     display: flex;

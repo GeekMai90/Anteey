@@ -45,7 +45,7 @@ const props = defineProps<{
 const emit = defineEmits(['select', 'close'])
 
 const menuRef = ref<HTMLElement | null>(null)
-const cardTypes: CardType[] = ['Maincard', 'Indexcard', 'Bibcard']
+const cardTypes: CardType[] = ['Maincard', 'Bibcard', 'Indexcard']
 const menuPosition = ref(props.position)
 
 // 计算菜单样式，使用 menuPosition 而不是直接使用 props.position
