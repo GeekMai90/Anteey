@@ -14,6 +14,7 @@
         :style="imageStyle"
         @error="handleImageError"
         @load="handleImageLoad"
+        @dblclick="openImageViewer"
       />
       <div class="resize-handle right" @mousedown="startResize('right', $event)"></div>
       <div
@@ -95,6 +96,142 @@
       cancel-text="取消"
       @confirm="confirmDelete"
     />
+
+    <!-- 使用 Modal 组件替代自定义模态窗口 -->
+    <Modal v-model="showImageViewer" @outside-click="closeImageViewer">
+      <div class="image-viewer-container">
+        <div class="image-viewer-toolbar">
+          <button class="image-viewer-close" @click.stop="closeImageViewer">
+            <Close theme="outline" size="24" fill="white" :strokeWidth="3" />
+          </button>
+        </div>
+        <div class="image-viewer-content">
+          <!-- 左侧导航按钮 -->
+          <button
+            v-if="hasMultipleImages"
+            class="image-nav-button prev-button"
+            :disabled="currentImageIndex <= 0"
+            @click.stop="showPrevImage"
+          >
+            <Left theme="outline" size="24" fill="white" :strokeWidth="3" />
+          </button>
+
+          <img
+            :src="currentImageSrc"
+            :alt="currentImageAlt"
+            class="image-viewer-img"
+            :style="viewerImageStyle"
+            @click.stop
+            @mousedown="startDrag"
+            @touchstart="startDrag"
+            @dblclick.stop="closeImageViewer"
+          />
+
+          <!-- 右侧导航按钮 -->
+          <button
+            v-if="hasMultipleImages"
+            class="image-nav-button next-button"
+            :disabled="currentImageIndex >= allImages.length - 1"
+            @click.stop="showNextImage"
+          >
+            <Right theme="outline" size="24" fill="white" :strokeWidth="3" />
+          </button>
+        </div>
+        <!-- 底部工具条 -->
+        <div class="image-viewer-bottom-toolbar">
+          <button
+            v-tooltip.top="{
+              content: '放大',
+              delay: { show: 500 },
+              html: true
+            }"
+            class="toolbar-button"
+            @click="zoomIn"
+          >
+            <ZoomIn theme="outline" size="20" fill="white" :strokeWidth="3" />
+          </button>
+          <button
+            v-tooltip.top="{
+              content: '缩小',
+              delay: { show: 500 },
+              html: true
+            }"
+            class="toolbar-button"
+            @click="zoomOut"
+          >
+            <ZoomOut theme="outline" size="20" fill="white" :strokeWidth="3" />
+          </button>
+          <button
+            v-tooltip.top="{
+              content: isOriginalSize ? '适应页面' : '原始大小',
+              delay: { show: 500 },
+              html: true
+            }"
+            class="toolbar-button"
+            @click="toggleOriginalSize"
+          >
+            <component
+              :is="isOriginalSize ? FullScreenIcon : EqualRatioIcon"
+              theme="outline"
+              size="20"
+              fill="white"
+              :strokeWidth="3"
+            />
+          </button>
+          <button
+            v-tooltip.top="{
+              content: '旋转',
+              delay: { show: 500 },
+              html: true
+            }"
+            class="toolbar-button"
+            @click="rotateImage"
+          >
+            <Rotate theme="outline" size="20" fill="white" :strokeWidth="3" />
+          </button>
+          <button
+            v-tooltip.top="{
+              content: '下载图片',
+              delay: { show: 500 },
+              html: true
+            }"
+            class="toolbar-button"
+            @click="downloadViewerImage"
+          >
+            <Download theme="outline" size="20" fill="white" :strokeWidth="3" />
+          </button>
+
+          <!-- 导航组合按钮组 -->
+          <div v-if="hasMultipleImages" class="nav-button-group">
+            <button
+              v-tooltip.top="{
+                content: '上一张',
+                delay: { show: 500 },
+                html: true
+              }"
+              :disabled="currentImageIndex <= 0"
+              class="nav-button"
+              @click="showPrevImage"
+            >
+              <Left theme="outline" size="20" fill="white" :strokeWidth="3" />
+            </button>
+            <div class="image-counter">{{ currentImageIndex + 1 }} / {{ allImages.length }}</div>
+            <button
+              v-tooltip.top="{
+                content: '下一张',
+                delay: { show: 500 },
+                html: true
+              }"
+              :disabled="currentImageIndex >= allImages.length - 1"
+              class="nav-button"
+              @click="showNextImage"
+            >
+              <Right theme="outline" size="20" fill="white" :strokeWidth="3" />
+            </button>
+          </div>
+        </div>
+      </div>
+    </Modal>
   </node-view-wrapper>
 </template>
 
@@ -108,9 +245,18 @@ import {
   More,
   AlignTextLeft,
   AlignTextCenter,
-  AlignTextRight
+  AlignTextRight,
+  Close,
+  ZoomIn,
+  ZoomOut,
+  FullScreen as FullScreenIcon,
+  Rotate,
+  EqualRatio as EqualRatioIcon,
+  Left,
+  Right
 } from '@icon-park/vue-next'
 import ConfirmDialog from '@renderer/components/common/ConfirmDialog.vue'
+import Modal from '@renderer/components/common/Modal.vue'
 import { message } from '@renderer/utils/message'
 
 const props = defineProps({
@@ -123,6 +269,19 @@ const props = defineProps({
 })
 // 添加确认对话框的状态
 const showDeleteConfirm = ref(false)
+// 添加图片查看器状态
+const showImageViewer = ref(false)
+// 添加图片查看器的缩放和旋转状态
+const zoomLevel = ref(1)
+const rotationDegree = ref(0)
+// 添加原始大小状态
+const isOriginalSize = ref(false)
+// 添加拖动相关状态
+const dragPosition = ref({ x: 0, y: 0 })
+const isDragging = ref(false)
+// 添加多图片浏览相关状态
+const allImages = ref([])
+const currentImageIndex = ref(0)
 
 // 添加重试相关的状态
 const retryKey = ref(0)
@@ -297,6 +456,203 @@ const handleImageLoad = () => {
   // 重置重试计数
   retryCount.value = 0
   console.log('图片加载成功')
+}
+
+// 计算属性：是否有多张图片
+const hasMultipleImages = computed(() => allImages.value.length > 1)
+
+// 计算属性：当前显示的图片URL
+const currentImageSrc = computed(() => {
+  if (allImages.value.length > 0 && currentImageIndex.value >= 0) {
+    return allImages.value[currentImageIndex.value].src
+  }
+  return props.node.attrs.src
+})
+
+// 计算属性：当前显示的图片alt文本
+const currentImageAlt = computed(() => {
+  if (allImages.value.length > 0 && currentImageIndex.value >= 0) {
+    return allImages.value[currentImageIndex.value].alt
+  }
+  return props.node.attrs.alt
+})
+
+// 获取当前笔记中的所有图片
+const getAllImagesInNote = () => {
+  // 如果编辑器实例不存在，则返回空数组
+  if (!props.editor) return []
+
+  const images = []
+  props.editor.state.doc.descendants((node) => {
+    if (node.type.name === 'image') {
+      images.push({
+        src: node.attrs.src,
+        alt: node.attrs.alt || ''
+      })
+    }
+    return true
+  })
+
+  return images
+}
+
+// 查找当前图片在所有图片中的索引
+const findCurrentImageIndex = () => {
+  const currentSrc = props.node.attrs.src
+  return allImages.value.findIndex((img) => img.src === currentSrc)
+}
+
+// 显示上一张图片
+const showPrevImage = () => {
+  if (currentImageIndex.value > 0) {
+    currentImageIndex.value--
+    // 重置缩放、旋转和拖动状态
+    resetViewerState()
+  }
+}
+
+// 显示下一张图片
+const showNextImage = () => {
+  if (currentImageIndex.value < allImages.value.length - 1) {
+    currentImageIndex.value++
+    // 重置缩放、旋转和拖动状态
+    resetViewerState()
+  }
+}
+
+// 重置查看器状态
+const resetViewerState = () => {
+  zoomLevel.value = 1
+  rotationDegree.value = 0
+  isOriginalSize.value = false
+  dragPosition.value = { x: 0, y: 0 }
+}
+
+// 打开图片查看器
+const openImageViewer = (event) => {
+  // 获取所有图片
+  allImages.value = getAllImagesInNote()
+  // 找到当前图片的索引
+  currentImageIndex.value = findCurrentImageIndex()
+
+  showImageViewer.value = true
+  // 重置查看器状态
+  resetViewerState()
+  // 阻止编辑器获取焦点
+  event.preventDefault()
+  event.stopPropagation()
+}
+
+// 关闭图片查看器
+const closeImageViewer = () => {
+  showImageViewer.value = false
+}
+
+// 放大图片
+const zoomIn = () => {
+  if (zoomLevel.value < 3) {
+    zoomLevel.value = Math.min(3, zoomLevel.value + 0.2)
+  }
+}
+
+// 缩小图片
+const zoomOut = () => {
+  if (zoomLevel.value > 0.5) {
+    zoomLevel.value = Math.max(0.5, zoomLevel.value - 0.2)
+  }
+}
+
+// 切换原始大小/适应页面
+const toggleOriginalSize = () => {
+  isOriginalSize.value = !isOriginalSize.value
+  if (isOriginalSize.value) {
+    // 设置为原始大小
+    zoomLevel.value = 1.5 // 使用较大的缩放比例模拟原始大小
+  } else {
+    // 设置为适应页面
+    zoomLevel.value = 1
+    // 重置拖动位置
+    dragPosition.value = { x: 0, y: 0 }
+  }
+}
+
+// 旋转图片
+const rotateImage = () => {
+  rotationDegree.value -= 90
+}
+
+// 下载查看器中的图片
+const downloadViewerImage = async () => {
+  const imageUrl = currentImageSrc.value
+  const fileName = getFileNameFromUrl(imageUrl)
+
+  try {
+    await window.electronAPI.image.downloadImage(imageUrl, fileName)
+    message.success('图片下载成功')
+  } catch (error) {
+    console.error('下载图片失败:', error)
+    message.error('图片下载失败')
+  }
+}
+
+// 图片查看器的图片样式
+const viewerImageStyle = computed(() => ({
+  transform: `translate(${dragPosition.value.x}px, ${dragPosition.value.y}px) scale(${zoomLevel.value}) rotate(${rotationDegree.value}deg)`,
+  transition: isDragging.value ? 'none' : 'transform 0.3s ease',
+  cursor: zoomLevel.value > 1 ? 'grab' : 'default'
+}))
+
+// 开始拖动图片
+const startDrag = (event) => {
+  // 只有在图片放大状态下才允许拖动
+  if (zoomLevel.value <= 1) return
+
+  event.preventDefault()
+
+  isDragging.value = true
+
+  // 获取起始位置
+  const startX = event.type === 'mousedown' ? event.clientX : event.touches[0].clientX
+  const startY = event.type === 'mousedown' ? event.clientY : event.touches[0].clientY
+  const initialX = dragPosition.value.x
+  const initialY = dragPosition.value.y
+
+  // 移动处理函数
+  const handleMove = (moveEvent) => {
+    if (!isDragging.value) return
+
+    const currentX =
+      moveEvent.type === 'mousemove' ? moveEvent.clientX : moveEvent.touches[0].clientX
+    const currentY =
+      moveEvent.type === 'mousemove' ? moveEvent.clientY : moveEvent.touches[0].clientY
+
+    // 计算位移
+    const deltaX = currentX - startX
+    const deltaY = currentY - startY
+
+    // 更新位置
+    dragPosition.value = {
+      x: initialX + deltaX,
+      y: initialY + deltaY
+    }
+  }
+
+  // 结束拖动处理函数
+  const handleEnd = () => {
+    isDragging.value = false
+
+    // 移除事件监听器
+    document.removeEventListener('mousemove', handleMove)
+    document.removeEventListener('mouseup', handleEnd)
+    document.removeEventListener('touchmove', handleMove)
+    document.removeEventListener('touchend', handleEnd)
+  }
+
+  // 添加事件监听器
+  document.addEventListener('mousemove', handleMove)
+  document.addEventListener('mouseup', handleEnd)
+  document.addEventListener('touchmove', handleMove)
+  document.addEventListener('touchend', handleEnd)
 }
 </script>
 
@@ -509,6 +865,284 @@ const handleImageLoad = () => {
       background: var(--color-bg-secondary);
       border: 1px dashed var(--color-border);
     }
+  }
+}
+
+// 添加图片查看器样式
+.image-viewer-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.85);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.2s ease;
+}
+
+.image-viewer-container {
+  position: relative;
+  width: 90vw;
+  height: 90vh;
+  display: flex;
+  flex-direction: column;
+  background-color: transparent;
+}
+
+.image-viewer-content {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  position: relative;
+}
+
+.image-viewer-toolbar {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  padding: 0;
+  z-index: 10001;
+}
+
+.image-viewer-close {
+  background: rgba(0, 0, 0, 0.5);
+  border: none;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+
+  &:hover {
+    background: rgba(0, 0, 0, 0.8);
+  }
+
+  :deep(.i-icon) {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+  }
+
+  :deep(svg) {
+    width: 24px;
+    height: 24px;
+  }
+}
+
+.image-viewer-img {
+  max-width: 100%;
+  max-height: 90vh;
+  object-fit: contain;
+  animation: zoomIn 0.3s ease;
+  transform-origin: center center;
+  user-select: none;
+  -webkit-user-drag: none;
+
+  &:active {
+    cursor: grabbing;
+  }
+}
+
+// 添加底部工具条样式
+.image-viewer-bottom-toolbar {
+  position: fixed;
+  bottom: 16px;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  padding: 16px;
+  z-index: 10001;
+}
+
+// 导航组合按钮组样式
+.nav-button-group {
+  display: flex;
+  align-items: center;
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 20px;
+  padding: 4px;
+  margin-left: 16px;
+  height: 40px;
+
+  .nav-button {
+    background: transparent;
+    border: none;
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    &:active {
+      transform: scale(0.95);
+    }
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+
+      &:hover {
+        background: transparent;
+      }
+    }
+
+    :deep(.i-icon) {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      height: 100%;
+    }
+
+    :deep(svg) {
+      width: 20px;
+      height: 20px;
+    }
+  }
+
+  .image-counter {
+    color: white;
+    font-size: 14px;
+    min-width: 48px;
+    text-align: center;
+    user-select: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+.toolbar-button {
+  background: rgba(0, 0, 0, 0.5);
+  border: none;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  margin: 0 8px;
+
+  &:hover {
+    background: rgba(0, 0, 0, 0.8);
+  }
+
+  &:active {
+    transform: scale(0.95);
+  }
+
+  :deep(.i-icon) {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+  }
+
+  :deep(svg) {
+    width: 20px;
+    height: 20px;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes zoomIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+// 添加图片导航按钮样式
+.image-nav-button {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(0, 0, 0, 0.5);
+  border: none;
+  border-radius: 50%;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  z-index: 10001;
+
+  &:hover {
+    background: rgba(0, 0, 0, 0.8);
+  }
+
+  &:active {
+    transform: translateY(-50%) scale(0.95);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+
+    &:hover {
+      background: rgba(0, 0, 0, 0.5);
+    }
+
+    &:active {
+      transform: translateY(-50%);
+    }
+  }
+
+  &.prev-button {
+    left: 16px;
+  }
+
+  &.next-button {
+    right: 16px;
+  }
+
+  :deep(.i-icon) {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+  }
+
+  :deep(svg) {
+    width: 24px;
+    height: 24px;
   }
 }
 </style>
