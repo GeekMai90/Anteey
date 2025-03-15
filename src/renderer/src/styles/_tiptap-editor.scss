@@ -504,7 +504,7 @@
     }
 
     .selectedCell:after {
-      background: var(--color-table-selected-cell-bg);
+      background: var(--color-table-cell-selected);
       content: "";
       left: 0;
       right: 0;

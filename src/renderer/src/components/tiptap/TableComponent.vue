@@ -46,7 +46,7 @@ defineProps<NodeViewProps>()
         }
 
         &:hover {
-          background-color: var(--color-hover);
+          background-color: var(--color-hover-bg);
         }
 
         // 修改列宽调整手柄的样式
@@ -86,7 +86,7 @@ defineProps<NodeViewProps>()
         position: relative;
 
         &::after {
-          background: var(--color-hover);
+          background: var(--color-hover-bg);
           content: '';
           left: 0;
           right: 0;
