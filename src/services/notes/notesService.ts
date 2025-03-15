@@ -784,10 +784,34 @@ export async function getDeletedNotes(): Promise<Note[]> {
   }
 }
 
-// 永久删除笔记
+// 永久删除笔记 硬删除笔记
 export async function permanentDeleteNote(id: string): Promise<void> {
   return db.transaction(async (trx) => {
     try {
+      // 0. 获取笔记内容，提取图片路径
+      const note = await trx('notes').where('id', id).first()
+      if (note && note.content) {
+        const content = typeof note.content === 'string' ? JSON.parse(note.content) : note.content
+        const imagePaths = extractImagePathsFromContent(content)
+
+        // 删除笔记中的所有图片
+        if (imagePaths.length > 0) {
+          const { ImageService } = await import('../images/imageService')
+          const imageService = new ImageService()
+
+          for (const imagePath of imagePaths) {
+            try {
+              if (imagePath.startsWith('app-image:///')) {
+                await imageService.deleteImage(imagePath)
+              }
+            } catch (imgError) {
+              console.warn(`后端→ 删除笔记图片失败: ${imagePath}`, imgError)
+              // 继续处理其他图片，不中断流程
+            }
+          }
+        }
+      }
+
       // 1. 删除所有以该笔记为源的引用关系
       await trx('note_references').where('sourceNoteId', id).delete()
 
@@ -803,6 +827,36 @@ export async function permanentDeleteNote(id: string): Promise<void> {
       throw error
     }
   })
+}
+
+// 从笔记内容中提取所有图片路径
+function extractImagePathsFromContent(content: any): string[] {
+  const imagePaths: string[] = []
+
+  // 递归遍历内容对象，查找图片路径
+  function traverse(obj: any) {
+    if (!obj || typeof obj !== 'object') return
+
+    // 检查是否是图片节点
+    if (obj.type === 'image' && obj.attrs && obj.attrs.src) {
+      imagePaths.push(obj.attrs.src)
+    }
+
+    // 遍历子节点
+    if (Array.isArray(obj.content)) {
+      obj.content.forEach(traverse)
+    } else if (obj.content && typeof obj.content === 'object') {
+      traverse(obj.content)
+    }
+
+    // 处理其他可能包含图片的属性
+    if (obj.blocks) {
+      obj.blocks.forEach(traverse)
+    }
+  }
+
+  traverse(content)
+  return imagePaths
 }
 
 // 添加星标收藏
