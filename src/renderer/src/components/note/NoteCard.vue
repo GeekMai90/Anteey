@@ -221,7 +221,7 @@ onMounted(async () => {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
   border: 1px solid var(--color-border-light);
   transition: all 0.3s ease;
-  padding: 15px 0px 10px 0;
+  padding: 15px 0px 6px 0;
   margin-bottom: 15px;
   display: flex;
   flex-direction: column;
@@ -434,7 +434,7 @@ onMounted(async () => {
   font-size: 0.8em;
   color: var(--color-text-tertiary);
   padding: 8px 15px; // 增加上下内边距
-  margin-top: 10px; // 增加与内容区域的间距
+  // margin-top: 10px; // 增加与内容区域的间距
   user-select: none;
   display: flex;
   align-items: center;

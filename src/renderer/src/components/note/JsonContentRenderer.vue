@@ -51,7 +51,7 @@
         v-else-if="node.type === 'heading'"
         :style="getNodeStyle(node)"
       >
-        <template v-for="(child, childIndex) in node.content" :key="childIndex">
+        <template v-for="(child, _childIndex) in node.content" :key="_childIndex">
           <span v-html="renderMathFormula(child.text)"></span>
         </template>
       </component>
