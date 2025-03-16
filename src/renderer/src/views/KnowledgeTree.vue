@@ -1,3 +1,9 @@
+/** * @file KnowledgeTree.vue * @description 知识树组件，用于展示和管理卢曼卡片笔记的层级结构 * *
+主要功能： * 1. 知识树的可视化展示 * - 使用 jsMind 实现思维导图式的展示 * - 支持节点的展开/折叠 *
+-支持节点的聚焦/返回 * 2. 节点交互 * - 单击节点预览笔记内容 * - 双击节点进入聚焦模式 * -
+点击展开/折叠按钮管理子节点 * 3. 导航功能 * - 支持通过路由参数直接定位节点 * -
+支持通过搜索结果跳转到指定节点 * * @author 麦先生 * @created 2024-03-20 */
+
 <template>
   <div class="knowledge-tree-container">
     <!-- 顶部工具栏组件 -->
@@ -23,7 +29,17 @@ const route = useRoute()
 const noteStore = useNoteStore()
 const uiStore = useUIStore()
 
-// 定义 jsMind 配置选项接口
+/**
+ * @interface JsMindOptions
+ * @description jsMind 插件的配置选项
+ * @property {HTMLElement} container 容器元素
+ * @property {string} theme 主题
+ * @property {boolean} editable 是否可编辑
+ * @property {string} mode 显示模式
+ * @property {Object} view 视图配置
+ * @property {Object} layout 布局配置
+ * @property {Object} shortcut 快捷键配置
+ */
 interface JsMindOptions {
   container: HTMLElement
   theme?: string
@@ -36,6 +52,7 @@ interface JsMindOptions {
     line_width?: number
     line_color?: string
     line_style?: 'bezier' | 'straight'
+    enable_device_pixel_ratio?: boolean
   }
   layout?: {
     hspace?: number
@@ -49,7 +66,16 @@ interface JsMindOptions {
   support_html?: boolean
 }
 
-// 定义思维导图节点接口
+/**
+ * @interface JsMindNode
+ * @description jsMind 节点数据结构
+ * @property {string} id 节点ID
+ * @property {string} topic 节点内容
+ * @property {JsMindNode[]} children 子节点数组
+ * @property {boolean} expanded 是否展开
+ * @property {string} direction 节点方向
+ * @property {Object} data 节点附加数据
+ */
 interface JsMindNode {
   id: string
   topic: string
@@ -63,6 +89,13 @@ interface JsMindNode {
   }
 }
 
+/**
+ * @interface JsMindData
+ * @description jsMind 数据结构
+ * @property {Object} meta 元数据
+ * @property {string} format 数据格式
+ * @property {JsMindNode} data 节点数据
+ */
 interface JsMindData {
   meta: {
     name: string
@@ -76,7 +109,11 @@ const knowledgeTreeStore = useKnowledgeTreeStore()
 const container = ref<HTMLDivElement>()
 const jm = ref<any>(null)
 
-// 转换数据为 JsMind 格式
+/**
+ * 转换数据为 JsMind 格式
+ * @param {KnowledgeTreeNode[]} nodes 知识树节点数组
+ * @returns {JsMindData} JsMind 格式的数据
+ */
 const transformToJsMindData = (nodes: KnowledgeTreeNode[]): JsMindData => {
   const processNode = (node: KnowledgeTreeNode): JsMindNode => {
     if (!node) {
@@ -94,7 +131,7 @@ const transformToJsMindData = (nodes: KnowledgeTreeNode[]): JsMindData => {
                 ${
                   hasChildren
                     ? `<div class="node-expand-btn" data-address="${node.address}">
-                            +
+                            ${node.isExpanded ? '-' : '+'}
                        </div>`
                     : ''
                 }
@@ -152,7 +189,12 @@ const transformToJsMindData = (nodes: KnowledgeTreeNode[]): JsMindData => {
     data: rootNode
   }
 }
-// 初始化 JsMind
+
+/**
+ * 初始化 JsMind 实例
+ * @async
+ * @description 初始化思维导图，设置配置项，加载数据并绑定事件
+ */
 const initJsMind = async () => {
   if (!container.value) return
 
@@ -167,7 +209,8 @@ const initJsMind = async () => {
       vmargin: 50,
       line_width: 1.5,
       line_color: 'var(--color-line)',
-      line_style: 'bezier'
+      line_style: 'bezier',
+      enable_device_pixel_ratio: true
     },
     layout: {
       hspace: 30,
@@ -232,7 +275,12 @@ const initJsMind = async () => {
   }
 }
 
-// 修改事件处理函数
+/**
+ * 处理节点点击事件
+ * @async
+ * @param {MouseEvent} e 鼠标事件对象
+ * @description 处理节点的单击事件，包括展开/折叠按钮点击和节点预览
+ */
 const handleNodeClick = async (e: MouseEvent) => {
   if (!jm.value) return
 
@@ -240,36 +288,88 @@ const handleNodeClick = async (e: MouseEvent) => {
 
   // 处理展开/折叠按钮点击
   if (element.classList.contains('node-expand-btn')) {
+    // 阻止事件冒泡
     e.stopPropagation()
+    e.preventDefault()
+
+    console.log('点击了展开/折叠按钮')
     const address = element.getAttribute('data-address')
+    console.log('节点地址:', address)
+
     if (address) {
-      const node = knowledgeTreeStore.findNodeByAddress(address)
-      if (node) {
-        if (!node.isExpanded) {
-          // 加载并展开节点
-          const childNodes = await knowledgeTreeStore.fetchChildNodes(address)
-          node.children = childNodes
-          node.isExpanded = true
+      // 防止重复点击
+      if (element.hasAttribute('data-processing')) {
+        console.log('正在处理中，忽略重复点击')
+        return
+      }
+      element.setAttribute('data-processing', 'true')
 
-          // 更新视图并展开节点
-          const jsMindData = transformToJsMindData(knowledgeTreeStore.nodes)
-          jm.value.show(jsMindData)
+      try {
+        const node = knowledgeTreeStore.findNodeByAddress(address)
+        console.log('找到的节点:', node)
+        console.log('节点当前展开状态:', node?.isExpanded)
 
-          // 只展开当前点击的节点
-          requestAnimationFrame(() => {
-            const clickedNode = jm.value.get_node(address)
-            if (clickedNode) {
-              jm.value.expand_node(address)
-              // 将视图中心移动到展开的节点
-              jm.value.select_node(address)
-            }
-          })
-        } else {
-          // 折叠节点
-          node.isExpanded = false
-          // 直接折叠当前节点
-          jm.value.collapse_node(address)
+        if (node) {
+          // 保存当前视图位置
+          const viewPosition = {
+            x: jm.value.view.e_panel.scrollLeft,
+            y: jm.value.view.e_panel.scrollTop
+          }
+
+          if (!node.isExpanded) {
+            console.log('准备展开节点')
+            // 加载并展开节点
+            const childNodes = await knowledgeTreeStore.fetchChildNodes(address)
+            console.log('获取到的子节点:', childNodes)
+            node.children = childNodes
+            node.isExpanded = true
+            console.log('节点状态已更新为展开')
+
+            // 更新视图并展开节点
+            const jsMindData = transformToJsMindData(knowledgeTreeStore.nodes)
+            jm.value.show(jsMindData)
+
+            // 只展开当前点击的节点
+            requestAnimationFrame(() => {
+              const clickedNode = jm.value.get_node(address)
+              console.log('准备在视图中展开节点:', clickedNode)
+              if (clickedNode) {
+                jm.value.expand_node(address)
+              }
+              // 恢复视图位置
+              jm.value.view.e_panel.scrollLeft = viewPosition.x
+              jm.value.view.e_panel.scrollTop = viewPosition.y
+            })
+          } else {
+            console.log('准备折叠节点')
+            // 折叠节点
+            node.isExpanded = false
+            node.children = [] // 清空子节点数据
+            console.log('节点状态已更新为折叠')
+
+            // 更新视图
+            const jsMindData = transformToJsMindData(knowledgeTreeStore.nodes)
+            console.log('准备更新 jsMind 数据:', jsMindData)
+            jm.value.show(jsMindData)
+
+            // 确保节点被折叠
+            requestAnimationFrame(() => {
+              const clickedNode = jm.value.get_node(address)
+              console.log('准备在视图中折叠节点:', clickedNode)
+              if (clickedNode) {
+                jm.value.collapse_node(address)
+              }
+              // 恢复视图位置
+              jm.value.view.e_panel.scrollLeft = viewPosition.x
+              jm.value.view.e_panel.scrollTop = viewPosition.y
+            })
+          }
         }
+      } finally {
+        // 处理完成后移除标记
+        setTimeout(() => {
+          element.removeAttribute('data-processing')
+        }, 100)
       }
     }
     return
@@ -289,8 +389,13 @@ const handleNodeClick = async (e: MouseEvent) => {
   }
 }
 
-// 修改双击处理函数
-const handleNodeDblClick = (e: MouseEvent) => {
+/**
+ * 处理节点双击事件
+ * @async
+ * @param {MouseEvent} e 鼠标事件对象
+ * @description 处理节点的双击事件，实现节点聚焦和返回功能
+ */
+const handleNodeDblClick = async (e: MouseEvent) => {
   console.log('handleNodeDblClick 被调用')
   if (!jm.value) return
 
@@ -310,24 +415,75 @@ const handleNodeDblClick = (e: MouseEvent) => {
   if (nodeId) {
     // 如果是当前聚焦的根节点，则返回上一层
     if (knowledgeTreeStore.viewState.isInFocusMode) {
-      if (nodeId === knowledgeTreeStore.focusedNode?.address) {
-        console.log('双击根节点，返回上一层')
-        // 如果是第一层级节点（如1000），则返回到 Antinet Zettelkasten 根节点
-        if (nodeId.endsWith('000')) {
+      // 检查是否是顶级节点（以000结尾的节点）
+      const isTopLevelNode = nodeId.endsWith('000')
+      // 检查是否是当前聚焦的节点
+      const isFocusedNode = nodeId === knowledgeTreeStore.focusedNode?.address
+
+      if (isFocusedNode) {
+        console.log('双击当前聚焦的节点')
+        if (isTopLevelNode) {
           console.log('返回到 Antinet Zettelkasten 根节点')
-          knowledgeTreeStore.viewState.isInFocusMode = false
-          knowledgeTreeStore.focusedNode = null
-          knowledgeTreeStore.parentPath = []
-          knowledgeTreeStore.fetchTopLevelNodes()
+          try {
+            // 完全重置所有状态
+            knowledgeTreeStore.reset()
+
+            // 重新获取顶层节点
+            await knowledgeTreeStore.fetchTopLevelNodes()
+
+            // 重新初始化视图
+            const jsMindData = transformToJsMindData(knowledgeTreeStore.nodes)
+
+            // 保存当前视图位置
+            const viewPosition = jm.value.view.e_panel
+              ? {
+                  x: jm.value.view.e_panel.scrollLeft,
+                  y: jm.value.view.e_panel.scrollTop
+                }
+              : null
+
+            // 更新视图
+            jm.value.show(jsMindData)
+
+            // 恢复视图位置
+            if (viewPosition) {
+              requestAnimationFrame(() => {
+                if (jm.value.view.e_panel) {
+                  jm.value.view.e_panel.scrollLeft = viewPosition.x
+                  jm.value.view.e_panel.scrollTop = viewPosition.y
+                }
+              })
+            }
+
+            // 重新绑定事件监听器
+            setTimeout(() => {
+              const jmnodes = container.value?.querySelectorAll('jmnode')
+              jmnodes?.forEach((node) => {
+                node.addEventListener('click', ((e: Event) => {
+                  if (e instanceof MouseEvent) {
+                    handleNodeClick(e)
+                  }
+                }) as EventListener)
+                node.addEventListener('dblclick', ((e: Event) => {
+                  if (e instanceof MouseEvent) {
+                    handleNodeDblClick(e)
+                  }
+                }) as EventListener)
+              })
+            }, 100)
+          } catch (error) {
+            console.error('返回根节点时发生错误:', error)
+          }
         } else {
-          knowledgeTreeStore.backToParent()
+          console.log('返回到上一层节点')
+          await knowledgeTreeStore.backToParent()
         }
       } else {
         // 其他节点保持原有的聚焦行为
         const treeNode = knowledgeTreeStore.findNodeByAddress(nodeId)
         if (treeNode) {
           console.log('找到对应的树节点:', treeNode)
-          knowledgeTreeStore.focusNodeWithChildren(treeNode)
+          await knowledgeTreeStore.focusNodeWithChildren(treeNode)
         }
       }
     } else {
@@ -335,7 +491,7 @@ const handleNodeDblClick = (e: MouseEvent) => {
       const treeNode = knowledgeTreeStore.findNodeByAddress(nodeId)
       if (treeNode) {
         console.log('找到对应的树节点:', treeNode)
-        knowledgeTreeStore.focusNodeWithChildren(treeNode)
+        await knowledgeTreeStore.focusNodeWithChildren(treeNode)
       }
     }
   }
@@ -424,7 +580,13 @@ watch(
   { deep: true }
 )
 
-// 添加导航辅助函数
+/**
+ * 导航到指定节点
+ * @async
+ * @param {string} address 节点地址
+ * @returns {Promise<boolean>} 导航是否成功
+ * @description 根据节点地址进行导航，加载并聚焦到目标节点
+ */
 const navigateToNode = async (address: string) => {
   console.log('开始导航到节点:', address)
   const node = await knowledgeTreeStore.findNodeByAddress(address)
@@ -442,11 +604,11 @@ const navigateToNode = async (address: string) => {
 
 // 监听路由参数变化
 watch(
-  () => route.params.address,
-  async (newAddress) => {
-    if (newAddress) {
+  [() => route.params.address, () => route.query.address],
+  async ([paramAddress, queryAddress]) => {
+    const address = (queryAddress || paramAddress) as string
+    if (address) {
       try {
-        const address = newAddress as string
         console.log('准备导航到地址:', address)
 
         // 重置视图状态
@@ -495,6 +657,27 @@ watch(
           }
           // 等待一小段时间确保节点加载完成
           await new Promise((resolve) => setTimeout(resolve, 100))
+        }
+
+        // 确保目标节点（最后一个节点）是展开状态
+        const targetNode = knowledgeTreeStore.findNodeByAddress(address)
+        if (targetNode) {
+          // 加载并展开目标节点的子节点
+          const childNodes = await knowledgeTreeStore.fetchChildNodes(address)
+          targetNode.children = childNodes
+          targetNode.isExpanded = true
+
+          // 更新视图
+          const jsMindData = transformToJsMindData(knowledgeTreeStore.nodes)
+          jm.value.show(jsMindData)
+
+          // 确保节点被展开
+          requestAnimationFrame(() => {
+            const node = jm.value.get_node(address)
+            if (node) {
+              jm.value.expand_node(address)
+            }
+          })
         }
       } catch (error) {
         console.error('导航到节点失败:', error)
@@ -570,13 +753,13 @@ onBeforeUnmount(() => {
 /* 展开按钮样式 */
 :deep(.node-expand-btn) {
   position: relative;
-  width: 14px;
-  height: 14px;
-  border: 1px solid var(--color-border);
+  width: 15px;
+  height: 15px;
+  border: 1px solid var(--color-border-default);
   border-radius: 50%;
   background: var(--color-bg-secondary);
   cursor: pointer;
-  font-size: 10px;
+  font-size: 11px;
   line-height: 1;
   color: var(--color-text-primary);
   padding: 0;

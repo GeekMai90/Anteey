@@ -30,7 +30,7 @@ export const useKnowledgeTreeStore = defineStore('knowledgeTree', () => {
   const isNodeFocused = computed(() => (nodeId: string) => focusedNode.value?.id === nodeId)
 
   // ==================== 方法 ====================
-  // ���层节点
+  // 获取顶层节点
   const fetchTopLevelNodes = async () => {
     try {
       nodes.value = await window.electronAPI.knowledgeTree.getTopLevelNodes()
@@ -207,7 +207,7 @@ export const useKnowledgeTreeStore = defineStore('knowledgeTree', () => {
         children: childNodes.map((child) => ({
           ...child,
           id: child.address, // 确保子节点的 id 存在且与 address 一致
-          isExpanded: true,
+          isExpanded: false, // 确保子节点初始状态是未展开的
           children: [] // 初始化空的子节点数组
         })),
         isExpanded: true
@@ -215,13 +215,10 @@ export const useKnowledgeTreeStore = defineStore('knowledgeTree', () => {
 
       // 确保当前节点和所有子节点都被添加到展开集合中
       expandedNodes.value.add(focusedTree.address)
-      childNodes.forEach((child) => {
-        expandedNodes.value.add(child.address)
-      })
 
       // 更新状态
       nodes.value = [focusedTree]
-      focusedNode.value = focusedTree // 使用更新后的节点
+      focusedNode.value = focusedTree
       viewState.value.isInFocusMode = true
 
       // 保存到历史记录
