@@ -83,6 +83,19 @@
         </div>
       </button>
       <button
+        v-tooltip.top="{ content: '均分列宽', delay: { show: 1000 } }"
+        @click="distributeColumnWidths"
+      >
+        <div class="icon">
+          <AutoLineWidth
+            theme="outline"
+            size="16"
+            fill="var(--color-icon-primary)"
+            :strokeWidth="3"
+          />
+        </div>
+      </button>
+      <button
         v-tooltip.top="{ content: '合并/拆分单元格', delay: { show: 1000 } }"
         @click="editor.chain().focus().mergeOrSplit().run()"
       >
@@ -102,13 +115,14 @@ import {
   LinkRight,
   MergeCells,
   FreezeLine,
-  FreezeColumn
+  FreezeColumn,
+  AutoLineWidth
 } from '@icon-park/vue-next'
 import type { Editor } from '@tiptap/core'
 import type { EditorState } from '@tiptap/pm/state'
 import type { EditorView } from '@tiptap/pm/view'
 
-defineProps<{
+const props = defineProps<{
   editor: Editor
 }>()
 
@@ -162,6 +176,146 @@ const shouldShow = (props: {
       selection.from === selection.$anchor.start())
 
   return isTableOperation
+}
+
+// 添加均分列宽的处理函数
+const distributeColumnWidths = () => {
+  const { state } = props.editor
+  const { selection } = state
+  const { $anchor } = selection
+
+  // 查找表格节点
+  let tableNode = null
+  let depth = $anchor.depth
+
+  while (depth > 0) {
+    const node = $anchor.node(depth)
+    if (node.type.name === 'table') {
+      tableNode = node
+      break
+    }
+    depth--
+  }
+
+  if (!tableNode) {
+    console.log('未找到表格节点')
+    return
+  }
+
+  // 获取表格元素
+  const tableElement = document.querySelector('table')
+  if (!tableElement) {
+    console.log('未找到表格元素')
+    return
+  }
+
+  // 获取笔记容器的可用宽度 - 修改这部分逻辑
+  // 尝试获取笔记内容容器的宽度
+  const noteContentContainer =
+    document.querySelector('.ProseMirror') ||
+    document.querySelector('.editor-content') ||
+    tableElement.closest('.note-content') ||
+    tableElement.closest('.editor-container')
+
+  // 获取笔记容器的宽度，如果找不到容器则使用表格父元素宽度，最后使用默认值
+  const containerWidth = noteContentContainer
+    ? noteContentContainer.clientWidth
+    : tableElement.parentElement?.clientWidth || 800
+
+  console.log('笔记容器宽度:', containerWidth)
+
+  // 考虑内边距和边框的影响，减小实际可用宽度
+  // 使用更小的边距预留值，以充分利用笔记宽度
+  const availableWidth = containerWidth - 20 // 减少预留边距
+  console.log('可用宽度:', availableWidth)
+
+  // 添加对 firstChild 的空值检查
+  const firstRow = tableNode.firstChild
+  if (!firstRow) {
+    console.log('未找到第一行')
+    return
+  }
+
+  const columnCount = firstRow.childCount
+  console.log('列数:', columnCount)
+
+  // 确保每列至少100px宽，同时不超过可用宽度
+  const columnWidth = Math.max(100, Math.floor(availableWidth / columnCount))
+  console.log('计算的列宽:', columnWidth)
+
+  try {
+    // 创建一个事务
+    const tr = props.editor.state.tr
+
+    // 遍历表格的所有行和单元格，为每个单元格设置 colwidth 属性
+    tableNode.content.forEach((row) => {
+      row.content.forEach((cell) => {
+        // 获取单元格的位置
+        let cellPos = 0
+        let found = false
+
+        // 计算单元格的绝对位置
+        tr.doc.nodesBetween(0, tr.doc.content.size, (node, pos) => {
+          if (found) return false
+          if (node === cell) {
+            cellPos = pos
+            found = true
+            return false
+          }
+          return true
+        })
+
+        if (found) {
+          // 设置单元格的 colwidth 属性
+          tr.setNodeMarkup(cellPos, null, {
+            ...cell.attrs,
+            colwidth: [columnWidth]
+          })
+        }
+      })
+    })
+
+    // 应用事务
+    props.editor.view.dispatch(tr)
+    console.log('单元格 colwidth 属性更新完成')
+
+    // 直接更新 DOM
+    setTimeout(() => {
+      // 更新 colgroup/col 元素
+      const colElements = tableElement.querySelectorAll('col')
+      if (colElements.length > 0) {
+        colElements.forEach((col) => {
+          if (col instanceof HTMLElement) {
+            col.style.width = `${columnWidth}px`
+          }
+        })
+        console.log('col 元素宽度更新完成')
+      }
+
+      // 更新单元格的 colwidth 属性和样式
+      const cells = tableElement.querySelectorAll('th, td')
+      cells.forEach((cell) => {
+        if (cell instanceof HTMLElement) {
+          cell.style.width = `${columnWidth}px`
+          cell.setAttribute('colwidth', columnWidth.toString())
+        }
+      })
+      console.log('单元格宽度更新完成')
+
+      // 使用 fixTables 命令修复表格
+      props.editor.commands.fixTables()
+      console.log('表格修复完成')
+
+      // 触发编辑器内容变更
+      props.editor.commands.focus()
+
+      // 通知编辑器内容已更改
+      const event = new Event('input', { bubbles: true })
+      tableElement.dispatchEvent(event)
+    }, 50)
+  } catch (error) {
+    console.error('更新列宽时出错:', error)
+  }
 }
 </script>
 
