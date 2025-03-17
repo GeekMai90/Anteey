@@ -38,6 +38,7 @@
     "clean": "rm -rf node_modules dist && pnpm store prune"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.758.0",
     "@electron-toolkit/preload": "^3.0.0",
     "@electron-toolkit/utils": "^3.0.0",
     "@electron/remote": "^2.1.2",

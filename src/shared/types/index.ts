@@ -26,6 +26,7 @@ export * from './assistant'
 export * from './embedding'
 export * from './dictionary'
 export * from './mindboard'
+export * from './s3'
 
 // 定义图标名称类型
 export type IconName =

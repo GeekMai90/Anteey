@@ -28,6 +28,7 @@ import { getUserSettings } from '@services/user/userSettingsService'
 import { backupService } from '@services/backup/backupService'
 import { debounce } from 'lodash'
 import { LanceService } from '../db/vector/lanceService'
+import { s3Service } from '@services/s3/s3Service'
 // import { setupScheduledTasks } from './services/scheduledTasks'
 
 // 加载环境变量
@@ -479,6 +480,20 @@ protocol.registerSchemesAsPrivileged([
   }
 ])
 
+// 添加同步函数
+async function handleS3Sync(type: 'startup' | 'shutdown') {
+  try {
+    const config = await s3Service.getConfig()
+    if (config?.enabled) {
+      log.info(`执行${type === 'startup' ? '启动' : '关闭'}时同步...`)
+      await s3Service.sync('auto')
+      log.info(`${type === 'startup' ? '启动' : '关闭'}时同步完成`)
+    }
+  } catch (error) {
+    log.error(`${type === 'startup' ? '启动' : '关闭'}时同步失败:`, error)
+  }
+}
+
 app.whenReady().then(async () => {
   const antinetPath = app.getPath('userData')
   const userDataPath = path.join(antinetPath, 'UserData')
@@ -639,8 +654,9 @@ app.whenReady().then(async () => {
       }
     })
 
-    // 应用启动时执行自动备份
+    // 应用启动时执行自动备份和同步
     await handleAutoBackup()
+    await handleS3Sync('startup')
 
     // 设置定时任务
     // 2025-02-05 暂使取消自动更新向量的功能
@@ -694,8 +710,9 @@ app.on('window-all-closed', () => {
 
 app.on('before-quit', async (event) => {
   event.preventDefault()
-  // 应用关闭前执行自动备份
+  // 应用关闭前执行自动备份和同步
   await handleAutoBackup()
+  await handleS3Sync('shutdown')
   app.exit()
 })
 

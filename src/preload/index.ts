@@ -27,6 +27,7 @@ import { ragApi } from './api/ragApi'
 import { similarNotesApi } from './api/similarNotesApi'
 import { dictionaryApi } from './api/dictionaryApi'
 import { mindboardApi } from './api/mindboardApi'
+import { s3Api } from './api/s3Api'
 // 添加日志 API
 contextBridge.exposeInMainWorld('electronLog', {
   info: (...args: any[]) => ipcRenderer.send('renderer-log', { level: 'info', args }),
@@ -147,5 +148,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
   mindboard: {
     ...mindboardApi
+  },
+  s3: {
+    ...s3Api
   }
 })

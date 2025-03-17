@@ -27,6 +27,7 @@ import { setupRAGHandlers } from './ragIpcHandlers'
 import { setupSimilarNotesHandlers } from './similarNotesIpcHandlers'
 import { setupDictionaryHandlers } from './dictionaryIpcHandlers'
 import { setupMindboardHandlers } from './mindboardIpcHandlers'
+import { setupS3Handlers } from './s3IpcHandlers'
 export function setupIpcHandlers(): void {
   setupNotesHandlers()
   setupCardboxHandlers()
@@ -57,4 +58,5 @@ export function setupIpcHandlers(): void {
   setupSimilarNotesHandlers()
   setupDictionaryHandlers()
   setupMindboardHandlers()
+  setupS3Handlers()
 }

@@ -97,7 +97,12 @@ import type {
   // 思维板相关
   Mindboard,
   IconName,
-  LLMError
+  LLMError,
+
+  // 新增的 S3 相关类型
+  S3Config,
+  S3SyncHistory,
+  S3SyncState
 } from '@shared/types'
 
 export interface ElectronAPI {
@@ -805,6 +810,30 @@ export interface ElectronAPI {
     toggleFavorite: (id: string) => Promise<void>
     getFavoriteMindboards: () => Promise<Mindboard[]>
     getMindboardCount: () => Promise<number>
+  }
+
+  s3: {
+    // 获取 S3 配置
+    getConfig: () => Promise<S3Config | null>
+    // 更新 S3 配置
+    updateConfig: (
+      config: Partial<S3Config>,
+      options?: { restartSync?: boolean }
+    ) => Promise<S3Config>
+    // 测试 S3 连接
+    testConnection: (config: Partial<S3Config>) => Promise<boolean>
+    // 手动触发同步
+    triggerSync: () => Promise<void>
+    // 获取同步历史
+    getSyncHistory: () => Promise<S3SyncHistory[]>
+    // 订阅同步状态变化
+    subscribeSyncState: (callback: (state: S3SyncState) => void) => Promise<void>
+    // 取消订阅同步状态变化
+    unsubscribeSyncState: () => Promise<void>
+    // 启动自动同步
+    startAutoSync: () => Promise<void>
+    // 停止自动同步
+    stopAutoSync: () => Promise<void>
   }
 }
 

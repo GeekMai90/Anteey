@@ -255,7 +255,7 @@
             <div class="label">简化按钮</div>
             <div class="value">
               <Switch
-                :model-value="simplifyButtons"
+                :model-value="Boolean(simplifyButtons)"
                 @update:model-value="simplifyButtons = $event"
               />
               <div class="switch-description">
@@ -266,7 +266,10 @@
           <div class="form-item">
             <div class="label">显示下次复习时间</div>
             <div class="value">
-              <Switch :model-value="showNextReview" @update:model-value="showNextReview = $event" />
+              <Switch
+                :model-value="Boolean(showNextReview)"
+                @update:model-value="showNextReview = $event"
+              />
               <div class="switch-description">
                 {{ showNextReview ? '显示复习时间' : '隐藏复习时间' }}
               </div>

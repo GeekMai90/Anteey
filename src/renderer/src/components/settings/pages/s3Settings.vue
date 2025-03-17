@@ -1,36 +1,38 @@
 <template>
-  <div class="webdav-settings">
+  <div class="s3-settings">
     <div class="settings-content-header">
       <div class="icon">
         <CloudStorage theme="outline" size="20" fill="var(--color-icon-primary)" :strokeWidth="3" />
       </div>
-      <div class="name">同步</div>
+      <div class="name">S3 同步</div>
     </div>
-    <div class="webdav-settings-divider"></div>
-    <div class="webdav-settings-content">
-      <div class="webdav-content">
-        <!-- WebDAV 服务配置 -->
-        <div class="webdav-item">
-          <div class="title">WebDAV 服务</div>
-          <div class="description">配置 WebDAV 服务器信息，目前支持坚果云 WebDAV 服务。</div>
-          <div class="webdav-settings-form">
+    <div class="s3-settings-divider"></div>
+    <div class="s3-settings-content">
+      <div class="s3-content">
+        <!-- S3 服务配置 -->
+        <div class="s3-item">
+          <div class="title">S3 服务</div>
+          <div class="description">
+            配置 S3 服务信息，支持 AWS S3、阿里云 OSS、腾讯云 COS 等兼容 S3 协议的服务。
+          </div>
+          <div class="s3-settings-form">
             <div class="form-item">
-              <div class="label">服务类型</div>
+              <div class="label">服务提供商</div>
               <div class="value">
                 <div class="select-wrapper">
-                  <div class="select" @click="showServerTypeSelect = !showServerTypeSelect">
-                    <span class="selected-value">{{ getServerTypeName(serverType) }}</span>
+                  <div class="select" @click="showProviderSelect = !showProviderSelect">
+                    <span class="selected-value">{{ getProviderName(provider) }}</span>
                     <div class="select-arrow">
                       <Down theme="outline" size="16" :strokeWidth="3" />
                     </div>
                   </div>
-                  <div v-show="showServerTypeSelect" class="select-dropdown">
+                  <div v-show="showProviderSelect" class="select-dropdown">
                     <div
-                      v-for="type in serverTypes"
+                      v-for="type in providers"
                       :key="type.value"
                       class="select-option"
-                      :class="{ active: serverType === type.value }"
-                      @click="selectServerType(type.value)"
+                      :class="{ active: provider === type.value }"
+                      @click="selectProvider(type.value)"
                     >
                       {{ type.label }}
                     </div>
@@ -39,33 +41,63 @@
               </div>
             </div>
             <div class="form-item">
-              <div class="label">服务地址</div>
+              <div class="label">区域</div>
               <div class="value">
-                <input v-model="url" type="text" placeholder="请输入 WebDAV 服务器地址" />
+                <div class="select-wrapper">
+                  <div class="select" @click="showRegionSelect = !showRegionSelect">
+                    <span class="selected-value">{{ getRegionName(region) }}</span>
+                    <div class="select-arrow">
+                      <Down theme="outline" size="16" :strokeWidth="3" />
+                    </div>
+                  </div>
+                  <div v-show="showRegionSelect" class="select-dropdown">
+                    <div
+                      v-for="r in getRegionsByProvider(provider)"
+                      :key="r.value"
+                      class="select-option"
+                      :class="{ active: region === r.value }"
+                      @click="selectRegion(r.value)"
+                    >
+                      {{ r.label }}
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
             <div class="form-item">
-              <div class="label">用户名</div>
+              <div class="label">存储桶</div>
               <div class="value">
-                <input v-model="username" type="text" placeholder="请输入用户名" />
+                <input v-model="bucket" type="text" placeholder="请输入存储桶名称" />
               </div>
             </div>
             <div class="form-item">
-              <div class="label">应用密码</div>
+              <div class="label">访问密钥 ID</div>
               <div class="value">
-                <input v-model="password" type="password" placeholder="请输入应用密码" />
+                <input v-model="accessKeyId" type="text" placeholder="请输入访问密钥 ID" />
               </div>
             </div>
-            <div class="webdav-actions">
+            <div class="form-item">
+              <div class="label">访问密钥</div>
+              <div class="value">
+                <input v-model="secretAccessKey" type="password" placeholder="请输入访问密钥" />
+              </div>
+            </div>
+            <div v-if="provider === 'custom'" class="form-item">
+              <div class="label">终端节点</div>
+              <div class="value">
+                <input v-model="endpoint" type="text" placeholder="请输入自定义终端节点" />
+              </div>
+            </div>
+            <div class="s3-actions">
               <div
-                class="webdav-item-button test"
-                :class="{ 'is-loading': isTesting }"
+                class="s3-item-button test"
+                :class="{ 'is-loading': isConnecting }"
                 @click="handleTestConnection"
               >
-                {{ isTesting ? '测试中...' : '测试连接' }}
+                {{ isConnecting ? '测试中...' : '测试连接' }}
               </div>
               <div
-                class="webdav-item-button"
+                class="s3-item-button"
                 :class="{ 'is-loading': isSaving }"
                 @click="handleSaveConfig"
               >
@@ -76,10 +108,10 @@
         </div>
 
         <!-- 同步设置 -->
-        <div class="webdav-item">
+        <div class="s3-item">
           <div class="title">同步设置</div>
           <div class="description">配置自动同步和同步方式，确保数据的安全性和一致性。</div>
-          <div class="webdav-settings-form">
+          <div class="s3-settings-form">
             <div class="form-item">
               <div class="label">自动同步</div>
               <div class="value">
@@ -118,12 +150,8 @@
                 </div>
               </div>
             </div>
-            <div class="webdav-actions">
-              <div
-                class="webdav-item-button"
-                :class="{ 'is-loading': isSyncing }"
-                @click="handleSync"
-              >
+            <div class="s3-actions">
+              <div class="s3-item-button" :class="{ 'is-loading': isSyncing }" @click="handleSync">
                 {{ isSyncing ? '同步中...' : '立即同步' }}
               </div>
             </div>
@@ -131,13 +159,13 @@
         </div>
 
         <!-- 同步历史 -->
-        <div class="webdav-item">
+        <div class="s3-item">
           <div class="title">同步历史</div>
           <div class="sync-history">
-            <div v-if="webdavStore.syncHistory.length === 0" class="history-empty">
+            <div v-if="s3Store.syncHistory.length === 0" class="history-empty">
               <div class="empty-text">暂无同步历史</div>
             </div>
-            <div v-for="item in webdavStore.syncHistory" :key="item.id" class="history-item">
+            <div v-for="item in s3Store.syncHistory" :key="item.id" class="history-item">
               <div class="history-item-left">
                 <div class="history-item-icon">
                   <CloudStorage
@@ -174,50 +202,54 @@
 
 <script setup lang="ts">
 import { CloudStorage, Down } from '@icon-park/vue-next'
-import { useWebDAVStore } from '@renderer/stores/webdavStore'
+import { useS3Store } from '@renderer/stores/s3Store'
 import { ref, onMounted, computed, watch } from 'vue'
-import type { WebDAVServerType } from '@shared/types'
+import type { S3Provider, S3Config } from '@shared/types'
 import { message } from '../../../utils/message'
 import Switch from '@renderer/components/ui/Switch.vue'
 
-const webdavStore = useWebDAVStore()
-const isTesting = ref(false)
+const s3Store = useS3Store()
+const isConnecting = ref(false)
 const isSaving = ref(false)
 const isSyncing = ref(false)
 
 // 表单数据
-const serverType = ref<WebDAVServerType>('jianguoyun')
-const url = ref('')
-const username = ref('')
-const password = ref('')
+const provider = ref<S3Provider>('aws')
+const region = ref('')
+const bucket = ref('')
+const accessKeyId = ref('')
+const secretAccessKey = ref('')
+const endpoint = ref('')
 const autoSync = computed({
-  get: () => webdavStore.config?.autoSync ?? false,
+  get: () => s3Store.config?.autoSync ?? false,
   set: async (value) => {
-    await webdavStore.updateConfig({ autoSync: value })
+    await s3Store.updateConfig({ autoSync: value })
   }
 })
 const syncInterval = computed({
-  get: () => webdavStore.config?.syncInterval ?? 15,
+  get: () => s3Store.config?.syncInterval ?? 15,
   set: async (value) => {
-    await webdavStore.updateConfig({ syncInterval: value })
+    await s3Store.updateConfig({ syncInterval: value })
   }
 })
 
 // 添加状态
-const showServerTypeSelect = ref(false)
+const showProviderSelect = ref(false)
+const showRegionSelect = ref(false)
 const showIntervalSelect = ref(false)
 
 // 添加类型定义
-interface ServerTypeOption {
-  value: WebDAVServerType
+interface ProviderOption {
+  value: S3Provider
   label: string
 }
 
-// 修改选项数据的定义
-const serverTypes: ServerTypeOption[] = [
-  { value: 'jianguoyun' as const, label: '坚果云' }
-  // { value: 'aliyundrive' as const, label: '阿里云盘' },
-  // { value: 'custom' as const, label: '自定义' }
+// 服务提供商选项
+const providers: ProviderOption[] = [
+  { value: 'aws', label: 'AWS S3' },
+  { value: 'aliyun', label: '阿里云 OSS' },
+  { value: 'tencent', label: '腾讯云 COS' },
+  { value: 'custom', label: '自定义' }
 ]
 
 // 添加同步间隔选项的类型
@@ -226,26 +258,88 @@ interface SyncIntervalOption {
   label: string
 }
 
-// 修改同步间隔选项的定义
+// 同步间隔选项
 const syncIntervals: SyncIntervalOption[] = [
+  { value: 0.5, label: '30秒' },
   { value: 5, label: '5分钟' },
   { value: 15, label: '15分钟' },
   { value: 30, label: '30分钟' },
   { value: 60, label: '1小时' }
 ]
 
+// 添加区域选项类型
+interface RegionOption {
+  value: string
+  label: string
+}
+
+// AWS 区域选项
+const awsRegions: RegionOption[] = [
+  { value: 'us-east-1', label: '美国东部（弗吉尼亚）' },
+  { value: 'us-east-2', label: '美国东部（俄亥俄）' },
+  { value: 'us-west-1', label: '美国西部（加利福尼亚）' },
+  { value: 'us-west-2', label: '美国西部（俄勒冈）' },
+  { value: 'ap-east-1', label: '亚太地区（香港）' },
+  { value: 'ap-northeast-1', label: '亚太地区（东京）' },
+  { value: 'ap-southeast-1', label: '亚太地区（新加坡）' }
+]
+
+// 阿里云区域选项
+const aliyunRegions: RegionOption[] = [
+  { value: 'oss-cn-hangzhou', label: '华东 1（杭州）' },
+  { value: 'oss-cn-shanghai', label: '华东 2（上海）' },
+  { value: 'oss-cn-beijing', label: '华北 2（北京）' },
+  { value: 'oss-cn-shenzhen', label: '华南 1（深圳）' },
+  { value: 'oss-cn-hongkong', label: '香港' }
+]
+
+// 腾讯云区域选项
+const tencentRegions: RegionOption[] = [
+  { value: 'ap-beijing', label: '华北地区（北京）' },
+  { value: 'ap-shanghai', label: '华东地区（上海）' },
+  { value: 'ap-guangzhou', label: '华南地区（广州）' },
+  { value: 'ap-hongkong', label: '中国香港' },
+  { value: 'ap-singapore', label: '新加坡' }
+]
+
+// 获取区域名称
+const getRegionName = (regionValue: string): string => {
+  const allRegions = [...awsRegions, ...aliyunRegions, ...tencentRegions]
+  return allRegions.find((r) => r.value === regionValue)?.label || regionValue
+}
+
+// 根据服务提供商获取对应的区域列表
+const getRegionsByProvider = (providerType: S3Provider): RegionOption[] => {
+  switch (providerType) {
+    case 'aws':
+      return awsRegions
+    case 'aliyun':
+      return aliyunRegions
+    case 'tencent':
+      return tencentRegions
+    case 'custom':
+      return []
+  }
+}
+
+// 选择区域
+const selectRegion = (regionValue: string): void => {
+  region.value = regionValue
+  showRegionSelect.value = false
+}
+
 // 添加方法
-const getServerTypeName = (type: WebDAVServerType): string => {
-  return serverTypes.find((t) => t.value === type)?.label || '未知'
+const getProviderName = (type: S3Provider): string => {
+  return providers.find((t) => t.value === type)?.label || '未知'
 }
 
 const getSyncIntervalText = (interval: number) => {
   return syncIntervals.find((i) => i.value === interval)?.label || '未知'
 }
 
-const selectServerType = (type: WebDAVServerType): void => {
-  serverType.value = type
-  showServerTypeSelect.value = false
+const selectProvider = (type: S3Provider): void => {
+  provider.value = type
+  showProviderSelect.value = false
 }
 
 const selectInterval = async (value: number) => {
@@ -254,59 +348,150 @@ const selectInterval = async (value: number) => {
 }
 
 onMounted(async () => {
-  await webdavStore.loadConfig()
-  await webdavStore.loadSyncHistory()
-  if (webdavStore.config) {
-    serverType.value = webdavStore.config.serverType
-    url.value = webdavStore.config.url
-    username.value = webdavStore.config.username
-    password.value = webdavStore.config.password
+  await s3Store.fetchConfig()
+  await s3Store.fetchSyncHistory()
+  if (s3Store.config) {
+    provider.value = s3Store.config.provider
+    region.value = s3Store.config.region
+    bucket.value = s3Store.config.bucket
+    accessKeyId.value = s3Store.config.accessKeyId
+    secretAccessKey.value = s3Store.config.secretAccessKey
+    endpoint.value = s3Store.config.endpoint || ''
   }
 
   // 添加点击外部关闭下拉菜单
   document.addEventListener('click', (e) => {
     const target = e.target as HTMLElement
     if (!target.closest('.select-wrapper')) {
-      showServerTypeSelect.value = false
+      showProviderSelect.value = false
+      showRegionSelect.value = false
       showIntervalSelect.value = false
     }
   })
 })
 
 async function handleTestConnection() {
-  isTesting.value = true
+  isConnecting.value = true
   try {
-    if (!url.value || !username.value || !password.value) {
+    if (!region.value || !bucket.value || !accessKeyId.value || !secretAccessKey.value) {
       message.error('请填写完整的配置信息')
       return
     }
 
-    const success = await webdavStore.testConnection({
-      serverType: serverType.value,
-      url: url.value,
-      username: username.value,
-      password: password.value
-    })
+    // 根据不同的服务提供商构建配置
+    const testConfig: Partial<S3Config> = {
+      provider: provider.value,
+      region: region.value,
+      bucket: bucket.value,
+      accessKeyId: accessKeyId.value,
+      secretAccessKey: secretAccessKey.value
+    }
 
-    if (success) {
-      message.success('连接成功')
+    // 根据服务提供商添加特定配置
+    switch (provider.value) {
+      case 'aliyun':
+        testConfig.endpoint = `https://${bucket.value}.${region.value}.aliyuncs.com`
+        break
+      case 'tencent':
+        testConfig.endpoint = `https://cos.${region.value}.myqcloud.com`
+        break
+      case 'custom':
+        if (!endpoint.value) {
+          message.error('使用自定义服务时必须填写终端节点')
+          return
+        }
+        testConfig.endpoint = endpoint.value
+        break
+      case 'aws':
+        // AWS 不需要手动设置 endpoint
+        break
+    }
+
+    try {
+      const success = await s3Store.testConnection(testConfig)
+      if (success) {
+        message.success('连接成功')
+      }
+    } catch (error: any) {
+      console.error('连接测试失败:', error)
+      // 如果是 NoSuchKey 错误，说明连接是成功的
+      if (error.Code === 'NoSuchKey') {
+        message.success('连接成功')
+        return
+      }
+
+      // 处理常见错误
+      let errorMessage = '连接失败'
+      if (error.Code) {
+        switch (error.Code) {
+          case 'InvalidAccessKeyId':
+            errorMessage = '访问密钥 ID 无效'
+            break
+          case 'SignatureDoesNotMatch':
+            errorMessage = '访问密钥错误'
+            break
+          case 'NoSuchBucket':
+            errorMessage = '存储桶不存在'
+            break
+          case 'AccessDenied':
+            errorMessage = '访问被拒绝，请检查权限设置'
+            break
+          default:
+            errorMessage = `连接失败: ${error.Code}`
+        }
+      }
+
+      if (error.RecommendDoc) {
+        console.log('故障排查文档:', error.RecommendDoc)
+      }
+
+      message.error(errorMessage)
     }
   } finally {
-    isTesting.value = false
+    isConnecting.value = false
   }
 }
 
 async function handleSaveConfig() {
   isSaving.value = true
   try {
-    await webdavStore.updateConfig({
-      serverType: serverType.value,
-      url: url.value,
-      username: username.value,
-      password: password.value,
-      syncInterval: syncInterval.value
-    })
+    // 构建配置，使用与测试连接相同的逻辑
+    const saveConfig: Partial<S3Config> = {
+      provider: provider.value,
+      region: region.value,
+      bucket: bucket.value,
+      accessKeyId: accessKeyId.value,
+      secretAccessKey: secretAccessKey.value,
+      syncInterval: syncInterval.value,
+      enabled: true // 保存时默认启用
+    }
+
+    // 根据服务提供商添加特定配置
+    switch (provider.value) {
+      case 'aliyun':
+        saveConfig.endpoint = `https://${bucket.value}.${region.value}.aliyuncs.com`
+        break
+      case 'tencent':
+        saveConfig.endpoint = `https://cos.${region.value}.myqcloud.com`
+        break
+      case 'custom':
+        if (!endpoint.value) {
+          message.error('使用自定义服务时必须填写终端节点')
+          return
+        }
+        saveConfig.endpoint = endpoint.value
+        break
+      case 'aws':
+        // AWS 不需要手动设置 endpoint
+        break
+    }
+
+    // 保存配置，并指定是否需要重启同步
+    await s3Store.updateConfig(saveConfig, { restartSync: autoSync.value })
     message.success('配置已保存')
+  } catch (error) {
+    console.error('保存配置失败:', error)
+    message.error('保存失败：' + (error instanceof Error ? error.message : '未知错误'))
   } finally {
     isSaving.value = false
   }
@@ -315,10 +500,10 @@ async function handleSaveConfig() {
 async function handleSync() {
   isSyncing.value = true
   try {
-    await webdavStore.sync()
+    await s3Store.triggerSync()
     message.success('同步完成，正在刷新...')
     // 同步完成后重新加载历史记录
-    await webdavStore.loadSyncHistory()
+    await s3Store.fetchSyncHistory()
     // 延迟一秒刷新页面，让用户看到成功提示
     setTimeout(() => {
       window.location.reload()
@@ -330,7 +515,7 @@ async function handleSync() {
 
 // 添加调试代码
 watch(
-  () => webdavStore.syncHistory,
+  () => s3Store.syncHistory,
   (history) => {
     console.log('同步历史更新:', history)
   },
@@ -339,7 +524,7 @@ watch(
 </script>
 
 <style scoped lang="scss">
-.webdav-settings {
+.s3-settings {
   width: 100%;
   height: 100%;
   display: flex;
@@ -388,7 +573,7 @@ watch(
   }
 }
 
-.webdav-settings-divider {
+.s3-settings-divider {
   height: 1px;
   background-color: var(--color-border);
   margin-bottom: 10px;
@@ -397,16 +582,16 @@ watch(
   flex-shrink: 0;
 }
 
-.webdav-settings-content {
+.s3-settings-content {
   width: 100%;
   height: 100%;
   overflow-y: auto;
   padding-bottom: 58px;
 
-  .webdav-content {
+  .s3-content {
     padding-right: 10px;
 
-    .webdav-item {
+    .s3-item {
       width: 100%;
       display: flex;
       flex-direction: column;
@@ -439,7 +624,7 @@ watch(
         user-select: none;
       }
 
-      .webdav-item-button {
+      .s3-item-button {
         width: 80px;
         height: 35px;
         background-color: var(--color-primary);
@@ -470,7 +655,7 @@ watch(
   }
 }
 
-.webdav-settings-form {
+.s3-settings-form {
   width: 100%;
   margin-top: 15px;
 
@@ -499,7 +684,6 @@ watch(
         padding: 0 12px;
         font-size: 14px;
         color: var(--color-text-primary);
-        // background-color: var(--color-bg-secondary);
         outline: none;
         transition: all 0.2s ease;
 
@@ -515,7 +699,7 @@ watch(
   }
 }
 
-.webdav-actions {
+.s3-actions {
   margin-top: 20px;
   display: flex;
   gap: 12px;
@@ -544,7 +728,6 @@ watch(
     align-items: center;
     justify-content: space-between;
     padding: 16px;
-    // background: var(--color-bg-secondary);
     border-bottom: 1px solid var(--color-border);
     transition: all 0.2s ease;
 
@@ -595,7 +778,7 @@ watch(
         &.success {
           color: var(--color-success);
         }
-        &.failed {
+        &.error {
           color: var(--color-error);
         }
       }
@@ -607,7 +790,6 @@ watch(
     display: flex;
     align-items: center;
     justify-content: center;
-    // background: var(--color-bg-secondary);
 
     .empty-text {
       color: var(--color-text-secondary);
@@ -634,7 +816,6 @@ watch(
     padding: 8px 12px;
     border-radius: 8px;
     border: 1px solid var(--color-border);
-    // background: var(--color-bg-secondary);
     color: var(--color-text-primary);
     font-size: 14px;
     cursor: pointer;
@@ -648,10 +829,6 @@ watch(
       border-color: var(--color-primary);
       background: var(--color-hover-bg);
     }
-
-    // .selected-value {
-    //   font-weight: 500;
-    // }
 
     .select-arrow {
       display: flex;
@@ -716,47 +893,6 @@ watch(
       background: var(--color-scrollbar);
       border-radius: 4px;
     }
-  }
-}
-
-.title-row {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 10px;
-
-  .icon {
-    background: none;
-    border: 1px solid var(--color-border);
-    width: 40px;
-    height: 40px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s ease;
-    padding: 4px;
-    border-radius: 6px;
-
-    :deep(.i-icon) {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 100%;
-      height: 100%;
-    }
-
-    svg {
-      width: 20px;
-      height: 20px;
-    }
-  }
-
-  .name {
-    font-size: 20px;
-    line-height: 1;
-    font-weight: 500;
-    user-select: none;
   }
 }
 </style>

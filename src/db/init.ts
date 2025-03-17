@@ -1138,6 +1138,53 @@ export async function initDatabase(db: Knex): Promise<void> {
       console.log('mindboards 表添加 is_favorite 列成功')
     }
   }
+
+  // 创建 s3_config 表
+  if (!(await db.schema.hasTable('s3_config'))) {
+    await db.schema.createTable('s3_config', (table) => {
+      table.string('id').primary()
+      table.boolean('enabled').notNullable().defaultTo(false)
+      table.string('provider').notNullable() // aws | aliyun | tencent | custom
+      table.string('region').notNullable()
+      table.string('bucket').notNullable()
+      table.string('accessKeyId').notNullable()
+      table.string('secretAccessKey').notNullable()
+      table.string('endpoint').nullable() // 自定义 S3 兼容服务的端点
+      table.boolean('autoSync').notNullable().defaultTo(false)
+      table.integer('syncInterval').notNullable().defaultTo(15) // 同步间隔（分钟）
+      table.string('syncDirection').notNullable().defaultTo('bidirectional')
+      table
+        .json('syncFileTypes')
+        .notNullable()
+        .defaultTo(JSON.stringify(['all']))
+      table.datetime('createdAt').notNullable()
+      table.datetime('updatedAt').notNullable()
+
+      // 索引
+      table.index('enabled')
+      table.index('provider')
+      table.index('autoSync')
+    })
+    console.log('s3_config 表创建成功')
+  }
+
+  // 创建 s3_sync_history 表
+  if (!(await db.schema.hasTable('s3_sync_history'))) {
+    await db.schema.createTable('s3_sync_history', (table) => {
+      table.string('id').primary()
+      table.datetime('timestamp').notNullable()
+      table.string('type').notNullable() // auto | manual
+      table.string('status').notNullable() // success | failed
+      table.json('details').notNullable() // 存储同步详情，包括错误信息、同步文件数等
+      table.datetime('createdAt').notNullable()
+
+      // 索引
+      table.index('timestamp')
+      table.index('type')
+      table.index('status')
+    })
+    console.log('s3_sync_history 表创建成功')
+  }
 }
 
 export async function down(db: Knex): Promise<void> {
@@ -1188,5 +1235,7 @@ export async function down(db: Knex): Promise<void> {
   await db.schema.dropTableIfExists('ed_whiteboards')
   await db.schema.dropTableIfExists('auth_state')
   await db.schema.dropTableIfExists('mindboards')
+  await db.schema.dropTableIfExists('s3_sync_history')
+  await db.schema.dropTableIfExists('s3_config')
   console.log('所有表已删除')
 }
