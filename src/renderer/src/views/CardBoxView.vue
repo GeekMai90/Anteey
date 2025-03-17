@@ -235,6 +235,38 @@ const isContextMode = ref(false)
 const targetNoteId = ref<string | null>(null)
 const highlightedNoteId = ref<string | null>(null)
 
+// 添加排序偏好相关接口和方法
+interface SortPreference {
+  field: string
+  order: 'asc' | 'desc'
+}
+
+const SORT_PREFERENCE_KEY = 'antinet_sort_preference'
+
+const getSavedSortPreference = (): SortPreference | null => {
+  try {
+    const saved = localStorage.getItem(SORT_PREFERENCE_KEY)
+    if (!saved) return null
+    const parsed = JSON.parse(saved)
+    // 验证 order 的值是否合法
+    if (parsed.order !== 'asc' && parsed.order !== 'desc') {
+      return null
+    }
+    return parsed as SortPreference
+  } catch (error) {
+    console.error('读取排序偏好失败:', error)
+    return null
+  }
+}
+
+const saveSortPreference = (preference: SortPreference) => {
+  try {
+    localStorage.setItem(SORT_PREFERENCE_KEY, JSON.stringify(preference))
+  } catch (error) {
+    console.error('保存排序偏好失败:', error)
+  }
+}
+
 // 添加地址比较函数
 const compareAddress = (a: string, b: string) => {
   // 将地址分割成数组
@@ -335,6 +367,15 @@ const tags = computed(() => {
 
 // 组件挂载时初始化数据
 onMounted(async () => {
+  // 如果URL没有排序参数,但有保存的排序偏好,则使用保存的偏好并更新URL
+  if (!route.query.sort && !route.query.order) {
+    const savedPreference = getSavedSortPreference()
+    if (savedPreference) {
+      filterState.sort = savedPreference
+      await updateRouteQuery() // 更新URL参数
+    }
+  }
+
   // 然后再执行数据获取
   resetAndFetch()
   // 获取所有标签（扁平列表）
@@ -360,10 +401,33 @@ const filterState = reactive({
   tags: ((route.query.tags as string)?.split(',') || []) as string[],
   keyword: (route.query.keyword as string) || '',
   isFlashcard: route.query.isFlashcard === 'true' || undefined,
-  sort: {
-    field: (route.query.sort as string) || 'address',
-    order: (route.query.order as 'asc' | 'desc') || 'asc'
-  }
+  sort: (() => {
+    // 优先使用URL参数
+    if (route.query.sort && route.query.order) {
+      const order = route.query.order as string
+      // 验证 order 的值是否合法
+      if (order !== 'asc' && order !== 'desc') {
+        return {
+          field: route.query.sort as string,
+          order: 'asc' as const
+        }
+      }
+      return {
+        field: route.query.sort as string,
+        order: order as 'asc' | 'desc'
+      }
+    }
+    // 其次使用本地存储的偏好
+    const savedPreference = getSavedSortPreference()
+    if (savedPreference) {
+      return savedPreference
+    }
+    // 最后使用默认值
+    return {
+      field: 'address',
+      order: 'asc' as const
+    }
+  })()
 })
 
 // 4. 监听路由变化
@@ -457,7 +521,7 @@ const fetchNotes = async () => {
       tags: filterState.tags,
       keyword: filterState.keyword,
       sortBy: filterState.sort.field,
-      sortOrder: filterState.sort.order,
+      sortOrder: filterState.sort.order as 'asc' | 'desc', // 确保类型正确
       isFlashcard: filterState.isFlashcard,
       customFilterId: activeFilter?.id
     }
@@ -774,13 +838,19 @@ const toggleSortMenu = (event: MouseEvent) => {
 
 const selectSortOption = async (option: { value: string; label: string }) => {
   if (currentSort.value === option.value) {
-    // 如果点击当前排序字段，切换排序方向
+    // 如果点击当前排序字段,切换排序方向
     sortDirection.value = sortDirection.value === 'asc' ? 'desc' : 'asc'
   } else {
-    // 如果选择新的排序字段，设置字段并默认使用降序
+    // 如果选择新的排序字段,设置字段并默认使用降序
     currentSort.value = option.value
     sortDirection.value = 'desc'
   }
+
+  // 保存排序偏好
+  saveSortPreference({
+    field: currentSort.value,
+    order: sortDirection.value as 'asc' | 'desc'
+  })
 
   showSortMenu.value = false
   await resetAndFetch()
