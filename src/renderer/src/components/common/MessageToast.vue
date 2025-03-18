@@ -141,6 +141,71 @@
             stroke-linejoin="round"
           />
         </svg>
+        <svg
+          v-if="type === 'loading'"
+          width="24"
+          height="24"
+          viewBox="0 0 48 48"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="M24 4V8"
+            stroke="currentColor"
+            stroke-width="4"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+          <path
+            d="M38.1421 9.85791L35.3137 12.6863"
+            stroke="currentColor"
+            stroke-width="4"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+          <path
+            d="M44 24H40"
+            stroke="currentColor"
+            stroke-width="4"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+          <path
+            d="M38.1421 38.1421L35.3137 35.3137"
+            stroke="currentColor"
+            stroke-width="4"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+          <path
+            d="M24 44V40"
+            stroke="currentColor"
+            stroke-width="4"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+          <path
+            d="M9.85791 38.1421L12.6863 35.3137"
+            stroke="currentColor"
+            stroke-width="4"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+          <path
+            d="M4 24H8"
+            stroke="currentColor"
+            stroke-width="4"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+          <path
+            d="M9.85791 9.85791L12.6863 12.6863"
+            stroke="currentColor"
+            stroke-width="4"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+        </svg>
       </div>
 
       <div class="message-text-container">
@@ -152,7 +217,9 @@
                 ? 'Error'
                 : type === 'warning'
                   ? 'Warning'
-                  : 'Info'
+                  : type === 'loading'
+                    ? 'Loading'
+                    : 'Info'
           }}
         </p>
         <p class="sub-text">{{ message }}</p>
@@ -166,7 +233,7 @@ import { ref, onMounted } from 'vue'
 
 const props = defineProps<{
   message: string
-  type?: 'success' | 'error' | 'warning' | 'info'
+  type?: 'success' | 'error' | 'warning' | 'info' | 'loading'
   duration?: number
   dev?: boolean
 }>()
@@ -175,7 +242,7 @@ const visible = ref(false)
 
 onMounted(() => {
   visible.value = true
-  if (!props.dev) {
+  if (!props.dev && props.type !== 'loading') {
     setTimeout(() => {
       visible.value = false
     }, props.duration || 2000)
@@ -288,6 +355,22 @@ onMounted(() => {
     }
   }
 
+  &.loading {
+    .icon-container {
+      background-color: rgba(var(--color-blue-rgb), 0.2);
+      svg {
+        color: var(--color-blue);
+        animation: spin 1s linear infinite;
+      }
+    }
+    .message-text {
+      color: var(--color-blue);
+    }
+    .wave {
+      fill: rgba(var(--color-blue-rgb), 0.2);
+    }
+  }
+
   .message-text-container {
     display: flex;
     flex-direction: column;
@@ -322,5 +405,14 @@ onMounted(() => {
 .fade-leave-to {
   opacity: 0;
   transform: translate(-50%, -20px);
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 </style>

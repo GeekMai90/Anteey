@@ -76,6 +76,7 @@ import ThemeColorPicker from '@renderer/components/settings/ThemeColorPicker.vue
 import { useUIStore } from '@renderer/stores/UIStore'
 import ReviewModal from '@renderer/components/review/ReviewModal.vue'
 import ShareViewModal from '@renderer/components/share/ShareViewModal.vue'
+import { message } from '@renderer/utils/message'
 
 // 状态管理初始化
 const noteStore = useNoteStore()
@@ -104,6 +105,9 @@ const globalUIManager = ref<InstanceType<typeof GlobalUIManager> | null>(null)
 
 // 快速添加状态管理
 const isQuickAddVisible = ref(false)
+
+// 添加启动类型标记
+let loadingTimer: NodeJS.Timeout | null = null
 
 // ===== 菜单功能 =====
 const { handleBulkExport } = useNoteMenu({
@@ -180,6 +184,45 @@ onMounted(async () => {
   window.addEventListener('resize', () => baseLayout.value?.handleResize())
   window.addEventListener('keydown', handleKeydown)
 
+  // 检查云同步配置并显示启动时的 loading
+  try {
+    const cloudConfig = await window.electronAPI.cloudSync.getCurrentConfig()
+    if (cloudConfig?.enabled) {
+      const syncState = await window.electronAPI.cloudSync.getCurrentSyncState()
+      if (syncState.isSyncing) {
+        message.loading('正在同步数据，请勿操作应用！', 0)
+      }
+    }
+  } catch (error) {
+    console.error('获取云同步配置失败:', error)
+  }
+
+  // 添加同步事件监听
+  window.electronAPI.cloudSync.onSyncStart(() => {
+    message.destroy() // 清除可能存在的消息
+    message.loading('正在同步数据，请勿操作应用！', 0)
+  })
+
+  window.electronAPI.cloudSync.onSyncComplete((data) => {
+    // 清除可能存在的超时定时器
+    if (loadingTimer) {
+      clearTimeout(loadingTimer)
+      loadingTimer = null
+    }
+    message.destroy() // 清除之前的 loading 消息
+    message.success(data.message)
+  })
+
+  window.electronAPI.cloudSync.onSyncError((data) => {
+    // 清除可能存在的超时定时器
+    if (loadingTimer) {
+      clearTimeout(loadingTimer)
+      loadingTimer = null
+    }
+    message.destroy() // 清除之前的 loading 消息
+    message.error(`${data.message}: ${data.error}`)
+  })
+
   // 3. 非关键初始化放在 queueMicrotask 中
   queueMicrotask(async () => {
     // 路由初始化
@@ -237,7 +280,19 @@ onUnmounted(() => {
   window.electronAPI.systemMenu.removeAllListeners('menu-export-notes')
   window.electronAPI.systemMenu.removeAllListeners('sync-state-changed')
   window.removeEventListener('keydown', handleKeydown)
+
+  // 移除同步事件监听
+  window.electronAPI.cloudSync.removeAllListeners('sync-start')
+  window.electronAPI.cloudSync.removeAllListeners('sync-complete')
+  window.electronAPI.cloudSync.removeAllListeners('sync-error')
+
   authStore.cleanup()
+
+  // 清理定时器
+  if (loadingTimer) {
+    clearTimeout(loadingTimer)
+    loadingTimer = null
+  }
 })
 
 // 全局方法注入

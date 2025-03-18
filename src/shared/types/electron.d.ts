@@ -848,6 +848,14 @@ export interface ElectronAPI {
       config: Partial<CloudSyncConfig>,
       options?: UpdateCloudSyncOptions
     ) => Promise<CloudSyncConfig>
+    // 获取当前同步状态
+    getCurrentSyncState: () => Promise<{ isSyncing: boolean }>
+    // 添加同步状态事件监听
+    onSyncStart: (callback: () => void) => void
+    onSyncComplete: (callback: (data: { message: string }) => void) => void
+    onSyncError: (callback: (data: { message: string; error: string }) => void) => void
+    // 移除事件监听
+    removeAllListeners: (channel: string) => void
   }
 }
 

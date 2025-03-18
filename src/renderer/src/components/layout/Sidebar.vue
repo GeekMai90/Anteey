@@ -50,7 +50,7 @@
         <div class="right-section">
           <!-- 同步按钮 -->
           <div
-            v-if="webdavStore.config?.url && webdavStore.config?.username"
+            v-if="showSyncButton"
             v-tooltip.top="{
               content: getSyncStatusText,
               delay: { show: 1000 },
@@ -339,6 +339,8 @@ import { useWebDAVStore } from '@renderer/stores/webdavStore'
 import { message } from '@renderer/utils/message'
 import { useThemeStore } from '@renderer/stores/themeStore'
 import { useReviewStore } from '@renderer/stores/reviewStore'
+import { useCloudSyncStore } from '@renderer/stores/cloudSyncStore'
+import { useS3Store } from '@renderer/stores/s3Store'
 
 const imageSrc = ref('')
 const uiStore = useUIStore()
@@ -348,6 +350,8 @@ const timeBlockStore = useTimeBlockStore()
 const webdavStore = useWebDAVStore()
 const themeStore = useThemeStore()
 const reviewStore = useReviewStore()
+const cloudSyncStore = useCloudSyncStore()
+const s3Store = useS3Store()
 
 const getIconFill = computed(
   () => (path: string) =>
@@ -357,8 +361,23 @@ const getIconFill = computed(
 onMounted(async () => {
   imageSrc.value = await window.electronAPI.shell.getResourcePath('icon.png')
   await timeBlockStore.fetchSettings()
-  await webdavStore.loadConfig()
-  await webdavStore.loadSyncHistory()
+
+  // 获取云同步配置
+  await cloudSyncStore.getCurrentConfig()
+
+  // 根据云同步类型加载对应的配置
+  const config = cloudSyncStore.currentConfig
+  if (config?.enabled) {
+    if (config.syncType === 'webdav') {
+      await webdavStore.loadConfig()
+      await webdavStore.loadSyncHistory()
+    } else if (config.syncType === 's3') {
+      await s3Store.fetchConfig()
+      await s3Store.fetchSyncHistory()
+      await s3Store.subscribeSyncState()
+    }
+  }
+
   isMaximized.value = await window.electronAPI.window.isMaximized()
 })
 
@@ -481,6 +500,18 @@ onUnmounted(() => {
   if (hideTimeout) {
     clearTimeout(hideTimeout)
   }
+  document.removeEventListener('click', handleClickOutside)
+
+  // 取消 S3 同步状态订阅
+  const config = cloudSyncStore.currentConfig
+  if (config?.enabled && config.syncType === 's3') {
+    s3Store.unsubscribeSyncState()
+  }
+
+  // 移除同步事件监听
+  window.electronAPI.cloudSync.removeAllListeners('sync-start')
+  window.electronAPI.cloudSync.removeAllListeners('sync-complete')
+  window.electronAPI.cloudSync.removeAllListeners('sync-error')
 })
 
 // 添加点击外部区域关闭菜单的处理
@@ -499,48 +530,79 @@ const handleClickOutside = (event: MouseEvent) => {
   }
 }
 
-const syncStatusClass = computed(() => {
-  const status = webdavStore.syncState.status
-  return {
-    'is-syncing': status === 'syncing',
-    'is-error': status === 'error',
-    'is-completed': status === 'completed'
-  }
+// 修改同步按钮的显示条件
+const showSyncButton = computed(() => {
+  const config = cloudSyncStore.currentConfig
+  return config?.enabled && (config.syncType === 'webdav' || config.syncType === 's3')
 })
 
-// 添加一个变量来保存消息实例
-let syncMessageInstance: { close: () => void } | null = null
+// 获取同步状态
+const syncStatusClass = computed(() => {
+  const config = cloudSyncStore.currentConfig
+  if (!config?.enabled) return {}
 
+  if (config.syncType === 'webdav') {
+    const status = webdavStore.syncState.status
+    return {
+      'is-syncing': status === 'syncing',
+      'is-error': status === 'error',
+      'is-completed': status === 'completed'
+    }
+  } else if (config.syncType === 's3') {
+    const status = s3Store.syncState?.status
+    return {
+      'is-syncing': status === 'syncing',
+      'is-error': status === 'error',
+      'is-completed': status === 'completed'
+    }
+  }
+  return {}
+})
+
+// 修改同步按钮的处理函数
 const handleSync = async () => {
   try {
-    // 显示同步中的消息，设置一个很长的持续时间（比如1小时），并保存消息实例
-    syncMessageInstance = message.info('开始同步...', 3600000)
+    // 显示同步中的消息
+    message.loading('正在同步数据，请勿操作应用！', 0)
 
-    await webdavStore.sync('manual')
-    // 同步成功时，先关闭同步中的消息
-    syncMessageInstance?.close()
-    // 然后显示成功消息
+    const config = cloudSyncStore.currentConfig
+    if (!config?.enabled) {
+      throw new Error('云同步未启用')
+    }
+
+    // 根据同步类型执行不同的同步操作
+    if (config.syncType === 'webdav') {
+      await webdavStore.sync('manual')
+      await webdavStore.loadSyncHistory()
+    } else if (config.syncType === 's3') {
+      await s3Store.triggerSync()
+      await s3Store.fetchSyncHistory()
+    }
+
+    // 同步成功
+    message.destroy() // 清除 loading 消息
     message.success('同步完成，正在刷新...')
-    // 同步完成后重新加载历史记录
-    await webdavStore.loadSyncHistory()
-    // 延迟一秒刷新页面，让用户看到成功提示
+
+    // 延迟刷新页面
     setTimeout(() => {
       window.location.reload()
     }, 1000)
   } catch (error) {
-    // 同步失败时，也要先关闭同步中的消息
-    syncMessageInstance?.close()
-    // 然后显示错误消息
+    // 同步失败
+    message.destroy() // 清除 loading 消息
     console.error('同步失败:', error)
     message.error(error instanceof Error ? error.message : '同步失败')
-  } finally {
-    // 确保清理消息实例
-    syncMessageInstance = null
   }
 }
 
+// 修改同步状态图标
 const syncStatusIcon = computed(() => {
-  const status = webdavStore.syncState.status
+  const config = cloudSyncStore.currentConfig
+  if (!config?.enabled) return LinkCloud
+
+  const status =
+    config.syncType === 'webdav' ? webdavStore.syncState.status : s3Store.syncState?.status
+
   switch (status) {
     case 'syncing':
       return LinkCloud
@@ -553,10 +615,20 @@ const syncStatusIcon = computed(() => {
   }
 })
 
+// 修改同步状态文本
 const getSyncStatusText = computed(() => {
-  const status = webdavStore.syncState.status
-  const type = webdavStore.syncState.type
-  const lastSync = webdavStore.lastSuccessfulSync
+  const config = cloudSyncStore.currentConfig
+  if (!config?.enabled) return '未启用同步'
+
+  const state = config.syncType === 'webdav' ? webdavStore.syncState : s3Store.syncState
+
+  const lastSync =
+    config.syncType === 'webdav'
+      ? webdavStore.lastSuccessfulSync
+      : s3Store.syncHistory[0]?.timestamp
+
+  const status = state?.status
+  const type = state?.type
 
   switch (status) {
     case 'syncing':
@@ -1453,18 +1525,6 @@ const handleReviewClick = async () => {
   }
   100% {
     opacity: 1;
-    transform: scale(1);
-  }
-}
-
-@keyframes pulse {
-  0% {
-    transform: scale(1);
-  }
-  50% {
-    transform: scale(1.2);
-  }
-  100% {
     transform: scale(1);
   }
 }

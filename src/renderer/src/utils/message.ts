@@ -5,6 +5,9 @@ interface MessageInstance {
   close: () => void
 }
 
+// 存储所有活动的消息实例
+const activeMessages: MessageInstance[] = []
+
 export const message = {
   success(message: string, duration = 2000) {
     return this.show(message, 'success', duration)
@@ -22,9 +25,13 @@ export const message = {
     return this.show(message, 'info', duration)
   },
 
+  loading(message: string, duration = 0) {
+    return this.show(message, 'loading', duration)
+  },
+
   show(
     message: string,
-    type: 'success' | 'error' | 'warning' | 'info',
+    type: 'success' | 'error' | 'warning' | 'info' | 'loading',
     duration: number
   ): MessageInstance | null {
     const container = document.createElement('div')
@@ -45,17 +52,39 @@ export const message = {
 
     app.mount(container)
 
-    const timer = setTimeout(() => {
-      app.unmount()
-      messageContainer.removeChild(container)
-    }, duration + 300) // 加300ms确保动画完成
-
-    return {
-      close: () => {
-        clearTimeout(timer)
+    let timer: number | null = null
+    if (duration > 0) {
+      timer = window.setTimeout(() => {
         app.unmount()
         messageContainer.removeChild(container)
+        const index = activeMessages.indexOf(instance)
+        if (index > -1) {
+          activeMessages.splice(index, 1)
+        }
+      }, duration + 300) // 加300ms确保动画完成
+    }
+
+    const instance = {
+      close: () => {
+        if (timer) {
+          clearTimeout(timer)
+        }
+        app.unmount()
+        messageContainer.removeChild(container)
+        const index = activeMessages.indexOf(instance)
+        if (index > -1) {
+          activeMessages.splice(index, 1)
+        }
       }
     }
+
+    activeMessages.push(instance)
+    return instance
+  },
+
+  // 销毁所有消息
+  destroy() {
+    activeMessages.forEach((instance) => instance.close())
+    activeMessages.length = 0
   }
 }

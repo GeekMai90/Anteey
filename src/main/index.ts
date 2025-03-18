@@ -482,6 +482,9 @@ protocol.registerSchemesAsPrivileged([
   }
 ])
 
+// 添加同步状态标记
+let isSyncing = false
+
 // 添加同步函数
 async function handleCloudSync(type: 'startup' | 'shutdown'): Promise<void> {
   try {
@@ -495,6 +498,15 @@ async function handleCloudSync(type: 'startup' | 'shutdown'): Promise<void> {
       webdavService.stopAutoSync()
       s3Service.stopAutoSync()
       return
+    }
+
+    // 设置同步状态
+    isSyncing = true
+
+    // 发送开始同步通知
+    const win = BrowserWindow.getFocusedWindow() || BrowserWindow.getAllWindows()[0]
+    if (win) {
+      win.webContents.send('sync-start')
     }
 
     // 根据同步类型执行相应的同步
@@ -524,10 +536,35 @@ async function handleCloudSync(type: 'startup' | 'shutdown'): Promise<void> {
     }
 
     log.info(`${type === 'startup' ? '启动' : '关闭'}时同步完成`)
+
+    // 发送完成通知
+    if (win) {
+      win.webContents.send('sync-complete', {
+        message: '同步完成'
+      })
+    }
+
+    // 重置同步状态
+    isSyncing = false
   } catch (error) {
     log.error(`${type === 'startup' ? '启动' : '关闭'}时同步失败:`, error)
+    // 发送错误通知
+    const win = BrowserWindow.getFocusedWindow() || BrowserWindow.getAllWindows()[0]
+    if (win) {
+      win.webContents.send('sync-error', {
+        message: '同步失败',
+        error: error instanceof Error ? error.message : String(error)
+      })
+    }
+    // 重置同步状态
+    isSyncing = false
   }
 }
+
+// 添加 IPC 处理器获取同步状态
+ipcMain.handle('get-current-sync-state', () => {
+  return { isSyncing }
+})
 
 app.whenReady().then(async () => {
   const antinetPath = app.getPath('userData')
