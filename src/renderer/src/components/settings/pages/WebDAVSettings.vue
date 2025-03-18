@@ -1,167 +1,155 @@
 <template>
   <div class="webdav-settings">
-    <div class="settings-content-header">
-      <div class="icon">
-        <CloudStorage theme="outline" size="20" fill="var(--color-icon-primary)" :strokeWidth="3" />
+    <div class="webdav-content">
+      <!-- WebDAV 服务配置 -->
+      <div class="webdav-item">
+        <div class="title">WebDAV 服务</div>
+        <div class="description">配置 WebDAV 服务器信息，目前支持坚果云 WebDAV 服务。</div>
+        <div class="webdav-settings-form">
+          <div class="form-item">
+            <div class="label">服务类型</div>
+            <div class="value">
+              <div class="select-wrapper">
+                <div class="select" @click="showServerTypeSelect = !showServerTypeSelect">
+                  <span class="selected-value">{{ getServerTypeName(serverType) }}</span>
+                  <div class="select-arrow">
+                    <Down theme="outline" size="16" :strokeWidth="3" />
+                  </div>
+                </div>
+                <div v-show="showServerTypeSelect" class="select-dropdown">
+                  <div
+                    v-for="type in serverTypes"
+                    :key="type.value"
+                    class="select-option"
+                    :class="{ active: serverType === type.value }"
+                    @click="selectServerType(type.value)"
+                  >
+                    {{ type.label }}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="form-item">
+            <div class="label">服务地址</div>
+            <div class="value">
+              <input v-model="url" type="text" placeholder="请输入 WebDAV 服务器地址" />
+            </div>
+          </div>
+          <div class="form-item">
+            <div class="label">用户名</div>
+            <div class="value">
+              <input v-model="username" type="text" placeholder="请输入用户名" />
+            </div>
+          </div>
+          <div class="form-item">
+            <div class="label">应用密码</div>
+            <div class="value">
+              <input v-model="password" type="password" placeholder="请输入应用密码" />
+            </div>
+          </div>
+          <div class="webdav-actions">
+            <div
+              class="webdav-item-button test"
+              :class="{ 'is-loading': isTesting }"
+              @click="handleTestConnection"
+            >
+              {{ isTesting ? '测试中...' : '测试连接' }}
+            </div>
+            <div
+              class="webdav-item-button"
+              :class="{ 'is-loading': isSaving }"
+              @click="handleSaveConfig"
+            >
+              {{ isSaving ? '保存中...' : '保存配置' }}
+            </div>
+          </div>
+        </div>
       </div>
-      <div class="name">同步</div>
-    </div>
-    <div class="webdav-settings-divider"></div>
-    <div class="webdav-settings-content">
-      <div class="webdav-content">
-        <!-- WebDAV 服务配置 -->
-        <div class="webdav-item">
-          <div class="title">WebDAV 服务</div>
-          <div class="description">配置 WebDAV 服务器信息，目前支持坚果云 WebDAV 服务。</div>
-          <div class="webdav-settings-form">
-            <div class="form-item">
-              <div class="label">服务类型</div>
-              <div class="value">
-                <div class="select-wrapper">
-                  <div class="select" @click="showServerTypeSelect = !showServerTypeSelect">
-                    <span class="selected-value">{{ getServerTypeName(serverType) }}</span>
-                    <div class="select-arrow">
-                      <Down theme="outline" size="16" :strokeWidth="3" />
-                    </div>
-                  </div>
-                  <div v-show="showServerTypeSelect" class="select-dropdown">
-                    <div
-                      v-for="type in serverTypes"
-                      :key="type.value"
-                      class="select-option"
-                      :class="{ active: serverType === type.value }"
-                      @click="selectServerType(type.value)"
-                    >
-                      {{ type.label }}
-                    </div>
-                  </div>
+
+      <!-- 同步设置 -->
+      <div class="webdav-item">
+        <div class="title">同步设置</div>
+        <div class="description">配置自动同步和同步方式，确保数据的安全性和一致性。</div>
+        <div class="webdav-settings-form">
+          <div class="form-item">
+            <div class="label">自动同步</div>
+            <div class="value">
+              <div class="auto-sync-setting">
+                <Switch :model-value="Boolean(autoSync)" @update:model-value="autoSync = $event" />
+                <div class="auto-sync-description">
+                  {{ autoSync ? '定时自动同步' : '仅支持手动同步' }}
                 </div>
-              </div>
-            </div>
-            <div class="form-item">
-              <div class="label">服务地址</div>
-              <div class="value">
-                <input v-model="url" type="text" placeholder="请输入 WebDAV 服务器地址" />
-              </div>
-            </div>
-            <div class="form-item">
-              <div class="label">用户名</div>
-              <div class="value">
-                <input v-model="username" type="text" placeholder="请输入用户名" />
-              </div>
-            </div>
-            <div class="form-item">
-              <div class="label">应用密码</div>
-              <div class="value">
-                <input v-model="password" type="password" placeholder="请输入应用密码" />
-              </div>
-            </div>
-            <div class="webdav-actions">
-              <div
-                class="webdav-item-button test"
-                :class="{ 'is-loading': isTesting }"
-                @click="handleTestConnection"
-              >
-                {{ isTesting ? '测试中...' : '测试连接' }}
-              </div>
-              <div
-                class="webdav-item-button"
-                :class="{ 'is-loading': isSaving }"
-                @click="handleSaveConfig"
-              >
-                {{ isSaving ? '保存中...' : '保存配置' }}
               </div>
             </div>
           </div>
-        </div>
-
-        <!-- 同步设置 -->
-        <div class="webdav-item">
-          <div class="title">同步设置</div>
-          <div class="description">配置自动同步和同步方式，确保数据的安全性和一致性。</div>
-          <div class="webdav-settings-form">
-            <div class="form-item">
-              <div class="label">自动同步</div>
-              <div class="value">
-                <div class="auto-sync-setting">
-                  <Switch
-                    :model-value="Boolean(autoSync)"
-                    @update:model-value="autoSync = $event"
-                  />
-                  <div class="auto-sync-description">
-                    {{ autoSync ? '定时自动同步' : '仅支持手动同步' }}
+          <div v-if="autoSync" class="form-item">
+            <div class="label">同步间隔</div>
+            <div class="value">
+              <div class="select-wrapper sync-interval-select">
+                <div class="select" @click="showIntervalSelect = !showIntervalSelect">
+                  <span class="selected-value">{{ getSyncIntervalText(syncInterval) }}</span>
+                  <div class="select-arrow">
+                    <Down theme="outline" size="16" :strokeWidth="3" />
                   </div>
                 </div>
-              </div>
-            </div>
-            <div v-if="autoSync" class="form-item">
-              <div class="label">同步间隔</div>
-              <div class="value">
-                <div class="select-wrapper sync-interval-select">
-                  <div class="select" @click="showIntervalSelect = !showIntervalSelect">
-                    <span class="selected-value">{{ getSyncIntervalText(syncInterval) }}</span>
-                    <div class="select-arrow">
-                      <Down theme="outline" size="16" :strokeWidth="3" />
-                    </div>
-                  </div>
-                  <div v-show="showIntervalSelect" class="select-dropdown">
-                    <div
-                      v-for="interval in syncIntervals"
-                      :key="interval.value"
-                      class="select-option"
-                      :class="{ active: syncInterval === interval.value }"
-                      @click="selectInterval(interval.value)"
-                    >
-                      {{ interval.label }}
-                    </div>
+                <div v-show="showIntervalSelect" class="select-dropdown">
+                  <div
+                    v-for="interval in syncIntervals"
+                    :key="interval.value"
+                    class="select-option"
+                    :class="{ active: syncInterval === interval.value }"
+                    @click="selectInterval(interval.value)"
+                  >
+                    {{ interval.label }}
                   </div>
                 </div>
-              </div>
-            </div>
-            <div class="webdav-actions">
-              <div
-                class="webdav-item-button"
-                :class="{ 'is-loading': isSyncing }"
-                @click="handleSync"
-              >
-                {{ isSyncing ? '同步中...' : '立即同步' }}
               </div>
             </div>
           </div>
-        </div>
-
-        <!-- 同步历史 -->
-        <div class="webdav-item">
-          <div class="title">同步历史</div>
-          <div class="sync-history">
-            <div v-if="webdavStore.syncHistory.length === 0" class="history-empty">
-              <div class="empty-text">暂无同步历史</div>
+          <div class="webdav-actions">
+            <div
+              class="webdav-item-button"
+              :class="{ 'is-loading': isSyncing }"
+              @click="handleSync"
+            >
+              {{ isSyncing ? '同步中...' : '立即同步' }}
             </div>
-            <div v-for="item in webdavStore.syncHistory" :key="item.id" class="history-item">
-              <div class="history-item-left">
-                <div class="history-item-icon">
-                  <CloudStorage
-                    theme="outline"
-                    size="16"
-                    :strokeWidth="3"
-                    fill="var(--color-text-secondary)"
-                  />
+          </div>
+        </div>
+      </div>
+
+      <!-- 同步历史 -->
+      <div class="webdav-item">
+        <div class="title">同步历史</div>
+        <div class="sync-history">
+          <div v-if="webdavStore.syncHistory.length === 0" class="history-empty">
+            <div class="empty-text">暂无同步历史</div>
+          </div>
+          <div v-for="item in webdavStore.syncHistory" :key="item.id" class="history-item">
+            <div class="history-item-left">
+              <div class="history-item-icon">
+                <CloudStorage
+                  theme="outline"
+                  size="16"
+                  :strokeWidth="3"
+                  fill="var(--color-text-secondary)"
+                />
+              </div>
+              <div class="history-item-info">
+                <div class="history-item-name">
+                  {{ item.type === 'auto' ? '自动同步' : '手动同步' }}
                 </div>
-                <div class="history-item-info">
-                  <div class="history-item-name">
-                    {{ item.type === 'auto' ? '自动同步' : '手动同步' }}
-                  </div>
-                  <div class="history-item-meta">
-                    <span class="time">{{
-                      new Date(item.timestamp).toLocaleString('zh-CN', {
-                        timeZone: 'Asia/Shanghai'
-                      })
-                    }}</span>
-                    <span class="dot">·</span>
-                    <span class="status" :class="item.status">
-                      {{ item.status === 'success' ? '成功' : '失败' }}
-                    </span>
-                  </div>
+                <div class="history-item-meta">
+                  <span class="time">{{
+                    new Date(item.timestamp).toLocaleString('zh-CN', {
+                      timeZone: 'Asia/Shanghai'
+                    })
+                  }}</span>
+                  <span class="dot">·</span>
+                  <span class="status" :class="item.status">
+                    {{ item.status === 'success' ? '成功' : '失败' }}
+                  </span>
                 </div>
               </div>
             </div>
@@ -342,137 +330,41 @@ watch(
 .webdav-settings {
   width: 100%;
   height: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  justify-content: flex-start;
 }
 
-.settings-content-header {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-bottom: 10px;
+.webdav-content {
+  width: 100%;
+  padding-right: 10px;
 
-  .icon {
-    background: none;
-    border: 1px solid var(--color-border);
-    width: 40px;
-    height: 40px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s ease;
-    padding: 4px;
-    border-radius: 6px;
+  .webdav-item {
+    width: 100%;
+    margin-bottom: 30px;
 
-    :deep(.i-icon) {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 100%;
-      height: 100%;
+    &:last-child {
+      margin-bottom: 0;
     }
 
-    svg {
-      width: 20px;
-      height: 20px;
+    .title {
+      font-size: 16px;
+      line-height: 1;
+      color: var(--color-text-primary);
+      font-weight: 500;
+      margin-bottom: 12px;
+      user-select: none;
     }
-  }
 
-  .name {
-    font-size: 20px;
-    line-height: 1;
-    font-weight: 500;
-    user-select: none;
-  }
-}
-
-.webdav-settings-divider {
-  height: 1px;
-  background-color: var(--color-border);
-  margin-bottom: 10px;
-  width: 100%;
-  opacity: 1;
-  flex-shrink: 0;
-}
-
-.webdav-settings-content {
-  width: 100%;
-  height: 100%;
-  overflow-y: auto;
-  padding-bottom: 58px;
-
-  .webdav-content {
-    padding-right: 10px;
-
-    .webdav-item {
-      width: 100%;
-      display: flex;
-      flex-direction: column;
-      align-items: flex-start;
-      justify-content: flex-start;
-      margin-top: 4px;
-      margin-bottom: 30px;
-
-      .title {
-        font-size: 18px;
-        line-height: 1;
-        color: var(--color-text-primary);
-        font-weight: 500;
-        user-select: none;
-        display: flex;
-        align-items: center;
-        justify-content: flex-start;
-        margin-bottom: 15px;
-        user-select: none;
-      }
-
-      .description {
-        font-size: 14px;
-        line-height: 1;
-        color: var(--color-text-secondary);
-        display: flex;
-        align-items: center;
-        justify-content: flex-start;
-        margin-bottom: 15px;
-        user-select: none;
-      }
-
-      .webdav-item-button {
-        width: 80px;
-        height: 35px;
-        background-color: var(--color-primary);
-        color: var(--color-text-white);
-        border-radius: 8px;
-        font-size: 14px;
-        font-weight: 500;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        user-select: none;
-
-        &:hover {
-          opacity: 0.9;
-        }
-
-        &.test {
-          background-color: var(--color-primary);
-        }
-
-        &.is-loading {
-          opacity: 0.7;
-          cursor: not-allowed;
-        }
-      }
+    .description {
+      font-size: 13px;
+      line-height: 1.4;
+      color: var(--color-text-secondary);
+      margin-bottom: 15px;
+      user-select: none;
     }
   }
 }
 
 .webdav-settings-form {
   width: 100%;
-  margin-top: 15px;
 
   .form-item {
     display: flex;
@@ -489,17 +381,14 @@ watch(
       flex: 1;
       max-width: 300px;
 
-      input,
-      select {
+      input {
         width: 100%;
-        max-width: 300px;
         height: 35px;
         border: 1px solid var(--color-border);
         border-radius: 6px;
         padding: 0 12px;
         font-size: 14px;
         color: var(--color-text-primary);
-        // background-color: var(--color-bg-secondary);
         outline: none;
         transition: all 0.2s ease;
 
@@ -519,6 +408,36 @@ watch(
   margin-top: 20px;
   display: flex;
   gap: 12px;
+
+  .webdav-item-button {
+    min-width: 80px;
+    height: 32px;
+    padding: 0 16px;
+    background-color: var(--color-primary);
+    color: var(--color-text-white);
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    user-select: none;
+    transition: all 0.2s ease;
+
+    &:hover {
+      opacity: 0.9;
+    }
+
+    &.test {
+      background-color: var(--color-primary);
+    }
+
+    &.is-loading {
+      opacity: 0.7;
+      cursor: not-allowed;
+    }
+  }
 }
 
 .auto-sync-setting {
@@ -527,7 +446,7 @@ watch(
   gap: 12px;
 
   .auto-sync-description {
-    font-size: 12px;
+    font-size: 13px;
     color: var(--color-text-secondary);
   }
 }
@@ -535,16 +454,14 @@ watch(
 .sync-history {
   width: 100%;
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: 6px;
   overflow: hidden;
-  margin-bottom: 12px;
 
   .history-item {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 16px;
-    // background: var(--color-bg-secondary);
+    padding: 12px 16px;
     border-bottom: 1px solid var(--color-border);
     transition: all 0.2s ease;
 
@@ -562,9 +479,9 @@ watch(
       display: flex;
       align-items: center;
       justify-content: center;
-      width: 32px;
-      height: 32px;
-      border-radius: 8px;
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
       background: var(--color-fill-secondary);
     }
 
@@ -575,7 +492,7 @@ watch(
     }
 
     .history-item-name {
-      font-size: 14px;
+      font-size: 13px;
       color: var(--color-text-primary);
       font-weight: 500;
     }
@@ -603,15 +520,14 @@ watch(
   }
 
   .history-empty {
-    padding: 32px;
+    padding: 24px;
     display: flex;
     align-items: center;
     justify-content: center;
-    // background: var(--color-bg-secondary);
 
     .empty-text {
       color: var(--color-text-secondary);
-      font-size: 14px;
+      font-size: 13px;
     }
   }
 }
@@ -619,7 +535,6 @@ watch(
 .select-wrapper {
   position: relative;
   width: 100%;
-  max-width: 300px;
 
   &.sync-interval-select {
     max-width: 120px;
@@ -632,9 +547,8 @@ watch(
   .select {
     width: 100%;
     padding: 8px 12px;
-    border-radius: 8px;
+    border-radius: 6px;
     border: 1px solid var(--color-border);
-    // background: var(--color-bg-secondary);
     color: var(--color-text-primary);
     font-size: 14px;
     cursor: pointer;
@@ -642,16 +556,12 @@ watch(
     display: flex;
     align-items: center;
     justify-content: space-between;
-    height: 36px;
+    height: 35px;
 
     &:hover {
       border-color: var(--color-primary);
       background: var(--color-hover-bg);
     }
-
-    // .selected-value {
-    //   font-weight: 500;
-    // }
 
     .select-arrow {
       display: flex;
@@ -659,16 +569,6 @@ watch(
       justify-content: center;
       width: 20px;
       height: 100%;
-      :deep(.i-icon) {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      }
-
-      :deep(svg) {
-        width: 16px;
-        height: 16px;
-      }
     }
   }
 
@@ -679,7 +579,7 @@ watch(
     width: 100%;
     background: var(--color-bg-primary);
     border: 1px solid var(--color-border);
-    border-radius: 8px;
+    border-radius: 6px;
     padding: 4px;
     max-height: 200px;
     overflow-y: auto;
@@ -691,7 +591,7 @@ watch(
       cursor: pointer;
       border-radius: 4px;
       transition: all 0.2s;
-      font-size: 14px;
+      font-size: 13px;
       color: var(--color-text-primary);
 
       &:hover {
@@ -703,60 +603,6 @@ watch(
         background: var(--color-primary-bg);
       }
     }
-
-    &::-webkit-scrollbar {
-      width: 8px;
-    }
-
-    &::-webkit-scrollbar-track {
-      background: transparent;
-    }
-
-    &::-webkit-scrollbar-thumb {
-      background: var(--color-scrollbar);
-      border-radius: 4px;
-    }
-  }
-}
-
-.title-row {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 10px;
-
-  .icon {
-    background: none;
-    border: 1px solid var(--color-border);
-    width: 40px;
-    height: 40px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s ease;
-    padding: 4px;
-    border-radius: 6px;
-
-    :deep(.i-icon) {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 100%;
-      height: 100%;
-    }
-
-    svg {
-      width: 20px;
-      height: 20px;
-    }
-  }
-
-  .name {
-    font-size: 20px;
-    line-height: 1;
-    font-weight: 500;
-    user-select: none;
   }
 }
 </style>

@@ -102,7 +102,9 @@ import type {
   // 新增的 S3 相关类型
   S3Config,
   S3SyncHistory,
-  S3SyncState
+  S3SyncState,
+  CloudSyncConfig,
+  UpdateCloudSyncOptions
 } from '@shared/types'
 
 export interface ElectronAPI {
@@ -836,6 +838,16 @@ export interface ElectronAPI {
     stopAutoSync: () => Promise<void>
     // 获取所有提供商配置
     getAllProviderConfigs: () => Promise<Record<string, any>>
+  }
+
+  cloudSync: {
+    // 获取当前云同步配置
+    getCurrentConfig: () => Promise<CloudSyncConfig | null>
+    // 更新云同步配置
+    updateConfig: (
+      config: Partial<CloudSyncConfig>,
+      options?: UpdateCloudSyncOptions
+    ) => Promise<CloudSyncConfig>
   }
 }
 

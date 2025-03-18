@@ -28,6 +28,7 @@ import { similarNotesApi } from './api/similarNotesApi'
 import { dictionaryApi } from './api/dictionaryApi'
 import { mindboardApi } from './api/mindboardApi'
 import { s3Api } from './api/s3Api'
+import { cloudSyncApi } from './api/cloudSyncApi'
 // 添加日志 API
 contextBridge.exposeInMainWorld('electronLog', {
   info: (...args: any[]) => ipcRenderer.send('renderer-log', { level: 'info', args }),
@@ -151,5 +152,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
   s3: {
     ...s3Api
+  },
+  cloudSync: {
+    ...cloudSyncApi
   }
 })

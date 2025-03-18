@@ -1,189 +1,177 @@
 <template>
   <div class="s3-settings">
-    <div class="settings-content-header">
-      <div class="icon">
-        <CloudStorage theme="outline" size="20" fill="var(--color-icon-primary)" :strokeWidth="3" />
+    <div class="s3-content">
+      <!-- S3 服务配置 -->
+      <div class="s3-item">
+        <div class="title">S3 服务</div>
+        <div class="description">
+          配置 S3 服务信息，支持 AWS S3、阿里云 OSS、腾讯云 COS 等兼容 S3 协议的服务。
+        </div>
+        <div class="s3-settings-form">
+          <div class="form-item">
+            <div class="label">服务提供商</div>
+            <div class="value">
+              <div class="select-wrapper">
+                <div class="select" @click="showProviderSelect = !showProviderSelect">
+                  <span class="selected-value">{{ getProviderName(provider) }}</span>
+                  <div class="select-arrow">
+                    <Down theme="outline" size="16" :strokeWidth="3" />
+                  </div>
+                </div>
+                <div v-show="showProviderSelect" class="select-dropdown">
+                  <div
+                    v-for="type in providers"
+                    :key="type.value"
+                    class="select-option"
+                    :class="{ active: provider === type.value }"
+                    @click="selectProvider(type.value)"
+                  >
+                    {{ type.label }}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="form-item">
+            <div class="label">区域</div>
+            <div class="value">
+              <div class="select-wrapper">
+                <div class="select" @click="showRegionSelect = !showRegionSelect">
+                  <span class="selected-value">{{ getRegionName(region) }}</span>
+                  <div class="select-arrow">
+                    <Down theme="outline" size="16" :strokeWidth="3" />
+                  </div>
+                </div>
+                <div v-show="showRegionSelect" class="select-dropdown">
+                  <div
+                    v-for="r in getRegionsByProvider(provider)"
+                    :key="r.value"
+                    class="select-option"
+                    :class="{ active: region === r.value }"
+                    @click="selectRegion(r.value)"
+                  >
+                    {{ r.label }}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="form-item">
+            <div class="label">存储桶</div>
+            <div class="value">
+              <input v-model="bucket" type="text" placeholder="请输入存储桶名称" />
+            </div>
+          </div>
+          <div class="form-item">
+            <div class="label">访问密钥 ID</div>
+            <div class="value">
+              <input v-model="accessKeyId" type="text" placeholder="请输入访问密钥 ID" />
+            </div>
+          </div>
+          <div class="form-item">
+            <div class="label">访问密钥</div>
+            <div class="value">
+              <input v-model="secretAccessKey" type="password" placeholder="请输入访问密钥" />
+            </div>
+          </div>
+          <div class="s3-actions">
+            <div
+              class="s3-item-button test"
+              :class="{ 'is-loading': isConnecting }"
+              @click="handleTestConnection"
+            >
+              {{ isConnecting ? '测试中...' : '测试连接' }}
+            </div>
+            <div
+              class="s3-item-button"
+              :class="{ 'is-loading': isSaving }"
+              @click="handleSaveConfig"
+            >
+              {{ isSaving ? '保存中...' : '保存配置' }}
+            </div>
+          </div>
+        </div>
       </div>
-      <div class="name">S3 同步</div>
-    </div>
-    <div class="s3-settings-divider"></div>
-    <div class="s3-settings-content">
-      <div class="s3-content">
-        <!-- S3 服务配置 -->
-        <div class="s3-item">
-          <div class="title">S3 服务</div>
-          <div class="description">
-            配置 S3 服务信息，支持 AWS S3、阿里云 OSS、腾讯云 COS 等兼容 S3 协议的服务。
+
+      <!-- 同步设置 -->
+      <div class="s3-item">
+        <div class="title">同步设置</div>
+        <div class="description">配置自动同步和同步方式，确保数据的安全性和一致性。</div>
+        <div class="s3-settings-form">
+          <div class="form-item">
+            <div class="label">自动同步</div>
+            <div class="value">
+              <div class="auto-sync-setting">
+                <Switch :model-value="Boolean(autoSync)" @update:model-value="autoSync = $event" />
+                <div class="auto-sync-description">
+                  {{ autoSync ? '定时自动同步' : '仅支持手动同步' }}
+                </div>
+              </div>
+            </div>
           </div>
-          <div class="s3-settings-form">
-            <div class="form-item">
-              <div class="label">服务提供商</div>
-              <div class="value">
-                <div class="select-wrapper">
-                  <div class="select" @click="showProviderSelect = !showProviderSelect">
-                    <span class="selected-value">{{ getProviderName(provider) }}</span>
-                    <div class="select-arrow">
-                      <Down theme="outline" size="16" :strokeWidth="3" />
-                    </div>
+          <div v-if="autoSync" class="form-item">
+            <div class="label">同步间隔</div>
+            <div class="value">
+              <div class="select-wrapper sync-interval-select">
+                <div class="select" @click="showIntervalSelect = !showIntervalSelect">
+                  <span class="selected-value">{{ getSyncIntervalText(syncInterval) }}</span>
+                  <div class="select-arrow">
+                    <Down theme="outline" size="16" :strokeWidth="3" />
                   </div>
-                  <div v-show="showProviderSelect" class="select-dropdown">
-                    <div
-                      v-for="type in providers"
-                      :key="type.value"
-                      class="select-option"
-                      :class="{ active: provider === type.value }"
-                      @click="selectProvider(type.value)"
-                    >
-                      {{ type.label }}
-                    </div>
+                </div>
+                <div v-show="showIntervalSelect" class="select-dropdown">
+                  <div
+                    v-for="interval in syncIntervals"
+                    :key="interval.value"
+                    class="select-option"
+                    :class="{ active: syncInterval === interval.value }"
+                    @click="selectInterval(interval.value)"
+                  >
+                    {{ interval.label }}
                   </div>
                 </div>
               </div>
             </div>
-            <div class="form-item">
-              <div class="label">区域</div>
-              <div class="value">
-                <div class="select-wrapper">
-                  <div class="select" @click="showRegionSelect = !showRegionSelect">
-                    <span class="selected-value">{{ getRegionName(region) }}</span>
-                    <div class="select-arrow">
-                      <Down theme="outline" size="16" :strokeWidth="3" />
-                    </div>
-                  </div>
-                  <div v-show="showRegionSelect" class="select-dropdown">
-                    <div
-                      v-for="r in getRegionsByProvider(provider)"
-                      :key="r.value"
-                      class="select-option"
-                      :class="{ active: region === r.value }"
-                      @click="selectRegion(r.value)"
-                    >
-                      {{ r.label }}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div class="form-item">
-              <div class="label">存储桶</div>
-              <div class="value">
-                <input v-model="bucket" type="text" placeholder="请输入存储桶名称" />
-              </div>
-            </div>
-            <div class="form-item">
-              <div class="label">访问密钥 ID</div>
-              <div class="value">
-                <input v-model="accessKeyId" type="text" placeholder="请输入访问密钥 ID" />
-              </div>
-            </div>
-            <div class="form-item">
-              <div class="label">访问密钥</div>
-              <div class="value">
-                <input v-model="secretAccessKey" type="password" placeholder="请输入访问密钥" />
-              </div>
-            </div>
-            <div class="s3-actions">
-              <div
-                class="s3-item-button test"
-                :class="{ 'is-loading': isConnecting }"
-                @click="handleTestConnection"
-              >
-                {{ isConnecting ? '测试中...' : '测试连接' }}
-              </div>
-              <div
-                class="s3-item-button"
-                :class="{ 'is-loading': isSaving }"
-                @click="handleSaveConfig"
-              >
-                {{ isSaving ? '保存中...' : '保存配置' }}
-              </div>
+          </div>
+          <div class="s3-actions">
+            <div class="s3-item-button" :class="{ 'is-loading': isSyncing }" @click="handleSync">
+              {{ isSyncing ? '同步中...' : '立即同步' }}
             </div>
           </div>
         </div>
+      </div>
 
-        <!-- 同步设置 -->
-        <div class="s3-item">
-          <div class="title">同步设置</div>
-          <div class="description">配置自动同步和同步方式，确保数据的安全性和一致性。</div>
-          <div class="s3-settings-form">
-            <div class="form-item">
-              <div class="label">自动同步</div>
-              <div class="value">
-                <div class="auto-sync-setting">
-                  <Switch
-                    :model-value="Boolean(autoSync)"
-                    @update:model-value="autoSync = $event"
-                  />
-                  <div class="auto-sync-description">
-                    {{ autoSync ? '定时自动同步' : '仅支持手动同步' }}
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div v-if="autoSync" class="form-item">
-              <div class="label">同步间隔</div>
-              <div class="value">
-                <div class="select-wrapper sync-interval-select">
-                  <div class="select" @click="showIntervalSelect = !showIntervalSelect">
-                    <span class="selected-value">{{ getSyncIntervalText(syncInterval) }}</span>
-                    <div class="select-arrow">
-                      <Down theme="outline" size="16" :strokeWidth="3" />
-                    </div>
-                  </div>
-                  <div v-show="showIntervalSelect" class="select-dropdown">
-                    <div
-                      v-for="interval in syncIntervals"
-                      :key="interval.value"
-                      class="select-option"
-                      :class="{ active: syncInterval === interval.value }"
-                      @click="selectInterval(interval.value)"
-                    >
-                      {{ interval.label }}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div class="s3-actions">
-              <div class="s3-item-button" :class="{ 'is-loading': isSyncing }" @click="handleSync">
-                {{ isSyncing ? '同步中...' : '立即同步' }}
-              </div>
-            </div>
+      <!-- 同步历史 -->
+      <div class="s3-item">
+        <div class="title">同步历史</div>
+        <div class="sync-history">
+          <div v-if="s3Store.syncHistory.length === 0" class="history-empty">
+            <div class="empty-text">暂无同步历史</div>
           </div>
-        </div>
-
-        <!-- 同步历史 -->
-        <div class="s3-item">
-          <div class="title">同步历史</div>
-          <div class="sync-history">
-            <div v-if="s3Store.syncHistory.length === 0" class="history-empty">
-              <div class="empty-text">暂无同步历史</div>
-            </div>
-            <div v-for="item in s3Store.syncHistory" :key="item.id" class="history-item">
-              <div class="history-item-left">
-                <div class="history-item-icon">
-                  <CloudStorage
-                    theme="outline"
-                    size="16"
-                    :strokeWidth="3"
-                    fill="var(--color-text-secondary)"
-                  />
+          <div v-for="item in s3Store.syncHistory" :key="item.id" class="history-item">
+            <div class="history-item-left">
+              <div class="history-item-icon">
+                <CloudStorage
+                  theme="outline"
+                  size="16"
+                  :strokeWidth="3"
+                  fill="var(--color-text-secondary)"
+                />
+              </div>
+              <div class="history-item-info">
+                <div class="history-item-name">
+                  {{ item.type === 'auto' ? '自动同步' : '手动同步' }}
                 </div>
-                <div class="history-item-info">
-                  <div class="history-item-name">
-                    {{ item.type === 'auto' ? '自动同步' : '手动同步' }}
-                  </div>
-                  <div class="history-item-meta">
-                    <span class="time">{{
-                      new Date(item.timestamp).toLocaleString('zh-CN', {
-                        timeZone: 'Asia/Shanghai'
-                      })
-                    }}</span>
-                    <span class="dot">·</span>
-                    <span class="status" :class="item.status">
-                      {{ item.status === 'success' ? '成功' : '失败' }}
-                    </span>
-                  </div>
+                <div class="history-item-meta">
+                  <span class="time">{{
+                    new Date(item.timestamp).toLocaleString('zh-CN', {
+                      timeZone: 'Asia/Shanghai'
+                    })
+                  }}</span>
+                  <span class="dot">·</span>
+                  <span class="status" :class="item.status">
+                    {{ item.status === 'success' ? '成功' : '失败' }}
+                  </span>
                 </div>
               </div>
             </div>
@@ -582,137 +570,41 @@ watch(
 .s3-settings {
   width: 100%;
   height: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  justify-content: flex-start;
 }
 
-.settings-content-header {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-bottom: 10px;
+.s3-content {
+  width: 100%;
+  padding-right: 10px;
 
-  .icon {
-    background: none;
-    border: 1px solid var(--color-border);
-    width: 40px;
-    height: 40px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s ease;
-    padding: 4px;
-    border-radius: 6px;
+  .s3-item {
+    width: 100%;
+    margin-bottom: 30px;
 
-    :deep(.i-icon) {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 100%;
-      height: 100%;
+    &:last-child {
+      margin-bottom: 0;
     }
 
-    svg {
-      width: 20px;
-      height: 20px;
+    .title {
+      font-size: 16px;
+      line-height: 1;
+      color: var(--color-text-primary);
+      font-weight: 500;
+      margin-bottom: 12px;
+      user-select: none;
     }
-  }
 
-  .name {
-    font-size: 20px;
-    line-height: 1;
-    font-weight: 500;
-    user-select: none;
-  }
-}
-
-.s3-settings-divider {
-  height: 1px;
-  background-color: var(--color-border);
-  margin-bottom: 10px;
-  width: 100%;
-  opacity: 1;
-  flex-shrink: 0;
-}
-
-.s3-settings-content {
-  width: 100%;
-  height: 100%;
-  overflow-y: auto;
-  padding-bottom: 58px;
-
-  .s3-content {
-    padding-right: 10px;
-
-    .s3-item {
-      width: 100%;
-      display: flex;
-      flex-direction: column;
-      align-items: flex-start;
-      justify-content: flex-start;
-      margin-top: 4px;
-      margin-bottom: 30px;
-
-      .title {
-        font-size: 18px;
-        line-height: 1;
-        color: var(--color-text-primary);
-        font-weight: 500;
-        user-select: none;
-        display: flex;
-        align-items: center;
-        justify-content: flex-start;
-        margin-bottom: 15px;
-        user-select: none;
-      }
-
-      .description {
-        font-size: 14px;
-        line-height: 1;
-        color: var(--color-text-secondary);
-        display: flex;
-        align-items: center;
-        justify-content: flex-start;
-        margin-bottom: 15px;
-        user-select: none;
-      }
-
-      .s3-item-button {
-        width: 80px;
-        height: 35px;
-        background-color: var(--color-primary);
-        color: var(--color-text-white);
-        border-radius: 8px;
-        font-size: 14px;
-        font-weight: 500;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        user-select: none;
-
-        &:hover {
-          opacity: 0.9;
-        }
-
-        &.test {
-          background-color: var(--color-primary);
-        }
-
-        &.is-loading {
-          opacity: 0.7;
-          cursor: not-allowed;
-        }
-      }
+    .description {
+      font-size: 13px;
+      line-height: 1.4;
+      color: var(--color-text-secondary);
+      margin-bottom: 15px;
+      user-select: none;
     }
   }
 }
 
 .s3-settings-form {
   width: 100%;
-  margin-top: 15px;
 
   .form-item {
     display: flex;
@@ -729,10 +621,8 @@ watch(
       flex: 1;
       max-width: 300px;
 
-      input,
-      select {
+      input {
         width: 100%;
-        max-width: 300px;
         height: 35px;
         border: 1px solid var(--color-border);
         border-radius: 6px;
@@ -758,6 +648,36 @@ watch(
   margin-top: 20px;
   display: flex;
   gap: 12px;
+
+  .s3-item-button {
+    min-width: 80px;
+    height: 32px;
+    padding: 0 16px;
+    background-color: var(--color-primary);
+    color: var(--color-text-white);
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    user-select: none;
+    transition: all 0.2s ease;
+
+    &:hover {
+      opacity: 0.9;
+    }
+
+    &.test {
+      background-color: var(--color-primary);
+    }
+
+    &.is-loading {
+      opacity: 0.7;
+      cursor: not-allowed;
+    }
+  }
 }
 
 .auto-sync-setting {
@@ -766,7 +686,7 @@ watch(
   gap: 12px;
 
   .auto-sync-description {
-    font-size: 12px;
+    font-size: 13px;
     color: var(--color-text-secondary);
   }
 }
@@ -774,15 +694,14 @@ watch(
 .sync-history {
   width: 100%;
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: 6px;
   overflow: hidden;
-  margin-bottom: 12px;
 
   .history-item {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 16px;
+    padding: 12px 16px;
     border-bottom: 1px solid var(--color-border);
     transition: all 0.2s ease;
 
@@ -800,9 +719,9 @@ watch(
       display: flex;
       align-items: center;
       justify-content: center;
-      width: 32px;
-      height: 32px;
-      border-radius: 8px;
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
       background: var(--color-fill-secondary);
     }
 
@@ -813,7 +732,7 @@ watch(
     }
 
     .history-item-name {
-      font-size: 14px;
+      font-size: 13px;
       color: var(--color-text-primary);
       font-weight: 500;
     }
@@ -833,7 +752,7 @@ watch(
         &.success {
           color: var(--color-success);
         }
-        &.error {
+        &.failed {
           color: var(--color-error);
         }
       }
@@ -841,14 +760,14 @@ watch(
   }
 
   .history-empty {
-    padding: 32px;
+    padding: 24px;
     display: flex;
     align-items: center;
     justify-content: center;
 
     .empty-text {
       color: var(--color-text-secondary);
-      font-size: 14px;
+      font-size: 13px;
     }
   }
 }
@@ -856,7 +775,6 @@ watch(
 .select-wrapper {
   position: relative;
   width: 100%;
-  max-width: 300px;
 
   &.sync-interval-select {
     max-width: 120px;
@@ -869,7 +787,7 @@ watch(
   .select {
     width: 100%;
     padding: 8px 12px;
-    border-radius: 8px;
+    border-radius: 6px;
     border: 1px solid var(--color-border);
     color: var(--color-text-primary);
     font-size: 14px;
@@ -878,7 +796,7 @@ watch(
     display: flex;
     align-items: center;
     justify-content: space-between;
-    height: 36px;
+    height: 35px;
 
     &:hover {
       border-color: var(--color-primary);
@@ -891,16 +809,6 @@ watch(
       justify-content: center;
       width: 20px;
       height: 100%;
-      :deep(.i-icon) {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      }
-
-      :deep(svg) {
-        width: 16px;
-        height: 16px;
-      }
     }
   }
 
@@ -911,7 +819,7 @@ watch(
     width: 100%;
     background: var(--color-bg-primary);
     border: 1px solid var(--color-border);
-    border-radius: 8px;
+    border-radius: 6px;
     padding: 4px;
     max-height: 200px;
     overflow-y: auto;
@@ -923,7 +831,7 @@ watch(
       cursor: pointer;
       border-radius: 4px;
       transition: all 0.2s;
-      font-size: 14px;
+      font-size: 13px;
       color: var(--color-text-primary);
 
       &:hover {
@@ -934,19 +842,6 @@ watch(
         color: var(--color-primary);
         background: var(--color-primary-bg);
       }
-    }
-
-    &::-webkit-scrollbar {
-      width: 8px;
-    }
-
-    &::-webkit-scrollbar-track {
-      background: transparent;
-    }
-
-    &::-webkit-scrollbar-thumb {
-      background: var(--color-scrollbar);
-      border-radius: 4px;
     }
   }
 }

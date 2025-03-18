@@ -28,6 +28,7 @@ import { setupSimilarNotesHandlers } from './similarNotesIpcHandlers'
 import { setupDictionaryHandlers } from './dictionaryIpcHandlers'
 import { setupMindboardHandlers } from './mindboardIpcHandlers'
 import { setupS3Handlers } from './s3IpcHandlers'
+import { setupCloudSyncHandlers } from './cloudSyncIpcHandlers'
 export function setupIpcHandlers(): void {
   setupNotesHandlers()
   setupCardboxHandlers()
@@ -59,4 +60,5 @@ export function setupIpcHandlers(): void {
   setupDictionaryHandlers()
   setupMindboardHandlers()
   setupS3Handlers()
+  setupCloudSyncHandlers()
 }

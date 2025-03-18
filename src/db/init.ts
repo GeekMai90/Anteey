@@ -673,6 +673,32 @@ export async function initDatabase(db: Knex): Promise<void> {
     console.log('monthly_logs 表创建成功')
   }
 
+  // 创建 cloud_sync_config 表
+  if (!(await db.schema.hasTable('cloud_sync_config'))) {
+    await db.schema.createTable('cloud_sync_config', (table) => {
+      table.string('id').primary()
+      table.enum('syncType', ['none', 'webdav', 's3']).notNullable().defaultTo('none')
+      table.boolean('enabled').notNullable().defaultTo(false)
+      table.datetime('createdAt').notNullable()
+      table.datetime('updatedAt').notNullable()
+
+      // 索引
+      table.index('syncType')
+      table.index('enabled')
+    })
+
+    // 插入默认配置
+    await db('cloud_sync_config').insert({
+      id: uuidv4(),
+      syncType: 'none',
+      enabled: false,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    })
+
+    console.log('cloud_sync_config 表创建成功')
+  }
+
   // 创建 webdav_config 表
   if (!(await db.schema.hasTable('webdav_config'))) {
     await db.schema.createTable('webdav_config', (table) => {
@@ -1257,5 +1283,6 @@ export async function down(db: Knex): Promise<void> {
   await db.schema.dropTableIfExists('s3_sync_history')
   await db.schema.dropTableIfExists('s3_config')
   await db.schema.dropTableIfExists('s3_provider_configs')
+  await db.schema.dropTableIfExists('cloud_sync_config')
   console.log('所有表已删除')
 }

@@ -29,6 +29,8 @@ import { backupService } from '@services/backup/backupService'
 import { debounce } from 'lodash'
 import { LanceService } from '../db/vector/lanceService'
 import { s3Service } from '@services/s3/s3Service'
+import { webdavService } from '@services/webdav/webdavService'
+import { getCurrentConfig } from '@services/cloud/cloudSyncService'
 // import { setupScheduledTasks } from './services/scheduledTasks'
 
 // 加载环境变量
@@ -481,35 +483,49 @@ protocol.registerSchemesAsPrivileged([
 ])
 
 // 添加同步函数
-async function handleS3Sync(type: 'startup' | 'shutdown') {
+async function handleCloudSync(type: 'startup' | 'shutdown'): Promise<void> {
   try {
-    const config = await s3Service.getConfig()
-    if (config?.enabled) {
-      log.info(`准备执行${type === 'startup' ? '启动' : '关闭'}时同步...`)
+    log.info(`准备执行${type === 'startup' ? '启动' : '关闭'}时同步...`)
 
-      // 如果是关闭时同步，先停止自动同步计时器
-      if (type === 'shutdown') {
-        log.info('关闭前停止自动同步计时器')
-        s3Service.stopAutoSync()
-      }
-
-      log.info(`开始${type === 'startup' ? '启动' : '关闭'}时同步操作...`)
-      const startTime = Date.now()
-
-      // 执行同步操作
-      await s3Service.sync('auto')
-
-      const duration = Date.now() - startTime
-      log.info(`${type === 'startup' ? '启动' : '关闭'}时同步完成，耗时: ${duration}ms`)
-
-      return true
-    } else {
-      log.info(`S3同步未启用，跳过${type === 'startup' ? '启动' : '关闭'}时同步`)
-      return false
+    // 获取云同步配置
+    const cloudConfig = await getCurrentConfig()
+    if (!cloudConfig?.enabled || cloudConfig.syncType === 'none') {
+      log.info('云同步未启用或已设置为不同步，跳过同步操作')
+      // 确保停止所有同步服务
+      webdavService.stopAutoSync()
+      s3Service.stopAutoSync()
+      return
     }
+
+    // 根据同步类型执行相应的同步
+    if (cloudConfig.syncType === 'webdav') {
+      const webdavConfig = await webdavService.getConfig()
+      if (webdavConfig?.enabled) {
+        log.info('执行 WebDAV 同步...')
+        if (type === 'shutdown') {
+          webdavService.stopAutoSync()
+        }
+        await webdavService.sync('auto')
+      }
+    } else if (cloudConfig.syncType === 's3') {
+      const s3Config = await s3Service.getConfig()
+      if (s3Config?.enabled) {
+        log.info('执行 S3 同步...')
+
+        if (type === 'startup') {
+          // 启动时初始化服务并开始自动同步
+          await s3Service.initAutoSync()
+        } else {
+          // 关闭时执行快速同步
+          s3Service.stopAutoSync() // 停止自动同步定时器
+          await s3Service.shutdownSync()
+        }
+      }
+    }
+
+    log.info(`${type === 'startup' ? '启动' : '关闭'}时同步完成`)
   } catch (error) {
     log.error(`${type === 'startup' ? '启动' : '关闭'}时同步失败:`, error)
-    return false
   }
 }
 
@@ -675,7 +691,7 @@ app.whenReady().then(async () => {
 
     // 应用启动时执行自动备份和同步
     await handleAutoBackup()
-    await handleS3Sync('startup')
+    await handleCloudSync('startup')
 
     // 设置定时任务
     // 2025-02-05 暂使取消自动更新向量的功能
@@ -741,8 +757,8 @@ app.on('before-quit', async (event) => {
 
     // 执行关闭前同步
     log.info('开始执行关闭前同步...')
-    const syncResult = await handleS3Sync('shutdown')
-    log.info(`关闭前同步${syncResult ? '成功' : '未执行或失败'}`)
+    await handleCloudSync('shutdown')
+    log.info('关闭前同步完成')
 
     // 所有关闭前操作完成，安全退出
     log.info('所有关闭前操作已完成，准备退出应用')

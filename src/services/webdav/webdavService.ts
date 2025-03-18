@@ -575,6 +575,37 @@ export class WebDAVService extends EventEmitter {
       this.autoSyncTimer = null
     }
   }
+
+  /**
+   * 停用 WebDAV 同步服务
+   *
+   * 主要功能：
+   * 1. 停止自动同步定时器
+   * 2. 更新配置，禁用同步功能
+   *
+   * @async
+   * @returns {Promise<void>}
+   * @throws {Error} 停用服务失败时抛出错误
+   */
+  public async disableSync(): Promise<void> {
+    try {
+      console.log('webdavService → 开始停用 WebDAV 同步服务')
+
+      // 停止自动同步定时器
+      this.stopAutoSync()
+
+      // 更新配置，禁用同步
+      await this.updateConfig({
+        enabled: false,
+        autoSync: false
+      })
+
+      console.log('webdavService → WebDAV 同步服务已停用')
+    } catch (error) {
+      console.error('webdavService → 停用 WebDAV 同步服务失败:', error)
+      throw error
+    }
+  }
 }
 
 export const webdavService = new WebDAVService()
