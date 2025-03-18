@@ -11,100 +11,129 @@
       <div class="loading-spinner"></div>
     </div>
     <div v-else class="three-sync-content">
-      <!-- Dinox 服务配置 -->
+      <!-- 收件箱功能开关 -->
       <div class="settings-item">
-        <div class="title">Dinox 服务</div>
-        <div class="description">配置 Dinox API Token，用于同步 Dinox 的笔记到收件箱。</div>
+        <div class="title">收件箱功能</div>
+        <div class="description">
+          开启后可以通过 Dinox 同步笔记到收件箱中进行处理。关闭后侧边栏将不再显示收件箱功能。
+        </div>
         <div class="settings-form">
           <div class="form-item">
-            <div class="label">API Token</div>
+            <div class="label">启用状态</div>
             <div class="value">
-              <input
-                v-model="token"
-                type="password"
-                placeholder="请输入 Dinox API Token"
-                autocomplete="off"
-              />
-            </div>
-          </div>
-          <div class="three-sync-actions">
-            <div
-              class="three-sync-item-button test"
-              :class="{ 'is-loading': isConnecting }"
-              @click="handleTestConnection"
-            >
-              {{ isConnecting ? '测试中...' : '测试连接' }}
-            </div>
-            <div
-              class="three-sync-item-button"
-              :class="{ 'is-loading': isSaving }"
-              @click="handleSaveConfig"
-            >
-              {{ isSaving ? '保存中...' : '保存配置' }}
+              <div class="auto-sync-setting">
+                <Switch
+                  :model-value="dinoxStore.isInboxEnabled"
+                  @update:model-value="dinoxStore.isInboxEnabled = $event"
+                />
+                <div class="switch-description">
+                  {{ dinoxStore.isInboxEnabled ? '收件箱功能已启用' : '收件箱功能已禁用' }}
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- 同步设置 -->
-      <div class="settings-item">
-        <div class="title">同步设置</div>
-        <div class="description">配置自动同步和同步方式，确保数据的安全性和一致性。</div>
-        <div class="settings-form">
-          <div class="form-item">
-            <div class="label">自动同步</div>
-            <div class="value">
-              <div class="auto-sync-setting">
-                <Switch :model-value="Boolean(autoSync)" @update:model-value="autoSync = $event" />
-                <div class="switch-description">
-                  {{ autoSync ? '定时自动同步' : '仅支持手动同步' }}
-                </div>
+      <template v-if="dinoxStore.isInboxEnabled">
+        <!-- Dinox 服务配置 -->
+        <div class="settings-item">
+          <div class="title">Dinox 服务</div>
+          <div class="description">配置 Dinox API Token，用于同步 Dinox 的笔记到收件箱。</div>
+          <div class="settings-form">
+            <div class="form-item">
+              <div class="label">API Token</div>
+              <div class="value">
+                <input
+                  v-model="token"
+                  type="password"
+                  placeholder="请输入 Dinox API Token"
+                  autocomplete="off"
+                />
               </div>
             </div>
-          </div>
-          <div v-if="autoSync" class="form-item">
-            <div class="label">同步间隔</div>
-            <div class="value">
-              <div class="select-wrapper sync-interval-select">
-                <div class="select-trigger" @click="showIntervalSelect = !showIntervalSelect">
-                  <span class="selected-text">{{ getSyncIntervalText(syncInterval) }}</span>
-                  <div class="select-arrow">
-                    <Down v-if="!showIntervalSelect" theme="outline" size="14" :strokeWidth="3" />
-                    <Up v-else theme="outline" size="14" :strokeWidth="3" />
-                  </div>
-                </div>
-                <div v-show="showIntervalSelect" class="select-options">
-                  <div
-                    v-for="interval in syncIntervals"
-                    :key="interval.value"
-                    class="select-option"
-                    :class="{ 'is-active': syncInterval === interval.value }"
-                    @click="selectInterval(interval.value)"
-                  >
-                    {{ interval.label }}
-                  </div>
-                </div>
+            <div class="three-sync-actions">
+              <div
+                class="three-sync-item-button test"
+                :class="{ 'is-loading': isConnecting }"
+                @click="handleTestConnection"
+              >
+                {{ isConnecting ? '测试中...' : '测试连接' }}
               </div>
-            </div>
-          </div>
-          <div class="three-sync-actions">
-            <div
-              class="three-sync-item-button"
-              :class="{ 'is-loading': isSyncing && syncType === 'incremental' }"
-              @click="handleIncrementalSync"
-            >
-              {{ isSyncing && syncType === 'incremental' ? '同步中...' : '增量同步' }}
-            </div>
-            <div
-              class="three-sync-item-button full"
-              :class="{ 'is-loading': isSyncing && syncType === 'full' }"
-              @click="handleFullSync"
-            >
-              {{ isSyncing && syncType === 'full' ? '同步中...' : '全量同步' }}
+              <div
+                class="three-sync-item-button"
+                :class="{ 'is-loading': isSaving }"
+                @click="handleSaveConfig"
+              >
+                {{ isSaving ? '保存中...' : '保存配置' }}
+              </div>
             </div>
           </div>
         </div>
-      </div>
+
+        <!-- 同步设置 -->
+        <div class="settings-item">
+          <div class="title">同步设置</div>
+          <div class="description">配置自动同步和同步方式，确保数据的安全性和一致性。</div>
+          <div class="settings-form">
+            <div class="form-item">
+              <div class="label">自动同步</div>
+              <div class="value">
+                <div class="auto-sync-setting">
+                  <Switch
+                    :model-value="Boolean(autoSync)"
+                    @update:model-value="autoSync = $event"
+                  />
+                  <div class="switch-description">
+                    {{ autoSync ? '定时自动同步' : '仅支持手动同步' }}
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div v-if="autoSync" class="form-item">
+              <div class="label">同步间隔</div>
+              <div class="value">
+                <div class="select-wrapper sync-interval-select">
+                  <div class="select-trigger" @click="showIntervalSelect = !showIntervalSelect">
+                    <span class="selected-text">{{ getSyncIntervalText(syncInterval) }}</span>
+                    <div class="select-arrow">
+                      <Down v-if="!showIntervalSelect" theme="outline" size="14" :strokeWidth="3" />
+                      <Up v-else theme="outline" size="14" :strokeWidth="3" />
+                    </div>
+                  </div>
+                  <div v-show="showIntervalSelect" class="select-options">
+                    <div
+                      v-for="interval in syncIntervals"
+                      :key="interval.value"
+                      class="select-option"
+                      :class="{ 'is-active': syncInterval === interval.value }"
+                      @click="selectInterval(interval.value)"
+                    >
+                      {{ interval.label }}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="three-sync-actions">
+              <div
+                class="three-sync-item-button"
+                :class="{ 'is-loading': isSyncing && syncType === 'incremental' }"
+                @click="handleIncrementalSync"
+              >
+                {{ isSyncing && syncType === 'incremental' ? '同步中...' : '增量同步' }}
+              </div>
+              <div
+                class="three-sync-item-button full"
+                :class="{ 'is-loading': isSyncing && syncType === 'full' }"
+                @click="handleFullSync"
+              >
+                {{ isSyncing && syncType === 'full' ? '同步中...' : '全量同步' }}
+              </div>
+            </div>
+          </div>
+        </div>
+      </template>
     </div>
   </div>
 </template>
@@ -370,7 +399,7 @@ onMounted(async () => {
         }
 
         .label {
-          width: 160px;
+          width: 80px;
           font-size: 14px;
           color: var(--color-text-secondary);
         }

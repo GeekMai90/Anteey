@@ -371,7 +371,8 @@ const {
 const cardTypeClass = computed(() => ({
   maincard: currentNote.value?.cardType === 'Maincard',
   bibcard: currentNote.value?.cardType === 'Bibcard',
-  indexcard: currentNote.value?.cardType === 'Indexcard'
+  indexcard: currentNote.value?.cardType === 'Indexcard',
+  draftcard: currentNote.value?.cardType === 'Draftcard'
   // hoplinkcard: currentNote.value?.cardType === 'Hoplinkcard'
 }))
 
@@ -819,6 +820,13 @@ defineExpose({
           background-color: var(--color-pink);
           &::after {
             color: var(--color-pink);
+          }
+        }
+
+        &.draftcard {
+          background-color: var(--color-draft);
+          &::after {
+            color: var(--color-draft);
           }
         }
 

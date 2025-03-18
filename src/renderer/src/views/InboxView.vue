@@ -8,13 +8,18 @@
           <!-- 左侧标题区域 -->
           <div class="inbox-header-left">
             <div class="icon">
-              <InboxIn theme="outline" size="20" fill="var(--color-primary)" :strokeWidth="3" />
+              <Inbox theme="outline" size="20" fill="var(--color-primary)" :strokeWidth="3" />
             </div>
             <div class="name">收件箱</div>
           </div>
 
           <!-- 右侧功能区 -->
           <div class="inbox-header-right">
+            <!-- Dinox 同步按钮 -->
+            <Button :loading="isSyncing" :height="36" :icon="InboxIn" @click="handleSyncDinox">
+              {{ isSyncing ? '同步中...' : '同步聆龙' }}
+            </Button>
+
             <!-- 多选按钮 -->
             <Button
               :class="{ active: noteStore.isMultiSelectMode }"
@@ -85,16 +90,19 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { useNoteStore } from '@renderer/stores/noteStore'
+import { useDinoxStore } from '@renderer/stores/dinoxStore'
 import AppToolbar from '@renderer/components/layout/AppToolbar.vue'
-import { SortTwo, InboxIn, Checkbox } from '@icon-park/vue-next'
+import { SortTwo, InboxIn, Checkbox, Inbox } from '@icon-park/vue-next'
 import type { Note } from '@shared/types'
 import CardBoxNoteCard from '@renderer/components/cardbox/CardboxNoteCard.vue'
 import { storeToRefs } from 'pinia'
 import { useEventBus, useThrottleFn } from '@vueuse/core'
 import Button from '@renderer/components/ui/Button.vue'
 import BatchOperationToolbar from '@renderer/components/cardbox/BatchOperationToolbar.vue'
+import { message } from '@renderer/utils/message'
 
 const noteStore = useNoteStore()
+const dinoxStore = useDinoxStore()
 const { lastCreatedNote, lastDeletedNote } = storeToRefs(noteStore)
 
 // 状态管理
@@ -104,6 +112,7 @@ const pageSize = ref(28)
 const totalCount = ref(0)
 const hasMoreNotes = ref(true)
 const isLoading = ref(false)
+const isSyncing = ref(false)
 const showSortMenu = ref(false)
 const cardGridContainer = ref<HTMLElement | null>(null)
 const highlightedNoteId = ref<string | null>(null)
@@ -265,6 +274,32 @@ eventBusNoteRestored.on(() => {
 
 eventBusEmptyNotesMovedToTrash.on(() => {
   console.log('InboxView.vue→ 监听到空笔记移到回收站事件')
+  resetAndFetch()
+})
+
+// Dinox 同步
+const handleSyncDinox = async () => {
+  if (isSyncing.value) return
+
+  isSyncing.value = true
+  try {
+    const result = await dinoxStore.syncNotes()
+    message.success(result.message || '同步完成')
+
+    // 同步完成后刷新笔记列表
+    await resetAndFetch()
+  } catch (error) {
+    console.error('同步失败:', error)
+    message.error('同步失败: ' + (error instanceof Error ? error.message : '未知错误'))
+  } finally {
+    isSyncing.value = false
+  }
+}
+
+// 监听同步完成事件
+const syncCompleteBus = useEventBus('dinoxSyncComplete')
+syncCompleteBus.on(() => {
+  console.log('InboxView.vue → 监听到 Dinox 同步完成事件')
   resetAndFetch()
 })
 

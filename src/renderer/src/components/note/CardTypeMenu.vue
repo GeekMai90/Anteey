@@ -58,6 +58,8 @@ const getIcon = (type: CardType) => {
       return ViewList
     case 'Hoplinkcard':
       return Link
+    default:
+      return Notes
   }
 }
 
@@ -71,6 +73,8 @@ const getTypeLabel = (type: CardType) => {
       return '索引卡'
     case 'Hoplinkcard':
       return '跳转卡'
+    default:
+      return '主要卡'
   }
 }
 

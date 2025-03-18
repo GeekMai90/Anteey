@@ -50,6 +50,7 @@
                     v-for="(name, path) in {
                       '/home': '主页',
                       '/timeblock': '时光记',
+                      '/inbox': '收件箱',
                       '/timeline': '笔记流',
                       '/cardbox': '卡片盒',
                       '/knowledge-tree': '知识树',
@@ -205,6 +206,7 @@ const getPageName = (path: string) => {
   const pageMap: Record<string, string> = {
     '/home': '主页',
     '/timeblock': '时光记',
+    '/inbox': '收件箱',
     '/timeline': '笔记流',
     '/cardbox': '卡片盒',
     '/knowledge-tree': '知识树',

@@ -90,7 +90,7 @@
         >
           <StorageCardOne theme="outline" size="14" :fill="flashcardColor" :strokeWidth="3" />
         </div>
-        {{ formatDate(note.updatedAt) }}
+        {{ formatDate(note.createdAt) }}
       </div>
     </div>
   </div>

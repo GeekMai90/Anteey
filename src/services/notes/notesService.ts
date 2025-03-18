@@ -386,22 +386,27 @@ export async function getPaginatedNotes(
   limit: number
 ): Promise<{ notes: Note[]; totalCount: number }> {
   try {
-    const query = db('notes').where('isDeleted', false)
-
     const offset = (page - 1) * limit
-
-    const [notes, countResult] = await Promise.all([
-      query.clone().orderBy('createdAt', 'desc').limit(limit).offset(offset),
-      query.clone().count('* as count').first()
+    const [notes, [{ count }]] = await Promise.all([
+      db('notes')
+        .where('isDeleted', false)
+        .whereNot('cardType', 'Draftcard') // 排除 Draftcard 类型
+        .orderBy('createdAt', 'desc')
+        .limit(limit)
+        .offset(offset),
+      db('notes')
+        .where('isDeleted', false)
+        .whereNot('cardType', 'Draftcard') // 排除 Draftcard 类型
+        .count('* as count')
     ])
 
     return {
-      notes: notes.map(convertToNote),
-      totalCount: countResult ? (countResult.count as number) : 0
+      notes: notes.map((note) => convertToNote(note)),
+      totalCount: Number(count)
     }
   } catch (error) {
-    console.error('后端→ 获取分页笔记失败:', error)
-    throw new Error('后端→ 获取分页笔记失败')
+    console.error('获取分页笔记失败:', error)
+    throw error
   }
 }
 

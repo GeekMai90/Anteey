@@ -183,11 +183,47 @@ async function fetchDinoxNotes(token: string, lastSyncTime: string): Promise<Din
   }
 }
 
-// 添加 Markdown 转换函数
+// 添加类型定义
+interface ListItem {
+  type: string
+  content: Array<{
+    type: string
+    attrs?: Record<string, any>
+    content?: Array<{
+      type: string
+      text: string
+      marks?: Array<{ type: string }>
+    }>
+  }>
+}
+
+interface TaskItem {
+  type: string
+  attrs: {
+    checked: boolean
+  }
+  content: Array<{
+    type: string
+    attrs: {
+      textAlign: string
+    }
+    content: Array<{
+      type: string
+      text: string
+    }>
+  }>
+}
+
+interface TextContent {
+  type: string
+  text: string
+  marks?: Array<{ type: string }>
+}
+
+// 修改函数定义
 function convertMarkdownToContent(markdownContent: string): any[] {
   if (!markdownContent) return []
 
-  // 按行分割内容
   const lines = markdownContent.split('\n')
   const content: any[] = []
 
@@ -204,7 +240,7 @@ function convertMarkdownToContent(markdownContent: string): any[] {
     // 处理标题
     const headingMatch = line.match(/^(#{1,6})\s+(.+)$/)
     if (headingMatch) {
-      const level = headingMatch[1].length // #的数量确定标题级别
+      const level = headingMatch[1].length
       const text = headingMatch[2].trim()
       content.push({
         type: 'heading',
@@ -225,7 +261,7 @@ function convertMarkdownToContent(markdownContent: string): any[] {
 
     // 处理无序列表
     if (line.match(/^\*\s+(.+)$/) && !line.match(/^\*\s+\[[ x]\]/)) {
-      const listItems = []
+      const listItems: ListItem[] = []
 
       while (i < lines.length && lines[i].trim().match(/^\*\s+(.+)$/)) {
         const itemMatch = lines[i].trim().match(/^\*\s+(.+)$/)
@@ -267,7 +303,7 @@ function convertMarkdownToContent(markdownContent: string): any[] {
     // 处理有序列表
     const orderedListMatch = line.match(/^(\d+)\.\s+(.+)$/)
     if (orderedListMatch) {
-      const listItems = []
+      const listItems: ListItem[] = []
       const startNum = parseInt(orderedListMatch[1])
 
       while (i < lines.length && lines[i].trim().match(/^\d+\.\s+(.+)$/)) {
@@ -310,7 +346,7 @@ function convertMarkdownToContent(markdownContent: string): any[] {
 
     // 处理任务列表
     if (line.match(/^\*\s+\[[ x]\]\s+(.+)$/)) {
-      const taskItems = []
+      const taskItems: TaskItem[] = []
 
       while (i < lines.length && lines[i].trim().match(/^\*\s+\[[ x]\]\s+(.+)$/)) {
         const itemMatch = lines[i].trim().match(/^\*\s+\[([x| ])\]\s+(.+)$/)
@@ -369,7 +405,7 @@ function convertMarkdownToContent(markdownContent: string): any[] {
 
     // 处理普通段落（可能包含粗体和斜体）
     const textContent = line
-    const paraContent = []
+    const paraContent: TextContent[] = []
 
     // 处理粗体
     const boldRegex = /\*\*(.*?)\*\*/g
@@ -469,6 +505,29 @@ function convertMarkdownToContent(markdownContent: string): any[] {
   return content
 }
 
+// 解析 Dinox 时间字符串为 Date 对象
+function parseDinoxTime(timeStr: string): Date {
+  // 解析 Dinox 时间格式 "YYYY-MM-DD HH:mm:ss"
+  const [datePart, timePart] = timeStr.split(' ')
+  const [year, month, day] = datePart.split('-').map(Number)
+  const [hours, minutes, seconds] = timePart.split(':').map(Number)
+
+  // 创建一个新的 Date 对象，使用 UTC 时间
+  const date = new Date(Date.UTC(year, month - 1, day, hours, minutes, seconds))
+
+  // 调整为本地时间
+  const localDate = new Date(date.getTime() + date.getTimezoneOffset() * 60000)
+
+  console.log('时间转换:', {
+    input: timeStr,
+    utc: date.toISOString(),
+    local: localDate.toISOString(),
+    timestamp: localDate.getTime()
+  })
+
+  return localDate
+}
+
 // 执行同步
 export async function syncNotes(): Promise<{
   total: number
@@ -500,10 +559,14 @@ export async function syncNotes(): Promise<{
     for (const note of notes) {
       const syncRecord = await getSyncRecord(note.noteId)
 
-      // 如果笔记已经毕业，跳过
-      if (syncRecord?.graduated) {
-        stats.skipped++
-        continue
+      if (syncRecord) {
+        // 检查笔记类型
+        const existingNote = await db('notes').where('id', syncRecord.antinoteId).first()
+        if (existingNote && existingNote.cardType !== 'Draftcard') {
+          // 如果笔记类型不是 Draftcard，说明已经被处理过，跳过同步
+          stats.skipped++
+          continue
+        }
       }
 
       if (note.isDel) {
@@ -514,7 +577,12 @@ export async function syncNotes(): Promise<{
         }
       } else if (!syncRecord) {
         // 处理新笔记 - 使用 createNote 方法创建 Draftcard 类型的笔记
-        const dinoxCreateTime = new Date(note.createTime)
+        const dinoxCreateTime = parseDinoxTime(note.createTime)
+        console.log('解析的时间:', {
+          original: note.createTime,
+          parsed: dinoxCreateTime,
+          timestamp: dinoxCreateTime.getTime()
+        })
         // 生成地址编码：Dinox-YYYYMMDD
         const addressCode = `Dinox-${dinoxCreateTime.getFullYear()}${String(dinoxCreateTime.getMonth() + 1).padStart(2, '0')}${String(dinoxCreateTime.getDate()).padStart(2, '0')}`
 
@@ -569,7 +637,6 @@ export async function syncNotes(): Promise<{
           .update({
             content: JSON.stringify(content),
             metadata: JSON.stringify(metadata),
-            createdAt: dinoxCreateTime,
             updatedAt: new Date()
           })
 
@@ -582,9 +649,8 @@ export async function syncNotes(): Promise<{
         })
 
         stats.added++
-      } else if (!syncRecord.graduated) {
-        // 更新现有的未毕业笔记
-        // 构建笔记内容
+      } else {
+        // 更新现有的 Draftcard 笔记
         const content = {
           type: 'doc',
           content: [

@@ -327,6 +327,7 @@ import {
   Inbox
 } from '@icon-park/vue-next'
 import { useNoteStore } from '@renderer/stores/noteStore'
+import { useDinoxStore } from '@renderer/stores/dinoxStore'
 import SettingDropdownMenu from '@renderer/components/settings/SettingDropdownMenu.vue'
 import StarredNotes from '@renderer/components/layout/StarredNotes.vue'
 import { useUIStore } from '@renderer/stores/UIStore'
@@ -353,6 +354,7 @@ const themeStore = useThemeStore()
 const reviewStore = useReviewStore()
 const cloudSyncStore = useCloudSyncStore()
 const s3Store = useS3Store()
+const dinoxStore = useDinoxStore()
 
 const getIconFill = computed(
   () => (path: string) =>
@@ -387,14 +389,12 @@ const menuItems = computed(() => {
     ...(timeBlockStore.settings.enabled
       ? [{ name: '时光记', path: '/timeblock', icon: Time }]
       : []),
-    // { name: '样式测试', path: '/json-renderer-test', icon: NotebookOne },
+    ...(dinoxStore.isInboxEnabled ? [{ name: '收件箱', path: '/inbox', icon: Inbox }] : []),
     { name: '笔记流', path: '/timeline', icon: NotebookOne },
     { name: '卡片盒', path: '/cardbox', icon: Box },
     { name: '知识树', path: '/knowledge-tree', icon: Sapling },
     { name: '记忆卡', path: '/flashcard', icon: StorageCardOne },
-    { name: '思维板', path: '/mindboard', icon: Workbench },
-    { name: '收件箱', path: '/inbox', icon: Inbox }
-    // { name: 'UI 测试', path: '/ui-test', icon: Workbench }
+    { name: '思维板', path: '/mindboard', icon: Workbench }
   ]
   return baseItems
 })
