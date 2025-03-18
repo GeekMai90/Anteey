@@ -433,6 +433,12 @@ $shadow-card: 0 2px 6px rgba($black, 0.12);
   --color-red-light: #{rgba(#ff4d4f, 0.1)};
   --color-red-dark: #{darken(#ff4d4f, 10%)};
 
+  // 草稿卡片颜色
+  --color-draft: #9c9cff;
+  --color-draft-rgb: 156, 156, 255;
+  --color-draft-light: #{rgba(#9c9cff, 0.1)};
+  --color-draft-dark: #{darken(#9c9cff, 10%)};
+
   // 8. 选中状态颜色系统
   // 系统默认选中色（浅蓝）
   --color-system-selection: rgba(#18a3f1, 0.15); // 保持原有的系统蓝色

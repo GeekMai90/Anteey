@@ -135,6 +135,11 @@ const routes = [
     component: () => import('../components/mindboard/MindboardDetail.vue')
   },
   {
+    name: 'InboxView',
+    path: '/inbox',
+    component: () => import('../views/InboxView.vue')
+  },
+  {
     name: 'UITest',
     path: '/ui-test',
     component: () => import('../components/ui/UITest.vue')

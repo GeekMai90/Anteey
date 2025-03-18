@@ -217,6 +217,8 @@ const cardTypeClass = computed(() => {
       return 'indexcard'
     case 'Hoplinkcard':
       return 'hoplinkcard'
+    case 'Draftcard':
+      return 'draftcard'
     default:
       return ''
   }
@@ -393,6 +395,9 @@ onMounted(async () => {
       &.hoplinkcard {
         background-color: var(--color-pink);
       }
+      &.draftcard {
+        background-color: var(--color-draft);
+      }
     }
     @media (prefers-color-scheme: dark) {
       .note-indicator {
@@ -414,7 +419,10 @@ onMounted(async () => {
         &.hoplinkcard {
           background-color: var(--color-pink);
         }
-        // 稍微亮一点的粉红色
+        // 稍微亮一点的灰色
+        &.draftcard {
+          background-color: var(--color-draft);
+        }
       }
     }
     .note-title {

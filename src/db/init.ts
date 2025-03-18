@@ -1230,6 +1230,52 @@ export async function initDatabase(db: Knex): Promise<void> {
     })
     console.log('s3_sync_history 表创建成功')
   }
+
+  // 创建 dinox_sync_records 表
+  if (!(await db.schema.hasTable('dinox_sync_records'))) {
+    await db.schema.createTable('dinox_sync_records', (table) => {
+      table.string('id').primary()
+      table.string('dinoxNoteId').notNullable().index() // Dinox 的笔记 ID
+      table.string('antinoteId').notNullable().index() // 对应到我们系统中的笔记 ID
+      table.datetime('lastSyncTime').notNullable() // 最后同步时间
+      table.boolean('graduated').notNullable().defaultTo(false) // 是否已经"毕业"（转换为其他类型）
+      table.datetime('createdAt').notNullable()
+      table.datetime('updatedAt').notNullable()
+
+      // 外键约束
+      table.foreign('antinoteId').references('notes.id').onDelete('CASCADE')
+
+      // 索引
+      table.index(['graduated', 'lastSyncTime'])
+    })
+    console.log('dinox_sync_records 表创建成功')
+  }
+
+  // 创建 dinox_sync_config 表
+  if (!(await db.schema.hasTable('dinox_sync_config'))) {
+    await db.schema.createTable('dinox_sync_config', (table) => {
+      table.string('id').primary()
+      table.string('token').notNullable() // Dinox API token
+      table.string('lastSyncTime').notNullable().defaultTo('1900-01-01 00:00:00') // 上次同步时间
+      table.boolean('autoSync').notNullable().defaultTo(false) // 是否自动同步
+      table.integer('autoSyncInterval').notNullable().defaultTo(30) // 自动同步间隔（分钟）
+      table.datetime('createdAt').notNullable()
+      table.datetime('updatedAt').notNullable()
+    })
+
+    // 插入默认配置
+    await db('dinox_sync_config').insert({
+      id: uuidv4(),
+      token: '',
+      lastSyncTime: '1900-01-01 00:00:00',
+      autoSync: false,
+      autoSyncInterval: 30,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    })
+
+    console.log('dinox_sync_config 表创建成功')
+  }
 }
 
 export async function down(db: Knex): Promise<void> {

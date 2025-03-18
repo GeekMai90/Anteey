@@ -6,7 +6,8 @@ import type {
   CreateNoteReferenceParams,
   GetPaginatedNotesParams,
   TimelineQueryParams,
-  TimelineQueryResult
+  TimelineQueryResult,
+  CardType
 } from '@shared/types'
 import { Knex } from 'knex/types'
 import { FilterRule } from '@shared/types'
@@ -440,16 +441,30 @@ async function canCreateNote(): Promise<{ allowed: boolean; message?: string }> 
   }
 }
 
+// 添加创建笔记的参数接口
+interface CreateNoteOptions {
+  cardType?: CardType
+  address?: string
+  createdAt?: Date
+  metadata?: Partial<Note['metadata']>
+}
+
 // 创建笔记、新建笔记
-export async function createNote(): Promise<Note> {
+export async function createNote(
+  options: CreateNoteOptions | CardType = 'Maincard'
+): Promise<Note> {
+  // 处理参数，支持旧的调用方式
+  const opts: CreateNoteOptions = typeof options === 'string' ? { cardType: options } : options
+  const cardType = opts.cardType || 'Maincard'
+
   const id = uuidv4()
   const now = new Date()
 
   const newNote: Note = {
     id,
     type: 'note',
-    address: '',
-    cardType: 'Maincard',
+    address: opts.address || '',
+    cardType,
     content: {
       type: 'doc',
       content: [
@@ -462,7 +477,7 @@ export async function createNote(): Promise<Note> {
         }
       ]
     },
-    createdAt: now,
+    createdAt: opts.createdAt || now,
     updatedAt: now,
 
     // 引用关系
@@ -495,7 +510,8 @@ export async function createNote(): Promise<Note> {
     // 元数据（初始为空）
     metadata: {
       title: '',
-      summary: ''
+      summary: '',
+      ...opts.metadata
     },
 
     // 新增：闪卡相关属性

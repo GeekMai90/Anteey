@@ -323,7 +323,8 @@ import {
   Star,
   Tag,
   Cup,
-  Robot
+  Robot,
+  Inbox
 } from '@icon-park/vue-next'
 import { useNoteStore } from '@renderer/stores/noteStore'
 import SettingDropdownMenu from '@renderer/components/settings/SettingDropdownMenu.vue'
@@ -391,7 +392,8 @@ const menuItems = computed(() => {
     { name: '卡片盒', path: '/cardbox', icon: Box },
     { name: '知识树', path: '/knowledge-tree', icon: Sapling },
     { name: '记忆卡', path: '/flashcard', icon: StorageCardOne },
-    { name: '思维板', path: '/mindboard', icon: Workbench }
+    { name: '思维板', path: '/mindboard', icon: Workbench },
+    { name: '收件箱', path: '/inbox', icon: Inbox }
     // { name: 'UI 测试', path: '/ui-test', icon: Workbench }
   ]
   return baseItems

@@ -2,7 +2,7 @@
 import type { FlashcardData, IconName } from '@shared/types'
 
 // 定义卡片类型
-export type CardType = 'Maincard' | 'Bibcard' | 'Indexcard' | 'Hoplinkcard'
+export type CardType = 'Maincard' | 'Bibcard' | 'Indexcard' | 'Hoplinkcard' | 'Draftcard'
 
 // 批量操作类型
 export type BatchOperationType =
@@ -94,6 +94,9 @@ export interface Note {
     summary?: string
     references?: string[]
     attachments?: string[]
+    // Dinox 相关元数据
+    dinoxNoteId?: string
+    dinoxCreateTime?: string
   }
 
   // 新增：闪卡相关属性

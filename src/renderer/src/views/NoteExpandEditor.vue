@@ -573,7 +573,9 @@ const {
 const cardTypeClass = computed(() => ({
   maincard: currentNote.value?.cardType === 'Maincard',
   bibcard: currentNote.value?.cardType === 'Bibcard',
-  indexcard: currentNote.value?.cardType === 'Indexcard'
+  indexcard: currentNote.value?.cardType === 'Indexcard',
+  hoplinkcard: currentNote.value?.cardType === 'Hoplinkcard',
+  draftcard: currentNote.value?.cardType === 'Draftcard'
 }))
 
 // 处理卡片类型选择和更新
@@ -958,6 +960,12 @@ const percentage = computed(() => tiptapEditor.value?.percentage || 0)
     background-color: var(--color-pink);
     &::after {
       color: var(--color-pink);
+    }
+  }
+  &.draftcard {
+    background-color: var(--color-draft);
+    &::after {
+      color: var(--color-draft);
     }
   }
 

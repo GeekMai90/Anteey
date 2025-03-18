@@ -104,7 +104,10 @@ import type {
   S3SyncHistory,
   S3SyncState,
   CloudSyncConfig,
-  UpdateCloudSyncOptions
+  UpdateCloudSyncOptions,
+
+  // Dinox 相关类型
+  DinoxSyncConfig
 } from '@shared/types'
 
 export interface ElectronAPI {
@@ -856,6 +859,51 @@ export interface ElectronAPI {
     onSyncError: (callback: (data: { message: string; error: string }) => void) => void
     // 移除事件监听
     removeAllListeners: (channel: string) => void
+  }
+
+  // Dinox 同步相关 API
+  dinox: {
+    // 获取同步配置
+    getSyncConfig: () => Promise<DinoxSyncConfig>
+
+    // 更新同步配置
+    updateSyncConfig: (updateData: Partial<DinoxSyncConfig>) => Promise<DinoxSyncConfig>
+
+    // 执行同步
+    syncNotes: () => Promise<{
+      stats: {
+        total: number
+        added: number
+        updated: number
+        deleted: number
+        skipped: number
+      }
+      message: string
+    }>
+
+    // 执行全量同步
+    fullSyncNotes: () => Promise<{
+      stats: {
+        total: number
+        added: number
+        updated: number
+        deleted: number
+        skipped: number
+      }
+      message: string
+    }>
+
+    // 标记笔记为已毕业（转换为其他类型后不再更新）
+    graduateNote: (dinoxNoteId: string) => Promise<void>
+
+    // 重置同步时间（用于全量同步）
+    resetSyncTime: () => Promise<void>
+
+    // 更新自动同步设置
+    updateAutoSync: (params: { autoSync: boolean; autoSyncInterval?: number }) => Promise<{
+      config: DinoxSyncConfig
+      message: string
+    }>
   }
 }
 

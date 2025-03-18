@@ -32,6 +32,7 @@ import { s3Service } from '@services/s3/s3Service'
 import { webdavService } from '@services/webdav/webdavService'
 import { getCurrentConfig } from '@services/cloud/cloudSyncService'
 // import { setupScheduledTasks } from './services/scheduledTasks'
+import { setupDinoxSyncHandlers } from './ipc/dinoxIpcHandlers'
 
 // 加载环境变量
 config({
@@ -660,6 +661,7 @@ app.whenReady().then(async () => {
 
     // 设置 IPC 处理程序
     setupIpcHandlers()
+    setupDinoxSyncHandlers()
 
     app.on('browser-window-created', (_, window) => {
       optimizer.watchWindowShortcuts(window)

@@ -44,6 +44,7 @@
       <LLMSettings v-if="currentMenuItem === 'llm'" />
       <DictionarySettings v-if="currentMenuItem === 'dictionary'" />
       <EditorSettings v-if="currentMenuItem === 'editor'" />
+      <ThreeSyncSettings v-if="currentMenuItem === 'threeSync'" />
     </div>
   </div>
 </template>
@@ -75,7 +76,7 @@ import DictionarySettings from './pages/DictionarySettings.vue'
 import LLMSettings from './pages/LLMSettings.vue'
 import EditorSettings from './pages/EditorSettings.vue'
 import CloudSyncSettings from './pages/CloudSyncSettings.vue'
-
+import ThreeSyncSettings from './pages/ThreeSyncSettings.vue'
 const menuItems = [
   { key: 'appearance', label: '外观', icon: Theme },
   { key: 'timeblock', label: '时光记', icon: Time },
@@ -87,7 +88,8 @@ const menuItems = [
   { key: 'llm', label: '大模型配置', icon: RobotOne },
   { key: 'dictionary', label: '词库管理', icon: BookOne },
   { key: 'editor', label: '编辑器', icon: Edit },
-  { key: 'license', label: '软件激活', icon: CrownThree }
+  { key: 'license', label: '软件激活', icon: CrownThree },
+  { key: 'threeSync', label: '三方同步', icon: CloudStorage }
 ]
 
 const currentMenuItem = ref('appearance')

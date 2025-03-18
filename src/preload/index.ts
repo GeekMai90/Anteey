@@ -29,6 +29,7 @@ import { dictionaryApi } from './api/dictionaryApi'
 import { mindboardApi } from './api/mindboardApi'
 import { s3Api } from './api/s3Api'
 import { cloudSyncApi } from './api/cloudSyncApi'
+import { dinoxApi } from './api/dinoxApi'
 // 添加日志 API
 contextBridge.exposeInMainWorld('electronLog', {
   info: (...args: any[]) => ipcRenderer.send('renderer-log', { level: 'info', args }),
@@ -155,5 +156,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
   cloudSync: {
     ...cloudSyncApi
-  }
+  },
+  dinox: dinoxApi
 })
