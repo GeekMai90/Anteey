@@ -1168,6 +1168,25 @@ export async function initDatabase(db: Knex): Promise<void> {
     console.log('s3_config 表创建成功')
   }
 
+  // 创建 s3_provider_configs 表，用于存储不同提供商的配置
+  if (!(await db.schema.hasTable('s3_provider_configs'))) {
+    await db.schema.createTable('s3_provider_configs', (table) => {
+      table.string('id').primary()
+      table.string('provider').notNullable().index() // aws | aliyun | tencent | custom
+      table.string('region').notNullable()
+      table.string('bucket').notNullable()
+      table.string('accessKeyId').notNullable()
+      table.string('secretAccessKey').notNullable()
+      table.string('endpoint').nullable() // 自定义 S3 兼容服务的端点
+      table.datetime('createdAt').notNullable()
+      table.datetime('updatedAt').notNullable()
+
+      // 添加唯一索引确保每个提供商只有一条配置
+      table.unique(['provider'])
+    })
+    console.log('s3_provider_configs 表创建成功')
+  }
+
   // 创建 s3_sync_history 表
   if (!(await db.schema.hasTable('s3_sync_history'))) {
     await db.schema.createTable('s3_sync_history', (table) => {
@@ -1237,5 +1256,6 @@ export async function down(db: Knex): Promise<void> {
   await db.schema.dropTableIfExists('mindboards')
   await db.schema.dropTableIfExists('s3_sync_history')
   await db.schema.dropTableIfExists('s3_config')
+  await db.schema.dropTableIfExists('s3_provider_configs')
   console.log('所有表已删除')
 }

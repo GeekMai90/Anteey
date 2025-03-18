@@ -82,12 +82,6 @@
                 <input v-model="secretAccessKey" type="password" placeholder="请输入访问密钥" />
               </div>
             </div>
-            <div v-if="provider === 'custom'" class="form-item">
-              <div class="label">终端节点</div>
-              <div class="value">
-                <input v-model="endpoint" type="text" placeholder="请输入自定义终端节点" />
-              </div>
-            </div>
             <div class="s3-actions">
               <div
                 class="s3-item-button test"
@@ -249,7 +243,7 @@ const providers: ProviderOption[] = [
   { value: 'aws', label: 'AWS S3' },
   { value: 'aliyun', label: '阿里云 OSS' },
   { value: 'tencent', label: '腾讯云 COS' },
-  { value: 'custom', label: '自定义' }
+  { value: 'binfenyun', label: '缤纷云 S4' }
 ]
 
 // 添加同步间隔选项的类型
@@ -302,9 +296,12 @@ const tencentRegions: RegionOption[] = [
   { value: 'ap-singapore', label: '新加坡' }
 ]
 
+// 添加缤纷云区域选项
+const binfenyunRegions: RegionOption[] = [{ value: 'cn-east-1', label: '华东区域 (上海)' }]
+
 // 获取区域名称
 const getRegionName = (regionValue: string): string => {
-  const allRegions = [...awsRegions, ...aliyunRegions, ...tencentRegions]
+  const allRegions = [...awsRegions, ...aliyunRegions, ...tencentRegions, ...binfenyunRegions]
   return allRegions.find((r) => r.value === regionValue)?.label || regionValue
 }
 
@@ -317,6 +314,8 @@ const getRegionsByProvider = (providerType: S3Provider): RegionOption[] => {
       return aliyunRegions
     case 'tencent':
       return tencentRegions
+    case 'binfenyun':
+      return binfenyunRegions
     case 'custom':
       return []
   }
@@ -337,8 +336,31 @@ const getSyncIntervalText = (interval: number) => {
   return syncIntervals.find((i) => i.value === interval)?.label || '未知'
 }
 
+// 修改服务提供商选择逻辑
 const selectProvider = (type: S3Provider): void => {
-  provider.value = type
+  // 如果选择了不同的提供商，则尝试加载该提供商的配置
+  if (provider.value !== type) {
+    // 切换到新的提供商
+    provider.value = type
+
+    // 尝试从 store 中获取该提供商的配置
+    if (s3Store.providerConfigs[type]) {
+      const savedConfig = s3Store.providerConfigs[type]
+      region.value = savedConfig.region || ''
+      bucket.value = savedConfig.bucket || ''
+      accessKeyId.value = savedConfig.accessKeyId || ''
+      secretAccessKey.value = savedConfig.secretAccessKey || ''
+      endpoint.value = savedConfig.endpoint || ''
+    } else {
+      // 如果没有保存的配置，则清空表单
+      region.value = ''
+      bucket.value = ''
+      accessKeyId.value = ''
+      secretAccessKey.value = ''
+      endpoint.value = ''
+    }
+  }
+
   showProviderSelect.value = false
 }
 
@@ -350,6 +372,10 @@ const selectInterval = async (value: number) => {
 onMounted(async () => {
   await s3Store.fetchConfig()
   await s3Store.fetchSyncHistory()
+
+  // 获取所有提供商的配置
+  await s3Store.fetchAllProviderConfigs()
+
   if (s3Store.config) {
     provider.value = s3Store.config.provider
     region.value = s3Store.config.region
@@ -393,14 +419,13 @@ async function handleTestConnection() {
         testConfig.endpoint = `https://${bucket.value}.${region.value}.aliyuncs.com`
         break
       case 'tencent':
-        testConfig.endpoint = `https://cos.${region.value}.myqcloud.com`
+        // 腾讯云 COS 的正确端点格式
+        // 我们不设置完整的端点，仅用于参考格式：https://{存储桶名称}.cos.{地域}.myqcloud.com
+        // SDK 会根据 region 和 bucket 自动构建正确的 URL
         break
-      case 'custom':
-        if (!endpoint.value) {
-          message.error('使用自定义服务时必须填写终端节点')
-          return
-        }
-        testConfig.endpoint = endpoint.value
+      case 'binfenyun':
+        // 缤纷云配置，使用真实端点和区域
+        testConfig.endpoint = `https://s3.bitiful.net`
         break
       case 'aws':
         // AWS 不需要手动设置 endpoint
@@ -436,6 +461,9 @@ async function handleTestConnection() {
           case 'AccessDenied':
             errorMessage = '访问被拒绝，请检查权限设置'
             break
+          case 'PathStyleDomainForbidden':
+            errorMessage = '服务不支持路径样式访问，请确认配置是否正确'
+            break
           default:
             errorMessage = `连接失败: ${error.Code}`
         }
@@ -455,6 +483,8 @@ async function handleTestConnection() {
 async function handleSaveConfig() {
   isSaving.value = true
   try {
+    console.log('s3Settings → 开始保存配置')
+
     // 构建配置，使用与测试连接相同的逻辑
     const saveConfig: Partial<S3Config> = {
       provider: provider.value,
@@ -463,6 +493,7 @@ async function handleSaveConfig() {
       accessKeyId: accessKeyId.value,
       secretAccessKey: secretAccessKey.value,
       syncInterval: syncInterval.value,
+      autoSync: autoSync.value, // 保持自动同步设置
       enabled: true // 保存时默认启用
     }
 
@@ -472,25 +503,41 @@ async function handleSaveConfig() {
         saveConfig.endpoint = `https://${bucket.value}.${region.value}.aliyuncs.com`
         break
       case 'tencent':
-        saveConfig.endpoint = `https://cos.${region.value}.myqcloud.com`
+        // 腾讯云 COS 的端点由 SDK 根据 region 和 bucket 自动构建
+        // 参考格式: https://{存储桶名称}.cos.{地域}.myqcloud.com
         break
-      case 'custom':
-        if (!endpoint.value) {
-          message.error('使用自定义服务时必须填写终端节点')
-          return
-        }
-        saveConfig.endpoint = endpoint.value
+      case 'binfenyun':
+        // 缤纷云配置，使用真实端点
+        saveConfig.endpoint = `https://s3.bitiful.net`
         break
       case 'aws':
         // AWS 不需要手动设置 endpoint
         break
     }
 
-    // 保存配置，并指定是否需要重启同步
-    await s3Store.updateConfig(saveConfig, { restartSync: autoSync.value })
-    message.success('配置已保存')
+    // 检查必填字段
+    if (
+      !saveConfig.region ||
+      !saveConfig.bucket ||
+      !saveConfig.accessKeyId ||
+      !saveConfig.secretAccessKey
+    ) {
+      message.error('请填写完整的配置信息')
+      return
+    }
+
+    console.log('s3Settings → 即将调用store.updateConfig方法')
+
+    try {
+      // 保存配置，但不自动重启同步 (restartSync: false)
+      await s3Store.updateConfig(saveConfig, { restartSync: false })
+      message.success('配置已保存，您可以通过"立即同步"按钮手动触发同步')
+    } catch (storeError) {
+      console.error('s3Settings → 调用store.updateConfig失败:', storeError)
+      message.error('保存失败：' + (storeError instanceof Error ? storeError.message : '未知错误'))
+    }
   } catch (error) {
-    console.error('保存配置失败:', error)
+    console.error('s3Settings → 保存配置失败:', error)
     message.error('保存失败：' + (error instanceof Error ? error.message : '未知错误'))
   } finally {
     isSaving.value = false
@@ -504,11 +551,19 @@ async function handleSync() {
     message.success('同步完成，正在刷新...')
     // 同步完成后重新加载历史记录
     await s3Store.fetchSyncHistory()
+
+    // 确保同步状态被重置
+    setTimeout(() => {
+      isSyncing.value = false
+    }, 500)
+
     // 延迟一秒刷新页面，让用户看到成功提示
     setTimeout(() => {
       window.location.reload()
     }, 1000)
-  } finally {
+  } catch (error) {
+    console.error('同步失败:', error)
+    message.error('同步失败: ' + (error instanceof Error ? error.message : '未知错误'))
     isSyncing.value = false
   }
 }

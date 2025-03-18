@@ -1,7 +1,7 @@
 /**
  * S3 服务商类型
  */
-export type S3Provider = 'aws' | 'aliyun' | 'tencent' | 'custom'
+export type S3Provider = 'aws' | 'aliyun' | 'tencent' | 'custom' | 'binfenyun'
 
 /**
  * S3 配置接口

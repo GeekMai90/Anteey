@@ -485,12 +485,31 @@ async function handleS3Sync(type: 'startup' | 'shutdown') {
   try {
     const config = await s3Service.getConfig()
     if (config?.enabled) {
-      log.info(`执行${type === 'startup' ? '启动' : '关闭'}时同步...`)
+      log.info(`准备执行${type === 'startup' ? '启动' : '关闭'}时同步...`)
+
+      // 如果是关闭时同步，先停止自动同步计时器
+      if (type === 'shutdown') {
+        log.info('关闭前停止自动同步计时器')
+        s3Service.stopAutoSync()
+      }
+
+      log.info(`开始${type === 'startup' ? '启动' : '关闭'}时同步操作...`)
+      const startTime = Date.now()
+
+      // 执行同步操作
       await s3Service.sync('auto')
-      log.info(`${type === 'startup' ? '启动' : '关闭'}时同步完成`)
+
+      const duration = Date.now() - startTime
+      log.info(`${type === 'startup' ? '启动' : '关闭'}时同步完成，耗时: ${duration}ms`)
+
+      return true
+    } else {
+      log.info(`S3同步未启用，跳过${type === 'startup' ? '启动' : '关闭'}时同步`)
+      return false
     }
   } catch (error) {
     log.error(`${type === 'startup' ? '启动' : '关闭'}时同步失败:`, error)
+    return false
   }
 }
 
@@ -709,11 +728,34 @@ app.on('window-all-closed', () => {
 })
 
 app.on('before-quit', async (event) => {
+  // 阻止默认的退出行为，确保我们的同步和备份完成
   event.preventDefault()
-  // 应用关闭前执行自动备份和同步
-  await handleAutoBackup()
-  await handleS3Sync('shutdown')
-  app.exit()
+
+  log.info('应用准备退出，执行关闭前操作...')
+
+  try {
+    // 执行自动备份
+    log.info('开始执行关闭前自动备份...')
+    await handleAutoBackup()
+    log.info('关闭前自动备份完成')
+
+    // 执行关闭前同步
+    log.info('开始执行关闭前同步...')
+    const syncResult = await handleS3Sync('shutdown')
+    log.info(`关闭前同步${syncResult ? '成功' : '未执行或失败'}`)
+
+    // 所有关闭前操作完成，安全退出
+    log.info('所有关闭前操作已完成，准备退出应用')
+    setTimeout(() => {
+      app.exit(0)
+    }, 500) // 添加短暂延迟，确保日志被写入
+  } catch (error) {
+    log.error('关闭前操作执行失败:', error)
+    // 即使失败也要退出应用
+    setTimeout(() => {
+      app.exit(1)
+    }, 500)
+  }
 })
 
 // 添加 IPC 处理器

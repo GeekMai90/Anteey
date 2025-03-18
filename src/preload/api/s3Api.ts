@@ -20,8 +20,27 @@ export const s3Api = {
     options?: { restartSync?: boolean }
   ): Promise<S3Config> => {
     try {
-      const result = await ipcRenderer.invoke('update-s3-config', config, options)
-      if (!result.success) throw new Error(result.error)
+      console.log('预加载脚本 → 更新 S3 配置开始:', { config, options })
+      // 添加超时处理
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('更新 S3 配置超时')), 30000) // 30秒超时
+      })
+
+      const resultPromise = ipcRenderer.invoke('update-s3-config', config, options)
+
+      // 使用Promise.race竞争两个Promise，看哪个先完成
+      const result = (await Promise.race([resultPromise, timeoutPromise])) as any
+
+      console.log('预加载脚本 → 更新 S3 配置结果:', result)
+
+      if (!result) {
+        throw new Error('未收到响应')
+      }
+
+      if (!result.success) {
+        throw new Error(result.error || '更新失败，但未返回具体错误')
+      }
+
       return result.config
     } catch (error) {
       console.error('预加载脚本 → 更新 S3 配置失败:', error)
@@ -114,6 +133,18 @@ export const s3Api = {
       if (!result.success) throw new Error(result.error)
     } catch (error) {
       console.error('预加载脚本 → 停止自动同步失败:', error)
+      throw error
+    }
+  },
+
+  // 获取所有 S3 提供商配置
+  getAllProviderConfigs: async (): Promise<Record<string, any>> => {
+    try {
+      const result = await ipcRenderer.invoke('get-all-s3-provider-configs')
+      if (!result.success) throw new Error(result.error)
+      return result.configs
+    } catch (error) {
+      console.error('预加载脚本 → 获取所有 S3 提供商配置失败:', error)
       throw error
     }
   }

@@ -19,11 +19,17 @@ export function setupS3Handlers() {
     'update-s3-config',
     async (_event, config: Partial<S3Config>, options?: { restartSync?: boolean }) => {
       try {
+        console.log('主进程 → 更新 S3 配置:', { config, options })
         const updatedConfig = await s3Service.updateConfig(config, options)
+        console.log('主进程 → 更新 S3 配置完成，返回:', { success: true })
         return { success: true, config: updatedConfig }
       } catch (error) {
         console.error('主进程→ 更新 S3 配置失败:', error)
-        return { success: false, error: String(error) }
+        // 始终要返回结果，即使是错误
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : String(error)
+        }
       }
     }
   )
@@ -109,6 +115,17 @@ export function setupS3Handlers() {
       return { success: true }
     } catch (error) {
       console.error('主进程→ 停止自动同步失败:', error)
+      return { success: false, error: String(error) }
+    }
+  })
+
+  // 添加 获取所有提供商配置 的处理程序
+  ipcMain.handle('get-all-s3-provider-configs', async () => {
+    try {
+      const allConfigs = await s3Service.getAllProviderConfigs()
+      return { success: true, configs: allConfigs }
+    } catch (error) {
+      console.error('主进程→ 获取所有 S3 提供商配置失败:', error)
       return { success: false, error: String(error) }
     }
   })

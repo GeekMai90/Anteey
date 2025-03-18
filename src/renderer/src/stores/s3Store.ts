@@ -11,6 +11,7 @@ export const useS3Store = defineStore('s3', () => {
   const isConfigModalOpen = ref(false)
   const isConnecting = ref(false)
   const isSyncing = ref(false)
+  const providerConfigs = ref<Record<string, any>>({})
 
   // ==================== 操作方法 ====================
   // 获取 S3 配置
@@ -31,14 +32,38 @@ export const useS3Store = defineStore('s3', () => {
     options: { restartSync?: boolean } = {}
   ) => {
     try {
-      const updatedConfig = await window.electronAPI.s3.updateConfig(configData, options)
-      config.value = updatedConfig
-      // 发送配置更新事件
+      console.log('s3Store → 开始更新S3配置:', { configData, options })
+
+      // 通知UI状态发生变化
       const s3ConfigEventBus = useEventBus('s3ConfigChange')
-      s3ConfigEventBus.emit()
+      s3ConfigEventBus.emit('updating')
+
+      // 确保options是可选的，并默认不重启同步
+      const finalOptions = {
+        restartSync: false,
+        ...(options || {})
+      }
+
+      console.log('s3Store → 传递选项:', finalOptions)
+
+      // 添加超时处理
+      const startTime = Date.now()
+
+      const updatedConfig = await window.electronAPI.s3.updateConfig(configData, finalOptions)
+
+      console.log('s3Store → 更新S3配置成功, 耗时:', Date.now() - startTime, 'ms')
+      config.value = updatedConfig
+
+      // 发送配置更新成功事件
+      s3ConfigEventBus.emit('updated')
+
       return updatedConfig
     } catch (error) {
-      console.error('更新 S3 配置失败:', error)
+      console.error('s3Store → 更新 S3 配置失败:', error)
+      // 发送配置更新失败事件
+      const s3ConfigEventBus = useEventBus('s3ConfigChange')
+      s3ConfigEventBus.emit('error', error)
+
       throw error
     }
   }
@@ -143,6 +168,20 @@ export const useS3Store = defineStore('s3', () => {
     }
   })
 
+  // 获取所有提供商的配置
+  const fetchAllProviderConfigs = async () => {
+    try {
+      const allConfigs = await window.electronAPI.s3.getAllProviderConfigs()
+      // 保存到 store 中并持久化到 localStorage
+      providerConfigs.value = allConfigs
+      localStorage.setItem('s3ProviderConfigs', JSON.stringify(allConfigs))
+      return allConfigs
+    } catch (error) {
+      console.error('获取所有提供商配置失败:', error)
+      throw error
+    }
+  }
+
   return {
     // 状态
     config,
@@ -151,6 +190,7 @@ export const useS3Store = defineStore('s3', () => {
     isConfigModalOpen,
     isConnecting,
     isSyncing,
+    providerConfigs,
 
     // 方法
     fetchConfig,
@@ -164,6 +204,7 @@ export const useS3Store = defineStore('s3', () => {
     stopAutoSync,
     openConfigModal,
     closeConfigModal,
-    autoSync
+    autoSync,
+    fetchAllProviderConfigs
   }
 })

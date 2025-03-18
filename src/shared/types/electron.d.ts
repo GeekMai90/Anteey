@@ -834,6 +834,8 @@ export interface ElectronAPI {
     startAutoSync: () => Promise<void>
     // 停止自动同步
     stopAutoSync: () => Promise<void>
+    // 获取所有提供商配置
+    getAllProviderConfigs: () => Promise<Record<string, any>>
   }
 }
 

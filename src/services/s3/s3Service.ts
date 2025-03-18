@@ -40,6 +40,7 @@ export class S3Service extends EventEmitter {
   private lastDbAccessTime: number = 0
   private dbIdleCheckTimer: NodeJS.Timeout | null = null
   private dbBusyCount: number = 0
+  private isSyncing: boolean = false // 添加同步状态标志
 
   constructor() {
     super()
@@ -111,50 +112,172 @@ export class S3Service extends EventEmitter {
     }
   }
 
+  // 获取所有提供商的配置
+  async getAllProviderConfigs(): Promise<Record<string, any>> {
+    try {
+      // 获取所有提供商的配置
+      const configs = await db('s3_provider_configs').select('*')
+
+      // 转换为 { [provider]: config } 格式
+      const result: Record<string, any> = {}
+
+      configs.forEach((config) => {
+        result[config.provider] = {
+          ...config,
+          secretAccessKey: decrypt(config.secretAccessKey)
+        }
+      })
+
+      // 添加当前活动的配置
+      const currentConfig = await this.getConfig()
+      if (currentConfig) {
+        result[currentConfig.provider] = {
+          ...currentConfig
+        }
+      }
+
+      return result
+    } catch (error) {
+      console.error('获取所有提供商配置失败:', error)
+      return {}
+    }
+  }
+
   // 更新配置
   async updateConfig(
     config: Partial<S3Config>,
     options: { restartSync?: boolean } = {}
   ): Promise<S3Config> {
-    const id = config.id || uuidv4()
-    const now = new Date()
+    try {
+      // 设置默认选项
+      const finalOptions = {
+        restartSync: false,
+        ...(options || {})
+      }
 
-    // 先获取现有配置
-    const existingConfig = await db('s3_config').first()
+      console.log('s3Service → 开始更新配置:', { config, options: finalOptions })
 
-    const updateData = {
-      ...(existingConfig || {}),
-      ...config,
-      id,
-      updatedAt: now,
-      enabled: config.enabled ?? existingConfig?.enabled ?? false,
-      provider: config.provider || existingConfig?.provider || 'aws',
-      syncInterval: config.syncInterval ?? existingConfig?.syncInterval ?? 15,
-      autoSync: config.autoSync ?? existingConfig?.autoSync ?? false,
-      syncDirection: config.syncDirection || existingConfig?.syncDirection || 'bidirectional',
-      syncFileTypes: config.syncFileTypes
-        ? JSON.stringify(config.syncFileTypes)
-        : existingConfig?.syncFileTypes || JSON.stringify(['all']),
-      secretAccessKey: config.secretAccessKey
-        ? encrypt(config.secretAccessKey)
-        : existingConfig?.secretAccessKey
+      const id = config.id || uuidv4()
+      const now = new Date()
+
+      // 先获取现有配置
+      const existingConfig = await db('s3_config').first()
+      console.log('s3Service → 获取到现有配置:', { existingConfig: !!existingConfig })
+
+      // 如果提供商发生了变化，我们需要保存当前提供商的配置
+      if (existingConfig && existingConfig.provider) {
+        try {
+          // 检查是否已有该提供商的配置
+          const providerConfig = await db('s3_provider_configs')
+            .where('provider', existingConfig.provider)
+            .first()
+
+          // 保存当前的配置到提供商特定的表中
+          const providerData = {
+            id: providerConfig?.id || uuidv4(),
+            provider: existingConfig.provider,
+            region: existingConfig.region,
+            bucket: existingConfig.bucket,
+            accessKeyId: existingConfig.accessKeyId,
+            secretAccessKey: existingConfig.secretAccessKey,
+            endpoint: existingConfig.endpoint,
+            updatedAt: now,
+            createdAt: providerConfig?.createdAt || now
+          }
+
+          if (providerConfig) {
+            await db('s3_provider_configs').where('id', providerConfig.id).update(providerData)
+          } else {
+            await db('s3_provider_configs').insert(providerData)
+          }
+          console.log('s3Service → 已保存现有提供商配置')
+        } catch (providerError) {
+          console.error('s3Service → 保存提供商配置失败:', providerError)
+          // 继续执行，不要因为这个错误中断整个过程
+        }
+      }
+
+      // 如果新的提供商有保存的配置，则加载它
+      if (config.provider && config.provider !== existingConfig?.provider) {
+        try {
+          const newProviderConfig = await db('s3_provider_configs')
+            .where('provider', config.provider)
+            .first()
+
+          if (newProviderConfig) {
+            // 将保存的提供商配置合并到当前配置中
+            config = {
+              ...config,
+              region: config.region || newProviderConfig.region,
+              bucket: config.bucket || newProviderConfig.bucket,
+              accessKeyId: config.accessKeyId || newProviderConfig.accessKeyId,
+              secretAccessKey: config.secretAccessKey || decrypt(newProviderConfig.secretAccessKey),
+              endpoint: config.endpoint || newProviderConfig.endpoint
+            }
+            console.log('s3Service → 已加载新提供商的配置')
+          }
+        } catch (newProviderError) {
+          console.error('s3Service → 加载新提供商配置失败:', newProviderError)
+          // 继续执行，不要因为这个错误中断整个过程
+        }
+      }
+
+      const updateData = {
+        ...(existingConfig || {}),
+        ...config,
+        id,
+        updatedAt: now,
+        enabled: config.enabled ?? existingConfig?.enabled ?? false,
+        provider: config.provider || existingConfig?.provider || 'aws',
+        syncInterval: config.syncInterval ?? existingConfig?.syncInterval ?? 15,
+        autoSync: config.autoSync ?? existingConfig?.autoSync ?? false,
+        syncDirection: config.syncDirection || existingConfig?.syncDirection || 'bidirectional',
+        syncFileTypes: config.syncFileTypes
+          ? JSON.stringify(config.syncFileTypes)
+          : existingConfig?.syncFileTypes || JSON.stringify(['all']),
+        secretAccessKey: config.secretAccessKey
+          ? encrypt(config.secretAccessKey)
+          : existingConfig?.secretAccessKey
+      }
+
+      try {
+        if (existingConfig) {
+          await db('s3_config').update(updateData)
+          console.log('s3Service → 已更新配置')
+        } else {
+          await db('s3_config').insert({
+            ...updateData,
+            createdAt: now
+          })
+          console.log('s3Service → 已创建新配置')
+        }
+      } catch (dbError) {
+        console.error('s3Service → 数据库操作失败:', dbError)
+        throw new Error(
+          `数据库操作失败: ${dbError instanceof Error ? dbError.message : String(dbError)}`
+        )
+      }
+
+      // 只有在明确指定时才重启自动同步
+      if (finalOptions.restartSync === true) {
+        try {
+          console.log('s3Service → 重启自动同步')
+          await this.startAutoSync()
+        } catch (syncError) {
+          console.error('s3Service → 重启自动同步失败:', syncError)
+          // 不要因为自动同步失败而中断整个过程
+        }
+      } else {
+        console.log('s3Service → 跳过重启自动同步')
+      }
+
+      const finalConfig = await this.getConfig()
+      console.log('s3Service → 配置更新完成')
+      return finalConfig as S3Config
+    } catch (error) {
+      console.error('s3Service → 更新配置发生异常:', error)
+      throw error
     }
-
-    if (existingConfig) {
-      await db('s3_config').update(updateData)
-    } else {
-      await db('s3_config').insert({
-        ...updateData,
-        createdAt: now
-      })
-    }
-
-    // 只有在需要时才重启自动同步
-    if (options.restartSync) {
-      await this.startAutoSync()
-    }
-
-    return this.getConfig() as Promise<S3Config>
   }
 
   // 测试连接
@@ -221,7 +344,24 @@ export class S3Service extends EventEmitter {
 
   // 同步方法
   async sync(type: 'auto' | 'manual' = 'manual'): Promise<void> {
+    // 如果已经在同步中，则返回
+    if (this.isSyncing) {
+      console.log('s3Service → 已有同步正在进行，忽略本次同步请求')
+      return
+    }
+
+    this.isSyncing = true // 设置同步状态为进行中
+    const syncStartTime = Date.now()
+    console.log(`s3Service → 开始${type}同步，时间: ${new Date().toISOString()}`)
+
     try {
+      // 开始同步时先停止自动同步定时器，避免在执行过程中被重复触发
+      if (this.autoSyncTimer) {
+        console.log('s3Service → 暂停自动同步定时器，等待当前同步完成')
+        clearInterval(this.autoSyncTimer)
+        this.autoSyncTimer = null
+      }
+
       this.updateState({
         status: 'syncing',
         progress: 0,
@@ -231,6 +371,7 @@ export class S3Service extends EventEmitter {
 
       // 等待数据库空闲
       await this.isDatabaseIdle()
+      console.log('s3Service → 数据库空闲，开始同步操作')
 
       this.updateState({
         status: 'syncing',
@@ -241,33 +382,68 @@ export class S3Service extends EventEmitter {
 
       // 原有的同步逻辑
       await this.getClient()
+      console.log('s3Service → S3客户端已创建，检查远程目录')
+
       this.updateState({ status: 'syncing', progress: 10, message: '检查远程目录...' })
 
       const isFirstSync = !(await db('s3_sync_history').first())
       const remoteExists = await this.checkRemoteExists('antinet/antinet.sqlite')
+      console.log(
+        `s3Service → 远程文件检查结果: 首次同步=${isFirstSync}, 远程文件存在=${remoteExists}`
+      )
 
       if (isFirstSync && remoteExists) {
         const shouldUseRemote = await this.confirmUseRemoteData()
+        console.log(`s3Service → 用户选择: 使用远程数据=${shouldUseRemote}`)
+
         if (shouldUseRemote) {
           this.updateState({ status: 'syncing', progress: 30, message: '下载数据库...' })
+          console.log('s3Service → 开始下载远程数据库')
           await this.downloadDatabase()
+
           this.updateState({ status: 'syncing', progress: 60, message: '下载图片...' })
+          console.log('s3Service → 开始下载远程图片')
           await this.downloadImages()
+
           this.updateState({ status: 'completed', progress: 100, message: '同步完成' })
+          console.log('s3Service → 首次同步完成，使用远程数据')
           await this.addSyncHistory(type, 'success')
+
+          // 如果是自动同步模式，同步完成后恢复定时器
+          if (type === 'auto') {
+            await this.resumeAutoSyncTimer()
+          }
+
+          const totalTime = Date.now() - syncStartTime
+          console.log(`s3Service → ${type}同步完成，总耗时: ${totalTime}ms`)
           return
         }
       }
 
       this.updateState({ status: 'syncing', progress: 30, message: '同步数据库...' })
+      console.log('s3Service → 开始同步数据库文件')
       await this.syncDatabase()
+
       this.updateState({ status: 'syncing', progress: 60, message: '同步图片...' })
+      console.log('s3Service → 开始同步图片文件')
       await this.syncImages()
 
+      // 确保同步完成状态被正确设置
       this.updateState({ status: 'completed', progress: 100, message: '同步完成' })
+      console.log('s3Service → 所有文件同步完成')
       await this.addSyncHistory(type, 'success')
+
+      // 如果是自动同步模式，同步完成后恢复定时器
+      if (type === 'auto') {
+        await this.resumeAutoSyncTimer()
+      }
+
+      const totalTime = Date.now() - syncStartTime
+      console.log(`s3Service → ${type}同步完成，总耗时: ${totalTime}ms`)
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : String(error)
+      console.error(`s3Service → 同步失败: ${errorMessage}`, error)
+
       this.updateState({
         status: 'error',
         error: errorMessage,
@@ -282,6 +458,12 @@ export class S3Service extends EventEmitter {
         clearTimeout(this.dbIdleCheckTimer)
         this.dbIdleCheckTimer = null
       }
+
+      const totalTime = Date.now() - syncStartTime
+      console.log(
+        `s3Service → ${type}同步${this.syncState.status === 'error' ? '失败' : '完成'}，总耗时: ${totalTime}ms`
+      )
+      this.isSyncing = false // 重置同步状态
     }
   }
 
@@ -435,13 +617,16 @@ export class S3Service extends EventEmitter {
       clientConfig.endpoint = `https://${config.region}.aliyuncs.com`
       clientConfig.forcePathStyle = false // 阿里云 OSS 使用虚拟主机样式
     } else if (config.provider === 'tencent') {
-      // 腾讯云 COS 的 endpoint 格式
+      // 腾讯云 COS 的正确端点格式
+      // 不需要在这里指定完整域名，SDK 会自动处理
       clientConfig.endpoint = `https://cos.${config.region}.myqcloud.com`
-      clientConfig.forcePathStyle = true
-    } else if (config.endpoint) {
-      // 自定义 endpoint
-      clientConfig.endpoint = config.endpoint
-      clientConfig.forcePathStyle = true
+      clientConfig.forcePathStyle = false // 腾讯云 COS 必须使用虚拟主机样式
+    } else if (config.provider === 'binfenyun') {
+      // 缤纷云 S3 服务，使用固定端点
+      clientConfig.endpoint = `https://s3.bitiful.net`
+      clientConfig.forcePathStyle = true // 使用路径样式访问
+      // 缤纷云只有一个区域
+      clientConfig.region = 'cn-east-1'
     }
 
     return new S3Client(clientConfig)
@@ -697,15 +882,15 @@ export class S3Service extends EventEmitter {
 
       // 获取同步间隔（分钟）
       const interval = config.syncInterval || 15
-      console.log('启动自动同步，间隔：', interval, '分钟')
+      console.log(`启动自动同步，间隔：${interval}分钟，原始值：${config.syncInterval}`)
 
       // 立即执行一次同步
       console.log('执行首次同步...')
       await this.sync('auto')
 
       // 设置新的定时器（转换为毫秒）
-      const intervalMs = interval < 1 ? interval * 60 * 1000 : interval * 60 * 1000 // 支持小于1分钟的间隔
-      console.log('设置定时器，间隔（毫秒）：', intervalMs)
+      const intervalMs = interval * 60 * 1000 // 直接转换为毫秒，确保使用正确的间隔值
+      console.log(`设置定时器，间隔（毫秒）：${intervalMs}`)
 
       this.autoSyncTimer = setInterval(async () => {
         try {
@@ -716,7 +901,7 @@ export class S3Service extends EventEmitter {
             return
           }
 
-          console.log('执行定时同步...')
+          console.log(`执行定时同步...当前时间: ${new Date().toISOString()}`)
           await this.sync('auto')
         } catch (error) {
           console.error('自动同步失败:', error)
@@ -760,6 +945,47 @@ export class S3Service extends EventEmitter {
       }
     } catch (error) {
       console.error('初始化自动同步失败:', error)
+    }
+  }
+
+  // 恢复自动同步定时器
+  private async resumeAutoSyncTimer(): Promise<void> {
+    try {
+      const config = await this.getConfig()
+      if (config?.autoSync) {
+        // 获取同步间隔（分钟）
+        const interval = config.syncInterval || 15
+        console.log(
+          `s3Service → 恢复自动同步定时器，间隔：${interval}分钟，原始值：${config.syncInterval}`
+        )
+
+        // 设置新的定时器（转换为毫秒）
+        const intervalMs = interval * 60 * 1000 // 直接转换分钟为毫秒，确保使用正确的间隔
+        console.log(`s3Service → 设置定时器间隔为${intervalMs}毫秒`)
+
+        this.autoSyncTimer = setInterval(async () => {
+          try {
+            const currentConfig = await this.getConfig()
+            if (!currentConfig?.autoSync) {
+              console.log('自动同步已禁用，停止定时器')
+              this.stopAutoSync()
+              return
+            }
+
+            console.log(`执行定时同步...当前时间: ${new Date().toISOString()}`)
+            await this.sync('auto')
+          } catch (error) {
+            console.error('自动同步失败:', error)
+          }
+        }, intervalMs)
+
+        // 保持定时器引用
+        if (this.autoSyncTimer?.unref) {
+          this.autoSyncTimer.unref()
+        }
+      }
+    } catch (error) {
+      console.error('恢复自动同步定时器失败:', error)
     }
   }
 }
