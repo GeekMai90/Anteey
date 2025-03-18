@@ -72,12 +72,6 @@ export class S3Service extends EventEmitter {
   /** 自动同步定时器 */
   private autoSyncTimer: NodeJS.Timeout | null = null
 
-  /** 数据库空闲检查间隔（毫秒） */
-  private readonly DB_IDLE_CHECK_INTERVAL = 1000
-
-  /** 数据库空闲超时时间（毫秒） */
-  private readonly DB_IDLE_TIMEOUT = 3000
-
   /** 最后数据库访问时间 */
   private lastDbAccessTime: number = 0
 

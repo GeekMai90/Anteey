@@ -121,6 +121,7 @@ import {
 import type { Editor } from '@tiptap/core'
 import type { EditorState } from '@tiptap/pm/state'
 import type { EditorView } from '@tiptap/pm/view'
+import type { Node as ProseMirrorNode } from '@tiptap/pm/model'
 
 const props = defineProps<{
   editor: Editor
@@ -185,7 +186,7 @@ const distributeColumnWidths = () => {
   const { $anchor } = selection
 
   // 查找表格节点
-  let tableNode = null
+  let tableNode: ProseMirrorNode | null = null
   let depth = $anchor.depth
 
   while (depth > 0) {
@@ -230,7 +231,7 @@ const distributeColumnWidths = () => {
   console.log('可用宽度:', availableWidth)
 
   // 添加对 firstChild 的空值检查
-  const firstRow = tableNode.firstChild
+  const firstRow = tableNode.firstChild as ProseMirrorNode | null
   if (!firstRow) {
     console.log('未找到第一行')
     return
@@ -248,8 +249,8 @@ const distributeColumnWidths = () => {
     const tr = props.editor.state.tr
 
     // 遍历表格的所有行和单元格，为每个单元格设置 colwidth 属性
-    tableNode.content.forEach((row) => {
-      row.content.forEach((cell) => {
+    ;(tableNode.content as any).forEach((row: ProseMirrorNode) => {
+      ;(row.content as any).forEach((cell: ProseMirrorNode) => {
         // 获取单元格的位置
         let cellPos = 0
         let found = false
