@@ -99,7 +99,10 @@ export async function moveEmptyNotesToTrash(): Promise<void> {
 // 从所有笔记中随机选择三个笔记
 export async function getRandomNotes(): Promise<Note[]> {
   try {
-    const notes = await db('notes').where('isDeleted', false).orderBy('createdAt', 'desc')
+    const notes = await db('notes')
+      .where('isDeleted', false)
+      .where('cardType', 'Maincard')
+      .orderBy('createdAt', 'desc')
     const randomNotes = notes.sort(() => Math.random() - 0.5).slice(0, 3)
     return randomNotes.map(convertToNote)
   } catch (error) {

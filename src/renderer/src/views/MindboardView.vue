@@ -508,13 +508,13 @@ onUnmounted(() => {
 <style lang="scss" scoped>
 .mindboard-view {
   height: 100vh;
-  background-color: #ffffff;
+  // background-color: #ffffff;
   display: flex;
   flex-direction: column;
 
   .header {
     padding: 16px 24px;
-    background: #ffffff;
+    // background: #ffffff;
     border-bottom: 1px solid #e9ecef;
     display: flex;
     justify-content: space-between;

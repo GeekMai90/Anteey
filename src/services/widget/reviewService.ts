@@ -8,6 +8,7 @@ export async function getRandomReviewNotes(): Promise<Note[]> {
     // 1. 从数据库中随机选择3条未删除的笔记
     const notes = await db('notes')
       .where('isDeleted', false)
+      .where('cardType', 'Maincard') // 只获取 Maincard 类型的卡片
       .orderByRaw('RANDOM()') // 随机排序
       .limit(3)
       .select('*')
@@ -45,6 +46,7 @@ export async function getOneRandomNote(): Promise<Note | null> {
     // 从数据库中随机选择1条未删除的笔记
     const note = await db('notes')
       .where('isDeleted', false)
+      .where('cardType', 'Maincard') // 只获取 Maincard 类型的卡片
       .orderByRaw('RANDOM()') // 随机排序
       .limit(1)
       .first()
