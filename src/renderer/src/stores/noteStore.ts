@@ -547,6 +547,19 @@ export const useNoteStore = defineStore(
         throw error
       }
     }
+    // 获取草稿笔记
+    const fetchDraftNotes = async (page: number, limit: number) => {
+      try {
+        const { notes: fetchedNotes, totalCount } = await window.electronAPI.note.getDraftNotes(
+          page,
+          limit
+        )
+        return { notes: fetchedNotes, totalCount }
+      } catch (error) {
+        console.error('获取草稿笔记失败:', error)
+        throw error
+      }
+    }
     //获取某一天的笔记
     const fetchNotesByOneDate = async (date: string) => {
       console.log('noteStores.ts→ 开始获取某一天的笔记', date)
@@ -1672,7 +1685,10 @@ export const useNoteStore = defineStore(
       isNoteSelected,
 
       // 批量软删除笔记
-      batchSoftDeleteNotes
+      batchSoftDeleteNotes,
+
+      // 获取草稿笔记
+      fetchDraftNotes
     }
   },
   {

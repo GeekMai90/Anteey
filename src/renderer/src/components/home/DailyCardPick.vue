@@ -236,7 +236,6 @@ h3 {
 }
 .selected-card-container {
   width: 500px;
-  background-color: #fff;
   border-radius: 8px;
   box-shadow: 0 4px 15px rgba(120, 153, 224, 0.3);
   /* padding: 20px; */

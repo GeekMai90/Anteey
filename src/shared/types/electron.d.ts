@@ -203,6 +203,8 @@ export interface ElectronAPI {
     batchMoveNotesToCardBox: (noteIds: string[], cardBoxId: string | null) => Promise<Note[]>
     // 批量软删除笔记
     batchSoftDeleteNotes: (noteIds: string[]) => Promise<Note[]>
+    // 获取草稿笔记
+    getDraftNotes: (page: number, limit: number) => Promise<{ notes: Note[]; totalCount: number }>
   }
 
   systemMenu: {

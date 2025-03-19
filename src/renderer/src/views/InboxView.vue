@@ -175,16 +175,7 @@ const fetchNotes = async () => {
 
   isLoading.value = true
   try {
-    // 构造参数，只获取 Draft 类型的笔记
-    const params = {
-      page: currentPage.value,
-      limit: pageSize.value,
-      cardTypes: ['Draftcard'], // 修改为 Draftcard
-      sortBy: sortState.value.field,
-      sortOrder: sortState.value.order
-    }
-
-    const result = await noteStore.fetchPaginatedNotesByCardbox(params)
+    const result = await noteStore.fetchDraftNotes(currentPage.value, pageSize.value)
     if (result) {
       await nextTick(() => {
         if (currentPage.value === 1) {
@@ -199,7 +190,7 @@ const fetchNotes = async () => {
       currentPage.value++
     }
   } catch (error) {
-    console.error('获取收件箱笔记失败:', error)
+    console.error('获取草稿笔记失败:', error)
   } finally {
     isLoading.value = false
   }

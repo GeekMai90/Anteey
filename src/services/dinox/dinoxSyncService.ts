@@ -267,6 +267,54 @@ function convertMarkdownToContent(markdownContent: string): any[] {
         const itemMatch = lines[i].trim().match(/^\*\s+(.+)$/)
         if (itemMatch) {
           const text = itemMatch[1].trim()
+          // 检查是否包含加粗文本
+          const boldRegex = /\*\*(.*?)\*\*/g
+          const paraContent: TextContent[] = []
+          let lastIndex = 0
+          let boldMatch
+
+          // 检查是否有粗体文本
+          const hasBold = boldRegex.test(text)
+          // 重置正则表达式
+          boldRegex.lastIndex = 0
+
+          if (hasBold) {
+            while ((boldMatch = boldRegex.exec(text)) !== null) {
+              // 添加粗体前的普通文本
+              if (boldMatch.index > lastIndex) {
+                const beforeText = text.substring(lastIndex, boldMatch.index)
+                if (beforeText) {
+                  paraContent.push({
+                    type: 'text',
+                    text: beforeText
+                  })
+                }
+              }
+
+              // 添加粗体文本
+              paraContent.push({
+                type: 'text',
+                text: boldMatch[1],
+                marks: [{ type: 'bold' }]
+              })
+
+              lastIndex = boldMatch.index + boldMatch[0].length
+            }
+
+            // 添加最后一个粗体后的文本
+            if (lastIndex < text.length) {
+              paraContent.push({
+                type: 'text',
+                text: text.substring(lastIndex)
+              })
+            }
+          } else {
+            paraContent.push({
+              type: 'text',
+              text
+            })
+          }
+
           listItems.push({
             type: 'listItem',
             content: [
@@ -275,12 +323,7 @@ function convertMarkdownToContent(markdownContent: string): any[] {
                 attrs: {
                   textAlign: 'left'
                 },
-                content: [
-                  {
-                    type: 'text',
-                    text
-                  }
-                ]
+                content: paraContent
               }
             ]
           })
@@ -310,6 +353,54 @@ function convertMarkdownToContent(markdownContent: string): any[] {
         const itemMatch = lines[i].trim().match(/^\d+\.\s+(.+)$/)
         if (itemMatch) {
           const text = itemMatch[1].trim()
+          // 检查是否包含加粗文本
+          const boldRegex = /\*\*(.*?)\*\*/g
+          const paraContent: TextContent[] = []
+          let lastIndex = 0
+          let boldMatch
+
+          // 检查是否有粗体文本
+          const hasBold = boldRegex.test(text)
+          // 重置正则表达式
+          boldRegex.lastIndex = 0
+
+          if (hasBold) {
+            while ((boldMatch = boldRegex.exec(text)) !== null) {
+              // 添加粗体前的普通文本
+              if (boldMatch.index > lastIndex) {
+                const beforeText = text.substring(lastIndex, boldMatch.index)
+                if (beforeText) {
+                  paraContent.push({
+                    type: 'text',
+                    text: beforeText
+                  })
+                }
+              }
+
+              // 添加粗体文本
+              paraContent.push({
+                type: 'text',
+                text: boldMatch[1],
+                marks: [{ type: 'bold' }]
+              })
+
+              lastIndex = boldMatch.index + boldMatch[0].length
+            }
+
+            // 添加最后一个粗体后的文本
+            if (lastIndex < text.length) {
+              paraContent.push({
+                type: 'text',
+                text: text.substring(lastIndex)
+              })
+            }
+          } else {
+            paraContent.push({
+              type: 'text',
+              text
+            })
+          }
+
           listItems.push({
             type: 'listItem',
             content: [
@@ -318,12 +409,7 @@ function convertMarkdownToContent(markdownContent: string): any[] {
                 attrs: {
                   textAlign: 'left'
                 },
-                content: [
-                  {
-                    type: 'text',
-                    text
-                  }
-                ]
+                content: paraContent
               }
             ]
           })
@@ -583,8 +669,12 @@ export async function syncNotes(): Promise<{
           parsed: dinoxCreateTime,
           timestamp: dinoxCreateTime.getTime()
         })
-        // 生成地址编码：Dinox-YYYYMMDD
-        const addressCode = `Dinox-${dinoxCreateTime.getFullYear()}${String(dinoxCreateTime.getMonth() + 1).padStart(2, '0')}${String(dinoxCreateTime.getDate()).padStart(2, '0')}`
+        // 生成地址编码：Dinox-YYYYMMDDHHmm
+        const addressCode = `Dinox-${dinoxCreateTime.getFullYear()}${String(
+          dinoxCreateTime.getMonth() + 1
+        ).padStart(2, '0')}${String(dinoxCreateTime.getDate()).padStart(2, '0')}${String(
+          dinoxCreateTime.getHours()
+        ).padStart(2, '0')}${String(dinoxCreateTime.getMinutes()).padStart(2, '0')}`
 
         const newNote = await createNote({
           cardType: 'Draftcard',

@@ -128,6 +128,21 @@ export const notesApi = {
       totalCount: number
     }
   },
+  // 获取草稿笔记
+  getDraftNotes: async (
+    page: number,
+    limit: number
+  ): Promise<{ notes: Note[]; totalCount: number }> => {
+    try {
+      return (await ipcRenderer.invoke('get-draft-notes', { page, limit })) as {
+        notes: Note[]
+        totalCount: number
+      }
+    } catch (error) {
+      console.error('预加载脚本 → 获取草稿笔记失败:', error)
+      throw error
+    }
+  },
   // 按日期排序获取笔记
   getNotesByDate: async (
     direction: 'newer' | 'older',

@@ -253,7 +253,7 @@ $font-family-monospace: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mon
 $font-family-sans-serif: $font-family-system; // 改为默认使用系统字体
 $font-family-base: $font-family-sans-serif;
 
-$font-size-base: 16px;
+$font-size-base: 17px;
 $font-size-lg: 1.25rem;
 $font-size-sm: 0.875rem;
 
@@ -543,7 +543,7 @@ $shadow-card: 0 2px 6px rgba($black, 0.12);
 
   // 代码块
   --color-code-text: #fff;
-  --color-code-block-bg: #1e1e1e;
+  --color-code-block-bg: #f5f7f7;
   --color-code-block-border: #85858586;
 
   // 分享视图

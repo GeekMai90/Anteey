@@ -5,7 +5,12 @@
     :class="{ 'background-loaded': isBackgroundLoaded }"
   >
     <!-- 背景遮罩层 -->
-    <div class="blur-overlay"></div>
+    <div
+      class="blur-overlay"
+      :style="{
+        backgroundColor: isDarkMode ? 'rgba(0, 0, 0, 0.4)' : 'rgba(255, 255, 255, 0.1)'
+      }"
+    ></div>
 
     <!-- 窗口拖拽区域 -->
     <div class="drag-area"></div>
@@ -33,6 +38,7 @@
             :range-color="heatmapColors"
             :max="10"
             no-margin
+            :dark-mode="true"
           />
         </div>
 
@@ -75,10 +81,12 @@ import { CalendarHeatmap, TooltipFormatter, CalendarItem } from 'vue3-calendar-h
 import DailyCardPick from '@renderer/components/home/DailyCardPick.vue'
 import { useNoteStore } from '@renderer/stores/noteStore'
 import { useMindboardStore } from '@renderer/stores/mindboardStore'
+import { useThemeStore } from '@renderer/stores/themeStore'
 
 // Store 实例化
 const noteStore = useNoteStore()
 const mindboardStore = useMindboardStore()
+const themeStore = useThemeStore()
 
 // ===== 背景图片管理 =====
 const backgroundImage = ref('')
@@ -207,15 +215,36 @@ const startDate = new Date(endDate)
 startDate.setFullYear(startDate.getFullYear() - 1)
 const heatmapData = ref<{ date: string; count: number }[]>([])
 
+// 添加暗色模式计算属性
+const isDarkMode = computed(() => {
+  if (!themeStore.themeSettings) return false
+  return (
+    themeStore.themeSettings.themeMode === 'dark' ||
+    (themeStore.themeSettings.themeMode === 'system' &&
+      window.matchMedia('(prefers-color-scheme: dark)').matches)
+  )
+})
+
 // 热力图颜色配置
-const heatmapColors = [
-  '#ebedf0', // 0值背景色
-  '#e6f7f4', // 最浅
-  '#b3ebe3', // 较浅
-  '#00c8a8', // 中等（主题色）
-  '#009c83', // 较深
-  '#00705e' // 最深
-]
+const heatmapColors = computed(() => {
+  return isDarkMode.value
+    ? [
+        '#1f1f1f', // 0值背景色（深色背景）
+        '#133B3B', // 无数据
+        '#006D6D', // 较少
+        '#00c8a8', // 中等（主题色）
+        '#00FFD1', // 较多
+        '#7BFFF0' // 最多
+      ]
+    : [
+        '#ebedf0', // 0值背景色（浅色背景）
+        '#e6f7f4', // 无数据
+        '#b3ebe3', // 较少
+        '#00c8a8', // 中等（主题色）
+        '#009c83', // 较多
+        '#00705e' // 最多
+      ]
+})
 
 // 热力图提示格式化
 const tooltipFormatter: TooltipFormatter = (item: CalendarItem) => {
@@ -259,7 +288,7 @@ onMounted(async () => {
   position: absolute;
   inset: 0;
   backdrop-filter: blur(6px);
-  background-color: rgba(255, 255, 255, 0.1);
+  transition: background-color 0.3s ease;
 }
 
 // 窗口拖拽区域
@@ -337,12 +366,6 @@ onMounted(async () => {
   z-index: 1;
   box-sizing: border-box;
   user-select: none;
-}
-
-// 热力图样式覆盖
-:deep(.vch__container) {
-  transform: translateY(15px);
-  width: 100%;
 }
 
 :deep(.vch__wrapper) {

@@ -15,6 +15,7 @@ import {
   updateStarredNotesOrder,
   removeStarFromNote,
   getPaginatedNotes,
+  getDraftNotes,
   getNotesByDate,
   getNotesByOneDate,
   getAllDatesWithNotes,
@@ -121,6 +122,16 @@ export function setupNotesHandlers() {
       return await getPaginatedNotes(page, limit)
     } catch (error) {
       console.error('获取分页笔记失败:', error)
+      throw error
+    }
+  })
+
+  // 分页获取草稿笔记
+  ipcMain.handle('get-draft-notes', async (_event, { page, limit }) => {
+    try {
+      return await getDraftNotes(page, limit)
+    } catch (error) {
+      console.error('主进程 → 获取草稿笔记失败:', error)
       throw error
     }
   })

@@ -19,8 +19,8 @@
    * 标题样式
    * ------------------------------------ */
   h1 {
-    font-size: 1.4rem;
-    font-weight: var(--font-weight-medium);
+    font-size: 1.6rem;
+    font-weight: var(--font-weight-bold);
     margin-top: 26px;
     margin-bottom: 10px;
     margin-left: 0;
@@ -29,8 +29,8 @@
   }
 
   h2 {
-    font-size: 1.2rem;
-    font-weight: var(--font-weight-medium);
+    font-size: 1.4rem;
+    font-weight: var(--font-weight-bold);
     margin-top: 22px;
     margin-bottom: 8px;
     margin-left: 0;
@@ -39,8 +39,8 @@
   }
 
   h3 {
-    font-size: 1.1rem;
-    font-weight: var(--font-weight-medium);
+    font-size: 1.2rem;
+    font-weight: var(--font-weight-bold);
     margin-top: 20px;
     margin-bottom: 8px;
     margin-left: 0;
@@ -97,8 +97,8 @@
   // 段落
   p {
     display: block;
-    margin-block-start: 1em;
-    margin-block-end: 1em;
+    margin-block-start: 0.5em;
+    margin-block-end: 0.5em;
     margin-inline-start: 0px;
     margin-inline-end: 0px;
     unicode-bidi: isolate;
@@ -207,10 +207,10 @@
    * ------------------------------------ */
   // 行内代码
   code {
-    background-color: var(--color-bg-tertiary);
-    border-radius: 0.4rem;
-    color: black;
-    font-size: 0.85rem;
+    background-color: var(--color-code-block-bg);
+    border-radius: 0.3rem;
+    color: var(--color-text-primary);
+    font-size: 0.9rem;
     padding: 0.25em 0.3em;
   }
 
@@ -218,14 +218,13 @@
   pre {
     background: var(--color-code-block-bg);
     border-radius: 0.5rem;
-    color: #fff;
     font-family: "JetBrainsMono", monospace;
     margin: 1.5rem 0;
     padding: 0.75rem 1rem;
 
     code {
       background: none;
-      color: inherit;
+      color: var(--color-text-primary);
       font-size: 0.8rem;
       padding: 0;
     }
@@ -290,8 +289,8 @@
   // 基础列表
   ul,
   ol {
-    padding: 0 1rem;
-    margin: 0.5rem 0 1rem 0rem;
+    padding: 0 0 0 1rem;
+    margin: 2px 0 10px 8px;
 
     li p {
       margin-top: 0.25em;
@@ -304,6 +303,7 @@
     li {
       &::marker {
         color: var(--color-primary);
+        font-size: 1.2rem;
       }
     }
   }
@@ -623,7 +623,7 @@
     color: var(--color-text-tertiary);
     border-radius: 0.25rem;
     z-index: 0;
-    margin-top: 1px;
+    margin-top: 4px;
   }
   &:hover {
     &::after {

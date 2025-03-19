@@ -380,7 +380,7 @@ export async function getNotesByDate(
   }
 }
 
-// 获取分页的笔记
+// 笔记流获取分页的笔记
 export async function getPaginatedNotes(
   page: number,
   limit: number
@@ -406,6 +406,33 @@ export async function getPaginatedNotes(
     }
   } catch (error) {
     console.error('获取分页笔记失败:', error)
+    throw error
+  }
+}
+
+// 获取草稿笔记
+export async function getDraftNotes(
+  page: number,
+  limit: number
+): Promise<{ notes: Note[]; totalCount: number }> {
+  try {
+    const offset = (page - 1) * limit
+    const [notes, [{ count }]] = await Promise.all([
+      db('notes')
+        .where('isDeleted', false)
+        .where('cardType', 'Draftcard')
+        .orderBy('createdAt', 'desc')
+        .limit(limit)
+        .offset(offset),
+      db('notes').where('isDeleted', false).where('cardType', 'Draftcard').count('* as count')
+    ])
+
+    return {
+      notes: notes.map((note) => convertToNote(note)),
+      totalCount: Number(count)
+    }
+  } catch (error) {
+    console.error('后端→ 获取草稿笔记失败:', error)
     throw error
   }
 }
@@ -1480,6 +1507,7 @@ export async function getPaginatedNotesByCardbox({
     let query = db('notes')
       .leftJoin('note_tags', 'notes.id', 'note_tags.noteId')
       .where('notes.isDeleted', false)
+      .whereNot('notes.cardType', 'Draftcard') // 添加排除 Draftcard 的条件
       .distinct('notes.*')
 
     // 如果有自定义筛选规则，优先使用自定义规则

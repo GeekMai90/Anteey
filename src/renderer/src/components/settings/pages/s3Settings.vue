@@ -63,13 +63,13 @@
             </div>
           </div>
           <div class="form-item">
-            <div class="label">访问密钥 ID</div>
+            <div class="label">AccessKey ID</div>
             <div class="value">
               <input v-model="accessKeyId" type="text" placeholder="请输入访问密钥 ID" />
             </div>
           </div>
           <div class="form-item">
-            <div class="label">访问密钥</div>
+            <div class="label">AccessKey Secret</div>
             <div class="value">
               <input v-model="secretAccessKey" type="password" placeholder="请输入访问密钥" />
             </div>

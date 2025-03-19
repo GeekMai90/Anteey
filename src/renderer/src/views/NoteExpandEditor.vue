@@ -838,7 +838,7 @@ const percentage = computed(() => tiptapEditor.value?.percentage || 0)
 }
 
 .editor-content {
-  max-width: 900px;
+  max-width: 800px;
   width: 100%;
   margin: 0 auto;
   padding: 0 20px;
@@ -849,7 +849,7 @@ const percentage = computed(() => tiptapEditor.value?.percentage || 0)
   display: flex;
   justify-content: space-between;
   align-items: center;
-  max-width: 900px;
+  max-width: 800px;
   width: 100%;
   margin: 0 auto;
   padding: 0 29px;
@@ -1060,7 +1060,7 @@ const percentage = computed(() => tiptapEditor.value?.percentage || 0)
 }
 
 .note-timestamp {
-  max-width: 900px;
+  max-width: 800px;
   width: 100%;
   margin: 0 auto;
   padding: 0 44px;

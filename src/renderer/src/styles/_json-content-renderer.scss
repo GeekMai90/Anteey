@@ -83,8 +83,8 @@
   h1 {
     font-size: 1.4rem;
     font-weight: var(--font-weight-medium);
-    margin-top: 26px;
-    margin-bottom: 10px;
+    margin-top: 8px;
+    margin-bottom: 8px;
     margin-left: 0;
     margin-right: 0;
     text-wrap: pretty;
@@ -93,7 +93,7 @@
   h2 {
     font-size: 1.2rem;
     font-weight: var(--font-weight-medium);
-    margin-top: 22px;
+    margin-top: 8px;
     margin-bottom: 8px;
     margin-left: 0;
     margin-right: 0;
@@ -103,7 +103,7 @@
   h3 {
     font-size: 1.1rem;
     font-weight: var(--font-weight-medium);
-    margin-top: 20px;
+    margin-top: 8px;
     margin-bottom: 8px;
     margin-left: 0;
     margin-right: 0;
@@ -116,17 +116,18 @@
   // 段落
   p {
     display: block;
-    margin-block-start: 1em;
-    margin-block-end: 1em;
+    margin-block-start: 0.5em;
+    margin-block-end: 0.5em;
     margin-inline-start: 0px;
     margin-inline-end: 0px;
     unicode-bidi: isolate;
+    line-height: 1.75;
   }
 
   // 加粗
   strong,
   b {
-    font-weight: var(--font-weight-medium);
+    font-weight: var(--font-weight-bold);
     color: var(--color-text-primary);
   }
 
@@ -157,6 +158,7 @@
   a {
     color: var(--color-blue);
     cursor: pointer;
+    pointer-events: none;
 
     &:hover {
       color: var(--color-blue);
@@ -186,6 +188,7 @@
       -0.03em 0 var(--color-bg-primary),
       0 0.03em var(--color-bg-primary),
       0 -0.03em var(--color-bg-primary);
+    pointer-events: none;
 
     &:hover {
       text-decoration: none;
@@ -209,14 +212,15 @@
       align-items: center;
       gap: 8px;
       z-index: 2;
-      padding: 0.5em 1em;
-      background: rgba(0, 0, 0, 0.1);
+      padding: 4px 8px;
+      // background: rgba(0, 0, 0, 0.1);
+      border: 1px solid var(--color-code-block-border);
       border-radius: 4px;
       font-family: var(--font-mono);
       font-size: 0.9em;
 
       .language-tag {
-        color: var(--color-text-white);
+        color: var(--color-text-secondary);
         text-transform: lowercase;
         font-size: 0.8em;
       }
@@ -228,7 +232,7 @@
       border-radius: 8px;
       padding: 1em;
       overflow-x: auto;
-      color: var(--color-code-text);
+      color: var(--color-text-primary);
       font-family: "JetBrainsMono", monospace;
       font-size: 0.9em;
       line-height: 1.5;
@@ -240,7 +244,7 @@
         line-height: inherit;
         background: none !important;
         padding: 0 !important;
-        color: inherit;
+        color: var(--color-text-primary);
 
         :deep(span) {
           font-family: "JetBrainsMono", monospace;
@@ -462,7 +466,7 @@
    * ------------------------------------ */
   // 粗体
   .font-bold {
-    font-weight: var(--font-weight-medium);
+    font-weight: var(--font-weight-bold);
     color: var(--color-text-primary);
   }
 
@@ -488,9 +492,9 @@
 
   // 行内代码
   .inline-code {
-    background-color: var(--color-bg-tertiary);
+    background-color: var(--color-code-block-bg);
     border-radius: 0.4rem;
-    color: black;
+    color: var(--color-text-primary);
     font-size: 0.85rem;
     padding: 0.25em 0.3em;
     font-family: var(--font-mono);

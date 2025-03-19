@@ -70,6 +70,9 @@ const openNote = (note: Note) => {
       backdrop-filter: blur(10px);
       -webkit-backdrop-filter: blur(10px);
     }
+    :deep(.font-bold) {
+      color: #252525 !important;
+    }
   }
 }
 </style>

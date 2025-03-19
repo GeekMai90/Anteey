@@ -343,7 +343,7 @@ onMounted(async () => {
   background-color: var(--color-bg-note-card);
   border: 1px solid var(--color-border);
   border-radius: 8px;
-  padding: 10px 0px 6px 0;
+  padding: 0 0 6px 0;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -367,8 +367,9 @@ onMounted(async () => {
     align-items: center;
     justify-content: space-between;
     position: relative;
-    padding: 0 15px 0 20px; // 调整左右内边距
-    height: 30px;
+    padding: 0 15px 0 20px;
+    min-height: 30px;
+    margin: 10px 0 0 0;
 
     .note-indicator {
       position: absolute;
@@ -433,15 +434,21 @@ onMounted(async () => {
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
+      display: flex;
+      align-items: center;
+      height: 100%;
+      line-height: 1;
     }
     .note-buttons {
       position: absolute;
-      top: -5px;
       right: 0;
       display: flex;
-      opacity: 0; // 使用 opacity 代替 visibility
-      transition: opacity 0.2s ease; // 添加过渡效果
+      opacity: 0;
+      transition: opacity 0.2s ease;
       margin-right: 10px;
+      height: 100%;
+      align-items: center;
+
       .note-options-menu {
         :deep(.note-options-menu) {
           transform: translateX(-68%); // 居中对齐

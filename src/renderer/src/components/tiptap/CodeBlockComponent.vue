@@ -12,7 +12,12 @@
         @click="copyCode"
       >
         <div class="icon">
-          <Copy v-if="!copied" theme="outline" fill="var(--color-text-white)" :strokeWidth="2" />
+          <Copy
+            v-if="!copied"
+            theme="outline"
+            fill="var(--color-text-secondary)"
+            :strokeWidth="2"
+          />
           <CheckOne v-else theme="outline" :strokeWidth="2" fill="var(--color-primary)" />
         </div>
       </button>
@@ -438,7 +443,7 @@ const handleInputBlur = (event: FocusEvent) => {
 
     .language-button {
       font-size: 12px;
-      color: var(--color-text-white);
+      color: var(--color-text-secondary);
       // background-color: var(--color-bg-secondary);
       background: none;
       padding: 2px 6px;
