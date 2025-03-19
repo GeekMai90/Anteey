@@ -102,12 +102,13 @@
     margin-inline-start: 0px;
     margin-inline-end: 0px;
     unicode-bidi: isolate;
+    line-height: 1.75;
   }
 
   // 加粗
   strong,
   b {
-    font-weight: var(--font-weight-medium);
+    font-weight: var(--font-weight-bold);
     color: var(--color-text-primary);
   }
 
