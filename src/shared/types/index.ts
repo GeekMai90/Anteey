@@ -29,6 +29,7 @@ export * from './mindboard'
 export * from './s3'
 export * from './cloud-sync'
 export * from './dinox'
+export * from './letter'
 
 // 定义图标名称类型
 export type IconName =

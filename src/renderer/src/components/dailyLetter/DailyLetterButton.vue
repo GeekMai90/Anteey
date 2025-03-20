@@ -5,7 +5,7 @@
     @click="handleClick"
   >
     <div class="icon">
-      <Mail theme="outline" size="20" fill="var(--color-sidebar-text)" :strokeWidth="2" />
+      <Mail theme="outline" size="16" fill="var(--color-sidebar-text)" :strokeWidth="2" />
     </div>
   </div>
 </template>
@@ -16,8 +16,24 @@ import { useDailyLetterStore } from '@renderer/stores/dailyLetterStore'
 
 const dailyLetterStore = useDailyLetterStore()
 
-const handleClick = () => {
-  dailyLetterStore.startAnimation()
+const handleClick = async () => {
+  try {
+    // 1. 开始动画
+    dailyLetterStore.startAnimation()
+
+    // 2. 创建每日信件
+    const letter = await dailyLetterStore.createLetter('daily')
+
+    // 3. 设置当前信件
+    await dailyLetterStore.getLetterById(letter.id)
+
+    // 注意：不再在这里直接打开模态框
+    // 模态框的显示由动画组件控制
+  } catch (error) {
+    console.error('生成每日信件失败:', error)
+    // 如果失败，也要停止动画
+    dailyLetterStore.endAnimation()
+  }
 }
 </script>
 

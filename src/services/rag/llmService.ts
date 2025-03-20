@@ -115,7 +115,7 @@ export class LLMService {
             },
             {
               headers: this.getHeaders(modelConfig.provider, config.apiKey),
-              timeout: 60000
+              timeout: 90000
             }
           )
 

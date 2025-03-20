@@ -107,7 +107,11 @@ import type {
   UpdateCloudSyncOptions,
 
   // Dinox 相关类型
-  DinoxSyncConfig
+  DinoxSyncConfig,
+
+  // 新增的 letter 相关类型
+  Letter,
+  LetterType
 } from '@shared/types'
 
 export interface ElectronAPI {
@@ -906,6 +910,32 @@ export interface ElectronAPI {
       config: DinoxSyncConfig
       message: string
     }>
+  }
+
+  letter: {
+    // 创建信件
+    createLetter: (type: LetterType) => Promise<Letter>
+
+    // 获取信件列表
+    getLetters: (
+      page?: number,
+      limit?: number
+    ) => Promise<{
+      letters: Letter[]
+      total: number
+    }>
+
+    // 获取单个信件
+    getLetterById: (id: string) => Promise<Letter | null>
+
+    // 更新信件阅读状态
+    updateLetterReadStatus: (id: string, readStatus: boolean) => Promise<Letter>
+
+    // 获取最新信件
+    getLatestLetter: () => Promise<Letter | null>
+
+    // 获取未读信件数量
+    getUnreadLettersCount: () => Promise<number>
   }
 }
 

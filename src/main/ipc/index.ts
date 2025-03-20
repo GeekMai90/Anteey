@@ -29,6 +29,7 @@ import { setupDictionaryHandlers } from './dictionaryIpcHandlers'
 import { setupMindboardHandlers } from './mindboardIpcHandlers'
 import { setupS3Handlers } from './s3IpcHandlers'
 import { setupCloudSyncHandlers } from './cloudSyncIpcHandlers'
+import { setupLetterHandlers } from './letterIpcHandlers'
 export function setupIpcHandlers(): void {
   setupNotesHandlers()
   setupCardboxHandlers()
@@ -61,4 +62,5 @@ export function setupIpcHandlers(): void {
   setupMindboardHandlers()
   setupS3Handlers()
   setupCloudSyncHandlers()
+  setupLetterHandlers()
 }

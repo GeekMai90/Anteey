@@ -1,11 +1,22 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
+import type { Letter, LetterType } from '@shared/types'
 
 export const useDailyLetterStore = defineStore('dailyLetter', () => {
+  // ==================== 状态 ====================
+  // 动画相关状态
   const isAnimating = ref(false)
   const isBicycleAnimating = ref(false)
   const isMailboxShaking = ref(false)
 
+  // 信件相关状态
+  const letters = ref<Letter[]>([])
+  const currentLetter = ref<Letter | null>(null)
+  const totalLetters = ref(0)
+  const unreadCount = ref(0)
+  const isLetterModalOpen = ref(false)
+
+  // ==================== 动画控制方法 ====================
   const startAnimation = () => {
     endAnimation()
     console.log('开始整体动画')
@@ -28,12 +39,126 @@ export const useDailyLetterStore = defineStore('dailyLetter', () => {
     isMailboxShaking.value = false
   }
 
+  // ==================== 信件操作方法 ====================
+  // 创建信件
+  const createLetter = async (type: LetterType) => {
+    try {
+      const letter = await window.electronAPI.letter.createLetter(type)
+      await fetchLetters() // 刷新信件列表
+      return letter
+    } catch (error) {
+      console.error('创建信件失败:', error)
+      throw error
+    }
+  }
+
+  // 获取信件列表
+  const fetchLetters = async (page: number = 1, limit: number = 10) => {
+    try {
+      const result = await window.electronAPI.letter.getLetters(page, limit)
+      letters.value = result.letters
+      totalLetters.value = result.total
+      return result
+    } catch (error) {
+      console.error('获取信件列表失败:', error)
+      throw error
+    }
+  }
+
+  // 获取单个信件
+  const getLetterById = async (id: string) => {
+    try {
+      const letter = await window.electronAPI.letter.getLetterById(id)
+      if (letter) {
+        currentLetter.value = letter
+      }
+      return letter
+    } catch (error) {
+      console.error('获取信件失败:', error)
+      throw error
+    }
+  }
+
+  // 更新信件阅读状态
+  const updateLetterReadStatus = async (id: string, readStatus: boolean) => {
+    try {
+      const updatedLetter = await window.electronAPI.letter.updateLetterReadStatus(id, readStatus)
+      // 更新本地状态
+      if (currentLetter.value?.id === id) {
+        currentLetter.value = updatedLetter
+      }
+      // 更新列表中的信件状态
+      const index = letters.value.findIndex((letter) => letter.id === id)
+      if (index !== -1) {
+        letters.value[index] = updatedLetter
+      }
+      // 更新未读数量
+      await fetchUnreadCount()
+      return updatedLetter
+    } catch (error) {
+      console.error('更新信件阅读状态失败:', error)
+      throw error
+    }
+  }
+
+  // 获取最新信件
+  const getLatestLetter = async () => {
+    try {
+      const letter = await window.electronAPI.letter.getLatestLetter()
+      if (letter) {
+        currentLetter.value = letter
+      }
+      return letter
+    } catch (error) {
+      console.error('获取最新信件失败:', error)
+      throw error
+    }
+  }
+
+  // 获取未读信件数量
+  const fetchUnreadCount = async () => {
+    try {
+      unreadCount.value = await window.electronAPI.letter.getUnreadLettersCount()
+      return unreadCount.value
+    } catch (error) {
+      console.error('获取未读信件数量失败:', error)
+      throw error
+    }
+  }
+
+  // 模态框控制
+  const openLetterModal = () => (isLetterModalOpen.value = true)
+  const closeLetterModal = () => {
+    isLetterModalOpen.value = false
+    currentLetter.value = null
+  }
+
   return {
+    // 状态
     isAnimating,
     isBicycleAnimating,
     isMailboxShaking,
+    letters,
+    currentLetter,
+    totalLetters,
+    unreadCount,
+    isLetterModalOpen,
+
+    // 动画方法
     startAnimation,
     startMailboxShake,
-    endAnimation
+    endAnimation,
+
+    // 信件操作方法
+    createLetter,
+    fetchLetters,
+    getLetterById,
+    updateLetterReadStatus,
+    getLatestLetter,
+    fetchUnreadCount,
+
+    // 模态框控制
+    openLetterModal,
+    closeLetterModal
   }
 })

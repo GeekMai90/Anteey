@@ -32,16 +32,8 @@
           <div class="salutation">亲爱的：</div>
 
           <div class="main-content">
-            <p>
-              在知识的海洋中，每一个想法都像是一颗珍珠，需要时间来沉淀和打磨。让我们一起在卡片笔记的世界里，发现更多智慧的火花。今天想和你分享一些思考，关于如何更好地构建自己的知识体系。通过细致的观察和持续的积累，我们能够在知识的海洋中找到属于自己的那份珍贵发现。
-            </p>
-
-            <p>
-              卢曼的卡片盒笔记法告诉我们，知识不是简单的累积，而是需要不断地连接和重组。当我们将每一个想法都认真记录下来，并试图找出它们之间的联系时，我们就在构建一个属于自己的知识网络。这个网络越密集，我们的思维就越丰富，创造力就越强大。
-            </p>
-
-            <p>
-              让我们一起探索这种深度思考的方式。在写下每一张卡片的时候，不妨多问问自己：这个想法和我已有的认知有什么联系？它能带给我什么新的启发？通过这样的对话，我们不仅在积累知识，更是在培养一种思考的习惯。
+            <p v-for="(paragraph, index) in letterParagraphs" :key="index">
+              {{ paragraph }}
             </p>
           </div>
 
@@ -66,39 +58,60 @@ import Modal from '@renderer/components/common/Modal.vue'
 import SpreadButton from '@renderer/components/ui/SpreadButton.vue'
 import { MailOpen } from '@icon-park/vue-next'
 import { computed } from 'vue'
+import { useDailyLetterStore } from '@renderer/stores/dailyLetterStore'
 
 defineProps<{
   modelValue: boolean
 }>()
 
 const emit = defineEmits(['update:modelValue', 'after-show'])
+const dailyLetterStore = useDailyLetterStore()
 
 // 获取当前日期
 const currentDate = computed(() => {
-  const date = new Date()
+  if (!dailyLetterStore.currentLetter) return ''
+  const date = new Date(dailyLetterStore.currentLetter.createTime)
   return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日`
+})
+
+// 信件内容处理成段落
+const letterParagraphs = computed(() => {
+  const content = dailyLetterStore.currentLetter?.content || ''
+  // 将内容按照换行符分割成段落，并过滤掉空段落
+  return content
+    .split('\\n')
+    .map((p) => p.trim())
+    .filter((p) => p.length > 0)
 })
 
 // 更新值
 const updateValue = (value: boolean) => {
   emit('update:modelValue', value)
+  if (!value) {
+    dailyLetterStore.closeLetterModal()
+  }
 }
 
 // 模态窗完全展示后的回调
 const handleAfterEnter = () => {
+  // 标记信件为已读
+  if (dailyLetterStore.currentLetter) {
+    dailyLetterStore.updateLetterReadStatus(dailyLetterStore.currentLetter.id, true)
+  }
   emit('after-show')
 }
 
 // 关闭信件
 const handleClose = () => {
   emit('update:modelValue', false)
+  dailyLetterStore.closeLetterModal()
 }
 </script>
 
 <style lang="scss" scoped>
 .daily-letter-content {
   width: 600px;
-  max-height: 1000px;
+  max-height: 900px;
   background: var(--color-bg-primary);
   border-radius: 16px;
   padding: 0;
@@ -106,6 +119,8 @@ const handleClose = () => {
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  transform-origin: center center;
+  animation: letter-enter 0.6s cubic-bezier(0.33, 1, 0.68, 1);
 
   .title-section {
     flex-shrink: 0;
@@ -187,7 +202,7 @@ const handleClose = () => {
   .letter-body {
     flex: 1;
     min-height: 0;
-    padding: 40px 48px;
+    padding: 20px 48px 40px 48px;
     background: var(--color-bg-primary);
     display: flex;
 
@@ -204,7 +219,7 @@ const handleClose = () => {
         flex-shrink: 0;
         font-size: 18px;
         font-weight: 500;
-        margin-bottom: 24px;
+        margin-bottom: 10px;
         color: var(--color-text-primary);
       }
 
@@ -213,6 +228,18 @@ const handleClose = () => {
         overflow-y: auto;
         padding-right: 16px;
         margin-bottom: 0;
+
+        p {
+          margin: 0;
+          margin-bottom: 24px;
+          text-align: justify;
+          color: var(--color-text-primary);
+          white-space: pre-line;
+
+          &:last-child {
+            margin-bottom: 0;
+          }
+        }
 
         /* 自定义滚动条样式 */
         &::-webkit-scrollbar {
@@ -226,17 +253,6 @@ const handleClose = () => {
         &::-webkit-scrollbar-thumb {
           background-color: var(--color-border);
           border-radius: 3px;
-        }
-
-        p {
-          margin: 0;
-          margin-bottom: 24px;
-          text-align: justify;
-          color: var(--color-text-primary);
-
-          &:last-child {
-            margin-bottom: 0;
-          }
         }
       }
 
@@ -270,21 +286,34 @@ const handleClose = () => {
   }
 }
 
-// 添加进入动画
-.modal-enter-active {
-  .daily-letter-content {
-    animation: letter-enter 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+@keyframes letter-enter {
+  0% {
+    opacity: 0;
+    transform: scale(0.95) translateY(20px);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.02) translateY(-5px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
   }
 }
 
-@keyframes letter-enter {
-  from {
-    opacity: 0;
-    transform: scale(0.95);
-  }
-  to {
+// 退出动画
+.modal-leave-active {
+  animation: letter-leave 0.4s cubic-bezier(0.33, 1, 0.68, 1);
+}
+
+@keyframes letter-leave {
+  0% {
     opacity: 1;
-    transform: scale(1);
+    transform: scale(1) translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.95) translateY(20px);
   }
 }
 </style>

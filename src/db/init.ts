@@ -1016,6 +1016,26 @@ export async function initDatabase(db: Knex): Promise<void> {
     console.log('daily_quotes 表创建和数据导入完成')
   }
 
+  // 创建信件表
+  if (!(await db.schema.hasTable('letters'))) {
+    await db.schema.createTable('letters', (table) => {
+      table.string('id').primary()
+      table.enum('type', ['daily', 'weekly']).notNullable() // 信件类型
+      table.text('content').notNullable() // 信件内容
+      table.datetime('createTime').notNullable() // 创建时间
+      table.boolean('readStatus').notNullable().defaultTo(false) // 阅读状态
+      table.datetime('startTime').notNullable() // 统计开始时间
+      table.datetime('endTime').notNullable() // 统计结束时间
+
+      // 添加索引以优化查询性能
+      table.index('type')
+      table.index('createTime')
+      table.index('readStatus')
+      table.index(['type', 'createTime'])
+    })
+    console.log('letters 表创建成功')
+  }
+
   // 创建 ed_whiteboards 表
   if (!(await db.schema.hasTable('ed_whiteboards'))) {
     await db.schema.createTable('ed_whiteboards', (table) => {
@@ -1330,5 +1350,6 @@ export async function down(db: Knex): Promise<void> {
   await db.schema.dropTableIfExists('s3_config')
   await db.schema.dropTableIfExists('s3_provider_configs')
   await db.schema.dropTableIfExists('cloud_sync_config')
+  await db.schema.dropTableIfExists('letters')
   console.log('所有表已删除')
 }

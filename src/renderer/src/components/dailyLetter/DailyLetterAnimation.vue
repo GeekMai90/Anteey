@@ -6,14 +6,14 @@
         <component
           :is="currentVehicleIcon"
           theme="outline"
-          size="24"
+          size="36"
           fill="var(--color-text-primary)"
           :strokeWidth="3"
         />
       </div>
       <!-- 邮箱图标 -->
       <div class="mailbox" :style="mailboxStyle">
-        <MailDownload theme="outline" size="32" fill="var(--color-text-primary)" :strokeWidth="3" />
+        <img src="@renderer/assets/images/邮箱图标.svg" alt="mailbox" class="mailbox-icon" />
       </div>
     </div>
   </Transition>
@@ -23,7 +23,7 @@
 </template>
 
 <script setup lang="ts">
-import { Riding, MailDownload, Sport, Truck } from '@icon-park/vue-next'
+import { Riding, Sport, Truck } from '@icon-park/vue-next'
 import { useDailyLetterStore } from '@renderer/stores/dailyLetterStore'
 import { onUnmounted, ref, computed, onMounted } from 'vue'
 import DailyLetterContent from './DailyLetterContent.vue'
@@ -60,6 +60,18 @@ let mailboxShakeInterval: NodeJS.Timeout | null = null
 // 是否显示信件内容
 const showLetterContent = ref(false)
 
+// 创建音频实例
+const mailboxSound = new Audio(
+  new URL('@renderer/assets/sounds/mailbox-shake.mp3', import.meta.url).href
+)
+mailboxSound.volume = 0.3 // 设置音量为30%
+
+// 创建信件打开音效实例
+const letterOpenSound = new Audio(
+  new URL('@renderer/assets/sounds/letter-open.mp3', import.meta.url).href
+)
+letterOpenSound.volume = 0.3 // 设置音量为30%
+
 // 自行车样式
 const bicycleStyle = computed(() => {
   return {
@@ -80,7 +92,7 @@ const mailboxStyle = computed(() => {
 
 // 清理定时器
 onUnmounted(() => {
-  console.log('组件卸载，清理所有定时器')
+  console.log('组件卸载，清理所有定时器和音频资源')
   if (bicycleTimer) {
     clearTimeout(bicycleTimer)
     bicycleTimer = null
@@ -97,9 +109,15 @@ onUnmounted(() => {
     clearInterval(iconChangeInterval)
     iconChangeInterval = null
   }
+
+  // 清理所有音频资源
+  mailboxSound.pause()
+  mailboxSound.src = ''
+  letterOpenSound.pause()
+  letterOpenSound.src = ''
 })
 
-// 监听动画状态
+// 监听动画状态和信件状态
 onMounted(() => {
   // 监听动画开始
   const startWatcher = dailyLetterStore.$subscribe((mutation, state) => {
@@ -109,9 +127,20 @@ onMounted(() => {
     }
   })
 
+  // 监听信件状态
+  const letterWatcher = dailyLetterStore.$subscribe((mutation, state) => {
+    // 当有当前信件时，说明服务端已返回内容
+    if (state.currentLetter && state.isMailboxShaking) {
+      console.log('信件内容已返回，停止抖动')
+      stopMailboxShake()
+      showLetterContent.value = true
+    }
+  })
+
   // 组件卸载时停止监听
   onUnmounted(() => {
     startWatcher()
+    letterWatcher()
   })
 })
 
@@ -222,6 +251,14 @@ function startMailboxShake() {
     clearInterval(mailboxShakeInterval)
   }
 
+  // 播放音效
+  try {
+    mailboxSound.currentTime = 0 // 重置音频播放位置
+    mailboxSound.play()
+  } catch (error) {
+    console.error('播放音效失败:', error)
+  }
+
   mailboxShakeInterval = setInterval(() => {
     // 在 -8 到 8 度之间交替
     if (mailboxRotation.value >= 8) {
@@ -232,15 +269,6 @@ function startMailboxShake() {
 
     mailboxRotation.value += mailboxShakeDirection.value * 2
   }, 100)
-
-  // 设置结束动画的定时器
-  console.log('设置10秒结束定时器')
-  endTimer = setTimeout(() => {
-    console.log('10秒到，结束动画')
-    stopMailboxShake()
-    // 显示信件内容
-    showLetterContent.value = true
-  }, 5000)
 }
 
 // 停止邮箱抖动
@@ -248,6 +276,22 @@ function stopMailboxShake() {
   if (mailboxShakeInterval) {
     clearInterval(mailboxShakeInterval)
     mailboxShakeInterval = null
+  }
+
+  // 停止抖动音效
+  try {
+    mailboxSound.pause()
+    mailboxSound.currentTime = 0
+  } catch (error) {
+    console.error('停止音效失败:', error)
+  }
+
+  // 播放信件打开音效
+  try {
+    letterOpenSound.currentTime = 0
+    letterOpenSound.play()
+  } catch (error) {
+    console.error('播放信件打开音效失败:', error)
   }
 
   // 回到原位
@@ -286,6 +330,11 @@ const handleLetterAfterShow = () => {
   right: 40px;
   z-index: 99999;
   will-change: transform, opacity;
+
+  .mailbox-icon {
+    width: 64px;
+    height: 64px;
+  }
 }
 
 // 淡入淡出过渡
