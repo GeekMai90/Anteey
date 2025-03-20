@@ -1,6 +1,5 @@
 <template>
   <div class="content-wrapper" :style="backgroundStyle">
-    <!-- 暗色模式遮罩层 -->
     <div
       class="theme-overlay"
       :style="{
@@ -51,6 +50,10 @@
 
     <div v-if="showNoiseOverlay" class="noise-overlay" :style="noiseStyle"></div>
   </div>
+
+  <!-- 添加每日来信动画组件 -->
+  <DailyLetterAnimation />
+  <!-- 暗色模式遮罩层 -->
 </template>
 
 <script setup lang="ts">
@@ -60,6 +63,7 @@ import { useUIStore } from '@renderer/stores/UIStore'
 import { useThemeStore } from '@renderer/stores/themeStore'
 import Sidebar from './Sidebar.vue'
 import RightSidebar from '../rightSidebar/RightSidebar.vue'
+import DailyLetterAnimation from '@renderer/components/dailyLetter/DailyLetterAnimation.vue'
 
 const uiStore = useUIStore()
 const themeStore = useThemeStore()

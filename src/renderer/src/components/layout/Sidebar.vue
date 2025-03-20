@@ -241,6 +241,8 @@
     <div class="resize-handle" @mousedown="startResize"></div>
     <div class="sidebar-footer">
       <div class="new-card-wrapper"></div>
+      <!-- 每日来信按钮 -->
+      <DailyLetterButton />
       <!-- 清除空笔记 -->
       <div
         v-tooltip.top="{ content: '清除空笔记', delay: { show: 1000 } }"
@@ -343,6 +345,7 @@ import { useThemeStore } from '@renderer/stores/themeStore'
 import { useReviewStore } from '@renderer/stores/reviewStore'
 import { useCloudSyncStore } from '@renderer/stores/cloudSyncStore'
 import { useS3Store } from '@renderer/stores/s3Store'
+import DailyLetterButton from '@renderer/components/dailyLetter/DailyLetterButton.vue'
 
 const imageSrc = ref('')
 const uiStore = useUIStore()
