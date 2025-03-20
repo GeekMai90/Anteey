@@ -290,8 +290,17 @@ ${notesContent}
 
 // 获取一周的笔记并智能筛选
 async function getFilteredWeeklyNotes(startDate: Date, endDate: Date) {
-  const notes = []
-  const dailyNotes = new Map<string, any[]>()
+  interface Note {
+    id: string
+    createdAt: string | Date
+    content: any
+    metadata?: {
+      title?: string
+    }
+  }
+
+  const notes: Note[] = []
+  const dailyNotes = new Map<string, Note[]>()
 
   // 收集每天的笔记
   for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
@@ -308,7 +317,6 @@ async function getFilteredWeeklyNotes(startDate: Date, endDate: Date) {
 
   // 1. 首先确保每天都有代表性的笔记
   for (const [, dayNotes] of dailyNotes) {
-    // 使用下划线忽略未使用的变量
     // 按创建时间排序
     const sorted = dayNotes.sort((a, b) => {
       const timeA = new Date(a.createdAt || 0).getTime()

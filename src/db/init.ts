@@ -1351,5 +1351,8 @@ export async function down(db: Knex): Promise<void> {
   await db.schema.dropTableIfExists('s3_provider_configs')
   await db.schema.dropTableIfExists('cloud_sync_config')
   await db.schema.dropTableIfExists('letters')
+  await db.schema.dropTableIfExists('dinox_sync_records')
+  await db.schema.dropTableIfExists('dinox_sync_config')
+
   console.log('所有表已删除')
 }

@@ -120,7 +120,7 @@ onUnmounted(() => {
 // 监听动画状态和信件状态
 onMounted(() => {
   // 监听动画开始
-  const startWatcher = dailyLetterStore.$subscribe((mutation, state) => {
+  const startWatcher = dailyLetterStore.$subscribe((_mutation, state) => {
     if (state.isAnimating && state.isBicycleAnimating) {
       console.log('开始整体动画流程')
       startAnimationSequence()
@@ -128,7 +128,7 @@ onMounted(() => {
   })
 
   // 监听信件状态
-  const letterWatcher = dailyLetterStore.$subscribe((mutation, state) => {
+  const letterWatcher = dailyLetterStore.$subscribe((_mutation, state) => {
     // 当有当前信件时，说明服务端已返回内容
     if (state.currentLetter && state.isMailboxShaking) {
       console.log('信件内容已返回，停止抖动')
