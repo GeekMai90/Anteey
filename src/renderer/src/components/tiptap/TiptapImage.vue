@@ -163,7 +163,7 @@
           </button>
           <button
             v-tooltip.top="{
-              content: isOriginalSize ? '适应页面' : '原始大小',
+              content: isOriginalSize ? '适应页面 (空格)' : '原始大小 (空格)',
               delay: { show: 500 },
               html: true
             }"
@@ -180,7 +180,7 @@
           </button>
           <button
             v-tooltip.top="{
-              content: '旋转',
+              content: '旋转 (R)',
               delay: { show: 500 },
               html: true
             }"
@@ -191,7 +191,7 @@
           </button>
           <button
             v-tooltip.top="{
-              content: '下载图片',
+              content: '下载图片 (Ctrl/⌘ S)',
               delay: { show: 500 },
               html: true
             }"
@@ -205,7 +205,7 @@
           <div v-if="hasMultipleImages" class="nav-button-group">
             <button
               v-tooltip.top="{
-                content: '上一张',
+                content: '上一张 (←)',
                 delay: { show: 500 },
                 html: true
               }"
@@ -218,7 +218,7 @@
             <div class="image-counter">{{ currentImageIndex + 1 }} / {{ allImages.length }}</div>
             <button
               v-tooltip.top="{
-                content: '下一张',
+                content: '下一张 (→)',
                 delay: { show: 500 },
                 html: true
               }"
@@ -235,7 +235,7 @@
   </node-view-wrapper>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed } from 'vue'
 import { NodeViewWrapper, nodeViewProps } from '@tiptap/vue-3'
 import {
@@ -541,11 +541,13 @@ const openImageViewer = (event) => {
   // 阻止编辑器获取焦点
   event.preventDefault()
   event.stopPropagation()
+  document.addEventListener('keydown', handleKeydown)
 }
 
 // 关闭图片查看器
 const closeImageViewer = () => {
   showImageViewer.value = false
+  document.removeEventListener('keydown', handleKeydown)
 }
 
 // 放大图片
@@ -653,6 +655,43 @@ const startDrag = (event) => {
   document.addEventListener('mouseup', handleEnd)
   document.addEventListener('touchmove', handleMove)
   document.addEventListener('touchend', handleEnd)
+}
+
+// 修改键盘事件处理函数的类型声明
+const handleKeydown = (event: KeyboardEvent): void => {
+  if (!showImageViewer.value) return
+
+  switch (event.key) {
+    case 'Escape':
+      closeImageViewer()
+      break
+    case 'ArrowLeft':
+      if (hasMultipleImages.value) showPrevImage()
+      break
+    case 'ArrowRight':
+      if (hasMultipleImages.value) showNextImage()
+      break
+    case 'r':
+    case 'R':
+      // 阻止事件冒泡和默认行为
+      event.preventDefault()
+      event.stopPropagation()
+      rotateImage()
+      break
+    case 's':
+    case 'S':
+      if (event.ctrlKey || event.metaKey) {
+        event.preventDefault()
+        event.stopPropagation()
+        downloadViewerImage()
+      }
+      break
+    case ' ':
+      event.preventDefault()
+      event.stopPropagation()
+      toggleOriginalSize()
+      break
+  }
 }
 </script>
 
