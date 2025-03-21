@@ -320,6 +320,16 @@ export class ModelConfigService {
 
       // 根据不同提供商调整请求体和端点
       switch (provider) {
+        case 'zhipu':
+          // 智谱AI的请求体保持默认
+          break
+
+        case 'moonshot':
+        case 'deepseek':
+        case 'openai':
+          // OpenAI 兼容格式的模型保持默认请求体
+          break
+
         case 'anthropic':
           requestBody = {
             model: modelName,
@@ -336,7 +346,6 @@ export class ModelConfigService {
           break
 
         case 'gemini':
-          // Gemini 需要特殊处理端点和请求体
           fullEndpoint = `${baseUrl}/v1/models/${modelName}:generateContent`
           if (apiKey) {
             fullEndpoint += `?key=${apiKey}`
@@ -355,21 +364,10 @@ export class ModelConfigService {
           break
       }
 
-      // 准备请求头
-      let headers: Record<string, string> = {
-        'Content-Type': 'application/json'
-      }
-
-      // 根据提供商添加特定的 headers
-      if (provider === 'anthropic') {
-        headers = {
-          ...headers,
-          'x-api-key': apiKey,
-          'anthropic-version': '2023-06-01'
-        }
-      } else if (provider !== 'gemini') {
-        // Gemini 使用 URL 参数而不是 header
-        headers.Authorization = `Bearer ${apiKey}`
+      // 获取认证头
+      const headers = {
+        'Content-Type': 'application/json',
+        ...this.getAuthHeaders({ provider, apiKey })
       }
 
       console.log('Testing connection with:', {
@@ -377,7 +375,7 @@ export class ModelConfigService {
         provider,
         model: modelName,
         requestBody,
-        headers: { ...headers, 'x-api-key': '***' } // 日志中隐藏 API key
+        headers: { ...headers, 'x-api-key': '***' }
       })
 
       const response = await axios.post(fullEndpoint, requestBody, {
@@ -385,31 +383,12 @@ export class ModelConfigService {
         timeout: 10000
       })
 
-      // 验证响应
+      // 使用统一的响应验证
       if (response.status === 200) {
-        if (provider === 'anthropic') {
-          const isValid =
-            response.data &&
-            (response.data.content ||
-              response.data.messages ||
-              response.data.choices ||
-              response.data.candidates)
-          return {
-            valid: isValid,
-            message: isValid ? '连接测试成功' : '响应格式不正确'
-          }
-        } else if (provider === 'gemini') {
-          const isValid =
-            response.data && (response.data.candidates || response.data.promptFeedback)
-          return {
-            valid: isValid,
-            message: isValid ? '连接测试成功' : '响应格式不正确'
-          }
-        }
-
+        const isValid = this.validateResponse(response.data, provider)
         return {
-          valid: true,
-          message: '连接测试成功'
+          valid: isValid,
+          message: isValid ? '连接测试成功' : '响应格式不正确'
         }
       }
 
@@ -454,7 +433,31 @@ export class ModelConfigService {
     }
   }
 
-  // 修改 getAuthHeaders 方法
+  private validateResponse(data: any, provider: LLMProvider): boolean {
+    try {
+      switch (provider) {
+        case 'openai':
+        case 'moonshot':
+        case 'deepseek':
+        case 'zhipu':
+          // OpenAI 兼容格式的模型
+          return !!data.choices && Array.isArray(data.choices)
+        case 'anthropic':
+          // Anthropic 的响应格式
+          return !!data.content || !!data.messages
+        case 'gemini':
+          // Google Gemini 的响应格式
+          return !!data.candidates && Array.isArray(data.candidates)
+        default:
+          // 通用验证
+          return !!data.choices || !!data.content || !!data.candidates
+      }
+    } catch (error) {
+      console.error('验证响应格式时出错:', error)
+      return false
+    }
+  }
+
   private getAuthHeaders({
     provider,
     apiKey
@@ -474,33 +477,13 @@ export class ModelConfigService {
         }
       case 'gemini':
         return {} // Gemini 使用 URL 参数
+      case 'moonshot':
+      case 'deepseek':
+      case 'openai':
       default:
         return {
           Authorization: `Bearer ${apiKey}`
         }
-    }
-  }
-
-  // 添加响应验证方法
-  private validateResponse(data: any, provider: LLMProvider): boolean {
-    try {
-      switch (provider) {
-        case 'openai':
-        case 'moonshot':
-        case 'deepseek':
-          return !!data.choices && Array.isArray(data.choices)
-        case 'anthropic':
-          return !!data.content
-        case 'zhipu':
-          return !!data.choices && Array.isArray(data.choices)
-        case 'gemini':
-          return !!data.candidates && Array.isArray(data.candidates)
-        default:
-          return !!data.choices || !!data.content || !!data.candidates
-      }
-    } catch (error) {
-      console.error('验证响应格式时出错:', error)
-      return false
     }
   }
 

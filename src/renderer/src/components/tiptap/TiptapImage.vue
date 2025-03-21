@@ -280,8 +280,8 @@ const isOriginalSize = ref(false)
 const dragPosition = ref({ x: 0, y: 0 })
 const isDragging = ref(false)
 // 添加多图片浏览相关状态
-const allImages = ref([])
-const currentImageIndex = ref(0)
+const allImages = ref<ImageInfo[]>([])
+const currentImageIndex = ref<number>(0)
 
 // 添加重试相关的状态
 const retryKey = ref(0)
@@ -324,6 +324,19 @@ const wrapperStyle = computed(() => ({
 const hideMenu = () => {
   showMenu.value = false
 }
+
+// 添加图片类型定义
+interface ImageInfo {
+  src: string
+  alt: string
+}
+
+// 添加事件类型定义
+interface ResizeEvent extends MouseEvent {
+  clientX: number
+  clientY: number
+}
+
 const downloadImage = async () => {
   const imageUrl = props.node.attrs.src
   const fileName = getFileNameFromUrl(imageUrl)
@@ -338,20 +351,12 @@ const downloadImage = async () => {
   showMenu.value = false
 }
 
-const getFileNameFromUrl = (url) => {
-  // 从 URL 中提取文件名
+// 修改 getFileNameFromUrl 函数
+const getFileNameFromUrl = (url: string): string => {
   const pathArray = url.split('/')
   let fileName = pathArray[pathArray.length - 1]
-
-  // 移除可能的查询参数
   fileName = fileName.split('?')[0]
-
-  // 如果文件名为空，使用默认名称
-  if (!fileName) {
-    fileName = 'image.jpg'
-  }
-
-  return fileName
+  return fileName || 'image.jpg'
 }
 
 const copyImage = async () => {
@@ -383,21 +388,23 @@ const confirmDelete = async () => {
   }
 }
 
-const alignImage = (alignment) => {
+// 修改 alignImage 函数
+const alignImage = (alignment: 'left' | 'center' | 'right'): void => {
   props.updateAttributes({ align: alignment })
   showMenu.value = false
 }
 
-const startResize = (side, event) => {
+// 修改 startResize 函数
+const startResize = (side: 'left' | 'right', event: ResizeEvent): void => {
   event.preventDefault()
   const startX = event.clientX
   const startWidth = props.node.attrs.width ? parseInt(props.node.attrs.width) : 100
   const minWidth = 25
   const maxWidth = 100
-  const step = 5 // 5% 的调整步长
-  const snapThreshold = 2 // 吸附阈值，单位为像素
+  const step = 5
+  const snapThreshold = 2
 
-  const resize = (e) => {
+  const resize = (e: ResizeEvent) => {
     const currentX = e.clientX
     const diff = currentX - startX
     let newWidth = side === 'left' ? startWidth - diff * 0.5 : startWidth + diff * 0.5
@@ -462,7 +469,7 @@ const handleImageLoad = () => {
 const hasMultipleImages = computed(() => allImages.value.length > 1)
 
 // 计算属性：当前显示的图片URL
-const currentImageSrc = computed(() => {
+const currentImageSrc = computed((): string => {
   if (allImages.value.length > 0 && currentImageIndex.value >= 0) {
     return allImages.value[currentImageIndex.value].src
   }
@@ -470,7 +477,7 @@ const currentImageSrc = computed(() => {
 })
 
 // 计算属性：当前显示的图片alt文本
-const currentImageAlt = computed(() => {
+const currentImageAlt = computed((): string => {
   if (allImages.value.length > 0 && currentImageIndex.value >= 0) {
     return allImages.value[currentImageIndex.value].alt
   }
@@ -478,11 +485,10 @@ const currentImageAlt = computed(() => {
 })
 
 // 获取当前笔记中的所有图片
-const getAllImagesInNote = () => {
-  // 如果编辑器实例不存在，则返回空数组
+const getAllImagesInNote = (): ImageInfo[] => {
   if (!props.editor) return []
 
-  const images = []
+  const images: ImageInfo[] = []
   props.editor.state.doc.descendants((node) => {
     if (node.type.name === 'image') {
       images.push({
@@ -529,16 +535,11 @@ const resetViewerState = () => {
 }
 
 // 打开图片查看器
-const openImageViewer = (event) => {
-  // 获取所有图片
+const openImageViewer = (event: MouseEvent): void => {
   allImages.value = getAllImagesInNote()
-  // 找到当前图片的索引
   currentImageIndex.value = findCurrentImageIndex()
-
   showImageViewer.value = true
-  // 重置查看器状态
   resetViewerState()
-  // 阻止编辑器获取焦点
   event.preventDefault()
   event.stopPropagation()
   document.addEventListener('keydown', handleKeydown)
@@ -605,28 +606,24 @@ const viewerImageStyle = computed(() => ({
 }))
 
 // 开始拖动图片
-const startDrag = (event) => {
-  // 只有在图片放大状态下才允许拖动
+const startDrag = (event: MouseEvent | TouchEvent): void => {
   if (zoomLevel.value <= 1) return
 
   event.preventDefault()
-
   isDragging.value = true
 
-  // 获取起始位置
-  const startX = event.type === 'mousedown' ? event.clientX : event.touches[0].clientX
-  const startY = event.type === 'mousedown' ? event.clientY : event.touches[0].clientY
+  const startX = event instanceof MouseEvent ? event.clientX : event.touches[0].clientX
+  const startY = event instanceof MouseEvent ? event.clientY : event.touches[0].clientY
   const initialX = dragPosition.value.x
   const initialY = dragPosition.value.y
 
-  // 移动处理函数
-  const handleMove = (moveEvent) => {
+  const handleMove = (moveEvent: MouseEvent | TouchEvent): void => {
     if (!isDragging.value) return
 
     const currentX =
-      moveEvent.type === 'mousemove' ? moveEvent.clientX : moveEvent.touches[0].clientX
+      moveEvent instanceof MouseEvent ? moveEvent.clientX : moveEvent.touches[0].clientX
     const currentY =
-      moveEvent.type === 'mousemove' ? moveEvent.clientY : moveEvent.touches[0].clientY
+      moveEvent instanceof MouseEvent ? moveEvent.clientY : moveEvent.touches[0].clientY
 
     // 计算位移
     const deltaX = currentX - startX

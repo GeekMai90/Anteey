@@ -14,6 +14,12 @@ interface GeminiParameters {
   presencePenalty?: number
 }
 
+// 添加消息类型定义
+interface ChatMessage {
+  role: 'system' | 'user' | 'assistant'
+  content: string
+}
+
 export class LLMService {
   // 模型配置服务实例
   private configService: ModelConfigService
@@ -59,8 +65,8 @@ export class LLMService {
         model: config.modelName
       })
 
-      // 构建消息数组
-      const messages = []
+      // 构建消息数组，添加类型声明
+      const messages: ChatMessage[] = []
 
       // 如果有系统提示词，添加到消息开头
       if (config.systemPrompt) {
@@ -99,7 +105,7 @@ export class LLMService {
         requestBody = {
           contents: messages.map((msg) => ({
             parts: [{ text: msg.content }],
-            role: msg.role === 'user' ? 'user' : 'model'
+            role: this.mapRoleForGemini(msg.role)
           })),
           generationConfig: {
             temperature: Number(mergedParameters.temperature),
@@ -244,8 +250,8 @@ export class LLMService {
         model: config.modelName
       })
 
-      // 构建消息数组
-      const messages = [{ role: 'user', content: prompt }]
+      // 构建消息数组，添加类型声明
+      const messages: ChatMessage[] = [{ role: 'user', content: prompt }]
 
       // 如果有系统提示词，添加到消息开头
       if (config.systemPrompt) {
@@ -275,7 +281,7 @@ export class LLMService {
         requestBody = {
           contents: messages.map((msg) => ({
             parts: [{ text: msg.content }],
-            role: msg.role === 'user' ? 'user' : 'model'
+            role: this.mapRoleForGemini(msg.role)
           })),
           generationConfig: {
             temperature: Number(mergedParameters.temperature),
@@ -568,5 +574,18 @@ export class LLMService {
     }
 
     return `${cleanBase}${suffix}`
+  }
+
+  // 添加辅助方法来映射角色
+  private mapRoleForGemini(role: ChatMessage['role']): string {
+    switch (role) {
+      case 'system':
+      case 'assistant':
+        return 'model'
+      case 'user':
+        return 'user'
+      default:
+        return 'user'
+    }
   }
 }
