@@ -83,20 +83,11 @@ function createCustomMenu() {
       submenu: [
         {
           label: '新笔记',
-          accelerator: 'CmdOrCtrl+N', // 添加这一行
+          accelerator: 'CmdOrCtrl+N',
           click: () => {
             const focusedWindow = BrowserWindow.getFocusedWindow()
             if (focusedWindow) {
               focusedWindow.webContents.send('menu-new-note')
-            }
-          }
-        },
-        {
-          label: '导出笔记',
-          click: () => {
-            const focusedWindow = BrowserWindow.getFocusedWindow()
-            if (focusedWindow) {
-              focusedWindow.webContents.send('menu-export-notes')
             }
           }
         },

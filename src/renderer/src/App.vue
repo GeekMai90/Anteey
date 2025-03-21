@@ -53,7 +53,6 @@
 import { ref, onMounted, onUnmounted, provide, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useNoteStore } from '@renderer/stores/noteStore'
-import { useNoteMenu } from '@renderer/composables/useNoteMenu'
 import { useGlobalHotkeys } from '@renderer/composables/useGlobalHotkeys'
 import { useWebDAVStore } from '@renderer/stores/webdavStore'
 import { useAppearanceStore } from './stores/appearanceStore'
@@ -108,12 +107,6 @@ const isQuickAddVisible = ref(false)
 
 // 添加启动类型标记
 let loadingTimer: NodeJS.Timeout | null = null
-
-// ===== 菜单功能 =====
-const { handleBulkExport } = useNoteMenu({
-  noteId: '',
-  menuItems: ['star']
-})
 
 // 处理快捷键
 const handleKeydown = (event: KeyboardEvent) => {
@@ -234,9 +227,6 @@ onMounted(async () => {
     // 设置菜单事件监听
     window.electronAPI.systemMenu.onMenuNewNote(async () => {
       await noteStore.createAndOpenNewNote()
-    })
-    window.electronAPI.systemMenu.onMenuExportNotes(async () => {
-      await handleBulkExport()
     })
 
     // 监听同步状态变化
