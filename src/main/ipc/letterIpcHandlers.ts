@@ -5,7 +5,8 @@ import {
   getLetterById,
   updateLetterReadStatus,
   getLatestLetter,
-  getUnreadLettersCount
+  getUnreadLettersCount,
+  checkTodayLetter
 } from '../../services/letter/letterService'
 import type { LetterType } from '@shared/types'
 
@@ -80,5 +81,10 @@ export function setupLetterHandlers() {
       console.error('主进程→ 获取未读信件数量失败:', error)
       return { success: false, error: String(error) }
     }
+  })
+
+  // 检查今天是否已经收到过信件
+  ipcMain.handle('letter:checkTodayLetter', async () => {
+    return await checkTodayLetter()
   })
 }

@@ -16,6 +16,9 @@ export const useDailyLetterStore = defineStore('dailyLetter', () => {
   const unreadCount = ref(0)
   const isLetterModalOpen = ref(false)
 
+  // 添加新的状态
+  const canReceiveToday = ref(true)
+
   // ==================== 动画控制方法 ====================
   const startAnimation = () => {
     endAnimation()
@@ -40,11 +43,29 @@ export const useDailyLetterStore = defineStore('dailyLetter', () => {
   }
 
   // ==================== 信件操作方法 ====================
-  // 创建信件
+  // 添加新的方法来检查今天是否可以接收信件
+  const checkTodayLetter = async () => {
+    try {
+      const hasReceived = await window.electronAPI.letter.checkTodayLetter()
+      canReceiveToday.value = !hasReceived
+      return !hasReceived
+    } catch (error) {
+      console.error('检查今日信件状态失败:', error)
+      throw error
+    }
+  }
+
+  // 修改 createLetter 方法
   const createLetter = async (type: LetterType) => {
     try {
+      if (type === 'daily' && !canReceiveToday.value) {
+        throw new Error('今天已经收到过信件了')
+      }
       const letter = await window.electronAPI.letter.createLetter(type)
-      await fetchLetters() // 刷新信件列表
+      await fetchLetters()
+      if (type === 'daily') {
+        canReceiveToday.value = false
+      }
       return letter
     } catch (error) {
       console.error('创建信件失败:', error)
@@ -143,6 +164,7 @@ export const useDailyLetterStore = defineStore('dailyLetter', () => {
     totalLetters,
     unreadCount,
     isLetterModalOpen,
+    canReceiveToday,
 
     // 动画方法
     startAnimation,
@@ -156,6 +178,7 @@ export const useDailyLetterStore = defineStore('dailyLetter', () => {
     updateLetterReadStatus,
     getLatestLetter,
     fetchUnreadCount,
+    checkTodayLetter,
 
     // 模态框控制
     openLetterModal,

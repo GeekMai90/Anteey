@@ -611,3 +611,26 @@ export async function getUnreadLettersCount(): Promise<number> {
     throw error
   }
 }
+
+// 检查今天是否已经收到过信件
+export async function checkTodayLetter(): Promise<boolean> {
+  try {
+    // 获取今天的开始和结束时间
+    const today = new Date()
+    const startOfDay = new Date(today)
+    startOfDay.setHours(0, 0, 0, 0)
+    const endOfDay = new Date(today)
+    endOfDay.setHours(23, 59, 59, 999)
+
+    // 查询今天的 daily 类型信件
+    const [{ count }] = await db('letters')
+      .where('type', 'daily')
+      .whereBetween('createTime', [startOfDay.toISOString(), endOfDay.toISOString()])
+      .count('* as count')
+
+    return Number(count) > 0
+  } catch (error) {
+    console.error('后端→ 检查今日信件状态失败:', error)
+    throw error
+  }
+}

@@ -78,5 +78,8 @@ export const letterApi = {
       console.error('预加载脚本 → 获取未读信件数量失败:', error)
       throw error
     }
-  }
+  },
+
+  // 检查今天是否已经收到过信件
+  checkTodayLetter: () => ipcRenderer.invoke('letter:checkTodayLetter')
 }

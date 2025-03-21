@@ -1,22 +1,48 @@
 <template>
   <div
-    v-tooltip.top="{ content: '每日来信', delay: { show: 1000 } }"
+    v-tooltip.top="{
+      content: dailyLetterStore.canReceiveToday ? '每日来信' : '今日已收信',
+      delay: { show: 1000 }
+    }"
     class="daily-letter-btn"
+    :class="{ disabled: !dailyLetterStore.canReceiveToday }"
     @click="handleClick"
   >
     <div class="icon">
-      <Mail theme="outline" size="16" fill="var(--color-sidebar-text)" :strokeWidth="2" />
+      <Mail
+        v-if="dailyLetterStore.canReceiveToday"
+        theme="outline"
+        size="16"
+        fill="var(--color-sidebar-text)"
+        :strokeWidth="2"
+      />
+      <MailOpen
+        v-else
+        theme="outline"
+        size="16"
+        fill="var(--color-sidebar-text)"
+        :strokeWidth="2"
+      />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { Mail } from '@icon-park/vue-next'
+import { Mail, MailOpen } from '@icon-park/vue-next'
 import { useDailyLetterStore } from '@renderer/stores/dailyLetterStore'
+import { onMounted } from 'vue'
 
 const dailyLetterStore = useDailyLetterStore()
 
+onMounted(async () => {
+  await dailyLetterStore.checkTodayLetter()
+})
+
 const handleClick = async () => {
+  if (!dailyLetterStore.canReceiveToday) {
+    return
+  }
+
   try {
     // 1. 开始动画
     dailyLetterStore.startAnimation()
@@ -26,12 +52,8 @@ const handleClick = async () => {
 
     // 3. 设置当前信件
     await dailyLetterStore.getLetterById(letter.id)
-
-    // 注意：不再在这里直接打开模态框
-    // 模态框的显示由动画组件控制
   } catch (error) {
     console.error('生成每日信件失败:', error)
-    // 如果失败，也要停止动画
     dailyLetterStore.endAnimation()
   }
 }
@@ -72,6 +94,15 @@ const handleClick = async () => {
     background: rgba(var(--color-sidebar-icon-bg), 0.04);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
+  }
+
+  &.disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+
+  &.disabled:hover {
+    background: none;
   }
 }
 </style>

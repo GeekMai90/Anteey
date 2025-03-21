@@ -936,6 +936,9 @@ export interface ElectronAPI {
 
     // 获取未读信件数量
     getUnreadLettersCount: () => Promise<number>
+
+    // 检查今天是否已经收到过信件
+    checkTodayLetter: () => Promise<boolean>
   }
 
   export: {
