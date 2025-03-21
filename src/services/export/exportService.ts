@@ -354,8 +354,9 @@ export async function exportNote(noteId: string): Promise<{ filePath: string; fi
     // 5. 添加 markdown 文件到 zip
     const createdAt = new Date(note.createdAt)
     const timeString = format(createdAt, 'yyyyMMddHHmm')
-    const noteAddress = note.address || note.id
-    const fileName = `${sanitizeFileName(noteAddress)}_${timeString}.md`
+    // 修改这里：如果没有 address，使用 id 作为文件名前缀
+    const filePrefix = note.address || `note_${note.id}`
+    const fileName = `${sanitizeFileName(filePrefix)}_${timeString}.md`
     zip.file(fileName, processedMarkdown)
 
     // 6. 生成 zip 文件
@@ -393,7 +394,7 @@ export async function exportAllNotes(): Promise<{ filePath: string; fileName: st
     // 1. 获取所有笔记的 ID 和基本信息
     const batchSize = 10 // 每批处理的笔记数量
     const allNotes = await db('notes')
-      .where('isDeleted', false)
+      .where('isDeleted', false) // 只获取未删除的笔记
       .select('id', 'address', 'createdAt')
 
     if (allNotes.length === 0) {
@@ -408,8 +409,9 @@ export async function exportAllNotes(): Promise<{ filePath: string; fileName: st
     allNotes.forEach((note) => {
       const createdAt = new Date(note.createdAt)
       const timeString = format(createdAt, 'yyyyMMddHHmm')
-      const noteAddress = note.address || note.id
-      const fileName = `${sanitizeFileName(noteAddress)}_${timeString}.md`
+      // 修改这里：如果没有 address，使用 id 作为文件名前缀
+      const filePrefix = note.address || `note_${note.id}`
+      const fileName = `${sanitizeFileName(filePrefix)}_${timeString}.md`
       noteIdToFilename.set(note.id, fileName)
     })
 
