@@ -45,6 +45,7 @@
         <Button type="primary">主要按钮</Button>
         <Button type="text">文本按钮</Button>
         <Button type="link">链接按钮</Button>
+        <Button type="delete">删除按钮</Button>
       </div>
 
       <div class="button-row">

@@ -10,7 +10,7 @@ interface TooltipConfig {
 }
 
 interface Props {
-  type?: 'default' | 'primary' | 'text' | 'link'
+  type?: 'default' | 'primary' | 'text' | 'link' | 'delete'
   size?: 'small' | 'medium' | 'large'
   icon?: Component
   disabled?: boolean
@@ -258,7 +258,7 @@ const emit = defineEmits<{
 /* 默认按钮悬停效果 */
 .ant-btn:not(.ant-btn-disabled):not(.ant-btn-loading):not(.ant-btn-primary):not(.ant-btn-text):not(
     .ant-btn-link
-  ):hover {
+  ):not(.ant-btn-delete):hover {
   border-color: var(--color-primary);
   color: var(--color-primary);
 }
@@ -370,5 +370,18 @@ const emit = defineEmits<{
     width: 12px;
     height: 12px;
   }
+}
+
+/* 删除按钮 */
+.ant-btn-delete {
+  color: var(--color-red);
+  border-color: var(--color-red);
+  background: transparent;
+}
+
+.ant-btn-delete:not(.ant-btn-disabled):not(.ant-btn-loading):hover {
+  color: color-mix(in srgb, var(--color-red) 85%, white);
+  border-color: color-mix(in srgb, var(--color-red) 85%, white);
+  background: color-mix(in srgb, var(--color-red) 5%, transparent);
 }
 </style>
