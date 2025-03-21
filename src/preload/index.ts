@@ -31,6 +31,7 @@ import { s3Api } from './api/s3Api'
 import { cloudSyncApi } from './api/cloudSyncApi'
 import { dinoxApi } from './api/dinoxApi'
 import { letterApi } from './api/letterApi'
+import { exportApi } from './api/exportApi'
 // 添加日志 API
 contextBridge.exposeInMainWorld('electronLog', {
   info: (...args: any[]) => ipcRenderer.send('renderer-log', { level: 'info', args }),
@@ -161,5 +162,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   dinox: dinoxApi,
   letter: {
     ...letterApi
+  },
+  export: {
+    ...exportApi
   }
 })

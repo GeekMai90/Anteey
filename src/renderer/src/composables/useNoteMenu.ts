@@ -17,9 +17,6 @@ import {
 } from '@icon-park/vue-next'
 
 import { useUIStore } from '../stores/UIStore'
-import TurndownService from 'turndown'
-import { format } from 'date-fns'
-import JSZip from 'jszip'
 import { ref, computed } from 'vue'
 import { useNoteStore } from '../stores/noteStore'
 import { useRoute, useRouter } from 'vue-router'
@@ -203,206 +200,26 @@ export function useNoteMenu(params: NoteMenuParams) {
 
   // 导出单个笔记
   const handleExportNote = async () => {
-    if (noteStore.editor && params.noteId) {
-      const note = await noteStore.fetchNoteById(params.noteId)
-
-      if (!note) {
-        console.error('笔记不存在')
-        return
-      }
-
-      console.log(`准备导出笔记: ${note.id}`)
-
-      const turndownService = new TurndownService({ headingStyle: 'atx' })
-      const zip = new JSZip()
-
-      try {
-        noteStore.editor.commands.setContent(note.content)
-        const html = noteStore.editor.getHTML()
-        let markdown = turndownService.turndown(html)
-
-        const imageUrls = getImageUrlsFromHtml(html)
-
-        const imagePromises = imageUrls.map(async (imageUrl) => {
-          try {
-            const imageData = await downloadImage(imageUrl)
-            const imageName = imageUrl.split('/').pop() || 'image.png'
-            zip.file(`images/${imageName}`, imageData)
-            return { oldUrl: imageUrl, newUrl: `images/${imageName}` }
-          } catch (error) {
-            console.error(`下载图片失败: ${imageUrl}`, error)
-            return null
-          }
-        })
-
-        const imageResults = await Promise.all(imagePromises)
-
-        imageResults.forEach((result) => {
-          if (result) {
-            markdown = markdown.replace(result.oldUrl, result.newUrl)
-          }
-        })
-
-        // 处理本地图片链接
-        markdown = markdown.replace(
-          /!\[([^\]]*)\]\(file:\/\/\/Users\/geekmai\/Library\/Application Support\/antinet\/UserData\/images\/([^)]+)\)/g,
-          '![$1](./images/$2)'
-        )
-
-        // 处理笔记链接（对于单条笔记，我们保留原始链接）
-        markdown = markdown.replace(
-          /\[([^\]]+)\]\(note:\/\/([^)]+)\)/g,
-          (_match, linkText, noteId) => {
-            return `[${linkText}](note://${noteId})`
-          }
-        )
-
-        const createdAt = new Date(note.createdAt)
-        const timeString = format(createdAt, 'yyyyMMddHHmm')
-        let noteAddress = noteStore.getNoteAddress(note.id)
-        noteAddress = sanitizeFileName(noteAddress)
-        const fileName = `${noteAddress}_${timeString}.md`
-
-        zip.file(fileName, markdown)
-        console.log(`笔记处理成功: ${fileName}`)
-
-        console.log('正在生成 zip 文件...')
-        const content = await zip.generateAsync({ type: 'blob' })
-        const link = document.createElement('a')
-        link.href = URL.createObjectURL(content)
-        link.download = `Antinet_note_export_${noteAddress}_${timeString}.zip`
-        link.click()
-        URL.revokeObjectURL(link.href)
-        console.log(`笔记已导出到 zip 文件: ${link.download}`)
-      } catch (error) {
-        console.error(`处理笔记时出错 (ID: ${note.id}):`, error)
-      }
-    } else {
-      console.error('编辑器实例不存在或笔记ID未提供')
+    try {
+      const result = await window.electronAPI.export.exportNote(params.noteId)
+      message.success(`笔记已导出到: ${result.fileName}`)
+      closePopupMenu()
+    } catch (error) {
+      console.error('导出笔记失败:', error)
+      message.error('导出失败')
     }
-    closePopupMenu()
   }
 
   // 批量导出笔记
   const handleBulkExport = async () => {
-    console.log('准备开始批量导出...')
-
-    const allNotes = await noteStore.fetchAllNotes()
-
-    if (allNotes.length === 0) {
-      console.error('没有可导出的笔记')
-      return
-    }
-
-    if (!noteStore.editor) {
-      console.error('编辑器实例不可用')
-      return
-    }
-
-    console.log(`找到 ${allNotes.length} 条笔记待导出`)
-
-    const turndownService = new TurndownService({ headingStyle: 'atx' })
-    const zip = new JSZip()
-
-    // 创建笔记 ID 到文件名的映射
-    const noteIdToFilename = new Map<string, string>()
-
-    // 第一次遍历：创建文件名映射
-    for (const note of allNotes) {
-      const createdAt = new Date(note.createdAt)
-      const timeString = format(createdAt, 'yyyyMMddHHmm')
-      let noteAddress = noteStore.getNoteAddress(note.id)
-      noteAddress = sanitizeFileName(noteAddress)
-      const fileName = `${noteAddress}_${timeString}.md`
-      noteIdToFilename.set(note.id, fileName)
-    }
-
-    // 第二次遍历：处理笔记内容和链接
-    for (const note of allNotes) {
-      if (!note.content) {
-        console.warn(`笔记 ${note.id} 没有内容，跳过`)
-        continue
-      }
-
-      try {
-        console.log(`正在处理笔记: ${note.id}`)
-
-        noteStore.editor.commands.setContent(note.content)
-        const html = noteStore.editor.getHTML()
-        let markdown = turndownService.turndown(html)
-
-        const imageUrls = getImageUrlsFromHtml(html)
-
-        const imagePromises = imageUrls.map(async (imageUrl) => {
-          try {
-            const imageData = await downloadImage(imageUrl)
-            const imageName = imageUrl.split('/').pop() || 'image.png'
-            zip.file(`images/${imageName}`, imageData)
-            return { oldUrl: imageUrl, newUrl: `images/${imageName}` }
-          } catch (error) {
-            console.error(`下载图片失败: ${imageUrl}`, error)
-            return null
-          }
-        })
-
-        const imageResults = await Promise.all(imagePromises)
-
-        imageResults.forEach((result) => {
-          if (result) {
-            markdown = markdown.replace(result.oldUrl, result.newUrl)
-          }
-        })
-
-        // 处理本地图片链接
-        markdown = markdown.replace(
-          /!\[([^\]]*)\]\(file:\/\/\/Users\/geekmai\/Library\/Application Support\/antinet\/UserData\/images\/([^)]+)\)/g,
-          '![$1](./images/$2)'
-        )
-
-        // 处理笔记链接
-        markdown = markdown.replace(
-          /\[([^\]]+)\]\(note:\/\/([^)]+)\)/g,
-          (match, linkText, noteId) => {
-            const fileName = noteIdToFilename.get(noteId)
-            return fileName ? `[${linkText}](./${fileName})` : match
-          }
-        )
-
-        const fileName = noteIdToFilename.get(note.id)!
-        zip.file(fileName, markdown)
-        console.log(`笔记处理成功: ${fileName}`)
-      } catch (error) {
-        console.error(`处理笔记时出错 (ID: ${note.id}):`, error)
-        zip.file(`error_${note.id}.txt`, `处理此笔记时出错: ${(error as Error).message}`)
-      }
-    }
-
     try {
-      console.log('正在生成 zip 文件...')
-      const content = await zip.generateAsync({ type: 'blob' })
-      const link = document.createElement('a')
-      link.href = URL.createObjectURL(content)
-      link.download = `Anteey_all_notes_export_${format(new Date(), 'yyyyMMddHHmm')}.zip`
-      link.click()
-      URL.revokeObjectURL(link.href)
-      console.log(`${allNotes.length} 条笔记已导出到 zip 文件`)
+      const result = await window.electronAPI.export.exportAllNotes()
+      message.success(`所有笔记已导出到: ${result.fileName}`)
+      closePopupMenu()
     } catch (error) {
-      console.error('生成 zip 文件时出错:', error)
+      console.error('批量导出笔记失败:', error)
+      message.error('批量导出失败')
     }
-  }
-  // 批量导出笔记的辅助函数
-  const getImageUrlsFromHtml = (html: string): string[] => {
-    const parser = new DOMParser()
-    const doc = parser.parseFromString(html, 'text/html')
-    const images = doc.getElementsByTagName('img')
-    return Array.from(images).map((img) => img.src)
-  }
-  const downloadImage = async (url: string): Promise<ArrayBuffer> => {
-    const response = await fetch(url)
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`)
-    }
-    return await response.arrayBuffer()
   }
 
   // 设置
@@ -410,14 +227,6 @@ export function useNoteMenu(params: NoteMenuParams) {
     uiStore.openSettingsPage()
     closePopupMenu()
   }
-
-  function sanitizeFileName(name: string): string {
-    name = name.replace(/^[-_]+/, '') // 移除开头的横杠或下划线
-    name = name.replace(/[/\\?%*:|"<>]/g, '_') // 替换不允许的字符为下划线
-    name = name.replace(/[. ]+$/, '') // 移除结尾的点和空格
-    return name
-  }
-
   // 从笔记内容中提取第一行文本
   function extractFirstLineText(content: any): string {
     // 检查 content 是否存在且有内容

@@ -30,6 +30,7 @@ import { setupMindboardHandlers } from './mindboardIpcHandlers'
 import { setupS3Handlers } from './s3IpcHandlers'
 import { setupCloudSyncHandlers } from './cloudSyncIpcHandlers'
 import { setupLetterHandlers } from './letterIpcHandlers'
+import { setupExportHandlers } from './exportIpcHandlers'
 export function setupIpcHandlers(): void {
   setupNotesHandlers()
   setupCardboxHandlers()
@@ -63,4 +64,5 @@ export function setupIpcHandlers(): void {
   setupS3Handlers()
   setupCloudSyncHandlers()
   setupLetterHandlers()
+  setupExportHandlers()
 }

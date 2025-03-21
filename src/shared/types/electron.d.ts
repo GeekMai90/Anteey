@@ -937,6 +937,20 @@ export interface ElectronAPI {
     // 获取未读信件数量
     getUnreadLettersCount: () => Promise<number>
   }
+
+  export: {
+    // 导出单个笔记
+    exportNote: (noteId: string) => Promise<{
+      filePath: string
+      fileName: string
+    }>
+
+    // 批量导出所有笔记
+    exportAllNotes: () => Promise<{
+      filePath: string
+      fileName: string
+    }>
+  }
 }
 
 declare global {
