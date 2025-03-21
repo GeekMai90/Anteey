@@ -9,6 +9,35 @@
     <div class="settings-content-divider"></div>
 
     <div class="ai-settings-content">
+      <!-- 默认模式设置区域 -->
+      <div class="ai-section">
+        <div class="section-header">
+          <div class="section-title">默认对话模式</div>
+        </div>
+        <div class="section-desc">设置打开 AI 助手时的默认对话模式。</div>
+        <div class="setting-item">
+          <div class="select-wrapper">
+            <div class="mode-select" @click="toggleModeDropdown">
+              <span class="selected-mode">{{ getModeLabel(assistantStore.defaultMode) }}</span>
+              <div class="select-arrow">
+                <Down theme="outline" size="16" :strokeWidth="3" />
+              </div>
+            </div>
+            <div v-show="showModeSelect" class="select-dropdown">
+              <div
+                v-for="mode in modeOptions"
+                :key="mode.value"
+                class="select-option"
+                :class="{ active: assistantStore.defaultMode === mode.value }"
+                @click="handleModeSelect(mode.value)"
+              >
+                {{ mode.label }}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- 提示词设置区域 -->
       <div class="ai-section">
         <div class="section-header">
@@ -68,13 +97,15 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { Robot, Setting, Close } from '@icon-park/vue-next'
+import { Robot, Setting, Close, Down } from '@icon-park/vue-next'
 import { useModelConfigStore } from '@renderer/stores/modelConfigStore'
+import { useAssistantStore } from '@renderer/stores/assistantStore'
 import type { SystemPromptConfig } from '@shared/types'
 import { message } from '@renderer/utils/message'
 import Button from '@renderer/components/ui/Button.vue'
 
 const modelConfigStore = useModelConfigStore()
+const assistantStore = useAssistantStore()
 const showPromptModal = ref(false)
 const promptFormData = ref<SystemPromptConfig | null>(null)
 
@@ -85,6 +116,42 @@ const systemPrompt = computed({
       promptFormData.value.systemPrompt = value
     }
   }
+})
+
+// 修改模式选项的类型定义
+const modeOptions = [
+  { label: '问一问 - 基于笔记解答', value: 'ask' as const },
+  { label: '聊一聊 - AI 助手对话', value: 'chat' as const }
+]
+
+const showModeSelect = ref(false)
+
+// 切换下拉框显示
+const toggleModeDropdown = (e: Event) => {
+  e.stopPropagation()
+  showModeSelect.value = !showModeSelect.value
+}
+
+// 修改处理模式选择的方法
+const handleModeSelect = (mode: 'ask' | 'chat') => {
+  assistantStore.setDefaultMode(mode)
+  showModeSelect.value = false
+  message.success('默认模式已更新')
+}
+
+// 修改获取模式显示文本的方法
+const getModeLabel = (value: 'ask' | 'chat') => {
+  return modeOptions.find((mode) => mode.value === value)?.label || modeOptions[0].label
+}
+
+// 添加点击外部关闭下拉菜单
+onMounted(() => {
+  document.addEventListener('click', (e) => {
+    const target = e.target as HTMLElement
+    if (!target.closest('.select-wrapper')) {
+      showModeSelect.value = false
+    }
+  })
 })
 
 onMounted(() => {
@@ -254,6 +321,79 @@ const showPromptSettings = async () => {
       color: var(--color-text-secondary);
       margin-bottom: 15px;
       user-select: none;
+    }
+
+    .setting-item {
+      width: 100%;
+      margin-top: 8px;
+
+      .select-wrapper {
+        position: relative;
+        width: 240px;
+
+        .mode-select {
+          width: 100%;
+          padding: 8px 12px;
+          border-radius: 8px;
+          border: 1px solid var(--color-border);
+          color: var(--color-text-primary);
+          font-size: 14px;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          height: 36px;
+
+          &:hover {
+            border-color: var(--color-primary);
+            background: var(--color-hover-bg);
+          }
+
+          .selected-mode {
+            font-weight: 400;
+          }
+
+          .select-arrow {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 20px;
+            height: 100%;
+          }
+        }
+
+        .select-dropdown {
+          position: absolute;
+          top: calc(100% + 4px);
+          left: 0;
+          width: 100%;
+          background: var(--color-bg-primary);
+          border: 1px solid var(--color-border);
+          border-radius: 8px;
+          padding: 4px;
+          z-index: 1000;
+          box-shadow: var(--shadow-card);
+
+          .select-option {
+            padding: 8px 12px;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: all 0.2s;
+            font-size: 14px;
+            color: var(--color-text-primary);
+
+            &:hover {
+              background: var(--color-hover-bg);
+            }
+
+            &.active {
+              color: var(--color-primary);
+              background: var(--color-primary-bg);
+            }
+          }
+        }
+      }
     }
   }
 }

@@ -72,21 +72,38 @@
                   <!-- AI消息 -->
                   <template v-else-if="msg.role === 'assistant'">
                     <TypewriterText
-                      :key="msg.id"
+                      :message-id="msg.id"
                       :content="msg.content"
-                      :instant="isMessageDisplayed(msg.id)"
-                      @complete="() => handleTypewriterComplete(msg.id)"
+                      :timestamp="msg.timestamp"
+                      :instant="isHistoryMessage"
                       @segment-complete="onSegmentComplete"
+                      @complete="() => onTypewriterComplete(msg.id)"
                     />
-                    <!-- 引用信息 -->
-                    <div v-if="msg.references?.length" class="message-references">
+                    <!-- 引用信息区域 -->
+                    <div class="message-references">
                       <div class="references-header">
-                        <button class="reference-btn" @click="toggleReferences(msg.id)">
+                        <button
+                          class="reference-btn"
+                          :class="{ active: expandedMessageId === msg.id }"
+                          @click="toggleReferences(msg.id)"
+                        >
                           <div class="icon">
-                            <Notes theme="outline" size="12" :strokeWidth="3" />
+                            <component
+                              :is="msg.sourceType === 'notes' ? Notes : Brain"
+                              theme="outline"
+                              size="14"
+                              :stroke-width="3"
+                            />
                           </div>
-                          <div class="name">引用 {{ msg.references.length }} 篇笔记</div>
+                          <div class="name">
+                            {{
+                              msg.sourceType === 'notes'
+                                ? `引用 ${msg.references?.length} 篇笔记作为参考`
+                                : '基于 AI 知识库'
+                            }}
+                          </div>
                         </button>
+
                         <!-- 添加复制按钮 -->
                         <button
                           v-tooltip.top="'复制内容'"
@@ -94,28 +111,36 @@
                           @click="copyMessageContent(msg.content)"
                         >
                           <div class="icon">
-                            <Copy theme="outline" size="14" :strokeWidth="3" />
+                            <Copy theme="outline" size="14" :stroke-width="3" />
                           </div>
                         </button>
                       </div>
 
-                      <!-- 添加展开的引用列表 -->
+                      <!-- 展开的引用列表 -->
                       <div v-if="expandedMessageId === msg.id" class="references-list">
-                        <div
-                          v-for="reference in msg.references"
-                          :key="reference.noteId"
-                          class="reference-item"
-                          @click="handleReferenceClick($event, reference.noteId)"
-                          @dblclick.stop="handleReferenceDoubleClick(reference.noteId)"
-                        >
-                          <div class="reference-header">
-                            <span class="reference-address">{{ reference.address }}</span>
-                            <span class="reference-similarity">
-                              相关度 {{ (reference.similarity * 100).toFixed(0) }}%
-                            </span>
-                          </div>
-                          <div class="reference-content">{{ reference.title }}</div>
+                        <!-- AI 知识库的提示 -->
+                        <div v-if="msg.sourceType === 'ai'" class="ai-reference-tip">
+                          所有内容均由 AI 生成，仅供参考
                         </div>
+
+                        <!-- 笔记引用列表 -->
+                        <template v-else>
+                          <div
+                            v-for="reference in msg.references"
+                            :key="reference.noteId"
+                            class="reference-item"
+                            @click="handleReferenceClick($event, reference.noteId)"
+                            @dblclick.stop="handleReferenceDoubleClick(reference.noteId)"
+                          >
+                            <div class="reference-header">
+                              <span class="reference-address">{{ reference.address }}</span>
+                              <span class="reference-similarity">
+                                相关度 {{ (reference.similarity * 100).toFixed(0) }}%
+                              </span>
+                            </div>
+                            <div class="reference-content">{{ reference.title }}</div>
+                          </div>
+                        </template>
                       </div>
                     </div>
                   </template>
@@ -280,7 +305,8 @@ import {
   Close,
   Copy,
   Check,
-  Receiver
+  Receiver,
+  Brain
 } from '@icon-park/vue-next'
 import type { Suggestion } from '@shared/types'
 import TypewriterText from '@renderer/components/aiassistant/TypewriterText.vue'
@@ -323,7 +349,7 @@ const suggestions: Suggestion[] = [
 // Refs
 const inputMessage = ref('')
 const messagesContainer = ref<HTMLElement | null>(null)
-const currentMode = ref<Suggestion>(suggestions[0])
+const currentMode = ref<Suggestion>(suggestions[assistantStore.defaultMode === 'chat' ? 1 : 0])
 const inputRef = ref<HTMLInputElement | null>(null)
 const isComposing = ref(false)
 const expandedMessageId = ref<string | null>(null)
@@ -342,21 +368,28 @@ const getPlaceholder = computed(() => {
   return '提问、思考、聊天...'
 })
 
-// 修改计算属性
-const isMessageDisplayed = (messageId: string) => {
-  return assistantStore.displayedMessageIds.has(messageId)
-}
+// 修改 isHistoryMessage 计算属性
+const isHistoryMessage = computed((): boolean => {
+  // 如果正在加载历史记录，返回 true
+  if (assistantStore.isLoadingHistory) {
+    return true
+  }
 
-// 添加处理完成的回调方法
-const handleTypewriterComplete = (messageId: string) => {
-  assistantStore.markMessageAsDisplayed(messageId)
-  requestAnimationFrame(scrollToBottom)
-}
+  // 检查当前会话的 metadata 中的 isHistorical 标记
+  const metadata = assistantStore.currentSession?.metadata
+  if (metadata?.isHistorical) {
+    return true
+  }
+
+  return false
+})
 
 // 方法
 const selectMode = (suggestion: Suggestion) => {
   assistantStore.clearMessages()
   currentMode.value = suggestion
+  // 保存用户的选择
+  assistantStore.setDefaultMode(suggestion.mode as 'ask' | 'chat')
   focusInput()
 }
 
@@ -379,14 +412,18 @@ const handleSend = async () => {
     }
 
     const mode = currentMode.value?.mode || 'ask'
-    switch (mode) {
-      case 'ask':
-        await assistantStore.handleAskQuestion(message, noteReferences)
-
-        break
-      case 'chat':
-        await assistantStore.handleChat(message)
-        break
+    try {
+      switch (mode) {
+        case 'ask':
+          await assistantStore.handleAskQuestion(message, noteReferences)
+          break
+        case 'chat':
+          await assistantStore.handleChat(message)
+          break
+      }
+    } finally {
+      // 无论成功失败，都重新聚焦到输入框
+      focusInput()
     }
   } catch (error) {
     console.error('发送消息失败:', error)
@@ -400,7 +437,24 @@ const scrollToBottom = () => {
 }
 
 const onSegmentComplete = () => {
-  requestAnimationFrame(scrollToBottom)
+  requestAnimationFrame(() => {
+    if (messagesContainer.value) {
+      messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight
+    }
+  })
+}
+
+const onTypewriterComplete = (messageId: string) => {
+  // 标记消息为已显示
+  assistantStore.markMessageAsDisplayed(messageId)
+  // 滚动到底部并聚焦输入框
+  requestAnimationFrame(() => {
+    if (messagesContainer.value) {
+      messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight
+    }
+    // 添加自动聚焦
+    focusInput()
+  })
 }
 
 const openInMainPanel = () => {
@@ -490,9 +544,15 @@ const toggleReferences = (messageId: string) => {
   }
 }
 
+// 修改 startNewChat 方法
 const startNewChat = () => {
-  assistantStore.clearMessages()
-  currentMode.value = suggestions[0]
+  // 根据默认模式设置初始模式
+  const defaultSuggestion = suggestions.find((s) => s.mode === assistantStore.defaultMode)
+  currentMode.value = defaultSuggestion || suggestions[0] // 使用默认模式或回退到第一个选项
+  assistantStore.clearMessages() // 改回使用 clearMessages
+  currentMode.value = defaultSuggestion || suggestions[0]
+  inputMessage.value = ''
+  focusInput()
 }
 
 const historyPanelStyle = ref({
@@ -1119,79 +1179,117 @@ onMounted(() => {
 
   .message-references {
     margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid var(--color-border);
+  }
 
-    .reference-btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 6px 10px;
-      border-radius: 6px;
-      font-size: 13px;
-      color: var(--color-text-secondary);
-      background: none;
-      border: none;
-      cursor: pointer;
-      transition: all 0.2s ease;
+  .references-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 
-      &:hover {
-        background: var(--color-hover-bg);
-      }
-    }
-
-    .references-list {
-      margin-top: 8px;
-      padding: 8px;
-      border-radius: 8px;
-      background: var(--color-bg-secondary);
-    }
-
-    .reference-item {
-      padding: 12px;
-      border-radius: 6px;
-      background: var(--color-bg-primary);
-      cursor: pointer;
-      transition: background-color 0.2s ease;
-      user-select: none;
-
-      & + .reference-item {
-        margin-top: 8px;
-      }
-
-      &:hover {
-        background: var(--color-hover-bg);
-      }
-    }
-
-    .reference-header {
+    .copy-btn {
       display: flex;
-      justify-content: space-between;
       align-items: center;
-      margin-bottom: 8px;
-    }
-
-    .reference-address {
-      font-weight: 500;
-      color: var(--color-text-primary);
-    }
-
-    .reference-similarity {
-      font-size: 12px;
-      color: var(--color-primary);
-    }
-
-    .reference-content {
-      font-size: 13px;
-      line-height: 1.5;
-      color: var(--color-text-secondary);
-      margin-bottom: 8px;
-      user-select: none;
-    }
-
-    .reference-meta {
-      font-size: 12px;
+      justify-content: center;
+      padding: 6px;
+      border: none;
+      background: none;
+      cursor: pointer;
       color: var(--color-text-tertiary);
-      user-select: none;
+      border-radius: 4px;
+      transition: all 0.2s ease;
+      opacity: 0;
+
+      .icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 20px;
+        height: 20px;
+        transition: all 0.2s ease;
+        padding: 0;
+
+        :deep(.i-icon) {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 100%;
+          height: 100%;
+        }
+
+        :deep(svg) {
+          width: 14px;
+          height: 14px;
+        }
+      }
+
+      &:hover {
+        background: var(--color-hover-bg);
+        color: var(--color-text-secondary);
+      }
     }
+
+    &:hover {
+      .copy-btn {
+        opacity: 1;
+      }
+    }
+  }
+
+  .reference-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-size: 13px;
+    color: var(--color-text-secondary);
+    background: none;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    .icon {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 20px;
+      height: 20px;
+      transition: all 0.2s ease;
+      padding: 0;
+
+      :deep(.i-icon) {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        height: 100%;
+      }
+
+      :deep(svg) {
+        width: 14px;
+        height: 14px;
+      }
+    }
+
+    &:hover {
+      background: var(--color-hover-bg);
+    }
+
+    &.active {
+      color: var(--color-primary);
+      background: var(--color-hover-bg);
+    }
+  }
+
+  .ai-reference-tip {
+    padding: 12px;
+    font-size: 13px;
+    color: var(--color-text-secondary);
+    background: var(--color-bg-primary);
+    border-radius: 6px;
+    text-align: center;
   }
 
   .model-switcher {
@@ -1439,49 +1537,58 @@ onMounted(() => {
   opacity: 0;
 }
 
-.references-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+.references-list {
+  margin-top: 8px;
+  padding: 8px;
+  border-radius: 8px;
+  background: var(--color-bg-secondary);
+}
 
-  .copy-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 6px;
-    border: none;
-    background: none;
-    cursor: pointer;
-    color: var(--color-text-tertiary);
-    border-radius: 4px;
-    transition: all 0.2s ease;
-    opacity: 0;
+.reference-item {
+  padding: 12px;
+  border-radius: 6px;
+  background: var(--color-bg-primary);
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  user-select: none;
 
-    &:hover {
-      background: var(--color-hover-bg);
-      color: var(--color-text-secondary);
-    }
-
-    .icon {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 20px;
-      height: 20px;
-      transition: all 0.2s ease;
-      padding: 0;
-
-      :deep(svg) {
-        width: 14px;
-        height: 14px;
-      }
-    }
+  & + .reference-item {
+    margin-top: 8px;
   }
 
   &:hover {
-    .copy-btn {
-      opacity: 1;
-    }
+    background: var(--color-hover-bg);
   }
+}
+
+.reference-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.reference-address {
+  font-weight: 500;
+  color: var(--color-text-primary);
+}
+
+.reference-similarity {
+  font-size: 12px;
+  color: var(--color-primary);
+}
+
+.reference-content {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--color-text-secondary);
+  margin-bottom: 8px;
+  user-select: none;
+}
+
+.reference-meta {
+  font-size: 12px;
+  color: var(--color-text-tertiary);
+  user-select: none;
 }
 </style>

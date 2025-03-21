@@ -56,9 +56,10 @@
               <!-- AI消息使用打字机效果 -->
               <template v-else-if="msg.role === 'assistant'">
                 <TypewriterText
-                  :key="msg.id"
+                  :message-id="msg.id"
                   :content="msg.content"
-                  :instant="isHistoryMessage || showHistoryPanel"
+                  :timestamp="msg.timestamp"
+                  :instant="isHistoryMessage"
                   @complete="onTypewriterComplete"
                   @segment-complete="onSegmentComplete"
                 />
@@ -232,7 +233,7 @@ import { ref, computed, watch, markRaw, onMounted, onUnmounted, nextTick } from 
 import { useAssistantStore } from '@renderer/stores/assistantStore'
 import { storeToRefs } from 'pinia'
 import { ThinkingProblem, MessageEmoji, Brain, Notes, Send, Copy, Close } from '@icon-park/vue-next'
-import type { Suggestion } from '@shared/types'
+import type { Suggestion } from '@shared/types/assistant'
 import TypewriterText from '@renderer/components/aiassistant/TypewriterText.vue'
 import AppToolbar from '@renderer/components/layout/AppToolbar.vue'
 import { useNoteStore } from '@renderer/stores/noteStore'
@@ -242,6 +243,7 @@ import { message } from '@renderer/utils/message'
 import AIChatHistoryPanel from '@renderer/components/aiassistant/AIChatHistoryPanel.vue'
 import NoteSelector from '@renderer/components/aiassistant/NoteSelector.vue'
 import SuggestionBar from '@renderer/components/aiassistant/SuggestionBar.vue'
+import { useModelConfigStore } from '@renderer/stores/modelConfigStore'
 
 // Store
 const assistantStore = useAssistantStore()
@@ -289,6 +291,9 @@ const isComposing = ref(false)
 
 // 添加 ref
 const noteSelectorRef = ref<{ focusSearchInput: () => void } | null>(null)
+
+// 添加 store 引用
+const modelConfigStore = useModelConfigStore()
 
 // 监听输入内容变化
 const adjustTextareaHeight = () => {
@@ -351,8 +356,8 @@ const removeNote = (noteId: string) => {
 //   showNoteSelector.value = !showNoteSelector.value
 // }
 
-// 添加点击外部关闭选择器的处理
-onMounted(() => {
+// 修改为异步函数
+onMounted(async () => {
   document.addEventListener('click', (event) => {
     const target = event.target as HTMLElement
     if (!target.closest('.note-selector') && !target.closest('.input-container')) {
@@ -360,42 +365,60 @@ onMounted(() => {
     }
   })
   adjustTextareaHeight()
+  await modelConfigStore.loadConfigs()
+  await modelConfigStore.loadSystemPrompt()
+
+  // 根据 assistantStore 中的 defaultMode 设置初始模式
+  const defaultSuggestion = suggestions.find((s) => s.id === assistantStore.defaultMode)
+  if (defaultSuggestion) {
+    currentMode.value = defaultSuggestion
+  }
 })
 
 onUnmounted(() => {
   document.removeEventListener('click', () => {})
 })
 
-// 判断是否是历史消息
+// 修改 isHistoryMessage 计算属性
 const isHistoryMessage = computed((): boolean => {
-  // 如果历史面板打开，直接返回 true
+  // 如果显示历史面板，所有消息都应该立即显示
   if (showHistoryPanel.value) {
     return true
   }
 
-  // 如果是在加载历史记录时的消息，则为 true
+  // 如果正在加载历史记录，返回 true
   if (assistantStore.isLoadingHistory) {
+    console.log('isLoadingHistory:', assistantStore.isLoadingHistory)
     return true
   }
 
-  // 如果没有消息，返回 false
-  if (messages.value.length === 0) {
-    return false
+  // 检查当前会话的 metadata 中的 isHistorical 标记
+  const metadata = assistantStore.currentSession?.metadata
+  console.log('Current session metadata:', {
+    metadata,
+    isHistorical: metadata?.isHistorical,
+    sessionId: assistantStore.currentSession?.id,
+    startTime: metadata?.startTime
+  })
+
+  if (metadata?.isHistorical) {
+    return true
   }
 
-  // 如果没有当前会话开始时间，说明是新会话
-  if (!assistantStore.currentSessionStartTime) {
-    return false
-  }
-
-  // 获取最后一条消息的时间戳
-  const lastMessageTimestamp = messages.value[messages.value.length - 1].timestamp
-  return lastMessageTimestamp < assistantStore.currentSessionStartTime
+  return false
 })
 
 // 修改 toggleHistoryPanel 方法
 const toggleHistoryPanel = () => {
   showHistoryPanel.value = !showHistoryPanel.value
+  // 如果打开历史面板，确保所有消息立即显示
+  if (showHistoryPanel.value) {
+    messages.value.forEach((msg) => {
+      if (msg.role === 'assistant') {
+        assistantStore.markMessageAsDisplayed(msg.id)
+      }
+    })
+  }
 }
 
 // 计算属性
@@ -410,12 +433,22 @@ const selectMode = (suggestion: Suggestion) => {
   assistantStore.clearMessages()
   currentMode.value = suggestion
   selectedNotes.value = []
+  // 更新默认模式
+  assistantStore.setDefaultMode(suggestion.mode as 'ask' | 'chat')
 }
 
 const startNewChat = () => {
-  currentMode.value = null // 改回原来的逻辑
+  // 根据默认模式设置初始模式
+  const defaultSuggestion = suggestions.find((s) => s.mode === assistantStore.defaultMode)
+  currentMode.value = defaultSuggestion || null
   assistantStore.clearMessages()
   inputMessage.value = ''
+
+  // 添加日志检查新会话的 metadata
+  console.log('New chat metadata:', {
+    metadata: assistantStore.currentSession?.metadata,
+    isHistorical: assistantStore.currentSession?.metadata?.isHistorical
+  })
 }
 
 // 发送普通消息
@@ -441,33 +474,40 @@ const handleSend = async () => {
     // 如果没有选择模式，默认使用 ask 模式
     const mode = currentMode.value?.mode || 'ask'
 
-    switch (mode) {
-      case 'ask':
-        await assistantStore.handleAskQuestion(message, noteReferences)
-        break
-      // 其他模式暂时保持不变
-      case 'write':
-        await assistantStore.generateWriting()
-        break
-      case 'think':
-        await assistantStore.brainstorm()
-        break
-      case 'answer':
-        if (!selectedNotes.value.length) {
-          throw new Error('请先选择需要理解的笔记内容')
+    try {
+      switch (mode) {
+        case 'ask':
+          await assistantStore.handleAskQuestion(message, noteReferences)
+          break
+        case 'write':
+          await assistantStore.generateWriting()
+          break
+        case 'think':
+          await assistantStore.brainstorm()
+          break
+        case 'answer':
+          if (!selectedNotes.value.length) {
+            throw new Error('请先选择需要理解的笔记内容')
+          }
+          await assistantStore.analyzeContent()
+          break
+        case 'find':
+          await assistantStore.handleFindNotes(message)
+          break
+        case 'chat':
+          await assistantStore.handleChat(message)
+          break
+      }
+    } finally {
+      // 无论成功失败，都重新聚焦到输入框
+      nextTick(() => {
+        if (inputRef.value) {
+          inputRef.value.focus()
         }
-        await assistantStore.analyzeContent()
-        break
-      case 'find':
-        await assistantStore.handleFindNotes(message)
-        break
-      case 'chat':
-        await assistantStore.handleChat(message)
-        break
+      })
     }
   } catch (error) {
     console.error('发送消息失败:', error)
-    // 可以添加一个提示
     message.error('发送消息失败')
   }
 }
@@ -530,6 +570,10 @@ const onTypewriterComplete = () => {
   requestAnimationFrame(() => {
     console.log('执行滚动')
     scrollToBottom()
+    // 添加自动聚焦
+    if (inputRef.value) {
+      inputRef.value.focus()
+    }
   })
 }
 

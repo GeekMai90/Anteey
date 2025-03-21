@@ -850,6 +850,7 @@ export async function updateRAGHistory(
               ctx.relevantDocs.length,
           0
         ) / contexts.length,
+      isHistorical: false, // 新建的对话默认为非历史对话
       ...metadata
     }
 
@@ -857,7 +858,10 @@ export async function updateRAGHistory(
     const existing = await db('rag_history').where('id', sessionId).first()
 
     if (existing) {
-      // 更新现有记录
+      // 更新现有记录时保持原有的 isHistorical 状态
+      const existingMetadata = JSON.parse(existing.metadata)
+      extendedMetadata.isHistorical = existingMetadata.isHistorical ?? true
+
       await db('rag_history')
         .where('id', sessionId)
         .update({
@@ -969,6 +973,12 @@ export async function getRAGHistoryDetail(id: string): Promise<RAGHistoryRecord 
     const item = await db('rag_history').where({ id }).first()
     if (!item) return null
 
+    const metadata = JSON.parse(item.metadata)
+    // 确保 metadata 中包含 isHistorical 字段
+    if (!('isHistorical' in metadata)) {
+      metadata.isHistorical = true // 默认将旧记录标记为历史对话
+    }
+
     return {
       id: item.id,
       title: item.title,
@@ -976,7 +986,7 @@ export async function getRAGHistoryDetail(id: string): Promise<RAGHistoryRecord 
       contexts: JSON.parse(item.contexts),
       summary: item.summary,
       totalTokens: item.totalTokens,
-      metadata: JSON.parse(item.metadata),
+      metadata: metadata,
       isPinned: Boolean(item.isPinned),
       createdAt: new Date(Number(item.createdAt)).toISOString(),
       updatedAt: new Date(Number(item.updatedAt)).toISOString()

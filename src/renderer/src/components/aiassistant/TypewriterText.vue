@@ -1,18 +1,18 @@
 <template>
   <div class="typewriter markdown-body">
-    <template v-if="instant">
+    <template v-if="shouldShowInstantly">
       <!-- 完整内容直接渲染 -->
-      <div class="segment" v-html="renderedContent" />
+      <div class="segment" v-html="sanitizedContent" />
     </template>
     <template v-else>
-      <!-- 打字机效果 -->
-      <div class="segment" v-html="renderMarkdown(accumulatedText)" />
+      <!-- 打字机效果容器 -->
+      <div :id="containerId" class="segment"></div>
     </template>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { marked } from 'marked'
 import hljs from 'highlight.js/lib/core'
 import javascript from 'highlight.js/lib/languages/javascript'
@@ -39,6 +39,9 @@ import shell from 'highlight.js/lib/languages/shell'
 import plaintext from 'highlight.js/lib/languages/plaintext'
 import 'highlight.js/styles/github-dark.css'
 import DOMPurify from 'dompurify'
+import TypeIt from 'typeit'
+import MarkdownIt from 'markdown-it'
+import { useAssistantStore } from '@renderer/stores/assistantStore'
 
 // 注册语言
 hljs.registerLanguage('javascript', javascript)
@@ -92,113 +95,128 @@ marked.setOptions({
   gfm: true
 } as any)
 
+const assistantStore = useAssistantStore()
+
 const props = defineProps<{
   content: string
+  messageId: string
+  timestamp: number
   instant?: boolean
-  isHistoryMessage?: boolean
 }>()
 
 const emit = defineEmits(['complete', 'segmentComplete'])
 
-// 状态
-const accumulatedText = ref('')
-const isComplete = ref(false)
+// 生成唯一的容器ID
+const containerId = computed(() => `typewriter-${props.messageId}`)
 
-// 安全地渲染 Markdown
-const renderMarkdown = (text: string) => {
-  const html = marked.parse(text)
-  return DOMPurify.sanitize(html as string)
-}
-
-// 缓存完整渲染结果
-const renderedContent = computed(() => {
-  return renderMarkdown(props.content)
-})
-
-// 分段逻辑
-const segments = computed(() => {
-  const text = props.content
-  // 按句子分割，但保持段落结构
-  return text
-    .split(/([。！？.!?]+["""'']*)/)
-    .filter(Boolean)
-    .reduce((acc: string[], cur, i, arr) => {
-      if (i % 2 === 0) {
-        if (i === arr.length - 1 && !cur.match(/[。！？.!?]/)) {
-          if (acc.length > 0) {
-            acc[acc.length - 1] += cur
-          } else {
-            acc.push(cur)
-          }
-        } else {
-          acc.push(cur + (arr[i + 1] || ''))
-        }
-      }
-      return acc
-    }, [])
-    .filter((s) => s.trim())
-})
-
-// 打字效果
-const typeSegment = (text: string, startFrom: number) => {
-  return new Promise<void>((resolve) => {
-    let index = startFrom
-    const getTypeSpeed = (char: string) => {
-      if (char.match(/[，。！？,.!?]/)) {
-        return 20
-      }
-      return 5
-    }
-
-    const type = () => {
-      if (index < text.length) {
-        accumulatedText.value = text.slice(0, index + 1)
-        index++
-        setTimeout(type, getTypeSpeed(text[index - 1]))
-      } else {
-        resolve()
-      }
-    }
-    type()
-  })
-}
-
-// 更新逻辑
-const updateText = async () => {
-  isComplete.value = false
-  accumulatedText.value = ''
-  let startIndex = 0
-
-  for (const segment of segments.value) {
-    // 计算新的文本长度
-    const newText = startIndex === 0 ? segment : accumulatedText.value + segment
-    // 从上一次结束的位置开始打字
-    await typeSegment(newText, startIndex)
-    startIndex = newText.length
-    emit('segmentComplete')
-    await new Promise((resolve) => setTimeout(resolve, 50))
+// 判断是否应该立即显示
+const shouldShowInstantly = computed(() => {
+  // 如果明确设置了 instant 属性，优先使用它
+  if (props.instant !== undefined) {
+    return props.instant
   }
+  return false // 默认显示打字机效果
+})
 
-  isComplete.value = true
-  emit('complete')
+// 配置 MarkdownIt
+const md = new MarkdownIt({
+  html: true,
+  breaks: true,
+  linkify: true
+})
+
+// 安全的 HTML 内容
+const sanitizedContent = computed(() => {
+  const html = md.render(props.content)
+  return DOMPurify.sanitize(html)
+})
+
+// TypeIt 实例引用
+const typeItInstance = ref<any>(null)
+
+// 安全地销毁实例
+const safeDestroyInstance = () => {
+  try {
+    if (typeItInstance.value) {
+      typeItInstance.value.destroy()
+      typeItInstance.value = null
+    }
+  } catch (error) {
+    console.warn('销毁 TypeIt 实例时出错:', error)
+  }
 }
 
-// 更新监听逻辑
+// 初始化 TypeIt
+const initTypeIt = () => {
+  try {
+    // 先安全销毁现有实例
+    safeDestroyInstance()
+
+    // 确保目标元素存在
+    const container = document.getElementById(containerId.value)
+    if (!container) {
+      console.warn('找不到目标容器:', containerId.value)
+      return
+    }
+
+    typeItInstance.value = new TypeIt(`#${containerId.value}`, {
+      strings: sanitizedContent.value,
+      speed: 50,
+      waitUntilVisible: true,
+      html: true,
+      cursor: false,
+      startDelay: 0,
+      beforeString: () => false,
+      afterComplete: () => {
+        emit('complete')
+        assistantStore.markMessageAsDisplayed(props.messageId)
+      },
+      afterStep: () => {
+        emit('segmentComplete')
+      }
+    }).go()
+  } catch (error) {
+    console.error('初始化 TypeIt 失败:', error)
+    // 如果初始化失败，直接显示内容
+    const container = document.getElementById(containerId.value)
+    if (container) {
+      container.innerHTML = sanitizedContent.value
+      emit('complete')
+      assistantStore.markMessageAsDisplayed(props.messageId)
+    }
+  }
+}
+
+// 组件挂载时初始化
+onMounted(() => {
+  try {
+    if (!shouldShowInstantly.value) {
+      initTypeIt()
+    } else {
+      // 如果是历史消息，直接标记为已显示
+      assistantStore.markMessageAsDisplayed(props.messageId)
+      emit('complete')
+    }
+  } catch (error) {
+    console.warn('组件挂载时出错:', error)
+  }
+})
+
+// 组件卸载时清理
+onUnmounted(() => {
+  safeDestroyInstance()
+})
+
+// 添加 watch 来处理内容变化
 watch(
   () => props.content,
   () => {
-    if (props.instant) {
-      isComplete.value = true
-      accumulatedText.value = props.content
-    } else {
-      isComplete.value = false
-      accumulatedText.value = ''
-      if (props.content) {
-        updateText()
-      }
+    if (!shouldShowInstantly.value) {
+      nextTick(() => {
+        initTypeIt()
+      })
     }
-  },
-  { immediate: true }
+  }
 )
 </script>
 
@@ -239,7 +257,7 @@ watch(
   padding: 0;
   display: block;
   width: 100%;
-  color: white;
+  color: var(--color-text-primary);
 }
 
 .markdown-body strong {
@@ -274,6 +292,19 @@ watch(
 .segment {
   animation: fadeIn 0.2s ease-out forwards;
   max-width: 100%;
+
+  &:empty::before {
+    content: '';
+    display: none;
+  }
+
+  &:first-child {
+    margin-top: 0;
+  }
+
+  p:first-child {
+    margin-top: 0;
+  }
 }
 
 @keyframes fadeIn {
@@ -284,6 +315,28 @@ watch(
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+// 隐藏 TypeIt 默认光标和空行
+.ti-cursor {
+  display: none !important;
+}
+
+// 完全移除 TypeIt 的 before 伪元素
+[data-typeit-id]::before,
+[data-typeit-id]::after {
+  content: none !important;
+  display: none !important;
+}
+
+.ti-container {
+  display: inline;
+
+  &::before,
+  &::after {
+    content: none !important;
+    display: none !important;
   }
 }
 </style>

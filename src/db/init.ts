@@ -436,7 +436,8 @@ export async function initDatabase(db: Knex): Promise<void> {
             messageCount: 0,
             userMessageCount: 0,
             aiMessageCount: 0,
-            averageRelevanceScore: 0
+            averageRelevanceScore: 0,
+            isHistorical: true // 添加这个字段，默认为 true
           })
         ) // 元数据
       table.boolean('isPinned').defaultTo(false) // 是否置顶
@@ -449,6 +450,21 @@ export async function initDatabase(db: Knex): Promise<void> {
       table.index(['isPinned', 'createdAt']) // 组合索引用于排序查询
     })
     console.log('rag_history 表创建成功')
+  } else {
+    // 检查现有记录并更新 metadata
+    const records = await db('rag_history').select('id', 'metadata')
+    for (const record of records) {
+      const metadata = JSON.parse(record.metadata)
+      if (!('isHistorical' in metadata)) {
+        metadata.isHistorical = true
+        await db('rag_history')
+          .where('id', record.id)
+          .update({
+            metadata: JSON.stringify(metadata)
+          })
+      }
+    }
+    console.log('rag_history 表 metadata 更新完成')
   }
 
   // 创建 llm_configs 表

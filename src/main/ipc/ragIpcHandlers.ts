@@ -161,6 +161,12 @@ export function setupRAGHandlers() {
   ipcMain.handle('get-rag-history-detail', async (_event, id: string) => {
     try {
       const detail = await getRAGHistoryDetail(id)
+      // 添加日志记录
+      log.info('获取历史记录详情:', {
+        id,
+        isHistorical: detail?.metadata?.isHistorical,
+        messageCount: detail?.messages?.length
+      })
       return { success: true, detail }
     } catch (error) {
       log.error('主进程→ 获取RAG历史详情失败:', error)

@@ -21,7 +21,9 @@
       :key="suggestion.id"
       class="action-btn"
       :class="{
-        active: currentMode?.id === suggestion.id || (!currentMode && suggestion.id === 'ask')
+        active:
+          currentMode?.id === suggestion.id ||
+          (!currentMode && suggestion.id === assistantStore.defaultMode)
       }"
       @click="selectMode(suggestion as Suggestion)"
     >
@@ -43,13 +45,13 @@
           <div v-if="showModelMenu" class="model-menu-container" :style="menuPosition">
             <div class="model-menu">
               <div
-                v-for="config in llmConfigStore.configs"
+                v-for="config in modelConfigStore.configs"
                 :key="config.id"
                 class="model-option"
                 :class="{ active: config.isDefault }"
                 @click="handleModelSwitch(config.id)"
               >
-                <span class="model-name">{{ LLM_MODELS[config.model].name }}</span>
+                <span class="model-name">{{ getModelName(config.modelName) }}</span>
                 <Check v-if="config.isDefault" theme="outline" size="14" :stroke-width="3" />
               </div>
             </div>
@@ -61,13 +63,14 @@
 </template>
 
 <script setup lang="ts">
-import type { Suggestion } from '@shared/types'
+import type { Suggestion } from '@shared/types/assistant'
 import { ThinkingProblem, MessageEmoji, Plus, History, Receiver, Check } from '@icon-park/vue-next'
 import { markRaw, ref, onMounted, onUnmounted, computed } from 'vue'
-import { useLLMConfigStore } from '@renderer/stores/llmConfigStore'
+import { useModelConfigStore } from '@renderer/stores/modelConfigStore'
 import { LLM_MODELS } from '@services/rag/llm.config'
 import type { CSSProperties } from 'vue'
 import { message } from '@renderer/utils/message'
+import { useAssistantStore } from '@renderer/stores/assistantStore'
 
 defineProps<{
   currentMode: Suggestion | null
@@ -98,18 +101,22 @@ const suggestions = [
   }
 ]
 
+const assistantStore = useAssistantStore()
+
 const selectMode = (suggestion: Suggestion) => {
   emit('select', suggestion)
+  // 更新默认模式
+  assistantStore.setDefaultMode(suggestion.mode as 'ask' | 'chat')
 }
 
 // 添加模型切换相关
 const modelBtnRef = ref<HTMLButtonElement | null>(null)
 const showModelMenu = ref(false)
-const llmConfigStore = useLLMConfigStore()
+const modelConfigStore = useModelConfigStore()
 
 const handleModelSwitch = async (configId: string) => {
   try {
-    await llmConfigStore.setDefaultConfig(configId)
+    await modelConfigStore.setDefaultConfig(configId)
     showModelMenu.value = false
     message.success('已切换模型')
   } catch (error) {
@@ -121,10 +128,14 @@ const handleModelSwitch = async (configId: string) => {
 const menuPosition = computed((): CSSProperties => {
   if (!modelBtnRef.value) return {}
   const rect = modelBtnRef.value.getBoundingClientRect()
+  const menuHeight = 400 // 菜单最大高度
+  const gap = 8 // 菜单和按钮之间的间距
+
   return {
     position: 'fixed' as const,
-    top: `${rect.top - 150}px`, // 向上偏移
-    left: `${rect.left - 160}px` // 向左偏移以对齐右侧
+    bottom: `${window.innerHeight - rect.top + gap}px`, // 从按钮顶部向上弹出
+    left: `${rect.left - 200 + rect.width}px`, // 右对齐
+    maxHeight: `${Math.min(menuHeight, rect.top - gap)}px` // 确保不超出屏幕顶部
   }
 })
 
@@ -152,12 +163,21 @@ onMounted(() => {
   // 添加点击外部关闭菜单的事件监听
   document.addEventListener('click', handleClickOutside)
   // 加载模型配置
-  llmConfigStore.loadConfigs()
+  modelConfigStore.loadConfigs()
 })
 
 onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside)
 })
+
+// 在 script setup 部分添加一个工具函数
+const getModelName = (modelName: string) => {
+  // 使用类型守卫确保 modelName 是有效的键
+  if (modelName in LLM_MODELS) {
+    return LLM_MODELS[modelName as keyof typeof LLM_MODELS].name
+  }
+  return modelName // 如果不是有效的键，返回原始名称
+}
 </script>
 
 <style scoped lang="scss">
@@ -250,6 +270,19 @@ onUnmounted(() => {
   cursor: pointer;
   transition: all 0.2s ease;
 
+  :deep(.i-icon) {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+  }
+
+  :deep(svg) {
+    width: 16px;
+    height: 16px;
+  }
+
   &:hover {
     background: var(--color-hover-bg);
     border-color: var(--color-border-light);
@@ -269,6 +302,21 @@ onUnmounted(() => {
   border-radius: 8px;
   box-shadow: var(--shadow-primary);
   overflow: hidden;
+  max-height: 400px;
+  overflow-y: auto;
+
+  &::-webkit-scrollbar {
+    width: 4px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background-color: var(--color-border);
+    border-radius: 2px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background-color: transparent;
+  }
 }
 
 // 添加过渡动画

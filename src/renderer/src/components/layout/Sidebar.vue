@@ -397,8 +397,8 @@ const menuItems = computed(() => {
     { name: '卡片盒', path: '/cardbox', icon: Box },
     { name: '知识树', path: '/knowledge-tree', icon: Sapling },
     { name: '记忆卡', path: '/flashcard', icon: StorageCardOne },
-    { name: '思维板', path: '/mindboard', icon: Workbench },
-    { name: 'UI', path: '/ui-test', icon: Workbench }
+    { name: '思维板', path: '/mindboard', icon: Workbench }
+    // { name: 'UI', path: '/ui-test', icon: Workbench }
   ]
   return baseItems
 })
@@ -964,7 +964,7 @@ const handleReviewClick = async () => {
           display: flex;
           align-items: center;
           width: 100%;
-          padding: 6px 8px;
+
           border-radius: 8px;
           // transition: all 0.2s ease;
           user-select: none;
@@ -991,6 +991,7 @@ const handleReviewClick = async () => {
             color: inherit;
             position: relative;
             z-index: 2;
+            padding: 6px 8px;
 
             .icon {
               background: none;

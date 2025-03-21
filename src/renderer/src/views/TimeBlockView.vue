@@ -211,7 +211,7 @@
 
       <!-- 普通模式下的时间块列表 -->
       <template v-else>
-        <div class="time-blocks-container">
+        <div ref="timeBlocksContainer" class="time-blocks-container">
           <div class="time-blocks-wrapper">
             <div
               v-for="block in timeBlocks"
@@ -942,6 +942,85 @@ const highlightContent = (content: string) => {
   const regex = new RegExp(searchQuery.value, 'gi')
   return content.replace(regex, (match) => `<mark>${match}</mark>`)
 }
+
+// 添加新的响应式变量和函数
+const timeBlocksContainer = ref<HTMLElement | null>(null)
+
+// 修改滚动相关的逻辑
+const scrollToCurrentTime = () => {
+  // 只有当前显示的是今天的时间时才执行滚动
+  if (!isToday.value) return
+
+  const now = new Date()
+  const currentHour = now.getHours()
+  const { startTime, endTime } = timeBlockStore.settings
+
+  // 如果当前时间在显示范围内
+  if (currentHour >= startTime && currentHour <= endTime) {
+    const timeBlock = document.querySelector(`.time-block[data-hour="${currentHour}"]`)
+    if (timeBlock && timeBlocksContainer.value) {
+      const containerHeight = timeBlocksContainer.value.clientHeight
+      const blockPosition = timeBlock.getBoundingClientRect().top
+      const containerPosition = timeBlocksContainer.value.getBoundingClientRect().top
+      const relativePosition = blockPosition - containerPosition
+
+      // 计算理想的滚动位置（让当前时间块在容器中间）
+      const idealScrollTop =
+        timeBlocksContainer.value.scrollTop + relativePosition - containerHeight / 2
+
+      // 如果是晚上时间（比如晚上8点后），检查是否会导致底部出现空白
+      if (currentHour >= 20) {
+        const maxScrollTop = timeBlocksContainer.value.scrollHeight - containerHeight
+        // 使用较小的值，确保不会出现底部空白
+        const finalScrollTop = Math.min(idealScrollTop, maxScrollTop)
+        timeBlocksContainer.value.scrollTo({
+          top: finalScrollTop,
+          behavior: 'smooth'
+        })
+      } else {
+        // 正常滚动到中间位置
+        timeBlocksContainer.value.scrollTo({
+          top: idealScrollTop,
+          behavior: 'smooth'
+        })
+      }
+    }
+  }
+}
+
+// 监听路由变化
+watch(
+  () => route.path,
+  () => {
+    // 当路由切换到时光记页面时，执行滚动
+    if (route.name === 'timeBlock') {
+      nextTick(() => {
+        scrollToCurrentTime()
+      })
+    }
+  }
+)
+
+// 监听日期变化
+watch(
+  () => currentDate.value,
+  () => {
+    // 当切换到今天时，执行滚动
+    if (isToday.value) {
+      nextTick(() => {
+        scrollToCurrentTime()
+      })
+    }
+  }
+)
+
+// 修改组件挂载时的逻辑
+onMounted(() => {
+  // 初始化时执行一次滚动
+  nextTick(() => {
+    scrollToCurrentTime()
+  })
+})
 </script>
 
 <style lang="scss" scoped>

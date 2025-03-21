@@ -118,6 +118,8 @@ export interface RAGHistoryRecord {
   createdAt: string
   updatedAt: string
 }
+
+// RAG历史记录的 metadata
 interface RAGHistoryMetadata {
   messageCount: number
   userMessageCount: number
@@ -127,25 +129,8 @@ interface RAGHistoryMetadata {
   conversationTracker?: ConversationTracker
   currentTopicId?: string
   topicStartTime?: number
+  isHistorical?: boolean
 }
-// export interface RAGHistoryRecord {
-//   id: string
-//   title?: string // 对话标题
-//   messages: ChatMessage[] // 完整的对话消息数组
-//   contexts: RAGContext[] // 每次对话的上下文数组
-//   isPinned: boolean // 是否置顶
-//   createdAt: string // 创建时间
-//   updatedAt: string // 更新时间
-//   summary?: string // 可选：对话摘要
-//   totalTokens?: number // 可选：总 token 数
-//   metadata?: {
-//     messageCount: number // 消息数量
-//     userMessageCount: number // 用户消息数量
-//     aiMessageCount: number // AI 消息数量
-//     averageRelevanceScore?: number // 平均相关度分数
-//     lastContext?: RAGContext // 最后一次对话的上下文
-//   }
-// }
 
 // 前端展示用的历史记录项
 // 更新前端展示用的历史记录项
@@ -185,19 +170,20 @@ export interface ConversationTracker {
   topicKeywords?: string[] // 添加关键词字段
 }
 
-// 扩展现有的 ChatSession 接口
+// 修改 ChatSession 接口
 export interface ChatSession {
   id: string
   messages: ChatMessage[]
   currentContext?: RAGContext
-  conversationTracker?: ConversationTracker // 新增：对话追踪器
+  conversationTracker?: ConversationTracker
   metadata: {
     startTime: string
     lastUpdateTime: string
     messageCount: number
     hasReferences: boolean
-    currentTopicId?: string // 新增：当前话题ID
-    topicStartTime?: number // 新增：当前话题开始时间
+    currentTopicId?: string
+    topicStartTime?: number
+    isHistorical?: boolean
   }
 }
 
