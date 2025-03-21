@@ -258,7 +258,7 @@
         </div>
       </button>
     </div>
-    <!-- 上下文菜单 -->
+    <!-- 拖拽块上下文菜单 -->
     <div
       v-if="showContextMenu"
       class="context-menu"
@@ -1398,10 +1398,27 @@ onMounted(() => {
       // 添加 handleKeyDown 处理函数
       handleKeyDown: (view, event) => {
         if (event.key === 'Escape') {
+          const { state } = view
+          const { selection } = state
+          const { $from } = selection
+
+          // 获取当前光标所在的最近的块级节点
+          let depth = $from.depth
+          while (depth > 0) {
+            const node = $from.node(depth)
+            if (node.type.isBlock) {
+              // 使用 selectParentNode 命令来选中块
+              editor.value.commands.selectParentNode()
+              return true
+            }
+            depth--
+          }
+
+          // 如果没有找到块级节点，则失去焦点
           editor.value.commands.blur()
-          return true // 阻止事件进一步传播
+          return true
         }
-        return false // 允许其他键盘事件正常处理
+        return false
       },
       noteId: props.noteId
     }
