@@ -287,177 +287,219 @@ export class ModelConfigService {
     modelName: string
   ): Promise<{ valid: boolean; message?: string }> {
     try {
-      // 1. 构建完整的API端点
+      // 获取完整端点
       let fullEndpoint = this.getFullEndpoint(provider, baseUrl)
 
-      // 2. 构建一个简单的测试请求
-      const headers: Record<string, string> = {
-        'Content-Type': 'application/json'
+      // 定义请求体类型
+      interface RequestBody {
+        model?: string
+        messages?: Array<{ role: string; content: string }>
+        temperature?: number
+        max_tokens?: number
+        stream?: boolean
+        contents?: Array<{ parts: Array<{ text: string }> }>
+        generationConfig?: {
+          temperature: number
+          maxOutputTokens: number
+        }
       }
 
-      // 添加认证头
-      switch (provider) {
-        case 'anthropic':
-          headers['x-api-key'] = apiKey
-          headers['anthropic-version'] = '2023-06-01'
-          break
-        case 'zhipu':
-          headers['Authorization'] = apiKey
-          break
-        case 'gemini':
-          // Gemini可能会将API密钥作为URL参数
-          break
-        case 'openai':
-        case 'moonshot':
-        case 'deepseek':
-        default:
-          headers['Authorization'] = `Bearer ${apiKey}`
-      }
-
-      // 3. 准备请求体 - 使用最小化的请求内容
-      let requestBody: any
-
-      switch (provider) {
-        case 'openai':
-        case 'zhipu':
-        case 'moonshot':
-        case 'deepseek':
-          requestBody = {
-            model: modelName,
-            messages: [{ role: 'user', content: '你好' }],
-            max_tokens: 5 // 限制token数量减少费用
+      // 构建基础请求体
+      let requestBody: RequestBody = {
+        model: modelName,
+        messages: [
+          {
+            role: 'user',
+            content: 'hi'
           }
-          break
+        ],
+        temperature: 0.7,
+        max_tokens: 5,
+        stream: false
+      }
+
+      // 根据不同提供商调整请求体和端点
+      switch (provider) {
         case 'anthropic':
           requestBody = {
             model: modelName,
-            messages: [{ role: 'user', content: '你好' }],
-            max_tokens: 5
+            messages: [
+              {
+                role: 'user',
+                content: 'hi'
+              }
+            ],
+            max_tokens: 5,
+            temperature: 0.7,
+            stream: false
           }
           break
+
         case 'gemini':
+          // Gemini 需要特殊处理端点和请求体
+          fullEndpoint = `${baseUrl}/v1/models/${modelName}:generateContent`
+          if (apiKey) {
+            fullEndpoint += `?key=${apiKey}`
+          }
           requestBody = {
-            contents: [{ role: 'user', parts: [{ text: '你好' }] }],
+            contents: [
+              {
+                parts: [{ text: 'hi' }]
+              }
+            ],
             generationConfig: {
+              temperature: 0.7,
               maxOutputTokens: 5
             }
           }
-
-          // 对于Gemini，可能需要将API密钥添加到URL中
-          if (!fullEndpoint.includes('key=')) {
-            fullEndpoint = `${fullEndpoint}/${modelName}:generateContent?key=${apiKey}`
-          }
           break
-        default:
-          requestBody = {
-            model: modelName,
-            messages: [{ role: 'user', content: '你好' }],
-            max_tokens: 5
-          }
       }
 
-      // 4. 设置较短的超时，避免长时间等待
-      const requestConfig = {
-        headers,
-        timeout: 15000 // 15秒超时
+      // 准备请求头
+      let headers: Record<string, string> = {
+        'Content-Type': 'application/json'
       }
 
-      // 5. 发送实际请求并验证响应
-      console.log(`测试连接到 ${provider} API:`, {
+      // 根据提供商添加特定的 headers
+      if (provider === 'anthropic') {
+        headers = {
+          ...headers,
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01'
+        }
+      } else if (provider !== 'gemini') {
+        // Gemini 使用 URL 参数而不是 header
+        headers.Authorization = `Bearer ${apiKey}`
+      }
+
+      console.log('Testing connection with:', {
         url: fullEndpoint,
-        model: modelName
+        provider,
+        model: modelName,
+        requestBody,
+        headers: { ...headers, 'x-api-key': '***' } // 日志中隐藏 API key
       })
 
-      const response = await axios.post(fullEndpoint, requestBody, requestConfig)
+      const response = await axios.post(fullEndpoint, requestBody, {
+        headers,
+        timeout: 10000
+      })
 
-      // 6. 验证响应状态码和内容
-      if (response.status >= 200 && response.status < 300) {
-        // 进一步验证响应内容是否符合预期
-        const hasValidContent = this.validateResponseContent(response.data, provider)
-
-        if (hasValidContent) {
+      // 验证响应
+      if (response.status === 200) {
+        if (provider === 'anthropic') {
+          const isValid =
+            response.data &&
+            (response.data.content ||
+              response.data.messages ||
+              response.data.choices ||
+              response.data.candidates)
           return {
-            valid: true,
-            message: `成功连接到${provider}的API服务`
+            valid: isValid,
+            message: isValid ? '连接测试成功' : '响应格式不正确'
           }
-        } else {
+        } else if (provider === 'gemini') {
+          const isValid =
+            response.data && (response.data.candidates || response.data.promptFeedback)
           return {
-            valid: false,
-            message: `收到响应但格式不符合预期，请检查API设置`
+            valid: isValid,
+            message: isValid ? '连接测试成功' : '响应格式不正确'
           }
         }
-      } else {
+
         return {
-          valid: false,
-          message: `API响应状态码异常: ${response.status}`
+          valid: true,
+          message: '连接测试成功'
         }
+      }
+
+      return {
+        valid: false,
+        message: `服务器返回了非预期的状态码: ${response.status}`
       }
     } catch (error) {
-      // 7. 详细的错误信息处理
       console.error('API连接测试失败:', error)
 
-      let errorMessage = '连接失败'
-
       if (axios.isAxiosError(error)) {
-        // 网络错误处理
-        if (!error.response) {
-          if (error.code === 'ECONNREFUSED') {
-            errorMessage = '无法连接到API服务器，请检查API地址是否正确'
-          } else if (error.code === 'ETIMEDOUT') {
-            errorMessage = '连接超时，请检查API地址或网络状态'
-          } else {
-            errorMessage = `网络错误: ${error.message}`
+        const status = error.response?.status
+        const errorMessage = error.response?.data?.error?.message || error.message
+
+        // 添加更详细的错误信息
+        console.error('详细错误信息:', {
+          status,
+          errorMessage,
+          response: error.response?.data,
+          config: {
+            url: error.config?.url,
+            method: error.config?.method,
+            headers: error.config?.headers
           }
+        })
+
+        if (status === 401 || status === 403) {
+          return { valid: false, message: 'API密钥无效或未授权' }
+        } else if (status === 404) {
+          return { valid: false, message: 'API地址无效或模型名称不正确' }
+        } else if (status === 429) {
+          return { valid: false, message: 'API请求超过限制，请稍后再试' }
+        } else {
+          return { valid: false, message: `API调用失败 (${status}): ${errorMessage}` }
         }
-        // HTTP错误处理
-        else {
-          const status = error.response.status
-          if (status === 401 || status === 403) {
-            errorMessage = 'API密钥无效或未授权'
-          } else if (status === 404) {
-            errorMessage = 'API端点未找到，请检查API地址'
-          } else if (status === 429) {
-            errorMessage = 'API请求超过限制，请稍后再试'
-          } else {
-            errorMessage = `API错误 (${status}): ${error.response.data?.error?.message || error.message}`
-          }
-        }
-      } else {
-        errorMessage = `测试失败: ${error instanceof Error ? error.message : '未知错误'}`
       }
 
-      return { valid: false, message: errorMessage }
+      return {
+        valid: false,
+        message: `连接测试失败: ${error instanceof Error ? error.message : '未知错误'}`
+      }
     }
   }
 
-  /**
-   * 验证API响应内容
-   */
-  private validateResponseContent(data: any, provider: LLMProvider): boolean {
+  // 修改 getAuthHeaders 方法
+  private getAuthHeaders({
+    provider,
+    apiKey
+  }: {
+    provider: LLMProvider
+    apiKey: string
+  }): Record<string, string> {
+    switch (provider) {
+      case 'anthropic':
+        return {
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01'
+        }
+      case 'zhipu':
+        return {
+          Authorization: apiKey
+        }
+      case 'gemini':
+        return {} // Gemini 使用 URL 参数
+      default:
+        return {
+          Authorization: `Bearer ${apiKey}`
+        }
+    }
+  }
+
+  // 添加响应验证方法
+  private validateResponse(data: any, provider: LLMProvider): boolean {
     try {
       switch (provider) {
         case 'openai':
-        case 'zhipu':
         case 'moonshot':
         case 'deepseek':
           return !!data.choices && Array.isArray(data.choices)
         case 'anthropic':
           return !!data.content
+        case 'zhipu':
+          return !!data.choices && Array.isArray(data.choices)
         case 'gemini':
           return !!data.candidates && Array.isArray(data.candidates)
         default:
-          // 通用检查：查找常见的响应字段
-          return !!(
-            data.choices ||
-            data.content ||
-            data.candidates ||
-            data.output ||
-            data.result ||
-            data.generated_text
-          )
+          return !!data.choices || !!data.content || !!data.candidates
       }
     } catch (error) {
-      console.error('验证API响应内容时出错:', error)
+      console.error('验证响应格式时出错:', error)
       return false
     }
   }
@@ -554,23 +596,18 @@ export class ModelConfigService {
   }
 
   private getFullEndpoint(provider: LLMProvider, baseUrl: string): string {
-    // 导入API路径配置
     const API_PATH_SUFFIXES: Record<LLMProvider, string> = {
       zhipu: '/chat/completions',
       moonshot: '/chat/completions',
       deepseek: '/chat/completions',
       openai: '/chat/completions',
-      anthropic: '/messages',
+      anthropic: '/v1/messages', // 修改为正确的 Anthropic 端点
       gemini: '/models',
       custom: ''
     }
 
     const suffix = API_PATH_SUFFIXES[provider]
-
-    // 处理基础URL末尾的斜杠，确保不会出现双斜杠
     const cleanBase = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl
-
-    // 处理后缀开头的斜杠，确保始终有一个斜杠
     const cleanSuffix = suffix.startsWith('/') ? suffix : `/${suffix}`
 
     return `${cleanBase}${cleanSuffix}`

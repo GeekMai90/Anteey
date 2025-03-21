@@ -80,7 +80,7 @@
     </div>
 
     <!-- 自定义模态框 -->
-    <div v-if="showAddModal" class="modal-overlay" @click.self="closeModal">
+    <div v-if="showAddModal" class="modal-overlay" @click.self="handleOverlayClick">
       <div class="modal-container">
         <div class="modal-header">
           <h3>{{ editingConfig ? '编辑模型配置' : '添加模型配置' }}</h3>
@@ -106,27 +106,28 @@
 
           <div class="form-group">
             <label>API Key</label>
-            <input v-model="formData.apiKey" type="password" placeholder="请输入 API Key" />
+            <input
+              v-model="formData.apiKey"
+              type="password"
+              placeholder="请输入 API Key"
+              autocomplete="off"
+              autocorrect="off"
+              autocapitalize="off"
+              spellcheck="false"
+              data-form-type="other"
+            />
           </div>
 
           <div class="form-group">
             <label>API 地址</label>
             <input v-model="formData.baseUrl" type="text" placeholder="请输入 API 基础地址" />
             <div
-              v-if="formData.provider && presets[formData.provider]?.recommendedProxies"
-              class="endpoint-help"
+              v-if="formData.provider && presets[formData.provider]?.defaultBaseURL"
+              class="input-help"
             >
-              <span class="help-text">推荐地址:</span>
-              <div class="proxy-list">
-                <span
-                  v-for="(proxy, index) in presets[formData.provider].recommendedProxies"
-                  :key="index"
-                  class="proxy-item"
-                  @click="formData.baseUrl = proxy"
-                >
-                  {{ proxy }}
-                </span>
-              </div>
+              <span class="help-text"
+                >推荐地址: {{ presets[formData.provider].defaultBaseURL }}</span
+              >
             </div>
           </div>
 
@@ -196,14 +197,20 @@
           </div>
           <div class="footer-right">
             <button class="cancel-btn" @click="closeModal">取消</button>
-            <button class="confirm-btn" :disabled="!isFormValid" @click="handleSubmit">确认</button>
+            <button
+              class="confirm-btn"
+              :disabled="!isFormValid || !hasTestedConnection"
+              @click="handleSubmit"
+            >
+              确认
+            </button>
           </div>
         </div>
       </div>
     </div>
 
     <!-- 提示词配置模态框 -->
-    <div v-if="showPromptModal" class="modal-overlay" @click.self="closePromptModal">
+    <div v-if="showPromptModal" class="modal-overlay">
       <div class="modal-container">
         <div class="modal-header">
           <h3>聊一聊模式提示词设置</h3>
@@ -260,21 +267,19 @@ const PROVIDER_PRESETS_MAP: Record<string, any> = {}
 
 // 按提供商分组创建预设
 Object.entries(LLM_MODELS).forEach(([modelKey, model]) => {
-  // 使用类型断言加强类型安全
-  const provider = model.provider as LLMProvider // 修改为正确的类型
+  const provider = model.provider as LLMProvider
 
   if (!PROVIDER_PRESETS_MAP[provider]) {
     PROVIDER_PRESETS_MAP[provider] = {
-      defaultBaseURL: model.defaultBaseURL + model.pathSuffix,
-      // 安全地获取 defaultModel 属性
+      defaultBaseURL: model.defaultBaseURL,
       defaultModel: safeGet(model, 'defaultModel', modelKey),
-      modelOptions: getSupportedModels(provider), // 现在provider已经是LLMProvider类型
+      modelOptions: getSupportedModels(provider),
       defaultParameters: DEFAULT_PARAMETERS[provider] || {},
       recommendedProxies: []
     }
   }
 
-  // 安全地处理可能不存在的 recommendedProxies 属性
+  // 处理推荐代理地址
   const recommendedProxies = safeGet(model, 'recommendedProxies', [])
   if (Array.isArray(recommendedProxies) && recommendedProxies.length > 0) {
     const urls = recommendedProxies.map((p: any) => p.url)
@@ -367,6 +372,9 @@ const isFormValid = computed(() => {
 // 添加加载状态指示器
 const isLoading = ref(false)
 
+// 添加连接测试状态
+const hasTestedConnection = ref(false)
+
 // 初始化加载配置
 onMounted(() => {
   modelConfigStore.loadConfigs()
@@ -435,10 +443,33 @@ const handleEdit = (config: ModelConfig) => {
   showAddModal.value = true
 }
 
-// 关闭模态框
+// 修改处理点击遮罩层的方法
+const handleOverlayClick = () => {
+  // 如果正在加载或已经填写了表单，显示确认对话框
+  if (isLoading.value || isFormDirty.value) {
+    if (confirm('确定要关闭吗？未保存的更改将会丢失。')) {
+      closeModal()
+    }
+  } else {
+    closeModal()
+  }
+}
+
+// 添加表单是否被修改的计算属性
+const isFormDirty = computed(() => {
+  return (
+    formData.value.name !== '' ||
+    formData.value.apiKey !== '' ||
+    formData.value.baseUrl !== '' ||
+    formData.value.modelName !== ''
+  )
+})
+
+// 修改关闭模态框方法
 const closeModal = () => {
   showAddModal.value = false
   editingConfig.value = null
+  hasTestedConnection.value = false
   formData.value = {
     name: '',
     provider: '',
@@ -556,7 +587,7 @@ const showPromptSettings = async () => {
   }
 }
 
-// 修改测试连接方法，使用 store 中的 testConnection
+// 修改测试连接方法
 const testConnection = async () => {
   if (!isFormValid.value) {
     message.error('请填写完整的配置信息')
@@ -564,22 +595,33 @@ const testConnection = async () => {
   }
 
   isLoading.value = true
+  hasTestedConnection.value = false
+
   try {
-    const result = await modelConfigStore.testConnection(
-      formData.value.provider as LLMProvider,
-      formData.value.baseUrl,
-      formData.value.apiKey,
-      formData.value.modelName
-    )
+    const testConfig = {
+      provider: formData.value.provider as LLMProvider,
+      baseUrl: formData.value.baseUrl,
+      apiKey: formData.value.apiKey,
+      modelName: formData.value.modelName,
+      parameters: {
+        temperature: Number(formData.value.parameters.temperature),
+        maxTokens: Number(formData.value.parameters.maxTokens)
+      }
+    }
+
+    const result = await modelConfigStore.testConnection(testConfig)
 
     if (result.valid) {
       message.success('连接测试成功！')
+      hasTestedConnection.value = true
     } else {
-      message.error(`连接测试失败：${result.message || '未收到有效响应'}`)
+      message.error(`连接测试失败：${result.message || '未知错误'}`)
+      hasTestedConnection.value = false
     }
   } catch (error) {
     console.error('连接测试失败:', error)
     message.error(`连接测试失败: ${error instanceof Error ? error.message : '未知错误'}`)
+    hasTestedConnection.value = false
   } finally {
     isLoading.value = false
   }
@@ -1021,6 +1063,30 @@ const testConnection = async () => {
 
   &:hover {
     background: var(--color-hover-bg);
+  }
+}
+
+// 添加输入框帮助信息样式
+.input-help {
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+
+// 修改测试按钮样式
+.test-btn {
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background: var(--color-background-secondary);
+  }
+}
+
+// 修改确认按钮样式
+.confirm-btn {
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
   }
 }
 </style>

@@ -650,7 +650,7 @@ export interface ElectronAPI {
     // 测试模型连接
     testConnection: (
       provider: string,
-      endpoint: string,
+      baseUrl: string,
       apiKey: string,
       modelName: string
     ) => Promise<{ valid: boolean; message?: string }>
@@ -978,7 +978,7 @@ declare global {
       getProviderPresets: () => Promise<any[]>
       testConnection: (
         provider: string,
-        endpoint: string,
+        baseUrl: string,
         apiKey: string,
         modelName: string
       ) => Promise<{ valid: boolean; message?: string }>

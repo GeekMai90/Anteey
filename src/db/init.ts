@@ -1326,75 +1326,61 @@ export async function initDatabase(db: Knex): Promise<void> {
     console.log('dinox_sync_config 表创建成功')
   }
 
-  // 如果已存在model_configs表，先删除再创建
-  const hasModelConfigsTable = await db.schema.hasTable('model_configs')
-  if (hasModelConfigsTable) {
-    await db.schema.dropTable('model_configs')
-    console.log('model_configs 表已删除，准备重新创建')
-  }
-
   // 创建新表结构
-  await db.schema.createTable('model_configs', (table) => {
-    // 基本信息
-    table.string('id').primary()
-    table.string('name').notNullable() // 配置名称，用户自定义
-    table.string('provider').notNullable() // 提供商类型
-    table.string('modelName').notNullable() // 具体模型名称
+  if (!(await db.schema.hasTable('model_configs'))) {
+    await db.schema.createTable('model_configs', (table) => {
+      // 基本信息
+      table.string('id').primary()
+      table.string('name').notNullable() // 配置名称，用户自定义
+      table.string('provider').notNullable() // 提供商类型
+      table.string('modelName').notNullable() // 具体模型名称
 
-    // API连接配置
-    table.string('baseUrl').notNullable() // 基础URL，不包含API路径
-    table.string('apiKey').notNullable() // API密钥
-    table.string('apiVersion').nullable() // API版本(可选)
-    table.string('orgId').nullable() // 组织ID(可选)
-    table.json('headers').nullable() // 自定义请求头
+      // API连接配置
+      table.string('baseUrl').notNullable() // 基础URL，不包含API路径
+      table.string('apiKey').notNullable() // API密钥
+      table.string('apiVersion').nullable() // API版本(可选)
+      table.string('orgId').nullable() // 组织ID(可选)
+      table.json('headers').nullable() // 自定义请求头
 
-    // 生成参数
-    table.text('parameters').notNullable() // 使用text类型存储JSON字符串
+      // 生成参数
+      table.text('parameters').notNullable() // 使用text类型存储JSON字符串
 
-    // 提示词配置
-    table.text('systemPrompt').nullable() // 系统提示词
+      // 提示词配置
+      table.text('systemPrompt').nullable() // 系统提示词
 
-    // 请求格式转换
-    table.text('requestMapper').nullable() // 请求转换函数
-    table.text('responseMapper').nullable() // 响应转换函数
+      // 请求格式转换
+      table.text('requestMapper').nullable() // 请求转换函数
+      table.text('responseMapper').nullable() // 响应转换函数
 
-    // 元数据
-    table.boolean('isDefault').notNullable().defaultTo(false)
-    table.datetime('createdAt').notNullable()
-    table.datetime('updatedAt').notNullable()
+      // 元数据
+      table.boolean('isDefault').notNullable().defaultTo(false)
+      table.datetime('createdAt').notNullable()
+      table.datetime('updatedAt').notNullable()
 
-    // 索引
-    table.index('provider')
-    table.index('isDefault')
-    table.index('createdAt')
-  })
-
-  console.log('model_configs 表重新创建成功')
-
-  // 重新创建provider_presets表
-  if (await db.schema.hasTable('provider_presets')) {
-    await db.schema.dropTable('provider_presets')
+      // 索引
+      table.index('provider')
+      table.index('isDefault')
+      table.index('createdAt')
+    })
   }
-
-  await db.schema.createTable('provider_presets', (table) => {
-    table.string('id').primary()
-    table.string('provider').notNullable().unique() // 提供商标识
-    table.string('defaultBaseUrl').notNullable() // 修改为defaultBaseUrl
-    table.string('requestFormat').notNullable() // 请求格式
-    table.string('defaultModel').notNullable() // 默认模型
-    table.json('supportedModels').notNullable() // 支持的模型列表
-    table.json('defaultParameters').notNullable() // 默认参数
-    table.string('baseUrlPlaceholder').notNullable() // 修改为baseUrlPlaceholder
-    table.string('apiKeyPlaceholder').notNullable() // API密钥提示文本
-    table.json('proxyBaseUrls').nullable() // 修改为proxyBaseUrls
-    table.datetime('createdAt').notNullable()
-    table.datetime('updatedAt').notNullable()
-
-    // 索引
-    table.index('provider')
-  })
-
-  // 插入更新后的预设提供商配置...
+  if (!(await db.schema.hasTable('provider_presets'))) {
+    await db.schema.createTable('provider_presets', (table) => {
+      table.string('id').primary()
+      table.string('provider').notNullable().unique() // 提供商标识
+      table.string('defaultBaseUrl').notNullable() // 修改为defaultBaseUrl
+      table.string('requestFormat').notNullable() // 请求格式
+      table.string('defaultModel').notNullable() // 默认模型
+      table.json('supportedModels').notNullable() // 支持的模型列表
+      table.json('defaultParameters').notNullable() // 默认参数
+      table.string('baseUrlPlaceholder').notNullable() // 修改为baseUrlPlaceholder
+      table.string('apiKeyPlaceholder').notNullable() // API密钥提示文本
+      table.json('proxyBaseUrls').nullable() // 修改为proxyBaseUrls
+      table.datetime('createdAt').notNullable()
+      table.datetime('updatedAt').notNullable()
+      // 索引
+      table.index('provider')
+    })
+  }
 }
 
 export async function down(db: Knex): Promise<void> {

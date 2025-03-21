@@ -189,19 +189,52 @@ export const useModelConfigStore = defineStore('modelConfig', () => {
     }
   }
 
-  // 测试连接
-  const testConnection = async (
-    provider: LLMProvider,
-    baseUrl: string,
-    apiKey: string,
+  // 首先定义一个测试配置的接口
+  interface TestConnectionConfig {
+    provider: LLMProvider
+    baseUrl: string
+    apiKey: string
     modelName: string
+    parameters?: {
+      temperature: number
+      maxTokens: number
+    }
+  }
+
+  // 修改 testConnection 方法
+  const testConnection = async (
+    config: TestConnectionConfig
   ): Promise<{ valid: boolean; message?: string }> => {
     try {
       error.value = null
-      return await window.modelConfigApi.testConnection(provider, baseUrl, apiKey, modelName)
+
+      // 调用 API 进行测试
+      const result = await window.modelConfigApi.testConnection(
+        config.provider,
+        config.baseUrl,
+        config.apiKey,
+        config.modelName
+      )
+
+      // 记录测试结果（不包含敏感信息）
+      if (!result.valid) {
+        console.error('模型连接测试失败:', {
+          provider: config.provider,
+          baseUrl: config.baseUrl,
+          modelName: config.modelName,
+          message: result.message
+        })
+      }
+
+      return result
     } catch (err) {
       error.value = err instanceof Error ? err.message : '测试连接失败'
-      console.error('测试模型连接失败:', err)
+      console.error('测试模型连接失败:', {
+        provider: config.provider,
+        baseUrl: config.baseUrl,
+        modelName: config.modelName,
+        error: err instanceof Error ? err.message : String(err)
+      })
       throw err
     }
   }

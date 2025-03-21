@@ -84,12 +84,19 @@ export const LLM_MODELS = {
     alwaysCustomizable: false
   },
   'deepseek-chat': {
-    name: 'DeepSeek Chat V3',
-    defaultBaseURL: 'https://api.deepseek.com', // 修正DeepSeek的baseURL
-    pathSuffix: '/chat/completions',
-    provider: 'deepseek' as LLMProvider,
-    alwaysCustomizable: false,
-    defaultModel: 'deepseek-chat'
+    name: 'DeepSeek Chat',
+    provider: 'deepseek',
+    defaultBaseURL: 'https://api.deepseek.com', // 基础URL
+    pathSuffix: '/v1', // 路径后缀
+    defaultModel: 'deepseek-chat',
+    recommendedProxies: [
+      {
+        name: '官方API',
+        url: 'https://api.deepseek.com' // 这里只需要设置基础URL，不要包含路径
+      }
+      // 可以添加其他推荐的代理地址
+    ],
+    alwaysCustomizable: false
   },
   'deepseek-reasoner': {
     name: 'DeepSeek Reasoner R1',
@@ -392,7 +399,7 @@ export function parseModelResponse(config: ModelConfig, response: any): string {
 export function getDefaultModel(provider: LLMProvider): string {
   switch (provider) {
     case 'zhipu':
-      return 'glm-4'
+      return 'glm-4-plus'
     case 'moonshot':
       return 'moonshot-v1-8k'
     case 'deepseek':
@@ -416,7 +423,7 @@ export function getDefaultModel(provider: LLMProvider): string {
 export function getSupportedModels(provider: LLMProvider): string[] {
   switch (provider) {
     case 'zhipu':
-      return ['glm-4', 'glm-3-turbo']
+      return ['glm-4-plus', 'glm-4v-plus-0111']
     case 'moonshot':
       return ['moonshot-v1-8k', 'moonshot-v1-32k', 'moonshot-v1-128k']
     case 'deepseek':

@@ -133,12 +133,39 @@ export function setupLLMConfigHandlers() {
   // 测试模型配置连接
   ipcMain.handle(
     'test-model-connection',
-    async (_event, { provider, baseUrl, apiKey, modelName }: any) => {
+    async (_event, { provider, baseUrl, apiKey, modelName }) => {
       try {
+        // 记录测试请求信息
+        log.info('开始测试模型连接:', {
+          provider,
+          baseUrl,
+          modelName
+          // 不记录 apiKey 以保护安全
+        })
+
+        // 调用服务层的测试方法
         const result = await modelConfigService.testConnection(provider, baseUrl, apiKey, modelName)
+
+        // 记录测试结果（不包含敏感信息）
+        log.info('模型连接测试结果:', {
+          provider,
+          baseUrl,
+          modelName,
+          success: result.valid,
+          message: result.message
+        })
+
         return { success: true, result }
       } catch (error: any) {
-        log.error('测试模型连接失败:', error)
+        // 记录错误信息
+        log.error('模型连接测试失败:', {
+          provider,
+          baseUrl,
+          modelName,
+          error: error.message || String(error)
+        })
+
+        // 返回详细的错误信息
         return {
           success: false,
           error: {

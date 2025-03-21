@@ -116,13 +116,44 @@ export const modelConfigApi = {
         apiKey,
         modelName
       })
-      if (!result.success) throw new Error(result.error?.message || result.error)
-      return result.result
-    } catch (error: any) {
-      console.error('预加载脚本 → 测试模型连接失败:', error)
+
+      // 如果是成功的响应
+      if (result.success) {
+        return result.result
+      }
+
+      // 如果是错误响应，处理详细的错误信息
+      if (result.error) {
+        const errorMessage = result.error.message || result.error.details || String(result.error)
+        return {
+          valid: false,
+          message: errorMessage
+        }
+      }
+
+      // 兜底错误处理
       return {
         valid: false,
-        message: error.message || '连接测试失败'
+        message: '测试连接时发生未知错误'
+      }
+    } catch (error: any) {
+      console.error('预加载脚本 → 测试模型连接失败:', error)
+
+      // 处理不同类型的错误
+      let errorMessage = '连接测试失败'
+      if (error.code === 'ERR_NETWORK') {
+        errorMessage = '网络连接失败，请检查网络状态或API地址'
+      } else if (error.code === 'ECONNREFUSED') {
+        errorMessage = '无法连接到服务器，请检查API地址是否正确'
+      } else if (error.code === 'ETIMEDOUT') {
+        errorMessage = '连接超时，请检查网络状态或API地址'
+      } else if (error.message) {
+        errorMessage = error.message
+      }
+
+      return {
+        valid: false,
+        message: errorMessage
       }
     }
   }

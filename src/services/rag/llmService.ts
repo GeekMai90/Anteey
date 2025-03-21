@@ -1,7 +1,18 @@
 import log from 'electron-log'
 import axios, { AxiosRequestConfig } from 'axios'
 import { ModelConfigService } from './llmConfigService'
-import { formatModelRequest, parseModelResponse, ModelConfig, getFullEndpoint } from './llm.config'
+import { parseModelResponse, ModelConfig, LLMProvider } from './llm.config'
+
+// 首先定义 Gemini 特定的参数类型
+interface GeminiParameters {
+  temperature: number
+  maxTokens: number
+  stopSequences?: string[]
+  topP?: number
+  topK?: number
+  frequencyPenalty?: number
+  presencePenalty?: number
+}
 
 export class LLMService {
   // 模型配置服务实例
@@ -49,28 +60,70 @@ export class LLMService {
       })
 
       // 构建消息数组
-      const messages = [{ role: 'user', content: prompt }]
+      const messages = []
 
       // 如果有系统提示词，添加到消息开头
       if (config.systemPrompt) {
-        messages.unshift({ role: 'system', content: config.systemPrompt })
+        messages.push({
+          role: 'system',
+          content: config.systemPrompt
+        })
       }
+
+      // 添加用户消息
+      messages.push({
+        role: 'user',
+        content: prompt
+      })
 
       // 合并参数
       const mergedParameters = {
+        temperature: 0.7,
+        maxTokens: 2000,
+        stopSequences: [], // 添加默认值
         ...config.parameters,
         ...(parameters || {})
-      }
+      } as GeminiParameters
 
-      // 使用formatModelRequest生成请求体
-      const requestBody = formatModelRequest(
-        {
-          ...config,
-          parameters: mergedParameters
-        },
-        messages,
-        false
-      )
+      // 根据不同提供商构建请求体
+      let requestBody: any
+      let fullEndpoint = this.getFullEndpoint(config.provider, config.baseUrl)
+
+      if (config.provider === 'gemini') {
+        // Gemini 特殊处理
+        fullEndpoint = `${config.baseUrl}/v1/models/${config.modelName}:generateContent`
+        if (config.apiKey) {
+          fullEndpoint += `?key=${config.apiKey}`
+        }
+
+        requestBody = {
+          contents: messages.map((msg) => ({
+            parts: [{ text: msg.content }],
+            role: msg.role === 'user' ? 'user' : 'model'
+          })),
+          generationConfig: {
+            temperature: Number(mergedParameters.temperature),
+            maxOutputTokens: Number(mergedParameters.maxTokens),
+            stopSequences: mergedParameters.stopSequences || []
+          }
+        }
+      } else if (config.provider === 'anthropic') {
+        requestBody = {
+          model: config.modelName,
+          messages: messages,
+          max_tokens: Number(mergedParameters.maxTokens),
+          temperature: Number(mergedParameters.temperature),
+          stream: false
+        }
+      } else {
+        requestBody = {
+          model: config.modelName,
+          messages: messages,
+          temperature: Number(mergedParameters.temperature),
+          max_tokens: Number(mergedParameters.maxTokens),
+          stream: false
+        }
+      }
 
       // 准备请求头
       const headers: Record<string, string> = {
@@ -78,30 +131,27 @@ export class LLMService {
         ...this.getAuthHeaders(config)
       }
 
-      // 合并自定义请求头
-      if (config.headers) {
-        Object.assign(headers, config.headers)
-      }
-
-      // 准备请求配置
-      const requestConfig: AxiosRequestConfig = {
-        headers,
-        timeout: 90000 // 默认90秒超时
-      }
-
-      // 获取完整端点URL
-      const fullEndpoint = getFullEndpoint(config.provider, config.baseUrl)
+      console.log('Sending request:', {
+        url: fullEndpoint,
+        provider: config.provider,
+        model: config.modelName,
+        requestBody,
+        headers: { ...headers, 'x-api-key': '***' } // 隐藏 API key
+      })
 
       // 发送请求
-      const requestStartTime = Date.now()
-      response = await axios.post(fullEndpoint, requestBody, requestConfig)
-      const requestDuration = Date.now() - requestStartTime
+      const responseStartTime = Date.now()
+      response = await axios.post(fullEndpoint, requestBody, {
+        headers,
+        timeout: 90000
+      })
+      const responseDuration = Date.now() - responseStartTime
 
       // 记录请求统计信息
       log.info(`${config.provider.toUpperCase()} API响应:`, {
         provider: config.provider,
         model: config.modelName,
-        requestDuration: `${requestDuration}ms`,
+        requestDuration: `${responseDuration}ms`,
         status: response.status,
         tokenInfo: this.extractTokenInfo(response.data, config.provider),
         responseLength: response.data ? JSON.stringify(response.data).length : 0
@@ -204,19 +254,52 @@ export class LLMService {
 
       // 合并参数
       const mergedParameters = {
+        temperature: 0.7,
+        maxTokens: 2000,
+        stopSequences: [], // 添加默认值
         ...config.parameters,
         ...(parameters || {})
-      }
+      } as GeminiParameters
 
-      // 使用formatModelRequest生成请求体，启用流式响应
-      const requestBody = formatModelRequest(
-        {
-          ...config,
-          parameters: mergedParameters
-        },
-        messages,
-        true // 启用流式
-      )
+      // 根据不同提供商构建请求体
+      let requestBody: any
+      let fullEndpoint = this.getFullEndpoint(config.provider, config.baseUrl)
+
+      if (config.provider === 'gemini') {
+        // Gemini 特殊处理
+        fullEndpoint = `${config.baseUrl}/v1/models/${config.modelName}:streamGenerateContent`
+        if (config.apiKey) {
+          fullEndpoint += `?key=${config.apiKey}`
+        }
+
+        requestBody = {
+          contents: messages.map((msg) => ({
+            parts: [{ text: msg.content }],
+            role: msg.role === 'user' ? 'user' : 'model'
+          })),
+          generationConfig: {
+            temperature: Number(mergedParameters.temperature),
+            maxOutputTokens: Number(mergedParameters.maxTokens),
+            stopSequences: mergedParameters.stopSequences || []
+          }
+        }
+      } else if (config.provider === 'anthropic') {
+        requestBody = {
+          model: config.modelName,
+          messages: messages,
+          max_tokens: Number(mergedParameters.maxTokens),
+          temperature: Number(mergedParameters.temperature),
+          stream: true
+        }
+      } else {
+        requestBody = {
+          model: config.modelName,
+          messages: messages,
+          temperature: Number(mergedParameters.temperature),
+          max_tokens: Number(mergedParameters.maxTokens),
+          stream: true
+        }
+      }
 
       // 准备请求头
       const headers: Record<string, string> = {
@@ -237,7 +320,7 @@ export class LLMService {
       }
 
       // 获取完整端点URL
-      const fullEndpoint = getFullEndpoint(config.provider, config.baseUrl)
+      fullEndpoint = this.getFullEndpoint(config.provider, config.baseUrl)
 
       // 发送请求
       const response = await axios.post(fullEndpoint, requestBody, requestConfig)
@@ -335,13 +418,13 @@ export class LLMService {
           Authorization: config.apiKey
         }
       case 'gemini':
-        // Gemini可能将API密钥添加到URL中
-        return {}
-      case 'openai':
-      case 'moonshot':
-      case 'deepseek':
+        // Gemini 使用 URL 参数，不需要 headers
+        return {
+          'Content-Type': 'application/json'
+        }
       default:
         return {
+          'Content-Type': 'application/json',
           Authorization: `Bearer ${config.apiKey}`
         }
     }
@@ -413,7 +496,6 @@ export class LLMService {
   private processAnthropicStream(text: string): string | null {
     let content = ''
 
-    // Anthropic的流式响应格式
     const lines = text.split('\n')
     for (const line of lines) {
       if (line.startsWith('data: ')) {
@@ -422,8 +504,8 @@ export class LLMService {
 
         try {
           const parsed = JSON.parse(data)
-          // Anthropic的格式与OpenAI不同
-          if (parsed.type === 'content_block_delta' && parsed.delta?.text) {
+          // 新版 Claude API 的流式响应格式
+          if (parsed.type === 'message_delta' && parsed.delta?.text) {
             content += parsed.delta.text
           }
         } catch (e) {
@@ -442,15 +524,49 @@ export class LLMService {
    */
   private processGeminiStream(text: string): string | null {
     try {
-      // Gemini可能使用不同于SSE的流式格式
       const parsed = JSON.parse(text)
 
-      // 尝试几种可能的路径
-      return (
-        parsed.candidates?.[0]?.content?.parts?.[0]?.text || parsed.text || parsed.content || null
-      )
+      // 处理流式响应
+      if (parsed.candidates && parsed.candidates[0]) {
+        const candidate = parsed.candidates[0]
+        if (candidate.content && candidate.content.parts) {
+          const textContent = candidate.content.parts
+            .filter((part: any) => part.text)
+            .map((part: any) => part.text)
+            .join('')
+          return textContent || null
+        }
+      }
+
+      return null
     } catch (e) {
       return null
     }
+  }
+
+  // 修改 getFullEndpoint 函数，确保包含 v1
+  private getFullEndpoint(provider: LLMProvider, baseUrl: string): string {
+    const API_PATH_SUFFIXES: Record<LLMProvider, string> = {
+      zhipu: '/chat/completions',
+      moonshot: '/chat/completions',
+      deepseek: '/chat/completions',
+      openai: '/chat/completions',
+      anthropic: '/v1/messages',
+      gemini: '/models',
+      custom: ''
+    }
+
+    const suffix = API_PATH_SUFFIXES[provider]
+    const cleanBase = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl
+
+    // 对于 anthropic，如果 baseUrl 已经包含了 /v1，就不要重复添加
+    if (provider === 'anthropic') {
+      if (baseUrl.includes('/v1')) {
+        return `${cleanBase}/messages`
+      }
+      return `${cleanBase}/v1/messages`
+    }
+
+    return `${cleanBase}${suffix}`
   }
 }
