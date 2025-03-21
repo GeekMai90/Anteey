@@ -11,7 +11,7 @@ import type {
   AssistantNoteReference
 } from '@shared/types'
 import { v4 as uuidv4 } from 'uuid'
-import { useLLMConfigStore } from '@renderer/stores/llmConfigStore'
+import { useModelConfigStore } from '@renderer/stores/modelConfigStore'
 import { message } from '@renderer/utils/message'
 
 export const useAssistantStore = defineStore('assistant', () => {
@@ -27,12 +27,12 @@ export const useAssistantStore = defineStore('assistant', () => {
   const embeddingsProgress = ref({ total: 0, processed: 0 })
   const displayedMessageIds = ref<Set<string>>(new Set()) // 新增：记录已显示的消息ID
 
-  const llmConfigStore = useLLMConfigStore()
+  const modelConfigStore = useModelConfigStore()
 
   // 确保配置已加载
   const ensureConfigLoaded = async () => {
-    if (!llmConfigStore.defaultConfig) {
-      await llmConfigStore.loadConfigs()
+    if (!modelConfigStore.defaultConfig) {
+      await modelConfigStore.loadConfigs()
     }
   }
 
@@ -740,16 +740,19 @@ export const useAssistantStore = defineStore('assistant', () => {
       const messagesToSend = prepareDataForTransfer(messages.value.slice(0, -1))
       const contextsToSend = prepareDataForTransfer(contexts.value)
 
-      // 4. 调用聊一聊模式时添加 deepseekConfig
+      // 4. 调用聊一聊模式时使用新的配置格式
+      const defaultConfig = modelConfigStore.defaultConfig
       const result = await window.electronAPI.rag.handleChat(
         content,
         currentSessionId.value,
         messagesToSend,
         contextsToSend,
-        {
-          temperature: llmConfigStore.defaultConfig?.deepseekConfig?.temperature ?? 0.7,
-          maxTokens: llmConfigStore.defaultConfig?.deepseekConfig?.maxTokens ?? 2000
-        }
+        defaultConfig?.parameters
+          ? {
+              temperature: defaultConfig.parameters.temperature ?? 0.7,
+              maxTokens: defaultConfig.parameters.maxTokens ?? 2000
+            }
+          : undefined
       )
 
       // 检查是否有错误

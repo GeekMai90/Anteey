@@ -22,13 +22,14 @@
             </button>
           </div>
 
-          <div v-if="llmConfigStore.configs.length > 0" class="model-list">
-            <div v-for="config in llmConfigStore.configs" :key="config.id" class="model-item">
+          <div v-if="modelConfigStore.configs.length > 0" class="model-list">
+            <div v-for="config in modelConfigStore.configs" :key="config.id" class="model-item">
               <div class="model-info">
                 <div class="model-name">
-                  {{ LLM_MODELS[config.model].name }}
+                  {{ config.name }}
                   <span v-if="config.isDefault" class="default-badge">默认</span>
                 </div>
+                <div class="model-provider">{{ getProviderName(config.provider) }}</div>
                 <div class="model-key">{{ maskApiKey(config.apiKey) }}</div>
               </div>
               <div class="model-actions">
@@ -89,54 +90,114 @@
         </div>
 
         <div class="modal-body">
+          <div class="form-group">
+            <label>配置名称</label>
+            <input v-model="formData.name" type="text" placeholder="请输入配置名称" />
+          </div>
+
           <div v-if="!editingConfig" class="form-group">
-            <label>选择模型</label>
-            <select v-model="formData.model">
-              <option v-for="(model, key) in LLM_MODELS" :key="key" :value="key">
-                {{ model.name }}
+            <label>模型提供商</label>
+            <select v-model="formData.provider" @change="handleProviderChange">
+              <option v-for="(name, key) in providerOptions" :key="key" :value="key">
+                {{ name }}
               </option>
             </select>
           </div>
+
           <div class="form-group">
             <label>API Key</label>
             <input v-model="formData.apiKey" type="password" placeholder="请输入 API Key" />
           </div>
 
-          <!-- DeepSeek 特有配置 -->
-          <template v-if="formData.model.startsWith('deepseek')">
-            <div class="form-group">
-              <label>Temperature</label>
-              <input
-                v-model.number="formData.deepseekConfig.temperature"
-                type="number"
-                min="0"
-                max="1"
-                step="0.1"
-                placeholder="设置温度 (0-1)"
-              />
+          <div class="form-group">
+            <label>API 地址</label>
+            <input v-model="formData.baseUrl" type="text" placeholder="请输入 API 基础地址" />
+            <div
+              v-if="formData.provider && presets[formData.provider]?.recommendedProxies"
+              class="endpoint-help"
+            >
+              <span class="help-text">推荐地址:</span>
+              <div class="proxy-list">
+                <span
+                  v-for="(proxy, index) in presets[formData.provider].recommendedProxies"
+                  :key="index"
+                  class="proxy-item"
+                  @click="formData.baseUrl = proxy"
+                >
+                  {{ proxy }}
+                </span>
+              </div>
             </div>
-            <div class="form-group">
-              <label>Max Tokens</label>
-              <input
-                v-model.number="formData.deepseekConfig.maxTokens"
-                type="number"
-                min="1"
-                max="4096"
-                placeholder="设置最大 token 数"
-              />
+          </div>
+
+          <div class="form-group">
+            <label>模型名称</label>
+            <input v-model="formData.modelName" type="text" placeholder="请输入模型名称" />
+            <div
+              v-if="formData.provider && presets[formData.provider]?.modelOptions"
+              class="endpoint-help"
+            >
+              <span class="help-text">可选模型:</span>
+              <div class="proxy-list">
+                <span
+                  v-for="(model, index) in presets[formData.provider].modelOptions"
+                  :key="index"
+                  class="proxy-item"
+                  @click="formData.modelName = model"
+                >
+                  {{ model }}
+                </span>
+              </div>
             </div>
-          </template>
+          </div>
+
+          <div class="form-group">
+            <label>Temperature（温度）</label>
+            <input
+              v-model.number="formData.parameters.temperature"
+              type="number"
+              min="0"
+              max="1"
+              step="0.1"
+              placeholder="设置温度 (0-1)"
+            />
+          </div>
+
+          <div class="form-group">
+            <label>Max Tokens（最大生成长度）</label>
+            <input
+              v-model.number="formData.parameters.maxTokens"
+              type="number"
+              min="1"
+              max="4096"
+              placeholder="设置最大 token 数"
+            />
+          </div>
+
+          <div class="form-group">
+            <label>系统提示词</label>
+            <textarea
+              v-model="formData.systemPrompt"
+              rows="4"
+              placeholder="请输入系统提示词（可选）"
+            ></textarea>
+          </div>
         </div>
 
         <div class="modal-footer">
-          <button class="cancel-btn" @click="closeModal">取消</button>
-          <button
-            class="confirm-btn"
-            :disabled="!formData.model || !formData.apiKey"
-            @click="handleSubmit"
-          >
-            确认
-          </button>
+          <div class="footer-left">
+            <button class="test-btn" :disabled="!isFormValid || isLoading" @click="testConnection">
+              <div v-if="isLoading" class="loading-spinner"></div>
+              <div v-else class="test-btn-icon">
+                <Check theme="outline" size="16" />
+              </div>
+              <div class="test-btn-text">{{ isLoading ? '测试中...' : '测试连接' }}</div>
+            </button>
+          </div>
+          <div class="footer-right">
+            <button class="cancel-btn" @click="closeModal">取消</button>
+            <button class="confirm-btn" :disabled="!isFormValid" @click="handleSubmit">确认</button>
+          </div>
         </div>
       </div>
     </div>
@@ -178,31 +239,106 @@
 
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
-import { Robot, Plus, Config, Close, Setting } from '@icon-park/vue-next'
-import { useLLMConfigStore } from '@renderer/stores/llmConfigStore'
-import { LLM_MODELS } from '@services/rag/llm.config'
-import type { LLMConfig, DeepSeekConfig, SystemPromptConfig } from '@shared/types'
+import { Robot, Plus, Config, Close, Setting, Check } from '@icon-park/vue-next'
+import { useModelConfigStore } from '@renderer/stores/modelConfigStore'
+import {
+  LLM_MODELS,
+  DEFAULT_PARAMETERS,
+  getSupportedModels,
+  LLMProvider // 确保导入这个类型
+} from '@services/rag/llm.config'
+import type { ModelConfig, SystemPromptConfig } from '@shared/types'
 import { message } from '@renderer/utils/message'
 
-// 定义表单数据的类型
-interface FormData {
-  model: string
-  apiKey: string
-  deepseekConfig: DeepSeekConfig
+// 定义一个安全的访问函数，处理可能不存在的属性
+const safeGet = <T, K extends string>(obj: T, key: K, defaultValue: any): any => {
+  return (obj as any)?.[key] !== undefined ? (obj as any)[key] : defaultValue
 }
 
-const llmConfigStore = useLLMConfigStore()
-const showAddModal = ref(false)
-const editingConfig = ref<LLMConfig | null>(null)
+// 从现有常量创建一个预设映射
+const PROVIDER_PRESETS_MAP: Record<string, any> = {}
 
-// 使用类型注解
-const formData = ref<FormData>({
-  model: '',
+// 按提供商分组创建预设
+Object.entries(LLM_MODELS).forEach(([modelKey, model]) => {
+  // 使用类型断言加强类型安全
+  const provider = model.provider as LLMProvider // 修改为正确的类型
+
+  if (!PROVIDER_PRESETS_MAP[provider]) {
+    PROVIDER_PRESETS_MAP[provider] = {
+      defaultBaseURL: model.defaultBaseURL + model.pathSuffix,
+      // 安全地获取 defaultModel 属性
+      defaultModel: safeGet(model, 'defaultModel', modelKey),
+      modelOptions: getSupportedModels(provider), // 现在provider已经是LLMProvider类型
+      defaultParameters: DEFAULT_PARAMETERS[provider] || {},
+      recommendedProxies: []
+    }
+  }
+
+  // 安全地处理可能不存在的 recommendedProxies 属性
+  const recommendedProxies = safeGet(model, 'recommendedProxies', [])
+  if (Array.isArray(recommendedProxies) && recommendedProxies.length > 0) {
+    const urls = recommendedProxies.map((p: any) => p.url)
+
+    // 确保不重复添加
+    urls.forEach((url: string) => {
+      if (!PROVIDER_PRESETS_MAP[provider].recommendedProxies.includes(url)) {
+        PROVIDER_PRESETS_MAP[provider].recommendedProxies.push(url)
+      }
+    })
+  }
+})
+
+// 使用创建的映射
+const presets = ref(PROVIDER_PRESETS_MAP)
+
+// 定义ModelParameters类型（如果@shared/types中没有导出）
+interface ModelParametersType {
+  temperature: number
+  maxTokens: number
+  // 添加其他可能的参数
+}
+
+// 修改接口名称，避免与全局FormData冲突
+interface ModelFormData {
+  name: string
+  provider: string
+  modelName: string
+  apiKey: string
+  baseUrl: string
+  parameters: ModelParametersType
+  systemPrompt: string
+}
+
+const modelConfigStore = useModelConfigStore()
+const showAddModal = ref(false)
+const editingConfig = ref<ModelConfig | null>(null)
+
+// 提供商名称映射
+const providerNameMap: Record<LLMProvider, string> = {
+  zhipu: '智谱 GLM',
+  moonshot: 'Moonshot',
+  deepseek: 'DeepSeek',
+  openai: 'OpenAI',
+  anthropic: 'Anthropic Claude',
+  gemini: 'Google Gemini',
+  custom: '自定义'
+}
+
+// 使用类型确保所有提供商都有对应的显示名称
+const providerOptions: Record<LLMProvider, string> = providerNameMap
+
+// 使用新的类型名称
+const formData = ref<ModelFormData>({
+  name: '',
+  provider: '',
+  modelName: '',
   apiKey: '',
-  deepseekConfig: {
+  baseUrl: '',
+  parameters: {
     temperature: 0.7,
     maxTokens: 2000
-  }
+  },
+  systemPrompt: ''
 })
 
 // 提示词配置相关
@@ -217,16 +353,32 @@ const systemPrompt = computed({
   }
 })
 
+// 表单是否有效
+const isFormValid = computed(() => {
+  return (
+    formData.value.name &&
+    formData.value.provider &&
+    formData.value.modelName &&
+    formData.value.apiKey &&
+    formData.value.baseUrl
+  )
+})
+
+// 添加加载状态指示器
+const isLoading = ref(false)
+
 // 初始化加载配置
-llmConfigStore.loadConfigs()
+onMounted(() => {
+  modelConfigStore.loadConfigs()
+  initPromptConfig()
+})
 
 // 初始化时加载提示词配置
 const initPromptConfig = async () => {
   try {
-    await llmConfigStore.loadSystemPrompt()
-    if (llmConfigStore.systemPrompt) {
-      promptFormData.value = llmConfigStore.systemPrompt
-      // console.log('加载的提示词配置:', llmConfigStore.systemPrompt)
+    await modelConfigStore.loadSystemPrompt()
+    if (modelConfigStore.systemPrompt) {
+      promptFormData.value = modelConfigStore.systemPrompt
     } else {
       console.warn('未找到提示词配置')
     }
@@ -238,19 +390,47 @@ const initPromptConfig = async () => {
 
 // 遮掩 API Key
 const maskApiKey = (key: string) => {
+  if (!key) return '***'
   return `${key.slice(0, 4)}...${key.slice(-4)}`
 }
 
+// 获取提供商名称
+const getProviderName = (provider: string) => {
+  return providerOptions[provider as keyof typeof providerOptions] || provider
+}
+
+// 处理提供商变更
+const handleProviderChange = () => {
+  const provider = formData.value.provider
+  const preset = presets.value[provider]
+
+  if (preset) {
+    formData.value.baseUrl = preset.defaultBaseURL || ''
+    formData.value.modelName = preset.defaultModel || ''
+
+    if (preset.defaultParameters) {
+      formData.value.parameters = {
+        ...formData.value.parameters,
+        ...preset.defaultParameters
+      }
+    }
+  }
+}
+
 // 打开编辑模态框
-const handleEdit = (config: LLMConfig) => {
+const handleEdit = (config: ModelConfig) => {
   editingConfig.value = config
   formData.value = {
-    model: config.model,
+    name: config.name,
+    provider: config.provider,
+    modelName: config.modelName,
     apiKey: config.apiKey,
-    deepseekConfig: {
-      temperature: config.deepseekConfig?.temperature ?? 0.7,
-      maxTokens: config.deepseekConfig?.maxTokens ?? 2000
-    }
+    baseUrl: config.baseUrl,
+    parameters: {
+      temperature: config.parameters?.temperature ?? 0.7,
+      maxTokens: config.parameters?.maxTokens ?? 2000
+    },
+    systemPrompt: config.systemPrompt || ''
   }
   showAddModal.value = true
 }
@@ -260,52 +440,56 @@ const closeModal = () => {
   showAddModal.value = false
   editingConfig.value = null
   formData.value = {
-    model: '',
+    name: '',
+    provider: '',
+    modelName: '',
     apiKey: '',
-    deepseekConfig: {
+    baseUrl: '',
+    parameters: {
       temperature: 0.7,
       maxTokens: 2000
-    }
+    },
+    systemPrompt: ''
   }
 }
 
 // 提交表单
 const handleSubmit = async () => {
   try {
-    // 确保数值类型正确
-    const deepseekConfigToSend = formData.value.model.startsWith('deepseek')
-      ? {
-          temperature: Number(formData.value.deepseekConfig.temperature),
-          maxTokens: Number(formData.value.deepseekConfig.maxTokens)
-        }
-      : undefined
+    const parametersToSend = {
+      temperature: Number(formData.value.parameters.temperature),
+      maxTokens: Number(formData.value.parameters.maxTokens)
+    }
+
+    const configData = {
+      name: formData.value.name,
+      provider: formData.value.provider as LLMProvider,
+      modelName: formData.value.modelName,
+      apiKey: formData.value.apiKey,
+      baseUrl: formData.value.baseUrl,
+      parameters: parametersToSend,
+      systemPrompt: formData.value.systemPrompt || undefined,
+      isDefault: false
+    }
 
     if (editingConfig.value) {
-      await llmConfigStore.updateConfig(
-        editingConfig.value.id,
-        formData.value.apiKey,
-        deepseekConfigToSend
-      )
+      await modelConfigStore.updateConfig(editingConfig.value.id, configData)
       message.success('配置已更新')
     } else {
-      await llmConfigStore.addConfig(
-        formData.value.model,
-        formData.value.apiKey,
-        deepseekConfigToSend
-      )
+      await modelConfigStore.addConfig(configData)
       message.success('配置已添加')
     }
     closeModal()
   } catch (error) {
     console.error('操作失败:', error)
-    message.error('操作失败')
+    message.error('操作失败: ' + (error instanceof Error ? error.message : '未知错误'))
   }
 }
 
 // 设置默认配置
 const handleSetDefault = async (id: string) => {
   try {
-    await llmConfigStore.setDefaultConfig(id)
+    await modelConfigStore.setDefaultConfig(id)
     message.success('已设置为默认配置')
   } catch (error) {
     message.error('设置失败')
@@ -315,7 +499,7 @@ const handleSetDefault = async (id: string) => {
 // 删除配置
 const handleDelete = async (id: string) => {
   try {
-    await llmConfigStore.deleteConfig(id)
+    await modelConfigStore.deleteConfig(id)
     message.success('配置已删除')
   } catch (error) {
     message.error('删除失败')
@@ -325,14 +509,14 @@ const handleDelete = async (id: string) => {
 // 关闭提示词配置模态框
 const closePromptModal = () => {
   showPromptModal.value = false
-  promptFormData.value = llmConfigStore.systemPrompt
+  promptFormData.value = modelConfigStore.systemPrompt
 }
 
 // 重置为默认提示词
 const resetToDefault = async () => {
   try {
-    await llmConfigStore.resetSystemPrompt()
-    promptFormData.value = llmConfigStore.systemPrompt
+    await modelConfigStore.resetSystemPrompt()
+    promptFormData.value = modelConfigStore.systemPrompt
     message.success('已重置为默认提示词')
   } catch (error) {
     console.error('重置提示词失败:', error)
@@ -347,7 +531,7 @@ const handlePromptSubmit = async () => {
       message.error('请输入系统提示词')
       return
     }
-    await llmConfigStore.updateSystemPrompt(systemPrompt.value)
+    await modelConfigStore.updateSystemPrompt(systemPrompt.value)
     message.success('提示词配置已更新')
     closePromptModal()
   } catch (error) {
@@ -359,9 +543,9 @@ const handlePromptSubmit = async () => {
 // 打开提示词配置模态框
 const showPromptSettings = async () => {
   try {
-    await llmConfigStore.loadSystemPrompt()
-    if (llmConfigStore.systemPrompt) {
-      promptFormData.value = llmConfigStore.systemPrompt
+    await modelConfigStore.loadSystemPrompt()
+    if (modelConfigStore.systemPrompt) {
+      promptFormData.value = modelConfigStore.systemPrompt
       showPromptModal.value = true
     } else {
       message.error('加载提示词配置失败')
@@ -372,10 +556,34 @@ const showPromptSettings = async () => {
   }
 }
 
-// 在组件挂载时初始化
-onMounted(() => {
-  initPromptConfig()
-})
+// 修改测试连接方法，使用 store 中的 testConnection
+const testConnection = async () => {
+  if (!isFormValid.value) {
+    message.error('请填写完整的配置信息')
+    return
+  }
+
+  isLoading.value = true
+  try {
+    const result = await modelConfigStore.testConnection(
+      formData.value.provider as LLMProvider,
+      formData.value.baseUrl,
+      formData.value.apiKey,
+      formData.value.modelName
+    )
+
+    if (result.valid) {
+      message.success('连接测试成功！')
+    } else {
+      message.error(`连接测试失败：${result.message || '未收到有效响应'}`)
+    }
+  } catch (error) {
+    console.error('连接测试失败:', error)
+    message.error(`连接测试失败: ${error instanceof Error ? error.message : '未知错误'}`)
+  } finally {
+    isLoading.value = false
+  }
+}
 </script>
 
 <style scoped lang="scss">
@@ -482,6 +690,12 @@ onMounted(() => {
           color: white;
           border-radius: 4px;
         }
+      }
+
+      .model-provider {
+        font-size: 14px;
+        color: var(--color-text-secondary);
+        margin-top: 4px;
       }
 
       .model-key {
@@ -604,33 +818,56 @@ onMounted(() => {
 }
 
 .modal-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-  padding: 16px;
+  padding: 16px 20px;
   border-top: 1px solid var(--color-border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 
-  button {
-    padding: 6px 16px;
+  .footer-left {
+    display: flex;
+    gap: 12px;
+  }
+
+  .footer-right {
+    display: flex;
+    gap: 12px;
+  }
+
+  .test-btn {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 12px;
+    background: var(--color-success-bg);
+    color: var(--color-success);
+    border: 1px solid var(--color-success);
     border-radius: 6px;
     cursor: pointer;
     font-size: 14px;
 
-    &.cancel-btn {
-      border: 1px solid var(--color-border);
-      background: var(--color-background-primary);
-      color: var(--color-text-primary);
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
     }
 
-    &.confirm-btn {
-      background: var(--color-primary);
-      color: white;
-      border: none;
+    &:hover:not(:disabled) {
+      background: var(--color-success-light);
+    }
+  }
 
-      &:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-      }
+  .loading-spinner {
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(0, 0, 0, 0.1);
+    border-top-color: var(--color-success);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
     }
   }
 }
@@ -653,8 +890,9 @@ onMounted(() => {
   background: var(--color-bg-primary);
   border-radius: 8px;
   width: 580px;
-
   max-width: 90vw;
+  max-height: 90vh;
+  overflow-y: auto;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
@@ -702,7 +940,8 @@ onMounted(() => {
     }
 
     select,
-    input {
+    input,
+    textarea {
       width: 100%;
       padding: 8px 12px;
       border: 1px solid var(--color-border);
@@ -715,82 +954,35 @@ onMounted(() => {
         outline: none;
       }
     }
-  }
-}
 
-.modal-footer {
-  padding: 16px 20px;
-  border-top: 1px solid var(--color-border);
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-
-  button {
-    padding: 6px 16px;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 14px;
-
-    &.cancel-btn {
-      border: 1px solid var(--color-border);
-      background: var(--color-background-primary);
-      color: var(--color-text-primary);
-
-      &:hover {
-        background: var(--color-background-secondary);
-      }
-    }
-
-    &.confirm-btn {
-      background: var(--color-primary);
-      color: white;
-      border: none;
-
-      &:hover {
-        opacity: 0.9;
-      }
-
-      &:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-      }
-    }
-  }
-}
-
-// 添加提示词配置相关样式
-.form-group {
-  textarea {
-    width: 100%;
-    min-height: 120px;
-    padding: 8px 12px;
-    border: 1px solid var(--color-border);
-    border-radius: 6px;
-    background: var(--color-background-primary);
-    color: var(--color-text-primary);
-    resize: vertical;
-
-    &:focus {
-      border-color: var(--color-primary);
-      outline: none;
-    }
-  }
-
-  .form-help {
-    margin-top: 8px;
-    display: flex;
-    justify-content: flex-end;
-
-    .reset-btn {
+    .endpoint-help {
+      margin-top: 8px;
       font-size: 12px;
-      color: var(--color-primary);
-      background: none;
-      border: none;
-      cursor: pointer;
-      padding: 4px 8px;
 
-      &:hover {
-        text-decoration: underline;
+      .help-text {
+        color: var(--color-text-secondary);
+        margin-bottom: 4px;
+        display: block;
+      }
+
+      .proxy-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+
+        .proxy-item {
+          display: inline-block;
+          padding: 4px 8px;
+          border-radius: 4px;
+          background: var(--color-bg-secondary);
+          color: var(--color-text-primary);
+          cursor: pointer;
+          transition: all 0.2s ease;
+
+          &:hover {
+            background: var(--color-primary-light);
+          }
+        }
       }
     }
   }

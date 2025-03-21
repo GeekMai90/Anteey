@@ -455,12 +455,16 @@ export async function initDatabase(db: Knex): Promise<void> {
   if (!(await db.schema.hasTable('llm_configs'))) {
     await db.schema.createTable('llm_configs', (table) => {
       table.string('id').primary()
-      table.string('model').notNullable() // 存储预设的模型ID，如 'glm-4'
-      table.string('apiKey').notNullable() // 用户的 API Key
-      table.boolean('isDefault').notNullable().defaultTo(false) // 是否为默认模型
+      table.string('model').notNullable() // 存储预设的模型ID
+      table.string('apiKey').notNullable() // API Key
+      table.boolean('isDefault').notNullable().defaultTo(false)
+      table.json('baseURLConfig').nullable() // 新增：域名配置
+      table.json('deepseekConfig').nullable() // DeepSeek 配置
+      table.json('openaiConfig').nullable() // 新增：OpenAI 配置
+      table.json('anthropicConfig').nullable() // 新增：Anthropic 配置
+      table.json('geminiConfig').nullable() // 新增：Gemini 配置
       table.datetime('createdAt').notNullable()
       table.datetime('updatedAt').notNullable()
-      table.json('deepseekConfig').nullable() // 添加 DeepSeek 配置字段
 
       // 索引
       table.index('model')
@@ -469,13 +473,38 @@ export async function initDatabase(db: Knex): Promise<void> {
 
     console.log('llm_configs 表创建成功')
   } else {
-    // 检查是否需要添加 deepseekConfig 列
-    const hasDeepseekConfig = await db.schema.hasColumn('llm_configs', 'deepseekConfig')
-    if (!hasDeepseekConfig) {
-      await db.schema.table('llm_configs', (table) => {
-        table.json('deepseekConfig').nullable()
-      })
-      console.log('llm_configs 表添加 deepseekConfig 列成功')
+    // 检查并添加新的列
+    const columns = [
+      { name: 'baseURLConfig', type: 'json' },
+      { name: 'deepseekConfig', type: 'json' },
+      { name: 'openaiConfig', type: 'json' },
+      { name: 'anthropicConfig', type: 'json' },
+      { name: 'geminiConfig', type: 'json' }
+    ]
+
+    for (const column of columns) {
+      const hasColumn = await db.schema.hasColumn('llm_configs', column.name)
+      if (!hasColumn) {
+        await db.schema.alterTable('llm_configs', (table) => {
+          table.json(column.name).nullable()
+        })
+        console.log(`llm_configs 表添加 ${column.name} 列成功`)
+      }
+    }
+
+    // 如果存在旧数据，需要更新 baseURLConfig
+    const configs = await db('llm_configs').select('*')
+    for (const config of configs) {
+      if (!config.baseURLConfig) {
+        await db('llm_configs')
+          .where('id', config.id)
+          .update({
+            baseURLConfig: JSON.stringify({
+              baseURL: '', // 默认为空，表示使用默认域名
+              isCustom: false
+            })
+          })
+      }
     }
   }
 
@@ -1296,6 +1325,76 @@ export async function initDatabase(db: Knex): Promise<void> {
 
     console.log('dinox_sync_config 表创建成功')
   }
+
+  // 如果已存在model_configs表，先删除再创建
+  const hasModelConfigsTable = await db.schema.hasTable('model_configs')
+  if (hasModelConfigsTable) {
+    await db.schema.dropTable('model_configs')
+    console.log('model_configs 表已删除，准备重新创建')
+  }
+
+  // 创建新表结构
+  await db.schema.createTable('model_configs', (table) => {
+    // 基本信息
+    table.string('id').primary()
+    table.string('name').notNullable() // 配置名称，用户自定义
+    table.string('provider').notNullable() // 提供商类型
+    table.string('modelName').notNullable() // 具体模型名称
+
+    // API连接配置
+    table.string('baseUrl').notNullable() // 基础URL，不包含API路径
+    table.string('apiKey').notNullable() // API密钥
+    table.string('apiVersion').nullable() // API版本(可选)
+    table.string('orgId').nullable() // 组织ID(可选)
+    table.json('headers').nullable() // 自定义请求头
+
+    // 生成参数
+    table.text('parameters').notNullable() // 使用text类型存储JSON字符串
+
+    // 提示词配置
+    table.text('systemPrompt').nullable() // 系统提示词
+
+    // 请求格式转换
+    table.text('requestMapper').nullable() // 请求转换函数
+    table.text('responseMapper').nullable() // 响应转换函数
+
+    // 元数据
+    table.boolean('isDefault').notNullable().defaultTo(false)
+    table.datetime('createdAt').notNullable()
+    table.datetime('updatedAt').notNullable()
+
+    // 索引
+    table.index('provider')
+    table.index('isDefault')
+    table.index('createdAt')
+  })
+
+  console.log('model_configs 表重新创建成功')
+
+  // 重新创建provider_presets表
+  if (await db.schema.hasTable('provider_presets')) {
+    await db.schema.dropTable('provider_presets')
+  }
+
+  await db.schema.createTable('provider_presets', (table) => {
+    table.string('id').primary()
+    table.string('provider').notNullable().unique() // 提供商标识
+    table.string('defaultBaseUrl').notNullable() // 修改为defaultBaseUrl
+    table.string('requestFormat').notNullable() // 请求格式
+    table.string('defaultModel').notNullable() // 默认模型
+    table.json('supportedModels').notNullable() // 支持的模型列表
+    table.json('defaultParameters').notNullable() // 默认参数
+    table.string('baseUrlPlaceholder').notNullable() // 修改为baseUrlPlaceholder
+    table.string('apiKeyPlaceholder').notNullable() // API密钥提示文本
+    table.json('proxyBaseUrls').nullable() // 修改为proxyBaseUrls
+    table.datetime('createdAt').notNullable()
+    table.datetime('updatedAt').notNullable()
+
+    // 索引
+    table.index('provider')
+  })
+
+  // 插入更新后的预设提供商配置...
 }
 
 export async function down(db: Knex): Promise<void> {
@@ -1353,6 +1452,8 @@ export async function down(db: Knex): Promise<void> {
   await db.schema.dropTableIfExists('letters')
   await db.schema.dropTableIfExists('dinox_sync_records')
   await db.schema.dropTableIfExists('dinox_sync_config')
+  await db.schema.dropTableIfExists('model_configs')
+  await db.schema.dropTableIfExists('provider_presets')
 
   console.log('所有表已删除')
 }

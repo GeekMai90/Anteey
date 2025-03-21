@@ -83,16 +83,17 @@ import type {
 
   // 认证相关
   AuthState,
-  LLMConfig,
   ChatSession,
   RAGContext,
   RAGHistoryRecord,
   ChatMessage,
   AssistantNoteReference,
-  DeepSeekConfig,
   WordSuggestion,
   DictWord,
   SystemPromptConfig,
+  // 新增的类型
+  ModelConfig,
+  ProviderPreset,
 
   // 思维板相关
   Mindboard,
@@ -618,26 +619,24 @@ export interface ElectronAPI {
     checkNetworkStatus: () => Promise<boolean>
   }
 
-  llmConfig: {
+  modelConfig: {
     // 获取所有配置
-    getAllConfigs: () => Promise<LLMConfig[]>
+    getAllConfigs: () => Promise<ModelConfig[]>
+
+    // 获取单个配置
+    getConfig: (id: string) => Promise<ModelConfig | null>
 
     // 获取默认配置
-    getDefaultConfig: () => Promise<LLMConfig | null>
+    getDefaultConfig: () => Promise<ModelConfig | null>
 
     // 添加配置
-    addConfig: (
-      model: string,
-      apiKey: string,
-      deepseekConfig?: DeepSeekConfig
-    ) => Promise<LLMConfig>
+    addConfig: (config: Omit<ModelConfig, 'id' | 'createdAt' | 'updatedAt'>) => Promise<ModelConfig>
 
     // 更新配置
     updateConfig: (
       id: string,
-      apiKey: string,
-      deepseekConfig?: DeepSeekConfig
-    ) => Promise<LLMConfig>
+      updates: Partial<Omit<ModelConfig, 'id' | 'createdAt' | 'updatedAt'>>
+    ) => Promise<ModelConfig>
 
     // 删除配置
     deleteConfig: (id: string) => Promise<void>
@@ -645,14 +644,16 @@ export interface ElectronAPI {
     // 设置默认配置
     setDefaultConfig: (id: string) => Promise<void>
 
-    // 获取系统提示词配置
-    getSystemPrompt: () => Promise<SystemPromptConfig>
+    // 获取提供商预设
+    getProviderPresets: () => Promise<ProviderPreset[]>
 
-    // 更新系统提示词
-    updateSystemPrompt: (systemPrompt: string) => Promise<SystemPromptConfig>
-
-    // 重置系统提示词
-    resetSystemPrompt: () => Promise<SystemPromptConfig>
+    // 测试模型连接
+    testConnection: (
+      provider: string,
+      endpoint: string,
+      apiKey: string,
+      modelName: string
+    ) => Promise<{ valid: boolean; message?: string }>
   }
 
   rag: {
@@ -959,5 +960,34 @@ export interface ElectronAPI {
 declare global {
   interface Window {
     electronAPI: ElectronAPI
+
+    // 添加新的 API 接口
+    modelConfigApi: {
+      getAllConfigs: () => Promise<ModelConfig[]>
+      getConfig: (id: string) => Promise<ModelConfig | null>
+      getDefaultConfig: () => Promise<ModelConfig | null>
+      addConfig: (
+        config: Omit<ModelConfig, 'id' | 'createdAt' | 'updatedAt'>
+      ) => Promise<ModelConfig>
+      updateConfig: (
+        id: string,
+        updates: Partial<Omit<ModelConfig, 'id' | 'createdAt' | 'updatedAt'>>
+      ) => Promise<ModelConfig>
+      deleteConfig: (id: string) => Promise<void>
+      setDefaultConfig: (id: string) => Promise<void>
+      getProviderPresets: () => Promise<any[]>
+      testConnection: (
+        provider: string,
+        endpoint: string,
+        apiKey: string,
+        modelName: string
+      ) => Promise<{ valid: boolean; message?: string }>
+    }
+
+    systemPromptApi: {
+      getSystemPrompt: () => Promise<SystemPromptConfig>
+      updateSystemPrompt: (systemPrompt: string) => Promise<SystemPromptConfig>
+      resetSystemPrompt: () => Promise<SystemPromptConfig>
+    }
   }
 }

@@ -227,13 +227,13 @@
                   <!-- 模型选择菜单 -->
                   <div v-if="showModelMenu" class="model-menu">
                     <div
-                      v-for="config in llmConfigStore.configs"
+                      v-for="config in modelConfigStore.configs"
                       :key="config.id"
                       class="model-option"
                       :class="{ active: config.isDefault }"
                       @click="handleModelSwitch(config.id)"
                     >
-                      <span class="model-name">{{ LLM_MODELS[config.model].name }}</span>
+                      <span class="model-name">{{ config.name }}</span>
                       <Check v-if="config.isDefault" theme="outline" size="14" :strokeWidth="3" />
                     </div>
                   </div>
@@ -289,8 +289,7 @@ import { useUIStore } from '@renderer/stores/UIStore'
 import RightSidebarAIChatHistory from '@renderer/components/rightSidebar/RightSidebarAIChatHistory.vue'
 import RightSidebarNoteSelector from '@renderer/components/rightSidebar/RightSidebarNoteSelector.vue'
 import { message } from '@renderer/utils/message'
-import { useLLMConfigStore } from '@renderer/stores/llmConfigStore'
-import { LLM_MODELS } from '@services/rag/llm.config'
+import { useModelConfigStore } from '@renderer/stores/modelConfigStore'
 import { useNoteStore } from '@renderer/stores/noteStore'
 
 // Store
@@ -298,7 +297,7 @@ const assistantStore = useAssistantStore()
 const { messages, isProcessing } = storeToRefs(assistantStore)
 const router = useRouter()
 const uiStore = useUIStore()
-const llmConfigStore = useLLMConfigStore()
+const modelConfigStore = useModelConfigStore()
 const noteStore = useNoteStore()
 
 // 建议列表
@@ -585,7 +584,7 @@ const copyMessageContent = async (content: string) => {
 // 处理模型切换
 const handleModelSwitch = async (modelId: string) => {
   try {
-    await llmConfigStore.setDefaultConfig(modelId)
+    await modelConfigStore.setDefaultConfig(modelId)
     showModelMenu.value = false
     message.success('已切换模型')
   } catch (error) {
@@ -638,7 +637,7 @@ onMounted(() => {
     document.removeEventListener('click', handleClickOutside)
   })
 
-  llmConfigStore.loadConfigs()
+  modelConfigStore.loadConfigs()
 })
 </script>
 

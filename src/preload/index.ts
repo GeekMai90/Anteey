@@ -22,7 +22,7 @@ import { lifeGuideApi } from './api/lifeGuideApi'
 import { reviewApi } from './api/reviewApi'
 import { taskApi } from './api/taskApi'
 import { authApi } from './api/authApi'
-import { llmConfigApi } from './api/llmConfigApi'
+import { modelConfigApi, systemPromptApi } from './api/llmConfigApi'
 import { ragApi } from './api/ragApi'
 import { similarNotesApi } from './api/similarNotesApi'
 import { dictionaryApi } from './api/dictionaryApi'
@@ -138,8 +138,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   auth: {
     ...authApi
   },
-  llmConfig: {
-    ...llmConfigApi
+  modelConfig: {
+    ...modelConfigApi
   },
   rag: {
     ...ragApi
@@ -167,3 +167,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ...exportApi
   }
 })
+
+contextBridge.exposeInMainWorld('modelConfigApi', modelConfigApi)
+contextBridge.exposeInMainWorld('systemPromptApi', systemPromptApi)

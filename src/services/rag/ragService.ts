@@ -23,7 +23,7 @@ import { LLMService } from './llmService'
 import { blobToFloat32Array, calculateFullSimilarity } from '@services/similar/similarService'
 import { Note } from '@shared/types'
 import { getKeywordExtractor } from './keywordExtractor'
-import { LLMConfigService } from './llmConfigService'
+import { ModelConfigService } from './llmConfigService'
 import { LanceService } from '../../db/vector/lanceService'
 
 /**
@@ -59,11 +59,11 @@ export const TOPIC_CONFIG = {
 // 初始化 LLM 服务
 const llm = new LLMService()
 
-// 创建 LLMConfigService 实例
-const llmConfigService = new LLMConfigService()
+// 创建 ModelConfigService 实例
+const modelConfigService = new ModelConfigService()
 
 /**
- * 添加错误处理辅助函数
+ * 修改 LLMError 处理函数中的错误类型
  */
 function handleLLMError(error: any): LLMError {
   const now = new Date().toISOString()
@@ -73,20 +73,42 @@ function handleLLMError(error: any): LLMError {
     return {
       code: '402',
       message: '账户余额不足,请充值后重试',
-      details: error.response.data?.message || error.message,
+      details: error.response.data?.error?.message || error.message,
       timestamp: now,
       type: 'balance_insufficient'
     }
   }
 
   // 处理网络错误
-  if (error.code === 'ECONNREFUSED' || error.code === 'ETIMEDOUT') {
+  if (error.code === 'ECONNREFUSED' || error.code === 'ETIMEDOUT' || error.code === 'ENOTFOUND') {
     return {
       code: error.code,
-      message: '网络连接失败,请检查网络设置',
+      message: '网络连接失败,请检查网络设置或API地址',
       details: error.message,
       timestamp: now,
       type: 'network_error'
+    }
+  }
+
+  // 处理API密钥错误
+  if (error.response?.status === 401) {
+    return {
+      code: '401',
+      message: 'API密钥无效或已过期',
+      details: error.response.data?.error?.message || error.message,
+      timestamp: now,
+      type: 'api_error'
+    }
+  }
+
+  // 处理请求格式错误
+  if (error.response?.status === 400) {
+    return {
+      code: '400',
+      message: '请求格式错误',
+      details: error.response.data?.error?.message || error.message,
+      timestamp: now,
+      type: 'api_error'
     }
   }
 
@@ -95,7 +117,7 @@ function handleLLMError(error: any): LLMError {
     return {
       code: String(error.response.status),
       message: '服务调用失败',
-      details: error.response.data?.message || error.message,
+      details: error.response.data?.error?.message || error.message,
       timestamp: now,
       type: 'api_error'
     }
@@ -226,12 +248,30 @@ export async function handleAskQuestion(
 
       // 生成回答
       const prompt = buildAskQuestionPrompt(query, context, currentMessages, isNewChat)
-      answer = await llm.generateResponse(prompt, deepseekConfig)
+      answer = await llm.generateResponse(
+        prompt,
+        undefined,
+        deepseekConfig
+          ? {
+              temperature: deepseekConfig.temperature,
+              maxTokens: deepseekConfig.maxTokens
+            }
+          : undefined
+      )
     } else {
       // 3b. 处理无引用笔记的情况：通过语义搜索找到相关笔记
       context = await retrieveContext(query, session)
       const prompt = buildAskQuestionPrompt(query, context, currentMessages, isNewChat)
-      answer = await llm.generateResponse(prompt, deepseekConfig)
+      answer = await llm.generateResponse(
+        prompt,
+        undefined,
+        deepseekConfig
+          ? {
+              temperature: deepseekConfig.temperature,
+              maxTokens: deepseekConfig.maxTokens
+            }
+          : undefined
+      )
     }
 
     // 4. 构建新的消息：记录用户问题和AI回答
@@ -1025,7 +1065,16 @@ export async function generateAnswer(
     const prompt = buildPrompt(query, context, currentMessages)
 
     // 4. 调用大模型时传入 deepseekConfig
-    const answer = await llm.generateResponse(prompt, deepseekConfig)
+    const answer = await llm.generateResponse(
+      prompt,
+      undefined,
+      deepseekConfig
+        ? {
+            temperature: deepseekConfig.temperature,
+            maxTokens: deepseekConfig.maxTokens
+          }
+        : undefined
+    )
 
     // 5. 构建新的消息
     const userMessage: UserMessage = {
@@ -1427,7 +1476,16 @@ export async function generateAnswerWithReferences(
     const prompt = `用户引用了以下笔记，请基于这些笔记的内容来回答用户的问题：\n\n${referencesText}\n\n用户问题：${query}`
 
     // 6. 调用大模型时传入 deepseekConfig
-    const answer = await llm.generateResponse(prompt, deepseekConfig)
+    const answer = await llm.generateResponse(
+      prompt,
+      undefined,
+      deepseekConfig
+        ? {
+            temperature: deepseekConfig.temperature,
+            maxTokens: deepseekConfig.maxTokens
+          }
+        : undefined
+    )
 
     // 7. 构建新的消息（复用原有逻辑）
     const userMessage: UserMessage = {
@@ -1688,7 +1746,16 @@ export async function handleChat(
     const prompt = await buildChatPrompt(query, currentMessages, isNewChat)
 
     // 5. 调用大模型时传入 deepseekConfig
-    const answer = await llm.generateResponse(prompt, deepseekConfig)
+    const answer = await llm.generateResponse(
+      prompt,
+      undefined,
+      deepseekConfig
+        ? {
+            temperature: deepseekConfig.temperature,
+            maxTokens: deepseekConfig.maxTokens
+          }
+        : undefined
+    )
 
     // 6. 构建新的消息
     const userMessage: UserMessage = {
@@ -1784,7 +1851,7 @@ async function buildChatPrompt(
     let rolePrompt = ''
     if (isNewChat) {
       try {
-        const config = await llmConfigService.getSystemPrompt()
+        const config = await modelConfigService.getSystemPrompt()
         rolePrompt = config.systemPrompt
       } catch (error) {
         log.error('获取系统提示词失败，使用默认提示词:', error)

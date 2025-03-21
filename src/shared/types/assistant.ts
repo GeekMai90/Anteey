@@ -253,11 +253,17 @@ export interface RAGRequestParams {
   }
 }
 
-// 添加 LLM 错误类型定义
-export interface LLMError {
-  code: string // 错误码,如 402
-  message: string // 错误信息
-  details?: string // 详细错误信息
-  timestamp: string // 错误发生时间
-  type?: 'balance_insufficient' | 'api_error' | 'network_error' | 'unknown' // 错误类型
+// 这是一个建议修改，如果你需要扩展错误类型
+export type LLMError = {
+  code: string
+  message: string
+  details: string
+  timestamp: string
+  type:
+    | 'balance_insufficient'
+    | 'api_error'
+    | 'api_key_error'
+    | 'request_error'
+    | 'network_error'
+    | 'unknown'
 }
