@@ -55,7 +55,8 @@
                       '/cardbox': '卡片盒',
                       '/knowledge-tree': '知识树',
                       '/flashcard': '记忆卡',
-                      '/mindboard': '思维板'
+                      '/mindboard': '思维板',
+                      '/writing-desk': '写作台'
                     }"
                     v-show="path !== '/timeblock' || timeBlockStore.settings.enabled"
                     :key="path"
@@ -211,7 +212,8 @@ const getPageName = (path: string) => {
     '/cardbox': '卡片盒',
     '/knowledge-tree': '知识树',
     '/flashcard': '记忆卡',
-    '/whiteboard': '思维板'
+    '/mindboard': '思维板',
+    '/writing-desk': '写作台'
   }
   return pageMap[path] || '主页'
 }

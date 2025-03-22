@@ -30,6 +30,7 @@ export * from './s3'
 export * from './cloud-sync'
 export * from './dinox'
 export * from './letter'
+export * from './writing-desk'
 
 // 定义图标名称类型
 export type IconName =

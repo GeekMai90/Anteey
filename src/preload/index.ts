@@ -32,6 +32,7 @@ import { cloudSyncApi } from './api/cloudSyncApi'
 import { dinoxApi } from './api/dinoxApi'
 import { letterApi } from './api/letterApi'
 import { exportApi } from './api/exportApi'
+import { writingDeskApi } from './api/writingDeskApi'
 // 添加日志 API
 contextBridge.exposeInMainWorld('electronLog', {
   info: (...args: any[]) => ipcRenderer.send('renderer-log', { level: 'info', args }),
@@ -165,6 +166,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
   export: {
     ...exportApi
+  },
+  writingDesk: {
+    ...writingDeskApi
   }
 })
 

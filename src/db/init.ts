@@ -1397,6 +1397,69 @@ export async function initDatabase(db: Knex): Promise<void> {
       table.index('provider')
     })
   }
+
+  // 创建 manuscripts 表（文稿表）
+  if (!(await db.schema.hasTable('manuscripts'))) {
+    await db.schema.createTable('manuscripts', (table) => {
+      table.string('id').primary()
+      table.string('title').notNullable()
+      table.enum('status', ['draft', 'polished', 'completed']).notNullable().defaultTo('draft')
+      table.json('polishedContent').nullable()
+      table.datetime('createdAt').notNullable()
+      table.datetime('updatedAt').notNullable()
+      table.datetime('lastPolishedAt').nullable()
+
+      // 索引
+      table.index('status')
+      table.index('createdAt')
+      table.index('updatedAt')
+    })
+    console.log('manuscripts 表创建成功')
+  }
+
+  // 创建 manuscript_cards 表（文稿卡片表）
+  if (!(await db.schema.hasTable('manuscript_cards'))) {
+    await db.schema.createTable('manuscript_cards', (table) => {
+      table.string('id').primary()
+      table.string('manuscriptId').notNullable()
+      table.enum('type', ['reference', 'paragraph']).notNullable()
+      table.json('content').notNullable()
+      table.integer('order').notNullable()
+      table.string('noteId').nullable()
+      table.datetime('createdAt').notNullable()
+      table.datetime('updatedAt').notNullable()
+
+      // 外键约束
+      table.foreign('manuscriptId').references('manuscripts.id').onDelete('CASCADE')
+      table.foreign('noteId').references('notes.id').onDelete('SET NULL')
+
+      // 索引
+      table.index('manuscriptId')
+      table.index('noteId')
+      table.index(['manuscriptId', 'order'])
+      table.index('createdAt')
+    })
+    console.log('manuscript_cards 表创建成功')
+  }
+
+  // 创建 manuscript_polish_history 表（润色历史记录表，用于后期扩展）
+  if (!(await db.schema.hasTable('manuscript_polish_history'))) {
+    await db.schema.createTable('manuscript_polish_history', (table) => {
+      table.string('id').primary()
+      table.string('manuscriptId').notNullable()
+      table.json('polishedContent').notNullable()
+      table.string('style').nullable() // 润色风格
+      table.datetime('createdAt').notNullable()
+
+      // 外键约束
+      table.foreign('manuscriptId').references('manuscripts.id').onDelete('CASCADE')
+
+      // 索引
+      table.index('manuscriptId')
+      table.index('createdAt')
+    })
+    console.log('manuscript_polish_history 表创建成功')
+  }
 }
 
 export async function down(db: Knex): Promise<void> {
@@ -1456,6 +1519,9 @@ export async function down(db: Knex): Promise<void> {
   await db.schema.dropTableIfExists('dinox_sync_config')
   await db.schema.dropTableIfExists('model_configs')
   await db.schema.dropTableIfExists('provider_presets')
+  await db.schema.dropTableIfExists('manuscripts')
+  await db.schema.dropTableIfExists('manuscript_cards')
+  await db.schema.dropTableIfExists('manuscript_polish_history')
 
   console.log('所有表已删除')
 }

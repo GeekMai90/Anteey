@@ -1,4 +1,5 @@
 import { createRouter, createWebHashHistory, RouteLocationNormalized } from 'vue-router'
+import WritingDeskView from '@renderer/views/WritingDeskView.vue'
 
 const routes = [
   // {
@@ -148,6 +149,17 @@ const routes = [
     path: '/json-renderer-test',
     name: 'JsonRendererTest',
     component: () => import('@renderer/views/JsonRendererTest.vue')
+  },
+  {
+    path: '/writing-desk',
+    name: 'WritingDesk',
+    component: WritingDeskView
+  },
+  {
+    path: '/writing-desk/:id',
+    name: 'ManuscriptDetail',
+    component: () => import('@renderer/components/writingDesk/ManuscriptDetail.vue'),
+    props: true
   }
 ]
 

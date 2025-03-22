@@ -112,7 +112,14 @@ import type {
 
   // 新增的 letter 相关类型
   Letter,
-  LetterType
+  LetterType,
+
+  // 新增的 writingDesk 相关类型
+  Manuscript,
+  ManuscriptCard,
+  CreateManuscriptParams,
+  UpdateManuscriptParams,
+  PolishManuscriptParams
 } from '@shared/types'
 
 export interface ElectronAPI {
@@ -953,6 +960,108 @@ export interface ElectronAPI {
     exportAllNotes: () => Promise<{
       filePath: string
       fileName: string
+    }>
+  }
+
+  writingDesk: {
+    // 文稿相关
+    createManuscript: (params: CreateManuscriptParams) => Promise<{
+      success: boolean
+      manuscript?: Manuscript
+      error?: string
+    }>
+
+    getAllManuscripts: () => Promise<{
+      success: boolean
+      manuscripts?: Manuscript[]
+      error?: string
+    }>
+
+    getManuscript: (id: string) => Promise<{
+      success: boolean
+      manuscript?: Manuscript & { cards: ManuscriptCard[] }
+      error?: string
+    }>
+
+    updateManuscript: (params: UpdateManuscriptParams) => Promise<{
+      success: boolean
+      manuscript?: Manuscript
+      error?: string
+    }>
+
+    deleteManuscript: (id: string) => Promise<{
+      success: boolean
+      error?: string
+    }>
+
+    // 卡片相关
+    addManuscriptCard: (
+      manuscriptId: string,
+      content: any,
+      order: number,
+      noteId?: string
+    ) => Promise<{
+      success: boolean
+      card?: ManuscriptCard
+      error?: string
+    }>
+
+    updateManuscriptCard: (
+      cardId: string,
+      content?: any,
+      order?: number
+    ) => Promise<{
+      success: boolean
+      card?: ManuscriptCard
+      error?: string
+    }>
+
+    moveManuscriptCard: (
+      cardId: string,
+      order: number
+    ) => Promise<{
+      success: boolean
+      card?: ManuscriptCard
+      error?: string
+    }>
+
+    deleteManuscriptCard: (cardId: string) => Promise<{
+      success: boolean
+      error?: string
+    }>
+
+    batchAddManuscriptCards: (
+      manuscriptId: string,
+      cards: { noteId: string; content: any }[]
+    ) => Promise<{
+      success: boolean
+      cards?: ManuscriptCard[]
+      error?: string
+    }>
+
+    getManuscriptCards: (manuscriptId: string) => Promise<{
+      success: boolean
+      cards?: ManuscriptCard[]
+      error?: string
+    }>
+
+    getManuscriptCard: (cardId: string) => Promise<{
+      success: boolean
+      card?: ManuscriptCard
+      error?: string
+    }>
+
+    // AI 润色相关
+    polishManuscript: (params: PolishManuscriptParams) => Promise<{
+      success: boolean
+      manuscript?: Manuscript
+      error?: string
+    }>
+
+    getPolishHistory: (manuscriptId: string) => Promise<{
+      success: boolean
+      history?: any[]
+      error?: string
     }>
   }
 }

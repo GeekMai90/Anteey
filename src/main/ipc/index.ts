@@ -31,6 +31,7 @@ import { setupS3Handlers } from './s3IpcHandlers'
 import { setupCloudSyncHandlers } from './cloudSyncIpcHandlers'
 import { setupLetterHandlers } from './letterIpcHandlers'
 import { setupExportHandlers } from './exportIpcHandlers'
+import { setupWritingDeskHandlers } from './writingDeskIpcHandlers'
 export function setupIpcHandlers(): void {
   setupNotesHandlers()
   setupCardboxHandlers()
@@ -65,4 +66,5 @@ export function setupIpcHandlers(): void {
   setupCloudSyncHandlers()
   setupLetterHandlers()
   setupExportHandlers()
+  setupWritingDeskHandlers()
 }
