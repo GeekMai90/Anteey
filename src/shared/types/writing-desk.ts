@@ -17,6 +17,15 @@ export interface ManuscriptCard {
   updatedAt: Date
 }
 
+// 添加 AI 功能类型枚举
+export type AIFeatureType = 'firstDraft' | 'polish' | 'deepThinking'
+
+// 添加 AI 功能配置接口
+export interface AIFeatureConfig {
+  featureType: AIFeatureType
+  modelConfigId: string // 关联到 ModelConfig 的 id
+}
+
 // 文稿接口
 export interface Manuscript {
   id: string
@@ -39,6 +48,9 @@ export interface Manuscript {
     content: any[]
   }
 
+  // 添加 AI 功能配置
+  aiFeatureConfigs?: AIFeatureConfig[] // 每个文稿可以有自己的 AI 功能配置
+
   // 元数据
   createdAt: Date
   updatedAt: Date
@@ -58,7 +70,6 @@ export interface UpdateManuscriptParams {
   status?: ManuscriptStatus
   draftCards?: ManuscriptCard[]
   firstDraftContent?: {
-    // 新增：初稿内容
     type: string
     content: JsonContent[]
   }
@@ -66,12 +77,14 @@ export interface UpdateManuscriptParams {
     type: string
     content: JsonContent[]
   }
+  aiFeatureConfigs?: AIFeatureConfig[] // 添加 AI 功能配置更新
 }
 
 // AI 润色请求参数
 export interface PolishManuscriptParams {
   id: string
   style?: string
+  modelConfigId?: string // 添加可选的模型配置 ID
 }
 
 // 文稿卡片操作参数
@@ -98,4 +111,12 @@ export interface WritingDesk {
 export interface GenerateFirstDraftParams {
   id: string
   style?: string
+  modelConfigId?: string // 添加可选的模型配置 ID
+}
+
+// 添加深度思考参数接口
+export interface DeepThinkingParams {
+  id: string
+  style?: string
+  modelConfigId?: string // 添加可选的模型配置 ID
 }

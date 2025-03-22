@@ -27,27 +27,6 @@
         </div>
       </div>
       <div class="toolbar-right">
-        <!-- 添加历史记录按钮 -->
-        <Button
-          v-if="['first_draft', 'polish'].includes(currentMode)"
-          class="history-button"
-          type="default"
-          :height="36"
-          :icon="History"
-          @click="handleHistoryClick"
-        >
-          历史记录
-        </Button>
-        <!-- 在草稿模式下添加视图切换按钮 -->
-        <SegmentedButton
-          v-if="currentMode === 'draft'"
-          v-model="viewMode"
-          :options="viewModeOptions"
-          width="110px"
-          height="36px"
-          name="view-mode"
-          tooltipPlacement="top"
-        />
         <!-- 模式切换 -->
         <SegmentedButton
           v-model="currentMode"
@@ -57,17 +36,51 @@
           name="edit-mode"
           tooltipPlacement="top"
         />
+        <!-- 在草稿模式下添加视图切换按钮 -->
+        <SegmentedButton
+          v-if="currentMode === 'draft'"
+          v-model="viewMode"
+          :options="viewModeOptions"
+          width="112px"
+          height="36px"
+          name="view-mode"
+          tooltipPlacement="top"
+        />
+        <!-- 添加历史记录按钮 -->
+        <Button
+          v-if="['first_draft', 'polish'].includes(currentMode)"
+          ref="historyButtonRef"
+          class="history-button"
+          type="default"
+          :height="36"
+          :icon="History"
+          @click="handleHistoryClick"
+        >
+          历史记录
+        </Button>
+
+        <!-- 在所有模式下都可见模型设置按钮 -->
+        <Button
+          ref="modelButtonRef"
+          class="model-setting-button"
+          type="default"
+          :height="36"
+          :icon="Setting"
+          @click="handleModelSettingClick"
+        >
+          模型设置
+        </Button>
 
         <!-- 根据不同模式显示不同按钮 -->
         <Button
           v-if="currentMode === 'draft'"
           type="primary"
-          :icon="Magic"
+          :icon="WholeSiteAccelerator"
           :height="36"
           :loading="isGeneratingFirstDraft"
           @click="handleGenerateFirstDraft"
         >
-          卡片成文
+          串联成文
         </Button>
         <Button
           v-if="currentMode === 'first_draft'"
@@ -77,7 +90,7 @@
           :loading="isPolishing"
           @click="handlePolish"
         >
-          润色文章
+          精雕细琢
         </Button>
         <Button
           v-if="currentMode === 'polish'"
@@ -87,7 +100,7 @@
           :loading="isThinking"
           @click="handleDeepThinking"
         >
-          深度思考
+          智慧对谈
         </Button>
       </div>
     </div>
@@ -224,63 +237,112 @@
       </div>
     </div>
 
-    <!-- 添加历史记录下拉菜单 -->
+    <!-- 修改历史记录下拉菜单 -->
     <Teleport to="body">
-      <div
-        v-if="isHistoryMenuOpen"
-        class="history-menu"
-        :style="{
-          left: `${historyMenuPosition.x}px`,
-          top: `${historyMenuPosition.y}px`
-        }"
-      >
-        <!-- <div class="history-menu-header">
-          <span>{{ currentMode === 'first_draft' ? '初稿历史' : '终稿历史' }}</span>
-        </div> -->
-        <div class="history-menu-content">
-          <template v-if="isLoadingHistory">
-            <div class="loading-state">
-              <span>加载中...</span>
-            </div>
-          </template>
-          <template v-else>
-            <div
-              v-for="history in currentMode === 'first_draft'
-                ? writingDeskStore.firstDraftHistory
-                : writingDeskStore.polishHistory"
-              :key="history.id"
-              class="history-item"
-              @click="handleRestoreHistory(history.id)"
-            >
-              <div class="history-info">
-                <span class="history-date">{{ formatDate(history.createdAt) }}</span>
-                <span class="history-style">{{ history.style }}</span>
+      <Transition name="fade-zoom">
+        <div
+          v-if="isHistoryMenuOpen"
+          ref="historyMenuRef"
+          class="history-menu"
+          :style="{
+            position: historyStrategy as any,
+            top: `${historyY ?? 0}px`,
+            left: `${historyX ?? 0}px`
+          }"
+        >
+          <div class="history-menu-content">
+            <template v-if="isLoadingHistory">
+              <div class="loading-state">
+                <span>加载中...</span>
               </div>
-            </div>
-            <div
-              v-if="
-                (currentMode === 'first_draft'
+            </template>
+            <template v-else>
+              <div
+                v-for="history in currentMode === 'first_draft'
                   ? writingDeskStore.firstDraftHistory
-                  : writingDeskStore.polishHistory
-                ).length === 0
-              "
-              class="empty-history"
-            >
-              暂无历史记录
-            </div>
-          </template>
+                  : writingDeskStore.polishHistory"
+                :key="history.id"
+                class="history-item"
+                @click="handleRestoreHistory(history.id)"
+              >
+                <div class="history-info">
+                  <span class="history-date">{{ formatDate(history.createdAt) }}</span>
+                  <span class="history-style">{{ history.style }}</span>
+                </div>
+              </div>
+              <div
+                v-if="
+                  (currentMode === 'first_draft'
+                    ? writingDeskStore.firstDraftHistory
+                    : writingDeskStore.polishHistory
+                  ).length === 0
+                "
+                class="empty-history"
+              >
+                暂无历史记录
+              </div>
+            </template>
+          </div>
         </div>
-      </div>
+      </Transition>
+    </Teleport>
+
+    <!-- 修改模型选择下拉菜单 -->
+    <Teleport to="body">
+      <Transition name="fade-zoom">
+        <div
+          v-if="isModelMenuOpen"
+          ref="modelMenuRef"
+          class="model-menu"
+          :style="{
+            position: modelStrategy as any,
+            top: `${modelY ?? 0}px`,
+            left: `${modelX ?? 0}px`
+          }"
+        >
+          <div class="model-menu-content">
+            <template v-if="isLoadingModels">
+              <div class="loading-state">
+                <span>加载中...</span>
+              </div>
+            </template>
+            <template v-else>
+              <div
+                v-for="config in modelConfigs"
+                :key="config.id"
+                class="model-item"
+                :class="{ active: getCurrentFeatureConfig?.modelConfigId === config.id }"
+                @click="handleModelSelect(config.id)"
+              >
+                <div class="model-info">
+                  <span class="model-name">{{ config.name }}</span>
+                  <span class="model-provider">{{ config.provider }}</span>
+                </div>
+              </div>
+              <div v-if="modelConfigs.length === 0" class="empty-models">暂无可用模型</div>
+            </template>
+          </div>
+        </div>
+      </Transition>
     </Teleport>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch, nextTick } from 'vue'
+import { ref, computed, onMounted, watch, nextTick, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
-import { Edit, Magic, AddFour, Brain, History } from '@icon-park/vue-next'
+import {
+  Edit,
+  Magic,
+  AddFour,
+  Brain,
+  History,
+  Setting,
+  WholeSiteAccelerator
+} from '@icon-park/vue-next'
 import { useWritingDeskStore } from '@renderer/stores/writingDeskStore'
 import { useNoteStore } from '@renderer/stores/noteStore'
+import { useModelConfigStore } from '@renderer/stores/modelConfigStore'
 import SegmentedButton from '@renderer/components/ui/SegmentedButton.vue'
 import Button from '@renderer/components/ui/Button.vue'
 import AppToolbar from '@renderer/components/layout/AppToolbar.vue'
@@ -290,11 +352,14 @@ import { ManuscriptCard } from '@/shared/types'
 import TipTapEditor from '@renderer/components/tiptap/TipTapEditor.vue'
 import CardThumbnailNavigator from './CardThumbnailNavigator.vue'
 import CardGridView from './CardGridView.vue'
+import { useFloating } from '@floating-ui/vue'
+import { flip, offset, shift } from '@floating-ui/dom'
 
 // 使用路由获取参数
 const route = useRoute()
 const writingDeskStore = useWritingDeskStore()
 const noteStore = useNoteStore()
+const modelConfigStore = useModelConfigStore()
 const manuscript = computed(() => writingDeskStore.currentManuscript)
 
 // 模式切换相关
@@ -347,6 +412,12 @@ onMounted(async () => {
     console.log('ManuscriptDetail - 开始加载文稿，ID:', manuscriptId)
     await writingDeskStore.loadManuscript(manuscriptId)
 
+    // 同时预加载模型配置数据
+    await modelConfigStore.loadConfigs()
+
+    // 加载 AI 特性配置数据 - 修正方法名
+    await writingDeskStore.fetchAllAIConfigs()
+
     // 添加一个小延时确保 DOM 完全渲染
     setTimeout(() => {
       nextTick(() => {
@@ -365,6 +436,18 @@ onMounted(async () => {
   } catch (error) {
     console.error('加载文稿失败:', error)
   }
+
+  // 确保组件完全挂载后执行滚动
+  nextTick(() => {
+    scrollToTop()
+  })
+
+  // 设置事件监听器
+  document.addEventListener('click', handleDocumentClick)
+  window.addEventListener('resize', () => {
+    if (isHistoryMenuOpen.value) updateHistoryPosition()
+    if (isModelMenuOpen.value) updateModelPosition()
+  })
 })
 
 // 监听模式切换
@@ -414,10 +497,30 @@ const selectedCardId = ref<string>('')
 
 // 添加历史记录相关的状态
 const isHistoryMenuOpen = ref(false)
-const historyMenuPosition = ref({ x: 0, y: 0 })
-
-// 添加历史记录加载状态
+const historyMenuRef = ref<HTMLElement | null>(null)
 const isLoadingHistory = ref(false)
+const historyButtonRef = ref<ButtonComponent | null>(null)
+
+// AI 配置相关
+const isModelMenuOpen = ref(false)
+const modelMenuRef = ref<HTMLElement | null>(null)
+const isLoadingModels = ref(false)
+const modelButtonRef = ref<ButtonComponent | null>(null)
+
+// 获取当前功能的模型配置
+const getCurrentFeatureConfig = computed(() => {
+  let featureType: 'firstDraft' | 'polish' | 'deepThinking' = 'firstDraft' // 默认值
+
+  if (currentMode.value === 'draft') {
+    featureType = 'firstDraft' // 草稿模式使用初稿生成功能的模型
+  } else if (currentMode.value === 'first_draft') {
+    featureType = 'polish' // 初稿模式使用润色文章功能的模型
+  } else if (currentMode.value === 'polish') {
+    featureType = 'deepThinking' // 终稿模式使用深度思考功能的模型
+  }
+
+  return writingDeskStore.aiConfigs.find((config) => config.featureType === featureType)
+})
 
 // 格式化日期的函数
 const formatDate = (date: Date) => {
@@ -919,17 +1022,60 @@ const handleAddReferenceCard = async (noteId: string, order: number) => {
   }
 }
 
+// 历史菜单的浮动定位
+const {
+  x: historyX,
+  y: historyY,
+  strategy: historyStrategy,
+  update: updateHistoryPosition
+} = useFloating(historyButtonRef, historyMenuRef, {
+  placement: 'bottom-start',
+  middleware: [offset(8), flip(), shift()]
+})
+
+// 模型选择菜单的浮动定位
+const {
+  x: modelX,
+  y: modelY,
+  strategy: modelStrategy,
+  update: updateModelPosition
+} = useFloating(modelButtonRef, modelMenuRef, {
+  placement: 'bottom-start',
+  middleware: [offset(8), flip(), shift()]
+})
+
+// 监听下拉菜单开关状态，更新位置
+watch(
+  () => isHistoryMenuOpen.value,
+  (newValue) => {
+    if (newValue) {
+      nextTick(() => {
+        updateHistoryPosition()
+      })
+    }
+  }
+)
+
+watch(
+  () => isModelMenuOpen.value,
+  (newValue) => {
+    if (newValue) {
+      nextTick(() => {
+        updateModelPosition()
+      })
+    }
+  }
+)
+
 // 处理历史按钮点击
 const handleHistoryClick = async (event: MouseEvent) => {
-  const button = event.currentTarget as HTMLElement
-  const rect = button.getBoundingClientRect()
-
-  // 设置下拉菜单位置
-  historyMenuPosition.value = {
-    x: rect.left,
-    y: rect.bottom + 8
+  // 如果已经打开，则关闭
+  if (isHistoryMenuOpen.value) {
+    isHistoryMenuOpen.value = false
+    return
   }
 
+  // 否则打开并加载历史
   isHistoryMenuOpen.value = true
   isLoadingHistory.value = true
 
@@ -944,6 +1090,9 @@ const handleHistoryClick = async (event: MouseEvent) => {
   } finally {
     isLoadingHistory.value = false
   }
+
+  // 阻止事件冒泡，避免立即触发 document 的点击事件
+  event.stopPropagation()
 }
 
 // 处理历史版本恢复
@@ -962,20 +1111,114 @@ const handleRestoreHistory = async (historyId: string) => {
   }
 }
 
-// 关闭历史菜单
-const closeHistoryMenu = () => {
-  isHistoryMenuOpen.value = false
+// 处理模型设置按钮点击
+const handleModelSettingClick = async (event: MouseEvent) => {
+  // 如果已经打开，则关闭
+  if (isModelMenuOpen.value) {
+    isModelMenuOpen.value = false
+    return
+  }
+
+  // 否则打开菜单
+  isModelMenuOpen.value = true
+
+  // 如果需要刷新数据，可以在这里重新加载
+  if (modelConfigStore.configs.length === 0) {
+    isLoadingModels.value = true
+    try {
+      await modelConfigStore.loadConfigs()
+    } catch (error) {
+      console.error('加载模型配置失败:', error)
+    } finally {
+      isLoadingModels.value = false
+    }
+  }
+
+  // 阻止事件冒泡，避免立即触发 document 的点击事件
+  event.stopPropagation()
 }
 
-// 监听点击事件以关闭菜单
-onMounted(() => {
-  document.addEventListener('click', (event) => {
-    const target = event.target as HTMLElement
-    if (!target.closest('.history-menu') && !target.closest('.history-button')) {
-      closeHistoryMenu()
+// 重新定义类型
+interface ButtonComponent extends HTMLElement {
+  $el: HTMLElement
+  buttonRef?: {
+    value: HTMLElement | null
+  }
+}
+
+// 添加点击外部关闭菜单的处理
+const handleDocumentClick = (event: MouseEvent) => {
+  const target = event.target as Element
+
+  // 处理历史菜单
+  if (isHistoryMenuOpen.value && historyMenuRef.value) {
+    // 检查点击是否在菜单内
+    const clickInMenu = historyMenuRef.value.contains(target)
+
+    // 检查点击是否在历史按钮上或其内部
+    const clickOnHistoryButton = target.closest('.history-button') !== null
+
+    // 如果既不在菜单内也不在按钮上，则关闭菜单
+    if (!clickInMenu && !clickOnHistoryButton) {
+      isHistoryMenuOpen.value = false
     }
+  }
+
+  // 处理模型菜单
+  if (isModelMenuOpen.value && modelMenuRef.value) {
+    // 检查点击是否在菜单内
+    const clickInMenu = modelMenuRef.value.contains(target)
+
+    // 检查点击是否在模型按钮上或其内部
+    const clickOnModelButton = target.closest('.model-setting-button') !== null
+
+    // 如果既不在菜单内也不在按钮上，则关闭菜单
+    if (!clickInMenu && !clickOnModelButton) {
+      isModelMenuOpen.value = false
+    }
+  }
+}
+
+// 在 onMounted 中设置文档点击监听
+onMounted(() => {
+  document.addEventListener('click', handleDocumentClick)
+  window.addEventListener('resize', () => {
+    if (isHistoryMenuOpen.value) updateHistoryPosition()
+    if (isModelMenuOpen.value) updateModelPosition()
   })
 })
+
+// 在 onUnmounted 中移除监听器
+onUnmounted(() => {
+  document.removeEventListener('click', handleDocumentClick)
+  window.removeEventListener('resize', () => {
+    if (isHistoryMenuOpen.value) updateHistoryPosition()
+    if (isModelMenuOpen.value) updateModelPosition()
+  })
+})
+
+// 添加 modelConfigs 计算属性
+const modelConfigs = computed(() => modelConfigStore.configs)
+
+// 处理模型选择
+const handleModelSelect = async (modelConfigId: string) => {
+  try {
+    let featureType: 'firstDraft' | 'polish' | 'deepThinking' = 'firstDraft' // 默认值
+
+    if (currentMode.value === 'draft') {
+      featureType = 'firstDraft' // 草稿模式使用初稿生成功能的模型
+    } else if (currentMode.value === 'first_draft') {
+      featureType = 'polish' // 初稿模式使用润色文章功能的模型
+    } else if (currentMode.value === 'polish') {
+      featureType = 'deepThinking' // 终稿模式使用深度思考功能的模型
+    }
+
+    await writingDeskStore.updateAIConfig(featureType, modelConfigId)
+    isModelMenuOpen.value = false
+  } catch (error) {
+    console.error('更新模型配置失败:', error)
+  }
+}
 </script>
 
 <style lang="scss" scoped>
@@ -986,12 +1229,13 @@ onMounted(() => {
   background: var(--color-bg-primary);
 
   .toolbar {
-    padding: 16px 24px;
+    padding: 0 20px 10px 20px;
     border-bottom: 1px solid var(--color-border);
     display: flex;
     justify-content: space-between;
     align-items: center;
     background: var(--color-bg-primary);
+    height: 52px;
 
     .toolbar-left {
       .manuscript-title {
@@ -1021,10 +1265,26 @@ onMounted(() => {
           transition: all 0.2s ease;
           color: var(--color-text-secondary);
 
+          :deep(.i-icon) {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
+          }
+
+          :deep(svg) {
+            width: 16px;
+            height: 16px;
+          }
+
           &:hover {
             background: var(--color-hover-bg);
             opacity: 1;
           }
+        }
+        input {
+          border-radius: 0 !important;
         }
 
         .title-input {
@@ -1083,7 +1343,7 @@ onMounted(() => {
           height: 100%;
           background: var(--color-bg-secondary);
           border-radius: 12px;
-          padding: 32px;
+          padding: 22px;
           overflow-y: auto;
           flex: 1;
           box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
@@ -1183,25 +1443,25 @@ onMounted(() => {
           padding: 32px;
           overflow-y: auto;
 
-          :deep(.tiptap) {
-            min-height: 100%;
-            outline: none;
+          // :deep(.tiptap) {
+          //   min-height: 100%;
+          //   outline: none;
 
-            h1,
-            h2,
-            h3,
-            h4,
-            h5,
-            h6 {
-              margin-top: 1.5em;
-              margin-bottom: 0.5em;
-            }
+          //   h1,
+          //   h2,
+          //   h3,
+          //   h4,
+          //   h5,
+          //   h6 {
+          //     margin-top: 1.5em;
+          //     margin-bottom: 0.5em;
+          //   }
 
-            p {
-              line-height: 1.6;
-              margin-bottom: 1em;
-            }
-          }
+          //   p {
+          //     line-height: 1.6;
+          //     margin-bottom: 1em;
+          //   }
+          // }
         }
       }
 
@@ -1220,25 +1480,25 @@ onMounted(() => {
           padding: 32px;
           overflow-y: auto;
 
-          :deep(.tiptap) {
-            min-height: 100%;
-            outline: none;
+          // :deep(.tiptap) {
+          //   min-height: 100%;
+          //   outline: none;
 
-            h1,
-            h2,
-            h3,
-            h4,
-            h5,
-            h6 {
-              margin-top: 1.5em;
-              margin-bottom: 0.5em;
-            }
+          //   h1,
+          //   h2,
+          //   h3,
+          //   h4,
+          //   h5,
+          //   h6 {
+          //     margin-top: 1.5em;
+          //     margin-bottom: 0.5em;
+          //   }
 
-            p {
-              line-height: 1.6;
-              margin-bottom: 1em;
-            }
-          }
+          //   p {
+          //     line-height: 1.6;
+          //     margin-bottom: 1em;
+          //   }
+          // }
         }
       }
     }
@@ -1318,14 +1578,36 @@ onMounted(() => {
   }
 }
 
-.history-menu {
-  position: fixed;
-  width: 300px;
-  background: var(--color-bg-secondary);
+// 添加下拉菜单的动画效果
+.fade-zoom-enter-active,
+.fade-zoom-leave-active {
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
+}
+
+.fade-zoom-enter-from,
+.fade-zoom-leave-to {
+  opacity: 0;
+  transform: scale(0.95);
+}
+
+.fade-zoom-enter-to,
+.fade-zoom-leave-from {
+  opacity: 1;
+  transform: scale(1);
+}
+
+// 修改历史菜单和模型菜单的样式，去掉手动定位相关的样式
+.history-menu,
+.model-menu {
+  background-color: var(--color-bg-secondary);
   border-radius: 8px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
   z-index: 1000;
   overflow: hidden;
+  min-width: 300px;
+  max-width: 350px;
 
   .history-menu-header {
     padding: 12px 16px;
@@ -1372,6 +1654,57 @@ onMounted(() => {
     }
 
     .empty-history {
+      padding: 16px;
+      text-align: center;
+      color: var(--color-text-secondary);
+    }
+  }
+}
+
+.model-menu {
+  .model-menu-content {
+    max-height: 400px;
+    overflow-y: auto;
+
+    .loading-state {
+      padding: 16px;
+      text-align: center;
+      color: var(--color-text-secondary);
+    }
+
+    .model-item {
+      padding: 12px 16px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+
+      &:hover {
+        background: var(--color-hover-bg);
+      }
+
+      &.active {
+        background: var(--color-primary-light);
+        color: var(--color-primary);
+      }
+
+      .model-info {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 8px;
+
+        .model-name {
+          color: var(--color-text-primary);
+          font-size: 14px;
+        }
+
+        .model-provider {
+          color: var(--color-text-secondary);
+          font-size: 12px;
+        }
+      }
+    }
+
+    .empty-models {
       padding: 16px;
       text-align: center;
       color: var(--color-text-secondary);

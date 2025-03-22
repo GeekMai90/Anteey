@@ -6,7 +6,12 @@
         <div class="topToolBar-header">
           <div class="topToolBar-left">
             <div class="icon">
-              <Write theme="outline" size="20" fill="var(--color-primary)" :strokeWidth="3" />
+              <NotebookAndPen
+                theme="outline"
+                size="20"
+                fill="var(--color-primary)"
+                :strokeWidth="3"
+              />
             </div>
             <div class="name">写作台</div>
           </div>
@@ -177,7 +182,7 @@
 import { ref, onMounted, computed, onUnmounted, nextTick, markRaw } from 'vue'
 import { useRouter } from 'vue-router'
 import AppToolbar from '@renderer/components/layout/AppToolbar.vue'
-import { Write, Plus, SortTwo, More, Edit, Delete } from '@icon-park/vue-next'
+import { NotebookAndPen, Plus, SortTwo, More, Edit, Delete } from '@icon-park/vue-next'
 import { useWritingDeskStore } from '@renderer/stores/writingDeskStore'
 import type { Manuscript } from '@shared/types'
 import type { MenuItem } from '@renderer/components/common/PopupMenu.vue'

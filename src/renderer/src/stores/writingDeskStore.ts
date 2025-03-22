@@ -5,7 +5,8 @@ import type {
   ManuscriptCard,
   CreateManuscriptParams,
   UpdateManuscriptParams,
-  PolishManuscriptParams
+  PolishManuscriptParams,
+  AIFeatureType
 } from '@shared/types'
 
 export const useWritingDeskStore = defineStore('writingDesk', () => {
@@ -33,6 +34,24 @@ export const useWritingDeskStore = defineStore('writingDesk', () => {
       createdAt: Date
     }>
   >([])
+  // 添加 AI 配置相关状态
+  const aiConfigs = ref<
+    Array<{
+      id: string
+      featureType: AIFeatureType
+      modelConfigId: string
+      createdAt: Date
+      updatedAt: Date
+    }>
+  >([])
+
+  const currentFeatureConfig = ref<{
+    id: string
+    featureType: AIFeatureType
+    modelConfigId: string
+    createdAt: Date
+    updatedAt: Date
+  } | null>(null)
   // ==================== 操作方法 ====================
   // 获取所有文稿
   const fetchAllManuscripts = async () => {
@@ -257,23 +276,105 @@ export const useWritingDeskStore = defineStore('writingDesk', () => {
 
   // ==================== AI 润色相关 ====================
 
+  // 获取 AI 功能配置
+  const fetchAllAIConfigs = async () => {
+    try {
+      console.log('WritingDeskStore - 开始获取所有 AI 功能配置')
+      const result = await window.electronAPI.writingDesk.getAllAIConfigs()
+
+      if (!result.success || !result.configs) {
+        throw new Error(result.error || '获取 AI 功能配置失败')
+      }
+
+      aiConfigs.value = result.configs
+      return result.configs
+    } catch (error) {
+      console.error('WritingDeskStore - 获取所有 AI 功能配置失败:', error)
+      throw error
+    }
+  }
+
+  const fetchAIConfigByFeature = async (featureType: AIFeatureType) => {
+    try {
+      console.log('WritingDeskStore - 开始获取 AI 功能配置:', featureType)
+      const result = await window.electronAPI.writingDesk.getAIConfigByFeature(featureType)
+
+      if (!result.success) {
+        throw new Error(result.error || '获取 AI 功能配置失败')
+      }
+
+      if (result.config) {
+        currentFeatureConfig.value = result.config
+      } else {
+        currentFeatureConfig.value = null
+      }
+
+      return result.config
+    } catch (error) {
+      console.error('WritingDeskStore - 获取 AI 功能配置失败:', error)
+      throw error
+    }
+  }
+
+  const updateAIConfig = async (featureType: AIFeatureType, modelConfigId: string) => {
+    try {
+      console.log('WritingDeskStore - 开始更新 AI 功能配置:', { featureType, modelConfigId })
+      const result = await window.electronAPI.writingDesk.updateAIConfig(featureType, modelConfigId)
+
+      if (!result.success || !result.config) {
+        throw new Error(result.error || '更新 AI 功能配置失败')
+      }
+
+      // 更新本地状态
+      const index = aiConfigs.value.findIndex((config) => config.featureType === featureType)
+      if (index !== -1) {
+        aiConfigs.value[index] = result.config
+      } else {
+        aiConfigs.value.push(result.config)
+      }
+
+      // 如果是当前查看的功能配置，也更新它
+      if (currentFeatureConfig.value?.featureType === featureType) {
+        currentFeatureConfig.value = result.config
+      }
+
+      return result.config
+    } catch (error) {
+      console.error('WritingDeskStore - 更新 AI 功能配置失败:', error)
+      throw error
+    }
+  }
+
   // 生成初稿
   const generateFirstDraft = async (params: PolishManuscriptParams) => {
     try {
       isGeneratingFirstDraft.value = true
-      const result = await window.electronAPI.writingDesk.generateFirstDraft(params)
+
+      // 获取初稿功能的配置
+      const config = await fetchAIConfigByFeature('firstDraft')
+      if (!config) {
+        throw new Error('未找到初稿功能的模型配置')
+      }
+
+      const result = await window.electronAPI.writingDesk.generateFirstDraft({
+        ...params,
+        modelConfigId: config.modelConfigId // 使用配置的模型
+      })
+
       if (!result.success || !result.manuscript) {
         throw new Error(result.error || '生成初稿失败')
       }
+
       if (currentManuscript.value?.id === params.id) {
         await fetchManuscript(params.id)
       }
+
       return result.manuscript
     } catch (error) {
-      console.error('文稿润色失败:', error)
+      console.error('生成初稿失败:', error)
       throw error
     } finally {
-      isPolishingManuscript.value = false
+      isGeneratingFirstDraft.value = false
     }
   }
 
@@ -281,13 +382,26 @@ export const useWritingDeskStore = defineStore('writingDesk', () => {
   const polishManuscript = async (params: PolishManuscriptParams) => {
     try {
       isPolishingManuscript.value = true
-      const result = await window.electronAPI.writingDesk.polishManuscript(params)
+
+      // 获取润色功能的配置
+      const config = await fetchAIConfigByFeature('polish')
+      if (!config) {
+        throw new Error('未找到润色功能的模型配置')
+      }
+
+      const result = await window.electronAPI.writingDesk.polishManuscript({
+        ...params,
+        modelConfigId: config.modelConfigId // 使用配置的模型
+      })
+
       if (!result.success || !result.manuscript) {
         throw new Error(result.error || '润色文稿失败')
       }
+
       if (currentManuscript.value?.id === params.id) {
         await fetchManuscript(params.id)
       }
+
       return result.manuscript
     } catch (error) {
       console.error('文稿润色失败:', error)
@@ -460,6 +574,8 @@ export const useWritingDeskStore = defineStore('writingDesk', () => {
     isPolishingManuscript,
     firstDraftHistory,
     polishHistory,
+    aiConfigs,
+    currentFeatureConfig,
 
     // 方法
     fetchAllManuscripts,
@@ -482,6 +598,9 @@ export const useWritingDeskStore = defineStore('writingDesk', () => {
     closeCreateModal,
     loadManuscript,
     updateManuscriptCard,
-    updateManuscriptCardsOrder
+    updateManuscriptCardsOrder,
+    fetchAllAIConfigs,
+    fetchAIConfigByFeature,
+    updateAIConfig
   }
 })

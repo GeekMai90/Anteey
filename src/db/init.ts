@@ -1484,6 +1484,45 @@ export async function initDatabase(db: Knex): Promise<void> {
     })
     console.log('manuscript_first_draft_history 表创建成功')
   }
+
+  // 创建 writing_desk_ai_configs 表（写作台 AI 功能配置表）
+  if (!(await db.schema.hasTable('writing_desk_ai_configs'))) {
+    await db.schema.createTable('writing_desk_ai_configs', (table) => {
+      table.string('id').primary()
+      table.enum('featureType', ['firstDraft', 'polish', 'deepThinking']).notNullable()
+      table.string('modelConfigId').notNullable()
+      table.datetime('createdAt').notNullable()
+      table.datetime('updatedAt').notNullable()
+
+      // 外键约束
+      table.foreign('modelConfigId').references('model_configs.id').onDelete('CASCADE')
+
+      // 复合唯一约束，确保每个功能只有一个配置
+      table.unique(['featureType'])
+
+      // 索引
+      table.index('featureType')
+      table.index('modelConfigId')
+      table.index('createdAt')
+    })
+
+    // 为每个 AI 功能插入默认配置
+    const defaultModelConfig = await db('model_configs').where('isDefault', true).first()
+    if (defaultModelConfig) {
+      const features = ['firstDraft', 'polish', 'deepThinking']
+      for (const feature of features) {
+        await db('writing_desk_ai_configs').insert({
+          id: uuidv4(),
+          featureType: feature,
+          modelConfigId: defaultModelConfig.id,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        })
+      }
+    }
+
+    console.log('writing_desk_ai_configs 表创建成功')
+  }
 }
 
 export async function down(db: Knex): Promise<void> {
@@ -1547,6 +1586,7 @@ export async function down(db: Knex): Promise<void> {
   await db.schema.dropTableIfExists('manuscript_cards')
   await db.schema.dropTableIfExists('manuscript_polish_history')
   await db.schema.dropTableIfExists('manuscript_first_draft_history')
+  await db.schema.dropTableIfExists('writing_desk_ai_configs')
 
   console.log('所有表已删除')
 }

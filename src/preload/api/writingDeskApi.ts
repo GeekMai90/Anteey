@@ -4,7 +4,8 @@ import type {
   ManuscriptCard,
   CreateManuscriptParams,
   UpdateManuscriptParams,
-  PolishManuscriptParams
+  PolishManuscriptParams,
+  AIFeatureType
 } from '@shared/types'
 
 export const writingDeskApi = {
@@ -309,6 +310,86 @@ export const writingDeskApi = {
       return result
     } catch (error) {
       console.error('预加载脚本 → 恢复终稿历史版本失败:', error)
+      return {
+        success: false,
+        error: String(error)
+      }
+    }
+  },
+
+  // 获取所有 AI 功能配置
+  getAllAIConfigs: async (): Promise<{
+    success: boolean
+    configs?: Array<{
+      id: string
+      featureType: AIFeatureType
+      modelConfigId: string
+      createdAt: Date
+      updatedAt: Date
+    }>
+    error?: string
+  }> => {
+    try {
+      console.log('预加载脚本 → 准备获取所有 AI 功能配置')
+      const result = await ipcRenderer.invoke('get-all-ai-configs')
+      return result
+    } catch (error) {
+      console.error('预加载脚本 → 获取所有 AI 功能配置失败:', error)
+      return {
+        success: false,
+        error: String(error)
+      }
+    }
+  },
+
+  // 获取指定功能的配置
+  getAIConfigByFeature: async (
+    featureType: AIFeatureType
+  ): Promise<{
+    success: boolean
+    config?: {
+      id: string
+      featureType: AIFeatureType
+      modelConfigId: string
+      createdAt: Date
+      updatedAt: Date
+    }
+    error?: string
+  }> => {
+    try {
+      console.log('预加载脚本 → 准备获取 AI 功能配置:', featureType)
+      const result = await ipcRenderer.invoke('get-ai-config-by-feature', featureType)
+      return result
+    } catch (error) {
+      console.error('预加载脚本 → 获取 AI 功能配置失败:', error)
+      return {
+        success: false,
+        error: String(error)
+      }
+    }
+  },
+
+  // 更新 AI 功能配置
+  updateAIConfig: async (
+    featureType: AIFeatureType,
+    modelConfigId: string
+  ): Promise<{
+    success: boolean
+    config?: {
+      id: string
+      featureType: AIFeatureType
+      modelConfigId: string
+      createdAt: Date
+      updatedAt: Date
+    }
+    error?: string
+  }> => {
+    try {
+      console.log('预加载脚本 → 准备更新 AI 功能配置:', { featureType, modelConfigId })
+      const result = await ipcRenderer.invoke('update-ai-config', featureType, modelConfigId)
+      return result
+    } catch (error) {
+      console.error('预加载脚本 → 更新 AI 功能配置失败:', error)
       return {
         success: false,
         error: String(error)

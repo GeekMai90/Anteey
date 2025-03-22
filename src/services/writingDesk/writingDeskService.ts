@@ -5,7 +5,8 @@ import type {
   ManuscriptCard,
   CreateManuscriptParams,
   UpdateManuscriptParams,
-  PolishManuscriptParams
+  PolishManuscriptParams,
+  AIFeatureType
 } from '@shared/types'
 import { LLMService } from '../rag/llmService'
 import { extractTextFromTiptapJson, convertTextToTiptapJson } from '../utils/textToJson'
@@ -25,6 +26,15 @@ function convertToManuscriptCard(record: any): ManuscriptCard {
     ...record,
     content: JSON.parse(record.content)
   }
+}
+
+// 添加新的类型定义
+interface WritingDeskAIConfig {
+  id: string
+  featureType: AIFeatureType
+  modelConfigId: string
+  createdAt: Date
+  updatedAt: Date
 }
 
 // 创建新文稿
@@ -398,10 +408,96 @@ export async function getManuscriptCardById(cardId: string): Promise<ManuscriptC
   }
 }
 
-// 生成初稿方法
+// 获取所有 AI 功能配置
+export async function getAllAIConfigs(): Promise<WritingDeskAIConfig[]> {
+  try {
+    const configs = await db('writing_desk_ai_configs').select('*').orderBy('featureType')
+
+    return configs.map((config) => ({
+      ...config,
+      createdAt: new Date(config.createdAt),
+      updatedAt: new Date(config.updatedAt)
+    }))
+  } catch (error) {
+    console.error('获取写作台 AI 功能配置失败:', error)
+    throw error
+  }
+}
+
+// 获取指定功能的配置
+export async function getAIConfigByFeature(
+  featureType: AIFeatureType
+): Promise<WritingDeskAIConfig | null> {
+  try {
+    const config = await db('writing_desk_ai_configs').where({ featureType }).first()
+
+    if (!config) return null
+
+    return {
+      ...config,
+      createdAt: new Date(config.createdAt),
+      updatedAt: new Date(config.updatedAt)
+    }
+  } catch (error) {
+    console.error(`获取 ${featureType} 功能配置失败:`, error)
+    throw error
+  }
+}
+
+// 更新 AI 功能配置
+export async function updateAIConfig(
+  featureType: AIFeatureType,
+  modelConfigId: string
+): Promise<WritingDeskAIConfig> {
+  return db.transaction(async (trx) => {
+    try {
+      // 检查模型配置是否存在
+      const modelConfig = await trx('model_configs').where('id', modelConfigId).first()
+
+      if (!modelConfig) {
+        throw new Error('模型配置不存在')
+      }
+
+      const now = new Date()
+
+      // 更新或创建配置
+      const [config] = await trx('writing_desk_ai_configs')
+        .insert({
+          id: uuidv4(),
+          featureType,
+          modelConfigId,
+          createdAt: now,
+          updatedAt: now
+        })
+        .onConflict('featureType')
+        .merge({
+          modelConfigId,
+          updatedAt: now
+        })
+        .returning('*')
+
+      return {
+        ...config,
+        createdAt: new Date(config.createdAt),
+        updatedAt: new Date(config.updatedAt)
+      }
+    } catch (error) {
+      console.error(`更新 ${featureType} 功能配置失败:`, error)
+      throw error
+    }
+  })
+}
+
+// 修改生成初稿方法，使用配置的模型
 export async function generateFirstDraft(params: PolishManuscriptParams): Promise<Manuscript> {
   try {
     console.log('开始生成初稿:', params.id)
+
+    // 获取初稿功能的模型配置
+    const aiConfig = await getAIConfigByFeature('firstDraft')
+    if (!aiConfig) {
+      throw new Error('未找到初稿功能的模型配置')
+    }
 
     // 1. 获取文稿及其卡片
     const manuscript = await getManuscriptById(params.id)
@@ -459,10 +555,10 @@ ${combinedText}
 
 请直接返回优化后的完整文章，不需要解释修改过程。确保文章具有良好的可读性和专业性，同时保持内容的准确性和完整性。`
 
-    // 4. 调用 AI 服务
+    // 4. 使用配置的模型调用 AI 服务
     const llmService = new LLMService()
-    console.log('开始调用 AI 服务...')
-    const firstDraftText = await llmService.generateResponse(prompt)
+    console.log('开始调用 AI 服务，使用模型配置:', aiConfig.modelConfigId)
+    const firstDraftText = await llmService.generateResponse(prompt, aiConfig.modelConfigId)
     console.log('AI润色完成，获得响应')
 
     // 5. 将润色后的文本转换为 Tiptap JSON 格式
@@ -497,10 +593,16 @@ ${combinedText}
   }
 }
 
-// 润色生成终稿方法
+// 修改润色终稿方法，使用配置的模型
 export async function polishManuscript(params: PolishManuscriptParams): Promise<Manuscript> {
   try {
     console.log('开始润色终稿:', params.id)
+
+    // 获取润色功能的模型配置
+    const aiConfig = await getAIConfigByFeature('polish')
+    if (!aiConfig) {
+      throw new Error('未找到润色功能的模型配置')
+    }
 
     // 1. 获取文稿
     const manuscript = await getManuscriptById(params.id)
@@ -546,10 +648,10 @@ ${firstDraftText}
 
 请直接返回润色后的文章，不需要解释修改过程。确保文章更加优美流畅，同时保持专业性和准确性。`
 
-    // 4. 调用 AI 服务
+    // 4. 使用配置的模型调用 AI 服务
     const llmService = new LLMService()
-    console.log('开始调用 AI 服务...')
-    const polishedText = await llmService.generateResponse(prompt)
+    console.log('开始调用 AI 服务，使用模型配置:', aiConfig.modelConfigId)
+    const polishedText = await llmService.generateResponse(prompt, aiConfig.modelConfigId)
     console.log('AI润色完成，获得响应')
 
     // 5. 将润色后的文本转换为 Tiptap JSON 格式

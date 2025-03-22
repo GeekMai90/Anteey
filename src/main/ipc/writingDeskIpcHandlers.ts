@@ -17,12 +17,16 @@ import {
   generateFirstDraft,
   getFirstDraftHistory,
   restoreFirstDraftHistory,
-  restorePolishHistory
+  restorePolishHistory,
+  getAllAIConfigs,
+  getAIConfigByFeature,
+  updateAIConfig
 } from '../../services/writingDesk/writingDeskService'
 import type {
   CreateManuscriptParams,
   UpdateManuscriptParams,
-  PolishManuscriptParams
+  PolishManuscriptParams,
+  AIFeatureType
 } from '@shared/types'
 
 export function setupWritingDeskHandlers() {
@@ -251,6 +255,45 @@ export function setupWritingDeskHandlers() {
         return { success: true, manuscript }
       } catch (error) {
         console.error('主进程→ 恢复终稿历史版本失败:', error)
+        return { success: false, error: String(error) }
+      }
+    }
+  )
+
+  // 获取所有 AI 功能配置
+  ipcMain.handle('get-all-ai-configs', async () => {
+    try {
+      console.log('主进程→ 获取所有 AI 功能配置')
+      const configs = await getAllAIConfigs()
+      return { success: true, configs }
+    } catch (error) {
+      console.error('主进程→ 获取所有 AI 功能配置失败:', error)
+      return { success: false, error: String(error) }
+    }
+  })
+
+  // 获取指定功能的配置
+  ipcMain.handle('get-ai-config-by-feature', async (_event, featureType: AIFeatureType) => {
+    try {
+      console.log('主进程→ 获取 AI 功能配置, 功能类型:', featureType)
+      const config = await getAIConfigByFeature(featureType)
+      return { success: true, config }
+    } catch (error) {
+      console.error('主进程→ 获取 AI 功能配置失败:', error)
+      return { success: false, error: String(error) }
+    }
+  })
+
+  // 更新 AI 功能配置
+  ipcMain.handle(
+    'update-ai-config',
+    async (_event, featureType: AIFeatureType, modelConfigId: string) => {
+      try {
+        console.log('主进程→ 更新 AI 功能配置, 参数:', { featureType, modelConfigId })
+        const config = await updateAIConfig(featureType, modelConfigId)
+        return { success: true, config }
+      } catch (error) {
+        console.error('主进程→ 更新 AI 功能配置失败:', error)
         return { success: false, error: String(error) }
       }
     }

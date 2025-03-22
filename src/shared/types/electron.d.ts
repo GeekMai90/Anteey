@@ -119,7 +119,10 @@ import type {
   ManuscriptCard,
   CreateManuscriptParams,
   UpdateManuscriptParams,
-  PolishManuscriptParams
+  PolishManuscriptParams,
+
+  // 新增的 AI 功能配置类型
+  AIFeatureType
 } from '@shared/types'
 
 export interface ElectronAPI {
@@ -1106,6 +1109,48 @@ export interface ElectronAPI {
     ) => Promise<{
       success: boolean
       manuscript?: Manuscript
+      error?: string
+    }>
+
+    // 获取所有 AI 功能配置
+    getAllAIConfigs: () => Promise<{
+      success: boolean
+      configs?: Array<{
+        id: string
+        featureType: AIFeatureType
+        modelConfigId: string
+        createdAt: Date
+        updatedAt: Date
+      }>
+      error?: string
+    }>
+
+    // 获取指定功能的配置
+    getAIConfigByFeature: (featureType: AIFeatureType) => Promise<{
+      success: boolean
+      config?: {
+        id: string
+        featureType: AIFeatureType
+        modelConfigId: string
+        createdAt: Date
+        updatedAt: Date
+      }
+      error?: string
+    }>
+
+    // 更新 AI 功能配置
+    updateAIConfig: (
+      featureType: AIFeatureType,
+      modelConfigId: string
+    ) => Promise<{
+      success: boolean
+      config?: {
+        id: string
+        featureType: AIFeatureType
+        modelConfigId: string
+        createdAt: Date
+        updatedAt: Date
+      }
       error?: string
     }>
   }
