@@ -162,7 +162,11 @@ export async function updateManuscript(params: UpdateManuscriptParams): Promise<
     const updateData = {
       ...params,
       updatedAt: new Date(),
-      polishedContent: params.polishedContent ? JSON.stringify(params.polishedContent) : undefined
+      // 同时处理 polishedContent 和 firstDraftContent 的 JSON 字符串转换
+      polishedContent: params.polishedContent ? JSON.stringify(params.polishedContent) : undefined,
+      firstDraftContent: params.firstDraftContent
+        ? JSON.stringify(params.firstDraftContent)
+        : undefined
     }
 
     const [updated] = await db('manuscripts')

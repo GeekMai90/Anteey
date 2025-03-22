@@ -55,7 +55,7 @@ export const writingDeskApi = {
     try {
       const result = await ipcRenderer.invoke('update-manuscript', params)
       if (!result.success) throw new Error(result.error)
-      return result.manuscript
+      return result
     } catch (error) {
       console.error('预加载脚本 → 更新文稿失败:', error)
       throw error
