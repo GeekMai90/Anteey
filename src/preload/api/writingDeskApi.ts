@@ -226,14 +226,93 @@ export const writingDeskApi = {
     }
   },
 
-  getPolishHistory: async (manuscriptId: string): Promise<any[]> => {
+  // 获取初稿历史
+  getFirstDraftHistory: async (
+    manuscriptId: string
+  ): Promise<{
+    success: boolean
+    history?: any[]
+    error?: string
+  }> => {
     try {
-      const result = await ipcRenderer.invoke('get-polish-history', manuscriptId)
-      if (!result.success) throw new Error(result.error)
-      return result.history
+      console.log('预加载脚本 → 准备获取初稿历史')
+      const result = await ipcRenderer.invoke('get-first-draft-history', manuscriptId)
+      return result
     } catch (error) {
-      console.error('预加载脚本 → 获取润色历史失败:', error)
-      throw error
+      console.error('预加载脚本 → 获取初稿历史失败:', error)
+      return {
+        success: false,
+        error: String(error)
+      }
+    }
+  },
+
+  // 恢复初稿历史版本
+  restoreFirstDraftHistory: async (
+    manuscriptId: string,
+    historyId: string
+  ): Promise<{
+    success: boolean
+    manuscript?: Manuscript
+    error?: string
+  }> => {
+    try {
+      console.log('预加载脚本 → 准备恢复初稿历史版本')
+      const result = await ipcRenderer.invoke(
+        'restore-first-draft-history',
+        manuscriptId,
+        historyId
+      )
+      return result
+    } catch (error) {
+      console.error('预加载脚本 → 恢复初稿历史版本失败:', error)
+      return {
+        success: false,
+        error: String(error)
+      }
+    }
+  },
+
+  // 获取终稿历史
+  getPolishHistory: async (
+    manuscriptId: string
+  ): Promise<{
+    success: boolean
+    history?: any[]
+    error?: string
+  }> => {
+    try {
+      console.log('预加载脚本 → 准备获取终稿历史')
+      const result = await ipcRenderer.invoke('get-polish-history', manuscriptId)
+      return result
+    } catch (error) {
+      console.error('预加载脚本 → 获取终稿历史失败:', error)
+      return {
+        success: false,
+        error: String(error)
+      }
+    }
+  },
+
+  // 恢复终稿历史版本
+  restorePolishHistory: async (
+    manuscriptId: string,
+    historyId: string
+  ): Promise<{
+    success: boolean
+    manuscript?: Manuscript
+    error?: string
+  }> => {
+    try {
+      console.log('预加载脚本 → 准备恢复终稿历史版本')
+      const result = await ipcRenderer.invoke('restore-polish-history', manuscriptId, historyId)
+      return result
+    } catch (error) {
+      console.error('预加载脚本 → 恢复终稿历史版本失败:', error)
+      return {
+        success: false,
+        error: String(error)
+      }
     }
   }
 }

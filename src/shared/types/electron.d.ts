@@ -1066,7 +1066,46 @@ export interface ElectronAPI {
 
     getPolishHistory: (manuscriptId: string) => Promise<{
       success: boolean
-      history?: any[]
+      history?: Array<{
+        id: string
+        manuscriptId: string
+        polishedContent: any
+        style: string
+        createdAt: Date
+      }>
+      error?: string
+    }>
+
+    // 获取初稿历史
+    getFirstDraftHistory: (manuscriptId: string) => Promise<{
+      success: boolean
+      history?: Array<{
+        id: string
+        manuscriptId: string
+        firstDraftContent: any
+        style: string
+        createdAt: Date
+      }>
+      error?: string
+    }>
+
+    // 恢复初稿历史版本
+    restoreFirstDraftHistory: (
+      manuscriptId: string,
+      historyId: string
+    ) => Promise<{
+      success: boolean
+      manuscript?: Manuscript
+      error?: string
+    }>
+
+    // 恢复终稿历史版本
+    restorePolishHistory: (
+      manuscriptId: string,
+      historyId: string
+    ) => Promise<{
+      success: boolean
+      manuscript?: Manuscript
       error?: string
     }>
   }

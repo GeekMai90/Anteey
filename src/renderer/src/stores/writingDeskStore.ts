@@ -15,6 +15,24 @@ export const useWritingDeskStore = defineStore('writingDesk', () => {
   const isCreateModalOpen = ref(false)
   const isPolishingManuscript = ref(false)
   const isGeneratingFirstDraft = ref(false)
+  const firstDraftHistory = ref<
+    Array<{
+      id: string
+      manuscriptId: string
+      firstDraftContent: any
+      style: string
+      createdAt: Date
+    }>
+  >([])
+  const polishHistory = ref<
+    Array<{
+      id: string
+      manuscriptId: string
+      polishedContent: any
+      style: string
+      createdAt: Date
+    }>
+  >([])
   // ==================== 操作方法 ====================
   // 获取所有文稿
   const fetchAllManuscripts = async () => {
@@ -279,16 +297,78 @@ export const useWritingDeskStore = defineStore('writingDesk', () => {
     }
   }
 
-  // 获取润色历史
+  // 获取初稿历史
+  const getFirstDraftHistory = async (manuscriptId: string) => {
+    try {
+      const result = await window.electronAPI.writingDesk.getFirstDraftHistory(manuscriptId)
+      if (!result.success || !result.history) {
+        throw new Error(result.error || '获取初稿历史失败')
+      }
+      firstDraftHistory.value = result.history
+      return result.history
+    } catch (error) {
+      console.error('获取初稿历史失败:', error)
+      throw error
+    }
+  }
+
+  // 恢复初稿历史版本
+  const restoreFirstDraftHistory = async (manuscriptId: string, historyId: string) => {
+    try {
+      const result = await window.electronAPI.writingDesk.restoreFirstDraftHistory(
+        manuscriptId,
+        historyId
+      )
+      if (!result.success || !result.manuscript) {
+        throw new Error(result.error || '恢复初稿历史版本失败')
+      }
+
+      // 恢复成功后重新加载文稿
+      if (currentManuscript.value?.id === manuscriptId) {
+        await loadManuscript(manuscriptId)
+      }
+
+      return result.manuscript
+    } catch (error) {
+      console.error('恢复初稿历史版本失败:', error)
+      throw error
+    }
+  }
+
+  // 获取终稿历史
   const getPolishHistory = async (manuscriptId: string) => {
     try {
       const result = await window.electronAPI.writingDesk.getPolishHistory(manuscriptId)
       if (!result.success || !result.history) {
-        throw new Error(result.error || '获取润色历史失败')
+        throw new Error(result.error || '获取终稿历史失败')
       }
+      polishHistory.value = result.history
       return result.history
     } catch (error) {
-      console.error('获取润色历史失败:', error)
+      console.error('获取终稿历史失败:', error)
+      throw error
+    }
+  }
+
+  // 恢复终稿历史版本
+  const restorePolishHistory = async (manuscriptId: string, historyId: string) => {
+    try {
+      const result = await window.electronAPI.writingDesk.restorePolishHistory(
+        manuscriptId,
+        historyId
+      )
+      if (!result.success || !result.manuscript) {
+        throw new Error(result.error || '恢复终稿历史版本失败')
+      }
+
+      // 恢复成功后重新加载文稿
+      if (currentManuscript.value?.id === manuscriptId) {
+        await loadManuscript(manuscriptId)
+      }
+
+      return result.manuscript
+    } catch (error) {
+      console.error('恢复终稿历史版本失败:', error)
       throw error
     }
   }
@@ -378,6 +458,8 @@ export const useWritingDeskStore = defineStore('writingDesk', () => {
     currentManuscript,
     isCreateModalOpen,
     isPolishingManuscript,
+    firstDraftHistory,
+    polishHistory,
 
     // 方法
     fetchAllManuscripts,
@@ -392,7 +474,10 @@ export const useWritingDeskStore = defineStore('writingDesk', () => {
     batchAddCards,
     generateFirstDraft,
     polishManuscript,
+    getFirstDraftHistory,
+    restoreFirstDraftHistory,
     getPolishHistory,
+    restorePolishHistory,
     openCreateModal,
     closeCreateModal,
     loadManuscript,

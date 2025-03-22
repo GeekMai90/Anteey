@@ -584,7 +584,64 @@ ${firstDraftText}
   }
 }
 
-// 获取润色历史
+// 获取初稿历史记录
+export async function getFirstDraftHistory(manuscriptId: string): Promise<any[]> {
+  try {
+    const history = await db('manuscript_first_draft_history')
+      .where({ manuscriptId })
+      .orderBy('createdAt', 'desc')
+      .select('*')
+
+    return history.map((record) => ({
+      id: record.id,
+      manuscriptId: record.manuscriptId,
+      firstDraftContent: JSON.parse(record.firstDraftContent),
+      style: record.style,
+      createdAt: record.createdAt
+    }))
+  } catch (error) {
+    console.error('获取初稿历史失败:', error)
+    throw error
+  }
+}
+
+// 恢复初稿历史版本
+export async function restoreFirstDraftHistory(
+  manuscriptId: string,
+  historyId: string
+): Promise<Manuscript> {
+  return db.transaction(async (trx) => {
+    try {
+      // 获取历史版本内容
+      const history = await trx('manuscript_first_draft_history')
+        .where({
+          id: historyId,
+          manuscriptId
+        })
+        .first()
+
+      if (!history) {
+        throw new Error('历史版本不存在')
+      }
+
+      // 更新文稿的初稿内容
+      const [updated] = await trx('manuscripts')
+        .where({ id: manuscriptId })
+        .update({
+          firstDraftContent: history.firstDraftContent,
+          updatedAt: new Date()
+        })
+        .returning('*')
+
+      return convertToManuscript(updated)
+    } catch (error) {
+      console.error('恢复初稿历史版本失败:', error)
+      throw error
+    }
+  })
+}
+
+// 获取终稿历史记录
 export async function getPolishHistory(manuscriptId: string): Promise<any[]> {
   try {
     const history = await db('manuscript_polish_history')
@@ -593,13 +650,52 @@ export async function getPolishHistory(manuscriptId: string): Promise<any[]> {
       .select('*')
 
     return history.map((record) => ({
-      ...record,
-      polishedContent: JSON.parse(record.polishedContent)
+      id: record.id,
+      manuscriptId: record.manuscriptId,
+      polishedContent: JSON.parse(record.polishedContent),
+      style: record.style,
+      createdAt: record.createdAt
     }))
   } catch (error) {
-    console.error('获取润色历史失败:', error)
+    console.error('获取终稿历史失败:', error)
     throw error
   }
+}
+
+// 恢复终稿历史版本
+export async function restorePolishHistory(
+  manuscriptId: string,
+  historyId: string
+): Promise<Manuscript> {
+  return db.transaction(async (trx) => {
+    try {
+      // 获取历史版本内容
+      const history = await trx('manuscript_polish_history')
+        .where({
+          id: historyId,
+          manuscriptId
+        })
+        .first()
+
+      if (!history) {
+        throw new Error('历史版本不存在')
+      }
+
+      // 更新文稿的终稿内容
+      const [updated] = await trx('manuscripts')
+        .where({ id: manuscriptId })
+        .update({
+          polishedContent: history.polishedContent,
+          updatedAt: new Date()
+        })
+        .returning('*')
+
+      return convertToManuscript(updated)
+    } catch (error) {
+      console.error('恢复终稿历史版本失败:', error)
+      throw error
+    }
+  })
 }
 
 // 添加一个更详细的检查函数

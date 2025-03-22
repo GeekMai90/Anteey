@@ -14,7 +14,10 @@ import {
   getManuscriptCardById,
   polishManuscript,
   getPolishHistory,
-  generateFirstDraft
+  generateFirstDraft,
+  getFirstDraftHistory,
+  restoreFirstDraftHistory,
+  restorePolishHistory
 } from '../../services/writingDesk/writingDeskService'
 import type {
   CreateManuscriptParams,
@@ -210,4 +213,46 @@ export function setupWritingDeskHandlers() {
       return { success: false, error: String(error) }
     }
   })
+
+  // 获取初稿历史
+  ipcMain.handle('get-first-draft-history', async (_event, manuscriptId: string) => {
+    try {
+      console.log('主进程→ 获取初稿历史, 文稿ID:', manuscriptId)
+      const history = await getFirstDraftHistory(manuscriptId)
+      return { success: true, history }
+    } catch (error) {
+      console.error('主进程→ 获取初稿历史失败:', error)
+      return { success: false, error: String(error) }
+    }
+  })
+
+  // 恢复初稿历史版本
+  ipcMain.handle(
+    'restore-first-draft-history',
+    async (_event, manuscriptId: string, historyId: string) => {
+      try {
+        console.log('主进程→ 恢复初稿历史版本, 参数:', { manuscriptId, historyId })
+        const manuscript = await restoreFirstDraftHistory(manuscriptId, historyId)
+        return { success: true, manuscript }
+      } catch (error) {
+        console.error('主进程→ 恢复初稿历史版本失败:', error)
+        return { success: false, error: String(error) }
+      }
+    }
+  )
+
+  // 恢复终稿历史版本
+  ipcMain.handle(
+    'restore-polish-history',
+    async (_event, manuscriptId: string, historyId: string) => {
+      try {
+        console.log('主进程→ 恢复终稿历史版本, 参数:', { manuscriptId, historyId })
+        const manuscript = await restorePolishHistory(manuscriptId, historyId)
+        return { success: true, manuscript }
+      } catch (error) {
+        console.error('主进程→ 恢复终稿历史版本失败:', error)
+        return { success: false, error: String(error) }
+      }
+    }
+  )
 }

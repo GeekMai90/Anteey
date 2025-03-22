@@ -13,32 +13,41 @@
       class="manuscript-content-card"
       :class="{
         'is-reference': isReferenceCard,
-        'is-editing': editorRef?.isEditing
+        'is-editing': editorRef?.isEditing,
+        'is-collapsed': isCollapsed
       }"
       @mouseenter="isHovered = true"
       @mouseleave="isHovered = false"
     >
-      <!-- 卡片头部 -->
-      <div class="card-header">
+      <!-- 卡片头部 - 整个头部作为拖动区域 -->
+      <div class="card-header drag-handle">
         <div class="card-type">
           <div class="type-indicator"></div>
           <span v-if="isReferenceCard" class="note-address" :title="noteAddress">{{
             noteAddress
           }}</span>
-          <span v-else class="type-text">段落卡片</span>
+          <span v-else class="type-text">上下文卡片</span>
         </div>
         <div class="card-actions">
+          <!-- 添加折叠/展开按钮 -->
+          <div
+            class="action-button fold-button"
+            :title="isCollapsed ? '展开卡片' : '折叠卡片'"
+            @click.stop="toggleCollapse"
+          >
+            <FoldUpOne v-if="!isCollapsed" theme="outline" size="16" :strokeWidth="3" />
+            <ExpandDownOne v-else theme="outline" size="16" :strokeWidth="3" />
+          </div>
+
           <div
             v-if="isReferenceCard"
             class="action-button view-source-btn"
             title="查看原文"
-            @click="viewSourceNote"
+            @click.stop="viewSourceNote"
           >
             <Link theme="outline" size="16" :strokeWidth="3" />
           </div>
-          <div class="drag-handle" title="拖动排序">
-            <HandDrag theme="outline" size="16" :strokeWidth="3" />
-          </div>
+
           <div
             ref="moreBtnRef"
             class="action-button"
@@ -85,15 +94,15 @@
 
 <script setup lang="ts">
 import { ref, computed, markRaw, onMounted, onBeforeUnmount } from 'vue'
-import { HandDrag, More, Delete, Link, AddFour } from '@icon-park/vue-next'
+import { More, Delete, Link, AddFour, FoldUpOne, ExpandDownOne } from '@icon-park/vue-next'
 import TipTapEditor from '@renderer/components/tiptap/TipTapEditor.vue'
 import PopupMenu from '@renderer/components/common/PopupMenu.vue'
 import type { MenuItem } from '@renderer/components/common/PopupMenu.vue'
 import type { ManuscriptCard } from '@shared/types'
-import { useRouter } from 'vue-router'
 import { debounce } from 'lodash-es'
 import { message } from '@renderer/utils/message'
 import { useNoteStore } from '@renderer/stores/noteStore'
+import { useUIStore } from '../../stores/UIStore'
 
 const props = defineProps<{
   card: ManuscriptCard
@@ -105,11 +114,12 @@ const emit = defineEmits<{
   add: [position: 'before' | 'after']
 }>()
 
-const router = useRouter()
 const editorRef = ref<any>(null)
 const moreBtnRef = ref<HTMLElement | null>(null)
 const showMoreMenu = ref(false)
 const isHovered = ref(false)
+// 添加折叠状态
+const isCollapsed = ref(false)
 
 const noteStore = useNoteStore()
 
@@ -118,6 +128,11 @@ const localContent = ref<any>(props.card.content)
 
 // 是否为引用卡片
 const isReferenceCard = computed(() => Boolean(props.card.noteId))
+
+// 添加切换折叠状态的方法
+const toggleCollapse = () => {
+  isCollapsed.value = !isCollapsed.value
+}
 
 // 使用防抖保存内容
 const saveContent = debounce(async (content: any) => {
@@ -225,7 +240,10 @@ const handleMenuItemClick = (item: MenuItem) => {
 // 查看原文
 const viewSourceNote = () => {
   if (!props.card.noteId) return
-  router.push(`/note/${props.card.noteId}`)
+  // 普通点击: 在右侧边栏打开
+  noteStore.openBacklinkPreview(props.card.noteId)
+  const uiStore = useUIStore()
+  uiStore.openRightSidebarWithTab('backlink')
 }
 
 // 在组件挂载时获取数据
@@ -268,7 +286,6 @@ onBeforeUnmount(() => {
 
     &:hover {
       transform: translateX(-50%) scale(1.1);
-      // 确保hover时按钮保持可见
       opacity: 1;
     }
 
@@ -305,9 +322,33 @@ onBeforeUnmount(() => {
     border-radius: 8px;
     margin-bottom: 0;
     transition: all 0.2s ease;
+    overflow: hidden;
 
     &:hover {
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    }
+
+    // 添加折叠状态样式
+    &.is-collapsed {
+      .card-content {
+        max-height: 140px; // 折叠时的最大高度
+        overflow: hidden;
+        position: relative;
+
+        // 修改渐变遮罩效果，确保不会溢出卡片边界
+        &::after {
+          content: '';
+          position: absolute;
+          bottom: 0;
+          left: 0;
+          right: 0;
+          height: 30px;
+          background: linear-gradient(to bottom, rgba(255, 255, 255, 0), var(--color-bg-primary));
+          pointer-events: none;
+          border-bottom-left-radius: 8px; // 匹配卡片的圆角
+          border-bottom-right-radius: 8px; // 匹配卡片的圆角
+        }
+      }
     }
 
     .card-header {
@@ -317,6 +358,12 @@ onBeforeUnmount(() => {
       padding: 8px 12px;
       border-bottom: 1px solid var(--color-border);
       background: var(--color-bg-secondary);
+      cursor: move;
+      user-select: none;
+
+      &:hover {
+        background: var(--color-hover-bg);
+      }
 
       .card-type {
         display: flex;
@@ -328,7 +375,7 @@ onBeforeUnmount(() => {
           width: 4px;
           height: 16px;
           border-radius: 2px;
-          background-color: var(--color-primary);
+          background-color: var(--color-draft);
         }
 
         .type-text {
@@ -359,7 +406,15 @@ onBeforeUnmount(() => {
           }
         }
 
-        .drag-handle,
+        // 添加折叠按钮样式
+        .fold-button {
+          color: var(--color-text-secondary);
+
+          &:hover {
+            color: var(--color-primary);
+          }
+        }
+
         .action-button {
           display: flex;
           align-items: center;
@@ -375,27 +430,45 @@ onBeforeUnmount(() => {
             background: var(--color-hover-bg);
             color: var(--color-text-primary);
           }
-        }
 
-        .drag-handle {
-          cursor: move;
+          :deep(.i-icon) {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
+          }
+
+          :deep(svg) {
+            width: 16px;
+            height: 16px;
+          }
         }
       }
     }
 
     .card-content {
       padding: 16px;
+      transition:
+        max-height 0.3s ease,
+        opacity 0.2s ease;
+      overflow: visible;
 
       :deep(.tiptap) {
         min-height: 100px;
         overflow-y: auto;
+
+        // 折叠状态下编辑器样式调整
+        .is-collapsed & {
+          min-height: 40px;
+        }
       }
     }
 
     &.is-reference {
       .card-header {
         .type-indicator {
-          background-color: var(--color-info);
+          background-color: var(--color-primary);
         }
       }
     }

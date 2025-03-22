@@ -27,6 +27,27 @@
         </div>
       </div>
       <div class="toolbar-right">
+        <!-- 添加历史记录按钮 -->
+        <Button
+          v-if="['first_draft', 'polish'].includes(currentMode)"
+          class="history-button"
+          type="default"
+          :height="36"
+          :icon="History"
+          @click="handleHistoryClick"
+        >
+          历史记录
+        </Button>
+        <!-- 在草稿模式下添加视图切换按钮 -->
+        <SegmentedButton
+          v-if="currentMode === 'draft'"
+          v-model="viewMode"
+          :options="viewModeOptions"
+          width="110px"
+          height="36px"
+          name="view-mode"
+          tooltipPlacement="top"
+        />
         <!-- 模式切换 -->
         <SegmentedButton
           v-model="currentMode"
@@ -36,11 +57,13 @@
           name="edit-mode"
           tooltipPlacement="top"
         />
+
         <!-- 根据不同模式显示不同按钮 -->
         <Button
           v-if="currentMode === 'draft'"
           type="primary"
           :icon="Magic"
+          :height="36"
           :loading="isGeneratingFirstDraft"
           @click="handleGenerateFirstDraft"
         >
@@ -50,6 +73,7 @@
           v-if="currentMode === 'first_draft'"
           type="primary"
           :icon="Magic"
+          :height="36"
           :loading="isPolishing"
           @click="handlePolish"
         >
@@ -59,6 +83,7 @@
           v-if="currentMode === 'polish'"
           type="primary"
           :icon="Brain"
+          :height="36"
           :loading="isThinking"
           @click="handleDeepThinking"
         >
@@ -69,9 +94,17 @@
 
     <!-- 主要编辑区域 -->
     <div class="editor-container">
-      <div class="content-wrapper">
-        <!-- 草稿模式 -->
-        <div v-if="currentMode === 'draft'" class="draft-mode">
+      <!-- 列表视图使用原有的content-wrapper -->
+      <div v-if="currentMode === 'draft' && viewMode === 'list'" class="content-wrapper">
+        <div class="draft-mode">
+          <!-- 卡片缩略图导航栏 -->
+          <CardThumbnailNavigator
+            v-if="manuscript?.cards"
+            v-model:cards="localCards"
+            :selected-card-id="selectedCardId"
+            @select-card="handleCardSelect"
+          />
+
           <div
             ref="scrollContainerRef"
             class="writing-paper"
@@ -79,7 +112,7 @@
             @dragleave="handleDragLeave"
             @drop="handleDrop"
           >
-            <!-- 卡片列表 -->
+            <!-- 修改主卡片列表的绑定 -->
             <div class="cards-container">
               <div
                 v-if="!manuscript?.cards?.length"
@@ -93,14 +126,13 @@
               </div>
               <template v-else>
                 <draggable
-                  :list="manuscript?.cards || []"
+                  v-model="localCards"
                   item-key="id"
-                  handle=".drag-handle"
                   :group="{ name: 'cards' }"
                   @end="handleDragEnd"
                 >
                   <template #item="{ element }">
-                    <div class="card-wrapper">
+                    <div :id="`card-${element.id}`" class="card-wrapper">
                       <div
                         class="drop-indicator top"
                         :class="{
@@ -126,16 +158,44 @@
 
                 <!-- 添加新段落的按钮 -->
                 <div class="add-paragraph-button" @click="createParagraphCard">
-                  <AddFour theme="outline" size="20" :strokeWidth="3" />
+                  <div class="add-paragraph-button-icon">
+                    <AddFour theme="outline" size="20" :strokeWidth="3" />
+                  </div>
                   <span>添加段落</span>
                 </div>
               </template>
             </div>
           </div>
         </div>
+      </div>
 
+      <!-- 网格视图使用全宽布局 -->
+      <div v-else-if="currentMode === 'draft' && viewMode === 'grid'" class="full-width-wrapper">
+        <div class="draft-mode grid-view">
+          <CardGridView
+            v-if="manuscript?.cards?.length"
+            v-model:cards="localCards"
+            :selected-card-id="selectedCardId"
+            :manuscript-id="manuscript?.id"
+            @select-card="handleCardSelect"
+            @add-card="createParagraphCard"
+            @add-reference-card="handleAddReferenceCard"
+            @delete-card="handleGridCardDelete"
+          />
+
+          <div v-else class="empty-grid-state" @click="createParagraphCard">
+            <div class="empty-text">
+              <AddFour theme="outline" size="32" :strokeWidth="3" />
+              <span>点击创建第一个卡片</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 其他模式保持不变 -->
+      <div v-else class="content-wrapper">
         <!-- 初稿模式 -->
-        <div v-else-if="currentMode === 'first_draft'" class="first-draft-mode">
+        <div v-if="currentMode === 'first_draft'" class="first-draft-mode">
           <div ref="scrollContainerRef" class="editor-wrapper">
             <TipTapEditor
               ref="firstDraftEditorRef"
@@ -163,13 +223,62 @@
         </div>
       </div>
     </div>
+
+    <!-- 添加历史记录下拉菜单 -->
+    <Teleport to="body">
+      <div
+        v-if="isHistoryMenuOpen"
+        class="history-menu"
+        :style="{
+          left: `${historyMenuPosition.x}px`,
+          top: `${historyMenuPosition.y}px`
+        }"
+      >
+        <!-- <div class="history-menu-header">
+          <span>{{ currentMode === 'first_draft' ? '初稿历史' : '终稿历史' }}</span>
+        </div> -->
+        <div class="history-menu-content">
+          <template v-if="isLoadingHistory">
+            <div class="loading-state">
+              <span>加载中...</span>
+            </div>
+          </template>
+          <template v-else>
+            <div
+              v-for="history in currentMode === 'first_draft'
+                ? writingDeskStore.firstDraftHistory
+                : writingDeskStore.polishHistory"
+              :key="history.id"
+              class="history-item"
+              @click="handleRestoreHistory(history.id)"
+            >
+              <div class="history-info">
+                <span class="history-date">{{ formatDate(history.createdAt) }}</span>
+                <span class="history-style">{{ history.style }}</span>
+              </div>
+            </div>
+            <div
+              v-if="
+                (currentMode === 'first_draft'
+                  ? writingDeskStore.firstDraftHistory
+                  : writingDeskStore.polishHistory
+                ).length === 0
+              "
+              class="empty-history"
+            >
+              暂无历史记录
+            </div>
+          </template>
+        </div>
+      </div>
+    </Teleport>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
-import { Edit, Magic, AddFour, Brain } from '@icon-park/vue-next'
+import { Edit, Magic, AddFour, Brain, History } from '@icon-park/vue-next'
 import { useWritingDeskStore } from '@renderer/stores/writingDeskStore'
 import { useNoteStore } from '@renderer/stores/noteStore'
 import SegmentedButton from '@renderer/components/ui/SegmentedButton.vue'
@@ -179,6 +288,8 @@ import draggable from 'vuedraggable'
 import ManuscriptContentCard from './ManuscriptContentCard.vue'
 import { ManuscriptCard } from '@/shared/types'
 import TipTapEditor from '@renderer/components/tiptap/TipTapEditor.vue'
+import CardThumbnailNavigator from './CardThumbnailNavigator.vue'
+import CardGridView from './CardGridView.vue'
 
 // 使用路由获取参数
 const route = useRoute()
@@ -203,6 +314,21 @@ const modeOptions = [
     value: 'polish',
     label: '终稿',
     tooltip: { content: '终稿润色模式', delay: { show: 1000 } }
+  }
+]
+
+// 添加视图模式选择
+const viewMode = ref<'list' | 'grid'>('list')
+const viewModeOptions = [
+  {
+    value: 'list',
+    label: '列表',
+    tooltip: { content: '列表视图', delay: { show: 500 } }
+  },
+  {
+    value: 'grid',
+    label: '网格',
+    tooltip: { content: '网格视图', delay: { show: 500 } }
   }
 ]
 
@@ -249,6 +375,20 @@ watch(currentMode, () => {
   })
 })
 
+// 监听视图模式变化
+watch(viewMode, () => {
+  // 视图模式变化时，可能需要调整某些布局或滚动位置
+  nextTick(() => {
+    if (viewMode.value === 'list') {
+      // 切换到列表视图时的逻辑
+      scrollToTop()
+    } else {
+      // 切换到网格视图时的逻辑
+      // 如果需要特殊处理可以在这里添加
+    }
+  })
+})
+
 // 编辑标题相关
 const isEditing = ref(false)
 const editingTitle = ref('')
@@ -268,6 +408,27 @@ const localFirstDraftContent = ref<any>(null)
 
 // 添加深度思考相关状态
 const isThinking = ref(false)
+
+// 添加选中卡片状态
+const selectedCardId = ref<string>('')
+
+// 添加历史记录相关的状态
+const isHistoryMenuOpen = ref(false)
+const historyMenuPosition = ref({ x: 0, y: 0 })
+
+// 添加历史记录加载状态
+const isLoadingHistory = ref(false)
+
+// 格式化日期的函数
+const formatDate = (date: Date) => {
+  return new Date(date).toLocaleString('zh-CN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
+}
 
 // 监听 manuscript 变化，更新本地润色内容
 watch(
@@ -402,42 +563,7 @@ const handleCardDelete = async (cardId: string) => {
 
 // 修改拖拽结束的处理方法
 const handleDragEnd = async () => {
-  if (!manuscript.value) return
-
-  try {
-    // 获取当前卡片的顺序
-    const cards = manuscript.value.cards.map((card, index) => {
-      // 创建一个普通对象的副本，避免响应式对象序列化问题
-      const plainCard = {
-        id: card.id,
-        type: card.type,
-        content: JSON.parse(JSON.stringify(card.content)),
-        order: index,
-        createdAt: card.createdAt,
-        updatedAt: card.updatedAt,
-        noteId: card.noteId
-      }
-      return plainCard
-    })
-
-    console.log('更新卡片顺序 - 准备数据:', {
-      manuscriptId: manuscript.value.id,
-      totalCards: cards.length,
-      cards: cards.map((c) => ({ id: c.id, order: c.order }))
-    })
-
-    // 更新数据库中的顺序
-    await writingDeskStore.updateManuscriptCardsOrder({
-      manuscriptId: manuscript.value.id,
-      cards
-    })
-
-    // 重新加载文稿数据
-    await writingDeskStore.loadManuscript(manuscript.value.id)
-  } catch (error) {
-    console.error('更新卡片顺序失败:', error)
-    await writingDeskStore.loadManuscript(manuscript.value.id)
-  }
+  // 不需要额外处理，因为 v-model 会自动触发 set 函数
 }
 
 // 修改创建段落卡片的方法
@@ -697,6 +823,159 @@ const handleDeepThinking = async () => {
     isThinking.value = false
   }
 }
+
+// 处理卡片选择
+const handleCardSelect = (cardId: string) => {
+  selectedCardId.value = cardId
+
+  // 滚动到选中的卡片
+  nextTick(() => {
+    const cardElement = document.getElementById(`card-${cardId}`)
+    const container = scrollContainerRef.value
+    if (!cardElement || !container) return
+
+    // 获取卡片相对于容器的顶部偏移量
+    const cardTop = cardElement.offsetTop - container.offsetTop
+
+    // 添加一些上边距，让卡片位置更合适
+    const scrollPadding = 32 // 与 writing-paper 的 padding 一致
+
+    // 直接滚动到卡片顶部位置
+    container.scrollTo({
+      top: cardTop - scrollPadding,
+      behavior: 'smooth'
+    })
+
+    // 添加高亮效果
+    cardElement.classList.add('highlight')
+    setTimeout(() => {
+      cardElement.classList.remove('highlight')
+    }, 2000)
+  })
+}
+
+// 修改本地卡片数据
+const localCards = computed({
+  get: () => manuscript.value?.cards || [],
+  set: async (newCards) => {
+    if (!manuscript.value) return
+
+    try {
+      // 将卡片数据转换为普通对象，只保留必要的字段
+      const plainCards = newCards.map((card, index) => ({
+        id: card.id,
+        type: card.type,
+        content: JSON.parse(JSON.stringify(card.content)), // 深拷贝内容
+        order: index,
+        noteId: card.noteId,
+        createdAt: card.createdAt,
+        updatedAt: card.updatedAt
+      }))
+
+      await writingDeskStore.updateManuscriptCardsOrder({
+        manuscriptId: manuscript.value.id,
+        cards: plainCards
+      })
+
+      // 重新加载数据以确保同步
+      await writingDeskStore.loadManuscript(manuscript.value.id)
+    } catch (error) {
+      console.error('更新卡片顺序失败:', error)
+    }
+  }
+})
+
+// 从网格视图中删除卡片的处理
+const handleGridCardDelete = async (cardId: string) => {
+  if (!manuscript.value) return
+
+  try {
+    await writingDeskStore.deleteCard(cardId)
+    // 重新加载文稿数据
+    await writingDeskStore.loadManuscript(manuscript.value.id)
+  } catch (error) {
+    console.error('删除卡片失败:', error)
+  }
+}
+
+// 处理添加引用卡片
+const handleAddReferenceCard = async (noteId: string, order: number) => {
+  if (!manuscript.value) return
+
+  try {
+    console.log('从卡片盒添加引用卡片', noteId, order)
+    const sourceNote = await noteStore.fetchNote(noteId)
+    if (!sourceNote) {
+      throw new Error('未找到源笔记')
+    }
+
+    // 创建新卡片
+    await writingDeskStore.addCard(manuscript.value.id, sourceNote.content, order, noteId)
+
+    // 重新加载文稿数据
+    await writingDeskStore.loadManuscript(manuscript.value.id)
+  } catch (error) {
+    console.error('创建引用卡片失败:', error)
+  }
+}
+
+// 处理历史按钮点击
+const handleHistoryClick = async (event: MouseEvent) => {
+  const button = event.currentTarget as HTMLElement
+  const rect = button.getBoundingClientRect()
+
+  // 设置下拉菜单位置
+  historyMenuPosition.value = {
+    x: rect.left,
+    y: rect.bottom + 8
+  }
+
+  isHistoryMenuOpen.value = true
+  isLoadingHistory.value = true
+
+  try {
+    if (currentMode.value === 'first_draft') {
+      await writingDeskStore.getFirstDraftHistory(manuscript.value!.id)
+    } else if (currentMode.value === 'polish') {
+      await writingDeskStore.getPolishHistory(manuscript.value!.id)
+    }
+  } catch (error) {
+    console.error('加载历史记录失败:', error)
+  } finally {
+    isLoadingHistory.value = false
+  }
+}
+
+// 处理历史版本恢复
+const handleRestoreHistory = async (historyId: string) => {
+  if (!manuscript.value) return
+
+  try {
+    if (currentMode.value === 'first_draft') {
+      await writingDeskStore.restoreFirstDraftHistory(manuscript.value.id, historyId)
+    } else if (currentMode.value === 'polish') {
+      await writingDeskStore.restorePolishHistory(manuscript.value.id, historyId)
+    }
+    isHistoryMenuOpen.value = false
+  } catch (error) {
+    console.error('恢复历史版本失败:', error)
+  }
+}
+
+// 关闭历史菜单
+const closeHistoryMenu = () => {
+  isHistoryMenuOpen.value = false
+}
+
+// 监听点击事件以关闭菜单
+onMounted(() => {
+  document.addEventListener('click', (event) => {
+    const target = event.target as HTMLElement
+    if (!target.closest('.history-menu') && !target.closest('.history-button')) {
+      closeHistoryMenu()
+    }
+  })
+})
 </script>
 
 <style lang="scss" scoped>
@@ -778,16 +1057,27 @@ const handleDeepThinking = async () => {
     position: relative;
     display: flex;
     justify-content: center;
+    margin-bottom: 20px;
 
     .content-wrapper {
       width: 100%;
-      max-width: 800px;
+      max-width: 900px;
       height: 100%;
       padding: 0 20px;
 
       .draft-mode {
         height: 100%;
         padding: 24px 0;
+        display: flex;
+        gap: 16px;
+
+        // 网格视图时使用不同的布局
+        &.grid-view {
+          display: block;
+          max-width: 100%;
+          margin: 0 auto;
+          width: calc(100vw - 40px); // 左右各留20px边距
+        }
 
         .writing-paper {
           height: 100%;
@@ -795,6 +1085,8 @@ const handleDeepThinking = async () => {
           border-radius: 12px;
           padding: 32px;
           overflow-y: auto;
+          flex: 1;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 
           &.drag-over {
             border: 1px solid var(--color-border);
@@ -837,7 +1129,7 @@ const handleDeepThinking = async () => {
               display: flex;
               align-items: center;
               justify-content: center;
-              gap: 8px;
+              gap: 6px;
               padding: 12px;
               margin: 16px 0;
               border: 1px dashed var(--color-border);
@@ -845,6 +1137,26 @@ const handleDeepThinking = async () => {
               color: var(--color-text-secondary);
               cursor: pointer;
               transition: all 0.2s ease;
+
+              .add-paragraph-button-icon {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                width: 24px;
+                height: 24px;
+                :deep(.i-icon) {
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  width: 100%;
+                  height: 100%;
+                }
+
+                :deep(svg) {
+                  width: 20px;
+                  height: 20px;
+                }
+              }
 
               &:hover {
                 border-color: var(--color-primary);
@@ -859,8 +1171,12 @@ const handleDeepThinking = async () => {
       .first-draft-mode {
         height: 100%;
         padding: 24px 0;
+        display: flex;
+        justify-content: center;
 
         .editor-wrapper {
+          width: 100%;
+          max-width: 850px;
           height: 100%;
           background: var(--color-bg-secondary);
           border-radius: 12px;
@@ -870,6 +1186,21 @@ const handleDeepThinking = async () => {
           :deep(.tiptap) {
             min-height: 100%;
             outline: none;
+
+            h1,
+            h2,
+            h3,
+            h4,
+            h5,
+            h6 {
+              margin-top: 1.5em;
+              margin-bottom: 0.5em;
+            }
+
+            p {
+              line-height: 1.6;
+              margin-bottom: 1em;
+            }
           }
         }
       }
@@ -877,8 +1208,12 @@ const handleDeepThinking = async () => {
       .polish-mode {
         height: 100%;
         padding: 24px 0;
+        display: flex;
+        justify-content: center;
 
         .editor-wrapper {
+          width: 100%;
+          max-width: 850px;
           height: 100%;
           background: var(--color-bg-secondary);
           border-radius: 12px;
@@ -888,8 +1223,36 @@ const handleDeepThinking = async () => {
           :deep(.tiptap) {
             min-height: 100%;
             outline: none;
+
+            h1,
+            h2,
+            h3,
+            h4,
+            h5,
+            h6 {
+              margin-top: 1.5em;
+              margin-bottom: 0.5em;
+            }
+
+            p {
+              line-height: 1.6;
+              margin-bottom: 1em;
+            }
           }
         }
+      }
+    }
+
+    // 优化全宽布局容器
+    .full-width-wrapper {
+      width: 100%;
+      height: 100%;
+      padding: 0 24px; // 增加左右内边距
+
+      .draft-mode.grid-view {
+        height: 100%;
+        padding: 24px 0;
+        background: var(--color-bg-primary); // 确保背景色与应用一致
       }
     }
   }
@@ -920,6 +1283,98 @@ const handleDeepThinking = async () => {
         background: var(--color-primary);
         box-shadow: 0 0 4px var(--color-primary);
       }
+    }
+  }
+
+  .empty-grid-state {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px dashed var(--color-border);
+    border-radius: 12px;
+    background: var(--color-bg-secondary);
+    margin: 24px 0;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &:hover {
+      border-color: var(--color-primary);
+      background: var(--color-hover-bg);
+    }
+
+    .empty-text {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      color: var(--color-text-secondary);
+      font-size: 16px;
+
+      &:hover {
+        color: var(--color-primary);
+      }
+    }
+  }
+}
+
+.history-menu {
+  position: fixed;
+  width: 300px;
+  background: var(--color-bg-secondary);
+  border-radius: 8px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  overflow: hidden;
+
+  .history-menu-header {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--color-border);
+    font-weight: 500;
+    color: var(--color-text-primary);
+  }
+
+  .history-menu-content {
+    max-height: 400px;
+    overflow-y: auto;
+
+    .loading-state {
+      padding: 16px;
+      text-align: center;
+      color: var(--color-text-secondary);
+    }
+
+    .history-item {
+      padding: 12px 16px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+
+      &:hover {
+        background: var(--color-hover-bg);
+      }
+
+      .history-info {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 8px;
+
+        .history-date {
+          color: var(--color-text-primary);
+          font-size: 14px;
+        }
+
+        .history-style {
+          color: var(--color-text-secondary);
+          font-size: 12px;
+        }
+      }
+    }
+
+    .empty-history {
+      padding: 16px;
+      text-align: center;
+      color: var(--color-text-secondary);
     }
   }
 }
