@@ -1,7 +1,7 @@
 import type { JsonContent } from './note'
 
 // 文稿状态
-export type ManuscriptStatus = 'draft' | 'polished' | 'completed'
+export type ManuscriptStatus = 'draft' | 'first_draft' | 'polished' | 'completed'
 
 // 文稿中的卡片类型
 export type ManuscriptCardType = 'reference' | 'paragraph'
@@ -27,7 +27,13 @@ export interface Manuscript {
   // 草稿模式数据
   draftCards: ManuscriptCard[]
 
-  // 润色模式数据
+  // 初稿数据
+  firstDraftContent?: {
+    type: string
+    content: any[]
+  }
+
+  // 终稿(润色)数据
   polishedContent?: {
     type: string
     content: any[]
@@ -36,7 +42,8 @@ export interface Manuscript {
   // 元数据
   createdAt: Date
   updatedAt: Date
-  lastPolishedAt?: Date
+  lastFirstDraftAt?: Date // 新增：最后生成初稿时间
+  lastPolishedAt?: Date // 最后润色时间
 }
 
 // 创建文稿的参数
@@ -50,6 +57,11 @@ export interface UpdateManuscriptParams {
   title?: string
   status?: ManuscriptStatus
   draftCards?: ManuscriptCard[]
+  firstDraftContent?: {
+    // 新增：初稿内容
+    type: string
+    content: JsonContent[]
+  }
   polishedContent?: {
     type: string
     content: JsonContent[]
@@ -80,4 +92,10 @@ export interface WritingDesk {
   manuscripts: Manuscript[]
   totalCount: number
   recentManuscripts?: Manuscript[] // 最近编辑的文稿
+}
+
+// 新增：生成初稿的参数接口
+export interface GenerateFirstDraftParams {
+  id: string
+  style?: string
 }

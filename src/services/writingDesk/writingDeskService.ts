@@ -14,7 +14,8 @@ import { extractTextFromTiptapJson, convertTextToTiptapJson } from '../utils/tex
 function convertToManuscript(record: any): Manuscript {
   return {
     ...record,
-    polishedContent: record.polishedContent ? JSON.parse(record.polishedContent) : null
+    polishedContent: record.polishedContent ? JSON.parse(record.polishedContent) : null,
+    firstDraftContent: record.firstDraftContent ? JSON.parse(record.firstDraftContent) : null
   }
 }
 
@@ -301,18 +302,29 @@ export async function moveManuscriptCard(cardId: string, order: number): Promise
   }
 }
 
-// 删除卡片
+// 修改删除卡片的方法
 export async function deleteManuscriptCard(cardId: string): Promise<void> {
-  try {
-    const deleted = await db('manuscript_cards').where({ id: cardId }).delete()
+  return db.transaction(async (trx) => {
+    try {
+      // 获取要删除的卡片信息
+      const card = await trx('manuscript_cards').where({ id: cardId }).first()
+      if (!card) {
+        throw new Error(`卡片不存在: ${cardId}`)
+      }
 
-    if (!deleted) {
-      throw new Error(`卡片不存在: ${cardId}`)
+      // 删除卡片
+      await trx('manuscript_cards').where({ id: cardId }).delete()
+
+      // 更新后续卡片的顺序
+      await trx('manuscript_cards')
+        .where('manuscriptId', card.manuscriptId)
+        .where('order', '>', card.order)
+        .decrement('order', 1)
+    } catch (error) {
+      console.error('删除卡片失败:', error)
+      throw error
     }
-  } catch (error) {
-    console.error('删除卡片失败:', error)
-    throw error
-  }
+  })
 }
 
 // 批量添加卡片（用于从笔记批量导入）
@@ -382,10 +394,109 @@ export async function getManuscriptCardById(cardId: string): Promise<ManuscriptC
   }
 }
 
-// 修改润色方法
+// 生成初稿方法
+export async function generateFirstDraft(params: PolishManuscriptParams): Promise<Manuscript> {
+  try {
+    console.log('开始生成初稿:', params.id)
+
+    // 1. 获取文稿及其卡片
+    const manuscript = await getManuscriptById(params.id)
+    if (!manuscript.cards.length) {
+      throw new Error('文稿中没有任何内容')
+    }
+
+    // 2. 提取所有卡片的内容并组合
+    let combinedText = ''
+    manuscript.cards.forEach((card, index) => {
+      const cardText = extractTextFromTiptapJson(card.content)
+
+      // 添加分隔符和序号，帮助AI理解文档结构
+      if (index > 0) {
+        combinedText += '\n---\n'
+      }
+      combinedText += `第${index + 1}部分：\n${cardText}\n`
+    })
+
+    console.log('提取的文本内容:', combinedText)
+
+    // 3. 准备 AI 提示词
+    const prompt = `
+你是一位专业的文字编辑和作家，现在需要你帮我将以下分散的内容段落整合成一篇连贯、优美的文章。
+
+这些内容来自我的写作素材，每个部分都包含重要的观点或论述。请你：
+
+1. 内容整合：
+   - 理解每个部分的核心观点
+   - 找出各部分之间的逻辑关联
+   - 合理安排内容顺序，创造流畅的过渡
+   - 适当添加过渡语句，使段落之间衔接自然
+
+2. 表达优化：
+   - 统一文章的语言风格和表达方式
+   - 优化句式结构，使行文更加优美
+   - 选用准确、优雅的词语
+   - 适当运用修辞手法，增强文章表现力
+
+3. 结构完善：
+   - 确保文章结构完整（开头、主体、结尾）
+   - 合理划分段落，突出层次感
+   - 重点内容要有详略得当的展开
+   - 适当添加总结性语句，加强文章的连贯性
+
+4. 保持原意：
+   - 严格保持原有内容的核心观点
+   - 不改变事实和论据
+   - 保留专业术语和关键概念
+   - 确保优化后的内容准确传达原意
+
+以下是需要整合的内容：
+
+${combinedText}
+
+请直接返回优化后的完整文章，不需要解释修改过程。确保文章具有良好的可读性和专业性，同时保持内容的准确性和完整性。`
+
+    // 4. 调用 AI 服务
+    const llmService = new LLMService()
+    console.log('开始调用 AI 服务...')
+    const firstDraftText = await llmService.generateResponse(prompt)
+    console.log('AI润色完成，获得响应')
+
+    // 5. 将润色后的文本转换为 Tiptap JSON 格式
+    const firstDraftContent = convertTextToTiptapJson(firstDraftText)
+
+    const now = new Date()
+
+    // 6. 记录润色历史
+    await db('manuscript_first_draft_history').insert({
+      id: uuidv4(),
+      manuscriptId: params.id,
+      firstDraftContent: JSON.stringify(firstDraftContent),
+      style: params.style || 'default',
+      createdAt: now
+    })
+
+    // 7. 更新文稿状态
+    const [updated] = await db('manuscripts')
+      .where({ id: params.id })
+      .update({
+        status: 'first_draft',
+        firstDraftContent: JSON.stringify(firstDraftContent),
+        lastFirstDraftAt: now,
+        updatedAt: now
+      })
+      .returning('*')
+
+    return convertToManuscript(updated)
+  } catch (error) {
+    console.error('生成初稿失败:', error)
+    throw error
+  }
+}
+
+// 润色生成终稿方法
 export async function polishManuscript(params: PolishManuscriptParams): Promise<Manuscript> {
   try {
-    console.log('开始润色文稿:', params.id)
+    console.log('开始润色终稿:', params.id)
 
     // 1. 获取文稿及其卡片
     const manuscript = await getManuscriptById(params.id)

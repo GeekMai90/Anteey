@@ -1403,10 +1403,15 @@ export async function initDatabase(db: Knex): Promise<void> {
     await db.schema.createTable('manuscripts', (table) => {
       table.string('id').primary()
       table.string('title').notNullable()
-      table.enum('status', ['draft', 'polished', 'completed']).notNullable().defaultTo('draft')
+      table
+        .enum('status', ['draft', 'first_draft', 'polished', 'completed'])
+        .notNullable()
+        .defaultTo('draft')
+      table.json('firstDraftContent').nullable()
       table.json('polishedContent').nullable()
       table.datetime('createdAt').notNullable()
       table.datetime('updatedAt').notNullable()
+      table.datetime('lastFirstDraftAt').nullable()
       table.datetime('lastPolishedAt').nullable()
 
       // 索引
@@ -1459,6 +1464,25 @@ export async function initDatabase(db: Knex): Promise<void> {
       table.index('createdAt')
     })
     console.log('manuscript_polish_history 表创建成功')
+  }
+
+  // 创建 manuscript_first_draft_history 表（初稿历史记录表）
+  if (!(await db.schema.hasTable('manuscript_first_draft_history'))) {
+    await db.schema.createTable('manuscript_first_draft_history', (table) => {
+      table.string('id').primary()
+      table.string('manuscriptId').notNullable()
+      table.json('firstDraftContent').notNullable()
+      table.string('style').nullable() // 生成风格
+      table.datetime('createdAt').notNullable()
+
+      // 外键约束
+      table.foreign('manuscriptId').references('manuscripts.id').onDelete('CASCADE')
+
+      // 索引
+      table.index('manuscriptId')
+      table.index('createdAt')
+    })
+    console.log('manuscript_first_draft_history 表创建成功')
   }
 }
 
@@ -1522,6 +1546,7 @@ export async function down(db: Knex): Promise<void> {
   await db.schema.dropTableIfExists('manuscripts')
   await db.schema.dropTableIfExists('manuscript_cards')
   await db.schema.dropTableIfExists('manuscript_polish_history')
+  await db.schema.dropTableIfExists('manuscript_first_draft_history')
 
   console.log('所有表已删除')
 }

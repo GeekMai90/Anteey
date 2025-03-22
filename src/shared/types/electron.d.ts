@@ -1051,6 +1051,12 @@ export interface ElectronAPI {
       error?: string
     }>
 
+    generateFirstDraft: (params: PolishManuscriptParams) => Promise<{
+      success: boolean
+      manuscript?: Manuscript
+      error?: string
+    }>
+
     // AI 润色相关
     polishManuscript: (params: PolishManuscriptParams) => Promise<{
       success: boolean

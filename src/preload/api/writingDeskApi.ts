@@ -204,6 +204,17 @@ export const writingDeskApi = {
     }
   },
 
+  // 生成初稿
+  generateFirstDraft: async (params: PolishManuscriptParams): Promise<Manuscript> => {
+    try {
+      const result = await ipcRenderer.invoke('generate-first-draft', params)
+      return result
+    } catch (error) {
+      console.error('预加载脚本 → 生成初稿失败:', error)
+      throw error
+    }
+  },
+
   // AI 润色相关
   polishManuscript: async (params: PolishManuscriptParams) => {
     try {

@@ -14,7 +14,7 @@ export const useWritingDeskStore = defineStore('writingDesk', () => {
   const currentManuscript = ref<(Manuscript & { cards: ManuscriptCard[] }) | null>(null)
   const isCreateModalOpen = ref(false)
   const isPolishingManuscript = ref(false)
-
+  const isGeneratingFirstDraft = ref(false)
   // ==================== 操作方法 ====================
   // 获取所有文稿
   const fetchAllManuscripts = async () => {
@@ -97,13 +97,15 @@ export const useWritingDeskStore = defineStore('writingDesk', () => {
   const updateManuscript = async (params: UpdateManuscriptParams) => {
     try {
       const result = await window.electronAPI.writingDesk.updateManuscript(params)
-      if (!result.success || !result.manuscript) {
+      if (!result.success) {
         throw new Error(result.error || '更新文稿失败')
       }
+
+      // 更新成功后重新加载数据
       if (currentManuscript.value?.id === params.id) {
-        await fetchManuscript(params.id)
+        await loadManuscript(params.id)
       }
-      await fetchAllManuscripts()
+
       return result.manuscript
     } catch (error) {
       console.error('更新文稿失败:', error)
@@ -197,12 +199,17 @@ export const useWritingDeskStore = defineStore('writingDesk', () => {
   // 删除卡片
   const deleteCard = async (cardId: string) => {
     try {
+      // 保存当前文稿ID用于重新加载
+      const currentId = currentManuscript.value?.id
+
       const result = await window.electronAPI.writingDesk.deleteManuscriptCard(cardId)
       if (!result.success) {
         throw new Error(result.error || '删除卡片失败')
       }
-      if (currentManuscript.value) {
-        await fetchManuscript(currentManuscript.value.id)
+
+      // 如果是当前文稿的卡片，重新加载文稿数据
+      if (currentId) {
+        await loadManuscript(currentId)
       }
     } catch (error) {
       console.error('删除卡片失败:', error)
@@ -231,7 +238,28 @@ export const useWritingDeskStore = defineStore('writingDesk', () => {
   }
 
   // ==================== AI 润色相关 ====================
-  // 执行润色
+
+  // 生成初稿
+  const generateFirstDraft = async (params: PolishManuscriptParams) => {
+    try {
+      isGeneratingFirstDraft.value = true
+      const result = await window.electronAPI.writingDesk.generateFirstDraft(params)
+      if (!result.success || !result.manuscript) {
+        throw new Error(result.error || '生成初稿失败')
+      }
+      if (currentManuscript.value?.id === params.id) {
+        await fetchManuscript(params.id)
+      }
+      return result.manuscript
+    } catch (error) {
+      console.error('文稿润色失败:', error)
+      throw error
+    } finally {
+      isPolishingManuscript.value = false
+    }
+  }
+
+  // 润色终稿
   const polishManuscript = async (params: PolishManuscriptParams) => {
     try {
       isPolishingManuscript.value = true
@@ -362,6 +390,7 @@ export const useWritingDeskStore = defineStore('writingDesk', () => {
     moveCard,
     deleteCard,
     batchAddCards,
+    generateFirstDraft,
     polishManuscript,
     getPolishHistory,
     openCreateModal,

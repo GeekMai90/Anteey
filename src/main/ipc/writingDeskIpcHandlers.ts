@@ -13,7 +13,8 @@ import {
   getManuscriptCards,
   getManuscriptCardById,
   polishManuscript,
-  getPolishHistory
+  getPolishHistory,
+  generateFirstDraft
 } from '../../services/writingDesk/writingDeskService'
 import type {
   CreateManuscriptParams,
@@ -170,6 +171,18 @@ export function setupWritingDeskHandlers() {
       return { success: true, card }
     } catch (error) {
       console.error('主进程→ 获取卡片失败:', error)
+      return { success: false, error: String(error) }
+    }
+  })
+
+  // 生成初稿
+  ipcMain.handle('generate-first-draft', async (_event, params: PolishManuscriptParams) => {
+    try {
+      console.log('主进程→ 生成初稿, 参数:', params)
+      const manuscript = await generateFirstDraft(params)
+      return { success: true, manuscript }
+    } catch (error) {
+      console.error('主进程→ 生成初稿失败:', error)
       return { success: false, error: String(error) }
     }
   })

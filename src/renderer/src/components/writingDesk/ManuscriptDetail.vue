@@ -31,20 +31,38 @@
         <SegmentedButton
           v-model="currentMode"
           :options="modeOptions"
-          width="120px"
-          height="32px"
+          width="240px"
+          height="36px"
           name="edit-mode"
           tooltipPlacement="top"
         />
-        <!-- AI 润色按钮 -->
+        <!-- 根据不同模式显示不同按钮 -->
         <Button
           v-if="currentMode === 'draft'"
+          type="primary"
+          :icon="Magic"
+          :loading="isGeneratingFirstDraft"
+          @click="handleGenerateFirstDraft"
+        >
+          卡片成文
+        </Button>
+        <Button
+          v-if="currentMode === 'first_draft'"
           type="primary"
           :icon="Magic"
           :loading="isPolishing"
           @click="handlePolish"
         >
-          AI 润色
+          润色文章
+        </Button>
+        <Button
+          v-if="currentMode === 'polish'"
+          type="primary"
+          :icon="Brain"
+          :loading="isThinking"
+          @click="handleDeepThinking"
+        >
+          深度思考
         </Button>
       </div>
     </div>
@@ -116,8 +134,22 @@
           </div>
         </div>
 
-        <!-- 润色模式 -->
-        <div v-else class="polish-mode">
+        <!-- 初稿模式 -->
+        <div v-else-if="currentMode === 'first_draft'" class="first-draft-mode">
+          <div ref="scrollContainerRef" class="editor-wrapper">
+            <TipTapEditor
+              ref="firstDraftEditorRef"
+              :content="localFirstDraftContent"
+              :note-id="manuscript?.id"
+              :editable="true"
+              :enable-drag-handle="true"
+              @update:content="handleFirstDraftContentUpdate"
+            />
+          </div>
+        </div>
+
+        <!-- 终稿模式 -->
+        <div v-else-if="currentMode === 'polish'" class="polish-mode">
           <div ref="scrollContainerRef" class="editor-wrapper">
             <TipTapEditor
               ref="polishEditorRef"
@@ -137,7 +169,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
-import { Edit, Magic, AddFour } from '@icon-park/vue-next'
+import { Edit, Magic, AddFour, Brain } from '@icon-park/vue-next'
 import { useWritingDeskStore } from '@renderer/stores/writingDeskStore'
 import { useNoteStore } from '@renderer/stores/noteStore'
 import SegmentedButton from '@renderer/components/ui/SegmentedButton.vue'
@@ -155,7 +187,7 @@ const noteStore = useNoteStore()
 const manuscript = computed(() => writingDeskStore.currentManuscript)
 
 // 模式切换相关
-const currentMode = ref<'draft' | 'polish'>('draft')
+const currentMode = ref<'draft' | 'first_draft' | 'polish'>('draft')
 const modeOptions = [
   {
     value: 'draft',
@@ -163,9 +195,14 @@ const modeOptions = [
     tooltip: { content: '编排卡片模式', delay: { show: 1000 } }
   },
   {
+    value: 'first_draft',
+    label: '初稿',
+    tooltip: { content: '初稿编辑模式', delay: { show: 1000 } }
+  },
+  {
     value: 'polish',
-    label: '润色',
-    tooltip: { content: '润色编辑模式', delay: { show: 1000 } }
+    label: '终稿',
+    tooltip: { content: '终稿润色模式', delay: { show: 1000 } }
   }
 ]
 
@@ -224,6 +261,14 @@ const isPolishing = ref(false)
 const polishEditorRef = ref<any>(null)
 const localPolishedContent = ref<any>(null)
 
+// 添加初稿相关状态
+const isGeneratingFirstDraft = ref(false)
+const firstDraftEditorRef = ref<any>(null)
+const localFirstDraftContent = ref<any>(null)
+
+// 添加深度思考相关状态
+const isThinking = ref(false)
+
 // 监听 manuscript 变化，更新本地润色内容
 watch(
   () => manuscript.value?.polishedContent,
@@ -233,6 +278,21 @@ watch(
     } else {
       // 如果没有润色内容，则使用默认的空文档结构
       localPolishedContent.value = {
+        type: 'doc',
+        content: [{ type: 'paragraph', content: [] }]
+      }
+    }
+  },
+  { immediate: true }
+)
+watch(
+  () => manuscript.value?.firstDraftContent,
+  (newContent) => {
+    if (newContent) {
+      localFirstDraftContent.value = newContent
+    } else {
+      // 如果没有润色内容，则使用默认的空文档结构
+      localFirstDraftContent.value = {
         type: 'doc',
         content: [{ type: 'paragraph', content: [] }]
       }
@@ -330,7 +390,11 @@ const handleCardDelete = async (cardId: string) => {
   if (!manuscript.value) return
 
   try {
+    console.log('开始删除卡片:', cardId)
     await writingDeskStore.deleteCard(cardId)
+
+    // 删除成功后会自动重新加载文稿数据
+    console.log('卡片删除成功')
   } catch (error) {
     console.error('删除卡片失败:', error)
   }
@@ -576,6 +640,63 @@ watch(
     }
   }
 )
+
+// 处理初稿内容更新 - 简化处理
+const handleFirstDraftContentUpdate = async (content: any) => {
+  if (!manuscript.value) return
+
+  try {
+    // 直接更新内容，不需要额外的处理
+    await writingDeskStore.updateManuscript({
+      id: manuscript.value.id,
+      firstDraftContent: content
+    })
+  } catch (error) {
+    console.error('更新初稿内容失败:', error)
+  }
+}
+
+// 生成初稿的方法
+const handleGenerateFirstDraft = async () => {
+  if (!manuscript.value || isGeneratingFirstDraft.value) return
+
+  try {
+    isGeneratingFirstDraft.value = true
+    // 生成初稿
+    await writingDeskStore.generateFirstDraft({
+      id: manuscript.value.id
+    })
+
+    // 切换到初稿模式
+    currentMode.value = 'first_draft'
+
+    // 确保编辑器获得焦点
+    nextTick(() => {
+      if (firstDraftEditorRef.value) {
+        firstDraftEditorRef.value.focus()
+      }
+    })
+  } catch (error) {
+    console.error('生成初稿失败:', error)
+  } finally {
+    isGeneratingFirstDraft.value = false
+  }
+}
+
+// 添加深度思考的方法
+const handleDeepThinking = async () => {
+  if (!manuscript.value || isThinking.value) return
+
+  try {
+    isThinking.value = true
+    // TODO: 实现深度思考功能
+    console.log('深度思考功能待实现')
+  } catch (error) {
+    console.error('深度思考失败:', error)
+  } finally {
+    isThinking.value = false
+  }
+}
 </script>
 
 <style lang="scss" scoped>
@@ -731,6 +852,24 @@ watch(
                 color: var(--color-primary);
               }
             }
+          }
+        }
+      }
+
+      .first-draft-mode {
+        height: 100%;
+        padding: 24px 0;
+
+        .editor-wrapper {
+          height: 100%;
+          background: var(--color-bg-secondary);
+          border-radius: 12px;
+          padding: 32px;
+          overflow-y: auto;
+
+          :deep(.tiptap) {
+            min-height: 100%;
+            outline: none;
           }
         }
       }
