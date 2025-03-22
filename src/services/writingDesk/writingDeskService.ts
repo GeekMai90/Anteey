@@ -7,6 +7,8 @@ import type {
   UpdateManuscriptParams,
   PolishManuscriptParams
 } from '@shared/types'
+import { LLMService } from '../rag/llmService'
+import { extractTextFromTiptapJson, convertTextToTiptapJson } from '../utils/textToJson'
 
 // 工具函数：转换数据库记录为 Manuscript 对象
 function convertToManuscript(record: any): Manuscript {
@@ -208,10 +210,15 @@ export async function addManuscriptCard(
 
       // 先检查文稿是否存在
       const manuscript = await trx('manuscripts').where('id', manuscriptId).first()
-
       if (!manuscript) {
         throw new Error(`文稿不存在: ${manuscriptId}`)
       }
+
+      // 将目标位置及之后的卡片的 order 值加 1
+      await trx('manuscript_cards')
+        .where('manuscriptId', manuscriptId)
+        .where('order', '>=', order)
+        .increment('order', 1)
 
       const now = new Date()
       const id = uuidv4()
@@ -227,6 +234,7 @@ export async function addManuscriptCard(
         updatedAt: now
       }
 
+      // 插入新卡片
       const [created] = await trx('manuscript_cards').insert(card).returning('*')
 
       return convertToManuscriptCard(created)
@@ -374,31 +382,93 @@ export async function getManuscriptCardById(cardId: string): Promise<ManuscriptC
   }
 }
 
-// AI 润色
+// 修改润色方法
 export async function polishManuscript(params: PolishManuscriptParams): Promise<Manuscript> {
   try {
-    const manuscript = await getManuscriptById(params.id)
+    console.log('开始润色文稿:', params.id)
 
-    // TODO: 调用 AI 服务进行润色
-    // const polishedContent = await aiService.polish(manuscript.cards, params.style)
+    // 1. 获取文稿及其卡片
+    const manuscript = await getManuscriptById(params.id)
+    if (!manuscript.cards.length) {
+      throw new Error('文稿中没有任何内容')
+    }
+
+    // 2. 提取所有卡片的内容并组合
+    let combinedText = ''
+    manuscript.cards.forEach((card, index) => {
+      const cardText = extractTextFromTiptapJson(card.content)
+
+      // 添加分隔符和序号，帮助AI理解文档结构
+      if (index > 0) {
+        combinedText += '\n---\n'
+      }
+      combinedText += `第${index + 1}部分：\n${cardText}\n`
+    })
+
+    console.log('提取的文本内容:', combinedText)
+
+    // 3. 准备 AI 提示词
+    const prompt = `
+你是一位专业的文字编辑和作家，现在需要你帮我将以下分散的内容段落整合成一篇连贯、优美的文章。
+
+这些内容来自我的写作素材，每个部分都包含重要的观点或论述。请你：
+
+1. 内容整合：
+   - 理解每个部分的核心观点
+   - 找出各部分之间的逻辑关联
+   - 合理安排内容顺序，创造流畅的过渡
+   - 适当添加过渡语句，使段落之间衔接自然
+
+2. 表达优化：
+   - 统一文章的语言风格和表达方式
+   - 优化句式结构，使行文更加优美
+   - 选用准确、优雅的词语
+   - 适当运用修辞手法，增强文章表现力
+
+3. 结构完善：
+   - 确保文章结构完整（开头、主体、结尾）
+   - 合理划分段落，突出层次感
+   - 重点内容要有详略得当的展开
+   - 适当添加总结性语句，加强文章的连贯性
+
+4. 保持原意：
+   - 严格保持原有内容的核心观点
+   - 不改变事实和论据
+   - 保留专业术语和关键概念
+   - 确保优化后的内容准确传达原意
+
+以下是需要整合的内容：
+
+${combinedText}
+
+请直接返回优化后的完整文章，不需要解释修改过程。确保文章具有良好的可读性和专业性，同时保持内容的准确性和完整性。`
+
+    // 4. 调用 AI 服务
+    const llmService = new LLMService()
+    console.log('开始调用 AI 服务...')
+    const polishedText = await llmService.generateResponse(prompt)
+    console.log('AI润色完成，获得响应')
+
+    // 5. 将润色后的文本转换为 Tiptap JSON 格式
+    const polishedContent = convertTextToTiptapJson(polishedText)
 
     const now = new Date()
 
-    // 记录润色历史
+    // 6. 记录润色历史
     await db('manuscript_polish_history').insert({
       id: uuidv4(),
       manuscriptId: params.id,
-      polishedContent: JSON.stringify(manuscript.polishedContent),
-      style: params.style,
+      polishedContent: JSON.stringify(polishedContent),
+      style: params.style || 'default',
       createdAt: now
     })
 
-    // 更新文稿状态
+    // 7. 更新文稿状态
     const [updated] = await db('manuscripts')
       .where({ id: params.id })
       .update({
         status: 'polished',
-        // polishedContent: JSON.stringify(polishedContent),
+        polishedContent: JSON.stringify(polishedContent),
         lastPolishedAt: now,
         updatedAt: now
       })

@@ -13,7 +13,7 @@ export const writingDeskApi = {
     try {
       const result = await ipcRenderer.invoke('create-manuscript', params)
       if (!result.success) throw new Error(result.error)
-      return result.manuscript
+      return result
     } catch (error) {
       console.error('预加载脚本 → 创建文稿失败:', error)
       throw error
@@ -66,6 +66,7 @@ export const writingDeskApi = {
     try {
       const result = await ipcRenderer.invoke('delete-manuscript', id)
       if (!result.success) throw new Error(result.error)
+      return result
     } catch (error) {
       console.error('预加载脚本 → 删除文稿失败:', error)
       throw error
@@ -204,11 +205,10 @@ export const writingDeskApi = {
   },
 
   // AI 润色相关
-  polishManuscript: async (params: PolishManuscriptParams): Promise<Manuscript> => {
+  polishManuscript: async (params: PolishManuscriptParams) => {
     try {
       const result = await ipcRenderer.invoke('polish-manuscript', params)
-      if (!result.success) throw new Error(result.error)
-      return result.manuscript
+      return result // 直接返回完整的 result 对象，包含 success, manuscript 和 error
     } catch (error) {
       console.error('预加载脚本 → 文稿润色失败:', error)
       throw error

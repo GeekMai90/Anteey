@@ -1,0 +1,442 @@
+// 添加一个辅助函数来将 Tiptap JSON 转换为 Markdown 格式文本
+export function extractTextFromTiptapJson(content: any): string {
+  let text = ''
+
+  if (!content || !content.content) return text
+
+  const traverse = (node: any, level: number = 0, listIndex: number = 1) => {
+    if (!node) return
+
+    switch (node.type) {
+      case 'text':
+        // 处理带标记的文本
+        if (node.marks) {
+          node.marks.forEach((mark: any) => {
+            switch (mark.type) {
+              case 'bold':
+                text += `**${node.text}**`
+                break
+              case 'italic':
+                text += `*${node.text}*`
+                break
+              case 'code':
+                text += `\`${node.text}\``
+                break
+              default:
+                text += node.text
+            }
+          })
+        } else {
+          text += node.text
+        }
+        break
+
+      case 'heading':
+        text += '\n' + '#'.repeat(node.attrs.level) + ' '
+        if (node.content) node.content.forEach((n: any) => traverse(n))
+        text += '\n'
+        break
+
+      case 'paragraph':
+        text += '\n'
+        if (node.content) node.content.forEach((n: any) => traverse(n))
+        text += '\n'
+        break
+
+      case 'bulletList':
+        text += '\n'
+        if (node.content) {
+          node.content.forEach((n: any) => {
+            text += '  '.repeat(level) + '* '
+            traverse(n, level + 1)
+          })
+        }
+        break
+
+      case 'orderedList':
+        text += '\n'
+        if (node.content) {
+          node.content.forEach((n: any, index: number) => {
+            text += '  '.repeat(level) + `${listIndex + index}. `
+            traverse(n, level + 1, listIndex + index)
+          })
+        }
+        break
+
+      case 'listItem':
+        if (node.content) node.content.forEach((n: any) => traverse(n, level))
+        break
+
+      case 'taskList':
+        text += '\n'
+        if (node.content) {
+          node.content.forEach((n: any) => {
+            text += '  '.repeat(level) + `- [${n.attrs.checked ? 'x' : ' '}] `
+            traverse(n, level + 1)
+          })
+        }
+        break
+
+      case 'table':
+        text += '\n'
+        if (node.content) {
+          // 处理表头
+          const headerRow = node.content[0]
+          if (headerRow && headerRow.content) {
+            headerRow.content.forEach((cell: any) => {
+              text += '| '
+              traverse(cell)
+              text += ' '
+            })
+            text += '|\n'
+            // 添加分隔行
+            headerRow.content.forEach(() => {
+              text += '| --- '
+            })
+            text += '|\n'
+          }
+          // 处理数据行
+          node.content.slice(1).forEach((row: any) => {
+            if (row.content) {
+              row.content.forEach((cell: any) => {
+                text += '| '
+                traverse(cell)
+                text += ' '
+              })
+              text += '|\n'
+            }
+          })
+        }
+        break
+
+      case 'blockquote':
+        text += '\n> '
+        if (node.content) node.content.forEach((n: any) => traverse(n))
+        text += '\n'
+        break
+
+      case 'codeBlock':
+        text += '\n```' + (node.attrs.language || '') + '\n'
+        if (node.content) node.content.forEach((n: any) => traverse(n))
+        text += '\n```\n'
+        break
+
+      case 'image':
+        text += `\n![${node.attrs.alt || ''}](${node.attrs.src})\n`
+        break
+
+      default:
+        if (node.content) node.content.forEach((n: any) => traverse(n))
+    }
+  }
+
+  content.content.forEach((node: any) => traverse(node))
+  return text.trim()
+}
+
+// 将润色后的文本转换回 Tiptap JSON 格式
+export function convertTextToTiptapJson(text: string): any {
+  const content: any[] = []
+  const lines = text
+    .split('\n')
+    .map((line) => line.trim())
+    .filter((line) => line) // 过滤掉空行
+  let inTable = false
+  let tableContent: any = null
+  let inCodeBlock = false
+  let codeBlockContent = ''
+  let codeBlockLanguage = ''
+  let inList = false
+  let listContent: any = null
+  let inQuote = false
+  let quoteContent: any = null
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]
+
+    // 处理代码块
+    if (line.startsWith('```')) {
+      if (!inCodeBlock) {
+        inCodeBlock = true
+        codeBlockLanguage = line.slice(3).trim() || 'plaintext'
+        codeBlockContent = ''
+      } else if (codeBlockContent.trim()) {
+        // 只有当有内容时才添加代码块
+        content.push({
+          type: 'codeBlock',
+          attrs: { language: codeBlockLanguage },
+          content: [{ type: 'text', text: codeBlockContent.trim() }]
+        })
+        inCodeBlock = false
+        codeBlockContent = ''
+      }
+      continue
+    }
+
+    if (inCodeBlock) {
+      codeBlockContent += line + '\n'
+      continue
+    }
+
+    // 处理标题
+    const headingMatch = line.match(/^(#{1,6})\s+(.+)$/)
+    if (headingMatch && headingMatch[2].trim()) {
+      content.push({
+        type: 'heading',
+        attrs: {
+          level: headingMatch[1].length,
+          textAlign: 'left'
+        },
+        content: [{ type: 'text', text: headingMatch[2].trim() }]
+      })
+      continue
+    }
+
+    // 处理引用块
+    if (line.startsWith('>')) {
+      const quoteText = line.slice(1).trim()
+      if (quoteText) {
+        // 只处理非空引用
+        if (!inQuote) {
+          inQuote = true
+          quoteContent = {
+            type: 'blockquote',
+            content: [
+              {
+                type: 'paragraph',
+                attrs: { textAlign: 'left' },
+                content: [{ type: 'text', text: quoteText }]
+              }
+            ]
+          }
+        } else {
+          quoteContent.content.push({
+            type: 'paragraph',
+            attrs: { textAlign: 'left' },
+            content: [{ type: 'text', text: quoteText }]
+          })
+        }
+      }
+      continue
+    }
+
+    // 处理表格
+    if (line.includes('|')) {
+      const cells = line
+        .split('|')
+        .map((cell) => cell.trim())
+        .filter((cell) => cell) // 过滤掉空单元格
+
+      if (cells.length > 0) {
+        if (!inTable) {
+          inTable = true
+          tableContent = {
+            type: 'table',
+            content: []
+          }
+        }
+
+        // 忽略分隔行（包含 -）
+        if (line.includes('---')) continue
+
+        const rowContent = cells.map((cell) => ({
+          type: tableContent.content.length === 0 ? 'tableHeader' : 'tableCell',
+          attrs: { colspan: 1, colwidth: null, rowspan: 1 },
+          content: [
+            {
+              type: 'paragraph',
+              attrs: { textAlign: 'left' },
+              content: [{ type: 'text', text: cell }]
+            }
+          ]
+        }))
+
+        if (rowContent.length > 0) {
+          tableContent.content.push({
+            type: 'tableRow',
+            content: rowContent
+          })
+        }
+      }
+      continue
+    }
+
+    // 处理列表
+    const listMatch = line.match(/^(\s*)([-*+]|\d+\.)\s+(.+)$/)
+    if (listMatch) {
+      const [, , marker, text] = listMatch
+      const isOrdered = /\d+\./.test(marker)
+
+      if (text.trim()) {
+        // 只处理非空列表项
+        if (!inList) {
+          inList = true
+          listContent = {
+            type: isOrdered ? 'orderedList' : 'bulletList',
+            attrs: isOrdered ? { start: 1, tight: true } : { tight: true },
+            content: []
+          }
+        }
+
+        listContent.content.push({
+          type: 'listItem',
+          content: [
+            {
+              type: 'paragraph',
+              attrs: { textAlign: 'left' },
+              content: processInlineStyles(text.trim())
+            }
+          ]
+        })
+      }
+      continue
+    }
+
+    // 处理任务列表
+    const taskMatch = line.match(/^(\s*)-\s+\[([ x])\]\s+(.+)$/)
+    if (taskMatch) {
+      const [, , checked, text] = taskMatch
+
+      if (text.trim()) {
+        // 只处理非空任务项
+        if (!inList) {
+          inList = true
+          listContent = {
+            type: 'taskList',
+            content: []
+          }
+        }
+
+        listContent.content.push({
+          type: 'taskItem',
+          attrs: { checked: checked === 'x' },
+          content: [
+            {
+              type: 'paragraph',
+              attrs: { textAlign: 'left' },
+              content: processInlineStyles(text.trim())
+            }
+          ]
+        })
+      }
+      continue
+    }
+
+    // 处理普通段落（包含行内样式）
+    const inlineContent = processInlineStyles(line)
+    if (inlineContent.length > 0) {
+      // 只添加非空段落
+      content.push({
+        type: 'paragraph',
+        attrs: { textAlign: 'left' },
+        content: inlineContent
+      })
+    }
+  }
+
+  // 处理最后一个未闭合的块
+  if (inTable && tableContent && tableContent.content.length > 0) {
+    content.push(tableContent)
+  } else if (inCodeBlock && codeBlockContent.trim()) {
+    content.push({
+      type: 'codeBlock',
+      attrs: { language: codeBlockLanguage },
+      content: [{ type: 'text', text: codeBlockContent.trim() }]
+    })
+  } else if (inList && listContent && listContent.content.length > 0) {
+    content.push(listContent)
+  } else if (inQuote && quoteContent && quoteContent.content.length > 0) {
+    content.push(quoteContent)
+  }
+
+  // 确保至少有一个段落
+  if (content.length === 0) {
+    content.push({
+      type: 'paragraph',
+      attrs: { textAlign: 'left' },
+      content: [{ type: 'text', text: '暂无内容' }]
+    })
+  }
+
+  return {
+    type: 'doc',
+    content
+  }
+}
+
+// 处理行内样式的辅助函数
+function processInlineStyles(text: string): any[] {
+  const content: any[] = []
+  let currentText = ''
+  let pos = 0
+
+  while (pos < text.length) {
+    // 处理加粗
+    if (text.slice(pos).startsWith('**') && text.slice(pos + 2).includes('**')) {
+      if (currentText) {
+        content.push({ type: 'text', text: currentText })
+        currentText = ''
+      }
+      pos += 2
+      let boldText = ''
+      while (pos < text.length && !text.slice(pos).startsWith('**')) {
+        boldText += text[pos++]
+      }
+      pos += 2
+      content.push({
+        type: 'text',
+        text: boldText,
+        marks: [{ type: 'bold' }]
+      })
+      continue
+    }
+
+    // 处理斜体
+    if (text[pos] === '*' && !text.slice(pos).startsWith('**')) {
+      if (currentText) {
+        content.push({ type: 'text', text: currentText })
+        currentText = ''
+      }
+      pos++
+      let italicText = ''
+      while (pos < text.length && text[pos] !== '*') {
+        italicText += text[pos++]
+      }
+      pos++
+      content.push({
+        type: 'text',
+        text: italicText,
+        marks: [{ type: 'italic' }]
+      })
+      continue
+    }
+
+    // 处理行内代码
+    if (text[pos] === '`') {
+      if (currentText) {
+        content.push({ type: 'text', text: currentText })
+        currentText = ''
+      }
+      pos++
+      let codeText = ''
+      while (pos < text.length && text[pos] !== '`') {
+        codeText += text[pos++]
+      }
+      pos++
+      content.push({
+        type: 'text',
+        text: codeText,
+        marks: [{ type: 'code' }]
+      })
+      continue
+    }
+
+    currentText += text[pos++]
+  }
+
+  if (currentText) {
+    content.push({ type: 'text', text: currentText })
+  }
+
+  return content
+}

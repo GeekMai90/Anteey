@@ -58,6 +58,7 @@
             ref="scrollContainerRef"
             class="writing-paper"
             @dragover="handleDragOver"
+            @dragleave="handleDragLeave"
             @drop="handleDrop"
           >
             <!-- 卡片列表 -->
@@ -74,18 +75,34 @@
               </div>
               <template v-else>
                 <draggable
-                  v-model="localCards"
+                  :list="manuscript?.cards || []"
                   item-key="id"
                   handle=".drag-handle"
+                  :group="{ name: 'cards' }"
                   @end="handleDragEnd"
                 >
                   <template #item="{ element }">
-                    <ManuscriptContentCard
-                      :card="element"
-                      @update:content="(content) => handleCardContentUpdate(element.id, content)"
-                      @delete="handleCardDelete(element.id)"
-                      @add="(position) => handleAddCard(element, position)"
-                    />
+                    <div class="card-wrapper">
+                      <div
+                        class="drop-indicator top"
+                        :class="{
+                          active: isDraggingOver && currentDropIndex === getCardIndex(element.id)
+                        }"
+                      ></div>
+                      <ManuscriptContentCard
+                        :card="element"
+                        @update:content="(content) => handleCardContentUpdate(element.id, content)"
+                        @delete="handleCardDelete(element.id)"
+                        @add="(position) => handleAddCard(element, position)"
+                      />
+                      <div
+                        class="drop-indicator bottom"
+                        :class="{
+                          active:
+                            isDraggingOver && currentDropIndex === getCardIndex(element.id) + 1
+                        }"
+                      ></div>
+                    </div>
                   </template>
                 </draggable>
 
@@ -105,8 +122,9 @@
             <TipTapEditor
               ref="polishEditorRef"
               :content="localPolishedContent"
+              :note-id="manuscript?.id"
               :editable="true"
-              :enable-drag-handle="false"
+              :enable-drag-handle="true"
               @update:content="handlePolishedContentUpdate"
             />
           </div>
@@ -135,7 +153,6 @@ const route = useRoute()
 const writingDeskStore = useWritingDeskStore()
 const noteStore = useNoteStore()
 const manuscript = computed(() => writingDeskStore.currentManuscript)
-const localCards = ref(manuscript.value?.cards || [])
 
 // 模式切换相关
 const currentMode = ref<'draft' | 'polish'>('draft')
@@ -163,14 +180,28 @@ onMounted(async () => {
     return
   }
 
-  console.log('ManuscriptDetail - 开始加载文稿，ID:', manuscriptId)
-  await writingDeskStore.loadManuscript(manuscriptId)
-  localCards.value = manuscript.value?.cards || []
+  try {
+    console.log('ManuscriptDetail - 开始加载文稿，ID:', manuscriptId)
+    await writingDeskStore.loadManuscript(manuscriptId)
 
-  // 等待一帧后再滚动到顶部
-  requestAnimationFrame(() => {
-    scrollToTop()
-  })
+    // 添加一个小延时确保 DOM 完全渲染
+    setTimeout(() => {
+      nextTick(() => {
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            if (scrollContainerRef.value) {
+              scrollContainerRef.value.scrollTop = 0
+              console.log('已滚动到顶部，当前滚动位置:', scrollContainerRef.value.scrollTop)
+            } else {
+              console.warn('scrollContainerRef 不存在')
+            }
+          })
+        })
+      })
+    }, 100) // 100ms 的延时
+  } catch (error) {
+    console.error('加载文稿失败:', error)
+  }
 })
 
 // 监听模式切换
@@ -208,17 +239,6 @@ watch(
     }
   },
   { immediate: true }
-)
-
-// 监听 manuscript 变化，更新本地卡片列表
-watch(
-  () => manuscript.value?.cards,
-  (newCards) => {
-    if (newCards) {
-      localCards.value = newCards
-    }
-  },
-  { deep: true }
 )
 
 // 标题编辑方法
@@ -311,83 +331,52 @@ const handleCardDelete = async (cardId: string) => {
 
   try {
     await writingDeskStore.deleteCard(cardId)
-    localCards.value = localCards.value.filter((card) => card.id !== cardId)
   } catch (error) {
     console.error('删除卡片失败:', error)
   }
 }
 
+// 修改拖拽结束的处理方法
 const handleDragEnd = async () => {
   if (!manuscript.value) return
 
-  // 将变量声明移到 try 块外面
-  let originalCards: ManuscriptCard[] = []
-
   try {
-    console.log('开始更新卡片顺序')
-
-    // 保存拖拽前的卡片数据，以防更新失败时恢复
-    originalCards = JSON.parse(JSON.stringify(localCards.value))
-
-    // 将响应式对象转换为普通对象，保留所有必要的 ManuscriptCard 属性
-    const plainCards = localCards.value.map((card, index) => {
-      // 确保 content 存在且正确复制
-      let safeContent
-      try {
-        safeContent = card.content ? JSON.parse(JSON.stringify(card.content)) : null
-        if (!safeContent) {
-          console.warn(`卡片 ${card.id} 的内容为空，使用默认内容`)
-          safeContent = {
-            type: 'doc',
-            content: [{ type: 'paragraph', content: [] }]
-          }
-        }
-      } catch (error) {
-        console.error(`处理卡片 ${card.id} 内容时出错:`, error)
-        safeContent = card.content // 使用原始内容作为后备
-      }
-
-      return {
+    // 获取当前卡片的顺序
+    const cards = manuscript.value.cards.map((card, index) => {
+      // 创建一个普通对象的副本，避免响应式对象序列化问题
+      const plainCard = {
         id: card.id,
         type: card.type,
-        content: safeContent,
+        content: JSON.parse(JSON.stringify(card.content)),
         order: index,
         createdAt: card.createdAt,
         updatedAt: card.updatedAt,
         noteId: card.noteId
       }
+      return plainCard
     })
 
-    // 打印更新前的数据，方便调试
-    console.log('更新前的卡片数据:', {
-      totalCards: plainCards.length,
-      cardsData: plainCards.map((card) => ({
-        id: card.id,
-        order: card.order,
-        contentSize: JSON.stringify(card.content).length
-      }))
+    console.log('更新卡片顺序 - 准备数据:', {
+      manuscriptId: manuscript.value.id,
+      totalCards: cards.length,
+      cards: cards.map((c) => ({ id: c.id, order: c.order }))
     })
 
+    // 更新数据库中的顺序
     await writingDeskStore.updateManuscriptCardsOrder({
       manuscriptId: manuscript.value.id,
-      cards: plainCards
+      cards
     })
 
-    // 更新成功后重新加载数据，确保数据一致性
+    // 重新加载文稿数据
     await writingDeskStore.loadManuscript(manuscript.value.id)
-    localCards.value = manuscript.value.cards || []
-
-    console.log('卡片顺序更新成功')
   } catch (error) {
     console.error('更新卡片顺序失败:', error)
-    // 如果更新失败，恢复到原始状态
-    localCards.value = originalCards
-    // 显示错误提示
-    console.warn('已恢复到拖拽前的状态')
+    await writingDeskStore.loadManuscript(manuscript.value.id)
   }
 }
 
-// 创建段落卡片
+// 修改创建段落卡片的方法
 const createParagraphCard = async () => {
   if (!manuscript.value) {
     console.error('无法创建段落：当前文稿不存在')
@@ -396,11 +385,11 @@ const createParagraphCard = async () => {
 
   try {
     console.log('开始创建段落卡片')
-    // 计算新卡片的顺序
-    const order = localCards.value.length
+    // 直接使用 manuscript.value.cards.length 作为新卡片的顺序
+    const order = manuscript.value.cards?.length || 0
 
     // 创建新的段落卡片
-    const newCard = await writingDeskStore.addCard(
+    await writingDeskStore.addCard(
       manuscript.value.id,
       {
         type: 'doc',
@@ -409,28 +398,24 @@ const createParagraphCard = async () => {
       order
     )
 
-    // 更新本地卡片列表
-    if (newCard) {
-      localCards.value = [...localCards.value, newCard]
-    }
-
-    console.log('段落卡片创建成功')
+    // 重新加载文稿数据
+    await writingDeskStore.loadManuscript(manuscript.value.id)
   } catch (error) {
     console.error('创建段落卡片失败:', error)
   }
 }
 
-// 添加卡片处理方法
+// 修改添加卡片的方法
 const handleAddCard = async (targetCard: ManuscriptCard, position: 'before' | 'after') => {
   if (!manuscript.value) return
 
   try {
     // 计算新卡片的顺序
-    const targetIndex = localCards.value.findIndex((card) => card.id === targetCard.id)
+    const targetIndex = manuscript.value.cards.findIndex((card) => card.id === targetCard.id)
     const newOrder = position === 'before' ? targetIndex : targetIndex + 1
 
     // 创建新的段落卡片
-    const newCard = await writingDeskStore.addCard(
+    await writingDeskStore.addCard(
       manuscript.value.id,
       {
         type: 'doc',
@@ -439,31 +424,8 @@ const handleAddCard = async (targetCard: ManuscriptCard, position: 'before' | 'a
       newOrder
     )
 
-    if (newCard) {
-      // 更新本地卡片列表
-      const newCards = [...localCards.value]
-      newCards.splice(newOrder, 0, newCard)
-
-      // 先更新本地状态
-      localCards.value = newCards
-
-      // 更新所有卡片的顺序到数据库
-      const plainCards = newCards.map((card, index) => ({
-        id: card.id,
-        type: card.type,
-        content: JSON.parse(JSON.stringify(card.content)),
-        order: index,
-        createdAt: card.createdAt,
-        updatedAt: card.updatedAt,
-        noteId: card.noteId
-      }))
-
-      // 使用 updateManuscriptCardsOrder 来更新所有卡片的顺序
-      await writingDeskStore.updateManuscriptCardsOrder({
-        manuscriptId: manuscript.value.id,
-        cards: plainCards
-      })
-    }
+    // 重新加载文稿数据
+    await writingDeskStore.loadManuscript(manuscript.value.id)
   } catch (error) {
     console.error('添加卡片失败:', error)
   }
@@ -471,25 +433,101 @@ const handleAddCard = async (targetCard: ManuscriptCard, position: 'before' | 'a
 
 // 滚动到顶部的方法
 const scrollToTop = () => {
-  nextTick(() => {
-    if (scrollContainerRef.value) {
-      // 强制等待一帧以确保 DOM 完全更新
+  if (!scrollContainerRef.value) {
+    console.warn('scrollToTop: scrollContainerRef 不存在')
+    return
+  }
+
+  // 先尝试直接滚动
+  scrollContainerRef.value.scrollTop = 0
+
+  // 再用异步方式确保滚动生效
+  setTimeout(() => {
+    nextTick(() => {
       requestAnimationFrame(() => {
-        scrollContainerRef.value!.scrollTop = 0
+        if (scrollContainerRef.value) {
+          scrollContainerRef.value.scrollTop = 0
+          console.log(
+            'scrollToTop: 已滚动到顶部，当前滚动位置:',
+            scrollContainerRef.value.scrollTop
+          )
+        }
       })
-    }
-  })
+    })
+  }, 50)
 }
 
-// 处理拖拽相关
+// 添加一个生命周期钩子来确保组件完全挂载后滚动
+onMounted(() => {
+  // 确保组件完全挂载后执行滚动
+  nextTick(() => {
+    scrollToTop()
+  })
+})
+
+// 添加拖拽状态管理
+const isDraggingOver = ref(false)
+const currentDropIndex = ref(-1)
+
+// 获取卡片索引的辅助函数
+const getCardIndex = (cardId: string) => {
+  return manuscript.value?.cards.findIndex((card) => card.id === cardId) || -1
+}
+
+// 修改处理拖拽悬停
 const handleDragOver = (event: DragEvent) => {
-  // 允许放置
   event.preventDefault()
-  if (event.dataTransfer) {
-    event.dataTransfer.dropEffect = 'copy'
+  if (!event.dataTransfer) return
+
+  isDraggingOver.value = true
+  event.dataTransfer.dropEffect = 'copy'
+
+  // 获取鼠标位置
+  const mouseY = event.clientY
+  const cardElements = document.querySelectorAll('.card-wrapper')
+
+  // 找到最近的插入位置
+  let closestIndex = -1
+  let minDistance = Infinity
+
+  cardElements.forEach((element, index) => {
+    const rect = element.getBoundingClientRect()
+    const centerY = rect.top + rect.height / 2
+    const distance = Math.abs(mouseY - centerY)
+
+    if (distance < minDistance) {
+      minDistance = distance
+      closestIndex = mouseY < centerY ? index : index + 1
+    }
+  })
+
+  // 如果是空列表，设置索引为0
+  if (cardElements.length === 0) {
+    closestIndex = 0
+  }
+
+  currentDropIndex.value = closestIndex
+}
+
+// 修改处理拖拽离开
+const handleDragLeave = (event: DragEvent) => {
+  // 确保真的离开了容器而不是进入了子元素
+  const target = event.currentTarget as HTMLElement
+  const rect = target.getBoundingClientRect()
+
+  const { clientX, clientY } = event
+  if (
+    clientX <= rect.left ||
+    clientX >= rect.right ||
+    clientY <= rect.top ||
+    clientY >= rect.bottom
+  ) {
+    isDraggingOver.value = false
+    currentDropIndex.value = -1
   }
 }
 
+// 修改处理放置的方法
 const handleDrop = async (event: DragEvent) => {
   event.preventDefault()
   if (!event.dataTransfer || !manuscript.value) return
@@ -500,28 +538,44 @@ const handleDrop = async (event: DragEvent) => {
 
     if (!noteId) return
 
-    // 使用 noteStore 获取源笔记
     const sourceNote = await noteStore.fetchNote(noteId)
     if (!sourceNote) {
       throw new Error('未找到源笔记')
     }
 
-    // 创建新的引用卡片，使用源笔记的内容
-    const newCard = await writingDeskStore.addCard(
+    // 创建新卡片
+    await writingDeskStore.addCard(
       manuscript.value.id,
       sourceNote.content,
-      localCards.value.length,
+      currentDropIndex.value,
       noteId
     )
 
-    // 更新本地卡片列表
-    if (newCard) {
-      localCards.value = [...localCards.value, newCard]
-    }
+    // 重新加载文稿数据
+    await writingDeskStore.loadManuscript(manuscript.value.id)
   } catch (error) {
     console.error('创建引用卡片失败:', error)
+  } finally {
+    isDraggingOver.value = false
+    currentDropIndex.value = -1
   }
 }
+
+// 监听路由变化
+watch(
+  () => route.params.id,
+  async (newId) => {
+    if (newId) {
+      try {
+        await writingDeskStore.loadManuscript(newId as string)
+        // 在路由变化时也确保滚动到顶部
+        scrollToTop()
+      } catch (error) {
+        console.error('加载文稿失败:', error)
+      }
+    }
+  }
+)
 </script>
 
 <style lang="scss" scoped>
@@ -622,8 +676,8 @@ const handleDrop = async (event: DragEvent) => {
           overflow-y: auto;
 
           &.drag-over {
-            border: 2px dashed var(--color-primary);
-            background-color: var(--color-hover-bg);
+            border: 1px solid var(--color-border);
+            background-color: var(--color-bg-secondary);
           }
 
           .cards-container {
@@ -697,6 +751,35 @@ const handleDrop = async (event: DragEvent) => {
             outline: none;
           }
         }
+      }
+    }
+  }
+
+  .card-wrapper {
+    position: relative;
+
+    .drop-indicator {
+      position: absolute;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: transparent;
+      transition: all 0.2s ease;
+      pointer-events: none;
+      z-index: 10;
+
+      &.top {
+        top: -1px;
+      }
+
+      &.bottom {
+        bottom: -1px;
+      }
+
+      &.active {
+        height: 2px;
+        background: var(--color-primary);
+        box-shadow: 0 0 4px var(--color-primary);
       }
     }
   }
