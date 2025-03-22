@@ -377,8 +377,8 @@ const modeOptions = [
   },
   {
     value: 'polish',
-    label: '终稿',
-    tooltip: { content: '终稿润色模式', delay: { show: 1000 } }
+    label: '完成',
+    tooltip: { content: '完成润色模式', delay: { show: 1000 } }
   }
 ]
 

@@ -17,9 +17,9 @@ const statusText = computed(() => {
   switch (props.status) {
     case 'draft':
       return '草稿'
+    case 'first_draft':
+      return '初稿'
     case 'polished':
-      return '润色'
-    case 'completed':
       return '完成'
     default:
       return '未知'
@@ -51,34 +51,44 @@ const statusText = computed(() => {
 
   // 草稿状态
   &.draft {
-    color: var(--color-warning);
-    border-color: var(--color-warning);
-    background-color: var(--color-warning-light);
+    color: var(--color-draft);
+    border-color: var(--color-draft);
+    background-color: var(--color-draft-light);
 
     .dot {
-      background-color: var(--color-warning);
+      background-color: var(--color-draft);
+    }
+  }
+  // 初稿状态
+  &.first_draft {
+    color: var(--color-yellow);
+    border-color: var(--color-yellow);
+    background-color: var(--color-yellow-light);
+
+    .dot {
+      background-color: var(--color-yellow);
     }
   }
 
   // 润色状态
   &.polished {
-    color: var(--color-info);
-    border-color: var(--color-info);
-    background-color: var(--color-info-light);
+    color: var(--color-primary);
+    border-color: var(--color-primary);
+    background-color: var(--color-primary-light);
 
     .dot {
-      background-color: var(--color-info);
+      background-color: var(--color-primary);
     }
   }
 
   // 完成状态
   &.completed {
-    color: var(--color-success);
-    border-color: var(--color-success);
-    background-color: var(--color-success-light);
+    color: var(--color-primary);
+    border-color: var(--color-primary);
+    background-color: var(--color-primary-light);
 
     .dot {
-      background-color: var(--color-success);
+      background-color: var(--color-primary);
     }
   }
 }

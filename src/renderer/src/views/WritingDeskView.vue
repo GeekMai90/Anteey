@@ -228,14 +228,14 @@ const displayOptions = [
     tooltip: { content: '显示草稿状态的文稿', delay: { show: 1000 } }
   },
   {
-    value: 'polished',
-    label: '润色',
-    tooltip: { content: '显示已润色的文稿', delay: { show: 1000 } }
+    value: 'first_draft',
+    label: '初稿',
+    tooltip: { content: '显示初稿状态的文稿', delay: { show: 1000 } }
   },
   {
-    value: 'completed',
+    value: 'polished',
     label: '完成',
-    tooltip: { content: '显示已完成的文稿', delay: { show: 1000 } }
+    tooltip: { content: '显示完成状态的文稿', delay: { show: 1000 } }
   }
 ]
 
