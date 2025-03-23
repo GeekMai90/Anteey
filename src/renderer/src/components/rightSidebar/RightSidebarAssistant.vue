@@ -619,15 +619,6 @@ const handleInputKeyDown = (event: KeyboardEvent) => {
   }
 }
 
-// 2. 添加全局键盘事件处理函数
-const handleGlobalKeyDown = (event: KeyboardEvent) => {
-  // 处理中断快捷键 (Cmd+Backspace 或 Ctrl+Backspace)
-  if ((event.metaKey || event.ctrlKey) && event.key === 'Backspace') {
-    event.preventDefault()
-    handleAbortRequest()
-  }
-}
-
 const handleInput = (event: Event) => {
   const target = event.target as HTMLTextAreaElement
   const cursorPosition = target.selectionStart
@@ -856,7 +847,34 @@ const scrollToElement = (element: Element, offset = 16) => {
   messagesContainer.value.scrollTop = messagesContainer.value.scrollTop + relativeTop - offset
 }
 
-// 1. 修改 onMounted 钩子,添加全局键盘事件监听
+// 1. 将事件处理函数移到组件顶层
+const handleClickOutside = (event: MouseEvent) => {
+  const target = event.target as HTMLElement
+  if (!target.closest('.note-selector') && !target.closest('.input-container')) {
+    showNoteSelector.value = false
+  }
+}
+
+// 2. 将新消息事件处理函数移到顶层
+const handleNewAssistantMessage = (event: CustomEvent) => {
+  const { messageId } = event.detail
+  nextTick(() => {
+    const messageElement = document.querySelector(`[data-message-id="${messageId}"]`)
+    if (messageElement) {
+      scrollToElement(messageElement)
+    }
+  })
+}
+
+// 3. 将全局键盘事件处理函数保持在顶层
+const handleGlobalKeyDown = (event: KeyboardEvent) => {
+  if ((event.metaKey || event.ctrlKey) && event.key === 'Backspace') {
+    event.preventDefault()
+    handleAbortRequest()
+  }
+}
+
+// 4. 修改 onMounted 和 onUnmounted 钩子
 onMounted(async () => {
   // 预加载 Agent 数据
   await agentStore.fetchMenuAgents()
@@ -867,55 +885,30 @@ onMounted(async () => {
     currentMode.value = defaultSuggestion
   }
 
+  // 添加所有事件监听器
   window.addEventListener('resize', updatePosition)
   window.addEventListener('resize', updateNoteSelectorPosition)
-  focusInput()
-
-  const handleClickOutside = (event: MouseEvent) => {
-    const target = event.target as HTMLElement
-    if (!target.closest('.note-selector') && !target.closest('.input-container')) {
-      showNoteSelector.value = false
-    }
-  }
-
   document.addEventListener('click', handleClickOutside)
+  window.addEventListener('new-assistant-message', handleNewAssistantMessage as EventListener)
+  window.addEventListener('keydown', handleGlobalKeyDown)
 
-  onUnmounted(() => {
-    window.removeEventListener('resize', updatePosition)
-    window.removeEventListener('resize', updateNoteSelectorPosition)
-    document.removeEventListener('click', handleClickOutside)
-  })
-
+  focusInput()
   modelConfigStore.loadConfigs()
 
-  // 监听新的助手消息事件
-  const handleNewAssistantMessage = (event: CustomEvent) => {
-    const { messageId } = event.detail
-    nextTick(() => {
-      const messageElement = document.querySelector(`[data-message-id="${messageId}"]`)
-      if (messageElement) {
-        scrollToElement(messageElement)
-      }
-    })
-  }
-
-  window.addEventListener('new-assistant-message', handleNewAssistantMessage as EventListener)
-
-  onUnmounted(() => {
-    window.removeEventListener('new-assistant-message', handleNewAssistantMessage as EventListener)
-  })
-
-  // 添加以下代码设置消息容器的初始滚动位置
+  // 设置消息容器的初始滚动位置
   if (messagesContainer.value) {
     messagesContainer.value.scrollTop = 0
   }
+})
 
-  // 添加全局键盘事件监听
-  window.addEventListener('keydown', handleGlobalKeyDown)
-
-  onUnmounted(() => {
-    window.removeEventListener('keydown', handleGlobalKeyDown)
-  })
+// 5. 单独定义 onUnmounted 钩子
+onUnmounted(() => {
+  // 移除所有事件监听器
+  window.removeEventListener('resize', updatePosition)
+  window.removeEventListener('resize', updateNoteSelectorPosition)
+  document.removeEventListener('click', handleClickOutside)
+  window.removeEventListener('new-assistant-message', handleNewAssistantMessage as EventListener)
+  window.removeEventListener('keydown', handleGlobalKeyDown)
 })
 
 // 2. 修改 handleAbortRequest 函数

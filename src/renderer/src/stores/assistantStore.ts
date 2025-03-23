@@ -33,6 +33,12 @@ export const useAssistantStore = defineStore(
     const modelConfigStore = useModelConfigStore()
     const agentStore = useAgentStore()
 
+    // 从 localStorage 读取保存的默认模式，如果没有则使用 'ask'
+    const savedMode = localStorage.getItem('assistant-store')
+    const initialMode = savedMode ? JSON.parse(savedMode).defaultMode || 'ask' : 'chat'
+
+    const defaultMode = ref<'ask' | 'chat'>(initialMode)
+
     // 确保配置已加载
     const ensureConfigLoaded = async () => {
       if (!modelConfigStore.defaultConfig) {
@@ -53,9 +59,6 @@ export const useAssistantStore = defineStore(
       averageResponseTime: 0,
       errorCount: 0
     })
-
-    // 添加默认模式状态
-    const defaultMode = ref<'ask' | 'chat'>('ask') // 默认为"问一问"模式
 
     // 在 store 的 state 部分添加
     const loadingAnimation = ref<{
@@ -1229,10 +1232,19 @@ export const useAssistantStore = defineStore(
       displayedMessageIds.value.add(messageId)
     }
 
-    // 添加切换默认模式的方法
+    // 修改设置默认模式的方法
     const setDefaultMode = (mode: 'ask' | 'chat') => {
-      console.log('设置默认模式:', mode)
       defaultMode.value = mode
+      // 手动保存到 localStorage
+      const currentStore = localStorage.getItem('assistant-store')
+      const storeData = currentStore ? JSON.parse(currentStore) : {}
+      localStorage.setItem(
+        'assistant-store',
+        JSON.stringify({
+          ...storeData,
+          defaultMode: mode
+        })
+      )
     }
 
     // 添加修改动画的方法

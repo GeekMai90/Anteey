@@ -129,7 +129,7 @@ const systemPrompt = computed({
 })
 
 // 修改模式选项的定义,适配 Dropdown 组件的 items 类型
-const modeOptions = [
+const modeOptions = computed(() => [
   {
     label: '问一问 - 基于笔记解答',
     key: 'ask',
@@ -140,7 +140,7 @@ const modeOptions = [
     key: 'chat',
     active: assistantStore.defaultMode === 'chat'
   }
-]
+])
 
 // 修改动画选项的定义
 const animationOptions = [
