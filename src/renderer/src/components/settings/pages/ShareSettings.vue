@@ -13,16 +13,19 @@
           <div class="section-title">作者信息</div>
           <div class="form-group">
             <label>作者名称</label>
-            <input v-model="shareSettings.authorName" type="text" placeholder="请输入作者名称" />
+            <Input v-model="shareSettings.authorName" placeholder="请输入作者名称" />
           </div>
           <div class="form-group">
             <label>个性签名</label>
-            <input v-model="shareSettings.authorMotto" type="text" placeholder="请输入个性签名" />
+            <Input v-model="shareSettings.authorMotto" placeholder="请输入个性签名" />
           </div>
           <div class="form-group">
             <label>二维码链接</label>
-            <input v-model="shareSettings.qrcodeUrl" type="text" placeholder="请输入二维码链接" />
-            <div class="form-help">该链接将生成二维码显示在分享卡片底部</div>
+            <Input
+              v-model="shareSettings.qrcodeUrl"
+              placeholder="请输入二维码链接"
+              help="该链接将生成二维码显示在分享卡片底部"
+            />
           </div>
         </div>
 
@@ -37,7 +40,19 @@
         </div>
 
         <div class="action-buttons">
-          <button class="save-btn" @click="handleSaveSettings">保存设置</button>
+          <!-- <button class="save-btn" @click="handleSaveSettings">保存设置</button> -->
+          <Button
+            type="primary"
+            :height="36"
+            :tooltip="{
+              content: '保存设置',
+              delay: { show: 1000 }
+            }"
+            tooltipPlacement="top"
+            @click.stop="handleSaveSettings"
+          >
+            保存设置
+          </Button>
         </div>
       </div>
     </div>
@@ -51,6 +66,8 @@ import { useUserSettingsStore } from '@renderer/stores/userSettingsStore'
 import ShareNoteCard from '@renderer/components/share/ShareNotedCard.vue'
 import { UpdateUserSettings } from '@shared/types'
 import { message } from '@renderer/utils/message'
+import Button from '@renderer/components/ui/Button.vue'
+import Input from '@renderer/components/ui/Input.vue'
 
 const userSettingsStore = useUserSettingsStore()
 const shareSettings = ref<UpdateUserSettings>({
@@ -117,7 +134,7 @@ const handleSaveSettings = async () => {
     align-items: center;
     gap: 6px;
     margin-bottom: 10px;
-
+    padding-left: 20px;
     .icon {
       background: none;
       border: 1px solid var(--color-border);
@@ -163,11 +180,12 @@ const handleSaveSettings = async () => {
   .share-settings-content {
     flex: 1;
     overflow-y: auto;
-    padding-right: 10px;
+    padding: 0 20px;
   }
 
   .share-section {
     margin-bottom: 24px;
+    padding: 0 10px;
 
     .section-title {
       font-size: 18px;

@@ -61,27 +61,7 @@
               </div>
             </div>
             <div class="value">
-              <div class="number-input-wrapper">
-                <button
-                  class="number-button decrease"
-                  @click="characterLimit = handleNumberChange(-100, 100, 10000, characterLimit)"
-                >
-                  <Minus theme="outline" size="14" :strokeWidth="3" />
-                </button>
-                <input
-                  v-model="characterLimit"
-                  type="number"
-                  min="100"
-                  max="10000"
-                  @change="characterLimit = handleInputChange(100, 10000, characterLimit)"
-                />
-                <button
-                  class="number-button increase"
-                  @click="characterLimit = handleNumberChange(100, 100, 10000, characterLimit)"
-                >
-                  <Plus theme="outline" size="14" :strokeWidth="3" />
-                </button>
-              </div>
+              <NumberInput v-model="characterLimit" :min="100" :max="10000" />
               <span class="input-suffix">字</span>
             </div>
           </div>
@@ -142,12 +122,12 @@
 
 <script setup lang="ts">
 import { ref, onMounted, watch, onUnmounted } from 'vue'
-import { Edit, Help, Plus, Minus } from '@icon-park/vue-next'
+import { Edit, Help } from '@icon-park/vue-next'
 import { useUIStore } from '@renderer/stores/UIStore'
 import { debounce } from 'lodash-es'
 import Switch from '@renderer/components/ui/Switch.vue'
 import { useReviewStore } from '@renderer/stores/reviewStore'
-
+import NumberInput from '@renderer/components/ui/NumberInput.vue'
 const uiStore = useUIStore()
 const reviewStore = useReviewStore()
 
@@ -231,22 +211,6 @@ onUnmounted(() => {
   debouncedUpdateSettings.cancel()
 })
 
-// 处理数字变化
-const handleNumberChange = (delta: number, min: number, max: number, value: number) => {
-  const newValue = value + delta
-  if (newValue >= min && newValue <= max) {
-    return newValue
-  }
-  return value
-}
-
-// 处理输入变化
-const handleInputChange = (min: number, max: number, value: number) => {
-  if (value < min) return min
-  if (value > max) return max
-  return value
-}
-
 // 处理随机回顾设置变化
 const handleMarioStyleChange = (value: boolean) => {
   reviewStore.updateMarioStyleEnabled(value)
@@ -274,6 +238,7 @@ const handleMarioSoundChange = (value: boolean) => {
   align-items: center;
   gap: 6px;
   margin-bottom: 10px;
+  padding: 0 20px;
 
   .icon {
     background: none;
@@ -326,6 +291,7 @@ const handleMarioSoundChange = (value: boolean) => {
   align-items: flex-start;
   justify-content: flex-start;
   padding-bottom: 58px;
+  padding: 0 20px;
   overflow-y: auto;
 
   .settings-item {
@@ -336,7 +302,7 @@ const handleMarioSoundChange = (value: boolean) => {
     justify-content: flex-start;
     margin-top: 4px;
     margin-bottom: 24px;
-
+    padding: 0 10px;
     .title {
       font-size: 18px;
       line-height: 1;
@@ -443,67 +409,6 @@ const handleMarioSoundChange = (value: boolean) => {
           display: flex;
           align-items: center;
           gap: 12px;
-
-          .number-input-wrapper {
-            display: flex;
-            align-items: center;
-            border: 1px solid var(--color-border);
-            border-radius: 6px;
-            background: var(--color-bg-secondary);
-            transition: all 0.2s ease;
-
-            &:hover {
-              border-color: var(--color-primary);
-            }
-
-            &:focus-within {
-              border-color: var(--color-primary);
-            }
-
-            input[type='number'] {
-              width: 60px;
-              height: 32px;
-              border: none;
-              text-align: center;
-              padding: 0;
-              color: var(--color-text-primary);
-              font-size: 14px;
-              background: transparent;
-              outline: none;
-
-              &::-webkit-inner-spin-button,
-              &::-webkit-outer-spin-button {
-                -webkit-appearance: none;
-                margin: 0;
-              }
-            }
-
-            .number-button {
-              width: 32px;
-              height: 32px;
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              background: none;
-              border: none;
-              cursor: pointer;
-              color: var(--color-text-secondary);
-              transition: all 0.2s ease;
-
-              &:hover {
-                color: var(--color-primary);
-                background: var(--color-fill-secondary);
-              }
-
-              &.decrease {
-                border-right: 1px solid var(--color-border);
-              }
-
-              &.increase {
-                border-left: 1px solid var(--color-border);
-              }
-            }
-          }
 
           .input-suffix {
             font-size: 14px;

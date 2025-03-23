@@ -24,81 +24,21 @@
           <div class="form-item">
             <div class="label">每日学习目标</div>
             <div class="value">
-              <div class="number-input-wrapper">
-                <button
-                  class="number-button decrease"
-                  @click="dailyGoal = handleNumberChange(-1, 0, 200, dailyGoal)"
-                >
-                  <Minus theme="outline" size="14" :strokeWidth="3" />
-                </button>
-                <input
-                  v-model="dailyGoal"
-                  type="number"
-                  min="0"
-                  max="200"
-                  @change="dailyGoal = handleInputChange(0, 200, dailyGoal)"
-                />
-                <button
-                  class="number-button increase"
-                  @click="dailyGoal = handleNumberChange(1, 0, 200, dailyGoal)"
-                >
-                  <Plus theme="outline" size="14" :strokeWidth="3" />
-                </button>
-              </div>
+              <NumberInput v-model="dailyGoal" :min="0" :max="200" />
               <span class="input-suffix">张卡片</span>
             </div>
           </div>
           <div class="form-item">
             <div class="label">每日最大新卡数量</div>
             <div class="value">
-              <div class="number-input-wrapper">
-                <button
-                  class="number-button decrease"
-                  @click="newCardsPerDay = handleNumberChange(-1, 0, 100, newCardsPerDay)"
-                >
-                  <Minus theme="outline" size="14" :strokeWidth="3" />
-                </button>
-                <input
-                  v-model="newCardsPerDay"
-                  type="number"
-                  min="0"
-                  max="100"
-                  @change="newCardsPerDay = handleInputChange(0, 100, newCardsPerDay)"
-                />
-                <button
-                  class="number-button increase"
-                  @click="newCardsPerDay = handleNumberChange(1, 0, 100, newCardsPerDay)"
-                >
-                  <Plus theme="outline" size="14" :strokeWidth="3" />
-                </button>
-              </div>
+              <NumberInput v-model="newCardsPerDay" :min="0" :max="100" />
               <span class="input-suffix">张卡片</span>
             </div>
           </div>
           <div class="form-item">
             <div class="label">每日复习上限</div>
             <div class="value">
-              <div class="number-input-wrapper">
-                <button
-                  class="number-button decrease"
-                  @click="reviewsPerDay = handleNumberChange(-1, 0, 200, reviewsPerDay)"
-                >
-                  <Minus theme="outline" size="14" :strokeWidth="3" />
-                </button>
-                <input
-                  v-model="reviewsPerDay"
-                  type="number"
-                  min="0"
-                  max="200"
-                  @change="reviewsPerDay = handleInputChange(0, 200, reviewsPerDay)"
-                />
-                <button
-                  class="number-button increase"
-                  @click="reviewsPerDay = handleNumberChange(1, 0, 200, reviewsPerDay)"
-                >
-                  <Plus theme="outline" size="14" :strokeWidth="3" />
-                </button>
-              </div>
+              <NumberInput v-model="reviewsPerDay" :min="0" :max="200" />
               <span class="input-suffix">张卡片</span>
             </div>
           </div>
@@ -114,27 +54,7 @@
               </div>
             </div>
             <div class="value">
-              <div class="number-input-wrapper">
-                <button
-                  class="number-button decrease"
-                  @click="dayStartsAt = handleNumberChange(-1, 0, 23, dayStartsAt)"
-                >
-                  <Minus theme="outline" size="14" :strokeWidth="3" />
-                </button>
-                <input
-                  v-model="dayStartsAt"
-                  type="number"
-                  min="0"
-                  max="23"
-                  @change="dayStartsAt = handleInputChange(0, 23, dayStartsAt)"
-                />
-                <button
-                  class="number-button increase"
-                  @click="dayStartsAt = handleNumberChange(1, 0, 23, dayStartsAt)"
-                >
-                  <Plus theme="outline" size="14" :strokeWidth="3" />
-                </button>
-              </div>
+              <NumberInput v-model="dayStartsAt" :min="0" :max="23" />
               <span class="input-suffix">点</span>
             </div>
           </div>
@@ -149,36 +69,14 @@
           <div class="form-item">
             <div class="label">新卡片顺序</div>
             <div class="value">
-              <div class="select-wrapper">
-                <div
-                  class="select-trigger"
-                  @click="showNewCardPositionOptions = !showNewCardPositionOptions"
-                >
-                  <span class="selected-text">
-                    {{ getNewCardPositionText(newCardPosition) }}
-                  </span>
-                  <div class="select-arrow">
-                    <Down
-                      v-if="!showNewCardPositionOptions"
-                      theme="outline"
-                      size="14"
-                      :strokeWidth="3"
-                    />
-                    <Up v-else theme="outline" size="14" :strokeWidth="3" />
-                  </div>
-                </div>
-                <div v-show="showNewCardPositionOptions" class="select-options">
-                  <div
-                    v-for="option in newCardPositionOptions"
-                    :key="option.value"
-                    class="select-option"
-                    :class="{ 'is-active': newCardPosition === option.value }"
-                    @click="handleSelectNewCardPosition(option.value as NewCardPosition)"
-                  >
-                    {{ option.label }}
-                  </div>
-                </div>
-              </div>
+              <Dropdown
+                :items="newCardPositionItems"
+                :value="newCardPosition"
+                width="200"
+                @select="handleNewCardPositionSelect"
+              >
+                {{ newCardPositionItems.find((item) => item.key === newCardPosition)?.label }}
+              </Dropdown>
             </div>
           </div>
         </div>
@@ -192,54 +90,13 @@
           <div class="form-item">
             <div class="label">目标记忆率</div>
             <div class="value">
-              <div class="number-input-wrapper">
-                <button
-                  class="number-button decrease"
-                  @click="requestRetention = handleNumberChange(-0.01, 0.8, 0.95, requestRetention)"
-                >
-                  <Minus theme="outline" size="14" :strokeWidth="3" />
-                </button>
-                <input
-                  v-model="requestRetention"
-                  type="number"
-                  min="0.8"
-                  max="0.95"
-                  step="0.01"
-                  @change="requestRetention = handleInputChange(0.8, 0.95, requestRetention)"
-                />
-                <button
-                  class="number-button increase"
-                  @click="requestRetention = handleNumberChange(0.01, 0.8, 0.95, requestRetention)"
-                >
-                  <Plus theme="outline" size="14" :strokeWidth="3" />
-                </button>
-              </div>
+              <NumberInput v-model="requestRetention" :min="0.8" :max="0.95" :step="0.01" />
             </div>
           </div>
           <div class="form-item">
             <div class="label">最大间隔</div>
             <div class="value">
-              <div class="number-input-wrapper">
-                <button
-                  class="number-button decrease"
-                  @click="maximumInterval = handleNumberChange(-1, 30, 365, maximumInterval)"
-                >
-                  <Minus theme="outline" size="14" :strokeWidth="3" />
-                </button>
-                <input
-                  v-model="maximumInterval"
-                  type="number"
-                  min="30"
-                  max="365"
-                  @change="maximumInterval = handleInputChange(30, 365, maximumInterval)"
-                />
-                <button
-                  class="number-button increase"
-                  @click="maximumInterval = handleNumberChange(1, 30, 365, maximumInterval)"
-                >
-                  <Plus theme="outline" size="14" :strokeWidth="3" />
-                </button>
-              </div>
+              <NumberInput v-model="maximumInterval" :min="30" :max="365" />
               <span class="input-suffix">天</span>
             </div>
           </div>
@@ -286,27 +143,7 @@
           <div class="form-item">
             <div class="label">最大答题时间</div>
             <div class="value">
-              <div class="number-input-wrapper">
-                <button
-                  class="number-button decrease"
-                  @click="maxAnswerTime = handleNumberChange(-1, 10, 300, maxAnswerTime)"
-                >
-                  <Minus theme="outline" size="14" :strokeWidth="3" />
-                </button>
-                <input
-                  v-model="maxAnswerTime"
-                  type="number"
-                  min="10"
-                  max="300"
-                  @change="maxAnswerTime = handleInputChange(10, 300, maxAnswerTime)"
-                />
-                <button
-                  class="number-button increase"
-                  @click="maxAnswerTime = handleNumberChange(1, 10, 300, maxAnswerTime)"
-                >
-                  <Plus theme="outline" size="14" :strokeWidth="3" />
-                </button>
-              </div>
+              <NumberInput v-model="maxAnswerTime" :min="10" :max="300" />
               <span class="input-suffix">秒</span>
             </div>
           </div>
@@ -322,27 +159,7 @@
               </div>
             </div>
             <div class="value">
-              <div class="number-input-wrapper">
-                <button
-                  class="number-button decrease"
-                  @click="reviewAgainAfter = handleNumberChange(-1, 5, 60, reviewAgainAfter)"
-                >
-                  <Minus theme="outline" size="14" :strokeWidth="3" />
-                </button>
-                <input
-                  v-model="reviewAgainAfter"
-                  type="number"
-                  min="5"
-                  max="60"
-                  @change="reviewAgainAfter = handleInputChange(5, 60, reviewAgainAfter)"
-                />
-                <button
-                  class="number-button increase"
-                  @click="reviewAgainAfter = handleNumberChange(1, 5, 60, reviewAgainAfter)"
-                >
-                  <Plus theme="outline" size="14" :strokeWidth="3" />
-                </button>
-              </div>
+              <NumberInput v-model="reviewAgainAfter" :min="5" :max="60" />
               <span class="input-suffix">分钟</span>
             </div>
           </div>
@@ -354,11 +171,13 @@
 
 <script setup lang="ts">
 import { ref, onMounted, watch, onUnmounted } from 'vue'
-import { StorageCardOne, Down, Up, Plus, Minus, Help } from '@icon-park/vue-next'
+import { StorageCardOne, Help } from '@icon-park/vue-next'
 import { useFlashcardStore } from '@renderer/stores/flashcardStore'
 import type { FlashcardSettings } from '@shared/types'
 import { debounce } from 'lodash-es'
 import Switch from '@renderer/components/ui/Switch.vue'
+import Dropdown from '@renderer/components/ui/Dropdown.vue'
+import NumberInput from '@renderer/components/ui/NumberInput.vue'
 
 const flashcardStore = useFlashcardStore()
 
@@ -389,25 +208,16 @@ const showNextReview = ref(true)
 const maxAnswerTime = ref(20)
 const reviewAgainAfter = ref(15)
 
-// 新增状态控制下拉框显示
-const showNewCardPositionOptions = ref(false)
-
 // 新增选项数据
-const newCardPositionOptions = [
-  { value: 'mix', label: '与复习卡片混合' },
-  { value: 'front', label: '优先学习' },
-  { value: 'end', label: '最后学习' }
+const newCardPositionItems = [
+  { key: 'mix', label: '与复习卡片混合' },
+  { key: 'front', label: '优先学习' },
+  { key: 'end', label: '最后学习' }
 ]
 
-// 获取显示文本
-const getNewCardPositionText = (value: NewCardPosition) => {
-  return newCardPositionOptions.find((option) => option.value === value)?.label
-}
-
-// 处理选择
-const handleSelectNewCardPosition = (value: NewCardPosition) => {
-  newCardPosition.value = value
-  showNewCardPositionOptions.value = false
+// 处理选择事件
+const handleNewCardPositionSelect = (key: string) => {
+  newCardPosition.value = key as NewCardPosition
 }
 
 // 初始化设置
@@ -498,35 +308,9 @@ watch(
 onUnmounted(() => {
   debouncedUpdateSettings.cancel()
 })
-
-// 点击外部关闭下拉框
-onMounted(() => {
-  document.addEventListener('click', (e) => {
-    const target = e.target as HTMLElement
-    if (!target.closest('.select-wrapper')) {
-      showNewCardPositionOptions.value = false
-    }
-  })
-})
-
-// 处理数字变化
-const handleNumberChange = (delta: number, min: number, max: number, value: number) => {
-  const newValue = value + delta
-  if (newValue >= min && newValue <= max) {
-    return newValue
-  }
-  return value
-}
-
-// 处理输入变化
-const handleInputChange = (min: number, max: number, value: number) => {
-  if (value < min) return min
-  if (value > max) return max
-  return value
-}
 </script>
 
-<style scoped lang="scss">
+<style lang="scss" scoped>
 .flashcard-settings {
   width: 100%;
   height: 100%;
@@ -714,67 +498,6 @@ const handleInputChange = (min: number, max: number, value: number) => {
           align-items: center;
           gap: 12px;
 
-          .number-input-wrapper {
-            display: flex;
-            align-items: center;
-            border: 1px solid var(--color-border);
-            border-radius: 6px;
-            background: var(--color-bg-secondary);
-            transition: all 0.2s ease;
-
-            &:hover {
-              border-color: var(--color-primary);
-            }
-
-            &:focus-within {
-              border-color: var(--color-primary);
-            }
-
-            input[type='number'] {
-              width: 60px;
-              height: 32px;
-              border: none;
-              text-align: center;
-              padding: 0;
-              color: var(--color-text-primary);
-              font-size: 14px;
-              background: transparent;
-              outline: none;
-
-              &::-webkit-inner-spin-button,
-              &::-webkit-outer-spin-button {
-                -webkit-appearance: none;
-                margin: 0;
-              }
-            }
-
-            .number-button {
-              width: 32px;
-              height: 32px;
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              background: none;
-              border: none;
-              cursor: pointer;
-              color: var(--color-text-secondary);
-              transition: all 0.2s ease;
-
-              &:hover {
-                color: var(--color-primary);
-                background: var(--color-fill-secondary);
-              }
-
-              &.decrease {
-                border-right: 1px solid var(--color-border);
-              }
-
-              &.increase {
-                border-left: 1px solid var(--color-border);
-              }
-            }
-          }
-
           .input-suffix {
             font-size: 14px;
             color: var(--color-text-secondary);
@@ -916,103 +639,6 @@ const handleInputChange = (min: number, max: number, value: number) => {
 @keyframes spin {
   to {
     transform: rotate(360deg);
-  }
-}
-
-.select-wrapper {
-  position: relative;
-  width: 200px;
-
-  .select-trigger {
-    width: 100%;
-    padding: 8px 12px;
-    border-radius: 8px;
-    border: 1px solid var(--color-border);
-    color: var(--color-text-primary);
-    font-size: 14px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    height: 36px;
-
-    &:hover {
-      border-color: var(--color-primary);
-      background: var(--color-hover-bg);
-    }
-
-    .selected-text {
-      font-weight: 500;
-    }
-
-    .select-arrow {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 20px;
-      height: 100%;
-
-      :deep(.i-icon) {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      }
-
-      :deep(svg) {
-        width: 16px;
-        height: 16px;
-      }
-    }
-  }
-
-  .select-options {
-    position: absolute;
-    top: calc(100% + 4px);
-    left: 0;
-    width: 100%;
-    background: var(--color-bg-primary);
-    border: 1px solid var(--color-border);
-    border-radius: 8px;
-    padding: 4px;
-    overflow-y: auto;
-    z-index: 1000;
-    box-shadow: var(--shadow-card);
-
-    .select-option {
-      padding: 8px 12px;
-      cursor: pointer;
-      border-radius: 4px;
-      transition: all 0.2s;
-      font-size: 14px;
-      color: var(--color-text-primary);
-
-      &:hover {
-        background: var(--color-hover-bg);
-      }
-
-      &.is-active {
-        color: var(--color-primary);
-        background: var(--color-primary-bg);
-
-        &:hover {
-          background: var(--color-hover-bg);
-        }
-      }
-    }
-
-    &::-webkit-scrollbar {
-      width: 8px;
-    }
-
-    &::-webkit-scrollbar-track {
-      background: transparent;
-    }
-
-    &::-webkit-scrollbar-thumb {
-      background: var(--color-scrollbar);
-      border-radius: 4px;
-    }
   }
 }
 

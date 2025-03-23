@@ -65,93 +65,68 @@
         <div class="modal-body">
           <div class="form-group">
             <label>配置名称</label>
-            <input v-model="formData.name" type="text" placeholder="请输入配置名称" />
+            <Input v-model="formData.name" placeholder="请输入配置名称" />
           </div>
 
           <div class="form-group">
             <label>模型提供商</label>
-            <div class="select-wrapper">
-              <div class="select-trigger" @click="showProviderOptions = !showProviderOptions">
-                <span class="selected-text">
-                  {{
-                    formData.provider
-                      ? providerOptions[formData.provider as LLMProvider]
-                      : '请选择模型提供商'
-                  }}
-                </span>
-                <div class="select-arrow">
-                  <Down v-if="!showProviderOptions" theme="outline" size="14" :strokeWidth="3" />
-                  <Up v-else theme="outline" size="14" :strokeWidth="3" />
-                </div>
-              </div>
-              <div v-show="showProviderOptions" class="select-options">
-                <div
-                  v-for="(name, key) in providerOptions"
-                  :key="key"
-                  class="select-option"
-                  :class="{ 'is-active': formData.provider === key }"
-                  @click="handleSelectProvider(key)"
-                >
-                  {{ name }}
-                </div>
-              </div>
-            </div>
+            <Dropdown
+              :items="providerItems"
+              :value="formData.provider"
+              width="100%"
+              @select="handleProviderSelect"
+            >
+              {{
+                formData.provider
+                  ? providerOptions[formData.provider as LLMProvider]
+                  : '请选择模型提供商'
+              }}
+            </Dropdown>
           </div>
 
           <div class="form-group">
             <label>API Key</label>
-            <input
-              v-model="formData.apiKey"
-              type="password"
-              placeholder="请输入 API Key"
-              autocomplete="off"
-              autocorrect="off"
-              autocapitalize="off"
-              spellcheck="false"
-              data-form-type="other"
-            />
+            <Input v-model="formData.apiKey" type="password" placeholder="请输入 API Key" />
           </div>
 
           <div class="form-group">
             <label>API 地址</label>
-            <input v-model="formData.baseUrl" type="text" placeholder="请输入 API 基础地址" />
+            <Input v-model="formData.baseUrl" placeholder="请输入 API 基础地址" />
           </div>
 
           <div class="form-group">
             <label>模型名称</label>
-            <input v-model="formData.modelName" type="text" placeholder="请输入模型名称" />
+            <Input v-model="formData.modelName" placeholder="请输入模型名称" />
           </div>
 
           <div class="form-group">
             <label>Temperature（温度）</label>
-            <input
-              v-model.number="formData.parameters.temperature"
+            <Input
+              v-model="formData.parameters.temperature"
               type="number"
-              min="0"
-              max="1"
-              step="0.1"
               placeholder="设置温度 (0-1)"
+              :help="'控制输出的随机性，值越大输出越随机，范围 0-1'"
             />
           </div>
 
           <div class="form-group">
             <label>Max Tokens（最大生成长度）</label>
-            <input
-              v-model.number="formData.parameters.maxTokens"
+            <Input
+              v-model="formData.parameters.maxTokens"
               type="number"
-              min="1"
-              max="4096"
               placeholder="设置最大 token 数"
+              :help="'控制生成文本的最大长度'"
             />
           </div>
 
           <div class="form-group">
             <label>系统提示词</label>
-            <textarea
+            <Textarea
               v-model="formData.systemPrompt"
-              rows="4"
               placeholder="请输入系统提示词（可选）"
-            ></textarea>
+              :help="'设置模型的系统提示词，用于控制模型的行为'"
+              :height="120"
+            />
           </div>
         </div>
 
@@ -185,7 +160,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
-import { Robot, Plus, Config, Close, Down, Up } from '@icon-park/vue-next'
+import { Robot, Plus, Config, Close } from '@icon-park/vue-next'
 import { useModelConfigStore } from '@renderer/stores/modelConfigStore'
 import {
   LLM_MODELS,
@@ -196,6 +171,9 @@ import {
 import type { ModelConfig } from '@shared/types'
 import { message } from '@renderer/utils/message'
 import Button from '@renderer/components/ui/Button.vue'
+import Input from '@renderer/components/ui/Input.vue'
+import Dropdown from '@renderer/components/ui/Dropdown.vue'
+import Textarea from '@renderer/components/ui/Textarea.vue'
 
 // 定义一个安全的访问函数，处理可能不存在的属性
 const safeGet = <T, K extends string>(obj: T, key: K, defaultValue: any): any => {
@@ -236,13 +214,6 @@ Object.entries(LLM_MODELS).forEach(([modelKey, model]) => {
 // 使用创建的映射
 const presets = ref(PROVIDER_PRESETS_MAP)
 
-// 定义ModelParameters类型（如果@shared/types中没有导出）
-interface ModelParametersType {
-  temperature: number
-  maxTokens: number
-  // 添加其他可能的参数
-}
-
 // 修改接口名称，避免与全局FormData冲突
 interface ModelFormData {
   name: string
@@ -250,7 +221,10 @@ interface ModelFormData {
   modelName: string
   apiKey: string
   baseUrl: string
-  parameters: ModelParametersType
+  parameters: {
+    temperature: string // 改为字符串类型
+    maxTokens: string // 改为字符串类型
+  }
   systemPrompt: string
 }
 
@@ -275,13 +249,13 @@ const providerOptions: Record<LLMProvider, string> = providerNameMap
 // 使用新的类型名称
 const formData = ref<ModelFormData>({
   name: '',
-  provider: '', // 空字符串作为初始值
+  provider: '',
   modelName: '',
   apiKey: '',
   baseUrl: '',
   parameters: {
-    temperature: 0.7,
-    maxTokens: 2000
+    temperature: '0.7',
+    maxTokens: '2000'
   },
   systemPrompt: ''
 })
@@ -291,9 +265,6 @@ const isLoading = ref(false)
 
 // 添加连接测试状态
 const hasTestedConnection = ref(false)
-
-// 添加下拉框状态控制
-const showProviderOptions = ref(false)
 
 // 添加表单验证的计算属性
 const isFormValid = computed(() => {
@@ -351,8 +322,8 @@ const handleEdit = (config: ModelConfig) => {
     apiKey: config.apiKey,
     baseUrl: config.baseUrl,
     parameters: {
-      temperature: config.parameters?.temperature ?? 0.7,
-      maxTokens: config.parameters?.maxTokens ?? 2000
+      temperature: config.parameters?.temperature?.toString() || '0.7',
+      maxTokens: config.parameters?.maxTokens?.toString() || '2000'
     },
     systemPrompt: config.systemPrompt || ''
   }
@@ -393,8 +364,8 @@ const closeModal = () => {
     apiKey: '',
     baseUrl: '',
     parameters: {
-      temperature: 0.7,
-      maxTokens: 2000
+      temperature: '0.7',
+      maxTokens: '2000'
     },
     systemPrompt: ''
   }
@@ -493,12 +464,19 @@ const testConnection = async () => {
   }
 }
 
-// 处理提供商选择
-const handleSelectProvider = (provider: LLMProvider) => {
-  formData.value.provider = provider
-  showProviderOptions.value = false
+// 添加 handleProviderSelect 方法
+const handleProviderSelect = (key: string) => {
+  formData.value.provider = key as LLMProvider
   handleProviderChange()
 }
+
+// 转换提供商选项为 Dropdown 组件需要的格式
+const providerItems = computed(() => {
+  return Object.entries(providerOptions).map(([key, label]) => ({
+    key,
+    label
+  }))
+})
 </script>
 
 <style scoped lang="scss">
@@ -516,6 +494,7 @@ const handleSelectProvider = (provider: LLMProvider) => {
   align-items: center;
   gap: 6px;
   margin-bottom: 10px;
+  padding: 0 20px;
 
   .icon {
     background: none;
@@ -565,7 +544,7 @@ const handleSelectProvider = (provider: LLMProvider) => {
   height: 100%;
   overflow-y: auto;
   padding-bottom: 58px;
-  padding-right: 10px;
+  padding: 0 20px;
 
   .llm-section {
     width: 100%;
@@ -575,6 +554,7 @@ const handleSelectProvider = (provider: LLMProvider) => {
     justify-content: flex-start;
     margin-top: 4px;
     margin-bottom: 30px;
+    padding: 0 10px;
 
     .section-header {
       width: 100%;
@@ -885,104 +865,6 @@ const handleSelectProvider = (provider: LLMProvider) => {
       display: block;
       margin-bottom: 8px;
       color: var(--color-text-primary);
-    }
-
-    input,
-    textarea {
-      width: 100%;
-      padding: 8px 12px;
-      border: 1px solid var(--color-border);
-      border-radius: 6px;
-      background: var(--color-background-primary);
-      color: var(--color-text-primary);
-      font-size: 14px;
-      transition: all 0.2s ease;
-
-      &:hover {
-        border-color: var(--color-primary);
-      }
-
-      &:focus {
-        border-color: var(--color-primary);
-        outline: none;
-      }
-
-      &[type='number']::-webkit-inner-spin-button,
-      &[type='number']::-webkit-outer-spin-button {
-        -webkit-appearance: none;
-        margin: 0;
-      }
-    }
-
-    // 下拉框样式优化
-    .select-wrapper {
-      position: relative;
-      width: 100%;
-
-      .select-trigger {
-        width: 100%;
-        padding: 8px 12px;
-        border-radius: 6px;
-        border: 1px solid var(--color-border);
-        color: var(--color-text-primary);
-        font-size: 14px;
-        cursor: pointer;
-        transition: all 0.2s ease;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        height: 36px;
-        background: var(--color-background-primary);
-
-        &:hover {
-          border-color: var(--color-primary);
-          background: var(--color-hover-bg);
-        }
-
-        .selected-text {
-          font-weight: 400;
-        }
-
-        .select-arrow {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          width: 20px;
-          height: 100%;
-        }
-      }
-
-      .select-options {
-        position: absolute;
-        top: calc(100% + 4px);
-        left: 0;
-        width: 100%;
-        background: var(--color-bg-primary);
-        border: 1px solid var(--color-border);
-        border-radius: 6px;
-        padding: 4px;
-        overflow-y: auto;
-        z-index: 1000;
-        box-shadow: var(--shadow-card);
-
-        .select-option {
-          padding: 8px 12px;
-          cursor: pointer;
-          border-radius: 4px;
-          transition: all 0.2s;
-          font-size: 14px;
-          color: var(--color-text-primary);
-
-          &:hover {
-            background: var(--color-hover-bg);
-          }
-
-          &.is-active {
-            color: var(--color-primary);
-            background: var(--color-primary-bg);
-          }
-        }
-      }
     }
   }
 }

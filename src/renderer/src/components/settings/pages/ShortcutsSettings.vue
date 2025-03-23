@@ -330,13 +330,13 @@ const filteredShortcuts = computed(() => {
   align-items: center;
   justify-content: space-between;
   margin-bottom: 10px;
+  padding: 0 20px;
 }
 
 .shortcuts-content-header {
   display: flex;
   align-items: center;
   gap: 6px;
-
   .icon {
     background: none;
     border: 1px solid var(--color-border);
@@ -410,10 +410,11 @@ const filteredShortcuts = computed(() => {
   align-items: flex-start;
   justify-content: flex-start;
   overflow-y: auto;
+  padding: 0 20px;
 
   .shortcuts-list {
     width: 100%;
-
+    padding: 0 10px;
     .shortcuts-category {
       margin-bottom: 20px;
       padding-right: 10px;
@@ -475,7 +476,7 @@ const filteredShortcuts = computed(() => {
   background: var(--color-background-secondary);
   border-radius: 8px;
   width: 100%;
-
+  padding: 0 10px;
   .section-title {
     font-size: 18px;
     font-weight: 500;

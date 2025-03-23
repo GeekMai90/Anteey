@@ -14,7 +14,7 @@
           管理系统词库，添加或删除词条。自定义词条可帮助系统更好的提取专业词汇，提升相关笔记和 AI
           助手的表现。
         </div>
-        <div class="dictionary-item-button">进入管理</div>
+        <Button type="primary" :height="36" @click="openDictionaryManage">进入管理</Button>
       </div>
     </div>
   </div>
@@ -24,6 +24,7 @@
 import { BookOne } from '@icon-park/vue-next'
 import { useRouter } from 'vue-router'
 import { useUIStore } from '@renderer/stores/UIStore'
+import Button from '@renderer/components/ui/Button.vue'
 
 const router = useRouter()
 const uiStore = useUIStore()
@@ -49,6 +50,7 @@ const openDictionaryManage = () => {
   align-items: center;
   gap: 6px;
   margin-bottom: 10px;
+  padding: 0 20px;
 
   .icon {
     background: none;
@@ -100,6 +102,7 @@ const openDictionaryManage = () => {
   justify-content: flex-start;
   gap: 20px;
   margin-top: 20px;
+  padding: 0 20px;
 
   .dictionary-item {
     width: 100%;

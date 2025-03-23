@@ -20,25 +20,14 @@
           <div class="form-item">
             <div class="label">同步类型</div>
             <div class="value">
-              <div class="select-wrapper">
-                <div class="select" @click="showSyncTypeSelect = !showSyncTypeSelect">
-                  <span class="selected-value">{{ getSyncTypeName(syncType) }}</span>
-                  <div class="select-arrow">
-                    <Down theme="outline" size="16" :strokeWidth="3" />
-                  </div>
-                </div>
-                <div v-show="showSyncTypeSelect" class="select-dropdown">
-                  <div
-                    v-for="type in syncTypes"
-                    :key="type.value"
-                    class="select-option"
-                    :class="{ active: syncType === type.value }"
-                    @click="selectSyncType(type.value)"
-                  >
-                    {{ type.label }}
-                  </div>
-                </div>
-              </div>
+              <Dropdown
+                :items="syncTypeItems"
+                :value="syncType"
+                width="300"
+                @select="handleSyncTypeSelect"
+              >
+                {{ syncTypeItems.find((item) => item.key === syncType)?.label }}
+              </Dropdown>
             </div>
           </div>
         </div>
@@ -70,38 +59,22 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { CloudStorage, Down } from '@icon-park/vue-next'
+import { CloudStorage } from '@icon-park/vue-next'
 import WebDAVSettings from './WebDAVSettings.vue'
 import S3Settings from './s3Settings.vue'
 import { useCloudSyncStore } from '@renderer/stores/cloudSyncStore'
 import type { CloudSyncType } from '@shared/types'
+import Dropdown from '@renderer/components/ui/Dropdown.vue'
 
-// 同步类型选项
-const syncTypes = [
-  { value: 'none' as const, label: '不开启云同步' },
-  { value: 'webdav' as const, label: 'WebDAV 同步' },
-  { value: 's3' as const, label: 'S3 同步' }
-] as const
+// // 同步类型选项
+// const syncTypes = [
+//   { value: 'none' as const, label: '不开启云同步' },
+//   { value: 'webdav' as const, label: 'WebDAV 同步' },
+//   { value: 's3' as const, label: 'S3 同步' }
+// ] as const
 
 const cloudSyncStore = useCloudSyncStore()
 const syncType = ref<CloudSyncType>('none')
-const showSyncTypeSelect = ref(false)
-
-// 获取同步类型名称
-const getSyncTypeName = (type: CloudSyncType): string => {
-  return syncTypes.find((t) => t.value === type)?.label || '未知'
-}
-
-// 选择同步类型
-const selectSyncType = async (type: CloudSyncType) => {
-  try {
-    await cloudSyncStore.switchSyncType(type)
-    syncType.value = type
-    showSyncTypeSelect.value = false
-  } catch (error) {
-    console.error('切换同步类型失败:', error)
-  }
-}
 
 // 初始化配置
 onMounted(async () => {
@@ -115,13 +88,22 @@ onMounted(async () => {
   }
 })
 
-// 添加点击外部关闭下拉菜单
-document.addEventListener('click', (e) => {
-  const target = e.target as HTMLElement
-  if (!target.closest('.select-wrapper')) {
-    showSyncTypeSelect.value = false
+// 修改同步类型选项的格式以匹配 Dropdown 组件的要求
+const syncTypeItems = [
+  { key: 'none', label: '不开启云同步' },
+  { key: 'webdav', label: 'WebDAV 同步' },
+  { key: 's3', label: 'S3 同步' }
+]
+
+// 修改选择处理方法
+const handleSyncTypeSelect = async (key: string) => {
+  try {
+    await cloudSyncStore.switchSyncType(key as CloudSyncType)
+    syncType.value = key as CloudSyncType
+  } catch (error) {
+    console.error('切换同步类型失败:', error)
   }
-})
+}
 </script>
 
 <style scoped lang="scss">
@@ -139,6 +121,7 @@ document.addEventListener('click', (e) => {
   align-items: center;
   gap: 6px;
   margin-bottom: 10px;
+  padding: 0 20px;
 
   .icon {
     background: none;
@@ -188,11 +171,13 @@ document.addEventListener('click', (e) => {
   height: 100%;
   overflow-y: auto;
   padding-bottom: 58px;
+  padding: 0 20px;
 }
 
 .sync-type-selector {
   width: 100%;
   margin-bottom: 30px;
+  padding: 0 10px;
 
   .title {
     font-size: 18px;
@@ -230,83 +215,6 @@ document.addEventListener('click', (e) => {
     .value {
       flex: 1;
       max-width: 300px;
-    }
-  }
-}
-
-.select-wrapper {
-  position: relative;
-  width: 100%;
-  max-width: 300px;
-
-  .select {
-    width: 100%;
-    padding: 8px 12px;
-    border-radius: 8px;
-    border: 1px solid var(--color-border);
-    color: var(--color-text-primary);
-    font-size: 14px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    height: 36px;
-
-    &:hover {
-      border-color: var(--color-primary);
-      background: var(--color-hover-bg);
-    }
-
-    .select-arrow {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 20px;
-      height: 100%;
-      :deep(.i-icon) {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      }
-
-      :deep(svg) {
-        width: 16px;
-        height: 16px;
-      }
-    }
-  }
-
-  .select-dropdown {
-    position: absolute;
-    top: calc(100% + 4px);
-    left: 0;
-    width: 100%;
-    background: var(--color-bg-primary);
-    border: 1px solid var(--color-border);
-    border-radius: 8px;
-    padding: 4px;
-    max-height: 200px;
-    overflow-y: auto;
-    z-index: 1000;
-    box-shadow: var(--shadow-card);
-
-    .select-option {
-      padding: 8px 12px;
-      cursor: pointer;
-      border-radius: 4px;
-      transition: all 0.2s;
-      font-size: 14px;
-      color: var(--color-text-primary);
-
-      &:hover {
-        background: var(--color-hover-bg);
-      }
-
-      &.active {
-        color: var(--color-primary);
-        background: var(--color-primary-bg);
-      }
     }
   }
 }

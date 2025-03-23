@@ -16,13 +16,13 @@
             <div v-if="!authStore.isAuthenticated" class="setting-item">
               <div class="setting-label">登录账号</div>
               <div class="login-form">
-                <input
+                <Input
                   v-model="email"
                   type="email"
                   placeholder="请输入邮箱"
                   :disabled="authStore.loading"
                 />
-                <input
+                <Input
                   v-model="password"
                   type="password"
                   placeholder="请输入密码"
@@ -133,6 +133,7 @@ import Modal from '../../../components/common/Modal.vue'
 import confetti from 'canvas-confetti'
 import { useUIStore } from '../../../stores/UIStore'
 import { useAuthStore } from '../../../stores/authStore'
+import Input from '@renderer/components/ui/Input.vue'
 const licenseStore = useLicenseStore()
 const noteStore = useNoteStore()
 const uiStore = useUIStore()
@@ -309,6 +310,7 @@ onMounted(async () => {
   align-items: center;
   gap: 6px;
   margin-bottom: 10px;
+  padding: 0 20px;
 
   .icon {
     background: none;
@@ -358,9 +360,11 @@ onMounted(async () => {
   height: 100%;
   overflow-y: auto;
   padding-bottom: 58px;
+  padding: 0 20px;
 
   .license-content {
     padding-right: 10px;
+    padding-left: 10px;
 
     .settings-section {
       margin-bottom: 30px;
@@ -649,38 +653,6 @@ onMounted(async () => {
     border-radius: 12px;
     background: var(--color-bg-secondary);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-
-    input {
-      height: 40px;
-      padding: 0 16px;
-      border-radius: 8px;
-      border: 1.5px solid var(--color-border);
-      color: var(--color-text-primary);
-      font-size: 14px;
-      background: var(--color-bg-primary);
-      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-
-      &::placeholder {
-        color: var(--color-text-placeholder);
-      }
-
-      &:hover:not(:disabled) {
-        border-color: var(--color-primary);
-        box-shadow: 0 0 0 2px rgba(var(--color-primary-rgb), 0.1);
-      }
-
-      &:focus {
-        outline: none;
-        border-color: var(--color-primary);
-        box-shadow: 0 0 0 3px rgba(var(--color-primary-rgb), 0.15);
-      }
-
-      &:disabled {
-        opacity: 0.6;
-        cursor: not-allowed;
-        background: var(--color-bg-secondary);
-      }
-    }
 
     .button-group {
       display: flex;

@@ -36,9 +36,14 @@
         <div class="settings-section">
           <div class="section-title">默认页面</div>
           <div class="default-page-settings">
-            <div class="setting-item">
+            <div class="setting-row">
               <div class="setting-label">启动时打开</div>
-              <Dropdown :items="pageOptions" trigger="click" width="120" @select="handlePageSelect">
+              <Dropdown
+                :items="pageOptions"
+                trigger="click"
+                width="120px"
+                @select="handlePageSelect"
+              >
                 {{ getPageName(defaultPage) }}
               </Dropdown>
             </div>
@@ -48,31 +53,31 @@
         <div class="settings-section">
           <div class="section-title">字体设置</div>
           <div class="font-settings">
-            <div class="setting-item">
+            <div class="setting-row">
               <div class="setting-label">界面字体</div>
-              <Dropdown
-                :items="fontDropdownItems"
-                trigger="click"
-                width="200"
-                @select="handleUIFontSelect"
-              >
-                {{ getFontLabel(uiFont) }}
-              </Dropdown>
-              <div class="font-preview">预览文本 Preview Text</div>
+              <div class="font-control">
+                <Dropdown
+                  :items="fontDropdownItems"
+                  trigger="click"
+                  width="200px"
+                  @select="handleUIFontSelect"
+                >
+                  {{ getFontLabel(uiFont) }}
+                </Dropdown>
+              </div>
             </div>
 
-            <div class="setting-item">
+            <div class="setting-row">
               <div class="setting-label">编辑器字体</div>
-              <Dropdown
-                :items="fontDropdownItems"
-                trigger="click"
-                width="200"
-                @select="handleEditorFontSelect"
-              >
-                {{ getFontLabel(editorFont) }}
-              </Dropdown>
-              <div class="font-preview" :style="{ fontFamily: previewEditorFont }">
-                预览文本 Preview Text
+              <div class="font-control">
+                <Dropdown
+                  :items="fontDropdownItems"
+                  trigger="click"
+                  width="200px"
+                  @select="handleEditorFontSelect"
+                >
+                  {{ getFontLabel(editorFont) }}
+                </Dropdown>
               </div>
             </div>
           </div>
@@ -123,10 +128,6 @@ const fontOptions = [
 
 const uiFont = ref('system')
 const editorFont = ref('system')
-
-const previewEditorFont = computed(() => {
-  return editorFont.value === 'wenkai' ? '"LXGW WenKai", sans-serif' : 'system-ui'
-})
 
 const handleUIFontChange = async () => {
   await appearanceStore.updateUIFont(uiFont.value)
@@ -413,14 +414,30 @@ const getFontLabel = (value: string) => {
     flex-direction: column;
     gap: 24px;
 
-    .setting-item {
+    .setting-row {
       display: flex;
-      flex-direction: column;
-      gap: 8px;
+      align-items: center;
+      gap: 12px;
 
       .setting-label {
         font-size: 14px;
         color: var(--color-text-secondary);
+        white-space: nowrap;
+      }
+
+      .font-control {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+
+        .font-preview {
+          font-size: 14px;
+          color: var(--color-text-primary);
+          padding: 8px;
+          border-radius: 6px;
+          background: var(--color-bg-secondary);
+        }
       }
     }
   }
@@ -433,28 +450,6 @@ const getFontLabel = (value: string) => {
       align-items: center;
       justify-content: space-between;
       padding: 12px 0;
-      border-bottom: 1px solid var(--color-border);
-
-      &:last-child {
-        border-bottom: none;
-      }
-
-      .setting-label {
-        font-size: 14px;
-        color: var(--color-text-primary);
-      }
-    }
-  }
-
-  .default-page-settings {
-    margin-top: 16px;
-
-    .setting-item {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 12px 0;
-      border-bottom: 1px solid var(--color-border);
 
       .setting-label {
         font-size: 14px;
@@ -480,6 +475,21 @@ const getFontLabel = (value: string) => {
       .setting-label {
         font-size: 14px;
         color: var(--color-text-primary);
+      }
+    }
+  }
+
+  .default-page-settings {
+    .setting-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 0;
+
+      .setting-label {
+        font-size: 14px;
+        color: var(--color-text-primary);
+        white-space: nowrap;
       }
     }
   }

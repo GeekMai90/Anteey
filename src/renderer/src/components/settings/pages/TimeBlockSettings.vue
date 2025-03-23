@@ -23,18 +23,25 @@
       <div v-if="enableTimeBlock" class="settings-section">
         <div class="section-title">时间范围</div>
         <div class="time-range-settings">
-          <div class="setting-item">
-            <div class="setting-label">开始时间</div>
-            <Dropdown :items="timeOptions" trigger="click" width="100%" @select="selectStartTime">
-              {{ startTime }}:00
-            </Dropdown>
-          </div>
+          <div class="time-range-row">
+            <div class="time-item">
+              <div class="time-label">开始时间</div>
+              <Dropdown
+                :items="timeOptions"
+                trigger="click"
+                width="120px"
+                @select="selectStartTime"
+              >
+                {{ startTime }}:00
+              </Dropdown>
+            </div>
 
-          <div class="setting-item">
-            <div class="setting-label">结束时间</div>
-            <Dropdown :items="timeOptions" trigger="click" width="100%" @select="selectEndTime">
-              {{ endTime }}:00
-            </Dropdown>
+            <div class="time-item">
+              <div class="time-label">结束时间</div>
+              <Dropdown :items="timeOptions" trigger="click" width="120px" @select="selectEndTime">
+                {{ endTime }}:00
+              </Dropdown>
+            </div>
           </div>
         </div>
       </div>
@@ -194,9 +201,23 @@ onMounted(async () => {
   }
 
   .time-range-settings {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 24px;
+    .time-range-row {
+      display: flex;
+      align-items: center;
+      gap: 32px;
+
+      .time-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+
+        .time-label {
+          font-size: 14px;
+          color: var(--color-text-secondary);
+          white-space: nowrap;
+        }
+      }
+    }
   }
 }
 </style>

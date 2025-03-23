@@ -11,7 +11,7 @@ interface TooltipConfig {
 }
 
 interface Props {
-  type?: 'default' | 'primary' | 'text' | 'link' | 'delete'
+  type?: 'default' | 'primary' | 'text' | 'link' | 'delete' | 'warning'
   size?: 'small' | 'medium' | 'large'
   icon?: Component
   disabled?: boolean
@@ -183,6 +183,18 @@ const emit = defineEmits<{
   border-color: color-mix(in srgb, var(--color-primary) 85%, white);
 }
 
+/* 警告按钮 */
+.ant-btn-warning {
+  color: #fff;
+  border-color: var(--color-red);
+  background: var(--color-red);
+}
+
+.ant-btn-warning:not(.ant-btn-disabled):not(.ant-btn-loading):hover {
+  background: color-mix(in srgb, var(--color-red) 85%, white);
+  border-color: color-mix(in srgb, var(--color-red) 85%, white);
+}
+
 /* 文本按钮 */
 .ant-btn-text {
   border-color: transparent;
@@ -262,7 +274,7 @@ const emit = defineEmits<{
 /* 默认按钮悬停效果 */
 .ant-btn:not(.ant-btn-disabled):not(.ant-btn-loading):not(.ant-btn-primary):not(.ant-btn-text):not(
     .ant-btn-link
-  ):not(.ant-btn-delete):hover {
+  ):not(.ant-btn-delete):not(.ant-btn-warning):hover {
   border-color: var(--color-primary);
   color: var(--color-primary);
 }

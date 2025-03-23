@@ -44,29 +44,39 @@
             <div class="form-item">
               <div class="label">API Token</div>
               <div class="value">
-                <input
+                <Input
                   v-model="token"
                   type="password"
                   placeholder="请输入 Dinox API Token"
-                  autocomplete="off"
+                  :help="'用于连接 Dinox 服务的认证令牌'"
                 />
               </div>
             </div>
             <div class="three-sync-actions">
-              <div
-                class="three-sync-item-button test"
-                :class="{ 'is-loading': isConnecting }"
+              <Button
+                type="primary"
+                :height="36"
+                :tooltip="{
+                  content: '测试连接',
+                  delay: { show: 1000 }
+                }"
+                tooltipPlacement="top"
                 @click="handleTestConnection"
               >
                 {{ isConnecting ? '测试中...' : '测试连接' }}
-              </div>
-              <div
-                class="three-sync-item-button"
-                :class="{ 'is-loading': isSaving }"
+              </Button>
+              <Button
+                type="primary"
+                :height="36"
+                :tooltip="{
+                  content: '保存配置',
+                  delay: { show: 1000 }
+                }"
+                tooltipPlacement="top"
                 @click="handleSaveConfig"
               >
                 {{ isSaving ? '保存中...' : '保存配置' }}
-              </div>
+              </Button>
             </div>
           </div>
         </div>
@@ -116,20 +126,30 @@
               </div>
             </div>
             <div class="three-sync-actions">
-              <div
-                class="three-sync-item-button"
-                :class="{ 'is-loading': isSyncing && syncType === 'incremental' }"
-                @click="handleIncrementalSync"
-              >
-                {{ isSyncing && syncType === 'incremental' ? '同步中...' : '增量同步' }}
-              </div>
-              <div
-                class="three-sync-item-button full"
-                :class="{ 'is-loading': isSyncing && syncType === 'full' }"
+              <Button
+                type="warning"
+                :height="36"
+                :tooltip="{
+                  content: '全量同步',
+                  delay: { show: 1000 }
+                }"
+                tooltipPlacement="top"
                 @click="handleFullSync"
               >
                 {{ isSyncing && syncType === 'full' ? '同步中...' : '全量同步' }}
-              </div>
+              </Button>
+              <Button
+                type="primary"
+                :height="36"
+                :tooltip="{
+                  content: '增量同步',
+                  delay: { show: 1000 }
+                }"
+                tooltipPlacement="top"
+                @click="handleIncrementalSync"
+              >
+                {{ isSyncing && syncType === 'incremental' ? '同步中...' : '增量同步' }}
+              </Button>
             </div>
           </div>
         </div>
@@ -144,7 +164,8 @@ import { Down, Up, CloudStorage } from '@icon-park/vue-next'
 import { useDinoxStore } from '@renderer/stores/dinoxStore'
 import { message } from '@renderer/utils/message'
 import Switch from '@renderer/components/ui/Switch.vue'
-
+import Button from '@renderer/components/ui/Button.vue'
+import Input from '@renderer/components/ui/Input.vue'
 const dinoxStore = useDinoxStore()
 const isConnecting = ref(false)
 const isSaving = ref(false)
@@ -302,6 +323,7 @@ onMounted(async () => {
   align-items: center;
   gap: 6px;
   margin-bottom: 10px;
+  padding: 0 20px;
 
   .icon {
     background: none;
@@ -355,6 +377,7 @@ onMounted(async () => {
   justify-content: flex-start;
   padding-bottom: 58px;
   overflow-y: auto;
+  padding: 0 20px;
 
   .settings-item {
     width: 100%;
@@ -364,6 +387,7 @@ onMounted(async () => {
     justify-content: flex-start;
     margin-top: 4px;
     margin-bottom: 24px;
+    padding: 0 10px;
 
     .title {
       font-size: 18px;
@@ -391,7 +415,7 @@ onMounted(async () => {
 
       .form-item {
         display: flex;
-        align-items: center;
+        align-items: flex-start;
         margin-bottom: 20px;
 
         &:last-child {
@@ -402,6 +426,7 @@ onMounted(async () => {
           width: 80px;
           font-size: 14px;
           color: var(--color-text-secondary);
+          padding-top: 8px;
         }
 
         .value {
@@ -410,30 +435,11 @@ onMounted(async () => {
           align-items: center;
           max-width: 300px;
 
-          input {
-            width: 100%;
-            height: 35px;
-            border: 1px solid var(--color-border);
-            border-radius: 6px;
-            padding: 0 12px;
-            font-size: 14px;
-            color: var(--color-text-primary);
-            outline: none;
-            transition: all 0.2s ease;
-
-            &:focus {
-              border-color: var(--color-primary);
-            }
-
-            &::placeholder {
-              color: var(--color-text-placeholder);
-            }
-          }
-
           .switch-description {
             font-size: 12px;
             color: var(--color-text-secondary);
             margin-left: 12px;
+            padding-top: 2px;
           }
         }
       }

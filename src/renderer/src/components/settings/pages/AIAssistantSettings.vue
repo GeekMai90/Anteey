@@ -239,6 +239,7 @@ const showPromptSettings = async () => {
   align-items: center;
   gap: 6px;
   margin-bottom: 10px;
+  padding: 0 20px;
 
   .icon {
     background: none;
@@ -288,7 +289,7 @@ const showPromptSettings = async () => {
   height: 100%;
   overflow-y: auto;
   padding-bottom: 58px;
-  padding-right: 10px;
+  padding: 0 20px;
 
   .ai-section {
     width: 100%;
@@ -298,7 +299,7 @@ const showPromptSettings = async () => {
     justify-content: flex-start;
     margin-top: 4px;
     margin-bottom: 30px;
-
+    padding: 0 10px;
     .section-header {
       width: 100%;
       display: flex;

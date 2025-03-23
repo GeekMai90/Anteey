@@ -19,7 +19,7 @@
           <div class="description">
             将所有卡片笔记以 Markdown 格式导出，保留原有结构和内容的完整性。
           </div>
-          <div class="backup-item-button" @click="handleBulkExport">立即导出</div>
+          <Button type="primary" :height="36" @click="handleBulkExport"> 立即导出 </Button>
         </div>
 
         <div class="backup-item">
@@ -48,20 +48,22 @@
               </div>
             </div>
             <div class="backup-actions">
-              <div
-                class="backup-item-button"
+              <Button
+                type="primary"
+                :height="36"
                 :class="{ 'is-loading': isBackingUp }"
                 @click="handleCreateBackup"
               >
                 {{ isBackingUp ? '备份中...' : '立即备份' }}
-              </div>
-              <div
-                class="backup-item-button restore"
+              </Button>
+              <Button
+                type="primary"
+                :height="36"
                 :class="{ 'is-loading': isRestoring }"
                 @click="handleRestoreClick"
               >
                 {{ isRestoring ? '恢复中...' : '备份恢复' }}
-              </div>
+              </Button>
             </div>
           </div>
         </div>
@@ -139,7 +141,7 @@ import { ref, onMounted, computed } from 'vue'
 import { formatBytes } from '@renderer/utils/format'
 import ConfirmDialog from '@renderer/components/common/ConfirmDialog.vue'
 import Switch from '@renderer/components/ui/Switch.vue'
-
+import Button from '@renderer/components/ui/Button.vue'
 const noteId = ref('')
 const { handleBulkExport } = useNoteMenu({
   noteId: noteId.value,
@@ -233,6 +235,7 @@ async function handleClearHistory() {
   align-items: center;
   gap: 6px;
   margin-bottom: 10px;
+  padding: 0 20px;
 
   .icon {
     background: none;
@@ -282,9 +285,10 @@ async function handleClearHistory() {
   height: 100%;
   overflow-y: auto;
   padding-bottom: 58px;
+  padding: 0 20px;
 
   .backup-content {
-    padding-right: 10px;
+    padding: 0 10px;
 
     .backup-item {
       width: 100%;

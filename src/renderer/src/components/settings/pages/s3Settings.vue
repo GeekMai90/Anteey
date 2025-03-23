@@ -11,84 +11,72 @@
           <div class="form-item">
             <div class="label">服务提供商</div>
             <div class="value">
-              <div class="select-wrapper">
-                <div class="select" @click="showProviderSelect = !showProviderSelect">
-                  <span class="selected-value">{{ getProviderName(provider) }}</span>
-                  <div class="select-arrow">
-                    <Down theme="outline" size="16" :strokeWidth="3" />
-                  </div>
-                </div>
-                <div v-show="showProviderSelect" class="select-dropdown">
-                  <div
-                    v-for="type in providers"
-                    :key="type.value"
-                    class="select-option"
-                    :class="{ active: provider === type.value }"
-                    @click="selectProvider(type.value)"
-                  >
-                    {{ type.label }}
-                  </div>
-                </div>
-              </div>
+              <Dropdown
+                :items="providers.map((p) => ({ key: p.value, label: p.label }))"
+                trigger="click"
+                width="100%"
+                @select="selectProvider"
+              >
+                {{ getProviderName(provider) }}
+              </Dropdown>
             </div>
           </div>
           <div class="form-item">
             <div class="label">区域</div>
             <div class="value">
-              <div class="select-wrapper">
-                <div class="select" @click="showRegionSelect = !showRegionSelect">
-                  <span class="selected-value">{{ getRegionName(region) }}</span>
-                  <div class="select-arrow">
-                    <Down theme="outline" size="16" :strokeWidth="3" />
-                  </div>
-                </div>
-                <div v-show="showRegionSelect" class="select-dropdown">
-                  <div
-                    v-for="r in getRegionsByProvider(provider)"
-                    :key="r.value"
-                    class="select-option"
-                    :class="{ active: region === r.value }"
-                    @click="selectRegion(r.value)"
-                  >
-                    {{ r.label }}
-                  </div>
-                </div>
-              </div>
+              <Dropdown
+                :items="
+                  getRegionsByProvider(provider).map((r) => ({ key: r.value, label: r.label }))
+                "
+                trigger="click"
+                width="100%"
+                @select="selectRegion"
+              >
+                {{ getRegionName(region) }}
+              </Dropdown>
             </div>
           </div>
           <div class="form-item">
             <div class="label">存储桶</div>
             <div class="value">
-              <input v-model="bucket" type="text" placeholder="请输入存储桶名称" />
+              <Input v-model="bucket" placeholder="请输入存储桶名称" />
             </div>
           </div>
           <div class="form-item">
             <div class="label">AccessKey ID</div>
             <div class="value">
-              <input v-model="accessKeyId" type="text" placeholder="请输入访问密钥 ID" />
+              <Input v-model="accessKeyId" placeholder="请输入访问密钥 ID" />
             </div>
           </div>
           <div class="form-item">
             <div class="label">AccessKey Secret</div>
             <div class="value">
-              <input v-model="secretAccessKey" type="password" placeholder="请输入访问密钥" />
+              <Input v-model="secretAccessKey" type="password" placeholder="请输入访问密钥" />
             </div>
           </div>
           <div class="s3-actions">
-            <div
-              class="s3-item-button test"
-              :class="{ 'is-loading': isConnecting }"
+            <Button
+              type="primary"
+              :loading="isConnecting"
+              :tooltip="{
+                content: '测试 S3 服务连接',
+                delay: { show: 1000 }
+              }"
               @click="handleTestConnection"
             >
               {{ isConnecting ? '测试中...' : '测试连接' }}
-            </div>
-            <div
-              class="s3-item-button"
-              :class="{ 'is-loading': isSaving }"
+            </Button>
+            <Button
+              type="primary"
+              :loading="isSaving"
+              :tooltip="{
+                content: '保存 S3 服务配置',
+                delay: { show: 1000 }
+              }"
               @click="handleSaveConfig"
             >
               {{ isSaving ? '保存中...' : '保存配置' }}
-            </div>
+            </Button>
           </div>
         </div>
       </div>
@@ -112,31 +100,28 @@
           <div v-if="autoSync" class="form-item">
             <div class="label">同步间隔</div>
             <div class="value">
-              <div class="select-wrapper sync-interval-select">
-                <div class="select" @click="showIntervalSelect = !showIntervalSelect">
-                  <span class="selected-value">{{ getSyncIntervalText(syncInterval) }}</span>
-                  <div class="select-arrow">
-                    <Down theme="outline" size="16" :strokeWidth="3" />
-                  </div>
-                </div>
-                <div v-show="showIntervalSelect" class="select-dropdown">
-                  <div
-                    v-for="interval in syncIntervals"
-                    :key="interval.value"
-                    class="select-option"
-                    :class="{ active: syncInterval === interval.value }"
-                    @click="selectInterval(interval.value)"
-                  >
-                    {{ interval.label }}
-                  </div>
-                </div>
-              </div>
+              <Dropdown
+                :items="syncIntervals.map((i) => ({ key: i.value.toString(), label: i.label }))"
+                trigger="click"
+                width="120px"
+                @select="(key) => selectInterval(Number(key))"
+              >
+                {{ getSyncIntervalText(syncInterval) }}
+              </Dropdown>
             </div>
           </div>
           <div class="s3-actions">
-            <div class="s3-item-button" :class="{ 'is-loading': isSyncing }" @click="handleSync">
+            <Button
+              type="primary"
+              :loading="isSyncing"
+              :tooltip="{
+                content: '立即同步数据',
+                delay: { show: 1000 }
+              }"
+              @click="handleSync"
+            >
               {{ isSyncing ? '同步中...' : '立即同步' }}
-            </div>
+            </Button>
           </div>
         </div>
       </div>
@@ -183,12 +168,15 @@
 </template>
 
 <script setup lang="ts">
-import { CloudStorage, Down } from '@icon-park/vue-next'
+import { CloudStorage } from '@icon-park/vue-next'
 import { useS3Store } from '@renderer/stores/s3Store'
 import { ref, onMounted, computed, watch } from 'vue'
 import type { S3Provider, S3Config } from '@shared/types'
 import { message } from '../../../utils/message'
 import Switch from '@renderer/components/ui/Switch.vue'
+import Input from '@renderer/components/ui/Input.vue'
+import Dropdown from '@renderer/components/ui/Dropdown.vue'
+import Button from '@renderer/components/ui/Button.vue'
 
 const s3Store = useS3Store()
 const isConnecting = ref(false)
@@ -325,7 +313,8 @@ const getSyncIntervalText = (interval: number) => {
 }
 
 // 修改服务提供商选择逻辑
-const selectProvider = (type: S3Provider): void => {
+const selectProvider = (key: string): void => {
+  const type = key as S3Provider
   // 如果选择了不同的提供商，则尝试加载该提供商的配置
   if (provider.value !== type) {
     // 切换到新的提供商
@@ -574,7 +563,7 @@ watch(
 
 .s3-content {
   width: 100%;
-  padding-right: 10px;
+  padding: 0 10px;
 
   .s3-item {
     width: 100%;
@@ -612,34 +601,17 @@ watch(
     margin-bottom: 15px;
 
     .label {
-      width: 80px;
+      width: 100px;
       font-size: 14px;
       color: var(--color-text-secondary);
+      line-height: 32px;
     }
 
     .value {
       flex: 1;
       max-width: 300px;
-
-      input {
-        width: 100%;
-        height: 35px;
-        border: 1px solid var(--color-border);
-        border-radius: 6px;
-        padding: 0 12px;
-        font-size: 14px;
-        color: var(--color-text-primary);
-        outline: none;
-        transition: all 0.2s ease;
-
-        &:focus {
-          border-color: var(--color-primary);
-        }
-
-        &::placeholder {
-          color: var(--color-text-placeholder);
-        }
-      }
+      display: flex;
+      align-items: center;
     }
   }
 }
@@ -648,46 +620,18 @@ watch(
   margin-top: 20px;
   display: flex;
   gap: 12px;
-
-  .s3-item-button {
-    min-width: 80px;
-    height: 32px;
-    padding: 0 16px;
-    background-color: var(--color-primary);
-    color: var(--color-text-white);
-    border-radius: 6px;
-    font-size: 13px;
-    font-weight: 500;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    user-select: none;
-    transition: all 0.2s ease;
-
-    &:hover {
-      opacity: 0.9;
-    }
-
-    &.test {
-      background-color: var(--color-primary);
-    }
-
-    &.is-loading {
-      opacity: 0.7;
-      cursor: not-allowed;
-    }
-  }
 }
 
 .auto-sync-setting {
   display: flex;
   align-items: center;
   gap: 12px;
+  min-height: 32px;
 
   .auto-sync-description {
     font-size: 13px;
     color: var(--color-text-secondary);
+    line-height: 1;
   }
 }
 
@@ -768,80 +712,6 @@ watch(
     .empty-text {
       color: var(--color-text-secondary);
       font-size: 13px;
-    }
-  }
-}
-
-.select-wrapper {
-  position: relative;
-  width: 100%;
-
-  &.sync-interval-select {
-    max-width: 120px;
-
-    .select-dropdown {
-      min-width: 120px;
-    }
-  }
-
-  .select {
-    width: 100%;
-    padding: 8px 12px;
-    border-radius: 6px;
-    border: 1px solid var(--color-border);
-    color: var(--color-text-primary);
-    font-size: 14px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    height: 35px;
-
-    &:hover {
-      border-color: var(--color-primary);
-      background: var(--color-hover-bg);
-    }
-
-    .select-arrow {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 20px;
-      height: 100%;
-    }
-  }
-
-  .select-dropdown {
-    position: absolute;
-    top: calc(100% + 4px);
-    left: 0;
-    width: 100%;
-    background: var(--color-bg-primary);
-    border: 1px solid var(--color-border);
-    border-radius: 6px;
-    padding: 4px;
-    max-height: 200px;
-    overflow-y: auto;
-    z-index: 1000;
-    box-shadow: var(--shadow-card);
-
-    .select-option {
-      padding: 8px 12px;
-      cursor: pointer;
-      border-radius: 4px;
-      transition: all 0.2s;
-      font-size: 13px;
-      color: var(--color-text-primary);
-
-      &:hover {
-        background: var(--color-hover-bg);
-      }
-
-      &.active {
-        color: var(--color-primary);
-        background: var(--color-primary-bg);
-      }
     }
   }
 }
