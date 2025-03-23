@@ -252,6 +252,7 @@ export type LLMError = {
     | 'request_error'
     | 'network_error'
     | 'unknown'
+    | 'user_abort'
 }
 
 // Agent配置接口

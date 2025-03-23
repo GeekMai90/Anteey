@@ -13,6 +13,7 @@ import type {
 import { v4 as uuidv4 } from 'uuid'
 import { useModelConfigStore } from '@renderer/stores/modelConfigStore'
 import { message } from '@renderer/utils/message'
+import { useAgentStore } from '@renderer/stores/agentStore'
 
 export const useAssistantStore = defineStore(
   'assistant',
@@ -30,6 +31,7 @@ export const useAssistantStore = defineStore(
     const displayedMessageIds = ref<Set<string>>(new Set()) // 新增：记录已显示的消息ID
 
     const modelConfigStore = useModelConfigStore()
+    const agentStore = useAgentStore()
 
     // 确保配置已加载
     const ensureConfigLoaded = async () => {
@@ -425,9 +427,8 @@ export const useAssistantStore = defineStore(
       messages.value = []
       contexts.value = []
       currentContext.value = null
-      currentSessionId.value = uuidv4() // 生成新的会话 ID
+      currentSessionId.value = uuidv4()
       currentSessionStartTime.value = Date.now()
-      // 设置新会话的 metadata
       currentSession.value = {
         id: currentSessionId.value,
         messages: [],
@@ -437,10 +438,12 @@ export const useAssistantStore = defineStore(
           lastUpdateTime: new Date().toISOString(),
           messageCount: 0,
           hasReferences: false,
-          isHistorical: false // 确保新会话不是历史会话
+          isHistorical: false
         }
       }
-      displayedMessageIds.value.clear() // 清空已显示消息记录
+      displayedMessageIds.value.clear()
+      // 清除当前 Agent
+      agentStore.clearCurrentAgent()
     }
 
     // 开始新对话
@@ -676,13 +679,15 @@ export const useAssistantStore = defineStore(
             role: 'system',
             content: result.error.message,
             timestamp: Date.now(),
-            type: 'error',
+            type: result.error.type === 'user_abort' ? 'info' : 'error', // 根据错误类型设置消息类型
             error: result.error
           }
           messages.value.push(markRaw(errorMessage))
 
-          // 添加错误提示
-          if (result.error.type === 'balance_insufficient') {
+          // 根据错误类型显示不同的提示
+          if (result.error.type === 'user_abort') {
+            message.info('已取消请求')
+          } else if (result.error.type === 'balance_insufficient') {
             message.error('账户余额不足,请充值后重试')
           } else if (result.error.type === 'network_error') {
             message.error('网络连接失败,请检查网络设置')
@@ -773,6 +778,33 @@ export const useAssistantStore = defineStore(
           messages: prepareDataForTransfer(messages.value)
         }
       } catch (error) {
+        // 检查是否是取消请求的错误
+        if (
+          error instanceof Error &&
+          (error.name === 'AbortError' || error.message.includes('canceled'))
+        ) {
+          const errorMessage: SystemMessage = {
+            id: uuidv4(),
+            role: 'system',
+            content: '请求已取消',
+            timestamp: Date.now(),
+            type: 'info'
+          }
+          messages.value.push(markRaw(errorMessage))
+          // 不再抛出错误,而是直接返回
+          return {
+            answer: '',
+            context: {
+              query: content,
+              timestamp: new Date().toISOString(),
+              relevantDocs: [],
+              processingType: 'qa'
+            },
+            messages: messages.value
+          }
+        }
+
+        // 其他错误的处理保持不变
         console.error('问一问失败:', error)
         const errorMessage: SystemMessage = {
           id: uuidv4(),
@@ -783,10 +815,8 @@ export const useAssistantStore = defineStore(
         }
         messages.value.push(markRaw(errorMessage))
 
-        // 添加错误提示
         message.error('处理问题时出现错误，请稍后重试')
 
-        // 记录错误性能数据
         const duration = performance.now() - startTime
         performanceMetrics.value.errorCount++
         await window.electronAPI.rag.trackRAGPerformance(
@@ -809,7 +839,7 @@ export const useAssistantStore = defineStore(
     const handleChat = async (content: string) => {
       const startTime = performance.now()
       try {
-        await ensureConfigLoaded() // 确保配置已加载
+        await ensureConfigLoaded()
         isProcessing.value = true
 
         // 1. 会话管理
@@ -879,8 +909,14 @@ export const useAssistantStore = defineStore(
           }
           messages.value.push(markRaw(errorMessage))
 
-          // 添加错误提示
-          if (result.error.type === 'balance_insufficient') {
+          console.log('AssistantStore聊天失败:', result.error)
+
+          // 如果是取消请求导致的错误,显示取消信息
+          if (result.error.type === 'user_abort') {
+            message.info('已取消请求')
+          }
+          // 其他错误类型按原有逻辑处理
+          else if (result.error.type === 'balance_insufficient') {
             message.error('账户余额不足,请充值后重试')
           } else if (result.error.type === 'network_error') {
             message.error('网络连接失败,请检查网络设置')
@@ -960,6 +996,33 @@ export const useAssistantStore = defineStore(
           messages: prepareDataForTransfer(messages.value)
         }
       } catch (error) {
+        // 检查是否是取消请求的错误
+        if (
+          error instanceof Error &&
+          (error.name === 'AbortError' || error.message.includes('canceled'))
+        ) {
+          const errorMessage: SystemMessage = {
+            id: uuidv4(),
+            role: 'system',
+            content: '请求已取消',
+            timestamp: Date.now(),
+            type: 'info'
+          }
+          messages.value.push(markRaw(errorMessage))
+          // 不再抛出错误,而是直接返回
+          return {
+            answer: '',
+            context: {
+              query: content,
+              timestamp: new Date().toISOString(),
+              relevantDocs: [],
+              processingType: 'chat'
+            },
+            messages: messages.value
+          }
+        }
+
+        // 其他错误的处理保持不变
         console.error('聊天失败:', error)
         const errorMessage: SystemMessage = {
           id: uuidv4(),
@@ -970,10 +1033,8 @@ export const useAssistantStore = defineStore(
         }
         messages.value.push(markRaw(errorMessage))
 
-        // 添加错误提示
         message.error('处理聊天时出现错误，请稍后重试')
 
-        // 记录错误性能数据
         const duration = performance.now() - startTime
         performanceMetrics.value.errorCount++
         await window.electronAPI.rag.trackRAGPerformance(
@@ -1217,7 +1278,14 @@ export const useAssistantStore = defineStore(
           currentMode: defaultMode.value
         })
 
-        await ensureConfigLoaded() // 确保配置已加载
+        // 获取 agent 信息并设置为当前 agent
+        const agent = agentStore.agents.find((agent) => agent.id === params.agentId)
+        if (agent) {
+          console.log('设置当前活跃的 Agent:', agent)
+          agentStore.setCurrentAgent(agent)
+        }
+
+        await ensureConfigLoaded()
         isProcessing.value = true
 
         // 1. 会话管理
@@ -1279,13 +1347,15 @@ export const useAssistantStore = defineStore(
             role: 'system',
             content: result.error.message,
             timestamp: Date.now(),
-            type: 'error',
+            type: result.error.type === 'user_abort' ? 'info' : 'error', // 根据错误类型设置消息类型
             error: result.error
           }
           messages.value.push(markRaw(errorMessage))
 
-          // 添加错误提示
-          if (result.error.type === 'balance_insufficient') {
+          // 根据错误类型显示不同的提示
+          if (result.error.type === 'user_abort') {
+            message.info('已取消请求')
+          } else if (result.error.type === 'balance_insufficient') {
             message.error('账户余额不足,请充值后重试')
           } else if (result.error.type === 'network_error') {
             message.error('网络连接失败,请检查网络设置')
@@ -1384,6 +1454,33 @@ export const useAssistantStore = defineStore(
           messages: prepareDataForTransfer(messages.value)
         }
       } catch (error) {
+        // 处理中断请求的错误
+        if (
+          error instanceof Error &&
+          (error.name === 'AbortError' || error.message.includes('canceled'))
+        ) {
+          const errorMessage: SystemMessage = {
+            id: uuidv4(),
+            role: 'system',
+            content: '请求已取消',
+            timestamp: Date.now(),
+            type: 'info'
+          }
+          messages.value.push(markRaw(errorMessage))
+          // 返回一个有效的响应对象
+          return {
+            answer: '',
+            context: {
+              query: params.query || '',
+              timestamp: new Date().toISOString(),
+              relevantDocs: [],
+              processingType: 'agent'
+            },
+            messages: messages.value
+          }
+        }
+
+        // 其他错误的处理保持不变
         console.error('Agent 聊天失败:', error)
         const errorMessage: SystemMessage = {
           id: uuidv4(),
@@ -1394,7 +1491,6 @@ export const useAssistantStore = defineStore(
         }
         messages.value.push(markRaw(errorMessage))
 
-        // 添加错误提示
         message.error('Agent 处理失败，请稍后重试')
 
         // 记录错误性能数据
@@ -1493,12 +1589,15 @@ export const useAssistantStore = defineStore(
             role: 'system',
             content: result.error.message,
             timestamp: Date.now(),
-            type: 'error',
+            type: result.error.type === 'user_abort' ? 'info' : 'error', // 根据错误类型设置消息类型
             error: result.error
           }
           messages.value.push(markRaw(errorMessage))
 
-          if (result.error.type === 'balance_insufficient') {
+          // 根据错误类型显示不同的提示
+          if (result.error.type === 'user_abort') {
+            message.info('已取消请求')
+          } else if (result.error.type === 'balance_insufficient') {
             message.error('账户余额不足,请充值后重试')
           } else if (result.error.type === 'network_error') {
             message.error('网络连接失败,请检查网络设置')
@@ -1619,6 +1718,50 @@ export const useAssistantStore = defineStore(
       }
     }
 
+    // 添加中断请求的方法
+    const abortCurrentChat = async () => {
+      try {
+        console.log('前端AssistantStore收到中断聊天请求', isProcessing.value)
+        if (isProcessing.value) {
+          const result = await window.electronAPI.rag.abortCurrentChat()
+          if (result.success) {
+            message.info('已取消当前请求')
+          }
+        }
+      } catch (error) {
+        console.error('中断聊天请求失败:', error)
+        message.error('中断请求失败')
+      }
+    }
+
+    const abortCurrentAskQuestion = async () => {
+      try {
+        if (isProcessing.value) {
+          const result = await window.electronAPI.rag.abortCurrentAskQuestion()
+          if (result.success) {
+            message.info('已取消当前请求')
+          }
+        }
+      } catch (error) {
+        console.error('中断问一问请求失败:', error)
+        message.error('中断请求失败')
+      }
+    }
+
+    const abortCurrentAgentChat = async () => {
+      try {
+        if (isProcessing.value) {
+          const result = await window.electronAPI.rag.abortCurrentAgentChat()
+          if (result.success) {
+            message.info('已取消当前请求')
+          }
+        }
+      } catch (error) {
+        console.error('中断 Agent 聊天请求失败:', error)
+        message.error('中断请求失败')
+      }
+    }
+
     return {
       messages,
       isProcessing,
@@ -1656,7 +1799,10 @@ export const useAssistantStore = defineStore(
       handleAgentChat,
       handleAgentPureChat,
       loadingAnimation,
-      setLoadingAnimation
+      setLoadingAnimation,
+      abortCurrentChat,
+      abortCurrentAskQuestion,
+      abortCurrentAgentChat
     }
   },
   {

@@ -806,6 +806,27 @@ export interface ElectronAPI {
       messages: ChatMessage[]
       error?: LLMError
     }>
+
+    // 添加中断请求的方法类型
+    abortCurrentChat: () => Promise<{
+      success: boolean
+      error?: string
+    }>
+
+    abortCurrentAskQuestion: () => Promise<{
+      success: boolean
+      error?: string
+    }>
+
+    abortCurrentAgentChat: () => Promise<{
+      success: boolean
+      error?: string
+    }>
+
+    abortCurrentRequest: () => Promise<{
+      success: boolean
+      error?: string
+    }>
   }
 
   similarNotes: {

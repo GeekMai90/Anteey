@@ -129,16 +129,22 @@ export const useAgentStore = defineStore('agent', () => {
   const openAgentModal = () => (isAgentModalOpen.value = true)
   const closeAgentModal = () => (isAgentModalOpen.value = false)
 
-  // 添加一个方法来生成菜单项
+  // 设置当前活跃的 Agent
+  const setCurrentAgent = (agent: Agent | null) => {
+    console.log('设置当前活跃的 Agent:', agent)
+    currentAgent.value = agent
+  }
+
+  // 修改 generateAgentMenuItems 方法
   const generateAgentMenuItems = (noteId: string) => {
     console.log('生成Agent菜单项 - noteId:', noteId)
     console.log('当前可用的Agents:', menuAgents.value)
 
     return menuAgents.value.map((agent) => ({
-      name: agent.id,
+      key: agent.id,
       label: agent.name,
       icon: markRaw(Robot),
-      action: () => {
+      action: async () => {
         console.log('执行Agent菜单动作:', {
           agentId: agent.id,
           agentName: agent.name,
@@ -148,17 +154,20 @@ export const useAgentStore = defineStore('agent', () => {
         const uiStore = useUIStore()
         const assistantStore = useAssistantStore()
 
-        // 1. 打开右侧边栏的 AI 助手
-        console.log('打开右侧边栏 AI 助手')
-        uiStore.openRightSidebarWithTab('assistant')
-
-        // 2. 清空当前对话并切换到聊一聊模式
-        console.log('清空当前对话并切换到聊一聊模式')
-        assistantStore.clearMessages()
-        assistantStore.setDefaultMode('chat') // 切换到聊一聊模式
-
-        // 3. 执行 Agent 对话
         try {
+          // 设置当前活跃的 Agent
+          setCurrentAgent(agent)
+
+          // 1. 打开右侧边栏的 AI 助手
+          console.log('打开右侧边栏 AI 助手')
+          uiStore.openRightSidebarWithTab('assistant')
+
+          // 2. 清空当前对话并切换到聊一聊模式
+          console.log('清空当前对话并切换到聊一聊模式')
+          assistantStore.clearMessages()
+          assistantStore.setDefaultMode('chat')
+
+          // 3. 执行 Agent 对话
           console.log('开始执行 Agent 对话:', {
             agentId: agent.id,
             noteId,
@@ -166,16 +175,24 @@ export const useAgentStore = defineStore('agent', () => {
             temperature: agent.temperature
           })
 
-          return assistantStore.handleAgentChat({
+          return await assistantStore.handleAgentChat({
             agentId: agent.id,
             noteId
           })
         } catch (error) {
+          // 如果出错，清除当前 Agent
+          setCurrentAgent(null)
           console.error('执行 Agent 对话失败:', error)
           throw error
         }
       }
     }))
+  }
+
+  // 清除当前活跃的 Agent
+  const clearCurrentAgent = () => {
+    console.log('清除当前活跃的 Agent')
+    currentAgent.value = null
   }
 
   return {
@@ -198,6 +215,8 @@ export const useAgentStore = defineStore('agent', () => {
     refreshAgents,
     openAgentModal,
     closeAgentModal,
+    setCurrentAgent,
+    clearCurrentAgent,
     generateAgentMenuItems
   }
 })

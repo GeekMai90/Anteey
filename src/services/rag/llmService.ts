@@ -23,9 +23,18 @@ interface ChatMessage {
 export class LLMService {
   // 模型配置服务实例
   private configService: ModelConfigService
+  private abortController: AbortController | null = null
 
   constructor() {
     this.configService = new ModelConfigService()
+  }
+
+  // 中断当前请求
+  public abortCurrentRequest() {
+    if (this.abortController) {
+      this.abortController.abort()
+      this.abortController = null
+    }
   }
 
   // 添加为类的成员方法
@@ -41,36 +50,42 @@ export class LLMService {
   /**
    * 生成LLM响应
    * @param prompt - 用户输入的提示文本
-   * @param configId - 可选的配置ID，如不提供则使用默认配置
+   * @param modelConfigId - 可选的配置ID，如不提供则使用默认配置
    * @param parameters - 可选的参数覆盖
    * @returns 返回LLM生成的响应文本
    */
-  async generateResponse(
+  public async generateResponse(
     prompt: string,
-    configId?: string,
+    modelConfigId?: string,
     parameters?: Record<string, any>
   ): Promise<string> {
-    // 记录请求开始时间
+    // 记录开始时间和配置
     const startTime = Date.now()
     let config: ModelConfig | null = null
-    let response: any
 
     try {
+      // 如果存在旧的请求,先中断它
+      if (this.abortController) {
+        this.abortController.abort()
+      }
+
+      // 创建新的 AbortController
+      this.abortController = new AbortController()
+
       // 添加详细日志
       log.info('开始获取模型配置:', {
-        requestedConfigId: configId,
+        requestedConfigId: modelConfigId,
         hasParameters: !!parameters
       })
 
       // 修改这里：从 parameters 中获取 modelConfigId
-      const modelConfigId = parameters?.modelConfigId || configId
+      const configId = parameters?.modelConfigId || modelConfigId
 
       // 获取模型配置
-      if (modelConfigId) {
-        // 使用 modelConfigId
-        config = await this.configService.getConfigById(modelConfigId)
+      if (configId) {
+        config = await this.configService.getConfigById(configId)
         log.info('通过ID获取的配置:', {
-          configId: modelConfigId,
+          configId,
           provider: config?.provider,
           modelName: config?.modelName
         })
@@ -190,9 +205,10 @@ export class LLMService {
 
       // 发送请求
       const responseStartTime = Date.now()
-      response = await axios.post(fullEndpoint, requestBody, {
+      const response = await axios.post(fullEndpoint, requestBody, {
         headers,
-        timeout: 90000
+        timeout: 90000,
+        signal: this.abortController?.signal
       })
       const responseDuration = Date.now() - responseStartTime
 
@@ -220,6 +236,11 @@ export class LLMService {
 
       return content
     } catch (error) {
+      // 判断是否是中断导致的错误
+      if (error instanceof Error && error.name === 'AbortError') {
+        throw error // 向上传递中断错误
+      }
+
       // 错误处理和日志记录
       const duration = Date.now() - startTime
       if (axios.isAxiosError(error)) {
@@ -252,6 +273,9 @@ export class LLMService {
 
         throw error
       }
+    } finally {
+      // 请求完成后清理 controller
+      this.abortController = null
     }
   }
 
@@ -379,7 +403,8 @@ export class LLMService {
       const requestConfig: AxiosRequestConfig = {
         headers,
         timeout: 120000, // 流式响应使用更长的超时
-        responseType: 'stream'
+        responseType: 'stream',
+        signal: this.abortController?.signal
       }
 
       // 获取完整端点URL
@@ -644,5 +669,10 @@ export class LLMService {
       default:
         return 'user'
     }
+  }
+
+  // 添加一个公共方法来获取 abortController
+  public getAbortController(): AbortController | null {
+    return this.abortController
   }
 }

@@ -17,7 +17,11 @@ import {
   handleAskQuestion,
   handleChat,
   handleFindNotes,
-  handleAgentChat
+  handleAgentChat,
+  abortCurrentChat,
+  abortCurrentAskQuestion,
+  abortCurrentAgentChat,
+  abortCurrentRequest
 } from '@services/rag/ragService'
 import { checkAndInitializeEmbeddings } from '@services/rag/embeddingService'
 import log from 'electron-log'
@@ -423,4 +427,48 @@ export function setupRAGHandlers() {
       }
     }
   )
+
+  // 添加中断请求的处理器
+  ipcMain.handle('abort-current-chat', () => {
+    try {
+      console.log('主进程 → 收到中断Chat聊天请求')
+      abortCurrentChat()
+      return { success: true }
+    } catch (error) {
+      log.error('中断聊天请求失败:', error)
+      return { success: false, error: String(error) }
+    }
+  })
+
+  ipcMain.handle('abort-current-ask-question', () => {
+    try {
+      abortCurrentAskQuestion()
+      return { success: true }
+    } catch (error) {
+      log.error('中断问一问请求失败:', error)
+      return { success: false, error: String(error) }
+    }
+  })
+
+  ipcMain.handle('abort-current-agent-chat', () => {
+    try {
+      console.log('主进程 → 收到中断 Agent 聊天请求')
+      abortCurrentAgentChat()
+      return { success: true }
+    } catch (error) {
+      log.error('中断 Agent 聊天请求失败:', error)
+      return { success: false, error: String(error) }
+    }
+  })
+
+  // 通用的中断当前请求处理器
+  ipcMain.handle('abort-current-request', () => {
+    try {
+      abortCurrentRequest()
+      return { success: true }
+    } catch (error) {
+      log.error('中断当前请求失败:', error)
+      return { success: false, error: String(error) }
+    }
+  })
 }

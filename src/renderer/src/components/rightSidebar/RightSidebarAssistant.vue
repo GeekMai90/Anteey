@@ -248,13 +248,24 @@
                   :disabled="isProcessing"
                   rows="3"
                   @input="handleInput"
-                  @keydown="handleKeyDown"
+                  @keydown="handleInputKeyDown"
                   @compositionstart="handleCompositionStart"
                   @compositionend="handleCompositionEnd"
                 ></textarea>
 
-                <!-- 将发送按钮放在这里 -->
+                <!-- 添加中断按钮 -->
                 <button
+                  v-if="isProcessing"
+                  v-tooltip.top="'中断请求 (⌘+Backspace)'"
+                  class="abort-btn"
+                  @click="handleAbortRequest"
+                >
+                  <Close theme="outline" size="16" :strokeWidth="3" />
+                </button>
+
+                <!-- 发送按钮 -->
+                <button
+                  v-else
                   class="send-btn"
                   :disabled="!inputMessage.trim() || isProcessing"
                   @click="handleSend"
@@ -444,10 +455,11 @@ const selectMode = (suggestion: Suggestion) => {
 const handleSend = async () => {
   if (!inputMessage.value.trim() || assistantStore.isProcessing) return
 
-  try {
-    const message = inputMessage.value
-    const noteReferences = selectedNotes.value
+  // 将变量声明移到最外层作用域
+  const messageText = inputMessage.value
+  const noteRefs = selectedNotes.value.slice() // 创建一个副本
 
+  try {
     // 清空输入和选中的笔记
     inputMessage.value = ''
     selectedNotes.value = []
@@ -466,10 +478,10 @@ const handleSend = async () => {
     try {
       switch (mode) {
         case 'ask':
-          await assistantStore.handleAskQuestion(message, noteReferences)
+          await assistantStore.handleAskQuestion(messageText, noteRefs)
           break
         case 'chat':
-          await assistantStore.handleChat(message)
+          await assistantStore.handleChat(messageText)
           break
       }
 
@@ -483,7 +495,19 @@ const handleSend = async () => {
       focusInput()
     }
   } catch (error) {
+    // 不需要在这里显示错误消息,因为 store 中已经处理了
     console.error('发送消息失败:', error)
+    // 如果不是取消请求导致的错误,才恢复输入内容
+    if (
+      !(
+        error instanceof Error &&
+        (error.name === 'AbortError' || error.message.includes('canceled'))
+      )
+    ) {
+      // 恢复输入内容和选中的笔记
+      inputMessage.value = messageText
+      selectedNotes.value = noteRefs
+    }
   }
 }
 
@@ -558,8 +582,9 @@ const onSegmentComplete = () => {
 }
 
 const onTypewriterComplete = (messageId: string) => {
-  // 只标记消息为已显示，不执行滚动
-  onAgentMessageComplete(messageId)
+  // 只标记消息为已显示
+  assistantStore.markMessageAsDisplayed(messageId)
+  focusInput()
 }
 
 const openInMainPanel = () => {
@@ -576,7 +601,8 @@ const handleCompositionEnd = () => {
   isComposing.value = false
 }
 
-const handleKeyDown = (event: KeyboardEvent) => {
+// 1. 重命名原来的输入框键盘事件处理函数
+const handleInputKeyDown = (event: KeyboardEvent) => {
   // 如果正在使用输入法，不处理键盘事件
   if (isComposing.value) return
 
@@ -584,10 +610,21 @@ const handleKeyDown = (event: KeyboardEvent) => {
   if (event.key === 'Enter' && !event.shiftKey) {
     event.preventDefault() // 阻止默认的换行行为
     handleSend()
+    return
   }
+
   // 处理 Escape 键关闭笔记选择器
-  else if (event.key === 'Escape') {
+  if (event.key === 'Escape') {
     showNoteSelector.value = false
+  }
+}
+
+// 2. 添加全局键盘事件处理函数
+const handleGlobalKeyDown = (event: KeyboardEvent) => {
+  // 处理中断快捷键 (Cmd+Backspace 或 Ctrl+Backspace)
+  if ((event.metaKey || event.ctrlKey) && event.key === 'Backspace') {
+    event.preventDefault()
+    handleAbortRequest()
   }
 }
 
@@ -819,7 +856,7 @@ const scrollToElement = (element: Element, offset = 16) => {
   messagesContainer.value.scrollTop = messagesContainer.value.scrollTop + relativeTop - offset
 }
 
-// 修改 onMounted 钩子，移除内部的 scrollToElement 定义
+// 1. 修改 onMounted 钩子,添加全局键盘事件监听
 onMounted(async () => {
   // 预加载 Agent 数据
   await agentStore.fetchMenuAgents()
@@ -872,27 +909,53 @@ onMounted(async () => {
   if (messagesContainer.value) {
     messagesContainer.value.scrollTop = 0
   }
+
+  // 添加全局键盘事件监听
+  window.addEventListener('keydown', handleGlobalKeyDown)
+
+  onUnmounted(() => {
+    window.removeEventListener('keydown', handleGlobalKeyDown)
+  })
 })
 
-// 修改 onAgentMessageComplete 方法，移除滚动逻辑
-const onAgentMessageComplete = (messageId: string) => {
-  // 标记消息为已显示
-  assistantStore.markMessageAsDisplayed(messageId)
+// 2. 修改 handleAbortRequest 函数
+const handleAbortRequest = async () => {
+  try {
+    console.log('尝试中断请求, 当前模式:', currentMode.value?.mode)
+    console.log('当前活跃的 Agent:', agentStore.currentAgent)
 
-  // 只聚焦输入框
-  focusInput()
-}
+    // 通过 agentStore 判断是否在使用 Agent
+    if (agentStore.currentAgent) {
+      console.log('中断 Agent 聊天请求')
+      await assistantStore.abortCurrentAgentChat()
+      return
+    }
 
-// 添加更明确的滚动到顶部函数
-const scrollToTop = () => {
-  console.log('执行滚动到顶部')
-  if (messagesContainer.value) {
-    messagesContainer.value.scrollTop = 0
-    console.log('设置scrollTop为0')
+    // 其他模式的中断逻辑
+    if (currentMode.value?.mode === 'ask') {
+      console.log('中断问答请求')
+      await assistantStore.abortCurrentAskQuestion()
+    } else {
+      console.log('中断普通聊天请求')
+      await assistantStore.abortCurrentChat()
+    }
+  } catch (error) {
+    console.error('中断请求失败:', error)
+    message.error('中断请求失败')
   }
 }
 
-// 处理 agent 选择
+// 3. 添加 scrollToTop 函数
+const scrollToTop = () => {
+  if (messagesContainer.value) {
+    messagesContainer.value.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    })
+  }
+}
+
+// 4. 添加 handleAgentSelect 函数
 const handleAgentSelect = async (agentId: string) => {
   // 如果是空状态,直接返回
   if (agentId === 'empty') {
@@ -911,8 +974,16 @@ const handleAgentSelect = async (agentId: string) => {
       agentId
     })
   } catch (error) {
-    console.error('切换 Agent 失败:', error)
-    message.error('切换 AI 助手失败')
+    // 只在非取消请求的情况下显示错误
+    if (
+      !(
+        error instanceof Error &&
+        (error.name === 'AbortError' || error.message.includes('canceled'))
+      )
+    ) {
+      console.error('切换 Agent 失败:', error)
+      message.error('切换 AI 助手失败')
+    }
   }
 }
 </script>
@@ -1702,5 +1773,42 @@ const handleAgentSelect = async (agentId: string) => {
   align-items: flex-end;
   justify-content: flex-end;
   margin-top: 4px;
+}
+
+.abort-btn {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  background: none;
+  border-radius: 50%;
+  color: var(--color-error);
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+  padding: 0;
+  z-index: 2;
+
+  &:hover {
+    transform: scale(1.1);
+    background: var(--color-hover-bg);
+  }
+
+  :deep(.i-icon) {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+  }
+
+  :deep(svg) {
+    width: 18px;
+    height: 18px;
+  }
 }
 </style>

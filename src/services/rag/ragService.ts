@@ -66,8 +66,21 @@ const modelConfigService = new ModelConfigService()
 /**
  * 修改 LLMError 处理函数中的错误类型
  */
-function handleLLMError(error: any): LLMError {
+export function handleLLMError(error: any): LLMError {
   const now = new Date().toISOString()
+
+  // 处理请求取消的错误
+  if (error instanceof Error) {
+    if (error.name === 'AbortError' || error.message.includes('canceled')) {
+      return {
+        type: 'user_abort',
+        code: 'REQUEST_CANCELLED',
+        message: '用户取消了请求',
+        details: '用户主动取消了正在进行的请求',
+        timestamp: now
+      }
+    }
+  }
 
   // 处理 402 余额不足错误
   if (error.response?.status === 402) {
@@ -184,6 +197,21 @@ export async function handleAskQuestion(
   messages: ChatMessage[]
   error?: LLMError
 }> {
+  // 创建新的 LLMService 实例
+  const llmService = new LLMService()
+
+  // 如果已经有正在进行的请求,先中断它
+  if (currentAskController) {
+    currentAskController.llmService.abortCurrentRequest()
+    currentAskController = null
+  }
+
+  // 设置新的控制器
+  currentAskController = {
+    abortController: new AbortController(),
+    llmService
+  }
+
   try {
     // 1. 参数验证：确保查询是字符串类型
     if (typeof query !== 'string') {
@@ -245,12 +273,12 @@ export async function handleAskQuestion(
 
       // 生成回答
       const prompt = buildAskQuestionPrompt(query, context, currentMessages, isNewChat)
-      answer = await llm.generateResponse(prompt)
+      answer = await llmService.generateResponse(prompt)
     } else {
       // 3b. 处理无引用笔记的情况：通过语义搜索找到相关笔记
       context = await retrieveContext(query, session)
       const prompt = buildAskQuestionPrompt(query, context, currentMessages, isNewChat)
-      answer = await llm.generateResponse(prompt)
+      answer = await llmService.generateResponse(prompt)
     }
 
     // 4. 构建新的消息：记录用户问题和AI回答
@@ -309,6 +337,27 @@ export async function handleAskQuestion(
       error: undefined
     }
   } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') {
+      return {
+        answer: '请求已取消',
+        context: {
+          query,
+          timestamp: new Date().toISOString(),
+          relevantDocs: [],
+          processingType: 'qa'
+        },
+        messages: currentMessages,
+        error: {
+          code: 'REQUEST_CANCELLED',
+          message: '用户取消了请求',
+          details: '用户主动取消了正在进行的请求',
+          type: 'request_error',
+          timestamp: new Date().toISOString()
+        }
+      }
+    }
+
+    // 处理其他错误
     log.error('问一问模式处理失败:', error)
     const llmError = handleLLMError(error)
 
@@ -322,6 +371,11 @@ export async function handleAskQuestion(
       },
       messages: currentMessages,
       error: llmError
+    }
+  } finally {
+    // 确保清理控制器
+    if (currentAskController?.llmService === llmService) {
+      currentAskController = null
     }
   }
 }
@@ -775,25 +829,6 @@ function mergeDocs(
     .sort((a, b) => b.similarity - a.similarity)
     .slice(0, limit)
 }
-
-// 更新文档使用记录
-// function updateDocUsage(tracker: ConversationTracker, docs: RAGResult[]): void {
-//   const now = Date.now()
-
-//   docs.forEach((doc) => {
-//     const currentUsage = tracker.docUsage[doc.noteId] || {
-//       usageCount: 0,
-//       lastUsed: now,
-//       similarity: 0
-//     }
-
-//     tracker.docUsage[doc.noteId] = {
-//       usageCount: currentUsage.usageCount + 1,
-//       lastUsed: now,
-//       similarity: Math.max(currentUsage.similarity, doc.similarity)
-//     }
-//   })
-// }
 
 /**
  * 历史记录管理功能
@@ -1652,6 +1687,21 @@ export async function handleChat(
   messages: ChatMessage[]
   error?: LLMError
 }> {
+  // 创建新的 LLMService 实例
+  const llmService = new LLMService()
+
+  // 如果已经有正在进行的请求,先中断它
+  if (currentChatController) {
+    currentChatController.llmService.abortCurrentRequest()
+    currentChatController = null
+  }
+
+  // 设置新的控制器
+  currentChatController = {
+    abortController: new AbortController(),
+    llmService
+  }
+
   try {
     // 1. 参数验证
     if (typeof query !== 'string') {
@@ -1700,8 +1750,8 @@ export async function handleChat(
     const isNewChat = currentMessages.length === 0
     const prompt = await buildChatPrompt(query, currentMessages, isNewChat)
 
-    // 5. 调用大模型时传入 deepseekConfig
-    const answer = await llm.generateResponse(prompt)
+    // 5. 使用当前 llmService 生成回答
+    const answer = await llmService.generateResponse(prompt)
 
     // 6. 构建新的消息
     const userMessage: UserMessage = {
@@ -1749,7 +1799,10 @@ export async function handleChat(
       })
     }
 
-    // 9. 返回结果
+    // 9. 清理当前控制器
+    currentChatController = null
+
+    // 10. 返回结果
     return {
       answer,
       context,
@@ -1757,6 +1810,27 @@ export async function handleChat(
       error: undefined
     }
   } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') {
+      return {
+        answer: '请求已取消',
+        context: {
+          query,
+          timestamp: new Date().toISOString(),
+          relevantDocs: [],
+          processingType: 'chat'
+        },
+        messages: currentMessages,
+        error: {
+          code: 'REQUEST_CANCELLED',
+          message: '用户取消了请求',
+          details: '用户主动取消了正在进行的请求',
+          type: 'request_error',
+          timestamp: new Date().toISOString()
+        }
+      }
+    }
+
+    // 处理其他错误
     log.error('聊天模式处理失败:', error)
     const llmError = handleLLMError(error)
 
@@ -1770,6 +1844,11 @@ export async function handleChat(
       },
       messages: currentMessages,
       error: llmError
+    }
+  } finally {
+    // 确保清理控制器
+    if (currentChatController?.llmService === llmService) {
+      currentChatController = null
     }
   }
 }
@@ -2011,7 +2090,24 @@ export async function handleAgentChat(params: {
   messages: ChatMessage[]
   error?: LLMError
 }> {
-  console.log('开始处理 Agent 聊天请求:', params)
+  // 创建新的 LLMService 实例
+  const llmService = new LLMService()
+
+  // 如果已经有正在进行的请求,先中断它
+  console.log('Agent 聊天模式 - 当前控制器状态:', currentAgentController)
+  if (currentAgentController) {
+    currentAgentController.llmService.abortCurrentRequest()
+    currentAgentController = null
+  }
+
+  // 创建新的 AbortController
+  const abortController = new AbortController()
+
+  // 设置新的控制器 - 移到这里，确保在调用 generateResponse 之前就设置好
+  currentAgentController = {
+    abortController,
+    llmService
+  }
 
   try {
     const {
@@ -2095,8 +2191,9 @@ export async function handleAgentChat(params: {
       modelConfigId: agent.modelConfigId,
       temperature: agent.temperature
     })
-    const answer = await llm.generateResponse(prompt, agent.modelConfigId, {
-      temperature: agent.temperature
+    const answer = await llmService.generateResponse(prompt, agent.modelConfigId, {
+      temperature: agent.temperature,
+      signal: abortController.signal
     })
     console.log('获取到大模型回答:', answer)
 
@@ -2144,6 +2241,27 @@ export async function handleAgentChat(params: {
       error: undefined
     }
   } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') {
+      return {
+        answer: '请求已取消',
+        context: {
+          query: params.query || '',
+          timestamp: new Date().toISOString(),
+          relevantDocs: [],
+          processingType: 'agent_chat'
+        },
+        messages: params.currentMessages || [],
+        error: {
+          code: 'REQUEST_CANCELLED',
+          message: '用户取消了请求',
+          details: '用户主动取消了正在进行的请求',
+          type: 'request_error',
+          timestamp: new Date().toISOString()
+        }
+      }
+    }
+
+    // 处理其他错误
     console.error('Agent 聊天模式处理失败:', error)
     const llmError = handleLLMError(error)
 
@@ -2157,6 +2275,11 @@ export async function handleAgentChat(params: {
       },
       messages: params.currentMessages || [],
       error: llmError
+    }
+  } finally {
+    // 确保清理控制器 - 修改判断条件
+    if (currentAgentController?.abortController === abortController) {
+      currentAgentController = null
     }
   }
 }
@@ -2198,4 +2321,64 @@ function buildAgentPrompt(
 
   console.log('构建的完整提示词长度:', prompt.length)
   return prompt
+}
+
+// 添加中断控制器管理
+let currentAskController: {
+  abortController: AbortController
+  llmService: LLMService
+} | null = null
+
+// 中断当前对话
+export function abortCurrentAskQuestion(): void {
+  if (currentAskController) {
+    currentAskController.abortController.abort()
+    currentAskController.llmService.abortCurrentRequest()
+    currentAskController = null
+  }
+}
+
+// 修改 handleAgentChat 函数，添加类似的中断支持
+let currentAgentController: {
+  abortController: AbortController
+  llmService: LLMService
+} | null = null
+
+export function abortCurrentAgentChat(): void {
+  console.log('尝试中断 Agent 聊天请求，当前控制器状态:', currentAgentController)
+  if (currentAgentController) {
+    console.log('开始中断请求...')
+    currentAgentController.abortController.abort()
+    currentAgentController.llmService.abortCurrentRequest()
+    currentAgentController = null
+    console.log('已成功中断 Agent 聊天请求')
+  } else {
+    console.log('没有找到正在进行的 Agent 聊天请求')
+  }
+}
+
+// 1. 首先在文件顶部添加中断控制器的类型定义
+interface ChatController {
+  abortController: AbortController
+  llmService: LLMService
+}
+
+// 2. 添加中断控制器的声明
+let currentChatController: ChatController | null = null
+
+// 3. 添加中断函数
+export function abortCurrentChat(): void {
+  console.log('后端服务 → 收到中断Chat请求', currentChatController)
+  if (currentChatController) {
+    currentChatController.abortController.abort()
+    currentChatController.llmService.abortCurrentRequest()
+    currentChatController = null
+  }
+}
+
+// 添加中断当前请求的方法
+export function abortCurrentRequest(): void {
+  if (llm) {
+    llm.abortCurrentRequest()
+  }
 }

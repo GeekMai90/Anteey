@@ -379,5 +379,53 @@ export const ragApi = {
       console.error('预加载脚本 → Agent聊天模式失败:', error)
       throw error
     }
+  },
+  // 添加中断请求的方法
+  abortCurrentChat: async (): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const result = await ipcRenderer.invoke('abort-current-chat')
+      if (!result.success) throw new Error(result.error)
+      return result
+    } catch (error) {
+      console.error('预加载脚本 → 中断聊天请求失败:', error)
+      throw error
+    }
+  },
+
+  abortCurrentAskQuestion: async (): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const result = await ipcRenderer.invoke('abort-current-ask-question')
+      if (!result.success) throw new Error(result.error)
+      return result
+    } catch (error) {
+      console.error('预加载脚本 → 中断问一问请求失败:', error)
+      throw error
+    }
+  },
+
+  abortCurrentAgentChat: async (): Promise<{ success: boolean; error?: string }> => {
+    try {
+      console.log('预加载脚本 → 收到中断 Agent 聊天请求')
+      const result = await ipcRenderer.invoke('abort-current-agent-chat')
+      console.log('预加载脚本 → 中断 Agent 聊天请求结果:', result)
+      if (!result.success) throw new Error(result.error)
+      return result
+    } catch (error) {
+      console.error('预加载脚本 → 中断 Agent 聊天请求失败:', error)
+      throw error
+    }
+  },
+
+  abortCurrentRequest: async (): Promise<{ success: boolean; error?: string }> => {
+    try {
+      console.log('预加载脚本 → 收到中断当前请求')
+      const result = await ipcRenderer.invoke('abort-current-request')
+      console.log('预加载脚本 → 中断当前请求结果:', result)
+      if (!result.success) throw new Error(result.error)
+      return result
+    } catch (error) {
+      console.error('预加载脚本 → 中断当前请求失败:', error)
+      throw error
+    }
   }
 }
