@@ -195,6 +195,226 @@
         />
       </div>
     </div>
+
+    <h2>下拉菜单测试</h2>
+    <div class="demo-section">
+      <div class="button-row">
+        <!-- 基础用法 -->
+        <Dropdown align="start" :items="dropdownItems" @select="handleDropdownSelect">
+          选择选项
+        </Dropdown>
+
+        <!-- 不同类型 -->
+        <Dropdown align="end" :items="dropdownItems" type="primary" @select="handleDropdownSelect">
+          下拉菜单
+        </Dropdown>
+
+        <Dropdown :items="dropdownItems" type="text" @select="handleDropdownSelect">
+          文本下拉
+        </Dropdown>
+      </div>
+
+      <!-- 带图标 -->
+      <div class="button-row">
+        <Dropdown :items="dropdownItemsWithIcons" :icon="FileSearch" @select="handleDropdownSelect">
+          高级搜索
+        </Dropdown>
+
+        <Dropdown
+          :items="dropdownItemsWithIcons"
+          type="primary"
+          :icon="Filter"
+          @select="handleDropdownSelect"
+        >
+          筛选
+        </Dropdown>
+      </div>
+
+      <!-- 不同尺寸 -->
+      <div class="button-row">
+        <Dropdown :items="dropdownItems" size="small" @select="handleDropdownSelect">
+          小型下拉
+        </Dropdown>
+
+        <Dropdown :items="dropdownItems" size="large" @select="handleDropdownSelect">
+          大型下拉
+        </Dropdown>
+      </div>
+
+      <!-- 不同位置 -->
+      <div class="button-row">
+        <Dropdown
+          :items="dropdownItems"
+          placement="bottom"
+          type="primary"
+          @select="handleDropdownSelect"
+        >
+          向下弹出
+        </Dropdown>
+
+        <Dropdown
+          :items="dropdownItems"
+          placement="top"
+          type="primary"
+          @select="handleDropdownSelect"
+        >
+          向上弹出
+        </Dropdown>
+      </div>
+
+      <!-- 不同对齐方式 -->
+      <div class="button-row">
+        <Dropdown
+          :items="dropdownItems"
+          align="start"
+          type="primary"
+          @select="handleDropdownSelect"
+        >
+          左对齐
+        </Dropdown>
+
+        <Dropdown
+          :items="dropdownItems"
+          align="center"
+          type="primary"
+          @select="handleDropdownSelect"
+        >
+          居中对齐
+        </Dropdown>
+
+        <Dropdown :items="dropdownItems" align="end" type="primary" @select="handleDropdownSelect">
+          右对齐
+        </Dropdown>
+      </div>
+
+      <!-- 带提示 -->
+      <div class="button-row">
+        <Dropdown
+          :items="dropdownItems"
+          :icon="FileSearch"
+          :tooltip="{
+            content: '点击展开高级搜索',
+            delay: { show: 1000 }
+          }"
+          @select="handleDropdownSelect"
+        >
+          高级搜索
+        </Dropdown>
+      </div>
+
+      <!-- 带分割线的菜单 -->
+      <div class="button-row">
+        <Dropdown
+          :items="dropdownItemsWithDivider"
+          type="primary"
+          :icon="MenuFoldOne"
+          @select="handleDropdownSelect"
+        >
+          带分割线
+        </Dropdown>
+      </div>
+
+      <!-- 悬停触发 -->
+      <div class="button-row">
+        <Dropdown
+          :items="dropdownItems"
+          trigger="hover"
+          type="primary"
+          @select="handleDropdownSelect"
+        >
+          悬停触发
+        </Dropdown>
+      </div>
+
+      <!-- 禁用状态 -->
+      <div class="button-row">
+        <Dropdown :items="dropdownItems" disabled @select="handleDropdownSelect">
+          禁用状态
+        </Dropdown>
+      </div>
+
+      <!-- 选中反馈 -->
+      <p v-if="lastSelectedDropdownItem" class="mt-4">
+        最后选择的项目: {{ lastSelectedDropdownItem.label }} ({{ lastSelectedDropdownItem.key }})
+      </p>
+
+      <!-- 自定义高度的下拉菜单 -->
+      <div class="button-row">
+        <Dropdown :items="dropdownItems" :height="36" @select="handleDropdownSelect">
+          自定义高度
+        </Dropdown>
+
+        <Dropdown :items="dropdownItems" type="primary" :height="40" @select="handleDropdownSelect">
+          更高的下拉菜单
+        </Dropdown>
+
+        <Dropdown
+          :items="dropdownItems"
+          :height="32"
+          :icon="FileSearch"
+          @select="handleDropdownSelect"
+        >
+          带图标的自定义高度
+        </Dropdown>
+      </div>
+
+      <!-- 只显示图标的下拉菜单 -->
+      <div class="button-row">
+        <Dropdown
+          align="start"
+          :items="dropdownItems"
+          :icon="Filter"
+          iconOnly
+          @select="handleDropdownSelect"
+        />
+
+        <Dropdown
+          :items="dropdownItems"
+          :icon="FileSearch"
+          align="end"
+          type="primary"
+          iconOnly
+          @select="handleDropdownSelect"
+        />
+
+        <Dropdown
+          :items="dropdownItems"
+          :icon="Plus"
+          iconOnly
+          :tooltip="{
+            content: '添加选项',
+            delay: { show: 1000 }
+          }"
+          @select="handleDropdownSelect"
+        />
+
+        <!-- 不同尺寸 -->
+        <Dropdown
+          :items="dropdownItems"
+          :icon="Filter"
+          size="small"
+          iconOnly
+          @select="handleDropdownSelect"
+        />
+
+        <Dropdown
+          :items="dropdownItems"
+          :icon="Filter"
+          size="large"
+          iconOnly
+          @select="handleDropdownSelect"
+        />
+
+        <!-- 自定义高度 -->
+        <Dropdown
+          :items="dropdownItems"
+          :icon="Filter"
+          :height="36"
+          iconOnly
+          @select="handleDropdownSelect"
+        />
+      </div>
+    </div>
   </div>
 </template>
 
@@ -205,7 +425,20 @@ import Button from './Button.vue'
 import SpreadButton from './SpreadButton.vue'
 import SearchInput from './SearchInput.vue'
 import AppToolbar from '../layout/AppToolbar.vue'
-import { Plus, Delete, Edit, Search, FileSearch, Filter } from '@icon-park/vue-next'
+import Dropdown from './Dropdown.vue'
+import {
+  Plus,
+  Delete,
+  Edit,
+  Search,
+  FileSearch,
+  Filter,
+  Copy,
+  Share,
+  Download,
+  Link,
+  MenuFoldOne
+} from '@icon-park/vue-next'
 import CalendarButton from './CalendarButton.vue'
 
 const selectedValue = ref('1')
@@ -218,6 +451,92 @@ const options = [
   { value: '2', label: '选项二' },
   { value: '3', label: '选项三' }
 ]
+
+// 下拉菜单项
+const dropdownItems = [
+  {
+    label: '编辑',
+    key: 'edit'
+  },
+  {
+    label: '分享',
+    key: 'share'
+  },
+  {
+    label: '复制链接',
+    key: 'copy'
+  },
+  {
+    label: '下载',
+    key: 'download'
+  },
+  {
+    label: '删除',
+    key: 'delete',
+    danger: true
+  }
+]
+
+// 带图标的下拉菜单项
+const dropdownItemsWithIcons = [
+  {
+    label: '编辑',
+    key: 'edit',
+    icon: Edit
+  },
+  {
+    label: '分享',
+    key: 'share',
+    icon: Share
+  },
+  {
+    label: '复制链接',
+    key: 'copy',
+    icon: Copy
+  },
+  {
+    label: '下载',
+    key: 'download',
+    icon: Download
+  },
+  {
+    label: '删除',
+    key: 'delete',
+    icon: Delete,
+    danger: true
+  }
+]
+
+// 带分割线的下拉菜单项
+const dropdownItemsWithDivider = [
+  {
+    label: '编辑',
+    key: 'edit',
+    icon: Edit
+  },
+  {
+    label: '分享',
+    key: 'share',
+    icon: Share
+  },
+  {
+    label: '复制链接',
+    key: 'copy',
+    icon: Link
+  },
+  {
+    divided: true as const
+  },
+  {
+    label: '删除',
+    key: 'delete',
+    icon: Delete,
+    danger: true
+  }
+]
+
+// 最后选择的下拉菜单项
+const lastSelectedDropdownItem = ref<any>(null)
 
 const handleClick = () => {
   loading.value = true
@@ -232,6 +551,12 @@ const toggleDateFilter = () => {
   } else {
     selectedDate.value = '2024-03-14'
   }
+}
+
+// 处理下拉菜单选择
+const handleDropdownSelect = (key: string, item: any) => {
+  console.log('选中菜单项:', key, item)
+  lastSelectedDropdownItem.value = item
 }
 </script>
 
@@ -273,5 +598,23 @@ h2 {
 .search-row {
   margin-bottom: 16px;
   max-width: 400px;
+}
+
+/* 自定义触发器样式 */
+.custom-trigger {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.custom-trigger:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
 }
 </style>

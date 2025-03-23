@@ -46,30 +46,46 @@
           name="view-mode"
           tooltipPlacement="top"
         />
-        <!-- 添加历史记录按钮 -->
-        <Button
+        <!-- 修改历史记录按钮部分 -->
+        <Dropdown
           v-if="['first_draft', 'polish'].includes(currentMode)"
           ref="historyButtonRef"
+          :tooltip="{
+            content: '历史记录',
+            delay: { show: 500 },
+            placement: 'top'
+          }"
           class="history-button"
           type="default"
           :height="36"
           :icon="History"
-          @click="handleHistoryClick"
+          :items="historyMenuItems"
+          :width="200"
+          :showSelected="false"
+          @select="handleHistorySelect"
+          @visible-change="handleHistoryVisibleChange"
         >
           历史记录
-        </Button>
+        </Dropdown>
 
-        <!-- 在所有模式下都可见模型设置按钮 -->
-        <Button
+        <!-- 修改模型设置按钮部分 -->
+        <Dropdown
           ref="modelButtonRef"
+          :tooltip="{
+            content: '模型设置',
+            delay: { show: 500 },
+            placement: 'top'
+          }"
           class="model-setting-button"
           type="default"
           :height="36"
           :icon="Setting"
-          @click="handleModelSettingClick"
+          :items="modelMenuItems"
+          :width="240"
+          @select="handleModelSelect"
         >
           模型设置
-        </Button>
+        </Dropdown>
 
         <!-- 根据不同模式显示不同按钮 -->
         <Button
@@ -236,95 +252,6 @@
         </div>
       </div>
     </div>
-
-    <!-- 修改历史记录下拉菜单 -->
-    <Teleport to="body">
-      <Transition name="fade-zoom">
-        <div
-          v-if="isHistoryMenuOpen"
-          ref="historyMenuRef"
-          class="history-menu"
-          :style="{
-            position: historyStrategy as any,
-            top: `${historyY ?? 0}px`,
-            left: `${historyX ?? 0}px`
-          }"
-        >
-          <div class="history-menu-content">
-            <template v-if="isLoadingHistory">
-              <div class="loading-state">
-                <span>加载中...</span>
-              </div>
-            </template>
-            <template v-else>
-              <div
-                v-for="history in currentMode === 'first_draft'
-                  ? writingDeskStore.firstDraftHistory
-                  : writingDeskStore.polishHistory"
-                :key="history.id"
-                class="history-item"
-                @click="handleRestoreHistory(history.id)"
-              >
-                <div class="history-info">
-                  <span class="history-date">{{ formatDate(history.createdAt) }}</span>
-                  <span class="history-style">{{ history.style }}</span>
-                </div>
-              </div>
-              <div
-                v-if="
-                  (currentMode === 'first_draft'
-                    ? writingDeskStore.firstDraftHistory
-                    : writingDeskStore.polishHistory
-                  ).length === 0
-                "
-                class="empty-history"
-              >
-                暂无历史记录
-              </div>
-            </template>
-          </div>
-        </div>
-      </Transition>
-    </Teleport>
-
-    <!-- 修改模型选择下拉菜单 -->
-    <Teleport to="body">
-      <Transition name="fade-zoom">
-        <div
-          v-if="isModelMenuOpen"
-          ref="modelMenuRef"
-          class="model-menu"
-          :style="{
-            position: modelStrategy as any,
-            top: `${modelY ?? 0}px`,
-            left: `${modelX ?? 0}px`
-          }"
-        >
-          <div class="model-menu-content">
-            <template v-if="isLoadingModels">
-              <div class="loading-state">
-                <span>加载中...</span>
-              </div>
-            </template>
-            <template v-else>
-              <div
-                v-for="config in modelConfigs"
-                :key="config.id"
-                class="model-item"
-                :class="{ active: getCurrentFeatureConfig?.modelConfigId === config.id }"
-                @click="handleModelSelect(config.id)"
-              >
-                <div class="model-info">
-                  <span class="model-name">{{ config.name }}</span>
-                  <span class="model-provider">{{ config.provider }}</span>
-                </div>
-              </div>
-              <div v-if="modelConfigs.length === 0" class="empty-models">暂无可用模型</div>
-            </template>
-          </div>
-        </div>
-      </Transition>
-    </Teleport>
   </div>
 </template>
 
@@ -352,8 +279,7 @@ import { ManuscriptCard } from '@/shared/types'
 import TipTapEditor from '@renderer/components/tiptap/TipTapEditor.vue'
 import CardThumbnailNavigator from './CardThumbnailNavigator.vue'
 import CardGridView from './CardGridView.vue'
-import { useFloating } from '@floating-ui/vue'
-import { flip, offset, shift } from '@floating-ui/dom'
+import Dropdown from '@renderer/components/ui/Dropdown.vue'
 
 // 使用路由获取参数
 const route = useRoute()
@@ -444,10 +370,6 @@ onMounted(async () => {
 
   // 设置事件监听器
   document.addEventListener('click', handleDocumentClick)
-  window.addEventListener('resize', () => {
-    if (isHistoryMenuOpen.value) updateHistoryPosition()
-    if (isModelMenuOpen.value) updateModelPosition()
-  })
 })
 
 // 监听模式切换
@@ -502,10 +424,14 @@ const isLoadingHistory = ref(false)
 const historyButtonRef = ref<ButtonComponent | null>(null)
 
 // AI 配置相关
-const isModelMenuOpen = ref(false)
-const modelMenuRef = ref<HTMLElement | null>(null)
-const isLoadingModels = ref(false)
-const modelButtonRef = ref<ButtonComponent | null>(null)
+const modelMenuItems = computed(() => {
+  return modelConfigs.value.map((config) => ({
+    label: config.name,
+    key: config.id,
+    // 添加选中状态标记
+    active: getCurrentFeatureConfig.value?.modelConfigId === config.id
+  }))
+})
 
 // 获取当前功能的模型配置
 const getCurrentFeatureConfig = computed(() => {
@@ -1022,81 +948,58 @@ const handleAddReferenceCard = async (noteId: string, order: number) => {
   }
 }
 
-// 历史菜单的浮动定位
-const {
-  x: historyX,
-  y: historyY,
-  strategy: historyStrategy,
-  update: updateHistoryPosition
-} = useFloating(historyButtonRef, historyMenuRef, {
-  placement: 'bottom-start',
-  middleware: [offset(8), flip(), shift()]
+// 添加历史菜单项的计算属性
+const historyMenuItems = computed(() => {
+  const history =
+    currentMode.value === 'first_draft'
+      ? writingDeskStore.firstDraftHistory
+      : writingDeskStore.polishHistory
+
+  if (isLoadingHistory.value) {
+    return [
+      {
+        label: '加载中...',
+        key: 'loading',
+        disabled: true
+      }
+    ]
+  }
+
+  if (!history.length) {
+    return [
+      {
+        label: '暂无历史记录',
+        key: 'empty',
+        disabled: true
+      }
+    ]
+  }
+
+  return history.map((item) => ({
+    label: `${formatDate(item.createdAt)}`,
+    key: item.id
+  }))
 })
 
-// 模型选择菜单的浮动定位
-const {
-  x: modelX,
-  y: modelY,
-  strategy: modelStrategy,
-  update: updateModelPosition
-} = useFloating(modelButtonRef, modelMenuRef, {
-  placement: 'bottom-start',
-  middleware: [offset(8), flip(), shift()]
-})
-
-// 监听下拉菜单开关状态，更新位置
-watch(
-  () => isHistoryMenuOpen.value,
-  (newValue) => {
-    if (newValue) {
-      nextTick(() => {
-        updateHistoryPosition()
-      })
+// 修改历史记录相关的处理方法
+const handleHistoryVisibleChange = async (visible: boolean) => {
+  if (visible) {
+    isLoadingHistory.value = true
+    try {
+      if (currentMode.value === 'first_draft') {
+        await writingDeskStore.getFirstDraftHistory(manuscript.value!.id)
+      } else if (currentMode.value === 'polish') {
+        await writingDeskStore.getPolishHistory(manuscript.value!.id)
+      }
+    } catch (error) {
+      console.error('加载历史记录失败:', error)
+    } finally {
+      isLoadingHistory.value = false
     }
   }
-)
-
-watch(
-  () => isModelMenuOpen.value,
-  (newValue) => {
-    if (newValue) {
-      nextTick(() => {
-        updateModelPosition()
-      })
-    }
-  }
-)
-
-// 处理历史按钮点击
-const handleHistoryClick = async (event: MouseEvent) => {
-  // 如果已经打开，则关闭
-  if (isHistoryMenuOpen.value) {
-    isHistoryMenuOpen.value = false
-    return
-  }
-
-  // 否则打开并加载历史
-  isHistoryMenuOpen.value = true
-  isLoadingHistory.value = true
-
-  try {
-    if (currentMode.value === 'first_draft') {
-      await writingDeskStore.getFirstDraftHistory(manuscript.value!.id)
-    } else if (currentMode.value === 'polish') {
-      await writingDeskStore.getPolishHistory(manuscript.value!.id)
-    }
-  } catch (error) {
-    console.error('加载历史记录失败:', error)
-  } finally {
-    isLoadingHistory.value = false
-  }
-
-  // 阻止事件冒泡，避免立即触发 document 的点击事件
-  event.stopPropagation()
 }
 
-// 处理历史版本恢复
-const handleRestoreHistory = async (historyId: string) => {
+const handleHistorySelect = async (historyId: string) => {
   if (!manuscript.value) return
 
   try {
@@ -1105,37 +1008,9 @@ const handleRestoreHistory = async (historyId: string) => {
     } else if (currentMode.value === 'polish') {
       await writingDeskStore.restorePolishHistory(manuscript.value.id, historyId)
     }
-    isHistoryMenuOpen.value = false
   } catch (error) {
     console.error('恢复历史版本失败:', error)
   }
-}
-
-// 处理模型设置按钮点击
-const handleModelSettingClick = async (event: MouseEvent) => {
-  // 如果已经打开，则关闭
-  if (isModelMenuOpen.value) {
-    isModelMenuOpen.value = false
-    return
-  }
-
-  // 否则打开菜单
-  isModelMenuOpen.value = true
-
-  // 如果需要刷新数据，可以在这里重新加载
-  if (modelConfigStore.configs.length === 0) {
-    isLoadingModels.value = true
-    try {
-      await modelConfigStore.loadConfigs()
-    } catch (error) {
-      console.error('加载模型配置失败:', error)
-    } finally {
-      isLoadingModels.value = false
-    }
-  }
-
-  // 阻止事件冒泡，避免立即触发 document 的点击事件
-  event.stopPropagation()
 }
 
 // 重新定义类型
@@ -1163,58 +1038,35 @@ const handleDocumentClick = (event: MouseEvent) => {
       isHistoryMenuOpen.value = false
     }
   }
-
-  // 处理模型菜单
-  if (isModelMenuOpen.value && modelMenuRef.value) {
-    // 检查点击是否在菜单内
-    const clickInMenu = modelMenuRef.value.contains(target)
-
-    // 检查点击是否在模型按钮上或其内部
-    const clickOnModelButton = target.closest('.model-setting-button') !== null
-
-    // 如果既不在菜单内也不在按钮上，则关闭菜单
-    if (!clickInMenu && !clickOnModelButton) {
-      isModelMenuOpen.value = false
-    }
-  }
 }
 
 // 在 onMounted 中设置文档点击监听
 onMounted(() => {
   document.addEventListener('click', handleDocumentClick)
-  window.addEventListener('resize', () => {
-    if (isHistoryMenuOpen.value) updateHistoryPosition()
-    if (isModelMenuOpen.value) updateModelPosition()
-  })
 })
 
 // 在 onUnmounted 中移除监听器
 onUnmounted(() => {
   document.removeEventListener('click', handleDocumentClick)
-  window.removeEventListener('resize', () => {
-    if (isHistoryMenuOpen.value) updateHistoryPosition()
-    if (isModelMenuOpen.value) updateModelPosition()
-  })
 })
 
 // 添加 modelConfigs 计算属性
 const modelConfigs = computed(() => modelConfigStore.configs)
 
-// 处理模型选择
+// 修改 handleModelSelect 方法
 const handleModelSelect = async (modelConfigId: string) => {
   try {
-    let featureType: 'firstDraft' | 'polish' | 'deepThinking' = 'firstDraft' // 默认值
+    let featureType: 'firstDraft' | 'polish' | 'deepThinking' = 'firstDraft'
 
     if (currentMode.value === 'draft') {
-      featureType = 'firstDraft' // 草稿模式使用初稿生成功能的模型
+      featureType = 'firstDraft'
     } else if (currentMode.value === 'first_draft') {
-      featureType = 'polish' // 初稿模式使用润色文章功能的模型
+      featureType = 'polish'
     } else if (currentMode.value === 'polish') {
-      featureType = 'deepThinking' // 终稿模式使用深度思考功能的模型
+      featureType = 'deepThinking'
     }
 
     await writingDeskStore.updateAIConfig(featureType, modelConfigId)
-    isModelMenuOpen.value = false
   } catch (error) {
     console.error('更新模型配置失败:', error)
   }

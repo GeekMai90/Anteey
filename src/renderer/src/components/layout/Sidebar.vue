@@ -399,8 +399,8 @@ const menuItems = computed(() => {
     { name: '知识树', path: '/knowledge-tree', icon: Sapling },
     { name: '记忆卡', path: '/flashcard', icon: StorageCardOne },
     { name: '思维板', path: '/mindboard', icon: Workbench },
-    { name: '写作台', path: '/writing-desk', icon: NotebookAndPen }
-    // { name: 'UI', path: '/ui-test', icon: Workbench }
+    { name: '写作台', path: '/writing-desk', icon: NotebookAndPen },
+    { name: 'UI', path: '/ui-test', icon: Workbench }
   ]
   return baseItems
 })

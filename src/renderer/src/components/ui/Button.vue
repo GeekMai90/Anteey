@@ -7,6 +7,7 @@ interface TooltipConfig {
   content: string
   html?: boolean
   delay?: { show: number; hide?: number }
+  placement?: 'top' | 'bottom' | 'left' | 'right'
 }
 
 interface Props {
@@ -21,7 +22,6 @@ interface Props {
   iconOnly?: boolean
   plain?: boolean
   tooltip?: TooltipConfig
-  tooltipPlacement?: 'top' | 'bottom' | 'left' | 'right'
   dropdown?: boolean
 }
 
@@ -35,11 +35,15 @@ const props = withDefaults(defineProps<Props>(), {
   shape: 'default',
   iconOnly: false,
   plain: false,
-  tooltipPlacement: 'bottom',
   dropdown: false
 })
 
 const buttonRef = ref<HTMLButtonElement | null>(null)
+
+// 暴露按钮元素的引用
+defineExpose({
+  el: buttonRef
+})
 
 // 简化点击处理
 const handleClick = (event: MouseEvent) => {
@@ -57,7 +61,7 @@ const emit = defineEmits<{
     ref="buttonRef"
     v-tooltip="{
       content: tooltip?.content,
-      placement: tooltipPlacement,
+      placement: tooltip?.placement || 'bottom',
       html: tooltip?.html,
       delay: tooltip?.delay
     }"
