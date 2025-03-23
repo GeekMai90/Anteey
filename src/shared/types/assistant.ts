@@ -259,10 +259,10 @@ export interface Agent {
   id: string
   name: string
   description: string | null
-  greeting: string
+  greeting: string | null
   systemPrompt: string
   temperature: number
-  modelConfigId: string // 改为 modelConfigId
+  modelConfigId: string
   includeNoteContext: boolean
   createdAt: string
   updatedAt: string
@@ -271,11 +271,11 @@ export interface Agent {
 // Agent创建参数接口
 export interface CreateAgentParams {
   name: string
-  description?: string
-  greeting: string
+  description?: string | null
+  greeting?: string | null
   systemPrompt: string
   temperature: number
-  modelConfigId: string // 改为 modelConfigId
+  modelConfigId: string
   includeNoteContext: boolean
 }
 
@@ -283,10 +283,10 @@ export interface CreateAgentParams {
 export interface UpdateAgentParams {
   id: string
   name?: string
-  description?: string
-  greeting?: string
+  description?: string | null
+  greeting?: string | null
   systemPrompt?: string
   temperature?: number
-  modelConfigId?: string // 改为 modelConfigId
+  modelConfigId?: string
   includeNoteContext?: boolean
 }

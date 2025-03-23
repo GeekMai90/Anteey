@@ -2,7 +2,7 @@
 import { ref } from 'vue'
 
 interface Props {
-  modelValue?: string
+  modelValue?: string | null
   placeholder?: string
   width?: number | string
   height?: number
@@ -22,12 +22,12 @@ withDefaults(defineProps<Props>(), {
 })
 
 const emit = defineEmits<{
-  'update:modelValue': [value: string]
+  'update:modelValue': [value: string | null]
 }>()
 
 const handleInput = (e: Event) => {
   const target = e.target as HTMLInputElement
-  emit('update:modelValue', target.value)
+  emit('update:modelValue', target.value || null)
 }
 
 const inputRef = ref<HTMLInputElement | null>(null)
@@ -49,7 +49,7 @@ defineExpose({
       class="ant-input"
       :type="type"
       :placeholder="placeholder"
-      :value="modelValue"
+      :value="modelValue ?? ''"
       :disabled="disabled"
       :style="{
         height: `${height}px`

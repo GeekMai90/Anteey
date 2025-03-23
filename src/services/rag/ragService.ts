@@ -25,6 +25,7 @@ import { Note } from '@shared/types'
 import { getKeywordExtractor } from './keywordExtractor'
 import { ModelConfigService } from './llmConfigService'
 import { LanceService } from '../../db/vector/lanceService'
+import { convertToAgent } from './agentService'
 
 /**
  * 系统配置常量
@@ -2089,14 +2090,31 @@ export async function handleAgentChat(params: {
 
     // 1. 获取 Agent 配置
     console.log('获取 Agent 配置 - agentId:', agentId)
-    const agent = await db('agents').where('id', agentId).first()
-    if (!agent) {
+    const agentRecord = await db('agents').where('id', agentId).first()
+    if (!agentRecord) {
       throw new Error('未找到指定的 Agent')
     }
+    const agent = convertToAgent(agentRecord) // 现在可以使用这个函数了
     console.log('获取到 Agent 配置:', agent)
 
-    // 2. 如果提供了笔记ID，获取笔记内容
+    // 2. 如果是新对话且有打招呼语,添加打招呼消息
+    const updatedMessages = [...currentMessages]
+    if (currentMessages.length === 0 && agent.greeting) {
+      const greetingMessage: AIAssistantMessage = {
+        id: uuidv4(),
+        role: 'assistant',
+        content: agent.greeting,
+        timestamp: Date.now(),
+        sourceType: 'ai'
+      }
+      updatedMessages.push(greetingMessage)
+      console.log('添加打招呼消息:', greetingMessage)
+    }
+
+    // 3. 如果提供了笔记ID，获取笔记内容
     let noteContent = ''
+    let noteTitle = ''
+    let noteAddress = ''
     if (noteId) {
       console.log('获取笔记内容 - noteId:', noteId)
       const note = await db('notes').where('id', noteId).first()
@@ -2104,11 +2122,11 @@ export async function handleAgentChat(params: {
         throw new Error('未找到指定的笔记')
       }
       noteContent = extractTextFromContent(note.content)
+      ;(noteTitle = note.metadata?.title || ''), (noteAddress = note.address || '') // 假设笔记表中有 address 字段
       console.log('获取到笔记内容长度:', noteContent.length)
     }
 
-    // 3. 构建上下文
-    console.log('构建上下文')
+    // 4. 构建上下文
     const context: RAGContext = {
       query: query || '',
       timestamp: new Date().toISOString(),
@@ -2116,8 +2134,8 @@ export async function handleAgentChat(params: {
         ? [
             {
               noteId,
-              address: '',
-              title: '',
+              address: noteAddress,
+              title: noteTitle,
               content: { text: noteContent },
               similarity: 1,
               createdAt: new Date().toISOString()
@@ -2128,9 +2146,9 @@ export async function handleAgentChat(params: {
     }
     console.log('构建的上下文:', context)
 
-    // 4. 构建提示词并调用大模型
+    // 5. 构建提示词并调用大模型
     console.log('构建提示词')
-    const prompt = buildAgentPrompt(agent.systemPrompt, query, noteContent, currentMessages)
+    const prompt = buildAgentPrompt(agent.systemPrompt, query, noteContent, updatedMessages)
     console.log('构建的提示词:', prompt)
 
     // 使用 Agent 的配置调用大模型
@@ -2144,10 +2162,7 @@ export async function handleAgentChat(params: {
     })
     console.log('获取到大模型回答:', answer)
 
-    // 5. 构建消息
-    console.log('构建消息')
-    const updatedMessages = [...currentMessages]
-
+    // 6. 构建消息
     // 如果有用户输入,添加用户消息
     if (query) {
       const userMessage: UserMessage = {

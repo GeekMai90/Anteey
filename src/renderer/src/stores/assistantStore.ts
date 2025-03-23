@@ -66,6 +66,7 @@ export const useAssistantStore = defineStore(
         | 'windmill'
         | 'washing'
         | 'typewriter'
+        | 'loadingFox'
       bottomOffset: number
     }>({
       type: 'candle', // 默认使用蜡烛动画
@@ -1184,6 +1185,7 @@ export const useAssistantStore = defineStore(
         | 'windmill'
         | 'washing'
         | 'typewriter'
+        | 'loadingFox'
     ) => {
       const offsets = {
         candle: -16,
@@ -1193,7 +1195,8 @@ export const useAssistantStore = defineStore(
         taichi: -83, // 根据太极动画调整
         windmill: 29, // 根据风车动画调整
         washing: -60, // 根据洗衣服动画调整
-        typewriter: -39 // 根据打字动画调整
+        typewriter: -39, // 根据打字动画调整
+        loadingFox: -300 // 根据loadingFox动画调整
       }
       loadingAnimation.value = {
         type,
@@ -1417,6 +1420,205 @@ export const useAssistantStore = defineStore(
       }
     }
 
+    // Agent 纯对话模式
+    const handleAgentPureChat = async (params: {
+      query?: string // 改为可选，因为初始化时不需要 query
+      agentId: string
+    }) => {
+      const startTime = performance.now()
+      try {
+        console.log('处理 Agent 纯对话:', {
+          ...params,
+          currentMode: defaultMode.value
+        })
+
+        await ensureConfigLoaded()
+        isProcessing.value = true
+
+        // 1. 会话管理
+        if (!currentSessionId.value) {
+          currentSessionId.value = uuidv4()
+          currentSession.value = {
+            id: currentSessionId.value,
+            messages: [],
+            currentContext: undefined,
+            metadata: {
+              startTime: new Date().toISOString(),
+              lastUpdateTime: new Date().toISOString(),
+              messageCount: 0,
+              hasReferences: false
+            }
+          }
+        }
+
+        // 2. 如果有用户输入,才添加用户消息
+        if (params.query) {
+          const userMessage: UserMessage = {
+            id: uuidv4(),
+            role: 'user',
+            content: params.query,
+            timestamp: Date.now()
+          }
+          messages.value.push(markRaw(userMessage))
+        }
+
+        // 3. 准备发送数据
+        const prepareDataForTransfer = (data: any) => {
+          return JSON.parse(
+            JSON.stringify(data, (key, value) => {
+              if (typeof value === 'function' || key.startsWith('_')) {
+                return undefined
+              }
+              return value
+            })
+          )
+        }
+
+        const messagesToSend = prepareDataForTransfer(messages.value.slice(0, -1))
+        const contextsToSend = prepareDataForTransfer(contexts.value)
+
+        // 4. 调用 Agent 聊天模式
+        const result = await window.electronAPI.rag.handleAgentChat({
+          query: params.query,
+          agentId: params.agentId,
+          sessionId: currentSessionId.value,
+          currentMessages: messagesToSend,
+          currentContexts: contextsToSend
+        })
+
+        // 检查是否有错误
+        if (result.error) {
+          const errorMessage: SystemMessage = {
+            id: uuidv4(),
+            role: 'system',
+            content: result.error.message,
+            timestamp: Date.now(),
+            type: 'error',
+            error: result.error
+          }
+          messages.value.push(markRaw(errorMessage))
+
+          if (result.error.type === 'balance_insufficient') {
+            message.error('账户余额不足,请充值后重试')
+          } else if (result.error.type === 'network_error') {
+            message.error('网络连接失败,请检查网络设置')
+          } else {
+            message.error(result.error.message)
+          }
+
+          return result
+        }
+
+        const { context, answer } = result
+
+        // 5. 添加AI回复
+        const assistantMessage: AIAssistantMessage = {
+          id: uuidv4(),
+          role: 'assistant',
+          content: answer,
+          timestamp: Date.now(),
+          sourceType: 'ai', // 纯对话模式固定为 ai
+          references: undefined // 纯对话模式没有引用
+        }
+        messages.value.push(markRaw(assistantMessage))
+
+        // 立即标记消息为已显示
+        markMessageAsDisplayed(assistantMessage.id)
+
+        // 发出自定义事件
+        window.dispatchEvent(
+          new CustomEvent('new-assistant-message', {
+            detail: { messageId: assistantMessage.id }
+          })
+        )
+
+        // 6. 更新上下文
+        const cleanContext = prepareDataForTransfer(context)
+        currentContext.value = markRaw(cleanContext)
+        contexts.value = markRaw([...contexts.value, cleanContext]) as RAGContext[]
+
+        // 7. 更新会话状态
+        if (currentSession.value) {
+          const cleanMessages = prepareDataForTransfer(messages.value)
+          currentSession.value = markRaw({
+            ...currentSession.value,
+            messages: cleanMessages,
+            currentContext: cleanContext,
+            metadata: {
+              ...currentSession.value.metadata,
+              messageCount: currentSession.value.metadata.messageCount + (params.query ? 2 : 1),
+              lastUpdateTime: new Date().toISOString(),
+              hasReferences: false
+            }
+          })
+        }
+
+        // 8. 更新历史记录
+        await window.electronAPI.rag.updateRAGHistory({
+          sessionId: currentSessionId.value,
+          messages: prepareDataForTransfer(messages.value),
+          contexts: prepareDataForTransfer(contexts.value),
+          metadata: prepareDataForTransfer(currentSession.value?.metadata)
+        })
+
+        // 9. 更新性能指标
+        const duration = performance.now() - startTime
+        updatePerformanceMetrics(duration)
+
+        // 10. 记录性能数据
+        await window.electronAPI.rag.trackRAGPerformance(
+          currentSessionId.value!,
+          'agentPureChat',
+          duration,
+          {
+            success: true,
+            metadata: {
+              messageLength: params.query?.length || 0,
+              hasReferences: false,
+              agentId: params.agentId
+            }
+          }
+        )
+
+        return {
+          answer,
+          context: cleanContext,
+          messages: prepareDataForTransfer(messages.value)
+        }
+      } catch (error) {
+        console.error('Agent 纯对话失败:', error)
+        const errorMessage: SystemMessage = {
+          id: uuidv4(),
+          role: 'system',
+          content: '抱歉，Agent 处理失败，请稍后重试。',
+          timestamp: Date.now(),
+          type: 'error'
+        }
+        messages.value.push(markRaw(errorMessage))
+
+        message.error('Agent 处理失败，请稍后重试')
+
+        const duration = performance.now() - startTime
+        performanceMetrics.value.errorCount++
+        await window.electronAPI.rag.trackRAGPerformance(
+          currentSessionId.value!,
+          'agentPureChat',
+          duration,
+          {
+            success: false,
+            error: String(error),
+            metadata: {
+              agentId: params.agentId
+            }
+          }
+        )
+
+        throw error
+      } finally {
+        isProcessing.value = false
+      }
+    }
+
     return {
       messages,
       isProcessing,
@@ -1452,6 +1654,7 @@ export const useAssistantStore = defineStore(
       setDefaultMode,
       currentSession,
       handleAgentChat,
+      handleAgentPureChat,
       loadingAnimation,
       setLoadingAnimation
     }

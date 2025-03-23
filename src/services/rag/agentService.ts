@@ -3,12 +3,12 @@ import { Agent, CreateAgentParams, UpdateAgentParams } from '@shared/types'
 import { v4 as uuidv4 } from 'uuid'
 
 // 工具函数：将数据库记录转换为 Agent 对象
-function convertToAgent(record: any): Agent {
+export function convertToAgent(record: any): Agent {
   return {
     id: record.id,
     name: record.name,
-    description: record.description,
-    greeting: record.greeting,
+    description: record.description ?? null,
+    greeting: record.greeting ?? null,
     systemPrompt: record.systemPrompt,
     temperature: record.temperature,
     modelConfigId: record.modelConfigId,
@@ -27,8 +27,8 @@ export async function createAgent(params: CreateAgentParams): Promise<Agent> {
     const newAgent = {
       id,
       name: params.name,
-      description: params.description || null,
-      greeting: params.greeting,
+      description: params.description ?? null,
+      greeting: params.greeting ?? null,
       systemPrompt: params.systemPrompt,
       temperature: params.temperature,
       modelConfigId: params.modelConfigId,

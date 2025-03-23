@@ -340,7 +340,7 @@ async function getFilteredWeeklyNotes(startDate: Date, endDate: Date) {
 
 // 处理周报的笔记内容
 function processWeeklyNoteContent(content: string): string {
-  const MAX_CONTENT_LENGTH = 300 // 每条笔记最多300字
+  const MAX_CONTENT_LENGTH = 180 // 每条笔记最多180字
   const processed =
     content.length > MAX_CONTENT_LENGTH ? content.slice(0, MAX_CONTENT_LENGTH) + '...' : content
   return processed

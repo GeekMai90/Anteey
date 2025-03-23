@@ -115,8 +115,8 @@ const errors = ref<Record<string, string>>({})
 // 表单状态
 const formState = ref<CreateAgentParams>({
   name: '',
-  description: '',
-  greeting: '',
+  description: undefined,
+  greeting: undefined,
   systemPrompt: '',
   modelConfigId: '',
   temperature: 0.7,
@@ -129,9 +129,6 @@ const validateForm = (): boolean => {
 
   if (!formState.value.name) {
     errors.value.name = '请输入助手名称'
-  }
-  if (!formState.value.greeting) {
-    errors.value.greeting = '请输入打招呼语'
   }
   if (!formState.value.systemPrompt) {
     errors.value.systemPrompt = '请输入系统提示词'
@@ -150,8 +147,8 @@ watch(
     if (agent) {
       formState.value = {
         name: agent.name,
-        description: agent.description || '',
-        greeting: agent.greeting,
+        description: agent.description ?? undefined,
+        greeting: agent.greeting ?? undefined,
         systemPrompt: agent.systemPrompt,
         modelConfigId: agent.modelConfigId,
         temperature: agent.temperature,
@@ -160,8 +157,8 @@ watch(
     } else {
       formState.value = {
         name: '',
-        description: '',
-        greeting: '',
+        description: undefined,
+        greeting: undefined,
         systemPrompt: '',
         modelConfigId: modelConfigStore.defaultConfig?.id || '',
         temperature: 0.7,
@@ -202,22 +199,37 @@ const handleModelSelect = (key: string) => {
   formState.value.modelConfigId = key
 }
 
-// 处理取消
-const handleCancel = () => {
-  isVisible.value = false
+// 添加重置表单的方法
+const resetForm = () => {
+  formState.value = {
+    name: '',
+    description: undefined,
+    greeting: undefined,
+    systemPrompt: '',
+    modelConfigId: modelConfigStore.defaultConfig?.id || '',
+    temperature: 0.7,
+    includeNoteContext: true
+  }
+  errors.value = {}
 }
 
-// 处理提交
+// 修改 handleCancel 方法
+const handleCancel = () => {
+  isVisible.value = false
+  resetForm() // 添加重置表单
+}
+
+// 修改 handleSubmit 方法
 const handleSubmit = async () => {
   if (!validateForm()) return
 
   try {
     loading.value = true
-    // 将响应式对象转换为普通对象
+    // 将响应式对象转换为普通对象,处理 undefined 转为 null
     const formData = {
       name: formState.value.name,
-      description: formState.value.description,
-      greeting: formState.value.greeting,
+      description: formState.value.description ?? null,
+      greeting: formState.value.greeting ?? null,
       systemPrompt: formState.value.systemPrompt,
       modelConfigId: formState.value.modelConfigId,
       temperature: formState.value.temperature,
@@ -235,12 +247,24 @@ const handleSubmit = async () => {
     }
     emit('success')
     isVisible.value = false
+    resetForm() // 添加重置表单
   } catch (error) {
     console.error('提交表单失败:', error)
   } finally {
     loading.value = false
   }
 }
+
+// 监听 visible 变化
+watch(
+  () => props.visible,
+  (newVisible) => {
+    if (newVisible && !props.editingAgent) {
+      // 当打开弹窗且不是编辑模式时，重置表单
+      resetForm()
+    }
+  }
+)
 </script>
 
 <style lang="scss" scoped>

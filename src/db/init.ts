@@ -1550,11 +1550,11 @@ export async function initDatabase(db: Knex): Promise<void> {
       table.string('id').primary()
       table.string('name').notNullable()
       table.string('description').nullable()
-      table.text('greeting').notNullable() // 使用 text 类型存储可能较长的打招呼语
-      table.text('systemPrompt').notNullable() // 使用 text 类型存储系统提示词
-      table.float('temperature').notNullable().defaultTo(0.7) // 温度值，默认0.7
-      table.string('modelConfigId').notNullable() // 关联到 model_configs 表
-      table.boolean('includeNoteContext').notNullable().defaultTo(true) // 是否包含笔记上下文
+      table.text('greeting').nullable()
+      table.text('systemPrompt').notNullable()
+      table.float('temperature').notNullable().defaultTo(0.7)
+      table.string('modelConfigId').notNullable()
+      table.boolean('includeNoteContext').notNullable().defaultTo(true)
       table.datetime('createdAt').notNullable()
       table.datetime('updatedAt').notNullable()
 

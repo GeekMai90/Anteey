@@ -60,6 +60,7 @@
               <LoadingWindmill v-if="assistantStore.loadingAnimation.type === 'windmill'" />
               <LoadingWashing v-if="assistantStore.loadingAnimation.type === 'washing'" />
               <LoadingTypewriter v-if="assistantStore.loadingAnimation.type === 'typewriter'" />
+              <LoadingFox v-if="assistantStore.loadingAnimation.type === 'loadingFox'" />
             </div>
           </div>
 
@@ -193,42 +194,35 @@
           <div class="input-wrapper">
             <!-- 功能按钮区域 -->
             <div class="function-buttons">
-              <button class="function-btn" @click="startNewChat">
-                <div class="icon">
-                  <Plus theme="outline" size="16" :strokeWidth="3" />
-                </div>
-                <span class="text">新会话</span>
-              </button>
+              <Button icon-only :icon="Plus" @click="startNewChat"> 新会话 </Button>
               <div ref="historyBtnRef" class="history-btn-wrapper">
-                <button class="function-btn" @click="showHistory = !showHistory">
-                  <div class="icon">
-                    <History theme="outline" size="16" :strokeWidth="3" />
-                  </div>
-                  <span class="text">历史会话</span>
-                </button>
+                <Button icon-only :icon="History" @click="showHistory = !showHistory">
+                  历史会话
+                </Button>
               </div>
-              <div class="mode-switch">
-                <button
-                  class="mode-btn"
-                  :class="{ active: currentMode?.mode === 'ask' }"
-                  @click="selectMode(suggestions[0])"
-                >
-                  <div class="icon">
-                    <ThinkingProblem theme="outline" size="14" :strokeWidth="3" />
-                  </div>
-                  <span class="text">问一问</span>
-                </button>
-                <button
-                  class="mode-btn"
-                  :class="{ active: currentMode?.mode === 'chat' }"
-                  @click="selectMode(suggestions[1])"
-                >
-                  <div class="icon">
-                    <MessageEmoji theme="outline" size="14" :strokeWidth="3" />
-                  </div>
-                  <span class="text">聊一聊</span>
-                </button>
-              </div>
+              <!-- 修改 Agents 下拉菜单 -->
+              <Dropdown
+                :items="agentItems"
+                :showSelected="false"
+                placement="top"
+                align="end"
+                icon-only
+                :icon="Robot"
+                @select="handleAgentSelect"
+              >
+                AI 助手
+              </Dropdown>
+
+              <!-- 使用 SegmentedButton 替换原来的模式切换 -->
+              <SegmentedButton
+                v-model="currentModeValue"
+                :options="modeOptions"
+                width="auto"
+                height="32px"
+                :iconSize="14"
+                :iconStrokeWidth="3"
+                tooltipPlacement="top"
+              />
             </div>
 
             <!-- 输入框容器 -->
@@ -342,6 +336,10 @@ import LoadingWindmill from '@renderer/components/ui/LoadingWindmill.vue'
 import LoadingWashing from '@renderer/components/ui/LoadingWashing.vue'
 import LoadingTypewriter from '@renderer/components/ui/LoadingTypewriter.vue'
 import LoadingCircle from '@renderer/components/ui/LoadingCircle.vue'
+import LoadingFox from '@renderer/components/ui/LoadingFox.vue'
+import Button from '@renderer/components/ui/Button.vue'
+import Dropdown from '@renderer/components/ui/Dropdown.vue'
+import SegmentedButton from '@renderer/components/ui/SegmentedButton.vue'
 // Store
 const assistantStore = useAssistantStore()
 const { messages, isProcessing } = storeToRefs(assistantStore)
@@ -392,6 +390,55 @@ const getPlaceholder = computed(() => {
   if (currentMode.value) return `${currentMode.value.description}...`
   return '提问、思考、聊天...'
 })
+
+// 计算 agents 下拉菜单项
+const agentItems = computed(() => {
+  // 如果没有 agents,返回一个空状态的项
+  if (agentStore.nonMenuAgents.length === 0) {
+    return [
+      {
+        key: 'empty',
+        label: '暂无 AI 助手',
+        icon: Robot,
+        disabled: true // 添加禁用状态
+      }
+    ]
+  }
+
+  // 有数据时返回正常的列表
+  return agentStore.nonMenuAgents.map((agent) => ({
+    key: agent.id,
+    label: agent.name,
+    icon: Robot
+  }))
+})
+
+// 添加计算属性和值转换
+const currentModeValue = computed({
+  get: () => currentMode.value?.mode || 'ask',
+  set: (value) => {
+    const selectedSuggestion = suggestions.find((s) => s.mode === value)
+    if (selectedSuggestion) {
+      selectMode(selectedSuggestion)
+    }
+  }
+})
+
+// 添加模式选项
+const modeOptions = computed(() => [
+  {
+    value: 'ask',
+    label: '问一问',
+    icon: ThinkingProblem,
+    tooltip: { content: '基于笔记解答', delay: { show: 500 } }
+  },
+  {
+    value: 'chat',
+    label: '聊一聊',
+    icon: MessageEmoji,
+    tooltip: { content: 'AI 助手对话', delay: { show: 500 } }
+  }
+])
 
 // 方法
 const selectMode = (suggestion: Suggestion) => {
@@ -521,21 +568,6 @@ const onSegmentComplete = () => {
 const onTypewriterComplete = (messageId: string) => {
   // 只标记消息为已显示，不执行滚动
   onAgentMessageComplete(messageId)
-
-  // 移除滚动到消息顶部的代码
-  // 不再执行这部分代码
-  // nextTick(() => {
-  //   const messageElement = document.querySelector(`[data-message-id="${messageId}"]`)
-  //   if (messageElement && messagesContainer.value) {
-  //     // 计算这个消息元素的顶部位置（相对于容器）
-  //     const messageTop = messageElement.getBoundingClientRect().top
-  //     const containerTop = messagesContainer.value.getBoundingClientRect().top
-  //     const scrollOffset = messageTop - containerTop
-  //
-  //     // 滚动到消息的顶部位置
-  //     messagesContainer.value.scrollTop = messagesContainer.value.scrollTop + scrollOffset - 16 // 添加一点上边距
-  //   }
-  // })
 }
 
 const openInMainPanel = () => {
@@ -859,6 +891,30 @@ const scrollToTop = () => {
   if (messagesContainer.value) {
     messagesContainer.value.scrollTop = 0
     console.log('设置scrollTop为0')
+  }
+}
+
+// 处理 agent 选择
+const handleAgentSelect = async (agentId: string) => {
+  // 如果是空状态,直接返回
+  if (agentId === 'empty') {
+    return
+  }
+
+  try {
+    // 清空当前对话
+    assistantStore.clearMessages()
+
+    // 切换到聊一聊模式
+    assistantStore.setDefaultMode('chat')
+
+    // 使用新的纯对话方法
+    await assistantStore.handleAgentPureChat({
+      agentId
+    })
+  } catch (error) {
+    console.error('切换 Agent 失败:', error)
+    message.error('切换 AI 助手失败')
   }
 }
 </script>
@@ -1194,48 +1250,6 @@ const scrollToTop = () => {
     position: relative;
   }
 
-  .function-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 6px 12px;
-    border: 1px solid var(--color-border);
-    border-radius: 6px;
-    background: var(--color-bg-primary);
-    color: var(--color-text-secondary);
-    font-size: 13px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-
-    .icon {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-
-      :deep(.i-icon) {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        width: 100%;
-        height: 100%;
-      }
-
-      :deep(svg) {
-        width: 16px;
-        height: 16px;
-      }
-    }
-
-    .text {
-      line-height: 1;
-    }
-
-    &:hover {
-      background: var(--color-hover-bg);
-      border-color: var(--color-border-light);
-    }
-  }
-
   .input-container {
     display: flex;
     align-items: flex-start;
@@ -1343,53 +1357,55 @@ const scrollToTop = () => {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    margin-bottom: 8px;
+    min-height: 24px;
+  }
 
-    .copy-btn {
+  .copy-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    color: var(--color-text-tertiary);
+    border-radius: 4px;
+    transition: all 0.2s ease;
+    opacity: 0;
+
+    .icon {
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 6px;
-      border: none;
-      background: none;
-      cursor: pointer;
-      color: var(--color-text-tertiary);
-      border-radius: 4px;
+      width: 20px;
+      height: 20px;
       transition: all 0.2s ease;
-      opacity: 0;
+      padding: 0;
 
-      .icon {
+      :deep(.i-icon) {
         display: flex;
         align-items: center;
         justify-content: center;
-        width: 20px;
-        height: 20px;
-        transition: all 0.2s ease;
-        padding: 0;
-
-        :deep(.i-icon) {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          width: 100%;
-          height: 100%;
-        }
-
-        :deep(svg) {
-          width: 14px;
-          height: 14px;
-        }
+        width: 100%;
+        height: 100%;
       }
 
-      &:hover {
-        background: var(--color-hover-bg);
-        color: var(--color-text-secondary);
+      :deep(svg) {
+        width: 14px;
+        height: 14px;
       }
     }
 
     &:hover {
-      .copy-btn {
-        opacity: 1;
-      }
+      background: var(--color-hover-bg);
+      color: var(--color-text-secondary);
+    }
+  }
+
+  &:hover {
+    .copy-btn {
+      opacity: 1;
     }
   }
 
@@ -1717,25 +1733,34 @@ const scrollToTop = () => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 8px;
+  // margin-bottom: 8px;
+  // min-height: 24px;
 }
 
 .reference-address {
   font-weight: 500;
   color: var(--color-text-primary);
+  display: flex;
+  align-items: center;
+  line-height: 1.4;
 }
 
 .reference-similarity {
   font-size: 12px;
   color: var(--color-primary);
+  display: flex;
+  align-items: center;
+  line-height: 1.4;
 }
 
 .reference-content {
   font-size: 13px;
   line-height: 1.5;
   color: var(--color-text-secondary);
-  margin-bottom: 8px;
+  margin-bottom: 0;
   user-select: none;
+  display: flex;
+  align-items: center;
 }
 
 .reference-meta {
@@ -1753,5 +1778,10 @@ const scrollToTop = () => {
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+// 为 SegmentedButton 添加一些微调样式
+:deep(.radio-inputs) {
+  margin-left: 4px; // 与其他按钮保持一定间距
 }
 </style>

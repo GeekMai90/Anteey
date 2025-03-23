@@ -167,6 +167,11 @@ const animationOptions = [
     label: '打字动画',
     key: 'typewriter',
     active: assistantStore.loadingAnimation.type === 'typewriter'
+  },
+  {
+    label: '狐狸动画',
+    key: 'loadingFox',
+    active: assistantStore.loadingAnimation.type === 'loadingFox'
   }
 ]
 
@@ -188,6 +193,7 @@ const handleAnimationSelect = (key: string) => {
       | 'windmill'
       | 'washing'
       | 'typewriter'
+      | 'loadingFox'
   )
   message.success('加载动画已更新')
 }

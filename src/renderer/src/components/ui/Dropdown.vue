@@ -82,8 +82,20 @@ const dropdownRef = ref<HTMLElement | null>(null)
 const selectedItem = ref<NormalDropdownItem | null>(null)
 
 const computedPlacement = computed(() => {
-  const align = props.align === 'center' ? '' : `-${props.align}`
-  return `${props.placement}${align}` as Placement
+  if (props.placement === 'bottom' || props.placement === 'top') {
+    const align = props.align === 'center' ? '' : `-${props.align}`
+    return `${props.placement}${align}` as Placement
+  } else if (props.placement === 'left' || props.placement === 'right') {
+    let alignValue = ''
+    if (props.align === 'start') {
+      alignValue = '-start'
+    } else if (props.align === 'end') {
+      alignValue = '-end'
+    }
+    return `${props.placement}${alignValue}` as Placement
+  }
+
+  return props.placement as Placement
 })
 
 const { floatingStyles, update } = useFloating(
@@ -94,12 +106,12 @@ const { floatingStyles, update } = useFloating(
     middleware: [
       offset(8),
       flip({
-        fallbackPlacements: ['top', 'bottom']
+        fallbackPlacements: ['top', 'bottom', 'left', 'right']
       }),
       shift({ padding: 8 })
     ],
     whileElementsMounted: autoUpdate,
-    strategy: 'absolute'
+    strategy: 'fixed'
   }
 )
 
@@ -193,6 +205,16 @@ onBeforeUnmount(() => {
 
 watch(visible, (newValue) => {
   if (newValue && update) {
+    console.log('Dropdown visible, updating position with placement:', computedPlacement.value)
+    nextTick(() => {
+      update()
+    })
+  }
+})
+
+watch([() => props.align, () => props.placement], () => {
+  if (visible.value && update) {
+    console.log('Alignment changed, updating position:', props.align, props.placement)
     nextTick(() => {
       update()
     })
@@ -262,6 +284,7 @@ const buttonText = computed(() => {
       ref="dropdownRef"
       class="ant-dropdown"
       :style="dropdownStyles"
+      :class="{ 'custom-width': props.width }"
       @mouseenter="handleDropdownMouseEnter"
       @mouseleave="handleDropdownMouseLeave"
     >
@@ -307,12 +330,15 @@ const buttonText = computed(() => {
   z-index: 9999;
   min-width: 120px;
   max-width: 400px;
-  width: var(--dropdown-width, auto);
   max-height: 320px;
   overflow-y: auto;
   overflow-x: hidden;
   padding: 6px 12px;
   white-space: nowrap;
+
+  &.custom-width {
+    width: v-bind('typeof props.width === "number" ? `${props.width}px` : props.width');
+  }
 
   &::-webkit-scrollbar {
     width: 8px;

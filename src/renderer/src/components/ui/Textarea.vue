@@ -1,7 +1,7 @@
 <template>
   <div class="textarea-wrapper">
     <textarea
-      :value="modelValue"
+      :value="modelValue ?? ''"
       class="ant-textarea"
       :placeholder="placeholder"
       :disabled="disabled"
@@ -14,7 +14,7 @@
 
 <script setup lang="ts">
 interface Props {
-  modelValue?: string
+  modelValue?: string | null
   placeholder?: string
   width?: string | number
   height?: number
@@ -22,7 +22,7 @@ interface Props {
   help?: string
 }
 
-const props = withDefaults(defineProps<Props>(), {
+withDefaults(defineProps<Props>(), {
   modelValue: '',
   placeholder: '',
   width: '100%',
@@ -32,12 +32,12 @@ const props = withDefaults(defineProps<Props>(), {
 })
 
 const emit = defineEmits<{
-  (e: 'update:modelValue', value: string): void
+  (e: 'update:modelValue', value: string | null): void
 }>()
 
 const handleInput = (e: Event) => {
   const target = e.target as HTMLTextAreaElement
-  emit('update:modelValue', target.value)
+  emit('update:modelValue', target.value || null)
 }
 </script>
 

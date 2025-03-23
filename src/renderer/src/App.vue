@@ -179,9 +179,13 @@ onMounted(async () => {
   window.addEventListener('resize', () => baseLayout.value?.handleResize())
   window.addEventListener('keydown', handleKeydown)
 
-  // 预加载 agents 数据
+  // 预加载所有 Agents 数据
   try {
-    await agentStore.fetchMenuAgents()
+    await Promise.all([
+      agentStore.fetchAllAgents(), // 获取所有 agents
+      agentStore.fetchMenuAgents(), // 获取菜单 agents
+      agentStore.fetchNonMenuAgents() // 获取非菜单 agents
+    ])
   } catch (error) {
     console.error('加载 AI Agents 失败:', error)
   }
