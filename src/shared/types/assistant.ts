@@ -60,7 +60,7 @@ export interface RAGContext {
   timestamp: string
   relevantDocs: RAGResult[]
   response?: string
-  processingType?: 'qa' | 'note_processing' | 'chat' | 'find' // 新增：处理类型
+  processingType?: 'qa' | 'note_processing' | 'chat' | 'find' | 'agent_chat' // 新增：处理类型
   targetNote?: {
     // 新增：目标笔记信息
     id: string
@@ -252,4 +252,41 @@ export type LLMError = {
     | 'request_error'
     | 'network_error'
     | 'unknown'
+}
+
+// Agent配置接口
+export interface Agent {
+  id: string
+  name: string
+  description: string | null
+  greeting: string
+  systemPrompt: string
+  temperature: number
+  modelConfigId: string // 改为 modelConfigId
+  includeNoteContext: boolean
+  createdAt: string
+  updatedAt: string
+}
+
+// Agent创建参数接口
+export interface CreateAgentParams {
+  name: string
+  description?: string
+  greeting: string
+  systemPrompt: string
+  temperature: number
+  modelConfigId: string // 改为 modelConfigId
+  includeNoteContext: boolean
+}
+
+// Agent更新参数接口
+export interface UpdateAgentParams {
+  id: string
+  name?: string
+  description?: string
+  greeting?: string
+  systemPrompt?: string
+  temperature?: number
+  modelConfigId?: string // 改为 modelConfigId
+  includeNoteContext?: boolean
 }

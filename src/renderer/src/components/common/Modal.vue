@@ -12,14 +12,19 @@
 </template>
 
 <script setup lang="ts">
-defineProps<{
+interface Props {
   modelValue: boolean
-}>()
+  closeOnClickOutside?: boolean
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  closeOnClickOutside: true
+})
 
 const emit = defineEmits(['update:modelValue', 'after-enter', 'outside-click'])
 
 const handleOverlayClick = (event: MouseEvent) => {
-  if (event.target === event.currentTarget) {
+  if (event.target === event.currentTarget && props.closeOnClickOutside) {
     emit('update:modelValue', false)
     emit('outside-click')
   }

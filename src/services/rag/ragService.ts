@@ -2052,3 +2052,197 @@ async function handleEnhancedSemanticSearch(
     throw error
   }
 }
+
+/**
+ * Agent 聊天模式
+ * @param params.query - 用户输入(可选,首次调用时不需要)
+ * @param params.agentId - Agent ID
+ * @param params.noteId - 笔记 ID(可选)
+ * @param params.sessionId - 会话 ID(可选)
+ * @param params.currentMessages - 当前消息列表
+ * @param params.currentContexts - 当前上下文列表
+ */
+export async function handleAgentChat(params: {
+  query?: string
+  agentId: string
+  noteId?: string
+  sessionId?: string | null
+  currentMessages?: ChatMessage[]
+  currentContexts?: RAGContext[]
+}): Promise<{
+  answer: string
+  context: RAGContext
+  messages: ChatMessage[]
+  error?: LLMError
+}> {
+  console.log('开始处理 Agent 聊天请求:', params)
+
+  try {
+    const {
+      query,
+      agentId,
+      noteId,
+      sessionId = null,
+      currentMessages = [],
+      currentContexts = []
+    } = params
+
+    // 1. 获取 Agent 配置
+    console.log('获取 Agent 配置 - agentId:', agentId)
+    const agent = await db('agents').where('id', agentId).first()
+    if (!agent) {
+      throw new Error('未找到指定的 Agent')
+    }
+    console.log('获取到 Agent 配置:', agent)
+
+    // 2. 如果提供了笔记ID，获取笔记内容
+    let noteContent = ''
+    if (noteId) {
+      console.log('获取笔记内容 - noteId:', noteId)
+      const note = await db('notes').where('id', noteId).first()
+      if (!note) {
+        throw new Error('未找到指定的笔记')
+      }
+      noteContent = extractTextFromContent(note.content)
+      console.log('获取到笔记内容长度:', noteContent.length)
+    }
+
+    // 3. 构建上下文
+    console.log('构建上下文')
+    const context: RAGContext = {
+      query: query || '',
+      timestamp: new Date().toISOString(),
+      relevantDocs: noteId
+        ? [
+            {
+              noteId,
+              address: '',
+              title: '',
+              content: { text: noteContent },
+              similarity: 1,
+              createdAt: new Date().toISOString()
+            }
+          ]
+        : [],
+      processingType: 'agent_chat'
+    }
+    console.log('构建的上下文:', context)
+
+    // 4. 构建提示词并调用大模型
+    console.log('构建提示词')
+    const prompt = buildAgentPrompt(agent.systemPrompt, query, noteContent, currentMessages)
+    console.log('构建的提示词:', prompt)
+
+    // 使用 Agent 的配置调用大模型
+    console.log('调用大模型, 配置:', {
+      temperature: agent.temperature,
+      modelConfigId: agent.modelConfigId
+    })
+    const answer = await llm.generateResponse(prompt, undefined, {
+      temperature: agent.temperature,
+      modelConfigId: agent.modelConfigId
+    })
+    console.log('获取到大模型回答:', answer)
+
+    // 5. 构建消息
+    console.log('构建消息')
+    const updatedMessages = [...currentMessages]
+
+    // 如果有用户输入,添加用户消息
+    if (query) {
+      const userMessage: UserMessage = {
+        id: uuidv4(),
+        role: 'user',
+        content: query,
+        timestamp: Date.now()
+      }
+      updatedMessages.push(userMessage)
+      console.log('添加用户消息:', userMessage)
+    }
+
+    const assistantMessage: AIAssistantMessage = {
+      id: uuidv4(),
+      role: 'assistant',
+      content: answer,
+      timestamp: Date.now(),
+      sourceType: noteId ? 'notes' : 'ai',
+      references: noteId ? context.relevantDocs : undefined
+    }
+    updatedMessages.push(assistantMessage)
+    console.log('添加助手消息:', assistantMessage)
+
+    const updatedContexts = [...currentContexts, context]
+
+    // 7. 更新历史记录
+    if (sessionId) {
+      console.log('更新历史记录 - sessionId:', sessionId)
+      await updateRAGHistory(sessionId, updatedMessages, updatedContexts, {
+        agentId,
+        noteId,
+        processingType: 'agent_chat'
+      })
+    }
+
+    console.log('Agent 聊天处理完成')
+    return {
+      answer: assistantMessage.content,
+      context,
+      messages: updatedMessages,
+      error: undefined
+    }
+  } catch (error) {
+    console.error('Agent 聊天模式处理失败:', error)
+    const llmError = handleLLMError(error)
+
+    return {
+      answer: '',
+      context: {
+        query: params.query || '',
+        timestamp: new Date().toISOString(),
+        relevantDocs: [],
+        processingType: 'agent_chat'
+      },
+      messages: params.currentMessages || [],
+      error: llmError
+    }
+  }
+}
+
+// 修改: 构建 Agent 提示词的辅助函数
+function buildAgentPrompt(
+  systemPrompt: string,
+  query?: string,
+  noteContent?: string,
+  messages: ChatMessage[] = []
+): string {
+  console.log('构建 Agent 提示词, 参数:', {
+    systemPromptLength: systemPrompt.length,
+    hasQuery: !!query,
+    hasNoteContent: !!noteContent,
+    messagesCount: messages.length
+  })
+
+  let prompt = systemPrompt
+
+  // 如果有笔记内容，添加到提示词中
+  if (noteContent) {
+    prompt += `\n\n当前笔记内容：\n${noteContent}`
+  }
+
+  // 添加历史对话
+  if (messages.length > 0) {
+    const recentMessages = messages
+      .slice(-RAG_CONFIG.similarity.contextWindowSize * 2)
+      .map((msg) => `${msg.role === 'user' ? '用户' : 'AI'}：${msg.content}`)
+      .join('\n')
+    prompt += `\n\n历史对话：\n${recentMessages}`
+  }
+
+  // 如果有用户输入，添加到提示词末尾
+  if (query) {
+    prompt += `\n\n用户：${query}`
+  }
+
+  console.log('构建的完整提示词长度:', prompt.length)
+  return prompt
+}

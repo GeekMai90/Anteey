@@ -128,6 +128,9 @@ export const useAssistantStore = defineStore(
         }
         messages.value.push(markRaw(assistantMessage))
 
+        // 立即标记消息为已显示
+        markMessageAsDisplayed(assistantMessage.id)
+
         // 6. 更新上下文
         const cleanContext = prepareDataForTransfer(context)
         currentContext.value = markRaw(cleanContext)
@@ -283,6 +286,9 @@ export const useAssistantStore = defineStore(
           references: prepareDataForTransfer(context.relevantDocs)
         }
         messages.value.push(markRaw(assistantMessage))
+
+        // 立即标记消息为已显示
+        markMessageAsDisplayed(assistantMessage.id)
 
         // 6. 更新上下文
         const cleanContext = prepareDataForTransfer(context)
@@ -685,6 +691,17 @@ export const useAssistantStore = defineStore(
         }
         messages.value.push(markRaw(assistantMessage))
 
+        // 立即标记消息为已显示
+        markMessageAsDisplayed(assistantMessage.id)
+
+        // 发出自定义事件，通知需要滚动到消息开头
+        // 这需要在组件内监听这个事件
+        window.dispatchEvent(
+          new CustomEvent('new-assistant-message', {
+            detail: { messageId: assistantMessage.id }
+          })
+        )
+
         // 6. 更新上下文
         const cleanContext = prepareDataForTransfer(context)
         currentContext.value = markRaw(cleanContext)
@@ -869,6 +886,9 @@ export const useAssistantStore = defineStore(
         }
         messages.value.push(markRaw(assistantMessage))
 
+        // 立即标记消息为已显示
+        markMessageAsDisplayed(assistantMessage.id)
+
         // 6. 更新上下文
         const cleanContext = prepareDataForTransfer(context)
         currentContext.value = markRaw(cleanContext)
@@ -1025,6 +1045,9 @@ export const useAssistantStore = defineStore(
         }
         messages.value.push(markRaw(assistantMessage))
 
+        // 立即标记消息为已显示
+        markMessageAsDisplayed(assistantMessage.id)
+
         // 6. 更新上下文
         const cleanContext = prepareDataForTransfer(context)
         currentContext.value = markRaw(cleanContext)
@@ -1129,7 +1152,224 @@ export const useAssistantStore = defineStore(
 
     // 添加切换默认模式的方法
     const setDefaultMode = (mode: 'ask' | 'chat') => {
+      console.log('设置默认模式:', mode)
       defaultMode.value = mode
+    }
+
+    // Agent 聊天模式
+    const handleAgentChat = async (params: {
+      query?: string
+      agentId: string
+      noteId?: string
+    }) => {
+      const startTime = performance.now()
+      try {
+        console.log('处理 Agent 聊天:', {
+          ...params,
+          currentMode: defaultMode.value
+        })
+
+        await ensureConfigLoaded() // 确保配置已加载
+        isProcessing.value = true
+
+        // 1. 会话管理
+        if (!currentSessionId.value) {
+          currentSessionId.value = uuidv4()
+          currentSession.value = {
+            id: currentSessionId.value,
+            messages: [],
+            currentContext: undefined,
+            metadata: {
+              startTime: new Date().toISOString(),
+              lastUpdateTime: new Date().toISOString(),
+              messageCount: 0,
+              hasReferences: false
+            }
+          }
+        }
+
+        // 2. 如果有用户输入,添加用户消息
+        if (params.query) {
+          const userMessage: UserMessage = {
+            id: uuidv4(),
+            role: 'user',
+            content: params.query,
+            timestamp: Date.now()
+          }
+          messages.value.push(markRaw(userMessage))
+        }
+
+        // 3. 准备发送数据
+        const prepareDataForTransfer = (data: any) => {
+          return JSON.parse(
+            JSON.stringify(data, (key, value) => {
+              if (typeof value === 'function' || key.startsWith('_')) {
+                return undefined
+              }
+              return value
+            })
+          )
+        }
+
+        const messagesToSend = prepareDataForTransfer(messages.value.slice(0, -1))
+        const contextsToSend = prepareDataForTransfer(contexts.value)
+
+        // 4. 调用 Agent 聊天模式
+        const result = await window.electronAPI.rag.handleAgentChat({
+          query: params.query,
+          agentId: params.agentId,
+          noteId: params.noteId,
+          sessionId: currentSessionId.value,
+          currentMessages: messagesToSend,
+          currentContexts: contextsToSend
+        })
+
+        // 检查是否有错误
+        if (result.error) {
+          const errorMessage: SystemMessage = {
+            id: uuidv4(),
+            role: 'system',
+            content: result.error.message,
+            timestamp: Date.now(),
+            type: 'error',
+            error: result.error
+          }
+          messages.value.push(markRaw(errorMessage))
+
+          // 添加错误提示
+          if (result.error.type === 'balance_insufficient') {
+            message.error('账户余额不足,请充值后重试')
+          } else if (result.error.type === 'network_error') {
+            message.error('网络连接失败,请检查网络设置')
+          } else {
+            message.error(result.error.message)
+          }
+
+          return result
+        }
+
+        const { context, answer } = result
+
+        // 5. 添加AI回复
+        const assistantMessage: AIAssistantMessage = {
+          id: uuidv4(),
+          role: 'assistant',
+          content: answer,
+          timestamp: Date.now(),
+          sourceType: context.relevantDocs.length > 0 ? 'notes' : 'ai',
+          references:
+            context.relevantDocs.length > 0
+              ? prepareDataForTransfer(context.relevantDocs)
+              : undefined
+        }
+        messages.value.push(markRaw(assistantMessage))
+
+        // 立即标记消息为已显示
+        markMessageAsDisplayed(assistantMessage.id)
+
+        // 发出自定义事件，通知需要滚动到消息开头
+        // 这需要在组件内监听这个事件
+        window.dispatchEvent(
+          new CustomEvent('new-assistant-message', {
+            detail: { messageId: assistantMessage.id }
+          })
+        )
+
+        // 6. 更新上下文
+        const cleanContext = prepareDataForTransfer(context)
+        currentContext.value = markRaw(cleanContext)
+        contexts.value = markRaw([...contexts.value, cleanContext]) as RAGContext[]
+
+        // 7. 更新会话状态
+        if (currentSession.value) {
+          const cleanMessages = prepareDataForTransfer(messages.value)
+          currentSession.value = markRaw({
+            ...currentSession.value,
+            messages: cleanMessages,
+            currentContext: cleanContext,
+            metadata: {
+              ...currentSession.value.metadata,
+              messageCount: currentSession.value.metadata.messageCount + (params.query ? 2 : 1),
+              lastUpdateTime: new Date().toISOString(),
+              hasReferences: context.relevantDocs.length > 0
+            }
+          })
+        }
+
+        // 8. 更新历史记录
+        await window.electronAPI.rag.updateRAGHistory({
+          sessionId: currentSessionId.value,
+          messages: prepareDataForTransfer(messages.value),
+          contexts: prepareDataForTransfer(contexts.value),
+          metadata: prepareDataForTransfer(currentSession.value?.metadata)
+        })
+
+        // 9. 更新性能指标
+        const duration = performance.now() - startTime
+        updatePerformanceMetrics(duration)
+
+        // 10. 记录性能数据
+        await window.electronAPI.rag.trackRAGPerformance(
+          currentSessionId.value!,
+          'agentChat',
+          duration,
+          {
+            success: true,
+            metadata: {
+              messageLength: params.query?.length || 0,
+              hasReferences: context.relevantDocs.length > 0,
+              agentId: params.agentId,
+              noteId: params.noteId
+            }
+          }
+        )
+
+        // 在返回结果前添加日志
+        console.log('Agent 聊天处理完成:', {
+          messageCount: messages.value.length,
+          hasError: result.error !== undefined
+        })
+
+        return {
+          answer,
+          context: cleanContext,
+          messages: prepareDataForTransfer(messages.value)
+        }
+      } catch (error) {
+        console.error('Agent 聊天失败:', error)
+        const errorMessage: SystemMessage = {
+          id: uuidv4(),
+          role: 'system',
+          content: '抱歉，Agent 处理失败，请稍后重试。',
+          timestamp: Date.now(),
+          type: 'error'
+        }
+        messages.value.push(markRaw(errorMessage))
+
+        // 添加错误提示
+        message.error('Agent 处理失败，请稍后重试')
+
+        // 记录错误性能数据
+        const duration = performance.now() - startTime
+        performanceMetrics.value.errorCount++
+        await window.electronAPI.rag.trackRAGPerformance(
+          currentSessionId.value!,
+          'agentChat',
+          duration,
+          {
+            success: false,
+            error: String(error),
+            metadata: {
+              agentId: params.agentId,
+              noteId: params.noteId
+            }
+          }
+        )
+
+        throw error
+      } finally {
+        isProcessing.value = false
+      }
     }
 
     return {
@@ -1165,7 +1405,8 @@ export const useAssistantStore = defineStore(
       displayedMessageIds,
       defaultMode,
       setDefaultMode,
-      currentSession
+      currentSession,
+      handleAgentChat
     }
   },
   {

@@ -52,14 +52,24 @@
       </div>
     </div>
 
-    <!-- 自定义模态框 -->
-    <div v-if="showAddModal" class="modal-overlay" @click.self="handleOverlayClick">
+    <!-- 添加确认对话框 -->
+    <ConfirmDialog
+      v-model:visible="showConfirmDialog"
+      title="确认关闭"
+      message="确定要关闭吗？未保存的更改将会丢失。"
+      type="danger"
+      cancelText="取消"
+      confirmText="确定"
+      @confirm="handleConfirmClose"
+      @cancel="handleCancelClose"
+    />
+
+    <!-- 修改模态框部分 -->
+    <Modal v-model="showAddModal" :closeOnClickOutside="false">
       <div class="modal-container">
         <div class="modal-header">
           <h3>{{ editingConfig ? '编辑模型配置' : '添加模型配置' }}</h3>
-          <button class="close-btn" @click="closeModal">
-            <Close theme="outline" size="16" />
-          </button>
+          <IconButton :icon="Close" tooltip="关闭" @click="closeModal" />
         </div>
 
         <div class="modal-body">
@@ -76,11 +86,7 @@
               width="100%"
               @select="handleProviderSelect"
             >
-              {{
-                formData.provider
-                  ? providerOptions[formData.provider as LLMProvider]
-                  : '请选择模型提供商'
-              }}
+              {{ formData.provider ? providerOptions[formData.provider] : '请选择模型提供商' }}
             </Dropdown>
           </div>
 
@@ -154,7 +160,7 @@
           </div>
         </div>
       </div>
-    </div>
+    </Modal>
   </div>
 </template>
 
@@ -174,6 +180,9 @@ import Button from '@renderer/components/ui/Button.vue'
 import Input from '@renderer/components/ui/Input.vue'
 import Dropdown from '@renderer/components/ui/Dropdown.vue'
 import Textarea from '@renderer/components/ui/Textarea.vue'
+import IconButton from '@renderer/components/ui/IconButton.vue'
+import Modal from '@renderer/components/common/Modal.vue'
+import ConfirmDialog from '@renderer/components/common/ConfirmDialog.vue'
 
 // 定义一个安全的访问函数，处理可能不存在的属性
 const safeGet = <T, K extends string>(obj: T, key: K, defaultValue: any): any => {
@@ -277,6 +286,9 @@ const isFormValid = computed(() => {
   )
 })
 
+// 添加确认对话框的状态
+const showConfirmDialog = ref(false)
+
 // 初始化加载配置
 onMounted(() => {
   modelConfigStore.loadConfigs()
@@ -330,18 +342,6 @@ const handleEdit = (config: ModelConfig) => {
   showAddModal.value = true
 }
 
-// 修改处理点击遮罩层的方法
-const handleOverlayClick = () => {
-  // 如果正在加载或已经填写了表单，显示确认对话框
-  if (isLoading.value || isFormDirty.value) {
-    if (confirm('确定要关闭吗？未保存的更改将会丢失。')) {
-      closeModal()
-    }
-  } else {
-    closeModal()
-  }
-}
-
 // 添加表单是否被修改的计算属性
 const isFormDirty = computed(() => {
   return (
@@ -354,6 +354,27 @@ const isFormDirty = computed(() => {
 
 // 修改关闭模态框方法
 const closeModal = () => {
+  // 如果正在加载或已经填写了表单，显示确认对话框
+  if (isLoading.value || isFormDirty.value) {
+    showConfirmDialog.value = true
+  } else {
+    resetModalState()
+  }
+}
+
+// 添加确认关闭的处理方法
+const handleConfirmClose = () => {
+  showConfirmDialog.value = false
+  resetModalState()
+}
+
+// 添加取消关闭的处理方法
+const handleCancelClose = () => {
+  showConfirmDialog.value = false
+}
+
+// 添加重置模态框状态的方法
+const resetModalState = () => {
   showAddModal.value = false
   editingConfig.value = null
   hasTestedConnection.value = false
@@ -714,165 +735,68 @@ const providerItems = computed(() => {
   }
 }
 
-// 模态框样式
-.modal-content {
-  padding: 20px;
-  min-width: 400px;
+// 更新模态框相关样式
+.modal-container {
+  width: 580px;
+  background: var(--color-bg-primary);
+  border-radius: 12px;
+  overflow: hidden;
 
-  .form-group {
-    margin-bottom: 16px;
+  .modal-header {
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--color-border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
 
-    label {
-      display: block;
-      margin-bottom: 8px;
+    h3 {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 600;
       color: var(--color-text-primary);
     }
+  }
 
-    select,
-    input {
-      width: 100%;
-      padding: 8px 12px;
-      border: 1px solid var(--color-border);
-      border-radius: 6px;
-      background: var(--color-background-primary);
-      color: var(--color-text-primary);
+  .modal-body {
+    padding: 24px;
+    max-height: calc(90vh - 180px);
+    overflow-y: auto;
 
-      &:focus {
-        border-color: var(--color-primary);
-        outline: none;
+    .form-group {
+      margin-bottom: 24px;
+
+      label {
+        display: block;
+        margin-bottom: 8px;
+        color: var(--color-text-primary);
+        font-size: 14px;
+        font-weight: 500;
       }
     }
   }
-}
 
-.modal-footer {
-  padding: 16px 20px;
-  border-top: 1px solid var(--color-border);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-
-  .footer-left {
+  .modal-footer {
+    padding: 16px 24px;
+    border-top: 1px solid var(--color-border);
     display: flex;
-    gap: 12px;
-  }
-
-  .footer-right {
-    display: flex;
-    gap: 12px;
-  }
-
-  .test-btn {
-    display: flex;
+    justify-content: space-between;
     align-items: center;
-    gap: 4px;
-    padding: 6px 12px;
-    background: var(--color-success-bg);
-    color: var(--color-success);
-    border: 1px solid var(--color-success);
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 14px;
 
-    &:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
+    .footer-left {
+      display: flex;
+      gap: 12px;
     }
 
-    &:hover:not(:disabled) {
-      background: var(--color-success-light);
-    }
-  }
-
-  .loading-spinner {
-    width: 16px;
-    height: 16px;
-    border: 2px solid rgba(0, 0, 0, 0.1);
-    border-top-color: var(--color-success);
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-  }
-
-  @keyframes spin {
-    to {
-      transform: rotate(360deg);
+    .footer-right {
+      display: flex;
+      gap: 12px;
     }
   }
 }
 
-// 模态框样式
+// 移除旧的 modal-overlay 相关样式
 .modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-}
-
-.modal-container {
-  background: var(--color-bg-primary);
-  border-radius: 8px;
-  width: 580px;
-  max-width: 90vw;
-  max-height: 90vh;
-  overflow-y: auto;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-}
-
-.modal-header {
-  padding: 16px 20px;
-  border-bottom: 1px solid var(--color-border);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-
-  h3 {
-    margin: 0;
-    font-size: 16px;
-    font-weight: 500;
-    color: var(--color-text-primary);
-  }
-
-  .close-btn {
-    background: none;
-    border: none;
-    padding: 4px;
-    cursor: pointer;
-    color: var(--color-text-secondary);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 4px;
-
-    &:hover {
-      background: var(--color-background-secondary);
-    }
-  }
-}
-
-.modal-body {
-  padding: 20px;
-
-  .form-group {
-    margin-bottom: 16px;
-
-    label {
-      display: block;
-      margin-bottom: 8px;
-      color: var(--color-text-primary);
-    }
-  }
-}
-
-.form-help {
-  margin-top: 12px;
-  display: flex;
-  justify-content: flex-start;
+  display: none; // 或直接删除这个样式块
 }
 
 // 修改测试按钮样式

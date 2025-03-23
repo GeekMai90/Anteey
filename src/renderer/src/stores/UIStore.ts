@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { ref, nextTick } from 'vue'
 
 // 定义编辑器设置接口
 interface EditorSettings {
@@ -163,10 +163,20 @@ export const useUIStore = defineStore(
     // 右侧边栏当前显示的标签页（参数是默认打开的标签页）
     const rightSidebarTab = ref('widgets')
 
-    // 打开右侧边栏并设置标签页
+    // 修改打开右侧边栏方法,支持 assistant 标签页
     const openRightSidebarWithTab = (tab: string) => {
       isRightSidebarOpen.value = true
       rightSidebarTab.value = tab
+
+      // 如果是打开 AI 助手,确保它在最上层
+      if (tab === 'assistant') {
+        nextTick(() => {
+          const assistantPanel = document.querySelector('.assistant-panel')
+          if (assistantPanel) {
+            assistantPanel.scrollIntoView({ behavior: 'smooth' })
+          }
+        })
+      }
     }
     // 关闭右侧边栏
     const closeRightSidebar = () => {

@@ -7,14 +7,17 @@
             <div class="dialog-title">{{ title }}</div>
             <div class="dialog-message">{{ message }}</div>
             <div class="dialog-buttons">
-              <button class="cancel-button" @click="handleCancel">{{ cancelText }}</button>
-              <button
-                class="confirm-button"
-                :class="{ danger: type === 'danger' }"
+              <Button size="medium" :width="120" @click="handleCancel">
+                {{ cancelText || '取消' }}
+              </Button>
+              <Button
+                :type="type === 'danger' ? 'warning' : 'primary'"
+                size="medium"
+                :width="120"
                 @click="handleConfirm"
               >
-                {{ confirmText }}
-              </button>
+                {{ confirmText || '确定' }}
+              </Button>
             </div>
           </div>
         </div>
@@ -24,7 +27,7 @@
 </template>
 
 <script setup lang="ts">
-// import { defineProps, defineEmits } from 'vue'
+import Button from '@renderer/components/ui/Button.vue'
 
 defineProps<{
   visible: boolean
@@ -88,54 +91,26 @@ const handleCancel = () => {
 }
 
 .dialog-title {
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 600;
   color: var(--color-text-primary);
-  margin-bottom: 12px;
+  margin-bottom: 16px;
 }
 
 .dialog-message {
   font-size: 14px;
   color: var(--color-text-secondary);
-  margin-bottom: 24px;
-  line-height: 1.5;
+  margin-bottom: 32px;
+  line-height: 1.6;
+  width: 100%;
+  padding: 0 12px;
 }
 
 .dialog-buttons {
   display: flex;
-  gap: 12px;
+  justify-content: center;
+  gap: 16px;
   width: 100%;
-
-  button {
-    flex: 1;
-    padding: 8px 16px;
-    border-radius: 8px;
-    font-size: 14px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    border: none;
-
-    &.cancel-button {
-      background: var(--color-bg-secondary);
-      color: var(--color-text-secondary);
-
-      &:hover {
-        background: var(--color-bg-secondary);
-        opacity: 0.8;
-      }
-    }
-
-    &.confirm-button {
-      background: var(--color-primary);
-      color: var(--color-text-white);
-
-      &:hover {
-        opacity: 0.9;
-        background: var(--color-danger);
-      }
-    }
-  }
 }
 
 // 动画

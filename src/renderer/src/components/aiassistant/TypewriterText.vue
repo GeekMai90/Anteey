@@ -1,18 +1,12 @@
 <template>
   <div class="typewriter markdown-body">
-    <template v-if="shouldShowInstantly">
-      <!-- 完整内容直接渲染 -->
-      <div class="segment" v-html="sanitizedContent" />
-    </template>
-    <template v-else>
-      <!-- 打字机效果容器 -->
-      <div :id="containerId" class="segment"></div>
-    </template>
+    <!-- 始终直接渲染内容，不使用条件判断 -->
+    <div class="segment" v-html="sanitizedContent"></div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
+import { computed, onMounted } from 'vue'
 import { marked } from 'marked'
 import hljs from 'highlight.js/lib/core'
 import javascript from 'highlight.js/lib/languages/javascript'
@@ -39,7 +33,6 @@ import shell from 'highlight.js/lib/languages/shell'
 import plaintext from 'highlight.js/lib/languages/plaintext'
 import 'highlight.js/styles/github-dark.css'
 import DOMPurify from 'dompurify'
-import TypeIt from 'typeit'
 import MarkdownIt from 'markdown-it'
 import { useAssistantStore } from '@renderer/stores/assistantStore'
 
@@ -106,18 +99,6 @@ const props = defineProps<{
 
 const emit = defineEmits(['complete', 'segmentComplete'])
 
-// 生成唯一的容器ID
-const containerId = computed(() => `typewriter-${props.messageId}`)
-
-// 判断是否应该立即显示
-const shouldShowInstantly = computed(() => {
-  // 如果明确设置了 instant 属性，优先使用它
-  if (props.instant !== undefined) {
-    return props.instant
-  }
-  return false // 默认显示打字机效果
-})
-
 // 配置 MarkdownIt
 const md = new MarkdownIt({
   html: true,
@@ -131,93 +112,19 @@ const sanitizedContent = computed(() => {
   return DOMPurify.sanitize(html)
 })
 
-// TypeIt 实例引用
-const typeItInstance = ref<any>(null)
-
-// 安全地销毁实例
-const safeDestroyInstance = () => {
-  try {
-    if (typeItInstance.value) {
-      typeItInstance.value.destroy()
-      typeItInstance.value = null
-    }
-  } catch (error) {
-    console.warn('销毁 TypeIt 实例时出错:', error)
-  }
-}
-
-// 初始化 TypeIt
-const initTypeIt = () => {
-  try {
-    // 先安全销毁现有实例
-    safeDestroyInstance()
-
-    // 确保目标元素存在
-    const container = document.getElementById(containerId.value)
-    if (!container) {
-      console.warn('找不到目标容器:', containerId.value)
-      return
-    }
-
-    typeItInstance.value = new TypeIt(`#${containerId.value}`, {
-      strings: sanitizedContent.value,
-      speed: 50,
-      waitUntilVisible: true,
-      html: true,
-      cursor: false,
-      startDelay: 0,
-      beforeString: () => false,
-      afterComplete: () => {
-        emit('complete')
-        assistantStore.markMessageAsDisplayed(props.messageId)
-      },
-      afterStep: () => {
-        emit('segmentComplete')
-      }
-    }).go()
-  } catch (error) {
-    console.error('初始化 TypeIt 失败:', error)
-    // 如果初始化失败，直接显示内容
-    const container = document.getElementById(containerId.value)
-    if (container) {
-      container.innerHTML = sanitizedContent.value
-      emit('complete')
-      assistantStore.markMessageAsDisplayed(props.messageId)
-    }
-  }
-}
-
 // 组件挂载时初始化
 onMounted(() => {
-  try {
-    if (!shouldShowInstantly.value) {
-      initTypeIt()
-    } else {
-      // 如果是历史消息，直接标记为已显示
-      assistantStore.markMessageAsDisplayed(props.messageId)
-      emit('complete')
-    }
-  } catch (error) {
-    console.warn('组件挂载时出错:', error)
-  }
-})
+  // 直接标记消息为已显示
+  assistantStore.markMessageAsDisplayed(props.messageId)
 
-// 组件卸载时清理
-onUnmounted(() => {
-  safeDestroyInstance()
+  // 执行滚动到消息开头的逻辑
+  setTimeout(() => {
+    // 触发段落完成事件以确保滚动
+    emit('segmentComplete')
+    // 告知父组件完成
+    emit('complete')
+  }, 100) // 短暂延迟确保DOM已更新
 })
-
-// 添加 watch 来处理内容变化
-watch(
-  () => props.content,
-  () => {
-    if (!shouldShowInstantly.value) {
-      nextTick(() => {
-        initTypeIt()
-      })
-    }
-  }
-)
 </script>
 
 <style lang="scss">
@@ -290,8 +197,10 @@ watch(
 }
 
 .segment {
-  animation: fadeIn 0.2s ease-out forwards;
   max-width: 100%;
+  /* 确保没有动画 */
+  animation: none !important;
+  transition: none !important;
 
   &:empty::before {
     content: '';
@@ -307,23 +216,11 @@ watch(
   }
 }
 
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(5px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-// 隐藏 TypeIt 默认光标和空行
+/* 移除或禁用所有动画相关样式 */
 .ti-cursor {
   display: none !important;
 }
 
-// 完全移除 TypeIt 的 before 伪元素
 [data-typeit-id]::before,
 [data-typeit-id]::after {
   content: none !important;

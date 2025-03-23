@@ -16,7 +16,8 @@ import {
   generateAnswerWithReferences,
   handleAskQuestion,
   handleChat,
-  handleFindNotes
+  handleFindNotes,
+  handleAgentChat
 } from '@services/rag/ragService'
 import { checkAndInitializeEmbeddings } from '@services/rag/embeddingService'
 import log from 'electron-log'
@@ -367,4 +368,59 @@ export function setupRAGHandlers() {
       return { success: false, error: String(error) }
     }
   })
+
+  // 添加 Agent 聊天处理器
+  ipcMain.handle(
+    'handle-agent-chat',
+    async (
+      _event,
+      {
+        query,
+        agentId,
+        noteId,
+        sessionId,
+        currentMessages,
+        currentContexts
+      }: {
+        query?: string
+        agentId: string
+        noteId?: string
+        sessionId: string | null
+        currentMessages: ChatMessage[]
+        currentContexts: RAGContext[]
+      }
+    ) => {
+      try {
+        console.log('IPC处理器 - Agent聊天:', {
+          query,
+          agentId,
+          noteId,
+          sessionId,
+          messagesCount: currentMessages?.length || 0,
+          contextsCount: currentContexts?.length || 0
+        })
+
+        const result = await handleAgentChat({
+          query,
+          agentId,
+          noteId,
+          sessionId,
+          currentMessages: currentMessages || [],
+          currentContexts: currentContexts || []
+        })
+
+        if (result.error) {
+          return {
+            success: false,
+            error: result.error,
+            ...result
+          }
+        }
+        return { success: true, ...result }
+      } catch (error) {
+        log.error('主进程→ Agent聊天模式失败:', error)
+        return { success: false, error: String(error) }
+      }
+    }
+  )
 }

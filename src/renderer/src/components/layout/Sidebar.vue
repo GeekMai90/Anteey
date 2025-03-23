@@ -400,7 +400,8 @@ const menuItems = computed(() => {
     { name: '记忆卡', path: '/flashcard', icon: StorageCardOne },
     { name: '思维板', path: '/mindboard', icon: Workbench },
     { name: '写作台', path: '/writing-desk', icon: NotebookAndPen },
-    { name: 'UI', path: '/ui-test', icon: Workbench }
+    { name: 'UI', path: '/ui-test', icon: Workbench },
+    { name: 'AI', path: '/agent', icon: Robot }
   ]
   return baseItems
 })

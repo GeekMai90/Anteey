@@ -63,7 +63,12 @@
 
             <!-- 消息列表 -->
             <div class="messages">
-              <div v-for="msg in messages" :key="msg.id" :class="['message-wrapper', msg.role]">
+              <div
+                v-for="msg in messages"
+                :key="msg.id"
+                :class="['message-wrapper', msg.role]"
+                :data-message-id="msg.id"
+              >
                 <div class="message">
                   <!-- 用户消息 -->
                   <template v-if="msg.role === 'user'">
@@ -75,7 +80,7 @@
                       :message-id="msg.id"
                       :content="msg.content"
                       :timestamp="msg.timestamp"
-                      :instant="isHistoryMessage"
+                      :instant="true"
                       @segment-complete="onSegmentComplete"
                       @complete="() => onTypewriterComplete(msg.id)"
                     />
@@ -317,6 +322,7 @@ import RightSidebarNoteSelector from '@renderer/components/rightSidebar/RightSid
 import { message } from '@renderer/utils/message'
 import { useModelConfigStore } from '@renderer/stores/modelConfigStore'
 import { useNoteStore } from '@renderer/stores/noteStore'
+import { useAgentStore } from '@renderer/stores/agentStore'
 
 // Store
 const assistantStore = useAssistantStore()
@@ -325,6 +331,7 @@ const router = useRouter()
 const uiStore = useUIStore()
 const modelConfigStore = useModelConfigStore()
 const noteStore = useNoteStore()
+const agentStore = useAgentStore()
 
 // 建议列表
 const suggestions: Suggestion[] = [
@@ -368,22 +375,6 @@ const getPlaceholder = computed(() => {
   return '提问、思考、聊天...'
 })
 
-// 修改 isHistoryMessage 计算属性
-const isHistoryMessage = computed((): boolean => {
-  // 如果正在加载历史记录，返回 true
-  if (assistantStore.isLoadingHistory) {
-    return true
-  }
-
-  // 检查当前会话的 metadata 中的 isHistorical 标记
-  const metadata = assistantStore.currentSession?.metadata
-  if (metadata?.isHistorical) {
-    return true
-  }
-
-  return false
-})
-
 // 方法
 const selectMode = (suggestion: Suggestion) => {
   assistantStore.clearMessages()
@@ -404,6 +395,7 @@ const handleSend = async () => {
     inputMessage.value = ''
     selectedNotes.value = []
 
+    // 确保有模式选择
     if (!currentMode.value) {
       const askSuggestion = suggestions.find((s) => s.mode === 'ask')
       if (askSuggestion) {
@@ -412,6 +404,8 @@ const handleSend = async () => {
     }
 
     const mode = currentMode.value?.mode || 'ask'
+
+    // 发送消息
     try {
       switch (mode) {
         case 'ask':
@@ -421,8 +415,14 @@ const handleSend = async () => {
           await assistantStore.handleChat(message)
           break
       }
+
+      // 使用多层延迟确保DOM更新
+      requestAnimationFrame(() => {
+        setTimeout(() => {
+          scrollToLatestUserMessage()
+        }, 100)
+      })
     } finally {
-      // 无论成功失败，都重新聚焦到输入框
       focusInput()
     }
   } catch (error) {
@@ -430,31 +430,94 @@ const handleSend = async () => {
   }
 }
 
-const scrollToBottom = () => {
-  if (messagesContainer.value) {
-    messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight
-  }
+const scrollToLatestUserMessage = () => {
+  console.log('尝试滚动到最新用户消息')
+
+  if (messages.value.length === 0) return
+
+  // 使用requestAnimationFrame + setTimeout组合确保DOM完全更新
+  requestAnimationFrame(() => {
+    setTimeout(() => {
+      try {
+        // 找到最后一条用户消息
+        let lastUserMessageIndex = -1
+        for (let i = messages.value.length - 1; i >= 0; i--) {
+          if (messages.value[i].role === 'user') {
+            lastUserMessageIndex = i
+            break
+          }
+        }
+
+        if (lastUserMessageIndex === -1) return
+
+        const lastUserMessage = messages.value[lastUserMessageIndex]
+        console.log('最后用户消息ID:', lastUserMessage.id)
+
+        // 查找相应的DOM元素
+        const messageElement = document.querySelector(`[data-message-id="${lastUserMessage.id}"]`)
+
+        if (messageElement) {
+          // 强制浏览器重排布局 - 使用类型断言解决TypeScript错误
+          void (messageElement as HTMLElement).offsetHeight
+
+          // 使用scrollIntoView滚动
+          messageElement.scrollIntoView({
+            behavior: 'auto',
+            block: 'start'
+          })
+
+          console.log('已执行scrollIntoView')
+
+          // 再次确认滚动位置
+          if (messagesContainer.value) {
+            // 获取元素相对于容器的位置
+            const msgRect = messageElement.getBoundingClientRect()
+            const containerRect = messagesContainer.value.getBoundingClientRect()
+            const offsetTop = msgRect.top - containerRect.top
+
+            // 如果消息不在容器顶部附近，进行额外调整
+            if (Math.abs(offsetTop) > 20) {
+              messagesContainer.value.scrollTop = messagesContainer.value.scrollTop + offsetTop
+              console.log('额外滚动调整:', offsetTop)
+            }
+          }
+        } else {
+          console.log('未找到消息元素')
+        }
+      } catch (error) {
+        console.error('滚动过程中出错:', error)
+      }
+    }, 100)
+  })
 }
 
 const onSegmentComplete = () => {
-  requestAnimationFrame(() => {
-    if (messagesContainer.value) {
-      messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight
-    }
-  })
+  // 删除滚动代码
+  // requestAnimationFrame(() => {
+  //   if (messagesContainer.value) {
+  //     messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight
+  //   }
+  // })
 }
 
 const onTypewriterComplete = (messageId: string) => {
-  // 标记消息为已显示
-  assistantStore.markMessageAsDisplayed(messageId)
-  // 滚动到底部并聚焦输入框
-  requestAnimationFrame(() => {
-    if (messagesContainer.value) {
-      messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight
-    }
-    // 添加自动聚焦
-    focusInput()
-  })
+  // 只标记消息为已显示，不执行滚动
+  onAgentMessageComplete(messageId)
+
+  // 移除滚动到消息顶部的代码
+  // 不再执行这部分代码
+  // nextTick(() => {
+  //   const messageElement = document.querySelector(`[data-message-id="${messageId}"]`)
+  //   if (messageElement && messagesContainer.value) {
+  //     // 计算这个消息元素的顶部位置（相对于容器）
+  //     const messageTop = messageElement.getBoundingClientRect().top
+  //     const containerTop = messagesContainer.value.getBoundingClientRect().top
+  //     const scrollOffset = messageTop - containerTop
+  //
+  //     // 滚动到消息的顶部位置
+  //     messagesContainer.value.scrollTop = messagesContainer.value.scrollTop + scrollOffset - 16 // 添加一点上边距
+  //   }
+  // })
 }
 
 const openInMainPanel = () => {
@@ -525,8 +588,17 @@ const removeNote = (noteId: string) => {
 }
 
 // 监听消息变化自动滚动
-watch([() => messages.value.length, () => isProcessing.value], () => {
-  setTimeout(scrollToBottom, 50)
+watch([() => messages.value.length], () => {
+  console.log('消息数量变化，当前数量:', messages.value.length)
+  if (messages.value.length > 0) {
+    const lastMessage = messages.value[messages.value.length - 1]
+    if (lastMessage.role === 'user') {
+      console.log('最后一条是用户消息，准备滚动')
+      // 尝试多种滚动方法
+      scrollToTop() // 直接滚动到顶部
+      setTimeout(scrollToLatestUserMessage, 100) // 然后尝试滚动到最新消息
+    }
+  }
 })
 
 // 添加 toggleReferences 方法
@@ -673,8 +745,40 @@ const handleReferenceDoubleClick = (noteId: string) => {
   noteStore.openNoteEditor(noteId)
 }
 
-// 初始化加载配置
-onMounted(() => {
+// 添加监听 defaultMode 变化
+watch(
+  () => assistantStore.defaultMode,
+  (newMode) => {
+    console.log('默认模式变更:', newMode)
+    const newSuggestion = suggestions.find((s) => s.mode === newMode)
+    if (newSuggestion) {
+      currentMode.value = newSuggestion
+    }
+  }
+)
+
+// 添加一个通用的滚动到元素函数 (移到组件顶层作用域)
+const scrollToElement = (element: Element, offset = 16) => {
+  if (!messagesContainer.value) return
+
+  const elementRect = element.getBoundingClientRect()
+  const containerRect = messagesContainer.value.getBoundingClientRect()
+  const relativeTop = elementRect.top - containerRect.top
+
+  messagesContainer.value.scrollTop = messagesContainer.value.scrollTop + relativeTop - offset
+}
+
+// 修改 onMounted 钩子，移除内部的 scrollToElement 定义
+onMounted(async () => {
+  // 预加载 Agent 数据
+  await agentStore.fetchMenuAgents()
+
+  // 确保当前模式与 defaultMode 一致
+  const defaultSuggestion = suggestions.find((s) => s.mode === assistantStore.defaultMode)
+  if (defaultSuggestion) {
+    currentMode.value = defaultSuggestion
+  }
+
   window.addEventListener('resize', updatePosition)
   window.addEventListener('resize', updateNoteSelectorPosition)
   focusInput()
@@ -698,7 +802,47 @@ onMounted(() => {
   })
 
   modelConfigStore.loadConfigs()
+
+  // 监听新的助手消息事件
+  const handleNewAssistantMessage = (event: CustomEvent) => {
+    const { messageId } = event.detail
+    nextTick(() => {
+      const messageElement = document.querySelector(`[data-message-id="${messageId}"]`)
+      if (messageElement) {
+        scrollToElement(messageElement)
+      }
+    })
+  }
+
+  window.addEventListener('new-assistant-message', handleNewAssistantMessage as EventListener)
+
+  onUnmounted(() => {
+    window.removeEventListener('new-assistant-message', handleNewAssistantMessage as EventListener)
+  })
+
+  // 添加以下代码设置消息容器的初始滚动位置
+  if (messagesContainer.value) {
+    messagesContainer.value.scrollTop = 0
+  }
 })
+
+// 修改 onAgentMessageComplete 方法，移除滚动逻辑
+const onAgentMessageComplete = (messageId: string) => {
+  // 标记消息为已显示
+  assistantStore.markMessageAsDisplayed(messageId)
+
+  // 只聚焦输入框
+  focusInput()
+}
+
+// 添加更明确的滚动到顶部函数
+const scrollToTop = () => {
+  console.log('执行滚动到顶部')
+  if (messagesContainer.value) {
+    messagesContainer.value.scrollTop = 0
+    console.log('设置scrollTop为0')
+  }
+}
 </script>
 
 <style lang="scss" scoped>
@@ -913,6 +1057,10 @@ onMounted(() => {
       color: var(--color-text-primary);
       border-radius: 0 1rem 1rem 1rem;
       max-width: calc(100% - 2rem);
+    }
+
+    &.agent-message {
+      animation: slideIn 0.3s ease-out forwards;
     }
   }
 
@@ -1590,5 +1738,16 @@ onMounted(() => {
   font-size: 12px;
   color: var(--color-text-tertiary);
   user-select: none;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 </style>

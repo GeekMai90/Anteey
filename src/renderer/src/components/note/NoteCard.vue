@@ -35,6 +35,21 @@
             @itemClick="handleMenuItemClick"
           />
         </div>
+        <!-- 添加AI按钮 -->
+        <div ref="aiBtnRef" class="ai-btn" @click.stop="toggleAIMenu">
+          <div v-tooltip.bottom="tooltipConfig.ai" class="icon">
+            <Robot theme="outline" size="16" fill="var(--color-icon-default)" :stroke-width="3" />
+          </div>
+          <!-- AI功能菜单 -->
+          <PopupMenu
+            ref="aiMenuRef"
+            :show="aiMenuState.isOpen"
+            :button-ref="aiBtnRef"
+            :menuItems="agentMenuItems"
+            @close="closeAIMenu"
+            @itemClick="handleAgentMenuItemClick"
+          />
+        </div>
       </div>
     </div>
     <div ref="noteContent" class="note-content" @dblclick="useNoteStore().openNoteEditor(note.id)">
@@ -74,7 +89,7 @@
 <script setup lang="ts">
 import { Note } from '@shared/types'
 import { formatDate } from '@renderer/utils/noteHelpers'
-import { More, ExpandTextInput, StorageCardOne } from '@icon-park/vue-next'
+import { More, ExpandTextInput, StorageCardOne, Robot } from '@icon-park/vue-next'
 import { computed, ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useNoteStore } from '@renderer/stores/noteStore'
@@ -86,11 +101,13 @@ import { useMenu } from '@renderer/composables/useMenu'
 import { State } from 'ts-fsrs'
 import JsonContentRenderer from '@renderer/components/note/JsonContentRenderer.vue'
 import type { Tag } from '@shared/types'
+import { useAgentStore } from '@renderer/stores/agentStore'
 
 // 定义静态的 tooltip 配置
 const tooltipConfig = {
   expandNote: { content: '展开编辑', delay: { show: 1000 }, html: true },
-  more: { content: '更多', delay: { show: 1000 } }
+  more: { content: '更多', delay: { show: 1000 } },
+  ai: { content: 'AI助手', delay: { show: 1000 } }
 }
 
 // 定义静态的闪卡 tooltip 配置函数
@@ -211,7 +228,33 @@ const handleTagClick = (tagId: string) => {
   })
 }
 
+// AI菜单相关
+const agentStore = useAgentStore()
+const aiBtnRef = ref<HTMLElement | null>(null)
+const aiMenuRef = ref<HTMLElement | null>(null)
+
+const {
+  menuState: aiMenuState,
+  toggleMenu: toggleAIMenu,
+  closeMenu: closeAIMenu
+} = useMenu({
+  buttonRef: aiBtnRef,
+  menuRef: aiMenuRef
+})
+
+// 获取Agent菜单项
+const agentMenuItems = computed(() => {
+  return agentStore.generateAgentMenuItems(props.note.id)
+})
+
+// 处理Agent菜单项点击
+const handleAgentMenuItemClick = (item: MenuItem) => {
+  item.action()
+  closeAIMenu()
+}
+
 onMounted(async () => {
+  // 只获取标签，不再获取 agents
   await fetchNoteTags()
 })
 </script>
@@ -323,7 +366,8 @@ onMounted(async () => {
         }
       }
       .note-button,
-      .more-btn {
+      .more-btn,
+      .ai-btn {
         position: relative;
         display: flex;
         align-items: center;

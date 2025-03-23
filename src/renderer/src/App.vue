@@ -60,6 +60,7 @@ import { useDraftsStore } from '@renderer/stores/draftsStore'
 import type { SyncState } from '@shared/types'
 import { useThemeStore } from '@renderer/stores/themeStore'
 import { useAuthStore } from './stores/authStore'
+import { useAgentStore } from '@renderer/stores/agentStore'
 
 // 组件导入
 import BaseLayout from './components/layout/BaseLayout.vue'
@@ -87,6 +88,7 @@ const draftsStore = useDraftsStore()
 const themeStore = useThemeStore()
 const uiStore = useUIStore()
 const authStore = useAuthStore()
+const agentStore = useAgentStore()
 
 interface BaseLayoutInstance {
   checkWindowSize: () => void
@@ -176,6 +178,13 @@ onMounted(async () => {
   baseLayout.value?.checkWindowSize()
   window.addEventListener('resize', () => baseLayout.value?.handleResize())
   window.addEventListener('keydown', handleKeydown)
+
+  // 预加载 agents 数据
+  try {
+    await agentStore.fetchMenuAgents()
+  } catch (error) {
+    console.error('加载 AI Agents 失败:', error)
+  }
 
   // 检查云同步配置并显示启动时的 loading
   try {

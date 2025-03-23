@@ -1543,6 +1543,32 @@ export async function initDatabase(db: Knex): Promise<void> {
     })
     console.log('writing_prompt_templates 表创建成功')
   }
+
+  // 创建 agents 表
+  if (!(await db.schema.hasTable('agents'))) {
+    await db.schema.createTable('agents', (table) => {
+      table.string('id').primary()
+      table.string('name').notNullable()
+      table.string('description').nullable()
+      table.text('greeting').notNullable() // 使用 text 类型存储可能较长的打招呼语
+      table.text('systemPrompt').notNullable() // 使用 text 类型存储系统提示词
+      table.float('temperature').notNullable().defaultTo(0.7) // 温度值，默认0.7
+      table.string('modelConfigId').notNullable() // 关联到 model_configs 表
+      table.boolean('includeNoteContext').notNullable().defaultTo(true) // 是否包含笔记上下文
+      table.datetime('createdAt').notNullable()
+      table.datetime('updatedAt').notNullable()
+
+      // 外键约束
+      table.foreign('modelConfigId').references('model_configs.id').onDelete('CASCADE')
+
+      // 索引
+      table.index('modelConfigId')
+      table.index('includeNoteContext')
+      table.index('createdAt')
+    })
+
+    console.log('agents 表创建成功')
+  }
 }
 
 export async function down(db: Knex): Promise<void> {
@@ -1607,6 +1633,8 @@ export async function down(db: Knex): Promise<void> {
   await db.schema.dropTableIfExists('manuscript_polish_history')
   await db.schema.dropTableIfExists('manuscript_first_draft_history')
   await db.schema.dropTableIfExists('writing_desk_ai_configs')
+  await db.schema.dropTableIfExists('writing_prompt_templates')
+  await db.schema.dropTableIfExists('agents')
 
   console.log('所有表已删除')
 }

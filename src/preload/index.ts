@@ -34,6 +34,7 @@ import { letterApi } from './api/letterApi'
 import { exportApi } from './api/exportApi'
 import { writingDeskApi } from './api/writingDeskApi'
 import { setupWritingPromptTemplateApi } from './api/writingPromptTemplateApi'
+import { agentApi } from './api/agentApi'
 // 添加日志 API
 contextBridge.exposeInMainWorld('electronLog', {
   info: (...args: any[]) => ipcRenderer.send('renderer-log', { level: 'info', args }),
@@ -173,6 +174,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
   writingPromptTemplate: {
     ...setupWritingPromptTemplateApi()
+  },
+  agent: {
+    ...agentApi
   }
 })
 

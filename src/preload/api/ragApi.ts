@@ -340,5 +340,44 @@ export const ragApi = {
       console.error('预加载脚本 → 初始化向量化失败:', error)
       throw error
     }
+  },
+  // 添加 Agent 聊天 API
+  handleAgentChat: async (params: {
+    query?: string
+    agentId: string
+    noteId?: string
+    sessionId?: string | null
+    currentMessages?: ChatMessage[]
+    currentContexts?: RAGContext[]
+  }): Promise<{
+    answer: string
+    context: RAGContext
+    messages: ChatMessage[]
+    error?: LLMError
+  }> => {
+    try {
+      console.log('预加载脚本 - Agent聊天:', {
+        query: params.query,
+        agentId: params.agentId,
+        noteId: params.noteId,
+        sessionId: params.sessionId,
+        messagesCount: params.currentMessages?.length || 0,
+        contextsCount: params.currentContexts?.length || 0
+      })
+
+      const result = await ipcRenderer.invoke('handle-agent-chat', params)
+
+      if (!result.success) {
+        if (result.error?.code) {
+          return result
+        }
+        throw new Error(result.error)
+      }
+
+      return result
+    } catch (error) {
+      console.error('预加载脚本 → Agent聊天模式失败:', error)
+      throw error
+    }
   }
 }

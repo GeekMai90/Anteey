@@ -127,7 +127,12 @@ import type {
   // 新增的 writingPromptTemplate 相关类型
   PromptTemplate,
   PromptTemplateType,
-  CreatePromptTemplateParams
+  CreatePromptTemplateParams,
+
+  // 新增的 agent 相关类型
+  Agent,
+  CreateAgentParams,
+  UpdateAgentParams
 } from '@shared/types'
 
 export interface ElectronAPI {
@@ -786,6 +791,21 @@ export interface ElectronAPI {
       total: number
       processed: number
     }>
+
+    // 添加 Agent 聊天方法
+    handleAgentChat: (params: {
+      query?: string
+      agentId: string
+      noteId?: string
+      sessionId?: string | null
+      currentMessages?: ChatMessage[]
+      currentContexts?: RAGContext[]
+    }) => Promise<{
+      answer: string
+      context: RAGContext
+      messages: ChatMessage[]
+      error?: LLMError
+    }>
   }
 
   similarNotes: {
@@ -1180,6 +1200,32 @@ export interface ElectronAPI {
       success: boolean
       error?: string
     }>
+  }
+
+  agent: {
+    // 创建 Agent
+    createAgent: (params: CreateAgentParams) => Promise<Agent>
+
+    // 获取所有 Agents
+    getAllAgents: () => Promise<Agent[]>
+
+    // 根据ID获取 Agent
+    getAgentById: (id: string) => Promise<Agent | null>
+
+    // 更新 Agent
+    updateAgent: (id: string, updateData: UpdateAgentParams) => Promise<Agent>
+
+    // 删除 Agent
+    deleteAgent: (id: string) => Promise<void>
+
+    // 搜索 Agents
+    searchAgents: (query: string) => Promise<Agent[]>
+
+    // 获取可在笔记菜单中显示的 Agents
+    getMenuAgents: () => Promise<Agent[]>
+
+    // 获取不在笔记菜单中显示的 Agents
+    getNonMenuAgents: () => Promise<Agent[]>
   }
 }
 

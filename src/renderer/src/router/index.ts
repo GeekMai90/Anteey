@@ -160,6 +160,11 @@ const routes = [
     name: 'ManuscriptDetail',
     component: () => import('@renderer/components/writingDesk/ManuscriptDetail.vue'),
     props: true
+  },
+  {
+    path: '/agent',
+    name: 'AgentView',
+    component: () => import('@renderer/views/AgentView.vue')
   }
 ]
 
