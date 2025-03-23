@@ -17,7 +17,7 @@
           <Textarea v-model="formState.description" placeholder="请输入助手描述" :height="80" />
         </div>
 
-        <div class="form-item">
+        <!-- <div class="form-item">
           <label>打招呼语</label>
           <Textarea
             v-model="formState.greeting"
@@ -25,7 +25,7 @@
             :height="80"
             :help="errors.greeting"
           />
-        </div>
+        </div> -->
 
         <div class="form-item">
           <label>系统提示词</label>
@@ -55,7 +55,7 @@
           <Slider
             v-model="formState.temperature"
             :min="0"
-            :max="2"
+            :max="1"
             :step="0.1"
             :precision="1"
             :showLabels="true"
@@ -63,7 +63,7 @@
         </div>
 
         <div class="form-item switch-item">
-          <label>在笔记菜单中显示</label>
+          <label>是否需要笔记作为上下文</label>
           <Switch v-model="formState.includeNoteContext" />
         </div>
       </div>

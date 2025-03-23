@@ -28,6 +28,16 @@ export class LLMService {
     this.configService = new ModelConfigService()
   }
 
+  // 添加为类的成员方法
+  private validateTemperature(temperature: number, provider: LLMProvider): number {
+    // 如果是 OpenAI，支持 0-2
+    if (provider === 'openai') {
+      return Math.max(0, Math.min(2, temperature))
+    }
+    // 其他模型限制在 0-1
+    return Math.max(0, Math.min(1, temperature))
+  }
+
   /**
    * 生成LLM响应
    * @param prompt - 用户输入的提示文本
@@ -46,11 +56,30 @@ export class LLMService {
     let response: any
 
     try {
+      // 添加详细日志
+      log.info('开始获取模型配置:', {
+        requestedConfigId: configId,
+        hasParameters: !!parameters
+      })
+
+      // 修改这里：从 parameters 中获取 modelConfigId
+      const modelConfigId = parameters?.modelConfigId || configId
+
       // 获取模型配置
-      if (configId) {
-        config = await this.configService.getConfigById(configId)
+      if (modelConfigId) {
+        // 使用 modelConfigId
+        config = await this.configService.getConfigById(modelConfigId)
+        log.info('通过ID获取的配置:', {
+          configId: modelConfigId,
+          provider: config?.provider,
+          modelName: config?.modelName
+        })
       } else {
         config = await this.configService.getDefaultConfig()
+        log.info('使用默认配置:', {
+          provider: config?.provider,
+          modelName: config?.modelName
+        })
       }
 
       if (!config) {
@@ -86,10 +115,24 @@ export class LLMService {
       const mergedParameters = {
         temperature: 0.7,
         maxTokens: 2000,
-        stopSequences: [], // 添加默认值
+        stopSequences: [],
         ...config.parameters,
         ...(parameters || {})
       } as GeminiParameters
+
+      // 验证温度参数
+      if (typeof mergedParameters.temperature === 'number') {
+        const originalTemp = mergedParameters.temperature
+        mergedParameters.temperature = this.validateTemperature(originalTemp, config.provider)
+
+        if (originalTemp !== mergedParameters.temperature) {
+          log.info('温度参数已调整:', {
+            provider: config.provider,
+            originalTemperature: originalTemp,
+            adjustedTemperature: mergedParameters.temperature
+          })
+        }
+      }
 
       // 根据不同提供商构建请求体
       let requestBody: any
@@ -266,6 +309,20 @@ export class LLMService {
         ...config.parameters,
         ...(parameters || {})
       } as GeminiParameters
+
+      // 验证温度参数
+      if (typeof mergedParameters.temperature === 'number') {
+        const originalTemp = mergedParameters.temperature
+        mergedParameters.temperature = this.validateTemperature(originalTemp, config.provider)
+
+        if (originalTemp !== mergedParameters.temperature) {
+          log.info('温度参数已调整:', {
+            provider: config.provider,
+            originalTemperature: originalTemp,
+            adjustedTemperature: mergedParameters.temperature
+          })
+        }
+      }
 
       // 根据不同提供商构建请求体
       let requestBody: any

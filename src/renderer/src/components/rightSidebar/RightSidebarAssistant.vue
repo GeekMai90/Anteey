@@ -200,12 +200,13 @@
                   历史会话
                 </Button>
               </div>
-              <!-- 修改 Agents 下拉菜单 -->
+
+              <!-- Agents 下拉菜单 -->
               <Dropdown
                 :items="agentItems"
                 :showSelected="false"
-                placement="top"
                 align="end"
+                placement="top"
                 icon-only
                 :icon="Robot"
                 @select="handleAgentSelect"
@@ -213,7 +214,7 @@
                 AI 助手
               </Dropdown>
 
-              <!-- 使用 SegmentedButton 替换原来的模式切换 -->
+              <!-- 使用 SegmentedButton 组件 -->
               <SegmentedButton
                 v-model="currentModeValue"
                 :options="modeOptions"
@@ -251,28 +252,8 @@
                   @compositionstart="handleCompositionStart"
                   @compositionend="handleCompositionEnd"
                 ></textarea>
-              </div>
-              <div class="input-actions">
-                <div class="model-switcher">
-                  <button class="model-switch-btn" @click="showModelMenu = !showModelMenu">
-                    <Receiver theme="outline" size="16" :strokeWidth="3" />
-                  </button>
 
-                  <!-- 模型选择菜单 -->
-                  <div v-if="showModelMenu" class="model-menu">
-                    <div
-                      v-for="config in modelConfigStore.configs"
-                      :key="config.id"
-                      class="model-option"
-                      :class="{ active: config.isDefault }"
-                      @click="handleModelSwitch(config.id)"
-                    >
-                      <span class="model-name">{{ config.name }}</span>
-                      <Check v-if="config.isDefault" theme="outline" size="14" :strokeWidth="3" />
-                    </div>
-                  </div>
-                </div>
-
+                <!-- 将发送按钮放在这里 -->
                 <button
                   class="send-btn"
                   :disabled="!inputMessage.trim() || isProcessing"
@@ -281,6 +262,19 @@
                   <Send theme="outline" size="16" :strokeWidth="3" />
                 </button>
               </div>
+            </div>
+            <!-- 添加模型选择下拉菜单 -->
+            <div class="model-selector">
+              <Dropdown
+                :items="modelItems"
+                :show-selected="true"
+                size="small"
+                align="end"
+                placement="top"
+                @select="handleModelSwitch"
+              >
+                模型
+              </Dropdown>
             </div>
           </div>
         </div>
@@ -313,7 +307,6 @@ import {
   History,
   Close,
   Copy,
-  Check,
   Receiver,
   Brain
 } from '@icon-park/vue-next'
@@ -382,7 +375,6 @@ const selectedNotes = ref<{ id: string; title: string }[]>([])
 const showNoteSelector = ref(false)
 const lastAtPosition = ref(-1)
 const noteSelectorRef = ref<{ focusSearchInput: () => void } | null>(null)
-const showModelMenu = ref(false)
 
 // 计算属性
 const getPlaceholder = computed(() => {
@@ -763,11 +755,20 @@ const copyMessageContent = async (content: string) => {
   }
 }
 
-// 处理模型切换
+// 添加模型项的计算属性
+const modelItems = computed(() => {
+  return modelConfigStore.configs.map((config) => ({
+    key: config.id,
+    label: config.name,
+    active: config.isDefault,
+    icon: config.provider === 'openai' ? 'OpenaiLogo' : Receiver
+  }))
+})
+
+// 修改模型切换处理方法
 const handleModelSwitch = async (modelId: string) => {
   try {
     await modelConfigStore.setDefaultConfig(modelId)
-    showModelMenu.value = false
     message.success('已切换模型')
   } catch (error) {
     message.error('切换模型失败')
@@ -837,9 +838,6 @@ onMounted(async () => {
     const target = event.target as HTMLElement
     if (!target.closest('.note-selector') && !target.closest('.input-container')) {
       showNoteSelector.value = false
-    }
-    if (!target.closest('.model-switcher')) {
-      showModelMenu.value = false
     }
   }
 
@@ -1151,7 +1149,7 @@ const handleAgentSelect = async (agentId: string) => {
   }
 
   .message {
-    padding: 0.7rem 1rem;
+    padding: 0.7rem 1rem 10px 1rem;
     font-size: 0.875rem;
     line-height: 1.6;
     word-break: break-word;
@@ -1270,6 +1268,7 @@ const handleAgentSelect = async (agentId: string) => {
     flex: 1;
     border-radius: 8px;
     min-height: 80px;
+    position: relative;
 
     textarea {
       width: 100%;
@@ -1289,16 +1288,10 @@ const handleAgentSelect = async (agentId: string) => {
     }
   }
 
-  .input-actions {
-    position: absolute;
-    right: 12px;
-    bottom: 8px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-
   .send-btn {
+    position: absolute;
+    right: 10px;
+    bottom: 10px;
     background: none;
     border-radius: 50%;
     color: var(--color-text-tertiary);
@@ -1311,6 +1304,7 @@ const handleAgentSelect = async (agentId: string) => {
     cursor: pointer;
     transition: all 0.2s;
     padding: 0;
+    z-index: 2;
 
     &:disabled {
       cursor: not-allowed;
@@ -1357,7 +1351,6 @@ const handleAgentSelect = async (agentId: string) => {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 8px;
     min-height: 24px;
   }
 
@@ -1464,81 +1457,80 @@ const handleAgentSelect = async (agentId: string) => {
     text-align: center;
   }
 
-  .model-switcher {
-    position: absolute;
-    right: 0px;
-    bottom: 30px;
-    opacity: 0;
-    transition: opacity 0.2s ease;
-
-    &:hover {
-      opacity: 1;
-    }
-  }
-
-  .model-switch-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 26px;
-    height: 26px;
-    padding: 0;
+  .references-list {
+    padding: 8px;
     border-radius: 8px;
-    background-color: transparent;
-    color: var(--color-text-secondary);
-    cursor: pointer;
-    transition: all 0.2s ease;
-
-    :deep(.i-icon) {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 100%;
-      height: 100%;
-    }
-
-    :deep(svg) {
-      width: 16px;
-      height: 16px;
-    }
+    background: var(--color-bg-secondary);
   }
 
-  .model-menu {
-    position: absolute;
-    bottom: 100%;
-    right: 0;
-    margin-bottom: 8px;
-    width: 200px;
+  .reference-item {
+    padding: 12px;
+    border-radius: 6px;
     background: var(--color-bg-primary);
-    border: 1px solid var(--color-border);
-    border-radius: 8px;
-    box-shadow: var(--shadow-primary);
-    z-index: 1000;
-  }
-
-  .model-option {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 8px 12px;
     cursor: pointer;
-    transition: all 0.2s ease;
-    color: var(--color-text-secondary);
-    font-size: 13px;
-    white-space: nowrap;
+    transition: background-color 0.2s ease;
+    user-select: none;
+
+    & + .reference-item {
+      margin-top: 8px;
+    }
 
     &:hover {
       background: var(--color-hover-bg);
     }
+  }
 
-    &.active {
-      color: var(--color-primary);
-      background: rgba(var(--color-primary-rgb), 0.1);
-    }
+  .reference-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
 
-    .model-name {
-      margin-right: 8px;
+  .reference-address {
+    font-weight: 500;
+    color: var(--color-text-primary);
+    display: flex;
+    align-items: center;
+    line-height: 1.4;
+  }
+
+  .reference-similarity {
+    font-size: 12px;
+    color: var(--color-primary);
+    display: flex;
+    align-items: center;
+    line-height: 1.4;
+  }
+
+  .reference-content {
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--color-text-secondary);
+    margin-bottom: 0;
+    user-select: none;
+    display: flex;
+    align-items: center;
+  }
+
+  .reference-meta {
+    font-size: 12px;
+    color: var(--color-text-tertiary);
+    user-select: none;
+  }
+
+  @keyframes slideIn {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
     }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  :deep(.radio-inputs) {
+    margin-left: 4px;
   }
 }
 
@@ -1618,7 +1610,7 @@ const handleAgentSelect = async (agentId: string) => {
   overflow-x: auto;
   overflow-y: hidden;
   white-space: nowrap;
-  scrollbar-width: thin; // Firefox
+  scrollbar-width: thin;
 }
 
 .selected-note {
@@ -1705,83 +1697,10 @@ const handleAgentSelect = async (agentId: string) => {
   opacity: 0;
 }
 
-.references-list {
-  margin-top: 8px;
-  padding: 8px;
-  border-radius: 8px;
-  background: var(--color-bg-secondary);
-}
-
-.reference-item {
-  padding: 12px;
-  border-radius: 6px;
-  background: var(--color-bg-primary);
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-  user-select: none;
-
-  & + .reference-item {
-    margin-top: 8px;
-  }
-
-  &:hover {
-    background: var(--color-hover-bg);
-  }
-}
-
-.reference-header {
+.model-selector {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  // margin-bottom: 8px;
-  // min-height: 24px;
-}
-
-.reference-address {
-  font-weight: 500;
-  color: var(--color-text-primary);
-  display: flex;
-  align-items: center;
-  line-height: 1.4;
-}
-
-.reference-similarity {
-  font-size: 12px;
-  color: var(--color-primary);
-  display: flex;
-  align-items: center;
-  line-height: 1.4;
-}
-
-.reference-content {
-  font-size: 13px;
-  line-height: 1.5;
-  color: var(--color-text-secondary);
-  margin-bottom: 0;
-  user-select: none;
-  display: flex;
-  align-items: center;
-}
-
-.reference-meta {
-  font-size: 12px;
-  color: var(--color-text-tertiary);
-  user-select: none;
-}
-
-@keyframes slideIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-// 为 SegmentedButton 添加一些微调样式
-:deep(.radio-inputs) {
-  margin-left: 4px; // 与其他按钮保持一定间距
+  align-items: flex-end;
+  justify-content: flex-end;
+  margin-top: 4px;
 }
 </style>

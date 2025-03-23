@@ -177,16 +177,12 @@ export async function handleAskQuestion(
   assistantNoteReferences: AssistantNoteReference[],
   sessionId: string | null,
   currentMessages: ChatMessage[] = [],
-  currentContexts: RAGContext[] = [],
-  deepseekConfig?: {
-    temperature?: number // 控制答案的随机性
-    maxTokens?: number // 控制答案的最大长度
-  }
+  currentContexts: RAGContext[] = []
 ): Promise<{
-  answer: string // 生成的回答
-  context: RAGContext // 相关的上下文信息
-  messages: ChatMessage[] // 更新后的消息列表
-  error?: LLMError // 添加错误返回
+  answer: string
+  context: RAGContext
+  messages: ChatMessage[]
+  error?: LLMError
 }> {
   try {
     // 1. 参数验证：确保查询是字符串类型
@@ -249,30 +245,12 @@ export async function handleAskQuestion(
 
       // 生成回答
       const prompt = buildAskQuestionPrompt(query, context, currentMessages, isNewChat)
-      answer = await llm.generateResponse(
-        prompt,
-        undefined,
-        deepseekConfig
-          ? {
-              temperature: deepseekConfig.temperature,
-              maxTokens: deepseekConfig.maxTokens
-            }
-          : undefined
-      )
+      answer = await llm.generateResponse(prompt)
     } else {
       // 3b. 处理无引用笔记的情况：通过语义搜索找到相关笔记
       context = await retrieveContext(query, session)
       const prompt = buildAskQuestionPrompt(query, context, currentMessages, isNewChat)
-      answer = await llm.generateResponse(
-        prompt,
-        undefined,
-        deepseekConfig
-          ? {
-              temperature: deepseekConfig.temperature,
-              maxTokens: deepseekConfig.maxTokens
-            }
-          : undefined
-      )
+      answer = await llm.generateResponse(prompt)
     }
 
     // 4. 构建新的消息：记录用户问题和AI回答
@@ -1011,12 +989,7 @@ export async function generateAnswer(
   query: string,
   sessionId: string | null,
   currentMessages: ChatMessage[] = [],
-  currentContexts: RAGContext[] = [],
-  // 添加 DeepSeek 配置参数
-  deepseekConfig?: {
-    temperature?: number
-    maxTokens?: number
-  }
+  currentContexts: RAGContext[] = []
 ): Promise<{
   answer: string
   context: RAGContext
@@ -1076,16 +1049,7 @@ export async function generateAnswer(
     const prompt = buildPrompt(query, context, currentMessages)
 
     // 4. 调用大模型时传入 deepseekConfig
-    const answer = await llm.generateResponse(
-      prompt,
-      undefined,
-      deepseekConfig
-        ? {
-            temperature: deepseekConfig.temperature,
-            maxTokens: deepseekConfig.maxTokens
-          }
-        : undefined
-    )
+    const answer = await llm.generateResponse(prompt)
 
     // 5. 构建新的消息
     const userMessage: UserMessage = {
@@ -1408,12 +1372,7 @@ export async function generateAnswerWithReferences(
   assistantNoteReferences: AssistantNoteReference[],
   sessionId: string | null,
   currentMessages: ChatMessage[] = [],
-  currentContexts: RAGContext[] = [],
-  // 添加 DeepSeek 配置参数
-  deepseekConfig?: {
-    temperature?: number
-    maxTokens?: number
-  }
+  currentContexts: RAGContext[] = []
 ): Promise<{
   answer: string
   context: RAGContext
@@ -1487,16 +1446,7 @@ export async function generateAnswerWithReferences(
     const prompt = `用户引用了以下笔记，请基于这些笔记的内容来回答用户的问题：\n\n${referencesText}\n\n用户问题：${query}`
 
     // 6. 调用大模型时传入 deepseekConfig
-    const answer = await llm.generateResponse(
-      prompt,
-      undefined,
-      deepseekConfig
-        ? {
-            temperature: deepseekConfig.temperature,
-            maxTokens: deepseekConfig.maxTokens
-          }
-        : undefined
-    )
+    const answer = await llm.generateResponse(prompt)
 
     // 7. 构建新的消息（复用原有逻辑）
     const userMessage: UserMessage = {
@@ -1695,12 +1645,7 @@ export async function handleChat(
   query: string,
   sessionId: string | null,
   currentMessages: ChatMessage[] = [],
-  currentContexts: RAGContext[] = [],
-  // 添加 DeepSeek 配置参数
-  deepseekConfig?: {
-    temperature?: number
-    maxTokens?: number
-  }
+  currentContexts: RAGContext[] = []
 ): Promise<{
   answer: string
   context: RAGContext
@@ -1718,8 +1663,7 @@ export async function handleChat(
       query,
       sessionId,
       messagesCount: currentMessages.length,
-      contextsCount: currentContexts.length,
-      deepseekConfig
+      contextsCount: currentContexts.length
     })
 
     // 2. 获取或创建会话
@@ -1757,16 +1701,7 @@ export async function handleChat(
     const prompt = await buildChatPrompt(query, currentMessages, isNewChat)
 
     // 5. 调用大模型时传入 deepseekConfig
-    const answer = await llm.generateResponse(
-      prompt,
-      undefined,
-      deepseekConfig
-        ? {
-            temperature: deepseekConfig.temperature,
-            maxTokens: deepseekConfig.maxTokens
-          }
-        : undefined
-    )
+    const answer = await llm.generateResponse(prompt)
 
     // 6. 构建新的消息
     const userMessage: UserMessage = {
@@ -2156,9 +2091,12 @@ export async function handleAgentChat(params: {
       temperature: agent.temperature,
       modelConfigId: agent.modelConfigId
     })
-    const answer = await llm.generateResponse(prompt, undefined, {
-      temperature: agent.temperature,
-      modelConfigId: agent.modelConfigId
+    console.log('调用LLM前的配置:', {
+      modelConfigId: agent.modelConfigId,
+      temperature: agent.temperature
+    })
+    const answer = await llm.generateResponse(prompt, agent.modelConfigId, {
+      temperature: agent.temperature
     })
     console.log('获取到大模型回答:', answer)
 
