@@ -4,6 +4,8 @@ import { Agent, CreateAgentParams, UpdateAgentParams } from '@shared/types'
 import { useEventBus } from '@vueuse/core'
 import { useUIStore } from '@renderer/stores/UIStore'
 import { useAssistantStore } from '@renderer/stores/assistantStore'
+import { Robot } from '@icon-park/vue-next'
+import { markRaw } from 'vue'
 
 export const useAgentStore = defineStore('agent', () => {
   // ==================== 状态 ====================
@@ -135,7 +137,7 @@ export const useAgentStore = defineStore('agent', () => {
     return menuAgents.value.map((agent) => ({
       name: agent.id,
       label: agent.name,
-      icon: 'Robot',
+      icon: markRaw(Robot),
       action: () => {
         console.log('执行Agent菜单动作:', {
           agentId: agent.id,

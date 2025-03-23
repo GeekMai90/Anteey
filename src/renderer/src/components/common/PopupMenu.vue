@@ -20,7 +20,7 @@
         >
           <div class="icon">
             <component
-              :is="item.icon"
+              :is="getIconComponent(item.icon)"
               theme="outline"
               size="18"
               :fill="getItemFill(item)"
@@ -38,11 +38,13 @@
 import { useFloating } from '@floating-ui/vue'
 import { flip, offset, shift } from '@floating-ui/dom'
 import { ref, computed, onMounted, onUnmounted } from 'vue'
+// 导入所有可能用作图标的组件
+import { Robot } from '@icon-park/vue-next'
 
 export interface MenuItem {
   name: string
   label: string
-  icon?: any
+  icon?: any // 可以是组件引用或字符串
   action: () => void
   fill?: string
   isDangerous?: boolean
@@ -67,6 +69,23 @@ const { x, y, strategy } = useFloating(
     middleware: [offset(8), flip(), shift()]
   }
 )
+
+// 添加一个函数来获取图标组件
+const getIconComponent = (icon: any) => {
+  // 如果icon已经是组件引用，直接返回
+  if (typeof icon !== 'string') {
+    return icon
+  }
+
+  // 如果icon是字符串，映射到对应的组件
+  const iconMap: Record<string, any> = {
+    Robot: Robot
+    // 添加其他图标组件映射
+  }
+
+  // 返回对应的组件，如果没有则返回默认图标
+  return iconMap[icon] || Robot
+}
 
 // 修改获取图标填充颜色的方法
 const getItemFill = (item: MenuItem) => {

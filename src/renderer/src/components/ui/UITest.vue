@@ -415,6 +415,11 @@
         />
       </div>
     </div>
+
+    <h2>LoadingCandle 测试</h2>
+    <div class="demo-section">
+      <LoadingCandle />
+    </div>
   </div>
 </template>
 
@@ -440,6 +445,7 @@ import {
   MenuFoldOne
 } from '@icon-park/vue-next'
 import CalendarButton from './CalendarButton.vue'
+import LoadingCandle from './LoadingCandle.vue'
 
 const selectedValue = ref('1')
 const loading = ref(false)

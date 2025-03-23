@@ -55,6 +55,23 @@ export const useAssistantStore = defineStore(
     // 添加默认模式状态
     const defaultMode = ref<'ask' | 'chat'>('ask') // 默认为"问一问"模式
 
+    // 在 store 的 state 部分添加
+    const loadingAnimation = ref<{
+      type:
+        | 'candle'
+        | 'pencil'
+        | 'mouse'
+        | 'pacman'
+        | 'taichi'
+        | 'windmill'
+        | 'washing'
+        | 'typewriter'
+      bottomOffset: number
+    }>({
+      type: 'candle', // 默认使用蜡烛动画
+      bottomOffset: -16 // 默认偏移量
+    })
+
     const sendMessage = async (content: string) => {
       const startTime = performance.now()
       try {
@@ -1156,6 +1173,34 @@ export const useAssistantStore = defineStore(
       defaultMode.value = mode
     }
 
+    // 添加修改动画的方法
+    const setLoadingAnimation = (
+      type:
+        | 'candle'
+        | 'pencil'
+        | 'mouse'
+        | 'pacman'
+        | 'taichi'
+        | 'windmill'
+        | 'washing'
+        | 'typewriter'
+    ) => {
+      const offsets = {
+        candle: -16,
+        pencil: -40, // 根据铅笔动画调整
+        mouse: -67, // 根据鼠标动画调整
+        pacman: -59, // 根据pacman动画调整
+        taichi: -83, // 根据太极动画调整
+        windmill: 29, // 根据风车动画调整
+        washing: -60, // 根据洗衣服动画调整
+        typewriter: -39 // 根据打字动画调整
+      }
+      loadingAnimation.value = {
+        type,
+        bottomOffset: offsets[type]
+      }
+    }
+
     // Agent 聊天模式
     const handleAgentChat = async (params: {
       query?: string
@@ -1406,13 +1451,15 @@ export const useAssistantStore = defineStore(
       defaultMode,
       setDefaultMode,
       currentSession,
-      handleAgentChat
+      handleAgentChat,
+      loadingAnimation,
+      setLoadingAnimation
     }
   },
   {
     persist: {
       // 指定需要持久化的state
-      pick: ['defaultMode'],
+      pick: ['defaultMode', 'loadingAnimation'],
       // 使用 localStorage 存储
       storage: localStorage,
       // 自定义存储的 key

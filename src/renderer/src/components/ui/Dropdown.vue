@@ -52,6 +52,7 @@ interface Props {
   width?: string | number
   align?: 'start' | 'center' | 'end'
   showSelected?: boolean // 是否在按钮中显示选中项的文本
+  showArrow?: boolean // 新增: 是否显示下拉箭头
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -65,7 +66,8 @@ const props = withDefaults(defineProps<Props>(), {
   align: 'start',
   height: 0,
   iconOnly: false,
-  showSelected: false
+  showSelected: false,
+  showArrow: false
 })
 
 const emit = defineEmits<{
@@ -240,7 +242,7 @@ const buttonText = computed(() => {
       "
       :height="height"
       :iconOnly="iconOnly"
-      :dropdown="!iconOnly && !showSelected"
+      :dropdown="showArrow"
       @click="handleButtonClick"
       @mouseenter="handleTriggerMouseEnter"
       @mouseleave="handleTriggerMouseLeave"

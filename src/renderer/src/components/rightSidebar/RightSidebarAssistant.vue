@@ -47,6 +47,20 @@
                   : '👋🏻 Hi！我是你的知识伴侣，随时准备为你探索卡片盒中的智慧宝藏！'
               }}
             </div>
+            <!-- 修改蜡烛加载动画容器的类名 -->
+            <div
+              class="candle-container"
+              :style="{ bottom: `${assistantStore.loadingAnimation.bottomOffset}px` }"
+            >
+              <LoadingCandle v-if="assistantStore.loadingAnimation.type === 'candle'" />
+              <LoadingPencil v-if="assistantStore.loadingAnimation.type === 'pencil'" />
+              <LoadingMouse v-if="assistantStore.loadingAnimation.type === 'mouse'" />
+              <LoadingPacMan v-if="assistantStore.loadingAnimation.type === 'pacman'" />
+              <LoadingTaiChi v-if="assistantStore.loadingAnimation.type === 'taichi'" />
+              <LoadingWindmill v-if="assistantStore.loadingAnimation.type === 'windmill'" />
+              <LoadingWashing v-if="assistantStore.loadingAnimation.type === 'washing'" />
+              <LoadingTypewriter v-if="assistantStore.loadingAnimation.type === 'typewriter'" />
+            </div>
           </div>
 
           <!-- 对话区域 -->
@@ -155,11 +169,7 @@
               <!-- 加载状态 -->
               <div v-if="isProcessing" class="message-wrapper assistant">
                 <div class="message loading">
-                  <div class="typing-indicator">
-                    <span></span>
-                    <span></span>
-                    <span></span>
-                  </div>
+                  <LoadingCircle />
                 </div>
               </div>
             </div>
@@ -323,7 +333,15 @@ import { message } from '@renderer/utils/message'
 import { useModelConfigStore } from '@renderer/stores/modelConfigStore'
 import { useNoteStore } from '@renderer/stores/noteStore'
 import { useAgentStore } from '@renderer/stores/agentStore'
-
+import LoadingCandle from '@renderer/components/ui/LoadingCandle.vue'
+import LoadingMouse from '@renderer/components/ui/LoadingMouse.vue'
+import LoadingPencil from '@renderer/components/ui/LoadingPencil.vue'
+import LoadingPacMan from '@renderer/components/ui/LoadingPacMan.vue'
+import LoadingTaiChi from '@renderer/components/ui/LoadingTaiChi.vue'
+import LoadingWindmill from '@renderer/components/ui/LoadingWindmill.vue'
+import LoadingWashing from '@renderer/components/ui/LoadingWashing.vue'
+import LoadingTypewriter from '@renderer/components/ui/LoadingTypewriter.vue'
+import LoadingCircle from '@renderer/components/ui/LoadingCircle.vue'
 // Store
 const assistantStore = useAssistantStore()
 const { messages, isProcessing } = storeToRefs(assistantStore)
@@ -972,7 +990,9 @@ const scrollToTop = () => {
     flex-direction: column;
     align-items: center;
     gap: 1rem;
-    padding: 2rem 0;
+    padding: 2rem 0 0 0;
+    position: relative;
+    height: 100%;
 
     .ai-info {
       display: flex;
@@ -998,6 +1018,16 @@ const scrollToTop = () => {
       font-size: 14px;
       margin: 16px 24px 24px;
       line-height: 1.6;
+    }
+
+    .candle-container {
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%) scale(0.4);
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
     }
   }
 
@@ -1295,34 +1325,12 @@ const scrollToTop = () => {
     }
   }
 
-  // 打字机动画
-  .typing-indicator {
+  .message.loading {
     display: flex;
-    gap: 4px;
     align-items: center;
     justify-content: center;
-
-    span {
-      width: 4px;
-      height: 4px;
-      background-color: var(--color-text-secondary);
-      border-radius: 50%;
-      animation: typing 1.4s infinite ease-in-out both;
-
-      &:nth-child(1) {
-        background-color: var(--color-pink);
-        animation-delay: -0.32s;
-      }
-
-      &:nth-child(2) {
-        background-color: var(--color-yellow);
-        animation-delay: -0.16s;
-      }
-
-      &:nth-child(3) {
-        background-color: var(--color-primary);
-      }
-    }
+    min-height: 60px;
+    padding: 10px;
   }
 
   .message-references {
@@ -1451,10 +1459,6 @@ const scrollToTop = () => {
       opacity: 1;
     }
   }
-
-  // .input-container:hover .model-switcher {
-  //   opacity: 1;
-  // }
 
   .model-switch-btn {
     display: flex;
