@@ -1523,6 +1523,26 @@ export async function initDatabase(db: Knex): Promise<void> {
 
     console.log('writing_desk_ai_configs 表创建成功')
   }
+
+  // 创建写作台提示词模板表
+  if (!(await db.schema.hasTable('writing_prompt_templates'))) {
+    await db.schema.createTable('writing_prompt_templates', (table) => {
+      table.string('id').primary()
+      table.enum('type', ['firstDraft', 'polish', 'deepThinking']).notNullable() // 模板类型
+      table.text('content').notNullable() // 模板内容
+      table.string('description').nullable() // 模板描述
+      table.datetime('createdAt').notNullable()
+      table.datetime('updatedAt').notNullable()
+
+      // 添加唯一约束，确保每种类型只能有一个模板
+      table.unique(['type'])
+
+      // 索引
+      table.index('type')
+      table.index('createdAt')
+    })
+    console.log('writing_prompt_templates 表创建成功')
+  }
 }
 
 export async function down(db: Knex): Promise<void> {

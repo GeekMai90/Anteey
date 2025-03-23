@@ -10,6 +10,68 @@ import type {
 } from '@shared/types'
 import { LLMService } from '../rag/llmService'
 import { extractTextFromTiptapJson, convertTextToTiptapJson } from '../utils/textToJson'
+import { getPromptTemplateByType } from './writingPromptTemplateService'
+
+// 添加默认提示词常量
+const DEFAULT_PROMPTS = {
+  firstDraft: `你是一位专业的文字编辑和作家，现在需要你帮我将以下分散的内容段落整合成一篇连贯、优美的文章。
+
+这些内容来自我的写作素材，每个部分都包含重要的观点或论述。请你：
+
+1. 内容整合：
+   - 理解每个部分的核心观点
+   - 找出各部分之间的逻辑关联
+   - 合理安排内容顺序，创造流畅的过渡
+   - 适当添加过渡语句，使段落之间衔接自然
+
+2. 表达优化：
+   - 统一文章的语言风格和表达方式
+   - 优化句式结构，使行文更加优美
+   - 选用准确、优雅的词语
+   - 适当运用修辞手法，增强文章表现力
+
+3. 结构完善：
+   - 确保文章结构完整（开头、主体、结尾）
+   - 合理划分段落，突出层次感
+   - 重点内容要有详略得当的展开
+   - 适当添加总结性语句，加强文章的连贯性
+
+4. 保持原意：
+   - 严格保持原有内容的核心观点
+   - 不改变事实和论据
+   - 保留专业术语和关键概念
+   - 确保优化后的内容准确传达原意
+
+以下是需要整合的内容：`,
+
+  polish: `你是一位资深的文字编辑，现在需要你对一篇文章的初稿进行润色和优化。请注意以下几点：
+
+1. 语言表达：
+   - 提升语言的优美度和文学性
+   - 优化句式结构，使行文更加流畅
+   - 适当使用修辞手法，增强表现力
+   - 保持语言风格的一致性
+
+2. 段落结构：
+   - 优化段落之间的过渡
+   - 确保逻辑层次清晰
+   - 调整段落长度，保持节奏感
+   - 加强段落之间的连贯性
+
+3. 细节完善：
+   - 润色不恰当的表达
+   - 消除冗余的内容
+   - 补充必要的细节
+   - 强化关键论点的表达
+
+4. 原则要求：
+   - 保持原文的核心观点不变
+   - 不改变事实和论据
+   - 保留专业术语和关键概念
+   - 确保修改后的内容准确传达原意
+
+以下是需要润色的初稿内容：`
+}
 
 // 工具函数：转换数据库记录为 Manuscript 对象
 function convertToManuscript(record: any): Manuscript {
@@ -488,7 +550,7 @@ export async function updateAIConfig(
   })
 }
 
-// 修改生成初稿方法，使用配置的模型
+// 修改生成初稿方法
 export async function generateFirstDraft(params: PolishManuscriptParams): Promise<Manuscript> {
   try {
     console.log('开始生成初稿:', params.id)
@@ -509,57 +571,24 @@ export async function generateFirstDraft(params: PolishManuscriptParams): Promis
     let combinedText = ''
     manuscript.cards.forEach((card, index) => {
       const cardText = extractTextFromTiptapJson(card.content)
-
-      // 添加分隔符和序号，帮助AI理解文档结构
       if (index > 0) {
         combinedText += '\n---\n'
       }
       combinedText += `第${index + 1}部分：\n${cardText}\n`
     })
 
-    console.log('提取的文本内容:', combinedText)
-
-    // 3. 准备 AI 提示词
-    const prompt = `
-你是一位专业的文字编辑和作家，现在需要你帮我将以下分散的内容段落整合成一篇连贯、优美的文章。
-
-这些内容来自我的写作素材，每个部分都包含重要的观点或论述。请你：
-
-1. 内容整合：
-   - 理解每个部分的核心观点
-   - 找出各部分之间的逻辑关联
-   - 合理安排内容顺序，创造流畅的过渡
-   - 适当添加过渡语句，使段落之间衔接自然
-
-2. 表达优化：
-   - 统一文章的语言风格和表达方式
-   - 优化句式结构，使行文更加优美
-   - 选用准确、优雅的词语
-   - 适当运用修辞手法，增强文章表现力
-
-3. 结构完善：
-   - 确保文章结构完整（开头、主体、结尾）
-   - 合理划分段落，突出层次感
-   - 重点内容要有详略得当的展开
-   - 适当添加总结性语句，加强文章的连贯性
-
-4. 保持原意：
-   - 严格保持原有内容的核心观点
-   - 不改变事实和论据
-   - 保留专业术语和关键概念
-   - 确保优化后的内容准确传达原意
-
-以下是需要整合的内容：
-
-${combinedText}
-
-请直接返回优化后的完整文章，不需要解释修改过程。确保文章具有良好的可读性和专业性，同时保持内容的准确性和完整性。`
+    // 3. 获取提示词模板
+    let prompt: string
+    const customTemplate = await getPromptTemplateByType('firstDraft')
+    if (customTemplate) {
+      prompt = customTemplate.content + '\n\n' + combinedText
+    } else {
+      prompt = DEFAULT_PROMPTS.firstDraft + '\n\n' + combinedText
+    }
 
     // 4. 使用配置的模型调用 AI 服务
     const llmService = new LLMService()
-    console.log('开始调用 AI 服务，使用模型配置:', aiConfig.modelConfigId)
     const firstDraftText = await llmService.generateResponse(prompt, aiConfig.modelConfigId)
-    console.log('AI润色完成，获得响应')
 
     // 5. 将润色后的文本转换为 Tiptap JSON 格式
     const firstDraftContent = convertTextToTiptapJson(firstDraftText)
@@ -593,7 +622,7 @@ ${combinedText}
   }
 }
 
-// 修改润色终稿方法，使用配置的模型
+// 修改润色终稿方法
 export async function polishManuscript(params: PolishManuscriptParams): Promise<Manuscript> {
   try {
     console.log('开始润色终稿:', params.id)
@@ -614,45 +643,18 @@ export async function polishManuscript(params: PolishManuscriptParams): Promise<
     const firstDraftText = extractTextFromTiptapJson(manuscript.firstDraftContent)
     console.log('提取的初稿文本内容:', firstDraftText)
 
-    // 3. 准备 AI 提示词
-    const prompt = `
-你是一位资深的文字编辑，现在需要你对一篇文章的初稿进行润色和优化。请注意以下几点：
-
-1. 语言表达：
-   - 提升语言的优美度和文学性
-   - 优化句式结构，使行文更加流畅
-   - 适当使用修辞手法，增强表现力
-   - 保持语言风格的一致性
-
-2. 段落结构：
-   - 优化段落之间的过渡
-   - 确保逻辑层次清晰
-   - 调整段落长度，保持节奏感
-   - 加强段落之间的连贯性
-
-3. 细节完善：
-   - 润色不恰当的表达
-   - 消除冗余的内容
-   - 补充必要的细节
-   - 强化关键论点的表达
-
-4. 原则要求：
-   - 保持原文的核心观点不变
-   - 不改变事实和论据
-   - 保留专业术语和关键概念
-   - 确保修改后的内容准确传达原意
-
-以下是需要润色的初稿内容：
-
-${firstDraftText}
-
-请直接返回润色后的文章，不需要解释修改过程。确保文章更加优美流畅，同时保持专业性和准确性。`
+    // 3. 获取提示词模板
+    let prompt: string
+    const customTemplate = await getPromptTemplateByType('polish')
+    if (customTemplate) {
+      prompt = customTemplate.content + '\n\n' + firstDraftText
+    } else {
+      prompt = DEFAULT_PROMPTS.polish + '\n\n' + firstDraftText
+    }
 
     // 4. 使用配置的模型调用 AI 服务
     const llmService = new LLMService()
-    console.log('开始调用 AI 服务，使用模型配置:', aiConfig.modelConfigId)
     const polishedText = await llmService.generateResponse(prompt, aiConfig.modelConfigId)
-    console.log('AI润色完成，获得响应')
 
     // 5. 将润色后的文本转换为 Tiptap JSON 格式
     const polishedContent = convertTextToTiptapJson(polishedText)

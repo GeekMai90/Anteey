@@ -80,11 +80,38 @@ export interface UpdateManuscriptParams {
   aiFeatureConfigs?: AIFeatureConfig[] // 添加 AI 功能配置更新
 }
 
-// AI 润色请求参数
+// 提示词模板类型
+export type PromptTemplateType = 'firstDraft' | 'polish' | 'deepThinking'
+
+// 提示词模板 - 修改后的接口
+export interface PromptTemplate {
+  id: string
+  type: PromptTemplateType // 模板类型：初稿/润色/深度思考
+  content: string // 模板内容
+  description?: string // 可选的描述
+  createdAt: Date
+  updatedAt: Date
+}
+
+// 创建提示词模板的参数 - 简化后的接口
+export interface CreatePromptTemplateParams {
+  type: PromptTemplateType
+  content: string
+  description?: string
+}
+
+// 更新提示词模板的参数 - 简化后的接口
+export interface UpdatePromptTemplateParams {
+  type: PromptTemplateType
+  content: string
+  description?: string
+}
+
+// AI 功能参数接口 - 移除 promptTemplateId
 export interface PolishManuscriptParams {
   id: string
   style?: string
-  modelConfigId?: string // 添加可选的模型配置 ID
+  modelConfigId?: string
 }
 
 // 文稿卡片操作参数
@@ -111,12 +138,12 @@ export interface WritingDesk {
 export interface GenerateFirstDraftParams {
   id: string
   style?: string
-  modelConfigId?: string // 添加可选的模型配置 ID
+  modelConfigId?: string
 }
 
 // 添加深度思考参数接口
 export interface DeepThinkingParams {
   id: string
   style?: string
-  modelConfigId?: string // 添加可选的模型配置 ID
+  modelConfigId?: string
 }

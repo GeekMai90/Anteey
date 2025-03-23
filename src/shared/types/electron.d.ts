@@ -122,7 +122,12 @@ import type {
   PolishManuscriptParams,
 
   // 新增的 AI 功能配置类型
-  AIFeatureType
+  AIFeatureType,
+
+  // 新增的 writingPromptTemplate 相关类型
+  PromptTemplate,
+  PromptTemplateType,
+  CreatePromptTemplateParams
 } from '@shared/types'
 
 export interface ElectronAPI {
@@ -1154,6 +1159,28 @@ export interface ElectronAPI {
       error?: string
     }>
   }
+
+  writingPromptTemplate: {
+    // 获取指定类型的模板
+    getPromptTemplateByType: (type: PromptTemplateType) => Promise<{
+      success: boolean
+      template?: PromptTemplate
+      error?: string
+    }>
+
+    // 创建或更新模板
+    upsertPromptTemplate: (params: CreatePromptTemplateParams) => Promise<{
+      success: boolean
+      template?: PromptTemplate
+      error?: string
+    }>
+
+    // 删除模板
+    deletePromptTemplate: (type: PromptTemplateType) => Promise<{
+      success: boolean
+      error?: string
+    }>
+  }
 }
 
 declare global {
@@ -1187,6 +1214,23 @@ declare global {
       getSystemPrompt: () => Promise<SystemPromptConfig>
       updateSystemPrompt: (systemPrompt: string) => Promise<SystemPromptConfig>
       resetSystemPrompt: () => Promise<SystemPromptConfig>
+    }
+
+    writingPromptTemplateApi: {
+      getPromptTemplateByType: (type: PromptTemplateType) => Promise<{
+        success: boolean
+        template?: PromptTemplate
+        error?: string
+      }>
+      upsertPromptTemplate: (params: CreatePromptTemplateParams) => Promise<{
+        success: boolean
+        template?: PromptTemplate
+        error?: string
+      }>
+      deletePromptTemplate: (type: PromptTemplateType) => Promise<{
+        success: boolean
+        error?: string
+      }>
     }
   }
 }

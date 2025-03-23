@@ -46,6 +46,7 @@
       <DictionarySettings v-if="currentMenuItem === 'dictionary'" />
       <EditorSettings v-if="currentMenuItem === 'editor'" />
       <ThreeSyncSettings v-if="currentMenuItem === 'threeSync'" />
+      <WritingDeskSettings v-if="currentMenuItem === 'writingDesk'" />
     </div>
   </div>
 </template>
@@ -66,7 +67,8 @@ import {
   BookOne,
   Edit,
   Inbox,
-  PlasticSurgery
+  PlasticSurgery,
+  NotebookAndPen
 } from '@icon-park/vue-next'
 import BackupSettings from './pages/BackupSettings.vue'
 import ShortcutsSettings from './pages/ShortcutsSettings.vue'
@@ -81,6 +83,7 @@ import EditorSettings from './pages/EditorSettings.vue'
 import CloudSyncSettings from './pages/CloudSyncSettings.vue'
 import ThreeSyncSettings from './pages/ThreeSyncSettings.vue'
 import AIAssistantSettings from './pages/AIAssistantSettings.vue'
+import WritingDeskSettings from './pages/WritingDeskSettings.vue'
 const menuItems = [
   { key: 'appearance', label: '外观', icon: Theme },
   { key: 'timeblock', label: '时光记', icon: Time },
@@ -91,6 +94,7 @@ const menuItems = [
   { key: 'cloud', label: '云同步', icon: CloudStorage },
   { key: 'llm', label: '大模型配置', icon: RobotOne },
   { key: 'ai', label: 'AI 助手设置', icon: PlasticSurgery },
+  { key: 'writingDesk', label: '写作台', icon: NotebookAndPen },
   { key: 'dictionary', label: '词库管理', icon: BookOne },
   { key: 'editor', label: '编辑器', icon: Edit },
   { key: 'threeSync', label: '三方同步', icon: Inbox },
