@@ -29,33 +29,25 @@
           <span v-else class="type-text">上下文卡片</span>
         </div>
         <div class="card-actions">
-          <!-- 添加折叠/展开按钮 -->
-          <div
-            class="action-button fold-button"
-            :title="isCollapsed ? '展开卡片' : '折叠卡片'"
-            @click.stop="toggleCollapse"
-          >
-            <FoldUpOne v-if="!isCollapsed" theme="outline" size="16" :strokeWidth="3" />
-            <ExpandDownOne v-else theme="outline" size="16" :strokeWidth="3" />
-          </div>
+          <!-- 折叠/展开按钮 -->
+          <IconButton
+            :icon="isCollapsed ? ExpandDownOne : FoldUpOne"
+            :tooltip="isCollapsed ? '展开卡片' : '折叠卡片'"
+            size="medium"
+            @click="toggleCollapse"
+          />
 
-          <div
-            v-if="isReferenceCard"
-            class="action-button view-source-btn"
-            title="查看原文"
-            @click.stop="viewSourceNote"
-          >
-            <Link theme="outline" size="16" :strokeWidth="3" />
-          </div>
+          <!-- 查看原文按钮 -->
+          <IconButton v-if="isReferenceCard" size="medium" :icon="Link" @click="viewSourceNote" />
 
-          <div
+          <!-- 更多操作按钮 -->
+          <IconButton
             ref="moreBtnRef"
-            class="action-button"
-            title="更多操作"
-            @click.stop="handleMoreClick"
-          >
-            <More theme="outline" size="16" :strokeWidth="3" />
-          </div>
+            size="medium"
+            :icon="More"
+            tooltip="更多操作"
+            @click="handleMoreClick"
+          />
         </div>
       </div>
 
@@ -74,7 +66,7 @@
       <!-- 更多操作菜单 -->
       <PopupMenu
         :show="showMoreMenu"
-        :button-ref="moreBtnRef"
+        :button-ref="moreBtnRef?.el || null"
         :menuItems="menuItems"
         @close="closeMoreMenu"
         @itemClick="handleMenuItemClick"
@@ -103,6 +95,7 @@ import { debounce } from 'lodash-es'
 import { message } from '@renderer/utils/message'
 import { useNoteStore } from '@renderer/stores/noteStore'
 import { useUIStore } from '../../stores/UIStore'
+import IconButton from '@renderer/components/ui/IconButton.vue'
 
 const props = defineProps<{
   card: ManuscriptCard
@@ -115,7 +108,7 @@ const emit = defineEmits<{
 }>()
 
 const editorRef = ref<any>(null)
-const moreBtnRef = ref<HTMLElement | null>(null)
+const moreBtnRef = ref<{ el: HTMLElement | null } | null>(null)
 const showMoreMenu = ref(false)
 const isHovered = ref(false)
 // 添加折叠状态
@@ -225,7 +218,13 @@ const menuItems = ref<MenuItem[]>([
 // 菜单相关方法
 const handleMoreClick = (event: MouseEvent) => {
   event.stopPropagation()
-  showMoreMenu.value = true
+  // 如果菜单已经打开,则关闭
+  if (showMoreMenu.value) {
+    showMoreMenu.value = false
+  } else {
+    // 否则打开菜单
+    showMoreMenu.value = true
+  }
 }
 
 const closeMoreMenu = () => {
@@ -397,53 +396,6 @@ onBeforeUnmount(() => {
         display: flex;
         align-items: center;
         gap: 8px;
-
-        .view-source-btn {
-          color: var(--color-text-secondary);
-
-          &:hover {
-            color: var(--color-primary);
-          }
-        }
-
-        // 添加折叠按钮样式
-        .fold-button {
-          color: var(--color-text-secondary);
-
-          &:hover {
-            color: var(--color-primary);
-          }
-        }
-
-        .action-button {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          width: 24px;
-          height: 24px;
-          border-radius: 4px;
-          cursor: pointer;
-          color: var(--color-text-secondary);
-          transition: all 0.2s ease;
-
-          &:hover {
-            background: var(--color-hover-bg);
-            color: var(--color-text-primary);
-          }
-
-          :deep(.i-icon) {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 100%;
-            height: 100%;
-          }
-
-          :deep(svg) {
-            width: 16px;
-            height: 16px;
-          }
-        }
       }
     }
 

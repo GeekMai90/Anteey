@@ -38,36 +38,9 @@
           <div class="default-page-settings">
             <div class="setting-item">
               <div class="setting-label">启动时打开</div>
-              <div class="select-wrapper">
-                <div class="page-select" @click="toggleDropdown">
-                  <span class="selected-page">{{ getPageName(defaultPage) }}</span>
-                  <div class="select-arrow">
-                    <Down theme="outline" size="16" :strokeWidth="3" />
-                  </div>
-                </div>
-                <div v-show="showPageSelect" class="select-dropdown">
-                  <div
-                    v-for="(name, path) in {
-                      '/home': '主页',
-                      '/timeblock': '时光记',
-                      '/inbox': '收件箱',
-                      '/timeline': '笔记流',
-                      '/cardbox': '卡片盒',
-                      '/knowledge-tree': '知识树',
-                      '/flashcard': '记忆卡',
-                      '/mindboard': '思维板',
-                      '/writing-desk': '写作台'
-                    }"
-                    v-show="path !== '/timeblock' || timeBlockStore.settings.enabled"
-                    :key="path"
-                    class="select-option"
-                    :class="{ active: defaultPage === path }"
-                    @click="(e) => handleOptionClick(path, e)"
-                  >
-                    {{ name }}
-                  </div>
-                </div>
-              </div>
+              <Dropdown :items="pageOptions" trigger="click" width="120" @select="handlePageSelect">
+                {{ getPageName(defaultPage) }}
+              </Dropdown>
             </div>
           </div>
         </div>
@@ -77,49 +50,27 @@
           <div class="font-settings">
             <div class="setting-item">
               <div class="setting-label">界面字体</div>
-              <div class="select-wrapper">
-                <div class="font-select" @click="toggleUIFontDropdown">
-                  <span class="selected-font">{{ getFontLabel(uiFont) }}</span>
-                  <div class="select-arrow">
-                    <Down theme="outline" size="16" :strokeWidth="3" />
-                  </div>
-                </div>
-                <div v-show="showUIFontSelect" class="select-dropdown">
-                  <div
-                    v-for="font in fontOptions"
-                    :key="font.value"
-                    class="select-option"
-                    :class="{ active: uiFont === font.value }"
-                    @click="handleUIFontSelect(font.value)"
-                  >
-                    {{ font.label }}
-                  </div>
-                </div>
-              </div>
+              <Dropdown
+                :items="fontDropdownItems"
+                trigger="click"
+                width="200"
+                @select="handleUIFontSelect"
+              >
+                {{ getFontLabel(uiFont) }}
+              </Dropdown>
               <div class="font-preview">预览文本 Preview Text</div>
             </div>
 
             <div class="setting-item">
               <div class="setting-label">编辑器字体</div>
-              <div class="select-wrapper">
-                <div class="font-select" @click="toggleEditorFontDropdown">
-                  <span class="selected-font">{{ getFontLabel(editorFont) }}</span>
-                  <div class="select-arrow">
-                    <Down theme="outline" size="16" :strokeWidth="3" />
-                  </div>
-                </div>
-                <div v-show="showEditorFontSelect" class="select-dropdown">
-                  <div
-                    v-for="font in fontOptions"
-                    :key="font.value"
-                    class="select-option"
-                    :class="{ active: editorFont === font.value }"
-                    @click="handleEditorFontSelect(font.value)"
-                  >
-                    {{ font.label }}
-                  </div>
-                </div>
-              </div>
+              <Dropdown
+                :items="fontDropdownItems"
+                trigger="click"
+                width="200"
+                @select="handleEditorFontSelect"
+              >
+                {{ getFontLabel(editorFont) }}
+              </Dropdown>
               <div class="font-preview" :style="{ fontFamily: previewEditorFont }">
                 预览文本 Preview Text
               </div>
@@ -132,8 +83,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { Theme, Down } from '@icon-park/vue-next'
+import { ref, computed, onMounted } from 'vue'
+import { Theme } from '@icon-park/vue-next'
+import Dropdown from '@renderer/components/ui/Dropdown.vue'
 import { useAppearanceStore } from '@renderer/stores/appearanceStore'
 import { useTimeBlockStore } from '@renderer/stores/timeBlockStore'
 import { useThemeStore } from '@renderer/stores/themeStore'
@@ -201,56 +153,29 @@ onMounted(() => {
 // 默认页面状态
 const defaultPage = ref('/home')
 
-const showPageSelect = ref(false)
+const pageOptions = computed(() => [
+  { label: '主页', key: '/home' },
+  { label: '时光记', key: '/timeblock', disabled: !timeBlockStore.settings.enabled },
+  { label: '收件箱', key: '/inbox' },
+  { label: '笔记流', key: '/timeline' },
+  { label: '卡片盒', key: '/cardbox' },
+  { label: '知识树', key: '/knowledge-tree' },
+  { label: '记忆卡', key: '/flashcard' },
+  { label: '思维板', key: '/mindboard' },
+  { label: '写作台', key: '/writing-desk' }
+])
 
-const getPageName = (path: string) => {
-  const pageMap: Record<string, string> = {
-    '/home': '主页',
-    '/timeblock': '时光记',
-    '/inbox': '收件箱',
-    '/timeline': '笔记流',
-    '/cardbox': '卡片盒',
-    '/knowledge-tree': '知识树',
-    '/flashcard': '记忆卡',
-    '/mindboard': '思维板',
-    '/writing-desk': '写作台'
-  }
-  return pageMap[path] || '主页'
+const fontDropdownItems = computed(() =>
+  fontOptions.map((font) => ({
+    label: font.label,
+    key: font.value
+  }))
+)
+
+const handlePageSelect = async (key: string) => {
+  defaultPage.value = key
+  await appearanceStore.updateDefaultPage(key)
 }
-
-const selectPage = async (path: string) => {
-  defaultPage.value = path
-  showPageSelect.value = false
-  await appearanceStore.updateDefaultPage(path)
-}
-
-// 处理点击外部关闭
-const handleClickOutside = (e: MouseEvent) => {
-  const target = e.target as HTMLElement
-  if (!target.closest('.select-wrapper')) {
-    showPageSelect.value = false
-  }
-}
-
-// 处理下拉框的点击
-const toggleDropdown = (e: Event) => {
-  e.stopPropagation() // 阻止事件冒泡
-  showPageSelect.value = !showPageSelect.value
-}
-
-// 处理选项的点击
-const handleOptionClick = async (path: string, e: Event) => {
-  e.stopPropagation() // 阻止事件冒泡
-  await selectPage(path)
-}
-
-onMounted(() => {
-  document.addEventListener('click', handleClickOutside)
-})
-
-onUnmounted(() => {
-  document.removeEventListener('click', handleClickOutside)
-})
 
 // 初始化设置
 onMounted(async () => {
@@ -270,49 +195,37 @@ onMounted(async () => {
   }
 })
 
-// 添加新的状态
-const showUIFontSelect = ref(false)
-const showEditorFontSelect = ref(false)
-
-// 添加新的方法
-const toggleUIFontDropdown = (e: Event) => {
-  e.stopPropagation()
-  showUIFontSelect.value = !showUIFontSelect.value
-  showEditorFontSelect.value = false
-}
-
-const toggleEditorFontDropdown = (e: Event) => {
-  e.stopPropagation()
-  showEditorFontSelect.value = !showEditorFontSelect.value
-  showUIFontSelect.value = false
-}
-
-const handleUIFontSelect = async (value: string) => {
-  uiFont.value = value
-  showUIFontSelect.value = false
+// 处理字体选择
+const handleUIFontSelect = async (key: string) => {
+  uiFont.value = key
   await handleUIFontChange()
 }
 
-const handleEditorFontSelect = async (value: string) => {
-  editorFont.value = value
-  showEditorFontSelect.value = false
+const handleEditorFontSelect = async (key: string) => {
+  editorFont.value = key
   await handleEditorFontChange()
 }
 
+// 获取页面名称的方法
+const getPageName = (path: string) => {
+  const pageMap: Record<string, string> = {
+    '/home': '主页',
+    '/timeblock': '时光记',
+    '/inbox': '收件箱',
+    '/timeline': '笔记流',
+    '/cardbox': '卡片盒',
+    '/knowledge-tree': '知识树',
+    '/flashcard': '记忆卡',
+    '/mindboard': '思维板',
+    '/writing-desk': '写作台'
+  }
+  return pageMap[path] || '主页'
+}
+
+// 保留 getFontLabel 方法，因为现在需要用它来显示选中的字体
 const getFontLabel = (value: string) => {
   return fontOptions.find((font) => font.value === value)?.label || '系统默认'
 }
-
-// 添加点击外部关闭下拉菜单
-onMounted(() => {
-  document.addEventListener('click', (e) => {
-    const target = e.target as HTMLElement
-    if (!target.closest('.select-wrapper')) {
-      showUIFontSelect.value = false
-      showEditorFontSelect.value = false
-    }
-  })
-})
 </script>
 
 <style scoped lang="scss">
@@ -330,6 +243,7 @@ onMounted(() => {
   align-items: center;
   gap: 6px;
   margin-bottom: 10px;
+  padding-left: 20px;
 
   .icon {
     background: none;
@@ -381,11 +295,12 @@ onMounted(() => {
   padding-bottom: 58px;
 
   .appearance-content {
-    padding-right: 10px;
+    padding: 0 20px;
   }
 
   .settings-section {
     margin-bottom: 30px;
+    padding: 0 10px;
 
     &:last-child {
       margin-bottom: 0;
@@ -507,111 +422,6 @@ onMounted(() => {
         font-size: 14px;
         color: var(--color-text-secondary);
       }
-
-      .select-wrapper {
-        position: relative;
-        width: 200px;
-
-        .font-select {
-          width: 100%;
-          padding: 8px 12px;
-          border-radius: 8px;
-          border: 1px solid var(--color-border);
-          color: var(--color-text-primary);
-          font-size: 14px;
-          cursor: pointer;
-          transition: all 0.2s ease;
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          height: 36px;
-
-          &:hover {
-            border-color: var(--color-primary);
-            background: var(--color-hover-bg);
-          }
-
-          .selected-font {
-            font-weight: 400;
-          }
-
-          .select-arrow {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 20px;
-            height: 100%;
-
-            :deep(.i-icon) {
-              display: flex;
-              align-items: center;
-              justify-content: center;
-            }
-
-            :deep(svg) {
-              width: 16px;
-              height: 16px;
-            }
-          }
-        }
-
-        .select-dropdown {
-          position: absolute;
-          top: calc(100% + 4px);
-          left: 0;
-          width: 100%;
-          background: var(--color-bg-primary);
-          border: 1px solid var(--color-border);
-          border-radius: 8px;
-          padding: 4px;
-          overflow-y: auto;
-          z-index: 1000;
-          box-shadow: var(--shadow-card);
-
-          .select-option {
-            padding: 8px 12px;
-            cursor: pointer;
-            border-radius: 4px;
-            transition: all 0.2s;
-            font-size: 14px;
-            color: var(--color-text-primary);
-
-            &:hover {
-              background: var(--color-hover-bg);
-            }
-
-            &.active {
-              color: var(--color-primary);
-              background: var(--color-primary-bg);
-            }
-          }
-
-          &::-webkit-scrollbar {
-            width: 8px;
-          }
-
-          &::-webkit-scrollbar-track {
-            background: transparent;
-          }
-
-          &::-webkit-scrollbar-thumb {
-            background: var(--color-scrollbar);
-            border-radius: 4px;
-          }
-        }
-      }
-
-      .font-preview {
-        margin-top: 8px;
-        padding: 12px;
-        border-radius: 6px;
-        color: var(--color-text-primary);
-        font-size: 16px;
-        line-height: 1.5;
-        min-height: 48px;
-        display: flex;
-        align-items: center;
-      }
     }
   }
 
@@ -649,99 +459,6 @@ onMounted(() => {
       .setting-label {
         font-size: 14px;
         color: var(--color-text-primary);
-      }
-
-      .select-wrapper {
-        position: relative;
-        width: 100px;
-
-        .page-select {
-          width: 100%;
-          padding: 8px 12px;
-          border-radius: 8px;
-          border: 1px solid var(--color-border);
-          color: var(--color-text-primary);
-          font-size: 14px;
-          cursor: pointer;
-          transition: all 0.2s ease;
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          height: 36px;
-
-          &:hover {
-            border-color: var(--color-primary);
-            background: var(--color-hover-bg);
-          }
-
-          .selected-page {
-            font-weight: 400;
-          }
-
-          .select-arrow {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 20px;
-            height: 100%;
-
-            :deep(.i-icon) {
-              display: flex;
-              align-items: center;
-              justify-content: center;
-            }
-
-            :deep(svg) {
-              width: 16px;
-              height: 16px;
-            }
-          }
-        }
-
-        .select-dropdown {
-          position: absolute;
-          top: calc(100% + 4px);
-          left: 0;
-          width: 100%;
-          background: var(--color-bg-primary);
-          border: 1px solid var(--color-border);
-          border-radius: 8px;
-          padding: 4px;
-          overflow-y: auto;
-          z-index: 1000;
-          box-shadow: var(--shadow-card);
-
-          .select-option {
-            padding: 8px 12px;
-            cursor: pointer;
-            border-radius: 4px;
-            transition: all 0.2s;
-            font-size: 14px;
-            color: var(--color-text-primary);
-
-            &:hover {
-              background: var(--color-hover-bg);
-            }
-
-            &.active {
-              color: var(--color-primary);
-              background: var(--color-primary-bg);
-            }
-          }
-
-          &::-webkit-scrollbar {
-            width: 8px;
-          }
-
-          &::-webkit-scrollbar-track {
-            background: transparent;
-          }
-
-          &::-webkit-scrollbar-thumb {
-            background: var(--color-scrollbar);
-            border-radius: 4px;
-          }
-        }
       }
     }
   }

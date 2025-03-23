@@ -541,6 +541,7 @@ const handleInputChange = (min: number, max: number, value: number) => {
   align-items: center;
   gap: 6px;
   margin-bottom: 10px;
+  padding-left: 20px;
 
   .icon {
     background: none;
@@ -594,6 +595,7 @@ const handleInputChange = (min: number, max: number, value: number) => {
   justify-content: flex-start;
   padding-bottom: 58px;
   overflow-y: auto;
+  padding: 0 20px;
 
   .settings-item {
     width: 100%;
@@ -603,6 +605,7 @@ const handleInputChange = (min: number, max: number, value: number) => {
     justify-content: flex-start;
     margin-top: 4px;
     margin-bottom: 24px;
+    padding: 0 10px;
 
     .title {
       font-size: 18px;

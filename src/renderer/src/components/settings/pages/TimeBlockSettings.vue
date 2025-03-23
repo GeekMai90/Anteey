@@ -25,48 +25,16 @@
         <div class="time-range-settings">
           <div class="setting-item">
             <div class="setting-label">开始时间</div>
-            <div class="time-select-wrapper">
-              <div class="time-select" @click="showStartTimeSelect = !showStartTimeSelect">
-                <span class="selected-time">{{ startTime }}:00</span>
-                <div class="select-arrow">
-                  <Down theme="outline" size="16" :strokeWidth="3" />
-                </div>
-              </div>
-              <div v-show="showStartTimeSelect" class="select-dropdown">
-                <div
-                  v-for="hour in 24"
-                  :key="`start-${hour - 1}`"
-                  class="select-option"
-                  :class="{ active: startTime === hour - 1 }"
-                  @click="selectStartTime(hour - 1)"
-                >
-                  {{ hour - 1 }}:00
-                </div>
-              </div>
-            </div>
+            <Dropdown :items="timeOptions" trigger="click" width="100%" @select="selectStartTime">
+              {{ startTime }}:00
+            </Dropdown>
           </div>
 
           <div class="setting-item">
             <div class="setting-label">结束时间</div>
-            <div class="time-select-wrapper">
-              <div class="time-select" @click="showEndTimeSelect = !showEndTimeSelect">
-                <span class="selected-time">{{ endTime }}:00</span>
-                <div class="select-arrow">
-                  <Down theme="outline" size="16" :strokeWidth="3" />
-                </div>
-              </div>
-              <div v-show="showEndTimeSelect" class="select-dropdown">
-                <div
-                  v-for="hour in 24"
-                  :key="`end-${hour - 1}`"
-                  class="select-option"
-                  :class="{ active: endTime === hour - 1 }"
-                  @click="selectEndTime(hour - 1)"
-                >
-                  {{ hour - 1 }}:00
-                </div>
-              </div>
-            </div>
+            <Dropdown :items="timeOptions" trigger="click" width="100%" @select="selectEndTime">
+              {{ endTime }}:00
+            </Dropdown>
           </div>
         </div>
       </div>
@@ -75,9 +43,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import { Time, Down } from '@icon-park/vue-next'
+import { ref, computed, onMounted } from 'vue'
+import { Time } from '@icon-park/vue-next'
 import Switch from '@renderer/components/ui/Switch.vue'
+import Dropdown from '@renderer/components/ui/Dropdown.vue'
 import { useTimeBlockStore } from '@renderer/stores/timeBlockStore'
 
 const timeBlockStore = useTimeBlockStore()
@@ -86,8 +55,13 @@ const enableTimeBlock = ref(true)
 const startTime = ref(5) // 默认从早上5点开始
 const endTime = ref(23) // 默认到晚上23点结束
 
-const showStartTimeSelect = ref(false)
-const showEndTimeSelect = ref(false)
+// 生成时间选项
+const timeOptions = computed(() =>
+  Array.from({ length: 24 }, (_, i) => ({
+    label: `${i}:00`,
+    key: i.toString()
+  }))
+)
 
 const handleEnableChange = async (value: boolean) => {
   enableTimeBlock.value = value
@@ -103,28 +77,15 @@ const handleTimeRangeChange = async () => {
   })
 }
 
-const selectStartTime = async (hour: number) => {
-  startTime.value = hour
-  showStartTimeSelect.value = false
+const selectStartTime = async (key: string) => {
+  startTime.value = parseInt(key)
   await handleTimeRangeChange()
 }
 
-const selectEndTime = async (hour: number) => {
-  endTime.value = hour
-  showEndTimeSelect.value = false
+const selectEndTime = async (key: string) => {
+  endTime.value = parseInt(key)
   await handleTimeRangeChange()
 }
-
-// 添加点击外部关闭下拉菜单
-onMounted(() => {
-  document.addEventListener('click', (e) => {
-    const target = e.target as HTMLElement
-    if (!target.closest('.time-select-wrapper')) {
-      showStartTimeSelect.value = false
-      showEndTimeSelect.value = false
-    }
-  })
-})
 
 onMounted(async () => {
   const settings = await timeBlockStore.fetchSettings()
@@ -146,7 +107,7 @@ onMounted(async () => {
     align-items: center;
     gap: 6px;
     margin-bottom: 10px;
-
+    padding-left: 20px;
     .icon {
       background: none;
       border: 1px solid var(--color-border);
@@ -189,8 +150,13 @@ onMounted(async () => {
     margin-bottom: 10px;
   }
 
+  .timeblock-content {
+    padding: 0 20px;
+  }
+
   .settings-section {
     margin-bottom: 32px;
+    padding: 0 10px;
 
     .section-title {
       font-size: 18px;
@@ -231,101 +197,6 @@ onMounted(async () => {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
     gap: 24px;
-  }
-
-  .time-select-wrapper {
-    position: relative;
-    width: 100%;
-
-    .time-select {
-      width: 100%;
-      padding: 8px 12px;
-      border-radius: 8px;
-      border: 1px solid var(--color-border);
-      // background: var(--color-bg-secondary);
-      color: var(--color-text-primary);
-      font-size: 14px;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      height: 36px;
-
-      &:hover {
-        border-color: var(--color-primary);
-        background: var(--color-hover-bg);
-      }
-
-      .selected-time {
-        font-weight: 400;
-      }
-
-      .select-arrow {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        width: 20px;
-        height: 100%;
-
-        :deep(.i-icon) {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-
-        :deep(svg) {
-          width: 16px;
-          height: 16px;
-        }
-      }
-    }
-
-    .select-dropdown {
-      position: absolute;
-      top: calc(100% + 4px);
-      left: 0;
-      width: 100%;
-      background: var(--color-bg-primary);
-      border: 1px solid var(--color-border);
-      border-radius: 8px;
-      padding: 4px;
-      max-height: 200px;
-      overflow-y: auto;
-      z-index: 1000;
-      box-shadow: var(--shadow-card);
-
-      .select-option {
-        padding: 8px 12px;
-        cursor: pointer;
-        border-radius: 4px;
-        transition: all 0.2s;
-        font-size: 14px;
-        color: var(--color-text-primary);
-
-        &:hover {
-          background: var(--color-hover-bg);
-        }
-
-        &.active {
-          color: var(--color-primary);
-          background: var(--color-primary-bg);
-        }
-      }
-
-      &::-webkit-scrollbar {
-        width: 8px;
-      }
-
-      &::-webkit-scrollbar-track {
-        background: transparent;
-      }
-
-      &::-webkit-scrollbar-thumb {
-        background: var(--color-scrollbar);
-        border-radius: 4px;
-      }
-    }
   }
 }
 </style>

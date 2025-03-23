@@ -61,9 +61,9 @@ const emit = defineEmits<{
     ref="buttonRef"
     v-tooltip="{
       content: tooltip?.content,
-      placement: tooltip?.placement || 'bottom',
+      placement: tooltip?.placement || 'top',
       html: tooltip?.html,
-      delay: tooltip?.delay
+      delay: tooltip?.delay || { show: 1000 }
     }"
     :class="[
       'ant-btn',

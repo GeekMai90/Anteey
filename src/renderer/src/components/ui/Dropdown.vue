@@ -306,10 +306,24 @@ const buttonText = computed(() => {
   min-width: 120px;
   max-width: 400px;
   width: var(--dropdown-width, auto);
+  max-height: 320px;
   overflow-y: auto;
   overflow-x: hidden;
   padding: 6px 12px;
   white-space: nowrap;
+
+  &::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: var(--color-scrollbar);
+    border-radius: 4px;
+  }
 }
 
 .ant-dropdown-menu {

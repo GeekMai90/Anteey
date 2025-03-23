@@ -233,7 +233,7 @@ const selectMenuItem = (key: string) => {
 
 .settings-content {
   flex-grow: 1;
-  padding: 16px 25px;
+  padding: 16px 0px;
   background-color: var(--color-background-primary);
   overflow-y: auto;
 }
