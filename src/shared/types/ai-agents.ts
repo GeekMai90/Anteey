@@ -1,4 +1,3 @@
-import { ChatMessage, RAGContext } from './assistant'
 // Agent配置接口
 export interface Agent {
   id: string
@@ -43,13 +42,13 @@ export interface AgentConfig {
   systemPrompt: string
 }
 
-// 修改 Agent 聊天参数类型
-export interface AgentChatParams {
-  query?: string
-  agentId: string
-  noteId?: string
-  sessionId?: string | null
-  currentMessages?: ChatMessage[]
-  currentContexts?: RAGContext[]
-  agentConfig?: AgentConfig
-}
+// // 修改 Agent 聊天参数类型
+// export interface AgentChatParams {
+//   query?: string
+//   agentId: string
+//   noteId?: string
+//   sessionId?: string | null
+//   currentMessages?: ChatMessage[]
+//   currentContexts?: RAGContext[]
+//   agentConfig?: AgentConfig
+// }

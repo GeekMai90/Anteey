@@ -32,6 +32,91 @@ export const useAIChatStore = defineStore('aiChat', () => {
     }
   }
 
+  // 修改消息处理相关的函数
+  const handleChatResponse = (response: ChatResponse) => {
+    if (!currentConversation.value) return
+
+    // 确保 messages 数组存在
+    if (!Array.isArray(currentConversation.value.messages)) {
+      currentConversation.value.messages = []
+    }
+
+    // 构造消息数据
+    const messageData = {
+      id: response.messageId,
+      conversationId: response.conversationId,
+      parentMessageId: response.userMessageId || null,
+      role: response.role,
+      content: response.content,
+      createdAt: new Date(),
+      references: response.references
+        ? {
+            notes: response.references.notes || undefined,
+            images: response.references.images || undefined,
+            pdfs: response.references.pdfs || undefined
+          }
+        : undefined,
+      sourceTypes: {
+        hasNotes: response.sourceTypes?.hasNotes || false,
+        hasImages: response.sourceTypes?.hasImages || false,
+        hasPdfs: response.sourceTypes?.hasPdfs || false
+      },
+      usage: response.usage || undefined
+    }
+
+    const messages = currentConversation.value.messages
+
+    // 查找并替换临时消息或添加新消息
+    const tempIndex = messages.findIndex(
+      (msg) => msg.role === 'assistant' && msg.id.startsWith('local-')
+    )
+
+    if (tempIndex !== -1) {
+      messages[tempIndex] = messageData
+    } else {
+      // 检查是否已存在相同 ID 的消息
+      const existingIndex = messages.findIndex((msg) => msg.id === messageData.id)
+      if (existingIndex === -1) {
+        messages.push(messageData)
+      }
+    }
+
+    // 更新会话信息
+    currentConversation.value = {
+      ...currentConversation.value,
+      id: response.conversationId,
+      lastMessageAt: new Date(),
+      messageCount: messages.length,
+      messages // 确保更新消息数组
+    }
+
+    console.log('消息处理完成:', {
+      messageId: messageData.id,
+      conversationId: messageData.conversationId,
+      messageCount: messages.length,
+      hasReferences: !!messageData.references?.notes?.length
+    })
+  }
+
+  // 修改会话详情处理函数
+  const handleConversationDetail = async (conversation: Conversation) => {
+    if (!currentConversation.value) return
+
+    // 确保 messages 数组存在
+    const currentMessages = Array.isArray(currentConversation.value.messages)
+      ? currentConversation.value.messages
+      : []
+
+    // 更新会话基本信息
+    currentConversation.value = {
+      ...conversation,
+      messages: currentMessages, // 保持现有消息
+      createdAt: new Date(conversation.createdAt),
+      updatedAt: new Date(conversation.updatedAt),
+      lastMessageAt: new Date(conversation.lastMessageAt)
+    }
+  }
+
   // 获取会话详情
   const fetchConversationDetail = async (id: string, retryCount = 3): Promise<Conversation> => {
     console.log('开始获取会话详情:', { id, retryCount })
@@ -62,7 +147,7 @@ export const useAIChatStore = defineStore('aiChat', () => {
         }))
       })
 
-      currentConversation.value = conversation
+      await handleConversationDetail(conversation)
       return conversation
     } catch (error) {
       console.error('获取会话详情失败:', error)
@@ -87,25 +172,28 @@ export const useAIChatStore = defineStore('aiChat', () => {
 
       // 1. 立即在当前会话中显示用户消息
       if (currentConversation.value) {
-        // 已有会话：直接添加消息
-        currentConversation.value.messages = [
-          ...(currentConversation.value.messages || []),
-          {
-            id: 'local-' + Date.now(),
-            conversationId: currentConversation.value.id,
-            parentMessageId: null,
-            role: 'user',
-            content: request.query || '',
-            createdAt: new Date(),
-            references: undefined,
-            sourceTypes: undefined,
-            usage: undefined
-          }
-        ]
+        // 确保 messages 数组存在
+        if (!Array.isArray(currentConversation.value.messages)) {
+          currentConversation.value.messages = []
+        }
+
+        const userMessage = {
+          id: 'local-' + Date.now(),
+          conversationId: currentConversation.value.id,
+          parentMessageId: null,
+          role: 'user' as const,
+          content: request.query || '',
+          createdAt: new Date(),
+          references: undefined,
+          sourceTypes: undefined,
+          usage: undefined
+        }
+
+        currentConversation.value.messages.push(userMessage)
       } else {
         // 新会话：创建一个基本的会话结构
         currentConversation.value = {
-          id: '', // 留空，等待后端返回
+          id: '',
           title: request.query?.slice(0, 20) + '...' || '新对话',
           agentId: request.agentId || null,
           status: ConversationStatus.ACTIVE,
@@ -118,7 +206,7 @@ export const useAIChatStore = defineStore('aiChat', () => {
               id: 'local-' + Date.now(),
               conversationId: '',
               parentMessageId: null,
-              role: 'user',
+              role: 'user' as const,
               content: request.query || '',
               createdAt: new Date(),
               references: undefined,
@@ -132,80 +220,13 @@ export const useAIChatStore = defineStore('aiChat', () => {
       // 2. 发送请求并获取响应
       const response = await window.electronAPI.aiChat.sendChatRequest(request)
 
-      // 添加日志检查响应中的引用信息
-      console.log('收到聊天响应:', {
-        messageId: response.messageId,
-        hasReferences: !!response.references?.notes,
-        referenceCount: response.references?.notes?.length,
-        sourceTypes: response.sourceTypes
-      })
+      // 3. 处理响应
+      handleChatResponse(response)
 
-      // 3. 更新会话状态
+      // 4. 如果是新会话，更新会话列表
       if (!request.conversationId) {
-        // 新会话：获取最新的会话列表
         await fetchConversations()
       }
-      // 获取完整的会话详情（包含正确的消息ID）
-      await fetchConversationDetail(response.conversationId)
-
-      // 修改处理响应的部分
-      const handleChatResponse = (response: ChatResponse) => {
-        // 确保深拷贝响应数据
-        const messageData = {
-          id: response.messageId,
-          conversationId: response.conversationId,
-          parentMessageId: response.userMessageId || null,
-          role: response.role,
-          content: response.content,
-          createdAt: new Date(),
-          // 修改 references 的处理方式，确保类型兼容
-          references: response.references
-            ? {
-                notes: response.references.notes || undefined,
-                images: response.references.images || undefined,
-                pdfs: response.references.pdfs || undefined
-              }
-            : undefined,
-          // 明确设置 sourceTypes
-          sourceTypes: {
-            hasNotes: response.sourceTypes?.hasNotes || false,
-            hasImages: response.sourceTypes?.hasImages || false,
-            hasPdfs: response.sourceTypes?.hasPdfs || false
-          },
-          // 修改 usage 的处理方式，使用 undefined 而不是 null
-          usage: response.usage || undefined
-        }
-
-        // 打印处理后的消息数据
-        console.log('处理后的消息数据:', {
-          messageId: messageData.id,
-          hasReferences: !!messageData.references?.notes?.length,
-          referenceCount: messageData.references?.notes?.length || 0,
-          sourceTypes: messageData.sourceTypes,
-          usage: messageData.usage
-        })
-
-        // 更新会话消息，添加空数组检查
-        if (currentConversation.value) {
-          // 确保 messages 数组存在
-          if (!currentConversation.value.messages) {
-            currentConversation.value.messages = []
-          }
-
-          // 找到并替换临时消息
-          const index = currentConversation.value.messages.findIndex(
-            (msg) => msg.role === 'assistant' && msg.id.startsWith('local-')
-          )
-
-          if (index !== -1) {
-            currentConversation.value.messages[index] = messageData
-          } else {
-            currentConversation.value.messages.push(messageData)
-          }
-        }
-      }
-
-      handleChatResponse(response)
 
       return response
     } catch (error) {

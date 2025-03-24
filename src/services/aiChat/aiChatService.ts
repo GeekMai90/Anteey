@@ -46,6 +46,18 @@ type MessageBuildOptions = {
 const llmService = new LLMService()
 
 // ============= 会话管理方法 =============
+
+// 修改 Agent 配置接口，添加系统提示词
+interface AgentConfig {
+  modelConfigId: string
+  temperature: number
+  systemPrompt: string // 添加系统提示词
+}
+
+// 添加一个 Map 来缓存会话的 Agent 配置
+const conversationAgentConfigs = new Map<string, AgentConfig>()
+
+// 修改 getOrCreateConversation 函数
 async function getOrCreateConversation(
   conversationId?: string,
   query?: string,
@@ -64,11 +76,59 @@ async function getOrCreateConversation(
       return conversation
     }
 
+    // 如果是新会话且有 agentId，获取并保存 agent 配置
+    if (agentId) {
+      const agent = await agentService.getAgentById(agentId)
+      if (agent) {
+        log.info('获取到 Agent 配置:', {
+          agentId,
+          modelConfigId: agent.modelConfigId,
+          temperature: agent.temperature,
+          systemPrompt: agent.systemPrompt,
+          systemPromptLength: agent.systemPrompt?.length
+        })
+
+        // 保存模型配置、温度和系统提示词
+        const agentConfig: AgentConfig = {
+          modelConfigId: agent.modelConfigId,
+          temperature: agent.temperature,
+          systemPrompt: agent.systemPrompt || ''
+        }
+
+        const now = new Date()
+        const conversation: Conversation = {
+          id: uuidv4(),
+          title: query?.slice(0, 20) + '...' || '新对话',
+          agentId: agentId,
+          status: ConversationStatus.ACTIVE,
+          createdAt: now,
+          updatedAt: now,
+          lastMessageAt: now,
+          messageCount: 0
+        }
+
+        await db('chat_conversations').insert(conversation)
+
+        // 保存 agent 配置到缓存
+        conversationAgentConfigs.set(conversation.id, agentConfig)
+        log.info('已保存会话的 Agent 配置:', {
+          conversationId: conversation.id,
+          agentId,
+          modelConfigId: agentConfig.modelConfigId,
+          temperature: agentConfig.temperature,
+          systemPromptLength: agentConfig.systemPrompt.length // 记录系统提示词长度
+        })
+
+        return conversation
+      }
+    }
+
+    // 没有 agentId 的情况，创建普通会话
     const now = new Date()
     const conversation: Conversation = {
       id: uuidv4(),
       title: query?.slice(0, 20) + '...' || '新对话',
-      agentId: agentId || null,
+      agentId: null,
       status: ConversationStatus.ACTIVE,
       createdAt: now,
       updatedAt: now,
@@ -175,6 +235,9 @@ export async function deleteConversation(id: string): Promise<void> {
       await trx('chat_messages').where({ conversationId: id }).delete()
       await trx('chat_conversations').where({ id }).delete()
     })
+
+    // 清理会话的 Agent 配置
+    clearAgentConfig(id)
   } catch (error) {
     log.error('删除会话失败:', error)
     throw new ChatError('删除会话失败', 'DELETE_CONVERSATION_FAILED', { error })
@@ -256,39 +319,32 @@ async function getConversationMessages(
 async function buildMessages(
   conversation: Conversation,
   query: string,
-  agentId?: string,
   options: MessageBuildOptions = {}
 ): Promise<ChatMessage[]> {
-  log.info('开始构建消息数组:', {
-    conversationId: conversation.id,
-    queryLength: query.length,
-    agentId,
-    options
-  })
-
   try {
-    const { includeSystemPrompt = true, maxHistoryMessages = MAX_CONTEXT_MESSAGES } = options
+    const { maxHistoryMessages = MAX_CONTEXT_MESSAGES } = options
     const messages: ChatMessage[] = []
 
-    // 添加系统消息
-    if (includeSystemPrompt) {
-      log.info('正在添加系统消息...')
-      let systemMessage = DEFAULT_SYSTEM_PROMPT
-      if (agentId) {
-        const agent = await agentService.getAgentById(agentId)
-        if (agent?.systemPrompt) {
-          systemMessage = agent.systemPrompt
-          log.info('使用 Agent 自定义系统提示词')
-        }
-      }
-      messages.push({ role: 'system', content: systemMessage })
+    // 获取历史消息
+    const historyMessages = await getConversationMessages(conversation.id, maxHistoryMessages)
+
+    // 获取 agent 配置
+    const agentConfig = conversationAgentConfigs.get(conversation.id)
+
+    // 如果是 agent 对话，始终在消息开头添加系统提示词
+    if (agentConfig?.systemPrompt) {
+      messages.push({ role: 'system', content: agentConfig.systemPrompt })
+      log.info('已添加 Agent 系统提示词:', {
+        promptLength: agentConfig.systemPrompt.length,
+        prompt: agentConfig.systemPrompt
+      })
+    } else if (!conversationAgentConfigs.has(conversation.id) && historyMessages.length === 0) {
+      // 非 agent 对话且是首次对话时，添加默认系统提示词
+      messages.push({ role: 'system', content: DEFAULT_SYSTEM_PROMPT })
+      log.info('已添加默认系统提示词')
     }
 
     // 添加历史消息
-    log.info('正在获取历史消息...', { maxHistoryMessages })
-    const historyMessages = await getConversationMessages(conversation.id, maxHistoryMessages)
-    log.info('历史消息获取完成, 数量:', historyMessages.length)
-
     messages.push(
       ...historyMessages.map((msg) => ({
         role: msg.role,
@@ -302,115 +358,168 @@ async function buildMessages(
       content: query
     })
 
-    log.info('消息数组构建完成:', {
+    log.info('最终构建的消息数组:', {
       totalMessages: messages.length,
-      systemPromptIncluded: includeSystemPrompt
+      messagesSummary: messages.map((m) => ({
+        role: m.role,
+        contentLength: m.content.length,
+        content: m.content.slice(0, 50) + '...'
+      }))
     })
+
     return messages
   } catch (error) {
-    log.error('构建消息失败:', {
-      error,
-      conversationId: conversation.id,
-      agentId
-    })
-    throw new ChatError('构建消息失败', 'BUILD_MESSAGES_FAILED', { error })
+    log.error('构建消息失败:', error)
+    throw error
   }
 }
 
 // ============= 对话处理方法 =============
+// 处理笔记引用
+async function processReferences(request: ChatRequest): Promise<{
+  noteContents: string
+  references: ChatResponse['references']
+  sourceTypes: ChatResponse['sourceTypes']
+}> {
+  let noteContents = ''
+  let references: ChatResponse['references']
+  let sourceTypes: ChatResponse['sourceTypes'] = {
+    hasNotes: false,
+    hasImages: false,
+    hasPdfs: false
+  }
+
+  if (request.references?.noteIds && request.references.noteIds.length > 0) {
+    log.info('处理引用的笔记:', {
+      noteCount: request.references.noteIds.length
+    })
+
+    const processResult = await processNoteContent(request.references.noteIds)
+    noteContents = processResult.contextText
+    references = processResult.references
+    sourceTypes = processResult.sourceTypes
+
+    log.info('笔记处理完成:', {
+      processedCount: processResult.references.notes.length,
+      totalLength: processResult.contextText.length
+    })
+  }
+
+  return { noteContents, references, sourceTypes }
+}
+
+// 修改 generateAIResponse 函数
+async function generateAIResponse(
+  messages: ChatMessage[],
+  conversationId: string
+): Promise<string> {
+  log.info('正在调用 LLM 服务...')
+
+  // 获取会话的 Agent 配置
+  const agentConfig = conversationAgentConfigs.get(conversationId)
+
+  log.info('使用会话配置:', {
+    conversationId,
+    hasAgentConfig: !!agentConfig,
+    modelConfigId: agentConfig?.modelConfigId,
+    temperature: agentConfig?.temperature
+  })
+
+  const aiResponse = await llmService.generateResponse(
+    JSON.stringify(messages),
+    agentConfig?.modelConfigId,
+    { temperature: agentConfig?.temperature }
+  )
+
+  return aiResponse
+}
+
+// 创建初始用户消息
+async function createInitialUserMessage(
+  conversation: Conversation,
+  query: string,
+  parentMessageId?: string
+): Promise<MessageRecord> {
+  log.info('正在保存用户消息...')
+  const userMessage = await createMessage(conversation.id, 'user', query, parentMessageId)
+  log.info('用户消息已保存:', { messageId: userMessage.id })
+  return userMessage
+}
+
+// 修改 prepareMessages 函数
+async function prepareMessages(
+  conversation: Conversation,
+  query: string,
+  noteContents: string
+): Promise<ChatMessage[]> {
+  log.info('正在构建消息数组...')
+  const messages = await buildMessages(conversation, query, {
+    maxHistoryMessages: MAX_CONTEXT_MESSAGES
+  })
+
+  if (noteContents) {
+    const lastMessage = messages[messages.length - 1]
+    if (lastMessage.role === 'user') {
+      lastMessage.content = `${lastMessage.content}\n\n参考以下笔记内容：\n\n${noteContents}`
+    }
+  }
+
+  log.info('消息数组构建完成, 总消息数:', messages.length)
+  return messages
+}
+
+// 主处理方法
 export async function handleChatRequest(request: ChatRequest): Promise<ChatResponse> {
   const startTime = Date.now()
-  log.info('开始处理聊天请求:', {
+  log.info('开始处理聊天请求，详细信息:', {
     conversationId: request.conversationId,
     query: request.query,
+    queryLength: request.query?.length,
     agentId: request.agentId,
-    parentMessageId: request.parentMessageId,
-    references: request.references
+    hasParentMessageId: !!request.parentMessageId,
+    hasReferences: !!request.references
   })
 
   try {
     // 1. 获取或创建会话
-    log.info('正在获取/创建会话...')
     const conversation = await getOrCreateConversation(
       request.conversationId,
       request.query,
       request.agentId
     )
-    log.info('会话信息:', {
+
+    // 2. 创建用户消息前，添加日志
+    log.info('准备创建用户消息:', {
+      query: request.query,
       conversationId: conversation.id,
-      title: conversation.title,
-      isNew: !request.conversationId
+      parentMessageId: request.parentMessageId
     })
 
-    // 2. 先创建用户消息并返回
-    log.info('正在保存用户消息...')
-    const userMessage = await createMessage(
-      conversation.id,
-      'user',
+    // 2. 创建用户消息
+    const userMessage = await createInitialUserMessage(
+      conversation,
       request.query || '',
       request.parentMessageId
     )
-    log.info('用户消息已保存:', { messageId: userMessage.id })
 
-    // 处理笔记引用
-    let noteContents = ''
-    let references: ChatResponse['references']
-    let sourceTypes: ChatResponse['sourceTypes'] = {
-      hasNotes: false,
-      hasImages: false,
-      hasPdfs: false
-    }
+    // 3. 处理笔记引用
+    const { noteContents, references, sourceTypes } = await processReferences(request)
 
-    if (request.references?.noteIds && request.references.noteIds.length > 0) {
-      log.info('处理引用的笔记:', {
-        noteCount: request.references.noteIds.length
-      })
+    // 4. 准备消息内容
+    const messages = await prepareMessages(conversation, request.query || '', noteContents)
 
-      // 使用新的处理结果
-      const processResult = await processNoteContent(request.references.noteIds)
-      noteContents = processResult.contextText
-      references = processResult.references
-      sourceTypes = processResult.sourceTypes
+    // 5. 生成 AI 响应，传入会话 ID
+    const aiResponse = await generateAIResponse(messages, conversation.id)
 
-      log.info('笔记处理完成:', {
-        processedCount: processResult.references.notes.length,
-        totalLength: processResult.contextText.length
-      })
-    }
-
-    // 3. 构建消息数组
-    log.info('正在构建消息数组...')
-    const messages = await buildMessages(conversation, request.query || '', request.agentId)
-
-    // 如果有笔记内容，添加到用户消息中
-    if (noteContents) {
-      const lastMessage = messages[messages.length - 1]
-      if (lastMessage.role === 'user') {
-        lastMessage.content = `${lastMessage.content}\n\n参考以下笔记内容：\n\n${noteContents}`
-      }
-    }
-
-    log.info('消息数组构建完成, 总消息数:', messages.length)
-
-    // 4. 调用 LLM 服务获取回复
-    log.info('正在调用 LLM 服务...')
-    const aiResponse = await llmService.generateResponse(JSON.stringify(messages), request.agentId)
-    log.info('LLM 响应内容:', {
-      content: aiResponse,
-      length: aiResponse.length
-    })
-
-    // 5. 保存 AI 响应
-    log.info('正在保存 AI 响应...')
+    // 6. 保存 AI 响应
     const assistantMessage = await createMessage(
       conversation.id,
       'assistant',
       aiResponse,
       userMessage.id
     )
-    log.info('AI 响应已保存:', { messageId: assistantMessage.id })
 
-    // 6. 准备返回响应
+    // 7. 准备返回响应
     const response: ChatResponse = {
       messageId: assistantMessage.id,
       content: aiResponse,
@@ -426,11 +535,8 @@ export async function handleChatRequest(request: ChatRequest): Promise<ChatRespo
     log.info('聊天请求处理完成', {
       processingTime: `${endTime - startTime}ms`,
       conversationId: conversation.id,
-      messageId: assistantMessage.id,
-      hasReferences: references !== undefined,
-      references: references?.notes
+      messageId: assistantMessage.id
     })
-    console.log('处理聊天请求完成:', response)
 
     return response
   } catch (error) {
@@ -449,4 +555,10 @@ export async function handleChatRequest(request: ChatRequest): Promise<ChatRespo
 // ============= 中断请求方法 =============
 export function abortChatRequest() {
   llmService.abortCurrentRequest()
+}
+
+// 添加清理方法（可以在删除会话时调用）
+function clearAgentConfig(conversationId: string) {
+  conversationAgentConfigs.delete(conversationId)
+  log.info('已清理会话的 Agent 配置:', { conversationId })
 }
