@@ -35,18 +35,12 @@
         <!-- 消息区域 -->
         <div ref="messagesContainer" class="messages-container">
           <!-- 初始状态：建议操作区 -->
-          <div v-if="messages.length === 0" class="welcome-section">
+          <div v-if="!currentConversation?.messages?.length" class="welcome-section">
             <div class="ai-info">
               <img src="@resources/avatar.png" alt="安安" class="ai-avatar" />
               <div class="ai-name">安安</div>
             </div>
-            <div class="welcome-text">
-              {{
-                currentMode.mode === 'chat'
-                  ? '👋🏻 Hi！我是你的智能助理，我们可以聊聊你感兴趣的任何问题！'
-                  : '👋🏻 Hi！我是你的知识伴侣，随时准备为你探索卡片盒中的智慧宝藏！'
-              }}
-            </div>
+            <div class="welcome-text">👋🏻 Hi！我是你的智能助理，让我们开始对话吧！</div>
             <!-- 修改蜡烛加载动画容器的类名 -->
             <div
               class="candle-container"
@@ -66,24 +60,34 @@
 
           <!-- 对话区域 -->
           <div v-else class="chat-section">
-            <!-- 模式指示器 -->
-            <div v-if="currentMode" class="mode-indicator">
-              <div class="mode-badge">
-                <div class="icon">
-                  <component :is="currentMode.icon" theme="outline" size="14" :strokeWidth="3" />
-                </div>
-                <div class="name">{{ currentMode.text }}</div>
-              </div>
+            <!-- 调试信息 -->
+            <div style="display: none">
+              {{
+                console.log('渲染对话区域:', {
+                  conversationId: currentConversation?.id,
+                  messageCount: currentConversation?.messages?.length,
+                  messages: currentConversation?.messages?.map((m: any) => ({
+                    id: m.id,
+                    role: m.role,
+                    content: m.content.slice(0, 20) + '...',
+                    hasReferences: !!m.references?.notes?.length,
+                    referenceCount: m.references?.notes?.length || 0,
+                    sourceTypes: m.sourceTypes,
+                    references: m.references
+                  }))
+                })
+              }}
             </div>
 
             <!-- 消息列表 -->
             <div class="messages">
               <div
-                v-for="msg in messages"
+                v-for="msg in currentConversation.messages"
                 :key="msg.id"
                 :class="['message-wrapper', msg.role]"
                 :data-message-id="msg.id"
               >
+                {{ console.log('渲染消息:', formatMessageForLog(msg)) }}
                 <div class="message">
                   <!-- 用户消息 -->
                   <template v-if="msg.role === 'user'">
@@ -94,13 +98,16 @@
                     <TypewriterText
                       :message-id="msg.id"
                       :content="msg.content"
-                      :timestamp="msg.timestamp"
+                      :timestamp="getMessageTimestamp(msg.createdAt)"
                       :instant="true"
                       @segment-complete="onSegmentComplete"
                       @complete="() => onTypewriterComplete(msg.id)"
                     />
                     <!-- 引用信息区域 -->
-                    <div class="message-references">
+                    <div
+                      v-if="msg.references?.notes?.length || msg.sourceTypes?.hasNotes"
+                      class="message-references"
+                    >
                       <div class="references-header">
                         <button
                           class="reference-btn"
@@ -109,7 +116,7 @@
                         >
                           <div class="icon">
                             <component
-                              :is="msg.sourceType === 'notes' ? Notes : Brain"
+                              :is="msg.references?.notes?.length ? Notes : Brain"
                               theme="outline"
                               size="14"
                               :stroke-width="3"
@@ -117,8 +124,8 @@
                           </div>
                           <div class="name">
                             {{
-                              msg.sourceType === 'notes'
-                                ? `引用 ${msg.references?.length} 篇笔记作为参考`
+                              msg.references?.notes?.length
+                                ? `引用 ${msg.references.notes.length} 篇笔记`
                                 : '基于 AI 知识库'
                             }}
                           </div>
@@ -139,26 +146,23 @@
                       <!-- 展开的引用列表 -->
                       <div v-if="expandedMessageId === msg.id" class="references-list">
                         <!-- AI 知识库的提示 -->
-                        <div v-if="msg.sourceType === 'ai'" class="ai-reference-tip">
+                        <div v-if="!msg.references?.notes?.length" class="ai-reference-tip">
                           所有内容均由 AI 生成，仅供参考
                         </div>
 
                         <!-- 笔记引用列表 -->
                         <template v-else>
                           <div
-                            v-for="reference in msg.references"
-                            :key="reference.noteId"
+                            v-for="note in msg.references.notes"
+                            :key="note.noteId"
                             class="reference-item"
-                            @click="handleReferenceClick($event, reference.noteId)"
-                            @dblclick.stop="handleReferenceDoubleClick(reference.noteId)"
+                            @click="handleReferenceClick($event, note.noteId)"
+                            @dblclick.stop="handleReferenceDoubleClick(note.noteId)"
                           >
                             <div class="reference-header">
-                              <span class="reference-address">{{ reference.address }}</span>
-                              <span class="reference-similarity">
-                                相关度 {{ (reference.similarity * 100).toFixed(0) }}%
-                              </span>
+                              <span class="reference-address">{{ note.address }}</span>
                             </div>
-                            <div class="reference-content">{{ reference.title }}</div>
+                            <div class="reference-content">{{ note.title }}</div>
                           </div>
                         </template>
                       </div>
@@ -168,7 +172,7 @@
               </div>
 
               <!-- 加载状态 -->
-              <div v-if="isProcessing" class="message-wrapper assistant">
+              <div v-if="isLoading" class="message-wrapper assistant">
                 <div class="message loading">
                   <LoadingCircle />
                 </div>
@@ -194,7 +198,7 @@
           <div class="input-wrapper">
             <!-- 功能按钮区域 -->
             <div class="function-buttons">
-              <Button icon-only :icon="Plus" @click="startNewChat"> 新会话 </Button>
+              <Button icon-only :icon="Plus" @click="handleNewConversation"> 新会话 </Button>
               <div ref="historyBtnRef" class="history-btn-wrapper">
                 <Button icon-only :icon="History" @click="showHistory = !showHistory">
                   历史会话
@@ -213,17 +217,6 @@
               >
                 AI 助手
               </Dropdown>
-
-              <!-- 使用 SegmentedButton 组件 -->
-              <SegmentedButton
-                v-model="currentModeValue"
-                :options="modeOptions"
-                width="auto"
-                height="32px"
-                :iconSize="14"
-                :iconStrokeWidth="3"
-                tooltipPlacement="top"
-              />
             </div>
 
             <!-- 输入框容器 -->
@@ -245,7 +238,7 @@
                   ref="inputRef"
                   v-model="inputMessage"
                   :placeholder="getPlaceholder"
-                  :disabled="isProcessing"
+                  :disabled="isLoading"
                   rows="3"
                   @input="handleInput"
                   @keydown="handleInputKeyDown"
@@ -255,7 +248,7 @@
 
                 <!-- 添加中断按钮 -->
                 <button
-                  v-if="isProcessing"
+                  v-if="isLoading"
                   v-tooltip.top="'中断请求 (⌘+Backspace)'"
                   class="abort-btn"
                   @click="handleAbortRequest"
@@ -267,25 +260,12 @@
                 <button
                   v-else
                   class="send-btn"
-                  :disabled="!inputMessage.trim() || isProcessing"
-                  @click="handleSend"
+                  :disabled="!inputMessage.trim() || isLoading"
+                  @click="handleSendMessage"
                 >
                   <Send theme="outline" size="16" :strokeWidth="3" />
                 </button>
               </div>
-            </div>
-            <!-- 添加模型选择下拉菜单 -->
-            <div class="model-selector">
-              <Dropdown
-                :items="modelItems"
-                :show-selected="true"
-                size="small"
-                align="end"
-                placement="top"
-                @select="handleModelSwitch"
-              >
-                模型
-              </Dropdown>
             </div>
           </div>
         </div>
@@ -304,12 +284,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, markRaw, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, computed, watch, nextTick } from 'vue'
 import { useAssistantStore } from '@renderer/stores/assistantStore'
 import { storeToRefs } from 'pinia'
 import {
-  ThinkingProblem,
-  MessageEmoji,
   Robot,
   Notes,
   Send,
@@ -318,19 +296,15 @@ import {
   History,
   Close,
   Copy,
-  Receiver,
   Brain,
   PauseOne
 } from '@icon-park/vue-next'
-import type { Suggestion } from '@shared/types'
 import TypewriterText from '@renderer/components/aiassistant/TypewriterText.vue'
 import { useRouter } from 'vue-router'
 import { useUIStore } from '@renderer/stores/UIStore'
 import RightSidebarAIChatHistory from '@renderer/components/rightSidebar/RightSidebarAIChatHistory.vue'
 import RightSidebarNoteSelector from '@renderer/components/rightSidebar/RightSidebarNoteSelector.vue'
 import { message } from '@renderer/utils/message'
-import { useModelConfigStore } from '@renderer/stores/modelConfigStore'
-import { useNoteStore } from '@renderer/stores/noteStore'
 import { useAgentStore } from '@renderer/stores/agentStore'
 import LoadingCandle from '@renderer/components/ui/LoadingCandle.vue'
 import LoadingMouse from '@renderer/components/ui/LoadingMouse.vue'
@@ -344,40 +318,20 @@ import LoadingCircle from '@renderer/components/ui/LoadingCircle.vue'
 import LoadingFox from '@renderer/components/ui/LoadingFox.vue'
 import Button from '@renderer/components/ui/Button.vue'
 import Dropdown from '@renderer/components/ui/Dropdown.vue'
-import SegmentedButton from '@renderer/components/ui/SegmentedButton.vue'
+import { useAIChatStore } from '@renderer/stores/aiChatStore'
+import type { ChatRequest } from '@shared/types/ai-chat'
+
 // Store
+const aiChatStore = useAIChatStore()
 const assistantStore = useAssistantStore()
-const { messages, isProcessing } = storeToRefs(assistantStore)
+const { currentConversation, isLoading } = storeToRefs(aiChatStore)
 const router = useRouter()
 const uiStore = useUIStore()
-const modelConfigStore = useModelConfigStore()
-const noteStore = useNoteStore()
 const agentStore = useAgentStore()
-
-// 建议列表
-const suggestions: Suggestion[] = [
-  {
-    id: 'ask',
-    text: '问一问',
-    icon: markRaw(ThinkingProblem),
-    mode: 'ask',
-    prompt: '',
-    description: '基于笔记解答'
-  },
-  {
-    id: 'chat',
-    text: '聊一聊',
-    icon: markRaw(MessageEmoji),
-    mode: 'chat',
-    prompt: '',
-    description: 'AI 助手对话'
-  }
-]
 
 // Refs
 const inputMessage = ref('')
 const messagesContainer = ref<HTMLElement | null>(null)
-const currentMode = ref<Suggestion>(suggestions[assistantStore.defaultMode === 'chat' ? 1 : 0])
 const inputRef = ref<HTMLInputElement | null>(null)
 const isComposing = ref(false)
 const expandedMessageId = ref<string | null>(null)
@@ -390,9 +344,8 @@ const noteSelectorRef = ref<{ focusSearchInput: () => void } | null>(null)
 
 // 计算属性
 const getPlaceholder = computed(() => {
-  if (isProcessing.value) return '思考中...'
-  if (currentMode.value) return `${currentMode.value.description}...`
-  return '提问、思考、聊天...'
+  if (isLoading.value) return '思考中...'
+  return '输入消息，按回车发送...'
 })
 
 // 计算 agents 下拉菜单项
@@ -417,44 +370,9 @@ const agentItems = computed(() => {
   }))
 })
 
-// 添加计算属性和值转换
-const currentModeValue = computed({
-  get: () => currentMode.value?.mode || 'ask',
-  set: (value) => {
-    const selectedSuggestion = suggestions.find((s) => s.mode === value)
-    if (selectedSuggestion) {
-      selectMode(selectedSuggestion)
-    }
-  }
-})
-
-// 添加模式选项
-const modeOptions = computed(() => [
-  {
-    value: 'ask',
-    label: '问一问',
-    icon: ThinkingProblem,
-    tooltip: { content: '基于笔记解答', delay: { show: 500 } }
-  },
-  {
-    value: 'chat',
-    label: '聊一聊',
-    icon: MessageEmoji,
-    tooltip: { content: 'AI 助手对话', delay: { show: 500 } }
-  }
-])
-
 // 方法
-const selectMode = (suggestion: Suggestion) => {
-  assistantStore.clearMessages()
-  currentMode.value = suggestion
-  // 保存用户的选择
-  assistantStore.setDefaultMode(suggestion.mode as 'ask' | 'chat')
-  focusInput()
-}
-
 const handleSend = async () => {
-  if (!inputMessage.value.trim() || assistantStore.isProcessing) return
+  if (!inputMessage.value.trim() || isLoading.value) return
 
   const messageText = inputMessage.value
   const noteRefs = selectedNotes.value.slice()
@@ -463,103 +381,106 @@ const handleSend = async () => {
     inputMessage.value = ''
     selectedNotes.value = []
 
-    // 检查是否有当前活跃的 Agent
-    if (agentStore.currentAgent) {
-      // 如果有活跃的 Agent，使用 Agent 聊天模式
-      await assistantStore.handleAgentChat({
-        query: messageText,
-        agentId: agentStore.currentAgent.id
-      })
-    } else {
-      // 没有活跃的 Agent，使用普通模式
-      if (!currentMode.value) {
-        const askSuggestion = suggestions.find((s) => s.mode === 'ask')
-        if (askSuggestion) {
-          currentMode.value = askSuggestion
-        }
-      }
-
-      const mode = currentMode.value?.mode || 'ask'
-      switch (mode) {
-        case 'ask':
-          await assistantStore.handleAskQuestion(messageText, noteRefs)
-          break
-        case 'chat':
-          await assistantStore.handleChat(messageText)
-          break
-      }
+    const request: ChatRequest = {
+      query: messageText,
+      conversationId: currentConversation.value?.id,
+      references:
+        noteRefs.length > 0
+          ? {
+              noteIds: noteRefs.map((note) => note.id),
+              shouldSearchNotes: true
+            }
+          : undefined,
+      agentId: agentStore.currentAgent?.id
     }
 
-    requestAnimationFrame(() => {
-      setTimeout(() => {
-        scrollToLatestUserMessage()
-      }, 100)
+    const response = await aiChatStore.sendChatRequest(request)
+    console.log('消息发送完成:', {
+      messageId: response.messageId,
+      conversationId: currentConversation.value?.id,
+      messageCount: currentConversation.value?.messages?.length,
+      lastMessageTimestamp: currentConversation.value?.messages?.length
+        ? getMessageTimestamp(
+            currentConversation.value.messages[currentConversation.value.messages.length - 1]
+              .createdAt
+          )
+        : null
+    })
+
+    // 等待一下再滚动，确保DOM更新
+    nextTick(() => {
+      scrollToLatestMessage()
     })
   } catch (error) {
     console.error('发送消息失败:', error)
-    if (
-      !(
-        error instanceof Error &&
-        (error.name === 'AbortError' || error.message.includes('canceled'))
-      )
-    ) {
+    if (error instanceof Error) {
+      if (error.message.includes('发送消息太快')) {
+        message.warning(error.message)
+      } else if (!error.message.includes('aborted')) {
+        message.error('发送消息失败: ' + error.message)
+      }
+    } else {
+      message.error('发送消息失败，请稍后重试')
+    }
+
+    // 恢复输入内容
+    if (!(error instanceof Error && error.message.includes('aborted'))) {
       inputMessage.value = messageText
       selectedNotes.value = noteRefs
     }
-  } finally {
-    focusInput()
   }
 }
 
-const scrollToLatestUserMessage = () => {
-  console.log('尝试滚动到最新用户消息')
+const scrollToLatestMessage = () => {
+  console.log('尝试滚动到最新消息')
 
-  if (messages.value.length === 0) return
+  const messages = currentConversation.value?.messages
+  if (!messages?.length) {
+    console.log('没有消息，不需要滚动')
+    return
+  }
 
-  // 使用requestAnimationFrame + setTimeout组合确保DOM完全更新
   requestAnimationFrame(() => {
     setTimeout(() => {
       try {
-        // 找到最后一条用户消息
         let lastUserMessageIndex = -1
-        for (let i = messages.value.length - 1; i >= 0; i--) {
-          if (messages.value[i].role === 'user') {
+        for (let i = messages.length - 1; i >= 0; i--) {
+          if (messages[i].role === 'user') {
             lastUserMessageIndex = i
             break
           }
         }
 
-        if (lastUserMessageIndex === -1) return
+        if (lastUserMessageIndex === -1) {
+          console.log('未找到用户消息')
+          return
+        }
 
-        const lastUserMessage = messages.value[lastUserMessageIndex]
-        console.log('最后用户消息ID:', lastUserMessage.id)
+        const lastUserMessage = messages[lastUserMessageIndex]
+        console.log('找到最后的用户消息:', {
+          messageId: lastUserMessage.id,
+          index: lastUserMessageIndex
+        })
 
-        // 查找相应的DOM元素
         const messageElement = document.querySelector(`[data-message-id="${lastUserMessage.id}"]`)
 
         if (messageElement) {
-          // 强制浏览器重排布局 - 使用类型断言解决TypeScript错误
+          console.log('找到消息元素，执行滚动')
           void (messageElement as HTMLElement).offsetHeight
 
-          // 使用scrollIntoView滚动
           messageElement.scrollIntoView({
             behavior: 'auto',
             block: 'start'
           })
 
-          console.log('已执行scrollIntoView')
-
-          // 再次确认滚动位置
           if (messagesContainer.value) {
-            // 获取元素相对于容器的位置
             const msgRect = messageElement.getBoundingClientRect()
             const containerRect = messagesContainer.value.getBoundingClientRect()
             const offsetTop = msgRect.top - containerRect.top
 
-            // 如果消息不在容器顶部附近，进行额外调整
             if (Math.abs(offsetTop) > 20) {
+              console.log('执行额外滚动调整:', offsetTop)
               messagesContainer.value.scrollTop = messagesContainer.value.scrollTop + offsetTop
-              console.log('额外滚动调整:', offsetTop)
             }
           }
         } else {
@@ -657,23 +578,45 @@ const removeNote = (noteId: string) => {
   selectedNotes.value = selectedNotes.value.filter((note) => note.id !== noteId)
 }
 
-// 监听消息变化自动滚动
-watch([() => messages.value.length], () => {
-  console.log('消息数量变化，当前数量:', messages.value.length)
-  if (messages.value.length > 0) {
-    const lastMessage = messages.value[messages.value.length - 1]
-    if (lastMessage.role === 'user') {
-      console.log('最后一条是用户消息，准备滚动')
-      // 尝试多种滚动方法
-      scrollToTop() // 直接滚动到顶部
-      setTimeout(scrollToLatestUserMessage, 100) // 然后尝试滚动到最新消息
+// 修改监听逻辑
+watch(
+  () => currentConversation.value?.messages?.length,
+  (newLength, oldLength) => {
+    console.log('消息数量变化:', {
+      oldLength,
+      newLength,
+      difference: newLength ? newLength - (oldLength || 0) : 0
+    })
+
+    if (currentConversation.value?.messages?.length) {
+      const messages = currentConversation.value.messages
+      const lastMessage = messages[messages.length - 1]
+      console.log('最新消息:', {
+        role: lastMessage.role,
+        messageId: lastMessage.id,
+        contentLength: lastMessage.content.length
+      })
+
+      if (lastMessage.role === 'user') {
+        console.log('检测到新的用户消息，准备滚动')
+        scrollToTop()
+        setTimeout(scrollToLatestMessage, 100)
+      }
     }
   }
-})
+)
 
 // 添加 toggleReferences 方法
 const toggleReferences = (messageId: string) => {
+  console.log('切换引用展示:', {
+    messageId,
+    currentExpanded: expandedMessageId.value,
+    hasReferences: currentConversation.value?.messages?.find((m) => m.id === messageId)?.references
+      ?.notes?.length
+  })
+
   expandedMessageId.value = expandedMessageId.value === messageId ? null : messageId
+
   // 如果是展开操作，添加滚动
   if (expandedMessageId.value === messageId) {
     setTimeout(() => {
@@ -684,19 +627,6 @@ const toggleReferences = (messageId: string) => {
       })
     }, 50)
   }
-}
-
-// 修改 startNewChat 方法
-const startNewChat = () => {
-  // 清除当前 Agent
-  agentStore.clearCurrentAgent()
-
-  // 根据默认模式设置初始模式
-  const defaultSuggestion = suggestions.find((s) => s.mode === assistantStore.defaultMode)
-  currentMode.value = defaultSuggestion || suggestions[0]
-  assistantStore.clearMessages()
-  inputMessage.value = ''
-  focusInput()
 }
 
 const historyPanelStyle = ref({
@@ -785,155 +715,13 @@ const copyMessageContent = async (content: string) => {
   }
 }
 
-// 添加模型项的计算属性
-const modelItems = computed(() => {
-  return modelConfigStore.configs.map((config) => ({
-    key: config.id,
-    label: config.name,
-    active: config.isDefault,
-    icon: config.provider === 'openai' ? 'OpenaiLogo' : Receiver
-  }))
-})
-
-// 修改模型切换处理方法
-const handleModelSwitch = async (modelId: string) => {
-  try {
-    await modelConfigStore.setDefaultConfig(modelId)
-    message.success('已切换模型')
-  } catch (error) {
-    message.error('切换模型失败')
-  }
-}
-
-// 添加处理引用点击和双击的方法
-const handleReferenceClick = (event: MouseEvent, noteId: string) => {
-  // Command/Ctrl + 点击: 在展开编辑器中打开
-  if (event.metaKey || event.ctrlKey) {
-    router.push({ name: 'NoteExpandEditor', params: { id: noteId } })
-    return
-  }
-
-  // Alt + 点击: 在右侧边栏打开
-  if (event.altKey) {
-    noteStore.addNoteToRightSidebar(noteId)
-    uiStore.openRightSidebarWithTab('multi')
-    return
-  }
-}
-
-const handleReferenceDoubleClick = (noteId: string) => {
-  // 双击: 小窗打开
-  noteStore.openNoteEditor(noteId)
-}
-
-// 添加监听 defaultMode 变化
-watch(
-  () => assistantStore.defaultMode,
-  (newMode) => {
-    console.log('默认模式变更:', newMode)
-    const newSuggestion = suggestions.find((s) => s.mode === newMode)
-    if (newSuggestion) {
-      currentMode.value = newSuggestion
-    }
-  }
-)
-
-// 添加一个通用的滚动到元素函数 (移到组件顶层作用域)
-const scrollToElement = (element: Element, offset = 16) => {
-  if (!messagesContainer.value) return
-
-  const elementRect = element.getBoundingClientRect()
-  const containerRect = messagesContainer.value.getBoundingClientRect()
-  const relativeTop = elementRect.top - containerRect.top
-
-  messagesContainer.value.scrollTop = messagesContainer.value.scrollTop + relativeTop - offset
-}
-
-// 1. 将事件处理函数移到组件顶层
-const handleClickOutside = (event: MouseEvent) => {
-  const target = event.target as HTMLElement
-  if (!target.closest('.note-selector') && !target.closest('.input-container')) {
-    showNoteSelector.value = false
-  }
-}
-
-// 2. 将新消息事件处理函数移到顶层
-const handleNewAssistantMessage = (event: CustomEvent) => {
-  const { messageId } = event.detail
-  nextTick(() => {
-    const messageElement = document.querySelector(`[data-message-id="${messageId}"]`)
-    if (messageElement) {
-      scrollToElement(messageElement)
-    }
-  })
-}
-
-// 3. 将全局键盘事件处理函数保持在顶层
-const handleGlobalKeyDown = (event: KeyboardEvent) => {
-  if ((event.metaKey || event.ctrlKey) && event.key === 'Backspace') {
-    event.preventDefault()
-    handleAbortRequest()
-  }
-}
-
-// 4. 修改 onMounted 和 onUnmounted 钩子
-onMounted(async () => {
-  // 预加载 Agent 数据
-  await agentStore.fetchMenuAgents()
-
-  // 确保当前模式与 defaultMode 一致
-  const defaultSuggestion = suggestions.find((s) => s.mode === assistantStore.defaultMode)
-  if (defaultSuggestion) {
-    currentMode.value = defaultSuggestion
-  }
-
-  // 添加所有事件监听器
-  window.addEventListener('resize', updatePosition)
-  window.addEventListener('resize', updateNoteSelectorPosition)
-  document.addEventListener('click', handleClickOutside)
-  window.addEventListener('new-assistant-message', handleNewAssistantMessage as EventListener)
-  window.addEventListener('keydown', handleGlobalKeyDown)
-
-  focusInput()
-  modelConfigStore.loadConfigs()
-
-  // 设置消息容器的初始滚动位置
-  if (messagesContainer.value) {
-    messagesContainer.value.scrollTop = 0
-  }
-})
-
-// 5. 单独定义 onUnmounted 钩子
-onUnmounted(() => {
-  // 移除所有事件监听器
-  window.removeEventListener('resize', updatePosition)
-  window.removeEventListener('resize', updateNoteSelectorPosition)
-  document.removeEventListener('click', handleClickOutside)
-  window.removeEventListener('new-assistant-message', handleNewAssistantMessage as EventListener)
-  window.removeEventListener('keydown', handleGlobalKeyDown)
-})
-
 // 2. 修改 handleAbortRequest 函数
 const handleAbortRequest = async () => {
+  console.log('用户触发中断请求')
   try {
-    console.log('尝试中断请求, 当前模式:', currentMode.value?.mode)
-    console.log('当前活跃的 Agent:', agentStore.currentAgent)
-
-    // 通过 agentStore 判断是否在使用 Agent
-    if (agentStore.currentAgent) {
-      console.log('中断 Agent 聊天请求')
-      await assistantStore.abortCurrentAgentChat()
-      return
-    }
-
-    // 其他模式的中断逻辑
-    if (currentMode.value?.mode === 'ask') {
-      console.log('中断问答请求')
-      await assistantStore.abortCurrentAskQuestion()
-    } else {
-      console.log('中断普通聊天请求')
-      await assistantStore.abortCurrentChat()
-    }
+    await aiChatStore.abortCurrentRequest()
+    console.log('请求中断成功')
+    message.success('已中断请求')
   } catch (error) {
     console.error('中断请求失败:', error)
     message.error('中断请求失败')
@@ -952,31 +740,139 @@ const scrollToTop = () => {
 
 // 4. 添加 handleAgentSelect 函数
 const handleAgentSelect = async (agentId: string) => {
-  // 如果是空状态,直接返回
+  console.log('选择 Agent:', agentId)
+
   if (agentId === 'empty') {
     return
   }
 
   try {
-    // 获取 agent 信息
     const agent = agentStore.agents.find((a) => a.id === agentId)
     if (!agent) {
       throw new Error('未找到指定的 Agent')
     }
 
-    // 清空当前对话
+    console.log('切换到 Agent:', {
+      name: agent.name,
+      id: agent.id
+    })
+
     assistantStore.clearMessages()
 
-    // 切换到聊一聊模式
-    assistantStore.setDefaultMode('chat')
-
-    // 使用新的纯对话方法，传递完整的 agent 信息
-    await assistantStore.handleAgentPureChat({
+    console.log('开始新对话')
+    await aiChatStore.sendChatRequest({
       agentId
-      // 可以在这里添加其他必要的参数
     })
   } catch (error) {
-    // ... 错误处理代码保持不变 ...
+    console.error('切换 Agent 失败:', error)
+    message.error('切换 Agent 失败')
+  }
+}
+
+// 添加时间戳处理函数
+const getMessageTimestamp = (createdAt: Date | string | number): number => {
+  if (createdAt instanceof Date) {
+    return createdAt.getTime()
+  }
+  if (typeof createdAt === 'string') {
+    return new Date(createdAt).getTime()
+  }
+  if (typeof createdAt === 'number') {
+    return createdAt
+  }
+  return Date.now() // 默认返回当前时间戳
+}
+
+// 修改 watch 函数，添加时间戳检查
+watch(
+  () => currentConversation.value?.messages,
+  (newMessages) => {
+    console.log('消息数组变化:', {
+      messageCount: newMessages?.length,
+      messages: newMessages?.map((msg: any) => ({
+        id: msg.id,
+        role: msg.role,
+        hasReferences: !!msg.references?.notes?.length,
+        referenceCount: msg.references?.notes?.length || 0,
+        sourceTypes: msg.sourceTypes,
+        references: msg.references,
+        timestamp: getMessageTimestamp(msg.createdAt)
+      }))
+    })
+  },
+  { deep: true }
+)
+
+const handleNewConversation = () => {
+  // 调用 store 中的新建会话方法
+  aiChatStore.createNewConversation()
+  // 清空输入框
+  inputMessage.value = ''
+}
+
+const handleSendMessage = async () => {
+  if (!inputMessage.value.trim()) return
+
+  const currentInput = inputMessage.value
+  inputMessage.value = '' // 立即清空输入框
+
+  try {
+    const request: ChatRequest = {
+      // 如果没有 currentConversationId，则不传入 conversationId，表示新会话
+      conversationId: currentConversation.value?.id || undefined,
+      query: currentInput
+      // ... 其他请求参数
+    }
+
+    // 发送请求并处理响应
+    await aiChatStore.sendChatRequest(request)
+  } catch (error) {
+    // 错误处理...
+    console.error('发送消息失败:', error)
+    // 可以添加用户提示
+    // message.error('发送消息失败，请重试')
+  }
+}
+
+const handleReferenceClick = (event: MouseEvent, noteId: string) => {
+  console.log('handleReferenceClick', event, noteId)
+}
+
+const handleReferenceDoubleClick = (noteId: string) => {
+  console.log('handleReferenceDoubleClick', noteId)
+}
+
+const formatMessageForLog = (msg: any) => {
+  // 先深拷贝消息对象，避免响应式问题
+  const msgCopy = {
+    id: msg.id,
+    role: msg.role,
+    content: msg.content,
+    references: msg.references ? JSON.parse(JSON.stringify(msg.references)) : null,
+    sourceTypes: msg.sourceTypes ? JSON.parse(JSON.stringify(msg.sourceTypes)) : null
+  }
+
+  console.log('消息对象详情:', {
+    id: msgCopy.id,
+    role: msgCopy.role,
+    hasReferences: !!msgCopy.references?.notes?.length,
+    referenceCount: msgCopy.references?.notes?.length || 0,
+    sourceTypes: msgCopy.sourceTypes,
+    rawReferences: msgCopy.references
+  })
+
+  return {
+    id: msgCopy.id,
+    role: msgCopy.role,
+    contentLength: msgCopy.content?.length || 0,
+    hasReferences: !!msgCopy.references?.notes?.length,
+    referenceCount: msgCopy.references?.notes?.length || 0,
+    sourceTypes: msgCopy.sourceTypes || {
+      hasNotes: false,
+      hasImages: false,
+      hasPdfs: false
+    },
+    references: msgCopy.references
   }
 }
 </script>
@@ -1559,11 +1455,7 @@ const handleAgentSelect = async (agentId: string) => {
   }
 
   .reference-similarity {
-    font-size: 12px;
-    color: var(--color-primary);
-    display: flex;
-    align-items: center;
-    line-height: 1.4;
+    display: none;
   }
 
   .reference-content {
@@ -1625,46 +1517,6 @@ const handleAgentSelect = async (agentId: string) => {
 .chat-section {
   display: flex;
   flex-direction: column;
-}
-
-.mode-indicator {
-  display: flex;
-  justify-content: center;
-  margin-bottom: 16px;
-
-  .mode-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 6px 12px;
-    background: var(--color-bg-secondary);
-    border-radius: 20px;
-    font-size: 13px;
-    color: var(--color-text-secondary);
-
-    .icon {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-
-      :deep(.i-icon) {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        width: 100%;
-        height: 100%;
-      }
-
-      :deep(svg) {
-        width: 14px;
-        height: 14px;
-      }
-    }
-
-    .name {
-      line-height: 1;
-    }
-  }
 }
 
 .selected-notes {

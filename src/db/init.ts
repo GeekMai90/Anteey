@@ -1569,6 +1569,83 @@ export async function initDatabase(db: Knex): Promise<void> {
 
     console.log('agents 表创建成功')
   }
+
+  // 创建 chat_conversations 表
+  if (!(await db.schema.hasTable('chat_conversations'))) {
+    await db.schema.createTable('chat_conversations', (table) => {
+      table.string('id').primary()
+      table.string('title').notNullable() // 会话标题
+      table.string('agentId').nullable() // 关联的agent ID
+      table.enum('status', ['active', 'archived', 'deleted']).notNullable().defaultTo('active') // 会话状态
+      table.integer('messageCount').notNullable().defaultTo(0) // 消息数量
+      table.datetime('lastMessageAt').notNullable() // 最后一条消息的时间
+      table.datetime('createdAt').notNullable()
+      table.datetime('updatedAt').notNullable()
+
+      // 外键约束
+      table.foreign('agentId').references('agents.id').onDelete('SET NULL')
+
+      // 索引
+      table.index('agentId')
+      table.index('status')
+      table.index('createdAt')
+      table.index('lastMessageAt')
+    })
+    console.log('chat_conversations 表创建成功')
+  }
+
+  // 创建 chat_messages 表
+  if (!(await db.schema.hasTable('chat_messages'))) {
+    await db.schema.createTable('chat_messages', (table) => {
+      table.string('id').primary()
+      table.string('conversationId').notNullable()
+      table.string('parentMessageId').nullable() // 父消息ID，用于消息树结构
+      table.enum('role', ['user', 'assistant', 'system']).notNullable() // 添加 system 角色
+      table.text('content').notNullable() // 消息内容
+      table.datetime('createdAt').notNullable()
+
+      // 引用的资源
+      table.json('references').nullable() // 存储引用的笔记、图片、PDF等信息
+      table.json('sourceTypes').nullable() // 存储处理的内容类型标记
+      table.json('usage').nullable() // 存储token使用统计
+      table.string('userMessageId').nullable() // 添加用户消息ID字段
+
+      // 外键约束
+      table.foreign('conversationId').references('chat_conversations.id').onDelete('CASCADE')
+      table.foreign('parentMessageId').references('chat_messages.id').onDelete('SET NULL')
+      table.foreign('userMessageId').references('chat_messages.id').onDelete('SET NULL')
+
+      // 索引
+      table.index('conversationId')
+      table.index('parentMessageId')
+      table.index('userMessageId')
+      table.index('role')
+      table.index('createdAt')
+    })
+    console.log('chat_messages 表创建成功')
+  }
+
+  // 创建 chat_attachments 表
+  if (!(await db.schema.hasTable('chat_attachments'))) {
+    await db.schema.createTable('chat_attachments', (table) => {
+      table.string('id').primary()
+      table.string('messageId').notNullable()
+      table.enum('type', ['image', 'pdf', 'other']).notNullable()
+      table.string('fileName').notNullable()
+      table.string('fileType').notNullable() // MIME类型
+      table.string('filePath').notNullable() // 文件存储路径
+      table.datetime('createdAt').notNullable()
+
+      // 外键约束
+      table.foreign('messageId').references('chat_messages.id').onDelete('CASCADE')
+
+      // 索引
+      table.index('messageId')
+      table.index('type')
+      table.index('createdAt')
+    })
+    console.log('chat_attachments 表创建成功')
+  }
 }
 
 export async function down(db: Knex): Promise<void> {
@@ -1635,6 +1712,9 @@ export async function down(db: Knex): Promise<void> {
   await db.schema.dropTableIfExists('writing_desk_ai_configs')
   await db.schema.dropTableIfExists('writing_prompt_templates')
   await db.schema.dropTableIfExists('agents')
+  await db.schema.dropTableIfExists('chat_conversations')
+  await db.schema.dropTableIfExists('chat_messages')
+  await db.schema.dropTableIfExists('chat_attachments')
 
   console.log('所有表已删除')
 }

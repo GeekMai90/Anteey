@@ -225,13 +225,24 @@ export class LLMService {
       // 使用parseModelResponse解析响应
       const content = parseModelResponse(config, response.data)
 
+      // 添加详细的响应内容日志
+      log.info('LLM原始响应数据:', {
+        rawResponse: JSON.stringify(response.data, null, 2)
+      })
+
+      log.info('LLM解析后的响应内容:', {
+        parsedContent: content,
+        contentLength: content.length
+      })
+
       // 记录请求完成的统计信息
       const totalDuration = Date.now() - startTime
       log.info('LLM请求完成:', {
         provider: config.provider,
         model: config.modelName,
         totalDuration: `${totalDuration}ms`,
-        responseLength: content.length
+        responseLength: content.length,
+        firstLine: content.split('\n')[0] // 显示第一行内容预览
       })
 
       log.info('generateResponse调用参数:', {
@@ -556,12 +567,9 @@ export class LLMService {
    */
   private processOpenAIStream(text: string, buffer = ''): string | null {
     buffer += text
-
-    // 查找所有完整的数据行
     const lines = buffer.split('\n')
-    buffer = lines.pop() || '' // 最后一行可能不完整，保留到下一次
+    buffer = lines.pop() || ''
 
-    // 处理所有完整的数据行
     let content = ''
     for (const line of lines) {
       if (line.startsWith('data: ')) {
@@ -573,6 +581,11 @@ export class LLMService {
           const deltaContent = parsed.choices?.[0]?.delta?.content
           if (deltaContent) {
             content += deltaContent
+            // 添加流式内容日志
+            log.info('收到流式内容片段:', {
+              content: deltaContent,
+              length: deltaContent.length
+            })
           }
         } catch (e) {
           // 忽略无法解析的行

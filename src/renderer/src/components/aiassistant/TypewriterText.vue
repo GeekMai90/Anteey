@@ -108,22 +108,37 @@ const md = new MarkdownIt({
 
 // 安全的 HTML 内容
 const sanitizedContent = computed(() => {
+  console.log('处理消息内容:', {
+    messageId: props.messageId,
+    contentLength: props.content.length,
+    timestamp: props.timestamp
+  })
   const html = md.render(props.content)
-  return DOMPurify.sanitize(html)
+  const sanitized = DOMPurify.sanitize(html)
+  console.log('内容处理完成:', {
+    messageId: props.messageId,
+    htmlLength: html.length,
+    sanitizedLength: sanitized.length
+  })
+  return sanitized
 })
 
 // 组件挂载时初始化
 onMounted(() => {
+  console.log('TypewriterText 组件挂载:', {
+    messageId: props.messageId,
+    hasContent: !!props.content
+  })
+
   // 直接标记消息为已显示
   assistantStore.markMessageAsDisplayed(props.messageId)
 
   // 执行滚动到消息开头的逻辑
   setTimeout(() => {
-    // 触发段落完成事件以确保滚动
+    console.log('触发完成事件:', props.messageId)
     emit('segmentComplete')
-    // 告知父组件完成
     emit('complete')
-  }, 100) // 短暂延迟确保DOM已更新
+  }, 100)
 })
 </script>
 

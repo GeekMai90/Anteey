@@ -132,7 +132,13 @@ import type {
   // 新增的 agent 相关类型
   Agent,
   CreateAgentParams,
-  UpdateAgentParams
+  UpdateAgentParams,
+
+  // AI 聊天相关类型
+  ChatRequest,
+  ChatResponse,
+  Conversation,
+  ConversationStatus
 } from '@shared/types'
 
 export interface ElectronAPI {
@@ -1247,6 +1253,43 @@ export interface ElectronAPI {
 
     // 获取不在笔记菜单中显示的 Agents
     getNonMenuAgents: () => Promise<Agent[]>
+  }
+
+  aiChat: {
+    // 发送聊天请求
+    sendChatRequest: (request: ChatRequest) => Promise<ChatResponse>
+
+    // 中断当前请求
+    abortChatRequest: () => Promise<void>
+
+    // 获取会话列表
+    listConversations: (params?: {
+      status?: ConversationStatus
+      page?: number
+      pageSize?: number
+    }) => Promise<{
+      conversations: Conversation[]
+      total: number
+    }>
+
+    // 获取会话详情
+    getConversationDetail: (id: string) => Promise<Conversation>
+
+    // 更新会话状态
+    updateConversationStatus: (id: string, status: ConversationStatus) => Promise<void>
+
+    // 删除会话
+    deleteConversation: (id: string) => Promise<void>
+
+    // 发送流式聊天请求
+    sendStreamChatRequest: (
+      request: ChatRequest,
+      callbacks: {
+        onContent: (content: string) => void
+        onDone: (messageId: string) => void
+        onError: (error: string) => void
+      }
+    ) => Promise<void>
   }
 }
 

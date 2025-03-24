@@ -31,6 +31,8 @@ export * from './cloud-sync'
 export * from './dinox'
 export * from './letter'
 export * from './writing-desk'
+export * from './ai-chat'
+export * from './ai-agents'
 
 // 定义图标名称类型
 export type IconName =
