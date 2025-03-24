@@ -441,55 +441,49 @@ const scrollToLatestMessage = () => {
   }
 
   requestAnimationFrame(() => {
-    setTimeout(() => {
-      try {
-        let lastUserMessageIndex = -1
-        for (let i = messages.length - 1; i >= 0; i--) {
-          if (messages[i].role === 'user') {
-            lastUserMessageIndex = i
-            break
-          }
+    try {
+      // 找到最后一条用户消息
+      let lastUserMessageIndex = -1
+      for (let i = messages.length - 1; i >= 0; i--) {
+        if (messages[i].role === 'user') {
+          lastUserMessageIndex = i
+          break
         }
-
-        if (lastUserMessageIndex === -1) {
-          console.log('未找到用户消息')
-          return
-        }
-
-        const lastUserMessage = messages[lastUserMessageIndex]
-        console.log('找到最后的用户消息:', {
-          messageId: lastUserMessage.id,
-          index: lastUserMessageIndex
-        })
-
-        const messageElement = document.querySelector(`[data-message-id="${lastUserMessage.id}"]`)
-
-        if (messageElement) {
-          console.log('找到消息元素，执行滚动')
-          void (messageElement as HTMLElement).offsetHeight
-
-          messageElement.scrollIntoView({
-            behavior: 'auto',
-            block: 'start'
-          })
-
-          if (messagesContainer.value) {
-            const msgRect = messageElement.getBoundingClientRect()
-            const containerRect = messagesContainer.value.getBoundingClientRect()
-            const offsetTop = msgRect.top - containerRect.top
-
-            if (Math.abs(offsetTop) > 20) {
-              console.log('执行额外滚动调整:', offsetTop)
-              messagesContainer.value.scrollTop = messagesContainer.value.scrollTop + offsetTop
-            }
-          }
-        } else {
-          console.log('未找到消息元素')
-        }
-      } catch (error) {
-        console.error('滚动过程中出错:', error)
       }
-    }, 100)
+
+      if (lastUserMessageIndex === -1) {
+        console.log('未找到用户消息')
+        return
+      }
+
+      // 找到对应的消息元素
+      const messageElements = document.querySelectorAll('.message-wrapper')
+      const lastUserMessageElement = messageElements[lastUserMessageIndex]
+
+      if (!lastUserMessageElement || !messagesContainer.value) {
+        console.log('未找到消息元素或容器')
+        return
+      }
+
+      // 计算需要滚动的位置
+      const containerRect = messagesContainer.value.getBoundingClientRect()
+      const messageRect = lastUserMessageElement.getBoundingClientRect()
+      const scrollTop = messagesContainer.value.scrollTop + (messageRect.top - containerRect.top)
+
+      // 滚动到计算出的位置
+      messagesContainer.value.scrollTo({
+        top: scrollTop,
+        behavior: 'smooth'
+      })
+
+      console.log('执行滚动到指定位置:', {
+        scrollTop,
+        messageTop: messageRect.top,
+        containerTop: containerRect.top
+      })
+    } catch (error) {
+      console.error('滚动过程中出错:', error)
+    }
   })
 }
 
@@ -581,27 +575,16 @@ const removeNote = (noteId: string) => {
 // 修改监听逻辑
 watch(
   () => currentConversation.value?.messages?.length,
-  (newLength, oldLength) => {
-    console.log('消息数量变化:', {
-      oldLength,
-      newLength,
-      difference: newLength ? newLength - (oldLength || 0) : 0
-    })
+  () => {
+    if (!currentConversation.value?.messages?.length) return
 
-    if (currentConversation.value?.messages?.length) {
-      const messages = currentConversation.value.messages
-      const lastMessage = messages[messages.length - 1]
-      console.log('最新消息:', {
-        role: lastMessage.role,
-        messageId: lastMessage.id,
-        contentLength: lastMessage.content.length
-      })
+    const messages = currentConversation.value.messages
+    const lastMessage = messages[messages.length - 1]
 
-      if (lastMessage.role === 'user') {
-        console.log('检测到新的用户消息，准备滚动')
-        scrollToTop()
-        setTimeout(scrollToLatestMessage, 100)
-      }
+    // 只在用户发送消息时触发滚动
+    if (lastMessage.role === 'user') {
+      console.log('检测到新的用户消息，准备滚动')
+      scrollToLatestMessage()
     }
   }
 )
@@ -728,16 +711,6 @@ const handleAbortRequest = async () => {
   }
 }
 
-// 3. 添加 scrollToTop 函数
-const scrollToTop = () => {
-  if (messagesContainer.value) {
-    messagesContainer.value.scrollTo({
-      top: 0,
-      behavior: 'smooth'
-    })
-  }
-}
-
 // 4. 添加 handleAgentSelect 函数
 const handleAgentSelect = async (agentId: string) => {
   console.log('选择 Agent:', agentId)
@@ -757,7 +730,8 @@ const handleAgentSelect = async (agentId: string) => {
       id: agent.id
     })
 
-    assistantStore.clearMessages()
+    // 清空当前对话
+    aiChatStore.createNewConversation()
 
     console.log('开始新对话')
     await aiChatStore.sendChatRequest({

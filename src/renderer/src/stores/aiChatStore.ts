@@ -170,13 +170,12 @@ export const useAIChatStore = defineStore('aiChat', () => {
     try {
       isLoading.value = true
 
-      // 1. 立即在当前会话中显示用户消息
+      // 1. 处理会话初始化
       if (currentConversation.value) {
-        // 确保 messages 数组存在
-        if (!Array.isArray(currentConversation.value.messages)) {
-          currentConversation.value.messages = []
-        }
+        // 确保 messages 数组始终存在
+        currentConversation.value.messages = currentConversation.value.messages || []
 
+        // 已存在的会话：总是显示用户消息（包括后续的 agent 对话）
         const userMessage = {
           id: 'local-' + Date.now(),
           conversationId: currentConversation.value.id,
@@ -191,7 +190,10 @@ export const useAIChatStore = defineStore('aiChat', () => {
 
         currentConversation.value.messages.push(userMessage)
       } else {
-        // 新会话：创建一个基本的会话结构
+        // 新会话：创建一个基本的会话结构，确保 messages 数组存在
+        type MessageType = NonNullable<Conversation['messages']>[number]
+        const messages: MessageType[] = []
+
         currentConversation.value = {
           id: '',
           title: request.query?.slice(0, 20) + '...' || '新对话',
@@ -200,22 +202,34 @@ export const useAIChatStore = defineStore('aiChat', () => {
           createdAt: new Date(),
           updatedAt: new Date(),
           lastMessageAt: new Date(),
-          messageCount: 1,
-          messages: [
-            {
-              id: 'local-' + Date.now(),
-              conversationId: '',
-              parentMessageId: null,
-              role: 'user' as const,
-              content: request.query || '',
-              createdAt: new Date(),
-              references: undefined,
-              sourceTypes: undefined,
-              usage: undefined
-            }
-          ]
+          messageCount: 0,
+          messages
+        }
+
+        // 只有在非 agent 对话时，才添加首次用户消息
+        if (!request.agentId) {
+          messages.push({
+            id: 'local-' + Date.now(),
+            conversationId: '',
+            parentMessageId: null,
+            role: 'user' as const,
+            content: request.query || '',
+            createdAt: new Date(),
+            references: undefined,
+            sourceTypes: undefined,
+            usage: undefined
+          })
+          currentConversation.value.messageCount = 1
         }
       }
+
+      console.log('发送聊天请求:', {
+        hasAgentId: !!request.agentId,
+        isNewConversation: !currentConversation.value.id,
+        query: request.query,
+        references: request.references,
+        currentMessages: currentConversation.value.messages?.length || 0
+      })
 
       // 2. 发送请求并获取响应
       const response = await window.electronAPI.aiChat.sendChatRequest(request)

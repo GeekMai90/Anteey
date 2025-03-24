@@ -3,9 +3,9 @@ import { ref } from 'vue'
 import { Agent, CreateAgentParams, UpdateAgentParams } from '@shared/types'
 import { useEventBus } from '@vueuse/core'
 import { useUIStore } from '@renderer/stores/UIStore'
-import { useAssistantStore } from '@renderer/stores/assistantStore'
 import { Robot } from '@icon-park/vue-next'
 import { markRaw } from 'vue'
+import { useAIChatStore } from '@renderer/stores/aiChatStore'
 
 export const useAgentStore = defineStore('agent', () => {
   // ==================== 状态 ====================
@@ -15,6 +15,7 @@ export const useAgentStore = defineStore('agent', () => {
   const isAgentModalOpen = ref(false)
   const menuAgents = ref<Agent[]>([])
   const nonMenuAgents = ref<Agent[]>([])
+  const aiChatStore = useAIChatStore()
 
   // ==================== 操作方法 ====================
   // 获取所有 Agents
@@ -142,6 +143,7 @@ export const useAgentStore = defineStore('agent', () => {
 
     return menuAgents.value.map((agent) => ({
       key: agent.id,
+      name: agent.name,
       label: agent.name,
       icon: markRaw(Robot),
       action: async () => {
@@ -152,7 +154,6 @@ export const useAgentStore = defineStore('agent', () => {
         })
 
         const uiStore = useUIStore()
-        const assistantStore = useAssistantStore()
 
         try {
           // 设置当前活跃的 Agent
@@ -162,10 +163,9 @@ export const useAgentStore = defineStore('agent', () => {
           console.log('打开右侧边栏 AI 助手')
           uiStore.openRightSidebarWithTab('assistant')
 
-          // 2. 清空当前对话并切换到聊一聊模式
-          console.log('清空当前对话并切换到聊一聊模式')
-          assistantStore.clearMessages()
-          assistantStore.setDefaultMode('chat')
+          // 2. 清空当前对话
+          console.log('清空当前对话')
+          aiChatStore.createNewConversation()
 
           // 3. 执行 Agent 对话
           console.log('开始执行 Agent 对话:', {
@@ -175,10 +175,17 @@ export const useAgentStore = defineStore('agent', () => {
             temperature: agent.temperature
           })
 
-          return await assistantStore.handleAgentChat({
-            agentId: agent.id,
-            noteId
-          })
+          // 构建聊天请求
+          const chatRequest = {
+            query: '', // 初始查询为空，因为我们使用笔记内容作为上下文
+            agentId: agent.id, // 使用当前 agent
+            references: {
+              noteIds: [noteId] // 将当前笔记作为引用
+            }
+          }
+
+          // 发送聊天请求
+          return await aiChatStore.sendChatRequest(chatRequest)
         } catch (error) {
           // 如果出错，清除当前 Agent
           setCurrentAgent(null)

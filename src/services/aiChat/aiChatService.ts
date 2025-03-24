@@ -352,12 +352,6 @@ async function buildMessages(
       }))
     )
 
-    // 添加当前查询
-    messages.push({
-      role: 'user',
-      content: query
-    })
-
     log.info('最终构建的消息数组:', {
       totalMessages: messages.length,
       messagesSummary: messages.map((m) => ({
