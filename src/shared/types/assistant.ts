@@ -130,6 +130,15 @@ interface RAGHistoryMetadata {
   currentTopicId?: string
   topicStartTime?: number
   isHistorical?: boolean
+  // 添加 Agent 相关属性
+  agentId?: string
+  noteId?: string
+  processingType?: string
+  agentConfig?: {
+    modelConfigId: string
+    temperature: number
+    systemPrompt: string
+  }
 }
 
 // 前端展示用的历史记录项
@@ -290,4 +299,22 @@ export interface UpdateAgentParams {
   temperature?: number
   modelConfigId?: string
   includeNoteContext?: boolean
+}
+
+// 添加 Agent 配置类型
+export interface AgentConfig {
+  modelConfigId: string
+  temperature: number
+  systemPrompt: string
+}
+
+// 修改 Agent 聊天参数类型
+export interface AgentChatParams {
+  query?: string
+  agentId: string
+  noteId?: string
+  sessionId?: string | null
+  currentMessages?: ChatMessage[]
+  currentContexts?: RAGContext[]
+  agentConfig?: AgentConfig
 }

@@ -8,7 +8,9 @@ import type {
   RAGHistoryRecord,
   AIAssistantMessage,
   ChatSession,
-  AssistantNoteReference
+  AssistantNoteReference,
+  AgentChatParams,
+  AgentConfig
 } from '@shared/types'
 import { v4 as uuidv4 } from 'uuid'
 import { useModelConfigStore } from '@renderer/stores/modelConfigStore'
@@ -1292,10 +1294,13 @@ export const useAssistantStore = defineStore(
 
         // 获取 agent 信息并设置为当前 agent
         const agent = agentStore.agents.find((agent) => agent.id === params.agentId)
-        if (agent) {
-          console.log('设置当前活跃的 Agent:', agent)
-          agentStore.setCurrentAgent(agent)
+        if (!agent) {
+          throw new Error('未找到指定的 Agent')
         }
+
+        // 设置当前活跃的 Agent
+        console.log('设置当前活跃的 Agent:', agent)
+        agentStore.setCurrentAgent(agent)
 
         await ensureConfigLoaded()
         isProcessing.value = true
@@ -1339,18 +1344,24 @@ export const useAssistantStore = defineStore(
           )
         }
 
-        const messagesToSend = prepareDataForTransfer(messages.value.slice(0, -1))
+        // 修改这里：发送完整的消息历史
+        const messagesToSend = prepareDataForTransfer(messages.value)
         const contextsToSend = prepareDataForTransfer(contexts.value)
 
-        // 4. 调用 Agent 聊天模式
+        // 调用 Agent 聊天模式
         const result = await window.electronAPI.rag.handleAgentChat({
           query: params.query,
           agentId: params.agentId,
           noteId: params.noteId,
           sessionId: currentSessionId.value,
           currentMessages: messagesToSend,
-          currentContexts: contextsToSend
-        })
+          currentContexts: contextsToSend,
+          agentConfig: {
+            modelConfigId: agent.modelConfigId,
+            temperature: agent.temperature,
+            systemPrompt: agent.systemPrompt
+          } as AgentConfig
+        } as AgentChatParams)
 
         // 检查是否有错误
         if (result.error) {
@@ -1529,16 +1540,22 @@ export const useAssistantStore = defineStore(
     }
 
     // Agent 纯对话模式
-    const handleAgentPureChat = async (params: {
-      query?: string // 改为可选，因为初始化时不需要 query
-      agentId: string
-    }) => {
+    const handleAgentPureChat = async (params: { query?: string; agentId: string }) => {
       const startTime = performance.now()
       try {
         console.log('处理 Agent 纯对话:', {
           ...params,
           currentMode: defaultMode.value
         })
+
+        // 获取 agent 信息
+        const agent = agentStore.agents.find((agent) => agent.id === params.agentId)
+        if (!agent) {
+          throw new Error('未找到指定的 Agent')
+        }
+
+        // 设置当前活跃的 Agent
+        agentStore.setCurrentAgent(agent)
 
         await ensureConfigLoaded()
         isProcessing.value = true
@@ -1570,7 +1587,7 @@ export const useAssistantStore = defineStore(
           messages.value.push(markRaw(userMessage))
         }
 
-        // 3. 准备发送数据
+        // 3. 准备发送数据 - 修改这里，发送完整的消息历史
         const prepareDataForTransfer = (data: any) => {
           return JSON.parse(
             JSON.stringify(data, (key, value) => {
@@ -1582,7 +1599,8 @@ export const useAssistantStore = defineStore(
           )
         }
 
-        const messagesToSend = prepareDataForTransfer(messages.value.slice(0, -1))
+        // 发送所有消息历史，而不是去掉最后一条
+        const messagesToSend = prepareDataForTransfer(messages.value)
         const contextsToSend = prepareDataForTransfer(contexts.value)
 
         // 4. 调用 Agent 聊天模式
@@ -1590,9 +1608,14 @@ export const useAssistantStore = defineStore(
           query: params.query,
           agentId: params.agentId,
           sessionId: currentSessionId.value,
-          currentMessages: messagesToSend,
-          currentContexts: contextsToSend
-        })
+          currentMessages: messagesToSend, // 发送完整的消息历史
+          currentContexts: contextsToSend,
+          agentConfig: {
+            modelConfigId: agent.modelConfigId,
+            temperature: agent.temperature,
+            systemPrompt: agent.systemPrompt
+          } as AgentConfig
+        } as AgentChatParams)
 
         // 检查是否有错误
         if (result.error) {
@@ -1628,8 +1651,11 @@ export const useAssistantStore = defineStore(
           role: 'assistant',
           content: answer,
           timestamp: Date.now(),
-          sourceType: 'ai', // 纯对话模式固定为 ai
-          references: undefined // 纯对话模式没有引用
+          sourceType: context.relevantDocs.length > 0 ? 'notes' : 'ai',
+          references:
+            context.relevantDocs.length > 0
+              ? prepareDataForTransfer(context.relevantDocs)
+              : undefined
         }
         messages.value.push(markRaw(assistantMessage))
 

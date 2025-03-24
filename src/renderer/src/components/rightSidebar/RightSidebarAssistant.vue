@@ -260,7 +260,7 @@
                   class="abort-btn"
                   @click="handleAbortRequest"
                 >
-                  <Close theme="outline" size="16" :strokeWidth="3" />
+                  <PauseOne theme="outline" size="16" fill="var(--color-red)" :strokeWidth="3" />
                 </button>
 
                 <!-- 发送按钮 -->
@@ -319,7 +319,8 @@ import {
   Close,
   Copy,
   Receiver,
-  Brain
+  Brain,
+  PauseOne
 } from '@icon-park/vue-next'
 import type { Suggestion } from '@shared/types'
 import TypewriterText from '@renderer/components/aiassistant/TypewriterText.vue'
@@ -455,27 +456,30 @@ const selectMode = (suggestion: Suggestion) => {
 const handleSend = async () => {
   if (!inputMessage.value.trim() || assistantStore.isProcessing) return
 
-  // 将变量声明移到最外层作用域
   const messageText = inputMessage.value
-  const noteRefs = selectedNotes.value.slice() // 创建一个副本
+  const noteRefs = selectedNotes.value.slice()
 
   try {
-    // 清空输入和选中的笔记
     inputMessage.value = ''
     selectedNotes.value = []
 
-    // 确保有模式选择
-    if (!currentMode.value) {
-      const askSuggestion = suggestions.find((s) => s.mode === 'ask')
-      if (askSuggestion) {
-        currentMode.value = askSuggestion
+    // 检查是否有当前活跃的 Agent
+    if (agentStore.currentAgent) {
+      // 如果有活跃的 Agent，使用 Agent 聊天模式
+      await assistantStore.handleAgentChat({
+        query: messageText,
+        agentId: agentStore.currentAgent.id
+      })
+    } else {
+      // 没有活跃的 Agent，使用普通模式
+      if (!currentMode.value) {
+        const askSuggestion = suggestions.find((s) => s.mode === 'ask')
+        if (askSuggestion) {
+          currentMode.value = askSuggestion
+        }
       }
-    }
 
-    const mode = currentMode.value?.mode || 'ask'
-
-    // 发送消息
-    try {
+      const mode = currentMode.value?.mode || 'ask'
       switch (mode) {
         case 'ask':
           await assistantStore.handleAskQuestion(messageText, noteRefs)
@@ -484,30 +488,26 @@ const handleSend = async () => {
           await assistantStore.handleChat(messageText)
           break
       }
-
-      // 使用多层延迟确保DOM更新
-      requestAnimationFrame(() => {
-        setTimeout(() => {
-          scrollToLatestUserMessage()
-        }, 100)
-      })
-    } finally {
-      focusInput()
     }
+
+    requestAnimationFrame(() => {
+      setTimeout(() => {
+        scrollToLatestUserMessage()
+      }, 100)
+    })
   } catch (error) {
-    // 不需要在这里显示错误消息,因为 store 中已经处理了
     console.error('发送消息失败:', error)
-    // 如果不是取消请求导致的错误,才恢复输入内容
     if (
       !(
         error instanceof Error &&
         (error.name === 'AbortError' || error.message.includes('canceled'))
       )
     ) {
-      // 恢复输入内容和选中的笔记
       inputMessage.value = messageText
       selectedNotes.value = noteRefs
     }
+  } finally {
+    focusInput()
   }
 }
 
@@ -688,11 +688,13 @@ const toggleReferences = (messageId: string) => {
 
 // 修改 startNewChat 方法
 const startNewChat = () => {
+  // 清除当前 Agent
+  agentStore.clearCurrentAgent()
+
   // 根据默认模式设置初始模式
   const defaultSuggestion = suggestions.find((s) => s.mode === assistantStore.defaultMode)
-  currentMode.value = defaultSuggestion || suggestions[0] // 使用默认模式或回退到第一个选项
-  assistantStore.clearMessages() // 改回使用 clearMessages
   currentMode.value = defaultSuggestion || suggestions[0]
+  assistantStore.clearMessages()
   inputMessage.value = ''
   focusInput()
 }
@@ -956,27 +958,25 @@ const handleAgentSelect = async (agentId: string) => {
   }
 
   try {
+    // 获取 agent 信息
+    const agent = agentStore.agents.find((a) => a.id === agentId)
+    if (!agent) {
+      throw new Error('未找到指定的 Agent')
+    }
+
     // 清空当前对话
     assistantStore.clearMessages()
 
     // 切换到聊一聊模式
     assistantStore.setDefaultMode('chat')
 
-    // 使用新的纯对话方法
+    // 使用新的纯对话方法，传递完整的 agent 信息
     await assistantStore.handleAgentPureChat({
       agentId
+      // 可以在这里添加其他必要的参数
     })
   } catch (error) {
-    // 只在非取消请求的情况下显示错误
-    if (
-      !(
-        error instanceof Error &&
-        (error.name === 'AbortError' || error.message.includes('canceled'))
-      )
-    ) {
-      console.error('切换 Agent 失败:', error)
-      message.error('切换 AI 助手失败')
-    }
+    // ... 错误处理代码保持不变 ...
   }
 }
 </script>

@@ -57,7 +57,7 @@ export class LLMService {
   public async generateResponse(
     prompt: string,
     modelConfigId?: string,
-    parameters?: Record<string, any>
+    parameters: Record<string, any> = {}
   ): Promise<string> {
     // 记录开始时间和配置
     const startTime = Date.now()
@@ -78,8 +78,8 @@ export class LLMService {
         hasParameters: !!parameters
       })
 
-      // 修改这里：从 parameters 中获取 modelConfigId
-      const configId = parameters?.modelConfigId || modelConfigId
+      // 修改这里：优先使用直接传入的 modelConfigId，如果没有再从 parameters 中获取
+      const configId = modelConfigId || parameters?.modelConfigId
 
       // 获取模型配置
       if (configId) {
@@ -232,6 +232,13 @@ export class LLMService {
         model: config.modelName,
         totalDuration: `${totalDuration}ms`,
         responseLength: content.length
+      })
+
+      log.info('generateResponse调用参数:', {
+        modelConfigId,
+        parametersConfigId: parameters?.modelConfigId,
+        finalConfigId: configId,
+        hasParameters: !!parameters
       })
 
       return content

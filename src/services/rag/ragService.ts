@@ -16,7 +16,8 @@ import {
   RAGHistoryRecord,
   RAGResult,
   UserMessage,
-  LLMError
+  LLMError,
+  AgentConfig
 } from '@shared/types'
 import { v4 as uuidv4 } from 'uuid'
 import { LLMService } from './llmService'
@@ -182,7 +183,6 @@ function transformDBResult(result: any): RAGResult {
  * @param sessionId - 会话ID，用于维护会话状态和历史记录
  * @param currentMessages - 当前会话的消息历史
  * @param currentContexts - 当前会话的上下文历史
- * @param deepseekConfig - 大模型配置参数
  * @returns 包含答案、上下文和更新后消息列表的对象
  */
 export async function handleAskQuestion(
@@ -240,14 +240,26 @@ export async function handleAskQuestion(
       }
     }
 
-    let context: RAGContext
-    let answer: string
-    // 判断是否是新会话
+    // 3. 创建用户消息和更新消息历史
+    const userMessage: UserMessage = {
+      id: uuidv4(),
+      role: 'user',
+      content: query,
+      timestamp: Date.now()
+    }
+
+    // 创建完整的消息历史（包含当前的新消息）
+    const fullMessageHistory = [...currentMessages, userMessage]
+
+    // 4. 判断是否是新会话
     const isNewChat = currentMessages.length === 0
 
-    // 3. 处理笔记引用和生成回答
+    // 5. 处理笔记引用和生成回答
+    let context: RAGContext
+    let answer: string
+
     if (assistantNoteReferences.length > 0) {
-      // 3a. 处理有引用笔记的情况：直接使用用户指定的笔记
+      // 5a. 处理有引用笔记的情况：直接使用用户指定的笔记
       const notes = await db('notes').whereIn(
         'id',
         assistantNoteReferences.map((ref) => ref.id)
@@ -271,24 +283,18 @@ export async function handleAskQuestion(
         processingType: 'qa'
       }
 
-      // 生成回答
-      const prompt = buildAskQuestionPrompt(query, context, currentMessages, isNewChat)
+      // 生成回答 - 使用完整的消息历史
+      const prompt = buildAskQuestionPrompt(query, context, fullMessageHistory, isNewChat)
       answer = await llmService.generateResponse(prompt)
     } else {
-      // 3b. 处理无引用笔记的情况：通过语义搜索找到相关笔记
+      // 5b. 处理无引用笔记的情况：通过语义搜索找到相关笔记
       context = await retrieveContext(query, session)
-      const prompt = buildAskQuestionPrompt(query, context, currentMessages, isNewChat)
+      // 使用完整的消息历史
+      const prompt = buildAskQuestionPrompt(query, context, fullMessageHistory, isNewChat)
       answer = await llmService.generateResponse(prompt)
     }
 
-    // 4. 构建新的消息：记录用户问题和AI回答
-    const userMessage: UserMessage = {
-      id: uuidv4(),
-      role: 'user',
-      content: query,
-      timestamp: Date.now()
-    }
-
+    // 6. 创建AI回复消息
     const assistantMessage: AIAssistantMessage = {
       id: uuidv4(),
       role: 'assistant',
@@ -298,10 +304,11 @@ export async function handleAskQuestion(
       references: context.relevantDocs.length > 0 ? context.relevantDocs : undefined
     }
 
-    const updatedMessages = [...currentMessages, userMessage, assistantMessage]
+    // 7. 更新完整消息历史
+    const updatedMessages = [...fullMessageHistory, assistantMessage]
     const updatedContexts = [...currentContexts, context]
 
-    // 5. 更新会话状态：维护对话历史和话题追踪
+    // 8. 更新会话状态：维护对话历史和话题追踪
     if (session?.conversationTracker) {
       const queryVector = await getQueryVector(query)
       session.conversationTracker.questionHistory.push({
@@ -321,7 +328,7 @@ export async function handleAskQuestion(
       session.metadata.lastUpdateTime = new Date().toISOString()
     }
 
-    // 6. 更新历史记录：持久化会话状态
+    // 9. 更新历史记录：持久化会话状态
     if (sessionId) {
       await updateRAGHistory(sessionId, updatedMessages, updatedContexts, {
         ...session?.metadata,
@@ -329,7 +336,7 @@ export async function handleAskQuestion(
       })
     }
 
-    // 7. 返回结果
+    // 10. 返回结果
     return {
       answer,
       context,
@@ -337,6 +344,7 @@ export async function handleAskQuestion(
       error: undefined
     }
   } catch (error) {
+    // 错误处理代码保持不变
     if (error instanceof Error && error.name === 'AbortError') {
       return {
         answer: '请求已取消',
@@ -357,7 +365,6 @@ export async function handleAskQuestion(
       }
     }
 
-    // 处理其他错误
     log.error('问一问模式处理失败:', error)
     const llmError = handleLLMError(error)
 
@@ -373,7 +380,7 @@ export async function handleAskQuestion(
       error: llmError
     }
   } finally {
-    // 确保清理控制器
+    // 清理代码保持不变
     if (currentAskController?.llmService === llmService) {
       currentAskController = null
     }
@@ -1687,6 +1694,13 @@ export async function handleChat(
   messages: ChatMessage[]
   error?: LLMError
 }> {
+  console.log('聊一聊模式 - 输入参数:', {
+    query,
+    sessionId,
+    messagesCount: currentMessages.length,
+    contextsCount: currentContexts.length
+  })
+
   // 创建新的 LLMService 实例
   const llmService = new LLMService()
 
@@ -1746,14 +1760,7 @@ export async function handleChat(
       processingType: 'chat'
     }
 
-    // 4. 构建聊天提示词 - 根据是否是新会话来决定
-    const isNewChat = currentMessages.length === 0
-    const prompt = await buildChatPrompt(query, currentMessages, isNewChat)
-
-    // 5. 使用当前 llmService 生成回答
-    const answer = await llmService.generateResponse(prompt)
-
-    // 6. 构建新的消息
+    // 4. 准备新的消息
     const userMessage: UserMessage = {
       id: uuidv4(),
       role: 'user',
@@ -1761,6 +1768,16 @@ export async function handleChat(
       timestamp: Date.now()
     }
 
+    // 5. 创建完整的消息历史（包含当前的新消息）用于发送给模型
+    const fullMessageHistory = [...currentMessages, userMessage]
+
+    // 6. 使用新的构建提示词方法 - 直接传递消息历史
+    const prompt = await buildChatPromptFromMessages(fullMessageHistory)
+
+    // 7. 使用当前 llmService 生成回答
+    const answer = await llmService.generateResponse(prompt)
+
+    // 8. 创建助手消息
     const assistantMessage: AIAssistantMessage = {
       id: uuidv4(),
       role: 'assistant',
@@ -1769,10 +1786,11 @@ export async function handleChat(
       sourceType: 'ai'
     }
 
-    const updatedMessages = [...currentMessages, userMessage, assistantMessage]
+    // 9. 更新完整消息历史
+    const updatedMessages = [...fullMessageHistory, assistantMessage]
     const updatedContexts = [...currentContexts, context]
 
-    // 7. 更新会话状态
+    // 10. 更新会话状态
     if (session?.conversationTracker) {
       const queryVector = await getQueryVector(query)
       session.conversationTracker.questionHistory.push({
@@ -1791,7 +1809,7 @@ export async function handleChat(
       session.metadata.lastUpdateTime = new Date().toISOString()
     }
 
-    // 8. 更新历史记录
+    // 11. 更新历史记录
     if (sessionId) {
       await updateRAGHistory(sessionId, updatedMessages, updatedContexts, {
         ...session?.metadata,
@@ -1799,10 +1817,10 @@ export async function handleChat(
       })
     }
 
-    // 9. 清理当前控制器
+    // 12. 清理当前控制器
     currentChatController = null
 
-    // 10. 返回结果
+    // 13. 返回结果
     return {
       answer,
       context,
@@ -1854,16 +1872,16 @@ export async function handleChat(
 }
 
 /**
- * 构建聊天模式的提示词
+ * 从消息历史构建聊天提示词
+ * 直接将消息历史转换为适合LLM的格式
  */
-async function buildChatPrompt(
-  query: string,
-  messages: ChatMessage[] = [],
-  isNewChat: boolean = false
-): Promise<string> {
+async function buildChatPromptFromMessages(messages: ChatMessage[]): Promise<string> {
   try {
-    const recentMessages = messages
-      .slice(-RAG_CONFIG.similarity.contextWindowSize * 2)
+    // 判断是否是新对话
+    const isNewChat = messages.length <= 1
+
+    // 格式化消息历史
+    const formattedMessages = messages
       .map((msg) => {
         if (typeof msg.content !== 'string') {
           throw new Error('无效的消息格式')
@@ -1872,7 +1890,7 @@ async function buildChatPrompt(
       })
       .join('\n')
 
-    // 只在新会话时添加角色定位
+    // 获取系统提示词（如果是新对话）
     let rolePrompt = ''
     if (isNewChat) {
       try {
@@ -1880,12 +1898,12 @@ async function buildChatPrompt(
         rolePrompt = config.systemPrompt
       } catch (error) {
         log.error('获取系统提示词失败，使用默认提示词:', error)
-        // 如果获取失败，使用默认提示词
         rolePrompt = `# 角色定位：智慧顾问\n\n## 核心定位\n- 专业知识分享者\n- 思维引导者\n- 平等对话者\n\n...`
       }
     }
 
-    return `${rolePrompt}${recentMessages ? `历史对话记录：\n${recentMessages}\n\n` : ''}用户的问题是：\n${query}`
+    // 构建完整提示词
+    return `${rolePrompt}${formattedMessages ? `\n\n历史对话记录：\n${formattedMessages}` : ''}`
   } catch (error) {
     log.error('构建聊天提示词失败:', error)
     throw error
@@ -2084,12 +2102,22 @@ export async function handleAgentChat(params: {
   sessionId?: string | null
   currentMessages?: ChatMessage[]
   currentContexts?: RAGContext[]
+  agentConfig?: AgentConfig
 }): Promise<{
   answer: string
   context: RAGContext
   messages: ChatMessage[]
   error?: LLMError
 }> {
+  console.log('Agent 聊天模式 - 输入参数:', {
+    query: params.query,
+    agentId: params.agentId,
+    noteId: params.noteId,
+    sessionId: params.sessionId,
+    messagesCount: params.currentMessages?.length,
+    contextsCount: params.currentContexts?.length
+  })
+
   // 创建新的 LLMService 实例
   const llmService = new LLMService()
 
@@ -2103,33 +2131,75 @@ export async function handleAgentChat(params: {
   // 创建新的 AbortController
   const abortController = new AbortController()
 
-  // 设置新的控制器 - 移到这里，确保在调用 generateResponse 之前就设置好
+  // 设置新的控制器
   currentAgentController = {
     abortController,
     llmService
   }
 
+  // 在 try 块外提取参数，确保 catch 块中也能访问
+  const {
+    query = '',
+    agentId,
+    noteId,
+    sessionId = null,
+    currentMessages = [],
+    currentContexts = [],
+    agentConfig
+  } = params
+
   try {
-    const {
-      query,
-      agentId,
-      noteId,
-      sessionId = null,
-      currentMessages = [],
-      currentContexts = []
-    } = params
-
-    // 1. 获取 Agent 配置
+    // 1. 获取 Agent 配置 (保持不变)
     console.log('获取 Agent 配置 - agentId:', agentId)
-    const agentRecord = await db('agents').where('id', agentId).first()
-    if (!agentRecord) {
-      throw new Error('未找到指定的 Agent')
-    }
-    const agent = convertToAgent(agentRecord) // 现在可以使用这个函数了
-    console.log('获取到 Agent 配置:', agent)
+    let agent
 
-    // 2. 如果是新对话且有打招呼语,添加打招呼消息
+    // 首先检查是否是继续会话
+    if (sessionId) {
+      const history = await getRAGHistoryDetail(sessionId)
+      if (history && history.metadata?.agentConfig) {
+        // 如果是继续会话且有保存的Agent配置，直接使用
+        console.log('从会话历史恢复Agent配置:', history.metadata.agentConfig)
+        agent = {
+          id: history.metadata.agentId || agentId,
+          modelConfigId: history.metadata.agentConfig.modelConfigId,
+          temperature: history.metadata.agentConfig.temperature,
+          systemPrompt: history.metadata.agentConfig.systemPrompt,
+          greeting: '' // 继续会话不需要问候语
+        }
+      }
+    }
+
+    // 如果没有从历史记录中恢复，则使用传入的配置或获取Agent记录
+    if (!agent) {
+      if (agentConfig) {
+        // 使用传入的配置
+        console.log('使用传入的Agent配置:', agentConfig)
+        agent = {
+          id: agentId,
+          modelConfigId: agentConfig.modelConfigId,
+          temperature: agentConfig.temperature,
+          systemPrompt: agentConfig.systemPrompt,
+          greeting: ''
+        }
+      } else {
+        // 从数据库获取Agent记录
+        const agentRecord = await db('agents').where('id', agentId).first()
+        if (!agentRecord) {
+          throw new Error('未找到指定的 Agent')
+        }
+        agent = convertToAgent(agentRecord)
+      }
+    }
+
+    console.log('使用的Agent配置:', {
+      modelConfigId: agent.modelConfigId,
+      temperature: agent.temperature
+    })
+
+    // 2. 准备消息历史
     const updatedMessages = [...currentMessages]
+
+    // 2.1 如果是新对话且有打招呼语,添加打招呼消息
     if (currentMessages.length === 0 && agent.greeting) {
       const greetingMessage: AIAssistantMessage = {
         id: uuidv4(),
@@ -2139,10 +2209,20 @@ export async function handleAgentChat(params: {
         sourceType: 'ai'
       }
       updatedMessages.push(greetingMessage)
-      console.log('添加打招呼消息:', greetingMessage)
     }
 
-    // 3. 如果提供了笔记ID，获取笔记内容
+    // 2.2 如果有用户输入，添加到消息历史
+    if (query) {
+      const userMessage: UserMessage = {
+        id: uuidv4(),
+        role: 'user',
+        content: query,
+        timestamp: Date.now()
+      }
+      updatedMessages.push(userMessage)
+    }
+
+    // 3. 如果提供了笔记ID，获取笔记内容 (保持不变)
     let noteContent = ''
     let noteTitle = ''
     let noteAddress = ''
@@ -2153,11 +2233,11 @@ export async function handleAgentChat(params: {
         throw new Error('未找到指定的笔记')
       }
       noteContent = extractTextFromContent(note.content)
-      ;(noteTitle = note.metadata?.title || ''), (noteAddress = note.address || '') // 假设笔记表中有 address 字段
+      ;(noteTitle = note.metadata?.title || ''), (noteAddress = note.address || '')
       console.log('获取到笔记内容长度:', noteContent.length)
     }
 
-    // 4. 构建上下文
+    // 4. 构建上下文 (保持不变)
     const context: RAGContext = {
       query: query || '',
       timestamp: new Date().toISOString(),
@@ -2179,6 +2259,7 @@ export async function handleAgentChat(params: {
 
     // 5. 构建提示词并调用大模型
     console.log('构建提示词')
+    // 注意: 这里我们传递完整的消息历史
     const prompt = buildAgentPrompt(agent.systemPrompt, query, noteContent, updatedMessages)
     console.log('构建的提示词:', prompt)
 
@@ -2197,19 +2278,7 @@ export async function handleAgentChat(params: {
     })
     console.log('获取到大模型回答:', answer)
 
-    // 6. 构建消息
-    // 如果有用户输入,添加用户消息
-    if (query) {
-      const userMessage: UserMessage = {
-        id: uuidv4(),
-        role: 'user',
-        content: query,
-        timestamp: Date.now()
-      }
-      updatedMessages.push(userMessage)
-      console.log('添加用户消息:', userMessage)
-    }
-
+    // 6. 添加AI回复消息
     const assistantMessage: AIAssistantMessage = {
       id: uuidv4(),
       role: 'assistant',
@@ -2229,7 +2298,12 @@ export async function handleAgentChat(params: {
       await updateRAGHistory(sessionId, updatedMessages, updatedContexts, {
         agentId,
         noteId,
-        processingType: 'agent_chat'
+        processingType: 'agent_chat',
+        agentConfig: {
+          modelConfigId: agent.modelConfigId,
+          temperature: agent.temperature,
+          systemPrompt: agent.systemPrompt
+        }
       })
     }
 
@@ -2241,16 +2315,19 @@ export async function handleAgentChat(params: {
       error: undefined
     }
   } catch (error) {
+    // 错误处理代码补充完整
+    console.error('处理 Agent 聊天失败:', error)
+
     if (error instanceof Error && error.name === 'AbortError') {
       return {
         answer: '请求已取消',
         context: {
-          query: params.query || '',
+          query,
           timestamp: new Date().toISOString(),
           relevantDocs: [],
           processingType: 'agent_chat'
         },
-        messages: params.currentMessages || [],
+        messages: currentMessages,
         error: {
           code: 'REQUEST_CANCELLED',
           message: '用户取消了请求',
@@ -2262,23 +2339,22 @@ export async function handleAgentChat(params: {
     }
 
     // 处理其他错误
-    console.error('Agent 聊天模式处理失败:', error)
     const llmError = handleLLMError(error)
 
     return {
       answer: '',
       context: {
-        query: params.query || '',
+        query,
         timestamp: new Date().toISOString(),
         relevantDocs: [],
         processingType: 'agent_chat'
       },
-      messages: params.currentMessages || [],
+      messages: currentMessages,
       error: llmError
     }
   } finally {
-    // 确保清理控制器 - 修改判断条件
-    if (currentAgentController?.abortController === abortController) {
+    // 清理代码保持不变
+    if (currentAgentController?.llmService === llmService) {
       currentAgentController = null
     }
   }
@@ -2298,29 +2374,66 @@ function buildAgentPrompt(
     messagesCount: messages.length
   })
 
+  // 1. 构建基础系统提示词
   let prompt = systemPrompt
 
-  // 如果有笔记内容，添加到提示词中
+  // 2. 如果有笔记内容，添加到系统提示词中
   if (noteContent) {
     prompt += `\n\n当前笔记内容：\n${noteContent}`
   }
 
-  // 添加历史对话
+  // 3. 构建标准格式的消息数组
+  const formattedMessages = []
+
+  // 3.1 添加系统消息
+  formattedMessages.push({
+    role: 'system',
+    content: prompt
+  })
+
+  // 3.2 添加历史对话消息
   if (messages.length > 0) {
-    const recentMessages = messages
-      .slice(-RAG_CONFIG.similarity.contextWindowSize * 2)
-      .map((msg) => `${msg.role === 'user' ? '用户' : 'AI'}：${msg.content}`)
-      .join('\n')
-    prompt += `\n\n历史对话：\n${recentMessages}`
+    // 获取历史消息（不包括当前查询）
+    const historyMessages = messages.filter((msg) => {
+      // 如果是当前的查询，跳过
+      if (query && msg.role === 'user' && msg.content === query) {
+        return false
+      }
+      return true
+    })
+
+    // 将历史消息转换为标准格式
+    historyMessages.forEach((msg) => {
+      formattedMessages.push({
+        role: msg.role,
+        content: msg.content
+      })
+    })
   }
 
-  // 如果有用户输入，添加到提示词末尾
+  // 3.3 如果有新的用户查询，添加到消息末尾
   if (query) {
-    prompt += `\n\n用户：${query}`
+    formattedMessages.push({
+      role: 'user',
+      content: query
+    })
   }
 
-  console.log('构建的完整提示词长度:', prompt.length)
-  return prompt
+  // 4. 将格式化的消息转换为字符串
+  const messagesStr = formattedMessages
+    .map(
+      (msg) =>
+        `${msg.role === 'system' ? '系统' : msg.role === 'user' ? '用户' : 'AI'}：${msg.content}`
+    )
+    .join('\n')
+
+  console.log('处理后的消息历史:', {
+    totalMessages: formattedMessages.length,
+    systemPromptIncluded: formattedMessages[0].role === 'system',
+    hasUserQuery: query ? '是' : '否'
+  })
+
+  return messagesStr
 }
 
 // 添加中断控制器管理
