@@ -45,6 +45,10 @@
       "jest",
       "node",
       "echarts"
+    ],
+    "typeRoots": [
+      "./node_modules/@types",
+      "./src/renderer/src/types"
     ]
   },
   "include": [

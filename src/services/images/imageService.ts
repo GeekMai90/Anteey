@@ -86,10 +86,20 @@ export class ImageService {
   // 复制图片到剪贴板
   async copyImage(imagePath: string): Promise<{ success: boolean; message: string }> {
     try {
-      const fileName = imagePath.replace('app-image:///images/', '')
-      const fullPath = path.join(this.getImagesDir(), fileName)
+      let buffer: Buffer
 
-      const buffer = await fs.readFile(fullPath)
+      if (imagePath.startsWith('app-image:///')) {
+        // 处理本地图片
+        const fileName = imagePath.replace('app-image:///images/', '')
+        const fullPath = path.join(this.getImagesDir(), fileName)
+        buffer = await fs.readFile(fullPath)
+      } else if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
+        // 处理网络图片
+        buffer = await this.fetchImageBuffer(imagePath)
+      } else {
+        throw new Error('不支持的图片路径格式')
+      }
+
       const nativeImg = nativeImage.createFromBuffer(buffer)
       clipboard.writeImage(nativeImg)
 
@@ -101,6 +111,33 @@ export class ImageService {
         message: error instanceof Error ? error.message : '复制图片失败'
       }
     }
+  }
+
+  // 获取网络图片的 Buffer
+  private fetchImageBuffer(url: string): Promise<Buffer> {
+    return new Promise((resolve, reject) => {
+      const protocol = url.startsWith('https') ? https : http
+
+      protocol
+        .get(url, (response) => {
+          if (response.statusCode !== 200) {
+            reject(new Error(`Failed to fetch image: ${response.statusCode}`))
+            return
+          }
+
+          const chunks: Buffer[] = []
+
+          response.on('data', (chunk) => chunks.push(chunk))
+
+          response.on('end', () => {
+            const buffer = Buffer.concat(chunks)
+            resolve(buffer)
+          })
+
+          response.on('error', reject)
+        })
+        .on('error', reject)
+    })
   }
 
   // 下载图片

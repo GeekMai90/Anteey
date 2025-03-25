@@ -47,18 +47,19 @@
           <!-- 初始状态：建议操作区 -->
           <div v-if="!currentConversation?.messages?.length" class="welcome-section">
             <div class="ai-info">
-              <img src="@resources/avatar.png" alt="安安" class="ai-avatar" />
-              <div class="ai-name">安安</div>
+              <!-- <img src="@resources/avatar.png" alt="安安" class="ai-avatar" />
+              <div class="ai-name">安安</div> -->
+              <AgentAvatar />
             </div>
             <div class="welcome-text">✨ 你好，让我们一起探索笔记的智慧花园...</div>
             <!-- 修改蜡烛加载动画容器的类名 -->
             <div
               class="candle-container"
-              :style="{ bottom: `${assistantStore.loadingAnimation.bottomOffset}px` }"
+              :style="{ bottom: `${aiChatStore.loadingAnimation.bottomOffset}px` }"
             >
               <component
-                :is="loadingComponents[assistantStore.loadingAnimation.type]"
-                v-if="assistantStore.loadingAnimation.type"
+                :is="loadingComponents[aiChatStore.loadingAnimation.type]"
+                v-if="aiChatStore.loadingAnimation.type"
               />
             </div>
           </div>
@@ -92,7 +93,7 @@
                 :class="['message-wrapper', msg.role]"
                 :data-message-id="msg.id"
               >
-                {{ console.log('渲染消息:', formatMessageForLog(msg)) }}
+                <!-- {{ console.log('渲染消息:', formatMessageForLog(msg)) }} -->
                 <div class="message">
                   <!-- 用户消息 -->
                   <template v-if="msg.role === 'user'">
@@ -105,7 +106,6 @@
                       :content="msg.content"
                       :timestamp="getMessageTimestamp(msg.createdAt)"
                       :instant="true"
-                      @complete="() => onTypewriterComplete(msg.id)"
                     />
                     <!-- 引用信息区域 -->
                     <div
@@ -340,7 +340,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, nextTick, onMounted, onUnmounted, defineAsyncComponent } from 'vue'
-import { useAssistantStore } from '@renderer/stores/assistantStore'
+// import { useAssistantStore } from '@renderer/stores/assistantStore'
 import { storeToRefs } from 'pinia'
 import {
   Robot,
@@ -371,10 +371,11 @@ import { useModelConfigStore } from '@renderer/stores/modelConfigStore'
 import { Receiver } from '@icon-park/vue-next'
 import LoadingThinking from '@renderer/components/ui/LoadingThinking.vue'
 import { useNoteStore } from '@renderer/stores/noteStore'
+import AgentAvatar from '@renderer/components/ui/AgentAvatar.vue'
 
 // Store
 const aiChatStore = useAIChatStore()
-const assistantStore = useAssistantStore()
+// const assistantStore = useAssistantStore()
 const { currentConversation, isLoading } = storeToRefs(aiChatStore)
 const router = useRouter()
 const uiStore = useUIStore()
@@ -602,11 +603,11 @@ const scrollToLatestMessage = () => {
   })
 }
 
-const onTypewriterComplete = (messageId: string) => {
-  // 只标记消息为已显示
-  assistantStore.markMessageAsDisplayed(messageId)
-  focusInput()
-}
+// const onTypewriterComplete = (messageId: string) => {
+//   // 只标记消息为已显示
+//   assistantStore.markMessageAsDisplayed(messageId)
+//   focusInput()
+// }
 
 // 输入法相关
 const handleCompositionStart = () => {
@@ -961,39 +962,39 @@ const handleReferenceDoubleClick = (noteId: string) => {
   noteStore.openNoteEditor(noteId)
 }
 
-const formatMessageForLog = (msg: any) => {
-  // 先深拷贝消息对象，避免响应式问题
-  const msgCopy = {
-    id: msg.id,
-    role: msg.role,
-    content: msg.content,
-    references: msg.references ? JSON.parse(JSON.stringify(msg.references)) : null,
-    sourceTypes: msg.sourceTypes ? JSON.parse(JSON.stringify(msg.sourceTypes)) : null
-  }
+// const formatMessageForLog = (msg: any) => {
+//   // 先深拷贝消息对象，避免响应式问题
+//   const msgCopy = {
+//     id: msg.id,
+//     role: msg.role,
+//     content: msg.content,
+//     references: msg.references ? JSON.parse(JSON.stringify(msg.references)) : null,
+//     sourceTypes: msg.sourceTypes ? JSON.parse(JSON.stringify(msg.sourceTypes)) : null
+//   }
 
-  console.log('消息对象详情:', {
-    id: msgCopy.id,
-    role: msgCopy.role,
-    hasReferences: !!msgCopy.references?.notes?.length,
-    referenceCount: msgCopy.references?.notes?.length || 0,
-    sourceTypes: msgCopy.sourceTypes,
-    rawReferences: msgCopy.references
-  })
+//   // console.log('消息对象详情:', {
+//   //   id: msgCopy.id,
+//   //   role: msgCopy.role,
+//   //   hasReferences: !!msgCopy.references?.notes?.length,
+//   //   referenceCount: msgCopy.references?.notes?.length || 0,
+//   //   sourceTypes: msgCopy.sourceTypes,
+//   //   rawReferences: msgCopy.references
+//   // })
 
-  return {
-    id: msgCopy.id,
-    role: msgCopy.role,
-    contentLength: msgCopy.content?.length || 0,
-    hasReferences: !!msgCopy.references?.notes?.length,
-    referenceCount: msgCopy.references?.notes?.length || 0,
-    sourceTypes: msgCopy.sourceTypes || {
-      hasNotes: false,
-      hasImages: false,
-      hasPdfs: false
-    },
-    references: msgCopy.references
-  }
-}
+//   return {
+//     id: msgCopy.id,
+//     role: msgCopy.role,
+//     contentLength: msgCopy.content?.length || 0,
+//     hasReferences: !!msgCopy.references?.notes?.length,
+//     referenceCount: msgCopy.references?.notes?.length || 0,
+//     sourceTypes: msgCopy.sourceTypes || {
+//       hasNotes: false,
+//       hasImages: false,
+//       hasPdfs: false
+//     },
+//     references: msgCopy.references
+//   }
+// }
 
 // 添加模型切换处理方法
 const handleModelSwitch = async (modelId: string) => {
@@ -1245,8 +1246,8 @@ const handleAgentSetting = () => {
       font-size: 14px;
       margin: 16px 24px 24px;
       line-height: 1.6;
+      transform: translateY(-76px); /* 添加这行 */
     }
-
     .candle-container {
       position: absolute;
       left: 50%;

@@ -323,33 +323,19 @@ const handleCancelDelete = () => {
   }
 
   .agent-view-container {
-    display: flex;
-    flex-direction: column;
-    height: calc(100vh - 100px);
-    overflow: hidden;
-    position: relative;
+    flex: 1;
+    overflow-y: auto;
     background-color: var(--color-bg-primary);
-
-    .card-grid-container {
-      flex: 1;
-      overflow-y: auto;
-      padding: 20px;
-      background: var(--color-bg-primary);
-      position: relative;
-    }
+    padding: 20px;
 
     .card-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
       gap: 24px;
-      align-content: start;
-      justify-content: center;
-      padding: 20px;
 
       @media (max-width: 768px) {
         grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
         gap: 16px;
-        padding: 16px;
       }
     }
 
