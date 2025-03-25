@@ -14,8 +14,18 @@
           </div>
           <!-- 右侧工具栏 -->
           <div class="toolbar-right">
+            <Button
+              icon-only
+              :icon="RobotTwo"
+              :tooltip="{ content: 'Agents 设置', placement: 'top' }"
+              noBorder
+              :default-icon-color="true"
+              @click="handleAgentSetting"
+            >
+              管理 AI Agents
+            </Button>
             <!-- 现有的主面板打开按钮 -->
-            <div
+            <!-- <div
               v-tooltip.top="{ content: '在主面板打开', delay: { show: 1000 } }"
               class="tool-btn"
               @click="openInMainPanel"
@@ -28,7 +38,7 @@
                   :strokeWidth="3"
                 />
               </div>
-            </div>
+            </div> -->
           </div>
         </div>
 
@@ -56,7 +66,7 @@
           <!-- 对话区域 -->
           <div v-else class="chat-section">
             <!-- 调试信息 -->
-            <div style="display: none">
+            <!-- <div style="display: none">
               {{
                 console.log('渲染对话区域:', {
                   conversationId: currentConversation?.id,
@@ -72,7 +82,7 @@
                   }))
                 })
               }}
-            </div>
+            </div> -->
 
             <!-- 消息列表 -->
             <div class="messages">
@@ -95,7 +105,6 @@
                       :content="msg.content"
                       :timestamp="getMessageTimestamp(msg.createdAt)"
                       :instant="true"
-                      @segment-complete="onSegmentComplete"
                       @complete="() => onTypewriterComplete(msg.id)"
                     />
                     <!-- 引用信息区域 -->
@@ -210,13 +219,23 @@
                   :showSelected="false"
                   align="end"
                   placement="top"
-                  :tooltip="{ content: 'AI 助手', placement: 'top' }"
+                  :tooltip="{ content: 'AI Agents', placement: 'top' }"
                   icon-only
                   :icon="Robot"
                   @select="handleAgentSelect"
                 >
                   AI 助手
                 </Dropdown>
+                <!-- 添加清空笔记按钮 -->
+                <Button
+                  v-if="selectedNotes.length > 0"
+                  icon-only
+                  :icon="Clear"
+                  :tooltip="{ content: '清空已选择笔记', placement: 'top' }"
+                  @click="clearSelectedNotes"
+                >
+                  清空已选择笔记
+                </Button>
               </div>
 
               <!-- 右侧模型选择器 -->
@@ -245,7 +264,7 @@
                   class="note-selector"
                   :style="noteSelectorStyle"
                   @select="handleNoteSelect"
-                  @close="showNoteSelector = false"
+                  @close="handleNoteSelectorClose"
                 />
               </Teleport>
 
@@ -276,7 +295,7 @@
                   class="abort-btn"
                   @click="handleAbortRequest"
                 >
-                  <PauseOne theme="outline" size="16" fill="var(--color-red)" :strokeWidth="3" />
+                  <PauseOne theme="outline" size="16" :strokeWidth="3" />
                 </button>
 
                 <!-- 发送按钮 -->
@@ -327,13 +346,14 @@ import {
   Robot,
   Notes,
   Send,
-  Afferent,
   Plus,
   History,
   Close,
   Copy,
   Brain,
-  PauseOne
+  PauseOne,
+  Clear,
+  RobotTwo
 } from '@icon-park/vue-next'
 import TypewriterText from '@renderer/components/aiassistant/TypewriterText.vue'
 import { useRouter } from 'vue-router'
@@ -582,24 +602,10 @@ const scrollToLatestMessage = () => {
   })
 }
 
-const onSegmentComplete = () => {
-  // 删除滚动代码
-  // requestAnimationFrame(() => {
-  //   if (messagesContainer.value) {
-  //     messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight
-  //   }
-  // })
-}
-
 const onTypewriterComplete = (messageId: string) => {
   // 只标记消息为已显示
   assistantStore.markMessageAsDisplayed(messageId)
   focusInput()
-}
-
-const openInMainPanel = () => {
-  router.push('/ai-assistant')
-  uiStore.toggleRightSidebar()
 }
 
 // 输入法相关
@@ -624,8 +630,10 @@ const handleInputKeyDown = (event: KeyboardEvent) => {
   }
 
   // 处理 Escape 键关闭笔记选择器
-  if (event.key === 'Escape') {
+  if (event.key === 'Escape' && showNoteSelector.value) {
     showNoteSelector.value = false
+    // 添加聚焦到输入框
+    focusInput()
   }
 }
 
@@ -754,7 +762,7 @@ const updateNoteSelectorPosition = () => {
     const rect = inputContainer.getBoundingClientRect()
     noteSelectorStyle.value = {
       position: 'fixed',
-      bottom: `${window.innerHeight - rect.top + 8}px`,
+      bottom: `${window.innerHeight - rect.top + 50}px`,
       right: `${window.innerWidth - rect.right}px`,
       zIndex: 1000
     }
@@ -807,7 +815,12 @@ const handleAbortRequest = async () => {
   }
 }
 
-// 4. 添加 handleAgentSelect 函数
+/**
+ * 处理 Agent 选择
+ * @async
+ * @description 选择 AI Agent 并开始新对话，同时处理已选择的笔记引用
+ * @param {string} agentId - Agent ID
+ */
 const handleAgentSelect = async (agentId: string) => {
   console.log('选择 Agent:', agentId)
 
@@ -823,16 +836,39 @@ const handleAgentSelect = async (agentId: string) => {
 
     console.log('切换到 Agent:', {
       name: agent.name,
-      id: agent.id
+      id: agent.id,
+      hasSelectedNotes: selectedNotes.value.length > 0
     })
 
     // 清空当前对话
     aiChatStore.createNewConversation()
 
-    console.log('开始新对话')
-    await aiChatStore.sendChatRequest({
-      agentId
+    // 保存当前选中的笔记，因为发送后要清空
+    const noteRefs = selectedNotes.value.slice()
+
+    // 构造请求，包含已选择的笔记引用
+    const request: ChatRequest = {
+      agentId,
+      references:
+        noteRefs.length > 0
+          ? {
+              noteIds: noteRefs.map((note) => note.id),
+              shouldSearchNotes: true
+            }
+          : undefined
+    }
+
+    console.log('开始新对话，请求数据:', {
+      agentId,
+      selectedNotesCount: noteRefs.length,
+      request
     })
+
+    // 发送请求
+    await aiChatStore.sendChatRequest(request)
+
+    // 清空已选择的笔记
+    selectedNotes.value = []
   } catch (error) {
     console.error('切换 Agent 失败:', error)
     message.error('切换 Agent 失败')
@@ -970,13 +1006,15 @@ const handleModelSwitch = async (modelId: string) => {
   }
 }
 
-// 修改 handleClickOutside 函数，增加对历史菜单的处理
+// 修改 handleClickOutside 函数
 const handleClickOutside = (event: MouseEvent) => {
   // 检查点击是否在笔记选择器外部
   if (showNoteSelector.value) {
     const noteSelectorEl = document.querySelector('.note-selector')
     if (noteSelectorEl && !noteSelectorEl.contains(event.target as Node)) {
       showNoteSelector.value = false
+      // 在关闭笔记选择器后，重新聚焦到输入框
+      focusInput()
     }
   }
 
@@ -1033,6 +1071,22 @@ const loadingComponents = {
   washing: defineAsyncComponent(() => import('@renderer/components/ui/LoadingWashing.vue')),
   typewriter: defineAsyncComponent(() => import('@renderer/components/ui/LoadingTypewriter.vue')),
   loadingFox: defineAsyncComponent(() => import('@renderer/components/ui/LoadingFox.vue'))
+}
+
+// 添加新的处理函数
+const handleNoteSelectorClose = () => {
+  showNoteSelector.value = false
+  focusInput()
+}
+
+// 添加清空笔记的方法
+const clearSelectedNotes = () => {
+  selectedNotes.value = []
+  focusInput() // 清空后聚焦到输入框
+}
+
+const handleAgentSetting = () => {
+  router.push({ name: 'AgentView' })
 }
 </script>
 
@@ -1452,11 +1506,11 @@ const loadingComponents = {
     position: absolute;
     right: 10px;
     bottom: 10px;
-    background: none;
+    background: var(--color-primary);
     border-radius: 50%;
-    color: var(--color-text-tertiary);
-    width: 26px;
-    height: 26px;
+    color: #fff;
+    width: 30px;
+    height: 30px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1472,10 +1526,9 @@ const loadingComponents = {
     }
 
     &:not(:disabled) {
-      color: var(--color-primary);
-
       &:hover {
         transform: scale(1.1);
+        background: color-mix(in srgb, var(--color-primary) 85%, white);
       }
     }
 
@@ -1825,11 +1878,11 @@ const loadingComponents = {
   position: absolute;
   right: 10px;
   bottom: 10px;
-  background: none;
+  background: var(--color-red);
   border-radius: 50%;
-  color: var(--color-error);
-  width: 26px;
-  height: 26px;
+  color: #fff;
+  width: 30px;
+  height: 30px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1841,7 +1894,7 @@ const loadingComponents = {
 
   &:hover {
     transform: scale(1.1);
-    background: var(--color-hover-bg);
+    background: color-mix(in srgb, var(--color-red) 85%, white);
   }
 
   :deep(.i-icon) {

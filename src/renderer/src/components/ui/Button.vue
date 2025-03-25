@@ -23,6 +23,8 @@ interface Props {
   plain?: boolean
   tooltip?: TooltipConfig
   dropdown?: boolean
+  noBorder?: boolean
+  defaultIconColor?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -35,7 +37,9 @@ const props = withDefaults(defineProps<Props>(), {
   shape: 'default',
   iconOnly: false,
   plain: false,
-  dropdown: false
+  dropdown: false,
+  noBorder: false,
+  defaultIconColor: false
 })
 
 const buttonRef = ref<HTMLButtonElement | null>(null)
@@ -75,7 +79,9 @@ const emit = defineEmits<{
       { 'ant-btn-disabled': disabled },
       { 'ant-btn-icon-only': iconOnly || shape === 'circle' || shape === 'square' },
       { 'ant-btn-plain': plain },
-      { 'ant-btn-dropdown': dropdown }
+      { 'ant-btn-dropdown': dropdown },
+      { 'ant-btn-no-border': noBorder },
+      { 'ant-btn-default-icon-color': defaultIconColor }
     ]"
     :style="
       height
@@ -399,5 +405,29 @@ const emit = defineEmits<{
   color: color-mix(in srgb, var(--color-red) 85%, white);
   border-color: color-mix(in srgb, var(--color-red) 85%, white);
   background: color-mix(in srgb, var(--color-red) 5%, transparent);
+}
+
+.ant-btn-no-border {
+  border-color: transparent;
+
+  &:not(.ant-btn-disabled):not(.ant-btn-loading):not(.ant-btn-primary):not(.ant-btn-text):not(
+      .ant-btn-link
+    ):not(.ant-btn-delete):not(.ant-btn-warning):hover {
+    border-color: var(--color-primary);
+  }
+}
+
+.ant-btn-default-icon-color {
+  .button-icon {
+    color: var(--color-icon-default);
+  }
+
+  &:not(.ant-btn-disabled):not(.ant-btn-loading):not(.ant-btn-primary):not(.ant-btn-text):not(
+      .ant-btn-link
+    ):not(.ant-btn-delete):not(.ant-btn-warning):hover {
+    .button-icon {
+      color: var(--color-primary);
+    }
+  }
 }
 </style>
