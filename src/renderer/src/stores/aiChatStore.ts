@@ -1,18 +1,55 @@
+/**
+ * @file aiChatStore.ts
+ * @description AI 对话状态管理
+ *
+ * 主要功能：
+ * 1. 会话管理
+ *    - 会话列表获取与更新
+ *    - 会话状态维护
+ *    - 会话详情处理
+ * 2. 消息处理
+ *    - 消息发送与接收
+ *    - 消息流式处理
+ *    - 消息引用处理
+ * 3. 状态维护
+ *    - 加载状态管理
+ *    - 当前会话状态
+ *    - 流式内容缓存
+ *
+ * @author 麦先生
+ * @created 2024-03-25
+ */
+
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import type { ChatRequest, ChatResponse, Conversation } from '@shared/types/ai-chat'
 import { ConversationStatus } from '@shared/types/ai-chat'
 
 export const useAIChatStore = defineStore('aiChat', () => {
-  // ==================== 状态 ====================
+  /**
+   * 状态定义
+   * @property {Conversation[]} conversations - 会话列表
+   * @property {Conversation | null} currentConversation - 当前活动会话
+   * @property {boolean} isLoading - 加载状态
+   * @property {string} currentStreamingContent - 当前流式响应内容
+   * @property {number} totalConversations - 会话总数
+   */
   const conversations = ref<Conversation[]>([])
   const currentConversation = ref<Conversation | null>(null)
   const isLoading = ref(false)
   const currentStreamingContent = ref('')
   const totalConversations = ref(0)
 
-  // ==================== 操作方法 ====================
-  // 获取会话列表
+  /**
+   * 获取会话列表
+   * @async
+   * @param {Object} params - 查询参数
+   * @param {ConversationStatus} params.status - 会话状态
+   * @param {number} params.page - 页码
+   * @param {number} params.pageSize - 每页数量
+   * @returns {Promise<{conversations: Conversation[], total: number}>} 会话列表和总数
+   * @throws {Error} 获取失败时抛出错误
+   */
   const fetchConversations = async (params?: {
     status?: ConversationStatus
     page?: number
@@ -32,7 +69,11 @@ export const useAIChatStore = defineStore('aiChat', () => {
     }
   }
 
-  // 修改消息处理相关的函数
+  /**
+   * 处理聊天响应
+   * @description 处理AI响应消息，更新会话状态和消息列表
+   * @param {ChatResponse} response - AI响应数据
+   */
   const handleChatResponse = (response: ChatResponse) => {
     if (!currentConversation.value) return
 
@@ -90,18 +131,47 @@ export const useAIChatStore = defineStore('aiChat', () => {
       messages // 确保更新消息数组
     }
 
-    console.log('消息处理完成:', {
-      messageId: messageData.id,
-      conversationId: messageData.conversationId,
-      messageCount: messages.length,
-      hasReferences: !!messageData.references?.notes?.length
-    })
+    // console.log('消息处理完成:', {
+    //   messageId: messageData.id,
+    //   conversationId: messageData.conversationId,
+    //   messageCount: messages.length,
+    //   hasReferences: !!messageData.references?.notes?.length
+    // })
   }
 
-  // 修改会话详情处理函数
+  /**
+   * 处理会话详情
+   * @async
+   * @description 处理会话详情数据，包括消息解析和状态更新
+   * @param {Conversation} conversation - 会话数据
+   */
   const handleConversationDetail = async (conversation: Conversation) => {
-    // 确保 messages 数组存在并且有值
-    const messages = Array.isArray(conversation.messages) ? conversation.messages : []
+    const messages = Array.isArray(conversation.messages)
+      ? conversation.messages.map((msg) => {
+          // 解析存储为 JSON 字符串的字段
+          const references =
+            typeof msg.references === 'string' ? JSON.parse(msg.references) : msg.references
+
+          const sourceTypes =
+            typeof msg.sourceTypes === 'string'
+              ? JSON.parse(msg.sourceTypes)
+              : msg.sourceTypes || {
+                  hasNotes: !!references?.notes?.length,
+                  hasImages: !!references?.images?.length,
+                  hasPdfs: !!references?.pdfs?.length
+                }
+
+          const usage = typeof msg.usage === 'string' ? JSON.parse(msg.usage) : msg.usage
+
+          return {
+            ...msg,
+            createdAt: new Date(msg.createdAt),
+            references,
+            sourceTypes,
+            usage
+          }
+        })
+      : []
 
     // 直接设置当前会话
     currentConversation.value = {
@@ -112,19 +182,30 @@ export const useAIChatStore = defineStore('aiChat', () => {
       lastMessageAt: new Date(conversation.lastMessageAt)
     }
 
-    console.log('当前会话已更新:', {
-      id: currentConversation.value.id,
-      messageCount: messages.length, // 直接使用处理后的 messages
-      title: currentConversation.value.title
-    })
+    // console.log('当前会话已更新:', {
+    //   id: currentConversation.value.id,
+    //   messageCount: messages.length,
+    //   title: currentConversation.value.title,
+    //   messagesWithReferences: messages.filter(
+    //     (m) => m.references?.notes?.length || m.sourceTypes?.hasNotes
+    //   ).length
+    // })
   }
 
-  // 获取会话详情
+  /**
+   * 获取会话详情
+   * @async
+   * @param {string} id - 会话ID
+   * @param {number} retryCount - 重试次数
+   * @returns {Promise<Conversation>} 会话详情
+   * @throws {Error} 获取失败时抛出错误
+   */
   const fetchConversationDetail = async (id: string, retryCount = 3): Promise<Conversation> => {
-    console.log('开始获取会话详情:', { id, retryCount })
+    // console.log('开始获取会话详情:', { id, retryCount })
 
     try {
       isLoading.value = true
+      // 获取会话详情
       const conversation = await window.electronAPI.aiChat.getConversationDetail(id)
 
       // 确保时间字段是 Date 对象
@@ -140,10 +221,10 @@ export const useAIChatStore = defineStore('aiChat', () => {
           })) || []
       }
 
-      console.log('会话详情处理完成:', {
-        id: processedConversation.id,
-        messageCount: processedConversation.messages.length
-      })
+      // console.log('会话详情处理完成:', {
+      //   id: processedConversation.id,
+      //   messageCount: processedConversation.messages.length
+      // })
 
       await handleConversationDetail(processedConversation)
       return processedConversation
@@ -160,7 +241,14 @@ export const useAIChatStore = defineStore('aiChat', () => {
     }
   }
 
-  // 修改发送请求方法
+  /**
+   * 发送聊天请求
+   * @async
+   * @description 发送聊天请求并处理响应
+   * @param {ChatRequest} request - 聊天请求数据
+   * @returns {Promise<ChatResponse>} 聊天响应
+   * @throws {Error} 发送失败时抛出错误
+   */
   const sendChatRequest = async (request: ChatRequest): Promise<ChatResponse> => {
     try {
       isLoading.value = true
@@ -218,13 +306,13 @@ export const useAIChatStore = defineStore('aiChat', () => {
         }
       }
 
-      console.log('发送聊天请求:', {
-        hasAgentId: !!request.agentId,
-        isNewConversation: !currentConversation.value.id,
-        query: request.query,
-        references: request.references,
-        currentMessages: currentConversation.value.messages?.length || 0
-      })
+      // console.log('发送聊天请求:', {
+      //   hasAgentId: !!request.agentId,
+      //   isNewConversation: !currentConversation.value.id,
+      //   query: request.query,
+      //   references: request.references,
+      //   currentMessages: currentConversation.value.messages?.length || 0
+      // })
 
       // 2. 发送请求并获取响应
       const response = await window.electronAPI.aiChat.sendChatRequest(request)
@@ -257,7 +345,13 @@ export const useAIChatStore = defineStore('aiChat', () => {
     }
   }
 
-  // 发送流式聊天请求
+  /**
+   * 发送流式聊天请求
+   * @async
+   * @param {ChatRequest} request - 聊天请求数据
+   * @param {Function} onUpdate - 内容更新回调
+   * @returns {Promise<string>} 消息ID
+   */
   const sendStreamChatRequest = async (
     request: ChatRequest,
     onUpdate?: (content: string) => void
@@ -292,19 +386,30 @@ export const useAIChatStore = defineStore('aiChat', () => {
     })
   }
 
-  // 中断当前请求
+  /**
+   * 中断当前请求
+   * @async
+   * @description 中断正在进行的AI请求
+   * @throws {Error} 中断失败时抛出错误
+   */
   const abortCurrentRequest = async () => {
-    console.log('尝试中断当前请求')
+    // console.log('尝试中断当前请求')
     try {
       await window.electronAPI.aiChat.abortChatRequest()
-      console.log('请求中断成功')
+      // console.log('请求中断成功')
     } catch (error) {
       console.error('中断请求失败:', error)
       throw error
     }
   }
 
-  // 更新会话状态
+  /**
+   * 更新会话状态
+   * @async
+   * @param {string} id - 会话ID
+   * @param {ConversationStatus} status - 新状态
+   * @throws {Error} 更新失败时抛出错误
+   */
   const updateConversationStatus = async (id: string, status: ConversationStatus) => {
     try {
       await window.electronAPI.aiChat.updateConversationStatus(id, status)
@@ -320,7 +425,12 @@ export const useAIChatStore = defineStore('aiChat', () => {
     }
   }
 
-  // 删除会话
+  /**
+   * 删除会话
+   * @async
+   * @param {string} id - 会话ID
+   * @throws {Error} 删除失败时抛出错误
+   */
   const deleteConversation = async (id: string) => {
     try {
       await window.electronAPI.aiChat.deleteConversation(id)
@@ -337,25 +447,31 @@ export const useAIChatStore = defineStore('aiChat', () => {
     }
   }
 
-  // 清空当前流式内容
+  /**
+   * 清空当前流式内容
+   * @description 清空流式响应的临时内容
+   */
   const clearStreamingContent = () => {
     currentStreamingContent.value = ''
   }
 
-  // 简化新建会话方法
+  /**
+   * 创建新会话
+   * @description 清空当前会话状态，准备创建新会话
+   */
   const createNewConversation = () => {
     currentConversation.value = null
   }
 
   return {
-    // 状态
+    // 状态导出
     conversations,
     currentConversation,
     isLoading,
     currentStreamingContent,
     totalConversations,
 
-    // 方法
+    // 方法导出
     fetchConversations,
     fetchConversationDetail,
     sendChatRequest,

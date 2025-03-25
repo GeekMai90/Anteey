@@ -337,19 +337,42 @@ async function createMessage(
   })
 
   try {
+    // 构造基本消息对象
     const message: MessageRecord = {
       id: uuidv4(),
       conversationId,
       parentMessageId: parentMessageId || null,
       role,
       content,
-      ...metadata,
       createdAt: new Date()
+    }
+
+    // 将可能存在的引用和源类型信息添加到消息对象中
+    // 这是关键变更：确保将 metadata 中的引用信息和源类型信息保存到消息记录中
+    if (metadata.references) {
+      message.references = metadata.references
+    }
+
+    if (metadata.sourceTypes) {
+      message.sourceTypes = metadata.sourceTypes
+    }
+
+    if (metadata.usage) {
+      message.usage = metadata.usage
     }
 
     await db.transaction(async (trx) => {
       log.info('开始数据库事务...')
-      await trx('chat_messages').insert(message)
+
+      // 如果引用、源类型和使用情况包含对象，则需要转换为 JSON 字符串
+      const messageToSave = {
+        ...message,
+        references: message.references ? JSON.stringify(message.references) : null,
+        sourceTypes: message.sourceTypes ? JSON.stringify(message.sourceTypes) : null,
+        usage: message.usage ? JSON.stringify(message.usage) : null
+      }
+
+      await trx('chat_messages').insert(messageToSave)
       log.info('消息已插入数据库')
 
       await trx('chat_conversations')
@@ -362,7 +385,12 @@ async function createMessage(
       log.info('会话计数已更新')
     })
 
-    log.info('消息创建成功:', { messageId: message.id })
+    log.info('消息创建成功:', {
+      messageId: message.id,
+      hasReferences: !!message.references,
+      hasSourceTypes: !!message.sourceTypes
+    })
+
     return message
   } catch (error) {
     log.error('消息创建失败:', {
@@ -627,7 +655,7 @@ async function prepareMessages(
  * 3. 处理笔记引用
  * 4. 准备消息内容
  * 5. 生成AI响应
- * 6. 保存响应消息
+ * 6. 保存AI响应
  * 7. 返回处理结果
  *
  * @param {ChatRequest} request - 聊天请求对象
@@ -686,7 +714,11 @@ export async function handleChatRequest(request: ChatRequest): Promise<ChatRespo
       conversation.id,
       'assistant',
       aiResponse,
-      userMessage?.id || undefined // 使用可选链和空值合并
+      userMessage?.id || undefined,
+      {
+        references: references,
+        sourceTypes: sourceTypes
+      }
     )
 
     // 7. 准备返回响应

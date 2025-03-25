@@ -100,7 +100,11 @@
                     />
                     <!-- 引用信息区域 -->
                     <div
-                      v-if="msg.references?.notes?.length || msg.sourceTypes?.hasNotes"
+                      v-if="
+                        msg.references?.notes?.length ||
+                        msg.sourceTypes?.hasNotes ||
+                        msg.role === 'assistant'
+                      "
                       class="message-references"
                     >
                       <div class="references-header">
@@ -346,6 +350,7 @@ import type { ChatRequest } from '@shared/types/ai-chat'
 import { useModelConfigStore } from '@renderer/stores/modelConfigStore'
 import { Receiver } from '@icon-park/vue-next'
 import LoadingThinking from '@renderer/components/ui/LoadingThinking.vue'
+import { useNoteStore } from '@renderer/stores/noteStore'
 
 // Store
 const aiChatStore = useAIChatStore()
@@ -355,7 +360,7 @@ const router = useRouter()
 const uiStore = useUIStore()
 const agentStore = useAgentStore()
 const modelConfigStore = useModelConfigStore()
-
+const noteStore = useNoteStore()
 // Refs
 const inputMessage = ref('')
 const messagesContainer = ref<HTMLElement | null>(null)
@@ -899,12 +904,25 @@ const handleSendMessage = async () => {
   }
 }
 
+// 添加处理引用点击和双击的方法
 const handleReferenceClick = (event: MouseEvent, noteId: string) => {
-  console.log('handleReferenceClick', event, noteId)
+  // Command/Ctrl + 点击: 在展开编辑器中打开
+  if (event.metaKey || event.ctrlKey) {
+    router.push({ name: 'NoteExpandEditor', params: { id: noteId } })
+    return
+  }
+
+  // Alt + 点击: 在右侧边栏打开
+  if (event.altKey) {
+    noteStore.addNoteToRightSidebar(noteId)
+    uiStore.openRightSidebarWithTab('multi')
+    return
+  }
 }
 
 const handleReferenceDoubleClick = (noteId: string) => {
-  console.log('handleReferenceDoubleClick', noteId)
+  // 双击: 小窗打开
+  noteStore.openNoteEditor(noteId)
 }
 
 const formatMessageForLog = (msg: any) => {
@@ -952,13 +970,28 @@ const handleModelSwitch = async (modelId: string) => {
   }
 }
 
-// 添加点击事件处理函数
+// 修改 handleClickOutside 函数，增加对历史菜单的处理
 const handleClickOutside = (event: MouseEvent) => {
   // 检查点击是否在笔记选择器外部
   if (showNoteSelector.value) {
     const noteSelectorEl = document.querySelector('.note-selector')
     if (noteSelectorEl && !noteSelectorEl.contains(event.target as Node)) {
       showNoteSelector.value = false
+    }
+  }
+
+  // 检查点击是否在历史菜单外部
+  if (showHistory.value) {
+    const historyPanelEl = document.querySelector('.history-panel')
+    const historyBtnEl = historyBtnRef.value
+    // 如果点击不在历史面板内，也不在历史按钮上，则关闭历史面板
+    if (
+      historyPanelEl &&
+      !historyPanelEl.contains(event.target as Node) &&
+      historyBtnEl &&
+      !historyBtnEl.contains(event.target as Node)
+    ) {
+      showHistory.value = false
     }
   }
 }
@@ -1226,7 +1259,7 @@ const loadingComponents = {
       background: var(--color-bg-secondary);
       color: var(--color-text-primary);
       border-radius: 0 1rem 1rem 1rem;
-      max-width: calc(100% - 2rem);
+      max-width: calc(100% - 1rem);
     }
 
     &.agent-message {
