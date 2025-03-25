@@ -730,6 +730,18 @@ defineExpose({
     display: flex;
     align-items: center;
     justify-content: center;
+    :deep(.i-icon) {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      height: 100%;
+    }
+
+    :deep(svg) {
+      width: 12px;
+      height: 12px;
+    }
   }
 }
 

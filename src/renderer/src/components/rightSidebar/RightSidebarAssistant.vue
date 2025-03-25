@@ -183,9 +183,21 @@
             <div class="function-buttons">
               <!-- 左侧按钮组 -->
               <div class="left-buttons">
-                <Button icon-only :icon="Plus" @click="handleNewConversation"> 新会话 </Button>
+                <Button
+                  icon-only
+                  :icon="Plus"
+                  :tooltip="{ content: '新会话', placement: 'top' }"
+                  @click="handleNewConversation"
+                >
+                  新会话
+                </Button>
                 <div ref="historyBtnRef" class="history-btn-wrapper">
-                  <Button icon-only :icon="History" @click="showHistory = !showHistory">
+                  <Button
+                    icon-only
+                    :icon="History"
+                    :tooltip="{ content: '历史会话', placement: 'top' }"
+                    @click="showHistory = !showHistory"
+                  >
                     历史会话
                   </Button>
                 </div>
@@ -194,6 +206,7 @@
                   :showSelected="false"
                   align="end"
                   placement="top"
+                  :tooltip="{ content: 'AI 助手', placement: 'top' }"
                   icon-only
                   :icon="Robot"
                   @select="handleAgentSelect"
@@ -208,6 +221,7 @@
                   :items="modelItems"
                   :showSelected="true"
                   size="medium"
+                  :tooltip="{ content: '选择默认模型', placement: 'top' }"
                   align="end"
                   placement="top"
                   @select="handleModelSwitch"
@@ -264,6 +278,7 @@
                 <!-- 发送按钮 -->
                 <button
                   v-else
+                  v-tooltip.top="'发送消息 (Enter)'"
                   class="send-btn"
                   :disabled="!inputMessage.trim() || isLoading"
                   @click="handleSendMessage"
@@ -948,14 +963,30 @@ const handleClickOutside = (event: MouseEvent) => {
   }
 }
 
+// 添加键盘事件处理函数
+const handleKeyboardShortcuts = (event: KeyboardEvent) => {
+  // 检查是否是 Cmd+Backspace (Mac) 或 Ctrl+Backspace (Windows)
+  if ((event.metaKey || event.ctrlKey) && event.key === 'Backspace') {
+    // 只有在加载状态时才处理中断请求
+    if (isLoading.value) {
+      event.preventDefault() // 阻止默认行为
+      handleAbortRequest()
+    }
+  }
+}
+
 // 在组件挂载时添加事件监听器
 onMounted(() => {
   document.addEventListener('click', handleClickOutside)
+  // 添加键盘事件监听
+  document.addEventListener('keydown', handleKeyboardShortcuts)
 })
 
 // 在组件卸载时移除事件监听器
 onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside)
+  // 移除键盘事件监听
+  document.removeEventListener('keydown', handleKeyboardShortcuts)
 })
 
 // 创建异步组件映射
