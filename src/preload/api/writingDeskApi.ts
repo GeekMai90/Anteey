@@ -395,5 +395,48 @@ export const writingDeskApi = {
         error: String(error)
       }
     }
+  },
+
+  // 导出润色后的文稿
+  exportPolishedManuscript: async (
+    manuscriptId: string
+  ): Promise<{
+    success: boolean
+    filePath?: string
+    fileName?: string
+    error?: string
+  }> => {
+    try {
+      console.log('预加载脚本 → 准备导出润色文稿')
+      const result = await ipcRenderer.invoke('export-polished-manuscript', manuscriptId)
+      return result
+    } catch (error) {
+      console.error('预加载脚本 → 导出润色文稿失败:', error)
+      return {
+        success: false,
+        error: String(error)
+      }
+    }
+  },
+
+  // 复制润色后的文稿到剪贴板
+  copyPolishedManuscript: async (
+    manuscriptId: string
+  ): Promise<{
+    success: boolean
+    message?: string
+    error?: string
+  }> => {
+    try {
+      console.log('预加载脚本 → 准备复制润色文稿到剪贴板')
+      const result = await ipcRenderer.invoke('copy-polished-manuscript', manuscriptId)
+      return result
+    } catch (error) {
+      console.error('预加载脚本 → 复制润色文稿到剪贴板失败:', error)
+      return {
+        success: false,
+        error: String(error)
+      }
+    }
   }
 }

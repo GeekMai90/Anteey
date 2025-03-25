@@ -1205,6 +1205,21 @@ export interface ElectronAPI {
       }
       error?: string
     }>
+
+    // 导出润色后的文稿
+    exportPolishedManuscript: (manuscriptId: string) => Promise<{
+      success: boolean
+      filePath?: string
+      fileName?: string
+      error?: string
+    }>
+
+    // 复制润色后的文稿到剪贴板
+    copyPolishedManuscript: (manuscriptId: string) => Promise<{
+      success: boolean
+      message?: string
+      error?: string
+    }>
   }
 
   writingPromptTemplate: {

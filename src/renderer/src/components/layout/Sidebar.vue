@@ -93,14 +93,14 @@
         <!-- 草稿纸按钮 -->
         <button
           v-tooltip.top="{
-            content: 'AI 助手',
+            content: '收件箱',
             delay: { show: 1000 }
           }"
           class="action-btn"
-          @click="router.push('/ai-assistant')"
+          @click="router.push('/inbox')"
         >
           <div class="icon">
-            <Robot theme="outline" size="16" fill="var(--color-sidebar-icon)" :strokeWidth="3" />
+            <Inbox theme="outline" size="16" fill="var(--color-sidebar-icon)" :strokeWidth="3" />
           </div>
         </button>
         <button
@@ -325,12 +325,10 @@ import {
   Star,
   Tag,
   Cup,
-  Robot,
   Inbox,
   NotebookAndPen
 } from '@icon-park/vue-next'
 import { useNoteStore } from '@renderer/stores/noteStore'
-import { useDinoxStore } from '@renderer/stores/dinoxStore'
 import SettingDropdownMenu from '@renderer/components/settings/SettingDropdownMenu.vue'
 import StarredNotes from '@renderer/components/layout/StarredNotes.vue'
 import { useUIStore } from '@renderer/stores/UIStore'
@@ -358,7 +356,6 @@ const themeStore = useThemeStore()
 const reviewStore = useReviewStore()
 const cloudSyncStore = useCloudSyncStore()
 const s3Store = useS3Store()
-const dinoxStore = useDinoxStore()
 
 const getIconFill = computed(
   () => (path: string) =>
@@ -393,15 +390,14 @@ const menuItems = computed(() => {
     ...(timeBlockStore.settings.enabled
       ? [{ name: '时光记', path: '/timeblock', icon: Time }]
       : []),
-    ...(dinoxStore.isInboxEnabled ? [{ name: '收件箱', path: '/inbox', icon: Inbox }] : []),
+    // ...(dinoxStore.isInboxEnabled ? [{ name: '收件箱', path: '/inbox', icon: Inbox }] : []),
     { name: '笔记流', path: '/timeline', icon: NotebookOne },
     { name: '卡片盒', path: '/cardbox', icon: Box },
     { name: '知识树', path: '/knowledge-tree', icon: Sapling },
     { name: '记忆卡', path: '/flashcard', icon: StorageCardOne },
     { name: '思维板', path: '/mindboard', icon: Workbench },
-    { name: '写作台', path: '/writing-desk', icon: NotebookAndPen },
-    { name: 'UI', path: '/ui-test', icon: Workbench },
-    { name: 'AI', path: '/agent', icon: Robot }
+    { name: '写作台', path: '/writing-desk', icon: NotebookAndPen }
+    // { name: 'UI', path: '/ui-test', icon: Workbench },
   ]
   return baseItems
 })

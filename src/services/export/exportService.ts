@@ -512,3 +512,5 @@ export async function exportAllNotes(): Promise<{ filePath: string; fileName: st
     throw error
   }
 }
+
+export { convertContentToMarkdown, downloadImage, sanitizeFileName }

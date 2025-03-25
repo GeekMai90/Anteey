@@ -107,14 +107,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import {
-  Write,
-  Close,
-  ThinkingProblem,
-  MessageEmoji,
-  Tips,
-  NotebookAndPen
-} from '@icon-park/vue-next'
+import { Write, Close, MessageEmoji, Tips, NotebookAndPen } from '@icon-park/vue-next'
 import { useWritingPromptTemplateStore } from '@renderer/stores/writingPromptTemplateStore'
 import type { PromptTemplateType } from '@shared/types'
 import { message } from '@renderer/utils/message'
@@ -126,6 +119,12 @@ const promptTemplateStore = useWritingPromptTemplateStore()
 const showModal = ref(false)
 const currentType = ref<PromptTemplateType>('firstDraft')
 const isEditing = ref(false)
+
+// 修改模板类型配置，移除 deepThinking
+const templateTypes = [
+  { value: 'firstDraft', label: '生成初稿' },
+  { value: 'polish', label: '润色文章' }
+] as const
 
 // 存储各类型的模板
 const templates = ref<
@@ -140,16 +139,8 @@ const templates = ref<
   >
 >({
   firstDraft: null,
-  polish: null,
-  deepThinking: null
+  polish: null
 })
-
-// 模板类型配置
-const templateTypes = [
-  { value: 'firstDraft', label: '生成初稿' },
-  { value: 'polish', label: '润色文章' },
-  { value: 'deepThinking', label: '深度思考' }
-] as const
 
 // 表单数据
 const formData = ref({
@@ -181,15 +172,13 @@ const getTemplateByType = (type: PromptTemplateType) => {
   return templates.value[type]
 }
 
-// 获取模板类型对应的图标
+// 修改 getIconForType 函数，移除 deepThinking 相关的逻辑
 const getIconForType = (type: PromptTemplateType) => {
   switch (type) {
     case 'firstDraft':
       return Write
     case 'polish':
       return MessageEmoji
-    case 'deepThinking':
-      return ThinkingProblem
     default:
       return Write
   }

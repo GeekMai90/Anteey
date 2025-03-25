@@ -11,6 +11,14 @@ import type {
 import { LLMService } from '../rag/llmService'
 import { extractTextFromTiptapJson, convertTextToTiptapJson } from '../utils/textToJson'
 import { getPromptTemplateByType } from './writingPromptTemplateService'
+import JSZip from 'jszip'
+import path from 'path'
+import { format } from 'date-fns'
+import { dialog } from 'electron'
+import fs from 'fs'
+import { app } from 'electron'
+import { convertContentToMarkdown, downloadImage, sanitizeFileName } from '../export/exportService'
+import { clipboard } from 'electron'
 
 // 添加默认提示词常量
 const DEFAULT_PROMPTS = {
@@ -846,5 +854,155 @@ export async function checkTables() {
   } catch (error) {
     console.error('检查数据库表失败:', error)
     throw error
+  }
+}
+
+// 导出润色后的文稿
+export async function exportPolishedManuscript(
+  manuscriptId: string
+): Promise<{ filePath: string; fileName: string }> {
+  try {
+    // 1. 获取文稿数据
+    const manuscript = await getManuscriptById(manuscriptId)
+    if (!manuscript) {
+      throw new Error(`文稿不存在: ${manuscriptId}`)
+    }
+
+    // 2. 检查是否有润色后的内容
+    if (!manuscript.polishedContent) {
+      throw new Error('文稿还没有润色内容')
+    }
+
+    // 3. 创建 ZIP 实例
+    const zip = new JSZip()
+
+    // 4. 转换为 Markdown
+    const { markdown, images } = convertContentToMarkdown(manuscript.polishedContent)
+
+    // 5. 处理图片
+    let processedMarkdown = markdown
+    for (const imageUrl of images) {
+      try {
+        const imageData = await downloadImage(imageUrl)
+        const imageName = path.basename(imageUrl)
+        zip.file(`images/${imageName}`, imageData)
+
+        // 更新 markdown 中的图片链接
+        processedMarkdown = processedMarkdown.replace(
+          new RegExp(
+            `!\\[([^\\]]*)\\]\\(${imageUrl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\)`,
+            'g'
+          ),
+          `![$1](./images/${imageName})`
+        )
+      } catch (error) {
+        console.error(`处理图片失败: ${imageUrl}`, error)
+      }
+    }
+
+    // 6. 添加 markdown 文件到 zip
+    const timeString = format(new Date(), 'yyyyMMddHHmm')
+    const fileName = `${sanitizeFileName(manuscript.title)}_${timeString}.md`
+    zip.file(fileName, processedMarkdown)
+
+    // 7. 生成 zip 文件
+    const content = await zip.generateAsync({ type: 'nodebuffer' })
+
+    // 8. 让用户选择保存位置
+    const zipFileName = `Antinet_manuscript_${timeString}.zip`
+    const result = await dialog.showSaveDialog({
+      defaultPath: path.join(app.getPath('downloads'), zipFileName),
+      filters: [{ name: 'ZIP 文件', extensions: ['zip'] }]
+    })
+
+    if (result.canceled || !result.filePath) {
+      throw new Error('用户取消了保存')
+    }
+
+    // 9. 保存文件并设置修改时间
+    await fs.promises.writeFile(result.filePath, content)
+    const now = new Date()
+    await fs.promises.utimes(result.filePath, now, now)
+
+    return {
+      filePath: result.filePath,
+      fileName: path.basename(result.filePath)
+    }
+  } catch (error) {
+    console.error('导出润色文稿失败:', error)
+    throw error
+  }
+}
+
+// 将润色后的文稿复制为 Markdown 格式到剪贴板
+export async function copyPolishedManuscriptToClipboard(
+  manuscriptId: string
+): Promise<{ success: boolean; message: string }> {
+  try {
+    // 1. 获取文稿数据
+    const manuscript = await getManuscriptById(manuscriptId)
+    if (!manuscript) {
+      throw new Error(`文稿不存在: ${manuscriptId}`)
+    }
+
+    // 2. 检查是否有润色后的内容
+    if (!manuscript.polishedContent) {
+      throw new Error('文稿还没有润色内容')
+    }
+
+    // 3. 获取应用数据目录
+    const userDataPath = app.getPath('userData')
+    const imagesPath = path.join(userDataPath, 'UserData', 'images')
+
+    // 4. 转换为 Markdown
+    const { markdown, images } = convertContentToMarkdown(manuscript.polishedContent)
+    let processedMarkdown = markdown
+
+    // 5. 处理图片路径
+    for (const imageUrl of images) {
+      try {
+        if (imageUrl.startsWith('app-image://')) {
+          // 获取图片文件名
+          const imageName = imageUrl.replace('app-image:///images/', '')
+          // 构建完整的本地文件路径
+          const localImagePath = path.join(imagesPath, imageName)
+
+          // 替换图片链接为本地路径，并添加注释
+          processedMarkdown = processedMarkdown.replace(
+            new RegExp(
+              `!\\[([^\\]]*)\\]\\(${imageUrl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\)`,
+              'g'
+            ),
+            (match, alt) => `![${alt}](${localImagePath})\n<!-- 本地图片路径 -->`
+          )
+        }
+      } catch (error) {
+        console.error(`处理图片失败: ${imageUrl}`, error)
+      }
+    }
+
+    // 6. 添加文章标题、元数据和图片存储位置说明
+    const timeString = format(new Date(), 'yyyy-MM-dd HH:mm:ss')
+    const headerContent =
+      `# ${manuscript.title}\n\n` +
+      `> 导出时间：${timeString}\n\n` +
+      `> 图片存储位置：${imagesPath}\n\n` +
+      `---\n\n`
+
+    const finalContent = headerContent + processedMarkdown
+
+    // 7. 复制到剪贴板
+    clipboard.writeText(finalContent)
+
+    return {
+      success: true,
+      message: '文稿已复制到剪贴板'
+    }
+  } catch (error) {
+    console.error('复制文稿到剪贴板失败:', error)
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : '复制文稿失败'
+    }
   }
 }

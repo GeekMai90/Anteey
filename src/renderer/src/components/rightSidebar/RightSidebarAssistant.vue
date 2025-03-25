@@ -353,7 +353,8 @@ import {
   Brain,
   PauseOne,
   Clear,
-  RobotTwo
+  RobotTwo,
+  Receiver
 } from '@icon-park/vue-next'
 import TypewriterText from '@renderer/components/aiassistant/TypewriterText.vue'
 import { useRouter } from 'vue-router'
@@ -368,7 +369,6 @@ import Dropdown from '@renderer/components/ui/Dropdown.vue'
 import { useAIChatStore } from '@renderer/stores/aiChatStore'
 import type { ChatRequest } from '@shared/types/ai-chat'
 import { useModelConfigStore } from '@renderer/stores/modelConfigStore'
-import { Receiver } from '@icon-park/vue-next'
 import LoadingThinking from '@renderer/components/ui/LoadingThinking.vue'
 import { useNoteStore } from '@renderer/stores/noteStore'
 import AgentAvatar from '@renderer/components/ui/AgentAvatar.vue'

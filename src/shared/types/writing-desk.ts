@@ -18,7 +18,7 @@ export interface ManuscriptCard {
 }
 
 // 添加 AI 功能类型枚举
-export type AIFeatureType = 'firstDraft' | 'polish' | 'deepThinking'
+export type AIFeatureType = 'firstDraft' | 'polish'
 
 // 添加 AI 功能配置接口
 export interface AIFeatureConfig {
@@ -81,7 +81,7 @@ export interface UpdateManuscriptParams {
 }
 
 // 提示词模板类型
-export type PromptTemplateType = 'firstDraft' | 'polish' | 'deepThinking'
+export type PromptTemplateType = 'firstDraft' | 'polish'
 
 // 提示词模板 - 修改后的接口
 export interface PromptTemplate {

@@ -32,7 +32,6 @@
           v-model="currentMode"
           :options="modeOptions"
           width="240px"
-          height="36px"
           name="edit-mode"
           tooltipPlacement="top"
         />
@@ -42,7 +41,6 @@
           v-model="viewMode"
           :options="viewModeOptions"
           width="112px"
-          height="36px"
           name="view-mode"
           tooltipPlacement="top"
         />
@@ -57,7 +55,6 @@
           }"
           class="history-button"
           type="default"
-          :height="36"
           :icon="History"
           :items="historyMenuItems"
           :width="200"
@@ -70,6 +67,7 @@
 
         <!-- 修改模型设置按钮部分 -->
         <Dropdown
+          v-if="currentMode !== 'polish'"
           ref="modelButtonRef"
           :tooltip="{
             content: '模型设置',
@@ -78,8 +76,9 @@
           }"
           class="model-setting-button"
           type="default"
-          :height="36"
-          :icon="Setting"
+          icon-only
+          align="end"
+          :icon="Receiver"
           :items="modelMenuItems"
           :width="240"
           @select="handleModelSelect"
@@ -92,7 +91,6 @@
           v-if="currentMode === 'draft'"
           type="primary"
           :icon="WholeSiteAccelerator"
-          :height="36"
           :loading="isGeneratingFirstDraft"
           @click="handleGenerateFirstDraft"
         >
@@ -102,22 +100,26 @@
           v-if="currentMode === 'first_draft'"
           type="primary"
           :icon="Magic"
-          :height="36"
           :loading="isPolishing"
           @click="handlePolish"
         >
           精雕细琢
         </Button>
-        <Button
+        <Dropdown
           v-if="currentMode === 'polish'"
           type="primary"
-          :icon="Brain"
-          :height="36"
-          :loading="isThinking"
-          @click="handleDeepThinking"
+          :icon="Download"
+          :items="exportMenuItems"
+          align="end"
+          :tooltip="{
+            content: '导出文稿',
+            delay: { show: 500 },
+            placement: 'top'
+          }"
+          @select="handleExportSelect"
         >
-          智慧对谈
-        </Button>
+          导出文稿
+        </Dropdown>
       </div>
     </div>
 
@@ -262,10 +264,11 @@ import {
   Edit,
   Magic,
   AddFour,
-  Brain,
   History,
-  Setting,
-  WholeSiteAccelerator
+  Receiver,
+  WholeSiteAccelerator,
+  Copy,
+  Download
 } from '@icon-park/vue-next'
 import { useWritingDeskStore } from '@renderer/stores/writingDeskStore'
 import { useNoteStore } from '@renderer/stores/noteStore'
@@ -410,9 +413,6 @@ const localPolishedContent = ref<any>(null)
 const isGeneratingFirstDraft = ref(false)
 const firstDraftEditorRef = ref<any>(null)
 const localFirstDraftContent = ref<any>(null)
-
-// 添加深度思考相关状态
-const isThinking = ref(false)
 
 // 添加选中卡片状态
 const selectedCardId = ref<string>('')
@@ -838,21 +838,6 @@ const handleGenerateFirstDraft = async () => {
   }
 }
 
-// 添加深度思考的方法
-const handleDeepThinking = async () => {
-  if (!manuscript.value || isThinking.value) return
-
-  try {
-    isThinking.value = true
-    // TODO: 实现深度思考功能
-    console.log('深度思考功能待实现')
-  } catch (error) {
-    console.error('深度思考失败:', error)
-  } finally {
-    isThinking.value = false
-  }
-}
-
 // 处理卡片选择
 const handleCardSelect = (cardId: string) => {
   selectedCardId.value = cardId
@@ -1056,19 +1041,53 @@ const modelConfigs = computed(() => modelConfigStore.configs)
 // 修改 handleModelSelect 方法
 const handleModelSelect = async (modelConfigId: string) => {
   try {
-    let featureType: 'firstDraft' | 'polish' | 'deepThinking' = 'firstDraft'
+    let featureType: 'firstDraft' | 'polish' = 'firstDraft'
 
     if (currentMode.value === 'draft') {
       featureType = 'firstDraft'
     } else if (currentMode.value === 'first_draft') {
       featureType = 'polish'
-    } else if (currentMode.value === 'polish') {
-      featureType = 'deepThinking'
     }
 
     await writingDeskStore.updateAIConfig(featureType, modelConfigId)
   } catch (error) {
     console.error('更新模型配置失败:', error)
+  }
+}
+
+// 添加导出菜单项的计算属性
+const exportMenuItems = computed(() => [
+  {
+    label: '复制为 Markdown',
+    key: 'copy',
+    icon: Copy
+  },
+  {
+    label: '导出为 Markdown 文件',
+    key: 'export',
+    icon: Download
+  }
+])
+
+// 添加处理导出选项的方法
+const handleExportSelect = async (key: string) => {
+  if (!manuscript.value) return
+
+  try {
+    if (key === 'copy') {
+      // 复制到剪贴板
+      const message = await writingDeskStore.copyPolishedManuscript(manuscript.value.id)
+      // TODO: 显示成功提示
+      console.log(message)
+    } else if (key === 'export') {
+      // 导出为文件
+      const result = await writingDeskStore.exportPolishedManuscript(manuscript.value.id)
+      // TODO: 显示成功提示
+      console.log(`文件已导出到: ${result.filePath}`)
+    }
+  } catch (error) {
+    console.error('导出操作失败:', error)
+    // TODO: 显示错误提示
   }
 }
 </script>
@@ -1173,7 +1192,7 @@ const handleModelSelect = async (modelConfigId: string) => {
 
     .content-wrapper {
       width: 100%;
-      max-width: 900px;
+      max-width: 950px;
       height: 100%;
       padding: 0 20px;
 
@@ -1288,11 +1307,11 @@ const handleModelSelect = async (modelConfigId: string) => {
 
         .editor-wrapper {
           width: 100%;
-          max-width: 850px;
+          max-width: 800px;
           height: 100%;
-          background: var(--color-bg-secondary);
+          // background: var(--color-bg-secondary);
           border-radius: 12px;
-          padding: 32px;
+          padding: 10px 32px;
           overflow-y: auto;
 
           // :deep(.tiptap) {
@@ -1325,11 +1344,11 @@ const handleModelSelect = async (modelConfigId: string) => {
 
         .editor-wrapper {
           width: 100%;
-          max-width: 850px;
+          max-width: 800px;
           height: 100%;
-          background: var(--color-bg-secondary);
+          // background: var(--color-bg-secondary);
           border-radius: 12px;
-          padding: 32px;
+          padding: 10px 32px;
           overflow-y: auto;
 
           // :deep(.tiptap) {

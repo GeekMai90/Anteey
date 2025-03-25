@@ -20,7 +20,9 @@ import {
   restorePolishHistory,
   getAllAIConfigs,
   getAIConfigByFeature,
-  updateAIConfig
+  updateAIConfig,
+  exportPolishedManuscript,
+  copyPolishedManuscriptToClipboard
 } from '../../services/writingDesk/writingDeskService'
 import type {
   CreateManuscriptParams,
@@ -298,4 +300,28 @@ export function setupWritingDeskHandlers() {
       }
     }
   )
+
+  // 导出润色后的文稿
+  ipcMain.handle('export-polished-manuscript', async (_event, manuscriptId: string) => {
+    try {
+      console.log('主进程→ 导出润色文稿, ID:', manuscriptId)
+      const result = await exportPolishedManuscript(manuscriptId)
+      return { success: true, ...result }
+    } catch (error) {
+      console.error('主进程→ 导出润色文稿失败:', error)
+      return { success: false, error: String(error) }
+    }
+  })
+
+  // 复制润色后的文稿到剪贴板
+  ipcMain.handle('copy-polished-manuscript', async (_event, manuscriptId: string) => {
+    try {
+      console.log('主进程→ 复制润色文稿到剪贴板, ID:', manuscriptId)
+      const result = await copyPolishedManuscriptToClipboard(manuscriptId)
+      return result
+    } catch (error) {
+      console.error('主进程→ 复制润色文稿到剪贴板失败:', error)
+      return { success: false, error: String(error) }
+    }
+  })
 }

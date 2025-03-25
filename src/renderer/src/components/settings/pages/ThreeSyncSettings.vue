@@ -17,7 +17,7 @@
         <div class="description">
           开启后可以通过 Dinox 同步笔记到收件箱中进行处理。关闭后侧边栏将不再显示收件箱功能。
         </div>
-        <div class="settings-form">
+        <!-- <div class="settings-form">
           <div class="form-item">
             <div class="label">启用状态</div>
             <div class="value">
@@ -32,7 +32,7 @@
               </div>
             </div>
           </div>
-        </div>
+        </div> -->
       </div>
 
       <template v-if="dinoxStore.isInboxEnabled">
@@ -426,7 +426,6 @@ onMounted(async () => {
           width: 80px;
           font-size: 14px;
           color: var(--color-text-secondary);
-          padding-top: 8px;
         }
 
         .value {
@@ -434,13 +433,6 @@ onMounted(async () => {
           display: flex;
           align-items: center;
           max-width: 300px;
-
-          .switch-description {
-            font-size: 12px;
-            color: var(--color-text-secondary);
-            margin-left: 12px;
-            padding-top: 2px;
-          }
         }
       }
     }
@@ -519,6 +511,13 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   gap: 12px;
+
+  .switch-description {
+    font-size: 12px;
+    color: var(--color-text-secondary);
+    margin-left: 12px;
+    line-height: 1;
+  }
 }
 
 .select-wrapper {

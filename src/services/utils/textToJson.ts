@@ -137,10 +137,8 @@ export function extractTextFromTiptapJson(content: any): string {
 // 将润色后的文本转换回 Tiptap JSON 格式
 export function convertTextToTiptapJson(text: string): any {
   const content: any[] = []
-  const lines = text
-    .split('\n')
-    .map((line) => line.trim())
-    .filter((line) => line) // 过滤掉空行
+  // 改进分行处理，保留有意义的空行
+  const lines = text.split('\n').map((line) => line.replace(/\r/g, ''))
   let inTable = false
   let tableContent: any = null
   let inCodeBlock = false
@@ -151,8 +149,54 @@ export function convertTextToTiptapJson(text: string): any {
   let inQuote = false
   let quoteContent: any = null
 
+  // 添加一个辅助函数来检查内容是否为空
+  const isEmptyContent = (content: any[]): boolean => {
+    return !content.some((item) => {
+      if (item.type === 'text') {
+        return item.text.trim() !== ''
+      }
+      if (item.content) {
+        return !isEmptyContent(item.content)
+      }
+      return false
+    })
+  }
+
+  // 添加一个辅助函数来创建段落
+  const createParagraph = (line: string, forceCreate: boolean = false) => {
+    const inlineContent = processInlineStyles(line)
+    if (inlineContent.length > 0 || forceCreate) {
+      // 检查内容是否真的为空
+      if (!isEmptyContent(inlineContent)) {
+        return {
+          type: 'paragraph',
+          attrs: { textAlign: 'left' },
+          content: inlineContent
+        }
+      }
+    }
+    return null
+  }
+
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i]
+    const isEmptyLine = line.trim() === ''
+
+    // 处理空行：在段落之间添加空段落
+    if (isEmptyLine && !inCodeBlock && !inTable && !inList && !inQuote) {
+      if (content.length > 0 && i < lines.length - 1) {
+        const nextLine = lines[i + 1].trim()
+        if (nextLine !== '') {
+          // 只在两个非空段落之间添加空段落
+          content.push({
+            type: 'paragraph',
+            attrs: { textAlign: 'left' },
+            content: []
+          })
+        }
+      }
+      continue
+    }
 
     // 处理代码块
     if (line.startsWith('```')) {
@@ -322,21 +366,20 @@ export function convertTextToTiptapJson(text: string): any {
       continue
     }
 
-    // 处理普通段落（包含行内样式）
-    const inlineContent = processInlineStyles(line)
-    if (inlineContent.length > 0) {
-      // 只添加非空段落
-      content.push({
-        type: 'paragraph',
-        attrs: { textAlign: 'left' },
-        content: inlineContent
-      })
+    // 修改普通段落的处理
+    if (!inCodeBlock && !inTable && !inList && !inQuote) {
+      const paragraph = createParagraph(line)
+      if (paragraph) {
+        content.push(paragraph)
+      }
     }
   }
 
   // 处理最后一个未闭合的块
   if (inTable && tableContent && tableContent.content.length > 0) {
-    content.push(tableContent)
+    if (!isEmptyContent(tableContent.content)) {
+      content.push(tableContent)
+    }
   } else if (inCodeBlock && codeBlockContent.trim()) {
     content.push({
       type: 'codeBlock',
@@ -344,23 +387,35 @@ export function convertTextToTiptapJson(text: string): any {
       content: [{ type: 'text', text: codeBlockContent.trim() }]
     })
   } else if (inList && listContent && listContent.content.length > 0) {
-    content.push(listContent)
+    if (!isEmptyContent(listContent.content)) {
+      content.push(listContent)
+    }
   } else if (inQuote && quoteContent && quoteContent.content.length > 0) {
-    content.push(quoteContent)
+    if (!isEmptyContent(quoteContent.content)) {
+      content.push(quoteContent)
+    }
   }
 
-  // 确保至少有一个段落
+  // 确保文档至少有一个有效的段落
   if (content.length === 0) {
     content.push({
       type: 'paragraph',
       attrs: { textAlign: 'left' },
-      content: [{ type: 'text', text: '暂无内容' }]
+      content: [{ type: 'text', text: '' }]
     })
   }
 
+  // 最后一次过滤，移除所有空内容
+  const filteredContent = content.filter((node) => {
+    if (node.content) {
+      return !isEmptyContent(node.content)
+    }
+    return true
+  })
+
   return {
     type: 'doc',
-    content
+    content: filteredContent
   }
 }
 

@@ -566,6 +566,44 @@ export const useWritingDeskStore = defineStore('writingDesk', () => {
     }
   }
 
+  // ==================== 导出相关 ====================
+  // 导出润色后的文稿
+  const exportPolishedManuscript = async (manuscriptId: string) => {
+    try {
+      console.log('WritingDeskStore - 开始导出润色文稿')
+      const result = await window.electronAPI.writingDesk.exportPolishedManuscript(manuscriptId)
+
+      if (!result.success) {
+        throw new Error(result.error || '导出文稿失败')
+      }
+
+      return {
+        filePath: result.filePath,
+        fileName: result.fileName
+      }
+    } catch (error) {
+      console.error('WritingDeskStore - 导出润色文稿失败:', error)
+      throw error
+    }
+  }
+
+  // 复制润色后的文稿到剪贴板
+  const copyPolishedManuscript = async (manuscriptId: string) => {
+    try {
+      console.log('WritingDeskStore - 开始复制润色文稿到剪贴板')
+      const result = await window.electronAPI.writingDesk.copyPolishedManuscript(manuscriptId)
+
+      if (!result.success) {
+        throw new Error(result.error || '复制文稿失败')
+      }
+
+      return result.message
+    } catch (error) {
+      console.error('WritingDeskStore - 复制润色文稿到剪贴板失败:', error)
+      throw error
+    }
+  }
+
   return {
     // 状态
     manuscripts,
@@ -601,6 +639,10 @@ export const useWritingDeskStore = defineStore('writingDesk', () => {
     updateManuscriptCardsOrder,
     fetchAllAIConfigs,
     fetchAIConfigByFeature,
-    updateAIConfig
+    updateAIConfig,
+
+    // 添加新的导出相关方法
+    exportPolishedManuscript,
+    copyPolishedManuscript
   }
 })
