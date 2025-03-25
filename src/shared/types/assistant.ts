@@ -106,57 +106,57 @@ export interface RAGHistoryItem {
 
 // RAG历史记录接口 (与数据库表对应)
 // 修改 RAG历史记录接口
-export interface RAGHistoryRecord {
-  id: string
-  title: string
-  messages: ChatMessage[]
-  contexts: RAGContext[]
-  summary: string
-  totalTokens: number
-  metadata: RAGHistoryMetadata
-  isPinned: boolean
-  createdAt: string
-  updatedAt: string
-}
+// export interface RAGHistoryRecord {
+//   id: string
+//   title: string
+//   messages: ChatMessage[]
+//   contexts: RAGContext[]
+//   summary: string
+//   totalTokens: number
+//   metadata: RAGHistoryMetadata
+//   isPinned: boolean
+//   createdAt: string
+//   updatedAt: string
+// }
 
-// RAG历史记录的 metadata
-interface RAGHistoryMetadata {
-  messageCount: number
-  userMessageCount: number
-  aiMessageCount: number
-  averageRelevanceScore?: number
-  lastContext?: RAGContext
-  conversationTracker?: ConversationTracker
-  currentTopicId?: string
-  topicStartTime?: number
-  isHistorical?: boolean
-  // 添加 Agent 相关属性
-  agentId?: string
-  noteId?: string
-  processingType?: string
-  agentConfig?: {
-    modelConfigId: string
-    temperature: number
-    systemPrompt: string
-  }
-}
+// // RAG历史记录的 metadata
+// interface RAGHistoryMetadata {
+//   messageCount: number
+//   userMessageCount: number
+//   aiMessageCount: number
+//   averageRelevanceScore?: number
+//   lastContext?: RAGContext
+//   conversationTracker?: ConversationTracker
+//   currentTopicId?: string
+//   topicStartTime?: number
+//   isHistorical?: boolean
+//   // 添加 Agent 相关属性
+//   agentId?: string
+//   noteId?: string
+//   processingType?: string
+//   agentConfig?: {
+//     modelConfigId: string
+//     temperature: number
+//     systemPrompt: string
+//   }
+// }
 
 // 前端展示用的历史记录项
 // 更新前端展示用的历史记录项
-export interface ChatHistoryItem {
-  id: string
-  title: string // 对话标题
-  summary?: string // 对话摘要
-  firstMessage: string // 第一条消息内容
-  messageCount: number // 消息数量
-  isPinned: boolean // 置顶状态
-  createdAt: string
-  updatedAt: string
-  lastContext?: {
-    relevantDocsCount: number // 相关文档数量
-    averageSimilarity: number // 平均相似度
-  }
-}
+// export interface ChatHistoryItem {
+//   id: string
+//   title: string // 对话标题
+//   summary?: string // 对话摘要
+//   firstMessage: string // 第一条消息内容
+//   messageCount: number // 消息数量
+//   isPinned: boolean // 置顶状态
+//   createdAt: string
+//   updatedAt: string
+//   lastContext?: {
+//     relevantDocsCount: number // 相关文档数量
+//     averageSimilarity: number // 平均相似度
+//   }
+// }
 
 // 新增：对话上下文追踪接口
 export interface ConversationTracker {

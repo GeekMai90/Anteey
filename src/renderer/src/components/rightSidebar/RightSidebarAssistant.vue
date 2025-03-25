@@ -198,25 +198,40 @@
           <div class="input-wrapper">
             <!-- 功能按钮区域 -->
             <div class="function-buttons">
-              <Button icon-only :icon="Plus" @click="handleNewConversation"> 新会话 </Button>
-              <div ref="historyBtnRef" class="history-btn-wrapper">
-                <Button icon-only :icon="History" @click="showHistory = !showHistory">
-                  历史会话
-                </Button>
+              <!-- 左侧按钮组 -->
+              <div class="left-buttons">
+                <Button icon-only :icon="Plus" @click="handleNewConversation"> 新会话 </Button>
+                <div ref="historyBtnRef" class="history-btn-wrapper">
+                  <Button icon-only :icon="History" @click="showHistory = !showHistory">
+                    历史会话
+                  </Button>
+                </div>
+                <Dropdown
+                  :items="agentItems"
+                  :showSelected="false"
+                  align="end"
+                  placement="top"
+                  icon-only
+                  :icon="Robot"
+                  @select="handleAgentSelect"
+                >
+                  AI 助手
+                </Dropdown>
               </div>
 
-              <!-- Agents 下拉菜单 -->
-              <Dropdown
-                :items="agentItems"
-                :showSelected="false"
-                align="end"
-                placement="top"
-                icon-only
-                :icon="Robot"
-                @select="handleAgentSelect"
-              >
-                AI 助手
-              </Dropdown>
+              <!-- 右侧模型选择器 -->
+              <div class="right-buttons">
+                <Dropdown
+                  :items="modelItems"
+                  :showSelected="true"
+                  size="medium"
+                  align="end"
+                  placement="top"
+                  @select="handleModelSwitch"
+                >
+                  模型
+                </Dropdown>
+              </div>
             </div>
 
             <!-- 输入框容器 -->
@@ -320,6 +335,8 @@ import Button from '@renderer/components/ui/Button.vue'
 import Dropdown from '@renderer/components/ui/Dropdown.vue'
 import { useAIChatStore } from '@renderer/stores/aiChatStore'
 import type { ChatRequest } from '@shared/types/ai-chat'
+import { useModelConfigStore } from '@renderer/stores/modelConfigStore'
+import { Receiver } from '@icon-park/vue-next'
 
 // Store
 const aiChatStore = useAIChatStore()
@@ -328,6 +345,7 @@ const { currentConversation, isLoading } = storeToRefs(aiChatStore)
 const router = useRouter()
 const uiStore = useUIStore()
 const agentStore = useAgentStore()
+const modelConfigStore = useModelConfigStore()
 
 // Refs
 const inputMessage = ref('')
@@ -367,6 +385,16 @@ const agentItems = computed(() => {
     key: agent.id,
     label: agent.name,
     icon: Robot
+  }))
+})
+
+// 添加模型项的计算属性
+const modelItems = computed(() => {
+  return modelConfigStore.configs.map((config) => ({
+    key: config.id,
+    label: config.name,
+    active: config.isDefault,
+    icon: Receiver
   }))
 })
 
@@ -849,6 +877,17 @@ const formatMessageForLog = (msg: any) => {
     references: msgCopy.references
   }
 }
+
+// 添加模型切换处理方法
+const handleModelSwitch = async (modelId: string) => {
+  try {
+    await modelConfigStore.setDefaultConfig(modelId)
+    message.success('已切换模型')
+  } catch (error) {
+    console.error('切换模型失败:', error)
+    message.error('切换模型失败')
+  }
+}
 </script>
 
 <style lang="scss" scoped>
@@ -1099,8 +1138,32 @@ const formatMessageForLog = (msg: any) => {
 
   .function-buttons {
     display: flex;
-    gap: 8px;
+    justify-content: space-between;
+    align-items: center;
     margin-bottom: 12px;
+    width: 100%;
+
+    .left-buttons {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .right-buttons {
+      display: flex;
+      align-items: center;
+    }
+
+    :deep(.dropdown-trigger) {
+      height: 32px;
+      padding: 0 12px;
+      font-size: 13px;
+
+      &.icon-only {
+        width: 32px;
+        padding: 0;
+      }
+    }
   }
 
   .mode-switch {

@@ -85,7 +85,7 @@ import type {
   AuthState,
   ChatSession,
   RAGContext,
-  RAGHistoryRecord,
+  // RAGHistoryRecord,
   ChatMessage,
   AssistantNoteReference,
   WordSuggestion,
@@ -711,12 +711,12 @@ export interface ElectronAPI {
 
     clearAllRAGHistory: () => Promise<void>
 
-    getRAGHistory: () => Promise<RAGHistoryRecord[]>
+    // getRAGHistory: () => Promise<RAGHistoryRecord[]>
 
-    getRAGHistoryDetail: (id: string) => Promise<RAGHistoryRecord | null>
+    // getRAGHistoryDetail: (id: string) => Promise<RAGHistoryRecord | null>
 
     // 新增的批量操作方法
-    batchGetRAGHistory: (ids: string[]) => Promise<(RAGHistoryRecord | null)[]>
+    // batchGetRAGHistory: (ids: string[]) => Promise<(RAGHistoryRecord | null)[]>
 
     // 新增的会话管理方法
     cleanupExpiredSessions: () => Promise<void>

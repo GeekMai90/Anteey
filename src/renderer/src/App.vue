@@ -61,6 +61,7 @@ import type { SyncState } from '@shared/types'
 import { useThemeStore } from '@renderer/stores/themeStore'
 import { useAuthStore } from './stores/authStore'
 import { useAgentStore } from '@renderer/stores/agentStore'
+import { useModelConfigStore } from '@renderer/stores/modelConfigStore'
 
 // 组件导入
 import BaseLayout from './components/layout/BaseLayout.vue'
@@ -89,6 +90,7 @@ const themeStore = useThemeStore()
 const uiStore = useUIStore()
 const authStore = useAuthStore()
 const agentStore = useAgentStore()
+const modelConfigStore = useModelConfigStore()
 
 interface BaseLayoutInstance {
   checkWindowSize: () => void
@@ -179,15 +181,17 @@ onMounted(async () => {
   window.addEventListener('resize', () => baseLayout.value?.handleResize())
   window.addEventListener('keydown', handleKeydown)
 
-  // 预加载所有 Agents 数据
+  // 预加载所有数据
   try {
     await Promise.all([
       agentStore.fetchAllAgents(), // 获取所有 agents
       agentStore.fetchMenuAgents(), // 获取菜单 agents
-      agentStore.fetchNonMenuAgents() // 获取非菜单 agents
+      agentStore.fetchNonMenuAgents(), // 获取非菜单 agents
+      modelConfigStore.loadConfigs(), // 修改这行：使用正确的方法名
+      modelConfigStore.loadProviderPresets() // 同时加载提供商预设
     ])
   } catch (error) {
-    console.error('加载 AI Agents 失败:', error)
+    console.error('加载初始数据失败:', error)
   }
 
   // 检查云同步配置并显示启动时的 loading

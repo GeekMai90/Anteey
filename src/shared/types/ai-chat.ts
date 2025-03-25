@@ -71,6 +71,22 @@ export interface MessageRecord extends MessageMetadata {
 }
 
 // ============= 会话相关接口 =============
+export interface ConversationMetadata {
+  messageCount: number
+  userMessageCount: number
+  aiMessageCount: number
+  averageRelevanceScore?: number
+  // Agent 相关配置
+  agentConfig?: {
+    modelConfigId: string
+    temperature: number
+    systemPrompt: string
+  }
+  // 其他可能需要的元数据
+  isPinned?: boolean
+  summary?: string
+}
+
 export interface Conversation {
   id: string
   title: string
@@ -80,7 +96,25 @@ export interface Conversation {
   updatedAt: Date
   lastMessageAt: Date
   messageCount: number
-  messages?: MessageRecord[] // 可选的消息列表
+  messages?: MessageRecord[]
+  metadata?: ConversationMetadata
+  isPinned?: boolean
+  summary?: string
+}
+
+// 添加前端展示用的会话列表项接口
+export interface ConversationListItem {
+  id: string
+  title: string
+  summary?: string
+  firstMessage?: string
+  messageCount: number
+  isPinned: boolean
+  createdAt: Date
+  updatedAt: Date
+  lastMessageAt: Date
+  agentId: string | null
+  status: ConversationStatus
 }
 
 /**

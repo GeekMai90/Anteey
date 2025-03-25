@@ -100,21 +100,23 @@ export const useAIChatStore = defineStore('aiChat', () => {
 
   // 修改会话详情处理函数
   const handleConversationDetail = async (conversation: Conversation) => {
-    if (!currentConversation.value) return
+    // 确保 messages 数组存在并且有值
+    const messages = Array.isArray(conversation.messages) ? conversation.messages : []
 
-    // 确保 messages 数组存在
-    const currentMessages = Array.isArray(currentConversation.value.messages)
-      ? currentConversation.value.messages
-      : []
-
-    // 更新会话基本信息
+    // 直接设置当前会话
     currentConversation.value = {
       ...conversation,
-      messages: currentMessages, // 保持现有消息
+      messages, // 使用处理后的 messages
       createdAt: new Date(conversation.createdAt),
       updatedAt: new Date(conversation.updatedAt),
       lastMessageAt: new Date(conversation.lastMessageAt)
     }
+
+    console.log('当前会话已更新:', {
+      id: currentConversation.value.id,
+      messageCount: messages.length, // 直接使用处理后的 messages
+      title: currentConversation.value.title
+    })
   }
 
   // 获取会话详情
@@ -126,39 +128,32 @@ export const useAIChatStore = defineStore('aiChat', () => {
       const conversation = await window.electronAPI.aiChat.getConversationDetail(id)
 
       // 确保时间字段是 Date 对象
-      conversation.createdAt = new Date(conversation.createdAt)
-      conversation.updatedAt = new Date(conversation.updatedAt)
-      conversation.lastMessageAt = new Date(conversation.lastMessageAt)
-
-      // 处理消息数组中的时间
-      if (conversation.messages) {
-        conversation.messages = conversation.messages.map((msg) => ({
-          ...msg,
-          createdAt: new Date(msg.createdAt)
-        }))
+      const processedConversation = {
+        ...conversation,
+        createdAt: new Date(conversation.createdAt),
+        updatedAt: new Date(conversation.updatedAt),
+        lastMessageAt: new Date(conversation.lastMessageAt),
+        messages:
+          conversation.messages?.map((msg) => ({
+            ...msg,
+            createdAt: new Date(msg.createdAt)
+          })) || []
       }
 
       console.log('会话详情处理完成:', {
-        id: conversation.id,
-        messageCount: conversation.messages?.length,
-        timestamps: conversation.messages?.map((m) => ({
-          id: m.id,
-          createdAt: m.createdAt.getTime()
-        }))
+        id: processedConversation.id,
+        messageCount: processedConversation.messages.length
       })
 
-      await handleConversationDetail(conversation)
-      return conversation
+      await handleConversationDetail(processedConversation)
+      return processedConversation
     } catch (error) {
       console.error('获取会话详情失败:', error)
-
-      // 如果还有重试次数，等待后重试
       if (retryCount > 0) {
         console.log(`等待 500ms 后重试 (剩余重试次数: ${retryCount - 1})`)
         await new Promise((resolve) => setTimeout(resolve, 500))
         return fetchConversationDetail(id, retryCount - 1)
       }
-
       throw error
     } finally {
       isLoading.value = false

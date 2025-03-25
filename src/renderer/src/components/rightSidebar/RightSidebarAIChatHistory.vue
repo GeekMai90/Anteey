@@ -25,17 +25,17 @@
         </div>
 
         <!-- 空状态 -->
-        <div v-else-if="assistantStore.chatHistory.length === 0" class="empty-state">
+        <div v-else-if="aiChatStore.conversations.length === 0" class="empty-state">
           暂无历史会话
         </div>
 
         <!-- 历史记录列表 -->
         <div
-          v-for="item in assistantStore.chatHistory"
+          v-for="item in aiChatStore.conversations"
           v-else
           :key="item.id"
           class="history-item"
-          :class="{ pinned: item.isPinned }"
+          :class="{ 'is-pinned': item.isPinned }"
           @click="handleSelectHistory(item.id)"
           @mouseenter="hoveredItem = item.id"
           @mouseleave="hoveredItem = null"
@@ -47,7 +47,7 @@
               </span>
               <!-- 日期只在未悬浮时显示 -->
               <span v-show="hoveredItem !== item.id" class="history-date">
-                {{ formatDateOnly(item.createdAt) }}
+                {{ formatDateOnly(new Date(item.lastMessageAt)) }}
               </span>
               <!-- 操作按钮只在悬浮时显示 -->
               <div v-show="hoveredItem === item.id" class="item-actions">
@@ -78,8 +78,8 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, nextTick } from 'vue'
 import { Delete, Close } from '@icon-park/vue-next'
-import { useAssistantStore } from '@renderer/stores/assistantStore'
-import type { RAGHistoryRecord } from '@shared/types'
+import { useAIChatStore } from '@renderer/stores/aiChatStore'
+import type { Conversation } from '@shared/types/ai-chat'
 import ConfirmDialog from '@renderer/components/common/ConfirmDialog.vue'
 
 const props = defineProps<{
@@ -91,7 +91,7 @@ const emit = defineEmits<{
   (e: 'close'): void
 }>()
 
-const assistantStore = useAssistantStore()
+const aiChatStore = useAIChatStore()
 const hoveredItem = ref<string | null>(null)
 const showDeleteConfirm = ref(false)
 const pendingDeleteId = ref<string | null>(null)
@@ -114,8 +114,17 @@ const panelStyle = computed(() => {
 
 // 选择历史记录
 const handleSelectHistory = async (id: string) => {
-  await assistantStore.loadHistoryChat(id)
-  emit('close')
+  try {
+    console.log('选择历史会话:', id)
+    // 先清空当前会话,避免显示旧的消息
+    aiChatStore.createNewConversation()
+    // 获取并加载历史会话
+    await aiChatStore.fetchConversationDetail(id)
+    // 关闭历史面板
+    emit('close')
+  } catch (error) {
+    console.error('加载会话失败:', error)
+  }
 }
 
 // 处理删除点击
@@ -127,21 +136,24 @@ const handleDeleteClick = (id: string) => {
 // 处理删除确认
 const handleDeleteConfirm = async () => {
   if (pendingDeleteId.value) {
-    await assistantStore.deleteHistory(pendingDeleteId.value)
-    pendingDeleteId.value = null
+    try {
+      await aiChatStore.deleteConversation(pendingDeleteId.value)
+      pendingDeleteId.value = null
+    } catch (error) {
+      console.error('删除会话失败:', error)
+    }
   }
   showDeleteConfirm.value = false
 }
 
 // 获取第一条用户消息
-const getFirstUserMessage = (item: RAGHistoryRecord): string => {
-  const firstUserMessage = item.messages.find((msg) => msg.role === 'user')
-  return firstUserMessage?.content || ''
+const getFirstUserMessage = (conversation: Conversation): string => {
+  const firstUserMessage = conversation.messages?.find((msg) => msg.role === 'user')
+  return firstUserMessage?.content || conversation.title || '新对话'
 }
 
 // 格式化日期
-const formatDateOnly = (dateString: string) => {
-  const date = new Date(dateString)
+const formatDateOnly = (date: Date) => {
   return date.toLocaleDateString('zh-CN', {
     month: 'numeric',
     day: 'numeric'
@@ -150,21 +162,31 @@ const formatDateOnly = (dateString: string) => {
 
 // 加载历史记录
 onMounted(async () => {
-  await assistantStore.loadHistory()
+  await loadHistory()
 })
+
+// 加载历史记录的方法
+const loadHistory = async () => {
+  isLoading.value = true
+  try {
+    await aiChatStore.fetchConversations()
+  } catch (error) {
+    console.error('加载历史记录失败:', error)
+  } finally {
+    isLoading.value = false
+  }
+}
 
 // 监听显示状态变化
 watch(
   () => props.show,
   (newValue) => {
     if (newValue) {
-      // 先重置位置准备状态
       isPositionReady.value = false
-      // 使用 nextTick 确保 DOM 更新后再设置准备状态
       nextTick(() => {
         isPositionReady.value = true
       })
-      assistantStore.loadHistory()
+      loadHistory()
     }
   }
 )
@@ -256,7 +278,7 @@ watch(
     background: var(--color-hover-bg);
   }
 
-  &.pinned {
+  &.is-pinned {
     background: var(--color-bg-secondary);
   }
 }

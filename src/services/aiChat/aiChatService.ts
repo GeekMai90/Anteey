@@ -1,3 +1,27 @@
+/**
+ * @file aiChatService.ts
+ * @description AI 对话服务核心实现
+ *
+ * 主要功能：
+ * 1. 对话管理
+ *    - 创建/获取/更新/删除会话
+ *    - 会话状态维护
+ *    - Agent 配置管理
+ * 2. 消息处理
+ *    - 消息构建与存储
+ *    - 历史消息管理
+ *    - 系统提示词处理
+ * 3. 笔记引用集成
+ *    - 笔记内容处理
+ *    - 引用信息管理
+ * 4. LLM 服务集成
+ *    - 模型配置管理
+ *    - 响应生成控制
+ *
+ * @author 麦先生
+ * @created 2024-01-20
+ */
+
 // chatService.ts
 
 import { db } from '../../db/config'
@@ -47,23 +71,116 @@ const llmService = new LLMService()
 
 // ============= 会话管理方法 =============
 
-// 修改 Agent 配置接口，添加系统提示词
+/**
+ * Agent 配置接口
+ * @interface AgentConfig
+ * @property {string} modelConfigId - 使用的模型配置ID
+ * @property {number} temperature - 温度参数
+ * @property {string} systemPrompt - 系统提示词
+ */
 interface AgentConfig {
   modelConfigId: string
   temperature: number
-  systemPrompt: string // 添加系统提示词
+  systemPrompt: string
 }
 
 // 添加一个 Map 来缓存会话的 Agent 配置
 const conversationAgentConfigs = new Map<string, AgentConfig>()
 
-// 修改 getOrCreateConversation 函数
+/**
+ * 创建 Agent 会话配置
+ * @async
+ * @description 根据 agentId 获取并创建 agent 的会话配置
+ *
+ * @param {string} agentId - Agent ID
+ * @param {string} [query] - 用户查询内容，可选
+ * @returns {Promise<{conversation: Conversation, agentConfig: AgentConfig}>} 返回会话和配置信息
+ * @throws {ChatError} Agent 不存在时抛出错误
+ */
+async function createAgentConversation(
+  agentId: string,
+  query?: string
+): Promise<{ conversation: Conversation; agentConfig: AgentConfig }> {
+  const agent = await agentService.getAgentById(agentId)
+  if (!agent) {
+    throw new ChatError('Agent 不存在', 'AGENT_NOT_FOUND', { agentId })
+  }
+
+  log.info('获取到 Agent 配置:', {
+    agentId,
+    modelConfigId: agent.modelConfigId,
+    temperature: agent.temperature,
+    systemPromptLength: agent.systemPrompt?.length
+  })
+
+  // 创建 agent 配置
+  const agentConfig: AgentConfig = {
+    modelConfigId: agent.modelConfigId,
+    temperature: agent.temperature,
+    systemPrompt: agent.systemPrompt || ''
+  }
+
+  // 创建会话
+  const now = new Date()
+  const title = query ? query.slice(0, 20) + '...' : `与 ${agent.name} 的对话`
+  const conversation: Conversation = {
+    id: uuidv4(),
+    title,
+    agentId,
+    status: ConversationStatus.ACTIVE,
+    createdAt: now,
+    updatedAt: now,
+    lastMessageAt: now,
+    messageCount: 0
+  }
+
+  return { conversation, agentConfig }
+}
+
+/**
+ * 保存会话和配置
+ * @async
+ * @description 将会话信息保存到数据库，配置信息保存到缓存
+ *
+ * @param {Conversation} conversation - 会话信息
+ * @param {AgentConfig} agentConfig - Agent 配置信息
+ * @returns {Promise<Conversation>} 返回保存的会话
+ */
+async function saveConversationAndConfig(
+  conversation: Conversation,
+  agentConfig: AgentConfig
+): Promise<Conversation> {
+  await db('chat_conversations').insert(conversation)
+  conversationAgentConfigs.set(conversation.id, agentConfig)
+
+  log.info('已保存会话和 Agent 配置:', {
+    conversationId: conversation.id,
+    agentId: conversation.agentId,
+    title: conversation.title,
+    modelConfigId: agentConfig.modelConfigId,
+    temperature: agentConfig.temperature,
+    systemPromptLength: agentConfig.systemPrompt.length
+  })
+
+  return conversation
+}
+
+/**
+ * 获取或创建会话
+ * @async
+ * @param {string} [conversationId] - 会话ID，可选
+ * @param {string} [query] - 用户查询内容，可选
+ * @param {string} [agentId] - Agent ID，可选
+ * @returns {Promise<Conversation>} 返回会话对象
+ * @throws {ChatError} 会话操作失败时抛出错误
+ */
 async function getOrCreateConversation(
   conversationId?: string,
   query?: string,
   agentId?: string
 ): Promise<Conversation> {
   try {
+    // 获取现有会话
     if (conversationId) {
       const conversation = await db('chat_conversations')
         .where({ id: conversationId })
@@ -76,58 +193,17 @@ async function getOrCreateConversation(
       return conversation
     }
 
-    // 如果是新会话且有 agentId，获取并保存 agent 配置
+    // 创建新的 Agent 会话
     if (agentId) {
-      const agent = await agentService.getAgentById(agentId)
-      if (agent) {
-        log.info('获取到 Agent 配置:', {
-          agentId,
-          modelConfigId: agent.modelConfigId,
-          temperature: agent.temperature,
-          systemPrompt: agent.systemPrompt,
-          systemPromptLength: agent.systemPrompt?.length
-        })
-
-        // 保存模型配置、温度和系统提示词
-        const agentConfig: AgentConfig = {
-          modelConfigId: agent.modelConfigId,
-          temperature: agent.temperature,
-          systemPrompt: agent.systemPrompt || ''
-        }
-
-        const now = new Date()
-        const conversation: Conversation = {
-          id: uuidv4(),
-          title: query?.slice(0, 20) + '...' || '新对话',
-          agentId: agentId,
-          status: ConversationStatus.ACTIVE,
-          createdAt: now,
-          updatedAt: now,
-          lastMessageAt: now,
-          messageCount: 0
-        }
-
-        await db('chat_conversations').insert(conversation)
-
-        // 保存 agent 配置到缓存
-        conversationAgentConfigs.set(conversation.id, agentConfig)
-        log.info('已保存会话的 Agent 配置:', {
-          conversationId: conversation.id,
-          agentId,
-          modelConfigId: agentConfig.modelConfigId,
-          temperature: agentConfig.temperature,
-          systemPromptLength: agentConfig.systemPrompt.length // 记录系统提示词长度
-        })
-
-        return conversation
-      }
+      const { conversation, agentConfig } = await createAgentConversation(agentId, query)
+      return await saveConversationAndConfig(conversation, agentConfig)
     }
 
-    // 没有 agentId 的情况，创建普通会话
+    // 创建普通会话
     const now = new Date()
     const conversation: Conversation = {
       id: uuidv4(),
-      title: query?.slice(0, 20) + '...' || '新对话',
+      title: query ? query.slice(0, 20) + '...' : '新对话',
       agentId: null,
       status: ConversationStatus.ACTIVE,
       createdAt: now,
@@ -316,6 +392,21 @@ async function getConversationMessages(
 }
 
 // ============= 消息构建方法 =============
+/**
+ * 构建消息数组
+ * @async
+ * @description 构建完整的消息数组，包括系统提示词、历史消息等
+ *
+ * 消息构建顺序：
+ * 1. 系统提示词（Agent提示词或默认提示词）
+ * 2. 历史消息
+ * 3. 当前查询消息
+ *
+ * @param {Conversation} conversation - 会话对象
+ * @param {string} query - 用户查询
+ * @param {MessageBuildOptions} options - 构建选项
+ * @returns {Promise<ChatMessage[]>} 返回构建好的消息数组
+ */
 async function buildMessages(
   conversation: Conversation,
   query: string,
@@ -369,7 +460,19 @@ async function buildMessages(
 }
 
 // ============= 对话处理方法 =============
-// 处理笔记引用
+/**
+ * 处理笔记引用
+ * @async
+ * @description 处理请求中的笔记引用
+ *
+ * 处理内容：
+ * 1. 提取笔记内容
+ * 2. 生成引用信息
+ * 3. 更新源类型标记
+ *
+ * @param {ChatRequest} request - 聊天请求对象
+ * @returns {Promise<{noteContents: string, references: ChatResponse['references'], sourceTypes: ChatResponse['sourceTypes']}>}
+ */
 async function processReferences(request: ChatRequest): Promise<{
   noteContents: string
   references: ChatResponse['references']
@@ -402,7 +505,20 @@ async function processReferences(request: ChatRequest): Promise<{
   return { noteContents, references, sourceTypes }
 }
 
-// 修改 generateAIResponse 函数
+/**
+ * 生成AI响应
+ * @async
+ * @description 调用LLM服务生成响应
+ *
+ * 处理逻辑：
+ * 1. 获取会话的Agent配置
+ * 2. 使用配置的模型和参数
+ * 3. 调用LLM服务生成响应
+ *
+ * @param {ChatMessage[]} messages - 消息数组
+ * @param {string} conversationId - 会话ID
+ * @returns {Promise<string>} 返回生成的响应内容
+ */
 async function generateAIResponse(
   messages: ChatMessage[],
   conversationId: string
@@ -440,7 +556,21 @@ async function createInitialUserMessage(
   return userMessage
 }
 
-// 修改 prepareMessages 函数
+/**
+ * 准备消息内容
+ * @async
+ * @description 处理消息内容，包括笔记引用的集成
+ *
+ * 笔记引用处理逻辑：
+ * 1. Agent首次对话：在系统提示词后直接添加笔记内容
+ * 2. 有用户消息：将笔记内容添加到最后一条用户消息
+ * 3. 其他情况：创建新的用户消息包含笔记内容
+ *
+ * @param {Conversation} conversation - 会话对象
+ * @param {string} query - 用户查询
+ * @param {string} noteContents - 笔记内容
+ * @returns {Promise<ChatMessage[]>} 返回处理后的消息数组
+ */
 async function prepareMessages(
   conversation: Conversation,
   query: string,
@@ -451,18 +581,59 @@ async function prepareMessages(
     maxHistoryMessages: MAX_CONTEXT_MESSAGES
   })
 
+  // 如果有笔记内容，添加到消息数组中
   if (noteContents) {
-    const lastMessage = messages[messages.length - 1]
-    if (lastMessage.role === 'user') {
-      lastMessage.content = `${lastMessage.content}\n\n参考以下笔记内容：\n\n${noteContents}`
+    log.info('处理笔记引用内容')
+    // 如果是 agent 对话且没有用户消息，直接在系统提示词后添加笔记内容
+    if (messages.length === 1 && messages[0].role === 'system') {
+      messages.push({
+        role: 'user',
+        content: `参考以下笔记内容：\n\n${noteContents}`
+      })
+      log.info('在系统提示词后添加笔记引用')
+    } else {
+      // 否则将笔记内容添加到最后一条用户消息中
+      const lastMessage = messages[messages.length - 1]
+      if (lastMessage.role === 'user') {
+        lastMessage.content = `${lastMessage.content}\n\n参考以下笔记内容：\n\n${noteContents}`
+        log.info('将笔记引用添加到用户消息中')
+      } else {
+        // 如果最后一条不是用户消息，创建新的用户消息包含笔记内容
+        messages.push({
+          role: 'user',
+          content: `参考以下笔记内容：\n\n${noteContents}`
+        })
+        log.info('创建新的用户消息包含笔记引用')
+      }
     }
   }
 
-  log.info('消息数组构建完成, 总消息数:', messages.length)
+  log.info('消息数组构建完成:', {
+    totalMessages: messages.length,
+    hasNoteContents: !!noteContents,
+    messageRoles: messages.map((m) => m.role)
+  })
   return messages
 }
 
-// 主处理方法
+/**
+ * 处理聊天请求
+ * @async
+ * @description 主要的对话处理流程
+ *
+ * 处理步骤：
+ * 1. 获取或创建会话
+ * 2. 处理用户消息（区分Agent首次对话）
+ * 3. 处理笔记引用
+ * 4. 准备消息内容
+ * 5. 生成AI响应
+ * 6. 保存响应消息
+ * 7. 返回处理结果
+ *
+ * @param {ChatRequest} request - 聊天请求对象
+ * @returns {Promise<ChatResponse>} 返回处理结果
+ * @throws {ChatError} 处理失败时抛出错误
+ */
 export async function handleChatRequest(request: ChatRequest): Promise<ChatResponse> {
   const startTime = Date.now()
   log.info('开始处理聊天请求，详细信息:', {
@@ -482,19 +653,24 @@ export async function handleChatRequest(request: ChatRequest): Promise<ChatRespo
       request.agentId
     )
 
-    // 2. 创建用户消息前，添加日志
-    log.info('准备创建用户消息:', {
-      query: request.query,
-      conversationId: conversation.id,
-      parentMessageId: request.parentMessageId
-    })
+    let userMessage: MessageRecord | null = null
 
-    // 2. 创建用户消息
-    const userMessage = await createInitialUserMessage(
-      conversation,
-      request.query || '',
-      request.parentMessageId
-    )
+    // 2. 只在非首次 agent 对话时创建用户消息
+    if (request.conversationId || !request.agentId) {
+      log.info('准备创建用户消息:', {
+        query: request.query,
+        conversationId: conversation.id,
+        parentMessageId: request.parentMessageId
+      })
+
+      userMessage = await createInitialUserMessage(
+        conversation,
+        request.query || '',
+        request.parentMessageId
+      )
+    } else {
+      log.info('首次 agent 对话，跳过创建用户消息')
+    }
 
     // 3. 处理笔记引用
     const { noteContents, references, sourceTypes } = await processReferences(request)
@@ -510,7 +686,7 @@ export async function handleChatRequest(request: ChatRequest): Promise<ChatRespo
       conversation.id,
       'assistant',
       aiResponse,
-      userMessage.id
+      userMessage?.id || undefined // 使用可选链和空值合并
     )
 
     // 7. 准备返回响应
@@ -522,14 +698,15 @@ export async function handleChatRequest(request: ChatRequest): Promise<ChatRespo
       sourceTypes,
       references,
       conversationId: conversation.id,
-      userMessageId: userMessage.id
+      userMessageId: userMessage?.id || '' // 使用可选链和空值合并
     }
 
     const endTime = Date.now()
     log.info('聊天请求处理完成', {
       processingTime: `${endTime - startTime}ms`,
       conversationId: conversation.id,
-      messageId: assistantMessage.id
+      messageId: assistantMessage.id,
+      hasUserMessage: !!userMessage
     })
 
     return response
