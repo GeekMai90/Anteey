@@ -538,6 +538,7 @@ export async function initDatabase(db: Knex): Promise<void> {
       // 添加功能开关
       table.boolean('enableWhiteboard').notNullable().defaultTo(true)
       table.boolean('enableAIAssistant').notNullable().defaultTo(true)
+      table.string('loadingAnimationType').notNullable().defaultTo('candle')
       table.datetime('createdAt').notNullable()
       table.datetime('updatedAt').notNullable()
     })
@@ -553,6 +554,7 @@ export async function initDatabase(db: Knex): Promise<void> {
       recentExpanded: true,
       enableWhiteboard: true,
       enableAIAssistant: true,
+      loadingAnimationType: 'candle',
       createdAt: new Date(),
       updatedAt: new Date()
     })
@@ -566,7 +568,8 @@ export async function initDatabase(db: Knex): Promise<void> {
       { name: 'tagsExpanded', type: 'boolean', default: true },
       { name: 'recentExpanded', type: 'boolean', default: true },
       { name: 'enableWhiteboard', type: 'boolean', default: true },
-      { name: 'enableAIAssistant', type: 'boolean', default: true }
+      { name: 'enableAIAssistant', type: 'boolean', default: true },
+      { name: 'loadingAnimationType', type: 'string', default: 'candle' }
     ]
 
     for (const column of columns) {

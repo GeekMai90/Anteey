@@ -53,4 +53,14 @@ export interface AppearanceSettings {
   enableAIAssistant: boolean
   createdAt: Date
   updatedAt: Date
+  loadingAnimationType:
+    | 'candle'
+    | 'pencil'
+    | 'mouse'
+    | 'pacman'
+    | 'taichi'
+    | 'windmill'
+    | 'washing'
+    | 'typewriter'
+    | 'loadingFox'
 }

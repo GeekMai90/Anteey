@@ -438,6 +438,11 @@ const stopRotation = () => {
 
 onMounted(() => {
   startRotation()
+  document.addEventListener('click', handleClickOutside)
+  document.addEventListener('keydown', handleKeyboardShortcuts)
+
+  // 添加初始化加载动画配置
+  aiChatStore.initLoadingAnimation()
 })
 
 onUnmounted(() => {
@@ -961,40 +966,6 @@ const handleReferenceDoubleClick = (noteId: string) => {
   // 双击: 小窗打开
   noteStore.openNoteEditor(noteId)
 }
-
-// const formatMessageForLog = (msg: any) => {
-//   // 先深拷贝消息对象，避免响应式问题
-//   const msgCopy = {
-//     id: msg.id,
-//     role: msg.role,
-//     content: msg.content,
-//     references: msg.references ? JSON.parse(JSON.stringify(msg.references)) : null,
-//     sourceTypes: msg.sourceTypes ? JSON.parse(JSON.stringify(msg.sourceTypes)) : null
-//   }
-
-//   // console.log('消息对象详情:', {
-//   //   id: msgCopy.id,
-//   //   role: msgCopy.role,
-//   //   hasReferences: !!msgCopy.references?.notes?.length,
-//   //   referenceCount: msgCopy.references?.notes?.length || 0,
-//   //   sourceTypes: msgCopy.sourceTypes,
-//   //   rawReferences: msgCopy.references
-//   // })
-
-//   return {
-//     id: msgCopy.id,
-//     role: msgCopy.role,
-//     contentLength: msgCopy.content?.length || 0,
-//     hasReferences: !!msgCopy.references?.notes?.length,
-//     referenceCount: msgCopy.references?.notes?.length || 0,
-//     sourceTypes: msgCopy.sourceTypes || {
-//       hasNotes: false,
-//       hasImages: false,
-//       hasPdfs: false
-//     },
-//     references: msgCopy.references
-//   }
-// }
 
 // 添加模型切换处理方法
 const handleModelSwitch = async (modelId: string) => {

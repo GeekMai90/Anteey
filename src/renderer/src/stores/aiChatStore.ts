@@ -465,7 +465,7 @@ export const useAIChatStore = defineStore(
       currentConversation.value = null
     }
 
-    // 在 store 的 state 部分添加
+    // 修改 loadingAnimation 的定义和相关方法
     const loadingAnimation = ref<{
       type:
         | 'candle'
@@ -479,12 +479,24 @@ export const useAIChatStore = defineStore(
         | 'loadingFox'
       bottomOffset: number
     }>({
-      type: 'candle', // 默认使用蜡烛动画
-      bottomOffset: -16 // 默认偏移量
+      type: 'candle',
+      bottomOffset: -16
     })
 
-    // 添加修改动画的方法
-    const setLoadingAnimation = (
+    // 修改 initLoadingAnimation 方法
+    const initLoadingAnimation = async () => {
+      try {
+        const settings = await window.electronAPI.userSettings.getAppearanceSettings()
+        if (settings.loadingAnimationType) {
+          setLoadingAnimation(settings.loadingAnimationType as any)
+        }
+      } catch (error) {
+        console.error('初始化加载动画设置失败:', error)
+      }
+    }
+
+    // 修改 setLoadingAnimation 方法中的保存逻辑
+    const setLoadingAnimation = async (
       type:
         | 'candle'
         | 'pencil'
@@ -498,18 +510,29 @@ export const useAIChatStore = defineStore(
     ) => {
       const offsets = {
         candle: -16,
-        pencil: -40, // 根据铅笔动画调整
-        mouse: -67, // 根据鼠标动画调整
-        pacman: -59, // 根据pacman动画调整
-        taichi: -83, // 根据太极动画调整
-        windmill: 29, // 根据风车动画调整
-        washing: -60, // 根据洗衣服动画调整
-        typewriter: -39, // 根据打字动画调整
-        loadingFox: -227 // 根据loadingFox动画调整
+        pencil: -40,
+        mouse: -67,
+        pacman: -59,
+        taichi: -83,
+        windmill: 29,
+        washing: -60,
+        typewriter: -39,
+        loadingFox: -227
       }
+
       loadingAnimation.value = {
         type,
         bottomOffset: offsets[type]
+      }
+
+      // 修改这里的 API 调用
+      try {
+        await window.electronAPI.userSettings.updateAppearanceSettings({
+          loadingAnimationType: type
+        })
+      } catch (error) {
+        console.error('保存加载动画设置失败:', error)
+        throw error
       }
     }
 
@@ -532,7 +555,8 @@ export const useAIChatStore = defineStore(
       clearStreamingContent,
       createNewConversation,
       loadingAnimation,
-      setLoadingAnimation
+      setLoadingAnimation,
+      initLoadingAnimation
     }
   },
   {

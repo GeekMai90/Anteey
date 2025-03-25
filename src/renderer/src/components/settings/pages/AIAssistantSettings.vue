@@ -36,6 +36,7 @@ import { Robot } from '@icon-park/vue-next'
 import { useAIChatStore } from '@renderer/stores/aiChatStore'
 import { message } from '@renderer/utils/message'
 import Dropdown from '@renderer/components/ui/Dropdown.vue'
+import { onMounted } from 'vue'
 
 const aiChatStore = useAIChatStore()
 
@@ -72,21 +73,30 @@ const animationOptions = [
   }
 ]
 
+// 添加组件挂载时的初始化
+onMounted(async () => {
+  await aiChatStore.initLoadingAnimation()
+})
+
 // 修改处理动画选择的方法
-const handleAnimationSelect = (key: string) => {
-  aiChatStore.setLoadingAnimation(
-    key as
-      | 'candle'
-      | 'pencil'
-      | 'mouse'
-      | 'pacman'
-      | 'taichi'
-      | 'windmill'
-      | 'washing'
-      | 'typewriter'
-      | 'loadingFox'
-  )
-  message.success('加载动画已更新')
+const handleAnimationSelect = async (key: string) => {
+  try {
+    await aiChatStore.setLoadingAnimation(
+      key as
+        | 'candle'
+        | 'pencil'
+        | 'mouse'
+        | 'pacman'
+        | 'taichi'
+        | 'windmill'
+        | 'washing'
+        | 'typewriter'
+        | 'loadingFox'
+    )
+    message.success('加载动画已更新')
+  } catch (error) {
+    message.error('更新加载动画失败')
+  }
 }
 </script>
 
