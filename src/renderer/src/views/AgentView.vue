@@ -15,7 +15,7 @@
             <SegmentedButton
               v-model="displayMode"
               :options="displayOptions"
-              width="140px"
+              width="200px"
               height="36px"
               name="display-mode"
               tooltipPlacement="top"
@@ -71,6 +71,7 @@
 
     <!-- 创建/编辑对话框 -->
     <AgentEdited
+      v-if="showAgentEdited && !isLoading"
       v-model:visible="showAgentEdited"
       :editingAgent="editingAgent"
       @success="handleEditSuccess"
@@ -101,15 +102,19 @@ import AgentPreviewCard from '@renderer/components/agent/AgentPreviewCard.vue'
 import AgentEdited from '@renderer/components/agent/AgentEdited.vue'
 import ConfirmDialog from '@renderer/components/common/ConfirmDialog.vue'
 import { useAgentStore } from '@renderer/stores/agentStore'
+import { useModelConfigStore } from '@renderer/stores/modelConfigStore'
 import type { Agent } from '@shared/types'
+import { message } from '@renderer/utils/message'
 
 const agentStore = useAgentStore()
+const modelConfigStore = useModelConfigStore()
 const searchQuery = ref('')
 const displayMode = ref('all')
 const showAgentEdited = ref(false)
 const showDeleteConfirm = ref(false)
 const editingAgent = ref<Agent | null>(null)
 const pendingDeleteAgent = ref<Agent | null>(null)
+const isLoading = ref(true)
 
 // 显示选项
 const displayOptions = [
@@ -123,7 +128,7 @@ const displayOptions = [
   },
   {
     value: 'menu',
-    label: '笔记菜单',
+    label: '笔记菜单专属',
     tooltip: {
       content: '只显示在笔记菜单中的助手',
       delay: { show: 1000 }
@@ -133,7 +138,21 @@ const displayOptions = [
 
 // 初始加载数据
 onMounted(async () => {
-  await agentStore.refreshAgents()
+  try {
+    isLoading.value = true
+    // 确保先加载模型配置
+    if (modelConfigStore.configs.length === 0) {
+      await modelConfigStore.loadConfigs()
+      await modelConfigStore.loadProviderPresets()
+    }
+    // 然后再加载 agents
+    await agentStore.refreshAgents()
+  } catch (error) {
+    console.error('初始化加载失败:', error)
+    message.error('加载数据失败，请重试')
+  } finally {
+    isLoading.value = false
+  }
 })
 
 // 过滤后的助手列表
@@ -155,15 +174,35 @@ const handleSearch = () => {
 }
 
 // 打开创建助手对话框
-const openCreateAgent = () => {
-  editingAgent.value = null
-  showAgentEdited.value = true
+const openCreateAgent = async () => {
+  try {
+    // 确保模型配置已加载
+    if (modelConfigStore.configs.length === 0) {
+      await modelConfigStore.loadConfigs()
+      await modelConfigStore.loadProviderPresets()
+    }
+    editingAgent.value = null
+    showAgentEdited.value = true
+  } catch (error) {
+    console.error('打开创建助手失败:', error)
+    message.error('初始化失败，请重试')
+  }
 }
 
 // 处理编辑助手
-const handleEditAgent = (agent: Agent) => {
-  editingAgent.value = agent
-  showAgentEdited.value = true
+const handleEditAgent = async (agent: Agent) => {
+  try {
+    // 确保模型配置已加载
+    if (modelConfigStore.configs.length === 0) {
+      await modelConfigStore.loadConfigs()
+      await modelConfigStore.loadProviderPresets()
+    }
+    editingAgent.value = agent
+    showAgentEdited.value = true
+  } catch (error) {
+    console.error('打开编辑助手失败:', error)
+    message.error('初始化失败，请重试')
+  }
 }
 
 // 处理删除助手

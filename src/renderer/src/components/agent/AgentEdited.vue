@@ -14,25 +14,15 @@
 
         <div class="form-item">
           <label>描述</label>
-          <Textarea v-model="formState.description" placeholder="请输入助手描述" :height="80" />
+          <Input v-model="formState.description" placeholder="请输入助手描述" />
         </div>
-
-        <!-- <div class="form-item">
-          <label>打招呼语</label>
-          <Textarea
-            v-model="formState.greeting"
-            placeholder="请输入打招呼语"
-            :height="80"
-            :help="errors.greeting"
-          />
-        </div> -->
 
         <div class="form-item">
           <label>系统提示词</label>
           <Textarea
             v-model="formState.systemPrompt"
             placeholder="请输入系统提示词"
-            :height="120"
+            :height="200"
             :help="errors.systemPrompt"
           />
         </div>
@@ -63,7 +53,10 @@
         </div>
 
         <div class="form-item switch-item">
-          <label>是否需要笔记作为上下文</label>
+          <label>
+            笔记菜单专属
+            <HelpTips content="开启后，该 Agent 只会出现在卡片笔记的菜单中" />
+          </label>
           <Switch v-model="formState.includeNoteContext" />
         </div>
       </div>
@@ -90,6 +83,19 @@ import Dropdown from '@renderer/components/ui/Dropdown.vue'
 import Slider from '@renderer/components/ui/Slider.vue'
 import { Close } from '@icon-park/vue-next'
 import IconButton from '@renderer/components/ui/IconButton.vue'
+import HelpTips from '@renderer/components/ui/HelpTips.vue'
+import { message } from '@renderer/utils/message'
+
+// 将 formState 的初始化移到最前面
+const formState = ref<CreateAgentParams>({
+  name: '',
+  description: undefined,
+  greeting: undefined,
+  systemPrompt: '',
+  modelConfigId: '',
+  temperature: 0.7,
+  includeNoteContext: true
+})
 
 const props = defineProps<{
   visible: boolean
@@ -101,7 +107,6 @@ const emit = defineEmits<{
   (e: 'success'): void
 }>()
 
-// 使用本地 visible 状态来避免直接修改 prop
 const isVisible = computed({
   get: () => props.visible,
   set: (value) => emit('update:visible', value)
@@ -111,17 +116,6 @@ const agentStore = useAgentStore()
 const modelConfigStore = useModelConfigStore()
 const loading = ref(false)
 const errors = ref<Record<string, string>>({})
-
-// 表单状态
-const formState = ref<CreateAgentParams>({
-  name: '',
-  description: undefined,
-  greeting: undefined,
-  systemPrompt: '',
-  modelConfigId: '',
-  temperature: 0.7,
-  includeNoteContext: true
-})
 
 // 表单验证
 const validateForm = (): boolean => {
@@ -140,59 +134,68 @@ const validateForm = (): boolean => {
   return Object.keys(errors.value).length === 0
 }
 
-// 监听编辑对象变化
+// 修改 modelOptions 计算属性，添加空值保护
+const modelOptions = computed(() => {
+  if (!modelConfigStore.configs.length) return []
+
+  return modelConfigStore.configs.map((config) => ({
+    key: config.id,
+    label: config.name,
+    active: formState.value?.modelConfigId === config.id,
+    icon: config.provider === 'openai' ? 'OpenaiLogo' : 'Robot'
+  }))
+})
+
+// 修改初始化加载逻辑
+onMounted(async () => {
+  try {
+    // 加载模型配置
+    if (modelConfigStore.configs.length === 0) {
+      await modelConfigStore.loadConfigs()
+      await modelConfigStore.loadProviderPresets()
+    }
+
+    // 如果是新建且有默认配置，则使用默认配置
+    if (!props.editingAgent && modelConfigStore.defaultConfig) {
+      formState.value.modelConfigId = modelConfigStore.defaultConfig.id
+    }
+  } catch (error) {
+    console.error('初始化加载失败:', error)
+    message.error('初始化失败，请重试')
+  }
+})
+
+// 修改 watch 函数，确保异步操作的正确处理
 watch(
   () => props.editingAgent,
-  (agent) => {
-    if (agent) {
-      formState.value = {
-        name: agent.name,
-        description: agent.description ?? undefined,
-        greeting: agent.greeting ?? undefined,
-        systemPrompt: agent.systemPrompt,
-        modelConfigId: agent.modelConfigId,
-        temperature: agent.temperature,
-        includeNoteContext: agent.includeNoteContext
+  async (agent) => {
+    try {
+      if (agent) {
+        const fullAgent = await agentStore.getAgentById(agent.id)
+        if (!fullAgent) {
+          throw new Error('获取助手数据失败')
+        }
+
+        formState.value = {
+          name: fullAgent.name,
+          description: fullAgent.description ?? undefined,
+          greeting: fullAgent.greeting ?? undefined,
+          systemPrompt: fullAgent.systemPrompt,
+          modelConfigId: fullAgent.modelConfigId,
+          temperature: fullAgent.temperature ?? 0.7,
+          includeNoteContext: fullAgent.includeNoteContext ?? true
+        }
+      } else {
+        resetForm()
       }
-    } else {
-      formState.value = {
-        name: '',
-        description: undefined,
-        greeting: undefined,
-        systemPrompt: '',
-        modelConfigId: modelConfigStore.defaultConfig?.id || '',
-        temperature: 0.7,
-        includeNoteContext: true
-      }
+    } catch (error) {
+      console.error('加载Agent数据失败:', error)
+      message.error('加载数据失败，请重试')
+      isVisible.value = false
     }
   },
   { immediate: true }
 )
-
-// 添加初始化加载
-onMounted(async () => {
-  // 加载模型配置
-  if (modelConfigStore.configs.length === 0) {
-    await modelConfigStore.loadConfigs()
-    await modelConfigStore.loadProviderPresets()
-  }
-
-  // 如果是新建且有默认配置，则使用默认配置
-  if (!props.editingAgent && modelConfigStore.defaultConfig) {
-    formState.value.modelConfigId = modelConfigStore.defaultConfig.id
-  }
-})
-
-// 转换模型配置为下拉菜单选项
-const modelOptions = computed(() => {
-  return modelConfigStore.configs.map((config) => ({
-    key: config.id,
-    label: config.name,
-    active: formState.value.modelConfigId === config.id,
-    // 可以添加图标等其他信息
-    icon: config.provider === 'openai' ? 'OpenaiLogo' : 'Robot'
-  }))
-})
 
 // 处理模型选择
 const handleModelSelect = (key: string) => {

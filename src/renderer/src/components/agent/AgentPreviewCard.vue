@@ -26,7 +26,7 @@
         class="menu-status"
         :class="{ active: agent.includeNoteContext }"
       >
-        上下文
+        笔记菜单专属
       </div>
     </div>
   </div>
@@ -37,6 +37,7 @@ import { Robot, Edit, Delete } from '@icon-park/vue-next'
 import IconButton from '@renderer/components/ui/IconButton.vue'
 import type { Agent } from '@shared/types'
 import { useModelConfigStore } from '@renderer/stores/modelConfigStore'
+import { onMounted } from 'vue'
 
 const modelConfigStore = useModelConfigStore()
 
@@ -48,6 +49,13 @@ defineEmits<{
   (e: 'edit', agent: Agent): void
   (e: 'delete', agent: Agent): void
 }>()
+
+// 确保模型配置已加载
+onMounted(async () => {
+  if (modelConfigStore.configs.length === 0) {
+    await modelConfigStore.loadConfigs()
+  }
+})
 
 // 获取模型名称
 const getModelName = (modelConfigId: string) => {
@@ -63,16 +71,13 @@ const getModelName = (modelConfigId: string) => {
   border-radius: 12px;
   padding: 16px;
   transition: all 0.2s ease;
-
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-primary);
-  }
+  position: relative;
 
   .card-header {
     display: flex;
     align-items: center;
     margin-bottom: 12px;
+    position: relative;
 
     .agent-icon {
       width: 40px;
@@ -83,6 +88,7 @@ const getModelName = (modelConfigId: string) => {
       align-items: center;
       justify-content: center;
       margin-right: 12px;
+      flex-shrink: 0;
 
       :deep(.i-icon) {
         display: flex;
@@ -107,12 +113,33 @@ const getModelName = (modelConfigId: string) => {
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
-      padding-right: 8px;
     }
 
     .actions {
       display: flex;
       gap: 4px;
+      visibility: hidden;
+      transition: visibility 0.2s ease;
+      flex-shrink: 0;
+      margin-left: 8px;
+
+      :deep(.icon-button) {
+        opacity: 0;
+        transition: opacity 0.2s ease;
+      }
+    }
+  }
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-primary);
+
+    .actions {
+      visibility: visible;
+
+      :deep(.icon-button) {
+        opacity: 1;
+      }
     }
   }
 
@@ -125,9 +152,9 @@ const getModelName = (modelConfigId: string) => {
 
       display: -webkit-box;
       -webkit-line-clamp: 2;
-      line-clamp: 2; /* 添加标准属性 */
+      line-clamp: 2;
       -webkit-box-orient: vertical;
-      box-orient: vertical; /* 添加标准属性 */
+      box-orient: vertical;
       overflow: hidden;
       text-overflow: ellipsis;
     }

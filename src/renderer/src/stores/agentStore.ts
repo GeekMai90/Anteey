@@ -6,6 +6,7 @@ import { useUIStore } from '@renderer/stores/UIStore'
 import { Robot } from '@icon-park/vue-next'
 import { markRaw } from 'vue'
 import { useAIChatStore } from '@renderer/stores/aiChatStore'
+import { useModelConfigStore } from '@renderer/stores/modelConfigStore'
 
 export const useAgentStore = defineStore('agent', () => {
   // ==================== 状态 ====================
@@ -16,14 +17,27 @@ export const useAgentStore = defineStore('agent', () => {
   const menuAgents = ref<Agent[]>([])
   const nonMenuAgents = ref<Agent[]>([])
   const aiChatStore = useAIChatStore()
+  const modelConfigStore = useModelConfigStore()
 
   // ==================== 操作方法 ====================
   // 获取所有 Agents
   const fetchAllAgents = async () => {
     try {
+      // 确保模型配置已加载
+      if (modelConfigStore.configs.length === 0) {
+        await modelConfigStore.loadConfigs()
+      }
+
       const fetchedAgents = await window.electronAPI.agent.getAllAgents()
-      agents.value = fetchedAgents
-      return fetchedAgents
+      // 确保每个 agent 的数据都是完整的
+      agents.value = fetchedAgents.map((agent) => ({
+        ...agent,
+        description: agent.description || '',
+        greeting: agent.greeting || '',
+        includeNoteContext: agent.includeNoteContext ?? true,
+        temperature: agent.temperature ?? 0.7
+      }))
+      return agents.value
     } catch (error) {
       console.error('获取所有Agent失败:', error)
       throw error
@@ -56,7 +70,14 @@ export const useAgentStore = defineStore('agent', () => {
 
   // 添加一个辅助函数来序列化数据
   const serializeAgentData = (data: any) => {
-    return JSON.parse(JSON.stringify(data))
+    const serialized = {
+      ...data,
+      description: data.description || null,
+      greeting: data.greeting || null,
+      includeNoteContext: data.includeNoteContext ?? true,
+      temperature: data.temperature ?? 0.7
+    }
+    return JSON.parse(JSON.stringify(serialized))
   }
 
   // 创建新 Agent
@@ -77,6 +98,18 @@ export const useAgentStore = defineStore('agent', () => {
     try {
       const serializedData = serializeAgentData(updateData)
       const updatedAgent = await window.electronAPI.agent.updateAgent(id, serializedData)
+
+      // 更新本地状态
+      const index = agents.value.findIndex((a) => a.id === id)
+      if (index !== -1) {
+        agents.value[index] = updatedAgent
+      }
+
+      // 如果是当前选中的 agent，也更新它
+      if (currentAgent.value?.id === id) {
+        currentAgent.value = updatedAgent
+      }
+
       await refreshAgents()
       return updatedAgent
     } catch (error) {
@@ -202,6 +235,21 @@ export const useAgentStore = defineStore('agent', () => {
     currentAgent.value = null
   }
 
+  // 添加获取单个 Agent 的方法
+  const getAgentById = async (id: string) => {
+    try {
+      const agent = agents.value.find((a) => a.id === id)
+      if (agent) return agent
+
+      // 如果本地没有，从数据库获取
+      const fetchedAgent = await window.electronAPI.agent.getAgentById(id)
+      return fetchedAgent
+    } catch (error) {
+      console.error('获取Agent失败:', error)
+      throw error
+    }
+  }
+
   return {
     // 状态
     agents,
@@ -224,6 +272,7 @@ export const useAgentStore = defineStore('agent', () => {
     closeAgentModal,
     setCurrentAgent,
     clearCurrentAgent,
-    generateAgentMenuItems
+    generateAgentMenuItems,
+    getAgentById
   }
 })

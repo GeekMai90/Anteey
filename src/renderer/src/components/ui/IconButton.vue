@@ -94,12 +94,13 @@ defineExpose({
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 24px; // 默认中等尺寸
+  width: 24px;
   height: 24px;
   border-radius: 4px;
   cursor: pointer;
   color: var(--color-text-secondary);
   transition: all 0.2s ease;
+  opacity: inherit;
 
   // 预设尺寸
   &.icon-button-small {
