@@ -40,21 +40,16 @@
               <img src="@resources/avatar.png" alt="安安" class="ai-avatar" />
               <div class="ai-name">安安</div>
             </div>
-            <div class="welcome-text">👋🏻 Hi！我是你的智能助理，让我们开始对话吧！</div>
+            <div class="welcome-text">✨ 你好，让我们一起探索笔记的智慧花园...</div>
             <!-- 修改蜡烛加载动画容器的类名 -->
             <div
               class="candle-container"
               :style="{ bottom: `${assistantStore.loadingAnimation.bottomOffset}px` }"
             >
-              <LoadingCandle v-if="assistantStore.loadingAnimation.type === 'candle'" />
-              <LoadingPencil v-if="assistantStore.loadingAnimation.type === 'pencil'" />
-              <LoadingMouse v-if="assistantStore.loadingAnimation.type === 'mouse'" />
-              <LoadingPacMan v-if="assistantStore.loadingAnimation.type === 'pacman'" />
-              <LoadingTaiChi v-if="assistantStore.loadingAnimation.type === 'taichi'" />
-              <LoadingWindmill v-if="assistantStore.loadingAnimation.type === 'windmill'" />
-              <LoadingWashing v-if="assistantStore.loadingAnimation.type === 'washing'" />
-              <LoadingTypewriter v-if="assistantStore.loadingAnimation.type === 'typewriter'" />
-              <LoadingFox v-if="assistantStore.loadingAnimation.type === 'loadingFox'" />
+              <component
+                :is="loadingComponents[assistantStore.loadingAnimation.type]"
+                v-if="assistantStore.loadingAnimation.type"
+              />
             </div>
           </div>
 
@@ -183,18 +178,6 @@
 
         <!-- 输入区域 -->
         <div class="input-section">
-          <!-- 添加已选择笔记展示区域 -->
-          <div v-if="selectedNotes.length > 0" class="selected-notes">
-            <div v-for="note in selectedNotes" :key="note.id" class="selected-note">
-              <div class="note-icon">
-                <Notes theme="outline" size="14" :strokeWidth="3" />
-              </div>
-              <span class="note-title">{{ note.title }}</span>
-              <button class="remove-btn" @click="removeNote(note.id)">
-                <Close theme="outline" size="12" :strokeWidth="3" />
-              </button>
-            </div>
-          </div>
           <div class="input-wrapper">
             <!-- 功能按钮区域 -->
             <div class="function-buttons">
@@ -259,7 +242,14 @@
                   @keydown="handleInputKeyDown"
                   @compositionstart="handleCompositionStart"
                   @compositionend="handleCompositionEnd"
+                  @focus="onFocus"
+                  @blur="onBlur"
                 ></textarea>
+
+                <!-- 添加思考中的加载动画 -->
+                <div v-if="isLoading" class="thinking-animation">
+                  <LoadingThinking />
+                </div>
 
                 <!-- 添加中断按钮 -->
                 <button
@@ -283,6 +273,18 @@
               </div>
             </div>
           </div>
+          <!-- 添加已选择笔记展示区域 -->
+          <div v-if="selectedNotes.length > 0" class="selected-notes">
+            <div v-for="note in selectedNotes" :key="note.id" class="selected-note">
+              <div class="note-icon">
+                <Notes theme="outline" size="14" :strokeWidth="3" />
+              </div>
+              <span class="note-title">{{ note.title }}</span>
+              <button class="remove-btn" @click="removeNote(note.id)">
+                <Close theme="outline" size="12" :strokeWidth="3" />
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -299,7 +301,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, nextTick } from 'vue'
+import { ref, computed, watch, nextTick, onMounted, onUnmounted, defineAsyncComponent } from 'vue'
 import { useAssistantStore } from '@renderer/stores/assistantStore'
 import { storeToRefs } from 'pinia'
 import {
@@ -321,22 +323,14 @@ import RightSidebarAIChatHistory from '@renderer/components/rightSidebar/RightSi
 import RightSidebarNoteSelector from '@renderer/components/rightSidebar/RightSidebarNoteSelector.vue'
 import { message } from '@renderer/utils/message'
 import { useAgentStore } from '@renderer/stores/agentStore'
-import LoadingCandle from '@renderer/components/ui/LoadingCandle.vue'
-import LoadingMouse from '@renderer/components/ui/LoadingMouse.vue'
-import LoadingPencil from '@renderer/components/ui/LoadingPencil.vue'
-import LoadingPacMan from '@renderer/components/ui/LoadingPacMan.vue'
-import LoadingTaiChi from '@renderer/components/ui/LoadingTaiChi.vue'
-import LoadingWindmill from '@renderer/components/ui/LoadingWindmill.vue'
-import LoadingWashing from '@renderer/components/ui/LoadingWashing.vue'
-import LoadingTypewriter from '@renderer/components/ui/LoadingTypewriter.vue'
 import LoadingCircle from '@renderer/components/ui/LoadingCircle.vue'
-import LoadingFox from '@renderer/components/ui/LoadingFox.vue'
 import Button from '@renderer/components/ui/Button.vue'
 import Dropdown from '@renderer/components/ui/Dropdown.vue'
 import { useAIChatStore } from '@renderer/stores/aiChatStore'
 import type { ChatRequest } from '@shared/types/ai-chat'
 import { useModelConfigStore } from '@renderer/stores/modelConfigStore'
 import { Receiver } from '@icon-park/vue-next'
+import LoadingThinking from '@renderer/components/ui/LoadingThinking.vue'
 
 // Store
 const aiChatStore = useAIChatStore()
@@ -360,11 +354,64 @@ const showNoteSelector = ref(false)
 const lastAtPosition = ref(-1)
 const noteSelectorRef = ref<{ focusSearchInput: () => void } | null>(null)
 
+const placeholders = [
+  '@ 笔记，和 AI 聊聊...',
+  '选择 AI Agent 开始对话...',
+  '让 AI 帮你梳理思路...',
+  '试试 @ 多篇笔记进行总结对比...'
+]
+
+const currentIndex = ref(0)
+// 明确指定 timer 的类型
+let timer: number | null = null
+
+// 随机切换函数
+const randomPlaceholder = () => {
+  let newIndex
+  do {
+    newIndex = Math.floor(Math.random() * placeholders.length)
+  } while (newIndex === currentIndex.value)
+  currentIndex.value = newIndex
+}
+
 // 计算属性
 const getPlaceholder = computed(() => {
-  if (isLoading.value) return '思考中...'
-  return '输入消息，按回车发送...'
+  if (isLoading.value) return '          思考中...'
+  return placeholders[currentIndex.value]
 })
+
+// 开始轮换
+const startRotation = () => {
+  if (!timer) {
+    timer = window.setInterval(randomPlaceholder, 5000)
+  }
+}
+
+// 停止轮换
+const stopRotation = () => {
+  if (timer) {
+    window.clearInterval(timer)
+    timer = null
+  }
+}
+
+onMounted(() => {
+  startRotation()
+})
+
+onUnmounted(() => {
+  stopRotation()
+})
+
+// 可以在输入框获得焦点时停止轮换
+const onFocus = () => {
+  stopRotation()
+}
+
+// 在输入框失去焦点时重新开始轮换
+const onBlur = () => {
+  startRotation()
+}
 
 // 计算 agents 下拉菜单项
 const agentItems = computed(() => {
@@ -578,7 +625,8 @@ const handleNoteSelect = (note: { id: string; title: string }) => {
   if (!isAlreadySelected) {
     selectedNotes.value.push(note)
   }
-  showNoteSelector.value = false
+  // 不再关闭笔记选择器
+  // showNoteSelector.value = false
 
   if (lastAtPosition.value >= 0) {
     inputMessage.value =
@@ -887,6 +935,40 @@ const handleModelSwitch = async (modelId: string) => {
     console.error('切换模型失败:', error)
     message.error('切换模型失败')
   }
+}
+
+// 添加点击事件处理函数
+const handleClickOutside = (event: MouseEvent) => {
+  // 检查点击是否在笔记选择器外部
+  if (showNoteSelector.value) {
+    const noteSelectorEl = document.querySelector('.note-selector')
+    if (noteSelectorEl && !noteSelectorEl.contains(event.target as Node)) {
+      showNoteSelector.value = false
+    }
+  }
+}
+
+// 在组件挂载时添加事件监听器
+onMounted(() => {
+  document.addEventListener('click', handleClickOutside)
+})
+
+// 在组件卸载时移除事件监听器
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutside)
+})
+
+// 创建异步组件映射
+const loadingComponents = {
+  candle: defineAsyncComponent(() => import('@renderer/components/ui/LoadingCandle.vue')),
+  pencil: defineAsyncComponent(() => import('@renderer/components/ui/LoadingPencil.vue')),
+  mouse: defineAsyncComponent(() => import('@renderer/components/ui/LoadingMouse.vue')),
+  pacman: defineAsyncComponent(() => import('@renderer/components/ui/LoadingPacMan.vue')),
+  taichi: defineAsyncComponent(() => import('@renderer/components/ui/LoadingTaiChi.vue')),
+  windmill: defineAsyncComponent(() => import('@renderer/components/ui/LoadingWindmill.vue')),
+  washing: defineAsyncComponent(() => import('@renderer/components/ui/LoadingWashing.vue')),
+  typewriter: defineAsyncComponent(() => import('@renderer/components/ui/LoadingTypewriter.vue')),
+  loadingFox: defineAsyncComponent(() => import('@renderer/components/ui/LoadingFox.vue'))
 }
 </script>
 
@@ -1267,6 +1349,23 @@ const handleModelSwitch = async (modelId: string) => {
     min-height: 80px;
     position: relative;
 
+    // 修改思考中动画的样式
+    .thinking-animation {
+      position: absolute;
+      left: -65px;
+      bottom: -23px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 2;
+      pointer-events: none; // 确保动画不会影响输入框的交互
+
+      :deep(svg) {
+        width: 20px;
+        height: 20px;
+      }
+    }
+
     textarea {
       width: 100%;
       border: none;
@@ -1274,7 +1373,7 @@ const handleModelSwitch = async (modelId: string) => {
       background: transparent;
       font-size: 14px;
       line-height: 1.5;
-      padding: 8px 40px 8px 8px;
+      padding: 8px 40px 8px 8px; // 恢复原来的内边距
       resize: none;
       height: 100%;
       min-height: 80px;
@@ -1559,6 +1658,7 @@ const handleModelSwitch = async (modelId: string) => {
 .selected-notes {
   display: flex;
   gap: 8px;
+  padding-top: 8px;
   padding-bottom: 8px;
   overflow-x: auto;
   overflow-y: hidden;

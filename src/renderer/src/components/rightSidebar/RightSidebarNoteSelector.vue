@@ -1,5 +1,5 @@
 <template>
-  <div class="search-container" :class="{ expanded: isExpanded }">
+  <div class="search-container" :class="{ expanded: isExpanded }" @click.stop>
     <div class="search-input-container">
       <div class="search-input-wrapper">
         <div class="search-icon">
@@ -268,23 +268,28 @@ const performSearch = () => {
 }
 
 // 选择搜索结果
-// 选择搜索结果
 const selectResult = async (noteIndex: number, blockIndex: number) => {
   selectedNoteIndex.value = noteIndex
   selectedBlockIndex.value = blockIndex
 
   if (!searchQuery.value) {
-    // 处理最近笔记的选择，不需要预览
+    // 处理最近笔记的选择
     const note = recentNotes.value[noteIndex]
     if (note) {
       emit('select', { id: note.id, title: note.title })
+      // 清空搜索框并重新聚焦
+      searchQuery.value = ''
+      focusSearchInput()
     }
   } else {
-    // 处理搜索结果的选择，需要预览
+    // 处理搜索结果的选择
     const note = searchResults.value[noteIndex]
     if (note) {
       await fetchSelectedNote() // 获取预览
       emit('select', { id: note.id, title: note.title })
+      // 清空搜索框并重新聚焦
+      searchQuery.value = ''
+      focusSearchInput()
     }
   }
 }
@@ -297,7 +302,7 @@ const hoverResult = (noteIndex: number, blockIndex: number) => {
 
 // 处理键盘事件
 const handleKeyDown = (event: KeyboardEvent) => {
-  if (!searchResults.value.length) return // 如果没有搜索结果，不处理方向键
+  if (!searchResults.value.length && !recentNotes.value.length) return // 如果没有结果，不处理方向键
 
   switch (event.key) {
     case 'ArrowDown':
@@ -306,32 +311,53 @@ const handleKeyDown = (event: KeyboardEvent) => {
         selectedNoteIndex.value = 0
         selectedBlockIndex.value = 0
       } else {
-        const currentNote = searchResults.value[selectedNoteIndex.value]
-        if (selectedBlockIndex.value < currentNote.blocks.length - 1) {
-          selectedBlockIndex.value++
-        } else if (selectedNoteIndex.value < searchResults.value.length - 1) {
-          selectedNoteIndex.value++
-          selectedBlockIndex.value = 0
+        if (searchQuery.value) {
+          // 搜索结果的导航逻辑
+          const currentNote = searchResults.value[selectedNoteIndex.value]
+          if (selectedBlockIndex.value < currentNote.blocks.length - 1) {
+            selectedBlockIndex.value++
+          } else if (selectedNoteIndex.value < searchResults.value.length - 1) {
+            selectedNoteIndex.value++
+            selectedBlockIndex.value = 0
+          }
+        } else {
+          // 最近笔记的导航逻辑
+          if (selectedNoteIndex.value < recentNotes.value.length - 1) {
+            selectedNoteIndex.value++
+          }
         }
       }
       scrollToSelectedItem()
       break
     case 'ArrowUp':
       event.preventDefault()
-      if (selectedBlockIndex.value > 0) {
-        selectedBlockIndex.value--
-      } else if (selectedNoteIndex.value > 0) {
-        selectedNoteIndex.value--
-        const prevNote = searchResults.value[selectedNoteIndex.value]
-        selectedBlockIndex.value = prevNote.blocks.length - 1
+      if (searchQuery.value) {
+        // 搜索结果的导航逻辑
+        if (selectedBlockIndex.value > 0) {
+          selectedBlockIndex.value--
+        } else if (selectedNoteIndex.value > 0) {
+          selectedNoteIndex.value--
+          const prevNote = searchResults.value[selectedNoteIndex.value]
+          selectedBlockIndex.value = prevNote.blocks.length - 1
+        }
+      } else {
+        // 最近笔记的导航逻辑
+        if (selectedNoteIndex.value > 0) {
+          selectedNoteIndex.value--
+        }
       }
       scrollToSelectedItem()
       break
     case 'Enter':
       event.preventDefault()
       if (selectedNoteIndex.value >= 0) {
-        const note = searchResults.value[selectedNoteIndex.value]
-        emit('select', { id: note.id, title: note.title })
+        if (searchQuery.value) {
+          // 搜索结果的选择逻辑
+          selectResult(selectedNoteIndex.value, selectedBlockIndex.value)
+        } else {
+          // 最近笔记的选择逻辑
+          selectResult(selectedNoteIndex.value, 0)
+        }
       }
       break
     case 'Escape':
@@ -375,6 +401,7 @@ const emit = defineEmits<{
 
 const clearSearch = () => {
   searchQuery.value = ''
+  focusSearchInput() // 清空后也重新聚焦
 }
 
 // 添加获取卡片类型样式的函数
@@ -388,6 +415,8 @@ const getCardTypeClass = (cardType?: string) => {
       return 'indexcard'
     case 'Hoplinkcard':
       return 'hoplinkcard'
+    case 'Draftcard':
+      return 'draftcard'
     default:
       return 'default'
   }
@@ -400,6 +429,11 @@ const focusSearchInput = () => {
     }
   })
 }
+
+// 添加方法暴露
+defineExpose({
+  focusSearchInput
+})
 </script>
 
 <style scoped lang="scss">
@@ -757,6 +791,10 @@ const focusSearchInput = () => {
 
   &.hoplinkcard {
     background-color: var(--color-pink);
+  }
+
+  &.draftcard {
+    background-color: var(--color-draft);
   }
 }
 

@@ -1755,7 +1755,7 @@ function applyFilterRule(query: Knex.QueryBuilder, rule: FilterRule): Knex.Query
   return query
 }
 
-// 获取最近编辑的 10 篇笔记
+// 获取最近编辑的 10 篇主卡片笔记
 export async function getRecentEditedNotes(): Promise<
   Array<{
     id: string
@@ -1765,7 +1765,13 @@ export async function getRecentEditedNotes(): Promise<
   }>
 > {
   try {
-    const notes = await db('notes').where('isDeleted', false).orderBy('updatedAt', 'desc').limit(10)
+    const notes = await db('notes')
+      .where({
+        isDeleted: false,
+        cardType: 'Maincard' // 只获取 Maincard 类型的笔记
+      })
+      .orderBy('updatedAt', 'desc')
+      .limit(10)
 
     return notes.map((note: Note) => {
       let metadata = { title: '' }
@@ -1785,8 +1791,8 @@ export async function getRecentEditedNotes(): Promise<
       }
     })
   } catch (error) {
-    console.error('后端→ 获取最近编辑的笔记失败:', error)
-    throw new Error('获取最近编辑的笔记失败')
+    console.error('后端→ 获取最近编辑的主卡片笔记失败:', error)
+    throw new Error('获取最近编辑的主卡片笔记失败')
   }
 }
 

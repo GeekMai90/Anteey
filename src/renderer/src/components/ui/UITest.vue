@@ -419,6 +419,7 @@
     <h2>LoadingCandle 测试</h2>
     <div class="demo-section">
       <LoadingCandle />
+      <LoadingThinking />
     </div>
   </div>
 </template>
@@ -446,6 +447,7 @@ import {
 } from '@icon-park/vue-next'
 import CalendarButton from './CalendarButton.vue'
 import LoadingCandle from './LoadingCandle.vue'
+import LoadingThinking from './LoadingThinking.vue'
 
 const selectedValue = ref('1')
 const loading = ref(false)
