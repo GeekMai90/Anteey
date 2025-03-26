@@ -166,8 +166,8 @@ export class LLMService {
             role: this.mapRoleForGemini(msg.role)
           })),
           generationConfig: {
-            temperature: Number(mergedParameters.temperature),
-            maxOutputTokens: Number(mergedParameters.maxTokens),
+            temperature: Number(mergedParameters.temperature) || 0.7,
+            maxOutputTokens: Math.floor(Number(mergedParameters.maxTokens)),
             stopSequences: mergedParameters.stopSequences || []
           }
         }
@@ -175,16 +175,17 @@ export class LLMService {
         requestBody = {
           model: config.modelName,
           messages: messages,
-          max_tokens: Number(mergedParameters.maxTokens),
-          temperature: Number(mergedParameters.temperature),
+          max_tokens: Math.floor(Number(mergedParameters.maxTokens)),
+          temperature: Number(mergedParameters.temperature) || 0.7,
           stream: false
         }
       } else {
+        // OpenAI 兼容格式的模型 (openai, moonshot, deepseek, zhipu)
         requestBody = {
           model: config.modelName,
           messages: messages,
-          temperature: Number(mergedParameters.temperature),
-          max_tokens: Number(mergedParameters.maxTokens),
+          temperature: Number(mergedParameters.temperature) || 0.7,
+          max_tokens: Math.floor(Number(mergedParameters.maxTokens)),
           stream: false
         }
       }

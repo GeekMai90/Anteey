@@ -9,6 +9,9 @@ interface Props {
   type?: 'text' | 'password' | 'email' | 'number'
   disabled?: boolean
   help?: string
+  step?: string | number
+  min?: string | number
+  max?: string | number
 }
 
 withDefaults(defineProps<Props>(), {
@@ -18,7 +21,10 @@ withDefaults(defineProps<Props>(), {
   height: 40,
   type: 'text',
   disabled: false,
-  help: ''
+  help: '',
+  step: undefined,
+  min: undefined,
+  max: undefined
 })
 
 const emit = defineEmits<{
@@ -51,6 +57,9 @@ defineExpose({
       :placeholder="placeholder"
       :value="modelValue ?? ''"
       :disabled="disabled"
+      :step="step"
+      :min="min"
+      :max="max"
       :style="{
         height: `${height}px`
       }"

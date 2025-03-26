@@ -34,7 +34,7 @@
                 <Button
                   type="delete"
                   size="medium"
-                  :disabled="config.isDefault"
+                  :disabled="!!config.isDefault"
                   @click="handleDelete(config.id)"
                 >
                   删除
@@ -120,20 +120,27 @@
           <div class="form-group">
             <label>Temperature（温度）</label>
             <Input
-              v-model="formData.parameters.temperature"
+              :modelValue="String(formData.parameters.temperature)"
               type="number"
+              step="0.1"
+              min="0"
+              :max="formData.provider === 'openai' ? 2 : 1"
               placeholder="设置温度 (0-1)"
               :help="'控制输出的随机性，值越大输出越随机，范围 0-1'"
+              @update:modelValue="(val) => (formData.parameters.temperature = val ?? '0.7')"
             />
           </div>
 
           <div class="form-group">
             <label>Max Tokens（最大生成长度）</label>
             <Input
-              v-model="formData.parameters.maxTokens"
+              :modelValue="String(formData.parameters.maxTokens)"
               type="number"
+              step="100"
+              min="100"
               placeholder="设置最大 token 数"
               :help="'控制生成文本的最大长度'"
+              @update:modelValue="(val) => (formData.parameters.maxTokens = val ?? '2000')"
             />
           </div>
 
@@ -152,7 +159,7 @@
           <div class="footer-left">
             <Button
               size="medium"
-              :loading="isLoading"
+              :loading="!!isLoading"
               :disabled="!isFormValid"
               @click="testConnection"
             >
@@ -326,13 +333,11 @@ const getProviderName = (provider: string) => {
 // 处理提供商变更
 const handleProviderChange = () => {
   const provider = formData.value.provider
-  if (!provider) return // 添加空值检查
+  if (!provider) return
 
   const preset = presets.value[provider]
   if (preset) {
-    formData.value.baseUrl = preset.defaultBaseURL || ''
-    formData.value.modelName = preset.defaultModel || ''
-
+    // 只保留参数预设，不设置 baseUrl 和 modelName
     if (preset.defaultParameters) {
       formData.value.parameters = {
         ...formData.value.parameters,
@@ -372,8 +377,8 @@ const isFormDirty = computed(() => {
 
 // 修改关闭模态框方法
 const closeModal = () => {
-  // 如果正在加载或已经填写了表单，显示确认对话框
-  if (isLoading.value || isFormDirty.value) {
+  // 只有点击右上角关闭按钮时，才需要确认
+  if (isFormDirty.value) {
     showConfirmDialog.value = true
   } else {
     resetModalState()
@@ -410,7 +415,7 @@ const resetModalState = () => {
   }
 }
 
-// 提交表单
+// 修改提交表单方法
 const handleSubmit = async () => {
   try {
     const parametersToSend = {
@@ -436,7 +441,8 @@ const handleSubmit = async () => {
       await modelConfigStore.addConfig(configData)
       message.success('配置已添加')
     }
-    closeModal()
+    // 直接重置状态，不需要确认
+    resetModalState()
   } catch (error) {
     console.error('操作失败:', error)
     message.error('操作失败: ' + (error instanceof Error ? error.message : '未知错误'))

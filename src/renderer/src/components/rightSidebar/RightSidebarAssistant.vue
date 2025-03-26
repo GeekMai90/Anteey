@@ -546,6 +546,7 @@ const handleSend = async () => {
     // 等待一下再滚动，确保DOM更新
     nextTick(() => {
       scrollToLatestMessage()
+      focusInput()
     })
   } catch (error) {
     console.error('发送消息失败:', error)
