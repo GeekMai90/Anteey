@@ -973,7 +973,7 @@ export async function copyPolishedManuscriptToClipboard(
               `!\\[([^\\]]*)\\]\\(${imageUrl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\)`,
               'g'
             ),
-            (match, alt) => `![${alt}](${localImagePath})\n<!-- 本地图片路径 -->`
+            (_match, alt) => `![${alt}](${localImagePath})\n<!-- 本地图片路径 -->`
           )
         }
       } catch (error) {

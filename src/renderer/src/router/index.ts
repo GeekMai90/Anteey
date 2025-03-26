@@ -105,11 +105,6 @@ const routes = [
     meta: { keepAlive: true }
   },
   {
-    name: 'AIAssistant',
-    path: '/ai-assistant',
-    component: () => import('../views/AIAssistant.vue')
-  },
-  {
     name: 'FlashcardView',
     path: '/flashcard',
     component: () => import('../views/FlashcardView.vue'),

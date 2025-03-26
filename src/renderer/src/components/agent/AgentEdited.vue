@@ -2,7 +2,7 @@
   <Modal v-model="isVisible" :closeOnClickOutside="false">
     <div class="agent-edit-modal">
       <div class="modal-header">
-        <h2 class="modal-title">{{ editingAgent ? '编辑AI助手' : '新建AI助手' }}</h2>
+        <h2 class="modal-title">{{ editingAgent ? '编辑 AI 助手' : '新建 AI 助手' }}</h2>
         <IconButton :icon="Close" tooltip="关闭" @click="handleCancel" />
       </div>
 
@@ -13,7 +13,10 @@
         </div>
 
         <div class="form-item">
-          <label>描述</label>
+          <label
+            >描述
+            <HelpTips content="描述信息不会影响 AI 的回答，仅作为助手信息展示" />
+          </label>
           <Input v-model="formState.description" placeholder="请输入助手描述" />
         </div>
 
@@ -28,12 +31,16 @@
         </div>
 
         <div class="form-item switch-item">
-          <label>AI模型</label>
+          <label>
+            AI 模型
+            <HelpTips content="需要先在设置中心模型配置中配置 AI 模型" />
+          </label>
           <Dropdown
             :items="modelOptions"
             :width="200"
             trigger="click"
             :showSelected="true"
+            showArrow
             @select="handleModelSelect"
           >
             选择模型
@@ -41,7 +48,12 @@
         </div>
 
         <div class="form-item">
-          <label>温度值</label>
+          <label>
+            温度值
+            <HelpTips
+              content="温度值越高，AI 的回答越随机，越有创造性，但同时也会导致回答不那么准确"
+            />
+          </label>
           <Slider
             v-model="formState.temperature"
             :min="0"
@@ -86,7 +98,7 @@ import IconButton from '@renderer/components/ui/IconButton.vue'
 import HelpTips from '@renderer/components/ui/HelpTips.vue'
 import { message } from '@renderer/utils/message'
 
-// 将 formState 的初始化移到最前面
+// 1. 先定义所有响应式状态
 const formState = ref<CreateAgentParams>({
   name: '',
   description: undefined,
@@ -117,14 +129,121 @@ const modelConfigStore = useModelConfigStore()
 const loading = ref(false)
 const errors = ref<Record<string, string>>({})
 
+// 2. 定义重置表单的函数
+const resetForm = () => {
+  formState.value = {
+    name: '',
+    description: undefined,
+    greeting: undefined,
+    systemPrompt: '',
+    modelConfigId: modelConfigStore.defaultConfig?.id || '',
+    temperature: 0.7,
+    includeNoteContext: true
+  }
+  errors.value = {}
+}
+
+// 3. 修改 watch 函数
+watch(
+  () => props.editingAgent,
+  async (agent) => {
+    try {
+      if (agent) {
+        const fullAgent = await agentStore.getAgentById(agent.id)
+        if (!fullAgent) {
+          throw new Error('获取助手数据失败')
+        }
+
+        formState.value = {
+          name: fullAgent.name,
+          description: fullAgent.description ?? undefined,
+          greeting: fullAgent.greeting ?? undefined,
+          systemPrompt: fullAgent.systemPrompt,
+          modelConfigId: fullAgent.modelConfigId,
+          temperature: fullAgent.temperature ?? 0.7,
+          includeNoteContext: fullAgent.includeNoteContext ?? true
+        }
+      } else {
+        // 直接设置初始值，而不是调用 resetForm
+        formState.value = {
+          name: '',
+          description: undefined,
+          greeting: undefined,
+          systemPrompt: '',
+          modelConfigId: modelConfigStore.defaultConfig?.id || '',
+          temperature: 0.7,
+          includeNoteContext: true
+        }
+        errors.value = {}
+      }
+    } catch (error: unknown) {
+      console.error('加载Agent数据失败:', error)
+      message.error('加载数据失败，请重试')
+      isVisible.value = false
+    }
+  },
+  { immediate: true }
+)
+
+// 4. 修改 visible 的 watch
+watch(
+  () => props.visible,
+  (newVisible) => {
+    if (newVisible && !props.editingAgent) {
+      resetForm()
+    }
+  }
+)
+
+// 其他方法保持不变
+const handleCancel = () => {
+  isVisible.value = false
+  resetForm()
+}
+
+const handleSubmit = async () => {
+  if (!validateForm()) return
+
+  try {
+    loading.value = true
+    const formData = {
+      name: formState.value.name.trim(),
+      description: formState.value.description?.trim() ?? null,
+      greeting: formState.value.greeting?.trim() ?? null,
+      systemPrompt: formState.value.systemPrompt.trim(),
+      modelConfigId: formState.value.modelConfigId,
+      temperature: formState.value.temperature,
+      includeNoteContext: formState.value.includeNoteContext
+    }
+
+    if (props.editingAgent) {
+      const updateData: UpdateAgentParams = {
+        id: props.editingAgent.id,
+        ...formData
+      }
+      await agentStore.updateAgent(props.editingAgent.id, updateData)
+    } else {
+      await agentStore.createAgent(formData)
+    }
+    emit('success')
+    isVisible.value = false
+    resetForm()
+  } catch (error: unknown) {
+    console.error('提交表单失败:', error)
+    message.error(error instanceof Error ? error.message : '操作失败，请重试')
+  } finally {
+    loading.value = false
+  }
+}
+
 // 表单验证
 const validateForm = (): boolean => {
   errors.value = {}
 
-  if (!formState.value.name) {
+  if (!formState.value.name?.trim()) {
     errors.value.name = '请输入助手名称'
   }
-  if (!formState.value.systemPrompt) {
+  if (!formState.value.systemPrompt?.trim()) {
     errors.value.systemPrompt = '请输入系统提示词'
   }
   if (!formState.value.modelConfigId) {
@@ -165,109 +284,10 @@ onMounted(async () => {
   }
 })
 
-// 修改 watch 函数，确保异步操作的正确处理
-watch(
-  () => props.editingAgent,
-  async (agent) => {
-    try {
-      if (agent) {
-        const fullAgent = await agentStore.getAgentById(agent.id)
-        if (!fullAgent) {
-          throw new Error('获取助手数据失败')
-        }
-
-        formState.value = {
-          name: fullAgent.name,
-          description: fullAgent.description ?? undefined,
-          greeting: fullAgent.greeting ?? undefined,
-          systemPrompt: fullAgent.systemPrompt,
-          modelConfigId: fullAgent.modelConfigId,
-          temperature: fullAgent.temperature ?? 0.7,
-          includeNoteContext: fullAgent.includeNoteContext ?? true
-        }
-      } else {
-        resetForm()
-      }
-    } catch (error) {
-      console.error('加载Agent数据失败:', error)
-      message.error('加载数据失败，请重试')
-      isVisible.value = false
-    }
-  },
-  { immediate: true }
-)
-
 // 处理模型选择
 const handleModelSelect = (key: string) => {
   formState.value.modelConfigId = key
 }
-
-// 添加重置表单的方法
-const resetForm = () => {
-  formState.value = {
-    name: '',
-    description: undefined,
-    greeting: undefined,
-    systemPrompt: '',
-    modelConfigId: modelConfigStore.defaultConfig?.id || '',
-    temperature: 0.7,
-    includeNoteContext: true
-  }
-  errors.value = {}
-}
-
-// 修改 handleCancel 方法
-const handleCancel = () => {
-  isVisible.value = false
-  resetForm() // 添加重置表单
-}
-
-// 修改 handleSubmit 方法
-const handleSubmit = async () => {
-  if (!validateForm()) return
-
-  try {
-    loading.value = true
-    // 将响应式对象转换为普通对象,处理 undefined 转为 null
-    const formData = {
-      name: formState.value.name,
-      description: formState.value.description ?? null,
-      greeting: formState.value.greeting ?? null,
-      systemPrompt: formState.value.systemPrompt,
-      modelConfigId: formState.value.modelConfigId,
-      temperature: formState.value.temperature,
-      includeNoteContext: formState.value.includeNoteContext
-    }
-
-    if (props.editingAgent) {
-      const updateData: UpdateAgentParams = {
-        id: props.editingAgent.id,
-        ...formData
-      }
-      await agentStore.updateAgent(props.editingAgent.id, updateData)
-    } else {
-      await agentStore.createAgent(formData)
-    }
-    emit('success')
-    isVisible.value = false
-    resetForm() // 添加重置表单
-  } catch (error) {
-    console.error('提交表单失败:', error)
-  } finally {
-    loading.value = false
-  }
-}
-
-// 监听 visible 变化
-watch(
-  () => props.visible,
-  (newVisible) => {
-    if (newVisible && !props.editingAgent) {
-      // 当打开弹窗且不是编辑模式时，重置表单
-      resetForm()
-    }
-  }
-)
 </script>
 
 <style lang="scss" scoped>
@@ -301,7 +321,9 @@ watch(
       margin-bottom: 24px;
 
       label {
-        display: block;
+        display: flex;
+        align-items: center;
+        gap: 4px;
         margin-bottom: 8px;
         color: var(--color-text-primary);
         font-size: 14px;

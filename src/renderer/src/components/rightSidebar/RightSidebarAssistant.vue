@@ -356,7 +356,7 @@ import {
   RobotTwo,
   Receiver
 } from '@icon-park/vue-next'
-import TypewriterText from '@renderer/components/aiassistant/TypewriterText.vue'
+import TypewriterText from '@renderer/components/rightSidebar/TypewriterText.vue'
 import { useRouter } from 'vue-router'
 import { useUIStore } from '@renderer/stores/UIStore'
 import RightSidebarAIChatHistory from '@renderer/components/rightSidebar/RightSidebarAIChatHistory.vue'

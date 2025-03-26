@@ -224,7 +224,31 @@
       </div>
 
       <!-- 其他模式保持不变 -->
-      <div v-else class="content-wrapper">
+      <div v-else class="content-wrapper with-toc">
+        <!-- 目录侧边栏 -->
+        <div
+          v-if="['first_draft', 'polish'].includes(currentMode)"
+          class="toc-sidebar"
+          :class="{ 'is-collapsed': isSmallScreen && !showToc }"
+        >
+          <div class="toc-container">
+            <div class="toc-header">目录</div>
+            <TableOfContents :items="tocItems" :editor="getCurrentEditor" />
+          </div>
+        </div>
+
+        <!-- 添加固定的切换按钮 -->
+        <button
+          v-if="['first_draft', 'polish'].includes(currentMode) && isSmallScreen"
+          class="toc-toggle-fixed"
+          :class="{ 'is-expanded': showToc }"
+          :title="showToc ? '收起目录' : '展开目录'"
+          @click="toggleToc"
+        >
+          <MenuFold v-if="showToc" theme="outline" size="16" />
+          <MenuUnfold v-else theme="outline" size="16" />
+        </button>
+
         <!-- 初稿模式 -->
         <div v-if="currentMode === 'first_draft'" class="first-draft-mode">
           <div ref="scrollContainerRef" class="editor-wrapper">
@@ -235,6 +259,7 @@
               :editable="true"
               :enable-drag-handle="true"
               @update:content="handleFirstDraftContentUpdate"
+              @toc-update="handleTocUpdate"
             />
           </div>
         </div>
@@ -249,6 +274,7 @@
               :editable="true"
               :enable-drag-handle="true"
               @update:content="handlePolishedContentUpdate"
+              @toc-update="handleTocUpdate"
             />
           </div>
         </div>
@@ -268,7 +294,9 @@ import {
   Receiver,
   WholeSiteAccelerator,
   Copy,
-  Download
+  Download,
+  MenuFold,
+  MenuUnfold
 } from '@icon-park/vue-next'
 import { useWritingDeskStore } from '@renderer/stores/writingDeskStore'
 import { useNoteStore } from '@renderer/stores/noteStore'
@@ -283,6 +311,7 @@ import TipTapEditor from '@renderer/components/tiptap/TipTapEditor.vue'
 import CardThumbnailNavigator from './CardThumbnailNavigator.vue'
 import CardGridView from './CardGridView.vue'
 import Dropdown from '@renderer/components/ui/Dropdown.vue'
+import TableOfContents from '../toc/TableOfContents.vue'
 
 // 使用路由获取参数
 const route = useRoute()
@@ -1090,6 +1119,62 @@ const handleExportSelect = async (key: string) => {
     // TODO: 显示错误提示
   }
 }
+
+// 添加目录项的类型定义
+interface TocItem {
+  id: string
+  level: number
+  textContent: string
+  itemIndex: number | string
+  isActive: boolean
+  isScrolledOver: boolean
+}
+
+// 修改目录相关的状态，添加类型
+const tocItems = ref<TocItem[]>([])
+
+// 处理目录更新，添加类型
+const handleTocUpdate = (items: TocItem[]) => {
+  tocItems.value = items
+}
+
+// 获取当前编辑器实例
+const getCurrentEditor = computed(() => {
+  if (currentMode.value === 'first_draft') {
+    return firstDraftEditorRef.value?.editor || null
+  } else if (currentMode.value === 'polish') {
+    return polishEditorRef.value?.editor || null
+  }
+  return null
+})
+
+// 添加响应式状态
+const isSmallScreen = ref(false)
+const showToc = ref(true)
+
+// 检查屏幕宽度的函数
+const checkScreenSize = () => {
+  isSmallScreen.value = window.innerWidth < 1200
+  // 在小屏幕下默认收起目录
+  if (isSmallScreen.value) {
+    showToc.value = false
+  }
+}
+
+// 切换目录显示状态
+const toggleToc = () => {
+  showToc.value = !showToc.value
+}
+
+// 监听窗口大小变化
+onMounted(() => {
+  checkScreenSize()
+  window.addEventListener('resize', checkScreenSize)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('resize', checkScreenSize)
+})
 </script>
 
 <style lang="scss" scoped>
@@ -1370,6 +1455,131 @@ const handleExportSelect = async (key: string) => {
           //     margin-bottom: 1em;
           //   }
           // }
+        }
+      }
+
+      &.with-toc {
+        position: relative;
+        display: flex;
+        gap: 24px;
+        max-width: 1200px;
+
+        .toc-sidebar {
+          width: 240px;
+          flex-shrink: 0;
+          position: relative;
+          transition: all 0.3s ease;
+
+          &.is-collapsed {
+            position: absolute;
+            left: 0;
+            transform: translateX(-100%);
+            margin-left: 0;
+
+            .toc-toggle {
+              right: -32px;
+              background: var(--color-primary);
+              color: white;
+              border-color: var(--color-primary);
+
+              &:hover {
+                background: var(--color-primary-dark);
+              }
+            }
+          }
+
+          @media screen and (max-width: 1200px) {
+            position: fixed;
+            left: 0;
+            top: 0;
+            height: 100vh;
+            // background: var(--color-bg-secondary);
+            z-index: 100;
+            padding: 24px 0;
+
+            .toc-container {
+              height: 100%;
+              border-radius: 0;
+              border-left: none;
+              border-top: none;
+              border-bottom: none;
+            }
+          }
+
+          .toc-container {
+            position: sticky;
+            top: 24px;
+            max-height: calc(100vh - 180px);
+            overflow-y: auto;
+            background: var(--color-bg-secondary);
+            border-radius: 8px;
+            border: 1px solid var(--color-border);
+
+            .toc-header {
+              padding: 12px 16px;
+              font-weight: 500;
+              color: var(--color-text-primary);
+              border-bottom: 1px solid var(--color-border);
+            }
+          }
+        }
+
+        .first-draft-mode,
+        .polish-mode {
+          flex: 1;
+          min-width: 0;
+
+          @media screen and (max-width: 1200px) {
+            width: 100%;
+
+            .editor-wrapper {
+              max-width: 100%;
+            }
+          }
+        }
+
+        @media screen and (max-width: 1200px) {
+          max-width: 100%;
+          padding: 0 16px;
+        }
+
+        // 添加固定的切换按钮样式
+        .toc-toggle-fixed {
+          position: fixed;
+          left: 0;
+          top: 50%;
+          transform: translateY(-50%);
+          width: 24px;
+          height: 48px;
+          border-radius: 0 24px 24px 0;
+          background: var(--color-primary);
+          border: none;
+          color: white;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          z-index: 101;
+          transition: all 0.3s ease;
+          padding: 0;
+
+          &:hover {
+            background: var(--color-primary-dark);
+            width: 28px;
+          }
+
+          &.is-expanded {
+            left: 240px; // 当目录展开时，按钮也跟着移动
+            background: var(--color-bg-secondary);
+            color: var(--color-text-secondary);
+            border: 1px solid var(--color-border);
+            border-left: none;
+
+            &:hover {
+              background: var(--color-hover-bg);
+              color: var(--color-primary);
+            }
+          }
         }
       }
     }

@@ -489,6 +489,7 @@ import { flip, offset, shift } from '@floating-ui/dom'
 import 'katex/dist/katex.min.css'
 import { Mathematics } from '@tiptap-pro/extension-mathematics'
 import CharacterCount from '@tiptap/extension-character-count'
+import { TableOfContents, getHierarchicalIndexes } from '@tiptap-pro/extension-table-of-contents'
 
 const noteStore = useNoteStore()
 const uiStore = useUIStore()
@@ -514,7 +515,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['update:content'])
+const emit = defineEmits(['update:content', 'toc-update'])
 const editor = ref(null)
 const editorInstance = computed(() => editor.value)
 
@@ -1114,7 +1115,7 @@ const editorExtensions = computed(() => {
   const extensions = [
     StarterKit.configure({
       heading: {
-        levels: [1, 2, 3]
+        levels: [1, 2, 3, 4]
       },
       dropcursor: false,
       codeBlock: false,
@@ -1347,6 +1348,12 @@ const editorExtensions = computed(() => {
         // 匹配中文字符、英文单词和数字
         const matches = text.match(/[\u4e00-\u9fa5]+|[a-zA-Z]+|[0-9]+/g)
         return matches ? matches.length : 0
+      }
+    }),
+    TableOfContents.configure({
+      getIndex: getHierarchicalIndexes,
+      onUpdate: (items) => {
+        emit('toc-update', items)
       }
     })
   ]

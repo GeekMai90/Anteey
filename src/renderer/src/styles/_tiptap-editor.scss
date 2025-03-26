@@ -48,10 +48,21 @@
     text-wrap: pretty;
   }
 
+  h4 {
+    font-size: 1rem;
+    font-weight: var(--font-weight-bold);
+    margin-top: 16px;
+    margin-bottom: 8px;
+    margin-left: 0;
+    margin-right: 0;
+    text-wrap: pretty;
+  }
+
   // 标题悬停小圆点效果
   h1,
   h2,
-  h3 {
+  h3,
+  h4 {
     position: relative;
 
     &:hover::before {
@@ -87,6 +98,12 @@
 
   h3:hover::before {
     content: "•••";
+    color: var(--color-text-tertiary);
+    font-size: 12px;
+  }
+
+  h4:hover::before {
+    content: "••••";
     color: var(--color-text-tertiary);
     font-size: 12px;
   }

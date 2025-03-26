@@ -23,7 +23,7 @@ import { setupReviewHandlers } from './reviewIpcHandlers'
 import { setupTaskHandlers } from './taskIpcHandlers'
 import { setupAuthHandlers } from './authIpcHandlers'
 import { setupLLMConfigHandlers } from './llmConfigIpcHandlers'
-import { setupRAGHandlers } from './ragIpcHandlers'
+// import { setupRAGHandlers } from './ragIpcHandlers'
 import { setupSimilarNotesHandlers } from './similarNotesIpcHandlers'
 import { setupDictionaryHandlers } from './dictionaryIpcHandlers'
 import { setupMindboardHandlers } from './mindboardIpcHandlers'
@@ -61,7 +61,7 @@ export function setupIpcHandlers(): void {
   setupTaskHandlers()
   setupAuthHandlers()
   setupLLMConfigHandlers()
-  setupRAGHandlers()
+  // setupRAGHandlers()
   setupSimilarNotesHandlers()
   setupDictionaryHandlers()
   setupMindboardHandlers()

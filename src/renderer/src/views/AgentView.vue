@@ -55,7 +55,7 @@
       <!-- 空状态 -->
       <div v-if="filteredAgents.length === 0" class="empty-state">
         <img src="@renderer/assets/images/empty.svg" alt="暂无内容" class="empty-icon" />
-        <div class="empty-text">暂无AI助手，点击右上角"新增助手"开始创建</div>
+        <div class="empty-text">暂无 AI 助手，点击右上角"新增助手"开始创建</div>
       </div>
       <!-- 卡片网格 -->
       <div v-else class="card-grid">
@@ -327,6 +327,8 @@ const handleCancelDelete = () => {
     overflow-y: auto;
     background-color: var(--color-bg-primary);
     padding: 20px;
+    display: flex;
+    flex-direction: column;
 
     .card-grid {
       display: grid;
@@ -340,14 +342,13 @@ const handleCancelDelete = () => {
     }
 
     .empty-state {
+      flex: 1;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -90%);
+      position: relative;
+      margin-top: -10vh;
       width: 100%;
       text-align: center;
       padding: 20px;

@@ -70,26 +70,60 @@ export const useAgentStore = defineStore('agent', () => {
 
   // 添加一个辅助函数来序列化数据
   const serializeAgentData = (data: any) => {
+    // 确保所有必需字段都存在
+    if (!data.name || !data.modelConfigId || !data.systemPrompt) {
+      throw new Error('缺少必需的字段：name、modelConfigId 或 systemPrompt')
+    }
+
     const serialized = {
-      ...data,
-      description: data.description || null,
-      greeting: data.greeting || null,
+      name: data.name.trim(),
+      description: data.description?.trim() || null,
+      greeting: data.greeting?.trim() || null,
+      systemPrompt: data.systemPrompt.trim(),
+      modelConfigId: data.modelConfigId,
       includeNoteContext: data.includeNoteContext ?? true,
       temperature: data.temperature ?? 0.7
     }
+
+    // 验证数据有效性
+    if (serialized.name.length === 0) {
+      throw new Error('助手名称不能为空')
+    }
+    if (serialized.systemPrompt.length === 0) {
+      throw new Error('系统提示词不能为空')
+    }
+
     return JSON.parse(JSON.stringify(serialized))
   }
 
   // 创建新 Agent
   const createAgent = async (params: CreateAgentParams) => {
     try {
+      // 确保模型配置已加载
+      if (modelConfigStore.configs.length === 0) {
+        await modelConfigStore.loadConfigs()
+        await modelConfigStore.loadProviderPresets()
+      }
+
+      // 添加错误处理和日志
+      console.log('Creating agent with params:', params)
+      if (!params.modelConfigId) {
+        throw new Error('模型配置ID不能为空')
+      }
+
       const serializedParams = serializeAgentData(params)
+      console.log('Serialized params:', serializedParams)
+
       const newAgent = await window.electronAPI.agent.createAgent(serializedParams)
+      console.log('New agent created:', newAgent)
+
+      // 刷新列表
       await refreshAgents()
       return newAgent
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('创建Agent失败:', error)
-      throw error
+      // 抛出更具体的错误信息
+      throw new Error(`创建AI助手失败: ${error instanceof Error ? error.message : '未知错误'}`)
     }
   }
 

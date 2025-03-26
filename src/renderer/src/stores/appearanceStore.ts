@@ -155,7 +155,8 @@ export const useAppearanceStore = defineStore(
           enableWhiteboard: true,
           enableAIAssistant: true,
           createdAt: new Date(),
-          updatedAt: new Date()
+          updatedAt: new Date(),
+          loadingAnimationType: 'candle'
         }
         settings.value = defaultSettings
         applySettings(defaultSettings)

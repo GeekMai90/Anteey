@@ -441,6 +441,14 @@ async function buildMessages(
   options: MessageBuildOptions = {}
 ): Promise<ChatMessage[]> {
   try {
+    // 使用 query 参数进行更有意义的日志记录
+    log.info('开始构建消息数组:', {
+      conversationId: conversation.id,
+      queryLength: query.length,
+      query: query.slice(0, 50) + (query.length > 50 ? '...' : ''), // 只记录前50个字符
+      options
+    })
+
     const { maxHistoryMessages = MAX_CONTEXT_MESSAGES } = options
     const messages: ChatMessage[] = []
 

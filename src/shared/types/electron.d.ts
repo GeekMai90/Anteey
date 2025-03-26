@@ -83,11 +83,11 @@ import type {
 
   // 认证相关
   AuthState,
-  ChatSession,
-  RAGContext,
+  // ChatSession,
+  // RAGContext,
   // RAGHistoryRecord,
-  ChatMessage,
-  AssistantNoteReference,
+  // ChatMessage,
+  // AssistantNoteReference,
   WordSuggestion,
   DictWord,
   SystemPromptConfig,
@@ -98,7 +98,7 @@ import type {
   // 思维板相关
   Mindboard,
   IconName,
-  LLMError,
+  // LLMError,
 
   // 新增的 S3 相关类型
   S3Config,
@@ -682,158 +682,158 @@ export interface ElectronAPI {
     ) => Promise<{ valid: boolean; message?: string }>
   }
 
-  rag: {
-    retrieveContext: (params: { query: string; session?: ChatSession }) => Promise<RAGContext>
+  // rag: {
+  //   retrieveContext: (params: { query: string; session?: ChatSession }) => Promise<RAGContext>
 
-    generateAnswer: (
-      query: string,
-      sessionId: string | null,
-      currentMessages: ChatMessage[],
-      currentContexts: RAGContext[]
-    ) => Promise<{
-      answer: string
-      context: RAGContext
-      messages: ChatMessage[]
-    }>
+  //   generateAnswer: (
+  //     query: string,
+  //     sessionId: string | null,
+  //     currentMessages: ChatMessage[],
+  //     currentContexts: RAGContext[]
+  //   ) => Promise<{
+  //     answer: string
+  //     context: RAGContext
+  //     messages: ChatMessage[]
+  //   }>
 
-    updateRAGHistory: (params: {
-      sessionId: string
-      messages: ChatMessage[]
-      contexts: RAGContext[]
-      metadata?: any // 添加可选的元数据
-    }) => Promise<void>
+  //   updateRAGHistory: (params: {
+  //     sessionId: string
+  //     messages: ChatMessage[]
+  //     contexts: RAGContext[]
+  //     metadata?: any // 添加可选的元数据
+  //   }) => Promise<void>
 
-    updateRAGHistoryTitle: (id: string, title: string) => Promise<void>
+  //   updateRAGHistoryTitle: (id: string, title: string) => Promise<void>
 
-    toggleRAGHistoryPin: (id: string) => Promise<void>
+  //   toggleRAGHistoryPin: (id: string) => Promise<void>
 
-    deleteRAGHistory: (id: string) => Promise<void>
+  //   deleteRAGHistory: (id: string) => Promise<void>
 
-    clearAllRAGHistory: () => Promise<void>
+  //   clearAllRAGHistory: () => Promise<void>
 
-    // getRAGHistory: () => Promise<RAGHistoryRecord[]>
+  //   // getRAGHistory: () => Promise<RAGHistoryRecord[]>
 
-    // getRAGHistoryDetail: (id: string) => Promise<RAGHistoryRecord | null>
+  //   // getRAGHistoryDetail: (id: string) => Promise<RAGHistoryRecord | null>
 
-    // 新增的批量操作方法
-    // batchGetRAGHistory: (ids: string[]) => Promise<(RAGHistoryRecord | null)[]>
+  //   // 新增的批量操作方法
+  //   // batchGetRAGHistory: (ids: string[]) => Promise<(RAGHistoryRecord | null)[]>
 
-    // 新增的会话管理方法
-    cleanupExpiredSessions: () => Promise<void>
+  //   // 新增的会话管理方法
+  //   cleanupExpiredSessions: () => Promise<void>
 
-    // 新增的性能监控方法
-    trackRAGPerformance: (
-      sessionId: string,
-      method: string,
-      duration: number,
-      options: {
-        success: boolean
-        error?: string
-        metadata?: Record<string, any>
-      }
-    ) => Promise<void>
+  //   // 新增的性能监控方法
+  //   trackRAGPerformance: (
+  //     sessionId: string,
+  //     method: string,
+  //     duration: number,
+  //     options: {
+  //       success: boolean
+  //       error?: string
+  //       metadata?: Record<string, any>
+  //     }
+  //   ) => Promise<void>
 
-    generateAnswerWithReferences: (
-      query: string,
-      noteReferences: NoteReference[],
-      sessionId: string | null,
-      currentMessages: ChatMessage[],
-      currentContexts: RAGContext[]
-    ) => Promise<{
-      answer: string
-      context: RAGContext
-      messages: ChatMessage[]
-    }>
+  //   generateAnswerWithReferences: (
+  //     query: string,
+  //     noteReferences: NoteReference[],
+  //     sessionId: string | null,
+  //     currentMessages: ChatMessage[],
+  //     currentContexts: RAGContext[]
+  //   ) => Promise<{
+  //     answer: string
+  //     context: RAGContext
+  //     messages: ChatMessage[]
+  //   }>
 
-    // 修改问一问模式接口
-    handleAskQuestion: (
-      query: string,
-      assistantNoteReferences: AssistantNoteReference[],
-      sessionId: string | null,
-      currentMessages: ChatMessage[],
-      currentContexts: RAGContext[],
-      deepseekConfig?: {
-        temperature?: number
-        maxTokens?: number
-      }
-    ) => Promise<{
-      answer: string
-      context: RAGContext
-      messages: ChatMessage[]
-      error?: LLMError // 添加错误返回
-    }>
+  //   // 修改问一问模式接口
+  //   handleAskQuestion: (
+  //     query: string,
+  //     assistantNoteReferences: AssistantNoteReference[],
+  //     sessionId: string | null,
+  //     currentMessages: ChatMessage[],
+  //     currentContexts: RAGContext[],
+  //     deepseekConfig?: {
+  //       temperature?: number
+  //       maxTokens?: number
+  //     }
+  //   ) => Promise<{
+  //     answer: string
+  //     context: RAGContext
+  //     messages: ChatMessage[]
+  //     error?: LLMError // 添加错误返回
+  //   }>
 
-    // 修改聊一聊模式接口
-    handleChat: (
-      query: string,
-      sessionId: string | null,
-      currentMessages: ChatMessage[],
-      currentContexts: RAGContext[],
-      deepseekConfig?: {
-        temperature?: number
-        maxTokens?: number
-      }
-    ) => Promise<{
-      answer: string
-      context: RAGContext
-      messages: ChatMessage[]
-      error?: LLMError // 添加错误返回
-    }>
+  //   // 修改聊一聊模式接口
+  //   handleChat: (
+  //     query: string,
+  //     sessionId: string | null,
+  //     currentMessages: ChatMessage[],
+  //     currentContexts: RAGContext[],
+  //     deepseekConfig?: {
+  //       temperature?: number
+  //       maxTokens?: number
+  //     }
+  //   ) => Promise<{
+  //     answer: string
+  //     context: RAGContext
+  //     messages: ChatMessage[]
+  //     error?: LLMError // 添加错误返回
+  //   }>
 
-    // 找一找模式
-    handleFindNotes: (
-      query: string,
-      sessionId: string | null,
-      currentMessages: ChatMessage[],
-      currentContexts: RAGContext[]
-    ) => Promise<{
-      answer: string
-      context: RAGContext
-      messages: ChatMessage[]
-    }>
+  //   // 找一找模式
+  //   handleFindNotes: (
+  //     query: string,
+  //     sessionId: string | null,
+  //     currentMessages: ChatMessage[],
+  //     currentContexts: RAGContext[]
+  //   ) => Promise<{
+  //     answer: string
+  //     context: RAGContext
+  //     messages: ChatMessage[]
+  //   }>
 
-    // 添加初始化向量化方法
-    initializeEmbeddings: () => Promise<{
-      total: number
-      processed: number
-    }>
+  //   // 添加初始化向量化方法
+  //   initializeEmbeddings: () => Promise<{
+  //     total: number
+  //     processed: number
+  //   }>
 
-    // 添加 Agent 聊天方法
-    handleAgentChat: (params: {
-      query?: string
-      agentId: string
-      noteId?: string
-      sessionId?: string | null
-      currentMessages?: ChatMessage[]
-      currentContexts?: RAGContext[]
-    }) => Promise<{
-      answer: string
-      context: RAGContext
-      messages: ChatMessage[]
-      error?: LLMError
-    }>
+  //   // 添加 Agent 聊天方法
+  //   handleAgentChat: (params: {
+  //     query?: string
+  //     agentId: string
+  //     noteId?: string
+  //     sessionId?: string | null
+  //     currentMessages?: ChatMessage[]
+  //     currentContexts?: RAGContext[]
+  //   }) => Promise<{
+  //     answer: string
+  //     context: RAGContext
+  //     messages: ChatMessage[]
+  //     error?: LLMError
+  //   }>
 
-    // 添加中断请求的方法类型
-    abortCurrentChat: () => Promise<{
-      success: boolean
-      error?: string
-    }>
+  //   // 添加中断请求的方法类型
+  //   abortCurrentChat: () => Promise<{
+  //     success: boolean
+  //     error?: string
+  //   }>
 
-    abortCurrentAskQuestion: () => Promise<{
-      success: boolean
-      error?: string
-    }>
+  //   abortCurrentAskQuestion: () => Promise<{
+  //     success: boolean
+  //     error?: string
+  //   }>
 
-    abortCurrentAgentChat: () => Promise<{
-      success: boolean
-      error?: string
-    }>
+  //   abortCurrentAgentChat: () => Promise<{
+  //     success: boolean
+  //     error?: string
+  //   }>
 
-    abortCurrentRequest: () => Promise<{
-      success: boolean
-      error?: string
-    }>
-  }
+  //   abortCurrentRequest: () => Promise<{
+  //     success: boolean
+  //     error?: string
+  //   }>
+  // }
 
   similarNotes: {
     // 向量搜索

@@ -566,6 +566,8 @@ const providerItems = computed(() => {
   overflow-y: auto;
   padding-bottom: 58px;
   padding: 0 20px;
+  display: flex;
+  flex-direction: column;
 
   .llm-section {
     width: 100%;
@@ -576,6 +578,7 @@ const providerItems = computed(() => {
     margin-top: 4px;
     margin-bottom: 30px;
     padding: 0 10px;
+    flex: 1;
 
     .section-header {
       width: 100%;
@@ -665,8 +668,12 @@ const providerItems = computed(() => {
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   padding: 48px 0;
   color: var(--color-text-secondary);
+  height: 100%;
+  width: 100%;
+  flex: 1;
 
   .empty-icon {
     margin-bottom: 16px;
