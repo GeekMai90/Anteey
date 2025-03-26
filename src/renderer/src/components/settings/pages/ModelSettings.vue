@@ -4,7 +4,7 @@
       <div class="icon">
         <Robot theme="outline" size="20" fill="var(--color-icon-primary)" :strokeWidth="3" />
       </div>
-      <div class="name">模型配置</div>
+      <div class="name">大模型配置</div>
     </div>
     <div class="settings-content-divider"></div>
     <div class="llm-settings-content">
@@ -15,39 +15,34 @@
           <Button type="primary" :icon="Plus" @click="showAddModal = true"> 添加配置 </Button>
         </div>
 
-        <div v-if="modelConfigStore.configs.length > 0" class="model-list">
-          <div v-for="config in modelConfigStore.configs" :key="config.id" class="model-item">
-            <div class="model-info">
-              <div class="model-name">
-                {{ config.name }}
-                <span v-if="config.isDefault" class="default-badge">默认</span>
+        <div class="section-content">
+          <div v-if="modelConfigStore.configs.length > 0" class="model-list">
+            <div v-for="config in modelConfigStore.configs" :key="config.id" class="model-item">
+              <div class="model-info">
+                <div class="model-name">
+                  {{ config.name }}
+                  <span v-if="config.isDefault" class="default-badge">默认</span>
+                </div>
+                <div class="model-provider">{{ getProviderName(config.provider) }}</div>
+                <div class="model-key">{{ maskApiKey(config.apiKey) }}</div>
               </div>
-              <div class="model-provider">{{ getProviderName(config.provider) }}</div>
-              <div class="model-key">{{ maskApiKey(config.apiKey) }}</div>
-            </div>
-            <div class="model-actions">
-              <Button v-if="!config.isDefault" size="medium" @click="handleSetDefault(config.id)">
-                设为默认
-              </Button>
-              <Button size="medium" @click="handleEdit(config)"> 编辑 </Button>
-              <Button
-                type="delete"
-                size="medium"
-                :disabled="config.isDefault"
-                @click="handleDelete(config.id)"
-              >
-                删除
-              </Button>
+              <div class="model-actions">
+                <Button v-if="!config.isDefault" size="medium" @click="handleSetDefault(config.id)">
+                  设为默认
+                </Button>
+                <Button size="medium" @click="handleEdit(config)"> 编辑 </Button>
+                <Button
+                  type="delete"
+                  size="medium"
+                  :disabled="config.isDefault"
+                  @click="handleDelete(config.id)"
+                >
+                  删除
+                </Button>
+              </div>
             </div>
           </div>
-        </div>
-
-        <div v-else class="empty-state">
-          <div class="empty-icon">
-            <Config theme="outline" size="48" fill="var(--color-text-secondary)" />
-          </div>
-          <div class="empty-text">暂无配置的模型</div>
-          <button class="add-btn" @click="showAddModal = true">添加配置</button>
+          <EmptyState v-else text="暂无配置的模型" />
         </div>
       </div>
     </div>
@@ -74,7 +69,10 @@
 
         <div class="modal-body">
           <div class="form-group">
-            <label>配置名称</label>
+            <label>
+              配置名称
+              <HelpTips content="配置名称不要过长，否则会影响模型列表的显示效果。" />
+            </label>
             <Input v-model="formData.name" placeholder="请输入配置名称" />
           </div>
 
@@ -84,6 +82,7 @@
               :items="providerItems"
               :value="formData.provider"
               width="100%"
+              showArrow
               @select="handleProviderSelect"
             >
               {{ formData.provider ? providerOptions[formData.provider] : '请选择模型提供商' }}
@@ -91,17 +90,30 @@
           </div>
 
           <div class="form-group">
-            <label>API Key</label>
+            <label>
+              API Key
+              <HelpTips content="API Key 是模型提供商提供的用于访问模型的密钥。" />
+            </label>
             <Input v-model="formData.apiKey" type="password" placeholder="请输入 API Key" />
           </div>
 
           <div class="form-group">
-            <label>API 地址</label>
+            <label>
+              API 地址
+              <HelpTips
+                content="API 地址是模型提供商提供的用于访问模型的基础地址，例如https://api.openai.com/v1"
+              />
+            </label>
             <Input v-model="formData.baseUrl" placeholder="请输入 API 基础地址" />
           </div>
 
           <div class="form-group">
-            <label>模型名称</label>
+            <label>
+              模型名称
+              <HelpTips
+                content="模型名称是模型提供商提供的用于访问模型的模型名称，请准确填写，例如gpt-3.5-turbo"
+              />
+            </label>
             <Input v-model="formData.modelName" placeholder="请输入模型名称" />
           </div>
 
@@ -153,6 +165,10 @@
               type="primary"
               size="medium"
               :disabled="!isFormValid || !hasTestedConnection"
+              :tooltip="{
+                content: '请先测试连接，确保配置正确，否则无法正常使用。',
+                placement: 'top'
+              }"
               @click="handleSubmit"
             >
               确认
@@ -166,7 +182,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
-import { Robot, Plus, Config, Close } from '@icon-park/vue-next'
+import { Robot, Plus, Close } from '@icon-park/vue-next'
 import { useModelConfigStore } from '@renderer/stores/modelConfigStore'
 import {
   LLM_MODELS,
@@ -183,6 +199,8 @@ import Textarea from '@renderer/components/ui/Textarea.vue'
 import IconButton from '@renderer/components/ui/IconButton.vue'
 import Modal from '@renderer/components/common/Modal.vue'
 import ConfirmDialog from '@renderer/components/common/ConfirmDialog.vue'
+import EmptyState from '@renderer/components/ui/EmptyState.vue'
+import HelpTips from '@renderer/components/ui/HelpTips.vue'
 
 // 定义一个安全的访问函数，处理可能不存在的属性
 const safeGet = <T, K extends string>(obj: T, key: K, defaultValue: any): any => {
@@ -564,10 +582,10 @@ const providerItems = computed(() => {
   width: 100%;
   height: 100%;
   overflow-y: auto;
-  padding-bottom: 58px;
   padding: 0 20px;
   display: flex;
   flex-direction: column;
+  flex: 1;
 
   .llm-section {
     width: 100%;
@@ -602,6 +620,14 @@ const providerItems = computed(() => {
       color: var(--color-text-secondary);
       margin-bottom: 15px;
       user-select: none;
+    }
+
+    .section-content {
+      width: 100%;
+      min-height: 200px;
+      display: flex;
+      flex-direction: column;
+      flex: 1;
     }
   }
 }
@@ -671,9 +697,9 @@ const providerItems = computed(() => {
   justify-content: center;
   padding: 48px 0;
   color: var(--color-text-secondary);
-  height: 100%;
-  width: 100%;
-  flex: 1;
+  margin: auto 0;
+  position: relative;
+  z-index: 1;
 
   .empty-icon {
     margin-bottom: 16px;
@@ -681,36 +707,6 @@ const providerItems = computed(() => {
 
   .empty-text {
     margin-bottom: 24px;
-  }
-}
-
-.add-btn {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 6px 12px;
-  background: var(--color-primary);
-  color: white;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 14px;
-
-  :deep(.i-icon) {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 100%;
-    height: 100%;
-  }
-
-  :deep(svg) {
-    width: 16px;
-    height: 16px;
-  }
-
-  &:hover {
-    opacity: 0.9;
   }
 }
 
@@ -773,7 +769,9 @@ const providerItems = computed(() => {
       margin-bottom: 24px;
 
       label {
-        display: block;
+        display: flex;
+        align-items: center;
+        gap: 4px;
         margin-bottom: 8px;
         color: var(--color-text-primary);
         font-size: 14px;

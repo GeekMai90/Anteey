@@ -30,6 +30,7 @@
                 :items="timeOptions"
                 trigger="click"
                 width="120px"
+                showArrow
                 @select="selectStartTime"
               >
                 {{ startTime }}:00
@@ -38,7 +39,13 @@
 
             <div class="time-item">
               <div class="time-label">结束时间</div>
-              <Dropdown :items="timeOptions" trigger="click" width="120px" @select="selectEndTime">
+              <Dropdown
+                :items="timeOptions"
+                trigger="click"
+                width="120px"
+                showArrow
+                @select="selectEndTime"
+              >
                 {{ endTime }}:00
               </Dropdown>
             </div>

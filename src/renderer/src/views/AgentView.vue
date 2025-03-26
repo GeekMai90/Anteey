@@ -53,10 +53,11 @@
 
     <div class="agent-view-container">
       <!-- 空状态 -->
-      <div v-if="filteredAgents.length === 0" class="empty-state">
-        <img src="@renderer/assets/images/empty.svg" alt="暂无内容" class="empty-icon" />
-        <div class="empty-text">暂无 AI 助手，点击右上角"新增助手"开始创建</div>
-      </div>
+      <EmptyState
+        v-if="filteredAgents.length === 0"
+        alt="暂无内容"
+        text="暂无 AI 助手，点击右上角「新增助手」开始创建"
+      />
       <!-- 卡片网格 -->
       <div v-else class="card-grid">
         <AgentPreviewCard
@@ -101,6 +102,7 @@ import SearchInput from '@renderer/components/ui/SearchInput.vue'
 import AgentPreviewCard from '@renderer/components/agent/AgentPreviewCard.vue'
 import AgentEdited from '@renderer/components/agent/AgentEdited.vue'
 import ConfirmDialog from '@renderer/components/common/ConfirmDialog.vue'
+import EmptyState from '@renderer/components/ui/EmptyState.vue'
 import { useAgentStore } from '@renderer/stores/agentStore'
 import { useModelConfigStore } from '@renderer/stores/modelConfigStore'
 import type { Agent } from '@shared/types'
@@ -338,30 +340,6 @@ const handleCancelDelete = () => {
       @media (max-width: 768px) {
         grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
         gap: 16px;
-      }
-    }
-
-    .empty-state {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      position: relative;
-      margin-top: -10vh;
-      width: 100%;
-      text-align: center;
-      padding: 20px;
-
-      .empty-icon {
-        width: 300px;
-        height: 300px;
-      }
-
-      .empty-text {
-        color: var(--color-text-secondary);
-        font-size: 14px;
-        text-align: center;
       }
     }
   }

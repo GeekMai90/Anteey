@@ -14,7 +14,7 @@
           <div class="name">快捷键</div>
         </div>
         <div class="shortcuts-settings-search-bar">
-          <input v-model="searchQuery" type="text" placeholder="搜索" />
+          <Input v-model="searchQuery" placeholder="搜索" :width="300" :height="36" />
         </div>
       </div>
       <div class="shortcuts-settings-divider"></div>
@@ -94,6 +94,7 @@
 import { KeyboardOne, Close, Plus, Refresh } from '@icon-park/vue-next'
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { message } from '@renderer/utils/message'
+import Input from '@renderer/components/ui/Input.vue'
 
 const searchQuery = ref('')
 const isRecording = ref(false)
@@ -377,21 +378,6 @@ const filteredShortcuts = computed(() => {
   display: flex;
   align-items: center;
   justify-content: flex-end;
-
-  input {
-    width: 300px;
-    padding: 8px;
-    border: 1px solid var(--color-border);
-    border-radius: 6px;
-    font-size: 14px;
-    background: var(--color-background-primary);
-    color: var(--color-text-primary);
-
-    &:focus {
-      border-color: var(--color-primary);
-      outline: none;
-    }
-  }
 }
 
 .shortcuts-settings-divider {

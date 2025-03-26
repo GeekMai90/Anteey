@@ -41,7 +41,7 @@
       <TimeBlockSettings v-if="currentMenuItem === 'timeblock'" />
       <CloudSyncSettings v-if="currentMenuItem === 'cloud'" />
       <FlashcardSettings v-if="currentMenuItem === 'flashcard'" />
-      <LLMSettings v-if="currentMenuItem === 'llm'" />
+      <ModelSettings v-if="currentMenuItem === 'model'" />
       <AIAssistantSettings v-if="currentMenuItem === 'ai'" />
       <DictionarySettings v-if="currentMenuItem === 'dictionary'" />
       <EditorSettings v-if="currentMenuItem === 'editor'" />
@@ -78,7 +78,7 @@ import LicenseSettings from './pages/LicenseSettings.vue'
 import TimeBlockSettings from './pages/TimeBlockSettings.vue'
 import FlashcardSettings from './pages/FlashcardSettings.vue'
 import DictionarySettings from './pages/DictionarySettings.vue'
-import LLMSettings from './pages/LLMSettings.vue'
+import ModelSettings from './pages/ModelSettings.vue'
 import EditorSettings from './pages/EditorSettings.vue'
 import CloudSyncSettings from './pages/CloudSyncSettings.vue'
 import ThreeSyncSettings from './pages/ThreeSyncSettings.vue'
@@ -92,7 +92,7 @@ const menuItems = [
   { key: 'share', label: '分享', icon: Share },
   { key: 'backup', label: '备份', icon: DatabaseDownload },
   { key: 'cloud', label: '云同步', icon: CloudStorage },
-  { key: 'llm', label: '大模型配置', icon: RobotOne },
+  { key: 'model', label: '大模型配置', icon: RobotOne },
   { key: 'ai', label: 'AI 助手设置', icon: PlasticSurgery },
   { key: 'writingDesk', label: '写作台', icon: NotebookAndPen },
   { key: 'dictionary', label: '词库管理', icon: BookOne },

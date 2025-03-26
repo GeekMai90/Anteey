@@ -94,9 +94,8 @@
       <div v-if="isLoading" class="loading-state">正在加载文稿列表...</div>
 
       <!-- 空状态 -->
-      <div v-else-if="sortedManuscripts.length === 0" class="empty-state">
-        <img src="@renderer/assets/images/empty.svg" alt="暂无内容" class="empty-icon" />
-        <div class="empty-text">暂无文稿，点击右上角"新建文稿"开始创作</div>
+      <div v-else-if="sortedManuscripts.length === 0" class="empty-container">
+        <EmptyState text="暂无文稿，点击右上角「新建文稿」开始创作" alt="暂无内容" />
       </div>
 
       <!-- 文稿列表 -->
@@ -195,6 +194,7 @@ import ConfirmDialog from '@renderer/components/common/ConfirmDialog.vue'
 import StatusTag from '@renderer/components/writingDesk/StatusTag.vue'
 import CreateManuscriptDialog from '@renderer/components/writingDesk/CreateManuscriptDialog.vue'
 import dayjs from 'dayjs'
+import EmptyState from '@renderer/components/ui/EmptyState.vue'
 
 const router = useRouter()
 const writingDeskStore = useWritingDeskStore()
@@ -638,29 +638,10 @@ const openCreateModal = () => {
       font-size: 14px;
     }
 
-    .empty-state {
+    .empty-container {
+      flex: 1;
       display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -90%);
-      width: 100%;
-      text-align: center;
-      padding: 20px;
-
-      .empty-icon {
-        width: 300px;
-        height: 300px;
-      }
-
-      .empty-text {
-        color: var(--color-text-secondary);
-        font-size: 14px;
-        text-align: center;
-      }
+      height: 100%;
     }
 
     .list-view {

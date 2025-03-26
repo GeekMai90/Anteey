@@ -247,6 +247,7 @@
                   :tooltip="{ content: '选择默认模型', placement: 'top' }"
                   align="end"
                   placement="top"
+                  showArrow
                   @select="handleModelSwitch"
                 >
                   模型
@@ -481,8 +482,22 @@ const agentItems = computed(() => {
   }))
 })
 
-// 添加模型项的计算属性
+// 修改模型项的计算属性
 const modelItems = computed(() => {
+  // 如果没有配置任何模型，返回空状态项
+  if (modelConfigStore.configs.length === 0) {
+    return [
+      {
+        key: 'empty',
+        label: '未配置默认模型',
+        icon: Receiver,
+        disabled: true,
+        active: true
+      }
+    ]
+  }
+
+  // 有配置时返回正常的模型列表
   return modelConfigStore.configs.map((config) => ({
     key: config.id,
     label: config.name,
@@ -967,8 +982,11 @@ const handleReferenceDoubleClick = (noteId: string) => {
   noteStore.openNoteEditor(noteId)
 }
 
-// 添加模型切换处理方法
+// 修改模型切换处理方法
 const handleModelSwitch = async (modelId: string) => {
+  // 如果是空状态，直接返回
+  if (modelId === 'empty') return
+
   try {
     await modelConfigStore.setDefaultConfig(modelId)
     message.success('已切换模型')

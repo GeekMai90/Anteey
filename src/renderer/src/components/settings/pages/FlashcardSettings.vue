@@ -73,6 +73,7 @@
                 :items="newCardPositionItems"
                 :value="newCardPosition"
                 width="200"
+                showArrow
                 @select="handleNewCardPositionSelect"
               >
                 {{ newCardPositionItems.find((item) => item.key === newCardPosition)?.label }}

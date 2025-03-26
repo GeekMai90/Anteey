@@ -7,15 +7,18 @@
       <div class="name">云同步</div>
     </div>
     <div class="cloud-sync-settings-divider"></div>
+    <Description
+      :text="[
+        '选择云同步方式，支持 WebDAV 和 S3 协议。',
+        '切换同步方式后，需要先保存配置，然后点击立即同步按钮进行一次同步。',
+        '开启 S3 云同步后，在应用启动或退出时，会自动进行一次同步。WebDAV 同步则需要手动同步。'
+      ]"
+    />
     <div class="cloud-sync-settings-content">
       <!-- 同步方式选择 -->
       <div class="sync-type-selector">
         <div class="title">同步方式</div>
-        <div class="description">选择云同步方式，支持 WebDAV 和 S3 协议。</div>
-        <div class="description">
-          切换同步方式后，需要先保存配置，然后点击立即同步按钮进行一次同步。
-        </div>
-        <div class="description">开启云同步后，在应用启动或退出时，会自动进行一次同步。</div>
+
         <div class="sync-type-form">
           <div class="form-item">
             <div class="label">同步类型</div>
@@ -24,6 +27,7 @@
                 :items="syncTypeItems"
                 :value="syncType"
                 width="300"
+                showArrow
                 @select="handleSyncTypeSelect"
               >
                 {{ syncTypeItems.find((item) => item.key === syncType)?.label }}
@@ -41,17 +45,11 @@
 
       <!-- 未开启同步时的提示 -->
       <div v-if="syncType === 'none'" class="sync-disabled">
-        <div class="sync-disabled-content">
-          <div class="sync-disabled-icon">
-            <CloudStorage theme="outline" size="48" :strokeWidth="3" />
-          </div>
-          <div class="sync-disabled-text">
-            <div class="title">未开启云同步</div>
-            <div class="description">
-              选择一种同步方式来启用云同步功能，可以将您的数据安全地备份到云端。
-            </div>
-          </div>
-        </div>
+        <EmptyState
+          text="选择一种同步方式来启用云同步功能，可以将您的数据安全地备份到云端。"
+          alt="未开启云同步"
+        >
+        </EmptyState>
       </div>
     </div>
   </div>
@@ -65,7 +63,8 @@ import S3Settings from './s3Settings.vue'
 import { useCloudSyncStore } from '@renderer/stores/cloudSyncStore'
 import type { CloudSyncType } from '@shared/types'
 import Dropdown from '@renderer/components/ui/Dropdown.vue'
-
+import EmptyState from '@renderer/components/ui/EmptyState.vue'
+import Description from '@renderer/components/ui/Description.vue'
 // // 同步类型选项
 // const syncTypes = [
 //   { value: 'none' as const, label: '不开启云同步' },
@@ -230,33 +229,17 @@ const handleSyncTypeSelect = async (key: string) => {
   justify-content: center;
   padding: 60px 0;
 
-  .sync-disabled-content {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 20px;
-    max-width: 400px;
-    text-align: center;
+  .sync-disabled-icon {
+    color: var(--color-text-secondary);
+    opacity: 0.5;
+    margin-bottom: 20px;
+  }
 
-    .sync-disabled-icon {
-      color: var(--color-text-secondary);
-      opacity: 0.5;
-    }
-
-    .sync-disabled-text {
-      .title {
-        font-size: 16px;
-        font-weight: 500;
-        color: var(--color-text-primary);
-        margin-bottom: 8px;
-      }
-
-      .description {
-        font-size: 14px;
-        color: var(--color-text-secondary);
-        line-height: 1.5;
-      }
-    }
+  .title {
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--color-text-primary);
+    margin-bottom: 8px;
   }
 }
 </style>

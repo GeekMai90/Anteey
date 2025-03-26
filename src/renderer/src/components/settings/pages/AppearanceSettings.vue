@@ -42,6 +42,7 @@
                 :items="pageOptions"
                 trigger="click"
                 width="120px"
+                showArrow
                 @select="handlePageSelect"
               >
                 {{ getPageName(defaultPage) }}
@@ -60,6 +61,7 @@
                   :items="fontDropdownItems"
                   trigger="click"
                   width="200px"
+                  showArrow
                   @select="handleUIFontSelect"
                 >
                   {{ getFontLabel(uiFont) }}
@@ -74,6 +76,7 @@
                   :items="fontDropdownItems"
                   trigger="click"
                   width="200px"
+                  showArrow
                   @select="handleEditorFontSelect"
                 >
                   {{ getFontLabel(editorFont) }}

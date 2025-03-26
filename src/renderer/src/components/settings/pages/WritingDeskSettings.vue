@@ -13,21 +13,28 @@
     </div>
     <div class="settings-content-divider"></div>
 
-    <!-- 添加说明描述区域 -->
-    <div class="settings-description">
-      <div class="description-icon">
-        <Tips theme="outline" size="16" :strokeWidth="3" />
-      </div>
-      <div class="description-text">
-        每种功能仅支持设置一个自定义提示词模板。设置后将优先使用自定义提示词，未设置时使用系统默认提示词。
-      </div>
-    </div>
+    <!-- 使用新的 Description 组件 -->
+    <Description
+      :text="[
+        '每种功能仅支持设置一个自定义提示词模板。',
+        '设置后将优先使用自定义提示词，未设置时使用系统默认提示词。'
+      ]"
+    />
 
     <div class="writing-desk-settings-content">
       <!-- 模板部分，按功能类型分区展示 -->
       <div v-for="type in templateTypes" :key="type.value" class="template-section">
         <div class="section-header">
           <div class="section-title">{{ type.label }}提示词模板</div>
+          <!-- 只在没有模板时显示创建按钮 -->
+          <Button
+            v-if="!getTemplateByType(type.value)"
+            type="primary"
+            :icon="Plus"
+            @click="handleCreate(type.value)"
+          >
+            创建模板
+          </Button>
         </div>
 
         <!-- 当前模板显示区域 -->
@@ -44,30 +51,17 @@
           </div>
         </div>
 
-        <!-- 空状态 -->
-        <div v-else class="empty-state">
-          <div class="empty-icon">
-            <component
-              :is="getIconForType(type.value)"
-              theme="outline"
-              size="48"
-              fill="var(--color-text-secondary)"
-            />
-          </div>
-          <div class="empty-text">暂无{{ type.label }}自定义提示词</div>
-          <Button type="primary" @click="handleCreate(type.value)">创建模板</Button>
-        </div>
+        <!-- 使用统一的 EmptyState 组件 -->
+        <EmptyState v-else :text="`暂无${type.label}自定义提示词`" />
       </div>
     </div>
 
-    <!-- 编辑模态框 -->
-    <div v-if="showModal" class="modal-overlay" @click.self="handleOverlayClick">
+    <!-- 使用通用 Modal 组件替换原来的模态框 -->
+    <Modal v-model="showModal" :closeOnClickOutside="false">
       <div class="modal-container">
         <div class="modal-header">
           <h3>{{ isEditing ? '编辑提示词模板' : '创建提示词模板' }}</h3>
-          <button class="close-btn" @click="closeModal">
-            <Close theme="outline" size="16" />
-          </button>
+          <IconButton :icon="Close" size="medium" @click="closeModal" />
         </div>
 
         <div class="modal-body">
@@ -101,19 +95,23 @@
           </div>
         </div>
       </div>
-    </div>
+    </Modal>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { Write, Close, MessageEmoji, Tips, NotebookAndPen } from '@icon-park/vue-next'
+import { Close, NotebookAndPen, Plus } from '@icon-park/vue-next'
 import { useWritingPromptTemplateStore } from '@renderer/stores/writingPromptTemplateStore'
 import type { PromptTemplateType } from '@shared/types'
 import { message } from '@renderer/utils/message'
 import Button from '@renderer/components/ui/Button.vue'
 import Input from '@renderer/components/ui/Input.vue'
 import Textarea from '@renderer/components/ui/Textarea.vue'
+import EmptyState from '@renderer/components/ui/EmptyState.vue'
+import IconButton from '../../ui/IconButton.vue'
+import Modal from '@renderer/components/common/Modal.vue'
+import Description from '@renderer/components/ui/Description.vue'
 
 const promptTemplateStore = useWritingPromptTemplateStore()
 const showModal = ref(false)
@@ -172,18 +170,6 @@ const getTemplateByType = (type: PromptTemplateType) => {
   return templates.value[type]
 }
 
-// 修改 getIconForType 函数，移除 deepThinking 相关的逻辑
-const getIconForType = (type: PromptTemplateType) => {
-  switch (type) {
-    case 'firstDraft':
-      return Write
-    case 'polish':
-      return MessageEmoji
-    default:
-      return Write
-  }
-}
-
 // 获取模板类型名称
 const getTemplateTypeName = (type: PromptTemplateType) => {
   const typeConfig = templateTypes.find((t) => t.value === type)
@@ -227,14 +213,23 @@ const handleDelete = async (type: PromptTemplateType) => {
   }
 }
 
-// 处理遮罩层点击
-const handleOverlayClick = () => {
+// 修改关闭模态框方法
+const closeModal = () => {
   if (isFormDirty.value) {
     if (confirm('确定要关闭吗？未保存的更改将会丢失。')) {
-      closeModal()
+      resetModalState()
     }
   } else {
-    closeModal()
+    resetModalState()
+  }
+}
+
+// 添加重置模态框状态的方法
+const resetModalState = () => {
+  showModal.value = false
+  formData.value = {
+    description: '',
+    content: ''
   }
 }
 
@@ -242,15 +237,6 @@ const handleOverlayClick = () => {
 const isFormDirty = computed(() => {
   return formData.value.content !== ''
 })
-
-// 关闭模态框
-const closeModal = () => {
-  showModal.value = false
-  formData.value = {
-    description: '',
-    content: ''
-  }
-}
 
 // 提交表单
 const handleSubmit = async () => {
@@ -403,45 +389,11 @@ const handleSubmit = async () => {
   }
 }
 
-.empty-state {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 48px 0;
-  color: var(--color-text-secondary);
-
-  .empty-icon {
-    margin-bottom: 16px;
-  }
-
-  .empty-text {
-    margin-bottom: 24px;
-    font-size: 14px;
-  }
-}
-
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-}
-
 .modal-container {
+  width: 580px;
   background: var(--color-bg-primary);
   border-radius: 8px;
-  width: 580px;
-  max-width: 90vw;
-  max-height: 90vh;
-  overflow-y: auto;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
 }
 
 .modal-header {
@@ -507,29 +459,6 @@ const handleSubmit = async () => {
   .footer-right {
     display: flex;
     gap: 12px;
-  }
-}
-
-.settings-description {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  padding: 12px 16px;
-  margin: 0 20px 16px 20px;
-  background: var(--color-bg-secondary);
-  border-radius: 6px;
-  border: 1px solid var(--color-border);
-
-  .description-icon {
-    flex-shrink: 0;
-    margin-top: 2px;
-    color: var(--color-text-secondary);
-  }
-
-  .description-text {
-    font-size: 14px;
-    line-height: 1.5;
-    color: var(--color-text-secondary);
   }
 }
 </style>

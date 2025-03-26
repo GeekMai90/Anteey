@@ -7,26 +7,25 @@
             <div class="dialog-title">新建文稿</div>
             <div class="dialog-body">
               <div class="form-item">
-                <label class="label">文稿标题</label>
-                <input
+                <Input
                   ref="titleInput"
                   v-model="title"
-                  class="input"
-                  type="text"
                   placeholder="请输入文稿标题"
+                  :height="36"
                   @keyup.enter="handleCreate"
                 />
               </div>
             </div>
             <div class="dialog-buttons">
-              <button class="cancel-button" @click="handleClose">取消</button>
-              <button
-                class="confirm-button"
+              <Button :height="36" @click="handleClose">取消</Button>
+              <Button
+                type="primary"
+                :height="36"
                 :disabled="!title.trim() || creating"
                 @click="handleCreate"
               >
                 {{ creating ? '创建中...' : '创建' }}
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -37,6 +36,8 @@
 
 <script setup lang="ts">
 import { ref, watch, nextTick } from 'vue'
+import Input from '@renderer/components/ui/Input.vue'
+import Button from '@renderer/components/ui/Button.vue'
 
 const props = defineProps<{
   visible: boolean
@@ -134,28 +135,6 @@ const handleCreate = async () => {
       color: var(--color-text-primary);
       font-weight: 500;
     }
-
-    .input {
-      width: 100%;
-      height: 36px;
-      padding: 0 12px;
-      border: 1px solid var(--color-border);
-      border-radius: 6px;
-      font-size: 14px;
-      color: var(--color-text-primary);
-      background: var(--color-bg-primary);
-      transition: all 0.2s ease;
-
-      &:focus {
-        outline: none;
-        border-color: var(--color-primary);
-        box-shadow: 0 0 0 2px var(--color-primary-shadow);
-      }
-
-      &::placeholder {
-        color: var(--color-text-placeholder);
-      }
-    }
   }
 }
 
@@ -163,40 +142,6 @@ const handleCreate = async () => {
   display: flex;
   justify-content: flex-end;
   gap: 12px;
-
-  button {
-    padding: 8px 16px;
-    border-radius: 8px;
-    font-size: 14px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    border: none;
-
-    &.cancel-button {
-      background: var(--color-bg-secondary);
-      color: var(--color-text-secondary);
-
-      &:hover {
-        background: var(--color-bg-secondary);
-        opacity: 0.8;
-      }
-    }
-
-    &.confirm-button {
-      background: var(--color-primary);
-      color: var(--color-text-white);
-
-      &:hover:not(:disabled) {
-        opacity: 0.9;
-      }
-
-      &:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-      }
-    }
-  }
 }
 
 // 动画
