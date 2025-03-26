@@ -29,9 +29,14 @@ export const useThemeStore = defineStore('theme', () => {
     return isDark ? themeSettings.value.darkGradient : themeSettings.value.lightGradient
   })
 
-  // 添加 isDarkMode 计算属性
+  // 修改 isDarkMode 计算属性
   const isDarkMode = computed(() => {
     if (!themeSettings.value) return false
+
+    if (themeSettings.value.themeMode === 'system') {
+      return window.matchMedia('(prefers-color-scheme: dark)').matches
+    }
+
     return themeSettings.value.themeMode === 'dark'
   })
 
@@ -102,19 +107,6 @@ export const useThemeStore = defineStore('theme', () => {
       console.error('移除收藏渐变失败:', error)
       throw error
     }
-  }
-
-  // 切换主题模式
-  const toggleThemeMode = async () => {
-    if (!themeSettings.value) return
-
-    // 只在 light 和 dark 之间切换
-    const newMode = themeSettings.value.themeMode === 'light' ? 'dark' : 'light'
-    await updateThemeSettings({ themeMode: newMode })
-
-    // 应用主题
-    const isDark = newMode === 'dark'
-    document.documentElement.classList.toggle('theme-dark', isDark)
   }
 
   // 切换渐变模式
@@ -197,6 +189,30 @@ export const useThemeStore = defineStore('theme', () => {
     applyStyleMode() // 同时应用风格
   }
 
+  // 添加 toggleThemeMode 方法
+  const toggleThemeMode = async () => {
+    if (!themeSettings.value) return
+
+    // 在 light、dark 和 system 之间循环切换
+    let newMode: 'light' | 'dark' | 'system'
+    switch (themeSettings.value.themeMode) {
+      case 'light':
+        newMode = 'dark'
+        break
+      case 'dark':
+        newMode = 'system'
+        break
+      case 'system':
+        newMode = 'light'
+        break
+      default:
+        newMode = 'light'
+    }
+
+    await updateThemeSettings({ themeMode: newMode })
+    applyTheme() // 应用主题变化
+  }
+
   return {
     // 状态
     themeSettings,
@@ -211,7 +227,6 @@ export const useThemeStore = defineStore('theme', () => {
     loadFavoriteGradients,
     addFavoriteGradient,
     removeFavoriteGradient,
-    toggleThemeMode,
     toggleGradientMode,
 
     // 主题选择器状态
@@ -223,6 +238,7 @@ export const useThemeStore = defineStore('theme', () => {
     // 新方法
     applyTheme,
     toggleStyleMode,
-    applyStyleMode
+    applyStyleMode,
+    toggleThemeMode
   }
 })

@@ -272,15 +272,15 @@
       <!-- 添加主题切换按钮 -->
       <div
         v-tooltip.top="{
-          content: isDarkMode ? '切换亮色主题' : '切换暗色主题',
+          content: getThemeModeTooltip,
           delay: { show: 1000 }
         }"
         class="theme-toggle"
-        @click="themeStore.toggleThemeMode()"
+        @click="themeStore.toggleThemeMode"
       >
         <div class="icon">
           <component
-            :is="isDarkMode ? SunOne : Moon"
+            :is="getThemeIcon"
             theme="outline"
             size="20"
             fill="var(--color-sidebar-text)"
@@ -326,7 +326,8 @@ import {
   Tag,
   Cup,
   Inbox,
-  NotebookAndPen
+  NotebookAndPen,
+  NaturalMode
 } from '@icon-park/vue-next'
 import { useNoteStore } from '@renderer/stores/noteStore'
 import SettingDropdownMenu from '@renderer/components/settings/SettingDropdownMenu.vue'
@@ -674,16 +675,6 @@ const handleThemeButtonClick = (event: MouseEvent) => {
   })
 }
 
-// 添加暗色模式计算属性
-const isDarkMode = computed(() => {
-  if (!themeStore.themeSettings) return false
-  return (
-    themeStore.themeSettings.themeMode === 'dark' ||
-    (themeStore.themeSettings.themeMode === 'system' &&
-      window.matchMedia('(prefers-color-scheme: dark)').matches)
-  )
-})
-
 // 窗口控制相关
 const isMaximized = ref(false)
 
@@ -726,6 +717,36 @@ const handleReviewClick = async () => {
     message.error('进入随机回顾模式失败')
   }
 }
+
+// 获取主题图标
+const getThemeIcon = computed(() => {
+  const mode = themeStore.themeSettings?.themeMode
+  switch (mode) {
+    case 'light':
+      return SunOne
+    case 'dark':
+      return Moon
+    case 'system':
+      return NaturalMode
+    default:
+      return SunOne
+  }
+})
+
+// 获取提示文本
+const getThemeModeTooltip = computed(() => {
+  const mode = themeStore.themeSettings?.themeMode
+  switch (mode) {
+    case 'light':
+      return '亮色主题'
+    case 'dark':
+      return '暗色主题'
+    case 'system':
+      return '跟随系统'
+    default:
+      return '切换主题'
+  }
+})
 </script>
 
 <style lang="scss" scoped>
