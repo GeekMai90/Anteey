@@ -64,6 +64,9 @@ interface Props {
   align?: 'start' | 'center' | 'end'
   showSelected?: boolean // 是否在按钮中显示选中项的文本
   showArrow?: boolean // 新增: 是否显示下拉箭头
+  placeholder?: string // 未选择时显示的文本
+  emptyText?: string // 菜单项为空时显示的文本
+  defaultIcon?: Component // 默认图标
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -78,7 +81,10 @@ const props = withDefaults(defineProps<Props>(), {
   height: 0,
   iconOnly: false,
   showSelected: false,
-  showArrow: false
+  showArrow: false,
+  placeholder: '',
+  emptyText: '暂无选项',
+  defaultIcon: undefined
 })
 
 const emit = defineEmits<{
@@ -253,7 +259,17 @@ const buttonText = computed(() => {
   if (props.showSelected && selectedItem.value) {
     return selectedItem.value.label
   }
-  return null
+  return props.placeholder || null
+})
+
+const hasItems = computed(() => {
+  return props.items && props.items.length > 0
+})
+
+const displayIcon = computed(() => {
+  if (props.icon) return props.icon
+  if (props.iconOnly && props.defaultIcon && !selectedItem.value) return props.defaultIcon
+  return undefined
 })
 
 const handleSwitchChange = (item: SwitchableDropdownItem, checked: boolean) => {
@@ -267,17 +283,10 @@ const handleSwitchChange = (item: SwitchableDropdownItem, checked: boolean) => {
       ref="buttonInstance"
       :type="type"
       :size="size"
-      :icon="icon"
+      :icon="displayIcon"
       :disabled="disabled"
       :loading="loading"
-      :tooltip="
-        tooltip && {
-          content: tooltip.content,
-          html: tooltip.html,
-          delay: tooltip.delay,
-          placement: tooltip.placement || 'bottom'
-        }
-      "
+      :tooltip="tooltip && { ...tooltip }"
       :height="height"
       :iconOnly="iconOnly"
       :dropdown="showArrow"
@@ -287,7 +296,7 @@ const handleSwitchChange = (item: SwitchableDropdownItem, checked: boolean) => {
     >
       <template v-if="!iconOnly">
         <template v-if="showSelected">
-          {{ buttonText }}
+          {{ buttonText || placeholder }}
         </template>
         <template v-else>
           <slot></slot>
@@ -304,7 +313,10 @@ const handleSwitchChange = (item: SwitchableDropdownItem, checked: boolean) => {
       @mouseenter="handleDropdownMouseEnter"
       @mouseleave="handleDropdownMouseLeave"
     >
-      <ul class="ant-dropdown-menu">
+      <div v-if="!hasItems" class="ant-dropdown-empty">
+        {{ emptyText }}
+      </div>
+      <ul v-else class="ant-dropdown-menu">
         <template v-for="item in items" :key="item.key">
           <template v-if="item.divided">
             <div class="ant-dropdown-menu-divider"></div>
@@ -528,5 +540,12 @@ const handleSwitchChange = (item: SwitchableDropdownItem, checked: boolean) => {
     align-items: center;
     margin-left: 12px;
   }
+}
+
+.ant-dropdown-empty {
+  padding: 12px 16px;
+  color: var(--color-text-secondary);
+  font-size: 14px;
+  text-align: center;
 }
 </style>

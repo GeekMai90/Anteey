@@ -22,14 +22,14 @@
         </div>
         <div class="info-item">
           <span class="label">✍🏻 写信人：</span>
-          <span class="value">安安</span>
+          <span class="value">{{ letterStore.letterConfig?.sender || '安安' }}</span>
         </div>
       </div>
 
       <!-- 信件内容 -->
       <div class="letter-body">
         <div class="letter-text">
-          <div class="salutation">亲爱的：</div>
+          <div class="salutation">{{ salutation }}</div>
 
           <div class="main-content">
             <p v-for="(paragraph, index) in letterParagraphs" :key="index">
@@ -38,7 +38,9 @@
           </div>
 
           <div class="signature">
-            <div class="signature-text">爱你的，安安 🥰</div>
+            <div class="signature-text" :class="{ formal: !letterStore.letterConfig?.useNickname }">
+              {{ signature }}
+            </div>
           </div>
         </div>
       </div>
@@ -46,7 +48,8 @@
       <!-- 信件底部 -->
       <div class="letter-footer">
         <div class="actions">
-          <SpreadButton type="default" @click="handleClose">收下</SpreadButton>
+          <Button type="delete" @click="handleDelete">残忍地丢弃</Button>
+          <Button type="primary" @click="handleClose">开心地收下</Button>
         </div>
       </div>
     </div>
@@ -55,28 +58,36 @@
 
 <script setup lang="ts">
 import Modal from '@renderer/components/common/Modal.vue'
-import SpreadButton from '@renderer/components/ui/SpreadButton.vue'
+import Button from '@renderer/components/ui/Button.vue'
 import { MailOpen } from '@icon-park/vue-next'
-import { computed } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useDailyLetterStore } from '@renderer/stores/dailyLetterStore'
+import { message } from '@renderer/utils/message'
 
 defineProps<{
   modelValue: boolean
 }>()
 
 const emit = defineEmits(['update:modelValue', 'after-show'])
-const dailyLetterStore = useDailyLetterStore()
+const letterStore = useDailyLetterStore()
+
+// 在组件挂载时获取配置
+onMounted(async () => {
+  if (!letterStore.letterConfig) {
+    await letterStore.fetchLetterConfig()
+  }
+})
 
 // 获取当前日期
 const currentDate = computed(() => {
-  if (!dailyLetterStore.currentLetter) return ''
-  const date = new Date(dailyLetterStore.currentLetter.createTime)
+  if (!letterStore.currentLetter) return ''
+  const date = new Date(letterStore.currentLetter.createTime)
   return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日`
 })
 
 // 信件内容处理成段落
 const letterParagraphs = computed(() => {
-  const content = dailyLetterStore.currentLetter?.content || ''
+  const content = letterStore.currentLetter?.content || ''
   // 将内容按照换行符分割成段落，并过滤掉空段落
   return content
     .split('\\n')
@@ -84,19 +95,47 @@ const letterParagraphs = computed(() => {
     .filter((p) => p.length > 0)
 })
 
+// 添加一个计算属性来处理称呼
+const salutation = computed(() => {
+  const config = letterStore.letterConfig
+  if (!config) return '亲爱的：'
+
+  const recipient = config.recipient || '读者'
+
+  if (config.useNickname) {
+    return `亲爱的${recipient}：`
+  } else {
+    return `${recipient}，见字如晤：`
+  }
+})
+
+// 添加一个计算属性来处理签名
+const signature = computed(() => {
+  const config = letterStore.letterConfig
+  if (!config) return '爱你的，安安 🥰'
+
+  const sender = config.sender || '安安'
+
+  if (config.useNickname) {
+    return `爱你的，${sender} 🥰`
+  } else {
+    return `此致\n${sender}`
+  }
+})
+
 // 更新值
 const updateValue = (value: boolean) => {
   emit('update:modelValue', value)
   if (!value) {
-    dailyLetterStore.closeLetterModal()
+    letterStore.closeLetterModal()
   }
 }
 
 // 模态窗完全展示后的回调
 const handleAfterEnter = () => {
   // 标记信件为已读
-  if (dailyLetterStore.currentLetter) {
-    dailyLetterStore.updateLetterReadStatus(dailyLetterStore.currentLetter.id, true)
+  if (letterStore.currentLetter) {
+    letterStore.updateLetterReadStatus(letterStore.currentLetter.id, true)
   }
   emit('after-show')
 }
@@ -104,7 +143,23 @@ const handleAfterEnter = () => {
 // 关闭信件
 const handleClose = () => {
   emit('update:modelValue', false)
-  dailyLetterStore.closeLetterModal()
+  letterStore.closeLetterModal()
+}
+
+// 添加删除信件的处理方法
+const handleDelete = async () => {
+  try {
+    if (!letterStore.currentLetter) return
+
+    const success = await letterStore.deleteLetter(letterStore.currentLetter.id)
+    if (success) {
+      message.success('信件已丢弃')
+      emit('update:modelValue', false)
+    }
+  } catch (error) {
+    console.error('删除信件失败:', error)
+    message.error('丢弃信件失败')
+  }
 }
 </script>
 
@@ -266,6 +321,8 @@ const handleClose = () => {
         .signature-text {
           font-size: 16px;
           color: var(--color-text-secondary);
+          white-space: pre-line;
+          text-align: right !important;
         }
       }
     }
@@ -274,14 +331,14 @@ const handleClose = () => {
   .letter-footer {
     flex-shrink: 0;
     display: flex;
-    justify-content: center;
+    justify-content: flex-end;
     padding: 20px;
     background: var(--color-bg-secondary);
     border-top: 1px solid var(--color-border);
 
     .actions {
       display: flex;
-      gap: 16px;
+      gap: 12px;
     }
   }
 }

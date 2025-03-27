@@ -1,5 +1,14 @@
 import { db } from '../../db/config'
-import { Letter, LetterType } from '@shared/types'
+import {
+  ConfigValidationError,
+  ConfigValidationResult,
+  GetLetterConfigResult,
+  Letter,
+  LETTER_CONFIG_RULES,
+  LetterConfig,
+  LetterType,
+  UpdateLetterConfigParams
+} from '@shared/types'
 import { v4 as uuidv4 } from 'uuid'
 import { LLMService } from '../rag/llmService'
 import { getNotesByOneDate } from '../notes/notesService'
@@ -169,46 +178,12 @@ function processNoteContent(content: string): string {
   return processed
 }
 
-// 修改生成内容的函数
-async function generateDailyLetterContent(date: Date): Promise<string> {
-  const llmService = new LLMService()
-
-  // 获取前一天的日期
-  const yesterday = new Date(date)
-  yesterday.setDate(yesterday.getDate() - 1)
-  const yesterdayStr = yesterday.toISOString().split('T')[0]
-
-  // 获取处理后的笔记
-  const notes = await getFilteredNotes(yesterdayStr)
-
-  // 如果没有笔记，返回特定消息
-  if (notes.length === 0) {
-    return `昨天似乎是一个安静的日子，没有留下笔记的痕迹。这也是一种选择，有时沉淀和思考同样重要。\\n\\n不过我还是想和你分享一个小想法：有时最好的灵感往往来自于平凡的日常观察。也许今天，我们可以试着记录下一个微小但有趣的发现？\\n\\n期待在下一封信中遇见你的思考。`
-  }
-
-  // 准备笔记内容摘要
-  const notesContent = notes
-    .map((note) => {
-      const metadata = note.metadata || {}
-      const title = metadata.title || '无标题'
-      const content = processNoteContent(parseNoteContent(note.content))
-      return `标题：${title}\\n内容：${content}`
-    })
-    .join('\\n\\n')
-
-  // 添加笔记数量信息到提示词
-  const totalNotes = await getNotesByOneDate(yesterdayStr)
-  const notesCountInfo =
-    totalNotes.length > notes.length
-      ? `（从${totalNotes.length}条笔记中精选了${notes.length}条最新的记录）`
-      : ''
-
-  // 构建 prompt
-  const prompt = `你是一位知性女生，温柔、善解人意，对生活充满美好的期待。请以这个身份，根据以下的笔记内容，写一封温暖的回信。这封信是关于昨天（${yesterdayStr}）的笔记回顾与思考。${notesCountInfo}
+// 系统默认提示词模板
+const DEFAULT_LETTER_PROMPT = `你是一位知性女生，温柔、善解人意，对生活充满美好的期待。请以这个身份，根据以下的笔记内容，写一封温暖的回信。这封信是关于昨天（{date}）的笔记回顾与思考。{notesCountInfo}
 
 以下是昨天的笔记内容：
 
-${notesContent}
+{notesContent}
 
 角色特质：
 1. 知性优雅，措辞得体但不过分文艺
@@ -284,8 +259,65 @@ ${notesContent}
 
 请确保整封信读起来自然流畅，体现出一个知性女生的思考深度和情感温度。`
 
+// 修改生成每日信件内容的函数
+async function generateDailyLetterContent(date: Date): Promise<string> {
+  const llmService = new LLMService()
+
+  // 获取来信配置
+  const letterConfig = await getLetterConfig()
+
+  // 获取前一天的日期
+  const yesterday = new Date(date)
+  yesterday.setDate(yesterday.getDate() - 1)
+  const yesterdayStr = yesterday.toISOString().split('T')[0]
+
+  // 获取处理后的笔记
+  const notes = await getFilteredNotes(yesterdayStr)
+
+  // 如果没有笔记，返回特定消息
+  if (notes.length === 0) {
+    return `昨天似乎是一个安静的日子，没有留下笔记的痕迹。这也是一种选择，有时沉淀和思考同样重要。\\n\\n不过我还是想和你分享一个小想法：有时最好的灵感往往来自于平凡的日常观察。也许今天，我们可以试着记录下一个微小但有趣的发现？\\n\\n期待在下一封信中遇见你的思考。`
+  }
+
+  // 准备笔记内容摘要
+  const notesContent = notes
+    .map((note) => {
+      const metadata = note.metadata || {}
+      const title = metadata.title || '无标题'
+      const content = processNoteContent(parseNoteContent(note.content))
+      return `标题：${title}\\n内容：${content}`
+    })
+    .join('\\n\\n')
+
+  // 添加笔记数量信息
+  const totalNotes = await getNotesByOneDate(yesterdayStr)
+  const notesCountInfo =
+    totalNotes.length > notes.length
+      ? `（从${totalNotes.length}条笔记中精选了${notes.length}条最新的记录）`
+      : ''
+
+  // 根据配置选择使用的提示词
+  let prompt = letterConfig.customPrompt ? letterConfig.customPrompt : DEFAULT_LETTER_PROMPT
+
+  // 替换模板变量
+  prompt = prompt
+    .replace('{date}', yesterdayStr)
+    .replace('{notesContent}', notesContent)
+    .replace('{notesCountInfo}', notesCountInfo)
+
   // 使用重试机制调用 LLM
-  return await retryOperation(() => llmService.generateResponse(prompt))
+  return await retryOperation(async () => {
+    try {
+      // 尝试使用配置的模型
+      return await llmService.generateResponse(prompt, letterConfig.modelId, {
+        temperature: letterConfig.temperature
+      })
+    } catch (error) {
+      console.error('使用自定义模型失败，切换到默认模型:', error)
+      // 如果失败，使用默认模型（不传参数）
+      return await llmService.generateResponse(prompt)
+    }
+  })
 }
 
 // 获取一周的笔记并智能筛选
@@ -394,12 +426,15 @@ async function generateWeeklyLetterContent(date: Date): Promise<string> {
   const totalNotesCount = notes.length
   const statsInfo = `（在过去的一周中，你在 ${totalNotesDays} 天记录了笔记，共精选了 ${totalNotesCount} 条有意义的记录）`
 
-  // 构建 prompt
-  const prompt = `你是一位知性女生，温柔、善解人意，对生活充满美好的期待。请以这个身份，根据以下的笔记内容，写一封温暖的周报信，回顾过去一周（${startDate.toISOString().split('T')[0]} 到 ${endDate.toISOString().split('T')[0]}）的笔记积累。${statsInfo}
+  // 获取来信配置
+  const letterConfig = await getLetterConfig()
+
+  // 提取默认周报提示词模板
+  const DEFAULT_WEEKLY_PROMPT = `你是一位知性女生，温柔、善解人意，对生活充满美好的期待。请以这个身份，根据以下的笔记内容，写一封温暖的周报信，回顾过去一周（{startDate} 到 {endDate}）的笔记积累。{statsInfo}
 
 以下是这一周的笔记内容（按时间顺序排列）：
 
-${notesContent}
+{notesContent}
 
 角色特质：
 1. 知性优雅，措辞得体但不过分文艺
@@ -475,8 +510,29 @@ ${notesContent}
 
 请确保整封信读起来自然流畅，体现出一个知性女生的思考深度和情感温度。`
 
+  // 根据配置选择使用的提示词
+  let prompt = letterConfig.customPrompt ? letterConfig.customPrompt : DEFAULT_WEEKLY_PROMPT
+
+  // 替换模板变量
+  prompt = prompt
+    .replace('{startDate}', startDate.toISOString().split('T')[0])
+    .replace('{endDate}', endDate.toISOString().split('T')[0])
+    .replace('{notesContent}', notesContent)
+    .replace('{statsInfo}', statsInfo)
+
   // 使用重试机制调用 LLM
-  return await retryOperation(() => llmService.generateResponse(prompt))
+  return await retryOperation(async () => {
+    try {
+      // 尝试使用配置的模型
+      return await llmService.generateResponse(prompt, letterConfig.modelId, {
+        temperature: letterConfig.temperature
+      })
+    } catch (error) {
+      console.error('使用自定义模型失败，切换到默认模型:', error)
+      // 如果失败，使用默认模型（不传参数）
+      return await llmService.generateResponse(prompt)
+    }
+  })
 }
 
 // 修改创建信件函数
@@ -633,6 +689,186 @@ export async function checkTodayLetter(): Promise<boolean> {
     return false
   } catch (error) {
     console.error('后端→ 检查今日信件状态失败:', error)
+    throw error
+  }
+}
+
+// ==================== 来信配置相关方法 ====================
+
+// 工具函数：将数据库记录转换为 LetterConfig 对象
+function convertToLetterConfig(record: any): GetLetterConfigResult {
+  return {
+    recipient: record.recipient,
+    sender: record.sender,
+    useNickname: Boolean(record.use_nickname),
+    dailyNotesLimit: Number(record.daily_notes_limit),
+    weeklyNotesLimit: Number(record.weekly_notes_limit),
+    modelId: record.model_id,
+    temperature: Number(record.temperature),
+    customPrompt: record.custom_prompt,
+    createdAt: new Date(record.created_at).getTime(),
+    updatedAt: new Date(record.updated_at).getTime()
+  }
+}
+
+// 获取来信配置
+export async function getLetterConfig(): Promise<GetLetterConfigResult> {
+  try {
+    const config = await db('letter_config').first()
+
+    if (!config) {
+      throw new Error('来信配置不存在')
+    }
+
+    return convertToLetterConfig(config)
+  } catch (error) {
+    console.error('后端→ 获取来信配置失败:', error)
+    throw error
+  }
+}
+
+// 更新来信配置
+export async function updateLetterConfig(
+  params: UpdateLetterConfigParams
+): Promise<GetLetterConfigResult> {
+  try {
+    // 构建更新对象
+    const updateData: any = {}
+
+    if (params.recipient !== undefined) updateData.recipient = params.recipient
+    if (params.sender !== undefined) updateData.sender = params.sender
+    if (params.useNickname !== undefined) updateData.use_nickname = params.useNickname
+    if (params.dailyNotesLimit !== undefined) updateData.daily_notes_limit = params.dailyNotesLimit
+    if (params.weeklyNotesLimit !== undefined)
+      updateData.weekly_notes_limit = params.weeklyNotesLimit
+    if (params.modelId !== undefined) updateData.model_id = params.modelId
+    if (params.temperature !== undefined) updateData.temperature = params.temperature
+    if (params.customPrompt !== undefined) updateData.custom_prompt = params.customPrompt
+
+    // 更新时间戳
+    updateData.updated_at = new Date().toISOString()
+
+    // 执行更新
+    const [updatedConfig] = await db('letter_config').update(updateData).returning('*')
+
+    if (!updatedConfig) {
+      throw new Error('更新来信配置失败')
+    }
+
+    return convertToLetterConfig(updatedConfig)
+  } catch (error) {
+    console.error('后端→ 更新来信配置失败:', error)
+    throw error
+  }
+}
+
+// 验证配置
+export function validateLetterConfig(config: Partial<LetterConfig>): ConfigValidationResult {
+  const errors: ConfigValidationError[] = []
+
+  // 验证笔记数量限制
+  if (config.dailyNotesLimit !== undefined) {
+    const { min, max } = LETTER_CONFIG_RULES.dailyNotesLimit
+    if (config.dailyNotesLimit < min || config.dailyNotesLimit > max) {
+      errors.push({
+        field: 'dailyNotesLimit',
+        message: `每日笔记数量必须在 ${min} 到 ${max} 之间`
+      })
+    }
+  }
+
+  if (config.weeklyNotesLimit !== undefined) {
+    const { min, max } = LETTER_CONFIG_RULES.weeklyNotesLimit
+    if (config.weeklyNotesLimit < min || config.weeklyNotesLimit > max) {
+      errors.push({
+        field: 'weeklyNotesLimit',
+        message: `每周笔记数量必须在 ${min} 到 ${max} 之间`
+      })
+    }
+  }
+
+  // 验证温度参数
+  if (config.temperature !== undefined) {
+    const { min, max } = LETTER_CONFIG_RULES.temperature
+    if (config.temperature < min || config.temperature > max) {
+      errors.push({
+        field: 'temperature',
+        message: `温度参数必须在 ${min} 到 ${max} 之间`
+      })
+    }
+  }
+
+  // 验证收件人和寄件人不能为空
+  if (config.recipient !== undefined && !config.recipient.trim()) {
+    errors.push({
+      field: 'recipient',
+      message: '收件人不能为空'
+    })
+  }
+
+  if (config.sender !== undefined && !config.sender.trim()) {
+    errors.push({
+      field: 'sender',
+      message: '寄件人不能为空'
+    })
+  }
+
+  // 验证模型ID不能为空
+  if (config.modelId !== undefined && !config.modelId.trim()) {
+    errors.push({
+      field: 'modelId',
+      message: '必须选择一个模型'
+    })
+  }
+
+  return {
+    isValid: errors.length === 0,
+    errors
+  }
+}
+
+// 重置来信配置
+export async function resetLetterConfig(defaultModelId: string): Promise<GetLetterConfigResult> {
+  try {
+    const defaultConfig = {
+      recipient: '亲爱的我',
+      sender: '未来的自己',
+      use_nickname: true,
+      daily_notes_limit: 6,
+      weekly_notes_limit: 12,
+      model_id: defaultModelId,
+      temperature: 0.7,
+      custom_prompt: '',
+      updated_at: new Date().toISOString()
+    }
+
+    const [resetConfig] = await db('letter_config').update(defaultConfig).returning('*')
+
+    if (!resetConfig) {
+      throw new Error('重置来信配置失败')
+    }
+
+    return convertToLetterConfig(resetConfig)
+  } catch (error) {
+    console.error('后端→ 重置来信配置失败:', error)
+    throw error
+  }
+}
+
+// 添加删除信件的方法
+export async function deleteLetter(id: string): Promise<boolean> {
+  try {
+    // 删除指定 id 的信件
+    const deletedCount = await db('letters').where({ id }).delete()
+
+    // 如果删除数量为 0，说明信件不存在
+    if (deletedCount === 0) {
+      throw new Error(`信件不存在: ${id}`)
+    }
+
+    return true
+  } catch (error) {
+    console.error('后端→ 删除信件失败:', error)
     throw error
   }
 }

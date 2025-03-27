@@ -1,6 +1,13 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import type { Letter, LetterType } from '@shared/types'
+import type {
+  Letter,
+  LetterType,
+  GetLetterConfigResult,
+  UpdateLetterConfigParams,
+  ConfigValidationResult,
+  LetterConfig
+} from '@shared/types'
 
 export const useDailyLetterStore = defineStore('dailyLetter', () => {
   // ==================== 状态 ====================
@@ -15,9 +22,12 @@ export const useDailyLetterStore = defineStore('dailyLetter', () => {
   const totalLetters = ref(0)
   const unreadCount = ref(0)
   const isLetterModalOpen = ref(false)
-
-  // 添加新的状态
   const canReceiveToday = ref(true)
+
+  // 新增：配置相关状态
+  const letterConfig = ref<GetLetterConfigResult | null>(null)
+  const isConfigLoading = ref(false)
+  const configError = ref<string | null>(null)
 
   // ==================== 动画控制方法 ====================
   const startAnimation = () => {
@@ -155,6 +165,117 @@ export const useDailyLetterStore = defineStore('dailyLetter', () => {
     currentLetter.value = null
   }
 
+  // ==================== 配置相关方法 ====================
+
+  // 获取来信配置
+  const fetchLetterConfig = async () => {
+    try {
+      isConfigLoading.value = true
+      configError.value = null
+      letterConfig.value = await window.electronAPI.letter.getLetterConfig()
+    } catch (error) {
+      console.error('获取来信配置失败:', error)
+      configError.value = String(error)
+    } finally {
+      isConfigLoading.value = false
+    }
+  }
+
+  // 更新来信配置
+  const updateLetterConfig = async (params: UpdateLetterConfigParams) => {
+    try {
+      isConfigLoading.value = true
+      configError.value = null
+      letterConfig.value = await window.electronAPI.letter.updateLetterConfig(params)
+      return true
+    } catch (error) {
+      console.error('更新来信配置失败:', error)
+      configError.value = String(error)
+      return false
+    } finally {
+      isConfigLoading.value = false
+    }
+  }
+
+  // 重置来信配置
+  const resetLetterConfig = async (defaultModelId: string) => {
+    try {
+      isConfigLoading.value = true
+      configError.value = null
+      letterConfig.value = await window.electronAPI.letter.resetLetterConfig(defaultModelId)
+      return true
+    } catch (error) {
+      console.error('重置来信配置失败:', error)
+      configError.value = String(error)
+      return false
+    } finally {
+      isConfigLoading.value = false
+    }
+  }
+
+  // 验证来信配置
+  const validateLetterConfig = async (
+    params: UpdateLetterConfigParams
+  ): Promise<ConfigValidationResult> => {
+    try {
+      return await window.electronAPI.letter.validateLetterConfig(params)
+    } catch (error) {
+      console.error('验证来信配置失败:', error)
+      return {
+        isValid: false,
+        errors: Object.keys(params).map((key) => ({
+          field: key as keyof LetterConfig,
+          message: String(error)
+        }))
+      }
+    }
+  }
+
+  // 清除配置错误
+  const clearConfigError = () => {
+    configError.value = null
+  }
+
+  // 添加批量更新方法
+  const batchUpdateLetterConfig = async (params: UpdateLetterConfigParams) => {
+    try {
+      isConfigLoading.value = true
+      configError.value = null
+      letterConfig.value = await window.electronAPI.letter.updateLetterConfig(params)
+      return true
+    } catch (error) {
+      console.error('批量更新来信配置失败:', error)
+      configError.value = String(error)
+      return false
+    } finally {
+      isConfigLoading.value = false
+    }
+  }
+
+  // 添加删除信件的方法
+  const deleteLetter = async (id: string) => {
+    try {
+      const success = await window.electronAPI.letter.deleteLetter(id)
+      if (success) {
+        // 从列表中移除该信件
+        letters.value = letters.value.filter((letter) => letter.id !== id)
+        // 更新总数
+        totalLetters.value--
+        // 如果是当前打开的信件，清空当前信件
+        if (currentLetter.value?.id === id) {
+          currentLetter.value = null
+          isLetterModalOpen.value = false
+        }
+        // 如果是未读信件，更新未读数量
+        await fetchUnreadCount()
+      }
+      return success
+    } catch (error) {
+      console.error('删除信件失败:', error)
+      throw error
+    }
+  }
+
   return {
     // 状态
     isAnimating,
@@ -166,6 +287,10 @@ export const useDailyLetterStore = defineStore('dailyLetter', () => {
     unreadCount,
     isLetterModalOpen,
     canReceiveToday,
+    // 新增：配置相关状态
+    letterConfig,
+    isConfigLoading,
+    configError,
 
     // 动画方法
     startAnimation,
@@ -183,6 +308,17 @@ export const useDailyLetterStore = defineStore('dailyLetter', () => {
 
     // 模态框控制
     openLetterModal,
-    closeLetterModal
+    closeLetterModal,
+
+    // 新增：配置相关方法
+    fetchLetterConfig,
+    updateLetterConfig,
+    resetLetterConfig,
+    validateLetterConfig,
+    clearConfigError,
+    batchUpdateLetterConfig,
+
+    // 添加删除信件方法到返回值中
+    deleteLetter
   }
 })

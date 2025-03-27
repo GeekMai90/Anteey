@@ -6,9 +6,14 @@ import {
   updateLetterReadStatus,
   getLatestLetter,
   getUnreadLettersCount,
-  checkTodayLetter
+  checkTodayLetter,
+  getLetterConfig,
+  updateLetterConfig,
+  validateLetterConfig,
+  resetLetterConfig,
+  deleteLetter
 } from '../../services/letter/letterService'
-import type { LetterType } from '@shared/types'
+import type { LetterType, UpdateLetterConfigParams } from '@shared/types'
 
 export function setupLetterHandlers() {
   // 创建信件
@@ -86,5 +91,73 @@ export function setupLetterHandlers() {
   // 检查今天是否已经收到过信件
   ipcMain.handle('letter:checkTodayLetter', async () => {
     return await checkTodayLetter()
+  })
+
+  // ==================== 来信配置相关处理器 ====================
+
+  // 获取来信配置
+  ipcMain.handle('letter:getConfig', async () => {
+    try {
+      const config = await getLetterConfig()
+      return { success: true, config }
+    } catch (error) {
+      console.error('主进程→ 获取来信配置失败:', error)
+      return { success: false, error: String(error) }
+    }
+  })
+
+  // 更新来信配置
+  ipcMain.handle('letter:updateConfig', async (_event, params: UpdateLetterConfigParams) => {
+    try {
+      // 首先验证配置
+      const validation = validateLetterConfig(params)
+      if (!validation.isValid) {
+        return {
+          success: false,
+          error: '配置验证失败',
+          validationErrors: validation.errors
+        }
+      }
+
+      // 更新配置
+      const config = await updateLetterConfig(params)
+      return { success: true, config }
+    } catch (error) {
+      console.error('主进程→ 更新来信配置失败:', error)
+      return { success: false, error: String(error) }
+    }
+  })
+
+  // 重置来信配置
+  ipcMain.handle('letter:resetConfig', async (_event, defaultModelId: string) => {
+    try {
+      const config = await resetLetterConfig(defaultModelId)
+      return { success: true, config }
+    } catch (error) {
+      console.error('主进程→ 重置来信配置失败:', error)
+      return { success: false, error: String(error) }
+    }
+  })
+
+  // 验证来信配置
+  ipcMain.handle('letter:validateConfig', (_event, params: UpdateLetterConfigParams) => {
+    try {
+      const validation = validateLetterConfig(params)
+      return { success: true, validation }
+    } catch (error) {
+      console.error('主进程→ 验证来信配置失败:', error)
+      return { success: false, error: String(error) }
+    }
+  })
+
+  // 添加删除信件的处理器
+  ipcMain.handle('letter:delete', async (_event, id: string) => {
+    try {
+      const success = await deleteLetter(id)
+      return { success }
+    } catch (error) {
+      console.error('主进程→ 删除信件失败:', error)
+      return { success: false, error: String(error) }
+    }
   })
 }

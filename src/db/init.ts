@@ -1689,6 +1689,46 @@ export async function initDatabase(db: Knex): Promise<void> {
 
     console.log('mind_echoes 表创建成功')
   }
+
+  // 创建来信配置表
+  if (!(await db.schema.hasTable('letter_config'))) {
+    await db.schema.createTable('letter_config', (table) => {
+      // 基础配置
+      table.string('recipient').notNullable().comment('收件人')
+      table.string('sender').notNullable().comment('寄件人')
+      table.boolean('use_nickname').notNullable().defaultTo(true).comment('是否启用爱称')
+
+      // 笔记获取配置
+      table.integer('daily_notes_limit').notNullable().defaultTo(6).comment('每日获取笔记的数量')
+      table.integer('weekly_notes_limit').notNullable().defaultTo(12).comment('每周获取笔记的数量')
+
+      // AI 生成配置
+      table.string('model_id').notNullable().comment('大模型ID')
+      table.float('temperature').notNullable().defaultTo(0.7).comment('温度参数')
+
+      // 自定义提示词
+      table.text('custom_prompt').comment('自定义提示词')
+
+      // 元数据
+      table.timestamp('created_at').notNullable().defaultTo(db.fn.now()).comment('创建时间')
+      table.timestamp('updated_at').notNullable().defaultTo(db.fn.now()).comment('更新时间')
+
+      // 索引
+      table.index('model_id')
+    })
+
+    // 插入默认配置
+    await db('letter_config').insert({
+      recipient: '亲爱的我',
+      sender: '未来的自己',
+      use_nickname: true,
+      daily_notes_limit: 6,
+      weekly_notes_limit: 12,
+      model_id: '', // 需要在应用启动时更新为默认模型ID
+      temperature: 0.7,
+      custom_prompt: ''
+    })
+  }
 }
 
 export async function down(db: Knex): Promise<void> {
@@ -1759,6 +1799,11 @@ export async function down(db: Knex): Promise<void> {
   await db.schema.dropTableIfExists('chat_messages')
   await db.schema.dropTableIfExists('chat_attachments')
   await db.schema.dropTableIfExists('mind_echoes')
+
+  // 删除来信配置表
+  if (await db.schema.hasTable('letter_config')) {
+    await db.schema.dropTable('letter_config')
+  }
 
   console.log('所有表已删除')
 }

@@ -143,7 +143,12 @@ import type {
   // 新增的 mind-echo 相关类型
   MindEcho,
   MindEchoWithRelations,
-  UpdateMindEchoParams
+  UpdateMindEchoParams,
+
+  // 新增的 letter 相关类型
+  GetLetterConfigResult,
+  UpdateLetterConfigParams,
+  ConfigValidationResult
 } from '@shared/types'
 
 export interface ElectronAPI {
@@ -1007,6 +1012,15 @@ export interface ElectronAPI {
 
     // 检查今天是否已经收到过信件
     checkTodayLetter: () => Promise<boolean>
+
+    // 获取来信配置
+    getLetterConfig: () => Promise<GetLetterConfigResult>
+    updateLetterConfig: (params: UpdateLetterConfigParams) => Promise<GetLetterConfigResult>
+    resetLetterConfig: (defaultModelId: string) => Promise<GetLetterConfigResult>
+    validateLetterConfig: (params: UpdateLetterConfigParams) => Promise<ConfigValidationResult>
+
+    // 添加删除信件的方法定义
+    deleteLetter: (id: string) => Promise<boolean>
   }
 
   export: {

@@ -1,5 +1,11 @@
 import { ipcRenderer } from 'electron'
-import type { Letter, LetterType } from '@shared/types'
+import type {
+  Letter,
+  LetterType,
+  GetLetterConfigResult,
+  UpdateLetterConfigParams,
+  ConfigValidationResult
+} from '@shared/types'
 
 export const letterApi = {
   // 创建信件
@@ -81,5 +87,78 @@ export const letterApi = {
   },
 
   // 检查今天是否已经收到过信件
-  checkTodayLetter: () => ipcRenderer.invoke('letter:checkTodayLetter')
+  checkTodayLetter: () => ipcRenderer.invoke('letter:checkTodayLetter'),
+
+  // ==================== 来信配置相关方法 ====================
+
+  // 获取来信配置
+  getLetterConfig: async (): Promise<GetLetterConfigResult> => {
+    try {
+      const result = await ipcRenderer.invoke('letter:getConfig')
+      if (!result.success) throw new Error(result.error)
+      return result.config
+    } catch (error) {
+      console.error('预加载脚本 → 获取来信配置失败:', error)
+      throw error
+    }
+  },
+
+  // 更新来信配置
+  updateLetterConfig: async (params: UpdateLetterConfigParams): Promise<GetLetterConfigResult> => {
+    try {
+      const result = await ipcRenderer.invoke('letter:updateConfig', params)
+      if (!result.success) {
+        // 如果是验证错误，抛出特殊的错误对象
+        if (result.validationErrors) {
+          throw {
+            message: '配置验证失败',
+            validationErrors: result.validationErrors
+          }
+        }
+        throw new Error(result.error)
+      }
+      return result.config
+    } catch (error) {
+      console.error('预加载脚本 → 更新来信配置失败:', error)
+      throw error
+    }
+  },
+
+  // 重置来信配置
+  resetLetterConfig: async (defaultModelId: string): Promise<GetLetterConfigResult> => {
+    try {
+      const result = await ipcRenderer.invoke('letter:resetConfig', defaultModelId)
+      if (!result.success) throw new Error(result.error)
+      return result.config
+    } catch (error) {
+      console.error('预加载脚本 → 重置来信配置失败:', error)
+      throw error
+    }
+  },
+
+  // 验证来信配置
+  validateLetterConfig: async (
+    params: UpdateLetterConfigParams
+  ): Promise<ConfigValidationResult> => {
+    try {
+      const result = await ipcRenderer.invoke('letter:validateConfig', params)
+      if (!result.success) throw new Error(result.error)
+      return result.validation
+    } catch (error) {
+      console.error('预加载脚本 → 验证来信配置失败:', error)
+      throw error
+    }
+  },
+
+  // 添加删除信件的方法
+  deleteLetter: async (id: string): Promise<boolean> => {
+    try {
+      const result = await ipcRenderer.invoke('letter:delete', id)
+      if (!result.success) throw new Error(result.error)
+      return result.success
+    } catch (error) {
+      console.error('预加载脚本 → 删除信件失败:', error)
+      throw error
+    }
+  }
 }
