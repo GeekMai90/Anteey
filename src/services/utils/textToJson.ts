@@ -139,92 +139,19 @@ export function convertTextToTiptapJson(text: string): any {
   const content: any[] = []
   // 改进分行处理，保留有意义的空行
   const lines = text.split('\n').map((line) => line.replace(/\r/g, ''))
-  let inTable = false
-  let tableContent: any = null
+  let i = 0
+
+  // 存储块级元素的状态
   let inCodeBlock = false
-  let codeBlockContent = ''
   let codeBlockLanguage = ''
-  let inList = false
-  let listContent: any = null
+  let codeBlockContent = ''
   let inQuote = false
   let quoteContent: any = null
 
-  // 添加一个辅助函数来检查内容是否为空
-  const isEmptyContent = (content: any[]): boolean => {
-    return !content.some((item) => {
-      if (item.type === 'text') {
-        return item.text.trim() !== ''
-      }
-      if (item.content) {
-        return !isEmptyContent(item.content)
-      }
-      return false
-    })
-  }
-
-  // 添加一个辅助函数来创建段落
-  const createParagraph = (line: string, forceCreate: boolean = false) => {
-    const inlineContent = processInlineStyles(line)
-    if (inlineContent.length > 0 || forceCreate) {
-      // 检查内容是否真的为空
-      if (!isEmptyContent(inlineContent)) {
-        return {
-          type: 'paragraph',
-          attrs: { textAlign: 'left' },
-          content: inlineContent
-        }
-      }
-    }
-    return null
-  }
-
-  // 添加一个辅助函数来计算缩进级别
-  function getIndentLevel(indent: string): number {
-    return Math.floor(indent.length / 2) // 假设每个缩进级别是2个空格
-  }
-
-  // 修改类型定义，使其更符合实际的 Tiptap JSON 结构
-  interface TiptapText {
-    type: 'text'
-    text: string
-  }
-
-  interface TiptapParagraph {
-    type: 'paragraph'
-    attrs: { textAlign: string }
-    content: TiptapText[]
-  }
-
-  interface TiptapListItem {
-    type: 'listItem'
-    content: (TiptapParagraph | TiptapList)[]
-  }
-
-  interface TiptapList {
-    type: 'bulletList' | 'orderedList'
-    attrs: { start?: number; tight: boolean }
-    content: TiptapListItem[]
-  }
-
-  for (let i = 0; i < lines.length; i++) {
+  // 处理逐行内容
+  while (i < lines.length) {
     const line = lines[i]
     const isEmptyLine = line.trim() === ''
-
-    // 处理空行：在段落之间添加空段落
-    if (isEmptyLine && !inCodeBlock && !inTable && !inList && !inQuote) {
-      if (content.length > 0 && i < lines.length - 1) {
-        const nextLine = lines[i + 1].trim()
-        if (nextLine !== '') {
-          // 只在两个非空段落之间添加空段落
-          content.push({
-            type: 'paragraph',
-            attrs: { textAlign: 'left' },
-            content: []
-          })
-        }
-      }
-      continue
-    }
 
     // 处理代码块
     if (line.startsWith('```')) {
@@ -232,22 +159,55 @@ export function convertTextToTiptapJson(text: string): any {
         inCodeBlock = true
         codeBlockLanguage = line.slice(3).trim() || 'plaintext'
         codeBlockContent = ''
-      } else if (codeBlockContent.trim()) {
-        // 只有当有内容时才添加代码块
+      } else {
         content.push({
           type: 'codeBlock',
           attrs: { language: codeBlockLanguage },
           content: [{ type: 'text', text: codeBlockContent.trim() }]
         })
         inCodeBlock = false
-        codeBlockContent = ''
       }
+      i++
       continue
     }
 
     if (inCodeBlock) {
       codeBlockContent += line + '\n'
+      i++
       continue
+    }
+
+    // 处理引用块
+    if (line.startsWith('>')) {
+      const quoteText = line.slice(1).trim()
+
+      if (!inQuote) {
+        inQuote = true
+        quoteContent = {
+          type: 'blockquote',
+          content: []
+        }
+      }
+
+      if (quoteText) {
+        quoteContent.content.push({
+          type: 'paragraph',
+          attrs: { textAlign: 'left' },
+          content: processInlineStyles(quoteText)
+        })
+      }
+
+      i++
+      continue
+    }
+
+    // 结束当前引用块
+    if (inQuote && !line.startsWith('>') && !isEmptyLine) {
+      if (quoteContent && quoteContent.content.length > 0) {
+        content.push(quoteContent)
+      }
+      inQuote = false
+      quoteContent = null
     }
 
     // 处理标题
@@ -259,272 +219,49 @@ export function convertTextToTiptapJson(text: string): any {
           level: headingMatch[1].length,
           textAlign: 'left'
         },
-        content: [{ type: 'text', text: headingMatch[2].trim() }]
+        content: processInlineStyles(headingMatch[2].trim())
       })
+      i++
       continue
     }
 
-    // 处理引用块
-    if (line.startsWith('>')) {
-      const quoteText = line.slice(1).trim()
-      if (quoteText) {
-        // 只处理非空引用
-        if (!inQuote) {
-          inQuote = true
-          quoteContent = {
-            type: 'blockquote',
-            content: [
-              {
-                type: 'paragraph',
-                attrs: { textAlign: 'left' },
-                content: [{ type: 'text', text: quoteText }]
-              }
-            ]
-          }
-        } else {
-          quoteContent.content.push({
-            type: 'paragraph',
-            attrs: { textAlign: 'left' },
-            content: [{ type: 'text', text: quoteText }]
-          })
-        }
-      }
+    // 处理列表（有序、无序和任务列表）
+    const listResult = processLists(lines, i)
+    if (listResult.processed) {
+      content.push(listResult.node)
+      i = listResult.nextIndex
       continue
     }
 
     // 处理表格
-    if (line.includes('|')) {
-      const cells = line
-        .split('|')
-        .map((cell) => cell.trim())
-        .filter((cell) => cell) // 过滤掉空单元格
-
-      if (cells.length > 0) {
-        if (!inTable) {
-          inTable = true
-          tableContent = {
-            type: 'table',
-            content: []
-          }
-        }
-
-        // 忽略分隔行（包含 -）
-        if (line.includes('---')) continue
-
-        const rowContent = cells.map((cell) => ({
-          type: tableContent.content.length === 0 ? 'tableHeader' : 'tableCell',
-          attrs: { colspan: 1, colwidth: null, rowspan: 1 },
-          content: [
-            {
-              type: 'paragraph',
-              attrs: { textAlign: 'left' },
-              content: [{ type: 'text', text: cell }]
-            }
-          ]
-        }))
-
-        if (rowContent.length > 0) {
-          tableContent.content.push({
-            type: 'tableRow',
-            content: rowContent
-          })
-        }
-      }
+    const tableResult = processTables(lines, i)
+    if (tableResult.processed) {
+      content.push(tableResult.node)
+      i = tableResult.nextIndex
       continue
     }
 
-    // 处理列表
-    const listMatch = line.match(/^(\s*)([-*+]|\d+\.)\s+(.+)$/)
-    if (listMatch) {
-      const [, indent, marker, text] = listMatch
-      const indentLevel = getIndentLevel(indent)
-      const isOrdered = /\d+\./.test(marker)
-      const orderNumber = isOrdered ? parseInt(marker) : 1
-
-      if (text.trim()) {
-        // 处理顶级列表
-        if (indentLevel === 0) {
-          if (
-            inList &&
-            ((isOrdered && listContent?.type !== 'orderedList') ||
-              (!isOrdered && listContent?.type !== 'bulletList'))
-          ) {
-            content.push(listContent)
-            inList = false
-          }
-
-          if (!inList) {
-            inList = true
-            listContent = {
-              type: isOrdered ? 'orderedList' : 'bulletList',
-              attrs: {
-                ...(isOrdered && { start: orderNumber }),
-                tight: true
-              },
-              content: []
-            } as TiptapList
-          }
-        }
-
-        // 创建列表项
-        const listItem: TiptapListItem = {
-          type: 'listItem',
-          content: [
-            {
-              type: 'paragraph',
-              attrs: { textAlign: 'left' },
-              content: processInlineStyles(text.trim())
-            }
-          ]
-        }
-
-        // 处理嵌套列表
-        if (indentLevel > 0 && listContent) {
-          const parentItem = listContent.content[listContent.content.length - 1]
-          if (parentItem) {
-            // 检查是否已经有子列表
-            const existingSubList = parentItem.content.find(
-              (node: TiptapParagraph | TiptapList): node is TiptapList =>
-                node.type === 'bulletList' || node.type === 'orderedList'
-            )
-
-            if (!existingSubList) {
-              // 创建新的子列表，根据标记类型决定列表类型
-              const subList: TiptapList = {
-                type: isOrdered ? 'orderedList' : 'bulletList',
-                attrs: {
-                  ...(isOrdered && { start: orderNumber }),
-                  tight: true
-                },
-                content: [listItem]
-              }
-              parentItem.content.push(subList)
-            } else {
-              // 如果子列表类型不匹配，创建新的子列表
-              if (
-                (isOrdered && existingSubList.type !== 'orderedList') ||
-                (!isOrdered && existingSubList.type !== 'bulletList')
-              ) {
-                const newSubList: TiptapList = {
-                  type: isOrdered ? 'orderedList' : 'bulletList',
-                  attrs: {
-                    ...(isOrdered && { start: orderNumber }),
-                    tight: true
-                  },
-                  content: [listItem]
-                }
-                parentItem.content.push(newSubList)
-              } else {
-                // 类型匹配，添加到现有子列表
-                existingSubList.content.push(listItem)
-              }
-            }
-          }
-        } else {
-          // 添加顶级列表项
-          listContent.content.push(listItem)
-        }
-      }
-      continue
+    // 处理普通段落，完全跳过空行
+    if (!isEmptyLine) {
+      content.push({
+        type: 'paragraph',
+        attrs: { textAlign: 'left' },
+        content: processInlineStyles(line)
+      })
     }
 
-    // 如果不是列表项且当前在列表中，结束当前列表
-    if (inList && !line.match(/^(\s*)([-*+]|\d+\.)\s+/)) {
-      if (listContent && listContent.content.length > 0) {
-        content.push(listContent)
-      }
-      inList = false
-      listContent = null
-    }
-
-    // 修改无序列表的处理
-    if (line.startsWith('- ') && !line.startsWith('- [')) {
-      const text = line.slice(2).trim()
-      if (text) {
-        if (!inList || listContent?.type !== 'bulletList') {
-          if (inList && listContent) {
-            content.push(listContent)
-          }
-          inList = true
-          listContent = {
-            type: 'bulletList',
-            attrs: { tight: true },
-            content: []
-          }
-        }
-
-        listContent.content.push({
-          type: 'listItem',
-          content: [
-            {
-              type: 'paragraph',
-              attrs: { textAlign: 'left' },
-              content: processInlineStyles(text)
-            }
-          ]
-        })
-        continue
-      }
-    }
-
-    // 处理任务列表
-    const taskMatch = line.match(/^(\s*)-\s+\[([ x])\]\s+(.+)$/)
-    if (taskMatch) {
-      const [, , checked, text] = taskMatch
-
-      if (text.trim()) {
-        // 只处理非空任务项
-        if (!inList) {
-          inList = true
-          listContent = {
-            type: 'taskList',
-            content: []
-          }
-        }
-
-        listContent.content.push({
-          type: 'taskItem',
-          attrs: { checked: checked === 'x' },
-          content: [
-            {
-              type: 'paragraph',
-              attrs: { textAlign: 'left' },
-              content: processInlineStyles(text.trim())
-            }
-          ]
-        })
-      }
-      continue
-    }
-
-    // 修改普通段落的处理
-    if (!inCodeBlock && !inTable && !inList && !inQuote) {
-      const paragraph = createParagraph(line)
-      if (paragraph) {
-        content.push(paragraph)
-      }
-    }
+    i++
   }
 
-  // 处理最后一个未闭合的块
-  if (inTable && tableContent && tableContent.content.length > 0) {
-    if (!isEmptyContent(tableContent.content)) {
-      content.push(tableContent)
-    }
+  // 处理末尾未闭合的块
+  if (inQuote && quoteContent && quoteContent.content.length > 0) {
+    content.push(quoteContent)
   } else if (inCodeBlock && codeBlockContent.trim()) {
     content.push({
       type: 'codeBlock',
       attrs: { language: codeBlockLanguage },
       content: [{ type: 'text', text: codeBlockContent.trim() }]
     })
-  } else if (inList && listContent && listContent.content.length > 0) {
-    if (!isEmptyContent(listContent.content)) {
-      content.push(listContent)
-    }
-  } else if (inQuote && quoteContent && quoteContent.content.length > 0) {
-    if (!isEmptyContent(quoteContent.content)) {
-      content.push(quoteContent)
-    }
   }
 
   // 确保文档至少有一个有效的段落
@@ -536,11 +273,22 @@ export function convertTextToTiptapJson(text: string): any {
     })
   }
 
-  // 最后一次过滤，移除所有空内容
+  // 移除所有空段落
   const filteredContent = content.filter((node) => {
-    if (node.content) {
-      return !isEmptyContent(node.content)
+    // 跳过所有空段落
+    if (node.type === 'paragraph') {
+      // 检查段落是否为空
+      const isEmpty =
+        !node.content ||
+        node.content.length === 0 ||
+        (node.content.length === 1 &&
+          node.content[0].type === 'text' &&
+          (!node.content[0].text || node.content[0].text.trim() === ''))
+
+      // 保留非空段落
+      return !isEmpty
     }
+    // 保留所有其他类型的节点
     return true
   })
 
@@ -550,18 +298,20 @@ export function convertTextToTiptapJson(text: string): any {
   }
 }
 
-// 处理行内样式的辅助函数
+// 处理行内样式的辅助函数（重写以支持更多样式）
 function processInlineStyles(text: string): any[] {
   const content: any[] = []
   let currentText = ''
   let isBold = false
   let isItalic = false
+  let isCode = false
 
   const flushText = () => {
     if (currentText) {
       const marks: any[] = []
       if (isBold) marks.push({ type: 'bold' })
       if (isItalic) marks.push({ type: 'italic' })
+      if (isCode) marks.push({ type: 'code' })
 
       content.push({
         type: 'text',
@@ -573,20 +323,222 @@ function processInlineStyles(text: string): any[] {
   }
 
   for (let i = 0; i < text.length; i++) {
-    if (text[i] === '*' || text[i] === '_') {
-      if (i + 1 < text.length && text[i + 1] === text[i]) {
-        flushText()
-        isBold = !isBold
-        i++
-      } else {
-        flushText()
-        isItalic = !isItalic
-      }
-    } else {
-      currentText += text[i]
+    // 处理代码样式
+    if (text[i] === '`' && !isCode) {
+      flushText()
+      isCode = true
+      continue
+    } else if (text[i] === '`' && isCode) {
+      flushText()
+      isCode = false
+      continue
     }
+
+    // 处理粗体样式
+    if (
+      (text[i] === '*' || text[i] === '_') &&
+      i + 1 < text.length &&
+      text[i + 1] === text[i] &&
+      !isCode
+    ) {
+      flushText()
+      isBold = !isBold
+      i++
+      continue
+    }
+
+    // 处理斜体样式
+    if ((text[i] === '*' || text[i] === '_') && !isCode) {
+      flushText()
+      isItalic = !isItalic
+      continue
+    }
+
+    currentText += text[i]
   }
 
   flushText()
   return content
+}
+
+// 处理列表的辅助函数
+function processLists(
+  lines: string[],
+  startIndex: number
+): { processed: boolean; node: any; nextIndex: number } {
+  // 检查是否是列表开始
+  const line = lines[startIndex]
+  const bulletListMatch = line.match(/^(\s*)[-*+]\s+(.+)$/)
+  const orderedListMatch = line.match(/^(\s*)\d+\.\s+(.+)$/)
+  const taskListMatch = line.match(/^(\s*)-\s+\[([ x])\]\s+(.+)$/)
+
+  if (!bulletListMatch && !orderedListMatch && !taskListMatch) {
+    return { processed: false, node: null, nextIndex: startIndex }
+  }
+
+  let listType = ''
+  if (bulletListMatch) listType = 'bulletList'
+  else if (orderedListMatch) listType = 'orderedList'
+  else listType = 'taskList'
+
+  const listNode: any = {
+    type: listType,
+    attrs: listType === 'orderedList' ? { start: 1, tight: true } : { tight: true },
+    content: []
+  }
+
+  let i = startIndex
+  const currentIndentLevel = 0
+
+  // 递归处理列表项及其嵌套
+  const processListItems = (parentNode: any, indentLevel: number): number => {
+    while (i < lines.length) {
+      const currentLine = lines[i]
+
+      // 检查当前行是否为列表项
+      const bulletMatch = currentLine.match(/^(\s*)[-*+]\s+(.+)$/)
+      const orderedMatch = currentLine.match(/^(\s*)\d+\.\s+(.+)$/)
+      const taskMatch = currentLine.match(/^(\s*)-\s+\[([ x])\]\s+(.+)$/)
+
+      // 如果不是列表项或空行，结束列表处理
+      if (!bulletMatch && !orderedMatch && !taskMatch && currentLine.trim() !== '') {
+        return i
+      }
+
+      // 处理空行
+      if (currentLine.trim() === '') {
+        i++
+        continue
+      }
+
+      // 确定当前行的缩进级别
+      const match = bulletMatch || orderedMatch || taskMatch
+      if (!match) {
+        i++
+        continue
+      }
+
+      const currentIndent = match[1].length
+      const currentIndentLevel = Math.floor(currentIndent / 2)
+
+      // 如果缩进级别小于当前处理的级别，返回上一级列表处理
+      if (currentIndentLevel < indentLevel) {
+        return i
+      }
+
+      // 如果缩进级别大于当前处理的级别，开始处理子列表
+      if (currentIndentLevel > indentLevel) {
+        i++
+        continue
+      }
+
+      // 处理当前级别的列表项
+      const itemContent = match[match.length - 1].trim()
+      const listItem: any = {
+        type: listType === 'taskList' ? 'taskItem' : 'listItem',
+        content: [
+          {
+            type: 'paragraph',
+            attrs: { textAlign: 'left' },
+            content: processInlineStyles(itemContent)
+          }
+        ]
+      }
+
+      // 为任务列表项添加checked属性
+      if (listType === 'taskList') {
+        listItem.attrs = { checked: match[2] === 'x' }
+      }
+
+      parentNode.content.push(listItem)
+      i++
+    }
+
+    return i
+  }
+
+  i = processListItems(listNode, currentIndentLevel)
+
+  return {
+    processed: true,
+    node: listNode,
+    nextIndex: i
+  }
+}
+
+// 处理表格的辅助函数
+function processTables(
+  lines: string[],
+  startIndex: number
+): { processed: boolean; node: any; nextIndex: number } {
+  // 检查是否是表格开始
+  if (!lines[startIndex].includes('|')) {
+    return { processed: false, node: null, nextIndex: startIndex }
+  }
+
+  const tableNode: any = {
+    type: 'table',
+    content: []
+  }
+
+  let i = startIndex
+  let inTable = true
+  let isHeader = true
+
+  while (i < lines.length && inTable) {
+    const line = lines[i].trim()
+
+    // 空行或不包含|的行结束表格
+    if (line === '' || !line.includes('|')) {
+      inTable = false
+      continue
+    }
+
+    // 跳过分隔行
+    if (line.includes('---')) {
+      i++
+      continue
+    }
+
+    // 处理表格行
+    const cells = line
+      .split('|')
+      .map((cell) => cell.trim())
+      .filter((cell) => cell.length > 0)
+
+    if (cells.length > 0) {
+      const rowContent = cells.map((cell) => ({
+        type: isHeader ? 'tableHeader' : 'tableCell',
+        attrs: { colspan: 1, colwidth: null, rowspan: 1 },
+        content: [
+          {
+            type: 'paragraph',
+            attrs: { textAlign: 'left' },
+            content: processInlineStyles(cell)
+          }
+        ]
+      }))
+
+      tableNode.content.push({
+        type: 'tableRow',
+        content: rowContent
+      })
+
+      // 第一行处理后，后续行都是普通单元格
+      isHeader = false
+    }
+
+    i++
+  }
+
+  // 确保表格至少有一行
+  if (tableNode.content.length === 0) {
+    return { processed: false, node: null, nextIndex: startIndex }
+  }
+
+  return {
+    processed: true,
+    node: tableNode,
+    nextIndex: i
+  }
 }
