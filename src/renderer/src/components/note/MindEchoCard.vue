@@ -172,7 +172,7 @@ const handleDeleteConfirm = () => {
   emit('delete', props.echo.id)
 }
 
-// 打开原对话
+// 打开原aichat对话
 const openConversation = async () => {
   if (props.echo.conversationId) {
     console.log('MindEchoCard: 打开原对话', props.echo.conversationId)
@@ -183,9 +183,6 @@ const openConversation = async () => {
     aiChatStore.createNewConversation()
     // 获取并加载历史会话
     await aiChatStore.fetchConversationDetail(props.echo.conversationId)
-
-    // 等待面板打开后，延迟执行定位
-    // TODO: 后续我们会实现定位到特定对话的功能
   }
 }
 

@@ -3,7 +3,7 @@ import { ref } from 'vue'
 import { Agent, CreateAgentParams, UpdateAgentParams } from '@shared/types'
 import { useEventBus } from '@vueuse/core'
 import { useUIStore } from '@renderer/stores/UIStore'
-import { Robot } from '@icon-park/vue-next'
+import { RobotOne } from '@icon-park/vue-next'
 import { markRaw } from 'vue'
 import { useAIChatStore } from '@renderer/stores/aiChatStore'
 import { useModelConfigStore } from '@renderer/stores/modelConfigStore'
@@ -213,7 +213,7 @@ export const useAgentStore = defineStore('agent', () => {
       key: agent.id,
       name: agent.name,
       label: agent.name,
-      icon: markRaw(Robot),
+      icon: markRaw(RobotOne),
       action: async () => {
         console.log('执行Agent菜单动作:', {
           agentId: agent.id,
