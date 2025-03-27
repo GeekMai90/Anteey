@@ -1,3 +1,4 @@
+//!dailyLetterStore.canReceiveToday
 <template>
   <div
     v-tooltip.top="{

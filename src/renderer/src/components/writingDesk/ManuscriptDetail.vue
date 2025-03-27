@@ -225,32 +225,8 @@
 
       <!-- 其他模式保持不变 -->
       <div v-else class="content-wrapper with-toc">
-        <!-- 目录侧边栏 -->
-        <div
-          v-if="['first_draft', 'polish'].includes(currentMode)"
-          class="toc-sidebar"
-          :class="{ 'is-collapsed': isSmallScreen && !showToc }"
-        >
-          <div class="toc-container">
-            <div class="toc-header">目录</div>
-            <TableOfContents :items="tocItems" :editor="getCurrentEditor" />
-          </div>
-        </div>
-
-        <!-- 添加固定的切换按钮 -->
-        <button
-          v-if="['first_draft', 'polish'].includes(currentMode) && isSmallScreen"
-          class="toc-toggle-fixed"
-          :class="{ 'is-expanded': showToc }"
-          :title="showToc ? '收起目录' : '展开目录'"
-          @click="toggleToc"
-        >
-          <MenuFold v-if="showToc" theme="outline" size="16" />
-          <MenuUnfold v-else theme="outline" size="16" />
-        </button>
-
-        <!-- 初稿模式 -->
-        <div v-if="currentMode === 'first_draft'" class="first-draft-mode">
+        <!-- 目录侧边栏 - 移到右侧 -->
+        <div v-if="['first_draft', 'polish'].includes(currentMode)" class="first-draft-mode">
           <div ref="scrollContainerRef" class="editor-wrapper">
             <TipTapEditor
               ref="firstDraftEditorRef"
@@ -278,6 +254,29 @@
             />
           </div>
         </div>
+
+        <!-- 目录侧边栏 - 移到右侧 -->
+        <div
+          v-if="['first_draft', 'polish'].includes(currentMode)"
+          class="toc-sidebar"
+          :class="{ 'is-collapsed': isSmallScreen && !showToc }"
+        >
+          <div class="toc-container">
+            <TableOfContents :items="tocItems" :editor="getCurrentEditor" />
+          </div>
+        </div>
+
+        <!-- 添加固定的切换按钮 -->
+        <button
+          v-if="['first_draft', 'polish'].includes(currentMode) && isSmallScreen"
+          class="toc-toggle-fixed"
+          :class="{ 'is-expanded': showToc }"
+          :title="showToc ? '收起目录' : '展开目录'"
+          @click="toggleToc"
+        >
+          <MenuFold v-if="showToc" theme="outline" size="16" />
+          <MenuUnfold v-else theme="outline" size="16" />
+        </button>
       </div>
     </div>
   </div>
@@ -1120,22 +1119,26 @@ const handleExportSelect = async (key: string) => {
   }
 }
 
-// 添加目录项的类型定义
+// 修改目录项的类型定义
 interface TocItem {
   id: string
   level: number
   textContent: string
-  itemIndex: number | string
+  itemIndex: number
   isActive: boolean
   isScrolledOver: boolean
 }
 
-// 修改目录相关的状态，添加类型
+// 修改目录相关的状态
 const tocItems = ref<TocItem[]>([])
 
-// 处理目录更新，添加类型
-const handleTocUpdate = (items: TocItem[]) => {
-  tocItems.value = items
+// 处理目录更新，确保 itemIndex 始终是数字
+const handleTocUpdate = (items: any[]) => {
+  // 确保 itemIndex 是数字类型
+  tocItems.value = items.map((item) => ({
+    ...item,
+    itemIndex: typeof item.itemIndex === 'string' ? parseInt(item.itemIndex, 10) : item.itemIndex
+  }))
 }
 
 // 获取当前编辑器实例
@@ -1472,12 +1475,12 @@ onUnmounted(() => {
 
           &.is-collapsed {
             position: absolute;
-            left: 0;
-            transform: translateX(-100%);
-            margin-left: 0;
+            right: 0;
+            transform: translateX(100%);
+            margin-right: 0;
 
             .toc-toggle {
-              right: -32px;
+              left: -32px;
               background: var(--color-primary);
               color: white;
               border-color: var(--color-primary);
@@ -1490,17 +1493,16 @@ onUnmounted(() => {
 
           @media screen and (max-width: 1200px) {
             position: fixed;
-            left: 0;
+            right: 0;
             top: 0;
             height: 100vh;
-            // background: var(--color-bg-secondary);
             z-index: 100;
             padding: 24px 0;
 
             .toc-container {
               height: 100%;
               border-radius: 0;
-              border-left: none;
+              border-right: none;
               border-top: none;
               border-bottom: none;
             }
@@ -1511,16 +1513,6 @@ onUnmounted(() => {
             top: 24px;
             max-height: calc(100vh - 180px);
             overflow-y: auto;
-            background: var(--color-bg-secondary);
-            border-radius: 8px;
-            border: 1px solid var(--color-border);
-
-            .toc-header {
-              padding: 12px 16px;
-              font-weight: 500;
-              color: var(--color-text-primary);
-              border-bottom: 1px solid var(--color-border);
-            }
           }
         }
 
@@ -1543,15 +1535,14 @@ onUnmounted(() => {
           padding: 0 16px;
         }
 
-        // 添加固定的切换按钮样式
         .toc-toggle-fixed {
           position: fixed;
-          left: 0;
+          right: 0;
           top: 50%;
           transform: translateY(-50%);
           width: 24px;
           height: 48px;
-          border-radius: 0 24px 24px 0;
+          border-radius: 24px 0 0 24px;
           background: var(--color-primary);
           border: none;
           color: white;
@@ -1569,11 +1560,11 @@ onUnmounted(() => {
           }
 
           &.is-expanded {
-            left: 240px; // 当目录展开时，按钮也跟着移动
+            right: 240px;
             background: var(--color-bg-secondary);
             color: var(--color-text-secondary);
             border: 1px solid var(--color-border);
-            border-left: none;
+            border-right: none;
 
             &:hover {
               background: var(--color-hover-bg);
@@ -1584,16 +1575,15 @@ onUnmounted(() => {
       }
     }
 
-    // 优化全宽布局容器
     .full-width-wrapper {
       width: 100%;
       height: 100%;
-      padding: 0 24px; // 增加左右内边距
+      padding: 0 24px;
 
       .draft-mode.grid-view {
         height: 100%;
         padding: 24px 0;
-        background: var(--color-bg-primary); // 确保背景色与应用一致
+        background: var(--color-bg-primary);
       }
     }
   }
@@ -1659,7 +1649,6 @@ onUnmounted(() => {
   }
 }
 
-// 添加下拉菜单的动画效果
 .fade-zoom-enter-active,
 .fade-zoom-leave-active {
   transition:
@@ -1679,7 +1668,6 @@ onUnmounted(() => {
   transform: scale(1);
 }
 
-// 修改历史菜单和模型菜单的样式，去掉手动定位相关的样式
 .history-menu,
 .model-menu {
   background-color: var(--color-bg-secondary);

@@ -2,6 +2,7 @@
 import { ref, watch, onMounted, onBeforeUnmount, nextTick, computed } from 'vue'
 import { useFloating, offset, flip, shift, autoUpdate } from '@floating-ui/vue'
 import Button from './Button.vue'
+import Switch from './Switch.vue'
 import type { Component } from 'vue'
 import type { Placement } from '@floating-ui/vue'
 
@@ -16,6 +17,7 @@ interface NormalDropdownItem extends BaseDropdownItem {
   label: string
   key: string
   divided?: never
+  switchable?: never
 }
 
 interface DividerDropdownItem {
@@ -26,9 +28,18 @@ interface DividerDropdownItem {
   disabled?: never
   danger?: never
   active?: never
+  switchable?: never
 }
 
-type DropdownItem = NormalDropdownItem | DividerDropdownItem
+interface SwitchableDropdownItem extends BaseDropdownItem {
+  label: string
+  key: string
+  switchable: true
+  checked: boolean
+  divided?: never
+}
+
+type DropdownItem = NormalDropdownItem | DividerDropdownItem | SwitchableDropdownItem
 
 interface Props {
   items: DropdownItem[]
@@ -74,12 +85,13 @@ const emit = defineEmits<{
   select: [key: string, item: DropdownItem]
   'visible-change': [visible: boolean]
   click: [event: MouseEvent]
+  'switch-change': [key: string, checked: boolean]
 }>()
 
 const visible = ref(false)
 const buttonInstance = ref<{ el: HTMLElement } | null>(null)
 const dropdownRef = ref<HTMLElement | null>(null)
-const selectedItem = ref<NormalDropdownItem | null>(null)
+const selectedItem = ref<NormalDropdownItem | SwitchableDropdownItem | null>(null)
 
 const computedPlacement = computed(() => {
   if (props.placement === 'bottom' || props.placement === 'top') {
@@ -243,6 +255,10 @@ const buttonText = computed(() => {
   }
   return null
 })
+
+const handleSwitchChange = (item: SwitchableDropdownItem, checked: boolean) => {
+  emit('switch-change', item.key, checked)
+}
 </script>
 
 <template>
@@ -292,6 +308,25 @@ const buttonText = computed(() => {
         <template v-for="item in items" :key="item.key">
           <template v-if="item.divided">
             <div class="ant-dropdown-menu-divider"></div>
+          </template>
+          <template v-else-if="item.switchable">
+            <li
+              class="ant-dropdown-menu-item ant-dropdown-menu-item-switchable"
+              :class="{ 'ant-dropdown-menu-item-disabled': item.disabled }"
+            >
+              <div v-if="item.icon" class="item-icon">
+                <component :is="item.icon" theme="outline" size="18" :strokeWidth="3" />
+              </div>
+              <span class="item-label">{{ item.label }}</span>
+              <div class="item-switch">
+                <Switch
+                  :model-value="(item as SwitchableDropdownItem).checked"
+                  @update:model-value="
+                    (val) => handleSwitchChange(item as SwitchableDropdownItem, val)
+                  "
+                />
+              </div>
+            </li>
           </template>
           <template v-else>
             <li
@@ -467,5 +502,31 @@ const buttonText = computed(() => {
   height: 1px;
   margin: 4px 0;
   background-color: var(--color-border);
+}
+
+.ant-dropdown-menu-item-switchable {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px;
+  cursor: default;
+
+  &:hover {
+    background-color: var(--color-hover-button);
+  }
+
+  .item-label {
+    flex-grow: 1;
+    margin-right: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .item-switch {
+    display: flex;
+    align-items: center;
+    margin-left: 12px;
+  }
 }
 </style>

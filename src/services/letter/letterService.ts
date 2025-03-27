@@ -204,7 +204,7 @@ async function generateDailyLetterContent(date: Date): Promise<string> {
       : ''
 
   // 构建 prompt
-  const prompt = `你是一位名叫"安安"的知性女生，温柔、善解人意，对生活充满美好的期待。请以这个身份，根据以下的笔记内容，写一封温暖的回信。这封信是关于昨天（${yesterdayStr}）的笔记回顾与思考。${notesCountInfo}
+  const prompt = `你是一位知性女生，温柔、善解人意，对生活充满美好的期待。请以这个身份，根据以下的笔记内容，写一封温暖的回信。这封信是关于昨天（${yesterdayStr}）的笔记回顾与思考。${notesCountInfo}
 
 以下是昨天的笔记内容：
 
@@ -219,7 +219,7 @@ ${notesContent}
 
 要求：
 1. 直接开始正文，不要添加"亲爱的"等开头语，也不要在结尾添加"你的朋友"等署名
-2. 字数严格控制在400字以内
+2. 字数严格控制在250字以内
 3. 语气要温暖自然，像闺蜜间的深度交流
 4. 内容要体现出对笔记内容的理解和思考
 5. 每个段落要自然流畅，避免生硬的总结
@@ -340,7 +340,7 @@ async function getFilteredWeeklyNotes(startDate: Date, endDate: Date) {
 
 // 处理周报的笔记内容
 function processWeeklyNoteContent(content: string): string {
-  const MAX_CONTENT_LENGTH = 180 // 每条笔记最多180字
+  const MAX_CONTENT_LENGTH = 250 // 每条笔记最多250字
   const processed =
     content.length > MAX_CONTENT_LENGTH ? content.slice(0, MAX_CONTENT_LENGTH) + '...' : content
   return processed
@@ -395,7 +395,7 @@ async function generateWeeklyLetterContent(date: Date): Promise<string> {
   const statsInfo = `（在过去的一周中，你在 ${totalNotesDays} 天记录了笔记，共精选了 ${totalNotesCount} 条有意义的记录）`
 
   // 构建 prompt
-  const prompt = `你是一位名叫"安安"的知性女生，温柔、善解人意，对生活充满美好的期待。请以这个身份，根据以下的笔记内容，写一封温暖的周报信，回顾过去一周（${startDate.toISOString().split('T')[0]} 到 ${endDate.toISOString().split('T')[0]}）的笔记积累。${statsInfo}
+  const prompt = `你是一位知性女生，温柔、善解人意，对生活充满美好的期待。请以这个身份，根据以下的笔记内容，写一封温暖的周报信，回顾过去一周（${startDate.toISOString().split('T')[0]} 到 ${endDate.toISOString().split('T')[0]}）的笔记积累。${statsInfo}
 
 以下是这一周的笔记内容（按时间顺序排列）：
 
@@ -410,7 +410,7 @@ ${notesContent}
 
 要求：
 1. 直接开始正文，不要添加"亲爱的"等开头语，也不要在结尾添加"你的朋友"等署名
-2. 字数严格控制在400字以内
+2. 字数严格控制在250字以内
 3. 语气要温暖自然，像闺蜜间的深度交流
 4. 内容要体现出对一周笔记的整体理解和思考脉络
 5. 每个段落要自然流畅，避免机械式的总结
@@ -627,8 +627,10 @@ export async function checkTodayLetter(): Promise<boolean> {
       .where('type', 'daily')
       .whereBetween('createTime', [startOfDay.toISOString(), endOfDay.toISOString()])
       .count('* as count')
-
-    return Number(count) > 0
+    //todo:记得改回去
+    console.log('count', count)
+    // return Number(count) > 0
+    return false
   } catch (error) {
     console.error('后端→ 检查今日信件状态失败:', error)
     throw error

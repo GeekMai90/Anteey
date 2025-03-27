@@ -6,7 +6,7 @@
 
 <style lang="scss" scoped>
 .toc-empty-state {
-  padding: 16px;
+  padding: 32px 16px;
   text-align: center;
   color: var(--color-text-secondary);
   font-size: 14px;

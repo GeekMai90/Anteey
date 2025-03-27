@@ -49,6 +49,7 @@ export const useDailyLetterStore = defineStore('dailyLetter', () => {
       const hasReceived = await window.electronAPI.letter.checkTodayLetter()
       canReceiveToday.value = !hasReceived
       return !hasReceived
+      // return true
     } catch (error) {
       console.error('检查今日信件状态失败:', error)
       throw error
