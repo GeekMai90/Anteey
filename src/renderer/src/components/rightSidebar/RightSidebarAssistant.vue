@@ -139,7 +139,18 @@
                           </div>
                         </button>
 
-                        <!-- 添加复制按钮 -->
+                        <!-- 添加思维共鸣按钮 -->
+                        <button
+                          v-tooltip.top="'生成思维共鸣'"
+                          class="copy-btn"
+                          @click="handleCreateMindEcho(msg)"
+                        >
+                          <div class="icon">
+                            <Brain theme="outline" size="14" :stroke-width="3" />
+                          </div>
+                        </button>
+
+                        <!-- 原有的复制按钮 -->
                         <button
                           v-tooltip.top="'复制内容'"
                           class="copy-btn"
@@ -373,6 +384,8 @@ import { useModelConfigStore } from '@renderer/stores/modelConfigStore'
 import LoadingThinking from '@renderer/components/ui/LoadingThinking.vue'
 import { useNoteStore } from '@renderer/stores/noteStore'
 import AgentAvatar from '@renderer/components/ui/AgentAvatar.vue'
+import { useMindEchoStore } from '@renderer/stores/mindEchoStore'
+import type { MessageRecord } from '@shared/types/ai-chat'
 
 // Store
 const aiChatStore = useAIChatStore()
@@ -383,6 +396,8 @@ const uiStore = useUIStore()
 const agentStore = useAgentStore()
 const modelConfigStore = useModelConfigStore()
 const noteStore = useNoteStore()
+const mindEchoStore = useMindEchoStore()
+const { currentNoteId } = storeToRefs(noteStore)
 // Refs
 const inputMessage = ref('')
 const messagesContainer = ref<HTMLElement | null>(null)
@@ -1078,6 +1093,30 @@ const clearSelectedNotes = () => {
 
 const handleAgentSetting = () => {
   router.push({ name: 'AgentView' })
+}
+
+// 添加生成思维共鸣的处理函数
+const handleCreateMindEcho = async (msg: MessageRecord) => {
+  try {
+    // 获取当前笔记ID
+    console.log('当前笔记ID:', currentNoteId.value)
+    if (!currentNoteId.value) {
+      message.warning('请先打开一个笔记')
+      return
+    }
+
+    // 调用创建思维共鸣的方法
+    await mindEchoStore.createFromContent({
+      noteId: currentNoteId.value,
+      conversationId: currentConversation.value?.id || '',
+      messageId: msg.id
+    })
+
+    message.success('已生成思维共鸣')
+  } catch (error) {
+    console.error('生成思维共鸣失败:', error)
+    message.error('生成思维共鸣失败')
+  }
 }
 </script>
 

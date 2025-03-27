@@ -24,7 +24,7 @@
                 :is="box.id === '0000' ? FileCabinet : Box"
                 theme="outline"
                 size="18"
-                fill="var(--color-icon-primary)"
+                :fill="isBoxSelected(box) ? 'var(--color-primary)' : 'var(--color-icon-primary)'"
                 :strokeWidth="3"
               />
             </div>
@@ -177,12 +177,37 @@ onUnmounted(() => {
   cursor: pointer;
   transition: all 0.2s ease;
   border-radius: 6px;
-  padding: 4px 4px;
+  padding: 4px;
   margin: 2px;
+  min-height: 32px;
+  box-sizing: border-box;
 
-  &.active {
+  &:hover {
     background-color: var(--color-hover-button);
-    font-weight: 500;
+  }
+
+  &:active {
+    background-color: rgba(0, 0, 0, 0.1);
+  }
+
+  // 修改激活状态的样式
+  &.active {
+    background-color: var(--color-primary-light);
+    color: var(--color-primary);
+
+    .icon {
+      :deep(svg) {
+        color: var(--color-primary) !important; // 使用 !important 确保覆盖默认样式
+      }
+    }
+
+    .name {
+      color: var(--color-primary);
+    }
+
+    &:hover {
+      background-color: var(--color-primary-light);
+    }
   }
 
   .icon {
@@ -197,11 +222,6 @@ onUnmounted(() => {
     transition: all 0.2s ease;
     padding: 0;
 
-    &:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
-
     :deep(.i-icon) {
       display: flex;
       align-items: center;
@@ -213,6 +233,7 @@ onUnmounted(() => {
     :deep(svg) {
       width: 16px;
       height: 16px;
+      color: var(--color-icon-primary);
     }
   }
 
@@ -226,15 +247,8 @@ onUnmounted(() => {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    line-height: 1;
-  }
-
-  &:hover {
-    background-color: var(--color-hover-button);
-  }
-
-  &:active {
-    background-color: rgba(0, 0, 0, 0.1);
+    line-height: 20px;
+    user-select: none;
   }
 }
 

@@ -1649,6 +1649,46 @@ export async function initDatabase(db: Knex): Promise<void> {
     })
     console.log('chat_attachments 表创建成功')
   }
+
+  // 创建 mind_echoes 表
+  if (!(await db.schema.hasTable('mind_echoes'))) {
+    await db.schema.createTable('mind_echoes', (table) => {
+      // 基本信息
+      table.string('id').primary()
+      table.string('noteId').notNullable()
+      table.string('conversationId').notNullable()
+      table.string('messageId').notNullable()
+
+      // 内容字段
+      table.string('title').notNullable()
+      table.text('content').notNullable() // 使用text类型存储可能较长的内容
+      table.string('summary').notNullable() // 简短总结
+
+      // 状态和排序
+      table.integer('order').nullable()
+      table.boolean('isArchived').notNullable().defaultTo(false)
+
+      // 时间戳
+      table.datetime('createdAt').notNullable()
+      table.datetime('updatedAt').notNullable()
+
+      // 外键约束
+      table.foreign('noteId').references('notes.id').onDelete('CASCADE')
+      table.foreign('conversationId').references('chat_conversations.id').onDelete('CASCADE')
+      table.foreign('messageId').references('chat_messages.id').onDelete('CASCADE')
+
+      // 索引
+      table.index('noteId')
+      table.index('conversationId')
+      table.index('messageId')
+      table.index(['noteId', 'order'])
+      table.index(['noteId', 'isArchived'])
+      table.index('createdAt')
+      table.index('updatedAt')
+    })
+
+    console.log('mind_echoes 表创建成功')
+  }
 }
 
 export async function down(db: Knex): Promise<void> {
@@ -1718,6 +1758,7 @@ export async function down(db: Knex): Promise<void> {
   await db.schema.dropTableIfExists('chat_conversations')
   await db.schema.dropTableIfExists('chat_messages')
   await db.schema.dropTableIfExists('chat_attachments')
+  await db.schema.dropTableIfExists('mind_echoes')
 
   console.log('所有表已删除')
 }

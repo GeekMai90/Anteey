@@ -35,6 +35,7 @@ import { setupWritingDeskHandlers } from './writingDeskIpcHandlers'
 import { setupWritingPromptTemplateHandlers } from './writingPromptTemplateIpcHandlers'
 import { setupAgentHandlers } from './agentIpcHandlers'
 import { setupAIChatHandlers } from './aiChatIpcHandlers'
+import { setupMindEchoHandlers } from './mindEchoIpcHandlers'
 export function setupIpcHandlers(): void {
   setupNotesHandlers()
   setupCardboxHandlers()
@@ -73,4 +74,5 @@ export function setupIpcHandlers(): void {
   setupWritingPromptTemplateHandlers()
   setupAgentHandlers()
   setupAIChatHandlers()
+  setupMindEchoHandlers()
 }

@@ -468,6 +468,10 @@ export const useNoteStore = defineStore(
       currentNoteId.value = note ? note.id : undefined
     }
 
+    const setCurrentNoteId = (noteId: string | undefined) => {
+      currentNoteId.value = noteId
+    }
+
     const setHighlightedNoteId = (noteId: string | null) => {
       highlightedNoteId.value = noteId
     }
@@ -1688,7 +1692,10 @@ export const useNoteStore = defineStore(
       batchSoftDeleteNotes,
 
       // 获取草稿笔记
-      fetchDraftNotes
+      fetchDraftNotes,
+
+      // 设置当前笔记ID
+      setCurrentNoteId
     }
   },
   {

@@ -25,46 +25,16 @@
       <span class="note-indicator" :class="cardTypeClass"></span>
       <h3 class="note-title">{{ note.address ? note.address : '无编码地址' }}</h3>
       <div v-if="!noteStore.isMultiSelectMode" class="note-buttons">
-        <div class="note-button" @click.stop="expandNote">
-          <div v-tooltip.bottom="tooltipConfig.expandNoteTooltip" class="icon">
-            <ExpandTextInput
-              theme="outline"
-              size="18"
-              fill="var(--color-icon-default)"
-              :strokeWidth="3"
-            />
-          </div>
-        </div>
+        <ExpandButton :note-id="note.id" />
+        <!-- 使用封装的AI按钮组件 -->
+        <AIButton :note-id="note.id" />
         <!-- 添加卡片盒设置按钮 -->
-        <div ref="cardboxBtnRef" class="note-button" @click.stop="toggleCardboxMenu">
-          <div v-tooltip.bottom="tooltipConfig.cardboxSettings" class="icon">
-            <Install theme="outline" size="16" fill="var(--color-icon-default)" :strokeWidth="3" />
-          </div>
-          <CardboxDropdownMenu
-            ref="cardboxMenuRef"
-            :is-open="cardboxMenuState.isOpen"
-            :note-id="note.id"
-            :current-cardbox-id="note.cardBoxId"
-            :button-ref="cardboxBtnRef"
-            @close="closeCardboxMenu"
-            @update="handleCardboxUpdate"
-          />
-        </div>
-        <!-- 更多功能菜单按钮 -->
-        <div ref="moreBtnRef" class="note-button" @click.stop="toggleMoreMenu">
-          <div v-tooltip.bottom="tooltipConfig.more" class="icon">
-            <More theme="outline" size="16" fill="var(--color-icon-default)" :stroke-width="3" />
-          </div>
-          <!-- 更多功能菜单按钮 -->
-          <PopupMenu
-            ref="moreMenuRef"
-            :show="moreMenuState.isOpen"
-            :button-ref="moreBtnRef"
-            :menuItems="noteMenuItems"
-            @close="closeMoreMenu"
-            @itemClick="handleMenuItemClick"
-          />
-        </div>
+        <CardboxButton :note-id="note.id" :current-cardbox-id="note.cardBoxId || undefined" />
+        <!-- 更多按钮 -->
+        <MoreButton
+          :note-id="note.id"
+          :menu-items="['star', 'convertToFlashcard', 'sidebar', 'copyQuote', 'share', 'delete']"
+        />
       </div>
     </div>
     <div ref="noteContent" class="note-content">
@@ -83,13 +53,10 @@
         </div>
       </div>
       <div class="timestamp-section">
-        <div
-          v-if="note.isFlashcard"
-          v-tooltip.top="getFlashcardTooltipConfig(flashcardTooltip)"
-          class="flashcard-indicator"
-        >
-          <StorageCardOne theme="outline" size="14" :fill="flashcardColor" :strokeWidth="3" />
-        </div>
+        <FlashcardIndicator
+          :is-flashcard="note.isFlashcard"
+          :fsrs-state="note.flashcard?.fsrs?.state"
+        />
         {{ formatDate(note.createdAt) }}
       </div>
     </div>
@@ -97,35 +64,19 @@
 </template>
 
 <script setup lang="ts">
-import { Note } from '@shared/types'
+import { Note, Tag } from '@shared/types'
 import { formatDate } from '@renderer/utils/noteHelpers'
-import { More, ExpandTextInput, StorageCardOne, Install, CheckOne } from '@icon-park/vue-next'
+import { CheckOne } from '@icon-park/vue-next'
 import { computed, onUnmounted, ref, watch, onMounted } from 'vue'
 import { useNoteStore } from '@renderer/stores/noteStore'
 import { useTagStore } from '@renderer/stores/tagStore'
 import { useRouter } from 'vue-router'
 import JsonContentRenderer from '@renderer/components/note/JsonContentRenderer.vue'
-import PopupMenu from '@renderer/components/common/PopupMenu.vue'
-import { useNoteMenu } from '@renderer/composables/useNoteMenu'
-import type { MenuItem } from '@renderer/components/common/PopupMenu.vue'
-import { useMenu } from '@renderer/composables/useMenu'
-import { State } from 'ts-fsrs/dist'
-import CardboxDropdownMenu from '@renderer/components/cardbox/CardboxDropdownMenu.vue'
-import type { Tag } from '@shared/types'
-
-// 定义静态的 tooltip 配置
-const tooltipConfig = {
-  expandNoteTooltip: { content: '展开编辑', delay: { show: 1000 } },
-  cardboxSettings: { content: '设置卡片盒', delay: { show: 1000 } },
-  more: { content: '更多', delay: { show: 1000 } }
-}
-
-// 定义静态的闪卡 tooltip 配置函数
-const getFlashcardTooltipConfig = (tooltip: string) => ({
-  content: tooltip,
-  delay: { show: 1000 },
-  html: true
-})
+import AIButton from '@renderer/components/common/AIButton.vue'
+import MoreButton from '@renderer/components/common/MoreButton.vue'
+import CardboxButton from '@renderer/components/common/CardboxButton.vue'
+import ExpandButton from '@renderer/components/common/ExpandButton.vue'
+import FlashcardIndicator from '@renderer/components/common/FlashcardIndicator.vue'
 
 const props = defineProps<{
   note: Note
@@ -175,37 +126,7 @@ const isHighlighted = computed(() => localHighlight.value)
 
 const localNote = ref(props.note)
 
-const { menuItems: noteMenuItems, resetDeleteState } = useNoteMenu({
-  noteId: props.note.id,
-  menuItems: ['star', 'convertToFlashcard', 'sidebar', 'copyQuote', 'share', 'delete']
-})
-
-const moreBtnRef = ref<HTMLElement | null>(null)
-const moreMenuRef = ref<HTMLElement | null>(null)
-const {
-  menuState: moreMenuState,
-  toggleMenu: toggleMoreMenu,
-  closeMenu: closeMoreMenu
-} = useMenu({
-  buttonRef: moreBtnRef,
-  menuRef: moreMenuRef,
-  onClose: () => {
-    resetDeleteState()
-  }
-})
-// 更多菜单点击事件
-const handleMenuItemClick = (item: MenuItem) => {
-  item.action()
-  if (item.name !== 'delete') {
-    closeMoreMenu()
-  }
-}
-
 const router = useRouter()
-
-const expandNote = () => {
-  router.push({ name: 'NoteExpandEditor', params: { id: props.note.id } })
-}
 
 const cardTypeClass = computed(() => {
   switch (props.note.cardType) {
@@ -223,77 +144,6 @@ const cardTypeClass = computed(() => {
       return ''
   }
 })
-
-// 计算闪卡状态颜色
-const flashcardColor = computed(() => {
-  const state = props.note.flashcard?.fsrs?.state as State | undefined
-  if (!state) return 'var(--color-text-secondary)'
-
-  switch (state as State) {
-    case State.New:
-      return 'var(--color-fsrs-new)'
-    case State.Learning:
-      return 'var(--color-fsrs-learning)'
-    case State.Review:
-      return 'var(--color-fsrs-review)'
-    case State.Relearning:
-      return 'var(--color-fsrs-relearning)'
-    default:
-      return 'var(--color-text-secondary)'
-  }
-})
-
-// 计算闪卡图标提示文本
-const flashcardTooltip = computed(() => {
-  const state = props.note.flashcard?.fsrs?.state as State | undefined
-  if (!state) return '新卡片' // 刚创建的闪卡，还未开始学习
-
-  switch (state as State) {
-    case State.New: // 新创建，未学习
-      return '新卡片'
-    case State.Learning: // 首次学习中
-      return '学习中'
-    case State.Review: // 复习阶段
-      return '复习中'
-    case State.Relearning: // 遗忘后重新学习
-      return '重新学习'
-    default:
-      return '记忆卡'
-  }
-})
-
-// 添加卡片盒菜单相关逻辑
-const cardboxBtnRef = ref<HTMLElement | null>(null)
-const cardboxMenuRef = ref<HTMLElement | null>(null)
-const {
-  menuState: cardboxMenuState,
-  toggleMenu: toggleCardboxMenu,
-  closeMenu: closeCardboxMenu
-} = useMenu({
-  buttonRef: cardboxBtnRef,
-  menuRef: cardboxMenuRef,
-  onClose: () => {
-    console.log('卡片盒菜单已关闭')
-  }
-})
-
-// 处理卡片盒更新
-const handleCardboxUpdate = async (cardBoxId: string) => {
-  if (props.note) {
-    // 可以选择是否发出事件通知父组件更新
-    emit('cardbox-update', { noteId: props.note.id, cardBoxId })
-  }
-}
-
-// 添加 emit 定义
-const emit = defineEmits(['cardbox-update'])
-watch(
-  () => props.note,
-  (newNote) => {
-    localNote.value = newNote
-  },
-  { deep: true }
-)
 
 // 处理卡片点击
 const handleCardClick = () => {
@@ -631,25 +481,6 @@ onMounted(async () => {
     gap: 6px;
     white-space: nowrap;
     flex-shrink: 0;
-  }
-
-  .flashcard-indicator {
-    display: flex;
-    align-items: center;
-    color: var(--color-primary);
-
-    :deep(.i-icon) {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 100%;
-      height: 100%;
-    }
-
-    :deep(svg) {
-      width: 14px;
-      height: 14px;
-    }
   }
 }
 

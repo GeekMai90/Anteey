@@ -138,7 +138,12 @@ import type {
   ChatRequest,
   ChatResponse,
   Conversation,
-  ConversationStatus
+  ConversationStatus,
+
+  // 新增的 mind-echo 相关类型
+  MindEcho,
+  MindEchoWithRelations,
+  UpdateMindEchoParams
 } from '@shared/types'
 
 export interface ElectronAPI {
@@ -1305,6 +1310,45 @@ export interface ElectronAPI {
         onError: (error: string) => void
       }
     ) => Promise<void>
+  }
+
+  mindEcho: {
+    // 从单条AI回复创建思维共鸣
+    createMindEchoFromContent: (params: {
+      noteId: string
+      conversationId: string
+      messageId: string
+      modelConfigId?: string
+    }) => Promise<MindEcho>
+
+    // 从多轮对话创建思维共鸣
+    createMindEchoFromConversation: (params: {
+      noteId: string
+      conversationId: string
+      messageIds: string[]
+      modelConfigId?: string
+    }) => Promise<MindEcho>
+
+    // 获取笔记的所有思维共鸣
+    getNoteMindEchoes: (noteId: string, includeArchived?: boolean) => Promise<MindEcho[]>
+
+    // 获取思维共鸣详情（带关联数据）
+    getMindEchoDetail: (id: string) => Promise<MindEchoWithRelations | null>
+
+    // 更新思维共鸣
+    updateMindEcho: (updateData: UpdateMindEchoParams) => Promise<MindEcho>
+
+    // 删除思维共鸣
+    deleteMindEcho: (id: string) => Promise<void>
+
+    // 更新思维共鸣排序
+    updateMindEchoOrder: (id: string, newOrder: number) => Promise<MindEcho>
+
+    // 切换思维共鸣归档状态
+    toggleMindEchoArchived: (id: string, isArchived: boolean) => Promise<MindEcho>
+
+    // 批量更新思维共鸣
+    batchUpdateMindEchoes: (ids: string[], updates: Partial<MindEcho>) => Promise<MindEcho[]>
   }
 }
 

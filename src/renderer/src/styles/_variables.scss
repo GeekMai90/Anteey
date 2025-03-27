@@ -493,7 +493,8 @@ $shadow-card: 0 2px 6px rgba($black, 0.12);
 
   // 16. 图标颜色系统
   // 基础图标颜色
-  --color-icon-default: #{neutral(300)}; // 替代 #b6b6b6
+  --color-icon-default: #b6b6b6; // 替代 #b6b6b6#B6B6B6
+  --color-icon-hover-bg: #f1f1f1;
   --color-icon-secondary: #{neutral(400)}; // 替代 #949494
   --color-icon-primary: #{neutral(700)}; // 替代 #252525，重命名 menu-default 为更通用的 primary
 
@@ -678,7 +679,8 @@ $shadow-card: 0 2px 6px rgba($black, 0.12);
   --color-table-cell-selected: #{rgba(255, 255, 255, 0.08)};
 
   // 16. 图标颜色系统
-  --color-icon-default: var(--color-neutral-500);
+  --color-icon-default: #b6b6b6;
+  --color-icon-hover-bg: #313131;
   --color-icon-secondary: var(--color-neutral-400);
   --color-icon-primary: var(--color-neutral-600);
   --color-icon-hover: #{rgba(255, 255, 255, 0.5)};

@@ -101,7 +101,7 @@
         @click="toggleAssistant"
       >
         <div class="icon">
-          <Robot theme="outline" size="20" fill="var(--color-icon-default)" :stroke-width="3" />
+          <Robot theme="outline" size="20" fill="#B6B6B6" :stroke-width="3" />
         </div>
       </div>
       <div
@@ -464,7 +464,7 @@ const toggleAssistant = () => {
   }
 
   &:hover {
-    background-color: var(--color-hover-button);
+    background-color: var(--color-icon-hover-bg);
   }
 
   &:active {

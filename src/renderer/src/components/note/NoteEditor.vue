@@ -3,53 +3,30 @@
   <div class="note-editor">
     <!-- 顶部工具栏 -->
     <div class="toolbar">
-      <!-- 展开编辑器 -->
-      <div
-        v-tooltip.bottom="{ content: '展开编辑器', delay: { show: 1000 } }"
-        class="expand-btn"
-        @click="handleExpand"
-      >
-        <div class="icon">
-          <ExpandTextInput
-            theme="outline"
-            size="16"
-            fill="var(--color-icon-default)"
-            :stroke-width="3"
-          />
-        </div>
-      </div>
+      <!-- 展开编辑器按钮 -->
+      <ExpandButton v-if="currentNote" :note-id="currentNote.id" />
+
       <div class="toolbar-right">
         <!-- 卡片盒设置按钮 -->
-        <div ref="cardboxBtnRef" class="install-btn" @click.stop="toggleCardboxMenu">
-          <div v-tooltip.bottom="{ content: '设置卡片盒', delay: { show: 1000 } }" class="icon">
-            <Install theme="outline" size="18" fill="var(--color-icon-default)" :stroke-width="3" />
-          </div>
-          <!-- 添加卡片盒下拉菜单 -->
-          <CardboxDropdownMenu
-            ref="cardboxMenuRef"
-            :is-open="cardboxMenuState.isOpen"
-            :button-ref="cardboxBtnRef"
-            :note-id="currentNote?.id"
-            :current-cardbox-id="currentNote?.cardBoxId"
-            @close="closeCardboxMenu"
-            @update="handleCardboxUpdate"
-          />
-        </div>
+        <CardboxButton
+          v-if="currentNote"
+          :note-id="currentNote.id"
+          :current-cardbox-id="currentNote.cardBoxId"
+        />
+
         <!-- 更多功能菜单按钮 -->
-        <div ref="moreBtnRef" class="more-btn" @click.stop="toggleMoreMenu">
-          <div v-tooltip.bottom="{ content: '更多', delay: { show: 1000 } }" class="icon">
-            <More theme="outline" size="16" fill="var(--color-icon-default)" :stroke-width="3" />
-          </div>
-          <!-- 更多功能菜单按钮 -->
-          <PopupMenu
-            ref="moreMenuRef"
-            :show="moreMenuState.isOpen"
-            :button-ref="moreBtnRef"
-            :menuItems="noteMenuItems"
-            @close="closeMoreMenu"
-            @itemClick="handleMenuItemClick"
-          />
-        </div>
+        <MoreButton
+          v-if="currentNote"
+          :note-id="currentNote.id"
+          :menu-items="[
+            'star',
+            'convertToFlashcard',
+            'sidebar',
+            'copyQuote',
+            'exportNote',
+            'delete'
+          ]"
+        />
       </div>
     </div>
     <!-- 编辑器内容 -->
@@ -111,12 +88,6 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useNoteStore } from '@renderer/stores/noteStore'
 import TipTapEditor from '@renderer/components/tiptap/TipTapEditor.vue'
-import { useRouter } from 'vue-router'
-import { ExpandTextInput, Install, More } from '@icon-park/vue-next'
-import CardboxDropdownMenu from '@renderer/components/cardbox/CardboxDropdownMenu.vue'
-import PopupMenu from '@renderer/components/common/PopupMenu.vue'
-import { useNoteMenu } from '@renderer/composables/useNoteMenu'
-import type { MenuItem } from '@renderer/components/common/PopupMenu.vue'
 import CardTypeDropdownMenu from '@renderer/components/note/CardTypeDropdownMenu.vue'
 import { useMenu } from '@renderer/composables/useMenu'
 import { message } from '@renderer/utils/message'
@@ -124,6 +95,9 @@ import { CardType, Note } from '@shared/types'
 import { debounce } from 'lodash-es'
 import TagsPanel from '@renderer/components/note/TagsPanel.vue'
 import { useTagStore } from '@renderer/stores/tagStore'
+import ExpandButton from '@renderer/components/common/ExpandButton.vue'
+import CardboxButton from '@renderer/components/common/CardboxButton.vue'
+import MoreButton from '@renderer/components/common/MoreButton.vue'
 
 const props = defineProps<{
   noteId: string
@@ -390,61 +364,10 @@ const handleCardTypeSelect = async (newType: string) => {
   }
 }
 
-// === 更多功能菜单管理 ===
-const { menuItems: noteMenuItems, resetDeleteState } = useNoteMenu({
-  noteId: props.noteId,
-  menuItems: ['star', 'convertToFlashcard', 'sidebar', 'copyQuote', 'exportNote', 'delete']
-})
-
-const moreBtnRef = ref<HTMLElement | null>(null)
-const moreMenuRef = ref<HTMLElement | null>(null)
-const {
-  menuState: moreMenuState,
-  toggleMenu: toggleMoreMenu,
-  closeMenu: closeMoreMenu
-} = useMenu({
-  buttonRef: moreBtnRef,
-  menuRef: moreMenuRef,
-  onClose: () => {
-    resetDeleteState()
-  }
-})
-// 更多菜单点击事件
-const handleMenuItemClick = (item: MenuItem) => {
-  item.action()
-  if (item.name !== 'delete') {
-    closeMoreMenu()
-  }
-}
-
-const router = useRouter()
 const addressInput = ref<HTMLInputElement | null>(null)
 const tiptapEditor = ref<InstanceType<any> | null>(null)
 
 // === 卡片盒菜单管理 ===
-const cardboxBtnRef = ref<HTMLElement | null>(null)
-const cardboxMenuRef = ref<HTMLElement | null>(null)
-const {
-  menuState: cardboxMenuState,
-  toggleMenu: toggleCardboxMenu,
-  closeMenu: closeCardboxMenu
-} = useMenu({
-  buttonRef: cardboxBtnRef,
-  menuRef: cardboxMenuRef,
-  onClose: () => {
-    console.log('卡片盒菜单已关闭')
-  }
-})
-
-// 处理卡片盒更新
-const handleCardboxUpdate = async (cardBoxId: string) => {
-  // 可以选择是否立即更新父组件状态
-  if (currentNote.value) {
-    currentNote.value.cardBoxId = cardBoxId
-  }
-  // // 后台刷新数据
-  // await refreshNoteData()
-}
 
 // 聚焦地址输入框
 const focusAddressInput = () => {
@@ -458,14 +381,6 @@ const focusEditor = () => {
   nextTick(() => {
     tiptapEditor.value?.focus('end')
   })
-}
-
-// 修改展开编辑器的处理函数
-const handleExpand = async () => {
-  if (!currentNote.value) return
-  saveContent.flush()
-  await router.push({ name: 'NoteExpandEditor', params: { id: currentNote.value.id } })
-  noteStore.closeNoteEditor()
 }
 
 // 暴露方法给父组件
@@ -497,218 +412,8 @@ defineExpose({
     padding: 10px 20px 0 20px;
     position: relative;
 
-    .expand-btn {
-      position: relative;
-      display: flex;
-      align-items: center;
-      border: none;
-      background: none;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      border-radius: 6px;
-      padding: 4px 4px;
-      margin: 2px;
-
-      .icon {
-        background: none;
-        border: none;
-        cursor: pointer;
-        width: 24px;
-        height: 24px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        transition: all 0.2s ease;
-        padding: 0;
-
-        // &:hover:not(:disabled) {
-        //   background-color: rgba(0, 0, 0, 0.05);
-        // }
-
-        &:disabled {
-          opacity: 0.5;
-          cursor: not-allowed;
-        }
-
-        :deep(.i-icon) {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          width: 100%;
-          height: 100%;
-        }
-
-        :deep(svg) {
-          width: 16px;
-          height: 16px;
-        }
-      }
-
-      .name {
-        flex-grow: 0;
-        text-align: left;
-        color: var(---color-text-primary);
-        font-size: 13px;
-        font-weight: 400;
-        margin-left: 6px;
-        white-space: nowrap;
-        writing-mode: horizontal-tb;
-      }
-
-      &:hover {
-        background-color: var(--color-hover-button);
-      }
-
-      &:active {
-        background-color: rgba(0, 0, 0, 0.1);
-      }
-    }
-
-    .install-btn {
-      position: relative;
-      display: flex;
-      align-items: center;
-      border: none;
-      background: none;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      border-radius: 6px;
-      padding: 4px 4px;
-      margin: 2px;
-
-      :deep(.dropdown-menu) {
-        transform: translateX(-70%);
-      }
-
-      .icon {
-        background: none;
-        border: none;
-        cursor: pointer;
-        width: 24px;
-        height: 24px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        transition: all 0.2s ease;
-        padding: 0;
-
-        // &:hover:not(:disabled) {
-        //   background-color: rgba(0, 0, 0, 0.05);
-        // }
-
-        &:disabled {
-          opacity: 0.5;
-          cursor: not-allowed;
-        }
-
-        :deep(.i-icon) {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          width: 100%;
-          height: 100%;
-        }
-
-        :deep(svg) {
-          width: 16px;
-          height: 16px;
-        }
-      }
-
-      .name {
-        flex-grow: 0;
-        text-align: left;
-        color: var(---color-text-primary);
-        font-size: 13px;
-        font-weight: 400;
-        margin-left: 6px;
-        white-space: nowrap;
-        writing-mode: horizontal-tb;
-      }
-
-      &:hover {
-        background-color: var(--color-hover-button);
-      }
-
-      &:active {
-        background-color: rgba(0, 0, 0, 0.1);
-      }
-    }
-
-    .more-btn {
-      position: relative;
-      display: flex;
-      align-items: center;
-      border: none;
-      background: none;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      border-radius: 6px;
-      padding: 4px 4px;
-      margin: 2px;
-
-      :deep(.note-options-menu) {
-        transform: translateX(-80%);
-      }
-
-      .icon {
-        background: none;
-        border: none;
-        cursor: pointer;
-        width: 24px;
-        height: 24px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        transition: all 0.2s ease;
-        padding: 0;
-
-        // &:hover:not(:disabled) {
-        //   background-color: rgba(0, 0, 0, 0.05);
-        // }
-
-        &:disabled {
-          opacity: 0.5;
-          cursor: not-allowed;
-        }
-
-        :deep(.i-icon) {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          width: 100%;
-          height: 100%;
-        }
-
-        :deep(svg) {
-          width: 16px;
-          height: 16px;
-        }
-      }
-
-      .name {
-        flex-grow: 0;
-        text-align: left;
-        color: var(---color-text-primary);
-        font-size: 13px;
-        font-weight: 400;
-        margin-left: 6px;
-        white-space: nowrap;
-        writing-mode: horizontal-tb;
-      }
-
-      &:hover {
-        background-color: var(--color-hover-button);
-      }
-
-      &:active {
-        background-color: rgba(0, 0, 0, 0.1);
-      }
-    }
-
     .toolbar-right {
       display: flex;
-      // gap: 10px;
     }
   }
 

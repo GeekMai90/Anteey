@@ -178,6 +178,11 @@ export function convertTextToTiptapJson(text: string): any {
     return null
   }
 
+  // 添加一个辅助函数来计算缩进级别
+  function getIndentLevel(indent: string): number {
+    return Math.floor(indent.length / 2) // 假设每个缩进级别是2个空格
+  }
+
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i]
     const isEmptyLine = line.trim() === ''
@@ -308,16 +313,94 @@ export function convertTextToTiptapJson(text: string): any {
     // 处理列表
     const listMatch = line.match(/^(\s*)([-*+]|\d+\.)\s+(.+)$/)
     if (listMatch) {
-      const [, , marker, text] = listMatch
+      const [, indent, marker, text] = listMatch
+      const indentLevel = getIndentLevel(indent)
       const isOrdered = /\d+\./.test(marker)
+      const isBullet = /[-*+]/.test(marker)
 
       if (text.trim()) {
-        // 只处理非空列表项
-        if (!inList) {
+        // 如果不在列表中或者当前列表类型与新的不同，创建新列表
+        if (
+          !inList ||
+          (isOrdered && listContent?.type !== 'orderedList') ||
+          (isBullet && listContent?.type !== 'bulletList')
+        ) {
+          // 如果已经在列表中，先保存当前列表
+          if (inList && listContent) {
+            content.push(listContent)
+          }
+
           inList = true
           listContent = {
             type: isOrdered ? 'orderedList' : 'bulletList',
             attrs: isOrdered ? { start: 1, tight: true } : { tight: true },
+            content: []
+          }
+        }
+
+        // 创建列表项内容
+        const itemContent = processInlineStyles(text.trim())
+        const listItem = {
+          type: 'listItem',
+          content: [
+            {
+              type: 'paragraph',
+              attrs: { textAlign: 'left' },
+              content: itemContent
+            }
+          ]
+        }
+
+        // 处理嵌套列表
+        if (indentLevel > 0) {
+          // 获取父级列表项
+          const parentItem = listContent.content[listContent.content.length - 1]
+          if (parentItem) {
+            // 如果父级列表项还没有子列表，创建一个
+            if (
+              !parentItem.content.find(
+                (node: any) => node.type === 'bulletList' || node.type === 'orderedList'
+              )
+            ) {
+              parentItem.content.push({
+                type: isOrdered ? 'orderedList' : 'bulletList',
+                attrs: isOrdered ? { start: 1, tight: true } : { tight: true },
+                content: []
+              })
+            }
+            // 将当前列表项添加到子列表中
+            const subList = parentItem.content[parentItem.content.length - 1]
+            subList.content.push(listItem)
+          }
+        } else {
+          // 顶级列表项直接添加到列表中
+          listContent.content.push(listItem)
+        }
+      }
+      continue
+    }
+
+    // 如果不是列表项且当前在列表中，结束当前列表
+    if (inList && !line.match(/^(\s*)([-*+]|\d+\.)\s+/)) {
+      if (listContent && listContent.content.length > 0) {
+        content.push(listContent)
+      }
+      inList = false
+      listContent = null
+    }
+
+    // 修改无序列表的处理
+    if (line.startsWith('- ') && !line.startsWith('- [')) {
+      const text = line.slice(2).trim()
+      if (text) {
+        if (!inList || listContent?.type !== 'bulletList') {
+          if (inList && listContent) {
+            content.push(listContent)
+          }
+          inList = true
+          listContent = {
+            type: 'bulletList',
+            attrs: { tight: true },
             content: []
           }
         }
@@ -328,12 +411,12 @@ export function convertTextToTiptapJson(text: string): any {
             {
               type: 'paragraph',
               attrs: { textAlign: 'left' },
-              content: processInlineStyles(text.trim())
+              content: processInlineStyles(text)
             }
           ]
         })
+        continue
       }
-      continue
     }
 
     // 处理任务列表
@@ -423,75 +506,39 @@ export function convertTextToTiptapJson(text: string): any {
 function processInlineStyles(text: string): any[] {
   const content: any[] = []
   let currentText = ''
-  let pos = 0
+  let isBold = false
+  let isItalic = false
 
-  while (pos < text.length) {
-    // 处理加粗
-    if (text.slice(pos).startsWith('**') && text.slice(pos + 2).includes('**')) {
-      if (currentText) {
-        content.push({ type: 'text', text: currentText })
-        currentText = ''
-      }
-      pos += 2
-      let boldText = ''
-      while (pos < text.length && !text.slice(pos).startsWith('**')) {
-        boldText += text[pos++]
-      }
-      pos += 2
+  const flushText = () => {
+    if (currentText) {
+      const marks: any[] = []
+      if (isBold) marks.push({ type: 'bold' })
+      if (isItalic) marks.push({ type: 'italic' })
+
       content.push({
         type: 'text',
-        text: boldText,
-        marks: [{ type: 'bold' }]
+        text: currentText,
+        ...(marks.length > 0 && { marks })
       })
-      continue
+      currentText = ''
     }
-
-    // 处理斜体
-    if (text[pos] === '*' && !text.slice(pos).startsWith('**')) {
-      if (currentText) {
-        content.push({ type: 'text', text: currentText })
-        currentText = ''
-      }
-      pos++
-      let italicText = ''
-      while (pos < text.length && text[pos] !== '*') {
-        italicText += text[pos++]
-      }
-      pos++
-      content.push({
-        type: 'text',
-        text: italicText,
-        marks: [{ type: 'italic' }]
-      })
-      continue
-    }
-
-    // 处理行内代码
-    if (text[pos] === '`') {
-      if (currentText) {
-        content.push({ type: 'text', text: currentText })
-        currentText = ''
-      }
-      pos++
-      let codeText = ''
-      while (pos < text.length && text[pos] !== '`') {
-        codeText += text[pos++]
-      }
-      pos++
-      content.push({
-        type: 'text',
-        text: codeText,
-        marks: [{ type: 'code' }]
-      })
-      continue
-    }
-
-    currentText += text[pos++]
   }
 
-  if (currentText) {
-    content.push({ type: 'text', text: currentText })
+  for (let i = 0; i < text.length; i++) {
+    if (text[i] === '*' || text[i] === '_') {
+      if (i + 1 < text.length && text[i + 1] === text[i]) {
+        flushText()
+        isBold = !isBold
+        i++
+      } else {
+        flushText()
+        isItalic = !isItalic
+      }
+    } else {
+      currentText += text[i]
+    }
   }
 
+  flushText()
   return content
 }

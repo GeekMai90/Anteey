@@ -7,6 +7,7 @@ import { Robot } from '@icon-park/vue-next'
 import { markRaw } from 'vue'
 import { useAIChatStore } from '@renderer/stores/aiChatStore'
 import { useModelConfigStore } from '@renderer/stores/modelConfigStore'
+import { useNoteStore } from '@renderer/stores/noteStore'
 
 export const useAgentStore = defineStore('agent', () => {
   // ==================== 状态 ====================
@@ -18,7 +19,7 @@ export const useAgentStore = defineStore('agent', () => {
   const nonMenuAgents = ref<Agent[]>([])
   const aiChatStore = useAIChatStore()
   const modelConfigStore = useModelConfigStore()
-
+  const noteStore = useNoteStore()
   // ==================== 操作方法 ====================
   // 获取所有 Agents
   const fetchAllAgents = async () => {
@@ -225,6 +226,8 @@ export const useAgentStore = defineStore('agent', () => {
         try {
           // 设置当前活跃的 Agent
           setCurrentAgent(agent)
+          // 设置当前笔记ID
+          noteStore.setCurrentNoteId(noteId)
 
           // 1. 打开右侧边栏的 AI 助手
           console.log('打开右侧边栏 AI 助手')

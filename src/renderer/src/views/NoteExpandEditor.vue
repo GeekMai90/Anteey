@@ -36,7 +36,7 @@
         </div>
         <!-- 右侧工具栏 -->
         <div class="toolbar-right">
-          <!-- 添加随机回顾按钮 -->
+          <!-- 随机回顾按钮 -->
           <div
             v-tooltip.bottom="{ content: '随机回顾', delay: { show: 1000 } }"
             class="review-btn"
@@ -52,42 +52,34 @@
               />
             </div>
           </div>
+
+          <!-- AI按钮 -->
+          <AIButton v-if="currentNote" :note-id="currentNote.id" size="large" />
+
           <!-- 卡片盒设置按钮 -->
-          <div ref="cardboxBtnRef" class="install-btn" @click.stop="toggleCardboxMenu">
-            <div v-tooltip.bottom="{ content: '设置卡片盒', delay: { show: 1000 } }" class="icon">
-              <Install
-                theme="outline"
-                size="18"
-                fill="var(--color-icon-default)"
-                :stroke-width="3"
-              />
-            </div>
-            <!-- 添加卡片盒下拉菜单 -->
-            <CardboxDropdownMenu
-              ref="cardboxMenuRef"
-              :is-open="cardboxMenuState.isOpen"
-              :note-id="currentNote?.id"
-              :current-cardbox-id="currentNote?.cardBoxId"
-              :button-ref="cardboxBtnRef"
-              @close="closeCardboxMenu"
-              @update="handleCardboxUpdate"
-            />
-          </div>
-          <!-- 更多功能菜单按钮 -->
-          <div ref="moreBtnRef" class="more-btn" @click.stop="toggleMoreMenu">
-            <div v-tooltip.bottom="{ content: '更多', delay: { show: 1000 } }" class="icon">
-              <More theme="outline" size="16" fill="var(--color-icon-default)" :stroke-width="3" />
-            </div>
-            <!-- 更多功能菜单按钮 -->
-            <PopupMenu
-              ref="moreMenuRef"
-              :show="moreMenuState.isOpen"
-              :button-ref="moreBtnRef"
-              :menuItems="noteMenuItems"
-              @close="closeMoreMenu"
-              @itemClick="handleMenuItemClick"
-            />
-          </div>
+          <CardboxButton
+            v-if="currentNote"
+            :note-id="currentNote.id"
+            :current-cardbox-id="currentNote.cardBoxId"
+            size="large"
+          />
+
+          <!-- 更多按钮 -->
+          <MoreButton
+            v-if="currentNote"
+            :note-id="currentNote.id"
+            size="large"
+            :menu-items="[
+              'star',
+              'convertToFlashcard',
+              'sidebar',
+              'copyQuote',
+              'historyVersion',
+              'share',
+              'exportNote',
+              'delete'
+            ]"
+          />
         </div>
       </div>
       <!-- 时间戳 -->
@@ -195,6 +187,7 @@
             @refresh="refreshNoteData"
           />
           <GraphPanel v-if="currentNote" :note-id="currentNote.id" />
+          <MindEchoPanel v-if="currentNote" :note-id="currentNote.id" class="mind-echo-panel" />
         </div>
       </div>
     </div>
@@ -212,13 +205,9 @@ import { ref, onMounted, computed, nextTick, onBeforeUnmount, watch } from 'vue'
 import { onBeforeRouteLeave, onBeforeRouteUpdate, useRoute, useRouter } from 'vue-router'
 import { useNoteStore } from '@renderer/stores/noteStore'
 import { formatDate } from '@renderer/utils/noteHelpers'
-import { More, Install, Cup } from '@icon-park/vue-next'
+import { Cup } from '@icon-park/vue-next'
 import TipTapEditor from '@renderer/components/tiptap/TipTapEditor.vue'
-import CardboxDropdownMenu from '@renderer/components/cardbox/CardboxDropdownMenu.vue'
 import AppToolbar from '@renderer/components/layout/AppToolbar.vue'
-import PopupMenu from '@renderer/components/common/PopupMenu.vue'
-import { useNoteMenu } from '@renderer/composables/useNoteMenu'
-import type { MenuItem } from '@renderer/components/common/PopupMenu.vue'
 import CardTypeDropdownMenu from '@renderer/components/note/CardTypeDropdownMenu.vue'
 import { message } from '@renderer/utils/message'
 import { useMenu } from '@renderer/composables/useMenu'
@@ -330,6 +319,7 @@ const initializeNote = async (noteId: string) => {
     if (note) {
       currentNote.value = note
       await fetchNoteTags(noteId) // 获取笔记的标签
+      noteStore.currentNoteId = noteId
 
       focusEditor()
     } else {
@@ -592,67 +582,6 @@ const handleCardTypeSelect = async (newType: string) => {
   }
 }
 
-// === 卡片盒菜单管理 ===
-const cardboxBtnRef = ref<HTMLElement | null>(null)
-const cardboxMenuRef = ref<HTMLElement | null>(null)
-const {
-  menuState: cardboxMenuState,
-  toggleMenu: toggleCardboxMenu,
-  closeMenu: closeCardboxMenu
-} = useMenu({
-  buttonRef: cardboxBtnRef,
-  menuRef: cardboxMenuRef,
-  onClose: () => {
-    console.log('卡片盒菜单已关闭')
-  }
-})
-
-// 处理卡片盒更新
-const handleCardboxUpdate = async (cardBoxId: string) => {
-  // 可以选择是否立即更新父组件状态
-  if (currentNote.value) {
-    currentNote.value.cardBoxId = cardBoxId
-  }
-  // // 后台刷新数据
-  // await refreshNoteData()
-}
-
-// === 更多功能菜单管理 ===
-const { menuItems: noteMenuItems, resetDeleteState } = useNoteMenu({
-  noteId: noteId,
-  menuItems: [
-    'star',
-    'convertToFlashcard',
-    'sidebar',
-    'copyQuote',
-    'historyVersion',
-    'share',
-    'exportNote',
-    'delete'
-  ]
-})
-
-const moreBtnRef = ref<HTMLElement | null>(null)
-const moreMenuRef = ref<HTMLElement | null>(null)
-const {
-  menuState: moreMenuState,
-  toggleMenu: toggleMoreMenu,
-  closeMenu: closeMoreMenu
-} = useMenu({
-  buttonRef: moreBtnRef,
-  menuRef: moreMenuRef,
-  onClose: () => {
-    resetDeleteState()
-  }
-})
-// 更多菜单点击事件
-const handleMenuItemClick = (item: MenuItem) => {
-  item.action()
-  if (item.name !== 'delete') {
-    closeMoreMenu()
-  }
-}
-
 // === 辅助函数 ===
 // 聚焦编辑器
 const focusEditor = () => {
@@ -802,6 +731,12 @@ onBeforeUnmount(() => {
 const characterCount = computed(() => tiptapEditor.value?.characterCount || 0)
 const characterLimit = computed(() => tiptapEditor.value?.characterLimit || 500)
 const percentage = computed(() => tiptapEditor.value?.percentage || 0)
+
+// 在 script 部分添加导入
+import MindEchoPanel from '@renderer/components/note/MindEchoPanel.vue'
+import AIButton from '@renderer/components/common/AIButton.vue'
+import MoreButton from '@renderer/components/common/MoreButton.vue'
+import CardboxButton from '@renderer/components/common/CardboxButton.vue'
 </script>
 
 <style scoped lang="scss">
@@ -1075,8 +1010,30 @@ const percentage = computed(() => tiptapEditor.value?.percentage || 0)
   position: relative;
 }
 
-.install-btn,
-.more-btn {
+.dropdown-container {
+  position: relative;
+}
+
+.content-container {
+  background: var(--color-bg-primary);
+  border-radius: 12px;
+  padding: 20px 0;
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+
+  .editor-area {
+    flex: 1;
+    min-height: 450px;
+  }
+
+  .backlinks-area {
+    margin-top: auto;
+  }
+}
+
+/* 修改随机回顾按钮样式，使其与其他按钮保持一致 */
+.review-btn {
   position: relative;
   display: flex;
   align-items: center;
@@ -1085,8 +1042,11 @@ const percentage = computed(() => tiptapEditor.value?.percentage || 0)
   cursor: pointer;
   transition: all 0.2s ease;
   border-radius: 6px;
-  padding: 4px 4px;
+  padding: 4px;
   margin: 2px;
+  width: 32px; /* 保持宽度为32px */
+  height: 32px; /* 保持高度为32px */
+  justify-content: center;
 
   .icon {
     background: none;
@@ -1119,91 +1079,6 @@ const percentage = computed(() => tiptapEditor.value?.percentage || 0)
     }
   }
 
-  .name {
-    flex-grow: 0;
-    text-align: left;
-    color: var(---color-text-primary);
-    font-size: 13px;
-    font-weight: 400;
-    margin-left: 6px;
-    white-space: nowrap;
-    writing-mode: horizontal-tb;
-  }
-
-  &:hover {
-    background-color: var(--color-hover-button);
-  }
-
-  &:active {
-    background-color: rgba(0, 0, 0, 0.1);
-  }
-}
-
-.dropdown-container {
-  position: relative;
-}
-
-.content-container {
-  background: var(--color-bg-primary);
-  border-radius: 12px;
-  padding: 20px 0;
-  min-height: 100%;
-  display: flex;
-  flex-direction: column;
-
-  .editor-area {
-    flex: 1;
-    min-height: 450px;
-  }
-
-  .backlinks-area {
-    margin-top: auto;
-  }
-}
-
-/* 添加随机回顾按钮样式 */
-.review-btn {
-  position: relative;
-  display: flex;
-  align-items: center;
-  border: none;
-  background: none;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  border-radius: 6px;
-  padding: 4px 4px;
-  margin: 2px;
-
-  .icon {
-    background: none;
-    border: none;
-    cursor: pointer;
-    width: 24px;
-    height: 24px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s ease;
-    padding: 0;
-
-    &:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
-
-    :deep(.i-icon) {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 100%;
-      height: 100%;
-    }
-
-    :deep(svg) {
-      width: 20px;
-      height: 20px;
-    }
-  }
   &:hover {
     background-color: var(--color-hover-button);
   }
@@ -1215,8 +1090,6 @@ const percentage = computed(() => tiptapEditor.value?.percentage || 0)
       color: var(--color-primary);
     }
   }
-
-  // 复用原有的 icon 样式...
 }
 
 /* 添加左右切换按钮样式 */

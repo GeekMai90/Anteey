@@ -64,62 +64,13 @@
         <!-- 顶部工具栏 -->
         <div class="toolbar">
           <!-- 展开编辑器按钮 -->
-          <div
-            v-tooltip.bottom="{ content: '展开编辑器', delay: { show: 1000 } }"
-            class="expand-btn"
-            @click="handleExpand"
-          >
-            <div class="icon">
-              <ExpandTextInput
-                theme="outline"
-                size="16"
-                fill="var(--color-icon-default)"
-                :stroke-width="3"
-              />
-            </div>
-          </div>
+          <ExpandButton :note-id="note.id" size="default" />
+
           <div class="toolbar-right">
             <!-- 卡片盒设置按钮 -->
-            <div ref="cardboxBtnRef" class="install-btn" @click.stop="toggleCardboxMenu">
-              <div v-tooltip.bottom="{ content: '设置卡片盒', delay: { show: 1000 } }" class="icon">
-                <Install
-                  theme="outline"
-                  size="18"
-                  fill="var(--color-icon-default)"
-                  :stroke-width="3"
-                />
-              </div>
-              <!-- 添加卡片盒下拉菜单 -->
-              <CardboxDropdownMenu
-                ref="cardboxMenuRef"
-                :is-open="cardboxMenuState.isOpen"
-                :buttonRef="cardboxBtnRef"
-                :note-id="note?.id"
-                :current-cardbox-id="note?.cardBoxId"
-                @close="closeCardboxMenu"
-                @update="handleCardboxUpdate"
-              />
-            </div>
+            <CardboxButton :note-id="note.id" :current-cardbox-id="note.cardBoxId" size="default" />
             <!-- 更多功能菜单按钮 -->
-            <div ref="moreBtnRef" class="more-btn" @click.stop="toggleMoreMenu">
-              <div v-tooltip.bottom="{ content: '更多', delay: { show: 1000 } }" class="icon">
-                <More
-                  theme="outline"
-                  size="16"
-                  fill="var(--color-icon-default)"
-                  :stroke-width="3"
-                />
-              </div>
-              <!-- 更多功能菜单按钮 -->
-              <PopupMenu
-                ref="moreMenuRef"
-                :show="moreMenuState.isOpen"
-                :buttonRef="moreBtnRef"
-                :menuItems="noteMenuItems"
-                @close="closeMoreMenu"
-                @itemClick="handleMenuItemClick"
-              />
-            </div>
+            <MoreButton :note-id="note.id" :menu-items="['star', 'sidebar']" size="default" />
           </div>
         </div>
 
@@ -176,7 +127,7 @@ import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue'
 import { Position, Handle, useVueFlow } from '@vue-flow/core'
 import { NodeToolbar } from '@vue-flow/node-toolbar'
 import { NodeResizer } from '@vue-flow/node-resizer'
-import { Aiming, Platte, Delete, Edit, Install, More, ExpandTextInput } from '@icon-park/vue-next'
+import { Aiming, Platte, Delete, Edit } from '@icon-park/vue-next'
 import MindboardTipTapEditor from '@renderer/components/mindboard/custom/MindboardTipTapEditor.vue'
 import { useNoteStore } from '@renderer/stores/noteStore'
 import type { CardType, Note } from '@shared/types'
@@ -184,11 +135,9 @@ import CardTypeDropdownMenu from '@renderer/components/note/CardTypeDropdownMenu
 import { message } from '@renderer/utils/message'
 import { debounce } from 'lodash-es'
 import { useMenu } from '@renderer/composables/useMenu'
-import PopupMenu from '@renderer/components/common/PopupMenu.vue'
-import CardboxDropdownMenu from '@renderer/components/cardbox/CardboxDropdownMenu.vue'
-import { useNoteMenu } from '@renderer/composables/useNoteMenu'
-import type { MenuItem } from '@renderer/components/common/PopupMenu.vue'
-import { useRouter } from 'vue-router'
+import ExpandButton from '@renderer/components/common/ExpandButton.vue'
+import CardboxButton from '@renderer/components/common/CardboxButton.vue'
+import MoreButton from '@renderer/components/common/MoreButton.vue'
 import './customResizer.css'
 const isResizing = ref(false)
 
@@ -515,63 +464,6 @@ watch(
     }
   }
 )
-
-// === 卡片盒菜单管理 ===
-const cardboxBtnRef = ref<HTMLElement | null>(null)
-const cardboxMenuRef = ref<HTMLElement | null>(null)
-const {
-  menuState: cardboxMenuState,
-  toggleMenu: toggleCardboxMenu,
-  closeMenu: closeCardboxMenu
-} = useMenu({
-  buttonRef: cardboxBtnRef,
-  menuRef: cardboxMenuRef
-})
-
-// 处理卡片盒更新
-const handleCardboxUpdate = async (cardBoxId: string) => {
-  if (note.value) {
-    note.value.cardBoxId = cardBoxId
-  }
-}
-
-// === 更多功能菜单管理 ===
-const { menuItems: noteMenuItems, resetDeleteState } = useNoteMenu({
-  noteId: computed(() => note.value?.id || '').value,
-  menuItems: ['star', 'sidebar']
-})
-
-const moreBtnRef = ref<HTMLElement | null>(null)
-const moreMenuRef = ref<HTMLElement | null>(null)
-const {
-  menuState: moreMenuState,
-  toggleMenu: toggleMoreMenu,
-  closeMenu: closeMoreMenu
-} = useMenu({
-  buttonRef: moreBtnRef,
-  menuRef: moreMenuRef,
-  onClose: () => {
-    resetDeleteState()
-  }
-})
-
-// 更多菜单点击事件
-const handleMenuItemClick = (item: MenuItem) => {
-  item.action()
-  if (item.name !== 'delete') {
-    closeMoreMenu()
-  }
-}
-
-const router = useRouter()
-
-// 处理展开编辑器
-const handleExpand = async () => {
-  if (!note.value) return
-  saveContent.flush()
-  await router.push({ name: 'NoteExpandEditor', params: { id: note.value.id } })
-  noteStore.closeNoteEditor()
-}
 </script>
 
 <style lang="scss" scoped>
@@ -788,120 +680,9 @@ const handleExpand = async () => {
   padding: 0px 20px 0 20px;
   position: relative;
 
-  .expand-btn {
-    position: relative;
-    display: flex;
-    align-items: center;
-    border: none;
-    background: none;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    border-radius: 6px;
-    padding: 2px;
-    // margin: 2px;
-
-    .icon {
-      background: none;
-      border: none;
-      cursor: pointer;
-      width: 20px;
-      height: 20px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: all 0.2s ease;
-      padding: 0;
-
-      &:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-      }
-
-      :deep(.i-icon) {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        width: 100%;
-        height: 100%;
-      }
-
-      :deep(svg) {
-        width: 14px;
-        height: 14px;
-      }
-    }
-
-    &:hover {
-      background-color: var(--color-hover-button);
-    }
-
-    &:active {
-      background-color: rgba(0, 0, 0, 0.1);
-    }
-  }
-
   .toolbar-right {
     display: flex;
-  }
-
-  .install-btn,
-  .more-btn {
-    position: relative;
-    display: flex;
-    align-items: center;
-    border: none;
-    background: none;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    border-radius: 6px;
-    padding: 2px;
-
-    :deep(.dropdown-menu) {
-      transform: translateX(-70%);
-    }
-
-    :deep(.note-options-menu) {
-      transform: translateX(-80%);
-    }
-
-    .icon {
-      background: none;
-      border: none;
-      cursor: pointer;
-      width: 24px;
-      height: 24px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: all 0.2s ease;
-      padding: 0;
-
-      &:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-      }
-
-      :deep(.i-icon) {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        width: 100%;
-        height: 100%;
-      }
-
-      :deep(svg) {
-        width: 14px;
-        height: 14px;
-      }
-    }
-
-    &:hover {
-      background-color: var(--color-hover-button);
-    }
-
-    &:active {
-      background-color: rgba(0, 0, 0, 0.1);
-    }
+    gap: 2px;
   }
 }
 

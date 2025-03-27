@@ -6,50 +6,25 @@
       <h3 class="note-title">{{ note.address }}</h3>
 
       <div class="note-buttons">
-        <div
-          v-tooltip.bottom="tooltipConfig.expandNote"
-          class="note-button"
-          @click.stop="expandNote"
-        >
-          <div class="icon">
-            <ExpandTextInput
-              theme="outline"
-              size="16"
-              fill="var(--color-icon-default)"
-              :strokeWidth="3"
-            />
-          </div>
-        </div>
-        <!-- 更多功能菜单按钮 -->
-        <div ref="moreBtnRef" class="more-btn" @click.stop="toggleMoreMenu">
-          <div v-tooltip.bottom="tooltipConfig.more" class="icon">
-            <More theme="outline" size="16" fill="var(--color-icon-default)" :stroke-width="3" />
-          </div>
-          <!-- 更多功能菜单按钮 -->
-          <PopupMenu
-            ref="moreMenuRef"
-            :show="moreMenuState.isOpen"
-            :button-ref="moreBtnRef"
-            :menuItems="noteMenuItems"
-            @close="closeMoreMenu"
-            @itemClick="handleMenuItemClick"
-          />
-        </div>
-        <!-- 添加AI按钮 -->
-        <div ref="aiBtnRef" class="ai-btn" @click.stop="toggleAIMenu">
-          <div v-tooltip.bottom="tooltipConfig.ai" class="icon">
-            <Robot theme="outline" size="16" fill="var(--color-icon-default)" :stroke-width="3" />
-          </div>
-          <!-- AI功能菜单 -->
-          <PopupMenu
-            ref="aiMenuRef"
-            :show="aiMenuState.isOpen"
-            :button-ref="aiBtnRef"
-            :menuItems="agentMenuItems"
-            @close="closeAIMenu"
-            @itemClick="handleAgentMenuItemClick"
-          />
-        </div>
+        <!-- 使用封装的展开按钮 -->
+        <ExpandButton :note-id="note.id" />
+        <!-- 使用封装的AI按钮 -->
+        <AIButton :note-id="note.id" />
+        <!-- 添加卡片盒设置按钮 -->
+        <CardboxButton :note-id="note.id" :current-cardbox-id="note.cardBoxId || undefined" />
+        <!-- 使用封装的更多按钮 -->
+        <MoreButton
+          :note-id="note.id"
+          :menu-items="[
+            'star',
+            'convertToFlashcard',
+            'sidebar',
+            'copyQuote',
+            'share',
+            'exportNote',
+            'delete'
+          ]"
+        />
       </div>
     </div>
     <div ref="noteContent" class="note-content" @dblclick="useNoteStore().openNoteEditor(note.id)">
@@ -73,13 +48,10 @@
         </div>
       </div>
       <div class="timestamp-section">
-        <div
-          v-if="note.isFlashcard"
-          v-tooltip.top="getFlashcardTooltipConfig(flashcardTooltip)"
-          class="flashcard-indicator"
-        >
-          <StorageCardOne theme="outline" size="14" :fill="flashcardColor" :strokeWidth="3" />
-        </div>
+        <FlashcardIndicator
+          :is-flashcard="note.isFlashcard"
+          :fsrs-state="note.flashcard?.fsrs?.state"
+        />
         {{ formatDate(note.createdAt) }}
       </div>
     </div>
@@ -89,70 +61,21 @@
 <script setup lang="ts">
 import { Note } from '@shared/types'
 import { formatDate } from '@renderer/utils/noteHelpers'
-import { More, ExpandTextInput, StorageCardOne, Robot } from '@icon-park/vue-next'
 import { computed, ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useNoteStore } from '@renderer/stores/noteStore'
 import { useTagStore } from '@renderer/stores/tagStore'
-import PopupMenu from '@renderer/components/common/PopupMenu.vue'
-import { useNoteMenu } from '@renderer/composables/useNoteMenu'
-import type { MenuItem } from '@renderer/components/common/PopupMenu.vue'
-import { useMenu } from '@renderer/composables/useMenu'
-import { State } from 'ts-fsrs'
 import JsonContentRenderer from '@renderer/components/note/JsonContentRenderer.vue'
 import type { Tag } from '@shared/types'
-import { useAgentStore } from '@renderer/stores/agentStore'
-
-// 定义静态的 tooltip 配置
-const tooltipConfig = {
-  expandNote: { content: '展开编辑', delay: { show: 1000 }, html: true },
-  more: { content: '更多', delay: { show: 1000 } },
-  ai: { content: 'AI助手', delay: { show: 1000 } }
-}
-
-// 定义静态的闪卡 tooltip 配置函数
-const getFlashcardTooltipConfig = (tooltip: string) => ({
-  content: tooltip,
-  delay: { show: 1000 },
-  html: true
-})
+import AIButton from '@renderer/components/common/AIButton.vue'
+import MoreButton from '@renderer/components/common/MoreButton.vue'
+import CardboxButton from '@renderer/components/common/CardboxButton.vue'
+import ExpandButton from '@renderer/components/common/ExpandButton.vue'
+import FlashcardIndicator from '@renderer/components/common/FlashcardIndicator.vue'
 
 const props = defineProps<{
   note: Note
 }>()
-
-// 更多按钮弹出菜单
-
-const { menuItems: noteMenuItems, resetDeleteState } = useNoteMenu({
-  noteId: props.note.id,
-  menuItems: ['star', 'convertToFlashcard', 'sidebar', 'copyQuote', 'share', 'exportNote', 'delete']
-})
-const moreBtnRef = ref<HTMLElement | null>(null)
-const moreMenuRef = ref<HTMLElement | null>(null)
-const {
-  menuState: moreMenuState,
-  toggleMenu: toggleMoreMenu,
-  closeMenu: closeMoreMenu
-} = useMenu({
-  buttonRef: moreBtnRef,
-  menuRef: moreMenuRef,
-  onClose: () => {
-    resetDeleteState()
-  }
-})
-// 更多菜单点击事件
-const handleMenuItemClick = (item: MenuItem) => {
-  item.action()
-  if (item.name !== 'delete') {
-    closeMoreMenu()
-  }
-}
-
-// 展开笔记
-const router = useRouter()
-const expandNote = () => {
-  router.push({ name: 'NoteExpandEditor', params: { id: props.note.id } })
-}
 
 const cardTypeClass = computed(() => {
   switch (props.note.cardType) {
@@ -171,44 +94,6 @@ const cardTypeClass = computed(() => {
   }
 })
 
-// 计算闪卡状态颜色
-const flashcardColor = computed(() => {
-  const state = props.note.flashcard?.fsrs?.state as State | undefined
-  if (!state) return 'var(--color-text-secondary)'
-
-  switch (state as State) {
-    case State.New:
-      return 'var(--color-fsrs-new)'
-    case State.Learning:
-      return 'var(--color-fsrs-learning)'
-    case State.Review:
-      return 'var(--color-fsrs-review)'
-    case State.Relearning:
-      return 'var(--color-fsrs-relearning)'
-    default:
-      return 'var(--color-text-secondary)'
-  }
-})
-
-// 计算闪卡图标提示文本
-const flashcardTooltip = computed(() => {
-  const state = props.note.flashcard?.fsrs?.state as State | undefined
-  if (!state) return '新卡片' // 刚创建的闪卡，还未开始学习
-
-  switch (state as State) {
-    case State.New: // 新创建，未学习
-      return '新卡片'
-    case State.Learning: // 首次学习中
-      return '学习中'
-    case State.Review: // 复习阶段
-      return '复习中'
-    case State.Relearning: // 遗忘后重新学习
-      return '重新学习'
-    default:
-      return '记忆卡'
-  }
-})
-
 // 添加标签相关代码
 const tagStore = useTagStore()
 const noteTags = ref<Tag[]>([])
@@ -218,6 +103,7 @@ const fetchNoteTags = async () => {
 }
 
 // 标签点击处理
+const router = useRouter()
 const handleTagClick = (tagId: string) => {
   router.push({
     name: 'cardbox',
@@ -226,31 +112,6 @@ const handleTagClick = (tagId: string) => {
       box: 'all'
     }
   })
-}
-
-// AI菜单相关
-const agentStore = useAgentStore()
-const aiBtnRef = ref<HTMLElement | null>(null)
-const aiMenuRef = ref<HTMLElement | null>(null)
-
-const {
-  menuState: aiMenuState,
-  toggleMenu: toggleAIMenu,
-  closeMenu: closeAIMenu
-} = useMenu({
-  buttonRef: aiBtnRef,
-  menuRef: aiMenuRef
-})
-
-// 获取Agent菜单项
-const agentMenuItems = computed(() => {
-  return agentStore.generateAgentMenuItems(props.note.id)
-})
-
-// 处理Agent菜单项点击
-const handleAgentMenuItemClick = (item: MenuItem) => {
-  item.action()
-  closeAIMenu()
 }
 
 onMounted(async () => {
@@ -422,7 +283,7 @@ onMounted(async () => {
         }
 
         &:hover {
-          background-color: var(--color-hover-button);
+          background-color: var(--color-icon-hover-bg);
         }
 
         &:active {
@@ -541,25 +402,6 @@ onMounted(async () => {
     gap: 6px;
     white-space: nowrap;
     flex-shrink: 0; // 防止时间戳被压缩
-  }
-
-  .flashcard-indicator {
-    display: flex;
-    align-items: center;
-    color: var(--color-primary);
-
-    :deep(.i-icon) {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 100%;
-      height: 100%;
-    }
-
-    :deep(svg) {
-      width: 14px;
-      height: 14px;
-    }
   }
 }
 </style>

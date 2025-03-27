@@ -11,23 +11,28 @@
           left: `${x ?? 0}px`
         }"
       >
-        <div
-          v-for="item in menuItems"
-          :key="item.name"
-          class="menu-item"
-          :class="{ 'is-dangerous': item.isDangerous }"
-          @click="handleItemClick(item)"
-        >
-          <div class="icon">
-            <component
-              :is="getIconComponent(item.icon)"
-              theme="outline"
-              size="18"
-              :fill="getItemFill(item)"
-              :strokeWidth="3"
-            />
+        <template v-if="menuItems.length > 0">
+          <div
+            v-for="item in menuItems"
+            :key="item.name"
+            class="menu-item"
+            :class="{ 'is-dangerous': item.isDangerous }"
+            @click="handleItemClick(item)"
+          >
+            <div class="icon">
+              <component
+                :is="getIconComponent(item.icon)"
+                theme="outline"
+                size="18"
+                :fill="getItemFill(item)"
+                :strokeWidth="3"
+              />
+            </div>
+            <div class="name">{{ item.label }}</div>
           </div>
-          <div class="name">{{ item.label }}</div>
+        </template>
+        <div v-else class="empty-menu-item">
+          {{ props.emptyText || '暂无可用选项' }}
         </div>
       </div>
     </Transition>
@@ -54,6 +59,7 @@ const props = defineProps<{
   menuItems: MenuItem[]
   buttonRef: HTMLElement | null
   show: boolean
+  emptyText?: string // 新增属性，用于显示空状态的提示文字
 }>()
 
 const emit = defineEmits(['close', 'itemClick'])
@@ -217,6 +223,14 @@ onUnmounted(() => {
       color: #ff4d4f !important;
     }
   }
+}
+
+.empty-menu-item {
+  padding: 8px 12px;
+  color: var(--color-text-secondary);
+  font-size: 14px;
+  text-align: center;
+  user-select: none;
 }
 
 .fade-zoom-enter-active,
