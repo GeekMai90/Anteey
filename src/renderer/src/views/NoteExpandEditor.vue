@@ -187,7 +187,12 @@
             @refresh="refreshNoteData"
           />
           <GraphPanel v-if="currentNote" :note-id="currentNote.id" />
-          <MindEchoPanel v-if="currentNote" :note-id="currentNote.id" class="mind-echo-panel" />
+          <MindEchoPanel
+            v-if="currentNote"
+            ref="mindEchoPanelRef"
+            :note-id="currentNote.id"
+            class="mind-echo-panel"
+          />
         </div>
       </div>
     </div>
@@ -214,7 +219,6 @@ import { useMenu } from '@renderer/composables/useMenu'
 import BacklinksPanel from '@renderer/components/note/BacklinksPanel.vue'
 import { CardType, Note } from '@shared/types'
 import { debounce } from 'lodash-es'
-// import { EditorState } from '@tiptap/pm/state/dist'
 import TagsPanel from '@renderer/components/note/TagsPanel.vue'
 import { useTagStore } from '@renderer/stores/tagStore'
 import GraphPanel from '@renderer/components/note/GraphPanel.vue'
@@ -319,7 +323,8 @@ const initializeNote = async (noteId: string) => {
     if (note) {
       currentNote.value = note
       await fetchNoteTags(noteId) // 获取笔记的标签
-      noteStore.currentNoteId = noteId
+      // 设置当前共鸣笔记 ID
+      noteStore.setCurrentEchoNoteId(noteId)
 
       focusEditor()
     } else {
@@ -737,6 +742,61 @@ import MindEchoPanel from '@renderer/components/note/MindEchoPanel.vue'
 import AIButton from '@renderer/components/common/AIButton.vue'
 import MoreButton from '@renderer/components/common/MoreButton.vue'
 import CardboxButton from '@renderer/components/common/CardboxButton.vue'
+import { useEventBus } from '@vueuse/core'
+
+// 1. 先定义事件总线类型接口
+interface MindEchoCreatedEvent {
+  noteId: string
+  shouldExpand: boolean
+}
+
+// 2. 设置事件总线监听
+const mindEchoEventBus = useEventBus<MindEchoCreatedEvent>('mindEchoCreated')
+
+// 3. 直接监听事件
+mindEchoEventBus.on((data) => {
+  console.log('NoteExpandEditor: 收到mindEchoCreated事件', data)
+
+  if (data.noteId === currentNote.value?.id) {
+    console.log('NoteExpandEditor: 是当前笔记的共鸣，准备刷新面板')
+
+    // 先展开面板
+    if (data.shouldExpand) {
+      console.log('NoteExpandEditor: 需要展开面板')
+      mindEchoPanelRef.value?.expand()
+    }
+
+    // 延迟执行滚动，等待面板完全展开和数据加载
+    setTimeout(() => {
+      console.log('NoteExpandEditor: 开始滚动到面板位置')
+      scrollToEchoPanel()
+    }, 500) // 增加延迟时间确保动画可见
+  }
+})
+
+// 4. 组件卸载时移除监听
+onBeforeUnmount(() => {
+  mindEchoEventBus.reset()
+})
+
+// 1. 添加面板的引用
+const mindEchoPanelRef = ref<{ expand: () => void; refreshEchoes: () => Promise<void> } | null>(
+  null
+)
+
+// 1. 修改滚动方法
+const scrollToEchoPanel = () => {
+  const mindEchoPanel = document.querySelector('.mind-echo-panel')
+  console.log('NoteExpandEditor: 找到面板元素', mindEchoPanel)
+
+  if (mindEchoPanel) {
+    mindEchoPanel.scrollIntoView({
+      behavior: 'smooth',
+      block: 'end'
+    })
+    console.log('NoteExpandEditor: 执行滚动')
+  }
+}
 </script>
 
 <style scoped lang="scss">

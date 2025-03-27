@@ -421,6 +421,20 @@
       <LoadingCandle />
       <LoadingThinking />
     </div>
+
+    <!-- <h2>ConfirmDialog 测试</h2>
+    <div class="demo-section">
+      <ConfirmDialog
+        :visible="true"
+        title="测试标题"
+        message="这是一条有点长的测试消息，我们来看看效果如何。这是一条有点长的测试消息，我们来看看效果如何。"
+        confirmText="确定"
+        cancelText="取消"
+        type="default"
+        @confirm="console.log('确定')"
+        @cancel="console.log('取消')"
+      />
+    </div> -->
   </div>
 </template>
 
@@ -448,7 +462,7 @@ import {
 import CalendarButton from './CalendarButton.vue'
 import LoadingCandle from './LoadingCandle.vue'
 import LoadingThinking from './LoadingThinking.vue'
-
+// import ConfirmDialog from '@renderer/components/common/ConfirmDialog.vue'
 const selectedValue = ref('1')
 const loading = ref(false)
 const searchValue = ref('')

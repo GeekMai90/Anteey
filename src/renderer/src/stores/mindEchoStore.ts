@@ -39,7 +39,6 @@ export const useMindEchoStore = defineStore('mindEcho', () => {
   const createFromConversation = async (params: {
     noteId: string
     conversationId: string
-    messageIds: string[]
     modelConfigId?: string
   }) => {
     try {

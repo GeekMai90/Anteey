@@ -1325,7 +1325,6 @@ export interface ElectronAPI {
     createMindEchoFromConversation: (params: {
       noteId: string
       conversationId: string
-      messageIds: string[]
       modelConfigId?: string
     }) => Promise<MindEcho>
 

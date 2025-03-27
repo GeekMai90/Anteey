@@ -43,7 +43,6 @@ export function setupMindEchoHandlers() {
       params: {
         noteId: string
         conversationId: string
-        messageIds: string[]
         modelConfigId?: string
       }
     ) => {

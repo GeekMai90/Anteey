@@ -18,6 +18,7 @@ interface Props {
   loading?: boolean
   block?: boolean
   height?: number
+  width?: number | string
   shape?: 'default' | 'circle' | 'square'
   iconOnly?: boolean
   plain?: boolean
@@ -83,14 +84,16 @@ const emit = defineEmits<{
       { 'ant-btn-no-border': noBorder },
       { 'ant-btn-default-icon-color': defaultIconColor }
     ]"
-    :style="
-      height
-        ? {
-            height: `${height}px`,
-            width: shape === 'circle' || shape === 'square' ? `${height}px` : undefined
-          }
-        : {}
-    "
+    :style="{
+      height: height ? `${height}px` : undefined,
+      width: width
+        ? typeof width === 'number'
+          ? `${width}px`
+          : width
+        : shape === 'circle' || shape === 'square'
+          ? `${height}px`
+          : undefined
+    }"
     :disabled="disabled"
     @click="handleClick"
   >

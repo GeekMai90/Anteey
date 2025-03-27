@@ -7,13 +7,13 @@
             <div class="dialog-title">{{ title }}</div>
             <div class="dialog-message">{{ message }}</div>
             <div class="dialog-buttons">
-              <Button size="medium" :width="120" @click="handleCancel">
+              <Button size="medium" block @click="handleCancel">
                 {{ cancelText || '取消' }}
               </Button>
               <Button
                 :type="type === 'danger' ? 'warning' : 'primary'"
                 size="medium"
-                :width="120"
+                block
                 @click="handleConfirm"
               >
                 {{ confirmText || '确定' }}
@@ -79,8 +79,11 @@ const handleCancel = () => {
   border-radius: 12px;
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.12);
   width: 320px;
+  min-height: 220px;
   padding: 24px;
   transform-origin: center;
+  display: flex;
+  flex-direction: column;
 }
 
 .dialog-content {
@@ -88,6 +91,8 @@ const handleCancel = () => {
   flex-direction: column;
   align-items: center;
   text-align: center;
+  flex: 1;
+  justify-content: space-between;
 }
 
 .dialog-title {
@@ -95,6 +100,7 @@ const handleCancel = () => {
   font-weight: 600;
   color: var(--color-text-primary);
   margin-bottom: 16px;
+  width: 100%;
 }
 
 .dialog-message {
@@ -104,13 +110,18 @@ const handleCancel = () => {
   line-height: 1.6;
   width: 100%;
   padding: 0 12px;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .dialog-buttons {
   display: flex;
-  justify-content: center;
+  justify-content: space-between;
   gap: 16px;
   width: 100%;
+  padding: 0 12px;
 }
 
 // 动画

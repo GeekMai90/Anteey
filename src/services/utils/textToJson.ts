@@ -183,6 +183,29 @@ export function convertTextToTiptapJson(text: string): any {
     return Math.floor(indent.length / 2) // 假设每个缩进级别是2个空格
   }
 
+  // 修改类型定义，使其更符合实际的 Tiptap JSON 结构
+  interface TiptapText {
+    type: 'text'
+    text: string
+  }
+
+  interface TiptapParagraph {
+    type: 'paragraph'
+    attrs: { textAlign: string }
+    content: TiptapText[]
+  }
+
+  interface TiptapListItem {
+    type: 'listItem'
+    content: (TiptapParagraph | TiptapList)[]
+  }
+
+  interface TiptapList {
+    type: 'bulletList' | 'orderedList'
+    attrs: { start?: number; tight: boolean }
+    content: TiptapListItem[]
+  }
+
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i]
     const isEmptyLine = line.trim() === ''
@@ -316,64 +339,89 @@ export function convertTextToTiptapJson(text: string): any {
       const [, indent, marker, text] = listMatch
       const indentLevel = getIndentLevel(indent)
       const isOrdered = /\d+\./.test(marker)
-      const isBullet = /[-*+]/.test(marker)
+      const orderNumber = isOrdered ? parseInt(marker) : 1
 
       if (text.trim()) {
-        // 如果不在列表中或者当前列表类型与新的不同，创建新列表
-        if (
-          !inList ||
-          (isOrdered && listContent?.type !== 'orderedList') ||
-          (isBullet && listContent?.type !== 'bulletList')
-        ) {
-          // 如果已经在列表中，先保存当前列表
-          if (inList && listContent) {
+        // 处理顶级列表
+        if (indentLevel === 0) {
+          if (
+            inList &&
+            ((isOrdered && listContent?.type !== 'orderedList') ||
+              (!isOrdered && listContent?.type !== 'bulletList'))
+          ) {
             content.push(listContent)
+            inList = false
           }
 
-          inList = true
-          listContent = {
-            type: isOrdered ? 'orderedList' : 'bulletList',
-            attrs: isOrdered ? { start: 1, tight: true } : { tight: true },
-            content: []
+          if (!inList) {
+            inList = true
+            listContent = {
+              type: isOrdered ? 'orderedList' : 'bulletList',
+              attrs: {
+                ...(isOrdered && { start: orderNumber }),
+                tight: true
+              },
+              content: []
+            } as TiptapList
           }
         }
 
-        // 创建列表项内容
-        const itemContent = processInlineStyles(text.trim())
-        const listItem = {
+        // 创建列表项
+        const listItem: TiptapListItem = {
           type: 'listItem',
           content: [
             {
               type: 'paragraph',
               attrs: { textAlign: 'left' },
-              content: itemContent
+              content: processInlineStyles(text.trim())
             }
           ]
         }
 
         // 处理嵌套列表
-        if (indentLevel > 0) {
-          // 获取父级列表项
+        if (indentLevel > 0 && listContent) {
           const parentItem = listContent.content[listContent.content.length - 1]
           if (parentItem) {
-            // 如果父级列表项还没有子列表，创建一个
-            if (
-              !parentItem.content.find(
-                (node: any) => node.type === 'bulletList' || node.type === 'orderedList'
-              )
-            ) {
-              parentItem.content.push({
+            // 检查是否已经有子列表
+            const existingSubList = parentItem.content.find(
+              (node: TiptapParagraph | TiptapList): node is TiptapList =>
+                node.type === 'bulletList' || node.type === 'orderedList'
+            )
+
+            if (!existingSubList) {
+              // 创建新的子列表，根据标记类型决定列表类型
+              const subList: TiptapList = {
                 type: isOrdered ? 'orderedList' : 'bulletList',
-                attrs: isOrdered ? { start: 1, tight: true } : { tight: true },
-                content: []
-              })
+                attrs: {
+                  ...(isOrdered && { start: orderNumber }),
+                  tight: true
+                },
+                content: [listItem]
+              }
+              parentItem.content.push(subList)
+            } else {
+              // 如果子列表类型不匹配，创建新的子列表
+              if (
+                (isOrdered && existingSubList.type !== 'orderedList') ||
+                (!isOrdered && existingSubList.type !== 'bulletList')
+              ) {
+                const newSubList: TiptapList = {
+                  type: isOrdered ? 'orderedList' : 'bulletList',
+                  attrs: {
+                    ...(isOrdered && { start: orderNumber }),
+                    tight: true
+                  },
+                  content: [listItem]
+                }
+                parentItem.content.push(newSubList)
+              } else {
+                // 类型匹配，添加到现有子列表
+                existingSubList.content.push(listItem)
+              }
             }
-            // 将当前列表项添加到子列表中
-            const subList = parentItem.content[parentItem.content.length - 1]
-            subList.content.push(listItem)
           }
         } else {
-          // 顶级列表项直接添加到列表中
+          // 添加顶级列表项
           listContent.content.push(listItem)
         }
       }

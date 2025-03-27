@@ -54,38 +54,48 @@ const GENERATE_SUMMARY_PROMPT = `请为以下内容生成一个简短摘要。
 内容如下：
 `
 
-// 添加一个用于整理对话的提示词
-const SUMMARIZE_CONVERSATION_PROMPT = `请整理总结以下对话内容，生成一个完整的、结构化的总结。
+// 修改提示词，让AI更好地理解对话上下文
+const SUMMARIZE_CONVERSATION_PROMPT = `请分析并总结以下对话内容，生成一个完整的、结构化的总结。
+
 要求：
-1. 提取对话中的关键信息和结论
-2. 保持逻辑清晰，层次分明
-3. 去除对话中的冗余内容
-4. 直接返回整理后的文本即可
+1. 理解用户的问题和需求
+2. 提取对话中的关键信息和结论
+3. 保持逻辑清晰，层次分明
+4. 总结应该包含问题背景、分析过程和最终结论
+5. 去除对话中的冗余内容
+6. 使用Markdown格式组织内容：
+   - 使用 # 表示一级标题
+   - 使用 ## 表示二级标题
+   - 使用 - 或 * 表示无序列表
+   - 使用 1. 2. 3. 表示有序列表
+   - 使用 > 表示引用内容
+   - 使用 **文字** 表示加粗
+   - 使用 *文字* 表示斜体
+7. 直接返回Markdown格式的文本，不需要其他额外格式
 
 对话内容如下：
 `
 
-// 新增：从多轮对话创建思维共鸣
+// 修改从多轮对话创建思维共鸣的方法
 export async function createMindEchoFromConversation(params: {
   noteId: string
   conversationId: string
-  messageIds: string[] // 需要包含的消息ID数组
   modelConfigId?: string
 }): Promise<MindEcho> {
   try {
-    // 1. 获取所有相关消息
+    // 1. 获取会话的所有消息，按时间顺序排列
     const messages = await db('chat_messages')
-      .whereIn('id', params.messageIds)
+      .where('conversationId', params.conversationId)
       .orderBy('createdAt', 'asc')
 
     if (messages.length === 0) {
-      throw new Error('未找到相关消息')
+      throw new Error('未找到对话消息')
     }
 
-    // 2. 构建对话内容
+    // 2. 构建完整的对话内容，保留对话的上下文
     const conversationText = messages
       .map((msg) => {
-        const role = msg.role === 'user' ? '用户' : 'AI'
+        const role = msg.role === 'user' ? '用户' : 'AI助手'
         return `${role}：${msg.content}`
       })
       .join('\n\n')
@@ -99,12 +109,11 @@ export async function createMindEchoFromConversation(params: {
     )
 
     // 4. 使用整理后的内容创建思维共鸣
-    // 复用第一种情况的逻辑，但使用最后一条消息的ID
     return await createMindEchoFromContent({
       noteId: params.noteId,
       conversationId: params.conversationId,
-      messageId: messages[messages.length - 1].id, // 使用最后一条消息的ID
-      content: summarizedContent, // 直接传入整理后的内容
+      messageId: messages[messages.length - 1].id, // 使用最后一条消息的ID作为引用
+      content: summarizedContent,
       modelConfigId: params.modelConfigId
     })
   } catch (error) {

@@ -6,9 +6,9 @@
         <div class="topToolBar-header">
           <div class="topToolBar-left">
             <div class="icon">
-              <Robot theme="outline" size="20" fill="var(--color-primary)" :strokeWidth="3" />
+              <RobotOne theme="outline" size="20" fill="var(--color-primary)" :strokeWidth="3" />
             </div>
-            <div class="name">AI 助手</div>
+            <div class="name">AI 助手中心</div>
           </div>
           <div class="topToolBar-right">
             <!-- 分段按钮：全部/笔记菜单 -->
@@ -94,7 +94,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
-import { Robot, Plus } from '@icon-park/vue-next'
+import { Plus, RobotOne } from '@icon-park/vue-next'
 import AppToolbar from '@renderer/components/layout/AppToolbar.vue'
 import SegmentedButton from '@renderer/components/ui/SegmentedButton.vue'
 import SpreadButton from '@renderer/components/ui/SpreadButton.vue'

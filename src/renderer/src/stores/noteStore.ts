@@ -726,6 +726,7 @@ export const useNoteStore = defineStore(
         const fullNote = await fetchNoteById(noteId)
         currentNote.value = fullNote
         currentNoteId.value = noteId
+        currentEchoNoteId.value = noteId
         isLoading.value = false
         isEditorOpen.value = true
         // addToRecentNotes(noteId)
@@ -737,6 +738,7 @@ export const useNoteStore = defineStore(
     const closeNoteEditor = () => {
       isEditorOpen.value = false
       currentNoteId.value = undefined
+      currentEchoNoteId.value = null
     }
 
     const openSearchModal = () => {
@@ -905,6 +907,7 @@ export const useNoteStore = defineStore(
     const createAndExpandNewNote = async () => {
       console.log('noteStores.ts→ 创建并打开新笔记')
       const newNote = await createNote()
+      currentEchoNoteId.value = newNote.id
       return newNote?.id // 返回新笔记的 ID
     }
 
@@ -1513,6 +1516,17 @@ export const useNoteStore = defineStore(
       }
     }
 
+    // 添加思维共鸣相关状态
+    const currentEchoNoteId = ref<string | null>(null)
+
+    // 添加设置当前共鸣笔记 ID 的方法
+    const setCurrentEchoNoteId = (noteId: string | null) => {
+      currentEchoNoteId.value = noteId
+    }
+
+    // 添加获取当前共鸣笔记 ID 的计算属性
+    const getCurrentEchoNoteId = computed(() => currentEchoNoteId.value)
+
     // 返回所有状态和方法
     return {
       // 状态
@@ -1695,7 +1709,12 @@ export const useNoteStore = defineStore(
       fetchDraftNotes,
 
       // 设置当前笔记ID
-      setCurrentNoteId
+      setCurrentNoteId,
+
+      // 添加新的状态和方法到返回对象
+      currentEchoNoteId,
+      setCurrentEchoNoteId,
+      getCurrentEchoNoteId
     }
   },
   {
@@ -1719,6 +1738,10 @@ export const useNoteStore = defineStore(
       {
         key: 'note-active',
         pick: ['activeNotes']
+      },
+      {
+        key: 'note-echo',
+        pick: ['currentEchoNoteId']
       }
     ]
   }

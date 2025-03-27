@@ -6,7 +6,7 @@
     @click.stop="toggleAIMenu"
   >
     <div v-tooltip.bottom="tooltipConfig" class="icon">
-      <Robot
+      <RobotOne
         theme="outline"
         :size="size === 'large' ? 18 : 16"
         fill="var(--color-icon-default)"
@@ -27,7 +27,7 @@
 </template>
 
 <script setup lang="ts">
-import { Robot } from '@icon-park/vue-next'
+import { RobotOne } from '@icon-park/vue-next'
 import { ref, computed } from 'vue'
 import { useAgentStore } from '@renderer/stores/agentStore'
 import { useMenu } from '@renderer/composables/useMenu'

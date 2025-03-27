@@ -17,7 +17,7 @@
             :stroke-width="3"
           />
         </Motion>
-        <div class="name">思维共鸣 ({{ mindEchoes.length }})</div>
+        <div class="name">共鸣 ({{ mindEchoes.length }})</div>
       </div>
     </div>
 
@@ -36,6 +36,7 @@
             v-for="echo in mindEchoes"
             :key="echo.id"
             :echo="echo"
+            :is-new="echo.id === newEchoId"
             @delete="handleEchoDelete"
           />
         </div>
@@ -45,7 +46,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, onMounted } from 'vue'
+import { ref, watch, onMounted, nextTick } from 'vue'
 import { Brain } from '@icon-park/vue-next'
 import { Motion } from 'motion-v'
 import { useMindEchoStore } from '@renderer/stores/mindEchoStore'
@@ -61,6 +62,7 @@ const props = defineProps<{
 const isCollapsed = ref(true)
 const mindEchoStore = useMindEchoStore()
 const mindEchoes = ref<MindEcho[]>([])
+const newEchoId = ref<string | null>(null)
 
 // 切换面板展开/折叠
 const togglePanel = async () => {
@@ -72,11 +74,33 @@ const togglePanel = async () => {
 
 // 刷新数据
 const refreshEchoes = async () => {
+  console.log('MindEchoPanel: 开始刷新数据')
   try {
     const echoes = await mindEchoStore.fetchNoteMindEchoes(props.noteId)
+    console.log('MindEchoPanel: 获取到新数据', echoes.length, '条')
+
+    // 检查是否是删除操作导致的刷新
+    const isDeleteOperation = echoes.length < mindEchoes.value.length
+
+    // 只有在非删除操作且数据增加时才设置新ID
+    if (!isDeleteOperation && echoes.length > mindEchoes.value.length) {
+      await nextTick()
+      newEchoId.value = echoes[echoes.length - 1].id
+      console.log('MindEchoPanel: 设置新共鸣ID', newEchoId.value)
+
+      // 设置一个定时器来清除新共鸣的标记
+      setTimeout(() => {
+        newEchoId.value = null
+      }, 2500) // 动画结束后清除标记
+    } else {
+      // 如果是删除操作，确保清除 newEchoId
+      newEchoId.value = null
+    }
+
+    // 更新数据
     mindEchoes.value = echoes
   } catch (error) {
-    console.error('获取思维共鸣失败:', error)
+    console.error('MindEchoPanel: 获取思维共鸣失败:', error)
     message.error('获取思维共鸣失败')
   }
 }
@@ -99,6 +123,8 @@ watch(
 // 处理思维共鸣删除
 const handleEchoDelete = async (id: string) => {
   try {
+    // 删除前先清除 newEchoId
+    newEchoId.value = null
     await mindEchoStore.deleteMindEcho(id)
     await refreshEchoes()
   } catch (error) {
@@ -109,6 +135,7 @@ const handleEchoDelete = async (id: string) => {
 
 // 展开/折叠动画
 const enter = (element: Element) => {
+  console.log('MindEchoPanel: 开始展开动画')
   const el = element as HTMLElement
   el.style.height = 'auto'
   const height = el.scrollHeight
@@ -118,6 +145,7 @@ const enter = (element: Element) => {
 }
 
 const afterEnter = (element: Element) => {
+  console.log('MindEchoPanel: 展开动画完成')
   const el = element as HTMLElement
   el.style.height = 'auto'
 }
@@ -128,6 +156,24 @@ const leave = (element: Element) => {
   el.offsetHeight // 触发重绘
   el.style.height = '0px'
 }
+
+// 1. 添加 defineExpose 暴露方法
+defineExpose({
+  // 展开面板
+  async expand() {
+    console.log('MindEchoPanel: 展开面板')
+    isCollapsed.value = false
+    // 等待下一个 tick，确保面板展开
+    await nextTick()
+    await refreshEchoes()
+  },
+  // 折叠面板
+  collapse() {
+    isCollapsed.value = true
+  },
+  // 刷新数据
+  refreshEchoes
+})
 </script>
 
 <style scoped lang="scss">

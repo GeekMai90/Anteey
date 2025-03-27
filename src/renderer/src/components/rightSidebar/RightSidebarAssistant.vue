@@ -17,28 +17,13 @@
             <Button
               icon-only
               :icon="RobotTwo"
-              :tooltip="{ content: 'Agents 设置', placement: 'top' }"
+              :tooltip="{ content: 'AI 助手中心', placement: 'top' }"
               noBorder
               :default-icon-color="true"
               @click="handleAgentSetting"
             >
-              管理 AI Agents
+              管理 AI 助手
             </Button>
-            <!-- 现有的主面板打开按钮 -->
-            <!-- <div
-              v-tooltip.top="{ content: '在主面板打开', delay: { show: 1000 } }"
-              class="tool-btn"
-              @click="openInMainPanel"
-            >
-              <div class="icon">
-                <Afferent
-                  theme="outline"
-                  size="18"
-                  fill="var(--color-icon-default)"
-                  :strokeWidth="3"
-                />
-              </div>
-            </div> -->
           </div>
         </div>
 
@@ -139,27 +124,21 @@
                           </div>
                         </button>
 
-                        <!-- 添加思维共鸣按钮 -->
-                        <button
-                          v-tooltip.top="'生成思维共鸣'"
-                          class="copy-btn"
-                          @click="handleCreateMindEcho(msg)"
-                        >
-                          <div class="icon">
-                            <Brain theme="outline" size="14" :stroke-width="3" />
-                          </div>
-                        </button>
-
-                        <!-- 原有的复制按钮 -->
-                        <button
-                          v-tooltip.top="'复制内容'"
-                          class="copy-btn"
-                          @click="copyMessageContent(msg.content)"
-                        >
-                          <div class="icon">
-                            <Copy theme="outline" size="14" :stroke-width="3" />
-                          </div>
-                        </button>
+                        <!-- 替换原有按钮为 IconButton -->
+                        <div class="action-buttons">
+                          <IconButton
+                            :icon="Brain"
+                            tooltip="生成思维共鸣"
+                            size="small"
+                            @click="handleCreateMindEcho(msg)"
+                          />
+                          <IconButton
+                            :icon="Copy"
+                            tooltip="复制内容"
+                            size="small"
+                            @click="copyMessageContent(msg.content)"
+                          />
+                        </div>
                       </div>
 
                       <!-- 展开的引用列表 -->
@@ -232,7 +211,7 @@
                   placement="top"
                   :tooltip="{ content: 'AI Agents', placement: 'top' }"
                   icon-only
-                  :icon="Robot"
+                  :icon="RobotOne"
                   @select="handleAgentSelect"
                 >
                   AI 助手
@@ -246,6 +225,16 @@
                   @click="clearSelectedNotes"
                 >
                   清空已选择笔记
+                </Button>
+                <!-- 添加总结对话按钮 -->
+                <Button
+                  v-if="currentConversation?.messages?.length"
+                  icon-only
+                  :icon="Brain"
+                  :tooltip="{ content: '总结对话生成共鸣', placement: 'top' }"
+                  @click="handleCreateConversationEcho"
+                >
+                  总结对话
                 </Button>
               </div>
 
@@ -366,7 +355,8 @@ import {
   PauseOne,
   Clear,
   RobotTwo,
-  Receiver
+  Receiver,
+  RobotOne
 } from '@icon-park/vue-next'
 import TypewriterText from '@renderer/components/rightSidebar/TypewriterText.vue'
 import { useRouter } from 'vue-router'
@@ -386,6 +376,8 @@ import { useNoteStore } from '@renderer/stores/noteStore'
 import AgentAvatar from '@renderer/components/ui/AgentAvatar.vue'
 import { useMindEchoStore } from '@renderer/stores/mindEchoStore'
 import type { MessageRecord } from '@shared/types/ai-chat'
+import IconButton from '@renderer/components/ui/IconButton.vue'
+import { useEventBus } from '@vueuse/core'
 
 // Store
 const aiChatStore = useAIChatStore()
@@ -397,7 +389,7 @@ const agentStore = useAgentStore()
 const modelConfigStore = useModelConfigStore()
 const noteStore = useNoteStore()
 const mindEchoStore = useMindEchoStore()
-const { currentNoteId } = storeToRefs(noteStore)
+const { currentEchoNoteId } = storeToRefs(noteStore)
 // Refs
 const inputMessage = ref('')
 const messagesContainer = ref<HTMLElement | null>(null)
@@ -483,7 +475,7 @@ const agentItems = computed(() => {
       {
         key: 'empty',
         label: '暂无 AI 助手',
-        icon: Robot,
+        icon: RobotOne,
         disabled: true // 添加禁用状态
       }
     ]
@@ -493,7 +485,7 @@ const agentItems = computed(() => {
   return agentStore.nonMenuAgents.map((agent) => ({
     key: agent.id,
     label: agent.name,
-    icon: Robot
+    icon: RobotOne
   }))
 })
 
@@ -1095,27 +1087,75 @@ const handleAgentSetting = () => {
   router.push({ name: 'AgentView' })
 }
 
-// 添加生成思维共鸣的处理函数
+// 修改生成思维共鸣的处理函数
 const handleCreateMindEcho = async (msg: MessageRecord) => {
   try {
-    // 获取当前笔记ID
-    console.log('当前笔记ID:', currentNoteId.value)
-    if (!currentNoteId.value) {
+    // 获取当前共鸣的笔记ID
+    console.log('当前共鸣笔记ID:', currentEchoNoteId.value)
+    if (!currentEchoNoteId.value) {
       message.warning('请先打开一个笔记')
       return
     }
 
+    // 设置加载状态
+    aiChatStore.isLoading = true
+
     // 调用创建思维共鸣的方法
     await mindEchoStore.createFromContent({
-      noteId: currentNoteId.value,
+      noteId: currentEchoNoteId.value,
       conversationId: currentConversation.value?.id || '',
       messageId: msg.id
     })
 
     message.success('已生成思维共鸣')
+
+    // 触发事件通知 NoteExpandEditor 更新
+    const mindEchoEventBus = useEventBus('mindEchoCreated')
+    mindEchoEventBus.emit({
+      noteId: currentEchoNoteId.value,
+      shouldExpand: true
+    })
   } catch (error) {
     console.error('生成思维共鸣失败:', error)
     message.error('生成思维共鸣失败')
+  } finally {
+    aiChatStore.isLoading = false
+  }
+}
+
+// 修改总结对话生成共鸣的处理函数
+const handleCreateConversationEcho = async () => {
+  try {
+    if (!currentEchoNoteId.value) {
+      message.warning('请先打开一个笔记')
+      return
+    }
+
+    if (!currentConversation.value?.messages?.length) {
+      message.warning('当前对话还没有内容')
+      return
+    }
+
+    aiChatStore.isLoading = true
+
+    await mindEchoStore.createFromConversation({
+      noteId: currentEchoNoteId.value,
+      conversationId: currentConversation.value.id
+    })
+
+    message.success('已生成思维共鸣')
+
+    // 触发事件通知 NoteExpandEditor 更新
+    const mindEchoEventBus = useEventBus('mindEchoCreated')
+    mindEchoEventBus.emit({
+      noteId: currentEchoNoteId.value,
+      shouldExpand: true
+    })
+  } catch (error) {
+    console.error('生成思维共鸣失败:', error)
+    message.error('生成思维共鸣失败')
+  } finally {
+    aiChatStore.isLoading = false
   }
 }
 </script>
@@ -1595,52 +1635,16 @@ const handleCreateMindEcho = async (msg: MessageRecord) => {
     justify-content: space-between;
     align-items: center;
     min-height: 24px;
-  }
 
-  .copy-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 6px;
-    border: none;
-    background: none;
-    cursor: pointer;
-    color: var(--color-text-tertiary);
-    border-radius: 4px;
-    transition: all 0.2s ease;
-    opacity: 0;
-
-    .icon {
+    // 添加新的样式
+    .action-buttons {
       display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 20px;
-      height: 20px;
-      transition: all 0.2s ease;
-      padding: 0;
-
-      :deep(.i-icon) {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        width: 100%;
-        height: 100%;
-      }
-
-      :deep(svg) {
-        width: 14px;
-        height: 14px;
-      }
+      gap: 4px;
+      opacity: 0;
+      transition: opacity 0.2s ease;
     }
 
-    &:hover {
-      background: var(--color-hover-bg);
-      color: var(--color-text-secondary);
-    }
-  }
-
-  &:hover {
-    .copy-btn {
+    &:hover .action-buttons {
       opacity: 1;
     }
   }

@@ -23,7 +23,6 @@ export const mindEchoApi = {
   createMindEchoFromConversation: async (params: {
     noteId: string
     conversationId: string
-    messageIds: string[]
     modelConfigId?: string
   }): Promise<MindEcho> => {
     try {

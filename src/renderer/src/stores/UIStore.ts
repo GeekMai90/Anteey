@@ -257,6 +257,25 @@ export const useUIStore = defineStore(
       isMarioStyle.value = !isMarioStyle.value
     }
 
+    // 打开 AI 助手面板
+    const openAIAssistant = () => {
+      // 如果右侧边栏没有打开，则打开它
+      if (!isRightSidebarOpen.value) {
+        isRightSidebarOpen.value = true
+      }
+
+      // 切换到 AI 助手标签页
+      rightSidebarTab.value = 'assistant'
+
+      // 确保 AI 助手面板在视图中
+      nextTick(() => {
+        const assistantPanel = document.querySelector('.assistant-panel')
+        if (assistantPanel) {
+          assistantPanel.scrollIntoView({ behavior: 'smooth' })
+        }
+      })
+    }
+
     return {
       // 编辑器相关
       isEditorOpen,
@@ -317,7 +336,10 @@ export const useUIStore = defineStore(
       closeReviewModal,
       toggleReviewModal,
       isMarioStyle,
-      toggleButtonStyle
+      toggleButtonStyle,
+
+      // 添加新方法到返回值中
+      openAIAssistant
     }
   },
   {

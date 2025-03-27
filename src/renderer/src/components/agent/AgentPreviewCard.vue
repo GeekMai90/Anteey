@@ -2,7 +2,7 @@
   <div class="agent-card">
     <div class="card-header">
       <div class="agent-icon">
-        <Robot theme="outline" size="24" :strokeWidth="3" />
+        <RobotOne theme="outline" size="24" :strokeWidth="3" />
       </div>
       <div class="agent-name">{{ agent.name }}</div>
       <div class="actions">
@@ -33,7 +33,7 @@
 </template>
 
 <script setup lang="ts">
-import { Robot, Edit, Delete } from '@icon-park/vue-next'
+import { RobotOne, Edit, Delete } from '@icon-park/vue-next'
 import IconButton from '@renderer/components/ui/IconButton.vue'
 import type { Agent } from '@shared/types'
 import { useModelConfigStore } from '@renderer/stores/modelConfigStore'
