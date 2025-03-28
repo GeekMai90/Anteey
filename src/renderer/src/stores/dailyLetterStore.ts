@@ -77,28 +77,33 @@ export const useDailyLetterStore = defineStore('dailyLetter', () => {
     }
   )
 
-  // 修改 saveSettings 函数中的更新检查
+  // 修改 batchUpdateLetterConfig 函数
   const batchUpdateLetterConfig = async (params: UpdateLetterConfigParams) => {
     try {
       isSaving.value = true
-      const updateParams: UpdateLetterConfigParams = {}
-
-      if (formData.customPrompt !== originalData.value.customPrompt) {
-        updateParams.customPrompt = formData.customPrompt
-      }
-
-      if (formData.weeklyCustomPrompt !== originalData.value.weeklyCustomPrompt) {
-        updateParams.weeklyCustomPrompt = formData.weeklyCustomPrompt
-      }
 
       // 更新配置
-      const success = await window.electronAPI.letter.updateLetterConfig(params)
-      if (success) {
+      const updatedConfig = await window.electronAPI.letter.updateLetterConfig(params)
+
+      // 立即更新 store 中的配置
+      if (updatedConfig) {
+        letterConfig.value = updatedConfig
+
+        // 更新 formData
+        formData.recipient = updatedConfig.recipient
+        formData.sender = updatedConfig.sender
+        formData.useNickname = updatedConfig.useNickname
+        formData.dailyNotesLimit = updatedConfig.dailyNotesLimit
+        formData.weeklyNotesLimit = updatedConfig.weeklyNotesLimit
+        formData.modelId = updatedConfig.modelId
+        formData.temperature = updatedConfig.temperature
+        formData.customPrompt = updatedConfig.customPrompt
+        formData.weeklyCustomPrompt = updatedConfig.weeklyCustomPrompt
+
         message.success('保存成功')
-        // 使用深拷贝更新原始数据
-        originalData.value = JSON.parse(JSON.stringify(formData))
+        return true
       }
-      return success
+      return false
     } catch (error) {
       console.error('保存配置失败:', error)
       message.error('保存失败')
@@ -111,21 +116,21 @@ export const useDailyLetterStore = defineStore('dailyLetter', () => {
   // ==================== 动画控制方法 ====================
   const startAnimation = () => {
     endAnimation()
-    console.log('开始整体动画')
+    // console.log('开始整体动画')
     isAnimating.value = true
     isBicycleAnimating.value = true
     isMailboxShaking.value = false
   }
 
   const startMailboxShake = () => {
-    console.log('开始邮箱抖动')
+    // console.log('开始邮箱抖动')
     isAnimating.value = true
     isBicycleAnimating.value = false
     isMailboxShaking.value = true
   }
 
   const endAnimation = () => {
-    console.log('结束整体动画')
+    // console.log('结束整体动画')
     isAnimating.value = false
     isBicycleAnimating.value = false
     isMailboxShaking.value = false

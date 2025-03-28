@@ -18,8 +18,12 @@
     </div>
   </Transition>
 
-  <!-- 信件内容模态窗 -->
-  <DailyLetterContent v-model="showLetterContent" @after-show="handleLetterAfterShow" />
+  <!-- 修改后的信件内容模态窗 -->
+  <DailyLetterContent
+    :modelValue="showLetterContent"
+    @update:modelValue="showLetterContent = $event"
+    @after-show="handleLetterAfterShow"
+  />
 </template>
 
 <script setup lang="ts">
@@ -57,8 +61,8 @@ const mailboxShakeDirection = ref(1)
 // 邮箱抖动间隔ID
 let mailboxShakeInterval: NodeJS.Timeout | null = null
 
-// 是否显示信件内容
-const showLetterContent = ref(false)
+// 确保 ref 的类型声明
+const showLetterContent = ref<boolean>(false)
 
 // 创建音频实例
 const mailboxSound = new Audio(
@@ -92,7 +96,7 @@ const mailboxStyle = computed(() => {
 
 // 清理定时器
 onUnmounted(() => {
-  console.log('组件卸载，清理所有定时器和音频资源')
+  // console.log('组件卸载，清理所有定时器和音频资源')
   if (bicycleTimer) {
     clearTimeout(bicycleTimer)
     bicycleTimer = null
@@ -122,7 +126,7 @@ onMounted(() => {
   // 监听动画开始
   const startWatcher = dailyLetterStore.$subscribe((_mutation, state) => {
     if (state.isAnimating && state.isBicycleAnimating) {
-      console.log('开始整体动画流程')
+      // console.log('开始整体动画流程')
       startAnimationSequence()
     }
   })
@@ -131,7 +135,7 @@ onMounted(() => {
   const letterWatcher = dailyLetterStore.$subscribe((_mutation, state) => {
     // 当有当前信件时，说明服务端已返回内容
     if (state.currentLetter && state.isMailboxShaking) {
-      console.log('信件内容已返回，停止抖动')
+      // console.log('信件内容已返回，停止抖动')
       stopMailboxShake()
       showLetterContent.value = true
     }
@@ -165,7 +169,7 @@ function startAnimationSequence() {
   startIconChanges()
 
   // 3. 自行车开始移动
-  console.log('交通工具开始移动')
+  // console.log('交通工具开始移动')
   setTimeout(() => {
     // 计算要移动的距离(到达屏幕右侧，但留出足够空间不与邮箱重叠)
     const endPosition = window.innerWidth - 200
@@ -173,7 +177,7 @@ function startAnimationSequence() {
 
     // 4. 自行车到达终点后
     bicycleTimer = setTimeout(() => {
-      console.log('交通工具到达终点')
+      // console.log('交通工具到达终点')
       // 停止图标变换
       stopIconChanges()
       // 自行车淡出
@@ -185,7 +189,7 @@ function startAnimationSequence() {
       }, 300)
 
       // 6. 邮箱开始抖动
-      console.log('邮箱开始抖动')
+      // console.log('邮箱开始抖动')
       dailyLetterStore.startMailboxShake()
       startMailboxShake()
     }, 4000) // 与自行车移动时间相匹配
@@ -201,7 +205,7 @@ function startIconChanges() {
   iconChangeInterval = setInterval(() => {
     // 循环切换图标
     currentIconIndex.value = (currentIconIndex.value + 1) % vehicleIcons.length
-    console.log('图标变换为:', currentIconIndex.value)
+    // console.log('图标变换为:', currentIconIndex.value)
   }, 1300)
 }
 
