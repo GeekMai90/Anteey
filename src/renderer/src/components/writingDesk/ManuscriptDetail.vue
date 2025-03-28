@@ -366,7 +366,7 @@ onMounted(async () => {
   }
 
   try {
-    console.log('ManuscriptDetail - 开始加载文稿，ID:', manuscriptId)
+    // console.log('ManuscriptDetail - 开始加载文稿，ID:', manuscriptId)
     await writingDeskStore.loadManuscript(manuscriptId)
 
     // 同时预加载模型配置数据
@@ -382,9 +382,9 @@ onMounted(async () => {
           requestAnimationFrame(() => {
             if (scrollContainerRef.value) {
               scrollContainerRef.value.scrollTop = 0
-              console.log('已滚动到顶部，当前滚动位置:', scrollContainerRef.value.scrollTop)
+              // console.log('已滚动到顶部，当前滚动位置:', scrollContainerRef.value.scrollTop)
             } else {
-              console.warn('scrollContainerRef 不存在')
+              // console.warn('scrollContainerRef 不存在')
             }
           })
         })
@@ -694,10 +694,10 @@ const scrollToTop = () => {
       requestAnimationFrame(() => {
         if (scrollContainerRef.value) {
           scrollContainerRef.value.scrollTop = 0
-          console.log(
-            'scrollToTop: 已滚动到顶部，当前滚动位置:',
-            scrollContainerRef.value.scrollTop
-          )
+          // console.log(
+          //   'scrollToTop: 已滚动到顶部，当前滚动位置:',
+          //   scrollContainerRef.value.scrollTop
+          // )
         }
       })
     })
@@ -1305,6 +1305,7 @@ onUnmounted(() => {
           padding: 22px;
           overflow-y: auto;
           flex: 1;
+          border: 1px solid var(--color-border);
           box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 
           &.drag-over {

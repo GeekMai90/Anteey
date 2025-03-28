@@ -755,20 +755,20 @@ const mindEchoEventBus = useEventBus<MindEchoCreatedEvent>('mindEchoCreated')
 
 // 3. 直接监听事件
 mindEchoEventBus.on((data) => {
-  console.log('NoteExpandEditor: 收到mindEchoCreated事件', data)
+  // console.log('NoteExpandEditor: 收到mindEchoCreated事件', data)
 
   if (data.noteId === currentNote.value?.id) {
-    console.log('NoteExpandEditor: 是当前笔记的共鸣，准备刷新面板')
+    // console.log('NoteExpandEditor: 是当前笔记的共鸣，准备刷新面板')
 
     // 先展开面板
     if (data.shouldExpand) {
-      console.log('NoteExpandEditor: 需要展开面板')
+      // console.log('NoteExpandEditor: 需要展开面板')
       mindEchoPanelRef.value?.expand()
     }
 
     // 延迟执行滚动，等待面板完全展开和数据加载
     setTimeout(() => {
-      console.log('NoteExpandEditor: 开始滚动到面板位置')
+      // console.log('NoteExpandEditor: 开始滚动到面板位置')
       scrollToEchoPanel()
     }, 500) // 增加延迟时间确保动画可见
   }
@@ -787,14 +787,14 @@ const mindEchoPanelRef = ref<{ expand: () => void; refreshEchoes: () => Promise<
 // 1. 修改滚动方法
 const scrollToEchoPanel = () => {
   const mindEchoPanel = document.querySelector('.mind-echo-panel')
-  console.log('NoteExpandEditor: 找到面板元素', mindEchoPanel)
+  // console.log('NoteExpandEditor: 找到面板元素', mindEchoPanel)
 
   if (mindEchoPanel) {
     mindEchoPanel.scrollIntoView({
       behavior: 'smooth',
       block: 'end'
     })
-    console.log('NoteExpandEditor: 执行滚动')
+    // console.log('NoteExpandEditor: 执行滚动')
   }
 }
 </script>

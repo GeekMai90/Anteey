@@ -206,8 +206,8 @@ export const useAgentStore = defineStore('agent', () => {
 
   // 修改 generateAgentMenuItems 方法
   const generateAgentMenuItems = (noteId: string) => {
-    console.log('生成Agent菜单项 - noteId:', noteId)
-    console.log('当前可用的Agents:', menuAgents.value)
+    // console.log('生成Agent菜单项 - noteId:', noteId)
+    // console.log('当前可用的Agents:', menuAgents.value)
 
     return menuAgents.value.map((agent) => ({
       key: agent.id,

@@ -537,18 +537,18 @@ const handleSend = async () => {
       agentId: agentStore.currentAgent?.id
     }
 
-    const response = await aiChatStore.sendChatRequest(request)
-    console.log('消息发送完成:', {
-      messageId: response.messageId,
-      conversationId: currentConversation.value?.id,
-      messageCount: currentConversation.value?.messages?.length,
-      lastMessageTimestamp: currentConversation.value?.messages?.length
-        ? getMessageTimestamp(
-            currentConversation.value.messages[currentConversation.value.messages.length - 1]
-              .createdAt
-          )
-        : null
-    })
+    await aiChatStore.sendChatRequest(request)
+    // console.log('消息发送完成:', {
+    //   messageId: response.messageId,
+    //   conversationId: currentConversation.value?.id,
+    //   messageCount: currentConversation.value?.messages?.length,
+    //   lastMessageTimestamp: currentConversation.value?.messages?.length
+    //     ? getMessageTimestamp(
+    //         currentConversation.value.messages[currentConversation.value.messages.length - 1]
+    //           .createdAt
+    //       )
+    //     : null
+    // })
 
     // 等待一下再滚动，确保DOM更新
     nextTick(() => {
@@ -576,11 +576,11 @@ const handleSend = async () => {
 }
 
 const scrollToLatestMessage = () => {
-  console.log('尝试滚动到最新消息')
+  // console.log('尝试滚动到最新消息')
 
   const messages = currentConversation.value?.messages
   if (!messages?.length) {
-    console.log('没有消息，不需要滚动')
+    // console.log('没有消息，不需要滚动')
     return
   }
 
@@ -596,7 +596,7 @@ const scrollToLatestMessage = () => {
       }
 
       if (lastUserMessageIndex === -1) {
-        console.log('未找到用户消息')
+        // console.log('未找到用户消息')
         return
       }
 
@@ -605,7 +605,7 @@ const scrollToLatestMessage = () => {
       const lastUserMessageElement = messageElements[lastUserMessageIndex]
 
       if (!lastUserMessageElement || !messagesContainer.value) {
-        console.log('未找到消息元素或容器')
+        // console.log('未找到消息元素或容器')
         return
       }
 
@@ -620,11 +620,11 @@ const scrollToLatestMessage = () => {
         behavior: 'smooth'
       })
 
-      console.log('执行滚动到指定位置:', {
-        scrollTop,
-        messageTop: messageRect.top,
-        containerTop: containerRect.top
-      })
+      // console.log('执行滚动到指定位置:', {
+      //   scrollTop,
+      //   messageTop: messageRect.top,
+      //   containerTop: containerRect.top
+      // })
     } catch (error) {
       console.error('滚动过程中出错:', error)
     }
@@ -716,7 +716,7 @@ watch(
 
     // 只在用户发送消息时触发滚动
     if (lastMessage.role === 'user') {
-      console.log('检测到新的用户消息，准备滚动')
+      // console.log('检测到新的用户消息，准备滚动')
       scrollToLatestMessage()
     }
   }
@@ -724,12 +724,12 @@ watch(
 
 // 添加 toggleReferences 方法
 const toggleReferences = (messageId: string) => {
-  console.log('切换引用展示:', {
-    messageId,
-    currentExpanded: expandedMessageId.value,
-    hasReferences: currentConversation.value?.messages?.find((m) => m.id === messageId)?.references
-      ?.notes?.length
-  })
+  // console.log('切换引用展示:', {
+  //   messageId,
+  //   currentExpanded: expandedMessageId.value,
+  //   hasReferences: currentConversation.value?.messages?.find((m) => m.id === messageId)?.references
+  //     ?.notes?.length
+  // })
 
   expandedMessageId.value = expandedMessageId.value === messageId ? null : messageId
 
@@ -919,24 +919,24 @@ const getMessageTimestamp = (createdAt: Date | string | number): number => {
 }
 
 // 修改 watch 函数，添加时间戳检查
-watch(
-  () => currentConversation.value?.messages,
-  (newMessages) => {
-    console.log('消息数组变化:', {
-      messageCount: newMessages?.length,
-      messages: newMessages?.map((msg: any) => ({
-        id: msg.id,
-        role: msg.role,
-        hasReferences: !!msg.references?.notes?.length,
-        referenceCount: msg.references?.notes?.length || 0,
-        sourceTypes: msg.sourceTypes,
-        references: msg.references,
-        timestamp: getMessageTimestamp(msg.createdAt)
-      }))
-    })
-  },
-  { deep: true }
-)
+// watch(
+//   () => currentConversation.value?.messages,
+//   (newMessages) => {
+//     console.log('消息数组变化:', {
+//       messageCount: newMessages?.length,
+//       messages: newMessages?.map((msg: any) => ({
+//         id: msg.id,
+//         role: msg.role,
+//         hasReferences: !!msg.references?.notes?.length,
+//         referenceCount: msg.references?.notes?.length || 0,
+//         sourceTypes: msg.sourceTypes,
+//         references: msg.references,
+//         timestamp: getMessageTimestamp(msg.createdAt)
+//       }))
+//     })
+//   },
+//   { deep: true }
+// )
 
 const handleNewConversation = () => {
   // 调用 store 中的新建会话方法
@@ -1091,7 +1091,7 @@ const handleAgentSetting = () => {
 const handleCreateMindEcho = async (msg: MessageRecord) => {
   try {
     // 获取当前共鸣的笔记ID
-    console.log('当前共鸣笔记ID:', currentEchoNoteId.value)
+    // console.log('当前共鸣笔记ID:', currentEchoNoteId.value)
     if (!currentEchoNoteId.value) {
       message.warning('请先打开一个笔记')
       return

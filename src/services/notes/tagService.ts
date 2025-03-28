@@ -85,10 +85,10 @@ export async function getAllTags(): Promise<Tag[]> {
         t.name ASC
     `
 
-    console.log('执行查询:', query)
+    // console.log('执行查询:', query)
 
     const tags = await db.raw(query)
-    console.log('查询结果:', tags)
+    // console.log('查询结果:', tags)
 
     const result = tags.map((tag: any) => ({
       ...convertToTag(tag),
@@ -96,7 +96,7 @@ export async function getAllTags(): Promise<Tag[]> {
       useCount: Number(tag.useCount || 0)
     }))
 
-    console.log('处理完成，标签数量:', result.length)
+    // console.log('处理完成，标签数量:', result.length)
     return result
   } catch (error) {
     console.error('获取所有标签失败:', error)

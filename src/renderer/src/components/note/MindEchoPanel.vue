@@ -74,10 +74,10 @@ const togglePanel = async () => {
 
 // 刷新数据
 const refreshEchoes = async () => {
-  console.log('MindEchoPanel: 开始刷新数据')
+  // console.log('MindEchoPanel: 开始刷新数据')
   try {
     const echoes = await mindEchoStore.fetchNoteMindEchoes(props.noteId)
-    console.log('MindEchoPanel: 获取到新数据', echoes.length, '条')
+    // console.log('MindEchoPanel: 获取到新数据', echoes.length, '条')
 
     // 检查是否是删除操作导致的刷新
     const isDeleteOperation = echoes.length < mindEchoes.value.length
@@ -86,7 +86,7 @@ const refreshEchoes = async () => {
     if (!isDeleteOperation && echoes.length > mindEchoes.value.length) {
       await nextTick()
       newEchoId.value = echoes[echoes.length - 1].id
-      console.log('MindEchoPanel: 设置新共鸣ID', newEchoId.value)
+      // console.log('MindEchoPanel: 设置新共鸣ID', newEchoId.value)
 
       // 设置一个定时器来清除新共鸣的标记
       setTimeout(() => {
@@ -135,7 +135,7 @@ const handleEchoDelete = async (id: string) => {
 
 // 展开/折叠动画
 const enter = (element: Element) => {
-  console.log('MindEchoPanel: 开始展开动画')
+  // console.log('MindEchoPanel: 开始展开动画')
   const el = element as HTMLElement
   el.style.height = 'auto'
   const height = el.scrollHeight
@@ -145,7 +145,7 @@ const enter = (element: Element) => {
 }
 
 const afterEnter = (element: Element) => {
-  console.log('MindEchoPanel: 展开动画完成')
+  // console.log('MindEchoPanel: 展开动画完成')
   const el = element as HTMLElement
   el.style.height = 'auto'
 }
@@ -161,7 +161,7 @@ const leave = (element: Element) => {
 defineExpose({
   // 展开面板
   async expand() {
-    console.log('MindEchoPanel: 展开面板')
+    // console.log('MindEchoPanel: 展开面板')
     isCollapsed.value = false
     // 等待下一个 tick，确保面板展开
     await nextTick()

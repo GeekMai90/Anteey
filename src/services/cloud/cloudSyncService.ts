@@ -58,7 +58,7 @@ function convertToConfig(record: CloudSyncConfigRecord): CloudSyncConfig {
  */
 export async function getCurrentConfig(): Promise<CloudSyncConfig | null> {
   try {
-    console.log('服务端→ 开始获取云同步配置')
+    // console.log('服务端→ 开始获取云同步配置')
     const config = await db('cloud_sync_config').first()
     return config ? convertToConfig(config) : null
   } catch (error) {

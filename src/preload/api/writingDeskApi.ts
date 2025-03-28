@@ -40,7 +40,7 @@ export const writingDeskApi = {
     error?: string
   }> => {
     try {
-      console.log('预加载脚本 → 准备获取文稿，ID:', id)
+      // console.log('预加载脚本 → 准备获取文稿，ID:', id)
       const result = await ipcRenderer.invoke('get-manuscript', id)
       return result // 直接返回主进程的结果，保持包装对象形式
     } catch (error) {
@@ -86,7 +86,7 @@ export const writingDeskApi = {
     error?: string
   }> => {
     try {
-      console.log('预加载脚本 → 准备添加卡片')
+      // console.log('预加载脚本 → 准备添加卡片')
       const result = await ipcRenderer.invoke(
         'add-manuscript-card',
         manuscriptId,
@@ -236,7 +236,7 @@ export const writingDeskApi = {
     error?: string
   }> => {
     try {
-      console.log('预加载脚本 → 准备获取初稿历史')
+      // console.log('预加载脚本 → 准备获取初稿历史')
       const result = await ipcRenderer.invoke('get-first-draft-history', manuscriptId)
       return result
     } catch (error) {
@@ -258,7 +258,7 @@ export const writingDeskApi = {
     error?: string
   }> => {
     try {
-      console.log('预加载脚本 → 准备恢复初稿历史版本')
+      // console.log('预加载脚本 → 准备恢复初稿历史版本')
       const result = await ipcRenderer.invoke(
         'restore-first-draft-history',
         manuscriptId,
@@ -283,7 +283,7 @@ export const writingDeskApi = {
     error?: string
   }> => {
     try {
-      console.log('预加载脚本 → 准备获取终稿历史')
+      // console.log('预加载脚本 → 准备获取终稿历史')
       const result = await ipcRenderer.invoke('get-polish-history', manuscriptId)
       return result
     } catch (error) {
@@ -305,7 +305,7 @@ export const writingDeskApi = {
     error?: string
   }> => {
     try {
-      console.log('预加载脚本 → 准备恢复终稿历史版本')
+      // console.log('预加载脚本 → 准备恢复终稿历史版本')
       const result = await ipcRenderer.invoke('restore-polish-history', manuscriptId, historyId)
       return result
     } catch (error) {
@@ -330,7 +330,7 @@ export const writingDeskApi = {
     error?: string
   }> => {
     try {
-      console.log('预加载脚本 → 准备获取所有 AI 功能配置')
+      // console.log('预加载脚本 → 准备获取所有 AI 功能配置')
       const result = await ipcRenderer.invoke('get-all-ai-configs')
       return result
     } catch (error) {
@@ -357,7 +357,7 @@ export const writingDeskApi = {
     error?: string
   }> => {
     try {
-      console.log('预加载脚本 → 准备获取 AI 功能配置:', featureType)
+      // console.log('预加载脚本 → 准备获取 AI 功能配置:', featureType)
       const result = await ipcRenderer.invoke('get-ai-config-by-feature', featureType)
       return result
     } catch (error) {
@@ -385,7 +385,7 @@ export const writingDeskApi = {
     error?: string
   }> => {
     try {
-      console.log('预加载脚本 → 准备更新 AI 功能配置:', { featureType, modelConfigId })
+      // console.log('预加载脚本 → 准备更新 AI 功能配置:', { featureType, modelConfigId })
       const result = await ipcRenderer.invoke('update-ai-config', featureType, modelConfigId)
       return result
     } catch (error) {
@@ -407,7 +407,7 @@ export const writingDeskApi = {
     error?: string
   }> => {
     try {
-      console.log('预加载脚本 → 准备导出润色文稿')
+      // console.log('预加载脚本 → 准备导出润色文稿')
       const result = await ipcRenderer.invoke('export-polished-manuscript', manuscriptId)
       return result
     } catch (error) {
@@ -428,7 +428,7 @@ export const writingDeskApi = {
     error?: string
   }> => {
     try {
-      console.log('预加载脚本 → 准备复制润色文稿到剪贴板')
+      // console.log('预加载脚本 → 准备复制润色文稿到剪贴板')
       const result = await ipcRenderer.invoke('copy-polished-manuscript', manuscriptId)
       return result
     } catch (error) {

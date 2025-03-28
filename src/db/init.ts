@@ -1707,7 +1707,8 @@ export async function initDatabase(db: Knex): Promise<void> {
       table.float('temperature').notNullable().defaultTo(0.7).comment('温度参数')
 
       // 自定义提示词
-      table.text('custom_prompt').comment('自定义提示词')
+      table.text('custom_prompt').comment('每日来信自定义提示词')
+      table.text('weekly_custom_prompt').comment('每周来信自定义提示词') // 新增每周来信提示词字段
 
       // 元数据
       table.timestamp('created_at').notNullable().defaultTo(db.fn.now()).comment('创建时间')
@@ -1726,8 +1727,21 @@ export async function initDatabase(db: Knex): Promise<void> {
       weekly_notes_limit: 12,
       model_id: '', // 需要在应用启动时更新为默认模型ID
       temperature: 0.7,
-      custom_prompt: ''
+      custom_prompt: '',
+      weekly_custom_prompt: '' // 新增每周来信提示词默认值
     })
+  } else {
+    // 检查是否需要添加 weekly_custom_prompt 列
+    const hasWeeklyCustomPromptColumn = await db.schema.hasColumn(
+      'letter_config',
+      'weekly_custom_prompt'
+    )
+    if (!hasWeeklyCustomPromptColumn) {
+      await db.schema.alterTable('letter_config', (table) => {
+        table.text('weekly_custom_prompt').comment('每周来信自定义提示词')
+      })
+      console.log('letter_config 表添加 weekly_custom_prompt 列成功')
+    }
   }
 }
 

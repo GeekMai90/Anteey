@@ -51,7 +51,8 @@ export interface LetterConfig {
   temperature: number // 温度参数 (0-1)
 
   // 自定义提示词
-  customPrompt: string // 自定义提示词
+  customPrompt: string // 每日来信自定义提示词
+  weeklyCustomPrompt: string // 每周来信自定义提示词
 }
 
 // 配置验证规则

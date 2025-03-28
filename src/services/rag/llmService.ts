@@ -73,10 +73,10 @@ export class LLMService {
       this.abortController = new AbortController()
 
       // 添加详细日志
-      log.info('开始获取模型配置:', {
-        requestedConfigId: modelConfigId,
-        hasParameters: !!parameters
-      })
+      // log.info('开始获取模型配置:', {
+      //   requestedConfigId: modelConfigId,
+      //   hasParameters: !!parameters
+      // })
 
       // 修改这里：优先使用直接传入的 modelConfigId，如果没有再从 parameters 中获取
       const configId = modelConfigId || parameters?.modelConfigId
@@ -84,17 +84,17 @@ export class LLMService {
       // 获取模型配置
       if (configId) {
         config = await this.configService.getConfigById(configId)
-        log.info('通过ID获取的配置:', {
-          configId,
-          provider: config?.provider,
-          modelName: config?.modelName
-        })
+        // log.info('通过ID获取的配置:', {
+        //   configId,
+        //   provider: config?.provider,
+        //   modelName: config?.modelName
+        // })
       } else {
         config = await this.configService.getDefaultConfig()
-        log.info('使用默认配置:', {
-          provider: config?.provider,
-          modelName: config?.modelName
-        })
+        // log.info('使用默认配置:', {
+        //   provider: config?.provider,
+        //   modelName: config?.modelName
+        // })
       }
 
       if (!config) {
@@ -102,12 +102,12 @@ export class LLMService {
       }
 
       // 记录请求开始的详细信息
-      log.info('LLM请求开始:', {
-        timestamp: new Date().toISOString(),
-        promptLength: prompt.length,
-        provider: config.provider,
-        model: config.modelName
-      })
+      // log.info('LLM请求开始:', {
+      //   timestamp: new Date().toISOString(),
+      //   promptLength: prompt.length,
+      //   provider: config.provider,
+      //   model: config.modelName
+      // })
 
       // 构建消息数组，添加类型声明
       const messages: ChatMessage[] = []
@@ -196,62 +196,62 @@ export class LLMService {
         ...this.getAuthHeaders(config)
       }
 
-      console.log('Sending request:', {
-        url: fullEndpoint,
-        provider: config.provider,
-        model: config.modelName,
-        requestBody,
-        headers: { ...headers, 'x-api-key': '***' } // 隐藏 API key
-      })
+      // console.log('Sending request:', {
+      //   url: fullEndpoint,
+      //   provider: config.provider,
+      //   model: config.modelName,
+      //   requestBody,
+      //   headers: { ...headers, 'x-api-key': '***' } // 隐藏 API key
+      // })
 
       // 发送请求
-      const responseStartTime = Date.now()
+      // const responseStartTime = Date.now()
       const response = await axios.post(fullEndpoint, requestBody, {
         headers,
         timeout: 90000,
         signal: this.abortController?.signal
       })
-      const responseDuration = Date.now() - responseStartTime
+      // const responseDuration = Date.now() - responseStartTime
 
       // 记录请求统计信息
-      log.info(`${config.provider.toUpperCase()} API响应:`, {
-        provider: config.provider,
-        model: config.modelName,
-        requestDuration: `${responseDuration}ms`,
-        status: response.status,
-        tokenInfo: this.extractTokenInfo(response.data, config.provider),
-        responseLength: response.data ? JSON.stringify(response.data).length : 0
-      })
+      // log.info(`${config.provider.toUpperCase()} API响应:`, {
+      //   provider: config.provider,
+      //   model: config.modelName,
+      //   requestDuration: `${responseDuration}ms`,
+      //   status: response.status,
+      //   tokenInfo: this.extractTokenInfo(response.data, config.provider),
+      //   responseLength: response.data ? JSON.stringify(response.data).length : 0
+      // })
 
       // 使用parseModelResponse解析响应
       const content = parseModelResponse(config, response.data)
 
       // 添加详细的响应内容日志
-      log.info('LLM原始响应数据:', {
-        rawResponse: JSON.stringify(response.data, null, 2)
-      })
+      // log.info('LLM原始响应数据:', {
+      //   rawResponse: JSON.stringify(response.data, null, 2)
+      // })
 
-      log.info('LLM解析后的响应内容:', {
-        parsedContent: content,
-        contentLength: content.length
-      })
+      // log.info('LLM解析后的响应内容:', {
+      //   parsedContent: content,
+      //   contentLength: content.length
+      // })
 
       // 记录请求完成的统计信息
-      const totalDuration = Date.now() - startTime
-      log.info('LLM请求完成:', {
-        provider: config.provider,
-        model: config.modelName,
-        totalDuration: `${totalDuration}ms`,
-        responseLength: content.length,
-        firstLine: content.split('\n')[0] // 显示第一行内容预览
-      })
+      // const totalDuration = Date.now() - startTime
+      // log.info('LLM请求完成:', {
+      //   provider: config.provider,
+      //   model: config.modelName,
+      //   totalDuration: `${totalDuration}ms`,
+      //   responseLength: content.length,
+      //   firstLine: content.split('\n')[0] // 显示第一行内容预览
+      // })
 
-      log.info('generateResponse调用参数:', {
-        modelConfigId,
-        parametersConfigId: parameters?.modelConfigId,
-        finalConfigId: configId,
-        hasParameters: !!parameters
-      })
+      // log.info('generateResponse调用参数:', {
+      //   modelConfigId,
+      //   parametersConfigId: parameters?.modelConfigId,
+      //   finalConfigId: configId,
+      //   hasParameters: !!parameters
+      // })
 
       return content
     } catch (error) {
@@ -264,15 +264,15 @@ export class LLMService {
       const duration = Date.now() - startTime
       if (axios.isAxiosError(error)) {
         // 处理Axios特定的错误
-        log.error('LLM API 调用失败:', {
-          provider: config?.provider,
-          model: config?.modelName,
-          duration: `${duration}ms`,
-          status: error.response?.status,
-          statusText: error.response?.statusText,
-          message: error.response?.data?.error?.message || error.message,
-          requestUrl: error.config?.url
-        })
+        // log.error('LLM API 调用失败:', {
+        //   provider: config?.provider,
+        //   model: config?.modelName,
+        //   duration: `${duration}ms`,
+        //   status: error.response?.status,
+        //   statusText: error.response?.statusText,
+        //   message: error.response?.data?.error?.message || error.message,
+        //   requestUrl: error.config?.url
+        // })
 
         // 增强错误消息
         let errorMessage = `API调用失败: ${error.message}`
@@ -329,12 +329,12 @@ export class LLMService {
       }
 
       // 记录请求开始的详细信息
-      log.info('LLM流式请求开始:', {
-        timestamp: new Date().toISOString(),
-        promptLength: prompt.length,
-        provider: config.provider,
-        model: config.modelName
-      })
+      // log.info('LLM流式请求开始:', {
+      //   timestamp: new Date().toISOString(),
+      //   promptLength: prompt.length,
+      //   provider: config.provider,
+      //   model: config.modelName
+      // })
 
       // 构建消息数组，添加类型声明
       const messages: ChatMessage[] = [{ role: 'user', content: prompt }]
@@ -472,12 +472,12 @@ export class LLMService {
 
       response.data.on('end', () => {
         // 流式响应结束
-        const totalDuration = Date.now() - startTime
-        log.info('LLM流式请求完成:', {
-          provider: config?.provider,
-          model: config?.modelName,
-          totalDuration: `${totalDuration}ms`
-        })
+        // const totalDuration = Date.now() - startTime
+        // log.info('LLM流式请求完成:', {
+        //   provider: config?.provider,
+        //   model: config?.modelName,
+        //   totalDuration: `${totalDuration}ms`
+        // })
 
         // 通知完成
         callback('', true)

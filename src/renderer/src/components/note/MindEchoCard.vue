@@ -108,11 +108,11 @@ const cardClasses = computed(() => {
     expanded: isExpanded.value,
     'is-new': props.isNew && showAnimation.value
   }
-  console.log('MindEchoCard: 计算类名', {
-    isNew: props.isNew,
-    showAnimation: showAnimation.value,
-    classes
-  })
+  // console.log('MindEchoCard: 计算类名', {
+  //   isNew: props.isNew,
+  //   showAnimation: showAnimation.value,
+  //   classes
+  // })
   return classes
 })
 
@@ -203,15 +203,15 @@ const handleExpandEnter = (el: Element) => {
 
 // 修改展开后的处理函数
 const handleExpandAfterEnter = (el: Element) => {
-  console.log('MindEchoCard: 展开动画完成')
+  // console.log('MindEchoCard: 展开动画完成')
   const element = el as HTMLElement
   element.style.height = 'auto'
 
   // 在展开动画完成后，延迟一小段时间再触发光效动画
   if (props.isNew) {
-    console.log('MindEchoCard: 是新卡片，准备触发动画')
+    // console.log('MindEchoCard: 是新卡片，准备触发动画')
     setTimeout(() => {
-      console.log('MindEchoCard: 开始触发动画')
+      // console.log('MindEchoCard: 开始触发动画')
       showAnimation.value = true
     }, 100)
   }
@@ -228,14 +228,14 @@ const handleExpandLeave = (el: Element) => {
 watch(
   () => props.isNew,
   (newValue) => {
-    console.log('MindEchoCard: isNew prop 变化', newValue)
+    // console.log('MindEchoCard: isNew prop 变化', newValue)
     if (newValue) {
-      console.log('MindEchoCard: 检测到新卡片')
+      // console.log('MindEchoCard: 检测到新卡片')
       // 重置动画状态
       showAnimation.value = false
       // 延迟设置动画状态
       setTimeout(() => {
-        console.log('MindEchoCard: 准备开始动画')
+        // console.log('MindEchoCard: 准备开始动画')
         showAnimation.value = true
       }, 100)
     } else {
@@ -248,7 +248,7 @@ watch(
 
 // 移除 onMounted 中的动画触发逻辑，因为已经在 watch 中处理了
 onMounted(() => {
-  console.log('MindEchoCard: 组件挂载', { isNew: props.isNew })
+  // console.log('MindEchoCard: 组件挂载', { isNew: props.isNew })
 })
 </script>
 

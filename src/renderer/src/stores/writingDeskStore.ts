@@ -56,18 +56,18 @@ export const useWritingDeskStore = defineStore('writingDesk', () => {
   // 获取所有文稿
   const fetchAllManuscripts = async () => {
     try {
-      console.log('WritingDeskStore - 开始获取所有文稿')
+      // console.log('WritingDeskStore - 开始获取所有文稿')
       if (!window.electronAPI?.writingDesk?.getAllManuscripts) {
         console.error('WritingDeskStore - electronAPI 未正确初始化')
         return false
       }
 
       const result = await window.electronAPI.writingDesk.getAllManuscripts()
-      console.log('WritingDeskStore - API 返回结果:', result)
+      // console.log('WritingDeskStore - API 返回结果:', result)
 
       if (Array.isArray(result)) {
         manuscripts.value = result
-        console.log('WritingDeskStore - 获取文稿成功, 数量:', manuscripts.value.length)
+        // console.log('WritingDeskStore - 获取文稿成功, 数量:', manuscripts.value.length)
         return true
       }
 
@@ -83,7 +83,7 @@ export const useWritingDeskStore = defineStore('writingDesk', () => {
         }
 
         manuscripts.value = result.manuscripts
-        console.log('WritingDeskStore - 获取文稿成功, 数量:', manuscripts.value.length)
+        // console.log('WritingDeskStore - 获取文稿成功, 数量:', manuscripts.value.length)
         return true
       }
 
@@ -98,7 +98,7 @@ export const useWritingDeskStore = defineStore('writingDesk', () => {
   // 获取单个文稿及其卡片
   const fetchManuscript = async (id: string) => {
     try {
-      console.log('WritingDeskStore - 开始获取文稿详情, ID:', id)
+      // console.log('WritingDeskStore - 开始获取文稿详情, ID:', id)
       const result = await window.electronAPI.writingDesk.getManuscript(id)
 
       if (!result.success) {
@@ -171,7 +171,7 @@ export const useWritingDeskStore = defineStore('writingDesk', () => {
   // 添加卡片
   const addCard = async (manuscriptId: string, content: any, order: number, noteId?: string) => {
     try {
-      console.log('WritingDeskStore - 开始添加卡片')
+      // console.log('WritingDeskStore - 开始添加卡片')
       const result = await window.electronAPI.writingDesk.addManuscriptCard(
         manuscriptId,
         content,
@@ -279,7 +279,7 @@ export const useWritingDeskStore = defineStore('writingDesk', () => {
   // 获取 AI 功能配置
   const fetchAllAIConfigs = async () => {
     try {
-      console.log('WritingDeskStore - 开始获取所有 AI 功能配置')
+      // console.log('WritingDeskStore - 开始获取所有 AI 功能配置')
       const result = await window.electronAPI.writingDesk.getAllAIConfigs()
 
       if (!result.success || !result.configs) {
@@ -296,7 +296,7 @@ export const useWritingDeskStore = defineStore('writingDesk', () => {
 
   const fetchAIConfigByFeature = async (featureType: AIFeatureType) => {
     try {
-      console.log('WritingDeskStore - 开始获取 AI 功能配置:', featureType)
+      // console.log('WritingDeskStore - 开始获取 AI 功能配置:', featureType)
       const result = await window.electronAPI.writingDesk.getAIConfigByFeature(featureType)
 
       if (!result.success) {
@@ -318,7 +318,7 @@ export const useWritingDeskStore = defineStore('writingDesk', () => {
 
   const updateAIConfig = async (featureType: AIFeatureType, modelConfigId: string) => {
     try {
-      console.log('WritingDeskStore - 开始更新 AI 功能配置:', { featureType, modelConfigId })
+      // console.log('WritingDeskStore - 开始更新 AI 功能配置:', { featureType, modelConfigId })
       const result = await window.electronAPI.writingDesk.updateAIConfig(featureType, modelConfigId)
 
       if (!result.success || !result.config) {
@@ -494,7 +494,7 @@ export const useWritingDeskStore = defineStore('writingDesk', () => {
   // 加载文稿数据
   const loadManuscript = async (id: string) => {
     try {
-      console.log('开始加载文稿, ID:', id, 'Type:', typeof id)
+      // console.log('开始加载文稿, ID:', id, 'Type:', typeof id)
 
       if (!id) {
         throw new Error('无效的文稿ID')
@@ -505,9 +505,9 @@ export const useWritingDeskStore = defineStore('writingDesk', () => {
         throw new Error('无效的文稿ID')
       }
 
-      console.log('调用 API 获取文稿，使用ID:', manuscriptId)
+      // console.log('调用 API 获取文稿，使用ID:', manuscriptId)
       const result = await window.electronAPI.writingDesk.getManuscript(manuscriptId)
-      console.log('获取到文稿数据:', result)
+      // console.log('获取到文稿数据:', result)
 
       if (!result.success || !result.manuscript) {
         throw new Error(result.error || '获取文稿失败')
@@ -570,7 +570,7 @@ export const useWritingDeskStore = defineStore('writingDesk', () => {
   // 导出润色后的文稿
   const exportPolishedManuscript = async (manuscriptId: string) => {
     try {
-      console.log('WritingDeskStore - 开始导出润色文稿')
+      // console.log('WritingDeskStore - 开始导出润色文稿')
       const result = await window.electronAPI.writingDesk.exportPolishedManuscript(manuscriptId)
 
       if (!result.success) {
@@ -590,7 +590,7 @@ export const useWritingDeskStore = defineStore('writingDesk', () => {
   // 复制润色后的文稿到剪贴板
   const copyPolishedManuscript = async (manuscriptId: string) => {
     try {
-      console.log('WritingDeskStore - 开始复制润色文稿到剪贴板')
+      // console.log('WritingDeskStore - 开始复制润色文稿到剪贴板')
       const result = await window.electronAPI.writingDesk.copyPolishedManuscript(manuscriptId)
 
       if (!result.success) {

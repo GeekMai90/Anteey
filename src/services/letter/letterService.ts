@@ -511,7 +511,9 @@ async function generateWeeklyLetterContent(date: Date): Promise<string> {
 请确保整封信读起来自然流畅，体现出一个知性女生的思考深度和情感温度。`
 
   // 根据配置选择使用的提示词
-  let prompt = letterConfig.customPrompt ? letterConfig.customPrompt : DEFAULT_WEEKLY_PROMPT
+  let prompt = letterConfig.weeklyCustomPrompt
+    ? letterConfig.weeklyCustomPrompt
+    : DEFAULT_WEEKLY_PROMPT
 
   // 替换模板变量
   prompt = prompt
@@ -706,6 +708,7 @@ function convertToLetterConfig(record: any): GetLetterConfigResult {
     modelId: record.model_id,
     temperature: Number(record.temperature),
     customPrompt: record.custom_prompt,
+    weeklyCustomPrompt: record.weekly_custom_prompt,
     createdAt: new Date(record.created_at).getTime(),
     updatedAt: new Date(record.updated_at).getTime()
   }
@@ -744,6 +747,8 @@ export async function updateLetterConfig(
     if (params.modelId !== undefined) updateData.model_id = params.modelId
     if (params.temperature !== undefined) updateData.temperature = params.temperature
     if (params.customPrompt !== undefined) updateData.custom_prompt = params.customPrompt
+    if (params.weeklyCustomPrompt !== undefined)
+      updateData.weekly_custom_prompt = params.weeklyCustomPrompt
 
     // 更新时间戳
     updateData.updated_at = new Date().toISOString()
@@ -839,6 +844,7 @@ export async function resetLetterConfig(defaultModelId: string): Promise<GetLett
       model_id: defaultModelId,
       temperature: 0.7,
       custom_prompt: '',
+      weekly_custom_prompt: '',
       updated_at: new Date().toISOString()
     }
 

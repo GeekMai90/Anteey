@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { ref, reactive, watch } from 'vue'
+import { message } from '@renderer/utils/message'
 import type {
   Letter,
   LetterType,
@@ -28,6 +29,84 @@ export const useDailyLetterStore = defineStore('dailyLetter', () => {
   const letterConfig = ref<GetLetterConfigResult | null>(null)
   const isConfigLoading = ref(false)
   const configError = ref<string | null>(null)
+  const isSaving = ref(false)
+  const originalData = ref<any>(null)
+
+  // 表单数据类型中添加 weeklyCustomPrompt
+  const formData = reactive({
+    recipient: '',
+    sender: '',
+    useNickname: true,
+    dailyNotesLimit: 6,
+    weeklyNotesLimit: 12,
+    modelId: '',
+    temperature: 0.7,
+    customPrompt: '',
+    weeklyCustomPrompt: '' // 新增每周来信提示词
+  })
+
+  // 修改 watch 函数
+  watch(
+    () => letterConfig.value,
+    (newConfig) => {
+      if (newConfig) {
+        // 确保类型转换
+        formData.dailyNotesLimit = Number(newConfig.dailyNotesLimit)
+        formData.weeklyNotesLimit = Number(newConfig.weeklyNotesLimit)
+        formData.temperature = Number(newConfig.temperature)
+        formData.useNickname = Boolean(newConfig.useNickname)
+        formData.recipient = String(newConfig.recipient)
+        formData.sender = String(newConfig.sender)
+        formData.modelId = String(newConfig.modelId)
+        formData.customPrompt = String(newConfig.customPrompt || '')
+        formData.weeklyCustomPrompt = String(newConfig.weeklyCustomPrompt || '')
+
+        // 更新原始数据
+        originalData.value = {
+          dailyNotesLimit: Number(newConfig.dailyNotesLimit),
+          weeklyNotesLimit: Number(newConfig.weeklyNotesLimit),
+          temperature: Number(newConfig.temperature),
+          useNickname: Boolean(newConfig.useNickname),
+          recipient: String(newConfig.recipient),
+          sender: String(newConfig.sender),
+          modelId: String(newConfig.modelId),
+          customPrompt: String(newConfig.customPrompt || ''),
+          weeklyCustomPrompt: String(newConfig.weeklyCustomPrompt || '')
+        }
+      }
+    }
+  )
+
+  // 修改 saveSettings 函数中的更新检查
+  const batchUpdateLetterConfig = async (params: UpdateLetterConfigParams) => {
+    try {
+      isSaving.value = true
+      const updateParams: UpdateLetterConfigParams = {}
+
+      if (formData.customPrompt !== originalData.value.customPrompt) {
+        updateParams.customPrompt = formData.customPrompt
+      }
+
+      if (formData.weeklyCustomPrompt !== originalData.value.weeklyCustomPrompt) {
+        updateParams.weeklyCustomPrompt = formData.weeklyCustomPrompt
+      }
+
+      // 更新配置
+      const success = await window.electronAPI.letter.updateLetterConfig(params)
+      if (success) {
+        message.success('保存成功')
+        // 使用深拷贝更新原始数据
+        originalData.value = JSON.parse(JSON.stringify(formData))
+      }
+      return success
+    } catch (error) {
+      console.error('保存配置失败:', error)
+      message.error('保存失败')
+      return false
+    } finally {
+      isSaving.value = false
+    }
+  }
 
   // ==================== 动画控制方法 ====================
   const startAnimation = () => {
@@ -236,22 +315,6 @@ export const useDailyLetterStore = defineStore('dailyLetter', () => {
     configError.value = null
   }
 
-  // 添加批量更新方法
-  const batchUpdateLetterConfig = async (params: UpdateLetterConfigParams) => {
-    try {
-      isConfigLoading.value = true
-      configError.value = null
-      letterConfig.value = await window.electronAPI.letter.updateLetterConfig(params)
-      return true
-    } catch (error) {
-      console.error('批量更新来信配置失败:', error)
-      configError.value = String(error)
-      return false
-    } finally {
-      isConfigLoading.value = false
-    }
-  }
-
   // 添加删除信件的方法
   const deleteLetter = async (id: string) => {
     try {
@@ -291,6 +354,9 @@ export const useDailyLetterStore = defineStore('dailyLetter', () => {
     letterConfig,
     isConfigLoading,
     configError,
+    isSaving,
+    originalData,
+    formData,
 
     // 动画方法
     startAnimation,

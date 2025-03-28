@@ -305,7 +305,7 @@ const sortedManuscripts = computed(() => {
 // 方法
 onMounted(async () => {
   try {
-    console.log('WritingDeskView - 开始初始化')
+    // console.log('WritingDeskView - 开始初始化')
     isLoading.value = true
     const success = await writingDeskStore.fetchAllManuscripts()
 
@@ -346,7 +346,7 @@ const handleSearch = () => {
 
 const openManuscript = async (manuscript: Manuscript) => {
   try {
-    console.log('WritingDeskView - 打开文稿:', manuscript)
+    // console.log('WritingDeskView - 打开文稿:', manuscript)
 
     if (!manuscript?.id) {
       console.error('WritingDeskView - 尝试打开无效文稿:', manuscript)
@@ -354,7 +354,7 @@ const openManuscript = async (manuscript: Manuscript) => {
     }
 
     const manuscriptId = manuscript.id.trim()
-    console.log('WritingDeskView - 准备跳转到文稿页面:', `/writing-desk/${manuscriptId}`)
+    // console.log('WritingDeskView - 准备跳转到文稿页面:', `/writing-desk/${manuscriptId}`)
 
     // 直接跳转，不需要预加载数据
     await router.push({
@@ -369,7 +369,7 @@ const openManuscript = async (manuscript: Manuscript) => {
 
 const handleCreateManuscript = async (title: string) => {
   try {
-    console.log('WritingDeskView - 开始创建文稿:', title)
+    // console.log('WritingDeskView - 开始创建文稿:', title)
     const manuscript = await writingDeskStore.createManuscript({ title })
 
     if (!manuscript) {
@@ -378,7 +378,7 @@ const handleCreateManuscript = async (title: string) => {
     }
 
     isCreateModalOpen.value = false
-    console.log('WritingDeskView - 准备跳转到文稿页面:', `/writing-desk/${manuscript.id}`)
+    // console.log('WritingDeskView - 准备跳转到文稿页面:', `/writing-desk/${manuscript.id}`)
     router.push(`/writing-desk/${manuscript.id}`)
   } catch (error) {
     console.error('WritingDeskView - 创建文稿失败:', error)

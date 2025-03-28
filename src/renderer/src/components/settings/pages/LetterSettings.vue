@@ -146,15 +146,19 @@
         </div>
         <div class="description">
           可用变量：
-          <span class="variable"> {date}：昨日日期， {notesContent}：昨日笔记内容 </span>
+          <span class="variable">
+            {date}：日期， {notesContent}：笔记内容，
+            {notesCountInfo}：笔记统计信息，{startDate}：开始日期，{endDate}：结束日期
+          </span>
         </div>
         <div class="description">
           在提示词中使用变量，服务端会自动将变量替换为对应的值，生成对应的信件内容。
         </div>
         <div class="settings-form">
+          <!-- 每日来信提示词 -->
           <div class="form-item vertical">
             <div class="label-full">
-              <span>自定义提示词</span>
+              <span>每日来信提示词</span>
               <div class="help-icon-wrapper">
                 <Help theme="outline" size="14" :strokeWidth="3" class="help-icon" />
                 <div class="help-tooltip">留空则使用系统默认提示词，自定义设置将覆盖默认提示词</div>
@@ -163,7 +167,25 @@
             <div class="value-full">
               <Textarea
                 v-model="formData.customPrompt"
-                placeholder="请输入自定义提示词（可选）"
+                placeholder="请输入每日来信自定义提示词（可选）"
+                :height="160"
+              />
+            </div>
+          </div>
+
+          <!-- 每周来信提示词 -->
+          <div class="form-item vertical">
+            <div class="label-full">
+              <span>每周来信提示词</span>
+              <div class="help-icon-wrapper">
+                <Help theme="outline" size="14" :strokeWidth="3" class="help-icon" />
+                <div class="help-tooltip">留空则使用系统默认提示词，自定义设置将覆盖默认提示词</div>
+              </div>
+            </div>
+            <div class="value-full">
+              <Textarea
+                v-model="formData.weeklyCustomPrompt"
+                placeholder="请输入每周来信自定义提示词（可选）"
                 :height="160"
               />
             </div>
@@ -225,7 +247,8 @@ const formData = reactive({
   weeklyNotesLimit: 12,
   modelId: '',
   temperature: 0.7,
-  customPrompt: ''
+  customPrompt: '',
+  weeklyCustomPrompt: ''
 })
 
 // 新增状态
@@ -256,8 +279,8 @@ onMounted(async () => {
       updateSelectedModelName()
 
       // 打印调试信息
-      console.log('初始表单数据:', formData)
-      console.log('初始原始数据:', originalData.value)
+      // console.log('初始表单数据:', formData)
+      // console.log('初始原始数据:', originalData.value)
     }
   } catch (error) {
     console.error('初始化失败:', error)
@@ -279,6 +302,7 @@ watch(
       formData.sender = String(newConfig.sender)
       formData.modelId = String(newConfig.modelId)
       formData.customPrompt = String(newConfig.customPrompt || '')
+      formData.weeklyCustomPrompt = String(newConfig.weeklyCustomPrompt || '')
 
       // 使用相同的类型转换更新原始数据
       originalData.value = {
@@ -289,7 +313,8 @@ watch(
         recipient: String(newConfig.recipient),
         sender: String(newConfig.sender),
         modelId: String(newConfig.modelId),
-        customPrompt: String(newConfig.customPrompt || '')
+        customPrompt: String(newConfig.customPrompt || ''),
+        weeklyCustomPrompt: String(newConfig.weeklyCustomPrompt || '')
       }
     }
   }
@@ -379,11 +404,14 @@ const saveSettings = async () => {
       updateParams.customPrompt = formData.customPrompt
     }
 
+    if (formData.weeklyCustomPrompt !== originalData.value.weeklyCustomPrompt) {
+      updateParams.weeklyCustomPrompt = formData.weeklyCustomPrompt
+    }
+
     // 更新配置
     const success = await letterStore.batchUpdateLetterConfig(updateParams)
 
     if (success) {
-      message.success('保存成功')
       // 使用深拷贝更新原始数据
       originalData.value = JSON.parse(JSON.stringify(toRaw(formData)))
     } else {
@@ -439,6 +467,12 @@ const debugFormState = () => {
       orig.customPrompt === curr.customPrompt,
       orig.customPrompt,
       curr.customPrompt
+    )
+    console.log(
+      '- weeklyCustomPrompt:',
+      orig.weeklyCustomPrompt === curr.weeklyCustomPrompt,
+      orig.weeklyCustomPrompt,
+      curr.weeklyCustomPrompt
     )
   }
 }

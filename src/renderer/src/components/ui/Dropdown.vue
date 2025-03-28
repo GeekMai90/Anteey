@@ -223,7 +223,7 @@ onBeforeUnmount(() => {
 
 watch(visible, (newValue) => {
   if (newValue && update) {
-    console.log('Dropdown visible, updating position with placement:', computedPlacement.value)
+    // console.log('Dropdown visible, updating position with placement:', computedPlacement.value)
     nextTick(() => {
       update()
     })
@@ -232,7 +232,7 @@ watch(visible, (newValue) => {
 
 watch([() => props.align, () => props.placement], () => {
   if (visible.value && update) {
-    console.log('Alignment changed, updating position:', props.align, props.placement)
+    // console.log('Alignment changed, updating position:', props.align, props.placement)
     nextTick(() => {
       update()
     })

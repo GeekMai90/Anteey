@@ -90,7 +90,7 @@ export async function moveEmptyNotesToTrash(): Promise<void> {
         })
       }
     }
-    console.log('后端→ 空笔记已移至回收站')
+    // console.log('后端→ 空笔记已移至回收站')
   } catch (error) {
     console.error('后端→ 移动空笔记到回收站失败:', error)
     throw error
@@ -126,7 +126,7 @@ export async function searchNotes(params: SearchParams): Promise<
     blocks: Array<{ content: string }>
   }>
 > {
-  console.log('后端→ 开始搜索笔记:', params)
+  // console.log('后端→ 开始搜索笔记:', params)
   const { mode, term } = params
   const lowercaseQuery = term.toLowerCase().trim()
 
@@ -258,7 +258,7 @@ export async function searchNotes(params: SearchParams): Promise<
 
 // 搜索笔记列表
 export async function searchNotesList(query: string): Promise<Note[]> {
-  console.log('后端→ 开始搜索笔记列表:', query)
+  // console.log('后端→ 开始搜索笔记列表:', query)
   const lowercaseQuery = query.toLowerCase().trim()
   if (!lowercaseQuery) return []
 
@@ -316,7 +316,7 @@ export async function getAllDatesWithNotes(): Promise<string[]> {
       .orderBy('date', 'desc')
 
     if (!result || result.length === 0) {
-      console.log('后端→ 查询结果为空')
+      // console.log('后端→ 查询结果为空')
       return []
     }
 
@@ -331,7 +331,7 @@ export async function getAllDatesWithNotes(): Promise<string[]> {
 //获取某一天的笔记
 export async function getNotesByOneDate(date: string): Promise<Note[]> {
   try {
-    console.log('后端→ 开始获取某一天的笔记', date)
+    // console.log('后端→ 开始获取某一天的笔记', date)
 
     // 将输入的日期字符串转换为当天的开始和结束时间戳
     const startOfDay = new Date(date)
@@ -346,10 +346,10 @@ export async function getNotesByOneDate(date: string): Promise<Note[]> {
       .where('isDeleted', false)
       .whereBetween('createdAt', [startTimestamp, endTimestamp])
 
-    console.log('后端→ 获取某一天的笔记成功', notes)
+    // console.log('后端→ 获取某一天的笔记成功', notes)
 
     if (notes.length === 0) {
-      console.log('后端→ 没有找到该日期的笔记')
+      // console.log('后端→ 没有找到该日期的笔记')
       return []
     }
 
@@ -457,7 +457,7 @@ async function canCreateNote(): Promise<{ allowed: boolean; message?: string }> 
     // 未授权或免费用户检查笔记数量
     const count = await db('notes').where('isDeleted', false).count('* as count').first()
     const noteCount = count ? (count.count as number) : 0
-    console.log('notesService→ 当前笔记数量:', noteCount)
+    // console.log('notesService→ 当前笔记数量:', noteCount)
 
     if (noteCount >= 100) {
       return {

@@ -159,24 +159,24 @@ export async function createManuscript(params: CreateManuscriptParams): Promise<
 // 获取所有文稿
 export async function getAllManuscripts(): Promise<Manuscript[]> {
   try {
-    console.log('开始获取所有文稿')
+    // console.log('开始获取所有文稿')
 
     // 检查表是否存在
     const hasTable = await db.schema.hasTable('manuscripts')
-    console.log(`manuscripts 表是否存在: ${hasTable}`)
+    // console.log(`manuscripts 表是否存在: ${hasTable}`)
 
     if (!hasTable) {
       console.error('manuscripts 表不存在！')
       return []
     }
 
-    console.log('执行查询: SELECT * FROM manuscripts ORDER BY updatedAt DESC')
+    // console.log('执行查询: SELECT * FROM manuscripts ORDER BY updatedAt DESC')
     const manuscripts = await db('manuscripts').orderBy('updatedAt', 'desc').select('*')
-    console.log(`获取到 ${manuscripts.length} 个文稿`)
+    // console.log(`获取到 ${manuscripts.length} 个文稿`)
 
-    if (manuscripts.length > 0) {
-      console.log('第一个文稿示例:', manuscripts[0])
-    }
+    // if (manuscripts.length > 0) {
+    //   console.log('第一个文稿示例:', manuscripts[0])
+    // }
 
     return manuscripts.map(convertToManuscript)
   } catch (error) {
@@ -190,7 +190,7 @@ export async function getManuscriptById(
   id: string
 ): Promise<Manuscript & { cards: ManuscriptCard[] }> {
   try {
-    console.log(`开始获取文稿，ID: "${id}"，类型: ${typeof id}`)
+    // console.log(`开始获取文稿，ID: "${id}"，类型: ${typeof id}`)
 
     // 检查 ID 是否有效
     if (!id || typeof id !== 'string') {
@@ -200,7 +200,7 @@ export async function getManuscriptById(
 
     // 检查数据库表是否存在
     const hasTable = await db.schema.hasTable('manuscripts')
-    console.log(`manuscripts 表是否存在: ${hasTable}`)
+    // console.log(`manuscripts 表是否存在: ${hasTable}`)
 
     if (!hasTable) {
       console.error('manuscripts 表不存在！')
@@ -209,17 +209,17 @@ export async function getManuscriptById(
 
     // 尝试简单查询获取所有文稿数量
     try {
-      const count = await db('manuscripts').count('* as count').first()
-      console.log(`现有文稿数量: ${count ? count.count : 0}`)
+      // const count = await db('manuscripts').count('* as count').first()
+      // console.log(`现有文稿数量: ${count ? count.count : 0}`)
     } catch (e) {
       console.error('查询文稿数量失败:', e)
     }
 
     // 使用字符串参数直接查询
-    console.log(`执行查询: SELECT * FROM manuscripts WHERE id = '${id}' LIMIT 1`)
+    // console.log(`执行查询: SELECT * FROM manuscripts WHERE id = '${id}' LIMIT 1`)
     const manuscript = await db('manuscripts').whereRaw('id = ?', [id]).first()
 
-    console.log(`查询结果: ${manuscript ? '找到文稿' : '未找到文稿'}`)
+    // console.log(`查询结果: ${manuscript ? '找到文稿' : '未找到文稿'}`)
 
     if (!manuscript) {
       console.error(`文稿不存在: ${id}`)
@@ -227,15 +227,15 @@ export async function getManuscriptById(
     }
 
     // 同样使用 Raw 查询
-    console.log(
-      `查询文稿卡片: SELECT * FROM manuscript_cards WHERE manuscriptId = '${id}' ORDER BY order ASC`
-    )
+    // console.log(
+    //   `查询文稿卡片: SELECT * FROM manuscript_cards WHERE manuscriptId = '${id}' ORDER BY order ASC`
+    // )
     const cards = await db('manuscript_cards')
       .whereRaw('manuscriptId = ?', [id])
       .orderBy('order', 'asc')
       .select('*')
 
-    console.log(`找到 ${cards.length} 张卡片`)
+    // console.log(`找到 ${cards.length} 张卡片`)
 
     // 转换并返回数据
     return {
@@ -580,7 +580,7 @@ export async function updateAIConfig(
 // 修改生成初稿方法
 export async function generateFirstDraft(params: PolishManuscriptParams): Promise<Manuscript> {
   try {
-    console.log('开始生成初稿:', params.id)
+    // console.log('开始生成初稿:', params.id)
 
     // 获取初稿功能的模型配置
     const aiConfig = await getAIConfigByFeature('firstDraft')
@@ -652,7 +652,7 @@ export async function generateFirstDraft(params: PolishManuscriptParams): Promis
 // 修改润色终稿方法
 export async function polishManuscript(params: PolishManuscriptParams): Promise<Manuscript> {
   try {
-    console.log('开始润色终稿:', params.id)
+    // console.log('开始润色终稿:', params.id)
 
     // 获取润色功能的模型配置
     const aiConfig = await getAIConfigByFeature('polish')
@@ -668,7 +668,7 @@ export async function polishManuscript(params: PolishManuscriptParams): Promise<
 
     // 2. 提取初稿的文本内容
     const firstDraftText = extractTextFromTiptapJson(manuscript.firstDraftContent)
-    console.log('提取的初稿文本内容:', firstDraftText)
+    // console.log('提取的初稿文本内容:', firstDraftText)
 
     // 3. 获取提示词模板
     let prompt: string
@@ -835,19 +835,19 @@ export async function checkTables() {
     console.log('开始详细检查数据库表')
 
     // 获取所有表
-    const tables = await db.raw("SELECT name FROM sqlite_master WHERE type='table'")
-    console.log('数据库中的所有表:', tables)
+    await db.raw("SELECT name FROM sqlite_master WHERE type='table'")
+    // console.log('数据库中的所有表:', tables)
 
     const hasManuscripts = await db.schema.hasTable('manuscripts')
     const hasManuscriptCards = await db.schema.hasTable('manuscript_cards')
 
-    console.log('检查数据库表状态:')
-    console.log('manuscripts 表是否存在:', hasManuscripts)
-    console.log('manuscript_cards 表是否存在:', hasManuscriptCards)
+    // console.log('检查数据库表状态:')
+    // console.log('manuscripts 表是否存在:', hasManuscripts)
+    // console.log('manuscript_cards 表是否存在:', hasManuscriptCards)
 
     if (hasManuscripts) {
-      const columns = await db.table('manuscripts').columnInfo()
-      console.log('manuscripts 表结构:', columns)
+      await db.table('manuscripts').columnInfo()
+      // console.log('manuscripts 表结构:', columns)
 
       // 尝试获取一条记录
       try {
