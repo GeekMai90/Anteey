@@ -68,7 +68,7 @@
 
     <!-- 笔记网格容器 -->
     <div class="inbox-container">
-      <div ref="cardGridContainer" class="card-grid-container">
+      <div ref="cardGridContainer" class="card-grid-container" @scroll="handleVirtualScroll">
         <!-- 空状态展示 -->
         <div v-if="displayedNotes.length === 0" class="empty-state">
           <img src="@renderer/assets/images/empty.svg" alt="暂无内容" class="empty-icon" />
@@ -76,9 +76,9 @@
         </div>
 
         <!-- 笔记网格 -->
-        <div v-else name="card-list" tag="div" class="card-grid">
+        <div v-else class="card-grid" :style="cardGridStyles">
           <CardBoxNoteCard
-            v-for="note in displayedNotes"
+            v-for="note in virtualNotes"
             :key="`${note.id}-${new Date(note.updatedAt).toISOString()}`"
             v-memo="[note.id, note.content, note.createdAt]"
             class="card-item"
@@ -158,6 +158,38 @@ const sortDirection = computed({
 
 const displayedNotes = computed(() => notes.value)
 
+// 添加虚拟列表相关的状态
+const containerHeight = ref(0)
+const scrollTop = ref(0)
+const cardHeight = 300 // 假设每个卡片的固定高度为300px
+const bufferSize = 5 // 上下额外渲染的行数
+
+// 计算视口信息
+const viewportInfo = computed(() => {
+  const containerWidth = cardGridContainer.value?.clientWidth || 0
+  const cardsPerRow = Math.floor(containerWidth / 316) // 300px + 16px gap
+  const rowHeight = cardHeight + 16 // 加上gap的高度
+
+  const visibleRows = Math.ceil(containerHeight.value / rowHeight)
+  const startRow = Math.floor(scrollTop.value / rowHeight)
+  const endRow = startRow + visibleRows + bufferSize
+
+  const startIndex = Math.max(0, (startRow - bufferSize) * cardsPerRow)
+  const endIndex = Math.min(notes.value.length, (endRow + bufferSize) * cardsPerRow)
+
+  return {
+    startIndex,
+    endIndex,
+    totalHeight: Math.ceil(notes.value.length / cardsPerRow) * rowHeight,
+    paddingTop: startRow * rowHeight
+  }
+})
+
+// 计算实际需要渲染的笔记
+const virtualNotes = computed(() =>
+  notes.value.slice(viewportInfo.value.startIndex, viewportInfo.value.endIndex)
+)
+
 // 方法
 const toggleSortMenu = (event: MouseEvent) => {
   event.stopPropagation()
@@ -209,21 +241,22 @@ const fetchNotes = async () => {
   }
 }
 
-// 滚动加载
-const handleScroll = useThrottleFn(() => {
-  if (cardGridContainer.value) {
-    const { scrollTop, scrollHeight, clientHeight } = cardGridContainer.value
-    if (
-      scrollHeight - scrollTop - clientHeight < 1000 &&
-      !isLoading.value &&
-      hasMoreNotes.value &&
-      notes.value.length < totalCount.value
-    ) {
-      console.log('滚动触发，加载更多笔记')
-      fetchNotes()
-    }
+// 添加虚拟滚动处理函数
+const handleVirtualScroll = useThrottleFn((e: Event) => {
+  const target = e.target as HTMLElement
+  scrollTop.value = target.scrollTop
+
+  // 同时处理无限加载
+  const { scrollHeight, clientHeight } = target
+  if (
+    scrollHeight - scrollTop.value - clientHeight < 1000 &&
+    !isLoading.value &&
+    hasMoreNotes.value &&
+    notes.value.length < totalCount.value
+  ) {
+    fetchNotes()
   }
-}, 300)
+}, 16) // 约60fps
 
 // 多选模式
 const toggleMultiSelect = () => {
@@ -337,12 +370,25 @@ readwiseSyncCompleteBus.on(() => {
 onMounted(() => {
   resetAndFetch()
   document.addEventListener('click', handleGlobalClick)
-  cardGridContainer.value?.addEventListener('scroll', handleScroll)
+
+  // 获取容器高度
+  if (cardGridContainer.value) {
+    containerHeight.value = cardGridContainer.value.clientHeight
+
+    // 监听容器大小变化
+    const resizeObserver = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        containerHeight.value = entry.contentRect.height
+      }
+    })
+
+    resizeObserver.observe(cardGridContainer.value)
+  }
 })
 
 onUnmounted(() => {
   document.removeEventListener('click', handleGlobalClick)
-  cardGridContainer.value?.removeEventListener('scroll', handleScroll)
+  cardGridContainer.value?.removeEventListener('scroll', handleVirtualScroll)
 })
 
 // 全局点击事件处理
@@ -352,6 +398,15 @@ const handleGlobalClick = (event: MouseEvent) => {
     showSortMenu.value = false
   }
 }
+
+// 修改样式优化的计算属性
+const cardGridStyles = computed(() => ({
+  height: `${viewportInfo.value.totalHeight}px`,
+  paddingTop: `${viewportInfo.value.paddingTop}px`,
+  transform: 'translate3d(0, 0, 0)', // 启用GPU加速
+  backfaceVisibility: 'hidden' as const, // 添加类型断言
+  perspective: '1000px' // 修改为字符串类型并添加单位
+}))
 </script>
 
 <style lang="scss" scoped>
@@ -561,17 +616,15 @@ const handleGlobalClick = (event: MouseEvent) => {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
     gap: 16px;
-    padding: 16px 20px;
+    padding: 0 20px;
     align-content: start;
     justify-content: center;
+    position: relative;
+    will-change: transform; // 优化性能
+    margin-top: 16px;
 
-    // 使用视口单位和 clamp 函数来控制卡片高度
-    --card-height: clamp(250px, calc(20vw - 32px), 350px);
-    grid-auto-rows: var(--card-height);
-
-    // 计算每行可以容纳的卡片数量
-    --cards-per-row: calc((100% - 32px) / (300px + 16px));
     .card-item {
+      height: 300px; // 固定卡片高度
       transition: all 0.2s ease;
     }
   }
