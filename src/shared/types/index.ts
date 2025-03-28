@@ -34,7 +34,7 @@ export * from './writing-desk'
 export * from './ai-chat'
 export * from './ai-agents'
 export * from './mind-echo'
-
+export * from './readwise'
 // 定义图标名称类型
 export type IconName =
   // 文档类

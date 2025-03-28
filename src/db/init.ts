@@ -1743,6 +1743,51 @@ export async function initDatabase(db: Knex): Promise<void> {
       console.log('letter_config 表添加 weekly_custom_prompt 列成功')
     }
   }
+
+  // 创建 readwise_sync_records 表
+  if (!(await db.schema.hasTable('readwise_sync_records'))) {
+    await db.schema.createTable('readwise_sync_records', (table) => {
+      table.string('id').primary()
+      table.string('readwiseHighlightId').notNullable().index() // Readwise 的高亮 ID
+      table.string('antinoteId').notNullable().index() // 对应到我们系统中的笔记 ID
+      table.datetime('lastSyncTime').notNullable() // 最后同步时间
+      table.datetime('createdAt').notNullable()
+      table.datetime('updatedAt').notNullable()
+
+      // 外键约束
+      table.foreign('antinoteId').references('notes.id').onDelete('CASCADE')
+
+      // 索引
+      table.index('lastSyncTime')
+    })
+    console.log('readwise_sync_records 表创建成功')
+  }
+
+  // 创建 readwise_sync_config 表
+  if (!(await db.schema.hasTable('readwise_sync_config'))) {
+    await db.schema.createTable('readwise_sync_config', (table) => {
+      table.string('id').primary()
+      table.string('token').notNullable() // Readwise API token
+      table.string('lastSyncTime').notNullable().defaultTo('1900-01-01 00:00:00') // 上次同步时间
+      table.boolean('autoSync').notNullable().defaultTo(false) // 是否自动同步
+      table.integer('autoSyncInterval').notNullable().defaultTo(30) // 自动同步间隔（分钟）
+      table.datetime('createdAt').notNullable()
+      table.datetime('updatedAt').notNullable()
+    })
+
+    // 插入默认配置
+    await db('readwise_sync_config').insert({
+      id: uuidv4(),
+      token: '',
+      lastSyncTime: '1900-01-01 00:00:00',
+      autoSync: false,
+      autoSyncInterval: 30,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    })
+
+    console.log('readwise_sync_config 表创建成功')
+  }
 }
 
 export async function down(db: Knex): Promise<void> {
@@ -1818,6 +1863,8 @@ export async function down(db: Knex): Promise<void> {
   if (await db.schema.hasTable('letter_config')) {
     await db.schema.dropTable('letter_config')
   }
+  await db.schema.dropTableIfExists('readwise_sync_records')
+  await db.schema.dropTableIfExists('readwise_sync_config')
 
   console.log('所有表已删除')
 }

@@ -148,7 +148,10 @@ import type {
   // 新增的 letter 相关类型
   GetLetterConfigResult,
   UpdateLetterConfigParams,
-  ConfigValidationResult
+  ConfigValidationResult,
+
+  // Readwise 相关类型
+  ReadwiseSyncConfig
 } from '@shared/types'
 
 export interface ElectronAPI {
@@ -1362,6 +1365,43 @@ export interface ElectronAPI {
 
     // 批量更新思维共鸣
     batchUpdateMindEchoes: (ids: string[], updates: Partial<MindEcho>) => Promise<MindEcho[]>
+  }
+
+  // Readwise 同步相关 API
+  readwise: {
+    // 获取同步配置
+    getSyncConfig: () => Promise<ReadwiseSyncConfig>
+
+    // 更新同步配置
+    updateSyncConfig: (updateData: Partial<ReadwiseSyncConfig>) => Promise<ReadwiseSyncConfig>
+
+    // 执行增量同步
+    syncHighlights: () => Promise<{
+      stats: {
+        total: number
+        added: number
+        updated: number
+        skipped: number
+      }
+      message: string
+    }>
+
+    // 执行全量同步
+    fullSyncHighlights: () => Promise<{
+      stats: {
+        total: number
+        added: number
+        updated: number
+        skipped: number
+      }
+      message: string
+    }>
+
+    // 更新自动同步设置
+    updateAutoSync: (params: { autoSync: boolean; autoSyncInterval?: number }) => Promise<{
+      config: ReadwiseSyncConfig
+      message: string
+    }>
   }
 }
 

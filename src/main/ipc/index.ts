@@ -36,6 +36,7 @@ import { setupWritingPromptTemplateHandlers } from './writingPromptTemplateIpcHa
 import { setupAgentHandlers } from './agentIpcHandlers'
 import { setupAIChatHandlers } from './aiChatIpcHandlers'
 import { setupMindEchoHandlers } from './mindEchoIpcHandlers'
+import { setupReadwiseSyncHandlers } from './readwiseIpcHandlers'
 export function setupIpcHandlers(): void {
   setupNotesHandlers()
   setupCardboxHandlers()
@@ -75,4 +76,5 @@ export function setupIpcHandlers(): void {
   setupAgentHandlers()
   setupAIChatHandlers()
   setupMindEchoHandlers()
+  setupReadwiseSyncHandlers()
 }

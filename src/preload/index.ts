@@ -37,6 +37,7 @@ import { setupWritingPromptTemplateApi } from './api/writingPromptTemplateApi'
 import { agentApi } from './api/agentApi'
 import { aiChatApi } from './api/aiChatApi'
 import { mindEchoApi } from './api/mindEchoApi'
+import { readwiseApi } from './api/readwiseApi'
 // 添加日志 API
 contextBridge.exposeInMainWorld('electronLog', {
   info: (...args: any[]) => ipcRenderer.send('renderer-log', { level: 'info', args }),
@@ -185,6 +186,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
   mindEcho: {
     ...mindEchoApi
+  },
+  readwise: {
+    ...readwiseApi
   }
 })
 

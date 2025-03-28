@@ -11,145 +11,216 @@
       <div class="loading-spinner"></div>
     </div>
     <div v-else class="three-sync-content">
-      <!-- 收件箱功能开关 -->
+      <!-- 收件箱功能说明部分 -->
       <div class="settings-item">
         <div class="title">收件箱功能</div>
-        <div class="description">
-          开启后可以通过 Dinox 同步笔记到收件箱中进行处理。关闭后侧边栏将不再显示收件箱功能。
-        </div>
-        <!-- <div class="settings-form">
-          <div class="form-item">
-            <div class="label">启用状态</div>
-            <div class="value">
-              <div class="auto-sync-setting">
-                <Switch
-                  :model-value="dinoxStore.isInboxEnabled"
-                  @update:model-value="dinoxStore.isInboxEnabled = $event"
-                />
-                <div class="switch-description">
-                  {{ dinoxStore.isInboxEnabled ? '收件箱功能已启用' : '收件箱功能已禁用' }}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div> -->
+        <div class="description">开启后可以通过 Dinox 和 Readwise 同步内容到收件箱中进行处理。</div>
       </div>
 
       <template v-if="dinoxStore.isInboxEnabled">
-        <!-- Dinox 服务配置 -->
-        <div class="settings-item">
-          <div class="title">Dinox 服务</div>
-          <div class="description">配置 Dinox API Token，用于同步 Dinox 的笔记到收件箱。</div>
-          <div class="settings-form">
-            <div class="form-item">
-              <div class="label">API Token</div>
-              <div class="value">
-                <Input
-                  v-model="token"
-                  type="password"
-                  placeholder="请输入 Dinox API Token"
-                  :help="'用于连接 Dinox 服务的认证令牌'"
-                />
+        <!-- Dinox 服务部分 -->
+        <div class="settings-group">
+          <div class="settings-item">
+            <div class="title">Dinox 服务</div>
+            <div class="description">配置 Dinox API Token，用于同步 Dinox 的笔记到收件箱。</div>
+            <div class="settings-form">
+              <!-- Dinox Token 配置 -->
+              <div class="form-item">
+                <div class="label">API Token</div>
+                <div class="value">
+                  <Input
+                    v-model="token"
+                    type="password"
+                    placeholder="请输入 Dinox API Token"
+                    :help="'用于连接 Dinox 服务的认证令牌'"
+                  />
+                </div>
               </div>
-            </div>
-            <div class="three-sync-actions">
-              <Button
-                type="primary"
-                :height="36"
-                :tooltip="{
-                  content: '测试连接',
-                  delay: { show: 1000 }
-                }"
-                tooltipPlacement="top"
-                @click="handleTestConnection"
-              >
-                {{ isConnecting ? '测试中...' : '测试连接' }}
-              </Button>
-              <Button
-                type="primary"
-                :height="36"
-                :tooltip="{
-                  content: '保存配置',
-                  delay: { show: 1000 }
-                }"
-                tooltipPlacement="top"
-                @click="handleSaveConfig"
-              >
-                {{ isSaving ? '保存中...' : '保存配置' }}
-              </Button>
+
+              <!-- Dinox 自动同步设置 -->
+              <div class="form-item">
+                <div class="label">自动同步</div>
+                <div class="value">
+                  <div class="auto-sync-setting">
+                    <Switch
+                      :model-value="Boolean(autoSync)"
+                      @update:model-value="autoSync = $event"
+                    />
+                    <div class="switch-description">
+                      {{ autoSync ? '定时自动同步' : '仅支持手动同步' }}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Dinox 同步间隔选择 -->
+              <div v-if="autoSync" class="form-item">
+                <div class="label">同步间隔</div>
+                <div class="value">
+                  <div class="select-wrapper sync-interval-select">
+                    <div class="select-trigger" @click="showIntervalSelect = !showIntervalSelect">
+                      <span class="selected-text">{{ getSyncIntervalText(syncInterval) }}</span>
+                      <div class="select-arrow">
+                        <Down
+                          v-if="!showIntervalSelect"
+                          theme="outline"
+                          size="14"
+                          :strokeWidth="3"
+                        />
+                        <Up v-else theme="outline" size="14" :strokeWidth="3" />
+                      </div>
+                    </div>
+                    <div v-show="showIntervalSelect" class="select-options">
+                      <div
+                        v-for="interval in syncIntervals"
+                        :key="interval.value"
+                        class="select-option"
+                        :class="{ 'is-active': syncInterval === interval.value }"
+                        @click="selectInterval(interval.value)"
+                      >
+                        {{ interval.label }}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Dinox 操作按钮 -->
+              <div class="three-sync-actions">
+                <Button
+                  type="primary"
+                  :height="36"
+                  :tooltip="{ content: '测试连接', delay: { show: 1000 } }"
+                  tooltipPlacement="top"
+                  @click="handleTestConnection"
+                >
+                  {{ isConnecting ? '测试中...' : '测试连接' }}
+                </Button>
+                <Button
+                  type="primary"
+                  :height="36"
+                  :tooltip="{ content: '保存配置', delay: { show: 1000 } }"
+                  tooltipPlacement="top"
+                  @click="handleSaveConfig"
+                >
+                  {{ isSaving ? '保存中...' : '保存配置' }}
+                </Button>
+                <Button type="warning" :height="36" @click="handleFullSync">
+                  {{ isSyncing && syncType === 'full' ? '同步中...' : '全量同步' }}
+                </Button>
+                <Button type="primary" :height="36" @click="handleIncrementalSync">
+                  {{ isSyncing && syncType === 'incremental' ? '同步中...' : '增量同步' }}
+                </Button>
+              </div>
             </div>
           </div>
         </div>
 
-        <!-- 同步设置 -->
-        <div class="settings-item">
-          <div class="title">同步设置</div>
-          <div class="description">配置自动同步和同步方式，确保数据的安全性和一致性。</div>
-          <div class="settings-form">
-            <div class="form-item">
-              <div class="label">自动同步</div>
-              <div class="value">
-                <div class="auto-sync-setting">
-                  <Switch
-                    :model-value="Boolean(autoSync)"
-                    @update:model-value="autoSync = $event"
+        <!-- Readwise 服务部分 -->
+        <div class="settings-group">
+          <div class="settings-item">
+            <div class="title">Readwise 服务</div>
+            <div class="description">
+              配置 Readwise API Token，用于同步 Readwise 的高亮内容到收件箱。
+            </div>
+            <div class="settings-form">
+              <!-- Readwise Token 配置 -->
+              <div class="form-item">
+                <div class="label">API Token</div>
+                <div class="value">
+                  <Input
+                    v-model="readwiseToken"
+                    type="password"
+                    placeholder="请输入 Readwise API Token"
+                    :help="'用于连接 Readwise 服务的认证令牌'"
                   />
-                  <div class="switch-description">
-                    {{ autoSync ? '定时自动同步' : '仅支持手动同步' }}
+                </div>
+              </div>
+
+              <!-- Readwise 自动同步设置 -->
+              <div class="form-item">
+                <div class="label">自动同步</div>
+                <div class="value">
+                  <div class="auto-sync-setting">
+                    <Switch
+                      :model-value="Boolean(readwiseAutoSync)"
+                      @update:model-value="readwiseAutoSync = $event"
+                    />
+                    <div class="switch-description">
+                      {{ readwiseAutoSync ? '定时自动同步' : '仅支持手动同步' }}
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-            <div v-if="autoSync" class="form-item">
-              <div class="label">同步间隔</div>
-              <div class="value">
-                <div class="select-wrapper sync-interval-select">
-                  <div class="select-trigger" @click="showIntervalSelect = !showIntervalSelect">
-                    <span class="selected-text">{{ getSyncIntervalText(syncInterval) }}</span>
-                    <div class="select-arrow">
-                      <Down v-if="!showIntervalSelect" theme="outline" size="14" :strokeWidth="3" />
-                      <Up v-else theme="outline" size="14" :strokeWidth="3" />
-                    </div>
-                  </div>
-                  <div v-show="showIntervalSelect" class="select-options">
+
+              <!-- Readwise 同步间隔选择 -->
+              <div v-if="readwiseAutoSync" class="form-item">
+                <div class="label">同步间隔</div>
+                <div class="value">
+                  <div class="select-wrapper sync-interval-select">
                     <div
-                      v-for="interval in syncIntervals"
-                      :key="interval.value"
-                      class="select-option"
-                      :class="{ 'is-active': syncInterval === interval.value }"
-                      @click="selectInterval(interval.value)"
+                      class="select-trigger"
+                      @click="showReadwiseIntervalSelect = !showReadwiseIntervalSelect"
                     >
-                      {{ interval.label }}
+                      <span class="selected-text">{{
+                        getSyncIntervalText(readwiseSyncInterval)
+                      }}</span>
+                      <div class="select-arrow">
+                        <Down
+                          v-if="!showReadwiseIntervalSelect"
+                          theme="outline"
+                          size="14"
+                          :strokeWidth="3"
+                        />
+                        <Up v-else theme="outline" size="14" :strokeWidth="3" />
+                      </div>
+                    </div>
+                    <div v-show="showReadwiseIntervalSelect" class="select-options">
+                      <div
+                        v-for="interval in syncIntervals"
+                        :key="interval.value"
+                        class="select-option"
+                        :class="{ 'is-active': readwiseSyncInterval === interval.value }"
+                        @click="selectReadwiseInterval(interval.value)"
+                      >
+                        {{ interval.label }}
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
-            <div class="three-sync-actions">
-              <Button
-                type="warning"
-                :height="36"
-                :tooltip="{
-                  content: '全量同步',
-                  delay: { show: 1000 }
-                }"
-                tooltipPlacement="top"
-                @click="handleFullSync"
-              >
-                {{ isSyncing && syncType === 'full' ? '同步中...' : '全量同步' }}
-              </Button>
-              <Button
-                type="primary"
-                :height="36"
-                :tooltip="{
-                  content: '增量同步',
-                  delay: { show: 1000 }
-                }"
-                tooltipPlacement="top"
-                @click="handleIncrementalSync"
-              >
-                {{ isSyncing && syncType === 'incremental' ? '同步中...' : '增量同步' }}
-              </Button>
+
+              <!-- Readwise 操作按钮 -->
+              <div class="three-sync-actions">
+                <Button
+                  type="primary"
+                  :height="36"
+                  :tooltip="{ content: '测试连接', delay: { show: 1000 } }"
+                  tooltipPlacement="top"
+                  @click="handleTestReadwiseConnection"
+                >
+                  {{ isReadwiseConnecting ? '测试中...' : '测试连接' }}
+                </Button>
+                <Button
+                  type="primary"
+                  :height="36"
+                  :tooltip="{ content: '保存配置', delay: { show: 1000 } }"
+                  tooltipPlacement="top"
+                  @click="handleSaveReadwiseConfig"
+                >
+                  {{ isReadwiseSaving ? '保存中...' : '保存配置' }}
+                </Button>
+                <Button type="warning" :height="36" @click="handleReadwiseFullSync">
+                  {{ isReadwiseSyncing && readwiseSyncType === 'full' ? '同步中...' : '全量同步' }}
+                </Button>
+                <Button type="primary" :height="36" @click="handleReadwiseIncrementalSync">
+                  {{
+                    isReadwiseSyncing && readwiseSyncType === 'incremental'
+                      ? '同步中...'
+                      : '增量同步'
+                  }}
+                </Button>
+              </div>
             </div>
           </div>
         </div>
@@ -162,11 +233,14 @@
 import { ref, onMounted } from 'vue'
 import { Down, Up, CloudStorage } from '@icon-park/vue-next'
 import { useDinoxStore } from '@renderer/stores/dinoxStore'
+import { useReadwiseStore } from '@renderer/stores/readwiseStore'
 import { message } from '@renderer/utils/message'
 import Switch from '@renderer/components/ui/Switch.vue'
 import Button from '@renderer/components/ui/Button.vue'
 import Input from '@renderer/components/ui/Input.vue'
+
 const dinoxStore = useDinoxStore()
+const readwiseStore = useReadwiseStore()
 const isConnecting = ref(false)
 const isSaving = ref(false)
 const isSyncing = ref(false)
@@ -178,6 +252,16 @@ const isLoading = ref(true)
 const token = ref('')
 const autoSync = ref(false)
 const syncInterval = ref(15)
+
+// Readwise 相关状态
+const readwiseToken = ref('')
+const readwiseAutoSync = ref(false)
+const readwiseSyncInterval = ref(15)
+const isReadwiseConnecting = ref(false)
+const isReadwiseSaving = ref(false)
+const isReadwiseSyncing = ref(false)
+const readwiseSyncType = ref<'incremental' | 'full'>('incremental')
+const showReadwiseIntervalSelect = ref(false)
 
 // 同步间隔选项
 const syncIntervals = [
@@ -280,6 +364,92 @@ const handleFullSync = async () => {
   }
 }
 
+// 测试 Readwise 连接
+const handleTestReadwiseConnection = async () => {
+  if (!readwiseToken.value) {
+    message.error('请输入 API Token')
+    return
+  }
+
+  isReadwiseConnecting.value = true
+  try {
+    await readwiseStore.updateSyncConfig({
+      token: readwiseToken.value,
+      autoSync: readwiseAutoSync.value,
+      autoSyncInterval: readwiseSyncInterval.value
+    })
+    message.success('连接成功')
+  } catch (error) {
+    console.error('连接测试失败:', error)
+    message.error('连接失败: ' + (error instanceof Error ? error.message : '未知错误'))
+  } finally {
+    isReadwiseConnecting.value = false
+  }
+}
+
+// 保存 Readwise 配置
+const handleSaveReadwiseConfig = async () => {
+  if (!readwiseToken.value) {
+    message.error('请输入 API Token')
+    return
+  }
+
+  isReadwiseSaving.value = true
+  try {
+    await readwiseStore.updateSyncConfig({
+      token: readwiseToken.value,
+      autoSync: readwiseAutoSync.value,
+      autoSyncInterval: readwiseSyncInterval.value
+    })
+    message.success('配置已保存')
+  } catch (error) {
+    console.error('保存配置失败:', error)
+    message.error('保存失败: ' + (error instanceof Error ? error.message : '未知错误'))
+  } finally {
+    isReadwiseSaving.value = false
+  }
+}
+
+// 选择 Readwise 同步间隔
+const selectReadwiseInterval = async (value: number) => {
+  readwiseSyncInterval.value = value
+  showReadwiseIntervalSelect.value = false
+}
+
+// 执行 Readwise 增量同步
+const handleReadwiseIncrementalSync = async () => {
+  if (isReadwiseSyncing.value) return
+
+  readwiseSyncType.value = 'incremental'
+  isReadwiseSyncing.value = true
+  try {
+    const { message: syncMessage } = await readwiseStore.syncHighlights()
+    message.success(syncMessage || '增量同步完成')
+  } catch (error) {
+    console.error('增量同步失败:', error)
+    message.error('增量同步失败: ' + (error instanceof Error ? error.message : '未知错误'))
+  } finally {
+    isReadwiseSyncing.value = false
+  }
+}
+
+// 执行 Readwise 全量同步
+const handleReadwiseFullSync = async () => {
+  if (isReadwiseSyncing.value) return
+
+  readwiseSyncType.value = 'full'
+  isReadwiseSyncing.value = true
+  try {
+    const { message: syncMessage } = await readwiseStore.fullSyncHighlights()
+    message.success(syncMessage || '全量同步完成')
+  } catch (error) {
+    console.error('全量同步失败:', error)
+    message.error('全量同步失败: ' + (error instanceof Error ? error.message : '未知错误'))
+  } finally {
+    isReadwiseSyncing.value = false
+  }
+}
+
 // 组件挂载时初始化数据
 onMounted(async () => {
   try {
@@ -290,6 +460,14 @@ onMounted(async () => {
       token.value = config.token || ''
       autoSync.value = config.autoSync || false
       syncInterval.value = config.autoSyncInterval || 15
+    }
+
+    // 初始化 Readwise 配置
+    const readwiseConfig = await readwiseStore.fetchSyncConfig()
+    if (readwiseConfig) {
+      readwiseToken.value = readwiseConfig.token || ''
+      readwiseAutoSync.value = readwiseConfig.autoSync || false
+      readwiseSyncInterval.value = readwiseConfig.autoSyncInterval || 15
     }
   } catch (error) {
     console.error('加载设置失败:', error)
@@ -610,6 +788,19 @@ onMounted(async () => {
         }
       }
     }
+  }
+}
+
+.settings-group {
+  width: 100%;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 24px;
+
+  .settings-item {
+    margin-bottom: 0;
+    padding: 0;
   }
 }
 </style>

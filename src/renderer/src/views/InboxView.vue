@@ -16,8 +16,18 @@
           <!-- 右侧功能区 -->
           <div class="inbox-header-right">
             <!-- Dinox 同步按钮 -->
-            <Button :loading="isSyncing" :height="36" :icon="InboxIn" @click="handleSyncDinox">
-              {{ isSyncing ? '同步中...' : '同步聆龙' }}
+            <Button :loading="isDinoxSyncing" :height="36" :icon="InboxIn" @click="handleSyncDinox">
+              {{ isDinoxSyncing ? '同步中...' : '同步聆龙' }}
+            </Button>
+
+            <!-- 添加 Readwise 同步按钮 -->
+            <Button
+              :loading="isReadwiseSyncing"
+              :height="36"
+              :icon="BookOne"
+              @click="handleSyncReadwise"
+            >
+              {{ isReadwiseSyncing ? '同步中...' : '同步 Readwise' }}
             </Button>
 
             <!-- 多选按钮 -->
@@ -91,8 +101,9 @@
 import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { useNoteStore } from '@renderer/stores/noteStore'
 import { useDinoxStore } from '@renderer/stores/dinoxStore'
+import { useReadwiseStore } from '@renderer/stores/readwiseStore'
 import AppToolbar from '@renderer/components/layout/AppToolbar.vue'
-import { SortTwo, InboxIn, Checkbox, Inbox } from '@icon-park/vue-next'
+import { SortTwo, InboxIn, Checkbox, Inbox, BookOne } from '@icon-park/vue-next'
 import type { Note } from '@shared/types'
 import CardBoxNoteCard from '@renderer/components/cardbox/CardboxNoteCard.vue'
 import { storeToRefs } from 'pinia'
@@ -103,6 +114,7 @@ import { message } from '@renderer/utils/message'
 
 const noteStore = useNoteStore()
 const dinoxStore = useDinoxStore()
+const readwiseStore = useReadwiseStore()
 const { lastCreatedNote, lastDeletedNote } = storeToRefs(noteStore)
 
 // 状态管理
@@ -112,7 +124,8 @@ const pageSize = ref(28)
 const totalCount = ref(0)
 const hasMoreNotes = ref(true)
 const isLoading = ref(false)
-const isSyncing = ref(false)
+const isDinoxSyncing = ref(false)
+const isReadwiseSyncing = ref(false)
 const showSortMenu = ref(false)
 const cardGridContainer = ref<HTMLElement | null>(null)
 const highlightedNoteId = ref<string | null>(null)
@@ -270,9 +283,9 @@ eventBusEmptyNotesMovedToTrash.on(() => {
 
 // Dinox 同步
 const handleSyncDinox = async () => {
-  if (isSyncing.value) return
+  if (isDinoxSyncing.value) return
 
-  isSyncing.value = true
+  isDinoxSyncing.value = true
   try {
     const result = await dinoxStore.syncNotes()
     message.success(result.message || '同步完成')
@@ -283,14 +296,40 @@ const handleSyncDinox = async () => {
     console.error('同步失败:', error)
     message.error('同步失败: ' + (error instanceof Error ? error.message : '未知错误'))
   } finally {
-    isSyncing.value = false
+    isDinoxSyncing.value = false
+  }
+}
+
+// 添加 Readwise 同步
+const handleSyncReadwise = async () => {
+  if (isReadwiseSyncing.value) return
+
+  isReadwiseSyncing.value = true
+  try {
+    const result = await readwiseStore.syncHighlights()
+    message.success(result.message || '同步完成')
+
+    // 同步完成后刷新笔记列表
+    await resetAndFetch()
+  } catch (error) {
+    console.error('Readwise 同步失败:', error)
+    message.error('同步失败: ' + (error instanceof Error ? error.message : '未知错误'))
+  } finally {
+    isReadwiseSyncing.value = false
   }
 }
 
 // 监听同步完成事件
-const syncCompleteBus = useEventBus('dinoxSyncComplete')
-syncCompleteBus.on(() => {
+const dinoxSyncCompleteBus = useEventBus('dinoxSyncComplete')
+dinoxSyncCompleteBus.on(() => {
   console.log('InboxView.vue → 监听到 Dinox 同步完成事件')
+  resetAndFetch()
+})
+
+// 添加 Readwise 同步完成事件监听
+const readwiseSyncCompleteBus = useEventBus('readwiseSyncComplete')
+readwiseSyncCompleteBus.on(() => {
+  console.log('InboxView.vue → 监听到 Readwise 同步完成事件')
   resetAndFetch()
 })
 
@@ -463,6 +502,15 @@ const handleGlobalClick = (event: MouseEvent) => {
             &.active {
               background-color: var(--color-menu-active-bg);
             }
+          }
+        }
+
+        // 确保按钮之间有合适的间距
+        :deep(.ant-btn) {
+          margin-left: 8px;
+
+          &:first-child {
+            margin-left: 0;
           }
         }
       }

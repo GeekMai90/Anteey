@@ -97,6 +97,10 @@ export interface Note {
     // Dinox 相关元数据
     dinoxNoteId?: string
     dinoxCreateTime?: string
+    // Readwise 相关元数据
+    readwiseHighlightId?: string // 高亮的唯一ID
+    readwiseBookId?: number // 对应书籍的ID
+    readwiseHighlightedAt?: string // 高亮创建时间
   }
 
   // 新增：闪卡相关属性
