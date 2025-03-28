@@ -448,6 +448,9 @@ async function buildMessages(
     //   query: query.slice(0, 50) + (query.length > 50 ? '...' : ''), // 只记录前50个字符
     //   options
     // })
+    log.info('开始构建消息数组:', {
+      query
+    })
 
     const { maxHistoryMessages = MAX_CONTEXT_MESSAGES } = options
     const messages: ChatMessage[] = []

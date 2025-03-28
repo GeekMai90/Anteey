@@ -543,22 +543,22 @@ export class LLMService {
    * @param provider - 提供商
    * @returns 令牌使用信息对象
    */
-  private extractTokenInfo(responseData: any, provider: string): any {
-    if (!responseData) return {}
+  // private extractTokenInfo(responseData: any, provider: string): any {
+  //   if (!responseData) return {}
 
-    switch (provider) {
-      case 'openai':
-      case 'deepseek':
-      case 'moonshot':
-        return responseData.usage || {}
-      case 'anthropic':
-        return responseData.usage || {}
-      case 'gemini':
-        return responseData.usageMetadata || {}
-      default:
-        return {}
-    }
-  }
+  //   switch (provider) {
+  //     case 'openai':
+  //     case 'deepseek':
+  //     case 'moonshot':
+  //       return responseData.usage || {}
+  //     case 'anthropic':
+  //       return responseData.usage || {}
+  //     case 'gemini':
+  //       return responseData.usageMetadata || {}
+  //     default:
+  //       return {}
+  //   }
+  // }
 
   /**
    * 处理OpenAI流式响应

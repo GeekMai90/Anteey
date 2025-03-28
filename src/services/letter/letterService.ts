@@ -686,9 +686,9 @@ export async function checkTodayLetter(): Promise<boolean> {
       .whereBetween('createTime', [startOfDay.toISOString(), endOfDay.toISOString()])
       .count('* as count')
     //todo:记得改回去
-    console.log('count', count)
-    // return Number(count) > 0
-    return false
+    // console.log('count', count)
+    return Number(count) > 0
+    // return false
   } catch (error) {
     console.error('后端→ 检查今日信件状态失败:', error)
     throw error
