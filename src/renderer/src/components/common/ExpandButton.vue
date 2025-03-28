@@ -18,6 +18,7 @@
 <script setup lang="ts">
 import { ExpandTextInput } from '@icon-park/vue-next'
 import { useRouter } from 'vue-router'
+import { useNoteStore } from '@renderer/stores/noteStore'
 
 const props = withDefaults(
   defineProps<{
@@ -29,6 +30,7 @@ const props = withDefaults(
   }
 )
 
+const noteStore = useNoteStore()
 // tooltip配置
 const tooltipConfig = {
   content: '展开编辑',
@@ -39,6 +41,9 @@ const router = useRouter()
 
 const handleExpand = () => {
   router.push({ name: 'NoteExpandEditor', params: { id: props.noteId } })
+  if (noteStore.isEditorOpen) {
+    noteStore.closeNoteEditor()
+  }
 }
 </script>
 
