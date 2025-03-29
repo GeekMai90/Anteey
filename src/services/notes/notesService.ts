@@ -2040,3 +2040,90 @@ export async function batchSoftDeleteNotes(noteIds: string[]): Promise<Note[]> {
     }
   })
 }
+
+// 用于API创建笔记的专门方法
+export async function createNoteViaApi(content: string): Promise<Note> {
+  const now = new Date()
+  const timestamp = now.toISOString().replace(/[-:]/g, '').replace(/\..+/, '').slice(0, 12)
+
+  // 构建 TipTap 格式的内容
+  const tiptapContent = {
+    type: 'doc',
+    content: content.split('\n').map((paragraph) => ({
+      type: 'paragraph',
+      attrs: {
+        textAlign: 'left'
+      },
+      content: [
+        {
+          type: 'text',
+          text: paragraph
+        }
+      ]
+    }))
+  }
+
+  const newNote: Note = {
+    id: uuidv4(),
+    type: 'note',
+    address: `闪念-${timestamp}`, // 例如：闪念-202503291732
+    cardType: 'Draftcard',
+    content: tiptapContent,
+    createdAt: now,
+    updatedAt: now,
+
+    // 引用关系
+    references: {
+      outgoing: [],
+      incoming: []
+    },
+
+    // 关系树（初始为空）
+    relationshipTree: {
+      parents: [],
+      children: [],
+      siblings: []
+    },
+
+    // 图谱数据（初始为空）
+    graphData: {
+      x: 0,
+      y: 0
+    },
+
+    // 基础字段
+    cardBoxId: undefined,
+    parentId: undefined,
+    isDeleted: false,
+    isStarred: false,
+    starredOrder: undefined,
+    rightBarOrder: undefined,
+
+    // 元数据
+    metadata: {
+      title: content.slice(0, 50), // 取第一段内容的前50个字符作为标题
+      summary: ''
+    },
+
+    // 闪卡相关属性
+    isFlashcard: false,
+    flashcard: undefined,
+    nextReviewAt: undefined
+  }
+
+  try {
+    await db('notes').insert({
+      ...newNote,
+      content: JSON.stringify(newNote.content),
+      references: JSON.stringify(newNote.references),
+      relationshipTree: JSON.stringify(newNote.relationshipTree),
+      graphData: JSON.stringify(newNote.graphData),
+      metadata: JSON.stringify(newNote.metadata)
+    })
+
+    return newNote
+  } catch (error) {
+    console.error('通过API创建笔记失败:', error)
+    throw error
+  }
+}

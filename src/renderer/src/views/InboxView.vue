@@ -322,14 +322,29 @@ const updateSingleNote = async (updatedNote: Note) => {
 
 // 监听事件
 noteUpdatedBus.on((updatedNote) => {
+  console.log('InboxView→ 收到笔记更新事件:', updatedNote?.id)
   if (!updatedNote) return
   updateSingleNote(updatedNote)
 })
 
 eventBusCreated.on(() => {
+  console.log('InboxView→ 收到笔记创建事件')
   const createdNote = lastCreatedNote.value
-  if (!createdNote) return
-  notes.value = [createdNote, ...notes.value]
+  console.log('InboxView→ 最新创建的笔记:', createdNote?.id)
+
+  if (!createdNote) {
+    console.log('InboxView→ 没有找到最新创建的笔记')
+    return
+  }
+
+  // 如果是草稿类型的笔记，添加到列表开头
+  if (createdNote.cardType === 'Draftcard') {
+    console.log('InboxView→ 添加草稿笔记到列表:', createdNote.id)
+    notes.value = [createdNote, ...notes.value]
+    totalCount.value++ // 更新总数
+  } else {
+    console.log('InboxView→ 笔记不是草稿类型，忽略:', createdNote.cardType)
+  }
 })
 
 eventBusDeleted.on(() => {
@@ -406,6 +421,18 @@ readwiseSyncCompleteBus.on(() => {
   resetAndFetch()
 })
 
+// 将处理函数提升到顶层
+const noteCreatedHandler = (data: { type: string; data: Note }) => {
+  console.log('InboxView→ 收到IPC note-created事件:', data)
+  if (data.data.cardType === 'Draftcard') {
+    console.log('InboxView→ 添加草稿笔记到列表:', data.data.id)
+    notes.value = [data.data, ...notes.value]
+    totalCount.value++
+  } else {
+    console.log('InboxView→ 笔记不是草稿类型，忽略:', data.data.cardType)
+  }
+}
+
 // 生命周期钩子
 onMounted(() => {
   resetAndFetch()
@@ -424,11 +451,17 @@ onMounted(() => {
 
     resizeObserver.observe(cardGridContainer.value)
   }
+
+  // 添加 IPC 事件监听
+  window.electronAPI.events.on('note-created', noteCreatedHandler)
 })
 
 onUnmounted(() => {
   document.removeEventListener('click', handleGlobalClick)
   cardGridContainer.value?.removeEventListener('scroll', handleVirtualScroll)
+
+  // 移除 IPC 事件监听
+  window.electronAPI.events.off('note-created', noteCreatedHandler)
 })
 
 // 全局点击事件处理

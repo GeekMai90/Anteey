@@ -154,6 +154,9 @@ import type {
   ReadwiseSyncConfig
 } from '@shared/types'
 
+// 定义事件处理函数的类型
+type IpcEventHandler = (...args: any[]) => void
+
 export interface ElectronAPI {
   note: {
     newNote: () => Promise<boolean>
@@ -1402,6 +1405,11 @@ export interface ElectronAPI {
       config: ReadwiseSyncConfig
       message: string
     }>
+  }
+
+  events: {
+    on: (channel: string, handler: IpcEventHandler) => void
+    off: (channel: string, handler: IpcEventHandler) => void
   }
 }
 

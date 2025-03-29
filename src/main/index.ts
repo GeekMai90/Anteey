@@ -33,6 +33,7 @@ import { webdavService } from '@services/webdav/webdavService'
 import { getCurrentConfig } from '@services/cloud/cloudSyncService'
 // import { setupScheduledTasks } from './services/scheduledTasks'
 import { setupDinoxSyncHandlers } from './ipc/dinoxIpcHandlers'
+import { startApiServer } from './api/server'
 
 // 加载环境变量
 config({
@@ -219,6 +220,14 @@ async function createWindow(): Promise<BrowserWindow> {
   // 启用 remote 模块
   // 这个模块允许渲染进程（网页）安全地使用主进程的一些功能
   enable(mainWindow.webContents)
+
+  // 设置全局引用
+  global.mainWindow = mainWindow
+
+  // 当窗口关闭时清除引用
+  mainWindow.on('closed', () => {
+    global.mainWindow = null
+  })
 
   // 恢复窗口状态
   mainWindow.on('ready-to-show', async () => {
@@ -737,6 +746,9 @@ app.whenReady().then(async () => {
     // } catch (error) {
     //   log.error('LanceDB 测试出错:', error)
     // }
+
+    // 启动API服务器
+    startApiServer()
   } catch (error) {
     console.error('主进程→ 应用初始化失败:', error)
     log.error('主进程→ 应用初始化失败:', error)

@@ -46,6 +46,36 @@ contextBridge.exposeInMainWorld('electronLog', {
   debug: (...args: any[]) => ipcRenderer.send('renderer-log', { level: 'debug', args })
 })
 
+// 定义事件处理函数类型
+type IpcEventHandler = (...args: any[]) => void
+
+// 添加事件监听器
+const listeners: { [key: string]: IpcEventHandler[] } = {}
+
+// 注册监听器
+function addListener(channel: string, handler: IpcEventHandler) {
+  if (!listeners[channel]) {
+    listeners[channel] = []
+  }
+  listeners[channel].push(handler)
+
+  // 实际添加 ipcRenderer 监听器
+  ipcRenderer.on(channel, (event, ...args) => {
+    console.log('预加载脚本→ 收到IPC事件:', channel, args)
+    listeners[channel].forEach((f) => f(...args))
+  })
+}
+
+// 移除监听器
+function removeListener(channel: string, handler: IpcEventHandler) {
+  if (!listeners[channel]) return
+  const index = listeners[channel].indexOf(handler)
+  if (index > -1) {
+    listeners[channel].splice(index, 1)
+  }
+}
+
+// 暴露给渲染进程的 API
 contextBridge.exposeInMainWorld('electronAPI', {
   note: {
     ...notesApi
@@ -189,6 +219,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
   readwise: {
     ...readwiseApi
+  },
+  // 添加事件相关的 API
+  events: {
+    on: addListener,
+    off: removeListener
   }
 })
 
