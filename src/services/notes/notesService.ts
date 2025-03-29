@@ -331,9 +331,6 @@ export async function getAllDatesWithNotes(): Promise<string[]> {
 //获取某一天的笔记
 export async function getNotesByOneDate(date: string): Promise<Note[]> {
   try {
-    // console.log('后端→ 开始获取某一天的笔记', date)
-
-    // 将输入的日期字符串转换为当天的开始和结束时间戳
     const startOfDay = new Date(date)
     startOfDay.setHours(0, 0, 0, 0)
     const endOfDay = new Date(date)
@@ -344,12 +341,10 @@ export async function getNotesByOneDate(date: string): Promise<Note[]> {
 
     const notes = await db('notes')
       .where('isDeleted', false)
+      .where('cardType', 'Maincard') // 添加 cardType 筛选条件
       .whereBetween('createdAt', [startTimestamp, endTimestamp])
 
-    // console.log('后端→ 获取某一天的笔记成功', notes)
-
     if (notes.length === 0) {
-      // console.log('后端→ 没有找到该日期的笔记')
       return []
     }
 
