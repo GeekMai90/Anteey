@@ -1,4 +1,4 @@
-import express, { Request, Response } from 'express'
+import express from 'express'
 import cors from 'cors'
 import { BrowserWindow } from 'electron'
 import { createNoteViaApi } from '../../services/notes/notesService'
@@ -18,55 +18,56 @@ server.use(express.json())
 server.use(cors({ origin: '*' }))
 
 // API路由
-server.post('/api/notes', (req: Request, res: Response) => {
-  // 使用异步立即执行函数封装异步处理
-  ;(async () => {
-    try {
-      const { content } = req.body
-      console.log('API服务器→ 收到创建笔记请求:', content.slice(0, 100) + '...')
+server.post('/api/notes', (req: express.Request, res: express.Response): void => {
+  try {
+    const { content } = req.body
+    console.log('API服务器→ 收到创建笔记请求:', content.slice(0, 100) + '...')
 
-      if (!content || typeof content !== 'string') {
-        console.log('API服务器→ 内容验证失败')
-        return res.status(400).json({
-          success: false,
-          error: '内容不能为空且必须是字符串'
-        })
-      }
+    if (!content || typeof content !== 'string') {
+      console.log('API服务器→ 内容验证失败')
+      res.status(400).json({
+        success: false,
+        error: '内容不能为空且必须是字符串'
+      })
+      return
+    }
 
-      const note = await createNoteViaApi(content)
-      console.log('API服务器→ 笔记创建成功，ID:', note.id)
+    createNoteViaApi(content)
+      .then((note) => {
+        console.log('API服务器→ 笔记创建成功，ID:', note.id)
 
-      // 通过IPC通知渲染进程
-      console.log('API服务器→ 准备发送IPC事件')
-      if (global.mainWindow) {
-        // 使用统一的事件名和数据结构
-        global.mainWindow.webContents.send('note-created', {
-          type: 'note-created',
+        // 通过IPC通知渲染进程
+        console.log('API服务器→ 准备发送IPC事件')
+        if (global.mainWindow) {
+          // 使用统一的事件名和数据结构
+          global.mainWindow.webContents.send('note-created', {
+            type: 'note-created',
+            data: note
+          })
+          console.log('API服务器→ IPC事件已发送')
+        } else {
+          console.warn('API服务器→ mainWindow不存在，无法发送IPC事件')
+        }
+
+        res.json({
+          success: true,
           data: note
         })
-        console.log('API服务器→ IPC事件已发送')
-      } else {
-        console.warn('API服务器→ mainWindow不存在，无法发送IPC事件')
-      }
-
-      res.json({
-        success: true,
-        data: note
       })
-    } catch (error) {
-      console.error('API服务器→ 创建笔记失败:', error)
-      res.status(500).json({
-        success: false,
-        error: error instanceof Error ? error.message : '创建笔记失败'
+      .catch((error) => {
+        console.error('API服务器→ 创建笔记失败:', error)
+        res.status(500).json({
+          success: false,
+          error: error instanceof Error ? error.message : '创建笔记失败'
+        })
       })
-    }
-  })().catch((err) => {
-    console.error('API服务器→ 处理异常:', err)
+  } catch (error) {
+    console.error('API服务器→ 处理异常:', error)
     res.status(500).json({
       success: false,
       error: '服务器内部错误'
     })
-  })
+  }
 })
 
 export function startApiServer() {

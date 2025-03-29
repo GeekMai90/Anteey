@@ -60,7 +60,7 @@ function addListener(channel: string, handler: IpcEventHandler) {
   listeners[channel].push(handler)
 
   // 实际添加 ipcRenderer 监听器
-  ipcRenderer.on(channel, (event, ...args) => {
+  ipcRenderer.on(channel, (...args) => {
     console.log('预加载脚本→ 收到IPC事件:', channel, args)
     listeners[channel].forEach((f) => f(...args))
   })
