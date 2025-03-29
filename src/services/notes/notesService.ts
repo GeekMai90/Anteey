@@ -2044,31 +2044,37 @@ export async function batchSoftDeleteNotes(noteIds: string[]): Promise<Note[]> {
 // 用于API创建笔记的专门方法
 export async function createNoteViaApi(content: string): Promise<Note> {
   const now = new Date()
-  const timestamp = now.toISOString().replace(/[-:]/g, '').replace(/\..+/, '').slice(0, 12)
+  // 修改时间戳格式化方式
+  const timestamp = now
+    .toISOString()
+    .slice(0, 19) // 取到秒 (2025-03-29T12:05:30)
+    .replace(/[-:T]/g, '') // 去掉横杠、冒号和T (20250329120530)
 
-  // 构建 TipTap 格式的内容
-  const tiptapContent = {
-    type: 'doc',
-    content: content.split('\n').map((paragraph) => ({
-      type: 'paragraph',
-      attrs: {
-        textAlign: 'left'
-      },
-      content: [
-        {
-          type: 'text',
-          text: paragraph
-        }
-      ]
-    }))
-  }
+  // 构建笔记地址格式: 闪念-YYYYMMDDHHmmss
+  const address = `闪念-${timestamp}` // 例如: 闪念-20250329120530
 
   const newNote: Note = {
     id: uuidv4(),
     type: 'note',
-    address: `闪念-${timestamp}`, // 例如：闪念-202503291732
+    address, // 使用新的地址格式
     cardType: 'Draftcard',
-    content: tiptapContent,
+    content: {
+      type: 'doc',
+      content: [
+        {
+          attrs: {
+            textAlign: 'left'
+          },
+          content: [
+            {
+              type: 'text',
+              text: content
+            }
+          ],
+          type: 'paragraph'
+        }
+      ]
+    },
     createdAt: now,
     updatedAt: now,
 

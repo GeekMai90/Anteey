@@ -327,6 +327,12 @@ noteUpdatedBus.on((updatedNote) => {
   updateSingleNote(updatedNote)
 })
 
+// 修改事件处理函数为更简单的形式
+const noteCreatedHandler = () => {
+  console.log('InboxView→ 收到IPC note-created事件，准备刷新数据')
+  resetAndFetch()
+}
+
 eventBusCreated.on(() => {
   console.log('InboxView→ 收到笔记创建事件')
   const createdNote = lastCreatedNote.value
@@ -420,18 +426,6 @@ readwiseSyncCompleteBus.on(() => {
   console.log('InboxView.vue → 监听到 Readwise 同步完成事件')
   resetAndFetch()
 })
-
-// 将处理函数提升到顶层
-const noteCreatedHandler = (data: { type: string; data: Note }) => {
-  console.log('InboxView→ 收到IPC note-created事件:', data)
-  if (data.data.cardType === 'Draftcard') {
-    console.log('InboxView→ 添加草稿笔记到列表:', data.data.id)
-    notes.value = [data.data, ...notes.value]
-    totalCount.value++
-  } else {
-    console.log('InboxView→ 笔记不是草稿类型，忽略:', data.data.cardType)
-  }
-}
 
 // 生命周期钩子
 onMounted(() => {

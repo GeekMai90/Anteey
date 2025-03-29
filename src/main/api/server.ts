@@ -39,7 +39,7 @@ server.post('/api/notes', (req: express.Request, res: express.Response): void =>
         // 通过IPC通知渲染进程
         console.log('API服务器→ 准备发送IPC事件')
         if (global.mainWindow) {
-          // 使用统一的事件名和数据结构
+          console.log('API服务器→ 准备发送的笔记数据:', note)
           global.mainWindow.webContents.send('note-created', {
             type: 'note-created',
             data: note

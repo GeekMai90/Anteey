@@ -155,7 +155,7 @@ import type {
 } from '@shared/types'
 
 // 定义事件处理函数的类型
-type IpcEventHandler = (...args: any[]) => void
+type IpcEventHandler = (event: any, data?: { type: string; data: Note }) => void
 
 export interface ElectronAPI {
   note: {
