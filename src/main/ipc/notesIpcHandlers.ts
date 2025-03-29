@@ -170,9 +170,9 @@ export function setupNotesHandlers() {
     }
   })
   // 获取所有笔记
-  ipcMain.handle('get-all-notes', async (_event, includeDeleted: boolean) => {
+  ipcMain.handle('get-all-notes', async () => {
     try {
-      const notes = await getAllNotes(includeDeleted)
+      const notes = await getAllNotes()
       return notes
     } catch (error) {
       console.error('Error in get-all-notes handler:', error)

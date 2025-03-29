@@ -26,9 +26,9 @@ export const notesApi = {
       throw error
     }
   },
-  getAllNotes: async (includeDeleted: boolean): Promise<Note[]> => {
+  getAllNotes: async (): Promise<Note[]> => {
     try {
-      return (await ipcRenderer.invoke('get-all-notes', includeDeleted)) as Note[]
+      return (await ipcRenderer.invoke('get-all-notes')) as Note[]
     } catch (error) {
       console.error('Preload: Failed to get all notes:', error)
       throw error

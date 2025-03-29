@@ -98,7 +98,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick, provide } from 'vue'
 import { useNoteStore } from '@renderer/stores/noteStore'
 import { useDinoxStore } from '@renderer/stores/dinoxStore'
 import { useReadwiseStore } from '@renderer/stores/readwiseStore'
@@ -129,6 +129,7 @@ const isReadwiseSyncing = ref(false)
 const showSortMenu = ref(false)
 const cardGridContainer = ref<HTMLElement | null>(null)
 const highlightedNoteId = ref<string | null>(null)
+const lastSelectedNoteId = ref<string | null>(null)
 
 // 排序相关
 const sortState = ref({
@@ -162,7 +163,7 @@ const displayedNotes = computed(() => notes.value)
 const containerHeight = ref(0)
 const scrollTop = ref(0)
 const cardHeight = 300 // 假设每个卡片的固定高度为300px
-const bufferSize = 5 // 上下额外渲染的行数
+const bufferSize = 3 // 将缓冲区大小从5减小到3，可以根据实际效果调整
 
 // 计算视口信息
 const viewportInfo = computed(() => {
@@ -172,16 +173,19 @@ const viewportInfo = computed(() => {
 
   const visibleRows = Math.ceil(containerHeight.value / rowHeight)
   const startRow = Math.floor(scrollTop.value / rowHeight)
-  const endRow = startRow + visibleRows + bufferSize
 
-  const startIndex = Math.max(0, (startRow - bufferSize) * cardsPerRow)
-  const endIndex = Math.min(notes.value.length, (endRow + bufferSize) * cardsPerRow)
+  // 修改这里：确保startRow不会出现负数，并减少上方缓冲区大小
+  const safeStartRow = Math.max(0, startRow - Math.floor(bufferSize / 2))
+  const endRow = startRow + visibleRows + Math.ceil(bufferSize / 2)
+
+  const startIndex = safeStartRow * cardsPerRow
+  const endIndex = Math.min(notes.value.length, endRow * cardsPerRow)
 
   return {
     startIndex,
     endIndex,
     totalHeight: Math.ceil(notes.value.length / cardsPerRow) * rowHeight,
-    paddingTop: startRow * rowHeight
+    paddingTop: safeStartRow * rowHeight // 使用safeStartRow计算paddingTop
   }
 })
 
@@ -241,26 +245,62 @@ const fetchNotes = async () => {
   }
 }
 
-// 添加虚拟滚动处理函数
+// 修改虚拟滚动处理函数的节流时间
 const handleVirtualScroll = useThrottleFn((e: Event) => {
   const target = e.target as HTMLElement
-  scrollTop.value = target.scrollTop
+  const newScrollTop = target.scrollTop
+
+  // 只有当滚动距离变化超过一定阈值时才更新
+  if (Math.abs(newScrollTop - scrollTop.value) > cardHeight / 4) {
+    scrollTop.value = newScrollTop
+  }
 
   // 同时处理无限加载
   const { scrollHeight, clientHeight } = target
   if (
-    scrollHeight - scrollTop.value - clientHeight < 1000 &&
+    scrollHeight - newScrollTop - clientHeight < 1000 &&
     !isLoading.value &&
     hasMoreNotes.value &&
     notes.value.length < totalCount.value
   ) {
     fetchNotes()
   }
-}, 16) // 约60fps
+}, 32) // 将节流时间从16ms增加到32ms，约30fps，可以根据实际效果调整
 
 // 多选模式
 const toggleMultiSelect = () => {
+  if (noteStore.isMultiSelectMode) {
+    lastSelectedNoteId.value = null
+  }
   noteStore.toggleMultiSelectMode()
+}
+
+// 添加处理Shift键多选的方法
+const handleNoteShiftSelect = (noteId: string, shiftKey: boolean) => {
+  if (!noteStore.isMultiSelectMode || !shiftKey || !lastSelectedNoteId.value) {
+    lastSelectedNoteId.value = noteId
+    return false
+  }
+
+  const lastIndex = notes.value.findIndex((note) => note.id === lastSelectedNoteId.value)
+  const currentIndex = notes.value.findIndex((note) => note.id === noteId)
+
+  if (lastIndex === -1 || currentIndex === -1) return false
+
+  const startIndex = Math.min(lastIndex, currentIndex)
+  const endIndex = Math.max(lastIndex, currentIndex)
+
+  for (let i = startIndex; i <= endIndex; i++) {
+    noteStore.selectNote(notes.value[i].id, true)
+  }
+
+  lastSelectedNoteId.value = noteId
+  return true
+}
+
+// 将这个方法提供给子组件
+const provideShiftSelect = {
+  handleNoteShiftSelect
 }
 
 // 事件监听
@@ -407,6 +447,9 @@ const cardGridStyles = computed(() => ({
   backfaceVisibility: 'hidden' as const, // 添加类型断言
   perspective: '1000px' // 修改为字符串类型并添加单位
 }))
+
+// 提供方法给子组件
+provide('provideShiftSelect', provideShiftSelect)
 </script>
 
 <style lang="scss" scoped>
@@ -621,7 +664,7 @@ const cardGridStyles = computed(() => ({
     justify-content: center;
     position: relative;
     will-change: transform; // 优化性能
-    margin-top: 16px;
+    margin-top: 22px;
 
     .card-item {
       height: 300px; // 固定卡片高度

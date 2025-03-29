@@ -67,7 +67,7 @@
 import { Note, Tag } from '@shared/types'
 import { formatDate } from '@renderer/utils/noteHelpers'
 import { CheckOne } from '@icon-park/vue-next'
-import { computed, onUnmounted, ref, watch, onMounted } from 'vue'
+import { computed, onUnmounted, ref, watch, onMounted, inject } from 'vue'
 import { useNoteStore } from '@renderer/stores/noteStore'
 import { useTagStore } from '@renderer/stores/tagStore'
 import { useRouter } from 'vue-router'
@@ -85,6 +85,11 @@ const props = defineProps<{
 
 const noteStore = useNoteStore()
 const tagStore = useTagStore()
+
+// 修改这部分，确保接受两个参数的函数类型
+const { handleNoteShiftSelect } = inject('provideShiftSelect', {
+  handleNoteShiftSelect: () => false
+}) as { handleNoteShiftSelect: (noteId: string, shiftKey: boolean) => boolean }
 
 // 本地控制高亮状态
 const localHighlight = ref(false)
@@ -145,10 +150,20 @@ const cardTypeClass = computed(() => {
   }
 })
 
-// 处理卡片点击
-const handleCardClick = () => {
+// 修改卡片点击处理函数
+const handleCardClick = (event: MouseEvent) => {
   if (noteStore.isMultiSelectMode) {
+    // 如果按住了Shift键，尝试进行范围选择
+    if (event.shiftKey) {
+      // 如果Shift多选成功处理，则直接返回
+      if (handleNoteShiftSelect(props.note.id, true)) {
+        return
+      }
+    }
+    // 单选或Shift多选处理失败，执行普通选择
     toggleSelect()
+    // 记录当前选中的笔记（无论是否按Shift）
+    handleNoteShiftSelect(props.note.id, false)
   }
 }
 

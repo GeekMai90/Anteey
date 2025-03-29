@@ -137,12 +137,13 @@
           <div class="empty-text">暂无笔记，点击左侧边栏"新建笔记"开始创建</div>
         </div>
         <!-- 卡片网格 -->
-        <div v-else name="card-list" tag="div" class="card-grid">
+        <div v-else class="card-grid" :style="cardGridStyles">
           <CardBoxNoteCard
-            v-for="note in displayedNotes"
+            v-for="note in virtualNotes"
             :key="`${note.id}-${new Date(note.updatedAt).toISOString()}`"
-            v-memo="[note.id, note.content, note.createdAt]"
+            v-memo="[note.id, note.content, note.createdAt, highlightedNoteId]"
             class="card-item"
+            :class="{ highlight: note.id === highlightedNoteId }"
             :note="note"
             :highlightedNoteId="highlightedNoteId"
           />
@@ -182,7 +183,17 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, watch, nextTick, onActivated, reactive } from 'vue'
+import {
+  ref,
+  computed,
+  onMounted,
+  onUnmounted,
+  watch,
+  nextTick,
+  onActivated,
+  reactive,
+  provide
+} from 'vue'
 import { useNoteStore } from '@renderer/stores/noteStore'
 import AppToolbar from '@renderer/components/layout/AppToolbar.vue'
 import { SortTwo, Box, EditTwo, Delete, Checkbox } from '@icon-park/vue-next'
@@ -191,7 +202,7 @@ import CardBoxNoteCard from '@renderer/components/cardbox/CardboxNoteCard.vue'
 import { storeToRefs } from 'pinia'
 import { useEventBus, useThrottleFn } from '@vueuse/core'
 import { useRoute, useRouter } from 'vue-router'
-import { GetPaginatedNotesParams } from '@shared/types'
+import { GetPaginatedNotesParams, GetPaginatedNotesResponse } from '@shared/types'
 import CardBoxDropdown from '@renderer/components/cardbox/CardBoxDropdown.vue'
 import TagDropdown from '@renderer/components/cardbox/TagDropdown.vue'
 import { useTagStore } from '@renderer/stores/tagStore'
@@ -234,6 +245,197 @@ const tagStore = useTagStore()
 const isContextMode = ref(false)
 const targetNoteId = ref<string | null>(null)
 const highlightedNoteId = ref<string | null>(null)
+// 添加最后选中的笔记ID
+const lastSelectedNoteId = ref<string | null>(null)
+
+// 添加虚拟列表相关的状态
+const containerHeight = ref(0)
+const scrollTop = ref(0)
+const cardHeight = 300 // 假设每个卡片的固定高度为300px
+const bufferSize = 3 // 上下额外渲染的行数
+
+// 计算视口信息
+const viewportInfo = computed(() => {
+  const containerWidth = cardGridContainer.value?.clientWidth || 0
+  const cardsPerRow = Math.floor(containerWidth / 316) // 300px + 16px gap
+  const rowHeight = cardHeight + 16 // 加上gap的高度
+
+  const visibleRows = Math.ceil(containerHeight.value / rowHeight)
+  const startRow = Math.floor(scrollTop.value / rowHeight)
+
+  // 确保startRow不会出现负数，并减少上方缓冲区大小
+  const safeStartRow = Math.max(0, startRow - Math.floor(bufferSize / 2))
+  const endRow = startRow + visibleRows + Math.ceil(bufferSize / 2)
+
+  const startIndex = safeStartRow * cardsPerRow
+  const endIndex = Math.min(notes.value.length, endRow * cardsPerRow)
+
+  return {
+    startIndex,
+    endIndex,
+    totalHeight: Math.ceil(notes.value.length / cardsPerRow) * rowHeight,
+    paddingTop: safeStartRow * rowHeight
+  }
+})
+
+// 计算实际需要渲染的笔记
+const virtualNotes = computed(() =>
+  notes.value.slice(viewportInfo.value.startIndex, viewportInfo.value.endIndex)
+)
+
+// 修改 fetchNotes 函数
+const fetchNotes = async () => {
+  if (isLoading.value) return
+
+  isLoading.value = true
+  try {
+    const activeFilter = filterStore.activeFilter
+    const params: GetPaginatedNotesParams = {
+      page: currentPage.value,
+      limit: pageSize.value,
+      cardBoxId: filterState.cardBoxId,
+      cardTypes: filterState.cardTypes,
+      tags: filterState.tags,
+      keyword: filterState.keyword,
+      sortBy: filterState.sort.field,
+      sortOrder: filterState.sort.order as 'asc' | 'desc',
+      isFlashcard: filterState.isFlashcard,
+      customFilterId: activeFilter?.id,
+      targetNoteId: targetNoteId.value || undefined
+    }
+
+    const result = (await noteStore.fetchPaginatedNotesByCardbox(
+      params
+    )) as GetPaginatedNotesResponse
+
+    // 如果返回了目标位置，直接计算目标页码
+    if (targetNoteId.value && result.targetPosition !== undefined) {
+      const targetPage = Math.floor(result.targetPosition / pageSize.value) + 1
+      console.log(
+        '目标笔记位置:',
+        result.targetPosition,
+        '目标页码:',
+        targetPage,
+        '当前页码:',
+        currentPage.value
+      )
+
+      if (currentPage.value === 1 && targetPage > 1) {
+        // 如果是第一页且目标在后面的页码，直接跳转到目标页
+        currentPage.value = targetPage
+        notes.value = [] // 清空现有数据
+        isLoading.value = false // 重置加载状态
+        return fetchNotes() // 重新获取正确页码的数据
+      }
+    }
+
+    const sortedNotes = [...result.notes]
+    if (filterState.sort.field === 'address') {
+      sortedNotes.sort((a, b) => {
+        const result = compareAddress(a.address, b.address)
+        return filterState.sort.order === 'asc' ? result : -result
+      })
+    }
+
+    await nextTick(() => {
+      if (currentPage.value === 1) {
+        notes.value = sortedNotes
+      } else {
+        notes.value = [...notes.value, ...sortedNotes]
+      }
+    })
+
+    totalCount.value = result.totalCount
+    hasMoreNotes.value = notes.value.length < result.totalCount
+
+    // 添加：在初始加载完成后检查是否需要加载更多
+    if (currentPage.value === 1) {
+      await nextTick()
+      checkAndLoadMore()
+    }
+
+    // 如果有目标笔记且在当前加载的数据中，滚动到目标位置
+    if (targetNoteId.value && notes.value.some((note) => note.id === targetNoteId.value)) {
+      await nextTick()
+      scrollToTargetNote()
+    }
+
+    // 如果还没有找到目标笔记，且还有更多数据，继续加载下一页
+    if (
+      targetNoteId.value &&
+      !notes.value.some((note) => note.id === targetNoteId.value) &&
+      hasMoreNotes.value
+    ) {
+      currentPage.value++
+      isLoading.value = false // 重置加载状态
+      return fetchNotes()
+    }
+  } catch (error) {
+    console.error('获取笔记失败:', error)
+  } finally {
+    isLoading.value = false
+  }
+}
+
+// 添加新的检查函数
+const checkAndLoadMore = async () => {
+  if (!cardGridContainer.value) return
+
+  const { scrollHeight, clientHeight } = cardGridContainer.value
+  console.log('检查是否需要加载更多:', {
+    scrollHeight,
+    clientHeight,
+    notesLength: notes.value.length,
+    totalCount: totalCount.value,
+    hasMore: hasMoreNotes.value
+  })
+
+  // 如果内容高度等于容器高度，且还有更多数据，自动加载下一页
+  if (
+    scrollHeight <= clientHeight &&
+    !isLoading.value &&
+    hasMoreNotes.value &&
+    !targetNoteId.value &&
+    notes.value.length < totalCount.value
+  ) {
+    console.log('初始加载触发加载更多')
+    currentPage.value++
+    await fetchNotes()
+  }
+}
+
+// 修改 handleScroll 函数
+const handleScroll = useThrottleFn((e: Event) => {
+  const target = e.target as HTMLElement
+  const newScrollTop = target.scrollTop
+
+  // 更新滚动位置
+  scrollTop.value = newScrollTop
+
+  // 处理无限加载
+  const { scrollHeight, clientHeight } = target
+  const scrollBottom = scrollHeight - newScrollTop - clientHeight
+
+  // 当距离底部小于 500px 且还有更多数据时，加载更多
+  if (
+    scrollBottom < 500 &&
+    !isLoading.value &&
+    hasMoreNotes.value &&
+    !targetNoteId.value &&
+    notes.value.length < totalCount.value
+  ) {
+    console.log('滚动触发加载更多', {
+      scrollBottom,
+      isLoading: isLoading.value,
+      hasMore: hasMoreNotes.value,
+      currentPage: currentPage.value,
+      totalNotes: notes.value.length,
+      totalCount: totalCount.value
+    })
+    currentPage.value++
+    fetchNotes()
+  }
+}, 100)
 
 // 添加排序偏好相关接口和方法
 interface SortPreference {
@@ -311,90 +513,69 @@ const compareAddress = (a: string, b: string) => {
   return 0
 }
 
-// 修改 loadAllNotes 函数
-const loadAllNotes = async () => {
-  try {
-    isLoading.value = true
-    notes.value = await window.electronAPI.note.getAllNotes(false)
-    await nextTick()
+// 修改 scrollToTargetNote 函数
+const scrollToTargetNote = () => {
+  if (!targetNoteId.value) {
+    console.log('没有目标笔记ID')
+    return
+  }
 
-    if (targetNoteId.value) {
-      const element = document.getElementById(`note-${targetNoteId.value}`)
-      if (element && cardGridContainer.value) {
-        const containerRect = cardGridContainer.value.getBoundingClientRect()
-        const elementRect = element.getBoundingClientRect()
-        const scrollTop =
-          elementRect.top - containerRect.top + cardGridContainer.value.scrollTop - 20
+  // 找到目标笔记在完整列表中的索引
+  const targetIndex = notes.value.findIndex((note) => note.id === targetNoteId.value)
+  console.log('目标笔记索引:', targetIndex, '当前笔记列表长度:', notes.value.length)
 
-        cardGridContainer.value.scrollTo({
-          top: scrollTop,
-          behavior: 'smooth'
+  if (targetIndex === -1) {
+    console.log('目标笔记不在当前页，尝试加载更多数据')
+    // 如果还有更多数据，继续加载
+    if (hasMoreNotes.value && !isLoading.value) {
+      fetchNotes().then(() => {
+        // 加载完成后重试滚动
+        nextTick(() => {
+          scrollToTargetNote()
         })
-      }
+      })
     }
-  } catch (error) {
-    console.error('加载笔记失败:', error)
-  } finally {
-    isLoading.value = false
+    return
+  }
+
+  // 计算目标笔记所在的行和列
+  const containerWidth = cardGridContainer.value?.clientWidth || 0
+  const cardsPerRow = Math.floor(containerWidth / 316) // 300px + 16px gap
+  const targetRow = Math.floor(targetIndex / cardsPerRow)
+  const rowHeight = cardHeight + 16 // 卡片高度 + 间距
+
+  // 计算目标滚动位置，考虑 padding 和边距
+  const targetScrollTop = targetRow * rowHeight
+
+  // 设置滚动位置
+  if (cardGridContainer.value) {
+    // 先更新 scrollTop 以触发虚拟列表重新渲染
+    scrollTop.value = targetScrollTop
+
+    // 等待虚拟列表重新渲染
+    nextTick(() => {
+      // 确保目标笔记在可视区域内
+      const containerHeight = cardGridContainer.value?.clientHeight || 0
+      const scrollPosition = Math.max(0, targetScrollTop - containerHeight / 3) // 让目标笔记位于视口上方1/3处
+
+      cardGridContainer.value?.scrollTo({
+        top: scrollPosition,
+        behavior: 'smooth'
+      })
+
+      // 设置高亮状态
+      highlightedNoteId.value = targetNoteId.value
+
+      // 5秒后清除高亮状态
+      setTimeout(() => {
+        highlightedNoteId.value = null
+        targetNoteId.value = null
+      }, 5000)
+    })
   }
 }
-// 修改 watch 函数
-watch(
-  () => route.query,
-  async (query) => {
-    if (query.mode === 'context' && query.noteId) {
-      isContextMode.value = true
-      targetNoteId.value = query.noteId as string
-      highlightedNoteId.value = query.noteId as string // 设置高亮ID
-      console.log('进入上下文查看模式，目标笔记ID:', targetNoteId.value)
-      await loadAllNotes()
-    } else {
-      // 如果不是上下文模式，清除高亮
-      isContextMode.value = false
-      targetNoteId.value = null
-      highlightedNoteId.value = null
-    }
-  },
-  { immediate: true }
-)
 
-// 标签列表
-const tags = computed(() => {
-  const validTags = (tagStore.tags || []).filter((tag) => tag && typeof tag.name === 'string')
-  // 按中文名称排序
-  return [...validTags].sort((a, b) => a.name.localeCompare(b.name, 'zh-CN'))
-})
-
-// 组件挂载时初始化数据
-onMounted(async () => {
-  // 如果URL没有排序参数,但有保存的排序偏好,则使用保存的偏好并更新URL
-  if (!route.query.sort && !route.query.order) {
-    const savedPreference = getSavedSortPreference()
-    if (savedPreference) {
-      filterState.sort = savedPreference
-      await updateRouteQuery() // 更新URL参数
-    }
-  }
-
-  // 然后再执行数据获取
-  resetAndFetch()
-  // 获取所有标签（扁平列表）
-  await tagStore.fetchAllTags()
-
-  // 添加事件监听器
-  document.addEventListener('click', handleGlobalClick)
-  document.addEventListener('keydown', handleKeyDown)
-  cardGridContainer.value?.addEventListener('scroll', handleScroll)
-})
-
-// 组件卸载时清理
-onUnmounted(() => {
-  document.removeEventListener('click', handleGlobalClick)
-  document.removeEventListener('keydown', handleKeyDown)
-  cardGridContainer.value?.removeEventListener('scroll', handleScroll)
-})
-
-// 3. 筛选状态
+// 1. 先定义 filterState
 const filterState = reactive({
   cardBoxId: (route.query.box as string) || 'all',
   cardTypes: ((route.query.type as string)?.split(',') || []) as string[],
@@ -428,6 +609,89 @@ const filterState = reactive({
       order: 'asc' as const
     }
   })()
+})
+
+// 2. 然后再定义 watch
+watch(
+  () => route.query,
+  async (query) => {
+    if (query.mode === 'context' && query.noteId) {
+      isContextMode.value = true
+      const noteId = query.noteId as string
+      targetNoteId.value = noteId
+      highlightedNoteId.value = noteId
+
+      // 重置筛选条件和状态
+      filterState.cardBoxId = 'all'
+      filterState.tags = []
+      filterState.cardTypes = []
+      filterState.keyword = ''
+      filterState.isFlashcard = undefined
+
+      // 从第一页开始获取，让 fetchNotes 处理页码计算
+      currentPage.value = 1
+      notes.value = []
+      hasMoreNotes.value = true
+      await fetchNotes()
+    } else {
+      isContextMode.value = false
+      targetNoteId.value = null
+      highlightedNoteId.value = null
+    }
+  },
+  { immediate: true }
+)
+
+// 标签列表
+const tags = computed(() => {
+  const validTags = (tagStore.tags || []).filter((tag) => tag && typeof tag.name === 'string')
+  // 按中文名称排序
+  return [...validTags].sort((a, b) => a.name.localeCompare(b.name, 'zh-CN'))
+})
+
+// 组件挂载时初始化数据
+onMounted(async () => {
+  // 如果URL没有排序参数,但有保存的排序偏好,则使用保存的偏好并更新URL
+  if (!route.query.sort && !route.query.order) {
+    const savedPreference = getSavedSortPreference()
+    if (savedPreference) {
+      filterState.sort = savedPreference
+      await updateRouteQuery() // 更新URL参数
+    }
+  }
+
+  // 然后再执行数据获取
+  resetAndFetch()
+  // 获取所有标签（扁平列表）
+  await tagStore.fetchAllTags()
+
+  // 添加键盘事件监听
+  document.addEventListener('keydown', handleKeyDown)
+
+  // 获取容器高度并设置滚动监听
+  if (cardGridContainer.value) {
+    containerHeight.value = cardGridContainer.value.clientHeight
+    cardGridContainer.value.addEventListener('scroll', handleScroll)
+
+    // 监听容器大小变化
+    const resizeObserver = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        containerHeight.value = entry.contentRect.height
+        // 当容器大小改变时也检查是否需要加载更多
+        checkAndLoadMore()
+      }
+    })
+
+    resizeObserver.observe(cardGridContainer.value)
+  }
+})
+
+// 组件卸载时清理
+onUnmounted(() => {
+  // 移除键盘事件监听
+  document.removeEventListener('keydown', handleKeyDown)
+
+  cardGridContainer.value?.removeEventListener('scroll', handleScroll)
 })
 
 // 4. 监听路由变化
@@ -493,67 +757,9 @@ const updateRouteQuery = () => {
 const resetAndFetch = async () => {
   currentPage.value = 1
   notes.value = []
-  await nextTick() // 确保状态更新
+  hasMoreNotes.value = true // 重置加载更多状态
+  await nextTick()
   fetchNotes()
-}
-
-// 7. 获取笔记数据
-const fetchNotes = async () => {
-  if (isLoading.value) return
-
-  isLoading.value = true
-  try {
-    const activeFilter = filterStore.activeFilter
-
-    console.log('获取笔记数据，当前筛选状态:', {
-      customFilterId: activeFilter?.id,
-      cardBoxId: filterState.cardBoxId,
-      cardTypes: filterState.cardTypes,
-      tags: filterState.tags,
-      page: currentPage.value
-    })
-
-    const params: GetPaginatedNotesParams = {
-      page: currentPage.value,
-      limit: pageSize.value,
-      cardBoxId: filterState.cardBoxId,
-      cardTypes: filterState.cardTypes,
-      tags: filterState.tags,
-      keyword: filterState.keyword,
-      sortBy: filterState.sort.field,
-      sortOrder: filterState.sort.order as 'asc' | 'desc', // 确保类型正确
-      isFlashcard: filterState.isFlashcard,
-      customFilterId: activeFilter?.id
-    }
-
-    const result = await noteStore.fetchPaginatedNotesByCardbox(params)
-
-    // 如果是按地址排序，使用我们的自定义排序函数
-    const sortedNotes = [...result.notes]
-    if (filterState.sort.field === 'address') {
-      sortedNotes.sort((a, b) => {
-        const result = compareAddress(a.address, b.address)
-        return filterState.sort.order === 'asc' ? result : -result
-      })
-    }
-
-    // 使用 nextTick 来确保状态更新是同步的
-    await nextTick(() => {
-      if (currentPage.value === 1) {
-        notes.value = sortedNotes
-      } else {
-        notes.value = [...notes.value, ...sortedNotes]
-      }
-    })
-
-    totalCount.value = result.totalCount
-    hasMoreNotes.value = notes.value.length < totalCount.value
-    currentPage.value++
-  } catch (error) {
-    console.error('获取笔记失败:', error)
-  } finally {
-    isLoading.value = false
-  }
 }
 
 // 8. 监听筛选条件变化
@@ -663,32 +869,6 @@ const handleKeyDown = (event: KeyboardEvent) => {
 const resetPagination = () => {
   currentPage.value = 1
 }
-
-// 滚动加载更多笔记
-const handleScroll = useThrottleFn(() => {
-  if (cardGridContainer.value) {
-    const { scrollTop, scrollHeight, clientHeight } = cardGridContainer.value
-    // 增加判断条件，防止重复加载
-    if (
-      scrollHeight - scrollTop - clientHeight < 1000 &&
-      !isLoading.value &&
-      hasMoreNotes.value &&
-      notes.value.length < totalCount.value
-    ) {
-      console.log('滚动触发，加载更多笔记')
-
-      fetchNotes()
-    }
-  }
-}, 300)
-
-onMounted(() => {
-  cardGridContainer.value?.addEventListener('scroll', handleScroll)
-})
-
-onUnmounted(() => {
-  cardGridContainer.value?.removeEventListener('scroll', handleScroll)
-})
 
 // 设置事件总线，用于监听笔记更新和创建事件
 const noteUpdatedBus = useEventBus<Note>('note-updated')
@@ -1094,8 +1274,58 @@ const handleFlashcardFilterChange = (value: boolean | undefined) => {
 
 // 多选相关方法
 const toggleMultiSelect = () => {
+  if (noteStore.isMultiSelectMode) {
+    // 退出多选模式时清空最后选中的笔记ID
+    lastSelectedNoteId.value = null
+  }
   noteStore.toggleMultiSelectMode()
 }
+
+// 添加处理Shift键多选的方法
+const handleNoteShiftSelect = (noteId: string, shiftKey: boolean) => {
+  if (!noteStore.isMultiSelectMode || !shiftKey || !lastSelectedNoteId.value) {
+    // 如果不是多选模式，或者没有按住Shift键，或者没有上一次选中的笔记
+    // 则只记录当前选中的笔记ID
+    lastSelectedNoteId.value = noteId
+    return false
+  }
+
+  // 查找上一次选中的笔记和当前选中的笔记的索引
+  const lastIndex = notes.value.findIndex((note) => note.id === lastSelectedNoteId.value)
+  const currentIndex = notes.value.findIndex((note) => note.id === noteId)
+
+  if (lastIndex === -1 || currentIndex === -1) return false
+
+  // 确定开始和结束索引（可能是从下往上选的）
+  const startIndex = Math.min(lastIndex, currentIndex)
+  const endIndex = Math.max(lastIndex, currentIndex)
+
+  // 选中两个索引之间的所有笔记
+  for (let i = startIndex; i <= endIndex; i++) {
+    noteStore.selectNote(notes.value[i].id, true) // 添加到已选中列表，不切换状态
+  }
+
+  // 更新最后选中的笔记ID
+  lastSelectedNoteId.value = noteId
+  return true
+}
+
+// 将这个方法提供给子组件
+const provideShiftSelect = {
+  handleNoteShiftSelect
+}
+
+// 添加样式计算属性
+const cardGridStyles = computed(() => ({
+  height: `${viewportInfo.value.totalHeight}px`,
+  paddingTop: `${viewportInfo.value.paddingTop}px`,
+  transform: 'translate3d(0, 0, 0)', // 启用GPU加速
+  backfaceVisibility: 'hidden' as const,
+  perspective: '1000px'
+}))
+
+// 在生命周期钩子或适当位置添加provide
+provide('provideShiftSelect', provideShiftSelect)
 </script>
 
 <style lang="scss" scoped>
@@ -1322,15 +1552,19 @@ const toggleMultiSelect = () => {
     padding: 16px 20px;
     align-content: start;
     justify-content: center;
+    position: relative;
+    will-change: transform; // 优化性能
+    margin-top: 16px;
 
-    // 使用视口单位和 clamp 函数来控制卡片高度
-    --card-height: clamp(250px, calc(20vw - 32px), 350px);
-    grid-auto-rows: var(--card-height);
-
-    // 计算每行可以容纳的卡片数量
-    --cards-per-row: calc((100% - 32px) / (300px + 16px));
     .card-item {
-      transition: all 0.2s ease;
+      height: 300px;
+      transition: all 0.3s ease;
+
+      &.highlight {
+        box-shadow: 0 0 0 2px var(--color-primary);
+        transform: scale(1.02);
+        z-index: 1;
+      }
     }
   }
   .card-list-enter-active,

@@ -589,16 +589,12 @@ export async function getNoteById(id: string): Promise<Note | null> {
   }
 }
 
-// 获取所有笔记
-// 获取所有笔记
-export async function getAllNotes(includeDeleted: boolean = false): Promise<Note[]> {
+// 获取所有笔记(排除已删除和Draftcard类型)
+export async function getAllNotes(): Promise<Note[]> {
   try {
-    let query = db('notes')
-    if (!includeDeleted) {
-      query = query.where('isDeleted', false)
-    }
-    // 修改排序方式：使用单引号包裹空字符串
-    const noteRecords = await query
+    const noteRecords = await db('notes')
+      .where('isDeleted', false)
+      .whereNot('cardType', 'Draftcard')
       .orderByRaw("CASE WHEN address = '' OR address IS NULL THEN 1 ELSE 0 END")
       .orderBy('address', 'asc')
 
@@ -1504,13 +1500,18 @@ export async function getPaginatedNotesByCardbox({
   isFlashcard,
   sortBy = 'address',
   sortOrder = 'asc',
-  customFilterId
-}: GetPaginatedNotesParams): Promise<{ notes: Note[]; totalCount: number }> {
+  customFilterId,
+  targetNoteId
+}: GetPaginatedNotesParams): Promise<{
+  notes: Note[]
+  totalCount: number
+  targetPosition?: number
+}> {
   try {
     let query = db('notes')
       .leftJoin('note_tags', 'notes.id', 'note_tags.noteId')
       .where('notes.isDeleted', false)
-      .whereNot('notes.cardType', 'Draftcard') // 添加排除 Draftcard 的条件
+      .whereNot('notes.cardType', 'Draftcard')
       .distinct('notes.*')
 
     // 如果有自定义筛选规则，优先使用自定义规则
@@ -1596,6 +1597,30 @@ export async function getPaginatedNotesByCardbox({
       query = query.where('notes.isFlashcard', isFlashcard)
     }
 
+    // 如果提供了目标笔记ID，先获取它的位置
+    let targetPosition: number | undefined
+    if (targetNoteId) {
+      // 克隆当前查询，添加排序条件
+      const positionQuery = query.clone().orderBy(`notes.${sortBy}`, sortOrder)
+
+      // 获取目标笔记之前的记录数
+      const beforeCount = await positionQuery
+        .clone()
+        .where(function () {
+          if (sortOrder === 'asc') {
+            this.where(`notes.${sortBy}`, '<', db('notes').where('id', targetNoteId).select(sortBy))
+          } else {
+            this.where(`notes.${sortBy}`, '>', db('notes').where('id', targetNoteId).select(sortBy))
+          }
+        })
+        .count('* as count')
+        .first()
+
+      if (beforeCount) {
+        targetPosition = Number(beforeCount.count)
+      }
+    }
+
     // 计算总数
     const countResult = await query.clone().count('* as count').first()
     const totalCount = countResult ? (countResult.count as number) : 0
@@ -1604,12 +1629,15 @@ export async function getPaginatedNotesByCardbox({
     const offset = (page - 1) * limit
     const notes = await query.orderBy(`notes.${sortBy}`, sortOrder).limit(limit).offset(offset)
 
-    // console.log('后端→ 查询结果数量:', notes.length)
-    // console.log('后端→ 总计数:', totalCount)
-
+    console.log('后端→ 获取分页笔记成功:', {
+      notes: notes.map((note) => note.id),
+      totalCount,
+      targetPosition
+    })
     return {
       notes: notes.map(convertToNote),
-      totalCount
+      totalCount,
+      targetPosition
     }
   } catch (error) {
     console.error('后端→ 获取分页笔记失败:', error)

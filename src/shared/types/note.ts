@@ -253,6 +253,7 @@ export interface GetPaginatedNotesParams {
   sortBy: string // 排序字段
   sortOrder: 'asc' | 'desc'
   customFilterId?: string // 新增：自定义筛选规则ID
+  targetNoteId?: string // 新增：目标笔记ID
 }
 
 // 时间线查询参数接口
@@ -278,4 +279,11 @@ export interface TimelineQueryResult {
   totalCount: number // 总数
   currentPage?: number // 当前页码（仅在 mode='all' 时返回）
   hasMore?: boolean // 是否还有更多（仅在 mode='all' 时返回）
+}
+
+// 1. 首先需要更新 GetPaginatedNotesResponse 接口
+export interface GetPaginatedNotesResponse {
+  notes: Note[]
+  totalCount: number
+  targetPosition?: number // 添加可选的 targetPosition 属性
 }

@@ -1450,13 +1450,17 @@ export const useNoteStore = defineStore(
       }
     }
 
-    const selectNote = (noteId: string) => {
+    const selectNote = (noteId: string, addOnly = false) => {
       const index = selectedNoteIds.value.indexOf(noteId)
+
       if (index === -1) {
+        // 笔记未选中，添加到选中列表
         selectedNoteIds.value.push(noteId)
-      } else {
+      } else if (!addOnly) {
+        // 笔记已选中且不是仅添加模式，从选中列表移除
         selectedNoteIds.value.splice(index, 1)
       }
+      // 如果是仅添加模式且笔记已选中，不做任何操作
     }
 
     const clearSelectedNotes = () => {
