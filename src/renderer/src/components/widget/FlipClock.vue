@@ -9,9 +9,6 @@
         </div>
       </div>
 
-      <!-- 分隔符 -->
-      <!-- <div class="separator">:</div> -->
-
       <!-- 秒钟 -->
       <div ref="secondsRef" class="tick" data-value="00">
         <div data-view="flip">
@@ -26,6 +23,8 @@
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount, watch } from 'vue'
 import Tick from '@pqina/flip'
+// 引入样式使用 @use 替代 @import
+import '@pqina/flip/dist/flip.min.css'
 
 const props = defineProps<{
   value: string
@@ -69,14 +68,12 @@ onBeforeUnmount(() => {
 })
 </script>
 
-<style>
-@import '@pqina/flip/dist/flip.min.css';
+<style scoped>
+/* 注意：对于第三方库的 CSS，仍然可以使用 @import */
+/* @import '@pqina/flip/dist/flip.min.css'; 移到 script 中使用 import */
 
 .flip-clock-card {
-  /* background: var(--color-bg-primary); */
   border-radius: 8px;
-  /* padding: 12px; */
-  /* border: 1px solid var(--color-border); */
 }
 
 .flip-clock {
@@ -94,7 +91,7 @@ onBeforeUnmount(() => {
   text-align: center;
 }
 
-/* 自定义翻页样式 */
+/* 更新深度选择器语法 :deep() */
 :deep(.tick [data-view='flip-front']),
 :deep(.tick [data-view='flip-back']) {
   background: var(--color-bg-primary);
@@ -104,7 +101,7 @@ onBeforeUnmount(() => {
   padding: 4px 0;
 }
 
-/* 隐藏 Powered by 标记 */
+/* 更新深度选择器语法 */
 :deep(.tick-credits) {
   display: none !important;
 }

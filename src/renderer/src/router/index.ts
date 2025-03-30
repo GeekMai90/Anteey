@@ -116,11 +116,6 @@ const routes = [
     component: () => import('../views/DraftsView.vue')
   },
   {
-    name: 'DictionaryManage',
-    path: '/dictionary-manage',
-    component: () => import('../views/DictionaryManageView.vue')
-  },
-  {
     name: 'MindboardView',
     path: '/mindboard', // 思维板
     component: () => import('../views/MindboardView.vue')

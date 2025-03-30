@@ -519,10 +519,9 @@ export const useNoteStore = defineStore(
     }
 
     const searchNotesList = async (query: string) => {
-      console.log('noteStores.ts→ 开始搜索笔记列表', query)
       try {
         const notes = await window.electronAPI.note.searchNotesList(query)
-        console.log('noteStores.ts→ 搜索笔记列表成功', notes)
+
         return notes
       } catch (error) {
         console.error('noteStores.ts→ 搜索笔记列表失败:', error)
@@ -531,7 +530,7 @@ export const useNoteStore = defineStore(
     }
     // 获取卡片盒分页笔记
     const fetchPaginatedNotesByCardbox = async (params: GetPaginatedNotesParams) => {
-      console.log('noteStores.ts→ 开始获取卡片盒分页笔记', params)
+      // console.log('noteStores.ts→ 开始获取卡片盒分页笔记', params)
       try {
         const { cardTypes = [], tags = [], ...otherParams } = params
 

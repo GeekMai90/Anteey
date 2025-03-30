@@ -1,10 +1,14 @@
+@use "sass:color";
+@use "sass:map";
+@use "sass:math";
+
 // 颜色变量
 //
 // 这个文件包含了整个项目中使用的所有颜色变量。
 // 使用这些变量可以确保整个项目的颜色一致性。
 //
 // 如何使用：
-// 1. 在你的 SCSS 文件中导入这个文件：@import 'path/to/variables';
+// 1. 在你的 SCSS 文件中导入这个文件：@use 'path/to/variables' as *;
 // 2. 使用变量：background-color: $primary-color;
 
 // 1. 基础颜色系统
@@ -34,29 +38,29 @@ $neutral: (
 );
 
 @function neutral($key) {
-  @return map-get($neutral, $key);
+  @return map.get($neutral, $key);
 }
 
 @function primary($variant: "base") {
-  $color: #00c8a8; // 基础品牌色
+  $color: #00c8a8;
 
-  @if $variant == "base" {
-    @return $color;
-  }
-  @if $variant == "rgb" {
-    @return "0, 200, 168";
-  }
-  @if $variant == "hover" {
-    @return darken($color, 5%);
-  }
-  @if $variant == "light" {
-    @return rgba($color, 0.1);
-  }
-  @if $variant == "dark" {
-    @return darken($color, 3%);
-  }
-
-  @return $color;
+  @return if(
+    $variant == "base",
+    $color,
+    if(
+      $variant == "rgb",
+      "0, 200, 168",
+      if(
+        $variant == "hover",
+        color.adjust($color, $lightness: -5%),
+        if(
+          $variant == "light",
+          color.change($color, $alpha: 0.1),
+          if($variant == "dark", color.adjust($color, $lightness: -3%), $color)
+        )
+      )
+    )
+  );
 }
 
 // 2. 语义化颜色变量
@@ -107,8 +111,8 @@ $color-info-dark: #138496;
 // B. 交互状态颜色
 // 链接颜色
 $color-link: $primary-color;
-$color-link-hover: darken($primary-color, 10%);
-$color-link-visited: darken($primary-color, 15%);
+$color-link-hover: color.adjust($primary-color, $lightness: -10%);
+$color-link-visited: color.adjust($primary-color, $lightness: -15%);
 
 // 按钮悬浮状态
 $color-button-hover: rgba($primary-color, 0.08);
@@ -374,7 +378,7 @@ $shadow-card: 0 2px 6px rgba($black, 0.12);
   --color-bg-brand-light: #{rgba($primary-color, 0.1)};
   --color-bg-note-card: #{$white};
   --color-bg-backlink-note-card: #{neutral(100)};
-  --color-bg-modal: #{rgba($black, 0.32)};
+  --color-bg-modal: #{color.change($black, $alpha: 0.32)};
 
   // 5. 边框颜色
   --color-border-default: #{neutral(300)};
@@ -413,31 +417,31 @@ $shadow-card: 0 2px 6px rgba($black, 0.12);
   --color-yellow: #ff9f1c;
   --color-yellow-rgb: 255, 159, 28;
   --color-yellow-light: #{rgba(#ff9f1c, 0.1)};
-  --color-yellow-dark: #{darken(#ff9f1c, 10%)};
+  --color-yellow-dark: #{color.scale(#ff9f1c, $lightness: -10%)};
 
   // 蓝色系
   --color-blue: #4361ee;
   --color-blue-rgb: 67, 97, 238;
   --color-blue-light: #{rgba(#4361ee, 0.1)};
-  --color-blue-dark: #{darken(#4361ee, 10%)};
+  --color-blue-dark: #{color.scale(#4361ee, $lightness: -10%)};
 
   // 粉色系
   --color-pink: #f72585;
   --color-pink-rgb: 247, 37, 133;
   --color-pink-light: #{rgba(#f72585, 0.1)};
-  --color-pink-dark: #{darken(#f72585, 10%)};
+  --color-pink-dark: #{color.adjust(#f72585, $lightness: -10%)};
 
   // 红色系
   --color-red: #ff4d4f;
   --color-red-rgb: 255, 77, 79;
   --color-red-light: #{rgba(#ff4d4f, 0.1)};
-  --color-red-dark: #{darken(#ff4d4f, 10%)};
+  --color-red-dark: #{color.adjust(#ff4d4f, $lightness: -10%)};
 
   // 草稿卡片颜色
   --color-draft: #9c9cff;
   --color-draft-rgb: 156, 156, 255;
   --color-draft-light: #{rgba(#9c9cff, 0.1)};
-  --color-draft-dark: #{darken(#9c9cff, 10%)};
+  --color-draft-dark: #{color.adjust(#9c9cff, $lightness: -10%)};
 
   // 8. 选中状态颜色系统
   // 系统默认选中色（浅蓝）
@@ -454,9 +458,9 @@ $shadow-card: 0 2px 6px rgba($black, 0.12);
 
   // 10. 交互状态颜色系统
   // 悬浮背景色
-  --color-hover-bg: #{rgba($black, 0.05)}; // 使用 neutral-200 替代 $gray-200
-  --color-hover-button: #{rgba($black, 0.05)}; // 使用 $black 变量的透明版本
-  --color-hover-sidebar: #{rgba(neutral(200), 0.5)}; // 使用 neutral-200 的半透明版本替代 #e0e0e07f
+  --color-hover-bg: #{color.change($black, $alpha: 0.05)};
+  --color-hover-button: #{color.change($black, $alpha: 0.05)};
+  --color-hover-sidebar: #{color.change(neutral(200), $alpha: 0.5)};
 
   // 11. 侧边栏颜色系统
   // 悬浮状态
@@ -547,7 +551,7 @@ $shadow-card: 0 2px 6px rgba($black, 0.12);
   --color-code-block-bg: #f5f7f7;
   --color-code-block-border: #85858586;
   --color-code-block-bg-segment: #f5f5f5;
-  --color-inline-code-text: #{darken(#20ceae, 10%)};
+  --color-inline-code-text: #{color.adjust(#20ceae, $lightness: -10%)};
 
   // 分享视图
   --color-share-text-white: #f2f2f2;
@@ -561,9 +565,9 @@ $shadow-card: 0 2px 6px rgba($black, 0.12);
   // 1. 品牌色（稍微调亮）
   --color-primary: #20ceae; // 调亮的主色
   --color-primary-rgb: 32, 206, 174;
-  --color-primary-hover: #{lighten(#20ceae, 5%)};
+  --color-primary-hover: #{color.adjust(#20ceae, $lightness: 5%)};
   --color-primary-light: #{rgba(#20ceae, 0.15)};
-  --color-primary-dark: #{darken(#20ceae, 10%)};
+  --color-primary-dark: #{color.adjust(#20ceae, $lightness: -10%)};
 
   // 2. 中性色（反转）
   --color-neutral-100: #1d1e1e; // 最深
@@ -609,43 +613,43 @@ $shadow-card: 0 2px 6px rgba($black, 0.12);
   --color-success: #3ac858;
   --color-success-rgb: 58, 200, 88;
   --color-success-light: #{rgba(#3ac858, 0.2)};
-  --color-success-dark: #{darken(#3ac858, 10%)};
+  --color-success-dark: #{color.adjust(#3ac858, $lightness: -10%)};
 
   --color-warning: #ffb23c;
   --color-warning-rgb: 255, 178, 60;
   --color-warning-light: #{rgba(#ffb23c, 0.2)};
-  --color-warning-dark: #{darken(#ffb23c, 10%)};
+  --color-warning-dark: #{color.adjust(#ffb23c, $lightness: -10%)};
 
   --color-danger: #ff6b6b;
   --color-danger-rgb: 255, 107, 107;
   --color-danger-light: #{rgba(#ff6b6b, 0.2)};
-  --color-danger-dark: #{darken(#ff6b6b, 10%)};
+  --color-danger-dark: #{color.adjust(#ff6b6b, $lightness: -10%)};
 
   --color-info: #5cbbf6;
   --color-info-rgb: 92, 187, 246;
   --color-info-light: #{rgba(#5cbbf6, 0.2)};
-  --color-info-dark: #{darken(#5cbbf6, 10%)};
+  --color-info-dark: #{color.adjust(#5cbbf6, $lightness: -10%)};
 
   // 7. 功能色和辅助色系统（调亮）
   --color-yellow: #ffb23c;
   --color-yellow-rgb: 255, 178, 60;
   --color-yellow-light: #{rgba(#ffb23c, 0.15)};
-  --color-yellow-dark: #{darken(#ffb23c, 10%)};
+  --color-yellow-dark: #{color.scale(#ff9f1c, $lightness: -10%)};
 
   --color-blue: #5c7cff;
   --color-blue-rgb: 92, 124, 255;
   --color-blue-light: #{rgba(#5c7cff, 0.15)};
-  --color-blue-dark: #{darken(#5c7cff, 10%)};
+  --color-blue-dark: #{color.scale(#4361ee, $lightness: -10%)};
 
   --color-pink: #ff8fa6;
   --color-pink-rgb: 255, 143, 166;
   --color-pink-light: #{rgba(#ff8fa6, 0.15)};
-  --color-pink-dark: #{darken(#ff8fa6, 10%)};
+  --color-pink-dark: #{color.adjust(#ff8fa6, $lightness: -10%)};
 
   --color-red: #ff6b6b;
   --color-red-rgb: 255, 107, 107;
   --color-red-light: #{rgba(#ff6b6b, 0.15)};
-  --color-red-dark: #{darken(#ff6b6b, 10%)};
+  --color-red-dark: #{color.adjust(#ff6b6b, $lightness: -10%)};
 
   // 8. 选中状态颜色系统
   --color-system-selection: rgba(#5c7cff, 0.3);
@@ -658,8 +662,8 @@ $shadow-card: 0 2px 6px rgba($black, 0.12);
 
   // 10. 交互状态颜色系统
   --color-hover-bg: var(--color-neutral-200);
-  --color-hover-button: #{rgba(255, 255, 255, 0.1)};
-  --color-hover-sidebar: #{rgba(255, 255, 255, 0.05)};
+  --color-hover-button: #{color.change(#ffffff, $alpha: 0.1)};
+  --color-hover-sidebar: #{color.change(#ffffff, $alpha: 0.05)};
 
   // 11. 侧边栏颜色系统
   --color-sidebar-hover: var(--color-neutral-200);

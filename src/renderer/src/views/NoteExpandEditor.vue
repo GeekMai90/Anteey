@@ -77,8 +77,7 @@
               'historyVersion',
               'share',
               'exportNote',
-              'delete',
-              'aiProcess'
+              'delete'
             ]"
           />
         </div>
@@ -232,7 +231,6 @@ import DoubleArrowButton from '@renderer/components/ui/DoubleArrowButton.vue'
 import MarioLeftButton from '@renderer/components/ui/MarioLeftButton.vue'
 import * as d3 from 'd3'
 import { useUIStore } from '../stores/UIStore'
-import { useNoteAIProcessStore } from '../stores/noteAIProcessStore'
 
 // === 组件状态管理 ===
 const tiptapEditor = ref<any>(null)
@@ -319,13 +317,6 @@ const fetchNoteTags = async (noteId: string) => {
   }
 }
 
-// 初始化 store
-const noteAIProcessStore = useNoteAIProcessStore()
-
-// 3. 添加初始状态记录
-const initialCharCount = ref(0)
-const lastProcessTime = ref<Date | null>(null)
-
 // 4. 修改初始化笔记的方法
 const initializeNote = async (noteId: string) => {
   try {
@@ -335,18 +326,6 @@ const initializeNote = async (noteId: string) => {
       await fetchNoteTags(noteId)
       noteStore.setCurrentEchoNoteId(noteId)
 
-      // 记录初始字数
-      nextTick(() => {
-        initialCharCount.value = tiptapEditor.value?.characterCount || 0
-        console.log('NoteExpandEditor.vue→ 初始字数:', initialCharCount.value)
-      })
-
-      // 获取上次处理时间
-      const aiStatus = await noteAIProcessStore.getNoteAIStatus(noteId)
-      if (aiStatus.aiProcessingStatus?.lastKeywordUpdateAt) {
-        lastProcessTime.value = new Date(aiStatus.aiProcessingStatus.lastKeywordUpdateAt)
-      }
-
       focusEditor()
     } else {
       message.error('笔记不存在')
@@ -355,38 +334,6 @@ const initializeNote = async (noteId: string) => {
     console.error('加载笔记失败:', error)
     message.error('加载笔记失败')
   }
-}
-
-// 5. 修改判断是否需要重新处理的方法
-const shouldReprocess = (): boolean => {
-  if (!currentNote.value || !tiptapEditor.value) return false
-
-  // 如果从未处理过（lastProcessTime 为 null），则需要处理
-  if (!lastProcessTime.value) {
-    return true
-  }
-
-  // 获取当前字数
-  const currentCharCount = tiptapEditor.value.characterCount
-  const charCountDiff = Math.abs(currentCharCount - initialCharCount.value)
-  const changeRatio = charCountDiff / Math.max(initialCharCount.value, 1)
-
-  // 检查各个条件
-  const hasSignificantChange = changeRatio > 0.2
-  const MIN_CONTENT_LENGTH = 50
-  const hasEnoughContent = currentCharCount >= MIN_CONTENT_LENGTH
-
-  // 如果内容太短，不处理
-  if (!hasEnoughContent) {
-    return false
-  }
-
-  // 如果变化不大，不处理
-  if (!hasSignificantChange) {
-    return false
-  }
-
-  return true
 }
 
 // 组件挂载时加载笔记
@@ -565,22 +512,6 @@ const saveCurrentNote = async () => {
 onBeforeRouteLeave(async (_to, _from, next) => {
   try {
     await saveCurrentNote()
-
-    // 检查是否需要触发 AI 处理
-    if (shouldReprocess()) {
-      // 不等待 AI 处理完成，直接在后台处理
-      message.loading('正在投喂AI...', 0)
-      noteAIProcessStore
-        .triggerProcessing(currentNote.value!.id)
-        .then(() => {
-          message.destroy()
-          message.success('投喂AI成功')
-        })
-        .catch((error) => {
-          console.error('触发 AI 处理失败:', error)
-          message.error('AI 处理触发失败，请稍后重试')
-        })
-    }
 
     // 清理图谱组件
     const svgElements = document.querySelectorAll('.tree-graph')

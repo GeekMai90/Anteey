@@ -38,16 +38,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useRoute } from 'vue-router'
-import {
-  Split,
-  Notepad,
-  Components,
-  Box,
-  Robot,
-  Log,
-  LinkTwo,
-  MailPackage
-} from '@icon-park/vue-next'
+import { Split, Notepad, Components, Box, Robot, Log, MailPackage } from '@icon-park/vue-next'
 import MultiNotes from '@renderer/components/rightSidebar/MultiNotes.vue'
 import BacklinksPanelNoteEditor from '@renderer/components/rightSidebar/BacklinksPanelNoteEditor.vue'
 import RightSidebarDraftsEditor from '@renderer/components/rightSidebar/RightSidebarDraftsEditor.vue'
@@ -55,7 +46,6 @@ import RightSidebarWidgets from '@renderer/components/rightSidebar/RightSidebarW
 import RightSidebarCardbox from '@renderer/components/rightSidebar/RightSidebarCardbox.vue'
 import RightSidebarAssistant from '@renderer/components/rightSidebar/RightSidebarAssistant.vue'
 import RightSidebarLetters from '@renderer/components/rightSidebar/RightSidebarLetters.vue'
-import RelatedNotes from '@renderer/components/rightSidebar/RelatedNotes.vue'
 import { useUIStore } from '@renderer/stores/UIStore'
 const props = defineProps<{
   initialWidth?: number
@@ -84,12 +74,6 @@ const tabs = [
     label: '回链笔记',
     icon: Log,
     component: BacklinksPanelNoteEditor
-  },
-  {
-    key: 'related',
-    label: '相关笔记',
-    icon: LinkTwo,
-    component: RelatedNotes
   },
   {
     key: 'letters',

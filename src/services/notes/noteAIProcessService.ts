@@ -3,7 +3,6 @@ import { LLMService } from '../rag/llmService'
 import log from 'electron-log'
 import { AIProcessingResult } from '@shared/types'
 import { processNoteContent } from '../aiChat/ProcessNoteContent'
-import { generateEmbeddingFromContent } from '../rag/embeddingService'
 
 export class NoteAIProcessService {
   private llmService: LLMService
@@ -217,9 +216,7 @@ ${plainText}`
             const modelConfigId = await this.getAIProcessModelId()
             const response = await this.llmService.generateResponse(prompt, modelConfigId)
             return this.extractJsonFromResponse(response)
-          })(),
-          // 向量化处理 - 不需要获取结果
-          generateEmbeddingFromContent(noteId, note.content).then(() => undefined)
+          })()
         ])
 
         // 验证 AI 结果

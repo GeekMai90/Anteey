@@ -14,8 +14,8 @@ import { FilterRule } from '@shared/types'
 import { db } from '../../db/config'
 
 import { getCurrentAuthState } from '../auth/authService'
-import { updateNoteEmbedding } from '../rag/embeddingService'
-import { LanceService } from '../../db/vector/lanceService'
+import { ImageService } from '../images/imageService'
+
 // 辅助函数：将数据库记录转换为 Note 对象
 export function convertToNote(record: any): Note {
   return {
@@ -838,7 +838,6 @@ export async function permanentDeleteNote(id: string): Promise<void> {
 
         // 删除笔记中的所有图片
         if (imagePaths.length > 0) {
-          const { ImageService } = await import('../images/imageService')
           const imageService = new ImageService()
 
           for (const imagePath of imagePaths) {
@@ -1816,102 +1815,6 @@ export async function getRecentEditedNotes(): Promise<
   } catch (error) {
     console.error('后端→ 获取最近编辑的主卡片笔记失败:', error)
     throw new Error('获取最近编辑的主卡片笔记失败')
-  }
-}
-
-/**
- * 在笔记编辑器关闭时更新向量
- */
-export async function updateNoteVectorOnClose(id: string, content: object): Promise<void> {
-  try {
-    // 直接更新向量，不需要比较内容
-    await updateNoteEmbedding(id, content)
-
-    // 更新向量化时间
-    await db('notes').where('id', id).update({ lastVectorizedAt: new Date() })
-
-    console.log('笔记向量更新成功:', { noteId: id })
-  } catch (error) {
-    console.error('笔记向量更新失败:', { noteId: id, error })
-  }
-}
-
-/**
- * 定期检查和更新向量
- * 可以通过定时任务调用此函数
- */
-export async function batchUpdateVectors(): Promise<void> {
-  try {
-    // 获取所有需要更新向量的笔记
-    const notesToUpdate = await db('notes')
-      .where('isDeleted', false)
-      .whereRaw('(lastVectorizedAt IS NULL OR updatedAt > lastVectorizedAt)')
-      .select('id', 'content')
-
-    if (notesToUpdate.length === 0) {
-      console.log('没有需要更新向量的笔记')
-      return
-    }
-
-    console.log(`开始批量更新向量，共 ${notesToUpdate.length} 条笔记`)
-
-    // 获取 LanceDB 实例并暂时禁用自动索引
-    const lanceService = await LanceService.getInstance()
-    await lanceService.disableAutoIndex()
-
-    try {
-      // 批量处理
-      const errors: Array<{ noteId: string; error: any }> = []
-      for (const note of notesToUpdate) {
-        try {
-          // 1. 先删除旧的向量（如果存在）
-          try {
-            await lanceService.deleteVector(note.id)
-            console.log('已删除旧向量:', note.id)
-          } catch (error) {
-            console.log('删除旧向量失败（可能不存在）:', note.id)
-          }
-
-          // 2. 添加新向量
-          await updateNoteEmbedding(note.id, JSON.parse(note.content))
-          await db('notes').where('id', note.id).update({ lastVectorizedAt: new Date() })
-        } catch (error) {
-          console.error('单条笔记向量更新失败:', { noteId: note.id, error })
-          errors.push({ noteId: note.id, error })
-        }
-      }
-
-      // 3. 尝试重建索引，但不让索引错误影响整体更新
-      try {
-        await lanceService.rebuildIndex()
-        console.log('向量索引重建完成')
-      } catch (error: any) {
-        // 如果是数据量不足导致的索引错误，只记录日志但不抛出错误
-        if (error.message?.includes('Not enough rows to train PQ')) {
-          console.log('向量数据量不足256条，暂时不建立索引')
-        } else {
-          console.error('向量索引重建失败:', error)
-        }
-      }
-
-      // 只有在有笔记更新失败时才抛出错误
-      if (errors.length > 0) {
-        throw new Error(`${errors.length} 条笔记更新失败：\n${JSON.stringify(errors, null, 2)}`)
-      }
-    } finally {
-      // 恢复自动索引
-      await lanceService.enableAutoIndex()
-    }
-
-    console.log('批量更新向量完成')
-  } catch (error: any) {
-    // 如果是索引相关的错误，转换为友好的提示信息
-    if (error.message?.includes('Not enough rows to train PQ')) {
-      console.log('向量数据量不足，暂时不建立索引，但向量更新已完成')
-      return
-    }
-    console.error('批量更新向量失败:', error)
-    throw error
   }
 }
 

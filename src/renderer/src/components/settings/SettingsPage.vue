@@ -43,7 +43,6 @@
       <FlashcardSettings v-if="currentMenuItem === 'flashcard'" />
       <ModelSettings v-if="currentMenuItem === 'model'" />
       <AIAssistantSettings v-if="currentMenuItem === 'ai'" />
-      <DictionarySettings v-if="currentMenuItem === 'dictionary'" />
       <EditorSettings v-if="currentMenuItem === 'editor'" />
       <LetterSettings v-if="currentMenuItem === 'letter'" />
       <ThreeSyncSettings v-if="currentMenuItem === 'threeSync'" />
@@ -65,7 +64,6 @@ import {
   CloudStorage,
   StorageCardOne,
   RobotOne,
-  BookOne,
   Edit,
   Inbox,
   PlasticSurgery,
@@ -79,7 +77,6 @@ import AppearanceSettings from './pages/AppearanceSettings.vue'
 import LicenseSettings from './pages/LicenseSettings.vue'
 import TimeBlockSettings from './pages/TimeBlockSettings.vue'
 import FlashcardSettings from './pages/FlashcardSettings.vue'
-import DictionarySettings from './pages/DictionarySettings.vue'
 import ModelSettings from './pages/ModelSettings.vue'
 import EditorSettings from './pages/EditorSettings.vue'
 import CloudSyncSettings from './pages/CloudSyncSettings.vue'
@@ -98,7 +95,6 @@ const menuItems = [
   { key: 'model', label: '大模型配置', icon: RobotOne },
   { key: 'ai', label: 'AI 助手设置', icon: PlasticSurgery },
   { key: 'writingDesk', label: '写作台', icon: NotebookAndPen },
-  { key: 'dictionary', label: '词库管理', icon: BookOne },
   { key: 'editor', label: '编辑器', icon: Edit },
   { key: 'letter', label: '每日来信', icon: Mail },
   { key: 'threeSync', label: '三方同步', icon: Inbox },

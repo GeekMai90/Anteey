@@ -32,8 +32,6 @@ import {
   deleteNoteReference,
   updateNoteTag,
   getRecentEditedNotes,
-  updateNoteVectorOnClose,
-  batchUpdateVectors,
   batchMoveNotesToCardBox,
   batchUpdateNotesCardType,
   batchSoftDeleteNotes
@@ -374,30 +372,6 @@ export function setupNotesHandlers() {
       return { success: true }
     } catch (error) {
       console.error('主进程→ 删除笔记引用关系失败:', error)
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : String(error)
-      }
-    }
-  })
-
-  // 在笔记编辑器关闭时更新向量
-  ipcMain.handle('update-note-vector-on-close', async (_event, id: string, content: object) => {
-    try {
-      await updateNoteVectorOnClose(id, content)
-    } catch (error) {
-      console.error('主进程 → 更新笔记向量失败:', error)
-      throw error
-    }
-  })
-
-  // 批量更新向量
-  ipcMain.handle('batch-update-vectors', async () => {
-    try {
-      await batchUpdateVectors()
-      return { success: true }
-    } catch (error) {
-      console.error('主进程 → 批量更新向量失败:', error)
       return {
         success: false,
         error: error instanceof Error ? error.message : String(error)

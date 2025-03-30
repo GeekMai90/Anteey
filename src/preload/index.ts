@@ -23,9 +23,6 @@ import { reviewApi } from './api/reviewApi'
 import { taskApi } from './api/taskApi'
 import { authApi } from './api/authApi'
 import { modelConfigApi, systemPromptApi } from './api/llmConfigApi'
-// import { ragApi } from './api/ragApi'
-import { similarNotesApi } from './api/similarNotesApi'
-import { dictionaryApi } from './api/dictionaryApi'
 import { mindboardApi } from './api/mindboardApi'
 import { s3Api } from './api/s3Api'
 import { cloudSyncApi } from './api/cloudSyncApi'
@@ -177,15 +174,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
   modelConfig: {
     ...modelConfigApi
-  },
-  // rag: {
-  //   ...ragApi
-  // },
-  similarNotes: {
-    ...similarNotesApi
-  },
-  dictionary: {
-    ...dictionaryApi
   },
   mindboard: {
     ...mindboardApi

@@ -23,9 +23,6 @@ import { setupReviewHandlers } from './reviewIpcHandlers'
 import { setupTaskHandlers } from './taskIpcHandlers'
 import { setupAuthHandlers } from './authIpcHandlers'
 import { setupLLMConfigHandlers } from './llmConfigIpcHandlers'
-// import { setupRAGHandlers } from './ragIpcHandlers'
-import { setupSimilarNotesHandlers } from './similarNotesIpcHandlers'
-import { setupDictionaryHandlers } from './dictionaryIpcHandlers'
 import { setupMindboardHandlers } from './mindboardIpcHandlers'
 import { setupS3Handlers } from './s3IpcHandlers'
 import { setupCloudSyncHandlers } from './cloudSyncIpcHandlers'
@@ -64,9 +61,6 @@ export function setupIpcHandlers(): void {
   setupTaskHandlers()
   setupAuthHandlers()
   setupLLMConfigHandlers()
-  // setupRAGHandlers()
-  setupSimilarNotesHandlers()
-  setupDictionaryHandlers()
   setupMindboardHandlers()
   setupS3Handlers()
   setupCloudSyncHandlers()

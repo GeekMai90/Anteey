@@ -69,14 +69,16 @@
     </style>
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src *; 
-        img-src 'self' data: blob: file: https: http: app-image: * 'unsafe-inline'; 
-        media-src 'self' file: *;
-        script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: https://unpkg.com https://cdn.tldraw.com; 
-        style-src 'self' 'unsafe-inline' https://unpkg.com https://cdn.tldraw.com https://fonts.googleapis.com; 
-        connect-src 'self' data: blob: file: app-image: https://api.tiptap.dev https://unpkg.com https://cdn.tldraw.com; 
-        font-src * https://cdn.tldraw.com https://fonts.gstatic.com; 
-        worker-src 'self' blob: data:;"
+      content="
+        default-src * 'unsafe-inline' 'unsafe-eval' data: blob:;
+        img-src * 'self' data: blob: app-image: file: resource: https: http:;
+        media-src * 'self' file: data: blob: resource:;
+        script-src * 'self' 'unsafe-inline' 'unsafe-eval' blob: data:;
+        style-src * 'self' 'unsafe-inline' blob: data:;
+        connect-src * 'self' data: blob: file: app-image: https: http:;
+        font-src * data: blob:;
+        worker-src * 'self' blob: data:;
+      "
     />
   </head>
 

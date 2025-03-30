@@ -1,3 +1,6 @@
+@use "sass:color";
+@use "@renderer/styles/_variables.scss" as vars;
+
 /* ------------------------------------
  * JSON Content Renderer 基础样式
  * ------------------------------------ */
@@ -10,7 +13,7 @@
   line-height: 1.6;
 
   /* 数学公式样式 */
-  .katex {
+  &.katex {
     font-size: 1.1em;
     line-height: 1.2;
     text-indent: 0;
@@ -213,7 +216,6 @@
       gap: 8px;
       z-index: 2;
       padding: 4px 8px;
-      // background: rgba(0, 0, 0, 0.1);
       border: 1px solid var(--color-code-block-border);
       border-radius: 4px;
       font-family: var(--font-mono);
@@ -533,4 +535,8 @@
 .hljs {
   color: var(--hljs-color) !important;
   background: var(--hljs-background) !important;
+}
+
+@keyframes splash {
+  // 保持不变，keyframes 语法仍然有效
 }

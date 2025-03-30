@@ -275,6 +275,7 @@ import 'highlight.js/styles/github-dark.css'
 import 'katex/dist/katex.min.css'
 // @ts-ignore - katex 模块使用 CommonJS 格式，在当前 TypeScript 设置下会报类型错误
 import katex from 'katex'
+import '@renderer/styles/_json-content-renderer.scss'
 
 // 初始化 highlight.js
 const initializeHighlight = () => {
@@ -542,5 +543,5 @@ const renderMathFormula = (text: string | undefined): string => {
 </style>
 
 <style lang="scss" scoped>
-@import '@renderer/styles/_json-content-renderer.scss';
+@use '@renderer/styles/_json-content-renderer.scss' as *;
 </style>

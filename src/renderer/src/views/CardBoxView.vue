@@ -382,13 +382,13 @@ const checkAndLoadMore = async () => {
   if (!cardGridContainer.value) return
 
   const { scrollHeight, clientHeight } = cardGridContainer.value
-  console.log('检查是否需要加载更多:', {
-    scrollHeight,
-    clientHeight,
-    notesLength: notes.value.length,
-    totalCount: totalCount.value,
-    hasMore: hasMoreNotes.value
-  })
+  // console.log('检查是否需要加载更多:', {
+  //   scrollHeight,
+  //   clientHeight,
+  //   notesLength: notes.value.length,
+  //   totalCount: totalCount.value,
+  //   hasMore: hasMoreNotes.value
+  // })
 
   // 如果内容高度等于容器高度，且还有更多数据，自动加载下一页
   if (
@@ -424,14 +424,14 @@ const handleScroll = useThrottleFn((e: Event) => {
     !targetNoteId.value &&
     notes.value.length < totalCount.value
   ) {
-    console.log('滚动触发加载更多', {
-      scrollBottom,
-      isLoading: isLoading.value,
-      hasMore: hasMoreNotes.value,
-      currentPage: currentPage.value,
-      totalNotes: notes.value.length,
-      totalCount: totalCount.value
-    })
+    // console.log('滚动触发加载更多', {
+    //   scrollBottom,
+    //   isLoading: isLoading.value,
+    //   hasMore: hasMoreNotes.value,
+    //   currentPage: currentPage.value,
+    //   totalNotes: notes.value.length,
+    //   totalCount: totalCount.value
+    // })
     currentPage.value++
     fetchNotes()
   }

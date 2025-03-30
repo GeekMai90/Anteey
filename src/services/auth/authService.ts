@@ -151,10 +151,10 @@ export async function checkNetworkStatus(): Promise<boolean> {
 
   try {
     // console.log('authService→ 开始检查网络状态')
-    const start = Date.now()
+    // const start = Date.now()
     await request.get('/auth/status', { timeout: 3000 })
-    const duration = Date.now() - start
-    console.log(`authService→ 网络检查成功, 耗时: ${duration}ms`)
+    // const duration = Date.now() - start
+    // console.log(`authService→ 网络检查成功, 耗时: ${duration}ms`)
 
     // 更新缓存
     networkStatusCache = {

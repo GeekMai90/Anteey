@@ -25,7 +25,6 @@ import { getUserSettings } from '@services/user/userSettingsService'
 // import { migrateLicenseTable } from '../db/migrations/licenseMigration'
 import { backupService } from '@services/backup/backupService'
 import { debounce } from 'lodash'
-import { LanceService } from '../db/vector/lanceService'
 import { s3Service } from '@services/s3/s3Service'
 import { webdavService } from '@services/webdav/webdavService'
 import { getCurrentConfig } from '@services/cloud/cloudSyncService'
@@ -33,7 +32,6 @@ import { getCurrentConfig } from '@services/cloud/cloudSyncService'
 import { setupDinoxSyncHandlers } from './ipc/dinoxIpcHandlers'
 import { startApiServer } from './api/server'
 import fsSync from 'fs'
-import { initEmbeddings } from '@services/rag/embeddingService'
 
 // 加载环境变量
 config({
@@ -210,11 +208,13 @@ async function createWindow(): Promise<BrowserWindow> {
       // 允许使用开发者工具（F12）
       devTools: true,
       // 禁用站点隔离试验特性
-      additionalArguments: ['--disable-site-isolation-trials'],
+      additionalArguments: [
+        '--disable-site-isolation-trials',
+        '--disable-features=site-per-process'
+      ],
       // 禁用网页安全策略，允许跨域请求等（警告：仅建议在开发环境使用）
       webSecurity: false,
       backgroundThrottling: true
-      // 当窗口在后台时限制性能,降低资源占用
     }
   })
   // 启用 remote 模块
@@ -363,23 +363,20 @@ async function createWindow(): Promise<BrowserWindow> {
     await handleZoomUpdate(1.0)
   })
 
-  // 设置内容安全策略 (CSP)
+  // 修改 CSP 处理器
   mainWindow.webContents.session.webRequest.onHeadersReceived((details, callback) => {
     callback({
       responseHeaders: {
         ...details.responseHeaders,
         'Content-Security-Policy': [
-          'default-src *; ' +
-            // 修改 img-src，确保支持所有需要的图片源
-            "img-src 'self' data: blob: file: https: http: app-image: * 'unsafe-inline'; " +
-            "media-src 'self' file: *; " +
-            // 确保脚本源包含所有需要的域名
-            "script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: https://unpkg.com https://cdn.tldraw.com; " +
-            "style-src 'self' 'unsafe-inline' https://unpkg.com https://cdn.tldraw.com https://fonts.googleapis.com; " +
-            // 修改 connect-src，允许更多连接
-            "connect-src 'self' data: blob: file: app-image: https://api.tiptap.dev https://unpkg.com https://cdn.tldraw.com; " +
-            'font-src * https://cdn.tldraw.com https://fonts.gstatic.com; ' +
-            "worker-src 'self' blob: data:;"
+          "default-src * 'unsafe-inline' 'unsafe-eval' data: blob:; " +
+            "img-src * 'self' data: blob: app-image: file: resource: https: http:; " +
+            "media-src * 'self' file: data: blob: resource:; " +
+            "script-src * 'self' 'unsafe-inline' 'unsafe-eval' blob: data:; " +
+            "style-src * 'self' 'unsafe-inline' blob: data:; " +
+            "connect-src * 'self' data: blob: file: app-image: https: http:; " +
+            'font-src * data: blob:; ' +
+            "worker-src * 'self' blob: data:;"
         ]
       }
     })
@@ -478,7 +475,8 @@ protocol.registerSchemesAsPrivileged([
       supportFetchAPI: true,
       stream: true,
       secure: true,
-      corsEnabled: true
+      corsEnabled: true,
+      bypassCSP: true
     }
   }
 ])
@@ -489,12 +487,12 @@ let isSyncing = false
 // 添加同步函数
 async function handleCloudSync(type: 'startup' | 'shutdown'): Promise<void> {
   try {
-    log.info(`准备执行${type === 'startup' ? '启动' : '关闭'}时同步...`)
+    // log.info(`准备执行${type === 'startup' ? '启动' : '关闭'}时同步...`)
 
     // 获取云同步配置
     const cloudConfig = await getCurrentConfig()
     if (!cloudConfig?.enabled || cloudConfig.syncType === 'none') {
-      log.info('云同步未启用或已设置为不同步，跳过同步操作')
+      // log.info('云同步未启用或已设置为不同步，跳过同步操作')
       // 确保停止所有同步服务
       webdavService.stopAutoSync()
       s3Service.stopAutoSync()
@@ -514,7 +512,7 @@ async function handleCloudSync(type: 'startup' | 'shutdown'): Promise<void> {
     if (cloudConfig.syncType === 'webdav') {
       const webdavConfig = await webdavService.getConfig()
       if (webdavConfig?.enabled) {
-        log.info('执行 WebDAV 同步...')
+        // log.info('执行 WebDAV 同步...')
         if (type === 'shutdown') {
           webdavService.stopAutoSync()
         }
@@ -523,7 +521,7 @@ async function handleCloudSync(type: 'startup' | 'shutdown'): Promise<void> {
     } else if (cloudConfig.syncType === 's3') {
       const s3Config = await s3Service.getConfig()
       if (s3Config?.enabled) {
-        log.info('执行 S3 同步...')
+        // log.info('执行 S3 同步...')
 
         if (type === 'startup') {
           // 启动时初始化服务并开始自动同步
@@ -536,7 +534,7 @@ async function handleCloudSync(type: 'startup' | 'shutdown'): Promise<void> {
       }
     }
 
-    log.info(`${type === 'startup' ? '启动' : '关闭'}时同步完成`)
+    // log.info(`${type === 'startup' ? '启动' : '关闭'}时同步完成`)
 
     // 发送完成通知
     if (win) {
@@ -591,7 +589,7 @@ app.whenReady().then(async () => {
             allowFileAccess: true
           }
         })
-        log.info('Vue Devtools 安装成功')
+        // log.info('Vue Devtools 安装成功')
       } catch (error) {
         log.warn('Vue Devtools 安装失败，这不会影响应用的正常使用:', error)
         // 继续执行，不要中断应用启动
@@ -600,12 +598,6 @@ app.whenReady().then(async () => {
 
     // 初始化数据库
     await initDatabase(db)
-
-    // 初始化向量服务
-    log.info('开始初始化向量服务...')
-    await initEmbeddings() // 预先初始化向量模型
-    await LanceService.getInstance() // 初始化 LanceDB
-    log.info('向量服务初始化完成')
 
     // electronApp.setAppUserModelId('com.electron')
     // 使用应用特定的 ID
@@ -617,62 +609,57 @@ app.whenReady().then(async () => {
       return path.join(app.getAppPath(), 'resources', filename)
     })
 
-    // 简化协议处理
+    // 修改协议处理函数
     protocol.handle('app-image', async (request) => {
-      const maxRetries = 3
-      const retryDelay = 1000 // 1秒
-      let attempt = 0
+      try {
+        const url = new URL(request.url)
+        const imagePath = decodeURIComponent(url.pathname)
+        const fullPath = path.join(
+          app.getPath('userData'),
+          'UserData',
+          'images',
+          path.basename(imagePath)
+        )
 
-      while (attempt < maxRetries) {
-        try {
-          const url = new URL(request.url)
-          const imagePath = decodeURIComponent(url.pathname)
-          const fullPath = path.join(
-            app.getPath('userData'),
-            'UserData',
-            'images',
-            path.basename(imagePath)
-          )
-
-          // 添加文件存在检查
-          if (!fsSync.existsSync(fullPath)) {
-            log.error('图片文件不存在:', fullPath)
-            return new Response('', { status: 404 })
-          }
-
-          const imageBuffer = await fsPromises.readFile(fullPath)
-          const ext = path.extname(fullPath).toLowerCase()
-          const mimeType =
-            {
-              '.jpg': 'image/jpeg',
-              '.jpeg': 'image/jpeg',
-              '.png': 'image/png',
-              '.gif': 'image/gif',
-              '.webp': 'image/webp'
-            }[ext] || 'application/octet-stream'
-
-          return new Response(imageBuffer, {
-            status: 200,
+        // 检查文件是否存在
+        if (!fsSync.existsSync(fullPath)) {
+          log.error('图片文件不存在:', fullPath)
+          return new Response('', {
+            status: 404,
             headers: {
-              'Content-Type': mimeType,
-              'Cache-Control': 'public, max-age=31536000'
+              'Access-Control-Allow-Origin': '*'
             }
           })
-        } catch (error) {
-          attempt++
-          log.error(`图片加载失败 (尝试 ${attempt}/${maxRetries}):`, error, request.url)
-
-          if (attempt === maxRetries) {
-            return new Response('', { status: 500 })
-          }
-
-          // 等待一段时间后重试
-          await new Promise((resolve) => setTimeout(resolve, retryDelay))
         }
-      }
 
-      // 添加默认返回，确保函数总是返回一个 Response
-      return new Response('', { status: 500 })
+        const imageBuffer = await fsPromises.readFile(fullPath)
+        const ext = path.extname(fullPath).toLowerCase()
+        const mimeType =
+          {
+            '.jpg': 'image/jpeg',
+            '.jpeg': 'image/jpeg',
+            '.png': 'image/png',
+            '.gif': 'image/gif',
+            '.webp': 'image/webp'
+          }[ext] || 'application/octet-stream'
+
+        return new Response(imageBuffer, {
+          status: 200,
+          headers: {
+            'Content-Type': mimeType,
+            'Cache-Control': 'public, max-age=31536000',
+            'Access-Control-Allow-Origin': '*'
+          }
+        })
+      } catch (error) {
+        log.error('图片加载失败:', error)
+        return new Response('', {
+          status: 500,
+          headers: {
+            'Access-Control-Allow-Origin': '*'
+          }
+        })
+      }
     })
 
     // 设置 IPC 处理程序
@@ -805,21 +792,21 @@ app.on('before-quit', async (event) => {
   // 阻止默认的退出行为，确保我们的同步和备份完成
   event.preventDefault()
 
-  log.info('应用准备退出，执行关闭前操作...')
+  // log.info('应用准备退出，执行关闭前操作...')
 
   try {
     // 执行自动备份
-    log.info('开始执行关闭前自动备份...')
+    // log.info('开始执行关闭前自动备份...')
     await handleAutoBackup()
-    log.info('关闭前自动备份完成')
+    // log.info('关闭前自动备份完成')
 
     // 执行关闭前同步
-    log.info('开始执行关闭前同步...')
+    // log.info('开始执行关闭前同步...')
     await handleCloudSync('shutdown')
-    log.info('关闭前同步完成')
+    // log.info('关闭前同步完成')
 
     // 所有关闭前操作完成，安全退出
-    log.info('所有关闭前操作已完成，准备退出应用')
+    // log.info('所有关闭前操作已完成，准备退出应用')
     setTimeout(() => {
       app.exit(0)
     }, 500) // 添加短暂延迟，确保日志被写入

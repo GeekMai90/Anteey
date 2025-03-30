@@ -335,176 +335,6 @@ export async function initDatabase(db: Knex): Promise<void> {
     console.log('filter_rules 表创建成功')
   }
 
-  // 创建 note_embeddings 表
-  if (!(await db.schema.hasTable('note_embeddings'))) {
-    await db.schema.createTable('note_embeddings', (table) => {
-      table.string('note_id').primary()
-      table.binary('embedding').notNullable() // 使用 binary 类型存储向量数据
-      table.json('keywords').notNullable().defaultTo('[]') // 新增字段，存储关键词数组
-      table.integer('created_at').notNullable()
-      table.integer('updated_at').notNullable()
-      table.string('model_version').notNullable().defaultTo('minilm-l6-v2')
-
-      // 外键约束
-      table.foreign('note_id').references('notes.id').onDelete('CASCADE')
-
-      // 索引
-      table.index('updated_at')
-      table.index(['note_id', 'updated_at'])
-    })
-    console.log('note_embeddings 表创建成功')
-  }
-
-  // 创建 dictionary 表
-  if (!(await db.schema.hasTable('dictionary'))) {
-    await db.schema.createTable('dictionary', (table) => {
-      table.string('word').primary()
-      table.float('weight').notNullable()
-      table.integer('frequency').notNullable().defaultTo(0)
-      table.integer('documents').notNullable().defaultTo(0)
-      table.bigInteger('lastSeen').notNullable()
-      table.json('cooccurrences').notNullable().defaultTo('{}')
-      table.enum('source', ['auto', 'manual']).notNullable().defaultTo('auto')
-      table.boolean('enabled').notNullable().defaultTo(true)
-      table.timestamp('createdAt').notNullable().defaultTo(db.fn.now())
-      table.timestamp('updatedAt').notNullable().defaultTo(db.fn.now())
-
-      // 索引
-      table.index('frequency')
-      table.index('lastSeen')
-      table.index(['enabled', 'frequency'])
-      table.index(['source', 'lastSeen'])
-    })
-    console.log('dictionary 表创建成功')
-  }
-
-  // 创建 dictionary_suggestions 表
-  if (!(await db.schema.hasTable('dictionary_suggestions'))) {
-    await db.schema.createTable('dictionary_suggestions', (table) => {
-      table.string('word').primary()
-      table.float('weight').notNullable()
-      table.float('score').notNullable()
-      table.json('reason').notNullable()
-      table.enum('status', ['pending', 'accepted', 'rejected']).notNullable().defaultTo('pending')
-      table.timestamp('createdAt').notNullable().defaultTo(db.fn.now())
-      table.timestamp('processedAt').nullable()
-
-      // 索引
-      table.index(['status', 'score'])
-      table.index('createdAt')
-    })
-    console.log('dictionary_suggestions 表创建成功')
-  }
-
-  // 创建 dictionary_categories 表
-  if (!(await db.schema.hasTable('dictionary_categories'))) {
-    await db.schema.createTable('dictionary_categories', (table) => {
-      table.string('id').primary()
-      table.string('name').notNullable().unique()
-      table.string('description').nullable()
-      table.boolean('enabled').notNullable().defaultTo(true)
-      table.integer('order').nullable()
-      table.timestamp('createdAt').notNullable().defaultTo(db.fn.now())
-      table.timestamp('updatedAt').notNullable().defaultTo(db.fn.now())
-
-      // 索引
-      table.index(['enabled', 'order'])
-    })
-    console.log('dictionary_categories 表创建成功')
-
-    // 插入默认分类
-    await db('dictionary_categories').insert([
-      {
-        id: uuidv4(),
-        name: '核心术语',
-        description: '领域核心概念和术语',
-        order: 1
-      },
-      {
-        id: uuidv4(),
-        name: '评估标准',
-        description: '评估和度量相关术语',
-        order: 2
-      },
-      {
-        id: uuidv4(),
-        name: '方法论',
-        description: '方法和流程相关术语',
-        order: 3
-      }
-    ])
-    console.log('dictionary_categories 默认数据建成功')
-  }
-
-  // 创建 word_category_relations 表
-  if (!(await db.schema.hasTable('word_category_relations'))) {
-    await db.schema.createTable('word_category_relations', (table) => {
-      table.string('word').notNullable()
-      table.string('categoryId').notNullable()
-      table.timestamp('createdAt').notNullable().defaultTo(db.fn.now())
-
-      // 复合主键
-      table.primary(['word', 'categoryId'])
-
-      // 外键约束
-      table.foreign('word').references('dictionary.word').onDelete('CASCADE')
-      table.foreign('categoryId').references('dictionary_categories.id').onDelete('CASCADE')
-
-      // 索引
-      table.index('word')
-      table.index('categoryId')
-    })
-    console.log('word_category_relations 表创建成功')
-  }
-
-  // 创建 rag_history 表
-  if (!(await db.schema.hasTable('rag_history'))) {
-    await db.schema.createTable('rag_history', (table) => {
-      table.string('id').primary()
-      table.string('title').nullable() // 对话标题
-      table.json('messages').notNullable() // 存储完整的对话消息数组
-      table.json('contexts').notNullable() // 存储每次对话的上下文数组
-      table.string('summary').nullable() // 对话摘要
-      table.integer('totalTokens').nullable() // 总 token 数
-      table
-        .json('metadata')
-        .notNullable()
-        .defaultTo(
-          JSON.stringify({
-            messageCount: 0,
-            userMessageCount: 0,
-            aiMessageCount: 0,
-            averageRelevanceScore: 0,
-            isHistorical: true // 添加这个字段，默认为 true
-          })
-        ) // 元数据
-      table.boolean('isPinned').defaultTo(false) // 是否置顶
-      table.datetime('createdAt').notNullable()
-      table.datetime('updatedAt').notNullable()
-
-      // 索引
-      table.index('createdAt')
-      table.index('isPinned')
-      table.index(['isPinned', 'createdAt']) // 组合索引用于排序查询
-    })
-    console.log('rag_history 表创建成功')
-  } else {
-    // 检查现有记录并更新 metadata
-    const records = await db('rag_history').select('id', 'metadata')
-    for (const record of records) {
-      const metadata = JSON.parse(record.metadata)
-      if (!('isHistorical' in metadata)) {
-        metadata.isHistorical = true
-        await db('rag_history')
-          .where('id', record.id)
-          .update({
-            metadata: JSON.stringify(metadata)
-          })
-      }
-    }
-    console.log('rag_history 表 metadata 更新完成')
-  }
-
   // 创建 llm_configs 表
   if (!(await db.schema.hasTable('llm_configs'))) {
     await db.schema.createTable('llm_configs', (table) => {
@@ -1133,47 +963,6 @@ export async function initDatabase(db: Knex): Promise<void> {
       table.index(['type', 'createTime'])
     })
     console.log('letters 表创建成功')
-  }
-
-  // 创建 ed_whiteboards 表
-  if (!(await db.schema.hasTable('ed_whiteboards'))) {
-    await db.schema.createTable('ed_whiteboards', (table) => {
-      table.string('id').primary()
-      table.string('name').notNullable()
-      table.text('content').notNullable() // 使用 text 类型存储 JSON 字符串
-      table.datetime('created_at').notNullable()
-      table.datetime('updated_at').notNullable()
-      table.string('folder_id').nullable()
-      table.json('tags').nullable() // 存储标签数组
-
-      // 索引
-      table.index('folder_id')
-      table.index('created_at')
-      table.index('updated_at')
-    })
-    console.log('ed_whiteboards 表创建成功')
-  }
-
-  // 创建 ed_whiteboard_note_refs 表
-  if (!(await db.schema.hasTable('ed_whiteboard_note_refs'))) {
-    await db.schema.createTable('ed_whiteboard_note_refs', (table) => {
-      table.string('id').primary()
-      table.string('note_id').notNullable()
-      table.string('whiteboard_id').notNullable()
-      table.json('position').notNullable() // 存储位置信息
-      table.datetime('created_at').notNullable()
-
-      // 外键约束
-      table.foreign('note_id').references('notes.id').onDelete('CASCADE')
-      table.foreign('whiteboard_id').references('ed_whiteboards.id').onDelete('CASCADE')
-
-      // 索引
-      table.index('note_id')
-      table.index('whiteboard_id')
-      table.index(['whiteboard_id', 'note_id']) // 组合索引
-      table.index('created_at')
-    })
-    console.log('ed_whiteboard_note_refs 表创建成功')
   }
 
   // 创建认证状态表
@@ -1843,28 +1632,15 @@ export async function initDatabase(db: Knex): Promise<void> {
 
 export async function down(db: Knex): Promise<void> {
   await db.schema.dropTableIfExists('connections')
-  await db.schema.dropTableIfExists('whiteboard_groups')
-  await db.schema.dropTableIfExists('whiteboard_notes')
-  await db.schema.dropTableIfExists('root_whiteboards')
   await db.schema.dropTableIfExists('whiteboards')
   await db.schema.dropTableIfExists('tags')
   await db.schema.dropTableIfExists('cardboxes')
   await db.schema.dropTableIfExists('notes')
-  await db.schema.dropTableIfExists('user_settings') // 添加这一行
+  await db.schema.dropTableIfExists('user_settings')
   await db.schema.dropTableIfExists('filter_rules')
   await db.schema.dropTableIfExists('custom_filters')
-  await db.schema.dropTableIfExists('note_embeddings')
-  await db.schema.dropTableIfExists('word_category_relations')
-  await db.schema.dropTableIfExists('dictionary_suggestions')
-  await db.schema.dropTableIfExists('dictionary_categories')
-  await db.schema.dropTableIfExists('dictionary')
-  await db.schema.dropTableIfExists('rag_history')
   await db.schema.dropTableIfExists('llm_configs')
   await db.schema.dropTableIfExists('appearance_settings')
-  // 注意删除顺序：先删除有外键约束的表
-  await db.schema.dropTableIfExists('note_images')
-  await db.schema.dropTableIfExists('image_references')
-  // 注意删除顺序：先删除有外键约束的表
   await db.schema.dropTableIfExists('time_block_settings')
   await db.schema.dropTableIfExists('time_block_days')
   await db.schema.dropTableIfExists('time_blocks')
@@ -1885,8 +1661,6 @@ export async function down(db: Knex): Promise<void> {
   await db.schema.dropTableIfExists('pomodoro_records')
   await db.schema.dropTableIfExists('pomodoro_settings')
   await db.schema.dropTableIfExists('daily_quotes')
-  await db.schema.dropTableIfExists('ed_whiteboard_note_refs')
-  await db.schema.dropTableIfExists('ed_whiteboards')
   await db.schema.dropTableIfExists('auth_state')
   await db.schema.dropTableIfExists('mindboards')
   await db.schema.dropTableIfExists('s3_sync_history')
@@ -1909,28 +1683,8 @@ export async function down(db: Knex): Promise<void> {
   await db.schema.dropTableIfExists('chat_messages')
   await db.schema.dropTableIfExists('chat_attachments')
   await db.schema.dropTableIfExists('mind_echoes')
-
-  // 删除来信配置表
-  if (await db.schema.hasTable('letter_config')) {
-    await db.schema.dropTable('letter_config')
-  }
+  await db.schema.dropTable('letter_config')
   await db.schema.dropTableIfExists('readwise_sync_records')
   await db.schema.dropTableIfExists('readwise_sync_config')
-
-  // 在 down 函数中添加删除新字段的逻辑
-  if (await db.schema.hasColumn('notes', 'keywords')) {
-    await db.raw('DROP INDEX IF EXISTS idx_note_keywords')
-    await db.raw('DROP INDEX IF EXISTS idx_note_suggested_tags')
-    await db.raw('DROP INDEX IF EXISTS idx_note_ai_status')
-    await db.raw('DROP INDEX IF EXISTS idx_note_vector_status')
-
-    await db.schema.alterTable('notes', (table) => {
-      table.dropColumn('keywords')
-      table.dropColumn('suggestedTags')
-      table.dropColumn('aiProcessingStatus')
-      table.dropColumn('vectorStatus')
-    })
-  }
-
   console.log('所有表已删除')
 }
