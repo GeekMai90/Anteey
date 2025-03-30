@@ -4,11 +4,10 @@ import { LanceService } from '../../db/vector/lanceService'
 import log from 'electron-log'
 import path from 'path'
 import { app } from 'electron'
-import { getKeywordExtractor } from './keywordExtractor'
-import { Keyword, NoteEmbedding } from '@shared/types'
+import { NoteEmbedding } from '@shared/types'
 import fs from 'fs'
 
-let embeddings: any = null
+let embeddingsInstance: any = null
 
 /**
  * 向量服务模块
@@ -56,10 +55,11 @@ function ensureCacheDirectory() {
  * @returns 向量化函数
  */
 export async function initEmbeddings() {
-  if (!embeddings) {
+  if (!embeddingsInstance) {
     try {
       // 确保缓存目录存在
       ensureCacheDirectory()
+
       // 直接使用默认导出
       const embeddingsModule = (await import('@themaximalist/embeddings.js')).default
 
@@ -70,23 +70,23 @@ export async function initEmbeddings() {
       })
 
       // 保存配置好的函数
-      embeddings = (text: string) =>
+      embeddingsInstance = (text: string) =>
         embeddingsModule(text, {
           cache_file: cachePath,
           fallbackOnError: true
         })
 
-      // log.info('向量模型初始化成功')
+      log.info('向量模型初始化成功')
     } catch (error) {
       log.error('向量模型初始化失败:', error)
       // 返回一个降级的向量化函数
-      embeddings = (text: string) => {
+      embeddingsInstance = (text: string) => {
         log.warn('使用降级向量化方法:', { text: text.substring(0, 100) })
         return new Float32Array(384).fill(0) // 返回零向量作为降级方案
       }
     }
   }
-  return embeddings
+  return embeddingsInstance
 }
 
 /**
@@ -118,16 +118,8 @@ function extractTextContent(content: any): string {
   return processNode(content).trim()
 }
 
-// 配置常量
-const KEYWORDS_LIMIT = 15
-const MIN_KEYWORD_WEIGHT = 0.05
-
 /**
  * 为指定笔记生成向量表示
- * 1. 提取笔记文本内容
- * 2. 生成文本向量
- * 3. 提取关键词
- * 4. 将结果保存到 LanceDB
  */
 export async function generateEmbedding(noteId: string): Promise<NoteEmbedding> {
   try {
@@ -138,45 +130,29 @@ export async function generateEmbedding(noteId: string): Promise<NoteEmbedding> 
     }
 
     // 2. 提取文本内容
-    const keywordExtractor = await getKeywordExtractor()
-    const textContent = await keywordExtractor['extractTextContent'](note.content)
+    const textContent = extractTextContent(note.content)
     if (!textContent.trim()) {
       throw new Error(`笔记内容为空: ${noteId}`)
     }
 
-    // 3. 同时进行向量生成和关键词提取
-    const [vector, keywordObjects] = await Promise.all([
-      // 生成向量
-      (async () => {
-        const embedder = await initEmbeddings()
-        return await embedder(textContent)
-      })(),
-      // 提取关键词
-      keywordExtractor.extract(note.content)
-    ])
+    // 3. 生成向量
+    const embedder = await initEmbeddings()
+    const vector = await embedder(textContent)
 
     // 确保 vector 是有效的
     if (!vector || !(vector instanceof Float32Array || Array.isArray(vector))) {
       throw new Error(`向量生成失败: ${noteId}`)
     }
 
-    // 4. 筛选关键词
-    const keywords = keywordObjects
-      .filter((k: Keyword) => k.weight >= MIN_KEYWORD_WEIGHT)
-      .sort((a: Keyword, b: Keyword) => b.weight - a.weight)
-      .slice(0, KEYWORDS_LIMIT)
-      .map((k: Keyword) => k.word)
-
-    // 5. 保存到 LanceDB
+    // 4. 保存到 LanceDB
     const vectorArray = vector instanceof Float32Array ? vector : new Float32Array(vector)
     const lanceService = await LanceService.getInstance()
-    await lanceService.addVector(noteId, vectorArray, keywords)
+    await lanceService.addVector(noteId, vectorArray)
 
-    // 6. 返回结果
+    // 5. 返回结果
     return {
       note_id: noteId,
-      embedding: Buffer.from(vectorArray.buffer), // 使用保存前的 vectorArray
-      keywords,
+      embedding: Buffer.from(vectorArray.buffer),
       created_at: Math.floor(Date.now() / 1000),
       updated_at: Math.floor(Date.now() / 1000),
       model_version: 'minilm-l6-v2'
@@ -208,7 +184,6 @@ export async function getNoteEmbedding(noteId: string): Promise<NoteEmbedding | 
     return {
       note_id: result.id,
       embedding: Buffer.from(new Float32Array(result.vector).buffer),
-      keywords: result.keywords,
       created_at: Math.floor(Date.now() / 1000),
       updated_at: Math.floor(Date.now() / 1000),
       model_version: 'minilm-l6-v2'
@@ -234,7 +209,7 @@ export async function deleteEmbedding(noteId: string): Promise<void> {
 }
 
 /**
- * 异步更新笔记的向量表示和关键词
+ * 异步更新笔记的向量表示
  */
 export async function updateNoteEmbedding(noteId: string, content: any): Promise<void> {
   try {
@@ -245,25 +220,9 @@ export async function updateNoteEmbedding(noteId: string, content: any): Promise
       return
     }
 
-    // 并行处理向量生成和关键词提取
-    const keywordExtractor = await getKeywordExtractor()
-    const [vector, keywordObjects] = await Promise.all([
-      embedder(textContent),
-      keywordExtractor.extract(content)
-    ])
-
-    // 筛选关键词
-    const keywords = keywordObjects
-      .filter((k: Keyword) => k.weight >= MIN_KEYWORD_WEIGHT)
-      .sort((a: Keyword, b: Keyword) => b.weight - a.weight)
-      .slice(0, KEYWORDS_LIMIT)
-      .map((k: Keyword) => k.word)
-
-    log.debug('准备更新向量:', {
-      noteId,
-      keywordsCount: keywords.length,
-      sampleKeywords: keywords.slice(0, 3)
-    })
+    // 生成向量
+    const vector = await embedder(textContent)
+    const vectorArray = vector instanceof Float32Array ? vector : new Float32Array(vector)
 
     // 获取 LanceDB 实例并暂时禁用自动索引
     const lanceService = await LanceService.getInstance()
@@ -279,17 +238,13 @@ export async function updateNoteEmbedding(noteId: string, content: any): Promise
       }
 
       // 添加新向量
-      const vectorArray = vector instanceof Float32Array ? vector : new Float32Array(vector)
-      await lanceService.addVector(noteId, vectorArray, keywords)
+      await lanceService.addVector(noteId, vectorArray)
 
       // 获取当前向量总数
       const allVectors = await lanceService.getAllNoteIds()
       const totalVectors = allVectors.length
 
       // 检查是否需要重建索引
-      // 1. 当总数达到 256 时
-      // 2. 当总数超过 256 且是 50 的倍数时
-      // 3. 当总数超过 1000 且是 100 的倍数时
       if (
         totalVectors === 256 ||
         (totalVectors > 256 && totalVectors < 1000 && totalVectors % 50 === 0) ||
@@ -304,33 +259,18 @@ export async function updateNoteEmbedding(noteId: string, content: any): Promise
             error: error instanceof Error ? error.message : String(error)
           })
         }
-      } else {
-        // 如果不需要重建索引，至少要确保有基础索引
-        try {
-          const hasIndex = await lanceService.hasVectorIndex()
-          if (!hasIndex) {
-            log.info('检测到没有索引，创建基础 FLAT 索引')
-            await lanceService.createFlatIndex()
-          }
-        } catch (error) {
-          log.warn('索引检查/创建失败:', {
-            error: error instanceof Error ? error.message : String(error)
-          })
-        }
       }
 
-      log.info('异步更新笔记向量和关键词成功:', {
+      log.info('异步更新笔记向量成功:', {
         noteId,
-        keywordsCount: keywords.length,
-        totalVectors,
-        keywords: keywords.slice(0, 5)
+        totalVectors
       })
     } finally {
       // 恢复自动索引
       await lanceService.enableAutoIndex()
     }
   } catch (error) {
-    log.error('异步更新笔记向量和关键词失败:', {
+    log.error('异步更新笔记向量失败:', {
       noteId,
       error: error instanceof Error ? error.message : String(error)
     })
@@ -446,6 +386,92 @@ export async function checkAndInitializeEmbeddings(): Promise<{
     return { total, processed: successCount }
   } catch (error) {
     log.error('初始化向量化过程失败:', error)
+    throw error
+  }
+}
+
+/**
+ * 直接对文本内容进行向量化处理
+ * @param noteId 笔记ID
+ * @param content 文本内容
+ */
+export async function generateEmbeddingFromContent(
+  noteId: string,
+  content: any
+): Promise<NoteEmbedding> {
+  try {
+    // 1. 提取文本内容
+    const textContent = extractTextContent(content)
+    if (!textContent.trim()) {
+      throw new Error(`文本内容为空: ${noteId}`)
+    }
+
+    // 2. 生成向量
+    const embedder = await initEmbeddings()
+    const vector = await embedder(textContent)
+
+    // 确保 vector 是有效的
+    if (!vector || !(vector instanceof Float32Array || Array.isArray(vector))) {
+      throw new Error(`向量生成失败: ${noteId}`)
+    }
+
+    // 3. 保存到 LanceDB
+    const vectorArray = vector instanceof Float32Array ? vector : new Float32Array(vector)
+    const lanceService = await LanceService.getInstance()
+
+    // 暂时禁用自动索引
+    await lanceService.disableAutoIndex()
+
+    try {
+      // 先删除旧的向量（如果存在）
+      try {
+        await lanceService.deleteVector(noteId)
+        log.debug('已删除旧向量:', { noteId })
+      } catch (error) {
+        log.debug('删除旧向量失败（可能不存在）:', { noteId })
+      }
+
+      // 添加新向量
+      await lanceService.addVector(noteId, vectorArray)
+
+      // 获取当前向量总数
+      const allVectors = await lanceService.getAllNoteIds()
+      const totalVectors = allVectors.length
+
+      // 检查是否需要重建索引
+      if (
+        totalVectors === 256 ||
+        (totalVectors > 256 && totalVectors < 1000 && totalVectors % 50 === 0) ||
+        (totalVectors >= 1000 && totalVectors % 100 === 0)
+      ) {
+        log.info('达到索引重建检查点，开始重建索引...', { totalVectors })
+        try {
+          await lanceService.rebuildIndex()
+          log.info('索引重建完成')
+        } catch (error) {
+          log.warn('索引重建失败，但不影响向量数据使用:', {
+            error: error instanceof Error ? error.message : String(error)
+          })
+        }
+      }
+    } finally {
+      // 恢复自动索引
+      await lanceService.enableAutoIndex()
+    }
+
+    // 4. 返回结果
+    return {
+      note_id: noteId,
+      embedding: Buffer.from(vectorArray.buffer),
+      created_at: Math.floor(Date.now() / 1000),
+      updated_at: Math.floor(Date.now() / 1000),
+      model_version: 'minilm-l6-v2'
+    }
+  } catch (error) {
+    log.error('直接向量化内容失败:', {
+      noteId,
+      error: error instanceof Error ? error.message : String(error)
+    })
     throw error
   }
 }

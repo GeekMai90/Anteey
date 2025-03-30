@@ -51,6 +51,15 @@ export async function initDatabase(db: Knex): Promise<void> {
       table.index(['isStarred', 'starredOrder', 'updatedAt'])
       // 新增：用于闪卡查询的索引
       table.index(['isFlashcard', 'nextReviewAt']) // 用于查询待复习的卡片
+
+      // 修改 notes 表，添加新字段
+      table.json('keywords').nullable()
+      // 推荐标签字段 - 使用 JSON 存储数组
+      table.json('suggestedTags').nullable()
+      // AI 处理状态 - 使用 JSON 存储状态对象
+      table.json('aiProcessingStatus').nullable()
+      // 向量状态 - 使用 JSON 存储状态对象
+      table.json('vectorStatus').nullable()
     })
     console.log('notes 表创建成功')
   } // 如果表已存在，需要添加新字段
@@ -86,6 +95,35 @@ export async function initDatabase(db: Knex): Promise<void> {
       })
 
       console.log('lastVectorizedAt 字段添加成功')
+    }
+
+    // 检查是否需要添加新的 AI 处理相关字段
+    const hasKeywordsColumn = await db.schema.hasColumn('notes', 'keywords')
+    if (!hasKeywordsColumn) {
+      await db.schema.alterTable('notes', (table) => {
+        // 关键词字段
+        table.json('keywords').nullable()
+        // 推荐标签字段
+        table.json('suggestedTags').nullable()
+        // AI 处理状态
+        table.json('aiProcessingStatus').nullable()
+        // 向量状态
+        table.json('vectorStatus').nullable()
+      })
+
+      // 为 JSON 字段分别创建索引
+      await db.raw("CREATE INDEX idx_note_keywords ON notes(json_extract(keywords, '$'))")
+      await db.raw(
+        "CREATE INDEX idx_note_suggested_tags ON notes(json_extract(suggestedTags, '$'))"
+      )
+      await db.raw(
+        "CREATE INDEX idx_note_ai_status ON notes(json_extract(aiProcessingStatus, '$.keywords'))"
+      )
+      await db.raw(
+        "CREATE INDEX idx_note_vector_status ON notes(json_extract(vectorStatus, '$.status'))"
+      )
+
+      console.log('AI处理相关字段和索引添加成功')
     }
   }
 
@@ -541,6 +579,9 @@ export async function initDatabase(db: Knex): Promise<void> {
       table.string('loadingAnimationType').notNullable().defaultTo('candle')
       table.datetime('createdAt').notNullable()
       table.datetime('updatedAt').notNullable()
+
+      // 新增：AI处理相关配置
+      table.string('aiProcessModelId').nullable() // 存储选择的模型配置ID
     })
 
     // 插入默认设置
@@ -555,6 +596,7 @@ export async function initDatabase(db: Knex): Promise<void> {
       enableWhiteboard: true,
       enableAIAssistant: true,
       loadingAnimationType: 'candle',
+      aiProcessModelId: null, // 默认为空，表示使用默认模型
       createdAt: new Date(),
       updatedAt: new Date()
     })
@@ -584,6 +626,15 @@ export async function initDatabase(db: Knex): Promise<void> {
         })
         console.log(`appearance_settings 表添加 ${column.name} 列成功`)
       }
+    }
+
+    // 检查是否需要添加 aiProcessModelId 列
+    const hasAIProcessModelId = await db.schema.hasColumn('appearance_settings', 'aiProcessModelId')
+    if (!hasAIProcessModelId) {
+      await db.schema.alterTable('appearance_settings', (table) => {
+        table.string('aiProcessModelId').nullable()
+      })
+      console.log('AI处理模型配置字段添加成功')
     }
   }
 
@@ -1865,6 +1916,21 @@ export async function down(db: Knex): Promise<void> {
   }
   await db.schema.dropTableIfExists('readwise_sync_records')
   await db.schema.dropTableIfExists('readwise_sync_config')
+
+  // 在 down 函数中添加删除新字段的逻辑
+  if (await db.schema.hasColumn('notes', 'keywords')) {
+    await db.raw('DROP INDEX IF EXISTS idx_note_keywords')
+    await db.raw('DROP INDEX IF EXISTS idx_note_suggested_tags')
+    await db.raw('DROP INDEX IF EXISTS idx_note_ai_status')
+    await db.raw('DROP INDEX IF EXISTS idx_note_vector_status')
+
+    await db.schema.alterTable('notes', (table) => {
+      table.dropColumn('keywords')
+      table.dropColumn('suggestedTags')
+      table.dropColumn('aiProcessingStatus')
+      table.dropColumn('vectorStatus')
+    })
+  }
 
   console.log('所有表已删除')
 }

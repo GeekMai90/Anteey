@@ -73,37 +73,35 @@ export class LanceService {
    */
   private async init() {
     try {
-      // 等待数据库连接完成
       while (!this.db) {
         await new Promise((resolve) => setTimeout(resolve, 100))
       }
 
-      // 定义表结构
+      // 简化表结构，只保留必要字段
       const schema = new arrow.Schema([
         new arrow.Field('id', new arrow.Utf8()),
         new arrow.Field(
           'vector',
           new arrow.FixedSizeList(384, new arrow.Field('item', new arrow.Float32()))
         ),
-        new arrow.Field('keywords', new arrow.List(new arrow.Field('item', new arrow.Utf8()))),
         new arrow.Field('metadata', new arrow.Utf8())
       ])
 
       try {
-        // 尝试打开已存在的表
-        this.table = await this.db.openTable('note_vectors')
-        log.info('向量数据库表已就绪')
+        // 尝试删除现有表
+        try {
+          await this.db.dropTable('note_vectors')
+          log.info('旧向量表删除成功')
+        } catch (error) {
+          // 忽略错误，表可能不存在
+        }
 
-        // 检查表的结构和方法
-        log.debug('表结构:', {
-          hasExecute: typeof this.table.execute === 'function',
-          hasScan: typeof this.table.scan === 'function',
-          methods: Object.keys(this.table)
-        })
-      } catch (error) {
-        // 如果表不存在，创建新表
+        // 创建新表
         this.table = await this.db.createEmptyTable('note_vectors', schema)
         log.info('向量数据库表创建成功')
+      } catch (error) {
+        log.error('向量数据库表创建失败:', error)
+        throw error
       }
     } catch (error) {
       log.error('向量数据库初始化失败:', error)
@@ -145,28 +143,17 @@ export class LanceService {
 
   /**
    * 添加向量到数据库
-   * @param noteId 笔记ID
-   * @param vector 笔记的向量表示
-   * @param keywords 关键词数组
-   * @param metadata 其他元数据
    */
-  async addVector(
-    noteId: string,
-    vector: Float32Array,
-    keywords: string[] = [],
-    metadata: any = {}
-  ) {
+  async addVector(noteId: string, vector: Float32Array, metadata: any = {}) {
     try {
       if (!this.table) throw new Error('Table not initialized')
 
       const data = {
         id: noteId,
         vector: Array.from(vector),
-        keywords: keywords,
         metadata: JSON.stringify(metadata)
       }
 
-      // 先添加数据
       await this.table.add([data])
       log.debug('向量数据添加成功:', { noteId })
 
@@ -212,11 +199,9 @@ export class LanceService {
         }
       }
 
-      log.info('异步更新笔记向量和关键词成功:', {
+      log.info('异步更新笔记向量成功:', {
         noteId,
-        keywordsCount: keywords.length,
-        totalVectors: await this.getAllNoteIds().then((ids) => ids.length),
-        keywords: keywords.slice(0, 5)
+        totalVectors: await this.getAllNoteIds().then((ids) => ids.length)
       })
     } catch (error) {
       log.error('向量添加失败:', { noteId, error })
@@ -225,45 +210,28 @@ export class LanceService {
   }
 
   /**
-   * 根据关键词搜索笔记
-   * @param keyword 要搜索的关键词
-   * @returns 包含该关键词的笔记列表
-   */
-  async searchByKeyword(keyword: string) {
-    try {
-      if (!this.table) throw new Error('Table not initialized')
-
-      const results = await this.table
-        .filter(`array_contains(keywords, '${keyword}')`)
-        .select(['id', 'keywords', 'metadata'])
-        .execute()
-
-      return results
-    } catch (error) {
-      log.error('关键词搜索失败:', error)
-      throw error
-    }
-  }
-
-  /**
    * 搜索相似向量
-   * @param vector 查询向量
-   * @param limit 返回结果的最大数量
-   * @returns 相似度排序后的结果列表
    */
   async searchSimilar(vector: Float32Array, limit: number = 10) {
     try {
       if (!this.table) throw new Error('Table not initialized')
 
+      // 执行向量相似度搜索
       const results = await this.table
-        .vectorSearch(Array.from(vector)) // 使用 vectorSearch 而不是 search
-        .select(['id', 'keywords', 'metadata'])
+        .vectorSearch(Array.from(vector))
+        .metricType('cosine') // 使用余弦相似度
         .limit(limit)
-        .toArray() // 使用 toArray 而不是 execute
+        .execute()
 
-      return results
+      // 处理结果
+      return results.map((result) => ({
+        id: result.id,
+        score: result._distance ? 1 - result._distance : 0, // 转换距离为相似度
+        vector: result.vector,
+        keywords: result.keywords || []
+      }))
     } catch (error) {
-      log.error('相似向量查询失败:', error)
+      log.error('相似向量搜索失败:', error)
       throw error
     }
   }
@@ -285,7 +253,7 @@ export class LanceService {
   /**
    * 混合搜索：结合向量相似度和关键词
    */
-  async searchNotes(vector: Float32Array, keywords: string[] = [], limit: number = 10) {
+  async searchNotes(vector: Float32Array, limit: number = 10) {
     try {
       if (!this.table) throw new Error('Table not initialized')
 
@@ -293,99 +261,52 @@ export class LanceService {
       const allVectors = await this.getAllNoteIds()
       const totalVectors = allVectors.length
 
-      log.debug('开始混合搜索:', {
+      log.debug('开始向量搜索:', {
         vectorLength: vector.length,
-        keywords,
         limit,
         totalVectors
       })
 
-      // 修改搜索参数，大幅增加探测数量
-      let query = this.table.vectorSearch(Array.from(vector), {
-        probeCount: Math.max(Math.floor(totalVectors * 0.9), 20), // 探测 90% 的向量
-        refineFactor: 40, // 增加精细化因子
-        nlist: Math.max(Math.floor(Math.sqrt(totalVectors)), 20), // 增加聚类数量
-        metric: 'cosine' // 明确指定使用余弦相似度
+      // 执行向量搜索
+      const query = this.table.vectorSearch(Array.from(vector), {
+        probeCount: Math.max(Math.floor(totalVectors * 0.9), 20),
+        refineFactor: 40,
+        nlist: Math.max(Math.floor(Math.sqrt(totalVectors)), 20),
+        metric: 'cosine'
       })
 
-      // 如果有关键词，添加关键词过滤
-      if (keywords && keywords.length > 0) {
-        const keywordFilters = keywords.map((k) => `array_contains(keywords, '${k}')`).join(' OR ')
-        query = query.where(`(${keywordFilters})`)
-      }
+      const results = await query.select(['id', 'metadata']).limit(limit).toArray()
 
-      const results = await query.select(['id', 'keywords', 'metadata']).limit(limit).toArray()
-
-      // 转换结果格式，优化相似度计算
+      // 处理结果
       const processedResults = results.map((result: any) => {
-        // 计算余弦相似度
         const cosineSimilarity =
           result._distance !== undefined ? Math.max(0, 1 - result._distance) : 0
 
         // 优化相似度分数分布
         let similarity = 0
         if (cosineSimilarity > 0.8) {
-          similarity = 0.8 + (cosineSimilarity - 0.8) * 2.5 // 高相似度区间
+          similarity = 0.8 + (cosineSimilarity - 0.8) * 2.5
         } else if (cosineSimilarity > 0.5) {
-          similarity = 0.5 + (cosineSimilarity - 0.5) * 1.5 // 中等相似度区间
+          similarity = 0.5 + (cosineSimilarity - 0.5) * 1.5
         } else if (cosineSimilarity > 0.2) {
-          similarity = 0.2 + (cosineSimilarity - 0.2) * 1.2 // 低相似度区间
+          similarity = 0.2 + (cosineSimilarity - 0.2) * 1.2
         } else {
           similarity = cosineSimilarity
         }
 
-        // 处理关键词
-        const processedKeywords: string[] = []
-        try {
-          if (result.keywords?.data?.[0]) {
-            for (let i = 0; i < result.keywords.length; i++) {
-              const keyword = result.keywords.get(i)
-              if (keyword) processedKeywords.push(keyword)
-            }
-          }
-        } catch (error) {
-          log.warn('处理关键词失败:', {
-            noteId: result.id,
-            error: error instanceof Error ? error.message : String(error)
-          })
-        }
-
-        // 关键词匹配加权
-        const keywordMatchCount = processedKeywords.filter((k) => keywords.includes(k)).length
-        if (keywordMatchCount > 0) {
-          const keywordBonus = (keywordMatchCount / keywords.length) * 0.5 // 增加关键词权重
-          similarity = Math.min(1, similarity + keywordBonus)
-        }
-
         return {
           ...result,
-          keywords: processedKeywords,
           score: similarity,
-          _distance: result._distance,
-          keywordMatchCount
+          _distance: result._distance
         }
       })
 
-      // 根据综合分数重新排序
-      const rerankedResults = processedResults
-        .filter((r: any) => r.score > 0.1) // 保持较低的过滤阈值
+      return processedResults
+        .filter((r: any) => r.score > 0.1)
         .sort((a: any, b: any) => b.score - a.score)
         .slice(0, limit)
-
-      log.debug('混合搜索完成:', {
-        resultCount: results.length,
-        hasKeywords: keywords?.length > 0,
-        sampleScores: rerankedResults.slice(0, 2).map((r: any) => ({
-          id: r.id,
-          score: r.score,
-          distance: r._distance,
-          keywordMatchCount: r.keywordMatchCount
-        }))
-      })
-
-      return rerankedResults
     } catch (error) {
-      log.error('混合搜索失败:', error)
+      log.error('向量搜索失败:', error)
       throw error
     }
   }
@@ -507,36 +428,110 @@ export class LanceService {
   /**
    * 根据笔记ID获取向量数据
    */
-  async getVectorById(noteId: string) {
+  async getVectorById(id: string) {
     try {
-      if (!this.table) throw new Error('Table not initialized')
+      if (!this.table) {
+        throw new Error('Table not initialized')
+      }
 
-      const result = await this.table
-        .query()
-        .filter(`id = '${noteId}'`)
-        .select(['id', 'vector', 'keywords'])
-        .toArray()
+      log.info('正在从 LanceDB 获取向量:', { id })
 
-      if (result.length === 0) return null
+      // 修改查询格式 - 使用字符串条件而不是对象
+      const result = await this.table.query().filter(`id = '${id}'`).toArray()
 
-      // 处理关键词
-      const rawResult = result[0]
-      const processedKeywords: string[] = []
-      if (rawResult.keywords?.data?.[0]) {
-        for (let i = 0; i < rawResult.keywords.length; i++) {
-          const keyword = rawResult.keywords.get(i)
-          if (keyword) {
-            processedKeywords.push(keyword)
-          }
-        }
+      log.info('LanceDB 查询结果:', {
+        hasResults: result && result.length > 0,
+        resultType: result ? typeof result : 'undefined',
+        isArray: Array.isArray(result),
+        firstResult: result?.[0]
+          ? {
+              id: result[0].id,
+              hasVector: !!result[0].vector,
+              vectorType: result[0].vector ? typeof result[0].vector : 'undefined'
+            }
+          : null
+      })
+
+      if (!result || !Array.isArray(result) || result.length === 0) {
+        log.warn('未找到向量:', { id })
+        return null
+      }
+
+      // 确保返回的数据格式正确
+      const vector = result[0].vector
+      if (!Array.isArray(vector)) {
+        log.error('向量格式无效:', {
+          id,
+          vectorType: typeof vector,
+          vector: vector
+        })
+        return null
       }
 
       return {
-        ...rawResult,
-        keywords: processedKeywords
+        id: result[0].id,
+        vector: vector,
+        keywords: result[0].keywords || [],
+        metadata: result[0].metadata
       }
     } catch (error) {
-      log.error('获取向量数据失败:', { noteId, error })
+      log.error('从 LanceDB 获取向量失败:', {
+        id,
+        error: error instanceof Error ? error.message : String(error)
+      })
+      throw error
+    }
+  }
+
+  /**
+   * 通过笔记ID直接搜索相似笔记
+   * @param noteId 源笔记ID
+   * @param limit 限制结果数量
+   * @returns 相似笔记列表
+   */
+  async searchSimilarById(noteId: string, limit: number = 10): Promise<any[]> {
+    try {
+      if (!this.table) throw new Error('Table not initialized')
+
+      // 构建查询 - 获取ID对应的向量
+      const sourceResult = await this.table.query().filter(`id = '${noteId}'`).toArray()
+
+      if (!sourceResult || sourceResult.length === 0) {
+        throw new Error(`没有找到ID为 ${noteId} 的向量`)
+      }
+
+      const sourceVector = sourceResult[0].vector
+      if (!Array.isArray(sourceVector) || sourceVector.length === 0) {
+        throw new Error(`ID为 ${noteId} 的笔记没有有效的向量`)
+      }
+
+      // 使用向量进行相似度搜索
+      const results = await this.table
+        .vectorSearch(sourceVector)
+        .metricType('cosine')
+        .filter(`id != '${noteId}'`) // 排除源笔记自身
+        .limit(limit)
+        .execute()
+
+      // 添加详细日志
+      log.info('通过ID搜索相似笔记成功:', {
+        sourceId: noteId,
+        resultsCount: results.length,
+        topScore: results.length > 0 ? 1 - results[0]._distance : 0
+      })
+
+      return results.map((result: any) => ({
+        id: result.id,
+        score: result._distance !== undefined ? 1 - result._distance : 0,
+        vector: result.vector,
+        keywords: result.keywords || [],
+        metadata: result.metadata || '{}'
+      }))
+    } catch (error) {
+      log.error('通过ID搜索相似向量失败:', {
+        noteId,
+        error: error instanceof Error ? error.message : String(error)
+      })
       throw error
     }
   }

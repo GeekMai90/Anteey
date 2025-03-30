@@ -106,6 +106,20 @@ export interface Note {
   // 新增：闪卡相关属性
   isFlashcard: boolean
   flashcard?: FlashcardData
+
+  // 新增：关键词和标签相关
+  keywords?: string[] // 存储关键词
+  suggestedTags?: string[] // 存储推荐标签
+  aiProcessingStatus?: {
+    // AI处理状态
+    keywords: 'pending' | 'processing' | 'completed' | 'failed'
+    lastKeywordUpdateAt?: Date // 最后关键词更新时间
+  }
+  vectorStatus?: {
+    // 向量处理状态
+    status: 'pending' | 'processing' | 'completed' | 'failed'
+    lastVectorizedAt?: Date // 最后向量化时间
+  }
 }
 
 // 引用类型和关系树接口保持不变
@@ -287,3 +301,12 @@ export interface GetPaginatedNotesResponse {
   totalCount: number
   targetPosition?: number // 添加可选的 targetPosition 属性
 }
+
+// 新增：AI处理结果接口
+export interface AIProcessingResult {
+  keywords: string[]
+  suggestedTags: string[]
+}
+
+// 新增：处理状态类型
+export type ProcessingStatus = 'pending' | 'processing' | 'completed' | 'failed'

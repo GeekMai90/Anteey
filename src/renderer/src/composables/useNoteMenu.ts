@@ -13,7 +13,8 @@ import {
   SettingTwo,
   Share,
   AdjacentItem,
-  StorageCardOne
+  StorageCardOne,
+  MagicWand
 } from '@icon-park/vue-next'
 
 import { useUIStore } from '../stores/UIStore'
@@ -24,6 +25,8 @@ import type { Note } from '@shared/types'
 import { message } from '../utils/message'
 import { useFlashcardStore } from '../stores/flashcardStore'
 import { useNoteVersionStore } from '../stores/noteVersionStore'
+import { useNoteAIProcessStore } from '../stores/noteAIProcessStore'
+
 interface NoteMenuParams {
   noteId: string
   menuItems?: string[] // 新增：用于指定要显示的菜单项
@@ -44,6 +47,9 @@ export function useNoteMenu(params: NoteMenuParams) {
   const versionStore = useNoteVersionStore()
   const isConfirmingPermanentDelete = ref(false)
   let permanentDeleteTimeout: number | null = null
+
+  const noteAIProcessStore = useNoteAIProcessStore()
+  const isProcessing = ref(false)
 
   // 关闭弹出菜单
   const closePopupMenu = () => {
@@ -271,6 +277,23 @@ export function useNoteMenu(params: NoteMenuParams) {
     message.success('引用已复制')
   }
 
+  // 添加 AI 处理方法
+  const handleAIProcess = async () => {
+    if (isProcessing.value) return
+
+    try {
+      isProcessing.value = true
+      await noteAIProcessStore.triggerProcessing(params.noteId)
+      message.success('AI 处理完成')
+      closePopupMenu()
+    } catch (error) {
+      console.error('AI 处理失败:', error)
+      message.error('AI 处理失败')
+    } finally {
+      isProcessing.value = false
+    }
+  }
+
   const allMenuItems: any = computed(() => ({
     info: { name: 'info', label: '卡片信息', icon: Info, action: handleShare },
     star: {
@@ -411,6 +434,15 @@ export function useNoteMenu(params: NoteMenuParams) {
       },
       isDangerous: isConfirmingPermanentDelete.value,
       fill: isConfirmingPermanentDelete.value ? '#ff4d4f' : 'var(--color-icon-primary)'
+    },
+    // 添加 AI 处理菜单项
+    aiProcess: {
+      name: 'aiProcess',
+      label: isProcessing.value ? 'AI 处理中...' : '投喂AI',
+      icon: MagicWand,
+      action: handleAIProcess,
+      disabled: isProcessing.value,
+      fill: isProcessing.value ? 'var(--color-primary)' : 'var(--color-icon-primary)'
     }
   }))
 
@@ -444,6 +476,7 @@ export function useNoteMenu(params: NoteMenuParams) {
     isConfirmingDelete, // 暴露这个状态，以便在需要时可以在外部访问
     handleDelete,
     showConfirmModal,
-    handleBulkExport
+    handleBulkExport,
+    isProcessing // 导出处理状态
   }
 }

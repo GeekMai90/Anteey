@@ -37,6 +37,7 @@ import { setupAgentHandlers } from './agentIpcHandlers'
 import { setupAIChatHandlers } from './aiChatIpcHandlers'
 import { setupMindEchoHandlers } from './mindEchoIpcHandlers'
 import { setupReadwiseSyncHandlers } from './readwiseIpcHandlers'
+import { setupNoteAIProcessHandlers } from './noteAIProcessIpcHandlers'
 export function setupIpcHandlers(): void {
   setupNotesHandlers()
   setupCardboxHandlers()
@@ -77,4 +78,5 @@ export function setupIpcHandlers(): void {
   setupAIChatHandlers()
   setupMindEchoHandlers()
   setupReadwiseSyncHandlers()
+  setupNoteAIProcessHandlers()
 }

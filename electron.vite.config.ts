@@ -17,6 +17,11 @@ export default defineConfig({
     plugins: [externalizeDepsPlugin()],
     resolve: {
       alias: sharedAliases
+    },
+    build: {
+      rollupOptions: {
+        external: ['@devDb']
+      }
     }
   },
   preload: {
@@ -43,7 +48,8 @@ export default defineConfig({
       rollupOptions: {
         input: {
           index: path.resolve(__dirname, 'src/renderer/index.html')
-        }
+        },
+        external: ['@devDb']
       }
     }
   }

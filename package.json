@@ -1,6 +1,6 @@
 {
   "name": "anteey",
-  "version": "1.7.27",
+  "version": "1.7.30",
   "description": "Anteey",
   "main": "./out/main/index.js",
   "author": "GeekMai",
@@ -35,7 +35,9 @@
     "migrate:latest": "knex migrate:latest --knexfile ./knexfile.ts",
     "migrate:rollback": "knex migrate:rollback --knexfile ./knexfile.ts",
     "preview:dmg": "electron-builder --mac dmg --dir",
-    "clean": "rm -rf node_modules dist && pnpm store prune"
+    "clean": "rm -rf node_modules dist && pnpm store prune",
+    "clean:all": "rm -rf dist out release node_modules && rm -rf ~/Library/Caches/electron-builder ~/.cache/electron-builder ~/.cache/electron",
+    "build:clean": "npm run clean:all && npm install && npm run build:mac"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.758.0",
@@ -263,7 +265,11 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true
-    }
+    },
+    "files": [
+      "!@devDb/**/*",
+      "!@devDb"
+    ]
   },
   "packageManager": "pnpm@9.7.1+sha512.faf344af2d6ca65c4c5c8c2224ea77a81a5e8859cbc4e06b1511ddce2f0151512431dd19e6aff31f2c6a8f5f2aced9bd2273e1fed7dd4de1868984059d2c4247"
 }

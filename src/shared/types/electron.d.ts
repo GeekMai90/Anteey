@@ -1411,6 +1411,40 @@ export interface ElectronAPI {
     on: (channel: string, handler: IpcEventHandler) => void
     off: (channel: string, handler: IpcEventHandler) => void
   }
+
+  noteAIProcess: {
+    // 手动触发笔记的AI处理
+    triggerProcessing: (noteId: string) => Promise<void>
+
+    // 批量处理笔记
+    processBatch: (limit?: number) => Promise<void>
+
+    // 获取待处理的笔记列表
+    getPendingNotes: (limit?: number) => Promise<string[]>
+
+    // 获取笔记的AI处理状态
+    getNoteAIStatus: (noteId: string) => Promise<{
+      aiProcessingStatus: {
+        keywords: 'pending' | 'processing' | 'completed' | 'failed'
+        lastKeywordUpdateAt: Date
+        error?: string
+      } | null
+      keywords: string[]
+      suggestedTags: string[]
+    }>
+
+    // 更新AI处理使用的模型配置
+    updateAIProcessModel: (modelId: string | null) => Promise<void>
+
+    // 获取当前AI处理使用的模型配置
+    getAIProcessModel: () => Promise<string | null>
+
+    // 获取待处理的主卡片笔记列表
+    getPendingMainNotes: (limit?: number) => Promise<string[]>
+
+    // 批量处理主卡片笔记
+    processMainCardBatch: (params?: { limit?: number; batchSize?: number }) => Promise<void>
+  }
 }
 
 declare global {
@@ -1461,6 +1495,14 @@ declare global {
         success: boolean
         error?: string
       }>
+    }
+
+    noteAIProcessApi: {
+      // 获取待处理的主卡片笔记列表
+      getPendingMainNotes: (limit?: number) => Promise<string[]>
+
+      // 批量处理主卡片笔记
+      processMainCardBatch: (params?: { limit?: number; batchSize?: number }) => Promise<void>
     }
   }
 }

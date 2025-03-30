@@ -11,22 +11,29 @@ export class ImageService {
     return path.join(app.getPath('userData'), 'UserData', 'images')
   }
 
+  // 优化：添加获取图片完整路径的方法
+  private getImageFullPath(fileName: string): string {
+    return path.join(this.getImagesDir(), fileName)
+  }
+
+  // 优化：添加从 URL 获取文件名的方法
+  private getFileNameFromUrl(url: string): string {
+    return url.replace('app-image:///images/', '')
+  }
+
   // 上传图片
   async uploadImage(filePath: string): Promise<string> {
     try {
-      // 1. 生成唯一文件名
       const imageId = uuidv4()
       const extension = path.extname(filePath)
       const fileName = `${imageId}${extension}`
-      const destPath = path.join(this.getImagesDir(), fileName)
+      const destPath = this.getImageFullPath(fileName)
 
-      // 2. 确保目标目录存在
       await fs.mkdir(this.getImagesDir(), { recursive: true })
-
-      // 3. 复制文件
       await fs.copyFile(filePath, destPath)
 
-      // 4. 返回图片访问路径
+      // 添加日志
+      console.log('图片上传成功:', fileName)
       return `app-image:///images/${fileName}`
     } catch (error) {
       console.error('上传图片失败:', error)
@@ -62,21 +69,22 @@ export class ImageService {
   // 删除图片
   async deleteImage(imagePath: string): Promise<void> {
     try {
-      // 从 app-image:///images/xxx.png 格式转换为实际文件路径
-      const fileName = imagePath.replace('app-image:///images/', '')
-      const fullPath = path.join(this.getImagesDir(), fileName)
+      const fileName = this.getFileNameFromUrl(imagePath)
+      const fullPath = this.getImageFullPath(fileName)
 
       // 检查文件是否存在
       const exists = await fs
         .access(fullPath)
         .then(() => true)
         .catch(() => false)
+
       if (!exists) {
-        throw new Error('图片文件不存在')
+        console.warn('要删除的图片不存在:', fullPath)
+        return // 如果文件不存在，直接返回而不是抛出错误
       }
 
-      // 将文件移动到回收站
       await shell.trashItem(fullPath)
+      console.log('图片已移动到回收站:', fileName)
     } catch (error) {
       console.error('删除图片失败:', error)
       throw error
@@ -89,12 +97,10 @@ export class ImageService {
       let buffer: Buffer
 
       if (imagePath.startsWith('app-image:///')) {
-        // 处理本地图片
-        const fileName = imagePath.replace('app-image:///images/', '')
-        const fullPath = path.join(this.getImagesDir(), fileName)
+        const fileName = this.getFileNameFromUrl(imagePath)
+        const fullPath = this.getImageFullPath(fileName)
         buffer = await fs.readFile(fullPath)
-      } else if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
-        // 处理网络图片
+      } else if (imagePath.startsWith('http')) {
         buffer = await this.fetchImageBuffer(imagePath)
       } else {
         throw new Error('不支持的图片路径格式')

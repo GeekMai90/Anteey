@@ -7,7 +7,6 @@ import {
   Menu,
   MenuItemConstructorOptions,
   protocol,
-  net,
   globalShortcut
 } from 'electron'
 import { join } from 'path'
@@ -16,7 +15,6 @@ import { initDatabase } from '../db/init'
 import { db } from '../db/config'
 import { default as installExtension, VUEJS3_DEVTOOLS } from 'electron-devtools-installer'
 import path from 'path'
-import fs from 'fs'
 import fsPromises from 'fs/promises'
 import { URL } from 'url'
 import { initialize, enable } from '@electron/remote/main'
@@ -34,6 +32,8 @@ import { getCurrentConfig } from '@services/cloud/cloudSyncService'
 // import { setupScheduledTasks } from './services/scheduledTasks'
 import { setupDinoxSyncHandlers } from './ipc/dinoxIpcHandlers'
 import { startApiServer } from './api/server'
+import fsSync from 'fs'
+import { initEmbeddings } from '@services/rag/embeddingService'
 
 // 加载环境变量
 config({
@@ -601,8 +601,11 @@ app.whenReady().then(async () => {
     // 初始化数据库
     await initDatabase(db)
 
-    // 初始化向量数据库
-    await LanceService.getInstance()
+    // 初始化向量服务
+    log.info('开始初始化向量服务...')
+    await initEmbeddings() // 预先初始化向量模型
+    await LanceService.getInstance() // 初始化 LanceDB
+    log.info('向量服务初始化完成')
 
     // electronApp.setAppUserModelId('com.electron')
     // 使用应用特定的 ID
@@ -614,49 +617,62 @@ app.whenReady().then(async () => {
       return path.join(app.getAppPath(), 'resources', filename)
     })
 
-    // 添加请求队列管理
-    const imageRequestQueue = new Map<string, Promise<Response>>()
-
+    // 简化协议处理
     protocol.handle('app-image', async (request) => {
-      try {
-        const url = new URL(request.url)
-        const imagePath = decodeURIComponent(url.pathname)
-        const fullPath = path.join(
-          app.getPath('userData'),
-          'UserData',
-          'images',
-          path.basename(imagePath)
-        )
+      const maxRetries = 3
+      const retryDelay = 1000 // 1秒
+      let attempt = 0
 
-        // 检查是否已有相同请求在处理中
-        const existingRequest = imageRequestQueue.get(fullPath)
-        if (existingRequest) {
-          return existingRequest
-        }
+      while (attempt < maxRetries) {
+        try {
+          const url = new URL(request.url)
+          const imagePath = decodeURIComponent(url.pathname)
+          const fullPath = path.join(
+            app.getPath('userData'),
+            'UserData',
+            'images',
+            path.basename(imagePath)
+          )
 
-        // 创建新的请求
-        const newRequest = (async () => {
-          try {
-            if (!fs.existsSync(fullPath)) {
-              console.error('图片文件不存在:', fullPath)
-              return new Response('', { status: 404 })
-            }
-
-            const response = await net.fetch('file://' + fullPath)
-            return response
-          } finally {
-            // 请求完成后从队列中移除
-            imageRequestQueue.delete(fullPath)
+          // 添加文件存在检查
+          if (!fsSync.existsSync(fullPath)) {
+            log.error('图片文件不存在:', fullPath)
+            return new Response('', { status: 404 })
           }
-        })()
 
-        // 将请求添加到队列
-        imageRequestQueue.set(fullPath, newRequest)
-        return newRequest
-      } catch (error) {
-        console.error('加载图片失败:', error)
-        return new Response('', { status: 500 })
+          const imageBuffer = await fsPromises.readFile(fullPath)
+          const ext = path.extname(fullPath).toLowerCase()
+          const mimeType =
+            {
+              '.jpg': 'image/jpeg',
+              '.jpeg': 'image/jpeg',
+              '.png': 'image/png',
+              '.gif': 'image/gif',
+              '.webp': 'image/webp'
+            }[ext] || 'application/octet-stream'
+
+          return new Response(imageBuffer, {
+            status: 200,
+            headers: {
+              'Content-Type': mimeType,
+              'Cache-Control': 'public, max-age=31536000'
+            }
+          })
+        } catch (error) {
+          attempt++
+          log.error(`图片加载失败 (尝试 ${attempt}/${maxRetries}):`, error, request.url)
+
+          if (attempt === maxRetries) {
+            return new Response('', { status: 500 })
+          }
+
+          // 等待一段时间后重试
+          await new Promise((resolve) => setTimeout(resolve, retryDelay))
+        }
       }
+
+      // 添加默认返回，确保函数总是返回一个 Response
+      return new Response('', { status: 500 })
     })
 
     // 设置 IPC 处理程序
