@@ -417,13 +417,13 @@ $shadow-card: 0 2px 6px rgba($black, 0.12);
   --color-yellow: #ff9f1c;
   --color-yellow-rgb: 255, 159, 28;
   --color-yellow-light: #{rgba(#ff9f1c, 0.1)};
-  --color-yellow-dark: #{color.scale(#ff9f1c, $lightness: -10%)};
+  --color-yellow-dark: #{color.adjust(#ff9f1c, $lightness: -10%)};
 
   // 蓝色系
   --color-blue: #4361ee;
   --color-blue-rgb: 67, 97, 238;
   --color-blue-light: #{rgba(#4361ee, 0.1)};
-  --color-blue-dark: #{color.scale(#4361ee, $lightness: -10%)};
+  --color-blue-dark: #{color.adjust(#4361ee, $lightness: -10%)};
 
   // 粉色系
   --color-pink: #f72585;
@@ -634,12 +634,12 @@ $shadow-card: 0 2px 6px rgba($black, 0.12);
   --color-yellow: #ffb23c;
   --color-yellow-rgb: 255, 178, 60;
   --color-yellow-light: #{rgba(#ffb23c, 0.15)};
-  --color-yellow-dark: #{color.scale(#ff9f1c, $lightness: -10%)};
+  --color-yellow-dark: #{color.adjust(#ff9f1c, $lightness: -10%)};
 
   --color-blue: #5c7cff;
   --color-blue-rgb: 92, 124, 255;
   --color-blue-light: #{rgba(#5c7cff, 0.15)};
-  --color-blue-dark: #{color.scale(#4361ee, $lightness: -10%)};
+  --color-blue-dark: #{color.adjust(#4361ee, $lightness: -10%)};
 
   --color-pink: #ff8fa6;
   --color-pink-rgb: 255, 143, 166;

@@ -1,5 +1,5 @@
 @use "sass:color";
-@use "@renderer/styles/_variables.scss" as vars;
+@use "./variables" as *;
 
 /* ------------------------------------
  * JSON Content Renderer 基础样式

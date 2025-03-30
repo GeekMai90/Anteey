@@ -247,7 +247,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, withDefaults } from 'vue'
+import { computed } from 'vue'
 import hljs from 'highlight.js/lib/core'
 import javascript from 'highlight.js/lib/languages/javascript'
 import typescript from 'highlight.js/lib/languages/typescript'
@@ -543,5 +543,5 @@ const renderMathFormula = (text: string | undefined): string => {
 </style>
 
 <style lang="scss" scoped>
-@use '@renderer/styles/_json-content-renderer.scss' as *;
+@use '@renderer/styles/_json-content-renderer' as *;
 </style>

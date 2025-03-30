@@ -22,13 +22,11 @@ import { setupIpcHandlers } from './ipc'
 import log from './logger'
 import { config } from 'dotenv'
 import { getUserSettings } from '@services/user/userSettingsService'
-// import { migrateLicenseTable } from '../db/migrations/licenseMigration'
 import { backupService } from '@services/backup/backupService'
 import { debounce } from 'lodash'
 import { s3Service } from '@services/s3/s3Service'
 import { webdavService } from '@services/webdav/webdavService'
 import { getCurrentConfig } from '@services/cloud/cloudSyncService'
-// import { setupScheduledTasks } from './services/scheduledTasks'
 import { setupDinoxSyncHandlers } from './ipc/dinoxIpcHandlers'
 import { startApiServer } from './api/server'
 import fsSync from 'fs'
@@ -210,7 +208,9 @@ async function createWindow(): Promise<BrowserWindow> {
       // 禁用站点隔离试验特性
       additionalArguments: [
         '--disable-site-isolation-trials',
-        '--disable-features=site-per-process'
+        '--disable-features=site-per-process',
+        '--disable-gpu-process-crash-limit',
+        '--disable-renderer-backgrounding'
       ],
       // 禁用网页安全策略，允许跨域请求等（警告：仅建议在开发环境使用）
       webSecurity: false,
