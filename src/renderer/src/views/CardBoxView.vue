@@ -382,13 +382,6 @@ const checkAndLoadMore = async () => {
   if (!cardGridContainer.value) return
 
   const { scrollHeight, clientHeight } = cardGridContainer.value
-  // console.log('检查是否需要加载更多:', {
-  //   scrollHeight,
-  //   clientHeight,
-  //   notesLength: notes.value.length,
-  //   totalCount: totalCount.value,
-  //   hasMore: hasMoreNotes.value
-  // })
 
   // 如果内容高度等于容器高度，且还有更多数据，自动加载下一页
   if (
@@ -878,6 +871,7 @@ const eventBusEmptyNotesMovedToTrash = useEventBus('empty-notes-moved-to-trash')
 const eventBusNoteRestored = useEventBus('note-restored')
 const taskUpdatedBus = useEventBus<string>('task-updated')
 const notesDeletedBus = useEventBus('notes-deleted')
+const eventBusIndexUpdated = useEventBus<Note[]>('notes-index-updated')
 
 // 监听批量软删除事件
 notesDeletedBus.on(() => {
@@ -982,6 +976,17 @@ flashcardConvertedBus.on(async (payload) => {
       }
     }
   }
+})
+
+// 监听索引更新事件
+eventBusIndexUpdated.on((updatedNotes) => {
+  // 更新本地状态
+  updatedNotes.forEach((note) => {
+    const index = notes.value.findIndex((n) => n.id === note.id)
+    if (index !== -1) {
+      notes.value[index] = { ...notes.value[index], ...note }
+    }
+  })
 })
 
 // 在组件挂载时，初始化笔记数据

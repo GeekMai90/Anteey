@@ -150,6 +150,7 @@ const noteCreatedBus = useEventBus('note-created')
 const eventBusDeleted = useEventBus('note-deleted')
 const eventBusEmptyNotesMovedToTrash = useEventBus('empty-notes-moved-to-trash')
 const eventBusNoteRestored = useEventBus('note-restored')
+const eventBusIndexUpdated = useEventBus<Note[]>('notes-index-updated')
 // const flashcardConvertedBus = useEventBus('flashcard-converted')
 
 // 事件监听器设置
@@ -223,6 +224,17 @@ taskUpdatedBus.on(async (noteId) => {
   } catch (error) {
     console.error('更新笔记失败:', error)
   }
+})
+
+// 监听索引更新事件
+eventBusIndexUpdated.on((updatedNotes) => {
+  // 更新本地状态
+  updatedNotes.forEach((note) => {
+    const index = notes.value.findIndex((n) => n.id === note.id)
+    if (index !== -1) {
+      notes.value[index] = { ...notes.value[index], ...note }
+    }
+  })
 })
 
 // 笔记更新函数

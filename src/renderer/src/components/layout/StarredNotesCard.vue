@@ -21,6 +21,9 @@ const props = defineProps<{
 }>()
 
 const cardTypeClass = computed(() => {
+  if (props.note.cardType === 'Maincard' && props.note.isIndexed) {
+    return 'indexed-maincard'
+  }
   switch (props.note.cardType) {
     case 'Maincard':
       return 'maincard'
@@ -57,11 +60,15 @@ const cardTypeClass = computed(() => {
     .note-indicator {
       position: absolute;
       left: 8px;
-      top: 50%;
+      top: 54%;
       transform: translateY(-50%);
       width: 4px;
       height: 8px;
       border-radius: 2px;
+
+      &.indexed-maincard {
+        background-color: var(--color-blue);
+      }
 
       &.maincard {
         background-color: var(--color-primary);

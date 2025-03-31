@@ -19,10 +19,10 @@
             'star',
             'convertToFlashcard',
             'sidebar',
+            'toggleIndex',
             'copyQuote',
             'share',
             'exportNote',
-            'toggleIndex',
             'delete'
           ]"
         />
@@ -78,7 +78,13 @@ const props = defineProps<{
   note: Note
 }>()
 
+console.log('props.note', props.note)
+
 const cardTypeClass = computed(() => {
+  if (props.note.cardType === 'Maincard' && props.note.isIndexed) {
+    return 'indexed-maincard'
+  }
+
   switch (props.note.cardType) {
     case 'Maincard':
       return 'maincard'
@@ -154,12 +160,16 @@ onMounted(async () => {
     .note-indicator {
       position: absolute;
       left: 14px;
-      top: 50%;
+      top: 51%;
       transform: translateY(-50%);
       width: 4px;
-      height: 13px;
+      height: 14px;
       border-radius: 2px;
       margin-right: 10px;
+
+      &.indexed-maincard {
+        background-color: var(--color-blue);
+      }
 
       &.maincard {
         background-color: var(--color-primary);
@@ -183,25 +193,25 @@ onMounted(async () => {
     }
     @media (prefers-color-scheme: dark) {
       .note-indicator {
+        &.indexed-maincard {
+          background-color: var(--color-blue);
+        }
+
         &.maincard {
           background-color: var(--color-primary);
         }
 
-        // 稍微亮一点的绿色
         &.bibcard {
           background-color: var(--color-yellow);
         }
 
-        // 稍微亮一点的橙色
         &.indexcard {
           background-color: var(--color-blue);
         }
 
-        // 稍微亮一点的蓝色
         &.hoplinkcard {
           background-color: var(--color-pink);
         }
-        // 稍微亮一点的灰色
         &.draftcard {
           background-color: var(--color-draft);
         }
@@ -209,7 +219,7 @@ onMounted(async () => {
     }
     .note-title {
       margin: 0;
-      font-size: 1.3rem;
+      font-size: 1.1rem;
       font-weight: bold;
       color: var(--color-text-primary);
     }

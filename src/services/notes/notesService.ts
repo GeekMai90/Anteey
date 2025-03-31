@@ -22,35 +22,51 @@ export function convertToNote(record: any): Note {
   return {
     id: record.id,
     type: 'note',
-    address: record.address,
     title: record.title || '',
+    address: record.address,
     cardType: record.cardType,
+
+    // 索引相关字段
+    isIndexed: record.isIndexed === 1 || false, // SQLite 中的布尔值转换
+    indexInfo: record.indexInfo ? JSON.parse(record.indexInfo) : undefined,
+
     content: JSON.parse(record.content),
     createdAt: new Date(record.createdAt),
     updatedAt: new Date(record.updatedAt),
+    lastVectorizedAt: record.lastVectorizedAt ? new Date(record.lastVectorizedAt) : undefined,
 
     // 引用关系
-    references: JSON.parse(record.references),
+    references: JSON.parse(record.references || '{}'),
 
     // 关系树缓存
     relationshipTree: record.relationshipTree ? JSON.parse(record.relationshipTree) : undefined,
 
-    // 图谱数据
+    // 图谱相关
     graphData: record.graphData ? JSON.parse(record.graphData) : undefined,
 
     // 基础字段
     cardBoxId: record.cardBoxId || undefined,
     parentId: record.parentId || undefined,
-    isDeleted: record.isDeleted,
-    isStarred: record.isStarred,
+    isDeleted: record.isDeleted === 1,
+    isStarred: record.isStarred === 1,
     starredOrder: record.starredOrder,
     rightBarOrder: record.rightBarOrder,
 
     // 元数据
     metadata: record.metadata ? JSON.parse(record.metadata) : undefined,
-    isFlashcard: record.isFlashcard,
+
+    // 闪卡相关
+    isFlashcard: record.isFlashcard === 1,
     flashcard: record.flashcard ? JSON.parse(record.flashcard) : undefined,
-    nextReviewAt: record.nextReviewAt ? new Date(record.nextReviewAt) : undefined
+    nextReviewAt: record.nextReviewAt ? new Date(record.nextReviewAt) : undefined,
+
+    // 关键词和标签相关
+    keywords: record.keywords ? JSON.parse(record.keywords) : undefined,
+    suggestedTags: record.suggestedTags ? JSON.parse(record.suggestedTags) : undefined,
+    aiProcessingStatus: record.aiProcessingStatus
+      ? JSON.parse(record.aiProcessingStatus)
+      : undefined,
+    vectorStatus: record.vectorStatus ? JSON.parse(record.vectorStatus) : undefined
   }
 }
 

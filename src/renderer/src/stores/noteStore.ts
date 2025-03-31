@@ -1548,6 +1548,10 @@ export const useNoteStore = defineStore(
         // 重新获取索引笔记列表
         await fetchIndexedNotes()
 
+        // 使用事件总线通知其他组件
+        const eventBus = useEventBus<Note[]>('notes-index-updated')
+        eventBus.emit([updatedNote])
+
         return updatedNote
       } catch (error) {
         console.error('切换笔记索引状态失败:', error)
@@ -1629,6 +1633,10 @@ export const useNoteStore = defineStore(
 
         // 清空选择的笔记
         selectedNoteIds.value = []
+
+        // 使用事件总线通知其他组件
+        const eventBus = useEventBus('notes-index-updated')
+        eventBus.emit(updatedNotes)
 
         return updatedNotes
       } catch (error) {

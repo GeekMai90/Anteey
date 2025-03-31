@@ -33,7 +33,15 @@
         <!-- 更多按钮 -->
         <MoreButton
           :note-id="note.id"
-          :menu-items="['star', 'convertToFlashcard', 'sidebar', 'copyQuote', 'share', 'delete']"
+          :menu-items="[
+            'star',
+            'convertToFlashcard',
+            'sidebar',
+            'toggleIndex',
+            'copyQuote',
+            'share',
+            'delete'
+          ]"
         />
       </div>
     </div>
@@ -134,6 +142,9 @@ const localNote = ref(props.note)
 const router = useRouter()
 
 const cardTypeClass = computed(() => {
+  if (props.note.cardType === 'Maincard' && props.note.isIndexed) {
+    return 'indexed-maincard'
+  }
   switch (props.note.cardType) {
     case 'Maincard':
       return 'maincard'
@@ -242,7 +253,7 @@ onMounted(async () => {
       top: 50%;
       transform: translateY(-50%);
       width: 4px;
-      height: 12px;
+      height: 14px;
       border-radius: 2px;
       margin-right: 10px;
 
@@ -267,6 +278,10 @@ onMounted(async () => {
     }
     @media (prefers-color-scheme: dark) {
       .note-indicator {
+        &.indexed-maincard {
+          background-color: var(--color-blue);
+        }
+
         &.maincard {
           background-color: var(--color-primary);
         }
