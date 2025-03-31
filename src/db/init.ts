@@ -8,6 +8,7 @@ export async function initDatabase(db: Knex): Promise<void> {
     await db.schema.createTable('notes', (table) => {
       table.string('id').primary()
       table.string('type').notNullable().defaultTo('note')
+      table.string('title').notNullable()
       table.string('address').notNullable().index()
       table.string('cardType').notNullable().defaultTo('Maincard').index()
       table.json('content').notNullable()
@@ -42,6 +43,10 @@ export async function initDatabase(db: Knex): Promise<void> {
       table.json('flashcard').nullable() // 存储闪卡的所有相关数据
       table.datetime('nextReviewAt').nullable().index() // 将重要的查询字段单独存储
 
+      // 新增：索引相关字段
+      table.boolean('isIndexed').notNullable().defaultTo(false).index()
+      table.json('indexInfo').nullable() // 存储 firstLetter、order 和 addedAt
+
       // 保持现有的索引
       table.index(['cardBoxId', 'updatedAt'])
       table.index(['cardBoxId', 'createdAt'])
@@ -64,22 +69,53 @@ export async function initDatabase(db: Knex): Promise<void> {
     console.log('notes 表创建成功')
   } // 如果表已存在，需要添加新字段
   else {
-    // 检查是否需要添加新列
-    const hasFlashcardColumn = await db.schema.hasColumn('notes', 'isFlashcard')
-    if (!hasFlashcardColumn) {
+    // 检查是否需要添加 title 字段
+    const hasTitleColumn = await db.schema.hasColumn('notes', 'title')
+    if (!hasTitleColumn) {
       await db.schema.alterTable('notes', (table) => {
-        table.boolean('isFlashcard').notNullable().defaultTo(false)
-        table.json('flashcard').nullable()
-        table.datetime('nextReviewAt').nullable()
+        table.string('title').notNullable().defaultTo('')
+      })
+      console.log('notes 表添加 title 字段成功')
+
+      // 从 metadata 中迁移 title 数据
+      const notes = await db('notes').select('id', 'metadata')
+      for (const note of notes) {
+        if (note.metadata) {
+          const metadata = JSON.parse(note.metadata)
+          if (metadata.title) {
+            await db('notes').where('id', note.id).update({ title: metadata.title })
+          }
+        }
+      }
+    }
+
+    // 检查是否需要添加索引相关字段
+    const hasIndexedColumn = await db.schema.hasColumn('notes', 'isIndexed')
+    if (!hasIndexedColumn) {
+      await db.schema.alterTable('notes', (table) => {
+        table.boolean('isIndexed').notNullable().defaultTo(false)
+        table.json('indexInfo').nullable()
       })
 
-      // 添加新索引
+      // 添加基本索引
       await db.schema.table('notes', (table) => {
-        table.index('isFlashcard')
-        table.index(['isFlashcard', 'nextReviewAt'])
+        table.index('isIndexed')
       })
 
-      console.log('闪卡相关字段添加成功')
+      // 添加 JSON 索引
+      await db.raw(`
+        CREATE INDEX IF NOT EXISTS idx_notes_index_first_letter 
+        ON notes(json_extract(indexInfo, '$.firstLetter')) 
+        WHERE isIndexed = 1
+      `)
+
+      await db.raw(`
+        CREATE INDEX IF NOT EXISTS idx_notes_index_order 
+        ON notes(json_extract(indexInfo, '$.order')) 
+        WHERE isIndexed = 1
+      `)
+
+      console.log('notes 表添加索引相关字段和索引成功')
     }
 
     // 检查是否需要添加 lastVectorizedAt 字段

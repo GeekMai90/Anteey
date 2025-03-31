@@ -34,7 +34,13 @@ import {
   getRecentEditedNotes,
   batchMoveNotesToCardBox,
   batchUpdateNotesCardType,
-  batchSoftDeleteNotes
+  batchSoftDeleteNotes,
+  toggleNoteIndex,
+  getIndexedNotes,
+  updateIndexOrder,
+  batchAddToIndex,
+  batchRemoveFromIndex,
+  getIndexedNotesByLetter
 } from '../../services/notes/notesService'
 import type {
   GetPaginatedNotesParams,
@@ -416,6 +422,100 @@ export function setupNotesHandlers() {
     } catch (error) {
       console.error('主进程→ 批量软删除笔记失败:', error)
       throw error
+    }
+  })
+
+  // 切换笔记的索引状态
+  ipcMain.handle('toggle-note-index', async (_event, noteId: string) => {
+    try {
+      const updatedNote = await toggleNoteIndex(noteId)
+      return { success: true, note: updatedNote }
+    } catch (error) {
+      console.error('主进程→ 切换笔记索引状态失败:', error)
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : String(error)
+      }
+    }
+  })
+
+  // 获取所有索引笔记（按首字母分组）
+  ipcMain.handle('get-indexed-notes', async () => {
+    try {
+      const groupedNotes = await getIndexedNotes()
+      return { success: true, notes: groupedNotes }
+    } catch (error) {
+      console.error('主进程→ 获取索引笔记失败:', error)
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : String(error)
+      }
+    }
+  })
+
+  // 更新索引笔记的顺序
+  ipcMain.handle(
+    'update-index-order',
+    async (
+      _event,
+      updates: Array<{
+        noteId: string
+        firstLetter: string
+        order: number
+      }>
+    ) => {
+      try {
+        const updatedNotes = await updateIndexOrder(updates)
+        return { success: true, notes: updatedNotes }
+      } catch (error) {
+        console.error('主进程→ 更新索引笔记顺序失败:', error)
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : String(error)
+        }
+      }
+    }
+  )
+
+  // 批量添加到索引
+  ipcMain.handle('batch-add-to-index', async (_event, noteIds: string[]) => {
+    try {
+      const updatedNotes = await batchAddToIndex(noteIds)
+      return { success: true, notes: updatedNotes }
+    } catch (error) {
+      console.error('主进程→ 批量添加到索引失败:', error)
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : String(error)
+      }
+    }
+  })
+
+  // 批量移除索引
+  ipcMain.handle('batch-remove-from-index', async (_event, noteIds: string[]) => {
+    try {
+      const updatedNotes = await batchRemoveFromIndex(noteIds)
+      return { success: true, notes: updatedNotes }
+    } catch (error) {
+      console.error('主进程→ 批量移除索引失败:', error)
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : String(error)
+      }
+    }
+  })
+
+  // 获取特定首字母的索引笔记
+  ipcMain.handle('get-indexed-notes-by-letter', async (_event, letter: string) => {
+    try {
+      const notes = await getIndexedNotesByLetter(letter)
+      return { success: true, notes }
+    } catch (error) {
+      console.error('主进程→ 获取特定首字母的索引笔记失败:', error)
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : String(error)
+      }
     }
   })
 }

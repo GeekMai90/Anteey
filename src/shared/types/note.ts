@@ -53,11 +53,20 @@ export interface JsonContent {
 
 // 卡片笔记
 export interface Note {
-  [key: string]: any // 添加这行，允许字符串索引
   id: string
   type: 'note'
-  address: string // Zettelkasten 编码地址
-  cardType: CardType // 卡片类型
+  title: string // 新增：直接在根级别添加 title 字段
+  address: string
+  cardType: CardType
+
+  // 新增：索引相关字段
+  isIndexed?: boolean
+  indexInfo?: {
+    firstLetter: string // 首字母分类
+    order: number // 排序权重
+    addedAt: Date // 添加到索引的时间
+  }
+
   content: {
     type: string
     content: JsonContent[]
@@ -90,7 +99,7 @@ export interface Note {
 
   // 元数据
   metadata?: {
-    title?: string
+    title?: string // 保留原有的 title 字段以保持向后兼容
     summary?: string
     references?: string[]
     attachments?: string[]
@@ -106,6 +115,7 @@ export interface Note {
   // 新增：闪卡相关属性
   isFlashcard: boolean
   flashcard?: FlashcardData
+  nextReviewAt?: Date
 
   // 新增：关键词和标签相关
   keywords?: string[] // 存储关键词

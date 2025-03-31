@@ -245,6 +245,24 @@ export interface ElectronAPI {
     batchSoftDeleteNotes: (noteIds: string[]) => Promise<Note[]>
     // 获取草稿笔记
     getDraftNotes: (page: number, limit: number) => Promise<{ notes: Note[]; totalCount: number }>
+    // 切换笔记的索引状态
+    toggleNoteIndex: (noteId: string) => Promise<Note>
+    // 获取所有索引笔记（按首字母分组）
+    getIndexedNotes: () => Promise<Record<string, Note[]>>
+    // 更新索引笔记的顺序
+    updateIndexOrder: (
+      updates: Array<{
+        noteId: string
+        firstLetter: string
+        order: number
+      }>
+    ) => Promise<Note[]>
+    // 批量添加到索引
+    batchAddToIndex: (noteIds: string[]) => Promise<Note[]>
+    // 批量移除索引
+    batchRemoveFromIndex: (noteIds: string[]) => Promise<Note[]>
+    // 获取特定首字母的索引笔记
+    getIndexedNotesByLetter: (letter: string) => Promise<Note[]>
   }
 
   systemMenu: {

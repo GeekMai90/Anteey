@@ -14,7 +14,8 @@ import {
   Share,
   AdjacentItem,
   StorageCardOne,
-  MagicWand
+  MagicWand,
+  ListAlphabet
 } from '@icon-park/vue-next'
 
 import { useUIStore } from '../stores/UIStore'
@@ -50,6 +51,9 @@ export function useNoteMenu(params: NoteMenuParams) {
 
   const noteAIProcessStore = useNoteAIProcessStore()
   const isProcessing = ref(false)
+
+  // 添加索引状态
+  const isIndexed = ref(false)
 
   // 关闭弹出菜单
   const closePopupMenu = () => {
@@ -111,6 +115,7 @@ export function useNoteMenu(params: NoteMenuParams) {
       if (note) {
         isStarred.value = note.isStarred || false
         isFlashcard.value = note.isFlashcard || false
+        isIndexed.value = note.isIndexed || false // 添加索引状态
       }
     }
   })
@@ -294,6 +299,19 @@ export function useNoteMenu(params: NoteMenuParams) {
     }
   }
 
+  // 添加处理索引的方法
+  const handleToggleIndex = async () => {
+    try {
+      await noteStore.toggleNoteIndex(params.noteId)
+      isIndexed.value = !isIndexed.value
+      message.success(isIndexed.value ? '已添加到索引' : '已从索引中移除')
+      closePopupMenu()
+    } catch (error) {
+      console.error('切换索引状态失败:', error)
+      message.error('操作失败')
+    }
+  }
+
   const allMenuItems: any = computed(() => ({
     info: { name: 'info', label: '卡片信息', icon: Info, action: handleShare },
     star: {
@@ -443,6 +461,14 @@ export function useNoteMenu(params: NoteMenuParams) {
       action: handleAIProcess,
       disabled: isProcessing.value,
       fill: isProcessing.value ? 'var(--color-primary)' : 'var(--color-icon-primary)'
+    },
+    // 添加索引菜单项
+    toggleIndex: {
+      name: 'toggleIndex',
+      label: isIndexed.value ? '取消索引' : '添加索引',
+      icon: ListAlphabet,
+      action: handleToggleIndex,
+      fill: isIndexed.value ? 'var(--color-primary)' : 'var(--color-icon-primary)'
     }
   }))
 

@@ -1530,6 +1530,124 @@ export const useNoteStore = defineStore(
     // 添加获取当前共鸣笔记 ID 的计算属性
     const getCurrentEchoNoteId = computed(() => currentEchoNoteId.value)
 
+    // ==================== 索引相关状态 ====================
+    const indexedNotes = ref<Record<string, Note[]>>({})
+    const isLoadingIndexedNotes = ref(false)
+    const currentIndexLetter = ref<string | null>(null)
+
+    // ==================== 索引相关方法 ====================
+
+    // 切换笔记的索引状态
+    const toggleNoteIndex = async (noteId: string) => {
+      try {
+        const updatedNote = await window.electronAPI.note.toggleNoteIndex(noteId)
+
+        // 更新本地状态
+        updateLocalNote(noteId, updatedNote)
+
+        // 重新获取索引笔记列表
+        await fetchIndexedNotes()
+
+        return updatedNote
+      } catch (error) {
+        console.error('切换笔记索引状态失败:', error)
+        throw error
+      }
+    }
+
+    // 获取所有索引笔记
+    const fetchIndexedNotes = async () => {
+      try {
+        isLoadingIndexedNotes.value = true
+        const groupedNotes = await window.electronAPI.note.getIndexedNotes()
+        indexedNotes.value = groupedNotes
+        return groupedNotes
+      } catch (error) {
+        console.error('获取索引笔记失败:', error)
+        throw error
+      } finally {
+        isLoadingIndexedNotes.value = false
+      }
+    }
+
+    // 更新索引笔记的顺序
+    const updateIndexOrder = async (
+      updates: Array<{
+        noteId: string
+        firstLetter: string
+        order: number
+      }>
+    ) => {
+      try {
+        const updatedNotes = await window.electronAPI.note.updateIndexOrder(updates)
+
+        // 更新本地状态
+        await fetchIndexedNotes()
+
+        return updatedNotes
+      } catch (error) {
+        console.error('更新索引笔记顺序失败:', error)
+        throw error
+      }
+    }
+
+    // 批量添加到索引
+    const batchAddToIndex = async (noteIds: string[]) => {
+      try {
+        const updatedNotes = await window.electronAPI.note.batchAddToIndex(noteIds)
+
+        // 更新本地状态
+        updatedNotes.forEach((note) => {
+          updateLocalNote(note.id, note)
+        })
+
+        // 重新获取索引笔记列表
+        await fetchIndexedNotes()
+
+        // 清空选择的笔记
+        selectedNoteIds.value = []
+
+        return updatedNotes
+      } catch (error) {
+        console.error('批量添加到索引失败:', error)
+        throw error
+      }
+    }
+
+    // 批量移除索引
+    const batchRemoveFromIndex = async (noteIds: string[]) => {
+      try {
+        const updatedNotes = await window.electronAPI.note.batchRemoveFromIndex(noteIds)
+
+        // 更新本地状态
+        updatedNotes.forEach((note) => {
+          updateLocalNote(note.id, note)
+        })
+
+        // 重新获取索引笔记列表
+        await fetchIndexedNotes()
+
+        // 清空选择的笔记
+        selectedNoteIds.value = []
+
+        return updatedNotes
+      } catch (error) {
+        console.error('批量移除索引失败:', error)
+        throw error
+      }
+    }
+
+    // 获取特定首字母的索引笔记
+    const getIndexedNotesByLetter = async (letter: string) => {
+      try {
+        currentIndexLetter.value = letter
+        return await window.electronAPI.note.getIndexedNotesByLetter(letter)
+      } catch (error) {
+        console.error('获取特定首字母的索引笔记失败:', error)
+        throw error
+      }
+    }
+
     // 返回所有状态和方法
     return {
       // 状态
@@ -1717,7 +1835,20 @@ export const useNoteStore = defineStore(
       // 添加新的状态和方法到返回对象
       currentEchoNoteId,
       setCurrentEchoNoteId,
-      getCurrentEchoNoteId
+      getCurrentEchoNoteId,
+
+      // 索引相关状态
+      indexedNotes,
+      isLoadingIndexedNotes,
+      currentIndexLetter,
+
+      // 索引相关方法
+      toggleNoteIndex,
+      fetchIndexedNotes,
+      updateIndexOrder,
+      batchAddToIndex,
+      batchRemoveFromIndex,
+      getIndexedNotesByLetter
     }
   },
   {
@@ -1745,6 +1876,10 @@ export const useNoteStore = defineStore(
       {
         key: 'note-echo',
         pick: ['currentEchoNoteId']
+      },
+      {
+        key: 'note-index',
+        pick: ['currentIndexLetter']
       }
     ]
   }

@@ -15,6 +15,7 @@ import { db } from '../../db/config'
 
 import { getCurrentAuthState } from '../auth/authService'
 import { ImageService } from '../images/imageService'
+import { pinyin } from 'pinyin-pro'
 
 // 辅助函数：将数据库记录转换为 Note 对象
 export function convertToNote(record: any): Note {
@@ -22,6 +23,7 @@ export function convertToNote(record: any): Note {
     id: record.id,
     type: 'note',
     address: record.address,
+    title: record.title || '',
     cardType: record.cardType,
     content: JSON.parse(record.content),
     createdAt: new Date(record.createdAt),
@@ -143,19 +145,16 @@ export async function searchNotes(params: SearchParams): Promise<
         break
 
       case 'title':
-        // 搜索 metadata 中的 title
-        query = query.whereRaw("LOWER(json_extract(metadata, '$.title')) LIKE ?", [
-          `%${lowercaseQuery}%`
-        ])
+        // 修改：直接搜索 title 字段
+        query = query.whereRaw('LOWER(title) LIKE ?', [`%${lowercaseQuery}%`])
         break
 
       case 'all':
       default:
-        // 搜索所有字段
         query = query.where((builder) => {
           builder
             .whereRaw('LOWER(address) LIKE ?', [`%${lowercaseQuery}%`])
-            .orWhereRaw("LOWER(json_extract(metadata, '$.title')) LIKE ?", [`%${lowercaseQuery}%`])
+            .orWhereRaw('LOWER(title) LIKE ?', [`%${lowercaseQuery}%`])
             .orWhereRaw("LOWER(json_extract(content, '$')) LIKE ?", [`%${lowercaseQuery}%`])
         })
         break
@@ -494,6 +493,7 @@ export async function createNote(
     id,
     type: 'note',
     address: opts.address || '',
+    title: opts.metadata?.title || '',
     cardType,
     content: {
       type: 'doc',
@@ -537,9 +537,9 @@ export async function createNote(
     starredOrder: undefined,
     rightBarOrder: undefined,
 
-    // 元数据（初始为空）
+    // 元数据
     metadata: {
-      title: '',
+      title: opts.metadata?.title || '',
       summary: '',
       ...opts.metadata
     },
@@ -621,13 +621,12 @@ export async function updateNoteContent(id: string, content: object): Promise<No
         const updateData: any = {
           content: JSON.stringify(content),
           updatedAt: new Date(),
+          title: firstLineText,
           metadata: db.raw(
-            `
-            json_patch(
+            `json_patch(
               COALESCE(metadata, '{}'),
               json_object('title', ?)
-            )
-          `,
+            )`,
             [firstLineText]
           )
         }
@@ -1956,10 +1955,12 @@ export async function createNoteViaApi(content: string): Promise<Note> {
   // 构建笔记地址格式: 闪念-YYYYMMDDHHmmss
   const address = `闪念-${timestamp}` // 例如: 闪念-20250329120530
 
+  const title = content.slice(0, 50)
   const newNote: Note = {
     id: uuidv4(),
     type: 'note',
-    address, // 使用新的地址格式
+    address,
+    title: title,
     cardType: 'Draftcard',
     content: {
       type: 'doc',
@@ -2010,7 +2011,7 @@ export async function createNoteViaApi(content: string): Promise<Note> {
 
     // 元数据
     metadata: {
-      title: content.slice(0, 50), // 取第一段内容的前50个字符作为标题
+      title: title,
       summary: ''
     },
 
@@ -2035,4 +2036,211 @@ export async function createNoteViaApi(content: string): Promise<Note> {
     console.error('通过API创建笔记失败:', error)
     throw error
   }
+}
+
+// 1. 切换笔记的索引状态
+export async function toggleNoteIndex(noteId: string): Promise<Note> {
+  return db.transaction(async (trx) => {
+    // 获取笔记
+    const note = await trx('notes').where('id', noteId).first()
+    if (!note) {
+      throw new Error('笔记不存在')
+    }
+
+    // 准备更新数据
+    const now = new Date()
+    const updateData: any = {
+      isIndexed: !note.isIndexed,
+      updatedAt: now
+    }
+
+    // 如果是添加到索引，需要设置 indexInfo
+    if (!note.isIndexed) {
+      // 获取标题的首字母（支持中英文）
+      const firstLetter = getFirstLetter(note.title)
+
+      // 修改：使用正确的 JSON 查询语法
+      const maxOrderResult = await trx('notes')
+        .where('isIndexed', true)
+        .whereRaw("json_extract(indexInfo, '$.firstLetter') = ?", [firstLetter])
+        .select(trx.raw("COALESCE(MAX(json_extract(indexInfo, '$.order')), 0) as maxOrder"))
+        .first()
+
+      updateData.indexInfo = JSON.stringify({
+        firstLetter,
+        order: (maxOrderResult?.maxOrder || 0) + 1,
+        addedAt: now
+      })
+    } else {
+      // 如果是移除索引，清空 indexInfo
+      updateData.indexInfo = null
+    }
+
+    // 执行更新
+    const [updatedNote] = await trx('notes').where('id', noteId).update(updateData).returning('*')
+
+    return convertToNote(updatedNote)
+  })
+}
+
+// 2. 获取所有索引笔记（按首字母分组）
+export async function getIndexedNotes(): Promise<{
+  [key: string]: Note[]
+}> {
+  try {
+    const notes = await db('notes')
+      .where('isIndexed', true)
+      .whereNotNull('indexInfo')
+      .orderByRaw("json_extract(indexInfo, '$.firstLetter') ASC") // 修改：使用单引号
+      .orderByRaw("json_extract(indexInfo, '$.order') ASC") // 修改：使用单引号
+
+    // 按首字母分组
+    const groupedNotes = notes.reduce((groups: { [key: string]: Note[] }, note) => {
+      const indexInfo = JSON.parse(note.indexInfo)
+      const firstLetter = indexInfo.firstLetter
+      if (!groups[firstLetter]) {
+        groups[firstLetter] = []
+      }
+      groups[firstLetter].push(convertToNote(note))
+      return groups
+    }, {})
+
+    return groupedNotes
+  } catch (error) {
+    console.error('获取索引笔记失败:', error)
+    throw error
+  }
+}
+
+// 3. 更新索引笔记的顺序
+export async function updateIndexOrder(
+  updates: {
+    noteId: string
+    firstLetter: string
+    order: number
+  }[]
+): Promise<Note[]> {
+  return db.transaction(async (trx) => {
+    const updatedNotes: Note[] = []
+
+    for (const update of updates) {
+      const [updatedNote] = await trx('notes')
+        .where('id', update.noteId)
+        .update({
+          indexInfo: db.raw(`json_set(indexInfo, '$.firstLetter', ?, '$.order', ?)`, [
+            update.firstLetter,
+            update.order
+          ]),
+          updatedAt: new Date()
+        })
+        .returning('*')
+
+      updatedNotes.push(convertToNote(updatedNote))
+    }
+
+    return updatedNotes
+  })
+}
+
+// 4. 批量添加到索引
+export async function batchAddToIndex(noteIds: string[]): Promise<Note[]> {
+  return db.transaction(async (trx) => {
+    const now = new Date()
+    const updatedNotes: Note[] = []
+
+    for (const noteId of noteIds) {
+      const note = await trx('notes').where('id', noteId).first()
+      if (!note || note.isIndexed) continue
+
+      const firstLetter = getFirstLetter(note.title)
+      const maxOrder = await trx('notes')
+        .where('isIndexed', true)
+        .whereRaw('json_extract(indexInfo, "$.firstLetter") = ?', [firstLetter])
+        .max('json_extract(indexInfo, "$.order") as maxOrder')
+        .first()
+
+      const [updatedNote] = await trx('notes')
+        .where('id', noteId)
+        .update({
+          isIndexed: true,
+          indexInfo: JSON.stringify({
+            firstLetter,
+            order: (maxOrder?.maxOrder || 0) + 1,
+            addedAt: now
+          }),
+          updatedAt: now
+        })
+        .returning('*')
+
+      updatedNotes.push(convertToNote(updatedNote))
+    }
+
+    return updatedNotes
+  })
+}
+
+// 5. 批量移除索引
+export async function batchRemoveFromIndex(noteIds: string[]): Promise<Note[]> {
+  return db.transaction(async (trx) => {
+    const [updatedNotes] = await trx('notes')
+      .whereIn('id', noteIds)
+      .update({
+        isIndexed: false,
+        indexInfo: null,
+        updatedAt: new Date()
+      })
+      .returning('*')
+
+    return updatedNotes.map(convertToNote)
+  })
+}
+
+// 6. 获取特定首字母的索引笔记
+export async function getIndexedNotesByLetter(letter: string): Promise<Note[]> {
+  try {
+    const notes = await db('notes')
+      .where('isIndexed', true)
+      .whereRaw("json_extract(indexInfo, '$.firstLetter') = ?", [letter]) // 修改：使用单引号
+      .orderByRaw("json_extract(indexInfo, '$.order') ASC") // 修改：使用单引号
+
+    return notes.map(convertToNote)
+  } catch (error) {
+    console.error('获取特定首字母的索引笔记失败:', error)
+    throw error
+  }
+}
+
+// 辅助函数：获取文字的首字母（支持中英文）
+function getFirstLetter(text: string): string {
+  if (!text) return '#'
+
+  // 移除空格
+  text = text.trim()
+  if (!text) return '#'
+
+  // 获取第一个字符
+  const firstChar = text.charAt(0)
+
+  // 如果是英文字母，直接返回大写
+  if (/[a-zA-Z]/.test(firstChar)) {
+    return firstChar.toUpperCase()
+  }
+
+  // 如果是中文，转换为拼音首字母
+  if (/[\u4e00-\u9fa5]/.test(firstChar)) {
+    try {
+      const pinyinResult = pinyin(firstChar, {
+        pattern: 'first', // 只获取首字母
+        toneType: 'none', // 不带声调
+        type: 'array'
+      })
+      return pinyinResult[0].toUpperCase()
+    } catch (error) {
+      console.error('转换拼音失败:', error)
+      return '#'
+    }
+  }
+
+  // 其他字符返回 #
+  return '#'
 }

@@ -140,6 +140,7 @@
     "node-schedule": "^2.1.1",
     "pinia": "^2.2.2",
     "pinia-plugin-persistedstate": "^4.0.0",
+    "pinyin-pro": "^3.26.0",
     "prosemirror-state": "^1.4.3",
     "qrcode": "^1.5.4",
     "tiptap-extension-global-drag-handle": "^0.1.12",

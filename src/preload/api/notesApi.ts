@@ -414,5 +414,95 @@ export const notesApi = {
       console.error('预加载脚本 → 批量软删除笔记失败:', error)
       throw error
     }
+  },
+
+  // 切换笔记的索引状态
+  toggleNoteIndex: async (noteId: string): Promise<Note> => {
+    try {
+      const result = await ipcRenderer.invoke('toggle-note-index', noteId)
+      if (!result.success) {
+        throw new Error(result.error)
+      }
+      return result.note
+    } catch (error) {
+      console.error('预加载脚本 → 切换笔记索引状态失败:', error)
+      throw error
+    }
+  },
+
+  // 获取所有索引笔记（按首字母分组）
+  getIndexedNotes: async (): Promise<Record<string, Note[]>> => {
+    try {
+      const result = await ipcRenderer.invoke('get-indexed-notes')
+      if (!result.success) {
+        throw new Error(result.error)
+      }
+      return result.notes
+    } catch (error) {
+      console.error('预加载脚本 → 获取索引笔记失败:', error)
+      throw error
+    }
+  },
+
+  // 更新索引笔记的顺序
+  updateIndexOrder: async (
+    updates: Array<{
+      noteId: string
+      firstLetter: string
+      order: number
+    }>
+  ): Promise<Note[]> => {
+    try {
+      const result = await ipcRenderer.invoke('update-index-order', updates)
+      if (!result.success) {
+        throw new Error(result.error)
+      }
+      return result.notes
+    } catch (error) {
+      console.error('预加载脚本 → 更新索引笔记顺序失败:', error)
+      throw error
+    }
+  },
+
+  // 批量添加到索引
+  batchAddToIndex: async (noteIds: string[]): Promise<Note[]> => {
+    try {
+      const result = await ipcRenderer.invoke('batch-add-to-index', noteIds)
+      if (!result.success) {
+        throw new Error(result.error)
+      }
+      return result.notes
+    } catch (error) {
+      console.error('预加载脚本 → 批量添加到索引失败:', error)
+      throw error
+    }
+  },
+
+  // 批量移除索引
+  batchRemoveFromIndex: async (noteIds: string[]): Promise<Note[]> => {
+    try {
+      const result = await ipcRenderer.invoke('batch-remove-from-index', noteIds)
+      if (!result.success) {
+        throw new Error(result.error)
+      }
+      return result.notes
+    } catch (error) {
+      console.error('预加载脚本 → 批量移除索引失败:', error)
+      throw error
+    }
+  },
+
+  // 获取特定首字母的索引笔记
+  getIndexedNotesByLetter: async (letter: string): Promise<Note[]> => {
+    try {
+      const result = await ipcRenderer.invoke('get-indexed-notes-by-letter', letter)
+      if (!result.success) {
+        throw new Error(result.error)
+      }
+      return result.notes
+    } catch (error) {
+      console.error('预加载脚本 → 获取特定首字母的索引笔记失败:', error)
+      throw error
+    }
   }
 }

@@ -38,7 +38,16 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useRoute } from 'vue-router'
-import { Split, Notepad, Components, Box, Robot, Log, MailPackage } from '@icon-park/vue-next'
+import {
+  Split,
+  Notepad,
+  Components,
+  Box,
+  Robot,
+  Log,
+  MailPackage,
+  ListAlphabet
+} from '@icon-park/vue-next'
 import MultiNotes from '@renderer/components/rightSidebar/MultiNotes.vue'
 import BacklinksPanelNoteEditor from '@renderer/components/rightSidebar/BacklinksPanelNoteEditor.vue'
 import RightSidebarDraftsEditor from '@renderer/components/rightSidebar/RightSidebarDraftsEditor.vue'
@@ -46,6 +55,7 @@ import RightSidebarWidgets from '@renderer/components/rightSidebar/RightSidebarW
 import RightSidebarCardbox from '@renderer/components/rightSidebar/RightSidebarCardbox.vue'
 import RightSidebarAssistant from '@renderer/components/rightSidebar/RightSidebarAssistant.vue'
 import RightSidebarLetters from '@renderer/components/rightSidebar/RightSidebarLetters.vue'
+import RightSidebarIndex from '@renderer/components/rightSidebar/RightSidebarIndex.vue'
 import { useUIStore } from '@renderer/stores/UIStore'
 const props = defineProps<{
   initialWidth?: number
@@ -104,6 +114,12 @@ const tabs = [
     label: '小组件',
     icon: Components,
     component: RightSidebarWidgets
+  },
+  {
+    key: 'index',
+    label: '索引',
+    icon: ListAlphabet,
+    component: RightSidebarIndex
   }
 ]
 

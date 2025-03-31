@@ -22,6 +22,7 @@
             'copyQuote',
             'share',
             'exportNote',
+            'toggleIndex',
             'delete'
           ]"
         />
