@@ -252,15 +252,6 @@ const performSearch = useDebounceFn(async () => {
       mode: searchMode.value,
       term: searchTerm.value
     })
-
-    // 移除这部分代码，因为已经在 watch 中处理了
-    // if (searchResults.value.length > 0) {
-    //   selectedNoteIndex.value = 0
-    //   selectedBlockIndex.value = 0
-    // } else {
-    //   selectedNoteIndex.value = -1
-    //   selectedBlockIndex.value = -1
-    // }
   } else {
     isExpanded.value = false
     searchResults.value = []

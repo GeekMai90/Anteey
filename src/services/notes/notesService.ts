@@ -2182,7 +2182,8 @@ export async function batchAddToIndex(noteIds: string[]): Promise<Note[]> {
 // 5. 批量移除索引
 export async function batchRemoveFromIndex(noteIds: string[]): Promise<Note[]> {
   return db.transaction(async (trx) => {
-    const [updatedNotes] = await trx('notes')
+    // 移除数组解构，直接获取更新后的笔记数组
+    const updatedNotes = await trx('notes')
       .whereIn('id', noteIds)
       .update({
         isIndexed: false,
@@ -2191,7 +2192,8 @@ export async function batchRemoveFromIndex(noteIds: string[]): Promise<Note[]> {
       })
       .returning('*')
 
-    return updatedNotes.map(convertToNote)
+    // 确保 updatedNotes 是一个数组
+    return Array.isArray(updatedNotes) ? updatedNotes.map(convertToNote) : []
   })
 }
 
