@@ -30,7 +30,7 @@
         <!-- 笔记列表 -->
         <template v-else>
           <div
-            v-for="(notes, letter) in groupedNotes"
+            v-for="(_, letter) in groupedNotes"
             :id="`letter-${letter}`"
             :key="letter"
             class="letter-group"

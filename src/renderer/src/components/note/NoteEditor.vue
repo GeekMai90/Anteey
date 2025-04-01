@@ -22,6 +22,7 @@
             'star',
             'convertToFlashcard',
             'sidebar',
+            'toggleIndex',
             'copyQuote',
             'exportNote',
             'delete'

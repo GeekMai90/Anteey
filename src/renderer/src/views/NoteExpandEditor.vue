@@ -73,6 +73,7 @@
               'star',
               'convertToFlashcard',
               'sidebar',
+              'toggleIndex',
               'copyQuote',
               'historyVersion',
               'share',
