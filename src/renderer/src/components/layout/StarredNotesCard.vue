@@ -114,6 +114,10 @@ const cardTypeClass = computed(() => {
       font-size: 12px;
       font-weight: bold;
       color: var(--color-sidebar-text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 100%;
     }
   }
   .note-content {
