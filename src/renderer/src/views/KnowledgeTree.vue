@@ -21,11 +21,12 @@ import jsMind from 'jsmind'
 import { useKnowledgeTreeStore } from '@renderer/stores/knowledgeTreeStore'
 import type { KnowledgeTreeNode } from '@shared/types'
 import AppToolbar from '../components/layout/AppToolbar.vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useNoteStore } from '@renderer/stores/noteStore'
 import { useUIStore } from '@renderer/stores/UIStore'
 
 const route = useRoute()
+const router = useRouter()
 const noteStore = useNoteStore()
 const uiStore = useUIStore()
 
@@ -375,15 +376,33 @@ const handleNodeClick = async (e: MouseEvent) => {
     return
   }
 
-  // 原有的节点点击预览逻辑
+  // 获取节点元素
   const jmnodeElement = element.closest('jmnode')
   if (jmnodeElement) {
     const nodeId = jmnodeElement.getAttribute('nodeid')
     if (nodeId) {
       const node = jm.value.get_node(nodeId)
       if (node && node.data && node.data.data.noteId) {
-        noteStore.openBacklinkPreview(node.data.data.noteId)
-        uiStore.openRightSidebarWithTab('backlink')
+        if (e.altKey) {
+          // Alt + 点击：跳转到卡片盒查看笔记
+          router.push({
+            name: 'cardbox',
+            query: {
+              mode: 'context',
+              noteId: node.data.data.noteId
+            }
+          })
+        } else if (e.metaKey || e.ctrlKey) {
+          // Command/Ctrl + 点击：在扩展编辑器中打开
+          router.push({
+            name: 'NoteExpandEditor',
+            params: { id: node.data.data.noteId }
+          })
+        } else {
+          // 普通点击：原有的预览功能
+          noteStore.openBacklinkPreview(node.data.data.noteId)
+          uiStore.openRightSidebarWithTab('backlink')
+        }
       }
     }
   }

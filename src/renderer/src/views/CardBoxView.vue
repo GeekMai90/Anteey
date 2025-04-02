@@ -348,32 +348,48 @@ const fetchNotes = async () => {
     totalCount.value = result.totalCount
     hasMoreNotes.value = notes.value.length < result.totalCount
 
-    // 添加：在初始加载完成后检查是否需要加载更多
-    if (currentPage.value === 1) {
-      await nextTick()
-      checkAndLoadMore()
-    }
-
     // 如果有目标笔记且在当前加载的数据中，滚动到目标位置
     if (targetNoteId.value && notes.value.some((note) => note.id === targetNoteId.value)) {
       await nextTick()
       scrollToTargetNote()
     }
 
-    // 如果还没有找到目标笔记，且还有更多数据，继续加载下一页
+    // 修改这里的逻辑：如果还没找到目标笔记，且还有更多数据，自动加载下一页
     if (
       targetNoteId.value &&
       !notes.value.some((note) => note.id === targetNoteId.value) &&
       hasMoreNotes.value
     ) {
       currentPage.value++
-      isLoading.value = false // 重置加载状态
-      return fetchNotes()
+      isLoading.value = false
+      await fetchNotes() // 使用 await 确保加载完成
+    }
+
+    // 添加：在初始加载完成后检查是否需要加载更多
+    if (currentPage.value === 1) {
+      await nextTick()
+      checkAndLoadMore()
     }
   } catch (error) {
     console.error('获取笔记失败:', error)
+    // 重要：发生错误时重置加载状态和标志
+    hasMoreNotes.value = true
+    currentPage.value = Math.max(1, currentPage.value - 1) // 回退页码
   } finally {
     isLoading.value = false
+    // 添加：检查是否需要继续加载
+    if (cardGridContainer.value) {
+      const { scrollHeight, clientHeight, scrollTop } = cardGridContainer.value
+      if (scrollHeight <= clientHeight || Math.abs(scrollHeight - (scrollTop + clientHeight)) < 1) {
+        // 如果内容高度不够或者已经到底，且还有更多数据，继续加载
+        if (hasMoreNotes.value && notes.value.length < totalCount.value) {
+          nextTick(() => {
+            currentPage.value++
+            fetchNotes()
+          })
+        }
+      }
+    }
   }
 }
 
@@ -398,37 +414,38 @@ const checkAndLoadMore = async () => {
 }
 
 // 修改 handleScroll 函数
-const handleScroll = useThrottleFn((e: Event) => {
-  const target = e.target as HTMLElement
-  const newScrollTop = target.scrollTop
+const handleScroll = useThrottleFn(
+  (e: Event) => {
+    const target = e.target as HTMLElement
+    const newScrollTop = target.scrollTop
 
-  // 更新滚动位置
-  scrollTop.value = newScrollTop
+    // 更新滚动位置
+    scrollTop.value = newScrollTop
 
-  // 处理无限加载
-  const { scrollHeight, clientHeight } = target
-  const scrollBottom = scrollHeight - newScrollTop - clientHeight
+    // 处理无限加载
+    const { scrollHeight, clientHeight } = target
+    const scrollBottom = scrollHeight - newScrollTop - clientHeight
 
-  // 当距离底部小于 500px 且还有更多数据时，加载更多
-  if (
-    scrollBottom < 500 &&
-    !isLoading.value &&
-    hasMoreNotes.value &&
-    !targetNoteId.value &&
-    notes.value.length < totalCount.value
-  ) {
-    // console.log('滚动触发加载更多', {
-    //   scrollBottom,
-    //   isLoading: isLoading.value,
-    //   hasMore: hasMoreNotes.value,
-    //   currentPage: currentPage.value,
-    //   totalNotes: notes.value.length,
-    //   totalCount: totalCount.value
-    // })
-    currentPage.value++
-    fetchNotes()
-  }
-}, 100)
+    // 当距离底部小于 200px 且还有更多数据时，加载更多
+    if (
+      (scrollBottom < 400 || Math.abs(scrollHeight - (newScrollTop + clientHeight)) < 1) &&
+      !isLoading.value &&
+      hasMoreNotes.value &&
+      notes.value.length < totalCount.value
+    ) {
+      currentPage.value++
+      fetchNotes()
+    }
+  },
+  100 // 节流时间
+)
+
+// 添加单独的滚动结束检测
+let scrollEndTimer: NodeJS.Timeout
+const handleScrollEnd = () => {
+  if (scrollEndTimer) clearTimeout(scrollEndTimer)
+  scrollEndTimer = setTimeout(checkScrollPosition, 150)
+}
 
 // 添加排序偏好相关接口和方法
 interface SortPreference {
@@ -665,6 +682,7 @@ onMounted(async () => {
   if (cardGridContainer.value) {
     containerHeight.value = cardGridContainer.value.clientHeight
     cardGridContainer.value.addEventListener('scroll', handleScroll)
+    cardGridContainer.value.addEventListener('scroll', handleScrollEnd)
 
     // 监听容器大小变化
     const resizeObserver = new ResizeObserver((entries) => {
@@ -677,6 +695,18 @@ onMounted(async () => {
 
     resizeObserver.observe(cardGridContainer.value)
   }
+
+  // 添加触摸结束事件监听，用于移动设备
+  cardGridContainer.value?.addEventListener('touchend', () => {
+    setTimeout(checkScrollPosition, 100)
+  })
+
+  // 添加滚动结束监听
+  let scrollTimeout: NodeJS.Timeout
+  cardGridContainer.value?.addEventListener('scroll', () => {
+    clearTimeout(scrollTimeout)
+    scrollTimeout = setTimeout(checkScrollPosition, 150)
+  })
 })
 
 // 组件卸载时清理
@@ -685,6 +715,13 @@ onUnmounted(() => {
   document.removeEventListener('keydown', handleKeyDown)
 
   cardGridContainer.value?.removeEventListener('scroll', handleScroll)
+  cardGridContainer.value?.removeEventListener('scroll', handleScrollEnd)
+
+  cardGridContainer.value?.removeEventListener('touchend', () => {
+    setTimeout(checkScrollPosition, 100)
+  })
+
+  if (scrollEndTimer) clearTimeout(scrollEndTimer)
 })
 
 // 4. 监听路由变化
@@ -1331,6 +1368,25 @@ const cardGridStyles = computed(() => ({
 
 // 在生命周期钩子或适当位置添加provide
 provide('provideShiftSelect', provideShiftSelect)
+
+// 添加一个自动恢复加载的函数
+const checkScrollPosition = () => {
+  if (!cardGridContainer.value) return
+
+  const { scrollHeight, clientHeight, scrollTop } = cardGridContainer.value
+  const scrollBottom = scrollHeight - scrollTop - clientHeight
+
+  // 如果卡在底部且还有更多数据，尝试恢复加载
+  if (
+    scrollBottom < 1 &&
+    !isLoading.value &&
+    hasMoreNotes.value &&
+    notes.value.length < totalCount.value
+  ) {
+    currentPage.value++
+    fetchNotes()
+  }
+}
 </script>
 
 <style lang="scss" scoped>

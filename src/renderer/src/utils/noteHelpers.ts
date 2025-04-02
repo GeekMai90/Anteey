@@ -2,7 +2,7 @@
 
 export function formatDate(
   date: Date | string | number,
-  format: 'full' | 'default' = 'default'
+  format: 'full' | 'default' | 'date-only' = 'default'
 ): string {
   const d = new Date(date)
 
@@ -12,6 +12,13 @@ export function formatDate(
       d.getDate()
     ).padStart(2, '0')}日 ${String(d.getHours()).padStart(2, '0')}:${String(
       d.getMinutes()
+    ).padStart(2, '0')}`
+  }
+
+  if (format === 'date-only') {
+    // 仅日期格式：YYYY-MM-DD
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(
+      d.getDate()
     ).padStart(2, '0')}`
   }
 

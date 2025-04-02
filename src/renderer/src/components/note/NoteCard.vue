@@ -1,6 +1,6 @@
 <!-- src/components/NoteCard.vue -->
 <template>
-  <div class="note-card">
+  <div class="note-card" @click="handleNoteClick">
     <div class="note-header">
       <span class="note-indicator" :class="cardTypeClass"></span>
       <h3 class="note-title">{{ note.address }}</h3>
@@ -119,6 +119,34 @@ const handleTagClick = (tagId: string) => {
       box: 'all'
     }
   })
+}
+
+// 添加笔记点击处理函数
+const handleNoteClick = (event: MouseEvent) => {
+  // 阻止事件冒泡
+  event.preventDefault()
+  event.stopPropagation()
+
+  if (event.shiftKey) {
+    // Shift+单击：在知识树中查看节点
+    router.push({
+      name: 'KnowledgeTreeNode',
+      params: { address: props.note.address },
+      replace: true
+    })
+  } else if (event.altKey) {
+    // Alt+单击：在卡片盒中查看上下文
+    router.push({
+      name: 'cardbox',
+      query: {
+        mode: 'context',
+        noteId: props.note.id
+      }
+    })
+  } else if (event.metaKey) {
+    // Command+单击：全屏查看
+    router.push({ name: 'NoteExpandEditor', params: { id: props.note.id } })
+  }
 }
 
 onMounted(async () => {

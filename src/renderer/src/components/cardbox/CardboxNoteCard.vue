@@ -65,7 +65,8 @@
           :is-flashcard="note.isFlashcard"
           :fsrs-state="note.flashcard?.fsrs?.state"
         />
-        {{ formatDate(note.createdAt) }}
+        <NoteLinkButton :note-id="note.id" container-class="cardbox-container" />
+        {{ formatDate(note.createdAt, 'date-only') }}
       </div>
     </div>
   </div>
@@ -85,6 +86,7 @@ import MoreButton from '@renderer/components/common/MoreButton.vue'
 import CardboxButton from '@renderer/components/common/CardboxButton.vue'
 import ExpandButton from '@renderer/components/common/ExpandButton.vue'
 import FlashcardIndicator from '@renderer/components/common/FlashcardIndicator.vue'
+import NoteLinkButton from '@renderer/components/common/NoteLinkButton.vue'
 
 const props = defineProps<{
   note: Note
@@ -163,23 +165,43 @@ const cardTypeClass = computed(() => {
 
 // 修改卡片点击处理函数
 const handleCardClick = (event: MouseEvent) => {
+  // 阻止事件冒泡
+  event.preventDefault()
+  event.stopPropagation()
+
   if (noteStore.isMultiSelectMode) {
-    // 如果按住了Shift键，尝试进行范围选择
+    // 多选模式下的原有逻辑
     if (event.shiftKey) {
-      // 如果Shift多选成功处理，则直接返回
       if (handleNoteShiftSelect(props.note.id, true)) {
         return
       }
     }
-    // 单选或Shift多选处理失败，执行普通选择
     toggleSelect()
-    // 记录当前选中的笔记（无论是否按Shift）
     handleNoteShiftSelect(props.note.id, false)
+  } else {
+    // 非多选模式下的快捷键功能
+    if (event.shiftKey && props.note.address) {
+      // Shift+单击：在知识树中查看节点
+      router.push({
+        name: 'KnowledgeTreeNode',
+        params: { address: props.note.address }
+      })
+    } else if (event.metaKey) {
+      // Command+单击：全屏查看
+      router.push({ name: 'NoteExpandEditor', params: { id: props.note.id } })
+    }
   }
 }
 
-// 处理双击事件
-const handleDoubleClick = () => {
+// 修改双击事件处理函数
+const handleDoubleClick = (event: MouseEvent) => {
+  // 检查点击源是否来自链接按钮或菜单
+  const target = event.target as HTMLElement
+  const linkButton = target.closest('.note-link-wrapper')
+  if (linkButton) {
+    return
+  }
+
   if (!noteStore.isMultiSelectMode) {
     noteStore.openNoteEditor(props.note.id)
   }
@@ -479,12 +501,12 @@ onMounted(async () => {
       display: inline-flex;
       align-items: center;
       gap: 2px;
-      height: 22px;
-      padding: 0 8px;
+      height: 20px;
+      padding: 0 6px;
       background: var(--color-primary-light);
       border: 1px solid transparent;
-      border-radius: 11px;
-      font-size: 12px;
+      border-radius: 16px;
+      font-size: 10px;
       transition: all 0.2s ease;
       cursor: pointer;
       flex-shrink: 0;
@@ -511,6 +533,50 @@ onMounted(async () => {
     gap: 6px;
     white-space: nowrap;
     flex-shrink: 0;
+
+    .link-button {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 20px;
+      height: 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      color: var(--color-text-tertiary);
+
+      &:hover {
+        color: var(--color-primary);
+        background-color: var(--color-hover-button);
+      }
+
+      .link-icon {
+        width: 20px;
+        height: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0.8;
+        transition: opacity 0.2s ease;
+
+        :deep(.i-icon) {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 100%;
+          height: 100%;
+        }
+
+        :deep(svg) {
+          width: 16px;
+          height: 16px;
+        }
+
+        &:hover {
+          opacity: 1;
+        }
+      }
+    }
   }
 }
 
