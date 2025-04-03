@@ -98,7 +98,7 @@
                 <div class="note-title-text">
                   <template v-if="searchQuery">
                     <template
-                      v-for="part in highlightedParts(note.title || '无标题', searchQuery)"
+                      v-for="part in highlightedParts(note.address || '无地址', searchQuery)"
                       :key="part.text"
                     >
                       <span :class="{ highlight: part.isMatch }">{{ part.text }}</span>
@@ -159,16 +159,10 @@ import { useNoteStore } from '@renderer/stores/noteStore'
 import NotePreviewCard from '@renderer/components/note/NotePreviewCard.vue'
 import { BankCard, ParagraphRectangle, FileSearch, Close, Search } from '@icon-park/vue-next'
 import { useDebounceFn } from '@vueuse/core'
-import type { Note } from '@shared/types'
+import type { Note, SearchResult } from '@shared/types'
 
 // 初始化 store
 const noteStore = useNoteStore()
-
-interface SearchResult {
-  id: string
-  title: string
-  blocks: Array<{ content: string }>
-}
 
 // 定义组件的响应式状态
 const isExpanded = ref(false)

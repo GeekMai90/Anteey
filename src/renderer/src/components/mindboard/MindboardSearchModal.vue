@@ -8,14 +8,24 @@
     <!-- 搜索容器，根据是否展开应用不同的样式 -->
     <div class="search-container" :class="{ expanded: isExpanded }">
       <!-- 搜索输入框 -->
-      <input
-        ref="searchInput"
-        v-model="searchQuery"
-        class="search-input"
-        placeholder="搜索笔记，按回车添加到思维导图"
-        @input="performSearch"
-        @keydown="handleKeyDown"
-      />
+      <div class="search-input-container">
+        <input
+          ref="searchInput"
+          v-model="searchQuery"
+          class="search-input"
+          :placeholder="searchPlaceholder"
+          @input="handleSearchInput"
+          @keydown="handleKeyDown"
+          @compositionstart="handleCompositionStart"
+          @compositionend="handleCompositionEnd"
+        />
+        <!-- 添加搜索模式指示器 -->
+        <div v-if="searchMode !== 'all' && hasSetMode" class="search-mode-indicator">
+          <span :class="['mode-badge', searchMode]">
+            {{ searchMode === 'address' ? '地址搜索' : '标题搜索' }}
+          </span>
+        </div>
+      </div>
       <!-- 搜索结果展示区域，使用 transition 实现展开/收起动画 -->
       <transition name="expand">
         <div v-if="isExpanded" class="search-results-container">
@@ -57,7 +67,7 @@
                     />
                   </div>
                 </div>
-                <div class="note-title-text">{{ note.title }}</div>
+                <div class="note-title-text">{{ note.address || '未设置编码地址' }}</div>
               </div>
               <div
                 v-for="(block, blockIndex) in note.blocks"
@@ -104,11 +114,11 @@
         <div class="hint-group">
           <div class="hint">
             <span class="key">↵</span>
-            <span class="description">添加到思维导图</span>
+            <span class="description">添加到思维板</span>
           </div>
           <div class="hint">
             <span class="key">双击</span>
-            <span class="description">添加到思维导图</span>
+            <span class="description">添加到思维板</span>
           </div>
           <div class="hint">
             <span class="key">单击</span>
@@ -126,13 +136,13 @@
   </Modal>
 </template>
 <script setup lang="ts">
-import { ref, watch, nextTick } from 'vue'
+import { ref, watch, nextTick, computed } from 'vue'
 import { useNoteStore } from '@renderer/stores/noteStore'
 import Modal from '@renderer/components/common/Modal.vue'
 import NotePreviewCard from '@renderer/components/note/NotePreviewCard.vue'
 import { BankCard, ParagraphRectangle, FileSearch } from '@icon-park/vue-next'
 import { useDebounceFn } from '@vueuse/core'
-import { Note } from '@shared/types'
+import { Note, SearchResult } from '@shared/types'
 import { useUIStore } from '@renderer/stores/UIStore'
 
 // 初始化 store 和 router
@@ -145,12 +155,19 @@ const searchInput = ref<HTMLInputElement | null>(null)
 const searchResultsContainer = ref<HTMLDivElement | null>(null)
 const resultItems = ref<HTMLElement[]>([])
 const searchQuery = ref('')
-const searchResults = ref<Array<{ id: string; title: string; blocks: Array<{ content: string }> }>>(
-  []
-)
+const searchResults = ref<Array<SearchResult>>([])
 const selectedNoteIndex = ref(-1)
 const selectedBlockIndex = ref(-1)
 const selectedNote = ref<Note | null>(null)
+
+// 添加输入法组合输入状态
+const isComposing = ref(false)
+
+// 添加搜索模式相关的类型和状态
+type SearchMode = 'all' | 'address' | 'title'
+const searchMode = ref<SearchMode>('all')
+const searchTerm = ref('')
+const hasSetMode = ref(false)
 
 // 定义新的 emit
 const emit = defineEmits<{
@@ -172,31 +189,83 @@ watch(selectedNoteIndex, fetchSelectedNote)
 // 高亮搜索结果中匹配的文本
 const highlightedParts = (text: string, query: string) => {
   if (!query.trim()) return [{ text, isMatch: false }]
-  const escapedQuery = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-  const regex = new RegExp(`(${escapedQuery})`, 'gi')
-  return text.split(regex).map((part) => ({
-    text: part,
-    isMatch: part.toLowerCase() === query.toLowerCase()
-  }))
+
+  const searchTerms = query
+    .toLowerCase()
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((term) => term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+
+  if (searchTerms.length === 0) return [{ text, isMatch: false }]
+
+  const regex = new RegExp(`(${searchTerms.join('|')})`, 'gi')
+  const parts = []
+  let lastIndex = 0
+  let match
+
+  while ((match = regex.exec(text)) !== null) {
+    if (match.index > lastIndex) {
+      parts.push({
+        text: text.slice(lastIndex, match.index),
+        isMatch: false
+      })
+    }
+    parts.push({
+      text: match[0],
+      isMatch: true
+    })
+    lastIndex = regex.lastIndex
+  }
+
+  if (lastIndex < text.length) {
+    parts.push({
+      text: text.slice(lastIndex),
+      isMatch: false
+    })
+  }
+
+  return parts
 }
 
 // 使用防抖函数来优化搜索性能
 const debouncedSearch = useDebounceFn(async () => {
-  if (searchQuery.value.trim()) {
+  if (!searchQuery.value.trim()) {
+    searchMode.value = 'all'
+    hasSetMode.value = false
+    searchTerm.value = ''
+    isExpanded.value = false
+    searchResults.value = []
+    selectedNoteIndex.value = -1
+    selectedBlockIndex.value = -1
+    selectedNote.value = null
+    return
+  }
+
+  if (searchTerm.value.trim()) {
     isExpanded.value = true
-    searchResults.value = await noteStore.searchNotes(searchQuery.value)
+    searchResults.value = await noteStore.searchNotes({
+      mode: searchMode.value,
+      term: searchTerm.value
+    })
+
+    // 添加自动选中第一个结果的逻辑
     if (searchResults.value.length > 0) {
       selectedNoteIndex.value = 0
       selectedBlockIndex.value = 0
+      // 立即获取并更新选中的笔记
+      await fetchSelectedNote()
     } else {
       selectedNoteIndex.value = -1
       selectedBlockIndex.value = -1
+      selectedNote.value = null
     }
   } else {
     isExpanded.value = false
     searchResults.value = []
     selectedNoteIndex.value = -1
     selectedBlockIndex.value = -1
+    selectedNote.value = null
   }
 }, 300)
 
@@ -204,12 +273,6 @@ const debouncedSearch = useDebounceFn(async () => {
 const performSearch = () => {
   debouncedSearch()
 }
-// const performSearch = () => {
-//   requestAnimationFrame(() => {
-//     // isExpanded.value = true
-//     debouncedSearch()
-//   })
-// }
 
 // 选择搜索结果
 const selectResult = (noteIndex: number, blockIndex: number) => {
@@ -268,6 +331,10 @@ const hide = () => {
 
 // 修改键盘事件处理
 const handleKeyDown = (event: KeyboardEvent) => {
+  if (isComposing.value) {
+    return
+  }
+
   switch (event.key) {
     case 'ArrowDown':
       event.preventDefault()
@@ -353,8 +420,20 @@ watch(
   }
 )
 
-// 监听搜索结果的变化，更新结果项的引用
-watch(searchResults, () => {
+// 添加监听搜索结果变化的逻辑
+watch(searchResults, async () => {
+  // 当有搜索结果时，自动选择第一个结果
+  if (searchResults.value.length > 0) {
+    selectedNoteIndex.value = 0
+    selectedBlockIndex.value = 0
+    // 立即获取并更新选中的笔记
+    await fetchSelectedNote()
+  } else {
+    selectedNoteIndex.value = -1
+    selectedBlockIndex.value = -1
+    selectedNote.value = null
+  }
+
   nextTick(() => {
     resultItems.value = Array.from(document.querySelectorAll('.search-result-note'))
   })
@@ -362,6 +441,63 @@ watch(searchResults, () => {
 
 // 暴露组件的方法
 defineExpose({ show, hide })
+
+// 修改搜索输入处理函数
+const handleSearchInput = (event: Event) => {
+  const input = (event.target as HTMLInputElement).value
+
+  // 检查是否正在输入模式前缀
+  if (input === 'a ' || input === 't ') {
+    searchMode.value = input.startsWith('a') ? 'address' : 'title'
+    searchTerm.value = ''
+    hasSetMode.value = true
+    searchQuery.value = input
+    return
+  }
+
+  // 检查是否在删除模式前缀
+  if (input.length < searchQuery.value.length) {
+    if (hasSetMode.value && input.length <= 2) {
+      searchMode.value = 'all'
+      hasSetMode.value = false
+      searchTerm.value = input
+      searchQuery.value = input
+      performSearch()
+      return
+    }
+  }
+
+  searchQuery.value = input
+
+  if (hasSetMode.value) {
+    searchTerm.value = input.slice(2)
+  } else {
+    searchTerm.value = input
+  }
+
+  performSearch()
+}
+
+// 添加搜索模式提示计算属性
+const searchPlaceholder = computed(() => {
+  switch (searchMode.value) {
+    case 'address':
+      return '搜索笔记地址...'
+    case 'title':
+      return '搜索笔记标题...'
+    default:
+      return '搜索笔记，按回车添加到思维板'
+  }
+})
+
+// 处理输入法事件
+const handleCompositionStart = () => {
+  isComposing.value = true
+}
+
+const handleCompositionEnd = () => {
+  isComposing.value = false
+}
 </script>
 <style scoped lang="scss">
 .highlight {
@@ -698,6 +834,33 @@ defineExpose({ show, hide })
       margin-left: 2px;
       user-select: none;
     }
+  }
+}
+
+// 添加搜索模式指示器样式
+.search-input-container {
+  position: relative;
+  width: 100%;
+}
+
+.search-mode-indicator {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.mode-badge {
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background-color: var(--color-bg-secondary);
+  color: var(--color-text-secondary);
+
+  &.address,
+  &.title {
+    background-color: rgba(var(--color-primary-rgb), 0.1);
+    color: var(--color-primary);
   }
 }
 </style>
