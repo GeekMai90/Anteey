@@ -51,6 +51,7 @@ select {
   font-size: inherit;
   line-height: inherit;
 }
+
 // 添加 input 的默认样式
 input {
   border: 1px solid var(--color-border);
@@ -79,25 +80,6 @@ ol {
 table {
   border-collapse: collapse;
   width: 100%;
-}
-
-// 滚动条样式
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-
-::-webkit-scrollbar-track {
-  background: var(--color-scrollbar-track-bg);
-}
-
-::-webkit-scrollbar-thumb {
-  background: var(--color-scroll-thumb);
-  border-radius: 4px;
-
-  &:hover {
-    background: var(--color-scrollbar-thumb-hover);
-  }
 }
 
 // 选中文本样式
@@ -143,6 +125,7 @@ table {
   display: flex;
   flex-direction: column;
 }
+
 .v-popper__popper {
   font-size: 10px;
   max-width: 300px;
@@ -152,12 +135,14 @@ table {
   padding: 8px 12px;
 }
 
-// 全局滚动条样式
+// 统一的滚动条样式
 * {
+  // Firefox 滚动条样式
   scrollbar-width: thin;
   scrollbar-color: var(--color-scroll-thumb) transparent;
 }
 
+// Webkit 滚动条样式（Chrome/Safari/Edge等）
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -170,18 +155,18 @@ table {
 ::-webkit-scrollbar-thumb {
   background-color: var(--color-scroll-thumb);
   border-radius: 3px;
-}
 
-::-webkit-scrollbar-thumb:hover {
-  background-color: var(--color-scroll-thumb);
-}
+  &:hover {
+    background-color: var(--color-scroll-thumb);
+  }
 
-::-webkit-scrollbar-thumb:vertical {
-  min-height: 30px;
-}
+  &:vertical {
+    min-height: 30px;
+  }
 
-::-webkit-scrollbar-thumb:horizontal {
-  min-width: 30px;
+  &:horizontal {
+    min-width: 30px;
+  }
 }
 
 ::-webkit-scrollbar-corner {

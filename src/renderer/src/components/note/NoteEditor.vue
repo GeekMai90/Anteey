@@ -72,13 +72,6 @@
             :enableDragHandle="true"
             @update:content="handleContentUpdate"
           />
-          <!-- 添加标签面板 -->
-          <TagsPanel
-            v-if="currentNote"
-            :note-id="currentNote.id"
-            :tags="noteTags"
-            @refresh="refreshNoteData"
-          />
         </div>
       </div>
     </div>
@@ -94,8 +87,6 @@ import { useMenu } from '@renderer/composables/useMenu'
 import { message } from '@renderer/utils/message'
 import { CardType, Note } from '@shared/types'
 import { debounce } from 'lodash-es'
-import TagsPanel from '@renderer/components/note/TagsPanel.vue'
-import { useTagStore } from '@renderer/stores/tagStore'
 import ExpandButton from '@renderer/components/common/ExpandButton.vue'
 import CardboxButton from '@renderer/components/common/CardboxButton.vue'
 import MoreButton from '@renderer/components/common/MoreButton.vue'
@@ -138,43 +129,12 @@ const createVersion = async () => {
 
 // === 生命周期钩子 ===
 
-// 添加标签相关的状态
-const tagStore = useTagStore()
-const noteTags = ref<{ id: string; name: string }[]>([])
-
-// 添加刷新笔记数据的方法
-const refreshNoteData = async () => {
-  try {
-    if (!currentNote.value?.id) return
-    const updatedNote = await noteStore.fetchNote(currentNote.value.id)
-    if (updatedNote) {
-      currentNote.value = updatedNote
-      await fetchNoteTags(updatedNote.id) // 刷新标签
-    }
-  } catch (error) {
-    console.error('刷新笔记数据失败:', error)
-    message.error('刷新笔记数据失败')
-  }
-}
-
-// 获取笔记标签的方法
-const fetchNoteTags = async (noteId: string) => {
-  try {
-    const tags = await tagStore.getNoteTags(noteId)
-    noteTags.value = tags
-  } catch (error) {
-    console.error('获取笔记标签失败:', error)
-    message.error('获取笔记标签失败')
-  }
-}
-
 // 初始化笔记数据
 const initializeNote = async (noteId: string) => {
   try {
     const note = await noteStore.fetchNote(noteId)
     if (note) {
       currentNote.value = note
-      await fetchNoteTags(noteId) // 获取笔记的标签
       focusEditor()
     } else {
       message.error('笔记不存在')
@@ -565,10 +525,9 @@ defineExpose({
         min-height: 100%;
         width: 100%;
 
-        // 调整编辑器和标签面板的布局
         :deep(.tiptap) {
           flex: 1;
-          min-height: calc(100% - 150px); // 增加预留空间,从 100px 改为 150px
+          min-height: 100%; // 修改这里，移除预留标签面板的空间
           padding-bottom: 20px;
         }
       }
@@ -590,35 +549,6 @@ defineExpose({
       overflow-y: auto;
       // overflow: hidden;
       padding-bottom: 60px;
-    }
-
-    // 确保标签面板样式正确
-    :deep(.tags-panel) {
-      margin-top: auto;
-      background: var(--color-bg-primary);
-      border-radius: 0 0 12px 12px;
-      position: relative;
-      z-index: 100;
-      padding-bottom: 10px;
-      padding-top: 10px;
-      min-height: 100px;
-
-      // 添加顶部分隔线
-      &::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 20px; // 与内容区域对齐
-        right: 20px;
-        height: 1px;
-        background: var(--color-border);
-        opacity: 0.8;
-      }
-
-      .tag-suggestions {
-        position: absolute;
-        z-index: 1000;
-      }
     }
   }
 }
