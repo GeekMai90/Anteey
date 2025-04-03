@@ -211,8 +211,15 @@ watch(selectedNoteIndex, fetchSelectedNote)
 
 // 修改高亮处理函数
 const highlightedParts = (text: string, query: string) => {
+  // 定义接口来描述文本片段的结构
+  interface TextPart {
+    text: string
+    isMatch: boolean
+    index?: number
+  }
+
   // 如果没有搜索词，直接返回原文本
-  if (!query.trim()) return [{ text, isMatch: false }]
+  if (!query.trim()) return [{ text, isMatch: false }] as TextPart[]
 
   // 将搜索词分割成数组并过滤空字符串
   const searchTerms = query
@@ -223,13 +230,13 @@ const highlightedParts = (text: string, query: string) => {
     .map((term) => term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
 
   // 如果没有有效的搜索词，返回原文本
-  if (searchTerms.length === 0) return [{ text, isMatch: false }]
+  if (searchTerms.length === 0) return [{ text, isMatch: false }] as TextPart[]
 
   // 创建包含所有搜索词的正则表达式
   const regex = new RegExp(`(${searchTerms.join('|')})`, 'gi')
 
   // 分割文本并标记匹配部分
-  const parts = []
+  const parts: TextPart[] = []
   let lastIndex = 0
   let match
 
@@ -238,13 +245,15 @@ const highlightedParts = (text: string, query: string) => {
     if (match.index > lastIndex) {
       parts.push({
         text: text.slice(lastIndex, match.index),
-        isMatch: false
+        isMatch: false,
+        index: parts.length
       })
     }
     // 添加匹配的文本
     parts.push({
       text: match[0],
-      isMatch: true
+      isMatch: true,
+      index: parts.length
     })
     lastIndex = regex.lastIndex
   }
@@ -253,7 +262,8 @@ const highlightedParts = (text: string, query: string) => {
   if (lastIndex < text.length) {
     parts.push({
       text: text.slice(lastIndex),
-      isMatch: false
+      isMatch: false,
+      index: parts.length
     })
   }
 

@@ -154,7 +154,9 @@ function parseNoteContent(content: any): string {
 
 // 获取前一天的笔记
 async function getFilteredNotes(dateStr: string) {
+  console.log('开始获取笔记，日期:', dateStr)
   const notes = await getNotesByOneDate(dateStr)
+  console.log('数据库返回的原始笔记:', notes)
 
   // 按创建时间倒序排序
   notes.sort((a, b) => {
@@ -166,6 +168,7 @@ async function getFilteredNotes(dateStr: string) {
   // 只取最新的6条笔记
   const MAX_NOTES = 6
   const filteredNotes = notes.slice(0, MAX_NOTES)
+  console.log('筛选后的笔记数量:', filteredNotes.length)
 
   return filteredNotes
 }
@@ -266,17 +269,33 @@ async function generateDailyLetterContent(date: Date): Promise<string> {
   // 获取来信配置
   const letterConfig = await getLetterConfig()
 
-  // 获取前一天的日期
-  const yesterday = new Date(date)
+  // 使用传入的 date 参数，并调整为东八区时间
+  const now = new Date(date)
+  now.setHours(now.getHours() + 8) // 调整为东八区时间
+
+  const yesterday = new Date(now)
   yesterday.setDate(yesterday.getDate() - 1)
   const yesterdayStr = yesterday.toISOString().split('T')[0]
+
+  console.log('当前时间(UTC):', now.toISOString())
+  console.log(
+    '当前时间(北京):',
+    new Date(now.getTime()).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' })
+  )
+  console.log('计算的昨天日期:', yesterdayStr)
 
   // 获取处理后的笔记
   const notes = await getFilteredNotes(yesterdayStr)
 
+  // 添加调试日志
+  console.log('获取到的笔记数量:', notes.length)
+  if (notes.length > 0) {
+    console.log('笔记示例:', notes[0])
+  }
+
   // 如果没有笔记，返回特定消息
   if (notes.length === 0) {
-    return `昨天似乎是一个安静的日子，没有留下笔记的痕迹。这也是一种选择，有时沉淀和思考同样重要。\\n\\n不过我还是想和你分享一个小想法：有时最好的灵感往往来自于平凡的日常观察。也许今天，我们可以试着记录下一个微小但有趣的发现？\\n\\n期待在下一封信中遇见你的思考。`
+    return `昨天似乎是一个安静的日子，没有留下笔记的痕迹...`
   }
 
   // 准备笔记内容摘要

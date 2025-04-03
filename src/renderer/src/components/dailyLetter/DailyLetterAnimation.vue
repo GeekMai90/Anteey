@@ -306,6 +306,13 @@ function stopMailboxShake() {
 const handleLetterAfterShow = () => {
   // 结束整体动画
   dailyLetterStore.endAnimation()
+  // 添加邮箱淡出效果
+  mailboxOpacity.value = 0
+
+  // 等待淡出动画完成后移除邮箱
+  setTimeout(() => {
+    showMailbox.value = false
+  }, 500) // 与 CSS transition 时间匹配
 }
 </script>
 

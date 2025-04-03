@@ -202,9 +202,16 @@ defineExpose({
   }
 })
 
-// 添加高亮处理函数
+// 修改高亮处理函数
 const highlightText = (text: string, query: string) => {
-  if (!query?.trim()) return [{ text, isMatch: false }]
+  // 定义接口来描述文本片段的结构
+  interface TextPart {
+    text: string
+    isMatch: boolean
+    index?: number
+  }
+
+  if (!query?.trim()) return [{ text, isMatch: false }] as TextPart[]
 
   const searchTerms = query
     .toLowerCase()
@@ -213,10 +220,10 @@ const highlightText = (text: string, query: string) => {
     .filter(Boolean)
     .map((term) => term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
 
-  if (searchTerms.length === 0) return [{ text, isMatch: false }]
+  if (searchTerms.length === 0) return [{ text, isMatch: false }] as TextPart[]
 
   const regex = new RegExp(`(${searchTerms.join('|')})`, 'gi')
-  const parts = []
+  const parts: TextPart[] = []
   let lastIndex = 0
   let match
 
@@ -224,12 +231,14 @@ const highlightText = (text: string, query: string) => {
     if (match.index > lastIndex) {
       parts.push({
         text: text.slice(lastIndex, match.index),
-        isMatch: false
+        isMatch: false,
+        index: parts.length
       })
     }
     parts.push({
       text: match[0],
-      isMatch: true
+      isMatch: true,
+      index: parts.length
     })
     lastIndex = regex.lastIndex
   }
@@ -237,7 +246,8 @@ const highlightText = (text: string, query: string) => {
   if (lastIndex < text.length) {
     parts.push({
       text: text.slice(lastIndex),
-      isMatch: false
+      isMatch: false,
+      index: parts.length
     })
   }
 

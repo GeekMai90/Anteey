@@ -188,7 +188,14 @@ watch(selectedNoteIndex, fetchSelectedNote)
 
 // 高亮搜索结果中匹配的文本
 const highlightedParts = (text: string, query: string) => {
-  if (!query.trim()) return [{ text, isMatch: false }]
+  // 定义接口来描述文本片段的结构
+  interface TextPart {
+    text: string
+    isMatch: boolean
+    index?: number
+  }
+
+  if (!query.trim()) return [{ text, isMatch: false }] as TextPart[]
 
   const searchTerms = query
     .toLowerCase()
@@ -197,10 +204,10 @@ const highlightedParts = (text: string, query: string) => {
     .filter(Boolean)
     .map((term) => term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
 
-  if (searchTerms.length === 0) return [{ text, isMatch: false }]
+  if (searchTerms.length === 0) return [{ text, isMatch: false }] as TextPart[]
 
   const regex = new RegExp(`(${searchTerms.join('|')})`, 'gi')
-  const parts = []
+  const parts: TextPart[] = [] // 明确指定数组类型
   let lastIndex = 0
   let match
 
