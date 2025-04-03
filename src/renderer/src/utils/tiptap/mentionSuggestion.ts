@@ -49,7 +49,10 @@ export const mentionSuggestion = {
     return {
       onStart: (props: SuggestionProps<MentionResult>) => {
         component = new VueRenderer(MentionList, {
-          props,
+          props: {
+            ...props,
+            searchQuery: props.query
+          },
           editor: props.editor
         })
 
@@ -69,7 +72,10 @@ export const mentionSuggestion = {
       },
 
       onUpdate(props: SuggestionProps<MentionResult>) {
-        component.updateProps(props)
+        component.updateProps({
+          ...props,
+          searchQuery: props.query
+        })
 
         if (popup?.[0]) {
           popup[0].setProps({

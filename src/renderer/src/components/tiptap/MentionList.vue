@@ -26,15 +26,36 @@
           v-for="(item, index) in items"
           :key="item.id"
           class="mention-result-item"
-          :class="{ 'is-selected': index === selectedIndex }"
+          :class="{
+            'is-selected': index === selectedIndex,
+            'is-clicked': index === clickedIndex
+          }"
           @click="selectItem(index)"
+          @dblclick="insertMention(index)"
           @mouseover="hoverItem(index)"
         >
           <div class="item-header">
             <div class="note-type" :class="item.cardType || 'Maincard'"></div>
-            <span class="address">{{ item.address || '未设置编码地址' }}</span>
+            <span class="address">
+              <template
+                v-for="part in highlightText(
+                  item.address || '未设置编码地址',
+                  props.searchQuery || ''
+                )"
+                :key="part.text"
+              >
+                <span :class="{ highlight: part.isMatch }">{{ part.text }}</span>
+              </template>
+            </span>
           </div>
-          <div class="title">{{ item.title || '未命名笔记' }}</div>
+          <div class="title">
+            <template
+              v-for="part in highlightText(item.title || '未命名笔记', props.searchQuery || '')"
+              :key="part.text"
+            >
+              <span :class="{ highlight: part.isMatch }">{{ part.text }}</span>
+            </template>
+          </div>
         </div>
       </div>
 
@@ -53,8 +74,12 @@
           <span class="description">选择</span>
         </div>
         <div class="hint">
+          <span class="key">⌘</span>
           <span class="key">↵</span>
           <span class="description">插入引用</span>
+        </div>
+        <div class="hint">
+          <span class="description">双击插入引用</span>
         </div>
       </div>
     </div>
@@ -78,14 +103,22 @@ interface MentionItem {
 const props = defineProps<{
   items: MentionItem[]
   command: (item: MentionItem) => void
+  searchQuery?: string
 }>()
 
 const selectedIndex = ref(0)
+const clickedIndex = ref(0)
 const selectedNote = ref<Note | null>(null)
 const noteStore = useNoteStore()
 
 // 选择项目
 const selectItem = (index: number) => {
+  clickedIndex.value = index
+  selectedIndex.value = index
+}
+
+// 添加插入引用函数
+const insertMention = (index: number) => {
   const item = props.items[index]
   if (item) {
     props.command(item)
@@ -113,10 +146,13 @@ watch(
   () => props.items,
   async (newItems) => {
     if (newItems.length > 0) {
-      selectedIndex.value = 0
-      await loadNotePreview(0)
+      const initialIndex = 0
+      selectedIndex.value = initialIndex
+      clickedIndex.value = initialIndex
+      await loadNotePreview(initialIndex)
     } else {
       selectedIndex.value = -1
+      clickedIndex.value = -1
       selectedNote.value = null
     }
   },
@@ -139,23 +175,74 @@ onMounted(async () => {
 defineExpose({
   onKeyDown: ({ event }: { event: KeyboardEvent }) => {
     if (event.key === 'ArrowUp') {
-      selectedIndex.value = (selectedIndex.value - 1 + props.items.length) % props.items.length
+      const newIndex = (selectedIndex.value - 1 + props.items.length) % props.items.length
+      // 同时更新选中状态和点击状态
+      selectedIndex.value = newIndex
+      clickedIndex.value = newIndex
       return true
     }
 
     if (event.key === 'ArrowDown') {
-      selectedIndex.value = (selectedIndex.value + 1) % props.items.length
+      const newIndex = (selectedIndex.value + 1) % props.items.length
+      // 同时更新选中状态和点击状态
+      selectedIndex.value = newIndex
+      clickedIndex.value = newIndex
       return true
     }
 
     if (event.key === 'Enter') {
-      selectItem(selectedIndex.value)
+      // 如果按住 Ctrl/Cmd 键，则插入引用
+      if (event.metaKey || event.ctrlKey) {
+        insertMention(selectedIndex.value)
+      }
       return true
     }
 
     return false
   }
 })
+
+// 添加高亮处理函数
+const highlightText = (text: string, query: string) => {
+  if (!query?.trim()) return [{ text, isMatch: false }]
+
+  const searchTerms = query
+    .toLowerCase()
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((term) => term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+
+  if (searchTerms.length === 0) return [{ text, isMatch: false }]
+
+  const regex = new RegExp(`(${searchTerms.join('|')})`, 'gi')
+  const parts = []
+  let lastIndex = 0
+  let match
+
+  while ((match = regex.exec(text)) !== null) {
+    if (match.index > lastIndex) {
+      parts.push({
+        text: text.slice(lastIndex, match.index),
+        isMatch: false
+      })
+    }
+    parts.push({
+      text: match[0],
+      isMatch: true
+    })
+    lastIndex = regex.lastIndex
+  }
+
+  if (lastIndex < text.length) {
+    parts.push({
+      text: text.slice(lastIndex),
+      isMatch: false
+    })
+  }
+
+  return parts
+}
 </script>
 
 <style lang="scss" scoped>
@@ -271,10 +358,23 @@ defineExpose({
   border-radius: 8px;
   margin-bottom: 4px;
   transition: all 0.2s ease;
+  border: 1px solid transparent;
 
-  &:hover,
+  &:hover {
+    background-color: var(--color-sidebar-hover);
+  }
+
   &.is-selected {
     background-color: var(--color-sidebar-hover);
+  }
+
+  &.is-clicked {
+    background-color: var(--color-primary-light);
+    border: 1px solid var(--color-primary);
+  }
+
+  &.is-clicked:hover {
+    background-color: var(--color-primary-lighter);
   }
 
   .item-header {
@@ -370,5 +470,14 @@ defineExpose({
       user-select: none;
     }
   }
+}
+
+.highlight {
+  background-color: rgba(0, 200, 168, 0.2);
+  color: #00806c;
+  border-radius: 2px;
+  padding: 0 2px;
+  font-weight: 500;
+  box-shadow: 0 0 0 1px rgba(0, 200, 168, 0.3);
 }
 </style>

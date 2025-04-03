@@ -20,7 +20,7 @@
           @compositionend="handleCompositionEnd"
         />
         <!-- 添加搜索模式指示器 -->
-        <div v-if="searchMode !== 'all'" class="search-mode-indicator">
+        <div v-if="searchMode !== 'all' && hasSetMode" class="search-mode-indicator">
           <span :class="['mode-badge', searchMode]">
             {{ searchMode === 'address' ? '地址搜索' : '标题搜索' }}
           </span>
@@ -66,7 +66,7 @@
                     />
                   </div>
                 </div>
-                <div class="note-title-text">{{ note.title }}</div>
+                <div class="note-title-text">{{ note.address || '无地址' }}</div>
               </div>
               <div
                 v-for="(block, blockIndex) in note.blocks"
@@ -155,7 +155,7 @@ import { useRouter } from 'vue-router'
 import NotePreviewCard from '@renderer/components/note/NotePreviewCard.vue'
 import { BankCard, ParagraphRectangle, FileSearch } from '@icon-park/vue-next'
 import { useDebounceFn } from '@vueuse/core'
-import { Note } from '@shared/types'
+import { Note, SearchResult } from '@shared/types'
 import { useUIStore } from '@renderer/stores/UIStore'
 
 // 初始化 store 和 router
@@ -169,9 +169,7 @@ const searchInput = ref<HTMLInputElement | null>(null)
 const searchResultsContainer = ref<HTMLDivElement | null>(null)
 const resultItems = ref<HTMLElement[]>([])
 const searchQuery = ref('')
-const searchResults = ref<Array<{ id: string; title: string; blocks: Array<{ content: string }> }>>(
-  []
-)
+const searchResults = ref<Array<SearchResult>>([])
 const selectedNoteIndex = ref(-1)
 const selectedBlockIndex = ref(-1)
 const selectedNote = ref<Note | null>(null)
@@ -185,6 +183,9 @@ const searchTerm = ref('')
 
 // 添加输入法组合输入状态
 const isComposing = ref(false)
+
+// 添加一个变量来记录是否已经设置了搜索模式
+const hasSetMode = ref(false)
 
 // 处理输入法开始
 const handleCompositionStart = () => {
@@ -208,15 +209,55 @@ const fetchSelectedNote = async () => {
 // 监听选中笔记索引的变化，更新选中的笔记
 watch(selectedNoteIndex, fetchSelectedNote)
 
-// 高亮搜索结果中匹配的文本
+// 修改高亮处理函数
 const highlightedParts = (text: string, query: string) => {
+  // 如果没有搜索词，直接返回原文本
   if (!query.trim()) return [{ text, isMatch: false }]
-  const escapedQuery = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-  const regex = new RegExp(`(${escapedQuery})`, 'gi')
-  return text.split(regex).map((part) => ({
-    text: part,
-    isMatch: part.toLowerCase() === query.toLowerCase()
-  }))
+
+  // 将搜索词分割成数组并过滤空字符串
+  const searchTerms = query
+    .toLowerCase()
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((term) => term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+
+  // 如果没有有效的搜索词，返回原文本
+  if (searchTerms.length === 0) return [{ text, isMatch: false }]
+
+  // 创建包含所有搜索词的正则表达式
+  const regex = new RegExp(`(${searchTerms.join('|')})`, 'gi')
+
+  // 分割文本并标记匹配部分
+  const parts = []
+  let lastIndex = 0
+  let match
+
+  while ((match = regex.exec(text)) !== null) {
+    // 添加匹配前的文本
+    if (match.index > lastIndex) {
+      parts.push({
+        text: text.slice(lastIndex, match.index),
+        isMatch: false
+      })
+    }
+    // 添加匹配的文本
+    parts.push({
+      text: match[0],
+      isMatch: true
+    })
+    lastIndex = regex.lastIndex
+  }
+
+  // 添加剩余的文本
+  if (lastIndex < text.length) {
+    parts.push({
+      text: text.slice(lastIndex),
+      isMatch: false
+    })
+  }
+
+  return parts
 }
 
 // 监听搜索结果的变化
@@ -240,11 +281,18 @@ watch(searchResults, async () => {
 
 // 修改执行搜索的函数
 const performSearch = useDebounceFn(async () => {
-  console.log('执行搜索:', {
-    mode: searchMode.value,
-    term: searchTerm.value,
-    originalQuery: searchQuery.value
-  })
+  // 如果输入框完全为空，重置所有状态
+  if (!searchQuery.value.trim()) {
+    searchMode.value = 'all'
+    hasSetMode.value = false
+    searchTerm.value = ''
+    isExpanded.value = false
+    searchResults.value = []
+    selectedNoteIndex.value = -1
+    selectedBlockIndex.value = -1
+    selectedNote.value = null
+    return
+  }
 
   if (searchTerm.value.trim()) {
     isExpanded.value = true
@@ -265,19 +313,40 @@ const performSearch = useDebounceFn(async () => {
 const handleSearchInput = (event: Event) => {
   const input = (event.target as HTMLInputElement).value
 
-  // 检查搜索模式
-  if (input.startsWith('a ')) {
-    searchMode.value = 'address'
-    searchTerm.value = input.slice(2) // 去掉 "a " 前缀
-  } else if (input.startsWith('t ')) {
-    searchMode.value = 'title'
-    searchTerm.value = input.slice(2) // 去掉 "t " 前缀
+  // 检查是否正在输入模式前缀
+  if (input === 'a ' || input === 't ') {
+    searchMode.value = input.startsWith('a') ? 'address' : 'title'
+    searchTerm.value = ''
+    hasSetMode.value = true
+    searchQuery.value = input
+    return // 等待用户输入实际内容
+  }
+
+  // 检查是否在删除模式前缀
+  if (input.length < searchQuery.value.length) {
+    // 如果删除到前缀字母或之前，重置搜索模式
+    if (hasSetMode.value && input.length <= 2) {
+      searchMode.value = 'all'
+      hasSetMode.value = false
+      searchTerm.value = input
+      searchQuery.value = input
+      performSearch()
+      return
+    }
+  }
+
+  // 保存当前的搜索查询
+  searchQuery.value = input
+
+  // 根据当前模式处理搜索词
+  if (hasSetMode.value) {
+    // 如果已经设置了特定模式，无论如何都去掉前缀再搜索
+    searchTerm.value = input.slice(2)
   } else {
-    searchMode.value = 'all'
+    // 普通搜索模式
     searchTerm.value = input
   }
 
-  searchQuery.value = input // 保持原始输入
   performSearch()
 }
 
@@ -318,6 +387,7 @@ const resetSearchState = () => {
   searchQuery.value = ''
   searchTerm.value = ''
   searchMode.value = 'all'
+  hasSetMode.value = false // 重置模式状态
   searchResults.value = []
   selectedNoteIndex.value = -1
   selectedBlockIndex.value = -1
@@ -582,6 +652,10 @@ defineExpose({ show, hide })
     /* Chrome, Safari, Opera */
   }
 }
+
+// .search-result-note {
+//   border: 1px solid var(--color-border);
+// }
 
 .note-title {
   font-size: 12px;

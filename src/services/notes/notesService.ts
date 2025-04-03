@@ -7,7 +7,8 @@ import type {
   GetPaginatedNotesParams,
   TimelineQueryParams,
   TimelineQueryResult,
-  CardType
+  CardType,
+  SearchResult
 } from '@shared/types'
 import { Knex } from 'knex/types'
 import { FilterRule } from '@shared/types'
@@ -135,138 +136,201 @@ interface SearchParams {
   term: string
 }
 
-// 搜索笔记
-export async function searchNotes(params: SearchParams): Promise<
-  Array<{
-    id: string
-    title: string
-    address: string
-    blocks: Array<{ content: string }>
-  }>
-> {
-  // console.log('后端→ 开始搜索笔记:', params)
-  const { mode, term } = params
-  const lowercaseQuery = term.toLowerCase().trim()
+// 新增一个提取文本内容的辅助函数
+function extractTextContent(content: any): string {
+  let text = ''
 
-  if (!lowercaseQuery) return []
+  function traverse(node: any) {
+    if (!node) return
 
-  try {
-    let query = db('notes').where('isDeleted', false)
-
-    // 根据搜索模式构建不同的查询
-    switch (mode) {
-      case 'address':
-        // 只搜索地址
-        query = query.whereRaw('LOWER(address) LIKE ?', [`%${lowercaseQuery}%`])
-        break
-
-      case 'title':
-        // 修改：直接搜索 title 字段
-        query = query.whereRaw('LOWER(title) LIKE ?', [`%${lowercaseQuery}%`])
-        break
-
-      case 'all':
-      default:
-        query = query.where((builder) => {
-          builder
-            .whereRaw('LOWER(address) LIKE ?', [`%${lowercaseQuery}%`])
-            .orWhereRaw('LOWER(title) LIKE ?', [`%${lowercaseQuery}%`])
-            .orWhereRaw("LOWER(json_extract(content, '$')) LIKE ?", [`%${lowercaseQuery}%`])
-        })
-        break
+    // 处理文本节点
+    if (node.type === 'text') {
+      text += node.text + ' '
+      return
     }
 
-    const notes = await query.select('id', 'address', 'content', 'metadata')
+    // 处理特殊节点类型
+    if (node.type === 'heading') {
+      text += '# ' // 添加标记以提高标题搜索权重
+    }
 
-    return notes.reduce(
-      (results, note) => {
-        const matchingBlocks: Array<{ content: string }> = []
-        const metadata = JSON.parse(note.metadata || '{}')
-        let content: any
+    // 处理列表项
+    if (node.type === 'listItem') {
+      text += '• ' // 添加列表项标记
+    }
 
-        try {
-          content = typeof note.content === 'string' ? JSON.parse(note.content) : note.content
-        } catch (e) {
-          console.error('解析笔记内容失败:', e)
-          content = { type: 'doc', content: [] }
-        }
+    // 处理表格单元格
+    if (node.type === 'tableCell' || node.type === 'tableHeader') {
+      text += '| '
+    }
 
-        // 定义一个辅助函数用于内容搜索
-        const searchContentHelper = (item: any) => {
-          if (!item) return
-          if (Array.isArray(item)) {
-            item.forEach(searchContentHelper)
-          } else if (typeof item === 'object') {
-            if (item.type === 'text' && typeof item.text === 'string') {
-              // 跳过第一行内容(标题)的匹配
-              if (
-                item.text.toLowerCase().includes(lowercaseQuery) &&
-                item.text !== metadata.title
-              ) {
-                matchingBlocks.push({ content: item.text })
-              }
-            } else if (item.content) {
-              searchContentHelper(item.content)
-            } else {
-              Object.values(item).forEach(searchContentHelper)
-            }
+    // 递归处理内容
+    if (Array.isArray(node.content)) {
+      node.content.forEach(traverse)
+    } else if (node.content) {
+      traverse(node.content)
+    }
+
+    // 处理节点结束
+    if (node.type === 'paragraph' || node.type === 'heading') {
+      text += '\n'
+    }
+  }
+
+  traverse(content)
+  return text.trim()
+}
+
+// 定义搜索模式类型
+type SearchMode = 'all' | 'address' | 'title'
+
+// 修改查询构建逻辑
+function buildSearchQuery(db: Knex, mode: SearchMode, searchTerms: string[]) {
+  console.log('后端→ 构建搜索查询:', { mode, searchTerms })
+
+  const query = db('notes').where('isDeleted', false).whereNot('cardType', 'Draftcard')
+
+  switch (mode) {
+    case 'address':
+      console.log('后端→ 构建地址搜索查询')
+      // 对地址进行多关键词匹配
+      query.where((builder) => {
+        searchTerms.forEach((term, index) => {
+          if (index === 0) {
+            builder.whereRaw('LOWER(address) LIKE ?', [`%${term}%`])
+          } else {
+            builder.andWhereRaw('LOWER(address) LIKE ?', [`%${term}%`])
           }
-        }
+        })
+      })
+      return query.select('*', db.raw('3 as match_priority'))
 
-        // 根据搜索模式处理匹配结果
-        switch (mode) {
-          case 'address': {
-            if (note.address.toLowerCase().includes(lowercaseQuery)) {
-              matchingBlocks.push({ content: note.address })
-            }
-            break
+    case 'title':
+      console.log('后端→ 构建标题搜索查询')
+      // 对标题进行多关键词匹配
+      query.where((builder) => {
+        searchTerms.forEach((term, index) => {
+          if (index === 0) {
+            builder.whereRaw('LOWER(title) LIKE ?', [`%${term}%`])
+          } else {
+            builder.andWhereRaw('LOWER(title) LIKE ?', [`%${term}%`])
           }
+        })
+      })
+      return query.select('*', db.raw('3 as match_priority'))
 
-          case 'title': {
-            const titleText = metadata.title || ''
-            if (titleText.toLowerCase().includes(lowercaseQuery)) {
-              matchingBlocks.push({ content: titleText })
-            }
-            break
+    case 'all':
+    default:
+      console.log('后端→ 构建全文搜索查询')
+      // 保持原有的全文搜索逻辑
+      return query
+        .where((builder) => {
+          searchTerms.forEach((term) => {
+            builder.andWhere((subBuilder) => {
+              subBuilder
+                .whereRaw('LOWER(title) LIKE ?', [`%${term}%`])
+                .orWhereRaw('LOWER(address) LIKE ?', [`%${term}%`])
+                .orWhereRaw("LOWER(json_extract(content, '$')) LIKE ?", [`%${term}%`])
+            })
+          })
+        })
+        .select(
+          '*',
+          db.raw(
+            `CASE 
+            WHEN ${searchTerms.map((term) => `LOWER(title) LIKE '%${term}%'`).join(' AND ')} THEN 10
+            WHEN ${searchTerms.map((term) => `LOWER(address) LIKE '%${term}%'`).join(' AND ')} THEN 8
+            ELSE 1
+          END as match_priority`
+          )
+        )
+        .orderBy('match_priority', 'desc')
+  }
+}
+
+// 修改搜索笔记函数
+export async function searchNotes(params: SearchParams): Promise<Array<SearchResult>> {
+  const { mode, term } = params
+  const searchTerms = term.toLowerCase().trim().split(/\s+/).filter(Boolean)
+
+  console.log('后端→ 开始搜索笔记:', { mode, searchTerms })
+
+  if (searchTerms.length === 0) return []
+
+  try {
+    const query = buildSearchQuery(db, mode, searchTerms)
+    const notes = await query
+
+    console.log('后端→ 搜索结果数量:', notes.length)
+
+    return notes.reduce((results: SearchResult[], note) => {
+      const matchingBlocks: Array<{ content: string }> = []
+      const metadata = JSON.parse(note.metadata || '{}')
+      let content: any
+
+      try {
+        content = typeof note.content === 'string' ? JSON.parse(note.content) : content
+        const textContent = extractTextContent(content)
+
+        // 根据搜索模式处理匹配
+        if (mode === 'address') {
+          console.log('后端→ 地址搜索模式, 笔记地址:', note.address)
+          // 只检查地址
+          const lowerAddress = note.address.toLowerCase()
+          const allTermsFound = searchTerms.every((term) => lowerAddress.includes(term))
+          if (allTermsFound) {
+            matchingBlocks.push({
+              content: note.address
+            })
           }
+        } else if (mode === 'title') {
+          console.log('后端→ 标题搜索模式, 笔记标题:', metadata.title)
+          // 只检查标题
+          const lowerTitle = metadata.title.toLowerCase()
+          const allTermsFound = searchTerms.every((term) => lowerTitle.includes(term))
+          if (allTermsFound) {
+            matchingBlocks.push({
+              content: metadata.title
+            })
+          }
+        } else {
+          console.log('后端→ 全文搜索模式')
+          // 全文搜索逻辑保持不变
+          const lowerTextContent = textContent.toLowerCase()
+          const allTermsFound = searchTerms.every((term) => lowerTextContent.includes(term))
 
-          case 'all': {
-            // 地址匹配
-            if (note.address.toLowerCase().includes(lowercaseQuery)) {
-              matchingBlocks.push({ content: note.address })
-            }
+          if (allTermsFound) {
+            const lines = textContent.split('\n')
+            const matches = lines
+              .filter((line) => {
+                const lowerLine = line.toLowerCase()
+                return searchTerms.some((term) => lowerLine.includes(term))
+              })
+              .map((line) => ({
+                content: line
+              }))
 
-            // 标题匹配
-            if (metadata.title?.toLowerCase().includes(lowercaseQuery)) {
-              matchingBlocks.push({ content: metadata.title })
-            }
-
-            // 内容匹配 (跳过标题)
-            searchContentHelper(content)
-            break
+            matchingBlocks.push(...matches)
           }
         }
 
         if (matchingBlocks.length > 0) {
           results.push({
             id: note.id,
-            title: note.address || metadata.title || '无标题',
+            title: metadata.title || note.address || '无标题',
             address: note.address,
-            blocks: matchingBlocks
+            blocks: matchingBlocks.slice(0, 5),
+            priority: note.match_priority || 1
           })
         }
+      } catch (e) {
+        console.error('处理笔记内容失败:', e)
+      }
 
-        return results
-      },
-      [] as Array<{
-        id: string
-        title: string
-        address: string
-        blocks: Array<{ content: string }>
-      }>
-    )
+      return results
+    }, [])
   } catch (error) {
-    console.error('后端→ 搜索笔记失败:', error)
+    console.error('搜索笔记失败:', error)
     throw new Error('搜索笔记失败')
   }
 }

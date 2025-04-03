@@ -320,3 +320,11 @@ export interface AIProcessingResult {
 
 // 新增：处理状态类型
 export type ProcessingStatus = 'pending' | 'processing' | 'completed' | 'failed'
+
+export interface SearchResult {
+  id: string
+  title: string
+  address: string
+  blocks: Array<{ content: string }>
+  priority: number
+}

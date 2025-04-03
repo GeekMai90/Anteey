@@ -144,7 +144,8 @@ import type {
   ConfigValidationResult,
 
   // Readwise 相关类型
-  ReadwiseSyncConfig
+  ReadwiseSyncConfig,
+  SearchResult
 } from '@shared/types'
 
 // 定义事件处理函数的类型
@@ -185,13 +186,7 @@ export interface ElectronAPI {
       notes: Note[]
       totalCount: number
     }>
-    searchNotes: (query: SearchParams) => Promise<
-      Array<{
-        id: string
-        title: string
-        blocks: Array<{ content: string }>
-      }>
-    >
+    searchNotes: (query: SearchParams) => Promise<SearchResult[]>
     searchNotesList: (query: string) => Promise<Note[]>
     getRandomNotes: () => Promise<Note[]>
     moveEmptyNotesToTrash: () => Promise<void>
