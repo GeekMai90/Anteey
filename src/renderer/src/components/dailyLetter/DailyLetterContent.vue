@@ -295,20 +295,6 @@ const handleDelete = async () => {
             margin-bottom: 0;
           }
         }
-
-        /* 自定义滚动条样式 */
-        &::-webkit-scrollbar {
-          width: 6px;
-        }
-
-        &::-webkit-scrollbar-track {
-          background: transparent;
-        }
-
-        &::-webkit-scrollbar-thumb {
-          background-color: var(--color-border);
-          border-radius: 3px;
-        }
       }
 
       .signature {

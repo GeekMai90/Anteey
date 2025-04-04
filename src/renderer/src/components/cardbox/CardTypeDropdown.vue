@@ -187,19 +187,6 @@ onUnmounted(() => {
   transform-origin: top;
   will-change: transform, opacity;
 
-  &::-webkit-scrollbar {
-    width: 6px;
-  }
-
-  &::-webkit-scrollbar-thumb {
-    background-color: #d0d0d0;
-    border-radius: 3px;
-  }
-
-  &::-webkit-scrollbar-track {
-    background-color: #f0f0f0;
-  }
-
   .dropdown-item {
     display: flex;
     align-items: center;

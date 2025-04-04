@@ -736,25 +736,6 @@ const handleSave = async () => {
         color: white;
       }
     }
-
-    // 滚动条样式
-    &::-webkit-scrollbar {
-      width: 8px;
-    }
-
-    &::-webkit-scrollbar-track {
-      background: var(--color-bg-secondary);
-      border-radius: 4px;
-    }
-
-    &::-webkit-scrollbar-thumb {
-      background: var(--color-border);
-      border-radius: 4px;
-
-      &:hover {
-        background: var(--color-text-secondary);
-      }
-    }
   }
 }
 

@@ -325,19 +325,6 @@ watch(showLinkMenu, (newValue) => {
   overflow-x: hidden;
   padding: 8px;
 
-  &::-webkit-scrollbar {
-    width: 8px;
-  }
-
-  &::-webkit-scrollbar-track {
-    background: transparent;
-  }
-
-  &::-webkit-scrollbar-thumb {
-    background: var(--color-scrollbar);
-    border-radius: 4px;
-  }
-
   .link-section {
     & + .link-section {
       margin-top: 8px;

@@ -293,22 +293,17 @@ const handleNodeClick = async (e: MouseEvent) => {
     e.stopPropagation()
     e.preventDefault()
 
-    console.log('点击了展开/折叠按钮')
     const address = element.getAttribute('data-address')
-    console.log('节点地址:', address)
 
     if (address) {
       // 防止重复点击
       if (element.hasAttribute('data-processing')) {
-        console.log('正在处理中，忽略重复点击')
         return
       }
       element.setAttribute('data-processing', 'true')
 
       try {
         const node = knowledgeTreeStore.findNodeByAddress(address)
-        console.log('找到的节点:', node)
-        console.log('节点当前展开状态:', node?.isExpanded)
 
         if (node) {
           // 保存当前视图位置
@@ -318,13 +313,11 @@ const handleNodeClick = async (e: MouseEvent) => {
           }
 
           if (!node.isExpanded) {
-            console.log('准备展开节点')
             // 加载并展开节点
             const childNodes = await knowledgeTreeStore.fetchChildNodes(address)
-            console.log('获取到的子节点:', childNodes)
+
             node.children = childNodes
             node.isExpanded = true
-            console.log('节点状态已更新为展开')
 
             // 更新视图并展开节点
             const jsMindData = transformToJsMindData(knowledgeTreeStore.nodes)
@@ -333,7 +326,6 @@ const handleNodeClick = async (e: MouseEvent) => {
             // 只展开当前点击的节点
             requestAnimationFrame(() => {
               const clickedNode = jm.value.get_node(address)
-              console.log('准备在视图中展开节点:', clickedNode)
               if (clickedNode) {
                 jm.value.expand_node(address)
               }
@@ -342,21 +334,17 @@ const handleNodeClick = async (e: MouseEvent) => {
               jm.value.view.e_panel.scrollTop = viewPosition.y
             })
           } else {
-            console.log('准备折叠节点')
             // 折叠节点
             node.isExpanded = false
             node.children = [] // 清空子节点数据
-            console.log('节点状态已更新为折叠')
 
             // 更新视图
             const jsMindData = transformToJsMindData(knowledgeTreeStore.nodes)
-            console.log('准备更新 jsMind 数据:', jsMindData)
             jm.value.show(jsMindData)
 
             // 确保节点被折叠
             requestAnimationFrame(() => {
               const clickedNode = jm.value.get_node(address)
-              console.log('准备在视图中折叠节点:', clickedNode)
               if (clickedNode) {
                 jm.value.collapse_node(address)
               }
@@ -415,21 +403,17 @@ const handleNodeClick = async (e: MouseEvent) => {
  * @description 处理节点的双击事件，实现节点聚焦和返回功能
  */
 const handleNodeDblClick = async (e: MouseEvent) => {
-  console.log('handleNodeDblClick 被调用')
   if (!jm.value) return
 
   const element = e.target as HTMLElement
-  console.log('点击的元素:', element)
 
   // 向上查找最近的 jmnode 元素
   const jmnodeElement = element.closest('jmnode')
   if (!jmnodeElement) {
-    console.log('未找到 jmnode 元素')
     return
   }
 
   const nodeId = jmnodeElement.getAttribute('nodeid')
-  console.log('找到的 nodeId:', nodeId)
 
   if (nodeId) {
     // 如果是当前聚焦的根节点，则返回上一层
@@ -440,9 +424,7 @@ const handleNodeDblClick = async (e: MouseEvent) => {
       const isFocusedNode = nodeId === knowledgeTreeStore.focusedNode?.address
 
       if (isFocusedNode) {
-        console.log('双击当前聚焦的节点')
         if (isTopLevelNode) {
-          console.log('返回到 Antinet Zettelkasten 根节点')
           try {
             // 完全重置所有状态
             knowledgeTreeStore.reset()
@@ -494,14 +476,12 @@ const handleNodeDblClick = async (e: MouseEvent) => {
             console.error('返回根节点时发生错误:', error)
           }
         } else {
-          console.log('返回到上一层节点')
           await knowledgeTreeStore.backToParent()
         }
       } else {
         // 其他节点保持原有的聚焦行为
         const treeNode = knowledgeTreeStore.findNodeByAddress(nodeId)
         if (treeNode) {
-          console.log('找到对应的树节点:', treeNode)
           await knowledgeTreeStore.focusNodeWithChildren(treeNode)
         }
       }
@@ -509,34 +489,11 @@ const handleNodeDblClick = async (e: MouseEvent) => {
       // 非聚焦模式下，聚焦到点击的节点
       const treeNode = knowledgeTreeStore.findNodeByAddress(nodeId)
       if (treeNode) {
-        console.log('找到对应的树节点:', treeNode)
         await knowledgeTreeStore.focusNodeWithChildren(treeNode)
       }
     }
   }
 }
-
-// 缩放控制
-// const handleZoomIn = () => {
-//   if (jm.value) {
-//     scale.value *= 1.1
-//     jm.value.view.zoom_in()
-//   }
-// }
-
-// const handleZoomOut = () => {
-//   if (jm.value) {
-//     scale.value *= 0.9
-//     jm.value.view.zoom_out()
-//   }
-// }
-
-// const handleResetView = () => {
-//   if (jm.value) {
-//     scale.value = 1
-//     jm.value.view.reset()
-//   }
-// }
 
 // 修改 watch 部分
 watch(
@@ -573,7 +530,6 @@ watch(
 
           // 重新绑定事件
           const jmnodes = container.value?.querySelectorAll('jmnode')
-          console.log('节点更新后，找到的节点数量:', jmnodes?.length)
 
           jmnodes?.forEach((node) => {
             // 重新绑定单击事件
@@ -584,7 +540,6 @@ watch(
             }) as EventListener)
             // 重新绑定双击事件
             node.addEventListener('dblclick', ((e: Event) => {
-              console.log('节点被双击:', e.target)
               if (e instanceof MouseEvent) {
                 handleNodeDblClick(e)
               }
@@ -607,7 +562,7 @@ watch(
  * @description 根据节点地址进行导航，加载并聚焦到目标节点
  */
 const navigateToNode = async (address: string) => {
-  console.log('开始导航到节点:', address)
+  // console.log('开始导航到节点:', address)
   const node = await knowledgeTreeStore.findNodeByAddress(address)
   if (node) {
     // 确保节点有正确的 id
@@ -628,7 +583,7 @@ watch(
     const address = (queryAddress || paramAddress) as string
     if (address) {
       try {
-        console.log('准备导航到地址:', address)
+        // console.log('准备导航到地址:', address)
 
         // 重置视图状态
         await knowledgeTreeStore.resetViewState()
@@ -665,13 +620,13 @@ watch(
           }
         }
 
-        console.log('导航路径:', navigationPath)
+        // console.log('导航路径:', navigationPath)
 
         // 按顺序执行导航
         for (const pathAddress of navigationPath) {
           const success = await navigateToNode(pathAddress)
           if (!success) {
-            console.error('导航失败，找不到节点:', pathAddress)
+            // console.error('导航失败，找不到节点:', pathAddress)
             break
           }
           // 等待一小段时间确保节点加载完成
@@ -699,7 +654,7 @@ watch(
           })
         }
       } catch (error) {
-        console.error('导航到节点失败:', error)
+        // console.error('导航到节点失败:', error)
       }
     }
   },

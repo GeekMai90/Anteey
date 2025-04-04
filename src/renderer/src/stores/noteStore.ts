@@ -252,7 +252,7 @@ export const useNoteStore = defineStore(
         }
 
         if (!isReviewMode.value) {
-          console.log('noteStores.ts→ 非随机查看模式，发送更新事件通知')
+          // console.log('noteStores.ts→ 非随机查看模式，发送更新事件通知')
           // 4. 发送更新事件通知
           const noteUpdatedBus = useEventBus<Note>('note-updated')
           noteUpdatedBus.emit(updatedNote)

@@ -85,18 +85,5 @@ import Task from '@renderer/components/widget/Task.vue'
   display: flex;
   flex-direction: column;
   gap: 16px;
-
-  &::-webkit-scrollbar {
-    width: 6px;
-  }
-
-  &::-webkit-scrollbar-track {
-    background: transparent;
-  }
-
-  &::-webkit-scrollbar-thumb {
-    background: var(--color-scrollbar);
-    border-radius: 3px;
-  }
 }
 </style>

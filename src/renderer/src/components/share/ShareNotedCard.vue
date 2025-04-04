@@ -115,19 +115,6 @@ onMounted(async () => {
   overflow-y: auto;
   margin: 0 0 24px 0;
 
-  &::-webkit-scrollbar {
-    width: 4px;
-  }
-
-  &::-webkit-scrollbar-track {
-    background: transparent;
-  }
-
-  &::-webkit-scrollbar-thumb {
-    background: #e7e5e4;
-    border-radius: 2px;
-  }
-
   :deep(.tiptap) {
     margin: 0;
     padding: 0;

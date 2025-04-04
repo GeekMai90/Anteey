@@ -585,19 +585,6 @@ onUnmounted(() => {
                   }
                 }
               }
-
-              &::-webkit-scrollbar {
-                width: 8px;
-              }
-
-              &::-webkit-scrollbar-track {
-                background: transparent;
-              }
-
-              &::-webkit-scrollbar-thumb {
-                background: var(--color-scrollbar);
-                border-radius: 4px;
-              }
             }
           }
 

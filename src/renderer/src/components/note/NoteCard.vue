@@ -78,7 +78,7 @@ const props = defineProps<{
   note: Note
 }>()
 
-console.log('props.note', props.note)
+// console.log('props.note', props.note)
 
 const cardTypeClass = computed(() => {
   if (props.note.cardType === 'Maincard' && props.note.isIndexed) {

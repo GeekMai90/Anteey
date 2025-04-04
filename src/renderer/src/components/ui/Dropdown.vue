@@ -386,19 +386,6 @@ const handleSwitchChange = (item: SwitchableDropdownItem, checked: boolean) => {
   &.custom-width {
     width: v-bind('typeof props.width === "number" ? `${props.width}px` : props.width');
   }
-
-  &::-webkit-scrollbar {
-    width: 8px;
-  }
-
-  &::-webkit-scrollbar-track {
-    background: transparent;
-  }
-
-  &::-webkit-scrollbar-thumb {
-    background: var(--color-scrollbar);
-    border-radius: 4px;
-  }
 }
 
 .ant-dropdown-menu {

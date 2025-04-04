@@ -201,25 +201,6 @@ const onAnimationComplete = () => {
           min-height: unset;
           overflow-x: auto;
           overflow-y: hidden;
-
-          // 自定义滚动条样式
-          &::-webkit-scrollbar {
-            height: 6px;
-            width: 0;
-          }
-
-          &::-webkit-scrollbar-track {
-            background: transparent;
-          }
-
-          &::-webkit-scrollbar-thumb {
-            background: var(--color-border);
-            border-radius: 3px;
-
-            &:hover {
-              background: var(--color-text-secondary);
-            }
-          }
         }
 
         // 让 SVG 图表填充整个容器

@@ -325,25 +325,6 @@ onMounted(() => {
     max-height: 280px;
     overflow-y: auto;
 
-    &::-webkit-scrollbar {
-      width: 8px;
-    }
-
-    &::-webkit-scrollbar-track {
-      background: var(--color-scrollbar-track-bg);
-    }
-
-    &::-webkit-scrollbar-thumb {
-      background-color: var(--color-scroll-thumb);
-      border-radius: 4px;
-      border: 2px solid transparent;
-      background-clip: padding-box;
-
-      &:hover {
-        background-color: var(--color-scrollbar-thumb-hover);
-      }
-    }
-
     .select-option {
       padding: 8px 12px;
       cursor: pointer;

@@ -735,7 +735,7 @@ async function getSiblingNodes(currentNote: Note): Promise<{
 
     // 获取相邻节点
     const currentIndex = siblings.findIndex((s) => s.address.localeCompare(currentNote.address) > 0)
-    const adjacent = []
+    const adjacent: Note[] = []
 
     if (currentIndex > 0) {
       adjacent.push(siblings[currentIndex - 1]) // 前一个

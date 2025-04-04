@@ -279,21 +279,4 @@ const handleDragEnd = () => {
     }
   }
 }
-
-.thumbnail-list::-webkit-scrollbar {
-  width: 4px;
-}
-
-.thumbnail-list::-webkit-scrollbar-thumb {
-  background-color: var(--color-scrollbar);
-  border-radius: 4px;
-
-  &:hover {
-    background-color: var(--color-scrollbar-hover);
-  }
-}
-
-.thumbnail-list::-webkit-scrollbar-track {
-  background-color: transparent;
-}
 </style>

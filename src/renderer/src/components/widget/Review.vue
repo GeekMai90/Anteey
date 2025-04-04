@@ -170,19 +170,6 @@ onMounted(async () => {
   flex: 1;
   overflow-y: auto;
   min-height: 0;
-
-  &::-webkit-scrollbar {
-    width: 6px;
-  }
-
-  &::-webkit-scrollbar-track {
-    background: transparent;
-  }
-
-  &::-webkit-scrollbar-thumb {
-    background: var(--color-scrollbar);
-    border-radius: 3px;
-  }
 }
 
 .review-text {

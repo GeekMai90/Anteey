@@ -872,24 +872,6 @@ const handleNodeMouseLeave = () => {
     overflow-y: hidden;
     position: relative;
 
-    &::-webkit-scrollbar {
-      height: 6px;
-      width: 0;
-    }
-
-    &::-webkit-scrollbar-track {
-      background: transparent;
-    }
-
-    &::-webkit-scrollbar-thumb {
-      background: var(--color-border);
-      border-radius: 3px;
-
-      &:hover {
-        background: var(--color-text-secondary);
-      }
-    }
-
     .tree-graph {
       height: 100%;
       flex-shrink: 0;

@@ -777,22 +777,4 @@ const openCreateModal = () => {
     }
   }
 }
-
-// 滚动条样式
-.list-view::-webkit-scrollbar {
-  width: 6px;
-}
-
-.list-view::-webkit-scrollbar-thumb {
-  background-color: var(--color-scrollbar);
-  border-radius: 3px;
-
-  &:hover {
-    background-color: var(--color-scrollbar-hover);
-  }
-}
-
-.list-view::-webkit-scrollbar-track {
-  background-color: var(--color-scrollbar-track);
-}
 </style>

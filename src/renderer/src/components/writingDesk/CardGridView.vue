@@ -410,21 +410,4 @@ const handleDrop = async (event: DragEvent) => {
     }
   }
 }
-
-.card-grid-view::-webkit-scrollbar {
-  width: 8px;
-}
-
-.card-grid-view::-webkit-scrollbar-thumb {
-  background-color: var(--color-scrollbar);
-  border-radius: 4px;
-
-  &:hover {
-    background-color: var(--color-scrollbar-hover);
-  }
-}
-
-.card-grid-view::-webkit-scrollbar-track {
-  background-color: transparent;
-}
 </style>
