@@ -3,9 +3,10 @@
     ref="aiBtnRef"
     class="ai-button"
     :class="{ 'ai-button--large': size === 'large' }"
+    v-tooltip:[tooltipPlacement]="tooltipConfig"
     @click.stop="toggleAIMenu"
   >
-    <div v-tooltip.bottom="tooltipConfig" class="icon">
+    <div class="icon">
       <RobotOne
         theme="outline"
         :size="size === 'large' ? 18 : 16"
@@ -39,11 +40,15 @@ const props = withDefaults(
   defineProps<{
     noteId: string
     size?: 'default' | 'large'
+    tooltipPlacement?: 'top' | 'bottom' | 'left' | 'right'
   }>(),
   {
-    size: 'default'
+    size: 'default',
+    tooltipPlacement: 'top'
   }
 )
+
+const tooltipPlacement = computed(() => props.tooltipPlacement)
 
 // tooltip配置
 const tooltipConfig = {

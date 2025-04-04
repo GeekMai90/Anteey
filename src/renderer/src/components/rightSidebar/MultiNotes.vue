@@ -22,17 +22,22 @@
   <div class="multi-notes">
     <div class="toolbar"></div>
 
-    <div class="notes-container">
-      <div
-        v-for="note in sidebarNotes"
-        :key="note.id"
-        class="note-item"
-        :draggable="isDraggable"
-        @dragstart="(e) => handleDragStart(e, note)"
-      >
-        <RightSidebarNoteEditor :noteId="note.id" @close="noteStore.closeNoteEditor" />
+    <template v-if="sidebarNotes.length > 0">
+      <div class="notes-container">
+        <div
+          v-for="note in sidebarNotes"
+          :key="note.id"
+          class="note-item"
+          :draggable="isDraggable"
+          @dragstart="(e) => handleDragStart(e, note)"
+        >
+          <RightSidebarNoteEditor :noteId="note.id" @close="noteStore.closeNoteEditor" />
+        </div>
       </div>
-    </div>
+    </template>
+    <template v-else>
+      <EmptyState text="选择笔记在右侧显示" />
+    </template>
   </div>
 </template>
 
@@ -45,6 +50,7 @@ import { useNoteStore } from '@renderer/stores/noteStore'
 import RightSidebarNoteEditor from '@renderer/components/rightSidebar/RightSidebarNoteEditor.vue'
 import type { Note } from '@shared/types'
 import { useRoute } from 'vue-router'
+import EmptyState from '@renderer/components/ui/EmptyState.vue'
 
 /**
  * 组件状态和存储初始化
@@ -159,6 +165,25 @@ const handleDragStart = (event: DragEvent, note: Note) => {
       &:last-child {
         margin-bottom: 0;
       }
+    }
+  }
+
+  // 添加空状态样式
+  :deep(.empty-state) {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+
+    .empty-icon {
+      width: 200px; // 调整图标大小
+      height: 200px;
+    }
+
+    .empty-text {
+      font-size: 14px;
+      color: var(--color-text-secondary);
     }
   }
 }

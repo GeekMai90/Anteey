@@ -50,14 +50,12 @@
               <div class="link-header">
                 <div class="note-type" :class="link.cardType || 'Maincard'"></div>
                 <span class="note-title">{{ link.address || '未设置编码地址' }}</span>
+                <span class="timestamp">{{
+                  formatDate(new Date(link.createdAt || Date.now()), 'date-only')
+                }}</span>
               </div>
               <div class="note-title-text">
                 <span>{{ link.metadata?.title || '未命名笔记' }}</span>
-              </div>
-              <div class="link-meta">
-                <span class="timestamp">{{
-                  formatDate(new Date(link.createdAt || Date.now()))
-                }}</span>
               </div>
             </div>
           </div>
@@ -79,14 +77,12 @@
               <div class="link-header">
                 <div class="note-type" :class="link.cardType || 'Maincard'"></div>
                 <span class="note-title">{{ link.address || '未设置编码地址' }}</span>
+                <span class="timestamp">{{
+                  formatDate(new Date(link.createdAt || Date.now()), 'date-only')
+                }}</span>
               </div>
               <div class="note-title-text">
                 <span>{{ link.metadata?.title || '未命名笔记' }}</span>
-              </div>
-              <div class="link-meta">
-                <span class="timestamp">{{
-                  formatDate(new Date(link.createdAt || Date.now()))
-                }}</span>
               </div>
             </div>
           </div>
@@ -401,12 +397,14 @@ const leave = (element: Element) => {
       display: flex;
       align-items: center;
       gap: 8px;
-      margin-bottom: 12px;
+      margin-bottom: 8px;
+      width: 100%;
 
       .note-type {
         width: 3px;
-        height: 12px;
+        height: 10px;
         border-radius: 1.5px;
+        flex-shrink: 0;
 
         &.Maincard {
           background: var(--color-primary);
@@ -420,11 +418,23 @@ const leave = (element: Element) => {
       }
 
       .note-title {
-        font-weight: 500;
         color: var(--color-text-primary);
-        font-size: 14px;
+        font-size: 12px;
         line-height: 1;
+        flex-grow: 1;
       }
+
+      .timestamp {
+        font-size: 12px;
+        color: var(--color-text-tertiary);
+        margin-left: auto;
+        flex-shrink: 0;
+      }
+    }
+    .note-title-text {
+      font-size: 14px;
+      line-height: 1;
+      margin-bottom: 6px;
     }
 
     .link-context {
@@ -450,18 +460,6 @@ const leave = (element: Element) => {
           border-bottom: 1px solid var(--color-primary);
           margin: 0 4px;
         }
-      }
-    }
-
-    .link-meta {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      margin-top: 12px;
-
-      .timestamp {
-        font-size: 12px;
-        color: var(--color-text-tertiary);
       }
     }
   }

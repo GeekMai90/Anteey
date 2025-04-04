@@ -16,7 +16,7 @@
     :style="buttonStyle"
     @click="handleClick"
   >
-    <component :is="icon" theme="outline" :size="iconSize" :strokeWidth="3" />
+    <component :is="icon" theme="outline" :size="iconSize" :strokeWidth="3" :fill="fill" />
   </div>
 </template>
 
@@ -24,7 +24,7 @@
 import type { Component } from 'vue'
 import { ref, computed } from 'vue'
 
-type SizeType = 'small' | 'medium' | 'large' | number
+type SizeType = 'small' | 'medium' | 'large' | 'default' | number
 
 interface TooltipConfig {
   content: string
@@ -39,6 +39,7 @@ interface Props {
   disabled?: boolean
   active?: boolean
   size?: SizeType
+  fill?: string
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -67,7 +68,8 @@ const iconSize = computed(() => {
   const sizeMap = {
     small: 14,
     medium: 16,
-    large: 18
+    large: 18,
+    default: 16 // 添加 default 尺寸的图标大小
   }
   return sizeMap[props.size]
 })
@@ -96,13 +98,19 @@ defineExpose({
   justify-content: center;
   width: 24px;
   height: 24px;
-  border-radius: 4px;
+  border-radius: 6px;
   cursor: pointer;
   color: var(--color-text-secondary);
   transition: all 0.2s ease;
   opacity: inherit;
 
   // 预设尺寸
+  &.icon-button-default {
+    width: 28px;
+    height: 28px;
+    border-radius: 4px;
+  }
+
   &.icon-button-small {
     width: 20px;
     height: 20px;

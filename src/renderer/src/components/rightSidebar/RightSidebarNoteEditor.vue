@@ -3,65 +3,49 @@
   <div class="right-sidebar-note-editor" :class="{ 'is-collapsed': isCollapsed }">
     <!-- 顶部工具栏 -->
     <div class="toolbar">
-      <!-- 展开编辑器 -->
-      <div v-tooltip.bottom="tooltipConfig.expandBtn" class="expand-btn" @click="handleExpand">
-        <div class="icon">
-          <Right v-if="isCollapsed" theme="outline" size="16" fill="#b6b6b6" />
-          <Down v-else theme="outline" size="16" fill="#b6b6b6" />
-        </div>
-      </div>
-      <div class="toolbar-right">
-        <div ref="openInMainPanelBtnRef" class="install-btn" @click.stop="openInMainPanel">
-          <div v-tooltip.bottom="tooltipConfig.openInMainPanel" class="icon">
-            <Afferent
-              theme="outline"
-              size="18"
-              fill="var(--color-icon-default)"
-              :stroke-width="3"
-            />
-          </div>
-        </div>
-        <!-- 卡片盒设置按钮 -->
-        <div ref="cardboxBtnRef" class="install-btn" @click.stop="toggleCardboxMenu">
-          <div v-tooltip.bottom="tooltipConfig.cardboxSettings" class="icon">
-            <Install theme="outline" size="18" fill="var(--color-icon-default)" :stroke-width="3" />
-          </div>
-          <!-- 添加卡片盒下拉菜单 -->
-          <CardboxDropdownMenu
-            ref="cardboxMenuRef"
-            :is-open="cardboxMenuState.isOpen"
-            :button-ref="cardboxBtnRef"
-            :note-id="currentNote?.id"
-            :current-cardbox-id="currentNote?.cardBoxId"
-            @close="closeCardboxMenu"
-          />
-        </div>
+      <!-- 展开编辑器按钮 -->
+      <IconButton
+        :icon="isCollapsed ? Right : Down"
+        size="default"
+        fill="var(--color-icon-default)"
+        @click="handleExpand"
+      />
 
-        <!-- 更多功能菜单按钮 -->
-        <div ref="moreBtnRef" class="more-btn" @click.stop="toggleMoreMenu">
-          <div v-tooltip.bottom="tooltipConfig.more" class="icon">
-            <More theme="outline" size="16" fill="var(--color-icon-default)" :stroke-width="3" />
-          </div>
-          <!-- 更多功能菜单按钮 -->
-          <PopupMenu
-            ref="moreMenuRef"
-            :show="moreMenuState.isOpen"
-            :button-ref="moreBtnRef"
-            :menuItems="noteMenuItems"
-            @close="closeMoreMenu"
-            @itemClick="handleMenuItemClick"
-          />
-        </div>
-        <div class="remove-btn" @click.stop="handleRemoveNoteFromRightSidebar">
-          <div v-tooltip.bottom="tooltipConfig.close" class="icon">
-            <CloseOne
-              theme="outline"
-              size="16"
-              fill="var(--color-icon-default)"
-              :stroke-width="3"
-            />
-          </div>
-        </div>
+      <!-- 右侧工具栏 -->
+      <div class="toolbar-right">
+        <!-- 在主面板打开按钮 -->
+        <IconButton
+          :icon="Afferent"
+          :tooltip="{ content: '在主面板打开', placement: 'top', delay: { show: 1000 } }"
+          size="default"
+          fill="var(--color-icon-default)"
+          @click="openInMainPanel"
+        />
+
+        <!-- 卡片盒设置按钮 -->
+        <CardboxButton
+          v-if="currentNote"
+          :note-id="currentNote.id"
+          :current-cardbox-id="currentNote.cardBoxId"
+          size="default"
+        />
+
+        <!-- 更多按钮 -->
+        <MoreButton
+          v-if="currentNote"
+          :note-id="currentNote.id"
+          size="default"
+          :menu-items="['star', 'copyQuote', 'share', 'exportNote']"
+        />
+
+        <!-- 关闭按钮 -->
+        <IconButton
+          :icon="CloseOne"
+          :tooltip="{ content: '关闭', placement: 'top', delay: { show: 1000 } }"
+          size="default"
+          fill="var(--color-icon-default)"
+          @click="handleRemoveNoteFromRightSidebar"
+        />
       </div>
     </div>
     <!-- 编辑器内容 -->
@@ -115,18 +99,17 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useNoteStore } from '@renderer/stores/noteStore'
 import TipTapEditor from '@renderer/components/tiptap/TipTapEditor.vue'
-import { Right, Down, More, CloseOne, Install, Afferent } from '@icon-park/vue-next'
-import CardboxDropdownMenu from '@renderer/components/cardbox/CardboxDropdownMenu.vue'
+import { Right, Down, CloseOne, Afferent } from '@icon-park/vue-next'
 import { useMenu } from '@renderer/composables/useMenu'
 import { message } from '@renderer/utils/message'
-import { MenuItem } from '../common/PopupMenu.vue'
-import { useNoteMenu } from '@renderer/composables/useNoteMenu'
-import PopupMenu from '@renderer/components/common/PopupMenu.vue'
 import CardTypeDropdownMenu from '@renderer/components/note/CardTypeDropdownMenu.vue'
 import { CardType, Note } from '@shared/types'
 import { debounce } from 'lodash-es'
 import { EditorState } from '@tiptap/pm/state/dist'
 import { useRouter } from 'vue-router/dist/vue-router'
+import MoreButton from '@renderer/components/common/MoreButton.vue'
+import CardboxButton from '@renderer/components/common/CardboxButton.vue'
+import IconButton from '@renderer/components/ui/IconButton.vue'
 
 const props = defineProps<{
   noteId: string
@@ -137,15 +120,6 @@ const tiptapEditor = ref<InstanceType<any> | null>(null)
 const noteStore = useNoteStore()
 const currentNote = ref<Note | null>(null)
 const router = useRouter()
-
-// 定义静态的 tooltip 配置
-const tooltipConfig = {
-  expandBtn: { content: '折叠展开卡片', delay: { show: 1000 } },
-  openInMainPanel: { content: '在主面板打开', delay: { show: 1000 } },
-  cardboxSettings: { content: '设置卡片盒', delay: { show: 1000 } },
-  more: { content: '更多', delay: { show: 1000 } },
-  close: { content: '关闭', delay: { show: 1000 } }
-}
 
 // 初始化笔记数据
 const initializeNote = async (noteId: string) => {
@@ -310,48 +284,6 @@ const handleCardTypeSelect = async (newType: string) => {
   }
 }
 
-// === 卡片盒菜单管理 ===
-const cardboxBtnRef = ref<HTMLElement | null>(null)
-const cardboxMenuRef = ref<HTMLElement | null>(null)
-const {
-  menuState: cardboxMenuState,
-  toggleMenu: toggleCardboxMenu,
-  closeMenu: closeCardboxMenu
-} = useMenu({
-  buttonRef: cardboxBtnRef,
-  menuRef: cardboxMenuRef,
-  onClose: () => {
-    console.log('卡片盒菜单已关闭')
-  }
-})
-
-// === 更多功能菜单管理 ===
-const { menuItems: noteMenuItems, resetDeleteState } = useNoteMenu({
-  noteId: props.noteId,
-  menuItems: ['star', 'copyQuote', 'share', 'exportNote']
-})
-
-const moreBtnRef = ref<HTMLElement | null>(null)
-const moreMenuRef = ref<HTMLElement | null>(null)
-const {
-  menuState: moreMenuState,
-  toggleMenu: toggleMoreMenu,
-  closeMenu: closeMoreMenu
-} = useMenu({
-  buttonRef: moreBtnRef,
-  menuRef: moreMenuRef,
-  onClose: () => {
-    resetDeleteState()
-  }
-})
-// 更多菜单点击事件
-const handleMenuItemClick = (item: MenuItem) => {
-  item.action()
-  if (item.name !== 'delete') {
-    closeMoreMenu()
-  }
-}
-
 // === 辅助函数 ===
 // 聚焦编辑器
 const focusEditor = () => {
@@ -373,11 +305,12 @@ const focusAddressInput = () => {
 
 defineExpose({ focusAddressInput })
 
-// 折叠展开卡片笔记
-const isCollapsed = ref(false)
+// 1. 修改 isCollapsed 的定义，使用 store 中的状态
+const isCollapsed = computed(() => noteStore.isNoteCollapsed(props.noteId))
 
+// 2. 修改 handleExpand 方法
 const handleExpand = () => {
-  isCollapsed.value = !isCollapsed.value
+  noteStore.toggleNoteCollapse(props.noteId)
 }
 
 // 打开笔记到主面板
@@ -421,288 +354,10 @@ const openInMainPanel = () => {
     padding: 10px 10px 0px 10px;
     position: relative;
 
-    .expand-btn {
-      position: relative;
-      display: flex;
-      align-items: center;
-      border: none;
-      background: none;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      border-radius: 6px;
-      padding: 4px 4px;
-      margin: 2px;
-
-      .icon {
-        background: none;
-        border: none;
-        cursor: pointer;
-        width: 24px;
-        height: 24px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        transition: all 0.2s ease;
-        padding: 0;
-
-        // &:hover:not(:disabled) {
-        //   background-color: rgba(0, 0, 0, 0.05);
-        // }
-
-        &:disabled {
-          opacity: 0.5;
-          cursor: not-allowed;
-        }
-
-        :deep(.i-icon) {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          width: 100%;
-          height: 100%;
-        }
-
-        :deep(svg) {
-          width: 16px;
-          height: 16px;
-        }
-      }
-
-      .name {
-        flex-grow: 0;
-        text-align: left;
-        color: var(---color-text-primary);
-        font-size: 13px;
-        font-weight: 400;
-        margin-left: 6px;
-        white-space: nowrap;
-        writing-mode: horizontal-tb;
-      }
-
-      &:hover {
-        background-color: var(--color-hover-button);
-      }
-
-      &:active {
-        background-color: rgba(0, 0, 0, 0.1);
-      }
-    }
-
-    .install-btn {
-      position: relative;
-      display: flex;
-      align-items: center;
-      border: none;
-      background: none;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      border-radius: 6px;
-      padding: 4px 4px;
-      margin: 2px;
-
-      :deep(.dropdown-menu) {
-        transform: translateX(-70%);
-      }
-
-      .icon {
-        background: none;
-        border: none;
-        cursor: pointer;
-        width: 24px;
-        height: 24px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        transition: all 0.2s ease;
-        padding: 0;
-
-        // &:hover:not(:disabled) {
-        //   background-color: rgba(0, 0, 0, 0.05);
-        // }
-
-        &:disabled {
-          opacity: 0.5;
-          cursor: not-allowed;
-        }
-
-        :deep(.i-icon) {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          width: 100%;
-          height: 100%;
-        }
-
-        :deep(svg) {
-          width: 16px;
-          height: 16px;
-        }
-      }
-
-      .name {
-        flex-grow: 0;
-        text-align: left;
-        color: var(---color-text-primary);
-        font-size: 13px;
-        font-weight: 400;
-        margin-left: 6px;
-        white-space: nowrap;
-        writing-mode: horizontal-tb;
-      }
-
-      &:hover {
-        background-color: var(--color-hover-button);
-      }
-
-      &:active {
-        background-color: rgba(0, 0, 0, 0.1);
-      }
-    }
-
-    .more-btn {
-      position: relative;
-      display: flex;
-      align-items: center;
-      border: none;
-      background: none;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      border-radius: 6px;
-      padding: 4px 4px;
-      margin: 2px;
-
-      :deep(.note-options-menu) {
-        transform: translateX(-80%);
-      }
-
-      .icon {
-        background: none;
-        border: none;
-        cursor: pointer;
-        width: 24px;
-        height: 24px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        transition: all 0.2s ease;
-        padding: 0;
-
-        // &:hover:not(:disabled) {
-        //   background-color: rgba(0, 0, 0, 0.05);
-        // }
-
-        &:disabled {
-          opacity: 0.5;
-          cursor: not-allowed;
-        }
-
-        :deep(.i-icon) {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          width: 100%;
-          height: 100%;
-        }
-
-        :deep(svg) {
-          width: 16px;
-          height: 16px;
-        }
-      }
-
-      .name {
-        flex-grow: 0;
-        text-align: left;
-        color: var(---color-text-primary);
-        font-size: 13px;
-        font-weight: 400;
-        margin-left: 6px;
-        white-space: nowrap;
-        writing-mode: horizontal-tb;
-      }
-
-      &:hover {
-        background-color: var(--color-hover-button);
-      }
-
-      &:active {
-        background-color: rgba(0, 0, 0, 0.1);
-      }
-    }
-    .remove-btn {
-      position: relative;
-      display: flex;
-      align-items: center;
-      border: none;
-      background: none;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      border-radius: 6px;
-      padding: 4px 4px;
-      margin: 2px;
-
-      :deep(.note-options-menu) {
-        transform: translateX(-80%);
-      }
-
-      .icon {
-        background: none;
-        border: none;
-        cursor: pointer;
-        width: 24px;
-        height: 24px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        transition: all 0.2s ease;
-        padding: 0;
-
-        // &:hover:not(:disabled) {
-        //   background-color: rgba(0, 0, 0, 0.05);
-        // }
-
-        &:disabled {
-          opacity: 0.5;
-          cursor: not-allowed;
-        }
-
-        :deep(.i-icon) {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          width: 100%;
-          height: 100%;
-        }
-
-        :deep(svg) {
-          width: 16px;
-          height: 16px;
-        }
-      }
-
-      .name {
-        flex-grow: 0;
-        text-align: left;
-        color: var(---color-text-primary);
-        font-size: 13px;
-        font-weight: 400;
-        margin-left: 6px;
-        white-space: nowrap;
-        writing-mode: horizontal-tb;
-      }
-
-      &:hover {
-        background-color: var(--color-hover-button);
-      }
-
-      &:active {
-        background-color: rgba(0, 0, 0, 0.1);
-      }
-    }
-
     .toolbar-right {
       display: flex;
-      // gap: 10px;
+      align-items: center;
+      gap: 2px; // 添加按钮之间的间距
     }
   }
 
@@ -725,6 +380,7 @@ const openInMainPanel = () => {
       width: 100%;
       position: relative; // 添加相对定位作为参考
       margin-left: 30px;
+      margin-bottom: 6px;
 
       input {
         display: flex;
@@ -732,10 +388,9 @@ const openInMainPanel = () => {
         height: 100%;
         border: none;
         outline: none;
-        font-size: 1.2rem;
+        font-size: 1rem;
         font-weight: bold;
         background-color: transparent;
-        // line-height: 40px; // 设置行高，通常设置为 1.2 到 1.5 之间的值
         line-height: 1;
         padding: 0;
         margin: 0;

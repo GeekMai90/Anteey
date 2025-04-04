@@ -1,11 +1,12 @@
 <template>
   <div
     ref="moreBtnRef"
+    v-tooltip:[tooltipPlacement]="tooltipConfig"
     class="more-button"
     :class="{ 'more-button--large': size === 'large' }"
     @click.stop="toggleMoreMenu"
   >
-    <div v-tooltip.bottom="tooltipConfig" class="icon">
+    <div class="icon">
       <More
         theme="outline"
         :size="size === 'large' ? 18 : 16"
@@ -26,7 +27,7 @@
 
 <script setup lang="ts">
 import { More } from '@icon-park/vue-next'
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import PopupMenu from '@renderer/components/common/PopupMenu.vue'
 import { useNoteMenu } from '@renderer/composables/useNoteMenu'
 import type { MenuItem } from '@renderer/components/common/PopupMenu.vue'
@@ -37,9 +38,11 @@ const props = withDefaults(
     noteId: string
     menuItems: string[]
     size?: 'default' | 'large'
+    tooltipPlacement?: 'top' | 'bottom' | 'left' | 'right'
   }>(),
   {
-    size: 'default'
+    size: 'default',
+    tooltipPlacement: 'top'
   }
 )
 
@@ -48,6 +51,8 @@ const tooltipConfig = {
   content: '更多',
   delay: { show: 1000 }
 }
+
+const tooltipPlacement = computed(() => props.tooltipPlacement)
 
 const moreBtnRef = ref<HTMLElement | null>(null)
 const moreMenuRef = ref<HTMLElement | null>(null)

@@ -1,11 +1,12 @@
 <template>
   <div
     ref="cardboxBtnRef"
+    v-tooltip:[tooltipPlacement]="tooltipConfig"
     class="cardbox-button"
     :class="{ 'cardbox-button--large': size === 'large' }"
     @click.stop="toggleCardboxMenu"
   >
-    <div v-tooltip.bottom="tooltipConfig" class="icon">
+    <div class="icon">
       <Install
         theme="outline"
         :size="size === 'large' ? 18 : 16"
@@ -27,7 +28,7 @@
 
 <script setup lang="ts">
 import { Install } from '@icon-park/vue-next'
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useMenu } from '@renderer/composables/useMenu'
 import CardboxDropdownMenu from '@renderer/components/cardbox/CardboxDropdownMenu.vue'
 import { useNoteStore } from '@renderer/stores/noteStore'
@@ -38,9 +39,11 @@ const props = withDefaults(
     noteId: string
     currentCardboxId?: string
     size?: 'default' | 'large'
+    tooltipPlacement?: 'top' | 'bottom' | 'left' | 'right'
   }>(),
   {
-    size: 'default'
+    size: 'default',
+    tooltipPlacement: 'top'
   }
 )
 
@@ -51,6 +54,8 @@ const tooltipConfig = {
   content: '设置卡片盒',
   delay: { show: 1000 }
 }
+
+const tooltipPlacement = computed(() => props.tooltipPlacement)
 
 const cardboxBtnRef = ref<HTMLElement | null>(null)
 const cardboxMenuRef = ref<HTMLElement | null>(null)

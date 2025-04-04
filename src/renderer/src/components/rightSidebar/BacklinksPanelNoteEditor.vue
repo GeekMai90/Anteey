@@ -1,80 +1,75 @@
 <template>
   <div class="backlinks-panel">
-    <div class="editor-content">
-      <div class="editor-header">
-        <!-- 地址输入区域 -->
-        <div class="address-input">
-          <div
-            ref="indicatorButton"
-            class="note-indicator"
-            :class="cardTypeClass"
-            @click="(e: any) => toggleCardTypeMenu(e)"
-          ></div>
-          <CardTypeDropdownMenu
-            ref="cardTypeDropdownMenuRef"
-            :is-open="cardTypeMenuState.isOpen"
-            :position="cardTypeMenuState.position"
-            :current-card-type="currentNote?.cardType"
-            @close="closeCardTypeMenu"
-            @select="handleCardTypeSelect"
-          />
-          <input
-            v-if="currentNote"
-            ref="addressInput"
-            v-model="localAddress"
-            type="text"
-            placeholder="输入编码地址"
-            @input="handleAddressInput"
-            @keyup.enter="handleAddressEnter"
-          />
+    <template v-if="currentNote">
+      <div class="editor-content">
+        <div class="editor-header">
+          <!-- 地址输入区域 -->
+          <div class="address-input">
+            <div
+              ref="indicatorButton"
+              class="note-indicator"
+              :class="cardTypeClass"
+              @click="(e: any) => toggleCardTypeMenu(e)"
+            ></div>
+            <CardTypeDropdownMenu
+              ref="cardTypeDropdownMenuRef"
+              :is-open="cardTypeMenuState.isOpen"
+              :position="cardTypeMenuState.position"
+              :current-card-type="currentNote?.cardType"
+              @close="closeCardTypeMenu"
+              @select="handleCardTypeSelect"
+            />
+            <input
+              v-if="currentNote"
+              ref="addressInput"
+              v-model="localAddress"
+              type="text"
+              placeholder="输入编码地址"
+              @input="handleAddressInput"
+              @keyup.enter="handleAddressEnter"
+            />
+          </div>
+          <!-- 右侧工具栏 -->
+          <div class="toolbar-right">
+            <IconButton
+              v-if="currentNote"
+              :icon="Afferent"
+              tooltip="在主面板打开"
+              @click="openInMainPanel"
+            />
+          </div>
         </div>
-        <!-- 右侧工具栏 -->
-        <div class="toolbar-right">
-          <div
-            v-if="currentNote"
-            ref="cardboxBtnRef"
-            class="install-btn"
-            @click.stop="openInMainPanel"
-          >
-            <div v-tooltip.bottom="{ content: '在主面板打开', delay: { show: 1000 } }" class="icon">
-              <Afferent
-                theme="outline"
-                size="18"
-                fill="var(--color-icon-default)"
-                :stroke-width="3"
-              />
-            </div>
+        <!-- 笔记创建时间显示 -->
+        <div v-if="currentNote" class="note-timestamp">
+          {{ formatDate(currentNote.createdAt) }}
+        </div>
+        <!-- 编辑器内容 -->
+        <div class="content-container">
+          <div class="editor-area">
+            <TipTapEditor
+              ref="tiptapEditor"
+              v-model:content="currentNote.content"
+              :note-id="currentNote.id"
+              :editable="true"
+              :enableDragHandle="true"
+              @update:content="handleContentUpdate"
+            />
+          </div>
+          <!-- 添加反向链接面板 -->
+          <div class="backlinks-area">
+            <BacklinksPanel
+              :key="currentNote.id"
+              :note-id="currentNote.id"
+              :references="currentNote.references"
+              @refresh="refreshNoteData"
+            />
           </div>
         </div>
       </div>
-      <!-- 笔记创建时间显示 -->
-      <div v-if="currentNote" class="note-timestamp">
-        {{ formatDate(currentNote.createdAt) }}
-      </div>
-      <!-- 编辑器内容 -->
-      <div class="content-container">
-        <div class="editor-area">
-          <TipTapEditor
-            v-if="currentNote"
-            ref="tiptapEditor"
-            v-model:content="currentNote.content"
-            :note-id="currentNote.id"
-            :editable="true"
-            :enableDragHandle="true"
-            @update:content="handleContentUpdate"
-          />
-        </div>
-        <!-- 添加反向链接面板 -->
-        <div class="backlinks-area">
-          <BacklinksPanel
-            v-if="currentNote"
-            :note-id="currentNote.id"
-            :references="currentNote.references"
-            @refresh="refreshNoteData"
-          />
-        </div>
-      </div>
-    </div>
+    </template>
+    <template v-else>
+      <EmptyState text="选择一条笔记以查看其关联笔记" />
+    </template>
   </div>
 </template>
 <script setup lang="ts">
@@ -92,6 +87,8 @@ import { useUIStore } from '@renderer/stores/UIStore'
 import { debounce } from 'lodash-es'
 import { CardType, Note } from '@shared/types'
 import { EditorState } from '@tiptap/pm/state/dist'
+import IconButton from '@renderer/components/ui/IconButton.vue'
+import EmptyState from '@renderer/components/ui/EmptyState.vue'
 
 // === 组件状态管理 ===
 const tiptapEditor = ref<any>(null)
@@ -110,6 +107,8 @@ const initializeNote = async (noteId: string) => {
       currentNote.value = note
       // 添加到最近笔记
       noteStore.addToRecentNotes(noteId)
+      // 强制刷新关联面板
+      await nextTick()
     } else {
       message.error('笔记不存在')
     }
@@ -129,9 +128,12 @@ onMounted(() => {
 
 watch(
   () => noteStore.rightSidebarBacklinkNoteId,
-  (newId) => {
+  async (newId) => {
     if (newId && typeof newId === 'string') {
-      initializeNote(newId)
+      // 重置当前笔记数据
+      currentNote.value = null
+      // 初始化新的笔记数据
+      await initializeNote(newId)
     }
   }
 )
@@ -309,11 +311,29 @@ onMounted(() => {
 <style scoped lang="scss">
 .backlinks-panel {
   height: 100%;
-  // background-color: var(--color-bg-secondary);
   background-color: var(--color-bg-primary);
   width: 100%;
   position: relative;
-  overflow: hidden; // 防止出现双滚动条
+  overflow: hidden;
+
+  // 调整空状态样式
+  :deep(.empty-state) {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+
+    .empty-icon {
+      width: 200px; // 调整图标大小
+      height: 200px;
+    }
+
+    .empty-text {
+      font-size: 14px;
+      color: var(--color-text-secondary);
+    }
+  }
 }
 
 .editor-content {
@@ -331,7 +351,6 @@ onMounted(() => {
     display: flex;
     flex-direction: column;
     position: relative;
-    // min-height: min-content; // 确保容器可以根据内容增长
   }
 
   .content-area {
@@ -399,10 +418,10 @@ onMounted(() => {
     height: 100%;
     border: none;
     outline: none;
-    font-size: 1.4rem;
+    font-size: 1rem;
     font-weight: bold;
     background-color: transparent;
-    line-height: 40px; // 设置行高，通常设置为 1.2 到 1.5 之间的值
+    line-height: 1; // 设置行高，通常设置为 1.2 到 1.5 之间的值
     padding: 0;
     margin: 0;
     overflow: hidden;
@@ -433,7 +452,7 @@ onMounted(() => {
   top: 50%;
   transform: translateY(-50%); // 垂直居中
   width: 4px;
-  height: 15px;
+  height: 14px;
   border-radius: 2px;
   display: block;
   flex-shrink: 0;
@@ -577,7 +596,7 @@ onMounted(() => {
 .note-timestamp {
   font-size: 12px;
   color: var(--color-text-tertiary);
-  margin-bottom: 20px;
+  margin-bottom: 10px;
   margin-left: 23px;
   user-select: none;
 }
@@ -585,70 +604,7 @@ onMounted(() => {
 .toolbar-right {
   display: flex;
   position: relative;
-}
-
-.install-btn,
-.more-btn {
-  position: relative;
-  display: flex;
-  align-items: center;
-  border: none;
-  background: none;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  border-radius: 6px;
-  padding: 4px 4px;
-  margin: 2px;
-
-  .icon {
-    background: none;
-    border: none;
-    cursor: pointer;
-    width: 24px;
-    height: 24px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s ease;
-    padding: 0;
-
-    &:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
-
-    :deep(.i-icon) {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 100%;
-      height: 100%;
-    }
-
-    :deep(svg) {
-      width: 18px;
-      height: 18px;
-    }
-  }
-
-  .name {
-    flex-grow: 0;
-    text-align: left;
-    color: var(---color-text-primary);
-    font-size: 13px;
-    font-weight: 400;
-    margin-left: 6px;
-    white-space: nowrap;
-    writing-mode: horizontal-tb;
-  }
-
-  &:hover {
-    background-color: var(--color-hover-button);
-  }
-
-  &:active {
-    background-color: rgba(0, 0, 0, 0.1);
-  }
+  margin-right: 10px;
 }
 
 .dropdown-container {

@@ -1656,6 +1656,23 @@ export const useNoteStore = defineStore(
       }
     }
 
+    // 1. 添加新的状态
+    const collapsedNoteIds = ref<string[]>([])
+
+    // 2. 添加管理折叠状态的方法
+    const toggleNoteCollapse = (noteId: string) => {
+      const index = collapsedNoteIds.value.indexOf(noteId)
+      if (index === -1) {
+        collapsedNoteIds.value.push(noteId)
+      } else {
+        collapsedNoteIds.value.splice(index, 1)
+      }
+    }
+
+    const isNoteCollapsed = (noteId: string) => {
+      return collapsedNoteIds.value.includes(noteId)
+    }
+
     // 返回所有状态和方法
     return {
       // 状态
@@ -1856,7 +1873,16 @@ export const useNoteStore = defineStore(
       updateIndexOrder,
       batchAddToIndex,
       batchRemoveFromIndex,
-      getIndexedNotesByLetter
+      getIndexedNotesByLetter,
+
+      // 1. 添加新的状态
+      collapsedNoteIds,
+
+      // 2. 添加管理折叠状态的方法
+      toggleNoteCollapse,
+
+      // 3. 在返回对象中添加这些状态和方法
+      isNoteCollapsed
     }
   },
   {
@@ -1888,6 +1914,10 @@ export const useNoteStore = defineStore(
       {
         key: 'note-index',
         pick: ['currentIndexLetter']
+      },
+      {
+        key: 'note-collapse',
+        pick: ['collapsedNoteIds']
       }
     ]
   }

@@ -44,9 +44,9 @@ import {
   Components,
   Box,
   Robot,
-  Log,
   MailPackage,
-  ListAlphabet
+  ListAlphabet,
+  CopyLink
 } from '@icon-park/vue-next'
 import MultiNotes from '@renderer/components/rightSidebar/MultiNotes.vue'
 import BacklinksPanelNoteEditor from '@renderer/components/rightSidebar/BacklinksPanelNoteEditor.vue'
@@ -82,7 +82,7 @@ const tabs = [
   {
     key: 'backlink',
     label: '回链笔记',
-    icon: Log,
+    icon: CopyLink,
     component: BacklinksPanelNoteEditor
   },
   {

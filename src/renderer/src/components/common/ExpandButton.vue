@@ -2,9 +2,10 @@
   <div
     class="expand-button"
     :class="{ 'expand-button--large': size === 'large' }"
+    v-tooltip:[tooltipPlacement]="tooltipConfig"
     @click.stop="handleExpand"
   >
-    <div v-tooltip.bottom="tooltipConfig" class="icon">
+    <div class="icon">
       <ExpandTextInput
         theme="outline"
         :size="size === 'large' ? 18 : 16"
@@ -19,18 +20,23 @@
 import { ExpandTextInput } from '@icon-park/vue-next'
 import { useRouter } from 'vue-router'
 import { useNoteStore } from '@renderer/stores/noteStore'
+import { computed } from 'vue'
 
 const props = withDefaults(
   defineProps<{
     noteId: string
     size?: 'default' | 'large'
+    tooltipPlacement?: 'top' | 'bottom' | 'left' | 'right'
   }>(),
   {
-    size: 'default'
+    size: 'default',
+    tooltipPlacement: 'top'
   }
 )
 
 const noteStore = useNoteStore()
+const tooltipPlacement = computed(() => props.tooltipPlacement)
+
 // tooltip配置
 const tooltipConfig = {
   content: '展开编辑',
