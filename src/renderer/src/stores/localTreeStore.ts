@@ -12,29 +12,18 @@ export const useLocalTreeStore = defineStore('localTree', () => {
     return valid
   }
 
-  const getParentAddress = (address: string): string | null => {
-    if (!isValidAddress(address)) {
-      // console.log(`地址无效: ${address}`)
-      return null
-    }
-    const parts = address.split('-')
-    if (parts.length <= 1) {
-      // console.log(`地址没有父级: ${address}`)
-      return null
-    }
-    const parentAddr = parts.slice(0, -1).join('-')
-    // console.log(`${address} 的父地址是: ${parentAddr}`)
-    return parentAddr
-  }
-
   const fetchLocalTree = async (noteId: string) => {
     try {
       // console.group('开始获取树形数据')
+      // console.log('请求笔记ID:', noteId)
+
+      // 获取数据
       const data = await window.electronAPI.knowledgeTree.getLocalTree(noteId)
+      // console.log('后端返回的原始数据:', data)
 
       if (data) {
         if (!data.current?.id || !data.current?.address) {
-          // console.error('当前节点数据无效:', data.current)
+          console.error('当前节点数据无效:', data.current)
           return
         }
 
@@ -42,38 +31,14 @@ export const useLocalTreeStore = defineStore('localTree', () => {
         data.siblings = data.siblings || { all: [], adjacent: [] }
         data.children = data.children || []
 
-        const currentAddress = data.current.address
-        // console.log('当前节点地址:', currentAddress)
-
-        const parentAddress = getParentAddress(currentAddress)
-        // console.log('计算得到的父节点地址:', parentAddress)
-
-        if (parentAddress) {
-          if (data.parent?.id && data.parent?.address === parentAddress) {
-            // console.log('使用后端返回的父节点:', data.parent)
-          } else {
-            try {
-              const result = await window.electronAPI.note.getNoteByAddress(parentAddress)
-              if (result?.id) {
-                // console.log('从后端获取到的父节点:', result)
-                data.parent = result
-              } else {
-                // console.log('未找到父节点:', parentAddress)
-                data.parent = null
-              }
-            } catch (error) {
-              console.error('获取父节点失败:', error)
-              data.parent = null
-            }
-          }
-        } else {
-          data.parent = null
-        }
+        // 直接使用后端返回的父节点数据，不进行覆盖
+        // console.log('后端返回的父节点数据:', data.parent)
 
         // 修改 siblings 的过滤逻辑
         data.siblings.all = data.siblings.all.filter((note) => note?.id && note?.address)
         data.siblings.adjacent = data.siblings.adjacent.filter((note) => note?.id && note?.address)
 
+        // 处理子节点
         // console.log('开始处理子节点')
         const validChildren = data.children.filter((note) => {
           if (!note?.id || !note?.address) return false
@@ -92,18 +57,22 @@ export const useLocalTreeStore = defineStore('localTree', () => {
         treeData.value = null
       }
 
-      console.groupEnd()
+      // console.groupEnd()
     } catch (error) {
       console.error('获取树形数据失败:', error)
       treeData.value = null
-      console.groupEnd()
+      // console.groupEnd()
     }
   }
 
   const fetchLocalTreeWithRefs = async (noteId: string) => {
     try {
       // console.group('开始获取树形数据与引用')
+      // console.log('请求笔记ID:', noteId)
+
+      // 获取数据
       const data = await window.electronAPI.knowledgeTree.getLocalTreeWithReferences(noteId)
+      // console.log('后端返回的原始数据:', data)
 
       if (data) {
         if (!data.current?.id || !data.current?.address) {
@@ -111,43 +80,19 @@ export const useLocalTreeStore = defineStore('localTree', () => {
           return
         }
 
-        // 初始化 siblings 结构
+        // 初始化结构
         data.siblings = data.siblings || { all: [], adjacent: [] }
         data.children = data.children || []
         data.references = data.references || { incoming: [], outgoing: [] }
 
-        const currentAddress = data.current.address
-        // console.log('当前节点地址:', currentAddress)
-
-        const parentAddress = getParentAddress(currentAddress)
-        // console.log('计算得到的父节点地址:', parentAddress)
-
-        if (parentAddress) {
-          if (data.parent?.id && data.parent?.address === parentAddress) {
-            // console.log('使用后端返回的父节点:', data.parent)
-          } else {
-            try {
-              const result = await window.electronAPI.note.getNoteByAddress(parentAddress)
-              if (result?.id) {
-                // console.log('从后端获取到的父节点:', result)
-                data.parent = result
-              } else {
-                // console.log('未找到父节点:', parentAddress)
-                data.parent = null
-              }
-            } catch (error) {
-              console.error('获取父节点失败:', error)
-              data.parent = null
-            }
-          }
-        } else {
-          data.parent = null
-        }
+        // 直接使用后端返回的父节点数据，不进行覆盖
+        // console.log('后端返回的父节点数据:', data.parent)
 
         // 修改 siblings 的过滤逻辑
         data.siblings.all = data.siblings.all.filter((note) => note?.id && note?.address)
         data.siblings.adjacent = data.siblings.adjacent.filter((note) => note?.id && note?.address)
 
+        // 处理子节点
         // console.log('开始处理子节点')
         const validChildren = data.children.filter((note) => {
           if (!note?.id || !note?.address) return false
@@ -166,11 +111,11 @@ export const useLocalTreeStore = defineStore('localTree', () => {
         treeDataWithRefs.value = null
       }
 
-      console.groupEnd()
+      // console.groupEnd()
     } catch (error) {
       console.error('获取树形数据与引用失败:', error)
       treeDataWithRefs.value = null
-      console.groupEnd()
+      // console.groupEnd()
     }
   }
 

@@ -1,6 +1,6 @@
-import { Note } from '@shared/types'
+import { LocalTreeData, Note } from '@shared/types'
 import { db } from '../../db/config'
-import { KnowledgeTreeNode } from '@shared/types'
+import { KnowledgeTreeNode, AddressLevel } from '@shared/types'
 
 /**
  * 本地树结果的数据结构
@@ -61,14 +61,65 @@ function parseAddress(address: string) {
  * - third: 三级节点，如 1101
  * - branch: 分支节点，如 1101-1
  */
-function getAddressLevel(address: string): 'top' | 'second' | 'third' | 'branch' {
-  const { base, branches } = parseAddress(address)
+function getAddressLevel(address: string): AddressLevel | null {
+  // 1. 基础验证
+  if (!address || typeof address !== 'string') {
+    // console.warn('无效地址: 地址为空或非字符串类型')
+    return null
+  }
 
-  if (branches.length > 0) return 'branch'
+  address = address.trim()
 
-  if (base.endsWith('000')) return 'top'
-  if (base.endsWith('00')) return 'second'
-  return 'third'
+  // 3. 基础层级验证（4位数字）
+  if (/^\d{4}$/.test(address)) {
+    if (parseInt(address) === 0) {
+      // console.warn(`无效地址: 地址不能全为0，当前地址: ${address}`)
+      return null
+    }
+
+    if (address.endsWith('000')) {
+      if (address[0] === '0') {
+        // console.warn(`无效地址: 顶层地址第一位不能为0，当前地址: ${address}`)
+        return null
+      }
+      return 'top'
+    }
+
+    if (address.endsWith('00')) {
+      if (address.slice(0, 2) === '00') {
+        // console.warn(`无效地址: 二级地址前两位不能为0，当前地址: ${address}`)
+        return null
+      }
+      return 'second'
+    }
+
+    return 'third'
+  }
+
+  // 4. 分支层级验证
+  if (address.includes('-')) {
+    const pattern = /^\d{4}(-([1-9]\d*[a-z]?|\d*[a-z]))+$/
+    if (!pattern.test(address)) {
+      // console.warn(`无效地址: 分支地址格式错误`)
+      return null
+    }
+
+    const baseAddress = address.split('-')[0]
+    if (parseInt(baseAddress) === 0) {
+      // console.warn(`无效地址: 分支地址的基础地址不能全为0`)
+      return null
+    }
+
+    const branchLevel = address.split('-').length - 1
+    if (branchLevel > 10) {
+      // console.warn(`无效地址: 分支层级超出限制`)
+      return null
+    }
+
+    return `branch-${branchLevel}` as AddressLevel
+  }
+
+  return null
 }
 
 /**
@@ -94,13 +145,22 @@ function getAddressLevel(address: string): 'top' | 'second' | 'third' | 'branch'
  */
 export async function getLocalTreeNotes(noteId: string): Promise<LocalTreeResult> {
   try {
+    // console.group('获取本地树数据')
     const currentNote = await findNoteById(noteId)
     if (!currentNote) throw new Error('笔记不存在')
+
     // console.log('当前笔记:', currentNote)
+    // console.log('当前笔记地址:', currentNote.address)
 
-    const allNotes = await db('notes').where('isDeleted', false).select('*')
-    // console.log('所有笔记:', allNotes)
+    // 1. 先获取当前节点的层级
+    const level = getAddressLevel(currentNote.address)
+    // console.log('当前节点层级:', level)
 
+    // 2. 获取父节点地址
+    const parentAddress = getParentAddress(currentNote.address)
+    // console.log('计算得到的父节点地址:', parentAddress)
+
+    // 3. 初始化结果对象
     const result: LocalTreeResult = {
       current: currentNote,
       parent: null,
@@ -111,25 +171,20 @@ export async function getLocalTreeNotes(noteId: string): Promise<LocalTreeResult
       children: []
     }
 
-    const { base: currentBase } = parseAddress(currentNote.address)
-    const level = getAddressLevel(currentNote.address)
-    // console.log('当前笔记层级:', level)
-    // console.log('当前笔记基础地址:', currentBase)
+    // 4. 获取父节点
+    if (parentAddress) {
+      const parent = await db('notes')
+        .where('address', parentAddress)
+        .where('isDeleted', false)
+        .where('cardType', 'Maincard')
+        .first()
 
-    // 1. 处理父节点
-    if (level === 'top') {
-      result.parent = null
-    } else if (level === 'second') {
-      const parentBase = `${Math.floor(parseInt(currentBase) / 1000)}000`
-      result.parent = allNotes.find((n) => n.address === parentBase) || null
-    } else if (level === 'third') {
-      const parentBase = `${currentBase.slice(0, 2)}00`
-      result.parent = allNotes.find((n) => n.address === parentBase) || null
-    } else {
-      // 分支节点
-      const parentAddress = currentNote.address.split('-').slice(0, -1).join('-')
-      result.parent = allNotes.find((n) => n.address === parentAddress) || null
+      // console.log('从数据库获取到的父节点:', parent)
+      result.parent = parent || null
     }
+
+    const allNotes = await db('notes').where('isDeleted', false).select('*')
+    // console.log('所有笔记:', allNotes)
 
     // 2. 处理所有兄弟节点
     result.siblings.all = allNotes.filter((note) => {
@@ -156,10 +211,11 @@ export async function getLocalTreeNotes(noteId: string): Promise<LocalTreeResult
       } else if (level === 'second') {
         return (
           noteBase.endsWith('00') &&
-          Math.floor(parseInt(noteBase) / 1000) === Math.floor(parseInt(currentBase) / 1000)
+          Math.floor(parseInt(noteBase) / 1000) ===
+            Math.floor(parseInt(currentNote.address.slice(0, 4)) / 1000)
         )
       } else if (level === 'third') {
-        return noteBase.slice(0, 2) === currentBase.slice(0, 2) && !noteBase.endsWith('00')
+        return noteBase.slice(0, 2) === currentNote.address.slice(0, 2) && !noteBase.endsWith('00')
       } else {
         // 分支节点：同一父节点下的同层级节点
         const currentParentAddress = currentNote.address.split('-').slice(0, -1).join('-')
@@ -260,14 +316,14 @@ export async function getLocalTreeNotes(noteId: string): Promise<LocalTreeResult
       if (level === 'top') {
         // 顶级节点(1000)的子节点是对应的二级节点(1100,1200等)
         return (
-          note.address.startsWith(currentBase[0]) &&
+          note.address.startsWith(currentNote.address[0]) &&
           note.address.endsWith('00') &&
-          note.address !== currentBase
+          note.address !== currentNote.address
         )
       } else if (level === 'second') {
         // 二级节点(1200)的子节点是对应的三级节点(1201,1202等)
         return (
-          note.address.startsWith(currentBase.slice(0, 2)) &&
+          note.address.startsWith(currentNote.address.slice(0, 2)) &&
           !note.address.endsWith('00') &&
           !note.address.includes('-') &&
           note.address.length === 4
@@ -281,9 +337,11 @@ export async function getLocalTreeNotes(noteId: string): Promise<LocalTreeResult
       }
     })
 
+    // console.groupEnd()
     return result
   } catch (error) {
     console.error('获取本地树相关笔记失败:', error)
+    // console.groupEnd()
     throw error
   }
 }
@@ -389,47 +447,61 @@ export async function getLocalTreeWithReferences(noteId: string): Promise<LocalT
  */
 export async function getChildNodes(parentAddress: string): Promise<KnowledgeTreeNode[]> {
   try {
-    console.log('开始获取子节点, 父地址:', parentAddress)
     const level = getAddressLevel(parentAddress)
-    let query = db('notes')
-      .select('*')
-      .where('isDeleted', false)
-      .where('cardType', 'Maincard')
-      .orderBy('address', 'asc')
+    if (!level) return []
+
+    let pattern: string
 
     switch (level) {
-      case 'top': // 例如：1000
-        query = query
-          .where('address', 'like', `${parentAddress[0]}%00`)
-          .whereRaw('LENGTH(address) = 4')
-          .whereNot('address', parentAddress)
-          .where('address', 'not like', '%000')
+      case 'top':
+        pattern = `${parentAddress[0]}%00`
         break
-
-      case 'second': // 例如：1200
-        query = query
-          .where('address', 'like', `${parentAddress.slice(0, 2)}__`)
-          .whereRaw('LENGTH(address) = 4')
-          .whereNot('address', parentAddress)
-          .whereNot('address', 'like', '%00')
-          .whereRaw('address NOT LIKE ?', [`%-%`])
+      case 'second':
+        pattern = `${parentAddress.slice(0, 2)}__`
         break
-
-      case 'third': // 例如：1201
-        query = query
-          .where('address', 'like', `${parentAddress}-%`)
-          .whereRaw('address NOT LIKE ?', [`${parentAddress}-%-%`])
+      case 'third':
+        pattern = `${parentAddress}-%`
         break
-
-      case 'branch':
-        query = query
-          .where('address', 'like', `${parentAddress}-%`)
-          .whereRaw('address NOT LIKE ?', [`${parentAddress}-%-%`])
-        break
+      default:
+        if (level.startsWith('branch-')) {
+          pattern = `${parentAddress}-%`
+        } else {
+          throw new Error(`Invalid address level: ${level}`)
+        }
     }
 
-    const notes = await query
-    console.log('查询到的笔记:', notes)
+    const notes = await db('notes')
+      .select('*')
+      .where('address', 'like', pattern)
+      .whereNot('address', parentAddress)
+      .where('isDeleted', false)
+      .where('cardType', 'Maincard')
+      .whereRaw('(address NOT LIKE ? OR address = ?)', [
+        `${parentAddress}-%-%`,
+        `${parentAddress}-1`
+      ])
+
+    // 对笔记进行排序（与知识树保持一致）
+    notes.sort((a, b) => {
+      const aLast = a.address.split('-').pop() || ''
+      const bLast = b.address.split('-').pop() || ''
+
+      const aMatch = aLast.match(/^(\d+)([a-z]*)$/)
+      const bMatch = bLast.match(/^(\d+)([a-z]*)$/)
+
+      if (!aMatch || !bMatch) return 0
+
+      const aNum = parseInt(aMatch[1])
+      const bNum = parseInt(bMatch[1])
+
+      if (aNum !== bNum) return aNum - bNum
+
+      const aAlpha = aMatch[2]
+      const bAlpha = bMatch[2]
+      if (!aAlpha && bAlpha) return -1
+      if (aAlpha && !bAlpha) return 1
+      return aAlpha.localeCompare(bAlpha)
+    })
 
     const nodes = await Promise.all(
       notes.map(async (note) => {
@@ -442,7 +514,6 @@ export async function getChildNodes(parentAddress: string): Promise<KnowledgeTre
       })
     )
 
-    console.log('最终返回的子节点数组:', nodes)
     return nodes
   } catch (error) {
     console.error('获取子节点失败:', error)
@@ -461,6 +532,8 @@ export async function getChildNodes(parentAddress: string): Promise<KnowledgeTre
 export async function getChildCount(parentAddress: string): Promise<number> {
   try {
     const level = getAddressLevel(parentAddress)
+    if (!level) return 0
+
     let query = db('notes')
       .where('isDeleted', false)
       .where('cardType', 'Maincard')
@@ -488,10 +561,12 @@ export async function getChildCount(parentAddress: string): Promise<number> {
           .whereRaw('address NOT LIKE ?', [`${parentAddress}-%-%`])
         break
 
-      case 'branch':
-        query = query
-          .where('address', 'like', `${parentAddress}-%`)
-          .whereRaw('address NOT LIKE ?', [`${parentAddress}-%-%`])
+      default:
+        if (level.startsWith('branch-')) {
+          query = query
+            .where('address', 'like', `${parentAddress}-%`)
+            .whereRaw('address NOT LIKE ?', [`${parentAddress}-%-%`])
+        }
         break
     }
 
@@ -547,17 +622,215 @@ function convertToTreeNode(note: Note, level: number): KnowledgeTreeNode {
  * - third -> 3
  * - branch -> 4
  */
-function getNextLevel(level: 'top' | 'second' | 'third' | 'branch'): number {
-  switch (level) {
-    case 'top':
-      return 1
-    case 'second':
-      return 2
-    case 'third':
-      return 3
-    case 'branch':
-      return 4
-    default:
-      return 0
+function getNextLevel(level: AddressLevel): number {
+  if (level === 'top') return 1
+  if (level === 'second') return 2
+  if (level === 'third') return 3
+
+  // 修改分支层级的处理
+  if (level.startsWith('branch-')) {
+    const currentLevel = parseInt(level.split('-')[1])
+    return currentLevel + 3 // 基础层级(3) + 分支层级
+  }
+
+  return 0
+}
+
+/**
+ * 使用与知识树服务相同的 getParentAddress 函数
+ * @param {string} address - 笔记地址
+ * @returns {string | null} 返回父节点地址，如果无父节点则返回 null
+ */
+function getParentAddress(address: string): string | null {
+  const level = getAddressLevel(address)
+  // console.log('获取父地址 - 当前地址:', address, '层级:', level)
+
+  if (!level) return null
+  if (level === 'top') return null
+  if (level === 'second') {
+    // 对于二级节点（如1200），返回其父节点地址（1000）
+    return `${address[0]}000`
+  }
+  if (level === 'third') return `${address.slice(0, 2)}00`
+
+  if (level.startsWith('branch-')) {
+    const parts = address.split('-')
+    return parts.slice(0, -1).join('-')
+  }
+
+  return null
+}
+
+/**
+ * 添加获取兄弟节点的函数
+ * @param {Note} currentNote - 当前笔记
+ * @returns {Promise<{ all: Note[], adjacent: Note[] }>} 返回兄弟节点数组和相邻节点数组
+ */
+async function getSiblingNodes(currentNote: Note): Promise<{
+  all: Note[]
+  adjacent: Note[]
+}> {
+  try {
+    const level = getAddressLevel(currentNote.address)
+    if (!level) return { all: [], adjacent: [] }
+
+    let query = db('notes')
+      .where('isDeleted', false)
+      .where('cardType', 'Maincard')
+      .whereNot('id', currentNote.id)
+
+    // 根据不同层级设置查询条件
+    switch (level) {
+      case 'top':
+        query = query.where('address', 'like', '%000')
+        break
+      case 'second': {
+        const parentBase = `${currentNote.address[0]}000`
+        query = query
+          .where('address', 'like', `${currentNote.address[0]}%00`)
+          .whereNot('address', parentBase)
+        break
+      }
+      case 'third': {
+        const base = currentNote.address.slice(0, 2)
+        query = query
+          .where('address', 'like', `${base}__`)
+          .whereNot('address', 'like', '%00')
+          .whereNot('address', 'like', '%-%')
+        break
+      }
+      default:
+        if (level.startsWith('branch-')) {
+          const parentAddress = currentNote.address.split('-').slice(0, -1).join('-')
+          query = query
+            .where('address', 'like', `${parentAddress}-%`)
+            .whereRaw('address NOT LIKE ?', [`${parentAddress}-%-%`])
+        }
+        break
+    }
+
+    const siblings = await query
+
+    // 排序兄弟节点
+    siblings.sort((a, b) => {
+      const aLast = a.address.split('-').pop() || ''
+      const bLast = b.address.split('-').pop() || ''
+
+      const aMatch = aLast.match(/^(\d+)([a-z]*)$/)
+      const bMatch = bLast.match(/^(\d+)([a-z]*)$/)
+
+      if (!aMatch || !bMatch) return 0
+
+      const aNum = parseInt(aMatch[1])
+      const bNum = parseInt(bMatch[1])
+
+      if (aNum !== bNum) return aNum - bNum
+
+      const aAlpha = aMatch[2]
+      const bAlpha = bMatch[2]
+      if (!aAlpha && bAlpha) return -1
+      if (aAlpha && !bAlpha) return 1
+      return aAlpha.localeCompare(bAlpha)
+    })
+
+    // 获取相邻节点
+    const currentIndex = siblings.findIndex((s) => s.address.localeCompare(currentNote.address) > 0)
+    const adjacent = []
+
+    if (currentIndex > 0) {
+      adjacent.push(siblings[currentIndex - 1]) // 前一个
+    }
+    if (currentIndex !== -1 && currentIndex < siblings.length) {
+      adjacent.push(siblings[currentIndex]) // 后一个
+    }
+
+    return {
+      all: siblings,
+      adjacent
+    }
+  } catch (error) {
+    console.error('获取兄弟节点失败:', error)
+    return { all: [], adjacent: [] }
+  }
+}
+
+/**
+ * 修改获取本地树数据的方法
+ * @param {string} noteId - 笔记 ID
+ * @returns {Promise<LocalTreeData>} 返回本地树数据
+ */
+export async function getLocalTree(noteId: string): Promise<LocalTreeData> {
+  try {
+    // console.group('开始获取本地树数据')
+    // console.log('请求笔记ID:', noteId)
+
+    // 1. 获取当前笔记
+    const currentNote = await db('notes')
+      .where('id', noteId)
+      .where('isDeleted', false)
+      .where('cardType', 'Maincard') // 添加这个条件
+      .first()
+
+    if (!currentNote) {
+      throw new Error('笔记不存在')
+    }
+
+    // console.log('当前笔记:', currentNote)
+    // console.log('当前笔记地址:', currentNote.address)
+
+    // 2. 获取父节点
+    const level = getAddressLevel(currentNote.address)
+    // console.log('当前节点层级:', level)
+
+    let parentNote = null
+    if (level) {
+      // 确保有有效的层级
+      const parentAddress = getParentAddress(currentNote.address)
+      // console.log('计算得到的父节点地址:', parentAddress)
+
+      if (parentAddress) {
+        parentNote = await db('notes')
+          .where('address', parentAddress)
+          .where('isDeleted', false)
+          .where('cardType', 'Maincard')
+          .first()
+        // console.log('获取到的父节点:', parentNote)
+      }
+    }
+
+    // 3. 获取子节点
+    const childrenNodes = await getChildNodes(currentNote.address)
+    // console.log('获取到的子节点数组:', childrenNodes)
+
+    const children = await Promise.all(
+      childrenNodes.map(async (node) => {
+        const note = await db('notes')
+          .where('id', node.id)
+          .where('isDeleted', false)
+          .where('cardType', 'Maincard')
+          .first()
+        return note as Note
+      })
+    )
+    // console.log('转换后的子节点:', children)
+
+    // 4. 获取兄弟节点
+    const siblings = await getSiblingNodes(currentNote)
+    // console.log('获取到的兄弟节点:', siblings)
+
+    const result = {
+      current: currentNote,
+      parent: parentNote,
+      children: children.filter((note): note is Note => note !== null),
+      siblings
+    }
+
+    // console.log('最终返回的数据:', result)
+    // console.groupEnd()
+    return result
+  } catch (error) {
+    console.error('获取本地树数据失败:', error)
+    // console.groupEnd()
+    throw error
   }
 }

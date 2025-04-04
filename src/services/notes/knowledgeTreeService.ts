@@ -68,7 +68,7 @@ function getNextLevel(level: AddressLevel): number {
 //   }
 //   throw new Error(`Invalid address format: ${address}`)
 // }
-function getAddressLevel(address: string): AddressLevel | null {
+export function getAddressLevel(address: string): AddressLevel | null {
   // 1. 基础验证
   if (!address || typeof address !== 'string') {
     console.warn('无效地址: 地址为空或非字符串类型')
@@ -150,7 +150,7 @@ function getAddressLevel(address: string): AddressLevel | null {
 }
 
 // 获取父地址
-function getParentAddress(address: string): string | null {
+export function getParentAddress(address: string): string | null {
   const level = getAddressLevel(address)
 
   if (level === 'top') return null

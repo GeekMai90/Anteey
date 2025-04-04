@@ -112,7 +112,6 @@ const cardTypeClass = computed(() => {
     .note-title {
       margin: 0;
       font-size: 12px;
-      font-weight: bold;
       color: var(--color-sidebar-text);
       white-space: nowrap;
       overflow: hidden;

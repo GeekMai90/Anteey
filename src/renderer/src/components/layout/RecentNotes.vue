@@ -15,7 +15,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, watch } from 'vue'
+import { computed, onMounted, watch } from 'vue'
 import { useNoteStore } from '@renderer/stores/noteStore'
 import { useRouter } from 'vue-router'
 import StarredNotesCard from '@renderer/components/layout/StarredNotesCard.vue'
@@ -47,6 +47,10 @@ const filteredRecentNotes = computed(() => {
 const openNote = (note: Note) => {
   router.push({ name: 'NoteExpandEditor', params: { id: note.id.toString() } })
 }
+
+onMounted(async () => {
+  await noteStore.getRecentNotes(10)
+})
 </script>
 
 <style scoped lang="scss">

@@ -272,8 +272,45 @@ export async function searchNotes(params: SearchParams): Promise<Array<SearchRes
         content = typeof note.content === 'string' ? JSON.parse(note.content) : content
         const textContent = extractTextContent(content)
 
-        // 根据搜索模式处理匹配
-        if (mode === 'address') {
+        // 检查地址匹配
+        const lowerAddress = note.address.toLowerCase()
+        const addressMatches = searchTerms.every((term) => lowerAddress.includes(term))
+
+        if (mode === 'all') {
+          // 在全文搜索模式下，同时检查地址、标题和内容
+          if (addressMatches) {
+            matchingBlocks.push({
+              content: note.address
+            })
+          }
+
+          // 检查标题
+          if (metadata.title) {
+            const lowerTitle = metadata.title.toLowerCase()
+            const titleMatches = searchTerms.every((term) => lowerTitle.includes(term))
+            if (titleMatches) {
+              matchingBlocks.push({
+                content: metadata.title
+              })
+            }
+          }
+
+          // 检查内容
+          const lowerTextContent = textContent.toLowerCase()
+          const contentMatches = searchTerms.every((term) => lowerTextContent.includes(term))
+          if (contentMatches) {
+            const lines = textContent.split('\n')
+            const matches = lines
+              .filter((line) => {
+                const lowerLine = line.toLowerCase()
+                return searchTerms.some((term) => lowerLine.includes(term))
+              })
+              .map((line) => ({
+                content: line
+              }))
+            matchingBlocks.push(...matches)
+          }
+        } else if (mode === 'address') {
           console.log('后端→ 地址搜索模式, 笔记地址:', note.address)
           // 只检查地址
           const lowerAddress = note.address.toLowerCase()
@@ -292,25 +329,6 @@ export async function searchNotes(params: SearchParams): Promise<Array<SearchRes
             matchingBlocks.push({
               content: metadata.title
             })
-          }
-        } else {
-          console.log('后端→ 全文搜索模式')
-          // 全文搜索逻辑保持不变
-          const lowerTextContent = textContent.toLowerCase()
-          const allTermsFound = searchTerms.every((term) => lowerTextContent.includes(term))
-
-          if (allTermsFound) {
-            const lines = textContent.split('\n')
-            const matches = lines
-              .filter((line) => {
-                const lowerLine = line.toLowerCase()
-                return searchTerms.some((term) => lowerLine.includes(term))
-              })
-              .map((line) => ({
-                content: line
-              }))
-
-            matchingBlocks.push(...matches)
           }
         }
 
