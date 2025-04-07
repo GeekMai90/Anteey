@@ -31,7 +31,7 @@
         :fill="flashcardColor"
         :strokeWidth="3"
       />
-      {{ formatDate(note.updatedAt) }}
+      {{ formatDate(note.updatedAt, 'date-only') }}
     </div>
   </div>
 </template>
@@ -122,6 +122,12 @@ const handleDragStart = (event: DragEvent) => {
     cursor: grabbing;
   }
 
+  &:hover {
+    border: 1px solid rgba(var(--color-primary-rgb), 0.4);
+    box-shadow: 0 0 20px 1px rgba(var(--color-primary-rgb), 0.1);
+    transform: translateY(-2px);
+  }
+
   .note-header {
     display: flex;
     align-items: center;
@@ -132,7 +138,7 @@ const handleDragStart = (event: DragEvent) => {
     .note-indicator {
       position: absolute;
       left: 15px;
-      top: 15px;
+      top: 18px;
       width: 4px;
       height: 12px;
       border-radius: 2px;
@@ -153,7 +159,7 @@ const handleDragStart = (event: DragEvent) => {
 
     .note-title {
       margin: 0;
-      font-size: 1.1rem;
+      font-size: 1rem;
       font-weight: bold;
       color: var(--color-text-primary);
       overflow: hidden;
@@ -182,7 +188,7 @@ const handleDragStart = (event: DragEvent) => {
 
   .note-timestamp {
     padding: 6px 15px 0px 15px;
-    font-size: 0.8em;
+    font-size: 0.7em;
     align-self: flex-end;
     color: var(--color-text-tertiary);
     display: flex;

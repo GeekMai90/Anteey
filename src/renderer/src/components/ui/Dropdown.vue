@@ -67,6 +67,7 @@ interface Props {
   placeholder?: string // 未选择时显示的文本
   emptyText?: string // 菜单项为空时显示的文本
   defaultIcon?: Component // 默认图标
+  isActive?: boolean // 新增：控制按钮是否处于激活状态
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -84,7 +85,8 @@ const props = withDefaults(defineProps<Props>(), {
   showArrow: false,
   placeholder: '',
   emptyText: '暂无选项',
-  defaultIcon: undefined
+  defaultIcon: undefined,
+  isActive: false // 新增：默认为非激活状态
 })
 
 const emit = defineEmits<{
@@ -290,6 +292,10 @@ const handleSwitchChange = (item: SwitchableDropdownItem, checked: boolean) => {
       :height="height"
       :iconOnly="iconOnly"
       :dropdown="showArrow"
+      :class="{
+        'icon-with-arrow': iconOnly && showArrow,
+        'is-active': isActive
+      }"
       @click="handleButtonClick"
       @mouseenter="handleTriggerMouseEnter"
       @mouseleave="handleTriggerMouseLeave"
@@ -366,6 +372,35 @@ const handleSwitchChange = (item: SwitchableDropdownItem, checked: boolean) => {
 .ant-dropdown-wrapper {
   display: inline-block;
   position: relative;
+
+  :deep(.is-active) {
+    background: rgba(var(--color-primary-rgb), 0.1);
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+
+    .button-icon {
+      color: var(--color-primary);
+    }
+
+    &:hover {
+      background: rgba(var(--color-primary-rgb), 0.15);
+      border-color: var(--color-primary);
+      color: var(--color-primary);
+    }
+  }
+
+  :deep(.icon-with-arrow) {
+    padding-right: 10px !important;
+    width: 50px !important;
+
+    .button-icon {
+      margin-right: 4px;
+    }
+
+    .dropdown-arrow {
+      margin-left: 2px;
+    }
+  }
 }
 
 .ant-dropdown {
