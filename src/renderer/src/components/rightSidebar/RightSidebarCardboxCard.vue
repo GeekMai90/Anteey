@@ -138,7 +138,7 @@ const handleDragStart = (event: DragEvent) => {
     .note-indicator {
       position: absolute;
       left: 15px;
-      top: 18px;
+      top: 19px;
       width: 4px;
       height: 12px;
       border-radius: 2px;

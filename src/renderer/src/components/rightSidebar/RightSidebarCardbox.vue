@@ -37,7 +37,7 @@
           type="default"
           size="medium"
           icon-only
-          :icon="FolderOpen"
+          :icon="Box"
           :placeholder="'按卡片盒筛选'"
           :is-active="filterState.cardBoxId !== undefined"
           @select="handleCardboxSelect"
@@ -124,7 +124,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, nextTick, reactive } from 'vue'
 import { useNoteStore } from '@renderer/stores/noteStore'
-import { Tag, FolderOpen, Filter, SortTwo, CloseOne } from '@icon-park/vue-next'
+import { Tag, Filter, SortTwo, CloseOne, Box } from '@icon-park/vue-next'
 import type { Note } from '@shared/types'
 import RightSidebarCardboxCard from './RightSidebarCardboxCard.vue'
 import { useDebounceFn, useThrottleFn } from '@vueuse/core'
@@ -364,7 +364,7 @@ const cardboxDropdownItems = computed(() => {
   return cardBoxes.map((box) => ({
     key: box.id,
     label: box.name,
-    icon: FolderOpen,
+    icon: Box,
     active: filterState.cardBoxId === box.id
   }))
 })
@@ -568,6 +568,7 @@ onUnmounted(() => {
     position: relative;
     display: flex;
     flex-direction: column;
+    padding: 16px;
 
     .loading-state {
       display: flex;
@@ -609,7 +610,6 @@ onUnmounted(() => {
 
     .notes-list {
       position: relative;
-      padding: 12px;
 
       .virtual-list {
         left: 0;
@@ -620,10 +620,6 @@ onUnmounted(() => {
         height: 200px;
         margin-bottom: 12px;
         transition: transform 0.2s ease;
-
-        &:last-child {
-          margin-bottom: 0;
-        }
       }
     }
 
