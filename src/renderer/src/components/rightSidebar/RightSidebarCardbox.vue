@@ -58,6 +58,21 @@
         >
           自定义筛选
         </Dropdown>
+
+        <!-- 添加思维板按钮 -->
+        <Dropdown
+          :items="mindboardDropdownItems"
+          showArrow
+          type="default"
+          size="medium"
+          icon-only
+          :icon="MindMapping"
+          :placeholder="'按思维板筛选'"
+          :is-active="filterState.mindboardId !== undefined"
+          @select="handleMindboardSelect"
+        >
+          思维板
+        </Dropdown>
       </div>
 
       <div class="toolbar-right">
@@ -97,36 +112,45 @@
         <div class="loading-spinner"></div>
         <span>加载中...</span>
       </div>
-      <!-- 空状态 -->
-      <EmptyState v-else-if="displayedNotes.length === 0" alt="暂无笔记" text="没有找到笔记" />
-      <!-- 笔记列表 -->
-      <div v-else class="notes-list" :style="listStyles">
-        <div class="virtual-list" :style="virtualListStyles">
-          <RightSidebarCardboxCard
-            v-for="note in virtualNotes"
-            :key="`${note.id}-${new Date(note.updatedAt).toISOString()}`"
-            v-memo="[note.id, note.content, note.createdAt]"
-            class="note-item"
-            :note="note"
-            :highlighted-note-id="highlightedNoteId"
-          />
+
+      <!-- 思维板卡片列表 -->
+      <MindboardCardList v-if="filterState.mindboardId" :mindboard-id="filterState.mindboardId" />
+
+      <!-- 普通笔记列表 -->
+      <template v-else>
+        <!-- 空状态 -->
+        <EmptyState v-if="displayedNotes.length === 0" alt="暂无笔记" text="没有找到笔记" />
+        <!-- 笔记列表 -->
+        <div v-else class="notes-list" :style="listStyles">
+          <div class="virtual-list" :style="virtualListStyles">
+            <RightSidebarCardboxCard
+              v-for="note in virtualNotes"
+              :key="`${note.id}-${new Date(note.updatedAt).toISOString()}`"
+              v-memo="[note.id, note.content, note.createdAt]"
+              class="note-item"
+              :note="note"
+              :highlighted-note-id="highlightedNoteId"
+            />
+          </div>
+          <!-- 加载更多指示器 -->
+          <div v-if="isLoading && hasMoreNotes" class="loading-more">
+            <div class="loading-spinner"></div>
+            <span>加载更多...</span>
+          </div>
         </div>
-        <!-- 加载更多指示器 -->
-        <div v-if="isLoading && hasMoreNotes" class="loading-more">
-          <div class="loading-spinner"></div>
-          <span>加载更多...</span>
-        </div>
-      </div>
+      </template>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, nextTick, reactive } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick, reactive, watch } from 'vue'
 import { useNoteStore } from '@renderer/stores/noteStore'
-import { Tag, Filter, SortTwo, CloseOne, Box } from '@icon-park/vue-next'
+import { useMindboardStore } from '@renderer/stores/mindboardStore'
+import { Tag, Filter, SortTwo, CloseOne, Box, MindMapping } from '@icon-park/vue-next'
 import type { Note } from '@shared/types'
 import RightSidebarCardboxCard from './RightSidebarCardboxCard.vue'
+import MindboardCardList from './MindboardCardList.vue'
 import { useDebounceFn, useThrottleFn } from '@vueuse/core'
 import { useTagStore } from '@renderer/stores/tagStore'
 import { useFilterStore } from '@renderer/stores/filterStore'
@@ -138,6 +162,7 @@ import EmptyState from '@renderer/components/ui/EmptyState.vue'
 const noteStore = useNoteStore()
 const tagStore = useTagStore()
 const filterStore = useFilterStore()
+const mindboardStore = useMindboardStore()
 
 // 基础状态
 const isLoading = ref(false)
@@ -200,13 +225,12 @@ const filterState = reactive({
   tags: [] as string[],
   cardBoxId: undefined as string | undefined,
   customFilterId: undefined as string | undefined,
+  mindboardId: undefined as string | undefined,
   sort: (() => {
-    // 获取保存的排序偏好
     const savedPreference = getSavedSortPreference()
     if (savedPreference) {
       return savedPreference
     }
-    // 使用默认值
     return {
       field: 'updatedAt' as 'address' | 'createdAt' | 'updatedAt',
       order: 'desc' as 'asc' | 'desc'
@@ -380,6 +404,16 @@ const customFilterDropdownItems = computed(() => {
   }))
 })
 
+// 思维板下拉菜单项
+const mindboardDropdownItems = computed(() => {
+  return mindboardStore.mindboards.map((mindboard) => ({
+    key: mindboard.id,
+    label: mindboard.name,
+    icon: MindMapping,
+    active: filterState.mindboardId === mindboard.id
+  }))
+})
+
 // 排序下拉菜单项
 const sortDropdownItems = computed(() => {
   return [
@@ -442,6 +476,31 @@ const handleCustomFilterSelect = async (filterId: string) => {
   resetAndFetch()
 }
 
+const handleMindboardSelect = async (mindboardId: string) => {
+  // 如果选择了相同的思维板,则清除选择
+  if (filterState.mindboardId === mindboardId) {
+    filterState.mindboardId = undefined
+  } else {
+    filterState.mindboardId = mindboardId
+  }
+
+  // 清除其他筛选条件
+  filterState.tags = []
+  filterState.cardBoxId = undefined
+  filterState.customFilterId = undefined
+  filterState.keyword = ''
+  searchQuery.value = ''
+
+  // 重置分页
+  currentPage.value = 1
+  notes.value = []
+
+  // 如果没有选择思维板,则重新获取笔记列表
+  if (!filterState.mindboardId) {
+    await fetchNotes()
+  }
+}
+
 const handleSortSelect = async (value: string) => {
   const field = value as 'address' | 'createdAt' | 'updatedAt'
   if (filterState.sort.field === field) {
@@ -475,7 +534,8 @@ const hasActiveFilters = computed(() => {
   return (
     filterState.tags.length > 0 ||
     filterState.cardBoxId !== undefined ||
-    filterState.customFilterId !== undefined
+    filterState.customFilterId !== undefined ||
+    filterState.mindboardId !== undefined
   )
 })
 
@@ -484,12 +544,29 @@ const clearFilters = () => {
   filterState.tags = []
   filterState.cardBoxId = undefined
   filterState.customFilterId = undefined
+  filterState.mindboardId = undefined
   filterStore.setActiveFilter(null)
   resetAndFetch()
 }
 
 // 显示的笔记列表
 const displayedNotes = computed(() => notes.value)
+
+// 监听思维板数据变化
+watch(
+  () => mindboardStore.mindboards,
+  async () => {
+    // 如果当前选中的思维板不在列表中,清除选择
+    if (
+      filterState.mindboardId &&
+      !mindboardStore.mindboards.find((m) => m.id === filterState.mindboardId)
+    ) {
+      filterState.mindboardId = undefined
+      await fetchNotes()
+    }
+  },
+  { deep: true }
+)
 
 // 生命周期钩子
 onMounted(async () => {
@@ -515,7 +592,10 @@ onMounted(async () => {
   }
 
   // 初始化数据
-  await fetchNotes()
+  await Promise.all([
+    fetchNotes(),
+    mindboardStore.fetchAllMindboards() // 获取所有思维板数据
+  ])
 })
 
 onUnmounted(() => {
@@ -568,7 +648,8 @@ onUnmounted(() => {
     position: relative;
     display: flex;
     flex-direction: column;
-    padding: 16px;
+    padding: 0 16px;
+    // padding: 16px;
 
     .loading-state {
       display: flex;
@@ -610,6 +691,7 @@ onUnmounted(() => {
 
     .notes-list {
       position: relative;
+      padding: 16px;
 
       .virtual-list {
         left: 0;

@@ -781,27 +781,61 @@ const handleDrop = async (event: DragEvent) => {
 
   try {
     const data = event.dataTransfer.getData('application/json')
-    const { id: noteId } = JSON.parse(data)
+    const dragData = JSON.parse(data)
 
-    if (!noteId) return
+    // 计算放置位置的顺序
+    const dropIndex =
+      currentDropIndex.value === -1 ? manuscript.value.cards.length : currentDropIndex.value
 
-    const sourceNote = await noteStore.fetchNote(noteId)
-    if (!sourceNote) {
-      throw new Error('未找到源笔记')
+    // 如果是笔记引用（从卡片盒拖入）
+    if (dragData.id && !dragData.type) {
+      const sourceNote = await noteStore.fetchNote(dragData.id)
+      if (!sourceNote) {
+        throw new Error('未找到源笔记')
+      }
+
+      // 创建引用卡片
+      await writingDeskStore.addCard(
+        manuscript.value.id,
+        sourceNote.content,
+        dropIndex,
+        dragData.id // 传入笔记ID表示这是一个引用卡片
+      )
     }
+    // 如果是思维板中的卡片
+    else if (dragData.type === 'text' || dragData.type === 'memo' || dragData.type === 'image') {
+      let content = dragData.content
 
-    // 创建新卡片
-    await writingDeskStore.addCard(
-      manuscript.value.id,
-      sourceNote.content,
-      currentDropIndex.value,
-      noteId
-    )
+      // 如果是图片卡片,需要创建特殊的内容结构
+      if (dragData.type === 'image') {
+        content = {
+          type: 'doc',
+          content: [
+            {
+              type: 'paragraph',
+              content: [
+                {
+                  type: 'image',
+                  attrs: {
+                    src: dragData.imageUrl,
+                    alt: '图片',
+                    title: null
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      }
+
+      // 创建普通卡片,不传入noteId
+      await writingDeskStore.addCard(manuscript.value.id, content, dropIndex)
+    }
 
     // 重新加载文稿数据
     await writingDeskStore.loadManuscript(manuscript.value.id)
   } catch (error) {
-    console.error('创建引用卡片失败:', error)
+    console.error('放置卡片失败:', error)
   } finally {
     isDraggingOver.value = false
     currentDropIndex.value = -1

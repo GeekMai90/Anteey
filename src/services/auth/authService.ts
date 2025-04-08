@@ -145,16 +145,11 @@ export async function checkNetworkStatus(): Promise<boolean> {
 
   // 如果缓存存在且未过期，直接返回缓存的结果
   if (networkStatusCache && now - networkStatusCache.timestamp < NETWORK_CHECK_INTERVAL) {
-    console.log('authService→ 使用缓存的网络状态:', networkStatusCache.isOnline)
     return networkStatusCache.isOnline
   }
 
   try {
-    // console.log('authService→ 开始检查网络状态')
-    // const start = Date.now()
     await request.get('/auth/status', { timeout: 3000 })
-    // const duration = Date.now() - start
-    // console.log(`authService→ 网络检查成功, 耗时: ${duration}ms`)
 
     // 更新缓存
     networkStatusCache = {
@@ -163,7 +158,6 @@ export async function checkNetworkStatus(): Promise<boolean> {
     }
     return true
   } catch (error) {
-    console.log('authService→ 网络检查失败:', error)
     // 即使接口返回错误，只要有响应就说明网络是通的
     const isOnline = !!(error as any).response
 
