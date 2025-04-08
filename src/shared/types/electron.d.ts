@@ -357,6 +357,15 @@ export interface ElectronAPI {
     getChildNodes: (parentAddress: string) => Promise<KnowledgeTreeNode[]>
     getChildCount: (parentAddress: string) => Promise<number>
     getNodePath: (address: string) => Promise<KnowledgeTreeNode[]>
+    // 创建相邻笔记
+    createAdjacentNote: (
+      noteId: string,
+      direction: 'below' | 'child'
+    ) => Promise<{
+      id: string
+      address: string
+      metadata: string
+    }>
   }
 
   image: {

@@ -3,7 +3,9 @@ import {
   getTopLevelNodes,
   getChildNodes,
   getChildCount,
-  getNodePath
+  getNodePath,
+  createAdjacentNote,
+  AddDirection
 } from '../../services/notes/knowledgeTreeService'
 
 export function setupKnowledgeTreeHandlers() {
@@ -58,4 +60,18 @@ export function setupKnowledgeTreeHandlers() {
       return { success: false, error: String(error) }
     }
   })
+
+  // 创建相邻笔记
+  ipcMain.handle(
+    'create-adjacent-note',
+    async (_event, noteId: string, direction: AddDirection) => {
+      try {
+        const note = await createAdjacentNote(noteId, direction)
+        return { success: true, note }
+      } catch (error) {
+        console.error('主进程→ 创建相邻笔记失败:', error)
+        return { success: false, error: String(error) }
+      }
+    }
+  )
 }

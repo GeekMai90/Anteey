@@ -272,6 +272,180 @@ export const useKnowledgeTreeStore = defineStore('knowledgeTree', () => {
     await fetchTopLevelNodes()
   }
 
+  // 创建相邻笔记
+  const createAdjacentNote = async (noteId: string, direction: 'below' | 'child') => {
+    try {
+      console.log('开始创建相邻笔记:', { noteId, direction })
+
+      // 创建新笔记前，先保存当前树的完整状态
+      const currentTreeState = JSON.parse(JSON.stringify(nodes.value))
+      const currentExpandedNodesArray = Array.from(expandedNodes.value)
+
+      // 获取所选笔记
+      const selectedNote = await window.electronAPI.note.getNote(noteId)
+      if (!selectedNote) {
+        throw new Error('无法获取所选笔记')
+      }
+
+      // 创建新笔记
+      const newNote = await window.electronAPI.knowledgeTree.createAdjacentNote(noteId, direction)
+      console.log('创建的新笔记:', newNote)
+
+      // 根据笔记ID找到对应的节点
+      const findNodeById = (
+        nodes: KnowledgeTreeNode[],
+        id: string
+      ): { node: KnowledgeTreeNode | null; parent: KnowledgeTreeNode | null; index: number } => {
+        for (let i = 0; i < nodes.length; i++) {
+          const node = nodes[i]
+          if (node.noteId === id) {
+            return { node, parent: null, index: i }
+          }
+
+          if (node.children && node.children.length > 0) {
+            const result = findNodeById(node.children, id)
+            if (result.node) {
+              return { ...result, parent: result.parent || node }
+            }
+          }
+        }
+        return { node: null, parent: null, index: -1 }
+      }
+
+      // 找到操作的节点和其父节点
+      const { node: selectedNode, parent: parentNode } = findNodeById(nodes.value, noteId)
+
+      if (!selectedNode) {
+        // 如果找不到节点，恢复原来的树状态
+        console.log('找不到所选节点，恢复原状态')
+        nodes.value = currentTreeState
+        expandedNodes.value = new Set(currentExpandedNodesArray)
+        return newNote
+      }
+
+      // 更新必要的部分
+      if (direction === 'child') {
+        // 添加子节点：只需要更新所选节点的子节点列表
+        console.log('添加子节点，更新所选节点:', selectedNode.address)
+
+        // 标记当前节点为展开状态
+        selectedNode.isExpanded = true
+        expandedNodes.value.add(selectedNode.address)
+
+        // 获取更新后的子节点列表
+        const updatedChildren = await window.electronAPI.knowledgeTree.getChildNodes(
+          selectedNode.address
+        )
+
+        // 更新子节点，但保留已有子节点的展开状态
+        if (selectedNode.children && selectedNode.children.length > 0) {
+          // 记录当前所有子节点的展开状态
+          const childrenExpandState = new Map<string, boolean>()
+          selectedNode.children.forEach((child) => {
+            childrenExpandState.set(child.address, !!child.isExpanded)
+          })
+
+          // 更新子节点列表，保留展开状态
+          selectedNode.children = updatedChildren.map((child) => ({
+            ...child,
+            id: child.address,
+            isExpanded: childrenExpandState.get(child.address) || false,
+            children: child.children || []
+          }))
+        } else {
+          // 如果原来没有子节点，直接设置
+          selectedNode.children = updatedChildren.map((child) => ({
+            ...child,
+            id: child.address,
+            isExpanded: false,
+            children: []
+          }))
+        }
+      } else {
+        // 添加同级节点：需要更新父节点的子节点列表
+        console.log('添加同级节点')
+
+        if (parentNode) {
+          console.log('找到父节点:', parentNode.address)
+          // 标记父节点为展开状态
+          parentNode.isExpanded = true
+          expandedNodes.value.add(parentNode.address)
+
+          // 获取更新后的子节点列表
+          const updatedSiblings = await window.electronAPI.knowledgeTree.getChildNodes(
+            parentNode.address
+          )
+
+          // 记录当前所有子节点的展开状态
+          const childrenExpandState = new Map<string, boolean>()
+          if (parentNode.children) {
+            parentNode.children.forEach((child) => {
+              childrenExpandState.set(child.address, !!child.isExpanded)
+            })
+          }
+
+          // 更新子节点列表，保留展开状态
+          parentNode.children = updatedSiblings.map((child) => ({
+            ...child,
+            id: child.address,
+            isExpanded: childrenExpandState.get(child.address) || false,
+            children: child.isExpanded ? child.children || [] : []
+          }))
+
+          // 如果某个子节点是展开状态，确保其子节点数据正确
+          if (parentNode.children) {
+            for (const child of parentNode.children) {
+              if (child.isExpanded) {
+                const childNodeChildren = await window.electronAPI.knowledgeTree.getChildNodes(
+                  child.address
+                )
+                child.children = childNodeChildren.map((grandChild) => ({
+                  ...grandChild,
+                  id: grandChild.address,
+                  isExpanded: false,
+                  children: []
+                }))
+              }
+            }
+          }
+        } else if (selectedNode.address.endsWith('000')) {
+          // 如果是顶层节点，则刷新顶层节点列表，但保持展开状态
+          console.log('操作顶层节点，刷新顶层节点')
+          const topLevelNodes = await window.electronAPI.knowledgeTree.getTopLevelNodes()
+
+          // 记录当前所有节点的展开状态和子节点
+          const expandState = new Map<string, boolean>()
+          const childrenMap = new Map<string, KnowledgeTreeNode[]>()
+
+          nodes.value.forEach((node) => {
+            expandState.set(node.address, !!node.isExpanded)
+            if (node.children) {
+              childrenMap.set(node.address, [...node.children])
+            }
+          })
+
+          // 更新节点，保留展开状态和子节点
+          nodes.value = topLevelNodes.map((node) => ({
+            ...node,
+            id: node.address,
+            isExpanded: expandState.get(node.address) || false,
+            children: expandState.get(node.address) ? childrenMap.get(node.address) || [] : []
+          }))
+        } else {
+          // 其他情况，可能是编码规则中的特殊情况
+          console.log('无法确定父节点，恢复原状态')
+          nodes.value = currentTreeState
+          expandedNodes.value = new Set(currentExpandedNodesArray)
+        }
+      }
+
+      return newNote
+    } catch (error) {
+      console.error('创建相邻笔记失败:', error)
+      throw error
+    }
+  }
+
   return {
     // 状态
     nodes,
@@ -298,6 +472,7 @@ export const useKnowledgeTreeStore = defineStore('knowledgeTree', () => {
     findNodeByAddress,
     focusNodeWithChildren,
     backToParent,
-    resetViewState
+    resetViewState,
+    createAdjacentNote
   }
 })

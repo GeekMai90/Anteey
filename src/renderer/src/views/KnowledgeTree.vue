@@ -1,19 +1,34 @@
-/** * @file KnowledgeTree.vue * @description 知识树组件，用于展示和管理卢曼卡片笔记的层级结构 * *
-主要功能： * 1. 知识树的可视化展示 * - 使用 jsMind 实现思维导图式的展示 * - 支持节点的展开/折叠 *
--支持节点的聚焦/返回 * 2. 节点交互 * - 单击节点预览笔记内容 * - 双击节点进入聚焦模式 * -
-点击展开/折叠按钮管理子节点 * 3. 导航功能 * - 支持通过路由参数直接定位节点 * -
-支持通过搜索结果跳转到指定节点 * * @author 麦先生 * @created 2024-03-20 */
-
 <template>
   <div class="knowledge-tree-container">
     <!-- 顶部工具栏组件 -->
     <AppToolbar />
     <!-- 思维导图容器 -->
     <div ref="container" class="jsmind-container"></div>
+
+    <!-- 右键菜单 -->
+    <div
+      v-if="contextMenuVisible"
+      ref="contextMenuRef"
+      class="context-menu"
+      :style="{
+        position: 'absolute',
+        left: 0,
+        top: 0,
+        transform: `translate3d(${x}px, ${y}px, 0)`
+      }"
+    >
+      <div class="context-menu-item" @click="handleAddSiblingNode">添加同级节点</div>
+      <div class="context-menu-item" @click="handleAddChildNode">添加子节点</div>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
+/** * @file KnowledgeTree.vue * @description 知识树组件，用于展示和管理卢曼卡片笔记的层级结构 * *
+主要功能： * 1. 知识树的可视化展示 * - 使用 jsMind 实现思维导图式的展示 * - 支持节点的展开/折叠 *
+-支持节点的聚焦/返回 * 2. 节点交互 * - 单击节点预览笔记内容 * - 双击节点进入聚焦模式 * -
+点击展开/折叠按钮管理子节点 * 3. 导航功能 * - 支持通过路由参数直接定位节点 * -
+支持通过搜索结果跳转到指定节点 * * @author 麦先生 * @created 2024-03-20 */
 // 导入必要的 Vue 组件和工具
 import { ref, onMounted, onBeforeUnmount, watch } from 'vue'
 import '../styles/jsmind-antinet-theme.css'
@@ -24,6 +39,7 @@ import AppToolbar from '../components/layout/AppToolbar.vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useNoteStore } from '@renderer/stores/noteStore'
 import { useUIStore } from '@renderer/stores/UIStore'
+import { useFloating, offset, flip, shift, autoUpdate } from '@floating-ui/vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -110,6 +126,23 @@ const knowledgeTreeStore = useKnowledgeTreeStore()
 const container = ref<HTMLDivElement>()
 const jm = ref<any>(null)
 
+// 右键菜单相关变量
+const contextMenuVisible = ref(false)
+const contextMenuRef = ref<HTMLElement | null>(null)
+const referenceRef = ref<Element | null>(null)
+const selectedNodeId = ref('')
+
+// 使用 floating-ui 设置菜单定位
+const { x, y, update } = useFloating(referenceRef, contextMenuRef, {
+  placement: 'right-start',
+  middleware: [
+    offset(6), // 设置一个小的偏移量，让菜单不会贴得太近
+    flip({ padding: 10 }), // 如果空间不够，自动翻转到另一侧
+    shift({ padding: 5 }) // 确保菜单不会超出可视区域
+  ],
+  whileElementsMounted: autoUpdate // 当元素挂载时自动更新位置
+})
+
 /**
  * 转换数据为 JsMind 格式
  * @param {KnowledgeTreeNode[]} nodes 知识树节点数组
@@ -192,6 +225,87 @@ const transformToJsMindData = (nodes: KnowledgeTreeNode[]): JsMindData => {
 }
 
 /**
+ * 处理节点右键点击事件
+ * @param {MouseEvent} e 鼠标事件对象
+ * @param {string} nodeId 节点ID
+ * @description 打开右键菜单
+ */
+const handleContextMenu = (e: MouseEvent, nodeId: string) => {
+  // 阻止默认右键菜单
+  e.preventDefault()
+  e.stopPropagation()
+
+  // 保存所选节点ID
+  selectedNodeId.value = nodeId
+
+  // 获取节点元素作为参考
+  const jmnodeElement = (e.target as HTMLElement).closest('jmnode')
+  if (!jmnodeElement) return
+
+  // 设置参考元素
+  referenceRef.value = jmnodeElement
+
+  // 显示菜单
+  contextMenuVisible.value = true
+
+  // 更新菜单位置
+  setTimeout(() => {
+    update && update()
+  }, 0)
+
+  // 添加点击事件监听器，点击其他区域关闭菜单
+  document.addEventListener('click', closeContextMenu)
+
+  // 添加滚动事件监听器，滚动时关闭菜单
+  document.addEventListener('scroll', closeContextMenu, true)
+}
+
+/**
+ * 关闭右键菜单
+ */
+const closeContextMenu = () => {
+  contextMenuVisible.value = false
+  document.removeEventListener('click', closeContextMenu)
+  document.removeEventListener('scroll', closeContextMenu, true)
+}
+
+/**
+ * 添加同级节点
+ */
+const handleAddSiblingNode = async () => {
+  try {
+    console.log('添加同级节点:', selectedNodeId.value)
+    const node = knowledgeTreeStore.findNodeByAddress(selectedNodeId.value)
+    if (node && node.noteId) {
+      const newNote = await knowledgeTreeStore.createAdjacentNote(node.noteId, 'below')
+      // 使用小窗打开新笔记
+      noteStore.openNoteEditor(newNote.id)
+    }
+  } catch (error) {
+    console.error('添加同级节点失败:', error)
+  }
+  closeContextMenu()
+}
+
+/**
+ * 添加子节点
+ */
+const handleAddChildNode = async () => {
+  try {
+    console.log('添加子节点:', selectedNodeId.value)
+    const node = knowledgeTreeStore.findNodeByAddress(selectedNodeId.value)
+    if (node && node.noteId) {
+      const newNote = await knowledgeTreeStore.createAdjacentNote(node.noteId, 'child')
+      // 使用小窗打开新笔记
+      noteStore.openNoteEditor(newNote.id)
+    }
+  } catch (error) {
+    console.error('添加子节点失败:', error)
+  }
+  closeContextMenu()
+}
+
+/**
  * 初始化 JsMind 实例
  * @async
  * @description 初始化思维导图，设置配置项，加载数据并绑定事件
@@ -267,6 +381,15 @@ const initJsMind = async () => {
           // console.log('节点被双击:', e.target)
           if (e instanceof MouseEvent) {
             handleNodeDblClick(e)
+          }
+        }) as EventListener)
+        // 添加右键菜单事件
+        node.addEventListener('contextmenu', ((e: Event) => {
+          if (e instanceof MouseEvent) {
+            const nodeId = node.getAttribute('nodeid')
+            if (nodeId) {
+              handleContextMenu(e, nodeId)
+            }
           }
         }) as EventListener)
       })
@@ -544,6 +667,15 @@ watch(
                 handleNodeDblClick(e)
               }
             }) as EventListener)
+            // 重新绑定右键菜单事件
+            node.addEventListener('contextmenu', ((e: Event) => {
+              if (e instanceof MouseEvent) {
+                const nodeId = node.getAttribute('nodeid')
+                if (nodeId) {
+                  handleContextMenu(e, nodeId)
+                }
+              }
+            }) as EventListener)
           })
         } catch (error) {
           console.error('展开节点时发生错误:', error)
@@ -670,6 +802,10 @@ onMounted(() => {
 onBeforeUnmount(() => {
   // 关闭右侧边栏
   uiStore.closeRightSidebar()
+
+  // 移除文档点击事件监听
+  document.removeEventListener('click', closeContextMenu)
+  document.removeEventListener('scroll', closeContextMenu, true)
 })
 </script>
 
@@ -751,5 +887,29 @@ onBeforeUnmount(() => {
   color: var(--color-primary);
   opacity: 1;
   transform: scale(1.1);
+}
+
+/* 右键菜单样式 */
+.context-menu {
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border-default);
+  border-radius: 4px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  min-width: 160px;
+  max-width: 220px;
+  will-change: transform;
+}
+
+.context-menu-item {
+  padding: 8px 12px;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.2s ease;
+}
+
+.context-menu-item:hover {
+  background: var(--color-primary-light);
+  color: var(--color-primary);
 }
 </style>

@@ -48,5 +48,24 @@ export const knowledgeTreeApi = {
       console.error('预加载脚本 → 获取节点路径失败:', error)
       throw error
     }
+  },
+
+  // 创建相邻笔记
+  createAdjacentNote: async (
+    noteId: string,
+    direction: 'below' | 'child'
+  ): Promise<{
+    id: string
+    address: string
+    metadata: string
+  }> => {
+    try {
+      const result = await ipcRenderer.invoke('create-adjacent-note', noteId, direction)
+      if (!result.success) throw new Error(result.error)
+      return result.note
+    } catch (error) {
+      console.error('预加载脚本 → 创建相邻笔记失败:', error)
+      throw error
+    }
   }
 }
