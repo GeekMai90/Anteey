@@ -66,7 +66,7 @@
           type="default"
           size="medium"
           icon-only
-          :icon="MindMapping"
+          :icon="Workbench"
           :placeholder="'按思维板筛选'"
           :is-active="filterState.mindboardId !== undefined"
           @select="handleMindboardSelect"
@@ -147,7 +147,7 @@
 import { ref, computed, onMounted, onUnmounted, nextTick, reactive, watch } from 'vue'
 import { useNoteStore } from '@renderer/stores/noteStore'
 import { useMindboardStore } from '@renderer/stores/mindboardStore'
-import { Tag, Filter, SortTwo, CloseOne, Box, MindMapping } from '@icon-park/vue-next'
+import { Tag, Filter, SortTwo, CloseOne, Box, Workbench } from '@icon-park/vue-next'
 import type { Note } from '@shared/types'
 import RightSidebarCardboxCard from './RightSidebarCardboxCard.vue'
 import MindboardCardList from './MindboardCardList.vue'
@@ -409,7 +409,7 @@ const mindboardDropdownItems = computed(() => {
   return mindboardStore.mindboards.map((mindboard) => ({
     key: mindboard.id,
     label: mindboard.name,
-    icon: MindMapping,
+    icon: Workbench,
     active: filterState.mindboardId === mindboard.id
   }))
 })
