@@ -38,6 +38,7 @@ import { zhCN } from 'date-fns/locale'
 import BulletEditor from './BulletEditor.vue'
 import { useTimeBlockStore } from '@renderer/stores/timeBlockStore'
 import type { TimeBlock as TimeBlockData } from '@shared/types'
+import { useDebounceFn } from '@vueuse/core'
 
 // 添加时间块小时接口
 interface TimeBlockHour {
@@ -58,6 +59,9 @@ const props = withDefaults(
 
 const timeBlockStore = useTimeBlockStore()
 const editingHour = ref<number | null>(null)
+
+// 当前编辑的内容
+const currentEditingContent = ref<string>('')
 
 // 生成时间块列表，添加类型注解
 const timeBlocks = computed<TimeBlockHour[]>(() => {
@@ -99,23 +103,49 @@ const startEdit = (hour: number) => {
   editingHour.value = hour
 }
 
-// 处理内容更新
-const handleContentUpdate = async (hour: number, content: string) => {
+// 处理内容更新（防抖）
+const handleContentUpdate = useDebounceFn(async (hour: number, content: string) => {
   try {
+    // 保存当前编辑的内容以便完成编辑时使用
+    currentEditingContent.value = content
+
     console.log('Updating content for date:', props.date, 'hour:', hour)
     await timeBlockStore.updateTimeBlock(props.date, hour, content)
   } catch (error) {
     console.error('更新内容失败:', error)
   }
+}, 800) // 使用800毫秒的防抖延迟，确保拼音输入完成
+
+// 立即保存内容
+const saveContentImmediately = async (hour: number, content: string) => {
+  try {
+    await timeBlockStore.updateTimeBlock(props.date, hour, content)
+  } catch (error) {
+    console.error('立即保存内容失败:', error)
+  }
 }
 
 // 处理完成编辑
 const handleFinishEdit = () => {
+  // 如果正在编辑，确保最新内容被保存
+  if (editingHour.value !== null && currentEditingContent.value) {
+    // 立即保存当前编辑的内容
+    saveContentImmediately(editingHour.value, currentEditingContent.value)
+    // 重置编辑内容
+    currentEditingContent.value = ''
+  }
   editingHour.value = null
 }
 
 // 处理取消编辑
 const handleCancelEdit = () => {
+  // 取消编辑与完成编辑行为相同，直接保存当前内容
+  if (editingHour.value !== null && currentEditingContent.value) {
+    // 立即保存当前编辑的内容
+    saveContentImmediately(editingHour.value, currentEditingContent.value)
+    // 重置编辑内容
+    currentEditingContent.value = ''
+  }
   editingHour.value = null
 }
 </script>

@@ -89,8 +89,9 @@ const editor = new Editor({
     },
     handleDOMEvents: {
       blur: () => {
-        if (!props.editable) {
-          emit('cancel')
+        if (props.editable) {
+          // 在可编辑状态下失焦时触发完成编辑
+          emit('finish')
         }
         return false
       }

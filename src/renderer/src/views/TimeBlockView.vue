@@ -7,6 +7,7 @@
 
       <!-- 头部内容区域 -->
       <div class="header-content">
+        <!-- 头部内容 -->
         <div class="time-block-header">
           <!-- 左侧标题 -->
           <div class="time-block-header-left">
@@ -16,7 +17,7 @@
             <div class="name">时光记</div>
           </div>
 
-          <!-- 修改日期导航，添加对比模式切换 -->
+          <!-- 日期导航 -->
           <div class="date-nav-wrapper">
             <div class="date-nav">
               <button class="nav-btn prev" @click="changeDate(-1)">
@@ -108,7 +109,7 @@
             </div>
           </div>
 
-          <!-- 修改右侧日期选择器 -->
+          <!-- 右侧日期选择器 -->
           <div class="time-block-header-right">
             <!-- 搜索按钮 -->
             <Button
@@ -374,6 +375,18 @@ import { flip, offset, shift } from '@floating-ui/dom'
 import CalendarButton from '@renderer/components/ui/CalendarButton.vue'
 import Button from '@renderer/components/ui/Button.vue'
 
+/**
+ * @file TimeBlockView.vue
+ * @description 这是一个用于显示和管理时间块的视图组件，支持查看、编辑和搜索时间块。
+ *
+ * 主要功能：
+ * 1. 显示时间块列表，支持编辑和查看。
+ * 2. 支持日期导航和对比模式。
+ * 3. 提供天气和心情选择功能。
+ * 4. 支持搜索时间块内容。
+
+ */
+
 // 重命名本地接口以避免冲突
 interface TimeBlockHour {
   hour: number
@@ -500,12 +513,14 @@ watch(
   { immediate: true }
 )
 
-// 加载当天数据
+/**
+ * 加载当前日期的数据
+ * @async
+ * @returns {Promise<void>} 无返回值
+ */
 async function loadCurrentDayData() {
   const dateStr = format(currentDate.value, 'yyyy-MM-dd')
-  // console.log('正在加载日期:', dateStr)
   await timeBlockStore.loadTimeBlockDay(dateStr)
-  // console.log('加载完成的数据:', timeBlockStore.currentDay)
 }
 
 // 切换日期
@@ -524,7 +539,10 @@ async function changeDate(days: number) {
 
 const editingHour = ref<number | null>(null)
 
-// 开始编辑
+/**
+ * 开始编辑指定小时的时间块
+ * @param {number} hour 要编辑的小时
+ */
 const startEdit = (hour: number) => {
   // 如果已在编辑其他时间块，先取消编辑
   if (editingHour.value !== null && editingHour.value !== hour) {
@@ -533,23 +551,65 @@ const startEdit = (hour: number) => {
   editingHour.value = hour
 }
 
-// 处理内容更新
-const handleContentUpdate = async (hour: number, content: string) => {
+// 当前编辑的内容
+const currentEditingContent = ref<string>('')
+
+/**
+ * 处理内容更新
+ * @param {number} hour 更新的小时
+ * @param {string} content 更新的内容
+ */
+const handleContentUpdate = useDebounceFn(async (hour: number, content: string) => {
   try {
+    // 保存当前编辑的内容以便完成编辑时使用
+    currentEditingContent.value = content
+
     const dateStr = format(currentDate.value, 'yyyy-MM-dd')
     await timeBlockStore.updateTimeBlock(dateStr, hour, content)
   } catch (error) {
     console.error('更新内容失败:', error)
   }
+}, 800) // 使用800毫秒的防抖延迟，足够完成拼音输入
+
+/**
+ * 立即保存内容
+ * @param {number} hour 保存的小时
+ * @param {string} content 保存的内容
+ */
+const saveContentImmediately = async (hour: number, content: string) => {
+  try {
+    const dateStr = format(currentDate.value, 'yyyy-MM-dd')
+    await timeBlockStore.updateTimeBlock(dateStr, hour, content)
+  } catch (error) {
+    console.error('立即保存内容失败:', error)
+  }
 }
 
-// 处理完成编辑
+/**
+ * 处理完成编辑
+ */
 const handleFinishEdit = () => {
+  // 如果正在编辑，确保最新内容被保存
+  if (editingHour.value !== null && currentEditingContent.value) {
+    // 立即保存当前编辑的内容
+    saveContentImmediately(editingHour.value, currentEditingContent.value)
+    // 重置编辑内容
+    currentEditingContent.value = ''
+  }
   editingHour.value = null
 }
 
-// 处理取消编辑
+/**
+ * 处理取消编辑
+ */
 const handleCancelEdit = () => {
+  // 取消编辑与完成编辑行为相同，直接保存当前内容
+  if (editingHour.value !== null && currentEditingContent.value) {
+    // 立即保存当前编辑的内容
+    saveContentImmediately(editingHour.value, currentEditingContent.value)
+    // 重置编辑内容
+    currentEditingContent.value = ''
+  }
   editingHour.value = null
 }
 
@@ -579,12 +639,19 @@ onMounted(async () => {
 const showWeatherSelect = ref(false)
 const showMoodSelect = ref(false)
 
-// 添加选择处理函数
+/**
+ * 选择天气
+ * @param {string} value 选择的天气值
+ */
 function selectWeather(value: string) {
   timeBlockStore.updateDayStatus({ weather: value || undefined })
   showWeatherSelect.value = false
 }
 
+/**
+ * 选择心情
+ * @param {string} value 选择的心情值
+ */
 function selectMood(value: string) {
   timeBlockStore.updateDayStatus({ mood: value || undefined })
   showMoodSelect.value = false
@@ -740,7 +807,10 @@ const nextDate = computed(() => {
   return format(date, 'yyyy-MM-dd')
 })
 
-// 修改日期点击处理
+/**
+ * 处理日期点击事件
+ * @async
+ */
 const handleDateClick = async () => {
   if (!isToday.value) {
     // 跳转到今天
@@ -910,7 +980,9 @@ const scrollToHour = (hour: number) => {
   })
 }
 
-// 显示搜索弹窗
+/**
+ * 显示搜索弹窗
+ */
 const showSearch = () => {
   searchDialogVisible.value = true
   searchQuery.value = ''
@@ -918,7 +990,9 @@ const showSearch = () => {
   timeBlockStore.searchResults = []
 }
 
-// 关闭搜索弹窗
+/**
+ * 关闭搜索弹窗
+ */
 const closeSearch = () => {
   searchDialogVisible.value = false
   searchQuery.value = ''
@@ -926,17 +1000,29 @@ const closeSearch = () => {
   timeBlockStore.searchResults = []
 }
 
-// 格式化日期
+/**
+ * 格式化日期
+ * @param {string} date 日期字符串
+ * @returns {string} 格式化后的日期
+ */
 const formatDate = (date: string) => {
   return format(new Date(date), 'yyyy年MM月dd日 EEEE', { locale: zhCN })
 }
 
-// 格式化小时
+/**
+ * 格式化小时
+ * @param {number} hour 小时
+ * @returns {string} 格式化后的小时
+ */
 const formatHour = (hour: number) => {
   return `${hour.toString().padStart(2, '0')}:00`
 }
 
-// 高亮搜索关键词
+/**
+ * 高亮搜索关键词
+ * @param {string} content 内容
+ * @returns {string} 高亮后的内容
+ */
 const highlightContent = (content: string) => {
   if (!searchQuery.value) return content
   const regex = new RegExp(searchQuery.value, 'gi')
