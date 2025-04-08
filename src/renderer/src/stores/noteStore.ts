@@ -796,7 +796,7 @@ export const useNoteStore = defineStore(
           throw new Error(`Note with id ${id} not found`)
         }
         currentNote.value = note
-        console.log('noteStores.ts→ 获取笔记', note)
+
         return note
       } catch (error) {
         console.error(`noteStores.ts→ 获取笔记失败 ${id}:`, error)
@@ -837,7 +837,6 @@ export const useNoteStore = defineStore(
       const foundNotes = ids
         .map((id) => notes.value.find((note) => note.id === id))
         .filter((note) => note !== undefined) as Note[]
-      console.log('noteStores.ts→ 获取笔记成功', foundNotes)
       return foundNotes
     }
 
@@ -847,22 +846,18 @@ export const useNoteStore = defineStore(
 
       // 确保 authStore 已经初始化
       if (!authStore.isInitialized) {
-        console.log('noteStore→ authStore 未初始化，执行初始化')
         await authStore.initStore()
       }
 
       // 如果是永久授权用户，直接允许
       if (authStore.isDesktopPermanent) {
-        console.log('noteStore→ 永久授权用户，允许创建笔记')
         return true
       }
 
       // 获取当前笔记数量
       const count = await getNoteCount()
-      console.log('noteStore→ 当前笔记数量:', count)
 
       if (count >= 100) {
-        console.log('noteStore→ 超过免费版限制')
         message.error('免费版用户最多可创建 100 张笔记，请升级到永久授权版本')
         return false
       }
@@ -872,7 +867,6 @@ export const useNoteStore = defineStore(
 
     // 创建新笔记
     const createNote = async () => {
-      console.log('noteStores.ts→ 创建新笔记')
       const eventBus = useEventBus('note-created')
 
       // 添加许可证检查
@@ -897,14 +891,12 @@ export const useNoteStore = defineStore(
 
     // 创建并用小窗打开新笔记
     const createAndOpenNewNote = async () => {
-      console.log('noteStores.ts→ 创建并打开新笔记')
       const newNote = await createNote()
       openNoteEditor(newNote.id)
     }
 
     // 创建并展开打开新笔记
     const createAndExpandNewNote = async () => {
-      console.log('noteStores.ts→ 创建并打开新笔记')
       const newNote = await createNote()
       currentEchoNoteId.value = newNote.id
       return newNote?.id // 返回新笔记的 ID
@@ -912,12 +904,10 @@ export const useNoteStore = defineStore(
 
     //删除笔记，移动到回收站
     const moveToTrash = async (id: string) => {
-      console.log('noteStores.ts→ 移动到回收站:', id)
       try {
         const result = await window.electronAPI.note.softDeleteNote(id)
         if (result) {
           lastDeletedNote.value = result
-          console.log('noteStores.ts→ 移动到回收站结果:', result)
           // 从星标笔记中移除
           if (starredNotes.value.some((note) => note.id === id)) {
             starredNotes.value = starredNotes.value.filter((note) => note.id !== id)
@@ -955,8 +945,7 @@ export const useNoteStore = defineStore(
     const permanentlyDelete = async (id: string) => {
       try {
         await window.electronAPI.note.permanentDeleteNote(id)
-        // notes.value = notes.value.filter((note) => note.id !== id)
-        // console.log(`noteStores.ts→ 永久删除笔记: ${id}`)
+
         if (currentNoteId.value === id) {
           closeNoteEditor()
         }
@@ -986,12 +975,12 @@ export const useNoteStore = defineStore(
     const createCardBox = async (name: string) => {
       try {
         const newCardBox = await window.electronAPI.note.createCardBox(name)
-        console.log('noteStores.ts→ 创建卡片盒', newCardBox)
+
         cardBoxes.value.push({
           ...newCardBox,
           noteIds: []
         })
-        console.log(`noteStores.ts→ 创建卡片盒成功: ${newCardBox.id}`)
+
         return newCardBox
       } catch (error) {
         console.error('noteStores.ts→ 创建卡片盒失败:', error)
@@ -1007,7 +996,7 @@ export const useNoteStore = defineStore(
           if (index !== -1) {
             cardBoxes.value[index] = updatedCardBox
           }
-          console.log(`noteStores.ts→ 更新卡片盒: ${id}`)
+
           return updatedCardBox
         } else {
           console.error(`noteStores.ts→ 更新卡片盒失败: ${id}`, updatedCardBox)
@@ -1023,7 +1012,7 @@ export const useNoteStore = defineStore(
       try {
         await window.electronAPI.note.deleteCardBox(id)
         cardBoxes.value = cardBoxes.value.filter((box) => box.id !== id)
-        console.log(`noteStores.ts→ 删除卡片盒: ${id}`)
+
         await fetchCardBoxes()
       } catch (error) {
         console.error(`noteStores.ts→ 删除卡片盒失败: ${id}`, error)
@@ -1129,8 +1118,6 @@ export const useNoteStore = defineStore(
           currentNote.value = result.updatedNote
         }
 
-        console.log('noteStores.ts→ 移除星标收藏成功:', result)
-        console.log('noteStores.ts→ 移除星标收藏后收藏的笔记:', starredNotes.value)
         return result
       } catch (error) {
         console.error('noteStores.ts→ 移除星标收藏时出错:', error)
@@ -1142,7 +1129,7 @@ export const useNoteStore = defineStore(
     const fetchStarredNotes = async () => {
       try {
         const fetchedStarredNotes = await window.electronAPI.note.getStarredNotes()
-        // console.log(`noteStores.ts→ 获取收藏的笔记`, fetchedStarredNotes)
+
         starredNotes.value = fetchedStarredNotes
         return fetchedStarredNotes
       } catch (error) {
@@ -1177,7 +1164,6 @@ export const useNoteStore = defineStore(
     // 更新收藏笔记顺序
     const updateStarredNotesOrder = async (orders: { id: string; starredOrder: number }[]) => {
       try {
-        console.log('noteStores.ts→ 开始更新收藏笔记顺序', orders)
         // 乐观更新
         orders.forEach(({ id, starredOrder }) => {
           const index = starredNotes.value.findIndex((note) => note.id === id)
@@ -1187,7 +1173,6 @@ export const useNoteStore = defineStore(
         })
         // 调用后端 API 更新顺序
         const result = await window.electronAPI.note.updateStarredNotesOrder(orders)
-        console.log('noteStores.ts→ 收到后端返回的结果:', result)
 
         if (!Array.isArray(result)) {
           console.error('noteStores.ts→ 后端返回的数据格式不正确，预期是数组', result)
@@ -1196,7 +1181,6 @@ export const useNoteStore = defineStore(
         }
 
         if (result.length === 0) {
-          console.log('noteStores.ts→ 后端返回空数组，可能没有笔记需要更新')
           return
         }
 
@@ -1215,7 +1199,6 @@ export const useNoteStore = defineStore(
             console.warn(`noteStores.ts→ 尝试更新不存在的笔记: ${note.id}`)
           }
         })
-        console.log('noteStores.ts→ 更新收藏笔记顺序成功', starredNotes.value)
       } catch (error) {
         console.error('noteStores.ts→ 更新收藏笔记顺序失败:', error)
         rollbackOptimisticUpdate(orders)
@@ -1287,7 +1270,6 @@ export const useNoteStore = defineStore(
     const updateNoteVectorOnClose = async (id: string, content: object) => {
       try {
         await window.electronAPI.note.updateNoteVectorOnClose(id, content)
-        console.log('noteStore.ts → 笔记向量更新成功:', id)
       } catch (error) {
         console.error('noteStore.ts → 更新笔记向量失败:', error)
         throw error
@@ -1298,7 +1280,6 @@ export const useNoteStore = defineStore(
     const batchUpdateVectors = async () => {
       try {
         await window.electronAPI.note.batchUpdateVectors()
-        console.log('noteStore.ts → 批量更新向量成功')
       } catch (error) {
         console.error('noteStore.ts → 批量更新向量失败:', error)
         throw error
@@ -1311,14 +1292,8 @@ export const useNoteStore = defineStore(
         // 1. 更新保存状态
         currentNoteSaveStatus.value = 'saving'
 
-        // 检查参数
-        console.log('批量设置卡片类型 - 参数检查:')
-        console.log('原始笔记ID数组:', noteIds)
-
         // 将响应式数组转换为普通数组
         const plainNoteIds = Array.from(noteIds)
-        console.log('转换后的笔记ID数组:', plainNoteIds)
-        console.log('目标卡片类型:', cardType)
 
         // 确保是数组
         if (!Array.isArray(plainNoteIds)) {
@@ -1378,16 +1353,8 @@ export const useNoteStore = defineStore(
         // 1. 更新保存状态
         currentNoteSaveStatus.value = 'saving'
 
-        // 检查参数
-        console.log('批量移动笔记 - 参数检查:')
-        console.log('原始笔记ID数组:', noteIds)
-
         // 将响应式数组转换为普通数组
         const plainNoteIds = Array.from(noteIds)
-        console.log('转换后的笔记ID数组:', plainNoteIds)
-        console.log('笔记ID数组类型:', Object.prototype.toString.call(plainNoteIds))
-        console.log('笔记ID数组长度:', plainNoteIds.length)
-        console.log('目标卡片盒ID:', cardBoxId)
 
         // 确保是数组
         if (!Array.isArray(plainNoteIds)) {
@@ -1473,13 +1440,8 @@ export const useNoteStore = defineStore(
     // 批量软删除笔记
     const batchSoftDeleteNotes = async (noteIds: string[]) => {
       try {
-        // 检查参数
-        console.log('批量软删除笔记 - 参数检查:')
-        console.log('原始笔记ID数组:', noteIds)
-
         // 将响应式数组转换为普通数组
         const plainNoteIds = Array.from(noteIds)
-        console.log('转换后的笔记ID数组:', plainNoteIds)
 
         // 确保是数组
         if (!Array.isArray(plainNoteIds)) {

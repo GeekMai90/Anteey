@@ -834,15 +834,9 @@ watch(
   async (newMode) => {
     if (newMode) {
       const dateStr = format(currentDate.value, 'yyyy-MM-dd')
-      console.log('Entering compare mode, loading data for date:', dateStr)
       // 进入对比模式时关闭侧边栏
       uiStore.setIsSidebarCollapsed(true)
       await timeBlockStore.loadCompareData(dateStr)
-      console.log('Compare data loaded:', {
-        prev: timeBlockStore.prevDay?.blocks,
-        current: timeBlockStore.currentDay?.blocks,
-        next: timeBlockStore.nextDay?.blocks
-      })
     } else {
       // 退出对比模式时恢复侧边栏
       uiStore.setIsSidebarCollapsed(false)

@@ -90,7 +90,7 @@ export function setupTimeBlockHandlers() {
   ipcMain.handle('getFutureLog', async () => {
     try {
       const log = await getFutureLog()
-      console.log('IPC: 获取到的未来日志:', log)
+
       return { success: true, log }
     } catch (error) {
       log.error('主进程→ 获取未来日志失败:', error)

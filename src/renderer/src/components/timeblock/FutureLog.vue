@@ -115,7 +115,6 @@ const monthSelectRef = ref<HTMLElement | null>(null)
 const loadFutureLog = async () => {
   try {
     const log = await store.getFutureLog()
-    console.log('Component: 获取到的未来日志:', log)
     if (log) {
       content.value = log.content || ''
     }
@@ -127,7 +126,6 @@ const loadFutureLog = async () => {
 // 处理内容更新
 const handleContentChange = async (newContent: string) => {
   try {
-    console.log('Component: 准备更新内容:', newContent)
     await store.updateFutureLog(newContent)
   } catch (error) {
     console.error('更新未来日志失败:', error)

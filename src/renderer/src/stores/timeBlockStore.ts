@@ -64,14 +64,11 @@ export const useTimeBlockStore = defineStore('timeBlock', {
       try {
         // 先检查缓存
         if (this.cache.has(date)) {
-          // console.log('Store: 从缓存加载数据:', date)
           this.currentDay = JSON.parse(JSON.stringify(this.cache.get(date)!))
           return
         }
 
-        // console.log('Store: 开始加载日期数据:', date)
         const day = await window.electronAPI.timeBlock.getTimeBlockDay(date)
-        // console.log('Store: 获取到的数据:', day)
 
         const dayData = day || {
           id: '',
@@ -188,8 +185,6 @@ export const useTimeBlockStore = defineStore('timeBlock', {
         const prevDateStr = format(prevDate, 'yyyy-MM-dd')
         const nextDateStr = format(nextDate, 'yyyy-MM-dd')
 
-        console.log('Loading data for dates:', { prevDateStr, currentDate, nextDateStr })
-
         // 先检查缓存
         const loadDayData = async (date: string) => {
           if (this.cache.has(date)) {
@@ -220,12 +215,6 @@ export const useTimeBlockStore = defineStore('timeBlock', {
         this.prevDay = prev
         this.currentDay = current
         this.nextDay = next
-
-        console.log('Loaded data:', {
-          prev: this.prevDay,
-          current: this.currentDay,
-          next: this.nextDay
-        })
       } catch (error) {
         console.error('加载对比数据失败:', error)
       } finally {
@@ -279,7 +268,6 @@ export const useTimeBlockStore = defineStore('timeBlock', {
     async getFutureLog() {
       try {
         const log = await window.electronAPI.timeBlock.getFutureLog()
-        console.log('Store: 获取到的未来日志:', log)
         this.futureLog = log
         return log
       } catch (error) {
@@ -314,7 +302,6 @@ export const useTimeBlockStore = defineStore('timeBlock', {
     async getMonthlyLog(year: number, month: number) {
       try {
         const log = await window.electronAPI.timeBlock.getMonthlyLog(year, month)
-        // console.log('Store: 获取到的月度日志:', log)
         this.currentMonthlyLog = log
         return log
       } catch (error) {
@@ -353,7 +340,6 @@ export const useTimeBlockStore = defineStore('timeBlock', {
     async getYearMonthlyLogs(year: number) {
       try {
         const logs = await window.electronAPI.timeBlock.getYearMonthlyLogs(year)
-        console.log('Store: 获取到的年度月度日志:', logs)
         this.monthlyLogs = logs
         return logs
       } catch (error) {
