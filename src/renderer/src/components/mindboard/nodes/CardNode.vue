@@ -471,7 +471,7 @@ watch(
   position: relative;
   border: 1px solid var(--color-border);
   border-radius: 8px;
-  padding: 12px;
+  padding: 16px;
   cursor: grab;
   box-shadow: var(--shadow-card);
   display: flex;
@@ -486,7 +486,7 @@ watch(
     left: 0;
     right: 0;
     bottom: 0;
-    border-radius: 7px;
+    border-radius: 8px;
     pointer-events: none;
     z-index: -1;
     overflow: hidden;
@@ -511,11 +511,11 @@ watch(
 
   &.selected {
     border: 2px solid var(--color-primary);
-    padding: 11px;
+    padding: 16px;
 
-    .card-node-background {
-      border-radius: 6px;
-    }
+    // .card-node-background {
+    //   border-radius: 8px;
+    // }
   }
 
   // 连接点样式
@@ -571,7 +571,7 @@ watch(
         align-items: center;
         padding: 0px;
         position: relative;
-        height: 20px;
+        height: 30px;
       }
     }
 

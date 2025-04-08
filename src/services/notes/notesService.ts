@@ -186,13 +186,10 @@ type SearchMode = 'all' | 'address' | 'title'
 
 // 修改查询构建逻辑
 function buildSearchQuery(db: Knex, mode: SearchMode, searchTerms: string[]) {
-  console.log('后端→ 构建搜索查询:', { mode, searchTerms })
-
   const query = db('notes').where('isDeleted', false).whereNot('cardType', 'Draftcard')
 
   switch (mode) {
     case 'address':
-      console.log('后端→ 构建地址搜索查询')
       // 对地址进行多关键词匹配
       query.where((builder) => {
         searchTerms.forEach((term, index) => {
@@ -206,7 +203,6 @@ function buildSearchQuery(db: Knex, mode: SearchMode, searchTerms: string[]) {
       return query.select('*', db.raw('3 as match_priority'))
 
     case 'title':
-      console.log('后端→ 构建标题搜索查询')
       // 对标题进行多关键词匹配
       query.where((builder) => {
         searchTerms.forEach((term, index) => {
@@ -221,7 +217,6 @@ function buildSearchQuery(db: Knex, mode: SearchMode, searchTerms: string[]) {
 
     case 'all':
     default:
-      console.log('后端→ 构建全文搜索查询')
       // 保持原有的全文搜索逻辑
       return query
         .where((builder) => {
@@ -253,15 +248,11 @@ export async function searchNotes(params: SearchParams): Promise<Array<SearchRes
   const { mode, term } = params
   const searchTerms = term.toLowerCase().trim().split(/\s+/).filter(Boolean)
 
-  console.log('后端→ 开始搜索笔记:', { mode, searchTerms })
-
   if (searchTerms.length === 0) return []
 
   try {
     const query = buildSearchQuery(db, mode, searchTerms)
     const notes = await query
-
-    console.log('后端→ 搜索结果数量:', notes.length)
 
     return notes.reduce((results: SearchResult[], note) => {
       const matchingBlocks: Array<{ content: string }> = []
@@ -311,7 +302,6 @@ export async function searchNotes(params: SearchParams): Promise<Array<SearchRes
             matchingBlocks.push(...matches)
           }
         } else if (mode === 'address') {
-          console.log('后端→ 地址搜索模式, 笔记地址:', note.address)
           // 只检查地址
           const lowerAddress = note.address.toLowerCase()
           const allTermsFound = searchTerms.every((term) => lowerAddress.includes(term))
@@ -321,7 +311,6 @@ export async function searchNotes(params: SearchParams): Promise<Array<SearchRes
             })
           }
         } else if (mode === 'title') {
-          console.log('后端→ 标题搜索模式, 笔记标题:', metadata.title)
           // 只检查标题
           const lowerTitle = metadata.title.toLowerCase()
           const allTermsFound = searchTerms.every((term) => lowerTitle.includes(term))
@@ -355,7 +344,6 @@ export async function searchNotes(params: SearchParams): Promise<Array<SearchRes
 
 // 搜索笔记列表
 export async function searchNotesList(query: string): Promise<Note[]> {
-  // console.log('后端→ 开始搜索笔记列表:', query)
   const lowercaseQuery = query.toLowerCase().trim()
   if (!lowercaseQuery) return []
 
@@ -536,10 +524,6 @@ async function canCreateNote(): Promise<{ allowed: boolean; message?: string }> 
   try {
     // 获取当前认证状态
     const authState = await getCurrentAuthState()
-    // console.log('notesService→ 检查创建权限:', {
-    //   hasAuth: !!authState,
-    //   licenseType: authState?.user?.licenseType
-    // })
 
     // 如果是永久授权用户，直接允许
     if (authState?.user?.licenseType === 'desktop_permanent') {
@@ -549,7 +533,6 @@ async function canCreateNote(): Promise<{ allowed: boolean; message?: string }> 
     // 未授权或免费用户检查笔记数量
     const count = await db('notes').where('isDeleted', false).count('* as count').first()
     const noteCount = count ? (count.count as number) : 0
-    // console.log('notesService→ 当前笔记数量:', noteCount)
 
     if (noteCount >= 100) {
       return {
@@ -663,7 +646,6 @@ export async function createNote(
       metadata: JSON.stringify(newNote.metadata)
     })
 
-    // console.log('后端→ 创建笔记成功:', id)
     return newNote
   } catch (error) {
     console.error('后端→ 创建笔记失败:', error)
@@ -762,9 +744,6 @@ function extractFirstLineText(content: any): string {
 }
 
 export async function updateNote(id: string, updateNoteDto: Partial<Note>): Promise<Note> {
-  console.log(`后端→ 开始更新笔记 ID: ${id}`)
-  console.log('后端→ 更新数据:', JSON.stringify(updateNoteDto, null, 2))
-
   if (!id?.trim()) {
     console.error('后端→ 无效的笔记ID')
     throw new Error('无效的笔记ID')
@@ -778,8 +757,6 @@ export async function updateNote(id: string, updateNoteDto: Partial<Note>): Prom
         console.error(`后端→ 未找到ID为 ${id} 的笔记`)
         throw new Error(`Note with ID "${id}" not found`)
       }
-
-      console.log('后端→ 找到的原始笔记:', JSON.stringify(note, null, 2))
 
       // 2. 准备更新数据
       const updateData: any = {}
@@ -868,8 +845,6 @@ export async function updateNote(id: string, updateNoteDto: Partial<Note>): Prom
 
 // 软删除笔记
 export async function softDeleteNote(id: string): Promise<Note> {
-  console.log(`后端→ 开始软删除笔记: ${id}`)
-
   return db.transaction(async (trx) => {
     try {
       // 1. 首先获取笔记
@@ -892,7 +867,6 @@ export async function softDeleteNote(id: string): Promise<Note> {
       }
 
       const convertedNote = convertToNote(updatedNote)
-      console.log('后端→ 软删除笔记成功，更新后的笔记:', JSON.stringify(convertedNote))
 
       return convertedNote
     } catch (error) {
@@ -958,8 +932,6 @@ export async function permanentDeleteNote(id: string): Promise<void> {
 
       // 3. 删除笔记本身
       await trx('notes').where('id', id).delete()
-
-      console.log(`后端→ 永久删除笔记及其相关引用: ${id}`)
     } catch (error) {
       console.error(`后端→ 永久删除笔记失败: ${id}:`, error)
       throw error
@@ -1031,8 +1003,6 @@ export async function addStarToNote(id: string): Promise<Note> {
 export async function removeStarFromNote(
   id: string
 ): Promise<{ updatedNote: Note; reorderedNotes: Note[] }> {
-  console.log(`开始取消笔记 ${id} 的星标状态`)
-
   return db
     .transaction(async (trx) => {
       // 1. 查找并检查笔记
@@ -1042,12 +1012,10 @@ export async function removeStarFromNote(
         throw new Error(`笔记 ${id} 不存在`)
       }
       if (!note.isStarred) {
-        console.log(`笔记 ${id} 未被星标，无需操作`)
         return { updatedNote: convertToNote(note), reorderedNotes: [] }
       }
 
       const removedOrder = note.starredOrder
-      console.log(`笔记 ${id} 当前的星标顺序为 ${removedOrder}`)
 
       // 2. 更新当前笔记
       const [updatedNote] = await trx('notes')
@@ -1058,15 +1026,11 @@ export async function removeStarFromNote(
         })
         .returning('*')
 
-      console.log(`已更新笔记 ${id} 的星标状态`)
-
       // 3. 获取需要更新的笔记
       const notesToUpdate = await trx('notes')
         .where('isStarred', true)
         .andWhere('starredOrder', '>', removedOrder)
         .orderBy('starredOrder', 'asc')
-
-      console.log(`需要更新顺序的笔记数量: ${notesToUpdate.length}`)
 
       // 4. 更新其他笔记的顺序
       const reorderedNotes = await Promise.all(
@@ -1080,8 +1044,6 @@ export async function removeStarFromNote(
           return updated
         })
       )
-
-      console.log(`已更新 ${reorderedNotes.length} 个笔记的顺序`)
 
       // 5. 转换并返回结果
       return {
@@ -1114,8 +1076,6 @@ export async function updateStarredNotesOrder(
   orders: { id: string; starredOrder: number }[]
 ): Promise<Note[]> {
   try {
-    console.log('后端→ 开始更新星标笔记顺序', orders)
-
     if (!orders || orders.length === 0) {
       throw new Error('后端→ 更新星标笔记顺序：无效的输入数据')
     }
@@ -1146,8 +1106,6 @@ export async function updateStarredNotesOrder(
         .select('*')
     })
 
-    console.log(`后端→ 更新星标笔记顺序成功，共更新 ${updatedNotes.length} 条笔记`)
-
     return updatedNotes.map(convertToNote)
   } catch (error) {
     console.error('后端→ 更新星标笔记顺序失败:', error)
@@ -1157,8 +1115,6 @@ export async function updateStarredNotesOrder(
 // 更新笔记地址
 export async function updateNoteAddress(id: string, address: string): Promise<Note> {
   try {
-    // console.log('后端→ 开始更新笔记地址:', { id, address })
-
     const [updatedNote] = await db('notes')
       .where({ id })
       .update({
@@ -1171,7 +1127,6 @@ export async function updateNoteAddress(id: string, address: string): Promise<No
       throw new Error(`未找到ID为 ${id} 的笔记`)
     }
 
-    console.log('后端→ 笔记地址更新成功:', updatedNote)
     return convertToNote(updatedNote)
   } catch (error) {
     console.error('后端→ 更新笔记地址失败:', error)
@@ -1181,8 +1136,6 @@ export async function updateNoteAddress(id: string, address: string): Promise<No
 // 更新笔记类型
 export async function updateNoteCardType(id: string, cardType: string): Promise<Note> {
   try {
-    console.log('后端→ 开始更新笔记类型:', { id, cardType })
-
     const [updatedNote] = await db('notes')
       .where({ id })
       .update({
@@ -1195,7 +1148,6 @@ export async function updateNoteCardType(id: string, cardType: string): Promise<
       throw new Error(`未找到ID为 ${id} 的笔记`)
     }
 
-    console.log('后端→ 笔记类型更新成功:', updatedNote)
     return convertToNote(updatedNote)
   } catch (error) {
     console.error('后端→ 更新笔记类型失败:', error)
@@ -1205,8 +1157,6 @@ export async function updateNoteCardType(id: string, cardType: string): Promise<
 // 更新笔记的卡片盒
 export async function updateNoteCardBox(noteId: string, cardBoxId: string): Promise<Note> {
   try {
-    console.log('后端→ 开始更新笔记卡片盒:', { noteId, cardBoxId })
-
     const [updatedNote] = await db('notes')
       .where({ id: noteId })
       .update({
@@ -1219,7 +1169,6 @@ export async function updateNoteCardBox(noteId: string, cardBoxId: string): Prom
       throw new Error(`未找到ID为 ${noteId} 的笔记`)
     }
 
-    console.log('后端→ 笔记卡片盒更新成功:', updatedNote)
     return convertToNote(updatedNote)
   } catch (error) {
     console.error('后端→ 更新笔记卡片盒失败:', error)
@@ -1230,8 +1179,6 @@ export async function updateNoteCardBox(noteId: string, cardBoxId: string): Prom
 // 获取时间线笔记
 export async function getTimelineNotes(params: TimelineQueryParams): Promise<TimelineQueryResult> {
   try {
-    console.log('后端→ 开始获取时间线笔记', params)
-
     let query = db('notes').where('isDeleted', false)
 
     // 日期相关查询条件
@@ -1281,7 +1228,6 @@ export async function getTimelineNotes(params: TimelineQueryParams): Promise<Tim
           }
         })
       })
-      console.log(`后端→ 添加搜索条件: ${params.searchTerm}`)
     }
 
     // 卡片类型过滤
@@ -1332,7 +1278,6 @@ export async function createNoteReference(
   params: CreateNoteReferenceParams
 ): Promise<NoteReference> {
   try {
-    console.log('后端→ 创建笔记引用关系:', params)
     const now = new Date()
 
     // 1. 验证笔记是否存在
@@ -1430,8 +1375,6 @@ export async function deleteNoteReference(params: {
   targetNoteId: string
 }): Promise<void> {
   try {
-    console.log('后端→ 删除笔记引用关系:', params)
-
     // 1. 获取引用关系
     const reference = await db('note_references')
       .where({
@@ -1477,8 +1420,6 @@ export async function deleteNoteReference(params: {
         targetNoteId: params.targetNoteId
       })
       .delete()
-
-    console.log('后端→ 删除笔记引用关系成功')
   } catch (error) {
     console.error('后端→ 删除笔记引用关系失败:', error)
     throw error
@@ -1525,12 +1466,6 @@ export async function updateNoteTag(params: {
           })
           .delete()
       }
-
-      console.log('后端→ 笔记标签更新成功:', {
-        noteId: params.noteId,
-        tagId: params.tagId,
-        action: params.action
-      })
     })
   } catch (error) {
     console.error('后端→ 更新笔记标签失败:', { params, error })
@@ -1567,11 +1502,6 @@ export async function updateNoteTags(noteId: string, tagIds: string[]): Promise<
           }))
         )
       }
-
-      console.log('后端→ 批量更新笔记标签成功:', {
-        noteId,
-        tagCount: tagIds.length
-      })
     })
   } catch (error) {
     console.error('后端→ 批量更新笔记标签失败:', { noteId, tagIds, error })
@@ -1607,15 +1537,12 @@ export async function getPaginatedNotesByCardbox({
 
     // 如果有自定义筛选规则，优先使用自定义规则
     if (customFilterId) {
-      console.log('使用自定义筛选规则:', customFilterId)
       const customFilter = await db('custom_filters').where('id', customFilterId).first()
 
       if (customFilter) {
         const rules = await db('filter_rules')
           .where('filterId', customFilterId)
           .orderBy('createdAt', 'asc')
-
-        console.log('获取到的筛选规则:', rules)
 
         // 根据匹配类型构建查询
         if (customFilter.matchType === 'all') {
@@ -1634,10 +1561,6 @@ export async function getPaginatedNotesByCardbox({
             })
           })
         }
-
-        // 添加调试日志
-        const sqlString = query.toString()
-        console.log('生成的SQL查询:', sqlString)
       }
     } else {
       // 使用常规筛选条件
@@ -1720,11 +1643,6 @@ export async function getPaginatedNotesByCardbox({
     const offset = (page - 1) * limit
     const notes = await query.orderBy(`notes.${sortBy}`, sortOrder).limit(limit).offset(offset)
 
-    console.log('后端→ 获取分页笔记成功:', {
-      notes: notes.map((note) => note.id),
-      totalCount,
-      targetPosition
-    })
     return {
       notes: notes.map(convertToNote),
       totalCount,
@@ -1754,9 +1672,7 @@ function applyFilterRule(query: Knex.QueryBuilder, rule: FilterRule): Knex.Query
     return value
   }
 
-  console.log('原始规则值:', rule.value)
   const value = parseValue(rule.value)
-  console.log('第一次解析后的值:', value)
 
   switch (rule.field) {
     case 'tag': {
@@ -1791,8 +1707,6 @@ function applyFilterRule(query: Knex.QueryBuilder, rule: FilterRule): Knex.Query
         return String(id)
       })
 
-      console.log('最终标签ID数组:', tagIds)
-
       if (rule.operator === 'contains') {
         // 修改为使用子查询，确保笔记同时包含所有指定标签
         return query.whereIn('notes.id', function () {
@@ -1813,7 +1727,6 @@ function applyFilterRule(query: Knex.QueryBuilder, rule: FilterRule): Knex.Query
 
     case 'cardBox': {
       const boxId = String(value)
-      console.log('卡片盒ID:', boxId)
       if (rule.operator === 'is') {
         return boxId === 'inbox'
           ? query.whereNull('notes.cardBoxId')
@@ -1828,7 +1741,6 @@ function applyFilterRule(query: Knex.QueryBuilder, rule: FilterRule): Knex.Query
 
     case 'cardType': {
       const cardType = String(value)
-      console.log('卡片类型:', cardType)
       if (rule.operator === 'is') {
         return query.where('notes.cardType', cardType)
       } else if (rule.operator === 'isNot') {
@@ -1840,7 +1752,6 @@ function applyFilterRule(query: Knex.QueryBuilder, rule: FilterRule): Knex.Query
     case 'keyword': {
       const keyword = String(value)
       const searchKeyword = `%${keyword}%`
-      console.log('搜索关键词:', searchKeyword)
       if (rule.operator === 'contains') {
         return query.where((builder) => {
           builder
@@ -1869,8 +1780,6 @@ function applyFilterRule(query: Knex.QueryBuilder, rule: FilterRule): Knex.Query
     }
   }
 
-  const sqlString = query.toString()
-  console.log('生成的SQL:', sqlString)
   return query
 }
 
@@ -1921,8 +1830,6 @@ export async function batchMoveNotesToCardBox(
   cardBoxId: string | null
 ): Promise<Note[]> {
   try {
-    console.log('后端→ 开始批量移动笔记到卡片盒:', { noteIds, cardBoxId })
-
     // 使用事务确保操作的原子性
     const updatedNotes = await db.transaction(async (trx) => {
       // 1. 如果指定了卡片盒ID，验证卡片盒是否存在
@@ -1952,7 +1859,6 @@ export async function batchMoveNotesToCardBox(
       return notes.map(convertToNote)
     })
 
-    console.log('后端→ 批量移动笔记成功:', updatedNotes.length)
     return updatedNotes
   } catch (error) {
     console.error('后端→ 批量移动笔记失败:', error)
@@ -1966,8 +1872,6 @@ export async function batchUpdateNotesCardType(
   cardType: string
 ): Promise<Note[]> {
   try {
-    console.log('后端→ 开始批量设置卡片类型:', { noteIds, cardType })
-
     // 使用事务确保操作的原子性
     const updatedNotes = await db.transaction(async (trx) => {
       // 1. 验证所有笔记是否存在
@@ -1995,7 +1899,6 @@ export async function batchUpdateNotesCardType(
       return notes.map(convertToNote)
     })
 
-    console.log('后端→ 批量设置卡片类型成功:', updatedNotes.length)
     return updatedNotes
   } catch (error) {
     console.error('后端→ 批量设置卡片类型失败:', error)
@@ -2005,8 +1908,6 @@ export async function batchUpdateNotesCardType(
 
 // 批量软删除笔记
 export async function batchSoftDeleteNotes(noteIds: string[]): Promise<Note[]> {
-  console.log(`后端→ 开始批量软删除笔记: ${noteIds.length} 条`)
-
   return db.transaction(async (trx) => {
     try {
       // 1. 首先获取所有笔记
@@ -2031,7 +1932,6 @@ export async function batchSoftDeleteNotes(noteIds: string[]): Promise<Note[]> {
       }
 
       const convertedNotes = updatedNotes.map((note) => convertToNote(note))
-      console.log('后端→ 批量软删除笔记成功，更新数量:', convertedNotes.length)
 
       return convertedNotes
     } catch (error) {
