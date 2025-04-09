@@ -518,7 +518,7 @@ async function generateSiblingAddress(
     } else {
       // 检查下一个节点
       // 找到下一个同一顶级节点下的二级节点
-      let nextNode = null
+      let nextNode: string | null = null
       let nextNodeNum = 10 // 设置一个较大的初始值
 
       for (const addr of allAddresses) {
