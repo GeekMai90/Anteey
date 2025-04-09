@@ -13,6 +13,7 @@ import type {
 import { Knex } from 'knex/types'
 import { FilterRule } from '@shared/types'
 import { db } from '../../db/config'
+import { clipboard } from 'electron'
 
 import { getCurrentAuthState } from '../auth/authService'
 import { ImageService } from '../images/imageService'
@@ -2243,4 +2244,21 @@ function getFirstLetter(text: string): string {
 
   // 其他字符返回 #
   return '#'
+}
+
+// 复制笔记地址到剪贴板
+export async function copyNoteAddressToClipboard(noteId: string): Promise<string> {
+  try {
+    const note = await db('notes').where('id', noteId).first()
+    if (!note) {
+      throw new Error('笔记不存在')
+    }
+
+    // 复制地址到剪贴板
+    clipboard.writeText(note.address)
+    return note.address
+  } catch (error) {
+    console.error('复制笔记地址到剪贴板失败:', error)
+    throw error
+  }
 }

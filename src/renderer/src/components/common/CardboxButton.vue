@@ -90,7 +90,6 @@ const handleCardboxUpdate = async (cardBoxId: string) => {
   border: none;
   background: none;
   cursor: pointer;
-  transition: all 0.2s ease;
   border-radius: 6px;
   padding: 4px;
   margin: 2px;

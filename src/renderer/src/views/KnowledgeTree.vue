@@ -2,24 +2,41 @@
   <div class="knowledge-tree-container">
     <!-- 顶部工具栏组件 -->
     <AppToolbar />
-    <!-- 思维导图容器 -->
-    <div ref="container" class="jsmind-container"></div>
+
+    <!-- 左侧工具条 -->
+    <KnowledgeTreeToolbar
+      @zoomIn="handleZoomIn"
+      @zoomOut="handleZoomOut"
+      @resetZoom="handleResetZoom"
+      @backToRoot="handleBackToRoot"
+    />
+
+    <!-- 主要内容区域 -->
+    <div
+      class="main-content"
+      :style="{ height: isPanelExpanded ? 'calc(100% - 40px - 300px)' : 'calc(100% - 40px)' }"
+    >
+      <!-- 思维导图容器 -->
+      <div ref="container" class="jsmind-container"></div>
+    </div>
+
+    <!-- 底部可折叠面板 -->
+    <CollapsiblePanel v-model="isPanelExpanded" :notes="visibleNotes" />
 
     <!-- 右键菜单 -->
-    <div
-      v-if="contextMenuVisible"
-      ref="contextMenuRef"
-      class="context-menu"
-      :style="{
-        position: 'absolute',
-        left: 0,
-        top: 0,
-        transform: `translate3d(${x}px, ${y}px, 0)`
+    <NoteContextMenu
+      :show="contextMenuVisible"
+      :button-ref="referenceRef"
+      :note-id="selectedNodeNoteId"
+      :menu-config="{
+        addSibling: true,
+        addChild: true,
+        copyAddress: true,
+        expandEdit: true,
+        viewInCardbox: true
       }"
-    >
-      <div class="context-menu-item" @click="handleAddSiblingNode">添加同级节点</div>
-      <div class="context-menu-item" @click="handleAddChildNode">添加子节点</div>
-    </div>
+      @close="closeContextMenu"
+    />
   </div>
 </template>
 
@@ -30,16 +47,19 @@
 点击展开/折叠按钮管理子节点 * 3. 导航功能 * - 支持通过路由参数直接定位节点 * -
 支持通过搜索结果跳转到指定节点 * * @author 麦先生 * @created 2024-03-20 */
 // 导入必要的 Vue 组件和工具
-import { ref, onMounted, onBeforeUnmount, watch } from 'vue'
+import { ref, onMounted, onBeforeUnmount, watch, computed } from 'vue'
 import '../styles/jsmind-antinet-theme.css'
 import jsMind from 'jsmind'
 import { useKnowledgeTreeStore } from '@renderer/stores/knowledgeTreeStore'
 import type { KnowledgeTreeNode } from '@shared/types'
+import type { Note } from '@shared/types/note'
 import AppToolbar from '../components/layout/AppToolbar.vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useNoteStore } from '@renderer/stores/noteStore'
 import { useUIStore } from '@renderer/stores/UIStore'
-import { useFloating, offset, flip, shift, autoUpdate } from '@floating-ui/vue'
+import CollapsiblePanel from '@renderer/components/knowledge/CollapsiblePanel.vue'
+import KnowledgeTreeToolbar from '../components/knowledge/KnowledgeTreeToolbar.vue'
+import NoteContextMenu from '@renderer/components/common/NoteContextMenu.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -128,20 +148,16 @@ const jm = ref<any>(null)
 
 // 右键菜单相关变量
 const contextMenuVisible = ref(false)
-const contextMenuRef = ref<HTMLElement | null>(null)
-const referenceRef = ref<Element | null>(null)
+const referenceRef = ref<HTMLElement | null>(null)
 const selectedNodeId = ref('')
 
-// 使用 floating-ui 设置菜单定位
-const { x, y, update } = useFloating(referenceRef, contextMenuRef, {
-  placement: 'right-start',
-  middleware: [
-    offset(6), // 设置一个小的偏移量，让菜单不会贴得太近
-    flip({ padding: 10 }), // 如果空间不够，自动翻转到另一侧
-    shift({ padding: 5 }) // 确保菜单不会超出可视区域
-  ],
-  whileElementsMounted: autoUpdate // 当元素挂载时自动更新位置
-})
+// 在顶部添加新的响应式状态
+const isPanelExpanded = ref(false)
+const visibleNotes = ref<Note[]>([])
+
+// 单击延迟处理相关变量
+const clickTimer = ref<number | null>(null)
+const clickDelay = 300 // 毫秒
 
 /**
  * 转换数据为 JsMind 格式
@@ -243,21 +259,10 @@ const handleContextMenu = (e: MouseEvent, nodeId: string) => {
   if (!jmnodeElement) return
 
   // 设置参考元素
-  referenceRef.value = jmnodeElement
+  referenceRef.value = jmnodeElement as HTMLElement
 
   // 显示菜单
   contextMenuVisible.value = true
-
-  // 更新菜单位置
-  setTimeout(() => {
-    update && update()
-  }, 0)
-
-  // 添加点击事件监听器，点击其他区域关闭菜单
-  document.addEventListener('click', closeContextMenu)
-
-  // 添加滚动事件监听器，滚动时关闭菜单
-  document.addEventListener('scroll', closeContextMenu, true)
 }
 
 /**
@@ -265,44 +270,6 @@ const handleContextMenu = (e: MouseEvent, nodeId: string) => {
  */
 const closeContextMenu = () => {
   contextMenuVisible.value = false
-  document.removeEventListener('click', closeContextMenu)
-  document.removeEventListener('scroll', closeContextMenu, true)
-}
-
-/**
- * 添加同级节点
- */
-const handleAddSiblingNode = async () => {
-  try {
-    console.log('添加同级节点:', selectedNodeId.value)
-    const node = knowledgeTreeStore.findNodeByAddress(selectedNodeId.value)
-    if (node && node.noteId) {
-      const newNote = await knowledgeTreeStore.createAdjacentNote(node.noteId, 'below')
-      // 使用小窗打开新笔记
-      noteStore.openNoteEditor(newNote.id)
-    }
-  } catch (error) {
-    console.error('添加同级节点失败:', error)
-  }
-  closeContextMenu()
-}
-
-/**
- * 添加子节点
- */
-const handleAddChildNode = async () => {
-  try {
-    console.log('添加子节点:', selectedNodeId.value)
-    const node = knowledgeTreeStore.findNodeByAddress(selectedNodeId.value)
-    if (node && node.noteId) {
-      const newNote = await knowledgeTreeStore.createAdjacentNote(node.noteId, 'child')
-      // 使用小窗打开新笔记
-      noteStore.openNoteEditor(newNote.id)
-    }
-  } catch (error) {
-    console.error('添加子节点失败:', error)
-  }
-  closeContextMenu()
 }
 
 /**
@@ -350,20 +317,17 @@ const initJsMind = async () => {
       const jsMindData = transformToJsMindData(knowledgeTreeStore.nodes)
       jm.value.show(jsMindData)
 
-      // 在显示数据后，手动展开所有标记为展开的节点
-      if (knowledgeTreeStore.viewState.isInFocusMode) {
-        const root = jm.value.get_root()
-        if (root) {
-          // 展开根节点
-          jm.value.expand_node(root.id)
-          // 展开所有子节点
-          const children = jm.value.get_node(root.id).children
-          if (children) {
-            children.forEach((child: any) => {
-              jm.value.expand_node(child.id)
-            })
+      // 3. 展开所有节点
+      const root = jm.value.get_root()
+      if (root) {
+        const expandNode = (node: { id: string; children?: any[] }) => {
+          if (!node) return
+          jm.value.expand_node(node.id)
+          if (node.children) {
+            node.children.forEach(expandNode)
           }
         }
+        expandNode(root)
       }
 
       // 添加事件监听器
@@ -410,7 +374,7 @@ const handleNodeClick = async (e: MouseEvent) => {
 
   const element = e.target as HTMLElement
 
-  // 处理展开/折叠按钮点击
+  // 处理展开/折叠按钮点击 - 这些需要立即响应，不需要延迟
   if (element.classList.contains('node-expand-btn')) {
     // 阻止事件冒泡
     e.stopPropagation()
@@ -489,34 +453,43 @@ const handleNodeClick = async (e: MouseEvent) => {
 
   // 获取节点元素
   const jmnodeElement = element.closest('jmnode')
-  if (jmnodeElement) {
-    const nodeId = jmnodeElement.getAttribute('nodeid')
-    if (nodeId) {
-      const node = jm.value.get_node(nodeId)
-      if (node && node.data && node.data.data.noteId) {
-        if (e.altKey) {
-          // Alt + 点击：跳转到卡片盒查看笔记
-          router.push({
-            name: 'cardbox',
-            query: {
-              mode: 'context',
-              noteId: node.data.data.noteId
-            }
-          })
-        } else if (e.metaKey || e.ctrlKey) {
-          // Command/Ctrl + 点击：在扩展编辑器中打开
-          router.push({
-            name: 'NoteExpandEditor',
-            params: { id: node.data.data.noteId }
-          })
-        } else {
-          // 普通点击：原有的预览功能
-          noteStore.openBacklinkPreview(node.data.data.noteId)
-          uiStore.openRightSidebarWithTab('backlink')
-        }
+  if (!jmnodeElement) return
+
+  const nodeId = jmnodeElement.getAttribute('nodeid')
+  if (!nodeId) return
+
+  // 清除可能存在的定时器
+  if (clickTimer.value !== null) {
+    clearTimeout(clickTimer.value)
+    clickTimer.value = null
+  }
+
+  // 设置新的定时器，延迟执行单击操作
+  clickTimer.value = window.setTimeout(() => {
+    const node = jm.value.get_node(nodeId)
+    if (node && node.data && node.data.data.noteId) {
+      if (e.altKey) {
+        // Alt + 点击：跳转到卡片盒查看笔记
+        router.push({
+          name: 'cardbox',
+          query: {
+            mode: 'context',
+            noteId: node.data.data.noteId
+          }
+        })
+      } else if (e.metaKey || e.ctrlKey) {
+        // Command/Ctrl + 点击：在扩展编辑器中打开
+        router.push({
+          name: 'NoteExpandEditor',
+          params: { id: node.data.data.noteId }
+        })
+      } else {
+        // 普通点击：原有的预览功能
+        noteStore.openBacklinkPreview(node.data.data.noteId)
+        uiStore.openRightSidebarWithTab('backlink')
       }
     }
-  }
+  }, clickDelay)
 }
 
 /**
@@ -527,6 +500,12 @@ const handleNodeClick = async (e: MouseEvent) => {
  */
 const handleNodeDblClick = async (e: MouseEvent) => {
   if (!jm.value) return
+
+  // 清除单击定时器，防止单击事件触发
+  if (clickTimer.value !== null) {
+    clearTimeout(clickTimer.value)
+    clickTimer.value = null
+  }
 
   const element = e.target as HTMLElement
 
@@ -618,17 +597,41 @@ const handleNodeDblClick = async (e: MouseEvent) => {
   }
 }
 
-// 修改 watch 部分
+// 修改数据收集函数为异步函数
+const collectVisibleNotes = async () => {
+  const notes: Note[] = []
+
+  const processNode = async (node: KnowledgeTreeNode) => {
+    if (node.noteId) {
+      // 获取完整的笔记数据
+      const noteData = await noteStore.fetchNote(node.noteId)
+      if (noteData) {
+        notes.push(noteData)
+      }
+    }
+    if (node.isExpanded && node.children) {
+      for (const child of node.children) {
+        await processNode(child)
+      }
+    }
+  }
+
+  for (const node of knowledgeTreeStore.nodes) {
+    await processNode(node)
+  }
+  visibleNotes.value = notes
+}
+
+// 修改 watch 部分，使用异步函数
 watch(
   () => knowledgeTreeStore.nodes,
-  () => {
+  async () => {
     if (jm.value) {
-      // console.log('节点数据更新:', knowledgeTreeStore.nodes)
       const jsMindData = transformToJsMindData(knowledgeTreeStore.nodes)
-      // console.log('转换后的 jsMind 数据:', jsMindData)
-
-      // 直接显示新数据，jsMind 会自动清除旧数据
       jm.value.show(jsMindData)
+
+      // 收集可见的笔记信息
+      await collectVisibleNotes()
 
       // 确保所有节点都展开
       setTimeout(() => {
@@ -793,6 +796,66 @@ watch(
   { immediate: true }
 )
 
+// 工具栏相关的处理函数
+const handleZoomIn = () => {
+  if (!jm.value) return
+  jm.value.view.zoomIn()
+}
+
+const handleZoomOut = () => {
+  if (!jm.value) return
+  jm.value.view.zoomOut()
+}
+
+const handleResetZoom = () => {
+  if (!jm.value) return
+  jm.value.view.setZoom(1) // 重置为默认缩放比例
+}
+
+const handleBackToRoot = async () => {
+  try {
+    // 完全重置所有状态
+    knowledgeTreeStore.reset()
+
+    // 重新获取顶层节点
+    await knowledgeTreeStore.fetchTopLevelNodes()
+
+    // 重新初始化视图
+    const jsMindData = transformToJsMindData(knowledgeTreeStore.nodes)
+    jm.value.show(jsMindData)
+
+    // 重置缩放比例为1
+    jm.value.view.setZoom(1)
+
+    // 重新绑定事件监听器
+    setTimeout(() => {
+      const jmnodes = container.value?.querySelectorAll('jmnode')
+      jmnodes?.forEach((node: Element) => {
+        node.addEventListener('click', ((e: Event) => {
+          if (e instanceof MouseEvent) {
+            handleNodeClick(e)
+          }
+        }) as EventListener)
+        node.addEventListener('dblclick', ((e: Event) => {
+          if (e instanceof MouseEvent) {
+            handleNodeDblClick(e)
+          }
+        }) as EventListener)
+        node.addEventListener('contextmenu', ((e: Event) => {
+          if (e instanceof MouseEvent) {
+            const nodeId = node.getAttribute('nodeid')
+            if (nodeId) {
+              handleContextMenu(e, nodeId)
+            }
+          }
+        }) as EventListener)
+      })
+    }, 100)
+  } catch (error) {
+    console.error('返回根节点时发生错误:', error)
+  }
+}
+
 // 生命周期钩子
 onMounted(() => {
   initJsMind()
@@ -800,12 +863,20 @@ onMounted(() => {
 
 // 添加组件卸载前的清理工作
 onBeforeUnmount(() => {
+  // 清除点击定时器
+  if (clickTimer.value !== null) {
+    clearTimeout(clickTimer.value)
+    clickTimer.value = null
+  }
+
   // 关闭右侧边栏
   uiStore.closeRightSidebar()
+})
 
-  // 移除文档点击事件监听
-  document.removeEventListener('click', closeContextMenu)
-  document.removeEventListener('scroll', closeContextMenu, true)
+// 在 script 部分添加 selectedNodeNoteId 计算属性
+const selectedNodeNoteId = computed(() => {
+  const node = knowledgeTreeStore.findNodeByAddress(selectedNodeId.value)
+  return node?.noteId || ''
 })
 </script>
 
@@ -815,11 +886,20 @@ onBeforeUnmount(() => {
   height: 100%;
   display: flex;
   flex-direction: column;
+  position: relative;
+  overflow: hidden;
+}
+
+.main-content {
+  flex: 1;
+  position: relative;
+  transition: height 0.3s ease;
 }
 
 .jsmind-container {
-  flex: 1;
-  overflow: hidden;
+  width: 100%;
+  height: 100%;
+  overflow: auto;
   background-color: var(--color-bg-primary);
 }
 
@@ -871,7 +951,7 @@ onBeforeUnmount(() => {
   cursor: pointer;
   font-size: 11px;
   line-height: 1;
-  color: var(--color-text-primary);
+  color: var(--color-text-secondary);
   padding: 0;
   opacity: 0.8;
   transition: all 0.2s ease;
@@ -911,5 +991,10 @@ onBeforeUnmount(() => {
 .context-menu-item:hover {
   background: var(--color-primary-light);
   color: var(--color-primary);
+}
+
+/* 确保工具条不会被其他元素遮挡 */
+.knowledge-tree-container {
+  position: relative;
 }
 </style>

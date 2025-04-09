@@ -40,7 +40,8 @@ import {
   updateIndexOrder,
   batchAddToIndex,
   batchRemoveFromIndex,
-  getIndexedNotesByLetter
+  getIndexedNotesByLetter,
+  copyNoteAddressToClipboard
 } from '../../services/notes/notesService'
 import type {
   GetPaginatedNotesParams,
@@ -512,6 +513,20 @@ export function setupNotesHandlers() {
       return { success: true, notes }
     } catch (error) {
       console.error('主进程→ 获取特定首字母的索引笔记失败:', error)
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : String(error)
+      }
+    }
+  })
+
+  // 复制笔记地址到剪贴板
+  ipcMain.handle('copy-note-address', async (_event, noteId: string) => {
+    try {
+      const address = await copyNoteAddressToClipboard(noteId)
+      return { success: true, address }
+    } catch (error) {
+      console.error('主进程 → 复制笔记地址到剪贴板失败:', error)
       return {
         success: false,
         error: error instanceof Error ? error.message : String(error)

@@ -12,24 +12,29 @@
         }"
       >
         <template v-if="menuItems.length > 0">
-          <div
-            v-for="item in menuItems"
-            :key="item.name"
-            class="menu-item"
-            :class="{ 'is-dangerous': item.isDangerous }"
-            @click="handleItemClick(item)"
-          >
-            <div class="icon">
-              <component
-                :is="getIconComponent(item.icon)"
-                theme="outline"
-                size="18"
-                :fill="getItemFill(item)"
-                :strokeWidth="3"
-              />
-            </div>
-            <div class="name">{{ item.label }}</div>
-          </div>
+          <template v-for="item in menuItems" :key="item.name">
+            <template v-if="item.divider">
+              <div class="menu-divider"></div>
+            </template>
+            <template v-else>
+              <div
+                class="menu-item"
+                :class="{ 'is-dangerous': item.isDangerous }"
+                @click="handleItemClick(item)"
+              >
+                <div class="icon">
+                  <component
+                    :is="getIconComponent(item.icon)"
+                    theme="outline"
+                    size="18"
+                    :fill="getItemFill(item)"
+                    :strokeWidth="3"
+                  />
+                </div>
+                <div class="name">{{ item.label }}</div>
+              </div>
+            </template>
+          </template>
         </template>
         <div v-else class="empty-menu-item">
           {{ props.emptyText || '暂无可用选项' }}
@@ -53,6 +58,7 @@ export interface MenuItem {
   action: () => void
   fill?: string
   isDangerous?: boolean
+  divider?: boolean // 新增：是否在此项后显示分隔线
 }
 
 const props = defineProps<{
@@ -159,7 +165,6 @@ onUnmounted(() => {
   border: none;
   background: none;
   cursor: pointer;
-  transition: all 0.2s ease;
   border-radius: 6px;
   padding: 4px 4px;
   margin: 2px;
@@ -250,5 +255,14 @@ onUnmounted(() => {
 .fade-zoom-leave-from {
   opacity: 1;
   transform: scale(1);
+}
+
+// 添加分隔线样式
+.menu-divider {
+  height: 1px;
+  background-color: var(--color-border);
+  margin: 4px 8px;
+  opacity: 0.6;
+  width: calc(100% - 16px);
 }
 </style>

@@ -328,3 +328,24 @@ export interface SearchResult {
   blocks: Array<{ content: string }>
   priority: number
 }
+
+// 表格展示用的笔记接口
+export interface TableNote {
+  noteId: string
+  address: string
+  title: string
+  referenceCount: number
+  referencedCount: number
+  createdAt: string
+  updatedAt: string
+  references: Array<{
+    noteId: string
+    address: string
+    title: string
+  }>
+  referencedBy: Array<{
+    noteId: string
+    address: string
+    title: string
+  }>
+}

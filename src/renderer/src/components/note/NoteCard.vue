@@ -20,9 +20,15 @@
             'convertToFlashcard',
             'sidebar',
             'toggleIndex',
+            'divider',
             'copyQuote',
+            'copyAddress',
+            'addSibling',
+            'addChild',
+            'divider',
+            'viewInCardbox',
+            'viewInTree',
             'share',
-            'exportNote',
             'delete'
           ]"
         />

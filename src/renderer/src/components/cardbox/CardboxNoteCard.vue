@@ -38,7 +38,13 @@
             'convertToFlashcard',
             'sidebar',
             'toggleIndex',
+            'divider',
             'copyQuote',
+            'copyAddress',
+            'addSibling',
+            'addChild',
+            'divider',
+            'viewInTree',
             'share',
             'delete'
           ]"
@@ -165,9 +171,11 @@ const cardTypeClass = computed(() => {
 
 // 修改卡片点击处理函数
 const handleCardClick = (event: MouseEvent) => {
-  // 阻止事件冒泡
-  event.preventDefault()
-  event.stopPropagation()
+  // 只在多选模式或使用了修饰键时阻止事件冒泡
+  if (noteStore.isMultiSelectMode || event.shiftKey || event.metaKey) {
+    event.preventDefault()
+    event.stopPropagation()
+  }
 
   if (noteStore.isMultiSelectMode) {
     // 多选模式下的原有逻辑

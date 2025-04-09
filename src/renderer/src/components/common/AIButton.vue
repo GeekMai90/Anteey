@@ -1,9 +1,9 @@
 <template>
   <div
     ref="aiBtnRef"
+    v-tooltip:[tooltipPlacement]="tooltipConfig"
     class="ai-button"
     :class="{ 'ai-button--large': size === 'large' }"
-    v-tooltip:[tooltipPlacement]="tooltipConfig"
     @click.stop="toggleAIMenu"
   >
     <div class="icon">
@@ -89,7 +89,6 @@ const handleAgentMenuItemClick = (item: MenuItem) => {
   border: none;
   background: none;
   cursor: pointer;
-  transition: all 0.2s ease;
   border-radius: 6px;
   padding: 4px;
   margin: 2px;

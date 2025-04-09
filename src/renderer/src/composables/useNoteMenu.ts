@@ -15,7 +15,11 @@ import {
   AdjacentItem,
   StorageCardOne,
   MagicWand,
-  ListAlphabet
+  ListAlphabet,
+  Sapling,
+  ViewGridCard,
+  AddItem,
+  BranchOne
 } from '@icon-park/vue-next'
 
 import { useUIStore } from '../stores/UIStore'
@@ -27,6 +31,7 @@ import { message } from '../utils/message'
 import { useFlashcardStore } from '../stores/flashcardStore'
 import { useNoteVersionStore } from '../stores/noteVersionStore'
 import { useNoteAIProcessStore } from '../stores/noteAIProcessStore'
+import { useKnowledgeTreeStore } from '../stores/knowledgeTreeStore'
 
 interface NoteMenuParams {
   noteId: string
@@ -50,6 +55,7 @@ export function useNoteMenu(params: NoteMenuParams) {
   let permanentDeleteTimeout: number | null = null
 
   const noteAIProcessStore = useNoteAIProcessStore()
+  const knowledgeTreeStore = useKnowledgeTreeStore()
   const isProcessing = ref(false)
 
   // 添加索引状态
@@ -312,8 +318,116 @@ export function useNoteMenu(params: NoteMenuParams) {
     }
   }
 
+  // 在知识树中查看节点
+  const handleViewInTree = () => {
+    router.push({
+      name: 'KnowledgeTreeNode',
+      params: { address: params.noteId }
+    })
+  }
+
+  // 在卡片盒中查看节点
+  const handleViewInCardbox = () => {
+    if (params.noteId) {
+      router.push({
+        name: 'cardbox',
+        query: {
+          mode: 'context',
+          noteId: params.noteId
+        }
+      })
+    }
+    closePopupMenu()
+  }
+
+  //复制编码地址
+  const handleCopyAddress = async () => {
+    await noteStore.copyNoteAddress(params.noteId)
+    closePopupMenu()
+  }
+
+  // 添加同级节点处理函数
+  async function handleAddSibling() {
+    if (params.noteId) {
+      try {
+        const newNote = await knowledgeTreeStore.createAdjacentNote(params.noteId, 'below')
+        const lastCreatedNote = await noteStore.fetchNote(newNote.id)
+        if (lastCreatedNote) {
+          // 先设置 lastCreatedNote
+          noteStore.lastCreatedNote = lastCreatedNote
+          // 触发笔记创建事件
+          const eventBus = useEventBus('note-created')
+          eventBus.emit(lastCreatedNote)
+          // 触发笔记更新事件
+          const noteUpdatedBus = useEventBus<Note>('note-updated')
+          noteUpdatedBus.emit(lastCreatedNote)
+          // 最后打开编辑器
+          noteStore.openNoteEditor(newNote.id)
+        }
+      } catch (error) {
+        console.error('添加同级节点失败:', error)
+      }
+    }
+    closePopupMenu()
+  }
+
+  // 添加子节点处理函数
+  async function handleAddChild() {
+    if (params.noteId) {
+      try {
+        const newNote = await knowledgeTreeStore.createAdjacentNote(params.noteId, 'child')
+        const lastCreatedNote = await noteStore.fetchNote(newNote.id)
+        if (lastCreatedNote) {
+          // 先设置 lastCreatedNote
+          noteStore.lastCreatedNote = lastCreatedNote
+          // 触发笔记创建事件
+          const eventBus = useEventBus('note-created')
+          eventBus.emit(lastCreatedNote)
+          // 触发笔记更新事件
+          const noteUpdatedBus = useEventBus<Note>('note-updated')
+          noteUpdatedBus.emit(lastCreatedNote)
+          // 最后打开编辑器
+          noteStore.openNoteEditor(newNote.id)
+        }
+      } catch (error) {
+        console.error('添加子节点失败:', error)
+      }
+    }
+    closePopupMenu()
+  }
   const allMenuItems: any = computed(() => ({
     info: { name: 'info', label: '卡片信息', icon: Info, action: handleShare },
+    viewInTree: {
+      name: 'viewInTree',
+      label: '知识树查看',
+      icon: Sapling,
+      action: handleViewInTree
+    },
+    viewInCardbox: {
+      name: 'viewInCardbox',
+      label: '卡片盒翻阅',
+      icon: ViewGridCard,
+      action: handleViewInCardbox
+    },
+    copyAddress: {
+      name: 'copyAddress',
+      label: '复制编码地址',
+      icon: Copy,
+      action: handleCopyAddress
+    },
+    addSibling: {
+      name: 'addSibling',
+      label: '添加同级卡片',
+      icon: AddItem,
+      action: handleAddSibling
+    },
+    addChild: {
+      name: 'addChild',
+      label: '添加子级卡片',
+      icon: BranchOne,
+      action: handleAddChild
+    },
+
     star: {
       name: 'star',
       label: '星标收藏',
@@ -474,25 +588,36 @@ export function useNoteMenu(params: NoteMenuParams) {
 
   // 根据参数生成菜单项
   const menuItems = computed(() => {
-    let items
+    let items: any[] = []
     if (params.menuItems && params.menuItems.length > 0) {
-      items = params.menuItems.map((itemName) => allMenuItems.value[itemName]).filter(Boolean)
+      items = params.menuItems
+        .map((itemName) => {
+          if (itemName === 'divider') {
+            return {
+              name: 'divider',
+              divider: true
+            }
+          }
+          return allMenuItems.value[itemName]
+        })
+        .filter(Boolean)
     } else {
       items = Object.values(allMenuItems.value)
-
-      // 确保 delete 项随 isConfirmingDelete 状态更新
-      items = items.map((item: any) => {
-        if (item.name === 'delete') {
-          return {
-            ...item,
-            label: isConfirmingDelete.value ? '确认删除' : '删除',
-            isDangerous: isConfirmingDelete.value,
-            fill: isConfirmingDelete.value ? '#ff4d4f' : 'var(--color-icon-primary)'
-          }
-        }
-        return item
-      })
     }
+
+    // 确保 delete 项随 isConfirmingDelete 状态更新
+    items = items.map((item: any) => {
+      if (item?.name === 'delete') {
+        return {
+          ...item,
+          label: isConfirmingDelete.value ? '确认删除' : '删除',
+          isDangerous: isConfirmingDelete.value,
+          fill: isConfirmingDelete.value ? '#ff4d4f' : 'var(--color-icon-primary)'
+        }
+      }
+      return item
+    })
+
     return items.length > 0 ? items : Object.values(allMenuItems.value)
   })
 

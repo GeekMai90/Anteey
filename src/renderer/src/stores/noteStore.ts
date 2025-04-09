@@ -1635,6 +1635,19 @@ export const useNoteStore = defineStore(
       return collapsedNoteIds.value.includes(noteId)
     }
 
+    // 复制笔记地址到剪贴板
+    const copyNoteAddress = async (noteId: string) => {
+      try {
+        const address = await window.electronAPI.note.copyNoteAddress(noteId)
+        message.success('笔记地址已复制到剪贴板')
+        return address
+      } catch (error) {
+        console.error('复制笔记地址失败:', error)
+        message.error('复制笔记地址失败')
+        throw error
+      }
+    }
+
     // 返回所有状态和方法
     return {
       // 状态
@@ -1844,7 +1857,10 @@ export const useNoteStore = defineStore(
       toggleNoteCollapse,
 
       // 3. 在返回对象中添加这些状态和方法
-      isNoteCollapsed
+      isNoteCollapsed,
+
+      // 添加新方法到返回对象
+      copyNoteAddress
     }
   },
   {

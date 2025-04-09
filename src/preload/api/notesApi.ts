@@ -504,5 +504,19 @@ export const notesApi = {
       console.error('预加载脚本 → 获取特定首字母的索引笔记失败:', error)
       throw error
     }
+  },
+
+  // 复制笔记地址到剪贴板
+  copyNoteAddress: async (noteId: string): Promise<string> => {
+    try {
+      const result = await ipcRenderer.invoke('copy-note-address', noteId)
+      if (!result.success) {
+        throw new Error(result.error)
+      }
+      return result.address
+    } catch (error) {
+      console.error('预加载脚本 → 复制笔记地址到剪贴板失败:', error)
+      throw error
+    }
   }
 }

@@ -258,6 +258,8 @@ export interface ElectronAPI {
     batchRemoveFromIndex: (noteIds: string[]) => Promise<Note[]>
     // 获取特定首字母的索引笔记
     getIndexedNotesByLetter: (letter: string) => Promise<Note[]>
+    // 添加复制笔记地址到剪贴板的方法
+    copyNoteAddress: (noteId: string) => Promise<string>
   }
 
   systemMenu: {
