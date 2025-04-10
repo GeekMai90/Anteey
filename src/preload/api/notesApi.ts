@@ -518,5 +518,37 @@ export const notesApi = {
       console.error('预加载脚本 → 复制笔记地址到剪贴板失败:', error)
       throw error
     }
+  },
+
+  // 获取重复地址的笔记
+  getNotesByDuplicateAddress: async (): Promise<{ [key: string]: Note[] }> => {
+    try {
+      return (await ipcRenderer.invoke('get-notes-by-duplicate-address')) as {
+        [key: string]: Note[]
+      }
+    } catch (error) {
+      console.error('预加载脚本 → 获取重复地址笔记失败:', error)
+      throw error
+    }
+  },
+
+  // 获取编码地址不符合规则的笔记
+  getInvalidAddressNotes: async (): Promise<Note[]> => {
+    try {
+      return (await ipcRenderer.invoke('get-invalid-address-notes')) as Note[]
+    } catch (error) {
+      console.error('预加载脚本 → 获取编码地址不符合规则的笔记失败:', error)
+      throw error
+    }
+  },
+
+  // 获取无编码地址的笔记
+  getNotesWithoutAddress: async (): Promise<Note[]> => {
+    try {
+      return (await ipcRenderer.invoke('get-notes-without-address')) as Note[]
+    } catch (error) {
+      console.error('预加载脚本 → 获取无编码地址的笔记失败:', error)
+      throw error
+    }
   }
 }

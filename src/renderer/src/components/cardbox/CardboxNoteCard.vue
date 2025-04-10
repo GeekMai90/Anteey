@@ -203,10 +203,11 @@ const handleCardClick = (event: MouseEvent) => {
 
 // 修改双击事件处理函数
 const handleDoubleClick = (event: MouseEvent) => {
-  // 检查点击源是否来自链接按钮或菜单
+  // 检查点击源是否来自链接按钮、菜单或工具按钮区域
   const target = event.target as HTMLElement
   const linkButton = target.closest('.note-link-wrapper')
-  if (linkButton) {
+  const toolButton = target.closest('.note-buttons')
+  if (linkButton || toolButton) {
     return
   }
 

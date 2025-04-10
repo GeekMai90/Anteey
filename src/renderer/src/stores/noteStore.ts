@@ -1648,6 +1648,39 @@ export const useNoteStore = defineStore(
       }
     }
 
+    // 获取重复地址的笔记
+    const getNotesByDuplicateAddress = async () => {
+      try {
+        const duplicateNotes = await window.electronAPI.note.getNotesByDuplicateAddress()
+        return duplicateNotes
+      } catch (error) {
+        console.error('获取重复地址的笔记失败:', error)
+        throw error
+      }
+    }
+
+    // 获取无效地址的笔记
+    const getInvalidAddressNotes = async () => {
+      try {
+        const invalidNotes = await window.electronAPI.note.getInvalidAddressNotes()
+        return invalidNotes
+      } catch (error) {
+        console.error('获取无效地址的笔记失败:', error)
+        throw error
+      }
+    }
+
+    // 获取没有地址的笔记
+    const getNotesWithoutAddress = async () => {
+      try {
+        const notesWithoutAddress = await window.electronAPI.note.getNotesWithoutAddress()
+        return notesWithoutAddress
+      } catch (error) {
+        console.error('获取没有地址的笔记失败:', error)
+        throw error
+      }
+    }
+
     // 返回所有状态和方法
     return {
       // 状态
@@ -1860,7 +1893,12 @@ export const useNoteStore = defineStore(
       isNoteCollapsed,
 
       // 添加新方法到返回对象
-      copyNoteAddress
+      copyNoteAddress,
+
+      // 添加三个新方法到返回对象
+      getNotesByDuplicateAddress,
+      getInvalidAddressNotes,
+      getNotesWithoutAddress
     }
   },
   {

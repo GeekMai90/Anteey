@@ -2262,3 +2262,147 @@ export async function copyNoteAddressToClipboard(noteId: string): Promise<string
     throw error
   }
 }
+
+// 获取具有相同地址的笔记
+export async function getNotesByDuplicateAddress(): Promise<{ [key: string]: Note[] }> {
+  try {
+    // 1. 首先查询所有符合条件的笔记
+    const notes = await db('notes')
+      .whereNot('address', '') // 地址不为空
+      .where('cardType', 'Maincard') // 类型为 Maincard
+      .where('isDeleted', false) // 未被删除
+      .select('*')
+
+    // 2. 按地址分组并找出重复的
+    const groupedNotes: { [key: string]: Note[] } = {}
+    notes.forEach((note) => {
+      const convertedNote = convertToNote(note)
+      if (!groupedNotes[note.address]) {
+        groupedNotes[note.address] = []
+      }
+      groupedNotes[note.address].push(convertedNote)
+    })
+
+    // 3. 只保留有重复的地址组（即数组长度大于1的组）
+    const duplicateGroups: { [key: string]: Note[] } = {}
+    Object.entries(groupedNotes).forEach(([address, notes]) => {
+      if (notes.length > 1) {
+        duplicateGroups[address] = notes
+      }
+    })
+
+    return duplicateGroups
+  } catch (error) {
+    console.error('后端→ 获取重复地址笔记失败:', error)
+    throw new Error('获取重复地址笔记失败')
+  }
+}
+
+// 获取编码地址不符合规则的笔记
+export async function getInvalidAddressNotes(): Promise<Note[]> {
+  try {
+    // 1. 首先查询所有符合基本条件的笔记
+    const notes = await db('notes')
+      .whereNot('address', '') // 地址不为空
+      .where('cardType', 'Maincard') // 类型为 Maincard
+      .where('isDeleted', false) // 未被删除
+      .select('*')
+
+    // 2. 验证每个地址
+    const invalidNotes = notes.filter((note) => {
+      // 基础格式验证：必须以1-9开头的四位数字开始，后面可以跟着分支编码
+      const addressPattern = /^[1-9]\d{3}(-[1-9]\d?[a-z]?)*$/
+      if (!addressPattern.test(note.address)) {
+        return true // 地址格式不符合基本规则
+      }
+
+      // 分解地址
+      const parts = note.address.split('-')
+      const baseCode = parts[0]
+
+      // 验证基础编码部分（前4位）
+      const firstDigit = parseInt(baseCode[0])
+      const secondDigit = parseInt(baseCode[1])
+      const lastTwoDigits = parseInt(baseCode.slice(2))
+
+      // 验证顶级编码（X000形式）
+      if (baseCode.endsWith('000')) {
+        if (firstDigit < 1 || firstDigit > 9) {
+          return true // 第一位必须是1-9
+        }
+        if (secondDigit !== 0) {
+          return true // 如果是顶级编码，第二位必须是0
+        }
+      }
+      // 验证二级编码（XX00形式）
+      else if (baseCode.endsWith('00')) {
+        if (firstDigit < 1 || firstDigit > 9) {
+          return true // 第一位必须是1-9
+        }
+        if (secondDigit < 1 || secondDigit > 9) {
+          return true // 第二位必须是1-9
+        }
+      }
+      // 验证三级编码（XXXX形式）
+      else {
+        if (firstDigit < 1 || firstDigit > 9) {
+          return true // 第一位必须是1-9
+        }
+        if (secondDigit < 1 || secondDigit > 9) {
+          return true // 第二位必须是1-9
+        }
+        if (lastTwoDigits < 1 || lastTwoDigits > 99) {
+          return true // 后两位必须在01-99之间
+        }
+      }
+
+      // 验证分支编码
+      if (parts.length > 1) {
+        // 最多支持10层分支
+        if (parts.length > 11) {
+          return true
+        }
+
+        // 验证每个分支部分
+        for (let i = 1; i < parts.length; i++) {
+          const branch = parts[i]
+          // 分支格式：1-99 + 可选的小写字母（a-z）
+          const branchPattern = /^([1-9]\d?[a-z]?|[1-9][a-z])$/
+          if (!branchPattern.test(branch)) {
+            return true
+          }
+        }
+      }
+
+      return false // 通过所有验证，说明地址格式正确
+    })
+
+    return invalidNotes.map(convertToNote)
+  } catch (error) {
+    console.error('后端→ 获取编码地址不符合规则的笔记失败:', error)
+    throw new Error('获取编码地址不符合规则的笔记失败')
+  }
+}
+
+// 获取无编码地址的笔记
+export async function getNotesWithoutAddress(): Promise<Note[]> {
+  try {
+    // 查询所有符合条件的笔记：
+    // 1. 地址为空
+    // 2. 类型为 Maincard
+    // 3. 未被删除
+    const notes = await db('notes')
+      .where(function () {
+        this.where('address', '').orWhereNull('address')
+      })
+      .where('cardType', 'Maincard')
+      .where('isDeleted', false)
+      .orderBy('createdAt', 'desc') // 按创建时间倒序排列，最新的在前面
+      .select('*')
+
+    return notes.map(convertToNote)
+  } catch (error) {
+    console.error('后端→ 获取无编码地址的笔记失败:', error)
+    throw new Error('获取无编码地址的笔记失败')
+  }
+}

@@ -5,7 +5,8 @@
     :class="{ highlighted: isHighlighted }"
     draggable="true"
     @dragstart="handleDragStart"
-    @dblclick="useNoteStore().openNoteEditor(note.id)"
+    @click="handleCardClick"
+    @dblclick="handleDoubleClick"
   >
     <div class="note-header">
       <span class="note-indicator" :class="cardTypeClass"></span>
@@ -42,12 +43,16 @@ import { formatDate } from '@renderer/utils/noteHelpers'
 import { StorageCardOne } from '@icon-park/vue-next'
 import { computed } from 'vue'
 import { useNoteStore } from '@renderer/stores/noteStore'
+import { useRouter } from 'vue-router'
 import JsonContentRenderer from '@renderer/components/note/JsonContentRenderer.vue'
 
 const props = defineProps<{
   note: Note
   highlightedNoteId: string | null
 }>()
+
+const noteStore = useNoteStore()
+const router = useRouter()
 
 const isHighlighted = computed(() => props.highlightedNoteId === props.note.id)
 
@@ -61,12 +66,49 @@ const cardTypeClass = computed(() => {
       return 'indexcard'
     case 'Hoplinkcard':
       return 'hoplinkcard'
+    case 'Draftcard':
+      return 'draftcard'
     default:
       return ''
   }
 })
 
 const flashcardColor = computed(() => 'var(--color-text-secondary)')
+
+// 处理卡片点击
+const handleCardClick = (event: MouseEvent) => {
+  // 如果使用了修饰键，阻止事件冒泡
+  if (event.shiftKey || event.metaKey || event.altKey) {
+    event.preventDefault()
+    event.stopPropagation()
+  }
+
+  // 处理不同的快捷键操作
+  if (event.shiftKey && props.note.address) {
+    // Shift+单击：在知识树中查看节点
+    router.push({
+      name: 'KnowledgeTreeNode',
+      params: { address: props.note.address }
+    })
+  } else if (event.metaKey) {
+    // Command/Ctrl+单击：全屏查看
+    router.push({ name: 'NoteExpandEditor', params: { id: props.note.id } })
+  } else if (event.altKey) {
+    // Alt+单击：在卡片盒中查看
+    router.push({
+      name: 'cardbox',
+      query: {
+        box: props.note.cardBoxId || 'all',
+        highlight: props.note.id
+      }
+    })
+  }
+}
+
+// 处理双击：打开笔记编辑器
+const handleDoubleClick = () => {
+  noteStore.openNoteEditor(props.note.id)
+}
 
 const handleDragStart = (event: DragEvent) => {
   if (event.dataTransfer) {
@@ -154,6 +196,9 @@ const handleDragStart = (event: DragEvent) => {
       }
       &.hoplinkcard {
         background-color: var(--color-pink);
+      }
+      &.draftcard {
+        background-color: var(--color-draft);
       }
     }
 

@@ -260,6 +260,10 @@ export interface ElectronAPI {
     getIndexedNotesByLetter: (letter: string) => Promise<Note[]>
     // 添加复制笔记地址到剪贴板的方法
     copyNoteAddress: (noteId: string) => Promise<string>
+    // 添加三个新方法的类型定义
+    getNotesByDuplicateAddress: () => Promise<{ [key: string]: Note[] }>
+    getInvalidAddressNotes: () => Promise<Note[]>
+    getNotesWithoutAddress: () => Promise<Note[]>
   }
 
   systemMenu: {

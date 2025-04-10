@@ -41,7 +41,10 @@ import {
   batchAddToIndex,
   batchRemoveFromIndex,
   getIndexedNotesByLetter,
-  copyNoteAddressToClipboard
+  copyNoteAddressToClipboard,
+  getNotesByDuplicateAddress,
+  getInvalidAddressNotes,
+  getNotesWithoutAddress
 } from '../../services/notes/notesService'
 import type {
   GetPaginatedNotesParams,
@@ -531,6 +534,39 @@ export function setupNotesHandlers() {
         success: false,
         error: error instanceof Error ? error.message : String(error)
       }
+    }
+  })
+
+  // 获取重复地址的笔记
+  ipcMain.handle('get-notes-by-duplicate-address', async () => {
+    try {
+      const result = await getNotesByDuplicateAddress()
+      return result
+    } catch (error) {
+      console.error('主进程 → 获取重复地址笔记失败:', error)
+      throw error
+    }
+  })
+
+  // 获取编码地址不符合规则的笔记
+  ipcMain.handle('get-invalid-address-notes', async () => {
+    try {
+      const result = await getInvalidAddressNotes()
+      return result
+    } catch (error) {
+      console.error('主进程 → 获取编码地址不符合规则的笔记失败:', error)
+      throw error
+    }
+  })
+
+  // 获取无编码地址的笔记
+  ipcMain.handle('get-notes-without-address', async () => {
+    try {
+      const result = await getNotesWithoutAddress()
+      return result
+    } catch (error) {
+      console.error('主进程 → 获取无编码地址的笔记失败:', error)
+      throw error
     }
   })
 }

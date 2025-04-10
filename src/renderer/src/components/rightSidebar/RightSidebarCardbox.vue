@@ -18,31 +18,57 @@
     <div class="toolbar-area">
       <div class="toolbar-left">
         <Dropdown
+          :items="cardboxDropdownItems"
+          showArrow
+          type="default"
+          size="medium"
+          icon-only
+          :tooltip="{
+            content: '按卡片盒筛选',
+            html: true,
+            placement: 'top'
+          }"
+          :icon="Box"
+          :is-active="filterState.cardBoxId !== undefined"
+          @select="handleCardboxSelect"
+        >
+          卡片盒
+        </Dropdown>
+        <Dropdown
           :items="tagDropdownItems"
           showArrow
           type="default"
           size="medium"
           icon-only
+          :tooltip="{
+            content: '按标签筛选',
+            html: true,
+            placement: 'top'
+          }"
           :icon="Tag"
-          :placeholder="'按标签筛选'"
           :is-active="filterState.tags.length > 0"
           @select="handleTagSelect"
         >
           标签
         </Dropdown>
 
+        <!-- 添加地址筛选下拉按钮 -->
         <Dropdown
-          :items="cardboxDropdownItems"
+          :items="addressDropdownItems"
           showArrow
           type="default"
           size="medium"
           icon-only
-          :icon="Box"
-          :placeholder="'按卡片盒筛选'"
-          :is-active="filterState.cardBoxId !== undefined"
-          @select="handleCardboxSelect"
+          :tooltip="{
+            content: '地址异常卡片',
+            html: true,
+            placement: 'top'
+          }"
+          :icon="Caution"
+          :is-active="filterState.addressFilter !== undefined"
+          @select="handleAddressSelect"
         >
-          卡片盒
+          地址
         </Dropdown>
 
         <Dropdown
@@ -51,8 +77,12 @@
           type="default"
           size="medium"
           icon-only
+          :tooltip="{
+            content: '自定义筛选',
+            html: true,
+            placement: 'top'
+          }"
           :icon="Filter"
-          :placeholder="'按自定义筛选'"
           :is-active="filterState.customFilterId !== undefined"
           @select="handleCustomFilterSelect"
         >
@@ -66,8 +96,12 @@
           type="default"
           size="medium"
           icon-only
+          :tooltip="{
+            content: '思维板卡片',
+            html: true,
+            placement: 'top'
+          }"
           :icon="Workbench"
-          :placeholder="'按思维板筛选'"
           :is-active="filterState.mindboardId !== undefined"
           @select="handleMindboardSelect"
         >
@@ -95,9 +129,13 @@
           type="default"
           size="medium"
           icon-only
+          :tooltip="{
+            content: '排序',
+            html: true,
+            placement: 'top'
+          }"
           align="end"
           :icon="SortTwo"
-          :placeholder="'排序'"
           @select="handleSortSelect"
         >
           排序
@@ -147,7 +185,19 @@
 import { ref, computed, onMounted, onUnmounted, nextTick, reactive, watch } from 'vue'
 import { useNoteStore } from '@renderer/stores/noteStore'
 import { useMindboardStore } from '@renderer/stores/mindboardStore'
-import { Tag, Filter, SortTwo, CloseOne, Box, Workbench } from '@icon-park/vue-next'
+import {
+  Tag,
+  Filter,
+  SortTwo,
+  CloseOne,
+  Box,
+  Workbench,
+  Caution,
+  ReverseOperationIn,
+  Bug,
+  WaterNo,
+  GiftBox
+} from '@icon-park/vue-next'
 import type { Note } from '@shared/types'
 import RightSidebarCardboxCard from './RightSidebarCardboxCard.vue'
 import MindboardCardList from './MindboardCardList.vue'
@@ -219,6 +269,46 @@ const saveSortPreference = (preference: SortPreference) => {
   }
 }
 
+// 添加筛选偏好的存储 key
+const FILTER_PREFERENCE_KEY = 'antinet_sidebar_filter_preference'
+
+// 添加筛选偏好的类型定义
+interface FilterPreference {
+  tags: string[]
+  cardBoxId?: string
+  customFilterId?: string
+  mindboardId?: string
+  addressFilter?: 'duplicate' | 'invalid' | 'missing' | 'draft'
+}
+
+// 获取保存的筛选偏好
+const getSavedFilterPreference = (): FilterPreference | null => {
+  try {
+    const saved = localStorage.getItem(FILTER_PREFERENCE_KEY)
+    if (!saved) return null
+    return JSON.parse(saved) as FilterPreference
+  } catch (error) {
+    console.error('读取筛选偏好失败:', error)
+    return null
+  }
+}
+
+// 保存筛选偏好
+const saveFilterPreference = () => {
+  try {
+    const preference: FilterPreference = {
+      tags: filterState.tags,
+      cardBoxId: filterState.cardBoxId,
+      customFilterId: filterState.customFilterId,
+      mindboardId: filterState.mindboardId,
+      addressFilter: filterState.addressFilter
+    }
+    localStorage.setItem(FILTER_PREFERENCE_KEY, JSON.stringify(preference))
+  } catch (error) {
+    console.error('保存筛选偏好失败:', error)
+  }
+}
+
 // 修改筛选状态的初始化
 const filterState = reactive({
   keyword: '',
@@ -226,6 +316,7 @@ const filterState = reactive({
   cardBoxId: undefined as string | undefined,
   customFilterId: undefined as string | undefined,
   mindboardId: undefined as string | undefined,
+  addressFilter: undefined as 'duplicate' | 'invalid' | 'missing' | 'draft' | undefined,
   sort: (() => {
     const savedPreference = getSavedSortPreference()
     if (savedPreference) {
@@ -414,6 +505,34 @@ const mindboardDropdownItems = computed(() => {
   }))
 })
 
+// 地址下拉菜单项
+const addressDropdownItems = computed(() => [
+  {
+    key: 'draft',
+    label: '草稿卡片',
+    icon: GiftBox,
+    active: filterState.addressFilter === 'draft'
+  },
+  {
+    key: 'duplicate',
+    label: '重复地址卡片',
+    icon: ReverseOperationIn,
+    active: filterState.addressFilter === 'duplicate'
+  },
+  {
+    key: 'invalid',
+    label: '无效地址卡片',
+    icon: Bug,
+    active: filterState.addressFilter === 'invalid'
+  },
+  {
+    key: 'missing',
+    label: '缺失地址卡片',
+    icon: WaterNo,
+    active: filterState.addressFilter === 'missing'
+  }
+])
+
 // 排序下拉菜单项
 const sortDropdownItems = computed(() => {
   return [
@@ -459,11 +578,13 @@ const sortDropdownItems = computed(() => {
 // 处理筛选和排序
 const handleTagSelect = async (tagId: string) => {
   filterState.tags = [tagId]
+  saveFilterPreference()
   resetAndFetch()
 }
 
 const handleCardboxSelect = async (cardBoxId: string) => {
   filterState.cardBoxId = cardBoxId
+  saveFilterPreference()
   resetAndFetch()
 }
 
@@ -473,31 +594,80 @@ const handleCustomFilterSelect = async (filterId: string) => {
     filterState.customFilterId = filterId
     filterStore.setActiveFilter(selectedFilter)
   }
+  saveFilterPreference()
   resetAndFetch()
 }
 
 const handleMindboardSelect = async (mindboardId: string) => {
-  // 如果选择了相同的思维板,则清除选择
   if (filterState.mindboardId === mindboardId) {
     filterState.mindboardId = undefined
   } else {
     filterState.mindboardId = mindboardId
   }
 
-  // 清除其他筛选条件
   filterState.tags = []
   filterState.cardBoxId = undefined
   filterState.customFilterId = undefined
   filterState.keyword = ''
   searchQuery.value = ''
 
-  // 重置分页
+  saveFilterPreference()
   currentPage.value = 1
   notes.value = []
 
-  // 如果没有选择思维板,则重新获取笔记列表
   if (!filterState.mindboardId) {
     await fetchNotes()
+  }
+}
+
+const handleAddressSelect = async (value: string) => {
+  if (filterState.addressFilter === value) {
+    filterState.addressFilter = undefined
+    notes.value = []
+    currentPage.value = 1
+    saveFilterPreference()
+    await fetchNotes()
+    return
+  }
+
+  filterState.addressFilter = value as 'duplicate' | 'invalid' | 'missing' | 'draft'
+  saveFilterPreference()
+
+  try {
+    isLoading.value = true
+    notes.value = []
+
+    let fetchedNotes: Note[] = []
+
+    switch (value) {
+      case 'draft': {
+        const result = await noteStore.fetchDraftNotes(1, 999)
+        fetchedNotes = result.notes
+        break
+      }
+      case 'duplicate': {
+        const duplicateNotes = await noteStore.getNotesByDuplicateAddress()
+        fetchedNotes = Object.values(duplicateNotes).flat()
+        break
+      }
+      case 'invalid': {
+        fetchedNotes = await noteStore.getInvalidAddressNotes()
+        break
+      }
+      case 'missing': {
+        fetchedNotes = await noteStore.getNotesWithoutAddress()
+        break
+      }
+    }
+
+    notes.value = fetchedNotes
+    totalCount.value = notes.value.length
+    hasMoreNotes.value = false
+    currentPage.value = 1
+  } catch (error) {
+    console.error('获取地址筛选笔记失败:', error)
+  } finally {
+    isLoading.value = false
   }
 }
 
@@ -535,7 +705,8 @@ const hasActiveFilters = computed(() => {
     filterState.tags.length > 0 ||
     filterState.cardBoxId !== undefined ||
     filterState.customFilterId !== undefined ||
-    filterState.mindboardId !== undefined
+    filterState.mindboardId !== undefined ||
+    filterState.addressFilter !== undefined
   )
 })
 
@@ -545,7 +716,9 @@ const clearFilters = () => {
   filterState.cardBoxId = undefined
   filterState.customFilterId = undefined
   filterState.mindboardId = undefined
+  filterState.addressFilter = undefined
   filterStore.setActiveFilter(null)
+  saveFilterPreference()
   resetAndFetch()
 }
 
@@ -570,7 +743,17 @@ watch(
 
 // 生命周期钩子
 onMounted(async () => {
-  // 如果有保存的排序偏好，使用保存的偏好
+  // 恢复保存的筛选偏好
+  const savedFilterPreference = getSavedFilterPreference()
+  if (savedFilterPreference) {
+    filterState.tags = savedFilterPreference.tags
+    filterState.cardBoxId = savedFilterPreference.cardBoxId
+    filterState.customFilterId = savedFilterPreference.customFilterId
+    filterState.mindboardId = savedFilterPreference.mindboardId
+    filterState.addressFilter = savedFilterPreference.addressFilter
+  }
+
+  // 恢复保存的排序偏好
   const savedPreference = getSavedSortPreference()
   if (savedPreference) {
     filterState.sort = savedPreference
@@ -580,7 +763,6 @@ onMounted(async () => {
     containerHeight.value = notesContainer.value.clientHeight
     notesContainer.value.addEventListener('scroll', handleScroll)
 
-    // 监听容器大小变化
     const resizeObserver = new ResizeObserver((entries) => {
       for (const entry of entries) {
         containerHeight.value = entry.contentRect.height
@@ -592,10 +774,7 @@ onMounted(async () => {
   }
 
   // 初始化数据
-  await Promise.all([
-    fetchNotes(),
-    mindboardStore.fetchAllMindboards() // 获取所有思维板数据
-  ])
+  await Promise.all([fetchNotes(), mindboardStore.fetchAllMindboards()])
 })
 
 onUnmounted(() => {

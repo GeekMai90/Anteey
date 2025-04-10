@@ -111,7 +111,6 @@ const fetchMindboardNodes = async () => {
     await mindboardStore.loadMindboardData(props.mindboardId)
     if (mindboardStore.currentMindboard?.flow_data) {
       nodes.value = mindboardStore.currentMindboard.flow_data.nodes || []
-      console.log('思维板节点数据:', nodes.value)
 
       // 获取所有笔记卡片的笔记数据
       const noteIds = nodes.value

@@ -870,7 +870,7 @@ onBeforeUnmount(() => {
   }
 
   // 关闭右侧边栏
-  uiStore.closeRightSidebar()
+  // uiStore.closeRightSidebar()
 })
 
 // 在 script 部分添加 selectedNodeNoteId 计算属性
