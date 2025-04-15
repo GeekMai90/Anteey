@@ -101,6 +101,7 @@
             html: true,
             placement: 'top'
           }"
+          :forceBottom="true"
           :icon="Workbench"
           :is-active="filterState.mindboardId !== undefined"
           @select="handleMindboardSelect"

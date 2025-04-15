@@ -264,10 +264,11 @@ const formatDate = (dateString: string) => {
 
 .address-cell {
   flex: 1;
-  min-width: 240px !important; /* 确保地址列最小宽度 */
+  min-width: 200px !important; /* 确保地址列最小宽度 */
   justify-content: flex-start;
   font-family: monospace;
   padding-left: 18px !important;
+  user-select: none;
 }
 
 .address-cell.clickable {
@@ -281,7 +282,7 @@ const formatDate = (dateString: string) => {
 }
 
 .title-cell {
-  flex: 2.5;
+  flex: 3;
   justify-content: flex-start;
 }
 
@@ -322,6 +323,7 @@ const formatDate = (dateString: string) => {
   align-items: center;
   width: 100%;
   min-height: 24px;
+  user-select: none;
 }
 
 .reference-item::before {
@@ -369,6 +371,7 @@ const formatDate = (dateString: string) => {
   border: 1px solid var(--color-border-default);
   z-index: 1;
   box-shadow: 0 -4px 8px rgba(0, 0, 0, 0.05);
+  user-select: none;
 }
 
 .number-cell {
@@ -383,6 +386,7 @@ const formatDate = (dateString: string) => {
   font-variant-numeric: tabular-nums;
   padding: 8px 4px;
   transition: all 0.2s ease;
+  user-select: none;
 }
 
 .hide-dates {

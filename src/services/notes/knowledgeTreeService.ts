@@ -228,7 +228,6 @@ export async function getChildCount(parentAddress: string): Promise<number> {
 // 获取子节点
 export async function getChildNodes(parentAddress: string): Promise<KnowledgeTreeNode[]> {
   try {
-    console.log('开始获取子节点, 父地址:', parentAddress)
     const level = getAddressLevel(parentAddress)
     // 如果父节点地址无效,返回空数组
     if (!level) {
@@ -267,12 +266,7 @@ export async function getChildNodes(parentAddress: string): Promise<KnowledgeTre
         `${parentAddress}-1`
       ])
 
-    console.log('SQL查询条件:', {
-      pattern,
-      parentAddress,
-      level
-    })
-    console.log('查询到的笔记:', notes)
+    // 对笔记进行排序
 
     // 对笔记进行排序
     notes.sort((a, b) => {
@@ -312,7 +306,6 @@ export async function getChildNodes(parentAddress: string): Promise<KnowledgeTre
       })
     )
 
-    console.log('最终返回的子节点数组:', nodes)
     return nodes
   } catch (error) {
     console.error('获取子节点失败:', error)
@@ -550,16 +543,10 @@ async function generateSiblingAddress(
     const prefix = referenceAddress.slice(0, 2) // 获取前两位数字
     const currentNum = parseInt(referenceAddress.slice(2)) // 获取后两位数字
 
-    console.log(
-      `生成三级节点同级地址，参考地址: ${referenceAddress}, 前缀: ${prefix}, 当前编号: ${currentNum}, 是否最后节点: ${isLastNode}`
-    )
-
     // 获取所有同前缀的三级节点（例如，所有以"43"开头的四位数节点）
     const prefixSiblings = allAddresses.filter(
       (addr) => /^\d{4}$/.test(addr) && addr.slice(0, 2) === prefix && !addr.endsWith('00')
     )
-
-    console.log(`同前缀的兄弟节点: ${JSON.stringify(prefixSiblings)}`)
 
     // 检查是否有编号更大的节点
     const hasLargerSibling = prefixSiblings.some((addr) => parseInt(addr.slice(2)) > currentNum)
@@ -572,7 +559,6 @@ async function generateSiblingAddress(
       // 生成新的三级节点地址，确保两位数字格式
       const newLastDigits = (currentNum + 1).toString().padStart(2, '0')
       const newAddress = `${prefix}${newLastDigits}`
-      console.log(`生成的新地址(最后节点): ${newAddress}`)
       return newAddress
     } else {
       // 找到下一个编号最小的节点
@@ -590,7 +576,6 @@ async function generateSiblingAddress(
         // 使用中间的编号
         const newLastDigits = (currentNum + 1).toString().padStart(2, '0')
         const newAddress = `${prefix}${newLastDigits}`
-        console.log(`生成的新地址(有空隙): ${newAddress}`)
         return newAddress
       }
 

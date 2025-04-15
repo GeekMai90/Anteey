@@ -110,7 +110,6 @@ export async function moveEmptyNotesToTrash(): Promise<void> {
         })
       }
     }
-    // console.log('后端→ 空笔记已移至回收站')
   } catch (error) {
     console.error('后端→ 移动空笔记到回收站失败:', error)
     throw error
@@ -1330,9 +1329,10 @@ export async function createNoteReference(
       type: params.type,
       context: params.context,
       metadata: {
-        ...params.metadata,
         address: sourceNote.address,
-        cardType: params.metadata.cardType || sourceNote.cardType
+        title: sourceNote.title, // 使用源笔记的标题
+        preview: params.context.text, // 使用引用上下文作为预览
+        cardType: sourceNote.cardType // 使用源笔记的类型
       },
       createdAt: now,
       updatedAt: now

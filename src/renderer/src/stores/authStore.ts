@@ -31,11 +31,6 @@ export const useAuthStore = defineStore('auth', () => {
   const user = computed(() => authState.value?.user)
   const isDesktopPermanent = computed(() => {
     const isPermanent = userLicenseType.value === 'desktop_permanent'
-    console.log('authStore→ isDesktopPermanent 计算结果:', {
-      userLicenseType: userLicenseType.value,
-      isPermanent,
-      authState: authState.value
-    })
     return isPermanent
   })
   const checkOfflineValidity = computed(() => {

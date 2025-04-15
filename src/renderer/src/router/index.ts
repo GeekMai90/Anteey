@@ -4,7 +4,7 @@ import WritingDeskView from '@renderer/views/WritingDeskView.vue'
 const routes = [
   // {
   //   path: '/',
-  //   redirect: '/timeblock'
+  //   redirect: '/home'
   // },
   {
     name: 'home',

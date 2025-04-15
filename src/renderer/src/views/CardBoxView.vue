@@ -643,6 +643,12 @@ watch(
       notes.value = []
       hasMoreNotes.value = true
       await fetchNotes()
+
+      // 设置一个定时器，只清除高亮状态，但保留 URL 参数
+      // 这样用户仍然可以看到高亮的卡片，但高亮效果不会永久存在
+      setTimeout(() => {
+        highlightedNoteId.value = null
+      }, 5000)
     } else {
       isContextMode.value = false
       targetNoteId.value = null

@@ -821,7 +821,6 @@ export const useNoteStore = defineStore(
 
     // 更新本地笔记状态
     const updateLocalNote = (id: string, updatedFields: Partial<Note>) => {
-      console.log('noteStores.ts→ 更新本地笔记', id, updatedFields)
       const index = notes.value.findIndex((note) => note.id === id)
       if (index !== -1) {
         notes.value[index] = { ...notes.value[index], ...updatedFields }

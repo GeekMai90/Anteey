@@ -208,7 +208,28 @@ const updateNavigationState = () => {
   canGoForward.value = window.history.length > window.history.state?.position + 1
 }
 
-const goBack = () => canGoBack.value && router.back()
+// 修改后退函数，添加对卡片盒上下文模式的处理
+const goBack = () => {
+  if (!canGoBack.value) return
+
+  // 检查当前是否在卡片盒页面的上下文模式
+  if (route.name === 'cardbox' && route.query.mode === 'context' && route.query.noteId) {
+    // 从当前URL中清除上下文参数
+    const newQuery = { ...route.query }
+    delete newQuery.mode
+    delete newQuery.noteId
+
+    // 使用replace替换当前历史记录
+    router.replace({
+      path: route.path,
+      query: newQuery
+    })
+  } else {
+    // 其他情况正常回退
+    router.back()
+  }
+}
+
 const goForward = () => canGoForward.value && router.forward()
 // const refresh = () => console.log('Refresh clicked')
 const toggleSidebar = () => uiStore.toggleSidebar()

@@ -68,6 +68,7 @@ interface Props {
   emptyText?: string // 菜单项为空时显示的文本
   defaultIcon?: Component // 默认图标
   isActive?: boolean // 新增：控制按钮是否处于激活状态
+  forceBottom?: boolean // 新增：是否强制菜单在按钮下方显示
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -86,7 +87,8 @@ const props = withDefaults(defineProps<Props>(), {
   placeholder: '',
   emptyText: '暂无选项',
   defaultIcon: undefined,
-  isActive: false // 新增：默认为非激活状态
+  isActive: false,
+  forceBottom: false // 新增：默认不强制在下方显示
 })
 
 const emit = defineEmits<{
@@ -125,9 +127,13 @@ const { floatingStyles, update } = useFloating(
     placement: computedPlacement,
     middleware: [
       offset(8),
-      flip({
-        fallbackPlacements: ['top', 'bottom', 'left', 'right']
-      }),
+      ...(!props.forceBottom
+        ? [
+            flip({
+              fallbackPlacements: ['top', 'bottom', 'left', 'right']
+            })
+          ]
+        : []),
       shift({ padding: 8 })
     ],
     whileElementsMounted: autoUpdate,

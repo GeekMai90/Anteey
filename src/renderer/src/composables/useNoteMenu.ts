@@ -174,7 +174,6 @@ export function useNoteMenu(params: NoteMenuParams) {
       try {
         const result = await noteStore.moveToTrash(params.noteId)
         if (result) {
-          console.log('笔记已移至回收站')
           noteStore.closeNoteEditor()
 
           const eventBus = useEventBus('note-deleted')
@@ -319,11 +318,15 @@ export function useNoteMenu(params: NoteMenuParams) {
   }
 
   // 在知识树中查看节点
-  const handleViewInTree = () => {
-    router.push({
-      name: 'KnowledgeTreeNode',
-      params: { address: params.noteId }
-    })
+  const handleViewInTree = async () => {
+    const note = await noteStore.fetchNote(params.noteId)
+    if (note) {
+      router.push({
+        name: 'KnowledgeTreeNode',
+        params: { address: note.address }
+      })
+    }
+    closePopupMenu()
   }
 
   // 在卡片盒中查看节点

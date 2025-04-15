@@ -457,13 +457,11 @@ const stopResize = () => {
 const createNewCard = () => {
   // 实现新建卡片的逻辑
   noteStore.createAndOpenNewNote()
-  console.log('创建新卡片')
 }
 
 const openSearch = () => {
   // 实现打开搜索的逻辑
   uiStore.openSearchModal()
-  console.log('打开搜索')
 }
 
 const openHelp = () => {
@@ -759,7 +757,6 @@ const getThemeModeTooltip = computed(() => {
   flex-direction: column;
   transition: width 0.3s ease;
   z-index: 1000;
-  // border-right: 1px solid var(--color-border-sidebar);
 
   .sidebar-titlebar {
     height: 18px;

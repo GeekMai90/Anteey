@@ -17,72 +17,9 @@
         @dblclick="openImageViewer"
       />
       <div class="resize-handle right" @mousedown="startResize('right', $event)"></div>
-      <div
-        ref="moreButton"
-        v-click-outside="hideMenu"
-        class="image-more-button"
-        @click.stop="toggleMenu"
-      >
+      <div ref="moreButton" class="image-more-button" @click.stop="toggleMenu">
         <div class="icon">
           <More theme="outline" size="18" fill="white" />
-        </div>
-        <div v-if="showMenu" class="popup-menu" @click.stop>
-          <div class="popup-menu-item" @click="alignImage('left')">
-            <div class="icon">
-              <AlignTextLeft
-                theme="outline"
-                size="18"
-                fill="var(--color-icon-primary)"
-                :strokeWidth="3"
-              />
-            </div>
-            <div class="name">左对齐</div>
-          </div>
-          <div class="popup-menu-item" @click="alignImage('center')">
-            <div class="icon">
-              <AlignTextCenter
-                theme="outline"
-                size="18"
-                fill="var(--color-icon-primary)"
-                :strokeWidth="3"
-              />
-            </div>
-            <div class="name">居中对齐</div>
-          </div>
-          <div class="popup-menu-item" @click="alignImage('right')">
-            <div class="icon">
-              <AlignTextRight
-                theme="outline"
-                size="18"
-                fill="var(--color-icon-primary)"
-                :strokeWidth="3"
-              />
-            </div>
-            <div class="name">右对齐</div>
-          </div>
-          <div class="popup-menu-item" @click="downloadImage">
-            <div class="icon">
-              <Download
-                theme="outline"
-                size="18"
-                fill="var(--color-icon-primary)"
-                :strokeWidth="3"
-              />
-            </div>
-            <div class="name">下载</div>
-          </div>
-          <div class="popup-menu-item" @click="copyImage">
-            <div class="icon">
-              <Copy theme="outline" size="18" fill="var(--color-icon-primary)" :strokeWidth="3" />
-            </div>
-            <div class="name">复制</div>
-          </div>
-          <div class="popup-menu-item popup-menu-item-danger" @click="deleteImage">
-            <div class="icon">
-              <Delete theme="outline" size="18" fill="#ff4d4f" :strokeWidth="3" />
-            </div>
-            <div class="name">删除</div>
-          </div>
         </div>
       </div>
     </div>
@@ -233,11 +170,80 @@
       </div>
     </Modal>
   </node-view-wrapper>
+
+  <!-- 使用Teleport将菜单传送到body -->
+  <Teleport to="body">
+    <div
+      v-if="showMenu"
+      ref="popupMenu"
+      class="popup-menu"
+      :style="{
+        position: 'fixed',
+        top: `${menuPosition.y}px`,
+        left: `${menuPosition.x}px`,
+        zIndex: 9999
+      }"
+      @click.stop
+    >
+      <div class="popup-menu-item" @click="alignImage('left')">
+        <div class="icon">
+          <AlignTextLeft
+            theme="outline"
+            size="18"
+            fill="var(--color-icon-primary)"
+            :strokeWidth="3"
+          />
+        </div>
+        <div class="name">左对齐</div>
+      </div>
+      <div class="popup-menu-item" @click="alignImage('center')">
+        <div class="icon">
+          <AlignTextCenter
+            theme="outline"
+            size="18"
+            fill="var(--color-icon-primary)"
+            :strokeWidth="3"
+          />
+        </div>
+        <div class="name">居中对齐</div>
+      </div>
+      <div class="popup-menu-item" @click="alignImage('right')">
+        <div class="icon">
+          <AlignTextRight
+            theme="outline"
+            size="18"
+            fill="var(--color-icon-primary)"
+            :strokeWidth="3"
+          />
+        </div>
+        <div class="name">右对齐</div>
+      </div>
+      <div class="popup-menu-item" @click="downloadImage">
+        <div class="icon">
+          <Download theme="outline" size="18" fill="var(--color-icon-primary)" :strokeWidth="3" />
+        </div>
+        <div class="name">下载</div>
+      </div>
+      <div class="popup-menu-item" @click="copyImage">
+        <div class="icon">
+          <Copy theme="outline" size="18" fill="var(--color-icon-primary)" :strokeWidth="3" />
+        </div>
+        <div class="name">复制</div>
+      </div>
+      <div class="popup-menu-item popup-menu-item-danger" @click="deleteImage">
+        <div class="icon">
+          <Delete theme="outline" size="18" fill="#ff4d4f" :strokeWidth="3" />
+        </div>
+        <div class="name">删除</div>
+      </div>
+    </div>
+  </Teleport>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, nextTick, onMounted, onUnmounted } from 'vue'
 import { NodeViewWrapper, nodeViewProps } from '@tiptap/vue-3'
+import { computePosition, flip, offset, shift } from '@floating-ui/dom'
 import {
   Download,
   Copy,
@@ -291,37 +297,64 @@ const RETRY_DELAY = 1000 // 1秒后重试
 
 const containerStyle = computed(() => ({
   width: props.node.attrs.width || '100%',
-  textAlign: props.node.attrs.align || 'center'
+  margin:
+    props.node.attrs.align === 'center'
+      ? '0 auto'
+      : props.node.attrs.align === 'left'
+        ? '0 auto 0 0'
+        : '0 0 0 auto'
 }))
 
 const imageStyle = computed(() => ({
   maxWidth: '100%',
+  width: '100%',
   height: 'auto'
 }))
 
 const showMenu = ref(false)
 const moreButton = ref(null)
+const popupMenu = ref(null)
+const menuPosition = ref({ x: 0, y: 0 })
 
-// watch(
-//   () => props.node.attrs.width,
-//   () => {
-//     if (showMenu.value) {
-//       nextTick(() => {
-//         updateMenuPosition()
-//       })
-//     }
-//   }
-// )
-
-const toggleMenu = () => {
+// 修改toggleMenu函数，使用floating-ui定位菜单
+const toggleMenu = async () => {
   showMenu.value = !showMenu.value
+
+  if (showMenu.value) {
+    await nextTick()
+    updateMenuPosition()
+  }
 }
 
-const wrapperStyle = computed(() => ({
-  textAlign: props.node.attrs.align
-}))
+// 添加菜单位置更新函数
+const updateMenuPosition = async () => {
+  if (!moreButton.value || !popupMenu.value) return
 
-const hideMenu = () => {
+  try {
+    // 使用floating-ui计算菜单位置
+    const { x, y } = await computePosition(moreButton.value, popupMenu.value, {
+      placement: 'bottom-end',
+      middleware: [
+        offset(4),
+        flip({
+          fallbackPlacements: ['top-end', 'left-end', 'right-end']
+        }),
+        shift({ padding: 8 })
+      ]
+    })
+
+    // 更新菜单位置
+    menuPosition.value = { x, y }
+  } catch (error) {
+    console.error('菜单定位出错:', error)
+  }
+}
+
+// 修改hideMenu函数
+const hideMenu = (event?: MouseEvent) => {
+  if (event && popupMenu.value && (popupMenu.value as HTMLElement).contains(event.target as Node)) {
+    return
+  }
   showMenu.value = false
 }
 
@@ -442,8 +475,6 @@ const startResize = (side: 'left' | 'right', event: ResizeEvent): void => {
 // 处理图片加载错误
 const handleImageError = async () => {
   if (retryCount.value < MAX_RETRIES) {
-    console.log(`图片加载失败，第 ${retryCount.value + 1} 次重试...`)
-
     // 等待一段时间后重试
     await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY))
 
@@ -462,7 +493,11 @@ const handleImageError = async () => {
 const handleImageLoad = () => {
   // 重置重试计数
   retryCount.value = 0
-  console.log('图片加载成功')
+
+  // 确保图片加载后也能正确应用宽度
+  if (!props.node.attrs.width) {
+    props.updateAttributes({ width: '100%' })
+  }
 }
 
 // 计算属性：是否有多张图片
@@ -690,12 +725,56 @@ const handleKeydown = (event: KeyboardEvent): void => {
       break
   }
 }
+
+// 添加回wrapperStyle计算属性
+const wrapperStyle = computed(() => ({
+  width: '100%'
+}))
+
+// 添加窗口大小变化监听逻辑
+onMounted(() => {
+  window.addEventListener('resize', handleWindowResize)
+  document.addEventListener('click', handleDocumentClick)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('resize', handleWindowResize)
+  document.removeEventListener('click', handleDocumentClick)
+})
+
+// 窗口大小变化处理
+const handleWindowResize = () => {
+  if (showMenu.value) {
+    updateMenuPosition()
+  }
+}
+
+// 处理文档点击事件
+const handleDocumentClick = (event: MouseEvent) => {
+  if (!showMenu.value) return
+
+  const target = event.target as Node
+
+  // 如果点击了菜单按钮或菜单内容，不关闭菜单
+  if (
+    (moreButton.value && (moreButton.value as HTMLElement).contains(target)) ||
+    (popupMenu.value && (popupMenu.value as HTMLElement).contains(target))
+  ) {
+    return
+  }
+
+  // 其他情况关闭菜单
+  hideMenu()
+}
 </script>
 
 <style lang="scss" scoped>
 .tiptap-image-wrapper {
   position: relative;
-  display: inline-block;
+  display: block;
+  width: 100%;
+  margin-top: 5px;
+  margin-bottom: 5px;
 
   &:hover .image-more-button,
   &:hover .resize-handle {
@@ -704,13 +783,16 @@ const handleKeydown = (event: KeyboardEvent): void => {
 
   .image-container {
     position: relative;
-    display: inline-block;
+    display: block;
+    width: 100%;
   }
 
   img {
     display: block;
     max-width: 100%;
+    width: 100%;
     height: auto;
+    object-fit: contain;
   }
 
   .resize-handle {
@@ -809,9 +891,6 @@ const handleKeydown = (event: KeyboardEvent): void => {
 }
 
 .popup-menu {
-  position: absolute;
-  top: 100%;
-  right: 0;
   background-color: var(--color-bg-primary);
   border: 1px solid var(--color-border-primary);
   border-radius: 8px;
@@ -823,7 +902,20 @@ const handleKeydown = (event: KeyboardEvent): void => {
   overflow-y: auto;
   padding: 6px 8px;
   white-space: nowrap;
-  margin-top: 4px;
+  // 移除顶部margin，由定位算法控制
+  transform-origin: top right;
+  animation: popup-in 0.15s ease;
+}
+
+@keyframes popup-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 .popup-menu-item {
@@ -984,6 +1076,7 @@ const handleKeydown = (event: KeyboardEvent): void => {
   transform-origin: center center;
   user-select: none;
   -webkit-user-drag: none;
+  width: auto;
 
   &:active {
     cursor: grabbing;

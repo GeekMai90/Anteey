@@ -16,6 +16,8 @@ import { useKnowledgeTreeStore } from '@renderer/stores/knowledgeTreeStore'
 import PopupMenu from './PopupMenu.vue'
 import type { MenuItem } from './PopupMenu.vue'
 import { BranchOne, AddItem, Copy, FileEditing, ViewGridCard, Sapling } from '@icon-park/vue-next'
+import { useEventBus } from '@vueuse/core'
+import { Note } from '@/shared/types'
 
 const router = useRouter()
 const noteStore = useNoteStore()
@@ -183,7 +185,19 @@ async function handleAddSibling() {
   if (props.noteId) {
     try {
       const newNote = await knowledgeTreeStore.createAdjacentNote(props.noteId, 'below')
-      noteStore.openNoteEditor(newNote.id)
+      const lastCreatedNote = await noteStore.fetchNote(newNote.id)
+      if (lastCreatedNote) {
+        // 先设置 lastCreatedNote
+        noteStore.lastCreatedNote = lastCreatedNote
+        // 触发笔记创建事件
+        const eventBus = useEventBus('note-created')
+        eventBus.emit(lastCreatedNote)
+        // 触发笔记更新事件
+        const noteUpdatedBus = useEventBus<Note>('note-updated')
+        noteUpdatedBus.emit(lastCreatedNote)
+        // 最后打开编辑器
+        noteStore.openNoteEditor(newNote.id)
+      }
     } catch (error) {
       console.error('添加同级节点失败:', error)
     }
@@ -196,7 +210,19 @@ async function handleAddChild() {
   if (props.noteId) {
     try {
       const newNote = await knowledgeTreeStore.createAdjacentNote(props.noteId, 'child')
-      noteStore.openNoteEditor(newNote.id)
+      const lastCreatedNote = await noteStore.fetchNote(newNote.id)
+      if (lastCreatedNote) {
+        // 先设置 lastCreatedNote
+        noteStore.lastCreatedNote = lastCreatedNote
+        // 触发笔记创建事件
+        const eventBus = useEventBus('note-created')
+        eventBus.emit(lastCreatedNote)
+        // 触发笔记更新事件
+        const noteUpdatedBus = useEventBus<Note>('note-updated')
+        noteUpdatedBus.emit(lastCreatedNote)
+        // 最后打开编辑器
+        noteStore.openNoteEditor(newNote.id)
+      }
     } catch (error) {
       console.error('添加子节点失败:', error)
     }

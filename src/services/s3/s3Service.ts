@@ -129,7 +129,6 @@ export class S3Service extends EventEmitter {
       const now = Date.now()
       // 如果最后访问时间超过 30 秒，强制重置计数器
       if (now - this.lastDbAccessTime > 30000 && this.dbBusyCount > 0) {
-        console.log('s3Service → 数据库活动监控：强制重置计数器')
         resetCounter()
       }
     }, 30000)
@@ -150,11 +149,8 @@ export class S3Service extends EventEmitter {
         return
       }
 
-      console.log('s3Service → 等待数据库空闲，当前活动查询数:', this.dbBusyCount)
-
       // 添加超时机制，最多等待 3 秒
       const timeout = setTimeout(() => {
-        console.log('s3Service → 数据库空闲检查超时，重置计数器并继续执行')
         if (this.dbIdleCheckTimer) {
           clearTimeout(this.dbIdleCheckTimer)
           this.dbIdleCheckTimer = null
@@ -252,14 +248,11 @@ export class S3Service extends EventEmitter {
         ...(options || {})
       }
 
-      console.log('s3Service → 开始更新配置:', { config, options: finalOptions })
-
       const id = config.id || uuidv4()
       const now = new Date()
 
       // 先获取现有配置
       const existingConfig = await db('s3_config').first()
-      console.log('s3Service → 获取到现有配置:', { existingConfig: !!existingConfig })
 
       // 如果提供商发生了变化，我们需要保存当前提供商的配置
       if (existingConfig && existingConfig.provider) {
@@ -287,7 +280,6 @@ export class S3Service extends EventEmitter {
           } else {
             await db('s3_provider_configs').insert(providerData)
           }
-          console.log('s3Service → 已保存现有提供商配置')
         } catch (providerError) {
           console.error('s3Service → 保存提供商配置失败:', providerError)
           // 继续执行，不要因为这个错误中断整个过程
@@ -311,7 +303,6 @@ export class S3Service extends EventEmitter {
               secretAccessKey: config.secretAccessKey || decrypt(newProviderConfig.secretAccessKey),
               endpoint: config.endpoint || newProviderConfig.endpoint
             }
-            console.log('s3Service → 已加载新提供商的配置')
           }
         } catch (newProviderError) {
           console.error('s3Service → 加载新提供商配置失败:', newProviderError)
@@ -340,13 +331,11 @@ export class S3Service extends EventEmitter {
       try {
         if (existingConfig) {
           await db('s3_config').update(updateData)
-          console.log('s3Service → 已更新配置')
         } else {
           await db('s3_config').insert({
             ...updateData,
             createdAt: now
           })
-          console.log('s3Service → 已创建新配置')
         }
       } catch (dbError) {
         console.error('s3Service → 数据库操作失败:', dbError)
@@ -358,7 +347,6 @@ export class S3Service extends EventEmitter {
       // 只有在明确指定时才重启自动同步
       if (finalOptions.restartSync === true) {
         try {
-          console.log('s3Service → 重启自动同步')
           await this.startAutoSync()
         } catch (syncError) {
           console.error('s3Service → 重启自动同步失败:', syncError)
@@ -369,7 +357,6 @@ export class S3Service extends EventEmitter {
       }
 
       const finalConfig = await this.getConfig()
-      console.log('s3Service → 配置更新完成')
       return finalConfig as S3Config
     } catch (error) {
       console.error('s3Service → 更新配置发生异常:', error)
@@ -456,7 +443,6 @@ export class S3Service extends EventEmitter {
 
     this.isSyncing = true // 设置同步状态为进行中
     const syncStartTime = Date.now()
-    console.log(`s3Service → 开始${type}同步，时间: ${new Date().toISOString()}`)
 
     try {
       // 检查配置是否有效
@@ -467,22 +453,15 @@ export class S3Service extends EventEmitter {
       if (!config.enabled) {
         throw new Error('S3 同步未启用')
       }
-      console.log('s3Service → 配置检查通过:', {
-        provider: config.provider,
-        enabled: config.enabled
-      })
 
       // 记录是否启用了自动同步
       const autoSyncEnabled = config.autoSync
 
       // 初始化客户端
-      console.log('s3Service → 初始化 S3 客户端...')
       await this.getClient()
-      console.log('s3Service → S3 客户端初始化完成')
 
       // 开始同步时先停止自动同步定时器，避免在执行过程中被重复触发
       if (this.autoSyncTimer) {
-        console.log('s3Service → 暂停自动同步定时器，等待当前同步完成')
         clearInterval(this.autoSyncTimer)
         this.autoSyncTimer = null
       }
@@ -495,9 +474,7 @@ export class S3Service extends EventEmitter {
       })
 
       // 等待数据库空闲
-      console.log('s3Service → 等待数据库空闲...')
       await this.isDatabaseIdle()
-      console.log('s3Service → 数据库空闲，开始同步操作')
 
       this.updateState({
         status: 'syncing',
@@ -509,25 +486,18 @@ export class S3Service extends EventEmitter {
       // 检查是否是首次同步
       const isFirstSync = !(await db('s3_sync_history').first())
       const remoteExists = await this.checkRemoteExists('antinet/antinet.sqlite')
-      console.log(
-        `s3Service → 远程文件检查结果: 首次同步=${isFirstSync}, 远程文件存在=${remoteExists}`
-      )
 
       if (isFirstSync && remoteExists) {
         const shouldUseRemote = await this.confirmUseRemoteData()
-        console.log(`s3Service → 用户选择: 使用远程数据=${shouldUseRemote}`)
 
         if (shouldUseRemote) {
           this.updateState({ status: 'syncing', progress: 30, message: '下载数据库...' })
-          console.log('s3Service → 开始下载远程数据库')
           await this.downloadDatabase()
 
           this.updateState({ status: 'syncing', progress: 60, message: '下载图片...' })
-          console.log('s3Service → 开始下载远程图片')
           await this.downloadImages()
 
           this.updateState({ status: 'completed', progress: 100, message: '同步完成' })
-          console.log('s3Service → 首次同步完成，使用远程数据')
           await this.addSyncHistory(type, 'success')
 
           // 如果是自动同步模式，同步完成后恢复定时器
@@ -541,27 +511,20 @@ export class S3Service extends EventEmitter {
         }
       }
 
-      console.log('s3Service → 开始同步数据库文件')
       this.updateState({ status: 'syncing', progress: 30, message: '同步数据库...' })
       await this.syncDatabase()
 
-      console.log('s3Service → 开始同步图片文件')
       this.updateState({ status: 'syncing', progress: 60, message: '同步图片...' })
       await this.syncImages()
 
       // 确保同步完成状态被正确设置
       this.updateState({ status: 'completed', progress: 100, message: '同步完成' })
-      console.log('s3Service → 所有文件同步完成')
       await this.addSyncHistory(type, 'success')
 
       // 如果启用了自动同步，无论是手动还是自动触发的同步，都恢复定时器
       if (autoSyncEnabled) {
-        console.log('s3Service → 恢复自动同步定时器')
         await this.resumeAutoSyncTimer()
       }
-
-      const totalTime = Date.now() - syncStartTime
-      console.log(`s3Service → ${type}同步完成，总耗时: ${totalTime}ms`)
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : String(error)
       console.error(`s3Service → 同步失败: ${errorMessage}`, error)
@@ -582,10 +545,6 @@ export class S3Service extends EventEmitter {
         this.dbIdleCheckTimer = null
       }
 
-      const totalTime = Date.now() - syncStartTime
-      console.log(
-        `s3Service → ${type}同步${this.syncState.status === 'error' ? '失败' : '完成'}，总耗时: ${totalTime}ms`
-      )
       this.isSyncing = false // 重置同步状态
     }
   }

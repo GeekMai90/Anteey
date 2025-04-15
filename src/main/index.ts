@@ -266,7 +266,6 @@ async function createWindow(): Promise<BrowserWindow> {
           is_maximized: isMaximized,
           updatedAt: new Date()
         })
-        console.log('窗口状态已保存')
       }
     } catch (error) {
       console.error('保存窗口状态失败:', error)
@@ -299,7 +298,6 @@ async function createWindow(): Promise<BrowserWindow> {
 
   // 创建一个函数来处理缩放更新
   async function handleZoomUpdate(zoomFactor: number) {
-    console.log('正在更新缩放级别:', zoomFactor)
     try {
       const settings = await db('user_settings').first()
       if (settings) {
@@ -307,7 +305,6 @@ async function createWindow(): Promise<BrowserWindow> {
           zoom_factor: zoomFactor,
           updatedAt: new Date()
         })
-        console.log('缩放级别已保存到数据库')
       }
     } catch (error) {
       console.error('保存缩放级别失败:', error)
@@ -318,7 +315,6 @@ async function createWindow(): Promise<BrowserWindow> {
   mainWindow.webContents.on('before-input-event', async (_event, input) => {
     // Command/Control + 加号
     if ((input.control || input.meta) && (input.key === '=' || input.key === 'plus')) {
-      console.log('检测到放大快捷键')
       const currentZoom = mainWindow.webContents.getZoomFactor()
       const newZoom = currentZoom + 0.1
       mainWindow.webContents.setZoomFactor(newZoom)
@@ -326,7 +322,6 @@ async function createWindow(): Promise<BrowserWindow> {
     }
     // Command/Control + 减号
     if ((input.control || input.meta) && (input.key === '-' || input.key === 'minus')) {
-      console.log('检测到缩小快捷键')
       const currentZoom = mainWindow.webContents.getZoomFactor()
       const newZoom = currentZoom - 0.1
       mainWindow.webContents.setZoomFactor(newZoom)
@@ -334,7 +329,6 @@ async function createWindow(): Promise<BrowserWindow> {
     }
     // Command/Control + 0
     if ((input.control || input.meta) && input.key === '0') {
-      console.log('检测到重置快捷键')
       mainWindow.webContents.setZoomFactor(1.0)
       await handleZoomUpdate(1.0)
     }
@@ -342,7 +336,6 @@ async function createWindow(): Promise<BrowserWindow> {
 
   // 监听菜单项的缩放操作
   ipcMain.on('zoom-in', async () => {
-    console.log('菜单: 放大')
     const currentZoom = mainWindow.webContents.getZoomFactor()
     const newZoom = currentZoom + 0.1
     mainWindow.webContents.setZoomFactor(newZoom)
@@ -350,7 +343,6 @@ async function createWindow(): Promise<BrowserWindow> {
   })
 
   ipcMain.on('zoom-out', async () => {
-    console.log('菜单: 缩小')
     const currentZoom = mainWindow.webContents.getZoomFactor()
     const newZoom = currentZoom - 0.1
     mainWindow.webContents.setZoomFactor(newZoom)
@@ -358,7 +350,6 @@ async function createWindow(): Promise<BrowserWindow> {
   })
 
   ipcMain.on('zoom-reset', async () => {
-    console.log('菜单: 重置缩放')
     mainWindow.webContents.setZoomFactor(1.0)
     await handleZoomUpdate(1.0)
   })

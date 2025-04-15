@@ -1,12 +1,11 @@
 /* antinet theme */
 jmnodes.theme-antinet jmnode {
-  /* background-color: #f0f2f5;  */
   background-color: var(--color-node-bg);
   color: var(--color-text-primary);
   border: none;
   border-radius: 6px;
   min-width: 120px;
-  box-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+  box-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
   cursor: pointer;
 }
 
@@ -22,13 +21,15 @@ jmnodes.theme-antinet jmnode .node-title {
 }
 jmnodes.theme-antinet jmnode .node-address {
   padding-bottom: 4px;
+  font-size: 12px;
 }
 /* 标题文本截断 */
 jmnodes.theme-antinet jmnode .node-title {
-  white-space: nowrap; /* 不换行 */
-  overflow: hidden; /* 超出隐藏 */
-  text-overflow: ellipsis; /* 显示省略号 */
-  max-width: 160px; /* 留出一些内边距的空间 */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 180px;
+  font-size: 14px;
 }
 
 /* hover 状态下的文字颜色 */
@@ -50,8 +51,7 @@ jmnodes.theme-antinet jmnode.selected .node-title {
 
 /* 根节点样式 */
 jmnodes.theme-antinet jmnode.root {
-  background-color: var(--color-primary); /* Antinet 主题绿色 */
-  font-size: 18px;
+  background-color: var(--color-primary);
   padding: 12px 20px;
   color: var(--color-text-white);
   min-width: 140px;
@@ -61,6 +61,7 @@ jmnodes.theme-antinet jmnode.root {
 jmnode.root .node-address,
 jmnode.root .node-title {
   color: var(--color-text-white);
+  font-size: 16px !important;
 }
 
 /* 特定节点样式 */
