@@ -28,6 +28,9 @@
         <!-- 闪卡转换 -->
         <Button :icon="StorageCardOne" @click="toggleFlashcard"> 转换为闪卡 </Button>
 
+        <!-- 合并笔记 -->
+        <Button :icon="MergeCells" @click="handleMerge"> 合并笔记 </Button>
+
         <!-- 删除 -->
         <Button :icon="Delete" class="danger" @click="handleDelete"> 删除 </Button>
 
@@ -86,6 +89,17 @@
         @confirm="confirmDelete"
         @cancel="showDeleteConfirm = false"
       />
+
+      <!-- 合并确认对话框 -->
+      <ConfirmDialog
+        v-model:visible="showMergeConfirm"
+        title="合并笔记确认"
+        :message="`确定要将选中的 ${noteStore.selectedNoteIds.length} 张卡片合并吗？合并后将保留第一张卡片，其他卡片将被移到回收站。`"
+        confirm-text="确认"
+        cancel-text="取消"
+        @confirm="confirmMerge"
+        @cancel="showMergeConfirm = false"
+      />
     </div>
   </div>
 </template>
@@ -93,7 +107,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useNoteStore } from '@renderer/stores/noteStore'
-import { Install, Notes, Tag, StorageCardOne, Delete, Close } from '@icon-park/vue-next'
+import { Install, Notes, Tag, StorageCardOne, Delete, Close, MergeCells } from '@icon-park/vue-next'
 import type { CardType, Note } from '@shared/types'
 import Button from '@renderer/components/ui/Button.vue'
 import BatchMoveCardBoxList from './BatchMoveCardBoxList.vue'
@@ -114,6 +128,7 @@ const showCardTypeMenu = ref(false)
 const showTagMenu = ref(false)
 const showFlashcardConfirm = ref(false)
 const showDeleteConfirm = ref(false)
+const showMergeConfirm = ref(false)
 
 // 添加 props 定义
 const props = defineProps<{
@@ -251,6 +266,25 @@ const handleAddTag = async (tagId: string) => {
     noteStore.toggleMultiSelectMode()
   } catch (error) {
     message.error('批量添加标签失败')
+  }
+}
+
+// 添加合并相关的方法
+const handleMerge = () => {
+  if (noteStore.selectedNoteIds.length < 2) {
+    message.info('请至少选择两张卡片进行合并')
+    return
+  }
+  showMergeConfirm.value = true
+}
+
+const confirmMerge = async () => {
+  try {
+    await noteStore.mergeNotes(noteStore.selectedNoteIds)
+    message.success('笔记合并成功')
+    showMergeConfirm.value = false
+  } catch (error) {
+    message.error('笔记合并失败')
   }
 }
 

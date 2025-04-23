@@ -550,5 +550,10 @@ export const notesApi = {
       console.error('预加载脚本 → 获取无编码地址的笔记失败:', error)
       throw error
     }
+  },
+
+  // 合并笔记
+  mergeNotes: (noteIds: string[]) => {
+    return ipcRenderer.invoke('merge-notes', noteIds)
   }
 }

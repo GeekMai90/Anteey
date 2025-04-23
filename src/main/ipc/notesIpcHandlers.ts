@@ -44,7 +44,8 @@ import {
   copyNoteAddressToClipboard,
   getNotesByDuplicateAddress,
   getInvalidAddressNotes,
-  getNotesWithoutAddress
+  getNotesWithoutAddress,
+  mergeNotes
 } from '../../services/notes/notesService'
 import type {
   GetPaginatedNotesParams,
@@ -566,6 +567,17 @@ export function setupNotesHandlers() {
       return result
     } catch (error) {
       console.error('主进程 → 获取无编码地址的笔记失败:', error)
+      throw error
+    }
+  })
+
+  // 合并笔记
+  ipcMain.handle('merge-notes', async (_event, noteIds: string[]) => {
+    try {
+      const mergedNote = await mergeNotes(noteIds)
+      return mergedNote
+    } catch (error) {
+      console.error('主进程 → 合并笔记失败:', error)
       throw error
     }
   })

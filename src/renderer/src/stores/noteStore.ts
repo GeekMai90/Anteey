@@ -1680,6 +1680,34 @@ export const useNoteStore = defineStore(
       }
     }
 
+    // 合并笔记
+    const mergeNotes = async (noteIds: string[]): Promise<Note> => {
+      try {
+        // 确保传递的是普通数组而不是响应式数组
+        const plainNoteIds = Array.from(noteIds)
+
+        const mergedNote = await window.electronAPI.note.mergeNotes(plainNoteIds)
+
+        // 更新本地状态
+        plainNoteIds.forEach((id) => {
+          // 从收藏列表中移除被合并的笔记
+          starredNotes.value = starredNotes.value.filter((note) => note.id !== id)
+
+          // 从最近笔记列表中移除被合并的笔记
+          recentNotes.value = recentNotes.value.filter((note) => note.id !== id)
+        })
+
+        // 触发合并完成事件
+        const notesMergedBus = useEventBus('notes-merged')
+        notesMergedBus.emit([mergedNote])
+
+        return mergedNote
+      } catch (error) {
+        console.error('合并笔记失败:', error)
+        throw error
+      }
+    }
+
     // 返回所有状态和方法
     return {
       // 状态
@@ -1897,7 +1925,10 @@ export const useNoteStore = defineStore(
       // 添加三个新方法到返回对象
       getNotesByDuplicateAddress,
       getInvalidAddressNotes,
-      getNotesWithoutAddress
+      getNotesWithoutAddress,
+
+      // 合并笔记
+      mergeNotes
     }
   },
   {

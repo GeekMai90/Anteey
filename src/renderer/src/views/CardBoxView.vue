@@ -915,6 +915,7 @@ const eventBusNoteRestored = useEventBus('note-restored')
 const taskUpdatedBus = useEventBus<string>('task-updated')
 const notesDeletedBus = useEventBus('notes-deleted')
 const eventBusIndexUpdated = useEventBus<Note[]>('notes-index-updated')
+const notesMergedBus = useEventBus('notes-merged')
 
 // 监听批量软删除事件
 notesDeletedBus.on(() => {
@@ -956,8 +957,16 @@ taskUpdatedBus.on(async (noteId) => {
     console.error('更新笔记失败:', error)
   }
 })
-// 更新单个笔记的函数
 
+// 监听笔记合并事件
+notesMergedBus.on(() => {
+  console.log('CardBoxView.vue→ 监听到笔记合并事件')
+  resetPagination()
+  fetchNotes()
+  noteStore.toggleMultiSelectMode()
+})
+
+// 更新单个笔记的函数
 const updateSingleNote = async (updatedNote: Note) => {
   if (!updatedNote) return
 

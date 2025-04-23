@@ -2406,3 +2406,102 @@ export async function getNotesWithoutAddress(): Promise<Note[]> {
     throw new Error('获取无编码地址的笔记失败')
   }
 }
+
+// 合并多个笔记
+export async function mergeNotes(noteIds: string[]): Promise<Note> {
+  return db.transaction(async (trx) => {
+    try {
+      // 1. 获取并验证所有笔记
+      const notes = await trx('notes')
+        .whereIn('id', noteIds)
+        .orderBy('createdAt', 'asc')
+        .select('*')
+
+      if (notes.length !== noteIds.length) {
+        throw new Error('部分笔记不存在')
+      }
+
+      // 2. 将所有笔记转换为标准格式
+      const convertedNotes = notes.map(convertToNote)
+
+      // 3. 合并笔记内容
+      const mergedContent = {
+        type: 'doc',
+        content: [] as any[]
+      }
+
+      // 使用第一个笔记的类型作为合并后的类型
+      const cardType = convertedNotes[0].cardType
+
+      convertedNotes.forEach((note, index) => {
+        // 如果不是第一个笔记，添加分隔线
+        if (index > 0) {
+          mergedContent.content.push({
+            type: 'horizontalRule'
+          })
+        }
+
+        // 添加原笔记的内容
+        if (note.content && note.content.content) {
+          mergedContent.content.push(...note.content.content)
+        }
+      })
+
+      // 4. 创建新笔记
+      const now = new Date()
+      const timestamp = now.toISOString().slice(0, 19).replace(/[-:T]/g, '')
+
+      const newNote: Note = {
+        id: uuidv4(),
+        type: 'note',
+        title: convertedNotes[0].title, // 使用第一个笔记的标题
+        address: `合并-${timestamp}`,
+        cardType,
+        content: mergedContent,
+        createdAt: now,
+        updatedAt: now,
+        references: {
+          outgoing: [],
+          incoming: []
+        },
+        relationshipTree: {
+          parents: [],
+          children: [],
+          siblings: []
+        },
+        graphData: {
+          x: 0,
+          y: 0
+        },
+        isDeleted: false,
+        isStarred: false,
+        isFlashcard: false,
+        metadata: {
+          title: convertedNotes[0].title,
+          summary: `由 ${notes.length} 张卡片合并而来`
+        }
+      }
+
+      // 5. 保存新笔记
+      await trx('notes').insert({
+        ...newNote,
+        content: JSON.stringify(newNote.content),
+        references: JSON.stringify(newNote.references),
+        relationshipTree: JSON.stringify(newNote.relationshipTree),
+        graphData: JSON.stringify(newNote.graphData),
+        metadata: JSON.stringify(newNote.metadata)
+      })
+
+      // 6. 软删除原有笔记
+      await trx('notes').whereIn('id', noteIds).update({
+        isDeleted: true,
+        updatedAt: now
+      })
+
+      return newNote
+    } catch (error) {
+      console.error('合并笔记失败:', error)
+      throw error
+    }
+  })
+}

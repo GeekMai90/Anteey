@@ -264,6 +264,8 @@ export interface ElectronAPI {
     getNotesByDuplicateAddress: () => Promise<{ [key: string]: Note[] }>
     getInvalidAddressNotes: () => Promise<Note[]>
     getNotesWithoutAddress: () => Promise<Note[]>
+    // 添加合并笔记方法
+    mergeNotes: (noteIds: string[]) => Promise<Note>
   }
 
   systemMenu: {

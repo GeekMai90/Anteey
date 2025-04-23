@@ -310,6 +310,7 @@ const eventBusDeleted = useEventBus('note-deleted')
 const eventBusEmptyNotesMovedToTrash = useEventBus('empty-notes-moved-to-trash')
 const eventBusNoteRestored = useEventBus('note-restored')
 const notesDeletedBus = useEventBus('notes-deleted')
+const notesMergedBus = useEventBus('notes-merged')
 
 // 更新单个笔记
 const updateSingleNote = async (updatedNote: Note) => {
@@ -425,6 +426,13 @@ const readwiseSyncCompleteBus = useEventBus('readwiseSyncComplete')
 readwiseSyncCompleteBus.on(() => {
   console.log('InboxView.vue → 监听到 Readwise 同步完成事件')
   resetAndFetch()
+})
+
+// 在事件监听部分修改合并事件的监听
+notesMergedBus.on(() => {
+  console.log('InboxView.vue→ 监听到笔记合并事件')
+  resetAndFetch()
+  noteStore.toggleMultiSelectMode()
 })
 
 // 生命周期钩子
