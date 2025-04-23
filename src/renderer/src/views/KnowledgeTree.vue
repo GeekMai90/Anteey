@@ -31,6 +31,7 @@
       :menu-config="{
         addSibling: true,
         addChild: true,
+        toggleIndex: true,
         copyAddress: true,
         expandEdit: true,
         viewInCardbox: true

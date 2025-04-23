@@ -15,7 +15,15 @@ import { useNoteStore } from '@renderer/stores/noteStore'
 import { useKnowledgeTreeStore } from '@renderer/stores/knowledgeTreeStore'
 import PopupMenu from './PopupMenu.vue'
 import type { MenuItem } from './PopupMenu.vue'
-import { BranchOne, AddItem, Copy, FileEditing, ViewGridCard, Sapling } from '@icon-park/vue-next'
+import {
+  BranchOne,
+  AddItem,
+  Copy,
+  FileEditing,
+  ViewGridCard,
+  Sapling,
+  ListAlphabet
+} from '@icon-park/vue-next'
 import { useEventBus } from '@vueuse/core'
 import { Note } from '@/shared/types'
 
@@ -83,6 +91,12 @@ const DEFAULT_MENU_CONFIG: Record<string, MenuItemConfig> = {
     label: '知识树查看',
     icon: Sapling,
     visible: true
+  },
+  toggleIndex: {
+    name: 'toggleIndex',
+    label: '添加索引',
+    icon: ListAlphabet,
+    visible: true
   }
 }
 
@@ -93,7 +107,8 @@ const actionHandlers: Record<string, () => void> = {
   copyAddress: () => handleCopyAddress(),
   expandEdit: () => handleExpandEdit(),
   viewInCardbox: () => handleViewInCardbox(),
-  viewInTree: () => handleViewInTree()
+  viewInTree: () => handleViewInTree(),
+  toggleIndex: () => handleToggleIndex()
 }
 
 // 合并配置并生成菜单项
@@ -237,6 +252,19 @@ async function handleViewInTree() {
       name: 'KnowledgeTreeNode',
       params: { address: props.noteId }
     })
+  }
+  handleClose()
+}
+
+// 添加索引处理函数
+async function handleToggleIndex() {
+  if (props.noteId) {
+    try {
+      await noteStore.toggleNoteIndex(props.noteId)
+      handleClose()
+    } catch (error) {
+      console.error('切换索引状态失败:', error)
+    }
   }
   handleClose()
 }
