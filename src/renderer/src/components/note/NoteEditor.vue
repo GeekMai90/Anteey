@@ -359,7 +359,7 @@ defineExpose({
   flex-direction: column;
   height: 750px;
   max-height: 80vh;
-  width: 800px;
+  width: 900px;
   max-width: 90vw;
   position: relative;
   overflow: visible;
@@ -381,12 +381,9 @@ defineExpose({
   .editor-content {
     display: flex;
     flex-direction: column;
-    // flex-grow: 1;
     flex: 1;
     min-height: 0;
-    // padding: 0 10px 0 20px;
     width: 100%;
-    // padding: 0 10px;
     overflow: hidden; // 防止双重滚动条
 
     .address-input {
@@ -396,7 +393,7 @@ defineExpose({
       height: 40px;
       width: 100%;
       position: relative; // 添加相对定位作为参考
-      margin-left: 35px;
+      margin-left: 55px;
 
       input {
         display: flex;
@@ -434,7 +431,7 @@ defineExpose({
 
       .note-indicator {
         position: absolute; // 改为绝对定位
-        left: -10px;
+        left: -12px;
         top: 50%;
         transform: translateY(-50%); // 垂直居中
         width: 4px;
@@ -537,17 +534,14 @@ defineExpose({
       width: 100%;
       height: 100%;
       overflow-y: auto;
-      padding: 0 10px;
+      padding: 0 30px;
       position: relative;
     }
 
     :deep(.tiptap) {
-      // min-width: calc(640px - 64px);
       min-width: calc(100% - 150px);
-      // width: 100%;
       min-height: 100%;
       overflow-y: auto;
-      // overflow: hidden;
       padding-bottom: 60px;
     }
   }

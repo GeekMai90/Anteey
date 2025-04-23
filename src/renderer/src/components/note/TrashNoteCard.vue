@@ -1,5 +1,5 @@
 <template>
-  <div class="trash-note-card">
+  <div class="trash-note-card" @dblclick="handleDoubleClick">
     <div class="note-header">
       <span class="note-indicator" :class="cardTypeClass"></span>
       <h3 class="note-title">{{ note.address }}</h3>
@@ -34,11 +34,13 @@ import PopupMenu from '@renderer/components/common/PopupMenu.vue'
 import type { MenuItem } from '@renderer/components/common/PopupMenu.vue'
 import { useMenu } from '@renderer/composables/useMenu'
 import { useNoteMenu } from '@renderer/composables/useNoteMenu'
+import { useNoteStore } from '@renderer/stores/noteStore'
 
 const props = defineProps<{
   note: Note
 }>()
 
+const noteStore = useNoteStore()
 const noteContent = ref<HTMLDivElement | null>(null)
 
 const moreBtnRef = ref<HTMLElement | null>(null)
@@ -62,6 +64,16 @@ const handleMenuItemClick = (item: MenuItem) => {
   item.action()
 }
 
+const handleDoubleClick = (event: MouseEvent) => {
+  const target = event.target as HTMLElement
+  const menuButton = target.closest('.note-buttons')
+  if (menuButton) {
+    return
+  }
+
+  noteStore.openNoteEditor(props.note.id)
+}
+
 const cardTypeClass = computed(() => {
   switch (props.note.cardType) {
     case 'Maincard':
@@ -72,6 +84,8 @@ const cardTypeClass = computed(() => {
       return 'indexcard'
     case 'Hoplinkcard':
       return 'hoplinkcard'
+    case 'Draftcard':
+      return 'draftcard'
     default:
       return ''
   }
@@ -81,111 +95,201 @@ const cardTypeClass = computed(() => {
 <style lang="scss" scoped>
 .trash-note-card {
   background-color: var(--color-bg-note-card);
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--color-border);
   border-radius: 8px;
-  padding: 10px;
-  position: relative;
-  width: 100%;
-  height: var(--card-height, 300px);
-  overflow: hidden;
-  box-shadow: 0px 2px 6px rgb(0 0 0 / 12%);
+  padding: 0 0 6px 0;
   display: flex;
   flex-direction: column;
-}
-
-.note-header {
-  display: flex;
-  align-items: center;
-  margin-bottom: 8px;
-}
-
-.note-indicator {
-  width: 4px;
-  height: 16px;
-  border-radius: 2px;
-  margin-right: 8px;
-
-  &.maincard {
-    background-color: #00c8a8;
-  }
-
-  &.bibcard {
-    background-color: #ff9f1c;
-  }
-
-  &.indexcard {
-    background-color: #4361ee;
-  }
-
-  &.hoplinkcard {
-    background-color: #f72585;
-  }
-}
-
-.note-title {
-  flex-grow: 1;
-  margin: 0;
-  font-size: 14px;
-  font-weight: bold;
-  color: var(--text-default-color);
-}
-
-.note-buttons {
-  visibility: hidden;
-}
-
-.trash-note-card:hover .note-buttons {
-  visibility: visible;
-}
-
-.note-button {
+  justify-content: flex-start;
   position: relative;
-  display: flex;
-  align-items: center;
-  border: none;
-  background: none;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  border-radius: 6px;
-  padding: 4px 4px;
-  margin: 2px;
+  width: 100%;
+  height: 300px;
+  min-height: 300px;
+  overflow: hidden;
+  box-shadow: var(--shadow-card);
+  user-select: none;
+  backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
 
-  .icon {
-    background: none;
-    border: none;
-    cursor: pointer;
-    width: 20px;
-    height: 20px;
+  &:hover {
+    border: 1px solid rgba(var(--color-primary-rgb), 0.4);
+    box-shadow: 0 0 20px 1px rgba(var(--color-primary-rgb), 0.1);
+    transform: translateY(-2px);
+  }
+
+  .note-header {
     display: flex;
     align-items: center;
-    justify-content: center;
-    transition: all 0.2s ease;
-    padding: 0;
+    justify-content: space-between;
+    position: relative;
+    padding: 0 15px 0 20px;
+    min-height: 30px;
+    margin: 10px 0 0 0;
+    flex-shrink: 0;
 
-    &:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
+    .note-indicator {
+      position: absolute;
+      left: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 4px;
+      height: 14px;
+      border-radius: 2px;
+      margin-right: 10px;
+
+      &.maincard {
+        background-color: var(--color-primary);
+      }
+
+      &.bibcard {
+        background-color: var(--color-yellow);
+      }
+
+      &.indexcard {
+        background-color: var(--color-blue);
+      }
+
+      &.hoplinkcard {
+        background-color: var(--color-pink);
+      }
+
+      &.draftcard {
+        background-color: var(--color-draft);
+      }
+    }
+
+    .note-title {
+      margin: 0;
+      font-size: 1rem;
+      font-weight: bold;
+      color: var(--color-text-primary);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      display: flex;
+      align-items: center;
+      height: 100%;
+      line-height: 1;
+    }
+
+    .note-buttons {
+      position: absolute;
+      right: 0;
+      display: flex;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+      margin-right: 10px;
+      height: 100%;
+      align-items: center;
+
+      .note-button {
+        position: relative;
+        display: flex;
+        align-items: center;
+        border: none;
+        background: none;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        border-radius: 6px;
+        padding: 4px 4px;
+        margin: 2px;
+
+        .icon {
+          background: none;
+          border: none;
+          cursor: pointer;
+          width: 20px;
+          height: 20px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: all 0.2s ease;
+          padding: 0;
+
+          &:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+          }
+
+          :deep(.i-icon) {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
+          }
+
+          :deep(svg) {
+            width: 16px;
+            height: 16px;
+          }
+        }
+
+        &:hover {
+          background-color: var(--color-hover-button);
+        }
+
+        &:active {
+          background-color: rgba(0, 0, 0, 0.1);
+        }
+      }
     }
   }
 
-  &:hover {
-    background-color: var(--color-hover-button);
+  &:hover .note-buttons {
+    opacity: 1;
+  }
+
+  .note-content {
+    flex: 1;
+    color: var(--color-text-primary);
+    text-align: left;
+    min-height: 200px;
+    overflow: hidden;
+    position: relative;
+    font-size: 15px;
+    padding: 0 20px;
+    display: flex;
+    flex-direction: column;
+
+    :deep(.tiptap) {
+      flex: 1;
+      overflow-y: auto;
+      font-size: 15px;
+      color: var(--color-text-primary);
+      margin: 0;
+      padding: 0;
+      min-height: 200px;
+    }
   }
 }
 
-.note-content {
-  flex-grow: 1;
-  overflow: hidden;
-  position: relative;
-  padding: 0 10px;
-}
+@media (prefers-color-scheme: dark) {
+  .trash-note-card {
+    .note-header {
+      .note-indicator {
+        &.maincard {
+          background-color: var(--color-primary);
+        }
 
-:deep(.tiptap) {
-  height: 100%;
-  overflow-y: auto;
-  font-size: 12px;
-  color: var(--text-default-color);
-  margin: 0;
-  padding: 0;
+        &.bibcard {
+          background-color: var(--color-yellow);
+        }
+
+        &.indexcard {
+          background-color: var(--color-blue);
+        }
+
+        &.hoplinkcard {
+          background-color: var(--color-pink);
+        }
+
+        // 稍微亮一点的灰色
+        &.draftcard {
+          background-color: var(--color-draft);
+        }
+      }
+    }
+  }
 }
 </style>

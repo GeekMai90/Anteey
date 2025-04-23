@@ -12,12 +12,13 @@
           </div>
           <div class="right-actions">
             <div class="sort-button-container" @click.stop="toggleSortMenu">
-              <SortTwo theme="outline" size="18" fill="var(--color-icon-primary)" />
+              <Button :height="36" :icon="SortTwo" dropdown> 排序 </Button>
               <div v-if="showSortMenu" class="sort-dropdown-menu">
                 <div
                   v-for="option in sortOptions"
                   :key="option.value"
                   class="sort-dropdown-item"
+                  :class="{ active: currentSort === option.value }"
                   @click="selectSortOption(option)"
                 >
                   <div class="dropdown-item-content">
@@ -29,9 +30,9 @@
                 </div>
               </div>
             </div>
-            <button v-if="deletedNotes.length > 0" class="empty-trash-button" @click="emptyTrash">
+            <Button v-if="deletedNotes.length > 0" :height="36" type="warning" @click="emptyTrash">
               清空回收站
-            </button>
+            </Button>
           </div>
         </div>
       </div>
@@ -80,7 +81,7 @@
     <ConfirmDialog
       v-model:visible="showConfirmDialog"
       title="全部清空"
-      message="笔记将被删除，此操作不能撤销"
+      message="所有笔记将被删除，此操作不能撤销"
       type="danger"
       cancel-text="取消"
       confirm-text="清空"
@@ -97,6 +98,7 @@ import { useEventBus } from '@vueuse/core'
 import AppToolbar from '@renderer/components/layout/AppToolbar.vue'
 import TrashNoteCard from '@renderer/components/note/TrashNoteCard.vue'
 import ConfirmDialog from '@renderer/components/common/ConfirmDialog.vue'
+import Button from '@renderer/components/ui/Button.vue'
 import { SortTwo, Recycling, Delete, Clear, RecycleBin } from '@icon-park/vue-next'
 import type { Note } from '@shared/types'
 
@@ -120,8 +122,6 @@ const sortOptions = [
 const fetchDeletedNotes = async () => {
   try {
     const fetchedNotes = await noteStore.getAllDeletedNotes()
-    console.log('fetchedNotes', fetchedNotes)
-    // deletedNotes.value = Array.isArray(fetchedNotes) ? fetchedNotes : []
     deletedNotes.value = fetchedNotes
   } catch (error) {
     console.error('加载回收站笔记失败', error)
@@ -144,6 +144,8 @@ const notePermanentDeletedHandler = () => {
 onMounted(async () => {
   await fetchDeletedNotes()
   document.addEventListener('click', closeMenu)
+  // 添加全局点击事件监听
+  document.addEventListener('click', handleGlobalClick)
   // 添加事件监听
   noteRestoredBus.on(noteRestoredHandler)
   notePermanentDeletedBus.on(notePermanentDeletedHandler)
@@ -151,10 +153,20 @@ onMounted(async () => {
 
 onUnmounted(() => {
   document.removeEventListener('click', closeMenu)
+  // 移除全局点击事件监听
+  document.removeEventListener('click', handleGlobalClick)
   // 移除事件监听
   noteRestoredBus.off(noteRestoredHandler)
   notePermanentDeletedBus.off(notePermanentDeletedHandler)
 })
+
+// 添加全局点击事件处理函数
+const handleGlobalClick = (event: MouseEvent) => {
+  const sortDropdown = document.querySelector('.sort-button-container')
+  if (showSortMenu.value && sortDropdown && !sortDropdown.contains(event.target as Node)) {
+    showSortMenu.value = false
+  }
+}
 
 const toggleSortMenu = (event: MouseEvent) => {
   event.stopPropagation()
@@ -291,7 +303,7 @@ const handleCancelEmptyTrash = () => {
   height: 100vh;
   display: flex;
   flex-direction: column;
-  background-color: var(--body-bg);
+  background-color: var(--color-bg-primary);
   overflow: hidden;
   position: relative;
 
@@ -299,163 +311,143 @@ const handleCancelEmptyTrash = () => {
     position: sticky;
     top: 0;
     z-index: 100;
-    background-color: var(--body-bg);
+    background-color: var(--color-bg-primary);
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+
     .header-content {
-      padding: 0px 20px;
-    }
+      width: 100%;
+      padding: 0 20px;
+      box-sizing: border-box;
 
-    .topToolBar {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      // padding: 10px 20px;
-      background-color: var(--body-bg);
-      padding: 8px 0;
-      border-bottom: 1px solid var(--color-border);
-
-      .trash-header-left {
-        position: relative;
+      .topToolBar {
         display: flex;
+        justify-content: space-between;
         align-items: center;
-        border: none;
-        background: none;
-        border-radius: 6px;
-        padding: 4px 0px;
-        margin: 2px;
+        padding: 0;
+        background-color: var(--color-bg-primary);
+        padding-bottom: 8px;
+        border-bottom: 1px solid var(--color-border-light);
 
-        .icon {
-          width: 30px;
-          height: 30px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          transition: all 0.2s ease;
-          padding: 0;
-          border-radius: 8px;
-          background-color: var(--color-primary-light);
-          border: 1px solid var(--color-primary);
-
-          :deep(.i-icon) {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 100%;
-            height: 100%;
-          }
-
-          :deep(svg) {
-            width: 18px;
-            height: 18px;
-          }
-        }
-
-        .name {
-          flex-grow: 0;
-          text-align: left;
-          color: var(---color-text-primary);
-          font-size: 20px;
-          font-weight: 600;
-          margin-left: 8px;
-          white-space: nowrap;
-          writing-mode: horizontal-tb;
-          user-select: none;
-          line-height: 1;
-        }
-      }
-
-      h2 {
-        margin: 0;
-        font-size: 18px;
-        color: var(--text-default-color);
-      }
-
-      .right-actions {
-        display: flex;
-        gap: 10px;
-        align-items: center;
-
-        .sort-button-container {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          padding: 8px;
-          border: none;
-          background-color: transparent;
-          color: var(--text-default-color);
-          font-size: 14px;
-          cursor: pointer;
-          transition: all 0.3s ease;
-          border-radius: 8px;
+        .trash-header-left {
           position: relative;
+          display: flex;
+          align-items: center;
+          border: none;
+          background: none;
+          border-radius: 6px;
+          padding: 4px 0px;
+          margin: 2px;
 
-          &:hover {
-            background-color: var(--color-sidebar-hover);
-          }
-
-          &.active {
-            background-color: var(--menu-active-bg);
-            color: var(--primary-color);
-          }
-
-          .i-icon {
-            width: 18px;
-            height: 18px;
+          .icon {
+            width: 30px;
+            height: 30px;
             display: flex;
             align-items: center;
             justify-content: center;
-          }
-
-          .sort-dropdown-menu {
-            position: absolute;
-            top: 100%;
-            right: 0;
-            background-color: var(--color-bg-primary);
+            transition: all 0.2s ease;
+            padding: 0;
             border-radius: 8px;
-            box-shadow: var(--shadow-primary);
-            z-index: 1000;
-            min-width: 200px;
-            width: auto;
-            overflow-y: auto;
-            padding: 6px 0;
-            white-space: nowrap;
+            background-color: var(--color-primary-light);
+            border: 1px solid var(--color-primary);
+
+            :deep(.i-icon) {
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              width: 100%;
+              height: 100%;
+            }
+
+            :deep(svg) {
+              width: 18px;
+              height: 18px;
+            }
           }
 
-          .sort-dropdown-item {
+          .name {
+            flex-grow: 0;
+            text-align: left;
+            color: var(--color-text-primary);
+            font-size: 20px;
+            font-weight: 600;
+            margin-left: 8px;
+            white-space: nowrap;
+            writing-mode: horizontal-tb;
+            user-select: none;
+            line-height: 1;
+          }
+        }
+
+        .right-actions {
+          display: flex;
+          gap: 8px;
+          align-items: center;
+
+          .sort-button-container {
             display: flex;
             align-items: center;
-            justify-content: space-between;
-            padding: 8px 16px;
-            cursor: pointer;
-            transition: background-color 0.2s;
+            position: relative;
+
+            :deep(.ant-btn) {
+              width: 100%;
+            }
+
+            .sort-dropdown-menu {
+              position: absolute;
+              top: 100%;
+              right: 0;
+              background-color: var(--color-bg-primary);
+              border-radius: 8px;
+              box-shadow: var(--shadow-primary);
+              z-index: 1000;
+              min-width: 200px;
+              width: auto;
+              overflow-y: auto;
+              padding: 6px 0;
+              white-space: nowrap;
+              margin-top: 4px;
+            }
+
+            .sort-dropdown-item {
+              display: flex;
+              align-items: center;
+              justify-content: space-between;
+              padding: 8px 16px;
+              cursor: pointer;
+              transition: background-color 0.2s;
+              font-size: 14px;
+              color: var(--color-text-primary);
+              white-space: nowrap;
+              border-radius: 8px;
+              margin: 2px 8px 2px 8px;
+              user-select: none;
+
+              &:hover {
+                background-color: var(--color-hover-bg);
+              }
+
+              &.active {
+                background-color: var(--color-menu-active-bg);
+              }
+            }
+          }
+
+          .empty-trash-button {
+            padding: 8px 12px;
+            border: none;
+            border-radius: 6px;
+            background-color: var(--color-danger);
+            color: white;
             font-size: 14px;
-            color: var(--text-default-color);
-            white-space: nowrap;
-            border-radius: 8px;
-            margin: 2px 8px 2px 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
 
             &:hover {
-              background-color: var(--color-sidebar-hover);
+              filter: brightness(90%);
             }
-
-            &.active {
-              background-color: var(--menu-active-bg);
-              border: 1px solid var(--primary-color);
-            }
-          }
-        }
-
-        .empty-trash-button {
-          padding: 8px 12px;
-          border: none;
-          border-radius: 5px;
-          background-color: var(--color-danger);
-          color: white;
-          font-size: 14px;
-          cursor: pointer;
-          transition: background-color 0.3s;
-
-          &:hover {
-            filter: brightness(90%);
           }
         }
       }
@@ -465,20 +457,25 @@ const handleCancelEmptyTrash = () => {
   .trash-view-container {
     flex: 1;
     display: flex;
-    align-items: center;
-    justify-content: center;
-    overflow-y: auto;
+    flex-direction: column;
+    height: calc(100vh - 100px);
+    overflow: hidden;
+    position: relative;
 
     .card-grid-container {
-      width: 100%;
-      height: 100%;
-      padding: 16px 20px;
+      flex: 1;
+      overflow-y: auto;
+      position: relative;
+      padding: 22px 20px;
 
       .card-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
         gap: 16px;
-        width: 100%;
+        align-content: start;
+        justify-content: center;
+        position: relative;
+        will-change: transform;
       }
     }
 
@@ -490,10 +487,15 @@ const handleCancelEmptyTrash = () => {
 
       .empty-state {
         text-align: center;
-        color: var(--text-light-color);
-        margin-top: -20vh; // 添加这一行，可以根据需要调整数值
+        color: var(--color-text-secondary);
+        margin-top: -20vh;
 
         .empty-state-content {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 16px;
+
           .i-icon {
             margin-bottom: 16px;
           }
@@ -502,88 +504,94 @@ const handleCancelEmptyTrash = () => {
             font-size: 20px;
             font-weight: 500;
             margin: 0 0 8px;
+            color: var(--color-text-primary);
           }
 
           span {
             font-size: 14px;
-            opacity: 0.7;
+            color: var(--color-text-secondary);
           }
         }
       }
     }
   }
+}
 
-  .note-menu {
-    position: fixed;
-    background-color: var(--color-bg-primary);
-    border-radius: 8px;
-    box-shadow: var(--shadow-primary);
-    z-index: 1000;
-    width: 140px; // 增加宽度以适应内容
-    padding: 8px 12px;
-    white-space: nowrap;
+.sort-direction {
+  font-size: 12px;
+  margin-left: 5px;
+}
 
-    .menu-item {
-      position: relative;
+.note-menu {
+  position: fixed;
+  background-color: var(--color-bg-primary);
+  border-radius: 8px;
+  box-shadow: var(--shadow-primary);
+  z-index: 1000;
+  width: 140px; // 增加宽度以适应内容
+  padding: 8px 12px;
+  white-space: nowrap;
+
+  .menu-item {
+    position: relative;
+    display: flex;
+    align-items: center;
+    border: none;
+    background: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border-radius: 6px;
+    padding: 4px 4px;
+    margin: 2px;
+
+    .icon {
+      background: none;
+      border: none;
+      cursor: pointer;
+      width: 24px;
+      height: 24px;
       display: flex;
       align-items: center;
-      border: none;
-      background: none;
-      cursor: pointer;
+      justify-content: center;
       transition: all 0.2s ease;
-      border-radius: 6px;
-      padding: 4px 4px;
-      margin: 2px;
+      padding: 0;
 
-      .icon {
-        background: none;
-        border: none;
-        cursor: pointer;
-        width: 24px;
-        height: 24px;
+      :deep(.i-icon) {
         display: flex;
         align-items: center;
         justify-content: center;
-        transition: all 0.2s ease;
-        padding: 0;
-
-        :deep(.i-icon) {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          width: 100%;
-          height: 100%;
-        }
-
-        :deep(svg) {
-          width: 16px;
-          height: 16px;
-        }
+        width: 100%;
+        height: 100%;
       }
 
-      .name {
-        flex-grow: 0;
-        text-align: left;
-        color: var(---color-text-primary);
-        font-size: 13px;
-        font-weight: 400;
-        margin-left: 6px;
-        white-space: nowrap;
-        writing-mode: horizontal-tb;
-        line-height: 1;
+      :deep(svg) {
+        width: 16px;
+        height: 16px;
       }
+    }
 
-      &:hover {
-        background-color: var(--color-hover-button);
-      }
+    .name {
+      flex-grow: 0;
+      text-align: left;
+      color: var(---color-text-primary);
+      font-size: 13px;
+      font-weight: 400;
+      margin-left: 6px;
+      white-space: nowrap;
+      writing-mode: horizontal-tb;
+      line-height: 1;
+    }
 
-      &:active {
-        background-color: rgba(0, 0, 0, 0.1);
-      }
+    &:hover {
+      background-color: var(--color-hover-button);
+    }
 
-      &.delete {
-        color: #ff4d4f;
-      }
+    &:active {
+      background-color: rgba(0, 0, 0, 0.1);
+    }
+
+    &.delete {
+      color: #ff4d4f;
     }
   }
 }

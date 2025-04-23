@@ -1067,10 +1067,11 @@ const scrollToEchoPanel = () => {
   max-width: 800px;
   width: 100%;
   margin: 0 auto;
-  padding: 0 44px;
+  padding: 0 44px 10px 44px;
   font-size: 12px;
   color: var(--color-text-tertiary);
   // margin-top: 8px;
+
   user-select: none;
 }
 
@@ -1086,7 +1087,7 @@ const scrollToEchoPanel = () => {
 .content-container {
   background: var(--color-bg-primary);
   border-radius: 12px;
-  padding: 20px 0;
+  padding: 10px 0 20px 0;
   min-height: 100%;
   display: flex;
   flex-direction: column;
