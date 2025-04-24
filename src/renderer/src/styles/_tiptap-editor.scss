@@ -625,28 +625,49 @@
 /* ------------------------------------
  * 拖动手柄样式
  * ------------------------------------ */
+/* 拖拽手柄和添加按钮容器 */
+.drag-handle-container {
+  display: flex;
+  align-items: flex-start;
+  gap: 2px;
+  margin-top: 2px;
+}
+
+/* 添加按钮样式 */
+.add-button {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  cursor: pointer;
+  background: transparent;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background-color: var(--color-hover-button);
+  }
+}
+
+/* 自定义拖拽手柄样式 */
 .custom-drag-handle {
   position: relative;
-  &::after {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 1rem;
-    height: 1.25rem;
-    line-height: 1;
-    content: "⠿";
-    font-weight: 700;
-    cursor: grab;
-    color: var(--color-text-tertiary);
-    border-radius: 0.25rem;
-    z-index: 0;
-    margin-top: 4px;
-  }
+  cursor: grab;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+
   &:hover {
-    &::after {
-      background: var(--color-hover-button);
-      color: var(--color-text-secondary);
-    }
+    background-color: var(--color-hover-button);
+  }
+
+  &:active {
+    cursor: grabbing;
   }
 }
 

@@ -393,7 +393,7 @@ defineExpose({
       height: 40px;
       width: 100%;
       position: relative; // 添加相对定位作为参考
-      margin-left: 55px;
+      margin-left: 65px;
 
       input {
         display: flex;
@@ -534,7 +534,7 @@ defineExpose({
       width: 100%;
       height: 100%;
       overflow-y: auto;
-      padding: 0 30px;
+      padding: 0 40px;
       position: relative;
     }
 

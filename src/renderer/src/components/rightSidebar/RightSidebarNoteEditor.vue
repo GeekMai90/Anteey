@@ -86,7 +86,9 @@
             v-model:content="currentNote.content"
             :note-id="currentNote.id"
             :editable="true"
-            :enableDragHandle="true"
+            :enableDragHandle="false"
+            :show-character-count="false"
+            :enable-add-paragraph-area="false"
             @update:content="handleContentUpdate"
           />
         </div>

@@ -62,7 +62,7 @@
                       :icon="Close"
                       tooltip="从索引中移除"
                       size="small"
-                      @click.stop="removeFromIndex(note.id)"
+                      @click.stop="() => openRemoveConfirm(note.id, note.title)"
                     />
                   </div>
                 </div>
@@ -85,6 +85,17 @@
         </div>
       </div>
     </div>
+
+    <!-- 确认删除弹窗 -->
+    <ConfirmDialog
+      v-model:visible="showRemoveConfirm"
+      title="移除确认"
+      :message="`确定要将笔记「${noteToRemove.title}」从索引中移除吗？`"
+      type="danger"
+      confirm-text="移除"
+      @confirm="confirmRemove"
+      @cancel="cancelRemove"
+    />
   </div>
 </template>
 
@@ -96,12 +107,17 @@ import draggable from 'vuedraggable'
 import type { Note } from '@shared/types'
 import IconButton from '@renderer/components/ui/IconButton.vue'
 import SearchInput from '@renderer/components/ui/SearchInput.vue'
+import ConfirmDialog from '@renderer/components/common/ConfirmDialog.vue'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
 const noteStore = useNoteStore()
 const isLoading = computed(() => noteStore.isLoadingIndexedNotes)
 const isDragging = ref(false)
+
+// 确认弹窗相关状态
+const showRemoveConfirm = ref(false)
+const noteToRemove = ref<{ id: string; title: string }>({ id: '', title: '' })
 
 // 字母表（包含英文和中文拼音首字母）
 const letters = [
@@ -180,14 +196,34 @@ const selectLetter = (letter: string) => {
   noteStore.setCurrentEchoNoteId(null) // 清除当前选中的笔记
 }
 
-// 从索引中移除笔记
-const removeFromIndex = async (noteId: string) => {
+// 打开确认移除弹窗
+const openRemoveConfirm = (noteId: string, noteTitle: string) => {
+  noteToRemove.value = { id: noteId, title: noteTitle }
+  showRemoveConfirm.value = true
+}
+
+// 确认移除操作
+const confirmRemove = async () => {
   try {
-    await noteStore.batchRemoveFromIndex([noteId])
+    await noteStore.batchRemoveFromIndex([noteToRemove.value.id])
   } catch (error) {
     console.error('从索引中移除笔记失败:', error)
   }
 }
+
+// 取消移除操作
+const cancelRemove = () => {
+  noteToRemove.value = { id: '', title: '' }
+}
+
+// 从索引中移除笔记（已废弃，保留做备份）
+// const removeFromIndex = async (noteId: string) => {
+//   try {
+//     await noteStore.batchRemoveFromIndex([noteId])
+//   } catch (error) {
+//     console.error('从索引中移除笔记失败:', error)
+//   }
+// }
 
 // 处理拖拽结束
 const handleDragEnd = async ({ newIndex, oldIndex, from, to }: any) => {

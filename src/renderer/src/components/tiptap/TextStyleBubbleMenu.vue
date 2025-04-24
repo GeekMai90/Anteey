@@ -108,7 +108,7 @@
         @click="editor.chain().focus().toggleCode().run()"
       >
         <div class="icon">
-          <CodeOne theme="outline" size="16" fill="var(--color-icon-primary)" :strokeWidth="3" />
+          <Code theme="outline" size="16" fill="var(--color-icon-primary)" :strokeWidth="3" />
         </div>
       </button>
       <!-- 链接 -->
@@ -306,7 +306,7 @@ import {
   TextUnderline,
   HighLight,
   Platte,
-  CodeOne,
+  Code,
   LinkTwo,
   ParagraphTriangle,
   ParagraphAlphabet,
@@ -792,14 +792,14 @@ const clearColor = () => {
       color: var(--color-text-primary);
     }
 
-    .icon {
+    :deep(.i-icon) {
       display: flex;
       align-items: center;
       justify-content: center;
       width: 100%;
       height: 100%;
 
-      svg {
+      :deep(svg) {
         width: 16px;
         height: 16px;
       }
@@ -869,7 +869,7 @@ const clearColor = () => {
       transition: all 0.2s ease;
       padding: 0;
 
-      .i-icon {
+      :deep(.i-icon) {
         display: flex;
         align-items: center;
         justify-content: center;
@@ -960,7 +960,7 @@ const clearColor = () => {
       width: 100%;
       height: 100%;
 
-      .i-icon {
+      :deep(.i-icon) {
         display: flex;
         align-items: center;
         justify-content: center;
@@ -968,7 +968,7 @@ const clearColor = () => {
         height: 100%;
       }
 
-      svg {
+      :deep(svg) {
         width: 16px;
         height: 16px;
       }
@@ -1011,6 +1011,14 @@ const clearColor = () => {
       justify-content: center;
       transition: all 0.2s ease;
       margin-right: 4px;
+
+      :deep(.i-icon) {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        height: 100%;
+      }
 
       :deep(svg) {
         width: 14px;

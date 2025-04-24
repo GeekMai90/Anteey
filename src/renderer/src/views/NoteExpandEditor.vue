@@ -147,37 +147,11 @@
               :enableDragHandle="true"
               @update:content="handleContentUpdate"
             />
-
-            <!-- 添加字数统计组件 -->
-            <div
-              v-if="tiptapEditor && uiStore.editorSettings.showCharacterCount"
-              class="character-count"
-              :class="{
-                'character-count--warning': characterCount >= characterLimit && characterLimit > 0
-              }"
-            >
-              <svg height="20" width="20" viewBox="0 0 20 20">
-                <circle r="10" cx="10" cy="10" fill="var(--color-bg-tertiary)" />
-                <circle
-                  r="5"
-                  cx="10"
-                  cy="10"
-                  fill="transparent"
-                  stroke="currentColor"
-                  stroke-width="10"
-                  :stroke-dasharray="`calc(${percentage > 100 ? 100 : percentage} * 31.4 / 100) 31.4`"
-                  transform="rotate(-90) translate(-20)"
-                />
-                <circle r="6" cx="10" cy="10" fill="var(--color-bg-primary)" />
-              </svg>
-              <div class="count-text">
-                <span v-if="characterLimit > 0"
-                  >{{ characterCount }} / {{ characterLimit }} 字</span
-                >
-                <span v-else>{{ characterCount }} 字</span>
-              </div>
-            </div>
           </div>
+
+          <!-- 添加新段落区域 -->
+          <!-- <div class="add-paragraph-area" @click="handleAddParagraph"></div> -->
+
           <div class="backlinks-area">
             <BacklinksPanel
               v-if="currentNote"
@@ -236,7 +210,12 @@ import MarioQuestionBox from '@renderer/components/ui/MarioQuestionBox.vue'
 import DoubleArrowButton from '@renderer/components/ui/DoubleArrowButton.vue'
 import MarioLeftButton from '@renderer/components/ui/MarioLeftButton.vue'
 import * as d3 from 'd3'
-import { useUIStore } from '../stores/UIStore'
+// 在 script 部分添加导入
+import MindEchoPanel from '@renderer/components/note/MindEchoPanel.vue'
+import AIButton from '@renderer/components/common/AIButton.vue'
+import MoreButton from '@renderer/components/common/MoreButton.vue'
+import CardboxButton from '@renderer/components/common/CardboxButton.vue'
+import { useEventBus } from '@vueuse/core'
 
 // === 组件状态管理 ===
 const tiptapEditor = ref<any>(null)
@@ -248,7 +227,6 @@ const addressInput = ref<HTMLInputElement | null>(null)
 const currentNote = ref<Note | null>(null)
 const fixedHeaderRef = ref<HTMLElement | null>(null)
 const reviewStore = useReviewStore()
-const uiStore = useUIStore()
 
 // 添加计算 header 高度的方法
 const updateHeaderHeight = () => {
@@ -740,18 +718,6 @@ onBeforeUnmount(() => {
   // 组件卸载前更新向量
   //noteStore.updateNoteVectorOnClose(noteId, tiptapEditor.value?.editor?.getJSON())
 })
-
-// 添加字数统计相关的计算属性
-const characterCount = computed(() => tiptapEditor.value?.characterCount || 0)
-const characterLimit = computed(() => tiptapEditor.value?.characterLimit || 500)
-const percentage = computed(() => tiptapEditor.value?.percentage || 0)
-
-// 在 script 部分添加导入
-import MindEchoPanel from '@renderer/components/note/MindEchoPanel.vue'
-import AIButton from '@renderer/components/common/AIButton.vue'
-import MoreButton from '@renderer/components/common/MoreButton.vue'
-import CardboxButton from '@renderer/components/common/CardboxButton.vue'
-import { useEventBus } from '@vueuse/core'
 
 // 1. 先定义事件总线类型接口
 interface MindEchoCreatedEvent {
