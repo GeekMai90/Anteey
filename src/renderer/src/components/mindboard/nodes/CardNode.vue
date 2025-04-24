@@ -580,6 +580,7 @@ watch(
       overflow-y: auto;
       min-height: 0;
       height: 100%;
+      padding: 0 20px;
 
       &:has(:deep(.ProseMirror[contenteditable='true'])) {
         cursor: text;
@@ -694,6 +695,7 @@ watch(
   position: relative;
   margin-left: 10px;
   cursor: text;
+  padding: 0 20px;
 
   &.not-editing {
     cursor: grab;
