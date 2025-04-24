@@ -593,7 +593,7 @@ defineExpose({ show, hide })
 }
 .search-container {
   will-change: transform, opacity;
-  width: 640px;
+  width: 750px;
   max-width: 90vw;
   background: var(--color-bg-primary);
   border-radius: 12px;
@@ -606,14 +606,14 @@ defineExpose({ show, hide })
     top 0.3s ease;
   overflow: hidden; // 确保内容不会在过渡期间溢出
   position: absolute; // 使用绝对定位
-  top: calc(50% - 225px); // 初始位置，计算方式：50% - (展开高度的一半 - 初始高度的一半)
+  top: calc(50% - 300px); // 调整初始位置，使展开后保持居中
   left: 50%;
   transform: translateX(-50%);
 }
 
 .search-container.expanded {
-  height: 490px; // 增加高度以容纳操作提示
-  top: calc(50% - 225px); // 展开后的位置保持不变
+  height: 600px; // 增加展开后的高度
+  top: calc(50% - 300px); // 调整展开后的位置，保持居中
 }
 
 .search-input {
@@ -638,7 +638,7 @@ defineExpose({ show, hide })
   padding: 10px 20px 20px 20px;
   border-top: var(--color-border) 1px solid;
   position: relative;
-  height: calc(100% - 64px - 37px); // 减去输入框和操作提示的高度
+  height: calc(100% - 64px - 37px); // 保持这个计算不变，因为输入框和操作提示的高度没变
 }
 
 .search-results {
