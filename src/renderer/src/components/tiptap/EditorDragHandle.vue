@@ -345,7 +345,7 @@ onBeforeUnmount(() => {
       cursor: not-allowed;
     }
 
-    .i-icon {
+    :deep(.i-icon) {
       display: flex;
       align-items: center;
       justify-content: center;

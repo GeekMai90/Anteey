@@ -1252,5 +1252,37 @@ const scrollToEchoPanel = () => {
   position: relative;
   flex: 1;
   min-height: 450px;
+  display: flex;
+  flex-direction: column;
+}
+
+:deep(.editor-wrapper) {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+:deep(.tiptap-container) {
+  flex: 1;
+  padding-bottom: 60px; /* 增加底部内边距，为字数统计和新增段落区域预留空间 */
+}
+
+:deep(.character-count) {
+  position: absolute;
+  bottom: 10px;
+  right: 15px;
+  z-index: 10;
+  background-color: var(--color-bg-primary);
+  border-radius: 8px;
+  box-shadow: var(--shadow-sm);
+}
+
+:deep(.add-paragraph-area) {
+  position: absolute;
+  bottom: 10px;
+  left: 0;
+  right: 0;
+  z-index: 5;
 }
 </style>

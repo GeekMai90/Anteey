@@ -216,15 +216,6 @@ const cancelRemove = () => {
   noteToRemove.value = { id: '', title: '' }
 }
 
-// 从索引中移除笔记（已废弃，保留做备份）
-// const removeFromIndex = async (noteId: string) => {
-//   try {
-//     await noteStore.batchRemoveFromIndex([noteId])
-//   } catch (error) {
-//     console.error('从索引中移除笔记失败:', error)
-//   }
-// }
-
 // 处理拖拽结束
 const handleDragEnd = async ({ newIndex, oldIndex, from, to }: any) => {
   if (newIndex === oldIndex && from === to) return

@@ -273,7 +273,7 @@
   </div>
 
   <!-- 链接设置菜单 -->
-  <div v-if="showLinkInput" ref="linkMenuRef" class="link-input-menu" :style="linkFloatingStyles">
+  <div v-if="showLinkInput" ref="linkMenuRef" class="link-input-menu">
     <div class="link-input-fields">
       <div class="link-input-field">
         <div class="icon">
@@ -456,23 +456,13 @@ const { floatingStyles: moreFloatingStyles, update: updateMoreFloating } = useFl
   }
 )
 
-// 链接设置菜单
+// 链接菜单状态
 const showLinkInput = ref(false)
 const linkText = ref('')
 const linkUrl = ref('')
 const isNoteReference = ref(false)
 const linkMenuRef = ref<HTMLElement | null>(null)
 const linkButtonRef = ref<HTMLElement | null>(null)
-
-// 创建链接菜单 floating 实例
-const { floatingStyles: linkFloatingStyles, update: updateLinkFloating } = useFloating(
-  linkButtonRef,
-  linkMenuRef,
-  {
-    placement: 'bottom-start',
-    middleware: [offset(8), flip(), shift()]
-  }
-)
 
 const toggleDropdown = () => {
   showDropdown.value = !showDropdown.value
@@ -567,11 +557,18 @@ const closeMoreMenu = (event: MouseEvent) => {
 // 显示链接设置菜单
 const showLinkMenu = (event: MouseEvent, linkElement: HTMLAnchorElement | null = null) => {
   closeLinkMenu()
-  showLinkInput.value = true
-  // 保存点击的按钮引用
-  const targetEl = event.target as HTMLElement
-  linkButtonRef.value = targetEl.closest('button') || targetEl
 
+  // 计算点击位置
+  const clickX = event.clientX
+  const clickY = event.clientY
+
+  // 获取编辑器容器位置以便相对定位
+  let editorContainer = document.querySelector('.editor-wrapper') as HTMLElement
+  if (!editorContainer) {
+    editorContainer = document.body
+  }
+
+  // 如果传入了链接元素，表示编辑现有链接
   if (linkElement) {
     // 编辑现有链接
     const href = linkElement.getAttribute('href')
@@ -579,23 +576,104 @@ const showLinkMenu = (event: MouseEvent, linkElement: HTMLAnchorElement | null =
     linkUrl.value = href || ''
     linkText.value = linkElement.textContent || ''
   } else {
-    // 创建新链接
-    const { from, to } = props.editor.state.selection
-    isNoteReference.value = false
-    linkUrl.value = ''
-    linkText.value = props.editor.state.doc.textBetween(from, to) || ''
+    // 从编辑器获取选中文本及链接信息
+    const { state } = props.editor
+    const { selection } = state
+    const { from, to } = selection
+
+    // 检查当前选区是否有链接标记
+    let hasLink = false
+    let linkMark: any = null
+
+    // 获取选区内的链接标记
+    state.doc.nodesBetween(from, to, (node) => {
+      if (node.marks) {
+        node.marks.forEach((mark) => {
+          if (mark.type.name === 'link') {
+            hasLink = true
+            linkMark = mark
+          }
+        })
+      }
+    })
+
+    // 如果当前已有链接标记，则编辑它
+    if (hasLink && linkMark) {
+      linkUrl.value = linkMark.attrs.href || ''
+      isNoteReference.value = linkMark.attrs.href?.startsWith('note://') || false
+      // 尝试获取选中的文本
+      linkText.value = state.doc.textBetween(from, to, ' ') || ''
+    } else {
+      // 创建新链接，使用选中的文本
+      linkUrl.value = ''
+      isNoteReference.value = false
+      linkText.value = state.doc.textBetween(from, to, ' ') || ''
+    }
+
+    // 如果选中文本为空，尝试扩展选区到链接
+    if (!linkText.value && hasLink) {
+      props.editor.chain().focus().extendMarkRange('link').run()
+      // 重新获取扩展后的选区
+      const newSelection = props.editor.state.selection
+      linkText.value =
+        props.editor.state.doc.textBetween(newSelection.from, newSelection.to, ' ') || ''
+    }
   }
 
-  nextTick(() => {
-    updateLinkFloating()
+  // 先显示菜单
+  showLinkInput.value = true
 
-    const inputElements = document.querySelectorAll('.link-input-menu input')
-    if (inputElements.length > 0) {
-      ;(inputElements[0] as HTMLInputElement).value = linkText.value
-      if (!isNoteReference.value && inputElements[1]) {
-        ;(inputElements[1] as HTMLInputElement).value = linkUrl.value
+  nextTick(() => {
+    // 确保菜单已挂载到DOM
+    if (linkMenuRef.value) {
+      // 将菜单移动到body
+      if (!document.body.contains(linkMenuRef.value)) {
+        document.body.appendChild(linkMenuRef.value)
       }
-      ;(inputElements[0] as HTMLInputElement).focus()
+
+      // 设置菜单样式为absolute定位
+      const menuEl = linkMenuRef.value
+      menuEl.style.position = 'fixed'
+      menuEl.style.zIndex = '9999'
+
+      // 获取菜单尺寸
+      const menuWidth = menuEl.offsetWidth || 360
+      const menuHeight = menuEl.offsetHeight || 120
+
+      // 计算最佳位置（避免超出窗口边界）
+      let top = clickY + 10 // 默认在点击位置下方10px
+      let left = clickX - menuWidth / 2 // 默认在点击位置水平居中
+
+      // 调整防止超出视窗
+      if (top + menuHeight > window.innerHeight) {
+        top = clickY - menuHeight - 10 // 如果下方放不下，就放在点击位置上方
+      }
+
+      if (left < 10) {
+        left = 10 // 左边界保护
+      } else if (left + menuWidth > window.innerWidth - 10) {
+        left = window.innerWidth - menuWidth - 10 // 右边界保护
+      }
+
+      // 设置位置
+      menuEl.style.top = `${top}px`
+      menuEl.style.left = `${left}px`
+
+      // 聚焦第一个输入框并设置正确的输入值
+      setTimeout(() => {
+        const inputElements = menuEl.querySelectorAll('input')
+        if (inputElements.length > 0) {
+          const textInput = inputElements[0] as HTMLInputElement
+          textInput.value = linkText.value
+          textInput.focus()
+
+          // 如果有第二个输入框(URL输入框)，也设置其值
+          if (inputElements.length > 1 && !isNoteReference.value) {
+            const urlInput = inputElements[1] as HTMLInputElement
+            urlInput.value = linkUrl.value
+          }
+        }
+      }, 50)
     }
   })
 }
@@ -721,24 +799,88 @@ onMounted(() => {
   // 添加监听自定义事件，用于响应编辑器关闭链接菜单的请求
   document.addEventListener('close-link-menus', closeLinkMenu)
 
-  // 修复: 不直接修改props，而是使用本地变量存储原始函数并替换
+  // 修复链接点击事件处理
   if (props.editor && props.editor.view) {
     const editorView = props.editor.view
     const originalHandleClick = editorView.props.handleClick
 
-    // 创建处理函数而不是直接修改props
+    // 创建处理函数，确保链接点击能被正确处理
     const newHandleClick = (view: any, pos: number, event: any) => {
-      if (event.target instanceof HTMLAnchorElement) {
-        return handleLinkClick(event)
+      // 如果点击的是链接元素，处理链接点击
+      const target = event.target as HTMLElement
+      const linkElement = target.closest('a')
+
+      if (linkElement) {
+        // 先阻止默认行为
+        event.preventDefault()
+        event.stopPropagation()
+
+        const href = linkElement.getAttribute('href')
+        if (!href) return false
+
+        // Command/Ctrl: 显示链接设置菜单（对所有类型的链接都生效）
+        if (event.metaKey || event.ctrlKey) {
+          showLinkMenu(event, linkElement)
+          return true // 阻止 Tiptap 的默认行为
+        }
+
+        // 处理笔记链接的特殊行为
+        if (href.startsWith('note://')) {
+          const noteId = href.replace('note://', '')
+
+          // Alt: 在主编辑器打开
+          if (event.altKey) {
+            router.push(`/note/${noteId}`)
+            return true
+          }
+
+          // 无修饰键: 在右侧边栏查看
+          noteStore.openBacklinkPreview(noteId)
+          uiStore.openRightSidebarWithTab('backlink')
+          return true
+        } else {
+          // 普通链接的默认行为：在新标签页打开
+          if (!event.metaKey && !event.ctrlKey) {
+            window.open(href, '_blank')
+            return true
+          }
+        }
+
+        return true
       }
+
       return originalHandleClick ? originalHandleClick(view, pos, event) : false
     }
 
-    // 使用编辑器的API来更新处理函数，而不是直接修改props
+    // 使用编辑器的API来更新处理函数
     editorView.setProps({
       ...editorView.props,
       handleClick: newHandleClick
     })
+
+    // 直接设置DOM事件处理，确保链接点击被捕获
+    const editorDOM = editorView.dom
+    if (editorDOM) {
+      editorDOM.addEventListener(
+        'click',
+        (event) => {
+          const target = event.target as HTMLElement
+          const linkElement = target.closest('a')
+          if (linkElement) {
+            // 当是cmd+点击时，立即处理并阻止事件传播
+            if (event.metaKey || event.ctrlKey) {
+              event.preventDefault()
+              event.stopPropagation()
+              // 传递实际的链接元素以便正确定位
+              showLinkMenu(event, linkElement)
+            } else {
+              handleLinkClick(event)
+            }
+          }
+        },
+        true
+      ) // 使用捕获阶段处理事件
+    }
   }
 })
 
@@ -748,6 +890,11 @@ onBeforeUnmount(() => {
   document.removeEventListener('click', closeLinkMenus)
   // 移除自定义事件监听
   document.removeEventListener('close-link-menus', closeLinkMenu)
+
+  // 清理可能被移到body的菜单元素
+  if (linkMenuRef.value && document.body.contains(linkMenuRef.value)) {
+    document.body.removeChild(linkMenuRef.value)
+  }
 })
 
 // 添加清除颜色方法
