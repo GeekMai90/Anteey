@@ -18,7 +18,6 @@ import { clipboard } from 'electron'
 import { getCurrentAuthState } from '../auth/authService'
 import { ImageService } from '../images/imageService'
 import { pinyin } from 'pinyin-pro'
-import nodejieba from 'nodejieba'
 
 // 辅助函数：将数据库记录转换为 Note 对象
 export function convertToNote(record: any): Note {
@@ -244,129 +243,81 @@ function buildSearchQuery(db: Knex, mode: SearchMode, searchTerms: string[]) {
   }
 }
 
-// 分词函数
-function tokenize(text: string): string[] {
-  // 使用 nodejieba 的精确模式进行分词
-  const words = nodejieba.cut(text.toLowerCase().trim())
-  // 同时保留原始搜索词
-  return [...new Set([text.toLowerCase().trim(), ...words])]
-}
-
-// 添加匹配类型的权重定义
-const MATCH_WEIGHTS = {
-  EXACT: 100, // 完整匹配
-  PARTIAL: 80, // 部分匹配
-  TOKENIZED: 60 // 分词匹配
-}
-
-// 计算匹配权重的函数
-function calculateMatchWeight(text: string, searchTerms: string[]): number {
-  const textLower = text.toLowerCase()
-  const textTokens = new Set(nodejieba.cut(textLower))
-  let maxWeight = 0
-
-  for (const term of searchTerms) {
-    // 1. 检查完整匹配
-    if (textLower === term) {
-      return MATCH_WEIGHTS.EXACT
-    }
-
-    // 2. 检查部分匹配
-    if (textLower.includes(term)) {
-      maxWeight = Math.max(maxWeight, MATCH_WEIGHTS.PARTIAL)
-      continue
-    }
-
-    // 3. 检查分词匹配
-    if (textTokens.has(term)) {
-      maxWeight = Math.max(maxWeight, MATCH_WEIGHTS.TOKENIZED)
-      continue
-    }
-
-    // 4. 检查搜索词分词后的匹配
-    const termTokens = nodejieba.cut(term)
-    if (termTokens.every((token) => textTokens.has(token))) {
-      maxWeight = Math.max(maxWeight, MATCH_WEIGHTS.TOKENIZED)
-    }
-  }
-
-  return maxWeight
-}
-
-// 检查文本是否包含搜索词
-// function containsSearchTerms(text: string, searchTerms: string[]): boolean {
-//   return calculateMatchWeight(text, searchTerms) > 0
-// }
-
-// 搜索笔记函数
+// 修改搜索笔记函数
 export async function searchNotes(params: SearchParams): Promise<Array<SearchResult>> {
   const { mode, term } = params
-  const searchTerms = tokenize(term)
+  const searchTerms = term.toLowerCase().trim().split(/\s+/).filter(Boolean)
 
   if (searchTerms.length === 0) return []
 
   try {
     const query = buildSearchQuery(db, mode, searchTerms)
     const notes = await query
-    const results: SearchResult[] = []
 
-    for (const note of notes) {
-      const matchingBlocks: Array<{ content: string; weight: number }> = []
+    return notes.reduce((results: SearchResult[], note) => {
+      const matchingBlocks: Array<{ content: string }> = []
       const metadata = JSON.parse(note.metadata || '{}')
       let content: any
-      let maxWeight = 0
 
       try {
         content = typeof note.content === 'string' ? JSON.parse(note.content) : content
         const textContent = extractTextContent(content)
 
         // 检查地址匹配
-        const addressWeight = calculateMatchWeight(note.address, searchTerms)
-        if (addressWeight > 0) {
-          matchingBlocks.push({
-            content: note.address,
-            weight: addressWeight
-          })
-          maxWeight = Math.max(maxWeight, addressWeight)
-        }
+        const lowerAddress = note.address.toLowerCase()
+        const addressMatches = searchTerms.every((term) => lowerAddress.includes(term))
 
         if (mode === 'all') {
+          // 在全文搜索模式下，同时检查地址、标题和内容
+          if (addressMatches) {
+            matchingBlocks.push({
+              content: note.address
+            })
+          }
+
           // 检查标题
           if (metadata.title) {
-            const titleWeight = calculateMatchWeight(metadata.title, searchTerms)
-            if (titleWeight > 0) {
+            const lowerTitle = metadata.title.toLowerCase()
+            const titleMatches = searchTerms.every((term) => lowerTitle.includes(term))
+            if (titleMatches) {
               matchingBlocks.push({
-                content: metadata.title,
-                weight: titleWeight
+                content: metadata.title
               })
-              maxWeight = Math.max(maxWeight, titleWeight)
             }
           }
 
           // 检查内容
-          const contentWeight = calculateMatchWeight(textContent, searchTerms)
-          if (contentWeight > 0) {
+          const lowerTextContent = textContent.toLowerCase()
+          const contentMatches = searchTerms.every((term) => lowerTextContent.includes(term))
+          if (contentMatches) {
             const lines = textContent.split('\n')
             const matches = lines
-              .filter((line) => searchTerms.some((term) => line.toLowerCase().includes(term)))
+              .filter((line) => {
+                const lowerLine = line.toLowerCase()
+                return searchTerms.some((term) => lowerLine.includes(term))
+              })
               .map((line) => ({
-                content: line,
-                weight: calculateMatchWeight(line, searchTerms)
+                content: line
               }))
             matchingBlocks.push(...matches)
-            maxWeight = Math.max(maxWeight, ...matches.map((m) => m.weight))
           }
         } else if (mode === 'address') {
-          // 只检查地址，权重已在前面计算
+          // 只检查地址
+          const lowerAddress = note.address.toLowerCase()
+          const allTermsFound = searchTerms.every((term) => lowerAddress.includes(term))
+          if (allTermsFound) {
+            matchingBlocks.push({
+              content: note.address
+            })
+          }
         } else if (mode === 'title') {
           // 只检查标题
-          const titleWeight = calculateMatchWeight(metadata.title, searchTerms)
-          if (titleWeight > 0) {
+          const lowerTitle = metadata.title.toLowerCase()
+          const allTermsFound = searchTerms.every((term) => lowerTitle.includes(term))
+          if (allTermsFound) {
             matchingBlocks.push({
-              content: metadata.title,
-              weight: titleWeight
+              content: metadata.title
             })
-            maxWeight = Math.max(maxWeight, titleWeight)
           }
         }
 
@@ -375,20 +326,16 @@ export async function searchNotes(params: SearchParams): Promise<Array<SearchRes
             id: note.id,
             title: metadata.title || note.address || '无标题',
             address: note.address,
-            blocks: matchingBlocks
-              .sort((a, b) => b.weight - a.weight) // 按权重排序匹配块
-              .slice(0, 5)
-              .map(({ content }) => ({ content })), // 移除权重信息
-            priority: maxWeight // 使用最高权重作为优先级
+            blocks: matchingBlocks.slice(0, 5),
+            priority: note.match_priority || 1
           })
         }
       } catch (e) {
         console.error('处理笔记内容失败:', e)
       }
-    }
 
-    // 按权重排序结果
-    return results.sort((a, b) => b.priority - a.priority)
+      return results
+    }, [])
   } catch (error) {
     console.error('搜索笔记失败:', error)
     throw new Error('搜索笔记失败')

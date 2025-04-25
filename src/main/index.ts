@@ -338,7 +338,7 @@ async function createWindow(): Promise<BrowserWindow> {
   })
 
   // 监听页面刷新事件
-  mainWindow.webContents.on('before-input-event', async (event, input) => {
+  mainWindow.webContents.on('before-input-event', async (_event, input) => {
     // Command/Control + 加号
     if ((input.control || input.meta) && (input.key === '=' || input.key === 'plus')) {
       const currentZoom = mainWindow.webContents.getZoomFactor()

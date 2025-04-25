@@ -1,6 +1,6 @@
 {
   "name": "anteey",
-  "version": "1.7.61",
+  "version": "1.7.66",
   "description": "Anteey",
   "main": "./out/main/index.js",
   "author": "GeekMai",
@@ -139,7 +139,6 @@
     "motion-v": "^0.7.0",
     "node-machine-id": "^1.1.12",
     "node-schedule": "^2.1.1",
-    "nodejieba": "^3.4.4",
     "pinia": "^2.2.2",
     "pinia-plugin-persistedstate": "^4.0.0",
     "pinyin-pro": "^3.26.0",
