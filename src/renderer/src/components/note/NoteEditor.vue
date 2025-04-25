@@ -307,7 +307,8 @@ const cardTypeClass = computed(() => ({
   maincard: currentNote.value?.cardType === 'Maincard',
   bibcard: currentNote.value?.cardType === 'Bibcard',
   indexcard: currentNote.value?.cardType === 'Indexcard',
-  draftcard: currentNote.value?.cardType === 'Draftcard'
+  draftcard: currentNote.value?.cardType === 'Draftcard',
+  snippetcard: currentNote.value?.cardType === 'Snippetcard'
   // hoplinkcard: currentNote.value?.cardType === 'Hoplinkcard'
 }))
 
@@ -493,6 +494,12 @@ defineExpose({
           }
         }
 
+        &.snippetcard {
+          background-color: var(--color-snippet);
+          &::after {
+            color: var(--color-snippet);
+          }
+        }
         &:hover {
           width: 6px;
           height: 20px; // 增加高度变化

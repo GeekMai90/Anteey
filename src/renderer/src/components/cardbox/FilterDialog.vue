@@ -297,7 +297,8 @@ const getValueOptions = (field: FilterField) => {
       return [
         { label: '主要卡片', value: 'Maincard' },
         { label: '参考卡片', value: 'Bibcard' },
-        { label: '索引卡片', value: 'Indexcard' }
+        { label: '索引卡片', value: 'Indexcard' },
+        { label: '片段卡片', value: 'Snippetcard' }
       ]
     case 'isFlashcard':
       return [{ label: '闪卡', value: '闪卡' }]

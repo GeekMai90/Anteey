@@ -33,6 +33,10 @@ const cardTypeClass = computed(() => {
       return 'indexcard'
     case 'Hoplinkcard':
       return 'hoplinkcard'
+    case 'Draftcard':
+      return 'draftcard'
+    case 'Snippetcard':
+      return 'snippetcard'
     default:
       return ''
   }
@@ -85,6 +89,14 @@ const cardTypeClass = computed(() => {
       &.hoplinkcard {
         background-color: var(--color-pink);
       }
+
+      &.draftcard {
+        background-color: var(--color-draft);
+      }
+
+      &.snippetcard {
+        background-color: var(--color-snippet);
+      }
     }
     @media (prefers-color-scheme: dark) {
       .note-indicator {
@@ -107,6 +119,13 @@ const cardTypeClass = computed(() => {
           background-color: var(--color-pink);
         }
         // 稍微亮一点的粉红色
+        &.draftcard {
+          background-color: var(--color-draft);
+        }
+
+        &.snippetcard {
+          background-color: var(--color-snippet);
+        }
       }
     }
     .note-title {

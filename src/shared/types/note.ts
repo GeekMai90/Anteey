@@ -2,7 +2,13 @@
 import type { FlashcardData, IconName } from '@shared/types'
 
 // 定义卡片类型
-export type CardType = 'Maincard' | 'Bibcard' | 'Indexcard' | 'Hoplinkcard' | 'Draftcard'
+export type CardType =
+  | 'Maincard'
+  | 'Bibcard'
+  | 'Indexcard'
+  | 'Hoplinkcard'
+  | 'Draftcard'
+  | 'Snippetcard'
 
 // 批量操作类型
 export type BatchOperationType =

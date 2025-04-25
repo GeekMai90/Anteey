@@ -443,6 +443,12 @@ $shadow-card: 0 2px 6px rgba($black, 0.12);
   --color-draft-light: #{rgba(#9c9cff, 0.1)};
   --color-draft-dark: #{color.adjust(#9c9cff, $lightness: -10%)};
 
+  // 片段卡片颜色
+  --color-snippet: #b84fee;
+  --color-snippet-rgb: 184, 79, 238;
+  --color-snippet-light: #{rgba(#b84fee, 0.1)};
+  --color-snippet-dark: #{color.adjust(#b84fee, $lightness: -10%)};
+
   // 8. 选中状态颜色系统
   // 系统默认选中色（浅蓝）
   --color-system-selection: rgba(#18a3f1, 0.15); // 保持原有的系统蓝色
@@ -553,6 +559,15 @@ $shadow-card: 0 2px 6px rgba($black, 0.12);
   --color-code-block-bg-segment: #f5f5f5;
   --color-inline-code-text: #{color.adjust(#20ceae, $lightness: -10%)};
 
+  // 代码高亮颜色 - 活力四射混合方案
+  --color-code-comment: #5d7a5d; /* 深绿色注释 - 柔和但清晰 */
+  --color-code-variable: #d33682; /* 亮玫红色 - Solarized风格 */
+  --color-code-number: #c92c2c; /* 明亮的红色 - 更加醒目 */
+  --color-code-string: #238629; /* 翠绿色字符串 - 对比鲜明 */
+  --color-code-title: #7d5d25; /* 金棕色标题 - 华丽醒目 */
+  --color-code-keyword: #1e6bb8; /* 亮蓝色关键字 - 清晰可辨 */
+  --color-selection-text: #000;
+
   // 分享视图
   --color-share-text-white: #f2f2f2;
   --color-share-text-black: #252525;
@@ -651,6 +666,18 @@ $shadow-card: 0 2px 6px rgba($black, 0.12);
   --color-red-light: #{rgba(#ff6b6b, 0.15)};
   --color-red-dark: #{color.adjust(#ff6b6b, $lightness: -10%)};
 
+  // 草稿卡片颜色（深色模式）
+  --color-draft: #b5b5ff;
+  --color-draft-rgb: 181, 181, 255;
+  --color-draft-light: #{rgba(#b5b5ff, 0.15)};
+  --color-draft-dark: #{color.adjust(#b5b5ff, $lightness: -10%)};
+
+  // 片段卡片颜色（深色模式）
+  --color-snippet: #cc77ff;
+  --color-snippet-rgb: 204, 119, 255;
+  --color-snippet-light: #{rgba(#cc77ff, 0.15)};
+  --color-snippet-dark: #{color.adjust(#cc77ff, $lightness: -10%)};
+
   // 8. 选中状态颜色系统
   --color-system-selection: rgba(#5c7cff, 0.3);
   --color-selection: #{rgba(#20ceae, 0.2)};
@@ -730,6 +757,16 @@ $shadow-card: 0 2px 6px rgba($black, 0.12);
   --color-code-block-border: #{rgba(255, 255, 255, 0.1)};
   --color-code-block-bg-segment: var(--color-neutral-200);
   --color-inline-code-text: #20ceae;
+
+  // 代码高亮颜色 - 暗色主题
+  --color-code-comment: #616161;
+  --color-code-variable: #f98181;
+  --color-code-number: #fbbc88;
+  --color-code-string: #b9f18d;
+  --color-code-title: #faf594;
+  --color-code-keyword: #70cff8;
+  --color-selection-text: #fff;
+
   // 分享视图
   --color-share-text-white: var(--color-neutral-700);
   --color-share-text-black: var(--color-neutral-200);

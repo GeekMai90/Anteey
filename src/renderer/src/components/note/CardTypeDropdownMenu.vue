@@ -34,7 +34,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, CSSProperties, watch, nextTick } from 'vue'
 import { CardType } from '@shared/types'
-import { Notes, ListAlphabet, Bookshelf, Bill } from '@icon-park/vue-next'
+import { Notes, ListAlphabet, Bookshelf, Bill, ParagraphRectangle } from '@icon-park/vue-next'
 
 const props = defineProps<{
   isOpen: boolean
@@ -45,7 +45,7 @@ const props = defineProps<{
 const emit = defineEmits(['select', 'close'])
 
 const menuRef = ref<HTMLElement | null>(null)
-const cardTypes: CardType[] = ['Maincard', 'Bibcard', 'Indexcard', 'Draftcard']
+const cardTypes: CardType[] = ['Maincard', 'Bibcard', 'Indexcard', 'Draftcard', 'Snippetcard']
 const menuPosition = ref(props.position)
 
 // 计算菜单样式，使用 menuPosition 而不是直接使用 props.position
@@ -122,6 +122,8 @@ const getIcon = (type: CardType) => {
       return ListAlphabet
     case 'Draftcard':
       return Bill
+    case 'Snippetcard':
+      return ParagraphRectangle
     default:
       return Notes
   }
@@ -137,6 +139,8 @@ const getTypeLabel = (type: CardType): string => {
       return '索引卡片'
     case 'Draftcard':
       return '草稿卡片'
+    case 'Snippetcard':
+      return '片段卡片'
     default:
       return '主要卡片'
   }

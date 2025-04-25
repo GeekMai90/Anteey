@@ -250,7 +250,7 @@
     // 代码高亮
     .hljs-comment,
     .hljs-quote {
-      color: #616161;
+      color: var(--color-code-comment, #616161);
     }
 
     .hljs-variable,
@@ -263,7 +263,7 @@
     .hljs-name,
     .hljs-selector-id,
     .hljs-selector-class {
-      color: #f98181;
+      color: var(--color-code-variable, #f98181);
     }
 
     .hljs-number,
@@ -273,23 +273,23 @@
     .hljs-literal,
     .hljs-type,
     .hljs-params {
-      color: #fbbc88;
+      color: var(--color-code-number, #fbbc88);
     }
 
     .hljs-string,
     .hljs-symbol,
     .hljs-bullet {
-      color: #b9f18d;
+      color: var(--color-code-string, #b9f18d);
     }
 
     .hljs-title,
     .hljs-section {
-      color: #faf594;
+      color: var(--color-code-title, #faf594);
     }
 
     .hljs-keyword,
     .hljs-selector-tag {
-      color: #70cff8;
+      color: var(--color-code-keyword, #70cff8);
     }
 
     .hljs-emphasis {

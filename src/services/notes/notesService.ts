@@ -1935,7 +1935,14 @@ export async function batchUpdateNotesCardType(
       }
 
       // 2. 验证卡片类型是否有效
-      const validCardTypes = ['Maincard', 'Bibcard', 'Indexcard', 'Hoplinkcard']
+      const validCardTypes = [
+        'Maincard',
+        'Bibcard',
+        'Indexcard',
+        'Hoplinkcard',
+        'Draftcard',
+        'Snippetcard'
+      ]
       if (!validCardTypes.includes(cardType)) {
         throw new Error('无效的卡片类型')
       }

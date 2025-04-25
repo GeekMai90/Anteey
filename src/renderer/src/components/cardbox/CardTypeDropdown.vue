@@ -71,7 +71,13 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
-import { CategoryManagement, Notes, Bookshelf, ListAlphabet } from '@icon-park/vue-next'
+import {
+  CategoryManagement,
+  Notes,
+  Bookshelf,
+  ListAlphabet,
+  ParagraphRectangle
+} from '@icon-park/vue-next'
 import { useFloating } from '@floating-ui/vue'
 import { flip, offset, shift } from '@floating-ui/dom'
 import Button from '@renderer/components/ui/Button.vue'
@@ -104,7 +110,8 @@ const { x, y, strategy, update } = useFloating(reference, floating, {
 const cardTypes = [
   { id: 'Maincard', name: '主要卡片', icon: Notes },
   { id: 'Bibcard', name: '参考卡片', icon: Bookshelf },
-  { id: 'Indexcard', name: '索引卡片', icon: ListAlphabet }
+  { id: 'Indexcard', name: '索引卡片', icon: ListAlphabet },
+  { id: 'Snippetcard', name: '片段卡片', icon: ParagraphRectangle }
 ]
 
 // 选中的类型名称

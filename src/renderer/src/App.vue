@@ -273,6 +273,15 @@ onMounted(async () => {
       console.error('Failed to initialize draft:', error)
     }
 
+    // 预加载片段笔记数据
+    try {
+      console.log('App → 开始预加载片段笔记数据')
+      await noteStore.loadSnippetNotes()
+      console.log('App → 片段笔记数据预加载完成')
+    } catch (error) {
+      console.error('App → 预加载片段笔记数据失败:', error)
+    }
+
     // 监听系统主题变化
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
     mediaQuery.addEventListener('change', () => {

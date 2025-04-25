@@ -406,12 +406,12 @@ const handleInputBlur = (event: FocusEvent) => {
     pre {
       *::selection {
         background-color: var(--color-selection) !important;
-        color: #fff !important;
+        color: var(--color-selection-text, #fff) !important;
       }
 
       *::-moz-selection {
         background-color: var(--color-selection) !important;
-        color: #fff !important;
+        color: var(--color-selection-text, #fff) !important;
       }
     }
   }
@@ -529,6 +529,14 @@ const handleInputBlur = (event: FocusEvent) => {
       background: none !important;
       padding: 0 !important;
     }
+
+    /* 代码行号样式 */
+    .line-number {
+      color: var(--color-text-tertiary);
+      opacity: 0.6;
+      user-select: none;
+      margin-right: 8px;
+    }
   }
 }
 
@@ -541,5 +549,25 @@ const handleInputBlur = (event: FocusEvent) => {
 .hljs {
   color: var(--hljs-color) !important;
   background: var(--hljs-background) !important;
+
+  /* 强调行号 */
+  .line-number {
+    font-weight: normal !important;
+  }
+
+  /* 确保各种高亮元素在浅色主题下有足够的字重 */
+  .hljs-keyword,
+  .hljs-selector-tag,
+  .hljs-title,
+  .hljs-section,
+  .hljs-built_in,
+  .hljs-doctag,
+  .hljs-type,
+  .hljs-name,
+  .hljs-literal,
+  .hljs-meta,
+  .hljs-attr {
+    font-weight: 600 !important;
+  }
 }
 </style>

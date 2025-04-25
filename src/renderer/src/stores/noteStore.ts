@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { Notes, Table, TransactionOrder, Deeplink } from '@icon-park/vue-next'
+import { Notes, Table, TransactionOrder, Deeplink, ParagraphRectangle } from '@icon-park/vue-next'
 import type { Note, CardBox, CardType } from '@shared/types'
 import type { Editor } from '@tiptap/vue-3'
 import type { GetPaginatedNotesParams } from '@shared/types'
@@ -15,7 +15,8 @@ const cardTypes = [
   { value: 'Maincard', label: '主要卡', icon: Notes },
   { value: 'Bibcard', label: '书目卡', icon: Table },
   { value: 'Indexcard', label: '索引卡', icon: TransactionOrder },
-  { value: 'Hoplinkcard', label: '跳转卡', icon: Deeplink }
+  { value: 'Hoplinkcard', label: '跳转卡', icon: Deeplink },
+  { value: 'Snippetcard', label: '片段卡', icon: ParagraphRectangle }
 ]
 
 // 添加搜索参数接口
@@ -240,6 +241,16 @@ export const useNoteStore = defineStore(
         // 2. 直接保存到数据库
         const updatedNote = await window.electronAPI.note.updateNoteContent(noteId, content)
 
+        // 如果更新的是片段笔记，刷新片段缓存
+        const noteIndex = snippetNotes.value.findIndex((note) => note.id === noteId)
+        if (noteIndex !== -1) {
+          // 更新缓存中的内容
+          snippetNotes.value[noteIndex] = {
+            ...snippetNotes.value[noteIndex],
+            content: content
+          }
+        }
+
         // 3. 更新收藏笔记列表中的笔记内容
         const starredIndex = starredNotes.value.findIndex((note) => note.id === noteId)
         if (starredIndex !== -1) {
@@ -307,6 +318,11 @@ export const useNoteStore = defineStore(
 
         // 2. 直接更新数据库
         const updatedNote = await window.electronAPI.note.updateNoteCardType(noteId, cardType)
+
+        // 如果变更为片段或从片段变为其他类型，刷新片段缓存
+        if (cardType === 'Snippetcard' || updatedNote.cardType === 'Snippetcard') {
+          await refreshSnippetNotes(true)
+        }
 
         // 3. 发送更新事件通知
         const noteUpdatedBus = useEventBus<Note>('note-updated')
@@ -864,7 +880,7 @@ export const useNoteStore = defineStore(
       return true
     }
 
-    // 创建新笔记
+    // 创建笔记
     const createNote = async () => {
       const eventBus = useEventBus('note-created')
 
@@ -880,6 +896,12 @@ export const useNoteStore = defineStore(
         updateLocalNote(newNote.id, newNote)
         lastCreatedNote.value = newNote
         eventBus.emit(newNote)
+
+        // 如果创建的是片段笔记，刷新片段缓存
+        if (newNote.cardType === 'Snippetcard') {
+          await refreshSnippetNotes(true)
+        }
+
         return newNote
       } catch (error) {
         console.error('noteStores.ts→ 创建新笔记失败:', error)
@@ -904,6 +926,11 @@ export const useNoteStore = defineStore(
     //删除笔记，移动到回收站
     const moveToTrash = async (id: string) => {
       try {
+        // 1. 获取笔记以检查类型
+        const note = await window.electronAPI.note.getNote(id)
+        const isSnippet = note?.cardType === 'Snippetcard'
+
+        // 2. 执行软删除
         const result = await window.electronAPI.note.softDeleteNote(id)
         if (result) {
           lastDeletedNote.value = result
@@ -918,7 +945,13 @@ export const useNoteStore = defineStore(
             // 强制触发响应式更新
             recentNotes.value = [...recentNotes.value]
           }
-          return true
+
+          // 如果删除的是片段笔记，刷新片段缓存
+          if (isSnippet) {
+            await refreshSnippetNotes(true)
+          }
+
+          return result
         } else {
           console.error('noteStores.ts→ 移动笔记到回收站失败:', result)
           throw new Error('移动笔记到回收站失败')
@@ -1708,6 +1741,51 @@ export const useNoteStore = defineStore(
       }
     }
 
+    // 添加片段笔记缓存
+    const snippetNotes = ref<Note[]>([])
+    const isLoadingSnippets = ref(false)
+
+    // ==================== 片段笔记相关方法 ====================
+
+    // 加载片段笔记数据
+    const loadSnippetNotes = async () => {
+      if (isLoadingSnippets.value) return
+
+      try {
+        isLoadingSnippets.value = true
+        const result = await fetchPaginatedNotesByCardbox({
+          page: 1,
+          limit: 100, // 限制数量避免加载过多
+          cardTypes: ['Snippetcard'],
+          sortBy: 'updatedAt',
+          sortOrder: 'desc'
+        })
+
+        if (result && result.notes) {
+          snippetNotes.value = result.notes
+          console.log('noteStore → 加载片段笔记成功，数量:', snippetNotes.value.length)
+        }
+      } catch (error) {
+        console.error('noteStore → 加载片段笔记失败:', error)
+      } finally {
+        isLoadingSnippets.value = false
+      }
+    }
+
+    // 获取片段笔记数据
+    const getSnippetNotes = () => {
+      return snippetNotes.value
+    }
+
+    // 检查并刷新片段笔记数据
+    const refreshSnippetNotes = async (force = false) => {
+      // 如果数据为空或强制刷新，则重新加载
+      if (snippetNotes.value.length === 0 || force) {
+        await loadSnippetNotes()
+      }
+      return snippetNotes.value
+    }
+
     // 返回所有状态和方法
     return {
       // 状态
@@ -1928,7 +2006,14 @@ export const useNoteStore = defineStore(
       getNotesWithoutAddress,
 
       // 合并笔记
-      mergeNotes
+      mergeNotes,
+
+      // 导出片段笔记相关方法
+      snippetNotes,
+      isLoadingSnippets,
+      loadSnippetNotes,
+      getSnippetNotes,
+      refreshSnippetNotes
     }
   },
   {

@@ -557,7 +557,8 @@ const cardTypeClass = computed(() => ({
   bibcard: currentNote.value?.cardType === 'Bibcard',
   indexcard: currentNote.value?.cardType === 'Indexcard',
   hoplinkcard: currentNote.value?.cardType === 'Hoplinkcard',
-  draftcard: currentNote.value?.cardType === 'Draftcard'
+  draftcard: currentNote.value?.cardType === 'Draftcard',
+  snippetcard: currentNote.value?.cardType === 'Snippetcard'
 }))
 
 // 处理卡片类型选择和更新
@@ -936,6 +937,12 @@ const scrollToEchoPanel = () => {
     background-color: var(--color-draft);
     &::after {
       color: var(--color-draft);
+    }
+  }
+  &.snippetcard {
+    background-color: var(--color-snippet);
+    &::after {
+      color: var(--color-snippet);
     }
   }
 

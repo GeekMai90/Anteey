@@ -102,6 +102,8 @@ const cardTypeClass = computed(() => {
       return 'hoplinkcard'
     case 'Draftcard':
       return 'draftcard'
+    case 'Snippetcard':
+      return 'snippetcard'
     default:
       return ''
   }
@@ -224,6 +226,10 @@ onMounted(async () => {
       &.draftcard {
         background-color: var(--color-draft);
       }
+
+      &.snippetcard {
+        background-color: var(--color-snippet);
+      }
     }
     @media (prefers-color-scheme: dark) {
       .note-indicator {
@@ -248,6 +254,10 @@ onMounted(async () => {
         }
         &.draftcard {
           background-color: var(--color-draft);
+        }
+
+        &.snippetcard {
+          background-color: var(--color-snippet);
         }
       }
     }

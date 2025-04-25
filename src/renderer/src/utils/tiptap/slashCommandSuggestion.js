@@ -7,16 +7,115 @@ import {
   H1,
   H2,
   H3,
+  LevelFourTitle,
   ListTwo,
   OrderedList,
   Quote,
   ListSuccess,
   Code,
-  Form
+  Form,
+  ParagraphRectangle,
+  NewspaperFolding
 } from '@icon-park/vue-next'
-import { markRaw } from 'vue'
+import { markRaw, ref } from 'vue'
+import { useNoteStore } from '@renderer/stores/noteStore'
+import { message } from '@renderer/utils/message'
+
+// 存储片段列表的缓存
+const snippetsCache = ref([])
+const isLoading = ref(false)
+
+// 加载片段函数
+const loadSnippets = async () => {
+  if (isLoading.value) return // 避免重复加载
+
+  try {
+    isLoading.value = true
+    // 不清空缓存，保留现有数据供展示
+
+    const noteStore = useNoteStore()
+
+    // 优先使用 noteStore 中已缓存的片段数据
+    let snippets = noteStore.getSnippetNotes()
+
+    // 如果缓存数据为空，则尝试刷新获取
+    if (snippets.length === 0) {
+      console.log('slashCommand → 缓存片段为空，尝试刷新获取')
+      snippets = await noteStore.refreshSnippetNotes()
+    } else {
+      console.log('slashCommand → 使用缓存片段数据，数量:', snippets.length)
+    }
+
+    if (snippets && snippets.length > 0) {
+      // 将片段转换为命令格式
+      snippetsCache.value = snippets.map((snippet) => ({
+        title: snippet.address || '未命名片段',
+        icon: markRaw(ParagraphRectangle),
+        keywords: ['snippet', 'paragraph', '片段', snippet.address || ''],
+        snippetId: snippet.id, // 存储片段ID用于后续插入
+        snippetCommand: true, // 改用专用标记，避免与separator的type冲突
+        command: async ({ editor, range }) => {
+          try {
+            // 首先删除斜杠命令
+            editor.chain().focus().deleteRange(range).run()
+
+            // 获取片段笔记内容
+            const noteStore = useNoteStore()
+            const snippetNote = await noteStore.fetchNote(snippet.id)
+
+            if (!snippetNote) {
+              console.error('无法获取片段内容')
+              message.error('无法获取片段内容')
+              return
+            }
+
+            if (snippetNote.cardType !== 'Snippetcard') {
+              console.error('所选笔记不是片段类型')
+              message.error('所选笔记不是片段类型')
+              return
+            }
+
+            const snippetContent = snippetNote.content.content || []
+            if (snippetContent.length === 0) {
+              message.error('片段内容为空')
+              return
+            }
+
+            console.log('前端→ 获取到片段内容:', {
+              snippetId: snippet.id,
+              contentLength: snippetContent.length
+            })
+
+            // 直接插入片段内容到编辑器当前位置
+            // 将片段内容插入到当前位置
+            editor.chain().focus().insertContent(snippetContent).run()
+
+            // 成功提示
+            message.success('插入片段成功')
+          } catch (error) {
+            message.error('插入片段失败: ' + (error.message || '未知错误'))
+            console.error('前端→ 插入片段失败:', error)
+          }
+        }
+      }))
+
+      console.log('片段数据处理完成，数量:', snippetsCache.value.length)
+    } else {
+      // 如果没有片段，则清空
+      snippetsCache.value = []
+    }
+  } catch (error) {
+    console.error('加载片段失败:', error)
+  } finally {
+    isLoading.value = false
+  }
+}
+
 export const slashCommandSuggestion = {
   items: ({ query }) => {
+    // 每次菜单打开时加载片段，优先使用缓存数据
+    loadSnippets()
+
     const commands = [
       {
         title: '主标题',
@@ -40,6 +139,14 @@ export const slashCommandSuggestion = {
         keywords: ['h', 'h3', '标题', '三级标题'],
         command: ({ editor, range }) => {
           editor.chain().focus().deleteRange(range).setNode('heading', { level: 3 }).run()
+        }
+      },
+      {
+        title: '小标题',
+        icon: markRaw(LevelFourTitle),
+        keywords: ['h', 'h4', '标题', '四级标题', '小标题'],
+        command: ({ editor, range }) => {
+          editor.chain().focus().deleteRange(range).setNode('heading', { level: 4 }).run()
         }
       },
 
@@ -103,17 +210,100 @@ export const slashCommandSuggestion = {
         command: ({ editor, range }) => {
           editor.chain().focus().deleteRange(range).setHorizontalRule().run()
         }
+      },
+      {
+        title: '折叠块',
+        icon: markRaw(NewspaperFolding),
+        keywords: ['details', 'collapse', '折叠', '展开', '详情'],
+        command: ({ editor, range }) => {
+          // 首先删除斜杠命令
+          editor.chain().focus().deleteRange(range).run()
+
+          // 创建 details 块的结构并插入
+          editor
+            .chain()
+            .focus()
+            .insertContent({
+              type: 'details',
+              attrs: {
+                open: true // 默认展开状态
+              },
+              content: [
+                {
+                  type: 'detailsSummary',
+                  content: [
+                    {
+                      type: 'text',
+                      text: '点击展开/折叠' // 默认的摘要文本
+                    }
+                  ]
+                },
+                {
+                  type: 'detailsContent',
+                  content: [
+                    {
+                      type: 'paragraph',
+                      attrs: {
+                        textAlign: 'left'
+                      }
+                    }
+                  ]
+                }
+              ]
+            })
+            .run()
+        }
       }
     ]
-    return commands.filter((item) => {
-      if (item.type === 'separator') return true
-      const searchText = query.toLowerCase()
+
+    // 添加片段命令到commands数组
+    if (snippetsCache.value.length > 0) {
+      commands.push(...snippetsCache.value)
+    }
+
+    // 先过滤所有命令
+    const searchText = query.toLowerCase()
+    const filteredCommands = commands.filter((item) => {
+      if (item.type === 'separator') return false
+
       return (
         item.title.toLowerCase().includes(searchText) ||
         (item.keywords &&
           item.keywords.some((keyword) => keyword.toLowerCase().includes(searchText)))
       )
     })
+
+    // 如果没有任何匹配项且有搜索条件，返回"无匹配项"提示
+    if (filteredCommands.length === 0 && query.trim() !== '') {
+      return [
+        {
+          title: `无匹配项 "${query}"`,
+          icon: null,
+          command: () => {}, // 空函数，不执行任何操作
+          noMatch: true // 标记为无匹配项
+        }
+      ]
+    }
+
+    // 检查是否有符合条件的片段
+    const hasMatchingSnippets = filteredCommands.some((item) => item.snippetCommand)
+
+    // 只有当有匹配的片段时，才添加分隔符
+    const result = filteredCommands.filter((item) => !item.snippetCommand)
+
+    if (hasMatchingSnippets) {
+      // 添加分隔符
+      result.push({
+        type: 'separator',
+        title: '片段'
+      })
+
+      // 添加所有匹配的片段
+      result.push(...filteredCommands.filter((item) => item.snippetCommand))
+    }
+
+    console.log('过滤后命令数量:', result.length)
+    return result
   },
 
   render: () => {
