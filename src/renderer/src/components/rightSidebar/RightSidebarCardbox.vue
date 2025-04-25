@@ -5,7 +5,7 @@
       <SearchInput
         ref="searchInput"
         v-model="searchQuery"
-        placeholder="搜索笔记"
+        placeholder="搜索卡片笔记"
         :width="9999"
         :height="36"
         @input="debouncedSearch"
@@ -270,6 +270,64 @@ const saveSortPreference = (preference: SortPreference) => {
   }
 }
 
+// 添加地址比较函数
+const compareAddress = (a: string, b: string) => {
+  // 将地址分割成数组
+  const splitAddress = (addr: string = '') => {
+    return addr.split('-').map((part) => {
+      // 如果是纯数字，则返回数字类型，便于后续数值比较
+      if (/^\d+$/.test(part)) {
+        return parseInt(part)
+      }
+      // 非纯数字部分（如"1a"）保持字符串类型
+      return part
+    })
+  }
+
+  const aParts = splitAddress(a)
+  const bParts = splitAddress(b)
+
+  // 逐段比较
+  for (let i = 0; i < Math.max(aParts.length, bParts.length); i++) {
+    // 如果某段不存在，认为它更小
+    if (aParts[i] === undefined) return -1
+    if (bParts[i] === undefined) return 1
+
+    // 如果两个部分不相等，比较它们
+    if (aParts[i] !== bParts[i]) {
+      // 如果都是数字，直接数值比较
+      if (typeof aParts[i] === 'number' && typeof bParts[i] === 'number') {
+        return (aParts[i] as number) - (bParts[i] as number)
+      }
+
+      // 如果是混合类型（如"1a"），需要提取数字部分进行比较
+      if (typeof aParts[i] === 'string' && typeof bParts[i] === 'string') {
+        const aMatch = String(aParts[i]).match(/^(\d+)([a-z]*)$/)
+        const bMatch = String(bParts[i]).match(/^(\d+)([a-z]*)$/)
+
+        if (aMatch && bMatch) {
+          // 先比较数字部分
+          const aNum = parseInt(aMatch[1])
+          const bNum = parseInt(bMatch[1])
+
+          if (aNum !== bNum) {
+            return aNum - bNum
+          }
+
+          // 数字相同则比较字母部分
+          return (aMatch[2] || '').localeCompare(bMatch[2] || '')
+        }
+      }
+
+      // 其他情况按字符串比较
+      return String(aParts[i]).localeCompare(String(bParts[i]))
+    }
+  }
+
+  // 所有部分都相等
+  return 0
+}
+
 // 添加筛选偏好的存储 key
 const FILTER_PREFERENCE_KEY = 'antinet_sidebar_filter_preference'
 
@@ -383,10 +441,20 @@ const fetchNotes = async () => {
     })
 
     await nextTick(() => {
+      const fetchedNotes = [...result.notes]
+
+      // 如果是按地址排序，在前端执行正确的地址排序
+      if (filterState.sort.field === 'address') {
+        fetchedNotes.sort((a, b) => {
+          const result = compareAddress(a.address, b.address)
+          return filterState.sort.order === 'asc' ? result : -result
+        })
+      }
+
       if (currentPage.value === 1) {
-        notes.value = result.notes
+        notes.value = fetchedNotes
       } else {
-        notes.value = [...notes.value, ...result.notes]
+        notes.value = [...notes.value, ...fetchedNotes]
       }
     })
 
@@ -564,7 +632,7 @@ const sortDropdownItems = computed(() => {
     {
       key: 'address',
       label:
-        '按名称排序' +
+        '按地址排序' +
         (filterState.sort.field === 'address'
           ? filterState.sort.order === 'asc'
             ? ' ↑'
@@ -659,6 +727,14 @@ const handleAddressSelect = async (value: string) => {
         fetchedNotes = await noteStore.getNotesWithoutAddress()
         break
       }
+    }
+
+    // 如果是按地址排序，对获取的笔记应用我们的自定义排序
+    if (filterState.sort.field === 'address') {
+      fetchedNotes.sort((a, b) => {
+        const result = compareAddress(a.address, b.address)
+        return filterState.sort.order === 'asc' ? result : -result
+      })
     }
 
     notes.value = fetchedNotes

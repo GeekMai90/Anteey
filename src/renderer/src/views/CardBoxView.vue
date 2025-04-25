@@ -1048,7 +1048,7 @@ onMounted(async () => {
 
 // 排序选项功能
 const sortOptions = [
-  { value: 'address', label: '按名称排序' },
+  { value: 'address', label: '按地址排序' },
   { value: 'createdAt', label: '按创建时间排序' },
   { value: 'updatedAt', label: '按更新时间排序' }
 ]
