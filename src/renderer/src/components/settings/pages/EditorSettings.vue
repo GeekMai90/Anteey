@@ -34,6 +34,19 @@
               </div>
             </div>
           </div>
+          <div class="form-item">
+            <div class="label">
+              <span>字体大小</span>
+              <div class="help-icon-wrapper">
+                <Help theme="outline" size="14" :strokeWidth="3" class="help-icon" />
+                <div class="help-tooltip">设置编辑器的字体大小，影响笔记内容的显示</div>
+              </div>
+            </div>
+            <div class="value">
+              <NumberInput v-model="fontSize" :min="12" :max="24" />
+              <span class="input-suffix">px</span>
+            </div>
+          </div>
         </div>
       </div>
       <div class="settings-item">
@@ -139,6 +152,7 @@ const characterLimit = ref(500)
 const showCharacterCount = ref(true)
 const enforceLimit = ref(false)
 const enableSpellcheck = ref(false)
+const fontSize = ref(16)
 
 // 随机回顾设置
 const enableMarioStyle = ref(false)
@@ -158,6 +172,7 @@ onMounted(async () => {
     showCharacterCount.value = uiStore.editorSettings.showCharacterCount
     enforceLimit.value = uiStore.editorSettings.enforceLimit || false
     enableSpellcheck.value = uiStore.editorSettings.enableSpellcheck || false
+    fontSize.value = uiStore.editorSettings.fontSize || 16
 
     // 从 ReviewStore 获取设置
     enableMarioStyle.value = reviewStore.enableMarioStyle
@@ -176,6 +191,7 @@ const debouncedUpdateSettings = debounce(
     showCharacterCount: boolean
     enforceLimit: boolean
     enableSpellcheck: boolean
+    fontSize: number
   }) => {
     try {
       // 保持其他设置不变
@@ -193,13 +209,14 @@ const debouncedUpdateSettings = debounce(
 
 // 监听设置变化并保存
 watch(
-  [characterLimit, showCharacterCount, enforceLimit, enableSpellcheck],
-  async ([limit, showCount, enforce, spellcheck]) => {
+  [characterLimit, showCharacterCount, enforceLimit, enableSpellcheck, fontSize],
+  async ([limit, showCount, enforce, spellcheck, size]) => {
     const settings = {
       characterLimit: limit,
       showCharacterCount: showCount,
       enforceLimit: enforce,
-      enableSpellcheck: spellcheck
+      enableSpellcheck: spellcheck,
+      fontSize: size
     }
     debouncedUpdateSettings(settings)
   },

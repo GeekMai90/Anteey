@@ -57,6 +57,7 @@ import { useGlobalHotkeys } from '@renderer/composables/useGlobalHotkeys'
 import { useWebDAVStore } from '@renderer/stores/webdavStore'
 import { useAppearanceStore } from './stores/appearanceStore'
 import { useDraftsStore } from '@renderer/stores/draftsStore'
+import { useEditorFontSize } from '@renderer/composables/useEditorFontSize'
 import type { SyncState } from '@shared/types'
 import { useThemeStore } from '@renderer/stores/themeStore'
 import { useAuthStore } from './stores/authStore'
@@ -177,6 +178,8 @@ onMounted(async () => {
 
   // 2. 必要的初始化放在这里
   await initializeTheme()
+  // 初始化编辑器字体大小
+  useEditorFontSize()
   baseLayout.value?.checkWindowSize()
   window.addEventListener('resize', () => baseLayout.value?.handleResize())
   window.addEventListener('keydown', handleKeydown)
