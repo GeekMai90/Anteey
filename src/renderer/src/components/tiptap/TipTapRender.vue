@@ -23,7 +23,7 @@ import { CustomLink } from '@renderer/utils/tiptap/CustomLink'
 import Subscript from '@tiptap/extension-subscript'
 import Superscript from '@tiptap/extension-superscript'
 import TextAlign from '@tiptap/extension-text-align'
-import Details from '@tiptap-pro/extension-details'
+import { CustomDetails } from '@renderer/utils/tiptap/CustomDetails'
 import DetailsContent from '@tiptap-pro/extension-details-content'
 import DetailsSummary from '@tiptap-pro/extension-details-summary'
 import { CustomTextStyle } from '@renderer/utils/tiptap/CustomTextStyle'
@@ -113,7 +113,7 @@ const editorExtensions = computed(() => {
     Typography,
     CustomImage,
     TaskList,
-    Details.configure({
+    CustomDetails.configure({
       persist: true,
       HTMLAttributes: {
         class: 'details'

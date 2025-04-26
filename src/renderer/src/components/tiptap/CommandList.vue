@@ -162,7 +162,7 @@ onMounted(() => {
   z-index: 9999;
   min-width: 200px;
   width: max-content;
-  max-width: 250px;
+  max-width: 220px;
   max-height: 360px; // 设置最大高度
   overflow-y: auto; // 允许垂直滚动
   overflow-x: hidden; // 防止水平溢出

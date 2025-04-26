@@ -12,6 +12,7 @@
         expanded: 'auto'
       }
     }"
+    :should-show="shouldShow"
   >
     <div class="bubble-menu">
       <!-- 下拉菜单按钮 -->
@@ -903,6 +904,56 @@ const clearColor = () => {
   props.editor.chain().focus().unsetMark('textStyle').blur().run()
   currentColor.value = ''
   showColorMenu.value = false
+}
+
+// 添加 shouldShow 函数判断气泡菜单是否应该显示
+const shouldShow = ({ state }: any): boolean => {
+  const { selection } = state
+  const { $anchor, empty, from, to } = selection
+
+  // 1. 如果选区为空（未选中任何内容），不显示工具条
+  if (empty) {
+    return false
+  }
+
+  // 2. 如果选区长度太短，不显示工具条
+  if (from === to) {
+    return false
+  }
+
+  // 3. 检查是否在表格内
+  let isInTable = false
+  let isTableSelection = false
+  let depth = $anchor.depth
+
+  while (depth > 0) {
+    const node = $anchor.node(depth)
+    if (node.type.name === 'table') {
+      isInTable = true
+      break
+    }
+    depth--
+  }
+
+  // 4. 如果在表格内，检查是否为表格选择状态（多选单元格）
+  if (isInTable) {
+    isTableSelection =
+      // a. 选中了多个单元格
+      (selection.ranges && selection.ranges.length > 1) ||
+      // b. 选中了整行或整列
+      Object.prototype.hasOwnProperty.call(selection, 'isRowSelection') ||
+      Object.prototype.hasOwnProperty.call(selection, 'isColSelection') ||
+      // c. 使用表格选择功能
+      selection.constructor.name.includes('CellSelection')
+
+    // 如果是表格选择状态，不显示文字编辑工具条
+    if (isTableSelection) {
+      return false
+    }
+  }
+
+  // 5. 符合显示条件，显示文字编辑工具条
+  return true
 }
 </script>
 

@@ -15,7 +15,13 @@ import {
   Code,
   Form,
   ParagraphRectangle,
-  NewspaperFolding
+  NewspaperFolding,
+  Info,
+  Success,
+  Bug,
+  AlignTextBothOne,
+  Tips,
+  Alarm
 } from '@icon-park/vue-next'
 import { markRaw, ref } from 'vue'
 import { useNoteStore } from '@renderer/stores/noteStore'
@@ -212,9 +218,292 @@ export const slashCommandSuggestion = {
         }
       },
       {
-        title: '折叠块',
+        type: 'separator',
+        title: '标注'
+      },
+      {
+        title: '思考标注',
+        icon: markRaw(Tips),
+        keywords: ['callout', 'tip', '标注', '思考', '提示', '技巧'],
+        command: ({ editor, range }) => {
+          // 首先删除斜杠命令
+          editor.chain().focus().deleteRange(range).run()
+
+          // 一步创建callout
+          editor
+            .chain()
+            .focus()
+            .insertContent({
+              type: 'details',
+              attrs: {
+                open: true,
+                isCallout: true,
+                calloutType: 'tip',
+                class: 'details callout callout-tip'
+              },
+              content: [
+                {
+                  type: 'detailsSummary',
+                  content: [
+                    {
+                      type: 'text',
+                      text: '思考'
+                    }
+                  ]
+                },
+                {
+                  type: 'detailsContent',
+                  content: [
+                    {
+                      type: 'paragraph',
+                      attrs: {
+                        textAlign: 'left'
+                      }
+                    }
+                  ]
+                }
+              ]
+            })
+            .run()
+        }
+      },
+
+      {
+        title: '信息标注',
+        icon: markRaw(Info),
+        keywords: ['callout', 'info', '标注', '信息'],
+        command: ({ editor, range }) => {
+          // 首先删除斜杠命令
+          editor.chain().focus().deleteRange(range).run()
+
+          // 一步创建callout
+          editor
+            .chain()
+            .focus()
+            .insertContent({
+              type: 'details',
+              attrs: {
+                open: true,
+                isCallout: true,
+                calloutType: 'info',
+                class: 'details callout callout-info'
+              },
+              content: [
+                {
+                  type: 'detailsSummary',
+                  content: [
+                    {
+                      type: 'text',
+                      text: '信息'
+                    }
+                  ]
+                },
+                {
+                  type: 'detailsContent',
+                  content: [
+                    {
+                      type: 'paragraph',
+                      attrs: {
+                        textAlign: 'left'
+                      }
+                    }
+                  ]
+                }
+              ]
+            })
+            .run()
+        }
+      },
+      {
+        title: '成功标注',
+        icon: markRaw(Success),
+        keywords: ['callout', 'success', '标注', '成功'],
+        command: ({ editor, range }) => {
+          // 首先删除斜杠命令
+          editor.chain().focus().deleteRange(range).run()
+
+          // 一步创建callout
+          editor
+            .chain()
+            .focus()
+            .insertContent({
+              type: 'details',
+              attrs: {
+                open: true,
+                isCallout: true,
+                calloutType: 'success',
+                class: 'details callout callout-success'
+              },
+              content: [
+                {
+                  type: 'detailsSummary',
+                  content: [
+                    {
+                      type: 'text',
+                      text: '成功'
+                    }
+                  ]
+                },
+                {
+                  type: 'detailsContent',
+                  content: [
+                    {
+                      type: 'paragraph',
+                      attrs: {
+                        textAlign: 'left'
+                      }
+                    }
+                  ]
+                }
+              ]
+            })
+            .run()
+        }
+      },
+      {
+        title: '笔记标注',
+        icon: markRaw(AlignTextBothOne),
+        keywords: ['callout', 'note', '标注', '笔记'],
+        command: ({ editor, range }) => {
+          // 首先删除斜杠命令
+          editor.chain().focus().deleteRange(range).run()
+
+          // 一步创建callout
+          editor
+            .chain()
+            .focus()
+            .insertContent({
+              type: 'details',
+              attrs: {
+                open: true,
+                isCallout: true,
+                calloutType: 'note',
+                class: 'details callout callout-note'
+              },
+              content: [
+                {
+                  type: 'detailsSummary',
+                  content: [
+                    {
+                      type: 'text',
+                      text: '笔记'
+                    }
+                  ]
+                },
+                {
+                  type: 'detailsContent',
+                  content: [
+                    {
+                      type: 'paragraph',
+                      attrs: {
+                        textAlign: 'left'
+                      }
+                    }
+                  ]
+                }
+              ]
+            })
+            .run()
+        }
+      },
+      {
+        title: '警告标注',
+        icon: markRaw(Alarm),
+        keywords: ['callout', 'warning', '标注', '警告', '注意'],
+        command: ({ editor, range }) => {
+          // 首先删除斜杠命令
+          editor.chain().focus().deleteRange(range).run()
+
+          // 一步创建callout
+          editor
+            .chain()
+            .focus()
+            .insertContent({
+              type: 'details',
+              attrs: {
+                open: true,
+                isCallout: true,
+                calloutType: 'warning',
+                class: 'details callout callout-warning'
+              },
+              content: [
+                {
+                  type: 'detailsSummary',
+                  content: [
+                    {
+                      type: 'text',
+                      text: '警告'
+                    }
+                  ]
+                },
+                {
+                  type: 'detailsContent',
+                  content: [
+                    {
+                      type: 'paragraph',
+                      attrs: {
+                        textAlign: 'left'
+                      }
+                    }
+                  ]
+                }
+              ]
+            })
+            .run()
+        }
+      },
+
+      {
+        title: '错误标注',
+        icon: markRaw(Bug),
+        keywords: ['callout', 'error', '标注', '错误'],
+        command: ({ editor, range }) => {
+          // 首先删除斜杠命令
+          editor.chain().focus().deleteRange(range).run()
+
+          // 一步创建callout
+          editor
+            .chain()
+            .focus()
+            .insertContent({
+              type: 'details',
+              attrs: {
+                open: true,
+                isCallout: true,
+                calloutType: 'error',
+                class: 'details callout callout-error'
+              },
+              content: [
+                {
+                  type: 'detailsSummary',
+                  content: [
+                    {
+                      type: 'text',
+                      text: '错误'
+                    }
+                  ]
+                },
+                {
+                  type: 'detailsContent',
+                  content: [
+                    {
+                      type: 'paragraph',
+                      attrs: {
+                        textAlign: 'left'
+                      }
+                    }
+                  ]
+                }
+              ]
+            })
+            .run()
+        }
+      },
+
+      {
+        title: '折叠标注',
         icon: markRaw(NewspaperFolding),
-        keywords: ['details', 'collapse', '折叠', '展开', '详情'],
+        keywords: ['details', 'collapse', 'callout', '折叠', '展开', '详情', '标注'],
         command: ({ editor, range }) => {
           // 首先删除斜杠命令
           editor.chain().focus().deleteRange(range).run()
@@ -285,12 +574,56 @@ export const slashCommandSuggestion = {
       ]
     }
 
+    // 检查是否有符合条件的标注命令
+    const hasCallouts = filteredCommands.some(
+      (item) => item.keywords && item.keywords.includes('callout')
+    )
+
     // 检查是否有符合条件的片段
     const hasMatchingSnippets = filteredCommands.some((item) => item.snippetCommand)
 
-    // 只有当有匹配的片段时，才添加分隔符
+    // 准备结果，先添加非片段的命令
     const result = filteredCommands.filter((item) => !item.snippetCommand)
 
+    // 如果有标注命令匹配，添加标注分隔符并重新整理结果
+    if (hasCallouts && query.trim() === '') {
+      // 找到标注分隔符在原始commands中的位置
+      const separatorIndex = commands.findIndex(
+        (item) => item.type === 'separator' && item.title === '标注'
+      )
+
+      if (separatorIndex !== -1) {
+        // 获取标注分隔符
+        const calloutSeparator = commands[separatorIndex]
+
+        // 获取所有标注命令
+        const calloutCommands = commands
+          .slice(separatorIndex + 1)
+          .filter((item) => item.keywords && item.keywords.includes('callout'))
+          .filter(
+            (item) =>
+              item.title.toLowerCase().includes(searchText) ||
+              (item.keywords &&
+                item.keywords.some((keyword) => keyword.toLowerCase().includes(searchText)))
+          )
+
+        // 非标注命令
+        const nonCalloutCommands = result.filter(
+          (item) => !item.keywords || !item.keywords.includes('callout')
+        )
+
+        // 重组结果：先非标注命令，再标注分隔符，最后标注命令
+        result.length = 0 // 清空数组
+        result.push(...nonCalloutCommands)
+
+        if (calloutCommands.length > 0) {
+          result.push(calloutSeparator)
+          result.push(...calloutCommands)
+        }
+      }
+    }
+
+    // 如果有匹配的片段，添加分隔符和片段
     if (hasMatchingSnippets) {
       // 添加分隔符
       result.push({

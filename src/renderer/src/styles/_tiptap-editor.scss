@@ -441,7 +441,7 @@
   .details {
     display: flex;
     gap: 0.25rem;
-    margin: 1.5rem 0;
+    margin: 10px 0;
     border: 1px solid var(--color-border);
     border-radius: 0.5rem;
     padding: 0.5rem;
@@ -459,27 +459,38 @@
       height: 1.25rem;
       justify-content: center;
       line-height: 1;
-      margin-top: 0.1rem;
       padding: 0;
       width: 1.25rem;
+      position: relative;
 
       &:hover {
         background-color: var(--color-border);
       }
 
       &::before {
-        content: "\25B6";
+        content: "";
+        width: 100%;
+        height: 100%;
+        position: absolute;
+        background-image: url("data:image/svg+xml,%3Csvg width='24' height='24' viewBox='0 0 48 48' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M36 18L24 30L12 18' stroke='%237D798F' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+        background-size: contain;
+        background-repeat: no-repeat;
+        background-position: center;
+        transform: rotate(-90deg);
+        transition: transform 0.2s ease;
       }
     }
 
     &.is-open > button {
-      transform: rotate(90deg);
+      &::before {
+        transform: rotate(0deg);
+      }
     }
 
     > div {
       display: flex;
       flex-direction: column;
-      gap: 1rem;
+      gap: 4px;
       width: 100%;
 
       > [data-type="detailsContent"] > :last-child {
@@ -489,6 +500,148 @@
 
     .details {
       margin: 0.5rem 0;
+    }
+
+    /* Callout 标注块样式 */
+    &.callout {
+      position: relative;
+      padding-left: 2.5rem;
+      background-color: rgba(0, 0, 0, 0.03);
+      border: none;
+
+      /* 隐藏callout中的折叠按钮 */
+      > button {
+        display: none;
+      }
+
+      /* 使callout始终处于展开状态 */
+      &:not(.is-open) > div {
+        display: flex !important;
+      }
+
+      /* callout类型图标 */
+      &::before {
+        position: absolute;
+        left: 0.75rem;
+        top: 0.6rem;
+        transform: none;
+        font-size: 1rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 1.2em;
+        height: 1.2em;
+      }
+
+      /* 让图标与summary垂直居中对齐 */
+      summary {
+        position: relative;
+        display: flex;
+        align-items: center;
+        min-height: 1.2em;
+      }
+
+      /* 信息类型 - 蓝色 */
+      &.callout-info {
+        background-color: var(--color-info-light);
+
+        summary {
+          color: var(--color-info);
+        }
+
+        &::before {
+          content: "";
+          background-image: url("data:image/svg+xml,%3Csvg width='24' height='24' viewBox='0 0 48 48' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M24 44C35.0457 44 44 35.0457 44 24C44 12.9543 35.0457 4 24 4C12.9543 4 4 12.9543 4 24C4 35.0457 12.9543 44 24 44Z' fill='none' stroke='%2317a2b8' stroke-width='4' stroke-linejoin='round'/%3E%3Cpath fill-rule='evenodd' clip-rule='evenodd' d='M24 11C25.3807 11 26.5 12.1193 26.5 13.5C26.5 14.8807 25.3807 16 24 16C22.6193 16 21.5 14.8807 21.5 13.5C21.5 12.1193 22.6193 11 24 11Z' fill='%2317a2b8'/%3E%3Cpath d='M24.5 34V20H23.5H22.5' stroke='%2317a2b8' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M21 34H28' stroke='%2317a2b8' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+          background-repeat: no-repeat;
+          background-position: center;
+          background-size: contain;
+        }
+      }
+
+      /* 警告类型 - 黄色 */
+      &.callout-warning {
+        background-color: var(--color-warning-light);
+
+        summary {
+          color: var(--color-warning);
+        }
+
+        &::before {
+          content: "";
+          background-image: url("data:image/svg+xml,%3Csvg width='24' height='24' viewBox='0 0 48 48' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M14 25C14 19.4772 18.4772 15 24 15C29.5228 15 34 19.4772 34 25V41H14V25Z' fill='none' stroke='%23ffc107' stroke-width='3' stroke-linejoin='round'/%3E%3Cpath d='M24 5V8' stroke='%23ffc107' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M35.8918 9.32823L33.9634 11.6264' stroke='%23ffc107' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M42.2187 20.2873L39.2642 20.8083' stroke='%23ffc107' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M5.78116 20.2874L8.73558 20.8083' stroke='%23ffc107' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M12.1086 9.32802L14.037 11.6262' stroke='%23ffc107' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M6 41H43' stroke='%23ffc107' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+          background-repeat: no-repeat;
+          background-position: center;
+          background-size: contain;
+        }
+      }
+
+      /* 成功类型 - 绿色 */
+      &.callout-success {
+        background-color: var(--color-success-light);
+
+        summary {
+          color: var(--color-success);
+        }
+
+        &::before {
+          content: "";
+          background-image: url("data:image/svg+xml,%3Csvg width='24' height='24' viewBox='0 0 48 48' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M24 4L29.2533 7.83204L35.7557 7.81966L37.7533 14.0077L43.0211 17.8197L41 24L43.0211 30.1803L37.7533 33.9923L35.7557 40.1803L29.2533 40.168L24 44L18.7467 40.168L12.2443 40.1803L10.2467 33.9923L4.97887 30.1803L7 24L4.97887 17.8197L10.2467 14.0077L12.2443 7.81966L18.7467 7.83204L24 4Z' fill='none' stroke='%2328a745' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M17 24L22 29L32 19' stroke='%2328a745' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+          background-repeat: no-repeat;
+          background-position: center;
+          background-size: contain;
+        }
+      }
+
+      /* 错误类型 - 红色 */
+      &.callout-error {
+        background-color: var(--color-danger-light);
+
+        summary {
+          color: var(--color-danger);
+        }
+
+        &::before {
+          content: "";
+          background-image: url("data:image/svg+xml,%3Csvg width='24' height='24' viewBox='0 0 48 48' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M24 42C36 42 38 31.5324 38 28C38 24.8379 38 20.1712 38 14H10C10 17.4423 10 22.109 10 28C10 31.4506 12 42 24 42Z' fill='none' stroke='%23dc3545' stroke-width='3' stroke-linejoin='round'/%3E%3Cpath d='M4 8L10 14' stroke='%23dc3545' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M44 8L38 14' stroke='%23dc3545' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M4 27H10' stroke='%23dc3545' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M44 27H38' stroke='%23dc3545' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M7 44L13 38' stroke='%23dc3545' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M41 44L35 38' stroke='%23dc3545' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M24 42V14' stroke='%23dc3545' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M14.9204 39.0407C17.0024 40.783 19.9244 41.9998 23.9999 41.9998C28.1112 41.9998 31.0487 40.7712 33.1341 39.0137' stroke='%23dc3545' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M32 12.3333C32 7.73096 28.4183 4 24 4C19.5817 4 16 7.73096 16 12.3333V14H32V12.3333Z' fill='none' stroke='%23dc3545' stroke-width='3' stroke-linejoin='round'/%3E%3C/svg%3E");
+          background-repeat: no-repeat;
+          background-position: center;
+          background-size: contain;
+        }
+      }
+
+      /* 笔记类型 - 灰色 */
+      &.callout-note {
+        background-color: var(--color-callout-note-bg);
+
+        summary {
+          color: var(--color-callout-note-text);
+        }
+
+        &::before {
+          content: "";
+          background-image: url("data:image/svg+xml,%3Csvg width='24' height='24' viewBox='0 0 48 48' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M8 42H40C41.1046 42 42 41.1046 42 40V8C42 6.89543 41.1046 6 40 6H8C6.89543 6 6 6.89543 6 8V40C6 41.1046 6.89543 42 8 42Z' fill='none' stroke='%23666f6e' stroke-width='4' stroke-linejoin='round'/%3E%3Cpath d='M14 16H34' stroke='%23666f6e' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M14 24H34' stroke='%23666f6e' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M14 32H34' stroke='%23666f6e' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+          background-repeat: no-repeat;
+          background-position: center;
+          background-size: contain;
+        }
+      }
+
+      /* 提示类型 - 紫色（使用主题色） */
+      &.callout-tip {
+        background-color: var(--color-primary-light);
+
+        summary {
+          color: var(--color-primary);
+        }
+
+        &::before {
+          content: "";
+          background-image: url("data:image/svg+xml,%3Csvg width='24' height='24' viewBox='0 0 48 48' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M40 20C40 26.8077 35.7484 32.6224 29.7555 34.9336H24H18.2445C12.2516 32.6224 8 26.8077 8 20C8 11.1634 15.1634 4 24 4C32.8366 4 40 11.1634 40 20Z' fill='none' stroke='%2300c8a8' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M29.7557 34.9336L29.0766 43.0831C29.0334 43.6014 28.6001 44 28.08 44H19.9203C19.4002 44 18.9669 43.6014 18.9238 43.0831L18.2446 34.9336' stroke='%2300c8a8' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M18 17V23L24 20L30 23V17' stroke='%2300c8a8' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+          background-repeat: no-repeat;
+          background-position: center;
+          background-size: contain;
+        }
+      }
     }
   }
 

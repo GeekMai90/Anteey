@@ -58,7 +58,7 @@ import { CustomLink } from '@renderer/utils/tiptap/CustomLink'
 import Subscript from '@tiptap/extension-subscript'
 import Superscript from '@tiptap/extension-superscript'
 import TextAlign from '@tiptap/extension-text-align'
-import Details from '@tiptap-pro/extension-details'
+// import Details from '@tiptap-pro/extension-details'
 import Emoji from '@tiptap-pro/extension-emoji'
 import DetailsContent from '@tiptap-pro/extension-details-content'
 import DetailsSummary from '@tiptap-pro/extension-details-summary'
@@ -73,6 +73,7 @@ import { CustomBlockquote } from '@renderer/utils/tiptap/CustomBlockquote'
 import { CustomTaskList } from '@renderer/utils/tiptap/CustomTaskList'
 import { CustomTaskItem } from '@renderer/utils/tiptap/CustomTaskItem'
 import { CustomMention } from '@renderer/utils/tiptap/CustomMention'
+import { CustomDetails } from '@renderer/utils/tiptap/CustomDetails'
 import 'katex/dist/katex.min.css'
 import { Mathematics } from '@tiptap-pro/extension-mathematics'
 import CharacterCount from '@tiptap/extension-character-count'
@@ -447,7 +448,7 @@ const editorExtensions = computed(() => {
     CustomCodeBlock,
     Typography,
     CustomImage,
-    Details.configure({
+    CustomDetails.configure({
       persist: true,
       HTMLAttributes: {
         class: 'details'

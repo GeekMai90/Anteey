@@ -137,7 +137,7 @@ const shouldShow = (props: {
 }): boolean => {
   const { state } = props
   const { selection } = state
-  const { $anchor } = selection
+  const { $anchor, empty, from, to } = selection
 
   // 检查是否在表格内
   let isInTable = false
@@ -156,6 +156,15 @@ const shouldShow = (props: {
   }
 
   if (!isInTable || !cellNode) {
+    return false
+  }
+
+  // 检查是否有文本选区
+  // 如果选区不为空且不等于单元格起始位置，说明用户选中了单元格内的文本
+  const hasTextSelection = !empty && (from !== $anchor.start() || to !== $anchor.end())
+
+  // 如果用户选中了文本，不显示表格工具条
+  if (hasTextSelection) {
     return false
   }
 
@@ -210,25 +219,28 @@ const distributeColumnWidths = () => {
     return
   }
 
-  // 获取笔记容器的可用宽度 - 修改这部分逻辑
-  // 尝试获取笔记内容容器的宽度
-  const noteContentContainer =
-    document.querySelector('.ProseMirror') ||
-    document.querySelector('.editor-content') ||
-    tableElement.closest('.note-content') ||
-    tableElement.closest('.editor-container')
+  // 更准确地获取编辑器内容区域的有效宽度
+  const editorContent = document.querySelector('.ProseMirror')
+  if (!editorContent) {
+    console.log('未找到编辑器内容元素')
+    return
+  }
 
-  // 获取笔记容器的宽度，如果找不到容器则使用表格父元素宽度，最后使用默认值
-  const containerWidth = noteContentContainer
-    ? noteContentContainer.clientWidth
-    : tableElement.parentElement?.clientWidth || 800
+  // 计算编辑器内容区域的实际可用宽度
+  // 获取计算样式以准确获取内边距和边框
+  const editorStyles = window.getComputedStyle(editorContent)
+  const editorPaddingLeft = parseFloat(editorStyles.paddingLeft) || 0
+  const editorPaddingRight = parseFloat(editorStyles.paddingRight) || 0
+  const editorBorderLeft = parseFloat(editorStyles.borderLeftWidth) || 0
+  const editorBorderRight = parseFloat(editorStyles.borderRightWidth) || 0
 
-  console.log('笔记容器宽度:', containerWidth)
-
-  // 考虑内边距和边框的影响，减小实际可用宽度
-  // 使用更小的边距预留值，以充分利用笔记宽度
-  const availableWidth = containerWidth - 20 // 减少预留边距
-  console.log('可用宽度:', availableWidth)
+  // 内容区域宽度减去内边距和边框
+  const availableWidth =
+    editorContent.clientWidth -
+    editorPaddingLeft -
+    editorPaddingRight -
+    editorBorderLeft -
+    editorBorderRight
 
   // 添加对 firstChild 的空值检查
   const firstRow = tableNode.firstChild as ProseMirrorNode | null
@@ -238,11 +250,33 @@ const distributeColumnWidths = () => {
   }
 
   const columnCount = firstRow.childCount
-  console.log('列数:', columnCount)
 
-  // 确保每列至少100px宽，同时不超过可用宽度
-  const columnWidth = Math.max(100, Math.floor(availableWidth / columnCount))
-  console.log('计算的列宽:', columnWidth)
+  // 分配列宽，确保不超过可用宽度
+  let baseColumnWidth = Math.floor(availableWidth / columnCount)
+  // 设置最小列宽为100px，最大不超过均分宽度，但可以更宽一些
+  const columnWidth = Math.max(100, Math.min(baseColumnWidth, 400))
+
+  // 检查总宽度是否超出可用宽度
+  const totalWidth = columnWidth * columnCount
+  if (totalWidth > availableWidth) {
+    // 如果总宽度超出，重新计算每列宽度
+    baseColumnWidth = Math.floor(availableWidth / columnCount)
+    // 确保至少有80px的最小宽度
+    baseColumnWidth = Math.max(80, baseColumnWidth)
+  }
+
+  // 使用更大的最终宽度，只有在极端情况下才会添加滚动条
+  // 让表格尽量填充可用宽度
+  const finalColumnWidth = totalWidth > availableWidth ? baseColumnWidth : columnWidth
+
+  // 如果表格总宽度大于可用宽度，调整为100%宽度并设置overflow-x为auto
+  const tableContainer = tableElement.closest('.table-container')
+  if (tableContainer && finalColumnWidth * columnCount > availableWidth) {
+    tableContainer.setAttribute('style', 'width: 100%; overflow-x: auto;')
+  } else if (tableContainer) {
+    // 恢复正常宽度
+    tableContainer.removeAttribute('style')
+  }
 
   try {
     // 创建一个事务
@@ -270,7 +304,7 @@ const distributeColumnWidths = () => {
           // 设置单元格的 colwidth 属性
           tr.setNodeMarkup(cellPos, null, {
             ...cell.attrs,
-            colwidth: [columnWidth]
+            colwidth: [finalColumnWidth]
           })
         }
       })
@@ -287,7 +321,7 @@ const distributeColumnWidths = () => {
       if (colElements.length > 0) {
         colElements.forEach((col) => {
           if (col instanceof HTMLElement) {
-            col.style.width = `${columnWidth}px`
+            col.style.width = `${finalColumnWidth}px`
           }
         })
         console.log('col 元素宽度更新完成')
@@ -297,8 +331,8 @@ const distributeColumnWidths = () => {
       const cells = tableElement.querySelectorAll('th, td')
       cells.forEach((cell) => {
         if (cell instanceof HTMLElement) {
-          cell.style.width = `${columnWidth}px`
-          cell.setAttribute('colwidth', columnWidth.toString())
+          cell.style.width = `${finalColumnWidth}px`
+          cell.setAttribute('colwidth', finalColumnWidth.toString())
         }
       })
       console.log('单元格宽度更新完成')

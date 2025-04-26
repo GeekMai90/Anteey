@@ -242,6 +242,53 @@
           v-html="highlightCode(node.content?.[0]?.text || '', node.attrs?.language)"
         ></code></pre>
       </div>
+
+      <!-- 标注块/详情折叠块 -->
+      <div
+        v-else-if="node.type === 'details'"
+        class="details"
+        :class="{
+          callout: node.attrs?.isCallout,
+          [`callout-${node.attrs?.calloutType || 'info'}`]: node.attrs?.isCallout
+        }"
+      >
+        <div>
+          <!-- 标题/摘要 -->
+          <div v-if="node.content && node.content.length > 0" class="details-summary">
+            <template v-for="(summaryNode, summaryIndex) in node.content" :key="summaryIndex">
+              <template v-if="summaryNode.type === 'detailsSummary' && summaryNode.content">
+                <strong class="summary-content">
+                  <template
+                    v-for="(summaryContent, contentIndex) in summaryNode.content"
+                    :key="contentIndex"
+                  >
+                    <span v-if="summaryContent.type === 'text'" class="callout-text">
+                      {{ summaryContent.text }}
+                    </span>
+                  </template>
+                </strong>
+              </template>
+            </template>
+          </div>
+
+          <!-- 内容 -->
+          <div v-if="node.content && node.content.length > 0" class="details-content">
+            <template v-for="(contentNode, contentIndex) in node.content" :key="contentIndex">
+              <template v-if="contentNode.type === 'detailsContent' && contentNode.content">
+                <div class="content-wrapper">
+                  <template
+                    v-for="(detailContent, detailIndex) in contentNode.content"
+                    :key="detailIndex"
+                  >
+                    <!-- 递归渲染内容节点 -->
+                    <JsonContentRenderer :content="{ type: 'doc', content: [detailContent] }" />
+                  </template>
+                </div>
+              </template>
+            </template>
+          </div>
+        </div>
+      </div>
     </template>
   </div>
 </template>
@@ -341,6 +388,9 @@ interface JsonContent {
     colwidth?: number
     checked?: boolean
     language?: string
+    isCallout?: boolean
+    calloutType?: string
+    open?: boolean
   }
 }
 

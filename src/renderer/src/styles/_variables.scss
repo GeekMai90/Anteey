@@ -525,6 +525,10 @@ $shadow-card: 0 2px 6px rgba($black, 0.12);
   --color-text-blue: #69b5ff;
   --color-text-purple: #b37feb;
 
+  // 标注背景色
+  --color-callout-note-bg: rgba(102, 111, 110, 0.1);
+  --color-callout-note-text: #666f6e;
+
   // 18. 连接线颜色
   --color-line: rgba(0, 0, 0, 0.3);
   --color-node-bg: #{neutral(100)};
@@ -574,6 +578,10 @@ $shadow-card: 0 2px 6px rgba($black, 0.12);
 
   // 添加一个半透明的主题色，用于动画效果
   --color-primary-transparent: rgba(var(--color-primary-rgb), 0.15);
+
+  /* 标注块颜色 */
+  --color-callout-note-bg: rgba(102, 111, 110, 0.1);
+  --color-callout-note-text: #666f6e;
 }
 
 .theme-dark {
@@ -773,4 +781,8 @@ $shadow-card: 0 2px 6px rgba($black, 0.12);
 
   // 暗色主题下的半透明主题色
   --color-primary-transparent: rgba(var(--color-primary-rgb), 0.2);
+
+  // 标注背景色(暗色主题)
+  --color-callout-note-bg: rgba(132, 141, 140, 0.15);
+  --color-callout-note-text: #a0a8a7;
 }
