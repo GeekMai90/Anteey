@@ -234,12 +234,10 @@ async function createWindow(): Promise<BrowserWindow> {
     try {
       // 确保获取最新设置
       const freshSettings = await db('user_settings').first()
-      log.info('从数据库读取的缩放比例:', freshSettings?.zoom_factor)
 
       // 恢复缩放比例
       const zoomFactor = freshSettings?.zoom_factor ?? 1.0
       mainWindow.webContents.setZoomFactor(zoomFactor)
-      log.info('设置窗口缩放比例为:', zoomFactor)
 
       // 如果没有设置或者之前是最大化状态，则最大化窗口
       if (!freshSettings || freshSettings.is_maximized) {
@@ -306,15 +304,10 @@ async function createWindow(): Promise<BrowserWindow> {
     try {
       const settings = await db('user_settings').first()
       if (settings) {
-        log.info('保存缩放比例:', zoomFactor)
         await db('user_settings').where('id', settings.id).update({
           zoom_factor: zoomFactor,
           updatedAt: new Date()
         })
-
-        // 验证保存是否成功
-        const updatedSettings = await db('user_settings').first()
-        log.info('保存后的缩放比例:', updatedSettings?.zoom_factor)
       } else {
         log.error('未找到用户设置记录，无法保存缩放比例')
       }
@@ -324,16 +317,14 @@ async function createWindow(): Promise<BrowserWindow> {
   }
 
   // 增加缩放变化事件的监听
-  mainWindow.webContents.on('zoom-changed', (_event, zoomDirection) => {
+  mainWindow.webContents.on('zoom-changed', () => {
     const currentZoom = mainWindow.webContents.getZoomFactor()
-    log.info('检测到缩放变化:', zoomDirection, '当前缩放比例:', currentZoom)
     handleZoomUpdate(currentZoom)
   })
 
   // 在窗口导航前保存当前缩放状态
   mainWindow.webContents.on('will-navigate', async () => {
     const currentZoom = mainWindow.webContents.getZoomFactor()
-    log.info('页面即将导航，保存当前缩放比例:', currentZoom)
     await handleZoomUpdate(currentZoom) // 确保同步保存
   })
 
@@ -344,7 +335,6 @@ async function createWindow(): Promise<BrowserWindow> {
       const currentZoom = mainWindow.webContents.getZoomFactor()
       const newZoom = currentZoom + 0.1
       mainWindow.webContents.setZoomFactor(newZoom)
-      log.info('快捷键放大，新缩放比例:', newZoom)
       await handleZoomUpdate(newZoom)
     }
     // Command/Control + 减号
@@ -352,20 +342,17 @@ async function createWindow(): Promise<BrowserWindow> {
       const currentZoom = mainWindow.webContents.getZoomFactor()
       const newZoom = currentZoom - 0.1
       mainWindow.webContents.setZoomFactor(newZoom)
-      log.info('快捷键缩小，新缩放比例:', newZoom)
       await handleZoomUpdate(newZoom)
     }
     // Command/Control + 0
     if ((input.control || input.meta) && input.key === '0') {
       mainWindow.webContents.setZoomFactor(1.0)
-      log.info('快捷键重置缩放比例为: 1.0')
       await handleZoomUpdate(1.0)
     }
 
     // 页面刷新快捷键
     if ((input.control || input.meta) && input.key === 'r') {
       const currentZoom = mainWindow.webContents.getZoomFactor()
-      log.info('刷新前保存当前缩放比例:', currentZoom)
       await handleZoomUpdate(currentZoom)
     }
   })
@@ -375,7 +362,6 @@ async function createWindow(): Promise<BrowserWindow> {
     const currentZoom = mainWindow.webContents.getZoomFactor()
     const newZoom = currentZoom + 0.1
     mainWindow.webContents.setZoomFactor(newZoom)
-    log.info('菜单放大，新缩放比例:', newZoom)
     await handleZoomUpdate(newZoom)
   })
 
@@ -383,13 +369,11 @@ async function createWindow(): Promise<BrowserWindow> {
     const currentZoom = mainWindow.webContents.getZoomFactor()
     const newZoom = currentZoom - 0.1
     mainWindow.webContents.setZoomFactor(newZoom)
-    log.info('菜单缩小，新缩放比例:', newZoom)
     await handleZoomUpdate(newZoom)
   })
 
   ipcMain.on('zoom-reset', async () => {
     mainWindow.webContents.setZoomFactor(1.0)
-    log.info('菜单重置缩放比例为: 1.0')
     await handleZoomUpdate(1.0)
   })
 

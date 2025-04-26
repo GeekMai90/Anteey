@@ -1763,7 +1763,6 @@ export const useNoteStore = defineStore(
 
         if (result && result.notes) {
           snippetNotes.value = result.notes
-          console.log('noteStore → 加载片段笔记成功，数量:', snippetNotes.value.length)
         }
       } catch (error) {
         console.error('noteStore → 加载片段笔记失败:', error)

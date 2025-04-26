@@ -129,7 +129,6 @@ const handleKeydown = (event: KeyboardEvent) => {
       !event.target.closest('.ProseMirror')) // 排除编辑器内的可编辑元素
 
   if (isCmdOrCtrl && event.key.toLowerCase() === 'd' && !isExcludedInput) {
-    console.log('Quick add shortcut triggered!')
     event.preventDefault()
     isQuickAddVisible.value = true
   }
@@ -275,9 +274,7 @@ onMounted(async () => {
 
     // 预加载片段笔记数据
     try {
-      console.log('App → 开始预加载片段笔记数据')
       await noteStore.loadSnippetNotes()
-      console.log('App → 片段笔记数据预加载完成')
     } catch (error) {
       console.error('App → 预加载片段笔记数据失败:', error)
     }

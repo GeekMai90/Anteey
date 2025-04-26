@@ -1,5 +1,5 @@
 <template>
-  <ul class="popup-menu">
+  <ul ref="menuRef" class="popup-menu" :class="{ 'bottom-overflow': isBottomOverflow }">
     <template v-for="(item, index) in items" :key="index">
       <li v-if="item.type === 'separator'" class="popup-menu-separator">
         {{ item.title }}
@@ -32,7 +32,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, nextTick } from 'vue'
+import { ref, onMounted, nextTick, watch } from 'vue'
 
 interface CommandItem {
   type?: 'separator'
@@ -55,6 +55,21 @@ const props = defineProps({
   }
 })
 const selectedIndex = ref(0)
+const menuRef = ref<HTMLElement | null>(null)
+const isBottomOverflow = ref(false)
+
+// 检查菜单位置是否会超出窗口底部
+const checkMenuPosition = () => {
+  nextTick(() => {
+    if (!menuRef.value) return
+
+    const menuRect = menuRef.value.getBoundingClientRect()
+    const windowHeight = window.innerHeight
+
+    // 如果菜单底部位置超出窗口高度，标记为底部溢出
+    isBottomOverflow.value = menuRect.bottom > windowHeight
+  })
+}
 
 const selectItem = (index: number) => {
   const item = props.items[index]
@@ -99,7 +114,8 @@ defineExpose({
       return true
     }
     return false
-  }
+  },
+  updatePosition: checkMenuPosition
 })
 
 // 添加一个函数，确保选中项在视图中可见
@@ -147,7 +163,20 @@ onMounted(() => {
       }
     }
   }
+
+  // 检查菜单位置
+  checkMenuPosition()
 })
+
+// 监听items变化，当菜单内容更新时重新检查位置
+watch(
+  () => props.items,
+  () => {
+    nextTick(() => {
+      checkMenuPosition()
+    })
+  }
+)
 </script>
 
 <style scoped lang="scss">
@@ -163,10 +192,17 @@ onMounted(() => {
   min-width: 200px;
   width: max-content;
   max-width: 220px;
-  max-height: 360px; // 设置最大高度
+  max-height: 340px; // 设置最大高度
   overflow-y: auto; // 允许垂直滚动
   overflow-x: hidden; // 防止水平溢出
   white-space: nowrap;
+  // 添加以下属性防止页面滚动条
+  position: fixed;
+  transform-origin: top left;
+  // 确保菜单不超出视口
+  &.bottom-overflow {
+    transform: translateY(-100%);
+  }
 }
 
 .popup-menu-item {
