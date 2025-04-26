@@ -242,13 +242,8 @@ export const useNoteStore = defineStore(
         const updatedNote = await window.electronAPI.note.updateNoteContent(noteId, content)
 
         // 如果更新的是片段笔记，刷新片段缓存
-        const noteIndex = snippetNotes.value.findIndex((note) => note.id === noteId)
-        if (noteIndex !== -1) {
-          // 更新缓存中的内容
-          snippetNotes.value[noteIndex] = {
-            ...snippetNotes.value[noteIndex],
-            content: content
-          }
+        if (updatedNote.cardType === 'Snippetcard') {
+          await refreshSnippetNotes(true)
         }
 
         // 3. 更新收藏笔记列表中的笔记内容
@@ -299,7 +294,12 @@ export const useNoteStore = defineStore(
           starredNotes.value = [...starredNotes.value]
         }
 
-        // 3. 发送更新事件通知
+        // 3. 如果是片段卡片，刷新片段缓存
+        if (updatedNote.cardType === 'Snippetcard') {
+          await refreshSnippetNotes(true)
+        }
+
+        // 4. 发送更新事件通知
         const noteUpdatedBus = useEventBus<Note>('note-updated')
         noteUpdatedBus.emit(updatedNote)
 
