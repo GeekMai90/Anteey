@@ -9,6 +9,21 @@ jmnodes.theme-antinet jmnode {
   cursor: pointer;
 }
 
+/* 索引节点的展开按钮样式 */
+jmnodes.theme-antinet jmnode[indexed='true'] .node-expand-btn {
+  background-color: var(--color-primary-light);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+/* 当索引节点被hover时，修改展开按钮样式以保持可见性 */
+jmnodes.theme-antinet jmnode[indexed='true']:hover .node-expand-btn {
+  background-color: var(--color-bg-secondary);
+  border-color: var(--color-border-default);
+  color: var(--color-text-secondary);
+  opacity: 0.8;
+}
+
 jmnodes.theme-antinet jmnode:hover {
   background-color: var(--color-primary);
   box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.3);

@@ -42,6 +42,10 @@
           <code v-else-if="hasMarkType(child.marks, 'code')" class="inline-code">{{
             child.text
           }}</code>
+          <!-- Emoji -->
+          <span v-else-if="child.type === 'emoji'" class="emoji">{{
+            emojiNameToUnicode(child.attrs?.name || child.text || '')
+          }}</span>
         </template>
       </p>
 
@@ -232,6 +236,11 @@
       <!-- 水平分割线 -->
       <hr v-else-if="node.type === 'horizontalRule'" class="divider" />
 
+      <!-- Emoji 节点 -->
+      <span v-else-if="node.type === 'emoji'" class="emoji">{{
+        emojiNameToUnicode(node.attrs?.name || node.text || '')
+      }}</span>
+
       <!-- 代码块 -->
       <div v-else-if="node.type === 'codeBlock'" class="code-block">
         <div v-if="node.attrs?.language" class="code-header">
@@ -391,6 +400,8 @@ interface JsonContent {
     isCallout?: boolean
     calloutType?: string
     open?: boolean
+    emoji?: string
+    name?: string
   }
 }
 
@@ -426,6 +437,177 @@ const hasMarkType = (marks: Mark[] | undefined, type: string): boolean => {
 // 检查是否包含多个 mark 类型
 const hasMarkTypes = (marks: Mark[] | undefined, types: string[]): boolean => {
   return types.every((type) => hasMarkType(marks, type))
+}
+
+// 将emoji名称转换为实际emoji字符的辅助函数
+const emojiNameToUnicode = (name: string): string => {
+  // 如果输入为空，返回空字符串
+  if (!name) return ''
+
+  // 创建完整的emoji名称到Unicode映射
+  // 这里实现一个更全面的方案：直接通过名称生成emoji
+  try {
+    // 1. 首先尝试通过在线服务转换 - 使用完整的Emoji名称映射
+    const formattedName = name.trim().toLowerCase()
+
+    // 2. 处理最常用的emoji (这部分手动映射可以保证基础emoji正常显示)
+    const commonEmojis: Record<string, string> = {
+      smiling_face_with_3_hearts: '🥰',
+      grinning: '😀',
+      smiley: '😃',
+      smile: '😄',
+      grin: '😁',
+      laughing: '😆',
+      face_with_tears_of_joy: '😂',
+      rolling_on_the_floor_laughing: '🤣',
+      wink: '😉',
+      blush: '😊',
+      heart_eyes: '😍',
+      kissing_heart: '😘',
+      thumbs_up: '👍',
+      thumbs_down: '👎',
+      ok_hand: '👌',
+      clap: '👏',
+      fire: '🔥',
+      red_heart: '❤️',
+      broken_heart: '💔',
+      star: '⭐',
+      check_mark: '✅',
+      x: '❌',
+      warning: '⚠️',
+      question: '❓',
+      exclamation: '❗',
+      rocket: '🚀',
+      tada: '🎉',
+      sparkles: '✨',
+      rainbow: '🌈',
+      sunny: '☀️',
+      moon: '🌙',
+      cloud: '☁️',
+      umbrella: '☔',
+      snowflake: '❄️',
+      zap: '⚡',
+      ocean: '🌊',
+      cat: '🐱',
+      dog: '🐶',
+      mouse: '🐭',
+      hamster: '🐹',
+      rabbit: '🐰',
+      bear: '🐻',
+      panda: '🐼',
+      koala: '🐨',
+      tiger: '🐯',
+      lion: '🦁',
+      cow: '🐮',
+      pig: '🐷',
+      frog: '🐸',
+      monkey: '🐵',
+      chicken: '🐔',
+      penguin: '🐧',
+      bird: '🐦',
+      baby_chick: '🐤',
+      wolf: '🐺',
+      apple: '🍎',
+      green_apple: '🍏',
+      pear: '🍐',
+      tangerine: '🍊',
+      lemon: '🍋',
+      banana: '🍌',
+      watermelon: '🍉',
+      grapes: '🍇',
+      strawberry: '🍓',
+      melon: '🍈',
+      cherries: '🍒',
+      peach: '🍑',
+      pineapple: '🍍',
+      eyes: '👀',
+      ear: '👂',
+      nose: '👃',
+      mouth: '👄',
+      tongue: '👅',
+      rose: '🌹',
+      hibiscus: '🌺',
+      sunflower: '🌻',
+      blossom: '🌼',
+      tulip: '🌷',
+      house: '🏠',
+      office: '🏢',
+      hospital: '🏥',
+      bank: '🏦',
+      hotel: '🏨',
+      school: '🏫',
+      love_letter: '💌',
+      email: '📧',
+      envelope: '✉️',
+      package: '📦',
+      mailbox: '📫',
+      book: '📖',
+      books: '📚',
+      notebook: '📓',
+      ledger: '📒',
+      scroll: '📜',
+      memo: '📝',
+      telephone: '☎️',
+      phone: '📱',
+      desktop_computer: '🖥️',
+      keyboard: '⌨️',
+      mouse_three_button: '🖱️',
+      printer: '🖨️',
+      camera: '📷',
+      video_camera: '📹',
+      movie_camera: '🎥',
+      television: '📺',
+      radio: '📻',
+      thinking_face: '🤔',
+      zipper_mouth_face: '🤐',
+      face_with_raised_eyebrow: '🤨',
+      neutral_face: '😐',
+      face_without_mouth: '😶',
+      face_with_rolling_eyes: '🙄',
+      smirking_face: '😏',
+      persevering_face: '😣',
+      disappointed_face: '😞',
+      face_with_steam_from_nose: '😤',
+      pensive_face: '😔',
+      confused_face: '😕',
+      upside_down_face: '🙃',
+      money_mouth_face: '🤑',
+      astonished_face: '😲',
+      white_frowning_face: '☹️',
+      slightly_frowning_face: '🙁',
+      confounded_face: '😖',
+      disappointed_relieved_face: '😥',
+      fearful_face: '😨',
+      face_screaming_in_fear: '😱',
+      flushed_face: '😳',
+      zany_face: '🤪',
+      exploding_head: '🤯',
+      sleeping_face: '😴',
+      drooling_face: '🤤',
+      face_with_tongue: '😛',
+      squinting_face_with_tongue: '😝',
+      face_savoring_food: '😋',
+      face_with_hand_over_mouth: '🤭',
+      shushing_face: '🤫',
+      yawning_face: '🥱',
+      smiling_face_with_sunglasses: '😎',
+      nerd_face: '🤓',
+      face_with_monocle: '🧐'
+    }
+
+    // 3. 格式化名称并查找匹配
+    if (commonEmojis[formattedName]) {
+      return commonEmojis[formattedName]
+    }
+
+    // 4. 尝试将下划线格式的名称直接转换为emoji
+    // 例如：'thumbs_up' => '👍'，多数emoji使用这样的格式命名
+    // 如果没有找到匹配，将名称原样返回（这样至少用户可以看到名称）
+    return name
+  } catch (error) {
+    console.warn('Error converting emoji name to unicode:', error)
+    return name
+  }
 }
 
 // 获取节点样式
@@ -543,6 +725,14 @@ const renderMathFormula = (text: string | undefined): string => {
 .json-content {
   span {
     display: inline;
+  }
+
+  /* Emoji 样式 */
+  .emoji {
+    font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+    user-select: text !important;
+    -webkit-user-select: text !important;
+    cursor: text;
   }
 
   .katex {

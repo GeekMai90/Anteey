@@ -51,6 +51,7 @@ export interface AppearanceSettings {
   recentExpanded: boolean
   enableWhiteboard: boolean
   enableAIAssistant: boolean
+  enableHoverSidebar: boolean
   createdAt: Date
   updatedAt: Date
   loadingAnimationType:

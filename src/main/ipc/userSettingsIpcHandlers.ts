@@ -11,7 +11,8 @@ import {
   updateTagsExpanded,
   updateRecentExpanded,
   updateWhiteboardEnabled,
-  updateAIAssistantEnabled
+  updateAIAssistantEnabled,
+  updateHoverSidebarEnabled
 } from '../../services/user/userSettingsService'
 import type { AppearanceSettings } from '@shared/types'
 
@@ -180,6 +181,17 @@ export function setupUserSettingsHandlers() {
       return { success: true, settings: updatedSettings }
     } catch (error) {
       console.error('主进程→ 更新 AI 助手功能开关失败:', error)
+      return { success: false, error: String(error) }
+    }
+  })
+
+  // 更新悬浮侧边栏功能开关
+  ipcMain.handle('update-hover-sidebar-enabled', async (_event, enabled: boolean) => {
+    try {
+      const updatedSettings = await updateHoverSidebarEnabled(enabled)
+      return { success: true, settings: updatedSettings }
+    } catch (error) {
+      console.error('主进程→ 更新悬浮侧边栏功能开关失败:', error)
       return { success: false, error: String(error) }
     }
   })

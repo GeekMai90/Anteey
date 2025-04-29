@@ -18,6 +18,7 @@ import { clipboard } from 'electron'
 import { getCurrentAuthState } from '../auth/authService'
 import { ImageService } from '../images/imageService'
 import { pinyin } from 'pinyin-pro'
+import { getAddressLevel } from './knowledgeTreeService'
 
 // 辅助函数：将数据库记录转换为 Note 对象
 export function convertToNote(record: any): Note {
@@ -122,7 +123,20 @@ export async function getRandomNotes(): Promise<Note[]> {
       .where('isDeleted', false)
       .where('cardType', 'Maincard')
       .orderBy('createdAt', 'desc')
-    const randomNotes = notes.sort(() => Math.random() - 0.5).slice(0, 3)
+
+    // 筛选出不是顶级编码(X000)和二级编码(XX00)的笔记
+    const filteredNotes = notes.filter((note) => {
+      if (!note.address) return true // 保留没有地址的笔记
+
+      const level = getAddressLevel(note.address)
+      // 排除顶级和二级编码的笔记
+      return level !== 'top' && level !== 'second'
+    })
+
+    // 如果筛选后的笔记不足3个，则使用原始笔记
+    const notesToRandomize = filteredNotes.length >= 3 ? filteredNotes : notes
+
+    const randomNotes = notesToRandomize.sort(() => Math.random() - 0.5).slice(0, 3)
     return randomNotes.map(convertToNote)
   } catch (error) {
     console.error('后端→ 从所有笔记中随机选择三个笔记失败:', error)

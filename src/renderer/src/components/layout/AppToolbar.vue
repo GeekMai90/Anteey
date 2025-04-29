@@ -56,6 +56,20 @@
           <Right theme="outline" size="20" fill="var(--color-icon-default)" :stroke-width="3" />
         </div>
       </div>
+      <div
+        v-if="showRefreshButton"
+        v-tooltip.bottom="{
+          content: '刷新数据',
+          delay: { show: 1000 },
+          html: true
+        }"
+        class="refresh-button"
+        @click="handleRefresh"
+      >
+        <div class="icon">
+          <Refresh theme="outline" size="20" fill="var(--color-icon-default)" :stroke-width="3" />
+        </div>
+      </div>
       <div v-if="showBreadcrumb" class="breadcrumb-container">
         <div class="breadcrumb-items" :class="{ 'has-overflow': hasOverflow }">
           <template v-for="(item, index) in processedBreadcrumbs" :key="index">
@@ -168,7 +182,8 @@ import {
   ExpandRight,
   Components,
   Notepad,
-  Robot
+  Robot,
+  Refresh
 } from '@icon-park/vue-next'
 import { useUIStore } from '@renderer/stores/UIStore'
 import { useKnowledgeTreeStore } from '@renderer/stores/knowledgeTreeStore'
@@ -187,7 +202,7 @@ const knowledgeTreeStore = useKnowledgeTreeStore()
 const props = defineProps({
   showBackButton: { type: Boolean, default: true },
   showForwardButton: { type: Boolean, default: true },
-  showRefreshButton: { type: Boolean, default: true },
+  showRefreshButton: { type: Boolean, default: false },
   backgroundColor: { type: String, required: false },
   whiteboardName: { type: String, required: false }
 })
@@ -245,8 +260,13 @@ onUnmounted(() => {
   window.removeEventListener('popstate', updateNavigationState)
 })
 
-// 新增: 用于向父组件发射更新事件
-const emit = defineEmits(['update:whiteboardName'])
+// 刷新按钮的自定义事件
+const emit = defineEmits(['refresh', 'update:whiteboardName'])
+
+// 处理刷新按钮点击
+const handleRefresh = () => {
+  emit('refresh')
+}
 
 // 修改: 白板名称相关的状态和方法
 const isEditing = ref(false)
@@ -429,6 +449,7 @@ const toggleAssistant = () => {
 .toggle-left-sidebar,
 .back-button,
 .forward-button,
+.refresh-button,
 .toggle-right-sidebar {
   position: relative;
   display: flex;

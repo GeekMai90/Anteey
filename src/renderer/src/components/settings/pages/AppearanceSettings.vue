@@ -34,6 +34,26 @@
           </div>
         </div>
         <div class="settings-section">
+          <div class="section-title">界面设置</div>
+          <div class="interface-settings">
+            <div class="setting-item">
+              <div class="setting-label">启用悬浮侧边栏</div>
+              <div class="setting-control">
+                <input
+                  id="hover-sidebar-switch"
+                  v-model="enableHoverSidebar"
+                  type="checkbox"
+                  @change="handleHoverSidebarChange"
+                />
+                <label for="hover-sidebar-switch" class="toggle">
+                  <div class="toggle-track"></div>
+                  <div class="toggle-indicator"></div>
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="settings-section">
           <div class="section-title">默认页面</div>
           <div class="default-page-settings">
             <div class="setting-row">
@@ -145,6 +165,7 @@ const starredExpanded = ref(false)
 const tagsExpanded = ref(false)
 const recentExpanded = ref(false)
 const enableWhiteboard = ref(false)
+const enableHoverSidebar = ref(true)
 
 // 初始化数据
 onMounted(() => {
@@ -152,6 +173,7 @@ onMounted(() => {
   tagsExpanded.value = Boolean(appearanceStore.settings?.tagsExpanded ?? false)
   recentExpanded.value = Boolean(appearanceStore.settings?.recentExpanded ?? true)
   enableWhiteboard.value = Boolean(appearanceStore.settings?.enableWhiteboard ?? true)
+  enableHoverSidebar.value = Boolean(appearanceStore.settings?.enableHoverSidebar ?? true)
 })
 
 // 默认页面状态
@@ -191,6 +213,7 @@ onMounted(async () => {
     starredExpanded.value = appearanceStore.settings.starredExpanded
     tagsExpanded.value = appearanceStore.settings.tagsExpanded
     recentExpanded.value = appearanceStore.settings.recentExpanded
+    enableHoverSidebar.value = Boolean(appearanceStore.settings.enableHoverSidebar)
     defaultPage.value = appearanceStore.settings.defaultPage
     if (defaultPage.value === '/timeblock' && !timeBlockStore.settings.enabled) {
       defaultPage.value = '/home'
@@ -229,6 +252,11 @@ const getPageName = (path: string) => {
 // 保留 getFontLabel 方法，因为现在需要用它来显示选中的字体
 const getFontLabel = (value: string) => {
   return fontOptions.find((font) => font.value === value)?.label || '系统默认'
+}
+
+// 处理悬浮侧边栏开关变更
+const handleHoverSidebarChange = async () => {
+  await appearanceStore.updateHoverSidebarEnabled(enableHoverSidebar.value)
 }
 </script>
 
@@ -457,6 +485,80 @@ const getFontLabel = (value: string) => {
       .setting-label {
         font-size: 14px;
         color: var(--color-text-primary);
+      }
+    }
+  }
+
+  .interface-settings {
+    margin-top: 4px;
+
+    .setting-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--color-border);
+
+      &:last-child {
+        border-bottom: none;
+      }
+
+      .setting-label {
+        font-size: 14px;
+        color: var(--color-text-primary);
+      }
+
+      .setting-control {
+        display: flex;
+        align-items: center;
+
+        input[type='checkbox'] {
+          position: absolute;
+          opacity: 0;
+          width: 0;
+          height: 0;
+        }
+
+        .toggle {
+          position: relative;
+          display: inline-block;
+          width: 36px;
+          height: 20px;
+          background-color: var(--color-bg-tertiary);
+          border-radius: 10px;
+          cursor: pointer;
+          transition: background-color 0.3s;
+
+          .toggle-track {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            border-radius: 10px;
+          }
+
+          .toggle-indicator {
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 16px;
+            height: 16px;
+            background-color: white;
+            border-radius: 50%;
+            transition:
+              transform 0.3s,
+              background-color 0.3s;
+          }
+        }
+
+        input:checked + .toggle {
+          background-color: var(--color-primary);
+
+          .toggle-indicator {
+            transform: translateX(16px);
+          }
+        }
       }
     }
   }

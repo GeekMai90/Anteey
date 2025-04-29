@@ -10,6 +10,7 @@ export interface KnowledgeTreeNode {
   isExpanded?: boolean
   isFocused?: boolean
   noteId?: string | null // 可以为 null（根节点的情况）
+  isIndexed?: boolean // 是否添加到索引
 }
 
 // 视图状态

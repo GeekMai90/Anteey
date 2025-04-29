@@ -33,7 +33,8 @@ function convertToTreeNode(note: Note, level: number): KnowledgeTreeNode {
     level,
     isExpanded: false,
     isFocused: false,
-    noteId: note.id
+    noteId: note.id,
+    isIndexed: note.isIndexed || false // 添加索引状态
   }
 
   return node

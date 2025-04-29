@@ -1,7 +1,7 @@
 <template>
   <div class="knowledge-tree-container">
     <!-- 顶部工具栏组件 -->
-    <AppToolbar />
+    <AppToolbar :show-refresh-button="true" @refresh="refreshCurrentData" />
 
     <!-- 左侧工具条 -->
     <KnowledgeTreeToolbar
@@ -48,7 +48,7 @@
 点击展开/折叠按钮管理子节点 * 3. 导航功能 * - 支持通过路由参数直接定位节点 * -
 支持通过搜索结果跳转到指定节点 * * @author 麦先生 * @created 2024-03-20 */
 // 导入必要的 Vue 组件和工具
-import { ref, onMounted, onBeforeUnmount, watch, computed } from 'vue'
+import { ref, onMounted, onBeforeUnmount, watch, computed, nextTick } from 'vue'
 import '../styles/jsmind-antinet-theme.css'
 import jsMind from 'jsmind'
 import { useKnowledgeTreeStore } from '@renderer/stores/knowledgeTreeStore'
@@ -61,6 +61,7 @@ import { useUIStore } from '@renderer/stores/UIStore'
 import CollapsiblePanel from '@renderer/components/knowledge/CollapsiblePanel.vue'
 import KnowledgeTreeToolbar from '../components/knowledge/KnowledgeTreeToolbar.vue'
 import NoteContextMenu from '@renderer/components/common/NoteContextMenu.vue'
+import { useEventBus } from '@vueuse/core'
 
 const route = useRoute()
 const router = useRouter()
@@ -124,6 +125,7 @@ interface JsMindNode {
     childCount: number
     level: number
     noteId: string | null | undefined
+    isIndexed: boolean
   }
 }
 
@@ -172,6 +174,7 @@ const transformToJsMindData = (nodes: KnowledgeTreeNode[]): JsMindData => {
     }
 
     const hasChildren = node.childCount > 0
+
     return {
       id: node.address,
       topic: `<div class="node-content">
@@ -193,7 +196,8 @@ const transformToJsMindData = (nodes: KnowledgeTreeNode[]): JsMindData => {
       data: {
         childCount: node.childCount || 0,
         level: node.level || 0,
-        noteId: node.noteId
+        noteId: node.noteId,
+        isIndexed: node.isIndexed || false
       }
     }
   }
@@ -213,7 +217,8 @@ const transformToJsMindData = (nodes: KnowledgeTreeNode[]): JsMindData => {
     data: {
       childCount: nodes.length,
       level: -1,
-      noteId: null
+      noteId: null,
+      isIndexed: false
     }
   }
 
@@ -336,27 +341,7 @@ const initJsMind = async () => {
       // console.log('找到的节点数量:', jmnodes.length)
 
       jmnodes.forEach((node) => {
-        // 添加单击事件
-        node.addEventListener('click', ((e: Event) => {
-          if (e instanceof MouseEvent) {
-            handleNodeClick(e)
-          }
-        }) as EventListener)
-        node.addEventListener('dblclick', ((e: Event) => {
-          // console.log('节点被双击:', e.target)
-          if (e instanceof MouseEvent) {
-            handleNodeDblClick(e)
-          }
-        }) as EventListener)
-        // 添加右键菜单事件
-        node.addEventListener('contextmenu', ((e: Event) => {
-          if (e instanceof MouseEvent) {
-            const nodeId = node.getAttribute('nodeid')
-            if (nodeId) {
-              handleContextMenu(e, nodeId)
-            }
-          }
-        }) as EventListener)
+        bindNodeEvents(node)
       })
     }
   } catch (error) {
@@ -563,16 +548,7 @@ const handleNodeDblClick = async (e: MouseEvent) => {
             setTimeout(() => {
               const jmnodes = container.value?.querySelectorAll('jmnode')
               jmnodes?.forEach((node) => {
-                node.addEventListener('click', ((e: Event) => {
-                  if (e instanceof MouseEvent) {
-                    handleNodeClick(e)
-                  }
-                }) as EventListener)
-                node.addEventListener('dblclick', ((e: Event) => {
-                  if (e instanceof MouseEvent) {
-                    handleNodeDblClick(e)
-                  }
-                }) as EventListener)
+                bindNodeEvents(node)
               })
             }, 100)
           } catch (error) {
@@ -659,27 +635,7 @@ watch(
           const jmnodes = container.value?.querySelectorAll('jmnode')
 
           jmnodes?.forEach((node) => {
-            // 重新绑定单击事件
-            node.addEventListener('click', ((e: Event) => {
-              if (e instanceof MouseEvent) {
-                handleNodeClick(e)
-              }
-            }) as EventListener)
-            // 重新绑定双击事件
-            node.addEventListener('dblclick', ((e: Event) => {
-              if (e instanceof MouseEvent) {
-                handleNodeDblClick(e)
-              }
-            }) as EventListener)
-            // 重新绑定右键菜单事件
-            node.addEventListener('contextmenu', ((e: Event) => {
-              if (e instanceof MouseEvent) {
-                const nodeId = node.getAttribute('nodeid')
-                if (nodeId) {
-                  handleContextMenu(e, nodeId)
-                }
-              }
-            }) as EventListener)
+            bindNodeEvents(node)
           })
         } catch (error) {
           console.error('展开节点时发生错误:', error)
@@ -832,24 +788,7 @@ const handleBackToRoot = async () => {
     setTimeout(() => {
       const jmnodes = container.value?.querySelectorAll('jmnode')
       jmnodes?.forEach((node: Element) => {
-        node.addEventListener('click', ((e: Event) => {
-          if (e instanceof MouseEvent) {
-            handleNodeClick(e)
-          }
-        }) as EventListener)
-        node.addEventListener('dblclick', ((e: Event) => {
-          if (e instanceof MouseEvent) {
-            handleNodeDblClick(e)
-          }
-        }) as EventListener)
-        node.addEventListener('contextmenu', ((e: Event) => {
-          if (e instanceof MouseEvent) {
-            const nodeId = node.getAttribute('nodeid')
-            if (nodeId) {
-              handleContextMenu(e, nodeId)
-            }
-          }
-        }) as EventListener)
+        bindNodeEvents(node)
       })
     }, 100)
   } catch (error) {
@@ -879,6 +818,432 @@ const selectedNodeNoteId = computed(() => {
   const node = knowledgeTreeStore.findNodeByAddress(selectedNodeId.value)
   return node?.noteId || ''
 })
+
+/**
+ * 绑定节点事件
+ * @param {Element} node DOM节点元素
+ */
+const bindNodeEvents = (node: Element) => {
+  // 绑定单击事件
+  node.addEventListener('click', ((e: Event) => {
+    if (e instanceof MouseEvent) {
+      handleNodeClick(e)
+    }
+  }) as EventListener)
+
+  // 绑定双击事件
+  node.addEventListener('dblclick', ((e: Event) => {
+    if (e instanceof MouseEvent) {
+      handleNodeDblClick(e)
+    }
+  }) as EventListener)
+
+  // 绑定右键菜单事件
+  node.addEventListener('contextmenu', ((e: Event) => {
+    if (e instanceof MouseEvent) {
+      const nodeId = node.getAttribute('nodeid')
+      if (nodeId) {
+        handleContextMenu(e, nodeId)
+      }
+    }
+  }) as EventListener)
+
+  // 设置索引属性
+  const nodeId = node.getAttribute('nodeid')
+  if (nodeId) {
+    const treeNode = knowledgeTreeStore.findNodeByAddress(nodeId)
+    if (treeNode && treeNode.isIndexed) {
+      node.setAttribute('indexed', 'true')
+    } else {
+      node.removeAttribute('indexed')
+    }
+  }
+}
+
+// 监听笔记更新事件，更新知识树节点
+const noteUpdatedBus = useEventBus<Note>('note-updated')
+noteUpdatedBus.on((updatedNote) => {
+  if (!updatedNote || !jm.value) return
+  console.log('KnowledgeTree.vue→ 收到笔记更新事件:', updatedNote.id)
+
+  // 通过noteId查找需要更新的节点
+  const findNodeByNoteId = (noteId: string) => {
+    // 深度优先搜索树中的所有节点
+    const findInNode = (jmNode: any): any => {
+      if (!jmNode) return null
+
+      // 检查当前节点是否匹配
+      if (jmNode.data && jmNode.data.data && jmNode.data.data.noteId === noteId) {
+        return jmNode
+      }
+
+      // 递归检查所有子节点
+      if (jmNode.children) {
+        for (const child of jmNode.children) {
+          const result = findInNode(child)
+          if (result) return result
+        }
+      }
+
+      return null
+    }
+
+    // 从根节点开始搜索
+    const rootNode = jm.value.get_root()
+    return rootNode ? findInNode(rootNode) : null
+  }
+
+  // 查找需要更新的节点
+  const nodeToUpdate = findNodeByNoteId(updatedNote.id)
+
+  if (nodeToUpdate) {
+    // 获取节点地址
+    const address = nodeToUpdate.id
+
+    // 找到对应的知识树节点并更新标题
+    const treeNode = knowledgeTreeStore.findNodeByAddress(address)
+    if (treeNode) {
+      treeNode.title = updatedNote.title || ''
+      // 同步索引状态
+      treeNode.isIndexed = updatedNote.isIndexed || false
+      console.log('KnowledgeTree.vue→ 更新节点标题:', address, updatedNote.title)
+
+      // 更新节点在树中的显示内容，保持与transformToJsMindData函数一致的生成方式
+      const hasChildren = nodeToUpdate.data.data.childCount > 0
+
+      nodeToUpdate.topic = `<div class="node-content">
+              <div class="node-content-wrapper">
+                <div class="node-address">${address || ''}</div>
+                <div class="node-title">${updatedNote.title || ''}</div>
+              </div>
+              ${
+                hasChildren
+                  ? `<div class="node-expand-btn" data-address="${address}">
+                          ${nodeToUpdate.expanded ? '-' : '+'}
+                     </div>`
+                  : ''
+              }
+            </div>`
+
+      // 更新节点的索引状态
+      nodeToUpdate.data.data.isIndexed = updatedNote.isIndexed || false
+
+      // 仅更新这个节点，不重新绘制整个树
+      jm.value.update_node(nodeToUpdate)
+
+      // 等待DOM更新后重新绑定事件
+      nextTick(() => {
+        // 查找DOM中新更新的节点
+        if (container.value) {
+          const updatedDomNode = container.value.querySelector(`jmnode[nodeid="${address}"]`)
+          if (updatedDomNode) {
+            // 重新绑定事件
+            bindNodeEvents(updatedDomNode)
+
+            // 更新DOM节点的索引属性
+            if (updatedNote.isIndexed) {
+              updatedDomNode.setAttribute('indexed', 'true')
+            } else {
+              updatedDomNode.removeAttribute('indexed')
+            }
+
+            // 如果有展开/折叠按钮，也需要重新绑定其事件
+            const expandBtn = updatedDomNode.querySelector(
+              `.node-expand-btn[data-address="${address}"]`
+            )
+            if (expandBtn) {
+              expandBtn.addEventListener('click', ((e: Event) => {
+                if (e instanceof MouseEvent) {
+                  handleNodeClick(e)
+                }
+              }) as EventListener)
+            }
+          }
+        }
+      })
+    }
+  }
+})
+
+// 添加对notes-index-updated事件的监听，处理索引状态变化
+const notesIndexUpdatedBus = useEventBus<Note[]>('notes-index-updated')
+notesIndexUpdatedBus.on((updatedNotes) => {
+  if (!updatedNotes || !updatedNotes.length || !jm.value) return
+  console.log(
+    'KnowledgeTree.vue→ 收到笔记索引更新事件:',
+    updatedNotes.map((note) => note.id)
+  )
+
+  updatedNotes.forEach((updatedNote) => {
+    // 通过noteId查找需要更新的节点
+    const findNodeByNoteId = (noteId: string) => {
+      // 深度优先搜索树中的所有节点
+      const findInNode = (jmNode: any): any => {
+        if (!jmNode) return null
+
+        // 检查当前节点是否匹配
+        if (jmNode.data && jmNode.data.data && jmNode.data.data.noteId === noteId) {
+          return jmNode
+        }
+
+        // 递归检查所有子节点
+        if (jmNode.children) {
+          for (const child of jmNode.children) {
+            const result = findInNode(child)
+            if (result) return result
+          }
+        }
+
+        return null
+      }
+
+      // 从根节点开始搜索
+      const rootNode = jm.value.get_root()
+      return rootNode ? findInNode(rootNode) : null
+    }
+
+    // 查找需要更新的节点
+    const nodeToUpdate = findNodeByNoteId(updatedNote.id)
+
+    if (nodeToUpdate) {
+      // 获取节点地址
+      const address = nodeToUpdate.id
+
+      // 找到对应的知识树节点并更新索引状态
+      const treeNode = knowledgeTreeStore.findNodeByAddress(address)
+      if (treeNode) {
+        // 更新索引状态
+        treeNode.isIndexed = updatedNote.isIndexed || false
+        console.log('KnowledgeTree.vue→ 更新节点索引状态:', address, updatedNote.isIndexed)
+
+        // 更新节点的索引状态
+        nodeToUpdate.data.data.isIndexed = updatedNote.isIndexed || false
+
+        // 仅更新这个节点，不重新绘制整个树
+        jm.value.update_node(nodeToUpdate)
+
+        // 等待DOM更新后重新绑定事件
+        nextTick(() => {
+          // 查找DOM中新更新的节点
+          if (container.value) {
+            const updatedDomNode = container.value.querySelector(`jmnode[nodeid="${address}"]`)
+            if (updatedDomNode) {
+              // 重新绑定事件
+              bindNodeEvents(updatedDomNode)
+
+              // 更新DOM节点的索引属性
+              if (updatedNote.isIndexed) {
+                updatedDomNode.setAttribute('indexed', 'true')
+              } else {
+                updatedDomNode.removeAttribute('indexed')
+              }
+            }
+          }
+        })
+      }
+    }
+  })
+})
+
+/**
+ * 刷新当前数据
+ * @async
+ * @description 刷新当前视图中的节点数据，不改变视图状态
+ */
+const refreshCurrentData = async () => {
+  try {
+    if (!jm.value) return
+
+    // 保存当前视图位置
+    const viewPosition = {
+      x: jm.value.view.e_panel.scrollLeft,
+      y: jm.value.view.e_panel.scrollTop
+    }
+
+    // 保存当前缩放比例
+    const currentZoom = jm.value.view.actualZoom || 1
+
+    // 收集当前所有节点的展开状态
+    const expandedNodeIds = new Set<string>()
+    const collectExpandedNodes = (nodeObj: any) => {
+      if (!nodeObj) return
+
+      if (nodeObj.expanded) {
+        expandedNodeIds.add(nodeObj.id)
+      }
+
+      if (nodeObj.children) {
+        nodeObj.children.forEach((child: any) => collectExpandedNodes(child))
+      }
+    }
+
+    // 从根节点开始收集
+    const rootNode = jm.value.get_root()
+    if (rootNode) {
+      collectExpandedNodes(rootNode)
+    }
+
+    // 处理聚焦模式和非聚焦模式的刷新
+    if (knowledgeTreeStore.viewState.isInFocusMode && knowledgeTreeStore.focusedNode) {
+      // 获取聚焦节点的地址
+      const focusedNodeAddress = knowledgeTreeStore.focusedNode.address
+
+      // 重新获取子节点
+      const childNodes = await knowledgeTreeStore.fetchChildNodes(focusedNodeAddress)
+
+      // 遍历旧子节点，记录展开状态
+      const oldExpandedNodeMap = new Map<string, boolean>()
+
+      if (knowledgeTreeStore.focusedNode.children) {
+        const processNode = (node: KnowledgeTreeNode) => {
+          if (!node) return
+          // 使用类型断言确保类型安全
+          oldExpandedNodeMap.set(node.address, node.isExpanded || false)
+
+          if (node.children && node.children.length > 0 && node.isExpanded) {
+            node.children.forEach(processNode)
+          }
+        }
+
+        knowledgeTreeStore.focusedNode.children.forEach(processNode)
+      }
+
+      // 应用展开状态到新节点
+      const applyExpandState = async (nodes: KnowledgeTreeNode[]) => {
+        for (const node of nodes) {
+          // 如果在展开状态映射中找到，应用状态
+          if (oldExpandedNodeMap.has(node.address)) {
+            const isExpanded = oldExpandedNodeMap.get(node.address)
+            node.isExpanded = isExpanded === true
+
+            // 如果节点应展开，获取其子节点
+            if (node.isExpanded) {
+              const subNodes = await knowledgeTreeStore.fetchChildNodes(node.address)
+              node.children = subNodes
+              // 递归处理子节点
+              await applyExpandState(subNodes)
+            }
+          }
+        }
+      }
+
+      // 应用展开状态
+      await applyExpandState(childNodes)
+
+      // 更新聚焦节点的子节点
+      if (knowledgeTreeStore.focusedNode) {
+        knowledgeTreeStore.focusedNode.children = childNodes
+        knowledgeTreeStore.focusedNode.isExpanded = true
+      }
+    } else {
+      // 非聚焦模式：获取并保存当前所有节点的状态
+      const oldNodeMap = new Map<string, { isExpanded: boolean; children: KnowledgeTreeNode[] }>()
+
+      const saveNodeStates = (nodes: KnowledgeTreeNode[]) => {
+        if (!nodes) return
+
+        nodes.forEach((node) => {
+          oldNodeMap.set(node.address, {
+            isExpanded: node.isExpanded || false,
+            children: node.children || []
+          })
+
+          if (node.children && node.isExpanded) {
+            saveNodeStates(node.children)
+          }
+        })
+      }
+
+      saveNodeStates(knowledgeTreeStore.nodes)
+
+      // 重新获取顶层节点
+      await knowledgeTreeStore.fetchTopLevelNodes()
+
+      // 恢复节点状态
+      const restoreStates = async (nodes: KnowledgeTreeNode[]) => {
+        for (const node of nodes) {
+          const oldState = oldNodeMap.get(node.address)
+          if (oldState) {
+            node.isExpanded = oldState.isExpanded === true
+
+            if (node.isExpanded) {
+              // 获取新的子节点
+              const childNodes = await knowledgeTreeStore.fetchChildNodes(node.address)
+              node.children = childNodes
+
+              // 递归处理子节点
+              await restoreStates(childNodes)
+            }
+          }
+        }
+      }
+
+      await restoreStates(knowledgeTreeStore.nodes)
+    }
+
+    // 重新渲染思维导图
+    const jsMindData = transformToJsMindData(knowledgeTreeStore.nodes)
+    jm.value.show(jsMindData)
+
+    // 恢复缩放级别
+    jm.value.view.setZoom(currentZoom)
+
+    // 恢复视图位置
+    requestAnimationFrame(() => {
+      if (jm.value && jm.value.view.e_panel) {
+        jm.value.view.e_panel.scrollLeft = viewPosition.x
+        jm.value.view.e_panel.scrollTop = viewPosition.y
+      }
+    })
+
+    // 重新绑定事件
+    setTimeout(() => {
+      if (container.value) {
+        const jmnodes = container.value.querySelectorAll('jmnode')
+        jmnodes.forEach((node) => {
+          bindNodeEvents(node)
+        })
+      }
+    }, 100)
+
+    // 展开节点
+    setTimeout(() => {
+      try {
+        // 将Set转为数组
+        const expandedIds = Array.from(expandedNodeIds)
+
+        // 过滤掉可能有问题的节点ID（例如，特殊形式的分支节点ID）
+        const validIds = expandedIds.filter((id) => {
+          // 跳过根节点
+          if (id === 'root') return false
+
+          // 检查节点是否实际存在
+          const node = jm.value?.get_node(id)
+          return !!node
+        })
+
+        // 展开所有有效的展开节点
+        validIds.forEach((id) => {
+          if (jm.value) {
+            try {
+              jm.value.expand_node(id)
+            } catch (nodeError) {
+              // 忽略展开错误
+              console.log(`节点 ${id} 展开失败，跳过`)
+            }
+          }
+        })
+      } catch (error) {
+        console.error('恢复节点展开状态时出错:', error)
+      }
+    }, 200)
+
+    // 更新可见笔记
+    await collectVisibleNotes()
+  } catch (error) {
+    console.error('刷新数据时发生错误:', error)
+  }
+}
 </script>
 
 <style scoped>
@@ -921,6 +1286,9 @@ const selectedNodeNoteId = computed(() => {
   align-items: center;
   justify-content: center;
   width: 100%;
+  border-radius: 4px;
+  border: 1px solid transparent;
+  transition: border-color 0.3s ease;
 }
 
 :deep(.node-content-wrapper) {
@@ -964,10 +1332,17 @@ const selectedNodeNoteId = computed(() => {
 }
 
 :deep(.node-expand-btn:hover) {
-  /* background: var(--color-primary-light); */
   color: var(--color-primary);
   opacity: 1;
   transform: scale(1.1);
+}
+
+/* 添加单独的样式让索引节点的按钮也保持主题色 */
+:deep(jmnode[indexed='true'] .node-expand-btn) {
+  background-color: var(--color-primary-light);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  opacity: 1;
 }
 
 /* 右键菜单样式 */

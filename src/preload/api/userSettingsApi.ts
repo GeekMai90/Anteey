@@ -98,6 +98,18 @@ export const userSettingsApi = {
     }
   },
 
+  // 更新悬浮侧边栏功能开关
+  updateHoverSidebarEnabled: async (enabled: boolean): Promise<AppearanceSettings> => {
+    try {
+      const result = await ipcRenderer.invoke('update-hover-sidebar-enabled', enabled)
+      if (!result.success) throw new Error(result.error)
+      return result.settings
+    } catch (error) {
+      console.error('预加载脚本 → 更新悬浮侧边栏功能开关失败:', error)
+      throw error
+    }
+  },
+
   // 用户设置相关 API
   getUserSettings: async (): Promise<UserSettings> => {
     try {

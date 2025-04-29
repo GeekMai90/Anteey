@@ -125,6 +125,22 @@ export const useAppearanceStore = defineStore(
       }
     }
 
+    // 更新悬浮侧边栏功能开关
+    const updateHoverSidebarEnabled = async (enabled: boolean) => {
+      try {
+        isLoading.value = true
+        const updatedSettings =
+          await window.electronAPI.userSettings.updateHoverSidebarEnabled(enabled)
+        settings.value = updatedSettings
+        return updatedSettings
+      } catch (error) {
+        console.error('更新悬浮侧边栏功能开关失败:', error)
+        throw error
+      } finally {
+        isLoading.value = false
+      }
+    }
+
     // 应用设置到 DOM
     const applySettings = (settings: AppearanceSettings) => {
       document.documentElement.style.setProperty(
@@ -154,6 +170,7 @@ export const useAppearanceStore = defineStore(
           recentExpanded: true,
           enableWhiteboard: true,
           enableAIAssistant: true,
+          enableHoverSidebar: true,
           createdAt: new Date(),
           updatedAt: new Date(),
           loadingAnimationType: 'candle'
@@ -233,6 +250,7 @@ export const useAppearanceStore = defineStore(
       initializeSettings,
       defaultRoute,
       updateWhiteboardEnabled,
+      updateHoverSidebarEnabled,
       addFavoriteGradient,
       removeFavoriteGradient,
       isGradientFavorite

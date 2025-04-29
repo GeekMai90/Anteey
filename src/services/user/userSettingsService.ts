@@ -60,6 +60,11 @@ export async function updateAIAssistantEnabled(enabled: boolean): Promise<Appear
   return updateAppearanceSettings({ enableAIAssistant: enabled })
 }
 
+// 更新悬浮侧边栏开关
+export async function updateHoverSidebarEnabled(enabled: boolean): Promise<AppearanceSettings> {
+  return updateAppearanceSettings({ enableHoverSidebar: enabled })
+}
+
 // 将数据库结果转换为前端需要的格式
 function transformDBSettings(settings: DBUserSettings): UserSettings {
   // 将时间戳转换为 ISO 字符串

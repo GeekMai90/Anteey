@@ -20,7 +20,7 @@
     <!-- 左侧边栏 - 悬停状态（当侧边栏折叠时显示） -->
     <Transition name="slide-left">
       <Sidebar
-        v-show="isTemporaryVisible && uiStore.isSidebarCollapsed"
+        v-show="isTemporaryVisible && uiStore.isSidebarCollapsed && isHoverSidebarEnabled"
         class="sidebar hover-sidebar"
         @mouseenter="cancelHideSidebar"
         @mouseleave="hideSidebar"
@@ -42,7 +42,7 @@
 
     <!-- 左侧悬停触发区域 -->
     <div
-      v-if="uiStore.isSidebarCollapsed"
+      v-if="uiStore.isSidebarCollapsed && isHoverSidebarEnabled"
       class="hover-zone"
       @mouseenter="showSidebar"
       @mouseleave="scheduleHideSidebar"
@@ -57,16 +57,28 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { useDebounceFn } from '@vueuse/core'
 import { useUIStore } from '@renderer/stores/UIStore'
 import { useThemeStore } from '@renderer/stores/themeStore'
+import { useAppearanceStore } from '@renderer/stores/appearanceStore'
 import Sidebar from './Sidebar.vue'
 import RightSidebar from '../rightSidebar/RightSidebar.vue'
 import DailyLetterAnimation from '@renderer/components/dailyLetter/DailyLetterAnimation.vue'
 
 const uiStore = useUIStore()
 const themeStore = useThemeStore()
+const appearanceStore = useAppearanceStore()
+
+// 初始化加载设置
+onMounted(async () => {
+  await appearanceStore.fetchSettings()
+})
+
+// 计算是否启用悬浮侧边栏
+const isHoverSidebarEnabled = computed(() => {
+  return Boolean(appearanceStore.settings?.enableHoverSidebar)
+})
 
 // ===== 侧边栏状态管理 =====
 const isTemporaryVisible = ref(false)
@@ -76,7 +88,7 @@ const rightSidebarWidth = ref(400)
 
 // ===== 侧边栏控制方法 =====
 const showSidebar = () => {
-  if (uiStore.isSidebarCollapsed) {
+  if (uiStore.isSidebarCollapsed && isHoverSidebarEnabled.value) {
     isTemporaryVisible.value = true
     clearTimeout(hideSidebarTimeout)
   }

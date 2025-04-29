@@ -297,6 +297,8 @@ export interface ElectronAPI {
     updateRecentExpanded: (expanded: boolean) => Promise<AppearanceSettings>
     updateWhiteboardEnabled: (enabled: boolean) => Promise<AppearanceSettings>
     updateAIAssistantEnabled: (enabled: boolean) => Promise<AppearanceSettings>
+    // 更新悬浮侧边栏功能开关
+    updateHoverSidebarEnabled: (enabled: boolean) => Promise<AppearanceSettings>
   }
   tag: {
     // 创建标签

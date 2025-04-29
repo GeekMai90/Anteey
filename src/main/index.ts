@@ -130,17 +130,32 @@ function createCustomMenu() {
         { type: 'separator' },
         {
           label: '重置缩放',
-          role: 'resetZoom',
+          click: () => {
+            const focusedWindow = BrowserWindow.getFocusedWindow()
+            if (focusedWindow) {
+              focusedWindow.webContents.send('zoom-reset')
+            }
+          },
           accelerator: 'CmdOrCtrl+0'
         },
         {
           label: '放大',
-          role: 'zoomIn',
+          click: () => {
+            const focusedWindow = BrowserWindow.getFocusedWindow()
+            if (focusedWindow) {
+              focusedWindow.webContents.send('zoom-in')
+            }
+          },
           accelerator: process.platform === 'darwin' ? 'Command+=' : 'Control+='
         },
         {
           label: '缩小',
-          role: 'zoomOut',
+          click: () => {
+            const focusedWindow = BrowserWindow.getFocusedWindow()
+            if (focusedWindow) {
+              focusedWindow.webContents.send('zoom-out')
+            }
+          },
           accelerator: process.platform === 'darwin' ? 'Command+-' : 'Control+-'
         },
         { type: 'separator' },
@@ -267,7 +282,7 @@ async function createWindow(): Promise<BrowserWindow> {
           window_x: bounds.x,
           window_y: bounds.y,
           is_maximized: isMaximized,
-          updatedAt: new Date()
+          updatedAt: Date.now()
         })
       }
     } catch (error) {
@@ -306,7 +321,7 @@ async function createWindow(): Promise<BrowserWindow> {
       if (settings) {
         await db('user_settings').where('id', settings.id).update({
           zoom_factor: zoomFactor,
-          updatedAt: new Date()
+          updatedAt: Date.now()
         })
       } else {
         log.error('未找到用户设置记录，无法保存缩放比例')
@@ -315,6 +330,19 @@ async function createWindow(): Promise<BrowserWindow> {
       log.error('保存缩放级别失败:', error)
     }
   }
+
+  // 设置缩放范围限制
+  const MIN_ZOOM = 0.5
+  const MAX_ZOOM = 2.0
+  const ZOOM_INCREMENT = 0.05 // 减小缩放增量，使缩放更平滑
+
+  // 创建一个防抖版的缩放函数
+  const debouncedZoom = debounce((newZoom: number) => {
+    // 限制缩放范围
+    const limitedZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, newZoom))
+    mainWindow.webContents.setZoomFactor(limitedZoom)
+    handleZoomUpdate(limitedZoom)
+  }, 50) // 50毫秒防抖延迟
 
   // 增加缩放变化事件的监听
   mainWindow.webContents.on('zoom-changed', () => {
@@ -333,21 +361,18 @@ async function createWindow(): Promise<BrowserWindow> {
     // Command/Control + 加号
     if ((input.control || input.meta) && (input.key === '=' || input.key === 'plus')) {
       const currentZoom = mainWindow.webContents.getZoomFactor()
-      const newZoom = currentZoom + 0.1
-      mainWindow.webContents.setZoomFactor(newZoom)
-      await handleZoomUpdate(newZoom)
+      const newZoom = currentZoom + ZOOM_INCREMENT
+      debouncedZoom(newZoom)
     }
     // Command/Control + 减号
     if ((input.control || input.meta) && (input.key === '-' || input.key === 'minus')) {
       const currentZoom = mainWindow.webContents.getZoomFactor()
-      const newZoom = currentZoom - 0.1
-      mainWindow.webContents.setZoomFactor(newZoom)
-      await handleZoomUpdate(newZoom)
+      const newZoom = currentZoom - ZOOM_INCREMENT
+      debouncedZoom(newZoom)
     }
     // Command/Control + 0
     if ((input.control || input.meta) && input.key === '0') {
-      mainWindow.webContents.setZoomFactor(1.0)
-      await handleZoomUpdate(1.0)
+      debouncedZoom(1.0)
     }
 
     // 页面刷新快捷键
@@ -360,21 +385,18 @@ async function createWindow(): Promise<BrowserWindow> {
   // 监听菜单项的缩放操作
   ipcMain.on('zoom-in', async () => {
     const currentZoom = mainWindow.webContents.getZoomFactor()
-    const newZoom = currentZoom + 0.1
-    mainWindow.webContents.setZoomFactor(newZoom)
-    await handleZoomUpdate(newZoom)
+    const newZoom = currentZoom + ZOOM_INCREMENT
+    debouncedZoom(newZoom)
   })
 
   ipcMain.on('zoom-out', async () => {
     const currentZoom = mainWindow.webContents.getZoomFactor()
-    const newZoom = currentZoom - 0.1
-    mainWindow.webContents.setZoomFactor(newZoom)
-    await handleZoomUpdate(newZoom)
+    const newZoom = currentZoom - ZOOM_INCREMENT
+    debouncedZoom(newZoom)
   })
 
   ipcMain.on('zoom-reset', async () => {
-    mainWindow.webContents.setZoomFactor(1.0)
-    await handleZoomUpdate(1.0)
+    debouncedZoom(1.0)
   })
 
   // 修改 CSP 处理器
