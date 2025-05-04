@@ -140,8 +140,6 @@ export async function updateTaskStatus(
   isChecked: boolean
 ): Promise<void> {
   try {
-    console.log('服务端→ 开始更新任务状态:', { noteId, path, isChecked })
-
     // 判断是否是时间块中的任务
     if (path[0] === 'timeBlock') {
       // 获取时间块内容

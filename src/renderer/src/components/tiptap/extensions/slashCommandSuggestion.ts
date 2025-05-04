@@ -1,6 +1,9 @@
-// src/renderer/src/tiptap/slashCommandSuggestion.js
+// src/renderer/src/tiptap/slashCommandSuggestion.ts
 import { VueRenderer } from '@tiptap/vue-3'
 import tippy from 'tippy.js'
+import type { Editor, Range } from '@tiptap/core'
+import type { Instance as TippyInstance } from 'tippy.js'
+import type { Component } from 'vue'
 import CommandList from '@renderer/components/tiptap/CommandList.vue'
 import {
   DividingLine,
@@ -27,8 +30,24 @@ import { markRaw, ref } from 'vue'
 import { useNoteStore } from '@renderer/stores/noteStore'
 import { message } from '@renderer/utils/message'
 
+interface CommandProps {
+  editor: Editor
+  range: Range
+}
+
+interface Command {
+  title: string
+  icon?: Component
+  keywords?: string[]
+  snippetId?: string
+  snippetCommand?: boolean
+  noMatch?: boolean
+  type?: 'separator'
+  command?: (props: CommandProps) => void
+}
+
 // 存储片段列表的缓存
-const snippetsCache = ref([])
+const snippetsCache = ref<Command[]>([])
 const isLoading = ref(false)
 
 // 加载片段函数
@@ -37,8 +56,6 @@ const loadSnippets = async () => {
 
   try {
     isLoading.value = true
-    // 不清空缓存，保留现有数据供展示
-
     const noteStore = useNoteStore()
 
     // 优先使用 noteStore 中已缓存的片段数据
@@ -46,10 +63,7 @@ const loadSnippets = async () => {
 
     // 如果缓存数据为空，则尝试刷新获取
     if (snippets.length === 0) {
-      console.log('slashCommand → 缓存片段为空，尝试刷新获取')
       snippets = await noteStore.refreshSnippetNotes()
-    } else {
-      console.log('slashCommand → 使用缓存片段数据，数量:', snippets.length)
     }
 
     if (snippets && snippets.length > 0) {
@@ -58,8 +72,8 @@ const loadSnippets = async () => {
         title: snippet.address || '未命名片段',
         icon: markRaw(ParagraphRectangle),
         keywords: ['snippet', 'paragraph', '片段', snippet.address || ''],
-        snippetId: snippet.id, // 存储片段ID用于后续插入
-        snippetCommand: true, // 改用专用标记，避免与separator的type冲突
+        snippetId: snippet.id,
+        snippetCommand: true,
         command: async ({ editor, range }) => {
           try {
             // 首先删除斜杠命令
@@ -93,19 +107,16 @@ const loadSnippets = async () => {
             })
 
             // 直接插入片段内容到编辑器当前位置
-            // 将片段内容插入到当前位置
             editor.chain().focus().insertContent(snippetContent).run()
 
             // 成功提示
             message.success('插入片段成功')
           } catch (error) {
-            message.error('插入片段失败: ' + (error.message || '未知错误'))
+            message.error('插入片段失败: ' + ((error as Error).message || '未知错误'))
             console.error('前端→ 插入片段失败:', error)
           }
         }
       }))
-
-      console.log('片段数据处理完成，数量:', snippetsCache.value.length)
     } else {
       // 如果没有片段，则清空
       snippetsCache.value = []
@@ -117,12 +128,24 @@ const loadSnippets = async () => {
   }
 }
 
+interface SuggestionProps {
+  editor: Editor
+  range: Range
+  query: string
+  clientRect: () => DOMRect
+  event?: KeyboardEvent
+}
+
+interface CommandListRef {
+  onKeyDown: (props: { event: KeyboardEvent }) => boolean
+}
+
 export const slashCommandSuggestion = {
-  items: ({ query }) => {
+  items: ({ query }: { query: string }): Command[] => {
     // 每次菜单打开时加载片段，优先使用缓存数据
     loadSnippets()
 
-    const commands = [
+    const commands: Command[] = [
       {
         title: '主标题',
         icon: markRaw(H1),
@@ -567,7 +590,7 @@ export const slashCommandSuggestion = {
       return [
         {
           title: `无匹配项 "${query}"`,
-          icon: null,
+          icon: undefined,
           command: () => {}, // 空函数，不执行任何操作
           noMatch: true // 标记为无匹配项
         }
@@ -635,33 +658,38 @@ export const slashCommandSuggestion = {
       result.push(...filteredCommands.filter((item) => item.snippetCommand))
     }
 
-    console.log('过滤后命令数量:', result.length)
     return result
   },
 
   render: () => {
-    let component
-    let popup
+    let component: VueRenderer
+    let popup: TippyInstance[]
 
     return {
-      onStart: (props) => {
+      onStart: (props: SuggestionProps) => {
         component = new VueRenderer(CommandList, {
           props,
           editor: props.editor
         })
 
-        popup = tippy('body', {
-          getReferenceClientRect: props.clientRect,
-          appendTo: () => document.body,
-          content: component.element,
-          showOnCreate: true,
-          interactive: true,
-          trigger: 'manual',
-          placement: 'bottom-start'
-        })
+        if (!component.element) {
+          throw new Error('Failed to create component element')
+        }
+
+        popup = [
+          tippy(document.createElement('div'), {
+            getReferenceClientRect: props.clientRect,
+            appendTo: () => document.body,
+            content: component.element,
+            showOnCreate: true,
+            interactive: true,
+            trigger: 'manual',
+            placement: 'bottom-start'
+          })
+        ]
       },
 
-      onUpdate(props) {
+      onUpdate(props: SuggestionProps) {
         component.updateProps(props)
 
         popup[0].setProps({
@@ -669,13 +697,13 @@ export const slashCommandSuggestion = {
         })
       },
 
-      onKeyDown(props) {
+      onKeyDown(props: { event: KeyboardEvent }) {
         if (props.event.key === 'Escape') {
           popup[0].hide()
           return true
         }
 
-        return component.ref?.onKeyDown(props)
+        return (component.ref as unknown as CommandListRef)?.onKeyDown(props)
       },
 
       onExit() {

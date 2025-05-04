@@ -1,6 +1,6 @@
 import { Node, mergeAttributes } from '@tiptap/core'
 import { VueNodeViewRenderer } from '@tiptap/vue-3'
-import BulletEventView from '../components/timeblock/BulletEventView.vue'
+import BulletEventView from '@renderer/components/timeblock/BulletEventView.vue'
 import type { CommandProps } from '@tiptap/core'
 
 declare module '@tiptap/core' {

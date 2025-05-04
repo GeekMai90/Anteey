@@ -1,6 +1,6 @@
 import { Node, mergeAttributes } from '@tiptap/core'
 import { VueNodeViewRenderer } from '@tiptap/vue-3'
-import BulletTaskView from '../components/timeblock/BulletTaskView.vue'
+import BulletTaskView from '@renderer/components/timeblock/BulletTaskView.vue'
 import type { CommandProps } from '@tiptap/core'
 import type { Node as ProseMirrorNode } from '@tiptap/pm/model'
 

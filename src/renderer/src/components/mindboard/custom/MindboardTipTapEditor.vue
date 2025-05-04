@@ -18,7 +18,7 @@ import Typography from '@tiptap/extension-typography'
 import FileHandler from '@tiptap-pro/extension-file-handler'
 import Image from '@tiptap/extension-image'
 import TiptapImage from '@renderer/components/tiptap/TiptapImage.vue'
-import { CustomLink } from '@renderer/utils/tiptap/CustomLink'
+import { CustomLink } from '@renderer/components/tiptap/extensions/CustomLink'
 import Subscript from '@tiptap/extension-subscript'
 import Superscript from '@tiptap/extension-superscript'
 import TextAlign from '@tiptap/extension-text-align'
@@ -28,12 +28,17 @@ import DetailsContent from '@tiptap-pro/extension-details-content'
 import DetailsSummary from '@tiptap-pro/extension-details-summary'
 import Export from '@tiptap-pro/extension-export'
 import { useNoteStore } from '@renderer/stores/noteStore'
-import { CustomCodeBlock } from '@renderer/utils/tiptap/CustomCodeBlock'
-import { CustomTextStyle } from '@renderer/utils/tiptap/CustomTextStyle'
-import { CustomTable, TableRow, TableHeader, TableCell } from '@renderer/utils/tiptap/CustomTable'
-import { CustomBlockquote } from '@renderer/utils/tiptap/CustomBlockquote'
-import { CustomTaskList } from '@renderer/utils/tiptap/CustomTaskList'
-import { CustomTaskItem } from '@renderer/utils/tiptap/CustomTaskItem'
+import { CustomCodeBlock } from '@renderer/components/tiptap/extensions/CustomCodeBlock'
+import { CustomTextStyle } from '@renderer/components/tiptap/extensions/CustomTextStyle'
+import {
+  CustomTable,
+  TableRow,
+  TableHeader,
+  TableCell
+} from '@renderer/components/tiptap/extensions/CustomTable'
+import { CustomBlockquote } from '@renderer/components/tiptap/extensions/CustomBlockquote'
+import { CustomTaskList } from '@renderer/components/tiptap/extensions/CustomTaskList'
+import { CustomTaskItem } from '@renderer/components/tiptap/extensions/CustomTaskItem'
 
 const noteStore = useNoteStore()
 
