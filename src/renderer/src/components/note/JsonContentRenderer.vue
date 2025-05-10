@@ -298,6 +298,29 @@
           </div>
         </div>
       </div>
+
+      <!-- 嵌入视频预览 -->
+      <div v-else-if="node.type === 'iframe'" class="iframe-preview">
+        <div class="iframe-preview-container">
+          <!-- 视频缩略图 -->
+          <div class="iframe-thumbnail">
+            <img
+              v-if="getVideoThumbnail(node.attrs?.src)"
+              :src="getVideoThumbnail(node.attrs?.src)"
+              :alt="getVideoTitle(node.attrs?.src)"
+              class="thumbnail-image"
+            />
+            <div v-else class="thumbnail-placeholder">
+              <div class="placeholder-icon">🎬</div>
+            </div>
+          </div>
+          <!-- 视频信息 -->
+          <div class="iframe-info">
+            <div class="video-title">{{ getVideoTitle(node.attrs?.src) }}</div>
+            <div class="video-source">{{ getVideoSource(node.attrs?.src) }}</div>
+          </div>
+        </div>
+      </div>
     </template>
   </div>
 </template>
@@ -718,6 +741,70 @@ const renderMathFormula = (text: string | undefined): string => {
     return text
   }
 }
+
+// 获取视频缩略图
+const getVideoThumbnail = (src?: string): string | undefined => {
+  if (!src) return undefined
+
+  try {
+    const url = new URL(src)
+
+    // YouTube
+    if (url.hostname.includes('youtube.com')) {
+      const videoId = url.pathname.split('/').pop()
+      if (videoId) {
+        return `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`
+      }
+    }
+
+    // Bilibili - 目前不支持获取缩略图
+    if (url.hostname.includes('bilibili.com')) {
+      return undefined
+    }
+
+    return undefined
+  } catch (e) {
+    console.warn('Error getting video thumbnail:', e)
+    return undefined
+  }
+}
+
+// 获取视频标题
+const getVideoTitle = (src?: string): string => {
+  if (!src) return '嵌入视频'
+
+  try {
+    const url = new URL(src)
+
+    if (url.hostname.includes('youtube.com')) {
+      return 'YouTube 视频'
+    }
+
+    if (url.hostname.includes('bilibili.com')) {
+      return 'Bilibili 视频'
+    }
+
+    if (url.hostname.includes('v.qq.com')) {
+      return '腾讯视频'
+    }
+
+    return '嵌入视频'
+  } catch (e) {
+    return '嵌入视频'
+  }
+}
+
+// 获取视频来源
+const getVideoSource = (src?: string): string => {
+  if (!src) return ''
+
+  try {
+    const url = new URL(src)
+    return url.hostname
+  } catch (e) {
+    return ''
+  }
+}
 </script>
 
 <style lang="scss">
@@ -777,6 +864,68 @@ const renderMathFormula = (text: string | undefined): string => {
 
     .mord {
       display: inline-block;
+    }
+  }
+}
+
+/* 视频预览样式 */
+.iframe-preview {
+  margin: 1rem 0;
+  border: 1px solid var(--color-border-primary);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--color-bg-secondary);
+
+  .iframe-preview-container {
+    display: flex;
+    align-items: center;
+    padding: 12px;
+    gap: 16px;
+  }
+
+  .iframe-thumbnail {
+    width: 160px;
+    height: 90px;
+    border-radius: 4px;
+    overflow: hidden;
+    flex-shrink: 0;
+    background: var(--color-bg-tertiary);
+
+    .thumbnail-image {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .thumbnail-placeholder {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      .placeholder-icon {
+        font-size: 24px;
+      }
+    }
+  }
+
+  .iframe-info {
+    flex: 1;
+    min-width: 0;
+
+    .video-title {
+      font-weight: 500;
+      color: var(--color-text-primary);
+      margin-bottom: 4px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .video-source {
+      font-size: 0.9em;
+      color: var(--color-text-secondary);
     }
   }
 }

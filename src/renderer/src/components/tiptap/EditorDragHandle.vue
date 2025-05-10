@@ -138,6 +138,14 @@ const handleDragHandleClick = (event) => {
   showContextMenu.value = true
   currentParagraph.value = currentHoveredNode.value
 
+  // 添加明确的日志来显示当前选中的节点
+  console.log(
+    '拖拽手柄选中节点类型:',
+    currentHoveredNode.value.type.name,
+    '位置:',
+    currentNodePos.value
+  )
+
   // 在下一个DOM更新周期更新浮动菜单位置
   nextTick(() => {
     updateContextMenu()
@@ -155,22 +163,39 @@ const handleAddParagraphClick = (event) => {
   }
 
   try {
-    // 首先设置节点选择，确保正确的位置
-    props.editor.commands.setNodeSelection(currentNodePos.value)
+    const { state } = props.editor
+    // const { tr } = state
+    const nodeType = currentHoveredNode.value.type.name
 
-    // 计算当前节点的结束位置
-    const nodeEnd = currentNodePos.value + currentHoveredNode.value.nodeSize
+    console.log('当前处理的节点类型:', nodeType, '位置:', currentNodePos.value)
 
-    // 在当前节点之后直接插入一个新段落
-    props.editor
-      .chain()
-      .focus()
-      .insertContentAt(nodeEnd, {
-        type: 'paragraph',
-        content: []
-      })
-      .focus(nodeEnd + 1)
-      .run()
+    // 使用更安全的方法：直接在编辑器状态中查找节点
+    const node = state.doc.nodeAt(currentNodePos.value)
+    if (!node) {
+      console.error('无法在指定位置找到节点')
+      return
+    }
+
+    // 计算节点结束位置
+    const nodeEndPos = currentNodePos.value + node.nodeSize
+
+    // 检查位置是否在文档范围内
+    if (nodeEndPos > state.doc.content.size) {
+      console.error('计算的位置超出文档范围')
+      return
+    }
+
+    console.log('节点结束位置:', nodeEndPos, '文档大小:', state.doc.content.size)
+
+    // 使用更简单、更安全的方法插入段落
+    props.editor.chain().insertContentAt(nodeEndPos, { type: 'paragraph' }).run()
+
+    // 尝试将光标移动到新创建的段落
+    setTimeout(() => {
+      props.editor.commands.focus(nodeEndPos + 1)
+    }, 0)
+
+    console.log(`已在${nodeType}节点后添加新段落`)
   } catch (error) {
     console.error('插入段落时出错:', error)
   }
@@ -215,12 +240,210 @@ const deleteParagraph = () => {
   }
 
   try {
+    console.log('执行删除操作，当前段落类型:', currentParagraph.value.type.name)
+
+    // 直接使用currentNodePos和currentHoveredNode（由拖拽手柄设置的节点）
+    if (currentHoveredNode.value && currentNodePos.value !== -1) {
+      // 获取要删除的节点类型和位置
+      const hoveredNodeType = currentHoveredNode.value.type.name
+      const nodeStart = currentNodePos.value
+      const nodeEnd = nodeStart + currentHoveredNode.value.nodeSize
+
+      console.log('删除当前选中节点:', hoveredNodeType, '从', nodeStart, '到', nodeEnd)
+
+      // 特殊处理图片类型节点，需要删除源文件
+      if (hoveredNodeType === 'image') {
+        try {
+          // 获取图片URL
+          const imageUrl = currentHoveredNode.value.attrs.src
+          // 尝试删除图片文件
+          window.electronAPI.image
+            .deleteImage(imageUrl)
+            .then(() => {
+              console.log('图片源文件已删除:', imageUrl)
+            })
+            .catch((err) => {
+              console.error('删除图片源文件失败:', err)
+            })
+        } catch (error) {
+          console.error('获取图片URL失败:', error)
+        }
+      }
+
+      // 直接删除该节点
+      props.editor.chain().focus().deleteRange({ from: nodeStart, to: nodeEnd }).run()
+
+      showContextMenu.value = false
+      currentParagraph.value = null
+      return
+    }
+
+    // 如果没有明确的悬停节点位置，则回退到其他方法
     const { state } = props.editor
     const { selection } = state
     const { from } = selection
     const $pos = state.doc.resolve(from)
     const currentNode = $pos.node()
     const nodeType = currentNode?.type.name
+
+    console.log('回退方案 - 当前节点类型:', nodeType, '位置:', from)
+
+    // 特殊处理图片类型节点，需要删除源文件
+    if (nodeType === 'image') {
+      try {
+        // 获取图片URL
+        const imageUrl = currentNode.attrs.src
+        // 尝试删除图片文件
+        window.electronAPI.image
+          .deleteImage(imageUrl)
+          .then(() => {
+            console.log('图片源文件已删除:', imageUrl)
+          })
+          .catch((err) => {
+            console.error('删除图片源文件失败:', err)
+          })
+      } catch (error) {
+        console.error('获取图片URL失败:', error)
+      }
+    }
+
+    // 检查是否是顶级文档节点
+    if (nodeType === 'doc') {
+      // 尝试从DOM选择中找到实际选中的元素
+      const domSelection = window.getSelection()
+      if (domSelection && domSelection.rangeCount > 0) {
+        const range = domSelection.getRangeAt(0)
+        const container = range.commonAncestorContainer
+
+        // 查找最近的特殊元素
+        let specialElement = null
+        let currentElement = container.nodeType === 1 ? container : container.parentElement
+
+        while (currentElement && !specialElement) {
+          // 检查当前元素是否包含iframe、details或图片
+          if (
+            currentElement.tagName === 'IFRAME' ||
+            currentElement.tagName === 'DETAILS' ||
+            currentElement.tagName === 'IMG' ||
+            currentElement.classList?.contains('iframe-container') ||
+            currentElement.classList?.contains('tiptap-iframe-wrapper') ||
+            currentElement.classList?.contains('tiptap-image-wrapper') ||
+            currentElement.classList?.contains('details') ||
+            currentElement.classList?.contains('callout')
+          ) {
+            specialElement = currentElement
+          } else {
+            // 检查子元素
+            const specialElements = currentElement.querySelectorAll(
+              'iframe, .details, .callout, img, .tiptap-image-wrapper'
+            )
+            if (specialElements.length > 0) {
+              specialElement = specialElements[0]
+            }
+          }
+          currentElement = currentElement.parentElement
+        }
+
+        if (specialElement) {
+          // 检查是否为图片元素
+          if (
+            specialElement.tagName === 'IMG' ||
+            specialElement.classList?.contains('tiptap-image-wrapper')
+          ) {
+            // 尝试在DOM中查找图片URL
+            const imgElement =
+              specialElement.tagName === 'IMG'
+                ? specialElement
+                : specialElement.querySelector('img')
+            if (imgElement && imgElement.src) {
+              // 尝试删除图片文件
+              window.electronAPI.image
+                .deleteImage(imgElement.src)
+                .then(() => {
+                  console.log('通过DOM元素删除图片源文件:', imgElement.src)
+                })
+                .catch((err) => {
+                  console.error('删除图片源文件失败:', err)
+                })
+            }
+          }
+
+          // 找到特殊元素，尝试删除
+          console.log('通过DOM元素找到节点:', specialElement.tagName)
+          props.editor.chain().focus().deleteSelection().run()
+          showContextMenu.value = false
+          currentParagraph.value = null
+          return
+        }
+      }
+
+      // 最后尝试通过扫描附近位置找到节点
+      console.log('尝试扫描附近位置查找节点')
+      // 使用更小的范围避免删除错误的节点
+      const tempPosStart = Math.max(0, from - 20)
+      const tempPosEnd = Math.min(state.doc.content.size, from + 20)
+
+      // 遍历范围内的所有位置
+      for (let pos = tempPosStart; pos < tempPosEnd; pos++) {
+        try {
+          const node = state.doc.nodeAt(pos)
+          if (
+            node &&
+            (node.type.name === 'iframe' ||
+              node.type.name === 'details' ||
+              node.type.name === 'image')
+          ) {
+            // 特殊处理图片类型节点，需要删除源文件
+            if (node.type.name === 'image') {
+              try {
+                // 获取图片URL
+                const imageUrl = node.attrs.src
+                // 尝试删除图片文件
+                window.electronAPI.image
+                  .deleteImage(imageUrl)
+                  .then(() => {
+                    console.log('图片源文件已删除(通过扫描):', imageUrl)
+                  })
+                  .catch((err) => {
+                    console.error('删除图片源文件失败:', err)
+                  })
+              } catch (error) {
+                console.error('获取图片URL失败:', error)
+              }
+            }
+
+            // 找到需删除节点的起始位置
+            const nodeStart = pos
+            const nodeEnd = pos + node.nodeSize
+
+            console.log('扫描找到特殊节点:', node.type.name, nodeStart, nodeEnd)
+            props.editor.chain().focus().deleteRange({ from: nodeStart, to: nodeEnd }).run()
+            showContextMenu.value = false
+            currentParagraph.value = null
+            return
+          }
+        } catch (e) {
+          continue
+        }
+      }
+    }
+
+    // 其他类型节点的处理
+    const isImage = nodeType === 'image'
+    const isIframe = nodeType === 'iframe'
+    const isDetails = nodeType === 'details'
+
+    // 针对特殊节点类型的处理
+    if (isImage || isIframe || isDetails) {
+      // 使用deleteRange删除整个节点
+      const start = $pos.before()
+      const end = $pos.after()
+      console.log('删除特殊节点:', nodeType, start, end)
+      props.editor.chain().focus().deleteRange({ from: start, to: end }).run()
+      showContextMenu.value = false
+      currentParagraph.value = null
+      return
+    }
 
     // 处理表格节点
     if (
@@ -235,7 +458,7 @@ const deleteParagraph = () => {
         if (node.type.name === 'table') {
           const start = $pos.before(depth)
           const end = start + node.nodeSize
-
+          console.log('删除表格节点:', start, end)
           props.editor.chain().focus().deleteRange({ from: start, to: end }).run()
           break
         }
@@ -243,6 +466,7 @@ const deleteParagraph = () => {
       }
     } else {
       // 其他节点的处理
+      console.log('使用标准删除命令删除节点:', nodeType)
       props.editor
         .chain()
         .focus()
@@ -262,6 +486,12 @@ const deleteParagraph = () => {
               return commands.deleteNode('blockquote')
             case 'heading':
               return commands.deleteNode('heading')
+            case 'image':
+              return commands.deleteNode('image')
+            case 'iframe':
+              return commands.deleteNode('iframe')
+            case 'details':
+              return commands.deleteNode('details')
             default:
               return commands.deleteNode('paragraph')
           }

@@ -323,6 +323,9 @@ importers:
       tiptap-extension-global-drag-handle:
         specifier: ^0.1.12
         version: 0.1.14
+      tiptap-extension-iframe:
+        specifier: ^1.0.0
+        version: 1.0.0(@tiptap/pm@2.9.1)
       tiptap-markdown:
         specifier: ^0.8.10
         version: 0.8.10(@tiptap/core@2.9.1(@tiptap/pm@2.9.1))
@@ -5729,6 +5732,9 @@ packages:
 
   tiptap-extension-global-drag-handle@0.1.14:
     resolution: {integrity: sha512-2Jr7UvpZFurpky2UoYyP3bGodP0zBQv2lkKIR7n0XtEaXq0oT3zvLB60YgywTB3jXlwuyseiF/D+e9Kea9k7Qg==}
+
+  tiptap-extension-iframe@1.0.0:
+    resolution: {integrity: sha512-/Z6f+0Hq4QtrWkCvbSZKZMjoxC0TrKoOGkuWJoeweRNy4fykcDeCYv9g9/2MyW/Yw06EKoGQT+AX7UBFLDe/GA==}
 
   tiptap-markdown@0.8.10:
     resolution: {integrity: sha512-iDVkR2BjAqkTDtFX0h94yVvE2AihCXlF0Q7RIXSJPRSR5I0PA1TMuAg6FHFpmqTn4tPxJ0by0CK7PUMlnFLGEQ==}
@@ -12485,6 +12491,12 @@ snapshots:
       '@popperjs/core': 2.11.8
 
   tiptap-extension-global-drag-handle@0.1.14: {}
+
+  tiptap-extension-iframe@1.0.0(@tiptap/pm@2.9.1):
+    dependencies:
+      '@tiptap/core': 2.9.1(@tiptap/pm@2.9.1)
+    transitivePeerDependencies:
+      - '@tiptap/pm'
 
   tiptap-markdown@0.8.10(@tiptap/core@2.9.1(@tiptap/pm@2.9.1)):
     dependencies:

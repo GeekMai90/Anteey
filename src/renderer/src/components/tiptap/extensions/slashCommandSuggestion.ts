@@ -24,9 +24,10 @@ import {
   Bug,
   AlignTextBothOne,
   Tips,
-  Alarm
+  Alarm,
+  VideoOne
 } from '@icon-park/vue-next'
-import { markRaw, ref } from 'vue'
+import { markRaw, ref, reactive } from 'vue'
 import { useNoteStore } from '@renderer/stores/noteStore'
 import { message } from '@renderer/utils/message'
 
@@ -49,6 +50,20 @@ interface Command {
 // 存储片段列表的缓存
 const snippetsCache = ref<Command[]>([])
 const isLoading = ref(false)
+
+// 创建一个全局状态来存储iframe插入信息
+interface IframeInsertData {
+  showing: boolean
+  editor: any
+}
+
+const iframeInsertData = reactive<IframeInsertData>({
+  showing: false,
+  editor: null
+})
+
+// 导出供Vue组件使用的状态
+export const iframeInsertState = iframeInsertData
 
 // 加载片段函数
 const loadSnippets = async () => {
@@ -230,6 +245,22 @@ export const slashCommandSuggestion = {
             .deleteRange(range)
             .insertTable({ rows: 3, cols: 3, withHeaderRow: true })
             .run()
+        }
+      },
+      {
+        title: '嵌入视频',
+        icon: markRaw(VideoOne),
+        keywords: ['iframe', 'video', '视频', '嵌入', '链接'],
+        command: ({ editor, range }) => {
+          // 先删除斜杠命令
+          editor.chain().focus().deleteRange(range).run()
+
+          // 将状态保存到全局对象中
+          iframeInsertData.editor = editor
+          iframeInsertData.showing = true
+
+          // 显示消息指导用户
+          message.info('请输入视频链接或视频嵌入链接')
         }
       },
       {

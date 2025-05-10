@@ -16,8 +16,20 @@ export function setupAuthHandlers() {
       try {
         const authState = await login(email, password)
         return { success: true, data: authState }
-      } catch (error) {
-        // 处理特定的错误类型
+      } catch (error: any) {
+        console.error('主进程→ 登录失败:', error)
+
+        // 添加更详细的错误处理，特别是处理 HTTP 403 错误
+        if (error.response && error.response.status === 403) {
+          // 设备数量限制错误 - 从 API 响应中获取详细信息
+          const errorMessage = error.response.data?.message || '登录失败，请稍后重试'
+          return {
+            success: false,
+            error: errorMessage
+          }
+        }
+
+        // 处理其他特定的错误类型
         if (error instanceof Error) {
           if (error.message.includes('已达到最大设备数限制')) {
             return {
@@ -33,7 +45,6 @@ export function setupAuthHandlers() {
           }
         }
 
-        console.error('主进程→ 登录失败:', error)
         return {
           success: false,
           error: error instanceof Error ? error.message : '登录失败，请稍后重试'

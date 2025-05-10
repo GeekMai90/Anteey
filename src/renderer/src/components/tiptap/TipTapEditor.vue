@@ -35,6 +35,30 @@
       :enforce-limit="uiStore.editorSettings.enforceLimit"
       :character-limit="uiStore.editorSettings.characterLimit || 500"
     />
+
+    <!-- iframe插入对话框 -->
+    <input-dialog
+      v-model:visible="showIframeDialog"
+      title="插入视频"
+      placeholder="请输入视频嵌入链接"
+      confirm-text="插入"
+      cancel-text="取消"
+      @confirm="handleIframeInsert"
+      @cancel="closeIframeDialog"
+    >
+      <template #footer>
+        <div class="iframe-dialog-tips">
+          <p>请输入以下任意格式：</p>
+          <ul>
+            <li>完整的嵌入代码：&lt;iframe src="..."&gt;&lt;/iframe&gt;</li>
+            <li>YouTube: https://www.youtube.com/embed/VIDEO_ID</li>
+            <li>B站: https://player.bilibili.com/player.html?bvid=BV***</li>
+            <li>腾讯视频: https://v.qq.com/txp/iframe/player.html?vid=***</li>
+          </ul>
+          <p>普通网页链接可能因安全限制无法显示</p>
+        </div>
+      </template>
+    </input-dialog>
   </div>
 </template>
 
@@ -82,6 +106,10 @@ import { TableOfContents, getHierarchicalIndexes } from '@tiptap-pro/extension-t
 import TextStyleBubbleMenu from './TextStyleBubbleMenu.vue'
 import EditorDragHandle from './EditorDragHandle.vue'
 import EditorWordCounter from './EditorWordCounter.vue'
+import Iframe from 'tiptap-extension-iframe'
+import TiptapIframe from '@renderer/components/tiptap/TiptapIframe.vue'
+import InputDialog from '@renderer/components/common/InputDialog.vue'
+import { iframeInsertState } from './extensions/slashCommandSuggestion'
 
 const noteStore = useNoteStore()
 const uiStore = useUIStore()
@@ -569,6 +597,17 @@ const editorExtensions = computed(() => {
       onUpdate: (items) => {
         emit('toc-update', items)
       }
+    }),
+    Iframe.configure({
+      HTMLAttributes: {
+        frameborder: 0,
+        allowfullscreen: true,
+        class: 'custom-iframe',
+        style: 'width: 100%; border-radius: 8px;'
+      },
+      addNodeView() {
+        return VueNodeViewRenderer(TiptapIframe)
+      }
     })
   ]
   // 移除原来的DragHandle配置，改为使用Vue组件
@@ -608,6 +647,120 @@ const handleAddParagraph = () => {
     // 如果已经有空段落，直接聚焦到末尾
     editor.value.commands.focus('end')
   }
+}
+
+// 添加iframe对话框状态
+const showIframeDialog = ref(false)
+
+// 监听iframe插入状态变化
+watch(
+  () => iframeInsertState.showing,
+  (newValue) => {
+    if (newValue) {
+      showIframeDialog.value = true
+    }
+  }
+)
+
+// 处理iframe插入
+const handleIframeInsert = (result) => {
+  if (result.name && iframeInsertState.editor) {
+    const embedUrl = convertToEmbedUrl(result.name.trim())
+
+    iframeInsertState.editor
+      .chain()
+      .focus()
+      .setIframe({
+        src: embedUrl,
+        HTMLAttributes: {
+          class: 'video-iframe',
+          style: 'width: 100%; height: 360px; border-radius: 8px;'
+        }
+      })
+      .run()
+  }
+  closeIframeDialog()
+}
+
+// 将普通视频URL转换为嵌入URL
+const convertToEmbedUrl = (url) => {
+  try {
+    // 首先检查是否是完整的iframe HTML代码
+    if (url.includes('<iframe') && url.includes('src="')) {
+      // 提取src属性值
+      const srcMatch = url.match(/src=["']([^"']+)["']/)
+      if (srcMatch && srcMatch[1]) {
+        console.log('从iframe中提取到src:', srcMatch[1])
+        // 递归调用自身处理提取出的URL
+        return convertToEmbedUrl(srcMatch[1])
+      }
+    }
+
+    // 尝试创建URL对象进行解析
+    const urlObj = new URL(url)
+
+    // YouTube
+    if (urlObj.hostname.includes('youtube.com') || urlObj.hostname.includes('youtu.be')) {
+      // 已经是嵌入格式
+      if (urlObj.pathname.includes('/embed/')) {
+        return url
+      }
+
+      // 从watch链接提取视频ID
+      const videoId = urlObj.searchParams.get('v') || urlObj.pathname.split('/').pop() // 处理youtu.be短链接
+
+      if (videoId) {
+        return `https://www.youtube.com/embed/${videoId}`
+      }
+    }
+
+    // Bilibili
+    if (urlObj.hostname.includes('bilibili.com')) {
+      // 已经是嵌入格式
+      if (url.includes('player.bilibili.com')) {
+        return url
+      }
+
+      // 提取BV号
+      const bvidMatch = url.match(/BV\w+/)
+      if (bvidMatch) {
+        return `https://player.bilibili.com/player.html?bvid=${bvidMatch[0]}&high_quality=1`
+      }
+
+      // 提取av号
+      const avidMatch = urlObj.pathname.match(/av(\d+)/)
+      if (avidMatch) {
+        return `https://player.bilibili.com/player.html?aid=${avidMatch[1]}&high_quality=1`
+      }
+    }
+
+    // 腾讯视频
+    if (urlObj.hostname.includes('v.qq.com')) {
+      // 已经是嵌入格式
+      if (url.includes('txp/iframe/player')) {
+        return url
+      }
+
+      // 提取vid
+      const vidMatch = url.match(/vid=([A-Za-z0-9]+)/)
+      if (vidMatch) {
+        return `https://v.qq.com/txp/iframe/player.html?vid=${vidMatch[1]}`
+      }
+    }
+
+    // 如果没有匹配任何格式，返回原始URL
+    return url
+  } catch (e) {
+    console.error('URL格式错误:', e)
+    return url
+  }
+}
+
+// 关闭对话框
+const closeIframeDialog = () => {
+  showIframeDialog.value = false
+  iframeInsertState.showing = false
+  iframeInsertState.editor = null
 }
 
 defineExpose({
@@ -666,5 +819,20 @@ defineExpose({
       }
     }
   }
+}
+
+.iframe-dialog-tips {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  margin-top: 8px;
+  border-top: 1px solid var(--color-border-primary);
+  padding-top: 8px;
+}
+.iframe-dialog-tips ul {
+  padding-left: 16px;
+  margin: 4px 0;
+}
+.iframe-dialog-tips p {
+  margin: 4px 0;
 }
 </style>

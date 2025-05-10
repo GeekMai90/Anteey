@@ -1,6 +1,6 @@
 {
   "name": "anteey",
-  "version": "1.7.71",
+  "version": "1.7.72",
   "description": "Anteey",
   "main": "./out/main/index.js",
   "author": "GeekMai",
@@ -145,6 +145,7 @@
     "prosemirror-state": "^1.4.3",
     "qrcode": "^1.5.4",
     "tiptap-extension-global-drag-handle": "^0.1.12",
+    "tiptap-extension-iframe": "^1.0.0",
     "tiptap-markdown": "^0.8.10",
     "ts-fsrs": "^4.5.1",
     "turndown": "^7.2.0",

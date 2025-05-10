@@ -29,6 +29,7 @@
                   :disabled="authStore.loading"
                 />
                 <div class="button-group">
+                  <button class="register-button" @click="handleRegister">账号管理</button>
                   <button
                     class="login-button"
                     :class="{ loading: authStore.loading }"
@@ -37,10 +38,9 @@
                   >
                     {{ authStore.loading ? '登录中...' : '登录' }}
                   </button>
-                  <button class="register-button" @click="handleRegister">注册账号</button>
                 </div>
                 <div class="register-tip">
-                  👋🏻 请先注册账号，然后将注册邮箱发送至开发者微信 GeekMai 进行激活
+                  👋🏻 请先点击「账号管理」注册账号，然后将注册邮箱发送至开发者微信 GeekMai 进行激活
                 </div>
               </div>
               <div v-if="authStore.error" class="error-message">
@@ -143,32 +143,6 @@ const noteCount = ref(0)
 const email = ref('')
 const password = ref('')
 
-// 从 store 中获取状态
-// const isActivating = computed(() => licenseStore.isActivating)
-
-// const formattedMachineId = computed(() => {
-//   return licenseStore.machineId.match(/.{8}/g)?.join('-') || ''
-// })
-
-// const copyMachineId = async () => {
-//   try {
-//     await navigator.clipboard.writeText(licenseStore.machineId)
-//     // 可以添加一个简单的提示
-//   } catch (err) {
-//     console.error('复制失败:', err)
-//   }
-// }
-
-// 添加日期格式化函数
-// const formatDate = (date: Date | number) => {
-//   return new Date(date).toLocaleString('zh-CN', {
-//     year: 'numeric',
-//     month: '2-digit',
-//     day: '2-digit',
-//     hour: '2-digit',
-//     minute: '2-digit'
-//   })
-// }
 const showSuccessModal = ref(false)
 
 // 烟花效果函数

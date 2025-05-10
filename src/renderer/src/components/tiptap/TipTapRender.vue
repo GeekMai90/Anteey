@@ -28,6 +28,7 @@ import DetailsContent from '@tiptap-pro/extension-details-content'
 import DetailsSummary from '@tiptap-pro/extension-details-summary'
 import { CustomTextStyle } from '@renderer/utils/tiptap/CustomTextStyle'
 import { CustomTable, TableRow, TableHeader, TableCell } from '@renderer/utils/tiptap/CustomTable'
+import Iframe from 'tiptap-extension-iframe'
 
 const props = defineProps({
   content: {
@@ -130,6 +131,14 @@ const editorExtensions = computed(() => {
     NodeRange.configure({
       key: null,
       depth: undefined
+    }),
+    Iframe.configure({
+      HTMLAttributes: {
+        frameborder: 0,
+        allowfullscreen: true,
+        class: 'custom-iframe',
+        style: 'width: 100%; border-radius: 8px; pointer-events: none;'
+      }
     })
   ]
   return extensions

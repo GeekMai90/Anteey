@@ -235,6 +235,20 @@ interface TextContent {
 function convertMarkdownToContent(markdownContent: string): any[] {
   if (!markdownContent) return []
 
+  // 预处理：移除小红书标签链接 [#标签](/search_result?keyword=xxx)
+  markdownContent = markdownContent.replace(/\[#[^\]]+\]\(\/search_result\?[^)]+\)/g, '')
+
+  // 预处理：移除小红书笔记末尾的时间和地点信息（例如：昨天 23:42 云南）
+  markdownContent = markdownContent.replace(/\n\d+\s+天前\s+[\u4e00-\u9fa5]+/g, '')
+  markdownContent = markdownContent.replace(/\n昨天\s+\d+:\d+\s+[\u4e00-\u9fa5]+/g, '')
+  markdownContent = markdownContent.replace(/\n今天\s+\d+:\d+\s+[\u4e00-\u9fa5]+/g, '')
+
+  // 预处理：移除小红书原文链接
+  markdownContent = markdownContent.replace(
+    /\n>\s+https:\/\/www\.xiaohongshu\.com\/explore\/[^\n]+/g,
+    ''
+  )
+
   // 预处理：将连续的多个换行符替换为单个换行符
   const normalizedContent = markdownContent.replace(/\n\s*\n/g, '\n')
   const lines = normalizedContent.split('\n')
@@ -608,7 +622,53 @@ function convertMarkdownToContent(markdownContent: string): any[] {
       continue
     }
 
+    // 处理视频标签
+    const videoMatch = line.match(/<video\s+src=['"](.*?)['"].*?><\/video>/)
+    if (videoMatch) {
+      content.push({
+        type: 'iframe',
+        attrs: {
+          HTMLAttributes: {
+            class: 'video-iframe',
+            style: 'width: 100%; height: 360px; border-radius: 8px;'
+          },
+          src: videoMatch[1]
+        }
+      })
+      i++
+      continue
+    }
+
     // 处理图片
+    // 检查整行是否只包含图片，如果是，则处理所有图片
+    if (line.trim().startsWith('![') && line.includes('](') && line.includes(')')) {
+      // 使用正则表达式匹配所有图片
+      const imageRegex = /!\[(.*?)\]\((.*?)\)/g
+      let match
+      let hasImage = false
+
+      // 循环处理行中的所有图片
+      while ((match = imageRegex.exec(line)) !== null) {
+        hasImage = true
+        content.push({
+          type: 'image',
+          attrs: {
+            align: 'center',
+            alt: match[1] || '',
+            src: match[2],
+            title: null,
+            width: '100%'
+          }
+        })
+      }
+
+      if (hasImage) {
+        i++
+        continue
+      }
+    }
+
+    // 向后兼容：处理单个图片的旧逻辑
     const imageMatch = line.match(/!\[(.*?)\]\((.*?)\)/)
     if (imageMatch) {
       content.push({

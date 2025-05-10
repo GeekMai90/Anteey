@@ -333,7 +333,7 @@ async function createWindow(): Promise<BrowserWindow> {
 
   // 设置缩放范围限制
   const MIN_ZOOM = 0.5
-  const MAX_ZOOM = 2.0
+  const MAX_ZOOM = 4.0
   const ZOOM_INCREMENT = 0.05 // 减小缩放增量，使缩放更平滑
 
   // 创建一个防抖版的缩放函数
@@ -679,7 +679,7 @@ app.whenReady().then(async () => {
             '.webp': 'image/webp'
           }[ext] || 'application/octet-stream'
 
-        return new Response(imageBuffer, {
+        return new Response(imageBuffer as unknown as BodyInit, {
           status: 200,
           headers: {
             'Content-Type': mimeType,
