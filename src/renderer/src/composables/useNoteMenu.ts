@@ -19,7 +19,8 @@ import {
   Sapling,
   ViewGridCard,
   AddItem,
-  BranchOne
+  BranchOne,
+  Workbench
 } from '@icon-park/vue-next'
 
 import { useUIStore } from '../stores/UIStore'
@@ -32,6 +33,7 @@ import { useFlashcardStore } from '../stores/flashcardStore'
 import { useNoteVersionStore } from '../stores/noteVersionStore'
 import { useNoteAIProcessStore } from '../stores/noteAIProcessStore'
 import { useKnowledgeTreeStore } from '../stores/knowledgeTreeStore'
+import { openMindboardSelector } from '../utils/addToMindboard'
 
 interface NoteMenuParams {
   noteId: string
@@ -398,6 +400,13 @@ export function useNoteMenu(params: NoteMenuParams) {
     }
     closePopupMenu()
   }
+
+  // 添加到思维板
+  const handleAddToMindboard = async () => {
+    await openMindboardSelector(params.noteId)
+    closePopupMenu()
+  }
+
   const allMenuItems: any = computed(() => ({
     info: { name: 'info', label: '卡片信息', icon: Info, action: handleShare },
     viewInTree: {
@@ -586,6 +595,13 @@ export function useNoteMenu(params: NoteMenuParams) {
       icon: ListAlphabet,
       action: handleToggleIndex,
       fill: isIndexed.value ? 'var(--color-primary)' : 'var(--color-icon-primary)'
+    },
+    // 添加"添加到思维板"菜单项
+    addToMindboard: {
+      name: 'addToMindboard',
+      label: '添加到思维板',
+      icon: Workbench,
+      action: handleAddToMindboard
     }
   }))
 

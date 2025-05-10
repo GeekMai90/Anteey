@@ -25,6 +25,9 @@
         <!-- 标签管理 -->
         <Button ref="tagButtonRef" :icon="Tag" @click="handleTagManage"> 设置标签 </Button>
 
+        <!-- 添加到思维板 -->
+        <Button :icon="Workbench" @click="addToMindboard"> 添加到思维板 </Button>
+
         <!-- 闪卡转换 -->
         <Button :icon="StorageCardOne" @click="toggleFlashcard"> 转换为闪卡 </Button>
 
@@ -32,7 +35,7 @@
         <Button :icon="MergeCells" @click="handleMerge"> 合并笔记 </Button>
 
         <!-- 删除 -->
-        <Button :icon="Delete" class="danger" @click="handleDelete"> 删除 </Button>
+        <Button :icon="Delete" type="delete" @click="handleDelete"> 删除 </Button>
 
         <!-- 取消按钮 -->
         <Button :icon="Close" @click="cancelMultiSelect"> 取消 </Button>
@@ -107,7 +110,16 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useNoteStore } from '@renderer/stores/noteStore'
-import { Install, Notes, Tag, StorageCardOne, Delete, Close, MergeCells } from '@icon-park/vue-next'
+import {
+  Install,
+  Notes,
+  Tag,
+  StorageCardOne,
+  Delete,
+  Close,
+  MergeCells,
+  Workbench
+} from '@icon-park/vue-next'
 import type { CardType, Note } from '@shared/types'
 import Button from '@renderer/components/ui/Button.vue'
 import BatchMoveCardBoxList from './BatchMoveCardBoxList.vue'
@@ -117,6 +129,7 @@ import { message } from '@renderer/utils/message'
 import { useTagStore } from '@renderer/stores/tagStore'
 import { useFlashcardStore } from '@renderer/stores/flashcardStore'
 import ConfirmDialog from '@renderer/components/common/ConfirmDialog.vue'
+import { openMindboardSelector } from '@renderer/utils/addToMindboard'
 
 const noteStore = useNoteStore()
 const tagStore = useTagStore()
@@ -196,6 +209,13 @@ const checkSelectedNotes = () => {
     return false
   }
   return true
+}
+
+// 添加到思维板
+const addToMindboard = () => {
+  if (checkSelectedNotes()) {
+    openMindboardSelector(noteStore.selectedNoteIds)
+  }
 }
 
 // 修改卡片盒菜单切换方法
@@ -353,15 +373,6 @@ const tagButtonRef = ref<any>(null)
       .ant-btn {
         height: 32px;
         padding: 0 12px;
-
-        &.danger {
-          color: var(--color-danger);
-          &:hover {
-            color: var(--color-danger);
-            border-color: var(--color-danger);
-            background: rgba(var(--color-danger-rgb), 0.1);
-          }
-        }
       }
     }
   }

@@ -217,6 +217,63 @@ export const useMindboardStore = defineStore('mindboard', () => {
     }
   }
 
+  // 批量添加笔记到思维板
+  const addNotesToMindboard = async (mindboardId: string, noteIds: string[]) => {
+    try {
+      // 1. 获取思维板数据
+      const mindboard = await fetchMindboard(mindboardId)
+      if (!mindboard) {
+        throw new Error('思维板不存在')
+      }
+
+      // 2. 准备思维板的flow_data（如果是空对象则初始化）
+      const flowData = mindboard.flow_data || {}
+      const nodes = flowData.nodes || []
+      const edges = flowData.edges || []
+
+      // 3. 为每个笔记创建节点
+      const newNodes = noteIds.map((noteId, index) => {
+        // 自动计算位置偏移，避免节点重叠
+        const position = {
+          x: 100 + (index % 3) * 400,
+          y: 100 + Math.floor(index / 3) * 350
+        }
+
+        // 生成唯一ID
+        const id = `card-${crypto.randomUUID()}`
+
+        return {
+          id,
+          type: 'card',
+          position,
+          data: {
+            noteId,
+            toolbarPosition: 'top',
+            width: 350,
+            height: 300,
+            backgroundColor: 'transparent',
+            borderColor: 'var(--color-border)'
+          }
+        }
+      })
+
+      // 4. 合并节点数据
+      const updatedFlowData = {
+        ...flowData,
+        nodes: [...nodes, ...newNodes],
+        edges
+      }
+
+      // 5. 更新思维板
+      await updateMindboard(mindboardId, { flow_data: updatedFlowData })
+
+      return true
+    } catch (error) {
+      console.error('批量添加笔记到思维板失败:', error)
+      throw error
+    }
+  }
+
   // 获取所有收藏的思维板
   const getFavoriteMindboards = async () => {
     try {
@@ -267,6 +324,9 @@ export const useMindboardStore = defineStore('mindboard', () => {
 
     // 获取思维板数量
     getMindboardCount,
-    mindboardCount
+    mindboardCount,
+
+    // 笔记添加到思维板
+    addNotesToMindboard
   }
 })

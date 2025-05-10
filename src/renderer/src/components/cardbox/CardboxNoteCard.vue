@@ -44,6 +44,7 @@
             'addSibling',
             'addChild',
             'divider',
+            'addToMindboard',
             'viewInTree',
             'share',
             'delete'

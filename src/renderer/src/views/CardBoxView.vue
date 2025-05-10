@@ -131,6 +131,9 @@
     </div>
     <div class="cardbox-view-container">
       <div ref="cardGridContainer" class="card-grid-container">
+        <!-- 添加选择框元素 -->
+        <div v-show="isSelecting" ref="selectionBox" class="selection-box"></div>
+
         <!-- 空状态展示 -->
         <div v-if="displayedNotes.length === 0" class="empty-state">
           <img src="@renderer/assets/images/empty.svg" alt="暂无内容" class="empty-icon" />
@@ -713,6 +716,9 @@ onMounted(async () => {
     clearTimeout(scrollTimeout)
     scrollTimeout = setTimeout(checkScrollPosition, 150)
   })
+
+  // 添加鼠标按下事件监听，用于框选
+  cardGridContainer.value?.addEventListener('mousedown', handleMouseDown)
 })
 
 // 组件卸载时清理
@@ -728,6 +734,11 @@ onUnmounted(() => {
   })
 
   if (scrollEndTimer) clearTimeout(scrollEndTimer)
+
+  // 移除鼠标事件监听
+  cardGridContainer.value?.removeEventListener('mousedown', handleMouseDown)
+  document.removeEventListener('mousemove', handleMouseMove)
+  document.removeEventListener('mouseup', handleMouseUp)
 })
 
 // 4. 监听路由变化
@@ -1402,6 +1413,204 @@ const checkScrollPosition = () => {
     fetchNotes()
   }
 }
+
+// 添加框选相关的状态
+const isSelecting = ref(false)
+const selectionStart = ref({ x: 0, y: 0 })
+const selectionEnd = ref({ x: 0, y: 0 })
+const selectionBox = ref<HTMLDivElement | null>(null)
+// 添加判断是否正在拖动的标志
+const isDragging = ref(false)
+// 记录鼠标按下的初始位置，用于判断是点击还是拖动
+const mouseDownPos = ref({ x: 0, y: 0 })
+// 设置拖动阈值（像素），超过这个值认为是拖动而非点击
+const DRAG_THRESHOLD = 5
+
+// 初始化时计算框选区域
+const selectionRect = computed(() => {
+  const left = Math.min(selectionStart.value.x, selectionEnd.value.x)
+  const top = Math.min(selectionStart.value.y, selectionEnd.value.y)
+  const width = Math.abs(selectionEnd.value.x - selectionStart.value.x)
+  const height = Math.abs(selectionEnd.value.y - selectionStart.value.y)
+
+  return {
+    left,
+    top,
+    width,
+    height
+  }
+})
+
+// 判断两个矩形是否相交
+const isRectIntersect = (
+  rect1: DOMRect,
+  rect2: { left: number; top: number; width: number; height: number }
+) => {
+  return !(
+    rect1.right < rect2.left ||
+    rect1.left > rect2.left + rect2.width ||
+    rect1.bottom < rect2.top ||
+    rect1.top > rect2.top + rect2.height
+  )
+}
+
+// 处理鼠标按下事件
+const handleMouseDown = (e: MouseEvent) => {
+  // 如果是在按钮或搜索框等UI元素上按下，忽略事件
+  if (
+    (e.target as HTMLElement).closest('button') ||
+    (e.target as HTMLElement).closest('.search-box') ||
+    (e.target as HTMLElement).closest('.topToolBar') ||
+    (e.target as HTMLElement).closest('.checkbox-wrapper') // 排除多选模式下的复选框
+  ) {
+    return
+  }
+
+  // 记录鼠标按下的初始位置
+  mouseDownPos.value = {
+    x: e.clientX,
+    y: e.clientY
+  }
+
+  // 获取容器相对于视口的位置
+  const containerRect = cardGridContainer.value?.getBoundingClientRect()
+  if (!containerRect) return
+
+  // 计算鼠标相对于容器的位置
+  selectionStart.value = {
+    x: e.clientX - containerRect.left,
+    y: e.clientY - containerRect.top + (cardGridContainer.value?.scrollTop || 0)
+  }
+  selectionEnd.value = { ...selectionStart.value }
+
+  // 添加鼠标移动和抬起事件监听
+  document.addEventListener('mousemove', handleMouseMove)
+  document.addEventListener('mouseup', handleMouseUp)
+}
+
+// 处理鼠标移动事件
+const handleMouseMove = (e: MouseEvent) => {
+  if (!cardGridContainer.value) return
+
+  // 计算移动距离，判断是否达到拖动阈值
+  const deltaX = Math.abs(e.clientX - mouseDownPos.value.x)
+  const deltaY = Math.abs(e.clientY - mouseDownPos.value.y)
+
+  // 如果移动距离超过阈值，标记为拖动状态
+  if (deltaX > DRAG_THRESHOLD || deltaY > DRAG_THRESHOLD) {
+    isDragging.value = true
+    isSelecting.value = true
+  }
+
+  if (!isSelecting.value) return
+
+  const containerRect = cardGridContainer.value.getBoundingClientRect()
+
+  // 计算鼠标相对于容器的位置
+  selectionEnd.value = {
+    x: e.clientX - containerRect.left,
+    y: e.clientY - containerRect.top + cardGridContainer.value.scrollTop
+  }
+
+  // 更新选择框位置
+  updateSelectionBox()
+}
+
+// 处理鼠标抬起事件
+const handleMouseUp = (e: MouseEvent) => {
+  // 移除事件监听
+  document.removeEventListener('mousemove', handleMouseMove)
+  document.removeEventListener('mouseup', handleMouseUp)
+
+  // 判断是否进行了拖动选择
+  if (isDragging.value && isSelecting.value) {
+    // 判断是否进行了有效选择（最小 5x5 像素）
+    const { width, height } = selectionRect.value
+    if (width > 5 && height > 5) {
+      // 处理选中的卡片
+      selectNotesInBox()
+      // 阻止默认行为和冒泡，防止卡片的点击事件被触发
+      e.preventDefault()
+      e.stopPropagation()
+    }
+  }
+
+  // 重置状态
+  isSelecting.value = false
+  isDragging.value = false
+}
+
+// 更新选择框位置
+const updateSelectionBox = () => {
+  if (!selectionBox.value) return
+
+  const { left, top, width, height } = selectionRect.value
+
+  selectionBox.value.style.left = `${left}px`
+  selectionBox.value.style.top = `${top}px`
+  selectionBox.value.style.width = `${width}px`
+  selectionBox.value.style.height = `${height}px`
+  selectionBox.value.style.display = 'block'
+}
+
+// 选择框内的卡片
+const selectNotesInBox = () => {
+  if (!cardGridContainer.value) return
+
+  // 获取所有卡片元素
+  const cards = cardGridContainer.value.querySelectorAll('.note-card')
+  const selRect = selectionRect.value
+
+  // 如果不是多选模式，先进入多选模式
+  if (!noteStore.isMultiSelectMode) {
+    noteStore.toggleMultiSelectMode()
+  }
+
+  // 记录当前的选择状态，用于模拟按住Shift
+  const wasEmpty = noteStore.selectedNoteIds.length === 0
+
+  let hasSelectedNote = false
+
+  // 检查每个卡片是否在选择框内
+  cards.forEach((card) => {
+    const cardRect = card.getBoundingClientRect()
+    const containerRect = cardGridContainer.value!.getBoundingClientRect()
+
+    // 调整卡片位置为相对于容器的坐标
+    const adjustedCardRect = new DOMRect(
+      cardRect.left - containerRect.left,
+      cardRect.top - containerRect.top + cardGridContainer.value!.scrollTop,
+      cardRect.width,
+      cardRect.height
+    )
+
+    // 判断卡片是否与选择框相交
+    if (isRectIntersect(adjustedCardRect, selRect)) {
+      // 获取卡片ID
+      const noteId = card.id.replace('note-', '')
+
+      // 如果选择为空，添加到选择中，否则替换选择
+      if (wasEmpty) {
+        noteStore.selectNote(noteId, true) // 添加到已选中列表
+      } else {
+        if (!hasSelectedNote) {
+          // 第一个选中的卡片，清空之前的选择
+          noteStore.clearSelectedNotes()
+          hasSelectedNote = true
+        }
+        noteStore.selectNote(noteId, true) // 添加到已选中列表
+      }
+
+      // 记录最后选中的卡片ID，用于后续的Shift选择
+      lastSelectedNoteId.value = noteId
+    }
+  })
+
+  // 隐藏选择框
+  if (selectionBox.value) {
+    selectionBox.value.style.display = 'none'
+  }
+}
 </script>
 
 <style lang="scss" scoped>
@@ -1847,5 +2056,15 @@ const checkScrollPosition = () => {
       }
     }
   }
+}
+
+/* 添加选择框样式 */
+.selection-box {
+  position: absolute;
+  border: 1px dashed var(--color-primary);
+  background-color: rgba(var(--color-primary-rgb), 0.1);
+  pointer-events: none;
+  z-index: 100;
+  display: none;
 }
 </style>

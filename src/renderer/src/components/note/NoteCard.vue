@@ -26,6 +26,7 @@
             'addSibling',
             'addChild',
             'divider',
+            'addToMindboard',
             'viewInCardbox',
             'viewInTree',
             'share',

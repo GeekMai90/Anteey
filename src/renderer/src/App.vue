@@ -46,6 +46,9 @@
     <ReviewModal v-model="uiStore.isReviewModalOpen" />
     <!-- 添加一个消息容器 -->
     <div class="message-container"></div>
+
+    <!-- 添加思维板选择器模态框 -->
+    <MindboardSelectorModal />
   </div>
 </template>
 
@@ -78,6 +81,7 @@ import ThemeColorPicker from '@renderer/components/settings/ThemeColorPicker.vue
 import { useUIStore } from '@renderer/stores/UIStore'
 import ReviewModal from '@renderer/components/review/ReviewModal.vue'
 import ShareViewModal from '@renderer/components/share/ShareViewModal.vue'
+import MindboardSelectorModal from '@renderer/components/mindboard/MindboardSelectorModal.vue'
 import { message } from '@renderer/utils/message'
 
 // 状态管理初始化
