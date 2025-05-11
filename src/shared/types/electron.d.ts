@@ -148,6 +148,17 @@ import type {
   SearchResult
 } from '@shared/types'
 
+// 导入标签页相关的类型
+import {
+  TabItem,
+  TabItemType,
+  GetTabsRequest,
+  AddTabRequest,
+  UpdateTabRequest,
+  ReorderTabsRequest,
+  TabsResponse
+} from '@shared/types/tabs'
+
 // 定义事件处理函数的类型
 type IpcEventHandler = (event: any, data?: { type: string; data: Note }) => void
 
@@ -1281,6 +1292,36 @@ export interface ElectronAPI {
 
     // 批量处理主卡片笔记
     processMainCardBatch: (params?: { limit?: number; batchSize?: number }) => Promise<void>
+  }
+
+  // 标签页相关API
+  tabs: {
+    // 获取标签页列表
+    getTabs: (params?: GetTabsRequest) => Promise<TabsResponse>
+
+    // 获取单个标签页
+    getTab: (id: string) => Promise<TabItem | null>
+
+    // 添加新标签页
+    addTab: (params: AddTabRequest) => Promise<TabItem>
+
+    // 更新标签页
+    updateTab: (params: UpdateTabRequest) => Promise<TabItem>
+
+    // 删除标签页
+    deleteTab: (id: string) => Promise<{ success: boolean }>
+
+    // 更新标签页顺序
+    reorderTabs: (params: ReorderTabsRequest) => Promise<TabItem[]>
+
+    // 更新标签页访问时间
+    updateTabAccessTime: (id: string) => Promise<TabItem>
+
+    // 设置标签页固定状态
+    pinTab: (id: string, isPinned: boolean) => Promise<TabItem>
+
+    // 获取特定内容的标签页
+    getTabByContent: (contentId: string, type: TabItemType) => Promise<TabItem | null>
   }
 }
 

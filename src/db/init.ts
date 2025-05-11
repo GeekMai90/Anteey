@@ -1667,6 +1667,40 @@ export async function initDatabase(db: Knex): Promise<void> {
 
     console.log('readwise_sync_config 表创建成功')
   }
+
+  // 创建 tabs 表 - 用于多标签页功能
+  if (!(await db.schema.hasTable('tabs'))) {
+    await db.schema.createTable('tabs', (table) => {
+      table.string('id').primary()
+      table.string('contentId').notNullable().index() // 关联内容ID（笔记ID、思维板ID等）
+      table.enum('type', ['Note', 'MindBoard', 'Article', 'Other']).notNullable() // 内容类型
+      table.string('title').notNullable() // 标签标题
+      table.string('address').nullable() // 编码地址（主要用于Note类型）
+      table.boolean('isPinned').notNullable().defaultTo(false).index() // 是否固定
+      table.bigInteger('lastAccessTime').notNullable().index() // 最后访问时间（时间戳）
+      table.integer('order').notNullable().index() // 排序顺序
+      table.string('icon').nullable() // 图标（可选）
+      table.text('metadata').nullable() // 额外元数据（JSON字符串格式）
+      table.datetime('createdAt').notNullable()
+      table.datetime('updatedAt').notNullable()
+
+      // 添加索引以优化查询性能
+      table.index(['type', 'lastAccessTime'])
+      table.index(['isPinned', 'order'])
+      table.index(['type', 'contentId'])
+    })
+
+    console.log('tabs 表创建成功')
+  } else {
+    // 检查是否需要添加 address 列
+    const hasAddressColumn = await db.schema.hasColumn('tabs', 'address')
+    if (!hasAddressColumn) {
+      await db.schema.alterTable('tabs', (table) => {
+        table.string('address').nullable() // 编码地址（主要用于Note类型）
+      })
+      console.log('tabs 表添加 address 列成功')
+    }
+  }
 }
 
 export async function down(db: Knex): Promise<void> {
@@ -1725,5 +1759,6 @@ export async function down(db: Knex): Promise<void> {
   await db.schema.dropTable('letter_config')
   await db.schema.dropTableIfExists('readwise_sync_records')
   await db.schema.dropTableIfExists('readwise_sync_config')
+  await db.schema.dropTableIfExists('tabs')
   console.log('所有表已删除')
 }

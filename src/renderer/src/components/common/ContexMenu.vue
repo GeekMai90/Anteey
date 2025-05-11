@@ -12,7 +12,7 @@
           v-for="(item, index) in contextMenuStore.items"
           :key="index"
           class="context-menu-item"
-          @click="item.action"
+          @click="handleItemClick(item)"
         >
           <div class="icon">
             <component :is="item.icon" theme="outline" size="20" fill="#b6b6b6" />
@@ -34,6 +34,14 @@ const closeMenu = () => {
   if (contextMenuStore.show) {
     contextMenuStore.closeMenu()
   }
+}
+
+// 处理菜单项点击，先执行操作，然后关闭菜单
+const handleItemClick = (item: { action: () => void }) => {
+  // 执行菜单项的动作
+  item.action()
+  // 关闭菜单
+  closeMenu()
 }
 
 onMounted(() => {
@@ -106,7 +114,7 @@ onUnmounted(() => {
   .name {
     flex-grow: 0;
     text-align: left;
-    color: var(---color-text-primary);
+    color: var(--color-text-primary);
     font-size: 13px;
     font-weight: 400;
     margin-left: 6px;

@@ -35,6 +35,8 @@ import { setupAIChatHandlers } from './aiChatIpcHandlers'
 import { setupMindEchoHandlers } from './mindEchoIpcHandlers'
 import { setupReadwiseSyncHandlers } from './readwiseIpcHandlers'
 import { setupNoteAIProcessHandlers } from './noteAIProcessIpcHandlers'
+import { setupTabsHandlers } from './tabsIpcHandlers'
+
 export function setupIpcHandlers(): void {
   setupNotesHandlers()
   setupCardboxHandlers()
@@ -73,4 +75,5 @@ export function setupIpcHandlers(): void {
   setupMindEchoHandlers()
   setupReadwiseSyncHandlers()
   setupNoteAIProcessHandlers()
+  setupTabsHandlers()
 }

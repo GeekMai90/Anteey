@@ -45,6 +45,20 @@ export const useMindboardStore = defineStore('mindboard', () => {
     try {
       const newMindboard = await window.electronAPI.mindboard.createMindboard(data)
       mindboards.value.push(newMindboard)
+
+      // 尝试将新思维板添加到标签页系统
+      try {
+        const { useTabsStore } = await import('@renderer/stores/tabsStore')
+        const tabsStore = useTabsStore()
+        await tabsStore.openContent(
+          newMindboard.id,
+          'MindBoard',
+          newMindboard.name || '未命名思维板'
+        )
+      } catch (error) {
+        console.error('将新思维板添加到标签页失败:', error)
+      }
+
       return newMindboard
     } catch (error) {
       console.error('创建思维板失败:', error)
@@ -95,6 +109,23 @@ export const useMindboardStore = defineStore('mindboard', () => {
           ...mindboards.value[index],
           name
         }
+      }
+
+      // 更新标签页中的标题信息
+      try {
+        const { useTabsStore } = await import('@renderer/stores/tabsStore')
+        const tabsStore = useTabsStore()
+        // 获取此思维板对应的标签页
+        const tab = await tabsStore.getTabByContent(id, 'MindBoard')
+        if (tab) {
+          // 更新标签页标题
+          await tabsStore.updateTab({
+            id: tab.id,
+            title: name || '未命名思维板'
+          })
+        }
+      } catch (error) {
+        console.error('更新思维板标签页标题失败:', error)
       }
     } catch (error) {
       console.error('更新思维板名称失败:', error)

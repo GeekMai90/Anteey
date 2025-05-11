@@ -207,7 +207,7 @@
         <div class="icon">
           <Star theme="outline" size="16" fill="var(--color-sidebar-text)" :strokeWidth="2" />
         </div>
-        <span>星标</span>
+        <span>收藏</span>
       </button>
       <button
         class="segment-button"
@@ -215,7 +215,7 @@
         @click="switchSegment('tags')"
       >
         <div class="icon">
-          <Tag theme="outline" size="16" fill="var(--color-sidebar-text)" :strokeWidth="2" />
+          <TagOne theme="outline" size="16" fill="var(--color-sidebar-text)" :strokeWidth="2" />
         </div>
         <span>标签</span>
       </button>
@@ -225,9 +225,14 @@
         @click="switchSegment('recent')"
       >
         <div class="icon">
-          <Time theme="outline" size="16" fill="var(--color-sidebar-text)" :strokeWidth="2" />
+          <BookmarkOne
+            theme="outline"
+            size="16"
+            fill="var(--color-sidebar-text)"
+            :strokeWidth="2"
+          />
         </div>
-        <span>最近</span>
+        <span>页签</span>
       </button>
     </div>
     <!-- 滚动区域只包含内容部分 -->
@@ -235,7 +240,7 @@
       <div class="segment-content">
         <StarredNotes v-show="activeSegment === 'starred'" :active="activeSegment === 'starred'" />
         <TagsTree v-show="activeSegment === 'tags'" :active="activeSegment === 'tags'" />
-        <RecentNotes v-show="activeSegment === 'recent'" :active="activeSegment === 'recent'" />
+        <TabsList v-show="activeSegment === 'recent'" :active="activeSegment === 'recent'" />
       </div>
     </div>
     <div class="resize-handle" @mousedown="startResize"></div>
@@ -323,18 +328,18 @@ import {
   NotebookOne,
   Theme,
   Star,
-  Tag,
   Cup,
   Inbox,
   NotebookAndPen,
-  NaturalMode
+  NaturalMode,
+  TagOne,
+  BookmarkOne
 } from '@icon-park/vue-next'
 import { useNoteStore } from '@renderer/stores/noteStore'
 import SettingDropdownMenu from '@renderer/components/settings/SettingDropdownMenu.vue'
 import StarredNotes from '@renderer/components/layout/StarredNotes.vue'
 import { useUIStore } from '@renderer/stores/UIStore'
 import { useRoute, useRouter } from 'vue-router'
-import RecentNotes from '@renderer/components/layout/RecentNotes.vue'
 import { storeToRefs } from 'pinia'
 import TagsTree from '@renderer/components/layout/TagsTree.vue'
 import QuickAccessMenu from '@renderer/components/layout/QuickAccessMenu.vue'
@@ -346,6 +351,7 @@ import { useReviewStore } from '@renderer/stores/reviewStore'
 import { useCloudSyncStore } from '@renderer/stores/cloudSyncStore'
 import { useS3Store } from '@renderer/stores/s3Store'
 import DailyLetterButton from '@renderer/components/dailyLetter/DailyLetterButton.vue'
+import TabsList from '@renderer/components/Tabs/TabsList.vue'
 
 const imageSrc = ref('')
 const uiStore = useUIStore()

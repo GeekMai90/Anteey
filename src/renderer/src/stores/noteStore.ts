@@ -257,19 +257,36 @@ export const useNoteStore = defineStore(
           starredNotes.value = [...starredNotes.value]
         }
 
+        // 4. 更新标签页中的标题信息
+        try {
+          const { useTabsStore } = await import('@renderer/stores/tabsStore')
+          const tabsStore = useTabsStore()
+          // 获取此笔记对应的标签页
+          const tab = await tabsStore.getTabByContent(noteId, 'Note')
+          if (tab) {
+            // 更新标签页标题
+            await tabsStore.updateTab({
+              id: tab.id,
+              title: updatedNote.title || '未命名笔记'
+            })
+          }
+        } catch (error) {
+          console.error('更新笔记标签页标题失败:', error)
+        }
+
         if (!isReviewMode.value) {
           // console.log('noteStores.ts→ 非随机查看模式，发送更新事件通知')
-          // 4. 发送更新事件通知
+          // 5. 发送更新事件通知
           const noteUpdatedBus = useEventBus<Note>('note-updated')
           noteUpdatedBus.emit(updatedNote)
         }
 
-        // 5. 更新保存状态
+        // 6. 更新保存状态
         currentNoteSaveStatus.value = 'saved'
 
         return updatedNote
       } catch (error) {
-        // 6. 错误处理
+        // 7. 错误处理
         currentNoteSaveStatus.value = 'error'
         console.error('更新笔记内容失败:', error)
         throw error
@@ -299,7 +316,24 @@ export const useNoteStore = defineStore(
           await refreshSnippetNotes(true)
         }
 
-        // 4. 发送更新事件通知
+        // 4. 更新标签页中的地址信息
+        try {
+          const { useTabsStore } = await import('@renderer/stores/tabsStore')
+          const tabsStore = useTabsStore()
+          // 获取此笔记对应的标签页
+          const tab = await tabsStore.getTabByContent(noteId, 'Note')
+          if (tab) {
+            // 更新标签页地址
+            await tabsStore.updateTab({
+              id: tab.id,
+              address: address
+            })
+          }
+        } catch (error) {
+          console.error('更新笔记标签页地址失败:', error)
+        }
+
+        // 5. 发送更新事件通知
         const noteUpdatedBus = useEventBus<Note>('note-updated')
         noteUpdatedBus.emit(updatedNote)
 
@@ -744,6 +778,16 @@ export const useNoteStore = defineStore(
         currentEchoNoteId.value = noteId
         isLoading.value = false
         isEditorOpen.value = true
+
+        // 将笔记添加到标签页系统
+        try {
+          const { useTabsStore } = await import('@renderer/stores/tabsStore')
+          const tabsStore = useTabsStore()
+          await tabsStore.openContent(noteId, 'Note', fullNote.title || '未命名笔记')
+        } catch (error) {
+          console.error('noteStores.ts→ 将笔记添加到标签页失败:', error)
+        }
+
         // addToRecentNotes(noteId)
       } catch (error) {
         console.error('noteStores.ts→ 打开笔记编辑器失败:', error)
@@ -920,6 +964,16 @@ export const useNoteStore = defineStore(
     const createAndExpandNewNote = async () => {
       const newNote = await createNote()
       currentEchoNoteId.value = newNote.id
+
+      // 将笔记添加到标签页系统
+      try {
+        const { useTabsStore } = await import('@renderer/stores/tabsStore')
+        const tabsStore = useTabsStore()
+        await tabsStore.openContent(newNote.id, 'Note', newNote.title || '新笔记')
+      } catch (error) {
+        console.error('noteStores.ts→ 将新笔记添加到标签页失败:', error)
+      }
+
       return newNote?.id // 返回新笔记的 ID
     }
 

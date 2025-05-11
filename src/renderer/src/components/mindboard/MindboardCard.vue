@@ -183,8 +183,18 @@ const formatTime = (time: string) => {
 }
 
 // 打开思维板
-const openMindboard = (id: string) => {
-  router.push(`/mindboard/${id}`)
+const openMindboard = async (id: string) => {
+  try {
+    // 将思维板添加到标签页系统
+    const { useTabsStore } = await import('@renderer/stores/tabsStore')
+    const tabsStore = useTabsStore()
+    await tabsStore.openContent(id, 'MindBoard', props.mindboard.name || '未命名思维板')
+
+    // 导航到思维板详情页
+    router.push(`/mindboard/${id}`)
+  } catch (error) {
+    console.error('打开思维板失败:', error)
+  }
 }
 
 // 处理双击事件

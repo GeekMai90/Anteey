@@ -369,6 +369,18 @@ onMounted(async () => {
     // console.log('ManuscriptDetail - 开始加载文稿，ID:', manuscriptId)
     await writingDeskStore.loadManuscript(manuscriptId)
 
+    // 将文稿添加到标签页系统
+    try {
+      const { useTabsStore } = await import('@renderer/stores/tabsStore')
+      const tabsStore = useTabsStore()
+      if (manuscript.value) {
+        // 将当前文稿添加到标签页系统
+        await tabsStore.openContent(manuscriptId, 'Article', manuscript.value.title || '未命名文稿')
+      }
+    } catch (error) {
+      console.error('将文稿添加到标签页失败:', error)
+    }
+
     // 同时预加载模型配置数据
     await modelConfigStore.loadConfigs()
 

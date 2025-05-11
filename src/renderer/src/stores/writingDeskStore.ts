@@ -121,6 +121,20 @@ export const useWritingDeskStore = defineStore('writingDesk', () => {
       if (!result.success || !result.manuscript) {
         throw new Error(result.error || '创建文稿失败')
       }
+
+      // 尝试将新文稿添加到标签页系统
+      try {
+        const { useTabsStore } = await import('@renderer/stores/tabsStore')
+        const tabsStore = useTabsStore()
+        await tabsStore.openContent(
+          result.manuscript.id,
+          'Article',
+          result.manuscript.title || '未命名文稿'
+        )
+      } catch (error) {
+        console.error('将新文稿添加到标签页失败:', error)
+      }
+
       await fetchAllManuscripts()
       await loadManuscript(result.manuscript.id)
       return result.manuscript
@@ -136,6 +150,25 @@ export const useWritingDeskStore = defineStore('writingDesk', () => {
       const result = await window.electronAPI.writingDesk.updateManuscript(params)
       if (!result.success) {
         throw new Error(result.error || '更新文稿失败')
+      }
+
+      // 如果更新了标题，也更新标签页标题
+      if (params.title) {
+        try {
+          const { useTabsStore } = await import('@renderer/stores/tabsStore')
+          const tabsStore = useTabsStore()
+          // 获取此文稿对应的标签页
+          const tab = await tabsStore.getTabByContent(params.id, 'Article')
+          if (tab) {
+            // 更新标签页标题
+            await tabsStore.updateTab({
+              id: tab.id,
+              title: params.title
+            })
+          }
+        } catch (error) {
+          console.error('更新文稿标签页标题失败:', error)
+        }
       }
 
       // 更新成功后重新加载数据
@@ -157,6 +190,21 @@ export const useWritingDeskStore = defineStore('writingDesk', () => {
       if (!result.success) {
         throw new Error(result.error || '删除文稿失败')
       }
+
+      // 尝试关闭对应的标签页
+      try {
+        const { useTabsStore } = await import('@renderer/stores/tabsStore')
+        const tabsStore = useTabsStore()
+        // 获取此文稿对应的标签页
+        const tab = await tabsStore.getTabByContent(id, 'Article')
+        if (tab) {
+          // 关闭标签页
+          await tabsStore.closeTab(tab.id)
+        }
+      } catch (error) {
+        console.error('关闭文稿标签页失败:', error)
+      }
+
       if (currentManuscript.value?.id === id) {
         currentManuscript.value = null
       }

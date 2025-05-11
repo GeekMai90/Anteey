@@ -926,6 +926,22 @@ onMounted(async () => {
   await mindboardStore.loadMindboardData(mindboardId)
   restoreFlowState()
 
+  // 添加标签页逻辑
+  try {
+    const { useTabsStore } = await import('@renderer/stores/tabsStore')
+    const tabsStore = useTabsStore()
+    if (currentMindboard.value) {
+      // 将当前思维板添加到标签页系统
+      await tabsStore.openContent(
+        mindboardId,
+        'MindBoard',
+        currentMindboard.value.name || '未命名思维板'
+      )
+    }
+  } catch (error) {
+    console.error('将思维板添加到标签页失败:', error)
+  }
+
   document.addEventListener('click', (event: MouseEvent) => {
     // 如果点击的不是边菜单内部和子菜单内部，则关闭菜单
     const target = event.target as HTMLElement

@@ -310,6 +310,15 @@ const initializeNote = async (noteId: string) => {
       await fetchNoteTags(noteId)
       noteStore.setCurrentEchoNoteId(noteId)
 
+      // 将笔记添加到标签页系统
+      try {
+        const { useTabsStore } = await import('@renderer/stores/tabsStore')
+        const tabsStore = useTabsStore()
+        await tabsStore.openContent(noteId, 'Note', note.title || '未命名笔记')
+      } catch (error) {
+        console.error('NoteExpandEditor.vue→ 将笔记添加到标签页失败:', error)
+      }
+
       focusEditor()
     } else {
       message.error('笔记不存在')
