@@ -1357,7 +1357,7 @@ const getThemeModeTooltip = computed(() => {
 .segment-control {
   position: relative;
   display: flex;
-  margin: 8px 6px;
+  margin: 4px 6px;
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   padding: 4px;

@@ -147,9 +147,11 @@ const sortModified = ref(false)
 watch(
   pinnedTabs,
   (newTabs, oldTabs) => {
-    // 如果标签数量变化，说明有新增或删除，这时需要更新模型
-    if (!sortModified.value || newTabs.length !== oldTabs.length) {
+    // 只在标签数量变化时更新模型
+    if (newTabs.length !== oldTabs.length) {
       pinnedTabsModel.value = [...newTabs]
+      // 重置排序状态
+      sortModified.value = false
     }
   },
   { deep: true }
@@ -158,9 +160,11 @@ watch(
 watch(
   unpinnedTabs,
   (newTabs, oldTabs) => {
-    // 如果标签数量变化，说明有新增或删除，这时需要更新模型
-    if (!sortModified.value || newTabs.length !== oldTabs.length) {
+    // 只在标签数量变化时更新模型
+    if (newTabs.length !== oldTabs.length) {
       unpinnedTabsModel.value = [...newTabs]
+      // 重置排序状态
+      sortModified.value = false
     }
   },
   { deep: true }
@@ -169,6 +173,9 @@ watch(
 // 处理固定标签拖拽结束
 const handlePinnedDragEnd = async () => {
   if (pinnedTabsModel.value.length === 0) return
+
+  // 设置为已修改状态
+  sortModified.value = true
 
   // 生成新的顺序数据
   const reorderData = pinnedTabsModel.value.map((tab, index) => ({
@@ -192,8 +199,6 @@ const handlePinnedDragEnd = async () => {
   if (orderChanged) {
     try {
       await tabsStore.reorderTabs({ tabs: reorderData })
-      console.log('固定标签排序已更新')
-      sortModified.value = true
     } catch (error) {
       console.error('固定标签排序更新失败:', error)
     }
@@ -226,8 +231,6 @@ const handleUnpinnedDragEnd = async () => {
   if (orderChanged) {
     try {
       await tabsStore.reorderTabs({ tabs: reorderData })
-      console.log('普通标签排序已更新')
-      sortModified.value = true
     } catch (error) {
       console.error('普通标签排序更新失败:', error)
     }
@@ -425,6 +428,7 @@ onMounted(async () => {
   transition: all 0.2s ease;
   user-select: none;
   position: relative;
+  border: 2px solid transparent;
 
   &:hover {
     background: rgba(var(--color-sidebar-icon-bg), 0.04);
@@ -437,7 +441,7 @@ onMounted(async () => {
   }
 
   &.active {
-    background: rgba(var(--color-sidebar-icon-bg), 0.08);
+    background: rgba(var(--color-sidebar-icon-bg), 0.04);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
 
@@ -448,6 +452,8 @@ onMounted(async () => {
 
   &:active {
     cursor: grabbing;
+    transform: scale(1.02);
+    transition: transform 0.2s ease;
   }
 
   .icon {
@@ -540,7 +546,32 @@ onMounted(async () => {
 
 /* 拖拽时的占位样式 */
 .ghost-class {
-  opacity: 0.5;
-  background: rgba(var(--color-primary-rgb), 0.1);
+  opacity: 0.6;
+  background: rgba(var(--color-primary-rgb), 0.08);
+  border: 2px dashed var(--color-primary);
+  box-shadow: 0 0 8px rgba(var(--color-primary-rgb), 0.2);
+  position: relative;
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    border-radius: 6px;
+    background: rgba(var(--color-primary-rgb), 0.05);
+    pointer-events: none;
+  }
+}
+
+/* 正在拖拽的元素样式 */
+.sortable-drag {
+  opacity: 0.8;
+  background: rgba(var(--color-sidebar-icon-bg), 0.12);
+  transform: scale(1.02);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* 拖拽选择样式 */
+.sortable-chosen {
+  background: rgba(var(--color-sidebar-icon-bg), 0.08);
 }
 </style>
