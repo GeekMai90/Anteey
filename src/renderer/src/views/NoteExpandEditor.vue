@@ -80,6 +80,7 @@
               'viewInCardbox',
               'viewInTree',
               'divider',
+              'addToMindboard',
               'historyVersion',
               'share',
               'exportNote',

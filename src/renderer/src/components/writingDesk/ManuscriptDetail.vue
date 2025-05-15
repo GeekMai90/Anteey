@@ -226,7 +226,7 @@
       <!-- 其他模式保持不变 -->
       <div v-else class="content-wrapper with-toc">
         <!-- 目录侧边栏 - 移到右侧 -->
-        <div v-if="['first_draft', 'polish'].includes(currentMode)" class="first-draft-mode">
+        <div v-if="currentMode === 'first_draft'" class="first-draft-mode">
           <div ref="scrollContainerRef" class="editor-wrapper">
             <TipTapEditor
               ref="firstDraftEditorRef"
@@ -234,6 +234,8 @@
               :note-id="manuscript?.id"
               :editable="true"
               :enable-drag-handle="true"
+              :enable-add-paragraph-area="false"
+              :show-character-count="false"
               @update:content="handleFirstDraftContentUpdate"
               @toc-update="handleTocUpdate"
             />
@@ -249,6 +251,8 @@
               :note-id="manuscript?.id"
               :editable="true"
               :enable-drag-handle="true"
+              :enable-add-paragraph-area="false"
+              :show-character-count="false"
               @update:content="handlePolishedContentUpdate"
               @toc-update="handleTocUpdate"
             />
