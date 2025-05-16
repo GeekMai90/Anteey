@@ -115,7 +115,7 @@ export const CustomLink = Link.extend<CustomLinkOptions>({
 
             // 修改显示文本的生成逻辑
             const fullText = `${targetNote.address || '未设置编码地址'} ${targetNote.metadata?.title || '未命名笔记'}`
-            const displayText = truncateText(fullText, 50) // 限制显示长度为50个字符
+            const displayText = truncateText(fullText, 35) // 限制显示长度为50个字符
 
             // 更新链接文本
             let position = 0

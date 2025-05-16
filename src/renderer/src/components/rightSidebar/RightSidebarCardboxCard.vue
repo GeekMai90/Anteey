@@ -5,8 +5,11 @@
     :class="{ highlighted: isHighlighted }"
     draggable="true"
     @dragstart="handleDragStart"
+    @dragend="handleDragEnd"
     @click="handleCardClick"
     @dblclick="handleDoubleClick"
+    @mouseenter="hovering = true"
+    @mouseleave="hovering = false"
   >
     <div class="note-header">
       <span class="note-indicator" :class="cardTypeClass"></span>
@@ -34,16 +37,22 @@
       />
       {{ formatDate(note.updatedAt, 'date-only') }}
     </div>
+
+    <!-- 添加拖拽提示，只在特定路由中显示 -->
+    <div v-if="hovering && showDragHint" class="drag-hint">
+      <HandDrag class="drag-icon" theme="outline" size="16" />
+      <span>{{ dragHintText }}</span>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { Note } from '@shared/types'
 import { formatDate } from '@renderer/utils/noteHelpers'
-import { StorageCardOne } from '@icon-park/vue-next'
-import { computed } from 'vue'
+import { StorageCardOne, HandDrag } from '@icon-park/vue-next'
+import { computed, ref } from 'vue'
 import { useNoteStore } from '@renderer/stores/noteStore'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import JsonContentRenderer from '@renderer/components/note/JsonContentRenderer.vue'
 
 const props = defineProps<{
@@ -53,6 +62,9 @@ const props = defineProps<{
 
 const noteStore = useNoteStore()
 const router = useRouter()
+const route = useRoute() // 获取当前路由
+const hovering = ref(false)
+const isDragging = ref(false)
 
 const isHighlighted = computed(() => props.highlightedNoteId === props.note.id)
 
@@ -74,6 +86,37 @@ const cardTypeClass = computed(() => {
 })
 
 const flashcardColor = computed(() => 'var(--color-text-secondary)')
+
+// 判断是否显示拖拽提示
+const showDragHint = computed(() => {
+  const routeName = route.name as string
+
+  // 只在这三个特定路由中显示拖拽提示
+  return ['NoteExpandEditor', 'MindboardDetail', 'ManuscriptDetail'].includes(routeName)
+})
+
+// 根据当前路由返回不同的拖拽提示文字
+const dragHintText = computed(() => {
+  const routeName = route.name as string
+
+  // 笔记编辑相关路由
+  if (routeName === 'NoteExpandEditor') {
+    return '拖拽创建双链'
+  }
+
+  // 思维板相关路由
+  if (routeName === 'MindboardDetail') {
+    return '拖拽创建卡片笔记'
+  }
+
+  // 文章详情相关路由
+  if (routeName === 'ManuscriptDetail') {
+    return '拖拽引用卡片'
+  }
+
+  // 默认提示文字，一般不会显示，因为其他页面不显示拖拽提示
+  return ''
+})
 
 // 处理卡片点击
 const handleCardClick = (event: MouseEvent) => {
@@ -114,6 +157,7 @@ const handleDragStart = (event: DragEvent) => {
   if (event.dataTransfer) {
     event.dataTransfer.setData('application/json', JSON.stringify({ id: props.note.id }))
     event.dataTransfer.effectAllowed = 'copy'
+    isDragging.value = true
 
     // 创建一个简单的拖动时的视觉效果
     const dragImage = document.createElement('div')
@@ -140,7 +184,16 @@ const handleDragStart = (event: DragEvent) => {
     setTimeout(() => {
       document.body.removeChild(dragImage)
     }, 0)
+
+    // 添加状态样式到body
+    document.body.classList.add('note-dragging')
   }
+}
+
+// 处理拖拽结束
+const handleDragEnd = () => {
+  isDragging.value = false
+  document.body.classList.remove('note-dragging')
 }
 </script>
 
@@ -241,6 +294,44 @@ const handleDragStart = (event: DragEvent) => {
     pointer-events: none;
   }
 
+  // 添加拖拽提示样式
+  .drag-hint {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px;
+    border-radius: 4px;
+    background-color: rgba(var(--color-bg-primary-rgb), 0.8);
+    color: var(--color-text-secondary);
+    font-size: 12px;
+    opacity: 0.7;
+    pointer-events: none;
+
+    .drag-icon {
+      color: var(--color-primary);
+    }
+
+    :deep(.i-icon) {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      height: 100%;
+    }
+
+    :deep(svg) {
+      width: 16px;
+      height: 16px;
+    }
+
+    span {
+      white-space: nowrap;
+    }
+  }
+
   &.highlighted {
     box-shadow: 0 0 0 2px var(--color-primary);
     animation: pulse 2s infinite;
@@ -256,6 +347,17 @@ const handleDragStart = (event: DragEvent) => {
   }
   100% {
     box-shadow: 0 0 0 0 rgba(var(--color-primary-rgb), 0);
+  }
+}
+
+// 拖拽中的全局样式
+:global(body.note-dragging) {
+  cursor: grabbing;
+
+  // 编辑器区域突出显示
+  :global(.tiptap) {
+    outline: 2px dashed var(--color-primary);
+    transition: outline 0.2s ease;
   }
 }
 </style>

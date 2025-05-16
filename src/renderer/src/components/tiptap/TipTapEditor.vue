@@ -111,6 +111,9 @@ import TiptapIframe from '@renderer/components/tiptap/TiptapIframe.vue'
 import InputDialog from '@renderer/components/common/InputDialog.vue'
 import { iframeInsertState } from './extensions/slashCommandSuggestion'
 
+// 添加用于处理卡片拖拽的扩展
+import NoteCardDrop from './extensions/NoteCardDrop'
+
 const noteStore = useNoteStore()
 const uiStore = useUIStore()
 const wordCounterRef = ref(null)
@@ -608,6 +611,10 @@ const editorExtensions = computed(() => {
       addNodeView() {
         return VueNodeViewRenderer(TiptapIframe)
       }
+    }),
+    // 添加卡片拖拽扩展
+    NoteCardDrop.configure({
+      noteId: props.noteId
     })
   ]
   // 移除原来的DragHandle配置，改为使用Vue组件
@@ -791,6 +798,19 @@ defineExpose({
     padding-bottom: 40px; // 为字数统计留出空间
   }
 
+  // 添加卡片拖拽样式
+  &.card-dragging-over {
+    .ProseMirror {
+      background-color: rgba(var(--color-primary-rgb), 0.05);
+      transition: background-color 0.2s ease;
+    }
+  }
+
+  .ProseMirror {
+    // 添加卡片拖拽过渡效果
+    transition: background-color 0.2s ease;
+  }
+
   .add-paragraph-area {
     position: absolute;
     left: 0;
@@ -817,6 +837,24 @@ defineExpose({
       .add-hint {
         opacity: 1;
       }
+    }
+  }
+}
+
+// 添加卡片链接样式增强
+.ProseMirror {
+  .note-reference-link {
+    color: var(--color-primary);
+    text-decoration: none;
+    background-color: rgba(var(--color-primary-rgb), 0.05);
+    padding: 0 4px;
+    margin: 0 2px;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+
+    &:hover {
+      background-color: rgba(var(--color-primary-rgb), 0.1);
+      text-decoration: none;
     }
   }
 }

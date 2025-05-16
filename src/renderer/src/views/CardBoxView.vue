@@ -236,7 +236,7 @@ const isConfirmingDelete = ref(false)
 const cardGridContainer = ref<HTMLElement | null>(null)
 const isLoading = ref(false)
 const currentPage = ref(1)
-const pageSize = ref(28)
+const pageSize = ref(42)
 const totalCount = ref(0)
 const notes = ref<Note[]>([])
 const showSortMenu = ref(false)
@@ -254,13 +254,13 @@ const lastSelectedNoteId = ref<string | null>(null)
 // 添加虚拟列表相关的状态
 const containerHeight = ref(0)
 const scrollTop = ref(0)
-const cardHeight = 300 // 假设每个卡片的固定高度为300px
-const bufferSize = 3 // 上下额外渲染的行数
+const cardHeight = 260 // 卡片固定高度为260px
+const bufferSize = 4 // 上下额外渲染的行数
 
 // 计算视口信息
 const viewportInfo = computed(() => {
   const containerWidth = cardGridContainer.value?.clientWidth || 0
-  const cardsPerRow = Math.floor(containerWidth / 316) // 300px + 16px gap
+  const cardsPerRow = Math.floor(containerWidth / 276) // 260px + 16px gap
   const rowHeight = cardHeight + 16 // 加上gap的高度
 
   const visibleRows = Math.ceil(containerHeight.value / rowHeight)
@@ -429,7 +429,7 @@ const handleScroll = useThrottleFn(
     const { scrollHeight, clientHeight } = target
     const scrollBottom = scrollHeight - newScrollTop - clientHeight
 
-    // 当距离底部小于 200px 且还有更多数据时，加载更多
+    // 当距离底部小于 600px 且还有更多数据时，加载更多
     if (
       (scrollBottom < 400 || Math.abs(scrollHeight - (newScrollTop + clientHeight)) < 1) &&
       !isLoading.value &&
@@ -553,7 +553,7 @@ const scrollToTargetNote = () => {
 
   // 计算目标笔记所在的行和列
   const containerWidth = cardGridContainer.value?.clientWidth || 0
-  const cardsPerRow = Math.floor(containerWidth / 316) // 300px + 16px gap
+  const cardsPerRow = Math.floor(containerWidth / 276) // 240px + 16px gap
   const targetRow = Math.floor(targetIndex / cardsPerRow)
   const rowHeight = cardHeight + 16 // 卡片高度 + 间距
 
@@ -1832,7 +1832,7 @@ const selectNotesInBox = () => {
 
   .card-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
     gap: 16px;
     padding: 16px 20px;
     align-content: start;
@@ -1842,7 +1842,7 @@ const selectNotesInBox = () => {
     margin-top: 16px;
 
     .card-item {
-      height: 300px;
+      height: 260px;
       transition: all 0.3s ease;
 
       &.highlight {

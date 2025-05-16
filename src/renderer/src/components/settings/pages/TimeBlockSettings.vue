@@ -21,11 +21,11 @@
       </div>
 
       <div v-if="enableTimeBlock" class="settings-section">
-        <div class="section-title">时间范围</div>
+        <div class="section-title">起止时间范围</div>
         <div class="time-range-settings">
-          <div class="time-range-row">
-            <div class="time-item">
-              <div class="time-label">开始时间</div>
+          <div class="setting-item">
+            <div class="setting-row">
+              <div class="setting-label">开始时间</div>
               <Dropdown
                 :items="timeOptions"
                 trigger="click"
@@ -36,9 +36,11 @@
                 {{ startTime }}:00
               </Dropdown>
             </div>
+          </div>
 
-            <div class="time-item">
-              <div class="time-label">结束时间</div>
+          <div class="setting-item">
+            <div class="setting-row">
+              <div class="setting-label">结束时间</div>
               <Dropdown
                 :items="timeOptions"
                 trigger="click"
@@ -208,21 +210,16 @@ onMounted(async () => {
   }
 
   .time-range-settings {
-    .time-range-row {
+    .setting-row {
       display: flex;
       align-items: center;
-      gap: 32px;
+      justify-content: space-between;
+      // padding: 12px 0;
 
-      .time-item {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-
-        .time-label {
-          font-size: 14px;
-          color: var(--color-text-secondary);
-          white-space: nowrap;
-        }
+      .setting-label {
+        font-size: 14px;
+        color: var(--color-text-secondary);
+        white-space: nowrap;
       }
     }
   }
