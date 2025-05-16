@@ -61,10 +61,11 @@ const toggleStatus = () => {
 <style lang="scss" scoped>
 .bullet-task {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 0.5em;
   padding: 0.2em 0;
   line-height: 1.5;
+  position: relative;
 
   .bullet-icon {
     flex-shrink: 0;
@@ -80,6 +81,9 @@ const toggleStatus = () => {
     font-size: 0.9em;
     line-height: 1;
     transform: scale(1.1);
+    position: absolute;
+    left: 0;
+    margin-top: 0.15em;
 
     .icon-inner {
       display: flex;
@@ -97,6 +101,7 @@ const toggleStatus = () => {
     min-width: 0;
     line-height: inherit;
     padding: 0.1em 0;
+    margin-left: 2em;
   }
 
   &--pending {

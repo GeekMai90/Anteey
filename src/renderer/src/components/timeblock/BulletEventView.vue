@@ -17,10 +17,11 @@ defineProps<NodeViewProps>()
 <style lang="scss" scoped>
 .bullet-event {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 0.5em;
   padding: 0.2em 0;
   line-height: 1.5;
+  position: relative;
 
   .bullet-icon {
     flex-shrink: 0;
@@ -33,6 +34,9 @@ defineProps<NodeViewProps>()
     color: var(--color-primary);
     font-size: 0.9em;
     line-height: 1;
+    margin-top: 0.15em;
+    position: absolute;
+    left: 0;
   }
 
   .bullet-content {
@@ -40,6 +44,7 @@ defineProps<NodeViewProps>()
     min-width: 0;
     line-height: inherit;
     padding: 0.1em 0;
+    margin-left: 2em; /* 给内容添加左边距，与图标大小+间距相匹配 */
   }
 }
 </style>
