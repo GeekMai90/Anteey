@@ -976,6 +976,7 @@ async function createSyncNote(
   const newNote = {
     id,
     type: 'note',
+    title: options.metadata.title || '未命名笔记',
     address: options.address,
     cardType: options.cardType,
     content: {
