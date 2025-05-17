@@ -59,6 +59,8 @@
           :noteId="card.noteId || ''"
           :editable="true"
           :enable-drag-handle="false"
+          :enable-add-paragraph-area="false"
+          :show-character-count="false"
           @update:content="handleContentUpdate"
         />
       </div>
