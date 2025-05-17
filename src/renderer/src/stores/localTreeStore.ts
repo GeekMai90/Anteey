@@ -7,7 +7,7 @@ export const useLocalTreeStore = defineStore('localTree', () => {
   const treeDataWithRefs = ref<LocalTreeWithReferencesData | null>(null)
 
   const isValidAddress = (address: string): boolean => {
-    const valid = /^\d+(-[1-9]\d*[a-z]?)*$/.test(address)
+    const valid = /^\d{4}(-([1-9]\d{0,2}[a-z]?|[1-9]?\d{0,2}[a-z]))*$/.test(address)
     // console.log(`验证地址 ${address}: ${valid}`)
     return valid
   }

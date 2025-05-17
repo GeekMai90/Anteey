@@ -76,9 +76,9 @@ export function getAddressLevel(address: string): AddressLevel | null {
 
     // 检查各层级
     if (address.endsWith('000')) {
-      // 验证第一位不能为0
-      if (address[0] === '0') {
-        console.warn(`无效地址: 顶层地址第一位不能为0，当前地址: ${address}`)
+      // 验证第一位不能为0且不能大于9
+      if (address[0] === '0' || parseInt(address[0]) > 9) {
+        console.warn(`无效地址: 顶层地址第一位必须在1-9范围内，当前地址: ${address}`)
         return null
       }
       return 'top'
@@ -100,10 +100,10 @@ export function getAddressLevel(address: string): AddressLevel | null {
   // 4. 分支层级验证
   if (address.includes('-')) {
     // 验证分支格式
-    const pattern = /^\d{4}(-([1-9]\d*[a-z]?|\d*[a-z]))+$/
+    const pattern = /^\d{4}(-([1-9]\d{0,2}[a-z]?|[1-9]?\d{0,2}[a-z]))*$/
     if (!pattern.test(address)) {
       console.warn(
-        `无效地址: 分支地址格式错误，应为"基础地址-分支号"格式，分支号可以是正整数或带小写字母，当前地址: ${address}`
+        `无效地址: 分支地址格式错误，应为"基础地址-分支号"格式，分支号可以是1-999的正整数或带小写字母，当前地址: ${address}`
       )
       return null
     }
@@ -473,8 +473,8 @@ async function generateSiblingAddress(
     // 顶级节点（X000）
     const currentNum = parseInt(referenceAddress[0])
     if (isLastNode) {
-      if (currentNum >= 5) {
-        throw new Error('无法添加更多顶级节点，已达到最大值5')
+      if (currentNum >= 9) {
+        throw new Error('无法添加更多顶级节点，已达到最大值9')
       }
       return `${currentNum + 1}000`
     } else {

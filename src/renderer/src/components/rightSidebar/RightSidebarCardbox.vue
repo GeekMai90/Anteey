@@ -761,7 +761,26 @@ const handleSortSelect = async (value: string) => {
     field: filterState.sort.field,
     order: filterState.sort.order
   })
-  resetAndFetch()
+
+  // 如果当前有地址筛选，只对当前数据进行排序
+  if (filterState.addressFilter) {
+    if (filterState.sort.field === 'address') {
+      notes.value.sort((a, b) => {
+        const result = compareAddress(a.address, b.address)
+        return filterState.sort.order === 'asc' ? result : -result
+      })
+    } else {
+      // 对于其他字段的排序
+      notes.value.sort((a, b) => {
+        const aValue = new Date(a[filterState.sort.field]).getTime()
+        const bValue = new Date(b[filterState.sort.field]).getTime()
+        return filterState.sort.order === 'asc' ? aValue - bValue : bValue - aValue
+      })
+    }
+  } else {
+    // 如果没有地址筛选，则重新获取数据
+    await resetAndFetch()
+  }
 }
 
 // 重置并重新获取数据

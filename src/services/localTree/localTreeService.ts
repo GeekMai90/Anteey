@@ -98,7 +98,7 @@ function getAddressLevel(address: string): AddressLevel | null {
 
   // 4. 分支层级验证
   if (address.includes('-')) {
-    const pattern = /^\d{4}(-([1-9]\d*[a-z]?|\d*[a-z]))+$/
+    const pattern = /^\d{4}(-([1-9]\d{0,2}[a-z]?|[1-9]?\d{0,2}[a-z]))*$/
     if (!pattern.test(address)) {
       // console.warn(`无效地址: 分支地址格式错误`)
       return null

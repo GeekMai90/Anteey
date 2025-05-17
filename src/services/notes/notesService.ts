@@ -2331,70 +2331,91 @@ export async function getInvalidAddressNotes(): Promise<Note[]> {
 
     // 2. 验证每个地址
     const invalidNotes = notes.filter((note) => {
+      console.log('\n开始验证地址:', note.address)
+
       // 基础格式验证：必须以1-9开头的四位数字开始，后面可以跟着分支编码
-      const addressPattern = /^[1-9]\d{3}(-[1-9]\d?[a-z]?)*$/
+      const addressPattern = /^[1-9]\d{3}(-([1-9]\d{0,2}[a-z]?|[1-9]?\d{0,2}[a-z]))*$/
       if (!addressPattern.test(note.address)) {
+        console.log('地址格式验证失败:', note.address)
         return true // 地址格式不符合基本规则
       }
+      console.log('地址格式验证通过')
 
       // 分解地址
       const parts = note.address.split('-')
       const baseCode = parts[0]
+      console.log('基础编码:', baseCode)
 
       // 验证基础编码部分（前4位）
       const firstDigit = parseInt(baseCode[0])
       const secondDigit = parseInt(baseCode[1])
       const lastTwoDigits = parseInt(baseCode.slice(2))
+      console.log('编码分解:', { firstDigit, secondDigit, lastTwoDigits })
 
       // 验证顶级编码（X000形式）
       if (baseCode.endsWith('000')) {
+        console.log('验证顶级编码')
         if (firstDigit < 1 || firstDigit > 9) {
+          console.log('顶级编码第一位验证失败:', firstDigit)
           return true // 第一位必须是1-9
         }
         if (secondDigit !== 0) {
+          console.log('顶级编码第二位验证失败:', secondDigit)
           return true // 如果是顶级编码，第二位必须是0
         }
       }
       // 验证二级编码（XX00形式）
       else if (baseCode.endsWith('00')) {
+        console.log('验证二级编码')
         if (firstDigit < 1 || firstDigit > 9) {
+          console.log('二级编码第一位验证失败:', firstDigit)
           return true // 第一位必须是1-9
         }
         if (secondDigit < 1 || secondDigit > 9) {
+          console.log('二级编码第二位验证失败:', secondDigit)
           return true // 第二位必须是1-9
         }
       }
       // 验证三级编码（XXXX形式）
       else {
+        console.log('验证三级编码')
         if (firstDigit < 1 || firstDigit > 9) {
+          console.log('三级编码第一位验证失败:', firstDigit)
           return true // 第一位必须是1-9
         }
         if (secondDigit < 1 || secondDigit > 9) {
+          console.log('三级编码第二位验证失败:', secondDigit)
           return true // 第二位必须是1-9
         }
-        if (lastTwoDigits < 1 || lastTwoDigits > 99) {
-          return true // 后两位必须在01-99之间
+        if (lastTwoDigits < 1) {
+          console.log('三级编码后两位验证失败:', lastTwoDigits)
+          return true // 后两位必须大于0
         }
       }
 
       // 验证分支编码
       if (parts.length > 1) {
+        console.log('验证分支编码:', parts.slice(1))
         // 最多支持10层分支
         if (parts.length > 11) {
+          console.log('分支层级超过限制:', parts.length)
           return true
         }
 
         // 验证每个分支部分
         for (let i = 1; i < parts.length; i++) {
           const branch = parts[i]
-          // 分支格式：1-99 + 可选的小写字母（a-z）
-          const branchPattern = /^([1-9]\d?[a-z]?|[1-9][a-z])$/
+          console.log('验证分支:', branch)
+          // 分支格式：1-999 + 可选的小写字母（a-z）
+          const branchPattern = /^([1-9]\d{0,2}[a-z]?|[1-9][a-z])$/
           if (!branchPattern.test(branch)) {
+            console.log('分支格式验证失败:', branch)
             return true
           }
         }
       }
 
+      console.log('所有验证通过\n')
       return false // 通过所有验证，说明地址格式正确
     })
 

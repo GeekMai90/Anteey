@@ -43,8 +43,8 @@ export function getRelatedAddresses(address: string) {
     // 添加可能的子地址
     results.children.push(`${address}-1`)
     results.children.push(`${address}a`)
-  } else if (/^[1-9]\d*[a-z]$/.test(lastSegment)) {
-    // 数字+字母编码: 1212-1a, 1212-1b
+  } else if (/^[1-9]\d{0,2}[a-z]$/.test(lastSegment)) {
+    // 数字+字母编码: 1212-1a, 1212-1b, 1212-999a
     // 同级地址应该是同一个数字下的其他字母
     const baseNum = lastSegment.slice(0, -1)
     const letter = lastSegment.slice(-1)
