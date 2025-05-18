@@ -35,7 +35,7 @@
 import { Robot } from '@icon-park/vue-next'
 import { useAIChatStore } from '@renderer/stores/aiChatStore'
 import { message } from '@renderer/utils/message'
-import Dropdown from '@renderer/components/ui/Dropdown.vue'
+import Dropdown from '@renderer/components/ui/dropdowns/Dropdown.vue'
 import { onMounted } from 'vue'
 
 const aiChatStore = useAIChatStore()

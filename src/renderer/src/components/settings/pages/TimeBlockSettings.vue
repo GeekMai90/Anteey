@@ -64,7 +64,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { Time } from '@icon-park/vue-next'
 import Switch from '@renderer/components/ui/Switch.vue'
-import Dropdown from '@renderer/components/ui/Dropdown.vue'
+import Dropdown from '@renderer/components/ui/dropdowns/Dropdown.vue'
 import { useTimeBlockStore } from '@renderer/stores/timeBlockStore'
 
 const timeBlockStore = useTimeBlockStore()

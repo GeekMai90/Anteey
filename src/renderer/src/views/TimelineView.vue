@@ -116,7 +116,7 @@ import NoteCard from '@renderer/components/note/NoteCard.vue'
 import { useVirtualList } from '@vueuse/core'
 import { useEventBus } from '@vueuse/core'
 import DateDivider from '@renderer/components/timelineView/DateDivider.vue'
-import CalendarButton from '@renderer/components/ui/CalendarButton.vue'
+import CalendarButton from '@renderer/components/ui/buttons/CalendarButton.vue'
 import type { UseVirtualListOptions } from '@vueuse/core'
 // import MessageToast from '@renderer/components/common/MessageToast.vue'
 

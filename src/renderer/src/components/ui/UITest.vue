@@ -445,7 +445,7 @@ import Button from '@renderer/components/ui/buttons/Button.vue'
 import SpreadButton from './SpreadButton.vue'
 import SearchInput from './SearchInput.vue'
 import AppToolbar from '../layout/AppToolbar.vue'
-import Dropdown from './Dropdown.vue'
+import Dropdown from '@renderer/components/ui/dropdowns/Dropdown.vue'
 import {
   Plus,
   Delete,
@@ -459,7 +459,7 @@ import {
   Link,
   MenuFoldOne
 } from '@icon-park/vue-next'
-import CalendarButton from './CalendarButton.vue'
+import CalendarButton from '@renderer/components/ui/buttons/CalendarButton.vue'
 import LoadingCandle from './LoadingCandle.vue'
 import LoadingThinking from './LoadingThinking.vue'
 // import ConfirmDialog from '@renderer/components/common/ConfirmDialog.vue'

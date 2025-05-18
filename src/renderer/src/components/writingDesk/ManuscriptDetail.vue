@@ -313,7 +313,7 @@ import { ManuscriptCard } from '@/shared/types'
 import TipTapEditor from '@renderer/components/tiptap/TipTapEditor.vue'
 import CardThumbnailNavigator from './CardThumbnailNavigator.vue'
 import CardGridView from './CardGridView.vue'
-import Dropdown from '@renderer/components/ui/Dropdown.vue'
+import Dropdown from '@renderer/components/ui/dropdowns/Dropdown.vue'
 import TableOfContents from '../toc/TableOfContents.vue'
 
 // 使用路由获取参数

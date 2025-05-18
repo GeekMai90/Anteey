@@ -165,7 +165,7 @@ import { useFlashcardStore } from '@renderer/stores/flashcardStore'
 import type { FlashcardSettings } from '@shared/types'
 import { debounce } from 'lodash-es'
 import Switch from '@renderer/components/ui/Switch.vue'
-import Dropdown from '@renderer/components/ui/Dropdown.vue'
+import Dropdown from '@renderer/components/ui/dropdowns/Dropdown.vue'
 import NumberInput from '@renderer/components/ui/NumberInput.vue'
 import HelpTips from '@renderer/components/ui/HelpTips.vue'
 

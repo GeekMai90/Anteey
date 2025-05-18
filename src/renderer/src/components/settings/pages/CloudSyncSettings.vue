@@ -62,7 +62,7 @@ import WebDAVSettings from './WebDAVSettings.vue'
 import S3Settings from './s3Settings.vue'
 import { useCloudSyncStore } from '@renderer/stores/cloudSyncStore'
 import type { CloudSyncType } from '@shared/types'
-import Dropdown from '@renderer/components/ui/Dropdown.vue'
+import Dropdown from '@renderer/components/ui/dropdowns/Dropdown.vue'
 import EmptyState from '@renderer/components/ui/EmptyState.vue'
 import Description from '@renderer/components/ui/Description.vue'
 // // 同步类型选项

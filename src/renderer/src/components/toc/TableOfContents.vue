@@ -61,7 +61,7 @@ import { TextSelection } from '@tiptap/pm/state'
 import { Editor } from '@tiptap/vue-3'
 import { computed, ref, reactive, onMounted } from 'vue'
 import { More } from '@icon-park/vue-next'
-import Dropdown from '@renderer/components/ui/Dropdown.vue'
+import Dropdown from '@renderer/components/ui/dropdowns/Dropdown.vue'
 
 interface TocItemData {
   id: string

@@ -2,7 +2,7 @@
 import { ref, watch, onMounted, onBeforeUnmount, nextTick, computed } from 'vue'
 import { useFloating, offset, flip, shift, autoUpdate } from '@floating-ui/vue'
 import Button from '@renderer/components/ui/buttons/Button.vue'
-import Switch from './Switch.vue'
+import Switch from '@renderer/components/ui/Switch.vue'
 import type { Component } from 'vue'
 import type { Placement } from '@floating-ui/vue'
 
@@ -346,7 +346,7 @@ const handleSwitchChange = (item: SwitchableDropdownItem, checked: boolean) => {
                 <Switch
                   :model-value="(item as SwitchableDropdownItem).checked"
                   @update:model-value="
-                    (val) => handleSwitchChange(item as SwitchableDropdownItem, val)
+                    (val: boolean) => handleSwitchChange(item as SwitchableDropdownItem, val)
                   "
                 />
               </div>

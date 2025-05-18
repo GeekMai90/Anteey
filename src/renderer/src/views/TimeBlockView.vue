@@ -372,7 +372,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { parseISO } from 'date-fns'
 import { useFloating } from '@floating-ui/vue'
 import { flip, offset, shift } from '@floating-ui/dom'
-import CalendarButton from '@renderer/components/ui/CalendarButton.vue'
+import CalendarButton from '@renderer/components/ui/buttons/CalendarButton.vue'
 import Button from '@renderer/components/ui/buttons/Button.vue'
 
 /**
