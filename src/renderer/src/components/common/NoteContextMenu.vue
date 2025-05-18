@@ -13,6 +13,7 @@ import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useNoteStore } from '@renderer/stores/noteStore'
 import { useKnowledgeTreeStore } from '@renderer/stores/knowledgeTreeStore'
+import { useUIStore } from '@renderer/stores/UIStore'
 import PopupMenu from './PopupMenu.vue'
 import type { MenuItem } from './PopupMenu.vue'
 import {
@@ -22,7 +23,8 @@ import {
   FileEditing,
   ViewGridCard,
   Sapling,
-  ListAlphabet
+  ListAlphabet,
+  RightBar
 } from '@icon-park/vue-next'
 import { useEventBus } from '@vueuse/core'
 import { Note } from '@/shared/types'
@@ -30,6 +32,7 @@ import { Note } from '@/shared/types'
 const router = useRouter()
 const noteStore = useNoteStore()
 const knowledgeTreeStore = useKnowledgeTreeStore()
+const uiStore = useUIStore()
 
 // 定义菜单项配置类型
 interface MenuItemConfig {
@@ -97,6 +100,12 @@ const DEFAULT_MENU_CONFIG: Record<string, MenuItemConfig> = {
     label: '添加索引',
     icon: ListAlphabet,
     visible: true
+  },
+  addToRightSidebar: {
+    name: 'addToRightSidebar',
+    label: '右侧显示',
+    icon: RightBar,
+    visible: true
   }
 }
 
@@ -108,7 +117,8 @@ const actionHandlers: Record<string, () => void> = {
   expandEdit: () => handleExpandEdit(),
   viewInCardbox: () => handleViewInCardbox(),
   viewInTree: () => handleViewInTree(),
-  toggleIndex: () => handleToggleIndex()
+  toggleIndex: () => handleToggleIndex(),
+  addToRightSidebar: () => handleAddToRightSidebar()
 }
 
 // 合并配置并生成菜单项
@@ -265,6 +275,15 @@ async function handleToggleIndex() {
     } catch (error) {
       console.error('切换索引状态失败:', error)
     }
+  }
+  handleClose()
+}
+
+// 添加到右侧边栏处理函数
+async function handleAddToRightSidebar() {
+  if (props.noteId) {
+    await noteStore.addNoteToRightSidebar(props.noteId)
+    uiStore.openRightSidebarWithTab('multi')
   }
   handleClose()
 }

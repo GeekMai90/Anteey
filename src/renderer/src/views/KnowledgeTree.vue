@@ -32,6 +32,7 @@
         addSibling: true,
         addChild: true,
         toggleIndex: true,
+        addToRightSidebar: true,
         copyAddress: true,
         expandEdit: true,
         viewInCardbox: true
