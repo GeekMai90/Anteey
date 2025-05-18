@@ -111,7 +111,7 @@ import { EditorState } from '@tiptap/pm/state/dist'
 import { useRouter } from 'vue-router/dist/vue-router'
 import MoreButton from '@renderer/components/common/MoreButton.vue'
 import CardboxButton from '@renderer/components/common/CardboxButton.vue'
-import IconButton from '@renderer/components/ui/IconButton.vue'
+import IconButton from '@renderer/components/ui/buttons/IconButton.vue'
 
 const props = defineProps<{
   noteId: string

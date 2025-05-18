@@ -96,8 +96,8 @@ import type { ManuscriptCard } from '@shared/types'
 import { debounce } from 'lodash-es'
 import { message } from '@renderer/utils/message'
 import { useNoteStore } from '@renderer/stores/noteStore'
-import { useUIStore } from '../../stores/UIStore'
-import IconButton from '@renderer/components/ui/IconButton.vue'
+import { useUIStore } from '@renderer/stores/UIStore'
+import IconButton from '@renderer/components/ui/buttons/IconButton.vue'
 
 const props = defineProps<{
   card: ManuscriptCard

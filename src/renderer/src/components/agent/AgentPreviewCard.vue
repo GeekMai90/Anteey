@@ -34,7 +34,7 @@
 
 <script setup lang="ts">
 import { RobotOne, Edit, Delete } from '@icon-park/vue-next'
-import IconButton from '@renderer/components/ui/IconButton.vue'
+import IconButton from '@renderer/components/ui/buttons/IconButton.vue'
 import type { Agent } from '@shared/types'
 import { useModelConfigStore } from '@renderer/stores/modelConfigStore'
 import { onMounted } from 'vue'

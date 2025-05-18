@@ -87,7 +87,7 @@ import { useUIStore } from '@renderer/stores/UIStore'
 import { debounce } from 'lodash-es'
 import { CardType, Note } from '@shared/types'
 import { EditorState } from '@tiptap/pm/state/dist'
-import IconButton from '@renderer/components/ui/IconButton.vue'
+import IconButton from '@renderer/components/ui/buttons/IconButton.vue'
 import EmptyState from '@renderer/components/ui/EmptyState.vue'
 
 // === 组件状态管理 ===

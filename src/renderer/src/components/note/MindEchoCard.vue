@@ -77,7 +77,7 @@ import { useMindEchoStore } from '@renderer/stores/mindEchoStore'
 import { debounce } from 'lodash-es'
 // 导入 ConfirmDialog 组件
 import ConfirmDialog from '@renderer/components/common/ConfirmDialog.vue'
-import IconButton from '@renderer/components/ui/IconButton.vue'
+import IconButton from '@renderer/components/ui/buttons/IconButton.vue'
 import { useAIChatStore } from '@renderer/stores/aiChatStore'
 
 const props = defineProps<{

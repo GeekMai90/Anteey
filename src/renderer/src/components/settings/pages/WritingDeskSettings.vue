@@ -109,7 +109,7 @@ import Button from '@renderer/components/ui/buttons/Button.vue'
 import Input from '@renderer/components/ui/Input.vue'
 import Textarea from '@renderer/components/ui/Textarea.vue'
 import EmptyState from '@renderer/components/ui/EmptyState.vue'
-import IconButton from '../../ui/IconButton.vue'
+import IconButton from '@renderer/components/ui/buttons/IconButton.vue'
 import Modal from '@renderer/components/common/Modal.vue'
 import Description from '@renderer/components/ui/Description.vue'
 

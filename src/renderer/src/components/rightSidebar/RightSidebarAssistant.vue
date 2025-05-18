@@ -376,7 +376,7 @@ import { useNoteStore } from '@renderer/stores/noteStore'
 import AgentAvatar from '@renderer/components/ui/AgentAvatar.vue'
 import { useMindEchoStore } from '@renderer/stores/mindEchoStore'
 import type { MessageRecord } from '@shared/types/ai-chat'
-import IconButton from '@renderer/components/ui/IconButton.vue'
+import IconButton from '@renderer/components/ui/buttons/IconButton.vue'
 import { useEventBus } from '@vueuse/core'
 
 // Store

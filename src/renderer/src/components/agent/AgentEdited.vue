@@ -94,7 +94,7 @@ import Button from '@renderer/components/ui/buttons/Button.vue'
 import Dropdown from '@renderer/components/ui/dropdowns/Dropdown.vue'
 import Slider from '@renderer/components/ui/Slider.vue'
 import { Close } from '@icon-park/vue-next'
-import IconButton from '@renderer/components/ui/IconButton.vue'
+import IconButton from '@renderer/components/ui/buttons/IconButton.vue'
 import HelpTips from '@renderer/components/ui/HelpTips.vue'
 import { message } from '@renderer/utils/message'
 
