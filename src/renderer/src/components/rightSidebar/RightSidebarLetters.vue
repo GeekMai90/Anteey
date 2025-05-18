@@ -65,7 +65,7 @@
 <script setup lang="ts">
 import { ref, onMounted, watch } from 'vue'
 import { MailPackage } from '@icon-park/vue-next'
-import SegmentedButton from '@renderer/components/ui/SegmentedButton.vue'
+import SegmentedButton from '@renderer/components/ui/buttons/SegmentedButton.vue'
 import DailyLetterContent from '@renderer/components/dailyLetter/DailyLetterContent.vue'
 import type { Letter, LetterType } from '@shared/types'
 import { useDailyLetterStore } from '@renderer/stores/dailyLetterStore'

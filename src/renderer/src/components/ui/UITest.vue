@@ -440,9 +440,9 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import SegmentedButton from './SegmentedButton.vue'
+import SegmentedButton from '@renderer/components/ui/buttons/SegmentedButton.vue'
 import Button from '@renderer/components/ui/buttons/Button.vue'
-import SpreadButton from './SpreadButton.vue'
+import SpreadButton from '@renderer/components/ui/buttons/SpreadButton.vue'
 import SearchInput from './SearchInput.vue'
 import AppToolbar from '../layout/AppToolbar.vue'
 import Dropdown from '@renderer/components/ui/dropdowns/Dropdown.vue'

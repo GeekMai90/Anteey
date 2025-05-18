@@ -304,7 +304,7 @@ import {
 import { useWritingDeskStore } from '@renderer/stores/writingDeskStore'
 import { useNoteStore } from '@renderer/stores/noteStore'
 import { useModelConfigStore } from '@renderer/stores/modelConfigStore'
-import SegmentedButton from '@renderer/components/ui/SegmentedButton.vue'
+import SegmentedButton from '@renderer/components/ui/buttons/SegmentedButton.vue'
 import Button from '@renderer/components/ui/buttons/Button.vue'
 import AppToolbar from '@renderer/components/layout/AppToolbar.vue'
 import draggable from 'vuedraggable'
