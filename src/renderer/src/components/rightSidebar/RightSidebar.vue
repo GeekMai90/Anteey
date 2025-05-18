@@ -57,6 +57,20 @@ import RightSidebarAssistant from '@renderer/components/rightSidebar/RightSideba
 import RightSidebarLetters from '@renderer/components/rightSidebar/RightSidebarLetters.vue'
 import RightSidebarIndex from '@renderer/components/rightSidebar/RightSidebarIndex.vue'
 import { useUIStore } from '@renderer/stores/UIStore'
+
+// 定义 UIStore 中的标签页类型
+type UIStoreTabKey = 'widgets' | 'drafts' | 'assistant' | 'cardbox' | 'index'
+
+// 定义所有可能的标签页类型
+type TabKey = UIStoreTabKey | 'multi' | 'backlink' | 'letters'
+
+interface Tab {
+  key: TabKey
+  label: string
+  icon: any
+  component: any
+}
+
 const props = defineProps<{
   initialWidth?: number
 }>()
@@ -66,13 +80,25 @@ const uiStore = useUIStore()
 
 const sidebarWidth = ref(props.initialWidth || 400)
 const currentTab = computed({
-  get: () => uiStore.rightSidebarTab,
-  set: (value) => (uiStore.rightSidebarTab = value)
+  get: () => {
+    const tab = uiStore.rightSidebarTab
+    return tab as TabKey
+  },
+  set: (value: TabKey) => {
+    if (isUIStoreTab(value)) {
+      uiStore.rightSidebarTab = value
+    }
+  }
 })
 const route = useRoute()
 
+// 类型保护函数
+function isUIStoreTab(tab: TabKey): tab is UIStoreTabKey {
+  return ['widgets', 'drafts', 'assistant', 'cardbox', 'index'].includes(tab)
+}
+
 // 定义可用的 tabs
-const tabs = [
+const tabs: Tab[] = [
   {
     key: 'multi',
     label: '多开笔记',
@@ -85,41 +111,42 @@ const tabs = [
     icon: CopyLink,
     component: BacklinksPanelNoteEditor
   },
+
   {
-    key: 'letters',
-    label: '往期来信',
-    icon: MailPackage,
-    component: RightSidebarLetters
-  },
-  {
-    key: 'cardbox',
+    key: 'cardbox' as const,
     label: '卡片盒',
     icon: Box,
     component: RightSidebarCardbox
   },
   {
-    key: 'assistant',
+    key: 'index' as const,
+    label: '索引',
+    icon: ListAlphabet,
+    component: RightSidebarIndex
+  },
+  {
+    key: 'assistant' as const,
     label: '智能助手',
     icon: Robot,
     component: RightSidebarAssistant
   },
   {
-    key: 'drafts',
+    key: 'drafts' as const,
     label: '草稿纸',
     icon: Notepad,
     component: RightSidebarDraftsEditor
   },
   {
-    key: 'widgets',
+    key: 'widgets' as const,
     label: '小组件',
     icon: Components,
     component: RightSidebarWidgets
   },
   {
-    key: 'index',
-    label: '索引',
-    icon: ListAlphabet,
-    component: RightSidebarIndex
+    key: 'letters',
+    label: '往期来信',
+    icon: MailPackage,
+    component: RightSidebarLetters
   }
 ]
 

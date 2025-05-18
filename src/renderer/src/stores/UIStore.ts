@@ -140,7 +140,7 @@ export const useUIStore = defineStore(
       isCalendarPickerOpen.value = false
     }
 
-    // 关闭时光记页面中的日历选择器
+    // 关闭时间块日历选择器
     function closeTimeBlockCalendarPicker() {
       isTimeBlockCalendarPickerOpen.value = false
     }
@@ -163,10 +163,12 @@ export const useUIStore = defineStore(
     //显示右侧边栏
     const isRightSidebarOpen = ref(false)
     // 右侧边栏当前显示的标签页（参数是默认打开的标签页）
-    const rightSidebarTab = ref('widgets')
+    const rightSidebarTab = ref<'widgets' | 'drafts' | 'assistant' | 'cardbox' | 'index'>('widgets')
 
-    // 修改打开右侧边栏方法,支持 assistant 标签页
-    const openRightSidebarWithTab = (tab: string) => {
+    // 修改打开右侧边栏方法,支持所有标签页
+    const openRightSidebarWithTab = (
+      tab: 'widgets' | 'drafts' | 'assistant' | 'cardbox' | 'index'
+    ) => {
       isRightSidebarOpen.value = true
       rightSidebarTab.value = tab
 

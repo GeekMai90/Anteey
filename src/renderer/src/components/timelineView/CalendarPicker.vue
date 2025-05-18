@@ -90,7 +90,6 @@ const onDayClick = (day: { id: string }) => {
   } else {
     emit('dateSelected', clickedDate) // 选中新的日期
   }
-  emit('update:isVisible', false) // 隐藏日历
 }
 
 // 更新日历弹出框的位置
@@ -127,6 +126,7 @@ const handleClickOutside = (event: MouseEvent) => {
 
   if (!isClickInsideCalendar && !isClickOnTrigger && !isClickOnVCalendar) {
     uiStore.closeCalendarPicker()
+    emit('update:isVisible', false)
   }
 }
 

@@ -1,0 +1,27 @@
+.vc-popover-content {
+  color: var(--color-text-primary) !important;
+  background-color: var(--color-bg-primary) !important;
+  border-color: var(--color-border) !important;
+}
+
+.vc-nav-item {
+  background-color: var(--color-bg-primary) !important;
+  border: 1px solid transparent !important;
+  &:hover {
+    border-color: var(--color-border) !important;
+    border-radius: 4px !important;
+  }
+}
+
+.vc-nav-title {
+  color: var(--color-text-primary) !important;
+  background-color: var(--color-bg-primary) !important;
+}
+.vc-nav-arrow {
+  color: var(--color-text-primary) !important;
+  background-color: var(--color-bg-primary) !important;
+}
+
+.vc-weekday {
+  color: var(--color-text-primary) !important;
+}

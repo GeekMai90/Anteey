@@ -365,8 +365,6 @@ async function filterNotesByDate(date: string | null) {
 
 const onDateSelected = async (date: string | null) => {
   await filterNotesByDate(date)
-  // 关闭日历选择器
-  uiStore.isCalendarPickerOpen = false
 }
 
 const toggleDateFilter = () => {

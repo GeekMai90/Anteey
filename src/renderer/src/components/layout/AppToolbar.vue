@@ -120,6 +120,37 @@
       </div>
       <div
         v-tooltip.bottom="{
+          content: '卡片盒<br>Cmd + shift + C',
+          delay: { show: 1000 },
+          html: true
+        }"
+        class="toggle-cardbox"
+        @click="toggleCardbox"
+      >
+        <div class="icon">
+          <Box theme="outline" size="20" fill="var(--color-icon-default)" :stroke-width="3" />
+        </div>
+      </div>
+      <div
+        v-tooltip.bottom="{
+          content: '索引卡<br>Cmd + shift + I',
+          delay: { show: 1000 },
+          html: true
+        }"
+        class="toggle-index"
+        @click="toggleIndex"
+      >
+        <div class="icon">
+          <ListAlphabet
+            theme="outline"
+            size="20"
+            fill="var(--color-icon-default)"
+            :stroke-width="3"
+          />
+        </div>
+      </div>
+      <div
+        v-tooltip.bottom="{
           content: '草稿纸<br>Cmd + shift + D',
           delay: { show: 1000 },
           html: true
@@ -183,7 +214,9 @@ import {
   Components,
   Notepad,
   Robot,
-  Refresh
+  Refresh,
+  Box,
+  ListAlphabet
 } from '@icon-park/vue-next'
 import { useUIStore } from '@renderer/stores/UIStore'
 import { useKnowledgeTreeStore } from '@renderer/stores/knowledgeTreeStore'
@@ -412,6 +445,34 @@ const toggleAssistant = () => {
       uiStore.toggleRightSidebar()
     }
     uiStore.rightSidebarTab = 'assistant'
+  }
+}
+
+// 添加卡片盒切换方法
+const toggleCardbox = () => {
+  // 如果右侧边栏已打开且当前是卡片盒标签，则关闭右侧边栏
+  if (uiStore.isRightSidebarOpen && uiStore.rightSidebarTab === 'cardbox') {
+    uiStore.toggleRightSidebar()
+  } else {
+    // 否则，确保右侧边栏打开并切换到卡片盒标签
+    if (!uiStore.isRightSidebarOpen) {
+      uiStore.toggleRightSidebar()
+    }
+    uiStore.rightSidebarTab = 'cardbox'
+  }
+}
+
+// 添加索引卡切换方法
+const toggleIndex = () => {
+  // 如果右侧边栏已打开且当前是索引卡标签，则关闭右侧边栏
+  if (uiStore.isRightSidebarOpen && uiStore.rightSidebarTab === 'index') {
+    uiStore.toggleRightSidebar()
+  } else {
+    // 否则，确保右侧边栏打开并切换到索引卡标签
+    if (!uiStore.isRightSidebarOpen) {
+      uiStore.toggleRightSidebar()
+    }
+    uiStore.rightSidebarTab = 'index'
   }
 }
 </script>
@@ -657,6 +718,18 @@ const toggleAssistant = () => {
 
 // 添加 AI 助手按钮样式
 .toggle-assistant {
+  @extend .toggle-right-sidebar;
+  margin-right: 4px;
+}
+
+// 添加卡片盒按钮样式
+.toggle-cardbox {
+  @extend .toggle-right-sidebar;
+  margin-right: 4px;
+}
+
+// 添加索引卡按钮样式
+.toggle-index {
   @extend .toggle-right-sidebar;
   margin-right: 4px;
 }

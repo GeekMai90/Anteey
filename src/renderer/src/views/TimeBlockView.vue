@@ -741,8 +741,6 @@ const onDateSelected = async (date: string | null) => {
       name: 'timeBlock'
     })
   }
-  // 关闭日历选择器
-  uiStore.isTimeBlockCalendarPickerOpen = false
 }
 
 // 监听路由参数变化，同步更新选中日期

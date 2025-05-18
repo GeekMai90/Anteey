@@ -16,6 +16,7 @@
         :masks="{ title: 'YYYY年MM月' }"
         :attributes="attributes"
         :is-dark="themeStore.isDarkMode"
+        :hide-on-click="false"
         transparent
         @dayclick="onDayClick"
       />
@@ -90,7 +91,6 @@ const onDayClick = (day: { id: string }) => {
   } else {
     emit('dateSelected', clickedDate) // 选中新的日期
   }
-  emit('update:isVisible', false) // 隐藏日历
 }
 
 // 更新日历弹出框的位置
@@ -115,16 +115,20 @@ const handleClickOutside = (event: MouseEvent) => {
   const calendar = calendarRef.value
   const triggerElement = document.querySelector(props.triggerElementSelector)
 
-  // 检查点击事件是否来自日历内部元素
   const isClickInsideCalendar = calendar?.contains(event.target as Node)
-  // 检查点击事件是否来自触发按钮
   const isClickOnTrigger = triggerElement?.contains(event.target as Node)
-
-  // 添加对 v-calendar 组件的特殊处理
   const isClickOnVCalendar = (event.target as Element)?.closest('.vc-container')
+  // 检查是否点击在月份选择器弹出窗口内
+  const isClickOnMonthPopover = (event.target as Element)?.closest('.vc-nav-popover-container')
 
-  if (!isClickInsideCalendar && !isClickOnTrigger && !isClickOnVCalendar) {
-    uiStore.closeCalendarPicker()
+  if (
+    !isClickInsideCalendar &&
+    !isClickOnTrigger &&
+    !isClickOnVCalendar &&
+    !isClickOnMonthPopover
+  ) {
+    uiStore.closeTimeBlockCalendarPicker()
+    emit('update:isVisible', false)
   }
 }
 
