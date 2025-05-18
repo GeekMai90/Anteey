@@ -111,7 +111,7 @@ import { Box, FileCabinet, InboxIn, More, Plus } from '@icon-park/vue-next'
 import type { CardBox } from '@shared/types'
 import { useFloating } from '@floating-ui/vue'
 import { flip, offset, shift } from '@floating-ui/dom'
-import Button from '@renderer/components/ui/Button.vue'
+import Button from '@renderer/components/ui/buttons/Button.vue'
 
 const props = defineProps<{
   modelValue: string

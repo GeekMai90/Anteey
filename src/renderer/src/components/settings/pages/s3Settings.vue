@@ -176,7 +176,7 @@ import { message } from '../../../utils/message'
 import Switch from '@renderer/components/ui/Switch.vue'
 import Input from '@renderer/components/ui/Input.vue'
 import Dropdown from '@renderer/components/ui/Dropdown.vue'
-import Button from '@renderer/components/ui/Button.vue'
+import Button from '@renderer/components/ui/buttons/Button.vue'
 
 const s3Store = useS3Store()
 const isConnecting = ref(false)

@@ -66,7 +66,7 @@ import { useUserSettingsStore } from '@renderer/stores/userSettingsStore'
 import ShareNoteCard from '@renderer/components/share/ShareNotedCard.vue'
 import { UpdateUserSettings } from '@shared/types'
 import { message } from '@renderer/utils/message'
-import Button from '@renderer/components/ui/Button.vue'
+import Button from '@renderer/components/ui/buttons/Button.vue'
 import Input from '@renderer/components/ui/Input.vue'
 
 const userSettingsStore = useUserSettingsStore()

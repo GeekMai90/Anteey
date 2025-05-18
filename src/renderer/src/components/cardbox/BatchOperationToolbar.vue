@@ -121,7 +121,7 @@ import {
   Workbench
 } from '@icon-park/vue-next'
 import type { CardType, Note } from '@shared/types'
-import Button from '@renderer/components/ui/Button.vue'
+import Button from '@renderer/components/ui/buttons/Button.vue'
 import BatchMoveCardBoxList from './BatchMoveCardBoxList.vue'
 import BatchChangeCardTypeList from './BatchChangeCardTypeList.vue'
 import BatchChangeTagList from './BatchChangeTagList.vue'

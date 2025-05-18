@@ -27,7 +27,7 @@
 </template>
 
 <script setup lang="ts">
-import Button from '@renderer/components/ui/Button.vue'
+import Button from '@renderer/components/ui/buttons/Button.vue'
 
 defineProps<{
   visible: boolean

@@ -217,7 +217,7 @@ import { CreateCustomFilterInput, UpdateCustomFilterInput } from '@shared/types'
 import { message } from '@renderer/utils/message'
 import FlashcardFilter from '@renderer/components/cardbox/FlashcardFilter.vue'
 import SearchInput from '@renderer/components/ui/SearchInput.vue'
-import Button from '@renderer/components/ui/Button.vue'
+import Button from '@renderer/components/ui/buttons/Button.vue'
 import BatchOperationToolbar from '@renderer/components/cardbox/BatchOperationToolbar.vue'
 
 const noteStore = useNoteStore()

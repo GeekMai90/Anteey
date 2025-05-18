@@ -223,7 +223,7 @@ import ConfirmDialog from '@renderer/components/common/ConfirmDialog.vue'
 import SegmentedButton from '@renderer/components/ui/SegmentedButton.vue'
 import SpreadButton from '@renderer/components/ui/SpreadButton.vue'
 import SearchInput from '@renderer/components/ui/SearchInput.vue'
-import Button from '@renderer/components/ui/Button.vue'
+import Button from '@renderer/components/ui/buttons/Button.vue'
 
 const mindboardStore = useMindboardStore()
 const showSortMenu = ref(false)

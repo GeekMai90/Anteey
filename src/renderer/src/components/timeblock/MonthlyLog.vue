@@ -96,7 +96,7 @@ import { ref, onMounted, watch } from 'vue'
 import { useTimeBlockStore } from '@renderer/stores/timeBlockStore'
 import MonthlyLogEditor from './MonthlyLogEditor.vue'
 import { Calendar } from '@icon-park/vue-next'
-import Button from '@renderer/components/ui/Button.vue'
+import Button from '@renderer/components/ui/buttons/Button.vue'
 
 const store = useTimeBlockStore()
 const content = ref('')

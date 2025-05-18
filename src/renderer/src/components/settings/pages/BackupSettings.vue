@@ -141,7 +141,7 @@ import { ref, onMounted, computed } from 'vue'
 import { formatBytes } from '@renderer/utils/format'
 import ConfirmDialog from '@renderer/components/common/ConfirmDialog.vue'
 import Switch from '@renderer/components/ui/Switch.vue'
-import Button from '@renderer/components/ui/Button.vue'
+import Button from '@renderer/components/ui/buttons/Button.vue'
 const noteId = ref('')
 const { handleBulkExport } = useNoteMenu({
   noteId: noteId.value,

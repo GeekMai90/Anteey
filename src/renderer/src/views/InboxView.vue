@@ -111,7 +111,7 @@ import type { Note } from '@shared/types'
 import CardBoxNoteCard from '@renderer/components/cardbox/CardboxNoteCard.vue'
 import { storeToRefs } from 'pinia'
 import { useEventBus, useThrottleFn } from '@vueuse/core'
-import Button from '@renderer/components/ui/Button.vue'
+import Button from '@renderer/components/ui/buttons/Button.vue'
 import BatchOperationToolbar from '@renderer/components/cardbox/BatchOperationToolbar.vue'
 import { message } from '@renderer/utils/message'
 

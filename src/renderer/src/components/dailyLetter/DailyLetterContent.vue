@@ -58,7 +58,7 @@
 
 <script setup lang="ts">
 import Modal from '@renderer/components/common/Modal.vue'
-import Button from '@renderer/components/ui/Button.vue'
+import Button from '@renderer/components/ui/buttons/Button.vue'
 import { MailOpen } from '@icon-park/vue-next'
 import { computed, onMounted } from 'vue'
 import { useDailyLetterStore } from '@renderer/stores/dailyLetterStore'

@@ -6,7 +6,7 @@
 
 <script setup lang="ts">
 import { StorageCardOne } from '@icon-park/vue-next'
-import Button from '@renderer/components/ui/Button.vue'
+import Button from '@renderer/components/ui/buttons/Button.vue'
 
 const props = defineProps<{
   modelValue: boolean | undefined

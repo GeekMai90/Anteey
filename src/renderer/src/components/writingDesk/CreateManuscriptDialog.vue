@@ -37,7 +37,7 @@
 <script setup lang="ts">
 import { ref, watch, nextTick } from 'vue'
 import Input from '@renderer/components/ui/Input.vue'
-import Button from '@renderer/components/ui/Button.vue'
+import Button from '@renderer/components/ui/buttons/Button.vue'
 
 const props = defineProps<{
   visible: boolean

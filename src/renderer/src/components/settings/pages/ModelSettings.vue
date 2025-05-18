@@ -199,7 +199,7 @@ import {
 } from '@services/rag/llm.config'
 import type { ModelConfig } from '@shared/types'
 import { message } from '@renderer/utils/message'
-import Button from '@renderer/components/ui/Button.vue'
+import Button from '@renderer/components/ui/buttons/Button.vue'
 import Input from '@renderer/components/ui/Input.vue'
 import Dropdown from '@renderer/components/ui/Dropdown.vue'
 import Textarea from '@renderer/components/ui/Textarea.vue'

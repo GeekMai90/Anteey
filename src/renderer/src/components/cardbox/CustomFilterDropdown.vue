@@ -112,7 +112,7 @@ import type { CustomFilter } from '@shared/types'
 import { message } from '@renderer/utils/message'
 import { useFloating } from '@floating-ui/vue'
 import { flip, offset, shift, autoUpdate } from '@floating-ui/dom'
-import Button from '@renderer/components/ui/Button.vue'
+import Button from '@renderer/components/ui/buttons/Button.vue'
 
 const filterStore = useFilterStore()
 const reference = ref<HTMLElement | null>(null)

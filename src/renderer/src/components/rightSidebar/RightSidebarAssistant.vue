@@ -366,7 +366,7 @@ import RightSidebarNoteSelector from '@renderer/components/rightSidebar/RightSid
 import { message } from '@renderer/utils/message'
 import { useAgentStore } from '@renderer/stores/agentStore'
 import LoadingCircle from '@renderer/components/ui/LoadingCircle.vue'
-import Button from '@renderer/components/ui/Button.vue'
+import Button from '@renderer/components/ui/buttons/Button.vue'
 import Dropdown from '@renderer/components/ui/Dropdown.vue'
 import { useAIChatStore } from '@renderer/stores/aiChatStore'
 import type { ChatRequest } from '@shared/types/ai-chat'

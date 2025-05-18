@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, watch, onMounted, onBeforeUnmount, nextTick, computed } from 'vue'
 import { useFloating, offset, flip, shift, autoUpdate } from '@floating-ui/vue'
-import Button from './Button.vue'
+import Button from '@renderer/components/ui/buttons/Button.vue'
 import Switch from './Switch.vue'
 import type { Component } from 'vue'
 import type { Placement } from '@floating-ui/vue'

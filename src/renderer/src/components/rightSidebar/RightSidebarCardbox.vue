@@ -206,7 +206,7 @@ import { useDebounceFn, useThrottleFn } from '@vueuse/core'
 import { useTagStore } from '@renderer/stores/tagStore'
 import { useFilterStore } from '@renderer/stores/filterStore'
 import Dropdown from '@renderer/components/ui/Dropdown.vue'
-import Button from '@renderer/components/ui/Button.vue'
+import Button from '@renderer/components/ui/buttons/Button.vue'
 import SearchInput from '@renderer/components/ui/SearchInput.vue'
 import EmptyState from '@renderer/components/ui/EmptyState.vue'
 

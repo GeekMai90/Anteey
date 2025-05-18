@@ -98,7 +98,7 @@ import { useEventBus } from '@vueuse/core'
 import AppToolbar from '@renderer/components/layout/AppToolbar.vue'
 import TrashNoteCard from '@renderer/components/note/TrashNoteCard.vue'
 import ConfirmDialog from '@renderer/components/common/ConfirmDialog.vue'
-import Button from '@renderer/components/ui/Button.vue'
+import Button from '@renderer/components/ui/buttons/Button.vue'
 import { SortTwo, Recycling, Delete, Clear, RecycleBin } from '@icon-park/vue-next'
 import type { Note } from '@shared/types'
 

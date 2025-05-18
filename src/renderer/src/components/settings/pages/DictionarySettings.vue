@@ -24,7 +24,7 @@
 import { BookOne } from '@icon-park/vue-next'
 import { useRouter } from 'vue-router'
 import { useUIStore } from '@renderer/stores/UIStore'
-import Button from '@renderer/components/ui/Button.vue'
+import Button from '@renderer/components/ui/buttons/Button.vue'
 
 const router = useRouter()
 const uiStore = useUIStore()
