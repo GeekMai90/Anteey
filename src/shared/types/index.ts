@@ -1,5 +1,6 @@
 // 导出所有共享类型
 export * from './backup-settings'
+export * from './command'
 export * from './custom-filter'
 export * from './flash-card'
 export * from './image'

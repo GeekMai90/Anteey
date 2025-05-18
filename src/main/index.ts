@@ -30,6 +30,7 @@ import { getCurrentConfig } from '@services/cloud/cloudSyncService'
 import { setupDinoxSyncHandlers } from './ipc/dinoxIpcHandlers'
 import { startApiServer } from './api/server'
 import fsSync from 'fs'
+import { registerDefaultCommands } from '@services/command/commandService'
 
 // 加载环境变量
 config({
@@ -788,6 +789,9 @@ app.whenReady().then(async () => {
 
     // 启动API服务器
     startApiServer()
+
+    // 注册默认命令
+    registerDefaultCommands()
   } catch (error) {
     console.error('主进程→ 应用初始化失败:', error)
     log.error('主进程→ 应用初始化失败:', error)

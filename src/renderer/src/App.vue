@@ -49,6 +49,9 @@
 
     <!-- 添加思维板选择器模态框 -->
     <MindboardSelectorModal />
+
+    <!-- 添加命令面板 -->
+    <CommandPalette />
   </div>
 </template>
 
@@ -82,6 +85,7 @@ import { useUIStore } from '@renderer/stores/UIStore'
 import ReviewModal from '@renderer/components/review/ReviewModal.vue'
 import ShareViewModal from '@renderer/components/share/ShareViewModal.vue'
 import MindboardSelectorModal from '@renderer/components/mindboard/MindboardSelectorModal.vue'
+import CommandPalette from '@renderer/components/common/CommandPalette.vue'
 import { message } from '@renderer/utils/message'
 
 // 状态管理初始化
@@ -157,6 +161,59 @@ const handleGradientUpdate = (gradient: {
 const initializeTheme = async () => {
   await themeStore.initializeTheme()
   themeStore.applyTheme()
+
+  // 监听主题变更事件
+  window.electronAPI.theme.onThemeChanged(async () => {
+    console.log('渲染进程 → 收到主题变更事件')
+    // 重新获取主题设置并应用
+    await themeStore.initializeTheme()
+    themeStore.applyTheme()
+  })
+
+  // 监听导航事件
+  window.electronAPI.events.on('navigate-to', (_event, path) => {
+    console.log('渲染进程 → 收到导航事件:', path)
+    if (typeof path === 'string') {
+      router.push(path)
+    }
+  })
+
+  // 监听打开设置事件
+  window.electronAPI.events.on('open-settings', () => {
+    console.log('渲染进程 → 收到打开设置事件')
+    uiStore.openSettingsPage()
+  })
+
+  // 监听打开搜索模态框事件
+  window.electronAPI.events.on('open-search-modal', () => {
+    console.log('渲染进程 → 收到打开搜索模态框事件')
+    uiStore.openSearchModal()
+  })
+
+  // 监听切换左侧边栏事件
+  window.electronAPI.events.on('toggle-sidebar', () => {
+    console.log('渲染进程 → 收到切换左侧边栏事件')
+    uiStore.toggleSidebar()
+  })
+
+  // 监听切换右侧边栏事件
+  window.electronAPI.events.on('toggle-right-sidebar', () => {
+    console.log('渲染进程 → 收到切换右侧边栏事件')
+    uiStore.toggleRightSidebar()
+  })
+
+  // 监听打开右侧边栏特定标签页事件
+  window.electronAPI.events.on('open-right-sidebar-tab', (_event: any, data: any) => {
+    console.log('渲染进程 → 收到打开右侧边栏标签页事件:', data)
+    if (
+      typeof data === 'string' &&
+      ['widgets', 'drafts', 'assistant', 'cardbox', 'index'].includes(data)
+    ) {
+      uiStore.openRightSidebarWithTab(
+        data as 'widgets' | 'drafts' | 'assistant' | 'cardbox' | 'index'
+      )
+    }
+  })
 }
 
 // 修改暗色主题的计算属性
@@ -300,6 +357,14 @@ onUnmounted(() => {
   window.electronAPI.systemMenu.removeAllListeners('menu-export-notes')
   window.electronAPI.systemMenu.removeAllListeners('sync-state-changed')
   window.removeEventListener('keydown', handleKeydown)
+
+  // 移除导航和设置事件监听
+  window.electronAPI.events.off('navigate-to', () => {})
+  window.electronAPI.events.off('open-settings', () => {})
+  window.electronAPI.events.off('open-search-modal', () => {})
+  window.electronAPI.events.off('toggle-sidebar', () => {})
+  window.electronAPI.events.off('toggle-right-sidebar', () => {})
+  window.electronAPI.events.off('open-right-sidebar-tab', () => {})
 
   // 移除同步事件监听
   window.electronAPI.cloudSync.removeAllListeners('sync-start')

@@ -540,6 +540,7 @@ async function createSyncNote(
   const newNote = {
     id,
     type: 'note',
+    title: bookInfo.title || '未命名高亮',
     address: addressCode,
     cardType: 'Draftcard',
     content,

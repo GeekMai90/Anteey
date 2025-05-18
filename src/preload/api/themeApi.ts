@@ -66,5 +66,18 @@ export const themeApi = {
       console.error('预加载脚本 → 移除收藏渐变失败:', error)
       throw error
     }
+  },
+
+  // 监听主题变更事件
+  onThemeChanged: (callback: () => void) => {
+    ipcRenderer.on('theme-changed', () => {
+      console.log('预加载脚本 → 收到主题变更事件')
+      callback()
+    })
+  },
+
+  // 移除主题变更事件监听
+  offThemeChanged: (callback: () => void) => {
+    ipcRenderer.removeListener('theme-changed', callback)
   }
 }

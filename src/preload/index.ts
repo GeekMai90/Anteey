@@ -37,6 +37,7 @@ import { mindEchoApi } from './api/mindEchoApi'
 import { readwiseApi } from './api/readwiseApi'
 import { noteAIProcessApi } from './api/noteAIProcessApi'
 import { tabsApi } from './api/tabsApi'
+import { commandApi } from './api/commandApi'
 // 添加日志 API
 contextBridge.exposeInMainWorld('electronLog', {
   info: (...args: any[]) => ipcRenderer.send('renderer-log', { level: 'info', args }),
@@ -220,6 +221,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
   tabs: {
     ...tabsApi
+  },
+  command: {
+    ...commandApi
   }
 })
 

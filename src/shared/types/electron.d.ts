@@ -145,7 +145,12 @@ import type {
 
   // Readwise 相关类型
   ReadwiseSyncConfig,
-  SearchResult
+  SearchResult,
+
+  // 命令相关类型
+  Command,
+  CommandGroup,
+  CommandSearchResult
 } from '@shared/types'
 
 // 导入标签页相关的类型
@@ -559,6 +564,12 @@ export interface ElectronAPI {
       gradient: Omit<GradientPreset, 'id'>,
       type: 'universal' | 'light' | 'dark'
     ) => Promise<FavoriteGradients>
+
+    // 监听主题变更事件
+    onThemeChanged: (callback: () => void) => void
+
+    // 移除主题变更事件监听
+    offThemeChanged: (callback: () => void) => void
   }
 
   window: {
@@ -1322,6 +1333,20 @@ export interface ElectronAPI {
 
     // 获取特定内容的标签页
     getTabByContent: (contentId: string, type: TabItemType) => Promise<TabItem | null>
+  }
+
+  command: {
+    // 获取所有命令
+    getAllCommands: () => Promise<Command[]>
+
+    // 按类别获取命令
+    getCommandsByCategory: () => Promise<CommandGroup[]>
+
+    // 搜索命令
+    searchCommands: (query: string) => Promise<CommandSearchResult>
+
+    // 执行命令
+    executeCommand: (commandId: string) => Promise<{ success: boolean; error?: string }>
   }
 }
 

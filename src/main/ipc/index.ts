@@ -36,6 +36,7 @@ import { setupMindEchoHandlers } from './mindEchoIpcHandlers'
 import { setupReadwiseSyncHandlers } from './readwiseIpcHandlers'
 import { setupNoteAIProcessHandlers } from './noteAIProcessIpcHandlers'
 import { setupTabsHandlers } from './tabsIpcHandlers'
+import { registerCommandIpcHandlers } from './commandIpcHandlers'
 
 export function setupIpcHandlers(): void {
   setupNotesHandlers()
@@ -76,4 +77,5 @@ export function setupIpcHandlers(): void {
   setupReadwiseSyncHandlers()
   setupNoteAIProcessHandlers()
   setupTabsHandlers()
+  registerCommandIpcHandlers()
 }

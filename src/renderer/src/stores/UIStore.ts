@@ -163,11 +163,13 @@ export const useUIStore = defineStore(
     //显示右侧边栏
     const isRightSidebarOpen = ref(false)
     // 右侧边栏当前显示的标签页（参数是默认打开的标签页）
-    const rightSidebarTab = ref<'widgets' | 'drafts' | 'assistant' | 'cardbox' | 'index'>('widgets')
+    const rightSidebarTab = ref<
+      'widgets' | 'drafts' | 'assistant' | 'cardbox' | 'index' | 'backlink' | 'multi'
+    >('widgets')
 
     // 修改打开右侧边栏方法,支持所有标签页
     const openRightSidebarWithTab = (
-      tab: 'widgets' | 'drafts' | 'assistant' | 'cardbox' | 'index'
+      tab: 'widgets' | 'drafts' | 'assistant' | 'cardbox' | 'index' | 'backlink' | 'multi'
     ) => {
       isRightSidebarOpen.value = true
       rightSidebarTab.value = tab
