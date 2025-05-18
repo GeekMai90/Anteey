@@ -460,9 +460,8 @@ import {
   MenuFoldOne
 } from '@icon-park/vue-next'
 import CalendarButton from '@renderer/components/ui/buttons/CalendarButton.vue'
-import LoadingCandle from './LoadingCandle.vue'
-import LoadingThinking from './LoadingThinking.vue'
-// import ConfirmDialog from '@renderer/components/common/ConfirmDialog.vue'
+import LoadingCandle from '@renderer/components/ui/loaders/LoadingCandle.vue'
+import LoadingThinking from '@renderer/components/ui/loaders/LoadingThinking.vue'
 const selectedValue = ref('1')
 const loading = ref(false)
 const searchValue = ref('')

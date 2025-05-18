@@ -365,13 +365,13 @@ import RightSidebarAIChatHistory from '@renderer/components/rightSidebar/RightSi
 import RightSidebarNoteSelector from '@renderer/components/rightSidebar/RightSidebarNoteSelector.vue'
 import { message } from '@renderer/utils/message'
 import { useAgentStore } from '@renderer/stores/agentStore'
-import LoadingCircle from '@renderer/components/ui/LoadingCircle.vue'
+import LoadingCircle from '@renderer/components/ui/loaders/LoadingCircle.vue'
 import Button from '@renderer/components/ui/buttons/Button.vue'
 import Dropdown from '@renderer/components/ui/dropdowns/Dropdown.vue'
 import { useAIChatStore } from '@renderer/stores/aiChatStore'
 import type { ChatRequest } from '@shared/types/ai-chat'
 import { useModelConfigStore } from '@renderer/stores/modelConfigStore'
-import LoadingThinking from '@renderer/components/ui/LoadingThinking.vue'
+import LoadingThinking from '@renderer/components/ui/loaders/LoadingThinking.vue'
 import { useNoteStore } from '@renderer/stores/noteStore'
 import AgentAvatar from '@renderer/components/ui/AgentAvatar.vue'
 import { useMindEchoStore } from '@renderer/stores/mindEchoStore'
@@ -1060,15 +1060,19 @@ onUnmounted(() => {
 
 // 创建异步组件映射
 const loadingComponents = {
-  candle: defineAsyncComponent(() => import('@renderer/components/ui/LoadingCandle.vue')),
-  pencil: defineAsyncComponent(() => import('@renderer/components/ui/LoadingPencil.vue')),
-  mouse: defineAsyncComponent(() => import('@renderer/components/ui/LoadingMouse.vue')),
-  pacman: defineAsyncComponent(() => import('@renderer/components/ui/LoadingPacMan.vue')),
-  taichi: defineAsyncComponent(() => import('@renderer/components/ui/LoadingTaiChi.vue')),
-  windmill: defineAsyncComponent(() => import('@renderer/components/ui/LoadingWindmill.vue')),
-  washing: defineAsyncComponent(() => import('@renderer/components/ui/LoadingWashing.vue')),
-  typewriter: defineAsyncComponent(() => import('@renderer/components/ui/LoadingTypewriter.vue')),
-  loadingFox: defineAsyncComponent(() => import('@renderer/components/ui/LoadingFox.vue'))
+  candle: defineAsyncComponent(() => import('@renderer/components/ui/loaders/LoadingCandle.vue')),
+  pencil: defineAsyncComponent(() => import('@renderer/components/ui/loaders/LoadingPencil.vue')),
+  mouse: defineAsyncComponent(() => import('@renderer/components/ui/loaders/LoadingMouse.vue')),
+  pacman: defineAsyncComponent(() => import('@renderer/components/ui/loaders/LoadingPacMan.vue')),
+  taichi: defineAsyncComponent(() => import('@renderer/components/ui/loaders/LoadingTaiChi.vue')),
+  windmill: defineAsyncComponent(
+    () => import('@renderer/components/ui/loaders/LoadingWindmill.vue')
+  ),
+  washing: defineAsyncComponent(() => import('@renderer/components/ui/loaders/LoadingWashing.vue')),
+  typewriter: defineAsyncComponent(
+    () => import('@renderer/components/ui/loaders/LoadingTypewriter.vue')
+  ),
+  loadingFox: defineAsyncComponent(() => import('@renderer/components/ui/loaders/LoadingFox.vue'))
 }
 
 // 添加新的处理函数
