@@ -254,13 +254,13 @@ const lastSelectedNoteId = ref<string | null>(null)
 // 添加虚拟列表相关的状态
 const containerHeight = ref(0)
 const scrollTop = ref(0)
-const cardHeight = 300 // 假设每个卡片的固定高度为300px
+const cardHeight = 290 // 假设每个卡片的固定高度为290px
 const bufferSize = 3 // 上下额外渲染的行数
 
 // 计算视口信息
 const viewportInfo = computed(() => {
   const containerWidth = cardGridContainer.value?.clientWidth || 0
-  const cardsPerRow = Math.floor(containerWidth / 316) // 300px + 16px gap
+  const cardsPerRow = Math.floor(containerWidth / 306) // 290px + 16px gap
   const rowHeight = cardHeight + 16 // 加上gap的高度
 
   const visibleRows = Math.ceil(containerHeight.value / rowHeight)
@@ -553,7 +553,7 @@ const scrollToTargetNote = () => {
 
   // 计算目标笔记所在的行和列
   const containerWidth = cardGridContainer.value?.clientWidth || 0
-  const cardsPerRow = Math.floor(containerWidth / 316) // 300px + 16px gap
+  const cardsPerRow = Math.floor(containerWidth / 306) // 290px + 16px gap
   const targetRow = Math.floor(targetIndex / cardsPerRow)
   const rowHeight = cardHeight + 16 // 卡片高度 + 间距
 
@@ -988,10 +988,21 @@ const updateSingleNote = async (updatedNote: Note) => {
       const updatedNotes = [...notes.value]
       updatedNotes[index] = { ...updatedNotes[index], ...updatedNote }
 
-      // 如果当前是按地址排序，且更新包含地址字段，则重新排序
+      // 根据当前排序方式重新排序
       if (filterState.sort.field === 'address' && 'address' in updatedNote) {
         updatedNotes.sort((a, b) => {
           const result = compareAddress(a.address, b.address)
+          return filterState.sort.order === 'asc' ? result : -result
+        })
+      } else if (
+        (filterState.sort.field === 'createdAt' || filterState.sort.field === 'updatedAt') &&
+        filterState.sort.field in updatedNote
+      ) {
+        updatedNotes.sort((a, b) => {
+          // 根据日期字段排序
+          const aDate = new Date(a[filterState.sort.field as keyof Note] as string).getTime()
+          const bDate = new Date(b[filterState.sort.field as keyof Note] as string).getTime()
+          const result = aDate - bDate
           return filterState.sort.order === 'asc' ? result : -result
         })
       }
@@ -1006,7 +1017,26 @@ eventBusCreated.on(async () => {
   const createdNote = lastCreatedNote.value
   if (!createdNote) return
   await nextTick(() => {
-    notes.value = [...notes.value, createdNote]
+    // 将新笔记添加到列表中
+    const updatedNotes = [...notes.value, createdNote]
+
+    // 根据当前排序字段和顺序重新排序
+    if (filterState.sort.field === 'address') {
+      updatedNotes.sort((a, b) => {
+        const result = compareAddress(a.address, b.address)
+        return filterState.sort.order === 'asc' ? result : -result
+      })
+    } else if (filterState.sort.field === 'createdAt' || filterState.sort.field === 'updatedAt') {
+      updatedNotes.sort((a, b) => {
+        // 根据日期字段排序
+        const aDate = new Date(a[filterState.sort.field as keyof Note] as string).getTime()
+        const bDate = new Date(b[filterState.sort.field as keyof Note] as string).getTime()
+        const result = aDate - bDate
+        return filterState.sort.order === 'asc' ? result : -result
+      })
+    }
+
+    notes.value = updatedNotes
   })
 })
 
@@ -1832,7 +1862,7 @@ const selectNotesInBox = () => {
 
   .card-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
     gap: 16px;
     padding: 16px 20px;
     align-content: start;
@@ -1842,7 +1872,7 @@ const selectNotesInBox = () => {
     margin-top: 16px;
 
     .card-item {
-      height: 300px;
+      height: 290px;
       transition: all 0.3s ease;
 
       &.highlight {

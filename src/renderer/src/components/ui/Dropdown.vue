@@ -416,7 +416,7 @@ const handleSwitchChange = (item: SwitchableDropdownItem, checked: boolean) => {
   border-radius: 8px;
   box-shadow: var(--shadow-primary);
   z-index: 9999;
-  min-width: 120px;
+  min-width: 100px;
   max-width: 400px;
   max-height: 320px;
   overflow-y: auto;
@@ -426,6 +426,7 @@ const handleSwitchChange = (item: SwitchableDropdownItem, checked: boolean) => {
 
   &.custom-width {
     width: v-bind('typeof props.width === "number" ? `${props.width}px` : props.width');
+    min-width: v-bind('props.width');
   }
 }
 

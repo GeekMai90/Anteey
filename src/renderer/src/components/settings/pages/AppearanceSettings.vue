@@ -39,16 +39,7 @@
             <div class="setting-item">
               <div class="setting-label">启用悬浮侧边栏</div>
               <div class="setting-control">
-                <input
-                  id="hover-sidebar-switch"
-                  v-model="enableHoverSidebar"
-                  type="checkbox"
-                  @change="handleHoverSidebarChange"
-                />
-                <label for="hover-sidebar-switch" class="toggle">
-                  <div class="toggle-track"></div>
-                  <div class="toggle-indicator"></div>
-                </label>
+                <Switch v-model="enableHoverSidebar" @change="handleHoverSidebarChange" />
               </div>
             </div>
           </div>
@@ -56,17 +47,20 @@
         <div class="settings-section">
           <div class="section-title">默认页面</div>
           <div class="default-page-settings">
-            <div class="setting-row">
+            <div class="setting-item">
               <div class="setting-label">启动时打开</div>
-              <Dropdown
-                :items="pageOptions"
-                trigger="click"
-                width="120px"
-                showArrow
-                @select="handlePageSelect"
-              >
-                {{ getPageName(defaultPage) }}
-              </Dropdown>
+              <div class="setting-control">
+                <Dropdown
+                  :items="pageOptions"
+                  trigger="click"
+                  width="120px"
+                  align="end"
+                  showArrow
+                  @select="handlePageSelect"
+                >
+                  {{ getPageName(defaultPage) }}
+                </Dropdown>
+              </div>
             </div>
           </div>
         </div>
@@ -74,13 +68,14 @@
         <div class="settings-section">
           <div class="section-title">字体设置</div>
           <div class="font-settings">
-            <div class="setting-row">
-              <div class="setting-label">界面字体</div>
-              <div class="font-control">
+            <div class="setting-item">
+              <div class="setting-label">应用界面字体</div>
+              <div class="setting-control">
                 <Dropdown
                   :items="fontDropdownItems"
                   trigger="click"
                   width="200px"
+                  align="end"
                   showArrow
                   @select="handleUIFontSelect"
                 >
@@ -89,13 +84,14 @@
               </div>
             </div>
 
-            <div class="setting-row">
+            <div class="setting-item">
               <div class="setting-label">编辑器字体</div>
-              <div class="font-control">
+              <div class="setting-control">
                 <Dropdown
                   :items="fontDropdownItems"
                   trigger="click"
                   width="200px"
+                  align="end"
                   showArrow
                   @select="handleEditorFontSelect"
                 >
@@ -114,6 +110,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { Theme } from '@icon-park/vue-next'
 import Dropdown from '@renderer/components/ui/Dropdown.vue'
+import Switch from '@renderer/components/ui/Switch.vue'
 import { useAppearanceStore } from '@renderer/stores/appearanceStore'
 import { useTimeBlockStore } from '@renderer/stores/timeBlockStore'
 import { useThemeStore } from '@renderer/stores/themeStore'
@@ -255,8 +252,8 @@ const getFontLabel = (value: string) => {
 }
 
 // 处理悬浮侧边栏开关变更
-const handleHoverSidebarChange = async () => {
-  await appearanceStore.updateHoverSidebarEnabled(enableHoverSidebar.value)
+const handleHoverSidebarChange = async (value: boolean) => {
+  await appearanceStore.updateHoverSidebarEnabled(value)
 }
 </script>
 
@@ -443,12 +440,16 @@ const handleHoverSidebarChange = async () => {
   .font-settings {
     display: flex;
     flex-direction: column;
-    gap: 24px;
 
-    .setting-row {
+    .setting-item {
       display: flex;
       align-items: center;
-      gap: 12px;
+      justify-content: space-between;
+      padding: 12px 0;
+
+      &:last-child {
+        border-bottom: none;
+      }
 
       .setting-label {
         font-size: 14px;
@@ -456,19 +457,9 @@ const handleHoverSidebarChange = async () => {
         white-space: nowrap;
       }
 
-      .font-control {
-        flex: 1;
+      .setting-control {
         display: flex;
-        flex-direction: column;
-        gap: 8px;
-
-        .font-preview {
-          font-size: 14px;
-          color: var(--color-text-primary);
-          padding: 8px;
-          border-radius: 6px;
-          background: var(--color-bg-secondary);
-        }
+        align-items: center;
       }
     }
   }
@@ -585,16 +576,26 @@ const handleHoverSidebarChange = async () => {
   }
 
   .default-page-settings {
-    .setting-row {
+    .setting-item {
       display: flex;
       align-items: center;
-      gap: 12px;
+      justify-content: space-between;
       padding: 12px 0;
+      border-bottom: 1px solid var(--color-border);
+
+      &:last-child {
+        border-bottom: none;
+      }
 
       .setting-label {
         font-size: 14px;
         color: var(--color-text-primary);
         white-space: nowrap;
+      }
+
+      .setting-control {
+        display: flex;
+        align-items: center;
       }
     }
   }

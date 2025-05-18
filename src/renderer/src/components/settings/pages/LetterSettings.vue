@@ -44,16 +44,10 @@
           <div class="form-item">
             <div class="label">
               <span>启用爱称</span>
-              <div class="help-icon-wrapper">
-                <Help theme="outline" size="14" :strokeWidth="3" class="help-icon" />
-                <div class="help-tooltip">启用后，信件中将使用亲昵称呼，如"亲爱的小明"</div>
-              </div>
+              <HelpTips content='启用后，信件中将使用亲昵称呼，如"亲爱的小明"' placement="top" />
             </div>
-            <div class="value">
+            <div class="value nickname-switch">
               <Switch v-model="formData.useNickname" />
-              <div class="switch-description">
-                {{ formData.useNickname ? '使用爱称' : '不使用爱称' }}
-              </div>
             </div>
           </div>
         </div>
@@ -67,27 +61,21 @@
           <div class="form-item">
             <div class="label">
               <span>每日笔记数量</span>
-              <div class="help-icon-wrapper">
-                <Help theme="outline" size="14" :strokeWidth="3" class="help-icon" />
-                <div class="help-tooltip">每天最多获取多少条笔记用于生成每日来信</div>
-              </div>
+              <HelpTips content="每天最多获取多少条笔记用于生成每日来信" placement="top" />
             </div>
-            <div class="value">
+            <div class="value right-aligned">
               <NumberInput v-model="formData.dailyNotesLimit" :min="1" :max="20" />
-              <span class="input-suffix">条</span>
+              <span class="input-suffix">张</span>
             </div>
           </div>
           <div class="form-item">
             <div class="label">
               <span>每周笔记数量</span>
-              <div class="help-icon-wrapper">
-                <Help theme="outline" size="14" :strokeWidth="3" class="help-icon" />
-                <div class="help-tooltip">一周最多获取多少条笔记用于生成每周总结</div>
-              </div>
+              <HelpTips content="一周最多获取多少条笔记用于生成每周总结" placement="top" />
             </div>
-            <div class="value">
+            <div class="value right-aligned">
               <NumberInput v-model="formData.weeklyNotesLimit" :min="1" :max="50" />
-              <span class="input-suffix">条</span>
+              <span class="input-suffix">张</span>
             </div>
           </div>
         </div>
@@ -101,17 +89,15 @@
           <div class="form-item">
             <div class="label">
               <span>大模型选择</span>
-              <div class="help-icon-wrapper">
-                <Help theme="outline" size="14" :strokeWidth="3" class="help-icon" />
-                <div class="help-tooltip">选择用于生成信件的 AI 模型</div>
-              </div>
+              <HelpTips content="选择用于生成信件的 AI 模型" placement="top" />
             </div>
-            <div class="value">
+            <div class="value right-aligned">
               <Dropdown
                 :items="modelDropdownItems"
                 :showSelected="true"
                 :showArrow="true"
                 width="200px"
+                align="end"
                 :placeholder="'请选择模型'"
                 :empty-text="'暂无可用模型'"
                 @select="handleModelSelect"
@@ -123,12 +109,10 @@
           <div class="form-item">
             <div class="label">
               <span>温度参数</span>
-              <div class="help-icon-wrapper">
-                <Help theme="outline" size="14" :strokeWidth="3" class="help-icon" />
-                <div class="help-tooltip">
-                  控制生成内容的随机性：较低的值使输出更加确定，较高的值使输出更加多样化和创造性
-                </div>
-              </div>
+              <HelpTips
+                content="控制生成内容的随机性：较低的值使输出更加确定，较高的值使输出更加多样化和创造性"
+                placement="top"
+              />
             </div>
             <div class="value">
               <Slider v-model="formData.temperature" :min="0" :max="1" :step="0.1" />
@@ -159,10 +143,10 @@
           <div class="form-item vertical">
             <div class="label-full">
               <span>每日来信提示词</span>
-              <div class="help-icon-wrapper">
-                <Help theme="outline" size="14" :strokeWidth="3" class="help-icon" />
-                <div class="help-tooltip">留空则使用系统默认提示词，自定义设置将覆盖默认提示词</div>
-              </div>
+              <HelpTips
+                content="留空则使用系统默认提示词，自定义设置将覆盖默认提示词"
+                placement="top"
+              />
             </div>
             <div class="value-full">
               <Textarea
@@ -177,10 +161,10 @@
           <div class="form-item vertical">
             <div class="label-full">
               <span>每周来信提示词</span>
-              <div class="help-icon-wrapper">
-                <Help theme="outline" size="14" :strokeWidth="3" class="help-icon" />
-                <div class="help-tooltip">留空则使用系统默认提示词，自定义设置将覆盖默认提示词</div>
-              </div>
+              <HelpTips
+                content="留空则使用系统默认提示词，自定义设置将覆盖默认提示词"
+                placement="top"
+              />
             </div>
             <div class="value-full">
               <Textarea
@@ -208,7 +192,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted, computed, watch, toRaw } from 'vue'
-import { Mail, Help } from '@icon-park/vue-next'
+import { Mail } from '@icon-park/vue-next'
 import { useDailyLetterStore } from '@renderer/stores/dailyLetterStore'
 import type { UpdateLetterConfigParams } from '@shared/types'
 import { message } from '@renderer/utils/message'
@@ -221,6 +205,7 @@ import Slider from '@renderer/components/ui/Slider.vue'
 import Textarea from '@renderer/components/ui/Textarea.vue'
 import Description from '@renderer/components/ui/Description.vue'
 import EmptyState from '@renderer/components/ui/EmptyState.vue'
+import HelpTips from '@renderer/components/ui/HelpTips.vue'
 
 // store
 const letterStore = useDailyLetterStore()
@@ -629,6 +614,11 @@ if (process.env.NODE_ENV === 'development') {
         align-items: center;
         gap: 12px;
 
+        &.nickname-switch,
+        &.right-aligned {
+          justify-content: flex-end;
+        }
+
         .input-suffix {
           font-size: 14px;
           color: var(--color-text-secondary);
@@ -651,65 +641,6 @@ if (process.env.NODE_ENV === 'development') {
         width: 100%;
       }
     }
-  }
-}
-
-.help-icon-wrapper {
-  position: relative;
-  display: flex;
-  align-items: center;
-  margin-left: 2px;
-  justify-content: center;
-
-  :deep(.i-icon) {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 100%;
-    height: 100%;
-  }
-
-  :deep(svg) {
-    width: 14px;
-    height: 14px;
-  }
-
-  .help-icon {
-    cursor: help;
-    color: var(--color-text-secondary);
-    opacity: 0.6;
-    transition: opacity 0.2s ease;
-
-    &:hover {
-      opacity: 1;
-      & + .help-tooltip {
-        opacity: 1;
-        visibility: visible;
-        transform: translateY(0);
-      }
-    }
-  }
-
-  .help-tooltip {
-    position: absolute;
-    left: 24px;
-    top: -8px;
-    width: 280px;
-    padding: 12px 16px;
-    background: var(--color-bg-primary);
-    border: 1px solid var(--color-border);
-    border-radius: 6px;
-    font-size: 13px;
-    color: var(--color-text-secondary);
-    line-height: 1.6;
-    opacity: 0;
-    visibility: hidden;
-    transform: translateY(-4px);
-    transition: all 0.2s ease;
-    z-index: 100;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-    pointer-events: none;
-    white-space: normal;
   }
 }
 
@@ -758,5 +689,11 @@ if (process.env.NODE_ENV === 'development') {
   to {
     transform: rotate(360deg);
   }
+}
+
+.variable {
+  color: var(--color-primary);
+  font-family: monospace;
+  font-size: 13px;
 }
 </style>

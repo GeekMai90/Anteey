@@ -25,33 +25,29 @@
             <div class="label">每日学习目标</div>
             <div class="value">
               <NumberInput v-model="dailyGoal" :min="0" :max="200" />
-              <span class="input-suffix">张卡片</span>
+              <span class="input-suffix">张</span>
             </div>
           </div>
           <div class="form-item">
             <div class="label">每日最大新卡数量</div>
             <div class="value">
               <NumberInput v-model="newCardsPerDay" :min="0" :max="100" />
-              <span class="input-suffix">张卡片</span>
+              <span class="input-suffix">张</span>
             </div>
           </div>
           <div class="form-item">
             <div class="label">每日复习上限</div>
             <div class="value">
               <NumberInput v-model="reviewsPerDay" :min="0" :max="200" />
-              <span class="input-suffix">张卡片</span>
+              <span class="input-suffix">张</span>
             </div>
           </div>
           <div class="form-item">
             <div class="label">
               次日开始时间
-              <div class="help-icon-wrapper">
-                <Help theme="outline" size="14" :strokeWidth="3" class="help-icon" />
-
-                <div class="help-tooltip">
-                  设置每天新卡片加入在您的队列中的时间。例如设置为4点，则每天凌晨4点开始新的学习。
-                </div>
-              </div>
+              <HelpTips
+                content="设置每天新卡片加入在您的队列中的时间。例如设置为4点，则每天凌晨4点开始新的学习。"
+              />
             </div>
             <div class="value">
               <NumberInput v-model="dayStartsAt" :min="0" :max="23" />
@@ -72,7 +68,8 @@
               <Dropdown
                 :items="newCardPositionItems"
                 :value="newCardPosition"
-                width="200"
+                width="160px"
+                align="end"
                 showArrow
                 @select="handleNewCardPositionSelect"
               >
@@ -92,6 +89,7 @@
             <div class="label">目标记忆率</div>
             <div class="value">
               <NumberInput v-model="requestRetention" :min="0.8" :max="0.95" :step="0.01" />
+              <span class="input-suffix">%</span>
             </div>
           </div>
           <div class="form-item">
@@ -110,15 +108,12 @@
         <div class="description">自定义复习界面的显示方式。</div>
         <div class="settings-form">
           <div class="form-item">
-            <div class="label">简化按钮</div>
+            <div class="label">{{ simplifyButtons ? '使用简化按钮' : '使用完整按钮' }}</div>
             <div class="value">
               <Switch
                 :model-value="Boolean(simplifyButtons)"
                 @update:model-value="simplifyButtons = $event"
               />
-              <div class="switch-description">
-                {{ simplifyButtons ? '使用简化按钮' : '使用完整按钮' }}
-              </div>
             </div>
           </div>
           <div class="form-item">
@@ -128,9 +123,6 @@
                 :model-value="Boolean(showNextReview)"
                 @update:model-value="showNextReview = $event"
               />
-              <div class="switch-description">
-                {{ showNextReview ? '显示复习时间' : '隐藏复习时间' }}
-              </div>
             </div>
           </div>
         </div>
@@ -151,17 +143,13 @@
           <div class="form-item">
             <div class="label">
               超前学习时间
-              <div class="help-icon-wrapper">
-                <Help theme="outline" size="14" :strokeWidth="3" class="help-icon" />
-
-                <div class="help-tooltip">
-                  在您完成所有到期卡片的练习后,我们可以提前多久调出尚未到期的卡片进行练习？这有助于避免您过早地再次复习同一内容。
-                </div>
-              </div>
+              <HelpTips
+                content="在您完成所有到期卡片的练习后，我们可以提前多久调出尚未到期的卡片进行练习？这有助于避免您过早地再次复习同一内容。"
+              />
             </div>
             <div class="value">
               <NumberInput v-model="reviewAgainAfter" :min="5" :max="60" />
-              <span class="input-suffix">分钟</span>
+              <span class="input-suffix">分</span>
             </div>
           </div>
         </div>
@@ -172,13 +160,14 @@
 
 <script setup lang="ts">
 import { ref, onMounted, watch, onUnmounted } from 'vue'
-import { StorageCardOne, Help } from '@icon-park/vue-next'
+import { StorageCardOne } from '@icon-park/vue-next'
 import { useFlashcardStore } from '@renderer/stores/flashcardStore'
 import type { FlashcardSettings } from '@shared/types'
 import { debounce } from 'lodash-es'
 import Switch from '@renderer/components/ui/Switch.vue'
 import Dropdown from '@renderer/components/ui/Dropdown.vue'
 import NumberInput from '@renderer/components/ui/NumberInput.vue'
+import HelpTips from '@renderer/components/ui/HelpTips.vue'
 
 const flashcardStore = useFlashcardStore()
 
@@ -408,7 +397,7 @@ onUnmounted(() => {
       font-size: 14px;
       line-height: 1.5;
       color: var(--color-text-secondary);
-      margin-bottom: 15px;
+      // margin-bottom: 15px;
       user-select: none;
     }
 
@@ -419,7 +408,8 @@ onUnmounted(() => {
       .form-item {
         display: flex;
         align-items: center;
-        margin-bottom: 20px;
+        justify-content: space-between;
+        padding: 8px 0;
 
         &:last-child {
           margin-bottom: 0;
@@ -494,10 +484,10 @@ onUnmounted(() => {
         }
 
         .value {
-          flex: 1;
           display: flex;
           align-items: center;
           gap: 12px;
+          justify-content: flex-end;
 
           .input-suffix {
             font-size: 14px;
@@ -595,6 +585,8 @@ onUnmounted(() => {
           .switch-description {
             font-size: 12px;
             color: var(--color-text-secondary);
+            margin-left: 8px;
+            flex-shrink: 0;
           }
         }
       }

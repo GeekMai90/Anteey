@@ -19,28 +19,19 @@
           <div class="form-item">
             <div class="label">
               <span>启用拼写检查</span>
-              <div class="help-icon-wrapper">
-                <Help theme="outline" size="14" :strokeWidth="3" class="help-icon" />
-                <div class="help-tooltip">开启后，编辑器将检查拼写错误并显示下划线</div>
-              </div>
+              <HelpTips content="开启后，编辑器将检查拼写错误并显示下划线" />
             </div>
             <div class="value">
               <Switch
                 :model-value="enableSpellcheck"
                 @update:model-value="enableSpellcheck = $event"
               />
-              <div class="switch-description">
-                {{ enableSpellcheck ? '启用拼写检查' : '禁用拼写检查' }}
-              </div>
             </div>
           </div>
           <div class="form-item">
             <div class="label">
               <span>字体大小</span>
-              <div class="help-icon-wrapper">
-                <Help theme="outline" size="14" :strokeWidth="3" class="help-icon" />
-                <div class="help-tooltip">设置编辑器的字体大小，影响笔记内容的显示</div>
-              </div>
+              <HelpTips content="设置编辑器的字体大小，影响笔记内容的显示" />
             </div>
             <div class="value">
               <NumberInput v-model="fontSize" :min="12" :max="24" />
@@ -60,18 +51,12 @@
                 :model-value="showCharacterCount"
                 @update:model-value="showCharacterCount = $event"
               />
-              <div class="switch-description">
-                {{ showCharacterCount ? '显示字数统计' : '隐藏字数统计' }}
-              </div>
             </div>
           </div>
           <div class="form-item">
             <div class="label">
               字数限制
-              <div class="help-icon-wrapper">
-                <Help theme="outline" size="14" :strokeWidth="3" class="help-icon" />
-                <div class="help-tooltip">设置编辑器的字数限制，超过此限制将显示警告提示。</div>
-              </div>
+              <HelpTips content="设置编辑器的字数限制，超过此限制将显示警告提示。" />
             </div>
             <div class="value">
               <NumberInput v-model="characterLimit" :min="100" :max="10000" />
@@ -81,18 +66,12 @@
           <div class="form-item">
             <div class="label">
               限制输入
-              <div class="help-icon-wrapper">
-                <Help theme="outline" size="14" :strokeWidth="3" class="help-icon" />
-                <div class="help-tooltip">
-                  开启后，超过字数限制将无法继续输入；关闭后，超过字数限制仍可继续输入，但会显示警告。
-                </div>
-              </div>
+              <HelpTips
+                content="开启后，超过字数限制将无法继续输入；关闭后，超过字数限制仍可继续输入，但会显示警告。"
+              />
             </div>
             <div class="value">
               <Switch :model-value="enforceLimit" @update:model-value="enforceLimit = $event" />
-              <div class="switch-description">
-                {{ enforceLimit ? '超过限制禁止输入' : '超过限制仍可输入' }}
-              </div>
             </div>
           </div>
         </div>
@@ -104,27 +83,23 @@
         <div class="description">设置随机回顾功能的相关参数。</div>
         <div class="settings-form">
           <div class="form-item">
-            <div class="label">启用趣味按钮</div>
+            <div class="label">
+              {{ enableMarioStyle ? '使用趣味按钮样式' : '使用默认按钮样式' }}
+            </div>
             <div class="value">
               <Switch
                 :model-value="enableMarioStyle"
                 @update:model-value="handleMarioStyleChange"
               />
-              <div class="switch-description">
-                {{ enableMarioStyle ? '使用趣味按钮样式' : '使用默认按钮样式' }}
-              </div>
             </div>
           </div>
           <div class="form-item">
-            <div class="label">启用按钮音效</div>
+            <div class="label">{{ enableMarioSound ? '播放按钮音效' : '静音按钮' }}</div>
             <div class="value">
               <Switch
                 :model-value="enableMarioSound"
                 @update:model-value="handleMarioSoundChange"
               />
-              <div class="switch-description">
-                {{ enableMarioSound ? '播放按钮音效' : '静音按钮' }}
-              </div>
             </div>
           </div>
         </div>
@@ -135,12 +110,13 @@
 
 <script setup lang="ts">
 import { ref, onMounted, watch, onUnmounted } from 'vue'
-import { Edit, Help } from '@icon-park/vue-next'
+import { Edit } from '@icon-park/vue-next'
 import { useUIStore } from '@renderer/stores/UIStore'
 import { debounce } from 'lodash-es'
 import Switch from '@renderer/components/ui/Switch.vue'
 import { useReviewStore } from '@renderer/stores/reviewStore'
 import NumberInput from '@renderer/components/ui/NumberInput.vue'
+import HelpTips from '@renderer/components/ui/HelpTips.vue'
 const uiStore = useUIStore()
 const reviewStore = useReviewStore()
 
@@ -336,7 +312,6 @@ const handleMarioSoundChange = (value: boolean) => {
       font-size: 14px;
       line-height: 1.5;
       color: var(--color-text-secondary);
-      margin-bottom: 15px;
       user-select: none;
     }
 
@@ -347,7 +322,8 @@ const handleMarioSoundChange = (value: boolean) => {
       .form-item {
         display: flex;
         align-items: center;
-        margin-bottom: 20px;
+        justify-content: space-between;
+        padding: 8px 0;
 
         &:last-child {
           margin-bottom: 0;
@@ -360,80 +336,16 @@ const handleMarioSoundChange = (value: boolean) => {
           display: flex;
           align-items: center;
           gap: 8px;
-
-          .help-icon-wrapper {
-            position: relative;
-            display: flex;
-            align-items: center;
-            margin-left: 2px;
-            justify-content: center;
-
-            :deep(.i-icon) {
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              width: 100%;
-              height: 100%;
-            }
-
-            :deep(svg) {
-              width: 14px;
-              height: 14px;
-            }
-
-            .help-icon {
-              cursor: help;
-              color: var(--color-text-secondary);
-              opacity: 0.6;
-              transition: opacity 0.2s ease;
-
-              &:hover {
-                opacity: 1;
-                & + .help-tooltip {
-                  opacity: 1;
-                  visibility: visible;
-                  transform: translateY(0);
-                }
-              }
-            }
-
-            .help-tooltip {
-              position: absolute;
-              left: 24px;
-              top: -8px;
-              width: 280px;
-              padding: 12px 16px;
-              background: var(--color-bg-primary);
-              border: 1px solid var(--color-border);
-              border-radius: 6px;
-              font-size: 13px;
-              color: var(--color-text-secondary);
-              line-height: 1.6;
-              opacity: 0;
-              visibility: hidden;
-              transform: translateY(-4px);
-              transition: all 0.2s ease;
-              z-index: 100;
-              box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-              pointer-events: none;
-              white-space: normal;
-            }
-          }
         }
 
         .value {
-          flex: 1;
           display: flex;
           align-items: center;
           gap: 12px;
+          justify-content: flex-end;
 
           .input-suffix {
             font-size: 14px;
-            color: var(--color-text-secondary);
-          }
-
-          .switch-description {
-            font-size: 12px;
             color: var(--color-text-secondary);
           }
         }

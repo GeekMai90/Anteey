@@ -422,7 +422,7 @@ onMounted(async () => {
 .tab-item {
   display: flex;
   align-items: center;
-  padding: 6px 8px;
+  padding: 4px 8px;
   border-radius: 6px;
   cursor: grab;
   transition: all 0.2s ease;

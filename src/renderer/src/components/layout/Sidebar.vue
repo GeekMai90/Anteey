@@ -988,7 +988,7 @@ const getThemeModeTooltip = computed(() => {
           align-items: center;
           width: 100%;
 
-          border-radius: 8px;
+          border-radius: 6px;
           // transition: all 0.2s ease;
           user-select: none;
           position: relative;

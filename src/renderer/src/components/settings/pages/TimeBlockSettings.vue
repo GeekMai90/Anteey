@@ -25,11 +25,12 @@
         <div class="time-range-settings">
           <div class="setting-item">
             <div class="setting-row">
-              <div class="setting-label">开始时间</div>
+              <div class="setting-label">每日开始时间</div>
               <Dropdown
                 :items="timeOptions"
                 trigger="click"
-                width="120px"
+                width="100px"
+                align="end"
                 showArrow
                 @select="selectStartTime"
               >
@@ -40,11 +41,12 @@
 
           <div class="setting-item">
             <div class="setting-row">
-              <div class="setting-label">结束时间</div>
+              <div class="setting-label">每日结束时间</div>
               <Dropdown
                 :items="timeOptions"
                 trigger="click"
-                width="120px"
+                width="100px"
+                align="end"
                 showArrow
                 @select="selectEndTime"
               >
