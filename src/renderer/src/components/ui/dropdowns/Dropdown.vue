@@ -2,7 +2,7 @@
 import { ref, watch, onMounted, onBeforeUnmount, nextTick, computed } from 'vue'
 import { useFloating, offset, flip, shift, autoUpdate } from '@floating-ui/vue'
 import Button from '@renderer/components/ui/buttons/Button.vue'
-import Switch from '@renderer/components/ui/Switch.vue'
+import Switch from '@renderer/components/ui/switch/Switch.vue'
 import type { Component } from 'vue'
 import type { Placement } from '@floating-ui/vue'
 

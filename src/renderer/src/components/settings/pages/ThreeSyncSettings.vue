@@ -235,7 +235,7 @@ import { Down, Up, CloudStorage } from '@icon-park/vue-next'
 import { useDinoxStore } from '@renderer/stores/dinoxStore'
 import { useReadwiseStore } from '@renderer/stores/readwiseStore'
 import { message } from '@renderer/utils/message'
-import Switch from '@renderer/components/ui/Switch.vue'
+import Switch from '@renderer/components/ui/switch/Switch.vue'
 import Button from '@renderer/components/ui/buttons/Button.vue'
 import Input from '@renderer/components/ui/Input.vue'
 

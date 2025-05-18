@@ -110,7 +110,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { Theme } from '@icon-park/vue-next'
 import Dropdown from '@renderer/components/ui/dropdowns/Dropdown.vue'
-import Switch from '@renderer/components/ui/Switch.vue'
+import Switch from '@renderer/components/ui/switch/Switch.vue'
 import { useAppearanceStore } from '@renderer/stores/appearanceStore'
 import { useTimeBlockStore } from '@renderer/stores/timeBlockStore'
 import { useThemeStore } from '@renderer/stores/themeStore'

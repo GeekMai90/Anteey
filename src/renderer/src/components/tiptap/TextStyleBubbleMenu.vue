@@ -576,6 +576,40 @@ const showLinkMenu = (event: MouseEvent, linkElement: HTMLAnchorElement | null =
     isNoteReference.value = href?.startsWith('note://') || false
     linkUrl.value = href || ''
     linkText.value = linkElement.textContent || ''
+
+    // 重要修改：定位并精确选择链接文本，而不是整个块
+    if (props.editor) {
+      try {
+        // 先将选区清空，防止选中整个块
+        props.editor.commands.focus()
+        props.editor.commands.setTextSelection(0)
+
+        // 查找并精确选择链接
+        const { state } = props.editor
+        let foundPos = false
+
+        state.doc.descendants((node, pos) => {
+          if (foundPos) return false // 如果已找到，停止遍历
+
+          if (
+            node.isText &&
+            node.marks.some((mark) => mark.type.name === 'link' && mark.attrs.href === href)
+          ) {
+            // 找到链接后，精确选择链接文本
+            const from = pos
+            const to = pos + node.text!.length
+
+            props.editor.commands.setTextSelection({ from, to })
+            foundPos = true
+            return false
+          }
+
+          return true
+        })
+      } catch (error) {
+        console.error('选择链接文本时出错:', error)
+      }
+    }
   } else {
     // 从编辑器获取选中文本及链接信息
     const { state } = props.editor
@@ -624,6 +658,7 @@ const showLinkMenu = (event: MouseEvent, linkElement: HTMLAnchorElement | null =
   // 先显示菜单
   showLinkInput.value = true
 
+  // 强制刷新，确保链接菜单显示而工具栏隐藏
   nextTick(() => {
     // 确保菜单已挂载到DOM
     if (linkMenuRef.value) {
@@ -643,7 +678,8 @@ const showLinkMenu = (event: MouseEvent, linkElement: HTMLAnchorElement | null =
 
       // 计算最佳位置（避免超出窗口边界）
       let top = clickY + 10 // 默认在点击位置下方10px
-      let left = clickX - menuWidth / 2 // 默认在点击位置水平居中
+      let left = clickX - menuWidth / 2 - 150
+      // let left = clickX - 300
 
       // 调整防止超出视窗
       if (top + menuHeight > window.innerHeight) {
@@ -682,51 +718,69 @@ const showLinkMenu = (event: MouseEvent, linkElement: HTMLAnchorElement | null =
 const setLink = async () => {
   if (!props.editor) return
 
+  // 如果链接URL为空且不是笔记引用，则移除链接
   if (!linkUrl.value && !isNoteReference.value) {
     props.editor.chain().focus().extendMarkRange('link').unsetLink().run()
     closeLinkMenu()
     return
   }
 
-  if (isNoteReference.value) {
-    const noteId = linkUrl.value.replace('note://', '')
-    // 处理笔记引用链接的逻辑
-    props.editor
-      .chain()
-      .focus()
-      .extendMarkRange('link')
-      .insertContent({
-        type: 'text',
-        text: linkText.value,
-        marks: [
-          {
-            type: 'link',
-            attrs: {
-              href: linkUrl.value,
-              class: 'note-reference-link',
-              'data-note-id': noteId
-            }
-          }
-        ]
+  try {
+    // 获取当前编辑器选择状态
+    const { selection } = props.editor.state
+
+    // 首先获取原始的链接元素位置和文本
+    const from = selection.from
+    const to = selection.to
+
+    if (isNoteReference.value) {
+      const noteId = linkUrl.value.replace('note://', '')
+
+      // 创建一个新的事务以确保原子性操作
+      const transaction = props.editor.state.tr
+
+      // 在事务中删除当前链接文本
+      transaction.delete(from, to)
+
+      // 在同一位置插入新文本，并应用链接mark
+      const schema = props.editor.schema
+      const text = schema.text(linkText.value)
+      const mark = schema.marks.link.create({
+        href: linkUrl.value,
+        class: 'note-reference-link',
+        'data-note-id': noteId
       })
-      .run()
-  } else {
-    // 处理普通链接
-    props.editor
-      .chain()
-      .focus()
-      .extendMarkRange('link')
-      .insertContent({
-        type: 'text',
-        text: linkText.value,
-        marks: [
-          {
-            type: 'link',
-            attrs: { href: linkUrl.value }
-          }
-        ]
+
+      // 应用链接标记到文本
+      transaction.insert(from, text.mark([mark]))
+
+      // 分派事务
+      props.editor.view.dispatch(transaction)
+    } else {
+      // 处理普通链接，逻辑类似
+      const transaction = props.editor.state.tr
+
+      // 在事务中删除当前链接文本
+      transaction.delete(from, to)
+
+      // 在同一位置插入新文本，并应用链接mark
+      const schema = props.editor.schema
+      const text = schema.text(linkText.value)
+      const mark = schema.marks.link.create({
+        href: linkUrl.value
       })
-      .run()
+
+      // 应用链接标记到文本
+      transaction.insert(from, text.mark([mark]))
+
+      // 分派事务
+      props.editor.view.dispatch(transaction)
+    }
+
+    // 恢复光标位置到链接之后
+    props.editor.commands.focus(from + linkText.value.length)
+  } catch (error) {
+    console.error('更新链接时出错:', error)
   }
 
   closeLinkMenu()
@@ -821,6 +875,11 @@ onMounted(() => {
 
         // Command/Ctrl: 显示链接设置菜单（对所有类型的链接都生效）
         if (event.metaKey || event.ctrlKey) {
+          // 重要：阻止默认选择行为，防止选中整个块
+          event.preventDefault()
+          event.stopPropagation()
+
+          // 使用我们精确控制选区的方法显示链接菜单
           showLinkMenu(event, linkElement)
           return true // 阻止 Tiptap 的默认行为
         }
@@ -908,6 +967,11 @@ const clearColor = () => {
 
 // 添加 shouldShow 函数判断气泡菜单是否应该显示
 const shouldShow = ({ state }: any): boolean => {
+  // 如果链接编辑菜单已经显示，则不显示文字工具条
+  if (showLinkInput.value) {
+    return false
+  }
+
   const { selection } = state
   const { $anchor, empty, from, to } = selection
 

@@ -846,8 +846,7 @@ defineExpose({
   .note-reference-link {
     color: var(--color-primary);
     text-decoration: none;
-    background-color: rgba(var(--color-primary-rgb), 0.05);
-    padding: 0 4px;
+    padding: 0 1px;
     margin: 0 2px;
     border-radius: 4px;
     transition: all 0.2s ease;

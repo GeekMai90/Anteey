@@ -295,7 +295,7 @@ import smartisanIcon from '@renderer/assets/share/smartisan.png'
 import { useNoteStore } from '@renderer/stores/noteStore'
 import { message } from '@renderer/utils/message'
 import SizeInput from './SizeInput.vue'
-import Switch from '@renderer/components/ui/Switch.vue'
+import Switch from '@renderer/components/ui/switch/Switch.vue'
 
 // 从 store 获取笔记内容
 const noteStore = useNoteStore()
