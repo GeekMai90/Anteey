@@ -37,7 +37,7 @@ import { Notes, Bookshelf, ListAlphabet, ParagraphRectangle } from '@icon-park/v
 import type { CardType } from '@shared/types'
 import { useFloating } from '@floating-ui/vue'
 import { flip, offset, shift } from '@floating-ui/dom'
-import DropdownListItem from '@renderer/components/ui/DropdownListItem.vue'
+import DropdownListItem from '@renderer/components/ui/dropdowns/DropdownListItem.vue'
 
 const props = defineProps<{
   isOpen: boolean
