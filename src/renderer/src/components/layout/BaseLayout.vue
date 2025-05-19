@@ -124,7 +124,7 @@ const updateRightSidebarWidth = (width: number) => {
 // ===== 响应式布局处理 =====
 const checkWindowSize = () => {
   const shouldCollapse = window.innerWidth < 768
-  uiStore.setIsSidebarCollapsed(shouldCollapse)
+  uiStore.setIsSidebarCollapsed(shouldCollapse, true)
 }
 
 // 创建一个稳定的函数引用

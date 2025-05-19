@@ -84,6 +84,10 @@ export const useUIStore = defineStore(
     const isSidebarCollapsed = ref(
       JSON.parse(localStorage.getItem('ui-store') || '{}')?.isSidebarCollapsed || false
     )
+    // 添加一个标记，表示侧边栏状态是否由用户手动设置
+    const isSidebarManuallySet = ref(
+      JSON.parse(localStorage.getItem('ui-store') || '{}')?.isSidebarManuallySet || false
+    )
     // 显示设置下拉菜单
     const isSettingDropdownOpen = ref(false)
     // 显示卡片盒
@@ -102,11 +106,23 @@ export const useUIStore = defineStore(
     // 切换侧边栏的显示
     function toggleSidebar() {
       isSidebarCollapsed.value = !isSidebarCollapsed.value
+      isSidebarManuallySet.value = true // 设置标记表示用户手动修改了侧边栏状态
     }
 
     // 设置侧边栏折叠状态
-    function setIsSidebarCollapsed(value: boolean) {
-      isSidebarCollapsed.value = value
+    function setIsSidebarCollapsed(value: boolean, isAutomatic = false) {
+      // 只有当状态未被手动设置或强制设置时才更新
+      if (!isSidebarManuallySet.value || !isAutomatic) {
+        isSidebarCollapsed.value = value
+        if (!isAutomatic) {
+          isSidebarManuallySet.value = true
+        }
+      }
+    }
+
+    // 重置侧边栏手动设置标记
+    function resetSidebarManualFlag() {
+      isSidebarManuallySet.value = false
     }
 
     // 切换设置下拉菜单显示
@@ -300,12 +316,14 @@ export const useUIStore = defineStore(
 
       // 左侧边栏相关
       isSidebarCollapsed,
+      isSidebarManuallySet,
       isSettingDropdownOpen,
       showCardBox,
       toggleCardBox,
       setShowCardBox,
       toggleSidebar,
       setIsSidebarCollapsed,
+      resetSidebarManualFlag,
       toggleSettingDropdown,
       closeSettingDropdown,
 
@@ -353,6 +371,7 @@ export const useUIStore = defineStore(
       // 指定需要持久化的state
       pick: [
         'isSidebarCollapsed',
+        'isSidebarManuallySet',
         'isRightSidebarOpen',
         'showSettingsPage',
         'isDarkTheme',
