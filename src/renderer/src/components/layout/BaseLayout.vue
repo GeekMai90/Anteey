@@ -17,6 +17,9 @@
       @gradient-update="updateGradient"
     />
 
+    <!-- 窄侧边栏 - 折叠状态 -->
+    <SlimSidebar v-show="uiStore.isSidebarCollapsed" class="slim-sidebar" />
+
     <!-- 左侧边栏 - 悬停状态（当侧边栏折叠时显示） -->
     <Transition name="slide-left">
       <Sidebar
@@ -63,6 +66,7 @@ import { useUIStore } from '@renderer/stores/UIStore'
 import { useThemeStore } from '@renderer/stores/themeStore'
 import { useAppearanceStore } from '@renderer/stores/appearanceStore'
 import Sidebar from './Sidebar.vue'
+import SlimSidebar from './SlimSidebar.vue'
 import RightSidebar from '../rightSidebar/RightSidebar.vue'
 import DailyLetterAnimation from '@renderer/components/dailyLetter/DailyLetterAnimation.vue'
 
@@ -332,6 +336,28 @@ defineExpose({
   }
 }
 
+/* 窄侧边栏样式 */
+.slim-sidebar {
+  position: relative;
+  flex-shrink: 0;
+  margin: 0 8px 0 2px;
+  height: 100%;
+  transform-origin: left center;
+  z-index: 100;
+  animation: show-slim-sidebar 0.3s ease forwards;
+}
+
+@keyframes show-slim-sidebar {
+  from {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
 /* 主内容区域样式 */
 .main-content {
   flex: 1;
@@ -357,7 +383,7 @@ defineExpose({
     margin-left 0.6s cubic-bezier(0.16, 1, 0.3, 1),
     margin-right 0.6s cubic-bezier(0.16, 1, 0.3, 1),
     box-shadow 0.3s ease;
-  margin-left: v-bind('uiStore.isSidebarCollapsed ? "0" : "10px"');
+  margin-left: v-bind('uiStore.isSidebarCollapsed ? "4px" : "10px"');
   margin-right: v-bind('uiStore.isRightSidebarOpen ? "10px" : "0"');
   position: relative;
 }

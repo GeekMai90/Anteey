@@ -24,6 +24,30 @@
     }
   }
 
+  // 为首页视图添加例外，不覆盖背景图片设置
+  div.home-view {
+    background-color: transparent !important; // 使用background-color而不是background
+    background-image: inherit !important; // 确保背景图片不被覆盖
+
+    .content-wrapper {
+      background: transparent !important; // 确保内容区域也不覆盖背景
+    }
+
+    .blur-overlay {
+      backdrop-filter: blur(6px) !important; // 确保模糊效果正常
+    }
+  }
+
+  // 窄侧边栏
+  .slim-sidebar {
+    width: 55px;
+    border-right: 1px solid var(--color-border);
+    margin-right: 0;
+    .window-controls {
+      left: 4px;
+    }
+  }
+
   // 侧边栏
   .sidebar {
     background: var(--color-bg-secondary);
@@ -106,7 +130,7 @@
 
   // 主内容区域
   .main-content {
-    background: var(--color-bg-primary) !important;
+    // background: var(--color-bg-primary) !important;
     border-radius: 0;
     box-shadow: none;
     margin-left: 0;
@@ -146,8 +170,21 @@
     background: #1e1e1e !important;
   }
 
+  // 暗色主题下同样为首页添加例外
+  div.home-view {
+    background-color: transparent !important;
+    background-image: inherit !important;
+
+    .content-wrapper {
+      background: transparent !important;
+    }
+
+    .blur-overlay {
+      backdrop-filter: blur(6px) !important;
+    }
+  }
+
   .sidebar,
-  .main-content,
   .note-card {
     background: #252525;
   }

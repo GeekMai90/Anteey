@@ -5,7 +5,7 @@
     <div class="toolbar-section left">
       <div
         v-tooltip.bottom="{
-          content: '折叠/展开左侧边栏<br>Cmd + /',
+          content: '折叠/展开左侧边栏<br>Cmd + Shift + /',
           delay: { show: 1000 },
           html: true
         }"
@@ -182,7 +182,7 @@
       </div>
       <div
         v-tooltip.bottom="{
-          content: '折叠/展开右侧边栏<br>Cmd + shift + /',
+          content: '折叠/展开右侧边栏<br>Cmd + /',
           delay: { show: 1000 },
           html: true
         }"

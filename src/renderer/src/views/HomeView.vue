@@ -1,7 +1,7 @@
 <template>
   <div
     class="home-view"
-    :style="{ backgroundImage: `url(${backgroundImage})` }"
+    :style="{ backgroundImage: `url(${backgroundImage}) !important` }"
     :class="{ 'background-loaded': isBackgroundLoaded }"
   >
     <!-- 背景遮罩层 -->

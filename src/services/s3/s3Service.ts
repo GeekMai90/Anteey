@@ -192,7 +192,8 @@ export class S3Service extends EventEmitter {
 
     return {
       ...config,
-      secretAccessKey: decrypt(config.secretAccessKey), // 解密密钥
+      // 如果 secretAccessKey 存在且不为空，则解密它
+      secretAccessKey: config.secretAccessKey ? decrypt(config.secretAccessKey) : null,
       syncFileTypes
     }
   }
@@ -310,6 +311,21 @@ export class S3Service extends EventEmitter {
         }
       }
 
+      // 如果尝试启用同步，但配置不完整，则阻止启用
+      if (config.enabled === true) {
+        const hasEmptyRequiredFields =
+          (!config.region && !existingConfig?.region) ||
+          (!config.bucket && !existingConfig?.bucket) ||
+          (!config.accessKeyId && !existingConfig?.accessKeyId) ||
+          (!config.secretAccessKey && !existingConfig?.secretAccessKey)
+
+        if (hasEmptyRequiredFields) {
+          console.log('s3Service → 配置不完整，不能启用同步')
+          config.enabled = false
+          config.autoSync = false
+        }
+      }
+
       const updateData = {
         ...(existingConfig || {}),
         ...config,
@@ -317,6 +333,10 @@ export class S3Service extends EventEmitter {
         updatedAt: now,
         enabled: config.enabled ?? existingConfig?.enabled ?? false,
         provider: config.provider || existingConfig?.provider || 'aws',
+        // 使用默认值，但如果尝试启用同步时缺少这些字段会在前面抛出错误
+        region: config.region || existingConfig?.region || '',
+        bucket: config.bucket || existingConfig?.bucket || '',
+        accessKeyId: config.accessKeyId || existingConfig?.accessKeyId || '',
         syncInterval: config.syncInterval ?? existingConfig?.syncInterval ?? 15,
         autoSync: config.autoSync ?? existingConfig?.autoSync ?? false,
         syncDirection: config.syncDirection || existingConfig?.syncDirection || 'bidirectional',
@@ -325,7 +345,7 @@ export class S3Service extends EventEmitter {
           : existingConfig?.syncFileTypes || JSON.stringify(['all']),
         secretAccessKey: config.secretAccessKey
           ? encrypt(config.secretAccessKey)
-          : existingConfig?.secretAccessKey
+          : existingConfig?.secretAccessKey || encrypt('') // 确保加密的空字符串也是有效值
       }
 
       try {
@@ -452,6 +472,11 @@ export class S3Service extends EventEmitter {
       }
       if (!config.enabled) {
         throw new Error('S3 同步未启用')
+      }
+
+      // 检查配置是否完整
+      if (!config.region || !config.bucket || !config.accessKeyId || !config.secretAccessKey) {
+        throw new Error('S3 配置不完整，请先完成必要的配置项')
       }
 
       // 记录是否启用了自动同步
@@ -1120,15 +1145,33 @@ export class S3Service extends EventEmitter {
         return
       }
 
-      // 初始化客户端（无论是否启用自动同步）
-      console.log('s3Service → 初始化 S3 客户端...')
-      await this.getClient()
-      console.log('s3Service → S3 客户端初始化完成')
+      // 检查配置必填字段是否有值
+      if (!config.region || !config.bucket || !config.accessKeyId || !config.secretAccessKey) {
+        console.error('S3 配置不完整，缺少必要字段，不启动自动同步')
+        this.stopAutoSync()
+        return
+      }
+
+      try {
+        // 初始化客户端（无论是否启用自动同步）
+        console.log('s3Service → 初始化 S3 客户端...')
+        await this.getClient()
+        console.log('s3Service → S3 客户端初始化完成')
+      } catch (clientError) {
+        console.error('S3 客户端初始化失败:', clientError)
+        this.stopAutoSync()
+        return
+      }
 
       // 立即执行一次同步
-      console.log('s3Service → 执行启动时同步...')
-      await this.sync('auto')
-      console.log('s3Service → 启动时同步完成')
+      try {
+        console.log('s3Service → 执行启动时同步...')
+        await this.sync('auto')
+        console.log('s3Service → 启动时同步完成')
+      } catch (syncError) {
+        console.error('启动时同步失败:', syncError)
+        // 即使首次同步失败，也继续设置定时器
+      }
 
       // 如果启用了自动同步，设置定时器
       if (config.autoSync) {
@@ -1180,6 +1223,11 @@ export class S3Service extends EventEmitter {
   private async resumeAutoSyncTimer(): Promise<void> {
     try {
       const config = await this.getConfig()
+      if (!config) {
+        console.log('s3Service → 找不到有效的配置，无法恢复自动同步定时器')
+        return
+      }
+
       if (config?.autoSync) {
         // 获取同步间隔（分钟）
         const interval = config.syncInterval || 15
