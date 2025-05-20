@@ -177,37 +177,39 @@
         </div>
       </button>
 
-      <!-- 搜索按钮 -->
-      <!-- <button
+      <!-- 多标签按钮 -->
+      <button
         v-tooltip.right="{
-          content: '搜索 (⌘ S)',
+          content: '多标签',
           delay: { show: 500 }
         }"
         class="action-btn"
-        @click="openSearch"
+        data-menu="tabs"
+        @mouseenter="showTabsMenu($event)"
+        @mouseleave="handleTabsButtonLeave"
       >
         <div class="icon">
-          <Search theme="outline" size="18" fill="var(--color-sidebar-icon)" :strokeWidth="3" />
+          <BookmarkOne
+            theme="outline"
+            size="18"
+            fill="var(--color-sidebar-icon)"
+            :strokeWidth="3"
+          />
         </div>
-      </button> -->
-      <!-- <button
-        v-tooltip.right="{
-          content: '新建笔记 (⌘ N)',
-          delay: { show: 500 }
-        }"
-        class="action-btn"
-        @click="createNewCard"
-      >
-        <div class="icon">
-          <Plus theme="outline" size="18" fill="var(--color-sidebar-icon)" :strokeWidth="3" />
-        </div>
-      </button> -->
+      </button>
     </div>
     <QuickAccessMenu
       v-if="isQuickAccessVisible"
       v-model:visible="isQuickAccessVisible"
       :trigger-rect="triggerRect!"
       @mouseleave="handleMenuLeave"
+    />
+    <FloatingTabsList
+      v-if="isTabsMenuVisible"
+      v-model:visible="isTabsMenuVisible"
+      :button-position="tabsButtonPosition || undefined"
+      @mouseleave="handleTabsMenuLeave"
+      @mouseenter="cancelTabsMenuHide"
     />
   </div>
 </template>
@@ -225,11 +227,13 @@ import {
   Sapling,
   StorageCardOne,
   NotebookOne,
-  NotebookAndPen
+  NotebookAndPen,
+  BookmarkOne
 } from '@icon-park/vue-next'
 // import { useNoteStore } from '@renderer/stores/noteStore'
 import { useTimeBlockStore } from '@renderer/stores/timeBlockStore'
 import QuickAccessMenu from '@renderer/components/layout/QuickAccessMenu.vue'
+import FloatingTabsList from '@renderer/components/Tabs/FloatingTabsList.vue'
 
 const router = useRouter()
 // const uiStore = useUIStore()
@@ -241,6 +245,19 @@ const isMaximized = ref(false)
 const isQuickAccessVisible = ref(false)
 const triggerRect = ref<DOMRect | null>(null)
 let hideTimeout: NodeJS.Timeout | null = null
+
+// 多标签菜单相关
+const isTabsMenuVisible = ref(false)
+let tabsMenuHideTimeout: NodeJS.Timeout | null = null
+
+// 添加变量保存按钮位置
+const tabsButtonPosition = ref<{ top: number; left: number } | undefined>(undefined)
+
+// 添加全局鼠标移动变量和跟踪
+let isMouseOverTabsArea = false
+
+// 获取打开标签页概览的方法
+// const openTabsOverview = inject('openTabsOverview') as () => void
 
 // 窗口控制相关
 onMounted(async () => {
@@ -257,6 +274,17 @@ onMounted(async () => {
       hideTimeout = null
     }
   })
+
+  // 添加全局鼠标移动监听，用于跟踪鼠标位置
+  document.addEventListener('mousemove', handleGlobalMouseMove)
+
+  // ESC键关闭所有菜单
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      isQuickAccessVisible.value = false
+      isTabsMenuVisible.value = false
+    }
+  })
 })
 
 onUnmounted(() => {
@@ -264,30 +292,14 @@ onUnmounted(() => {
   if (hideTimeout) {
     clearTimeout(hideTimeout)
   }
+  if (tabsMenuHideTimeout) {
+    clearTimeout(tabsMenuHideTimeout)
+  }
   document.removeEventListener('click', handleClickOutside)
   document.removeEventListener('quickAccessMenuEnter', () => {})
+  document.removeEventListener('keydown', () => {})
+  document.removeEventListener('mousemove', handleGlobalMouseMove)
 })
-
-// 显示菜单
-// const showQuickAccess = (event: MouseEvent) => {
-//   if (hideTimeout) {
-//     clearTimeout(hideTimeout)
-//     hideTimeout = null
-//   }
-
-//   // 为窄侧边栏优化菜单位置
-//   const target = event.currentTarget as HTMLElement
-//   const rect = target.getBoundingClientRect()
-//   // 在卡片盒按钮的右侧显示菜单
-//   triggerRect.value = {
-//     ...rect,
-//     // 确保菜单出现在按钮右侧而不是下方
-//     right: rect.right,
-//     // 使用按钮的top作为菜单的top
-//     top: rect.top
-//   } as DOMRect
-//   isQuickAccessVisible.value = true
-// }
 
 // 处理菜单离开事件
 const handleMenuLeave = (event: MouseEvent) => {
@@ -308,8 +320,15 @@ const handleMenuLeave = (event: MouseEvent) => {
 // 处理点击外部区域关闭菜单
 const handleClickOutside = (event: MouseEvent) => {
   const target = event.target as HTMLElement
+
+  // 处理快速访问菜单
   if (!target.closest('.action-btn') && !target.closest('.quick-access-menu')) {
     isQuickAccessVisible.value = false
+  }
+
+  // 处理多标签菜单
+  if (!target.closest('.action-btn') && !target.closest('.floating-tabs-menu')) {
+    isTabsMenuVisible.value = false
   }
 }
 
@@ -347,6 +366,173 @@ const handleCardboxClick = () => {
   // 隐藏悬浮菜单
   isQuickAccessVisible.value = false
 }
+
+// 显示多标签菜单
+const showTabsMenu = (event: MouseEvent) => {
+  // 清除可能存在的隐藏定时器
+  if (tabsMenuHideTimeout) {
+    clearTimeout(tabsMenuHideTimeout)
+    tabsMenuHideTimeout = null
+  }
+
+  // 获取按钮位置
+  const buttonElement = event.currentTarget as HTMLElement
+  const buttonRect = buttonElement.getBoundingClientRect()
+
+  // 确保菜单顶部与按钮顶部对齐，右侧紧贴侧边栏
+  tabsButtonPosition.value = {
+    top: buttonRect.top,
+    left: buttonRect.right + 6 // 按钮右侧加一点间距
+  }
+
+  // 显示菜单
+  isTabsMenuVisible.value = true
+
+  // 如果打开了快速访问菜单，关闭它
+  if (isQuickAccessVisible.value) {
+    isQuickAccessVisible.value = false
+  }
+}
+
+// 处理按钮鼠标离开事件
+const handleTabsButtonLeave = (event: MouseEvent) => {
+  const relatedTarget = event.relatedTarget as HTMLElement
+
+  // 检查鼠标是否直接移到了菜单上
+  if (relatedTarget?.closest('.floating-tabs-menu')) {
+    return
+  }
+
+  // 延迟设置隐藏，给足够时间让鼠标移到菜单上
+  tabsMenuHideTimeout = setTimeout(() => {
+    // 再次检查当前鼠标是否在菜单或按钮上
+    const menuElement = document.querySelector('.floating-tabs-menu')
+    const buttonElement = document.querySelector('.action-btn[data-menu="tabs"]')
+
+    if (
+      (menuElement && menuElement.matches(':hover')) ||
+      (buttonElement && buttonElement.matches(':hover'))
+    ) {
+      return // 如果鼠标在菜单或按钮上，不隐藏
+    }
+
+    isTabsMenuVisible.value = false
+  }, 100)
+}
+
+// 处理多标签菜单离开事件
+const handleTabsMenuLeave = (event: MouseEvent) => {
+  const relatedTarget = event.relatedTarget as HTMLElement
+
+  // 如果鼠标移回到按钮上，不要隐藏菜单
+  if (relatedTarget?.closest('.action-btn')) {
+    return
+  }
+
+  // 如果上下文菜单打开，不关闭悬浮菜单
+  if (relatedTarget?.closest('.global-context-menu')) {
+    return
+  }
+
+  // 设置延迟隐藏
+  tabsMenuHideTimeout = setTimeout(() => {
+    isTabsMenuVisible.value = false
+  }, 200)
+}
+
+// 取消菜单隐藏定时器
+const cancelTabsMenuHide = () => {
+  if (tabsMenuHideTimeout) {
+    clearTimeout(tabsMenuHideTimeout)
+    tabsMenuHideTimeout = null
+  }
+}
+
+// 处理全局鼠标移动
+const handleGlobalMouseMove = (e: MouseEvent) => {
+  // 检查鼠标是否在多标签按钮或悬浮菜单上
+  const tabsButton = document.querySelector('.action-btn[data-menu="tabs"]')
+  const tabsMenu = document.querySelector('.floating-tabs-menu')
+
+  // 检查必要的元素是否存在
+  if (!tabsButton) {
+    isMouseOverTabsArea = false
+    return
+  }
+
+  // 判断鼠标是否在元素区域内
+  const isOverButton = elementContainsPoint(tabsButton as HTMLElement, e.clientX, e.clientY)
+
+  // 判断是否在菜单上(如果菜单显示且存在)
+  let isOverMenu = false
+  if (isTabsMenuVisible.value && tabsMenu) {
+    isOverMenu = elementContainsPoint(tabsMenu as HTMLElement, e.clientX, e.clientY)
+  }
+
+  // 更新鼠标是否在目标区域
+  const wasOverTabsArea = isMouseOverTabsArea
+  isMouseOverTabsArea = isOverButton || isOverMenu
+
+  // 显示/隐藏逻辑
+  if (isMouseOverTabsArea && !wasOverTabsArea) {
+    // 鼠标刚移入区域
+    if (!isTabsMenuVisible.value) {
+      // 创建菜单，使用现有按钮元素的位置
+      showTabsMenuFromPosition(tabsButton as HTMLElement)
+    }
+    // 取消任何隐藏定时器
+    cancelTabsMenuHide()
+  } else if (!isMouseOverTabsArea && wasOverTabsArea) {
+    // 鼠标刚移出区域
+    handleTabsAreaLeave()
+  }
+}
+
+// 从指定元素位置显示菜单（供全局鼠标移动使用）
+const showTabsMenuFromPosition = (buttonElement: HTMLElement) => {
+  // 清除可能存在的隐藏定时器
+  if (tabsMenuHideTimeout) {
+    clearTimeout(tabsMenuHideTimeout)
+    tabsMenuHideTimeout = null
+  }
+
+  // 获取按钮位置
+  const buttonRect = buttonElement.getBoundingClientRect()
+
+  // 确保菜单顶部与按钮顶部对齐，右侧紧贴侧边栏
+  tabsButtonPosition.value = {
+    top: buttonRect.top,
+    left: buttonRect.right + 6 // 按钮右侧加一点间距
+  }
+
+  // 显示菜单
+  isTabsMenuVisible.value = true
+
+  // 如果打开了快速访问菜单，关闭它
+  if (isQuickAccessVisible.value) {
+    isQuickAccessVisible.value = false
+  }
+}
+
+// 检查元素是否包含指定点
+const elementContainsPoint = (element: HTMLElement, x: number, y: number) => {
+  const rect = element.getBoundingClientRect()
+  return x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom
+}
+
+// 处理标签区域离开
+const handleTabsAreaLeave = () => {
+  // 检查是否有上下文菜单打开
+  const contextMenu = document.querySelector('.global-context-menu')
+  if (contextMenu) return
+
+  // 添加短暂延迟再隐藏，避免边缘情况
+  tabsMenuHideTimeout = setTimeout(() => {
+    if (!isMouseOverTabsArea) {
+      isTabsMenuVisible.value = false
+    }
+  }, 200)
+}
 </script>
 
 <style lang="scss" scoped>
@@ -379,7 +565,7 @@ const handleCardboxClick = () => {
   .window-controls {
     position: absolute;
     left: -7px;
-    top: 13px;
+    top: 4px;
     display: flex;
     gap: 5px;
     -webkit-app-region: no-drag;
@@ -453,7 +639,7 @@ const handleCardboxClick = () => {
   flex-direction: column;
   align-items: center;
   gap: 4px;
-  padding: 14px 0 8px 0;
+  padding: 0px 0 8px 0;
   width: 100%;
   margin-top: 0;
   overflow-y: auto;

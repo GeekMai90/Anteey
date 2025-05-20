@@ -50,6 +50,9 @@
     <!-- 添加思维板选择器模态框 -->
     <MindboardSelectorModal />
 
+    <!-- 标签页概览模态窗口 -->
+    <TabsOverview ref="tabsOverview" />
+
     <!-- 添加命令面板 -->
     <CommandPalette />
   </div>
@@ -86,6 +89,7 @@ import ReviewModal from '@renderer/components/review/ReviewModal.vue'
 import ShareViewModal from '@renderer/components/share/ShareViewModal.vue'
 import MindboardSelectorModal from '@renderer/components/mindboard/MindboardSelectorModal.vue'
 import CommandPalette from '@renderer/components/common/CommandPalette.vue'
+import TabsOverview from '@renderer/components/Tabs/TabsOverview.vue'
 import { message } from '@renderer/utils/message'
 
 // 状态管理初始化
@@ -114,6 +118,15 @@ interface BaseLayoutInstance {
 
 const baseLayout = ref<BaseLayoutInstance | null>(null)
 const globalUIManager = ref<InstanceType<typeof GlobalUIManager> | null>(null)
+const tabsOverview = ref<InstanceType<typeof TabsOverview> | null>(null)
+
+// 打开标签页概览的方法
+const openTabsOverview = () => {
+  tabsOverview.value?.openTabsOverview()
+}
+
+// 提供打开标签页概览方法给其他组件使用
+provide('openTabsOverview', openTabsOverview)
 
 // 快速添加状态管理
 const isQuickAddVisible = ref(false)
@@ -123,6 +136,14 @@ let loadingTimer: NodeJS.Timeout | null = null
 
 // 处理快捷键
 const handleKeydown = (event: KeyboardEvent) => {
+  // 调试信息
+  console.log('键盘事件触发:', event.key, {
+    alt: event.altKey,
+    ctrl: event.ctrlKey,
+    shift: event.shiftKey,
+    meta: event.metaKey
+  })
+
   // 支持 Windows(Ctrl) 和 Mac(Cmd) 的快捷键
   const isCmdOrCtrl = event.metaKey || event.ctrlKey
 
@@ -136,9 +157,35 @@ const handleKeydown = (event: KeyboardEvent) => {
       event.target.isContentEditable &&
       !event.target.closest('.ProseMirror')) // 排除编辑器内的可编辑元素
 
+  // 已有的Cmd+D快捷键处理
   if (isCmdOrCtrl && event.key.toLowerCase() === 'd' && !isExcludedInput) {
     event.preventDefault()
     isQuickAddVisible.value = true
+  }
+
+  // 添加标签页概览快捷键 Cmd+T / Ctrl+T - 支持切换打开/关闭
+  if (isCmdOrCtrl && event.key.toLowerCase() === 't' && !isExcludedInput) {
+    event.preventDefault()
+    console.log('触发标签页概览快捷键 Cmd+T / Ctrl+T')
+
+    // 通过检查组件状态来切换开关
+    if (tabsOverview.value) {
+      try {
+        // 检查标签页概览的状态并切换
+        const isCurrentlyVisible = tabsOverview.value.getIsVisible?.() || false
+        if (isCurrentlyVisible) {
+          console.log('关闭标签页概览')
+          tabsOverview.value.closeTabsOverview()
+        } else {
+          console.log('打开标签页概览')
+          tabsOverview.value.openTabsOverview()
+        }
+      } catch (error) {
+        // 如果出错，只尝试打开
+        console.error('切换标签页概览失败:', error)
+        tabsOverview.value.openTabsOverview()
+      }
+    }
   }
 }
 
@@ -243,6 +290,7 @@ onMounted(async () => {
   baseLayout.value?.checkWindowSize()
   window.addEventListener('resize', () => baseLayout.value?.handleResize())
   window.addEventListener('keydown', handleKeydown)
+  console.log('App.vue: 键盘事件监听器已注册')
 
   // 预加载所有数据
   try {

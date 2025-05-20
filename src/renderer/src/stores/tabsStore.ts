@@ -243,9 +243,9 @@ export const useTabsStore = defineStore(
     }
 
     // 初始化
-    const initialize = async () => {
-      // 如果已经有标签，无需重新加载，避免顺序重置
-      if (allTabs.value.length > 0) {
+    const initialize = async (forceReload = false) => {
+      // 如果已经有标签且不是强制重新加载，无需重新加载，避免顺序重置
+      if (allTabs.value.length > 0 && !forceReload) {
         return
       }
       await loadTabs()

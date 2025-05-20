@@ -1,134 +1,166 @@
 <template>
-  <div class="tabs-list">
-    <!-- 固定标签组 -->
-    <div v-if="pinnedTabs.length > 0" class="tabs-group">
-      <div class="group-header">
-        <div class="title">固定</div>
-      </div>
-      <draggable
-        v-model="pinnedTabsModel"
-        class="tabs-items"
-        item-key="id"
-        :animation="200"
-        ghost-class="ghost-class"
-        @end="handlePinnedDragEnd"
-      >
-        <template #item="{ element }">
-          <div
-            class="tab-item"
-            :class="{ active: element.id === activeTabId }"
-            @click="handleTabClick(element)"
-            @contextmenu="showContextMenu($event, element)"
-          >
-            <div class="icon">
-              <component
-                :is="getTabIcon(element.type)"
-                theme="outline"
-                size="16"
-                fill="var(--color-sidebar-text)"
-                :strokeWidth="2"
-              />
-            </div>
-            <div class="content">
-              <!-- 编码地址 -->
-              <div v-if="element.address" class="address">{{ element.address }}</div>
-              <!-- 标题 -->
-              <div class="title">{{ element.title }}</div>
-            </div>
-            <div class="actions">
-              <div
-                v-tooltip.right="{ content: '关闭', delay: { show: 1000 } }"
-                class="close-button"
-                @click.stop="closeTab(element.id)"
-              >
-                <Close
+  <div
+    class="floating-tabs-menu"
+    :style="menuStyle"
+    data-role="tabs-menu"
+    @mouseleave="handleMouseLeave"
+    @mouseenter="handleMouseEnter"
+  >
+    <div class="tabs-container">
+      <!-- 固定标签组 -->
+      <div v-if="pinnedTabs.length > 0" class="tabs-group">
+        <div class="group-header">
+          <div class="title">固定</div>
+        </div>
+        <draggable
+          v-model="pinnedTabsModel"
+          class="tabs-items"
+          item-key="id"
+          :animation="200"
+          ghost-class="ghost-class"
+          @end="handlePinnedDragEnd"
+        >
+          <template #item="{ element }">
+            <div
+              class="tab-item"
+              :class="{ active: element.id === activeTabId }"
+              @click="handleTabClick(element)"
+              @contextmenu="showContextMenu($event, element)"
+            >
+              <div class="icon">
+                <component
+                  :is="getTabIcon(element.type)"
                   theme="outline"
-                  size="14"
+                  size="16"
                   fill="var(--color-sidebar-text)"
                   :strokeWidth="2"
                 />
               </div>
+              <div class="content">
+                <!-- 编码地址 -->
+                <div v-if="element.address" class="address">{{ element.address }}</div>
+                <!-- 标题 -->
+                <div class="title">{{ element.title }}</div>
+              </div>
+              <div class="actions">
+                <div
+                  v-tooltip.right="{ content: '关闭', delay: { show: 1000 } }"
+                  class="close-button"
+                  @click.stop="closeTab(element.id)"
+                >
+                  <Close
+                    theme="outline"
+                    size="14"
+                    fill="var(--color-sidebar-text)"
+                    :strokeWidth="2"
+                  />
+                </div>
+              </div>
             </div>
-          </div>
-        </template>
-      </draggable>
-    </div>
+          </template>
+        </draggable>
+      </div>
 
-    <!-- 常规标签组 -->
-    <div class="tabs-group">
-      <div v-if="pinnedTabs.length > 0" class="group-header">
-        <div class="title">页签</div>
-      </div>
-      <draggable
-        v-model="unpinnedTabsModel"
-        class="tabs-items"
-        item-key="id"
-        :animation="200"
-        ghost-class="ghost-class"
-        @end="handleUnpinnedDragEnd"
-      >
-        <template #item="{ element }">
-          <div
-            class="tab-item"
-            :class="{ active: element.id === activeTabId }"
-            @click="handleTabClick(element)"
-            @contextmenu="showContextMenu($event, element)"
-          >
-            <div class="icon">
-              <component
-                :is="getTabIcon(element.type)"
-                theme="outline"
-                size="16"
-                fill="var(--color-sidebar-text)"
-                :strokeWidth="2"
-              />
-            </div>
-            <div class="content">
-              <!-- 编码地址 -->
-              <div v-if="element.address" class="address">{{ element.address }}</div>
-              <!-- 标题 -->
-              <div class="title">{{ element.title }}</div>
-            </div>
-            <div class="actions">
-              <div
-                v-tooltip.right="{ content: '关闭', delay: { show: 1000 } }"
-                class="close-button"
-                @click.stop="closeTab(element.id)"
-              >
-                <Close
+      <!-- 常规标签组 -->
+      <div class="tabs-group">
+        <div v-if="pinnedTabs.length > 0" class="group-header">
+          <div class="title">页签</div>
+        </div>
+        <draggable
+          v-model="unpinnedTabsModel"
+          class="tabs-items"
+          item-key="id"
+          :animation="200"
+          ghost-class="ghost-class"
+          @end="handleUnpinnedDragEnd"
+        >
+          <template #item="{ element }">
+            <div
+              class="tab-item"
+              :class="{ active: element.id === activeTabId }"
+              @click="handleTabClick(element)"
+              @contextmenu="showContextMenu($event, element)"
+            >
+              <div class="icon">
+                <component
+                  :is="getTabIcon(element.type)"
                   theme="outline"
-                  size="14"
+                  size="16"
                   fill="var(--color-sidebar-text)"
                   :strokeWidth="2"
                 />
               </div>
+              <div class="content">
+                <!-- 编码地址 -->
+                <div v-if="element.address" class="address">{{ element.address }}</div>
+                <!-- 标题 -->
+                <div class="title">{{ element.title }}</div>
+              </div>
+              <div class="actions">
+                <div
+                  v-tooltip.right="{ content: '关闭', delay: { show: 1000 } }"
+                  class="close-button"
+                  @click.stop="closeTab(element.id)"
+                >
+                  <Close
+                    theme="outline"
+                    size="14"
+                    fill="var(--color-sidebar-text)"
+                    :strokeWidth="2"
+                  />
+                </div>
+              </div>
             </div>
-          </div>
-        </template>
-      </draggable>
+          </template>
+        </draggable>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, ref, onMounted, watch } from 'vue'
+import { computed, onMounted, ref, watch, onUnmounted } from 'vue'
 import { useTabsStore } from '@renderer/stores/tabsStore'
 import { useNoteStore } from '@renderer/stores/noteStore'
 import { useContextMenuStore } from '@renderer/stores/contextMenuStore'
 import { useRouter } from 'vue-router'
 import { TabItem, TabItemType } from '@shared/types/tabs'
 import { Close, CloseOne, Notes, Workbench, FileText, Pushpin, Other } from '@icon-park/vue-next'
-import draggable from 'vuedraggable'
 import { markRaw } from 'vue'
+import draggable from 'vuedraggable'
 
 const tabsStore = useTabsStore()
 const noteStore = useNoteStore()
 const router = useRouter()
 const contextMenuStore = useContextMenuStore()
 
-// 接收active属性
+// 添加计算属性来动态计算菜单位置
 const props = defineProps<{
-  active?: boolean
+  visible: boolean
+  buttonPosition?: { top: number; left: number }
+}>()
+
+// 优化菜单位置的计算属性
+const menuStyle = computed(() => {
+  if (!props.buttonPosition) {
+    return {
+      top: '120px',
+      left: '38px'
+    }
+  }
+
+  return {
+    top: `${props.buttonPosition.top - 10}px`,
+    left: `${props.buttonPosition.left - 6}px`,
+    transform: 'translateY(0)' // 确保不会有额外的垂直偏移
+  }
+})
+
+// 定义事件
+const emit = defineEmits<{
+  (e: 'update:visible', value: boolean): void
+  (e: 'mouseleave', event: MouseEvent): void
+  (e: 'mouseenter'): void
 }>()
 
 // 从 store 获取数据
@@ -137,45 +169,55 @@ const pinnedTabs = computed(() => tabsStore.pinnedTabs)
 const unpinnedTabs = computed(() => tabsStore.unpinnedTabs)
 const activeTabId = computed(() => tabsStore.activeTabId)
 
-// 创建可拖拽的标签模型
-const pinnedTabsModel = ref<TabItem[]>([...pinnedTabs.value])
-const unpinnedTabsModel = ref<TabItem[]>([...unpinnedTabs.value])
-// 添加一个标记，表示拖拽后的顺序是否已被保存
-const sortModified = ref(false)
+// 追踪上下文菜单是否打开
+const isContextMenuOpen = ref(false)
 
-// 监听原始标签变化，更新拖拽模型，但只在没有进行过拖拽排序或有新标签时更新
+// 创建可拖拽的标签模型 - 直接使用计算属性进行双向绑定
+const pinnedTabsModel = ref<TabItem[]>([])
+const unpinnedTabsModel = ref<TabItem[]>([])
+
+// 当组件可见时加载标签数据
 watch(
-  pinnedTabs,
-  (newTabs, oldTabs) => {
-    // 只在标签数量变化时更新模型
-    if (newTabs.length !== oldTabs.length) {
-      pinnedTabsModel.value = [...newTabs]
-      // 重置排序状态
-      sortModified.value = false
+  () => props.visible,
+  async (isVisible) => {
+    if (isVisible) {
+      // 菜单显示时强制刷新标签数据
+      await tabsStore.initialize(true)
+      pinnedTabsModel.value = [...pinnedTabs.value]
+      unpinnedTabsModel.value = [...unpinnedTabs.value]
+      console.log('FloatingTabsList 显示: 强制刷新标签数据')
+    }
+  },
+  { immediate: true }
+)
+
+// 监听 store 中标签数据变化
+watch(
+  () => [pinnedTabs.value, unpinnedTabs.value],
+  () => {
+    // 只在组件可见时更新本地模型
+    if (props.visible) {
+      pinnedTabsModel.value = [...pinnedTabs.value]
+      unpinnedTabsModel.value = [...unpinnedTabs.value]
     }
   },
   { deep: true }
 )
 
+// 监听ContextMenuStore的show状态
 watch(
-  unpinnedTabs,
-  (newTabs, oldTabs) => {
-    // 只在标签数量变化时更新模型
-    if (newTabs.length !== oldTabs.length) {
-      unpinnedTabsModel.value = [...newTabs]
-      // 重置排序状态
-      sortModified.value = false
+  () => contextMenuStore.show,
+  (newValue) => {
+    // 当上下文菜单关闭时，重置标志位
+    if (!newValue && isContextMenuOpen.value) {
+      isContextMenuOpen.value = false
     }
-  },
-  { deep: true }
+  }
 )
 
-// 处理固定标签拖拽结束
+// 处理固定标签拖拽结束 - 完全匹配TabsList实现
 const handlePinnedDragEnd = async () => {
   if (pinnedTabsModel.value.length === 0) return
-
-  // 设置为已修改状态
-  sortModified.value = true
 
   // 生成新的顺序数据
   const reorderData = pinnedTabsModel.value.map((tab, index) => ({
@@ -198,20 +240,24 @@ const handlePinnedDragEnd = async () => {
   // 如果顺序改变，更新到数据库
   if (orderChanged) {
     try {
+      // 保存到数据库
       await tabsStore.reorderTabs({ tabs: reorderData })
-      console.log('TabsList: 固定标签排序已保存')
 
-      // 通知其他组件标签顺序已更新
-      setTimeout(() => {
-        tabsStore.initialize(true)
-      }, 100)
+      // 在使用标签数据前，强制从数据库重新加载所有标签
+      await tabsStore.initialize(true)
+
+      // 重新同步本地模型
+      pinnedTabsModel.value = [...pinnedTabs.value]
+      unpinnedTabsModel.value = [...unpinnedTabs.value]
+
+      console.log('FloatingTabsList: 固定标签排序已保存并重新加载')
     } catch (error) {
-      console.error('固定标签排序更新失败:', error)
+      console.error('FloatingTabsList: 固定标签排序更新失败:', error)
     }
   }
 }
 
-// 处理普通标签拖拽结束
+// 处理普通标签拖拽结束 - 完全匹配TabsList实现
 const handleUnpinnedDragEnd = async () => {
   if (unpinnedTabsModel.value.length === 0) return
 
@@ -236,15 +282,19 @@ const handleUnpinnedDragEnd = async () => {
   // 如果顺序改变，更新到数据库
   if (orderChanged) {
     try {
+      // 保存到数据库
       await tabsStore.reorderTabs({ tabs: reorderData })
-      console.log('TabsList: 普通标签排序已保存')
 
-      // 通知其他组件标签顺序已更新
-      setTimeout(() => {
-        tabsStore.initialize(true)
-      }, 100)
+      // 在使用标签数据前，强制从数据库重新加载所有标签
+      await tabsStore.initialize(true)
+
+      // 重新同步本地模型
+      pinnedTabsModel.value = [...pinnedTabs.value]
+      unpinnedTabsModel.value = [...unpinnedTabs.value]
+
+      console.log('FloatingTabsList: 普通标签排序已保存并重新加载')
     } catch (error) {
-      console.error('普通标签排序更新失败:', error)
+      console.error('FloatingTabsList: 普通标签排序更新失败:', error)
     }
   }
 }
@@ -270,7 +320,9 @@ const handleTabClick = async (tab: TabItem) => {
     // 如果是文章类型，导航到文稿详情页
     router.push({ name: 'ManuscriptDetail', params: { id: tab.contentId } })
   }
-  // 未来可以添加其他类型的处理逻辑
+
+  // 点击后关闭菜单
+  emit('update:visible', false)
 }
 
 // 关闭标签页
@@ -297,6 +349,9 @@ const getTabIcon = (type: TabItemType) => {
 const showContextMenu = (event: MouseEvent, tab: TabItem) => {
   event.preventDefault()
 
+  // 标记右键菜单已打开
+  isContextMenuOpen.value = true
+
   // 基础菜单项 - 对所有标签都显示
   const menuItems = [
     {
@@ -304,6 +359,7 @@ const showContextMenu = (event: MouseEvent, tab: TabItem) => {
       icon: markRaw(Pushpin),
       action: () => {
         tabsStore.pinTab(tab.id, !tab.isPinned)
+        // action调用后contextMenuStore会自动关闭菜单，我们的watch会处理标志位
       }
     },
     {
@@ -323,7 +379,7 @@ const showContextMenu = (event: MouseEvent, tab: TabItem) => {
       icon: markRaw(CloseOne),
       action: async () => {
         // 获取当前所有展示标签的顺序
-        const allTabsOrdered = [...pinnedTabsModel.value, ...unpinnedTabsModel.value]
+        const allTabsOrdered = [...pinnedTabs.value, ...unpinnedTabs.value]
 
         // 找到当前标签在整体顺序中的位置
         const currentTabIndex = allTabsOrdered.findIndex((t) => t.id === tab.id)
@@ -341,29 +397,23 @@ const showContextMenu = (event: MouseEvent, tab: TabItem) => {
       }
     })
 
-    // 添加关闭其他标签页选项
+    // 其他菜单项类似，移除重复的标志位设置
     menuItems.push({
       label: '关闭其他标签页',
       icon: markRaw(CloseOne),
       action: async () => {
-        // 过滤出需要关闭的标签页：非当前标签且未被固定的标签
         const tabsToClose = allTabs.value.filter((t) => t.id !== tab.id && !t.isPinned)
-
         for (const t of tabsToClose) {
           await tabsStore.closeTab(t.id)
         }
       }
     })
 
-    // 添加关闭所有标签页选项 - 只在非固定标签页菜单中显示
     menuItems.push({
       label: '关闭所有标签页',
       icon: markRaw(CloseOne),
       action: async () => {
-        // 获取所有非固定标签
         const tabsToClose = allTabs.value.filter((t) => !t.isPinned)
-
-        // 关闭所有非固定标签
         for (const t of tabsToClose) {
           await tabsStore.closeTab(t.id)
         }
@@ -371,42 +421,116 @@ const showContextMenu = (event: MouseEvent, tab: TabItem) => {
     })
   }
 
+  // 显示上下文菜单
   contextMenuStore.showMenuAtPosition(event.clientX, event.clientY, menuItems)
 }
 
-// 监听active属性变化，当组件激活时加载数据
-watch(
-  () => props.active,
-  async (newActive) => {
-    if (newActive) {
-      // 当组件变为激活状态时加载标签页数据，但保持当前顺序
-      await tabsStore.initialize()
-    }
+// 处理鼠标离开事件
+const handleMouseLeave = (event: MouseEvent) => {
+  // 如果上下文菜单打开，不关闭悬浮菜单
+  if (isContextMenuOpen.value) {
+    return
   }
-)
+
+  // 检查是否移动到了上下文菜单上
+  const relatedTarget = event.relatedTarget as HTMLElement
+
+  if (relatedTarget?.closest('.global-context-menu')) {
+    return
+  }
+
+  // 检查是否移回到了按钮上
+  if (relatedTarget?.closest('.action-btn[data-menu="tabs"]')) {
+    return
+  }
+
+  emit('mouseleave', event)
+}
+
+// 处理鼠标进入事件
+const handleMouseEnter = () => {
+  // 发出mouseenter事件，让父组件知道用户鼠标进入了菜单
+  emit('mouseenter')
+}
 
 // 页面加载时初始化
 onMounted(async () => {
-  if (allTabs.value.length === 0) {
-    await tabsStore.initialize()
-  }
+  // 确保标签数据已初始化
+  await tabsStore.initialize()
 
-  // 调试输出标签页信息
-  console.log('TabsList mounted, tabs:', allTabs.value)
-  console.log('Pinned tabs:', pinnedTabs.value)
-  console.log('Unpinned tabs:', unpinnedTabs.value)
+  // 初始化本地模型数据
+  pinnedTabsModel.value = [...pinnedTabs.value]
+  unpinnedTabsModel.value = [...unpinnedTabs.value]
 
-  // 检查标签页是否有地址信息
-  allTabs.value.forEach((tab) => {
-    console.log(`Tab ${tab.id} (${tab.title}) address:`, tab.address)
-  })
+  // 添加ESC键监听，当按下ESC键时关闭上下文菜单标志
+  document.addEventListener('keydown', handleKeyDown)
+
+  // 添加全局点击监听，辅助处理上下文菜单关闭
+  document.addEventListener('click', handleGlobalClick)
 })
+
+// 组件卸载时清理
+onUnmounted(() => {
+  document.removeEventListener('keydown', handleKeyDown)
+  document.removeEventListener('click', handleGlobalClick)
+})
+
+// 处理键盘事件
+const handleKeyDown = (e: KeyboardEvent) => {
+  // 当按下ESC键时，重置上下文菜单标志
+  if (e.key === 'Escape') {
+    isContextMenuOpen.value = false
+  }
+}
+
+// 处理全局点击，帮助检测上下文菜单关闭
+const handleGlobalClick = (e: MouseEvent) => {
+  const target = e.target as HTMLElement
+
+  // 如果点击位置不在上下文菜单内，且上下文菜单标志为打开状态，则重置标志
+  if (
+    isContextMenuOpen.value &&
+    !target.closest('.global-context-menu') &&
+    !target.closest('.tab-item')
+  ) {
+    isContextMenuOpen.value = false
+  }
+}
 </script>
 
 <style lang="scss" scoped>
-.tabs-list {
+.floating-tabs-menu {
+  position: absolute;
+  /* 完全依靠计算属性控制位置 */
+  background-color: var(--color-bg-primary);
+  border-radius: 10px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(var(--color-sidebar-icon-bg), 0.1);
+  z-index: 1000;
+  width: 260px;
+  max-height: 80vh;
+  overflow: hidden;
+  padding: 12px;
+  animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateX(-10px) translateY(0);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) translateY(0);
+  }
+}
+
+.tabs-container {
   width: 100%;
   height: 100%;
+  max-height: calc(80vh - 24px); /* 减去padding */
   overflow-y: auto;
   position: relative;
 }
@@ -436,7 +560,7 @@ onMounted(async () => {
   align-items: center;
   padding: 4px 8px;
   border-radius: 6px;
-  cursor: grab;
+  cursor: grab; /* 改为grab光标，表示可拖拽 */
   transition: all 0.2s ease;
   user-select: none;
   position: relative;
@@ -463,7 +587,7 @@ onMounted(async () => {
   }
 
   &:active {
-    cursor: grabbing;
+    cursor: grabbing; /* 抓取中的光标 */
     transform: scale(1.02);
     transition: transform 0.2s ease;
   }
@@ -552,9 +676,9 @@ onMounted(async () => {
   }
 }
 
-// .active .actions {
-//   opacity: 1;
-// }
+.active .actions {
+  opacity: 1;
+}
 
 /* 拖拽时的占位样式 */
 .ghost-class {
