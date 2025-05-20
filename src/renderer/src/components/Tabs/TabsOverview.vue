@@ -348,7 +348,12 @@ const showContextMenu = (event: MouseEvent, tab: TabItem) => {
   event.preventDefault()
 
   // 初始化菜单项数组
-  const menuItems = []
+  interface MenuItem {
+    label: string
+    icon: ReturnType<typeof markRaw>
+    action: () => Promise<void>
+  }
+  const menuItems: MenuItem[] = []
 
   // 只为非固定标签显示高级操作菜单项
   if (!tab.isPinned) {
