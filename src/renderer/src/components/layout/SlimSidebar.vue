@@ -559,13 +559,13 @@ const handleTabsAreaLeave = () => {
   align-items: center;
   width: 100%;
   padding: 0 8px;
-  margin-bottom: 10px;
+  margin-bottom: 20px;
   flex-shrink: 0;
 
   .window-controls {
     position: absolute;
     left: -7px;
-    top: 4px;
+    top: 13px;
     display: flex;
     gap: 5px;
     -webkit-app-region: no-drag;

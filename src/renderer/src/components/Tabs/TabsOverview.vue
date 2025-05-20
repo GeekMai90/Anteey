@@ -546,6 +546,10 @@ const formatUpdateTime = (timestamp: number | string) => {
       background-color: var(--color-scrollbar);
       border-radius: 2px;
     }
+    // 新增：第一个固定标签左侧加间距
+    .pinned-tab:first-child {
+      margin-left: 4px; // 你可以根据实际视觉调整，比如 8px
+    }
   }
 }
 
