@@ -62,29 +62,15 @@ export async function getLastDayNoteCount(): Promise<number> {
 // 获取用户使用天数
 export async function getUserUsageDays(): Promise<number> {
   try {
-    // 获取最早的笔记创建时间
-    const firstNote = await db('notes')
+    // 使用 SQL 直接统计不同日期的数量
+    const result = await db('notes')
       .where('isDeleted', false)
-      .orderBy('createdAt', 'asc')
+      .countDistinct(db.raw("strftime('%Y-%m-%d', datetime(createdAt / 1000, 'unixepoch'))"))
       .first()
 
-    if (!firstNote) {
-      return 0
-    }
-
-    // 计算从第一条笔记到现在的天数
-    const firstNoteDate = new Date(firstNote.createdAt)
-    const now = new Date()
-
-    // 将两个日期都设置为当天的开始时间（00:00:00）以确保计算准确
-    firstNoteDate.setHours(0, 0, 0, 0)
-    now.setHours(0, 0, 0, 0)
-
-    const diffTime = Math.abs(now.getTime() - firstNoteDate.getTime())
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-
-    // 如果是同一天创建的，返回1，否则返回计算的天数
-    return diffDays === 0 ? 1 : diffDays
+    // 获取计数结果（处理不同数据库返回结果的差异）
+    const count = result ? (result as any).count || Object.values(result)[0] : 0
+    return Number(count)
   } catch (error) {
     console.error('后端→ 获取用户使用天数失败:', error)
     throw error

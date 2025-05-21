@@ -176,6 +176,7 @@ const emit = defineEmits<{
   'update:modelValue': [value: boolean]
   feedback: [noteId: string, feedback: ReviewFeedback, reviewTime: number, isSimplified: boolean]
   complete: []
+  cardsUpdated: [cards: Note[]]
 }>()
 
 // 状态
@@ -205,6 +206,25 @@ const currentCard = computed(() => {
 })
 
 const flashcardStore = useFlashcardStore()
+
+// 监听 dueFlashcards 变化，实时更新卡片列表
+watch(
+  () => flashcardStore.dueFlashcards,
+  (newCards) => {
+    if (props.modelValue && newCards.length > 0) {
+      // 找出新增的卡片（不在当前 props.cards 中的卡片）
+      const currentCardIds = props.cards.map((card) => card.id)
+      const newAddedCards = newCards.filter((card) => !currentCardIds.includes(card.id))
+
+      if (newAddedCards.length > 0) {
+        console.log('检测到新的到期卡片，添加到当前复习队列:', newAddedCards)
+        // 通知父组件更新卡片列表
+        emit('cardsUpdated', [...props.cards, ...newAddedCards])
+      }
+    }
+  },
+  { deep: true }
+)
 
 // 获取设置中的简化按钮状态
 const isSimplifiedMode = computed(() => flashcardStore.settings?.simplifyButtons ?? false)

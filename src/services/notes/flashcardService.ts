@@ -79,6 +79,28 @@ export class FlashcardService {
     }
   }
 
+  // 根据ID获取闪卡
+  async getFlashcardsByIds(noteIds: string[]): Promise<Note[]> {
+    try {
+      if (!noteIds || noteIds.length === 0) {
+        return []
+      }
+
+      const notes = await db('notes')
+        .whereIn('id', noteIds)
+        .where({
+          isFlashcard: true,
+          isDeleted: false
+        })
+        .select('*')
+
+      return notes.map(convertToNote)
+    } catch (error) {
+      console.error('后端→ 根据ID获取闪卡失败:', error)
+      throw error
+    }
+  }
+
   // 更新闪卡复习状态
   async updateFlashcardStatus({
     noteId,
@@ -90,7 +112,7 @@ export class FlashcardService {
     feedback: ReviewFeedback
     reviewTime: number
     isSimplified?: boolean
-  }): Promise<void> {
+  }): Promise<{ noteId: string; nextReviewAt: Date }> {
     try {
       const note = await db('notes').where({ id: noteId }).first()
       if (!note || !note.isFlashcard) {
@@ -156,6 +178,12 @@ export class FlashcardService {
       ])
 
       console.log('后端→ 更新闪卡状态和统计数据成功:', noteId)
+
+      // 返回更新后的卡片信息
+      return {
+        noteId,
+        nextReviewAt: result.card.due
+      }
     } catch (error) {
       console.error('后端→ 更新闪卡状态和统计数据失败:', error)
       throw error

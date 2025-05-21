@@ -1,7 +1,7 @@
 <template>
   <div
     class="home-view"
-    :style="{ backgroundImage: `url(${backgroundImage}) !important` }"
+    :style="{ backgroundImage: backgroundImageStyle }"
     :class="{ 'background-loaded': isBackgroundLoaded }"
   >
     <!-- 背景遮罩层 -->
@@ -91,6 +91,22 @@ const themeStore = useThemeStore()
 // ===== 背景图片管理 =====
 const backgroundImage = ref('')
 const isBackgroundLoaded = ref(false)
+const loadingAttempts = ref(0) // 添加加载尝试次数计数器
+const maxLoadingAttempts = 3 // 最大重试次数
+const useDefaultBackground = ref(false) // 是否使用默认背景色
+const defaultBackgroundImage = ref('') // 默认背景图片
+
+// 导入默认背景图片
+import defaultBgImage from '../assets/backgrounds/background_1728172072229.jpg'
+
+// 背景图片样式计算属性
+const backgroundImageStyle = computed(() => {
+  if (useDefaultBackground.value && defaultBackgroundImage.value) {
+    // 使用默认背景图片
+    return `url(${defaultBackgroundImage.value}) !important`
+  }
+  return backgroundImage.value ? `url(${backgroundImage.value}) !important` : 'none'
+})
 
 // 导入所有背景图片
 const backgroundImages = import.meta.glob('../assets/backgrounds/*.{jpg,jpeg,png,gif}', {
@@ -99,12 +115,33 @@ const backgroundImages = import.meta.glob('../assets/backgrounds/*.{jpg,jpeg,png
 })
 const backgroundImageArray = Object.values(backgroundImages)
 
+// 设置默认背景图片
+const setDefaultBackgroundImage = () => {
+  // 使用指定的默认背景图片
+  defaultBackgroundImage.value = defaultBgImage
+}
+
 // 图片预加载函数
 const preloadImage = (url: string): Promise<void> => {
   return new Promise((resolve, reject) => {
+    if (!url) {
+      reject(new Error('无效的图片URL'))
+      return
+    }
+
     const img = new Image()
-    img.onload = () => resolve()
-    img.onerror = reject
+    const timeoutId = setTimeout(() => {
+      reject(new Error('图片加载超时'))
+    }, 5000) // 5秒超时
+
+    img.onload = () => {
+      clearTimeout(timeoutId)
+      resolve()
+    }
+    img.onerror = (e) => {
+      clearTimeout(timeoutId)
+      reject(e)
+    }
     img.src = url
   })
 }
@@ -117,21 +154,46 @@ const getTodaySeed = () => {
 
 // 获取每日固定背景
 const getDailyBackground = () => {
+  if (backgroundImageArray.length === 0) {
+    console.error('背景图片数组为空')
+    return ''
+  }
   const seed = getTodaySeed()
   return backgroundImageArray[seed % backgroundImageArray.length]
 }
 
 // 获取随机背景（用于手动更换）
 const getRandomBackground = () => {
+  if (backgroundImageArray.length === 0) {
+    console.error('背景图片数组为空')
+    return ''
+  }
+
   let randomIndex
   do {
     randomIndex = Math.floor(Math.random() * backgroundImageArray.length)
-  } while (backgroundImageArray[randomIndex] === backgroundImage.value)
+  } while (
+    backgroundImageArray[randomIndex] === backgroundImage.value &&
+    backgroundImageArray.length > 1
+  )
   return backgroundImageArray[randomIndex]
 }
 
 // 初始化背景
 const initBackground = async () => {
+  // 先设置默认背景图片
+  setDefaultBackgroundImage()
+
+  // 先显示默认背景，确保界面不会空白
+  useDefaultBackground.value = true
+  isBackgroundLoaded.value = true
+
+  // 检查背景图片数组是否为空
+  if (backgroundImageArray.length === 0) {
+    console.error('没有可用的背景图片')
+    return
+  }
+
   const lastSetDate = localStorage.getItem('lastSetDate')
   const savedBackground = localStorage.getItem('savedBackground')
   const today = getTodaySeed().toString()
@@ -145,28 +207,70 @@ const initBackground = async () => {
     localStorage.setItem('savedBackground', selectedBackground)
   }
 
+  // 重置加载尝试计数
+  loadingAttempts.value = 0
+  await loadBackgroundImage(selectedBackground)
+}
+
+// 加载背景图片（带重试机制）
+const loadBackgroundImage = async (imageUrl: string) => {
+  if (!imageUrl || loadingAttempts.value >= maxLoadingAttempts) {
+    // 如果URL为空或已达到最大重试次数，使用随机背景
+    console.warn('背景图片加载失败，尝试使用随机背景')
+    const randomBg = getRandomBackground()
+    if (randomBg) {
+      loadingAttempts.value = 0
+      await loadBackgroundImage(randomBg)
+    } else {
+      console.error('无法加载任何背景图片')
+      // 保持使用默认背景
+      useDefaultBackground.value = true
+    }
+    return
+  }
+
   try {
     isBackgroundLoaded.value = false
-    await preloadImage(selectedBackground)
-    backgroundImage.value = selectedBackground
+    await preloadImage(imageUrl)
+    backgroundImage.value = imageUrl
+    useDefaultBackground.value = false // 成功加载图片后，不使用默认背景
     isBackgroundLoaded.value = true
+    localStorage.setItem('savedBackground', imageUrl)
   } catch (error) {
     console.error('背景图片加载失败:', error)
+    loadingAttempts.value++
+
+    // 重试加载
+    if (loadingAttempts.value < maxLoadingAttempts) {
+      console.warn(`尝试重新加载背景图片，第${loadingAttempts.value}次尝试`)
+      setTimeout(() => loadBackgroundImage(imageUrl), 500) // 延迟500ms后重试
+    } else {
+      // 达到最大重试次数，尝试加载随机图片
+      const randomBg = getRandomBackground()
+      if (randomBg && randomBg !== imageUrl) {
+        loadingAttempts.value = 0
+        await loadBackgroundImage(randomBg)
+      } else {
+        // 如果随机背景也失败，使用默认背景
+        useDefaultBackground.value = true
+        isBackgroundLoaded.value = true
+      }
+    }
   }
 }
 
 // 更换背景处理函数
 const changeBackground = async () => {
   const newBackground = getRandomBackground()
-  try {
-    isBackgroundLoaded.value = false
-    await preloadImage(newBackground)
-    backgroundImage.value = newBackground
+  if (!newBackground) {
+    // 如果无法获取新背景，使用默认背景
+    useDefaultBackground.value = true
     isBackgroundLoaded.value = true
-    localStorage.setItem('savedBackground', newBackground)
-  } catch (error) {
-    console.error('更换背景失败:', error)
+    return
   }
+
+  loadingAttempts.value = 0
+  await loadBackgroundImage(newBackground)
 }
 
 // ===== 统计数据管理 =====
@@ -258,9 +362,19 @@ const tooltipFormatter: TooltipFormatter = (item: CalendarItem) => {
 
 // ===== 生命周期钩子 =====
 onMounted(async () => {
-  initBackground()
+  // 先更新日期时间，确保界面有内容显示
   updateDateTime()
   setInterval(updateDateTime, 1000)
+
+  // 确保背景图片加载优先于其他操作
+  initBackground().catch((err) => {
+    console.error('初始化背景图片失败:', err)
+    // 失败时使用默认背景
+    useDefaultBackground.value = true
+    isBackgroundLoaded.value = true
+  })
+
+  // 加载热力图数据
   heatmapData.value = await noteStore.getHeatmapData()
 })
 </script>
@@ -448,7 +562,7 @@ onMounted(async () => {
   font-size: 14px;
   transition: background-color 0.3s;
   z-index: 10;
-  opacity: 0;
+  opacity: 0.6;
 
   &:hover {
     opacity: 1;

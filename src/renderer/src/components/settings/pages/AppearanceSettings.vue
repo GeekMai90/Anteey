@@ -66,6 +66,27 @@
         </div>
 
         <div class="settings-section">
+          <div class="section-title">自定义外观</div>
+          <div class="custom-css-settings">
+            <div class="setting-item">
+              <div class="setting-label">
+                <div class="label-main-container">
+                  <span>自定义 CSS</span>
+                  <HelpTips
+                    content="通过编辑 custom.css 文件自定义应用外观，使用方法请阅读官方文档"
+                  />
+                </div>
+              </div>
+              <div class="setting-control">
+                <Button type="default" :icon="FolderOpen" @click="openCustomCssFolder">
+                  打开文件夹
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="settings-section">
           <div class="section-title">字体设置</div>
           <div class="font-settings">
             <div class="setting-item">
@@ -108,9 +129,11 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { Theme } from '@icon-park/vue-next'
+import { Theme, FolderOpen } from '@icon-park/vue-next'
 import Dropdown from '@renderer/components/ui/dropdowns/Dropdown.vue'
 import Switch from '@renderer/components/ui/switch/Switch.vue'
+import Button from '@renderer/components/ui/buttons/Button.vue'
+import HelpTips from '@renderer/components/ui/HelpTips.vue'
 import { useAppearanceStore } from '@renderer/stores/appearanceStore'
 import { useTimeBlockStore } from '@renderer/stores/timeBlockStore'
 import { useThemeStore } from '@renderer/stores/themeStore'
@@ -254,6 +277,18 @@ const getFontLabel = (value: string) => {
 // 处理悬浮侧边栏开关变更
 const handleHoverSidebarChange = async (value: boolean) => {
   await appearanceStore.updateHoverSidebarEnabled(value)
+}
+
+// 打开自定义CSS文件夹
+const openCustomCssFolder = async () => {
+  try {
+    const result = await window.electronAPI.customCss.openCustomCssFolder()
+    if (!result.success) {
+      console.error('打开自定义CSS文件夹失败:', result.error)
+    }
+  } catch (error) {
+    console.error('打开自定义CSS文件夹失败:', error)
+  }
 }
 </script>
 
@@ -453,7 +488,7 @@ const handleHoverSidebarChange = async (value: boolean) => {
 
       .setting-label {
         font-size: 14px;
-        color: var(--color-text-secondary);
+        color: var(--color-text-primary);
         white-space: nowrap;
       }
 
@@ -591,6 +626,43 @@ const handleHoverSidebarChange = async (value: boolean) => {
         font-size: 14px;
         color: var(--color-text-primary);
         white-space: nowrap;
+      }
+
+      .setting-control {
+        display: flex;
+        align-items: center;
+      }
+    }
+  }
+
+  .custom-css-settings {
+    .setting-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--color-border);
+
+      &:last-child {
+        border-bottom: none;
+      }
+
+      .setting-label {
+        font-size: 14px;
+        color: var(--color-text-primary);
+        white-space: normal;
+
+        .label-main-container {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+        }
+
+        .label-desc {
+          font-size: 0.8em;
+          color: var(--color-text-secondary);
+          margin-top: 2px;
+        }
       }
 
       .setting-control {

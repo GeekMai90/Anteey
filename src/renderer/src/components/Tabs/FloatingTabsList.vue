@@ -510,8 +510,8 @@ const handleGlobalClick = (e: MouseEvent) => {
   border: 1px solid rgba(var(--color-sidebar-icon-bg), 0.1);
   z-index: 1000;
   width: 260px;
-  max-height: 80vh;
-  overflow: hidden;
+  max-height: 50vh;
+  overflow-y: auto;
   padding: 12px;
   animation: fadeIn 0.2s ease-out;
 }

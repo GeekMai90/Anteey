@@ -59,7 +59,6 @@ function getNextLevel(level: AddressLevel): number {
 export function getAddressLevel(address: string): AddressLevel | null {
   // 1. 基础验证
   if (!address || typeof address !== 'string') {
-    console.warn('无效地址: 地址为空或非字符串类型')
     return null
   }
 
@@ -70,7 +69,6 @@ export function getAddressLevel(address: string): AddressLevel | null {
   if (/^\d{4}$/.test(address)) {
     // 检查是否全为0
     if (parseInt(address) === 0) {
-      console.warn(`无效地址: 地址不能全为0，当前地址: ${address}`)
       return null
     }
 
@@ -78,7 +76,6 @@ export function getAddressLevel(address: string): AddressLevel | null {
     if (address.endsWith('000')) {
       // 验证第一位不能为0且不能大于9
       if (address[0] === '0' || parseInt(address[0]) > 9) {
-        console.warn(`无效地址: 顶层地址第一位必须在1-9范围内，当前地址: ${address}`)
         return null
       }
       return 'top'
@@ -87,7 +84,6 @@ export function getAddressLevel(address: string): AddressLevel | null {
     if (address.endsWith('00')) {
       // 验证前两位不能为0
       if (address.slice(0, 2) === '00') {
-        console.warn(`无效地址: 二级地址前两位不能为0，当前地址: ${address}`)
         return null
       }
       return 'second'
@@ -102,34 +98,24 @@ export function getAddressLevel(address: string): AddressLevel | null {
     // 验证分支格式
     const pattern = /^\d{4}(-([1-9]\d{0,2}[a-z]?|[1-9]?\d{0,2}[a-z]))*$/
     if (!pattern.test(address)) {
-      console.warn(
-        `无效地址: 分支地址格式错误，应为"基础地址-分支号"格式，分支号可以是1-999的正整数或带小写字母，当前地址: ${address}`
-      )
       return null
     }
 
     // 验证基础地址部分
     const baseAddress = address.split('-')[0]
     if (parseInt(baseAddress) === 0) {
-      console.warn(`无效地址: 分支地址的基础地址不能全为0，当前地址: ${address}`)
       return null
     }
 
     // 计算分支层级
     const branchLevel = address.split('-').length - 1
     if (branchLevel > 10) {
-      console.warn(
-        `无效地址: 分支层级超出限制，最大支持10层分支，当前层级: ${branchLevel}，地址: ${address}`
-      )
       return null
     }
 
     return `branch-${branchLevel}` as AddressLevel
   }
 
-  console.warn(
-    `无效地址: 地址格式不符合要求，地址必须是4位数字（如1000）或带分支号的格式（如1100-1），当前地址: ${address}`
-  )
   return null
 }
 

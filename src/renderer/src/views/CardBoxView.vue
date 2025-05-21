@@ -236,7 +236,14 @@ const isConfirmingDelete = ref(false)
 const cardGridContainer = ref<HTMLElement | null>(null)
 const isLoading = ref(false)
 const currentPage = ref(1)
-const pageSize = ref(28)
+// 修改为计算属性，根据每行卡片数量动态调整
+const pageSize = computed(() => {
+  const containerWidth = cardGridContainer.value?.clientWidth || 0
+  const cardsPerRow = Math.max(1, Math.floor(containerWidth / 306)) // 290px + 16px gap
+  // 确保每次加载的数量是每行卡片数的整数倍，默认为6行
+  // 对于5列布局，加载30张；4列加载24张；3列加载24张
+  return cardsPerRow * 6
+})
 const totalCount = ref(0)
 const notes = ref<Note[]>([])
 const showSortMenu = ref(false)
@@ -260,7 +267,8 @@ const bufferSize = 3 // 上下额外渲染的行数
 // 计算视口信息
 const viewportInfo = computed(() => {
   const containerWidth = cardGridContainer.value?.clientWidth || 0
-  const cardsPerRow = Math.floor(containerWidth / 306) // 290px + 16px gap
+  // 确保cardsPerRow是整数，避免浮点数计算误差
+  const cardsPerRow = Math.max(1, Math.floor(containerWidth / 306)) // 290px + 16px gap
   const rowHeight = cardHeight + 16 // 加上gap的高度
 
   const visibleRows = Math.ceil(containerHeight.value / rowHeight)
@@ -270,13 +278,18 @@ const viewportInfo = computed(() => {
   const safeStartRow = Math.max(0, startRow - Math.floor(bufferSize / 2))
   const endRow = startRow + visibleRows + Math.ceil(bufferSize / 2)
 
+  // 确保索引计算精确，避免舍入误差
   const startIndex = safeStartRow * cardsPerRow
   const endIndex = Math.min(notes.value.length, endRow * cardsPerRow)
+
+  // 计算总行数，确保是整数
+  const totalRows = Math.ceil(notes.value.length / cardsPerRow)
 
   return {
     startIndex,
     endIndex,
-    totalHeight: Math.ceil(notes.value.length / cardsPerRow) * rowHeight,
+    cardsPerRow, // 添加每行卡片数
+    totalHeight: totalRows * rowHeight,
     paddingTop: safeStartRow * rowHeight
   }
 })
@@ -295,7 +308,7 @@ const fetchNotes = async () => {
     const activeFilter = filterStore.activeFilter
     const params: GetPaginatedNotesParams = {
       page: currentPage.value,
-      limit: pageSize.value,
+      limit: pageSize.value, // 使用计算属性
       cardBoxId: filterState.cardBoxId,
       cardTypes: filterState.cardTypes,
       tags: filterState.tags,
@@ -332,19 +345,23 @@ const fetchNotes = async () => {
       }
     }
 
-    const sortedNotes = [...result.notes]
+    // 对新获取的笔记进行排序
+    const sortedNewNotes = [...result.notes]
     if (filterState.sort.field === 'address') {
-      sortedNotes.sort((a, b) => {
+      sortedNewNotes.sort((a, b) => {
         const result = compareAddress(a.address, b.address)
         return filterState.sort.order === 'asc' ? result : -result
       })
     }
 
+    // 使用nextTick确保DOM更新在一个批次内完成
     await nextTick(() => {
       if (currentPage.value === 1) {
-        notes.value = sortedNotes
+        // 第一页直接替换
+        notes.value = sortedNewNotes
       } else {
-        notes.value = [...notes.value, ...sortedNotes]
+        // 后续页面追加，但不重新排序整个数组，保持已有卡片的位置不变
+        notes.value = [...notes.value, ...sortedNewNotes]
       }
     })
 
@@ -719,6 +736,30 @@ onMounted(async () => {
 
   // 添加鼠标按下事件监听，用于框选
   cardGridContainer.value?.addEventListener('mousedown', handleMouseDown)
+
+  // 监听窗口大小变化
+  window.addEventListener('resize', handleResize)
+
+  // 不再监听自定义事件，而是使用ResizeObserver监听容器尺寸变化
+  if (cardGridContainer.value) {
+    const resizeObserver = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        // 检测宽度变化
+        const newWidth = entry.contentRect.width
+        if (newWidth !== containerWidth.value) {
+          containerWidth.value = newWidth
+          handleContainerResize()
+        }
+
+        // 更新高度
+        containerHeight.value = entry.contentRect.height
+        // 当容器大小改变时也检查是否需要加载更多
+        checkAndLoadMore()
+      }
+    })
+
+    resizeObserver.observe(cardGridContainer.value)
+  }
 })
 
 // 组件卸载时清理
@@ -739,6 +780,11 @@ onUnmounted(() => {
   cardGridContainer.value?.removeEventListener('mousedown', handleMouseDown)
   document.removeEventListener('mousemove', handleMouseMove)
   document.removeEventListener('mouseup', handleMouseUp)
+
+  // 移除窗口大小变化监听
+  window.removeEventListener('resize', handleResize)
+
+  // 不再需要移除自定义事件监听
 })
 
 // 4. 监听路由变化
@@ -1419,7 +1465,9 @@ const cardGridStyles = computed(() => ({
   paddingTop: `${viewportInfo.value.paddingTop}px`,
   transform: 'translate3d(0, 0, 0)', // 启用GPU加速
   backfaceVisibility: 'hidden' as const,
-  perspective: '1000px'
+  perspective: '1000px',
+  // 确保grid布局列数固定，与计算的每行卡片数一致
+  gridTemplateColumns: `repeat(${viewportInfo.value.cardsPerRow}, 1fr)`
 }))
 
 // 在生命周期钩子或适当位置添加provide
@@ -1641,6 +1689,34 @@ const selectNotesInBox = () => {
     selectionBox.value.style.display = 'none'
   }
 }
+
+// 添加容器宽度变化处理函数
+const containerWidth = ref(0)
+
+const handleContainerResize = () => {
+  // 延迟一帧，确保DOM已更新
+  requestAnimationFrame(() => {
+    if (cardGridContainer.value) {
+      // 更新卡片网格样式
+      const gridElement = cardGridContainer.value.querySelector('.card-grid') as HTMLElement
+      if (gridElement) {
+        const cardsPerRow = Math.max(1, Math.floor(containerWidth.value / 306))
+        gridElement.style.gridTemplateColumns = `repeat(${cardsPerRow}, 1fr)`
+      }
+    }
+  })
+}
+
+// 修改窗口大小变化处理函数
+const handleResize = useThrottleFn(() => {
+  // 当窗口大小变化时，重新计算布局但不重新加载数据
+  if (cardGridContainer.value) {
+    containerHeight.value = cardGridContainer.value.clientHeight
+    containerWidth.value = cardGridContainer.value.clientWidth
+
+    handleContainerResize()
+  }
+}, 200)
 </script>
 
 <style lang="scss" scoped>
@@ -1862,7 +1938,8 @@ const selectNotesInBox = () => {
 
   .card-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+    /* 移除自动计算的列数，改为使用JavaScript动态设置 */
+    /* grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); */
     gap: 16px;
     padding: 16px 20px;
     align-content: start;
@@ -1874,6 +1951,9 @@ const selectNotesInBox = () => {
     .card-item {
       height: 290px;
       transition: all 0.3s ease;
+      /* 确保卡片宽度固定 */
+      width: 100%;
+      min-width: 0;
 
       &.highlight {
         box-shadow: 0 0 0 2px var(--color-primary);
@@ -1890,12 +1970,7 @@ const selectNotesInBox = () => {
   .card-list-enter-from,
   .card-list-leave-to {
     opacity: 0;
-    // transform: translateY(30px);
   }
-
-  // .card-list-move {
-  //   transition: transform 0.3s ease;
-  // }
 
   .modal-overlay {
     position: fixed;

@@ -193,6 +193,7 @@
       :cards="reviewCards"
       @feedback="handleReviewFeedback"
       @complete="initializeData"
+      @cards-updated="handleCardsUpdated"
     />
   </div>
 </template>
@@ -242,6 +243,12 @@ const tagDecks = ref<
   }>
 >([])
 const reviewCards = ref<Note[]>([])
+
+// 处理卡片列表更新事件
+const handleCardsUpdated = (updatedCards: Note[]) => {
+  console.log('接收到卡片列表更新:', updatedCards.length)
+  reviewCards.value = updatedCards
+}
 
 // 监听闪卡转换事件
 const flashcardConvertedBus = useEventBus<string>('flashcard-converted')

@@ -55,6 +55,9 @@
 
     <!-- 添加命令面板 -->
     <CommandPalette />
+
+    <!-- 添加自定义CSS组件 -->
+    <CustomCss />
   </div>
 </template>
 
@@ -91,6 +94,7 @@ import MindboardSelectorModal from '@renderer/components/mindboard/MindboardSele
 import CommandPalette from '@renderer/components/common/CommandPalette.vue'
 import TabsOverview from '@renderer/components/Tabs/TabsOverview.vue'
 import { message } from '@renderer/utils/message'
+import CustomCss from '@renderer/components/CustomCss.vue'
 
 // 状态管理初始化
 const noteStore = useNoteStore()

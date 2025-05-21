@@ -37,10 +37,11 @@ export const flashcardApi = {
     feedback: ReviewFeedback
     reviewTime: number
     isSimplified?: boolean
-  }): Promise<void> => {
+  }): Promise<{ noteId: string; nextReviewAt: Date }> => {
     try {
       const result = await ipcRenderer.invoke('update-flashcard-status', params)
       if (!result.success) throw new Error(result.error)
+      return result.result
     } catch (error) {
       console.error('预加载脚本 → 更新闪卡状态失败:', error)
       throw error
@@ -55,6 +56,18 @@ export const flashcardApi = {
       return result.flashcards
     } catch (error) {
       console.error('预加载脚本 → 获取待复习闪卡失败:', error)
+      throw error
+    }
+  },
+
+  // 根据ID获取闪卡
+  getFlashcardsByIds: async (noteIds: string[]): Promise<Note[]> => {
+    try {
+      const result = await ipcRenderer.invoke('get-flashcards-by-ids', noteIds)
+      if (!result.success) throw new Error(result.error)
+      return result.flashcards
+    } catch (error) {
+      console.error('预加载脚本 → 根据ID获取闪卡失败:', error)
       throw error
     }
   },

@@ -37,6 +37,7 @@ import { setupReadwiseSyncHandlers } from './readwiseIpcHandlers'
 import { setupNoteAIProcessHandlers } from './noteAIProcessIpcHandlers'
 import { setupTabsHandlers } from './tabsIpcHandlers'
 import { registerCommandIpcHandlers } from './commandIpcHandlers'
+import { setupCustomCssIpcHandlers } from './customCssIpcHandlers'
 
 export function setupIpcHandlers(): void {
   setupNotesHandlers()
@@ -78,4 +79,5 @@ export function setupIpcHandlers(): void {
   setupNoteAIProcessHandlers()
   setupTabsHandlers()
   registerCommandIpcHandlers()
+  setupCustomCssIpcHandlers()
 }

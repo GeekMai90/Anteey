@@ -21,6 +21,8 @@ export const useFlashcardStore = defineStore(
     const settings = ref<FlashcardSettings | null>(null)
     const isReviewModalOpen = ref(false)
     const studyHistory = ref<StudyHistory | null>(null)
+    const pendingFlashcards = ref<{ noteId: string; dueTime: Date }[]>([]) // 存储即将到期的卡片
+    const pendingTimers = ref<number[]>([]) // 存储定时器ID
 
     // ==================== 操作方法 ====================
     // 获取待复习的闪卡
@@ -74,6 +76,41 @@ export const useFlashcardStore = defineStore(
       }
     }
 
+    // 检查并添加到期的卡片到当前复习队列
+    const checkAndAddDueCards = async () => {
+      if (pendingFlashcards.value.length === 0 || !isReviewModalOpen.value) return
+
+      const now = new Date()
+      const dueCardIds = pendingFlashcards.value
+        .filter((card) => new Date(card.dueTime) <= now)
+        .map((card) => card.noteId)
+
+      if (dueCardIds.length === 0) return
+
+      // 从待处理列表中移除已到期的卡片
+      pendingFlashcards.value = pendingFlashcards.value.filter(
+        (card) => new Date(card.dueTime) > now
+      )
+
+      // 获取到期卡片的详细信息
+      try {
+        const dueCards = await window.electronAPI.flashcard.getFlashcardsByIds(dueCardIds)
+        if (dueCards && dueCards.length > 0) {
+          // 添加到当前复习队列
+          dueFlashcards.value = [...dueFlashcards.value, ...dueCards]
+          console.log('已将到期卡片添加到复习队列:', dueCards)
+        }
+      } catch (error) {
+        console.error('获取到期卡片失败:', error)
+      }
+    }
+
+    // 清除所有定时器
+    const clearAllTimers = () => {
+      pendingTimers.value.forEach((timerId) => clearTimeout(timerId))
+      pendingTimers.value = []
+    }
+
     // 更新闪卡复习状态
     const updateFlashcardStatus = async (
       noteId: string,
@@ -82,7 +119,7 @@ export const useFlashcardStore = defineStore(
       isSimplified?: boolean
     ) => {
       try {
-        await window.electronAPI.flashcard.updateFlashcardStatus({
+        const result = await window.electronAPI.flashcard.updateFlashcardStatus({
           noteId,
           feedback,
           reviewTime,
@@ -96,6 +133,33 @@ export const useFlashcardStore = defineStore(
         const index = dueFlashcards.value.findIndex((card) => card.id === noteId)
         if (index > -1) {
           dueFlashcards.value.splice(index, 1)
+        }
+
+        // 如果卡片需要在短时间内再次复习，添加到待处理列表
+        if (result && result.nextReviewAt) {
+          const nextReviewTime = new Date(result.nextReviewAt)
+          const now = new Date()
+          const diffMinutes = (nextReviewTime.getTime() - now.getTime()) / (1000 * 60)
+
+          // 如果复习时间在30分钟内，添加到待处理列表
+          if (diffMinutes <= 30 && diffMinutes > 0) {
+            pendingFlashcards.value.push({
+              noteId: result.noteId,
+              dueTime: nextReviewTime
+            })
+
+            // 设置定时器检查到期卡片
+            const timerId = setTimeout(
+              () => {
+                checkAndAddDueCards()
+              },
+              diffMinutes * 60 * 1000
+            ) as unknown as number
+
+            pendingTimers.value.push(timerId)
+
+            console.log(`卡片 ${result.noteId} 将在 ${diffMinutes.toFixed(1)} 分钟后再次复习`)
+          }
         }
       } catch (error) {
         console.error('更新闪卡状态失败:', error)
@@ -119,6 +183,8 @@ export const useFlashcardStore = defineStore(
       try {
         const cards = await window.electronAPI.flashcard.getDueFlashcards(tags)
         dueFlashcards.value = cards
+        pendingFlashcards.value = [] // 清空待处理列表
+        clearAllTimers() // 清除所有定时器
         isReviewModalOpen.value = true
         return cards // 返回卡片数据
       } catch (error) {
@@ -132,6 +198,8 @@ export const useFlashcardStore = defineStore(
     const closeReviewModal = () => {
       isReviewModalOpen.value = false
       currentFlashcard.value = null
+      pendingFlashcards.value = [] // 清空待处理列表
+      clearAllTimers() // 清除所有定时器
     }
 
     // 重置闪卡进度
@@ -205,6 +273,7 @@ export const useFlashcardStore = defineStore(
       settings,
       isReviewModalOpen,
       studyHistory,
+      pendingFlashcards,
 
       // 方法
       fetchDueFlashcards,
@@ -220,7 +289,9 @@ export const useFlashcardStore = defineStore(
       fetchSettings,
       updateSettings,
       fetchStudyHistory,
-      batchConvertToFlashcards
+      batchConvertToFlashcards,
+      checkAndAddDueCards,
+      clearAllTimers
     }
   },
   {

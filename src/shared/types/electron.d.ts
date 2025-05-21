@@ -491,8 +491,10 @@ export interface ElectronAPI {
       feedback: ReviewFeedback
       reviewTime: number // 新增：本次复习用时（毫秒）
       isSimplified?: boolean
-    }) => Promise<void>
+    }) => Promise<{ noteId: string; nextReviewAt: Date }>
     getDueFlashcards: (tags?: string[]) => Promise<Note[]>
+    // 根据ID获取闪卡
+    getFlashcardsByIds: (noteIds: string[]) => Promise<Note[]>
 
     // 统计相关
     getFlashcardStats: () => Promise<FlashcardStats>
@@ -1348,6 +1350,17 @@ export interface ElectronAPI {
     // 执行命令
     executeCommand: (commandId: string) => Promise<{ success: boolean; error?: string }>
   }
+
+  customCss: {
+    // 获取自定义CSS内容
+    getCustomCssContent: () => Promise<string>
+
+    // 获取自定义CSS文件路径
+    getCustomCssPath: () => Promise<string>
+
+    // 打开自定义CSS文件所在的文件夹
+    openCustomCssFolder: () => Promise<{ success: boolean; error?: string }>
+  }
 }
 
 declare global {
@@ -1406,6 +1419,17 @@ declare global {
 
       // 批量处理主卡片笔记
       processMainCardBatch: (params?: { limit?: number; batchSize?: number }) => Promise<void>
+    }
+
+    customCssApi: {
+      // 获取自定义CSS内容
+      getCustomCssContent: () => Promise<string>
+
+      // 获取自定义CSS文件路径
+      getCustomCssPath: () => Promise<string>
+
+      // 打开自定义CSS文件所在的文件夹
+      openCustomCssFolder: () => Promise<{ success: boolean; error?: string }>
     }
   }
 }

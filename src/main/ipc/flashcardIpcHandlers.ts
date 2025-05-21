@@ -43,13 +43,13 @@ export function setupFlashcardHandlers() {
       }
     ) => {
       try {
-        await flashcardService.updateFlashcardStatus({
+        const result = await flashcardService.updateFlashcardStatus({
           noteId,
           feedback,
           reviewTime,
           isSimplified
         })
-        return { success: true }
+        return { success: true, result }
       } catch (error) {
         console.error('主进程→ 更新闪卡状态失败:', error)
         return { success: false, error: String(error) }
@@ -64,6 +64,17 @@ export function setupFlashcardHandlers() {
       return { success: true, flashcards }
     } catch (error) {
       console.error('主进程→ 获取待复习闪卡失败:', error)
+      return { success: false, error: String(error) }
+    }
+  })
+
+  // 根据ID获取闪卡
+  ipcMain.handle('get-flashcards-by-ids', async (_event, noteIds: string[]) => {
+    try {
+      const flashcards = await flashcardService.getFlashcardsByIds(noteIds)
+      return { success: true, flashcards }
+    } catch (error) {
+      console.error('主进程→ 根据ID获取闪卡失败:', error)
       return { success: false, error: String(error) }
     }
   })
