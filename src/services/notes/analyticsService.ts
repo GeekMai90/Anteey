@@ -62,15 +62,37 @@ export async function getLastDayNoteCount(): Promise<number> {
 // 获取用户使用天数
 export async function getUserUsageDays(): Promise<number> {
   try {
-    // 使用 SQL 直接统计不同日期的数量
-    const result = await db('notes')
+    // 查询最早的有效笔记创建时间（排除时间戳为0或异常的数据）
+    const firstNote = await db('notes')
       .where('isDeleted', false)
-      .countDistinct(db.raw("strftime('%Y-%m-%d', datetime(createdAt / 1000, 'unixepoch'))"))
+      .where('createdAt', '>', 1000000000) // 排除无效时间戳，确保至少在2001年之后
+      .where('cardType', '=', 'Maincard') // 只统计类型为Maincard的笔记
+      .orderBy('createdAt', 'asc')
       .first()
 
-    // 获取计数结果（处理不同数据库返回结果的差异）
-    const count = result ? (result as any).count || Object.values(result)[0] : 0
-    return Number(count)
+    if (!firstNote) {
+      return 0
+    }
+
+    // 输出调试信息
+    console.log('后端→ 第一条笔记数据:', firstNote)
+    console.log('后端→ 第一条笔记创建时间戳:', firstNote.createdAt)
+    console.log('后端→ 第一条笔记创建日期:', new Date(firstNote.createdAt))
+
+    // 计算从第一条笔记到现在的天数
+    const firstNoteDate = new Date(firstNote.createdAt)
+    const today = new Date()
+
+    console.log('后端→ 今天日期:', today)
+    console.log('后端→ 时间差(毫秒):', Math.abs(today.getTime() - firstNoteDate.getTime()))
+
+    const diffTime = Math.abs(today.getTime() - firstNoteDate.getTime())
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+
+    console.log('后端→ 计算的天数:', diffDays)
+
+    // 返回天数（至少为1天）
+    return Math.max(1, diffDays)
   } catch (error) {
     console.error('后端→ 获取用户使用天数失败:', error)
     throw error
