@@ -12,7 +12,8 @@
               <Dropdown
                 :items="serverTypes.map((t) => ({ key: t.value, label: t.label }))"
                 trigger="click"
-                width="100%"
+                width="300px"
+                showArrow
                 @select="selectServerType"
               >
                 {{ getServerTypeName(serverType) }}
@@ -90,7 +91,8 @@
               <Dropdown
                 :items="syncIntervals.map((i) => ({ key: i.value.toString(), label: i.label }))"
                 trigger="click"
-                width="120px"
+                width="200px"
+                showArrow
                 @select="(key) => selectInterval(Number(key))"
               >
                 {{ getSyncIntervalText(syncInterval) }}

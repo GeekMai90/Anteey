@@ -52,6 +52,8 @@ export interface AppearanceSettings {
   enableWhiteboard: boolean
   enableAIAssistant: boolean
   enableHoverSidebar: boolean
+  showSlimSidebar: boolean
+  aiProcessModelId: string | null
   createdAt: Date
   updatedAt: Date
   loadingAnimationType:

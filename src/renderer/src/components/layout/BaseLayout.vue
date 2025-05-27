@@ -18,7 +18,10 @@
     />
 
     <!-- 窄侧边栏 - 折叠状态 -->
-    <SlimSidebar v-show="uiStore.isSidebarCollapsed" class="slim-sidebar" />
+    <SlimSidebar
+      v-show="uiStore.isSidebarCollapsed && appearanceStore.settings?.showSlimSidebar"
+      class="slim-sidebar"
+    />
 
     <!-- 左侧边栏 - 悬停状态（当侧边栏折叠时显示） -->
     <Transition name="slide-left">
@@ -383,7 +386,9 @@ defineExpose({
     margin-left 0.6s cubic-bezier(0.16, 1, 0.3, 1),
     margin-right 0.6s cubic-bezier(0.16, 1, 0.3, 1),
     box-shadow 0.3s ease;
-  margin-left: v-bind('uiStore.isSidebarCollapsed ? "4px" : "10px"');
+  margin-left: v-bind(
+    'uiStore.isSidebarCollapsed ? (appearanceStore.settings?.showSlimSidebar ? "4px" : "0") : "10px"'
+  );
   margin-right: v-bind('uiStore.isRightSidebarOpen ? "10px" : "0"');
   position: relative;
 }

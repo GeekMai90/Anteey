@@ -42,6 +42,12 @@
                 <Switch v-model="enableHoverSidebar" @change="handleHoverSidebarChange" />
               </div>
             </div>
+            <div class="setting-item">
+              <div class="setting-label">显示迷你侧边栏</div>
+              <div class="setting-control">
+                <Switch v-model="showSlimSidebar" @change="handleShowSlimSidebarChange" />
+              </div>
+            </div>
           </div>
         </div>
         <div class="settings-section">
@@ -186,6 +192,7 @@ const tagsExpanded = ref(false)
 const recentExpanded = ref(false)
 const enableWhiteboard = ref(false)
 const enableHoverSidebar = ref(true)
+const showSlimSidebar = ref(true)
 
 // 初始化数据
 onMounted(() => {
@@ -194,6 +201,7 @@ onMounted(() => {
   recentExpanded.value = Boolean(appearanceStore.settings?.recentExpanded ?? true)
   enableWhiteboard.value = Boolean(appearanceStore.settings?.enableWhiteboard ?? true)
   enableHoverSidebar.value = Boolean(appearanceStore.settings?.enableHoverSidebar ?? true)
+  showSlimSidebar.value = Boolean(appearanceStore.settings?.showSlimSidebar ?? true)
 })
 
 // 默认页面状态
@@ -234,6 +242,7 @@ onMounted(async () => {
     tagsExpanded.value = appearanceStore.settings.tagsExpanded
     recentExpanded.value = appearanceStore.settings.recentExpanded
     enableHoverSidebar.value = Boolean(appearanceStore.settings.enableHoverSidebar)
+    showSlimSidebar.value = Boolean(appearanceStore.settings.showSlimSidebar)
     defaultPage.value = appearanceStore.settings.defaultPage
     if (defaultPage.value === '/timeblock' && !timeBlockStore.settings.enabled) {
       defaultPage.value = '/home'
@@ -277,6 +286,11 @@ const getFontLabel = (value: string) => {
 // 处理悬浮侧边栏开关变更
 const handleHoverSidebarChange = async (value: boolean) => {
   await appearanceStore.updateHoverSidebarEnabled(value)
+}
+
+// 处理显示迷你侧边栏开关变更
+const handleShowSlimSidebarChange = async (value: boolean) => {
+  await appearanceStore.updateShowSlimSidebar(value)
 }
 
 // 打开自定义CSS文件夹
@@ -523,7 +537,7 @@ const openCustomCssFolder = async () => {
       align-items: center;
       justify-content: space-between;
       padding: 12px 0;
-      border-bottom: 1px solid var(--color-border);
+      // border-bottom: 1px solid var(--color-border);
 
       &:last-child {
         border-bottom: none;

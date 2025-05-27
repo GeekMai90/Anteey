@@ -443,6 +443,7 @@ export async function initDatabase(db: Knex): Promise<void> {
       table.boolean('enableWhiteboard').notNullable().defaultTo(true)
       table.boolean('enableAIAssistant').notNullable().defaultTo(true)
       table.boolean('enableHoverSidebar').notNullable().defaultTo(true) // 添加悬浮侧边栏开关，默认开启
+      table.boolean('showSlimSidebar').notNullable().defaultTo(true) // 添加迷你侧边栏显示开关，默认开启
       table.string('loadingAnimationType').notNullable().defaultTo('candle')
       table.datetime('createdAt').notNullable()
       table.datetime('updatedAt').notNullable()
@@ -463,6 +464,7 @@ export async function initDatabase(db: Knex): Promise<void> {
       enableWhiteboard: true,
       enableAIAssistant: true,
       enableHoverSidebar: true, // 默认开启悬浮侧边栏
+      showSlimSidebar: true, // 默认显示迷你侧边栏
       loadingAnimationType: 'candle',
       aiProcessModelId: null, // 默认为空，表示使用默认模型
       createdAt: new Date(),
@@ -480,6 +482,7 @@ export async function initDatabase(db: Knex): Promise<void> {
       { name: 'enableWhiteboard', type: 'boolean', default: true },
       { name: 'enableAIAssistant', type: 'boolean', default: true },
       { name: 'enableHoverSidebar', type: 'boolean', default: true }, // 添加悬浮侧边栏字段检查
+      { name: 'showSlimSidebar', type: 'boolean', default: true }, // 添加迷你侧边栏字段检查
       { name: 'loadingAnimationType', type: 'string', default: 'candle' }
     ]
 

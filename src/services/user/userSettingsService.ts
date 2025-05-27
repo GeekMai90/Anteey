@@ -65,6 +65,11 @@ export async function updateHoverSidebarEnabled(enabled: boolean): Promise<Appea
   return updateAppearanceSettings({ enableHoverSidebar: enabled })
 }
 
+// 更新迷你侧边栏显示状态
+export async function updateShowSlimSidebar(enabled: boolean): Promise<AppearanceSettings> {
+  return updateAppearanceSettings({ showSlimSidebar: enabled })
+}
+
 // 将数据库结果转换为前端需要的格式
 function transformDBSettings(settings: DBUserSettings): UserSettings {
   // 将时间戳转换为 ISO 字符串

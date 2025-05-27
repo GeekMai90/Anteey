@@ -315,6 +315,8 @@ export interface ElectronAPI {
     updateAIAssistantEnabled: (enabled: boolean) => Promise<AppearanceSettings>
     // 更新悬浮侧边栏功能开关
     updateHoverSidebarEnabled: (enabled: boolean) => Promise<AppearanceSettings>
+    // 更新迷你侧边栏显示状态
+    updateShowSlimSidebar: (enabled: boolean) => Promise<AppearanceSettings>
   }
   tag: {
     // 创建标签

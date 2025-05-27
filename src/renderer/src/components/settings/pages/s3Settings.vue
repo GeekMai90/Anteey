@@ -14,7 +14,8 @@
               <Dropdown
                 :items="providers.map((p) => ({ key: p.value, label: p.label }))"
                 trigger="click"
-                width="100%"
+                width="300px"
+                showArrow
                 @select="selectProvider"
               >
                 {{ getProviderName(provider) }}
@@ -29,7 +30,8 @@
                   getRegionsByProvider(provider).map((r) => ({ key: r.value, label: r.label }))
                 "
                 trigger="click"
-                width="100%"
+                width="300px"
+                showArrow
                 @select="selectRegion"
               >
                 {{ getRegionName(region) }}
@@ -103,7 +105,8 @@
               <Dropdown
                 :items="syncIntervals.map((i) => ({ key: i.value.toString(), label: i.label }))"
                 trigger="click"
-                width="120px"
+                width="200px"
+                showArrow
                 @select="(key) => selectInterval(Number(key))"
               >
                 {{ getSyncIntervalText(syncInterval) }}
@@ -256,11 +259,20 @@ const awsRegions: RegionOption[] = [
 
 // 阿里云区域选项
 const aliyunRegions: RegionOption[] = [
-  { value: 'oss-cn-hangzhou', label: '华东 1（杭州）' },
-  { value: 'oss-cn-shanghai', label: '华东 2（上海）' },
-  { value: 'oss-cn-beijing', label: '华北 2（北京）' },
-  { value: 'oss-cn-shenzhen', label: '华南 1（深圳）' },
-  { value: 'oss-cn-hongkong', label: '香港' }
+  { value: 'oss-cn-hangzhou', label: '华东1（杭州）' },
+  { value: 'oss-cn-shanghai', label: '华东2（上海）' },
+  { value: 'oss-cn-nanjing', label: '华东5（南京-本地地域）' },
+  { value: 'oss-cn-qingdao', label: '华北1（青岛）' },
+  { value: 'oss-cn-beijing', label: '华北2（北京）' },
+  { value: 'oss-cn-huhehaote', label: '华北5（呼和浩特）' },
+  { value: 'oss-cn-wulanchabu', label: '华北6（乌兰察布）' },
+  { value: 'oss-cn-shenzhen', label: '华南1（深圳）' },
+  { value: 'oss-cn-heyuan', label: '华南2（河源）' },
+  { value: 'oss-cn-guangzhou', label: '华南3（广州）' },
+  { value: 'oss-cn-chengdu', label: '西南1（成都）' },
+  { value: 'oss-cn-fuzhou', label: '华东6（福州-本地地域）' },
+  { value: 'oss-cn-wuhan-lr', label: '华中1（武汉-本地地域）' },
+  { value: 'oss-cn-hongkong', label: '中国香港' }
 ]
 
 // 腾讯云区域选项

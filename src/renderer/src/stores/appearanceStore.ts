@@ -141,6 +141,21 @@ export const useAppearanceStore = defineStore(
       }
     }
 
+    // 更新迷你侧边栏显示状态
+    const updateShowSlimSidebar = async (enabled: boolean) => {
+      try {
+        isLoading.value = true
+        const updatedSettings = await window.electronAPI.userSettings.updateShowSlimSidebar(enabled)
+        settings.value = updatedSettings
+        return updatedSettings
+      } catch (error) {
+        console.error('更新迷你侧边栏显示状态失败:', error)
+        throw error
+      } finally {
+        isLoading.value = false
+      }
+    }
+
     // 应用设置到 DOM
     const applySettings = (settings: AppearanceSettings) => {
       document.documentElement.style.setProperty(
@@ -171,9 +186,11 @@ export const useAppearanceStore = defineStore(
           enableWhiteboard: true,
           enableAIAssistant: true,
           enableHoverSidebar: true,
+          showSlimSidebar: true,
           createdAt: new Date(),
           updatedAt: new Date(),
-          loadingAnimationType: 'candle'
+          loadingAnimationType: 'candle',
+          aiProcessModelId: null
         }
         settings.value = defaultSettings
         applySettings(defaultSettings)
@@ -251,6 +268,7 @@ export const useAppearanceStore = defineStore(
       defaultRoute,
       updateWhiteboardEnabled,
       updateHoverSidebarEnabled,
+      updateShowSlimSidebar,
       addFavoriteGradient,
       removeFavoriteGradient,
       isGradientFavorite

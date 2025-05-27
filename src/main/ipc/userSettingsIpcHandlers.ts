@@ -12,7 +12,8 @@ import {
   updateRecentExpanded,
   updateWhiteboardEnabled,
   updateAIAssistantEnabled,
-  updateHoverSidebarEnabled
+  updateHoverSidebarEnabled,
+  updateShowSlimSidebar
 } from '../../services/user/userSettingsService'
 import type { AppearanceSettings } from '@shared/types'
 
@@ -192,6 +193,17 @@ export function setupUserSettingsHandlers() {
       return { success: true, settings: updatedSettings }
     } catch (error) {
       console.error('主进程→ 更新悬浮侧边栏功能开关失败:', error)
+      return { success: false, error: String(error) }
+    }
+  })
+
+  // 更新迷你侧边栏显示状态
+  ipcMain.handle('update-show-slim-sidebar', async (_event, enabled: boolean) => {
+    try {
+      const updatedSettings = await updateShowSlimSidebar(enabled)
+      return { success: true, settings: updatedSettings }
+    } catch (error) {
+      console.error('主进程→ 更新迷你侧边栏显示状态失败:', error)
       return { success: false, error: String(error) }
     }
   })

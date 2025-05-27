@@ -1,138 +1,143 @@
 <template>
   <div class="theme-color-picker">
     <!-- 添加风格切换按钮组 -->
-    <div class="style-mode-switcher">
-      <div
-        class="slider"
-        :style="{
-          transform: `translateX(${themeStore.themeSettings?.styleMode === 'classic' ? 'calc(100% + 4px)' : '0'})`
-        }"
-      ></div>
-      <button
-        class="style-btn"
-        :class="{ active: themeStore.themeSettings?.styleMode === 'modern' }"
-        @click="themeStore.toggleStyleMode('modern')"
-      >
-        <span>现代</span>
-      </button>
-      <button
-        class="style-btn"
-        :class="{ active: themeStore.themeSettings?.styleMode === 'classic' }"
-        @click="themeStore.toggleStyleMode('classic')"
-      >
-        <span>经典</span>
-      </button>
-    </div>
-
-    <!-- 关闭按钮 -->
-    <!-- <button class="close-btn" @click="$emit('close')">
-      <Close theme="outline" size="16" :strokeWidth="3" />
-    </button> -->
+    <SegmentedButton
+      :modelValue="themeStore.themeSettings?.styleMode || 'modern'"
+      :options="[
+        { value: 'modern', label: '现代' },
+        { value: 'classic', label: '经典' }
+      ]"
+      width="100%"
+      height="45px"
+      @update:modelValue="
+        (value: string | number) =>
+          themeStore.toggleStyleMode(String(value) as 'modern' | 'classic')
+      "
+    />
 
     <div class="picker-arrow"></div>
 
-    <!-- 添加模式切换按钮组 -->
-    <div class="mode-switcher">
-      <button
-        class="mode-btn"
-        :class="{ active: currentMode === 'universal' }"
-        @click="switchMode('universal')"
-      >
-        通用
-      </button>
-      <button
-        class="mode-btn"
-        :class="{ active: currentMode === 'light' }"
-        @click="switchMode('light')"
-      >
-        亮色
-      </button>
-      <button
-        class="mode-btn"
-        :class="{ active: currentMode === 'dark' }"
-        @click="switchMode('dark')"
-      >
-        暗色
-      </button>
-    </div>
+    <!-- 只在现代模式下显示颜色配置项 -->
+    <div v-if="themeStore.themeSettings?.styleMode === 'modern'" class="color-settings">
+      <!-- 添加模式切换按钮组 -->
+      <div class="mode-switcher">
+        <button
+          class="mode-btn"
+          :class="{ active: currentMode === 'universal' }"
+          @click="switchMode('universal')"
+        >
+          通用
+        </button>
+        <button
+          class="mode-btn"
+          :class="{ active: currentMode === 'light' }"
+          @click="switchMode('light')"
+        >
+          亮色
+        </button>
+        <button
+          class="mode-btn"
+          :class="{ active: currentMode === 'dark' }"
+          @click="switchMode('dark')"
+        >
+          暗色
+        </button>
+      </div>
 
-    <!-- 渐变预览区域 -->
-    <div class="gradient-preview" :style="gradientStyle">
-      <div v-if="noiseAmount > 0" class="noise-overlay" :style="noiseStyle"></div>
-      <button class="favorite-btn" :class="{ active: isFavorite }" @click="toggleFavorite">
-        <Like
-          theme="outline"
-          size="20"
-          :fill="isFavorite ? 'var(--color-danger)' : 'white'"
-          :strokeWidth="3"
-        />
-      </button>
-      <div class="gradient-controls">
-        <!-- 起始颜色选择 -->
-        <div class="color-stop">
-          <input v-model="startColor" type="color" @input="updateGradient" />
-        </div>
-        <!-- 角度控制 -->
-        <div class="angle-control" @mousedown="startAngleDrag">
-          <div class="angle-indicator" :style="{ transform: `rotate(${angle}deg)` }">
-            <div class="angle-handle"></div>
+      <!-- 渐变预览区域 -->
+      <div class="gradient-preview" :style="gradientStyle">
+        <div v-if="noiseAmount > 0" class="noise-overlay" :style="noiseStyle"></div>
+        <button class="favorite-btn" :class="{ active: isFavorite }" @click="toggleFavorite">
+          <Like
+            theme="outline"
+            size="20"
+            :fill="isFavorite ? 'var(--color-danger)' : 'white'"
+            :strokeWidth="3"
+          />
+        </button>
+        <div class="gradient-controls">
+          <!-- 起始颜色选择 -->
+          <div class="color-stop">
+            <input v-model="startColor" type="color" @input="updateGradient" />
           </div>
-          <span class="angle-value">{{ angle }}°</span>
+          <!-- 角度控制 -->
+          <div class="angle-control" @mousedown="startAngleDrag">
+            <div class="angle-indicator" :style="{ transform: `rotate(${angle}deg)` }">
+              <div class="angle-handle"></div>
+            </div>
+            <span class="angle-value">{{ angle }}°</span>
+          </div>
+          <!-- 结束颜色选择 -->
+          <div class="color-stop">
+            <input v-model="endColor" type="color" @input="updateGradient" />
+          </div>
         </div>
-        <!-- 结束颜色选择 -->
-        <div class="color-stop">
-          <input v-model="endColor" type="color" @input="updateGradient" />
-        </div>
+      </div>
+
+      <!-- 添加噪点控制 -->
+      <div class="noise-control">
+        <label class="noise-label">
+          <span>噪点</span>
+          <input v-model="noiseAmount" type="range" min="0" max="100" @input="updateGradient" />
+          <span class="noise-value">{{ noiseAmount }}%</span>
+        </label>
+      </div>
+
+      <!-- 颜色风格选择 -->
+      <div class="style-selector">
+        <button
+          v-for="style in colorStyles"
+          :key="style.id"
+          class="style-btn"
+          :class="{ active: currentStyle === style.id }"
+          @click="selectStyle(style.id)"
+        >
+          {{ style.name }}
+        </button>
+        <button
+          class="style-btn"
+          :class="{ active: currentStyle === 'favorites' }"
+          @click="selectStyle('favorites')"
+        >
+          收藏
+        </button>
+      </div>
+
+      <!-- 预设渐变方案 -->
+      <div class="gradient-presets">
+        <div
+          v-for="preset in currentPresets"
+          :key="preset.id"
+          class="preset-item"
+          :style="getPresetStyle(preset)"
+          @click="applyPreset(preset)"
+        ></div>
       </div>
     </div>
 
-    <!-- 添加噪点控制 -->
-    <div class="noise-control">
-      <label class="noise-label">
-        <span>噪点</span>
-        <input v-model="noiseAmount" type="range" min="0" max="100" @input="updateGradient" />
-        <span class="noise-value">{{ noiseAmount }}%</span>
-      </label>
-    </div>
-
-    <!-- 颜色风格选择 -->
-    <div class="style-selector">
-      <button
-        v-for="style in colorStyles"
-        :key="style.id"
-        class="style-btn"
-        :class="{ active: currentStyle === style.id }"
-        @click="selectStyle(style.id)"
-      >
-        {{ style.name }}
-      </button>
-      <button
-        class="style-btn"
-        :class="{ active: currentStyle === 'favorites' }"
-        @click="selectStyle('favorites')"
-      >
-        收藏
-      </button>
-    </div>
-
-    <!-- 预设渐变方案 -->
-    <div class="gradient-presets">
-      <div
-        v-for="preset in currentPresets"
-        :key="preset.id"
-        class="preset-item"
-        :style="getPresetStyle(preset)"
-        @click="applyPreset(preset)"
-      ></div>
+    <!-- 经典模式提示 -->
+    <div v-else class="classic-mode-message">
+      <div class="classic-icon">
+        <Theme
+          theme="outline"
+          size="80"
+          :strokeWidth="2"
+          fill="var(--color-primary)"
+          stroke="var(--color-primary)"
+        />
+      </div>
+      <h3>经典主题模式</h3>
+      <p>您选择了经典主题，系统将使用默认配色方案。</p>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
-import { Like } from '@icon-park/vue-next'
+import { Like, Theme } from '@icon-park/vue-next'
 import { useThemeStore } from '@renderer/stores/themeStore'
 import type { GradientPreset, ThemeSettings } from '@shared/types'
+import SegmentedButton from '@renderer/components/ui/buttons/SegmentedButton.vue'
 
 const emit = defineEmits<{
   (e: 'close'): void
@@ -687,6 +692,9 @@ watch(noiseAmount, (value) => {
   height: 700px;
   position: relative;
 }
+.radio-inputs {
+  margin-bottom: 12px;
+}
 
 .close-btn {
   position: absolute;
@@ -1030,46 +1038,38 @@ watch(noiseAmount, (value) => {
 
 .style-mode-switcher {
   margin: 0 0 16px 0;
-  display: flex;
-  background: var(--color-bg-secondary);
-  padding: 4px;
-  border-radius: 8px;
-  gap: 4px;
-  position: relative;
+}
 
-  .slider {
-    position: absolute;
-    top: 4px;
-    left: 4px;
-    width: calc((100% - 12px) / 2);
-    height: calc(100% - 8px);
-    background: var(--color-primary);
-    border-radius: 6px;
-    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    z-index: 0;
+.classic-mode-message {
+  text-align: center;
+  padding: 0;
+  margin-top: 40px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 500px;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+
+  .classic-icon {
+    font-size: 64px;
+    margin-bottom: 24px;
   }
 
-  .style-btn {
-    flex: 1;
-    padding: 8px 12px;
-    border: none;
-    border-radius: 6px;
-    background: transparent;
+  h3 {
+    font-size: 28px;
+    margin-bottom: 16px;
+    color: var(--color-text-primary);
+    font-weight: 500;
+  }
+
+  p {
+    font-size: 16px;
     color: var(--color-text-secondary);
-    font-size: 14px;
-    cursor: pointer;
-    position: relative;
-    z-index: 1;
-    transition: color 0.3s ease;
-
-    &:hover:not(.active) {
-      color: var(--color-text-primary);
-    }
-
-    &.active {
-      color: white;
-      font-weight: 500;
-    }
+    max-width: 280px;
+    line-height: 1.5;
   }
 }
 </style>

@@ -110,6 +110,18 @@ export const userSettingsApi = {
     }
   },
 
+  // 更新迷你侧边栏显示状态
+  updateShowSlimSidebar: async (enabled: boolean): Promise<AppearanceSettings> => {
+    try {
+      const result = await ipcRenderer.invoke('update-show-slim-sidebar', enabled)
+      if (!result.success) throw new Error(result.error)
+      return result.settings
+    } catch (error) {
+      console.error('预加载脚本 → 更新迷你侧边栏显示状态失败:', error)
+      throw error
+    }
+  },
+
   // 用户设置相关 API
   getUserSettings: async (): Promise<UserSettings> => {
     try {
