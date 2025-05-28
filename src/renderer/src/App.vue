@@ -286,7 +286,6 @@ onMounted(async () => {
   baseLayout.value?.checkWindowSize()
   window.addEventListener('resize', () => baseLayout.value?.handleResize())
   window.addEventListener('keydown', handleKeydown)
-  console.log('App.vue: 键盘事件监听器已注册')
 
   // 预加载所有数据
   try {
