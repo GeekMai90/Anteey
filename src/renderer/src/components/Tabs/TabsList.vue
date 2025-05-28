@@ -199,7 +199,6 @@ const handlePinnedDragEnd = async () => {
   if (orderChanged) {
     try {
       await tabsStore.reorderTabs({ tabs: reorderData })
-      console.log('TabsList: 固定标签排序已保存')
 
       // 通知其他组件标签顺序已更新
       setTimeout(() => {
@@ -237,7 +236,6 @@ const handleUnpinnedDragEnd = async () => {
   if (orderChanged) {
     try {
       await tabsStore.reorderTabs({ tabs: reorderData })
-      console.log('TabsList: 普通标签排序已保存')
 
       // 通知其他组件标签顺序已更新
       setTimeout(() => {
@@ -390,16 +388,6 @@ onMounted(async () => {
   if (allTabs.value.length === 0) {
     await tabsStore.initialize()
   }
-
-  // 调试输出标签页信息
-  console.log('TabsList mounted, tabs:', allTabs.value)
-  console.log('Pinned tabs:', pinnedTabs.value)
-  console.log('Unpinned tabs:', unpinnedTabs.value)
-
-  // 检查标签页是否有地址信息
-  allTabs.value.forEach((tab) => {
-    console.log(`Tab ${tab.id} (${tab.title}) address:`, tab.address)
-  })
 })
 </script>
 

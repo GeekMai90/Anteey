@@ -38,16 +38,6 @@ export const useImageBedStore = defineStore('imageBed', () => {
     try {
       isLoading.value = true
       configs.value = await window.electronAPI.imageBed.getAllImageBedConfigs()
-      console.log(
-        '前端获取到的图床配置:',
-        configs.value.map((c: any) => ({
-          id: c.id,
-          name: c.name,
-          type: c.type,
-          enabled: c.enabled,
-          isDefault: c.isDefault
-        }))
-      )
     } catch (error) {
       console.error('获取图床配置失败:', error)
       message.error('获取图床配置失败')
@@ -172,15 +162,9 @@ export const useImageBedStore = defineStore('imageBed', () => {
         throw new Error('不支持的图床类型')
       }
 
-      if (result.success) {
-        message.success(`连接测试成功${result.latency ? ` (延迟: ${result.latency}ms)` : ''}`)
-      } else {
-        message.error(`连接测试失败: ${result.message}`)
-      }
       return result
     } catch (error) {
       console.error('测试图床连接失败:', error)
-      message.error('测试图床连接失败')
       throw error
     } finally {
       isTesting.value = false
@@ -232,16 +216,9 @@ export const useImageBedStore = defineStore('imageBed', () => {
         filePath
       )
 
-      if (result.success) {
-        message.success('图片上传到图床成功')
-      } else {
-        message.error(`图片上传失败: ${result.error || result.errorMessage}`)
-      }
-
       return result
     } catch (error) {
       console.error('上传图片到图床失败:', error)
-      message.error('上传图片到图床失败')
       throw error
     } finally {
       isUploading.value = false

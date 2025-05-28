@@ -12,7 +12,6 @@ async function loadCustomCss() {
 
     // 如果内容为空，不需要继续处理
     if (!customCssContent.value.trim()) {
-      console.log('自定义CSS为空')
       return
     }
 
@@ -24,8 +23,6 @@ async function loadCustomCss() {
 
     // 保存引用以便在组件卸载时移除
     styleElement.value = style
-
-    console.log('自定义CSS加载成功')
   } catch (error) {
     console.error('加载自定义CSS失败:', error)
   }

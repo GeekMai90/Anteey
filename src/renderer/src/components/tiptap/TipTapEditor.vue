@@ -179,22 +179,14 @@ const handleFileUpload = async (file) => {
     const arrayBuffer = await file.arrayBuffer()
     const imagePath = await window.electronAPI.image.uploadImageData(arrayBuffer)
 
-    // 检查图床状态
-    console.log('图床状态检查:', {
-      图床启用: imageBedStore.isEnabled,
-      有默认配置: imageBedStore.hasDefaultConfig,
-      所有配置: imageBedStore.configs,
-      启用的配置: imageBedStore.enabledConfigs,
-      上传的图片路径: imagePath
-    })
-
-    // 异步上传到图床（如果启用且有默认配置）
-    if (imageBedStore.isEnabled && imageBedStore.hasDefaultConfig) {
-      console.log('开始异步上传到图床...')
-
+    // 异步上传到图床（如果启用、有默认配置且开启了自动上传）
+    if (
+      imageBedStore.isEnabled &&
+      imageBedStore.hasDefaultConfig &&
+      imageBedStore.settings?.autoUpload
+    ) {
       // 获取默认配置
       const defaultConfig = imageBedStore.enabledConfigs.find((config) => config.isDefault)
-      console.log('查找到的默认配置:', defaultConfig)
 
       if (defaultConfig) {
         // 获取文件的真实路径用于上传
@@ -202,8 +194,6 @@ const handleFileUpload = async (file) => {
         window.electronAPI.image
           .getImageRealPath(fileName)
           .then(async (realPath) => {
-            console.log('获取到图片真实路径:', realPath)
-
             // 异步上传到图床
             const uploadResult = await imageBedStore.uploadImageToBed(
               defaultConfig.id,
@@ -212,8 +202,6 @@ const handleFileUpload = async (file) => {
             )
 
             if (uploadResult.success) {
-              console.log('图床上传成功:', uploadResult.url)
-
               // 更新编辑器中图片的src属性为图床URL
               if (uploadResult.url && editor.value) {
                 const { state } = editor.value
@@ -232,7 +220,6 @@ const handleFileUpload = async (file) => {
                     editor.value.view.dispatch(tr)
 
                     updated = true
-                    console.log('已更新图片URL:', imagePath, '->', uploadResult.url)
                     return false // 停止遍历
                   }
                 })

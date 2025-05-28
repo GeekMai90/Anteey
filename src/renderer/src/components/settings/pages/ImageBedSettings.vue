@@ -443,7 +443,7 @@ const handleTestConnection = async () => {
   try {
     const result = await imageBedStore.testConnection(selectedConfig.value)
     if (result.success) {
-      message.success('连接测试成功')
+      message.success(`连接测试成功${result.latency ? ` (延迟: ${result.latency}ms)` : ''}`)
     } else {
       message.error(`连接测试失败: ${result.message || '请检查配置信息'}`)
     }

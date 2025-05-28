@@ -912,8 +912,6 @@ const checkLocalImageExists = async (localPath: string): Promise<boolean> => {
 const handleImageLoad = (src?: string): void => {
   if (!src) return
 
-  console.log('图片加载成功:', src)
-
   // 如果不是降级模式，重置状态
   if (!imageFallbackStatus.value.get(src)) {
     imageDisplayUrls.value.set(src, src)

@@ -140,14 +140,6 @@ let loadingTimer: NodeJS.Timeout | null = null
 
 // 处理快捷键
 const handleKeydown = (event: KeyboardEvent) => {
-  // 调试信息
-  console.log('键盘事件触发:', event.key, {
-    alt: event.altKey,
-    ctrl: event.ctrlKey,
-    shift: event.shiftKey,
-    meta: event.metaKey
-  })
-
   // 支持 Windows(Ctrl) 和 Mac(Cmd) 的快捷键
   const isCmdOrCtrl = event.metaKey || event.ctrlKey
 

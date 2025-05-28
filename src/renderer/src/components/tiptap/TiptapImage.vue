@@ -351,7 +351,6 @@ const initializeDisplayUrl = () => {
     displayUrl.value = srcUrl
     isInFallbackMode.value = false
     networkErrorCount.value = 0
-    console.log('初始化图片显示URL:', srcUrl)
   }
 }
 
@@ -628,8 +627,6 @@ const checkLocalImageExists = async (localPath: string): Promise<boolean> => {
 
 // 处理图片加载成功
 const handleImageLoad = () => {
-  console.log('图片加载成功:', displayUrl.value)
-
   // 重置重试相关状态
   retryCount.value = 0
   hasTriedLocalFallback.value = false
