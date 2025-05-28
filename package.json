@@ -1,6 +1,6 @@
 {
   "name": "anteey",
-  "version": "1.8.2",
+  "version": "1.8.9",
   "description": "Anteey",
   "main": "./out/main/index.js",
   "author": "GeekMai",
@@ -112,7 +112,6 @@
     "better-sqlite3": "^11.3.0",
     "canvas-confetti": "^1.9.3",
     "cors": "^2.8.5",
-    "cos-nodejs-sdk-v5": "^2.15.0",
     "d3": "^7.9.0",
     "date-fns": "^4.1.0",
     "dayjs": "^1.11.13",

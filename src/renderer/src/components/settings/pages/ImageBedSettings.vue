@@ -336,7 +336,8 @@ const providerDropdownItems = [
   },
   {
     key: 'tencent-cos',
-    label: '腾讯云 COS'
+    label: '腾讯云 COS (暂时禁用)',
+    disabled: true
   }
 ]
 

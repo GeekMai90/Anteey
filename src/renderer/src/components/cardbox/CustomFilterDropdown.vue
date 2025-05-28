@@ -130,8 +130,7 @@ const { x, y, update } = useFloating(reference, floating, {
       fallbackPlacements: ['top-start']
     }),
     shift({
-      padding: 8,
-      boundary: window
+      padding: 8
     })
   ],
   whileElementsMounted: autoUpdate

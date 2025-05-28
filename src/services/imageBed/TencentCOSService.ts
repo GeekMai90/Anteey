@@ -1,4 +1,4 @@
-import COS from 'cos-nodejs-sdk-v5'
+// import COS from 'cos-nodejs-sdk-v5'
 import { TencentCOSConfig } from '../../shared/types/imageBed'
 import fs from 'fs'
 
@@ -19,13 +19,13 @@ export interface ImageUploadResult {
 }
 
 // COS客户端实例缓存
-let cosClient: COS | null = null
+let cosClient: any | null = null
 let currentConfig: TencentCOSConfig | null = null
 
 /**
  * 创建COS客户端
  */
-function createCOSClient(config: TencentCOSConfig): COS {
+function createCOSClient(config: TencentCOSConfig): any {
   if (cosClient && currentConfig && isConfigEqual(config, currentConfig)) {
     return cosClient
   }
@@ -40,7 +40,7 @@ function createCOSClient(config: TencentCOSConfig): COS {
     cosOptions.Domain = config.endpoint
   }
 
-  cosClient = new COS(cosOptions)
+  cosClient = new (cosOptions as any)()
   currentConfig = { ...config }
   return cosClient
 }

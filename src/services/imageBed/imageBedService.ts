@@ -1,5 +1,5 @@
 import { db } from '../../db/config'
-import { v4 as uuidv4 } from 'uuid'
+import { generateUUID } from '../../shared/utils/uuid'
 import type { ImageBedTestResult, ImageBedType } from '../../shared/types'
 
 // ==================== 图床配置管理 ====================
@@ -97,7 +97,7 @@ export async function createImageBedConfig(config: {
   extraConfig?: any
 }): Promise<string> {
   try {
-    const id = uuidv4()
+    const id = generateUUID()
     const now = new Date()
 
     // 如果设置为默认配置，先取消其他默认配置
@@ -256,7 +256,7 @@ export async function updateImageBedSettings(updates: {
     if (!settings) {
       // 如果不存在设置，创建新的
       await db('image_bed_settings').insert({
-        id: uuidv4(),
+        id: generateUUID(),
         enabled: updates.enabled ?? false,
         displayMode: updates.displayMode ?? 'auto',
         autoUpload: updates.autoUpload ?? true,
