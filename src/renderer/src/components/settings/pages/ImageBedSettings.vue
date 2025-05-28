@@ -187,30 +187,16 @@
 
                   <div class="form-item">
                     <label>地域</label>
-                    <select v-model="selectedConfig!.region" class="form-select">
-                      <option value="">请选择地域</option>
-                      <!-- 阿里云OSS地域 -->
-                      <template v-if="selectedConfig.type === 'aliyun-oss'">
-                        <option value="oss-cn-hangzhou">华东 1（杭州）</option>
-                        <option value="oss-cn-shanghai">华东 2（上海）</option>
-                        <option value="oss-cn-beijing">华北 2（北京）</option>
-                        <option value="oss-cn-shenzhen">华南 1（深圳）</option>
-                        <option value="oss-cn-guangzhou">华南 2（广州）</option>
-                        <option value="oss-cn-chengdu">西南 1（成都）</option>
-                      </template>
-                      <!-- 腾讯云COS地域 -->
-                      <template v-if="selectedConfig.type === 'tencent-cos'">
-                        <option value="ap-beijing">北京</option>
-                        <option value="ap-nanjing">南京</option>
-                        <option value="ap-shanghai">上海</option>
-                        <option value="ap-guangzhou">广州</option>
-                        <option value="ap-chengdu">成都</option>
-                        <option value="ap-chongqing">重庆</option>
-                        <option value="ap-shenzhen-fsi">深圳金融</option>
-                        <option value="ap-shanghai-fsi">上海金融</option>
-                        <option value="ap-beijing-fsi">北京金融</option>
-                      </template>
-                    </select>
+                    <Dropdown
+                      size="medium"
+                      :show-arrow="true"
+                      width="250px"
+                      :items="currentRegionItems"
+                      :show-selected="true"
+                      :placeholder="getCurrentRegionLabel(selectedConfig.region)"
+                      @select="handleRegionSelect"
+                    >
+                    </Dropdown>
                   </div>
 
                   <div class="form-item">
@@ -328,16 +314,6 @@ const providerDropdownItems = [
   {
     key: 'aliyun-oss',
     label: '阿里云 OSS'
-  },
-  {
-    key: 'qiniu',
-    label: '七牛云',
-    disabled: true
-  },
-  {
-    key: 'tencent-cos',
-    label: '腾讯云 COS (暂时禁用)',
-    disabled: true
   }
 ]
 
@@ -355,6 +331,58 @@ const displayModeItems = [
     label: '智能显示'
   }
 ]
+
+// 阿里云OSS地域选项
+const aliyunOSSRegionItems = [
+  { key: 'oss-cn-hangzhou', label: '华东1（杭州）' },
+  { key: 'oss-cn-shanghai', label: '华东2（上海）' },
+  { key: 'oss-cn-nanjing', label: '华东5（南京-本地地域）' },
+  { key: 'oss-cn-qingdao', label: '华北1（青岛）' },
+  { key: 'oss-cn-beijing', label: '华北2（北京）' },
+  { key: 'oss-cn-huhehaote', label: '华北5（呼和浩特）' },
+  { key: 'oss-cn-wulanchabu', label: '华北6（乌兰察布）' },
+  { key: 'oss-cn-shenzhen', label: '华南1（深圳）' },
+  { key: 'oss-cn-heyuan', label: '华南2（河源）' },
+  { key: 'oss-cn-guangzhou', label: '华南3（广州）' },
+  { key: 'oss-cn-chengdu', label: '西南1（成都）' },
+  { key: 'oss-cn-fuzhou', label: '华东6（福州-本地地域）' },
+  { key: 'oss-cn-wuhan-lr', label: '华中1（武汉-本地地域）' },
+  { key: 'oss-cn-hongkong', label: '中国香港' }
+]
+
+// 腾讯云COS地域选项
+const tencentCOSRegionItems = [
+  { key: 'ap-beijing', label: '北京' },
+  { key: 'ap-nanjing', label: '南京' },
+  { key: 'ap-shanghai', label: '上海' },
+  { key: 'ap-guangzhou', label: '广州' },
+  { key: 'ap-chengdu', label: '成都' },
+  { key: 'ap-chongqing', label: '重庆' },
+  { key: 'ap-shenzhen-fsi', label: '深圳金融' },
+  { key: 'ap-shanghai-fsi', label: '上海金融' },
+  { key: 'ap-beijing-fsi', label: '北京金融' }
+]
+
+// 计算当前选中配置的地域选项
+const currentRegionItems = computed(() => {
+  if (!selectedConfig.value) return []
+
+  if (selectedConfig.value.type === 'aliyun-oss') {
+    return aliyunOSSRegionItems
+  } else if (selectedConfig.value.type === 'tencent-cos') {
+    return tencentCOSRegionItems
+  }
+
+  return []
+})
+
+// 获取当前选中地域的显示文本
+const getCurrentRegionLabel = (region: string | undefined) => {
+  if (!region) return '请选择地域'
+
+  const item = currentRegionItems.value.find((item) => item.key === region)
+  return item ? item.label : region
+}
 
 // 初始化
 onMounted(async () => {
@@ -535,6 +563,13 @@ const getEndpointDescription = (type: string) => {
     default:
       return '留空使用默认端点'
   }
+}
+
+const handleRegionSelect = (key: string) => {
+  if (!selectedConfig.value) return
+
+  // 直接更新本地状态，不自动保存到数据库
+  selectedConfig.value.region = key
 }
 </script>
 
@@ -742,14 +777,14 @@ const getEndpointDescription = (type: string) => {
 
   .config-layout {
     display: flex;
-    gap: 24px;
+    gap: 14px;
     height: 420px;
     max-height: calc(100vh - 300px);
     min-height: 420px;
   }
 
   .config-list {
-    width: 300px;
+    width: 250px;
     display: flex;
     flex-direction: column;
     border: 1px solid var(--color-border);
