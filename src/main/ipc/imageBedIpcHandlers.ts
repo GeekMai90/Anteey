@@ -15,7 +15,17 @@ import {
   uploadImageToOSS,
   deleteImageFromOSS
 } from '../../services/imageBed/AliyunOSSService'
-import type { ImageBedSettings, AliyunOSSConfig, ImageBedType } from '../../shared/types/imageBed'
+import {
+  testCOSConnection,
+  uploadImageToCOS,
+  deleteImageFromCOS
+} from '../../services/imageBed/TencentCOSService'
+import type {
+  ImageBedSettings,
+  AliyunOSSConfig,
+  TencentCOSConfig,
+  ImageBedType
+} from '../../shared/types/imageBed'
 
 export function setupImageBedHandlers() {
   // 创建图床配置
@@ -30,6 +40,8 @@ export function setupImageBedHandlers() {
         isDefault?: boolean
         accessKeyId?: string
         accessKeySecret?: string
+        secretId?: string
+        secretKey?: string
         bucket?: string
         region?: string
         endpoint?: string
@@ -64,6 +76,8 @@ export function setupImageBedHandlers() {
           isDefault?: boolean
           accessKeyId?: string
           accessKeySecret?: string
+          secretId?: string
+          secretKey?: string
           bucket?: string
           region?: string
           endpoint?: string
@@ -153,15 +167,25 @@ export function setupImageBedHandlers() {
   })
 
   // 测试图床连接
-  ipcMain.handle('test-image-bed-connection', async (_event, config: AliyunOSSConfig) => {
-    try {
-      const result = await testOSSConnection(config)
-      return { success: true, data: result }
-    } catch (error) {
-      console.error('主进程→ 测试图床连接失败:', error)
-      return { success: false, error: String(error) }
+  ipcMain.handle(
+    'test-image-bed-connection',
+    async (_event, config: AliyunOSSConfig | TencentCOSConfig, type: ImageBedType) => {
+      try {
+        if (type === 'aliyun-oss') {
+          const result = await testOSSConnection(config as AliyunOSSConfig)
+          return { success: true, data: result }
+        } else if (type === 'tencent-cos') {
+          const result = await testCOSConnection(config as TencentCOSConfig)
+          return { success: true, data: result }
+        } else {
+          return { success: false, error: '不支持的图床类型' }
+        }
+      } catch (error) {
+        console.error('主进程→ 测试图床连接失败:', error)
+        return { success: false, error: String(error) }
+      }
     }
-  })
+  )
 
   // 上传图片到图床
   ipcMain.handle(
@@ -200,6 +224,23 @@ export function setupImageBedHandlers() {
           // 从本地路径提取文件名
           const fileName = localPath.replace('app-image:///images/', '')
           const result = await uploadImageToOSS(ossConfig, filePath, fileName)
+          return { success: true, data: result }
+        } else if (configData.type === 'tencent-cos') {
+          // 构建COS配置
+          const cosConfig: TencentCOSConfig = {
+            enabled: configData.enabled,
+            secretId: configData.secretId,
+            secretKey: configData.secretKey,
+            bucket: configData.bucket,
+            region: configData.region,
+            endpoint: configData.endpoint,
+            customDomain: configData.customDomain,
+            pathPrefix: configData.pathPrefix
+          }
+
+          // 从本地路径提取文件名
+          const fileName = localPath.replace('app-image:///images/', '')
+          const result = await uploadImageToCOS(cosConfig, filePath, fileName)
           return { success: true, data: result }
         } else {
           return { success: false, error: '不支持的图床类型' }
@@ -244,6 +285,21 @@ export function setupImageBedHandlers() {
           }
 
           const result = await deleteImageFromOSS(ossConfig, objectName)
+          return { success: true, data: result }
+        } else if (configData.type === 'tencent-cos') {
+          // 构建COS配置
+          const cosConfig: TencentCOSConfig = {
+            enabled: configData.enabled,
+            secretId: configData.secretId,
+            secretKey: configData.secretKey,
+            bucket: configData.bucket,
+            region: configData.region,
+            endpoint: configData.endpoint,
+            customDomain: configData.customDomain,
+            pathPrefix: configData.pathPrefix
+          }
+
+          const result = await deleteImageFromCOS(cosConfig, objectName)
           return { success: true, data: result }
         } else {
           return { success: false, error: '不支持的图床类型' }

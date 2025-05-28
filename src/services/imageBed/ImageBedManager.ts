@@ -18,6 +18,12 @@ import {
   testOSSConnection,
   checkImageExistsInOSS
 } from './AliyunOSSService'
+import {
+  uploadImageToCOS,
+  deleteImageFromCOS,
+  testCOSConnection,
+  checkImageExistsInCOS
+} from './TencentCOSService'
 import path from 'path'
 import fs from 'fs'
 
@@ -103,6 +109,17 @@ export async function testImageBedConnection(): Promise<{
         enabled: config.enabled,
         accessKeyId: config.accessKeyId || '',
         accessKeySecret: config.accessKeySecret || '',
+        bucket: config.bucket || '',
+        region: config.region || '',
+        endpoint: config.endpoint,
+        customDomain: config.customDomain,
+        pathPrefix: config.pathPrefix
+      })
+    } else if (config.type === 'tencent-cos') {
+      return await testCOSConnection({
+        enabled: config.enabled,
+        secretId: config.secretId || '',
+        secretKey: config.secretKey || '',
         bucket: config.bucket || '',
         region: config.region || '',
         endpoint: config.endpoint,
@@ -223,6 +240,43 @@ export async function uploadImageToBed(
       } else {
         return { success: false, error: result.error || '上传失败' }
       }
+    } else if (config.type === 'tencent-cos') {
+      const result = await uploadImageToCOS(
+        {
+          enabled: config.enabled,
+          secretId: config.secretId || '',
+          secretKey: config.secretKey || '',
+          bucket: config.bucket || '',
+          region: config.region || '',
+          endpoint: config.endpoint,
+          customDomain: config.customDomain,
+          pathPrefix: config.pathPrefix
+        },
+        localFilePath,
+        fileName
+      )
+
+      if (result.success && result.url) {
+        // 创建映射信息
+        const mappingInfo: ImageMappingInfo = {
+          id: fileName.split('.')[0], // UUID部分
+          localPath,
+          remotePath: result.url,
+          uploadStatus: 'uploaded',
+          preferRemote: true,
+          uploadTime: Date.now(),
+          lastSyncTime: Date.now(),
+          fileSize: result.size,
+          mimeType: getMimeTypeFromFileName(fileName)
+        }
+
+        // 保存到内存映射
+        setImageMappingManager(mappingInfo)
+
+        return { success: true, remotePath: result.url }
+      } else {
+        return { success: false, error: result.error || '上传失败' }
+      }
     }
 
     return { success: false, error: '不支持的图床类型' }
@@ -270,6 +324,27 @@ export async function deleteImageFromBed(localPath: string): Promise<boolean> {
         deleteImageMappingManager(localPath)
         return true
       }
+    } else if (config.type === 'tencent-cos') {
+      const objectName = `images/${fileName}`
+      const result = await deleteImageFromCOS(
+        {
+          enabled: config.enabled,
+          secretId: config.secretId || '',
+          secretKey: config.secretKey || '',
+          bucket: config.bucket || '',
+          region: config.region || '',
+          endpoint: config.endpoint,
+          customDomain: config.customDomain,
+          pathPrefix: config.pathPrefix
+        },
+        objectName
+      )
+
+      if (result.success) {
+        // 删除映射信息
+        deleteImageMappingManager(localPath)
+        return true
+      }
     }
 
     return false
@@ -290,27 +365,46 @@ export async function checkRemoteImageExists(localPath: string): Promise<boolean
     }
 
     const config = await getImageBedConfigManager()
-    if (!config || config.type !== 'aliyun-oss') {
+    if (!config) {
       return false
     }
 
     const fileName = getFileNameFromPath(localPath)
     const objectName = `images/${fileName}`
 
-    const result = await checkImageExistsInOSS(
-      {
-        enabled: config.enabled,
-        accessKeyId: config.accessKeyId || '',
-        accessKeySecret: config.accessKeySecret || '',
-        bucket: config.bucket || '',
-        region: config.region || '',
-        endpoint: config.endpoint,
-        customDomain: config.customDomain,
-        pathPrefix: config.pathPrefix
-      },
-      objectName
-    )
-    return result.exists
+    if (config.type === 'aliyun-oss') {
+      const result = await checkImageExistsInOSS(
+        {
+          enabled: config.enabled,
+          accessKeyId: config.accessKeyId || '',
+          accessKeySecret: config.accessKeySecret || '',
+          bucket: config.bucket || '',
+          region: config.region || '',
+          endpoint: config.endpoint,
+          customDomain: config.customDomain,
+          pathPrefix: config.pathPrefix
+        },
+        objectName
+      )
+      return result.exists
+    } else if (config.type === 'tencent-cos') {
+      const result = await checkImageExistsInCOS(
+        {
+          enabled: config.enabled,
+          secretId: config.secretId || '',
+          secretKey: config.secretKey || '',
+          bucket: config.bucket || '',
+          region: config.region || '',
+          endpoint: config.endpoint,
+          customDomain: config.customDomain,
+          pathPrefix: config.pathPrefix
+        },
+        objectName
+      )
+      return result.exists
+    }
+
+    return false
   } catch (error) {
     console.error('检查远程图片存在性失败:', error)
     return false

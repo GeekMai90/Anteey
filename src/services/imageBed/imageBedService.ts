@@ -37,11 +37,25 @@ export async function getEnabledImageBedConfigs(): Promise<any[]> {
  */
 export async function getDefaultImageBedConfig(): Promise<any | null> {
   try {
+    // 先查看所有配置的状态
+    const allConfigs = await db('image_bed_configs').select('*')
+    console.log(
+      '所有图床配置:',
+      allConfigs.map((c) => ({
+        id: c.id,
+        name: c.name,
+        type: c.type,
+        enabled: c.enabled,
+        isDefault: c.isDefault
+      }))
+    )
+
     const config = await db('image_bed_configs')
       .where('enabled', true)
       .where('isDefault', true)
       .first()
 
+    console.log('找到的默认配置:', config)
     return config || null
   } catch (error) {
     console.error('获取默认图床配置失败:', error)
@@ -73,6 +87,8 @@ export async function createImageBedConfig(config: {
   isDefault?: boolean
   accessKeyId?: string
   accessKeySecret?: string
+  secretId?: string
+  secretKey?: string
   bucket?: string
   region?: string
   endpoint?: string
@@ -86,17 +102,19 @@ export async function createImageBedConfig(config: {
 
     // 如果设置为默认配置，先取消其他默认配置
     if (config.isDefault) {
-      await db('image_bed_configs').where('type', config.type).update({ isDefault: false })
+      await db('image_bed_configs').update({ isDefault: false })
     }
 
     await db('image_bed_configs').insert({
       id,
       name: config.name,
       type: config.type,
-      enabled: config.enabled ?? false,
+      enabled: config.enabled ?? true,
       isDefault: config.isDefault ?? false,
       accessKeyId: config.accessKeyId || null,
       accessKeySecret: config.accessKeySecret || null,
+      secretId: config.secretId || null,
+      secretKey: config.secretKey || null,
       bucket: config.bucket || null,
       region: config.region || null,
       endpoint: config.endpoint || null,
@@ -129,6 +147,8 @@ export async function updateImageBedConfig(
     isDefault?: boolean
     accessKeyId?: string
     accessKeySecret?: string
+    secretId?: string
+    secretKey?: string
     bucket?: string
     region?: string
     endpoint?: string
@@ -142,13 +162,7 @@ export async function updateImageBedConfig(
 
     // 如果设置为默认配置，先取消其他默认配置
     if (updates.isDefault) {
-      const config = await getImageBedConfigById(id)
-      if (config) {
-        await db('image_bed_configs')
-          .where('type', config.type)
-          .whereNot('id', id)
-          .update({ isDefault: false })
-      }
+      await db('image_bed_configs').whereNot('id', id).update({ isDefault: false })
     }
 
     const updateData: any = {

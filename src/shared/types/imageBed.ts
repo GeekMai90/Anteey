@@ -16,6 +16,18 @@ export interface AliyunOSSConfig {
   pathPrefix?: string // 路径前缀，如 'images/'
 }
 
+// 腾讯云COS配置
+export interface TencentCOSConfig {
+  enabled: boolean
+  secretId: string
+  secretKey: string
+  bucket: string
+  region: string
+  endpoint?: string
+  customDomain?: string
+  pathPrefix?: string // 路径前缀，如 'images/'
+}
+
 // 图床配置（数据库结构）
 export interface ImageBedConfig {
   id: string
@@ -23,8 +35,13 @@ export interface ImageBedConfig {
   type: ImageBedType
   enabled: boolean
   isDefault: boolean
+  // 阿里云OSS字段
   accessKeyId?: string
   accessKeySecret?: string
+  // 腾讯云COS字段
+  secretId?: string
+  secretKey?: string
+  // 通用字段
   bucket?: string
   region?: string
   endpoint?: string

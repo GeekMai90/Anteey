@@ -165,7 +165,9 @@ import {
   ImageMigrationParams,
   ImageMigrationResult,
   BatchMigrationParams,
-  BatchMigrationResult
+  BatchMigrationResult,
+  AliyunOSSConfig,
+  TencentCOSConfig
 } from '@shared/types/imageBed'
 
 // 导入标签页相关的类型
@@ -1403,6 +1405,8 @@ export interface ElectronAPI {
       isDefault?: boolean
       accessKeyId?: string
       accessKeySecret?: string
+      secretId?: string
+      secretKey?: string
       bucket?: string
       region?: string
       endpoint?: string
@@ -1420,6 +1424,8 @@ export interface ElectronAPI {
         isDefault?: boolean
         accessKeyId?: string
         accessKeySecret?: string
+        secretId?: string
+        secretKey?: string
         bucket?: string
         region?: string
         endpoint?: string
@@ -1448,7 +1454,10 @@ export interface ElectronAPI {
     getImageBedStats: () => Promise<ImageBedStats>
 
     // 测试图床连接
-    testImageBedConnection: (config: ImageBedConfig) => Promise<ImageBedTestResult>
+    testImageBedConnection: (
+      config: AliyunOSSConfig | TencentCOSConfig,
+      type: ImageBedType
+    ) => Promise<ImageBedTestResult>
 
     // 上传图片到图床
     uploadImageToBed: (

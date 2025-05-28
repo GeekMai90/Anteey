@@ -183,6 +183,8 @@ const handleFileUpload = async (file) => {
     console.log('图床状态检查:', {
       图床启用: imageBedStore.isEnabled,
       有默认配置: imageBedStore.hasDefaultConfig,
+      所有配置: imageBedStore.configs,
+      启用的配置: imageBedStore.enabledConfigs,
       上传的图片路径: imagePath
     })
 
@@ -192,6 +194,7 @@ const handleFileUpload = async (file) => {
 
       // 获取默认配置
       const defaultConfig = imageBedStore.enabledConfigs.find((config) => config.isDefault)
+      console.log('查找到的默认配置:', defaultConfig)
 
       if (defaultConfig) {
         // 获取文件的真实路径用于上传

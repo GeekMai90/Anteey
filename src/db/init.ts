@@ -1717,6 +1717,12 @@ export async function initDatabase(db: Knex): Promise<void> {
       // 阿里云OSS配置
       table.string('accessKeyId').nullable()
       table.string('accessKeySecret').nullable()
+
+      // 腾讯云COS配置
+      table.string('secretId').nullable()
+      table.string('secretKey').nullable()
+
+      // 通用配置
       table.string('bucket').nullable()
       table.string('region').nullable()
       table.string('endpoint').nullable()
@@ -1741,6 +1747,16 @@ export async function initDatabase(db: Knex): Promise<void> {
     })
 
     console.log('image_bed_configs 表创建成功')
+  } else {
+    // 检查是否需要添加腾讯云COS字段
+    const hasSecretIdColumn = await db.schema.hasColumn('image_bed_configs', 'secretId')
+    if (!hasSecretIdColumn) {
+      await db.schema.alterTable('image_bed_configs', (table) => {
+        table.string('secretId').nullable() // 腾讯云COS SecretId
+        table.string('secretKey').nullable() // 腾讯云COS SecretKey
+      })
+      console.log('image_bed_configs 表添加腾讯云COS字段成功')
+    }
   }
 
   // 创建图床设置表（全局设置）

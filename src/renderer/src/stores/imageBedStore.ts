@@ -26,7 +26,9 @@ export const useImageBedStore = defineStore('imageBed', () => {
 
   // ==================== 计算属性 ====================
   const isEnabled = computed(() => settings.value?.enabled ?? false)
-  const hasDefaultConfig = computed(() => configs.value.some((config: any) => config.isDefault))
+  const hasDefaultConfig = computed(() =>
+    configs.value.some((config: any) => config.isDefault && config.enabled)
+  )
   const enabledConfigs = computed(() => configs.value.filter((config: any) => config.enabled))
 
   // ==================== 图床配置管理 ====================
@@ -36,6 +38,16 @@ export const useImageBedStore = defineStore('imageBed', () => {
     try {
       isLoading.value = true
       configs.value = await window.electronAPI.imageBed.getAllImageBedConfigs()
+      console.log(
+        '前端获取到的图床配置:',
+        configs.value.map((c: any) => ({
+          id: c.id,
+          name: c.name,
+          type: c.type,
+          enabled: c.enabled,
+          isDefault: c.isDefault
+        }))
+      )
     } catch (error) {
       console.error('获取图床配置失败:', error)
       message.error('获取图床配置失败')
@@ -48,11 +60,13 @@ export const useImageBedStore = defineStore('imageBed', () => {
   // 创建图床配置
   const createConfig = async (config: {
     name: string
-    type: 'aliyun-oss'
+    type: 'aliyun-oss' | 'tencent-cos'
     enabled?: boolean
     isDefault?: boolean
     accessKeyId?: string
     accessKeySecret?: string
+    secretId?: string
+    secretKey?: string
     bucket?: string
     region?: string
     endpoint?: string
@@ -64,7 +78,6 @@ export const useImageBedStore = defineStore('imageBed', () => {
       isLoading.value = true
       const configId = await window.electronAPI.imageBed.createImageBedConfig(config)
       await getAllConfigs() // 刷新配置列表
-      message.success('创建图床配置成功')
       return configId
     } catch (error) {
       console.error('创建图床配置失败:', error)
@@ -84,6 +97,8 @@ export const useImageBedStore = defineStore('imageBed', () => {
       isDefault?: boolean
       accessKeyId?: string
       accessKeySecret?: string
+      secretId?: string
+      secretKey?: string
       bucket?: string
       region?: string
       endpoint?: string
@@ -96,7 +111,6 @@ export const useImageBedStore = defineStore('imageBed', () => {
       isLoading.value = true
       await window.electronAPI.imageBed.updateImageBedConfig(id, config)
       await getAllConfigs() // 刷新配置列表
-      message.success('更新图床配置成功')
     } catch (error) {
       console.error('更新图床配置失败:', error)
       message.error('更新图床配置失败')
@@ -112,7 +126,6 @@ export const useImageBedStore = defineStore('imageBed', () => {
       isLoading.value = true
       await window.electronAPI.imageBed.deleteImageBedConfig(id)
       await getAllConfigs() // 刷新配置列表
-      message.success('删除图床配置成功')
     } catch (error) {
       console.error('删除图床配置失败:', error)
       message.error('删除图床配置失败')
@@ -126,7 +139,39 @@ export const useImageBedStore = defineStore('imageBed', () => {
   const testConnection = async (config: ImageBedConfig): Promise<ImageBedTestResult> => {
     try {
       isTesting.value = true
-      const result = await window.electronAPI.imageBed.testImageBedConnection(config)
+
+      let result: ImageBedTestResult
+
+      if (config.type === 'aliyun-oss') {
+        // 构建阿里云OSS配置
+        const ossConfig = {
+          enabled: true,
+          accessKeyId: config.accessKeyId || '',
+          accessKeySecret: config.accessKeySecret || '',
+          bucket: config.bucket || '',
+          region: config.region || '',
+          endpoint: config.endpoint,
+          customDomain: config.customDomain,
+          pathPrefix: config.pathPrefix
+        }
+        result = await window.electronAPI.imageBed.testImageBedConnection(ossConfig, config.type)
+      } else if (config.type === 'tencent-cos') {
+        // 构建腾讯云COS配置
+        const cosConfig = {
+          enabled: true,
+          secretId: config.secretId || '',
+          secretKey: config.secretKey || '',
+          bucket: config.bucket || '',
+          region: config.region || '',
+          endpoint: config.endpoint,
+          customDomain: config.customDomain,
+          pathPrefix: config.pathPrefix
+        }
+        result = await window.electronAPI.imageBed.testImageBedConnection(cosConfig, config.type)
+      } else {
+        throw new Error('不支持的图床类型')
+      }
+
       if (result.success) {
         message.success(`连接测试成功${result.latency ? ` (延迟: ${result.latency}ms)` : ''}`)
       } else {

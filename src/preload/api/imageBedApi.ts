@@ -1,5 +1,10 @@
 import { ipcRenderer } from 'electron'
-import type { ImageBedSettings, AliyunOSSConfig, ImageBedType } from '../../shared/types/imageBed'
+import type {
+  ImageBedSettings,
+  AliyunOSSConfig,
+  TencentCOSConfig,
+  ImageBedType
+} from '../../shared/types/imageBed'
 
 export const imageBedApi = {
   // 创建图床配置
@@ -10,6 +15,8 @@ export const imageBedApi = {
     isDefault?: boolean
     accessKeyId?: string
     accessKeySecret?: string
+    secretId?: string
+    secretKey?: string
     bucket?: string
     region?: string
     endpoint?: string
@@ -36,6 +43,8 @@ export const imageBedApi = {
       isDefault?: boolean
       accessKeyId?: string
       accessKeySecret?: string
+      secretId?: string
+      secretKey?: string
       bucket?: string
       region?: string
       endpoint?: string
@@ -129,14 +138,15 @@ export const imageBedApi = {
 
   // 测试图床连接
   testImageBedConnection: async (
-    config: AliyunOSSConfig
+    config: AliyunOSSConfig | TencentCOSConfig,
+    type: ImageBedType
   ): Promise<{
     success: boolean
     message: string
     latency?: number
   }> => {
     try {
-      const result = await ipcRenderer.invoke('test-image-bed-connection', config)
+      const result = await ipcRenderer.invoke('test-image-bed-connection', config, type)
       if (!result.success) throw new Error(result.error)
       return result.data
     } catch (error) {

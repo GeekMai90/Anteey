@@ -5,7 +5,8 @@ import {
   getDefaultImageBedConfig
 } from '../../services/imageBed/imageBedService'
 import { uploadImageToOSS } from '../../services/imageBed/AliyunOSSService'
-import type { AliyunOSSConfig } from '../../shared/types/imageBed'
+import { uploadImageToCOS } from '../../services/imageBed/TencentCOSService'
+import type { AliyunOSSConfig, TencentCOSConfig } from '../../shared/types/imageBed'
 import path from 'path'
 import os from 'os'
 import fs from 'fs/promises'
@@ -50,6 +51,30 @@ async function uploadToImageBedAsync(localPath: string, filePath: string): Promi
       } else {
         console.error('图床上传失败:', result.error)
       }
+    } else if (defaultConfig.type === 'tencent-cos') {
+      // 构建COS配置
+      const cosConfig: TencentCOSConfig = {
+        enabled: defaultConfig.enabled,
+        secretId: defaultConfig.secretId,
+        secretKey: defaultConfig.secretKey,
+        bucket: defaultConfig.bucket,
+        region: defaultConfig.region,
+        endpoint: defaultConfig.endpoint,
+        customDomain: defaultConfig.customDomain,
+        pathPrefix: defaultConfig.pathPrefix
+      }
+
+      // 从本地路径提取文件名
+      const fileName = localPath.replace('app-image:///images/', '')
+      const result = await uploadImageToCOS(cosConfig, filePath, fileName)
+
+      if (result.success) {
+        console.log('图床上传成功:', result.url)
+      } else {
+        console.error('图床上传失败:', result.error)
+      }
+    } else {
+      console.warn('不支持的图床类型:', defaultConfig.type)
     }
   } catch (error) {
     console.error('异步图床上传失败:', error)
