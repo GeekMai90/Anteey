@@ -9,13 +9,22 @@
       <div class="resize-handle left" @mousedown="startResize('left', $event)"></div>
       <img
         :key="retryKey"
-        :src="props.node.attrs.src"
+        :src="displayUrl"
         :alt="props.node.attrs.alt"
         :style="imageStyle"
         @error="handleImageError"
         @load="handleImageLoad"
         @dblclick="openImageViewer"
       />
+      <!-- 图片状态指示器 -->
+      <div
+        v-if="props.selected"
+        class="image-status-indicator"
+        :class="imageStatusClass"
+        :title="imageStatusText"
+      >
+        <component :is="imageStatusIcon" theme="filled" size="12" :fill="imageStatusColor" />
+      </div>
       <div class="resize-handle right" @mousedown="startResize('right', $event)"></div>
       <div ref="moreButton" class="image-more-button" @click.stop="toggleMenu">
         <div class="icon">
@@ -230,6 +239,13 @@
         </div>
         <div class="name">复制</div>
       </div>
+      <!-- 图床操作菜单项 -->
+      <div v-if="!isRemoteImage" class="popup-menu-item" @click="uploadToImageBed">
+        <div class="icon">
+          <Upload theme="outline" size="18" fill="var(--color-icon-primary)" :strokeWidth="3" />
+        </div>
+        <div class="name">上传到图床</div>
+      </div>
       <div class="popup-menu-item popup-menu-item-danger" @click="deleteImage">
         <div class="icon">
           <Delete theme="outline" size="18" fill="#ff4d4f" :strokeWidth="3" />
@@ -241,7 +257,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, nextTick, onMounted, onUnmounted } from 'vue'
+import { ref, computed, nextTick, onMounted, onUnmounted, watch } from 'vue'
 import { NodeViewWrapper, nodeViewProps } from '@tiptap/vue-3'
 import { computePosition, flip, offset, shift } from '@floating-ui/dom'
 import {
@@ -259,11 +275,15 @@ import {
   Rotate,
   EqualRatio as EqualRatioIcon,
   Left,
-  Right
+  Right,
+  LocalPin,
+  NetworkDrive,
+  Upload
 } from '@icon-park/vue-next'
 import ConfirmDialog from '@renderer/components/common/ConfirmDialog.vue'
 import Modal from '@renderer/components/common/Modal.vue'
 import { message } from '@renderer/utils/message'
+import { useImageBedStore } from '@renderer/stores/imageBedStore'
 
 const props = defineProps({
   ...nodeViewProps,
@@ -289,11 +309,16 @@ const isDragging = ref(false)
 const allImages = ref<ImageInfo[]>([])
 const currentImageIndex = ref<number>(0)
 
-// 添加重试相关的状态
+// 添加智能显示相关的状态
 const retryKey = ref(0)
 const retryCount = ref(0)
-const MAX_RETRIES = 3
-const RETRY_DELAY = 1000 // 1秒后重试
+const hasTriedLocalFallback = ref(false) // 新增：是否已尝试本地降级
+
+// 简化：智能显示状态管理
+const displayUrl = ref('') // 当前显示的URL
+const isInFallbackMode = ref(false) // 是否处于降级模式
+const networkErrorCount = ref(0) // 网络错误计数
+const isProcessingError = ref(false) // 防止重复处理错误
 
 const containerStyle = computed(() => ({
   width: props.node.attrs.width || '100%',
@@ -315,6 +340,29 @@ const showMenu = ref(false)
 const moreButton = ref(null)
 const popupMenu = ref(null)
 const menuPosition = ref({ x: 0, y: 0 })
+
+// 添加图床store
+const imageBedStore = useImageBedStore()
+
+// 初始化显示URL
+const initializeDisplayUrl = () => {
+  const srcUrl = props.node.attrs.src
+  if (srcUrl && srcUrl !== displayUrl.value) {
+    displayUrl.value = srcUrl
+    isInFallbackMode.value = false
+    networkErrorCount.value = 0
+    console.log('初始化图片显示URL:', srcUrl)
+  }
+}
+
+// 监听props变化，重新初始化
+watch(
+  () => props.node.attrs.src,
+  () => {
+    initializeDisplayUrl()
+  },
+  { immediate: true }
+)
 
 // 修改toggleMenu函数，使用floating-ui定位菜单
 const toggleMenu = async () => {
@@ -472,27 +520,124 @@ const startResize = (side: 'left' | 'right', event: ResizeEvent): void => {
   window.addEventListener('mouseup', stopResize)
 }
 
-// 处理图片加载错误
+// 处理图片加载错误 - 重新设计智能显示功能
 const handleImageError = async () => {
-  if (retryCount.value < MAX_RETRIES) {
-    // 等待一段时间后重试
-    await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY))
+  // 获取当前尝试加载的URL
+  const failedUrl = displayUrl.value
+  const isRemoteUrl = !failedUrl.startsWith('app-image://')
 
-    // 增加重试次数
-    retryCount.value++
+  console.log('图片加载失败:', {
+    failedUrl,
+    isRemoteUrl,
+    isInFallbackMode: isInFallbackMode.value,
+    networkErrorCount: networkErrorCount.value,
+    isProcessingError: isProcessingError.value
+  })
 
-    // 通过改变 key 来强制重新加载图片
-    retryKey.value = Date.now()
-  } else {
-    console.error('图片加载失败，已达到最大重试次数')
-    // 可以在这里添加失败后的处理逻辑，比如显示占位图
+  // 防止重复处理同一个错误
+  if (isProcessingError.value) {
+    console.log('正在处理错误，跳过重复处理')
+    return
+  }
+
+  // 如果已经在降级模式且本地图片也加载失败，停止处理
+  if (isInFallbackMode.value && !isRemoteUrl) {
+    console.log('降级模式下本地图片加载失败，停止处理避免循环')
+    return
+  }
+
+  // 如果是远程图片加载失败，尝试降级到本地图片
+  if (isRemoteUrl && !isInFallbackMode.value) {
+    isProcessingError.value = true
+    networkErrorCount.value++
+
+    try {
+      // 只在第一次失败时尝试降级
+      if (networkErrorCount.value === 1) {
+        await attemptFallbackToLocal(failedUrl)
+      } else {
+        console.log('已经尝试过降级，不再重复处理')
+      }
+    } catch (error) {
+      console.error('降级处理失败:', error)
+    } finally {
+      isProcessingError.value = false
+    }
+  } else if (!isRemoteUrl) {
+    // 本地图片加载失败，执行重试
+    await handleLocalImageError()
+  }
+}
+
+// 尝试降级到本地图片
+const attemptFallbackToLocal = async (remoteUrl: string) => {
+  try {
+    console.log('尝试降级到本地图片:', remoteUrl)
+
+    // 提取文件名并构建本地路径
+    const fileName = extractFileNameFromUrl(remoteUrl)
+    if (fileName) {
+      const localPath = `app-image:///images/${fileName}`
+
+      // 检查本地图片是否存在
+      const localExists = await checkLocalImageExists(localPath)
+      if (localExists) {
+        console.log('本地图片存在，切换到降级模式')
+
+        // 切换到降级模式
+        displayUrl.value = localPath
+        isInFallbackMode.value = true
+        retryKey.value = Date.now()
+
+        console.log('成功降级到本地图片:', localPath)
+        return
+      } else {
+        console.warn('本地图片不存在:', localPath)
+      }
+    }
+
+    console.warn('无法降级到本地图片')
+  } catch (error) {
+    console.error('降级处理失败:', error)
+  }
+}
+
+// 从URL提取文件名
+const extractFileNameFromUrl = (url: string): string | null => {
+  try {
+    const urlObj = new URL(url)
+    const pathname = urlObj.pathname
+    const fileName = pathname.split('/').pop()
+    return fileName && fileName.includes('.') ? fileName : null
+  } catch (error) {
+    console.error('解析URL失败:', error)
+    return null
+  }
+}
+
+// 检查本地图片是否存在
+const checkLocalImageExists = async (localPath: string): Promise<boolean> => {
+  try {
+    const exists = await window.electronAPI.image.checkImageExists(localPath)
+    return exists
+  } catch (error) {
+    console.error('检查本地图片存在性失败:', error)
+    return false
   }
 }
 
 // 处理图片加载成功
 const handleImageLoad = () => {
-  // 重置重试计数
+  console.log('图片加载成功:', displayUrl.value)
+
+  // 重置重试相关状态
   retryCount.value = 0
+  hasTriedLocalFallback.value = false
+
+  // 如果不是降级模式，重置网络错误计数
+  if (!isInFallbackMode.value) {
+    networkErrorCount.value = 0
+  }
 
   // 确保图片加载后也能正确应用宽度
   if (!props.node.attrs.width) {
@@ -765,6 +910,129 @@ const handleDocumentClick = (event: MouseEvent) => {
 
   // 其他情况关闭菜单
   hideMenu()
+}
+
+// 图片状态计算属性
+const isRemoteImage = computed(() => {
+  const src = props.node.attrs.src
+  return src && !src.startsWith('app-image:///')
+})
+
+const imageStatusClass = computed(() => ({
+  'status-remote': isRemoteImage.value && !isInFallbackMode.value,
+  'status-local': !isRemoteImage.value && !isInFallbackMode.value,
+  'status-fallback': isInFallbackMode.value
+}))
+
+const imageStatusText = computed(() => {
+  if (isInFallbackMode.value) {
+    return '网络异常，临时显示本地图片'
+  }
+  return isRemoteImage.value ? '已上传到图床' : '本地存储'
+})
+
+const imageStatusIcon = computed(() => {
+  if (isInFallbackMode.value) {
+    // 使用你提到的"云中断"概念，我们可以用NetworkDrive配合特殊样式
+    return NetworkDrive
+  }
+  return isRemoteImage.value ? NetworkDrive : LocalPin
+})
+
+const imageStatusColor = computed(() => {
+  if (isInFallbackMode.value) {
+    return '#ff7875' // 橙红色表示网络问题
+  }
+  return 'var(--color-icon-secondary)'
+})
+
+const uploadToImageBed = async () => {
+  const imageUrl = props.node.attrs.src
+
+  try {
+    // 检查是否是本地图片
+    if (!imageUrl.startsWith('app-image:///images/')) {
+      message.warning('只能上传本地图片到图床')
+      showMenu.value = false
+      return
+    }
+
+    // 确保store已初始化
+    await imageBedStore.initialize()
+
+    // 调试信息
+    console.log('图床配置调试信息:', {
+      isEnabled: imageBedStore.isEnabled,
+      hasDefaultConfig: imageBedStore.hasDefaultConfig,
+      configsCount: imageBedStore.configs.length,
+      enabledConfigsCount: imageBedStore.enabledConfigs.length,
+      settings: imageBedStore.settings
+    })
+
+    // 检查图床是否已启用
+    if (!imageBedStore.isEnabled) {
+      message.warning('图床功能未启用，请先在设置中配置图床')
+      showMenu.value = false
+      return
+    }
+
+    // 检查是否有可用的默认配置
+    if (!imageBedStore.hasDefaultConfig) {
+      message.warning('未找到可用的图床配置，请先在设置中配置图床')
+      showMenu.value = false
+      return
+    }
+
+    const defaultConfig = imageBedStore.enabledConfigs.find((c) => c.isDefault)
+    if (!defaultConfig) {
+      message.warning('未找到默认图床配置')
+      showMenu.value = false
+      return
+    }
+
+    message.info('正在上传图片到图床...')
+
+    // 获取真正的文件路径
+    const fileName = imageUrl.replace('app-image:///images/', '')
+    const realFilePath = await window.electronAPI.image.getImageRealPath(fileName)
+
+    // 上传图片到图床
+    const result = await imageBedStore.uploadImageToBed(
+      defaultConfig.id,
+      imageUrl, // 协议路径
+      realFilePath // 真实文件系统路径
+    )
+
+    if (result.success) {
+      message.success('图片上传到图床成功')
+      // 更新图片属性为远程URL
+      if (result.url || result.remotePath) {
+        const remoteUrl = result.url || result.remotePath
+        props.updateAttributes({ src: remoteUrl })
+      }
+    } else {
+      message.error(result.error || result.errorMessage || '上传图片到图床失败')
+    }
+  } catch (error: any) {
+    console.error('上传图片到图床失败:', error)
+    message.error(error.message || '上传图片到图床失败')
+  }
+  showMenu.value = false
+}
+
+// 处理本地图片错误
+const handleLocalImageError = async () => {
+  const MAX_RETRIES = 3
+  const RETRY_DELAY = 1000
+
+  if (retryCount.value < MAX_RETRIES) {
+    await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY))
+    retryCount.value++
+    retryKey.value = Date.now()
+    console.log(`本地图片重试加载 (${retryCount.value}/${MAX_RETRIES})`)
+  } else {
+    console.error('本地图片加载失败，已达到最大重试次数')
+  }
 }
 </script>
 
@@ -1272,6 +1540,62 @@ const handleDocumentClick = (event: MouseEvent) => {
   :deep(svg) {
     width: 24px;
     height: 24px;
+  }
+}
+
+// 图片状态指示器样式
+.image-status-indicator {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+  border: 1px solid var(--color-border-default);
+  z-index: 5;
+  transition: all 0.2s ease;
+  opacity: 0.85;
+
+  &:hover {
+    transform: scale(1.05);
+    opacity: 1;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    background: rgba(255, 255, 255, 1);
+  }
+
+  // 降级模式的特殊样式
+  &.status-fallback {
+    background: rgba(255, 120, 117, 0.1);
+    border: 1px solid #ff7875;
+    box-shadow: 0 0 8px rgba(255, 120, 117, 0.3);
+
+    &:hover {
+      background: rgba(255, 120, 117, 0.15);
+      box-shadow: 0 0 12px rgba(255, 120, 117, 0.4);
+    }
+  }
+
+  :deep(.i-icon) {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  :deep(svg) {
+    width: 12px;
+    height: 12px;
+    opacity: 1;
+    color: var(--color-icon-primary);
+  }
+
+  // 降级模式下图标的特殊样式
+  &.status-fallback :deep(svg) {
+    color: #ff7875;
   }
 }
 </style>

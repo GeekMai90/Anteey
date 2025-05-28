@@ -153,6 +153,21 @@ import type {
   CommandSearchResult
 } from '@shared/types'
 
+// 导入图床相关类型
+import {
+  ImageBedType,
+  ImageBedConfig,
+  ImageBedSettings,
+  ImageBedStats,
+  ImageBedTestResult,
+  ImageBedUploadResult,
+  ImageMappingInfo,
+  ImageMigrationParams,
+  ImageMigrationResult,
+  BatchMigrationParams,
+  BatchMigrationResult
+} from '@shared/types/imageBed'
+
 // 导入标签页相关的类型
 import {
   TabItem,
@@ -402,6 +417,21 @@ export interface ElectronAPI {
     downloadImage: (url: string, filename: string) => Promise<{ path: string }>
     deleteImage: (imagePath: string) => Promise<void>
     uploadImageData: (imageData: ArrayBuffer, noteId?: string) => Promise<string>
+    getImageRealPath: (fileName: string) => Promise<string>
+    checkImageExists: (imagePath: string) => Promise<boolean>
+
+    // 双存储上传（本地 + 图床）
+    uploadImageWithBed: (
+      filePath: string,
+      options?: {
+        enableImageBed?: boolean
+        configId?: string
+      }
+    ) => Promise<{
+      localPath: string
+      remotePath?: string
+      uploadStatus: 'local' | 'uploading' | 'uploaded' | 'failed'
+    }>
   }
 
   activation: {
@@ -1362,6 +1392,97 @@ export interface ElectronAPI {
 
     // 打开自定义CSS文件所在的文件夹
     openCustomCssFolder: () => Promise<{ success: boolean; error?: string }>
+  }
+
+  imageBed: {
+    // 创建图床配置
+    createImageBedConfig: (config: {
+      name: string
+      type: ImageBedType
+      enabled?: boolean
+      isDefault?: boolean
+      accessKeyId?: string
+      accessKeySecret?: string
+      bucket?: string
+      region?: string
+      endpoint?: string
+      customDomain?: string
+      pathPrefix?: string
+      extraConfig?: any
+    }) => Promise<string>
+
+    // 更新图床配置
+    updateImageBedConfig: (
+      id: string,
+      config: {
+        name?: string
+        enabled?: boolean
+        isDefault?: boolean
+        accessKeyId?: string
+        accessKeySecret?: string
+        bucket?: string
+        region?: string
+        endpoint?: string
+        customDomain?: string
+        pathPrefix?: string
+        extraConfig?: any
+      }
+    ) => Promise<void>
+
+    // 删除图床配置
+    deleteImageBedConfig: (id: string) => Promise<void>
+
+    // 获取单个图床配置
+    getImageBedConfig: (id: string) => Promise<ImageBedConfig | null>
+
+    // 获取所有图床配置
+    getAllImageBedConfigs: () => Promise<ImageBedConfig[]>
+
+    // 获取图床设置
+    getImageBedSettings: () => Promise<ImageBedSettings | null>
+
+    // 更新图床设置
+    updateImageBedSettings: (settings: Partial<ImageBedSettings>) => Promise<void>
+
+    // 获取图床统计信息
+    getImageBedStats: () => Promise<ImageBedStats>
+
+    // 测试图床连接
+    testImageBedConnection: (config: ImageBedConfig) => Promise<ImageBedTestResult>
+
+    // 上传图片到图床
+    uploadImageToBed: (
+      configId: string,
+      localPath: string,
+      filePath: string
+    ) => Promise<ImageBedUploadResult>
+
+    // 从图床删除图片
+    deleteImageFromBed: (
+      configId: string,
+      objectName: string
+    ) => Promise<{
+      success: boolean
+      message?: string
+    }>
+
+    // 获取图片映射信息
+    getImageMapping: (imageId: string) => Promise<ImageMappingInfo | null>
+
+    // 获取所有图片映射
+    getAllImageMappings: () => Promise<ImageMappingInfo[]>
+
+    // 迁移单张图片到图床
+    migrateImageToBed: (params: ImageMigrationParams) => Promise<ImageMigrationResult>
+
+    // 批量迁移图片到图床
+    batchMigrateImagesToBed: (params: BatchMigrationParams) => Promise<BatchMigrationResult>
+
+    // 获取图片显示URL（智能选择本地或远程）
+    getImageDisplayUrl: (localPath: string) => Promise<string>
+
+    // 清理失效的图片映射
+    cleanupImageMappings: () => Promise<{ cleaned: number }>
   }
 }
 

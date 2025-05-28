@@ -83,6 +83,30 @@ export const useImageStore = defineStore('image', () => {
     }
   }
 
+  // 双存储上传（本地 + 图床）
+  const uploadImageWithBed = async (
+    filePath: string,
+    options?: {
+      enableImageBed?: boolean
+      configId?: string
+    }
+  ): Promise<{
+    localPath: string
+    remotePath?: string
+    uploadStatus: 'local' | 'uploading' | 'uploaded' | 'failed'
+  }> => {
+    try {
+      isLoading.value = true
+      return await window.electronAPI.image.uploadImageWithBed(filePath, options)
+    } catch (error) {
+      console.error('双存储上传失败:', error)
+      message.error('双存储上传失败')
+      throw error
+    } finally {
+      isLoading.value = false
+    }
+  }
+
   return {
     // 状态
     isLoading,
@@ -92,6 +116,7 @@ export const useImageStore = defineStore('image', () => {
     copyImage,
     downloadImage,
     uploadImage,
-    uploadImageData
+    uploadImageData,
+    uploadImageWithBed
   }
 })

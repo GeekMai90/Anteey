@@ -87,6 +87,7 @@ import DetailsSummary from '@tiptap-pro/extension-details-summary'
 import Export from '@tiptap-pro/extension-export'
 import { useNoteStore } from '@renderer/stores/noteStore'
 import { useUIStore } from '@renderer/stores/UIStore'
+import { useImageBedStore } from '@renderer/stores/imageBedStore'
 import { CustomCodeBlock } from './extensions/CustomCodeBlock'
 import { CustomTextStyle } from './extensions/CustomTextStyle'
 import { CustomTable, TableRow, TableHeader, TableCell } from './extensions/CustomTable'
@@ -110,12 +111,14 @@ import Iframe from 'tiptap-extension-iframe'
 import TiptapIframe from '@renderer/components/tiptap/TiptapIframe.vue'
 import InputDialog from '@renderer/components/common/InputDialog.vue'
 import { iframeInsertState } from './extensions/slashCommandSuggestion'
+import { message } from '@renderer/utils/message'
 
 // 添加用于处理卡片拖拽的扩展
 import NoteCardDrop from './extensions/NoteCardDrop'
 
 const noteStore = useNoteStore()
 const uiStore = useUIStore()
+const imageBedStore = useImageBedStore()
 const wordCounterRef = ref(null)
 
 const props = defineProps({
@@ -172,9 +175,83 @@ const handleFileUpload = async (file) => {
   }
 
   try {
-    // 转换为 ArrayBuffer 并上传
+    // 转换为 ArrayBuffer 并上传到本地
     const arrayBuffer = await file.arrayBuffer()
     const imagePath = await window.electronAPI.image.uploadImageData(arrayBuffer)
+
+    // 检查图床状态
+    console.log('图床状态检查:', {
+      图床启用: imageBedStore.isEnabled,
+      有默认配置: imageBedStore.hasDefaultConfig,
+      上传的图片路径: imagePath
+    })
+
+    // 异步上传到图床（如果启用且有默认配置）
+    if (imageBedStore.isEnabled && imageBedStore.hasDefaultConfig) {
+      console.log('开始异步上传到图床...')
+
+      // 获取默认配置
+      const defaultConfig = imageBedStore.enabledConfigs.find((config) => config.isDefault)
+
+      if (defaultConfig) {
+        // 获取文件的真实路径用于上传
+        const fileName = imagePath.replace('app-image:///images/', '')
+        window.electronAPI.image
+          .getImageRealPath(fileName)
+          .then(async (realPath) => {
+            console.log('获取到图片真实路径:', realPath)
+
+            // 异步上传到图床
+            const uploadResult = await imageBedStore.uploadImageToBed(
+              defaultConfig.id,
+              imagePath,
+              realPath
+            )
+
+            if (uploadResult.success) {
+              console.log('图床上传成功:', uploadResult.url)
+
+              // 更新编辑器中图片的src属性为图床URL
+              if (uploadResult.url && editor.value) {
+                const { state } = editor.value
+                const { doc } = state
+                let updated = false
+
+                // 遍历文档查找对应的图片节点并更新
+                doc.descendants((node, pos) => {
+                  if (node.type.name === 'image' && node.attrs.src === imagePath) {
+                    // 使用 TipTap 的事务更新节点属性
+                    const tr = editor.value.state.tr
+                    tr.setNodeMarkup(pos, null, {
+                      ...node.attrs,
+                      src: uploadResult.url
+                    })
+                    editor.value.view.dispatch(tr)
+
+                    updated = true
+                    console.log('已更新图片URL:', imagePath, '->', uploadResult.url)
+                    return false // 停止遍历
+                  }
+                })
+
+                if (!updated) {
+                  console.warn('未找到对应的图片节点进行更新:', imagePath)
+                }
+              }
+            } else {
+              console.error('图床上传失败:', uploadResult.error)
+            }
+          })
+          .catch((error) => {
+            console.error('获取图片真实路径失败:', error)
+          })
+      } else {
+        console.warn('未找到默认图床配置')
+      }
+    } else {
+      console.log('图床未启用或无默认配置，跳过图床上传')
+    }
+
     return imagePath
   } catch (error) {
     console.error('处理文件上传时出错:', error)

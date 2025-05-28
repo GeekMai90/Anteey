@@ -38,6 +38,7 @@ import { setupNoteAIProcessHandlers } from './noteAIProcessIpcHandlers'
 import { setupTabsHandlers } from './tabsIpcHandlers'
 import { registerCommandIpcHandlers } from './commandIpcHandlers'
 import { setupCustomCssIpcHandlers } from './customCssIpcHandlers'
+import { setupImageBedHandlers } from './imageBedIpcHandlers'
 
 export function setupIpcHandlers(): void {
   setupNotesHandlers()
@@ -80,4 +81,5 @@ export function setupIpcHandlers(): void {
   setupTabsHandlers()
   registerCommandIpcHandlers()
   setupCustomCssIpcHandlers()
+  setupImageBedHandlers()
 }

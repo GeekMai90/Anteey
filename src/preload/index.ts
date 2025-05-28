@@ -39,6 +39,7 @@ import { noteAIProcessApi } from './api/noteAIProcessApi'
 import { tabsApi } from './api/tabsApi'
 import { commandApi } from './api/commandApi'
 import { customCssApi } from './api/customCssApi'
+import { imageBedApi } from './api/imageBedApi'
 // 添加日志 API
 contextBridge.exposeInMainWorld('electronLog', {
   info: (...args: any[]) => ipcRenderer.send('renderer-log', { level: 'info', args }),
@@ -228,6 +229,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
   customCss: {
     ...customCssApi
+  },
+  imageBed: {
+    ...imageBedApi
   }
 })
 

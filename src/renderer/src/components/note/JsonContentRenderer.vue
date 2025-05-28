@@ -115,13 +115,17 @@
       </ol>
 
       <!-- 图片 -->
-      <img
-        v-else-if="node.type === 'image'"
-        :src="node.attrs?.src"
-        :alt="node.attrs?.alt"
-        :title="node.attrs?.title"
-        loading="lazy"
-      />
+      <div v-else-if="node.type === 'image'" class="image-container">
+        <img
+          :key="`img-${getImageKey(node.attrs?.src)}`"
+          :src="getImageDisplayUrl(node.attrs?.src)"
+          :alt="node.attrs?.alt"
+          :title="node.attrs?.title"
+          loading="lazy"
+          @error="handleImageError(node.attrs?.src)"
+          @load="handleImageLoad(node.attrs?.src)"
+        />
+      </div>
 
       <!-- 引用块 -->
       <blockquote v-else-if="node.type === 'blockquote'" class="blockquote">
@@ -326,7 +330,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import hljs from 'highlight.js/lib/core'
 import javascript from 'highlight.js/lib/languages/javascript'
 import typescript from 'highlight.js/lib/languages/typescript'
@@ -805,6 +809,124 @@ const getVideoSource = (src?: string): string => {
     return ''
   }
 }
+
+// 图片状态管理
+const imageDisplayUrls = ref<Map<string, string>>(new Map())
+const imageFallbackStatus = ref<Map<string, boolean>>(new Map())
+const imageRetryKeys = ref<Map<string, number>>(new Map())
+
+// 获取图片显示URL
+const getImageDisplayUrl = (src?: string): string => {
+  if (!src) return ''
+
+  // 如果已经有缓存的显示URL，使用缓存的
+  const cachedUrl = imageDisplayUrls.value.get(src)
+  if (cachedUrl) {
+    return cachedUrl
+  }
+
+  // 初始化时使用原始URL
+  imageDisplayUrls.value.set(src, src)
+  return src
+}
+
+// 处理图片加载错误
+const handleImageError = (src?: string): void => {
+  if (!src) return
+
+  const isRemoteUrl = !src.startsWith('app-image:///')
+
+  console.log('图片加载失败:', {
+    src,
+    isRemoteUrl,
+    isInFallbackMode: imageFallbackStatus.value.get(src)
+  })
+
+  // 如果是远程图片加载失败，尝试降级到本地图片
+  if (isRemoteUrl && !imageFallbackStatus.value.get(src)) {
+    attemptFallbackToLocal(src)
+  }
+}
+
+// 尝试降级到本地图片
+const attemptFallbackToLocal = async (remoteUrl: string): Promise<void> => {
+  try {
+    console.log('尝试降级到本地图片:', remoteUrl)
+
+    // 提取文件名并构建本地路径
+    const fileName = extractFileNameFromUrl(remoteUrl)
+    if (fileName) {
+      const localPath = `app-image:///images/${fileName}`
+
+      // 检查本地图片是否存在
+      const localExists = await checkLocalImageExists(localPath)
+      if (localExists) {
+        console.log('本地图片存在，切换到降级模式')
+
+        // 更新显示URL和状态
+        imageDisplayUrls.value.set(remoteUrl, localPath)
+        imageFallbackStatus.value.set(remoteUrl, true)
+
+        // 触发重新渲染
+        const currentRetryKey = imageRetryKeys.value.get(remoteUrl) || 0
+        imageRetryKeys.value.set(remoteUrl, currentRetryKey + 1)
+
+        console.log('成功降级到本地图片:', localPath)
+        return
+      } else {
+        console.warn('本地图片不存在:', localPath)
+      }
+    }
+
+    console.warn('无法降级到本地图片')
+  } catch (error) {
+    console.error('降级处理失败:', error)
+  }
+}
+
+// 从URL提取文件名
+const extractFileNameFromUrl = (url: string): string | null => {
+  try {
+    const urlObj = new URL(url)
+    const pathname = urlObj.pathname
+    const fileName = pathname.split('/').pop()
+    return fileName && fileName.includes('.') ? fileName : null
+  } catch (error) {
+    console.error('解析URL失败:', error)
+    return null
+  }
+}
+
+// 检查本地图片是否存在
+const checkLocalImageExists = async (localPath: string): Promise<boolean> => {
+  try {
+    const exists = await window.electronAPI.image.checkImageExists(localPath)
+    return exists
+  } catch (error) {
+    console.error('检查本地图片存在性失败:', error)
+    return false
+  }
+}
+
+// 处理图片加载成功
+const handleImageLoad = (src?: string): void => {
+  if (!src) return
+
+  console.log('图片加载成功:', src)
+
+  // 如果不是降级模式，重置状态
+  if (!imageFallbackStatus.value.get(src)) {
+    imageDisplayUrls.value.set(src, src)
+  }
+}
+
+// 获取图片键值（用于强制重新渲染）
+const getImageKey = (src?: string): string => {
+  if (!src) return '0'
+
+  const retryKey = imageRetryKeys.value.get(src) || 0
+  return `${src}-${retryKey}`
+}
 </script>
 
 <style lang="scss">
@@ -927,6 +1049,19 @@ const getVideoSource = (src?: string): string => {
       font-size: 0.9em;
       color: var(--color-text-secondary);
     }
+  }
+}
+
+/* 图片容器样式 */
+.image-container {
+  position: relative;
+  display: inline-block;
+  margin: 1rem 0;
+
+  img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 4px;
   }
 }
 </style>

@@ -1704,6 +1704,88 @@ export async function initDatabase(db: Knex): Promise<void> {
       console.log('tabs 表添加 address 列成功')
     }
   }
+
+  // 创建图床配置表
+  if (!(await db.schema.hasTable('image_bed_configs'))) {
+    await db.schema.createTable('image_bed_configs', (table) => {
+      table.string('id').primary()
+      table.string('name').notNullable() // 配置名称，如 "阿里云OSS-主账号"
+      table.enum('type', ['aliyun-oss', 'qiniu', 'tencent-cos', 'aws-s3']).notNullable() // 图床类型
+      table.boolean('enabled').notNullable().defaultTo(false) // 是否启用
+      table.boolean('isDefault').notNullable().defaultTo(false) // 是否为默认配置
+
+      // 阿里云OSS配置
+      table.string('accessKeyId').nullable()
+      table.string('accessKeySecret').nullable()
+      table.string('bucket').nullable()
+      table.string('region').nullable()
+      table.string('endpoint').nullable()
+      table.string('customDomain').nullable()
+      table.string('pathPrefix').nullable().defaultTo('images/') // 路径前缀
+
+      // 通用配置
+      table.json('extraConfig').nullable() // 扩展配置，用于其他图床类型
+
+      // 元数据
+      table.datetime('createdAt').notNullable()
+      table.datetime('updatedAt').notNullable()
+      table.datetime('lastTestTime').nullable() // 最后测试时间
+      table.boolean('testResult').nullable() // 最后测试结果
+      table.text('testMessage').nullable() // 测试消息
+
+      // 索引
+      table.index('type')
+      table.index('enabled')
+      table.index('isDefault')
+      table.index(['enabled', 'isDefault'])
+    })
+
+    console.log('image_bed_configs 表创建成功')
+  }
+
+  // 创建图床设置表（全局设置）
+  if (!(await db.schema.hasTable('image_bed_settings'))) {
+    await db.schema.createTable('image_bed_settings', (table) => {
+      table.string('id').primary()
+      table.boolean('enabled').notNullable().defaultTo(false) // 是否启用图床功能
+      table
+        .enum('displayMode', ['auto', 'remote-first', 'local-only'])
+        .notNullable()
+        .defaultTo('auto') // 显示模式
+      table.boolean('autoUpload').notNullable().defaultTo(true) // 新图片是否自动上传
+      table.integer('retryCount').notNullable().defaultTo(3) // 上传失败重试次数
+      table.integer('retryDelay').notNullable().defaultTo(1000) // 重试延迟（毫秒）
+      table.integer('concurrency').notNullable().defaultTo(3) // 并发上传数
+      table.string('defaultConfigId').nullable() // 默认图床配置ID
+
+      // 元数据
+      table.datetime('createdAt').notNullable()
+      table.datetime('updatedAt').notNullable()
+
+      // 外键约束
+      table.foreign('defaultConfigId').references('image_bed_configs.id').onDelete('SET NULL')
+
+      // 索引
+      table.index('enabled')
+      table.index('defaultConfigId')
+    })
+
+    // 插入默认设置
+    await db('image_bed_settings').insert({
+      id: uuidv4(),
+      enabled: false,
+      displayMode: 'auto',
+      autoUpload: true,
+      retryCount: 3,
+      retryDelay: 1000,
+      concurrency: 3,
+      defaultConfigId: null,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    })
+
+    console.log('image_bed_settings 表创建成功')
+  }
 }
 
 export async function down(db: Knex): Promise<void> {
@@ -1763,5 +1845,7 @@ export async function down(db: Knex): Promise<void> {
   await db.schema.dropTableIfExists('readwise_sync_records')
   await db.schema.dropTableIfExists('readwise_sync_config')
   await db.schema.dropTableIfExists('tabs')
+  await db.schema.dropTableIfExists('image_bed_settings')
+  await db.schema.dropTableIfExists('image_bed_configs')
   console.log('所有表已删除')
 }

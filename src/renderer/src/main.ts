@@ -12,6 +12,7 @@ import { useNoteStore } from './stores/noteStore'
 import ShortKey from 'vue3-shortkey'
 import { useAppearanceStore } from './stores/appearanceStore'
 import { useAuthStore } from './stores/authStore'
+import { useImageBedStore } from './stores/imageBedStore'
 
 async function initializeApp() {
   const app = createApp(App)
@@ -47,7 +48,8 @@ async function initializeApp() {
   const initPromises = [
     useNoteStore().initializeStore(),
     useAppearanceStore().initializeSettings(),
-    useAuthStore().initStore() // 添加认证初始化
+    useAuthStore().initStore(), // 添加认证初始化
+    useImageBedStore().initialize() // 添加图床store初始化
   ]
 
   // 挂载应用不等待初始化完成

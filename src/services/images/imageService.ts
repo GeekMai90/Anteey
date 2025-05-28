@@ -21,6 +21,26 @@ export class ImageService {
     return url.replace('app-image:///images/', '')
   }
 
+  // 获取图片的真实文件系统路径
+  getImageRealPath(fileName: string): string {
+    return this.getImageFullPath(fileName)
+  }
+
+  // 检查图片是否存在
+  async checkImageExists(imagePath: string): Promise<boolean> {
+    try {
+      const fileName = this.getFileNameFromUrl(imagePath)
+      const fullPath = this.getImageFullPath(fileName)
+
+      // 使用 fs.access 检查文件是否存在
+      await fs.access(fullPath)
+      return true
+    } catch (error) {
+      // 文件不存在或无法访问
+      return false
+    }
+  }
+
   // 上传图片
   async uploadImage(filePath: string): Promise<string> {
     try {

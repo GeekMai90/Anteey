@@ -47,6 +47,7 @@
       <LetterSettings v-if="currentMenuItem === 'letter'" />
       <ThreeSyncSettings v-if="currentMenuItem === 'threeSync'" />
       <WritingDeskSettings v-if="currentMenuItem === 'writingDesk'" />
+      <ImageBedSettings v-if="currentMenuItem === 'imageBed'" />
     </div>
   </div>
 </template>
@@ -68,7 +69,8 @@ import {
   Inbox,
   PlasticSurgery,
   NotebookAndPen,
-  Mail
+  Mail,
+  PictureOne
 } from '@icon-park/vue-next'
 import BackupSettings from './pages/BackupSettings.vue'
 import ShortcutsSettings from './pages/ShortcutsSettings.vue'
@@ -84,6 +86,7 @@ import ThreeSyncSettings from './pages/ThreeSyncSettings.vue'
 import AIAssistantSettings from './pages/AIAssistantSettings.vue'
 import WritingDeskSettings from './pages/WritingDeskSettings.vue'
 import LetterSettings from './pages/LetterSettings.vue'
+import ImageBedSettings from './pages/ImageBedSettings.vue'
 const menuItems = [
   { key: 'appearance', label: '外观', icon: Theme },
   { key: 'timeblock', label: '时光记', icon: Time },
@@ -92,6 +95,7 @@ const menuItems = [
   { key: 'share', label: '分享', icon: Share },
   { key: 'backup', label: '备份', icon: DatabaseDownload },
   { key: 'cloud', label: '云同步', icon: CloudStorage },
+  { key: 'imageBed', label: '图床设置', icon: PictureOne },
   { key: 'model', label: '大模型配置', icon: RobotOne },
   { key: 'ai', label: 'AI 助手设置', icon: PlasticSurgery },
   { key: 'writingDesk', label: '写作台', icon: NotebookAndPen },
