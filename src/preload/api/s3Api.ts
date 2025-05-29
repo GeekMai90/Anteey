@@ -141,10 +141,29 @@ export const s3Api = {
   getAllProviderConfigs: async (): Promise<Record<string, any>> => {
     try {
       const result = await ipcRenderer.invoke('get-all-s3-provider-configs')
-      if (!result.success) throw new Error(result.error)
-      return result.configs
+      return result
     } catch (error) {
       console.error('预加载脚本 → 获取所有 S3 提供商配置失败:', error)
+      throw error
+    }
+  },
+
+  // 强制上传到云端
+  uploadToCloud: async (): Promise<void> => {
+    try {
+      await ipcRenderer.invoke('upload-to-cloud')
+    } catch (error) {
+      console.error('预加载脚本 → 上传到云端失败:', error)
+      throw error
+    }
+  },
+
+  // 强制从云端下载
+  downloadFromCloud: async (): Promise<void> => {
+    try {
+      await ipcRenderer.invoke('download-from-cloud')
+    } catch (error) {
+      console.error('预加载脚本 → 从云端下载失败:', error)
       throw error
     }
   }

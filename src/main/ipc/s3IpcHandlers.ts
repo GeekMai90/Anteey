@@ -119,14 +119,33 @@ export function setupS3Handlers() {
     }
   })
 
-  // 添加 获取所有提供商配置 的处理程序
+  // 获取所有提供商的配置
   ipcMain.handle('get-all-s3-provider-configs', async () => {
     try {
-      const allConfigs = await s3Service.getAllProviderConfigs()
-      return { success: true, configs: allConfigs }
+      return await s3Service.getAllProviderConfigs()
     } catch (error) {
-      console.error('主进程→ 获取所有 S3 提供商配置失败:', error)
-      return { success: false, error: String(error) }
+      console.error('获取所有提供商配置失败:', error)
+      throw error
+    }
+  })
+
+  // 强制上传到云端
+  ipcMain.handle('upload-to-cloud', async () => {
+    try {
+      await s3Service.uploadToCloud()
+    } catch (error) {
+      console.error('上传到云端失败:', error)
+      throw error
+    }
+  })
+
+  // 强制从云端下载
+  ipcMain.handle('download-from-cloud', async () => {
+    try {
+      await s3Service.downloadFromCloud()
+    } catch (error) {
+      console.error('从云端下载失败:', error)
+      throw error
     }
   })
 }

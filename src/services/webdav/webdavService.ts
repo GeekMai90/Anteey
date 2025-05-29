@@ -169,6 +169,9 @@ export class WebDAVService extends EventEmitter {
         message: '开始同步...'
       })
 
+      const config = await this.getConfig()
+      if (!config) throw new Error('WebDAV 配置不存在')
+
       // 0. 确保远程根目录存在
       const client = await this.getClient()
       this.updateState({ status: 'syncing', progress: 10, message: '检查远程目录...' })
@@ -180,14 +183,22 @@ export class WebDAVService extends EventEmitter {
       const isFirstSync = !(await db('webdav_sync_history').first())
       const remoteExists = await client.exists('/antinet/antinet.sqlite')
 
+      // 检查同步文件类型设置
+      const syncFileTypes = config.syncFileTypes || ['all']
+      const isDatabaseOnly = syncFileTypes.length === 1 && syncFileTypes.includes('database')
+
       // 如果是首次同步且远程已有数据，优先使用远程数据
       if (isFirstSync && remoteExists) {
         const shouldUseRemote = await this.confirmUseRemoteData()
         if (shouldUseRemote) {
           this.updateState({ status: 'syncing', progress: 30, message: '下载数据库...' })
           await this.downloadDatabase()
-          this.updateState({ status: 'syncing', progress: 60, message: '下载图片...' })
-          await this.downloadImages()
+
+          if (!isDatabaseOnly) {
+            this.updateState({ status: 'syncing', progress: 60, message: '下载图片...' })
+            await this.downloadImages()
+          }
+
           this.updateState({ status: 'completed', progress: 100, message: '同步完成' })
           await this.addSyncHistory(type, 'success')
           return
@@ -197,8 +208,11 @@ export class WebDAVService extends EventEmitter {
       // 正常同步流程
       this.updateState({ status: 'syncing', progress: 30, message: '同步数据库...' })
       await this.syncDatabase()
-      this.updateState({ status: 'syncing', progress: 60, message: '同步图片...' })
-      await this.syncImages()
+
+      if (!isDatabaseOnly) {
+        this.updateState({ status: 'syncing', progress: 60, message: '同步图片...' })
+        await this.syncImages()
+      }
 
       this.updateState({ status: 'completed', progress: 100, message: '同步完成' })
       await this.addSyncHistory(type, 'success')
@@ -546,6 +560,117 @@ export class WebDAVService extends EventEmitter {
     }
   }
 
+  // 强制上传数据库文件
+  private async forceUploadDatabase(): Promise<void> {
+    const localPath = path.join(this.getLocalBasePath(), 'antinet.sqlite')
+    const remotePath = '/antinet/antinet.sqlite'
+    await this.uploadFile(localPath, remotePath)
+  }
+
+  // 强制下载数据库文件
+  private async forceDownloadDatabase(): Promise<void> {
+    const localPath = path.join(this.getLocalBasePath(), 'antinet.sqlite')
+    const remotePath = '/antinet/antinet.sqlite'
+
+    // 备份本地数据库
+    const backupPath = `${localPath}.backup`
+    await fs.copyFile(localPath, backupPath)
+
+    try {
+      await this.downloadFile(remotePath, localPath)
+    } catch (error) {
+      // 如果下载失败，恢复备份
+      await fs.copyFile(backupPath, localPath)
+      throw error
+    } finally {
+      // 清理备份
+      await fs.unlink(backupPath).catch(() => {})
+    }
+  }
+
+  // 强制上传图片文件夹
+  private async forceUploadImages(): Promise<void> {
+    const client = await this.getClient()
+    const localImagesPath = path.join(this.getLocalBasePath(), 'images')
+    const remoteImagesPath = '/antinet/images'
+
+    // 确保本地和远程目录都存在
+    try {
+      await fs.access(localImagesPath)
+    } catch {
+      await fs.mkdir(localImagesPath, { recursive: true })
+    }
+
+    if (!(await client.exists(remoteImagesPath))) {
+      await client.createDirectory(remoteImagesPath)
+    }
+
+    // 获取本地文件列表
+    const localFiles = await this.getLocalImageFiles()
+
+    // 上传所有本地文件
+    let completed = 0
+    const total = localFiles.length
+
+    for (const file of localFiles) {
+      const remotePath = path.join(remoteImagesPath, file.name).replace(/\\/g, '/')
+      this.updateState({
+        status: 'syncing',
+        progress: 60 + Math.floor((completed / total) * 30),
+        message: `上传图片 (${completed + 1}/${total}): ${file.name}`
+      })
+      await this.uploadFile(file.path, remotePath)
+      completed++
+    }
+  }
+
+  // 强制下载图片文件夹
+  private async forceDownloadImages(): Promise<void> {
+    const client = await this.getClient()
+    const localImagesPath = path.join(this.getLocalBasePath(), 'images')
+    const remoteImagesPath = '/antinet/images'
+
+    // 确保本地目录存在
+    try {
+      await fs.access(localImagesPath)
+    } catch {
+      await fs.mkdir(localImagesPath, { recursive: true })
+    }
+
+    // 清空本地图片目录
+    const localFiles = await fs.readdir(localImagesPath)
+    for (const file of localFiles) {
+      await fs.unlink(path.join(localImagesPath, file))
+    }
+
+    // 检查远程图片目录是否存在
+    if (!(await client.exists(remoteImagesPath))) {
+      // 远程没有图片目录，结束
+      return
+    }
+
+    // 获取远程文件列表并下载
+    const response = await client.getDirectoryContents(remoteImagesPath)
+    const files = Array.isArray(response) ? response : response.data
+
+    let completed = 0
+    const total = files.length
+
+    for (const file of files) {
+      const localPath = path.join(localImagesPath, path.basename(file.filename))
+      const remotePath = path
+        .join(remoteImagesPath, path.basename(file.filename))
+        .replace(/\\/g, '/')
+      this.updateState({
+        status: 'syncing',
+        progress: 60 + Math.floor((completed / total) * 30),
+        message: `下载图片 (${completed + 1}/${total}): ${path.basename(file.filename)}`
+      })
+      await this.downloadFile(remotePath, localPath)
+      completed++
+    }
+  }
+
   // 启动自动同步
   async startAutoSync(): Promise<void> {
     const config = await this.getConfig()
@@ -603,6 +728,108 @@ export class WebDAVService extends EventEmitter {
       console.log('webdavService → WebDAV 同步服务已停用')
     } catch (error) {
       console.error('webdavService → 停用 WebDAV 同步服务失败:', error)
+      throw error
+    }
+  }
+
+  /**
+   * 强制上传到云端（用本地数据覆盖云端数据）
+   */
+  async forceUpload(type: 'auto' | 'manual' = 'manual'): Promise<void> {
+    try {
+      this.updateState({
+        status: 'syncing',
+        progress: 0,
+        type,
+        message: '开始强制上传...'
+      })
+
+      const config = await this.getConfig()
+      if (!config) throw new Error('WebDAV 配置不存在')
+
+      // 检查同步文件类型设置
+      const syncFileTypes = config.syncFileTypes || ['all']
+      const isDatabaseOnly = syncFileTypes.length === 1 && syncFileTypes.includes('database')
+
+      // 0. 确保远程根目录存在
+      const client = await this.getClient()
+      this.updateState({ status: 'syncing', progress: 10, message: '检查远程目录...' })
+      if (!(await client.exists('/antinet'))) {
+        await client.createDirectory('/antinet')
+      }
+
+      // 1. 强制上传数据库
+      this.updateState({ status: 'syncing', progress: 30, message: '强制上传数据库...' })
+      await this.forceUploadDatabase()
+
+      // 2. 强制上传图片（如果不是仅数据库模式）
+      if (!isDatabaseOnly) {
+        this.updateState({ status: 'syncing', progress: 60, message: '强制上传图片...' })
+        await this.forceUploadImages()
+      }
+
+      this.updateState({ status: 'completed', progress: 100, message: '强制上传完成' })
+      await this.addSyncHistory(type, 'success')
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error)
+      this.updateState({
+        status: 'error',
+        error: errorMessage,
+        type,
+        message: '强制上传失败'
+      })
+      await this.addSyncHistory(type, 'failed', errorMessage)
+      throw error
+    }
+  }
+
+  /**
+   * 从云端下载（用云端数据覆盖本地数据）
+   */
+  async forceDownload(type: 'auto' | 'manual' = 'manual'): Promise<void> {
+    try {
+      this.updateState({
+        status: 'syncing',
+        progress: 0,
+        type,
+        message: '开始强制下载...'
+      })
+
+      const config = await this.getConfig()
+      if (!config) throw new Error('WebDAV 配置不存在')
+
+      // 检查同步文件类型设置
+      const syncFileTypes = config.syncFileTypes || ['all']
+      const isDatabaseOnly = syncFileTypes.length === 1 && syncFileTypes.includes('database')
+
+      // 0. 确保远程根目录存在
+      const client = await this.getClient()
+      this.updateState({ status: 'syncing', progress: 10, message: '检查远程目录...' })
+      if (!(await client.exists('/antinet'))) {
+        await client.createDirectory('/antinet')
+      }
+
+      // 1. 强制下载数据库
+      this.updateState({ status: 'syncing', progress: 30, message: '强制下载数据库...' })
+      await this.forceDownloadDatabase()
+
+      // 2. 强制下载图片（如果不是仅数据库模式）
+      if (!isDatabaseOnly) {
+        this.updateState({ status: 'syncing', progress: 60, message: '强制下载图片...' })
+        await this.forceDownloadImages()
+      }
+
+      this.updateState({ status: 'completed', progress: 100, message: '强制下载完成' })
+      await this.addSyncHistory(type, 'success')
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error)
+      this.updateState({
+        status: 'error',
+        error: errorMessage,
+        type,
+        message: '强制下载失败'
+      })
+      await this.addSyncHistory(type, 'failed', errorMessage)
       throw error
     }
   }

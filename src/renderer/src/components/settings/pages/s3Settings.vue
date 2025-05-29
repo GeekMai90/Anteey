@@ -1,6 +1,101 @@
 <template>
   <div class="s3-settings">
     <div class="s3-content">
+      <!-- 同步设置 -->
+      <div class="s3-item">
+        <div class="title">同步设置</div>
+        <div class="description">配置自动同步和同步方式。</div>
+        <div class="s3-settings-form">
+          <div class="form-item">
+            <div class="label">自动同步</div>
+            <div class="value">
+              <Switch :model-value="Boolean(autoSync)" @update:model-value="autoSync = $event" />
+            </div>
+          </div>
+          <div v-if="autoSync" class="form-item">
+            <div class="label">同步间隔</div>
+            <div class="value">
+              <Dropdown
+                :items="syncIntervals.map((i) => ({ key: i.value.toString(), label: i.label }))"
+                trigger="click"
+                width="120px"
+                :align="'end'"
+                showArrow
+                @select="(key) => selectInterval(Number(key))"
+              >
+                {{ getSyncIntervalText(syncInterval) }}
+              </Dropdown>
+            </div>
+          </div>
+          <div class="form-item">
+            <div class="label">
+              <span>仅同步数据库</span>
+              <HelpTips
+                content="默认将同步数据库和图片文件。开启后只同步数据库文件，不会同步图片文件，可以节省云存储空间和同步时间。"
+                placement="right"
+                size="small"
+              />
+            </div>
+            <div class="value">
+              <Switch
+                :model-value="isDatabaseOnlySync"
+                @update:model-value="handleDatabaseOnlySyncChange"
+              />
+            </div>
+          </div>
+          <div class="form-item">
+            <div class="label">
+              <span>启动/关闭时同步</span>
+              <HelpTips
+                content="开启后，应用启动和关闭时会自动执行一次同步。关闭此选项后，只有定时自动同步和手动同步会执行。"
+                placement="right"
+                size="small"
+              />
+            </div>
+            <div class="value">
+              <Switch
+                :model-value="isStartupShutdownSyncEnabled"
+                @update:model-value="handleStartupShutdownSyncChange"
+              />
+            </div>
+          </div>
+          <div class="s3-actions">
+            <Button
+              type="default"
+              :loading="isUploading"
+              :tooltip="{
+                content: '强制上传本地数据到云端',
+                delay: { show: 1000 }
+              }"
+              @click="handleUploadToCloud"
+            >
+              {{ isUploading ? '上传中...' : '上传到云端' }}
+            </Button>
+            <Button
+              type="default"
+              :loading="isDownloading"
+              :tooltip="{
+                content: '强制从云端下载数据覆盖本地',
+                delay: { show: 1000 }
+              }"
+              @click="handleDownloadFromCloud"
+            >
+              {{ isDownloading ? '下载中...' : '从云端下载' }}
+            </Button>
+            <Button
+              type="primary"
+              :loading="isSyncing"
+              :tooltip="{
+                content: '立即同步数据',
+                delay: { show: 1000 }
+              }"
+              @click="handleSync"
+            >
+              {{ isSyncing ? '同步中...' : '立即同步' }}
+            </Button>
+          </div>
+        </div>
+      </div>
       <!-- S3 服务配置 -->
       <div class="s3-item">
         <div class="title">S3 服务</div>
@@ -14,7 +109,8 @@
               <Dropdown
                 :items="providers.map((p) => ({ key: p.value, label: p.label }))"
                 trigger="click"
-                width="300px"
+                width="200px"
+                :align="'end'"
                 showArrow
                 @select="selectProvider"
               >
@@ -30,7 +126,8 @@
                   getRegionsByProvider(provider).map((r) => ({ key: r.value, label: r.label }))
                 "
                 trigger="click"
-                width="300px"
+                width="200px"
+                :align="'end'"
                 showArrow
                 @select="selectRegion"
               >
@@ -58,7 +155,7 @@
           </div>
           <div class="s3-actions">
             <Button
-              type="primary"
+              type="default"
               :loading="isConnecting"
               :tooltip="{
                 content: '测试 S3 服务连接',
@@ -78,52 +175,6 @@
               @click="handleSaveConfig"
             >
               {{ isSaving ? '保存中...' : '保存配置' }}
-            </Button>
-          </div>
-        </div>
-      </div>
-
-      <!-- 同步设置 -->
-      <div class="s3-item">
-        <div class="title">同步设置</div>
-        <div class="description">配置自动同步和同步方式，确保数据的安全性和一致性。</div>
-        <div class="s3-settings-form">
-          <div class="form-item">
-            <div class="label">自动同步</div>
-            <div class="value">
-              <div class="auto-sync-setting">
-                <Switch :model-value="Boolean(autoSync)" @update:model-value="autoSync = $event" />
-                <div class="auto-sync-description">
-                  {{ autoSync ? '定时自动同步' : '仅支持手动同步' }}
-                </div>
-              </div>
-            </div>
-          </div>
-          <div v-if="autoSync" class="form-item">
-            <div class="label">同步间隔</div>
-            <div class="value">
-              <Dropdown
-                :items="syncIntervals.map((i) => ({ key: i.value.toString(), label: i.label }))"
-                trigger="click"
-                width="200px"
-                showArrow
-                @select="(key) => selectInterval(Number(key))"
-              >
-                {{ getSyncIntervalText(syncInterval) }}
-              </Dropdown>
-            </div>
-          </div>
-          <div class="s3-actions">
-            <Button
-              type="primary"
-              :loading="isSyncing"
-              :tooltip="{
-                content: '立即同步数据',
-                delay: { show: 1000 }
-              }"
-              @click="handleSync"
-            >
-              {{ isSyncing ? '同步中...' : '立即同步' }}
             </Button>
           </div>
         </div>
@@ -173,18 +224,21 @@
 <script setup lang="ts">
 import { CloudStorage } from '@icon-park/vue-next'
 import { useS3Store } from '@renderer/stores/s3Store'
-import { ref, onMounted, computed, watch } from 'vue'
-import type { S3Provider, S3Config } from '@shared/types'
+import { ref, onMounted, computed } from 'vue'
+import type { S3Provider, S3Config, S3SyncFileType } from '@shared/types'
 import { message } from '../../../utils/message'
 import Switch from '@renderer/components/ui/switch/Switch.vue'
 import Input from '@renderer/components/ui/Input.vue'
 import Dropdown from '@renderer/components/ui/dropdowns/Dropdown.vue'
 import Button from '@renderer/components/ui/buttons/Button.vue'
+import HelpTips from '@renderer/components/ui/HelpTips.vue'
 
 const s3Store = useS3Store()
 const isConnecting = ref(false)
 const isSaving = ref(false)
 const isSyncing = ref(false)
+const isUploading = ref(false)
+const isDownloading = ref(false)
 
 // 表单数据
 const provider = ref<S3Provider>('aws')
@@ -203,6 +257,39 @@ const syncInterval = computed({
   get: () => s3Store.config?.syncInterval ?? 15,
   set: async (value) => {
     await s3Store.updateConfig({ syncInterval: value })
+  }
+})
+
+// 同步文件类型相关的计算属性
+const syncFileTypes = computed(() => s3Store.config?.syncFileTypes ?? ['all'])
+
+// 是否仅同步数据库（默认为false，即同步全部）
+const isDatabaseOnlySync = computed({
+  get: () => {
+    const types = syncFileTypes.value
+    return types.length === 1 && types.includes('database')
+  },
+  set: async (value: boolean) => {
+    const newSyncFileTypes: S3SyncFileType[] = value ? ['database'] : ['all']
+    try {
+      await s3Store.updateConfig({ syncFileTypes: newSyncFileTypes })
+    } catch (error) {
+      console.error('更新同步文件类型失败:', error)
+      message.error('更新同步设置失败')
+    }
+  }
+})
+
+// 是否启用启动/关闭时同步
+const isStartupShutdownSyncEnabled = computed({
+  get: () => s3Store.config?.startupShutdownSync ?? true,
+  set: async (value: boolean) => {
+    try {
+      await s3Store.updateConfig({ startupShutdownSync: value })
+    } catch (error) {
+      console.error('更新启动/关闭时同步设置失败:', error)
+      message.error('更新启动/关闭时同步设置失败')
+    }
   }
 })
 
@@ -325,7 +412,7 @@ const getSyncIntervalText = (interval: number) => {
 }
 
 // 修改服务提供商选择逻辑
-const selectProvider = (key: string): void => {
+const selectProvider = async (key: string): Promise<void> => {
   const type = key as S3Provider
   // 如果选择了不同的提供商，则尝试加载该提供商的配置
   if (provider.value !== type) {
@@ -340,6 +427,49 @@ const selectProvider = (key: string): void => {
       accessKeyId.value = savedConfig.accessKeyId || ''
       secretAccessKey.value = savedConfig.secretAccessKey || ''
       endpoint.value = savedConfig.endpoint || ''
+
+      // 如果配置完整，自动保存并启用
+      if (
+        savedConfig.region &&
+        savedConfig.bucket &&
+        savedConfig.accessKeyId &&
+        savedConfig.secretAccessKey
+      ) {
+        try {
+          const saveConfig: Partial<S3Config> = {
+            provider: type,
+            region: savedConfig.region,
+            bucket: savedConfig.bucket,
+            accessKeyId: savedConfig.accessKeyId,
+            secretAccessKey: savedConfig.secretAccessKey,
+            syncInterval: syncInterval.value,
+            autoSync: autoSync.value,
+            enabled: true // 自动启用
+          }
+
+          // 根据服务提供商添加特定配置
+          switch (type) {
+            case 'aliyun':
+              saveConfig.endpoint = `https://${savedConfig.bucket}.${savedConfig.region}.aliyuncs.com`
+              break
+            case 'tencent':
+              // 腾讯云 COS 的端点由 SDK 自动构建
+              break
+            case 'binfenyun':
+              saveConfig.endpoint = `https://s3.bitiful.net`
+              break
+            case 'aws':
+              // AWS 不需要手动设置 endpoint
+              break
+          }
+
+          await s3Store.updateConfig(saveConfig, { restartSync: false })
+          message.success(`已切换到 ${getProviderName(type)} 并启用同步`)
+        } catch (error) {
+          console.error('自动启用服务商配置失败:', error)
+          message.error('切换服务商失败: ' + (error instanceof Error ? error.message : '未知错误'))
+        }
+      }
     } else {
       // 如果没有保存的配置，则清空表单
       region.value = ''
@@ -557,14 +687,41 @@ async function handleSync() {
   }
 }
 
-// 添加调试代码
-watch(
-  () => s3Store.syncHistory,
-  (history) => {
-    console.log('同步历史更新:', history)
-  },
-  { deep: true }
-)
+// 处理数据库独享同步开关变更
+const handleDatabaseOnlySyncChange = async (value: boolean) => {
+  isDatabaseOnlySync.value = value
+}
+
+// 处理启动/关闭时同步开关变更
+const handleStartupShutdownSyncChange = async (value: boolean) => {
+  isStartupShutdownSyncEnabled.value = value
+}
+
+async function handleUploadToCloud() {
+  isUploading.value = true
+  try {
+    await s3Store.uploadToCloud()
+    message.success('上传到云端完成')
+  } catch (error) {
+    console.error('上传到云端失败:', error)
+    message.error('上传到云端失败: ' + (error instanceof Error ? error.message : '未知错误'))
+  } finally {
+    isUploading.value = false
+  }
+}
+
+async function handleDownloadFromCloud() {
+  isDownloading.value = true
+  try {
+    await s3Store.downloadFromCloud()
+    message.success('从云端下载完成')
+  } catch (error) {
+    console.error('从云端下载失败:', error)
+    message.error('从云端下载失败: ' + (error instanceof Error ? error.message : '未知错误'))
+  } finally {
+    isDownloading.value = false
+  }
+}
 </script>
 
 <style scoped lang="scss">
@@ -613,17 +770,20 @@ watch(
     margin-bottom: 15px;
 
     .label {
-      width: 100px;
+      width: 200px;
       font-size: 14px;
       color: var(--color-text-secondary);
       line-height: 32px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
     }
 
     .value {
       flex: 1;
-      max-width: 300px;
       display: flex;
       align-items: center;
+      justify-content: flex-end;
     }
   }
 }
@@ -631,20 +791,8 @@ watch(
 .s3-actions {
   margin-top: 20px;
   display: flex;
+  justify-content: flex-end;
   gap: 12px;
-}
-
-.auto-sync-setting {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  min-height: 32px;
-
-  .auto-sync-description {
-    font-size: 13px;
-    color: var(--color-text-secondary);
-    line-height: 1;
-  }
 }
 
 .sync-history {

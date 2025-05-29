@@ -686,11 +686,24 @@ export async function initDatabase(db: Knex): Promise<void> {
         .json('syncFileTypes')
         .notNullable()
         .defaultTo(JSON.stringify(['all']))
+      table.boolean('startupShutdownSync').notNullable().defaultTo(true) // 是否在启动和关闭时同步
       table.datetime('lastSyncTime').nullable()
       table.datetime('createdAt').notNullable()
       table.datetime('updatedAt').notNullable()
     })
     console.log('webdav_config 表创建成功')
+  } else {
+    // 检查是否需要添加 startupShutdownSync 列
+    const hasStartupShutdownSyncColumn = await db.schema.hasColumn(
+      'webdav_config',
+      'startupShutdownSync'
+    )
+    if (!hasStartupShutdownSyncColumn) {
+      await db.schema.alterTable('webdav_config', (table) => {
+        table.boolean('startupShutdownSync').notNullable().defaultTo(true)
+      })
+      console.log('webdav_config 表添加 startupShutdownSync 列成功')
+    }
   }
 
   // 创建 webdav_sync_history 表
@@ -1133,6 +1146,7 @@ export async function initDatabase(db: Knex): Promise<void> {
         .json('syncFileTypes')
         .notNullable()
         .defaultTo(JSON.stringify(['all']))
+      table.boolean('startupShutdownSync').notNullable().defaultTo(true) // 是否在启动和关闭时同步
       table.datetime('createdAt').notNullable()
       table.datetime('updatedAt').notNullable()
 
@@ -1142,6 +1156,18 @@ export async function initDatabase(db: Knex): Promise<void> {
       table.index('autoSync')
     })
     console.log('s3_config 表创建成功')
+  } else {
+    // 检查是否需要添加 startupShutdownSync 列
+    const hasStartupShutdownSyncColumn = await db.schema.hasColumn(
+      's3_config',
+      'startupShutdownSync'
+    )
+    if (!hasStartupShutdownSyncColumn) {
+      await db.schema.alterTable('s3_config', (table) => {
+        table.boolean('startupShutdownSync').notNullable().defaultTo(true)
+      })
+      console.log('s3_config 表添加 startupShutdownSync 列成功')
+    }
   }
 
   // 创建 s3_provider_configs 表，用于存储不同提供商的配置

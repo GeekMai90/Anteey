@@ -549,6 +549,20 @@ async function handleCloudSync(type: 'startup' | 'shutdown'): Promise<void> {
     if (cloudConfig.syncType === 'webdav') {
       const webdavConfig = await webdavService.getConfig()
       if (webdavConfig?.enabled) {
+        // 检查是否启用了启动/关闭时同步
+        if (!webdavConfig.startupShutdownSync) {
+          // log.info('WebDAV 启动/关闭时同步已禁用，跳过同步操作')
+
+          // 如果是启动时，仍然需要初始化自动同步服务
+          if (type === 'startup') {
+            await webdavService.startAutoSync()
+          } else {
+            // 关闭时停止自动同步定时器
+            webdavService.stopAutoSync()
+          }
+          return
+        }
+
         // log.info('执行 WebDAV 同步...')
         if (type === 'shutdown') {
           webdavService.stopAutoSync()
@@ -558,6 +572,20 @@ async function handleCloudSync(type: 'startup' | 'shutdown'): Promise<void> {
     } else if (cloudConfig.syncType === 's3') {
       const s3Config = await s3Service.getConfig()
       if (s3Config?.enabled) {
+        // 检查是否启用了启动/关闭时同步
+        if (!s3Config.startupShutdownSync) {
+          // log.info('S3 启动/关闭时同步已禁用，跳过同步操作')
+
+          // 如果是启动时，仍然需要初始化自动同步服务
+          if (type === 'startup') {
+            await s3Service.initAutoSync()
+          } else {
+            // 关闭时停止自动同步定时器
+            s3Service.stopAutoSync()
+          }
+          return
+        }
+
         // log.info('执行 S3 同步...')
 
         if (type === 'startup') {

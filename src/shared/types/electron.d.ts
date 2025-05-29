@@ -501,6 +501,10 @@ export interface ElectronAPI {
     testWebDAVConnection: (config: Partial<WebDAVConfig>) => Promise<boolean>
     // 同步 WebDAV
     syncWebDAV: (type?: 'auto' | 'manual') => Promise<void>
+    // 强制上传到云端
+    forceUploadWebDAV: () => Promise<void>
+    // 从云端下载
+    forceDownloadWebDAV: () => Promise<void>
     // 获取 WebDAV 配置
     getWebDAVConfig: () => Promise<WebDAVConfig | null>
     // 更新 WebDAV 配置
@@ -821,6 +825,10 @@ export interface ElectronAPI {
     stopAutoSync: () => Promise<void>
     // 获取所有提供商配置
     getAllProviderConfigs: () => Promise<Record<string, any>>
+    // 强制上传到云端
+    uploadToCloud: () => Promise<void>
+    // 强制从云端下载
+    downloadFromCloud: () => Promise<void>
   }
 
   cloudSync: {

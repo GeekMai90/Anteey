@@ -10,8 +10,7 @@
     <Description
       :text="[
         '选择云同步方式，支持 WebDAV 和 S3 协议。',
-        '切换同步方式后，需要先保存配置，然后点击立即同步按钮进行一次同步。',
-        '开启 S3 云同步后，在应用启动或退出时，会自动进行一次同步。WebDAV 同步则需要手动同步。'
+        '切换同步方式后，需要重新点击测试连接，并保存配置，否则无法同步。'
       ]"
     />
     <div class="cloud-sync-settings-content">
@@ -27,6 +26,7 @@
                 :items="syncTypeItems"
                 :value="syncType"
                 width="300"
+                :align="'end'"
                 showArrow
                 @select="handleSyncTypeSelect"
               >
@@ -213,7 +213,9 @@ const handleSyncTypeSelect = async (key: string) => {
 
     .value {
       flex: 1;
-      max-width: 300px;
+      width: 100%;
+      display: flex;
+      justify-content: flex-end;
     }
   }
 }

@@ -26,6 +26,16 @@ export function setupWebDAVHandlers(): void {
     return await webdavService.sync(type)
   })
 
+  // 强制上传到云端
+  ipcMain.handle('force-upload-webdav', async () => {
+    return await webdavService.forceUpload('manual')
+  })
+
+  // 从云端下载
+  ipcMain.handle('force-download-webdav', async () => {
+    return await webdavService.forceDownload('manual')
+  })
+
   // 获取同步历史
   ipcMain.handle('get-webdav-sync-history', async () => {
     return await webdavService.getSyncHistory()

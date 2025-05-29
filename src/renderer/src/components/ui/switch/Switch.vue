@@ -1,7 +1,7 @@
 <template>
   <div class="checkbox-wrapper-5">
     <div class="check">
-      <input :id="id" type="checkbox" :checked="modelValue" @change="handleClick" />
+      <input :id="id" type="checkbox" :checked="Boolean(modelValue)" @change="handleClick" />
       <label :for="id"></label>
     </div>
   </div>

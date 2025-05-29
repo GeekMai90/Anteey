@@ -24,6 +24,7 @@ export interface WebDAVConfig {
   autoSync: boolean // 是否自动同步
   syncDirection: SyncDirection // 同步方向
   syncFileTypes: SyncFileType[] // 要同步的文件类型
+  startupShutdownSync: boolean // 是否在应用启动和关闭时进行同步
   lastSyncTime: Date | null // 上次同步时间(可能为空)
   createdAt: Date // 创建时间
   updatedAt: Date // 更新时间

@@ -42,6 +42,26 @@ export const webdavApi = {
     }
   },
 
+  // 强制上传到云端
+  forceUploadWebDAV: async (): Promise<void> => {
+    try {
+      await ipcRenderer.invoke('force-upload-webdav')
+    } catch (error) {
+      console.error('预加载脚本 → WebDAV 强制上传失败:', error)
+      throw error
+    }
+  },
+
+  // 从云端下载
+  forceDownloadWebDAV: async (): Promise<void> => {
+    try {
+      await ipcRenderer.invoke('force-download-webdav')
+    } catch (error) {
+      console.error('预加载脚本 → WebDAV 强制下载失败:', error)
+      throw error
+    }
+  },
+
   // 获取同步历史
   getWebDAVSyncHistory: async (): Promise<SyncHistory[]> => {
     try {

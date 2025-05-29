@@ -81,6 +81,36 @@ export const useWebDAVStore = defineStore('webdav', {
       }
     },
 
+    async forceUpload() {
+      try {
+        this.loading = true
+        this.error = null
+        this.syncState.type = 'manual'
+        await window.electronAPI.webDAV.forceUploadWebDAV()
+      } catch (error) {
+        this.error = error instanceof Error ? error.message : '强制上传失败'
+        console.error('WebDAV 强制上传失败:', error)
+        throw error
+      } finally {
+        this.loading = false
+      }
+    },
+
+    async forceDownload() {
+      try {
+        this.loading = true
+        this.error = null
+        this.syncState.type = 'manual'
+        await window.electronAPI.webDAV.forceDownloadWebDAV()
+      } catch (error) {
+        this.error = error instanceof Error ? error.message : '强制下载失败'
+        console.error('WebDAV 强制下载失败:', error)
+        throw error
+      } finally {
+        this.loading = false
+      }
+    },
+
     updateSyncState(state: SyncState) {
       const type = state.type || this.syncState.type
       this.syncState = {

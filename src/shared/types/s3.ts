@@ -4,6 +4,11 @@
 export type S3Provider = 'aws' | 'aliyun' | 'tencent' | 'custom' | 'binfenyun'
 
 /**
+ * S3 同步文件类型
+ */
+export type S3SyncFileType = 'database' | 'images' | 'all'
+
+/**
  * S3 配置接口
  */
 export interface S3Config {
@@ -18,7 +23,8 @@ export interface S3Config {
   autoSync: boolean
   syncInterval: number // 同步间隔（分钟）
   syncDirection: 'upload' | 'download' | 'bidirectional'
-  syncFileTypes: string[] // 要同步的文件类型
+  syncFileTypes: S3SyncFileType[] // 要同步的文件类型
+  startupShutdownSync: boolean // 是否在应用启动和关闭时进行同步
   createdAt: Date
   updatedAt: Date
 }

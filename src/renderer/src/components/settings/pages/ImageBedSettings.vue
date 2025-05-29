@@ -759,8 +759,7 @@ const handleRegionSelect = (key: string) => {
 
   .setting-label {
     font-size: 14px;
-    color: var(--color-text-primary);
-    font-weight: 500;
+    color: var(--color-text-secondary);
   }
 }
 

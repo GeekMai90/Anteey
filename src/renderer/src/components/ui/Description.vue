@@ -38,7 +38,7 @@ defineProps<{
     color: var(--color-text-secondary);
     display: flex;
     align-items: center;
-    margin-top: 2px;
+    margin-top: 1px;
   }
 
   .description-text {

@@ -182,6 +182,32 @@ export const useS3Store = defineStore('s3', () => {
     }
   }
 
+  // 强制上传到云端
+  const uploadToCloud = async () => {
+    try {
+      isSyncing.value = true
+      await window.electronAPI.s3.uploadToCloud()
+    } catch (error) {
+      console.error('上传到云端失败:', error)
+      throw error
+    } finally {
+      isSyncing.value = false
+    }
+  }
+
+  // 强制从云端下载
+  const downloadFromCloud = async () => {
+    try {
+      isSyncing.value = true
+      await window.electronAPI.s3.downloadFromCloud()
+    } catch (error) {
+      console.error('从云端下载失败:', error)
+      throw error
+    } finally {
+      isSyncing.value = false
+    }
+  }
+
   return {
     // 状态
     config,
@@ -205,6 +231,8 @@ export const useS3Store = defineStore('s3', () => {
     openConfigModal,
     closeConfigModal,
     autoSync,
-    fetchAllProviderConfigs
+    fetchAllProviderConfigs,
+    uploadToCloud,
+    downloadFromCloud
   }
 })

@@ -508,19 +508,38 @@ export class S3Service extends EventEmitter {
         message: '开始同步...'
       })
 
+      // 检查同步文件类型配置
+      const syncFileTypes = config.syncFileTypes || ['all']
+      const shouldSyncDatabase = syncFileTypes.includes('all') || syncFileTypes.includes('database')
+      const shouldSyncImages = syncFileTypes.includes('all') || syncFileTypes.includes('images')
+
+      console.log('s3Service → 同步文件类型配置:', {
+        syncFileTypes,
+        shouldSyncDatabase,
+        shouldSyncImages
+      })
+
       // 检查是否是首次同步
       const isFirstSync = !(await db('s3_sync_history').first())
-      const remoteExists = await this.checkRemoteExists('antinet/antinet.sqlite')
+      let remoteExists = false
+
+      if (shouldSyncDatabase) {
+        remoteExists = await this.checkRemoteExists('antinet/antinet.sqlite')
+      }
 
       if (isFirstSync && remoteExists) {
         const shouldUseRemote = await this.confirmUseRemoteData()
 
         if (shouldUseRemote) {
-          this.updateState({ status: 'syncing', progress: 30, message: '下载数据库...' })
-          await this.downloadDatabase()
+          if (shouldSyncDatabase) {
+            this.updateState({ status: 'syncing', progress: 30, message: '下载数据库...' })
+            await this.downloadDatabase()
+          }
 
-          this.updateState({ status: 'syncing', progress: 60, message: '下载图片...' })
-          await this.downloadImages()
+          if (shouldSyncImages) {
+            this.updateState({ status: 'syncing', progress: 60, message: '下载图片...' })
+            await this.downloadImages()
+          }
 
           this.updateState({ status: 'completed', progress: 100, message: '同步完成' })
           await this.addSyncHistory(type, 'success')
@@ -536,11 +555,20 @@ export class S3Service extends EventEmitter {
         }
       }
 
-      this.updateState({ status: 'syncing', progress: 30, message: '同步数据库...' })
-      await this.syncDatabase()
+      // 执行正常的同步流程
+      let currentProgress = 30
 
-      this.updateState({ status: 'syncing', progress: 60, message: '同步图片...' })
-      await this.syncImages()
+      if (shouldSyncDatabase) {
+        this.updateState({ status: 'syncing', progress: currentProgress, message: '同步数据库...' })
+        await this.syncDatabase()
+        currentProgress = shouldSyncImages ? 60 : 100
+      }
+
+      if (shouldSyncImages) {
+        this.updateState({ status: 'syncing', progress: currentProgress, message: '同步图片...' })
+        await this.syncImages()
+        currentProgress = 100
+      }
 
       // 确保同步完成状态被正确设置
       this.updateState({ status: 'completed', progress: 100, message: '同步完成' })
@@ -1297,12 +1325,27 @@ export class S3Service extends EventEmitter {
       // 等待数据库空闲
       await this.isDatabaseIdle()
 
-      // 直接执行同步操作，跳过自动同步相关设置
-      console.log('s3Service → 开始同步数据库文件')
-      await this.syncDatabase()
+      // 检查同步文件类型配置
+      const syncFileTypes = config.syncFileTypes || ['all']
+      const shouldSyncDatabase = syncFileTypes.includes('all') || syncFileTypes.includes('database')
+      const shouldSyncImages = syncFileTypes.includes('all') || syncFileTypes.includes('images')
 
-      console.log('s3Service → 开始同步图片文件')
-      await this.syncImages()
+      console.log('s3Service → 关闭时同步文件类型配置:', {
+        syncFileTypes,
+        shouldSyncDatabase,
+        shouldSyncImages
+      })
+
+      // 直接执行同步操作，跳过自动同步相关设置
+      if (shouldSyncDatabase) {
+        console.log('s3Service → 开始同步数据库文件')
+        await this.syncDatabase()
+      }
+
+      if (shouldSyncImages) {
+        console.log('s3Service → 开始同步图片文件')
+        await this.syncImages()
+      }
 
       console.log('s3Service → 所有文件同步完成')
       await this.addSyncHistory('auto', 'success')
@@ -1316,6 +1359,199 @@ export class S3Service extends EventEmitter {
       throw error
     } finally {
       this.isSyncing = false
+    }
+  }
+
+  /**
+   * 强制上传到云端
+   * @async
+   * @public
+   * @returns {Promise<void>}
+   * @description 强制将本地数据上传到云端，不进行时间戳比较
+   */
+  public async uploadToCloud(): Promise<void> {
+    if (this.isSyncing) {
+      console.log('s3Service → 已有同步正在进行，忽略上传请求')
+      return
+    }
+
+    this.isSyncing = true
+    const syncStartTime = Date.now()
+
+    try {
+      const config = await this.getConfig()
+      if (!config?.enabled) {
+        throw new Error('S3 同步未启用')
+      }
+
+      if (!config.region || !config.bucket || !config.accessKeyId || !config.secretAccessKey) {
+        throw new Error('S3 配置不完整，请先完成必要的配置项')
+      }
+
+      await this.getClient()
+      await this.isDatabaseIdle()
+
+      this.updateState({
+        status: 'syncing',
+        progress: 10,
+        type: 'manual',
+        message: '开始上传到云端...'
+      })
+
+      const syncFileTypes = config.syncFileTypes || ['all']
+      const shouldSyncDatabase = syncFileTypes.includes('all') || syncFileTypes.includes('database')
+      const shouldSyncImages = syncFileTypes.includes('all') || syncFileTypes.includes('images')
+
+      let currentProgress = 20
+
+      if (shouldSyncDatabase) {
+        this.updateState({ status: 'syncing', progress: currentProgress, message: '上传数据库...' })
+        const localPath = path.join(this.getLocalBasePath(), 'antinet.sqlite')
+        const remotePath = 'antinet/antinet.sqlite'
+        await this.uploadFile(localPath, remotePath)
+        currentProgress = shouldSyncImages ? 60 : 100
+      }
+
+      if (shouldSyncImages) {
+        this.updateState({ status: 'syncing', progress: currentProgress, message: '上传图片...' })
+        await this.uploadAllImages()
+        currentProgress = 100
+      }
+
+      this.updateState({ status: 'completed', progress: 100, message: '上传完成' })
+      await this.addSyncHistory('manual', 'success')
+
+      const totalTime = Date.now() - syncStartTime
+      console.log(`s3Service → 上传到云端完成，总耗时: ${totalTime}ms`)
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error)
+      console.error(`s3Service → 上传到云端失败: ${errorMessage}`, error)
+      this.updateState({
+        status: 'error',
+        error: errorMessage,
+        type: 'manual',
+        message: '上传失败'
+      })
+      await this.addSyncHistory('manual', 'failed', errorMessage)
+      throw error
+    } finally {
+      this.isSyncing = false
+    }
+  }
+
+  /**
+   * 强制从云端下载
+   * @async
+   * @public
+   * @returns {Promise<void>}
+   * @description 强制从云端下载数据覆盖本地，不进行时间戳比较
+   */
+  public async downloadFromCloud(): Promise<void> {
+    if (this.isSyncing) {
+      console.log('s3Service → 已有同步正在进行，忽略下载请求')
+      return
+    }
+
+    this.isSyncing = true
+    const syncStartTime = Date.now()
+
+    try {
+      const config = await this.getConfig()
+      if (!config?.enabled) {
+        throw new Error('S3 同步未启用')
+      }
+
+      if (!config.region || !config.bucket || !config.accessKeyId || !config.secretAccessKey) {
+        throw new Error('S3 配置不完整，请先完成必要的配置项')
+      }
+
+      await this.getClient()
+      await this.isDatabaseIdle()
+
+      this.updateState({
+        status: 'syncing',
+        progress: 10,
+        type: 'manual',
+        message: '开始从云端下载...'
+      })
+
+      const syncFileTypes = config.syncFileTypes || ['all']
+      const shouldSyncDatabase = syncFileTypes.includes('all') || syncFileTypes.includes('database')
+      const shouldSyncImages = syncFileTypes.includes('all') || syncFileTypes.includes('images')
+
+      let currentProgress = 20
+
+      if (shouldSyncDatabase) {
+        this.updateState({ status: 'syncing', progress: currentProgress, message: '下载数据库...' })
+
+        // 检查远程数据库是否存在
+        const remoteDbExists = await this.checkRemoteExists('antinet/antinet.sqlite')
+        if (!remoteDbExists) {
+          throw new Error('云端数据库文件不存在')
+        }
+
+        await this.downloadDatabase()
+        currentProgress = shouldSyncImages ? 60 : 100
+      }
+
+      if (shouldSyncImages) {
+        this.updateState({ status: 'syncing', progress: currentProgress, message: '下载图片...' })
+        await this.downloadImages()
+        currentProgress = 100
+      }
+
+      this.updateState({ status: 'completed', progress: 100, message: '下载完成' })
+      await this.addSyncHistory('manual', 'success')
+
+      const totalTime = Date.now() - syncStartTime
+      console.log(`s3Service → 从云端下载完成，总耗时: ${totalTime}ms`)
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error)
+      console.error(`s3Service → 从云端下载失败: ${errorMessage}`, error)
+      this.updateState({
+        status: 'error',
+        error: errorMessage,
+        type: 'manual',
+        message: '下载失败'
+      })
+      await this.addSyncHistory('manual', 'failed', errorMessage)
+      throw error
+    } finally {
+      this.isSyncing = false
+    }
+  }
+
+  /**
+   * 上传所有本地图片到云端
+   * @private
+   * @async
+   * @returns {Promise<void>}
+   */
+  private async uploadAllImages(): Promise<void> {
+    const localImagesPath = path.join(this.getLocalBasePath(), 'images')
+    const remoteImagesPath = 'antinet/images'
+
+    // 确保本地目录存在
+    try {
+      await fs.access(localImagesPath)
+    } catch {
+      console.log('本地图片目录不存在，跳过图片上传')
+      return
+    }
+
+    const localFiles = await this.getLocalImageFiles()
+    let completed = 0
+    const total = localFiles.length
+
+    for (const file of localFiles) {
+      const remotePath = `${remoteImagesPath}/${file.name}`
+      this.updateState({
+        status: 'syncing',
+        progress: 60 + Math.floor((completed / total) * 30),
+        message: `上传图片 (${completed + 1}/${total}): ${file.name}`
+      })
+      await this.uploadFile(file.path, remotePath)
+      completed++
     }
   }
 }

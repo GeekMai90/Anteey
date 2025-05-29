@@ -1,10 +1,106 @@
 <template>
   <div class="webdav-settings">
     <div class="webdav-content">
+      <!-- 同步设置 -->
+      <div class="webdav-item">
+        <div class="title">同步设置</div>
+        <div class="description">配置自动同步和同步方式。</div>
+        <div class="webdav-settings-form">
+          <div class="form-item">
+            <div class="label">自动同步</div>
+            <div class="value">
+              <Switch :model-value="Boolean(autoSync)" @update:model-value="autoSync = $event" />
+            </div>
+          </div>
+          <div v-if="autoSync" class="form-item">
+            <div class="label">同步间隔</div>
+            <div class="value">
+              <Dropdown
+                :items="syncIntervals.map((i) => ({ key: i.value.toString(), label: i.label }))"
+                trigger="click"
+                width="120px"
+                :align="'end'"
+                showArrow
+                @select="(key) => selectInterval(Number(key))"
+              >
+                {{ getSyncIntervalText(syncInterval) }}
+              </Dropdown>
+            </div>
+          </div>
+          <div class="form-item">
+            <div class="label">
+              <span>仅同步数据库</span>
+              <HelpTips
+                content="默认将同步数据库和图片文件。开启后只同步数据库文件，不会同步图片文件，可以节省云存储空间和同步时间。"
+                placement="right"
+                size="small"
+              />
+            </div>
+            <div class="value">
+              <Switch
+                :model-value="Boolean(isDatabaseOnlySync)"
+                @update:model-value="handleDatabaseOnlySyncChange"
+              />
+            </div>
+          </div>
+          <div class="form-item">
+            <div class="label">
+              <span>启动/关闭时同步</span>
+              <HelpTips
+                content="开启后，应用启动和关闭时会自动执行一次同步。关闭此选项后，只有定时自动同步和手动同步会执行。"
+                placement="right"
+                size="small"
+              />
+            </div>
+            <div class="value">
+              <Switch
+                :model-value="Boolean(isStartupShutdownSyncEnabled)"
+                @update:model-value="handleStartupShutdownSyncChange"
+              />
+            </div>
+          </div>
+
+          <div class="webdav-actions">
+            <Button
+              type="default"
+              :loading="isForceUploading"
+              :tooltip="{
+                content: '强制上传本地数据到云端',
+                delay: { show: 1000 }
+              }"
+              @click="handleForceUpload"
+            >
+              {{ isForceUploading ? '上传中...' : '上传到云端' }}
+            </Button>
+            <Button
+              type="default"
+              :loading="isForceDownloading"
+              :tooltip="{
+                content: '强制从云端下载数据覆盖本地',
+                delay: { show: 1000 }
+              }"
+              @click="handleForceDownload"
+            >
+              {{ isForceDownloading ? '下载中...' : '从云端下载' }}
+            </Button>
+            <Button
+              type="primary"
+              :loading="isSyncing"
+              :tooltip="{
+                content: '立即同步数据',
+                delay: { show: 1000 }
+              }"
+              @click="handleSync"
+            >
+              {{ isSyncing ? '同步中...' : '立即同步' }}
+            </Button>
+          </div>
+        </div>
+      </div>
       <!-- WebDAV 服务配置 -->
       <div class="webdav-item">
         <div class="title">WebDAV 服务</div>
-        <div class="description">配置 WebDAV 服务器信息，目前支持坚果云 WebDAV 服务。</div>
+        <div class="description">配置 WebDAV 服务器信息。</div>
         <div class="webdav-settings-form">
           <div class="form-item">
             <div class="label">服务类型</div>
@@ -12,7 +108,8 @@
               <Dropdown
                 :items="serverTypes.map((t) => ({ key: t.value, label: t.label }))"
                 trigger="click"
-                width="300px"
+                width="200px"
+                :align="'end'"
                 showArrow
                 @select="selectServerType"
               >
@@ -23,11 +120,7 @@
           <div class="form-item">
             <div class="label">服务地址</div>
             <div class="value">
-              <Input
-                v-model="url"
-                placeholder="请输入 WebDAV 服务器地址"
-                help="例如: https://dav.jianguoyun.com/dav"
-              />
+              <Input v-model="url" placeholder="请输入 WebDAV 服务器地址" />
             </div>
           </div>
           <div class="form-item">
@@ -44,7 +137,7 @@
           </div>
           <div class="webdav-actions">
             <Button
-              type="primary"
+              type="default"
               :loading="isTesting"
               :tooltip="{
                 content: '测试 WebDAV 服务连接',
@@ -64,52 +157,6 @@
               @click="handleSaveConfig"
             >
               {{ isSaving ? '保存中...' : '保存配置' }}
-            </Button>
-          </div>
-        </div>
-      </div>
-
-      <!-- 同步设置 -->
-      <div class="webdav-item">
-        <div class="title">同步设置</div>
-        <div class="description">配置自动同步和同步方式，确保数据的安全性和一致性。</div>
-        <div class="webdav-settings-form">
-          <div class="form-item">
-            <div class="label">自动同步</div>
-            <div class="value">
-              <div class="auto-sync-setting">
-                <Switch :model-value="Boolean(autoSync)" @update:model-value="autoSync = $event" />
-                <div class="auto-sync-description">
-                  {{ autoSync ? '定时自动同步' : '仅支持手动同步' }}
-                </div>
-              </div>
-            </div>
-          </div>
-          <div v-if="autoSync" class="form-item">
-            <div class="label">同步间隔</div>
-            <div class="value">
-              <Dropdown
-                :items="syncIntervals.map((i) => ({ key: i.value.toString(), label: i.label }))"
-                trigger="click"
-                width="200px"
-                showArrow
-                @select="(key) => selectInterval(Number(key))"
-              >
-                {{ getSyncIntervalText(syncInterval) }}
-              </Dropdown>
-            </div>
-          </div>
-          <div class="webdav-actions">
-            <Button
-              type="primary"
-              :loading="isSyncing"
-              :tooltip="{
-                content: '立即同步数据',
-                delay: { show: 1000 }
-              }"
-              @click="handleSync"
-            >
-              {{ isSyncing ? '同步中...' : '立即同步' }}
             </Button>
           </div>
         </div>
@@ -159,18 +206,21 @@
 <script setup lang="ts">
 import { CloudStorage } from '@icon-park/vue-next'
 import { useWebDAVStore } from '@renderer/stores/webdavStore'
-import { ref, onMounted, computed, watch } from 'vue'
-import type { WebDAVServerType } from '@shared/types'
+import { ref, onMounted, computed } from 'vue'
+import type { WebDAVServerType, SyncFileType } from '@shared/types'
 import { message } from '../../../utils/message'
 import Switch from '@renderer/components/ui/switch/Switch.vue'
 import Input from '@renderer/components/ui/Input.vue'
 import Dropdown from '@renderer/components/ui/dropdowns/Dropdown.vue'
 import Button from '@renderer/components/ui/buttons/Button.vue'
+import HelpTips from '@renderer/components/ui/HelpTips.vue'
 
 const webdavStore = useWebDAVStore()
 const isTesting = ref(false)
 const isSaving = ref(false)
 const isSyncing = ref(false)
+const isForceUploading = ref(false)
+const isForceDownloading = ref(false)
 
 // 表单数据
 const serverType = ref<WebDAVServerType>('jianguoyun')
@@ -187,6 +237,36 @@ const syncInterval = computed({
   get: () => webdavStore.config?.syncInterval ?? 15,
   set: async (value) => {
     await webdavStore.updateConfig({ syncInterval: value })
+  }
+})
+
+// 是否启用启动/关闭时同步
+const isStartupShutdownSyncEnabled = computed({
+  get: () => webdavStore.config?.startupShutdownSync ?? true,
+  set: async (value: boolean) => {
+    try {
+      await webdavStore.updateConfig({ startupShutdownSync: value })
+    } catch (error) {
+      console.error('更新启动/关闭时同步设置失败:', error)
+      message.error('更新启动/关闭时同步设置失败')
+    }
+  }
+})
+
+// 是否仅同步数据库
+const isDatabaseOnlySync = computed({
+  get: () => {
+    const types = webdavStore.config?.syncFileTypes || ['all']
+    return types.length === 1 && types.includes('database')
+  },
+  set: async (value: boolean) => {
+    try {
+      const newSyncFileTypes: SyncFileType[] = value ? ['database'] : ['all']
+      await webdavStore.updateConfig({ syncFileTypes: newSyncFileTypes })
+    } catch (error) {
+      console.error('更新仅同步数据库设置失败:', error)
+      message.error('更新仅同步数据库设置失败')
+    }
   }
 })
 
@@ -315,14 +395,44 @@ async function handleSync() {
   }
 }
 
-// 添加调试代码
-watch(
-  () => webdavStore.syncHistory,
-  (history) => {
-    console.log('同步历史更新:', history)
-  },
-  { deep: true }
-)
+async function handleStartupShutdownSyncChange(value: boolean) {
+  try {
+    await webdavStore.updateConfig({ startupShutdownSync: value })
+  } catch (error) {
+    console.error('更新启动/关闭时同步设置失败:', error)
+    message.error('更新启动/关闭时同步设置失败')
+  }
+}
+
+async function handleDatabaseOnlySyncChange(value: boolean) {
+  try {
+    const newSyncFileTypes: SyncFileType[] = value ? ['database'] : ['all']
+    await webdavStore.updateConfig({ syncFileTypes: newSyncFileTypes })
+  } catch (error) {
+    console.error('更新仅同步数据库设置失败:', error)
+    message.error('更新仅同步数据库设置失败')
+  }
+}
+
+async function handleForceUpload() {
+  isForceUploading.value = true
+  try {
+    await webdavStore.forceUpload()
+    message.success('强制上传完成')
+  } finally {
+    isForceUploading.value = false
+  }
+}
+
+async function handleForceDownload() {
+  isForceDownloading.value = true
+  try {
+    await webdavStore.forceDownload()
+    message.success('强制下载完成')
+  } finally {
+    isForceDownloading.value = false
+  }
+}
 </script>
 
 <style scoped lang="scss">
@@ -371,17 +481,20 @@ watch(
     margin-bottom: 15px;
 
     .label {
-      width: 80px;
+      width: 200px;
       font-size: 14px;
       color: var(--color-text-secondary);
       line-height: 32px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
     }
 
     .value {
       flex: 1;
-      max-width: 300px;
       display: flex;
       align-items: center;
+      justify-content: flex-end;
     }
   }
 }
@@ -389,18 +502,8 @@ watch(
 .webdav-actions {
   margin-top: 20px;
   display: flex;
+  justify-content: flex-end;
   gap: 12px;
-}
-
-.auto-sync-setting {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-
-  .auto-sync-description {
-    font-size: 13px;
-    color: var(--color-text-secondary);
-  }
 }
 
 .sync-history {
