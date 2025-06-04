@@ -79,11 +79,71 @@ export const backupService = {
     const fifteenDaysAgo = new Date()
     fifteenDaysAgo.setDate(fifteenDaysAgo.getDate() - 15)
 
+    // 获取需要删除的备份记录
+    const oldBackups = await db('backup_history')
+      .where('created_at', '<', fifteenDaysAgo)
+      .select('backup_file_path')
+
+    // 删除实际备份文件
+    for (const backup of oldBackups) {
+      try {
+        if (fs.existsSync(backup.backup_file_path)) {
+          fs.unlinkSync(backup.backup_file_path)
+        }
+      } catch (error) {
+        console.error('删除旧备份文件失败:', backup.backup_file_path, error)
+      }
+    }
+
+    // 删除数据库记录
     await db('backup_history').where('created_at', '<', fifteenDaysAgo).delete()
+  },
+
+  // 清理超过数量限制的备份
+  async cleanupExcessBackups(maxBackups = 15): Promise<void> {
+    // 获取所有备份，按创建时间降序排序
+    const allBackups = await db('backup_history')
+      .orderBy('created_at', 'desc')
+      .select('id', 'backup_file_path')
+
+    // 如果备份数量超过限制，删除多余的备份
+    if (allBackups.length > maxBackups) {
+      const backupsToDelete = allBackups.slice(maxBackups)
+
+      // 删除实际备份文件
+      for (const backup of backupsToDelete) {
+        try {
+          if (fs.existsSync(backup.backup_file_path)) {
+            fs.unlinkSync(backup.backup_file_path)
+          }
+        } catch (error) {
+          console.error('删除多余备份文件失败:', backup.backup_file_path, error)
+        }
+      }
+
+      // 删除数据库记录
+      const idsToDelete = backupsToDelete.map((backup) => backup.id)
+      await db('backup_history').whereIn('id', idsToDelete).delete()
+    }
   },
 
   // 清空所有备份历史
   async clearBackupHistory(): Promise<void> {
+    // 获取所有备份记录
+    const allBackups = await db('backup_history').select('backup_file_path')
+
+    // 删除所有备份文件
+    for (const backup of allBackups) {
+      try {
+        if (fs.existsSync(backup.backup_file_path)) {
+          fs.unlinkSync(backup.backup_file_path)
+        }
+      } catch (error) {
+        console.error('删除备份文件失败:', backup.backup_file_path, error)
+      }
+    }
+
+    // 删除所有数据库记录
     await db('backup_history').delete()
   },
 
@@ -138,6 +198,9 @@ export const backupService = {
 
     // 清理旧备份
     await this.cleanupOldBackups()
+
+    // 清理超过数量限制的备份
+    await this.cleanupExcessBackups()
 
     return {
       path: backupFilePath,
