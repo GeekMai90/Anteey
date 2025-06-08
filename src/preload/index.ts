@@ -232,6 +232,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
   imageBed: {
     ...imageBedApi
+  },
+  // 添加获取应用版本号的方法
+  app: {
+    getVersion: async (): Promise<string> => {
+      return ipcRenderer.invoke('get-app-version')
+    }
   }
 })
 

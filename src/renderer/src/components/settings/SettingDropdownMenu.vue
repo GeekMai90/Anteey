@@ -20,13 +20,28 @@
         </div>
         <div class="name">设置</div>
       </div>
+      <div class="divider"></div>
+      <div
+        v-tooltip.top="{
+          content: '点击查看版本更新日志',
+          delay: { show: 1000 },
+          html: true
+        }"
+        class="version-info setting-dropdown-item"
+        @click.stop="handleVersionClick"
+      >
+        <div class="icon">
+          <Info theme="outline" size="20" fill="var(--color-icon-primary)" :strokeWidth="3" />
+        </div>
+        <div class="name">应用版本: {{ appVersion }}</div>
+      </div>
     </div>
   </Teleport>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch, computed, nextTick } from 'vue'
-import { RecycleBin, SettingTwo } from '@icon-park/vue-next'
+import { RecycleBin, SettingTwo, Info } from '@icon-park/vue-next'
 import { useRouter } from 'vue-router'
 import { useUIStore } from '@renderer/stores/UIStore'
 import { computePosition, flip, shift, offset } from '@floating-ui/dom'
@@ -37,6 +52,9 @@ const uiStore = useUIStore()
 const dropdownRef = ref<HTMLDivElement | null>(null)
 const x = ref(0)
 const y = ref(0)
+const appVersion = ref('')
+const downloadUrl =
+  'https://docs.anteey.com/%E5%BC%80%E5%A7%8B/%E6%9B%B4%E6%96%B0%E6%97%A5%E5%BF%97.html'
 
 const menuStyle = computed<CSSProperties>(() => ({
   position: 'fixed',
@@ -55,6 +73,11 @@ const handleRecycleBinClick = () => {
 
 const handleSettingsClick = () => {
   uiStore.openSettingsPage()
+  uiStore.closeSettingDropdown()
+}
+
+const handleVersionClick = () => {
+  window.electronAPI.shell.openExternal(downloadUrl)
   uiStore.closeSettingDropdown()
 }
 
@@ -80,18 +103,29 @@ const updateDropdownPosition = async () => {
   }
 }
 
+const getAppVersion = async () => {
+  try {
+    appVersion.value = await window.electronAPI.app.getVersion()
+  } catch (error) {
+    console.error('获取应用版本号失败:', error)
+    appVersion.value = '未知'
+  }
+}
+
 onMounted(() => {
   window.addEventListener('resize', updateDropdownPosition)
   watch(
     () => uiStore.isSettingDropdownOpen,
     async (isOpen) => {
       if (isOpen) {
-        // 等待 DOM 更新后再计算位置
+        await getAppVersion()
         await nextTick()
         await updateDropdownPosition()
       }
     }
   )
+
+  getAppVersion()
 })
 
 onUnmounted(() => {
@@ -111,7 +145,6 @@ onUnmounted(() => {
   overflow-y: auto;
   padding: 6px 12px;
   white-space: nowrap;
-  // 添加过渡动画
   transition:
     transform 0.2s ease,
     opacity 0.2s ease;
@@ -128,6 +161,12 @@ onUnmounted(() => {
     opacity: 1;
     transform: scale(1);
   }
+}
+
+.divider {
+  height: 1px;
+  background-color: var(--color-border-light);
+  margin: 4px 0;
 }
 
 .setting-dropdown-item {
@@ -153,10 +192,6 @@ onUnmounted(() => {
     justify-content: center;
     transition: all 0.2s ease;
     padding: 0;
-
-    // &:hover:not(:disabled) {
-    //   background-color: rgba(0, 0, 0, 0.05);
-    // }
 
     &:disabled {
       opacity: 0.5;
@@ -199,6 +234,15 @@ onUnmounted(() => {
 
   &.delete {
     color: #ff4d4f;
+  }
+
+  &.version-info {
+    cursor: pointer;
+    opacity: 0.7;
+
+    &:hover {
+      background-color: var(--color-hover-button);
+    }
   }
 }
 </style>

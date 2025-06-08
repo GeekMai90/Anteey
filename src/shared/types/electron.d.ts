@@ -1501,6 +1501,12 @@ export interface ElectronAPI {
     // 清理失效的图片映射
     cleanupImageMappings: () => Promise<{ cleaned: number }>
   }
+
+  // 添加应用信息相关 API
+  app: {
+    // 获取应用版本号
+    getVersion: () => Promise<string>
+  }
 }
 
 declare global {

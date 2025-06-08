@@ -896,3 +896,8 @@ ipcMain.handle('open-external', async (_event, url: string) => {
     throw error
   }
 })
+
+// 在适当的位置（可能是其他IPC处理程序附近）添加获取应用版本号的处理程序
+ipcMain.handle('get-app-version', () => {
+  return app.getVersion()
+})
