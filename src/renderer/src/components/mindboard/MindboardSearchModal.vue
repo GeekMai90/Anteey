@@ -1,10 +1,6 @@
 <template>
   <!-- 搜索模态框组件 -->
-  <Modal
-    :modelValue="uiStore.isSearchModalOpen"
-    @update:modelValue="updateModalState"
-    @after-enter="focusInput"
-  >
+  <Modal :modelValue="isModalOpen" @update:modelValue="updateModalState" @after-enter="focusInput">
     <!-- 搜索容器，根据是否展开应用不同的样式 -->
     <div class="search-container" :class="{ expanded: isExpanded }">
       <!-- 搜索输入框 -->
@@ -143,13 +139,12 @@ import NotePreviewCard from '@renderer/components/note/NotePreviewCard.vue'
 import { BankCard, ParagraphRectangle, FileSearch } from '@icon-park/vue-next'
 import { useDebounceFn } from '@vueuse/core'
 import { Note, SearchResult } from '@shared/types'
-import { useUIStore } from '@renderer/stores/UIStore'
 
-// 初始化 store 和 router
+// 初始化 store
 const noteStore = useNoteStore()
-const uiStore = useUIStore()
 
-// 定义组件的响应式状态
+// 定义组件的响应式状态 - 使用独立的状态管理
+const isModalOpen = ref(false)
 const isExpanded = ref(false)
 const searchInput = ref<HTMLInputElement | null>(null)
 const searchResultsContainer = ref<HTMLDivElement | null>(null)
@@ -304,11 +299,7 @@ const hoverResult = (noteIndex: number, blockIndex: number) => {
 
 // 更新模态框状态
 const updateModalState = (value: boolean) => {
-  if (value) {
-    uiStore.openSearchModal()
-  } else {
-    uiStore.closeSearchModal()
-  }
+  isModalOpen.value = value
 }
 
 // 聚焦搜索输入框
@@ -318,7 +309,7 @@ const focusInput = () => {
 
 // 添加显示搜索模态框的函数
 const show = () => {
-  uiStore.openSearchModal()
+  isModalOpen.value = true
   // 重置状态
   searchQuery.value = ''
   searchResults.value = []
@@ -329,7 +320,7 @@ const show = () => {
 
 // 隐藏搜索模态框并重置状态
 const hide = () => {
-  uiStore.closeSearchModal()
+  isModalOpen.value = false
   searchQuery.value = ''
   searchResults.value = []
   selectedNoteIndex.value = -1
@@ -411,21 +402,6 @@ const scrollToSelectedItem = () => {
     }
   })
 }
-
-// 监听搜索模态框的打开状态
-watch(
-  () => noteStore.isSearchModalOpen,
-  (newValue) => {
-    // console.log('isSearchModalOpen changed:', newValue)
-    if (newValue) {
-      searchQuery.value = ''
-      searchResults.value = []
-      selectedNoteIndex.value = -1
-      selectedBlockIndex.value = -1
-      isExpanded.value = false
-    }
-  }
-)
 
 // 添加监听搜索结果变化的逻辑
 watch(searchResults, async () => {
