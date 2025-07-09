@@ -150,7 +150,11 @@ import type {
   // 命令相关类型
   Command,
   CommandGroup,
-  CommandSearchResult
+  CommandSearchResult,
+
+  // MCP相关类型
+  McpApiKey,
+  McpServiceStatus
 } from '@shared/types'
 
 // 导入图床相关类型
@@ -1500,6 +1504,27 @@ export interface ElectronAPI {
 
     // 清理失效的图片映射
     cleanupImageMappings: () => Promise<{ cleaned: number }>
+  }
+
+  // 添加MCP相关API
+  mcp: {
+    // 创建API密钥
+    createApiKey: (name: string) => Promise<McpApiKey>
+
+    // 获取所有API密钥
+    getApiKeys: () => Promise<McpApiKey[]>
+
+    // 删除API密钥
+    deleteApiKey: (id: string) => Promise<void>
+
+    // 更新API密钥状态（启用/禁用）
+    updateApiKeyStatus: (id: string, isActive: boolean) => Promise<void>
+
+    // 重命名API密钥
+    renameApiKey: (id: string, name: string) => Promise<void>
+
+    // 获取MCP服务状态
+    getServiceStatus: () => Promise<McpServiceStatus>
   }
 
   // 添加应用信息相关 API

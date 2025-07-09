@@ -116,3 +116,6 @@ export type IconName =
   | 'Share'
   | 'Lock'
   | 'Unlock'
+
+// 导出MCP相关类型
+export * from './mcp'

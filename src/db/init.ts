@@ -1828,6 +1828,24 @@ export async function initDatabase(db: Knex): Promise<void> {
 
     console.log('image_bed_settings 表创建成功')
   }
+
+  // 创建 MCP API密钥表
+  if (!(await db.schema.hasTable('mcp_api_keys'))) {
+    await db.schema.createTable('mcp_api_keys', (table) => {
+      table.string('id').primary()
+      table.string('name').notNullable()
+      table.string('key').notNullable().unique()
+      table.datetime('createdAt').notNullable()
+      table.datetime('lastUsedAt').nullable()
+      table.boolean('isActive').notNullable().defaultTo(true)
+
+      // 索引
+      table.index('key')
+      table.index('isActive')
+      table.index('createdAt')
+    })
+    console.log('mcp_api_keys 表创建成功')
+  }
 }
 
 export async function down(db: Knex): Promise<void> {
@@ -1889,5 +1907,6 @@ export async function down(db: Knex): Promise<void> {
   await db.schema.dropTableIfExists('tabs')
   await db.schema.dropTableIfExists('image_bed_settings')
   await db.schema.dropTableIfExists('image_bed_configs')
+  await db.schema.dropTableIfExists('mcp_api_keys')
   console.log('所有表已删除')
 }

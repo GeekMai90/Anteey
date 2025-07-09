@@ -31,6 +31,7 @@ import { setupDinoxSyncHandlers } from './ipc/dinoxIpcHandlers'
 import { startApiServer } from './api/server'
 import fsSync from 'fs'
 import { registerDefaultCommands } from '@services/command/commandService'
+import { registerMcpIpcHandlers } from './ipc/mcpIpcHandlers'
 
 // 加载环境变量
 config({
@@ -630,6 +631,7 @@ ipcMain.handle('get-current-sync-state', () => {
   return { isSyncing }
 })
 
+// 在应用准备好时执行的函数
 app.whenReady().then(async () => {
   const antinetPath = app.getPath('userData')
   const userDataPath = path.join(antinetPath, 'UserData')
@@ -730,6 +732,7 @@ app.whenReady().then(async () => {
     // 设置 IPC 处理程序
     setupIpcHandlers()
     setupDinoxSyncHandlers()
+    registerMcpIpcHandlers() // 注册MCP IPC处理程序
 
     app.on('browser-window-created', (_, window) => {
       optimizer.watchWindowShortcuts(window)

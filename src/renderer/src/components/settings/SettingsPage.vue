@@ -48,6 +48,7 @@
       <ThreeSyncSettings v-if="currentMenuItem === 'threeSync'" />
       <WritingDeskSettings v-if="currentMenuItem === 'writingDesk'" />
       <ImageBedSettings v-if="currentMenuItem === 'imageBed'" />
+      <McpSettings v-if="currentMenuItem === 'mcp'" />
     </div>
   </div>
 </template>
@@ -87,6 +88,7 @@ import AIAssistantSettings from './pages/AIAssistantSettings.vue'
 import WritingDeskSettings from './pages/WritingDeskSettings.vue'
 import LetterSettings from './pages/LetterSettings.vue'
 import ImageBedSettings from './pages/ImageBedSettings.vue'
+import McpSettings from './pages/McpSettings.vue'
 const menuItems = [
   { key: 'appearance', label: '外观', icon: Theme },
   { key: 'timeblock', label: '时光记', icon: Time },
@@ -102,7 +104,8 @@ const menuItems = [
   { key: 'editor', label: '编辑器', icon: Edit },
   { key: 'letter', label: '每日来信', icon: Mail },
   { key: 'threeSync', label: '三方同步', icon: Inbox },
-  { key: 'license', label: '软件激活', icon: CrownThree }
+  { key: 'license', label: '软件激活', icon: CrownThree },
+  { key: 'mcp', label: 'MCP 设置', icon: SettingTwo }
 ]
 
 const currentMenuItem = ref('appearance')

@@ -8,7 +8,6 @@ import { db } from '../../db/config'
 import { v4 as uuidv4 } from 'uuid'
 import log from 'electron-log'
 import { processNoteContent } from '../aiChat/ProcessNoteContent'
-import type { Note } from '@shared/types'
 
 // MCP API密钥类型
 export interface McpApiKey {
@@ -42,65 +41,118 @@ export interface McpNoteResponse {
   tags: string[]
   createdAt: string
   updatedAt: string
-  metadata: Record<string, any>
+}
+
+// MCP服务状态类型
+export interface McpServiceStatus {
+  isRunning: boolean
+  apiKeysCount: number
+  port: number
+  url: string
 }
 
 /**
- * 简单递归提取文本
- * @param node 节点对象
- * @returns 提取的文本
+ * 创建新的API密钥
+ * @param name API密钥名称
+ * @returns 创建的API密钥对象
  */
-function extractText(node: any): string {
-  if (!node) return ''
-  if (typeof node === 'string') return node
-  if (node.text) return node.text
-
-  if (node.content && Array.isArray(node.content)) {
-    return node.content.map(extractText).join(' ')
-  }
-
-  return ''
-}
-
-/**
- * 生成新的API密钥
- * @param name 密钥名称
- * @returns 生成的API密钥
- */
-export async function generateApiKey(name: string): Promise<McpApiKey> {
-  const now = new Date()
+export async function createApiKey(name: string): Promise<McpApiKey> {
   const apiKey: McpApiKey = {
     id: uuidv4(),
     name,
-    key: `anteey_mcp_${uuidv4().replace(/-/g, '')}`,
-    createdAt: now,
+    key: generateApiKey(),
+    createdAt: new Date(),
     lastUsedAt: null,
     isActive: true
   }
 
-  await db('mcp_api_keys').insert(apiKey)
-  log.info('生成了新的MCP API密钥:', { name, id: apiKey.id })
+  await db('mcp_api_keys').insert({
+    id: apiKey.id,
+    name: apiKey.name,
+    key: apiKey.key,
+    createdAt: apiKey.createdAt,
+    lastUsedAt: apiKey.lastUsedAt,
+    isActive: apiKey.isActive
+  })
 
+  log.info(`已创建API密钥: ${apiKey.name}`)
   return apiKey
 }
 
 /**
- * 验证API密钥
- * @param key API密钥
- * @returns 密钥是否有效
+ * 生成随机API密钥
+ * @returns 随机生成的API密钥字符串
+ */
+function generateApiKey(): string {
+  // 生成32字符的随机字符串
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
+  let result = ''
+  const prefix = 'anteey_'
+  for (let i = 0; i < 32; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length))
+  }
+  return prefix + result
+}
+
+/**
+ * 获取所有API密钥
+ * @returns API密钥列表
+ */
+export async function getApiKeys(): Promise<McpApiKey[]> {
+  const apiKeys = await db('mcp_api_keys').select('*')
+  return apiKeys.map((key) => ({
+    ...key,
+    createdAt: new Date(key.createdAt),
+    lastUsedAt: key.lastUsedAt ? new Date(key.lastUsedAt) : null
+  }))
+}
+
+/**
+ * 删除API密钥
+ * @param id API密钥ID
+ */
+export async function deleteApiKey(id: string): Promise<void> {
+  await db('mcp_api_keys').where('id', id).delete()
+  log.info(`已删除API密钥: ${id}`)
+}
+
+/**
+ * 更新API密钥状态
+ * @param id API密钥ID
+ * @param isActive 是否激活
+ */
+export async function updateApiKeyStatus(id: string, isActive: boolean): Promise<void> {
+  await db('mcp_api_keys').where('id', id).update({ isActive })
+  log.info(`已更新API密钥状态: ${id}, isActive: ${isActive}`)
+}
+
+/**
+ * 重命名API密钥
+ * @param id API密钥ID
+ * @param name 新名称
+ */
+export async function renameApiKey(id: string, name: string): Promise<void> {
+  await db('mcp_api_keys').where('id', id).update({ name })
+  log.info(`已重命名API密钥: ${id}, name: ${name}`)
+}
+
+/**
+ * 验证API密钥是否有效
+ * @param key API密钥字符串
+ * @returns 是否有效
  */
 export async function validateApiKey(key: string): Promise<boolean> {
   try {
-    const apiKey = await db('mcp_api_keys').where({ key, isActive: true }).first()
+    const apiKey = await db('mcp_api_keys').where('key', key).first()
 
-    if (apiKey) {
-      // 更新最后使用时间
-      await db('mcp_api_keys').where({ id: apiKey.id }).update({ lastUsedAt: new Date() })
-
-      return true
+    if (!apiKey || !apiKey.isActive) {
+      return false
     }
 
-    return false
+    // 更新最后使用时间
+    await db('mcp_api_keys').where('id', apiKey.id).update({ lastUsedAt: new Date() })
+
+    return true
   } catch (error) {
     log.error('验证API密钥失败:', error)
     return false
@@ -108,56 +160,65 @@ export async function validateApiKey(key: string): Promise<boolean> {
 }
 
 /**
- * 获取所有API密钥
- * @returns API密钥列表
+ * 获取MCP服务状态
+ * @returns 服务状态信息
  */
-export async function getAllApiKeys(): Promise<McpApiKey[]> {
-  return await db('mcp_api_keys').select('*').orderBy('createdAt', 'desc')
+export async function getServiceStatus(): Promise<McpServiceStatus> {
+  const apiKeysCount = await db('mcp_api_keys').count('* as count').first()
+
+  return {
+    isRunning: true,
+    apiKeysCount: apiKeysCount ? Number(apiKeysCount.count) : 0,
+    port: 43211,
+    url: 'http://localhost:43211/api/mcp'
+  }
 }
 
 /**
- * 停用API密钥
- * @param id 密钥ID
+ * 根据ID获取笔记
+ * @param id 笔记ID
+ * @returns 格式化的笔记响应
  */
-export async function deactivateApiKey(id: string): Promise<void> {
-  await db('mcp_api_keys').where({ id }).update({ isActive: false })
-}
-
-/**
- * 从笔记内容中提取纯文本
- * @param note 笔记对象
- * @returns 提取的纯文本内容
- */
-async function extractNoteText(note: Note): Promise<string> {
+export async function getNoteById(id: string): Promise<McpNoteResponse | null> {
   try {
-    // processNoteContent 接受笔记ID数组，返回处理结果
-    const result = await processNoteContent([note.id])
+    const note = await db('notes').where('id', id).first()
 
-    // 返回处理后的上下文文本
-    return result.contextText || ''
-  } catch (error) {
-    log.error('提取笔记文本失败:', error)
-
-    // 如果处理失败，尝试从笔记内容中提取基本文本
-    try {
-      const content = typeof note.content === 'string' ? JSON.parse(note.content) : note.content
-
-      // 尝试提取标题和内容的简单文本
-      const title = note.title || note.metadata?.title || ''
-      const textContent = extractText(content)
-
-      return `${title}\n\n${textContent}`.trim()
-    } catch (innerError) {
-      log.error('备用文本提取也失败:', innerError)
-      return '无法提取笔记内容'
+    if (!note) {
+      return null
     }
+
+    // 获取笔记标签
+    const noteTags = await db('note_tags')
+      .join('tags', 'note_tags.tagId', '=', 'tags.id')
+      .where('note_tags.noteId', id)
+      .select('tags.name')
+
+    const tags = noteTags.map((tag) => tag.name)
+
+    // 处理笔记内容
+    const processResult = await processNoteContent([id])
+    const content = processResult.contextText
+
+    return {
+      id: note.id,
+      title: note.title || '',
+      address: note.address || '',
+      content,
+      cardType: note.cardType || '',
+      tags,
+      createdAt: note.createdAt,
+      updatedAt: note.updatedAt
+    }
+  } catch (error) {
+    log.error('获取笔记失败:', error)
+    return null
   }
 }
 
 /**
  * 搜索笔记
  * @param params 搜索参数
- * @returns 符合条件的笔记
+ * @returns 笔记列表
  */
 export async function searchNotes(params: McpQueryParams): Promise<McpNoteResponse[]> {
   try {
@@ -173,155 +234,89 @@ export async function searchNotes(params: McpQueryParams): Promise<McpNoteRespon
     } = params
 
     // 构建查询
-    let notesQuery = db('notes')
-      .select('notes.*')
-      .where('notes.isDeleted', false)
-      .orderBy('notes.updatedAt', 'desc')
-      .limit(limit)
-      .offset(offset)
+    let notesQuery = db('notes').select('notes.*')
 
-    // 添加全文搜索条件
-    if (query) {
-      notesQuery = notesQuery.whereRaw(
-        `(notes.title LIKE ? OR json_extract(notes.content, '$.content') LIKE ?)`,
-        [`%${query}%`, `%${query}%`]
-      )
-    }
-
-    // 添加标签过滤
+    // 应用标签过滤
     if (tags.length > 0) {
       notesQuery = notesQuery
-        .join('note_tags', 'notes.id', 'note_tags.noteId')
-        .join('tags', 'note_tags.tagId', 'tags.id')
+        .join('note_tags', 'notes.id', '=', 'note_tags.noteId')
+        .join('tags', 'note_tags.tagId', '=', 'tags.id')
         .whereIn('tags.name', tags)
     }
 
-    // 添加卡片类型过滤
+    // 应用卡片类型过滤
     if (cardTypes.length > 0) {
       notesQuery = notesQuery.whereIn('notes.cardType', cardTypes)
     }
 
-    // 添加卡片盒过滤
+    // 应用卡片盒过滤
     if (cardBoxId) {
       notesQuery = notesQuery.where('notes.cardBoxId', cardBoxId)
     }
 
-    // 添加日期范围过滤
+    // 应用日期过滤
     if (startDate) {
-      notesQuery = notesQuery.where('notes.createdAt', '>=', startDate)
+      notesQuery = notesQuery.where('notes.updatedAt', '>=', startDate)
     }
+
     if (endDate) {
-      notesQuery = notesQuery.where('notes.createdAt', '<=', endDate)
+      notesQuery = notesQuery.where('notes.updatedAt', '<=', endDate)
     }
+
+    // 应用文本搜索
+    if (query) {
+      notesQuery = notesQuery.where((builder) => {
+        builder
+          .where('notes.title', 'like', `%${query}%`)
+          .orWhere('notes.content', 'like', `%${query}%`)
+          .orWhere('notes.address', 'like', `%${query}%`)
+      })
+    }
+
+    // 分页
+    notesQuery = notesQuery.orderBy('notes.updatedAt', 'desc').limit(limit).offset(offset)
 
     // 执行查询
-    const notes = (await notesQuery) as Note[]
+    const notes = await notesQuery
 
-    // 获取笔记标签
+    // 获取笔记的标签
     const noteIds = notes.map((note) => note.id)
-    const noteTags = await db('note_tags')
-      .join('tags', 'note_tags.tagId', 'tags.id')
+    const allTags = await db('note_tags')
+      .join('tags', 'note_tags.tagId', '=', 'tags.id')
       .whereIn('note_tags.noteId', noteIds)
       .select('note_tags.noteId', 'tags.name')
 
-    // 将标签信息组织成以noteId为键的映射
-    const noteTagsMap: Record<string, string[]> = {}
-    noteTags.forEach((tag: { noteId: string; name: string }) => {
-      if (!noteTagsMap[tag.noteId]) {
-        noteTagsMap[tag.noteId] = []
+    // 组织标签数据
+    const tagsByNoteId: Record<string, string[]> = {}
+    allTags.forEach((tag) => {
+      if (!tagsByNoteId[tag.noteId]) {
+        tagsByNoteId[tag.noteId] = []
       }
-      noteTagsMap[tag.noteId].push(tag.name)
+      tagsByNoteId[tag.noteId].push(tag.name)
     })
 
-    // 转换笔记为MCP响应格式
-    const responses: McpNoteResponse[] = []
+    // 处理笔记内容
+    const processResult = await processNoteContent(noteIds)
+    const contentByNoteId: Record<string, string> = {}
 
-    for (const note of notes) {
-      // 处理笔记内容，提取纯文本
-      const processedContent = await extractNoteText(note)
+    // 假设processNoteContent返回的内容顺序与noteIds相同
+    noteIds.forEach((noteId, index) => {
+      contentByNoteId[noteId] = processResult.contextText.split('\n\n')[index] || ''
+    })
 
-      responses.push({
-        id: note.id,
-        title: note.title || '',
-        address: note.address || '',
-        content: processedContent,
-        cardType: note.cardType,
-        tags: noteTagsMap[note.id] || [],
-        createdAt: note.createdAt.toISOString(),
-        updatedAt: note.updatedAt.toISOString(),
-        metadata: note.metadata || {}
-      })
-    }
-
-    return responses
-  } catch (error) {
-    log.error('MCP搜索笔记失败:', error)
-    throw error
-  }
-}
-
-/**
- * 获取单个笔记详情
- * @param noteId 笔记ID
- * @returns 笔记详情
- */
-export async function getNoteById(noteId: string): Promise<McpNoteResponse | null> {
-  try {
-    const note = (await db('notes').where({ id: noteId, isDeleted: false }).first()) as Note
-
-    if (!note) {
-      return null
-    }
-
-    // 获取笔记标签
-    const tags = await db('note_tags')
-      .join('tags', 'note_tags.tagId', 'tags.id')
-      .where('note_tags.noteId', noteId)
-      .select('tags.name')
-      .then((rows) => rows.map((row) => row.name))
-
-    // 处理笔记内容，提取纯文本
-    const processedContent = await extractNoteText(note)
-
-    return {
+    // 格式化响应
+    return notes.map((note) => ({
       id: note.id,
       title: note.title || '',
       address: note.address || '',
-      content: processedContent,
-      cardType: note.cardType,
-      tags,
-      createdAt: note.createdAt.toISOString(),
-      updatedAt: note.updatedAt.toISOString(),
-      metadata: note.metadata || {}
-    }
+      content: contentByNoteId[note.id] || '',
+      cardType: note.cardType || '',
+      tags: tagsByNoteId[note.id] || [],
+      createdAt: note.createdAt,
+      updatedAt: note.updatedAt
+    }))
   } catch (error) {
-    log.error('MCP获取笔记详情失败:', error)
-    throw error
-  }
-}
-
-/**
- * 初始化MCP服务
- * 创建必要的数据库表
- */
-export async function initMcpService(): Promise<void> {
-  try {
-    // 检查并创建API密钥表
-    const hasTable = await db.schema.hasTable('mcp_api_keys')
-    if (!hasTable) {
-      await db.schema.createTable('mcp_api_keys', (table) => {
-        table.string('id').primary()
-        table.string('name').notNullable()
-        table.string('key').notNullable().unique()
-        table.datetime('createdAt').notNullable()
-        table.datetime('lastUsedAt').nullable()
-        table.boolean('isActive').notNullable().defaultTo(true)
-      })
-
-      log.info('创建MCP API密钥表成功')
-    }
-  } catch (error) {
-    log.error('初始化MCP服务失败:', error)
-    throw error
+    log.error('搜索笔记失败:', error)
+    return []
   }
 }

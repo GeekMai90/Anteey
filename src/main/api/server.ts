@@ -2,6 +2,8 @@ import express from 'express'
 import cors from 'cors'
 import { BrowserWindow } from 'electron'
 import { createNoteViaApi } from '../../services/notes/notesService'
+import mcpRoutes from './mcpRoutes'
+import log from 'electron-log'
 
 // 声明全局 mainWindow 类型
 declare global {
@@ -16,6 +18,10 @@ const API_PORT = 43211 // 选择一个固定端口
 // 中间件
 server.use(express.json())
 server.use(cors({ origin: '*' }))
+
+// 注册MCP路由
+server.use('/api/mcp', mcpRoutes)
+log.info('MCP API路由已注册')
 
 // API路由
 server.post('/api/notes', (req: express.Request, res: express.Response): void => {
@@ -73,5 +79,6 @@ server.post('/api/notes', (req: express.Request, res: express.Response): void =>
 export function startApiServer() {
   server.listen(API_PORT, '127.0.0.1', () => {
     console.log(`API服务器运行在 http://127.0.0.1:${API_PORT}`)
+    log.info(`API服务器运行在 http://127.0.0.1:${API_PORT}`)
   })
 }
