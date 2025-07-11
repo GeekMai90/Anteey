@@ -91,7 +91,7 @@
               </div>
               <div class="key-actions">
                 <Switch
-                  :model-value="key.isActive"
+                  :model-value="Boolean(key.isActive)"
                   @update:model-value="(val) => handleToggleKeyStatus(key.id, val)"
                 />
                 <Button type="text" size="small" @click="startEditKeyName(key)"> 重命名 </Button>

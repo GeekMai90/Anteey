@@ -5,9 +5,10 @@
  */
 
 import { db } from '../../db/config'
-import log from 'electron-log'
+// import log from 'electron-log'
 import { v4 as uuidv4 } from 'uuid'
 import { processNoteContentForMcp } from '../aiChat/ProcessNoteContent'
+import { LLMService } from '../rag/llmService'
 import http from 'http'
 
 // MCP API密钥类型
@@ -52,6 +53,20 @@ export interface McpServiceStatus {
   url: string
 }
 
+// AI搜索增强配置
+interface AiSearchConfig {
+  enabled: boolean
+  maxKeywords: number
+  timeoutMs: number
+}
+
+// 默认AI搜索配置
+const DEFAULT_AI_SEARCH_CONFIG: AiSearchConfig = {
+  enabled: true,
+  maxKeywords: 6,
+  timeoutMs: 5000 // 5秒超时
+}
+
 /**
  * 创建新的API密钥
  * @param name API密钥名称
@@ -76,7 +91,7 @@ export async function createApiKey(name: string): Promise<McpApiKey> {
     isActive: apiKey.isActive
   })
 
-  log.info(`已创建API密钥: ${apiKey.name}`)
+  // log.info(`已创建API密钥: ${apiKey.name}`)
   return apiKey
 }
 
@@ -114,7 +129,7 @@ export async function getApiKeys(): Promise<McpApiKey[]> {
  */
 export async function deleteApiKey(id: string): Promise<void> {
   await db('mcp_api_keys').where('id', id).delete()
-  log.info(`已删除API密钥: ${id}`)
+  // log.info(`已删除API密钥: ${id}`)
 }
 
 /**
@@ -124,7 +139,7 @@ export async function deleteApiKey(id: string): Promise<void> {
  */
 export async function updateApiKeyStatus(id: string, isActive: boolean): Promise<void> {
   await db('mcp_api_keys').where('id', id).update({ isActive })
-  log.info(`已更新API密钥状态: ${id}, isActive: ${isActive}`)
+  // log.info(`已更新API密钥状态: ${id}, isActive: ${isActive}`)
 }
 
 /**
@@ -134,7 +149,7 @@ export async function updateApiKeyStatus(id: string, isActive: boolean): Promise
  */
 export async function renameApiKey(id: string, name: string): Promise<void> {
   await db('mcp_api_keys').where('id', id).update({ name })
-  log.info(`已重命名API密钥: ${id}, name: ${name}`)
+  // log.info(`已重命名API密钥: ${id}, name: ${name}`)
 }
 
 /**
@@ -155,7 +170,7 @@ export async function validateApiKey(key: string): Promise<boolean> {
 
     return true
   } catch (error) {
-    log.error('验证API密钥失败:', error)
+    // log.error('验证API密钥失败:', error)
     return false
   }
 }
@@ -190,7 +205,7 @@ export async function getServiceStatus(): Promise<McpServiceStatus> {
       })
     })
   } catch (error) {
-    log.warn('检测MCP服务状态失败:', error)
+    // log.warn('检测MCP服务状态失败:', error)
     isRunning = false
   }
 
@@ -239,22 +254,22 @@ export async function getNoteById(id: string): Promise<McpNoteResponse | null> {
     }
 
     // 添加详细日志记录返回给MCP的笔记内容
-    log.info('MCP返回单个笔记详细内容:', {
-      noteId: result.id,
-      title: result.title,
-      address: result.address,
-      cardType: result.cardType,
-      tags: result.tags,
-      contentLength: result.content.length,
-      contentPreview: result.content.substring(0, 200) + (result.content.length > 200 ? '...' : ''),
-      fullContent: result.content, // 完整内容
-      createdAt: result.createdAt,
-      updatedAt: result.updatedAt
-    })
+    // log.info('MCP返回单个笔记详细内容:', {
+    //   noteId: result.id,
+    //   title: result.title,
+    //   address: result.address,
+    //   cardType: result.cardType,
+    //   tags: result.tags,
+    //   contentLength: result.content.length,
+    //   contentPreview: result.content.substring(0, 200) + (result.content.length > 200 ? '...' : ''),
+    //   fullContent: result.content, // 完整内容
+    //   createdAt: result.createdAt,
+    //   updatedAt: result.updatedAt
+    // })
 
     return result
   } catch (error) {
-    log.error('获取笔记失败:', error)
+    // log.error('获取笔记失败:', error)
     return null
   }
 }
@@ -309,11 +324,12 @@ export async function searchNotes(params: McpQueryParams): Promise<McpNoteRespon
 
     // 应用文本搜索
     if (query) {
+      // 使用默认AI搜索配置
+      const aiConfig = DEFAULT_AI_SEARCH_CONFIG
+      const expandedKeywords = await expandQueryWithAI(query, aiConfig)
+
       notesQuery = notesQuery.where((builder) => {
-        builder
-          .where('notes.title', 'like', `%${query}%`)
-          .orWhere('notes.content', 'like', `%${query}%`)
-          .orWhere('notes.address', 'like', `%${query}%`)
+        buildEnhancedQuery(query, expandedKeywords, builder)
       })
     }
 
@@ -361,57 +377,254 @@ export async function searchNotes(params: McpQueryParams): Promise<McpNoteRespon
     }))
 
     // 添加详细日志记录返回给MCP的搜索结果
-    log.info('MCP搜索笔记结果概览:', {
-      searchQuery: query,
-      foundCount: results.length,
-      requestedLimit: limit,
-      offset,
-      filterTags: tags,
-      filterCardTypes: cardTypes,
-      filterCardBoxId: cardBoxId,
-      filterStartDate: startDate,
-      filterEndDate: endDate
-    })
+    // log.info('MCP搜索笔记结果概览:', {
+    //   searchQuery: query,
+    //   foundCount: results.length,
+    //   requestedLimit: limit,
+    //   offset,
+    //   filterTags: tags,
+    //   filterCardTypes: cardTypes,
+    //   filterCardBoxId: cardBoxId,
+    //   filterStartDate: startDate,
+    //   filterEndDate: endDate
+    // })
 
     // 记录每个笔记的详细内容
-    results.forEach((result, index) => {
-      log.info(`MCP搜索结果[${index + 1}/${results.length}]详细内容:`, {
-        noteId: result.id,
-        title: result.title,
-        address: result.address,
-        cardType: result.cardType,
-        tags: result.tags,
-        contentLength: result.content.length,
-        contentPreview:
-          result.content.substring(0, 200) + (result.content.length > 200 ? '...' : ''),
-        fullContent: result.content, // 完整内容
-        createdAt: result.createdAt,
-        updatedAt: result.updatedAt
-      })
-    })
+    // results.forEach((result, index) => {
+    //   log.info(`MCP搜索结果[${index + 1}/${results.length}]详细内容:`, {
+    //     noteId: result.id,
+    //     title: result.title,
+    //     address: result.address,
+    //     cardType: result.cardType,
+    //     tags: result.tags,
+    //     contentLength: result.content.length,
+    //     contentPreview:
+    //       result.content.substring(0, 200) + (result.content.length > 200 ? '...' : ''),
+    //     fullContent: result.content, // 完整内容
+    //     createdAt: result.createdAt,
+    //     updatedAt: result.updatedAt
+    //   })
+    // })
 
     // 记录最终API响应数据
-    const finalResponse = {
-      success: true,
-      data: results,
-      meta: {
-        count: results.length,
-        limit,
-        offset
-      }
-    }
-
-    log.info('MCP API最终响应数据:', {
-      responseSize: JSON.stringify(finalResponse).length,
-      notesCount: results.length,
-      totalContentLength: results.reduce((sum, note) => sum + note.content.length, 0),
-      responsePreview: JSON.stringify(finalResponse).substring(0, 500) + '...',
-      fullResponse: finalResponse // 完整响应数据
-    })
+    // log.info('MCP API最终响应数据:', {
+    //   responseSize: JSON.stringify(finalResponse).length,
+    //   notesCount: results.length,
+    //   totalContentLength: results.reduce((sum, note) => sum + note.content.length, 0),
+    //   responsePreview: JSON.stringify(finalResponse).substring(0, 500) + '...',
+    //   fullResponse: finalResponse // 完整响应数据
+    // })
 
     return results
   } catch (error) {
-    log.error('搜索笔记失败:', error)
+    // log.error('搜索笔记失败:', error)
     return []
+  }
+}
+
+/**
+ * 使用AI扩展搜索关键词
+ * @param query 原始查询词
+ * @param config AI搜索配置
+ * @returns 扩展后的关键词数组
+ */
+async function expandQueryWithAI(query: string, config: AiSearchConfig): Promise<string[]> {
+  if (!query.trim() || !config.enabled) {
+    console.log('AI关键词扩展跳过:', { query: query.trim(), enabled: config.enabled })
+    return [query]
+  }
+
+  try {
+    console.log('开始AI关键词扩展:', { originalQuery: query, config })
+
+    const llmService = new LLMService()
+
+    const prompt = `你是一个专业的笔记搜索助手。用户想要搜索笔记，你需要帮助扩展搜索关键词以找到更多相关内容。
+
+用户搜索: "${query}"
+
+请生成${config.maxKeywords - 1}个相关的搜索关键词，要求：
+✅ 同义词和近义词
+✅ 相关的英文术语
+✅ 上下位概念
+✅ 常见的表达方式
+❌ 避免过于宽泛的词
+❌ 避免不相关的词
+
+返回格式：纯文本，每行一个关键词，不要添加任何其他内容
+示例：
+护肤
+肌肤保养
+skincare
+美容
+化妆品`
+
+    // 设置超时控制
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => reject(new Error('AI调用超时')), config.timeoutMs)
+    })
+
+    const responsePromise = llmService.generateResponse(prompt)
+    const response = await Promise.race([responsePromise, timeoutPromise])
+
+    console.log('AI原始响应:', {
+      originalQuery: query,
+      responseLength: response.length,
+      response: response.substring(0, 500) + (response.length > 500 ? '...' : ''),
+      fullResponse: response
+    })
+
+    // 解析AI返回的关键词
+    const aiKeywords = parseAIKeywords(response)
+
+    console.log('AI关键词解析结果:', {
+      originalQuery: query,
+      aiKeywords,
+      aiKeywordsCount: aiKeywords.length
+    })
+
+    // 返回原查询词 + AI扩展词，限制总数量
+    const allKeywords = [query, ...aiKeywords]
+    const finalKeywords = allKeywords.slice(0, config.maxKeywords)
+
+    console.log('最终搜索关键词:', {
+      originalQuery: query,
+      finalKeywords,
+      totalCount: finalKeywords.length,
+      maxKeywords: config.maxKeywords
+    })
+
+    return finalKeywords
+  } catch (error) {
+    // AI调用失败时返回原查询词
+    console.warn('AI关键词扩展失败，使用原查询词:', {
+      originalQuery: query,
+      error: error instanceof Error ? error.message : String(error)
+    })
+    return [query]
+  }
+}
+
+/**
+ * 解析AI返回的关键词
+ * @param response AI响应文本
+ * @returns 关键词数组
+ */
+function parseAIKeywords(response: string): string[] {
+  try {
+    // 首先尝试解析JSON格式
+    if (response.includes('[') && response.includes(']')) {
+      const jsonMatch = response.match(/\[.*?\]/s)
+      if (jsonMatch) {
+        const parsed = JSON.parse(jsonMatch[0])
+        if (Array.isArray(parsed)) {
+          return parsed.filter((item) => typeof item === 'string' && item.trim().length > 0)
+        }
+      }
+    }
+
+    // 按行分割的纯文本格式
+    const lines = response
+      .split('\n')
+      .map((line) => line.trim())
+      .filter((line) => {
+        // 过滤掉空行、数字开头、特殊符号开头的行
+        return (
+          line.length > 0 &&
+          !line.match(/^\d+[.)]\s*/) && // 数字列表
+          !line.match(/^[-*+]\s*/) && // 符号列表
+          !line.match(/^[：:：]\s*/) && // 冒号开头
+          line.length <= 20
+        ) // 避免过长的文本
+      })
+
+    return lines.slice(0, 8) // 最多返回8个关键词
+  } catch (error) {
+    console.warn('解析AI关键词失败:', error)
+    return []
+  }
+}
+
+/**
+ * 构建增强查询条件
+ * @param originalQuery 原始查询
+ * @param expandedKeywords 扩展关键词
+ * @param builder 查询构建器
+ */
+function buildEnhancedQuery(originalQuery: string, expandedKeywords: string[], builder: any) {
+  if (expandedKeywords.length <= 1) {
+    // 没有扩展关键词，使用原始查询逻辑
+    builder
+      .where('notes.title', 'like', `%${originalQuery}%`)
+      .orWhere('notes.content', 'like', `%${originalQuery}%`)
+      .orWhere('notes.address', 'like', `%${originalQuery}%`)
+  } else {
+    // 有扩展关键词，使用OR查询
+    expandedKeywords.forEach((keyword, index) => {
+      const method = index === 0 ? 'where' : 'orWhere'
+      builder[method]((subBuilder: any) => {
+        subBuilder
+          .where('notes.title', 'like', `%${keyword}%`)
+          .orWhere('notes.content', 'like', `%${keyword}%`)
+          .orWhere('notes.address', 'like', `%${keyword}%`)
+      })
+    })
+  }
+}
+
+/**
+ * 获取AI搜索配置
+ * @returns AI搜索配置
+ */
+export async function getAiSearchConfig(): Promise<AiSearchConfig> {
+  // 直接返回默认配置，后续可以通过应用设置页面管理
+  return DEFAULT_AI_SEARCH_CONFIG
+}
+
+/**
+ * 更新AI搜索配置
+ * @param config 新的配置
+ */
+export async function updateAiSearchConfig(
+  config: Partial<AiSearchConfig>
+): Promise<AiSearchConfig> {
+  // 暂时返回合并后的配置，实际使用默认配置
+  // 后续可以集成到应用设置中
+  const newConfig = { ...DEFAULT_AI_SEARCH_CONFIG, ...config }
+  return newConfig
+}
+
+/**
+ * 测试AI搜索功能
+ * @param testQuery 测试查询
+ * @returns 测试结果
+ */
+export async function testAiSearch(testQuery: string = '测试'): Promise<{
+  success: boolean
+  originalQuery: string
+  expandedKeywords: string[]
+  error?: string
+  duration: number
+}> {
+  const startTime = Date.now()
+
+  try {
+    const config = await getAiSearchConfig()
+    const expandedKeywords = await expandQueryWithAI(testQuery, config)
+
+    return {
+      success: true,
+      originalQuery: testQuery,
+      expandedKeywords,
+      duration: Date.now() - startTime
+    }
+  } catch (error) {
+    return {
+      success: false,
+      originalQuery: testQuery,
+      expandedKeywords: [testQuery],
+      error: error instanceof Error ? error.message : String(error),
+      duration: Date.now() - startTime
+    }
   }
 }

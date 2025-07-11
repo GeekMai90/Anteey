@@ -71,7 +71,8 @@ import {
   PlasticSurgery,
   NotebookAndPen,
   Mail,
-  PictureOne
+  PictureOne,
+  Api
 } from '@icon-park/vue-next'
 import BackupSettings from './pages/BackupSettings.vue'
 import ShortcutsSettings from './pages/ShortcutsSettings.vue'
@@ -105,7 +106,7 @@ const menuItems = [
   { key: 'letter', label: '每日来信', icon: Mail },
   { key: 'threeSync', label: '三方同步', icon: Inbox },
   { key: 'license', label: '软件激活', icon: CrownThree },
-  { key: 'mcp', label: 'MCP 设置', icon: SettingTwo }
+  { key: 'mcp', label: 'MCP 服务', icon: Api }
 ]
 
 const currentMenuItem = ref('appearance')

@@ -268,38 +268,5 @@ router.get('/notes/:id', async (req: express.Request, res: express.Response): Pr
   }
 })
 
-// 获取服务状态接口
-router.get('/status', async (_req: express.Request, res: express.Response): Promise<void> => {
-  try {
-    const status = await mcpService.getServiceStatus()
-
-    // 设置响应头
-    res.setHeader('Content-Type', 'application/json')
-    res.status(200)
-
-    // 发送响应
-    res.end(
-      JSON.stringify({
-        success: true,
-        data: status
-      })
-    )
-  } catch (error) {
-    log.error('获取服务状态失败:', error)
-
-    // 设置错误响应头
-    res.setHeader('Content-Type', 'application/json')
-    res.status(500)
-
-    // 发送错误响应
-    res.end(
-      JSON.stringify({
-        success: false,
-        error: '获取服务状态时出错'
-      })
-    )
-  }
-})
-
 // 导出路由
 export default router

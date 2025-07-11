@@ -323,16 +323,16 @@ export async function processNoteContentForMcp(noteIds: string[]): Promise<McpPr
         }
 
         // 记录每个笔记的处理结果
-        log.info('MCP处理单个笔记结果:', {
-          noteId: processedNote.id,
-          title: processedNote.title,
-          address: processedNote.address,
-          processedContentLength: processedNote.content.length,
-          contentPreview:
-            processedNote.content.substring(0, 200) +
-            (processedNote.content.length > 200 ? '...' : ''),
-          fullProcessedContent: processedNote.content // 完整处理后的内容
-        })
+        // log.info('MCP处理单个笔记结果:', {
+        //   noteId: processedNote.id,
+        //   title: processedNote.title,
+        //   address: processedNote.address,
+        //   processedContentLength: processedNote.content.length,
+        //   contentPreview:
+        //     processedNote.content.substring(0, 200) +
+        //     (processedNote.content.length > 200 ? '...' : ''),
+        //   fullProcessedContent: processedNote.content // 完整处理后的内容
+        // })
 
         return processedNote
       } catch (error) {
@@ -349,9 +349,9 @@ export async function processNoteContentForMcp(noteIds: string[]): Promise<McpPr
       }
     })
 
-    log.info('MCP笔记内容处理完成:', {
-      processedCount: processedNotes.length
-    })
+    // log.info('MCP笔记内容处理完成:', {
+    //   processedCount: processedNotes.length
+    // })
 
     return {
       processedNotes
