@@ -105,8 +105,8 @@ const menuItems = [
   { key: 'editor', label: '编辑器', icon: Edit },
   { key: 'letter', label: '每日来信', icon: Mail },
   { key: 'threeSync', label: '三方同步', icon: Inbox },
-  { key: 'license', label: '软件激活', icon: CrownThree },
-  { key: 'mcp', label: 'MCP 服务', icon: Api }
+  { key: 'mcp', label: 'MCP 服务', icon: Api },
+  { key: 'license', label: '软件激活', icon: CrownThree }
 ]
 
 const currentMenuItem = ref('appearance')

@@ -256,15 +256,13 @@ const handleRegister = () => {
 
 // 初始化认证状态
 onMounted(async () => {
-  console.log('LicenseSettings→ 组件挂载')
   await authStore.initAuth()
-  console.log('LicenseSettings→ 认证初始化完成')
 })
 
 // 组件挂载时获取机器码、许可证状态和笔记数量
 onMounted(async () => {
   await licenseStore.getMachineId()
-  await licenseStore.checkLicenseStatus()
+  // await licenseStore.checkLicenseStatus() // 旧的本地激活系统，已弃用
   noteCount.value = await noteStore.getNoteCount()
 })
 </script>
