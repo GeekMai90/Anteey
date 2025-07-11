@@ -1,13 +1,25 @@
 <template>
   <div class="mcp-settings">
-    <div class="mcp-content">
+    <div class="settings-content-header">
+      <div class="icon">
+        <Api theme="outline" size="20" fill="var(--color-icon-primary)" :strokeWidth="3" />
+      </div>
+      <div class="name">MCP 服务</div>
+    </div>
+    <div class="settings-content-divider"></div>
+
+    <!-- 使用 Description 组件 -->
+    <Description
+      :text="[
+        'MCP（Multimodal Context Preservation）服务允许外部AI助手（如Raycast、Cursor等）通过API访问Anteey的笔记内容作为上下文。'
+      ]"
+    />
+
+    <div class="mcp-settings-content">
       <!-- MCP服务状态 -->
-      <div class="mcp-item">
+      <div class="settings-item">
         <div class="title">MCP 服务状态</div>
-        <div class="description">
-          MCP（Multimodal Context
-          Preservation）服务允许外部AI助手（如Raycast、Cursor等）通过API访问Anteey的笔记内容作为上下文。
-        </div>
+        <div class="description">查看当前 MCP 服务的运行状态和相关信息。</div>
         <div class="service-status">
           <div class="status-item">
             <div class="label">服务状态</div>
@@ -26,29 +38,11 @@
             <div class="label">服务端口</div>
             <div class="value">{{ mcpStore.serviceStatus?.port || '未知' }}</div>
           </div>
-          <div class="status-item">
-            <div class="label">活跃API密钥</div>
-            <div class="value">{{ mcpStore.serviceStatus?.activeKeys || 0 }}</div>
-          </div>
-          <div class="status-item">
-            <div class="label">总请求次数</div>
-            <div class="value">{{ mcpStore.serviceStatus?.totalRequests || 0 }}</div>
-          </div>
-          <div class="status-item">
-            <div class="label">最近请求时间</div>
-            <div class="value">
-              {{
-                mcpStore.serviceStatus?.lastRequestAt
-                  ? new Date(mcpStore.serviceStatus.lastRequestAt).toLocaleString('zh-CN')
-                  : '无'
-              }}
-            </div>
-          </div>
         </div>
       </div>
 
       <!-- API密钥管理 -->
-      <div class="mcp-item">
+      <div class="settings-item">
         <div class="title">API 密钥管理</div>
         <div class="description">
           创建和管理用于访问MCP服务的API密钥。每个密钥可以用于不同的应用或服务。
@@ -87,7 +81,6 @@
                 </div>
                 <div class="key-value">
                   <span>{{ key.key }}</span>
-                  <Button type="text" size="small" @click="copyToClipboard(key.key)"> 复制 </Button>
                 </div>
                 <div class="key-meta">
                   <span>创建于: {{ new Date(key.createdAt).toLocaleString('zh-CN') }}</span>
@@ -102,51 +95,12 @@
                   @update:model-value="(val) => handleToggleKeyStatus(key.id, val)"
                 />
                 <Button type="text" size="small" @click="startEditKeyName(key)"> 重命名 </Button>
+                <Button type="text" size="small" @click="copyToClipboard(key.key)"> 复制 </Button>
                 <Button type="text" size="small" danger @click="handleDeleteKey(key.id)">
                   删除
                 </Button>
               </div>
             </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- API使用说明 -->
-      <div class="mcp-item">
-        <div class="title">API 使用说明</div>
-        <div class="description">如何在外部应用中使用MCP API访问Anteey的笔记内容。</div>
-        <div class="api-docs">
-          <div class="api-endpoint">
-            <div class="endpoint-title">验证API密钥</div>
-            <div class="endpoint-url">
-              POST http://localhost:{{ mcpStore.serviceStatus?.port || '3690' }}/api/mcp/auth/verify
-            </div>
-            <div class="endpoint-desc">
-              在请求头中添加 <code>X-API-KEY</code> 字段，值为您的API密钥。
-            </div>
-          </div>
-          <div class="api-endpoint">
-            <div class="endpoint-title">搜索笔记</div>
-            <div class="endpoint-url">
-              GET http://localhost:{{
-                mcpStore.serviceStatus?.port || '3690'
-              }}/api/mcp/notes/search?query=关键词
-            </div>
-            <div class="endpoint-desc">搜索笔记内容，返回匹配的笔记列表。</div>
-          </div>
-          <div class="api-endpoint">
-            <div class="endpoint-title">获取单个笔记</div>
-            <div class="endpoint-url">
-              GET http://localhost:{{ mcpStore.serviceStatus?.port || '3690' }}/api/mcp/notes/:id
-            </div>
-            <div class="endpoint-desc">获取指定ID的笔记详细内容。</div>
-          </div>
-          <div class="api-endpoint">
-            <div class="endpoint-title">获取最近笔记</div>
-            <div class="endpoint-url">
-              GET http://localhost:{{ mcpStore.serviceStatus?.port || '3690' }}/api/mcp/notes/recent
-            </div>
-            <div class="endpoint-desc">获取最近编辑的笔记列表。</div>
           </div>
         </div>
       </div>
@@ -156,11 +110,13 @@
 
 <script setup lang="ts">
 import { ref, onMounted, nextTick } from 'vue'
+import { Api } from '@icon-park/vue-next'
 import { useMcpStore } from '@renderer/stores/mcpStore'
 import Input from '@renderer/components/ui/Input.vue'
 import Button from '@renderer/components/ui/buttons/Button.vue'
 import Switch from '@renderer/components/ui/switch/Switch.vue'
 import LoadingCircle from '@renderer/components/ui/loaders/LoadingCircle.vue'
+import Description from '@renderer/components/ui/Description.vue'
 import { message } from '@renderer/utils/message'
 
 // 使用MCP Store
@@ -265,36 +221,102 @@ const copyToClipboard = (text: string) => {
 .mcp-settings {
   width: 100%;
   height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
 }
 
-.mcp-content {
+.settings-content-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 10px;
+  padding: 0 20px;
+
+  .icon {
+    background: none;
+    border: 1px solid var(--color-border);
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    padding: 4px;
+    border-radius: 6px;
+
+    :deep(.i-icon) {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      height: 100%;
+    }
+
+    svg {
+      width: 20px;
+      height: 20px;
+    }
+  }
+
+  .name {
+    font-size: 20px;
+    line-height: 1;
+    font-weight: 500;
+    user-select: none;
+  }
+}
+
+.settings-content-divider {
+  height: 1px;
+  background-color: var(--color-border);
+  margin-bottom: 10px;
   width: 100%;
+  opacity: 1;
+  flex-shrink: 0;
+}
+
+.mcp-settings-content {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  padding: 0 20px;
+  overflow-y: auto;
+  padding-bottom: 58px;
+}
+
+.settings-item {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  margin-top: 4px;
+  margin-bottom: 24px;
   padding: 0 10px;
 
-  .mcp-item {
-    width: 100%;
-    margin-bottom: 30px;
+  .title {
+    font-size: 18px;
+    line-height: 1;
+    color: var(--color-text-primary);
+    font-weight: 500;
+    user-select: none;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    margin-bottom: 10px;
+  }
 
-    &:last-child {
-      margin-bottom: 0;
-    }
-
-    .title {
-      font-size: 16px;
-      line-height: 1;
-      color: var(--color-text-primary);
-      font-weight: 500;
-      margin-bottom: 12px;
-      user-select: none;
-    }
-
-    .description {
-      font-size: 13px;
-      line-height: 1.4;
-      color: var(--color-text-secondary);
-      margin-bottom: 15px;
-      user-select: none;
-    }
+  .description {
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--color-text-secondary);
+    margin-bottom: 15px;
+    user-select: none;
   }
 }
 
@@ -302,7 +324,7 @@ const copyToClipboard = (text: string) => {
   background-color: var(--color-fill-secondary);
   border-radius: 6px;
   padding: 15px;
-  margin-bottom: 20px;
+  width: 100%;
 
   .status-item {
     display: flex;
@@ -338,12 +360,15 @@ const copyToClipboard = (text: string) => {
   display: flex;
   gap: 10px;
   margin-bottom: 20px;
+  width: 100%;
+  align-items: center;
 }
 
 .api-keys-list {
   border: 1px solid var(--color-border);
   border-radius: 6px;
   overflow: hidden;
+  width: 100%;
 
   .loading-state,
   .empty-state {
@@ -403,55 +428,8 @@ const copyToClipboard = (text: string) => {
     .key-actions {
       display: flex;
       align-items: center;
+      justify-content: center;
       gap: 10px;
-    }
-  }
-}
-
-.api-docs {
-  background-color: var(--color-fill-secondary);
-  border-radius: 6px;
-  padding: 15px;
-
-  .api-endpoint {
-    margin-bottom: 15px;
-    padding-bottom: 15px;
-    border-bottom: 1px solid var(--color-border);
-
-    &:last-child {
-      margin-bottom: 0;
-      padding-bottom: 0;
-      border-bottom: none;
-    }
-
-    .endpoint-title {
-      font-size: 14px;
-      font-weight: 500;
-      color: var(--color-text-primary);
-      margin-bottom: 5px;
-    }
-
-    .endpoint-url {
-      font-family: monospace;
-      background-color: var(--color-fill-tertiary);
-      padding: 8px 10px;
-      border-radius: 4px;
-      font-size: 13px;
-      margin-bottom: 5px;
-      overflow-x: auto;
-      white-space: nowrap;
-    }
-
-    .endpoint-desc {
-      font-size: 13px;
-      color: var(--color-text-secondary);
-
-      code {
-        background-color: var(--color-fill-tertiary);
-        padding: 2px 4px;
-        border-radius: 3px;
-        font-family: monospace;
-      }
     }
   }
 }

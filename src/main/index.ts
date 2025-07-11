@@ -819,7 +819,14 @@ app.whenReady().then(async () => {
     // }
 
     // 启动API服务器
-    startApiServer()
+    try {
+      await startApiServer()
+      log.info('MCP API服务器启动成功')
+    } catch (error) {
+      log.error('MCP API服务器启动失败:', error)
+      console.error('MCP API服务器启动失败:', error)
+      // 不要因为API服务器启动失败而阻止应用启动
+    }
 
     // 注册默认命令
     registerDefaultCommands()

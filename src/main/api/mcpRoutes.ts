@@ -86,44 +86,47 @@ router.use(logRequest)
 router.use(validateApiKey)
 
 // 验证API密钥接口
-router.post('/auth/verify', (req: express.Request, res: express.Response): void => {
+router.post('/auth/verify', async (req: express.Request, res: express.Response): Promise<void> => {
   try {
     const { apiKey } = req.body
 
     if (!apiKey) {
-      res.status(400).json({
-        success: false,
-        error: '缺少API密钥'
-      })
+      res.setHeader('Content-Type', 'application/json')
+      res.status(400)
+      res.end(
+        JSON.stringify({
+          success: false,
+          error: '缺少API密钥'
+        })
+      )
       return
     }
 
-    mcpService
-      .validateApiKey(apiKey)
-      .then((isValid) => {
-        res.json({
-          valid: isValid,
-          expires: null // 目前不支持过期时间
-        })
+    const isValid = await mcpService.validateApiKey(apiKey)
+
+    res.setHeader('Content-Type', 'application/json')
+    res.status(200)
+    res.end(
+      JSON.stringify({
+        valid: isValid,
+        expires: null // 目前不支持过期时间
       })
-      .catch((error) => {
-        log.error('验证API密钥失败:', error)
-        res.status(500).json({
-          success: false,
-          error: '服务器内部错误'
-        })
-      })
+    )
   } catch (error) {
     log.error('验证API密钥失败:', error)
-    res.status(500).json({
-      success: false,
-      error: '服务器内部错误'
-    })
+    res.setHeader('Content-Type', 'application/json')
+    res.status(500)
+    res.end(
+      JSON.stringify({
+        success: false,
+        error: '服务器内部错误'
+      })
+    )
   }
 })
 
 // 搜索笔记接口
-router.get('/notes/search', (req: express.Request, res: express.Response): void => {
+router.get('/notes/search', async (req: express.Request, res: express.Response): Promise<void> => {
   try {
     // 解析查询参数
     const query = (req.query.query as string) || ''
@@ -140,150 +143,161 @@ router.get('/notes/search', (req: express.Request, res: express.Response): void 
     const endDate = req.query.endDate as string
 
     // 调用服务方法进行搜索
-    mcpService
-      .searchNotes({
-        query,
-        limit,
-        offset,
-        tags,
-        cardTypes,
-        cardBoxId,
-        startDate,
-        endDate
+    const notes = await mcpService.searchNotes({
+      query,
+      limit,
+      offset,
+      tags,
+      cardTypes,
+      cardBoxId,
+      startDate,
+      endDate
+    })
+
+    res.setHeader('Content-Type', 'application/json')
+    res.status(200)
+    res.end(
+      JSON.stringify({
+        success: true,
+        data: notes,
+        meta: {
+          count: notes.length,
+          limit,
+          offset
+        }
       })
-      .then((notes) => {
-        res.json({
-          success: true,
-          data: notes,
-          meta: {
-            count: notes.length,
-            limit,
-            offset
-          }
-        })
-      })
-      .catch((error) => {
-        log.error('搜索笔记失败:', error)
-        res.status(500).json({
-          success: false,
-          error: '搜索笔记时出错'
-        })
-      })
+    )
   } catch (error) {
     log.error('搜索笔记失败:', error)
-    res.status(500).json({
-      success: false,
-      error: '搜索笔记时出错'
-    })
+    res.setHeader('Content-Type', 'application/json')
+    res.status(500)
+    res.end(
+      JSON.stringify({
+        success: false,
+        error: '搜索笔记时出错'
+      })
+    )
   }
 })
 
 // 获取最近更新的笔记接口
-router.get('/notes/recent', (req: express.Request, res: express.Response): void => {
+router.get('/notes/recent', async (req: express.Request, res: express.Response): Promise<void> => {
   try {
     const limit = parseInt(req.query.limit as string) || 10
 
     // 调用服务方法获取最近更新的笔记
-    mcpService
-      .searchNotes({
-        limit,
-        offset: 0
+    const notes = await mcpService.searchNotes({
+      limit,
+      offset: 0
+    })
+
+    res.setHeader('Content-Type', 'application/json')
+    res.status(200)
+    res.end(
+      JSON.stringify({
+        success: true,
+        data: notes,
+        meta: {
+          count: notes.length,
+          limit
+        }
       })
-      .then((notes) => {
-        res.json({
-          success: true,
-          data: notes,
-          meta: {
-            count: notes.length,
-            limit
-          }
-        })
-      })
-      .catch((error) => {
-        log.error('获取最近笔记失败:', error)
-        res.status(500).json({
-          success: false,
-          error: '获取最近笔记时出错'
-        })
-      })
+    )
   } catch (error) {
     log.error('获取最近笔记失败:', error)
-    res.status(500).json({
-      success: false,
-      error: '获取最近笔记时出错'
-    })
+    res.setHeader('Content-Type', 'application/json')
+    res.status(500)
+    res.end(
+      JSON.stringify({
+        success: false,
+        error: '获取最近笔记时出错'
+      })
+    )
   }
 })
 
 // 获取单个笔记接口
-router.get('/notes/:id', (req: express.Request, res: express.Response): void => {
+router.get('/notes/:id', async (req: express.Request, res: express.Response): Promise<void> => {
   try {
     const noteId = req.params.id
 
     if (!noteId) {
-      res.status(400).json({
-        success: false,
-        error: '缺少笔记ID'
-      })
+      res.setHeader('Content-Type', 'application/json')
+      res.status(400)
+      res.end(
+        JSON.stringify({
+          success: false,
+          error: '缺少笔记ID'
+        })
+      )
       return
     }
 
-    mcpService
-      .getNoteById(noteId)
-      .then((note) => {
-        if (!note) {
-          res.status(404).json({
-            success: false,
-            error: '笔记不存在'
-          })
-          return
-        }
+    const note = await mcpService.getNoteById(noteId)
 
-        res.json({
-          success: true,
-          data: note
-        })
-      })
-      .catch((error) => {
-        log.error('获取笔记失败:', error)
-        res.status(500).json({
+    if (!note) {
+      res.setHeader('Content-Type', 'application/json')
+      res.status(404)
+      res.end(
+        JSON.stringify({
           success: false,
-          error: '获取笔记时出错'
+          error: '笔记不存在'
         })
+      )
+      return
+    }
+
+    res.setHeader('Content-Type', 'application/json')
+    res.status(200)
+    res.end(
+      JSON.stringify({
+        success: true,
+        data: note
       })
+    )
   } catch (error) {
     log.error('获取笔记失败:', error)
-    res.status(500).json({
-      success: false,
-      error: '获取笔记时出错'
-    })
+    res.setHeader('Content-Type', 'application/json')
+    res.status(500)
+    res.end(
+      JSON.stringify({
+        success: false,
+        error: '获取笔记时出错'
+      })
+    )
   }
 })
 
 // 获取服务状态接口
-router.get('/status', (req: express.Request, res: express.Response): void => {
+router.get('/status', async (_req: express.Request, res: express.Response): Promise<void> => {
   try {
-    mcpService
-      .getServiceStatus()
-      .then((status) => {
-        res.json({
-          success: true,
-          data: status
-        })
+    const status = await mcpService.getServiceStatus()
+
+    // 设置响应头
+    res.setHeader('Content-Type', 'application/json')
+    res.status(200)
+
+    // 发送响应
+    res.end(
+      JSON.stringify({
+        success: true,
+        data: status
       })
-      .catch((error) => {
-        log.error('获取服务状态失败:', error)
-        res.status(500).json({
-          success: false,
-          error: '获取服务状态时出错'
-        })
-      })
+    )
   } catch (error) {
     log.error('获取服务状态失败:', error)
-    res.status(500).json({
-      success: false,
-      error: '获取服务状态时出错'
-    })
+
+    // 设置错误响应头
+    res.setHeader('Content-Type', 'application/json')
+    res.status(500)
+
+    // 发送错误响应
+    res.end(
+      JSON.stringify({
+        success: false,
+        error: '获取服务状态时出错'
+      })
+    )
   }
 })
 

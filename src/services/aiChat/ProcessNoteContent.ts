@@ -262,6 +262,7 @@ export async function processNoteContent(noteIds: string[]): Promise<ProcessResu
     }
 
     log.info('笔记内容处理完成:', {
+      processedNotes,
       processedCount: processedNotes.length,
       totalLength: contextText.length,
       referencesCount: references.notes.length
@@ -275,5 +276,88 @@ export async function processNoteContent(noteIds: string[]): Promise<ProcessResu
   } catch (error) {
     log.error('处理笔记内容时发生错误:', error)
     throw new Error('处理笔记内容失败')
+  }
+}
+
+// MCP专用的处理结果接口
+interface McpProcessResult {
+  processedNotes: ProcessedNoteResult[]
+}
+
+/**
+ * 专门为MCP服务处理笔记内容
+ * @param noteIds 笔记ID列表
+ * @returns MCP专用的处理结果
+ */
+export async function processNoteContentForMcp(noteIds: string[]): Promise<McpProcessResult> {
+  try {
+    log.info('开始为MCP处理笔记内容:', { noteCount: noteIds.length })
+
+    // 从数据库获取笔记
+    const notes = await db('notes')
+      .select('id', 'content', 'address', 'metadata')
+      .whereIn('id', noteIds)
+      .where('isDeleted', false)
+
+    log.info('MCP成功获取笔记:', {
+      foundCount: notes.length,
+      requestedCount: noteIds.length
+    })
+
+    // 处理每个笔记的内容
+    const processedNotes: ProcessedNoteResult[] = notes.map((note: Note) => {
+      try {
+        // 解析 JSON 内容
+        const contentObj =
+          typeof note.content === 'string' ? JSON.parse(note.content) : note.content
+        // 获取标题
+        const title = note.metadata?.title || '无标题'
+        // 处理内容 - 使用与原函数相同的处理逻辑
+        const plainContent = processContent(contentObj.content)
+
+        const processedNote = {
+          id: note.id,
+          title,
+          content: plainContent,
+          address: note.address
+        }
+
+        // 记录每个笔记的处理结果
+        log.info('MCP处理单个笔记结果:', {
+          noteId: processedNote.id,
+          title: processedNote.title,
+          address: processedNote.address,
+          processedContentLength: processedNote.content.length,
+          contentPreview:
+            processedNote.content.substring(0, 200) +
+            (processedNote.content.length > 200 ? '...' : ''),
+          fullProcessedContent: processedNote.content // 完整处理后的内容
+        })
+
+        return processedNote
+      } catch (error) {
+        log.error('MCP处理笔记内容失败:', {
+          noteId: note.id,
+          error
+        })
+        return {
+          id: note.id,
+          title: '处理失败的笔记',
+          content: '该笔记内容处理失败',
+          address: note.address
+        }
+      }
+    })
+
+    log.info('MCP笔记内容处理完成:', {
+      processedCount: processedNotes.length
+    })
+
+    return {
+      processedNotes
+    }
+  } catch (error) {
+    log.error('MCP处理笔记内容时发生错误:', error)
+    throw new Error('MCP处理笔记内容失败')
   }
 }

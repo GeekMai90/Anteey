@@ -5,9 +5,10 @@
  */
 
 import { db } from '../../db/config'
-import { v4 as uuidv4 } from 'uuid'
 import log from 'electron-log'
-import { processNoteContent } from '../aiChat/ProcessNoteContent'
+import { v4 as uuidv4 } from 'uuid'
+import { processNoteContentForMcp } from '../aiChat/ProcessNoteContent'
+import http from 'http'
 
 // MCP API密钥类型
 export interface McpApiKey {
@@ -166,8 +167,35 @@ export async function validateApiKey(key: string): Promise<boolean> {
 export async function getServiceStatus(): Promise<McpServiceStatus> {
   const apiKeysCount = await db('mcp_api_keys').count('* as count').first()
 
+  // 实际检测API服务器是否在运行
+  let isRunning = false
+  try {
+    await new Promise<void>((resolve) => {
+      const req = http.get('http://127.0.0.1:43211/health', (res: any) => {
+        if (res.statusCode === 200) {
+          isRunning = true
+        }
+        resolve()
+      })
+
+      req.on('error', () => {
+        isRunning = false
+        resolve()
+      })
+
+      req.setTimeout(3000, () => {
+        isRunning = false
+        req.destroy()
+        resolve()
+      })
+    })
+  } catch (error) {
+    log.warn('检测MCP服务状态失败:', error)
+    isRunning = false
+  }
+
   return {
-    isRunning: true,
+    isRunning,
     apiKeysCount: apiKeysCount ? Number(apiKeysCount.count) : 0,
     port: 43211,
     url: 'http://localhost:43211/api/mcp'
@@ -196,10 +224,10 @@ export async function getNoteById(id: string): Promise<McpNoteResponse | null> {
     const tags = noteTags.map((tag) => tag.name)
 
     // 处理笔记内容
-    const processResult = await processNoteContent([id])
-    const content = processResult.contextText
+    const processResult = await processNoteContentForMcp([id])
+    const content = processResult.processedNotes[0]?.content || ''
 
-    return {
+    const result = {
       id: note.id,
       title: note.title || '',
       address: note.address || '',
@@ -209,6 +237,22 @@ export async function getNoteById(id: string): Promise<McpNoteResponse | null> {
       createdAt: note.createdAt,
       updatedAt: note.updatedAt
     }
+
+    // 添加详细日志记录返回给MCP的笔记内容
+    log.info('MCP返回单个笔记详细内容:', {
+      noteId: result.id,
+      title: result.title,
+      address: result.address,
+      cardType: result.cardType,
+      tags: result.tags,
+      contentLength: result.content.length,
+      contentPreview: result.content.substring(0, 200) + (result.content.length > 200 ? '...' : ''),
+      fullContent: result.content, // 完整内容
+      createdAt: result.createdAt,
+      updatedAt: result.updatedAt
+    })
+
+    return result
   } catch (error) {
     log.error('获取笔记失败:', error)
     return null
@@ -296,16 +340,16 @@ export async function searchNotes(params: McpQueryParams): Promise<McpNoteRespon
     })
 
     // 处理笔记内容
-    const processResult = await processNoteContent(noteIds)
+    const processResult = await processNoteContentForMcp(noteIds)
     const contentByNoteId: Record<string, string> = {}
 
-    // 假设processNoteContent返回的内容顺序与noteIds相同
-    noteIds.forEach((noteId, index) => {
-      contentByNoteId[noteId] = processResult.contextText.split('\n\n')[index] || ''
+    // 使用processedNotes获取每个笔记的内容
+    processResult.processedNotes.forEach((processedNote) => {
+      contentByNoteId[processedNote.id] = processedNote.content
     })
 
     // 格式化响应
-    return notes.map((note) => ({
+    const results = notes.map((note) => ({
       id: note.id,
       title: note.title || '',
       address: note.address || '',
@@ -315,6 +359,57 @@ export async function searchNotes(params: McpQueryParams): Promise<McpNoteRespon
       createdAt: note.createdAt,
       updatedAt: note.updatedAt
     }))
+
+    // 添加详细日志记录返回给MCP的搜索结果
+    log.info('MCP搜索笔记结果概览:', {
+      searchQuery: query,
+      foundCount: results.length,
+      requestedLimit: limit,
+      offset,
+      filterTags: tags,
+      filterCardTypes: cardTypes,
+      filterCardBoxId: cardBoxId,
+      filterStartDate: startDate,
+      filterEndDate: endDate
+    })
+
+    // 记录每个笔记的详细内容
+    results.forEach((result, index) => {
+      log.info(`MCP搜索结果[${index + 1}/${results.length}]详细内容:`, {
+        noteId: result.id,
+        title: result.title,
+        address: result.address,
+        cardType: result.cardType,
+        tags: result.tags,
+        contentLength: result.content.length,
+        contentPreview:
+          result.content.substring(0, 200) + (result.content.length > 200 ? '...' : ''),
+        fullContent: result.content, // 完整内容
+        createdAt: result.createdAt,
+        updatedAt: result.updatedAt
+      })
+    })
+
+    // 记录最终API响应数据
+    const finalResponse = {
+      success: true,
+      data: results,
+      meta: {
+        count: results.length,
+        limit,
+        offset
+      }
+    }
+
+    log.info('MCP API最终响应数据:', {
+      responseSize: JSON.stringify(finalResponse).length,
+      notesCount: results.length,
+      totalContentLength: results.reduce((sum, note) => sum + note.content.length, 0),
+      responsePreview: JSON.stringify(finalResponse).substring(0, 500) + '...',
+      fullResponse: finalResponse // 完整响应数据
+    })
+
+    return results
   } catch (error) {
     log.error('搜索笔记失败:', error)
     return []
