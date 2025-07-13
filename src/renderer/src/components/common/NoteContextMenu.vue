@@ -97,7 +97,7 @@ const DEFAULT_MENU_CONFIG: Record<string, MenuItemConfig> = {
   },
   toggleIndex: {
     name: 'toggleIndex',
-    label: '添加索引',
+    label: '切换索引状态',
     icon: ListAlphabet,
     visible: true
   },
