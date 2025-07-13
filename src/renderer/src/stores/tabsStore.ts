@@ -58,11 +58,6 @@ export const useTabsStore = defineStore(
       try {
         const newTab = await window.electronAPI.tabs.addTab(params)
 
-        // 调试日志
-        console.log('创建新标签页:', params)
-        console.log('创建的标签页数据:', newTab)
-        console.log('标签页地址:', newTab.address)
-
         // 检查是否已存在相同内容的标签页
         const existingIndex = allTabs.value.findIndex(
           (tab) => tab.contentId === newTab.contentId && tab.type === newTab.type

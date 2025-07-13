@@ -85,11 +85,7 @@ export const useKnowledgeTreeStore = defineStore('knowledgeTree', () => {
   // 展开/折叠节点
   const toggleNode = async (node: KnowledgeTreeNode) => {
     try {
-      console.log('开始切换节点状态:', node)
-      console.log('当前展开的节点:', Array.from(expandedNodes.value))
-
       if (expandedNodes.value.has(node.id)) {
-        console.log('正在折叠节点')
         // 折叠节点
         expandedNodes.value.delete(node.id)
         updateNodeInTree(nodes.value, node.address, (targetNode) => {
@@ -97,17 +93,14 @@ export const useKnowledgeTreeStore = defineStore('knowledgeTree', () => {
           targetNode.isExpanded = false
         })
       } else {
-        console.log('正在展开节点')
         // 展开节点
         expandedNodes.value.add(node.id)
         const childNodes = await window.electronAPI.knowledgeTree.getChildNodes(node.address)
-        console.log('获取到的子节点:', childNodes)
 
         updateNodeInTree(nodes.value, node.address, (targetNode) => {
           targetNode.children = childNodes
           targetNode.isExpanded = true
         })
-        console.log('更新后的节点树:', nodes.value)
       }
     } catch (error) {
       console.error('切换节点状态失败:', error)
@@ -194,11 +187,8 @@ export const useKnowledgeTreeStore = defineStore('knowledgeTree', () => {
   // 聚焦节点并加载其子节点
   const focusNodeWithChildren = async (node: KnowledgeTreeNode) => {
     try {
-      console.log('开始聚焦节点:', node)
-
       // 获取子节点
       const childNodes = await window.electronAPI.knowledgeTree.getChildNodes(node.address)
-      console.log('获取到的子节点:', childNodes)
 
       // 创建聚焦的树节点，确保 id 属性存在
       const focusedTree: KnowledgeTreeNode = {
@@ -233,10 +223,7 @@ export const useKnowledgeTreeStore = defineStore('knowledgeTree', () => {
           ...pathNode,
           id: pathNode.address
         }))
-        console.log('更新后的面包屑路径:', parentPath.value)
       }
-
-      console.log('聚焦后的树结构:', focusedTree)
     } catch (error) {
       console.error('聚焦节点失败:', error)
       throw error
@@ -275,8 +262,6 @@ export const useKnowledgeTreeStore = defineStore('knowledgeTree', () => {
   // 创建相邻笔记
   const createAdjacentNote = async (noteId: string, direction: 'below' | 'child') => {
     try {
-      console.log('开始创建相邻笔记:', { noteId, direction })
-
       // 创建新笔记前，先保存当前树的完整状态
       const currentTreeState = JSON.parse(JSON.stringify(nodes.value))
       const currentExpandedNodesArray = Array.from(expandedNodes.value)
@@ -289,7 +274,6 @@ export const useKnowledgeTreeStore = defineStore('knowledgeTree', () => {
 
       // 创建新笔记
       const newNote = await window.electronAPI.knowledgeTree.createAdjacentNote(noteId, direction)
-      console.log('创建的新笔记:', newNote)
 
       // 根据笔记ID找到对应的节点
       const findNodeById = (
@@ -326,7 +310,6 @@ export const useKnowledgeTreeStore = defineStore('knowledgeTree', () => {
       // 更新必要的部分
       if (direction === 'child') {
         // 添加子节点：只需要更新所选节点的子节点列表
-        console.log('添加子节点，更新所选节点:', selectedNode.address)
 
         // 标记当前节点为展开状态
         selectedNode.isExpanded = true
@@ -363,10 +346,8 @@ export const useKnowledgeTreeStore = defineStore('knowledgeTree', () => {
         }
       } else {
         // 添加同级节点：需要更新父节点的子节点列表
-        console.log('添加同级节点')
 
         if (parentNode) {
-          console.log('找到父节点:', parentNode.address)
           // 标记父节点为展开状态
           parentNode.isExpanded = true
           expandedNodes.value.add(parentNode.address)
@@ -410,7 +391,6 @@ export const useKnowledgeTreeStore = defineStore('knowledgeTree', () => {
           }
         } else if (selectedNode.address.endsWith('000')) {
           // 如果是顶层节点，则刷新顶层节点列表，但保持展开状态
-          console.log('操作顶层节点，刷新顶层节点')
           const topLevelNodes = await window.electronAPI.knowledgeTree.getTopLevelNodes()
 
           // 记录当前所有节点的展开状态和子节点
@@ -433,7 +413,6 @@ export const useKnowledgeTreeStore = defineStore('knowledgeTree', () => {
           }))
         } else {
           // 其他情况，可能是编码规则中的特殊情况
-          console.log('无法确定父节点，恢复原状态')
           nodes.value = currentTreeState
           expandedNodes.value = new Set(currentExpandedNodesArray)
         }

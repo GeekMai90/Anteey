@@ -865,7 +865,6 @@ const bindNodeEvents = (node: Element) => {
 const noteUpdatedBus = useEventBus<Note>('note-updated')
 noteUpdatedBus.on((updatedNote) => {
   if (!updatedNote || !jm.value) return
-  console.log('KnowledgeTree.vue→ 收到笔记更新事件:', updatedNote.id)
 
   // 通过noteId查找需要更新的节点
   const findNodeByNoteId = (noteId: string) => {
@@ -907,7 +906,6 @@ noteUpdatedBus.on((updatedNote) => {
       treeNode.title = updatedNote.title || ''
       // 同步索引状态
       treeNode.isIndexed = updatedNote.isIndexed || false
-      console.log('KnowledgeTree.vue→ 更新节点标题:', address, updatedNote.title)
 
       // 更新节点在树中的显示内容，保持与transformToJsMindData函数一致的生成方式
       const hasChildren = nodeToUpdate.data.data.childCount > 0

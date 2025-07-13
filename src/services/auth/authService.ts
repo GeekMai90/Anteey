@@ -251,11 +251,22 @@ export async function refreshToken(token: string): Promise<AuthState> {
       throw new Error('无法获取当前认证状态')
     }
 
+    const now = new Date()
+    let newExpiresAt = currentState.expiresAt
+
+    // 如果是永久授权用户，刷新token成功后也自动延长有效期
+    if (currentState.user && currentState.user.licenseType === 'desktop_permanent') {
+      // 延长180天有效期
+      newExpiresAt = new Date(now.getTime() + 180 * 24 * 60 * 60 * 1000).toISOString()
+      console.log('authService→ 永久授权用户刷新token成功，延长有效期至:', newExpiresAt)
+    }
+
     const authState: AuthState = {
       ...currentState,
       accessToken: access_token,
       refreshToken: refresh_token,
-      lastVerified: new Date().toISOString()
+      lastVerified: now.toISOString(),
+      expiresAt: newExpiresAt
     }
 
     // 加密存储更新后的认证状态
@@ -385,10 +396,21 @@ async function checkNetworkAndVerify(state: AuthState): Promise<boolean> {
     // 更新用户信息和最后验证时间
     const verifyData = response.data
     if (verifyData.valid && verifyData.user) {
+      const now = new Date()
+      let newExpiresAt = state.expiresAt
+
+      // 如果是永久授权用户，验证成功后自动延长有效期
+      if (verifyData.user.licenseType === 'desktop_permanent') {
+        // 延长180天有效期
+        newExpiresAt = new Date(now.getTime() + 180 * 24 * 60 * 60 * 1000).toISOString()
+        console.log('authService→ 永久授权用户验证成功，延长有效期至:', newExpiresAt)
+      }
+
       await saveAuthState({
         ...state,
         user: verifyData.user,
-        lastVerified: new Date().toISOString()
+        lastVerified: now.toISOString(),
+        expiresAt: newExpiresAt
       })
       console.log('authService→ 验证成功，已更新用户信息')
       return true
