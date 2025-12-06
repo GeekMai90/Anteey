@@ -74,12 +74,19 @@ export const useAuthStore = defineStore('auth', () => {
         async () => await window.electronAPI.auth.getCurrentAuthState()
       )
       if (state) {
-        const isValid = await retryOperation(async () => await window.electronAPI.auth.verifyAuth())
-        if (!isValid) {
-          await logout()
-          return
-        }
+        // ========== 定期网络验证已禁用（服务器到期临时方案） ==========
+        // 不再进行网络验证，直接使用本地状态
+        console.log('authStore→ 定期网络验证已禁用，直接使用本地认证状态')
         authState.value = state
+
+        // ========== 原网络验证代码（已注释，待恢复） ==========
+        // const isValid = await retryOperation(async () => await window.electronAPI.auth.verifyAuth())
+        // if (!isValid) {
+        //   await logout()
+        //   return
+        // }
+        // authState.value = state
+        // ========== 原网络验证代码结束 ==========
       }
     } catch (err) {
       console.error('初始化认证状态失败:', err)
@@ -174,23 +181,35 @@ export const useAuthStore = defineStore('auth', () => {
 
   // 修改自动刷新机制
   const setupAutoRefresh = () => {
+    // ========== 定期网络验证已禁用（服务器到期临时方案） ==========
     // 清理已存在的定时器
     if (refreshInterval) {
       clearInterval(refreshInterval)
+      refreshInterval = null
     }
 
-    refreshInterval = setInterval(
-      async () => {
-        if (authState.value?.accessToken) {
-          try {
-            await refreshToken()
-          } catch (err) {
-            console.error('自动刷新 token 失败:', err)
-          }
-        }
-      },
-      14 * 24 * 60 * 60 * 1000
-    )
+    // 不再设置定期刷新token的定时器
+    console.log('authStore→ 定期网络验证已禁用，不再自动刷新token')
+
+    // ========== 原定期刷新代码（已注释，待恢复） ==========
+    // // 清理已存在的定时器
+    // if (refreshInterval) {
+    //   clearInterval(refreshInterval)
+    // }
+
+    // refreshInterval = setInterval(
+    //   async () => {
+    //     if (authState.value?.accessToken) {
+    //       try {
+    //         await refreshToken()
+    //       } catch (err) {
+    //         console.error('自动刷新 token 失败:', err)
+    //       }
+    //     }
+    //   },
+    //   14 * 24 * 60 * 60 * 1000
+    // )
+    // ========== 原定期刷新代码结束 ==========
   }
 
   // 建议添加重试机制
@@ -243,19 +262,32 @@ export const useAuthStore = defineStore('auth', () => {
 
   // 修改监控离线状态函数
   const monitorOfflineStatus = () => {
+    // ========== 定期网络验证已禁用（服务器到期临时方案） ==========
     // 清理已存在的定时器
     if (offlineMonitorInterval) {
       clearInterval(offlineMonitorInterval)
+      offlineMonitorInterval = null
     }
 
-    // 立即执行一次检查
-    checkOfflineStatus()
+    // 不再设置定期检查离线状态的定时器
+    console.log('authStore→ 定期网络验证已禁用，不再监控离线状态')
 
-    // 设置定时检查 (每 4小时)
-    offlineMonitorInterval = setInterval(checkOfflineStatus, 4 * 60 * 60 * 1000) // 2小时 = 2 * 60 * 60 * 1000 毫秒
+    // ========== 原定期监控代码（已注释，待恢复） ==========
+    // // 清理已存在的定时器
+    // if (offlineMonitorInterval) {
+    //   clearInterval(offlineMonitorInterval)
+    // }
+
+    // // 立即执行一次检查
+    // checkOfflineStatus()
+
+    // // 设置定时检查 (每 4小时)
+    // offlineMonitorInterval = setInterval(checkOfflineStatus, 4 * 60 * 60 * 1000) // 2小时 = 2 * 60 * 60 * 1000 毫秒
+    // ========== 原定期监控代码结束 ==========
   }
 
-  // 修改检查逻辑
+  // 修改检查逻辑（定期网络验证已禁用，保留以便恢复）
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const checkOfflineStatus = async () => {
     try {
       const networkStatus = await window.electronAPI.auth.checkNetworkStatus()
@@ -327,16 +359,22 @@ export const useAuthStore = defineStore('auth', () => {
         }
       }
 
-      // 2. 立即进行网络验证
-      if (authState.value) {
-        const isValid = await window.electronAPI.auth.verifyAuth()
-        // console.log('authStore→ 网络验证结果:', isValid)
+      // ========== 定期网络验证已禁用（服务器到期临时方案） ==========
+      // 不再进行立即网络验证
+      console.log('authStore→ 定期网络验证已禁用，跳过初始化时的网络验证')
 
-        if (!isValid) {
-          console.log('authStore→ 验证失败，执行登出')
-          await logout()
-        }
-      }
+      // ========== 原立即网络验证代码（已注释，待恢复） ==========
+      // // 2. 立即进行网络验证
+      // if (authState.value) {
+      //   const isValid = await window.electronAPI.auth.verifyAuth()
+      //   // console.log('authStore→ 网络验证结果:', isValid)
+
+      //   if (!isValid) {
+      //     console.log('authStore→ 验证失败，执行登出')
+      //     await logout()
+      //   }
+      // }
+      // ========== 原立即网络验证代码结束 ==========
 
       isInitialized.value = true
       // console.log('authStore→ 初始化完成，当前用户类型:', userLicenseType.value)

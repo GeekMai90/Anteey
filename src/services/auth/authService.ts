@@ -27,7 +27,8 @@ const NETWORK_CHECK_INTERVAL = 24 * 60 * 60 * 1000
  * 4. Token 刷新
  */
 
-// API 响应类型定义
+// API 响应类型定义（已注释的服务器验证代码中使用，保留以便恢复）
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 interface LoginResponse {
   access_token: string
   refresh_token: string
@@ -41,6 +42,7 @@ interface LoginResponse {
   }
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 interface RefreshTokenResponse {
   access_token: string
   refresh_token: string
@@ -191,33 +193,71 @@ export async function checkNetworkStatus(): Promise<boolean> {
 export async function login(email: string, password: string): Promise<AuthState> {
   try {
     const deviceInfo = getDeviceInfo()
-    const { data } = await request.post<LoginResponse>('/auth/login', {
-      ...deviceInfo,
-      email,
-      password
-    })
 
-    // 添加调试日志
-    console.log('authService.ts→ 登录响应数据:', data)
+    // ========== 硬编码账号验证（服务器到期临时方案） ==========
+    // 使用账号 anteey.com / anteey.com 直接登录并获得永久会员权限
+    if (email === 'anteey.com' && password === 'anteey.com') {
+      console.log('authService.ts→ 使用硬编码账号登录，授予永久会员权限')
 
-    // 从 data 中获取数据
-    const { user, access_token, refresh_token } = data
+      const now = new Date()
+      const expiresAt = new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000) // 1年后过期（永久会员）
 
-    const authState: AuthState = {
-      user,
-      accessToken: access_token,
-      refreshToken: refresh_token,
-      deviceId: deviceInfo.deviceIdentifier,
-      deviceName: deviceInfo.deviceName,
-      lastVerified: new Date().toISOString(),
-      expiresAt:
-        user.licenseExpiredAt || new Date(Date.now() + 180 * 24 * 60 * 60 * 1000).toISOString()
+      const authState: AuthState = {
+        user: {
+          id: 'hardcoded-user-id',
+          email: 'anteey.com',
+          username: 'anteey.com',
+          licenseType: 'desktop_permanent',
+          maxDevices: 999,
+          licenseExpiredAt: null
+        },
+        accessToken: 'hardcoded-access-token',
+        refreshToken: 'hardcoded-refresh-token',
+        deviceId: deviceInfo.deviceIdentifier,
+        deviceName: deviceInfo.deviceName,
+        lastVerified: now.toISOString(),
+        expiresAt: expiresAt.toISOString()
+      }
+
+      // 加密存储认证状态
+      await saveAuthState(authState)
+      console.log('authService.ts→ 硬编码账号登录成功，已保存认证状态')
+      return authState
     }
+    // ========== 硬编码账号验证结束 ==========
 
-    // 加密存储认证状态
-    await saveAuthState(authState)
+    // ========== 原服务器验证代码（已注释，待恢复） ==========
+    // const { data } = await request.post<LoginResponse>('/auth/login', {
+    //   ...deviceInfo,
+    //   email,
+    //   password
+    // })
 
-    return authState
+    // // 添加调试日志
+    // console.log('authService.ts→ 登录响应数据:', data)
+
+    // // 从 data 中获取数据
+    // const { user, access_token, refresh_token } = data
+
+    // const authState: AuthState = {
+    //   user,
+    //   accessToken: access_token,
+    //   refreshToken: refresh_token,
+    //   deviceId: deviceInfo.deviceIdentifier,
+    //   deviceName: deviceInfo.deviceName,
+    //   lastVerified: new Date().toISOString(),
+    //   expiresAt:
+    //     user.licenseExpiredAt || new Date(Date.now() + 180 * 24 * 60 * 60 * 1000).toISOString()
+    // }
+
+    // // 加密存储认证状态
+    // await saveAuthState(authState)
+
+    // return authState
+    // ========== 原服务器验证代码结束 ==========
+
+    // 如果不是硬编码账号，抛出错误（因为服务器已到期）
+    throw new Error('服务器已到期，请使用账号 anteey.com / anteey.com 登录')
   } catch (error) {
     console.error('登录失败:', error)
     throw error
@@ -232,47 +272,71 @@ export async function login(email: string, password: string): Promise<AuthState>
  * 2. 更新本地存储的认证状态
  * 3. 更新最后验证时间
  *
- * @param token 刷新令牌
+ * @param token 刷新令牌（硬编码账号模式下未使用，保留以便恢复）
  * @returns {Promise<AuthState>} 更新后的认证状态
  * @throws 刷新失败时抛出错误
  */
-export async function refreshToken(token: string): Promise<AuthState> {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export async function refreshToken(_token: string): Promise<AuthState> {
   try {
-    const { data } = await request.post<RefreshTokenResponse>('/auth/refresh', {
-      refresh_token: token
-    })
-
-    // 从 data 中获取数据
-    const { access_token, refresh_token } = data
-
     // 获取当前认证状态
     const currentState = await getCurrentAuthState()
     if (!currentState) {
       throw new Error('无法获取当前认证状态')
     }
 
-    const now = new Date()
-    let newExpiresAt = currentState.expiresAt
+    // ========== 硬编码账号处理（服务器到期临时方案） ==========
+    // 如果是硬编码账号，直接更新验证时间
+    if (currentState.user && currentState.user.email === 'anteey.com') {
+      console.log('authService.ts→ 硬编码账号刷新token，更新验证时间')
+      const now = new Date()
+      const newExpiresAt = new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000) // 1年后过期
 
-    // 如果是永久授权用户，刷新token成功后也自动延长有效期
-    if (currentState.user && currentState.user.licenseType === 'desktop_permanent') {
-      // 延长180天有效期
-      newExpiresAt = new Date(now.getTime() + 180 * 24 * 60 * 60 * 1000).toISOString()
-      console.log('authService→ 永久授权用户刷新token成功，延长有效期至:', newExpiresAt)
+      const authState: AuthState = {
+        ...currentState,
+        lastVerified: now.toISOString(),
+        expiresAt: newExpiresAt.toISOString()
+      }
+
+      await saveAuthState(authState)
+      return authState
     }
+    // ========== 硬编码账号处理结束 ==========
 
-    const authState: AuthState = {
-      ...currentState,
-      accessToken: access_token,
-      refreshToken: refresh_token,
-      lastVerified: now.toISOString(),
-      expiresAt: newExpiresAt
-    }
+    // ========== 原服务器刷新代码（已注释，待恢复） ==========
+    // const { data } = await request.post<RefreshTokenResponse>('/auth/refresh', {
+    //   refresh_token: token
+    // })
 
-    // 加密存储更新后的认证状态
-    await saveAuthState(authState)
+    // // 从 data 中获取数据
+    // const { access_token, refresh_token } = data
 
-    return authState
+    // const now = new Date()
+    // let newExpiresAt = currentState.expiresAt
+
+    // // 如果是永久授权用户，刷新token成功后也自动延长有效期
+    // if (currentState.user && currentState.user.licenseType === 'desktop_permanent') {
+    //   // 延长180天有效期
+    //   newExpiresAt = new Date(now.getTime() + 180 * 24 * 60 * 60 * 1000).toISOString()
+    //   console.log('authService→ 永久授权用户刷新token成功，延长有效期至:', newExpiresAt)
+    // }
+
+    // const authState: AuthState = {
+    //   ...currentState,
+    //   accessToken: access_token,
+    //   refreshToken: refresh_token,
+    //   lastVerified: now.toISOString(),
+    //   expiresAt: newExpiresAt
+    // }
+
+    // // 加密存储更新后的认证状态
+    // await saveAuthState(authState)
+
+    // return authState
+    // ========== 原服务器刷新代码结束 ==========
+
+    // 如果不是硬编码账号，抛出错误（因为服务器已到期）
+    throw new Error('服务器已到期，无法刷新token')
   } catch (error) {
     console.error('刷新 token 失败:', error)
     throw error
@@ -304,29 +368,40 @@ export async function logout(): Promise<void> {
       accessToken: currentState.accessToken ? '存在' : '不存在'
     })
 
-    try {
-      // 确保请求头中包含 token
-      const config = {
-        headers: {
-          Authorization: `Bearer ${currentState.accessToken}`
-        }
-      }
-
-      // 尝试调用登出 API
-      await request.post(
-        '/auth/logout',
-        {
-          deviceId: currentState.deviceId
-        },
-        config
-      )
-
-      // 尝试删除设备
-      await request.delete(`/devices/identifier/${currentState.deviceId}`, config)
-    } catch (error) {
-      console.log('authService.ts→ 登出或删除设备失败:', error)
-      // 即使 API 调用失败，也继续清除本地状态
+    // ========== 硬编码账号处理（服务器到期临时方案） ==========
+    // 如果是硬编码账号，直接清除本地状态，不需要调用服务器API
+    if (currentState.user && currentState.user.email === 'anteey.com') {
+      console.log('authService.ts→ 硬编码账号登出，直接清除本地状态')
+      await db('auth_state').delete()
+      return
     }
+    // ========== 硬编码账号处理结束 ==========
+
+    // ========== 原服务器登出代码（已注释，待恢复） ==========
+    // try {
+    //   // 确保请求头中包含 token
+    //   const config = {
+    //     headers: {
+    //       Authorization: `Bearer ${currentState.accessToken}`
+    //     }
+    //   }
+
+    //   // 尝试调用登出 API
+    //   await request.post(
+    //     '/auth/logout',
+    //     {
+    //       deviceId: currentState.deviceId
+    //     },
+    //     config
+    //   )
+
+    //   // 尝试删除设备
+    //   await request.delete(`/devices/identifier/${currentState.deviceId}`, config)
+    // } catch (error) {
+    //   console.log('authService.ts→ 登出或删除设备失败:', error)
+    //   // 即使 API 调用失败，也继续清除本地状态
+    // }
+    // ========== 原服务器登出代码结束 ==========
 
     // 无论如何都清除本地认证状态
     await db('auth_state').delete()
@@ -379,60 +454,88 @@ export async function getCurrentAuthState(): Promise<AuthState | null> {
  * @param state 当前认证状态
  * @returns {Promise<boolean>} true 表示验证成功，false 表示验证失败
  */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 async function checkNetworkAndVerify(state: AuthState): Promise<boolean> {
   try {
-    // 检查网络状态
-    const isOnline = await checkNetworkStatus()
-    if (!isOnline) {
-      console.log('authService→ 网络离线，跳过验证')
-      return false
-    }
-
-    // 验证 token
-    const response = await request.get('/auth/verify', {
-      headers: { Authorization: `Bearer ${state.accessToken}` }
-    })
-
-    // 更新用户信息和最后验证时间
-    const verifyData = response.data
-    if (verifyData.valid && verifyData.user) {
+    // ========== 硬编码账号验证（服务器到期临时方案） ==========
+    // 如果是硬编码账号，直接返回验证成功
+    if (state.user && state.user.email === 'anteey.com') {
+      console.log('authService→ 硬编码账号验证，直接通过')
       const now = new Date()
-      let newExpiresAt = state.expiresAt
-
-      // 如果是永久授权用户，验证成功后自动延长有效期
-      if (verifyData.user.licenseType === 'desktop_permanent') {
-        // 延长180天有效期
-        newExpiresAt = new Date(now.getTime() + 180 * 24 * 60 * 60 * 1000).toISOString()
-        console.log('authService→ 永久授权用户验证成功，延长有效期至:', newExpiresAt)
-      }
+      const newExpiresAt = new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000) // 1年后过期
 
       await saveAuthState({
         ...state,
-        user: verifyData.user,
         lastVerified: now.toISOString(),
-        expiresAt: newExpiresAt
+        expiresAt: newExpiresAt.toISOString()
       })
-      console.log('authService→ 验证成功，已更新用户信息')
+      console.log('authService→ 硬编码账号验证成功，已更新验证时间')
       return true
     }
+    // ========== 硬编码账号验证结束 ==========
 
+    // ========== 原服务器验证代码（已注释，待恢复） ==========
+    // // 检查网络状态
+    // const isOnline = await checkNetworkStatus()
+    // if (!isOnline) {
+    //   console.log('authService→ 网络离线，跳过验证')
+    //   return false
+    // }
+
+    // // 验证 token
+    // const response = await request.get('/auth/verify', {
+    //   headers: { Authorization: `Bearer ${state.accessToken}` }
+    // })
+
+    // // 更新用户信息和最后验证时间
+    // const verifyData = response.data
+    // if (verifyData.valid && verifyData.user) {
+    //   const now = new Date()
+    //   let newExpiresAt = state.expiresAt
+
+    //   // 如果是永久授权用户，验证成功后自动延长有效期
+    //   if (verifyData.user.licenseType === 'desktop_permanent') {
+    //     // 延长180天有效期
+    //     newExpiresAt = new Date(now.getTime() + 180 * 24 * 60 * 60 * 1000).toISOString()
+    //     console.log('authService→ 永久授权用户验证成功，延长有效期至:', newExpiresAt)
+    //   }
+
+    //   await saveAuthState({
+    //     ...state,
+    //     user: verifyData.user,
+    //     lastVerified: now.toISOString(),
+    //     expiresAt: newExpiresAt
+    //   })
+    //   console.log('authService→ 验证成功，已更新用户信息')
+    //   return true
+    // }
+
+    // return false
+    // } catch (error) {
+    //   console.log('authService→ 验证失败，尝试刷新 token')
+    //   // 如果是认证错误，尝试刷新 token
+    //   if ((error as any).response?.status === 401) {
+    //     try {
+    //       if (!state.refreshToken) {
+    //         throw new Error('刷新 token 不存在')
+    //       }
+    //       await refreshToken(state.refreshToken)
+    //       return true
+    //     } catch (refreshError) {
+    //       console.error('authService→ 刷新 token 失败:', refreshError)
+    //       return false
+    //     }
+    //   }
+
+    //   return false
+    // }
+    // ========== 原服务器验证代码结束 ==========
+
+    // 如果不是硬编码账号，返回 false（因为服务器已到期）
+    console.log('authService→ 非硬编码账号，服务器已到期，验证失败')
     return false
   } catch (error) {
-    console.log('authService→ 验证失败，尝试刷新 token')
-    // 如果是认证错误，尝试刷新 token
-    if ((error as any).response?.status === 401) {
-      try {
-        if (!state.refreshToken) {
-          throw new Error('刷新 token 不存在')
-        }
-        await refreshToken(state.refreshToken)
-        return true
-      } catch (refreshError) {
-        console.error('authService→ 刷新 token 失败:', refreshError)
-        return false
-      }
-    }
-
+    console.error('authService→ 验证过程出错:', error)
     return false
   }
 }
@@ -470,6 +573,20 @@ export async function verifyAuthState(): Promise<boolean> {
     const lastVerified = new Date(state.lastVerified)
     const expiresAt = new Date(state.expiresAt)
 
+    // ========== 硬编码账号验证（服务器到期临时方案） ==========
+    // 如果是硬编码账号，检查是否过期即可
+    if (state.user.email === 'anteey.com') {
+      if (expiresAt < now) {
+        console.log('authService→ 硬编码账号许可证已过期，需要重新登录')
+        await db('auth_state').delete()
+        return false
+      }
+      // 硬编码账号永久有效，直接返回 true
+      console.log('authService→ 硬编码账号验证通过')
+      return true
+    }
+    // ========== 硬编码账号验证结束 ==========
+
     // 如果已过期，直接返回 false
     if (expiresAt < now) {
       console.log('authService→ 许可证已过期:', {
@@ -492,10 +609,16 @@ export async function verifyAuthState(): Promise<boolean> {
       return true
     }
 
-    // 否则进行网络验证
-    const networkVerifyResult = await checkNetworkAndVerify(state)
-    console.log('authService→ 网络验证结果:', networkVerifyResult)
-    return networkVerifyResult
+    // ========== 原服务器验证代码（已注释，待恢复） ==========
+    // // 否则进行网络验证
+    // const networkVerifyResult = await checkNetworkAndVerify(state)
+    // console.log('authService→ 网络验证结果:', networkVerifyResult)
+    // return networkVerifyResult
+    // ========== 原服务器验证代码结束 ==========
+
+    // 如果不是硬编码账号且服务器已到期，返回 false
+    console.log('authService→ 非硬编码账号，服务器已到期，验证失败')
+    return false
   } catch (error) {
     console.error('authService→ 验证失败:', error)
     return false
