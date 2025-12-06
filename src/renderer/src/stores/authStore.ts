@@ -287,6 +287,7 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   // 修改检查逻辑（定期网络验证已禁用，保留以便恢复）
+  // @ts-ignore - 保留以便恢复定期网络验证功能
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const checkOfflineStatus = async () => {
     try {

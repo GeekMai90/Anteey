@@ -28,6 +28,7 @@ const NETWORK_CHECK_INTERVAL = 24 * 60 * 60 * 1000
  */
 
 // API 响应类型定义（已注释的服务器验证代码中使用，保留以便恢复）
+// @ts-ignore - 保留以便恢复服务器验证功能
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 interface LoginResponse {
   access_token: string
@@ -42,6 +43,7 @@ interface LoginResponse {
   }
 }
 
+// @ts-ignore - 保留以便恢复服务器验证功能
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 interface RefreshTokenResponse {
   access_token: string
@@ -454,6 +456,7 @@ export async function getCurrentAuthState(): Promise<AuthState | null> {
  * @param state 当前认证状态
  * @returns {Promise<boolean>} true 表示验证成功，false 表示验证失败
  */
+// @ts-ignore - 保留以便恢复服务器验证功能
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 async function checkNetworkAndVerify(state: AuthState): Promise<boolean> {
   try {
