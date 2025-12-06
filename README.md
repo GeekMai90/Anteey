@@ -1,143 +1,44 @@
-# Anteey
+# Anteey - 遵循Antinet方法论的思考工具
 
-Anteey 是一个基于卢曼卡片盒笔记法理念的现代化桌面笔记应用。
+Anteey是一款原始而纯粹的思考工具，基于Antinet Zettelkasten方法论设计，致力于帮助用户通过回归传统方法获得更深层的思考。
 
-## 技术栈
+## 项目理念
 
-### 前端
+Anteey源于Antinet方法论，发音与Anti相似，旨在打造一款最符合Antinet Zettelkasten方法论的数字应用。
 
-- Vue 3 + TypeScript
-- Pinia (状态管理)
-- Vue Router
-- TipTap (富文本编辑器)
+## 核心特性
 
-### 桌面端
+- **编码地址**：还原Antinet Zettelkasten的数字字母编码方法，为每个想法安排最合适的位置
+- **卡片阅览**：传承实体卡片盒的优雅体验，多维度的筛选功能
+- **知识树**：基于数字字母编码系统，自动生成清晰的知识结构图谱
+- **记忆卡**：基于开源FSRS记忆算法，一键将笔记转化为记忆卡片
+- **思维画布**：宛如实体桌面的自由创作空间，发现知识间的潜在联系
+- **时光记**：结合子弹笔记法与时间分块法的日程管理工具
+- **本地私有**：纯离线本地化设计，确保知识库的隐私与安全
 
-- Electron
-- SQLite (BetterSQLite3)
+## 开发故事
 
-### 闪卡算法
+Anteey是由一位没有编程基础的知识爱好者，通过零基础自学编程并借助AI的力量创造的复古笔记应用。
 
-- ts-fsrs (Free Spaced Repetition Scheduler)
+## 技术架构
 
-## 项目特性
+Anteey基于Electron开发，使用本地数据库存储数据，支持WebDAV备份功能和Markdown格式导出。
 
-- 📝 卡片式笔记管理
-- 🔗 双向链接支持
-- 📊 知识图谱可视化
-- 🎨 白板功能
-- ⏰ 时间块管理
-- 📚 闪卡复习系统
-- 💾 自动备份
-- ☁️ WebDAV 同步
-- 🔍 全文检索
-- 📱 响应式设计
+## 安装与使用
 
-## 项目结构
-
-```
-src/
-├── db/ # 数据库相关
-├── main/ # Electron 主进程
-├── preload/ # 预加载脚本
-├── renderer/ # 渲染进程 (Vue 应用)
-├── services/ # 业务服务层
-└── shared/ # 共享类型定义
-```
-
-## 开发指南
-
-### 环境准备
-
-1. Node.js 16+
-2. pnpm 包管理器
-3. 推荐的 IDE: VSCode + 相关插件
-
-### 安装依赖
-
-```bash
-pnpm install
-```
-
-### 开发模式
-
-```bash
-pnpm dev
-```
-
-### 构建应用
-
-```bash
-Windows
-pnpm run build:proxyWinFinal
-macOS
-pnpm run build:proxyMacFinal
-Linux
-pnpm run build:proxyLinuxFinal
-```
-
-## 核心功能模块
-
-### 1. 笔记系统
-
-- 支持富文本编辑
-- 双向链接
-- 标签管理
-- 版本历史
-
-### 2. 白板功能
-
-- 多种元素类型：卡片、文本、图片
-- 自由拖拽与缩放
-- 元素连接
-- 分组管理
-
-### 3. 时间管理
-
-- 时间块记录
-- 天气心情跟踪
-- 时间线视图
-
-### 4. 数据同步与备份
-
-- WebDAV 同步
-- 自动备份
-- 版本管理
-
-## 编码规范
-
-### Vue 组件
-
-- 使用 Composition API
-- TypeScript 类型定义
-- 组件命名采用 PascalCase
-- 文件名采用 PascalCase
-
-### 状态管理
-
-- 使用 Pinia 进行状态管理
-- 按功能模块拆分 Store
-- 使用组合式函数管理复杂逻辑
-
-### 数据库操作
-
-- 使用 BetterSQLite3
-- 统一的服务层封装
-- 事务处理
-- 错误处理与日志记录
+### 系统要求
+- macOS: 支持M1/M2/M3芯片和Intel芯片
+- Windows: Windows 10及以上
 
 ## 贡献指南
 
-1. Fork 项目
-2. 创建特性分支
-3. 提交变更
-4. 推送到分支
-5. 创建 Pull Request
+我们欢迎社区成员参与Anteey的开发和改进。请查看[贡献指南](CONTRIBUTING.md)了解如何参与。
 
-## 许可证
+## 开源许可
 
-[待补充]
+本项目采用[MIT许可证](LICENSE)。
 
 ## 联系方式
 
-- 官网：https://www.Anteey.cc
+- 开发者: 麦先生
+- 社交媒体: [Bilibili](https://space.bilibili.com/91200078) | [小红书](https://www.xiaohongshu.com/user/profile/558962a862a60c2a86cb929c) | [即刻](https://m.jellow.club/users/94847771-de11-4e18-8a22-818fe66469a4)
