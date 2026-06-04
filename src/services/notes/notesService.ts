@@ -15,6 +15,20 @@ import { db } from '../../db/config'
 import { getCurrentAuthState } from '../auth/authService'
 import { updateNoteEmbedding } from '../rag/embeddingService'
 import { LanceService } from '../../db/vector/lanceService'
+
+let legacyNotesColumnsPromise: Promise<{ hasTitle: boolean; hasSummary: boolean }> | null = null
+
+async function getLegacyNotesColumns(): Promise<{ hasTitle: boolean; hasSummary: boolean }> {
+  if (!legacyNotesColumnsPromise) {
+    legacyNotesColumnsPromise = Promise.all([
+      db.schema.hasColumn('notes', 'title'),
+      db.schema.hasColumn('notes', 'summary')
+    ]).then(([hasTitle, hasSummary]) => ({ hasTitle, hasSummary }))
+  }
+
+  return legacyNotesColumnsPromise
+}
+
 // 辅助函数：将数据库记录转换为 Note 对象
 export function convertToNote(record: any): Note {
   return {
@@ -44,7 +58,14 @@ export function convertToNote(record: any): Note {
     rightBarOrder: record.rightBarOrder,
 
     // 元数据
-    metadata: record.metadata ? JSON.parse(record.metadata) : undefined,
+    metadata: record.metadata
+      ? JSON.parse(record.metadata)
+      : record.title || record.summary
+        ? {
+            title: record.title || '',
+            summary: record.summary || ''
+          }
+        : undefined,
     isFlashcard: record.isFlashcard,
     flashcard: record.flashcard ? JSON.parse(record.flashcard) : undefined,
     nextReviewAt: record.nextReviewAt ? new Date(record.nextReviewAt) : undefined
@@ -510,14 +531,26 @@ export async function createNote(): Promise<Note> {
     if (!checkResult.allowed) {
       throw new Error(checkResult.message)
     }
-    await db('notes').insert({
+
+    const { hasTitle, hasSummary } = await getLegacyNotesColumns()
+    const insertData: any = {
       ...newNote,
       content: JSON.stringify(newNote.content),
       references: JSON.stringify(newNote.references),
       relationshipTree: JSON.stringify(newNote.relationshipTree),
       graphData: JSON.stringify(newNote.graphData),
       metadata: JSON.stringify(newNote.metadata)
-    })
+    }
+
+    if (hasTitle) {
+      insertData.title = newNote.metadata?.title || ''
+    }
+
+    if (hasSummary) {
+      insertData.summary = newNote.metadata?.summary || ''
+    }
+
+    await db('notes').insert(insertData)
 
     // console.log('后端→ 创建笔记成功:', id)
     return newNote
@@ -574,6 +607,7 @@ export async function updateNoteContent(id: string, content: object): Promise<No
 
         // 提取第一行文本作为标题
         const firstLineText = extractFirstLineText(content)
+        const { hasTitle } = await getLegacyNotesColumns()
 
         // 准备更新数据
         const updateData: any = {
@@ -588,6 +622,10 @@ export async function updateNoteContent(id: string, content: object): Promise<No
           `,
             [firstLineText]
           )
+        }
+
+        if (hasTitle) {
+          updateData.title = firstLineText
         }
 
         // 执行更新并返回更新后的笔记
